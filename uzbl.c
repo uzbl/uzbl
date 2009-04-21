@@ -1,3 +1,5 @@
+// Original code taken from the example webkit-gtk+ application. see notice below.
+
 /*
  * Copyright (C) 2006, 2007 Apple Inc.
  * Copyright (C) 2007 Alp Toker <alp@atoker.com>
@@ -47,7 +49,7 @@ static void
 update_title (GtkWindow* window)
 {
     GString* string = g_string_new (main_title);
-    g_string_append (string, " - WebKit Launcher");
+    g_string_append (string, " - Uzbl browser");
     if (load_progress < 100)
         g_string_append_printf (string, " (%d%%)", load_progress);
     gchar* title = g_string_free (string, FALSE);
@@ -132,62 +134,23 @@ create_statusbar ()
     return (GtkWidget*)main_statusbar;
 }
 
-static GtkWidget*
-create_toolbar ()
-{
-    GtkWidget* toolbar = gtk_toolbar_new ();
-
-    gtk_toolbar_set_orientation (GTK_TOOLBAR (toolbar), GTK_ORIENTATION_HORIZONTAL);
-    gtk_toolbar_set_style (GTK_TOOLBAR (toolbar), GTK_TOOLBAR_BOTH_HORIZ);
-
-    GtkToolItem* item;
-
-    /* the back button */
-    item = gtk_tool_button_new_from_stock (GTK_STOCK_GO_BACK);
-    g_signal_connect (G_OBJECT (item), "clicked", G_CALLBACK (go_back_cb), NULL);
-    gtk_toolbar_insert (GTK_TOOLBAR (toolbar), item, -1);
-
-    /* The forward button */
-    item = gtk_tool_button_new_from_stock (GTK_STOCK_GO_FORWARD);
-    g_signal_connect (G_OBJECT (item), "clicked", G_CALLBACK (go_forward_cb), NULL);
-    gtk_toolbar_insert (GTK_TOOLBAR (toolbar), item, -1);
-
-    /* The URL entry */
-    item = gtk_tool_item_new ();
-    gtk_tool_item_set_expand (item, TRUE);
-    uri_entry = gtk_entry_new ();
-    gtk_container_add (GTK_CONTAINER (item), uri_entry);
-    g_signal_connect (G_OBJECT (uri_entry), "activate", G_CALLBACK (activate_uri_entry_cb), NULL);
-    gtk_toolbar_insert (GTK_TOOLBAR (toolbar), item, -1);
-
-    /* The go button */
-    item = gtk_tool_button_new_from_stock (GTK_STOCK_OK);
-    g_signal_connect_swapped (G_OBJECT (item), "clicked", G_CALLBACK (activate_uri_entry_cb), (gpointer)uri_entry);
-    gtk_toolbar_insert (GTK_TOOLBAR (toolbar), item, -1);
-
-    return toolbar;
-}
-
-static GtkWidget*
-create_window ()
+static GtkWidget* create_window ()
 {
     GtkWidget* window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
     gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
-    gtk_widget_set_name (window, "GtkLauncher");
+    gtk_widget_set_name (window, "Uzbl browser");
     g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (destroy_cb), NULL);
 
     return window;
 }
 
-int
-main (int argc, char* argv[])
+int main (int argc, char* argv[])
 {
     gtk_init (&argc, &argv);
     if (!g_thread_supported ())
         g_thread_init (NULL);
 
     GtkWidget* vbox = gtk_vbox_new (FALSE, 0);
-    gtk_box_pack_start (GTK_BOX (vbox), create_toolbar (), FALSE, FALSE, 0);
     gtk_box_pack_start (GTK_BOX (vbox), create_browser (), TRUE, TRUE, 0);
     gtk_box_pack_start (GTK_BOX (vbox), create_statusbar (), FALSE, FALSE, 0);
 
