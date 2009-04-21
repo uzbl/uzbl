@@ -17,4 +17,10 @@ Right now uzbl is in a very early state but here are some ideas I would like to 
 - no download manager. allow user to pick wget/curl/a custom script/... 
 - no build in command interpreters like ubiquity.  uzbl should be accessible and you should use a shell or similar.
 
+to figure out:
+- password management. maybe an encrypted store that unlocks with an ssh key?
+- how to handle hyperlinks? number them like konqueror does?
+
+
+
 For more thoughts & ideas see http://bbs.archlinux.org/viewtopic.php?id=67463
