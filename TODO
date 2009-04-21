@@ -1,2 +1,2 @@
 * implement all the ideas from README
-* see if we can get rid of gtk.  I need no widgets at all, only the webkit page display
+* see if we can get rid of gtk.  I need no widgets at all, only the webkit page display no scrollbar, no statusbar.
