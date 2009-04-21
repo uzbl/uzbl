@@ -37,6 +37,21 @@ static gchar* main_title;
 static gint load_progress;
 static guint status_context_id;
 
+
+
+static gchar* uri = NULL;
+static gboolean verbose = FALSE;
+
+static GOptionEntry entries[] =
+{
+  { "uri", 'u', 0, G_OPTION_ARG_STRING, &uri, "Uri to load", NULL },
+  { "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose, "Be verbose", NULL },
+  { NULL }
+};
+
+
+
+
 static void
 activate_uri_entry_cb (GtkWidget* entry, gpointer data)
 {
@@ -45,8 +60,7 @@ activate_uri_entry_cb (GtkWidget* entry, gpointer data)
     webkit_web_view_load_uri (web_view, uri);
 }
 
-static void
-update_title (GtkWindow* window)
+static void update_title (GtkWindow* window)
 {
     GString* string = g_string_new (main_title);
     g_string_append (string, " - Uzbl browser");
@@ -125,8 +139,7 @@ create_browser ()
     return scrolled_window;
 }
 
-static GtkWidget*
-create_statusbar ()
+static GtkWidget* create_statusbar ()
 {
     main_statusbar = GTK_STATUSBAR (gtk_statusbar_new ());
     status_context_id = gtk_statusbar_get_context_id (main_statusbar, "Link Hover");
@@ -156,8 +169,14 @@ int main (int argc, char* argv[])
 
     main_window = create_window ();
     gtk_container_add (GTK_CONTAINER (main_window), vbox);
+  GError *error = NULL;
 
-    gchar* uri = (gchar*) (argc > 1 ? argv[1] : "http://www.google.com/");
+  GOptionContext* context = g_option_context_new ("- some stuff here maybe someday");
+  g_option_context_add_main_entries (context, entries, NULL);
+  g_option_context_add_group (context, gtk_get_option_group (TRUE));
+  g_option_context_parse (context, &argc, &argv, &error);
+
+
     webkit_web_view_load_uri (web_view, uri);
 
     gtk_widget_grab_focus (GTK_WIDGET (web_view));
