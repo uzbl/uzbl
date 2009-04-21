@@ -1,0 +1,20 @@
+- Uzbl.
+  In my opinion, any program can only be really useful if it complies to the unix philosophy.
+  Web browsers are frequent violators of this principle.  Time to change that!
+
+Right now uzbl is in a very early state but here are some ideas I would like to (not) implement
+
+- each instance of uzbl renders 1 page (eg it's a small wrapper around webkit), no tabbing, tab previews, or speed dial things. we have window managers for that.
+- simple ini config file ("profile") for keyboard, network,.. settings
+- implement some basic keyboard shortcuts for going up, down, refresh etc
+- listen to signals and do useful stuff when triggered.
+- 1 control application called uzblctrl or something. use this to modify the behavior of a uzbl instance (change url, refresh).  use xdotool to get the window with focus.  eg uzblctrl -win <id> -url <http://>.
+- use xbindkeys to bind keys to call uzblctrl.
+- no bookmark management builtin.  make your own solution.  for pulling a bookmark a plaintxt-based program using dmenu would work great here. combine with uzbltcrl and xbindkeys.
+  uzblctrl should support an option to query the current page so you can script something to add to your bookmarks.  use zenity or something to add tags.
+- similar story for history.
+- no ad blocking built in. use the power of /etc/hosts.  though uzblctrl should support an option to list all images on a page, so you can easily pick the links to ads to add them to your /etc/hosts. (dmenu can again be great here to automate this)
+- no download manager. allow user to pick wget/curl/a custom script/... 
+- no build in command interpreters like ubiquity.  uzbl should be accessible and you should use a shell or similar.
+
+For more thoughts & ideas see http://bbs.archlinux.org/viewtopic.php?id=67463
