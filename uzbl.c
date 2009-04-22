@@ -1,4 +1,6 @@
 // Original code taken from the example webkit-gtk+ application. see notice below.
+// Modified code is licensed under the GPL 3.  See LICENSE file.
+
 
 /*
  * Copyright (C) 2006, 2007 Apple Inc.
