@@ -8,8 +8,9 @@ Right now uzbl is in a very early state but here are some ideas I would like to 
 - simple ini config file ("profile") for keyboard, network,.. settings
 - implement some basic keyboard shortcuts for going up, down, refresh etc
 - listen to signals and do useful stuff when triggered.
-- 1 control application called uzblctrl or something. use this to modify the behavior of a uzbl instance (change url, refresh).  use xdotool to get the window with focus.  eg uzblctrl -win <id> -url <http://>.
-- use xbindkeys to bind keys to call uzblctrl.
+-  open up a socket file/fifo/.. so we can easily control each instance by writing things like 'uri <foo>' to /tmp/uzbl-pid
+- MAYBE (if needed): 1 control application called uzblctrl or something. use this to modify the behavior of a uzbl instance (change url, refresh).  use xdotool to get the window with focus.  eg uzblctrl -win <id> -url <http://>.
+  use xbindkeys to bind keys to call uzblctrl.
 - no bookmark management builtin.  make your own solution.  for pulling a bookmark a plaintxt-based program using dmenu would work great here. combine with uzbltcrl and xbindkeys.
   uzblctrl should support an option to query the current page so you can script something to add to your bookmarks.  use zenity or something to add tags.
 - similar story for history.
@@ -24,3 +25,6 @@ to figure out:
 
 
 For more thoughts & ideas see http://bbs.archlinux.org/viewtopic.php?id=67463
+
+NOTE:
+- My c skills are very rusty, it will take me a while to get back up to speed
