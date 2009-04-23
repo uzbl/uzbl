@@ -193,12 +193,13 @@ static bool parse_command(char *command)
   return output;
 }
 
-static void control_fifo(void *threadid)
+static void control_fifo()
 {
-  char *cmd;
+  char *cmd = (char *)malloc(1024);
   int num, fd;
   char *fifoname = "/tmp/uzbl";
 
+  umask(0);
   mknod(fifoname, S_IFIFO | 0666 , 0); /* Do some stuff to work with multiple instances later foo-$PID or something */
   printf("Opened control fifo in %s\n", fifoname);
 
@@ -213,7 +214,7 @@ static void control_fifo(void *threadid)
             {
               cmd[num] = '\0';
               if(! parse_command(cmd))
-                printf("Unknown command \"%s\"", cmd);
+                printf("Unknown command \"%s\".\n", cmd);
             }
         }
       num = 1;
@@ -250,10 +251,12 @@ int main (int argc, char* argv[])
     gtk_widget_grab_focus (GTK_WIDGET (web_view));
     gtk_widget_show_all (main_window);
 
-    pthread_t controlthread;
-    pthread_create(&controlthread, NULL, control_fifo, NULL);
+    pthread_t control_thread;
+    int ret;
+
+    ret = pthread_create(&control_thread, NULL, control_fifo, (void*) NULL);
     gtk_main ();
-    
-    pthread_exit(NULL);
+
+    pthread_join(control_thread, NULL);
     return 0;
 }
