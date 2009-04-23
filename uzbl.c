@@ -168,8 +168,6 @@ static bool parse_command(char *command)
 {
   bool output = true;
 
-  gdk_threads_enter();
-
   if(strcmp(command, "forward") == 0)
     {
       printf("Going forward\n");
@@ -190,8 +188,6 @@ static bool parse_command(char *command)
     {
       output = false;
     }
-
-  gdk_threads_leave();
 
   return output;
 }
@@ -229,7 +225,7 @@ int main (int argc, char* argv[])
 {
     if (!g_thread_supported ())
       g_thread_init (NULL);
-    gdk_threads_init();
+
     gtk_init (&argc, &argv);
 
     GtkWidget* vbox = gtk_vbox_new (FALSE, 0);
@@ -245,10 +241,6 @@ int main (int argc, char* argv[])
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
     g_option_context_parse (context, &argc, &argv, &error);
 
-    char *uri = "http://www.google.com";
-    if(argc == 2)
-      uri = argv[1];
-
     webkit_web_view_load_uri (web_view, uri);
 
     gtk_widget_grab_focus (GTK_WIDGET (web_view));
@@ -258,10 +250,7 @@ int main (int argc, char* argv[])
     int ret;
 
     ret = pthread_create(&control_thread, NULL, control_fifo, (void*) NULL);
-    gdk_threads_enter();
     gtk_main ();
-    gdk_threads_leave();
-
-    pthread_join(control_thread, NULL);
+    /*pthread_join(control_thread, NULL); For some reason it doesn't terminate upon the browser closing when this is enabled. */
     return 0;
 }
