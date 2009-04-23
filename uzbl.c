@@ -29,6 +29,16 @@
 #include <gtk/gtk.h>
 #include <webkit/webkit.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <pthread.h>
+
 static GtkWidget* main_window;
 static GtkWidget* uri_entry;
 static GtkStatusbar* main_statusbar;
@@ -36,8 +46,6 @@ static WebKitWebView* web_view;
 static gchar* main_title;
 static gint load_progress;
 static guint status_context_id;
-
-
 
 static gchar* uri = NULL;
 static gboolean verbose = FALSE;
@@ -48,8 +56,6 @@ static GOptionEntry entries[] =
   { "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose, "Be verbose", NULL },
   { NULL }
 };
-
-
 
 
 static void
@@ -157,9 +163,68 @@ static GtkWidget* create_window ()
     return window;
 }
 
+
+static bool parse_command(char *command)
+{
+  bool output;
+  output = true;
+
+  if(strcmp(command, "forward") == 0)
+    {
+      printf("Going forward\n");
+      webkit_web_view_go_forward (web_view);
+    }
+  else if(strcmp(command, "back") == 0)
+    {
+      printf("Going back\n");
+      webkit_web_view_go_back (web_view);
+    }
+  else if(strncmp("http://", command, 7) == 0)
+    {
+      printf("Loading URI \"%s\"\n", command);
+      uri = command;
+      webkit_web_view_load_uri (web_view, uri);
+    }
+  else
+    {
+      output = false;
+    }
+
+  return output;
+}
+
+static void control_fifo(void *threadid)
+{
+  char *cmd;
+  int num, fd;
+  char *fifoname = "/tmp/uzbl";
+
+  mknod(fifoname, S_IFIFO | 0666 , 0); /* Do some stuff to work with multiple instances later foo-$PID or something */
+  printf("Opened control fifo in %s\n", fifoname);
+
+  while (true)
+    {
+      fd = open(fifoname, O_RDONLY);
+      while (num > 0)
+        {
+          if ((num = read(fd, cmd, 300)) == -1)
+            perror("read");
+          else
+            {
+              cmd[num] = '\0';
+              if(! parse_command(cmd))
+                printf("Unknown command \"%s\"", cmd);
+            }
+        }
+      num = 1;
+    }
+  printf("Oops, this code should never be run.\n");
+}
+
 int main (int argc, char* argv[])
 {
     gtk_init (&argc, &argv);
+
     if (!g_thread_supported ())
         g_thread_init (NULL);
 
@@ -169,19 +234,26 @@ int main (int argc, char* argv[])
 
     main_window = create_window ();
     gtk_container_add (GTK_CONTAINER (main_window), vbox);
-  GError *error = NULL;
+    GError *error = NULL;
+    
+    GOptionContext* context = g_option_context_new ("- some stuff here maybe someday");
+    g_option_context_add_main_entries (context, entries, NULL);
+    g_option_context_add_group (context, gtk_get_option_group (TRUE));
+    g_option_context_parse (context, &argc, &argv, &error);
 
-  GOptionContext* context = g_option_context_new ("- some stuff here maybe someday");
-  g_option_context_add_main_entries (context, entries, NULL);
-  g_option_context_add_group (context, gtk_get_option_group (TRUE));
-  g_option_context_parse (context, &argc, &argv, &error);
-
+    char *uri = "http://www.google.com";
+    if(argc == 2)
+      uri = argv[1];
 
     webkit_web_view_load_uri (web_view, uri);
 
     gtk_widget_grab_focus (GTK_WIDGET (web_view));
     gtk_widget_show_all (main_window);
-    gtk_main ();
 
+    pthread_t controlthread;
+    pthread_create(&controlthread, NULL, control_fifo, NULL);
+    gtk_main ();
+    
+    pthread_exit(NULL);
     return 0;
 }
