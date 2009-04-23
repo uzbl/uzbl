@@ -166,8 +166,9 @@ static GtkWidget* create_window ()
 
 static bool parse_command(char *command)
 {
-  bool output;
-  output = true;
+  bool output = true;
+
+  gdk_threads_enter();
 
   if(strcmp(command, "forward") == 0)
     {
@@ -190,6 +191,8 @@ static bool parse_command(char *command)
       output = false;
     }
 
+  gdk_threads_leave();
+
   return output;
 }
 
@@ -210,7 +213,7 @@ static void control_fifo()
         {
           if ((num = read(fd, cmd, 300)) == -1)
             perror("read");
-          else
+          else if(! strcmp(cmd, ""))
             {
               cmd[num] = '\0';
               if(! parse_command(cmd))
@@ -224,14 +227,14 @@ static void control_fifo()
 
 int main (int argc, char* argv[])
 {
-    gtk_init (&argc, &argv);
-
     if (!g_thread_supported ())
-        g_thread_init (NULL);
+      g_thread_init (NULL);
+    gdk_threads_init();
+    gtk_init (&argc, &argv);
 
     GtkWidget* vbox = gtk_vbox_new (FALSE, 0);
     gtk_box_pack_start (GTK_BOX (vbox), create_browser (), TRUE, TRUE, 0);
-    gtk_box_pack_start (GTK_BOX (vbox), create_statusbar (), FALSE, FALSE, 0);
+    /*gtk_box_pack_start (GTK_BOX (vbox), create_statusbar (), FALSE, FALSE, 0); I don't like this. */
 
     main_window = create_window ();
     gtk_container_add (GTK_CONTAINER (main_window), vbox);
@@ -255,7 +258,9 @@ int main (int argc, char* argv[])
     int ret;
 
     ret = pthread_create(&control_thread, NULL, control_fifo, (void*) NULL);
+    gdk_threads_enter();
     gtk_main ();
+    gdk_threads_leave();
 
     pthread_join(control_thread, NULL);
     return 0;
