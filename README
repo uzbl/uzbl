@@ -1,2 +1,2 @@
 Bugs:
-  - The control_thread function doesn't receive data all the time, and causes segfaults for some reason.
+  - The control_thread function doesn't receive data all the time, and causes segfaults for some reason. And it doesn't actually work at all.
