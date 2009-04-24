@@ -61,7 +61,8 @@ activate_uri_entry_cb (GtkWidget* entry, gpointer data)
     webkit_web_view_load_uri (web_view, uri);
 }
 
-static void update_title (GtkWindow* window)
+static void
+update_title (GtkWindow* window)
 {
     GString* string = g_string_new (main_title);
     g_string_append (string, " - Uzbl browser");
@@ -124,7 +125,8 @@ go_forward_cb (GtkWidget* widget, gpointer data)
     webkit_web_view_go_forward (web_view);
 }
 
-static GtkWidget* create_browser ()
+static GtkWidget*
+create_browser ()
 {
     GtkWidget* scrolled_window = gtk_scrolled_window_new (NULL, NULL);
     gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window), GTK_POLICY_NEVER, GTK_POLICY_NEVER); //todo: some sort of display of position/total length. like what emacs does
@@ -140,7 +142,8 @@ static GtkWidget* create_browser ()
     return scrolled_window;
 }
 
-static GtkWidget* create_mainbar ()
+static GtkWidget*
+create_mainbar ()
 {
     mainbar = gtk_hbox_new(FALSE, 0);
     uri_entry = gtk_entry_new();
@@ -154,7 +157,8 @@ static GtkWidget* create_mainbar ()
     return mainbar;
 }
 
-static GtkWidget* create_window ()
+static
+GtkWidget* create_window ()
 {
     GtkWidget* window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
     gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
