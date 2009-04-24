@@ -47,21 +47,18 @@ static gchar*         main_title;
 static gint           load_progress;
 static guint          status_context_id;
 
-static gchar* uri         = NULL;
-static gboolean verbose   = FALSE;
-static gboolean statusbar = TRUE;
+static gchar* uri          = NULL;
+static gboolean verbose    = FALSE;
 
 static GOptionEntry entries[] =
 {
-  { "uri", 'u', 0, G_OPTION_ARG_STRING, &uri, "Uri to load", NULL },
-  { "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose, "Be verbose", NULL },
-  { "hide-statusbar", 'hs', 0, G_OPTION_ARG_NONE, &statusbar, "Be verbose", NULL },
-  { NULL }
+    { "uri",     'u',  0, G_OPTION_ARG_STRING, &uri,     "Uri to load", NULL },
+    { "verbose", 'v',  0, G_OPTION_ARG_NONE,   &verbose, "Be verbose", NULL },
+    { NULL }
 };
 
 
-static void
-activate_uri_entry_cb (GtkWidget* entry, gpointer data)
+static void activate_uri_entry_cb (GtkWidget* entry, gpointer data)
 {
     const gchar* uri = gtk_entry_get_text (GTK_ENTRY (entry));
     g_assert (uri);
@@ -79,8 +76,7 @@ static void update_title (GtkWindow* window)
     g_free (title);
 }
 
-static void
-link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data)
+static void link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data)
 {
     /* underflow is allowed */
     gtk_statusbar_pop (main_statusbar, status_context_id);
@@ -88,8 +84,7 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
         gtk_statusbar_push (main_statusbar, status_context_id, link);
 }
 
-static void
-title_change_cb (WebKitWebView* web_view, WebKitWebFrame* web_frame, const gchar* title, gpointer data)
+static void title_change_cb (WebKitWebView* web_view, WebKitWebFrame* web_frame, const gchar* title, gpointer data)
 {
     if (main_title)
         g_free (main_title);
@@ -97,44 +92,38 @@ title_change_cb (WebKitWebView* web_view, WebKitWebFrame* web_frame, const gchar
     update_title (GTK_WINDOW (main_window));
 }
 
-static void
-progress_change_cb (WebKitWebView* page, gint progress, gpointer data)
+static void progress_change_cb (WebKitWebView* page, gint progress, gpointer data)
 {
     load_progress = progress;
     update_title (GTK_WINDOW (main_window));
 }
 
-static void
-load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data)
+static void load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data)
 {
     const gchar* uri = webkit_web_frame_get_uri(frame);
     if (uri)
         gtk_entry_set_text (GTK_ENTRY (uri_entry), uri);
 }
 
-static void
-destroy_cb (GtkWidget* widget, gpointer data)
+static void destroy_cb (GtkWidget* widget, gpointer data)
 {
     gtk_main_quit ();
 }
 
-static void
-go_back_cb (GtkWidget* widget, gpointer data)
+static void go_back_cb (GtkWidget* widget, gpointer data)
 {
     webkit_web_view_go_back (web_view);
 }
 
-static void
-go_forward_cb (GtkWidget* widget, gpointer data)
+static void go_forward_cb (GtkWidget* widget, gpointer data)
 {
     webkit_web_view_go_forward (web_view);
 }
 
-static GtkWidget*
-create_browser ()
+static GtkWidget* create_browser ()
 {
     GtkWidget* scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-    gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+    gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window), GTK_POLICY_NEVER, GTK_POLICY_NEVER);
 
     web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
     gtk_container_add (GTK_CONTAINER (scrolled_window), GTK_WIDGET (web_view));
@@ -168,75 +157,75 @@ static GtkWidget* create_window ()
 
 static bool parse_command(char *command)
 {
-  bool output = true;
+    bool output = true;
 
-  if(strcmp(command, "forward") == 0)
+    if(strcmp(command, "forward") == 0)
     {
-      printf("Going forward\n");
-      webkit_web_view_go_forward (web_view);
+        printf("Going forward\n");
+        webkit_web_view_go_forward (web_view);
     }
-  else if(strcmp(command, "back") == 0)
+    else if(strcmp(command, "back") == 0)
     {
-      printf("Going back\n");
-      webkit_web_view_go_back (web_view);
+        printf("Going back\n");
+        webkit_web_view_go_back (web_view);
     }
-  else if(strncmp("http://", command, 7) == 0)
+    else if(strncmp("http://", command, 7) == 0)
     {
-      printf("Loading URI \"%s\"\n", command);
-      uri = command;
-      webkit_web_view_load_uri (web_view, uri);
+        printf("Loading URI \"%s\"\n", command);
+        uri = command;
+        webkit_web_view_load_uri (web_view, uri);
     }
-  else
+    else
     {
-      output = false;
+        output = false;
     }
 
-  return output;
+    return output;
 }
 
 static void control_fifo()
 {
-  char *cmd = (char *)malloc(1024);
-  int num, fd;
-  char *fifoname = "/tmp/uzbl";
+    char *cmd = (char *)malloc(1024);
+    int num, fd;
+    char *fifoname = "/tmp/uzbl";
 
-  umask(0);
-  mknod(fifoname, S_IFIFO | 0666 , 0); /* Do some stuff to work with multiple instances later foo-$PID or something */
-  printf("Opened control fifo in %s\n", fifoname);
+    umask (0);
+    mknod (fifoname, S_IFIFO | 0666 , 0); /* Do some stuff to work with multiple instances later foo-$PID or something */
+    printf ("Opened control fifo in %s\n", fifoname);
 
-  while (true)
+    while (true)
     {
-      fd = open(fifoname, O_RDONLY);
-      printf("Looping...\n");
-      while (num > 0)
+        fd = open (fifoname, O_RDONLY);
+        printf ("Looping...\n");
+        while (num > 0)
         {
-          if ((num = read(fd, cmd, 300)) == -1)
-            perror("read");
-          else
+            if ((num = read(fd, cmd, 300)) == -1)
+                perror("read");
+            else
             {
-              cmd[num - 1] = '\0';
-              if(! parse_command(cmd))
-                printf("Unknown command \"%s\".\n", cmd);
-              cmd[0] = '\0';
+                cmd[num - 1] = '\0';
+                if(! parse_command(cmd))
+                    printf("Unknown command \"%s\".\n", cmd);
+                cmd[0] = '\0';
             }
         }
-      num = 1;
+        num = 1;
     }
-  printf("Oops, this code should never be run.\n");
+    printf("Oops, this code should never be run.\n");
 }
 
 int main (int argc, char* argv[])
 {
     if (!g_thread_supported ())
-      g_thread_init (NULL);
+        g_thread_init (NULL);
 
     gtk_init (&argc, &argv);
 
     GtkWidget* vbox = gtk_vbox_new (FALSE, 0);
     gtk_box_pack_start (GTK_BOX (vbox), create_browser (), TRUE, TRUE, 0);
 
-    if(statusbar)
-      gtk_box_pack_start (GTK_BOX (vbox), create_statusbar (), FALSE, FALSE, 0);
+    if(! hidestatus)
+        gtk_box_pack_start (GTK_BOX (vbox), create_statusbar (), FALSE, FALSE, 0);
 
     main_window = create_window ();
     gtk_container_add (GTK_CONTAINER (main_window), vbox);
