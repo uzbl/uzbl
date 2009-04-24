@@ -33,12 +33,11 @@
 
 static GtkWidget* main_window;
 static GtkWidget* uri_entry;
-static GtkStatusbar* main_statusbar;
+static GtkWidget* mainbar;
 static WebKitWebView* web_view;
 static gchar* main_title;
 static gint load_progress;
 static guint status_context_id;
-
 
 
 static gchar* uri = NULL;
@@ -77,9 +76,10 @@ static void
 link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data)
 {
     /* underflow is allowed */
-    gtk_statusbar_pop (main_statusbar, status_context_id);
-    if (link)
-        gtk_statusbar_push (main_statusbar, status_context_id, link);
+    //gtk_statusbar_pop (main_statusbar, status_context_id);
+    //if (link)
+    //    gtk_statusbar_push (main_statusbar, status_context_id, link);
+    //TODO implementation roadmap pending..
 }
 
 static void
@@ -124,11 +124,10 @@ go_forward_cb (GtkWidget* widget, gpointer data)
     webkit_web_view_go_forward (web_view);
 }
 
-static GtkWidget*
-create_browser ()
+static GtkWidget* create_browser ()
 {
     GtkWidget* scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-    gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+    gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window), GTK_POLICY_NEVER, GTK_POLICY_NEVER); //todo: some sort of display of position/total length. like what emacs does
 
     web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
     gtk_container_add (GTK_CONTAINER (scrolled_window), GTK_WIDGET (web_view));
@@ -141,12 +140,18 @@ create_browser ()
     return scrolled_window;
 }
 
-static GtkWidget* create_statusbar ()
+static GtkWidget* create_mainbar ()
 {
-    main_statusbar = GTK_STATUSBAR (gtk_statusbar_new ());
-    status_context_id = gtk_statusbar_get_context_id (main_statusbar, "Link Hover");
+    mainbar = gtk_hbox_new(FALSE, 0);
+    uri_entry = gtk_entry_new();
+    gtk_entry_set_width_chars(GTK_ENTRY(uri_entry), 40);
+    gtk_entry_set_text(GTK_ENTRY(uri_entry), "http://");
+    gtk_box_pack_start (GTK_BOX (mainbar), uri_entry, FALSE,TRUE , 0);
+    gtk_signal_connect_object (GTK_OBJECT (uri_entry), "activate", GTK_SIGNAL_FUNC (activate_uri_entry_cb), GTK_OBJECT (uri_entry));
 
-    return (GtkWidget*)main_statusbar;
+    //status_context_id = gtk_statusbar_get_context_id (main_statusbar, "Link Hover");
+
+    return mainbar;
 }
 
 static GtkWidget* create_window ()
@@ -166,8 +171,10 @@ int main (int argc, char* argv[])
         g_thread_init (NULL);
 
     GtkWidget* vbox = gtk_vbox_new (FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (vbox), create_mainbar (), FALSE, TRUE, 0);
     gtk_box_pack_start (GTK_BOX (vbox), create_browser (), TRUE, TRUE, 0);
-    gtk_box_pack_start (GTK_BOX (vbox), create_statusbar (), FALSE, FALSE, 0);
+
+
 
     main_window = create_window ();
     gtk_container_add (GTK_CONTAINER (main_window), vbox);
