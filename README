@@ -4,3 +4,7 @@ Control:
 
 Bugs:
   - Segfault occurs on shutdown, almost definitely FIFO related (I'm not seeing this bug now, but the warning was here when I forked the code and I haven't touched the FIFO bit)
+
+Notes:
+  - I push the code most times I save any changes, regardless of whether it actually compiles or not. Thus, the code here should be regarded as highly experimental.
+  - If you use any of my code in another fork of uzbl (or anything really) it'd be nice to get a mention.
