@@ -34,9 +34,13 @@ WIDGET ROADMAP:
 * uri bar -> yes, even though we can write stuff to the fifo, it can still be convenient to change the url manually and stuff, so a widget in uzbl itself is good.
 * tabs -> yes. you don't have to use them, but you can.
 * back/forward/.. buttons? -> no: use keyboard shortcuts.
+* searching in a page? not sure.. maybe we can abuse the statusbar for that too.
+  eg toggle it on when the user wants to search for something and then do searching in some vim-like fashion.
+  we don't need a gtk text entry widget, just a feedback display of what the current command is.
 
 all of the above goes in 1 bar at the top of the program. there should be a key to toggle visibility of it and one to toggle visibilety + focus on the entrybar at once.
 
+input welcome!
 
 
 
