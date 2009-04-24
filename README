@@ -23,8 +23,25 @@ to figure out:
 - how to handle hyperlinks? number them like konqueror does?
 
 
+WIDGET ROADMAP:
+* statusbar? (the bar you see in pretty much every gtk program at the bottom. eg firefox)
+  consumes too much space (if always visible) for the little it is used.  (+ you can put only 1 message in it at a time!)
+  -> option 1: no statusbar at all. when hovering over a link (or pressing key to preview the url without changing page) -> show url in tooltip on page.
+  -> option 2: toggle visibility of statusbar on/off when hovering over a link. since it's at the bottom I don't think it will disturb too much.
+* viewing progress/state of pageload?  most programs use statusbar for this.
+  -> option 1: titlebar can show a percentage when it's loading a new page.
+  -> option 2: toggle a statusbar everytime we start loading a new page.
+* uri bar -> yes, even though we can write stuff to the fifo, it can still be convenient to change the url manually and stuff, so a widget in uzbl itself is good.
+* tabs -> yes. you don't have to use them, but you can.
+* back/forward/.. buttons? -> no: use keyboard shortcuts.
 
-For more thoughts & ideas see http://bbs.archlinux.org/viewtopic.php?id=67463
+all of the above goes in 1 bar at the top of the program. there should be a key to toggle visibility of it and one to toggle visibilety + focus on the entrybar at once.
+
+
+
+
+
 
 NOTE:
 - My c skills are very rusty, it will take me a while to get back up to speed
+- For more thoughts & ideas see http://bbs.archlinux.org/viewtopic.php?id=67463
