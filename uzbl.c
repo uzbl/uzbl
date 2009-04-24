@@ -1,4 +1,6 @@
 // Original code taken from the example webkit-gtk+ application. see notice below.
+// Modified code is licensed under the GPL 3.  See LICENSE file.
+
 
 /*
  * Copyright (C) 2006, 2007 Apple Inc.
@@ -39,17 +41,17 @@
 static GtkWidget*     main_window;
 static WebKitWebView* web_view;
 
-static gchar* uri 	  = NULL;
+static gchar* uri     = NULL;
 static gchar* fifodir = NULL;
 static gint mechmode  = 0;
 static char fifopath[64];
 
 static GOptionEntry entries[] =
 {
-	{ "uri",      'u', 0, G_OPTION_ARG_STRING, &uri,      "Uri to load",                                   NULL },
-	{ "fifo-dir", 'd', 0, G_OPTION_ARG_STRING, &fifodir,  "Directory to place FIFOs",                      NULL },
-	{ "mechmode", 'm', 0, G_OPTION_ARG_INT,    &mechmode, "Enable output suitable for machine processing", NULL },
-	{ NULL }
+  { "uri",      'u', 0, G_OPTION_ARG_STRING, &uri,      "Uri to load",                                   NULL },
+  { "fifo-dir", 'd', 0, G_OPTION_ARG_STRING, &fifodir,  "Directory to place FIFOs",                      NULL },
+  { "mechmode", 'm', 0, G_OPTION_ARG_INT,    &mechmode, "Enable output suitable for machine processing", NULL },
+  { NULL }
 };
 
 struct command
@@ -63,23 +65,23 @@ static int            numcmds = 0;
 
 static GtkWidget* create_browser ()
 {
-	GtkWidget* scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window), GTK_POLICY_NEVER, GTK_POLICY_NEVER);
+  GtkWidget* scrolled_window = gtk_scrolled_window_new (NULL, NULL);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window), GTK_POLICY_NEVER, GTK_POLICY_NEVER);
 
-	web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
-	gtk_container_add (GTK_CONTAINER (scrolled_window), GTK_WIDGET (web_view));
+  web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
+  gtk_container_add (GTK_CONTAINER (scrolled_window), GTK_WIDGET (web_view));
 
-	return scrolled_window;
+  return scrolled_window;
 }
 
 static GtkWidget* create_window ()
 {
-	GtkWidget* window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
-	gtk_widget_set_name (window, "Uzbl Browser");
-	g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (gtk_main_quit), NULL);
+  GtkWidget* window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
+  gtk_widget_set_name (window, "Uzbl Browser");
+  g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (gtk_main_quit), NULL);
 
-	return window;
+  return window;
 }
 
 static void parse_command(char *command)
@@ -115,114 +117,119 @@ static void parse_command(char *command)
 
 static void *control_fifo()
 {
-	if (fifodir) {
-		sprintf(fifopath, "%s/uzbl_%d", fifodir, getpid());
-	} else {
-		sprintf(fifopath, "/tmp/uzbl_%d", getpid());
-	}
+  if (fifodir) {
+    sprintf(fifopath, "%s/uzbl_%d", fifodir, getpid());
+  } else {
+    sprintf(fifopath, "/tmp/uzbl_%d", getpid());
+  }
 
-	if (mkfifo (fifopath, 0666) == -1) {
-		printf("Possible error creating fifo\n");
-	}
+  if (mkfifo (fifopath, 0666) == -1) {
+    printf("Possible error creating fifo\n");
+  }
 
-	if (mechmode) {
-		printf("%s\n", fifopath);
-	} else {
-		printf ("Opened control fifo in %s\n", fifopath);
-	}
+  if (mechmode) {
+    printf("%s\n", fifopath);
+  } else {
+    printf ("Opened control fifo in %s\n", fifopath);
+  }
 
-	while (true)
-	{
-		FILE *fifo = fopen(fifopath, "r");
-		if (!fifo) {
-			printf("Could not open %s for reading\n", fifopath);
-			return NULL;
-		}
+  while (true)
+  {
+    FILE *fifo = fopen(fifopath, "r");
+    if (!fifo) {
+      printf("Could not open %s for reading\n", fifopath);
+      return NULL;
+    }
 
-		char buffer[256];
-		memset(buffer, 0, sizeof(buffer));
-		while (!feof(fifo) && fgets(buffer, sizeof(buffer), fifo)) {
-			if (strcmp(buffer, "\n")) {
-				buffer[strlen(buffer)-1] = '\0'; // Remove newline
-				parse_command(buffer);
-			}
-		}
-	}
+    char buffer[256];
+    memset(buffer, 0, sizeof(buffer));
+    while (!feof(fifo) && fgets(buffer, sizeof(buffer), fifo)) {
+      if (strcmp(buffer, "\n")) {
+        buffer[strlen(buffer)-1] = '\0'; // Remove newline
+        parse_command(buffer);
+      }
+    }
+  }
 
-	return NULL;
+  return NULL;
 }
 
 static void add_command (char* cmdstr, void* function)
 {
-  /*struct command commands[numcmds];*/
-  /*printf("     Defining string\n");*/
   strncpy(commands[numcmds].command, cmdstr, strlen(cmdstr));
-  /*printf("     Adding function\n");*/
   commands[numcmds].func = function;
-  /*printf("     Incrementing count\n");*/
   numcmds++;
-  /*printf("     Done\n");*/
 }
 
 static bool setup_gtk(int argc, char* argv[])
 {
   gtk_init (&argc, &argv);
 
-	GtkWidget* vbox = gtk_vbox_new (FALSE, 0);
-	gtk_box_pack_start (GTK_BOX (vbox), create_browser (), TRUE, TRUE, 0);
+  GtkWidget* vbox = gtk_vbox_new (FALSE, 0);
+  gtk_box_pack_start (GTK_BOX (vbox), create_browser (), TRUE, TRUE, 0);
 
-	main_window = create_window ();
-	gtk_container_add (GTK_CONTAINER (main_window), vbox);
-	GError *error = NULL;
+  main_window = create_window ();
+  gtk_container_add (GTK_CONTAINER (main_window), vbox);
+  GError *error = NULL;
 
-	GOptionContext* context = g_option_context_new ("- The Usable Browser, controlled entirely through a FIFO");
-	g_option_context_add_main_entries (context, entries, NULL);
-	g_option_context_add_group (context, gtk_get_option_group (TRUE));
-	g_option_context_parse (context, &argc, &argv, &error);
+  GOptionContext* context = g_option_context_new ("- The Usable Browser, controlled entirely through a FIFO");
+  g_option_context_add_main_entries (context, entries, NULL);
+  g_option_context_add_group (context, gtk_get_option_group (TRUE));
+  g_option_context_parse (context, &argc, &argv, &error);
 
-	if (uri) {
-		webkit_web_view_load_uri (web_view, uri);
-	} else {
-		webkit_web_view_load_uri (web_view, "http://www.google.com");
-	}
+  if (uri) {
+    webkit_web_view_load_uri (web_view, uri);
+  } else {
+    webkit_web_view_load_uri (web_view, "http://www.google.com");
+  }
 
-	gtk_widget_grab_focus (GTK_WIDGET (web_view));
-	gtk_widget_show_all (main_window);
+  gtk_widget_grab_focus (GTK_WIDGET (web_view));
+  gtk_widget_show_all (main_window);
 
   return true;
 }
 
 static void setup_commands()
 {
-  add_command("back",    &webkit_web_view_go_back);
-  add_command("forward", &webkit_web_view_go_forward);
+  //This func. is nice but currently it cannot be used for functions that require arguments or return data. --sentientswitch
+
+  //Commands are grouped:
+  //    nav     -       commands that actually navigate to different pages
+  //    view    -       commands that affect how the page is rendered
+  //    get     -       commands that return properties
+  //    set     -       commands that return properties
+  //add more as necessary.
+
+  add_command("nav back",    &webkit_web_view_go_back);
+  add_command("nav forward", &webkit_web_view_go_forward);
+  add_command("nav reload", &webkit_web_view_reload); //Buggy
+  add_command("nav stop", &webkit_web_view_stop_loading);
+  add_command("view zoom +", &webkit_web_view_zoom_in); //Can crash (when max zoom reached?).
+  add_command("view zoom -", &webkit_web_view_zoom_out); //Crashes as zoom +
+  //add_command("get uri", &webkit_web_view_get_uri);
 }
 
 static bool setup_threading()
 {
-	pthread_t control_thread;
-	pthread_create(&control_thread, NULL, control_fifo, NULL);
+  pthread_t control_thread;
+  pthread_create(&control_thread, NULL, control_fifo, NULL);
 
   return true;
 }
 
 int main (int argc, char* argv[])
 {
-	if (!g_thread_supported ())
-		g_thread_init (NULL);
+  if (!g_thread_supported ())
+    g_thread_init (NULL);
 
   setup_gtk (argc, argv);
   setup_commands ();
-  printf("%s\n", commands[0].command);
   setup_threading ();
-	gtk_main ();
+  gtk_main ();
 
-	/*pthread_join (control_thread, NULL); For some reason it doesn't terminate upon the browser closing when this is enabled. */
+  printf ("Shutting down...\n");
 
-	printf ("Shutting down...\n");
+  unlink (fifopath);
 
-	// Remove FIFO
-	unlink (fifopath);
-
-	return 0;
+  return 0;
 }

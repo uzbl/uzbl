@@ -5,3 +5,5 @@ Dieter Plaetinck (Dieter@be) <http://dieter.plaetinck.be/> - Enhancements to for
 Michael Walker (Barrucadu) <mike@barrucadu.co.uk> - Original threaded FIFO interface. Command adding methods.
 
 Zane Ashby (HashBox) <http://demonastery.org> - Rewrote FIFO interface. Fixed various bugs.
+
+(sentientswitch) - Cleaned up code. Added some commands.

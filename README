@@ -1,9 +1,16 @@
 Control:
   - FIFO opened in /tmp/uzbl_pid
-  - 'forward', 'back', 'http://www.blah.com', are the supported commands.
+  - Commands are now grouped by function:
+       nav forward
+       nav back
+       nav reload
+       nav stop
+       view zoom +
+       view zoom -
 
 Bugs:
   - Segfault occurs on shutdown, almost definitely FIFO related (I'm not seeing this bug now, but the warning was here when I forked the code and I haven't touched the FIFO bit)
+  - Segfaults when using zoom commands (happens when max zoom already reached?).
 
 Notes:
   - I push the code most times I save any changes, regardless of whether it actually compiles or not. Thus, the code here should be regarded as highly experimental.
