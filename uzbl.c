@@ -58,8 +58,8 @@ struct command
   void (*func)(WebKitWebView*);
 };
 
-static struct command *commands;
-static int             numcmds = 0;
+static struct command commands[256];
+static int            numcmds = 0;
 
 static GtkWidget* create_browser ()
 {
@@ -89,8 +89,10 @@ static void parse_command(char *command)
 
   for (i = 0; i < numcmds && !done; i++)
     {
+      printf("Looping\n");
       if (!strcmp(command, commands[i].command))
         {
+          printf("Parsed command \"%s\"\n", commands[i].command);
           commands[i].func(web_view);
           done = true;
         }
@@ -152,14 +154,14 @@ static void *control_fifo()
 
 static void add_command (char* cmdstr, void* function)
 {
-  struct command commands[numcmds];
-  printf("     Defining string\n");
+  /*struct command commands[numcmds];*/
+  /*printf("     Defining string\n");*/
   strncpy(commands[numcmds].command, cmdstr, strlen(cmdstr));
-  printf("     Adding function\n");
+  /*printf("     Adding function\n");*/
   commands[numcmds].func = function;
-  printf("     Incrementing count\n");
+  /*printf("     Incrementing count\n");*/
   numcmds++;
-  printf("     Done\n");
+  /*printf("     Done\n");*/
 }
 
 static bool setup_gtk(int argc, char* argv[])
@@ -190,14 +192,10 @@ static bool setup_gtk(int argc, char* argv[])
   return true;
 }
 
-static bool setup_commands()
+static void setup_commands()
 {
-  printf("Adding back\n");
   add_command("back",    &webkit_web_view_go_back);
-  printf("Adding forward\n");
   add_command("forward", &webkit_web_view_go_forward);
-  printf("Done\n");
-  return true;
 }
 
 static bool setup_threading()
@@ -215,6 +213,7 @@ int main (int argc, char* argv[])
 
   setup_gtk (argc, argv);
   setup_commands ();
+  printf("%s\n", commands[0].command);
   setup_threading ();
 	gtk_main ();
 
