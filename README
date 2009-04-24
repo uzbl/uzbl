@@ -4,6 +4,7 @@ Control:
 
 Todo:
   - Figure out GtkSocket and GtkPlug and create a wrapper UI
+  - Make parse_command() a nicer function.
 
 Bugs:
   - Segfault occurs on shutdown, almost definitely FIFO related
