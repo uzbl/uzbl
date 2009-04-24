@@ -36,11 +36,12 @@ static GtkWidget* uri_entry;
 static GtkWidget* mainbar;
 static WebKitWebView* web_view;
 static gchar* main_title;
+static gchar* history_file;
 static gint load_progress;
 static guint status_context_id;
 
 
-static gchar* uri = NULL;
+gchar* uri = NULL;
 static gboolean verbose = FALSE;
 
 static GOptionEntry entries[] =
@@ -52,11 +53,22 @@ static GOptionEntry entries[] =
 
 
 
+static void
+log_history_cb () {
+    FILE * output_file = fopen(history_file, "a");
+    if (output_file == NULL) {
+       fprintf(stderr, "Cannot open %s for logging\n", history_file);
+    } else {
+        fprintf(output_file, "%s\n",uri); //TODO prepend date in Y-m-d H:i:s format for easy grepping :)
+        fclose(output_file);
+    }
+}
+
 
 static void
 activate_uri_entry_cb (GtkWidget* entry, gpointer data)
 {
-    const gchar* uri = gtk_entry_get_text (GTK_ENTRY (entry));
+    uri = gtk_entry_get_text (GTK_ENTRY (entry));
     g_assert (uri);
     webkit_web_view_load_uri (web_view, uri);
 }
@@ -137,6 +149,7 @@ create_browser ()
     g_signal_connect (G_OBJECT (web_view), "title-changed", G_CALLBACK (title_change_cb), web_view);
     g_signal_connect (G_OBJECT (web_view), "load-progress-changed", G_CALLBACK (progress_change_cb), web_view);
     g_signal_connect (G_OBJECT (web_view), "load-committed", G_CALLBACK (load_commit_cb), web_view);
+    g_signal_connect (G_OBJECT (web_view), "load-committed", G_CALLBACK (log_history_cb), web_view);
     g_signal_connect (G_OBJECT (web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), web_view);
 
     return scrolled_window;
@@ -173,6 +186,20 @@ int main (int argc, char* argv[])
     gtk_init (&argc, &argv);
     if (!g_thread_supported ())
         g_thread_init (NULL);
+
+    GKeyFile* config = g_key_file_new ();
+    gboolean res = g_key_file_load_from_file (config, "./sampleconfig", G_KEY_FILE_NONE, NULL); //TODO: pass config file as argument
+    if(res) {
+        printf("config loaded\n");
+    } else {
+        fprintf(stderr,"config loading failed\n"); //TODO: exit codes with gtk? 
+    }
+    history_file = g_key_file_get_value (config, "behavior", "history_file", NULL);
+    if(history_file) {
+        printf("setting history file to: %s\n",history_file);
+    } else {
+        printf("history logging disabled\n");
+    }
 
     GtkWidget* vbox = gtk_vbox_new (FALSE, 0);
     gtk_box_pack_start (GTK_BOX (vbox), create_mainbar (), FALSE, TRUE, 0);
