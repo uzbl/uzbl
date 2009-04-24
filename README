@@ -1,11 +1,8 @@
 Control:
-  - FIFO opened in /tmp/uzbl
-  - 'forward', 'back, 'http://www.blah.com', at the supported commands.
-  - Must be a blank character at the end (eg: newline)
+  - FIFO opened in /tmp/uzbl_pid
+  - 'forward', 'back', 'http://www.blah.com', are the supported commands.
 
 Todo:
-  - Include PID in FIFO name to allow multiple instances.
-  - Delete FIFO upon terminating.
 
 Bugs:
-  - Segfaults sometimes occur, no idea why.
+  - Segfault occurs on shutdown, almost definitely FIFO related
