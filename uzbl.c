@@ -29,6 +29,7 @@
  */
 
 #include <gtk/gtk.h>
+#include <gdk/gdkx.h>
 #include <webkit/webkit.h>
 
 static GtkWidget* main_window;
@@ -40,7 +41,7 @@ static gchar* history_file;
 static gint load_progress;
 static guint status_context_id;
 
-
+Window xwin = NULL;
 gchar* uri = NULL;
 static gboolean verbose = FALSE;
 
@@ -228,6 +229,9 @@ int main (int argc, char* argv[])
 
     gtk_widget_grab_focus (GTK_WIDGET (web_view));
     gtk_widget_show_all (main_window);
+    xwin = GDK_WINDOW_XID (GTK_WIDGET (main_window)->window);
+    printf("My X window id is %i\n",(int) xwin);
+
     gtk_main ();
 
     return 0;
