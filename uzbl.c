@@ -41,10 +41,12 @@
 static GtkWidget*     main_window;
 static WebKitWebView* web_view;
 
-static gchar* uri     = NULL;
-static gchar* fifodir = NULL;
-static gint mechmode  = 0;
-static char fifopath[64];
+static gchar* history_file;
+static gchar* home_page;
+static gchar* uri       = NULL;
+static gchar* fifodir   = NULL;
+static gint   mechmode  = 0;
+static char   fifopath[64];
 
 static GOptionEntry entries[] =
 {
@@ -63,6 +65,28 @@ struct command
 static struct command commands[256];
 static int            numcmds = 0;
 
+static void log_history_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
+  strncpy (uri, webkit_web_frame_get_uri (frame), strlen (webkit_web_frame_get_uri (frame)));
+
+  FILE * output_file = fopen (history_file, "a");
+  if (output_file == NULL)
+    {
+      fprintf (stderr, "Cannot open %s for logging\n", history_file);
+    }
+  else
+    {
+      time_t rawtime;
+      struct tm * timeinfo;
+      char buffer [80];
+      time (&rawtime);
+      timeinfo = localtime (&rawtime);
+      strftime (buffer,80,"%Y-%m-%d %H:%M:%S",timeinfo);
+      
+      fprintf (output_file, "%s %s\n",buffer, uri);
+      fclose (output_file);
+    }
+}
+
 static GtkWidget* create_browser ()
 {
   GtkWidget* scrolled_window = gtk_scrolled_window_new (NULL, NULL);
@@ -70,6 +94,8 @@ static GtkWidget* create_browser ()
 
   web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
   gtk_container_add (GTK_CONTAINER (scrolled_window), GTK_WIDGET (web_view));
+
+  g_signal_connect (G_OBJECT (web_view), "load-committed", G_CALLBACK (log_history_cb), web_view);
 
   return scrolled_window;
 }
@@ -160,7 +186,7 @@ static void add_command (char* cmdstr, void* function)
   numcmds++;
 }
 
-static bool setup_gtk(int argc, char* argv[])
+static bool setup_gtk (int argc, char* argv[])
 {
   gtk_init (&argc, &argv);
 
@@ -176,11 +202,10 @@ static bool setup_gtk(int argc, char* argv[])
   g_option_context_add_group (context, gtk_get_option_group (TRUE));
   g_option_context_parse (context, &argc, &argv, &error);
 
-  if (uri) {
-    webkit_web_view_load_uri (web_view, uri);
-  } else {
-    webkit_web_view_load_uri (web_view, "http://www.google.com");
-  }
+  if (uri)
+    {
+      webkit_web_view_load_uri (web_view, uri);
+    }
 
   gtk_widget_grab_focus (GTK_WIDGET (web_view));
   gtk_widget_show_all (main_window);
@@ -188,7 +213,7 @@ static bool setup_gtk(int argc, char* argv[])
   return true;
 }
 
-static void setup_commands()
+static void setup_commands ()
 {
   //This func. is nice but currently it cannot be used for functions that require arguments or return data. --sentientswitch
 
@@ -208,12 +233,45 @@ static void setup_commands()
   //add_command("get uri", &webkit_web_view_get_uri);
 }
 
-static bool setup_threading()
+static void setup_threading ()
 {
   pthread_t control_thread;
   pthread_create(&control_thread, NULL, control_fifo, NULL);
+}
 
-  return true;
+static void setup_settings ()
+{
+  GKeyFile* config = g_key_file_new ();
+  gboolean  res    = g_key_file_load_from_file (config, "./config", G_KEY_FILE_NONE, NULL); //TODO: pass config file as argument
+
+  if (res)
+    {
+      printf ("Config loaded\n");
+    }
+  else
+    {
+      fprintf (stderr, "config loading failed\n"); //TODO: exit codes with gtk? 
+    }
+
+  history_file = g_key_file_get_value (config, "behavior", "history_file", NULL);
+  if (history_file)
+    {
+      printf ("Setting history file to: %s\n", history_file);
+    }
+  else
+    {
+      printf ("History logging disabled\n");
+    }
+
+  home_page = g_key_file_get_value (config, "behavior", "home_page", NULL);
+  if (home_page)
+    {
+      printf ("Setting home page to: %s\n", home_page);
+    }
+  else
+    {
+      printf ("Home page disabled\n");
+    }
 }
 
 int main (int argc, char* argv[])
@@ -221,6 +279,7 @@ int main (int argc, char* argv[])
   if (!g_thread_supported ())
     g_thread_init (NULL);
 
+  setup_settings ();
   setup_gtk (argc, argv);
   setup_commands ();
   setup_threading ();

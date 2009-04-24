@@ -15,3 +15,11 @@ Bugs:
 Notes:
   - I push the code most times I save any changes, regardless of whether it actually compiles or not. Thus, the code here should be regarded as highly experimental.
   - If you use any of my code in another fork of uzbl (or anything really) it'd be nice to get a mention.
+
+Todo:
+  - Change commands to a few characters long.
+  - Command/insert modes (ESC to switch, methinks).
+  - Automatically run a command when typed (no need to press enter).
+  - Support for arguments to commands (argc/argv-like structure?).
+  - Support for binding keyboard shortcuts in config file.
+  - Support for setting home page in config file.

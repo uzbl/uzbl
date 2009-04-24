@@ -1,0 +1,8 @@
+# example uzbl config. in a real config, we should obey the xdg spec
+[keyboard]
+next=somekey
+ 
+[behavior]
+history_file = /tmp/uzbl.history
+ 
+[network]
