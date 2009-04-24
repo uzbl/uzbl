@@ -91,7 +91,6 @@ static void parse_command(char *command)
 
   for (i = 0; i < numcmds && !done; i++)
     {
-      printf("Looping\n");
       if (!strcmp(command, commands[i].command))
         {
           printf("Parsed command \"%s\"\n", commands[i].command);
