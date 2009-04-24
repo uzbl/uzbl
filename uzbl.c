@@ -59,7 +59,14 @@ log_history_cb () {
     if (output_file == NULL) {
        fprintf(stderr, "Cannot open %s for logging\n", history_file);
     } else {
-        fprintf(output_file, "%s\n",uri); //TODO prepend date in Y-m-d H:i:s format for easy grepping :)
+        time_t rawtime;
+        struct tm * timeinfo;
+        char buffer [80];
+        time ( &rawtime );
+        timeinfo = localtime ( &rawtime );
+        strftime (buffer,80,"%Y-%m-%d %H:%M:%S",timeinfo);
+
+        fprintf(output_file, "%s %s\n",buffer, uri);
         fclose(output_file);
     }
 }
