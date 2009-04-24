@@ -3,5 +3,4 @@ Control:
   - 'forward', 'back', 'http://www.blah.com', are the supported commands.
 
 Bugs:
-  - Segfault occurs on shutdown, almost definitely FIFO related
-  - Segfault occurs when attempting to parse a command.
+  - Segfault occurs on shutdown, almost definitely FIFO related (I'm not seeing this bug now, but the warning was here when I forked the code and I haven't touched the FIFO bit)
