@@ -39,21 +39,23 @@
 #include <unistd.h>
 #include <pthread.h>
 
-static GtkWidget* main_window;
-static GtkWidget* uri_entry;
-static GtkStatusbar* main_statusbar;
+static GtkWidget*     main_window;
+static GtkWidget*     uri_entry;
+static GtkStatusbar*  main_statusbar;
 static WebKitWebView* web_view;
-static gchar* main_title;
-static gint load_progress;
-static guint status_context_id;
+static gchar*         main_title;
+static gint           load_progress;
+static guint          status_context_id;
 
-static gchar* uri = NULL;
-static gboolean verbose = FALSE;
+static gchar* uri         = NULL;
+static gboolean verbose   = FALSE;
+static gboolean statusbar = TRUE;
 
 static GOptionEntry entries[] =
 {
   { "uri", 'u', 0, G_OPTION_ARG_STRING, &uri, "Uri to load", NULL },
   { "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose, "Be verbose", NULL },
+  { "hide-statusbar", 'hs', 0, G_OPTION_ARG_NONE, &statusbar, "Be verbose", NULL },
   { NULL }
 };
 
@@ -205,15 +207,17 @@ static void control_fifo()
   while (true)
     {
       fd = open(fifoname, O_RDONLY);
+      printf("Looping...\n");
       while (num > 0)
         {
           if ((num = read(fd, cmd, 300)) == -1)
             perror("read");
-          else if(! strcmp(cmd, ""))
+          else
             {
-              cmd[num] = '\0';
+              cmd[num - 1] = '\0';
               if(! parse_command(cmd))
                 printf("Unknown command \"%s\".\n", cmd);
+              cmd[0] = '\0';
             }
         }
       num = 1;
@@ -230,7 +234,9 @@ int main (int argc, char* argv[])
 
     GtkWidget* vbox = gtk_vbox_new (FALSE, 0);
     gtk_box_pack_start (GTK_BOX (vbox), create_browser (), TRUE, TRUE, 0);
-    /*gtk_box_pack_start (GTK_BOX (vbox), create_statusbar (), FALSE, FALSE, 0); I don't like this. */
+
+    if(statusbar)
+      gtk_box_pack_start (GTK_BOX (vbox), create_statusbar (), FALSE, FALSE, 0);
 
     main_window = create_window ();
     gtk_container_add (GTK_CONTAINER (main_window), vbox);
