@@ -3,6 +3,7 @@ Control:
   - 'forward', 'back', 'http://www.blah.com', are the supported commands.
 
 Todo:
+  - Figure out GtkSocket and GtkPlug and create a wrapper UI
 
 Bugs:
   - Segfault occurs on shutdown, almost definitely FIFO related
