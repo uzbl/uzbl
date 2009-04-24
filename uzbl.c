@@ -29,223 +29,157 @@
 #include <gtk/gtk.h>
 #include <webkit/webkit.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <string.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
 #include <pthread.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 static GtkWidget*     main_window;
-static GtkWidget*     uri_entry;
-static GtkStatusbar*  main_statusbar;
 static WebKitWebView* web_view;
-static gchar*         main_title;
-static gint           load_progress;
-static guint          status_context_id;
 
-static gchar* uri          = NULL;
-static gboolean verbose    = FALSE;
+static gchar* uri 	= NULL;
+static gchar* fifodir 	= NULL;
+static gint mechmode = 0;
+static char fifopath[64];
 
 static GOptionEntry entries[] =
 {
-    { "uri",     'u',  0, G_OPTION_ARG_STRING, &uri,     "Uri to load", NULL },
-    { "verbose", 'v',  0, G_OPTION_ARG_NONE,   &verbose, "Be verbose", NULL },
-    { NULL }
+	{ "uri",     'u',  0, G_OPTION_ARG_STRING, &uri,     "Uri to load", NULL },
+	{ "fifo-dir", 'd', 0, G_OPTION_ARG_STRING, &fifodir, "Directory to place FIFOs", NULL },
+	{ "mechmode", 'm', 0, G_OPTION_ARG_INT, &mechmode, "Enable output suitable for machine processing", NULL },
+	{ NULL }
 };
-
-
-static void activate_uri_entry_cb (GtkWidget* entry, gpointer data)
-{
-    const gchar* uri = gtk_entry_get_text (GTK_ENTRY (entry));
-    g_assert (uri);
-    webkit_web_view_load_uri (web_view, uri);
-}
-
-static void update_title (GtkWindow* window)
-{
-    GString* string = g_string_new (main_title);
-    g_string_append (string, " - Uzbl browser");
-    if (load_progress < 100)
-        g_string_append_printf (string, " (%d%%)", load_progress);
-    gchar* title = g_string_free (string, FALSE);
-    gtk_window_set_title (window, title);
-    g_free (title);
-}
-
-static void link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data)
-{
-    /* underflow is allowed */
-    gtk_statusbar_pop (main_statusbar, status_context_id);
-    if (link)
-        gtk_statusbar_push (main_statusbar, status_context_id, link);
-}
-
-static void title_change_cb (WebKitWebView* web_view, WebKitWebFrame* web_frame, const gchar* title, gpointer data)
-{
-    if (main_title)
-        g_free (main_title);
-    main_title = g_strdup (title);
-    update_title (GTK_WINDOW (main_window));
-}
-
-static void progress_change_cb (WebKitWebView* page, gint progress, gpointer data)
-{
-    load_progress = progress;
-    update_title (GTK_WINDOW (main_window));
-}
-
-static void load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data)
-{
-    const gchar* uri = webkit_web_frame_get_uri(frame);
-    if (uri)
-        gtk_entry_set_text (GTK_ENTRY (uri_entry), uri);
-}
-
-static void destroy_cb (GtkWidget* widget, gpointer data)
-{
-    gtk_main_quit ();
-}
-
-static void go_back_cb (GtkWidget* widget, gpointer data)
-{
-    webkit_web_view_go_back (web_view);
-}
-
-static void go_forward_cb (GtkWidget* widget, gpointer data)
-{
-    webkit_web_view_go_forward (web_view);
-}
 
 static GtkWidget* create_browser ()
 {
-    GtkWidget* scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-    gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window), GTK_POLICY_NEVER, GTK_POLICY_NEVER);
+	GtkWidget* scrolled_window = gtk_scrolled_window_new (NULL, NULL);
+	gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window), GTK_POLICY_NEVER, GTK_POLICY_NEVER);
 
-    web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
-    gtk_container_add (GTK_CONTAINER (scrolled_window), GTK_WIDGET (web_view));
+	web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
+	gtk_container_add (GTK_CONTAINER (scrolled_window), GTK_WIDGET (web_view));
 
-    g_signal_connect (G_OBJECT (web_view), "title-changed", G_CALLBACK (title_change_cb), web_view);
-    g_signal_connect (G_OBJECT (web_view), "load-progress-changed", G_CALLBACK (progress_change_cb), web_view);
-    g_signal_connect (G_OBJECT (web_view), "load-committed", G_CALLBACK (load_commit_cb), web_view);
-    g_signal_connect (G_OBJECT (web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), web_view);
-
-    return scrolled_window;
-}
-
-static GtkWidget* create_statusbar ()
-{
-    main_statusbar = GTK_STATUSBAR (gtk_statusbar_new ());
-    status_context_id = gtk_statusbar_get_context_id (main_statusbar, "Link Hover");
-
-    return (GtkWidget*)main_statusbar;
+	return scrolled_window;
 }
 
 static GtkWidget* create_window ()
 {
-    GtkWidget* window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
-    gtk_widget_set_name (window, "Uzbl browser");
-    g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (destroy_cb), NULL);
+	GtkWidget* window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
+	gtk_widget_set_name (window, "Uzbl Browser");
+	g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (gtk_main_quit), NULL);
 
-    return window;
+	return window;
 }
 
-
-static bool parse_command(char *command)
+static void parse_command(char *command)
 {
-    bool output = true;
-
-    if(strcmp(command, "forward") == 0)
-    {
-        printf("Going forward\n");
-        webkit_web_view_go_forward (web_view);
-    }
-    else if(strcmp(command, "back") == 0)
-    {
-        printf("Going back\n");
-        webkit_web_view_go_back (web_view);
-    }
-    else if(strncmp("http://", command, 7) == 0)
-    {
-        printf("Loading URI \"%s\"\n", command);
-        uri = command;
-        webkit_web_view_load_uri (web_view, uri);
-    }
-    else
-    {
-        output = false;
-    }
-
-    return output;
+	if (!strcmp(command, "forward"))
+	{
+		printf("Going forward\n");
+		webkit_web_view_go_forward (web_view);
+	}
+	else if (!strncmp(command, "back", 4)) // backward
+	{
+		printf("Going back\n");
+		webkit_web_view_go_back (web_view);
+	}
+	else if (!strcmp(command, "exit") || !strcmp(command, "quit") || !strcmp(command, "die"))
+	{
+		gtk_main_quit();
+	}
+	else if (!strncmp("http://", command, 7))
+	{
+		printf("Loading URI \"%s\"\n", command);
+		uri = command;
+		webkit_web_view_load_uri (web_view, uri);
+	}
+	else
+	{
+		printf("Unhandled command \"%s\"\n", command);
+	}
 }
 
-static void control_fifo()
+static void *control_fifo()
 {
-    char *cmd = (char *)malloc(1024);
-    int num, fd;
-    char *fifoname = "/tmp/uzbl";
+	if (fifodir) {
+		sprintf(fifopath, "%s/uzbl_%d", fifodir, getpid());
+	} else {
+		sprintf(fifopath, "/tmp/uzbl_%d", getpid());
+	}
 
-    umask (0);
-    mknod (fifoname, S_IFIFO | 0666 , 0); /* Do some stuff to work with multiple instances later foo-$PID or something */
-    printf ("Opened control fifo in %s\n", fifoname);
+	if (mkfifo (fifopath, 0666) == -1) {
+		printf("Possible error creating fifo\n");
+	}
 
-    while (true)
-    {
-        fd = open (fifoname, O_RDONLY);
-        printf ("Looping...\n");
-        while (num > 0)
-        {
-            if ((num = read(fd, cmd, 300)) == -1)
-                perror("read");
-            else
-            {
-                cmd[num - 1] = '\0';
-                if(! parse_command(cmd))
-                    printf("Unknown command \"%s\".\n", cmd);
-                cmd[0] = '\0';
-            }
-        }
-        num = 1;
-    }
-    printf("Oops, this code should never be run.\n");
+	if (mechmode) {
+		printf("%s\n", fifopath);
+	} else {
+		printf ("Opened control fifo in %s\n", fifopath);
+	}
+
+	while (true)
+	{
+		FILE *fifo = fopen(fifopath, "r");
+		if (!fifo) {
+			printf("Could not open %s for reading\n", fifopath);
+			return NULL;
+		}
+
+		char buffer[256];
+		memset(buffer, 0, sizeof(buffer));
+		while (!feof(fifo) && fgets(buffer, sizeof(buffer), fifo)) {
+			if (strcmp(buffer, "\n")) {
+				buffer[strlen(buffer)-1] = '\0'; // Remove newline
+				parse_command(buffer);
+			}
+		}
+	}
+
+	return NULL;
 }
 
 int main (int argc, char* argv[])
 {
-    if (!g_thread_supported ())
-        g_thread_init (NULL);
+	if (!g_thread_supported ())
+		g_thread_init (NULL);
 
-    gtk_init (&argc, &argv);
+	gtk_init (&argc, &argv);
 
-    GtkWidget* vbox = gtk_vbox_new (FALSE, 0);
-    gtk_box_pack_start (GTK_BOX (vbox), create_browser (), TRUE, TRUE, 0);
+	GtkWidget* vbox = gtk_vbox_new (FALSE, 0);
+	gtk_box_pack_start (GTK_BOX (vbox), create_browser (), TRUE, TRUE, 0);
 
-    if(! hidestatus)
-        gtk_box_pack_start (GTK_BOX (vbox), create_statusbar (), FALSE, FALSE, 0);
+	main_window = create_window ();
+	gtk_container_add (GTK_CONTAINER (main_window), vbox);
+	GError *error = NULL;
 
-    main_window = create_window ();
-    gtk_container_add (GTK_CONTAINER (main_window), vbox);
-    GError *error = NULL;
-    
-    GOptionContext* context = g_option_context_new ("- some stuff here maybe someday");
-    g_option_context_add_main_entries (context, entries, NULL);
-    g_option_context_add_group (context, gtk_get_option_group (TRUE));
-    g_option_context_parse (context, &argc, &argv, &error);
+	GOptionContext* context = g_option_context_new ("- The Usable Browser, controlled entirely through a FIFO");
+	g_option_context_add_main_entries (context, entries, NULL);
+	g_option_context_add_group (context, gtk_get_option_group (TRUE));
+	g_option_context_parse (context, &argc, &argv, &error);
 
-    webkit_web_view_load_uri (web_view, uri);
+	if (uri) {
+		webkit_web_view_load_uri (web_view, uri);
+	} else {
+		webkit_web_view_load_uri (web_view, "http://google.com");
+	}
 
-    gtk_widget_grab_focus (GTK_WIDGET (web_view));
-    gtk_widget_show_all (main_window);
+	gtk_widget_grab_focus (GTK_WIDGET (web_view));
+	gtk_widget_show_all (main_window);
 
-    pthread_t control_thread;
-    int ret;
+	pthread_t control_thread;
 
-    ret = pthread_create(&control_thread, NULL, control_fifo, (void*) NULL);
-    gtk_main ();
-    /*pthread_join(control_thread, NULL); For some reason it doesn't terminate upon the browser closing when this is enabled. */
-    return 0;
+	pthread_create(&control_thread, NULL, control_fifo, NULL);
+
+	gtk_main();
+
+	/*pthread_join(control_thread, NULL); For some reason it doesn't terminate upon the browser closing when this is enabled. */
+
+	printf("Shutting down...\n");
+
+	// Remove FIFO
+	unlink(fifopath);
+
+	return 0;
 }
