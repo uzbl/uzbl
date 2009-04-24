@@ -2,9 +2,6 @@ Control:
   - FIFO opened in /tmp/uzbl_pid
   - 'forward', 'back', 'http://www.blah.com', are the supported commands.
 
-Todo:
-  - Figure out GtkSocket and GtkPlug and create a wrapper UI
-  - Make parse_command() a nicer function.
-
 Bugs:
   - Segfault occurs on shutdown, almost definitely FIFO related
+  - Segfault occurs when attempting to parse a command.

@@ -39,18 +39,27 @@
 static GtkWidget*     main_window;
 static WebKitWebView* web_view;
 
-static gchar* uri 	= NULL;
-static gchar* fifodir 	= NULL;
-static gint mechmode = 0;
+static gchar* uri 	  = NULL;
+static gchar* fifodir = NULL;
+static gint mechmode  = 0;
 static char fifopath[64];
 
 static GOptionEntry entries[] =
 {
-	{ "uri",     'u',  0, G_OPTION_ARG_STRING, &uri,     "Uri to load", NULL },
-	{ "fifo-dir", 'd', 0, G_OPTION_ARG_STRING, &fifodir, "Directory to place FIFOs", NULL },
-	{ "mechmode", 'm', 0, G_OPTION_ARG_INT, &mechmode, "Enable output suitable for machine processing", NULL },
+	{ "uri",      'u', 0, G_OPTION_ARG_STRING, &uri,      "Uri to load",                                   NULL },
+	{ "fifo-dir", 'd', 0, G_OPTION_ARG_STRING, &fifodir,  "Directory to place FIFOs",                      NULL },
+	{ "mechmode", 'm', 0, G_OPTION_ARG_INT,    &mechmode, "Enable output suitable for machine processing", NULL },
 	{ NULL }
 };
+
+struct command
+{
+  char command[256];
+  void (*func)(WebKitWebView*);
+};
+
+static struct command *commands;
+static int             numcmds = 0;
 
 static GtkWidget* create_browser ()
 {
@@ -75,30 +84,31 @@ static GtkWidget* create_window ()
 
 static void parse_command(char *command)
 {
-	if (!strcmp(command, "forward"))
-	{
-		printf("Going forward\n");
-		webkit_web_view_go_forward (web_view);
-	}
-	else if (!strncmp(command, "back", 4)) // backward
-	{
-		printf("Going back\n");
-		webkit_web_view_go_back (web_view);
-	}
-	else if (!strcmp(command, "exit") || !strcmp(command, "quit") || !strcmp(command, "die"))
-	{
-		gtk_main_quit();
-	}
-	else if (!strncmp("http://", command, 7))
-	{
-		printf("Loading URI \"%s\"\n", command);
-		uri = command;
-		webkit_web_view_load_uri (web_view, uri);
-	}
-	else
-	{
-		printf("Unhandled command \"%s\"\n", command);
-	}
+  int  i    = 0;
+  bool done = false;
+
+  for (i = 0; i < numcmds && !done; i++)
+    {
+      if (!strcmp(command, commands[i].command))
+        {
+          commands[i].func(web_view);
+          done = true;
+        }
+    }
+
+  if(!done)
+    {
+      if (!strncmp("http://", command, 7))
+        {
+          printf("Loading URI \"%s\"\n", command);
+          uri = command;
+          webkit_web_view_load_uri (web_view, uri);
+        }
+      else
+        {
+          printf("Unhandled command \"%s\"\n", command);
+        }
+    }
 }
 
 static void *control_fifo()
@@ -140,12 +150,21 @@ static void *control_fifo()
 	return NULL;
 }
 
-int main (int argc, char* argv[])
+static void add_command (char* cmdstr, void* function)
 {
-	if (!g_thread_supported ())
-		g_thread_init (NULL);
+  struct command commands[numcmds];
+  printf("     Defining string\n");
+  strncpy(commands[numcmds].command, cmdstr, strlen(cmdstr));
+  printf("     Adding function\n");
+  commands[numcmds].func = function;
+  printf("     Incrementing count\n");
+  numcmds++;
+  printf("     Done\n");
+}
 
-	gtk_init (&argc, &argv);
+static bool setup_gtk(int argc, char* argv[])
+{
+  gtk_init (&argc, &argv);
 
 	GtkWidget* vbox = gtk_vbox_new (FALSE, 0);
 	gtk_box_pack_start (GTK_BOX (vbox), create_browser (), TRUE, TRUE, 0);
@@ -162,24 +181,49 @@ int main (int argc, char* argv[])
 	if (uri) {
 		webkit_web_view_load_uri (web_view, uri);
 	} else {
-		webkit_web_view_load_uri (web_view, "http://google.com");
+		webkit_web_view_load_uri (web_view, "http://www.google.com");
 	}
 
 	gtk_widget_grab_focus (GTK_WIDGET (web_view));
 	gtk_widget_show_all (main_window);
 
-	pthread_t control_thread;
+  return true;
+}
 
+static bool setup_commands()
+{
+  printf("Adding back\n");
+  add_command("back",    &webkit_web_view_go_back);
+  printf("Adding forward\n");
+  add_command("forward", &webkit_web_view_go_forward);
+  printf("Done\n");
+  return true;
+}
+
+static bool setup_threading()
+{
+	pthread_t control_thread;
 	pthread_create(&control_thread, NULL, control_fifo, NULL);
 
-	gtk_main();
+  return true;
+}
 
-	/*pthread_join(control_thread, NULL); For some reason it doesn't terminate upon the browser closing when this is enabled. */
+int main (int argc, char* argv[])
+{
+	if (!g_thread_supported ())
+		g_thread_init (NULL);
 
-	printf("Shutting down...\n");
+  setup_gtk (argc, argv);
+  setup_commands ();
+  setup_threading ();
+	gtk_main ();
+
+	/*pthread_join (control_thread, NULL); For some reason it doesn't terminate upon the browser closing when this is enabled. */
+
+	printf ("Shutting down...\n");
 
 	// Remove FIFO
-	unlink(fifopath);
+	unlink (fifopath);
 
 	return 0;
 }
