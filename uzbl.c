@@ -28,6 +28,8 @@
 
 #include <gtk/gtk.h>
 #include <webkit/webkit.h>
+#include <string.h>
+#include <gdk/gdkkeysyms.h>
 
 static GtkWidget* main_window;
 static GtkWidget* uri_entry;
@@ -136,6 +138,29 @@ go_forward_cb (GtkWidget* widget, gpointer data)
     webkit_web_view_go_forward (web_view);
 }
 
+static gboolean
+key_press_cb (WebKitWebView* page, GdkEventKey* event)
+{
+    gboolean result=FALSE; //TRUE to stop other handlers from being invoked for the event. FALSE to propagate the event further.
+    //BACK
+    if ((event->type==GDK_KEY_PRESS) && (event->keyval==GDK_Left) && (event->state & GDK_MOD1_MASK)) { 
+        webkit_web_view_go_back (web_view);
+    	result=TRUE;
+    }
+    //FORWARD
+    if ((event->type==GDK_KEY_PRESS) && (event->keyval==GDK_Right) && (event->state & GDK_MOD1_MASK)) { 
+        webkit_web_view_go_forward (web_view);
+    	result=TRUE;
+    }
+    //HOME (KIND OF)
+    if ((event->type==GDK_KEY_PRESS) && ((event->keyval==GDK_H) || (event->keyval==GDK_h)) && (event->state & GDK_MOD1_MASK)) { 
+	webkit_web_view_load_uri (web_view, uri); 
+    	result=TRUE;
+    }
+
+    return(result);
+}
+
 static GtkWidget*
 create_browser ()
 {
@@ -149,6 +174,7 @@ create_browser ()
     g_signal_connect (G_OBJECT (web_view), "load-progress-changed", G_CALLBACK (progress_change_cb), web_view);
     g_signal_connect (G_OBJECT (web_view), "load-committed", G_CALLBACK (load_commit_cb), web_view);
     g_signal_connect (G_OBJECT (web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), web_view);
+    g_signal_connect (G_OBJECT (web_view), "key-press-event", G_CALLBACK(key_press_cb), web_view);
 
     return scrolled_window;
 }
