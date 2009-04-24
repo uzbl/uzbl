@@ -1,6 +1,7 @@
 Control:
   - FIFO opened in /tmp/uzbl
   - 'forward', 'back, 'http://www.blah.com', at the supported commands.
+  - Must be a blank character at the end (eg: newline)
 
 Todo:
   - Include PID in FIFO name to allow multiple instances.
