@@ -1,2 +1,10 @@
+Control:
+  - FIFO opened in /tmp/uzbl
+  - 'forward', 'back, 'http://www.blah.com', at the supported commands.
+
+Todo:
+  - Include PID in FIFO name to allow multiple instances.
+  - Delete FIFO upon terminating.
+
 Bugs:
-  - The control_thread function doesn't receive data all the time, and causes segfaults for some reason. And it doesn't actually work at all.
+  - Segfaults sometimes occur, no idea why.
