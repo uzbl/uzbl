@@ -23,7 +23,7 @@ Right now uzbl is in a very early state but here are some ideas I would like to 
 - no build in command interpreters like ubiquity.  uzbl should be accessible and you should use a shell or similar.
 - vimperator/konqueror-like hyperlink following.
 - password management. maybe an encrypted store that unlocks with an ssh key?
-
+- use the XDG basedir spec for separation of config, data and cache. and state will be a subdir in the config dir (not part of the spec yet) too.
 
 WIDGET ROADMAP:
 * statusbar? (the bar you see in pretty much every gtk program at the bottom. eg firefox)
@@ -46,6 +46,14 @@ WIDGET ROADMAP:
 all of the above goes in 1 bar at the top of the program. there should be a key to toggle visibility of it and one to toggle visibilety + focus on the entrybar at once.
 
 input welcome!
+
+
+HISTORY FILE SIZE/PERFORMANCE
+each new pageload -> fopen(history_file, "a"), fwrite one line, fclose.
+I use utf8, so unless you use characters that are "special" (chinese etc)
+each character takes 1 byte.
+So, assume each entry is about 80 chars, you visit 100 pages per day (?), and you wonder when your history file will be 50MB big:
+(50 * 1000 * 1000 ) / ( 80 * 100 ) = 6250 days or 17 years.
 
 
 
