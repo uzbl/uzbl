@@ -1,12 +1,14 @@
 Control:
   - FIFO opened in /tmp/uzbl_pid
-  - Commands are now grouped by function:
-       nav forward
-       nav back
-       nav reload
-       nav stop
-       view zoom +
-       view zoom -
+  - Commands are as follows:
+       f - forward
+       b - back
+       r - refresh
+       s - stop
+       z+ - zoom in
+       z- - zoom out
+  - If a command is appended with a number, run it that many times (eg: z+10 would zoom in 10 times).
+  - Press enter after typing a command to use it.
 
 Bugs:
   - Segfault occurs on shutdown, almost definitely FIFO related (I'm not seeing this bug now, but the warning was here when I forked the code and I haven't touched the FIFO bit)
@@ -18,7 +20,6 @@ Notes:
 
 Todo:
   - Change commands to a few characters long.
-  - Automatically run a command when typed (no need to press enter).
   - Support for arguments to commands (argc/argv-like structure?).
   - Support for binding keyboard shortcuts in config file.
   - Support for setting home page in config file.

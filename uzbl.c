@@ -41,6 +41,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 static GtkWidget*     main_window;
 static GtkWidget*     modeline;
@@ -75,7 +76,9 @@ static void parse_command(char*);
 
 static bool parse_modeline (GtkWidget* mode, GdkEventKey* event)
 {
-  parse_command (gtk_entry_get_text (modeline));
+  if ((event->type==GDK_KEY_PRESS) && (event->keyval==GDK_Return))
+    parse_command (gtk_entry_get_text (modeline));
+
   return false;
 }
 
@@ -165,28 +168,42 @@ static void parse_command(char *command)
 {
   int  i    = 0;
   bool done = false;
+  char* strtimes = NULL;
 
-  for (i = 0; i < numcmds && !done; i++)
+  void (*func)(WebKitWebView*);
+  int times = 1;
+
+  for (i = 0; i < numcmds && ! done; i++)
     {
-      if (!strcmp(command, commands[i].command))
+      if (!strncmp (command, commands[i].command, strlen (commands[i].command)))
         {
-          printf("Parsed command \"%s\"\n", commands[i].command);
-          commands[i].func(web_view);
+          func = commands[i].func;
           done = true;
+
+          if (strlen (command) > strlen (commands[i].command))
+            {
+              strtimes = (char *) command + strlen (commands[i].command);
+              printf("%s\n", strtimes);
+              times = atoi (strtimes);
+            }
         }
     }
 
-  if(!done)
+  if(done)
     {
-      if (!strncmp("http://", command, 7))
+      int j;
+      for (j = 0; j < times; j++)
         {
-          printf("Loading URI \"%s\"\n", command);
+          func (web_view);
+        }
+    }
+  else
+    {
+      if (!strncmp ("http://", command, 7))
+        {
+          printf ("Loading URI \"%s\"\n", command);
           uri = command;
           webkit_web_view_load_uri (web_view, uri);
-        }
-      else
-        {
-          printf("Unhandled command \"%s\"\n", command);
         }
     }
 }
@@ -271,19 +288,12 @@ static void setup_commands ()
 {
   //This func. is nice but currently it cannot be used for functions that require arguments or return data. --sentientswitch
 
-  //Commands are grouped:
-  //    nav     -       commands that actually navigate to different pages
-  //    view    -       commands that affect how the page is rendered
-  //    get     -       commands that return properties
-  //    set     -       commands that return properties
-  //add more as necessary.
-
-  add_command("nav back",    &webkit_web_view_go_back);
-  add_command("nav forward", &webkit_web_view_go_forward);
-  add_command("nav reload", &webkit_web_view_reload); //Buggy
-  add_command("nav stop", &webkit_web_view_stop_loading);
-  add_command("view zoom +", &webkit_web_view_zoom_in); //Can crash (when max zoom reached?).
-  add_command("view zoom -", &webkit_web_view_zoom_out); //Crashes as zoom +
+  add_command("b",  &webkit_web_view_go_back);
+  add_command("f",  &webkit_web_view_go_forward);
+  add_command("r",  &webkit_web_view_reload); //Buggy
+  add_command("s",  &webkit_web_view_stop_loading);
+  add_command("z+", &webkit_web_view_zoom_in); //Can crash (when max zoom reached?).
+  add_command("z-", &webkit_web_view_zoom_out); //Crashes as zoom +
   //add_command("get uri", &webkit_web_view_get_uri);
 }
 
