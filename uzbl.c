@@ -54,7 +54,6 @@ static gchar* uri = NULL;
 
 static gboolean verbose = FALSE;
 
-
 static GOptionEntry entries[] =
 {
   { "uri",     'u', 0, G_OPTION_ARG_STRING, &uri,     "Uri to load", NULL },
@@ -72,8 +71,92 @@ static struct command commands[256];
 static int            numcmds = 0;
 
 static void
-parse_command(const char*);
+update_title (GtkWindow* window);
 
+
+/* --- CALLBACKS --- */
+
+static void
+go_back_cb (GtkWidget* widget, gpointer data)
+{
+    webkit_web_view_go_back (web_view);
+}
+
+static void
+go_forward_cb (GtkWidget* widget, gpointer data)
+{
+    webkit_web_view_go_forward (web_view);
+}
+
+
+static void
+link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data)
+{
+    /* underflow is allowed */
+    //gtk_statusbar_pop (main_statusbar, status_context_id);
+    //if (link)
+    //    gtk_statusbar_push (main_statusbar, status_context_id, link);
+    //TODO implementation roadmap pending..
+}
+
+static void
+title_change_cb (WebKitWebView* web_view, WebKitWebFrame* web_frame, const gchar* title, gpointer data)
+{
+    if (main_title)
+        g_free (main_title);
+    main_title = g_strdup (title);
+    update_title (GTK_WINDOW (main_window));
+}
+
+static void
+progress_change_cb (WebKitWebView* page, gint progress, gpointer data)
+{
+    load_progress = progress;
+    update_title (GTK_WINDOW (main_window));
+}
+
+static void
+load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data)
+{
+    const gchar* uri = webkit_web_frame_get_uri(frame);
+    if (uri)
+        gtk_entry_set_text (GTK_ENTRY (uri_entry), uri);
+}
+
+static void
+destroy_cb (GtkWidget* widget, gpointer data)
+{
+    gtk_main_quit ();
+}
+
+static void
+activate_uri_entry_cb (GtkWidget* entry, gpointer data)
+{
+    const gchar * uri = gtk_entry_get_text (GTK_ENTRY (entry));
+    g_assert (uri);
+    webkit_web_view_load_uri (web_view, uri);
+}
+
+static void
+log_history_cb () {
+    FILE * output_file = fopen(history_file, "a");
+    if (output_file == NULL) {
+       fprintf(stderr, "Cannot open %s for logging\n", history_file);
+    } else {
+        time_t rawtime;
+        struct tm * timeinfo;
+        char buffer [80];
+        time ( &rawtime );
+        timeinfo = localtime ( &rawtime );
+        strftime (buffer,80,"%Y-%m-%d %H:%M:%S",timeinfo);
+
+        fprintf(output_file, "%s %s\n",buffer, uri);
+        fclose(output_file);
+    }
+}
+
+
+/* -- CORE FUNCTIONS -- */
 
 static void
 parse_command(const char *command)
@@ -85,8 +168,6 @@ parse_command(const char *command)
 
   strcpy(cmdstr, command);
 
-  done = false;
-  printf("Checking commands\n");
   for (i = 0; i < numcmds && ! done; i++)
     {
       if (!strncmp (cmdstr, commands[i].command, strlen (commands[i].command)))
@@ -96,7 +177,7 @@ parse_command(const char *command)
         }
     }
 
-  printf("Command identified as \"%s\"\n", cmdstr);
+  printf("command received: \"%s\"\n", cmdstr);
 
   if (done)
     {
@@ -169,12 +250,12 @@ setup_commands ()
 {
   // This func. is nice but currently it cannot be used for functions that require arguments or return data. --sentientswitch
   // TODO: reload, home
-  add_command("back",     &webkit_web_view_go_back);
-  add_command("forward",  &webkit_web_view_go_forward);
+  add_command("back",     &go_back_cb);
+  add_command("forward",  &go_forward_cb);
   add_command("refresh",  &webkit_web_view_reload); //Buggy
   add_command("stop",     &webkit_web_view_stop_loading);
   add_command("zoom_in",  &webkit_web_view_zoom_in); //Can crash (when max zoom reached?).
-  add_command("zoom_out", &webkit_web_view_zoom_out); //Crashes as zoom +
+  add_command("zoom_out", &webkit_web_view_zoom_out);
   //add_command("get uri", &webkit_web_view_get_uri);
 }
 
@@ -186,32 +267,7 @@ setup_threading ()
 }
 
 
-static void
-log_history_cb () {
-    FILE * output_file = fopen(history_file, "a");
-    if (output_file == NULL) {
-       fprintf(stderr, "Cannot open %s for logging\n", history_file);
-    } else {
-        time_t rawtime;
-        struct tm * timeinfo;
-        char buffer [80];
-        time ( &rawtime );
-        timeinfo = localtime ( &rawtime );
-        strftime (buffer,80,"%Y-%m-%d %H:%M:%S",timeinfo);
 
-        fprintf(output_file, "%s %s\n",buffer, uri);
-        fclose(output_file);
-    }
-}
-
-
-static void
-activate_uri_entry_cb (GtkWidget* entry, gpointer data)
-{
-    const gchar * uri = gtk_entry_get_text (GTK_ENTRY (entry));
-    g_assert (uri);
-    webkit_web_view_load_uri (web_view, uri);
-}
 
 static void
 update_title (GtkWindow* window)
@@ -223,58 +279,6 @@ update_title (GtkWindow* window)
     gchar* title = g_string_free (string, FALSE);
     gtk_window_set_title (window, title);
     g_free (title);
-}
-
-static void
-link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data)
-{
-    /* underflow is allowed */
-    //gtk_statusbar_pop (main_statusbar, status_context_id);
-    //if (link)
-    //    gtk_statusbar_push (main_statusbar, status_context_id, link);
-    //TODO implementation roadmap pending..
-}
-
-static void
-title_change_cb (WebKitWebView* web_view, WebKitWebFrame* web_frame, const gchar* title, gpointer data)
-{
-    if (main_title)
-        g_free (main_title);
-    main_title = g_strdup (title);
-    update_title (GTK_WINDOW (main_window));
-}
-
-static void
-progress_change_cb (WebKitWebView* page, gint progress, gpointer data)
-{
-    load_progress = progress;
-    update_title (GTK_WINDOW (main_window));
-}
-
-static void
-load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data)
-{
-    const gchar* uri = webkit_web_frame_get_uri(frame);
-    if (uri)
-        gtk_entry_set_text (GTK_ENTRY (uri_entry), uri);
-}
-
-static void
-destroy_cb (GtkWidget* widget, gpointer data)
-{
-    gtk_main_quit ();
-}
-
-static void
-go_back_cb (GtkWidget* widget, gpointer data)
-{
-    webkit_web_view_go_back (web_view);
-}
-
-static void
-go_forward_cb (GtkWidget* widget, gpointer data)
-{
-    webkit_web_view_go_forward (web_view);
 }
 
 static GtkWidget*
