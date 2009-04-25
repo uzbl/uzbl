@@ -1,24 +1,31 @@
 # example uzbl config. in a real config, we should obey the xdg spec
 
-# if history_file is not set, then no history logging is performed.
+# all keys in the behavior group are optional.  if not set, the corresponding behavior is disabed.
 # bindings_internal denote keys to trigger actions internally in uzbl
 # bindings_external denote keys to trigger scripts outside uzbl
+
+# keyboard behavior is vimstyle by default (all actions -> 1 key). set
+# always_insert_mode to always be in insert mode and disable going out of it.
+# if you do this, make sure you've set a modkey so you can reach the actions
+# from insert mode by combining them with the modkey
 
 [behavior]
 history_file = /tmp/uzbl.history
 download_handler = ./extra/download.sh
 fifo_dir = /tmp
+always_insert_mode = 0
+modkey = Mod4
 
 [bindings_internal]
-n = next
-f = follow_link_here
-F = follow_link_new_tab
-w = follow_link_new_window
+next = n
+follow_link_here = f
+follow_link_new_tab = F
+follow_link_new_window = w
 
 [bindings_external]
-b = ./extra/insert_bookmark.sh
-u = ./extra/load_url_from_history.sh
-U = ./extra/load_url_from_bookmarks.sh
+./extra/insert_bookmark.sh = b
+./extra/load_url_from_history.sh = u
+./extra/load_url_from_bookmarks.sh = U
 
 
 [network]
