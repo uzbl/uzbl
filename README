@@ -54,7 +54,7 @@ I use utf8, so unless you use characters that are "special" (chinese etc)
 each character takes 1 byte.
 So, assume each entry is about 80 chars, you visit 100 pages per day (?), and you wonder when your history file will be 50MB big:
 (50 * 1000 * 1000 ) / ( 80 * 100 ) = 6250 days or 17 years.
-
+There is code to run a benchmark in the 'extra' dir.  For results & interpretation, see http://dieter.plaetinck.be/poor_mans_dmenu_benchmark
 
 
 
