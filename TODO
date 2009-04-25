@@ -1,0 +1,6 @@
+* implement all the ideas from README
+* do not store the 'http://' part in the history file
+* improve commandline arguments
+
+* Support for arguments to commands (argc/argv-like structure?).
+* Support for binding keyboard shortcuts in config file.

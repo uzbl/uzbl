@@ -1,26 +1,74 @@
-Control:
-  - FIFO opened in /tmp/uzbl_pid
-  - Commands are as follows:
-       f - forward
-       b - back
-       r - refresh
-       s - stop
-       z+ - zoom in
-       z- - zoom out
-  - If a command is appended with a number, run it that many times (eg: z+10 would zoom in 10 times).
-  - Press ESC to toggle the mode line.
-  - Press enter after typing a command in the mode line to use it.
+- Uzbl.
+  In my opinion, any program can only be really useful if it complies to the unix philosophy.
+  Web browsers are frequent violators of this principle.  Time to change that!
 
-Bugs:
-  - Segfault occurs on shutdown, almost definitely FIFO related (I'm not seeing this bug now, but the warning was here when I forked the code and I haven't touched the FIFO bit)
-  - Segfaults when using zoom commands (happens when max zoom already reached?).
+Right now uzbl is in a very early state but here are some ideas I would like to (not) implement
 
-Notes:
-  - I push the code most times I save any changes, regardless of whether it actually compiles or not. Thus, the code here should be regarded as highly experimental.
-  - If you use any of my code in another fork of uzbl (or anything really) it'd be nice to get a mention.
+- each instance of uzbl renders 1 page (eg it's a small wrapper around webkit), no tabbing, tab previews, or speed dial things. we have window managers for that.
+  -> well actually, there is lots of dicussion about this, i'll probably implement a basic form of tabbing.
+- simple ini config file ("profile") for keyboard, network,.. settings
+- implement some basic keyboard shortcuts for going up, down, refresh etc. preferably vim-like command style.
+- listen to signals and do useful stuff when triggered.
+- open up a socket file/fifo/.. so we can easily control each instance by writing things like 'uri <foo>' to /tmp/uzbl-windowid
+- MAYBE (if needed): 1 control application called uzblctrl or something. use this to modify the behavior of a uzbl instance (change url, refresh).  use xdotool to get the window with focus.  eg uzblctrl -win <id> -url <http://>.
+  use xbindkeys to bind keys to call uzblctrl.
+- no bookmark management builtin.  make your own solution.  for pulling a bookmark a plaintxt-based program using dmenu would work great here. combine with uzbltcrl and xbindkeys.
+  uzblctrl should support an option to query the current page so you can script something to add to your bookmarks.  use zenity or something to add tags.
+- history: log 'Y-m-d H:M:S <url>' entries to a plaintext file. you can then use dmenu or whatever to select an entry and pipe the output to uzbl's fifo.
+- no ad blocking built in (I think). 
+  alternatives:
+  ->  /etc/hosts (not very good cause you need root and it affects the whole system)-> uzblctrl would need to support an option to list all images on a page, so you can easily pick the links to ads to add them to your /etc/hosts. (dmenu can again be great here to automate this)
+  -> privoxy looks cool and perfectly demonstrates the unix philosphy.
+- no download manager. allow user to pick wget/curl/a custom script/... 
+- no build in command interpreters like ubiquity.  uzbl should be accessible and you should use a shell or similar.
+- vimperator/konqueror-like hyperlink following.
+- password management. maybe an encrypted store that unlocks with an ssh key?
+- use the XDG basedir spec for separation of config, data and cache. and state will be a subdir in the config dir (not part of the spec yet) too.
 
-Todo:
-  - Change commands to a few characters long.
-  - Support for arguments to commands (argc/argv-like structure?).
-  - Support for binding keyboard shortcuts in config file.
-  - Support for setting home page in config file.
+WIDGET ROADMAP:
+* statusbar? (the bar you see in pretty much every gtk program at the bottom. eg firefox)
+  consumes too much space (if always visible) for the little it is used.  (+ you can put only 1 message in it at a time!)
+  -> option 1: no statusbar at all. when hovering over a link (or pressing key to preview the url without changing page) -> show url in tooltip on page.
+  -> option 2: toggle visibility of statusbar on/off when hovering over a link. since it's at the bottom I don't think it will disturb too much.
+* viewing progress/state of pageload?  most programs use statusbar for this.
+  -> option 1: titlebar can show a percentage when it's loading a new page.
+  -> option 2: toggle a statusbar everytime we start loading a new page.
+* uri bar -> yes, even though we can write stuff to the fifo, it can still be convenient to change the url manually and stuff, so a widget in uzbl itself is good.
+* tabs -> yes. you don't have to use them, but you can.
+* back/forward/.. buttons? -> no: use keyboard shortcuts.
+* searching in a page? not sure.. maybe we can abuse the statusbar for that too.
+  eg toggle it on when the user wants to search for something and then do searching in some vim-like fashion.
+  we don't need a gtk text entry widget, just a feedback display of what the current command is.
+* scrollbar? no: use keyboard shortcuts.  we should however have some info about the page length and where we are.
+  -> option 1: put a percentage in the window title
+  -> option 2: everytime you hit a key to change position, temporarily make a statusbar visible and put the percentage in the statusbar.
+  what will we do with pages who are too wide? horizontal scrolling?
+all of the above goes in 1 bar at the top of the program. there should be a key to toggle visibility of it and one to toggle visibilety + focus on the entrybar at once.
+
+input welcome!
+
+
+HISTORY FILE SIZE/PERFORMANCE
+each new pageload -> fopen(history_file, "a"), fwrite one line, fclose.
+I use utf8, so unless you use characters that are "special" (chinese etc)
+each character takes 1 byte.
+So, assume each entry is about 80 chars, you visit 100 pages per day (?), and you wonder when your history file will be 50MB big:
+(50 * 1000 * 1000 ) / ( 80 * 100 ) = 6250 days or 17 years.
+There is code to run a benchmark in the 'extra' dir.  For results & interpretation, see http://dieter.plaetinck.be/poor_mans_dmenu_benchmark
+
+CONTROL:
+- FIFO opened in /tmp/uzbl_pid
+- See config file for commands
+- Press ESC to toggle the command entry.
+- Press enter after typing a command to use it.
+
+NOTE:
+- My c skills are very rusty, it will take me a while to get back up to speed
+- For more thoughts & ideas see http://bbs.archlinux.org/viewtopic.php?id=67463
+- I push the code most times I save any changes, regardless of whether it actually compiles or not. Thus, the code here should be regarded as highly experimental.
+
+KNOWN BUGS
+- Segfault occurs on shutdown, almost definitely FIFO related (I'm not seeing this bug now, but the warning was here when I forked the code and I haven't touched the FIFO bit)
+- Segfaults when using zoom commands (happens when max zoom already reached?).
+- Something in the FIFO code causes CPU usage to jump.
+- Segfaults when loading aliases from confgi file (currently aliases are defined in the code as a 'work-around').

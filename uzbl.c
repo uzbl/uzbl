@@ -51,7 +51,6 @@ static gchar* history_file;
 static gchar* home_page;
 static gchar* uri       = NULL;
 static gchar* fifodir   = NULL;
-static gint   mechmode  = 0;
 static char   fifopath[64];
 static bool   modevis = FALSE;
 
@@ -59,7 +58,6 @@ static GOptionEntry entries[] =
 {
   { "uri",      'u', 0, G_OPTION_ARG_STRING, &uri,      "Uri to load",                                   NULL },
   { "fifo-dir", 'd', 0, G_OPTION_ARG_STRING, &fifodir,  "Directory to place FIFOs",                      NULL },
-  { "mechmode", 'm', 0, G_OPTION_ARG_INT,    &mechmode, "Enable output suitable for machine processing", NULL },
   { NULL }
 };
 
@@ -71,6 +69,15 @@ struct command
 
 static struct command commands[256];
 static int            numcmds = 0;
+
+struct alias
+{
+  char alias[256];
+  char command[256];
+};
+
+static struct alias aliases[256];
+static int          numalias = 0;
 
 static void parse_command(char*);
 
@@ -168,34 +175,35 @@ static void parse_command(char *command)
 {
   int  i    = 0;
   bool done = false;
-  char* strtimes = NULL;
-
+  char *cmdstr = command;
   void (*func)(WebKitWebView*);
-  int times = 1;
 
-  for (i = 0; i < numcmds && ! done; i++)
+  printf("Checking aliases\n");
+  for (i = 0; i < numalias && ! done; i++)
     {
-      if (!strncmp (command, commands[i].command, strlen (commands[i].command)))
+      if (!strncmp (cmdstr, aliases[i].alias, strlen (aliases[i].alias)))
         {
-          func = commands[i].func;
+          strcpy(cmdstr, aliases[i].command);
           done = true;
-
-          if (strlen (command) > strlen (commands[i].command))
-            {
-              strtimes = (char *) command + strlen (commands[i].command);
-              printf("%s\n", strtimes);
-              times = atoi (strtimes);
-            }
         }
     }
 
-  if(done)
+  done = false;
+  printf("Checking commands\n");
+  for (i = 0; i < numcmds && ! done; i++)
     {
-      int j;
-      for (j = 0; j < times; j++)
+      if (!strncmp (cmdstr, commands[i].command, strlen (commands[i].command)))
         {
-          func (web_view);
+          func = commands[i].func;
+          done = true;
         }
+    }
+
+  printf("Command identified as \"%s\"\n", cmdstr);
+
+  if (done)
+    {
+      func (web_view);
     }
   else
     {
@@ -210,48 +218,58 @@ static void parse_command(char *command)
 
 static void *control_fifo()
 {
-  if (fifodir) {
-    sprintf(fifopath, "%s/uzbl_%d", fifodir, getpid());
-  } else {
-    sprintf(fifopath, "/tmp/uzbl_%d", getpid());
-  }
+  if (fifodir)
+    {
+      sprintf (fifopath, "%s/uzbl_%d", fifodir, getpid ());
+    }
+  else
+    {
+      sprintf (fifopath, "/tmp/uzbl_%d", getpid ());
+    }
 
-  if (mkfifo (fifopath, 0666) == -1) {
-    printf("Possible error creating fifo\n");
-  }
+  if (mkfifo (fifopath, 0666) == -1)
+    {
+      printf ("Possible error creating fifo\n");
+    }
 
-  if (mechmode) {
-    printf("%s\n", fifopath);
-  } else {
     printf ("Opened control fifo in %s\n", fifopath);
-  }
 
-  while (true)
-  {
-    FILE *fifo = fopen(fifopath, "r");
-    if (!fifo) {
-      printf("Could not open %s for reading\n", fifopath);
-      return NULL;
-    }
-
-    char buffer[256];
-    memset(buffer, 0, sizeof(buffer));
-    while (!feof(fifo) && fgets(buffer, sizeof(buffer), fifo)) {
-      if (strcmp(buffer, "\n")) {
-        buffer[strlen(buffer)-1] = '\0'; // Remove newline
-        parse_command(buffer);
+    while (true)
+      {
+        FILE *fifo = fopen(fifopath, "r");
+        if (!fifo)
+          {
+            printf("Could not open %s for reading\n", fifopath);
+            return NULL;
+          }
+        
+        char buffer[256];
+        memset (buffer, 0, sizeof (buffer));
+        while (!feof (fifo) && fgets (buffer, sizeof (buffer), fifo))
+          {
+            if (strcmp (buffer, "\n"))
+              {
+                buffer[strlen (buffer) - 1] = '\0'; // Remove newline
+                parse_command (buffer);
+              }
+          }
       }
-    }
-  }
-
-  return NULL;
+    
+    return NULL;
 }
 
 static void add_command (char* cmdstr, void* function)
 {
-  strncpy(commands[numcmds].command, cmdstr, strlen(cmdstr));
+  strncpy (commands[numcmds].command, cmdstr, strlen (cmdstr));
   commands[numcmds].func = function;
   numcmds++;
+}
+
+static void add_command_alias (char* alias, char* command)
+{
+  strncpy (aliases[numalias].alias,   alias,   strlen (alias));
+  strncpy (aliases[numalias].command, command, strlen (command));
+  numalias++;
 }
 
 static bool setup_gtk (int argc, char* argv[])
@@ -288,12 +306,12 @@ static void setup_commands ()
 {
   //This func. is nice but currently it cannot be used for functions that require arguments or return data. --sentientswitch
 
-  add_command("b",  &webkit_web_view_go_back);
-  add_command("f",  &webkit_web_view_go_forward);
-  add_command("r",  &webkit_web_view_reload); //Buggy
-  add_command("s",  &webkit_web_view_stop_loading);
-  add_command("z+", &webkit_web_view_zoom_in); //Can crash (when max zoom reached?).
-  add_command("z-", &webkit_web_view_zoom_out); //Crashes as zoom +
+  add_command("back",     &webkit_web_view_go_back);
+  add_command("forward",  &webkit_web_view_go_forward);
+  add_command("refresh",  &webkit_web_view_reload); //Buggy
+  add_command("stop",     &webkit_web_view_stop_loading);
+  add_command("zoom in",  &webkit_web_view_zoom_in); //Can crash (when max zoom reached?).
+  add_command("zoom out", &webkit_web_view_zoom_out); //Crashes as zoom +
   //add_command("get uri", &webkit_web_view_get_uri);
 }
 
@@ -336,6 +354,32 @@ static void setup_settings ()
     {
       printf ("Home page disabled\n");
     }
+
+  /*GError *error = 0;
+  char   *keys  = g_key_file_get_keys (config, "alias", NULL, &error);
+
+  if (error) 
+    {
+      printf("Error: %n\n", error);
+    }
+  else
+    {
+      printf("Loading aliases\n");
+      while (keys != NULL &&  (*keys) != NULL)
+        {
+          char* value = g_key_file_get_value (config, (gchar *)"alias", (*keys), NULL);
+          add_command_alias((*keys), value);
+          ++keys;
+        }
+    }
+
+    Until segfaults is fixed, manually add aliases to test the rest of it. */
+  add_command_alias("b",  "back");
+  add_command_alias("f",  "forward");
+  add_command_alias("z+", "zoom in");
+  add_command_alias("z-", "zoom out");
+  add_command_alias("r",  "refresh");
+  add_command_alias("s",  "stop");
 }
 
 int main (int argc, char* argv[])
