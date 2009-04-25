@@ -130,7 +130,7 @@ static void
       printf ("Possible error creating fifo\n");
     }
 
-    printf ("Opened control fifo in %s\n", fifopath);
+    printf ("ontrol fifo opened in %s\n", fifopath);
 
     while (true)
       {
@@ -336,7 +336,7 @@ int main (int argc, char* argv[])
     }
     history_file = g_key_file_get_value (config, "behavior", "history_file", NULL);
     if(history_file) {
-        printf("setting history file to: %s\n",history_file);
+        printf("history file: %s\n",history_file);
     } else {
         printf("history logging disabled\n");
     }
@@ -362,8 +362,8 @@ int main (int argc, char* argv[])
     gtk_widget_grab_focus (GTK_WIDGET (web_view));
     gtk_widget_show_all (main_window);
     xwin = GDK_WINDOW_XID (GTK_WIDGET (main_window)->window);
-    printf("My X window id is %i\n",(int) xwin);
-
+    printf("window_id %i\n",(int) xwin);
+    printf("pid %i\n", getpid ());
 
     setup_commands ();
     setup_threading ();
