@@ -76,6 +76,16 @@ typedef struct
   void (*func)(WebKitWebView*);
 } Command;
 
+typedef struct
+{
+  const char *binding;
+  const char *action;
+} Binding;
+
+static Binding internal_bindings[256];
+static Binding external_bindings[256];
+static int     num_internal_bindings = 0;
+static int     num_external_bindings = 0;
 
 static void
 update_title (GtkWindow* window);
@@ -293,6 +303,18 @@ GtkWidget* create_window () {
 }
 
 static void
+add_binding (char *binding, char *action, bool internal) {
+    Binding bind = {binding, action};
+    if (internal) {
+        internal_bindings[num_internal_bindings] = bind;
+        num_internal_bindings ++;
+    } else {
+        external_bindings[num_external_bindings] = bind;
+        num_external_bindings ++;
+    }
+}
+
+static void
 settings_init () {
     GKeyFile* config = g_key_file_new ();
     gboolean res = g_key_file_load_from_file (config, "./sampleconfig", G_KEY_FILE_NONE, NULL); //TODO: pass config file as argument
@@ -337,6 +359,23 @@ settings_init () {
     } else {
         printf ("Mod key disabled/\n");
     }
+
+    gchar **keysi = g_key_file_get_keys (config, "bindings_internal", NULL, NULL);
+    int i = 0;
+    for (i = 0; keysi[i]; i++)
+      {
+        gchar *binding = g_key_file_get_string(config, "bindings_internal", keysi[i], NULL);
+        printf("Action: %s, Binding: %s (internal)\n", g_strdup (keysi[i]), binding);
+        add_binding (binding, g_strdup (keysi[i]), true);
+      }
+
+    gchar **keyse = g_key_file_get_keys (config, "bindings_external", NULL, NULL);
+    for (i = 0; keyse[i]; i++)
+      {
+        gchar *binding = g_key_file_get_string(config, "bindings_external", keyse[i], NULL);
+        printf("Action: %s, Binding: %s (external)\n", g_strdup (keyse[i]), binding);
+        add_binding (binding, g_strdup (keyse[i]), false);
+      }
 }
 
 int
