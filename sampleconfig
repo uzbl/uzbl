@@ -1,5 +1,9 @@
 # example uzbl config. in a real config, we should obey the xdg spec
 
+# if history_file is not set, then no history logging is performed.
+# bindings_internal denote keys to trigger actions internally in uzbl
+# bindings_external denote keys to trigger scripts outside uzbl
+
 [behavior]
 history_file = /tmp/uzbl.history
 download_handler = ./extra/download.sh
