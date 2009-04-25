@@ -72,4 +72,5 @@ KNOWN BUGS
 - Segfault occurs on shutdown, almost definitely FIFO related (I'm not seeing this bug now, but the warning was here when I forked the code and I haven't touched the FIFO bit)
 - Segfaults when using zoom commands (happens when max zoom already reached?).
 - Something in the FIFO code causes CPU usage to jump.
-- Segfaults when loading aliases from confgi file (currently aliases are defined in the code as a 'work-around').
+- Segfaults when loading aliases from config file (currently aliases are defined in the code as a 'work-around').
+- Segfaults when setting the xwin variable

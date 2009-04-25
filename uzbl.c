@@ -52,14 +52,13 @@ static gchar*   home_page;
 static gchar*   uri       = NULL;
 static gchar*   fifodir   = NULL;
 static char     fifopath[64];
-static bool     modevis = FALSE;
-static gboolean verbose = FALSE;
-static Window   xwin    = NULL;
+static bool     modevis = false;
+//static Window   xwin    = 0;
 
 static GOptionEntry entries[] =
 {
-  { "uri",      'u', 0, G_OPTION_ARG_STRING, &uri,      "Uri to load",                                   NULL },
-  { "fifo-dir", 'd', 0, G_OPTION_ARG_STRING, &fifodir,  "Directory to place FIFOs",                      NULL },
+  { "uri",      'u', 0, G_OPTION_ARG_STRING, &uri,      "Uri to load",              NULL },
+  { "fifo-dir", 'd', 0, G_OPTION_ARG_STRING, &fifodir,  "Directory to place FIFOs", NULL },
   { NULL }
 };
 
@@ -81,12 +80,12 @@ struct alias
 static struct alias aliases[256];
 static int          numalias = 0;
 
-static void parse_command(char*);
+static void parse_command(const char*);
 
 static bool parse_modeline (GtkWidget* mode, GdkEventKey* event)
 {
   if ((event->type==GDK_KEY_PRESS) && (event->keyval==GDK_Return))
-    parse_command (gtk_entry_get_text (modeline));
+    parse_command (gtk_entry_get_text (GTK_ENTRY (modeline)));
  
   return false;
 }
@@ -119,7 +118,7 @@ static void toggle_command_mode ()
   if (modevis)
     {
       gtk_widget_hide (modeline);
-      gtk_widget_grab_focus (web_view);
+      gtk_widget_grab_focus (GTK_WIDGET (web_view));
     }
   else
     {
@@ -159,6 +158,7 @@ static GtkWidget* create_window ()
   GtkWidget* window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
   gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
   gtk_widget_set_name (window, "Uzbl Browser");
+  /*xwin = GDK_WINDOW_XID (GTK_WIDGET (main_window)->window); This segfaults for some reason */
   g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (gtk_main_quit), NULL);
   g_signal_connect (G_OBJECT (window), "key-press-event", G_CALLBACK(key_press_cb), NULL);
 
@@ -173,12 +173,14 @@ static GtkWidget* create_modeline ()
   return modeline;
 }
 
-static void parse_command(char *command)
+static void parse_command(const char *command)
 {
   int  i    = 0;
   bool done = false;
-  char *cmdstr = command;
+  char *cmdstr;
   void (*func)(WebKitWebView*);
+
+  strcpy(cmdstr, command);
 
   printf("Checking aliases\n");
   for (i = 0; i < numalias && ! done; i++)
@@ -212,7 +214,7 @@ static void parse_command(char *command)
       if (!strncmp ("http://", command, 7))
         {
           printf ("Loading URI \"%s\"\n", command);
-          uri = command;
+          strcpy(uri, command);
           webkit_web_view_load_uri (web_view, uri);
         }
     }
@@ -387,9 +389,6 @@ int main (int argc, char* argv[])
 {
   if (!g_thread_supported ())
     g_thread_init (NULL);
-
-  xwin = GDK_WINDOW_XID (GTK_WIDGET (main_window)->window);
-  printf("My X window id is %i\n",(int) xwin);
 
   setup_settings ();
   setup_gtk (argc, argv);
