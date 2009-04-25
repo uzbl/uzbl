@@ -44,8 +44,14 @@ static GtkWidget* uri_entry;
 static GtkWidget* mainbar;
 static WebKitWebView* web_view;
 static gchar* main_title;
-static gchar* history_file;
-static gchar* fifodir   = NULL;
+
+/* Behaviour variables */
+static gchar* history_file       = NULL;
+static gchar* fifo_dir           = NULL;
+static gchar* download_handler   = NULL;
+static gchar* always_insert_mode = NULL;
+static gchar* modkey             = NULL;
+
 static char fifopath[64];
 static gint load_progress;
 static guint status_context_id;
@@ -181,8 +187,8 @@ parse_command(const char *command) {
 
 static void
 *control_fifo() {
-  if (fifodir) {
-      sprintf (fifopath, "%s/uzbl_%d", fifodir, (int) xwin);
+  if (fifo_dir) {
+      sprintf (fifopath, "%s/uzbl_%d", fifo_dir, (int) xwin);
   } else {
       sprintf (fifopath, "/tmp/uzbl_%d", (int) xwin);
     }
@@ -294,30 +300,63 @@ GtkWidget* create_window () {
     return window;
 }
 
+static void
+settings_init () {
+    GKeyFile* config = g_key_file_new ();
+    gboolean res = g_key_file_load_from_file (config, "./sampleconfig", G_KEY_FILE_NONE, NULL); //TODO: pass config file as argument
+    if (res) {
+        printf ("Config loaded\n");
+    } else {
+        fprintf (stderr, "Config loading failed\n"); //TODO: exit codes with gtk? 
+    }
+
+    history_file = g_key_file_get_value (config, "behavior", "history_file", NULL);
+    if (history_file) {
+        printf ("History file: %s\n", history_file);
+    } else {
+        printf ("History logging disabled\n");
+    }
+
+    download_handler = g_key_file_get_value (config, "behavior", "download_handler", NULL);
+    if (download_handler) {
+        printf ("Download manager: %s\n", history_file);
+    } else {
+        printf ("Download manager disabled\n");
+    }
+
+    if (! fifo_dir)
+        fifo_dir = g_key_file_get_value (config, "behavior", "fifo_dir", NULL);
+    if (fifo_dir) {
+        printf ("Fifo directory: %s\n", history_file);
+    } else {
+        printf ("Fifo directory: /tmp\n");
+    }
+
+    always_insert_mode = g_key_file_get_value (config, "behavior", "always_insert_mode", NULL);
+    if (always_insert_mode) {
+        printf ("Always insert mode: %s\n", history_file);
+    } else {
+        printf ("Always insert mode disabled/\n");
+    }
+
+    modkey = g_key_file_get_value (config, "behavior", "modkey", NULL);
+    if (modkey) {
+        printf ("Mod key: %s\n", history_file);
+    } else {
+        printf ("Mod key disabled/\n");
+    }
+}
+
 int main (int argc, char* argv[]) {
     gtk_init (&argc, &argv);
     if (!g_thread_supported ())
         g_thread_init (NULL);
 
-    GKeyFile* config = g_key_file_new ();
-    gboolean res = g_key_file_load_from_file (config, "./sampleconfig", G_KEY_FILE_NONE, NULL); //TODO: pass config file as argument
-    if(res) {
-        printf("config loaded\n");
-    } else {
-        fprintf(stderr,"config loading failed\n"); //TODO: exit codes with gtk? 
-    }
-    history_file = g_key_file_get_value (config, "behavior", "history_file", NULL);
-    if(history_file) {
-        printf("history file: %s\n",history_file);
-    } else {
-        printf("history logging disabled\n");
-    }
+    settings_init ();
 
     GtkWidget* vbox = gtk_vbox_new (FALSE, 0);
-    gtk_box_pack_start (GTK_BOX (vbox), create_mainbar (), FALSE, TRUE, 0);
     gtk_box_pack_start (GTK_BOX (vbox), create_browser (), TRUE, TRUE, 0);
-
-
+    gtk_box_pack_start (GTK_BOX (vbox), create_mainbar (), FALSE, TRUE, 0);
 
     main_window = create_window ();
     gtk_container_add (GTK_CONTAINER (main_window), vbox);
