@@ -28,6 +28,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+
+#define LENGTH(x)               (sizeof x / sizeof x[0])
+
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 #include <webkit/webkit.h>
@@ -61,14 +64,12 @@ static GOptionEntry entries[] =
   { NULL }
 };
 
-struct command
+typedef struct
 {
-  char command[256];
+  const char *command;
   void (*func)(WebKitWebView*);
-};
+} Command;
 
-static struct command commands[256];
-static int            numcmds = 0;
 
 static void
 update_title (GtkWindow* window);
@@ -148,25 +149,37 @@ log_history_cb () {
 }
 
 
+/* -- command to callback/function map for things we cannot attach to any signals */
+// TODO: reload, home, quit
+static Command commands[] =
+{
+  { "back",     &go_back_cb                    },
+  { "forward",  &go_forward_cb                 },
+  { "refresh",  &webkit_web_view_reload        }, //Buggy
+  { "stop",     &webkit_web_view_stop_loading  },
+  { "zoom_in",  &webkit_web_view_zoom_in       }, //Can crash (when max zoom reached?).
+  { "zoom_out", &webkit_web_view_zoom_out      }
+//{ "get uri",  &webkit_web_view_get_uri},
+};
+
 /* -- CORE FUNCTIONS -- */
 
 static void
 parse_command(const char *command) {
-  int  i    = 0;
-  bool done = false;
-  char *cmdstr;
-  void (*func)(WebKitWebView*);
+    int  i    = 0;
+    bool done = false;
+    void (*func)(WebKitWebView*);
 
-  strcpy(cmdstr, command);
-
-  for (i = 0; i < numcmds && ! done; i++) {
-      if (!strncmp (cmdstr, commands[i].command, strlen (commands[i].command))) {
-          func = commands[i].func;
-          done = true;
+    Command *c;
+    for (i = 0; i < LENGTH(commands); i++) {
+	    c = &commands[i];
+        if (!strncmp (command, c->command, strlen (c->command))) {
+            func = c->func;
+            done = true;
         }
     }
 
-  printf("command received: \"%s\"\n", cmdstr);
+  printf("command received: \"%s\"\n", command);
 
   if (done) {
       func (web_view);
@@ -205,7 +218,7 @@ static void
         while (!feof (fifo) && fgets (buffer, sizeof (buffer), fifo)) {
             if (strcmp (buffer, "\n")) {
                 buffer[strlen (buffer) - 1] = '\0'; // Remove newline
-                parse_command (buffer);
+		parse_command (buffer);
               }
           }
       }
@@ -213,25 +226,6 @@ static void
     return NULL;
 }
 
-static void
-add_command (char* cmdstr, void* function) {
-  strncpy (commands[numcmds].command, cmdstr, strlen (cmdstr));
-  commands[numcmds].func = function;
-  numcmds++;
-}
-
-static void
-setup_commands () {
-  // This func. is nice but currently it cannot be used for functions that require arguments or return data. --sentientswitch
-  // TODO: reload, home
-  add_command("back",     &go_back_cb);
-  add_command("forward",  &go_forward_cb);
-  add_command("refresh",  &webkit_web_view_reload); //Buggy
-  add_command("stop",     &webkit_web_view_stop_loading);
-  add_command("zoom_in",  &webkit_web_view_zoom_in); //Can crash (when max zoom reached?).
-  add_command("zoom_out", &webkit_web_view_zoom_out);
-  //add_command("get uri", &webkit_web_view_get_uri);
-}
 
 static void
 setup_threading () {
@@ -337,7 +331,6 @@ int main (int argc, char* argv[]) {
     printf("window_id %i\n",(int) xwin);
     printf("pid %i\n", getpid ());
 
-    setup_commands ();
     setup_threading ();
 
     gtk_main ();
