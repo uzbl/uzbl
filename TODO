@@ -1,6 +1,10 @@
 * implement all the ideas from README
-* see if we can get rid of gtk.  I need no widgets at all, only the webkit page display no scrollbar, no statusbar.
-* figure out caching with webkit and in general how we can speed everything up
 * where to put proxy config? webkit support?
-* can we change the behavior of the rendering? eg to add numbers to all hyperlinks
-* figure out how webkit intercepts key input
+* do not store the 'http://' part in the history file
+* improve commandline arguments
+* have a better look at /merge the fifo code from barrucadu and friends
+
+
+SOMEDAY:
+figure out caching with webkit and in general how we can speed everything
+figure out how webkit intercepts key input
