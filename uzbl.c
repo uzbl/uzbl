@@ -71,15 +71,6 @@ struct command
 static struct command commands[256];
 static int            numcmds = 0;
 
-struct alias
-{
-  char alias[256];
-  char command[256];
-};
-
-static struct alias aliases[256];
-static int          numalias = 0;
-
 static void
 parse_command(const char*);
 
@@ -93,16 +84,6 @@ parse_command(const char *command)
   void (*func)(WebKitWebView*);
 
   strcpy(cmdstr, command);
-
-  printf("Checking aliases\n");
-  for (i = 0; i < numalias && ! done; i++)
-    {
-      if (!strncmp (cmdstr, aliases[i].alias, strlen (aliases[i].alias)))
-        {
-          strcpy(cmdstr, aliases[i].command);
-          done = true;
-        }
-    }
 
   done = false;
   printf("Checking commands\n");
@@ -184,24 +165,16 @@ add_command (char* cmdstr, void* function)
 }
 
 static void
-add_command_alias (char* alias, char* command)
-{
-  strncpy (aliases[numalias].alias,   alias,   strlen (alias));
-  strncpy (aliases[numalias].command, command, strlen (command));
-  numalias++;
-}
-
-static void
 setup_commands ()
 {
-  //This func. is nice but currently it cannot be used for functions that require arguments or return data. --sentientswitch
-
+  // This func. is nice but currently it cannot be used for functions that require arguments or return data. --sentientswitch
+  // TODO: reload, home
   add_command("back",     &webkit_web_view_go_back);
   add_command("forward",  &webkit_web_view_go_forward);
   add_command("refresh",  &webkit_web_view_reload); //Buggy
   add_command("stop",     &webkit_web_view_stop_loading);
-  add_command("zoom in",  &webkit_web_view_zoom_in); //Can crash (when max zoom reached?).
-  add_command("zoom out", &webkit_web_view_zoom_out); //Crashes as zoom +
+  add_command("zoom_in",  &webkit_web_view_zoom_in); //Can crash (when max zoom reached?).
+  add_command("zoom_out", &webkit_web_view_zoom_out); //Crashes as zoom +
   //add_command("get uri", &webkit_web_view_get_uri);
 }
 
@@ -367,13 +340,6 @@ int main (int argc, char* argv[])
     } else {
         printf("history logging disabled\n");
     }
- /*   Until segfaults is fixed, manually add aliases to test the rest of it. */
-  add_command_alias("b",  "back");
-  add_command_alias("f",  "forward");
-  add_command_alias("z+", "zoom in");
-  add_command_alias("z-", "zoom out");
-  add_command_alias("r",  "refresh");
-  add_command_alias("s",  "stop");
 
     GtkWidget* vbox = gtk_vbox_new (FALSE, 0);
     gtk_box_pack_start (GTK_BOX (vbox), create_mainbar (), FALSE, TRUE, 0);

@@ -18,7 +18,7 @@ modkey = Mod4
 
 [bindings_internal]
 next = n
-back = b
+forward = m
 stop = s
 refresh = r
 reload = R
