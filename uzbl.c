@@ -49,7 +49,7 @@ static gchar* fifodir   = NULL;
 static char fifopath[64];
 static gint load_progress;
 static guint status_context_id;
-static Window xwin = NULL;
+static Window xwin = 0;
 static gchar* uri = NULL;
 
 static gboolean verbose = FALSE;
@@ -208,7 +208,7 @@ log_history_cb () {
 static void
 activate_uri_entry_cb (GtkWidget* entry, gpointer data)
 {
-    uri = gtk_entry_get_text (GTK_ENTRY (entry));
+    const gchar * uri = gtk_entry_get_text (GTK_ENTRY (entry));
     g_assert (uri);
     webkit_web_view_load_uri (web_view, uri);
 }
