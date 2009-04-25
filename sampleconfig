@@ -1,8 +1,19 @@
 # example uzbl config. in a real config, we should obey the xdg spec
-[keyboard]
-next=somekey
 
 [behavior]
 history_file = /tmp/uzbl.history
+download_handler = ./extra/download.sh
+
+[bindings_internal]
+n = next
+f = follow_link_here
+F = follow_link_new_tab
+w = follow_link_new_window
+
+[bindings_external]
+b = ./extra/insert_bookmark.sh
+u = ./extra/load_url_from_history.sh
+U = ./extra/load_url_from_bookmarks.sh
+
 
 [network]
