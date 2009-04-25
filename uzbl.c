@@ -72,10 +72,6 @@ static struct command commands[256];
 static int            numcmds = 0;
 
 static void
-parse_command(const char*);
-
-
-static void
 parse_command(const char *command)
 {
   int  i    = 0;
