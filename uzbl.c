@@ -74,6 +74,8 @@ typedef struct
 {
   const char *command;
   void (*func)(WebKitWebView*);
+  const gboolean param_allow;
+  const gboolean param_optional;
 } Command;
 
 typedef struct
@@ -166,44 +168,57 @@ log_history_cb () {
 /* -- command to callback/function map for things we cannot attach to any signals */
 // TODO: reload, home, quit
 static Command commands[] =
-  {
-    { "back",     &go_back_cb                    },
-    { "forward",  &go_forward_cb                 },
-    { "refresh",  &webkit_web_view_reload        }, //Buggy
-    { "stop",     &webkit_web_view_stop_loading  },
-    { "zoom_in",  &webkit_web_view_zoom_in       }, //Can crash (when max zoom reached?).
-    { "zoom_out", &webkit_web_view_zoom_out      }
-    //{ "get uri",  &webkit_web_view_get_uri},
-  };
+{
+  { "back",     &go_back_cb,                    false, false },
+  { "forward",  &go_forward_cb,                 false, false },
+  { "refresh",  &webkit_web_view_reload,        false, false }, //Buggy
+  { "stop",     &webkit_web_view_stop_loading,  false, false },
+  { "zoom_in",  &webkit_web_view_zoom_in,       false, false }, //Can crash (when max zoom reached?).
+  { "zoom_out", &webkit_web_view_zoom_out,      false, false } ,
+  { "go",       &webkit_web_view_load_uri,      true,  false }
+//{ "get uri",  &webkit_web_view_get_uri},
+};
 
 /* -- CORE FUNCTIONS -- */
  
 static void
 parse_command(const char *command) {
-  int  i    = 0;
-  bool done = false;
-  void (*func)(WebKitWebView*);
- 
-  Command *c;
-  for (i = 0; i < LENGTH(commands); i++) {
-    c = &commands[i];
-    if (!strncmp (command, c->command, strlen (c->command))) {
-      func = c->func;
-      done = true;
+    int  i    = 0;
+    bool done = false;
+    void (*func)(WebKitWebView*);
+
+    char * command_name = strtok (command," ");
+    char * command_param = strtok (NULL, " ,"); //dunno how this works, but it seems to work
+
+    Command *c;
+    for (i = 0; i < LENGTH(commands); i++) {
+        c = &commands[i];
+        if (!strncmp (command_name, c->command, strlen (c->command))) {
+            func = c->func;
+            done = true;
+        }
     }
-  }
- 
-  printf("command received: \"%s\"\n", command);
- 
-  if (done) {
-    func (web_view);
-  } else {
-    if (!strncmp ("http://", command, 7)) {
-      printf ("Loading URI \"%s\"\n", command);
-      strcpy(uri, command);
-      webkit_web_view_load_uri (web_view, uri);
+
+    if (done) {
+        if (c->param_allow) {
+            if(command_param != NULL) {
+                printf("command executing: \"%s %s\"\n", command_name, command_param);
+                //func (web_view, command_param);
+            } else {
+                if(c->param_optional) {
+                    printf("command executing: \"%s\"\n", command_name);
+                    func (web_view);
+                } else {
+                    fprintf(stderr, "command needs a parameter. \"%s\" is not complete\n", command_name);
+                }
+            }
+        } else {
+            printf("command executing: \"%s\"\n", command_name);
+            func (web_view);
+        }
+    } else {
+        fprintf(stderr, "command \"%s\" not understood. ignoring.\n", command);
     }
-  }
 }
  
 static void
@@ -218,7 +233,7 @@ static void
     printf ("Possible error creating fifo\n");
   }
  
-  printf ("ontrol fifo opened in %s\n", fifopath);
+  printf ("Control fifo opened in %s\n", fifopath);
  
   while (true) {
     FILE *fifo = fopen(fifopath, "r");
