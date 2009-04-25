@@ -31,6 +31,13 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 #include <webkit/webkit.h>
+#include <pthread.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 static GtkWidget* main_window;
 static GtkWidget* uri_entry;
@@ -38,20 +45,172 @@ static GtkWidget* mainbar;
 static WebKitWebView* web_view;
 static gchar* main_title;
 static gchar* history_file;
+static gchar* fifodir   = NULL;
+static char fifopath[64];
 static gint load_progress;
 static guint status_context_id;
+static Window xwin = NULL;
+static gchar* uri = NULL;
 
-Window xwin = NULL;
-gchar* uri = NULL;
 static gboolean verbose = FALSE;
+
 
 static GOptionEntry entries[] =
 {
-  { "uri", 'u', 0, G_OPTION_ARG_STRING, &uri, "Uri to load", NULL },
-  { "verbose", 'v', 0, G_OPTION_ARG_NONE, &verbose, "Be verbose", NULL },
+  { "uri",     'u', 0, G_OPTION_ARG_STRING, &uri,     "Uri to load", NULL },
+  { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &verbose, "Be verbose",  NULL },
   { NULL }
 };
 
+struct command
+{
+  char command[256];
+  void (*func)(WebKitWebView*);
+};
+
+static struct command commands[256];
+static int            numcmds = 0;
+
+struct alias
+{
+  char alias[256];
+  char command[256];
+};
+
+static struct alias aliases[256];
+static int          numalias = 0;
+
+static void
+parse_command(const char*);
+
+
+static void
+parse_command(const char *command)
+{
+  int  i    = 0;
+  bool done = false;
+  char *cmdstr;
+  void (*func)(WebKitWebView*);
+
+  strcpy(cmdstr, command);
+
+  printf("Checking aliases\n");
+  for (i = 0; i < numalias && ! done; i++)
+    {
+      if (!strncmp (cmdstr, aliases[i].alias, strlen (aliases[i].alias)))
+        {
+          strcpy(cmdstr, aliases[i].command);
+          done = true;
+        }
+    }
+
+  done = false;
+  printf("Checking commands\n");
+  for (i = 0; i < numcmds && ! done; i++)
+    {
+      if (!strncmp (cmdstr, commands[i].command, strlen (commands[i].command)))
+        {
+          func = commands[i].func;
+          done = true;
+        }
+    }
+
+  printf("Command identified as \"%s\"\n", cmdstr);
+
+  if (done)
+    {
+      func (web_view);
+    }
+  else
+    {
+      if (!strncmp ("http://", command, 7))
+        {
+          printf ("Loading URI \"%s\"\n", command);
+          strcpy(uri, command);
+          webkit_web_view_load_uri (web_view, uri);
+        }
+    }
+}
+
+static void
+*control_fifo()
+{
+  if (fifodir)
+    {
+      sprintf (fifopath, "%s/uzbl_%d", fifodir, getpid ());
+    }
+  else
+    {
+      sprintf (fifopath, "/tmp/uzbl_%d", getpid ());
+    }
+
+  if (mkfifo (fifopath, 0666) == -1)
+    {
+      printf ("Possible error creating fifo\n");
+    }
+
+    printf ("Opened control fifo in %s\n", fifopath);
+
+    while (true)
+      {
+        FILE *fifo = fopen(fifopath, "r");
+        if (!fifo)
+          {
+            printf("Could not open %s for reading\n", fifopath);
+            return NULL;
+          }
+        
+        char buffer[256];
+        memset (buffer, 0, sizeof (buffer));
+        while (!feof (fifo) && fgets (buffer, sizeof (buffer), fifo))
+          {
+            if (strcmp (buffer, "\n"))
+              {
+                buffer[strlen (buffer) - 1] = '\0'; // Remove newline
+                parse_command (buffer);
+              }
+          }
+      }
+    
+    return NULL;
+}
+
+static void
+add_command (char* cmdstr, void* function)
+{
+  strncpy (commands[numcmds].command, cmdstr, strlen (cmdstr));
+  commands[numcmds].func = function;
+  numcmds++;
+}
+
+static void
+add_command_alias (char* alias, char* command)
+{
+  strncpy (aliases[numalias].alias,   alias,   strlen (alias));
+  strncpy (aliases[numalias].command, command, strlen (command));
+  numalias++;
+}
+
+static void
+setup_commands ()
+{
+  //This func. is nice but currently it cannot be used for functions that require arguments or return data. --sentientswitch
+
+  add_command("back",     &webkit_web_view_go_back);
+  add_command("forward",  &webkit_web_view_go_forward);
+  add_command("refresh",  &webkit_web_view_reload); //Buggy
+  add_command("stop",     &webkit_web_view_stop_loading);
+  add_command("zoom in",  &webkit_web_view_zoom_in); //Can crash (when max zoom reached?).
+  add_command("zoom out", &webkit_web_view_zoom_out); //Crashes as zoom +
+  //add_command("get uri", &webkit_web_view_get_uri);
+}
+
+static void
+setup_threading ()
+{
+  pthread_t control_thread;
+  pthread_create(&control_thread, NULL, control_fifo, NULL);
+}
 
 
 static void
@@ -208,6 +367,13 @@ int main (int argc, char* argv[])
     } else {
         printf("history logging disabled\n");
     }
+ /*   Until segfaults is fixed, manually add aliases to test the rest of it. */
+  add_command_alias("b",  "back");
+  add_command_alias("f",  "forward");
+  add_command_alias("z+", "zoom in");
+  add_command_alias("z-", "zoom out");
+  add_command_alias("r",  "refresh");
+  add_command_alias("s",  "stop");
 
     GtkWidget* vbox = gtk_vbox_new (FALSE, 0);
     gtk_box_pack_start (GTK_BOX (vbox), create_mainbar (), FALSE, TRUE, 0);
@@ -232,7 +398,12 @@ int main (int argc, char* argv[])
     xwin = GDK_WINDOW_XID (GTK_WIDGET (main_window)->window);
     printf("My X window id is %i\n",(int) xwin);
 
+
+    setup_commands ();
+    setup_threading ();
+
     gtk_main ();
 
+    unlink (fifopath);
     return 0;
 }
