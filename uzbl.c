@@ -49,11 +49,10 @@ static gchar* fifodir   = NULL;
 static char fifopath[64];
 static gint load_progress;
 static guint status_context_id;
-static Window xwin = NULL;
+static Window xwin = 0;
 static gchar* uri = NULL;
 
 static gboolean verbose = FALSE;
-
 
 static GOptionEntry entries[] =
 {
@@ -72,115 +71,63 @@ static struct command commands[256];
 static int            numcmds = 0;
 
 static void
-parse_command(const char *command)
-{
-  int  i    = 0;
-  bool done = false;
-  char *cmdstr;
-  void (*func)(WebKitWebView*);
+update_title (GtkWindow* window);
 
-  strcpy(cmdstr, command);
 
-  done = false;
-  printf("Checking commands\n");
-  for (i = 0; i < numcmds && ! done; i++)
-    {
-      if (!strncmp (cmdstr, commands[i].command, strlen (commands[i].command)))
-        {
-          func = commands[i].func;
-          done = true;
-        }
-    }
+/* --- CALLBACKS --- */
 
-  printf("Command identified as \"%s\"\n", cmdstr);
-
-  if (done)
-    {
-      func (web_view);
-    }
-  else
-    {
-      if (!strncmp ("http://", command, 7))
-        {
-          printf ("Loading URI \"%s\"\n", command);
-          strcpy(uri, command);
-          webkit_web_view_load_uri (web_view, uri);
-        }
-    }
+static void
+go_back_cb (GtkWidget* widget, gpointer data) {
+    webkit_web_view_go_back (web_view);
 }
 
 static void
-*control_fifo()
-{
-  if (fifodir)
-    {
-      sprintf (fifopath, "%s/uzbl_%d", fifodir, getpid ());
-    }
-  else
-    {
-      sprintf (fifopath, "/tmp/uzbl_%d", getpid ());
-    }
+go_forward_cb (GtkWidget* widget, gpointer data) {
+    webkit_web_view_go_forward (web_view);
+}
 
-  if (mkfifo (fifopath, 0666) == -1)
-    {
-      printf ("Possible error creating fifo\n");
-    }
 
-    printf ("Opened control fifo in %s\n", fifopath);
-
-    while (true)
-      {
-        FILE *fifo = fopen(fifopath, "r");
-        if (!fifo)
-          {
-            printf("Could not open %s for reading\n", fifopath);
-            return NULL;
-          }
-        
-        char buffer[256];
-        memset (buffer, 0, sizeof (buffer));
-        while (!feof (fifo) && fgets (buffer, sizeof (buffer), fifo))
-          {
-            if (strcmp (buffer, "\n"))
-              {
-                buffer[strlen (buffer) - 1] = '\0'; // Remove newline
-                parse_command (buffer);
-              }
-          }
-      }
-    
-    return NULL;
+static void
+link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data) {
+    /* underflow is allowed */
+    //gtk_statusbar_pop (main_statusbar, status_context_id);
+    //if (link)
+    //    gtk_statusbar_push (main_statusbar, status_context_id, link);
+    //TODO implementation roadmap pending..
 }
 
 static void
-add_command (char* cmdstr, void* function)
-{
-  strncpy (commands[numcmds].command, cmdstr, strlen (cmdstr));
-  commands[numcmds].func = function;
-  numcmds++;
+title_change_cb (WebKitWebView* web_view, WebKitWebFrame* web_frame, const gchar* title, gpointer data) {
+    if (main_title)
+        g_free (main_title);
+    main_title = g_strdup (title);
+    update_title (GTK_WINDOW (main_window));
 }
 
 static void
-setup_commands ()
-{
-  // This func. is nice but currently it cannot be used for functions that require arguments or return data. --sentientswitch
-  // TODO: reload, home
-  add_command("back",     &webkit_web_view_go_back);
-  add_command("forward",  &webkit_web_view_go_forward);
-  add_command("refresh",  &webkit_web_view_reload); //Buggy
-  add_command("stop",     &webkit_web_view_stop_loading);
-  add_command("zoom_in",  &webkit_web_view_zoom_in); //Can crash (when max zoom reached?).
-  add_command("zoom_out", &webkit_web_view_zoom_out); //Crashes as zoom +
-  //add_command("get uri", &webkit_web_view_get_uri);
+progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
+    load_progress = progress;
+    update_title (GTK_WINDOW (main_window));
 }
 
 static void
-setup_threading ()
-{
-  pthread_t control_thread;
-  pthread_create(&control_thread, NULL, control_fifo, NULL);
+load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
+    const gchar* uri = webkit_web_frame_get_uri(frame);
+    if (uri)
+        gtk_entry_set_text (GTK_ENTRY (uri_entry), uri);
 }
 
+static void
+destroy_cb (GtkWidget* widget, gpointer data) {
+    gtk_main_quit ();
+}
+
+static void
+activate_uri_entry_cb (GtkWidget* entry, gpointer data) {
+    const gchar * uri = gtk_entry_get_text (GTK_ENTRY (entry));
+    g_assert (uri);
+    webkit_web_view_load_uri (web_view, uri);
+}
 
 static void
 log_history_cb () {
@@ -201,17 +148,102 @@ log_history_cb () {
 }
 
 
+/* -- CORE FUNCTIONS -- */
+
 static void
-activate_uri_entry_cb (GtkWidget* entry, gpointer data)
-{
-    uri = gtk_entry_get_text (GTK_ENTRY (entry));
-    g_assert (uri);
-    webkit_web_view_load_uri (web_view, uri);
+parse_command(const char *command) {
+  int  i    = 0;
+  bool done = false;
+  char *cmdstr;
+  void (*func)(WebKitWebView*);
+
+  strcpy(cmdstr, command);
+
+  for (i = 0; i < numcmds && ! done; i++) {
+      if (!strncmp (cmdstr, commands[i].command, strlen (commands[i].command))) {
+          func = commands[i].func;
+          done = true;
+        }
+    }
+
+  printf("command received: \"%s\"\n", cmdstr);
+
+  if (done) {
+      func (web_view);
+  } else {
+      if (!strncmp ("http://", command, 7)) {
+          printf ("Loading URI \"%s\"\n", command);
+          strcpy(uri, command);
+          webkit_web_view_load_uri (web_view, uri);
+        }
+    }
 }
 
 static void
-update_title (GtkWindow* window)
-{
+*control_fifo() {
+  if (fifodir) {
+      sprintf (fifopath, "%s/uzbl_%d", fifodir, (int) xwin);
+  } else {
+      sprintf (fifopath, "/tmp/uzbl_%d", (int) xwin);
+    }
+
+  if (mkfifo (fifopath, 0666) == -1) {
+      printf ("Possible error creating fifo\n");
+    }
+
+    printf ("ontrol fifo opened in %s\n", fifopath);
+
+    while (true) {
+        FILE *fifo = fopen(fifopath, "r");
+        if (!fifo) {
+            printf("Could not open %s for reading\n", fifopath);
+            return NULL;
+          }
+        
+        char buffer[256];
+        memset (buffer, 0, sizeof (buffer));
+        while (!feof (fifo) && fgets (buffer, sizeof (buffer), fifo)) {
+            if (strcmp (buffer, "\n")) {
+                buffer[strlen (buffer) - 1] = '\0'; // Remove newline
+                parse_command (buffer);
+              }
+          }
+      }
+    
+    return NULL;
+}
+
+static void
+add_command (char* cmdstr, void* function) {
+  strncpy (commands[numcmds].command, cmdstr, strlen (cmdstr));
+  commands[numcmds].func = function;
+  numcmds++;
+}
+
+static void
+setup_commands () {
+  // This func. is nice but currently it cannot be used for functions that require arguments or return data. --sentientswitch
+  // TODO: reload, home
+  add_command("back",     &go_back_cb);
+  add_command("forward",  &go_forward_cb);
+  add_command("refresh",  &webkit_web_view_reload); //Buggy
+  add_command("stop",     &webkit_web_view_stop_loading);
+  add_command("zoom_in",  &webkit_web_view_zoom_in); //Can crash (when max zoom reached?).
+  add_command("zoom_out", &webkit_web_view_zoom_out);
+  //add_command("get uri", &webkit_web_view_get_uri);
+}
+
+static void
+setup_threading () {
+  pthread_t control_thread;
+  pthread_create(&control_thread, NULL, control_fifo, NULL);
+}
+
+
+
+
+static void
+update_title (GtkWindow* window) {
     GString* string = g_string_new (main_title);
     g_string_append (string, " - Uzbl browser");
     if (load_progress < 100)
@@ -221,61 +253,8 @@ update_title (GtkWindow* window)
     g_free (title);
 }
 
-static void
-link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data)
-{
-    /* underflow is allowed */
-    //gtk_statusbar_pop (main_statusbar, status_context_id);
-    //if (link)
-    //    gtk_statusbar_push (main_statusbar, status_context_id, link);
-    //TODO implementation roadmap pending..
-}
-
-static void
-title_change_cb (WebKitWebView* web_view, WebKitWebFrame* web_frame, const gchar* title, gpointer data)
-{
-    if (main_title)
-        g_free (main_title);
-    main_title = g_strdup (title);
-    update_title (GTK_WINDOW (main_window));
-}
-
-static void
-progress_change_cb (WebKitWebView* page, gint progress, gpointer data)
-{
-    load_progress = progress;
-    update_title (GTK_WINDOW (main_window));
-}
-
-static void
-load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data)
-{
-    const gchar* uri = webkit_web_frame_get_uri(frame);
-    if (uri)
-        gtk_entry_set_text (GTK_ENTRY (uri_entry), uri);
-}
-
-static void
-destroy_cb (GtkWidget* widget, gpointer data)
-{
-    gtk_main_quit ();
-}
-
-static void
-go_back_cb (GtkWidget* widget, gpointer data)
-{
-    webkit_web_view_go_back (web_view);
-}
-
-static void
-go_forward_cb (GtkWidget* widget, gpointer data)
-{
-    webkit_web_view_go_forward (web_view);
-}
-
 static GtkWidget*
-create_browser ()
-{
+create_browser () {
     GtkWidget* scrolled_window = gtk_scrolled_window_new (NULL, NULL);
     gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window), GTK_POLICY_NEVER, GTK_POLICY_NEVER); //todo: some sort of display of position/total length. like what emacs does
 
@@ -292,13 +271,12 @@ create_browser ()
 }
 
 static GtkWidget*
-create_mainbar ()
-{
+create_mainbar () {
     mainbar = gtk_hbox_new(FALSE, 0);
     uri_entry = gtk_entry_new();
     gtk_entry_set_width_chars(GTK_ENTRY(uri_entry), 40);
     gtk_entry_set_text(GTK_ENTRY(uri_entry), "http://");
-    gtk_box_pack_start (GTK_BOX (mainbar), uri_entry, FALSE,TRUE , 0);
+    gtk_box_pack_start (GTK_BOX (mainbar), uri_entry, TRUE,TRUE , 0);
     gtk_signal_connect_object (GTK_OBJECT (uri_entry), "activate", GTK_SIGNAL_FUNC (activate_uri_entry_cb), GTK_OBJECT (uri_entry));
 
     //status_context_id = gtk_statusbar_get_context_id (main_statusbar, "Link Hover");
@@ -307,8 +285,7 @@ create_mainbar ()
 }
 
 static
-GtkWidget* create_window ()
-{
+GtkWidget* create_window () {
     GtkWidget* window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
     gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
     gtk_widget_set_name (window, "Uzbl browser");
@@ -317,8 +294,7 @@ GtkWidget* create_window ()
     return window;
 }
 
-int main (int argc, char* argv[])
-{
+int main (int argc, char* argv[]) {
     gtk_init (&argc, &argv);
     if (!g_thread_supported ())
         g_thread_init (NULL);
@@ -332,7 +308,7 @@ int main (int argc, char* argv[])
     }
     history_file = g_key_file_get_value (config, "behavior", "history_file", NULL);
     if(history_file) {
-        printf("setting history file to: %s\n",history_file);
+        printf("history file: %s\n",history_file);
     } else {
         printf("history logging disabled\n");
     }
@@ -345,12 +321,12 @@ int main (int argc, char* argv[])
 
     main_window = create_window ();
     gtk_container_add (GTK_CONTAINER (main_window), vbox);
-  GError *error = NULL;
+    GError *error = NULL;
 
-  GOptionContext* context = g_option_context_new ("- some stuff here maybe someday");
-  g_option_context_add_main_entries (context, entries, NULL);
-  g_option_context_add_group (context, gtk_get_option_group (TRUE));
-  g_option_context_parse (context, &argc, &argv, &error);
+    GOptionContext* context = g_option_context_new ("- some stuff here maybe someday");
+    g_option_context_add_main_entries (context, entries, NULL);
+    g_option_context_add_group (context, gtk_get_option_group (TRUE));
+    g_option_context_parse (context, &argc, &argv, &error);
 
 
     webkit_web_view_load_uri (web_view, uri);
@@ -358,8 +334,8 @@ int main (int argc, char* argv[])
     gtk_widget_grab_focus (GTK_WIDGET (web_view));
     gtk_widget_show_all (main_window);
     xwin = GDK_WINDOW_XID (GTK_WIDGET (main_window)->window);
-    printf("My X window id is %i\n",(int) xwin);
-
+    printf("window_id %i\n",(int) xwin);
+    printf("pid %i\n", getpid ());
 
     setup_commands ();
     setup_threading ();
