@@ -1,5 +1,6 @@
 #!/bin/bash
 echo "Creating dummy file of 50MB in size (625000 entries of 80chars)"
+echo "Note: this takes about an hour and a half"
 entries_per_iteration=1000
 for i in `seq 1 625`
 do
