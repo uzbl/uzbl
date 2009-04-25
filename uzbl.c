@@ -118,11 +118,11 @@ static void
 {
   if (fifodir)
     {
-      sprintf (fifopath, "%s/uzbl_%d", fifodir, getpid ());
+      sprintf (fifopath, "%s/uzbl_%d", fifodir, (int) xwin);
     }
   else
     {
-      sprintf (fifopath, "/tmp/uzbl_%d", getpid ());
+      sprintf (fifopath, "/tmp/uzbl_%d", (int) xwin);
     }
 
   if (mkfifo (fifopath, 0666) == -1)
