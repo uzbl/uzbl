@@ -21,6 +21,7 @@ Right now uzbl is in a very early state but here are some ideas I would like to 
   -> privoxy looks cool and perfectly demonstrates the unix philosphy.
 - no download manager. allow user to pick wget/curl/a custom script/... 
 - no build in command interpreters like ubiquity.  uzbl should be accessible and you should use a shell or similar.
+- no "clear cookies/cache/..." menu items. rm ~/$XDG_{DATA,CACHE}_DIR/uzbl/{cache,cookies}/* 
 - vimperator/konqueror-like hyperlink following.
 - password management. maybe an encrypted store that unlocks with an ssh key?
 - use the XDG basedir spec for separation of config, data and cache. and state will be a subdir in the config dir (not part of the spec yet) too.

@@ -47,12 +47,14 @@ static GtkWidget*     main_window;
 static GtkWidget*     modeline;
 static WebKitWebView* web_view;
 
-static gchar* history_file;
-static gchar* home_page;
-static gchar* uri       = NULL;
-static gchar* fifodir   = NULL;
-static char   fifopath[64];
-static bool   modevis = FALSE;
+static gchar*   history_file;
+static gchar*   home_page;
+static gchar*   uri       = NULL;
+static gchar*   fifodir   = NULL;
+static char     fifopath[64];
+static bool     modevis = FALSE;
+static gboolean verbose = FALSE;
+static Window   xwin    = NULL;
 
 static GOptionEntry entries[] =
 {
@@ -85,7 +87,7 @@ static bool parse_modeline (GtkWidget* mode, GdkEventKey* event)
 {
   if ((event->type==GDK_KEY_PRESS) && (event->keyval==GDK_Return))
     parse_command (gtk_entry_get_text (modeline));
-
+ 
   return false;
 }
 
@@ -93,22 +95,22 @@ static void log_history_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer
 {
   strncpy (uri, webkit_web_frame_get_uri (frame), strlen (webkit_web_frame_get_uri (frame)));
   
-  FILE * output_file = fopen (history_file, "a");
+  FILE * output_file = fopen(history_file, "a");
   if (output_file == NULL)
     {
-      fprintf (stderr, "Cannot open %s for logging\n", history_file);
+      fprintf(stderr, "Cannot open %s for logging\n", history_file);
     }
   else
     {
       time_t rawtime;
       struct tm * timeinfo;
       char buffer [80];
-      time (&rawtime);
-      timeinfo = localtime (&rawtime);
+      time ( &rawtime );
+      timeinfo = localtime ( &rawtime );
       strftime (buffer,80,"%Y-%m-%d %H:%M:%S",timeinfo);
       
-      fprintf (output_file, "%s %s\n",buffer, uri);
-      fclose (output_file);
+      fprintf(output_file, "%s %s\n",buffer, uri);
+      fclose(output_file);
     }
 }
 
@@ -117,7 +119,7 @@ static void toggle_command_mode ()
   if (modevis)
     {
       gtk_widget_hide (modeline);
-      gtk_widget_grab_default (modeline);
+      gtk_widget_grab_focus (web_view);
     }
   else
     {
@@ -272,7 +274,7 @@ static void add_command_alias (char* alias, char* command)
   numalias++;
 }
 
-static bool setup_gtk (int argc, char* argv[])
+static void setup_gtk (int argc, char* argv[])
 {
   gtk_init (&argc, &argv);
 
@@ -298,8 +300,7 @@ static bool setup_gtk (int argc, char* argv[])
   gtk_widget_grab_focus (GTK_WIDGET (web_view));
   gtk_widget_show_all (main_window);
   gtk_widget_hide(modeline);
-
-  return true;
+  gtk_widget_grab_focus (GTK_WIDGET (web_view));
 }
 
 static void setup_commands ()
@@ -324,7 +325,7 @@ static void setup_threading ()
 static void setup_settings ()
 {
   GKeyFile* config = g_key_file_new ();
-  gboolean  res    = g_key_file_load_from_file (config, "./config", G_KEY_FILE_NONE, NULL); //TODO: pass config file as argument
+  gboolean  res    = g_key_file_load_from_file (config, "./sampleconfig", G_KEY_FILE_NONE, NULL); //TODO: pass config file as argument
 
   if (res)
     {
@@ -386,6 +387,9 @@ int main (int argc, char* argv[])
 {
   if (!g_thread_supported ())
     g_thread_init (NULL);
+
+  xwin = GDK_WINDOW_XID (GTK_WIDGET (main_window)->window);
+  printf("My X window id is %i\n",(int) xwin);
 
   setup_settings ();
   setup_gtk (argc, argv);
