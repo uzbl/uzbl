@@ -8,7 +8,8 @@ Control:
        z+ - zoom in
        z- - zoom out
   - If a command is appended with a number, run it that many times (eg: z+10 would zoom in 10 times).
-  - Press enter after typing a command to use it.
+  - Press ESC to toggle the mode line.
+  - Press enter after typing a command in the mode line to use it.
 
 Bugs:
   - Segfault occurs on shutdown, almost definitely FIFO related (I'm not seeing this bug now, but the warning was here when I forked the code and I haven't touched the FIFO bit)
