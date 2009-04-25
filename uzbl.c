@@ -28,6 +28,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+
+#define LENGTH(x)               (sizeof x / sizeof x[0])
+
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 #include <webkit/webkit.h>
@@ -47,7 +50,7 @@ static gchar* main_title;
 
 /* Behaviour variables */
 static gchar* history_file       = NULL;
-static gchar* fifo_dir           = NULL;
+static gchar* fifodir            = NULL;
 static gchar* download_handler   = NULL;
 static gchar* always_insert_mode = NULL;
 static gchar* modkey             = NULL;
@@ -67,21 +70,18 @@ static GOptionEntry entries[] =
   { NULL }
 };
 
-struct command
+typedef struct
 {
-  char command[256];
+  const char *command;
   void (*func)(WebKitWebView*);
-};
+} Command;
 
-static struct command commands[256];
-static int            numcmds = 0;
 
 static void
 update_title (GtkWindow* window);
 
 
 /* --- CALLBACKS --- */
-
 static void
 go_back_cb (GtkWidget* widget, gpointer data) {
     webkit_web_view_go_back (web_view);
@@ -153,92 +153,84 @@ log_history_cb () {
     }
 }
 
+/* -- command to callback/function map for things we cannot attach to any signals */
+// TODO: reload, home, quit
+static Command commands[] =
+  {
+    { "back",     &go_back_cb                    },
+    { "forward",  &go_forward_cb                 },
+    { "refresh",  &webkit_web_view_reload        }, //Buggy
+    { "stop",     &webkit_web_view_stop_loading  },
+    { "zoom_in",  &webkit_web_view_zoom_in       }, //Can crash (when max zoom reached?).
+    { "zoom_out", &webkit_web_view_zoom_out      }
+    //{ "get uri",  &webkit_web_view_get_uri},
+  };
 
 /* -- CORE FUNCTIONS -- */
-
+ 
 static void
 parse_command(const char *command) {
   int  i    = 0;
   bool done = false;
-  char *cmdstr;
   void (*func)(WebKitWebView*);
-
-  strcpy(cmdstr, command);
-
-  for (i = 0; i < numcmds && ! done; i++) {
-      if (!strncmp (cmdstr, commands[i].command, strlen (commands[i].command))) {
-          func = commands[i].func;
-          done = true;
-        }
+ 
+  Command *c;
+  for (i = 0; i < LENGTH(commands); i++) {
+    c = &commands[i];
+    if (!strncmp (command, c->command, strlen (c->command))) {
+      func = c->func;
+      done = true;
     }
-
-  printf("command received: \"%s\"\n", cmdstr);
-
+  }
+ 
+  printf("command received: \"%s\"\n", command);
+ 
   if (done) {
-      func (web_view);
+    func (web_view);
   } else {
-      if (!strncmp ("http://", command, 7)) {
-          printf ("Loading URI \"%s\"\n", command);
-          strcpy(uri, command);
-          webkit_web_view_load_uri (web_view, uri);
-        }
+    if (!strncmp ("http://", command, 7)) {
+      printf ("Loading URI \"%s\"\n", command);
+      strcpy(uri, command);
+      webkit_web_view_load_uri (web_view, uri);
     }
+  }
 }
-
+ 
 static void
 *control_fifo() {
-  if (fifo_dir) {
-      sprintf (fifopath, "%s/uzbl_%d", fifo_dir, (int) xwin);
+  if (fifodir) {
+    sprintf (fifopath, "%s/uzbl_%d", fifodir, (int) xwin);
   } else {
-      sprintf (fifopath, "/tmp/uzbl_%d", (int) xwin);
-    }
-
+    sprintf (fifopath, "/tmp/uzbl_%d", (int) xwin);
+  }
+ 
   if (mkfifo (fifopath, 0666) == -1) {
-      printf ("Possible error creating fifo\n");
+    printf ("Possible error creating fifo\n");
+  }
+ 
+  printf ("ontrol fifo opened in %s\n", fifopath);
+ 
+  while (true) {
+    FILE *fifo = fopen(fifopath, "r");
+    if (!fifo) {
+      printf("Could not open %s for reading\n", fifopath);
+      return NULL;
     }
-
-    printf ("ontrol fifo opened in %s\n", fifopath);
-
-    while (true) {
-        FILE *fifo = fopen(fifopath, "r");
-        if (!fifo) {
-            printf("Could not open %s for reading\n", fifopath);
-            return NULL;
-          }
         
-        char buffer[256];
-        memset (buffer, 0, sizeof (buffer));
-        while (!feof (fifo) && fgets (buffer, sizeof (buffer), fifo)) {
-            if (strcmp (buffer, "\n")) {
-                buffer[strlen (buffer) - 1] = '\0'; // Remove newline
-                parse_command (buffer);
-              }
-          }
+    char buffer[256];
+    memset (buffer, 0, sizeof (buffer));
+    while (!feof (fifo) && fgets (buffer, sizeof (buffer), fifo)) {
+      if (strcmp (buffer, "\n")) {
+        buffer[strlen (buffer) - 1] = '\0'; // Remove newline
+        parse_command (buffer);
       }
+    }
+  }
     
-    return NULL;
+  return NULL;
 }
-
-static void
-add_command (char* cmdstr, void* function) {
-  strncpy (commands[numcmds].command, cmdstr, strlen (cmdstr));
-  commands[numcmds].func = function;
-  numcmds++;
-}
-
-static void
-setup_commands () {
-  // This func. is nice but currently it cannot be used for functions that require arguments or return data. --sentientswitch
-  // TODO: reload, home
-  add_command("back",     &go_back_cb);
-  add_command("forward",  &go_forward_cb);
-  add_command("refresh",  &webkit_web_view_reload); //Buggy
-  add_command("stop",     &webkit_web_view_stop_loading);
-  add_command("zoom_in",  &webkit_web_view_zoom_in); //Can crash (when max zoom reached?).
-  add_command("zoom_out", &webkit_web_view_zoom_out);
-  //add_command("get uri", &webkit_web_view_get_uri);
-}
-
+ 
+ 
 static void
 setup_threading () {
   pthread_t control_thread;
@@ -324,9 +316,9 @@ settings_init () {
         printf ("Download manager disabled\n");
     }
 
-    if (! fifo_dir)
-        fifo_dir = g_key_file_get_value (config, "behavior", "fifo_dir", NULL);
-    if (fifo_dir) {
+    if (! fifodir)
+        fifodir = g_key_file_get_value (config, "behavior", "fifodir", NULL);
+    if (fifodir) {
         printf ("Fifo directory: %s\n", history_file);
     } else {
         printf ("Fifo directory: /tmp\n");
@@ -347,7 +339,8 @@ settings_init () {
     }
 }
 
-int main (int argc, char* argv[]) {
+int
+main (int argc, char* argv[]) {
     gtk_init (&argc, &argv);
     if (!g_thread_supported ())
         g_thread_init (NULL);
@@ -355,8 +348,8 @@ int main (int argc, char* argv[]) {
     settings_init ();
 
     GtkWidget* vbox = gtk_vbox_new (FALSE, 0);
-    gtk_box_pack_start (GTK_BOX (vbox), create_browser (), TRUE, TRUE, 0);
     gtk_box_pack_start (GTK_BOX (vbox), create_mainbar (), FALSE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (vbox), create_browser (), TRUE, TRUE, 0);
 
     main_window = create_window ();
     gtk_container_add (GTK_CONTAINER (main_window), vbox);
@@ -367,7 +360,6 @@ int main (int argc, char* argv[]) {
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
     g_option_context_parse (context, &argc, &argv, &error);
 
-
     webkit_web_view_load_uri (web_view, uri);
 
     gtk_widget_grab_focus (GTK_WIDGET (web_view));
@@ -376,7 +368,6 @@ int main (int argc, char* argv[]) {
     printf("window_id %i\n",(int) xwin);
     printf("pid %i\n", getpid ());
 
-    setup_commands ();
     setup_threading ();
 
     gtk_main ();
