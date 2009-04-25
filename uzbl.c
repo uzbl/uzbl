@@ -29,6 +29,10 @@
  */
 
 #include <gtk/gtk.h>
+#include <gdk/gdk.h>
+#include <gdk/gdkx.h>
+#include <gdk/gdkkeys.h>
+#include <gdk/gdkkeysyms.h>
 #include <webkit/webkit.h>
 
 #include <pthread.h>
@@ -39,6 +43,7 @@
 #include <unistd.h>
 
 static GtkWidget*     main_window;
+static GtkWidget*     modeline;
 static WebKitWebView* web_view;
 
 static gchar* history_file;
@@ -47,6 +52,7 @@ static gchar* uri       = NULL;
 static gchar* fifodir   = NULL;
 static gint   mechmode  = 0;
 static char   fifopath[64];
+static bool   modevis = FALSE;
 
 static GOptionEntry entries[] =
 {
@@ -65,9 +71,18 @@ struct command
 static struct command commands[256];
 static int            numcmds = 0;
 
-static void log_history_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
-  strncpy (uri, webkit_web_frame_get_uri (frame), strlen (webkit_web_frame_get_uri (frame)));
+static void parse_command(char*);
 
+static bool parse_modeline (GtkWidget* mode, GdkEventKey* event)
+{
+  parse_command (gtk_entry_get_text (modeline));
+  return false;
+}
+
+static void log_history_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data)
+{
+  strncpy (uri, webkit_web_frame_get_uri (frame), strlen (webkit_web_frame_get_uri (frame)));
+  
   FILE * output_file = fopen (history_file, "a");
   if (output_file == NULL)
     {
@@ -85,6 +100,33 @@ static void log_history_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer
       fprintf (output_file, "%s %s\n",buffer, uri);
       fclose (output_file);
     }
+}
+
+static void toggle_command_mode ()
+{
+  if (modevis)
+    {
+      gtk_widget_hide (modeline);
+      gtk_widget_grab_default (modeline);
+    }
+  else
+    {
+      gtk_widget_show (modeline);
+      gtk_widget_grab_focus (modeline);
+    }
+  modevis = ! modevis;
+}
+
+static gboolean key_press_cb (WebKitWebView* page, GdkEventKey* event)
+{
+  gboolean result=FALSE; //TRUE to stop other handlers from being invoked for the event. FALSE to propagate the event further.
+  if ((event->type==GDK_KEY_PRESS) && (event->keyval==GDK_Escape))
+    {
+      toggle_command_mode ();
+      result=TRUE;
+    }
+ 
+  return(result);
 }
 
 static GtkWidget* create_browser ()
@@ -106,8 +148,17 @@ static GtkWidget* create_window ()
   gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
   gtk_widget_set_name (window, "Uzbl Browser");
   g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (gtk_main_quit), NULL);
+  g_signal_connect (G_OBJECT (window), "key-press-event", G_CALLBACK(key_press_cb), NULL);
 
   return window;
+}
+
+static GtkWidget* create_modeline ()
+{
+  GtkWidget* modeline = gtk_entry_new ();
+  g_signal_connect (G_OBJECT (modeline), "key-press-event", G_CALLBACK(parse_modeline), modeline);
+
+  return modeline;
 }
 
 static void parse_command(char *command)
@@ -192,6 +243,8 @@ static bool setup_gtk (int argc, char* argv[])
 
   GtkWidget* vbox = gtk_vbox_new (FALSE, 0);
   gtk_box_pack_start (GTK_BOX (vbox), create_browser (), TRUE, TRUE, 0);
+  modeline = create_modeline ();
+  gtk_box_pack_start (GTK_BOX (vbox), modeline, FALSE, FALSE, 0);
 
   main_window = create_window ();
   gtk_container_add (GTK_CONTAINER (main_window), vbox);
@@ -209,6 +262,7 @@ static bool setup_gtk (int argc, char* argv[])
 
   gtk_widget_grab_focus (GTK_WIDGET (web_view));
   gtk_widget_show_all (main_window);
+  gtk_widget_hide(modeline);
 
   return true;
 }

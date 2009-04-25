@@ -18,7 +18,6 @@ Notes:
 
 Todo:
   - Change commands to a few characters long.
-  - Command/insert modes (ESC to switch, methinks).
   - Automatically run a command when typed (no need to press enter).
   - Support for arguments to commands (argc/argv-like structure?).
   - Support for binding keyboard shortcuts in config file.
