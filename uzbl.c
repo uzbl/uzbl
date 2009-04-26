@@ -47,6 +47,7 @@ static GtkWidget* uri_entry;
 static GtkWidget* mainbar;
 static WebKitWebView* web_view;
 static gchar* main_title;
+static gchar selected_url[500];
 
 /* Behaviour variables */
 static gchar* history_file       = NULL;
@@ -112,6 +113,14 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
     //if (link)
     //    gtk_statusbar_push (main_statusbar, status_context_id, link);
     //TODO implementation roadmap pending..
+    
+    //ADD HOVER URL TO WINDOW TITLE
+    selected_url[0]='\0';
+    if (link) {
+    	strcpy (selected_url,link);
+    }
+    update_title (GTK_WINDOW (main_window));
+
 }
 
 static void
@@ -271,10 +280,47 @@ update_title (GtkWindow* window) {
     g_string_append (string, " - Uzbl browser");
     if (load_progress < 100)
         g_string_append_printf (string, " (%d%%)", load_progress);
+
+    if (selected_url[0]!=0) {
+        g_string_append_printf (string, " -> (%s)", selected_url);
+    }
+
     gchar* title = g_string_free (string, FALSE);
     gtk_window_set_title (window, title);
     g_free (title);
 }
+
+ 
+static void
+MsgBox (const char *s) {
+    GtkWidget* dialog = gtk_message_dialog_new (main_window,
+                                  GTK_DIALOG_DESTROY_WITH_PARENT,
+                                  GTK_MESSAGE_ERROR,
+                                  GTK_BUTTONS_CLOSE,
+                                  "%s", s);
+   gtk_dialog_run (GTK_DIALOG (dialog));
+   gtk_widget_destroy (dialog);
+}
+
+
+static gboolean
+key_press_cb (WebKitWebView* page, GdkEventKey* event)
+{
+    int i;
+    gboolean result=FALSE; //TRUE to stop other handlers from being invoked for the event. FALSE to propagate the event further.
+    if (event->type != GDK_KEY_PRESS) 
+        return(result);
+
+    for (i = 0; i < num_internal_bindings; i++) {
+        if (event->string[0] == internal_bindings[i].binding[0]) {
+            parse_command(internal_bindings[i].action);
+            result = FALSE;
+        }	
+    }
+
+    return(result);
+}
+
 
 static GtkWidget*
 create_browser () {
@@ -289,6 +335,7 @@ create_browser () {
     g_signal_connect (G_OBJECT (web_view), "load-committed", G_CALLBACK (load_commit_cb), web_view);
     g_signal_connect (G_OBJECT (web_view), "load-committed", G_CALLBACK (log_history_cb), web_view);
     g_signal_connect (G_OBJECT (web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), web_view);
+    g_signal_connect (G_OBJECT (web_view), "key-press-event", G_CALLBACK(key_press_cb), web_view);
 
     return scrolled_window;
 }
