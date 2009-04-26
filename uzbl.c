@@ -67,7 +67,6 @@ static gchar*   download_handler   = NULL;
 static gboolean always_insert_mode = FALSE;
 static gboolean show_status        = FALSE;
 static gboolean insert_mode        = FALSE;
-static gboolean show_status        = FALSE;
 static gboolean status_top         = FALSE;
 static gchar*   modkey             = NULL;
 
