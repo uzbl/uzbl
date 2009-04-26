@@ -179,6 +179,16 @@ static Command commands[] =
 
 /* -- CORE FUNCTIONS -- */
 
+static bool
+file_exists (const char * filename)
+{
+    if (FILE * file = fopen (filename, "r")) {
+        fclose (file);
+        return true;
+    }
+    return false;
+}
+
 // make sure to put '' around args, so that if there is whitespace we can still keep arguments together.
 static gboolean
 run_command(const char *command, const char *args) {
