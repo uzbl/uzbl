@@ -1,5 +1,5 @@
-Original code taken from webkit example application whis is copyrighted 2006, 2007 Apple Inc and 2007 Alp Toker <alp@atoker.com>
-enhancements to form uzbl made by Dieter Plaetinck.
+
+Dieter Plaetinck (Dieter@be) <dieter@plaetinck.be> - Uzbl
 
 Michael Walker (Barrucadu) <mike@barrucadu.co.uk> - Original threaded FIFO interface. Command adding methods.
 
@@ -8,3 +8,10 @@ Zane Ashby (HashBox) <http://demonastery.org> - Rewrote FIFO interface. Fixed va
 (sentientswitch) - Cleaned up code. Added some commands.
 
 Dusan Popovic (dusanx) - Key handling and stuff
+
+
+
+Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
+Which is  copyrighted:
+2006, 2007 Apple Inc
+2007 Alp Toker <alp@atoker.com>
