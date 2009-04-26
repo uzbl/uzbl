@@ -69,8 +69,6 @@ typedef struct
   const char *command;
   void (*func_1_param)(WebKitWebView*);
   void (*func_2_params)(WebKitWebView*, char *);
-  const gboolean param_allow;
-  const gboolean param_optional;
 } Command;
 
 
@@ -156,13 +154,13 @@ log_history_cb () {
 // TODO: reload, home, quit
 static Command commands[] =
 {
-  { "back",     &go_back_cb,                    NULL, false, false },
-  { "forward",  &go_forward_cb,                 NULL, false, false },
-  { "refresh",  &webkit_web_view_reload,        NULL, false, false }, //Buggy
-  { "stop",     &webkit_web_view_stop_loading,  NULL, false, false },
-  { "zoom_in",  &webkit_web_view_zoom_in,       NULL, false, false }, //Can crash (when max zoom reached?).
-  { "zoom_out", &webkit_web_view_zoom_out,      NULL, false, false } ,
-  { "uri",      NULL, &webkit_web_view_load_uri,      true,  false }
+  { "back",     &go_back_cb,                    NULL },
+  { "forward",  &go_forward_cb,                 NULL },
+  { "refresh",  &webkit_web_view_reload,        NULL }, //Buggy
+  { "stop",     &webkit_web_view_stop_loading,  NULL },
+  { "zoom_in",  &webkit_web_view_zoom_in,       NULL }, //Can crash (when max zoom reached?).
+  { "zoom_out", &webkit_web_view_zoom_out,      NULL } ,
+  { "uri",      NULL, &webkit_web_view_load_uri      }
 //{ "get uri",  &webkit_web_view_get_uri},
 };
 
@@ -183,19 +181,19 @@ parse_command(const char *command) {
         }
     }
     if (c != NULL) {
-        if (c->param_allow) {
+        if (c->func_2_params != NULL) {
             if(command_param != NULL) {
                 printf("command executing: \"%s %s\"\n", command_name, command_param);
                 c->func_2_params (web_view, command_param);
             } else {
-                if(c->param_optional) {
+                if(c->func_1_param != NULL) {
                     printf("command executing: \"%s\"\n", command_name);
                     c->func_1_param (web_view);
                 } else {
                     fprintf(stderr, "command needs a parameter. \"%s\" is not complete\n", command_name);
                 }
             }
-        } else {
+        } else if(c->func_1_param != NULL) {
             printf("command executing: \"%s\"\n", command_name);
             c->func_1_param (web_view);
         }
