@@ -214,12 +214,12 @@ run_command(const char *command, const char *args) {
 
 static void
 parse_command(const char *command) {
-    int i;
-    Command *c;
+    int i      = 0;
+    Command *c = NULL;
     char * command_name  = strtok (command, " ");
     char * command_param = strtok (NULL,  " ,"); //dunno how this works, but it seems to work
 
-    Command *c_tmp;
+    Command *c_tmp = NULL;
     for (i = 0; i < LENGTH (commands); i++) {
         c_tmp = &commands[i];
         if (strncmp (command_name, c_tmp->command, strlen (c_tmp->command)) == 0) {
@@ -399,6 +399,14 @@ settings_init () {
     gboolean res = NULL;
     gchar** keysi = NULL;
     gchar** keyse = NULL;
+
+    if (! config_file) {
+        char* conf = getenv ("XDG_CONFIG_HOME");
+        strcat (conf, "/uzbl");
+        if (file_exists (conf))
+            strcpy(config_file conf);
+    }
+
     if (config_file) {
         config = g_key_file_new ();
         res = g_key_file_load_from_file (config, config_file, G_KEY_FILE_NONE, NULL);
