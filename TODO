@@ -1,9 +1,7 @@
 * implement all the ideas from README
 * Support for binding keyboard shortcuts in config file.
 * where to put proxy config? webkit support?
-* do not store the 'http://' part in the history file
 * improve commandline arguments
-* have a better look at /merge the fifo code from barrucadu and friends
 * history logging broken. logs always starting url because i made uri const
 
 SOMEDAY:
