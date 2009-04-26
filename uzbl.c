@@ -122,7 +122,7 @@ go_forward_cb (GtkWidget* widget, gpointer data) {
 }
 
 static void
-cb_toggle_status() {
+toggle_status_cb() {
     if (show_status) {
     	gtk_widget_hide(mainbar);
     } else {
@@ -174,29 +174,31 @@ destroy_cb (GtkWidget* widget, gpointer data) {
 
 static void
 log_history_cb () {
-   time_t rawtime;
-   struct tm * timeinfo;
-   char date [80];
-   time ( &rawtime );
-   timeinfo = localtime ( &rawtime );
-   strftime (date, 80, "%Y-%m-%d %H:%M:%S", timeinfo);
-   GString* args = g_string_new ("");
-   g_string_printf (args, "'%s' '%s' '%s'", uri, "TODO:page title here", date);
-   run_command(history_handler, args->str);
+   if (history_handler) {
+       time_t rawtime;
+       struct tm * timeinfo;
+       char date [80];
+       time ( &rawtime );
+       timeinfo = localtime ( &rawtime );
+       strftime (date, 80, "%Y-%m-%d %H:%M:%S", timeinfo);
+       GString* args = g_string_new ("");
+       g_string_printf (args, "'%s' '%s' '%s'", uri, "TODO:page title here", date);
+       run_command(history_handler, args->str);
+   }
 }
 
 /* -- command to callback/function map for things we cannot attach to any signals */
 // TODO: reload, home, quit
 static Command commands[] =
 {
-    { "back",     &go_back_cb,                    NULL },
-    { "forward",  &go_forward_cb,                 NULL },
-    { "refresh",  &webkit_web_view_reload,        NULL }, //Buggy
-    { "stop",     &webkit_web_view_stop_loading,  NULL },
-    { "zoom_in",  &webkit_web_view_zoom_in,       NULL }, //Can crash (when max zoom reached?).
-    { "zoom_out", &webkit_web_view_zoom_out,      NULL },
-    { "uri",      NULL, &webkit_web_view_load_uri      },
-    { "toggle_status", &cb_toggle_status, NULL}
+    { "back",          &go_back_cb,                    NULL },
+    { "forward",       &go_forward_cb,                 NULL },
+    { "refresh",       &webkit_web_view_reload,        NULL }, //Buggy
+    { "stop",          &webkit_web_view_stop_loading,  NULL },
+    { "zoom_in",       &webkit_web_view_zoom_in,       NULL }, //Can crash (when max zoom reached?).
+    { "zoom_out",      &webkit_web_view_zoom_out,      NULL },
+    { "uri",           NULL, &webkit_web_view_load_uri      },
+    { "toggle_status", &toggle_status_cb,              NULL }
 //{ "get uri",  &webkit_web_view_get_uri},
 };
 
@@ -460,6 +462,7 @@ settings_init () {
         modkey             = g_key_file_get_value   (config, "behavior", "modkey", NULL);
         keysi              = g_key_file_get_keys    (config, "bindings_internal", NULL, NULL);
         keyse              = g_key_file_get_keys    (config, "bindings_external", NULL, NULL);
+        status_top         = g_key_file_get_boolean (config, "behavior", "status_top", NULL);
         if (! fifodir)
             fifodir        = g_key_file_get_value   (config, "behavior", "fifodir", NULL);
     }
@@ -486,7 +489,6 @@ settings_init () {
 
     printf ("Show status: %s\n", (show_status ? "TRUE" : "FALSE"));
 
-    status_top = g_key_file_get_boolean (config, "behavior", "status_top", NULL);
     printf ("Status top: %s\n", (status_top ? "TRUE" : "FALSE"));
 
     if (modkey) {
