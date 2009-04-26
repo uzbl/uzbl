@@ -54,6 +54,7 @@ static gchar*   history_file       = NULL;
 static gchar*   fifodir            = NULL;
 static gchar*   download_handler   = NULL;
 static gboolean always_insert_mode = FALSE;
+static gboolean show_status        = FALSE;
 static gboolean insert_mode        = FALSE;
 static gchar*   modkey             = NULL;
 
@@ -406,6 +407,9 @@ settings_init () {
 
     always_insert_mode = g_key_file_get_boolean (config, "behavior", "always_insert_mode", NULL);
     printf ("Always insert mode: %s\n", (always_insert_mode ? "TRUE" : "FALSE"));
+
+    show_status = g_key_file_get_boolean (config, "behavior", "show_status", NULL);
+    printf ("Show status: %s\n", (show_status ? "TRUE" : "FALSE"));
 
     modkey = g_key_file_get_value (config, "behavior", "modkey", NULL);
     if (modkey) {
