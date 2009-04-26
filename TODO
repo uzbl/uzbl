@@ -1,12 +1,14 @@
 * implement all the ideas from README
+* get a logo
+* improve site
 * Support for binding keyboard shortcuts in config file.
 * where to put proxy config? webkit support?
-* improve commandline arguments
 * implement XDG basedir spec
 * check configured commands if they end on .sh so users don't need to prepend /bin/<shell>
 * implement a more advanced dmenu alike that behaves like FF's awesomebar and where you can search in url + window title
 * recognize -h with GOption?
-* fix config loading from arg
+* implement a vimperator-like link following scheme.  but let user pick his favorite characters to construct the "link identifiers" with.
+* add a keybind to hand the current url to an external scrips, so you can edit it and/or store it in the primary and secondary clipboards
 
 SOMEDAY:
 check if we can make the settings loading less hard coded. eg( keep a list of all settings, and for each one, try to load it)
