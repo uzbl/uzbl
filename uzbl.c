@@ -162,15 +162,17 @@ destroy_cb (GtkWidget* widget, gpointer data) {
 
 static void
 log_history_cb () {
-   time_t rawtime;
-   struct tm * timeinfo;
-   char date [80];
-   time ( &rawtime );
-   timeinfo = localtime ( &rawtime );
-   strftime (date, 80, "%Y-%m-%d %H:%M:%S", timeinfo);
-   GString* args = g_string_new ("");
-   g_string_printf (args, "'%s' '%s' '%s'", uri, "TODO:page title here", date);
-   run_command(history_handler, args->str);
+   if (history_handler) {
+       time_t rawtime;
+       struct tm * timeinfo;
+       char date [80];
+       time ( &rawtime );
+       timeinfo = localtime ( &rawtime );
+       strftime (date, 80, "%Y-%m-%d %H:%M:%S", timeinfo);
+       GString* args = g_string_new ("");
+       g_string_printf (args, "'%s' '%s' '%s'", uri, "TODO:page title here", date);
+       run_command(history_handler, args->str);
+   }
 }
 
 /* -- command to callback/function map for things we cannot attach to any signals */
@@ -215,11 +217,11 @@ run_command(const char *command, const char *args) {
 static void
 parse_command(const char *command) {
     int i;
-    Command *c;
+    Command *c = NULL;
     char * command_name  = strtok (command, " ");
     char * command_param = strtok (NULL,  " ,"); //dunno how this works, but it seems to work
 
-    Command *c_tmp;
+    Command *c_tmp = NULL;
     for (i = 0; i < LENGTH (commands); i++) {
         c_tmp = &commands[i];
         if (strncmp (command_name, c_tmp->command, strlen (c_tmp->command)) == 0) {
