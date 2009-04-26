@@ -43,7 +43,6 @@
 #include <stdlib.h>
 
 static GtkWidget* main_window;
-static GtkWidget* uri_entry;
 static GtkWidget* mainbar;
 static WebKitWebView* web_view;
 static gchar* main_title;
@@ -139,20 +138,11 @@ progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
 static void
 load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     const gchar* uri = webkit_web_frame_get_uri(frame);
-    if (uri)
-        gtk_entry_set_text (GTK_ENTRY (uri_entry), uri);
 }
 
 static void
 destroy_cb (GtkWidget* widget, gpointer data) {
     gtk_main_quit ();
-}
-
-static void
-activate_uri_entry_cb (GtkWidget* entry, gpointer data) {
-    const gchar * uri = gtk_entry_get_text (GTK_ENTRY (entry));
-    g_assert (uri);
-    webkit_web_view_load_uri (web_view, uri);
 }
 
 static void
@@ -332,11 +322,6 @@ create_browser () {
 static GtkWidget*
 create_mainbar () {
     mainbar = gtk_hbox_new (FALSE, 0);
-    uri_entry = gtk_entry_new ();
-    gtk_entry_set_width_chars (GTK_ENTRY(uri_entry), 40);
-    gtk_entry_set_text (GTK_ENTRY(uri_entry), "http://");
-    gtk_box_pack_start  (GTK_BOX (mainbar), uri_entry, TRUE,TRUE , 0);
-    gtk_signal_connect_object (GTK_OBJECT (uri_entry), "activate", GTK_SIGNAL_FUNC (activate_uri_entry_cb), GTK_OBJECT (uri_entry));
 
     //status_context_id = gtk_statusbar_get_context_id (main_statusbar, "Link Hover");
 
