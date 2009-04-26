@@ -55,9 +55,9 @@ static Window xwin = 0;
 static char fifopath[64];
 
 /* state variables (initial values coming from command line arguments but may be changed later) */
-static gchar*   uri = NULL;
+static gchar*   uri         = NULL;
 static gchar*   config_file = NULL;
-static gboolean verbose = FALSE;
+static gboolean verbose     = FALSE;
 
 /* settings from config: group behaviour */
 static gchar*   history_handler    = NULL;
@@ -189,13 +189,24 @@ static Command commands[] =
 
 /* -- CORE FUNCTIONS -- */
 
+static bool
+file_exists (const char * filename)
+{
+    FILE *file = fopen (filename, "r");
+    if (file) {
+        fclose (file);
+        return true;
+    }
+    return false;
+}
+
 // make sure to put '' around args, so that if there is whitespace we can still keep arguments together.
 static gboolean
 run_command(const char *command, const char *args) {
    //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> [args]
     GString* to_execute = g_string_new ("");
     gboolean result;
-    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' %s", command, "./sampleconfig", (int) getpid() , (int) xwin, "/tmp/uzbl_25165827", args);
+    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' %s", command, config_file, (int) getpid() , (int) xwin, "/tmp/uzbl_25165827", args);
     result = system(to_execute->str);
     printf("Called %s.  Result: %s\n", to_execute->str, (result ? "FALSE" : "TRUE" ));
     return result;
@@ -384,65 +395,70 @@ add_binding (char *binding, char *action, bool internal) {
 
 static void
 settings_init () {
-    GKeyFile* config = g_key_file_new ();
-    gboolean res = g_key_file_load_from_file (config, "./sampleconfig", G_KEY_FILE_NONE, NULL); //TODO: pass config file as argument
-    if (res) {
-        printf ("Config loaded\n");
+    if (config_file) {
+        printf("Config file: %s\n", config_file);
+
+        GKeyFile* config = g_key_file_new ();
+        gboolean res = g_key_file_load_from_file (config, config_file, G_KEY_FILE_NONE, NULL); //TODO: pass config file as argument
+
+        if (res) {
+            printf ("Config loaded\n");
+        } else {
+            fprintf (stderr, "Config loading failed\n"); //TODO: exit codes with gtk? 
+        }
+
+        history_handler = g_key_file_get_value (config, "behavior", "history_handler", NULL);
+        if (history_handler) {
+            printf ("History handler: %s\n", history_handler);
+        } else {
+            printf ("History handler disabled\n");
+        }
+
+        download_handler = g_key_file_get_value (config, "behavior", "download_handler", NULL);
+        if (download_handler) {
+            printf ("Download manager: %s\n", download_handler);
+        } else {
+            printf ("Download manager disabled\n");
+        }
+
+        if (! fifodir)
+            fifodir = g_key_file_get_value (config, "behavior", "fifodir", NULL);
+        if (fifodir) {
+            printf ("Fifo directory: %s\n", fifodir);
+        } else {
+            printf ("Fifo directory: /tmp\n");
+        }
+
+        always_insert_mode = g_key_file_get_boolean (config, "behavior", "always_insert_mode", NULL);
+        printf ("Always insert mode: %s\n", (always_insert_mode ? "TRUE" : "FALSE"));
+
+        show_status = g_key_file_get_boolean (config, "behavior", "show_status", NULL);
+        printf ("Show status: %s\n", (show_status ? "TRUE" : "FALSE"));
+
+        modkey = g_key_file_get_value (config, "behavior", "modkey", NULL);
+        if (modkey) {
+            printf ("Mod key: %s\n", modkey);
+        } else {
+            printf ("Mod key disabled/\n");
+        }
+
+        gchar **keysi = g_key_file_get_keys (config, "bindings_internal", NULL, NULL);
+        int i = 0;
+        for (i = 0; keysi[i]; i++) {
+            gchar *binding = g_key_file_get_string (config, "bindings_internal", keysi[i], NULL);
+            printf ("Action: %s, Binding: %s (internal)\n", g_strdup (keysi[i]), binding);
+            add_binding (binding, g_strdup (keysi[i]), true);
+        }
+
+        gchar **keyse = g_key_file_get_keys (config, "bindings_external", NULL, NULL);
+        for (i = 0; keyse[i]; i++) {
+            gchar *binding = g_key_file_get_string(config, "bindings_external", keyse[i], NULL);
+            printf ("Action: %s, Binding: %s (external)\n", g_strdup (keyse[i]), binding);
+            add_binding (binding, g_strdup (keyse[i]), false);
+        }
     } else {
-        fprintf (stderr, "Config loading failed\n"); //TODO: exit codes with gtk? 
+        printf ("No configuration.\n");
     }
-
-    history_handler = g_key_file_get_value (config, "behavior", "history_handler", NULL);
-    if (history_handler) {
-        printf ("History handler: %s\n", history_handler);
-    } else {
-        printf ("History handler disabled\n");
-    }
-
-    download_handler = g_key_file_get_value (config, "behavior", "download_handler", NULL);
-    if (download_handler) {
-        printf ("Download manager: %s\n", download_handler);
-    } else {
-        printf ("Download manager disabled\n");
-    }
-
-    if (! fifodir)
-        fifodir = g_key_file_get_value (config, "behavior", "fifodir", NULL);
-    if (fifodir) {
-        printf ("Fifo directory: %s\n", fifodir);
-    } else {
-        printf ("Fifo directory: /tmp\n");
-    }
-
-    always_insert_mode = g_key_file_get_boolean (config, "behavior", "always_insert_mode", NULL);
-    printf ("Always insert mode: %s\n", (always_insert_mode ? "TRUE" : "FALSE"));
-
-    show_status = g_key_file_get_boolean (config, "behavior", "show_status", NULL);
-    printf ("Show status: %s\n", (show_status ? "TRUE" : "FALSE"));
-
-    modkey = g_key_file_get_value (config, "behavior", "modkey", NULL);
-    if (modkey) {
-        printf ("Mod key: %s\n", modkey);
-    } else {
-        printf ("Mod key disabled/\n");
-    }
-
-    gchar **keysi = g_key_file_get_keys (config, "bindings_internal", NULL, NULL);
-    int i = 0;
-    for (i = 0; keysi[i]; i++)
-      {
-        gchar *binding = g_key_file_get_string(config, "bindings_internal", keysi[i], NULL);
-        printf("Action: %s, Binding: %s (internal)\n", g_strdup (keysi[i]), binding);
-        add_binding (binding, g_strdup (keysi[i]), true);
-      }
-
-    gchar **keyse = g_key_file_get_keys (config, "bindings_external", NULL, NULL);
-    for (i = 0; keyse[i]; i++)
-      {
-        gchar *binding = g_key_file_get_string(config, "bindings_external", keyse[i], NULL);
-        printf("Action: %s, Binding: %s (external)\n", g_strdup (keyse[i]), binding);
-        add_binding (binding, g_strdup (keyse[i]), false);
-      }
 }
 
 int
@@ -450,6 +466,12 @@ main (int argc, char* argv[]) {
     gtk_init (&argc, &argv);
     if (!g_thread_supported ())
         g_thread_init (NULL);
+
+    GError *error = NULL;
+    GOptionContext* context = g_option_context_new ("- some stuff here maybe someday");
+    g_option_context_add_main_entries (context, entries, NULL);
+    g_option_context_add_group (context, gtk_get_option_group (TRUE));
+    g_option_context_parse (context, &argc, &argv, &error);
 
     settings_init ();
     if (always_insert_mode)
@@ -461,12 +483,6 @@ main (int argc, char* argv[]) {
 
     main_window = create_window ();
     gtk_container_add (GTK_CONTAINER (main_window), vbox);
-    GError *error = NULL;
-
-    GOptionContext* context = g_option_context_new ("- some stuff here maybe someday");
-    g_option_context_add_main_entries (context, entries, NULL);
-    g_option_context_add_group (context, gtk_get_option_group (TRUE));
-    g_option_context_parse (context, &argc, &argv, &error);
 
     webkit_web_view_load_uri (web_view, uri);
 
