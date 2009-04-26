@@ -11,7 +11,7 @@
 # from insert mode by combining them with the modkey
 
 [behavior]
-history_file = /tmp/uzbl.history
+history_handler = ./extra/history.sh
 download_handler = ./extra/download.sh
 fifo_dir = /tmp
 always_insert_mode = 0

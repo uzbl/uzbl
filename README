@@ -75,6 +75,30 @@ REPO's:
   They may be developing specific features, which get merged into Dieters experimental branch
 
 
+EXTERNAL SCRIPTS
+You can use external scripts with uzbl the following ways:
+1) let uzbl call them. these scripts are called handlers in the uzbl config. used for handling logging history, handling a new download,.. 
+2) call them yourself from inside uzbl.  you can bind keys for this. examples: add new bookmark, load new url,..
+3) if you want to call scripts that have no option, you can trigger them with something like xbindkeys. example: ? (we try to keep all possibilities inside option 1/2)
+
+Scripts that are called by uzbl are passed the following arguments:
+$1 uzbl-config-file
+$2 uzbl-pid
+$3 uzbl-x-window-id
+$4 uzbl_fifo-filename
+.. [ script specific ] (optional)
+
+The script specific arguments are this:
+* history:
+  $5 page url
+  $6 page title
+  $7 date of visit (Y-m-d H:i:s localtime)
+* add bookmark:
+  $5 page url
+  $6 page title
+* download:
+  $5 url
+
 KNOWN BUGS
 - Segfault occurs on shutdown, almost definitely FIFO related (I'm not seeing this bug now, but the warning was here when I forked the code and I haven't touched the FIFO bit)
 - Segfaults when using zoom commands (happens when max zoom already reached?).
