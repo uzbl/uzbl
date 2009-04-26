@@ -67,7 +67,8 @@ static GOptionEntry entries[] =
 typedef struct
 {
   const char *command;
-  void (*func)(WebKitWebView*);
+  void (*func_1_param)(WebKitWebView*);
+  void (*func_2_params)(WebKitWebView*, char *);
   const gboolean param_allow;
   const gboolean param_optional;
 } Command;
@@ -155,13 +156,13 @@ log_history_cb () {
 // TODO: reload, home, quit
 static Command commands[] =
 {
-  { "back",     &go_back_cb,                    false, false },
-  { "forward",  &go_forward_cb,                 false, false },
-  { "refresh",  &webkit_web_view_reload,        false, false }, //Buggy
-  { "stop",     &webkit_web_view_stop_loading,  false, false },
-  { "zoom_in",  &webkit_web_view_zoom_in,       false, false }, //Can crash (when max zoom reached?).
-  { "zoom_out", &webkit_web_view_zoom_out,      false, false } ,
-  { "go",       &webkit_web_view_load_uri,      true,  false }
+  { "back",     &go_back_cb,                    NULL, false, false },
+  { "forward",  &go_forward_cb,                 NULL, false, false },
+  { "refresh",  &webkit_web_view_reload,        NULL, false, false }, //Buggy
+  { "stop",     &webkit_web_view_stop_loading,  NULL, false, false },
+  { "zoom_in",  &webkit_web_view_zoom_in,       NULL, false, false }, //Can crash (when max zoom reached?).
+  { "zoom_out", &webkit_web_view_zoom_out,      NULL, false, false } ,
+  { "uri",      NULL, &webkit_web_view_load_uri,      true,  false }
 //{ "get uri",  &webkit_web_view_get_uri},
 };
 
@@ -169,38 +170,34 @@ static Command commands[] =
 
 static void
 parse_command(const char *command) {
-    int  i    = 0;
-    bool done = false;
-    void (*func)(WebKitWebView*);
-
+    int i;
+    Command *c;
     char * command_name = strtok (command," ");
     char * command_param = strtok (NULL, " ,"); //dunno how this works, but it seems to work
 
-    Command *c;
+    Command *c_tmp;
     for (i = 0; i < LENGTH(commands); i++) {
-        c = &commands[i];
-        if (!strncmp (command_name, c->command, strlen (c->command))) {
-            func = c->func;
-            done = true;
+        c_tmp = &commands[i];
+        if (strncmp (command_name, c_tmp->command, strlen (c_tmp->command)) == 0) {
+            c = c_tmp;
         }
     }
-
-    if (done) {
+    if (c != NULL) {
         if (c->param_allow) {
             if(command_param != NULL) {
                 printf("command executing: \"%s %s\"\n", command_name, command_param);
-                func (web_view, command_param);
+                c->func_2_params (web_view, command_param);
             } else {
                 if(c->param_optional) {
                     printf("command executing: \"%s\"\n", command_name);
-                    func (web_view);
+                    c->func_1_param (web_view);
                 } else {
                     fprintf(stderr, "command needs a parameter. \"%s\" is not complete\n", command_name);
                 }
             }
         } else {
             printf("command executing: \"%s\"\n", command_name);
-            func (web_view);
+            c->func_1_param (web_view);
         }
     } else {
         fprintf(stderr, "command \"%s\" not understood. ignoring.\n", command);
