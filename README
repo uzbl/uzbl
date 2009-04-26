@@ -57,9 +57,27 @@ So, assume each entry is about 80 chars, you visit 100 pages per day (?), and yo
 (50 * 1000 * 1000 ) / ( 80 * 100 ) = 6250 days or 17 years.
 There is code to run a benchmark in the 'extra' dir.  For results & interpretation, see http://dieter.plaetinck.be/poor_mans_dmenu_benchmark
 
+CONTROL:
+- FIFO opened in /tmp/uzbl_pid
+- See config file for commands
+- Press ESC to toggle the command entry.
+- Press enter after typing a command to use it.
 
-
-
-NOTE:
+NOTES:
 - My c skills are very rusty, it will take me a while to get back up to speed
 - For more thoughts & ideas see http://bbs.archlinux.org/viewtopic.php?id=67463
+
+REPO's:
+- http://github.com/Dieterbe/uzbl
+  master -> uzbl stable branch
+  experimental -> bleeding edge stuff that may break. after QA codes gets merged into master
+- various contributors also have their clones on github (http://github.com/dusanx, http://github.com/Barrucadu/uzbl, ...).
+  They may be developing specific features, which get merged into Dieters experimental branch
+
+
+KNOWN BUGS
+- Segfault occurs on shutdown, almost definitely FIFO related (I'm not seeing this bug now, but the warning was here when I forked the code and I haven't touched the FIFO bit)
+- Segfaults when using zoom commands (happens when max zoom already reached?).
+- Something in the FIFO code causes CPU usage to jump.
+- Segfaults when loading aliases from config file (currently aliases are defined in the code as a 'work-around').
+- Segfaults when setting the xwin variable

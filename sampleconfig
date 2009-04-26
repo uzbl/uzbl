@@ -18,7 +18,7 @@ always_insert_mode = 0
 modkey = Mod4
 
 [bindings_internal]
-next = n
+back = b
 forward = m
 stop = s
 refresh = r
@@ -35,6 +35,5 @@ zoom_out = -
 ./extra/insert_bookmark.sh = b
 ./extra/load_url_from_history.sh = u
 ./extra/load_url_from_bookmarks.sh = U
-
 
 [network]

@@ -43,18 +43,17 @@
 #include <stdlib.h>
 
 static GtkWidget* main_window;
-static GtkWidget* uri_entry;
 static GtkWidget* mainbar;
 static WebKitWebView* web_view;
 static gchar* main_title;
 static gchar selected_url[500];
 
 /* Behaviour variables */
-static gchar* history_file       = NULL;
-static gchar* fifodir            = NULL;
-static gchar* download_handler   = NULL;
-static gchar* always_insert_mode = NULL;
-static gchar* modkey             = NULL;
+static gchar*   history_file       = NULL;
+static gchar*   fifodir            = NULL;
+static gchar*   download_handler   = NULL;
+static gboolean always_insert_mode = 0;
+static gchar*   modkey             = NULL;
 
 static char fifopath[64];
 static gint load_progress;
@@ -66,23 +65,22 @@ static gboolean verbose = FALSE;
 
 static GOptionEntry entries[] =
 {
-  { "uri",     'u', 0, G_OPTION_ARG_STRING, &uri,     "Uri to load", NULL },
-  { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &verbose, "Be verbose",  NULL },
-  { NULL }
+    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uri,     "Uri to load", NULL },
+    { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &verbose, "Be verbose",  NULL },
+    { NULL }
 };
 
 typedef struct
 {
-  const char *command;
-  void (*func)(WebKitWebView*);
-  const gboolean param_allow;
-  const gboolean param_optional;
+    const char *command;
+    void (*func_1_param)(WebKitWebView*);
+    void (*func_2_params)(WebKitWebView*, char *);
 } Command;
 
 typedef struct
 {
-  const char *binding;
-  const char *action;
+    const char *binding;
+    const char *action;
 } Binding;
 
 static Binding internal_bindings[256];
@@ -115,9 +113,9 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
     //TODO implementation roadmap pending..
     
     //ADD HOVER URL TO WINDOW TITLE
-    selected_url[0]='\0';
+    selected_url[0] = '\0';
     if (link) {
-    	strcpy (selected_url,link);
+    	strcpy (selected_url, link);
     }
     update_title (GTK_WINDOW (main_window));
 
@@ -140,8 +138,6 @@ progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
 static void
 load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     const gchar* uri = webkit_web_frame_get_uri(frame);
-    if (uri)
-        gtk_entry_set_text (GTK_ENTRY (uri_entry), uri);
 }
 
 static void
@@ -150,27 +146,20 @@ destroy_cb (GtkWidget* widget, gpointer data) {
 }
 
 static void
-activate_uri_entry_cb (GtkWidget* entry, gpointer data) {
-    const gchar * uri = gtk_entry_get_text (GTK_ENTRY (entry));
-    g_assert (uri);
-    webkit_web_view_load_uri (web_view, uri);
-}
-
-static void
 log_history_cb () {
-    FILE * output_file = fopen(history_file, "a");
+    FILE * output_file = fopen (history_file, "a");
     if (output_file == NULL) {
-       fprintf(stderr, "Cannot open %s for logging\n", history_file);
+       fprintf (stderr, "Cannot open %s for logging\n", history_file);
     } else {
         time_t rawtime;
         struct tm * timeinfo;
         char buffer [80];
         time ( &rawtime );
         timeinfo = localtime ( &rawtime );
-        strftime (buffer,80,"%Y-%m-%d %H:%M:%S",timeinfo);
+        strftime (buffer, 80, "%Y-%m-%d %H:%M:%S", timeinfo);
 
-        fprintf(output_file, "%s %s\n",buffer, uri);
-        fclose(output_file);
+        fprintf (output_file, "%s %s\n", buffer, uri);
+        fclose (output_file);
     }
 }
 
@@ -178,13 +167,13 @@ log_history_cb () {
 // TODO: reload, home, quit
 static Command commands[] =
 {
-  { "back",     &go_back_cb,                    false, false },
-  { "forward",  &go_forward_cb,                 false, false },
-  { "refresh",  &webkit_web_view_reload,        false, false }, //Buggy
-  { "stop",     &webkit_web_view_stop_loading,  false, false },
-  { "zoom_in",  &webkit_web_view_zoom_in,       false, false }, //Can crash (when max zoom reached?).
-  { "zoom_out", &webkit_web_view_zoom_out,      false, false } ,
-  { "go",       &webkit_web_view_load_uri,      true,  false }
+    { "back",     &go_back_cb,                    NULL },
+    { "forward",  &go_forward_cb,                 NULL },
+    { "refresh",  &webkit_web_view_reload,        NULL }, //Buggy
+    { "stop",     &webkit_web_view_stop_loading,  NULL },
+    { "zoom_in",  &webkit_web_view_zoom_in,       NULL }, //Can crash (when max zoom reached?).
+    { "zoom_out", &webkit_web_view_zoom_out,      NULL } ,
+    { "uri",      NULL, &webkit_web_view_load_uri      }
 //{ "get uri",  &webkit_web_view_get_uri},
 };
 
@@ -192,87 +181,80 @@ static Command commands[] =
  
 static void
 parse_command(const char *command) {
-    int  i    = 0;
-    bool done = false;
-    void (*func)(WebKitWebView*);
-
-    char * command_name = strtok (command," ");
-    char * command_param = strtok (NULL, " ,"); //dunno how this works, but it seems to work
-
+    int i;
     Command *c;
-    for (i = 0; i < LENGTH(commands); i++) {
-        c = &commands[i];
-        if (!strncmp (command_name, c->command, strlen (c->command))) {
-            func = c->func;
-            done = true;
+    char * command_name  = strtok (command, " ");
+    char * command_param = strtok (NULL,  " ,"); //dunno how this works, but it seems to work
+
+    Command *c_tmp;
+    for (i = 0; i < LENGTH (commands); i++) {
+        c_tmp = &commands[i];
+        if (strncmp (command_name, c_tmp->command, strlen (c_tmp->command)) == 0) {
+            c = c_tmp;
         }
     }
-
-    if (done) {
-        if (c->param_allow) {
-            if(command_param != NULL) {
-                printf("command executing: \"%s %s\"\n", command_name, command_param);
-                //func (web_view, command_param);
+    if (c != NULL) {
+        if (c->func_2_params != NULL) {
+            if (command_param != NULL) {
+                printf ("command executing: \"%s %s\"\n", command_name, command_param);
+                c->func_2_params (web_view, command_param);
             } else {
-                if(c->param_optional) {
-                    printf("command executing: \"%s\"\n", command_name);
-                    func (web_view);
+                if (c->func_1_param != NULL) {
+                    printf ("command executing: \"%s\"\n", command_name);
+                    c->func_1_param (web_view);
                 } else {
-                    fprintf(stderr, "command needs a parameter. \"%s\" is not complete\n", command_name);
+                    fprintf (stderr, "command needs a parameter. \"%s\" is not complete\n", command_name);
                 }
             }
-        } else {
-            printf("command executing: \"%s\"\n", command_name);
-            func (web_view);
+        } else if (c->func_1_param != NULL) {
+            printf ("command executing: \"%s\"\n", command_name);
+            c->func_1_param (web_view);
         }
     } else {
-        fprintf(stderr, "command \"%s\" not understood. ignoring.\n", command);
+        fprintf (stderr, "command \"%s\" not understood. ignoring.\n", command);
     }
 }
  
 static void
 *control_fifo() {
-  if (fifodir) {
-    sprintf (fifopath, "%s/uzbl_%d", fifodir, (int) xwin);
-  } else {
-    sprintf (fifopath, "/tmp/uzbl_%d", (int) xwin);
-  }
- 
-  if (mkfifo (fifopath, 0666) == -1) {
-    printf ("Possible error creating fifo\n");
-  }
- 
-  printf ("Control fifo opened in %s\n", fifopath);
- 
-  while (true) {
-    FILE *fifo = fopen(fifopath, "r");
-    if (!fifo) {
-      printf("Could not open %s for reading\n", fifopath);
-      return NULL;
+    if (fifodir) {
+        sprintf (fifopath, "%s/uzbl_%d", fifodir, (int) xwin);
+    } else {
+        sprintf (fifopath, "/tmp/uzbl_%d", (int) xwin);
     }
+ 
+    if (mkfifo (fifopath, 0666) == -1) {
+        printf ("Possible error creating fifo\n");
+    }
+ 
+    printf ("Control fifo opened in %s\n", fifopath);
+ 
+    while (true) {
+        FILE *fifo = fopen (fifopath, "r");
+        if (!fifo) {
+            printf ("Could not open %s for reading\n", fifopath);
+            return NULL;
+        }
         
-    char buffer[256];
-    memset (buffer, 0, sizeof (buffer));
-    while (!feof (fifo) && fgets (buffer, sizeof (buffer), fifo)) {
-      if (strcmp (buffer, "\n")) {
-        buffer[strlen (buffer) - 1] = '\0'; // Remove newline
-        parse_command (buffer);
-      }
+        char buffer[256];
+        memset (buffer, 0, sizeof (buffer));
+        while (!feof (fifo) && fgets (buffer, sizeof (buffer), fifo)) {
+            if (strcmp (buffer, "\n")) {
+                buffer[strlen (buffer) - 1] = '\0'; // Remove newline
+                parse_command (buffer);
+            }
+        }
     }
-  }
     
-  return NULL;
+    return NULL;
 }
  
  
 static void
 setup_threading () {
-  pthread_t control_thread;
-  pthread_create(&control_thread, NULL, control_fifo, NULL);
+    pthread_t control_thread;
+    pthread_create(&control_thread, NULL, control_fifo, NULL);
 }
-
-
-
 
 static void
 update_title (GtkWindow* window) {
@@ -289,7 +271,6 @@ update_title (GtkWindow* window) {
     gtk_window_set_title (window, title);
     g_free (title);
 }
-
  
 static void
 MsgBox (const char *s) {
@@ -302,25 +283,23 @@ MsgBox (const char *s) {
    gtk_widget_destroy (dialog);
 }
 
-
 static gboolean
 key_press_cb (WebKitWebView* page, GdkEventKey* event)
 {
     int i;
     gboolean result=FALSE; //TRUE to stop other handlers from being invoked for the event. FALSE to propagate the event further.
     if (event->type != GDK_KEY_PRESS) 
-        return(result);
+        return result;
 
     for (i = 0; i < num_internal_bindings; i++) {
-	if (event->string[0] == internal_bindings[i].binding[0]) {
-    	    parse_command(internal_bindings[i].action);
-	    result = FALSE;
-	}	
+        if (event->string[0] == internal_bindings[i].binding[0]) {
+            parse_command (internal_bindings[i].action);
+            result = FALSE;
+        }	
     }
 
-    return(result);
+    return result;
 }
-
 
 static GtkWidget*
 create_browser () {
@@ -335,19 +314,14 @@ create_browser () {
     g_signal_connect (G_OBJECT (web_view), "load-committed", G_CALLBACK (load_commit_cb), web_view);
     g_signal_connect (G_OBJECT (web_view), "load-committed", G_CALLBACK (log_history_cb), web_view);
     g_signal_connect (G_OBJECT (web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), web_view);
-    g_signal_connect (G_OBJECT (web_view), "key-press-event", G_CALLBACK(key_press_cb), web_view);
+    g_signal_connect (G_OBJECT (web_view), "key-press-event", G_CALLBACK (key_press_cb), web_view);
 
     return scrolled_window;
 }
 
 static GtkWidget*
 create_mainbar () {
-    mainbar = gtk_hbox_new(FALSE, 0);
-    uri_entry = gtk_entry_new();
-    gtk_entry_set_width_chars(GTK_ENTRY(uri_entry), 40);
-    gtk_entry_set_text(GTK_ENTRY(uri_entry), "http://");
-    gtk_box_pack_start (GTK_BOX (mainbar), uri_entry, TRUE,TRUE , 0);
-    gtk_signal_connect_object (GTK_OBJECT (uri_entry), "activate", GTK_SIGNAL_FUNC (activate_uri_entry_cb), GTK_OBJECT (uri_entry));
+    mainbar = gtk_hbox_new (FALSE, 0);
 
     //status_context_id = gtk_statusbar_get_context_id (main_statusbar, "Link Hover");
 
@@ -395,7 +369,7 @@ settings_init () {
 
     download_handler = g_key_file_get_value (config, "behavior", "download_handler", NULL);
     if (download_handler) {
-        printf ("Download manager: %s\n", history_file);
+        printf ("Download manager: %s\n", download_handler);
     } else {
         printf ("Download manager disabled\n");
     }
@@ -403,21 +377,21 @@ settings_init () {
     if (! fifodir)
         fifodir = g_key_file_get_value (config, "behavior", "fifodir", NULL);
     if (fifodir) {
-        printf ("Fifo directory: %s\n", history_file);
+        printf ("Fifo directory: %s\n", fifodir);
     } else {
         printf ("Fifo directory: /tmp\n");
     }
 
     always_insert_mode = g_key_file_get_value (config, "behavior", "always_insert_mode", NULL);
     if (always_insert_mode) {
-        printf ("Always insert mode: %s\n", history_file);
+        printf ("Always insert mode: %s\n", always_insert_mode);
     } else {
         printf ("Always insert mode disabled/\n");
     }
 
     modkey = g_key_file_get_value (config, "behavior", "modkey", NULL);
     if (modkey) {
-        printf ("Mod key: %s\n", history_file);
+        printf ("Mod key: %s\n", modkey);
     } else {
         printf ("Mod key disabled/\n");
     }
