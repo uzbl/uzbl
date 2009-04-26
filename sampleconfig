@@ -16,6 +16,8 @@ download_handler = ./extra/download.sh
 fifo_dir = /tmp
 always_insert_mode = 0
 modkey = Mod4
+show_status = 1
+status_top = 0
 
 [bindings_internal]
 back = b
@@ -29,7 +31,7 @@ follow_link_new_tab = F
 follow_link_new_window = w
 zoom_in = +
 zoom_out = -
-
+toggle_status = t
 
 [bindings_external]
 ./extra/insert_bookmark.sh = b
