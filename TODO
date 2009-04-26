@@ -11,6 +11,7 @@
 * recognize -h with GOption?
 * fix config loading from arg
 * implement a vimperator-like link following scheme.  but let user pick his favorite characters to construct the "link identifiers" with.
+* add a keybind to hand the current url to an external scrips, so you can edit it and/or store it in the primary and secondary clipboards
 
 SOMEDAY:
 check if we can make the settings loading less hard coded. eg( keep a list of all settings, and for each one, try to load it)
