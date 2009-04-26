@@ -43,13 +43,23 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+/* housekeeping / internal variables */
 static GtkWidget* main_window;
 static GtkWidget* mainbar;
 static WebKitWebView* web_view;
 static gchar* main_title;
 static gchar selected_url[500];
+static gint load_progress;
+static guint status_context_id;
+static Window xwin = 0;
+static char fifopath[64];
 
-/* Behaviour variables */
+/* state variables (initial values coming from command line arguments but may be changed later) */
+static gchar*   uri = NULL;
+static gchar*   config_file = NULL;
+static gboolean verbose = FALSE;
+
+/* settings from config: group behaviour */
 static gchar*   history_handler    = NULL;
 static gchar*   fifodir            = NULL;
 static gchar*   download_handler   = NULL;
@@ -58,27 +68,6 @@ static gboolean show_status        = FALSE;
 static gboolean insert_mode        = FALSE;
 static gchar*   modkey             = NULL;
 
-static char fifopath[64];
-static gint load_progress;
-static guint status_context_id;
-static Window xwin = 0;
-static gchar* uri = NULL;
-
-static gboolean verbose = FALSE;
-
-static GOptionEntry entries[] =
-{
-    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uri,     "Uri to load", NULL },
-    { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &verbose, "Be verbose",  NULL },
-    { NULL }
-};
-
-typedef struct
-{
-    const char *command;
-    void (*func_1_param)(WebKitWebView*);
-    void (*func_2_params)(WebKitWebView*, char *);
-} Command;
 
 typedef struct
 {
@@ -86,10 +75,31 @@ typedef struct
     const char *action;
 } Binding;
 
+/* settings from config: group bindings_internal */
 static Binding internal_bindings[256];
-static Binding external_bindings[256];
 static int     num_internal_bindings = 0;
+
+/* settings from config: group bindings_external */
+static Binding external_bindings[256];
 static int     num_external_bindings = 0;
+
+/* commandline arguments (set initial values for the state variables) */
+static GOptionEntry entries[] =
+{
+    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uri,         "Uri to load", NULL },
+    { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &verbose,     "Be verbose",  NULL },
+    { "config",  'c', 0, G_OPTION_ARG_STRING, &config_file, "Config file", NULL },
+    { NULL }
+};
+
+/* for internal list of commands */
+typedef struct
+{
+    const char *command;
+    void (*func_1_param)(WebKitWebView*);
+    void (*func_2_params)(WebKitWebView*, char *);
+} Command;
+
 
 static void
 update_title (GtkWindow* window);
