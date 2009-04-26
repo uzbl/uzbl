@@ -401,14 +401,15 @@ settings_init () {
     gchar** keyse = NULL;
 
     if (! config_file) {
-        char* xdg = getenv ("XDG_CONFIG_HOME");
-        char* conf = NULL;
+        const char* xdg = getenv ("XDG_CONFIG_HOME");
+        char* conf[256];
         if (xdg) {
+            printf("XDG_CONFIG_DIR: %s\n", xdg);
             strcpy (conf, xdg);
             strcat (conf, "/uzbl");
             if (file_exists (conf)) {
-                printf ("Config file %s found.", conf);
-                strcpy(config_file, conf);
+                printf ("Config file %s found.\n", conf);
+                config_file = &conf;
             }
         }
     }
