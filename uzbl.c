@@ -47,6 +47,7 @@ static GtkWidget* uri_entry;
 static GtkWidget* mainbar;
 static WebKitWebView* web_view;
 static gchar* main_title;
+static gchar selected_url[500];
 
 /* Behaviour variables */
 static gchar* history_file       = NULL;
@@ -112,6 +113,14 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
     //if (link)
     //    gtk_statusbar_push (main_statusbar, status_context_id, link);
     //TODO implementation roadmap pending..
+    
+    //ADD HOVER URL TO WINDOW TITLE
+    selected_url[0]='\0';
+    if (link) {
+    	strcpy (selected_url,link);
+    }
+    update_title (GTK_WINDOW (main_window));
+
 }
 
 static void
@@ -271,6 +280,11 @@ update_title (GtkWindow* window) {
     g_string_append (string, " - Uzbl browser");
     if (load_progress < 100)
         g_string_append_printf (string, " (%d%%)", load_progress);
+
+    if (selected_url[0]!=0) {
+        g_string_append_printf (string, " -> (%s)", selected_url);
+    }
+
     gchar* title = g_string_free (string, FALSE);
     gtk_window_set_title (window, title);
     g_free (title);
