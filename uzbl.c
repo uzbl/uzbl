@@ -290,6 +290,38 @@ update_title (GtkWindow* window) {
     g_free (title);
 }
 
+ 
+static void
+MsgBox (const char *s) {
+    GtkWidget* dialog = gtk_message_dialog_new (main_window,
+                                  GTK_DIALOG_DESTROY_WITH_PARENT,
+                                  GTK_MESSAGE_ERROR,
+                                  GTK_BUTTONS_CLOSE,
+                                  "%s", s);
+   gtk_dialog_run (GTK_DIALOG (dialog));
+   gtk_widget_destroy (dialog);
+}
+
+
+static gboolean
+key_press_cb (WebKitWebView* page, GdkEventKey* event)
+{
+    int i;
+    gboolean result=FALSE; //TRUE to stop other handlers from being invoked for the event. FALSE to propagate the event further.
+    if (event->type != GDK_KEY_PRESS) 
+        return(result);
+
+    for (i = 0; i < num_internal_bindings; i++) {
+	if (event->string[0] == internal_bindings[i].binding[0]) {
+    	    parse_command(internal_bindings[i].action);
+	    result = FALSE;
+	}	
+    }
+
+    return(result);
+}
+
+
 static GtkWidget*
 create_browser () {
     GtkWidget* scrolled_window = gtk_scrolled_window_new (NULL, NULL);
@@ -303,6 +335,7 @@ create_browser () {
     g_signal_connect (G_OBJECT (web_view), "load-committed", G_CALLBACK (load_commit_cb), web_view);
     g_signal_connect (G_OBJECT (web_view), "load-committed", G_CALLBACK (log_history_cb), web_view);
     g_signal_connect (G_OBJECT (web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), web_view);
+    g_signal_connect (G_OBJECT (web_view), "key-press-event", G_CALLBACK(key_press_cb), web_view);
 
     return scrolled_window;
 }
