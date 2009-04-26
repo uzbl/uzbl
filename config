@@ -1,0 +1,17 @@
+# example uzbl config. in a real config, we should obey the xdg spec
+[behavior]
+history_file     = /tmp/uzbl.history
+
+[alias]
+b  = back
+f  = forward
+z+ = zoom in
+z- = zoom out
+r  = refresh
+s  = stop
+
+[bindings_internal]
+
+[bindings_external]
+
+[network]

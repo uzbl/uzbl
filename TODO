@@ -1,4 +1,6 @@
 * implement all the ideas from README
+* Support for arguments to commands (argc/argv-like structure?).
+* Support for binding keyboard shortcuts in config file.
 * where to put proxy config? webkit support?
 * do not store the 'http://' part in the history file
 * improve commandline arguments
