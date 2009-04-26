@@ -5,7 +5,7 @@
 * do not store the 'http://' part in the history file
 * improve commandline arguments
 * have a better look at /merge the fifo code from barrucadu and friends
-
+* history logging broken. logs always starting url because i made uri const
 
 SOMEDAY:
 figure out caching with webkit and in general how we can speed everything

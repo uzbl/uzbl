@@ -1,3 +1,4 @@
+
 # example uzbl config. in a real config, we should obey the xdg spec
 
 # all keys in the behavior group are optional.  if not set, the corresponding behavior is disabed.
@@ -18,9 +19,17 @@ modkey = Mod4
 
 [bindings_internal]
 next = n
+forward = m
+stop = s
+refresh = r
+reload = R
+home = h
 follow_link_here = f
 follow_link_new_tab = F
 follow_link_new_window = w
+zoom_in = +
+zoom_out = -
+
 
 [bindings_external]
 ./extra/insert_bookmark.sh = b
