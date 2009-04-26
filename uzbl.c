@@ -30,6 +30,7 @@
 
 
 #define LENGTH(x)               (sizeof x / sizeof x[0])
+#define GDK_Escape 0xff1b
 
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
@@ -52,7 +53,9 @@ static gchar selected_url[500];
 static gchar*   history_file       = NULL;
 static gchar*   fifodir            = NULL;
 static gchar*   download_handler   = NULL;
-static gboolean always_insert_mode = 0;
+static gboolean always_insert_mode = FALSE;
+static gboolean show_status        = FALSE;
+static gboolean insert_mode        = FALSE;
 static gchar*   modkey             = NULL;
 
 static char fifopath[64];
@@ -115,10 +118,9 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
     //ADD HOVER URL TO WINDOW TITLE
     selected_url[0] = '\0';
     if (link) {
-    	strcpy (selected_url, link);
+        strcpy (selected_url, link);
     }
     update_title (GTK_WINDOW (main_window));
-
 }
 
 static void
@@ -247,8 +249,7 @@ static void
     }
     
     return NULL;
-}
- 
+} 
  
 static void
 setup_threading () {
@@ -258,7 +259,10 @@ setup_threading () {
 
 static void
 update_title (GtkWindow* window) {
-    GString* string = g_string_new (main_title);
+    GString* string = g_string_new ("");
+    if (!always_insert_mode)
+        g_string_append (string, (insert_mode ? "[I] " : "[C] "));
+    g_string_append (string, main_title);
     g_string_append (string, " - Uzbl browser");
     if (load_progress < 100)
         g_string_append_printf (string, " (%d%%)", load_progress);
@@ -291,12 +295,31 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     if (event->type != GDK_KEY_PRESS) 
         return result;
 
-    for (i = 0; i < num_internal_bindings; i++) {
-        if (event->string[0] == internal_bindings[i].binding[0]) {
-            parse_command (internal_bindings[i].action);
-            result = FALSE;
-        }	
+    //TURN OFF INSERT MODE
+    if (insert_mode && (event->keyval == GDK_Escape)) {
+        insert_mode = FALSE;
+        update_title (GTK_WINDOW (main_window));
+        return TRUE;
     }
+
+    //TURN ON INSERT MODE
+    if (!insert_mode && (event->string[0] == 'i')) {
+        insert_mode = TRUE;
+        update_title (GTK_WINDOW (main_window));
+        return TRUE;
+    }
+
+    //INTERNAL KEYS
+    if (always_insert_mode || !insert_mode) {
+        for (i = 0; i < num_internal_bindings; i++) {
+            if (event->string[0] == internal_bindings[i].binding[0]) {
+                parse_command (internal_bindings[i].action);
+                result = TRUE;
+            }	
+        }
+    }
+    if (!result)
+        result = (insert_mode ? FALSE : TRUE);      
 
     return result;
 }
@@ -382,12 +405,11 @@ settings_init () {
         printf ("Fifo directory: /tmp\n");
     }
 
-    always_insert_mode = g_key_file_get_value (config, "behavior", "always_insert_mode", NULL);
-    if (always_insert_mode) {
-        printf ("Always insert mode: %s\n", always_insert_mode);
-    } else {
-        printf ("Always insert mode disabled/\n");
-    }
+    always_insert_mode = g_key_file_get_boolean (config, "behavior", "always_insert_mode", NULL);
+    printf ("Always insert mode: %s\n", (always_insert_mode ? "TRUE" : "FALSE"));
+
+    show_status = g_key_file_get_boolean (config, "behavior", "show_status", NULL);
+    printf ("Show status: %s\n", (show_status ? "TRUE" : "FALSE"));
 
     modkey = g_key_file_get_value (config, "behavior", "modkey", NULL);
     if (modkey) {
@@ -421,6 +443,8 @@ main (int argc, char* argv[]) {
         g_thread_init (NULL);
 
     settings_init ();
+    if (always_insert_mode)
+        insert_mode = TRUE;
 
     GtkWidget* vbox = gtk_vbox_new (FALSE, 0);
     gtk_box_pack_start (GTK_BOX (vbox), create_mainbar (), FALSE, TRUE, 0);
