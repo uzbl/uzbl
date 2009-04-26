@@ -6,3 +6,5 @@ Michael Walker (Barrucadu) <mike@barrucadu.co.uk> - Original threaded FIFO inter
 Zane Ashby (HashBox) <http://demonastery.org> - Rewrote FIFO interface. Fixed various bugs.
 
 (sentientswitch) - Cleaned up code. Added some commands.
+
+Dusan Popovic (dusanx) - Key handling and stuff
