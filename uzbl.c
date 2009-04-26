@@ -142,7 +142,7 @@ progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
 
 static void
 load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
-    const gchar* uri = webkit_web_frame_get_uri(frame);
+    strcpy (uri, webkit_web_frame_get_uri (frame));
 }
 
 static void

@@ -2,7 +2,6 @@
 * Support for binding keyboard shortcuts in config file.
 * where to put proxy config? webkit support?
 * improve commandline arguments
-* history logging broken. logs always starting url because i made uri const
 * check configured commands if they end on .sh so users don't need to prepend /bin/<shell>
 
 SOMEDAY:
