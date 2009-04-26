@@ -1,4 +1,5 @@
 * implement all the ideas from README
+* Support for binding keyboard shortcuts in config file.
 * where to put proxy config? webkit support?
 * do not store the 'http://' part in the history file
 * improve commandline arguments
@@ -6,5 +7,5 @@
 * history logging broken. logs always starting url because i made uri const
 
 SOMEDAY:
-figure out caching with webkit and in general how we can speed everything
+figure out caching with webkit and in general how we can speed up everything
 figure out how webkit intercepts key input
