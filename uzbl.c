@@ -422,13 +422,13 @@ add_binding (char *binding, char *action, bool internal) {
 static void
 settings_init () {
     GKeyFile* config;
-    gboolean res = NULL;
+    gboolean res  = FALSE;
     gchar** keysi = NULL;
     gchar** keyse = NULL;
 
     if (! config_file) {
         const char* xdg = getenv ("XDG_CONFIG_HOME");
-        char* conf[256];
+        char conf[256];
         if (xdg) {
             printf("XDG_CONFIG_DIR: %s\n", xdg);
             strcpy (conf, xdg);
