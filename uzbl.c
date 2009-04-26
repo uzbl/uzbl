@@ -399,7 +399,7 @@ settings_init () {
         printf("Config file: %s\n", config_file);
 
         GKeyFile* config = g_key_file_new ();
-        gboolean res = g_key_file_load_from_file (config, config_file, G_KEY_FILE_NONE, NULL); //TODO: pass config file as argument
+        gboolean res = g_key_file_load_from_file (config, config_file, G_KEY_FILE_NONE, NULL);
 
         if (res) {
             printf ("Config loaded\n");
