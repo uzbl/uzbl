@@ -66,22 +66,22 @@ static gboolean verbose = FALSE;
 
 static GOptionEntry entries[] =
 {
-  { "uri",     'u', 0, G_OPTION_ARG_STRING, &uri,     "Uri to load", NULL },
-  { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &verbose, "Be verbose",  NULL },
-  { NULL }
+    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uri,     "Uri to load", NULL },
+    { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &verbose, "Be verbose",  NULL },
+    { NULL }
 };
 
 typedef struct
 {
-  const char *command;
-  void (*func_1_param)(WebKitWebView*);
-  void (*func_2_params)(WebKitWebView*, char *);
+    const char *command;
+    void (*func_1_param)(WebKitWebView*);
+    void (*func_2_params)(WebKitWebView*, char *);
 } Command;
 
 typedef struct
 {
-  const char *binding;
-  const char *action;
+    const char *binding;
+    const char *action;
 } Binding;
 
 static Binding internal_bindings[256];
@@ -114,9 +114,9 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
     //TODO implementation roadmap pending..
     
     //ADD HOVER URL TO WINDOW TITLE
-    selected_url[0]='\0';
+    selected_url[0] = '\0';
     if (link) {
-    	strcpy (selected_url,link);
+    	strcpy (selected_url, link);
     }
     update_title (GTK_WINDOW (main_window));
 
@@ -157,19 +157,19 @@ activate_uri_entry_cb (GtkWidget* entry, gpointer data) {
 
 static void
 log_history_cb () {
-    FILE * output_file = fopen(history_file, "a");
+    FILE * output_file = fopen (history_file, "a");
     if (output_file == NULL) {
-       fprintf(stderr, "Cannot open %s for logging\n", history_file);
+       fprintf (stderr, "Cannot open %s for logging\n", history_file);
     } else {
         time_t rawtime;
         struct tm * timeinfo;
         char buffer [80];
         time ( &rawtime );
         timeinfo = localtime ( &rawtime );
-        strftime (buffer,80,"%Y-%m-%d %H:%M:%S",timeinfo);
+        strftime (buffer, 80, "%Y-%m-%d %H:%M:%S", timeinfo);
 
-        fprintf(output_file, "%s %s\n",buffer, uri);
-        fclose(output_file);
+        fprintf (output_file, "%s %s\n", buffer, uri);
+        fclose (output_file);
     }
 }
 
@@ -177,13 +177,13 @@ log_history_cb () {
 // TODO: reload, home, quit
 static Command commands[] =
 {
-  { "back",     &go_back_cb,                    NULL },
-  { "forward",  &go_forward_cb,                 NULL },
-  { "refresh",  &webkit_web_view_reload,        NULL }, //Buggy
-  { "stop",     &webkit_web_view_stop_loading,  NULL },
-  { "zoom_in",  &webkit_web_view_zoom_in,       NULL }, //Can crash (when max zoom reached?).
-  { "zoom_out", &webkit_web_view_zoom_out,      NULL } ,
-  { "uri",      NULL, &webkit_web_view_load_uri      }
+    { "back",     &go_back_cb,                    NULL },
+    { "forward",  &go_forward_cb,                 NULL },
+    { "refresh",  &webkit_web_view_reload,        NULL }, //Buggy
+    { "stop",     &webkit_web_view_stop_loading,  NULL },
+    { "zoom_in",  &webkit_web_view_zoom_in,       NULL }, //Can crash (when max zoom reached?).
+    { "zoom_out", &webkit_web_view_zoom_out,      NULL } ,
+    { "uri",      NULL, &webkit_web_view_load_uri      }
 //{ "get uri",  &webkit_web_view_get_uri},
 };
 
@@ -197,7 +197,7 @@ parse_command(const char *command) {
     char * command_param = strtok (NULL,  " ,"); //dunno how this works, but it seems to work
 
     Command *c_tmp;
-    for (i = 0; i < LENGTH(commands); i++) {
+    for (i = 0; i < LENGTH (commands); i++) {
         c_tmp = &commands[i];
         if (strncmp (command_name, c_tmp->command, strlen (c_tmp->command)) == 0) {
             c = c_tmp;
@@ -216,7 +216,7 @@ parse_command(const char *command) {
                     fprintf (stderr, "command needs a parameter. \"%s\" is not complete\n", command_name);
                 }
             }
-        } else if(c->func_1_param != NULL) {
+        } else if (c->func_1_param != NULL) {
             printf ("command executing: \"%s\"\n", command_name);
             c->func_1_param (web_view);
         }
@@ -281,7 +281,6 @@ update_title (GtkWindow* window) {
     gtk_window_set_title (window, title);
     g_free (title);
 }
-
  
 static void
 MsgBox (const char *s) {
@@ -294,25 +293,23 @@ MsgBox (const char *s) {
    gtk_widget_destroy (dialog);
 }
 
-
 static gboolean
 key_press_cb (WebKitWebView* page, GdkEventKey* event)
 {
     int i;
     gboolean result=FALSE; //TRUE to stop other handlers from being invoked for the event. FALSE to propagate the event further.
     if (event->type != GDK_KEY_PRESS) 
-        return(result);
+        return result;
 
     for (i = 0; i < num_internal_bindings; i++) {
         if (event->string[0] == internal_bindings[i].binding[0]) {
-            parse_command(internal_bindings[i].action);
+            parse_command (internal_bindings[i].action);
             result = FALSE;
         }	
     }
 
     return(result);
 }
-
 
 static GtkWidget*
 create_browser () {
@@ -327,18 +324,18 @@ create_browser () {
     g_signal_connect (G_OBJECT (web_view), "load-committed", G_CALLBACK (load_commit_cb), web_view);
     g_signal_connect (G_OBJECT (web_view), "load-committed", G_CALLBACK (log_history_cb), web_view);
     g_signal_connect (G_OBJECT (web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), web_view);
-    g_signal_connect (G_OBJECT (web_view), "key-press-event", G_CALLBACK(key_press_cb), web_view);
+    g_signal_connect (G_OBJECT (web_view), "key-press-event", G_CALLBACK (key_press_cb), web_view);
 
     return scrolled_window;
 }
 
 static GtkWidget*
 create_mainbar () {
-    mainbar = gtk_hbox_new(FALSE, 0);
-    uri_entry = gtk_entry_new();
-    gtk_entry_set_width_chars(GTK_ENTRY(uri_entry), 40);
-    gtk_entry_set_text(GTK_ENTRY(uri_entry), "http://");
-    gtk_box_pack_start (GTK_BOX (mainbar), uri_entry, TRUE,TRUE , 0);
+    mainbar = gtk_hbox_new (FALSE, 0);
+    uri_entry = gtk_entry_new ();
+    gtk_entry_set_width_chars (GTK_ENTRY(uri_entry), 40);
+    gtk_entry_set_text (GTK_ENTRY(uri_entry), "http://");
+    gtk_box_pack_start  (GTK_BOX (mainbar), uri_entry, TRUE,TRUE , 0);
     gtk_signal_connect_object (GTK_OBJECT (uri_entry), "activate", GTK_SIGNAL_FUNC (activate_uri_entry_cb), GTK_OBJECT (uri_entry));
 
     //status_context_id = gtk_statusbar_get_context_id (main_statusbar, "Link Hover");
