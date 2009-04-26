@@ -14,7 +14,7 @@
 history_file = /tmp/uzbl.history
 download_handler = ./extra/download.sh
 fifo_dir = /tmp
-always_insert_mode = 0
+always_insert_mode = 1
 modkey = Mod4
 
 [bindings_internal]
