@@ -2,8 +2,10 @@
 * Support for binding keyboard shortcuts in config file.
 * where to put proxy config? webkit support?
 * improve commandline arguments
+* implement XDG basedir spec
 * check configured commands if they end on .sh so users don't need to prepend /bin/<shell>
 
 SOMEDAY:
+check if we can make the settings loading less hard coded. eg( keep a list of all settings, and for each one, try to load it)
 figure out caching with webkit and in general how we can speed up everything
 figure out how webkit intercepts key input
