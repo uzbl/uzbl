@@ -46,6 +46,7 @@
 /* housekeeping / internal variables */
 static GtkWidget* main_window;
 static GtkWidget* mainbar;
+static GtkWidget* mainbar_label;
 static WebKitWebView* web_view;
 static gchar* main_title;
 static gchar selected_url[500];
@@ -66,6 +67,7 @@ static gchar*   download_handler   = NULL;
 static gboolean always_insert_mode = FALSE;
 static gboolean show_status        = FALSE;
 static gboolean insert_mode        = FALSE;
+static gboolean status_top         = FALSE;
 static gchar*   modkey             = NULL;
 
 
@@ -119,6 +121,16 @@ go_forward_cb (GtkWidget* widget, gpointer data) {
     webkit_web_view_go_forward (web_view);
 }
 
+static void
+toggle_status_cb() {
+    if (show_status) {
+    	gtk_widget_hide(mainbar);
+    } else {
+    	gtk_widget_show(mainbar);
+    }
+    show_status = !show_status;
+    update_title (GTK_WINDOW (main_window));
+}
 
 static void
 link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data) {
@@ -179,13 +191,14 @@ log_history_cb () {
 // TODO: reload, home, quit
 static Command commands[] =
 {
-    { "back",     &go_back_cb,                    NULL },
-    { "forward",  &go_forward_cb,                 NULL },
-    { "refresh",  &webkit_web_view_reload,        NULL }, //Buggy
-    { "stop",     &webkit_web_view_stop_loading,  NULL },
-    { "zoom_in",  &webkit_web_view_zoom_in,       NULL }, //Can crash (when max zoom reached?).
-    { "zoom_out", &webkit_web_view_zoom_out,      NULL } ,
-    { "uri",      NULL, &webkit_web_view_load_uri      }
+    { "back",          &go_back_cb,                    NULL },
+    { "forward",       &go_forward_cb,                 NULL },
+    { "refresh",       &webkit_web_view_reload,        NULL }, //Buggy
+    { "stop",          &webkit_web_view_stop_loading,  NULL },
+    { "zoom_in",       &webkit_web_view_zoom_in,       NULL }, //Can crash (when max zoom reached?).
+    { "zoom_out",      &webkit_web_view_zoom_out,      NULL },
+    { "uri",           NULL, &webkit_web_view_load_uri      },
+    { "toggle_status", &toggle_status_cb,              NULL }
 //{ "get uri",  &webkit_web_view_get_uri},
 };
 
@@ -292,21 +305,33 @@ setup_threading () {
 
 static void
 update_title (GtkWindow* window) {
-    GString* string = g_string_new ("");
+    GString* string_long = g_string_new ("");
+    GString* string_short = g_string_new ("");
     if (!always_insert_mode)
-        g_string_append (string, (insert_mode ? "[I] " : "[C] "));
-    g_string_append (string, main_title);
-    g_string_append (string, " - Uzbl browser");
+        g_string_append (string_long, (insert_mode ? "[I] " : "[C] "));
+    g_string_append (string_long, main_title);
+    g_string_append (string_short, main_title);
+    g_string_append (string_long, " - Uzbl browser");
+    g_string_append (string_short, " - Uzbl browser");
     if (load_progress < 100)
-        g_string_append_printf (string, " (%d%%)", load_progress);
+        g_string_append_printf (string_long, " (%d%%)", load_progress);
 
     if (selected_url[0]!=0) {
-        g_string_append_printf (string, " -> (%s)", selected_url);
+        g_string_append_printf (string_long, " -> (%s)", selected_url);
     }
 
-    gchar* title = g_string_free (string, FALSE);
-    gtk_window_set_title (window, title);
-    g_free (title);
+    gchar* title_long = g_string_free (string_long, FALSE);
+    gchar* title_short = g_string_free (string_short, FALSE);
+
+    if (show_status) {
+        gtk_window_set_title (window, title_short);
+	gtk_label_set_text(mainbar_label, title_long);
+    } else {
+        gtk_window_set_title (window, title_long);
+    }
+
+    g_free (title_long);
+    g_free (title_short);
 }
  
 static gboolean
@@ -367,9 +392,10 @@ create_browser () {
 static GtkWidget*
 create_mainbar () {
     mainbar = gtk_hbox_new (FALSE, 0);
-
-    //status_context_id = gtk_statusbar_get_context_id (main_statusbar, "Link Hover");
-
+    mainbar_label = gtk_label_new ("");  
+    gtk_misc_set_alignment (mainbar_label, 0, 0);
+    gtk_misc_set_padding (mainbar_label, 2, 2);
+    gtk_box_pack_start (GTK_BOX (mainbar), mainbar_label, TRUE, TRUE, 0);
     return mainbar;
 }
 
@@ -401,6 +427,21 @@ settings_init () {
     gboolean res = NULL;
     gchar** keysi = NULL;
     gchar** keyse = NULL;
+
+    if (! config_file) {
+        const char* xdg = getenv ("XDG_CONFIG_HOME");
+        char* conf[256];
+        if (xdg) {
+            printf("XDG_CONFIG_DIR: %s\n", xdg);
+            strcpy (conf, xdg);
+            strcat (conf, "/uzbl");
+            if (file_exists (conf)) {
+                printf ("Config file %s found.\n", conf);
+                config_file = &conf;
+            }
+        }
+    }
+
     if (config_file) {
         config = g_key_file_new ();
         res = g_key_file_load_from_file (config, config_file, G_KEY_FILE_NONE, NULL);
@@ -421,6 +462,7 @@ settings_init () {
         modkey             = g_key_file_get_value   (config, "behavior", "modkey", NULL);
         keysi              = g_key_file_get_keys    (config, "bindings_internal", NULL, NULL);
         keyse              = g_key_file_get_keys    (config, "bindings_external", NULL, NULL);
+        status_top         = g_key_file_get_boolean (config, "behavior", "status_top", NULL);
         if (! fifodir)
             fifodir        = g_key_file_get_value   (config, "behavior", "fifodir", NULL);
     }
@@ -447,10 +489,12 @@ settings_init () {
 
     printf ("Show status: %s\n", (show_status ? "TRUE" : "FALSE"));
 
+    printf ("Status top: %s\n", (status_top ? "TRUE" : "FALSE"));
+
     if (modkey) {
-        printf ("Mod key: %s\n", modkey);
+        printf ("Modkey: %s\n", modkey);
     } else {
-        printf ("Mod key disabled\n");
+        printf ("Modkey disabled\n");
     }
 
     if (keysi) {
@@ -488,8 +532,11 @@ main (int argc, char* argv[]) {
         insert_mode = TRUE;
 
     GtkWidget* vbox = gtk_vbox_new (FALSE, 0);
-    gtk_box_pack_start (GTK_BOX (vbox), create_mainbar (), FALSE, TRUE, 0);
+    if (status_top)
+        gtk_box_pack_start (GTK_BOX (vbox), create_mainbar (), FALSE, TRUE, 0);
     gtk_box_pack_start (GTK_BOX (vbox), create_browser (), TRUE, TRUE, 0);
+    if (!status_top)
+        gtk_box_pack_start (GTK_BOX (vbox), create_mainbar (), FALSE, TRUE, 0);
 
     main_window = create_window ();
     gtk_container_add (GTK_CONTAINER (main_window), vbox);
@@ -501,6 +548,9 @@ main (int argc, char* argv[]) {
     xwin = GDK_WINDOW_XID (GTK_WIDGET (main_window)->window);
     printf("window_id %i\n",(int) xwin);
     printf("pid %i\n", getpid ());
+
+    if (!show_status)
+    	gtk_widget_hide(mainbar);
 
     setup_threading ();
 
