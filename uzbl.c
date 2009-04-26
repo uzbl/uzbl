@@ -404,9 +404,9 @@ settings_init () {
     if (config_file) {
         config = g_key_file_new ();
         res = g_key_file_load_from_file (config, config_file, G_KEY_FILE_NONE, NULL);
-    	if(res) {
+    	  if(res) {
             printf ("Config %s loaded\n", config_file);
-    	} else {
+    	  } else {
             fprintf (stderr, "Config %s loading failed\n", config_file);
         }
     } else {
@@ -454,7 +454,7 @@ settings_init () {
     }
 
     if (keysi) {
-	int i = 0;
+	      int i = 0;
         for (i = 0; keysi[i]; i++) {
             gchar *binding = g_key_file_get_string (config, "bindings_internal", keysi[i], NULL);
             printf ("Action: %s, Binding: %s (internal)\n", g_strdup (keysi[i]), binding);
@@ -462,9 +462,9 @@ settings_init () {
         }
     }
     if (keyse) {
-	int i = 0;
+	      int i = 0;
         for (i = 0; keyse[i]; i++) {
-            gchar *binding = g_key_file_get_string(config, "bindings_external", keyse[i], NULL);
+            gchar *binding = g_key_file_get_string (config, "bindings_external", keyse[i], NULL);
             printf ("Action: %s, Binding: %s (external)\n", g_strdup (keyse[i]), binding);
             add_binding (binding, g_strdup (keyse[i]), false);
         }

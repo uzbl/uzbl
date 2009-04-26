@@ -1,14 +1,12 @@
 
-Dieter Plaetinck (Dieter@be) <dieter@plaetinck.be> - Uzbl
+Developers:
+    Dieter Plaetinck (Dieter@be) <dieter@plaetinck.be>
+    Dusan Popovic (dusanx)
+    Michael Walker (Barrucadu) <mike@barrucadu.co.uk>
 
-Michael Walker (Barrucadu) <mike@barrucadu.co.uk> - Original threaded FIFO interface. Command adding methods.
-
-Zane Ashby (HashBox) <http://demonastery.org> - Rewrote FIFO interface. Fixed various bugs.
-
-(sentientswitch) - Cleaned up code. Added some commands.
-
-Dusan Popovic (dusanx) - Key handling and stuff
-
+Contributors:
+    Zane Ashby (HashBox) - Rewrote FIFO interface. Fixed various bugs.
+    (sentientswitch) - Cleaned up code. Added some commands.
 
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
