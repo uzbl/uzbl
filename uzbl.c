@@ -49,11 +49,11 @@ static gchar* main_title;
 static gchar selected_url[500];
 
 /* Behaviour variables */
-static gchar* history_file       = NULL;
-static gchar* fifodir            = NULL;
-static gchar* download_handler   = NULL;
-static gchar* always_insert_mode = NULL;
-static gchar* modkey             = NULL;
+static gchar*   history_file       = NULL;
+static gchar*   fifodir            = NULL;
+static gchar*   download_handler   = NULL;
+static gboolean always_insert_mode = 0;
+static gchar*   modkey             = NULL;
 
 static char fifopath[64];
 static gint load_progress;
@@ -298,7 +298,7 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
         }	
     }
 
-    return(result);
+    return result;
 }
 
 static GtkWidget*
@@ -369,7 +369,7 @@ settings_init () {
 
     download_handler = g_key_file_get_value (config, "behavior", "download_handler", NULL);
     if (download_handler) {
-        printf ("Download manager: %s\n", history_file);
+        printf ("Download manager: %s\n", download_handler);
     } else {
         printf ("Download manager disabled\n");
     }
@@ -377,21 +377,21 @@ settings_init () {
     if (! fifodir)
         fifodir = g_key_file_get_value (config, "behavior", "fifodir", NULL);
     if (fifodir) {
-        printf ("Fifo directory: %s\n", history_file);
+        printf ("Fifo directory: %s\n", fifodir);
     } else {
         printf ("Fifo directory: /tmp\n");
     }
 
     always_insert_mode = g_key_file_get_value (config, "behavior", "always_insert_mode", NULL);
     if (always_insert_mode) {
-        printf ("Always insert mode: %s\n", history_file);
+        printf ("Always insert mode: %s\n", always_insert_mode);
     } else {
         printf ("Always insert mode disabled/\n");
     }
 
     modkey = g_key_file_get_value (config, "behavior", "modkey", NULL);
     if (modkey) {
-        printf ("Mod key: %s\n", history_file);
+        printf ("Mod key: %s\n", modkey);
     } else {
         printf ("Mod key disabled/\n");
     }
