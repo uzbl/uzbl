@@ -4,6 +4,9 @@
 * improve commandline arguments
 * implement XDG basedir spec
 * check configured commands if they end on .sh so users don't need to prepend /bin/<shell>
+* implement a more advanced dmenu alike that behaves like FF's awesomebar and where you can search in url + window title
+* recognize -h with GOption?
+* fix config loading from arg
 
 SOMEDAY:
 check if we can make the settings loading less hard coded. eg( keep a list of all settings, and for each one, try to load it)
