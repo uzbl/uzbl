@@ -1,4 +1,7 @@
 * implement all the ideas from README
+* get a logo
+* improve site
+* get rid of segfaults for --config -> barrucadu
 * Support for binding keyboard shortcuts in config file.
 * where to put proxy config? webkit support?
 * improve commandline arguments
@@ -7,6 +10,7 @@
 * implement a more advanced dmenu alike that behaves like FF's awesomebar and where you can search in url + window title
 * recognize -h with GOption?
 * fix config loading from arg
+* implement a vimperator-like link following scheme.  but let user pick his favorite characters to construct the "link identifiers" with.
 
 SOMEDAY:
 check if we can make the settings loading less hard coded. eg( keep a list of all settings, and for each one, try to load it)
