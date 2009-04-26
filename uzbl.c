@@ -50,7 +50,7 @@ static gchar* main_title;
 static gchar selected_url[500];
 
 /* Behaviour variables */
-static gchar*   history_file       = NULL;
+static gchar*   history_handler    = NULL;
 static gchar*   fifodir            = NULL;
 static gchar*   download_handler   = NULL;
 static gboolean always_insert_mode = FALSE;
@@ -93,6 +93,9 @@ static int     num_external_bindings = 0;
 
 static void
 update_title (GtkWindow* window);
+
+static gboolean
+run_command(const char *command, const char *args);
 
 
 /* --- CALLBACKS --- */
@@ -149,20 +152,15 @@ destroy_cb (GtkWidget* widget, gpointer data) {
 
 static void
 log_history_cb () {
-    FILE * output_file = fopen (history_file, "a");
-    if (output_file == NULL) {
-       fprintf (stderr, "Cannot open %s for logging\n", history_file);
-    } else {
-        time_t rawtime;
-        struct tm * timeinfo;
-        char buffer [80];
-        time ( &rawtime );
-        timeinfo = localtime ( &rawtime );
-        strftime (buffer, 80, "%Y-%m-%d %H:%M:%S", timeinfo);
-
-        fprintf (output_file, "%s %s\n", buffer, uri);
-        fclose (output_file);
-    }
+   time_t rawtime;
+   struct tm * timeinfo;
+   char date [80];
+   time ( &rawtime );
+   timeinfo = localtime ( &rawtime );
+   strftime (date, 80, "%Y-%m-%d %H:%M:%S", timeinfo);
+   GString* args = g_string_new ("");
+   g_string_printf (args, "'%s' '%s' '%s'", uri, "TODO:page title here", date);
+   run_command(history_handler, args->str);
 }
 
 /* -- command to callback/function map for things we cannot attach to any signals */
@@ -180,7 +178,19 @@ static Command commands[] =
 };
 
 /* -- CORE FUNCTIONS -- */
- 
+
+// make sure to put '' around args, so that if there is whitespace we can still keep arguments together.
+static gboolean
+run_command(const char *command, const char *args) {
+   //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> [args]
+    GString* to_execute = g_string_new ("");
+    gboolean result;
+    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' %s", command, "./sampleconfig", (int) getpid() , (int) xwin, "/tmp/uzbl_25165827", args);
+    result = system(to_execute->str);
+    printf("Called %s.  Result: %s\n", to_execute->str, (result ? "FALSE" : "TRUE" ));
+    return result;
+}
+
 static void
 parse_command(const char *command) {
     int i;
@@ -383,11 +393,11 @@ settings_init () {
         fprintf (stderr, "Config loading failed\n"); //TODO: exit codes with gtk? 
     }
 
-    history_file = g_key_file_get_value (config, "behavior", "history_file", NULL);
-    if (history_file) {
-        printf ("History file: %s\n", history_file);
+    history_handler = g_key_file_get_value (config, "behavior", "history_handler", NULL);
+    if (history_handler) {
+        printf ("History handler: %s\n", history_handler);
     } else {
-        printf ("History logging disabled\n");
+        printf ("History handler disabled\n");
     }
 
     download_handler = g_key_file_get_value (config, "behavior", "download_handler", NULL);

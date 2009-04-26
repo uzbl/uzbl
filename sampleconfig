@@ -11,8 +11,8 @@
 # from insert mode by combining them with the modkey
 
 [behavior]
-history_handler = ./extra/history.sh
-download_handler = ./extra/download.sh
+history_handler = /bin/bash ./extra/history.sh
+download_handler = /bin/bash ./extra/download.sh
 fifo_dir = /tmp
 always_insert_mode = 0
 modkey = Mod4
@@ -33,8 +33,8 @@ zoom_out = -
 toggle_status = S
 
 [bindings_external]
-./extra/insert_bookmark.sh = B
-./extra/load_url_from_history.sh = u
-./extra/load_url_from_bookmarks.sh = U
+/bin/bash ./extra/insert_bookmark.sh = B
+/bin/bash ./extra/load_url_from_history.sh = u
+/bin/bash ./extra/load_url_from_bookmarks.sh = U
 
 [network]
