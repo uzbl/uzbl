@@ -36,12 +36,4 @@ zoom_out = -
 ./extra/load_url_from_history.sh = u
 ./extra/load_url_from_bookmarks.sh = U
 
-[alias]
-b  = back
-f  = forward
-z+ = zoom in
-z- = zoom out
-r  = refresh
-s  = stop
-
 [network]

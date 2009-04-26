@@ -63,10 +63,17 @@ CONTROL:
 - Press ESC to toggle the command entry.
 - Press enter after typing a command to use it.
 
-NOTE:
+NOTES:
 - My c skills are very rusty, it will take me a while to get back up to speed
 - For more thoughts & ideas see http://bbs.archlinux.org/viewtopic.php?id=67463
-- I push the code most times I save any changes, regardless of whether it actually compiles or not. Thus, the code here should be regarded as highly experimental.
+
+REPO's:
+- http://github.com/Dieterbe/uzbl
+  master -> uzbl stable branch
+  experimental -> bleeding edge stuff that may break. after QA codes gets merged into master
+- various contributors also have their clones on github (http://github.com/dusanx, http://github.com/Barrucadu/uzbl, ...).
+  They may be developing specific features, which get merged into Dieters experimental branch
+
 
 KNOWN BUGS
 - Segfault occurs on shutdown, almost definitely FIFO related (I'm not seeing this bug now, but the warning was here when I forked the code and I haven't touched the FIFO bit)
