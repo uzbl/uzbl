@@ -55,9 +55,9 @@ static Window xwin = 0;
 static char fifopath[64];
 
 /* state variables (initial values coming from command line arguments but may be changed later) */
-static gchar*   uri = NULL;
+static gchar*   uri         = NULL;
 static gchar*   config_file = NULL;
-static gboolean verbose = FALSE;
+static gboolean verbose     = FALSE;
 
 /* settings from config: group behaviour */
 static gchar*   history_handler    = NULL;
@@ -192,7 +192,8 @@ static Command commands[] =
 static bool
 file_exists (const char * filename)
 {
-    if (FILE * file = fopen (filename, "r")) {
+    FILE *file = fopen (filename, "r");
+    if (file) {
         fclose (file);
         return true;
     }
@@ -205,7 +206,7 @@ run_command(const char *command, const char *args) {
    //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> [args]
     GString* to_execute = g_string_new ("");
     gboolean result;
-    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' %s", command, "./sampleconfig", (int) getpid() , (int) xwin, "/tmp/uzbl_25165827", args);
+    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' %s", command, config_file, (int) getpid() , (int) xwin, "/tmp/uzbl_25165827", args);
     result = system(to_execute->str);
     printf("Called %s.  Result: %s\n", to_execute->str, (result ? "FALSE" : "TRUE" ));
     return result;
@@ -394,8 +395,9 @@ add_binding (char *binding, char *action, bool internal) {
 
 static void
 settings_init () {
+    printf("Config file: %s\n", config_file);
     GKeyFile* config = g_key_file_new ();
-    gboolean res = g_key_file_load_from_file (config, "./sampleconfig", G_KEY_FILE_NONE, NULL); //TODO: pass config file as argument
+    gboolean res = g_key_file_load_from_file (config, config_file, G_KEY_FILE_NONE, NULL); //TODO: pass config file as argument
     if (res) {
         printf ("Config loaded\n");
     } else {
@@ -461,6 +463,12 @@ main (int argc, char* argv[]) {
     if (!g_thread_supported ())
         g_thread_init (NULL);
 
+    GError *error = NULL;
+    GOptionContext* context = g_option_context_new ("- some stuff here maybe someday");
+    g_option_context_add_main_entries (context, entries, NULL);
+    g_option_context_add_group (context, gtk_get_option_group (TRUE));
+    g_option_context_parse (context, &argc, &argv, &error);
+
     settings_init ();
     if (always_insert_mode)
         insert_mode = TRUE;
@@ -471,12 +479,6 @@ main (int argc, char* argv[]) {
 
     main_window = create_window ();
     gtk_container_add (GTK_CONTAINER (main_window), vbox);
-    GError *error = NULL;
-
-    GOptionContext* context = g_option_context_new ("- some stuff here maybe someday");
-    g_option_context_add_main_entries (context, entries, NULL);
-    g_option_context_add_group (context, gtk_get_option_group (TRUE));
-    g_option_context_parse (context, &argc, &argv, &error);
 
     webkit_web_view_load_uri (web_view, uri);
 
