@@ -1,8 +1,9 @@
 #!/bin/bash
 # you probably want your bookmarks file in your $XDG_DATA_HOME ( eg $HOME/.local/share/uzbl/bookmarks)
+
 if [ -f /usr/share/uzbl/examples/bookmarks ]
 then
-	file=/usr/share/uzbl/examples/bookmarks
+	file=/usr/share/uzbl/examples/bookmarks # you will probably get permission denied errors here. pick a file in your ~
 else
 	file=./examples/bookmarks #useful when developing
 fi

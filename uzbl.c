@@ -107,6 +107,9 @@ char *XDG_CONFIG_DIRS_default = "/etc/xdg";
 static void
 update_title (GtkWindow* window);
 
+static void
+load_uri ( WebKitWebView * web_view, gchar * uri);
+
 static gboolean
 run_command(const char *command, const char *args);
 
@@ -207,7 +210,7 @@ static Command commands[] =
     { "stop",          &webkit_web_view_stop_loading,  NULL },
     { "zoom_in",       &webkit_web_view_zoom_in,       NULL }, //Can crash (when max zoom reached?).
     { "zoom_out",      &webkit_web_view_zoom_out,      NULL },
-    { "uri",           NULL, &webkit_web_view_load_uri      },
+    { "uri",           NULL, &load_uri                      },
     { "toggle_status", &toggle_status_cb,              NULL }
 //{ "get uri",  &webkit_web_view_get_uri},
 };
@@ -235,6 +238,12 @@ file_exists (const char * filename) {
     }
     return false;
 }
+
+static void
+load_uri ( WebKitWebView * web_view, gchar * uri) {
+    webkit_web_view_load_uri (web_view, uricheck(uri));
+}
+
 
 // make sure to put '' around args, so that if there is whitespace we can still keep arguments together.
 static gboolean
@@ -468,7 +477,7 @@ settings_init () {
         printf("XDG_CONFIG_HOME: %s\n", XDG_CONFIG_HOME);
     
         strcpy (conf, XDG_CONFIG_HOME);
-        strcat (conf, "/uzbl");
+        strcat (conf, "/uzbl/config");
         if (file_exists (conf)) {
           printf ("Config file %s found.\n", conf);
           config_file = &conf[0];
@@ -484,7 +493,7 @@ settings_init () {
             char *dir = (char *)strtok (dirs, ":");
             while (dir && ! file_exists (conf)) {
                 strcpy (conf, dir);
-                strcat (conf, "/uzbl");
+                strcat (conf, "/uzbl/config");
                 if (file_exists (conf)) {
                     printf ("Config file %s found.\n", conf);
                     config_file = &conf[0];
