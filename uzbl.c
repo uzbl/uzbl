@@ -241,8 +241,8 @@ static void
 parse_command(const char *cmd) {
     unsigned int i;
     Command *c = NULL;
-    char buffer[200];
-    strcpy(buffer,cmd);
+    char buffer[512];
+    strcpy (buffer, cmd);
     char * command_name  = strtok (buffer, " ");
     char * command_param = strtok (NULL,  " ,");
 
