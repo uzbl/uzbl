@@ -100,6 +100,9 @@ typedef struct
     void (*func_2_params)(WebKitWebView*, const gchar *);
 } Command;
 
+/* XDG stuff */
+char *XDG_CONFIG_HOME_default = "~/.config";
+char *XDG_CONFIG_DIRS_default = "/etc/xdg";
 
 static void
 update_title (GtkWindow* window);
@@ -443,15 +446,36 @@ settings_init () {
     gchar** keyse = NULL;
 
     if (! config_file) {
-        const char* xdg = getenv ("XDG_CONFIG_HOME");
+        const char* XDG_CONFIG_HOME = getenv ("XDG_CONFIG_HOME");
         char conf[256];
-        if (xdg) {
-            printf("XDG_CONFIG_DIR: %s\n", xdg);
-            strcpy (conf, xdg);
-            strcat (conf, "/uzbl");
-            if (file_exists (conf)) {
-                printf ("Config file %s found.\n", conf);
-                config_file = &conf[0];
+        if (! XDG_CONFIG_HOME) {
+            XDG_CONFIG_HOME = XDG_CONFIG_HOME_default;
+        }
+        printf("XDG_CONFIG_HOME: %s\n", XDG_CONFIG_HOME);
+    
+        strcpy (conf, XDG_CONFIG_HOME);
+        strcat (conf, "/uzbl");
+        if (file_exists (conf)) {
+          printf ("Config file %s found.\n", conf);
+          config_file = &conf[0];
+        } else {
+            // Now we check $XDG_CONFIG_DIRS
+            char *XDG_CONFIG_DIRS = getenv ("XDG_CONFIG_DIRS");
+            if (! XDG_CONFIG_DIRS)
+                XDG_CONFIG_DIRS = XDG_CONFIG_DIRS_default;
+
+            printf("XDG_CONFIG_DIRS: %s\n", XDG_CONFIG_DIRS);
+
+            char *dirs = XDG_CONFIG_DIRS;
+            char *dir = (char *)strtok (dirs, ":");
+            while (dir && ! file_exists (conf)) {
+                strcpy (conf, dir);
+                strcat (conf, "/uzbl");
+                if (file_exists (conf)) {
+                    printf ("Config file %s found.\n", conf);
+                    config_file = &conf[0];
+                }
+                dir = (char *)strtok (NULL, ":");
             }
         }
     }
