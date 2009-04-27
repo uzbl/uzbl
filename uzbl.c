@@ -214,9 +214,20 @@ static Command commands[] =
 
 /* -- CORE FUNCTIONS -- */
 
+static gchar*
+uricheck (gchar* uri) {
+    if (g_strrstr (uri,"://") == NULL)	{
+        GString* newuri = g_string_new (uri);
+        free(uri);
+        g_string_prepend (newuri, "http://"); 
+        uri = g_string_free (newuri, FALSE);
+    }
+    return (uri);
+}
+
+
 static bool
-file_exists (const char * filename)
-{
+file_exists (const char * filename) {
     FILE *file = fopen (filename, "r");
     if (file) {
         fclose (file);
@@ -260,7 +271,7 @@ parse_command(const char *cmd) {
         if (c->func_2_params != NULL) {
             if (command_param != NULL) {
                 printf ("command executing: \"%s %s\"\n", command_name, command_param);
-                c->func_2_params (web_view, command_param);
+                c->func_2_params (web_view, uricheck(command_param));
             } else {
                 if (c->func_1_param != NULL) {
                     printf ("command executing: \"%s\"\n", command_name);
@@ -605,7 +616,7 @@ main (int argc, char* argv[]) {
     main_window = create_window ();
     gtk_container_add (GTK_CONTAINER (main_window), vbox);
 
-    webkit_web_view_load_uri (web_view, uri);
+    webkit_web_view_load_uri (web_view, uricheck(uri));
 
     gtk_widget_grab_focus (GTK_WIDGET (web_view));
     gtk_widget_show_all (main_window);
