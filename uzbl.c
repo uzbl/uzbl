@@ -231,9 +231,12 @@ run_command(const char *command, const char *args) {
    //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> [args]
     GString* to_execute = g_string_new ("");
     gboolean result;
-    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' %s", command, config_file, (int) getpid() , (int) xwin, "/tmp/uzbl_25165827", args);
+    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s'", command, config_file, (int) getpid() , (int) xwin, fifopath);
+    if(args) {
+        g_string_append_printf (to_execute, " %s", args);
+    }
     result = g_spawn_command_line_async (to_execute->str, NULL);
-    printf("Called %s.  Result: %s\n", to_execute->str, (result ? "FALSE" : "TRUE" ));
+    printf("Called %s.  Result: %s\n", to_execute->str, (result ? "TRUE" : "FALSE" ));
     return result;
 }
 
@@ -244,7 +247,7 @@ parse_command(const char *cmd) {
     char buffer[512];
     strcpy (buffer, cmd);
     char * command_name  = strtok (buffer, " ");
-    char * command_param = strtok (NULL,  " ,");
+    gchar * command_param = strtok (NULL,  " ,");
 
     Command *c_tmp = NULL;
     for (i = 0; i < LENGTH (commands); i++) {
