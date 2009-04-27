@@ -101,7 +101,7 @@ typedef struct
 } Command;
 
 /* XDG stuff */
-char *XDG_CONFIG_HOME_default = "~/.config";
+char *XDG_CONFIG_HOME_default[256];
 char *XDG_CONFIG_DIRS_default = "/etc/xdg";
 
 static void
@@ -448,8 +448,8 @@ settings_init () {
     if (! config_file) {
         const char* XDG_CONFIG_HOME = getenv ("XDG_CONFIG_HOME");
         char conf[256];
-        if (! XDG_CONFIG_HOME) {
-            XDG_CONFIG_HOME = XDG_CONFIG_HOME_default;
+        if (! XDG_CONFIG_HOME || ! strcmp (XDG_CONFIG_HOME, "")) {
+          XDG_CONFIG_HOME = (char *)XDG_CONFIG_HOME_default;
         }
         printf("XDG_CONFIG_HOME: %s\n", XDG_CONFIG_HOME);
     
@@ -461,7 +461,7 @@ settings_init () {
         } else {
             // Now we check $XDG_CONFIG_DIRS
             char *XDG_CONFIG_DIRS = getenv ("XDG_CONFIG_DIRS");
-            if (! XDG_CONFIG_DIRS)
+            if (! XDG_CONFIG_DIRS || ! strcmp (XDG_CONFIG_DIRS, ""))
                 XDG_CONFIG_DIRS = XDG_CONFIG_DIRS_default;
 
             printf("XDG_CONFIG_DIRS: %s\n", XDG_CONFIG_DIRS);
@@ -578,6 +578,9 @@ main (int argc, char* argv[]) {
     gtk_init (&argc, &argv);
     if (!g_thread_supported ())
         g_thread_init (NULL);
+
+    strcat ((char *) XDG_CONFIG_HOME_default, getenv ("HOME"));
+    strcat ((char *) XDG_CONFIG_HOME_default, "/.config");
 
     GError *error = NULL;
     GOptionContext* context = g_option_context_new ("- some stuff here maybe someday");
