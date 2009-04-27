@@ -1,3 +1,12 @@
+TO NEW PEOPLE:
+ - please read the README in /usr/share/uzbl/docs
+ - invoke uzbl --help
+ - to get you started: uzbl --uri 'http://www.archlinux.org' --config /usr/share/uzbl/examples/configs/sampleconfig
+ - study the sample config, have a look at all the bindings, and note how you can call the scripts to insert a bookmark, and load new url from history and the bookmarks file
+ - note that there is no url bar. all url editing is supposed to happen _outside_ of uzbl. right now you cannot just change the url as you please (we are working on that)
+   for now, you can use the load_from scripts and write commands into the fifo (see /usr/share/uzbl/docs/CHECKLIST)
+
+
 - Uzbl.
   In my opinion, any program can only be really useful if it complies to the unix philosophy.
   Web browsers are frequent violators of this principle.  Time to change that!
