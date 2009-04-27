@@ -1,4 +1,2 @@
-.*.swp
-tags
-*~
+.gitignore
 uzbl
