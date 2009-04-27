@@ -1,3 +1,9 @@
+ASAP
+
+* history logging broken
+* weird args to external commnads
+* load from history works, but why, since there is no /tmp/uzbl.history
+
 * implement all the ideas from README
 * get a logo
 * improve site
@@ -9,6 +15,8 @@
 * recognize -h with GOption?
 * implement a vimperator-like link following scheme.  but let user pick his favorite characters to construct the "link identifiers" with.
 * add a keybind to hand the current url to an external scrips, so you can edit it and/or store it in the primary and secondary clipboards
+* use http://library.gnome.org/devel/glib/stable/glib-Hash-Tables.html#g-hash-table-insert for tracking bindings and wherever we use structs and ugly loops
+
 
 SOMEDAY:
 check if we can make the settings loading less hard coded. eg( keep a list of all settings, and for each one, try to load it)
