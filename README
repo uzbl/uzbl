@@ -4,8 +4,8 @@ TO NEW PEOPLE:
  - to get you started: uzbl --uri 'http://www.archlinux.org' --config /usr/share/uzbl/examples/configs/sampleconfig
  - study the sample config, have a look at all the bindings, and note how you can call the scripts to load new url from history and the bookmarks file
  - inserting new bookmarks is not working yet. it will be soon.
- - note that there is no url bar. all url editing is supposed to happen _outside_ of uzbl. right now you cannot just change the url as you please (we are working on that)
-   for now, you can use the load_from scripts and write commands into the fifo (see /usr/share/uzbl/docs/CHECKLIST)
+ - note that there is no url bar. all url editing is supposed to happen _outside_ of uzbl.
+   for now, you can use the load_from_* dmenu based scripts to pick a url or type a new one (soon there will be a decent url editor addon) or write commands into the fifo (see /usr/share/uzbl/docs/CHECKLIST)
 
 
 - Uzbl.
