@@ -229,7 +229,7 @@ run_command(const char *command, const char *args) {
     GString* to_execute = g_string_new ("");
     gboolean result;
     g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' %s", command, config_file, (int) getpid() , (int) xwin, "/tmp/uzbl_25165827", args);
-    result = system(to_execute->str);
+    result = g_spawn_command_line_async (to_execute->str, NULL);
     printf("Called %s.  Result: %s\n", to_execute->str, (result ? "FALSE" : "TRUE" ));
     return result;
 }
