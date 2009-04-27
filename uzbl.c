@@ -107,6 +107,9 @@ char *XDG_CONFIG_DIRS_default = "/etc/xdg";
 static void
 update_title (GtkWindow* window);
 
+static void
+load_uri ( WebKitWebView * web_view, gchar * uri);
+
 static gboolean
 run_command(const char *command, const char *args);
 
@@ -207,12 +210,24 @@ static Command commands[] =
     { "stop",          &webkit_web_view_stop_loading,  NULL },
     { "zoom_in",       &webkit_web_view_zoom_in,       NULL }, //Can crash (when max zoom reached?).
     { "zoom_out",      &webkit_web_view_zoom_out,      NULL },
-    { "uri",           NULL, &webkit_web_view_load_uri      },
+    { "uri",           NULL, &load_uri                      },
     { "toggle_status", &toggle_status_cb,              NULL }
 //{ "get uri",  &webkit_web_view_get_uri},
 };
 
 /* -- CORE FUNCTIONS -- */
+
+static gchar* 
+uricheck (gchar* uri) { 
+    if (g_strrstr (uri,"://") == NULL){   
+        GString* newuri = g_string_new (uri); 
+        free(uri);  
+        g_string_prepend (newuri, "http://"); 
+        uri = g_string_free (newuri, FALSE); 
+    }     
+    return (uri);  
+}  
+
 
 static bool
 file_exists (const char * filename)
@@ -224,6 +239,12 @@ file_exists (const char * filename)
     }
     return false;
 }
+
+static void
+load_uri ( WebKitWebView * web_view, gchar * uri) {
+    webkit_web_view_load_uri (web_view, uricheck(uri));
+}
+
 
 // make sure to put '' around args, so that if there is whitespace we can still keep arguments together.
 static gboolean
@@ -605,7 +626,7 @@ main (int argc, char* argv[]) {
     main_window = create_window ();
     gtk_container_add (GTK_CONTAINER (main_window), vbox);
 
-    webkit_web_view_load_uri (web_view, uri);
+    load_uri (web_view, uri);
 
     gtk_widget_grab_focus (GTK_WIDGET (web_view));
     gtk_widget_show_all (main_window);
