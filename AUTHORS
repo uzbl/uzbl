@@ -7,7 +7,7 @@ Developers:
 Contributors:
     Zane Ashby (HashBox) - Rewrote FIFO interface. Fixed various bugs.
     (sentientswitch) - Cleaned up code. Added some commands.
-
+    (axelson) - Made makefile more robust.
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:
