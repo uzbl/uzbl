@@ -1,5 +1,11 @@
 #!/bin/bash
-file=bookmarks
+# you probably want your bookmarks file in your $XDG_DATA_HOME ( eg $HOME/.local/share/uzbl/bookmarks)
+if [ -f /usr/share/uzbl/examples/bookmarks ]
+then
+	file=/usr/share/uzbl/examples/bookmarks
+else
+	file=./examples/bookmarks #useful when developing
+fi
 
 which zenity &>/dev/null || exit 2
 
