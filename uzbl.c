@@ -210,7 +210,7 @@ static Command commands[] =
     { "stop",          &webkit_web_view_stop_loading,  NULL },
     { "zoom_in",       &webkit_web_view_zoom_in,       NULL }, //Can crash (when max zoom reached?).
     { "zoom_out",      &webkit_web_view_zoom_out,      NULL },
-    { "uri",           NULL, &load_uri                      },
+    { "uri",           (void *) NULL,             &load_uri },
     { "toggle_status", &toggle_status_cb,              NULL }
 //{ "get uri",  &webkit_web_view_get_uri},
 };
@@ -219,13 +219,13 @@ static Command commands[] =
 
 static gchar* 
 uricheck (gchar* uri) { 
-    if (g_strrstr (uri,"://") == NULL){   
-        GString* newuri = g_string_new (uri); 
-        free(uri);  
-        g_string_prepend (newuri, "http://"); 
-        uri = g_string_free (newuri, FALSE); 
-    }     
-    return (uri);  
+    if (! uri == NULL && g_strrstr (uri, "://") == NULL){   
+        GString newuri[512];
+        strcpy ((char *)newuri, "http://");
+        strcat ((char *)newuri, (char *)uri);
+        strcpy ((char *)uri, (char *)newuri);
+    }
+    return uri;  
 }  
 
 
@@ -241,8 +241,13 @@ file_exists (const char * filename)
 }
 
 static void
-load_uri ( WebKitWebView * web_view, gchar * uri) {
-    webkit_web_view_load_uri (web_view, uricheck(uri));
+load_uri (WebKitWebView * web_view, gchar * uri) {
+    if (! uri == NULL) {
+        const gchar* newuri = uricheck (uri);
+        g_assert (newuri);
+        
+        webkit_web_view_load_uri (web_view, newuri);
+    }
 }
 
 
