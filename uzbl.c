@@ -30,10 +30,10 @@
 
 
 #define LENGTH(x)               (sizeof x / sizeof x[0])
-#define GDK_Escape 0xff1b
 
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
+#include <gdk/gdkkeysyms.h>
 #include <webkit/webkit.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -51,7 +51,6 @@ static WebKitWebView* web_view;
 static gchar* main_title;
 static gchar selected_url[500];
 static gint load_progress;
-static guint status_context_id;
 static Window xwin = 0;
 static char fifopath[64];
 
@@ -71,8 +70,7 @@ static gboolean status_top         = FALSE;
 static gchar*   modkey             = NULL;
 
 
-typedef struct
-{
+typedef struct {
     const char *binding;
     const char *action;
 } Binding;
@@ -91,7 +89,7 @@ static GOptionEntry entries[] =
     { "uri",     'u', 0, G_OPTION_ARG_STRING, &uri,         "Uri to load", NULL },
     { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &verbose,     "Be verbose",  NULL },
     { "config",  'c', 0, G_OPTION_ARG_STRING, &config_file, "Config file", NULL },
-    { NULL }
+    { NULL,      0, 0, 0, NULL, NULL, NULL }
 };
 
 /* for internal list of commands */
@@ -99,7 +97,7 @@ typedef struct
 {
     const char *command;
     void (*func_1_param)(WebKitWebView*);
-    void (*func_2_params)(WebKitWebView*, char *);
+    void (*func_2_params)(WebKitWebView*, const gchar *);
 } Command;
 
 
@@ -112,17 +110,20 @@ run_command(const char *command, const char *args);
 
 /* --- CALLBACKS --- */
 static void
-go_back_cb (GtkWidget* widget, gpointer data) {
+go_back_cb (WebKitWebView* page) {
+    (void) page;
     webkit_web_view_go_back (web_view);
 }
 
 static void
-go_forward_cb (GtkWidget* widget, gpointer data) {
+go_forward_cb (WebKitWebView* page) {
+    (void) page;
     webkit_web_view_go_forward (web_view);
 }
 
 static void
-toggle_status_cb() {
+toggle_status_cb (WebKitWebView* page) {
+    (void) page;
     if (show_status) {
     	gtk_widget_hide(mainbar);
     } else {
@@ -134,12 +135,9 @@ toggle_status_cb() {
 
 static void
 link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data) {
-    /* underflow is allowed */
-    //gtk_statusbar_pop (main_statusbar, status_context_id);
-    //if (link)
-    //    gtk_statusbar_push (main_statusbar, status_context_id, link);
-    //TODO implementation roadmap pending..
-    
+    (void) page;
+    (void) title;
+    (void) data;    
     //ADD HOVER URL TO WINDOW TITLE
     selected_url[0] = '\0';
     if (link) {
@@ -150,6 +148,9 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
 
 static void
 title_change_cb (WebKitWebView* web_view, WebKitWebFrame* web_frame, const gchar* title, gpointer data) {
+    (void) web_view;
+    (void) web_frame;
+    (void) data;
     if (main_title)
         g_free (main_title);
     main_title = g_strdup (title);
@@ -158,17 +159,23 @@ title_change_cb (WebKitWebView* web_view, WebKitWebFrame* web_frame, const gchar
 
 static void
 progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
+    (void) page;
+    (void) data;
     load_progress = progress;
     update_title (GTK_WINDOW (main_window));
 }
 
 static void
 load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
+    (void) page;
+    (void) data;
     strcpy (uri, webkit_web_frame_get_uri (frame));
 }
 
 static void
 destroy_cb (GtkWidget* widget, gpointer data) {
+    (void) widget;
+    (void) data;
     gtk_main_quit ();
 }
 
@@ -228,11 +235,13 @@ run_command(const char *command, const char *args) {
 }
 
 static void
-parse_command(const char *command) {
-    int i;
+parse_command(const char *cmd) {
+    unsigned int i;
     Command *c = NULL;
-    char * command_name  = strtok (command, " ");
-    char * command_param = strtok (NULL,  " ,"); //dunno how this works, but it seems to work
+    char buffer[200];
+    strcpy(buffer,cmd);
+    char * command_name  = strtok (buffer, " ");
+    char * command_param = strtok (NULL,  " ,");
 
     Command *c_tmp = NULL;
     for (i = 0; i < LENGTH (commands); i++) {
@@ -259,7 +268,7 @@ parse_command(const char *command) {
             c->func_1_param (web_view);
         }
     } else {
-        fprintf (stderr, "command \"%s\" not understood. ignoring.\n", command);
+        fprintf (stderr, "command \"%s\" not understood. ignoring.\n", cmd);
     }
 }
  
@@ -325,7 +334,7 @@ update_title (GtkWindow* window) {
 
     if (show_status) {
         gtk_window_set_title (window, title_short);
-	gtk_label_set_text(mainbar_label, title_long);
+	gtk_label_set_text(GTK_LABEL(mainbar_label), title_long);
     } else {
         gtk_window_set_title (window, title_long);
     }
@@ -337,6 +346,7 @@ update_title (GtkWindow* window) {
 static gboolean
 key_press_cb (WebKitWebView* page, GdkEventKey* event)
 {
+    (void) page;
     int i;
     gboolean result=FALSE; //TRUE to stop other handlers from being invoked for the event. FALSE to propagate the event further.
     if (event->type != GDK_KEY_PRESS) 
@@ -393,8 +403,8 @@ static GtkWidget*
 create_mainbar () {
     mainbar = gtk_hbox_new (FALSE, 0);
     mainbar_label = gtk_label_new ("");  
-    gtk_misc_set_alignment (mainbar_label, 0, 0);
-    gtk_misc_set_padding (mainbar_label, 2, 2);
+    gtk_misc_set_alignment (GTK_MISC(mainbar_label), 0, 0);
+    gtk_misc_set_padding (GTK_MISC(mainbar_label), 2, 2);
     gtk_box_pack_start (GTK_BOX (mainbar), mainbar_label, TRUE, TRUE, 0);
     return mainbar;
 }
@@ -437,7 +447,7 @@ settings_init () {
             strcat (conf, "/uzbl");
             if (file_exists (conf)) {
                 printf ("Config file %s found.\n", conf);
-                config_file = &conf;
+                config_file = &conf[0];
             }
         }
     }
