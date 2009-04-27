@@ -15,7 +15,7 @@ history_handler = /bin/bash ./extra/history.sh
 download_handler = /bin/bash ./extra/download.sh
 fifo_dir = /tmp
 always_insert_mode = 0
-modkey = Mod4
+modkey = Mod1
 show_status = 1
 status_top = 0
 
