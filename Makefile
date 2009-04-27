@@ -20,4 +20,5 @@ install:
 	install -d $(DESTDIR)/usr/share/uzbl/examples
 	install -D -m755 uzbl $(DESTDIR)/usr/bin/uzbl
 	cp -ax examples $(DESTDIR)/usr/share/uzbl/
+	install -D -m644 CHECKLIST $(DESTDIR)/usr/share/uzbl/docs
 	install -D -m644 README $(DESTDIR)/usr/share/uzbl/docs
