@@ -1,4 +1,5 @@
 ASAP
+* do a clean implementation of bindings that need arguments (eg insert_bookmark needs the uri.)
 
 * implement all the ideas from README
 * get a logo
