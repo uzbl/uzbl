@@ -457,7 +457,7 @@ settings_init () {
         printf("XDG_CONFIG_HOME: %s\n", XDG_CONFIG_HOME);
     
         strcpy (conf, XDG_CONFIG_HOME);
-        strcat (conf, "/uzbl");
+        strcat (conf, "/uzbl/config");
         if (file_exists (conf)) {
           printf ("Config file %s found.\n", conf);
           config_file = &conf[0];
@@ -473,7 +473,7 @@ settings_init () {
             char *dir = (char *)strtok (dirs, ":");
             while (dir && ! file_exists (conf)) {
                 strcpy (conf, dir);
-                strcat (conf, "/uzbl");
+                strcat (conf, "/uzbl/config");
                 if (file_exists (conf)) {
                     printf ("Config file %s found.\n", conf);
                     config_file = &conf[0];
