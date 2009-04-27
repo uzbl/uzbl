@@ -5,7 +5,7 @@ ASAP
 * improve site
 * Support for binding keyboard shortcuts in config file.
 * where to put proxy config? webkit support?
-* implement XDG basedir spec
+* implement XDG basedir spec (config is done, but not cache/data, which I presume we'll need at some point)
 * check configured commands if they end on .sh so users don't need to prepend /bin/<shell>
 * implement a more advanced dmenu alike that behaves like FF's awesomebar and where you can search in url + window title
 * recognize -h with GOption?
