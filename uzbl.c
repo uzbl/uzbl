@@ -108,7 +108,7 @@ static void
 update_title (GtkWindow* window);
 
 static void
-load_uri ( WebKitWebView * web_view, gchar * uri);
+load_uri ( WebKitWebView * web_view, const gchar * uri);
 
 static gboolean
 run_command(const char *command, const char *args);
@@ -217,18 +217,6 @@ static Command commands[] =
 
 /* -- CORE FUNCTIONS -- */
 
-static gchar*
-uricheck (gchar* uri) {
-    if (g_strrstr (uri,"://") == NULL)	{
-        GString* newuri = g_string_new (uri);
-        free(uri);
-        g_string_prepend (newuri, "http://"); 
-        uri = g_string_free (newuri, FALSE);
-    }
-    return (uri);
-}
-
-
 static bool
 file_exists (const char * filename) {
     FILE *file = fopen (filename, "r");
@@ -240,8 +228,14 @@ file_exists (const char * filename) {
 }
 
 static void
-load_uri ( WebKitWebView * web_view, gchar * uri) {
-    webkit_web_view_load_uri (web_view, uricheck(uri));
+load_uri (WebKitWebView * web_view, const gchar * uri) {
+    if (uri != NULL) {
+        GString* newuri = g_string_new (uri);
+        if (g_strrstr (uri, "://") == NULL)
+            g_string_prepend (newuri, "http://"); 
+        webkit_web_view_load_uri (web_view, newuri->str);
+        g_string_free (newuri, TRUE);
+    }
 }
 
 
@@ -280,7 +274,7 @@ parse_command(const char *cmd) {
         if (c->func_2_params != NULL) {
             if (command_param != NULL) {
                 printf ("command executing: \"%s %s\"\n", command_name, command_param);
-                c->func_2_params (web_view, uricheck(command_param));
+                c->func_2_params (web_view, command_param);
             } else {
                 if (c->func_1_param != NULL) {
                     printf ("command executing: \"%s\"\n", command_name);
@@ -625,7 +619,7 @@ main (int argc, char* argv[]) {
     main_window = create_window ();
     gtk_container_add (GTK_CONTAINER (main_window), vbox);
 
-    webkit_web_view_load_uri (web_view, uricheck(uri));
+    load_uri (web_view, uri);
 
     gtk_widget_grab_focus (GTK_WIDGET (web_view));
     gtk_widget_show_all (main_window);
