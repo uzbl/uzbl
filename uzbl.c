@@ -216,8 +216,10 @@ commands_hash(void)
   unsigned int i = 0;
   commands = g_hash_table_new(g_str_hash, g_str_equal);
   
-  while(cmdlist[i].command != NULL)
-    g_hash_table_insert(commands, cmdlist[i++].command, &cmdlist[i]);
+  while(cmdlist[i].command != NULL){
+    g_hash_table_insert(commands, cmdlist[i].command, &cmdlist[i]);
+    i++;
+  }
 }
 
 /* -- CORE FUNCTIONS -- */
