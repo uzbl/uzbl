@@ -424,7 +424,8 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     (void) page;
     int i;
     gboolean result=FALSE; //TRUE to stop other handlers from being invoked for the event. FALSE to propagate the event further.
-    if (event->type != GDK_KEY_PRESS)
+    if (event->type != GDK_KEY_PRESS || event->keyval == GDK_Page_Up || event->keyval == GDK_Page_Down
+        || event->keyval == GDK_Up || event->keyval == GDK_Down || event->keyval == GDK_Left || event->keyval == GDK_Right)
         return result;
 
     //TURN OFF/ON INSERT MODE
