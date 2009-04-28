@@ -70,18 +70,11 @@ static gboolean status_top         = FALSE;
 static gchar*   modkey             = NULL;
 static guint    modmask            = 0;
 
-typedef struct {
-    const char *binding;
-    const char *action;
-} Binding;
-
 /* settings from config: group bindings_internal */
-static Binding internal_bindings[256];
-static int     num_internal_bindings = 0;
+static GHashTable *internal_bindings;
 
 /* settings from config: group bindings_external */
-static Binding external_bindings[256];
-static int     num_external_bindings = 0;
+static GHashTable *external_bindings;
 
 /* commandline arguments (set initial values for the state variables) */
 static GOptionEntry entries[] =
@@ -353,7 +346,7 @@ static gboolean
 key_press_cb (WebKitWebView* page, GdkEventKey* event)
 {
     (void) page;
-    int i;
+    gpointer act;
     gboolean result=FALSE; //TRUE to stop other handlers from being invoked for the event. FALSE to propagate the event further.
     if (event->type != GDK_KEY_PRESS) 
         return result;
@@ -366,25 +359,19 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     }
 
     //INTERNAL BINDINGS
-    for (i = 0; i < num_internal_bindings; i++) {
-        if (strcmp(event->string, internal_bindings[i].binding) == 0) {
-            if (!insert_mode || (event->state == modmask)) {
-                parse_command (internal_bindings[i].action);
-                result = TRUE;
-            }
-        }	
-    }
+    if((act = g_hash_table_lookup(internal_bindings, event->string)) != NULL)
+      if (!insert_mode || (event->state == modmask)) {
+	parse_command (act);
+	result = TRUE;
+      }
 
     //EXTERNAL BINDINGS
-    for (i = 0; i < num_external_bindings; i++) {
-        if (strcmp(event->string, external_bindings[i].binding) == 0) {
-            if (!insert_mode || (event->state == modmask)) {
-                run_command(external_bindings[i].action, NULL);
-                result = TRUE;
-            }
-        }	
-    }
-
+    if((act = g_hash_table_lookup(external_bindings, event->string)) != NULL)
+      if (!insert_mode || (event->state == modmask)) {
+	parse_command (act);
+	result = TRUE;
+      }
+    
     if (!result)
         result = (insert_mode ? FALSE : TRUE);      
 
@@ -431,14 +418,8 @@ GtkWidget* create_window () {
 
 static void
 add_binding (char *binding, char *action, bool internal) {
-    Binding bind = {binding, action};
-    if (internal) {
-        internal_bindings[num_internal_bindings] = bind;
-        num_internal_bindings ++;
-    } else {
-        external_bindings[num_external_bindings] = bind;
-        num_external_bindings ++;
-    }
+  g_hash_table_insert(internal ? internal_bindings : external_bindings,
+		      binding, action);
 }
 
 static void
@@ -590,6 +571,9 @@ main (int argc, char* argv[]) {
     g_option_context_add_main_entries (context, entries, NULL);
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
     g_option_context_parse (context, &argc, &argv, &error);
+    /* initialize has tables */
+    internal_bindings = g_hash_table_new(g_str_hash, g_str_equal);
+    external_bindings = g_hash_table_new(g_str_hash, g_str_equal);
 
     settings_init ();
     if (always_insert_mode)
