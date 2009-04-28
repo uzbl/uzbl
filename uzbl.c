@@ -124,6 +124,15 @@ new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequ
     (void) user_data;
     const gchar* uri = webkit_network_request_get_uri (request);
     printf("New window requested -> %s \n", uri);
+    gboolean result;
+    GString* to_execute = g_string_new ("");
+    g_string_printf (to_execute, "uzbl --uri '%s'", uri);
+    result = g_spawn_command_line_async (to_execute->str, NULL);
+    if (!result) {
+    	g_string_printf (to_execute, "./uzbl --uri '%s'", uri);
+	result = g_spawn_command_line_async (to_execute->str, NULL);
+    }
+    g_string_free (to_execute, TRUE);
     return (FALSE);
 }
 
@@ -219,6 +228,7 @@ log_history_cb () {
        GString* args = g_string_new ("");
        g_string_printf (args, "'%s' '%s' '%s'", uri, "TODO:page title here", date);
        run_command(history_handler, args->str);
+       g_string_free (args, TRUE);
    }
 }
 
@@ -273,6 +283,7 @@ run_command(const char *command, const char *args) {
     }
     result = g_spawn_command_line_async (to_execute->str, NULL);
     printf("Called %s.  Result: %s\n", to_execute->str, (result ? "TRUE" : "FALSE" ));
+    g_string_free (to_execute, TRUE);
     return result;
 }
 
@@ -282,8 +293,8 @@ parse_command(const char *cmd) {
     Command *c = NULL;
     char buffer[512];
     strcpy (buffer, cmd);
-    char * command_name  = strtok (buffer, " ");
-    gchar * command_param = strtok (NULL,  " ,");
+    const gchar * command_name  = strtok (buffer, " ");
+    const gchar * command_param = strtok (NULL,  " ,");
 
     Command *c_tmp = NULL;
     for (i = 0; i < LENGTH (commands); i++) {
@@ -597,7 +608,7 @@ settings_init () {
     free (modkeyup);
 
     if (keysi) {
-	      int i = 0;
+        int i = 0;
         for (i = 0; keysi[i]; i++) {
             gchar *binding = g_key_file_get_string (config, "bindings_internal", keysi[i], NULL);
             printf ("Action: %s, Binding: %s (internal)\n", g_strdup (keysi[i]), binding);
@@ -605,7 +616,7 @@ settings_init () {
         }
     }
     if (keyse) {
-	      int i = 0;
+        int i = 0;
         for (i = 0; keyse[i]; i++) {
             gchar *binding = g_key_file_get_string (config, "bindings_external", keyse[i], NULL);
             printf ("Action: %s, Binding: %s (external)\n", g_strdup (keyse[i]), binding);
