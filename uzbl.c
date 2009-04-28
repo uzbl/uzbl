@@ -108,13 +108,35 @@ static void
 update_title (GtkWindow* window);
 
 static void
-load_uri ( WebKitWebView * web_view, gchar * uri);
+load_uri ( WebKitWebView * web_view, const gchar * uri);
 
 static gboolean
 run_command(const char *command, const char *args);
 
 
 /* --- CALLBACKS --- */
+static gboolean
+new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
+    (void) web_view;
+    (void) frame;
+    (void) navigation_action;
+    (void) policy_decision;
+    (void) user_data;
+    const gchar* uri = webkit_network_request_get_uri (request);
+    printf("New window requested -> %s \n", uri);
+    return (FALSE);
+}
+
+static gboolean
+download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
+    (void) web_view;
+    (void) user_data;
+    const gchar* uri = webkit_download_get_uri ((WebKitDownload*)download);
+    printf("Download -> %s\n",uri);
+    run_command(download_handler, uri);
+    return (FALSE);
+}
+
 static void
 go_back_cb (WebKitWebView* page) {
     (void) page;
@@ -217,21 +239,8 @@ static Command commands[] =
 
 /* -- CORE FUNCTIONS -- */
 
-static gchar* 
-uricheck (gchar* uri) { 
-    if (! uri == NULL && g_strrstr (uri, "://") == NULL){   
-        GString newuri[512];
-        strcpy ((char *)newuri, "http://");
-        strcat ((char *)newuri, (char *)uri);
-        strcpy ((char *)uri, (char *)newuri);
-    }
-    return uri;  
-}  
-
-
 static bool
-file_exists (const char * filename)
-{
+file_exists (const char * filename) {
     FILE *file = fopen (filename, "r");
     if (file) {
         fclose (file);
@@ -241,12 +250,13 @@ file_exists (const char * filename)
 }
 
 static void
-load_uri (WebKitWebView * web_view, gchar * uri) {
-    if (! uri == NULL) {
-        const gchar* newuri = uricheck (uri);
-        g_assert (newuri);
-        
-        webkit_web_view_load_uri (web_view, newuri);
+load_uri (WebKitWebView * web_view, const gchar * uri) {
+    if (uri != NULL) {
+        GString* newuri = g_string_new (uri);
+        if (g_strrstr (uri, "://") == NULL)
+            g_string_prepend (newuri, "http://"); 
+        webkit_web_view_load_uri (web_view, newuri->str);
+        g_string_free (newuri, TRUE);
     }
 }
 
@@ -431,6 +441,8 @@ create_browser () {
     g_signal_connect (G_OBJECT (web_view), "load-committed", G_CALLBACK (log_history_cb), web_view);
     g_signal_connect (G_OBJECT (web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), web_view);
     g_signal_connect (G_OBJECT (web_view), "key-press-event", G_CALLBACK (key_press_cb), web_view);
+    g_signal_connect (G_OBJECT (web_view), "new-window-policy-decision-requested", G_CALLBACK (new_window_cb), web_view); 
+    g_signal_connect (G_OBJECT (web_view), "download-requested", G_CALLBACK (download_cb), web_view); 
 
     return scrolled_window;
 }
