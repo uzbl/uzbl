@@ -69,6 +69,7 @@ static gboolean insert_mode        = FALSE;
 static gboolean status_top         = FALSE;
 static gchar*   modkey             = NULL;
 static guint    modmask            = 0;
+static gchar*   home_page          = NULL;
 
 typedef struct {
     const char *binding;
@@ -109,6 +110,9 @@ update_title (GtkWindow* window);
 
 static void
 load_uri ( WebKitWebView * web_view, const gchar * uri);
+
+static void
+go_home ( WebKitWebView * web_view);
 
 static void
 close_uzbl ( WebKitWebView * web_view);
@@ -249,6 +253,7 @@ static Command commands[] =
     { "zoom_out",      &webkit_web_view_zoom_out,      NULL },
     { "uri",           (void *) NULL,             &load_uri },
     { "toggle_status", &toggle_status_cb,              NULL },
+    { "home"         , &go_home,                       NULL },
     { "exit"         , &close_uzbl,                    NULL },
 //{ "get uri",  &webkit_web_view_get_uri},
 };
@@ -276,6 +281,11 @@ load_uri (WebKitWebView * web_view, const gchar * uri) {
     }
 }
 
+static void
+go_home (WebKitWebView * web_view) {
+    if (home_page)
+        webkit_web_view_load_uri (web_view, home_page);
+}
 
 static void
 close_uzbl (WebKitWebView * web_view) {
@@ -414,7 +424,7 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     (void) page;
     int i;
     gboolean result=FALSE; //TRUE to stop other handlers from being invoked for the event. FALSE to propagate the event further.
-    if (event->type != GDK_KEY_PRESS) 
+    if (event->type != GDK_KEY_PRESS)
         return result;
 
     //TURN OFF/ON INSERT MODE
@@ -558,48 +568,31 @@ settings_init () {
     }
 
     if (res) {
-        history_handler    = g_key_file_get_value   (config, "behavior", "history_handler", NULL);
-        download_handler   = g_key_file_get_value   (config, "behavior", "download_handler", NULL);
+        history_handler    = g_key_file_get_value   (config, "behavior", "history_handler",    NULL);
+        download_handler   = g_key_file_get_value   (config, "behavior", "download_handler",   NULL);
         always_insert_mode = g_key_file_get_boolean (config, "behavior", "always_insert_mode", NULL);
-        show_status        = g_key_file_get_boolean (config, "behavior", "show_status", NULL);
-        modkey             = g_key_file_get_value   (config, "behavior", "modkey", NULL);
-        keysi              = g_key_file_get_keys    (config, "bindings_internal", NULL, NULL);
-        keyse              = g_key_file_get_keys    (config, "bindings_external", NULL, NULL);
-        status_top         = g_key_file_get_boolean (config, "behavior", "status_top", NULL);
+        show_status        = g_key_file_get_boolean (config, "behavior", "show_status",        NULL);
+        modkey             = g_key_file_get_value   (config, "behavior", "modkey",             NULL);
+        keysi              = g_key_file_get_keys    (config, "bindings_internal",        NULL, NULL);
+        keyse              = g_key_file_get_keys    (config, "bindings_external",        NULL, NULL);
+        status_top         = g_key_file_get_boolean (config, "behavior", "status_top",         NULL);
+        home_page          = g_key_file_get_value   (config, "behavior", "home_page",          NULL);
         if (! fifodir)
-            fifodir        = g_key_file_get_value   (config, "behavior", "fifodir", NULL);
+            fifodir        = g_key_file_get_value   (config, "behavior", "fifodir",            NULL);
     }
 	
-    if (history_handler) {
-        printf ("History handler: %s\n", history_handler);
-    } else {
-        printf ("History handler disabled\n");
-    }
+    printf ("History handler: %s\n",    (history_handler    ? history_handler  : "disabled"));
+    printf ("Download manager: %s\n",   (download_handler   ? download_handler : "disabled"));
+    printf ("FIFO directory: %s\n",     (fifodir            ? fifodir          : "/tmp"));
+    printf ("Always insert mode: %s\n", (always_insert_mode ? "TRUE"           : "FALSE"));
+    printf ("Show status: %s\n",        (show_status        ? "TRUE"           : "FALSE"));
+    printf ("Status top: %s\n",         (status_top         ? "TRUE"           : "FALSE"));
+    printf ("Modkey: %s\n",             (modkey             ? modkey           : "disabled"));
+    printf ("Home page: %s\n",          (home_page          ? home_page        : "disabled"));
 
-    if (download_handler) {
-        printf ("Download manager: %s\n", download_handler);
-    } else {
-        printf ("Download manager disabled\n");
-    }
+    if (! modkey)
+        modkey = "";
 
-    if (fifodir) {
-        printf ("Fifo directory: %s\n", fifodir);
-    } else {
-        printf ("Fifo directory: /tmp\n");
-    }
-
-    printf ("Always insert mode: %s\n", (always_insert_mode ? "TRUE" : "FALSE"));
-
-    printf ("Show status: %s\n", (show_status ? "TRUE" : "FALSE"));
-
-    printf ("Status top: %s\n", (status_top ? "TRUE" : "FALSE"));
-
-    if (modkey) {
-        printf ("Modkey: %s\n", modkey);
-    } else {
-        printf ("Modkey disabled\n");   
-	modkey = "";
-    }
     //POSSIBLE MODKEY VALUES (COMBINATIONS CAN BE USED)
     gchar* modkeyup = g_utf8_strup (modkey, -1);
     if (g_strrstr (modkeyup,"SHIFT") != NULL)    modmask |= GDK_SHIFT_MASK;    //the Shift key.
