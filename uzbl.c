@@ -206,7 +206,9 @@ static void
 load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) page;
     (void) data;
-    strcpy (uri, webkit_web_frame_get_uri (frame));
+    free (uri);
+    GString* newuri = g_string_new (webkit_web_frame_get_uri (frame));
+    uri = g_string_free (newuri, FALSE);
 }
 
 static void
