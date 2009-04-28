@@ -110,6 +110,9 @@ update_title (GtkWindow* window);
 static void
 load_uri ( WebKitWebView * web_view, const gchar * uri);
 
+static void
+close_uzbl ( WebKitWebView * web_view);
+
 static gboolean
 run_command(const char *command, const char *args);
 
@@ -245,7 +248,8 @@ static Command commands[] =
     { "zoom_in",       &webkit_web_view_zoom_in,       NULL }, //Can crash (when max zoom reached?).
     { "zoom_out",      &webkit_web_view_zoom_out,      NULL },
     { "uri",           (void *) NULL,             &load_uri },
-    { "toggle_status", &toggle_status_cb,              NULL }
+    { "toggle_status", &toggle_status_cb,              NULL },
+    { "exit"         , &close_uzbl,                    NULL },
 //{ "get uri",  &webkit_web_view_get_uri},
 };
 
@@ -272,6 +276,12 @@ load_uri (WebKitWebView * web_view, const gchar * uri) {
     }
 }
 
+
+static void
+close_uzbl (WebKitWebView * web_view) {
+    (void) web_view;
+    gtk_main_quit ();
+}
 
 // make sure to put '' around args, so that if there is whitespace we can still keep arguments together.
 static gboolean

@@ -32,6 +32,7 @@ follow_link_new_window = w
 zoom_in = +
 zoom_out = -
 toggle_status = t
+exit = k
 
 [bindings_external]
 /bin/bash /usr/share/uzbl/examples/scripts/insert_bookmark.sh = B
