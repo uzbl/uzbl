@@ -147,9 +147,11 @@ static gboolean
 download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
     (void) web_view;
     (void) user_data;
-    const gchar* uri = webkit_download_get_uri ((WebKitDownload*)download);
-    printf("Download -> %s\n",uri);
-    run_command(download_handler, uri);
+    if (download_handler) {
+        const gchar* uri = webkit_download_get_uri ((WebKitDownload*)download);
+        printf("Download -> %s\n",uri);
+        run_command(download_handler, uri);
+    }
     return (FALSE);
 }
 
