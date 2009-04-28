@@ -16,6 +16,7 @@ ASAP
 * select/fork based instead of the pthread stuff -> drops dependency, more lightweight.
 * on website, see if we can <pre><?php include('..'); ?></pre> the documentation inside the uzbl project itself, so we need to maintain the stuff on only 1 place
 * see if we can use the github bugtracker (anonymous posting allowed?)
+* allow user to change bindings for navigation (up,down,left,right, page up, page down etc)
 
 SOMEDAY:
 check if we can make the settings loading less hard coded. eg( keep a list of all settings, and for each one, try to load it)
