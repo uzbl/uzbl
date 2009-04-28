@@ -76,6 +76,9 @@ static GHashTable *internal_bindings;
 /* settings from config: group bindings_external */
 static GHashTable *external_bindings;
 
+/* command list */
+static GHashTable *commands;
+
 /* commandline arguments (set initial values for the state variables) */
 static GOptionEntry entries[] =
 {
@@ -88,7 +91,7 @@ static GOptionEntry entries[] =
 /* for internal list of commands */
 typedef struct
 {
-    const char *command;
+    gpointer command;
     void (*func_1_param)(WebKitWebView*);
     void (*func_2_params)(WebKitWebView*, const gchar *);
 } Command;
@@ -189,10 +192,11 @@ log_history_cb () {
        run_command(history_handler, args->str);
    }
 }
-
+                                                                                                                                                             
 /* -- command to callback/function map for things we cannot attach to any signals */
 // TODO: reload, home, quit
-static Command commands[] =
+
+static Command cmdlist[] =
 {
     { "back",          &go_back_cb,                    NULL },
     { "forward",       &go_forward_cb,                 NULL },
@@ -201,9 +205,20 @@ static Command commands[] =
     { "zoom_in",       &webkit_web_view_zoom_in,       NULL }, //Can crash (when max zoom reached?).
     { "zoom_out",      &webkit_web_view_zoom_out,      NULL },
     { "uri",           NULL, &webkit_web_view_load_uri      },
-    { "toggle_status", &toggle_status_cb,              NULL }
+    { "toggle_status", &toggle_status_cb,              NULL },
+    { NULL, NULL, NULL}
 //{ "get uri",  &webkit_web_view_get_uri},
 };
+
+static void
+commands_hash(void)
+{
+  unsigned int i = 0;
+  commands = g_hash_table_new(g_str_hash, g_str_equal);
+  
+  while(cmdlist[i].command != NULL)
+    g_hash_table_insert(commands, cmdlist[i++].command, &cmdlist[i]);
+}
 
 /* -- CORE FUNCTIONS -- */
 
@@ -235,42 +250,36 @@ run_command(const char *command, const char *args) {
 
 static void
 parse_command(const char *cmd) {
-    unsigned int i;
-    Command *c = NULL;
-    char buffer[512];
-    strcpy (buffer, cmd);
-    char * command_name  = strtok (buffer, " ");
-    gchar * command_param = strtok (NULL,  " ,");
-
-    Command *c_tmp = NULL;
-    for (i = 0; i < LENGTH (commands); i++) {
-        c_tmp = &commands[i];
-        if (strncmp (command_name, c_tmp->command, strlen (c_tmp->command)) == 0) {
-            c = c_tmp;
-        }
-    }
+  Command *c = NULL;
+  char buffer[512];
+  strcpy (buffer, cmd);
+  char * command_name  = strtok (buffer, " ");
+  gchar * command_param = strtok (NULL,  " ,");
+  
+  if((c = g_hash_table_lookup(commands, command_name)) != NULL){
     if (c != NULL) {
-        if (c->func_2_params != NULL) {
-            if (command_param != NULL) {
-                printf ("command executing: \"%s %s\"\n", command_name, command_param);
-                c->func_2_params (web_view, command_param);
-            } else {
-                if (c->func_1_param != NULL) {
-                    printf ("command executing: \"%s\"\n", command_name);
-                    c->func_1_param (web_view);
-                } else {
-                    fprintf (stderr, "command needs a parameter. \"%s\" is not complete\n", command_name);
-                }
-            }
-        } else if (c->func_1_param != NULL) {
-            printf ("command executing: \"%s\"\n", command_name);
-            c->func_1_param (web_view);
-        }
+      if (c->func_2_params != NULL) {
+	if (command_param != NULL) {
+	printf ("command executing: \"%s %s\"\n", command_name, command_param);
+	c->func_2_params (web_view, command_param);
+	} else {
+	  if (c->func_1_param != NULL) {
+	    printf ("command executing: \"%s\"\n", command_name);
+	    c->func_1_param (web_view);
+	  } else {
+	    fprintf (stderr, "command needs a parameter. \"%s\" is not complete\n", command_name);
+	  }
+	}
+      } else if (c->func_1_param != NULL) {
+	printf ("command executing: \"%s\"\n", command_name);
+	c->func_1_param (web_view);
+      }
     } else {
-        fprintf (stderr, "command \"%s\" not understood. ignoring.\n", cmd);
+      fprintf (stderr, "command \"%s\" not understood. ignoring.\n", cmd);
     }
+  }
 }
- 
+
 static void
 *control_fifo() {
     if (fifodir) {
@@ -576,6 +585,8 @@ main (int argc, char* argv[]) {
     external_bindings = g_hash_table_new(g_str_hash, g_str_equal);
 
     settings_init ();
+    commands_hash ();
+    
     if (always_insert_mode)
         insert_mode = TRUE;
 
