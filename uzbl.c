@@ -520,8 +520,9 @@ settings_init () {
 
             printf("XDG_CONFIG_DIRS: %s\n", XDG_CONFIG_DIRS);
 
-            char *dirs = XDG_CONFIG_DIRS;
-            char *dir = (char *)strtok (dirs, ":");
+            char buffer[512];
+            strcpy (buffer, XDG_CONFIG_DIRS);
+            const gchar* dir = strtok (buffer, ":");
             while (dir && ! file_exists (conf)) {
                 strcpy (conf, dir);
                 strcat (conf, "/uzbl/config");
@@ -529,7 +530,7 @@ settings_init () {
                     printf ("Config file %s found.\n", conf);
                     config_file = &conf[0];
                 }
-                dir = (char *)strtok (NULL, ":");
+                dir = strtok (NULL, ":");
             }
         }
     }
