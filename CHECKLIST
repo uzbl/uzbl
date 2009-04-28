@@ -17,6 +17,7 @@ Also testers and interested people can use this list to see what uzbl is about, 
 * --uri can be specified without http:// -- if missing will be prepended.
 * Download completely finished
 * Open in new window partially finished: target _new works, from popup meny does not work yet
+* Home command working (home_page variable in config)
 
 TODO: add stuff about internal/external keybinds, mod key, insert mode, status bar,
 behavior settings,....
