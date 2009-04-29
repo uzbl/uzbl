@@ -360,30 +360,30 @@ run_command(const char *command, const char *args) {
 
 static void
 parse_command(const char *cmd) {
-  Command *c = NULL;
-  char buffer[512];
-  strcpy (buffer, cmd);
-  char * command_name  = strtok (buffer, " ");
-  gchar * command_param = strtok (NULL,  " ,");
+    Command *c = NULL;
+    char buffer[512];
+    strcpy (buffer, cmd);
+    char * command_name  = strtok (buffer, " ");
+    gchar * command_param = strtok (NULL,  " ,");
   
-  if((c = g_hash_table_lookup(commands, command_name)) != NULL){
-    if (c->func_2_params != NULL) {
-      if (command_param != NULL) {
-	printf ("command executing: \"%s %s\"\n", command_name, command_param);
-	c->func_2_params (web_view, command_param);
-      } else {
-	if (c->func_1_param != NULL) {
-	  printf ("command executing: \"%s\"\n", command_name);
-	  c->func_1_param (web_view);
-	} else 
-	  fprintf (stderr, "command needs a parameter. \"%s\" is not complete\n", command_name);
-      }
-    } else if (c->func_1_param != NULL) {
-      printf ("command executing: \"%s\"\n", command_name);
-      c->func_1_param (web_view);
-    }
-  } else
-    fprintf (stderr, "command \"%s\" not understood. ignoring.\n", cmd);
+    if((c = g_hash_table_lookup(commands, command_name)) != NULL){
+        if (c->func_2_params != NULL) {
+            if (command_param != NULL) {
+              printf ("command executing: \"%s %s\"\n", command_name, command_param);
+              c->func_2_params (web_view, command_param);
+            } else {
+                if (c->func_1_param != NULL) {
+                  printf ("command executing: \"%s\"\n", command_name);
+                  c->func_1_param (web_view);
+                } else 
+                    fprintf (stderr, "command needs a parameter. \"%s\" is not complete\n", command_name);
+            }
+        } else if (c->func_1_param != NULL) {
+            printf ("command executing: \"%s\"\n", command_name);
+            c->func_1_param (web_view);
+        }
+    } else
+        fprintf (stderr, "command \"%s\" not understood. ignoring.\n", cmd);
 }
 
 static void
@@ -415,11 +415,10 @@ static void
 
     listen (sock, 5);
  
+    char buffer[512];
+    char temp[128];
+    int done, n;
     for(;;) {
-        int done, n;
-        char buffer[512];
-        char temp[128];
-
         memset (buffer, 0, sizeof (buffer));
 
         t          = sizeof (remote);
@@ -428,19 +427,25 @@ static void
 
         done = 0;
         do {
+            memset (temp, 0, sizeof (temp));
             n = recv (clientsock, temp, 128, 0);
-            if (n == 0)
+            if (n == 0) {
+                buffer[strlen (buffer)] = '\0';
                 done = 1;
+            }
 
             if (!done)
                 strcat (buffer, temp);
         } while (!done);
 
-        if (strcmp (buffer, "\n")) {
+        if (strcmp (buffer, "\n") < 0) {
             buffer[strlen (buffer) - 1] = '\0';
-            parse_command (buffer);
+        } else {
+          buffer[strlen (buffer)] = '\0';
         }
-        close(clientsock);
+
+        parse_command (buffer);
+        close (clientsock);
     }
     
     return NULL;
@@ -502,17 +507,17 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
 
     //INTERNAL BINDINGS
     if((act = g_hash_table_lookup(internal_bindings, event->string)) != NULL)
-      if (!insert_mode || (event->state == modmask)) {
-	parse_command (act);
-	result = TRUE;
-      }
-
+        if (!insert_mode || (event->state == modmask)) {
+            parse_command (act);
+            result = TRUE;
+        }
+    
     //EXTERNAL BINDINGS
     if((act = g_hash_table_lookup(external_bindings, event->string)) != NULL)
-      if (!insert_mode || (event->state == modmask)) {
-	parse_command (act);
-	result = TRUE;
-      }
+        if (!insert_mode || (event->state == modmask)) {
+            run_command(act, NULL);
+            result = TRUE;
+        }
     
     if (!result)
         result = (insert_mode ? FALSE : TRUE);      
