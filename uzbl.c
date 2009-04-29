@@ -446,7 +446,7 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     //EXTERNAL BINDINGS
     if((act = g_hash_table_lookup(external_bindings, event->string)) != NULL)
       if (!insert_mode || (event->state == modmask)) {
-	parse_command (act);
+	run_command (act, NULL);
 	result = TRUE;
       }
     
