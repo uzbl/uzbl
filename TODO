@@ -30,6 +30,7 @@ ASAP
 * add to bottom /* vi: set et ts=4: */
 * ideal uri editor: awesome mode like FF, some keyb shortcuts (erase search string, go to end/begin of string,..), history (if you patch dmenu to be in vertical mode and you order correctly, that's it), support copy paste
 * get rid of the home page concept. allow user to make keybinds to go to one or more "homepages". a home page is nothing special.
+* blinking cursor when not in insert mode is confusing.  i suggest dimming it's color if possible
 
 
 SOMEDAY:
