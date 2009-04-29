@@ -360,12 +360,12 @@ run_command(const char *command, const char *args) {
 
 static void
 parse_command(const char *cmd) {
-  Command *c = NULL;
-  char buffer[512];
-  strcpy (buffer, cmd);
-  char * saveptr;
-  char * command_name  = strtok_r (buffer, " ", &saveptr);
-  gchar * command_param = strtok_r (NULL,  " ,", &saveptr);
+    Command *c = NULL;
+    char buffer[512];
+    strcpy (buffer, cmd);
+    char * saveptr;
+    char * command_name  = strtok_r (buffer, " ", &saveptr);
+    gchar * command_param = strtok_r (NULL,  " ,", &saveptr);
   
     if((c = g_hash_table_lookup(commands, command_name)) != NULL){
         if (c->func_2_params != NULL) {
@@ -515,17 +515,10 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     
     //EXTERNAL BINDINGS
     if((act = g_hash_table_lookup(external_bindings, event->string)) != NULL)
-<<<<<<< HEAD:uzbl.c
         if (!insert_mode || (event->state == modmask)) {
-            run_command(act, NULL);
+            run_command (act, NULL);
             result = TRUE;
         }
-=======
-      if (!insert_mode || (event->state == modmask)) {
-	run_command (act, NULL);
-	result = TRUE;
-      }
->>>>>>> dieter/experimental:uzbl.c
     
     if (!result)
         result = (insert_mode ? FALSE : TRUE);      
