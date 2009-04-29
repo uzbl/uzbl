@@ -672,6 +672,8 @@ main (int argc, char* argv[]) {
     if (!g_thread_supported ())
         g_thread_init (NULL);
 
+    printf("Uzbl start location: %s\n", argv[0]);
+
     strcat ((char *) XDG_CONFIG_HOME_default, getenv ("HOME"));
     strcat ((char *) XDG_CONFIG_HOME_default, "/.config");
 
@@ -713,3 +715,5 @@ main (int argc, char* argv[]) {
     unlink (fifopath);
     return 0;
 }
+
+/* vi: set et ts=4: */
