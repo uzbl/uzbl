@@ -71,18 +71,14 @@ static gchar*   modkey             = NULL;
 static guint    modmask            = 0;
 static gchar*   home_page          = NULL;
 
-typedef struct {
-    const char *binding;
-    const char *action;
-} Binding;
-
 /* settings from config: group bindings_internal */
-static Binding internal_bindings[256];
-static int     num_internal_bindings = 0;
+static GHashTable *internal_bindings;
 
 /* settings from config: group bindings_external */
-static Binding external_bindings[256];
-static int     num_external_bindings = 0;
+static GHashTable *external_bindings;
+
+/* command list */
+static GHashTable *commands;
 
 /* commandline arguments (set initial values for the state variables) */
 static GOptionEntry entries[] =
@@ -96,7 +92,7 @@ static GOptionEntry entries[] =
 /* for internal list of commands */
 typedef struct
 {
-    const char *command;
+    gpointer command;
     void (*func_1_param)(WebKitWebView*);
     void (*func_2_params)(WebKitWebView*, const gchar *);
 } Command;
@@ -242,10 +238,11 @@ log_history_cb () {
        g_string_free (args, TRUE);
    }
 }
-
+                                                                                                                                                             
 /* -- command to callback/function map for things we cannot attach to any signals */
 // TODO: reload, home, quit
-static Command commands[] =
+
+static Command cmdlist[] =
 {
     { "back",          &go_back_cb,                    NULL },
     { "forward",       &go_forward_cb,                 NULL },
@@ -257,8 +254,21 @@ static Command commands[] =
     { "toggle_status", &toggle_status_cb,              NULL },
     { "home"         , &go_home,                       NULL },
     { "exit"         , &close_uzbl,                    NULL },
+    { NULL,            NULL,                           NULL }
 //{ "get uri",  &webkit_web_view_get_uri},
 };
+
+static void
+commands_hash(void)
+{
+  unsigned int i = 0;
+  commands = g_hash_table_new(g_str_hash, g_str_equal);
+  
+  while(cmdlist[i].command != NULL){
+    g_hash_table_insert(commands, cmdlist[i].command, &cmdlist[i]);
+    i++;
+  }
+}
 
 /* -- CORE FUNCTIONS -- */
 
@@ -313,42 +323,32 @@ run_command(const char *command, const char *args) {
 
 static void
 parse_command(const char *cmd) {
-    unsigned int i;
-    Command *c = NULL;
-    char buffer[512];
-    strcpy (buffer, cmd);
-    const gchar * command_name  = strtok (buffer, " ");
-    const gchar * command_param = strtok (NULL,  " ,");
-
-    Command *c_tmp = NULL;
-    for (i = 0; i < LENGTH (commands); i++) {
-        c_tmp = &commands[i];
-        if (strncmp (command_name, c_tmp->command, strlen (c_tmp->command)) == 0) {
-            c = c_tmp;
-        }
+  Command *c = NULL;
+  char buffer[512];
+  strcpy (buffer, cmd);
+  char * command_name  = strtok (buffer, " ");
+  gchar * command_param = strtok (NULL,  " ,");
+  
+  if((c = g_hash_table_lookup(commands, command_name)) != NULL){
+    if (c->func_2_params != NULL) {
+      if (command_param != NULL) {
+	printf ("command executing: \"%s %s\"\n", command_name, command_param);
+	c->func_2_params (web_view, command_param);
+      } else {
+	if (c->func_1_param != NULL) {
+	  printf ("command executing: \"%s\"\n", command_name);
+	  c->func_1_param (web_view);
+	} else 
+	  fprintf (stderr, "command needs a parameter. \"%s\" is not complete\n", command_name);
+      }
+    } else if (c->func_1_param != NULL) {
+      printf ("command executing: \"%s\"\n", command_name);
+      c->func_1_param (web_view);
     }
-    if (c != NULL) {
-        if (c->func_2_params != NULL) {
-            if (command_param != NULL) {
-                printf ("command executing: \"%s %s\"\n", command_name, command_param);
-                c->func_2_params (web_view, command_param);
-            } else {
-                if (c->func_1_param != NULL) {
-                    printf ("command executing: \"%s\"\n", command_name);
-                    c->func_1_param (web_view);
-                } else {
-                    fprintf (stderr, "command needs a parameter. \"%s\" is not complete\n", command_name);
-                }
-            }
-        } else if (c->func_1_param != NULL) {
-            printf ("command executing: \"%s\"\n", command_name);
-            c->func_1_param (web_view);
-        }
-    } else {
-        fprintf (stderr, "command \"%s\" not understood. ignoring.\n", cmd);
-    }
+  } else
+    fprintf (stderr, "command \"%s\" not understood. ignoring.\n", cmd);
 }
- 
+
 static void
 *control_fifo() {
     if (fifodir) {
@@ -424,7 +424,7 @@ static gboolean
 key_press_cb (WebKitWebView* page, GdkEventKey* event)
 {
     (void) page;
-    int i;
+    gpointer act;
     gboolean result=FALSE; //TRUE to stop other handlers from being invoked for the event. FALSE to propagate the event further.
     if (event->type != GDK_KEY_PRESS)
         return result;
@@ -437,25 +437,19 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     }
 
     //INTERNAL BINDINGS
-    for (i = 0; i < num_internal_bindings; i++) {
-        if (strcmp(event->string, internal_bindings[i].binding) == 0) {
-            if (!insert_mode || (event->state == modmask)) {
-                parse_command (internal_bindings[i].action);
-                result = TRUE;
-            }
-        }	
-    }
+    if((act = g_hash_table_lookup(internal_bindings, event->string)) != NULL)
+      if (!insert_mode || (event->state == modmask)) {
+	parse_command (act);
+	result = TRUE;
+      }
 
     //EXTERNAL BINDINGS
-    for (i = 0; i < num_external_bindings; i++) {
-        if (strcmp(event->string, external_bindings[i].binding) == 0) {
-            if (!insert_mode || (event->state == modmask)) {
-                run_command(external_bindings[i].action, NULL);
-                result = TRUE;
-            }
-        }	
-    }
-
+    if((act = g_hash_table_lookup(external_bindings, event->string)) != NULL)
+      if (!insert_mode || (event->state == modmask)) {
+	parse_command (act);
+	result = TRUE;
+      }
+    
     if (!result)
         result = (insert_mode ? FALSE : TRUE);      
 
@@ -504,14 +498,8 @@ GtkWidget* create_window () {
 
 static void
 add_binding (char *binding, char *action, bool internal) {
-    Binding bind = {binding, action};
-    if (internal) {
-        internal_bindings[num_internal_bindings] = bind;
-        num_internal_bindings ++;
-    } else {
-        external_bindings[num_external_bindings] = bind;
-        num_external_bindings ++;
-    }
+  g_hash_table_insert(internal ? internal_bindings : external_bindings,
+		      binding, action);
 }
 
 static void
@@ -647,8 +635,13 @@ main (int argc, char* argv[]) {
     g_option_context_add_main_entries (context, entries, NULL);
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
     g_option_context_parse (context, &argc, &argv, &error);
+    /* initialize has tables */
+    internal_bindings = g_hash_table_new(g_str_hash, g_str_equal);
+    external_bindings = g_hash_table_new(g_str_hash, g_str_equal);
 
     settings_init ();
+    commands_hash ();
+    
     if (always_insert_mode)
         insert_mode = TRUE;
 
