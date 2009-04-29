@@ -2,7 +2,6 @@ ASAP
 * implement all the ideas from README
 * get a logo
 * improve site
-* Support for binding keyboard shortcuts in config file.
 * when launching new instance, don't just try 'uzbl' and then './uzbl', rather launch a new uzbl in the same way the current uzbl instance was started. (same command, same arguments, except --uri)
 * where to put proxy config? webkit support?
 * implement XDG basedir spec (config is done, but not cache/data, which I presume we'll need at some point)
