@@ -1,0 +1,26 @@
+This file contains all things that are/should be working.
+When you have been working on something, use this list to verify that you did not cause any regressions (things that worked before, but got broken).
+Also, when you finish a new feature, add it to this list so that everyone knows about it, can play with it, and can test it.
+
+Also testers and interested people can use this list to see what uzbl is about, and report problems if they find items listed here that do not work.
+
+* commandline switches --uri "http://.." and --config should behave as expected
+* --help and -? should show help
+* config loading: loading of settings, bindings and handlers from config file
+* fifo: type this in your shell after starting uzbl:
+  echo 'uri http://www...' > <fifo path here>'
+  where <fifo path> is printed on stdout during program startup.  Also "back" , "forward", "refresh" (basically all actions defined in `static Command commands` should behave as expected)
+* history logging: the script as defined in sample config should write history entries (date,time, url) into the file defined in the script (by default ./extra/history.sh and /tmp/uzbl.history)
+* invocations of external commands: you'll see it on stdout everytime uzbl calls an external script/program. the invocations should work and none of the arguments passed should be null/garbage/.. .
+  all should be valid strings and contain things like the pid, fifo file, config file,.. (see README for details).
+* XDG_CONFIG_HOME and XDG_CONFIG_DIRS (+ default values) fully supported and working (looks for a config file called 'uzbl/config').
+* --uri can be specified without http:// -- if missing will be prepended.
+* Download completely finished
+* Open in new window partially finished: target _new works, from popup meny does not work yet
+* Home command working (home_page variable in config)
+* Open in new window completely finished with --config forwarding between instances
+
+TODO: add stuff about internal/external keybinds, mod key, insert mode, status bar,
+behavior settings,....
+
+TODO: add 'http://' to url if there is no substr '://'

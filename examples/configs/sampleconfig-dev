@@ -1,0 +1,43 @@
+
+# example uzbl config. in a real config, we should obey the xdg spec
+
+# all keys in the behavior group are optional.  if not set, the corresponding behavior is disabed.
+# bindings_internal denote keys to trigger actions internally in uzbl
+# bindings_external denote keys to trigger scripts outside uzbl
+
+# keyboard behavior is vimstyle by default (all actions -> 1 key). set
+# always_insert_mode to always be in insert mode and disable going out of it.
+# if you do this, make sure you've set a modkey so you can reach the actions
+# from insert mode by combining them with the modkey
+
+[behavior]
+history_handler = /bin/bash ./examples/scripts/history.sh
+download_handler = /bin/bash ./examples/scripts/download.sh
+fifo_dir = /tmp
+always_insert_mode = 0
+modkey = Mod1
+show_status = 1
+status_top = 0
+home_page = http://www.uzbl.org
+
+[bindings_internal]
+back = b
+forward = m
+stop = s
+refresh = r
+reload = R
+home = h
+follow_link_here = f
+follow_link_new_tab = F
+follow_link_new_window = w
+zoom_in = +
+zoom_out = -
+toggle_status = t
+exit = k
+
+[bindings_external]
+/bin/bash ./examples/scripts/insert_bookmark.sh = B
+/bin/bash ./examples/scripts/load_url_from_history.sh = u
+/bin/bash ./examples/scripts/load_url_from_bookmarks.sh = U
+
+[network]

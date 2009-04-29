@@ -1,3 +1,23 @@
+THIS PROJECT IS NOT FOR:
+- people want a browser that does everything
+- people who want a browser with things like a built-in bookmark manager, address bar, forward/back buttons, ...
+
+
+
+TO NEW PEOPLE:
+ - please read the README in /usr/share/uzbl/docs
+ - invoke uzbl --help
+ - to get you started: uzbl --uri 'http://www.archlinux.org' --config /usr/share/uzbl/examples/configs/sampleconfig
+ - study the sample config, have a look at all the bindings, and note how you can call the scripts to load new url from history and the bookmarks file
+ - inserting new bookmarks is not working yet. it will be soon.
+ - note that there is no url bar. all url editing is supposed to happen _outside_ of uzbl.
+   for now, you can use the load_from_* dmenu based scripts to pick a url or type a new one (we should have a dmenu-like that functions as a better editor) or write commands into the fifo (see /usr/share/uzbl/docs/CHECKLIST)
+
+
+CURRENT STATE:
+ alpha / prototype
+
+
 - Uzbl.
   In my opinion, any program can only be really useful if it complies to the unix philosophy.
   Web browsers are frequent violators of this principle.  Time to change that!
@@ -60,8 +80,7 @@ There is code to run a benchmark in the 'extra' dir.  For results & interpretati
 CONTROL:
 - FIFO opened in /tmp/uzbl_pid
 - See config file for commands
-- Press ESC to toggle the command entry.
-- Press enter after typing a command to use it.
+- Press ESC/i to toggle command/insert mode
 
 NOTES:
 - My c skills are very rusty, it will take me a while to get back up to speed
@@ -75,9 +94,30 @@ REPO's:
   They may be developing specific features, which get merged into Dieters experimental branch
 
 
+EXTERNAL SCRIPTS
+You can use external scripts with uzbl the following ways:
+1) let uzbl call them. these scripts are called handlers in the uzbl config. used for handling logging history, handling a new download,.. 
+2) call them yourself from inside uzbl.  you can bind keys for this. examples: add new bookmark, load new url,..
+3) if you want to call scripts that have no option, you can trigger them with something like xbindkeys. example: ? (we try to keep all possibilities inside option 1/2)
+
+Scripts that are called by uzbl are passed the following arguments:
+$1 uzbl-config-file
+$2 uzbl-pid
+$3 uzbl-x-window-id
+$4 uzbl_fifo-filename
+.. [ script specific ] (optional)
+
+The script specific arguments are this:
+* history:
+  $5 page url
+  $6 page title
+  $7 date of visit (Y-m-d H:i:s localtime)
+* add bookmark:
+  $5 page url
+  $6 page title
+* download:
+  $5 url
+
 KNOWN BUGS
-- Segfault occurs on shutdown, almost definitely FIFO related (I'm not seeing this bug now, but the warning was here when I forked the code and I haven't touched the FIFO bit)
 - Segfaults when using zoom commands (happens when max zoom already reached?).
 - Something in the FIFO code causes CPU usage to jump.
-- Segfaults when loading aliases from config file (currently aliases are defined in the code as a 'work-around').
-- Segfaults when setting the xwin variable

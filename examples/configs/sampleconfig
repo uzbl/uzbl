@@ -11,13 +11,14 @@
 # from insert mode by combining them with the modkey
 
 [behavior]
-history_file = /tmp/uzbl.history
-download_handler = ./extra/download.sh
+history_handler = /bin/bash /usr/share/uzbl/examples/scripts/history.sh
+download_handler = /bin/bash /usr/share/uzbl/examples/scripts/download.sh
 fifo_dir = /tmp
 always_insert_mode = 0
-modkey = Mod4
+modkey = Mod1
 show_status = 1
 status_top = 0
+home_page = http://www.uzbl.org
 
 [bindings_internal]
 back = b
@@ -32,10 +33,11 @@ follow_link_new_window = w
 zoom_in = +
 zoom_out = -
 toggle_status = t
+exit = k
 
 [bindings_external]
-./extra/insert_bookmark.sh = b
-./extra/load_url_from_history.sh = u
-./extra/load_url_from_bookmarks.sh = U
+/bin/bash /usr/share/uzbl/examples/scripts/insert_bookmark.sh = B
+/bin/bash /usr/share/uzbl/examples/scripts/load_url_from_history.sh = u
+/bin/bash /usr/share/uzbl/examples/scripts/load_url_from_bookmarks.sh = U
 
 [network]

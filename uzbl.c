@@ -29,11 +29,11 @@
  */
 
 
-#define LENGTH(x)               (sizeof x / sizeof x[0])
-#define GDK_Escape 0xff1b
+#define LENGTH(x) (sizeof x / sizeof x[0])
 
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
+#include <gdk/gdkkeysyms.h>
 #include <webkit/webkit.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -43,73 +43,145 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+/* housekeeping / internal variables */
 static GtkWidget* main_window;
 static GtkWidget* mainbar;
 static GtkWidget* mainbar_label;
 static WebKitWebView* web_view;
 static gchar* main_title;
-static gchar selected_url[500];
+static gchar selected_url[500] = "\0";
+static gint load_progress;
+static Window xwin = 0;
+static char fifopath[64];
 
-/* Behaviour variables */
-static gchar*   history_file       = NULL;
+/* state variables (initial values coming from command line arguments but may be changed later) */
+static gchar*   uri         = NULL;
+static gchar*   config_file = NULL;
+static gchar    config_file_path[500];
+
+static gboolean verbose     = FALSE;
+
+/* settings from config: group behaviour */
+static gchar*   history_handler    = NULL;
 static gchar*   fifodir            = NULL;
 static gchar*   download_handler   = NULL;
 static gboolean always_insert_mode = FALSE;
-static gboolean insert_mode        = FALSE;
 static gboolean show_status        = FALSE;
+static gboolean insert_mode        = FALSE;
 static gboolean status_top         = FALSE;
 static gchar*   modkey             = NULL;
+static guint    modmask            = 0;
+static gchar*   home_page          = NULL;
 
-static char fifopath[64];
-static gint load_progress;
-static guint status_context_id;
-static Window xwin = 0;
-static gchar* uri = NULL;
-
-static gboolean verbose = FALSE;
-
-static GOptionEntry entries[] =
-{
-    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uri,     "Uri to load", NULL },
-    { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &verbose, "Be verbose",  NULL },
-    { NULL }
-};
-
-typedef struct
-{
-    const char *command;
-    void (*func_1_param)(WebKitWebView*);
-    void (*func_2_params)(WebKitWebView*, char *);
-} Command;
-
-typedef struct
-{
+typedef struct {
     const char *binding;
     const char *action;
 } Binding;
 
+/* settings from config: group bindings_internal */
 static Binding internal_bindings[256];
-static Binding external_bindings[256];
 static int     num_internal_bindings = 0;
+
+/* settings from config: group bindings_external */
+static Binding external_bindings[256];
 static int     num_external_bindings = 0;
+
+/* commandline arguments (set initial values for the state variables) */
+static GOptionEntry entries[] =
+{
+    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uri,         "Uri to load", NULL },
+    { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &verbose,     "Be verbose",  NULL },
+    { "config",  'c', 0, G_OPTION_ARG_STRING, &config_file, "Config file", NULL },
+    { NULL,      0, 0, 0, NULL, NULL, NULL }
+};
+
+/* for internal list of commands */
+typedef struct
+{
+    const char *command;
+    void (*func_1_param)(WebKitWebView*);
+    void (*func_2_params)(WebKitWebView*, const gchar *);
+} Command;
+
+/* XDG stuff */
+char *XDG_CONFIG_HOME_default[256];
+char *XDG_CONFIG_DIRS_default = "/etc/xdg";
 
 static void
 update_title (GtkWindow* window);
 
+static void
+load_uri ( WebKitWebView * web_view, const gchar * uri);
+
+static void
+new_window_load_uri (const gchar * uri);
+
+static void
+go_home ( WebKitWebView * web_view);
+
+static void
+close_uzbl ( WebKitWebView * web_view);
+
+static gboolean
+run_command(const char *command, const char *args);
+
 
 /* --- CALLBACKS --- */
+
+static gboolean
+new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
+    (void) web_view;
+    (void) frame;
+    (void) navigation_action;
+    (void) policy_decision;
+    (void) user_data;
+    const gchar* uri = webkit_network_request_get_uri (request);
+    printf("New window requested -> %s \n", uri);
+    new_window_load_uri(uri);
+    return (FALSE);
+}
+
+WebKitWebView*
+create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data) {
+    (void) web_view;
+    (void) frame;
+    (void) user_data;
+    if (selected_url[0]!=0) {
+        printf("\nNew web view -> %s\n",selected_url);
+        new_window_load_uri(selected_url);
+    } else {
+        printf("New web view -> %s\n","Nothing to open, exiting");
+    }
+    return (NULL);
+}
+
+static gboolean
+download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
+    (void) web_view;
+    (void) user_data;
+    if (download_handler) {
+        const gchar* uri = webkit_download_get_uri ((WebKitDownload*)download);
+        printf("Download -> %s\n",uri);
+        run_command(download_handler, uri);
+    }
+    return (FALSE);
+}
+
 static void
-go_back_cb (GtkWidget* widget, gpointer data) {
+go_back_cb (WebKitWebView* page) {
+    (void) page;
     webkit_web_view_go_back (web_view);
 }
 
 static void
-go_forward_cb (GtkWidget* widget, gpointer data) {
+go_forward_cb (WebKitWebView* page) {
+    (void) page;
     webkit_web_view_go_forward (web_view);
 }
 
 static void
-cb_toggle_status() {
+toggle_status_cb (WebKitWebView* page) {
+    (void) page;
     if (show_status) {
     	gtk_widget_hide(mainbar);
     } else {
@@ -121,23 +193,22 @@ cb_toggle_status() {
 
 static void
 link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data) {
-    /* underflow is allowed */
-    //gtk_statusbar_pop (main_statusbar, status_context_id);
-    //if (link)
-    //    gtk_statusbar_push (main_statusbar, status_context_id, link);
-    //TODO implementation roadmap pending..
-    
+    (void) page;
+    (void) title;
+    (void) data;    
     //ADD HOVER URL TO WINDOW TITLE
     selected_url[0] = '\0';
     if (link) {
-    	strcpy (selected_url, link);
+        strcpy (selected_url, link);
     }
     update_title (GTK_WINDOW (main_window));
-
 }
 
 static void
 title_change_cb (WebKitWebView* web_view, WebKitWebFrame* web_frame, const gchar* title, gpointer data) {
+    (void) web_view;
+    (void) web_frame;
+    (void) data;
     if (main_title)
         g_free (main_title);
     main_title = g_strdup (title);
@@ -146,63 +217,143 @@ title_change_cb (WebKitWebView* web_view, WebKitWebFrame* web_frame, const gchar
 
 static void
 progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
+    (void) page;
+    (void) data;
     load_progress = progress;
     update_title (GTK_WINDOW (main_window));
 }
 
 static void
 load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
-    const gchar* uri = webkit_web_frame_get_uri(frame);
+    (void) page;
+    (void) data;
+    free (uri);
+    GString* newuri = g_string_new (webkit_web_frame_get_uri (frame));
+    uri = g_string_free (newuri, FALSE);
 }
 
 static void
 destroy_cb (GtkWidget* widget, gpointer data) {
+    (void) widget;
+    (void) data;
     gtk_main_quit ();
 }
 
 static void
 log_history_cb () {
-    FILE * output_file = fopen (history_file, "a");
-    if (output_file == NULL) {
-       fprintf (stderr, "Cannot open %s for logging\n", history_file);
-    } else {
-        time_t rawtime;
-        struct tm * timeinfo;
-        char buffer [80];
-        time ( &rawtime );
-        timeinfo = localtime ( &rawtime );
-        strftime (buffer, 80, "%Y-%m-%d %H:%M:%S", timeinfo);
-
-        fprintf (output_file, "%s %s\n", buffer, uri);
-        fclose (output_file);
-    }
+   if (history_handler) {
+       time_t rawtime;
+       struct tm * timeinfo;
+       char date [80];
+       time ( &rawtime );
+       timeinfo = localtime ( &rawtime );
+       strftime (date, 80, "%Y-%m-%d %H:%M:%S", timeinfo);
+       GString* args = g_string_new ("");
+       g_string_printf (args, "'%s' '%s' '%s'", uri, "TODO:page title here", date);
+       run_command(history_handler, args->str);
+       g_string_free (args, TRUE);
+   }
 }
 
 /* -- command to callback/function map for things we cannot attach to any signals */
 // TODO: reload, home, quit
 static Command commands[] =
 {
-    { "back",     &go_back_cb,                    NULL },
-    { "forward",  &go_forward_cb,                 NULL },
-    { "refresh",  &webkit_web_view_reload,        NULL }, //Buggy
-    { "stop",     &webkit_web_view_stop_loading,  NULL },
-    { "zoom_in",  &webkit_web_view_zoom_in,       NULL }, //Can crash (when max zoom reached?).
-    { "zoom_out", &webkit_web_view_zoom_out,      NULL },
-    { "uri",      NULL, &webkit_web_view_load_uri      },
-    { "toggle_status", &cb_toggle_status, NULL}
+    { "back",          &go_back_cb,                    NULL },
+    { "forward",       &go_forward_cb,                 NULL },
+    { "refresh",       &webkit_web_view_reload,        NULL }, //Buggy
+    { "stop",          &webkit_web_view_stop_loading,  NULL },
+    { "zoom_in",       &webkit_web_view_zoom_in,       NULL }, //Can crash (when max zoom reached?).
+    { "zoom_out",      &webkit_web_view_zoom_out,      NULL },
+    { "uri",           (void *) NULL,             &load_uri },
+    { "toggle_status", &toggle_status_cb,              NULL },
+    { "home"         , &go_home,                       NULL },
+    { "exit"         , &close_uzbl,                    NULL },
 //{ "get uri",  &webkit_web_view_get_uri},
 };
 
 /* -- CORE FUNCTIONS -- */
 
-static void
-parse_command(const char *command) {
-    int i;
-    Command *c = NULL;
-    char * command_name  = strtok (command, " ");
-    char * command_param = strtok (NULL,  " ,"); //dunno how this works, but it seems to work
+static bool
+file_exists (const char * filename) {
+    FILE *file = fopen (filename, "r");
+    if (file) {
+        fclose (file);
+        return true;
+    }
+    return false;
+}
 
-    Command *c_tmp;
+static void
+load_uri (WebKitWebView * web_view, const gchar * uri) {
+    if (uri != NULL) {
+        GString* newuri = g_string_new (uri);
+        if (g_strrstr (uri, "://") == NULL)
+            g_string_prepend (newuri, "http://"); 
+        webkit_web_view_load_uri (web_view, newuri->str);
+        g_string_free (newuri, TRUE);
+    }
+}
+
+static void
+new_window_load_uri (const gchar * uri) {
+    GString* to_execute = g_string_new ("");
+    if (!config_file) {
+        g_string_printf (to_execute, "uzbl --uri '%s'", uri);
+    } else {
+        g_string_printf (to_execute, "uzbl --uri '%s' --config '%s'", uri, config_file);
+    }
+    printf("Spawning %s\n",to_execute->str);
+    if (!g_spawn_command_line_async (to_execute->str, NULL)) {
+        if (!config_file) {
+            g_string_printf (to_execute, "./uzbl --uri '%s'", uri);
+        } else {
+            g_string_printf (to_execute, "./uzbl --uri '%s' --config '%s'", uri, config_file);
+        }
+        printf("Spawning %s\n",to_execute->str);
+	g_spawn_command_line_async (to_execute->str, NULL);
+    }
+    g_string_free (to_execute, TRUE);
+}
+
+static void
+go_home (WebKitWebView * web_view) {
+    if (home_page)
+        webkit_web_view_load_uri (web_view, home_page);
+}
+
+static void
+close_uzbl (WebKitWebView * web_view) {
+    (void) web_view;
+    gtk_main_quit ();
+}
+
+// make sure to put '' around args, so that if there is whitespace we can still keep arguments together.
+static gboolean
+run_command(const char *command, const char *args) {
+   //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> [args]
+    GString* to_execute = g_string_new ("");
+    gboolean result;
+    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s'", command, config_file, (int) getpid() , (int) xwin, fifopath);
+    if(args) {
+        g_string_append_printf (to_execute, " %s", args);
+    }
+    result = g_spawn_command_line_async (to_execute->str, NULL);
+    printf("Called %s.  Result: %s\n", to_execute->str, (result ? "TRUE" : "FALSE" ));
+    g_string_free (to_execute, TRUE);
+    return result;
+}
+
+static void
+parse_command(const char *cmd) {
+    unsigned int i;
+    Command *c = NULL;
+    char buffer[512];
+    strcpy (buffer, cmd);
+    const gchar * command_name  = strtok (buffer, " ");
+    const gchar * command_param = strtok (NULL,  " ,");
+
+    Command *c_tmp = NULL;
     for (i = 0; i < LENGTH (commands); i++) {
         c_tmp = &commands[i];
         if (strncmp (command_name, c_tmp->command, strlen (c_tmp->command)) == 0) {
@@ -227,7 +378,7 @@ parse_command(const char *command) {
             c->func_1_param (web_view);
         }
     } else {
-        fprintf (stderr, "command \"%s\" not understood. ignoring.\n", command);
+        fprintf (stderr, "command \"%s\" not understood. ignoring.\n", cmd);
     }
 }
  
@@ -263,8 +414,7 @@ static void
     }
     
     return NULL;
-}
- 
+} 
  
 static void
 setup_threading () {
@@ -294,7 +444,7 @@ update_title (GtkWindow* window) {
 
     if (show_status) {
         gtk_window_set_title (window, title_short);
-	gtk_label_set_text(mainbar_label, title_long);
+	gtk_label_set_text(GTK_LABEL(mainbar_label), title_long);
     } else {
         gtk_window_set_title (window, title_long);
     }
@@ -306,34 +456,39 @@ update_title (GtkWindow* window) {
 static gboolean
 key_press_cb (WebKitWebView* page, GdkEventKey* event)
 {
+    (void) page;
     int i;
     gboolean result=FALSE; //TRUE to stop other handlers from being invoked for the event. FALSE to propagate the event further.
-    if (event->type != GDK_KEY_PRESS) 
+    if (event->type != GDK_KEY_PRESS)
         return result;
 
-    //TURN OFF INSERT MODE
-    if (insert_mode && (event->keyval == GDK_Escape)) {
-        insert_mode = FALSE;
+    //TURN OFF/ON INSERT MODE
+    if (!always_insert_mode && ((insert_mode && (event->keyval == GDK_Escape)) || (!insert_mode && (event->string[0] == 'i')))) {
+        insert_mode = !insert_mode;
         update_title (GTK_WINDOW (main_window));
         return TRUE;
     }
 
-    //TURN ON INSERT MODE
-    if (!insert_mode && (event->string[0] == 'i')) {
-        insert_mode = TRUE;
-        update_title (GTK_WINDOW (main_window));
-        return TRUE;
-    }
-
-    //INTERNAL KEYS
-    if (always_insert_mode || !insert_mode) {
-        for (i = 0; i < num_internal_bindings; i++) {
-            if (event->string[0] == internal_bindings[i].binding[0]) {
+    //INTERNAL BINDINGS
+    for (i = 0; i < num_internal_bindings; i++) {
+        if (strcmp(event->string, internal_bindings[i].binding) == 0) {
+            if (!insert_mode || (event->state == modmask)) {
                 parse_command (internal_bindings[i].action);
                 result = TRUE;
-            }	
-        }
+            }
+        }	
     }
+
+    //EXTERNAL BINDINGS
+    for (i = 0; i < num_external_bindings; i++) {
+        if (strcmp(event->string, external_bindings[i].binding) == 0) {
+            if (!insert_mode || (event->state == modmask)) {
+                run_command(external_bindings[i].action, NULL);
+                result = TRUE;
+            }
+        }	
+    }
+
     if (!result)
         result = (insert_mode ? FALSE : TRUE);      
 
@@ -354,6 +509,9 @@ create_browser () {
     g_signal_connect (G_OBJECT (web_view), "load-committed", G_CALLBACK (log_history_cb), web_view);
     g_signal_connect (G_OBJECT (web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), web_view);
     g_signal_connect (G_OBJECT (web_view), "key-press-event", G_CALLBACK (key_press_cb), web_view);
+    g_signal_connect (G_OBJECT (web_view), "new-window-policy-decision-requested", G_CALLBACK (new_window_cb), web_view); 
+    g_signal_connect (G_OBJECT (web_view), "download-requested", G_CALLBACK (download_cb), web_view); 
+    g_signal_connect (G_OBJECT (web_view), "create-web-view", G_CALLBACK (create_web_view_cb), web_view);  
 
     return scrolled_window;
 }
@@ -362,8 +520,8 @@ static GtkWidget*
 create_mainbar () {
     mainbar = gtk_hbox_new (FALSE, 0);
     mainbar_label = gtk_label_new ("");  
-    gtk_misc_set_alignment (mainbar_label, 0, 0);
-    gtk_misc_set_padding (mainbar_label, 2, 2);
+    gtk_misc_set_alignment (GTK_MISC(mainbar_label), 0, 0);
+    gtk_misc_set_padding (GTK_MISC(mainbar_label), 2, 2);
     gtk_box_pack_start (GTK_BOX (mainbar), mainbar_label, TRUE, TRUE, 0);
     return mainbar;
 }
@@ -392,68 +550,120 @@ add_binding (char *binding, char *action, bool internal) {
 
 static void
 settings_init () {
-    GKeyFile* config = g_key_file_new ();
-    gboolean res = g_key_file_load_from_file (config, "./sampleconfig", G_KEY_FILE_NONE, NULL); //TODO: pass config file as argument
+    GKeyFile* config;
+    gboolean res  = FALSE;
+    gchar** keysi = NULL;
+    gchar** keyse = NULL;
+
+    if (!config_file) {
+        const char* XDG_CONFIG_HOME = getenv ("XDG_CONFIG_HOME");
+        if (! XDG_CONFIG_HOME || ! strcmp (XDG_CONFIG_HOME, "")) {
+          XDG_CONFIG_HOME = (char *)XDG_CONFIG_HOME_default;
+        }
+        printf("XDG_CONFIG_HOME: %s\n", XDG_CONFIG_HOME);
+    
+        strcpy (config_file_path, XDG_CONFIG_HOME);
+        strcat (config_file_path, "/uzbl/config");
+        if (file_exists (config_file_path)) {
+          printf ("Config file %s found.\n", config_file_path);
+          config_file = &config_file_path[0];
+        } else {
+            // Now we check $XDG_CONFIG_DIRS
+            char *XDG_CONFIG_DIRS = getenv ("XDG_CONFIG_DIRS");
+            if (! XDG_CONFIG_DIRS || ! strcmp (XDG_CONFIG_DIRS, ""))
+                XDG_CONFIG_DIRS = XDG_CONFIG_DIRS_default;
+
+            printf("XDG_CONFIG_DIRS: %s\n", XDG_CONFIG_DIRS);
+
+            char buffer[512];
+            strcpy (buffer, XDG_CONFIG_DIRS);
+            const gchar* dir = strtok (buffer, ":");
+            while (dir && ! file_exists (config_file_path)) {
+                strcpy (config_file_path, dir);
+                strcat (config_file_path, "/uzbl/config");
+                if (file_exists (config_file_path)) {
+                    printf ("Config file %s found.\n", config_file_path);
+                    config_file = &config_file_path[0];
+                }
+                dir = strtok (NULL, ":");
+            }
+        }
+    }
+
+    if (config_file) {
+        config = g_key_file_new ();
+        res = g_key_file_load_from_file (config, config_file, G_KEY_FILE_NONE, NULL);
+    	  if(res) {
+            printf ("Config %s loaded\n", config_file);
+    	  } else {
+            fprintf (stderr, "Config %s loading failed\n", config_file);
+        }
+    } else {
+        printf ("No configuration.\n");
+    }
+
     if (res) {
-        printf ("Config loaded\n");
-    } else {
-        fprintf (stderr, "Config loading failed\n"); //TODO: exit codes with gtk? 
+        history_handler    = g_key_file_get_value   (config, "behavior", "history_handler",    NULL);
+        download_handler   = g_key_file_get_value   (config, "behavior", "download_handler",   NULL);
+        always_insert_mode = g_key_file_get_boolean (config, "behavior", "always_insert_mode", NULL);
+        show_status        = g_key_file_get_boolean (config, "behavior", "show_status",        NULL);
+        modkey             = g_key_file_get_value   (config, "behavior", "modkey",             NULL);
+        keysi              = g_key_file_get_keys    (config, "bindings_internal",        NULL, NULL);
+        keyse              = g_key_file_get_keys    (config, "bindings_external",        NULL, NULL);
+        status_top         = g_key_file_get_boolean (config, "behavior", "status_top",         NULL);
+        home_page          = g_key_file_get_value   (config, "behavior", "home_page",          NULL);
+        if (! fifodir)
+            fifodir        = g_key_file_get_value   (config, "behavior", "fifodir",            NULL);
     }
+	
+    printf ("History handler: %s\n",    (history_handler    ? history_handler  : "disabled"));
+    printf ("Download manager: %s\n",   (download_handler   ? download_handler : "disabled"));
+    printf ("FIFO directory: %s\n",     (fifodir            ? fifodir          : "/tmp"));
+    printf ("Always insert mode: %s\n", (always_insert_mode ? "TRUE"           : "FALSE"));
+    printf ("Show status: %s\n",        (show_status        ? "TRUE"           : "FALSE"));
+    printf ("Status top: %s\n",         (status_top         ? "TRUE"           : "FALSE"));
+    printf ("Modkey: %s\n",             (modkey             ? modkey           : "disabled"));
+    printf ("Home page: %s\n",          (home_page          ? home_page        : "disabled"));
 
-    history_file = g_key_file_get_value (config, "behavior", "history_file", NULL);
-    if (history_file) {
-        printf ("History file: %s\n", history_file);
-    } else {
-        printf ("History logging disabled\n");
+    if (! modkey)
+        modkey = "";
+
+    //POSSIBLE MODKEY VALUES (COMBINATIONS CAN BE USED)
+    gchar* modkeyup = g_utf8_strup (modkey, -1);
+    if (g_strrstr (modkeyup,"SHIFT") != NULL)    modmask |= GDK_SHIFT_MASK;    //the Shift key.
+    if (g_strrstr (modkeyup,"LOCK") != NULL)     modmask |= GDK_LOCK_MASK;     //a Lock key (depending on the modifier mapping of the X server this may either be CapsLock or ShiftLock).
+    if (g_strrstr (modkeyup,"CONTROL") != NULL)  modmask |= GDK_CONTROL_MASK;  //the Control key.
+    if (g_strrstr (modkeyup,"MOD1") != NULL)     modmask |= GDK_MOD1_MASK;     //the fourth modifier key (it depends on the modifier mapping of the X server which key is interpreted as this modifier, but normally it is the Alt key).
+    if (g_strrstr (modkeyup,"MOD2") != NULL)     modmask |= GDK_MOD2_MASK;     //the fifth modifier key (it depends on the modifier mapping of the X server which key is interpreted as this modifier).
+    if (g_strrstr (modkeyup,"MOD3") != NULL)     modmask |= GDK_MOD3_MASK;     //the sixth modifier key (it depends on the modifier mapping of the X server which key is interpreted as this modifier).
+    if (g_strrstr (modkeyup,"MOD4") != NULL)     modmask |= GDK_MOD4_MASK;     //the seventh modifier key (it depends on the modifier mapping of the X server which key is interpreted as this modifier).
+    if (g_strrstr (modkeyup,"MOD5") != NULL)     modmask |= GDK_MOD5_MASK;     //the eighth modifier key (it depends on the modifier mapping of the X server which key is interpreted as this modifier).
+    if (g_strrstr (modkeyup,"BUTTON1") != NULL)  modmask |= GDK_BUTTON1_MASK;  //the first mouse button.
+    if (g_strrstr (modkeyup,"BUTTON2") != NULL)  modmask |= GDK_BUTTON2_MASK;  //the second mouse button.
+    if (g_strrstr (modkeyup,"BUTTON3") != NULL)  modmask |= GDK_BUTTON3_MASK;  //the third mouse button.
+    if (g_strrstr (modkeyup,"BUTTON4") != NULL)  modmask |= GDK_BUTTON4_MASK;  //the fourth mouse button.
+    if (g_strrstr (modkeyup,"BUTTON5") != NULL)  modmask |= GDK_BUTTON5_MASK;  //the fifth mouse button.
+    if (g_strrstr (modkeyup,"SUPER") != NULL)    modmask |= GDK_SUPER_MASK;    //the Super modifier. Since 2.10
+    if (g_strrstr (modkeyup,"HYPER") != NULL)    modmask |= GDK_HYPER_MASK;    //the Hyper modifier. Since 2.10
+    if (g_strrstr (modkeyup,"META") != NULL)     modmask |= GDK_META_MASK;     //the Meta modifier. Since 2.10  */
+    free (modkeyup);
+
+    if (keysi) {
+        int i = 0;
+        for (i = 0; keysi[i]; i++) {
+            gchar *binding = g_key_file_get_string (config, "bindings_internal", keysi[i], NULL);
+            printf ("Action: %s, Binding: %s (internal)\n", g_strdup (keysi[i]), binding);
+            add_binding (binding, g_strdup (keysi[i]), true);
+        }
     }
-
-    download_handler = g_key_file_get_value (config, "behavior", "download_handler", NULL);
-    if (download_handler) {
-        printf ("Download manager: %s\n", download_handler);
-    } else {
-        printf ("Download manager disabled\n");
+    if (keyse) {
+        int i = 0;
+        for (i = 0; keyse[i]; i++) {
+            gchar *binding = g_key_file_get_string (config, "bindings_external", keyse[i], NULL);
+            printf ("Action: %s, Binding: %s (external)\n", g_strdup (keyse[i]), binding);
+            add_binding (binding, g_strdup (keyse[i]), false);
+        }
     }
-
-    if (! fifodir)
-        fifodir = g_key_file_get_value (config, "behavior", "fifodir", NULL);
-    if (fifodir) {
-        printf ("Fifo directory: %s\n", fifodir);
-    } else {
-        printf ("Fifo directory: /tmp\n");
-    }
-
-    always_insert_mode = g_key_file_get_boolean (config, "behavior", "always_insert_mode", NULL);
-    printf ("Always insert mode: %s\n", (always_insert_mode ? "TRUE" : "FALSE"));
-
-    show_status = g_key_file_get_boolean (config, "behavior", "show_status", NULL);
-    printf ("Show status: %s\n", (show_status ? "TRUE" : "FALSE"));
-
-    status_top = g_key_file_get_boolean (config, "behavior", "status_top", NULL);
-    printf ("Status top: %s\n", (status_top ? "TRUE" : "FALSE"));
-
-    modkey = g_key_file_get_value (config, "behavior", "modkey", NULL);
-    if (modkey) {
-        printf ("Mod key: %s\n", modkey);
-    } else {
-        printf ("Mod key disabled/\n");
-    }
-
-    gchar **keysi = g_key_file_get_keys (config, "bindings_internal", NULL, NULL);
-    int i = 0;
-    for (i = 0; keysi[i]; i++)
-      {
-        gchar *binding = g_key_file_get_string(config, "bindings_internal", keysi[i], NULL);
-        printf("Action: %s, Binding: %s (internal)\n", g_strdup (keysi[i]), binding);
-        add_binding (binding, g_strdup (keysi[i]), true);
-      }
-
-    gchar **keyse = g_key_file_get_keys (config, "bindings_external", NULL, NULL);
-    for (i = 0; keyse[i]; i++)
-      {
-        gchar *binding = g_key_file_get_string(config, "bindings_external", keyse[i], NULL);
-        printf("Action: %s, Binding: %s (external)\n", g_strdup (keyse[i]), binding);
-        add_binding (binding, g_strdup (keyse[i]), false);
-      }
 }
 
 int
@@ -461,6 +671,17 @@ main (int argc, char* argv[]) {
     gtk_init (&argc, &argv);
     if (!g_thread_supported ())
         g_thread_init (NULL);
+
+    printf("Uzbl start location: %s\n", argv[0]);
+
+    strcat ((char *) XDG_CONFIG_HOME_default, getenv ("HOME"));
+    strcat ((char *) XDG_CONFIG_HOME_default, "/.config");
+
+    GError *error = NULL;
+    GOptionContext* context = g_option_context_new ("- some stuff here maybe someday");
+    g_option_context_add_main_entries (context, entries, NULL);
+    g_option_context_add_group (context, gtk_get_option_group (TRUE));
+    g_option_context_parse (context, &argc, &argv, &error);
 
     settings_init ();
     if (always_insert_mode)
@@ -475,14 +696,8 @@ main (int argc, char* argv[]) {
 
     main_window = create_window ();
     gtk_container_add (GTK_CONTAINER (main_window), vbox);
-    GError *error = NULL;
 
-    GOptionContext* context = g_option_context_new ("- some stuff here maybe someday");
-    g_option_context_add_main_entries (context, entries, NULL);
-    g_option_context_add_group (context, gtk_get_option_group (TRUE));
-    g_option_context_parse (context, &argc, &argv, &error);
-
-    webkit_web_view_load_uri (web_view, uri);
+    load_uri (web_view, uri);
 
     gtk_widget_grab_focus (GTK_WIDGET (web_view));
     gtk_widget_show_all (main_window);
@@ -500,3 +715,5 @@ main (int argc, char* argv[]) {
     unlink (fifopath);
     return 0;
 }
+
+/* vi: set et ts=4: */
