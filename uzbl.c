@@ -259,27 +259,23 @@ parse_command(const char *cmd) {
   gchar * command_param = strtok (NULL,  " ,");
   
   if((c = g_hash_table_lookup(commands, command_name)) != NULL){
-    if (c != NULL) {
-      if (c->func_2_params != NULL) {
-	if (command_param != NULL) {
+    if (c->func_2_params != NULL) {
+      if (command_param != NULL) {
 	printf ("command executing: \"%s %s\"\n", command_name, command_param);
 	c->func_2_params (web_view, command_param);
-	} else {
-	  if (c->func_1_param != NULL) {
-	    printf ("command executing: \"%s\"\n", command_name);
-	    c->func_1_param (web_view);
-	  } else {
-	    fprintf (stderr, "command needs a parameter. \"%s\" is not complete\n", command_name);
-	  }
-	}
-      } else if (c->func_1_param != NULL) {
-	printf ("command executing: \"%s\"\n", command_name);
-	c->func_1_param (web_view);
+      } else {
+	if (c->func_1_param != NULL) {
+	  printf ("command executing: \"%s\"\n", command_name);
+	  c->func_1_param (web_view);
+	} else 
+	  fprintf (stderr, "command needs a parameter. \"%s\" is not complete\n", command_name);
       }
-    } else {
-      fprintf (stderr, "command \"%s\" not understood. ignoring.\n", cmd);
+    } else if (c->func_1_param != NULL) {
+      printf ("command executing: \"%s\"\n", command_name);
+      c->func_1_param (web_view);
     }
-  }
+  } else
+    fprintf (stderr, "command \"%s\" not understood. ignoring.\n", cmd);
 }
 
 static void
