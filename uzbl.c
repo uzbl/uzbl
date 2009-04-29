@@ -42,6 +42,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 /* housekeeping / internal variables */
 static GtkWidget* main_window;
@@ -52,18 +57,17 @@ static gchar* main_title;
 static gchar selected_url[500] = "\0";
 static gint load_progress;
 static Window xwin = 0;
-static char fifopath[64];
+static char socket_path[108];
 
 /* state variables (initial values coming from command line arguments but may be changed later) */
 static gchar*   uri         = NULL;
 static gchar*   config_file = NULL;
 static gchar    config_file_path[500];
-
 static gboolean verbose     = FALSE;
 
 /* settings from config: group behaviour */
 static gchar*   history_handler    = NULL;
-static gchar*   fifodir            = NULL;
+static gchar*   socket_dir         = NULL;
 static gchar*   download_handler   = NULL;
 static gboolean always_insert_mode = FALSE;
 static gboolean show_status        = FALSE;
@@ -331,10 +335,10 @@ close_uzbl (WebKitWebView * web_view) {
 // make sure to put '' around args, so that if there is whitespace we can still keep arguments together.
 static gboolean
 run_command(const char *command, const char *args) {
-   //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> [args]
+   //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl socket file> [args]
     GString* to_execute = g_string_new ("");
     gboolean result;
-    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s'", command, config_file, (int) getpid() , (int) xwin, fifopath);
+    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s'", command, config_file, (int) getpid() , (int) xwin, socket_path);
     if(args) {
         g_string_append_printf (to_execute, " %s", args);
     }
@@ -383,34 +387,60 @@ parse_command(const char *cmd) {
 }
  
 static void
-*control_fifo() {
-    if (fifodir) {
-        sprintf (fifopath, "%s/uzbl_%d", fifodir, (int) xwin);
+*control_socket() {
+    if (socket_dir) {
+        sprintf (socket_path, "%s/uzbl_%d", socket_dir, (int) xwin);
     } else {
-        sprintf (fifopath, "/tmp/uzbl_%d", (int) xwin);
+        sprintf (socket_path, "/tmp/uzbl_%d", (int) xwin);
     }
  
-    if (mkfifo (fifopath, 0666) == -1) {
-        printf ("Possible error creating fifo\n");
+    int sock, clientsock, len;
+    unsigned int t;
+    struct sockaddr_un local, remote;
+
+    sock = socket (AF_UNIX, SOCK_STREAM, 0);
+
+    local.sun_family = AF_UNIX;
+    strcpy (local.sun_path, socket_path);
+    unlink (local.sun_path);
+
+    len = strlen (local.sun_path) + sizeof (local.sun_family);
+    bind (sock, (struct sockaddr *) &local, len);
+
+    if (errno == -1) {
+        printf ("A problem occurred when opening a socket in %s\n", socket_path);
+    } else {
+        printf ("Control socket opened in %s\n", socket_path);
     }
+
+    listen (sock, 5);
  
-    printf ("Control fifo opened in %s\n", fifopath);
- 
-    while (true) {
-        FILE *fifo = fopen (fifopath, "r");
-        if (!fifo) {
-            printf ("Could not open %s for reading\n", fifopath);
-            return NULL;
-        }
-        
-        char buffer[256];
+    for(;;) {
+        int done, n;
+        char buffer[512];
+        char temp[128];
+
         memset (buffer, 0, sizeof (buffer));
-        while (!feof (fifo) && fgets (buffer, sizeof (buffer), fifo)) {
-            if (strcmp (buffer, "\n")) {
-                buffer[strlen (buffer) - 1] = '\0'; // Remove newline
-                parse_command (buffer);
-            }
+
+        t          = sizeof (remote);
+        clientsock = accept (sock, (struct sockaddr *) &remote, &t);
+        printf ("Connected to client\n");
+
+        done = 0;
+        do {
+            n = recv (clientsock, temp, 128, 0);
+            if (n == 0)
+                done = 1;
+
+            if (!done)
+                strcat (buffer, temp);
+        } while (!done);
+
+        if (strcmp (buffer, "\n")) {
+            buffer[strlen (buffer) - 1] = '\0';
+            parse_command (buffer);
         }
+        close(clientsock);
     }
     
     return NULL;
@@ -419,7 +449,7 @@ static void
 static void
 setup_threading () {
     pthread_t control_thread;
-    pthread_create(&control_thread, NULL, control_fifo, NULL);
+    pthread_create(&control_thread, NULL, control_socket, NULL);
 }
 
 static void
@@ -613,13 +643,13 @@ settings_init () {
         keyse              = g_key_file_get_keys    (config, "bindings_external",        NULL, NULL);
         status_top         = g_key_file_get_boolean (config, "behavior", "status_top",         NULL);
         home_page          = g_key_file_get_value   (config, "behavior", "home_page",          NULL);
-        if (! fifodir)
-            fifodir        = g_key_file_get_value   (config, "behavior", "fifodir",            NULL);
+        if (! socket_dir)
+            socket_dir     = g_key_file_get_value   (config, "behavior", "socket_dir",            NULL);
     }
 	
     printf ("History handler: %s\n",    (history_handler    ? history_handler  : "disabled"));
     printf ("Download manager: %s\n",   (download_handler   ? download_handler : "disabled"));
-    printf ("FIFO directory: %s\n",     (fifodir            ? fifodir          : "/tmp"));
+    printf ("Socket directory: %s\n",   (socket_dir         ? socket_dir       : "/tmp"));
     printf ("Always insert mode: %s\n", (always_insert_mode ? "TRUE"           : "FALSE"));
     printf ("Show status: %s\n",        (show_status        ? "TRUE"           : "FALSE"));
     printf ("Status top: %s\n",         (status_top         ? "TRUE"           : "FALSE"));
@@ -713,7 +743,7 @@ main (int argc, char* argv[]) {
 
     gtk_main ();
 
-    unlink (fifopath);
+    unlink (socket_path);
     return 0;
 }
 

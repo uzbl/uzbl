@@ -11,7 +11,7 @@ ASAP
 * implement a vimperator-like link following scheme.  but let user pick his favorite characters to construct the "link identifiers" with.
 * add a keybind to hand the current url to an external scrips, so you can edit it and/or store it in the primary and secondary clipboards
 * use http://library.gnome.org/devel/glib/stable/glib-Hash-Tables.html#g-hash-table-insert for tracking bindings and wherever we use structs and ugly loops
-* fifo -> socket. so you can do question-response. socket is slightly more complicated so we'll need to create a uzblctrl
+* fifo -> socket. so you can do question-response. socket is slightly more complicated so we'll need to create a uzblctrl (half done - commands can't yet send data back)
 * select/fork based instead of the pthread stuff -> drops dependency, more lightweight.
 * on website, see if we can <pre><?php include('..'); ?></pre> the documentation inside the uzbl project itself, so we need to maintain the stuff on only 1 place
 * see if we can use the github bugtracker (anonymous posting allowed?)
