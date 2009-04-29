@@ -105,18 +105,19 @@ $1 uzbl-config-file
 $2 uzbl-pid
 $3 uzbl-x-window-id
 $4 uzbl_fifo-filename
+$5 uzbl_socket-filename
 .. [ script specific ] (optional)
 
 The script specific arguments are this:
 * history:
-  $5 page url
-  $6 page title
-  $7 date of visit (Y-m-d H:i:s localtime)
+  $6 page url
+  $7 page title
+  $8 date of visit (Y-m-d H:i:s localtime)
 * add bookmark:
-  $5 page url
-  $6 page title
+  $6 page url
+  $7 page title
 * download:
-  $5 url
+  $6 url
 
 KNOWN BUGS
 - Segfaults when using zoom commands (happens when max zoom already reached?).

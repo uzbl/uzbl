@@ -1,2 +1,2 @@
 #!/bin/bash
-wget $5
+wget $6

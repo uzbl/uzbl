@@ -45,6 +45,7 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/types.h>
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
@@ -57,6 +58,7 @@ static gchar* main_title;
 static gchar selected_url[500] = "\0";
 static gint load_progress;
 static Window xwin = 0;
+static char fifo_path[64];
 static char socket_path[108];
 
 /* state variables (initial values coming from command line arguments but may be changed later) */
@@ -67,6 +69,7 @@ static gboolean verbose     = FALSE;
 
 /* settings from config: group behaviour */
 static gchar*   history_handler    = NULL;
+static gchar*   fifo_dir           = NULL;
 static gchar*   socket_dir         = NULL;
 static gchar*   download_handler   = NULL;
 static gboolean always_insert_mode = FALSE;
@@ -345,10 +348,10 @@ close_uzbl (WebKitWebView * web_view) {
 // make sure to put '' around args, so that if there is whitespace we can still keep arguments together.
 static gboolean
 run_command(const char *command, const char *args) {
-   //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl socket file> [args]
+   //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
     GString* to_execute = g_string_new ("");
     gboolean result;
-    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s'", command, config_file, (int) getpid() , (int) xwin, socket_path);
+    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' '%s'", command, config_file, (int) getpid() , (int) xwin, fifo_path, socket_path);
     if(args) {
         g_string_append_printf (to_execute, " %s", args);
     }
@@ -388,11 +391,45 @@ parse_command(const char *cmd) {
 }
 
 static void
+control_fifo(GIOChannel *fd) {
+    gchar *ctl_line;
+    gsize ctl_line_length, term_pos;
+
+    if(!fd)
+       return;
+
+    g_io_channel_read_line(fd, &ctl_line, &ctl_line_length, &term_pos, NULL); //TODO: support partial writes
+    ctl_line[term_pos] ='\0';
+    parse_command(ctl_line);
+     
+    return;
+}
+
+static void
+create_fifo() {
+    GIOChannel *chan = NULL;
+
+    if (fifo_dir) {
+        sprintf (fifo_path, "%s/uzbl_fifo_%d", fifo_dir, (int) xwin);
+    } else {
+        sprintf (fifo_path, "/tmp/uzbl_fifo_%d", (int) xwin);
+    }
+    printf ("Control fifo opened in %s\n", fifo_path);
+    if (mkfifo (fifo_path, 0666) == -1) {
+        printf ("Possible error creating fifo\n");
+    }
+
+    if( (chan = g_io_channel_new_file((gchar *) fifo_path, "r+", NULL)) )
+        g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, chan);
+    return;
+}
+
+static void
 *control_socket() {
     if (socket_dir) {
-        sprintf (socket_path, "%s/uzbl_%d", socket_dir, (int) xwin);
+        sprintf (socket_path, "%s/uzbl_socket_%d", socket_dir, (int) xwin);
     } else {
-        sprintf (socket_path, "/tmp/uzbl_%d", (int) xwin);
+        sprintf (socket_path, "/tmp/uzbl_socket_%d", (int) xwin);
     }
  
     int sock, clientsock, len;
@@ -638,12 +675,15 @@ settings_init () {
         keyse              = g_key_file_get_keys    (config, "bindings_external",        NULL, NULL);
         status_top         = g_key_file_get_boolean (config, "behavior", "status_top",         NULL);
         home_page          = g_key_file_get_value   (config, "behavior", "home_page",          NULL);
+        if (! fifo_dir)
+            fifo_dir       = g_key_file_get_value   (config, "behavior", "fifo_dir",           NULL);
         if (! socket_dir)
-            socket_dir     = g_key_file_get_value   (config, "behavior", "socket_dir",            NULL);
+            socket_dir     = g_key_file_get_value   (config, "behavior", "socket_dir",         NULL);
     }
 	
     printf ("History handler: %s\n",    (history_handler    ? history_handler  : "disabled"));
     printf ("Download manager: %s\n",   (download_handler   ? download_handler : "disabled"));
+    printf ("Fifo directory: %s\n",     (fifo_dir           ? fifo_dir         : "/tmp"));
     printf ("Socket directory: %s\n",   (socket_dir         ? socket_dir       : "/tmp"));
     printf ("Always insert mode: %s\n", (always_insert_mode ? "TRUE"           : "FALSE"));
     printf ("Show status: %s\n",        (show_status        ? "TRUE"           : "FALSE"));
@@ -740,10 +780,12 @@ main (int argc, char* argv[]) {
     	gtk_widget_hide(mainbar);
 
     setup_threading ();
+    create_fifo ();
 
     gtk_main ();
 
     unlink (socket_path);
+    unlink (fifo_path);
     return 0;
 }
 
