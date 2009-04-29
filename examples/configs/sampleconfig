@@ -13,7 +13,7 @@
 [behavior]
 history_handler = /bin/bash /usr/share/uzbl/examples/scripts/history.sh
 download_handler = /bin/bash /usr/share/uzbl/examples/scripts/download.sh
-fifo_dir = /tmp
+socket_dir = /tmp
 always_insert_mode = 0
 modkey = Mod1
 show_status = 1
