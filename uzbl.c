@@ -326,8 +326,9 @@ parse_command(const char *cmd) {
   Command *c = NULL;
   char buffer[512];
   strcpy (buffer, cmd);
-  char * command_name  = strtok (buffer, " ");
-  gchar * command_param = strtok (NULL,  " ,");
+  char * saveptr;
+  char * command_name  = strtok_r (buffer, " ", &saveptr);
+  gchar * command_param = strtok_r (NULL,  " ,", &saveptr);
   
   if((c = g_hash_table_lookup(commands, command_name)) != NULL){
     if (c->func_2_params != NULL) {
@@ -508,6 +509,7 @@ settings_init () {
     gboolean res  = FALSE;
     gchar** keysi = NULL;
     gchar** keyse = NULL;
+    char *saveptr;
 
     if (! config_file) {
         const char* XDG_CONFIG_HOME = getenv ("XDG_CONFIG_HOME");
@@ -532,7 +534,7 @@ settings_init () {
 
             char buffer[512];
             strcpy (buffer, XDG_CONFIG_DIRS);
-            const gchar* dir = strtok (buffer, ":");
+            const gchar* dir = (char *) strtok_r (buffer, ":", &saveptr);
             while (dir && ! file_exists (conf)) {
                 strcpy (conf, dir);
                 strcat (conf, "/uzbl/config");
@@ -540,7 +542,7 @@ settings_init () {
                     printf ("Config file %s found.\n", conf);
                     config_file = &conf[0];
                 }
-                dir = strtok (NULL, ":");
+                dir = (char * ) strtok_r (NULL, ":", &saveptr);
             }
         }
     }
