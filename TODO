@@ -1,10 +1,9 @@
 ASAP
-* do a clean implementation of bindings that need arguments (eg insert_bookmark needs the uri.)
-
 * implement all the ideas from README
 * get a logo
 * improve site
 * Support for binding keyboard shortcuts in config file.
+* when launching new instance, don't just try 'uzbl' and then './uzbl', rather launch a new uzbl in the same way the current uzbl instance was started. (same command, same arguments, except --uri)
 * where to put proxy config? webkit support?
 * implement XDG basedir spec (config is done, but not cache/data, which I presume we'll need at some point)
 * check configured commands if they end on .sh so users don't need to prepend /bin/<shell>
@@ -13,8 +12,11 @@ ASAP
 * implement a vimperator-like link following scheme.  but let user pick his favorite characters to construct the "link identifiers" with.
 * add a keybind to hand the current url to an external scrips, so you can edit it and/or store it in the primary and secondary clipboards
 * use http://library.gnome.org/devel/glib/stable/glib-Hash-Tables.html#g-hash-table-insert for tracking bindings and wherever we use structs and ugly loops
-* char *XDG_CONFIG_HOME_default = "~/.config"; where does ~ get expanded?
 * fifo -> socket. so you can do question-response. socket is slightly more complicated so we'll need to create a uzblctrl
+* select/fork based instead of the pthread stuff -> drops dependency, more lightweight.
+* on website, see if we can <pre><?php include('..'); ?></pre> the documentation inside the uzbl project itself, so we need to maintain the stuff on only 1 place
+* see if we can use the github bugtracker (anonymous posting allowed?)
+* allow user to change bindings for navigation (up,down,left,right, page up, page down etc)
 
 SOMEDAY:
 check if we can make the settings loading less hard coded. eg( keep a list of all settings, and for each one, try to load it)

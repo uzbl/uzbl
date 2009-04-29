@@ -18,6 +18,7 @@ always_insert_mode = 0
 modkey = Mod1
 show_status = 1
 status_top = 0
+home_page = http://www.uzbl.org
 
 [bindings_internal]
 back = b
@@ -32,6 +33,7 @@ follow_link_new_window = w
 zoom_in = +
 zoom_out = -
 toggle_status = t
+exit = k
 
 [bindings_external]
 /bin/bash ./examples/scripts/insert_bookmark.sh = B

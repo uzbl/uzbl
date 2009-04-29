@@ -13,7 +13,13 @@ Also testers and interested people can use this list to see what uzbl is about, 
 * history logging: the script as defined in sample config should write history entries (date,time, url) into the file defined in the script (by default ./extra/history.sh and /tmp/uzbl.history)
 * invocations of external commands: you'll see it on stdout everytime uzbl calls an external script/program. the invocations should work and none of the arguments passed should be null/garbage/.. .
   all should be valid strings and contain things like the pid, fifo file, config file,.. (see README for details).
-* XDG_CONFIG_HOME and XDG_CONFIG_DIRS (+ default values) fully supported and working (looks for a config file called 'uzbl').
+* XDG_CONFIG_HOME and XDG_CONFIG_DIRS (+ default values) fully supported and working (looks for a config file called 'uzbl/config').
+* --uri can be specified without http:// -- if missing will be prepended.
+* Download completely finished
+* Open in new window partially finished: target _new works, from popup meny does not work yet
+* Home command working (home_page variable in config)
 
 TODO: add stuff about internal/external keybinds, mod key, insert mode, status bar,
 behavior settings,....
+
+TODO: add 'http://' to url if there is no substr '://'
