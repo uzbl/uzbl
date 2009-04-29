@@ -360,11 +360,12 @@ run_command(const char *command, const char *args) {
 
 static void
 parse_command(const char *cmd) {
-    Command *c = NULL;
-    char buffer[512];
-    strcpy (buffer, cmd);
-    char * command_name  = strtok (buffer, " ");
-    gchar * command_param = strtok (NULL,  " ,");
+  Command *c = NULL;
+  char buffer[512];
+  strcpy (buffer, cmd);
+  char * saveptr;
+  char * command_name  = strtok_r (buffer, " ", &saveptr);
+  gchar * command_param = strtok_r (NULL,  " ,", &saveptr);
   
     if((c = g_hash_table_lookup(commands, command_name)) != NULL){
         if (c->func_2_params != NULL) {
@@ -514,10 +515,17 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     
     //EXTERNAL BINDINGS
     if((act = g_hash_table_lookup(external_bindings, event->string)) != NULL)
+<<<<<<< HEAD:uzbl.c
         if (!insert_mode || (event->state == modmask)) {
             run_command(act, NULL);
             result = TRUE;
         }
+=======
+      if (!insert_mode || (event->state == modmask)) {
+	run_command (act, NULL);
+	result = TRUE;
+      }
+>>>>>>> dieter/experimental:uzbl.c
     
     if (!result)
         result = (insert_mode ? FALSE : TRUE);      
@@ -578,6 +586,7 @@ settings_init () {
     gboolean res  = FALSE;
     gchar** keysi = NULL;
     gchar** keyse = NULL;
+    char *saveptr;
 
     if (!config_file) {
         const char* XDG_CONFIG_HOME = getenv ("XDG_CONFIG_HOME");
@@ -601,15 +610,15 @@ settings_init () {
 
             char buffer[512];
             strcpy (buffer, XDG_CONFIG_DIRS);
-            const gchar* dir = strtok (buffer, ":");
+            const gchar* dir = (char *) strtok_r (buffer, ":", &saveptr);
             while (dir && ! file_exists (config_file_path)) {
                 strcpy (config_file_path, dir);
-                strcat (config_file_path, "/uzbl/config");
+                strcat (config_file_path, "/uzbl/config_file_pathig");
                 if (file_exists (config_file_path)) {
                     printf ("Config file %s found.\n", config_file_path);
                     config_file = &config_file_path[0];
                 }
-                dir = strtok (NULL, ":");
+                dir = (char * ) strtok_r (NULL, ":", &saveptr);
             }
         }
     }
