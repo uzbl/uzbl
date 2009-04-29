@@ -9,4 +9,5 @@ else
 fi
 
 goto=`awk '{print $1}' $file | dmenu -i` #NOTE: it's the job of the script that inserts bookmarks to make sure there are no dupes.
-[ -n "$goto" ] && echo "uri $goto" > $4
+#[ -n "$goto" ] && echo "uri $goto" > $4
+[ -n "$goto" ] && uzblctrl -s $4 -c "uri $goto"
