@@ -579,9 +579,9 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
         || event->keyval == GDK_Up || event->keyval == GDK_Down || event->keyval == GDK_Left || event->keyval == GDK_Right)
         return FALSE;
 
-    /* turn of insert mode */
+    /* turn off insert mode (if always_insert_mode is not used) */
     if (insert_mode && (event->keyval == GDK_Escape)) {
-        insert_mode = !insert_mode || always_insert_mode;
+        insert_mode = always_insert_mode;
         update_title();
         return TRUE;
     }
