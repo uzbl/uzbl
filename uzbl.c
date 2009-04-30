@@ -30,6 +30,7 @@
 
 
 #define LENGTH(x) (sizeof x / sizeof x[0])
+#define MAX_BINDINGS 256
 
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
@@ -78,16 +79,17 @@ static gboolean insert_mode        = FALSE;
 static gboolean status_top         = FALSE;
 static gchar*   modkey             = NULL;
 static guint    modmask            = 0;
-static gchar*   home_page          = NULL;
 
-/* settings from config: group bindings_internal */
-static GHashTable *internal_bindings;
+/* settings from config: group bindings, key -> action */
+static GHashTable *bindings;
 
-/* settings from config: group bindings_external */
-static GHashTable *external_bindings;
-
-/* command list */
+/* command list: name -> Command  */
 static GHashTable *commands;
+
+typedef struct {
+    char *name;
+    char *param;
+} Action;
 
 /* commandline arguments (set initial values for the state variables) */
 static GOptionEntry entries[] =
@@ -98,17 +100,11 @@ static GOptionEntry entries[] =
     { NULL,      0, 0, 0, NULL, NULL, NULL }
 };
 
-/* for internal list of commands */
-typedef struct
-{
-    gpointer command;
-    void (*func_1_param)(WebKitWebView*);
-    void (*func_2_params)(WebKitWebView*, const gchar *);
-} Command;
+typedef void (*Command)(WebKitWebView*, const char *);
 
 /* XDG stuff */
-char *XDG_CONFIG_HOME_default[256];
-char *XDG_CONFIG_DIRS_default = "/etc/xdg";
+static char *XDG_CONFIG_HOME_default[256];
+static char *XDG_CONFIG_DIRS_default = "/etc/xdg";
 
 static void
 update_title (GtkWindow* window);
@@ -120,13 +116,20 @@ static void
 new_window_load_uri (const gchar * uri);
 
 static void
-go_home ( WebKitWebView * web_view);
-
-static void
-close_uzbl ( WebKitWebView * web_view);
+close_uzbl (WebKitWebView *page, const char *param);
 
 static gboolean
 run_command(const char *command, const char *args);
+
+static void
+spawn(WebKitWebView *web_view, const char *param);
+
+static void
+free_action(gpointer action);
+
+static Action*
+new_action(const gchar *name, const gchar *param);
+
 
 
 /* --- CALLBACKS --- */
@@ -171,24 +174,13 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
 }
 
 static void
-go_back_cb (WebKitWebView* page) {
-    (void) page;
-    webkit_web_view_go_back (web_view);
-}
-
-static void
-go_forward_cb (WebKitWebView* page) {
-    (void) page;
-    webkit_web_view_go_forward (web_view);
-}
-
-static void
-toggle_status_cb (WebKitWebView* page) {
-    (void) page;
+toggle_status_cb (WebKitWebView* page, const char *param) {
+    (void)page;
+    (void)param;
     if (show_status) {
-    	gtk_widget_hide(mainbar);
+        gtk_widget_hide(mainbar);
     } else {
-    	gtk_widget_show(mainbar);
+        gtk_widget_show(mainbar);
     }
     show_status = !show_status;
     update_title (GTK_WINDOW (main_window));
@@ -257,39 +249,69 @@ log_history_cb () {
        g_string_free (args, TRUE);
    }
 }
-                                                                                                                                                             
-/* -- command to callback/function map for things we cannot attach to any signals */
-// TODO: reload, home, quit
 
-static Command cmdlist[] =
+/* VIEW funcs (little webkit wrappers) */
+
+#define VIEWFUNC(name) static void view_##name(WebKitWebView *page, const char *param){(void)param; webkit_web_view_##name(page);}
+VIEWFUNC(reload)
+VIEWFUNC(stop_loading)
+VIEWFUNC(zoom_in)
+VIEWFUNC(zoom_out)
+VIEWFUNC(go_back)
+VIEWFUNC(go_forward)
+#undef VIEWFUNC
+
+/* -- command to callback/function map for things we cannot attach to any signals */
+// TODO: reload
+
+static struct {char *name; Command command;} cmdlist[] =
 {
-    { "back",          &go_back_cb,                    NULL },
-    { "forward",       &go_forward_cb,                 NULL },
-    { "refresh",       &webkit_web_view_reload,        NULL }, //Buggy
-    { "stop",          &webkit_web_view_stop_loading,  NULL },
-    { "zoom_in",       &webkit_web_view_zoom_in,       NULL }, //Can crash (when max zoom reached?).
-    { "zoom_out",      &webkit_web_view_zoom_out,      NULL },
-    { "uri",           (void *) NULL,             &load_uri },
-    { "toggle_status", &toggle_status_cb,              NULL },
-    { "home"         , &go_home,                       NULL },
-    { "exit"         , &close_uzbl,                    NULL },
-    { NULL,            NULL,                           NULL }
-//{ "get uri",  &webkit_web_view_get_uri},
+    { "back",          view_go_back       },
+    { "forward",       view_go_forward    },
+    { "reload",        view_reload,       }, //Buggy
+    { "refresh",       view_reload,       }, /* for convenience, will change */
+    { "stop",          view_stop_loading, },
+    { "zoom_in",       view_zoom_in,      }, //Can crash (when max zoom reached?).
+    { "zoom_out",      view_zoom_out,     },
+    { "uri",           load_uri           },
+    { "toggle_status", toggle_status_cb   },
+    { "spawn",         spawn              },
+    { "exit",          close_uzbl         },
 };
 
 static void
 commands_hash(void)
 {
-  unsigned int i = 0;
-  commands = g_hash_table_new(g_str_hash, g_str_equal);
-  
-  while(cmdlist[i].command != NULL){
-    g_hash_table_insert(commands, cmdlist[i].command, &cmdlist[i]);
-    i++;
-  }
+    unsigned int i;
+    commands = g_hash_table_new(g_str_hash, g_str_equal);
+
+    for (i = 0; i < LENGTH(cmdlist); i++)
+        g_hash_table_insert(commands, cmdlist[i].name, cmdlist[i].command);
 }
 
 /* -- CORE FUNCTIONS -- */
+
+void
+free_action(gpointer act) {
+    Action *action = (Action*)act;
+    g_free(action->name);
+    if (action->param)
+        g_free(action->param);
+    g_free(action);
+}
+
+Action*
+new_action(const gchar *name, const gchar *param) {
+    Action *action = g_new(Action, 1);
+
+    action->name = g_strdup(name);
+    if (param)
+        action->param = g_strdup(param);
+    else
+        action->param = NULL;
+
+    return action;
+}
 
 static bool
 file_exists (const char * filename) {
@@ -302,10 +324,10 @@ file_exists (const char * filename) {
 }
 
 static void
-load_uri (WebKitWebView * web_view, const gchar * uri) {
-    if (uri != NULL) {
-        GString* newuri = g_string_new (uri);
-        if (g_strrstr (uri, "://") == NULL)
+load_uri (WebKitWebView * web_view, const gchar *param) {
+    if (param) {
+        GString* newuri = g_string_new (param);
+        if (g_strrstr (param, "://") == NULL)
             g_string_prepend (newuri, "http://"); 
         webkit_web_view_load_uri (web_view, newuri->str);
         g_string_free (newuri, TRUE);
@@ -328,20 +350,15 @@ new_window_load_uri (const gchar * uri) {
             g_string_printf (to_execute, "./uzbl --uri '%s' --config '%s'", uri, config_file);
         }
         printf("Spawning %s\n",to_execute->str);
-	g_spawn_command_line_async (to_execute->str, NULL);
+    g_spawn_command_line_async (to_execute->str, NULL);
     }
     g_string_free (to_execute, TRUE);
 }
 
 static void
-go_home (WebKitWebView * web_view) {
-    if (home_page)
-        webkit_web_view_load_uri (web_view, home_page);
-}
-
-static void
-close_uzbl (WebKitWebView * web_view) {
-    (void) web_view;
+close_uzbl (WebKitWebView *page, const char *param) {
+    (void)page;
+    (void)param;
     gtk_main_quit ();
 }
 
@@ -362,51 +379,51 @@ run_command(const char *command, const char *args) {
 }
 
 static void
-parse_command(const char *cmd) {
-    Command *c = NULL;
-    char buffer[512];
-    strcpy (buffer, cmd);
-    char * saveptr;
-    char * command_name  = strtok_r (buffer, " ", &saveptr);
-    gchar * command_param = strtok_r (NULL,  " ,", &saveptr);
-  
-    if((c = g_hash_table_lookup(commands, command_name)) != NULL){
-        if (c->func_2_params != NULL) {
-            if (command_param != NULL) {
-              printf ("command executing: \"%s %s\"\n", command_name, command_param);
-              c->func_2_params (web_view, command_param);
-            } else {
-                if (c->func_1_param != NULL) {
-                  printf ("command executing: \"%s\"\n", command_name);
-                  c->func_1_param (web_view);
-                } else 
-                    fprintf (stderr, "command needs a parameter. \"%s\" is not complete\n", command_name);
-            }
-        } else if (c->func_1_param != NULL) {
-            printf ("command executing: \"%s\"\n", command_name);
-            c->func_1_param (web_view);
-        }
-    } else
+spawn(WebKitWebView *web_view, const char *param) {
+    (void)web_view;
+    run_command(param, NULL);
+}
+
+static void
+parse_command(const char *cmd, const char *param) {
+    Command c;
+
+    if ((c = g_hash_table_lookup(commands, cmd)))
+        c(web_view, param);
+    else
         fprintf (stderr, "command \"%s\" not understood. ignoring.\n", cmd);
+}
+
+static void
+parse_line(char *line) {
+    gchar **parts;
+
+    g_strstrip(line);
+
+    parts = g_strsplit(line, " ", 2);
+
+    if (!parts)
+        return;
+
+    parse_command(parts[0], parts[1]);
+
+    g_strfreev(parts);
 }
 
 static void
 control_fifo(GIOChannel *fd) {
     gchar *ctl_line;
-    gsize ctl_line_length, term_pos;
+    gsize term_pos;
 
     if(!fd)
        return;
 
-    g_io_channel_read_line(fd, &ctl_line, &ctl_line_length, &term_pos, NULL); //TODO: support partial writes
+    g_io_channel_read_line(fd, &ctl_line, NULL, &term_pos, NULL);
     ctl_line[term_pos] ='\0';
-    parse_command(ctl_line);
 
-    GIOChannel *chan = NULL;
+    parse_line(ctl_line);
 
-    if( (chan = g_io_channel_new_file((gchar *) fifo_path, "r+", NULL)) )
-        g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, chan);
-
+    g_free(ctl_line);
 
     return;
 }
@@ -488,10 +505,10 @@ static void
           buffer[strlen (buffer)] = '\0';
         }
 
-        parse_command (buffer);
+        parse_line (buffer);
         close (clientsock);
     }
-    
+
     return NULL;
 } 
  
@@ -507,8 +524,10 @@ update_title (GtkWindow* window) {
     GString* string_short = g_string_new ("");
     if (!always_insert_mode)
         g_string_append (string_long, (insert_mode ? "[I] " : "[C] "));
-    g_string_append (string_long, main_title);
-    g_string_append (string_short, main_title);
+    if (main_title) {
+        g_string_append (string_long, main_title);
+        g_string_append (string_short, main_title);
+    }
     g_string_append (string_long, " - Uzbl browser");
     g_string_append (string_short, " - Uzbl browser");
     if (load_progress < 100)
@@ -523,7 +542,7 @@ update_title (GtkWindow* window) {
 
     if (show_status) {
         gtk_window_set_title (window, title_short);
-	gtk_label_set_text(GTK_LABEL(mainbar_label), title_long);
+    gtk_label_set_text(GTK_LABEL(mainbar_label), title_long);
     } else {
         gtk_window_set_title (window, title_long);
     }
@@ -535,38 +554,28 @@ update_title (GtkWindow* window) {
 static gboolean
 key_press_cb (WebKitWebView* page, GdkEventKey* event)
 {
+    //TRUE to stop other handlers from being invoked for the event. FALSE to propagate the event further.
+
     (void) page;
-    gpointer act;
-    gboolean result=FALSE; //TRUE to stop other handlers from being invoked for the event. FALSE to propagate the event further.
+    Action *action;
+
     if (event->type != GDK_KEY_PRESS || event->keyval == GDK_Page_Up || event->keyval == GDK_Page_Down
         || event->keyval == GDK_Up || event->keyval == GDK_Down || event->keyval == GDK_Left || event->keyval == GDK_Right)
-        return result;
+        return FALSE;
 
     //TURN OFF/ON INSERT MODE
-    if (!always_insert_mode && ((insert_mode && (event->keyval == GDK_Escape)) || (!insert_mode && (event->string[0] == 'i')))) {
-        insert_mode = !insert_mode;
+    if ((insert_mode && (event->keyval == GDK_Escape)) || (!insert_mode && (event->string[0] == 'i'))) {
+        insert_mode = !insert_mode || always_insert_mode;
         update_title (GTK_WINDOW (main_window));
         return TRUE;
     }
 
-    //INTERNAL BINDINGS
-    if((act = g_hash_table_lookup(internal_bindings, event->string)) != NULL)
-        if (!insert_mode || (event->state == modmask)) {
-            parse_command (act);
-            result = TRUE;
-        }
-    
-    //EXTERNAL BINDINGS
-    if((act = g_hash_table_lookup(external_bindings, event->string)) != NULL)
-        if (!insert_mode || (event->state == modmask)) {
-            run_command (act, NULL);
-            result = TRUE;
-        }
-    
-    if (!result)
-        result = (insert_mode ? FALSE : TRUE);      
+    if ((!insert_mode || (event->state == modmask)) && (action = g_hash_table_lookup(bindings, event->string))) {
+        parse_command(action->name, action->param);
+        return TRUE;
+    }
 
-    return result;
+    return !insert_mode;
 }
 
 static GtkWidget*
@@ -611,23 +620,30 @@ GtkWidget* create_window () {
 }
 
 static void
-add_binding (char *binding, char *action, bool internal) {
-  g_hash_table_insert(internal ? internal_bindings : external_bindings,
-		      binding, action);
+add_binding (const gchar *key, const gchar *act) {
+    char **parts = g_strsplit(act, " ", 2);
+    Action *action;
+
+    if (!parts)
+        return;
+
+    action = new_action(parts[0], parts[1]);
+    g_hash_table_insert(bindings, g_strdup(key), action);
+
+    g_strfreev(parts);
 }
 
 static void
 settings_init () {
     GKeyFile* config;
     gboolean res  = FALSE;
-    gchar** keysi = NULL;
-    gchar** keyse = NULL;
     char *saveptr;
+    gchar** keys = NULL;
 
     if (!config_file) {
         const char* XDG_CONFIG_HOME = getenv ("XDG_CONFIG_HOME");
         if (! XDG_CONFIG_HOME || ! strcmp (XDG_CONFIG_HOME, "")) {
-          XDG_CONFIG_HOME = (char *)XDG_CONFIG_HOME_default;
+          XDG_CONFIG_HOME = (char*)XDG_CONFIG_HOME_default;
         }
         printf("XDG_CONFIG_HOME: %s\n", XDG_CONFIG_HOME);
     
@@ -662,9 +678,9 @@ settings_init () {
     if (config_file) {
         config = g_key_file_new ();
         res = g_key_file_load_from_file (config, config_file, G_KEY_FILE_NONE, NULL);
-    	  if(res) {
+          if(res) {
             printf ("Config %s loaded\n", config_file);
-    	  } else {
+          } else {
             fprintf (stderr, "Config %s loading failed\n", config_file);
         }
     } else {
@@ -677,16 +693,14 @@ settings_init () {
         always_insert_mode = g_key_file_get_boolean (config, "behavior", "always_insert_mode", NULL);
         show_status        = g_key_file_get_boolean (config, "behavior", "show_status",        NULL);
         modkey             = g_key_file_get_value   (config, "behavior", "modkey",             NULL);
-        keysi              = g_key_file_get_keys    (config, "bindings_internal",        NULL, NULL);
-        keyse              = g_key_file_get_keys    (config, "bindings_external",        NULL, NULL);
         status_top         = g_key_file_get_boolean (config, "behavior", "status_top",         NULL);
-        home_page          = g_key_file_get_value   (config, "behavior", "home_page",          NULL);
         if (! fifo_dir)
-            fifo_dir       = g_key_file_get_value   (config, "behavior", "fifo_dir",           NULL);
+            fifo_dir        = g_key_file_get_value   (config, "behavior", "fifodir",            NULL);
         if (! socket_dir)
             socket_dir     = g_key_file_get_value   (config, "behavior", "socket_dir",         NULL);
+        keys               = g_key_file_get_keys    (config, "bindings", NULL,                 NULL);
     }
-	
+    
     printf ("History handler: %s\n",    (history_handler    ? history_handler  : "disabled"));
     printf ("Download manager: %s\n",   (download_handler   ? download_handler : "disabled"));
     printf ("Fifo directory: %s\n",     (fifo_dir           ? fifo_dir         : "/tmp"));
@@ -695,7 +709,6 @@ settings_init () {
     printf ("Show status: %s\n",        (show_status        ? "TRUE"           : "FALSE"));
     printf ("Status top: %s\n",         (status_top         ? "TRUE"           : "FALSE"));
     printf ("Modkey: %s\n",             (modkey             ? modkey           : "disabled"));
-    printf ("Home page: %s\n",          (home_page          ? home_page        : "disabled"));
 
     if (! modkey)
         modkey = "";
@@ -720,21 +733,16 @@ settings_init () {
     if (g_strrstr (modkeyup,"META") != NULL)     modmask |= GDK_META_MASK;     //the Meta modifier. Since 2.10  */
     free (modkeyup);
 
-    if (keysi) {
-        int i = 0;
-        for (i = 0; keysi[i]; i++) {
-            gchar *binding = g_key_file_get_string (config, "bindings_internal", keysi[i], NULL);
-            printf ("Action: %s, Binding: %s (internal)\n", g_strdup (keysi[i]), binding);
-            add_binding (binding, g_strdup (keysi[i]), true);
+    if (keys) {
+        int i;
+        for (i = 0; keys[i]; i++) {
+            gchar *value = g_key_file_get_string (config, "bindings", keys[i], NULL);
+            
+            add_binding(g_strstrip(keys[i]), value);
+            g_free(value);
         }
-    }
-    if (keyse) {
-        int i = 0;
-        for (i = 0; keyse[i]; i++) {
-            gchar *binding = g_key_file_get_string (config, "bindings_external", keyse[i], NULL);
-            printf ("Action: %s, Binding: %s (external)\n", g_strdup (keyse[i]), binding);
-            add_binding (binding, g_strdup (keyse[i]), false);
-        }
+
+        g_strfreev(keys);
     }
 }
 
@@ -754,13 +762,12 @@ main (int argc, char* argv[]) {
     g_option_context_add_main_entries (context, entries, NULL);
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
     g_option_context_parse (context, &argc, &argv, &error);
-    /* initialize has tables */
-    internal_bindings = g_hash_table_new(g_str_hash, g_str_equal);
-    external_bindings = g_hash_table_new(g_str_hash, g_str_equal);
+    /* initialize hash table */
+    bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
 
     settings_init ();
     commands_hash ();
-    
+
     if (always_insert_mode)
         insert_mode = TRUE;
 
@@ -783,7 +790,7 @@ main (int argc, char* argv[]) {
     printf("pid %i\n", getpid ());
 
     if (!show_status)
-    	gtk_widget_hide(mainbar);
+        gtk_widget_hide(mainbar);
 
     setup_threading ();
     create_fifo ();
@@ -792,6 +799,9 @@ main (int argc, char* argv[]) {
 
     unlink (socket_path);
     unlink (fifo_path);
+
+    g_hash_table_destroy(bindings);
+    g_hash_table_destroy(commands);
     return 0;
 }
 

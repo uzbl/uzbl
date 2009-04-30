@@ -19,26 +19,23 @@ always_insert_mode = 0
 modkey = Mod1
 show_status = 1
 status_top = 0
-home_page = http://www.uzbl.org
 
-[bindings_internal]
-back = b
-forward = m
-stop = s
-refresh = r
-reload = R
-home = h
-follow_link_here = f
-follow_link_new_tab = F
-follow_link_new_window = w
-zoom_in = +
-zoom_out = -
-toggle_status = t
-exit = k
-
-[bindings_external]
-/bin/bash /usr/share/uzbl/examples/scripts/insert_bookmark.sh = B
-/bin/bash /usr/share/uzbl/examples/scripts/load_url_from_history.sh = u
-/bin/bash /usr/share/uzbl/examples/scripts/load_url_from_bookmarks.sh = U
+[bindings]
+b = back
+m = forward
+s = stop
+r = refresh
+R = reload
+h = uri http://www.uzbl.org
+f = follow_link_here
+F = follow_link_new_tab
+w = follow_link_new_window
++ = zoom_in
+- = zoom_out
+t = toggle_status
+k = exit
+B = spawn /bin/bash /usr/share/uzbl/examples/scripts/insert_bookmark.sh
+u = spawn /bin/bash /usr/share/uzbl/examples/scripts/load_url_from_history.sh
+U = spawn /bin/bash /usr/share/uzbl/examples/scripts/load_url_from_bookmarks.sh
 
 [network]
