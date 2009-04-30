@@ -108,7 +108,7 @@ static char *XDG_CONFIG_HOME_default[256];
 static char *XDG_CONFIG_DIRS_default = "/etc/xdg";
 
 static void
-update_title (GtkWindow* window);
+update_title(void);
 
 static void
 load_uri ( WebKitWebView * web_view, const gchar * uri);
@@ -187,7 +187,7 @@ toggle_status_cb (WebKitWebView* page, const char *param) {
         gtk_widget_show(mainbar);
     }
     show_status = !show_status;
-    update_title (GTK_WINDOW (main_window));
+    update_title();
 }
 
 static void
@@ -200,7 +200,7 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
     if (link) {
         strcpy (selected_url, link);
     }
-    update_title (GTK_WINDOW (main_window));
+    update_title();
 }
 
 static void
@@ -211,7 +211,7 @@ title_change_cb (WebKitWebView* web_view, WebKitWebFrame* web_frame, const gchar
     if (main_title)
         g_free (main_title);
     main_title = g_strdup (title);
-    update_title (GTK_WINDOW (main_window));
+    update_title();
 }
 
 static void
@@ -219,7 +219,7 @@ progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
     (void) page;
     (void) data;
     load_progress = progress;
-    update_title (GTK_WINDOW (main_window));
+    update_title();
 }
 
 static void
@@ -334,7 +334,7 @@ set_insert_mode(WebKitWebView *page, const gchar *param) {
     (void)param;
 
     insert_mode = TRUE;
-    update_title (GTK_WINDOW (main_window));
+    update_title();
 }
 
 static void
@@ -533,7 +533,7 @@ setup_threading () {
 }
 
 static void
-update_title (GtkWindow* window) {
+update_title (void) {
     GString* string_long = g_string_new ("");
     GString* string_short = g_string_new ("");
 
@@ -557,10 +557,10 @@ update_title (GtkWindow* window) {
     gchar* title_short = g_string_free (string_short, FALSE);
 
     if (show_status) {
-        gtk_window_set_title (window, title_short);
+        gtk_window_set_title (GTK_WINDOW(main_window), title_short);
     gtk_label_set_text(GTK_LABEL(mainbar_label), title_long);
     } else {
-        gtk_window_set_title (window, title_long);
+        gtk_window_set_title (GTK_WINDOW(main_window), title_long);
     }
 
     g_free (title_long);
@@ -582,7 +582,7 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     /* turn of insert mode */
     if (insert_mode && (event->keyval == GDK_Escape)) {
         insert_mode = !insert_mode || always_insert_mode;
-        update_title (GTK_WINDOW (main_window));
+        update_title();
         return TRUE;
     }
 
@@ -593,7 +593,7 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     if (event->keyval == GDK_Escape) {
         g_string_truncate(keycmd, 0);
 
-        update_title (GTK_WINDOW (main_window));
+        update_title();
 
         return TRUE;
     }
@@ -606,7 +606,7 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
         parse_command(action->name, action->param);
     }
 
-    update_title (GTK_WINDOW (main_window));
+    update_title();
 
     return TRUE;
 }
