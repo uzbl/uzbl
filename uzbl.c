@@ -61,6 +61,7 @@ static gint load_progress;
 static Window xwin = 0;
 static char fifo_path[64];
 static char socket_path[108];
+static GString *keycmd;
 
 /* state variables (initial values coming from command line arguments but may be changed later) */
 static gchar*   uri         = NULL;
@@ -522,6 +523,8 @@ static void
 update_title (GtkWindow* window) {
     GString* string_long = g_string_new ("");
     GString* string_short = g_string_new ("");
+
+    g_string_append_printf(string_long, "%s ", keycmd->str);
     if (!always_insert_mode)
         g_string_append (string_long, (insert_mode ? "[I] " : "[C] "));
     if (main_title) {
@@ -564,18 +567,35 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
         return FALSE;
 
     //TURN OFF/ON INSERT MODE
-    if ((insert_mode && (event->keyval == GDK_Escape)) || (!insert_mode && (event->string[0] == 'i'))) {
+    if ((insert_mode && (event->keyval == GDK_Escape)) || (!insert_mode && (event->string[0] == 'i') && !keycmd->len)) {
         insert_mode = !insert_mode || always_insert_mode;
         update_title (GTK_WINDOW (main_window));
         return TRUE;
     }
 
-    if ((!insert_mode || (event->state == modmask)) && (action = g_hash_table_lookup(bindings, event->string))) {
-        parse_command(action->name, action->param);
+    if (insert_mode && event->state != modmask)
+        return FALSE;
+
+
+    if (event->keyval == GDK_Escape) {
+        g_string_truncate(keycmd, 0);
+
+        update_title (GTK_WINDOW (main_window));
+
         return TRUE;
     }
 
-    return !insert_mode;
+    g_string_append(keycmd, event->string);
+
+    if ((action = g_hash_table_lookup(bindings, keycmd->str))) {
+        g_string_truncate(keycmd, 0);
+
+        parse_command(action->name, action->param);
+    }
+
+    update_title (GTK_WINDOW (main_window));
+
+    return TRUE;
 }
 
 static GtkWidget*
@@ -765,6 +785,8 @@ main (int argc, char* argv[]) {
     /* initialize hash table */
     bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
 
+    keycmd = g_string_new("");
+
     settings_init ();
     commands_hash ();
 
@@ -796,6 +818,8 @@ main (int argc, char* argv[]) {
     create_fifo ();
 
     gtk_main ();
+
+    g_string_free(keycmd, TRUE);
 
     unlink (socket_path);
     unlink (fifo_path);
