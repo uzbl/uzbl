@@ -530,6 +530,7 @@ static void
 setup_threading () {
     pthread_t control_thread;
     pthread_create(&control_thread, NULL, control_socket, NULL);
+    pthread_detach(control_thread);
 }
 
 static void
