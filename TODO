@@ -26,9 +26,7 @@ ASAP
 * see if/how we can remove /bin/bash from scripts
 * unify internal and external bindings. 
 * unify command triggering, whether they came in through fifo or keybind
-* add to bottom /* vi: set et ts=4: */
 * ideal uri editor: awesome mode like FF, some keyb shortcuts (erase search string, go to end/begin of string,..), history (if you patch dmenu to be in vertical mode and you order correctly, that's it), support copy paste
-* get rid of the home page concept. allow user to make keybinds to go to one or more "homepages". a home page is nothing special.
 * blinking cursor when not in insert mode is confusing.  i suggest dimming it's color if possible
 * open in new window -> uzbl: Fatal IO error 11 (Resource temporarily unavailable) on X server :0.0.
 * make it more clear to newbs insert vs command
@@ -40,6 +38,8 @@ ASAP
 * document a bit how insert mode, command mode, always_insert_mode, modkey etc work
 * find a simple format (ascii doc, markdow, textile,..) to format uzbl docs (and remain "plaintext") while still being able to generate html for it so we can use them on the website
 * allow users to customize order, separating, colors,.. of items in statusbar using pango markup thing
+* mention bugtracker in readme, move tickets from github to new bugtracker
+* default value for fifo_dir so we don't need to if(fifo_dir)
 
 SOMEDAY:
 check if we can make the settings loading less hard coded. eg( keep a list of all settings, and for each one, try to load it)
