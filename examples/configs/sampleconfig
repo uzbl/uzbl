@@ -34,6 +34,7 @@ w = follow_link_new_window
 - = zoom_out
 t = toggle_status
 k = exit
+i = insert_mode
 B = spawn /bin/bash /usr/share/uzbl/examples/scripts/insert_bookmark.sh
 u = spawn /bin/bash /usr/share/uzbl/examples/scripts/load_url_from_history.sh
 U = spawn /bin/bash /usr/share/uzbl/examples/scripts/load_url_from_bookmarks.sh
