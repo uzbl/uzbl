@@ -31,7 +31,15 @@ ASAP
 * get rid of the home page concept. allow user to make keybinds to go to one or more "homepages". a home page is nothing special.
 * blinking cursor when not in insert mode is confusing.  i suggest dimming it's color if possible
 * open in new window -> uzbl: Fatal IO error 11 (Resource temporarily unavailable) on X server :0.0.
-
+* make it more clear to newbs insert vs command
+* note about merging better then patches. because commit names, and code can have changed in meanwhile. also github makes the process quite easy
+* check that in new version pageup etc works also in command
+* tab key to jump between input fields should probably work in both insert and command mode
+* allow to name a uzbl instance, name fifo/socket after it. use xorgwindow id as fallback
+* allow to tag , to group instances together
+* document a bit how insert mode, command mode, always_insert_mode, modkey etc work
+* find a simple format (ascii doc, markdow, textile,..) to format uzbl docs (and remain "plaintext") while still being able to generate html for it so we can use them on the website
+* allow users to customize order, separating, colors,.. of items in statusbar using pango markup thing
 
 SOMEDAY:
 check if we can make the settings loading less hard coded. eg( keep a list of all settings, and for each one, try to load it)
