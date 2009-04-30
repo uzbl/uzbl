@@ -1,0 +1,39 @@
+ASAP
+* implement all the ideas from README
+* get a logo
+* improve site
+* when launching new instance, don't just try 'uzbl' and then './uzbl', rather launch a new uzbl in the same way the current uzbl instance was started. (same command, same arguments, except --uri)
+* where to put proxy config? webkit support?
+* implement XDG basedir spec (config is done, but not cache/data, which I presume we'll need at some point)
+* check configured commands if they end on .sh so users don't need to prepend /bin/<shell>
+* implement a more advanced dmenu alike that behaves like FF's awesomebar and where you can search in url + window title
+* recognize -h with GOption?
+* implement a vimperator-like link following scheme.  but let user pick his favorite characters to construct the "link identifiers" with.
+* add a keybind to hand the current url to an external scrips, so you can edit it and/or store it in the primary and secondary clipboards
+* use http://library.gnome.org/devel/glib/stable/glib-Hash-Tables.html#g-hash-table-insert for tracking bindings and wherever we use structs and ugly loops
+* fifo -> socket. so you can do question-response. socket is slightly more complicated so we'll need to create a uzblctrl (half done - commands can't yet send data back)
+* select/fork based instead of the pthread stuff -> drops dependency, more lightweight.
+* on website, see if we can <pre><?php include('..'); ?></pre> the documentation inside the uzbl project itself, so we need to maintain the stuff on only 1 place
+* see if we can use the github bugtracker (anonymous posting allowed?)
+* allow user to change bindings for navigation (up,down,left,right, page up, page down etc)and use vim-like defaults
+* put on uzbl.org that you can use http://github.com/Dieterbe/uzbl/issues after registering
+* make default size configurable, and optional
+* on uzbl.org commits overview: add date+time and repository
+* how to handle different content types? (text-plain, image/png, application/pdf,... maybe a map of content-type to uzbl/command
+  xdg already has a spec for this i think
+  different "opening" modes (open as configured vs ask before opening)
+  integration with download and new window thingies?
+* see if/how we can remove /bin/bash from scripts
+* unify internal and external bindings. 
+* unify command triggering, whether they came in through fifo or keybind
+* add to bottom /* vi: set et ts=4: */
+* ideal uri editor: awesome mode like FF, some keyb shortcuts (erase search string, go to end/begin of string,..), history (if you patch dmenu to be in vertical mode and you order correctly, that's it), support copy paste
+* get rid of the home page concept. allow user to make keybinds to go to one or more "homepages". a home page is nothing special.
+* blinking cursor when not in insert mode is confusing.  i suggest dimming it's color if possible
+* open in new window -> uzbl: Fatal IO error 11 (Resource temporarily unavailable) on X server :0.0.
+
+
+SOMEDAY:
+check if we can make the settings loading less hard coded. eg( keep a list of all settings, and for each one, try to load it)
+figure out caching with webkit and in general how we can speed up everything
+figure out how webkit intercepts key input
