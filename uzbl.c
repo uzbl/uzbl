@@ -35,7 +35,6 @@
 #include <gdk/gdkx.h>
 #include <gdk/gdkkeysyms.h>
 #include <webkit/webkit.h>
-#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -444,37 +443,15 @@ create_fifo() {
 }
 
 static void
-*control_socket() {
-    if (socket_dir) {
-        sprintf (socket_path, "%s/uzbl_socket_%d", socket_dir, (int) xwin);
-    } else {
-        sprintf (socket_path, "/tmp/uzbl_socket_%d", (int) xwin);
-    }
- 
-    int sock, clientsock, len;
-    unsigned int t;
-    struct sockaddr_un local, remote;
-
-    sock = socket (AF_UNIX, SOCK_STREAM, 0);
-
-    local.sun_family = AF_UNIX;
-    strcpy (local.sun_path, socket_path);
-    unlink (local.sun_path);
-
-    len = strlen (local.sun_path) + sizeof (local.sun_family);
-    bind (sock, (struct sockaddr *) &local, len);
-
-    if (errno == -1) {
-        printf ("A problem occurred when opening a socket in %s\n", socket_path);
-    } else {
-        printf ("Control socket opened in %s\n", socket_path);
-    }
-
-    listen (sock, 5);
- 
+control_socket(GIOChannel *chan) {
+    struct sockaddr_un remote;
     char buffer[512], *ctl_line;
     char temp[128];
-    int done, n;
+    int sock, clientsock, n, done;
+    unsigned int t;
+
+    sock = g_io_channel_unix_get_fd(chan);
+
     for(;;) {
         memset (buffer, 0, sizeof (buffer));
 
@@ -500,19 +477,48 @@ static void
         } else {
           buffer[strlen (buffer)] = '\0';
         }
+        close (clientsock);
 
         ctl_line = estrdup(buffer);
         parse_command (ctl_line);
-        close (clientsock);
     }
     
-    return NULL;
+    return;
 } 
- 
+
 static void
-setup_threading () {
-    pthread_t control_thread;
-    pthread_create(&control_thread, NULL, control_socket, NULL);
+create_socket() {
+    GIOChannel *chan = NULL;
+
+    if (socket_dir) {
+        sprintf (socket_path, "%s/uzbl_socket_%d", socket_dir, (int) xwin);
+    } else {
+        sprintf (socket_path, "/tmp/uzbl_socket_%d", (int) xwin);
+    }
+ 
+    int sock, len;
+    struct sockaddr_un local;
+
+    sock = socket (AF_UNIX, SOCK_STREAM, 0);
+
+    local.sun_family = AF_UNIX;
+    strcpy (local.sun_path, socket_path);
+    unlink (local.sun_path);
+
+    len = strlen (local.sun_path) + sizeof (local.sun_family);
+    bind (sock, (struct sockaddr *) &local, len);
+
+    if (errno == -1) {
+        printf ("A problem occurred when opening a socket in %s\n", socket_path);
+    } else {
+        printf ("Control socket opened in %s\n", socket_path);
+    }
+
+    listen (sock, 5);
+
+    if( (chan = g_io_channel_unix_new(sock)) )
+        g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_socket, chan);
+ 
 }
 
 static void
@@ -799,8 +805,8 @@ main (int argc, char* argv[]) {
     if (!show_status)
     	gtk_widget_hide(mainbar);
 
-    setup_threading ();
     create_fifo ();
+    create_socket();
 
     gtk_main ();
 
