@@ -61,10 +61,11 @@ static char fifo_path[64];
 static char socket_path[108];
 
 /* state variables (initial values coming from command line arguments but may be changed later) */
-static gchar*   uri         = NULL;
-static gchar*   config_file = NULL;
+static gchar*   instance_name   = NULL;
+static gchar*   uri             = NULL;
+static gboolean verbose         = FALSE;
+static gchar*   config_file     = NULL;
 static gchar    config_file_path[500];
-static gboolean verbose     = FALSE;
 
 /* settings from config: group behaviour */
 static gchar*   history_handler    = NULL;
@@ -92,6 +93,7 @@ static GHashTable *commands;
 static GOptionEntry entries[] =
 {
     { "uri",     'u', 0, G_OPTION_ARG_STRING, &uri,         "Uri to load", NULL },
+    { "name",    'n', 0, G_OPTION_ARG_STRING, &instance_name,         "Name of the current instance", NULL },
     { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &verbose,     "Be verbose",  NULL },
     { "config",  'c', 0, G_OPTION_ARG_STRING, &config_file, "Config file", NULL },
     { NULL,      0, 0, 0, NULL, NULL, NULL }
@@ -142,6 +144,14 @@ estrdup(const char *str) {
         if(!res)
             eprint("fatal: could not allocate %u bytes\n", strlen(str));
         return res;
+}
+
+char *
+itos(int val) {
+    char tmp[20];
+
+    snprintf(tmp, sizeof(tmp), "%i", val);
+    return estrdup(tmp);
 }
 
 /* --- CALLBACKS --- */
@@ -408,6 +418,34 @@ parse_command(const char *cmd) {
         free(cmd);
 }
 
+enum { FIFO, SOCKET};
+void
+build_stream_name(int type) {
+    char *xwin_str;
+
+    xwin_str = itos((int)xwin);
+    switch(type) {
+            case FIFO:
+                    if (fifo_dir) 
+                            sprintf (fifo_path, "%s/uzbl_fifo_%s", fifo_dir,
+                                            instance_name ? instance_name : xwin_str);
+                    else 
+                            sprintf (fifo_path, "/tmp/uzbl_fifo_%s", 
+                                            instance_name ? instance_name : xwin_str);
+                    break;
+            case SOCKET:
+                    if (socket_dir) 
+                            sprintf (socket_path, "%s/uzbl_socket_%s", socket_dir, 
+                                            instance_name ? instance_name : xwin_str);
+                    else 
+                            sprintf (socket_path, "/tmp/uzbl_socket_%s", 
+                                            instance_name ? instance_name : xwin_str);
+                    break;
+             default:
+                    break;
+    }
+}
+
 static void
 control_fifo(GIOChannel *fd) {
     gchar *ctl_line;
@@ -427,11 +465,7 @@ static void
 create_fifo() {
     GIOChannel *chan = NULL;
 
-    if (fifo_dir) {
-        sprintf (fifo_path, "%s/uzbl_fifo_%d", fifo_dir, (int) xwin);
-    } else {
-        sprintf (fifo_path, "/tmp/uzbl_fifo_%d", (int) xwin);
-    }
+    build_stream_name(FIFO);
     printf ("Control fifo opened in %s\n", fifo_path);
     if (mkfifo (fifo_path, 0666) == -1) {
         printf ("Possible error creating fifo\n");
@@ -489,16 +523,10 @@ control_socket(GIOChannel *chan) {
 static void
 create_socket() {
     GIOChannel *chan = NULL;
-
-    if (socket_dir) {
-        sprintf (socket_path, "%s/uzbl_socket_%d", socket_dir, (int) xwin);
-    } else {
-        sprintf (socket_path, "/tmp/uzbl_socket_%d", (int) xwin);
-    }
- 
     int sock, len;
     struct sockaddr_un local;
 
+    build_stream_name(SOCKET);
     sock = socket (AF_UNIX, SOCK_STREAM, 0);
 
     local.sun_family = AF_UNIX;
@@ -801,6 +829,7 @@ main (int argc, char* argv[]) {
     xwin = GDK_WINDOW_XID (GTK_WIDGET (main_window)->window);
     printf("window_id %i\n",(int) xwin);
     printf("pid %i\n", getpid ());
+    printf("name: %s\n", instance_name);
 
     if (!show_status)
     	gtk_widget_hide(mainbar);
