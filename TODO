@@ -40,6 +40,8 @@ ASAP
 * document a bit how insert mode, command mode, always_insert_mode, modkey etc work
 * find a simple format (ascii doc, markdow, textile,..) to format uzbl docs (and remain "plaintext") while still being able to generate html for it so we can use them on the website
 * allow users to customize order, separating, colors,.. of items in statusbar using pango markup thing
+* mention bugtracker in readme, move tickets from github to new bugtracker
+* default value for fifo_dir so we don't need to if(fifo_dir)
 
 SOMEDAY:
 check if we can make the settings loading less hard coded. eg( keep a list of all settings, and for each one, try to load it)
