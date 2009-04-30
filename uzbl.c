@@ -79,7 +79,6 @@ static gboolean insert_mode        = FALSE;
 static gboolean status_top         = FALSE;
 static gchar*   modkey             = NULL;
 static guint    modmask            = 0;
-static gchar*   home_page          = NULL;
 
 /* settings from config: group bindings, key -> action */
 static GHashTable *bindings;
@@ -115,9 +114,6 @@ load_uri ( WebKitWebView * web_view, const gchar * uri);
 
 static void
 new_window_load_uri (const gchar * uri);
-
-static void
-go_home (WebKitWebView *page, const char *param);
 
 static void
 close_uzbl (WebKitWebView *page, const char *param);
@@ -266,7 +262,7 @@ VIEWFUNC(go_forward)
 #undef VIEWFUNC
 
 /* -- command to callback/function map for things we cannot attach to any signals */
-// TODO: reload, home, quit
+// TODO: reload
 
 static struct {char *name; Command command;} cmdlist[] =
 {
@@ -280,7 +276,6 @@ static struct {char *name; Command command;} cmdlist[] =
     { "uri",           load_uri           },
     { "toggle_status", toggle_status_cb   },
     { "spawn",         spawn              },
-    { "home",          go_home            },
     { "exit",          close_uzbl         },
 };
 
@@ -358,14 +353,6 @@ new_window_load_uri (const gchar * uri) {
     g_spawn_command_line_async (to_execute->str, NULL);
     }
     g_string_free (to_execute, TRUE);
-}
-
-static void
-go_home (WebKitWebView *page, const char *param) {
-    (void)param;
-
-    if (home_page)
-        webkit_web_view_load_uri (page, home_page);
 }
 
 static void
@@ -707,7 +694,6 @@ settings_init () {
         show_status        = g_key_file_get_boolean (config, "behavior", "show_status",        NULL);
         modkey             = g_key_file_get_value   (config, "behavior", "modkey",             NULL);
         status_top         = g_key_file_get_boolean (config, "behavior", "status_top",         NULL);
-        home_page          = g_key_file_get_value   (config, "behavior", "home_page",          NULL);
         if (! fifo_dir)
             fifo_dir        = g_key_file_get_value   (config, "behavior", "fifodir",            NULL);
         if (! socket_dir)
@@ -723,7 +709,6 @@ settings_init () {
     printf ("Show status: %s\n",        (show_status        ? "TRUE"           : "FALSE"));
     printf ("Status top: %s\n",         (status_top         ? "TRUE"           : "FALSE"));
     printf ("Modkey: %s\n",             (modkey             ? modkey           : "disabled"));
-    printf ("Home page: %s\n",          (home_page          ? home_page        : "disabled"));
 
     if (! modkey)
         modkey = "";
