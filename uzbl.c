@@ -401,7 +401,13 @@ control_fifo(GIOChannel *fd) {
     g_io_channel_read_line(fd, &ctl_line, &ctl_line_length, &term_pos, NULL); //TODO: support partial writes
     ctl_line[term_pos] ='\0';
     parse_command(ctl_line);
-     
+
+    GIOChannel *chan = NULL;
+
+    if( (chan = g_io_channel_new_file((gchar *) fifo_path, "r+", NULL)) )
+        g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, chan);
+
+
     return;
 }
 
