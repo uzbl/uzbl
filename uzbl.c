@@ -553,6 +553,19 @@ static void
 update_title (GtkWindow* window) {
     GString* string_long = g_string_new ("");
     GString* string_short = g_string_new ("");
+    char* iname = NULL;
+    int iname_len;
+
+    if(instance_name) {
+            iname_len = strlen(instance_name)+4;
+            iname = malloc(iname_len);
+            snprintf(iname, iname_len, "<%s> ", instance_name);
+            
+            g_string_prepend(string_long, iname);
+            g_string_prepend(string_short, iname);
+            free(iname);
+    }
+
     if (!always_insert_mode)
         g_string_append (string_long, (insert_mode ? "[I] " : "[C] "));
     g_string_append (string_long, main_title);
