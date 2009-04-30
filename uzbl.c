@@ -131,6 +131,9 @@ free_action(gpointer action);
 static Action*
 new_action(const gchar *name, const gchar *param);
 
+static void
+set_insert_mode(WebKitWebView *page, const gchar *param);
+
 
 
 /* --- CALLBACKS --- */
@@ -278,6 +281,7 @@ static struct {char *name; Command command;} cmdlist[] =
     { "toggle_status", toggle_status_cb   },
     { "spawn",         spawn              },
     { "exit",          close_uzbl         },
+    { "insert_mode",   set_insert_mode    }
 };
 
 static void
@@ -322,6 +326,15 @@ file_exists (const char * filename) {
         return true;
     }
     return false;
+}
+
+void
+set_insert_mode(WebKitWebView *page, const gchar *param) {
+    (void)page;
+    (void)param;
+
+    insert_mode = TRUE;
+    update_title (GTK_WINDOW (main_window));
 }
 
 static void
@@ -566,8 +579,8 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
         || event->keyval == GDK_Up || event->keyval == GDK_Down || event->keyval == GDK_Left || event->keyval == GDK_Right)
         return FALSE;
 
-    //TURN OFF/ON INSERT MODE
-    if ((insert_mode && (event->keyval == GDK_Escape)) || (!insert_mode && (event->string[0] == 'i') && !keycmd->len)) {
+    /* turn of insert mode */
+    if (insert_mode && (event->keyval == GDK_Escape)) {
         insert_mode = !insert_mode || always_insert_mode;
         update_title (GTK_WINDOW (main_window));
         return TRUE;
