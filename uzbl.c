@@ -289,7 +289,7 @@ log_history_cb () {
        timeinfo = localtime ( &rawtime );
        strftime (date, 80, "%Y-%m-%d %H:%M:%S", timeinfo);
        GString* args = g_string_new ("");
-       g_string_printf (args, "'%s' '%s' '%s'", uri, "TODO:page title here", date);
+       g_string_printf (args, "'%s'", date);
        run_command(history_handler, args->str);
        g_string_free (args, TRUE);
    }
@@ -428,6 +428,7 @@ run_command(const char *command, const char *args) {
     GString* to_execute = g_string_new ("");
     gboolean result;
     g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' '%s'", command, config_file, (int) getpid() , (int) xwin, fifo_path, socket_path);
+    g_string_append_printf (to_execute, " '%s' '%s'", uri, "TODO title here");
     if(args) {
         g_string_append_printf (to_execute, " %s", args);
     }
