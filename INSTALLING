@@ -19,6 +19,7 @@ Dependencies
 * git (for building)
 * pkgconfig (for Make/gcc)
 * libwebkit 1.1.4 or higher
+* libsoup 2.24 or higher (dep for webkit/gtk+)
 * gtk 2 something something
 
 Optional/Recommended
