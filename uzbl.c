@@ -54,6 +54,10 @@
 static GtkWidget* main_window;
 static GtkWidget* mainbar;
 static GtkWidget* mainbar_label;
+static GtkScrollbar* scbar_v;   // Horizontal and Vertical Scrollbar 
+static GtkScrollbar* scbar_h;   // (These are still hidden)
+static GtkAdjustment* bar_v; // Information about document length
+static GtkAdjustment* bar_h; // and scrolling position
 static WebKitWebView* web_view;
 static gchar* main_title;
 static gchar selected_url[500] = "\0";
@@ -61,6 +65,7 @@ static gint load_progress;
 static Window xwin = 0;
 static char fifo_path[64];
 static char socket_path[108];
+static GString *keycmd;
 
 /* state variables (initial values coming from command line arguments but may be changed later) */
 static gchar*   uri         = NULL;
@@ -79,6 +84,8 @@ static gboolean insert_mode        = FALSE;
 static gboolean status_top         = FALSE;
 static gchar*   modkey             = NULL;
 static guint    modmask            = 0;
+static gdouble   hscroll            = 20;
+static gdouble   vscroll            = 20;
 
 /* settings from config: group bindings, key -> action */
 static GHashTable *bindings;
@@ -107,7 +114,7 @@ static char *XDG_CONFIG_HOME_default[256];
 static char *XDG_CONFIG_DIRS_default = "/etc/xdg";
 
 static void
-update_title (GtkWindow* window);
+update_title(void);
 
 static void
 load_uri ( WebKitWebView * web_view, const gchar * uri);
@@ -129,6 +136,9 @@ free_action(gpointer action);
 
 static Action*
 new_action(const gchar *name, const gchar *param);
+
+static void
+set_insert_mode(WebKitWebView *page, const gchar *param);
 
 
 
@@ -173,17 +183,52 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
     return (FALSE);
 }
 
+/* scroll a bar in a given direction */
+static void
+scroll (double i, GtkAdjustment* bar) {
+    gtk_adjustment_set_value (bar, gtk_adjustment_get_value(bar)+i);
+}
+
+static void scroll_up (WebKitWebView* page, const char *param) {
+    (void) page;
+    (void) param;
+
+    scroll (-vscroll, bar_v);
+}
+
+static void scroll_left (WebKitWebView* page, const char *param) {
+    (void) page;
+    (void) param;
+
+    scroll (-hscroll, bar_h);
+}
+
+static void scroll_down (WebKitWebView* page, const char *param) {
+    (void) page;
+    (void) param;
+
+    scroll (vscroll, bar_v);
+}
+
+static void scroll_right (WebKitWebView* page, const char *param) {
+    (void) page;
+    (void) param;
+
+    scroll (hscroll, bar_h);
+}
+
 static void
 toggle_status_cb (WebKitWebView* page, const char *param) {
     (void)page;
     (void)param;
+
     if (show_status) {
         gtk_widget_hide(mainbar);
     } else {
         gtk_widget_show(mainbar);
     }
     show_status = !show_status;
-    update_title (GTK_WINDOW (main_window));
+    update_title();
 }
 
 static void
@@ -196,7 +241,7 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
     if (link) {
         strcpy (selected_url, link);
     }
-    update_title (GTK_WINDOW (main_window));
+    update_title();
 }
 
 static void
@@ -207,7 +252,7 @@ title_change_cb (WebKitWebView* web_view, WebKitWebFrame* web_frame, const gchar
     if (main_title)
         g_free (main_title);
     main_title = g_strdup (title);
-    update_title (GTK_WINDOW (main_window));
+    update_title();
 }
 
 static void
@@ -215,7 +260,7 @@ progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
     (void) page;
     (void) data;
     load_progress = progress;
-    update_title (GTK_WINDOW (main_window));
+    update_title();
 }
 
 static void
@@ -268,6 +313,10 @@ static struct {char *name; Command command;} cmdlist[] =
 {
     { "back",          view_go_back       },
     { "forward",       view_go_forward    },
+    { "scroll_down",   scroll_down        },
+    { "scroll_up",     scroll_up          },
+    { "scroll_left",   scroll_left        },
+    { "scroll_right",  scroll_right       },
     { "reload",        view_reload,       }, //Buggy
     { "refresh",       view_reload,       }, /* for convenience, will change */
     { "stop",          view_stop_loading, },
@@ -277,6 +326,7 @@ static struct {char *name; Command command;} cmdlist[] =
     { "toggle_status", toggle_status_cb   },
     { "spawn",         spawn              },
     { "exit",          close_uzbl         },
+    { "insert_mode",   set_insert_mode    }
 };
 
 static void
@@ -321,6 +371,15 @@ file_exists (const char * filename) {
         return true;
     }
     return false;
+}
+
+void
+set_insert_mode(WebKitWebView *page, const gchar *param) {
+    (void)page;
+    (void)param;
+
+    insert_mode = TRUE;
+    update_title();
 }
 
 static void
@@ -516,12 +575,15 @@ static void
 setup_threading () {
     pthread_t control_thread;
     pthread_create(&control_thread, NULL, control_socket, NULL);
+    pthread_detach(control_thread);
 }
 
 static void
-update_title (GtkWindow* window) {
+update_title (void) {
     GString* string_long = g_string_new ("");
     GString* string_short = g_string_new ("");
+
+    g_string_append_printf(string_long, "%s ", keycmd->str);
     if (!always_insert_mode)
         g_string_append (string_long, (insert_mode ? "[I] " : "[C] "));
     if (main_title) {
@@ -541,10 +603,10 @@ update_title (GtkWindow* window) {
     gchar* title_short = g_string_free (string_short, FALSE);
 
     if (show_status) {
-        gtk_window_set_title (window, title_short);
+        gtk_window_set_title (GTK_WINDOW(main_window), title_short);
     gtk_label_set_text(GTK_LABEL(mainbar_label), title_long);
     } else {
-        gtk_window_set_title (window, title_long);
+        gtk_window_set_title (GTK_WINDOW(main_window), title_long);
     }
 
     g_free (title_long);
@@ -563,19 +625,36 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
         || event->keyval == GDK_Up || event->keyval == GDK_Down || event->keyval == GDK_Left || event->keyval == GDK_Right)
         return FALSE;
 
-    //TURN OFF/ON INSERT MODE
-    if ((insert_mode && (event->keyval == GDK_Escape)) || (!insert_mode && (event->string[0] == 'i'))) {
-        insert_mode = !insert_mode || always_insert_mode;
-        update_title (GTK_WINDOW (main_window));
+    /* turn off insert mode (if always_insert_mode is not used) */
+    if (insert_mode && (event->keyval == GDK_Escape)) {
+        insert_mode = always_insert_mode;
+        update_title();
         return TRUE;
     }
 
-    if ((!insert_mode || (event->state == modmask)) && (action = g_hash_table_lookup(bindings, event->string))) {
+    if (insert_mode && event->state != modmask)
+        return FALSE;
+
+
+    if (event->keyval == GDK_Escape) {
+        g_string_truncate(keycmd, 0);
+
+        update_title();
+
+        return TRUE;
+    }
+
+    g_string_append(keycmd, event->string);
+
+    if ((action = g_hash_table_lookup(bindings, keycmd->str))) {
+        g_string_truncate(keycmd, 0);
+
         parse_command(action->name, action->param);
-        return TRUE;
     }
 
-    return !insert_mode;
+    update_title();
+
+    return TRUE;
 }
 
 static GtkWidget*
@@ -765,6 +844,8 @@ main (int argc, char* argv[]) {
     /* initialize hash table */
     bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
 
+    keycmd = g_string_new("");
+
     settings_init ();
     commands_hash ();
 
@@ -789,6 +870,12 @@ main (int argc, char* argv[]) {
     printf("window_id %i\n",(int) xwin);
     printf("pid %i\n", getpid ());
 
+    scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);
+    bar_v = gtk_range_get_adjustment((GtkRange*) scbar_v);
+    scbar_h = (GtkScrollbar*) gtk_hscrollbar_new (NULL);
+    bar_h = gtk_range_get_adjustment((GtkRange*) scbar_h);
+    gtk_widget_set_scroll_adjustments ((GtkWidget*) web_view, bar_h, bar_v);
+
     if (!show_status)
         gtk_widget_hide(mainbar);
 
@@ -796,6 +883,8 @@ main (int argc, char* argv[]) {
     create_fifo ();
 
     gtk_main ();
+
+    g_string_free(keycmd, TRUE);
 
     unlink (socket_path);
     unlink (fifo_path);

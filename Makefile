@@ -2,13 +2,13 @@ CPPFLAGS=$(shell pkg-config --cflags gtk+-2.0 webkit-1.0) -Wall -W
 LDFLAGS=$(shell pkg-config --libs gtk+-2.0 webkit-1.0)
 all: uzbl uzblctrl
 
-test:
+test: uzbl
 	./uzbl --uri http://www.uzbl.org
 
-test-config:
+test-config: uzbl
 	./uzbl --uri http://www.uzbl.org --config examples/configs/sampleconfig-dev
 
-test-config-real:
+test-config-real: uzbl
 	./uzbl --uri http://www.uzbl.org --config /usr/share/uzbl/examples/configs/sampleconfig
 	
 clean:
