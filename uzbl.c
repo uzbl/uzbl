@@ -35,37 +35,38 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 #include <gdk/gdkkeysyms.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/un.h>
 #include <webkit/webkit.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-#include <sys/types.h>
 #include <fcntl.h>
-#include <sys/socket.h>
-#include <sys/un.h>
+
+#include "uzbl.h"
 
 /* housekeeping / internal variables */
-static GtkWidget* main_window;
-static GtkWidget* mainbar;
-static GtkWidget* mainbar_label;
-static GtkScrollbar* scbar_v;   // Horizontal and Vertical Scrollbar 
-static GtkScrollbar* scbar_h;   // (These are still hidden)
+static GtkWidget*     main_window;
+static GtkWidget*     mainbar;
+static GtkWidget*     mainbar_label;
+static GtkScrollbar*  scbar_v;   // Horizontal and Vertical Scrollbar 
+static GtkScrollbar*  scbar_h;   // (These are still hidden)
 static GtkAdjustment* bar_v; // Information about document length
 static GtkAdjustment* bar_h; // and scrolling position
 static WebKitWebView* web_view;
-static gchar* main_title;
-static gchar selected_url[500] = "\0";
-static gint load_progress;
-static Window xwin = 0;
-static char fifo_path[64];
-static char socket_path[108];
-static GString *keycmd;
+static gchar*         main_title;
+static gchar          selected_url[500] = "\0";
+static gint           load_progress;
+static Window         xwin = 0;
+static char           fifo_path[64];
+static char           socket_path[108];
+static GString*       keycmd;
 
 /* state variables (initial values coming from command line arguments but may be changed later) */
 static gchar*   uri         = NULL;
@@ -88,15 +89,10 @@ static gdouble   hscroll            = 20;
 static gdouble   vscroll            = 20;
 
 /* settings from config: group bindings, key -> action */
-static GHashTable *bindings;
+static GHashTable* bindings;
 
 /* command list: name -> Command  */
-static GHashTable *commands;
-
-typedef struct {
-    char *name;
-    char *param;
-} Action;
+static GHashTable* commands;
 
 /* commandline arguments (set initial values for the state variables) */
 static GOptionEntry entries[] =
@@ -112,35 +108,6 @@ typedef void (*Command)(WebKitWebView*, const char *);
 /* XDG stuff */
 static char *XDG_CONFIG_HOME_default[256];
 static char *XDG_CONFIG_DIRS_default = "/etc/xdg";
-
-static void
-update_title(void);
-
-static void
-load_uri ( WebKitWebView * web_view, const gchar * uri);
-
-static void
-new_window_load_uri (const gchar * uri);
-
-static void
-close_uzbl (WebKitWebView *page, const char *param);
-
-static gboolean
-run_command(const char *command, const char *args);
-
-static void
-spawn(WebKitWebView *web_view, const char *param);
-
-static void
-free_action(gpointer action);
-
-static Action*
-new_action(const gchar *name, const gchar *param);
-
-static void
-set_insert_mode(WebKitWebView *page, const gchar *param);
-
-
 
 /* --- CALLBACKS --- */
 
@@ -775,7 +742,7 @@ settings_init () {
         modkey             = g_key_file_get_value   (config, "behavior", "modkey",             NULL);
         status_top         = g_key_file_get_boolean (config, "behavior", "status_top",         NULL);
         if (! fifo_dir)
-            fifo_dir        = g_key_file_get_value   (config, "behavior", "fifodir",            NULL);
+            fifo_dir        = g_key_file_get_value  (config, "behavior", "fifo_dir",           NULL);
         if (! socket_dir)
             socket_dir     = g_key_file_get_value   (config, "behavior", "socket_dir",         NULL);
         keys               = g_key_file_get_keys    (config, "bindings", NULL,                 NULL);
