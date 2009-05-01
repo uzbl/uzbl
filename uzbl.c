@@ -86,8 +86,6 @@ static gboolean insert_mode        = FALSE;
 static gboolean status_top         = FALSE;
 static gchar*   modkey             = NULL;
 static guint    modmask            = 0;
-static gdouble   hscroll            = 20;
-static gdouble   vscroll            = 20;
 
 /* settings from config: group bindings, key -> action */
 static GHashTable* bindings;
@@ -153,36 +151,28 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
 
 /* scroll a bar in a given direction */
 static void
-scroll (double i, GtkAdjustment* bar) {
-    gtk_adjustment_set_value (bar, gtk_adjustment_get_value(bar)+i);
+scroll (GtkAdjustment* bar, const char *param) {
+    gdouble amount;
+    gchar *end;
+
+    amount = g_ascii_strtod(param, &end);
+
+    if (*end)
+        fprintf(stderr, "found something after double: %s\n", end);
+
+    gtk_adjustment_set_value (bar, gtk_adjustment_get_value(bar)+amount);
 }
 
-static void scroll_up (WebKitWebView* page, const char *param) {
+static void scroll_vert(WebKitWebView* page, const char *param) {
     (void) page;
-    (void) param;
 
-    scroll (-vscroll, bar_v);
+    scroll(bar_v, param);
 }
 
-static void scroll_left (WebKitWebView* page, const char *param) {
+static void scroll_horz(WebKitWebView* page, const char *param) {
     (void) page;
-    (void) param;
 
-    scroll (-hscroll, bar_h);
-}
-
-static void scroll_down (WebKitWebView* page, const char *param) {
-    (void) page;
-    (void) param;
-
-    scroll (vscroll, bar_v);
-}
-
-static void scroll_right (WebKitWebView* page, const char *param) {
-    (void) page;
-    (void) param;
-
-    scroll (hscroll, bar_h);
+    scroll(bar_h, param);
 }
 
 static void
@@ -281,10 +271,8 @@ static struct {char *name; Command command;} cmdlist[] =
 {
     { "back",          view_go_back       },
     { "forward",       view_go_forward    },
-    { "scroll_down",   scroll_down        },
-    { "scroll_up",     scroll_up          },
-    { "scroll_left",   scroll_left        },
-    { "scroll_right",  scroll_right       },
+    { "scroll_vert",   scroll_vert        },
+    { "scroll_horz",   scroll_horz        },
     { "reload",        view_reload,       }, //Buggy
     { "refresh",       view_reload,       }, /* for convenience, will change */
     { "stop",          view_stop_loading, },
