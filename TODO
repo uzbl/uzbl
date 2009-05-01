@@ -1,21 +1,21 @@
 ASAP
+* fix bug that causes hang after first fifo command
+
 * implement all the ideas from README
 * get a logo
-* improve site
 * when launching new instance, don't just try 'uzbl' and then './uzbl', rather launch a new uzbl in the same way the current uzbl instance was started. (same command, same arguments, except --uri)
-* where to put proxy config? webkit support?
-* implement XDG basedir spec (config is done, but not cache/data, which I presume we'll need at some point)
+* where to put proxy config? webkit support? depend on libsoup?
+* compare libsoup to curl backend. there are probably performance differences
 * check configured commands if they end on .sh so users don't need to prepend /bin/<shell>
 * implement a more advanced dmenu alike that behaves like FF's awesomebar and where you can search in url + window title
 * recognize -h with GOption?
 * implement a vimperator-like link following scheme.  but let user pick his favorite characters to construct the "link identifiers" with.
 * add a keybind to hand the current url to an external scrips, so you can edit it and/or store it in the primary and secondary clipboards
-* use http://library.gnome.org/devel/glib/stable/glib-Hash-Tables.html#g-hash-table-insert for tracking bindings and wherever we use structs and ugly loops
-* fifo -> socket. so you can do question-response. socket is slightly more complicated so we'll need to create a uzblctrl (half done - commands can't yet send data back)
+* clean up our structures for settings + sane defaults + don't iterate over struct to fill hasthtable. rather fill hashtable directly
+* implement getting feedback from socket
 * select/fork based instead of the pthread stuff -> drops dependency, more lightweight.
-* on website, see if we can <pre><?php include('..'); ?></pre> the documentation inside the uzbl project itself, so we need to maintain the stuff on only 1 place
-* see if we can use the github bugtracker (anonymous posting allowed?)
-* allow user to change bindings for navigation (up,down,left,right, page up, page down etc)and use vim-like defaults
+* scrolling: make page up and page down configurable.
+* show % of location in statusbar/title if page doesn't fit entirely on view.
 * put on uzbl.org that you can use http://github.com/Dieterbe/uzbl/issues after registering
 * make default size configurable, and optional
 * on uzbl.org commits overview: add date+time and repository
@@ -29,19 +29,17 @@ ASAP
 * ideal uri editor: awesome mode like FF, some keyb shortcuts (erase search string, go to end/begin of string,..), history (if you patch dmenu to be in vertical mode and you order correctly, that's it), support copy paste
 * blinking cursor when not in insert mode is confusing.  i suggest dimming it's color if possible
 * open in new window -> uzbl: Fatal IO error 11 (Resource temporarily unavailable) on X server :0.0.
-* make it more clear to newbs insert vs command
 * note about merging better then patches. because commit names, and code can have changed in meanwhile. also github makes the process quite easy
 * check that in new version pageup etc works also in command
 * tab key to jump between input fields should probably work in both insert and command mode
 * allow to name a uzbl instance, name fifo/socket after it. use xorgwindow id as fallback
 * allow to tag , to group instances together
-* document a bit how insert mode, command mode, always_insert_mode, modkey etc work
-* find a simple format (ascii doc, markdow, textile,..) to format uzbl docs (and remain "plaintext") while still being able to generate html for it so we can use them on the website
 * allow users to customize order, separating, colors,.. of items in statusbar using pango markup thing
 * mention bugtracker in readme, move tickets from github to new bugtracker
-* default value for fifo_dir so we don't need to if(fifo_dir)
+* default value for fifo_dir, socket_dir so we don't need to if(fifo_dir). it will always be set to something?
 
 SOMEDAY:
 check if we can make the settings loading less hard coded. eg( keep a list of all settings, and for each one, try to load it)
 figure out caching with webkit and in general how we can speed up everything
 figure out how webkit intercepts key input
+make "disable insert mode" (esc key) configurable
