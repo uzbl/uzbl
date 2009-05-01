@@ -38,6 +38,8 @@ ASAP
 * default value for fifo_dir, socket_dir so we don't need to if(fifo_dir). it will always be set to something?
 * change User-agent to contain uzbl + build date or something. + why is there "Mozilla" in the string
 * backspace key to pop characters from (multichar) command
+* optional logging of http requests, responses with ip/hostname and port. -> how to implement? handler? stdout? (through a socket so you know what corresponds to what?)
+* bench/optimize fifo vs socket performance. measure delays.  minimize forks. does glib use a shell? how does it detect the shebang line?
 
 SOMEDAY:
 check if we can make the settings loading less hard coded. eg( keep a list of all settings, and for each one, try to load it)
