@@ -38,6 +38,7 @@ ASAP
 * mention bugtracker in readme, move tickets from github to new bugtracker
 * default value for fifo_dir, socket_dir so we don't need to if(fifo_dir). it will always be set to something?
 * change User-agent to contain uzbl + build date or something. + why is there "Mozilla" in the string
+* backspace key to pop characters from (multichar) command
 
 SOMEDAY:
 check if we can make the settings loading less hard coded. eg( keep a list of all settings, and for each one, try to load it)
