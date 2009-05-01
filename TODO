@@ -4,7 +4,6 @@ ASAP
 * implement all the ideas from README
 * get a logo
 * when launching new instance, don't just try 'uzbl' and then './uzbl', rather launch a new uzbl in the same way the current uzbl instance was started. (same command, same arguments, except --uri)
-* where to put proxy config? webkit support? depend on libsoup?
 * compare libsoup to curl backend. there are probably performance differences
 * implement a more advanced dmenu alike that behaves like FF's awesomebar and where you can search in url + window title
 * recognize -h with GOption?
@@ -22,9 +21,6 @@ ASAP
   xdg already has a spec for this i think
   different "opening" modes (open as configured vs ask before opening)
   integration with download and new window thingies?
-* see if/how we can remove /bin/bash from scripts
-* unify internal and external bindings. 
-* unify command triggering, whether they came in through fifo or keybind
 * ideal uri editor: awesome mode like FF, some keyb shortcuts (erase search string, go to end/begin of string,..), history (if you patch dmenu to be in vertical mode and you order correctly, that's it), support copy paste
 * blinking cursor when not in insert mode is confusing.  i suggest dimming it's color if possible
 * open in new window -> uzbl: Fatal IO error 11 (Resource temporarily unavailable) on X server :0.0.
@@ -38,8 +34,10 @@ ASAP
 * default value for fifo_dir, socket_dir so we don't need to if(fifo_dir). it will always be set to something?
 * change User-agent to contain uzbl + build date or something. + why is there "Mozilla" in the string
 * backspace key to pop characters from (multichar) command
-* optional logging of http requests, responses with ip/hostname and port. -> how to implement? handler? stdout? (through a socket so you know what corresponds to what?)
+* optional logging of http requests&responses with ip/hostname and port. -> how to implement? handler? stdout? (through a socket so you know what corresponds to what?)
 * bench/optimize fifo vs socket performance. measure delays.  minimize forks. does glib use a shell? how does it detect the shebang line?
+* cookie support
+* http_proxy env var not recognized. libproxy (used by libsoup) should handle this http://mail.gnome.org/archives/libsoup-list/2009-February/msg00018.html
 
 SOMEDAY:
 check if we can make the settings loading less hard coded. eg( keep a list of all settings, and for each one, try to load it)
