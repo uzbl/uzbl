@@ -61,6 +61,7 @@ static gint load_progress;
 static Window xwin = 0;
 static char fifo_path[64];
 static char socket_path[108];
+static char executable_path[500];
 
 /* state variables (initial values coming from command line arguments but may be changed later) */
 static gchar*   uri         = NULL;
@@ -337,21 +338,18 @@ load_uri (WebKitWebView * web_view, const gchar *param) {
 static void
 new_window_load_uri (const gchar * uri) {
     GString* to_execute = g_string_new ("");
-    if (!config_file) {
-        g_string_printf (to_execute, "uzbl --uri '%s'", uri);
-    } else {
-        g_string_printf (to_execute, "uzbl --uri '%s' --config '%s'", uri, config_file);
-    }
-    printf("Spawning %s\n",to_execute->str);
-    if (!g_spawn_command_line_async (to_execute->str, NULL)) {
-        if (!config_file) {
-            g_string_printf (to_execute, "./uzbl --uri '%s'", uri);
-        } else {
-            g_string_printf (to_execute, "./uzbl --uri '%s' --config '%s'", uri, config_file);
+    g_string_append_printf (to_execute, "%s --uri '%s'", executable_path, uri);
+    int i;
+    for (i = 0; entries[i].long_name != NULL; i++) {
+        if ((entries[i].arg == G_OPTION_ARG_STRING) && (strcmp(entries[i].long_name,"uri")!=0)) {
+            gchar** str = (gchar**)entries[i].arg_data;
+            if (*str!=NULL) {
+                g_string_append_printf (to_execute, " --%s '%s'", entries[i].long_name, *str);
+            }
         }
-        printf("Spawning %s\n",to_execute->str);
-    g_spawn_command_line_async (to_execute->str, NULL);
     }
+    printf("\n%s\n", to_execute->str);
+    g_spawn_command_line_async (to_execute->str, NULL);
     g_string_free (to_execute, TRUE);
 }
 
@@ -753,6 +751,7 @@ main (int argc, char* argv[]) {
         g_thread_init (NULL);
 
     printf("Uzbl start location: %s\n", argv[0]);
+    strcpy(executable_path,argv[0]);
 
     strcat ((char *) XDG_CONFIG_HOME_default, getenv ("HOME"));
     strcat ((char *) XDG_CONFIG_HOME_default, "/.config");
