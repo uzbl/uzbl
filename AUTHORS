@@ -9,6 +9,7 @@ Contributors:
     Robert Manea - Various improvements
     Zane Ashby (HashBox) - Rewrote FIFO interface. Fixed various bugs.
     (sentientswitch) - Cleaned up code. Added some commands.
+    Jan Kolkmeier (jouz) - scrolling
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:
