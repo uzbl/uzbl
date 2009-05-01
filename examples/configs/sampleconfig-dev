@@ -39,3 +39,9 @@ u = spawn /bin/bash ./examples/scripts/load_url_from_history.sh
 U = spawn /bin/bash ./examples/scripts/load_url_from_bookmarks.sh
 
 [network]
+proxy_server = 
+#values 0-3
+http_debug = 0
+user-agent = uzbl
+max_conns = 
+max_conns_per_host = 
