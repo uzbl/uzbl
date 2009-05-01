@@ -1,23 +1,49 @@
-* Arch Linux:
-  pkgbuild @ http://aur.archlinux.org/packages.php?ID=25972
+Arch Linux
+----------
+[Arch Linux](http://www.archlinux.org) is our distro of choice, and the distro we use for testing.
 
-* From source:
+You can find a [PKGBUILD](http://aur.archlinux.org/packages.php?ID=25972) on the AUR, which installs the latest
+from the master branch. You can edit the PKGBUILD to change to any other
+branch you want.
 
-$ git clone git://github.com/Dieterbe/uzbl.git
-[ $ git checkout master/experimental ] # master == fairly stable.  experimental is more bleeding edge
-$ cd uzbl
-$ make
-$ sudo make install
+From source
+-----------
+	$ git clone git://github.com/Dieterbe/uzbl.git
+	[ $ git checkout master/experimental ] # master == fairly stable.  experimental is more bleeding edge
+	$ cd uzbl
+	$ make
+	$ sudo make install
 
-Dependencies:
-libwebkit 1.1.4 or higher
-gtk 2 something something
-pkgconfig (for Make/gcc)
+Dependencies
+------------
+* git (for building)
+* pkgconfig (for Make/gcc)
+* libwebkit 1.1.4 or higher
+* gtk 2 something something
 
-Optional:
-dmenu, zenity, bash for the sample scripts
+Optional/Recommended
+--------------------
+The following tools are quite useful, and some of them are used in the
+sample scripts:
 
-You will have the program in /usr/bin and various sample scripts, a sample config, sample bookmarks file and some documentation in /usr/share/uzbl. You
-will probably want to change the scripts to behave more like you want, so copy the scripts to your home dir. If you save your config as
-$XDG_CONFIG_HOME/uzbl/config (this expands to ~/.config/uzbl/config on most systems) it will be recognized automatically. You can also pass the path to
+* dmenu
+* zenity
+* bash 
+
+File locations
+--------------
+After installing - using either method - you will find:
+
+* /usr/bin : uzbl [and uzblctrl]
+* /usr/share/uzbl/docs/ : documentation files included with uzbl. (readme, checklist,..)
+* /usr/share/uzbl/examples: sample scripts, config files and a sample bookmarks file. 
+
+You will probably want to change the scripts to behave more like you want, so copy the scripts to your home dir. If you save your config as
+$XDG\_CONFIG\_HOME/uzbl/config (this expands to ~/.config/uzbl/config on most systems) it will be recognized automatically. You can also pass the path to
 the config file with the --config parameter.
+
+You're free to store your personal stuff where you want, but we think the [XDG basedir spec](http://standards.freedesktop.org/basedir-spec/basedir-spec-0.6.html)
+is very useful for keeping a clean home directory, so we recommend:
+
+* $XDG\_CONFIG\_HOME/uzbl/config* (~/.config/uzbl/config on most systems): config file
+* $XDG\_DATA\_HOME/uzbl (~/.local/share/uzbl on most systems): bookmarks file, history file. and "scripts" directory with scripts

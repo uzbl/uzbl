@@ -2,13 +2,13 @@ CPPFLAGS=$(shell pkg-config --cflags gtk+-2.0 webkit-1.0) -Wall -W
 LDFLAGS=$(shell pkg-config --libs gtk+-2.0 webkit-1.0)
 all: uzbl uzblctrl
 
-test:
+test: uzbl
 	./uzbl --uri http://www.uzbl.org
 
-test-config:
+test-config: uzbl
 	./uzbl --uri http://www.uzbl.org --config examples/configs/sampleconfig-dev
 
-test-config-real:
+test-config-real: uzbl
 	./uzbl --uri http://www.uzbl.org --config /usr/share/uzbl/examples/configs/sampleconfig
 	
 clean:
@@ -24,3 +24,8 @@ install:
 	cp -ax examples $(DESTDIR)/usr/share/uzbl/
 	install -D -m644 CHECKLIST $(DESTDIR)/usr/share/uzbl/docs
 	install -D -m644 README $(DESTDIR)/usr/share/uzbl/docs
+
+uninstall:
+	rm -rf $(DESTDIR)/usr/bin/uzbl
+	rm -rf $(DESTDIR)/usr/bin/uzblctrl
+	rm -rf $(DESTDIR)/usr/share/uzbl
