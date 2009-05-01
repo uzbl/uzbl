@@ -6,7 +6,6 @@ ASAP
 * when launching new instance, don't just try 'uzbl' and then './uzbl', rather launch a new uzbl in the same way the current uzbl instance was started. (same command, same arguments, except --uri)
 * where to put proxy config? webkit support? depend on libsoup?
 * compare libsoup to curl backend. there are probably performance differences
-* check configured commands if they end on .sh so users don't need to prepend /bin/<shell>
 * implement a more advanced dmenu alike that behaves like FF's awesomebar and where you can search in url + window title
 * recognize -h with GOption?
 * implement a vimperator-like link following scheme.  but let user pick his favorite characters to construct the "link identifiers" with.

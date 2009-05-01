@@ -11,8 +11,8 @@
 # from insert mode by combining them with the modkey
 
 [behavior]
-history_handler = /bin/bash /usr/share/uzbl/examples/scripts/history.sh
-download_handler = /bin/bash /usr/share/uzbl/examples/scripts/download.sh
+history_handler = /usr/share/uzbl/examples/scripts/history.sh
+download_handler = /usr/share/uzbl/examples/scripts/download.sh
 fifo_dir = /tmp
 socket_dir = /tmp
 always_insert_mode = 0
@@ -39,9 +39,9 @@ w = follow_link_new_window
 t = toggle_status
 ZZ = exit
 i = insert_mode
-B = spawn /bin/bash /usr/share/uzbl/examples/scripts/insert_bookmark.sh
-u = spawn /bin/bash /usr/share/uzbl/examples/scripts/load_url_from_history.sh
-U = spawn /bin/bash /usr/share/uzbl/examples/scripts/load_url_from_bookmarks.sh
+B = spawn /usr/share/uzbl/examples/scripts/insert_bookmark.sh
+u = spawn /usr/share/uzbl/examples/scripts/load_url_from_history.sh
+U = spawn /usr/share/uzbl/examples/scripts/load_url_from_bookmarks.sh
 
 
 [network]
