@@ -21,10 +21,11 @@ show_status = 1
 status_top = 0
 
 [bindings]
-j = scroll_down
-k = scroll_up
-h = scroll_left
-l = scroll_right
+# scroll down/up/left/right
+j = scroll_vert 20      
+k = scroll_vert -20     
+h = scroll_horz -20     
+l = scroll_horz 20      
 b = back
 m = forward
 s = stop
