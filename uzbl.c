@@ -1,3 +1,4 @@
+/* -*- c-basic-offset: 4; */
 // Original code taken from the example webkit-gtk+ application. see notice below.
 // Modified code is licensed under the GPL 3.  See LICENSE file.
 
@@ -48,7 +49,9 @@
 #include <errno.h>
 #include <string.h>
 #include <fcntl.h>
-
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <libsoup/soup.h>
 #include "uzbl.h"
 
 /* housekeeping / internal variables */
@@ -86,6 +89,7 @@ static gboolean insert_mode        = FALSE;
 static gboolean status_top         = FALSE;
 static gchar*   modkey             = NULL;
 static guint    modmask            = 0;
+static guint    http_debug         = 0;
 
 /* settings from config: group bindings, key -> action */
 static GHashTable* bindings;
@@ -107,6 +111,14 @@ typedef void (*Command)(WebKitWebView*, const char *);
 /* XDG stuff */
 static char *XDG_CONFIG_HOME_default[256];
 static char *XDG_CONFIG_DIRS_default = "/etc/xdg";
+
+/* libsoup stuff - proxy and friends; networking aptions actually */
+static SoupSession *soup_session;
+static SoupLogger *soup_logger;
+static char *proxy_url = NULL;
+static char *useragent = NULL;
+static gint max_conns;
+static gint max_conns_host;
 
 /* --- CALLBACKS --- */
 
@@ -777,6 +789,44 @@ settings_init () {
 
         g_strfreev(keys);
     }
+
+    /* networking options */
+    proxy_url      = g_key_file_get_value   (config, "network", "proxy_server",       NULL);
+    http_debug     = g_key_file_get_integer (config, "network", "http_debug",         NULL);
+    useragent      = g_key_file_get_value   (config, "network", "user-agent",         NULL);
+    max_conns      = g_key_file_get_integer (config, "network", "max_conns",          NULL);
+    max_conns_host = g_key_file_get_integer (config, "network", "max_conns_per_host", NULL);
+
+    if(proxy_url){
+        g_object_set(G_OBJECT(soup_session), SOUP_SESSION_PROXY_URI, soup_uri_new(proxy_url), NULL);
+    }
+	
+    if(!(http_debug <= 3)){
+        http_debug = 0;
+        fprintf(stderr, "Wrong http_debug level, ignoring.\n");
+    } else if (http_debug > 0) {
+        soup_logger = soup_logger_new(http_debug, -1);
+        soup_session_add_feature(soup_session, SOUP_SESSION_FEATURE(soup_logger));
+    }
+	
+    if(useragent){
+        g_object_set(G_OBJECT(soup_session), SOUP_SESSION_USER_AGENT, useragent, NULL);
+    }
+
+    if(max_conns >= 1){
+        g_object_set(G_OBJECT(soup_session), SOUP_SESSION_MAX_CONNS, max_conns, NULL);
+    }
+
+    if(max_conns_host >= 1){
+        g_object_set(G_OBJECT(soup_session), SOUP_SESSION_MAX_CONNS_PER_HOST, max_conns_host, NULL);
+    }
+
+    printf("Proxy configured: %s\n", proxy_url ? proxy_url : "none");
+    printf("HTTP logging level: %d\n", http_debug);
+    printf("User-agent: %s\n", useragent? useragent : "default");
+    printf("Maximum connections: %d\n", max_conns ? max_conns : 0);
+    printf("Maximum connections per host: %d\n", max_conns_host ? max_conns_host: 0);
+		
 }
 
 int
@@ -798,7 +848,8 @@ main (int argc, char* argv[]) {
     g_option_context_parse (context, &argc, &argv, &error);
     /* initialize hash table */
     bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
-
+	
+	soup_session = webkit_get_default_session();
     keycmd = g_string_new("");
 
     settings_init ();

@@ -45,3 +45,10 @@ u = spawn ./examples/scripts/load_url_from_history.sh
 U = spawn ./examples/scripts/load_url_from_bookmarks.sh
 
 [network]
+# to start a local socks server, do : ssh -fND localhost:8118 localhost
+#proxy_server = http://127.0.0.1:8118
+#values 0-3
+http_debug = 0
+user-agent = uzbl
+max_conns = 
+max_conns_per_host = 

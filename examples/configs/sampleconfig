@@ -46,3 +46,9 @@ U = spawn /usr/share/uzbl/examples/scripts/load_url_from_bookmarks.sh
 
 
 [network]
+proxy_server = 
+#values 0-3
+http_debug = 1
+user-agent = uzbl
+max_conns =
+max_conns_per_host =
