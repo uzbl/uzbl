@@ -54,6 +54,10 @@
 static GtkWidget* main_window;
 static GtkWidget* mainbar;
 static GtkWidget* mainbar_label;
+static GtkScrollbar* scbar_v;   // Horizontal and Vertical Scrollbar 
+static GtkScrollbar* scbar_h;   // (These are still hidden)
+static GtkAdjustment* bar_v; // Information about document length
+static GtkAdjustment* bar_h; // and scrolling position
 static WebKitWebView* web_view;
 static gchar* main_title;
 static gchar selected_url[500] = "\0";
@@ -80,6 +84,8 @@ static gboolean insert_mode        = FALSE;
 static gboolean status_top         = FALSE;
 static gchar*   modkey             = NULL;
 static guint    modmask            = 0;
+static gdouble   hscroll            = 20;
+static gdouble   vscroll            = 20;
 
 /* settings from config: group bindings, key -> action */
 static GHashTable *bindings;
@@ -177,10 +183,45 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
     return (FALSE);
 }
 
+/* scroll a bar in a given direction */
+static void
+scroll (double i, GtkAdjustment* bar) {
+    gtk_adjustment_set_value (bar, gtk_adjustment_get_value(bar)+i);
+}
+
+static void scroll_up (WebKitWebView* page, const char *param) {
+    (void) page;
+    (void) param;
+
+    scroll (-vscroll, bar_v);
+}
+
+static void scroll_left (WebKitWebView* page, const char *param) {
+    (void) page;
+    (void) param;
+
+    scroll (-hscroll, bar_h);
+}
+
+static void scroll_down (WebKitWebView* page, const char *param) {
+    (void) page;
+    (void) param;
+
+    scroll (vscroll, bar_v);
+}
+
+static void scroll_right (WebKitWebView* page, const char *param) {
+    (void) page;
+    (void) param;
+
+    scroll (hscroll, bar_h);
+}
+
 static void
 toggle_status_cb (WebKitWebView* page, const char *param) {
     (void)page;
     (void)param;
+
     if (show_status) {
         gtk_widget_hide(mainbar);
     } else {
@@ -272,6 +313,10 @@ static struct {char *name; Command command;} cmdlist[] =
 {
     { "back",          view_go_back       },
     { "forward",       view_go_forward    },
+    { "scroll_down",   scroll_down        },
+    { "scroll_up",     scroll_up          },
+    { "scroll_left",   scroll_left        },
+    { "scroll_right",  scroll_right       },
     { "reload",        view_reload,       }, //Buggy
     { "refresh",       view_reload,       }, /* for convenience, will change */
     { "stop",          view_stop_loading, },
@@ -824,6 +869,12 @@ main (int argc, char* argv[]) {
     xwin = GDK_WINDOW_XID (GTK_WIDGET (main_window)->window);
     printf("window_id %i\n",(int) xwin);
     printf("pid %i\n", getpid ());
+
+    scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);
+    bar_v = gtk_range_get_adjustment((GtkRange*) scbar_v);
+    scbar_h = (GtkScrollbar*) gtk_hscrollbar_new (NULL);
+    bar_h = gtk_range_get_adjustment((GtkRange*) scbar_h);
+    gtk_widget_set_scroll_adjustments ((GtkWidget*) web_view, bar_h, bar_v);
 
     if (!show_status)
         gtk_widget_hide(mainbar);
