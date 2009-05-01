@@ -3,10 +3,13 @@ Developers:
     Dieter Plaetinck (Dieter@be) <dieter@plaetinck.be>
     Dusan Popovic (dusanx)
     Michael Walker (Barrucadu) <mike@barrucadu.co.uk>
+    Přemysl Hrubý, (anydot) <dfenze@gmail.com>
 
 Contributors:
+    Robert Manea - Various improvements
     Zane Ashby (HashBox) - Rewrote FIFO interface. Fixed various bugs.
     (sentientswitch) - Cleaned up code. Added some commands.
+    Jan Kolkmeier (jouz) - scrolling
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:

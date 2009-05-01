@@ -24,3 +24,8 @@ install:
 	cp -ax examples $(DESTDIR)/usr/share/uzbl/
 	install -D -m644 CHECKLIST $(DESTDIR)/usr/share/uzbl/docs
 	install -D -m644 README $(DESTDIR)/usr/share/uzbl/docs
+
+uninstall:
+	rm -rf $(DESTDIR)/usr/bin/uzbl
+	rm -rf $(DESTDIR)/usr/bin/uzblctrl
+	rm -rf $(DESTDIR)/usr/share/uzbl
