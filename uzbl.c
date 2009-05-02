@@ -90,6 +90,8 @@ static gboolean status_top         = FALSE;
 static gchar*   modkey             = NULL;
 static guint    modmask            = 0;
 static guint    http_debug         = 0;
+static gboolean no_fifo            = FALSE;
+static gboolean no_socket          = FALSE;
 
 /* settings from config: group bindings, key -> action */
 static GHashTable* bindings;
@@ -838,6 +840,8 @@ settings_init () {
         if (! socket_dir)
             socket_dir     = g_key_file_get_value   (config, "behavior", "socket_dir",         NULL);
         keys               = g_key_file_get_keys    (config, "bindings", NULL,                 NULL);
+        no_fifo            = g_key_file_get_boolean (config, "behavior", "no_fifo",            NULL);
+        no_socket          = g_key_file_get_boolean (config, "behavior", "no_socket",          NULL);
     }
 
     printf ("History handler: %s\n",    (history_handler    ? history_handler  : "disabled"));
@@ -848,6 +852,8 @@ settings_init () {
     printf ("Show status: %s\n",        (show_status        ? "TRUE"           : "FALSE"));
     printf ("Status top: %s\n",         (status_top         ? "TRUE"           : "FALSE"));
     printf ("Modkey: %s\n",             (modkey             ? modkey           : "disabled"));
+    printf ("FIFO: %s\n",               (no_fifo            ? "disabled"       : "enabled"));
+    printf ("Socket: %s\n",             (no_socket          ? "disabled"       : "enabled"));
 
     if (! modkey)
         modkey = "";
@@ -980,15 +986,19 @@ main (int argc, char* argv[]) {
     if (!show_status)
         gtk_widget_hide(mainbar);
 
-    create_fifo ();
-    create_socket();
+    if (!no_fifo)
+        create_fifo ();
+    if (!no_socket)
+        create_socket();
 
     gtk_main ();
 
     g_string_free(keycmd, TRUE);
 
-    unlink (socket_path);
-    unlink (fifo_path);
+    if (!no_fifo)
+        unlink (fifo_path);
+    if (!no_socket)
+        unlink (socket_path);
 
     g_hash_table_destroy(bindings);
     g_hash_table_destroy(commands);
