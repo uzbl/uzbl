@@ -4,8 +4,8 @@ ASAP
 * implement all the ideas from README
 * get a logo
 * when launching new instance, don't just try 'uzbl' and then './uzbl', rather launch a new uzbl in the same way the current uzbl instance was started. (same command, same arguments, except --uri)
-* compare libsoup to curl backend. there are probably performance differences
-* implement a more advanced dmenu alike that behaves like FF's awesomebar and where you can search in url + window title
+* implement a more advanced dmenu alike that behaves like FF's awesomebar and where you can search in url + window title, with support for Xorg copy paste
+  ideal uri editor: awesome mode like FF, some keyb shortcuts (erase search string, go to end/begin of string,..), history (if you patch dmenu to be in vertical mode and you order correctly, that's it), support copy paste
 * recognize -h with GOption?
 * implement a vimperator-like link following scheme.  but let user pick his favorite characters to construct the "link identifiers" with.
 * add a keybind to hand the current url to an external scrips, so you can edit it and/or store it in the primary and secondary clipboards
@@ -21,7 +21,6 @@ ASAP
   xdg already has a spec for this i think
   different "opening" modes (open as configured vs ask before opening)
   integration with download and new window thingies?
-* ideal uri editor: awesome mode like FF, some keyb shortcuts (erase search string, go to end/begin of string,..), history (if you patch dmenu to be in vertical mode and you order correctly, that's it), support copy paste
 * blinking cursor when not in insert mode is confusing.  i suggest dimming it's color if possible
 * open in new window -> uzbl: Fatal IO error 11 (Resource temporarily unavailable) on X server :0.0.
 * note about merging better then patches. because commit names, and code can have changed in meanwhile. also github makes the process quite easy
@@ -36,7 +35,8 @@ ASAP
 * backspace key to pop characters from (multichar) command
 * optional logging of http requests&responses with ip/hostname and port. -> how to implement? handler? stdout? (through a socket so you know what corresponds to what?)
 * bench/optimize fifo vs socket performance. measure delays.  minimize forks. does glib use a shell? how does it detect the shebang line?
-* cookie support
+* cookie support. how do we store and control usage?
+* "remember account settings" support. but how? configure post data per site? regex match eg '^bbs.archlinux.org' ?
 * http_proxy env var not recognized. libproxy (used by libsoup) should handle this http://mail.gnome.org/archives/libsoup-list/2009-February/msg00018.html
 
 SOMEDAY:
