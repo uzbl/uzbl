@@ -6,6 +6,7 @@ ASAP
 * when launching new instance, don't just try 'uzbl' and then './uzbl', rather launch a new uzbl in the same way the current uzbl instance was started. (same command, same arguments, except --uri)
 * implement a more advanced dmenu alike that behaves like FF's awesomebar and where you can search in url + window title, with support for Xorg copy paste
   ideal uri editor: awesome mode like FF, some keyb shortcuts (erase search string, go to end/begin of string,..), history (if you patch dmenu to be in vertical mode and you order correctly, that's it), support copy paste
+  isolate the search field feature from midori and make into a separate dmenu-like-but-more-powerful program?
 * recognize -h with GOption?
 * implement a vimperator-like link following scheme.  but let user pick his favorite characters to construct the "link identifiers" with.
 * add a keybind to hand the current url to an external scrips, so you can edit it and/or store it in the primary and secondary clipboards
