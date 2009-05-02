@@ -20,6 +20,20 @@ Zenity is also an option, if you want copy-paste support.
 Uzbl's layout only contains what you really need to see.  we only have a statusbar, which even can also be disabled.  There are no buttons, but we do
 have lots of keybinding possibilities.
 
+### What?  No support for bookmarks/history/downloads/cookies/... ? Your project sucks!
+We do not support *management* of those things, because we believe a browser should only do browsing.  We are firm believers in the unix philosophy.
+You have to look at the bigger picture.  In fact, we do support all these things.  Take bookmarks as an example:
+
+ * we support keybinding and spawning external programs, so you can bind a key to spawn any script you want
+ * Your script receives properties such as the current url, window title etc.
+ * You can then call a tool such as zenity to prompt for any more information you may want to specify (tags,...)
+ * You have the freedom to store the bookmarks in whichever format you want. (plaintext, sqlite, any database, on a remote system, in version control, ...)
+ * To load a bookmark, you trigger another script which invokes a tool such as dmenu to let you pick a bookmark.  Your script can send the command to load the url to uzbl very easily by using the socket or fifo interface.
+ * To manage your bookmarks, you can use whatever you want, depending on how you store them (simple text editor, database interface, ... )
+
+These ideas are something we want to consistently apply throughout the entire application.  (Even more, throughout our entire desktop environment)
+In fact, we actually ship various sample scripts and some sample configs that make it easy for you to implement your workflow.
+
 ### Why can't I type anything in forms?  How does the keybinding work?
 You are in command mode, not in insert mode.
 
@@ -45,6 +59,13 @@ And we don't find the use of gtk *that* disturbing.  Besides, a curses/xlib html
 
 ### Do you support flash? javascript? Ajax?  Recent html/css/.. standards?
 Yes, Webkit takes care of all of that.  Not that we like all of these, but you can use them if you want.
+
+### Does the world really need another browser?
+We did try a lot of browsers, and we do not suffer [NIH](http://en.wikipedia.org/wiki/Not_Invented_Here).
+We believe that the approach taken by way too many browsers is wrong.  We do not want browsers that try to do everything,
+instead we prefer a system where different applications work together, which gives plenty of advantages.
+We also like open source.  We take a lot of things from other projects and we also try to contribute to other projects.
+
 
 ### What? You call all of this user-friendly?
 Yes.  If you don't agree, don't use it :)
