@@ -41,7 +41,6 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <webkit/webkit.h>
-#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -77,6 +76,7 @@ static gchar*   uri         = NULL;
 static gchar*   config_file = NULL;
 static gchar    config_file_path[500];
 static gboolean verbose     = FALSE;
+static gchar*   instance_name   = NULL;
 
 /* settings from config: group behaviour */
 static gchar*   history_handler    = NULL;
@@ -100,9 +100,10 @@ static GHashTable* commands;
 /* commandline arguments (set initial values for the state variables) */
 static GOptionEntry entries[] =
 {
-    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uri,         "Uri to load", NULL },
-    { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &verbose,     "Be verbose",  NULL },
-    { "config",  'c', 0, G_OPTION_ARG_STRING, &config_file, "Config file", NULL },
+    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uri,           "Uri to load", NULL },
+    { "name",    'n', 0, G_OPTION_ARG_STRING, &instance_name, "Name of the current instance", NULL },
+    { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &verbose,       "Be verbose",  NULL },
+    { "config",  'c', 0, G_OPTION_ARG_STRING, &config_file,   "Config file", NULL },
     { NULL,      0, 0, 0, NULL, NULL, NULL }
 };
 
@@ -119,6 +120,31 @@ static char *proxy_url = NULL;
 static char *useragent = NULL;
 static gint max_conns;
 static gint max_conns_host;
+
+/* --- UTILITY FUNCTIONS --- */
+void
+eprint(const char *errstr, ...) {
+        va_list ap;
+        vfprintf(stderr, errstr, ap);
+        va_end(ap);
+        exit(EXIT_FAILURE);
+}
+
+char *
+estrdup(const char *str) {
+        void *res = strdup(str);
+        if(!res)
+            eprint("fatal: could not allocate %u bytes\n", strlen(str));
+        return res;
+}
+
+char *
+itos(int val) {
+    char tmp[20];
+
+    snprintf(tmp, sizeof(tmp), "%i", val);
+    return estrdup(tmp);
+}
 
 /* --- CALLBACKS --- */
 
@@ -435,6 +461,34 @@ parse_line(char *line) {
     g_strfreev(parts);
 }
 
+enum { FIFO, SOCKET};
+void
+build_stream_name(int type) {
+    char *xwin_str;
+
+    xwin_str = itos((int)xwin);
+    switch(type) {
+            case FIFO:
+                    if (fifo_dir) 
+                            sprintf (fifo_path, "%s/uzbl_fifo_%s", fifo_dir,
+                                            instance_name ? instance_name : xwin_str);
+                    else 
+                            sprintf (fifo_path, "/tmp/uzbl_fifo_%s", 
+                                            instance_name ? instance_name : xwin_str);
+                    break;
+            case SOCKET:
+                    if (socket_dir) 
+                            sprintf (socket_path, "%s/uzbl_socket_%s", socket_dir, 
+                                            instance_name ? instance_name : xwin_str);
+                    else 
+                            sprintf (socket_path, "/tmp/uzbl_socket_%s", 
+                                            instance_name ? instance_name : xwin_str);
+                    break;
+             default:
+                    break;
+    }
+}
+
 static void
 control_fifo(GIOChannel *fd) {
     gchar *ctl_line;
@@ -450,11 +504,7 @@ static void
 create_fifo() {
     GIOChannel *chan = NULL;
 
-    if (fifo_dir) {
-        sprintf (fifo_path, "%s/uzbl_fifo_%d", fifo_dir, (int) xwin);
-    } else {
-        sprintf (fifo_path, "/tmp/uzbl_fifo_%d", (int) xwin);
-    }
+    build_stream_name(FIFO);
     printf ("Control fifo opened in %s\n", fifo_path);
     if (mkfifo (fifo_path, 0666) == -1) {
         printf ("Possible error creating fifo\n");
@@ -466,37 +516,15 @@ create_fifo() {
 }
 
 static void
-*control_socket() {
-    if (socket_dir) {
-        sprintf (socket_path, "%s/uzbl_socket_%d", socket_dir, (int) xwin);
-    } else {
-        sprintf (socket_path, "/tmp/uzbl_socket_%d", (int) xwin);
-    }
- 
-    int sock, clientsock, len;
-    unsigned int t;
-    struct sockaddr_un local, remote;
-
-    sock = socket (AF_UNIX, SOCK_STREAM, 0);
-
-    local.sun_family = AF_UNIX;
-    strcpy (local.sun_path, socket_path);
-    unlink (local.sun_path);
-
-    len = strlen (local.sun_path) + sizeof (local.sun_family);
-    bind (sock, (struct sockaddr *) &local, len);
-
-    if (errno == -1) {
-        printf ("A problem occurred when opening a socket in %s\n", socket_path);
-    } else {
-        printf ("Control socket opened in %s\n", socket_path);
-    }
-
-    listen (sock, 5);
- 
-    char buffer[512];
+control_socket(GIOChannel *chan) {
+    struct sockaddr_un remote;
+    char buffer[512], *ctl_line;
     char temp[128];
-    int done, n;
+    int sock, clientsock, n, done;
+    unsigned int t;
+
+    sock = g_io_channel_unix_get_fd(chan);
+
     for(;;) {
         memset (buffer, 0, sizeof (buffer));
 
@@ -522,25 +550,60 @@ static void
         } else {
           buffer[strlen (buffer)] = '\0';
         }
-
-        parse_line (buffer);
         close (clientsock);
+
+        ctl_line = estrdup(buffer);
+        parse_line (ctl_line);
+    }
+    
+    return;
+} 
+
+static void
+create_socket() {
+    GIOChannel *chan = NULL;
+    int sock, len;
+    struct sockaddr_un local;
+
+    build_stream_name(SOCKET);
+    sock = socket (AF_UNIX, SOCK_STREAM, 0);
+
+    local.sun_family = AF_UNIX;
+    strcpy (local.sun_path, socket_path);
+    unlink (local.sun_path);
+
+    len = strlen (local.sun_path) + sizeof (local.sun_family);
+    bind (sock, (struct sockaddr *) &local, len);
+
+    if (errno == -1) {
+        printf ("A problem occurred when opening a socket in %s\n", socket_path);
+    } else {
+        printf ("Control socket opened in %s\n", socket_path);
     }
 
-    return NULL;
-} 
+    listen (sock, 5);
+
+    if( (chan = g_io_channel_unix_new(sock)) )
+        g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_socket, chan);
  
-static void
-setup_threading () {
-    pthread_t control_thread;
-    pthread_create(&control_thread, NULL, control_socket, NULL);
-    pthread_detach(control_thread);
 }
 
 static void
 update_title (void) {
     GString* string_long = g_string_new ("");
     GString* string_short = g_string_new ("");
+    char* iname = NULL;
+    int iname_len;
+
+    if(instance_name) {
+            iname_len = strlen(instance_name)+4;
+            iname = malloc(iname_len);
+            snprintf(iname, iname_len, "<%s> ", instance_name);
+            
+            g_string_prepend(string_long, iname);
+            g_string_prepend(string_short, iname);
+            free(iname);
+    }
 
     g_string_append_printf(string_long, "%s ", keycmd->str);
     if (!always_insert_mode)
@@ -738,7 +801,7 @@ settings_init () {
             socket_dir     = g_key_file_get_value   (config, "behavior", "socket_dir",         NULL);
         keys               = g_key_file_get_keys    (config, "bindings", NULL,                 NULL);
     }
-    
+
     printf ("History handler: %s\n",    (history_handler    ? history_handler  : "disabled"));
     printf ("Download manager: %s\n",   (download_handler   ? download_handler : "disabled"));
     printf ("Fifo directory: %s\n",     (fifo_dir           ? fifo_dir         : "/tmp"));
@@ -868,6 +931,7 @@ main (int argc, char* argv[]) {
     xwin = GDK_WINDOW_XID (GTK_WIDGET (main_window)->window);
     printf("window_id %i\n",(int) xwin);
     printf("pid %i\n", getpid ());
+    printf("name: %s\n", instance_name);
 
     scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);
     bar_v = gtk_range_get_adjustment((GtkRange*) scbar_v);
@@ -878,8 +942,8 @@ main (int argc, char* argv[]) {
     if (!show_status)
         gtk_widget_hide(mainbar);
 
-    setup_threading ();
     create_fifo ();
+    create_socket();
 
     gtk_main ();
 

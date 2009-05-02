@@ -4,6 +4,15 @@ typedef struct {
 } Action;
 
 
+void
+eprint(const char *errstr, ...);
+
+char *
+estrdup(const char *str);
+
+char *
+itos(int val);
+
 static gboolean
 new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data);
 
@@ -70,6 +79,9 @@ parse_command(const char *cmd, const char *param);
 static void
 parse_line(char *line);
 
+void
+build_stream_name(int type);
+
 static void
 control_fifo(GIOChannel *fd);
 
@@ -77,10 +89,11 @@ static void
 create_fifo();
 
 static void
-*control_socket();
- 
+create_socket();
+
 static void
-setup_threading ();
+control_socket(GIOChannel *chan);
+ 
 
 static void
 update_title (void);
