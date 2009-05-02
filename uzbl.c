@@ -122,28 +122,13 @@ static gint max_conns;
 static gint max_conns_host;
 
 /* --- UTILITY FUNCTIONS --- */
-void
-eprint(const char *errstr, ...) {
-        va_list ap;
-        vfprintf(stderr, errstr, ap);
-        va_end(ap);
-        exit(EXIT_FAILURE);
-}
-
-char *
-estrdup(const char *str) {
-        void *res = strdup(str);
-        if(!res)
-            eprint("fatal: could not allocate %u bytes\n", strlen(str));
-        return res;
-}
 
 char *
 itos(int val) {
     char tmp[20];
 
     snprintf(tmp, sizeof(tmp), "%i", val);
-    return estrdup(tmp);
+    return g_strdup(tmp);
 }
 
 /* --- CALLBACKS --- */
@@ -487,6 +472,7 @@ build_stream_name(int type) {
              default:
                     break;
     }
+    g_free(xwin_str);
 }
 
 static void
@@ -548,7 +534,7 @@ control_socket(GIOChannel *chan) {
         buffer[strlen (buffer)] = '\0';
     }
     close (clientsock);
-    ctl_line = estrdup(buffer);
+    ctl_line = g_strdup(buffer);
     parse_line (ctl_line);
 
 /*
