@@ -778,7 +778,7 @@ add_binding (const gchar *key, const gchar *act) {
         return;
 
     //Debug:
-    printf ("@%s@ @%s@ @%s@\n", key, parts[0], parts[1]);
+    printf ("Binding %-10s : %s\n", key, act);
     action = new_action(parts[0], parts[1]);
     g_hash_table_insert(bindings, g_strdup(key), action);
 
