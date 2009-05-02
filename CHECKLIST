@@ -25,4 +25,7 @@ Also testers and interested people can use this list to see what uzbl is about, 
 * vimlike command and insert modes behave as expected
 * always_insert_mode and modkey work too
 * status bar can be toggled on and off, if off, some info (mode) will be put in title bar. position of statusbar (top/bottom) also works
-
+* backspace erases last edit character
+* commands with parameters: any key sequence that ends with underscore _ expects parameter. Undersore marks exact location where parameter begins. Command part can have %s that will be replaced with parameter.
+        :o _ = uri %s - user needs to type :o www.google.com
+        :O_ = uri %s - user needs to type :Owww.google.com

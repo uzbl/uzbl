@@ -594,20 +594,52 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     if (insert_mode && event->state != modmask)
         return FALSE;
 
-
     if (event->keyval == GDK_Escape) {
         g_string_truncate(keycmd, 0);
-
         update_title();
-
         return TRUE;
     }
 
-    g_string_append(keycmd, event->string);
+    if ((event->keyval == GDK_BackSpace) && (keycmd->len > 0)) {
+        g_string_truncate(keycmd, keycmd->len - 1);
+        update_title();
+        return TRUE;
+    }
 
+    if ((event->keyval == GDK_Return) || (event->keyval == GDK_KP_Enter)) {
+        GString* short_keys = g_string_new ("");
+        unsigned int i;
+        for (i=0; i<(keycmd->len); i++) {
+            g_string_append_c(short_keys, keycmd->str[i]);
+            g_string_append_c(short_keys, '_');
+            
+            //printf("\nTesting string: @%s@\n", short_keys->str);
+            if ((action = g_hash_table_lookup(bindings, short_keys->str))) {
+                GString* parampart = g_string_new (keycmd->str);
+                g_string_erase (parampart, 0, i+1);
+                //printf("\nParameter: @%s@\n", parampart->str);
+                GString* actionname = g_string_new ("");
+                if (action->name)
+                    g_string_printf (actionname, action->name, parampart->str);
+                GString* actionparam = g_string_new ("");
+                if (action->param)
+                    g_string_printf (actionparam, action->param, parampart->str);
+                parse_command(actionname->str, actionparam->str);
+                g_string_free (actionname, TRUE);
+                g_string_free (actionparam, TRUE);
+                g_string_free (parampart, TRUE);
+                g_string_truncate(keycmd, 0);
+            }          
+
+            g_string_truncate(short_keys, short_keys->len - 1);
+        }
+        g_string_free (short_keys, TRUE);
+        return (!insert_mode);
+    }
+
+    g_string_append(keycmd, event->string);
     if ((action = g_hash_table_lookup(bindings, keycmd->str))) {
         g_string_truncate(keycmd, 0);
-
         parse_command(action->name, action->param);
     }
 
@@ -665,6 +697,8 @@ add_binding (const gchar *key, const gchar *act) {
     if (!parts)
         return;
 
+    //Debug:
+    printf ("@%s@ @%s@ @%s@\n", key, parts[0], parts[1]);
     action = new_action(parts[0], parts[1]);
     g_hash_table_insert(bindings, g_strdup(key), action);
 
