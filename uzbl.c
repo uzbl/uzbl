@@ -438,18 +438,11 @@ parse_line(char *line) {
 static void
 control_fifo(GIOChannel *fd) {
     gchar *ctl_line;
-    gsize term_pos;
-
     if(!fd)
        return;
-
-    g_io_channel_read_line(fd, &ctl_line, NULL, &term_pos, NULL);
-    ctl_line[term_pos] ='\0';
-
+    g_io_channel_read_line(fd, &ctl_line, NULL, NULL, NULL);
     parse_line(ctl_line);
-
     g_free(ctl_line);
-
     return;
 }
 
