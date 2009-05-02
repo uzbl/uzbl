@@ -525,37 +525,47 @@ control_socket(GIOChannel *chan) {
 
     sock = g_io_channel_unix_get_fd(chan);
 
-    for(;;) {
-        memset (buffer, 0, sizeof (buffer));
+    memset (buffer, 0, sizeof (buffer));
 
-        t          = sizeof (remote);
-        clientsock = accept (sock, (struct sockaddr *) &remote, &t);
-        printf ("Connected to client\n");
+    t          = sizeof (remote);
+    clientsock = accept (sock, (struct sockaddr *) &remote, &t);
 
-        done = 0;
-        do {
-            memset (temp, 0, sizeof (temp));
-            n = recv (clientsock, temp, 128, 0);
-            if (n == 0) {
-                buffer[strlen (buffer)] = '\0';
-                done = 1;
-            }
-
-            if (!done)
-                strcat (buffer, temp);
-        } while (!done);
-
-        if (strcmp (buffer, "\n") < 0) {
-            buffer[strlen (buffer) - 1] = '\0';
-        } else {
-          buffer[strlen (buffer)] = '\0';
+    done = 0;
+    do {
+        memset (temp, 0, sizeof (temp));
+        n = recv (clientsock, temp, 128, 0);
+        if (n == 0) {
+            buffer[strlen (buffer)] = '\0';
+            done = 1;
         }
-        close (clientsock);
+        if (!done)
+            strcat (buffer, temp);
+    } while (!done);
 
-        ctl_line = estrdup(buffer);
-        parse_line (ctl_line);
+    if (strcmp (buffer, "\n") < 0) {
+        buffer[strlen (buffer) - 1] = '\0';
+    } else {
+        buffer[strlen (buffer)] = '\0';
     }
-    
+    close (clientsock);
+    ctl_line = estrdup(buffer);
+    parse_line (ctl_line);
+
+/*
+   TODO: we should be able to do it with this.  but glib errors out with "Invalid argument"
+    GError *error = NULL;
+    gsize len;
+    GIOStatus ret;
+    ret = g_io_channel_read_line(chan, &ctl_line, &len, NULL, &error);
+    if (ret == G_IO_STATUS_ERROR)
+        g_error ("Error reading: %s\n", error->message);
+
+    printf("Got line %s (%u bytes) \n",ctl_line, len);
+    if(ctl_line) {
+       parse_line(ctl_line);
+*/
+
+    g_free(ctl_line);
     return;
 } 
 
@@ -576,9 +586,9 @@ create_socket() {
     bind (sock, (struct sockaddr *) &local, len);
 
     if (errno == -1) {
-        printf ("A problem occurred when opening a socket in %s\n", socket_path);
+        printf ("Socket: Could not open in %s\n", socket_path);
     } else {
-        printf ("Control socket opened in %s\n", socket_path);
+        printf ("Socket: Opened in %s\n", socket_path);
     }
 
     listen (sock, 5);
