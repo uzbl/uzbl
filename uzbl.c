@@ -503,15 +503,24 @@ control_fifo(GIOChannel *fd) {
 static void
 create_fifo() {
     GIOChannel *chan = NULL;
+    GError *error = NULL;
 
     build_stream_name(FIFO);
-    printf ("Control fifo opened in %s\n", fifo_path);
-    if (mkfifo (fifo_path, 0666) == -1) {
-        printf ("Possible error creating fifo\n");
+    if (file_exists(fifo_path)) {
+        printf ("Fifo: disabled.  Error when creating %s: File exists\n", fifo_path);
+        return;
     }
-
-    if( (chan = g_io_channel_new_file((gchar *) fifo_path, "r+", NULL)) )
-        g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, chan);
+    if (mkfifo (fifo_path, 0666) == -1) { //TODO: mkfifo blocks (waits for writer)
+        printf ("Fifo: disabled.  Error when creating %s: %s\n", fifo_path, strerror(errno));
+    } else {
+        chan = g_io_channel_new_file((gchar *) fifo_path, "r", &error);
+        if (chan) {
+            printf ("Fifo: created successfully as %s\n", fifo_path);
+            g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, chan);
+        } else {
+            g_error ("Fifo: error while opening: %s\n", error->message);
+        }
+    }
     return;
 }
 
@@ -586,16 +595,14 @@ create_socket() {
     bind (sock, (struct sockaddr *) &local, len);
 
     if (errno == -1) {
-        printf ("Socket: Could not open in %s\n", socket_path);
+        printf ("Socket: Could not open in %s: %s\n", socket_path, strerror(errno));
     } else {
         printf ("Socket: Opened in %s\n", socket_path);
+        listen (sock, 5);
+
+        if( (chan = g_io_channel_unix_new(sock)) )
+            g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_socket, chan);
     }
-
-    listen (sock, 5);
-
-    if( (chan = g_io_channel_unix_new(sock)) )
-        g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_socket, chan);
- 
 }
 
 static void
