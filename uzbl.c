@@ -510,10 +510,11 @@ create_fifo() {
         printf ("Fifo: disabled.  Error when creating %s: File exists\n", fifo_path);
         return;
     }
-    if (mkfifo (fifo_path, 0666) == -1) { //TODO: mkfifo blocks (waits for writer)
+    if (mkfifo (fifo_path, 0666) == -1) {
         printf ("Fifo: disabled.  Error when creating %s: %s\n", fifo_path, strerror(errno));
     } else {
-        chan = g_io_channel_new_file((gchar *) fifo_path, "r", &error);
+        // we don't really need to write to the file, but if we open the file as 'r' we will block here, waiting for a writer to open the file.
+        chan = g_io_channel_new_file((gchar *) fifo_path, "r+", &error);
         if (chan) {
             printf ("Fifo: created successfully as %s\n", fifo_path);
             g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, chan);
