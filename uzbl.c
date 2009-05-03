@@ -307,20 +307,20 @@ VIEWFUNC(go_forward)
 
 static struct {char *name; Command command;} cmdlist[] =
 {
-    { "back",          view_go_back       },
-    { "forward",       view_go_forward    },
-    { "scroll_vert",   scroll_vert        },
-    { "scroll_horz",   scroll_horz        },
-    { "reload",        view_reload,       }, //Buggy
-    { "refresh",       view_reload,       }, /* for convenience, will change */
-    { "stop",          view_stop_loading, },
-    { "zoom_in",       view_zoom_in,      }, //Can crash (when max zoom reached?).
-    { "zoom_out",      view_zoom_out,     },
-    { "uri",           load_uri           },
-    { "toggle_status", toggle_status_cb   },
-    { "spawn",         spawn              },
-    { "exit",          close_uzbl         },
-    { "insert_mode",   set_insert_mode    }
+    { "back",           view_go_back       },
+    { "forward",        view_go_forward    },
+    { "scroll_vert",    scroll_vert        },
+    { "scroll_horz",    scroll_horz        },
+    { "reload",         view_reload,       }, //Buggy
+    { "refresh",        view_reload,       }, /* for convenience, will change */
+    { "stop",           view_stop_loading, },
+    { "zoom_in",        view_zoom_in,      }, //Can crash (when max zoom reached?).
+    { "zoom_out",       view_zoom_out,     },
+    { "uri",            load_uri           },
+    { "toggle_status",  toggle_status_cb   },
+    { "spawn",          spawn              },
+    { "exit",           close_uzbl         },
+    { "insert_mode",    set_insert_mode    }
 };
 
 static void
@@ -668,7 +668,7 @@ update_title (void) {
     g_free (title_long);
     g_free (title_short);
 }
- 
+
 static gboolean
 key_press_cb (WebKitWebView* page, GdkEventKey* event)
 {
@@ -688,12 +688,28 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
         return TRUE;
     }
 
-    if (insert_mode && event->state != modmask)
+    if (insert_mode && (event->state & modmask))
         return FALSE;
 
     if (event->keyval == GDK_Escape) {
         g_string_truncate(keycmd, 0);
         update_title();
+        return TRUE;
+    }
+
+    //Insert without shift - insert from clipboard; Insert with shift - insert from primary
+    if (event->keyval == GDK_Insert) {
+        gchar * str;
+        if ((event->state & GDK_SHIFT_MASK) == GDK_SHIFT_MASK) {
+            str = gtk_clipboard_wait_for_text (gtk_clipboard_get (GDK_SELECTION_PRIMARY));
+        } else {
+            str = gtk_clipboard_wait_for_text (gtk_clipboard_get (GDK_SELECTION_CLIPBOARD)); 
+        }
+        if (str) {
+            g_string_append_printf (keycmd, "%s",  str);
+            update_title ();
+            free (str);
+        }
         return TRUE;
     }
 
