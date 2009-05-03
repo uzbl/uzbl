@@ -469,24 +469,23 @@ build_stream_name(int type) {
 
     xwin_str = itos((int)xwin);
     switch(type) {
-            case FIFO:
-                    if (fifo_dir) 
-                            sprintf (fifo_path, "%s/uzbl_fifo_%s", fifo_dir,
-                                            instance_name ? instance_name : xwin_str);
-                    else 
-                            sprintf (fifo_path, "/tmp/uzbl_fifo_%s", 
-                                            instance_name ? instance_name : xwin_str);
-                    break;
-            case SOCKET:
-                    if (socket_dir) 
-                            sprintf (socket_path, "%s/uzbl_socket_%s", socket_dir, 
-                                            instance_name ? instance_name : xwin_str);
-                    else 
-                            sprintf (socket_path, "/tmp/uzbl_socket_%s", 
-                                            instance_name ? instance_name : xwin_str);
-                    break;
-             default:
-                    break;
+        case FIFO:
+            if (fifo_dir) {
+                sprintf (fifo_path, "%s/uzbl_fifo_%s", fifo_dir, instance_name ? instance_name : xwin_str);
+            } else {
+                sprintf (fifo_path, "/tmp/uzbl_fifo_%s", instance_name ? instance_name : xwin_str);
+            }
+            break;
+
+        case SOCKET:
+            if (socket_dir) {
+                sprintf (socket_path, "%s/uzbl_socket_%s", socket_dir, instance_name ? instance_name : xwin_str);
+            } else {
+                sprintf (socket_path, "/tmp/uzbl_socket_%s", instance_name ? instance_name : xwin_str);
+            }
+            break;
+        default:
+            break;
     }
     g_free(xwin_str);
 }
