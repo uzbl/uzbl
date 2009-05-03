@@ -123,28 +123,13 @@ static gint max_conns;
 static gint max_conns_host;
 
 /* --- UTILITY FUNCTIONS --- */
-void
-eprint(const char *errstr, ...) {
-        va_list ap;
-        vfprintf(stderr, errstr, ap);
-        va_end(ap);
-        exit(EXIT_FAILURE);
-}
-
-char *
-estrdup(const char *str) {
-        void *res = strdup(str);
-        if(!res)
-            eprint("fatal: could not allocate %u bytes\n", strlen(str));
-        return res;
-}
 
 char *
 itos(int val) {
     char tmp[20];
 
     snprintf(tmp, sizeof(tmp), "%i", val);
-    return estrdup(tmp);
+    return g_strdup(tmp);
 }
 
 /* --- CALLBACKS --- */
@@ -296,6 +281,7 @@ log_history_cb () {
 
 #define VIEWFUNC(name) static void view_##name(WebKitWebView *page, const char *param){(void)param; webkit_web_view_##name(page);}
 VIEWFUNC(reload)
+VIEWFUNC(reload_bypass_cache)
 VIEWFUNC(stop_loading)
 VIEWFUNC(zoom_in)
 VIEWFUNC(zoom_out)
@@ -308,21 +294,21 @@ VIEWFUNC(go_forward)
 
 static struct {char *name; Command command;} cmdlist[] =
 {
-    { "back",           view_go_back       },
-    { "forward",        view_go_forward    },
-    { "scroll_vert",    scroll_vert        },
-    { "scroll_horz",    scroll_horz        },
-    { "reload",         view_reload,       }, //Buggy
-    { "refresh",        view_reload,       }, /* for convenience, will change */
-    { "stop",           view_stop_loading, },
-    { "zoom_in",        view_zoom_in,      }, //Can crash (when max zoom reached?).
-    { "zoom_out",       view_zoom_out,     },
-    { "uri",            load_uri           },
-    { "toggle_status",  toggle_status_cb   },
-    { "spawn",          spawn              },
-    { "exit",           close_uzbl         },
-    { "search",         search_text        },
-    { "insert_mode",    set_insert_mode    }
+    { "back",             view_go_back            },
+    { "forward",          view_go_forward         },
+    { "scroll_vert",      scroll_vert             },
+    { "scroll_horz",      scroll_horz             },
+    { "reload",           view_reload,            }, 
+    { "reload_ign_cache", view_reload_bypass_cache},
+    { "stop",             view_stop_loading,      },
+    { "zoom_in",          view_zoom_in,           }, //Can crash (when max zoom reached?).
+    { "zoom_out",         view_zoom_out,          },
+    { "uri",              load_uri                },
+    { "toggle_status",    toggle_status_cb        },
+    { "spawn",            spawn                   },
+    { "exit",             close_uzbl              },
+    { "search",           search_text             },
+    { "insert_mode",      set_insert_mode         }
 };
 
 static void
@@ -503,6 +489,7 @@ build_stream_name(int type) {
              default:
                     break;
     }
+    g_free(xwin_str);
 }
 
 static void
@@ -590,7 +577,7 @@ control_socket(GIOChannel *chan) {
         buffer[strlen (buffer)] = '\0';
     }
     close (clientsock);
-    ctl_line = estrdup(buffer);
+    ctl_line = g_strdup(buffer);
     parse_line (ctl_line);
 
 /*
@@ -803,6 +790,7 @@ static GtkWidget*
 create_mainbar () {
     mainbar = gtk_hbox_new (FALSE, 0);
     mainbar_label = gtk_label_new ("");  
+    gtk_label_set_ellipsize(GTK_LABEL(mainbar_label), PANGO_ELLIPSIZE_END);
     gtk_misc_set_alignment (GTK_MISC(mainbar_label), 0, 0);
     gtk_misc_set_padding (GTK_MISC(mainbar_label), 2, 2);
     gtk_box_pack_start (GTK_BOX (mainbar), mainbar_label, TRUE, TRUE, 0);
