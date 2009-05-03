@@ -392,11 +392,11 @@ load_uri (WebKitWebView * web_view, const gchar *param) {
 static void
 search_text (WebKitWebView *page, const char *param) {
     if ((param) && (param[0] != '\0')) {
-        printf("\nima param!!!\n");
         strcpy(searchtx, param);
     }
     if (searchtx[0] != '\0') {
-        printf ("\n\nsearching: %s\n\n", searchtx);
+        printf ("Searching: %s\n", searchtx);
+        webkit_web_view_unmark_text_matches (page);
         webkit_web_view_mark_text_matches (page, searchtx, FALSE, 0);
         webkit_web_view_set_highlight_text_matches (page, TRUE);
         webkit_web_view_search_text (page, searchtx, FALSE, TRUE, TRUE);
