@@ -304,6 +304,7 @@ static struct {char *name; Command command;} cmdlist[] =
     { "zoom_in",          view_zoom_in,           }, //Can crash (when max zoom reached?).
     { "zoom_out",         view_zoom_out,          },
     { "uri",              load_uri                },
+    { "script",           run_js                  },
     { "toggle_status",    toggle_status_cb        },
     { "spawn",            spawn                   },
     { "exit",             close_uzbl              },
@@ -373,6 +374,12 @@ load_uri (WebKitWebView * web_view, const gchar *param) {
         webkit_web_view_load_uri (web_view, newuri->str);
         g_string_free (newuri, TRUE);
     }
+}
+
+static void
+run_js (WebKitWebView * web_view, const gchar *param) {
+    if (param)
+        webkit_web_view_execute_script (web_view, param);
 }
 
 static void
@@ -470,24 +477,23 @@ build_stream_name(int type) {
 
     xwin_str = itos((int)xwin);
     switch(type) {
-            case FIFO:
-                    if (fifo_dir) 
-                            sprintf (fifo_path, "%s/uzbl_fifo_%s", fifo_dir,
-                                            instance_name ? instance_name : xwin_str);
-                    else 
-                            sprintf (fifo_path, "/tmp/uzbl_fifo_%s", 
-                                            instance_name ? instance_name : xwin_str);
-                    break;
-            case SOCKET:
-                    if (socket_dir) 
-                            sprintf (socket_path, "%s/uzbl_socket_%s", socket_dir, 
-                                            instance_name ? instance_name : xwin_str);
-                    else 
-                            sprintf (socket_path, "/tmp/uzbl_socket_%s", 
-                                            instance_name ? instance_name : xwin_str);
-                    break;
-             default:
-                    break;
+        case FIFO:
+            if (fifo_dir) {
+                sprintf (fifo_path, "%s/uzbl_fifo_%s", fifo_dir, instance_name ? instance_name : xwin_str);
+            } else {
+                sprintf (fifo_path, "/tmp/uzbl_fifo_%s", instance_name ? instance_name : xwin_str);
+            }
+            break;
+
+        case SOCKET:
+            if (socket_dir) {
+                sprintf (socket_path, "%s/uzbl_socket_%s", socket_dir, instance_name ? instance_name : xwin_str);
+            } else {
+                sprintf (socket_path, "/tmp/uzbl_socket_%s", instance_name ? instance_name : xwin_str);
+            }
+            break;
+        default:
+            break;
     }
     g_free(xwin_str);
 }
@@ -893,8 +899,8 @@ settings_init () {
 
     printf ("History handler: %s\n",    (history_handler    ? history_handler  : "disabled"));
     printf ("Download manager: %s\n",   (download_handler   ? download_handler : "disabled"));
-    printf ("Fifo directory: %s\n",     (fifo_dir           ? fifo_dir         : "/tmp"));
-    printf ("Socket directory: %s\n",   (socket_dir         ? socket_dir       : "/tmp"));
+    printf ("Fifo directory: %s\n",     (fifo_dir           ? fifo_dir         : "disabled"));
+    printf ("Socket directory: %s\n",   (socket_dir         ? socket_dir       : "disabled"));
     printf ("Always insert mode: %s\n", (always_insert_mode ? "TRUE"           : "FALSE"));
     printf ("Show status: %s\n",        (show_status        ? "TRUE"           : "FALSE"));
     printf ("Status top: %s\n",         (status_top         ? "TRUE"           : "FALSE"));
@@ -1031,15 +1037,19 @@ main (int argc, char* argv[]) {
     if (!show_status)
         gtk_widget_hide(mainbar);
 
-    create_fifo ();
-    create_socket();
+    if (fifo_dir)
+        create_fifo ();
+    if (socket_dir)
+        create_socket();
 
     gtk_main ();
 
     g_string_free(keycmd, TRUE);
 
-    unlink (socket_path);
-    unlink (fifo_path);
+    if (fifo_dir)
+        unlink (fifo_path);
+    if (socket_dir)
+        unlink (socket_path);
 
     g_hash_table_destroy(bindings);
     g_hash_table_destroy(commands);
