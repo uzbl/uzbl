@@ -19,8 +19,6 @@ always_insert_mode = 0
 modkey = Mod1
 show_status = 1
 status_top = 0
-no_fifo = 0
-no_socket = 0
 
 [bindings]
 ## scroll down/up/left/right
