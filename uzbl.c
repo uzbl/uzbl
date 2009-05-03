@@ -688,7 +688,7 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
         return TRUE;
     }
 
-    if (insert_mode && (event->state & modmask))
+    if (insert_mode && ((event->state & modmask) != modmask))
         return FALSE;
 
     if (event->keyval == GDK_Escape) {
