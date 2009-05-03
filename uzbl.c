@@ -733,6 +733,7 @@ static GtkWidget*
 create_mainbar () {
     mainbar = gtk_hbox_new (FALSE, 0);
     mainbar_label = gtk_label_new ("");  
+    gtk_label_set_ellipsize(GTK_LABEL(mainbar_label), PANGO_ELLIPSIZE_END);
     gtk_misc_set_alignment (GTK_MISC(mainbar_label), 0, 0);
     gtk_misc_set_padding (GTK_MISC(mainbar_label), 2, 2);
     gtk_box_pack_start (GTK_BOX (mainbar), mainbar_label, TRUE, TRUE, 0);
