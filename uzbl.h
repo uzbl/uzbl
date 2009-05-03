@@ -116,4 +116,7 @@ add_binding (const gchar *key, const gchar *act);
 static void
 settings_init ();
 
+static void
+search_text (WebKitWebView *page, const char *param);
+
 /* vi: set et ts=4: */

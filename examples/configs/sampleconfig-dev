@@ -21,7 +21,7 @@ show_status = 1
 status_top = 0
 
 [bindings]
-## scroll down/up/left/right
+# scroll down/up/left/right
 j = scroll_vert 20
 k = scroll_vert -20
 h = scroll_horz -20
@@ -29,24 +29,27 @@ l = scroll_horz 20
 b = back
 m = forward
 s = stop
-r = reload
-R = reload_ign_cache
-gh = uri http://www.uzbl.org
+r = refresh
+R = reload
 f = follow_link_here
 F = follow_link_new_tab
 w = follow_link_new_window
 + = zoom_in
 - = zoom_out
 t = toggle_status
-ZZ = exit
+#hilight matches
+/_ = search %s
+#jump to next
+; = search
+gh      = uri http://www.uzbl.org
+o _     = uri %s
+:wiki _ = uri http://wiki.archlinux.org/index.php/Special:Search?search=%s&go=Go
+gg _    = uri http://www.google.com/search?q=%s
 i = insert_mode
 B = spawn ./examples/scripts/insert_bookmark.sh
 u = spawn ./examples/scripts/load_url_from_history.sh
 U = spawn ./examples/scripts/load_url_from_bookmarks.sh
-#parameter command examples (all need space but can be removed from individual commands). underscore is important.
-o _ = uri %s
-:wiki _ = uri http://wiki.archlinux.org/index.php/Special:Search?search=%s&go=Go
-gg _ = uri http://www.google.com/search?q=%s
+ZZ = exit
 
 [network]
 # to start a local socks server, do : ssh -fND localhost:8118 localhost
@@ -56,3 +59,4 @@ http_debug = 0
 user-agent = uzbl
 max_conns = 
 max_conns_per_host = 
+

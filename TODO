@@ -1,6 +1,3 @@
-ASAP
-* fix bug that causes hang after first fifo command
-
 * implement all the ideas from README
 * get a logo
 * when launching new instance, don't just try 'uzbl' and then './uzbl', rather launch a new uzbl in the same way the current uzbl instance was started. (same command, same arguments, except --uri)
@@ -15,7 +12,6 @@ ASAP
 * select/fork based instead of the pthread stuff -> drops dependency, more lightweight.
 * scrolling: make page up and page down configurable.
 * show % of location in statusbar/title if page doesn't fit entirely on view.
-* put on uzbl.org that you can use http://github.com/Dieterbe/uzbl/issues after registering
 * make default size configurable, and optional
 * on uzbl.org commits overview: add date+time and repository
 * how to handle different content types? (text-plain, image/png, application/pdf,... maybe a map of content-type to uzbl/command
@@ -45,3 +41,4 @@ check if we can make the settings loading less hard coded. eg( keep a list of al
 figure out caching with webkit and in general how we can speed up everything
 figure out how webkit intercepts key input
 make "disable insert mode" (esc key) configurable
+keywords don't work for external commands. is this a problem?

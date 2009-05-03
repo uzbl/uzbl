@@ -121,3 +121,5 @@ The script specific arguments are this:
 KNOWN BUGS
 - Segfaults when using zoom commands (happens when max zoom already reached?).
 - Something in the FIFO code causes CPU usage to jump.
+
+Report new issues @ uzbl.org/bugs
