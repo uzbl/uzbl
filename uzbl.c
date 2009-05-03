@@ -134,20 +134,20 @@ itos(int val) {
 
 static char *
 str_replace (const char* search, const char* replace, const char* string) {
-    char newstring[512];
-    char tempstring[512];
+    char newstring[1024];
+    char tempstring[1024];
     unsigned int i = 0;
 
     memset (newstring, 0, sizeof (newstring));
 
     for (i = 0; i < strlen (string) - strlen (search); i ++) {
         memset (tempstring, 0, sizeof (tempstring));
-        strncpy (tempstring, string + i, sizeof (search) + 1);
+        strncpy (tempstring, string + i, strlen (search));
 
         if (strcmp (tempstring, search) == 0) {
             strncpy (newstring, string, i);
             strcat (newstring, replace);
-            strcat (newstring, string + i + sizeof (search) + 1);
+            strcat (newstring, string + i + strlen (search));
         }
     }
 
@@ -981,6 +981,14 @@ settings_init () {
     }
 	
     if(useragent){
+        char* newagent  = malloc(1024);
+
+        strcpy(newagent, str_replace("%webkit-major%", itos(WEBKIT_MAJOR_VERSION), useragent));
+        strcpy(newagent, str_replace("%webkit-minor%", itos(WEBKIT_MINOR_VERSION), newagent));
+        strcpy(newagent, str_replace("%webkit-micro%", itos(WEBKIT_MICRO_VERSION), newagent));
+
+        useragent = malloc(1024);
+        strcpy(useragent, newagent);
         g_object_set(G_OBJECT(soup_session), SOUP_SESSION_USER_AGENT, useragent, NULL);
     }
 

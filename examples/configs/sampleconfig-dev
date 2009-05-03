@@ -57,7 +57,7 @@ S = script alert("hi");
 #proxy_server = http://127.0.0.1:8118
 #values 0-3
 http_debug = 0
-user-agent = uzbl
+user-agent = uzbl (Webkit %webkit-major%.%webkit-minor%.%webkit-micro%)
 max_conns = 
 max_conns_per_host = 
 
