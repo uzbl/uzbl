@@ -37,7 +37,10 @@ w = follow_link_new_window
 + = zoom_in
 - = zoom_out
 t = toggle_status
+#hilight matches
 /_ = search %s
+#jump to next
+; = search
 gh      = uri http://www.uzbl.org
 o _     = uri %s
 :wiki _ = uri http://wiki.archlinux.org/index.php/Special:Search?search=%s&go=Go
