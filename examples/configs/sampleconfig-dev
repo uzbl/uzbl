@@ -44,6 +44,7 @@ B = spawn ./examples/scripts/insert_bookmark.sh
 u = spawn ./examples/scripts/load_url_from_history.sh
 U = spawn ./examples/scripts/load_url_from_bookmarks.sh
 #parameter command examples (all need space but can be removed from individual commands). underscore is important.
+/_ = search %s
 o _ = uri %s
 :wiki _ = uri http://wiki.archlinux.org/index.php/Special:Search?search=%s&go=Go
 gg _ = uri http://www.google.com/search?q=%s

@@ -70,6 +70,7 @@ static char           fifo_path[64];
 static char           socket_path[108];
 static char           executable_path[500];
 static GString*       keycmd;
+static gchar          searchtx[500] = "\0";
 
 /* state variables (initial values coming from command line arguments but may be changed later) */
 static gchar*   uri         = NULL;
@@ -320,6 +321,7 @@ static struct {char *name; Command command;} cmdlist[] =
     { "toggle_status",  toggle_status_cb   },
     { "spawn",          spawn              },
     { "exit",           close_uzbl         },
+    { "search",         search_text        },
     { "insert_mode",    set_insert_mode    }
 };
 
@@ -384,6 +386,20 @@ load_uri (WebKitWebView * web_view, const gchar *param) {
             g_string_prepend (newuri, "http://"); 
         webkit_web_view_load_uri (web_view, newuri->str);
         g_string_free (newuri, TRUE);
+    }
+}
+
+static void
+search_text (WebKitWebView *page, const char *param) {
+    if ((param) && (param[0] != '\0')) {
+        printf("\nima param!!!\n");
+        strcpy(searchtx, param);
+    }
+    if (searchtx[0] != '\0') {
+        printf ("\n\nsearching: %s\n\n", searchtx);
+        webkit_web_view_mark_text_matches (page, searchtx, FALSE, 0);
+        webkit_web_view_set_highlight_text_matches (page, TRUE);
+        webkit_web_view_search_text (page, searchtx, FALSE, TRUE, TRUE);
     }
 }
 
@@ -742,6 +758,7 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
                 g_string_free (actionparam, TRUE);
                 g_string_free (parampart, TRUE);
                 g_string_truncate(keycmd, 0);
+                update_title();
             }          
 
             g_string_truncate(short_keys, short_keys->len - 1);
