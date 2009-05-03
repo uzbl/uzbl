@@ -477,28 +477,54 @@ build_stream_name(int type) {
 }
 
 static void
-control_fifo(GIOChannel *fd) {
+control_fifo(GIOChannel *gio, GIOCondition condition) {
+    printf("triggered\n");
     gchar *ctl_line;
-    if(!fd)
-       return;
-    g_io_channel_read_line(fd, &ctl_line, NULL, NULL, NULL);
+    GIOStatus ret;
+    GError *err = NULL;
+
+    if (condition & G_IO_HUP)
+        g_error ("Fifo: Read end of pipe died!\n");
+
+    if(!gio)
+       g_error ("Fifo: GIOChannel broke\n");
+
+    ret = g_io_channel_read_line(gio, &ctl_line, NULL, NULL, &err);
+    if (ret == G_IO_STATUS_ERROR)
+        g_error ("Fifo: Error reading: %s\n", err->message);
+
+
     parse_line(ctl_line);
     g_free(ctl_line);
+    printf("...done\n");
     return;
 }
 
 static void
 create_fifo() {
     GIOChannel *chan = NULL;
+    GError *error = NULL;
 
     build_stream_name(FIFO);
-    printf ("Control fifo opened in %s\n", fifo_path);
-    if (mkfifo (fifo_path, 0666) == -1) {
-        printf ("Possible error creating fifo\n");
+    if (file_exists(fifo_path)) {
+        g_error ("Fifo: Error when creating %s: File exists\n", fifo_path);
+        return;
     }
-
-    if( (chan = g_io_channel_new_file((gchar *) fifo_path, "r+", NULL)) )
-        g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, chan);
+    if (mkfifo (fifo_path, 0666) == -1) {
+        g_error ("Fifo: Error when creating %s: %s\n", fifo_path, strerror(errno));
+    } else {
+        // we don't really need to write to the file, but if we open the file as 'r' we will block here, waiting for a writer to open the file.
+        chan = g_io_channel_new_file((gchar *) fifo_path, "r+", &error);
+        if (chan) {
+            if (!g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, NULL)) {
+                g_error ("Fifo: could not add watch on %s\n", fifo_path);
+            } else { 
+                printf ("Fifo: created successfully as %s\n", fifo_path);
+            }
+        } else {
+            g_error ("Fifo: Error while opening: %s\n", error->message);
+        }
+    }
     return;
 }
 
@@ -573,16 +599,14 @@ create_socket() {
     bind (sock, (struct sockaddr *) &local, len);
 
     if (errno == -1) {
-        printf ("Socket: Could not open in %s\n", socket_path);
+        printf ("Socket: Could not open in %s: %s\n", socket_path, strerror(errno));
     } else {
         printf ("Socket: Opened in %s\n", socket_path);
+        listen (sock, 5);
+
+        if( (chan = g_io_channel_unix_new(sock)) )
+            g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_socket, chan);
     }
-
-    listen (sock, 5);
-
-    if( (chan = g_io_channel_unix_new(sock)) )
-        g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_socket, chan);
- 
 }
 
 static void
@@ -631,7 +655,7 @@ update_title (void) {
     g_free (title_long);
     g_free (title_short);
 }
- 
+
 static gboolean
 key_press_cb (WebKitWebView* page, GdkEventKey* event)
 {
@@ -651,12 +675,28 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
         return TRUE;
     }
 
-    if (insert_mode && event->state != modmask)
+    if (insert_mode && ((event->state & modmask) != modmask))
         return FALSE;
 
     if (event->keyval == GDK_Escape) {
         g_string_truncate(keycmd, 0);
         update_title();
+        return TRUE;
+    }
+
+    //Insert without shift - insert from clipboard; Insert with shift - insert from primary
+    if (event->keyval == GDK_Insert) {
+        gchar * str;
+        if ((event->state & GDK_SHIFT_MASK) == GDK_SHIFT_MASK) {
+            str = gtk_clipboard_wait_for_text (gtk_clipboard_get (GDK_SELECTION_PRIMARY));
+        } else {
+            str = gtk_clipboard_wait_for_text (gtk_clipboard_get (GDK_SELECTION_CLIPBOARD)); 
+        }
+        if (str) {
+            g_string_append_printf (keycmd, "%s",  str);
+            update_title ();
+            free (str);
+        }
         return TRUE;
     }
 
@@ -759,7 +799,7 @@ add_binding (const gchar *key, const gchar *act) {
         return;
 
     //Debug:
-    printf ("@%s@ @%s@ @%s@\n", key, parts[0], parts[1]);
+    printf ("Binding %-10s : %s\n", key, act);
     action = new_action(parts[0], parts[1]);
     g_hash_table_insert(bindings, g_strdup(key), action);
 
