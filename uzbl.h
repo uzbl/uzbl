@@ -83,7 +83,7 @@ void
 build_stream_name(int type);
 
 static void
-control_fifo(GIOChannel *fd);
+control_fifo(GIOChannel *gio, GIOCondition condition);
 
 static void
 create_fifo();

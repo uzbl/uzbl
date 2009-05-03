@@ -10,7 +10,8 @@ Also testers and interested people can use this list to see what uzbl is about, 
 * fifo: type this in your shell after starting uzbl:
   echo 'uri http://www...' > <fifo path here>'
   where <fifo path> is printed on stdout during program startup.  Also "back" , "forward", "refresh" (basically all actions defined in `static Command commands` should behave as expected)
- -> temporarily changed to socket io with uzblctrl. see examples in scripts
+  ^^ TEMPORARILY BROKEN
+* socket: uzblctrl -s <socketname> -c <command> (same commands as with fifo)
 * history logging: the script as defined in sample config should write history entries (date,time, url) into the file defined in the script (by default ./extra/history.sh and /tmp/uzbl.history)
 * invocations of external commands: you'll see it on stdout everytime uzbl calls an external script/program. the invocations should work and none of the arguments passed should be null/garbage/.. .
   all should be valid strings and contain things like the pid, fifo file, config file,.. (see README for details).
@@ -29,3 +30,5 @@ Also testers and interested people can use this list to see what uzbl is about, 
 * commands with parameters: any key sequence that ends with underscore _ expects parameter. Undersore marks exact location where parameter begins. Command part can have %s that will be replaced with parameter.
         :o _ = uri %s - user needs to type :o www.google.com
         :O_ = uri %s - user needs to type :Owww.google.com
+* when typing command, press insert (paste X cliboard) or shift insert (paste primary selection buffer)
+* proxy and other network settings can be set in config
