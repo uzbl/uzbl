@@ -25,8 +25,12 @@ Also testers and interested people can use this list to see what uzbl is about, 
 * status bar can be toggled on and off, if off, some info (mode) will be put in title bar. position of statusbar (top/bottom) also works
 * backspace erases last edit character. esc erases entire command buffer (if in comand mode)
 * commands with parameters (keywords): any key sequence that ends with underscore _ expects parameter. Undersore marks exact location where parameter begins. Command part can have %s that will be replaced with parameter.
+  This only works for internal commands. not when spawning external scripts.
         :o _ = uri %s - user needs to type :o www.google.com
         :O_ = uri %s - user needs to type :Owww.google.com
 * when typing command, press insert (paste X cliboard) or shift insert (paste primary selection buffer)
 * proxy, user agent and other network settings can be set in config
 * scrolling works, with configurable keys (vi-like in sample config)
+* searching:
+  /_ = search %s <-- hilight all
+  ; = search <-- jump over all hits

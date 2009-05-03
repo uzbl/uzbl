@@ -41,3 +41,4 @@ check if we can make the settings loading less hard coded. eg( keep a list of al
 figure out caching with webkit and in general how we can speed up everything
 figure out how webkit intercepts key input
 make "disable insert mode" (esc key) configurable
+keywords don't work for external commands. is this a problem?
