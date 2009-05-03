@@ -303,6 +303,7 @@ static struct {char *name; Command command;} cmdlist[] =
     { "zoom_in",        view_zoom_in,      }, //Can crash (when max zoom reached?).
     { "zoom_out",       view_zoom_out,     },
     { "uri",            load_uri           },
+    { "script",         run_js             },
     { "toggle_status",  toggle_status_cb   },
     { "spawn",          spawn              },
     { "exit",           close_uzbl         },
@@ -372,6 +373,12 @@ load_uri (WebKitWebView * web_view, const gchar *param) {
         webkit_web_view_load_uri (web_view, newuri->str);
         g_string_free (newuri, TRUE);
     }
+}
+
+static void
+run_js (WebKitWebView * web_view, const gchar *param) {
+    if (param)
+        webkit_web_view_execute_script (web_view, param);
 }
 
 static void

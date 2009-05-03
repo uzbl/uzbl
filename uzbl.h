@@ -119,4 +119,7 @@ settings_init ();
 static void
 search_text (WebKitWebView *page, const char *param);
 
+static void
+run_js (WebKitWebView * web_view, const gchar *param);
+
 /* vi: set et ts=4: */

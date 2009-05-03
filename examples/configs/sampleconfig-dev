@@ -50,6 +50,7 @@ B = spawn ./examples/scripts/insert_bookmark.sh
 u = spawn ./examples/scripts/load_url_from_history.sh
 U = spawn ./examples/scripts/load_url_from_bookmarks.sh
 ZZ = exit
+S = script alert("hi");
 
 [network]
 # to start a local socks server, do : ssh -fND localhost:8118 localhost
