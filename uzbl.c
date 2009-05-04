@@ -56,19 +56,11 @@
 
 /* housekeeping / internal variables */
 static gchar          selected_url[500] = "\0";
-static gint           load_progress;
-static Window         xwin = 0;
 static char           executable_path[500];
 static GString*       keycmd;
 static gchar          searchtx[500] = "\0";
 
 static Uzbl uzbl;
-
-/* state variables (initial values coming from command line arguments but may be changed later) */
-static gchar*   uri         = NULL;
-static gchar*   config_file = NULL;
-static gchar    config_file_path[500];
-static gchar*   instance_name   = NULL;
 
 /* settings from config: group behaviour */
 static gchar*   history_handler    = NULL;
@@ -95,9 +87,9 @@ static GHashTable* commands;
 /* commandline arguments (set initial values for the state variables) */
 static GOptionEntry entries[] =
 {
-    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uri,           "Uri to load", "URI" },
-    { "name",    'n', 0, G_OPTION_ARG_STRING, &instance_name, "Name of the current instance", "NAME" },
-    { "config",  'c', 0, G_OPTION_ARG_STRING, &config_file,   "Config file", "FILE" },
+    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uzbl.state.uri,           "Uri to load", "URI" },
+    { "name",    'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name, "Name of the current instance", "NAME" },
+    { "config",  'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,   "Config file", "FILE" },
     { NULL,      0, 0, 0, NULL, NULL, NULL }
 };
 
@@ -239,7 +231,7 @@ static void
 progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
     (void) page;
     (void) data;
-    load_progress = progress;
+    uzbl.gui.sbar.load_progress = progress;
     update_title();
 }
 
@@ -247,9 +239,9 @@ static void
 load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) page;
     (void) data;
-    free (uri);
+    free (uzbl.state.uri);
     GString* newuri = g_string_new (webkit_web_frame_get_uri (frame));
-    uri = g_string_free (newuri, FALSE);
+    uzbl.state.uri = g_string_free (newuri, FALSE);
 }
 
 static void
@@ -425,8 +417,11 @@ run_command(const char *command, const char *args) {
    //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
     GString* to_execute = g_string_new ("");
     gboolean result;
-    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' '%s'", command, config_file, (int) getpid() , (int) xwin, uzbl.comm.fifo_path, uzbl.comm.socket_path);
-    g_string_append_printf (to_execute, " '%s' '%s'", uri, "TODO title here");
+    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' '%s'", 
+                    command, uzbl.state.config_file, (int) getpid() ,
+                    (int) uzbl.xwin, uzbl.comm.fifo_path, uzbl.comm.socket_path);
+    g_string_append_printf (to_execute, " '%s' '%s'", 
+                    uzbl.state.uri, "TODO title here");
     if(args) {
         g_string_append_printf (to_execute, " %s", args);
     }
@@ -472,22 +467,27 @@ enum { FIFO, SOCKET};
 void
 build_stream_name(int type) {
     char *xwin_str;
+    State *s = &uzbl.state;
 
-    xwin_str = itos((int)xwin);
+    xwin_str = itos((int)uzbl.xwin);
     switch(type) {
         case FIFO:
             if (fifo_dir) {
-                sprintf (uzbl.comm.fifo_path, "%s/uzbl_fifo_%s", fifo_dir, instance_name ? instance_name : xwin_str);
+                sprintf (uzbl.comm.fifo_path, "%s/uzbl_fifo_%s", 
+                                fifo_dir, s->instance_name ? s->instance_name : xwin_str);
             } else {
-                sprintf (uzbl.comm.fifo_path, "/tmp/uzbl_fifo_%s", instance_name ? instance_name : xwin_str);
+                sprintf (uzbl.comm.fifo_path, "/tmp/uzbl_fifo_%s",
+                                s->instance_name ? s->instance_name : xwin_str);
             }
             break;
 
         case SOCKET:
             if (socket_dir) {
-                sprintf (uzbl.comm.socket_path, "%s/uzbl_socket_%s", socket_dir, instance_name ? instance_name : xwin_str);
+                sprintf (uzbl.comm.socket_path, "%s/uzbl_socket_%s",
+                                socket_dir, s->instance_name ? s->instance_name : xwin_str);
             } else {
-                sprintf (uzbl.comm.socket_path, "/tmp/uzbl_socket_%s", instance_name ? instance_name : xwin_str);
+                sprintf (uzbl.comm.socket_path, "/tmp/uzbl_socket_%s",
+                                s->instance_name ? s->instance_name : xwin_str);
             }
             break;
         default:
@@ -634,11 +634,12 @@ update_title (void) {
     GString* string_short = g_string_new ("");
     char* iname = NULL;
     int iname_len;
+    State *s = &uzbl.state;
 
-    if(instance_name) {
-            iname_len = strlen(instance_name)+4;
+    if(s->instance_name) {
+            iname_len = strlen(s->instance_name)+4;
             iname = malloc(iname_len);
-            snprintf(iname, iname_len, "<%s> ", instance_name);
+            snprintf(iname, iname_len, "<%s> ", s->instance_name);
             
             g_string_prepend(string_long, iname);
             g_string_prepend(string_short, iname);
@@ -654,8 +655,9 @@ update_title (void) {
     }
     g_string_append (string_long, " - Uzbl browser");
     g_string_append (string_short, " - Uzbl browser");
-    if (load_progress < 100)
-        g_string_append_printf (string_long, " (%d%%)", load_progress);
+    if (uzbl.gui.sbar.load_progress < 100)
+        g_string_append_printf (string_long, " (%d%%)", 
+                        uzbl.gui.sbar.load_progress);
 
     if (selected_url[0]!=0) {
         g_string_append_printf (string_long, " -> (%s)", selected_url);
@@ -836,19 +838,20 @@ settings_init () {
     gboolean res  = FALSE;
     char *saveptr;
     gchar** keys = NULL;
+    State *s = &uzbl.state;
 
-    if (!config_file) {
+    if (!s->config_file) {
         const char* XDG_CONFIG_HOME = getenv ("XDG_CONFIG_HOME");
         if (! XDG_CONFIG_HOME || ! strcmp (XDG_CONFIG_HOME, "")) {
           XDG_CONFIG_HOME = (char*)XDG_CONFIG_HOME_default;
         }
         printf("XDG_CONFIG_HOME: %s\n", XDG_CONFIG_HOME);
     
-        strcpy (config_file_path, XDG_CONFIG_HOME);
-        strcat (config_file_path, "/uzbl/config");
-        if (file_exists (config_file_path)) {
-          printf ("Config file %s found.\n", config_file_path);
-          config_file = &config_file_path[0];
+        strcpy (s->config_file_path, XDG_CONFIG_HOME);
+        strcat (s->config_file_path, "/uzbl/config");
+        if (file_exists (s->config_file_path)) {
+          printf ("Config file %s found.\n", s->config_file_path);
+          s->config_file = &s->config_file_path[0];
         } else {
             // Now we check $XDG_CONFIG_DIRS
             char *XDG_CONFIG_DIRS = getenv ("XDG_CONFIG_DIRS");
@@ -860,25 +863,25 @@ settings_init () {
             char buffer[512];
             strcpy (buffer, XDG_CONFIG_DIRS);
             const gchar* dir = (char *) strtok_r (buffer, ":", &saveptr);
-            while (dir && ! file_exists (config_file_path)) {
-                strcpy (config_file_path, dir);
-                strcat (config_file_path, "/uzbl/config_file_pathig");
-                if (file_exists (config_file_path)) {
-                    printf ("Config file %s found.\n", config_file_path);
-                    config_file = &config_file_path[0];
+            while (dir && ! file_exists (s->config_file_path)) {
+                strcpy (s->config_file_path, dir);
+                strcat (s->config_file_path, "/uzbl/config_file_pathig");
+                if (file_exists (s->config_file_path)) {
+                    printf ("Config file %s found.\n", s->config_file_path);
+                    s->config_file = &s->config_file_path[0];
                 }
                 dir = (char * ) strtok_r (NULL, ":", &saveptr);
             }
         }
     }
 
-    if (config_file) {
+    if (s->config_file) {
         config = g_key_file_new ();
-        res = g_key_file_load_from_file (config, config_file, G_KEY_FILE_NONE, NULL);
+        res = g_key_file_load_from_file (config, s->config_file, G_KEY_FILE_NONE, NULL);
           if (res) {
-            printf ("Config %s loaded\n", config_file);
+            printf ("Config %s loaded\n", s->config_file);
           } else {
-            fprintf (stderr, "Config %s loading failed\n", config_file);
+            fprintf (stderr, "Config %s loading failed\n", s->config_file);
         }
     } else {
         printf ("No configuration.\n");
@@ -1047,12 +1050,12 @@ main (int argc, char* argv[]) {
     uzbl.gui.main_window = create_window ();
     gtk_container_add (GTK_CONTAINER (uzbl.gui.main_window), vbox);
 
-    load_uri (uzbl.gui.web_view, uri);
+    load_uri (uzbl.gui.web_view, uzbl.state.uri);
 
     gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
     gtk_widget_show_all (uzbl.gui.main_window);
-    xwin = GDK_WINDOW_XID (GTK_WIDGET (uzbl.gui.main_window)->window);
-    printf("window_id %i\n",(int) xwin);
+    uzbl.xwin = GDK_WINDOW_XID (GTK_WIDGET (uzbl.gui.main_window)->window);
+    printf("window_id %i\n",(int) uzbl.xwin);
     printf("pid %i\n", getpid ());
     printf("name: %s\n", uzbl.state.instance_name);
 

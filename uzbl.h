@@ -37,7 +37,7 @@ typedef struct {
     GUI     gui;
     Communication comm;
     State   state;
-    int     xwin;
+    Window  xwin;
 } Uzbl;
 
 typedef struct {
