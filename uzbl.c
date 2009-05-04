@@ -971,6 +971,9 @@ settings_init () {
         strcpy(newagent, str_replace("%webkit-major%", itos(WEBKIT_MAJOR_VERSION), useragent));
         strcpy(newagent, str_replace("%webkit-minor%", itos(WEBKIT_MINOR_VERSION), newagent));
         strcpy(newagent, str_replace("%webkit-micro%", itos(WEBKIT_MICRO_VERSION), newagent));
+        strcpy(newagent, str_replace("%kernver%",      KERNVER,                    newagent));
+        strcpy(newagent, str_replace("%arch%",         ARCH,                       newagent));
+        strcpy(newagent, str_replace("%commit%",       COMMIT,                     newagent));
 
         useragent = malloc(1024);
         strcpy(useragent, newagent);

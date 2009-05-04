@@ -1,4 +1,4 @@
-CPPFLAGS=$(shell pkg-config --cflags gtk+-2.0 webkit-1.0) -Wall -W
+CPPFLAGS=$(shell pkg-config --cflags gtk+-2.0 webkit-1.0) -Wall -W -DKERNVER="\"$(shell uname -r)\"" -DARCH="\"$(shell uname -m)\"" -DCOMMIT="\"$(shell git log | head -n1 | sed "s/.* //")\""
 LDFLAGS=$(shell pkg-config --libs gtk+-2.0 webkit-1.0)
 all: uzbl uzblctrl
 
