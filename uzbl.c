@@ -894,7 +894,7 @@ settings_init () {
     if (config_file) {
         config = g_key_file_new ();
         res = g_key_file_load_from_file (config, config_file, G_KEY_FILE_NONE, NULL);
-          if(res) {
+          if (res) {
             printf ("Config %s loaded\n", config_file);
           } else {
             fprintf (stderr, "Config %s loading failed\n", config_file);
@@ -962,11 +962,13 @@ settings_init () {
     }
 
     /* networking options */
-    proxy_url      = g_key_file_get_value   (config, "network", "proxy_server",       NULL);
-    http_debug     = g_key_file_get_integer (config, "network", "http_debug",         NULL);
-    useragent      = g_key_file_get_value   (config, "network", "user-agent",         NULL);
-    max_conns      = g_key_file_get_integer (config, "network", "max_conns",          NULL);
-    max_conns_host = g_key_file_get_integer (config, "network", "max_conns_per_host", NULL);
+    if (res) {
+        proxy_url      = g_key_file_get_value   (config, "network", "proxy_server",       NULL);
+        http_debug     = g_key_file_get_integer (config, "network", "http_debug",         NULL);
+        useragent      = g_key_file_get_value   (config, "network", "user-agent",         NULL);
+        max_conns      = g_key_file_get_integer (config, "network", "max_conns",          NULL);
+        max_conns_host = g_key_file_get_integer (config, "network", "max_conns_per_host", NULL);
+    }
 
     if(proxy_url){
         g_object_set(G_OBJECT(soup_session), SOUP_SESSION_PROXY_URI, soup_uri_new(proxy_url), NULL);
