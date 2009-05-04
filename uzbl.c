@@ -55,23 +55,14 @@
 #include "uzbl.h"
 
 /* housekeeping / internal variables */
-static GtkWidget*     main_window;
-static GtkWidget*     mainbar;
-static GtkWidget*     mainbar_label;
-static GtkScrollbar*  scbar_v;   // Horizontal and Vertical Scrollbar 
-static GtkScrollbar*  scbar_h;   // (These are still hidden)
-static GtkAdjustment* bar_v; // Information about document length
-static GtkAdjustment* bar_h; // and scrolling position
-static WebKitWebView* web_view;
-static gchar*         main_title;
 static gchar          selected_url[500] = "\0";
 static gint           load_progress;
 static Window         xwin = 0;
-static char           fifo_path[64];
-static char           socket_path[108];
 static char           executable_path[500];
 static GString*       keycmd;
 static gchar          searchtx[500] = "\0";
+
+static Uzbl uzbl;
 
 /* state variables (initial values coming from command line arguments but may be changed later) */
 static gchar*   uri         = NULL;
@@ -197,13 +188,13 @@ scroll (GtkAdjustment* bar, const char *param) {
 static void scroll_vert(WebKitWebView* page, const char *param) {
     (void) page;
 
-    scroll(bar_v, param);
+    scroll(uzbl.gui.bar_v, param);
 }
 
 static void scroll_horz(WebKitWebView* page, const char *param) {
     (void) page;
 
-    scroll(bar_h, param);
+    scroll(uzbl.gui.bar_h, param);
 }
 
 static void
@@ -212,9 +203,9 @@ toggle_status_cb (WebKitWebView* page, const char *param) {
     (void)param;
 
     if (show_status) {
-        gtk_widget_hide(mainbar);
+        gtk_widget_hide(uzbl.gui.mainbar);
     } else {
-        gtk_widget_show(mainbar);
+        gtk_widget_show(uzbl.gui.mainbar);
     }
     show_status = !show_status;
     update_title();
@@ -238,9 +229,9 @@ title_change_cb (WebKitWebView* web_view, WebKitWebFrame* web_frame, const gchar
     (void) web_view;
     (void) web_frame;
     (void) data;
-    if (main_title)
-        g_free (main_title);
-    main_title = g_strdup (title);
+    if (uzbl.gui.main_title)
+        g_free (uzbl.gui.main_title);
+    uzbl.gui.main_title = g_strdup (title);
     update_title();
 }
 
@@ -434,7 +425,7 @@ run_command(const char *command, const char *args) {
    //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
     GString* to_execute = g_string_new ("");
     gboolean result;
-    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' '%s'", command, config_file, (int) getpid() , (int) xwin, fifo_path, socket_path);
+    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' '%s'", command, config_file, (int) getpid() , (int) xwin, uzbl.comm.fifo_path, uzbl.comm.socket_path);
     g_string_append_printf (to_execute, " '%s' '%s'", uri, "TODO title here");
     if(args) {
         g_string_append_printf (to_execute, " %s", args);
@@ -456,7 +447,7 @@ parse_command(const char *cmd, const char *param) {
     Command c;
 
     if ((c = g_hash_table_lookup(commands, cmd)))
-        c(web_view, param);
+        c(uzbl.gui.web_view, param);
     else
         fprintf (stderr, "command \"%s\" not understood. ignoring.\n", cmd);
 }
@@ -486,17 +477,17 @@ build_stream_name(int type) {
     switch(type) {
         case FIFO:
             if (fifo_dir) {
-                sprintf (fifo_path, "%s/uzbl_fifo_%s", fifo_dir, instance_name ? instance_name : xwin_str);
+                sprintf (uzbl.comm.fifo_path, "%s/uzbl_fifo_%s", fifo_dir, instance_name ? instance_name : xwin_str);
             } else {
-                sprintf (fifo_path, "/tmp/uzbl_fifo_%s", instance_name ? instance_name : xwin_str);
+                sprintf (uzbl.comm.fifo_path, "/tmp/uzbl_fifo_%s", instance_name ? instance_name : xwin_str);
             }
             break;
 
         case SOCKET:
             if (socket_dir) {
-                sprintf (socket_path, "%s/uzbl_socket_%s", socket_dir, instance_name ? instance_name : xwin_str);
+                sprintf (uzbl.comm.socket_path, "%s/uzbl_socket_%s", socket_dir, instance_name ? instance_name : xwin_str);
             } else {
-                sprintf (socket_path, "/tmp/uzbl_socket_%s", instance_name ? instance_name : xwin_str);
+                sprintf (uzbl.comm.socket_path, "/tmp/uzbl_socket_%s", instance_name ? instance_name : xwin_str);
             }
             break;
         default:
@@ -522,7 +513,6 @@ control_fifo(GIOChannel *gio, GIOCondition condition) {
     if (ret == G_IO_STATUS_ERROR)
         g_error ("Fifo: Error reading: %s\n", err->message);
 
-
     parse_line(ctl_line);
     g_free(ctl_line);
     printf("...done\n");
@@ -535,20 +525,20 @@ create_fifo() {
     GError *error = NULL;
 
     build_stream_name(FIFO);
-    if (file_exists(fifo_path)) {
-        g_error ("Fifo: Error when creating %s: File exists\n", fifo_path);
+    if (file_exists(uzbl.comm.fifo_path)) {
+        g_error ("Fifo: Error when creating %s: File exists\n", uzbl.comm.fifo_path);
         return;
     }
-    if (mkfifo (fifo_path, 0666) == -1) {
-        g_error ("Fifo: Error when creating %s: %s\n", fifo_path, strerror(errno));
+    if (mkfifo (uzbl.comm.fifo_path, 0666) == -1) {
+        g_error ("Fifo: Error when creating %s: %s\n", uzbl.comm.fifo_path, strerror(errno));
     } else {
         // we don't really need to write to the file, but if we open the file as 'r' we will block here, waiting for a writer to open the file.
-        chan = g_io_channel_new_file((gchar *) fifo_path, "r+", &error);
+        chan = g_io_channel_new_file((gchar *) uzbl.comm.fifo_path, "r+", &error);
         if (chan) {
             if (!g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, NULL)) {
-                g_error ("Fifo: could not add watch on %s\n", fifo_path);
+                g_error ("Fifo: could not add watch on %s\n", uzbl.comm.fifo_path);
             } else { 
-                printf ("Fifo: created successfully as %s\n", fifo_path);
+                printf ("Fifo: created successfully as %s\n", uzbl.comm.fifo_path);
             }
         } else {
             g_error ("Fifo: Error while opening: %s\n", error->message);
@@ -621,16 +611,16 @@ create_socket() {
     sock = socket (AF_UNIX, SOCK_STREAM, 0);
 
     local.sun_family = AF_UNIX;
-    strcpy (local.sun_path, socket_path);
+    strcpy (local.sun_path, uzbl.comm.socket_path);
     unlink (local.sun_path);
 
     len = strlen (local.sun_path) + sizeof (local.sun_family);
     bind (sock, (struct sockaddr *) &local, len);
 
     if (errno == -1) {
-        printf ("Socket: Could not open in %s: %s\n", socket_path, strerror(errno));
+        printf ("Socket: Could not open in %s: %s\n", uzbl.comm.socket_path, strerror(errno));
     } else {
-        printf ("Socket: Opened in %s\n", socket_path);
+        printf ("Socket: Opened in %s\n", uzbl.comm.socket_path);
         listen (sock, 5);
 
         if( (chan = g_io_channel_unix_new(sock)) )
@@ -658,9 +648,9 @@ update_title (void) {
     g_string_append_printf(string_long, "%s ", keycmd->str);
     if (!always_insert_mode)
         g_string_append (string_long, (insert_mode ? "[I] " : "[C] "));
-    if (main_title) {
-        g_string_append (string_long, main_title);
-        g_string_append (string_short, main_title);
+    if (uzbl.gui.main_title) {
+        g_string_append (string_long, uzbl.gui.main_title);
+        g_string_append (string_short, uzbl.gui.main_title);
     }
     g_string_append (string_long, " - Uzbl browser");
     g_string_append (string_short, " - Uzbl browser");
@@ -675,10 +665,10 @@ update_title (void) {
     gchar* title_short = g_string_free (string_short, FALSE);
 
     if (show_status) {
-        gtk_window_set_title (GTK_WINDOW(main_window), title_short);
-    gtk_label_set_text(GTK_LABEL(mainbar_label), title_long);
+        gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), title_short);
+    gtk_label_set_text(GTK_LABEL(uzbl.gui.mainbar_label), title_long);
     } else {
-        gtk_window_set_title (GTK_WINDOW(main_window), title_long);
+        gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), title_long);
     }
 
     g_free (title_long);
@@ -780,34 +770,38 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
 
 static GtkWidget*
 create_browser () {
+    GUI *g = &uzbl.gui;
+
     GtkWidget* scrolled_window = gtk_scrolled_window_new (NULL, NULL);
     gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window), GTK_POLICY_NEVER, GTK_POLICY_NEVER); //todo: some sort of display of position/total length. like what emacs does
 
-    web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
-    gtk_container_add (GTK_CONTAINER (scrolled_window), GTK_WIDGET (web_view));
+    g->web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
+    gtk_container_add (GTK_CONTAINER (scrolled_window), GTK_WIDGET (g->web_view));
 
-    g_signal_connect (G_OBJECT (web_view), "title-changed", G_CALLBACK (title_change_cb), web_view);
-    g_signal_connect (G_OBJECT (web_view), "load-progress-changed", G_CALLBACK (progress_change_cb), web_view);
-    g_signal_connect (G_OBJECT (web_view), "load-committed", G_CALLBACK (load_commit_cb), web_view);
-    g_signal_connect (G_OBJECT (web_view), "load-committed", G_CALLBACK (log_history_cb), web_view);
-    g_signal_connect (G_OBJECT (web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), web_view);
-    g_signal_connect (G_OBJECT (web_view), "key-press-event", G_CALLBACK (key_press_cb), web_view);
-    g_signal_connect (G_OBJECT (web_view), "new-window-policy-decision-requested", G_CALLBACK (new_window_cb), web_view); 
-    g_signal_connect (G_OBJECT (web_view), "download-requested", G_CALLBACK (download_cb), web_view); 
-    g_signal_connect (G_OBJECT (web_view), "create-web-view", G_CALLBACK (create_web_view_cb), web_view);  
+    g_signal_connect (G_OBJECT (g->web_view), "title-changed", G_CALLBACK (title_change_cb), g->web_view);
+    g_signal_connect (G_OBJECT (g->web_view), "load-progress-changed", G_CALLBACK (progress_change_cb), g->web_view);
+    g_signal_connect (G_OBJECT (g->web_view), "load-committed", G_CALLBACK (load_commit_cb), g->web_view);
+    g_signal_connect (G_OBJECT (g->web_view), "load-committed", G_CALLBACK (log_history_cb), g->web_view);
+    g_signal_connect (G_OBJECT (g->web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), g->web_view);
+    g_signal_connect (G_OBJECT (g->web_view), "key-press-event", G_CALLBACK (key_press_cb), g->web_view);
+    g_signal_connect (G_OBJECT (g->web_view), "new-window-policy-decision-requested", G_CALLBACK (new_window_cb), g->web_view); 
+    g_signal_connect (G_OBJECT (g->web_view), "download-requested", G_CALLBACK (download_cb), g->web_view); 
+    g_signal_connect (G_OBJECT (g->web_view), "create-web-view", G_CALLBACK (create_web_view_cb), g->web_view);  
 
     return scrolled_window;
 }
 
 static GtkWidget*
 create_mainbar () {
-    mainbar = gtk_hbox_new (FALSE, 0);
-    mainbar_label = gtk_label_new ("");  
-    gtk_label_set_ellipsize(GTK_LABEL(mainbar_label), PANGO_ELLIPSIZE_END);
-    gtk_misc_set_alignment (GTK_MISC(mainbar_label), 0, 0);
-    gtk_misc_set_padding (GTK_MISC(mainbar_label), 2, 2);
-    gtk_box_pack_start (GTK_BOX (mainbar), mainbar_label, TRUE, TRUE, 0);
-    return mainbar;
+    GUI *g = &uzbl.gui;
+
+    g->mainbar = gtk_hbox_new (FALSE, 0);
+    g->mainbar_label = gtk_label_new ("");  
+    gtk_label_set_ellipsize(GTK_LABEL(g->mainbar_label), PANGO_ELLIPSIZE_END);
+    gtk_misc_set_alignment (GTK_MISC(g->mainbar_label), 0, 0);
+    gtk_misc_set_padding (GTK_MISC(g->mainbar_label), 2, 2);
+    gtk_box_pack_start (GTK_BOX (g->mainbar), g->mainbar_label, TRUE, TRUE, 0);
+    return g->mainbar;
 }
 
 static
@@ -1050,26 +1044,26 @@ main (int argc, char* argv[]) {
     if (!status_top)
         gtk_box_pack_start (GTK_BOX (vbox), create_mainbar (), FALSE, TRUE, 0);
 
-    main_window = create_window ();
-    gtk_container_add (GTK_CONTAINER (main_window), vbox);
+    uzbl.gui.main_window = create_window ();
+    gtk_container_add (GTK_CONTAINER (uzbl.gui.main_window), vbox);
 
-    load_uri (web_view, uri);
+    load_uri (uzbl.gui.web_view, uri);
 
-    gtk_widget_grab_focus (GTK_WIDGET (web_view));
-    gtk_widget_show_all (main_window);
-    xwin = GDK_WINDOW_XID (GTK_WIDGET (main_window)->window);
+    gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
+    gtk_widget_show_all (uzbl.gui.main_window);
+    xwin = GDK_WINDOW_XID (GTK_WIDGET (uzbl.gui.main_window)->window);
     printf("window_id %i\n",(int) xwin);
     printf("pid %i\n", getpid ());
-    printf("name: %s\n", instance_name);
+    printf("name: %s\n", uzbl.state.instance_name);
 
-    scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);
-    bar_v = gtk_range_get_adjustment((GtkRange*) scbar_v);
-    scbar_h = (GtkScrollbar*) gtk_hscrollbar_new (NULL);
-    bar_h = gtk_range_get_adjustment((GtkRange*) scbar_h);
-    gtk_widget_set_scroll_adjustments ((GtkWidget*) web_view, bar_h, bar_v);
+    uzbl.gui.scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);
+    uzbl.gui.bar_v = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_v);
+    uzbl.gui.scbar_h = (GtkScrollbar*) gtk_hscrollbar_new (NULL);
+    uzbl.gui.bar_h = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_h);
+    gtk_widget_set_scroll_adjustments ((GtkWidget*) uzbl.gui.web_view, uzbl.gui.bar_h, uzbl.gui.bar_v);
 
     if (!show_status)
-        gtk_widget_hide(mainbar);
+        gtk_widget_hide(uzbl.gui.mainbar);
 
     if (fifo_dir)
         create_fifo ();
@@ -1081,9 +1075,9 @@ main (int argc, char* argv[]) {
     g_string_free(keycmd, TRUE);
 
     if (fifo_dir)
-        unlink (fifo_path);
+        unlink (uzbl.comm.fifo_path);
     if (socket_dir)
-        unlink (socket_path);
+        unlink (uzbl.comm.socket_path);
 
     g_hash_table_destroy(bindings);
     g_hash_table_destroy(commands);
