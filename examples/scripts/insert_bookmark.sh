@@ -5,7 +5,7 @@ if [ -f /usr/share/uzbl/examples/data/bookmarks ]
 then
 	file=/usr/share/uzbl/examples/data/bookmarks # you will probably get permission denied errors here. pick a file in your ~
 else
-	file=./examples/bookmarks #useful when developing
+	file=./examples/data/bookmarks #useful when developing
 fi
 
 which zenity &>/dev/null || exit 2

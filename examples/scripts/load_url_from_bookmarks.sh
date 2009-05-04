@@ -5,7 +5,7 @@ if [ -f /usr/share/uzbl/examples/data/bookmarks ]
 then
         file=/usr/share/uzbl/examples/data/bookmarks
 else
-        file=./examples/bookmarks #useful when developing
+        file=./examples/data/bookmarks #useful when developing
 fi
 
 goto=`awk '{print $1}' $file | dmenu -i` #NOTE: it's the job of the script that inserts bookmarks to make sure there are no dupes.
