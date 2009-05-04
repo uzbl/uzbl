@@ -32,9 +32,17 @@
 * backspace key to pop characters from (multichar) command
 * optional logging of http requests&responses with ip/hostname and port. -> how to implement? handler? stdout? (through a socket so you know what corresponds to what?)
 * bench/optimize fifo vs socket performance. measure delays.  minimize forks. does glib use a shell? how does it detect the shebang line?
-* cookie support. how do we store and control usage?
+* cookie support.
 * "remember account settings" support. but how? configure post data per site? regex match eg '^bbs.archlinux.org' ?
 * http_proxy env var not recognized. libproxy (used by libsoup) should handle this http://mail.gnome.org/archives/libsoup-list/2009-February/msg00018.html
+* support ssl. do ssl certificate & exception management similar to how we do cookies
+* improve DCOMMIT macro.  what if WC is dirty? what if user downloaded tarball without .git?
+* DARCH is not correct (should be at runtime)
+
+* variable replacing:
+user agent -> str_replace(all vars) DONE
+title bar -> str_replace(all vars)
+status bar ->  str_replace(all vars) -> pango markup thingie
 
 SOMEDAY:
 check if we can make the settings loading less hard coded. eg( keep a list of all settings, and for each one, try to load it)
