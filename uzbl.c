@@ -134,24 +134,7 @@ itos(int val) {
 
 static char *
 str_replace (const char* search, const char* replace, const char* string) {
-    char newstring[1024];
-    char tempstring[1024];
-    unsigned int i = 0;
-
-    memset (newstring, 0, sizeof (newstring));
-
-    for (i = 0; i < strlen (string) - strlen (search); i ++) {
-        memset (tempstring, 0, sizeof (tempstring));
-        strncpy (tempstring, string + i, strlen (search));
-
-        if (strcmp (tempstring, search) == 0) {
-            strncpy (newstring, string, i);
-            strcat (newstring, replace);
-            strcat (newstring, string + i + strlen (search));
-        }
-    }
-
-    return (char *)newstring;
+    return g_strjoinv (replace, g_strsplit(string, search, -1));
 }
 
 /* --- CALLBACKS --- */
