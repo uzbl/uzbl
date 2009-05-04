@@ -40,6 +40,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/un.h>
+#include <sys/utsname.h>
 #include <webkit/webkit.h>
 #include <stdio.h>
 #include <string.h>
@@ -91,6 +92,9 @@ static gboolean status_top         = FALSE;
 static gchar*   modkey             = NULL;
 static guint    modmask            = 0;
 static guint    http_debug         = 0;
+
+/* System info */
+static struct utsname unameinfo;
 
 /* settings from config: group bindings, key -> action */
 static GHashTable* bindings;
@@ -971,8 +975,22 @@ settings_init () {
         strcpy(newagent, str_replace("%webkit-major%", itos(WEBKIT_MAJOR_VERSION), useragent));
         strcpy(newagent, str_replace("%webkit-minor%", itos(WEBKIT_MINOR_VERSION), newagent));
         strcpy(newagent, str_replace("%webkit-micro%", itos(WEBKIT_MICRO_VERSION), newagent));
-        strcpy(newagent, str_replace("%kernver%",      KERNVER,                    newagent));
-        strcpy(newagent, str_replace("%arch%",         ARCH,                       newagent));
+
+        if (uname (&unameinfo) == -1) {
+            printf("Error getting uname info. Not replacing system-related user agent variables.\n");
+        } else {
+            strcpy(newagent, str_replace("%sysname%",     unameinfo.sysname, newagent));
+            strcpy(newagent, str_replace("%nodename%",    unameinfo.nodename, newagent));
+            strcpy(newagent, str_replace("%kernrel%",     unameinfo.release, newagent));
+            strcpy(newagent, str_replace("%kernver%",     unameinfo.version, newagent));
+            strcpy(newagent, str_replace("%arch-system%", unameinfo.machine, newagent));
+
+            #ifdef _GNU_SOURCE
+                strcpy(newagent, str_replace("%domainname%", unameinfo.domainname, newagent));
+            #endif
+        }
+
+        strcpy(newagent, str_replace("%arch-uzbl%",    ARCH,                       newagent));
         strcpy(newagent, str_replace("%commit%",       COMMIT,                     newagent));
 
         useragent = malloc(1024);
