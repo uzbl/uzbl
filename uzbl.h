@@ -57,12 +57,8 @@ typedef struct {
 } Action;
 
 
-void
-eprint(const char *errstr, ...);
 
-char *
-estrdup(const char *str);
-
+/* Functions */
 char *
 itos(int val);
 
