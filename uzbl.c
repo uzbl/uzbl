@@ -77,7 +77,6 @@ static gchar          searchtx[500] = "\0";
 static gchar*   uri         = NULL;
 static gchar*   config_file = NULL;
 static gchar    config_file_path[500];
-static gboolean verbose     = FALSE;
 static gchar*   instance_name   = NULL;
 
 /* settings from config: group behaviour */
@@ -105,10 +104,9 @@ static GHashTable* commands;
 /* commandline arguments (set initial values for the state variables) */
 static GOptionEntry entries[] =
 {
-    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uri,           "Uri to load", NULL },
-    { "name",    'n', 0, G_OPTION_ARG_STRING, &instance_name, "Name of the current instance", NULL },
-    { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &verbose,       "Be verbose",  NULL },
-    { "config",  'c', 0, G_OPTION_ARG_STRING, &config_file,   "Config file", NULL },
+    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uri,           "Uri to load", "URI" },
+    { "name",    'n', 0, G_OPTION_ARG_STRING, &instance_name, "Name of the current instance", "NAME" },
+    { "config",  'c', 0, G_OPTION_ARG_STRING, &config_file,   "Config file", "FILE" },
     { NULL,      0, 0, 0, NULL, NULL, NULL }
 };
 
