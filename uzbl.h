@@ -122,4 +122,7 @@ search_text (WebKitWebView *page, const char *param);
 static void
 run_js (WebKitWebView * web_view, const gchar *param);
 
+static char *
+str_replace (const char* search, const char* replace, const char* string);
+
 /* vi: set et ts=4: */

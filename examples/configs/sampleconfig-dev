@@ -57,7 +57,9 @@ S = script alert("hi");
 #proxy_server = http://127.0.0.1:8118
 #values 0-3
 http_debug = 0
-user-agent = uzbl
+user-agent = uzbl (Webkit %webkit-major%.%webkit-minor%.%webkit-micro%)
+# Example user agent containing everything:
+#user-agent = Uzbl (Webkit %webkit-major%.%webkit-minor%.%webkit-micro%) (%sysname% %nodename% %kernrel% %kernver% %arch-system% [%arch-uzbl%]) (Commit %commit%)
 max_conns = 
 max_conns_per_host = 
 

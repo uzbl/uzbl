@@ -40,6 +40,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/un.h>
+#include <sys/utsname.h>
 #include <webkit/webkit.h>
 #include <stdio.h>
 #include <string.h>
@@ -76,7 +77,6 @@ static gchar          searchtx[500] = "\0";
 static gchar*   uri         = NULL;
 static gchar*   config_file = NULL;
 static gchar    config_file_path[500];
-static gboolean verbose     = FALSE;
 static gchar*   instance_name   = NULL;
 
 /* settings from config: group behaviour */
@@ -92,6 +92,9 @@ static gchar*   modkey             = NULL;
 static guint    modmask            = 0;
 static guint    http_debug         = 0;
 
+/* System info */
+static struct utsname unameinfo;
+
 /* settings from config: group bindings, key -> action */
 static GHashTable* bindings;
 
@@ -101,10 +104,9 @@ static GHashTable* commands;
 /* commandline arguments (set initial values for the state variables) */
 static GOptionEntry entries[] =
 {
-    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uri,           "Uri to load", NULL },
-    { "name",    'n', 0, G_OPTION_ARG_STRING, &instance_name, "Name of the current instance", NULL },
-    { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &verbose,       "Be verbose",  NULL },
-    { "config",  'c', 0, G_OPTION_ARG_STRING, &config_file,   "Config file", NULL },
+    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uri,           "Uri to load", "URI" },
+    { "name",    'n', 0, G_OPTION_ARG_STRING, &instance_name, "Name of the current instance", "NAME" },
+    { "config",  'c', 0, G_OPTION_ARG_STRING, &config_file,   "Config file", "FILE" },
     { NULL,      0, 0, 0, NULL, NULL, NULL }
 };
 
@@ -130,6 +132,11 @@ itos(int val) {
 
     snprintf(tmp, sizeof(tmp), "%i", val);
     return g_strdup(tmp);
+}
+
+static char *
+str_replace (const char* search, const char* replace, const char* string) {
+    return g_strjoinv (replace, g_strsplit(string, search, -1));
 }
 
 /* --- CALLBACKS --- */
@@ -874,7 +881,7 @@ settings_init () {
     if (config_file) {
         config = g_key_file_new ();
         res = g_key_file_load_from_file (config, config_file, G_KEY_FILE_NONE, NULL);
-          if(res) {
+          if (res) {
             printf ("Config %s loaded\n", config_file);
           } else {
             fprintf (stderr, "Config %s loading failed\n", config_file);
@@ -942,11 +949,13 @@ settings_init () {
     }
 
     /* networking options */
-    proxy_url      = g_key_file_get_value   (config, "network", "proxy_server",       NULL);
-    http_debug     = g_key_file_get_integer (config, "network", "http_debug",         NULL);
-    useragent      = g_key_file_get_value   (config, "network", "user-agent",         NULL);
-    max_conns      = g_key_file_get_integer (config, "network", "max_conns",          NULL);
-    max_conns_host = g_key_file_get_integer (config, "network", "max_conns_per_host", NULL);
+    if (res) {
+        proxy_url      = g_key_file_get_value   (config, "network", "proxy_server",       NULL);
+        http_debug     = g_key_file_get_integer (config, "network", "http_debug",         NULL);
+        useragent      = g_key_file_get_value   (config, "network", "user-agent",         NULL);
+        max_conns      = g_key_file_get_integer (config, "network", "max_conns",          NULL);
+        max_conns_host = g_key_file_get_integer (config, "network", "max_conns_per_host", NULL);
+    }
 
     if(proxy_url){
         g_object_set(G_OBJECT(soup_session), SOUP_SESSION_PROXY_URI, soup_uri_new(proxy_url), NULL);
@@ -961,6 +970,31 @@ settings_init () {
     }
 	
     if(useragent){
+        char* newagent  = malloc(1024);
+
+        strcpy(newagent, str_replace("%webkit-major%", itos(WEBKIT_MAJOR_VERSION), useragent));
+        strcpy(newagent, str_replace("%webkit-minor%", itos(WEBKIT_MINOR_VERSION), newagent));
+        strcpy(newagent, str_replace("%webkit-micro%", itos(WEBKIT_MICRO_VERSION), newagent));
+
+        if (uname (&unameinfo) == -1) {
+            printf("Error getting uname info. Not replacing system-related user agent variables.\n");
+        } else {
+            strcpy(newagent, str_replace("%sysname%",     unameinfo.sysname, newagent));
+            strcpy(newagent, str_replace("%nodename%",    unameinfo.nodename, newagent));
+            strcpy(newagent, str_replace("%kernrel%",     unameinfo.release, newagent));
+            strcpy(newagent, str_replace("%kernver%",     unameinfo.version, newagent));
+            strcpy(newagent, str_replace("%arch-system%", unameinfo.machine, newagent));
+
+            #ifdef _GNU_SOURCE
+                strcpy(newagent, str_replace("%domainname%", unameinfo.domainname, newagent));
+            #endif
+        }
+
+        strcpy(newagent, str_replace("%arch-uzbl%",    ARCH,                       newagent));
+        strcpy(newagent, str_replace("%commit%",       COMMIT,                     newagent));
+
+        useragent = malloc(1024);
+        strcpy(useragent, newagent);
         g_object_set(G_OBJECT(soup_session), SOUP_SESSION_USER_AGENT, useragent, NULL);
     }
 
