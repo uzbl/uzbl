@@ -99,13 +99,6 @@ typedef void (*Command)(WebKitWebView*, const char *);
 static char *XDG_CONFIG_HOME_default[256];
 static char *XDG_CONFIG_DIRS_default = "/etc/xdg";
 
-/* libsoup stuff - proxy and friends; networking aptions actually */
-static SoupSession *soup_session;
-static SoupLogger *soup_logger;
-static char *proxy_url = NULL;
-static char *useragent = NULL;
-static gint max_conns;
-static gint max_conns_host;
 
 /* --- UTILITY FUNCTIONS --- */
 
@@ -839,6 +832,7 @@ settings_init () {
     char *saveptr;
     gchar** keys = NULL;
     State *s = &uzbl.state;
+    Network *n = &uzbl.net;
 
     if (!s->config_file) {
         const char* XDG_CONFIG_HOME = getenv ("XDG_CONFIG_HOME");
@@ -947,29 +941,29 @@ settings_init () {
 
     /* networking options */
     if (res) {
-        proxy_url      = g_key_file_get_value   (config, "network", "proxy_server",       NULL);
+        n->proxy_url      = g_key_file_get_value   (config, "network", "proxy_server",       NULL);
         http_debug     = g_key_file_get_integer (config, "network", "http_debug",         NULL);
-        useragent      = g_key_file_get_value   (config, "network", "user-agent",         NULL);
-        max_conns      = g_key_file_get_integer (config, "network", "max_conns",          NULL);
-        max_conns_host = g_key_file_get_integer (config, "network", "max_conns_per_host", NULL);
+        n->useragent      = g_key_file_get_value   (config, "network", "user-agent",         NULL);
+        n->max_conns      = g_key_file_get_integer (config, "network", "max_conns",          NULL);
+        n->max_conns_host = g_key_file_get_integer (config, "network", "max_conns_per_host", NULL);
     }
 
-    if(proxy_url){
-        g_object_set(G_OBJECT(soup_session), SOUP_SESSION_PROXY_URI, soup_uri_new(proxy_url), NULL);
+    if(n->proxy_url){
+        g_object_set(G_OBJECT(n->soup_session), SOUP_SESSION_PROXY_URI, soup_uri_new(n->proxy_url), NULL);
     }
 	
     if(!(http_debug <= 3)){
         http_debug = 0;
         fprintf(stderr, "Wrong http_debug level, ignoring.\n");
     } else if (http_debug > 0) {
-        soup_logger = soup_logger_new(http_debug, -1);
-        soup_session_add_feature(soup_session, SOUP_SESSION_FEATURE(soup_logger));
+        n->soup_logger = soup_logger_new(http_debug, -1);
+        soup_session_add_feature(n->soup_session, SOUP_SESSION_FEATURE(n->soup_logger));
     }
 	
-    if(useragent){
+    if(n->useragent){
         char* newagent  = malloc(1024);
 
-        strcpy(newagent, str_replace("%webkit-major%", itos(WEBKIT_MAJOR_VERSION), useragent));
+        strcpy(newagent, str_replace("%webkit-major%", itos(WEBKIT_MAJOR_VERSION), n->useragent));
         strcpy(newagent, str_replace("%webkit-minor%", itos(WEBKIT_MINOR_VERSION), newagent));
         strcpy(newagent, str_replace("%webkit-micro%", itos(WEBKIT_MICRO_VERSION), newagent));
 
@@ -990,24 +984,24 @@ settings_init () {
         strcpy(newagent, str_replace("%arch-uzbl%",    ARCH,                       newagent));
         strcpy(newagent, str_replace("%commit%",       COMMIT,                     newagent));
 
-        useragent = malloc(1024);
-        strcpy(useragent, newagent);
-        g_object_set(G_OBJECT(soup_session), SOUP_SESSION_USER_AGENT, useragent, NULL);
+        n->useragent = malloc(1024);
+        strcpy(n->useragent, newagent);
+        g_object_set(G_OBJECT(n->soup_session), SOUP_SESSION_USER_AGENT, n->useragent, NULL);
     }
 
-    if(max_conns >= 1){
-        g_object_set(G_OBJECT(soup_session), SOUP_SESSION_MAX_CONNS, max_conns, NULL);
+    if(n->max_conns >= 1){
+        g_object_set(G_OBJECT(n->soup_session), SOUP_SESSION_MAX_CONNS, n->max_conns, NULL);
     }
 
-    if(max_conns_host >= 1){
-        g_object_set(G_OBJECT(soup_session), SOUP_SESSION_MAX_CONNS_PER_HOST, max_conns_host, NULL);
+    if(n->max_conns_host >= 1){
+        g_object_set(G_OBJECT(n->soup_session), SOUP_SESSION_MAX_CONNS_PER_HOST, n->max_conns_host, NULL);
     }
 
-    printf("Proxy configured: %s\n", proxy_url ? proxy_url : "none");
+    printf("Proxy configured: %s\n", n->proxy_url ? n->proxy_url : "none");
     printf("HTTP logging level: %d\n", http_debug);
-    printf("User-agent: %s\n", useragent? useragent : "default");
-    printf("Maximum connections: %d\n", max_conns ? max_conns : 0);
-    printf("Maximum connections per host: %d\n", max_conns_host ? max_conns_host: 0);
+    printf("User-agent: %s\n", n->useragent? n->useragent : "default");
+    printf("Maximum connections: %d\n", n->max_conns ? n->max_conns : 0);
+    printf("Maximum connections per host: %d\n", n->max_conns_host ? n->max_conns_host: 0);
 		
 }
 
@@ -1031,7 +1025,7 @@ main (int argc, char* argv[]) {
     /* initialize hash table */
     bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
 	
-	soup_session = webkit_get_default_session();
+	uzbl.net.soup_session = webkit_get_default_session();
     keycmd = g_string_new("");
 
     settings_init ();

@@ -32,11 +32,22 @@ typedef struct {
     gchar    config_file_path[500];
 } State;
 
+typedef struct {
+    SoupSession *soup_session;
+    SoupLogger *soup_logger;
+    char *proxy_url;
+    char *useragent;
+    gint max_conns;
+    gint max_conns_host;
+} Network;
+
+
 /* main uzbl data structure */
 typedef struct {
     GUI     gui;
     Communication comm;
     State   state;
+    Network net;
     Window  xwin;
 } Uzbl;
 
