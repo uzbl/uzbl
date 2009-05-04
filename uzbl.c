@@ -1,4 +1,4 @@
-/* -*- c-basic-offset: 4; */
+/* -*- c-basic-offset: 4; -*- */
 // Original code taken from the example webkit-gtk+ application. see notice below.
 // Modified code is licensed under the GPL 3.  See LICENSE file.
 
@@ -90,7 +90,7 @@ static gboolean status_top         = FALSE;
 static gchar*   modkey             = NULL;
 static guint    modmask            = 0;
 static guint    http_debug         = 0;
-
+static gchar*   cookie_handler     = NULL;
 /* settings from config: group bindings, key -> action */
 static GHashTable* bindings;
 
@@ -119,6 +119,8 @@ static char *proxy_url = NULL;
 static char *useragent = NULL;
 static gint max_conns;
 static gint max_conns_host;
+static SoupCookieJar *ck;
+static char* current_req = NULL;
 
 /* --- CALLBACKS --- */
 
@@ -156,7 +158,7 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
     if (download_handler) {
         const gchar* uri = webkit_download_get_uri ((WebKitDownload*)download);
         printf("Download -> %s\n",uri);
-        run_command(download_handler, uri);
+        run_command_async(download_handler, uri);
     }
     return (FALSE);
 }
@@ -260,7 +262,7 @@ log_history_cb () {
        strftime (date, 80, "%Y-%m-%d %H:%M:%S", timeinfo);
        GString* args = g_string_new ("");
        g_string_printf (args, "'%s'", date);
-       run_command(history_handler, args->str);
+       run_command_async(history_handler, args->str);
        g_string_free (args, TRUE);
    }
 }
@@ -355,7 +357,8 @@ load_uri (WebKitWebView * web_view, const gchar *param) {
     if (param) {
         GString* newuri = g_string_new (param);
         if (g_strrstr (param, "://") == NULL)
-            g_string_prepend (newuri, "http://"); 
+            g_string_prepend (newuri, "http://");
+		/* if we do handle cookies, ask our handler for them */
         webkit_web_view_load_uri (web_view, newuri->str);
         g_string_free (newuri, TRUE);
     }
@@ -388,7 +391,7 @@ close_uzbl (WebKitWebView *page, const char *param) {
 
 // make sure to put '' around args, so that if there is whitespace we can still keep arguments together.
 static gboolean
-run_command(const char *command, const char *args) {
+run_command_async(const char *command, const char *args) {
    //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
     GString* to_execute = g_string_new ("");
     gboolean result;
@@ -403,10 +406,26 @@ run_command(const char *command, const char *args) {
     return result;
 }
 
+static gboolean
+run_command_sync(const char *command, const char *args, char **stdout) {
+	//command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
+    GString* to_execute = g_string_new ("");
+    gboolean result;
+    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' '%s'", command, config_file, (int) getpid() , (int) xwin, fifo_path, socket_path);
+    g_string_append_printf (to_execute, " '%s' '%s'", uri, "TODO title here");
+    if(args) {
+        g_string_append_printf (to_execute, " %s", args);
+    }
+    result = g_spawn_command_line_sync (to_execute->str, stdout, NULL, NULL, NULL);
+    printf("Called %s.  Result: %s\n", to_execute->str, (result ? "TRUE" : "FALSE" ));
+    g_string_free (to_execute, TRUE);
+    return result;
+}
+
 static void
 spawn(WebKitWebView *web_view, const char *param) {
     (void)web_view;
-    run_command(param, NULL);
+    run_command_async(param, NULL);
 }
 
 static void
@@ -826,7 +845,70 @@ settings_init () {
     printf("User-agent: %s\n", useragent? useragent : "default");
     printf("Maximum connections: %d\n", max_conns ? max_conns : 0);
     printf("Maximum connections per host: %d\n", max_conns_host ? max_conns_host: 0);
-		
+
+	/* om nom nom nom */
+	cookie_handler = g_key_file_get_string(config, "behavior", "cookie_handler", NULL);
+
+	if(cookie_handler){
+		ck = soup_cookie_jar_new();
+		soup_session_add_feature(soup_session, SOUP_SESSION_FEATURE(ck));
+		g_signal_connect(ck, "changed", G_CALLBACK(cookie_recieved_action), NULL);
+		g_signal_connect(soup_session, "request-started", G_CALLBACK(ask_for_cookie), NULL);
+		printf("Cookie handler: %s\n", cookie_handler);
+	}
+	
+}
+
+static void
+ask_for_cookie (SoupSession *session,
+				SoupMessage *msg,
+				SoupSocket  *socket,
+				gpointer     user_data)
+{
+	char *cookie = NULL, *handler_req = NULL;
+	SoupURI *uri;
+	
+	uri = soup_message_get_uri(msg);
+
+	if(current_req != NULL)
+		free(current_req);
+	current_req = soup_uri_to_string(uri, false);
+
+	handler_req = malloc(strlen(current_req) + 7);
+	/* GET request_addr */
+	sprintf(handler_req, "GET %s\n", current_req);
+	/* ask if there's a cookie for this url, if there is, we'll get header in *cookie */
+	run_command_sync(cookie_handler, handler_req, &cookie);
+	/* if we got one, add it so it gets sent */
+	if(cookie != NULL){
+		soup_cookie_jar_add_cookie(ck, soup_cookie_parse(cookie, uri));
+		/* free it from the box and eat it */
+		free(cookie);
+	}
+	free(handler_req);
+}
+
+static void
+cookie_recieved_action (SoupCookieJar *jar,
+						SoupCookie    *old_cookie,
+						SoupCookie    *new_cookie,
+						gpointer       user_data)
+{
+	char *ck, *rbuf;
+	if(new_cookie != NULL && old_cookie == NULL){
+	    ck = soup_cookie_to_cookie_header(new_cookie);
+		if(strcmp(ck, "=") == 0){
+			free(ck);
+			return;
+		}
+		rbuf = malloc(strlen(ck) /*+ strlen(current_req)*/ + 7);
+		/* PUT request_addr cookie_header */
+		sprintf(rbuf, "PUT %s\n", ck);
+		run_command_async(cookie_handler, rbuf);
+		free(rbuf);
+		free(ck);
+		soup_cookie_jar_delete_cookie(jar, new_cookie);
+	}
 }
 
 int
@@ -854,7 +936,7 @@ main (int argc, char* argv[]) {
 
     settings_init ();
     commands_hash ();
-
+	
     if (always_insert_mode)
         insert_mode = TRUE;
 

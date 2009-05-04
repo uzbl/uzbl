@@ -59,7 +59,10 @@ static void
 close_uzbl (WebKitWebView *page, const char *param);
 
 static gboolean
-run_command(const char *command, const char *args);
+run_command_async(const char *command, const char *args);
+
+static gboolean
+run_command_sync(const char *command, const char *args, char **stdout);
 
 static void
 spawn(WebKitWebView *web_view, const char *param);
@@ -103,4 +106,14 @@ add_binding (const gchar *key, const gchar *act);
 static void
 settings_init ();
 
+static void
+cookie_recieved_action (SoupCookieJar *jar,
+				   SoupCookie    *old_cookie,
+				   SoupCookie    *new_cookie,
+				   gpointer       user_data);
+static void
+ask_for_cookie (SoupSession *session,
+				SoupMessage *msg,
+				SoupSocket  *socket,
+				gpointer     user_data);
 /* vi: set et ts=4: */

@@ -19,6 +19,7 @@ always_insert_mode = 0
 modkey = Mod1
 show_status = 1
 status_top = 0
+cookie_handler = ./examples/scripts/cookies.sh
 
 [bindings]
 ## scroll down/up/left/right
