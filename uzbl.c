@@ -850,65 +850,30 @@ settings_init () {
 	cookie_handler = g_key_file_get_string(config, "behavior", "cookie_handler", NULL);
 
 	if(cookie_handler){
-		ck = soup_cookie_jar_new();
-		soup_session_add_feature(soup_session, SOUP_SESSION_FEATURE(ck));
-		g_signal_connect(ck, "changed", G_CALLBACK(cookie_recieved_action), NULL);
-		g_signal_connect(soup_session, "request-started", G_CALLBACK(ask_for_cookie), NULL);
+		/* ck = soup_cookie_jar_new(); */
+		/* soup_session_add_feature(soup_session, SOUP_SESSION_FEATURE(ck)); */
+		/* g_signal_connect(ck, "changed", G_CALLBACK(cookie_recieved_action), NULL); */
+		g_signal_connect(soup_session, "request-queued", G_CALLBACK(handle_cookies), NULL);
 		printf("Cookie handler: %s\n", cookie_handler);
 	}
 	
 }
 
-static void
-ask_for_cookie (SoupSession *session,
-				SoupMessage *msg,
-				SoupSocket  *socket,
-				gpointer     user_data)
-{
-	char *cookie = NULL, *handler_req = NULL;
-	SoupURI *uri;
-	
-	uri = soup_message_get_uri(msg);
-
-	if(current_req != NULL)
-		free(current_req);
-	current_req = soup_uri_to_string(uri, false);
-
-	handler_req = malloc(strlen(current_req) + 7);
-	/* GET request_addr */
-	sprintf(handler_req, "GET %s\n", current_req);
-	/* ask if there's a cookie for this url, if there is, we'll get header in *cookie */
-	run_command_sync(cookie_handler, handler_req, &cookie);
-	/* if we got one, add it so it gets sent */
-	if(cookie != NULL){
-		soup_cookie_jar_add_cookie(ck, soup_cookie_parse(cookie, uri));
-		/* free it from the box and eat it */
-		free(cookie);
-	}
-	free(handler_req);
+static void handle_cookies (SoupSession *session,
+							SoupMessage *msg,
+							gpointer     user_data){
+	soup_message_add_header_handler(msg, "got-headers", "Set-Cookie", G_CALLBACK(save_cookies));
+	/* ask handler for cookies, if there are any, use
+	   soup_message_headers_replace (msg->request_headers,
+	   "Cookie", cookies);
+	   to add them
+	*/
 }
 
 static void
-cookie_recieved_action (SoupCookieJar *jar,
-						SoupCookie    *old_cookie,
-						SoupCookie    *new_cookie,
-						gpointer       user_data)
-{
-	char *ck, *rbuf;
-	if(new_cookie != NULL && old_cookie == NULL){
-	    ck = soup_cookie_to_cookie_header(new_cookie);
-		if(strcmp(ck, "=") == 0){
-			free(ck);
-			return;
-		}
-		rbuf = malloc(strlen(ck) /*+ strlen(current_req)*/ + 7);
-		/* PUT request_addr cookie_header */
-		sprintf(rbuf, "PUT %s\n", ck);
-		run_command_async(cookie_handler, rbuf);
-		free(rbuf);
-		free(ck);
-		soup_cookie_jar_delete_cookie(jar, new_cookie);
-	}
+save_cookies (SoupMessage *msg,
+			  gpointer     user_data){
+	/* give them to handler */
 }
 
 int
