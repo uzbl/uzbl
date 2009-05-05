@@ -58,7 +58,7 @@
 /* status bar format
    TODO: integrate with the config file
 */
-char *status_format =  "[Progress: LOAD_PROGRESS%] on <TITLE> - Uzbl browser";
+char *status_format =  "[Progress: LOAD_PROGRESS%] on <span background=\"darkblue\" foreground=\"white\">  TITLE  </span> - <span foreground=\"black\" background=\"red\"> Uzbl browser </span>";
 
 /* housekeeping / internal variables */
 static gchar          selected_url[500] = "\0";
@@ -762,7 +762,7 @@ update_title (void) {
     if (show_status) {
         gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), title_short);
         statln = parse_status_template(status_format);
-        gtk_label_set_text(GTK_LABEL(uzbl.gui.mainbar_label), statln);
+        gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), statln);
         g_free(statln);
     } else {
         gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), title_long);
