@@ -266,8 +266,8 @@ log_history_cb () {
    }
 }
 
-/* VIEW funcs (little webkit wrappers) */
 
+/* VIEW funcs (little webkit wrappers) */
 #define VIEWFUNC(name) static void view_##name(WebKitWebView *page, const char *param){(void)param; webkit_web_view_##name(page);}
 VIEWFUNC(reload)
 VIEWFUNC(reload_bypass_cache)
