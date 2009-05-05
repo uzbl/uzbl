@@ -58,7 +58,7 @@
 /* status bar format
    TODO: integrate with the config file
 */
-char *status_format =  "[Progress: LOAD_PROGRESS%] on <span background=\"darkblue\" foreground=\"white\">  TITLE  </span> - <span foreground=\"black\" background=\"red\"> Uzbl browser </span>";
+char *status_format =  "LOAD_PROGRESS% <span font_family=\"monospace\">LOAD_PROGRESSBAR</span> on <span background=\"darkblue\" foreground=\"white\">  <b>TITLE</b>  </span> - <span foreground=\"black\" background=\"red\"> Uzbl browser </span>";
 
 /* housekeeping / internal variables */
 static gchar          selected_url[500] = "\0";
@@ -410,7 +410,33 @@ close_uzbl (WebKitWebView *page, const char *param) {
     gtk_main_quit ();
 }
 
-enum { SYM_TITLE, SYM_LOADPRGS};
+static char*
+build_progressbar_ascii(int percent) {
+   int width=10;
+   int i;
+   double l;
+   GString *bar = g_string_new("");
+
+   l = (double)percent*((double)width/100.);
+   l = (int)(l+.5)>=(int)l ? l+.5 : l;
+
+   g_string_append(bar, "[");
+   for(i=0; i<(int)l; i++)
+       if(i==width) {
+           g_string_append(bar, ">");
+           break;
+       } else 
+           g_string_append(bar, "=");
+          
+   for(; i<width; i++)
+       g_string_append(bar, "·");
+   g_string_append(bar, "]");
+
+   return g_string_free(bar, FALSE);
+}
+
+        
+enum { SYM_TITLE, SYM_LOADPRGS, SYM_LOADPRGSBAR};
 static void
 setup_scanner() {
      const GScannerConfig scan_config = {
@@ -460,12 +486,14 @@ setup_scanner() {
      uzbl.scan = g_scanner_new(&scan_config);
      g_scanner_scope_add_symbol(uzbl.scan, 0, "TITLE", (gpointer)SYM_TITLE);
      g_scanner_scope_add_symbol(uzbl.scan, 0, "LOAD_PROGRESS", (gpointer)SYM_LOADPRGS);
+     g_scanner_scope_add_symbol(uzbl.scan, 0, "LOAD_PROGRESSBAR", (gpointer)SYM_LOADPRGSBAR);
 }
 
 static gchar *
 parse_status_template(const char *template) {
      GTokenType token = G_TOKEN_NONE;
      GString *ret = g_string_new("");
+     gchar *buf=NULL;
      int sym;
 
      if(!template)
@@ -483,6 +511,11 @@ parse_status_template(const char *template) {
                      break;
                  case SYM_LOADPRGS:
                      g_string_append(ret, itos(uzbl.gui.sbar.load_progress));
+                     break;
+                 case SYM_LOADPRGSBAR:
+                     buf = build_progressbar_ascii(uzbl.gui.sbar.load_progress);
+                     g_string_append(ret, buf);
+                     g_free(buf);
                      break;
                  default:
                      break;
