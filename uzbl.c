@@ -58,7 +58,7 @@
 /* status bar format
    TODO: integrate with the config file
 */
-char *status_format =  "LOAD_PROGRESS% <span font_family=\"monospace\">LOAD_PROGRESSBAR</span> on <span background=\"darkblue\" foreground=\"white\">  <b>TITLE</b>  </span> - <span foreground=\"black\" background=\"red\"> Uzbl browser </span>";
+char *status_format =  "<span background=\"darkblue\" foreground=\"white\">  <b>TITLE</b>  </span> | LOAD_PROGRESS% <span font_family=\"monospace\">LOAD_PROGRESSBAR</span> | <span foreground=\"darkgreen\">URI</span> | NAME | <span foreground=\"black\" background=\"khaki\"> Uzbl browser </span>";
 
 /* housekeeping / internal variables */
 static gchar          selected_url[500] = "\0";
@@ -432,7 +432,7 @@ build_progressbar_ascii(int percent) {
 }
 
         
-enum { SYM_TITLE, SYM_LOADPRGS, SYM_LOADPRGSBAR};
+enum { SYM_TITLE, SYM_URI, SYM_NAME, SYM_LOADPRGS, SYM_LOADPRGSBAR};
 static void
 setup_scanner() {
      const GScannerConfig scan_config = {
@@ -480,7 +480,11 @@ setup_scanner() {
      };
 
      uzbl.scan = g_scanner_new(&scan_config);
+
+     /* TODO: move this stuff to an array and use a loop to actually set it */
      g_scanner_scope_add_symbol(uzbl.scan, 0, "TITLE", (gpointer)SYM_TITLE);
+     g_scanner_scope_add_symbol(uzbl.scan, 0, "URI",   (gpointer)SYM_URI);
+     g_scanner_scope_add_symbol(uzbl.scan, 0, "NAME",   (gpointer)SYM_NAME);
      g_scanner_scope_add_symbol(uzbl.scan, 0, "LOAD_PROGRESS", (gpointer)SYM_LOADPRGS);
      g_scanner_scope_add_symbol(uzbl.scan, 0, "LOAD_PROGRESSBAR", (gpointer)SYM_LOADPRGSBAR);
 }
@@ -502,7 +506,7 @@ parse_status_template(const char *template) {
          if(token == G_TOKEN_SYMBOL) {
              sym = (int)g_scanner_cur_value(uzbl.scan).v_symbol;
              switch(sym) {
-                 case SYM_TITLE:
+                 case SYM_URI:
                      g_string_append(ret, uzbl.state.uri);
                      break;
                  case SYM_LOADPRGS:
@@ -512,6 +516,14 @@ parse_status_template(const char *template) {
                      buf = build_progressbar_ascii(uzbl.gui.sbar.load_progress);
                      g_string_append(ret, buf);
                      g_free(buf);
+                     break;
+                 case SYM_TITLE:
+                     g_string_append(ret,
+                         uzbl.gui.main_title?uzbl.gui.main_title:"");
+                     break;
+                 case SYM_NAME:
+                     g_string_append(ret, 
+                         uzbl.state.instance_name?uzbl.state.instance_name:"" );
                      break;
                  default:
                      break;
