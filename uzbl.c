@@ -54,6 +54,12 @@
 #include <libsoup/soup.h>
 #include "uzbl.h"
 
+
+/* status bar format
+   TODO: integrate with the config file
+*/
+char *status_format =  "[Progress: LOAD_PROGRESS%] on <TITLE> - Uzbl browser";
+
 /* housekeeping / internal variables */
 static gchar          selected_url[500] = "\0";
 static char           executable_path[500];
@@ -404,6 +410,99 @@ close_uzbl (WebKitWebView *page, const char *param) {
     gtk_main_quit ();
 }
 
+enum { SYM_TITLE, SYM_LOADPRGS};
+static void
+setup_scanner() {
+     const GScannerConfig scan_config = {
+             (
+              "\t\r\n"
+             )            /* cset_skip_characters */,
+             (
+              G_CSET_a_2_z
+              "_"
+              G_CSET_A_2_Z
+             )            /* cset_identifier_first */,
+             (
+              G_CSET_a_2_z
+              "_0123456789"
+              G_CSET_A_2_Z
+              G_CSET_LATINS
+              G_CSET_LATINC
+             )            /* cset_identifier_nth */,
+             ( "#\n" )    /* cpair_comment_single */,
+
+             TRUE         /* case_sensitive */,
+
+             FALSE        /* skip_comment_multi */,
+             FALSE        /* skip_comment_single */,
+             FALSE        /* scan_comment_multi */,
+             TRUE         /* scan_identifier */,
+             TRUE         /* scan_identifier_1char */,
+             FALSE        /* scan_identifier_NULL */,
+             TRUE         /* scan_symbols */,
+             FALSE        /* scan_binary */,
+             FALSE        /* scan_octal */,
+             FALSE        /* scan_float */,
+             FALSE        /* scan_hex */,
+             FALSE        /* scan_hex_dollar */,
+             FALSE        /* scan_string_sq */,
+             FALSE        /* scan_string_dq */,
+             TRUE         /* numbers_2_int */,
+             FALSE        /* int_2_float */,
+             FALSE        /* identifier_2_string */,
+             FALSE        /* char_2_token */,
+             FALSE        /* symbol_2_token */,
+             TRUE         /* scope_0_fallback */,
+             FALSE,
+             TRUE
+     };
+
+     uzbl.scan = g_scanner_new(&scan_config);
+     g_scanner_scope_add_symbol(uzbl.scan, 0, "TITLE", (gpointer)SYM_TITLE);
+     g_scanner_scope_add_symbol(uzbl.scan, 0, "LOAD_PROGRESS", (gpointer)SYM_LOADPRGS);
+}
+
+static gchar *
+parse_status_template(const char *template) {
+     GTokenType token = G_TOKEN_NONE;
+     GString *ret = g_string_new("");
+     int sym;
+
+     if(!template)
+         return NULL;
+
+     g_scanner_input_text(uzbl.scan, template, strlen(template));
+     while(!g_scanner_eof(uzbl.scan) && token != G_TOKEN_LAST) {
+         token = g_scanner_get_next_token(uzbl.scan);
+
+         if(token == G_TOKEN_SYMBOL) {
+             sym = (int)g_scanner_cur_value(uzbl.scan).v_symbol;
+             switch(sym) {
+                 case SYM_TITLE:
+                     g_string_append(ret, uzbl.state.uri);
+                     break;
+                 case SYM_LOADPRGS:
+                     g_string_append(ret, itos(uzbl.gui.sbar.load_progress));
+                     break;
+                 default:
+                     break;
+             }
+         }
+         else if(token == G_TOKEN_INT) {
+             g_string_append(ret, itos(g_scanner_cur_value(uzbl.scan).v_int));
+         }
+         else if(token == G_TOKEN_IDENTIFIER) {
+             g_string_append(ret, (gchar *)g_scanner_cur_value(uzbl.scan).v_identifier);
+         }
+         else if(token == G_TOKEN_CHAR) {
+             g_string_append_printf(ret, "%c", g_scanner_cur_value(uzbl.scan).v_char);
+         }
+     }
+
+     return g_string_free(ret, FALSE);
+}
+
+
 // make sure to put '' around args, so that if there is whitespace we can still keep arguments together.
 static gboolean
 run_command(const char *command, const char *args) {
@@ -626,6 +725,7 @@ update_title (void) {
     GString* string_long = g_string_new ("");
     GString* string_short = g_string_new ("");
     char* iname = NULL;
+    gchar *statln;
     int iname_len;
     State *s = &uzbl.state;
 
@@ -661,7 +761,9 @@ update_title (void) {
 
     if (show_status) {
         gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), title_short);
-    gtk_label_set_text(GTK_LABEL(uzbl.gui.mainbar_label), title_long);
+        statln = parse_status_template(status_format);
+        gtk_label_set_text(GTK_LABEL(uzbl.gui.mainbar_label), statln);
+        g_free(statln);
     } else {
         gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), title_long);
     }
@@ -1059,8 +1161,10 @@ main (int argc, char* argv[]) {
     uzbl.gui.bar_h = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_h);
     gtk_widget_set_scroll_adjustments ((GtkWidget*) uzbl.gui.web_view, uzbl.gui.bar_h, uzbl.gui.bar_v);
 
+
     if (!show_status)
         gtk_widget_hide(uzbl.gui.mainbar);
+    setup_scanner();
 
     if (fifo_dir)
         create_fifo ();

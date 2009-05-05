@@ -49,6 +49,7 @@ typedef struct {
     State   state;
     Network net;
     Window  xwin;
+    GScanner *scan;
 } Uzbl;
 
 typedef struct {
@@ -59,6 +60,9 @@ typedef struct {
 
 
 /* Functions */
+static void
+setup_scanner();
+
 char *
 itos(int val);
 
