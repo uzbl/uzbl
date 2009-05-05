@@ -1,4 +1,4 @@
-CPPFLAGS=$(shell pkg-config --cflags gtk+-2.0 webkit-1.0) -Wall -W -std=c99 -pedantic
+CPPFLAGS=$(shell pkg-config --cflags gtk+-2.0 webkit-1.0) -Wall -W
 LDFLAGS=$(shell pkg-config --libs gtk+-2.0 webkit-1.0)
 all: uzbl uzblctrl
 

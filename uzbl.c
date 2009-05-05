@@ -862,7 +862,8 @@ settings_init () {
 static void handle_cookies (SoupSession *session,
 							SoupMessage *msg,
 							gpointer     user_data){
-	soup_message_add_header_handler(msg, "got-headers", "Set-Cookie", G_CALLBACK(save_cookies));
+	soup_message_add_header_handler(msg, "got-headers", "Set-Cookie", G_CALLBACK(save_cookies), NULL);
+	
 	/* ask handler for cookies, if there are any, use
 	   soup_message_headers_replace (msg->request_headers,
 	   "Cookie", cookies);
@@ -873,7 +874,17 @@ static void handle_cookies (SoupSession *session,
 static void
 save_cookies (SoupMessage *msg,
 			  gpointer     user_data){
-	/* give them to handler */
+	GSList *ck;
+	char *req, *cookie;
+	for (ck = soup_cookies_from_response(msg); ck; ck = ck->next){
+		cookie = soup_cookie_to_set_cookie_header(ck->data);
+		req = malloc(strlen(cookie) + 10);
+		sprintf(req, "PUT \"%s\"", cookie);
+		run_command_async(cookie_handler, req);
+		free(req);
+		free(cookie);
+	}
+	g_slist_free(ck);
 }
 
 int

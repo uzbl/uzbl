@@ -111,10 +111,17 @@ settings_init ();
 				   /* SoupCookie    *old_cookie, */
 				   /* SoupCookie    *new_cookie, */
 				   /* gpointer       user_data); */
+/* static void */
+/* catch_cookies (SoupSession *session, */
+/* 			   SoupMessage *msg, */
+/* 			   gpointer     user_data); */
+/* 				/\* SoupSocket  *socket, *\/ */
+/* 				/\* gpointer     user_data); *\/ */
+
+static void handle_cookies (SoupSession *session,
+							SoupMessage *msg,
+							gpointer     user_data);
 static void
-catch_cookies (SoupSession *session,
-			   SoupMessage *msg,
-			   gpointer     user_data);
-				/* SoupSocket  *socket, */
-				/* gpointer     user_data); */
+save_cookies (SoupMessage *msg,
+			  gpointer     user_data);
 /* vi: set et ts=4: */
