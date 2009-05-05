@@ -36,3 +36,4 @@ Also testers and interested people can use this list to see what uzbl is about, 
   ; = search <-- jump over all hits
 * run javascript on curent page through "script" command.
 * variable replacement in user agent.
+* basic keyboard link hilighting (numbering) and following. will be improved more

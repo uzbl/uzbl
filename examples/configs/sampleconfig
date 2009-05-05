@@ -32,9 +32,6 @@ m = forward
 s = stop
 r = reload
 R = reload_ign_cache
-f = follow_link_here
-F = follow_link_new_tab
-w = follow_link_new_window
 + = zoom_in
 - = zoom_out
 t = toggle_status
@@ -52,6 +49,12 @@ u = spawn /usr/share/uzbl/examples/scripts/load_url_from_history.sh
 U = spawn /usr/share/uzbl/examples/scripts/load_url_from_bookmarks.sh
 ZZ = exit
 S = script alert("hi");
+
+# Keyboard based link following: work in progress! No C DOM bindings yet, no click() event for hyperlinks so no referrer set..Quite basic but does the job for now...
+#hit f followed by linknumber and ENTER to follow that link
+f_ = script window.location = document.links[%s].href;
+#hit F to show the link numbers
+F = script for (var i=0; i < document.links.length; i++) {var uzblid = 'uzbl_link_hint_';var li = document.links[i];var pre = document.getElementById(uzblid+i);if (pre) {li.removeChild(pre);} else {var hint = document.createElement('div');hint.setAttribute('id',uzblid+i);hint.innerHTML = i;hint.style.display='inline';hint.style.lineHeight='90%';hint.style.backgroundColor='red';hint.style.color='white';hint.style.fontSize='small-xx';hint.style.fontWeight='light';hint.style.margin='0px';hint.style.padding='2px';hint.style.position='absolute';hint.style.textDecoration='none';hint.style.left=li.style.left;hint.style.top=li.style.top;li.insertAdjacentElement('afterBegin',hint);}}
 
 [network]
 proxy_server = 
