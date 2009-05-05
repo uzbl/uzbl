@@ -56,6 +56,7 @@ whichever method you like, or both at the same time (command mode, insert mode, 
 Uzbl itself doesn't use much gtk stuff (only the statusbar) so we could do without gtk.  But Webkit needs a widget toolkit to create widgets (think javascript popups, html forms etc).
 It also supports QT and wxwigdets.  One could argue we don't need no popups or fancy form widgets and you could have a point, but forking webkit would bring us way to far. 
 And we don't find the use of gtk *that* disturbing.  Besides, a curses/xlib html form wouldn't look too nice, would it?
+Edit: There is a webkit port using the EFL toolkit which is supposed to be more lightweight (http://codeposts.blogspot.com/2008/12/webkit-ported-to-enlightenment.html ) but we're not sure how usable it already is
 
 ### Do you support flash? javascript? Ajax?  Recent html/css/.. standards?
 Yes, Webkit takes care of all of that.  Not that we like all of these, but you can use them if you want.
