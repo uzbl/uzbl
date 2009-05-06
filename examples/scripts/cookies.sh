@@ -5,6 +5,16 @@
 # MAYBE TODO: allow user to edit cookie before saving. this cannot be done with zenity :(
 # TODO: different cookie paths per config (eg per group of uzbl instances)
 
+# TODO: correct implementation.
+# see http://curl.haxx.se/rfc/cookie_spec.html
+# http://en.wikipedia.org/wiki/HTTP_cookie
+
+# TODO : check expires= before sending.
+# write sample script that cleans up cookies dir based on expires attribute.
+# TODO: check uri against domain attribute. and path also.
+# implement secure attribute.
+
+
 if [ -f /usr/share/uzbl/examples/configs/cookies ]
 then
 	file=/usr/share/uzbl/examples/configs/cookies
@@ -22,7 +32,9 @@ fi
 which zenity &>/dev/null || exit 2
 
 uri=$6
+uri=${uri/http:\/\/} # strip 'http://' part
 action=$8 # GET/PUT
+cookie=$9
 host=${uri/\/*/}
 
 
@@ -31,15 +43,6 @@ host=${uri/\/*/}
 # $2 =url
 function match () {
 	sed -n "/$1/,/^\$/p" $file 2>/dev/null | grep -q "^$host"
-}
-
-function readcookie () {
-	cookie=
-	while read
-	do
-		cookie="$REPLY
-"
-	done
 }
 
 function fetch_cookie () {
@@ -52,11 +55,11 @@ function store_cookie () {
 
 if match TRUSTED $host
 then
-	[ $action == PUT ] && readcookie && store_cookie $host
+	[ $action == PUT ] && store_cookie $host
 	[ $action == GET ] && fetch_cookie && echo "$cookie"
 elif ! match DENY $host
 then
-	[ $action == PUT ] && readcookie && zenity --question --title 'Uzbl Cookie handler' --text "Accept cookie from $host ? Contents:\n$cookie" && store_cookie $host
-	[ $action == GET ] && fetch_cookie && zenity --question --title 'Uzbl Cookie handler' --text "Submit cookie to $host ? Contents:\n$cookie" && echo $cookie
+	[ $action == PUT ] &&                 cookie=`zenity --entry --title 'Uzbl Cookie handler' --text "Accept this cookie from $host ?" --entry-text="$cookie"` && store_cookie $host
+	[ $action == GET ] && fetch_cookie && cookie=`zenity --entry --title 'Uzbl Cookie handler' --text "Submit this cookie to $host ?"   --entry-text="$cookie"` && echo $cookie
 fi
 exit 0

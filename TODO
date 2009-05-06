@@ -32,13 +32,13 @@
 * backspace key to pop characters from (multichar) command
 * optional logging of http requests&responses with ip/hostname and port. -> how to implement? handler? stdout? (through a socket so you know what corresponds to what?)
 * bench/optimize fifo vs socket performance. measure delays.  minimize forks. does glib use a shell? how does it detect the shebang line?
-* cookie support.
+* cookie support.  storing seems to work, but not yet sending
 * "remember account settings" support. but how? configure post data per site? regex match eg '^bbs.archlinux.org' ?
 * http_proxy env var not recognized. libproxy (used by libsoup) should handle this http://mail.gnome.org/archives/libsoup-list/2009-February/msg00018.html
 * support ssl. do ssl certificate & exception management similar to how we do cookies
 * improve DCOMMIT macro.  what if WC is dirty? what if user downloaded tarball without .git?
 * DARCH is not correct (should be at runtime)
-
+* when loading page foo.com, it can have img src=http://bar/..., uri in uzbl will be set to foo. we must pass bar to cookie handler
 * variable replacing:
 user agent -> str_replace(all vars) DONE
 title bar -> str_replace(all vars)
