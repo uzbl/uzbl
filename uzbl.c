@@ -58,7 +58,7 @@
 /* status bar format
    TODO: integrate with the config file
 */
-char *status_format =  "<span background=\"red\" foreground=\"white\">KEYCMD</span> <span background=\"darkblue\" foreground=\"white\">  <b>TITLE</b>  </span> | LOAD_PROGRESS% <span font_family=\"monospace\">LOAD_PROGRESSBAR</span> | <span foreground=\"darkgreen\">URI</span> | NAME | <span foreground=\"black\" background=\"khaki\"> Uzbl browser </span>";
+char *status_format =  "<span background=\"darkgreen\" foreground=\"khaki\"> MODE </span> | Cmd: <span background=\"red\" foreground=\"white\">KEYCMD</span> | <span background=\"darkblue\" foreground=\"white\">  <b>TITLE</b>  </span> | LOAD_PROGRESS% <span font_family=\"monospace\">LOAD_PROGRESSBAR</span> | <span foreground=\"darkgreen\">URI</span> | NAME | <span foreground=\"black\" background=\"khaki\"> Uzbl browser </span>";
 
 /* housekeeping / internal variables */
 static gchar          selected_url[500] = "\0";
@@ -526,6 +526,10 @@ parse_status_template(const char *template) {
                  case SYM_KEYCMD:
                      g_string_append(ret, 
                          keycmd->str?keycmd->str:"" );
+                     break;
+                 case SYM_MODE:
+                     g_string_append(ret, 
+                         insert_mode?"[I]":"[C]" );
                      break;
                  default:
                      break;
