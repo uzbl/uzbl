@@ -1,4 +1,4 @@
-/* -*- c-basic-offset: 4; */
+/* -*- c-basic-offset: 4; -*- */
 // Original code taken from the example webkit-gtk+ application. see notice below.
 // Modified code is licensed under the GPL 3.  See LICENSE file.
 
@@ -76,6 +76,7 @@ static gchar*   history_handler    = NULL;
 static gchar*   fifo_dir           = NULL;
 static gchar*   socket_dir         = NULL;
 static gchar*   download_handler   = NULL;
+static gchar*   cookie_handler     = NULL;
 static gboolean always_insert_mode = FALSE;
 static gboolean show_status        = FALSE;
 static gboolean insert_mode        = FALSE;
@@ -160,7 +161,7 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
     if (download_handler) {
         const gchar* uri = webkit_download_get_uri ((WebKitDownload*)download);
         printf("Download -> %s\n",uri);
-        run_command(download_handler, uri);
+        run_command_async(download_handler, uri);
     }
     return (FALSE);
 }
@@ -264,7 +265,7 @@ log_history_cb () {
        strftime (date, 80, "%Y-%m-%d %H:%M:%S", timeinfo);
        GString* args = g_string_new ("");
        g_string_printf (args, "'%s'", date);
-       run_command(history_handler, args->str);
+       run_command_async(history_handler, args->str);
        g_string_free (args, TRUE);
    }
 }
@@ -362,7 +363,8 @@ load_uri (WebKitWebView * web_view, const gchar *param) {
     if (param) {
         GString* newuri = g_string_new (param);
         if (g_strrstr (param, "://") == NULL)
-            g_string_prepend (newuri, "http://"); 
+            g_string_prepend (newuri, "http://");
+		/* if we do handle cookies, ask our handler for them */
         webkit_web_view_load_uri (web_view, newuri->str);
         g_string_free (newuri, TRUE);
     }
@@ -556,7 +558,7 @@ parse_status_template(const char *template) {
 
 // make sure to put '' around args, so that if there is whitespace we can still keep arguments together.
 static gboolean
-run_command(const char *command, const char *args) {
+run_command_async(const char *command, const char *args) {
    //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
     GString* to_execute = g_string_new ("");
     gboolean result;
@@ -574,10 +576,26 @@ run_command(const char *command, const char *args) {
     return result;
 }
 
+static gboolean
+run_command_sync(const char *command, const char *args, char **stdout) {
+	//command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
+    GString* to_execute = g_string_new ("");
+    gboolean result;
+    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' '%s'", command, uzbl.state.config_file, (int) getpid() , (int) uzbl.xwin, uzbl.comm.fifo_path, uzbl.comm.socket_path);
+    g_string_append_printf (to_execute, " '%s' '%s'", uzbl.state.uri, "TODO title here");
+    if(args) {
+        g_string_append_printf (to_execute, " %s", args);
+    }
+    result = g_spawn_command_line_sync (to_execute->str, stdout, NULL, NULL, NULL);
+    printf("Called %s.  Result: %s\n", to_execute->str, (result ? "TRUE" : "FALSE" ));
+    g_string_free (to_execute, TRUE);
+    return result;
+}
+
 static void
 spawn(WebKitWebView *web_view, const char *param) {
     (void)web_view;
-    run_command(param, NULL);
+    run_command_async(param, NULL);
 }
 
 static void
@@ -1033,6 +1051,7 @@ settings_init () {
     if (res) {
         history_handler    = g_key_file_get_value   (config, "behavior", "history_handler",    NULL);
         download_handler   = g_key_file_get_value   (config, "behavior", "download_handler",   NULL);
+	cookie_handler     = g_key_file_get_string  (config, "behavior", "cookie_handler",     NULL);
         always_insert_mode = g_key_file_get_boolean (config, "behavior", "always_insert_mode", NULL);
         show_status        = g_key_file_get_boolean (config, "behavior", "show_status",        NULL);
         modkey             = g_key_file_get_value   (config, "behavior", "modkey",             NULL);
@@ -1046,6 +1065,7 @@ settings_init () {
 
     printf ("History handler: %s\n",    (history_handler    ? history_handler  : "disabled"));
     printf ("Download manager: %s\n",   (download_handler   ? download_handler : "disabled"));
+    printf ("Cookie handler: %s\n",     (cookie_handler     ? cookie_handler   : "disabled"));
     printf ("Fifo directory: %s\n",     (fifo_dir           ? fifo_dir         : "disabled"));
     printf ("Socket directory: %s\n",   (socket_dir         ? socket_dir       : "disabled"));
     printf ("Always insert mode: %s\n", (always_insert_mode ? "TRUE"           : "FALSE"));
@@ -1152,6 +1172,43 @@ settings_init () {
     printf("Maximum connections: %d\n", n->max_conns ? n->max_conns : 0);
     printf("Maximum connections per host: %d\n", n->max_conns_host ? n->max_conns_host: 0);
 		
+
+
+	if(cookie_handler){
+		/* ck = soup_cookie_jar_new(); */
+		/* soup_session_add_feature(soup_session, SOUP_SESSION_FEATURE(ck)); */
+		/* g_signal_connect(ck, "changed", G_CALLBACK(cookie_recieved_action), NULL); */
+		g_signal_connect(n->soup_session, "request-queued", G_CALLBACK(handle_cookies), NULL);
+	}
+	
+}
+
+static void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer user_data){
+    (void) session;
+    (void) user_data;
+    soup_message_add_header_handler(msg, "got-headers", "Set-Cookie", G_CALLBACK(save_cookies), NULL);
+	
+	/* ask handler for cookies, if there are any, use
+	   soup_message_headers_replace (msg->request_headers,
+	   "Cookie", cookies);
+	   to add them
+	*/
+}
+
+static void
+save_cookies (SoupMessage *msg, gpointer user_data){
+    (void) user_data;
+    GSList *ck;
+    char *req, *cookie;
+    for (ck = soup_cookies_from_response(msg); ck; ck = ck->next){
+        cookie = soup_cookie_to_set_cookie_header(ck->data);
+        req = malloc(strlen(cookie) + 10);
+        sprintf(req, "PUT \"%s\"", cookie);
+        run_command_async(cookie_handler, req);
+        free(req);
+        free(cookie);
+    }
+    g_slist_free(ck);
 }
 
 int
@@ -1179,7 +1236,7 @@ main (int argc, char* argv[]) {
 
     settings_init ();
     commands_hash ();
-
+	
     if (always_insert_mode)
         insert_mode = TRUE;
 

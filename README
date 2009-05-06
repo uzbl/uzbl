@@ -119,6 +119,7 @@ The script specific arguments are this:
   $8 url of item to download
 * cookie handler
   $8 GET/PUT
+  $9 cookie (only with PUT requests)
 
 KNOWN BUGS
 - Segfaults when using zoom commands (happens when max zoom already reached?).
