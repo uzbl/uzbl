@@ -61,14 +61,17 @@
 char *status_format =  "<span background=\"darkgreen\" foreground=\"khaki\"> MODE </span> | Cmd: <span background=\"red\" foreground=\"white\">KEYCMD</span> | <span background=\"darkblue\" foreground=\"white\">  <b>TITLE</b>  </span> | LOAD_PROGRESS% <span font_family=\"monospace\">LOAD_PROGRESSBAR</span> | <span foreground=\"darkgreen\">URI</span> | NAME | <span foreground=\"black\" background=\"khaki\"> Uzbl browser </span>";
 
 /* housekeeping / internal variables */
+/* NOTE: these will go to State*/
 static gchar          selected_url[500] = "\0";
 static char           executable_path[500];
 static GString*       keycmd;
+/* will probably become a #define */
 static gchar          searchtx[500] = "\0";
 
 static Uzbl uzbl;
 
 /* settings from config: group behaviour */
+/* NOTE: these will go to a new struct Behaviour */
 static gchar*   history_handler    = NULL;
 static gchar*   fifo_dir           = NULL;
 static gchar*   socket_dir         = NULL;
@@ -82,13 +85,13 @@ static guint    modmask            = 0;
 static guint    http_debug         = 0;
 
 /* System info */
-static struct utsname unameinfo;
+static struct utsname unameinfo; /* state */
 
 /* settings from config: group bindings, key -> action */
-static GHashTable* bindings;
+static GHashTable* bindings; /* behaviour */
 
 /* command list: name -> Command  */
-static GHashTable* commands;
+static GHashTable* commands; /* behaviour */
 
 /* commandline arguments (set initial values for the state variables) */
 static GOptionEntry entries[] =
@@ -542,7 +545,7 @@ parse_status_template(const char *template) {
              g_string_append(ret, (gchar *)g_scanner_cur_value(uzbl.scan).v_identifier);
          }
          else if(token == G_TOKEN_CHAR) {
-             g_string_append_printf(ret, "%c", g_scanner_cur_value(uzbl.scan).v_char);
+             g_string_append_c(ret, (gchar)g_scanner_cur_value(uzbl.scan).v_char);
          }
      }
 
