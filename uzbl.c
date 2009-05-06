@@ -58,7 +58,13 @@
 /* status bar format
    TODO: integrate with the config file
 */
-char *status_format =  "<span background=\"darkgreen\" foreground=\"khaki\"> MODE </span> | Cmd: <span background=\"red\" foreground=\"white\">KEYCMD</span> | <span background=\"darkblue\" foreground=\"white\">  <b>TITLE</b>  </span> | LOAD_PROGRESS% <span font_family=\"monospace\">LOAD_PROGRESSBAR</span> | <span foreground=\"darkgreen\">URI</span> | NAME | <span foreground=\"black\" background=\"khaki\"> Uzbl browser </span>";
+char *status_format =  
+   "<span background=\"darkgreen\" foreground=\"khaki\"> MODE </span>"
+   " | Cmd: <span background=\"red\" foreground=\"white\">KEYCMD</span>" 
+   " | <span background=\"darkblue\" foreground=\"white\">  <b>TITLE</b>  </span>"
+   " | LOAD_PROGRESS% <span font_family=\"monospace\">LOAD_PROGRESSBAR</span>"
+   " | <span foreground=\"darkgreen\">URI</span>"
+   " | NAME | <span foreground=\"black\" background=\"khaki\"> Uzbl browser </span>";
 
 /* housekeeping / internal variables */
 /* NOTE: these will go to State*/
@@ -510,7 +516,8 @@ parse_status_template(const char *template) {
              sym = (int)g_scanner_cur_value(uzbl.scan).v_symbol;
              switch(sym) {
                  case SYM_URI:
-                     g_string_append(ret, uzbl.state.uri);
+                     g_string_append(ret, 
+                         g_markup_printf_escaped("%s", uzbl.state.uri));
                      break;
                  case SYM_LOADPRGS:
                      g_string_append(ret, itos(uzbl.gui.sbar.load_progress));
@@ -522,19 +529,20 @@ parse_status_template(const char *template) {
                      break;
                  case SYM_TITLE:
                      g_string_append(ret,
-                         uzbl.gui.main_title?uzbl.gui.main_title:"");
+                         uzbl.gui.main_title?
+                         g_markup_printf_escaped("%s", uzbl.gui.main_title):"");
                      break;
                  case SYM_NAME:
                      g_string_append(ret, 
-                         uzbl.state.instance_name?uzbl.state.instance_name:"" );
+                         uzbl.state.instance_name?uzbl.state.instance_name:"");
                      break;
                  case SYM_KEYCMD:
                      g_string_append(ret, 
-                         keycmd->str?keycmd->str:"" );
+                         keycmd->str?g_markup_printf_escaped("%s",keycmd->str):"");
                      break;
                  case SYM_MODE:
                      g_string_append(ret, 
-                         insert_mode?"[I]":"[C]" );
+                         insert_mode?"[I]":"[C]");
                      break;
                  default:
                      break;
