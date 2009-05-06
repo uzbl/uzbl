@@ -410,6 +410,7 @@ close_uzbl (WebKitWebView *page, const char *param) {
     gtk_main_quit ();
 }
 
+/* --Statusbar functions-- */
 static char*
 build_progressbar_ascii(int percent) {
    int width=10;
@@ -431,8 +432,6 @@ build_progressbar_ascii(int percent) {
    return g_string_free(bar, FALSE);
 }
 
-        
-enum { SYM_TITLE, SYM_URI, SYM_NAME, SYM_LOADPRGS, SYM_LOADPRGSBAR};
 static void
 setup_scanner() {
      const GScannerConfig scan_config = {
@@ -480,13 +479,12 @@ setup_scanner() {
      };
 
      uzbl.scan = g_scanner_new(&scan_config);
-
-     /* TODO: move this stuff to an array and use a loop to actually set it */
-     g_scanner_scope_add_symbol(uzbl.scan, 0, "TITLE", (gpointer)SYM_TITLE);
-     g_scanner_scope_add_symbol(uzbl.scan, 0, "URI",   (gpointer)SYM_URI);
-     g_scanner_scope_add_symbol(uzbl.scan, 0, "NAME",   (gpointer)SYM_NAME);
-     g_scanner_scope_add_symbol(uzbl.scan, 0, "LOAD_PROGRESS", (gpointer)SYM_LOADPRGS);
-     g_scanner_scope_add_symbol(uzbl.scan, 0, "LOAD_PROGRESSBAR", (gpointer)SYM_LOADPRGSBAR);
+     while(symp->symbol_name) {
+         g_scanner_scope_add_symbol(uzbl.scan, 0,
+                         symp->symbol_name,
+                         GINT_TO_POINTER(symp->symbol_token));
+         symp++;
+     }
 }
 
 static gchar *
@@ -542,6 +540,7 @@ parse_status_template(const char *template) {
 
      return g_string_free(ret, FALSE);
 }
+/* --End Statusbar functions-- */
 
 
 // make sure to put '' around args, so that if there is whitespace we can still keep arguments together.

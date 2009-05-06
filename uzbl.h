@@ -1,3 +1,17 @@
+/* statusbar symbols */
+enum { SYM_TITLE, SYM_URI, SYM_NAME, SYM_LOADPRGS, SYM_LOADPRGSBAR};
+const struct {
+    gchar *symbol_name;
+    guint symbol_token;
+} symbols[] = {
+    {"NAME",                 SYM_NAME},
+    {"URI",                  SYM_URI},
+    {"TITLE",                SYM_TITLE},
+    {"LOAD_PROGRESS",        SYM_LOADPRGS},
+    {"LOAD_PROGRESSBAR",     SYM_LOADPRGSBAR},
+    {NULL,                   0}
+}, *symp = symbols;
+
 /* status bar elements */
 typedef struct {
     gint           load_progress;
