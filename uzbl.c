@@ -58,7 +58,7 @@
 /* status bar format
    TODO: integrate with the config file
 */
-char *status_format =  "<span background=\"darkblue\" foreground=\"white\">  <b>TITLE</b>  </span> | LOAD_PROGRESS% <span font_family=\"monospace\">LOAD_PROGRESSBAR</span> | <span foreground=\"darkgreen\">URI</span> | NAME | <span foreground=\"black\" background=\"khaki\"> Uzbl browser </span>";
+char *status_format =  "<span background=\"red\" foreground=\"white\">KEYCMD</span> <span background=\"darkblue\" foreground=\"white\">  <b>TITLE</b>  </span> | LOAD_PROGRESS% <span font_family=\"monospace\">LOAD_PROGRESSBAR</span> | <span foreground=\"darkgreen\">URI</span> | NAME | <span foreground=\"black\" background=\"khaki\"> Uzbl browser </span>";
 
 /* housekeeping / internal variables */
 static gchar          selected_url[500] = "\0";
@@ -523,6 +523,10 @@ parse_status_template(const char *template) {
                      g_string_append(ret, 
                          uzbl.state.instance_name?uzbl.state.instance_name:"" );
                      break;
+                 case SYM_KEYCMD:
+                     g_string_append(ret, 
+                         keycmd->str?keycmd->str:"" );
+                     break;
                  default:
                      break;
              }
@@ -788,10 +792,6 @@ update_title (void) {
     }
     g_string_append (string_long, " - Uzbl browser");
     g_string_append (string_short, " - Uzbl browser");
-    if (uzbl.gui.sbar.load_progress < 100)
-        g_string_append_printf (string_long, " (%d%%)", 
-                        uzbl.gui.sbar.load_progress);
-
     if (selected_url[0]!=0) {
         g_string_append_printf (string_long, " -> (%s)", selected_url);
     }

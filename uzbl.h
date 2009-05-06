@@ -1,5 +1,7 @@
 /* statusbar symbols */
-enum { SYM_TITLE, SYM_URI, SYM_NAME, SYM_LOADPRGS, SYM_LOADPRGSBAR};
+enum { SYM_TITLE, SYM_URI, SYM_NAME, 
+       SYM_LOADPRGS, SYM_LOADPRGSBAR,
+       SYM_KEYCMD};
 const struct {
     gchar *symbol_name;
     guint symbol_token;
@@ -7,6 +9,7 @@ const struct {
     {"NAME",                 SYM_NAME},
     {"URI",                  SYM_URI},
     {"TITLE",                SYM_TITLE},
+    {"KEYCMD",               SYM_KEYCMD},
     {"LOAD_PROGRESS",        SYM_LOADPRGS},
     {"LOAD_PROGRESSBAR",     SYM_LOADPRGSBAR},
     {NULL,                   0}
