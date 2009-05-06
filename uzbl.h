@@ -1,3 +1,21 @@
+/* statusbar symbols */
+enum { SYM_TITLE, SYM_URI, SYM_NAME, 
+       SYM_LOADPRGS, SYM_LOADPRGSBAR,
+       SYM_KEYCMD, SYM_MODE};
+const struct {
+    gchar *symbol_name;
+    guint symbol_token;
+} symbols[] = {
+    {"NAME",                 SYM_NAME},
+    {"URI",                  SYM_URI},
+    {"TITLE",                SYM_TITLE},
+    {"KEYCMD",               SYM_KEYCMD},
+    {"MODE",                 SYM_MODE},
+    {"LOAD_PROGRESS",        SYM_LOADPRGS},
+    {"LOAD_PROGRESSBAR",     SYM_LOADPRGSBAR},
+    {NULL,                   0}
+}, *symp = symbols;
+
 /* status bar elements */
 typedef struct {
     gint           load_progress;
@@ -32,12 +50,24 @@ typedef struct {
     gchar    config_file_path[500];
 } State;
 
+typedef struct {
+    SoupSession *soup_session;
+    SoupLogger *soup_logger;
+    char *proxy_url;
+    char *useragent;
+    gint max_conns;
+    gint max_conns_host;
+} Network;
+
+
 /* main uzbl data structure */
 typedef struct {
     GUI     gui;
     Communication comm;
     State   state;
-    int     xwin;
+    Network net;
+    Window  xwin;
+    GScanner *scan;
 } Uzbl;
 
 typedef struct {
@@ -46,11 +76,10 @@ typedef struct {
 } Action;
 
 
-void
-eprint(const char *errstr, ...);
 
-char *
-estrdup(const char *str);
+/* Functions */
+static void
+setup_scanner();
 
 char *
 itos(int val);

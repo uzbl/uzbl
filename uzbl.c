@@ -54,21 +54,19 @@
 #include <libsoup/soup.h>
 #include "uzbl.h"
 
+
+/* status bar format
+   TODO: integrate with the config file
+*/
+char *status_format =  "<span background=\"darkgreen\" foreground=\"khaki\"> MODE </span> | Cmd: <span background=\"red\" foreground=\"white\">KEYCMD</span> | <span background=\"darkblue\" foreground=\"white\">  <b>TITLE</b>  </span> | LOAD_PROGRESS% <span font_family=\"monospace\">LOAD_PROGRESSBAR</span> | <span foreground=\"darkgreen\">URI</span> | NAME | <span foreground=\"black\" background=\"khaki\"> Uzbl browser </span>";
+
 /* housekeeping / internal variables */
 static gchar          selected_url[500] = "\0";
-static gint           load_progress;
-static Window         xwin = 0;
 static char           executable_path[500];
 static GString*       keycmd;
 static gchar          searchtx[500] = "\0";
 
 static Uzbl uzbl;
-
-/* state variables (initial values coming from command line arguments but may be changed later) */
-static gchar*   uri         = NULL;
-static gchar*   config_file = NULL;
-static gchar    config_file_path[500];
-static gchar*   instance_name   = NULL;
 
 /* settings from config: group behaviour */
 static gchar*   history_handler    = NULL;
@@ -95,9 +93,9 @@ static GHashTable* commands;
 /* commandline arguments (set initial values for the state variables) */
 static GOptionEntry entries[] =
 {
-    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uri,           "Uri to load", "URI" },
-    { "name",    'n', 0, G_OPTION_ARG_STRING, &instance_name, "Name of the current instance", "NAME" },
-    { "config",  'c', 0, G_OPTION_ARG_STRING, &config_file,   "Config file", "FILE" },
+    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uzbl.state.uri,           "Uri to load", "URI" },
+    { "name",    'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name, "Name of the current instance", "NAME" },
+    { "config",  'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,   "Config file", "FILE" },
     { NULL,      0, 0, 0, NULL, NULL, NULL }
 };
 
@@ -107,13 +105,6 @@ typedef void (*Command)(WebKitWebView*, const char *);
 static char *XDG_CONFIG_HOME_default[256];
 static char *XDG_CONFIG_DIRS_default = "/etc/xdg";
 
-/* libsoup stuff - proxy and friends; networking aptions actually */
-static SoupSession *soup_session;
-static SoupLogger *soup_logger;
-static char *proxy_url = NULL;
-static char *useragent = NULL;
-static gint max_conns;
-static gint max_conns_host;
 
 /* --- UTILITY FUNCTIONS --- */
 
@@ -239,7 +230,7 @@ static void
 progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
     (void) page;
     (void) data;
-    load_progress = progress;
+    uzbl.gui.sbar.load_progress = progress;
     update_title();
 }
 
@@ -247,9 +238,9 @@ static void
 load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) page;
     (void) data;
-    free (uri);
+    free (uzbl.state.uri);
     GString* newuri = g_string_new (webkit_web_frame_get_uri (frame));
-    uri = g_string_free (newuri, FALSE);
+    uzbl.state.uri = g_string_free (newuri, FALSE);
 }
 
 static void
@@ -275,8 +266,8 @@ log_history_cb () {
    }
 }
 
-/* VIEW funcs (little webkit wrappers) */
 
+/* VIEW funcs (little webkit wrappers) */
 #define VIEWFUNC(name) static void view_##name(WebKitWebView *page, const char *param){(void)param; webkit_web_view_##name(page);}
 VIEWFUNC(reload)
 VIEWFUNC(reload_bypass_cache)
@@ -419,14 +410,158 @@ close_uzbl (WebKitWebView *page, const char *param) {
     gtk_main_quit ();
 }
 
+/* --Statusbar functions-- */
+static char*
+build_progressbar_ascii(int percent) {
+   int width=10;
+   int i;
+   double l;
+   GString *bar = g_string_new("");
+
+   l = (double)percent*((double)width/100.);
+   l = (int)(l+.5)>=(int)l ? l+.5 : l;
+
+   g_string_append(bar, "[");
+   for(i=0; i<(int)l; i++)
+       g_string_append(bar, "=");
+          
+   for(; i<width; i++)
+       g_string_append(bar, "·");
+   g_string_append(bar, "]");
+
+   return g_string_free(bar, FALSE);
+}
+
+static void
+setup_scanner() {
+     const GScannerConfig scan_config = {
+             (
+              "\t\r\n"
+             )            /* cset_skip_characters */,
+             (
+              G_CSET_a_2_z
+              "_"
+              G_CSET_A_2_Z
+             )            /* cset_identifier_first */,
+             (
+              G_CSET_a_2_z
+              "_0123456789"
+              G_CSET_A_2_Z
+              G_CSET_LATINS
+              G_CSET_LATINC
+             )            /* cset_identifier_nth */,
+             ( "#\n" )    /* cpair_comment_single */,
+
+             TRUE         /* case_sensitive */,
+
+             FALSE        /* skip_comment_multi */,
+             FALSE        /* skip_comment_single */,
+             FALSE        /* scan_comment_multi */,
+             TRUE         /* scan_identifier */,
+             TRUE         /* scan_identifier_1char */,
+             FALSE        /* scan_identifier_NULL */,
+             TRUE         /* scan_symbols */,
+             FALSE        /* scan_binary */,
+             FALSE        /* scan_octal */,
+             FALSE        /* scan_float */,
+             FALSE        /* scan_hex */,
+             FALSE        /* scan_hex_dollar */,
+             FALSE        /* scan_string_sq */,
+             FALSE        /* scan_string_dq */,
+             TRUE         /* numbers_2_int */,
+             FALSE        /* int_2_float */,
+             FALSE        /* identifier_2_string */,
+             FALSE        /* char_2_token */,
+             FALSE        /* symbol_2_token */,
+             TRUE         /* scope_0_fallback */,
+             FALSE,
+             TRUE
+     };
+
+     uzbl.scan = g_scanner_new(&scan_config);
+     while(symp->symbol_name) {
+         g_scanner_scope_add_symbol(uzbl.scan, 0,
+                         symp->symbol_name,
+                         GINT_TO_POINTER(symp->symbol_token));
+         symp++;
+     }
+}
+
+static gchar *
+parse_status_template(const char *template) {
+     GTokenType token = G_TOKEN_NONE;
+     GString *ret = g_string_new("");
+     gchar *buf=NULL;
+     int sym;
+
+     if(!template)
+         return NULL;
+
+     g_scanner_input_text(uzbl.scan, template, strlen(template));
+     while(!g_scanner_eof(uzbl.scan) && token != G_TOKEN_LAST) {
+         token = g_scanner_get_next_token(uzbl.scan);
+
+         if(token == G_TOKEN_SYMBOL) {
+             sym = (int)g_scanner_cur_value(uzbl.scan).v_symbol;
+             switch(sym) {
+                 case SYM_URI:
+                     g_string_append(ret, uzbl.state.uri);
+                     break;
+                 case SYM_LOADPRGS:
+                     g_string_append(ret, itos(uzbl.gui.sbar.load_progress));
+                     break;
+                 case SYM_LOADPRGSBAR:
+                     buf = build_progressbar_ascii(uzbl.gui.sbar.load_progress);
+                     g_string_append(ret, buf);
+                     g_free(buf);
+                     break;
+                 case SYM_TITLE:
+                     g_string_append(ret,
+                         uzbl.gui.main_title?uzbl.gui.main_title:"");
+                     break;
+                 case SYM_NAME:
+                     g_string_append(ret, 
+                         uzbl.state.instance_name?uzbl.state.instance_name:"" );
+                     break;
+                 case SYM_KEYCMD:
+                     g_string_append(ret, 
+                         keycmd->str?keycmd->str:"" );
+                     break;
+                 case SYM_MODE:
+                     g_string_append(ret, 
+                         insert_mode?"[I]":"[C]" );
+                     break;
+                 default:
+                     break;
+             }
+         }
+         else if(token == G_TOKEN_INT) {
+             g_string_append(ret, itos(g_scanner_cur_value(uzbl.scan).v_int));
+         }
+         else if(token == G_TOKEN_IDENTIFIER) {
+             g_string_append(ret, (gchar *)g_scanner_cur_value(uzbl.scan).v_identifier);
+         }
+         else if(token == G_TOKEN_CHAR) {
+             g_string_append_printf(ret, "%c", g_scanner_cur_value(uzbl.scan).v_char);
+         }
+     }
+
+     return g_string_free(ret, FALSE);
+}
+/* --End Statusbar functions-- */
+
+
 // make sure to put '' around args, so that if there is whitespace we can still keep arguments together.
 static gboolean
 run_command(const char *command, const char *args) {
    //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
     GString* to_execute = g_string_new ("");
     gboolean result;
-    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' '%s'", command, config_file, (int) getpid() , (int) xwin, uzbl.comm.fifo_path, uzbl.comm.socket_path);
-    g_string_append_printf (to_execute, " '%s' '%s'", uri, "TODO title here");
+    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' '%s'", 
+                    command, uzbl.state.config_file, (int) getpid() ,
+                    (int) uzbl.xwin, uzbl.comm.fifo_path, uzbl.comm.socket_path);
+    g_string_append_printf (to_execute, " '%s' '%s'", 
+                    uzbl.state.uri, "TODO title here");
     if(args) {
         g_string_append_printf (to_execute, " %s", args);
     }
@@ -472,22 +607,27 @@ enum { FIFO, SOCKET};
 void
 build_stream_name(int type) {
     char *xwin_str;
+    State *s = &uzbl.state;
 
-    xwin_str = itos((int)xwin);
+    xwin_str = itos((int)uzbl.xwin);
     switch(type) {
         case FIFO:
             if (fifo_dir) {
-                sprintf (uzbl.comm.fifo_path, "%s/uzbl_fifo_%s", fifo_dir, instance_name ? instance_name : xwin_str);
+                sprintf (uzbl.comm.fifo_path, "%s/uzbl_fifo_%s", 
+                                fifo_dir, s->instance_name ? s->instance_name : xwin_str);
             } else {
-                sprintf (uzbl.comm.fifo_path, "/tmp/uzbl_fifo_%s", instance_name ? instance_name : xwin_str);
+                sprintf (uzbl.comm.fifo_path, "/tmp/uzbl_fifo_%s",
+                                s->instance_name ? s->instance_name : xwin_str);
             }
             break;
 
         case SOCKET:
             if (socket_dir) {
-                sprintf (uzbl.comm.socket_path, "%s/uzbl_socket_%s", socket_dir, instance_name ? instance_name : xwin_str);
+                sprintf (uzbl.comm.socket_path, "%s/uzbl_socket_%s",
+                                socket_dir, s->instance_name ? s->instance_name : xwin_str);
             } else {
-                sprintf (uzbl.comm.socket_path, "/tmp/uzbl_socket_%s", instance_name ? instance_name : xwin_str);
+                sprintf (uzbl.comm.socket_path, "/tmp/uzbl_socket_%s",
+                                s->instance_name ? s->instance_name : xwin_str);
             }
             break;
         default:
@@ -633,12 +773,14 @@ update_title (void) {
     GString* string_long = g_string_new ("");
     GString* string_short = g_string_new ("");
     char* iname = NULL;
+    gchar *statln;
     int iname_len;
+    State *s = &uzbl.state;
 
-    if(instance_name) {
-            iname_len = strlen(instance_name)+4;
+    if(s->instance_name) {
+            iname_len = strlen(s->instance_name)+4;
             iname = malloc(iname_len);
-            snprintf(iname, iname_len, "<%s> ", instance_name);
+            snprintf(iname, iname_len, "<%s> ", s->instance_name);
             
             g_string_prepend(string_long, iname);
             g_string_prepend(string_short, iname);
@@ -654,9 +796,6 @@ update_title (void) {
     }
     g_string_append (string_long, " - Uzbl browser");
     g_string_append (string_short, " - Uzbl browser");
-    if (load_progress < 100)
-        g_string_append_printf (string_long, " (%d%%)", load_progress);
-
     if (selected_url[0]!=0) {
         g_string_append_printf (string_long, " -> (%s)", selected_url);
     }
@@ -666,7 +805,9 @@ update_title (void) {
 
     if (show_status) {
         gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), title_short);
-    gtk_label_set_text(GTK_LABEL(uzbl.gui.mainbar_label), title_long);
+        statln = parse_status_template(status_format);
+        gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), statln);
+        g_free(statln);
     } else {
         gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), title_long);
     }
@@ -836,19 +977,21 @@ settings_init () {
     gboolean res  = FALSE;
     char *saveptr;
     gchar** keys = NULL;
+    State *s = &uzbl.state;
+    Network *n = &uzbl.net;
 
-    if (!config_file) {
+    if (!s->config_file) {
         const char* XDG_CONFIG_HOME = getenv ("XDG_CONFIG_HOME");
         if (! XDG_CONFIG_HOME || ! strcmp (XDG_CONFIG_HOME, "")) {
           XDG_CONFIG_HOME = (char*)XDG_CONFIG_HOME_default;
         }
         printf("XDG_CONFIG_HOME: %s\n", XDG_CONFIG_HOME);
     
-        strcpy (config_file_path, XDG_CONFIG_HOME);
-        strcat (config_file_path, "/uzbl/config");
-        if (file_exists (config_file_path)) {
-          printf ("Config file %s found.\n", config_file_path);
-          config_file = &config_file_path[0];
+        strcpy (s->config_file_path, XDG_CONFIG_HOME);
+        strcat (s->config_file_path, "/uzbl/config");
+        if (file_exists (s->config_file_path)) {
+          printf ("Config file %s found.\n", s->config_file_path);
+          s->config_file = &s->config_file_path[0];
         } else {
             // Now we check $XDG_CONFIG_DIRS
             char *XDG_CONFIG_DIRS = getenv ("XDG_CONFIG_DIRS");
@@ -860,25 +1003,25 @@ settings_init () {
             char buffer[512];
             strcpy (buffer, XDG_CONFIG_DIRS);
             const gchar* dir = (char *) strtok_r (buffer, ":", &saveptr);
-            while (dir && ! file_exists (config_file_path)) {
-                strcpy (config_file_path, dir);
-                strcat (config_file_path, "/uzbl/config_file_pathig");
-                if (file_exists (config_file_path)) {
-                    printf ("Config file %s found.\n", config_file_path);
-                    config_file = &config_file_path[0];
+            while (dir && ! file_exists (s->config_file_path)) {
+                strcpy (s->config_file_path, dir);
+                strcat (s->config_file_path, "/uzbl/config_file_pathig");
+                if (file_exists (s->config_file_path)) {
+                    printf ("Config file %s found.\n", s->config_file_path);
+                    s->config_file = &s->config_file_path[0];
                 }
                 dir = (char * ) strtok_r (NULL, ":", &saveptr);
             }
         }
     }
 
-    if (config_file) {
+    if (s->config_file) {
         config = g_key_file_new ();
-        res = g_key_file_load_from_file (config, config_file, G_KEY_FILE_NONE, NULL);
+        res = g_key_file_load_from_file (config, s->config_file, G_KEY_FILE_NONE, NULL);
           if (res) {
-            printf ("Config %s loaded\n", config_file);
+            printf ("Config %s loaded\n", s->config_file);
           } else {
-            fprintf (stderr, "Config %s loading failed\n", config_file);
+            fprintf (stderr, "Config %s loading failed\n", s->config_file);
         }
     } else {
         printf ("No configuration.\n");
@@ -944,29 +1087,29 @@ settings_init () {
 
     /* networking options */
     if (res) {
-        proxy_url      = g_key_file_get_value   (config, "network", "proxy_server",       NULL);
+        n->proxy_url      = g_key_file_get_value   (config, "network", "proxy_server",       NULL);
         http_debug     = g_key_file_get_integer (config, "network", "http_debug",         NULL);
-        useragent      = g_key_file_get_value   (config, "network", "user-agent",         NULL);
-        max_conns      = g_key_file_get_integer (config, "network", "max_conns",          NULL);
-        max_conns_host = g_key_file_get_integer (config, "network", "max_conns_per_host", NULL);
+        n->useragent      = g_key_file_get_value   (config, "network", "user-agent",         NULL);
+        n->max_conns      = g_key_file_get_integer (config, "network", "max_conns",          NULL);
+        n->max_conns_host = g_key_file_get_integer (config, "network", "max_conns_per_host", NULL);
     }
 
-    if(proxy_url){
-        g_object_set(G_OBJECT(soup_session), SOUP_SESSION_PROXY_URI, soup_uri_new(proxy_url), NULL);
+    if(n->proxy_url){
+        g_object_set(G_OBJECT(n->soup_session), SOUP_SESSION_PROXY_URI, soup_uri_new(n->proxy_url), NULL);
     }
 	
     if(!(http_debug <= 3)){
         http_debug = 0;
         fprintf(stderr, "Wrong http_debug level, ignoring.\n");
     } else if (http_debug > 0) {
-        soup_logger = soup_logger_new(http_debug, -1);
-        soup_session_add_feature(soup_session, SOUP_SESSION_FEATURE(soup_logger));
+        n->soup_logger = soup_logger_new(http_debug, -1);
+        soup_session_add_feature(n->soup_session, SOUP_SESSION_FEATURE(n->soup_logger));
     }
 	
-    if(useragent){
+    if(n->useragent){
         char* newagent  = malloc(1024);
 
-        strcpy(newagent, str_replace("%webkit-major%", itos(WEBKIT_MAJOR_VERSION), useragent));
+        strcpy(newagent, str_replace("%webkit-major%", itos(WEBKIT_MAJOR_VERSION), n->useragent));
         strcpy(newagent, str_replace("%webkit-minor%", itos(WEBKIT_MINOR_VERSION), newagent));
         strcpy(newagent, str_replace("%webkit-micro%", itos(WEBKIT_MICRO_VERSION), newagent));
 
@@ -987,24 +1130,24 @@ settings_init () {
         strcpy(newagent, str_replace("%arch-uzbl%",    ARCH,                       newagent));
         strcpy(newagent, str_replace("%commit%",       COMMIT,                     newagent));
 
-        useragent = malloc(1024);
-        strcpy(useragent, newagent);
-        g_object_set(G_OBJECT(soup_session), SOUP_SESSION_USER_AGENT, useragent, NULL);
+        n->useragent = malloc(1024);
+        strcpy(n->useragent, newagent);
+        g_object_set(G_OBJECT(n->soup_session), SOUP_SESSION_USER_AGENT, n->useragent, NULL);
     }
 
-    if(max_conns >= 1){
-        g_object_set(G_OBJECT(soup_session), SOUP_SESSION_MAX_CONNS, max_conns, NULL);
+    if(n->max_conns >= 1){
+        g_object_set(G_OBJECT(n->soup_session), SOUP_SESSION_MAX_CONNS, n->max_conns, NULL);
     }
 
-    if(max_conns_host >= 1){
-        g_object_set(G_OBJECT(soup_session), SOUP_SESSION_MAX_CONNS_PER_HOST, max_conns_host, NULL);
+    if(n->max_conns_host >= 1){
+        g_object_set(G_OBJECT(n->soup_session), SOUP_SESSION_MAX_CONNS_PER_HOST, n->max_conns_host, NULL);
     }
 
-    printf("Proxy configured: %s\n", proxy_url ? proxy_url : "none");
+    printf("Proxy configured: %s\n", n->proxy_url ? n->proxy_url : "none");
     printf("HTTP logging level: %d\n", http_debug);
-    printf("User-agent: %s\n", useragent? useragent : "default");
-    printf("Maximum connections: %d\n", max_conns ? max_conns : 0);
-    printf("Maximum connections per host: %d\n", max_conns_host ? max_conns_host: 0);
+    printf("User-agent: %s\n", n->useragent? n->useragent : "default");
+    printf("Maximum connections: %d\n", n->max_conns ? n->max_conns : 0);
+    printf("Maximum connections per host: %d\n", n->max_conns_host ? n->max_conns_host: 0);
 		
 }
 
@@ -1028,7 +1171,7 @@ main (int argc, char* argv[]) {
     /* initialize hash table */
     bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
 	
-	soup_session = webkit_get_default_session();
+	uzbl.net.soup_session = webkit_get_default_session();
     keycmd = g_string_new("");
 
     settings_init ();
@@ -1047,12 +1190,12 @@ main (int argc, char* argv[]) {
     uzbl.gui.main_window = create_window ();
     gtk_container_add (GTK_CONTAINER (uzbl.gui.main_window), vbox);
 
-    load_uri (uzbl.gui.web_view, uri);
+    load_uri (uzbl.gui.web_view, uzbl.state.uri);
 
     gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
     gtk_widget_show_all (uzbl.gui.main_window);
-    xwin = GDK_WINDOW_XID (GTK_WIDGET (uzbl.gui.main_window)->window);
-    printf("window_id %i\n",(int) xwin);
+    uzbl.xwin = GDK_WINDOW_XID (GTK_WIDGET (uzbl.gui.main_window)->window);
+    printf("window_id %i\n",(int) uzbl.xwin);
     printf("pid %i\n", getpid ());
     printf("name: %s\n", uzbl.state.instance_name);
 
@@ -1062,8 +1205,10 @@ main (int argc, char* argv[]) {
     uzbl.gui.bar_h = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_h);
     gtk_widget_set_scroll_adjustments ((GtkWidget*) uzbl.gui.web_view, uzbl.gui.bar_h, uzbl.gui.bar_v);
 
+
     if (!show_status)
         gtk_widget_hide(uzbl.gui.mainbar);
+    setup_scanner();
 
     if (fifo_dir)
         create_fifo ();
