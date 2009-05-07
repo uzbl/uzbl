@@ -1,3 +1,15 @@
+/* 
+ * See LICENSE for license details
+ *
+ * Changelog:
+ * ---------
+ *
+ * (c) 2009 by Robert Manea
+ *     - introduced struct concept
+ *     - statusbar template
+ *     
+ */
+
 /* statusbar symbols */
 enum { SYM_TITLE, SYM_URI, SYM_NAME, 
        SYM_LOADPRGS, SYM_LOADPRGSBAR,
@@ -21,6 +33,7 @@ typedef struct {
     gint           load_progress;
 } StatusBar;
 
+
 /* gui elements */
 typedef struct {
     GtkWidget*     main_window;
@@ -36,11 +49,14 @@ typedef struct {
     StatusBar sbar;
 } GUI;
 
+
 /* external communication*/
+enum { FIFO, SOCKET};
 typedef struct {
     char           fifo_path[64];
     char           socket_path[108];
 } Communication;
+
 
 /* internal state */
 typedef struct {
@@ -48,8 +64,15 @@ typedef struct {
     gchar    *config_file;
     gchar    *instance_name;
     gchar    config_file_path[500];
+    gchar    selected_url[500];
+    char     executable_path[500];
+    GString* keycmd;
+    gchar    searchtx[500];
+    struct utsname unameinfo; /* system info */
 } State;
 
+
+/* networking */
 typedef struct {
     SoupSession *soup_session;
     SoupLogger *soup_logger;
@@ -60,15 +83,41 @@ typedef struct {
 } Network;
 
 
+/* behaviour */
+typedef struct {
+    gchar*   history_handler;
+    gchar*   fifo_dir;
+    gchar*   socket_dir;
+    gchar*   download_handler;
+    gchar*   cookie_handler;
+    gboolean always_insert_mode;
+    gboolean show_status;
+    gboolean insert_mode;
+    gboolean status_top;
+    gchar*   modkey;
+    guint    modmask;
+    guint    http_debug;
+
+    /* command list: name -> Command  */
+    GHashTable* commands;
+} Behaviour;
+
+
 /* main uzbl data structure */
 typedef struct {
-    GUI     gui;
+    GUI           gui;
+    State         state;
+    Network       net;
+    Behaviour     behave;
     Communication comm;
-    State   state;
-    Network net;
-    Window  xwin;
-    GScanner *scan;
+
+    Window        xwin;
+    GScanner      *scan;
+
+    /* group bindings: key -> action */
+    GHashTable* bindings;
 } Uzbl;
+
 
 typedef struct {
     char* name;
