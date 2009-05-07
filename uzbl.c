@@ -55,17 +55,6 @@
 #include "uzbl.h"
 
 
-/* status bar format
-   TODO: integrate with the config file
-*/
-char *status_format =  
-   "<span background=\"darkgreen\" foreground=\"khaki\"> MODE </span>"
-   " | Cmd: <span background=\"red\" foreground=\"white\">KEYCMD</span>" 
-   " | <span background=\"darkblue\" foreground=\"white\">  <b>TITLE</b>  </span>"
-   " | LOAD_PROGRESS% <span font_family=\"monospace\">LOAD_PROGRESSBAR</span>"
-   " | <span foreground=\"darkgreen\">URI</span>"
-   " | NAME | <span foreground=\"black\" background=\"khaki\"> Uzbl browser </span>";
-
 static Uzbl uzbl;
 
 
@@ -503,7 +492,7 @@ parse_status_template(const char *template) {
                      break;
                  case SYM_NAME:
                      g_string_append(ret, 
-                         uzbl.state.instance_name?uzbl.state.instance_name:"");
+                         uzbl.state.instance_name?uzbl.state.instance_name:itos(uzbl.xwin));
                      break;
                  case SYM_KEYCMD:
                      g_string_append(ret, 
@@ -807,7 +796,7 @@ update_title (void) {
 
     if (b->show_status) {
         gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), title_short);
-        statln = parse_status_template(status_format);
+        statln = parse_status_template(uzbl.behave.status_format);
         gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), statln);
         g_free(statln);
     } else {
@@ -1038,6 +1027,7 @@ settings_init () {
         b->show_status        = g_key_file_get_boolean (config, "behavior", "show_status",        NULL);
         b->modkey             = g_key_file_get_value   (config, "behavior", "modkey",             NULL);
         b->status_top         = g_key_file_get_boolean (config, "behavior", "status_top",         NULL);
+        b->status_format       = g_key_file_get_string (config, "behavior", "status_format",         NULL);
         if (! b->fifo_dir)
             b->fifo_dir       = g_key_file_get_value  (config, "behavior", "fifo_dir",           NULL);
         if (! b->socket_dir)
@@ -1054,6 +1044,7 @@ settings_init () {
     printf ("Show status: %s\n",        (b->show_status        ? "TRUE"              : "FALSE"));
     printf ("Status top: %s\n",         (b->status_top         ? "TRUE"              : "FALSE"));
     printf ("Modkey: %s\n",             (b->modkey             ? b->modkey           : "disabled"));
+    printf ("Status format: %s\n",             (b->status_format            ? b->status_format           : "none"));
 
     if (!b->modkey)
         b->modkey = "";
@@ -1250,6 +1241,9 @@ main (int argc, char* argv[]) {
 
     if (!uzbl.behave.show_status)
         gtk_widget_hide(uzbl.gui.mainbar);
+    if (!uzbl.behave.status_format)
+            uzbl.behave.status_format = "";
+
     setup_scanner();
 
     if (uzbl.behave.fifo_dir)

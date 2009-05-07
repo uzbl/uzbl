@@ -85,6 +85,7 @@ typedef struct {
 
 /* behaviour */
 typedef struct {
+    gchar    *status_format;
     gchar*   history_handler;
     gchar*   fifo_dir;
     gchar*   socket_dir;
