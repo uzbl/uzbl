@@ -1058,17 +1058,17 @@ settings_init () {
     if (res) {
         b->history_handler    = g_key_file_get_value   (config, "behavior", "history_handler",    NULL);
         b->download_handler   = g_key_file_get_value   (config, "behavior", "download_handler",   NULL);
-	    b->cookie_handler     = g_key_file_get_string  (config, "behavior", "cookie_handler",     NULL);
+        b->cookie_handler     = g_key_file_get_string  (config, "behavior", "cookie_handler",     NULL);
         b->always_insert_mode = g_key_file_get_boolean (config, "behavior", "always_insert_mode", NULL);
         b->show_status        = g_key_file_get_boolean (config, "behavior", "show_status",        NULL);
         b->modkey             = g_key_file_get_value   (config, "behavior", "modkey",             NULL);
         b->status_top         = g_key_file_get_boolean (config, "behavior", "status_top",         NULL);
-        b->status_format       = g_key_file_get_string (config, "behavior", "status_format",         NULL);
+        b->status_format      = g_key_file_get_string (config, "behavior", "status_format",         NULL);
         if (! b->fifo_dir)
             b->fifo_dir       = g_key_file_get_value  (config, "behavior", "fifo_dir",           NULL);
         if (! b->socket_dir)
             b->socket_dir     = g_key_file_get_value   (config, "behavior", "socket_dir",         NULL);
-        keys               = g_key_file_get_keys    (config, "bindings", NULL,                 NULL);
+        keys                  = g_key_file_get_keys    (config, "bindings", NULL,                 NULL);
     }
 
     printf ("History handler: %s\n",    (b->history_handler    ? b->history_handler  : "disabled"));
@@ -1195,26 +1195,30 @@ settings_init () {
 static void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer user_data){
     (void) session;
     (void) user_data;
+    gchar * stdout = NULL;
     soup_message_add_header_handler(msg, "got-headers", "Set-Cookie", G_CALLBACK(save_cookies), NULL);
-	
-	/* ask handler for cookies, if there are any, use
-	   soup_message_headers_replace (msg->request_headers,
-	   "Cookie", cookies);
-	   to add them
-	*/
+    GString* args = g_string_new ("");
+    SoupURI * soup_uri = soup_message_get_uri(msg);
+    g_string_printf (args, "GET %s %s", soup_uri->host, soup_uri->path);
+    run_command_sync(uzbl.behave.cookie_handler, args->str, &stdout);
+    if(stdout) {
+        soup_message_headers_replace (msg->request_headers, "Cookie", stdout);
+    }
+    g_string_free(args, TRUE);
 }
 
 static void
 save_cookies (SoupMessage *msg, gpointer user_data){
     (void) user_data;
     GSList *ck;
-    char *req, *cookie;
+    char *cookie;
     for (ck = soup_cookies_from_response(msg); ck; ck = ck->next){
         cookie = soup_cookie_to_set_cookie_header(ck->data);
-        req = malloc(strlen(cookie) + 10);
-        sprintf(req, "PUT \"%s\"", cookie);
-        run_command_async(uzbl.behave.cookie_handler, req);
-        free(req);
+        GString* args = g_string_new ("");
+        SoupURI * soup_uri = soup_message_get_uri(msg);
+        g_string_printf (args, "PUT %s %s \"%s\"", soup_uri->host, soup_uri->path, cookie);
+        run_command_async(uzbl.behave.cookie_handler, args->str);
+        g_string_free(args, TRUE);
         free(cookie);
     }
     g_slist_free(ck);

@@ -118,7 +118,9 @@ The script specific arguments are this:
   $8 url of item to download
 * cookie handler
   $8 GET/PUT
-  $9 cookie (only with PUT requests)
+  $9 request address host (if current page url is www.foo.com/somepage, this could be something else then foo, eg advertising from another host)
+  $10 request address path
+  $11 cookie (only with PUT requests)
 
 KNOWN BUGS
 - Segfaults when using zoom commands (happens when max zoom already reached?).
