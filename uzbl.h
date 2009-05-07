@@ -37,6 +37,7 @@ typedef struct {
 } GUI;
 
 /* external communication*/
+enum { FIFO, SOCKET};
 typedef struct {
     char           fifo_path[64];
     char           socket_path[108];
@@ -50,6 +51,7 @@ typedef struct {
     gchar    config_file_path[500];
 } State;
 
+/* networking */
 typedef struct {
     SoupSession *soup_session;
     SoupLogger *soup_logger;
@@ -59,15 +61,33 @@ typedef struct {
     gint max_conns_host;
 } Network;
 
+/* behaviour */
+typedef struct {
+    gchar*   history_handler;
+    gchar*   fifo_dir;
+    gchar*   socket_dir;
+    gchar*   download_handler;
+    gchar*   cookie_handler;
+    gboolean always_insert_mode;
+    gboolean show_status;
+    gboolean insert_mode;
+    gboolean status_top;
+    gchar*   modkey;
+    guint    modmask;
+    guint    http_debug;
+} Behaviour;
+
 
 /* main uzbl data structure */
 typedef struct {
-    GUI     gui;
+    GUI           gui;
+    State         state;
+    Network       net;
+    Behaviour     behave;
     Communication comm;
-    State   state;
-    Network net;
-    Window  xwin;
-    GScanner *scan;
+
+    Window        xwin;
+    GScanner      *scan;
 } Uzbl;
 
 typedef struct {
