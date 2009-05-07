@@ -1,3 +1,4 @@
+
 /* statusbar symbols */
 enum { SYM_TITLE, SYM_URI, SYM_NAME, 
        SYM_LOADPRGS, SYM_LOADPRGSBAR,
@@ -21,6 +22,7 @@ typedef struct {
     gint           load_progress;
 } StatusBar;
 
+
 /* gui elements */
 typedef struct {
     GtkWidget*     main_window;
@@ -36,6 +38,7 @@ typedef struct {
     StatusBar sbar;
 } GUI;
 
+
 /* external communication*/
 enum { FIFO, SOCKET};
 typedef struct {
@@ -43,13 +46,20 @@ typedef struct {
     char           socket_path[108];
 } Communication;
 
+
 /* internal state */
 typedef struct {
     gchar    *uri;
     gchar    *config_file;
     gchar    *instance_name;
     gchar    config_file_path[500];
+    gchar    selected_url[500];
+    char     executable_path[500];
+    GString* keycmd;
+    gchar    searchtx[500];
+    struct utsname unameinfo; /* system info */
 } State;
+
 
 /* networking */
 typedef struct {
@@ -60,6 +70,7 @@ typedef struct {
     gint max_conns;
     gint max_conns_host;
 } Network;
+
 
 /* behaviour */
 typedef struct {
@@ -75,6 +86,12 @@ typedef struct {
     gchar*   modkey;
     guint    modmask;
     guint    http_debug;
+
+    /* group bindings: key -> action */
+    GHashTable* bindings;
+
+    /* command list: name -> Command  */
+    GHashTable* commands;
 } Behaviour;
 
 
@@ -89,6 +106,7 @@ typedef struct {
     Window        xwin;
     GScanner      *scan;
 } Uzbl;
+
 
 typedef struct {
     char* name;

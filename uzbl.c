@@ -66,25 +66,8 @@ char *status_format =
    " | <span foreground=\"darkgreen\">URI</span>"
    " | NAME | <span foreground=\"black\" background=\"khaki\"> Uzbl browser </span>";
 
-
 static Uzbl uzbl;
 
-/* housekeeping / internal variables */
-/* NOTE: these will go to State*/
-static gchar          selected_url[500] = "\0";
-static char           executable_path[500];
-static GString*       keycmd;
-static gchar          searchtx[500] = "\0";
-
-
-/* System info */
-static struct utsname unameinfo; /* state */
-
-/* settings from config: group bindings, key -> action */
-static GHashTable* bindings; /* behaviour */
-
-/* command list: name -> Command  */
-static GHashTable* commands; /* behaviour */
 
 /* commandline arguments (set initial values for the state variables) */
 static GOptionEntry entries[] =
@@ -137,9 +120,9 @@ create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer us
     (void) web_view;
     (void) frame;
     (void) user_data;
-    if (selected_url[0]!=0) {
-        printf("\nNew web view -> %s\n",selected_url);
-        new_window_load_uri(selected_url);
+    if (uzbl.state.selected_url[0]!=0) {
+        printf("\nNew web view -> %s\n",uzbl.state.selected_url);
+        new_window_load_uri(uzbl.state.selected_url);
     } else {
         printf("New web view -> %s\n","Nothing to open, exiting");
     }
@@ -204,9 +187,9 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
     (void) title;
     (void) data;    
     //ADD HOVER URL TO WINDOW TITLE
-    selected_url[0] = '\0';
+    uzbl.state.selected_url[0] = '\0';
     if (link) {
-        strcpy (selected_url, link);
+        strcpy (uzbl.state.selected_url, link);
     }
     update_title();
 }
@@ -301,10 +284,10 @@ static void
 commands_hash(void)
 {
     unsigned int i;
-    commands = g_hash_table_new(g_str_hash, g_str_equal);
+    uzbl.behave.commands = g_hash_table_new(g_str_hash, g_str_equal);
 
     for (i = 0; i < LENGTH(cmdlist); i++)
-        g_hash_table_insert(commands, cmdlist[i].name, cmdlist[i].command);
+        g_hash_table_insert(uzbl.behave.commands, cmdlist[i].name, cmdlist[i].command);
 }
 
 /* -- CORE FUNCTIONS -- */
@@ -371,21 +354,21 @@ run_js (WebKitWebView * web_view, const gchar *param) {
 static void
 search_text (WebKitWebView *page, const char *param) {
     if ((param) && (param[0] != '\0')) {
-        strcpy(searchtx, param);
+        strcpy(uzbl.state.searchtx, param);
     }
-    if (searchtx[0] != '\0') {
-        printf ("Searching: %s\n", searchtx);
+    if (uzbl.state.searchtx[0] != '\0') {
+        printf ("Searching: %s\n", uzbl.state.searchtx);
         webkit_web_view_unmark_text_matches (page);
-        webkit_web_view_mark_text_matches (page, searchtx, FALSE, 0);
+        webkit_web_view_mark_text_matches (page, uzbl.state.searchtx, FALSE, 0);
         webkit_web_view_set_highlight_text_matches (page, TRUE);
-        webkit_web_view_search_text (page, searchtx, FALSE, TRUE, TRUE);
+        webkit_web_view_search_text (page, uzbl.state.searchtx, FALSE, TRUE, TRUE);
     }
 }
 
 static void
 new_window_load_uri (const gchar * uri) {
     GString* to_execute = g_string_new ("");
-    g_string_append_printf (to_execute, "%s --uri '%s'", executable_path, uri);
+    g_string_append_printf (to_execute, "%s --uri '%s'", uzbl.state.executable_path, uri);
     int i;
     for (i = 0; entries[i].long_name != NULL; i++) {
         if ((entries[i].arg == G_OPTION_ARG_STRING) && (strcmp(entries[i].long_name,"uri")!=0)) {
@@ -524,7 +507,8 @@ parse_status_template(const char *template) {
                      break;
                  case SYM_KEYCMD:
                      g_string_append(ret, 
-                         keycmd->str?g_markup_printf_escaped("%s",keycmd->str):"");
+                         uzbl.state.keycmd->str ?
+                         g_markup_printf_escaped("%s", uzbl.state.keycmd->str):"");
                      break;
                  case SYM_MODE:
                      g_string_append(ret, 
@@ -596,7 +580,7 @@ static void
 parse_command(const char *cmd, const char *param) {
     Command c;
 
-    if ((c = g_hash_table_lookup(commands, cmd)))
+    if ((c = g_hash_table_lookup(uzbl.behave.commands, cmd)))
         c(uzbl.gui.web_view, param);
     else
         fprintf (stderr, "command \"%s\" not understood. ignoring.\n", cmd);
@@ -805,7 +789,7 @@ update_title (void) {
             free(iname);
     }
 
-    g_string_append_printf(string_long, "%s ", keycmd->str);
+    g_string_append_printf(string_long, "%s ", s->keycmd->str);
     if (!b->always_insert_mode)
         g_string_append (string_long, (b->insert_mode ? "[I] " : "[C] "));
     if (uzbl.gui.main_title) {
@@ -814,14 +798,14 @@ update_title (void) {
     }
     g_string_append (string_long, " - Uzbl browser");
     g_string_append (string_short, " - Uzbl browser");
-    if (selected_url[0]!=0) {
-        g_string_append_printf (string_long, " -> (%s)", selected_url);
+    if (s->selected_url[0]!=0) {
+        g_string_append_printf (string_long, " -> (%s)", s->selected_url);
     }
 
     gchar* title_long = g_string_free (string_long, FALSE);
     gchar* title_short = g_string_free (string_short, FALSE);
 
-    if (uzbl.behave.show_status) {
+    if (b->show_status) {
         gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), title_short);
         statln = parse_status_template(status_format);
         gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), statln);
@@ -857,7 +841,7 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
         return FALSE;
 
     if (event->keyval == GDK_Escape) {
-        g_string_truncate(keycmd, 0);
+        g_string_truncate(uzbl.state.keycmd, 0);
         update_title();
         return TRUE;
     }
@@ -871,15 +855,15 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
             str = gtk_clipboard_wait_for_text (gtk_clipboard_get (GDK_SELECTION_CLIPBOARD)); 
         }
         if (str) {
-            g_string_append_printf (keycmd, "%s",  str);
+            g_string_append_printf (uzbl.state.keycmd, "%s",  str);
             update_title ();
             free (str);
         }
         return TRUE;
     }
 
-    if ((event->keyval == GDK_BackSpace) && (keycmd->len > 0)) {
-        g_string_truncate(keycmd, keycmd->len - 1);
+    if ((event->keyval == GDK_BackSpace) && (uzbl.state.keycmd->len > 0)) {
+        g_string_truncate(uzbl.state.keycmd, uzbl.state.keycmd->len - 1);
         update_title();
         return TRUE;
     }
@@ -887,13 +871,13 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     if ((event->keyval == GDK_Return) || (event->keyval == GDK_KP_Enter)) {
         GString* short_keys = g_string_new ("");
         unsigned int i;
-        for (i=0; i<(keycmd->len); i++) {
-            g_string_append_c(short_keys, keycmd->str[i]);
+        for (i=0; i<(uzbl.state.keycmd->len); i++) {
+            g_string_append_c(short_keys, uzbl.state.keycmd->str[i]);
             g_string_append_c(short_keys, '_');
             
             //printf("\nTesting string: @%s@\n", short_keys->str);
-            if ((action = g_hash_table_lookup(bindings, short_keys->str))) {
-                GString* parampart = g_string_new (keycmd->str);
+            if ((action = g_hash_table_lookup(uzbl.behave.bindings, short_keys->str))) {
+                GString* parampart = g_string_new (uzbl.state.keycmd->str);
                 g_string_erase (parampart, 0, i+1);
                 //printf("\nParameter: @%s@\n", parampart->str);
                 GString* actionname = g_string_new ("");
@@ -906,7 +890,7 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
                 g_string_free (actionname, TRUE);
                 g_string_free (actionparam, TRUE);
                 g_string_free (parampart, TRUE);
-                g_string_truncate(keycmd, 0);
+                g_string_truncate(uzbl.state.keycmd, 0);
                 update_title();
             }          
 
@@ -916,9 +900,9 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
         return (!uzbl.behave.insert_mode);
     }
 
-    g_string_append(keycmd, event->string);
-    if ((action = g_hash_table_lookup(bindings, keycmd->str))) {
-        g_string_truncate(keycmd, 0);
+    g_string_append(uzbl.state.keycmd, event->string);
+    if ((action = g_hash_table_lookup(uzbl.behave.bindings, uzbl.state.keycmd->str))) {
+        g_string_truncate(uzbl.state.keycmd, 0);
         parse_command(action->name, action->param);
     }
 
@@ -984,7 +968,7 @@ add_binding (const gchar *key, const gchar *act) {
     //Debug:
     printf ("Binding %-10s : %s\n", key, act);
     action = new_action(parts[0], parts[1]);
-    g_hash_table_insert(bindings, g_strdup(key), action);
+    g_hash_table_insert(uzbl.behave.bindings, g_strdup(key), action);
 
     g_strfreev(parts);
 }
@@ -1134,17 +1118,17 @@ settings_init () {
         strcpy(newagent, str_replace("%webkit-minor%", itos(WEBKIT_MINOR_VERSION), newagent));
         strcpy(newagent, str_replace("%webkit-micro%", itos(WEBKIT_MICRO_VERSION), newagent));
 
-        if (uname (&unameinfo) == -1) {
+        if (uname (&s->unameinfo) == -1) {
             printf("Error getting uname info. Not replacing system-related user agent variables.\n");
         } else {
-            strcpy(newagent, str_replace("%sysname%",     unameinfo.sysname, newagent));
-            strcpy(newagent, str_replace("%nodename%",    unameinfo.nodename, newagent));
-            strcpy(newagent, str_replace("%kernrel%",     unameinfo.release, newagent));
-            strcpy(newagent, str_replace("%kernver%",     unameinfo.version, newagent));
-            strcpy(newagent, str_replace("%arch-system%", unameinfo.machine, newagent));
+            strcpy(newagent, str_replace("%sysname%",     s->unameinfo.sysname, newagent));
+            strcpy(newagent, str_replace("%nodename%",    s->unameinfo.nodename, newagent));
+            strcpy(newagent, str_replace("%kernrel%",     s->unameinfo.release, newagent));
+            strcpy(newagent, str_replace("%kernver%",     s->unameinfo.version, newagent));
+            strcpy(newagent, str_replace("%arch-system%", s->unameinfo.machine, newagent));
 
             #ifdef _GNU_SOURCE
-                strcpy(newagent, str_replace("%domainname%", unameinfo.domainname, newagent));
+                strcpy(newagent, str_replace("%domainname%", s->unameinfo.domainname, newagent));
             #endif
         }
 
@@ -1216,7 +1200,7 @@ main (int argc, char* argv[]) {
         g_thread_init (NULL);
 
     printf("Uzbl start location: %s\n", argv[0]);
-    strcpy(executable_path,argv[0]);
+    strcpy(uzbl.state.executable_path,argv[0]);
 
     strcat ((char *) XDG_CONFIG_HOME_default, getenv ("HOME"));
     strcat ((char *) XDG_CONFIG_HOME_default, "/.config");
@@ -1227,10 +1211,10 @@ main (int argc, char* argv[]) {
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
     g_option_context_parse (context, &argc, &argv, &error);
     /* initialize hash table */
-    bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
+    uzbl.behave.bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
 	
 	uzbl.net.soup_session = webkit_get_default_session();
-    keycmd = g_string_new("");
+    uzbl.state.keycmd = g_string_new("");
 
     settings_init ();
     commands_hash ();
@@ -1275,15 +1259,15 @@ main (int argc, char* argv[]) {
 
     gtk_main ();
 
-    g_string_free(keycmd, TRUE);
+    g_string_free(uzbl.state.keycmd, TRUE);
 
     if (uzbl.behave.fifo_dir)
         unlink (uzbl.comm.fifo_path);
     if (uzbl.behave.socket_dir)
         unlink (uzbl.comm.socket_path);
 
-    g_hash_table_destroy(bindings);
-    g_hash_table_destroy(commands);
+    g_hash_table_destroy(uzbl.behave.bindings);
+    g_hash_table_destroy(uzbl.behave.commands);
     return 0;
 }
 
