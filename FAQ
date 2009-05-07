@@ -37,14 +37,14 @@ In fact, we actually ship various sample scripts and some sample configs that ma
 ### Why can't I type anything in forms?  How does the keybinding work?
 You are in command mode, not in insert mode.
 
-* command mode: you can trigger actions inside uzbl with minimum amount of keypresses (eg 'q' to quit)  (see config examples), but not to type actual text into forms, because all your keypresses are interpreted.
+* command mode: you can trigger actions inside uzbl with minimum amount of keypresses (eg 'b' to go back, 'ZZ' to quit etc)  (see config examples), but not to type actual text into forms, because all your keypresses are interpreted.
 * insert mode: after going into insert mode (by default this is the 'i' binding from inside command mode), your keypresses are not interpreted but passed on, so you can enter text into forms.  Press Esc to go out of insert mode.
 
 The above method is called "modal" as inspired on VI.  If you don't like
 this you can easily change this:
 
 * enable always\_insert\_mode in your config.  You will always be in insert mode.
-* configure a modkey.  Since your keypresses are not interpreted anymore to trigger actions, you need a modkey to do things (eg alt+'q' to quit instead of just 'q' from command mode)
+* configure a modkey.  Since your keypresses are not interpreted anymore to trigger actions, you need a modkey to do things (eg alt+'b' to go back instead of just 'b' from command mode)
 
 This method is how many applications work.
 
