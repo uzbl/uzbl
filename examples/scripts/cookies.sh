@@ -13,7 +13,8 @@
 # write sample script that cleans up cookies dir based on expires attribute.
 # TODO: check uri against domain attribute. and path also.
 # implement secure attribute.
-
+# support blocking or not for 3rd parties
+# http://kb.mozillazine.org/Cookies.txt
 
 if [ -f /usr/share/uzbl/examples/configs/cookies ]
 then
