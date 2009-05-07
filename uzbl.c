@@ -876,7 +876,7 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
             g_string_append_c(short_keys, '_');
             
             //printf("\nTesting string: @%s@\n", short_keys->str);
-            if ((action = g_hash_table_lookup(uzbl.behave.bindings, short_keys->str))) {
+            if ((action = g_hash_table_lookup(uzbl.bindings, short_keys->str))) {
                 GString* parampart = g_string_new (uzbl.state.keycmd->str);
                 g_string_erase (parampart, 0, i+1);
                 //printf("\nParameter: @%s@\n", parampart->str);
@@ -901,7 +901,7 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     }
 
     g_string_append(uzbl.state.keycmd, event->string);
-    if ((action = g_hash_table_lookup(uzbl.behave.bindings, uzbl.state.keycmd->str))) {
+    if ((action = g_hash_table_lookup(uzbl.bindings, uzbl.state.keycmd->str))) {
         g_string_truncate(uzbl.state.keycmd, 0);
         parse_command(action->name, action->param);
     }
@@ -968,7 +968,7 @@ add_binding (const gchar *key, const gchar *act) {
     //Debug:
     printf ("Binding %-10s : %s\n", key, act);
     action = new_action(parts[0], parts[1]);
-    g_hash_table_insert(uzbl.behave.bindings, g_strdup(key), action);
+    g_hash_table_insert(uzbl.bindings, g_strdup(key), action);
 
     g_strfreev(parts);
 }
@@ -1211,7 +1211,7 @@ main (int argc, char* argv[]) {
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
     g_option_context_parse (context, &argc, &argv, &error);
     /* initialize hash table */
-    uzbl.behave.bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
+    uzbl.bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
 	
 	uzbl.net.soup_session = webkit_get_default_session();
     uzbl.state.keycmd = g_string_new("");
@@ -1266,7 +1266,7 @@ main (int argc, char* argv[]) {
     if (uzbl.behave.socket_dir)
         unlink (uzbl.comm.socket_path);
 
-    g_hash_table_destroy(uzbl.behave.bindings);
+    g_hash_table_destroy(uzbl.bindings);
     g_hash_table_destroy(uzbl.behave.commands);
     return 0;
 }

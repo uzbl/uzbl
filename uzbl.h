@@ -1,3 +1,14 @@
+/* 
+ * See LICENSE for license details
+ *
+ * Changelog:
+ * ---------
+ *
+ * (c) 2009 by Robert Manea
+ *     - introduced struct concept
+ *     - statusbar template
+ *     
+ */
 
 /* statusbar symbols */
 enum { SYM_TITLE, SYM_URI, SYM_NAME, 
@@ -87,9 +98,6 @@ typedef struct {
     guint    modmask;
     guint    http_debug;
 
-    /* group bindings: key -> action */
-    GHashTable* bindings;
-
     /* command list: name -> Command  */
     GHashTable* commands;
 } Behaviour;
@@ -105,6 +113,9 @@ typedef struct {
 
     Window        xwin;
     GScanner      *scan;
+
+    /* group bindings: key -> action */
+    GHashTable* bindings;
 } Uzbl;
 
 
