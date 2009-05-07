@@ -125,7 +125,7 @@ typedef struct {
     char* param;
 } Action;
 
-
+typedef void sigfunc(int);
 
 /* Functions */
 static void
@@ -133,6 +133,15 @@ setup_scanner();
 
 char *
 itos(int val);
+
+static void
+clean_up(void);
+
+static void
+catch_sigterm(int s);
+
+static sigfunc *
+setup_signal(int signe, sigfunc *shandler);
 
 static gboolean
 new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data);

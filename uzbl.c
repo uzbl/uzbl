@@ -52,6 +52,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <libsoup/soup.h>
+#include <signal.h>
 #include "uzbl.h"
 
 
@@ -87,6 +88,41 @@ itos(int val) {
 static char *
 str_replace (const char* search, const char* replace, const char* string) {
     return g_strjoinv (replace, g_strsplit(string, search, -1));
+}
+
+static sigfunc*
+setup_signal(int signr, sigfunc *shandler) {
+    struct sigaction nh, oh;
+
+    nh.sa_handler = shandler;
+    sigemptyset(&nh.sa_mask);
+    nh.sa_flags = 0;
+
+    if(sigaction(signr, &nh, &oh) < 0)
+        return SIG_ERR;
+
+    return NULL;
+}
+
+static void
+clean_up(void) {
+    if (uzbl.behave.fifo_dir)
+        unlink (uzbl.comm.fifo_path);
+    if (uzbl.behave.socket_dir)
+        unlink (uzbl.comm.socket_path);
+
+    g_string_free(uzbl.state.keycmd, TRUE);
+    g_hash_table_destroy(uzbl.bindings);
+    g_hash_table_destroy(uzbl.behave.commands);
+}
+
+
+/* --- SIGNAL HANDLER --- */
+
+static void
+catch_sigterm(int s) {
+    (void) s;
+    clean_up();
 }
 
 /* --- CALLBACKS --- */
@@ -1239,6 +1275,9 @@ main (int argc, char* argv[]) {
     gtk_widget_set_scroll_adjustments ((GtkWidget*) uzbl.gui.web_view, uzbl.gui.bar_h, uzbl.gui.bar_v);
 
 
+    if(setup_signal(SIGTERM, catch_sigterm) == SIG_ERR)
+        fprintf(stderr, "uzbl: error hooking SIGTERM\n");
+
     if (!uzbl.behave.show_status)
         gtk_widget_hide(uzbl.gui.mainbar);
     if (!uzbl.behave.status_format)
@@ -1252,16 +1291,8 @@ main (int argc, char* argv[]) {
         create_socket();
 
     gtk_main ();
+    clean_up();
 
-    g_string_free(uzbl.state.keycmd, TRUE);
-
-    if (uzbl.behave.fifo_dir)
-        unlink (uzbl.comm.fifo_path);
-    if (uzbl.behave.socket_dir)
-        unlink (uzbl.comm.socket_path);
-
-    g_hash_table_destroy(uzbl.bindings);
-    g_hash_table_destroy(uzbl.behave.commands);
     return 0;
 }
 
