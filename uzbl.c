@@ -1278,12 +1278,14 @@ main (int argc, char* argv[]) {
     if(setup_signal(SIGTERM, catch_sigterm) == SIG_ERR)
         fprintf(stderr, "uzbl: error hooking SIGTERM\n");
 
-    if (!uzbl.behave.show_status)
-        gtk_widget_hide(uzbl.gui.mainbar);
+    setup_scanner();
     if (!uzbl.behave.status_format)
             uzbl.behave.status_format = STATUS_DEFAULT;
+    if (!uzbl.behave.show_status)
+        gtk_widget_hide(uzbl.gui.mainbar);
+    else
+        update_title();
 
-    setup_scanner();
 
     if (uzbl.behave.fifo_dir)
         create_fifo ();
