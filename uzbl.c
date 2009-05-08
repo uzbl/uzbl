@@ -833,8 +833,15 @@ update_title (void) {
 
     if (b->show_status) {
         gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), title_short);
+        // TODO: we should probably not do this every time we want to update the title..?
         statln = parse_status_template(uzbl.behave.status_format);
         gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), statln);
+        if (b->status_background) {
+            GdkColor color;
+            gdk_color_parse (b->status_background, &color);
+            //labels and hboxes do not draw their own background.  applying this on the window is ok as we the statusbar is the only affected widget.  (if not, we could also use GtkEventBox)
+            gtk_widget_modify_bg (uzbl.gui.main_window, GTK_STATE_NORMAL, &color);
+        }
         g_free(statln);
     } else {
         gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), title_long);
@@ -1065,9 +1072,10 @@ settings_init () {
         b->show_status        = g_key_file_get_boolean (config, "behavior", "show_status",        NULL);
         b->modkey             = g_key_file_get_value   (config, "behavior", "modkey",             NULL);
         b->status_top         = g_key_file_get_boolean (config, "behavior", "status_top",         NULL);
-        b->status_format      = g_key_file_get_string (config, "behavior", "status_format",         NULL);
+        b->status_format      = g_key_file_get_string  (config, "behavior", "status_format",      NULL);
+        b->status_background  = g_key_file_get_string  (config, "behavior", "status_background",  NULL);
         if (! b->fifo_dir)
-            b->fifo_dir       = g_key_file_get_value  (config, "behavior", "fifo_dir",           NULL);
+            b->fifo_dir       = g_key_file_get_value   (config, "behavior", "fifo_dir",           NULL);
         if (! b->socket_dir)
             b->socket_dir     = g_key_file_get_value   (config, "behavior", "socket_dir",         NULL);
         keys                  = g_key_file_get_keys    (config, "bindings", NULL,                 NULL);

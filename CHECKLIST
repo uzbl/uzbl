@@ -37,3 +37,4 @@ Also testers and interested people can use this list to see what uzbl is about, 
 * run javascript on curent page through "script" command.
 * variable replacement in user agent.
 * basic keyboard link hilighting (numbering) and following. will be improved more
+* support overriding background color of statusbar and pango markup format to customize the statusbar in terms of which variables, separators, colors, fonts, etc
