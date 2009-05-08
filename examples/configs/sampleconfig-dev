@@ -13,7 +13,6 @@
 [behavior]
 history_handler = ./examples/scripts/history.sh
 download_handler = ./examples/scripts/download.sh
-cookie_handler = ./examples/scripts/cookies.sh
 fifo_dir = /tmp
 socket_dir = /tmp
 always_insert_mode = 0
