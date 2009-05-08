@@ -1000,7 +1000,7 @@ add_binding (const gchar *key, const gchar *act) {
 
 static void
 settings_init () {
-    GKeyFile* config;
+    GKeyFile* config = NULL;
     gboolean res  = FALSE;
     char *saveptr;
     gchar** keys = NULL;
@@ -1282,12 +1282,14 @@ main (int argc, char* argv[]) {
     if(setup_signal(SIGTERM, catch_sigterm) == SIG_ERR)
         fprintf(stderr, "uzbl: error hooking SIGTERM\n");
 
+    setup_scanner();
+    if (!uzbl.behave.status_format)
+            uzbl.behave.status_format = STATUS_DEFAULT;
     if (!uzbl.behave.show_status)
         gtk_widget_hide(uzbl.gui.mainbar);
-    if (!uzbl.behave.status_format)
-            uzbl.behave.status_format = "";
+    else
+        update_title();
 
-    setup_scanner();
 
     if (uzbl.behave.fifo_dir)
         create_fifo ();
@@ -1297,7 +1299,7 @@ main (int argc, char* argv[]) {
     gtk_main ();
     clean_up();
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 /* vi: set et ts=4: */
