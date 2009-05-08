@@ -445,7 +445,7 @@ setup_scanner() {
              )            /* cset_skip_characters */,
              (
               G_CSET_a_2_z
-              "_"
+              "_#"
               G_CSET_A_2_Z
              )            /* cset_identifier_first */,
              (
@@ -455,7 +455,7 @@ setup_scanner() {
               G_CSET_LATINS
               G_CSET_LATINC
              )            /* cset_identifier_nth */,
-             ( "#\n" )    /* cpair_comment_single */,
+             ( "" )    /* cpair_comment_single */,
 
              TRUE         /* case_sensitive */,
 
@@ -511,7 +511,8 @@ parse_status_template(const char *template) {
              switch(sym) {
                  case SYM_URI:
                      g_string_append(ret, 
-                         g_markup_printf_escaped("%s", uzbl.state.uri));
+                         uzbl.state.uri?
+                         g_markup_printf_escaped("%s", uzbl.state.uri):"");
                      break;
                  case SYM_LOADPRGS:
                      g_string_append(ret, itos(uzbl.gui.sbar.load_progress));
@@ -965,6 +966,7 @@ create_mainbar () {
 
     g->mainbar = gtk_hbox_new (FALSE, 0);
     g->mainbar_label = gtk_label_new ("");  
+    gtk_label_set_selectable((GtkLabel *)g->mainbar_label, TRUE);
     gtk_label_set_ellipsize(GTK_LABEL(g->mainbar_label), PANGO_ELLIPSIZE_END);
     gtk_misc_set_alignment (GTK_MISC(g->mainbar_label), 0, 0);
     gtk_misc_set_padding (GTK_MISC(g->mainbar_label), 2, 2);
@@ -1284,7 +1286,7 @@ main (int argc, char* argv[]) {
 
     setup_scanner();
     if (!uzbl.behave.status_format)
-            uzbl.behave.status_format = STATUS_DEFAULT;
+        uzbl.behave.status_format = STATUS_DEFAULT;
     if (!uzbl.behave.show_status)
         gtk_widget_hide(uzbl.gui.mainbar);
     else
