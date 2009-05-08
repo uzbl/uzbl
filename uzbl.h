@@ -10,6 +10,8 @@
  *     
  */
 
+#define STATUS_DEFAULT "<span background=\"darkblue\" foreground=\"white\"> MODE </span> <span background=\"red\" foreground=\"white\">KEYCMD</span> (LOAD_PROGRESS%)  <b>TITLE</b>  - Uzbl browser"
+
 /* statusbar symbols */
 enum { SYM_TITLE, SYM_URI, SYM_NAME, 
        SYM_LOADPRGS, SYM_LOADPRGSBAR,
