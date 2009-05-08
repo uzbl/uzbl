@@ -39,6 +39,8 @@
 * improve DCOMMIT macro.  what if WC is dirty? what if user downloaded tarball without .git?
 * DARCH is not correct (should be at runtime)
 * when loading page foo.com, it can have img src=http://bar/..., uri in uzbl will be set to foo. we must pass bar to cookie handler
+* set default statusbar. line 1284
+* keybinds to open "next" or "previous" by looking for next/prev links and/or looking for numbers in the uri we can inc/decrement
 * variable replacing:
 user agent -> str_replace(all vars) DONE
 title bar -> str_replace(all vars)

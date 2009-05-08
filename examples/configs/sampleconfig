@@ -14,6 +14,7 @@
 history_handler = /usr/share/uzbl/examples/scripts/history.sh
 download_handler = /usr/share/uzbl/examples/scripts/download.sh
 cookie_handler = /usr/share/uzbl/examples/scripts/cookies.sh
+status_format = <span font_family="monospace" background="#99CCFF"><span background="khaki" foreground="black">MODE</span> [<span background="red" foreground="white">KEYCMD</span>] LOAD_PROGRESSBAR [<span foreground="darkgreen">URI</span>] [<span foreground="#000099">NAME</span>]</span>
 fifo_dir = /tmp
 socket_dir = /tmp
 always_insert_mode = 0

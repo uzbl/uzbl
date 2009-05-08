@@ -20,7 +20,7 @@ always_insert_mode = 0
 modkey = Mod1
 show_status = 1
 status_top = 0
-status_format = <span font_family="monospace"><span background="darkgreen" foreground="khaki">MODE</span> [<span background="red" foreground="white">KEYCMD</span>] LOAD_PROGRESSBAR [<span foreground="darkgreen">URI</span>] [<span background="khaki">NAME</span>]</span> 
+status_format = <span font_family="monospace" background="#99CCFF"><span background="khaki" foreground="black">MODE</span> [<span background="red" foreground="white">KEYCMD</span>] LOAD_PROGRESSBAR [<span foreground="darkgreen">URI</span>] [<span foreground="#000099">NAME</span>]</span>
 
 [bindings]
 # scroll down/up/left/right
