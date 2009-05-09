@@ -45,6 +45,10 @@
 user agent -> str_replace(all vars) DONE
 title bar -> str_replace(all vars)
 status bar ->  str_replace(all vars) -> pango markup thingie
+* get rid of config files -> send everything as commands to stdin on program launch -> you can change config at runtime.  
+  how to handle launching new windows? serialize state with tpl? (can also be useful for session saving), fork()ing? if so, how do we handle Xorg window id's?
+
+
 
 SOMEDAY:
 check if we can make the settings loading less hard coded. eg( keep a list of all settings, and for each one, try to load it)
