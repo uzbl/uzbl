@@ -715,6 +715,59 @@ create_fifo() {
 }
 
 static void
+control_stdin(GIOChannel *gio, GIOCondition condition) {
+    gchar *ctl_line;
+    GIOStatus ret;
+    GError *err = NULL;
+    printf("stdin triggered\n");
+
+    if (condition & G_IO_HUP) { //FIXME: for some reason, the last command is not interpreted. but when we get here gio->is_readable = FALSE.
+        ret = g_io_channel_shutdown (gio, FALSE, &err);
+        if (ret == G_IO_STATUS_ERROR) {
+            g_error ("Stdin: disconnected with HUP, but could not close it!\n");
+        } else {
+            printf("Stdin: closed on request with HUP\n");
+            return;
+        }
+    }
+    if(!gio)
+        g_error ("Stdin: GIOChannel broke\n");
+
+    ret = g_io_channel_read_line(gio, &ctl_line, NULL, NULL, &err);
+    if (ret == G_IO_STATUS_ERROR)
+        g_error ("Stdin: Error reading: %s\n", err->message);
+    if (ret == G_IO_STATUS_EOF) {
+        ret = g_io_channel_shutdown (gio, FALSE, &err);
+        if (ret == G_IO_STATUS_ERROR) {
+            g_error ("Stdin: disconnected without HUP, but could not close it!\n");
+        } else {
+            printf("Stdin: closed on request without HUP\n");
+        }
+    }
+    parse_line(ctl_line);
+    g_free(ctl_line);
+    printf("stdin...done\n");
+    return;
+}
+
+static void
+create_stdin () {
+    GIOChannel *chan = NULL;
+    GError *error = NULL;
+
+    chan = g_io_channel_unix_new (fileno(stdin));
+    if (chan) {
+        if (!g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_stdin, NULL)) {
+            g_error ("Stdin: could not add watch\n");
+        } else {
+            printf ("Stdin: watch added successfully\n");
+        }
+    } else {
+        g_error ("Stdin: Error while opening: %s\n", error->message);
+    }
+}
+
+static void
 control_socket(GIOChannel *chan) {
     struct sockaddr_un remote;
     char buffer[512], *ctl_line;
@@ -1304,7 +1357,8 @@ main (int argc, char* argv[]) {
     if (uzbl.behave.fifo_dir)
         create_fifo ();
     if (uzbl.behave.socket_dir)
-        create_socket();
+        create_socket ();
+    create_stdin ();
 
     gtk_main ();
     clean_up();

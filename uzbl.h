@@ -225,6 +225,12 @@ static void
 create_fifo();
 
 static void
+control_stdin(GIOChannel *gio, GIOCondition condition);
+
+static void
+create_stdin();
+
+static void
 create_socket();
 
 static void
