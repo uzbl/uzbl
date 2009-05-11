@@ -36,3 +36,21 @@ exit
 search           <string>
 
 The 'set' command may do more then just set the variable. eg 'set uri' commands will also cause uzbl to navigate to the uri.
+
+
+
+Rationale. AKA "why not config files?"
+-> unify code to configure uzbl and to accept incoming commands
+-> no more code needed for config file parsing/handling
+-> runtime changing of configuration
+
+issues
+-> new instances (open link etc) need same config/state
+   solutions?
+   - serialize all state structs -> some libs available, could work. but:
+                                    - binary format not very user friendly
+                                    - not that easy (C has no introspection etc)
+   - iterate over state structs and generate appropriate commands to bring an instance in this state.
+     - plaintext :)
+     - user editable
+     - also useful for saving state if we need to update/shutdown/..
