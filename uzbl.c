@@ -898,49 +898,61 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     if ((event->keyval == GDK_BackSpace) && (uzbl.state.keycmd->len > 0)) {
         g_string_truncate(uzbl.state.keycmd, uzbl.state.keycmd->len - 1);
         update_title();
-        return TRUE;
     }
 
-    if ((event->keyval == GDK_Return) || (event->keyval == GDK_KP_Enter)) {
-        GString* short_keys = g_string_new ("");
-        unsigned int i;
-        for (i=0; i<(uzbl.state.keycmd->len); i++) {
-            g_string_append_c(short_keys, uzbl.state.keycmd->str[i]);
-            g_string_append_c(short_keys, '_');
-            
-            //printf("\nTesting string: @%s@\n", short_keys->str);
-            if ((action = g_hash_table_lookup(uzbl.bindings, short_keys->str))) {
-                GString* parampart = g_string_new (uzbl.state.keycmd->str);
-                g_string_erase (parampart, 0, i+1);
-                //printf("\nParameter: @%s@\n", parampart->str);
-                GString* actionname = g_string_new ("");
-                if (action->name)
-                    g_string_printf (actionname, action->name, parampart->str);
-                GString* actionparam = g_string_new ("");
-                if (action->param)
-                    g_string_printf (actionparam, action->param, parampart->str);
-                parse_command(actionname->str, actionparam->str);
-                g_string_free (actionname, TRUE);
-                g_string_free (actionparam, TRUE);
-                g_string_free (parampart, TRUE);
-                g_string_truncate(uzbl.state.keycmd, 0);
-                update_title();
-            }          
+    gboolean key_ret = FALSE;
+    if ((event->keyval == GDK_Return) || (event->keyval == GDK_KP_Enter))
+        key_ret = TRUE;
 
-            g_string_truncate(short_keys, short_keys->len - 1);
-        }
-        g_string_free (short_keys, TRUE);
-        return (!uzbl.behave.insert_mode);
-    }
-
-    g_string_append(uzbl.state.keycmd, event->string);
+    if (!key_ret) g_string_append(uzbl.state.keycmd, event->string);
     if ((action = g_hash_table_lookup(uzbl.bindings, uzbl.state.keycmd->str))) {
         g_string_truncate(uzbl.state.keycmd, 0);
         parse_command(action->name, action->param);
     }
 
-    update_title();
+    GString* short_keys = g_string_new ("");
+    GString* short_keys_inc = g_string_new ("");
+    unsigned int i;
+    for (i=0; i<(uzbl.state.keycmd->len); i++) {
+        g_string_append_c(short_keys, uzbl.state.keycmd->str[i]);
+        g_string_assign(short_keys_inc, short_keys->str);
+        g_string_append_c(short_keys, '_');
+        g_string_append_c(short_keys_inc, '*');
+            
+        gboolean exec_now = FALSE;
+        if ((action = g_hash_table_lookup(uzbl.bindings, short_keys->str))) {
+            if (key_ret) exec_now = TRUE; // run normal cmds only if return was pressed
+        } else if ((action = g_hash_table_lookup(uzbl.bindings, short_keys_inc->str))) {
+            if (key_ret) { // just quit the incremental command on return
+                g_string_truncate(uzbl.state.keycmd, 0);
+                break;
+            } else exec_now = TRUE; // always exec inc. commands on keys other than return
+        }
 
+        if (exec_now) {
+            GString* parampart = g_string_new (uzbl.state.keycmd->str);
+            GString* actionname = g_string_new ("");
+            GString* actionparam = g_string_new ("");
+            g_string_erase (parampart, 0, i+1);
+            if (action->name)
+                g_string_printf (actionname, action->name, parampart->str);
+            if (action->param)
+                g_string_printf (actionparam, action->param, parampart->str);
+            parse_command(actionname->str, actionparam->str);
+            g_string_free (actionname, TRUE);
+            g_string_free (actionparam, TRUE);
+            g_string_free (parampart, TRUE);
+            if (key_ret)
+                g_string_truncate(uzbl.state.keycmd, 0);
+            break;
+        }      
+        
+        g_string_truncate(short_keys, short_keys->len - 1);
+    }
+    g_string_free (short_keys, TRUE);
+    g_string_free (short_keys_inc, TRUE);
+    update_title();
+    if (key_ret) return (!uzbl.behave.insert_mode);
     return TRUE;
 }
 
