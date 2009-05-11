@@ -426,13 +426,11 @@ build_progressbar_ascii(int percent) {
    l = (double)percent*((double)width/100.);
    l = (int)(l+.5)>=(int)l ? l+.5 : l;
 
-   g_string_append(bar, "[");
    for(i=0; i<(int)l; i++)
        g_string_append(bar, "=");
           
    for(; i<width; i++)
        g_string_append(bar, "·");
-   g_string_append(bar, "]");
 
    return g_string_free(bar, FALSE);
 }
