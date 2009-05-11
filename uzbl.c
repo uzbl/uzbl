@@ -860,7 +860,7 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     Action *action;
 
     if (event->type != GDK_KEY_PRESS || event->keyval == GDK_Page_Up || event->keyval == GDK_Page_Down
-        || event->keyval == GDK_Up || event->keyval == GDK_Down || event->keyval == GDK_Left || event->keyval == GDK_Right)
+        || event->keyval == GDK_Up || event->keyval == GDK_Down || event->keyval == GDK_Left || event->keyval == GDK_Right || event->keyval == GDK_Shift_L || event->keyval == GDK_Shift_R)
         return FALSE;
 
     /* turn off insert mode (if always_insert_mode is not used) */
