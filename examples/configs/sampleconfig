@@ -39,7 +39,7 @@ R = reload_ign_cache
 - = zoom_out
 t = toggle_status
 #hilight matches
-/_ = search %s
+/* = search %s
 #jump to next
 ; = search
 gh      = uri http://www.uzbl.org
