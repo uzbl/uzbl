@@ -1273,7 +1273,7 @@ main (int argc, char* argv[]) {
     /* initialize hash table */
     uzbl.bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
 	
-	uzbl.net.soup_session = webkit_get_default_session();
+    uzbl.net.soup_session = webkit_get_default_session();
     uzbl.state.keycmd = g_string_new("");
 
     settings_init ();
