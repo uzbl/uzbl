@@ -1457,7 +1457,7 @@ main (int argc, char* argv[]) {
     setup_scanner();
 
     if (!uzbl.behave.status_format)
-        uzbl.behave.status_format = STATUS_DEFAULT;
+        uzbl.behave.status_format = g_strdup(STATUS_DEFAULT);
     if (!uzbl.behave.show_status)
         gtk_widget_hide(uzbl.gui.mainbar);
     else
