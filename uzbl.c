@@ -1109,7 +1109,7 @@ settings_init () {
     printf ("Show status: %s\n",        (b->show_status        ? "TRUE"              : "FALSE"));
     printf ("Status top: %s\n",         (b->status_top         ? "TRUE"              : "FALSE"));
     printf ("Modkey: %s\n",             (b->modkey             ? b->modkey           : "disabled"));
-    printf ("Status format: %s\n",             (b->status_format            ? b->status_format           : "none"));
+    printf ("Status format: %s\n",      (b->status_format      ? b->status_format    : "none"));
 
     if (!b->modkey)
         b->modkey = "";
