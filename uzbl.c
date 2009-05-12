@@ -769,8 +769,9 @@ static void
 setup_regex() {
     GError *err=NULL;
 
-    uzbl.comm.get_regex = g_regex_new("^GET\\s+([^ \\n]+)$", 0, 0, &err);
-    uzbl.comm.set_regex = g_regex_new("^SET\\s+([^ ]+)\\s*=\\s*([^\\n].*)$", 0, 0, &err);
+    uzbl.comm.get_regex  = g_regex_new("^GET\\s+([^ \\n]+)$", 0, 0, &err);
+    uzbl.comm.set_regex  = g_regex_new("^SET\\s+([^ ]+)\\s*=\\s*([^\\n].*)$", 0, 0, &err);
+    uzbl.comm.bind_regex = g_regex_new("^BIND\\s+(.+[^ ])\\s*=\\s*([a-z][^\\n].+)$", 0, 0, &err);
 }
 
 static gboolean
@@ -805,7 +806,15 @@ control_stdin(GIOChannel *gio, GIOCondition condition) {
             get_var_value(tokens[1]);
             g_strfreev(tokens);
         }
-    } else
+    } 
+    else if(ctl_line[0] == 'B') {
+        tokens = g_regex_split(uzbl.comm.bind_regex, ctl_line, 0);
+        if(tokens) {
+            add_binding(tokens[1], tokens[2]);
+            g_strfreev(tokens);
+        }
+    }
+    else
         printf("Command not understood (%s)\n", ctl_line);
 
     g_free(ctl_line);
