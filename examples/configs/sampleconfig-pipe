@@ -1,10 +1,10 @@
 SET show_status       = 1
 SET status_background = #303030
 SET status_format     = <span font_family="monospace"><span background="khaki" foreground="black">MODE</span> [<span weight="bold" foreground="red">KEYCMD</span>] <span foreground="#606060"> LOAD_PROGRESSBAR </span><span foreground="#99FF66">URI</span> <span foreground="khaki">NAME</span></span>
-BIND    j         = scroll_vert	20
-BIND    k         = scroll_vert	-20
-BIND    h         = scroll_horz	-20
-BIND    l         = scroll_horz	20
+BIND    j         = scroll_vert 20
+BIND    k         = scroll_vert -20
+BIND    h         = scroll_horz -20
+BIND    l         = scroll_horz 20
 BIND    b         = back
 BIND    m         = forward
 BIND    s         = stop
@@ -12,7 +12,7 @@ BIND    r         = reload
 BIND    R         = reload_ign_cache
 BIND    +         = zoom_in
 BIND    -         = zoom_out
-BIND    t         = toggle	uzbl.behave.show_status
+BIND    t         = toggle_status
 BIND    /_        = search %s
 BIND    ;         = search
 BIND    gh        = uri http://www.uzbl.org
