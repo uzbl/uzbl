@@ -1,4 +1,7 @@
 GET status_format
-BIND xx           = exit
+SET show_status = 1
+BIND x            = exit
 BIND gG _         = uri http://www.google.com/search?q=%s
-SET status_format = MODE <span foreground="khaki">KEYCMD</span> <span foreground="green">URI</span>
+SET status_format = <span foreground="red"><b>MSG</b></span><span foreground="orange"> URI </span>
+SET status_message = Wazz up dude?
+BIND x = exit
