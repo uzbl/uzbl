@@ -245,6 +245,7 @@ load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     free (uzbl.state.uri);
     GString* newuri = g_string_new (webkit_web_frame_get_uri (frame));
     uzbl.state.uri = g_string_free (newuri, FALSE);
+    g_string_truncate(uzbl.state.keycmd, 0); // don't need old commands to remain on new page?
 }
 
 static void
