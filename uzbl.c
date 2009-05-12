@@ -63,7 +63,7 @@ const struct {
     char *name;
     void **ptr;
 } var_name_to_ptr[] = {
-    { "name",           (void *)&uzbl.state.instance_name   },
+    { "status_format",  (void *)&uzbl.behave.status_format   },
     { "show_status",    (void *)&uzbl.behave.show_status    },
     { "insert_mode",    (void *)&uzbl.behave.insert_mode    },
     { NULL,             NULL                        }
@@ -210,6 +210,16 @@ static void scroll_horz(WebKitWebView* page, const char *param) {
     (void) page;
 
     scroll(uzbl.gui.bar_h, param);
+}
+
+static void
+cmd_set_status() {
+    if (!uzbl.behave.show_status) {
+        gtk_widget_hide(uzbl.gui.mainbar);
+    } else {
+        gtk_widget_show(uzbl.gui.mainbar);
+    }
+    update_title();
 }
 
 static void
@@ -754,11 +764,18 @@ set_var_value(gchar *name, gchar *val) {
     char *endp = NULL;
 
     if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
-        if(!strcmp(name, "name")) {
+        if(!strcmp(name, "status_format")) {
             free(*p);
             *p = g_strdup(val);
-        } else {
+            update_title();
+        } 
+        /* variables that take int values */
+        else {
             *p = (int)strtoul(val, &endp, 10);
+
+            if(!strcmp(name, "show_status")) {
+                    cmd_set_status();
+            }
         }
     }
     return TRUE;
@@ -770,7 +787,7 @@ setup_regex() {
 
     uzbl.comm.get_regex  = g_regex_new("^GET\\s+([^ \\n]+)$", 0, 0, &err);
     uzbl.comm.set_regex  = g_regex_new("^SET\\s+([^ ]+)\\s*=\\s*([^\\n].*)$", 0, 0, &err);
-    uzbl.comm.bind_regex = g_regex_new("^BIND\\s+(.+[^ ])\\s*=\\s*([a-z][^\\n].+)$", 0, 0, &err);
+    uzbl.comm.bind_regex = g_regex_new("^BIND\\s+(.*[^ ])\\s*=\\s*([a-z][^\\n].+)$", 0, 0, &err);
 }
 
 static gboolean
