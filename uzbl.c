@@ -670,9 +670,12 @@ static void
 setup_regex() {
     GError *err=NULL;
 
-    uzbl.comm.get_regex  = g_regex_new("^GET\\s+([^ \\n]+)$", 0, 0, &err);
-    uzbl.comm.set_regex  = g_regex_new("^SET\\s+([^ ]+)\\s*=\\s*([^\\n].*)$", 0, 0, &err);
-    uzbl.comm.bind_regex = g_regex_new("^BIND\\s+(.*[^ ])\\s*=\\s*([a-z][^\\n].+)$", 0, 0, &err);
+    uzbl.comm.get_regex  = g_regex_new("^GET\\s+([^ \\n]+)$", 
+            G_REGEX_OPTIMIZE, 0, &err);
+    uzbl.comm.set_regex  = g_regex_new("^SET\\s+([^ ]+)\\s*=\\s*([^\\n].*)$",
+            G_REGEX_OPTIMIZE, 0, &err);
+    uzbl.comm.bind_regex = g_regex_new("^BIND\\s+?(.*[^ ])\\s*?=\\s*([a-z][^\\n].+)$", 
+            G_REGEX_UNGREEDY|G_REGEX_OPTIMIZE, 0, &err);
 }
 static gboolean
 get_var_value(gchar *name) {
@@ -1178,6 +1181,9 @@ add_binding (const gchar *key, const gchar *act) {
     //Debug:
     printf ("Binding %-10s : %s\n", key, act);
     action = new_action(parts[0], parts[1]);
+    
+    if(g_hash_table_lookup(uzbl.bindings, key))
+        g_hash_table_remove(uzbl.bindings, key);
     g_hash_table_insert(uzbl.bindings, g_strdup(key), action);
 
     g_strfreev(parts);
