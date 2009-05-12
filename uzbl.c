@@ -63,7 +63,8 @@ const struct {
     char *name;
     void **ptr;
 } var_name_to_ptr[] = {
-    { "status_format",  (void *)&uzbl.behave.status_format   },
+    { "status_format",  (void *)&uzbl.behave.status_format  },
+    { "status_message", (void *)&uzbl.gui.sbar.msg          },
     { "show_status",    (void *)&uzbl.behave.show_status    },
     { "insert_mode",    (void *)&uzbl.behave.insert_mode    },
     { NULL,             NULL                        }
@@ -570,6 +571,10 @@ parse_status_template(const char *template) {
                      g_string_append(ret, 
                          uzbl.behave.insert_mode?"[I]":"[C]");
                      break;
+                 case SYM_MSG:
+                     g_string_append(ret, 
+                         uzbl.gui.sbar.msg?uzbl.gui.sbar.msg:"");
+                     break;
                  default:
                      break;
              }
@@ -765,7 +770,14 @@ set_var_value(gchar *name, gchar *val) {
 
     if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         if(!strcmp(name, "status_format")) {
-            free(*p);
+            if(*p)
+                free(*p);
+            *p = g_strdup(val);
+            update_title();
+        } 
+        else if(!strcmp(name, "status_message")) {
+            if(*p)
+                free(*p);
             *p = g_strdup(val);
             update_title();
         } 
