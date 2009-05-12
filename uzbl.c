@@ -58,6 +58,26 @@
 
 static Uzbl uzbl;
 
+/* define names and pointers to all config specific variables */
+const struct {
+    char *name;
+    void **ptr;
+} var_name_to_ptr[] = {
+    { "status_format",  (void *)&uzbl.behave.status_format   },
+    { "show_status",    (void *)&uzbl.behave.show_status    },
+    { "insert_mode",    (void *)&uzbl.behave.insert_mode    },
+    { NULL,             NULL                        }
+}, *n2v_p = var_name_to_ptr;
+
+/* construct a hash from the var_name_to_ptr array for quick access */
+static void
+make_var_to_name_hash() {
+    uzbl.comm.proto_var = g_hash_table_new(g_str_hash, g_str_equal);
+    while(n2v_p->name) {
+        g_hash_table_insert(uzbl.comm.proto_var, n2v_p->name, n2v_p->ptr);
+        n2v_p++;
+    }
+}
 
 /* commandline arguments (set initial values for the state variables) */
 static GOptionEntry entries[] =
@@ -190,6 +210,16 @@ static void scroll_horz(WebKitWebView* page, const char *param) {
     (void) page;
 
     scroll(uzbl.gui.bar_h, param);
+}
+
+static void
+cmd_set_status() {
+    if (!uzbl.behave.show_status) {
+        gtk_widget_hide(uzbl.gui.mainbar);
+    } else {
+        gtk_widget_show(uzbl.gui.mainbar);
+    }
+    update_title();
 }
 
 static void
@@ -717,6 +747,124 @@ create_fifo() {
         }
     }
     return;
+}
+
+static gboolean
+get_var_value(gchar *name) {
+    void **p = NULL;
+
+    if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
+        if(!strcmp(name, "name")) {
+            printf("VAR: %s VALUE: %s\n", name, (char *)*p);
+        } else {
+            printf("VAR: %s VALUE: %d\n", name, (int)*p);
+        }
+    }
+    return TRUE;
+}
+
+static gboolean
+set_var_value(gchar *name, gchar *val) {
+    void **p = NULL;
+    char *endp = NULL;
+
+    if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
+        if(!strcmp(name, "status_format")) {
+            free(*p);
+            *p = g_strdup(val);
+            update_title();
+        } 
+        /* variables that take int values */
+        else {
+            *p = (int)strtoul(val, &endp, 10);
+
+            if(!strcmp(name, "show_status")) {
+                    cmd_set_status();
+            }
+        }
+    }
+    return TRUE;
+}
+
+static void
+setup_regex() {
+    GError *err=NULL;
+
+    uzbl.comm.get_regex  = g_regex_new("^GET\\s+([^ \\n]+)$", 0, 0, &err);
+    uzbl.comm.set_regex  = g_regex_new("^SET\\s+([^ ]+)\\s*=\\s*([^\\n].*)$", 0, 0, &err);
+    uzbl.comm.bind_regex = g_regex_new("^BIND\\s+(.*[^ ])\\s*=\\s*([a-z][^\\n].+)$", 0, 0, &err);
+}
+
+static gboolean
+control_stdin(GIOChannel *gio, GIOCondition condition) {
+    gchar *ctl_line = NULL;
+    gsize ctl_line_len = 0;
+    GIOStatus ret;
+    GError *err = NULL;
+    gchar **tokens;
+
+    if (condition & G_IO_HUP) { 
+        ret = g_io_channel_shutdown (gio, FALSE, &err);
+        return FALSE;
+    }
+
+    ret = g_io_channel_read_line(gio, &ctl_line, &ctl_line_len, NULL, &err);
+    if ( (ret == G_IO_STATUS_ERROR) || (ret == G_IO_STATUS_EOF) )
+        return FALSE;
+
+    /* SET command */
+    if(ctl_line[0] == 'S') {
+        tokens = g_regex_split(uzbl.comm.set_regex, ctl_line, 0);
+        if(tokens[0][0] == 0) {
+            set_var_value(tokens[1], tokens[2]);
+            g_strfreev(tokens);
+        }
+        else 
+            printf("Error in command: %s\n", tokens[0]);
+    }
+    /* GET command */
+    else if(ctl_line[0] == 'G') {
+        tokens = g_regex_split(uzbl.comm.get_regex, ctl_line, 0);
+        if(tokens[0][0] == 0) {
+            get_var_value(tokens[1]);
+            g_strfreev(tokens);
+        }
+        else 
+            printf("Error in command: %s\n", tokens[0]);
+    } 
+    /* BIND command */
+    else if(ctl_line[0] == 'B') {
+        tokens = g_regex_split(uzbl.comm.bind_regex, ctl_line, 0);
+        if(tokens[0][0] == 0) {
+            add_binding(tokens[1], tokens[2]);
+            g_strfreev(tokens);
+        }
+        else 
+            printf("Error in command: %s\n", tokens[0]);
+    }
+    else
+        printf("Command not understood (%s)\n", ctl_line);
+
+    g_free(ctl_line);
+
+    return TRUE;
+}
+
+static void
+create_stdin () {
+    GIOChannel *chan = NULL;
+    GError *error = NULL;
+
+    chan = g_io_channel_unix_new(fileno(stdin));
+    if (chan) {
+        if (!g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_stdin, NULL)) {
+            g_error ("Stdin: could not add watch\n");
+        } else {
+            printf ("Stdin: watch added successfully\n");
+        }
+    } else {
+        g_error ("Stdin: Error while opening: %s\n", error->message);
+    }
 }
 
 static void
@@ -1311,7 +1459,10 @@ main (int argc, char* argv[]) {
     if(setup_signal(SIGTERM, catch_sigterm) == SIG_ERR)
         fprintf(stderr, "uzbl: error hooking SIGTERM\n");
 
+
+    setup_regex();
     setup_scanner();
+
     if (!uzbl.behave.status_format)
         uzbl.behave.status_format = STATUS_DEFAULT;
     if (!uzbl.behave.show_status)
@@ -1320,10 +1471,12 @@ main (int argc, char* argv[]) {
         update_title();
 
 
+    make_var_to_name_hash();
+    create_stdin();
     if (uzbl.behave.fifo_dir)
         create_fifo ();
     if (uzbl.behave.socket_dir)
-        create_socket();
+        create_socket ();
 
     gtk_main ();
     clean_up();
