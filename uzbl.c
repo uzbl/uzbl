@@ -63,7 +63,7 @@ static Uzbl uzbl;
 static GOptionEntry entries[] =
 {
     { "uri",     'u', 0, G_OPTION_ARG_STRING, &uzbl.state.uri,           "Uri to load", "URI" },
-    { "name",    'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name, "Name of the current instance", "NAME" },
+    { "name",    'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name, "Name of the current instance (defaults to Xorg window id)", "NAME" },
     { "config",  'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,   "Config file", "FILE" },
     { NULL,      0, 0, 0, NULL, NULL, NULL }
 };
