@@ -1,0 +1,4 @@
+GET status_format
+BIND xx           = exit
+BIND gG _         = uri http://www.google.com/search?q=%s
+SET status_format = MODE <span foreground="khaki">KEYCMD</span> <span foreground="green">URI</span>
