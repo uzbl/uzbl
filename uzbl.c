@@ -57,7 +57,6 @@
 
 
 static Uzbl uzbl;
-char *foobar="Just a  test";
 
 /* define names and pointers to all config specific variables */
 const struct {
@@ -794,25 +793,32 @@ control_stdin(GIOChannel *gio, GIOCondition condition) {
     /* SET command */
     if(ctl_line[0] == 'S') {
         tokens = g_regex_split(uzbl.comm.set_regex, ctl_line, 0);
-        if(tokens) {
+        if(!strcmp(tokens[0], "")) {
             set_var_value(tokens[1], tokens[2]);
             g_strfreev(tokens);
         }
+        else 
+            printf("Error in command: %s\n", tokens[0]);
     }
     /* GET command */
     else if(ctl_line[0] == 'G') {
         tokens = g_regex_split(uzbl.comm.get_regex, ctl_line, 0);
-        if(tokens) {
+        if(!strcmp(tokens[0], "")) {
             get_var_value(tokens[1]);
             g_strfreev(tokens);
         }
+        else 
+            printf("Error in command: %s\n", tokens[0]);
     } 
+    /* BIND command */
     else if(ctl_line[0] == 'B') {
         tokens = g_regex_split(uzbl.comm.bind_regex, ctl_line, 0);
-        if(tokens) {
+        if(!strcmp(tokens[0], "")) {
             add_binding(tokens[1], tokens[2]);
             g_strfreev(tokens);
         }
+        else 
+            printf("Error in command: %s\n", tokens[0]);
     }
     else
         printf("Command not understood (%s)\n", ctl_line);
