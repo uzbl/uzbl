@@ -749,7 +749,7 @@ get_var_value(gchar *name) {
     void **p = NULL;
 
     if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
-        if(!strcmp(name, "name")) {
+        if(!strcmp(name, "status_format")) {
             printf("VAR: %s VALUE: %s\n", name, (char *)*p);
         } else {
             printf("VAR: %s VALUE: %d\n", name, (int)*p);
