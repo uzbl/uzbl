@@ -1063,7 +1063,7 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
         return TRUE;
     }
 
-    if (uzbl.behave.insert_mode && ((event->state & uzbl.behave.modmask) != uzbl.behave.modmask))
+    if (uzbl.behave.insert_mode && (((event->state & uzbl.behave.modmask) != uzbl.behave.modmask) || (!uzbl.behave.modmask)))
         return FALSE;
 
     if (event->keyval == GDK_Escape) {
