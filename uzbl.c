@@ -758,6 +758,11 @@ parse_cmd_line(char *ctl_line) {
         else 
             printf("Error in command: %s\n", tokens[0]);
     }
+    /* Comments */
+    else if(   (ctl_line[0] == '#')
+            || (ctl_line[0] == ' ')
+            || (ctl_line[0] == '\n'))
+        ; /* ignore these lines */
     else
         printf("Command not understood (%s)\n", ctl_line);
 
