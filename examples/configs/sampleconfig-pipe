@@ -1,29 +1,32 @@
-SET show_status       = 1
-SET status_background = #303030
-SET status_format     = <span font_family="monospace"><span background="khaki" foreground="black">MODE</span> [<span weight="bold" foreground="red">KEYCMD</span>] <span foreground="#606060"> LOAD_PROGRESSBAR </span><span foreground="#99FF66">URI</span> <span foreground="khaki">NAME</span></span>
-BIND    j         = scroll_vert 20
-BIND    k         = scroll_vert -20
-BIND    h         = scroll_horz -20
-BIND    l         = scroll_horz 20
-BIND    b         = back
-BIND    m         = forward
-BIND    s         = stop
-BIND    r         = reload
-BIND    R         = reload_ign_cache
-BIND    +         = zoom_in
-BIND    -         = zoom_out
-BIND    t         = toggle_status
-BIND    /_        = search %s
-BIND    ;         = search
-BIND    gh        = uri http://www.uzbl.org
-BIND    o _       = uri %s
-BIND    :wiki _   = uri http://wiki.archlinux.org/index.php/Special:Search?search=%s&go=Go
-BIND    gg _      = uri http://www.google.com/search?q=%s
-BIND    i         = insert_mode
-BIND    B         = spawn ./examples/scripts/insert_bookmark.sh
-BIND    u         = spawn ./examples/scripts/load_url_from_history.sh
-BIND    U         = spawn ./examples/scripts/load_url_from_bookmarks.sh
-BIND    ZZ        = exit
-BIND    S         = script alert("hi");
-BIND    F= script for (var i=0; i < document.links.length; i++) {var uzblid = 'uzbl_link_hint_';var li = document.links[i];var pre = document.getElementById(uzblid+i);if (pre) {li.removeChild(pre);} else {var hint = document.createElement('div');hint.setAttribute('id',uzblid+i);hint.innerHTML = i;hint.style.display='inline';hint.style.lineHeight='90%';hint.style.backgroundColor='red';hint.style.color='white';hint.style.fontSize='small-xx';hint.style.fontWeight='light';hint.style.margin='0px';hint.style.padding='2px';hint.style.position='absolute';hint.style.textDecoration='none';hint.style.left=li.style.left;hint.style.top=li.style.top;li.insertAdjacentElement('afterBegin',hint);}}
-BIND    f_        = script window.location = document.links[%s].href;
+# Behaviour and appearance
+set show_status       = 1
+set status_background = #303030
+set status_format     = <span font_family="monospace"><span background="khaki" foreground="black">MODE</span> [<span weight="bold" foreground="red">KEYCMD</span>] <span foreground="#606060"> LOAD_PROGRESSBAR </span><span foreground="#99FF66">URI</span> <span foreground="khaki">NAME</span> <span foreground="orange">MSG</span></span>
+
+# Key bindings
+bind    j         = scroll_vert 20
+bind    k         = scroll_vert -20
+bind    h         = scroll_horz -20
+bind    l         = scroll_horz 20
+bind    b         = back
+bind    m         = forward
+bind    s         = stop
+bind    r         = reload
+bind    R         = reload_ign_cache
+bind    +         = zoom_in
+bind    -         = zoom_out
+bind    t         = toggle_status
+bind    /_        = search %s
+bind    ;         = search
+bind    gh        = uri http://www.uzbl.org
+bind    o _       = uri %s
+bind    :wiki _   = uri http://wiki.archlinux.org/index.php/Special:Search?search=%s&go=Go
+bind    gg _      = uri http://www.google.com/search?q=%s
+bind    i         = insert_mode
+bind    B         = spawn ./examples/scripts/insert_bookmark.sh
+bind    u         = spawn ./examples/scripts/load_url_from_history.sh
+bind    U         = spawn ./examples/scripts/load_url_from_bookmarks.sh
+bind    ZZ        = exit
+bind    S         = script alert("hi");
+bind    F= script for (var i=0; i < document.links.length; i++) {var uzblid = 'uzbl_link_hint_';var li = document.links[i];var pre = document.getElementById(uzblid+i);if (pre) {li.removeChild(pre);} else {var hint = document.createElement('div');hint.setAttribute('id',uzblid+i);hint.innerHTML = i;hint.style.display='inline';hint.style.lineHeight='90%';hint.style.backgroundColor='red';hint.style.color='white';hint.style.fontSize='small-xx';hint.style.fontWeight='light';hint.style.margin='0px';hint.style.padding='2px';hint.style.position='absolute';hint.style.textDecoration='none';hint.style.left=li.style.left;hint.style.top=li.style.top;li.insertAdjacentElement('afterBegin',hint);}}
+bind    f_        = script window.location = document.links[%s].href;
