@@ -95,6 +95,7 @@ typedef struct {
 
 /* behaviour */
 typedef struct {
+    gchar*   load_finish_handler;
     gchar*   status_format;
     gchar*   status_background;
     gchar*   history_handler;
@@ -178,6 +179,9 @@ progress_change_cb (WebKitWebView* page, gint progress, gpointer data);
 
 static void
 load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
+
+static void
+load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
 
 static void
 destroy_cb (GtkWidget* widget, gpointer data);

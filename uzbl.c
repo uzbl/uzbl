@@ -272,6 +272,15 @@ progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
 }
 
 static void
+load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
+    (void) page;
+    (void) data;
+    if (uzbl.behave.load_finish_handler) {
+        run_command_async(uzbl.behave.load_finish_handler, NULL);
+    }
+}
+
+static void
 load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) page;
     (void) data;
@@ -1154,6 +1163,7 @@ create_browser () {
     g_signal_connect (G_OBJECT (g->web_view), "load-progress-changed", G_CALLBACK (progress_change_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-committed", G_CALLBACK (load_commit_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-committed", G_CALLBACK (log_history_cb), g->web_view);
+    g_signal_connect (G_OBJECT (g->web_view), "load-finished", G_CALLBACK (load_finish_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "key-press-event", G_CALLBACK (key_press_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "new-window-policy-decision-requested", G_CALLBACK (new_window_cb), g->web_view); 
@@ -1264,6 +1274,7 @@ settings_init () {
     }
 
     if (res) {
+        b->load_finish_handler= g_key_file_get_value   (config, "behavior", "load_finish_handler",NULL);
         b->history_handler    = g_key_file_get_value   (config, "behavior", "history_handler",    NULL);
         b->download_handler   = g_key_file_get_value   (config, "behavior", "download_handler",   NULL);
         b->cookie_handler     = g_key_file_get_string  (config, "behavior", "cookie_handler",     NULL);
