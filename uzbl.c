@@ -1429,21 +1429,15 @@ settings_init () {
     printf("User-agent: %s\n", n->useragent? n->useragent : "default");
     printf("Maximum connections: %d\n", n->max_conns ? n->max_conns : 0);
     printf("Maximum connections per host: %d\n", n->max_conns_host ? n->max_conns_host: 0);
-		
 
-
-	if(b->cookie_handler){
-		/* ck = soup_cookie_jar_new(); */
-		/* soup_session_add_feature(soup_session, SOUP_SESSION_FEATURE(ck)); */
-		/* g_signal_connect(ck, "changed", G_CALLBACK(cookie_recieved_action), NULL); */
-		g_signal_connect(n->soup_session, "request-queued", G_CALLBACK(handle_cookies), NULL);
-	}
-	
+    g_signal_connect(n->soup_session, "request-queued", G_CALLBACK(handle_cookies), NULL);
 }
 
 static void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer user_data){
     (void) session;
     (void) user_data;
+    if (!uzbl.behave.cookie_handler) return;
+    
     gchar * stdout = NULL;
     soup_message_add_header_handler(msg, "got-headers", "Set-Cookie", G_CALLBACK(save_cookies), NULL);
     GString* args = g_string_new ("");
