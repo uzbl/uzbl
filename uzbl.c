@@ -670,11 +670,11 @@ static void
 setup_regex() {
     GError *err=NULL;
 
-    uzbl.comm.get_regex  = g_regex_new("^GET\\s+([^ \\n]+)$", 
+    uzbl.comm.get_regex  = g_regex_new("^[Gg][a-zA-Z]*\\s+([^ \\n]+)$", 
             G_REGEX_OPTIMIZE, 0, &err);
-    uzbl.comm.set_regex  = g_regex_new("^SET\\s+([^ ]+)\\s*=\\s*([^\\n].*)$",
+    uzbl.comm.set_regex  = g_regex_new("^[Ss][a-zA-Z]*\\s+([^ ]+)\\s*=\\s*([^\\n].*)$",
             G_REGEX_OPTIMIZE, 0, &err);
-    uzbl.comm.bind_regex = g_regex_new("^BIND\\s+?(.*[^ ])\\s*?=\\s*([a-z][^\\n].+)$", 
+    uzbl.comm.bind_regex = g_regex_new("^[Bb][a-zA-Z]*\\s+?(.*[^ ])\\s*?=\\s*([a-z][^\\n].+)$", 
             G_REGEX_UNGREEDY|G_REGEX_OPTIMIZE, 0, &err);
 }
 static gboolean
@@ -729,7 +729,7 @@ parse_cmd_line(char *ctl_line) {
     gchar **tokens;
 
     /* SET command */
-    if(ctl_line[0] == 'S') {
+    if(ctl_line[0] == 's' || ctl_line[0] == 'S') {
         tokens = g_regex_split(uzbl.comm.set_regex, ctl_line, 0);
         if(tokens[0][0] == 0) {
             set_var_value(tokens[1], tokens[2]);
@@ -739,7 +739,7 @@ parse_cmd_line(char *ctl_line) {
             printf("Error in command: %s\n", tokens[0]);
     }
     /* GET command */
-    else if(ctl_line[0] == 'G') {
+    else if(ctl_line[0] == 'g' || ctl_line[0] == 'G') {
         tokens = g_regex_split(uzbl.comm.get_regex, ctl_line, 0);
         if(tokens[0][0] == 0) {
             get_var_value(tokens[1]);
@@ -749,7 +749,7 @@ parse_cmd_line(char *ctl_line) {
             printf("Error in command: %s\n", tokens[0]);
     } 
     /* BIND command */
-    else if(ctl_line[0] == 'B') {
+    else if(ctl_line[0] == 'b' || ctl_line[0] == 'B') {
         tokens = g_regex_split(uzbl.comm.bind_regex, ctl_line, 0);
         if(tokens[0][0] == 0) {
             add_binding(tokens[1], tokens[2]);
