@@ -63,10 +63,12 @@ const struct {
     char *name;
     void **ptr;
 } var_name_to_ptr[] = {
-    { "status_format",  (void *)&uzbl.behave.status_format  },
-    { "status_message", (void *)&uzbl.gui.sbar.msg          },
-    { "show_status",    (void *)&uzbl.behave.show_status    },
-    { "insert_mode",    (void *)&uzbl.behave.insert_mode    },
+    { "uri",                (void *)&uzbl.state.uri                 },
+    { "status_format",      (void *)&uzbl.behave.status_format      },
+    { "status_background",  (void *)&uzbl.behave.status_background  },
+    { "status_message",     (void *)&uzbl.gui.sbar.msg              },
+    { "show_status",        (void *)&uzbl.behave.show_status        },
+    { "insert_mode",        (void *)&uzbl.behave.insert_mode        },
     { NULL,             NULL                        }
 }, *n2v_p = var_name_to_ptr;
 
@@ -668,6 +670,106 @@ parse_line(char *line) {
     g_strfreev(parts);
 }
 
+/* command parser */
+static void
+setup_regex() {
+    GError *err=NULL;
+
+    uzbl.comm.get_regex  = g_regex_new("^GET\\s+([^ \\n]+)$", 
+            G_REGEX_OPTIMIZE, 0, &err);
+    uzbl.comm.set_regex  = g_regex_new("^SET\\s+([^ ]+)\\s*=\\s*([^\\n].*)$",
+            G_REGEX_OPTIMIZE, 0, &err);
+    uzbl.comm.bind_regex = g_regex_new("^BIND\\s+?(.*[^ ])\\s*?=\\s*([a-z][^\\n].+)$", 
+            G_REGEX_UNGREEDY|G_REGEX_OPTIMIZE, 0, &err);
+}
+static gboolean
+get_var_value(gchar *name) {
+    void **p = NULL;
+
+    if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
+        if(!strcmp(name, "status_format")) {
+            printf("VAR: %s VALUE: %s\n", name, (char *)*p);
+        } else {
+            printf("VAR: %s VALUE: %d\n", name, (int)*p);
+        }
+    }
+    return TRUE;
+}
+
+static gboolean
+set_var_value(gchar *name, gchar *val) {
+    void **p = NULL;
+    char *endp = NULL;
+
+    if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
+        if(!strcmp(name, "status_message")
+                || !strcmp(name, "status_background")
+                || !strcmp(name, "status_format")) {
+            if(*p)
+                free(*p);
+            *p = g_strdup(val);
+            update_title();
+        } 
+        else if(!strcmp(name, "uri")) {
+            if(*p)
+                free(*p);
+            *p = g_strdup(val);
+            load_uri(uzbl.gui.web_view, (const gchar*)*p);
+        } 
+        /* variables that take int values */
+        else {
+            *p = (int)strtoul(val, &endp, 10);
+
+            if(!strcmp(name, "show_status")) {
+                cmd_set_status();
+            }
+        }
+    }
+    return TRUE;
+}
+
+
+static void 
+parse_cmd_line(char *ctl_line) {
+    gchar **tokens;
+
+    /* SET command */
+    if(ctl_line[0] == 'S') {
+        tokens = g_regex_split(uzbl.comm.set_regex, ctl_line, 0);
+        if(tokens[0][0] == 0) {
+            set_var_value(tokens[1], tokens[2]);
+            g_strfreev(tokens);
+        }
+        else 
+            printf("Error in command: %s\n", tokens[0]);
+    }
+    /* GET command */
+    else if(ctl_line[0] == 'G') {
+        tokens = g_regex_split(uzbl.comm.get_regex, ctl_line, 0);
+        if(tokens[0][0] == 0) {
+            get_var_value(tokens[1]);
+            g_strfreev(tokens);
+        }
+        else 
+            printf("Error in command: %s\n", tokens[0]);
+    } 
+    /* BIND command */
+    else if(ctl_line[0] == 'B') {
+        tokens = g_regex_split(uzbl.comm.bind_regex, ctl_line, 0);
+        if(tokens[0][0] == 0) {
+            add_binding(tokens[1], tokens[2]);
+            g_strfreev(tokens);
+        }
+        else 
+            printf("Error in command: %s\n", tokens[0]);
+    }
+    else
+        printf("Command not understood (%s)\n", ctl_line);
+
+    return;
+}
+
+
 void
 build_stream_name(int type) {
     char *xwin_str;
@@ -720,9 +822,10 @@ control_fifo(GIOChannel *gio, GIOCondition condition) {
     if (ret == G_IO_STATUS_ERROR)
         g_error ("Fifo: Error reading: %s\n", err->message);
 
-    parse_line(ctl_line);
+    //parse_line(ctl_line);
+    parse_cmd_line(ctl_line);
     g_free(ctl_line);
-    printf("...done\n");
+
     return;
 }
 
@@ -754,58 +857,6 @@ create_fifo() {
     return;
 }
 
-static gboolean
-get_var_value(gchar *name) {
-    void **p = NULL;
-
-    if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
-        if(!strcmp(name, "status_format")) {
-            printf("VAR: %s VALUE: %s\n", name, (char *)*p);
-        } else {
-            printf("VAR: %s VALUE: %d\n", name, (int)*p);
-        }
-    }
-    return TRUE;
-}
-
-static gboolean
-set_var_value(gchar *name, gchar *val) {
-    void **p = NULL;
-    char *endp = NULL;
-
-    if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
-        if(!strcmp(name, "status_format")) {
-            if(*p)
-                free(*p);
-            *p = g_strdup(val);
-            update_title();
-        } 
-        else if(!strcmp(name, "status_message")) {
-            if(*p)
-                free(*p);
-            *p = g_strdup(val);
-            update_title();
-        } 
-        /* variables that take int values */
-        else {
-            *p = (int)strtoul(val, &endp, 10);
-
-            if(!strcmp(name, "show_status")) {
-                    cmd_set_status();
-            }
-        }
-    }
-    return TRUE;
-}
-
-static void
-setup_regex() {
-    GError *err=NULL;
-
-    uzbl.comm.get_regex  = g_regex_new("^GET\\s+([^ \\n]+)$", 0, 0, &err);
-    uzbl.comm.set_regex  = g_regex_new("^SET\\s+([^ ]+)\\s*=\\s*([^\\n].*)$", 0, 0, &err);
-    uzbl.comm.bind_regex = g_regex_new("^BIND\\s+(.*[^ ])\\s*=\\s*([a-z][^\\n].+)$", 0, 0, &err);
-}
 
 static gboolean
 control_stdin(GIOChannel *gio, GIOCondition condition) {
@@ -813,7 +864,6 @@ control_stdin(GIOChannel *gio, GIOCondition condition) {
     gsize ctl_line_len = 0;
     GIOStatus ret;
     GError *err = NULL;
-    gchar **tokens;
 
     if (condition & G_IO_HUP) { 
         ret = g_io_channel_shutdown (gio, FALSE, &err);
@@ -824,39 +874,7 @@ control_stdin(GIOChannel *gio, GIOCondition condition) {
     if ( (ret == G_IO_STATUS_ERROR) || (ret == G_IO_STATUS_EOF) )
         return FALSE;
 
-    /* SET command */
-    if(ctl_line[0] == 'S') {
-        tokens = g_regex_split(uzbl.comm.set_regex, ctl_line, 0);
-        if(tokens[0][0] == 0) {
-            set_var_value(tokens[1], tokens[2]);
-            g_strfreev(tokens);
-        }
-        else 
-            printf("Error in command: %s\n", tokens[0]);
-    }
-    /* GET command */
-    else if(ctl_line[0] == 'G') {
-        tokens = g_regex_split(uzbl.comm.get_regex, ctl_line, 0);
-        if(tokens[0][0] == 0) {
-            get_var_value(tokens[1]);
-            g_strfreev(tokens);
-        }
-        else 
-            printf("Error in command: %s\n", tokens[0]);
-    } 
-    /* BIND command */
-    else if(ctl_line[0] == 'B') {
-        tokens = g_regex_split(uzbl.comm.bind_regex, ctl_line, 0);
-        if(tokens[0][0] == 0) {
-            add_binding(tokens[1], tokens[2]);
-            g_strfreev(tokens);
-        }
-        else 
-            printf("Error in command: %s\n", tokens[0]);
-    }
-    else
-        printf("Command not understood (%s)\n", ctl_line);
-
+    parse_cmd_line(ctl_line);
     g_free(ctl_line);
 
     return TRUE;
@@ -913,7 +931,8 @@ control_socket(GIOChannel *chan) {
     }
     close (clientsock);
     ctl_line = g_strdup(buffer);
-    parse_line (ctl_line);
+    //parse_line (ctl_line);
+    parse_cmd_line (ctl_line);
 
 /*
    TODO: we should be able to do it with this.  but glib errors out with "Invalid argument"
@@ -1179,6 +1198,9 @@ add_binding (const gchar *key, const gchar *act) {
     //Debug:
     printf ("Binding %-10s : %s\n", key, act);
     action = new_action(parts[0], parts[1]);
+    
+    if(g_hash_table_lookup(uzbl.bindings, key))
+        g_hash_table_remove(uzbl.bindings, key);
     g_hash_table_insert(uzbl.bindings, g_strdup(key), action);
 
     g_strfreev(parts);
