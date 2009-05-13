@@ -690,7 +690,10 @@ setup_regex() {
             G_REGEX_OPTIMIZE, 0, &err);
     uzbl.comm.bind_regex = g_regex_new("^BIND\\s+?(.*[^ ])\\s*?=\\s*([a-z][^\\n].+)$", 
             G_REGEX_UNGREEDY|G_REGEX_OPTIMIZE, 0, &err);
+    uzbl.comm.cmd_regex = g_regex_new("^CMD\\s+([^ \\n]+)\\s*([^\\n]*)?$",
+            G_REGEX_OPTIMIZE, 0, &err);
 }
+
 static gboolean
 get_var_value(gchar *name) {
     void **p = NULL;
@@ -770,6 +773,16 @@ parse_cmd_line(char *ctl_line) {
             g_strfreev(tokens);
         }
         else 
+            printf("Error in command: %s\n", tokens[0]);
+    }
+    /* CMD command */
+    else if(ctl_line[0] == 'C') {
+        tokens = g_regex_split(uzbl.comm.cmd_regex, ctl_line, 0);
+        if(tokens[0][0] == 0) {
+            parse_command(tokens[1], tokens[2]);
+            g_strfreev(tokens);
+        }
+        else
             printf("Error in command: %s\n", tokens[0]);
     }
     else
