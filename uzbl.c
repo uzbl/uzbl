@@ -69,6 +69,10 @@ const struct {
     { "status_message",     (void *)&uzbl.gui.sbar.msg              },
     { "show_status",        (void *)&uzbl.behave.show_status        },
     { "insert_mode",        (void *)&uzbl.behave.insert_mode        },
+    { "load_finish_handler",(void *)&uzbl.behave.load_finish_handler},
+    { "history_handler",    (void *)&uzbl.behave.history_handler    },
+    { "download_handler",   (void *)&uzbl.behave.download_handler   },
+    { "cookie_handler",     (void *)&uzbl.behave.cookie_handler     },
     { NULL,             NULL                        }
 }, *n2v_p = var_name_to_ptr;
 
@@ -274,6 +278,7 @@ progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
 static void
 load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) page;
+    (void) frame;
     (void) data;
     if (uzbl.behave.load_finish_handler) {
         run_command_async(uzbl.behave.load_finish_handler, NULL);
@@ -716,7 +721,11 @@ set_var_value(gchar *name, gchar *val) {
     if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         if(!strcmp(name, "status_message")
                 || !strcmp(name, "status_background")
-                || !strcmp(name, "status_format")) {
+                || !strcmp(name, "status_format")
+                || !strcmp(name, "load_finish_handler")
+                || !strcmp(name, "history_handler")
+                || !strcmp(name, "download_handler")
+                || !strcmp(name, "cookie_handler")) {
             if(*p)
                 free(*p);
             *p = g_strdup(val);
