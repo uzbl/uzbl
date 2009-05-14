@@ -220,9 +220,6 @@ spawn(WebKitWebView *web_view, const char *param);
 static void
 parse_command(const char *cmd, const char *param);
 
-static void
-parse_line(char *line);
-
 void
 build_stream_name(int type);
 

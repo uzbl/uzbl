@@ -63,13 +63,20 @@ const struct {
     char *name;
     void **ptr;
 } var_name_to_ptr[] = {
+    // Already working commands
     { "uri",                (void *)&uzbl.state.uri                 },
     { "status_format",      (void *)&uzbl.behave.status_format      },
     { "status_background",  (void *)&uzbl.behave.status_background  },
     { "status_message",     (void *)&uzbl.gui.sbar.msg              },
     { "show_status",        (void *)&uzbl.behave.show_status        },
     { "insert_mode",        (void *)&uzbl.behave.insert_mode        },
-    { NULL,             NULL                        }
+    { "proxy_url",          (void *)&uzbl.net.proxy_url             },
+    // TODO: write cmd handlers for the following
+    { "useragent",          (void *)&uzbl.net.useragent             },
+    { "max_conns",          (void *)&uzbl.net.max_conns             },
+    { "max_conns_host",     (void *)&uzbl.net.max_conns_host        },
+    { "http_debug",         (void *)&uzbl.behave.http_debug         },
+    { NULL,                 NULL                                    }
 }, *n2v_p = var_name_to_ptr;
 
 /* construct a hash from the var_name_to_ptr array for quick access */
@@ -649,22 +656,6 @@ parse_command(const char *cmd, const char *param) {
         fprintf (stderr, "command \"%s\" not understood. ignoring.\n", cmd);
 }
 
-static void
-parse_line(char *line) {
-    gchar **parts;
-
-    g_strstrip(line);
-
-    parts = g_strsplit(line, " ", 2);
-
-    if (!parts)
-        return;
-
-    parse_command(parts[0], parts[1]);
-
-    g_strfreev(parts);
-}
-
 /* command parser */
 static void
 setup_regex() {
@@ -677,6 +668,7 @@ setup_regex() {
     uzbl.comm.bind_regex = g_regex_new("^[Bb][a-zA-Z]*\\s+?(.*[^ ])\\s*?=\\s*([a-z][^\\n].+)$", 
             G_REGEX_UNGREEDY|G_REGEX_OPTIMIZE, 0, &err);
 }
+
 static gboolean
 get_var_value(gchar *name) {
     void **p = NULL;
@@ -689,6 +681,25 @@ get_var_value(gchar *name) {
         }
     }
     return TRUE;
+}
+
+static void
+set_proxy_url() {
+    SoupURI *suri;
+
+    if(*uzbl.net.proxy_url == ' '
+       || uzbl.net.proxy_url == NULL) {
+        soup_session_remove_feature_by_type(uzbl.net.soup_session,
+                (GType) SOUP_SESSION_PROXY_URI);
+    }
+    else {
+        suri = soup_uri_new(uzbl.net.proxy_url);
+        g_object_set(G_OBJECT(uzbl.net.soup_session),
+                SOUP_SESSION_PROXY_URI,
+                suri, NULL);
+        soup_uri_free(suri);
+    }
+    return;
 }
 
 static gboolean
@@ -710,6 +721,12 @@ set_var_value(gchar *name, gchar *val) {
                 free(*p);
             *p = g_strdup(val);
             load_uri(uzbl.gui.web_view, (const gchar*)*p);
+        } 
+        else if(!strcmp(name, "proxy_url")) {
+            if(*p)
+                free(*p);
+            *p = g_strdup(val);
+            set_proxy_url();
         } 
         /* variables that take int values */
         else {
@@ -822,7 +839,6 @@ control_fifo(GIOChannel *gio, GIOCondition condition) {
     if (ret == G_IO_STATUS_ERROR)
         g_error ("Fifo: Error reading: %s\n", err->message);
 
-    //parse_line(ctl_line);
     parse_cmd_line(ctl_line);
     g_free(ctl_line);
 
@@ -931,7 +947,6 @@ control_socket(GIOChannel *chan) {
     }
     close (clientsock);
     ctl_line = g_strdup(buffer);
-    //parse_line (ctl_line);
     parse_cmd_line (ctl_line);
 
 /*
@@ -1316,16 +1331,12 @@ settings_init () {
 
     /* networking options */
     if (res) {
-        n->proxy_url      = g_key_file_get_value   (config, "network", "proxy_server",       NULL);
         b->http_debug     = g_key_file_get_integer (config, "network", "http_debug",         NULL);
         n->useragent      = g_key_file_get_value   (config, "network", "user-agent",         NULL);
         n->max_conns      = g_key_file_get_integer (config, "network", "max_conns",          NULL);
         n->max_conns_host = g_key_file_get_integer (config, "network", "max_conns_per_host", NULL);
     }
 
-    if(n->proxy_url){
-        g_object_set(G_OBJECT(n->soup_session), SOUP_SESSION_PROXY_URI, soup_uri_new(n->proxy_url), NULL);
-    }
 	
     if(!(b->http_debug <= 3)){
         b->http_debug = 0;
