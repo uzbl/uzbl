@@ -63,10 +63,20 @@ const struct {
     char *name;
     void **ptr;
 } var_name_to_ptr[] = {
-    { "status_format",  (void *)&uzbl.behave.status_format   },
-    { "show_status",    (void *)&uzbl.behave.show_status    },
-    { "insert_mode",    (void *)&uzbl.behave.insert_mode    },
-    { NULL,             NULL                        }
+    // Already working commands
+    { "uri",                (void *)&uzbl.state.uri                 },
+    { "status_format",      (void *)&uzbl.behave.status_format      },
+    { "status_background",  (void *)&uzbl.behave.status_background  },
+    { "status_message",     (void *)&uzbl.gui.sbar.msg              },
+    { "show_status",        (void *)&uzbl.behave.show_status        },
+    { "insert_mode",        (void *)&uzbl.behave.insert_mode        },
+    { "proxy_url",          (void *)&uzbl.net.proxy_url             },
+    // TODO: write cmd handlers for the following
+    { "useragent",          (void *)&uzbl.net.useragent             },
+    { "max_conns",          (void *)&uzbl.net.max_conns             },
+    { "max_conns_host",     (void *)&uzbl.net.max_conns_host        },
+    { "http_debug",         (void *)&uzbl.behave.http_debug         },
+    { NULL,                 NULL                                    }
 }, *n2v_p = var_name_to_ptr;
 
 /* construct a hash from the var_name_to_ptr array for quick access */
@@ -570,6 +580,10 @@ parse_status_template(const char *template) {
                      g_string_append(ret, 
                          uzbl.behave.insert_mode?"[I]":"[C]");
                      break;
+                 case SYM_MSG:
+                     g_string_append(ret, 
+                         uzbl.gui.sbar.msg?uzbl.gui.sbar.msg:"");
+                     break;
                  default:
                      break;
              }
@@ -642,21 +656,146 @@ parse_command(const char *cmd, const char *param) {
         fprintf (stderr, "command \"%s\" not understood. ignoring.\n", cmd);
 }
 
+/* command parser */
 static void
-parse_line(char *line) {
-    gchar **parts;
+setup_regex() {
+    GError *err=NULL;
 
-    g_strstrip(line);
-
-    parts = g_strsplit(line, " ", 2);
-
-    if (!parts)
-        return;
-
-    parse_command(parts[0], parts[1]);
-
-    g_strfreev(parts);
+    uzbl.comm.get_regex  = g_regex_new("^[Gg][a-zA-Z]*\\s+([^ \\n]+)$", 
+            G_REGEX_OPTIMIZE, 0, &err);
+    uzbl.comm.set_regex  = g_regex_new("^[Ss][a-zA-Z]*\\s+([^ ]+)\\s*=\\s*([^\\n].*)$",
+            G_REGEX_OPTIMIZE, 0, &err);
+    uzbl.comm.bind_regex = g_regex_new("^[Bb][a-zA-Z]*\\s+?(.*[^ ])\\s*?=\\s*([a-z][^\\n].+)$", 
+            G_REGEX_UNGREEDY|G_REGEX_OPTIMIZE, 0, &err);
 }
+
+static gboolean
+get_var_value(gchar *name) {
+    void **p = NULL;
+
+    if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
+        if(!strcmp(name, "status_format")) {
+            printf("VAR: %s VALUE: %s\n", name, (char *)*p);
+        } else {
+            printf("VAR: %s VALUE: %d\n", name, (int)*p);
+        }
+    }
+    return TRUE;
+}
+
+static void
+set_proxy_url() {
+    SoupURI *suri;
+
+    if(*uzbl.net.proxy_url == ' '
+       || uzbl.net.proxy_url == NULL) {
+        soup_session_remove_feature_by_type(uzbl.net.soup_session,
+                (GType) SOUP_SESSION_PROXY_URI);
+    }
+    else {
+        suri = soup_uri_new(uzbl.net.proxy_url);
+        g_object_set(G_OBJECT(uzbl.net.soup_session),
+                SOUP_SESSION_PROXY_URI,
+                suri, NULL);
+        soup_uri_free(suri);
+    }
+    return;
+}
+
+static gboolean
+var_is(const char *x, const char *y) {
+    gboolean ret = FALSE;
+
+    if(!strcmp(x, y))
+        ret = TRUE;
+
+    return ret;
+}
+
+static gboolean
+set_var_value(gchar *name, gchar *val) {
+    void **p = NULL;
+    char *endp = NULL;
+
+    if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
+        if(var_is("status_message", name)
+                || var_is("status_background", name)
+                || var_is("status_format", name)) {
+            if(*p)
+                free(*p);
+            *p = g_strdup(val);
+            update_title();
+        } 
+        else if(var_is("uri", name)) {
+            if(*p)
+                free(*p);
+            *p = g_strdup(val);
+            load_uri(uzbl.gui.web_view, (const gchar*)*p);
+        } 
+        else if(var_is("proxy_url", name)) {
+            if(*p)
+                free(*p);
+            *p = g_strdup(val);
+            set_proxy_url();
+        } 
+        /* variables that take int values */
+        else {
+            *p = (int)strtoul(val, &endp, 10);
+
+            if(var_is("show_status", name)) {
+                cmd_set_status();
+            }
+        }
+    }
+    return TRUE;
+}
+
+
+static void 
+parse_cmd_line(char *ctl_line) {
+    gchar **tokens;
+
+    /* SET command */
+    if(ctl_line[0] == 's' || ctl_line[0] == 'S') {
+        tokens = g_regex_split(uzbl.comm.set_regex, ctl_line, 0);
+        if(tokens[0][0] == 0) {
+            set_var_value(tokens[1], tokens[2]);
+            g_strfreev(tokens);
+        }
+        else 
+            printf("Error in command: %s\n", tokens[0]);
+    }
+    /* GET command */
+    else if(ctl_line[0] == 'g' || ctl_line[0] == 'G') {
+        tokens = g_regex_split(uzbl.comm.get_regex, ctl_line, 0);
+        if(tokens[0][0] == 0) {
+            get_var_value(tokens[1]);
+            g_strfreev(tokens);
+        }
+        else 
+            printf("Error in command: %s\n", tokens[0]);
+    } 
+    /* BIND command */
+    else if(ctl_line[0] == 'b' || ctl_line[0] == 'B') {
+        tokens = g_regex_split(uzbl.comm.bind_regex, ctl_line, 0);
+        if(tokens[0][0] == 0) {
+            add_binding(tokens[1], tokens[2]);
+            g_strfreev(tokens);
+        }
+        else 
+            printf("Error in command: %s\n", tokens[0]);
+    }
+    /* Comments */
+    else if(   (ctl_line[0] == '#')
+            || (ctl_line[0] == ' ')
+            || (ctl_line[0] == '\n'))
+        ; /* ignore these lines */
+    else
+        printf("Command not understood (%s)\n", ctl_line);
+
+    return;
+}
+
 
 void
 build_stream_name(int type) {
@@ -710,9 +849,9 @@ control_fifo(GIOChannel *gio, GIOCondition condition) {
     if (ret == G_IO_STATUS_ERROR)
         g_error ("Fifo: Error reading: %s\n", err->message);
 
-    parse_line(ctl_line);
+    parse_cmd_line(ctl_line);
     g_free(ctl_line);
-    printf("...done\n");
+
     return;
 }
 
@@ -744,51 +883,6 @@ create_fifo() {
     return;
 }
 
-static gboolean
-get_var_value(gchar *name) {
-    void **p = NULL;
-
-    if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
-        if(!strcmp(name, "name")) {
-            printf("VAR: %s VALUE: %s\n", name, (char *)*p);
-        } else {
-            printf("VAR: %s VALUE: %d\n", name, (int)*p);
-        }
-    }
-    return TRUE;
-}
-
-static gboolean
-set_var_value(gchar *name, gchar *val) {
-    void **p = NULL;
-    char *endp = NULL;
-
-    if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
-        if(!strcmp(name, "status_format")) {
-            free(*p);
-            *p = g_strdup(val);
-            update_title();
-        } 
-        /* variables that take int values */
-        else {
-            *p = (int)strtoul(val, &endp, 10);
-
-            if(!strcmp(name, "show_status")) {
-                    cmd_set_status();
-            }
-        }
-    }
-    return TRUE;
-}
-
-static void
-setup_regex() {
-    GError *err=NULL;
-
-    uzbl.comm.get_regex  = g_regex_new("^GET\\s+([^ \\n]+)$", 0, 0, &err);
-    uzbl.comm.set_regex  = g_regex_new("^SET\\s+([^ ]+)\\s*=\\s*([^\\n].*)$", 0, 0, &err);
-    uzbl.comm.bind_regex = g_regex_new("^BIND\\s+(.*[^ ])\\s*=\\s*([a-z][^\\n].+)$", 0, 0, &err);
-}
 
 static gboolean
 control_stdin(GIOChannel *gio, GIOCondition condition) {
@@ -796,7 +890,6 @@ control_stdin(GIOChannel *gio, GIOCondition condition) {
     gsize ctl_line_len = 0;
     GIOStatus ret;
     GError *err = NULL;
-    gchar **tokens;
 
     if (condition & G_IO_HUP) { 
         ret = g_io_channel_shutdown (gio, FALSE, &err);
@@ -807,39 +900,7 @@ control_stdin(GIOChannel *gio, GIOCondition condition) {
     if ( (ret == G_IO_STATUS_ERROR) || (ret == G_IO_STATUS_EOF) )
         return FALSE;
 
-    /* SET command */
-    if(ctl_line[0] == 'S') {
-        tokens = g_regex_split(uzbl.comm.set_regex, ctl_line, 0);
-        if(tokens[0][0] == 0) {
-            set_var_value(tokens[1], tokens[2]);
-            g_strfreev(tokens);
-        }
-        else 
-            printf("Error in command: %s\n", tokens[0]);
-    }
-    /* GET command */
-    else if(ctl_line[0] == 'G') {
-        tokens = g_regex_split(uzbl.comm.get_regex, ctl_line, 0);
-        if(tokens[0][0] == 0) {
-            get_var_value(tokens[1]);
-            g_strfreev(tokens);
-        }
-        else 
-            printf("Error in command: %s\n", tokens[0]);
-    } 
-    /* BIND command */
-    else if(ctl_line[0] == 'B') {
-        tokens = g_regex_split(uzbl.comm.bind_regex, ctl_line, 0);
-        if(tokens[0][0] == 0) {
-            add_binding(tokens[1], tokens[2]);
-            g_strfreev(tokens);
-        }
-        else 
-            printf("Error in command: %s\n", tokens[0]);
-    }
-    else
-        printf("Command not understood (%s)\n", ctl_line);
-
+    parse_cmd_line(ctl_line);
     g_free(ctl_line);
 
     return TRUE;
@@ -896,7 +957,7 @@ control_socket(GIOChannel *chan) {
     }
     close (clientsock);
     ctl_line = g_strdup(buffer);
-    parse_line (ctl_line);
+    parse_cmd_line (ctl_line);
 
 /*
    TODO: we should be able to do it with this.  but glib errors out with "Invalid argument"
@@ -1150,6 +1211,9 @@ add_binding (const gchar *key, const gchar *act) {
     //Debug:
     printf ("Binding %-10s : %s\n", key, act);
     action = new_action(parts[0], parts[1]);
+    
+    if(g_hash_table_lookup(uzbl.bindings, key))
+        g_hash_table_remove(uzbl.bindings, key);
     g_hash_table_insert(uzbl.bindings, g_strdup(key), action);
 
     g_strfreev(parts);
@@ -1277,16 +1341,12 @@ settings_init () {
 
     /* networking options */
     if (res) {
-        n->proxy_url      = g_key_file_get_value   (config, "network", "proxy_server",       NULL);
         b->http_debug     = g_key_file_get_integer (config, "network", "http_debug",         NULL);
         n->useragent      = g_key_file_get_value   (config, "network", "user-agent",         NULL);
         n->max_conns      = g_key_file_get_integer (config, "network", "max_conns",          NULL);
         n->max_conns_host = g_key_file_get_integer (config, "network", "max_conns_per_host", NULL);
     }
 
-    if(n->proxy_url){
-        g_object_set(G_OBJECT(n->soup_session), SOUP_SESSION_PROXY_URI, soup_uri_new(n->proxy_url), NULL);
-    }
 	
     if(!(b->http_debug <= 3)){
         b->http_debug = 0;
@@ -1445,7 +1505,7 @@ main (int argc, char* argv[]) {
     setup_scanner();
 
     if (!uzbl.behave.status_format)
-        uzbl.behave.status_format = STATUS_DEFAULT;
+        uzbl.behave.status_format = g_strdup(STATUS_DEFAULT);
     if (!uzbl.behave.show_status)
         gtk_widget_hide(uzbl.gui.mainbar);
     else

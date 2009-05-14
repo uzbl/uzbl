@@ -15,7 +15,7 @@
 /* statusbar symbols */
 enum { SYM_TITLE, SYM_URI, SYM_NAME, 
        SYM_LOADPRGS, SYM_LOADPRGSBAR,
-       SYM_KEYCMD, SYM_MODE};
+       SYM_KEYCMD, SYM_MODE, SYM_MSG};
 const struct {
     gchar *symbol_name;
     guint symbol_token;
@@ -25,6 +25,7 @@ const struct {
     {"TITLE",                SYM_TITLE},
     {"KEYCMD",               SYM_KEYCMD},
     {"MODE",                 SYM_MODE},
+    {"MSG",                  SYM_MSG},
     {"LOAD_PROGRESS",        SYM_LOADPRGS},
     {"LOAD_PROGRESSBAR",     SYM_LOADPRGSBAR},
     {NULL,                   0}
@@ -33,6 +34,7 @@ const struct {
 /* status bar elements */
 typedef struct {
     gint           load_progress;
+    gchar          *msg;
 } StatusBar;
 
 
@@ -217,9 +219,6 @@ spawn(WebKitWebView *web_view, const char *param);
 
 static void
 parse_command(const char *cmd, const char *param);
-
-static void
-parse_line(char *line);
 
 void
 build_stream_name(int type);
