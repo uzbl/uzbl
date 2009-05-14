@@ -917,22 +917,22 @@ create_fifo() {
 
     build_stream_name(FIFO);
     if (file_exists(uzbl.comm.fifo_path)) {
-        g_error ("Fifo: Error when creating %s: File exists\n", uzbl.comm.fifo_path);
+        g_warning ("Fifo: Error when creating %s: File exists\n", uzbl.comm.fifo_path);
         return;
     }
     if (mkfifo (uzbl.comm.fifo_path, 0666) == -1) {
-        g_error ("Fifo: Error when creating %s: %s\n", uzbl.comm.fifo_path, strerror(errno));
+        g_warning ("Fifo: Error when creating %s: %s\n", uzbl.comm.fifo_path, strerror(errno));
     } else {
         // we don't really need to write to the file, but if we open the file as 'r' we will block here, waiting for a writer to open the file.
         chan = g_io_channel_new_file((gchar *) uzbl.comm.fifo_path, "r+", &error);
         if (chan) {
             if (!g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, NULL)) {
-                g_error ("Fifo: could not add watch on %s\n", uzbl.comm.fifo_path);
+                g_warning ("Fifo: could not add watch on %s\n", uzbl.comm.fifo_path);
             } else { 
                 printf ("Fifo: created successfully as %s\n", uzbl.comm.fifo_path);
             }
         } else {
-            g_error ("Fifo: Error while opening: %s\n", error->message);
+            g_warning ("Fifo: Error while opening: %s\n", error->message);
         }
     }
     return;
