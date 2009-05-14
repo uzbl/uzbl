@@ -52,7 +52,7 @@ status bar ->  str_replace(all vars) -> pango markup thingie
 
 * config: check in the default place (XDG_CONFIG_HOME/..) for a config file, and if needed, do file reading (interpret line by line). not ini-based.
 * readd the --config flag to allow entering the same commands either through the file/stdin/fifo/socket
-
+* check for real command name, not just the first letter.
 
 
 SOMEDAY:
