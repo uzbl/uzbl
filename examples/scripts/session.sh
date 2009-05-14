@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Simple session manager for uzbl.  When called with "endsession" as the
+# Very simple session manager for uzbl.  When called with "endsession" as the
 # argument, it'lla empty the sessionfile, look for fifos in $fifodir and
 # instruct each of them to store their current url in $sessionfile and
 # terminate themselves.  Run with "launch" as the argument and an instance of
@@ -8,11 +8,9 @@
 # and doesn't need to be called manually at any point.
 
 
-scriptfile=~/.uzbl/session.sh # this script
-sessionfile=~/.uzbl/session # the file in which the "session" (i.e. urls) are stored
-
-# a simple script that calls the executable with --config <cfgpath> and args
-launcher=~/.uzbl/launch
+scriptfile=$XDG_CONFIG_HOME/uzbl/session.sh # this script
+sessionfile=$XDG_DATA_HOME/uzbl/session # the file in which the "session" (i.e. urls) are stored
+UZBL="uzbl" # add custom flags and whatever here.
 
 fifodir=/tmp # remember to change this if you instructed uzbl to put its fifos elsewhere
 thisfifo="$5"
@@ -22,15 +20,15 @@ url="$7"
 case $act in
   "launch" )
     for url in $(cat $sessionfile); do
-      $launcher --uri "$url" &
+      $UZBL --uri "$url" &
     done
     exit 0;;
   "endinstance" )
     if [ "$url" != "(null)" ]; then
-      echo "$url" >> $sessionfile; echo "exit" > "$thisfifo"
-    else
-      echo "exit" > "$thisfifo"
-    fi;;
+      echo "$url" >> $sessionfile;
+    fi
+    echo "exit" > "$thisfifo"
+    ;;
   "endsession" )
     echo -n "" > "$sessionfile"
     for fifo in $fifodir/uzbl_fifo_*; do
