@@ -233,10 +233,7 @@ static void
 control_fifo(GIOChannel *gio, GIOCondition condition);
 
 static void
-set_fifo_dir();
-
-static void
-create_fifo();
+init_fifo();
 
 static gboolean
 control_stdin(GIOChannel *gio, GIOCondition condition);

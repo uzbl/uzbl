@@ -768,7 +768,7 @@ set_var_value(gchar *name, gchar *val) {
             if(*p)
                 free(*p);
             *p = g_strdup(val);
-            set_fifo_dir();
+            init_fifo();
         }
         /* variables that take int values */
         else {
@@ -781,7 +781,6 @@ set_var_value(gchar *name, gchar *val) {
     }
     return TRUE;
 }
-
 
 static void 
 parse_cmd_line(char *ctl_line) {
@@ -838,26 +837,6 @@ parse_cmd_line(char *ctl_line) {
     return;
 }
 
-static void
-set_fifo_dir() {
-    if (uzbl.comm.fifo_path) {
-        if (file_exists(uzbl.comm.fifo_path)) {
-            unlink(uzbl.comm.fifo_path);
-            printf("set_fifo_dir: removed old fifo at %s\n", uzbl.comm.fifo_path);
-        }
-        g_free(uzbl.comm.fifo_path);
-        uzbl.comm.fifo_path = NULL;
-    }
-
-    if (!strcmp(uzbl.behave.fifo_dir, " ")) {  /* set to space to unset */
-        g_free(uzbl.behave.fifo_dir);
-        uzbl.behave.fifo_dir = NULL;
-        return;
-    }
-    
-    create_fifo();
-}
-
 void
 build_stream_name(int type) {
     char *xwin_str;
@@ -911,9 +890,26 @@ control_fifo(GIOChannel *gio, GIOCondition condition) {
 }
 
 static void
-create_fifo() {
+init_fifo() {
     GIOChannel *chan = NULL;
     GError *error = NULL;
+
+    if (uzbl.comm.fifo_path) { /* get rid of the old fifo if one exists */
+        if (file_exists(uzbl.comm.fifo_path)) {
+            if (unlink(uzbl.comm.fifo_path) == -1) {
+                g_warning ("Fifo: Ran't unlink old fifo at %s\n", uzbl.comm.fifo_path);
+                return;
+            } else printf ("Fifo: Removed old fifo at %s\n", uzbl.comm.fifo_path);
+        }
+        g_free(uzbl.comm.fifo_path);
+        uzbl.comm.fifo_path = NULL;
+    }
+
+    if (!strcmp(uzbl.behave.fifo_dir, " ")) { /* space unsets the variable */
+        g_free(uzbl.behave.fifo_dir);
+        uzbl.behave.fifo_dir = NULL;
+        return; /* variable was unset, so don't procceed to create a new fifo */
+    }
 
     build_stream_name(FIFO);
     if (file_exists(uzbl.comm.fifo_path)) {
@@ -937,7 +933,6 @@ create_fifo() {
     }
     return;
 }
-
 
 static gboolean
 control_stdin(GIOChannel *gio, GIOCondition condition) {
@@ -1580,7 +1575,7 @@ main (int argc, char* argv[]) {
     make_var_to_name_hash();
     create_stdin();
     if (uzbl.behave.fifo_dir)
-        create_fifo ();
+        init_fifo ();
     if (uzbl.behave.socket_dir)
         create_socket ();
 
