@@ -63,6 +63,7 @@ const struct {
     char *name;
     void **ptr;
 } var_name_to_ptr[] = {
+    // Already working commands
     { "uri",                (void *)&uzbl.state.uri                 },
     { "status_format",      (void *)&uzbl.behave.status_format      },
     { "status_background",  (void *)&uzbl.behave.status_background  },
@@ -73,7 +74,13 @@ const struct {
     { "history_handler",    (void *)&uzbl.behave.history_handler    },
     { "download_handler",   (void *)&uzbl.behave.download_handler   },
     { "cookie_handler",     (void *)&uzbl.behave.cookie_handler     },
-    { NULL,             NULL                        }
+    { "proxy_url",          (void *)&uzbl.net.proxy_url             },
+    // TODO: write cmd handlers for the following
+    { "useragent",          (void *)&uzbl.net.useragent             },
+    { "max_conns",          (void *)&uzbl.net.max_conns             },
+    { "max_conns_host",     (void *)&uzbl.net.max_conns_host        },
+    { "http_debug",         (void *)&uzbl.behave.http_debug         },
+    { NULL,                 NULL                                    }
 }, *n2v_p = var_name_to_ptr;
 
 /* construct a hash from the var_name_to_ptr array for quick access */
@@ -668,22 +675,6 @@ parse_command(const char *cmd, const char *param) {
         fprintf (stderr, "command \"%s\" not understood. ignoring.\n", cmd);
 }
 
-static void
-parse_line(char *line) {
-    gchar **parts;
-
-    g_strstrip(line);
-
-    parts = g_strsplit(line, " ", 2);
-
-    if (!parts)
-        return;
-
-    parse_command(parts[0], parts[1]);
-
-    g_strfreev(parts);
-}
-
 /* command parser */
 static void
 setup_regex() {
@@ -713,35 +704,70 @@ get_var_value(gchar *name) {
     return TRUE;
 }
 
+static void
+set_proxy_url() {
+    SoupURI *suri;
+
+    if(*uzbl.net.proxy_url == ' '
+       || uzbl.net.proxy_url == NULL) {
+        soup_session_remove_feature_by_type(uzbl.net.soup_session,
+                (GType) SOUP_SESSION_PROXY_URI);
+    }
+    else {
+        suri = soup_uri_new(uzbl.net.proxy_url);
+        g_object_set(G_OBJECT(uzbl.net.soup_session),
+                SOUP_SESSION_PROXY_URI,
+                suri, NULL);
+        soup_uri_free(suri);
+    }
+    return;
+}
+
+static gboolean
+var_is(const char *x, const char *y) {
+    gboolean ret = FALSE;
+
+    if(!strcmp(x, y))
+        ret = TRUE;
+
+    return ret;
+}
+
 static gboolean
 set_var_value(gchar *name, gchar *val) {
     void **p = NULL;
     char *endp = NULL;
 
     if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
-        if(!strcmp(name, "status_message")
-                || !strcmp(name, "status_background")
-                || !strcmp(name, "status_format")
-                || !strcmp(name, "load_finish_handler")
-                || !strcmp(name, "history_handler")
-                || !strcmp(name, "download_handler")
-                || !strcmp(name, "cookie_handler")) {
+        if(var_is("status_message", name)
+           || var_is("status_background", name)
+           || var_is("status_format", name)
+           || var_is("load_finish_handler", name)
+           || var_is("history_handler", name)
+           || var_is("download_handler", name)
+           || var_is("cookie_handler", name)) {
             if(*p)
                 free(*p);
             *p = g_strdup(val);
             update_title();
         } 
-        else if(!strcmp(name, "uri")) {
+        else if(var_is("uri", name)) {
             if(*p)
                 free(*p);
             *p = g_strdup(val);
             load_uri(uzbl.gui.web_view, (const gchar*)*p);
         } 
+        else if(var_is("proxy_url", name)) {
+            if(*p)
+                free(*p);
+            *p = g_strdup(val);
+            set_proxy_url();
+        } 
         /* variables that take int values */
         else {
             *p = (int)strtoul(val, &endp, 10);
 
-            if(!strcmp(name, "show_status")) {
+            if(var_is("show_status", name)) {
                 cmd_set_status();
             }
         }
@@ -858,7 +884,6 @@ control_fifo(GIOChannel *gio, GIOCondition condition) {
     if (ret == G_IO_STATUS_ERROR)
         g_error ("Fifo: Error reading: %s\n", err->message);
 
-    //parse_line(ctl_line);
     parse_cmd_line(ctl_line);
     g_free(ctl_line);
 
@@ -967,7 +992,6 @@ control_socket(GIOChannel *chan) {
     }
     close (clientsock);
     ctl_line = g_strdup(buffer);
-    //parse_line (ctl_line);
     parse_cmd_line (ctl_line);
 
 /*
@@ -1368,16 +1392,12 @@ settings_init () {
 
     /* networking options */
     if (res) {
-        n->proxy_url      = g_key_file_get_value   (config, "network", "proxy_server",       NULL);
         b->http_debug     = g_key_file_get_integer (config, "network", "http_debug",         NULL);
         n->useragent      = g_key_file_get_value   (config, "network", "user-agent",         NULL);
         n->max_conns      = g_key_file_get_integer (config, "network", "max_conns",          NULL);
         n->max_conns_host = g_key_file_get_integer (config, "network", "max_conns_per_host", NULL);
     }
 
-    if(n->proxy_url){
-        g_object_set(G_OBJECT(n->soup_session), SOUP_SESSION_PROXY_URI, soup_uri_new(n->proxy_url), NULL);
-    }
 	
     if(!(b->http_debug <= 3)){
         b->http_debug = 0;
