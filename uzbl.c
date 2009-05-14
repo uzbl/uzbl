@@ -79,9 +79,9 @@ const struct {
     { "proxy_url",          (void *)&uzbl.net.proxy_url             },
     { "max_conns",          (void *)&uzbl.net.max_conns             },
     { "max_conns_host",     (void *)&uzbl.net.max_conns_host        },
+    { "http_debug",         (void *)&uzbl.behave.http_debug         },
     // TODO: write cmd handlers for the following
     { "useragent",          (void *)&uzbl.net.useragent             },
-    { "http_debug",         (void *)&uzbl.behave.http_debug         },
     { NULL,                 NULL                                    }
 }, *n2v_p = var_name_to_ptr;
 
@@ -775,7 +775,8 @@ set_var_value(gchar *name, gchar *val) {
         }
         /* variables that take int values */
         else {
-            *p = (int)strtoul(val, &endp, 10);
+            int *ip = p;
+            *ip = (int)strtoul(val, &endp, 10);
 
             if(var_is("show_status", name)) {
                 cmd_set_status();
@@ -787,6 +788,16 @@ set_var_value(gchar *name, gchar *val) {
             else if (var_is("max_conns_host", name)) {
                 g_object_set(G_OBJECT(uzbl.net.soup_session),
                              SOUP_SESSION_MAX_CONNS_PER_HOST, uzbl.net.max_conns_host, NULL);
+            }
+            else if (var_is("http_debug", name)) {
+                soup_session_remove_feature
+                    (uzbl.net.soup_session, uzbl.net.soup_logger);
+                /* do we leak if this doesn't get freed? why does it occasionally crash if freed? */
+                /*g_free(uzbl.net.soup_logger);*/
+                  
+                uzbl.net.soup_logger = soup_logger_new(uzbl.behave.http_debug, -1);
+                soup_session_add_feature(uzbl.net.soup_session,
+                                         SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
             }
         }
     }
