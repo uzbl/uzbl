@@ -70,6 +70,12 @@ const struct {
     { "status_message",     (void *)&uzbl.gui.sbar.msg              },
     { "show_status",        (void *)&uzbl.behave.show_status        },
     { "insert_mode",        (void *)&uzbl.behave.insert_mode        },
+    { "load_finish_handler",(void *)&uzbl.behave.load_finish_handler},
+    { "history_handler",    (void *)&uzbl.behave.history_handler    },
+    { "download_handler",   (void *)&uzbl.behave.download_handler   },
+    { "cookie_handler",     (void *)&uzbl.behave.cookie_handler     },
+    { "fifo_dir",           (void *)&uzbl.behave.fifo_dir           },
+    { "socket_dir",         (void *)&uzbl.behave.socket_dir         },
     { "proxy_url",          (void *)&uzbl.net.proxy_url             },
     // TODO: write cmd handlers for the following
     { "useragent",          (void *)&uzbl.net.useragent             },
@@ -279,12 +285,27 @@ progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
 }
 
 static void
+load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
+    (void) page;
+    (void) frame;
+    (void) data;
+    if (uzbl.behave.load_finish_handler) {
+        run_command_async(uzbl.behave.load_finish_handler, NULL);
+    }
+}
+
+static void
 load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) page;
     (void) data;
     free (uzbl.state.uri);
     GString* newuri = g_string_new (webkit_web_frame_get_uri (frame));
     uzbl.state.uri = g_string_free (newuri, FALSE);
+    if ((!uzbl.behave.never_reset_mode) && (uzbl.behave.insert_mode)) {
+        uzbl.behave.insert_mode = uzbl.behave.always_insert_mode;
+        update_title();
+    }    
+    g_string_truncate(uzbl.state.keycmd, 0); // don't need old commands to remain on new page?
 }
 
 static void
@@ -667,6 +688,8 @@ setup_regex() {
             G_REGEX_OPTIMIZE, 0, &err);
     uzbl.comm.bind_regex = g_regex_new("^[Bb][a-zA-Z]*\\s+?(.*[^ ])\\s*?=\\s*([a-z][^\\n].+)$", 
             G_REGEX_UNGREEDY|G_REGEX_OPTIMIZE, 0, &err);
+    uzbl.comm.cmd_regex = g_regex_new("^[Cc][a-zA-Z]*\\s+([^ \\n]+)\\s*([^\\n]*)?$",
+            G_REGEX_OPTIMIZE, 0, &err);
 }
 
 static gboolean
@@ -719,8 +742,12 @@ set_var_value(gchar *name, gchar *val) {
 
     if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         if(var_is("status_message", name)
-                || var_is("status_background", name)
-                || var_is("status_format", name)) {
+           || var_is("status_background", name)
+           || var_is("status_format", name)
+           || var_is("load_finish_handler", name)
+           || var_is("history_handler", name)
+           || var_is("download_handler", name)
+           || var_is("cookie_handler", name)) {
             if(*p)
                 free(*p);
             *p = g_strdup(val);
@@ -737,7 +764,15 @@ set_var_value(gchar *name, gchar *val) {
                 free(*p);
             *p = g_strdup(val);
             set_proxy_url();
-        } 
+        }
+        else if(var_is("fifo_dir", name)) {
+            if(*p) free(*p);
+            *p = init_fifo(g_strdup(val));
+        }
+        else if(var_is("socket_dir", name)) {
+            if(*p) free(*p);
+            *p = init_socket(g_strdup(val));
+        }
         /* variables that take int values */
         else {
             *p = (int)strtoul(val, &endp, 10);
@@ -749,7 +784,6 @@ set_var_value(gchar *name, gchar *val) {
     }
     return TRUE;
 }
-
 
 static void 
 parse_cmd_line(char *ctl_line) {
@@ -785,6 +819,16 @@ parse_cmd_line(char *ctl_line) {
         else 
             printf("Error in command: %s\n", tokens[0]);
     }
+    /* CMD command */
+    else if(ctl_line[0] == 'C' || ctl_line[0] == 'c') {
+        tokens = g_regex_split(uzbl.comm.cmd_regex, ctl_line, 0);
+        if(tokens[0][0] == 0) {
+            parse_command(tokens[1], tokens[2]);
+            g_strfreev(tokens);
+        }
+        else
+            printf("Error in command: %s\n", tokens[0]);
+    }
     /* Comments */
     else if(   (ctl_line[0] == '#')
             || (ctl_line[0] == ' ')
@@ -796,40 +840,24 @@ parse_cmd_line(char *ctl_line) {
     return;
 }
 
-
-void
-build_stream_name(int type) {
+static gchar*
+build_stream_name(int type, const gchar* dir) {
     char *xwin_str;
     State *s = &uzbl.state;
-    Behaviour *b = &uzbl.behave;
+    gchar *str;
 
     xwin_str = itos((int)uzbl.xwin);
-    switch(type) {
-        case FIFO:
-            if (b->fifo_dir) {
-                sprintf (uzbl.comm.fifo_path, "%s/uzbl_fifo_%s", 
-                            b->fifo_dir,
-                            s->instance_name ? s->instance_name : xwin_str);
-            } else {
-                sprintf (uzbl.comm.fifo_path, "/tmp/uzbl_fifo_%s",
-                            s->instance_name ? s->instance_name : xwin_str);
-            }
-            break;
-
-        case SOCKET:
-            if (b->socket_dir) {
-                sprintf (uzbl.comm.socket_path, "%s/uzbl_socket_%s",
-                            b->socket_dir,
-                            s->instance_name ? s->instance_name : xwin_str);
-            } else {
-                sprintf (uzbl.comm.socket_path, "/tmp/uzbl_socket_%s",
-                                s->instance_name ? s->instance_name : xwin_str);
-            }
-            break;
-        default:
-            break;
+    if (type == FIFO) {
+        str = g_strdup_printf
+            ("%s/uzbl_fifo_%s", dir,
+             s->instance_name ? s->instance_name : xwin_str);
+    } else if (type == SOCKET) {
+        str = g_strdup_printf
+            ("%s/uzbl_socket_%s", dir,
+             s->instance_name ? s->instance_name : xwin_str );
     }
     g_free(xwin_str);
+    return str;
 }
 
 static void
@@ -855,34 +883,43 @@ control_fifo(GIOChannel *gio, GIOCondition condition) {
     return;
 }
 
-static void
-create_fifo() {
+static gchar*
+init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
+    if (uzbl.comm.fifo_path) { /* get rid of the old fifo if one exists */
+        if (unlink(uzbl.comm.fifo_path) == -1)
+            g_warning ("Fifo: Can't unlink old fifo at %s\n", uzbl.comm.fifo_path);
+        g_free(uzbl.comm.fifo_path);
+        uzbl.comm.fifo_path = NULL;
+    }
+
+    if (!strcmp(dir, " ")) { /* space unsets the variable */
+        g_free(dir);
+        return NULL;
+    }
+
     GIOChannel *chan = NULL;
     GError *error = NULL;
+    gchar *path = build_stream_name(FIFO, dir);
+    
+    if (!file_exists(path)) {
+        if (mkfifo (path, 0666) == 0) {
+            // we don't really need to write to the file, but if we open the file as 'r' we will block here, waiting for a writer to open the file.            
+            chan = g_io_channel_new_file(path, "r+", &error);
+            if (chan) {
+                if (g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, NULL)) {
+                    printf ("init_fifo: created successfully as %s\n", path);
+                    uzbl.comm.fifo_path = path;
+                    return dir;
+                } else g_warning ("init_fifo: could not add watch on %s\n", path);
+            } else g_warning ("init_fifo: can't open: %s\n", error->message);
+        } else g_warning ("init_fifo: can't create %s: %s\n", path, strerror(errno));
+    } else g_warning ("init_fifo: can't create %s: file exists\n", path);
 
-    build_stream_name(FIFO);
-    if (file_exists(uzbl.comm.fifo_path)) {
-        g_error ("Fifo: Error when creating %s: File exists\n", uzbl.comm.fifo_path);
-        return;
-    }
-    if (mkfifo (uzbl.comm.fifo_path, 0666) == -1) {
-        g_error ("Fifo: Error when creating %s: %s\n", uzbl.comm.fifo_path, strerror(errno));
-    } else {
-        // we don't really need to write to the file, but if we open the file as 'r' we will block here, waiting for a writer to open the file.
-        chan = g_io_channel_new_file((gchar *) uzbl.comm.fifo_path, "r+", &error);
-        if (chan) {
-            if (!g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, NULL)) {
-                g_error ("Fifo: could not add watch on %s\n", uzbl.comm.fifo_path);
-            } else { 
-                printf ("Fifo: created successfully as %s\n", uzbl.comm.fifo_path);
-            }
-        } else {
-            g_error ("Fifo: Error while opening: %s\n", error->message);
-        }
-    }
-    return;
+    /* if we got this far, there was an error; cleanup */
+    g_free(path);
+    g_free(dir);
+    return NULL;
 }
-
 
 static gboolean
 control_stdin(GIOChannel *gio, GIOCondition condition) {
@@ -975,33 +1012,49 @@ control_socket(GIOChannel *chan) {
 
     g_free(ctl_line);
     return;
-} 
+}
 
-static void
-create_socket() {
+static gchar*
+init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL */
+    if (uzbl.comm.socket_path) { /* remove an existing socket should one exist */
+        if (unlink(uzbl.comm.socket_path) == -1)
+            g_warning ("init_socket: couldn't unlink socket at %s\n", uzbl.comm.socket_path);
+        g_free(uzbl.comm.socket_path);
+        uzbl.comm.socket_path = NULL;
+    }
+    
+    if (!strcmp(dir, " ")) {
+        g_free(dir);
+        return NULL;
+    }
+
     GIOChannel *chan = NULL;
     int sock, len;
     struct sockaddr_un local;
-
-    build_stream_name(SOCKET);
+    gchar *path = build_stream_name(SOCKET, dir);
+    
     sock = socket (AF_UNIX, SOCK_STREAM, 0);
 
     local.sun_family = AF_UNIX;
-    strcpy (local.sun_path, uzbl.comm.socket_path);
+    strcpy (local.sun_path, path);
     unlink (local.sun_path);
 
     len = strlen (local.sun_path) + sizeof (local.sun_family);
-    bind (sock, (struct sockaddr *) &local, len);
-
-    if (errno == -1) {
-        printf ("Socket: Could not open in %s: %s\n", uzbl.comm.socket_path, strerror(errno));
-    } else {
-        printf ("Socket: Opened in %s\n", uzbl.comm.socket_path);
+    if (bind (sock, (struct sockaddr *) &local, len) != -1) {
+        printf ("init_socket: opened in %s\n", path);
         listen (sock, 5);
 
-        if( (chan = g_io_channel_unix_new(sock)) )
+        if( (chan = g_io_channel_unix_new(sock)) ) {
             g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_socket, chan);
-    }
+            uzbl.comm.socket_path = path;
+            return dir;
+        }
+    } else g_warning ("init_socket: could not open in %s: %s\n", path, strerror(errno));
+
+    /* if we got this far, there was an error; cleanup */
+    g_free(path);
+    g_free(dir);
+    return NULL;
 }
 
 static void
@@ -1069,7 +1122,7 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     Action *action;
 
     if (event->type != GDK_KEY_PRESS || event->keyval == GDK_Page_Up || event->keyval == GDK_Page_Down
-        || event->keyval == GDK_Up || event->keyval == GDK_Down || event->keyval == GDK_Left || event->keyval == GDK_Right)
+        || event->keyval == GDK_Up || event->keyval == GDK_Down || event->keyval == GDK_Left || event->keyval == GDK_Right || event->keyval == GDK_Shift_L || event->keyval == GDK_Shift_R)
         return FALSE;
 
     /* turn off insert mode (if always_insert_mode is not used) */
@@ -1079,7 +1132,7 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
         return TRUE;
     }
 
-    if (uzbl.behave.insert_mode && ((event->state & uzbl.behave.modmask) != uzbl.behave.modmask))
+    if (uzbl.behave.insert_mode && (((event->state & uzbl.behave.modmask) != uzbl.behave.modmask) || (!uzbl.behave.modmask)))
         return FALSE;
 
     if (event->keyval == GDK_Escape) {
@@ -1107,49 +1160,61 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     if ((event->keyval == GDK_BackSpace) && (uzbl.state.keycmd->len > 0)) {
         g_string_truncate(uzbl.state.keycmd, uzbl.state.keycmd->len - 1);
         update_title();
-        return TRUE;
     }
 
-    if ((event->keyval == GDK_Return) || (event->keyval == GDK_KP_Enter)) {
-        GString* short_keys = g_string_new ("");
-        unsigned int i;
-        for (i=0; i<(uzbl.state.keycmd->len); i++) {
-            g_string_append_c(short_keys, uzbl.state.keycmd->str[i]);
-            g_string_append_c(short_keys, '_');
-            
-            //printf("\nTesting string: @%s@\n", short_keys->str);
-            if ((action = g_hash_table_lookup(uzbl.bindings, short_keys->str))) {
-                GString* parampart = g_string_new (uzbl.state.keycmd->str);
-                g_string_erase (parampart, 0, i+1);
-                //printf("\nParameter: @%s@\n", parampart->str);
-                GString* actionname = g_string_new ("");
-                if (action->name)
-                    g_string_printf (actionname, action->name, parampart->str);
-                GString* actionparam = g_string_new ("");
-                if (action->param)
-                    g_string_printf (actionparam, action->param, parampart->str);
-                parse_command(actionname->str, actionparam->str);
-                g_string_free (actionname, TRUE);
-                g_string_free (actionparam, TRUE);
-                g_string_free (parampart, TRUE);
-                g_string_truncate(uzbl.state.keycmd, 0);
-                update_title();
-            }          
+    gboolean key_ret = FALSE;
+    if ((event->keyval == GDK_Return) || (event->keyval == GDK_KP_Enter))
+        key_ret = TRUE;
 
-            g_string_truncate(short_keys, short_keys->len - 1);
-        }
-        g_string_free (short_keys, TRUE);
-        return (!uzbl.behave.insert_mode);
-    }
-
-    g_string_append(uzbl.state.keycmd, event->string);
+    if (!key_ret) g_string_append(uzbl.state.keycmd, event->string);
     if ((action = g_hash_table_lookup(uzbl.bindings, uzbl.state.keycmd->str))) {
         g_string_truncate(uzbl.state.keycmd, 0);
         parse_command(action->name, action->param);
     }
 
-    update_title();
+    GString* short_keys = g_string_new ("");
+    GString* short_keys_inc = g_string_new ("");
+    unsigned int i;
+    for (i=0; i<(uzbl.state.keycmd->len); i++) {
+        g_string_append_c(short_keys, uzbl.state.keycmd->str[i]);
+        g_string_assign(short_keys_inc, short_keys->str);
+        g_string_append_c(short_keys, '_');
+        g_string_append_c(short_keys_inc, '*');
+            
+        gboolean exec_now = FALSE;
+        if ((action = g_hash_table_lookup(uzbl.bindings, short_keys->str))) {
+            if (key_ret) exec_now = TRUE; // run normal cmds only if return was pressed
+        } else if ((action = g_hash_table_lookup(uzbl.bindings, short_keys_inc->str))) {
+            if (key_ret) { // just quit the incremental command on return
+                g_string_truncate(uzbl.state.keycmd, 0);
+                break;
+            } else exec_now = TRUE; // always exec inc. commands on keys other than return
+        }
 
+        if (exec_now) {
+            GString* parampart = g_string_new (uzbl.state.keycmd->str);
+            GString* actionname = g_string_new ("");
+            GString* actionparam = g_string_new ("");
+            g_string_erase (parampart, 0, i+1);
+            if (action->name)
+                g_string_printf (actionname, action->name, parampart->str);
+            if (action->param)
+                g_string_printf (actionparam, action->param, parampart->str);
+            parse_command(actionname->str, actionparam->str);
+            g_string_free (actionname, TRUE);
+            g_string_free (actionparam, TRUE);
+            g_string_free (parampart, TRUE);
+            if (key_ret)
+                g_string_truncate(uzbl.state.keycmd, 0);
+            break;
+        }      
+        
+        g_string_truncate(short_keys, short_keys->len - 1);
+    }
+    g_string_free (short_keys, TRUE);
+    g_string_free (short_keys_inc, TRUE);
+    update_title();
+    if (key_ret) return (!uzbl.behave.insert_mode);
     return TRUE;
 }
 
@@ -1167,6 +1232,7 @@ create_browser () {
     g_signal_connect (G_OBJECT (g->web_view), "load-progress-changed", G_CALLBACK (progress_change_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-committed", G_CALLBACK (load_commit_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-committed", G_CALLBACK (log_history_cb), g->web_view);
+    g_signal_connect (G_OBJECT (g->web_view), "load-finished", G_CALLBACK (load_finish_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "key-press-event", G_CALLBACK (key_press_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "new-window-policy-decision-requested", G_CALLBACK (new_window_cb), g->web_view); 
@@ -1277,6 +1343,7 @@ settings_init () {
     }
 
     if (res) {
+        b->load_finish_handler= g_key_file_get_value   (config, "behavior", "load_finish_handler",NULL);
         b->history_handler    = g_key_file_get_value   (config, "behavior", "history_handler",    NULL);
         b->download_handler   = g_key_file_get_value   (config, "behavior", "download_handler",   NULL);
         b->cookie_handler     = g_key_file_get_string  (config, "behavior", "cookie_handler",     NULL);
@@ -1284,6 +1351,7 @@ settings_init () {
         b->show_status        = g_key_file_get_boolean (config, "behavior", "show_status",        NULL);
         b->modkey             = g_key_file_get_value   (config, "behavior", "modkey",             NULL);
         b->status_top         = g_key_file_get_boolean (config, "behavior", "status_top",         NULL);
+        b->never_reset_mode   = g_key_file_get_boolean (config, "behavior", "never_reset_mode",   NULL);
         b->status_format      = g_key_file_get_string  (config, "behavior", "status_format",      NULL);
         b->status_background  = g_key_file_get_string  (config, "behavior", "status_background",  NULL);
         if (! b->fifo_dir)
@@ -1299,10 +1367,11 @@ settings_init () {
     printf ("Fifo directory: %s\n",     (b->fifo_dir           ? b->fifo_dir         : "disabled"));
     printf ("Socket directory: %s\n",   (b->socket_dir         ? b->socket_dir       : "disabled"));
     printf ("Always insert mode: %s\n", (b->always_insert_mode ? "TRUE"              : "FALSE"));
+    printf ("Don't reset mode: %s\n",   (b->never_reset_mode   ? "TRUE"              : "FALSE"));
     printf ("Show status: %s\n",        (b->show_status        ? "TRUE"              : "FALSE"));
     printf ("Status top: %s\n",         (b->status_top         ? "TRUE"              : "FALSE"));
     printf ("Modkey: %s\n",             (b->modkey             ? b->modkey           : "disabled"));
-    printf ("Status format: %s\n",             (b->status_format            ? b->status_format           : "none"));
+    printf ("Status format: %s\n",      (b->status_format      ? b->status_format    : "none"));
 
     if (!b->modkey)
         b->modkey = "";
@@ -1398,21 +1467,15 @@ settings_init () {
     printf("User-agent: %s\n", n->useragent? n->useragent : "default");
     printf("Maximum connections: %d\n", n->max_conns ? n->max_conns : 0);
     printf("Maximum connections per host: %d\n", n->max_conns_host ? n->max_conns_host: 0);
-		
 
-
-	if(b->cookie_handler){
-		/* ck = soup_cookie_jar_new(); */
-		/* soup_session_add_feature(soup_session, SOUP_SESSION_FEATURE(ck)); */
-		/* g_signal_connect(ck, "changed", G_CALLBACK(cookie_recieved_action), NULL); */
-		g_signal_connect(n->soup_session, "request-queued", G_CALLBACK(handle_cookies), NULL);
-	}
-	
+    g_signal_connect(n->soup_session, "request-queued", G_CALLBACK(handle_cookies), NULL);
 }
 
 static void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer user_data){
     (void) session;
     (void) user_data;
+    if (!uzbl.behave.cookie_handler) return;
+    
     gchar * stdout = NULL;
     soup_message_add_header_handler(msg, "got-headers", "Set-Cookie", G_CALLBACK(save_cookies), NULL);
     GString* args = g_string_new ("");
@@ -1462,7 +1525,7 @@ main (int argc, char* argv[]) {
     /* initialize hash table */
     uzbl.bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
 	
-	uzbl.net.soup_session = webkit_get_default_session();
+    uzbl.net.soup_session = webkit_get_default_session();
     uzbl.state.keycmd = g_string_new("");
 
     settings_init ();
@@ -1514,10 +1577,10 @@ main (int argc, char* argv[]) {
 
     make_var_to_name_hash();
     create_stdin();
-    if (uzbl.behave.fifo_dir)
-        create_fifo ();
-    if (uzbl.behave.socket_dir)
-        create_socket ();
+    /*if (uzbl.behave.fifo_dir)
+      init_fifo ();*/
+    /*if (uzbl.behave.socket_dir)
+      init_socket ();*/
 
     gtk_main ();
     clean_up();

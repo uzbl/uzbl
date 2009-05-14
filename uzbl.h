@@ -57,12 +57,13 @@ typedef struct {
 /* external communication*/
 enum { FIFO, SOCKET};
 typedef struct {
-    char           fifo_path[64];
-    char           socket_path[108];
+    gchar          *fifo_path;
+    gchar          *socket_path;
     /* stores (key)"variable name" -> (value)"pointer to this var*/
     GHashTable     *proto_var;
     /* command parsing regexes */
-    GRegex         *set_regex; 
+    GRegex         *set_regex;
+    GRegex         *cmd_regex;
     GRegex         *get_regex; 
     GRegex         *bind_regex; 
 } Communication;
@@ -95,6 +96,7 @@ typedef struct {
 
 /* behaviour */
 typedef struct {
+    gchar*   load_finish_handler;
     gchar*   status_format;
     gchar*   status_background;
     gchar*   history_handler;
@@ -106,6 +108,7 @@ typedef struct {
     gboolean show_status;
     gboolean insert_mode;
     gboolean status_top;
+    gboolean never_reset_mode;
     gchar*   modkey;
     guint    modmask;
     guint    http_debug;
@@ -179,6 +182,9 @@ static void
 load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
 
 static void
+load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
+
+static void
 destroy_cb (GtkWidget* widget, gpointer data);
 
 static void
@@ -220,14 +226,14 @@ spawn(WebKitWebView *web_view, const char *param);
 static void
 parse_command(const char *cmd, const char *param);
 
-void
-build_stream_name(int type);
+static gchar*
+build_stream_name(int type, const gchar *dir);
 
 static void
 control_fifo(GIOChannel *gio, GIOCondition condition);
 
-static void
-create_fifo();
+static gchar*
+init_fifo(gchar *dir);
 
 static gboolean
 control_stdin(GIOChannel *gio, GIOCondition condition);
@@ -235,8 +241,8 @@ control_stdin(GIOChannel *gio, GIOCondition condition);
 static void
 create_stdin();
 
-static void
-create_socket();
+static gchar*
+init_socket(gchar *dir);
 
 static void
 control_socket(GIOChannel *chan);
