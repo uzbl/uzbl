@@ -703,26 +703,36 @@ set_proxy_url() {
 }
 
 static gboolean
+var_is(const char *x, const char *y) {
+    gboolean ret = FALSE;
+
+    if(!strcmp(x, y))
+        ret = TRUE;
+
+    return ret;
+}
+
+static gboolean
 set_var_value(gchar *name, gchar *val) {
     void **p = NULL;
     char *endp = NULL;
 
     if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
-        if(!strcmp(name, "status_message")
-                || !strcmp(name, "status_background")
-                || !strcmp(name, "status_format")) {
+        if(var_is("status_message", name)
+                || var_is("status_background", name)
+                || var_is("status_format", name)) {
             if(*p)
                 free(*p);
             *p = g_strdup(val);
             update_title();
         } 
-        else if(!strcmp(name, "uri")) {
+        else if(var_is("uri", name)) {
             if(*p)
                 free(*p);
             *p = g_strdup(val);
             load_uri(uzbl.gui.web_view, (const gchar*)*p);
         } 
-        else if(!strcmp(name, "proxy_url")) {
+        else if(var_is("proxy_url", name)) {
             if(*p)
                 free(*p);
             *p = g_strdup(val);
@@ -732,7 +742,7 @@ set_var_value(gchar *name, gchar *val) {
         else {
             *p = (int)strtoul(val, &endp, 10);
 
-            if(!strcmp(name, "show_status")) {
+            if(var_is("show_status", name)) {
                 cmd_set_status();
             }
         }
