@@ -77,10 +77,10 @@ const struct {
     { "fifo_dir",           (void *)&uzbl.behave.fifo_dir           },
     { "socket_dir",         (void *)&uzbl.behave.socket_dir         },
     { "proxy_url",          (void *)&uzbl.net.proxy_url             },
-    // TODO: write cmd handlers for the following
-    { "useragent",          (void *)&uzbl.net.useragent             },
     { "max_conns",          (void *)&uzbl.net.max_conns             },
     { "max_conns_host",     (void *)&uzbl.net.max_conns_host        },
+    // TODO: write cmd handlers for the following
+    { "useragent",          (void *)&uzbl.net.useragent             },
     { "http_debug",         (void *)&uzbl.behave.http_debug         },
     { NULL,                 NULL                                    }
 }, *n2v_p = var_name_to_ptr;
@@ -779,6 +779,14 @@ set_var_value(gchar *name, gchar *val) {
 
             if(var_is("show_status", name)) {
                 cmd_set_status();
+            }
+            else if (var_is("max_conns", name)) {
+                g_object_set(G_OBJECT(uzbl.net.soup_session),
+                             SOUP_SESSION_MAX_CONNS, uzbl.net.max_conns, NULL);
+            }
+            else if (var_is("max_conns_host", name)) {
+                g_object_set(G_OBJECT(uzbl.net.soup_session),
+                             SOUP_SESSION_MAX_CONNS_PER_HOST, uzbl.net.max_conns_host, NULL);
             }
         }
     }
