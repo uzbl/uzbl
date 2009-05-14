@@ -301,7 +301,7 @@ load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     free (uzbl.state.uri);
     GString* newuri = g_string_new (webkit_web_frame_get_uri (frame));
     uzbl.state.uri = g_string_free (newuri, FALSE);
-    if ((!uzbl.behave.never_reset_mode) && (uzbl.behave.insert_mode)) {
+    if (uzbl.behave.reset_command_mode && uzbl.behave.insert_mode) {
         uzbl.behave.insert_mode = uzbl.behave.always_insert_mode;
         update_title();
     }    
@@ -1370,7 +1370,7 @@ settings_init () {
         b->show_status        = g_key_file_get_boolean (config, "behavior", "show_status",        NULL);
         b->modkey             = g_key_file_get_value   (config, "behavior", "modkey",             NULL);
         b->status_top         = g_key_file_get_boolean (config, "behavior", "status_top",         NULL);
-        b->never_reset_mode   = g_key_file_get_boolean (config, "behavior", "never_reset_mode",   NULL);
+        b->reset_command_mode = g_key_file_get_boolean (config, "behavior", "reset_command_mode", NULL);
         b->status_format      = g_key_file_get_string  (config, "behavior", "status_format",      NULL);
         b->status_background  = g_key_file_get_string  (config, "behavior", "status_background",  NULL);
         if (! b->fifo_dir)
@@ -1386,7 +1386,7 @@ settings_init () {
     printf ("Fifo directory: %s\n",     (b->fifo_dir           ? b->fifo_dir         : "disabled"));
     printf ("Socket directory: %s\n",   (b->socket_dir         ? b->socket_dir       : "disabled"));
     printf ("Always insert mode: %s\n", (b->always_insert_mode ? "TRUE"              : "FALSE"));
-    printf ("Don't reset mode: %s\n",   (b->never_reset_mode   ? "TRUE"              : "FALSE"));
+    printf ("Reset mode: %s\n"      ,   (b->reset_command_mode ? "TRUE"              : "FALSE"));
     printf ("Show status: %s\n",        (b->show_status        ? "TRUE"              : "FALSE"));
     printf ("Status top: %s\n",         (b->status_top         ? "TRUE"              : "FALSE"));
     printf ("Modkey: %s\n",             (b->modkey             ? b->modkey           : "disabled"));

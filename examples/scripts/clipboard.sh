@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# with this script you can store the current url in the clipboard, or go to the url which is stored in the clipboard.
+
 fifo="$5"
 action="$1"
 url="$7"

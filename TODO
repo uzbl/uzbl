@@ -52,6 +52,11 @@
 
 
 
+* config: check in the default place (XDG_CONFIG_HOME/..) for a config file, and if needed, do file reading (interpret line by line). not ini-based.
+* readd the --config flag to allow entering the same commands either through the file/stdin/fifo/socket
+* check for real command name, not just the first letter.
+
+
 SOMEDAY:
 check if we can make the settings loading less hard coded. eg( keep a list of all settings, and for each one, try to load it)
 figure out caching with webkit and in general how we can speed up everything
