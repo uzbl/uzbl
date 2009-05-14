@@ -57,8 +57,8 @@ typedef struct {
 /* external communication*/
 enum { FIFO, SOCKET};
 typedef struct {
-    char           fifo_path[64];
-    char           socket_path[108];
+    gchar          *fifo_path;
+    gchar          *socket_path;
     /* stores (key)"variable name" -> (value)"pointer to this var*/
     GHashTable     *proto_var;
     /* command parsing regexes */
@@ -231,6 +231,9 @@ build_stream_name(int type);
 
 static void
 control_fifo(GIOChannel *gio, GIOCondition condition);
+
+static void
+set_fifo_dir();
 
 static void
 create_fifo();

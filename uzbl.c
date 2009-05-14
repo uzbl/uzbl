@@ -74,6 +74,7 @@ const struct {
     { "history_handler",    (void *)&uzbl.behave.history_handler    },
     { "download_handler",   (void *)&uzbl.behave.download_handler   },
     { "cookie_handler",     (void *)&uzbl.behave.cookie_handler     },
+    { "fifo_dir",           (void *)&uzbl.behave.fifo_dir           },
     { "proxy_url",          (void *)&uzbl.net.proxy_url             },
     // TODO: write cmd handlers for the following
     { "useragent",          (void *)&uzbl.net.useragent             },
@@ -762,7 +763,13 @@ set_var_value(gchar *name, gchar *val) {
                 free(*p);
             *p = g_strdup(val);
             set_proxy_url();
-        } 
+        }
+        else if(var_is("fifo_dir", name)) {
+            if(*p)
+                free(*p);
+            *p = g_strdup(val);
+            set_fifo_dir();
+        }
         /* variables that take int values */
         else {
             *p = (int)strtoul(val, &endp, 10);
@@ -831,6 +838,25 @@ parse_cmd_line(char *ctl_line) {
     return;
 }
 
+static void
+set_fifo_dir() {
+    if (uzbl.comm.fifo_path) {
+        if (file_exists(uzbl.comm.fifo_path)) {
+            unlink(uzbl.comm.fifo_path);
+            printf("set_fifo_dir: removed old fifo at %s\n", uzbl.comm.fifo_path);
+        }
+        g_free(uzbl.comm.fifo_path);
+        uzbl.comm.fifo_path = NULL;
+    }
+
+    if (!strcmp(uzbl.behave.fifo_dir, " ")) {  /* set to space to unset */
+        g_free(uzbl.behave.fifo_dir);
+        uzbl.behave.fifo_dir = NULL;
+        return;
+    }
+    
+    create_fifo();
+}
 
 void
 build_stream_name(int type) {
@@ -841,16 +867,10 @@ build_stream_name(int type) {
     xwin_str = itos((int)uzbl.xwin);
     switch(type) {
         case FIFO:
-            if (b->fifo_dir) {
-                sprintf (uzbl.comm.fifo_path, "%s/uzbl_fifo_%s", 
-                            b->fifo_dir,
-                            s->instance_name ? s->instance_name : xwin_str);
-            } else {
-                sprintf (uzbl.comm.fifo_path, "/tmp/uzbl_fifo_%s",
-                            s->instance_name ? s->instance_name : xwin_str);
-            }
+            uzbl.comm.fifo_path = g_strdup_printf
+                ("%s/uzbl_fifo_%s", b->fifo_dir,
+                 s->instance_name ? s->instance_name : xwin_str);
             break;
-
         case SOCKET:
             if (b->socket_dir) {
                 sprintf (uzbl.comm.socket_path, "%s/uzbl_socket_%s",
