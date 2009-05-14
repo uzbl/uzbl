@@ -75,6 +75,7 @@ const struct {
     { "download_handler",   (void *)&uzbl.behave.download_handler   },
     { "cookie_handler",     (void *)&uzbl.behave.cookie_handler     },
     { "fifo_dir",           (void *)&uzbl.behave.fifo_dir           },
+    { "socket_dir",         (void *)&uzbl.behave.socket_dir         },
     { "proxy_url",          (void *)&uzbl.net.proxy_url             },
     // TODO: write cmd handlers for the following
     { "useragent",          (void *)&uzbl.net.useragent             },
@@ -765,10 +766,12 @@ set_var_value(gchar *name, gchar *val) {
             set_proxy_url();
         }
         else if(var_is("fifo_dir", name)) {
-            if(*p)
-                free(*p);
-            *p = g_strdup(val);
-            init_fifo();
+            if(*p) free(*p);
+            *p = init_fifo(g_strdup(val));
+        }
+        else if(var_is("socket_dir", name)) {
+            if(*p) free(*p);
+            *p = init_socket(g_strdup(val));
         }
         /* variables that take int values */
         else {
@@ -837,33 +840,24 @@ parse_cmd_line(char *ctl_line) {
     return;
 }
 
-void
-build_stream_name(int type) {
+static gchar*
+build_stream_name(int type, const gchar* dir) {
     char *xwin_str;
     State *s = &uzbl.state;
-    Behaviour *b = &uzbl.behave;
+    gchar *str;
 
     xwin_str = itos((int)uzbl.xwin);
-    switch(type) {
-        case FIFO:
-            uzbl.comm.fifo_path = g_strdup_printf
-                ("%s/uzbl_fifo_%s", b->fifo_dir,
-                 s->instance_name ? s->instance_name : xwin_str);
-            break;
-        case SOCKET:
-            if (b->socket_dir) {
-                sprintf (uzbl.comm.socket_path, "%s/uzbl_socket_%s",
-                            b->socket_dir,
-                            s->instance_name ? s->instance_name : xwin_str);
-            } else {
-                sprintf (uzbl.comm.socket_path, "/tmp/uzbl_socket_%s",
-                                s->instance_name ? s->instance_name : xwin_str);
-            }
-            break;
-        default:
-            break;
+    if (type == FIFO) {
+        str = g_strdup_printf
+            ("%s/uzbl_fifo_%s", dir,
+             s->instance_name ? s->instance_name : xwin_str);
+    } else if (type == SOCKET) {
+        str = g_strdup_printf
+            ("%s/uzbl_socket_%s", dir,
+             s->instance_name ? s->instance_name : xwin_str );
     }
     g_free(xwin_str);
+    return str;
 }
 
 static void
@@ -889,49 +883,42 @@ control_fifo(GIOChannel *gio, GIOCondition condition) {
     return;
 }
 
-static void
-init_fifo() {
-    GIOChannel *chan = NULL;
-    GError *error = NULL;
-
+static gchar*
+init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
     if (uzbl.comm.fifo_path) { /* get rid of the old fifo if one exists */
-        if (file_exists(uzbl.comm.fifo_path)) {
-            if (unlink(uzbl.comm.fifo_path) == -1) {
-                g_warning ("Fifo: Ran't unlink old fifo at %s\n", uzbl.comm.fifo_path);
-                return;
-            } else printf ("Fifo: Removed old fifo at %s\n", uzbl.comm.fifo_path);
-        }
+        if (unlink(uzbl.comm.fifo_path) == -1)
+            g_warning ("Fifo: Can't unlink old fifo at %s\n", uzbl.comm.fifo_path);
         g_free(uzbl.comm.fifo_path);
         uzbl.comm.fifo_path = NULL;
     }
 
-    if (!strcmp(uzbl.behave.fifo_dir, " ")) { /* space unsets the variable */
-        g_free(uzbl.behave.fifo_dir);
-        uzbl.behave.fifo_dir = NULL;
-        return; /* variable was unset, so don't procceed to create a new fifo */
+    if (!strcmp(dir, " ")) { /* space unsets the variable */
+        g_free(dir);
+        return NULL;
     }
 
-    build_stream_name(FIFO);
-    if (file_exists(uzbl.comm.fifo_path)) {
-        g_warning ("Fifo: Error when creating %s: File exists\n", uzbl.comm.fifo_path);
-        return;
-    }
-    if (mkfifo (uzbl.comm.fifo_path, 0666) == -1) {
-        g_warning ("Fifo: Error when creating %s: %s\n", uzbl.comm.fifo_path, strerror(errno));
-    } else {
-        // we don't really need to write to the file, but if we open the file as 'r' we will block here, waiting for a writer to open the file.
-        chan = g_io_channel_new_file((gchar *) uzbl.comm.fifo_path, "r+", &error);
-        if (chan) {
-            if (!g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, NULL)) {
-                g_warning ("Fifo: could not add watch on %s\n", uzbl.comm.fifo_path);
-            } else { 
-                printf ("Fifo: created successfully as %s\n", uzbl.comm.fifo_path);
-            }
-        } else {
-            g_warning ("Fifo: Error while opening: %s\n", error->message);
-        }
-    }
-    return;
+    GIOChannel *chan = NULL;
+    GError *error = NULL;
+    gchar *path = build_stream_name(FIFO, dir);
+    
+    if (!file_exists(path)) {
+        if (mkfifo (path, 0666) == 0) {
+            // we don't really need to write to the file, but if we open the file as 'r' we will block here, waiting for a writer to open the file.            
+            chan = g_io_channel_new_file(path, "r+", &error);
+            if (chan) {
+                if (g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, NULL)) {
+                    printf ("init_fifo: created successfully as %s\n", path);
+                    uzbl.comm.fifo_path = path;
+                    return dir;
+                } else g_warning ("init_fifo: could not add watch on %s\n", path);
+            } else g_warning ("init_fifo: can't open: %s\n", error->message);
+        } else g_warning ("init_fifo: can't create %s: %s\n", path, strerror(errno));
+    } else g_warning ("init_fifo: can't create %s: file exists\n", path);
+
+    /* if we got this far, there was an error; cleanup */
+    g_free(path);
+    g_free(dir);
+    return NULL;
 }
 
 static gboolean
@@ -1025,33 +1012,49 @@ control_socket(GIOChannel *chan) {
 
     g_free(ctl_line);
     return;
-} 
+}
 
-static void
-create_socket() {
+static gchar*
+init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL */
+    if (uzbl.comm.socket_path) { /* remove an existing socket should one exist */
+        if (unlink(uzbl.comm.socket_path) == -1)
+            g_warning ("init_socket: couldn't unlink socket at %s\n", uzbl.comm.socket_path);
+        g_free(uzbl.comm.socket_path);
+        uzbl.comm.socket_path = NULL;
+    }
+    
+    if (!strcmp(dir, " ")) {
+        g_free(dir);
+        return NULL;
+    }
+
     GIOChannel *chan = NULL;
     int sock, len;
     struct sockaddr_un local;
-
-    build_stream_name(SOCKET);
+    gchar *path = build_stream_name(SOCKET, dir);
+    
     sock = socket (AF_UNIX, SOCK_STREAM, 0);
 
     local.sun_family = AF_UNIX;
-    strcpy (local.sun_path, uzbl.comm.socket_path);
+    strcpy (local.sun_path, path);
     unlink (local.sun_path);
 
     len = strlen (local.sun_path) + sizeof (local.sun_family);
-    bind (sock, (struct sockaddr *) &local, len);
-
-    if (errno == -1) {
-        printf ("Socket: Could not open in %s: %s\n", uzbl.comm.socket_path, strerror(errno));
-    } else {
-        printf ("Socket: Opened in %s\n", uzbl.comm.socket_path);
+    if (bind (sock, (struct sockaddr *) &local, len) != -1) {
+        printf ("init_socket: opened in %s\n", path);
         listen (sock, 5);
 
-        if( (chan = g_io_channel_unix_new(sock)) )
+        if( (chan = g_io_channel_unix_new(sock)) ) {
             g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_socket, chan);
-    }
+            uzbl.comm.socket_path = path;
+            return dir;
+        }
+    } else g_warning ("init_socket: could not open in %s: %s\n", path, strerror(errno));
+
+    /* if we got this far, there was an error; cleanup */
+    g_free(path);
+    g_free(dir);
+    return NULL;
 }
 
 static void
@@ -1574,10 +1577,10 @@ main (int argc, char* argv[]) {
 
     make_var_to_name_hash();
     create_stdin();
-    if (uzbl.behave.fifo_dir)
-        init_fifo ();
-    if (uzbl.behave.socket_dir)
-        create_socket ();
+    /*if (uzbl.behave.fifo_dir)
+      init_fifo ();*/
+    /*if (uzbl.behave.socket_dir)
+      init_socket ();*/
 
     gtk_main ();
     clean_up();

@@ -226,14 +226,14 @@ spawn(WebKitWebView *web_view, const char *param);
 static void
 parse_command(const char *cmd, const char *param);
 
-void
-build_stream_name(int type);
+static gchar*
+build_stream_name(int type, const gchar *dir);
 
 static void
 control_fifo(GIOChannel *gio, GIOCondition condition);
 
-static void
-init_fifo();
+static gchar*
+init_fifo(gchar *dir);
 
 static gboolean
 control_stdin(GIOChannel *gio, GIOCondition condition);
@@ -241,8 +241,8 @@ control_stdin(GIOChannel *gio, GIOCondition condition);
 static void
 create_stdin();
 
-static void
-create_socket();
+static gchar*
+init_socket(gchar *dir);
 
 static void
 control_socket(GIOChannel *chan);
