@@ -815,6 +815,7 @@ move_statusbar() {
     }
     gtk_widget_unref(uzbl.gui.scrolled_win);
     gtk_widget_unref(uzbl.gui.mainbar);
+    gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
 }
 
 static gboolean
