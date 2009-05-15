@@ -27,7 +27,7 @@ enum {
 
 const struct {
     gchar *symbol_name;
-    gulong symbol_token;
+    guint symbol_token;
 } symbols[] = {
     {"NAME",                 SYM_NAME},
     {"URI",                  SYM_URI},

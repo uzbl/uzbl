@@ -107,7 +107,7 @@ const struct {
     { "SUPER",   GDK_SUPER_MASK   }, // super (since 2.10)
     { "HYPER",   GDK_HYPER_MASK   }, // hyper (since 2.10)
     { "META",    GDK_META_MASK    }, // meta (since 2.10)
-    { NULL,      0                }
+    { NULL,      NULL             }
 };
 
 /* construct a hash from the var_name_to_ptr array for quick access */
@@ -579,7 +579,8 @@ setup_scanner() {
      uzbl.scan = g_scanner_new(&scan_config);
      while(symp->symbol_name) {
          g_scanner_scope_add_symbol(uzbl.scan, 0,
-                         symp->symbol_name, (gulong*)&(symp->symbol_token));
+                         symp->symbol_name,
+                         GINT_TO_POINTER(symp->symbol_token));
          symp++;
      }
 }
@@ -591,14 +592,14 @@ expand_template(const char *template) {
      GTokenType token = G_TOKEN_NONE;
      GString *ret = g_string_new("");
      char *buf=NULL;
-     gulong sym;
+     int sym;
 
      g_scanner_input_text(uzbl.scan, template, strlen(template));
      while(!g_scanner_eof(uzbl.scan) && token != G_TOKEN_LAST) {
          token = g_scanner_get_next_token(uzbl.scan);
 
          if(token == G_TOKEN_SYMBOL) {
-             sym = *((gulong*)g_scanner_cur_value(uzbl.scan).v_int);
+             sym = (int)g_scanner_cur_value(uzbl.scan).v_symbol;
              switch(sym) {
                  case SYM_URI:
                      g_string_append(ret, 
@@ -773,12 +774,12 @@ setup_regex() {
 static gboolean
 get_var_value(gchar *name) {
     void **p = NULL;
-    
+
     if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         if(var_is("status_format", name)
            || var_is("useragent", name)) {
             printf("VAR: %s VALUE: %s\n", name, (char *)*p);
-        } else printf("VAR: %s VALUE: %d\n", name, *((int *)p));
+        } else printf("VAR: %s VALUE: %d\n", name, (int)*p);
     }
     return TRUE;
 }
