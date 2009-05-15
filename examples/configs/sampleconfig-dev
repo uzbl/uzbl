@@ -1,68 +1,71 @@
 
 # example uzbl config. in a real config, we should obey the xdg spec
-
-# all keys in the behavior group are optional.  if not set, the corresponding behavior is disabed.
-# bindings_internal denote keys to trigger actions internally in uzbl
-# bindings_external denote keys to trigger scripts outside uzbl
+# all settings are optional.  you can use uzbl without any config at all (but it won't do much)
 
 # keyboard behavior is vimstyle by default (all actions -> 1 key). set
 # always_insert_mode to always be in insert mode and disable going out of it.
 # if you do this, make sure you've set a modkey so you can reach the actions
 # from insert mode by combining them with the modkey
 
-set	uzbl.behave.history_handler	./examples/scripts/history.sh
-set	uzbl.behave.download_handler	./examples/scripts/download.sh
-set	uzbl.behave.cookie_handler	./examples/scripts/cookies.sh
-set	uzbl.behave.fifo_dir	/tmp
-set	uzbl.behave.socket_dir	/tmp
-set	uzbl.behave.always_insert_mode	0
-set	uzbl.behave.modkey	Mod1
-set	uzbl.behave.show_status	1
-set	uzbl.behave.status_top	0
-set	uzbl.behave.status_format	<span font_family="monospace"><span background="khaki" foreground="black">MODE</span> [<span weight="bold" foreground="red">KEYCMD</span>] <span foreground="#606060"> LOAD_PROGRESSBAR </span><span foreground="#99FF66">URI</span> <span foreground="khaki">NAME</span></span>
-# you can optionally use this setting to override the background color of the statusbar from your GTK theme.
-set	uzbl.behave.status_background	#303030
+# TODO: ability to attach misc things (spawn <foo>, script <bar>,.. to internal events)
+#set	history_handler	./examples/scripts/history.sh
+#set	download_handler	./examples/scripts/download.sh
+#set	behave.cookie_handler	./examples/scripts/cookies.sh
 
-# scroll down/up/left/right
-bind	j	scroll_vert	20
-bind	k	scroll_vert	-20
-bind	h	scroll_horz	-20
-bind	l	scroll_horz	20
-bind	b	back
-bind	m	forward
-bind	s	stop
-bind	r	reload
-bind	R	reload_ign_cache
-bind	+	zoom_in
-bind	-	zoom_out
-bind	t	toggle	uzbl.behave.show_status
+
+
+# Behaviour and appearance
+set show_status       = 1
+# you can optionally use this setting to override the background color of the statusbar from your GTK theme.
+set status_background = #303030
+set status_format     = <span font_family="monospace"><span background="khaki" foreground="black">MODE</span> [<span weight="bold" foreground="red">KEYCMD</span>] <span foreground="#606060"> LOAD_PROGRESSBAR </span><span foreground="#99FF66">URI</span> <span foreground="khaki">NAME</span> <span foreground="orange">MSG</span></span>
+set modkey = Mod1
+set always_insert = 0
+# to start a local socks server, do : ssh -fND localhost:8118 localhost
+#set proxy_url = http://127.0.0.1:8118
+#values 0-3
+#set	http_debug = 0
+#set	useragent	uzbl (Webkit %webkit-major%.%webkit-minor%.%webkit-micro%)
+# Example user agent containing everything:
+#set	useragent	Uzbl (Webkit %webkit-major%.%webkit-minor%.%webkit-micro%) (%sysname% %nodename% %kernrel% %kernver% %arch-system% [%arch-uzbl%]) (Commit %commit%)
+#set	max_conns	0
+#set	.max_conns_host	0
+
+set fifo_dir = /tmp
+#TODO socket dir
+#set status_top = 1
+
+# Key bindings
+bind    j         = scroll_vert 20
+bind    k         = scroll_vert -20
+bind    h         = scroll_horz -20
+bind    l         = scroll_horz 20
+bind    b         = back
+bind    m         = forward
+bind    s         = stop
+bind    r         = reload
+bind    R         = reload_ign_cache
+bind    +         = zoom_in
+bind    -         = zoom_out
+bind    t         = toggle_status
 #hilight matches
-bind	/_	search %s
+bind    /_        = search %s
 #jump to next
-bind	;	search
-bind	gh	set	uzbl.state.uri	http://www.uzbl.org
-bind	o _	set	uzbl.state.uri	%s
-bind	:wiki _	set	uzbl.state.uri	http://wiki.archlinux.org/index.php/Special:Search?search=%s&go=Go
-bind	gg _	set	uzbl.state.uri	http://www.google.com/search?q=%s
-bind	i	toggle	uzbl.behave.insert_mode
-bind	B	spawn	./examples/scripts/insert_bookmark.sh
-bind	u	spawn	./examples/scripts/load_url_from_history.sh
-bind	U	spawn	./examples/scripts/load_url_from_bookmarks.sh
-bind	ZZ	exit
-bind	S	script	alert("hi");
+bind    ;         = search
+bind    gh        = uri http://www.uzbl.org
+#TODO: set uri?
+bind    o _       = uri %s
+bind    :wiki _   = uri http://wiki.archlinux.org/index.php/Special:Search?search=%s&go=Go
+bind    gg _      = uri http://www.google.com/search?q=%s
+bind    i         = insert_mode
+#TODO: no 'toggle' command?
+bind    B         = spawn ./examples/scripts/insert_bookmark.sh
+bind    u         = spawn ./examples/scripts/load_url_from_history.sh
+bind    U         = spawn ./examples/scripts/load_url_from_bookmarks.sh
+bind    ZZ        = exit
+bind    S         = script alert("hi");
 # Keyboard based link following: work in progress! No C DOM bindings yet, no click() event for hyperlinks so no referrer set..Quite basic but does the job for now...
 #hit F to toggle the Hints (now in form of link numbering)
-bind	F	script	for (var i=0; i < document.links.length; i++) {var uzblid = 'uzbl_link_hint_';var li = document.links[i];var pre = document.getElementById(uzblid+i);if (pre) {li.removeChild(pre);} else {var hint = document.createElement('div');hint.setAttribute('id',uzblid+i);hint.innerHTML = i;hint.style.display='inline';hint.style.lineHeight='90%';hint.style.backgroundColor='red';hint.style.color='white';hint.style.fontSize='small-xx';hint.style.fontWeight='light';hint.style.margin='0px';hint.style.padding='2px';hint.style.position='absolute';hint.style.textDecoration='none';hint.style.left=li.style.left;hint.style.top=li.style.top;li.insertAdjacentElement('afterBegin',hint);}}
+bind    F= script for (var i=0; i < document.links.length; i++) {var uzblid = 'uzbl_link_hint_';var li = document.links[i];var pre = document.getElementById(uzblid+i);if (pre) {li.removeChild(pre);} else {var hint = document.createElement('div');hint.setAttribute('id',uzblid+i);hint.innerHTML = i;hint.style.display='inline';hint.style.lineHeight='90%';hint.style.backgroundColor='red';hint.style.color='white';hint.style.fontSize='small-xx';hint.style.fontWeight='light';hint.style.margin='0px';hint.style.padding='2px';hint.style.position='absolute';hint.style.textDecoration='none';hint.style.left=li.style.left;hint.style.top=li.style.top;li.insertAdjacentElement('afterBegin',hint);}}
 #hit f followed by linknumber and ENTER to follow that link
-bind	f_	script	window.location = document.links[%s].href;
-
-
-# to start a local socks server, do : ssh -fND localhost:8118 localhost
-set	uzbl.net.proxy_url	http://127.0.0.1:8118
-#values 0-3
-set	uzbl.behave.http_debug = 0
-set	uzbl.net.useragent	uzbl (Webkit %webkit-major%.%webkit-minor%.%webkit-micro%)
-# Example user agent containing everything:
-#set	uzbl.net.useragent	Uzbl (Webkit %webkit-major%.%webkit-minor%.%webkit-micro%) (%sysname% %nodename% %kernrel% %kernver% %arch-system% [%arch-uzbl%]) (Commit %commit%)
-set	uzbl.net.max_conns	0
-set	uzbl.net.max_conns_host	0
+bind    f_        = script window.location = document.links[%s].href;
