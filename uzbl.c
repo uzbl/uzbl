@@ -1343,8 +1343,6 @@ settings_init () {
     if (res) {
         b->http_debug     = g_key_file_get_integer (config, "network", "http_debug",         NULL);
         n->useragent      = g_key_file_get_value   (config, "network", "user-agent",         NULL);
-        n->max_conns      = g_key_file_get_integer (config, "network", "max_conns",          NULL);
-        n->max_conns_host = g_key_file_get_integer (config, "network", "max_conns_per_host", NULL);
     }
 
 	
@@ -1385,13 +1383,6 @@ settings_init () {
         g_object_set(G_OBJECT(n->soup_session), SOUP_SESSION_USER_AGENT, n->useragent, NULL);
     }
 
-    if(n->max_conns >= 1){
-        g_object_set(G_OBJECT(n->soup_session), SOUP_SESSION_MAX_CONNS, n->max_conns, NULL);
-    }
-
-    if(n->max_conns_host >= 1){
-        g_object_set(G_OBJECT(n->soup_session), SOUP_SESSION_MAX_CONNS_PER_HOST, n->max_conns_host, NULL);
-    }
 
     printf("Proxy configured: %s\n", n->proxy_url ? n->proxy_url : "none");
     printf("HTTP logging level: %d\n", b->http_debug);
