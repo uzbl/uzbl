@@ -71,6 +71,7 @@ const struct {
     { "status_background",  (void *)&uzbl.behave.status_background  },
     { "insert_mode",        (void *)&uzbl.behave.insert_mode        },
     { "always_insert_mode", (void *)&uzbl.behave.always_insert_mode },
+    { "reset_command_mode", (void *)&uzbl.behave.reset_command_mode },
     { "modkey"     ,        (void *)&uzbl.behave.modkey             },
     { "load_finish_handler",(void *)&uzbl.behave.load_finish_handler},
     { "history_handler",    (void *)&uzbl.behave.history_handler    },
@@ -143,11 +144,6 @@ itos(int val) {
 
     snprintf(tmp, sizeof(tmp), "%i", val);
     return g_strdup(tmp);
-}
-
-static char *
-str_replace (const char* search, const char* replace, const char* string) {
-    return g_strjoinv (replace, g_strsplit(string, search, -1));
 }
 
 static sigfunc*
@@ -240,15 +236,24 @@ scroll (GtkAdjustment* bar, const char *param) {
     gtk_adjustment_set_value (bar, gtk_adjustment_get_value(bar)+amount);
 }
 
+static void scroll_begin(WebKitWebView* page, const char *param) {
+    (void) page; (void) param;
+    gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_lower(uzbl.gui.bar_v));
+}
+
+static void scroll_end(WebKitWebView* page, const char *param) {
+    (void) page; (void) param;
+    gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_upper(uzbl.gui.bar_v) -
+                              gtk_adjustment_get_page_size(uzbl.gui.bar_v));
+}
+
 static void scroll_vert(WebKitWebView* page, const char *param) {
     (void) page;
-
     scroll(uzbl.gui.bar_v, param);
 }
 
 static void scroll_horz(WebKitWebView* page, const char *param) {
     (void) page;
-
     scroll(uzbl.gui.bar_h, param);
 }
 
@@ -376,6 +381,8 @@ static struct {char *name; Command command;} cmdlist[] =
     { "forward",          view_go_forward         },
     { "scroll_vert",      scroll_vert             },
     { "scroll_horz",      scroll_horz             },
+    { "scroll_begin",     scroll_begin            },
+    { "scroll_end",       scroll_end              },
     { "reload",           view_reload,            }, 
     { "reload_ign_cache", view_reload_bypass_cache},
     { "stop",             view_stop_loading,      },
@@ -1431,7 +1438,8 @@ settings_init () {
     char *saveptr;
     State *s = &uzbl.state;
     Network *n = &uzbl.net;
-    Behaviour *b = &uzbl.behave;
+
+    uzbl.behave.reset_command_mode = 1;
 
     if (!s->config_file) {
         const char* XDG_CONFIG_HOME = getenv ("XDG_CONFIG_HOME");
@@ -1479,48 +1487,6 @@ settings_init () {
     } else {
         printf ("No configuration.\n");
     }
-
-    if (res) {
-        b->reset_command_mode = g_key_file_get_boolean (config, "behavior", "reset_command_mode", NULL);
-    }
-
-    printf ("Reset mode: %s\n"      ,   (b->reset_command_mode ? "TRUE"              : "FALSE"));
-
-    /* networking options */
-    if (res) {
-        n->useragent      = g_key_file_get_value   (config, "network", "user-agent",         NULL);
-    }
-
-    if(n->useragent){
-        char* newagent  = malloc(1024);
-
-        strcpy(newagent, str_replace("%webkit-major%", itos(WEBKIT_MAJOR_VERSION), n->useragent));
-        strcpy(newagent, str_replace("%webkit-minor%", itos(WEBKIT_MINOR_VERSION), newagent));
-        strcpy(newagent, str_replace("%webkit-micro%", itos(WEBKIT_MICRO_VERSION), newagent));
-
-        if (uname (&s->unameinfo) == -1) {
-            printf("Error getting uname info. Not replacing system-related user agent variables.\n");
-        } else {
-            strcpy(newagent, str_replace("%sysname%",     s->unameinfo.sysname, newagent));
-            strcpy(newagent, str_replace("%nodename%",    s->unameinfo.nodename, newagent));
-            strcpy(newagent, str_replace("%kernrel%",     s->unameinfo.release, newagent));
-            strcpy(newagent, str_replace("%kernver%",     s->unameinfo.version, newagent));
-            strcpy(newagent, str_replace("%arch-system%", s->unameinfo.machine, newagent));
-
-            #ifdef _GNU_SOURCE
-                strcpy(newagent, str_replace("%domainname%", s->unameinfo.domainname, newagent));
-            #endif
-        }
-
-        strcpy(newagent, str_replace("%arch-uzbl%",    ARCH,                       newagent));
-        strcpy(newagent, str_replace("%commit%",       COMMIT,                     newagent));
-
-        n->useragent = malloc(1024);
-        strcpy(n->useragent, newagent);
-        g_object_set(G_OBJECT(n->soup_session), SOUP_SESSION_USER_AGENT, n->useragent, NULL);
-    }
-
-    printf("User-agent: %s\n", n->useragent? n->useragent : "default");
 
     g_signal_connect(n->soup_session, "request-queued", G_CALLBACK(handle_cookies), NULL);
 }
