@@ -135,3 +135,9 @@ add this to Makefile header: CFLAGS=-g
 recompile
 valgrind --tool=callgrind ./uzbl ....
 kcachegrind callgrind.out.foo
+
+CONFIG FILE
+** Variable replacement and markup format
+See http://library.gnome.org/devel/pango/stable/PangoMarkupFormat.html for
+what you can do, markup wise.
+TODO: document possible variables, and what you can do with useragent/title/statusbar
