@@ -584,7 +584,7 @@ expand_template(const char *template) {
      
      GTokenType token = G_TOKEN_NONE;
      GString *ret = g_string_new("");
-     gchar *buf=NULL;
+     char *buf=NULL;
      int sym;
 
      g_scanner_input_text(uzbl.scan, template, strlen(template));
@@ -600,7 +600,9 @@ expand_template(const char *template) {
                          g_markup_printf_escaped("%s", uzbl.state.uri):"");
                      break;
                  case SYM_LOADPRGS:
-                     g_string_append(ret, itos(uzbl.gui.sbar.load_progress));
+                     buf = itos(uzbl.gui.sbar.load_progress);
+                     g_string_append(ret, buf);
+                     free(buf);
                      break;
                  case SYM_LOADPRGSBAR:
                      buf = build_progressbar_ascii(uzbl.gui.sbar.load_progress);
@@ -613,8 +615,10 @@ expand_template(const char *template) {
                          g_markup_printf_escaped("%s", uzbl.gui.main_title):"");
                      break;
                  case SYM_NAME:
+                     buf = itos(uzbl.xwin);
                      g_string_append(ret, 
-                         uzbl.state.instance_name?uzbl.state.instance_name:itos(uzbl.xwin));
+                         uzbl.state.instance_name?uzbl.state.instance_name:buf);
+                     free(buf);
                      break;
                  case SYM_KEYCMD:
                      g_string_append(ret, 
@@ -631,13 +635,19 @@ expand_template(const char *template) {
                      break;
                      /* useragent syms */
                  case SYM_WK_MAJ:
-                     g_string_append(ret, itos(WEBKIT_MAJOR_VERSION));
+                     buf = itos(WEBKIT_MAJOR_VERSION);
+                     g_string_append(ret, buf);
+                     free(buf);
                      break;
                  case SYM_WK_MIN:
-                     g_string_append(ret, itos(WEBKIT_MINOR_VERSION));
+                     buf = itos(WEBKIT_MINOR_VERSION);
+                     g_string_append(ret, buf);
+                     free(buf);
                      break;
                  case SYM_WK_MIC:
-                     g_string_append(ret, itos(WEBKIT_MICRO_VERSION));
+                     buf = itos(WEBKIT_MICRO_VERSION);
+                     g_string_append(ret, buf);
+                     free(buf);
                      break;
                  case SYM_SYSNAME:
                      g_string_append(ret, uzbl.state.unameinfo.sysname);
@@ -670,7 +680,9 @@ expand_template(const char *template) {
              }
          }
          else if(token == G_TOKEN_INT) {
-             g_string_append(ret, itos(g_scanner_cur_value(uzbl.scan).v_int));
+             buf = itos(g_scanner_cur_value(uzbl.scan).v_int);
+             g_string_append(ret, buf);
+             free(buf);
          }
          else if(token == G_TOKEN_IDENTIFIER) {
              g_string_append(ret, (gchar *)g_scanner_cur_value(uzbl.scan).v_identifier);
@@ -802,6 +814,7 @@ move_statusbar() {
     }
     gtk_widget_unref(uzbl.gui.scrolled_win);
     gtk_widget_unref(uzbl.gui.mainbar);
+    gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
 }
 
 static gboolean
