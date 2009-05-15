@@ -80,10 +80,34 @@ const struct {
     { "max_conns",          (void *)&uzbl.net.max_conns             },
     { "max_conns_host",     (void *)&uzbl.net.max_conns_host        },
     { "http_debug",         (void *)&uzbl.behave.http_debug         },
+    { "modkey",             (void *)&uzbl.behave.modkey             },
     // TODO: write cmd handlers for the following
     { "useragent",          (void *)&uzbl.net.useragent             },
     { NULL,                 NULL                                    }
 }, *n2v_p = var_name_to_ptr;
+
+const struct {
+    char *key;
+    guint mask;
+} modkeys[] = {
+    { "SHIFT",   GDK_SHIFT_MASK   }, // shift
+    { "LOCK",    GDK_LOCK_MASK    }, // capslock or shiftlock, depending on xserver's modmappings
+    { "CONTROL", GDK_CONTROL_MASK }, // control
+    { "MOD1",    GDK_MOD1_MASK    }, // 4th mod - normally alt but depends on modmappings
+    { "MOD2",    GDK_MOD2_MASK    }, // 5th mod
+    { "MOD3",    GDK_MOD3_MASK    }, // 6th mod
+    { "MOD4",    GDK_MOD4_MASK    }, // 7th mod
+    { "MOD5",    GDK_MOD5_MASK    }, // 8th mod
+    { "BUTTON1", GDK_BUTTON1_MASK }, // 1st mouse button
+    { "BUTTON2", GDK_BUTTON2_MASK }, // 2nd mouse button
+    { "BUTTON3", GDK_BUTTON3_MASK }, // 3rd mouse button
+    { "BUTTON4", GDK_BUTTON4_MASK }, // 4th mouse button
+    { "BUTTON5", GDK_BUTTON5_MASK }, // 5th mouse button
+    { "SUPER",   GDK_SUPER_MASK   }, // super
+    { "HYPER",   GDK_HYPER_MASK   }, // hyper
+    { "META",    GDK_META_MASK    }, // meta
+    { NULL,      NULL             }
+};
 
 /* construct a hash from the var_name_to_ptr array for quick access */
 static void
@@ -768,6 +792,16 @@ set_var_value(gchar *name, gchar *val) {
             if(*p) free(*p);
             *p = init_socket(g_strdup(val));
         }
+        else if(var_is("modkey", name)) {
+            if(*p) free(*p);
+            int i;
+            *p = g_utf8_strup(val, -1);
+            uzbl.behave.modmask = 0;
+            for (i = 0; modkeys[i].key != NULL; i++) {
+                if (g_strrstr(*p, modkeys[i].key))
+                    uzbl.behave.modmask |= modkeys[i].mask;
+            }
+        }
         /* variables that take int values */
         else {
             int *ip = p;
@@ -1386,9 +1420,6 @@ settings_init () {
     printf ("Status top: %s\n",         (b->status_top         ? "TRUE"              : "FALSE"));
     printf ("Modkey: %s\n",             (b->modkey             ? b->modkey           : "disabled"));
     printf ("Status format: %s\n",      (b->status_format      ? b->status_format    : "none"));
-
-    if (!b->modkey)
-        b->modkey = "";
 
     //POSSIBLE MODKEY VALUES (COMBINATIONS CAN BE USED)
     gchar* modkeyup = g_utf8_strup (b->modkey, -1);
