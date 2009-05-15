@@ -727,12 +727,7 @@ set_proxy_url() {
 
 static gboolean
 var_is(const char *x, const char *y) {
-    gboolean ret = FALSE;
-
-    if(!strcmp(x, y))
-        ret = TRUE;
-
-    return ret;
+    return (strcmp(x, y) == 0 ? TRUE : FALSE );
 }
 
 static gboolean
@@ -911,7 +906,7 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
         uzbl.comm.fifo_path = NULL;
     }
 
-    if (!strcmp(dir, " ")) { /* space unsets the variable */
+    if (*dir == ' ') { /* space unsets the variable */
         g_free(dir);
         return NULL;
     }
@@ -1042,7 +1037,7 @@ init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL *
         uzbl.comm.socket_path = NULL;
     }
     
-    if (!strcmp(dir, " ")) {
+    if (*dir == ' ') {
         g_free(dir);
         return NULL;
     }
