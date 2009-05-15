@@ -1475,23 +1475,30 @@ settings_init () {
     }
 
     if (s->config_file) {
-        FILE * conf;
-        char readbuf [300];
-        conf = fopen (s->config_file, "r");
-        if (conf == NULL) {
-            fprintf(stderr, "uzbl: error loading file%s\n", s->config_file);
-        } else {
-            while(!feof(conf)) {
-                fgets (readbuf , 300 , conf);
-                parse_cmd_line(readbuf);
-            }
-            fclose (conf);
-        }
+        GIOChannel *chan = NULL;
+        GError *error = NULL;
+        gchar *readbuf = NULL;
+        gsize len;
 
-        printf ("Config %s loaded\n", s->config_file);
+        chan = g_io_channel_new_file(s->config_file, "r", &error);
+
+        if (chan) {
+            while (g_io_channel_read_line(chan, &readbuf, &len, NULL, NULL) 
+                    == G_IO_STATUS_NORMAL) {
+                parse_cmd_line(readbuf);
+                g_free (readbuf); 
+            }
+
+            g_io_channel_unref (chan);
+            printf ("Config %s loaded\n", s->config_file);
+        } else {
+            fprintf(stderr, "uzbl: error loading file%s\n", s->config_file);
+        }
     } else {
         printf ("No configuration file loaded.\n");
     }
+    if (!uzbl.behave.status_format)
+        uzbl.behave.status_format = g_strdup(STATUS_DEFAULT);
 
     g_signal_connect(n->soup_session, "request-queued", G_CALLBACK(handle_cookies), NULL);
 }
@@ -1574,8 +1581,8 @@ main (int argc, char* argv[]) {
 
     setup_regex();
     setup_scanner();
-    settings_init ();
     commands_hash ();
+    make_var_to_name_hash();
 	
 
     uzbl.gui.vbox = gtk_vbox_new (FALSE, 0);
@@ -1590,7 +1597,7 @@ main (int argc, char* argv[]) {
     uzbl.gui.main_window = create_window ();
     gtk_container_add (GTK_CONTAINER (uzbl.gui.main_window), uzbl.gui.vbox);
 
-    load_uri (uzbl.gui.web_view, uzbl.state.uri);
+    load_uri (uzbl.gui.web_view, uzbl.state.uri); //TODO: is this needed?
 
     gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
     gtk_widget_show_all (uzbl.gui.main_window);
@@ -1605,17 +1612,13 @@ main (int argc, char* argv[]) {
     uzbl.gui.bar_h = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_h);
     gtk_widget_set_scroll_adjustments ((GtkWidget*) uzbl.gui.web_view, uzbl.gui.bar_h, uzbl.gui.bar_v);
 
+    settings_init ();
 
-
-
-    if (!uzbl.behave.status_format)
-        uzbl.behave.status_format = g_strdup(STATUS_DEFAULT);
     if (!uzbl.behave.show_status)
         gtk_widget_hide(uzbl.gui.mainbar);
     else
         update_title();
 
-    make_var_to_name_hash();
     create_stdin();
 
     gtk_main ();
