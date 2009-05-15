@@ -70,6 +70,8 @@ const struct {
     { "status_message",     (void *)&uzbl.gui.sbar.msg              },
     { "show_status",        (void *)&uzbl.behave.show_status        },
     { "insert_mode",        (void *)&uzbl.behave.insert_mode        },
+    { "modkey"     ,        (void *)&uzbl.behave.modkey             },
+    { "always_insert"     , (void *)&uzbl.behave.always_insert_mode },
     { "load_finish_handler",(void *)&uzbl.behave.load_finish_handler},
     { "history_handler",    (void *)&uzbl.behave.history_handler    },
     { "download_handler",   (void *)&uzbl.behave.download_handler   },
@@ -725,6 +727,34 @@ set_proxy_url() {
     return;
 }
 
+static void
+set_modkey() {
+    Behaviour *b = &uzbl.behave;
+
+    if (!b->modkey)
+        b->modkey = "";
+
+    //POSSIBLE MODKEY VALUES (COMBINATIONS CAN BE USED)
+    gchar* modkeyup = g_utf8_strup (b->modkey, -1);
+    if (g_strrstr (modkeyup,"SHIFT") != NULL)    b->modmask |= GDK_SHIFT_MASK;    //the Shift key.
+    if (g_strrstr (modkeyup,"LOCK") != NULL)     b->modmask |= GDK_LOCK_MASK;     //a Lock key (depending on the modifier mapping of the X server this may either be CapsLock or ShiftLock).
+    if (g_strrstr (modkeyup,"CONTROL") != NULL)  b->modmask |= GDK_CONTROL_MASK;  //the Control key.
+    if (g_strrstr (modkeyup,"MOD1") != NULL)     b->modmask |= GDK_MOD1_MASK;     //the fourth modifier key (it depends on the modifier mapping of the X server which key is interpreted as this modifier, but normally it is the Alt key).
+    if (g_strrstr (modkeyup,"MOD2") != NULL)     b->modmask |= GDK_MOD2_MASK;     //the fifth modifier key (it depends on the modifier mapping of the X server which key is interpreted as this modifier).
+    if (g_strrstr (modkeyup,"MOD3") != NULL)     b->modmask |= GDK_MOD3_MASK;     //the sixth modifier key (it depends on the modifier mapping of the X server which key is interpreted as this modifier).
+    if (g_strrstr (modkeyup,"MOD4") != NULL)     b->modmask |= GDK_MOD4_MASK;     //the seventh modifier key (it depends on the modifier mapping of the X server which key is interpreted as this modifier).
+    if (g_strrstr (modkeyup,"MOD5") != NULL)     b->modmask |= GDK_MOD5_MASK;     //the eighth modifier key (it depends on the modifier mapping of the X server which key is interpreted as this modifier).
+    if (g_strrstr (modkeyup,"BUTTON1") != NULL)  b->modmask |= GDK_BUTTON1_MASK;  //the first mouse button.
+    if (g_strrstr (modkeyup,"BUTTON2") != NULL)  b->modmask |= GDK_BUTTON2_MASK;  //the second mouse button.
+    if (g_strrstr (modkeyup,"BUTTON3") != NULL)  b->modmask |= GDK_BUTTON3_MASK;  //the third mouse button.
+    if (g_strrstr (modkeyup,"BUTTON4") != NULL)  b->modmask |= GDK_BUTTON4_MASK;  //the fourth mouse button.
+    if (g_strrstr (modkeyup,"BUTTON5") != NULL)  b->modmask |= GDK_BUTTON5_MASK;  //the fifth mouse button.
+    if (g_strrstr (modkeyup,"SUPER") != NULL)    b->modmask |= GDK_SUPER_MASK;    //the Super modifier. Since 2.10
+    if (g_strrstr (modkeyup,"HYPER") != NULL)    b->modmask |= GDK_HYPER_MASK;    //the Hyper modifier. Since 2.10
+    if (g_strrstr (modkeyup,"META") != NULL)     b->modmask |= GDK_META_MASK;     //the Meta modifier. Since 2.10  */
+    g_free (modkeyup);
+}
+
 static gboolean
 var_is(const char *x, const char *y) {
     gboolean ret = FALSE;
@@ -754,14 +784,12 @@ set_var_value(gchar *name, gchar *val) {
             update_title();
         } 
         else if(var_is("uri", name)) {
-            if(*p)
-                free(*p);
+            if(*p) free(*p);
             *p = g_strdup(val);
             load_uri(uzbl.gui.web_view, (const gchar*)*p);
         } 
         else if(var_is("proxy_url", name)) {
-            if(*p)
-                free(*p);
+            if(*p) free(*p);
             *p = g_strdup(val);
             set_proxy_url();
         }
@@ -773,6 +801,11 @@ set_var_value(gchar *name, gchar *val) {
             if(*p) free(*p);
             *p = init_socket(g_strdup(val));
         }
+        else if(var_is("modkey", name)) {
+            if(*p) free(*p);
+            *p = g_strdup(val);
+            set_modkey();
+        }
         /* variables that take int values */
         else {
             int *ip = p;
@@ -780,6 +813,12 @@ set_var_value(gchar *name, gchar *val) {
 
             if(var_is("show_status", name)) {
                 cmd_set_status();
+            }
+            else if(var_is("always_insert", name)) {
+
+                uzbl.behave.insert_mode = 
+                    uzbl.behave.always_insert_mode ?  TRUE : FALSE;
+                update_title();
             }
             else if (var_is("max_conns", name)) {
                 g_object_set(G_OBJECT(uzbl.net.soup_session),
@@ -790,8 +829,10 @@ set_var_value(gchar *name, gchar *val) {
                              SOUP_SESSION_MAX_CONNS_PER_HOST, uzbl.net.max_conns_host, NULL);
             }
             else if (var_is("http_debug", name)) {
+                //soup_session_remove_feature
+                //    (uzbl.net.soup_session, uzbl.net.soup_logger);
                 soup_session_remove_feature
-                    (uzbl.net.soup_session, uzbl.net.soup_logger);
+                    (uzbl.net.soup_session, SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
                 /* do we leak if this doesn't get freed? why does it occasionally crash if freed? */
                 /*g_free(uzbl.net.soup_logger);*/
                   
@@ -1309,7 +1350,6 @@ settings_init () {
     GKeyFile* config = NULL;
     gboolean res  = FALSE;
     char *saveptr;
-    gchar** keys = NULL;
     State *s = &uzbl.state;
     Network *n = &uzbl.net;
     Behaviour *b = &uzbl.behave;
@@ -1362,86 +1402,17 @@ settings_init () {
     }
 
     if (res) {
-        b->load_finish_handler= g_key_file_get_value   (config, "behavior", "load_finish_handler",NULL);
-        b->history_handler    = g_key_file_get_value   (config, "behavior", "history_handler",    NULL);
-        b->download_handler   = g_key_file_get_value   (config, "behavior", "download_handler",   NULL);
-        b->cookie_handler     = g_key_file_get_string  (config, "behavior", "cookie_handler",     NULL);
-        b->always_insert_mode = g_key_file_get_boolean (config, "behavior", "always_insert_mode", NULL);
-        b->show_status        = g_key_file_get_boolean (config, "behavior", "show_status",        NULL);
-        b->modkey             = g_key_file_get_value   (config, "behavior", "modkey",             NULL);
         b->status_top         = g_key_file_get_boolean (config, "behavior", "status_top",         NULL);
         b->reset_command_mode = g_key_file_get_boolean (config, "behavior", "reset_command_mode", NULL);
-        b->status_format      = g_key_file_get_string  (config, "behavior", "status_format",      NULL);
-        b->status_background  = g_key_file_get_string  (config, "behavior", "status_background",  NULL);
-        if (! b->fifo_dir)
-            b->fifo_dir       = g_key_file_get_value   (config, "behavior", "fifo_dir",           NULL);
-        if (! b->socket_dir)
-            b->socket_dir     = g_key_file_get_value   (config, "behavior", "socket_dir",         NULL);
-        keys                  = g_key_file_get_keys    (config, "bindings", NULL,                 NULL);
     }
 
-    printf ("History handler: %s\n",    (b->history_handler    ? b->history_handler  : "disabled"));
-    printf ("Download manager: %s\n",   (b->download_handler   ? b->download_handler : "disabled"));
-    printf ("Cookie handler: %s\n",     (b->cookie_handler     ? b->cookie_handler   : "disabled"));
-    printf ("Fifo directory: %s\n",     (b->fifo_dir           ? b->fifo_dir         : "disabled"));
-    printf ("Socket directory: %s\n",   (b->socket_dir         ? b->socket_dir       : "disabled"));
-    printf ("Always insert mode: %s\n", (b->always_insert_mode ? "TRUE"              : "FALSE"));
     printf ("Reset mode: %s\n"      ,   (b->reset_command_mode ? "TRUE"              : "FALSE"));
-    printf ("Show status: %s\n",        (b->show_status        ? "TRUE"              : "FALSE"));
-    printf ("Status top: %s\n",         (b->status_top         ? "TRUE"              : "FALSE"));
-    printf ("Modkey: %s\n",             (b->modkey             ? b->modkey           : "disabled"));
-    printf ("Status format: %s\n",      (b->status_format      ? b->status_format    : "none"));
-
-    if (!b->modkey)
-        b->modkey = "";
-
-    //POSSIBLE MODKEY VALUES (COMBINATIONS CAN BE USED)
-    gchar* modkeyup = g_utf8_strup (b->modkey, -1);
-    if (g_strrstr (modkeyup,"SHIFT") != NULL)    b->modmask |= GDK_SHIFT_MASK;    //the Shift key.
-    if (g_strrstr (modkeyup,"LOCK") != NULL)     b->modmask |= GDK_LOCK_MASK;     //a Lock key (depending on the modifier mapping of the X server this may either be CapsLock or ShiftLock).
-    if (g_strrstr (modkeyup,"CONTROL") != NULL)  b->modmask |= GDK_CONTROL_MASK;  //the Control key.
-    if (g_strrstr (modkeyup,"MOD1") != NULL)     b->modmask |= GDK_MOD1_MASK;     //the fourth modifier key (it depends on the modifier mapping of the X server which key is interpreted as this modifier, but normally it is the Alt key).
-    if (g_strrstr (modkeyup,"MOD2") != NULL)     b->modmask |= GDK_MOD2_MASK;     //the fifth modifier key (it depends on the modifier mapping of the X server which key is interpreted as this modifier).
-    if (g_strrstr (modkeyup,"MOD3") != NULL)     b->modmask |= GDK_MOD3_MASK;     //the sixth modifier key (it depends on the modifier mapping of the X server which key is interpreted as this modifier).
-    if (g_strrstr (modkeyup,"MOD4") != NULL)     b->modmask |= GDK_MOD4_MASK;     //the seventh modifier key (it depends on the modifier mapping of the X server which key is interpreted as this modifier).
-    if (g_strrstr (modkeyup,"MOD5") != NULL)     b->modmask |= GDK_MOD5_MASK;     //the eighth modifier key (it depends on the modifier mapping of the X server which key is interpreted as this modifier).
-    if (g_strrstr (modkeyup,"BUTTON1") != NULL)  b->modmask |= GDK_BUTTON1_MASK;  //the first mouse button.
-    if (g_strrstr (modkeyup,"BUTTON2") != NULL)  b->modmask |= GDK_BUTTON2_MASK;  //the second mouse button.
-    if (g_strrstr (modkeyup,"BUTTON3") != NULL)  b->modmask |= GDK_BUTTON3_MASK;  //the third mouse button.
-    if (g_strrstr (modkeyup,"BUTTON4") != NULL)  b->modmask |= GDK_BUTTON4_MASK;  //the fourth mouse button.
-    if (g_strrstr (modkeyup,"BUTTON5") != NULL)  b->modmask |= GDK_BUTTON5_MASK;  //the fifth mouse button.
-    if (g_strrstr (modkeyup,"SUPER") != NULL)    b->modmask |= GDK_SUPER_MASK;    //the Super modifier. Since 2.10
-    if (g_strrstr (modkeyup,"HYPER") != NULL)    b->modmask |= GDK_HYPER_MASK;    //the Hyper modifier. Since 2.10
-    if (g_strrstr (modkeyup,"META") != NULL)     b->modmask |= GDK_META_MASK;     //the Meta modifier. Since 2.10  */
-    free (modkeyup);
-
-    if (keys) {
-        int i;
-        for (i = 0; keys[i]; i++) {
-            gchar *value = g_key_file_get_string (config, "bindings", keys[i], NULL);
-            
-            add_binding(g_strstrip(keys[i]), value);
-            g_free(value);
-        }
-
-        g_strfreev(keys);
-    }
 
     /* networking options */
     if (res) {
-        b->http_debug     = g_key_file_get_integer (config, "network", "http_debug",         NULL);
         n->useragent      = g_key_file_get_value   (config, "network", "user-agent",         NULL);
     }
 
-	
-    if(!(b->http_debug <= 3)){
-        b->http_debug = 0;
-        fprintf(stderr, "Wrong http_debug level, ignoring.\n");
-    } else if (b->http_debug > 0) {
-        n->soup_logger = soup_logger_new(b->http_debug, -1);
-        soup_session_add_feature(n->soup_session, SOUP_SESSION_FEATURE(n->soup_logger));
-    }
-	
     if(n->useragent){
         char* newagent  = malloc(1024);
 
@@ -1471,12 +1442,7 @@ settings_init () {
         g_object_set(G_OBJECT(n->soup_session), SOUP_SESSION_USER_AGENT, n->useragent, NULL);
     }
 
-
-    printf("Proxy configured: %s\n", n->proxy_url ? n->proxy_url : "none");
-    printf("HTTP logging level: %d\n", b->http_debug);
     printf("User-agent: %s\n", n->useragent? n->useragent : "default");
-    printf("Maximum connections: %d\n", n->max_conns ? n->max_conns : 0);
-    printf("Maximum connections per host: %d\n", n->max_conns_host ? n->max_conns_host: 0);
 
     g_signal_connect(n->soup_session, "request-queued", G_CALLBACK(handle_cookies), NULL);
 }
@@ -1541,8 +1507,6 @@ main (int argc, char* argv[]) {
     settings_init ();
     commands_hash ();
 	
-    if (uzbl.behave.always_insert_mode)
-        uzbl.behave.insert_mode = TRUE;
 
     GtkWidget* vbox = gtk_vbox_new (FALSE, 0);
     if (uzbl.behave.status_top)
