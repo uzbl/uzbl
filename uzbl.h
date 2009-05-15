@@ -12,10 +12,19 @@
 
 #define STATUS_DEFAULT "<span background=\"darkblue\" foreground=\"white\"> MODE </span> <span background=\"red\" foreground=\"white\">KEYCMD</span> (LOAD_PROGRESS%)  <b>TITLE</b>  - Uzbl browser"
 
-/* statusbar symbols */
-enum { SYM_TITLE, SYM_URI, SYM_NAME, 
-       SYM_LOADPRGS, SYM_LOADPRGSBAR,
-       SYM_KEYCMD, SYM_MODE, SYM_MSG};
+enum {
+  /* statusbar symbols */
+  SYM_TITLE, SYM_URI, SYM_NAME, 
+  SYM_LOADPRGS, SYM_LOADPRGSBAR,
+  SYM_KEYCMD, SYM_MODE, SYM_MSG,
+  /* useragent symbols */
+  SYM_WK_MAJ, SYM_WK_MIN, SYM_WK_MIC,
+  SYM_SYSNAME, SYM_NODENAME,
+  SYM_KERNREL, SYM_KERNVER,
+  SYM_ARCHSYS, SYM_ARCHUZBL,
+  SYM_DOMAINNAME, SYM_COMMIT
+};
+
 const struct {
     gchar *symbol_name;
     guint symbol_token;
@@ -28,6 +37,18 @@ const struct {
     {"MSG",                  SYM_MSG},
     {"LOAD_PROGRESS",        SYM_LOADPRGS},
     {"LOAD_PROGRESSBAR",     SYM_LOADPRGSBAR},
+
+    {"WEBKIT_MAJOR",         SYM_WK_MAJ},
+    {"WEBKIT_MINOR",         SYM_WK_MIN},
+    {"WEBKIT_MICRO",         SYM_WK_MIC},
+    {"SYSNAME",              SYM_SYSNAME},
+    {"NODENAME",             SYM_NODENAME},
+    {"KERNREL",              SYM_KERNREL},
+    {"KERNVER",              SYM_KERNVER},
+    {"ARCH_SYSTEM",          SYM_ARCHSYS},
+    {"ARCH_UZBL",            SYM_ARCHUZBL},
+    {"DOMAINNAME",           SYM_DOMAINNAME},
+    {"COMMIT",               SYM_COMMIT},
     {NULL,                   0}
 }, *symp = symbols;
 
@@ -234,6 +255,12 @@ parse_cmd_line(const char *ctl_line);
 
 static gchar*
 build_stream_name(int type, const gchar *dir);
+
+static gboolean
+var_is(const char *x, const char *y);
+
+static gchar*
+set_useragent(gchar *val);
 
 static void
 control_fifo(GIOChannel *gio, GIOCondition condition);
