@@ -107,7 +107,7 @@ const struct {
     { "SUPER",   GDK_SUPER_MASK   }, // super (since 2.10)
     { "HYPER",   GDK_HYPER_MASK   }, // hyper (since 2.10)
     { "META",    GDK_META_MASK    }, // meta (since 2.10)
-    { NULL,      NULL             }
+    { NULL,      0                }
 };
 
 /* construct a hash from the var_name_to_ptr array for quick access */
