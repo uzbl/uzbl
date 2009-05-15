@@ -804,7 +804,7 @@ set_var_value(gchar *name, gchar *val) {
         }
         /* variables that take int values */
         else {
-            int *ip = p;
+            int *ip = (int *)p;
             *ip = (int)strtoul(val, &endp, 10);
 
             if(var_is("show_status", name)) {
@@ -820,7 +820,7 @@ set_var_value(gchar *name, gchar *val) {
             }
             else if (var_is("http_debug", name)) {
                 soup_session_remove_feature
-                    (uzbl.net.soup_session, uzbl.net.soup_logger);
+                    (uzbl.net.soup_session, SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
                 /* do we leak if this doesn't get freed? why does it occasionally crash if freed? */
                 /*g_free(uzbl.net.soup_logger);*/
                   
