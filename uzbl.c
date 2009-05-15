@@ -237,15 +237,24 @@ scroll (GtkAdjustment* bar, const char *param) {
     gtk_adjustment_set_value (bar, gtk_adjustment_get_value(bar)+amount);
 }
 
+static void scroll_begin(WebKitWebView* page, const char *param) {
+    (void) page; (void) param;
+    gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_lower(uzbl.gui.bar_v));
+}
+
+static void scroll_end(WebKitWebView* page, const char *param) {
+    (void) page; (void) param;
+    gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_upper(uzbl.gui.bar_v) -
+                              gtk_adjustment_get_page_size(uzbl.gui.bar_v));
+}
+
 static void scroll_vert(WebKitWebView* page, const char *param) {
     (void) page;
-
     scroll(uzbl.gui.bar_v, param);
 }
 
 static void scroll_horz(WebKitWebView* page, const char *param) {
     (void) page;
-
     scroll(uzbl.gui.bar_h, param);
 }
 
@@ -373,6 +382,8 @@ static struct {char *name; Command command;} cmdlist[] =
     { "forward",          view_go_forward         },
     { "scroll_vert",      scroll_vert             },
     { "scroll_horz",      scroll_horz             },
+    { "scroll_begin",     scroll_begin            },
+    { "scroll_end",       scroll_end              },
     { "reload",           view_reload,            }, 
     { "reload_ign_cache", view_reload_bypass_cache},
     { "stop",             view_stop_loading,      },
