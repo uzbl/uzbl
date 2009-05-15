@@ -1434,7 +1434,6 @@ settings_init () {
     }
 
     if (res) {
-        b->status_top         = g_key_file_get_boolean (config, "behavior", "status_top",         NULL);
         b->reset_command_mode = g_key_file_get_boolean (config, "behavior", "reset_command_mode", NULL);
     }
 
