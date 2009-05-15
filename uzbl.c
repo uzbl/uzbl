@@ -1433,8 +1433,6 @@ add_binding (const gchar *key, const gchar *act) {
 
 static void
 settings_init () {
-    GKeyFile* config = NULL;
-    gboolean res  = FALSE;
     char *saveptr;
     State *s = &uzbl.state;
     Network *n = &uzbl.net;
@@ -1477,15 +1475,22 @@ settings_init () {
     }
 
     if (s->config_file) {
-        config = g_key_file_new ();
-        res = g_key_file_load_from_file (config, s->config_file, G_KEY_FILE_NONE, NULL);
-          if (res) {
-            printf ("Config %s loaded\n", s->config_file);
-          } else {
-            fprintf (stderr, "Config %s loading failed\n", s->config_file);
+        FILE * conf;
+        char readbuf [300];
+        conf = fopen (s->config_file, "r");
+        if (conf == NULL) {
+            fprintf(stderr, "uzbl: error loading file%s\n", s->config_file);
+        } else {
+            while(!feof(conf)) {
+                fgets (readbuf , 300 , conf);
+                parse_cmd_line(readbuf);
+            }
+            fclose (conf);
         }
+
+        printf ("Config %s loaded\n", s->config_file);
     } else {
-        printf ("No configuration.\n");
+        printf ("No configuration file loaded.\n");
     }
 
     g_signal_connect(n->soup_session, "request-queued", G_CALLBACK(handle_cookies), NULL);
@@ -1561,6 +1566,14 @@ main (int argc, char* argv[]) {
     uzbl.net.soup_session = webkit_get_default_session();
     uzbl.state.keycmd = g_string_new("");
 
+    if(setup_signal(SIGTERM, catch_sigterm) == SIG_ERR)
+        fprintf(stderr, "uzbl: error hooking SIGTERM\n");
+
+    if(uname(&uzbl.state.unameinfo) == -1)
+        g_printerr("Can't retrieve unameinfo.  Your useragent might appear wrong.\n");
+
+    setup_regex();
+    setup_scanner();
     settings_init ();
     commands_hash ();
 	
@@ -1593,14 +1606,7 @@ main (int argc, char* argv[]) {
     gtk_widget_set_scroll_adjustments ((GtkWidget*) uzbl.gui.web_view, uzbl.gui.bar_h, uzbl.gui.bar_v);
 
 
-    if(setup_signal(SIGTERM, catch_sigterm) == SIG_ERR)
-        fprintf(stderr, "uzbl: error hooking SIGTERM\n");
 
-    if(uname(&uzbl.state.unameinfo) == -1)
-        g_printerr("Can't retrieve unameinfo.  Your useragent might appear wrong.\n");
-
-    setup_regex();
-    setup_scanner();
 
     if (!uzbl.behave.status_format)
         uzbl.behave.status_format = g_strdup(STATUS_DEFAULT);
