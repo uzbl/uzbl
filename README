@@ -128,3 +128,10 @@ KNOWN BUGS
 - Something in the FIFO code causes CPU usage to jump.
 
 Report new issues @ uzbl.org/bugs
+
+
+VALGRIND PROFILING
+add this to Makefile header: CFLAGS=-g
+recompile
+valgrind --tool=callgrind ./uzbl ....
+kcachegrind callgrind.out.foo
