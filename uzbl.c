@@ -63,7 +63,6 @@ const struct {
     char *name;
     void **ptr;
 } var_name_to_ptr[] = {
-    // Already working commands
     { "uri",                (void *)&uzbl.state.uri                 },
     { "status_message",     (void *)&uzbl.gui.sbar.msg              },
     { "show_status",        (void *)&uzbl.behave.show_status        },
@@ -72,6 +71,7 @@ const struct {
     { "status_background",  (void *)&uzbl.behave.status_background  },
     { "insert_mode",        (void *)&uzbl.behave.insert_mode        },
     { "always_insert_mode", (void *)&uzbl.behave.always_insert_mode },
+    { "reset_command_mode", (void *)&uzbl.behave.reset_command_mode },
     { "modkey"     ,        (void *)&uzbl.behave.modkey             },
     { "load_finish_handler",(void *)&uzbl.behave.load_finish_handler},
     { "history_handler",    (void *)&uzbl.behave.history_handler    },
@@ -144,11 +144,6 @@ itos(int val) {
 
     snprintf(tmp, sizeof(tmp), "%i", val);
     return g_strdup(tmp);
-}
-
-static char *
-str_replace (const char* search, const char* replace, const char* string) {
-    return g_strjoinv (replace, g_strsplit(string, search, -1));
 }
 
 static sigfunc*
@@ -241,15 +236,24 @@ scroll (GtkAdjustment* bar, const char *param) {
     gtk_adjustment_set_value (bar, gtk_adjustment_get_value(bar)+amount);
 }
 
+static void scroll_begin(WebKitWebView* page, const char *param) {
+    (void) page; (void) param;
+    gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_lower(uzbl.gui.bar_v));
+}
+
+static void scroll_end(WebKitWebView* page, const char *param) {
+    (void) page; (void) param;
+    gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_upper(uzbl.gui.bar_v) -
+                              gtk_adjustment_get_page_size(uzbl.gui.bar_v));
+}
+
 static void scroll_vert(WebKitWebView* page, const char *param) {
     (void) page;
-
     scroll(uzbl.gui.bar_v, param);
 }
 
 static void scroll_horz(WebKitWebView* page, const char *param) {
     (void) page;
-
     scroll(uzbl.gui.bar_h, param);
 }
 
@@ -377,6 +381,8 @@ static struct {char *name; Command command;} cmdlist[] =
     { "forward",          view_go_forward         },
     { "scroll_vert",      scroll_vert             },
     { "scroll_horz",      scroll_horz             },
+    { "scroll_begin",     scroll_begin            },
+    { "scroll_end",       scroll_end              },
     { "reload",           view_reload,            }, 
     { "reload_ign_cache", view_reload_bypass_cache},
     { "stop",             view_stop_loading,      },
@@ -1427,12 +1433,11 @@ add_binding (const gchar *key, const gchar *act) {
 
 static void
 settings_init () {
-    GKeyFile* config = NULL;
-    gboolean res  = FALSE;
     char *saveptr;
     State *s = &uzbl.state;
     Network *n = &uzbl.net;
-    Behaviour *b = &uzbl.behave;
+
+    uzbl.behave.reset_command_mode = 1;
 
     if (!s->config_file) {
         const char* XDG_CONFIG_HOME = getenv ("XDG_CONFIG_HOME");
@@ -1470,58 +1475,29 @@ settings_init () {
     }
 
     if (s->config_file) {
-        config = g_key_file_new ();
-        res = g_key_file_load_from_file (config, s->config_file, G_KEY_FILE_NONE, NULL);
-          if (res) {
+        GIOChannel *chan = NULL;
+        GError *error = NULL;
+        gchar *readbuf = NULL;
+        gsize len;
+        GIOStatus status = G_IO_STATUS_NORMAL;
+        chan = g_io_channel_new_file(s->config_file, "r", &error);
+        if (chan) {
+            while (status == G_IO_STATUS_NORMAL) {
+		status = g_io_channel_read_line (chan, &readbuf, &len, NULL, NULL);
+                readbuf[len-1] = '\0'; // strip the "\n"
+                parse_cmd_line(readbuf);
+		g_free (readbuf); 
+	    }
+	    g_io_channel_unref (chan);
             printf ("Config %s loaded\n", s->config_file);
-          } else {
-            fprintf (stderr, "Config %s loading failed\n", s->config_file);
-        }
+       } else {
+           fprintf(stderr, "uzbl: error loading file%s\n", s->config_file);
+       }
     } else {
-        printf ("No configuration.\n");
+        printf ("No configuration file loaded.\n");
     }
-
-    if (res) {
-        b->reset_command_mode = g_key_file_get_boolean (config, "behavior", "reset_command_mode", NULL);
-    }
-
-    printf ("Reset mode: %s\n"      ,   (b->reset_command_mode ? "TRUE"              : "FALSE"));
-
-    /* networking options */
-    if (res) {
-        n->useragent      = g_key_file_get_value   (config, "network", "user-agent",         NULL);
-    }
-
-    if(n->useragent){
-        char* newagent  = malloc(1024);
-
-        strcpy(newagent, str_replace("%webkit-major%", itos(WEBKIT_MAJOR_VERSION), n->useragent));
-        strcpy(newagent, str_replace("%webkit-minor%", itos(WEBKIT_MINOR_VERSION), newagent));
-        strcpy(newagent, str_replace("%webkit-micro%", itos(WEBKIT_MICRO_VERSION), newagent));
-
-        if (uname (&s->unameinfo) == -1) {
-            printf("Error getting uname info. Not replacing system-related user agent variables.\n");
-        } else {
-            strcpy(newagent, str_replace("%sysname%",     s->unameinfo.sysname, newagent));
-            strcpy(newagent, str_replace("%nodename%",    s->unameinfo.nodename, newagent));
-            strcpy(newagent, str_replace("%kernrel%",     s->unameinfo.release, newagent));
-            strcpy(newagent, str_replace("%kernver%",     s->unameinfo.version, newagent));
-            strcpy(newagent, str_replace("%arch-system%", s->unameinfo.machine, newagent));
-
-            #ifdef _GNU_SOURCE
-                strcpy(newagent, str_replace("%domainname%", s->unameinfo.domainname, newagent));
-            #endif
-        }
-
-        strcpy(newagent, str_replace("%arch-uzbl%",    ARCH,                       newagent));
-        strcpy(newagent, str_replace("%commit%",       COMMIT,                     newagent));
-
-        n->useragent = malloc(1024);
-        strcpy(n->useragent, newagent);
-        g_object_set(G_OBJECT(n->soup_session), SOUP_SESSION_USER_AGENT, n->useragent, NULL);
-    }
-
-    printf("User-agent: %s\n", n->useragent? n->useragent : "default");
+    if (!uzbl.behave.status_format)
+        uzbl.behave.status_format = g_strdup(STATUS_DEFAULT);
 
     g_signal_connect(n->soup_session, "request-queued", G_CALLBACK(handle_cookies), NULL);
 }
@@ -1596,8 +1572,16 @@ main (int argc, char* argv[]) {
     uzbl.net.soup_session = webkit_get_default_session();
     uzbl.state.keycmd = g_string_new("");
 
-    settings_init ();
+    if(setup_signal(SIGTERM, catch_sigterm) == SIG_ERR)
+        fprintf(stderr, "uzbl: error hooking SIGTERM\n");
+
+    if(uname(&uzbl.state.unameinfo) == -1)
+        g_printerr("Can't retrieve unameinfo.  Your useragent might appear wrong.\n");
+
+    setup_regex();
+    setup_scanner();
     commands_hash ();
+    make_var_to_name_hash();
 	
 
     uzbl.gui.vbox = gtk_vbox_new (FALSE, 0);
@@ -1612,7 +1596,7 @@ main (int argc, char* argv[]) {
     uzbl.gui.main_window = create_window ();
     gtk_container_add (GTK_CONTAINER (uzbl.gui.main_window), uzbl.gui.vbox);
 
-    load_uri (uzbl.gui.web_view, uzbl.state.uri);
+    load_uri (uzbl.gui.web_view, uzbl.state.uri); //TODO: is this needed?
 
     gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
     gtk_widget_show_all (uzbl.gui.main_window);
@@ -1627,24 +1611,13 @@ main (int argc, char* argv[]) {
     uzbl.gui.bar_h = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_h);
     gtk_widget_set_scroll_adjustments ((GtkWidget*) uzbl.gui.web_view, uzbl.gui.bar_h, uzbl.gui.bar_v);
 
+    settings_init ();
 
-    if(setup_signal(SIGTERM, catch_sigterm) == SIG_ERR)
-        fprintf(stderr, "uzbl: error hooking SIGTERM\n");
-
-    if(uname(&uzbl.state.unameinfo) == -1)
-        g_printerr("Can't retrieve unameinfo.  Your useragent might appear wrong.\n");
-
-    setup_regex();
-    setup_scanner();
-
-    if (!uzbl.behave.status_format)
-        uzbl.behave.status_format = g_strdup(STATUS_DEFAULT);
     if (!uzbl.behave.show_status)
         gtk_widget_hide(uzbl.gui.mainbar);
     else
         update_title();
 
-    make_var_to_name_hash();
     create_stdin();
 
     gtk_main ();

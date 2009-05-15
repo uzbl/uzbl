@@ -10,7 +10,7 @@
 # TODO: ability to attach misc things (spawn <foo>, script <bar>,.. to internal events)
 #set	history_handler	./examples/scripts/history.sh
 #set	download_handler	./examples/scripts/download.sh
-#set	behave.cookie_handler	./examples/scripts/cookies.sh
+#set	cookie_handler	./examples/scripts/cookies.sh
 
 
 
@@ -29,7 +29,7 @@ set always_insert_mode = 0
 # Example user agent containing everything:
 #set	useragent	Uzbl (Webkit %webkit-major%.%webkit-minor%.%webkit-micro%) (%sysname% %nodename% %kernrel% %kernver% %arch-system% [%arch-uzbl%]) (Commit %commit%)
 #set	max_conns	0
-#set	.max_conns_host	0
+#set	max_conns_host	0
 
 set fifo_dir = /tmp
 #TODO socket dir
