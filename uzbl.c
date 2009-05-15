@@ -147,11 +147,6 @@ itos(int val) {
     return g_strdup(tmp);
 }
 
-static char *
-str_replace (const char* search, const char* replace, const char* string) {
-    return g_strjoinv (replace, g_strsplit(string, search, -1));
-}
-
 static sigfunc*
 setup_signal(int signr, sigfunc *shandler) {
     struct sigaction nh, oh;
@@ -1420,7 +1415,6 @@ settings_init () {
     char *saveptr;
     State *s = &uzbl.state;
     Network *n = &uzbl.net;
-    Behaviour *b = &uzbl.behave;
 
     if (!s->config_file) {
         const char* XDG_CONFIG_HOME = getenv ("XDG_CONFIG_HOME");
@@ -1468,48 +1462,6 @@ settings_init () {
     } else {
         printf ("No configuration.\n");
     }
-
-    if (res) {
-        b->reset_command_mode = g_key_file_get_boolean (config, "behavior", "reset_command_mode", NULL);
-    }
-
-    printf ("Reset mode: %s\n"      ,   (b->reset_command_mode ? "TRUE"              : "FALSE"));
-
-    /* networking options */
-    if (res) {
-        n->useragent      = g_key_file_get_value   (config, "network", "user-agent",         NULL);
-    }
-
-    if(n->useragent){
-        char* newagent  = malloc(1024);
-
-        strcpy(newagent, str_replace("%webkit-major%", itos(WEBKIT_MAJOR_VERSION), n->useragent));
-        strcpy(newagent, str_replace("%webkit-minor%", itos(WEBKIT_MINOR_VERSION), newagent));
-        strcpy(newagent, str_replace("%webkit-micro%", itos(WEBKIT_MICRO_VERSION), newagent));
-
-        if (uname (&s->unameinfo) == -1) {
-            printf("Error getting uname info. Not replacing system-related user agent variables.\n");
-        } else {
-            strcpy(newagent, str_replace("%sysname%",     s->unameinfo.sysname, newagent));
-            strcpy(newagent, str_replace("%nodename%",    s->unameinfo.nodename, newagent));
-            strcpy(newagent, str_replace("%kernrel%",     s->unameinfo.release, newagent));
-            strcpy(newagent, str_replace("%kernver%",     s->unameinfo.version, newagent));
-            strcpy(newagent, str_replace("%arch-system%", s->unameinfo.machine, newagent));
-
-            #ifdef _GNU_SOURCE
-                strcpy(newagent, str_replace("%domainname%", s->unameinfo.domainname, newagent));
-            #endif
-        }
-
-        strcpy(newagent, str_replace("%arch-uzbl%",    ARCH,                       newagent));
-        strcpy(newagent, str_replace("%commit%",       COMMIT,                     newagent));
-
-        n->useragent = malloc(1024);
-        strcpy(n->useragent, newagent);
-        g_object_set(G_OBJECT(n->soup_session), SOUP_SESSION_USER_AGENT, n->useragent, NULL);
-    }
-
-    printf("User-agent: %s\n", n->useragent? n->useragent : "default");
 
     g_signal_connect(n->soup_session, "request-queued", G_CALLBACK(handle_cookies), NULL);
 }
