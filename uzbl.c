@@ -72,6 +72,7 @@ const struct {
     { "status_background",  (void *)&uzbl.behave.status_background  },
     { "insert_mode",        (void *)&uzbl.behave.insert_mode        },
     { "always_insert_mode", (void *)&uzbl.behave.always_insert_mode },
+    { "reset_command_mode", (void *)&uzbl.behave.reset_command_mode },
     { "modkey"     ,        (void *)&uzbl.behave.modkey             },
     { "load_finish_handler",(void *)&uzbl.behave.load_finish_handler},
     { "history_handler",    (void *)&uzbl.behave.history_handler    },
@@ -1414,6 +1415,8 @@ settings_init () {
     char *saveptr;
     State *s = &uzbl.state;
     Network *n = &uzbl.net;
+
+    uzbl.behave.reset_command_mode = 1;
 
     if (!s->config_file) {
         const char* XDG_CONFIG_HOME = getenv ("XDG_CONFIG_HOME");
