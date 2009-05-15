@@ -226,6 +226,12 @@ spawn(WebKitWebView *web_view, const char *param);
 static void
 parse_command(const char *cmd, const char *param);
 
+static void
+runcmd(WebKitWebView *page, const char *param);
+
+static void
+parse_cmd_line(const char *ctl_line);
+
 static gchar*
 build_stream_name(int type, const gchar *dir);
 

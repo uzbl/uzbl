@@ -388,7 +388,8 @@ static struct {char *name; Command command;} cmdlist[] =
     { "spawn",            spawn                   },
     { "exit",             close_uzbl              },
     { "search",           search_text             },
-    { "insert_mode",      set_insert_mode         }
+    { "insert_mode",      set_insert_mode         },
+    { "runcmd",           runcmd                  }
 };
 
 static void
@@ -840,8 +841,14 @@ set_var_value(gchar *name, gchar *val) {
     return TRUE;
 }
 
+static void
+runcmd(WebKitWebView* page, const char *param) {
+    (void) page;
+    parse_cmd_line(param);
+}
+
 static void 
-parse_cmd_line(char *ctl_line) {
+parse_cmd_line(const char *ctl_line) {
     gchar **tokens;
 
     /* SET command */
