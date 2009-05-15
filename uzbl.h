@@ -264,7 +264,7 @@ var_is(const char *x, const char *y);
 static gchar*
 set_useragent(gchar *val);
 
-static void
+static gboolean
 control_fifo(GIOChannel *gio, GIOCondition condition);
 
 static gchar*
