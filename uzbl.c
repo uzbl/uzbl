@@ -83,10 +83,35 @@ const struct {
     { "max_conns",          (void *)&uzbl.net.max_conns             },
     { "max_conns_host",     (void *)&uzbl.net.max_conns_host        },
     { "http_debug",         (void *)&uzbl.behave.http_debug         },
+    { "modkey",             (void *)&uzbl.behave.modkey             },
+    { "always_insert_mode", (void *)&uzbl.behave.always_insert_mode },
     // TODO: write cmd handlers for the following
     { "useragent",          (void *)&uzbl.net.useragent             },
     { NULL,                 NULL                                    }
 }, *n2v_p = var_name_to_ptr;
+
+const struct {
+    char *key;
+    guint mask;
+} modkeys[] = {
+    { "SHIFT",   GDK_SHIFT_MASK   }, // shift
+    { "LOCK",    GDK_LOCK_MASK    }, // capslock or shiftlock, depending on xserver's modmappings
+    { "CONTROL", GDK_CONTROL_MASK }, // control
+    { "MOD1",    GDK_MOD1_MASK    }, // 4th mod - normally alt but depends on modmappings
+    { "MOD2",    GDK_MOD2_MASK    }, // 5th mod
+    { "MOD3",    GDK_MOD3_MASK    }, // 6th mod
+    { "MOD4",    GDK_MOD4_MASK    }, // 7th mod
+    { "MOD5",    GDK_MOD5_MASK    }, // 8th mod
+    { "BUTTON1", GDK_BUTTON1_MASK }, // 1st mouse button
+    { "BUTTON2", GDK_BUTTON2_MASK }, // 2nd mouse button
+    { "BUTTON3", GDK_BUTTON3_MASK }, // 3rd mouse button
+    { "BUTTON4", GDK_BUTTON4_MASK }, // 4th mouse button
+    { "BUTTON5", GDK_BUTTON5_MASK }, // 5th mouse button
+    { "SUPER",   GDK_SUPER_MASK   }, // super (since 2.10)
+    { "HYPER",   GDK_HYPER_MASK   }, // hyper (since 2.10)
+    { "META",    GDK_META_MASK    }, // meta (since 2.10)
+    { NULL,      NULL             }
+};
 
 /* construct a hash from the var_name_to_ptr array for quick access */
 static void
@@ -728,33 +753,6 @@ set_proxy_url() {
     return;
 }
 
-static void
-set_modkey() {
-    Behaviour *b = &uzbl.behave;
-
-    if (!b->modkey)
-        b->modkey = "";
-
-    //POSSIBLE MODKEY VALUES (COMBINATIONS CAN BE USED)
-    gchar* modkeyup = g_utf8_strup (b->modkey, -1);
-    if (g_strrstr (modkeyup,"SHIFT") != NULL)    b->modmask |= GDK_SHIFT_MASK;    //the Shift key.
-    if (g_strrstr (modkeyup,"LOCK") != NULL)     b->modmask |= GDK_LOCK_MASK;     //a Lock key (depending on the modifier mapping of the X server this may either be CapsLock or ShiftLock).
-    if (g_strrstr (modkeyup,"CONTROL") != NULL)  b->modmask |= GDK_CONTROL_MASK;  //the Control key.
-    if (g_strrstr (modkeyup,"MOD1") != NULL)     b->modmask |= GDK_MOD1_MASK;     //the fourth modifier key (it depends on the modifier mapping of the X server which key is interpreted as this modifier, but normally it is the Alt key).
-    if (g_strrstr (modkeyup,"MOD2") != NULL)     b->modmask |= GDK_MOD2_MASK;     //the fifth modifier key (it depends on the modifier mapping of the X server which key is interpreted as this modifier).
-    if (g_strrstr (modkeyup,"MOD3") != NULL)     b->modmask |= GDK_MOD3_MASK;     //the sixth modifier key (it depends on the modifier mapping of the X server which key is interpreted as this modifier).
-    if (g_strrstr (modkeyup,"MOD4") != NULL)     b->modmask |= GDK_MOD4_MASK;     //the seventh modifier key (it depends on the modifier mapping of the X server which key is interpreted as this modifier).
-    if (g_strrstr (modkeyup,"MOD5") != NULL)     b->modmask |= GDK_MOD5_MASK;     //the eighth modifier key (it depends on the modifier mapping of the X server which key is interpreted as this modifier).
-    if (g_strrstr (modkeyup,"BUTTON1") != NULL)  b->modmask |= GDK_BUTTON1_MASK;  //the first mouse button.
-    if (g_strrstr (modkeyup,"BUTTON2") != NULL)  b->modmask |= GDK_BUTTON2_MASK;  //the second mouse button.
-    if (g_strrstr (modkeyup,"BUTTON3") != NULL)  b->modmask |= GDK_BUTTON3_MASK;  //the third mouse button.
-    if (g_strrstr (modkeyup,"BUTTON4") != NULL)  b->modmask |= GDK_BUTTON4_MASK;  //the fourth mouse button.
-    if (g_strrstr (modkeyup,"BUTTON5") != NULL)  b->modmask |= GDK_BUTTON5_MASK;  //the fifth mouse button.
-    if (g_strrstr (modkeyup,"SUPER") != NULL)    b->modmask |= GDK_SUPER_MASK;    //the Super modifier. Since 2.10
-    if (g_strrstr (modkeyup,"HYPER") != NULL)    b->modmask |= GDK_HYPER_MASK;    //the Hyper modifier. Since 2.10
-    if (g_strrstr (modkeyup,"META") != NULL)     b->modmask |= GDK_META_MASK;     //the Meta modifier. Since 2.10  */
-    g_free (modkeyup);
-}
 
 static void
 move_statusbar() {
@@ -777,12 +775,7 @@ move_statusbar() {
 
 static gboolean
 var_is(const char *x, const char *y) {
-    gboolean ret = FALSE;
-
-    if(!strcmp(x, y))
-        ret = TRUE;
-
-    return ret;
+    return (strcmp(x, y) == 0 ? TRUE : FALSE );
 }
 
 static gboolean
@@ -823,12 +816,17 @@ set_var_value(gchar *name, gchar *val) {
         }
         else if(var_is("modkey", name)) {
             if(*p) free(*p);
-            *p = g_strdup(val);
-            set_modkey();
+            int i;
+            *p = g_utf8_strup(val, -1);
+            uzbl.behave.modmask = 0;
+            for (i = 0; modkeys[i].key != NULL; i++) {
+                if (g_strrstr(*p, modkeys[i].key))
+                    uzbl.behave.modmask |= modkeys[i].mask;
+            }
         }
         /* variables that take int values */
         else {
-            int *ip = p;
+            int *ip = (int *)p;
             *ip = (int)strtoul(val, &endp, 10);
 
             if(var_is("show_status", name)) {
@@ -862,6 +860,12 @@ set_var_value(gchar *name, gchar *val) {
             }
             else if (var_is("status_top", name)) {
                 move_statusbar();
+            }
+            else if (var_is("always_insert_mode", name)) {
+                if (*ip) {
+                    uzbl.behave.insert_mode = TRUE;
+                    update_title();
+                }
             }
         }
     }
@@ -975,7 +979,7 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
         uzbl.comm.fifo_path = NULL;
     }
 
-    if (!strcmp(dir, " ")) { /* space unsets the variable */
+    if (*dir == ' ') { /* space unsets the variable */
         g_free(dir);
         return NULL;
     }
@@ -1106,7 +1110,7 @@ init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL *
         uzbl.comm.socket_path = NULL;
     }
     
-    if (!strcmp(dir, " ")) {
+    if (*dir == ' ') {
         g_free(dir);
         return NULL;
     }
