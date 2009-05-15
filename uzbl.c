@@ -72,7 +72,6 @@ const struct {
     { "status_top",         (void *)&uzbl.behave.status_top         },
     { "insert_mode",        (void *)&uzbl.behave.insert_mode        },
     { "modkey"     ,        (void *)&uzbl.behave.modkey             },
-    { "always_insert"     , (void *)&uzbl.behave.always_insert_mode },
     { "load_finish_handler",(void *)&uzbl.behave.load_finish_handler},
     { "history_handler",    (void *)&uzbl.behave.history_handler    },
     { "download_handler",   (void *)&uzbl.behave.download_handler   },
@@ -832,8 +831,7 @@ set_var_value(gchar *name, gchar *val) {
             if(var_is("show_status", name)) {
                 cmd_set_status();
             }
-            else if(var_is("always_insert", name)) {
-
+            else if(var_is("always_insert_mode", name)) {
                 uzbl.behave.insert_mode = 
                     uzbl.behave.always_insert_mode ?  TRUE : FALSE;
                 update_title();
@@ -860,12 +858,6 @@ set_var_value(gchar *name, gchar *val) {
             }
             else if (var_is("status_top", name)) {
                 move_statusbar();
-            }
-            else if (var_is("always_insert_mode", name)) {
-                if (*ip) {
-                    uzbl.behave.insert_mode = TRUE;
-                    update_title();
-                }
             }
         }
     }
