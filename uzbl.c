@@ -579,7 +579,7 @@ setup_scanner() {
 }
 
 static gchar *
-parse_status_template(const char *template) {
+expand_template(const char *template) {
      if(!template) return NULL;
      
      GTokenType token = G_TOKEN_NONE;
@@ -1195,7 +1195,7 @@ update_title (void) {
     if (b->show_status) {
         gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), title_short);
         // TODO: we should probably not do this every time we want to update the title..?
-        statln = parse_status_template(uzbl.behave.status_format);
+        statln = expand_template(uzbl.behave.status_format);
         gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), statln);
         if (b->status_background) {
             GdkColor color;
@@ -1573,7 +1573,7 @@ set_useragent(gchar *val) {
         g_free(val);
         return NULL;
     }
-    gchar *ua = parse_status_template(val);
+    gchar *ua = expand_template(val);
     if (ua)
         g_object_set(G_OBJECT(uzbl.net.soup_session), SOUP_SESSION_USER_AGENT, ua, NULL);
     return ua;
