@@ -995,14 +995,14 @@ build_stream_name(int type, const gchar* dir) {
     return str;
 }
 
-static void
+static gboolean
 control_fifo(GIOChannel *gio, GIOCondition condition) {
     printf("triggered\n");
     gchar *ctl_line;
     GIOStatus ret;
     GError *err = NULL;
 
-    if (condition & G_IO_HUP)
+    if (condition & G_IO_HUP) 
         g_error ("Fifo: Read end of pipe died!\n");
 
     if(!gio)
@@ -1015,7 +1015,7 @@ control_fifo(GIOChannel *gio, GIOCondition condition) {
     parse_cmd_line(ctl_line);
     g_free(ctl_line);
 
-    return;
+    return TRUE;
 }
 
 static gchar*
