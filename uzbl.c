@@ -63,7 +63,6 @@ const struct {
     char *name;
     void **ptr;
 } var_name_to_ptr[] = {
-    // Already working commands
     { "uri",                (void *)&uzbl.state.uri                 },
     { "status_message",     (void *)&uzbl.gui.sbar.msg              },
     { "show_status",        (void *)&uzbl.behave.show_status        },
