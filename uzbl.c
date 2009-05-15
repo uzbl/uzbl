@@ -1633,13 +1633,8 @@ main (int argc, char* argv[]) {
     else
         update_title();
 
-
     make_var_to_name_hash();
     create_stdin();
-    /*if (uzbl.behave.fifo_dir)
-      init_fifo ();*/
-    /*if (uzbl.behave.socket_dir)
-      init_socket ();*/
 
     gtk_main ();
     clean_up();

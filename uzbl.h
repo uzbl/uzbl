@@ -252,7 +252,6 @@ init_socket(gchar *dir);
 
 static void
 control_socket(GIOChannel *chan);
- 
 
 static void
 update_title (void);
