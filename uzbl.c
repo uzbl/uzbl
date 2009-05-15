@@ -1479,20 +1479,21 @@ settings_init () {
         GError *error = NULL;
         gchar *readbuf = NULL;
         gsize len;
-        GIOStatus status = G_IO_STATUS_NORMAL;
+
         chan = g_io_channel_new_file(s->config_file, "r", &error);
+
         if (chan) {
-            while (status == G_IO_STATUS_NORMAL) {
-		status = g_io_channel_read_line (chan, &readbuf, &len, NULL, NULL);
-                readbuf[len-1] = '\0'; // strip the "\n"
+            while (g_io_channel_read_line(chan, &readbuf, &len, NULL, NULL) 
+                    == G_IO_STATUS_NORMAL) {
                 parse_cmd_line(readbuf);
-		g_free (readbuf); 
-	    }
-	    g_io_channel_unref (chan);
+                g_free (readbuf); 
+            }
+
+            g_io_channel_unref (chan);
             printf ("Config %s loaded\n", s->config_file);
-       } else {
-           fprintf(stderr, "uzbl: error loading file%s\n", s->config_file);
-       }
+        } else {
+            fprintf(stderr, "uzbl: error loading file%s\n", s->config_file);
+        }
     } else {
         printf ("No configuration file loaded.\n");
     }
