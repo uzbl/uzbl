@@ -1,6 +1,4 @@
 * implement all the ideas from README
-* get a logo
-* when launching new instance, don't just try 'uzbl' and then './uzbl', rather launch a new uzbl in the same way the current uzbl instance was started. (same command, same arguments, except --uri)
 * implement a more advanced dmenu alike that behaves like FF's awesomebar and where you can search in url + window title, with support for Xorg copy paste
   ideal uri editor: awesome mode like FF, some keyb shortcuts (erase search string, go to end/begin of string,..), history (if you patch dmenu to be in vertical mode and you order correctly, that's it), support copy paste
   isolate the search field feature from midori and make into a separate dmenu-like-but-more-powerful program?
@@ -41,13 +39,22 @@
 * when loading page foo.com, it can have img src=http://bar/..., uri in uzbl will be set to foo. we must pass bar to cookie handler
 * set default statusbar. line 1284
 * keybinds to open "next" or "previous" by looking for next/prev links and/or looking for numbers in the uri we can inc/decrement
-* variable replacing:
-user agent -> str_replace(all vars) DONE
-title bar -> str_replace(all vars)
-status bar ->  str_replace(all vars) -> pango markup thingie
+* variable replacing for title bar in "statusbar_visible" and statusbar_invisible states
 * get rid of config files -> send everything as commands to stdin on program launch -> you can change config at runtime.  
   how to handle launching new windows? serialize state with tpl? (can also be useful for session saving), fork()ing? if so, how do we handle Xorg window id's?
+* handler for (broken) ssl certs.
+* bring readme up to date and put it on website
+* handlers for mailto: and maybe other thingies?
+* only_on_put
+* configure script
+* a variable that holds the page state: loading, pending, seen. this can be shown in titlebar/statusbar and used for multiple instances management
+* proxy_url is not a good var name. it's not a url.
 
+
+
+* config: check in the default place (XDG_CONFIG_HOME/..) for a config file, and if needed, do file reading (interpret line by line). not ini-based.
+* readd the --config flag to allow entering the same commands either through the file/stdin/fifo/socket
+* check for real command name, not just the first letter.
 
 
 SOMEDAY:
