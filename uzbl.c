@@ -65,12 +65,13 @@ const struct {
 } var_name_to_ptr[] = {
     // Already working commands
     { "uri",                (void *)&uzbl.state.uri                 },
-    { "status_format",      (void *)&uzbl.behave.status_format      },
-    { "status_background",  (void *)&uzbl.behave.status_background  },
     { "status_message",     (void *)&uzbl.gui.sbar.msg              },
     { "show_status",        (void *)&uzbl.behave.show_status        },
     { "status_top",         (void *)&uzbl.behave.status_top         },
+    { "status_format",      (void *)&uzbl.behave.status_format      },
+    { "status_background",  (void *)&uzbl.behave.status_background  },
     { "insert_mode",        (void *)&uzbl.behave.insert_mode        },
+    { "always_insert_mode", (void *)&uzbl.behave.always_insert_mode },
     { "modkey"     ,        (void *)&uzbl.behave.modkey             },
     { "load_finish_handler",(void *)&uzbl.behave.load_finish_handler},
     { "history_handler",    (void *)&uzbl.behave.history_handler    },
@@ -78,12 +79,10 @@ const struct {
     { "cookie_handler",     (void *)&uzbl.behave.cookie_handler     },
     { "fifo_dir",           (void *)&uzbl.behave.fifo_dir           },
     { "socket_dir",         (void *)&uzbl.behave.socket_dir         },
+    { "http_debug",         (void *)&uzbl.behave.http_debug         },
     { "proxy_url",          (void *)&uzbl.net.proxy_url             },
     { "max_conns",          (void *)&uzbl.net.max_conns             },
     { "max_conns_host",     (void *)&uzbl.net.max_conns_host        },
-    { "http_debug",         (void *)&uzbl.behave.http_debug         },
-    { "modkey",             (void *)&uzbl.behave.modkey             },
-    { "always_insert_mode", (void *)&uzbl.behave.always_insert_mode },
     { "useragent",          (void *)&uzbl.net.useragent             },
     { NULL,                 NULL                                    }
 }, *n2v_p = var_name_to_ptr;
