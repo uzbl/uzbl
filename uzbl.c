@@ -769,6 +769,8 @@ setup_regex() {
             G_REGEX_UNGREEDY|G_REGEX_OPTIMIZE, 0, &err);
     uzbl.comm.cmd_regex = g_regex_new("^[Cc][a-zA-Z]*\\s+([^ \\n]+)\\s*([^\\n]*)?$",
             G_REGEX_OPTIMIZE, 0, &err);
+    uzbl.comm.keycmd_regex = g_regex_new("^[Kk][a-zA-Z]*\\s+([^\\n]+)$",
+            G_REGEX_OPTIMIZE, 0, &err);
 }
 
 static gboolean
@@ -969,6 +971,13 @@ parse_cmd_line(const char *ctl_line) {
         }
         else
             printf("Error in command: %s\n", tokens[0]);
+    }
+    else if(ctl_line[0] == 'K' || ctl_line[0] == 'k') {
+        tokens = g_regex_split(uzbl.comm.keycmd_regex, ctl_line, 0);
+        if(tokens[0][0] == 0) {
+            // TODO: emulate keypresses
+            g_strfreev(tokens);
+        }
     }
     /* Comments */
     else if(   (ctl_line[0] == '#')
