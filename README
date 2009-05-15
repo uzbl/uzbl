@@ -38,6 +38,7 @@ Right now uzbl is in a very early state but here are some ideas I would like to 
   alternatives:
   ->  /etc/hosts (not very good cause you need root and it affects the whole system)-> uzblctrl would need to support an option to list all images on a page, so you can easily pick the links to ads to add them to your /etc/hosts. (dmenu can again be great here to automate this)
   -> privoxy looks cool and perfectly demonstrates the unix philosphy.
+  -> same for http://bfilter.sourceforge.net
 - no download manager. allow user to pick wget/curl/a custom script/... 
 - no build in command interpreters like ubiquity.  uzbl should be accessible and you should use a shell or similar.
 - no "clear cookies/cache/..." menu items. rm ~/$XDG_{DATA,CACHE}_DIR/uzbl/{cache,cookies}/* 
@@ -127,3 +128,16 @@ KNOWN BUGS
 - Something in the FIFO code causes CPU usage to jump.
 
 Report new issues @ uzbl.org/bugs
+
+
+VALGRIND PROFILING
+add this to Makefile header: CFLAGS=-g
+recompile
+valgrind --tool=callgrind ./uzbl ....
+kcachegrind callgrind.out.foo
+
+CONFIG FILE
+** Variable replacement and markup format
+See http://library.gnome.org/devel/pango/stable/PangoMarkupFormat.html for
+what you can do, markup wise.
+TODO: document possible variables, and what you can do with useragent/title/statusbar

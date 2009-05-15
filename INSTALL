@@ -13,6 +13,9 @@ From source
 	$ cd uzbl
 	$ make
 	$ sudo make install
+If you want to remove uzbl again, you can issue:
+
+	$ make uninstall
 
 Dependencies
 ------------

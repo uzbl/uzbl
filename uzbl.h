@@ -12,10 +12,19 @@
 
 #define STATUS_DEFAULT "<span background=\"darkblue\" foreground=\"white\"> MODE </span> <span background=\"red\" foreground=\"white\">KEYCMD</span> (LOAD_PROGRESS%)  <b>TITLE</b>  - Uzbl browser"
 
-/* statusbar symbols */
-enum { SYM_TITLE, SYM_URI, SYM_NAME, 
-       SYM_LOADPRGS, SYM_LOADPRGSBAR,
-       SYM_KEYCMD, SYM_MODE};
+enum {
+  /* statusbar symbols */
+  SYM_TITLE, SYM_URI, SYM_NAME, 
+  SYM_LOADPRGS, SYM_LOADPRGSBAR,
+  SYM_KEYCMD, SYM_MODE, SYM_MSG,
+  /* useragent symbols */
+  SYM_WK_MAJ, SYM_WK_MIN, SYM_WK_MIC,
+  SYM_SYSNAME, SYM_NODENAME,
+  SYM_KERNREL, SYM_KERNVER,
+  SYM_ARCHSYS, SYM_ARCHUZBL,
+  SYM_DOMAINNAME, SYM_COMMIT
+};
+
 const struct {
     gchar *symbol_name;
     guint symbol_token;
@@ -25,20 +34,36 @@ const struct {
     {"TITLE",                SYM_TITLE},
     {"KEYCMD",               SYM_KEYCMD},
     {"MODE",                 SYM_MODE},
+    {"MSG",                  SYM_MSG},
     {"LOAD_PROGRESS",        SYM_LOADPRGS},
     {"LOAD_PROGRESSBAR",     SYM_LOADPRGSBAR},
+
+    {"WEBKIT_MAJOR",         SYM_WK_MAJ},
+    {"WEBKIT_MINOR",         SYM_WK_MIN},
+    {"WEBKIT_MICRO",         SYM_WK_MIC},
+    {"SYSNAME",              SYM_SYSNAME},
+    {"NODENAME",             SYM_NODENAME},
+    {"KERNREL",              SYM_KERNREL},
+    {"KERNVER",              SYM_KERNVER},
+    {"ARCH_SYSTEM",          SYM_ARCHSYS},
+    {"ARCH_UZBL",            SYM_ARCHUZBL},
+    {"DOMAINNAME",           SYM_DOMAINNAME},
+    {"COMMIT",               SYM_COMMIT},
     {NULL,                   0}
 }, *symp = symbols;
 
 /* status bar elements */
 typedef struct {
     gint           load_progress;
+    gchar          *msg;
 } StatusBar;
 
 
 /* gui elements */
 typedef struct {
     GtkWidget*     main_window;
+    GtkWidget*     scrolled_win;
+    GtkWidget*     vbox;
     GtkWidget*     mainbar;
     GtkWidget*     mainbar_label;
     GtkScrollbar*  scbar_v;   // Horizontal and Vertical Scrollbar
@@ -55,8 +80,15 @@ typedef struct {
 /* external communication*/
 enum { FIFO, SOCKET};
 typedef struct {
-    char           fifo_path[64];
-    char           socket_path[108];
+    gchar          *fifo_path;
+    gchar          *socket_path;
+    /* stores (key)"variable name" -> (value)"pointer to this var*/
+    GHashTable     *proto_var;
+    /* command parsing regexes */
+    GRegex         *set_regex;
+    GRegex         *cmd_regex;
+    GRegex         *get_regex; 
+    GRegex         *bind_regex; 
 } Communication;
 
 
@@ -64,7 +96,7 @@ typedef struct {
 typedef struct {
     gchar    *uri;
     gchar    *config_file;
-    gchar    *instance_name;
+    char    *instance_name;
     gchar    config_file_path[500];
     gchar    selected_url[500];
     char     executable_path[500];
@@ -87,6 +119,7 @@ typedef struct {
 
 /* behaviour */
 typedef struct {
+    gchar*   load_finish_handler;
     gchar*   status_format;
     gchar*   status_background;
     gchar*   history_handler;
@@ -98,6 +131,7 @@ typedef struct {
     gboolean show_status;
     gboolean insert_mode;
     gboolean status_top;
+    gboolean reset_command_mode;
     gchar*   modkey;
     guint    modmask;
     guint    http_debug;
@@ -171,6 +205,9 @@ static void
 load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
 
 static void
+load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
+
+static void
 destroy_cb (GtkWidget* widget, gpointer data);
 
 static void
@@ -213,23 +250,37 @@ static void
 parse_command(const char *cmd, const char *param);
 
 static void
-parse_line(char *line);
-
-void
-build_stream_name(int type);
+runcmd(WebKitWebView *page, const char *param);
 
 static void
+parse_cmd_line(const char *ctl_line);
+
+static gchar*
+build_stream_name(int type, const gchar *dir);
+
+static gboolean
+var_is(const char *x, const char *y);
+
+static gchar*
+set_useragent(gchar *val);
+
+static gboolean
 control_fifo(GIOChannel *gio, GIOCondition condition);
 
-static void
-create_fifo();
+static gchar*
+init_fifo(gchar *dir);
+
+static gboolean
+control_stdin(GIOChannel *gio, GIOCondition condition);
 
 static void
-create_socket();
+create_stdin();
+
+static gchar*
+init_socket(gchar *dir);
 
 static void
 control_socket(GIOChannel *chan);
- 
 
 static void
 update_title (void);
@@ -257,9 +308,6 @@ search_text (WebKitWebView *page, const char *param);
 
 static void
 run_js (WebKitWebView * web_view, const gchar *param);
-
-static char *
-str_replace (const char* search, const char* replace, const char* string);
 
 static void handle_cookies (SoupSession *session,
 							SoupMessage *msg,
