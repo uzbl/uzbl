@@ -41,6 +41,8 @@ typedef struct {
 /* gui elements */
 typedef struct {
     GtkWidget*     main_window;
+    GtkWidget*     scrolled_win;
+    GtkWidget*     vbox;
     GtkWidget*     mainbar;
     GtkWidget*     mainbar_label;
     GtkScrollbar*  scbar_v;   // Horizontal and Vertical Scrollbar

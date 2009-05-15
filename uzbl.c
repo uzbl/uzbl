@@ -69,6 +69,7 @@ const struct {
     { "status_background",  (void *)&uzbl.behave.status_background  },
     { "status_message",     (void *)&uzbl.gui.sbar.msg              },
     { "show_status",        (void *)&uzbl.behave.show_status        },
+    { "status_top",         (void *)&uzbl.behave.status_top         },
     { "insert_mode",        (void *)&uzbl.behave.insert_mode        },
     { "modkey"     ,        (void *)&uzbl.behave.modkey             },
     { "always_insert"     , (void *)&uzbl.behave.always_insert_mode },
@@ -755,6 +756,29 @@ set_modkey() {
     g_free (modkeyup);
 }
 
+static void
+move_statusbar() {
+    /* TODO: investigate how to make gtk not warn */
+    gtk_widget_ref(uzbl.gui.scrolled_win); 
+    gtk_widget_ref(uzbl.gui.mainbar);
+    gtk_container_remove(GTK_CONTAINER(uzbl.gui.vbox), uzbl.gui.scrolled_win);
+    gtk_container_remove(GTK_CONTAINER(uzbl.gui.vbox), uzbl.gui.mainbar);
+
+    if(uzbl.behave.status_top) {
+        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.mainbar, FALSE, TRUE, 0);
+        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
+    }
+    else {
+        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
+        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.mainbar, FALSE, TRUE, 0);
+    }
+
+    gtk_container_add(GTK_CONTAINER(uzbl.gui.vbox), uzbl.gui.scrolled_win);
+    gtk_container_add(GTK_CONTAINER(uzbl.gui.vbox), uzbl.gui.mainbar);
+    gtk_widget_unref(uzbl.gui.scrolled_win);
+    gtk_widget_unref(uzbl.gui.mainbar);
+}
+
 static gboolean
 var_is(const char *x, const char *y) {
     gboolean ret = FALSE;
@@ -839,6 +863,9 @@ set_var_value(gchar *name, gchar *val) {
                 uzbl.net.soup_logger = soup_logger_new(uzbl.behave.http_debug, -1);
                 soup_session_add_feature(uzbl.net.soup_session,
                                          SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
+            }
+            else if (var_is("status_top", name)) {
+                move_statusbar();
             }
         }
     }
@@ -1283,6 +1310,7 @@ create_browser () {
     GUI *g = &uzbl.gui;
 
     GtkWidget* scrolled_window = gtk_scrolled_window_new (NULL, NULL);
+    //main_window_ref = g_object_ref(scrolled_window);
     gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window), GTK_POLICY_NEVER, GTK_POLICY_NEVER); //todo: some sort of display of position/total length. like what emacs does
 
     g->web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
@@ -1307,6 +1335,10 @@ create_mainbar () {
     GUI *g = &uzbl.gui;
 
     g->mainbar = gtk_hbox_new (FALSE, 0);
+
+    /* keep a reference to the bar so we can re-pack it at runtime*/
+    //sbar_ref = g_object_ref(g->mainbar);
+
     g->mainbar_label = gtk_label_new ("");  
     gtk_label_set_selectable((GtkLabel *)g->mainbar_label, TRUE);
     gtk_label_set_ellipsize(GTK_LABEL(g->mainbar_label), PANGO_ELLIPSIZE_END);
@@ -1481,6 +1513,7 @@ save_cookies (SoupMessage *msg, gpointer user_data){
     g_slist_free(ck);
 }
 
+
 int
 main (int argc, char* argv[]) {
     gtk_init (&argc, &argv);
@@ -1508,15 +1541,17 @@ main (int argc, char* argv[]) {
     commands_hash ();
 	
 
-    GtkWidget* vbox = gtk_vbox_new (FALSE, 0);
-    if (uzbl.behave.status_top)
-        gtk_box_pack_start (GTK_BOX (vbox), create_mainbar (), FALSE, TRUE, 0);
-    gtk_box_pack_start (GTK_BOX (vbox), create_browser (), TRUE, TRUE, 0);
-    if (!uzbl.behave.status_top)
-        gtk_box_pack_start (GTK_BOX (vbox), create_mainbar (), FALSE, TRUE, 0);
+    uzbl.gui.vbox = gtk_vbox_new (FALSE, 0);
 
+    uzbl.gui.scrolled_win = create_browser();
+    create_mainbar();
+
+    /* initial packing */
+    gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.mainbar, FALSE, TRUE, 0);
+    
     uzbl.gui.main_window = create_window ();
-    gtk_container_add (GTK_CONTAINER (uzbl.gui.main_window), vbox);
+    gtk_container_add (GTK_CONTAINER (uzbl.gui.main_window), uzbl.gui.vbox);
 
     load_uri (uzbl.gui.web_view, uzbl.state.uri);
 

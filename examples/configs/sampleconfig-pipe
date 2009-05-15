@@ -6,6 +6,7 @@ set modkey = Mod1
 set always_insert = 0
 #set proxy_url = http://127.0.0.1:8118
 set fifo_dir = /tmp
+#set status_top = 1
 
 # Key bindings
 bind    j         = scroll_vert 20
