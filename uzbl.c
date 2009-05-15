@@ -81,6 +81,7 @@ const struct {
     { "max_conns_host",     (void *)&uzbl.net.max_conns_host        },
     { "http_debug",         (void *)&uzbl.behave.http_debug         },
     { "modkey",             (void *)&uzbl.behave.modkey             },
+    { "always_insert_mode", (void *)&uzbl.behave.always_insert_mode },
     // TODO: write cmd handlers for the following
     { "useragent",          (void *)&uzbl.net.useragent             },
     { NULL,                 NULL                                    }
@@ -827,6 +828,12 @@ set_var_value(gchar *name, gchar *val) {
                 uzbl.net.soup_logger = soup_logger_new(uzbl.behave.http_debug, -1);
                 soup_session_add_feature(uzbl.net.soup_session,
                                          SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
+            }
+            else if (var_is("always_insert_mode", name)) {
+                if (*ip) {
+                    uzbl.behave.insert_mode = TRUE;
+                    update_title();
+                }
             }
         }
     }
