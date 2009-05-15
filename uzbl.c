@@ -84,7 +84,6 @@ const struct {
     { "http_debug",         (void *)&uzbl.behave.http_debug         },
     { "modkey",             (void *)&uzbl.behave.modkey             },
     { "always_insert_mode", (void *)&uzbl.behave.always_insert_mode },
-    // TODO: write cmd handlers for the following
     { "useragent",          (void *)&uzbl.net.useragent             },
     { NULL,                 NULL                                    }
 }, *n2v_p = var_name_to_ptr;
@@ -390,7 +389,8 @@ static struct {char *name; Command command;} cmdlist[] =
     { "spawn",            spawn                   },
     { "exit",             close_uzbl              },
     { "search",           search_text             },
-    { "insert_mode",      set_insert_mode         }
+    { "insert_mode",      set_insert_mode         },
+    { "runcmd",           runcmd                  }
 };
 
 static void
@@ -581,14 +581,13 @@ setup_scanner() {
 }
 
 static gchar *
-parse_status_template(const char *template) {
+expand_template(const char *template) {
+     if(!template) return NULL;
+     
      GTokenType token = G_TOKEN_NONE;
      GString *ret = g_string_new("");
      gchar *buf=NULL;
      int sym;
-
-     if(!template)
-         return NULL;
 
      g_scanner_input_text(uzbl.scan, template, strlen(template));
      while(!g_scanner_eof(uzbl.scan) && token != G_TOKEN_LAST) {
@@ -631,6 +630,42 @@ parse_status_template(const char *template) {
                  case SYM_MSG:
                      g_string_append(ret, 
                          uzbl.gui.sbar.msg?uzbl.gui.sbar.msg:"");
+                     break;
+                     /* useragent syms */
+                 case SYM_WK_MAJ:
+                     g_string_append(ret, itos(WEBKIT_MAJOR_VERSION));
+                     break;
+                 case SYM_WK_MIN:
+                     g_string_append(ret, itos(WEBKIT_MINOR_VERSION));
+                     break;
+                 case SYM_WK_MIC:
+                     g_string_append(ret, itos(WEBKIT_MICRO_VERSION));
+                     break;
+                 case SYM_SYSNAME:
+                     g_string_append(ret, uzbl.state.unameinfo.sysname);
+                     break;
+                 case SYM_NODENAME:
+                     g_string_append(ret, uzbl.state.unameinfo.nodename);
+                     break;
+                 case SYM_KERNREL:
+                     g_string_append(ret, uzbl.state.unameinfo.release);
+                     break;
+                 case SYM_KERNVER:
+                     g_string_append(ret, uzbl.state.unameinfo.version);
+                     break;
+                 case SYM_ARCHSYS:
+                     g_string_append(ret, uzbl.state.unameinfo.machine);
+                     break;
+                 case SYM_ARCHUZBL:
+                     g_string_append(ret, ARCH);
+                     break;
+#ifdef _GNU_SOURCE
+                 case SYM_DOMAINNAME:
+                     g_string_append(ret, uzbl.state.unameinfo.domainname);
+                     break;
+#endif           
+                 case SYM_COMMIT:
+                     g_string_append(ret, COMMIT);
                      break;
                  default:
                      break;
@@ -724,11 +759,10 @@ get_var_value(gchar *name) {
     void **p = NULL;
 
     if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
-        if(!strcmp(name, "status_format")) {
+        if(var_is("status_format", name)
+           || var_is("useragent", name)) {
             printf("VAR: %s VALUE: %s\n", name, (char *)*p);
-        } else {
-            printf("VAR: %s VALUE: %d\n", name, (int)*p);
-        }
+        } else printf("VAR: %s VALUE: %d\n", name, (int)*p);
     }
     return TRUE;
 }
@@ -823,6 +857,10 @@ set_var_value(gchar *name, gchar *val) {
                     uzbl.behave.modmask |= modkeys[i].mask;
             }
         }
+        else if(var_is("useragent", name)) {
+            if(*p) free(*p);
+            *p = set_useragent(g_strdup(val));
+        }
         /* variables that take int values */
         else {
             int *ip = (int *)p;
@@ -864,8 +902,14 @@ set_var_value(gchar *name, gchar *val) {
     return TRUE;
 }
 
+static void
+runcmd(WebKitWebView* page, const char *param) {
+    (void) page;
+    parse_cmd_line(param);
+}
+
 static void 
-parse_cmd_line(char *ctl_line) {
+parse_cmd_line(const char *ctl_line) {
     gchar **tokens;
 
     /* SET command */
@@ -1175,7 +1219,7 @@ update_title (void) {
     if (b->show_status) {
         gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), title_short);
         // TODO: we should probably not do this every time we want to update the title..?
-        statln = parse_status_template(uzbl.behave.status_format);
+        statln = expand_template(uzbl.behave.status_format);
         gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), statln);
         if (b->status_background) {
             GdkColor color;
@@ -1470,6 +1514,18 @@ settings_init () {
     g_signal_connect(n->soup_session, "request-queued", G_CALLBACK(handle_cookies), NULL);
 }
 
+static gchar*
+set_useragent(gchar *val) {
+    if (*val == ' ') {
+        g_free(val);
+        return NULL;
+    }
+    gchar *ua = expand_template(val);
+    if (ua)
+        g_object_set(G_OBJECT(uzbl.net.soup_session), SOUP_SESSION_USER_AGENT, ua, NULL);
+    return ua;
+}
+
 static void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer user_data){
     (void) session;
     (void) user_data;
@@ -1563,6 +1619,8 @@ main (int argc, char* argv[]) {
     if(setup_signal(SIGTERM, catch_sigterm) == SIG_ERR)
         fprintf(stderr, "uzbl: error hooking SIGTERM\n");
 
+    if(uname(&uzbl.state.unameinfo) == -1)
+        g_printerr("Can't retrieve unameinfo.  Your useragent might appear wrong.\n");
 
     setup_regex();
     setup_scanner();
@@ -1574,13 +1632,8 @@ main (int argc, char* argv[]) {
     else
         update_title();
 
-
     make_var_to_name_hash();
     create_stdin();
-    /*if (uzbl.behave.fifo_dir)
-      init_fifo ();*/
-    /*if (uzbl.behave.socket_dir)
-      init_socket ();*/
 
     gtk_main ();
     clean_up();
