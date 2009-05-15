@@ -758,7 +758,6 @@ set_modkey() {
 
 static void
 move_statusbar() {
-    /* TODO: investigate how to make gtk not warn */
     gtk_widget_ref(uzbl.gui.scrolled_win); 
     gtk_widget_ref(uzbl.gui.mainbar);
     gtk_container_remove(GTK_CONTAINER(uzbl.gui.vbox), uzbl.gui.scrolled_win);
@@ -772,9 +771,6 @@ move_statusbar() {
         gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
         gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.mainbar, FALSE, TRUE, 0);
     }
-
-    gtk_container_add(GTK_CONTAINER(uzbl.gui.vbox), uzbl.gui.scrolled_win);
-    gtk_container_add(GTK_CONTAINER(uzbl.gui.vbox), uzbl.gui.mainbar);
     gtk_widget_unref(uzbl.gui.scrolled_win);
     gtk_widget_unref(uzbl.gui.mainbar);
 }
