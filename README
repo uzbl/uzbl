@@ -10,7 +10,7 @@
 * to get you started: uzbl --uri 'http://www.archlinux.org' --config /usr/share/uzbl/examples/configs/sampleconfig
 * study the sample config, have a look at all the bindings, and note how you can call the scripts to load new url from history and the bookmarks file
 * note that there is no url bar. all url editing is supposed to happen _outside_ of uzbl.
-  For now, you can use the load_from_* dmenu based scripts to pick a url or type a new one or write commands into the fifo (see /usr/share/uzbl/docs/CHECKLIST)
+  For now, you can use the `load_from_*` dmenu based scripts to pick a url or type a new one or write commands into the fifo (see /usr/share/uzbl/docs/CHECKLIST)
 * If you have questions, you are likely to find answers in the FAQ or in the other documentation.
 
 
@@ -58,14 +58,14 @@ For examples, please see the sample config(s).
 There are several interfaces to interact with uzbl:
 
 * uzbl --config <filename>: <filename> will be read line by line, and the commands in it will be executed.  useful to configure uzbl at startup.
-  If you have a file in $XDG\_CONFIG\_HOME/uzbl/config (this expands to ~/.config/uzbl/config on most systems) it will be automatically recognized
+  If you have a file in `$XDG_CONFIG_HOME/uzbl/config` (this expands to ~/.config/uzbl/config on most systems) it will be automatically recognized
 * stdin: you can also write commands into stdin
 * interactive: you can enter commands (and bind them to shortcuts, even at runtime)
   By default, the behaviour is modal (vi style):
   command mode: every keystroke is interpreted to run commands
   insert mode: keystrokes are not interpreted so you can enter text into html forms
   Press ESC/i to toggle command/insert mode
-  But if you don't like modal interfaces, you can set always_insert_mode and configure a modkey to execute the commands. (emacs style).
+  But if you don't like modal interfaces, you can set `always_insert_mode` and configure a modkey to execute the commands. (emacs style).
 * FIFO & socket file: if enabled by setting their paths through one of the above means, you can have socket and fifo files available which are very useful to programatically (from scripts etc) to uzbl.
   The advantage of the fifo is you can write plaintxt commands to it, but it's half duplex only (uzbl cannot send a response to you).
   The socket is full duplex but you need a socket-compatible wrapper such as netcat to work with it, or uzblctrl of course,
@@ -89,12 +89,15 @@ For more info about the markup format see http://library.gnome.org/devel/pango/s
 
 ### EXTERNAL SCRIPTS
 You can use external scripts with uzbl the following ways:
+
 * let uzbl call them. these scripts are called handlers in the uzbl config. used for handling logging history, handling a new download,.. 
 * call them yourself from inside uzbl.  you can bind keys for this. examples: add new bookmark, load new url,..
 * You could also use xbindkeys or your WM config to trigger scripts if uzbl does not have focus
+
 Have a look at the sample configs and scripts!
 
 Scripts that are called by uzbl are passed the following arguments:
+
     $1 uzbl-config-file
     $2 uzbl-pid
     $3 uzbl-x-window-id
@@ -107,12 +110,19 @@ Scripts that are called by uzbl are passed the following arguments:
 The script specific arguments are this:
 
 * history:
+
     $8 date of visit (Y-m-d H:i:s localtime)
+
 * add bookmark:
+
     none
+
 * download:
+
     $8 url of item to download
+
 * cookie handler
+
     $8 GET/PUT
     $9 request address host (if current page url is www.foo.com/somepage, this could be something else then foo, eg advertising from another host)
     $10 request address path
