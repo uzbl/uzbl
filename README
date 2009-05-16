@@ -76,7 +76,7 @@ Some of the variables are interpreted.
 This means you can customize how these things appear, what's shown in them and for the statusbar you can even play with the layout.
 For examples, see the example config.
 For a list of possible variables, see uzbl.h
-Forr more info about the markup format see http://library.gnome.org/devel/pango/stable/PangoMarkupFormat.html
+For more info about the markup format see http://library.gnome.org/devel/pango/stable/PangoMarkupFormat.html
 
 
 EXTERNAL SCRIPTS
