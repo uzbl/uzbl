@@ -9,7 +9,7 @@ branch you want.
 From source
 -----------
 	$ git clone git://github.com/Dieterbe/uzbl.git
-	[ $ git checkout master/experimental ] # master == fairly stable.  experimental is more bleeding edge
+	[ $ git checkout master/experimental ] # optional. see below
 	$ cd uzbl
 	$ make
 	$ sudo make install
@@ -30,7 +30,7 @@ Optional/Recommended
 The following tools are quite useful, and some of them are used in the
 sample scripts:
 
-* dmenu
+* dmenu (with vertical patch
 * zenity
 * bash 
 
@@ -51,3 +51,13 @@ is very useful for keeping a clean home directory, so we recommend:
 
 * $XDG\_CONFIG\_HOME/uzbl/config* (~/.config/uzbl/config on most systems): config file
 * $XDG\_DATA\_HOME/uzbl (~/.local/share/uzbl on most systems): bookmarks file, history file. and "scripts" directory with scripts
+
+Git Repo's & branches
+--------------------
+* Main official repo:
+  http://github.com/Dieterbe/uzbl
+- master -> uzbl stable branch
+- experimental -> bleeding edge stuff that may break. after QA Dieter merges into his master
+
+* Most contributors & developers also have their clones on github (http://github.com/dusanx, http://github.com/Barrucadu/uzbl, ...).
+  They may be developing specific features, which get merged into Dieters experimental branch

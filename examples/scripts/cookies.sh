@@ -5,7 +5,7 @@
 # kb.mozillazine.org	FALSE	/	FALSE	1146030396	wikiUserID	16993
 # domain alow-read-other-subdomains path http-required expiration name value  
 # you probably want your cookies config file in your $XDG_CONFIG_HOME ( eg $HOME/.config/uzbl/cookies)
-
+# Note. in uzbl there is no strict definition on what a session is.  it's YOUR job to clear cookies marked as end_session if you want to keep cookies only valid during a "session"
 # MAYBE TODO: allow user to edit cookie before saving. this cannot be done with zenity :(
 # TODO: different cookie paths per config (eg per group of uzbl instances)
 
@@ -19,6 +19,7 @@
 # implement secure attribute.
 # support blocking or not for 3rd parties
 # http://kb.mozillazine.org/Cookies.txt
+# don't always append cookies, sometimes we need to overwrite
 
 if [ -f /usr/share/uzbl/examples/configs/cookies ]
 then
@@ -60,13 +61,13 @@ function parse_cookie () {
 	do
 		if [ "$first_pair" == 1 ]
 		then
-			field_name=${i%%=*}
-			field_value=${i#*=}
+			field_name=${pair%%=*}
+			field_value=${pair#*=}
 			first_pair=0
 		else
 			read -r pair <<< "$pair" #strip leading/trailing wite space
-			key=${i%%=*}
-			val=${i#*=}
+			key=${pair%%=*}
+			val=${pair#*=}
 			[ "$key" == expires ] && field_exp=`date -u -d "$val" +'%s'`
 			# TODO: domain
 			[ "$key" == path ] && field_path=$val
@@ -78,8 +79,16 @@ function parse_cookie () {
 # match cookies in cookies.txt againsh hostname and path
 function get_cookie () {
 	path_esc=${path//\//\\/}
-	cookie=`awk "/^[^\t]*$host\t[^\t]*\t$path_esc/" cookie_file 2>/dev/null | tail -n 1`
-	[ -n "$cookie" ]
+	cookie=`awk "/^[^\t]*$host\t[^\t]*\t$path_esc/" $cookie_file 2>/dev/null | tail -n 1`
+	if [ -z "$cookie" ]
+	then
+		false
+	else
+		read domain alow_read_other_subdomains path http_required expiration name value <<< "$cookie"
+		cookie="$name=$value" 
+		#echo "COOKIE $cookie" >> $HOME/cookielog
+		true
+	fi
 }
 
 [ $action == PUT ] && parse_cookie && echo -e "$field_domain\tFALSE\t$field_path\tFALSE\t$field_exp\t$field_name\t$field_value" >> $cookie_file

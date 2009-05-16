@@ -49,13 +49,15 @@
 * configure script
 * a variable that holds the page state: loading, pending, seen. this can be shown in titlebar/statusbar and used for multiple instances management
 * proxy_url is not a good var name. it's not a url.
-
-
+* regex style page searching? so you can do 'or' and 'and' things. flags like case sensitive etc.
+* can we export uri/state/tag/.. as xorg window "properties" or "attributes" or do we need to put them in titlebar and parse that?
 
 * config: check in the default place (XDG_CONFIG_HOME/..) for a config file, and if needed, do file reading (interpret line by line). not ini-based.
 * readd the --config flag to allow entering the same commands either through the file/stdin/fifo/socket
 * check for real command name, not just the first letter.
-
+* let users attach handlers to the most common events/signals in uzbl.
+* write little script to open new urls with the urxvt url thing +document.
+* add Rob/anydots trees on website
 
 SOMEDAY:
 check if we can make the settings loading less hard coded. eg( keep a list of all settings, and for each one, try to load it)
