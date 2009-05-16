@@ -181,6 +181,13 @@ catch_sigterm(int s) {
     clean_up();
 }
 
+static void
+catch_sigint(int s) {
+    (void) s;
+    clean_up();
+    exit(EXIT_SUCCESS);
+}
+
 /* --- CALLBACKS --- */
 
 static gboolean
@@ -1573,6 +1580,8 @@ main (int argc, char* argv[]) {
 
     if(setup_signal(SIGTERM, catch_sigterm) == SIG_ERR)
         fprintf(stderr, "uzbl: error hooking SIGTERM\n");
+    if(setup_signal(SIGINT, catch_sigint) == SIG_ERR)
+        fprintf(stderr, "uzbl: error hooking SIGINT\n");
 
     if(uname(&uzbl.state.unameinfo) == -1)
         g_printerr("Can't retrieve unameinfo.  Your useragent might appear wrong.\n");
