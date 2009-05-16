@@ -1099,14 +1099,13 @@ control_stdin(GIOChannel *gio, GIOCondition condition) {
     gchar *ctl_line = NULL;
     gsize ctl_line_len = 0;
     GIOStatus ret;
-    GError *err = NULL;
 
     if (condition & G_IO_HUP) {
-        ret = g_io_channel_shutdown (gio, FALSE, &err);
+        ret = g_io_channel_shutdown (gio, FALSE, NULL);
         return FALSE;
     }
 
-    ret = g_io_channel_read_line(gio, &ctl_line, &ctl_line_len, NULL, &err);
+    ret = g_io_channel_read_line(gio, &ctl_line, &ctl_line_len, NULL, NULL);
     if ( (ret == G_IO_STATUS_ERROR) || (ret == G_IO_STATUS_EOF) )
         return FALSE;
 
@@ -1517,11 +1516,10 @@ settings_init () {
 
     if (s->config_file) {
         GIOChannel *chan = NULL;
-        GError *error = NULL;
         gchar *readbuf = NULL;
         gsize len;
 
-        chan = g_io_channel_new_file(s->config_file, "r", &error);
+        chan = g_io_channel_new_file(s->config_file, "r", NULL);
 
         if (chan) {
             while (g_io_channel_read_line(chan, &readbuf, &len, NULL, NULL)
@@ -1603,11 +1601,10 @@ main (int argc, char* argv[]) {
     strcat ((char *) XDG_CONFIG_HOME_default, getenv ("HOME"));
     strcat ((char *) XDG_CONFIG_HOME_default, "/.config");
 
-    GError *error = NULL;
     GOptionContext* context = g_option_context_new ("- some stuff here maybe someday");
     g_option_context_add_main_entries (context, entries, NULL);
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
-    g_option_context_parse (context, &argc, &argv, &error);
+    g_option_context_parse (context, &argc, &argv, NULL);
     /* initialize hash table */
     uzbl.bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
 
