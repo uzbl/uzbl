@@ -11,6 +11,13 @@
 set history_handler  = ./examples/scripts/history.sh
 set download_handler = ./examples/scripts/download.sh
 set cookie_handler   = ./examples/scripts/cookies.sh
+set minimum_font_size = 6
+set default_font_size = 11
+
+# use with bind ... = sh <shell-oneliner>
+# notice the '' - it's a spacer to keep bash and sh from shifting the positional parameters
+# by one, so they will appear in the same position as with scripts invoked via spawn
+set shell_cmd         = sh -c %s ''
 
 
 
@@ -44,6 +51,8 @@ bind    j         = scroll_vert 20
 bind    k         = scroll_vert -20
 bind    h         = scroll_horz -20
 bind    l         = scroll_horz 20
+bind    <<        = scroll_begin
+bind    >>        = scroll_end
 bind    b         = back
 bind    m         = forward
 bind    s         = stop
@@ -52,8 +61,9 @@ bind    R         = reload_ign_cache
 bind    +         = zoom_in
 bind    -         = zoom_out
 bind    t         = toggle_status
-#hilight matches
-bind    /_        = search %s
+# Hilight matches. Notice the * after the slash - it makes the command incremental, i.e. gets called
+# on every character you type.  You can do `bind /_ = search %s' if you want it less interactive.
+bind    /*        = search %s
 #jump to next
 bind    ;         = search
 bind    gh        = uri http://www.uzbl.org
@@ -68,6 +78,10 @@ bind    U         = spawn ./examples/scripts/load_url_from_history.sh
 bind    u         = spawn ./examples/scripts/load_url_from_bookmarks.sh
 bind    ZZ        = exit
 bind    S         = script alert("hi");
+# example showing how to use sh
+# it sends a command to the fifo, whose path is told via a positional param
+# if fifo_dir is not set, it'll echo to a file named (null) somewhere >:) remember to delete it
+bind    XS        = sh 'echo "act script alert (\"This is sent by the shell via a fifo\")" > "$4"'
 # Keyboard based link following: work in progress! No C DOM bindings yet, no click() event for hyperlinks so no referrer set..Quite basic but does the job for now...
 #hit F to toggle the Hints (now in form of link numbering)
 bind    F= script for (var i=0; i < document.links.length; i++) {var uzblid = 'uzbl_link_hint_';var li = document.links[i];var pre = document.getElementById(uzblid+i);if (pre) {li.removeChild(pre);} else {var hint = document.createElement('div');hint.setAttribute('id',uzblid+i);hint.innerHTML = i;hint.style.display='inline';hint.style.lineHeight='90%';hint.style.backgroundColor='red';hint.style.color='white';hint.style.fontSize='small-xx';hint.style.fontWeight='light';hint.style.margin='0px';hint.style.padding='2px';hint.style.position='absolute';hint.style.textDecoration='none';hint.style.left=li.style.left;hint.style.top=li.style.top;li.insertAdjacentElement('afterBegin',hint);}}
