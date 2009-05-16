@@ -3,5 +3,5 @@
 Use cases:
 * load url from history/bookmarks (dmenu-vertical is great for this)
 * edit current url or one from history/bookmarks: dmenu-vertical is relatively good for this, though it would be better if we had:
-- minimal editing helper key shortcuts (eg to go to beginning/end of input buffer)
+- minimal editing helper key shortcuts (eg to go to beginning/end of input buffer, erase search string, undo)
 - copy/paste support
