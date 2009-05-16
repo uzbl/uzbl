@@ -1,4 +1,4 @@
-/* 
+/*
  * See LICENSE for license details
  *
  * Changelog:
@@ -7,14 +7,14 @@
  * (c) 2009 by Robert Manea
  *     - introduced struct concept
  *     - statusbar template
- *     
+ *
  */
 
 #define STATUS_DEFAULT "<span background=\"darkblue\" foreground=\"white\"> MODE </span> <span background=\"red\" foreground=\"white\">KEYCMD</span> (LOAD_PROGRESS%)  <b>TITLE</b>  - Uzbl browser"
 
 enum {
   /* statusbar symbols */
-  SYM_TITLE, SYM_URI, SYM_NAME, 
+  SYM_TITLE, SYM_URI, SYM_NAME,
   SYM_LOADPRGS, SYM_LOADPRGSBAR,
   SYM_KEYCMD, SYM_MODE, SYM_MSG,
   /* useragent symbols */
@@ -86,9 +86,10 @@ typedef struct {
     GHashTable     *proto_var;
     /* command parsing regexes */
     GRegex         *set_regex;
-    GRegex         *cmd_regex;
-    GRegex         *get_regex; 
-    GRegex         *bind_regex; 
+    GRegex         *act_regex;
+    GRegex         *keycmd_regex;
+    GRegex         *get_regex;
+    GRegex         *bind_regex;
 } Communication;
 
 
@@ -238,10 +239,7 @@ static void
 close_uzbl (WebKitWebView *page, const char *param);
 
 static gboolean
-run_command_async(const char *command, const char *args);
-
-static gboolean
-run_command_sync(const char *command, const char *args, char **stdout);
+run_command(const char *command, const char *args, const gboolean sync, char **stdout);
 
 static void
 spawn(WebKitWebView *web_view, const char *param);
@@ -284,9 +282,12 @@ control_socket(GIOChannel *chan);
 
 static void
 update_title (void);
- 
+
 static gboolean
 key_press_cb (WebKitWebView* page, GdkEventKey* event);
+
+static void
+run_keycmd(const gboolean key_ret);
 
 static GtkWidget*
 create_browser ();
