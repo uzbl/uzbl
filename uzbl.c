@@ -1101,7 +1101,7 @@ create_stdin () {
     }
 }
 
-static void
+static gboolean
 control_socket(GIOChannel *chan) {
     struct sockaddr_un remote;
     char buffer[512], *ctl_line;
@@ -1152,7 +1152,7 @@ control_socket(GIOChannel *chan) {
 */
 
     g_free(ctl_line);
-    return;
+    return TRUE;
 }
 
 static gchar*
