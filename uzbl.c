@@ -217,7 +217,7 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
     if (uzbl.behave.download_handler) {
         const gchar* uri = webkit_download_get_uri ((WebKitDownload*)download);
         printf("Download -> %s\n",uri);
-        run_command_async(uzbl.behave.download_handler, uri);
+        run_command(uzbl.behave.download_handler, uri, FALSE, NULL);
     }
     return (FALSE);
 }
@@ -319,7 +319,7 @@ load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) frame;
     (void) data;
     if (uzbl.behave.load_finish_handler) {
-        run_command_async(uzbl.behave.load_finish_handler, NULL);
+        run_command(uzbl.behave.load_finish_handler, NULL, FALSE, NULL);
     }
 }
 
@@ -355,7 +355,7 @@ log_history_cb () {
        strftime (date, 80, "%Y-%m-%d %H:%M:%S", timeinfo);
        GString* args = g_string_new ("");
        g_string_printf (args, "'%s'", date);
-       run_command_async(uzbl.behave.history_handler, args->str);
+       run_command(uzbl.behave.history_handler, args->str, FALSE, NULL);
        g_string_free (args, TRUE);
    }
 }
@@ -706,7 +706,7 @@ expand_template(const char *template) {
 
 // make sure to put '' around args, so that if there is whitespace we can still keep arguments together.
 static gboolean
-run_command_async(const char *command, const char *args) {
+run_command (const char *command, const char *args, const gboolean sync, char **stdout) {
    //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
     GString* to_execute = g_string_new ("");
     gboolean result;
@@ -715,26 +715,11 @@ run_command_async(const char *command, const char *args) {
                     (int) uzbl.xwin, uzbl.comm.fifo_path, uzbl.comm.socket_path);
     g_string_append_printf (to_execute, " '%s' '%s'", 
                     uzbl.state.uri, "TODO title here");
-    if(args) {
-        g_string_append_printf (to_execute, " %s", args);
-    }
-    result = g_spawn_command_line_async (to_execute->str, NULL);
-    printf("Called %s.  Result: %s\n", to_execute->str, (result ? "TRUE" : "FALSE" ));
-    g_string_free (to_execute, TRUE);
-    return result;
-}
+    if(args) g_string_append_printf (to_execute, " %s", args);
 
-static gboolean
-run_command_sync(const char *command, const char *args, char **stdout) {
-	//command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
-    GString* to_execute = g_string_new ("");
-    gboolean result;
-    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' '%s'", command, uzbl.state.config_file, (int) getpid() , (int) uzbl.xwin, uzbl.comm.fifo_path, uzbl.comm.socket_path);
-    g_string_append_printf (to_execute, " '%s' '%s'", uzbl.state.uri, "TODO title here");
-    if(args) {
-        g_string_append_printf (to_execute, " %s", args);
-    }
-    result = g_spawn_command_line_sync (to_execute->str, stdout, NULL, NULL, NULL);
+    if (sync) {
+        result = g_spawn_command_line_sync (to_execute->str, stdout, NULL, NULL, NULL);
+    } else result = g_spawn_command_line_async (to_execute->str, NULL);
     printf("Called %s.  Result: %s\n", to_execute->str, (result ? "TRUE" : "FALSE" ));
     g_string_free (to_execute, TRUE);
     return result;
@@ -743,7 +728,7 @@ run_command_sync(const char *command, const char *args, char **stdout) {
 static void
 spawn(WebKitWebView *web_view, const char *param) {
     (void)web_view;
-    run_command_async(param, NULL);
+    run_command(param, NULL, FALSE, NULL);
 }
 
 static void
@@ -1547,7 +1532,7 @@ static void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer use
     GString* args = g_string_new ("");
     SoupURI * soup_uri = soup_message_get_uri(msg);
     g_string_printf (args, "GET %s %s", soup_uri->host, soup_uri->path);
-    run_command_sync(uzbl.behave.cookie_handler, args->str, &stdout);
+    run_command(uzbl.behave.cookie_handler, args->str, TRUE, &stdout);
     if(stdout) {
         soup_message_headers_replace (msg->request_headers, "Cookie", stdout);
     }
@@ -1564,7 +1549,7 @@ save_cookies (SoupMessage *msg, gpointer user_data){
         GString* args = g_string_new ("");
         SoupURI * soup_uri = soup_message_get_uri(msg);
         g_string_printf (args, "PUT %s %s \"%s\"", soup_uri->host, soup_uri->path, cookie);
-        run_command_async(uzbl.behave.cookie_handler, args->str);
+        run_command(uzbl.behave.cookie_handler, args->str, FALSE, NULL);
         g_string_free(args, TRUE);
         free(cookie);
     }
