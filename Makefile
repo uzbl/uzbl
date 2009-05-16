@@ -21,9 +21,10 @@ install:
 	install -d $(DESTDIR)/usr/share/uzbl/examples
 	install -D -m755 uzbl $(DESTDIR)/usr/bin/uzbl
 	install -D -m755 uzblctrl $(DESTDIR)/usr/bin/uzblctrl
+	cp -ax docs     $(DESTDIR)/usr/share/uzbl/
 	cp -ax examples $(DESTDIR)/usr/share/uzbl/
-	install -D -m644 CHECKLIST $(DESTDIR)/usr/share/uzbl/docs
-	install -D -m644 README $(DESTDIR)/usr/share/uzbl/docs
+	install -D -m644 AUTHORS $(DESTDIR)/usr/share/uzbl/docs
+	install -D -m644 README  $(DESTDIR)/usr/share/uzbl/docs
 
 uninstall:
 	rm -rf $(DESTDIR)/usr/bin/uzbl

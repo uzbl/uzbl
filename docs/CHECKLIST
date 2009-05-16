@@ -1,3 +1,6 @@
+THIS FILE IS DEPRECATED.
+TODO: make sure that all this gets merged into the documentation
+
 This file contains all things that are/should be working.
 When you have been working on something, use this list to verify that you did not cause any regressions (things that worked before, but got broken).
 Also, when you finish a new feature, add it to this list so that everyone knows about it, can play with it, and can test it.
