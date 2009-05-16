@@ -107,7 +107,7 @@ const struct {
     { "SUPER",   GDK_SUPER_MASK   }, // super (since 2.10)
     { "HYPER",   GDK_HYPER_MASK   }, // hyper (since 2.10)
     { "META",    GDK_META_MASK    }, // meta (since 2.10)
-    { NULL,      NULL             }
+    { NULL,      0                }
 };
 
 /* construct a hash from the var_name_to_ptr array for quick access */
@@ -224,7 +224,7 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
     if (uzbl.behave.download_handler) {
         const gchar* uri = webkit_download_get_uri ((WebKitDownload*)download);
         printf("Download -> %s\n",uri);
-        run_command_async(uzbl.behave.download_handler, uri);
+        run_command(uzbl.behave.download_handler, uri, FALSE, NULL);
     }
     return (FALSE);
 }
@@ -326,7 +326,7 @@ load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) frame;
     (void) data;
     if (uzbl.behave.load_finish_handler) {
-        run_command_async(uzbl.behave.load_finish_handler, NULL);
+        run_command(uzbl.behave.load_finish_handler, NULL, FALSE, NULL);
     }
 }
 
@@ -362,7 +362,7 @@ log_history_cb () {
        strftime (date, 80, "%Y-%m-%d %H:%M:%S", timeinfo);
        GString* args = g_string_new ("");
        g_string_printf (args, "'%s'", date);
-       run_command_async(uzbl.behave.history_handler, args->str);
+       run_command(uzbl.behave.history_handler, args->str, FALSE, NULL);
        g_string_free (args, TRUE);
    }
 }
@@ -711,35 +711,21 @@ expand_template(const char *template) {
 
 // make sure to put '' around args, so that if there is whitespace we can still keep arguments together.
 static gboolean
-run_command_async(const char *command, const char *args) {
+run_command (const char *command, const char *args, const gboolean sync, char **stdout) {
    //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
     GString* to_execute = g_string_new ("");
     gboolean result;
     g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' '%s'", 
-                    command, uzbl.state.config_file, (int) getpid() ,
-                    (int) uzbl.xwin, uzbl.comm.fifo_path, uzbl.comm.socket_path);
+                     command, (uzbl.state.config_file ? uzbl.state.config_file : "(null)"),
+                     (int) getpid(), (int) uzbl.xwin, uzbl.comm.fifo_path,
+                     uzbl.comm.socket_path);
     g_string_append_printf (to_execute, " '%s' '%s'", 
                     uzbl.state.uri, uzbl.gui.main_title);
-    if(args) {
-        g_string_append_printf (to_execute, " %s", args);
-    }
-    result = g_spawn_command_line_async (to_execute->str, NULL);
-    printf("Called %s.  Result: %s\n", to_execute->str, (result ? "TRUE" : "FALSE" ));
-    g_string_free (to_execute, TRUE);
-    return result;
-}
+    if(args) g_string_append_printf (to_execute, " %s", args);
 
-static gboolean
-run_command_sync(const char *command, const char *args, char **stdout) {
-	//command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
-    GString* to_execute = g_string_new ("");
-    gboolean result;
-    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' '%s'", command, uzbl.state.config_file, (int) getpid() , (int) uzbl.xwin, uzbl.comm.fifo_path, uzbl.comm.socket_path);
-    g_string_append_printf (to_execute, " '%s' '%s'", uzbl.state.uri, uzbl.gui.main_title);
-    if(args) {
-        g_string_append_printf (to_execute, " %s", args);
-    }
-    result = g_spawn_command_line_sync (to_execute->str, stdout, NULL, NULL, NULL);
+    if (sync) {
+        result = g_spawn_command_line_sync (to_execute->str, stdout, NULL, NULL, NULL);
+    } else result = g_spawn_command_line_async (to_execute->str, NULL);
     printf("Called %s.  Result: %s\n", to_execute->str, (result ? "TRUE" : "FALSE" ));
     g_string_free (to_execute, TRUE);
     return result;
@@ -748,7 +734,7 @@ run_command_sync(const char *command, const char *args, char **stdout) {
 static void
 spawn(WebKitWebView *web_view, const char *param) {
     (void)web_view;
-    run_command_async(param, NULL);
+    run_command(param, NULL, FALSE, NULL);
 }
 
 static void
@@ -772,7 +758,9 @@ setup_regex() {
             G_REGEX_OPTIMIZE, 0, &err);
     uzbl.comm.bind_regex = g_regex_new("^[Bb][a-zA-Z]*\\s+?(.*[^ ])\\s*?=\\s*([a-z][^\\n].+)$", 
             G_REGEX_UNGREEDY|G_REGEX_OPTIMIZE, 0, &err);
-    uzbl.comm.cmd_regex = g_regex_new("^[Cc][a-zA-Z]*\\s+([^ \\n]+)\\s*([^\\n]*)?$",
+    uzbl.comm.act_regex = g_regex_new("^[Aa][a-zA-Z]*\\s+([^ \\n]+)\\s*([^\\n]*)?$",
+            G_REGEX_OPTIMIZE, 0, &err);
+    uzbl.comm.keycmd_regex = g_regex_new("^[Kk][a-zA-Z]*\\s+([^\\n]+)$",
             G_REGEX_OPTIMIZE, 0, &err);
 }
 
@@ -965,15 +953,27 @@ parse_cmd_line(const char *ctl_line) {
         else 
             printf("Error in command: %s\n", tokens[0]);
     }
-    /* CMD command */
-    else if(ctl_line[0] == 'C' || ctl_line[0] == 'c') {
-        tokens = g_regex_split(uzbl.comm.cmd_regex, ctl_line, 0);
+    /* ACT command */
+    else if(ctl_line[0] == 'A' || ctl_line[0] == 'a') {
+        tokens = g_regex_split(uzbl.comm.act_regex, ctl_line, 0);
         if(tokens[0][0] == 0) {
             parse_command(tokens[1], tokens[2]);
             g_strfreev(tokens);
         }
         else
             printf("Error in command: %s\n", tokens[0]);
+    }
+    /* KEYCMD command */
+    else if(ctl_line[0] == 'K' || ctl_line[0] == 'k') {
+        tokens = g_regex_split(uzbl.comm.keycmd_regex, ctl_line, 0);
+        if(tokens[0][0] == 0) {
+            /* should incremental commands want each individual "keystroke"
+               sent in a loop or the whole string in one go like now? */
+            g_string_assign(uzbl.state.keycmd, tokens[1]);
+            run_keycmd(FALSE);
+            update_title();
+            g_strfreev(tokens);
+        }
     }
     /* Comments */
     else if(   (ctl_line[0] == '#')
@@ -1265,7 +1265,6 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     //TRUE to stop other handlers from being invoked for the event. FALSE to propagate the event further.
 
     (void) page;
-    Action *action;
 
     if (event->type != GDK_KEY_PRESS || event->keyval == GDK_Page_Up || event->keyval == GDK_Page_Down
         || event->keyval == GDK_Up || event->keyval == GDK_Down || event->keyval == GDK_Left || event->keyval == GDK_Right || event->keyval == GDK_Shift_L || event->keyval == GDK_Shift_R)
@@ -1296,7 +1295,7 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
             str = gtk_clipboard_wait_for_text (gtk_clipboard_get (GDK_SELECTION_CLIPBOARD)); 
         }
         if (str) {
-            g_string_append_printf (uzbl.state.keycmd, "%s",  str);
+            g_string_append (uzbl.state.keycmd, str);
             update_title ();
             free (str);
         }
@@ -1311,13 +1310,25 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     gboolean key_ret = FALSE;
     if ((event->keyval == GDK_Return) || (event->keyval == GDK_KP_Enter))
         key_ret = TRUE;
-
     if (!key_ret) g_string_append(uzbl.state.keycmd, event->string);
+
+    run_keycmd(key_ret);
+    update_title();
+    if (key_ret) return (!uzbl.behave.insert_mode);
+    return TRUE;
+}
+
+static void
+run_keycmd(const gboolean key_ret) {
+    /* run the keycmd immediately if it isn't incremental and doesn't take args */
+    Action *action;
     if ((action = g_hash_table_lookup(uzbl.bindings, uzbl.state.keycmd->str))) {
         g_string_truncate(uzbl.state.keycmd, 0);
         parse_command(action->name, action->param);
+        return;
     }
 
+    /* try if it's an incremental keycmd or one that takes args, and run it */
     GString* short_keys = g_string_new ("");
     GString* short_keys_inc = g_string_new ("");
     unsigned int i;
@@ -1329,12 +1340,12 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
             
         gboolean exec_now = FALSE;
         if ((action = g_hash_table_lookup(uzbl.bindings, short_keys->str))) {
-            if (key_ret) exec_now = TRUE; // run normal cmds only if return was pressed
+            if (key_ret) exec_now = TRUE; /* run normal cmds only if return was pressed */
         } else if ((action = g_hash_table_lookup(uzbl.bindings, short_keys_inc->str))) {
-            if (key_ret) { // just quit the incremental command on return
+            if (key_ret) { /* just quit the incremental command on return */
                 g_string_truncate(uzbl.state.keycmd, 0);
                 break;
-            } else exec_now = TRUE; // always exec inc. commands on keys other than return
+            } else exec_now = TRUE; /* always exec incr. commands on keys other than return */
         }
 
         if (exec_now) {
@@ -1359,9 +1370,6 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     }
     g_string_free (short_keys, TRUE);
     g_string_free (short_keys_inc, TRUE);
-    update_title();
-    if (key_ret) return (!uzbl.behave.insert_mode);
-    return TRUE;
 }
 
 static GtkWidget*
@@ -1530,7 +1538,7 @@ static void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer use
     GString* args = g_string_new ("");
     SoupURI * soup_uri = soup_message_get_uri(msg);
     g_string_printf (args, "GET %s %s", soup_uri->host, soup_uri->path);
-    run_command_sync(uzbl.behave.cookie_handler, args->str, &stdout);
+    run_command(uzbl.behave.cookie_handler, args->str, TRUE, &stdout);
     if(stdout) {
         soup_message_headers_replace (msg->request_headers, "Cookie", stdout);
     }
@@ -1547,7 +1555,7 @@ save_cookies (SoupMessage *msg, gpointer user_data){
         GString* args = g_string_new ("");
         SoupURI * soup_uri = soup_message_get_uri(msg);
         g_string_printf (args, "PUT %s %s \"%s\"", soup_uri->host, soup_uri->path, cookie);
-        run_command_async(uzbl.behave.cookie_handler, args->str);
+        run_command(uzbl.behave.cookie_handler, args->str, FALSE, NULL);
         g_string_free(args, TRUE);
         free(cookie);
     }

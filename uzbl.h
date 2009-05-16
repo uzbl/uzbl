@@ -86,7 +86,8 @@ typedef struct {
     GHashTable     *proto_var;
     /* command parsing regexes */
     GRegex         *set_regex;
-    GRegex         *cmd_regex;
+    GRegex         *act_regex;
+    GRegex         *keycmd_regex;
     GRegex         *get_regex; 
     GRegex         *bind_regex; 
 } Communication;
@@ -238,10 +239,7 @@ static void
 close_uzbl (WebKitWebView *page, const char *param);
 
 static gboolean
-run_command_async(const char *command, const char *args);
-
-static gboolean
-run_command_sync(const char *command, const char *args, char **stdout);
+run_command(const char *command, const char *args, const gboolean sync, char **stdout);
 
 static void
 spawn(WebKitWebView *web_view, const char *param);
@@ -287,6 +285,9 @@ update_title (void);
  
 static gboolean
 key_press_cb (WebKitWebView* page, GdkEventKey* event);
+
+static void
+run_keycmd(const gboolean key_ret);
 
 static GtkWidget*
 create_browser ();
