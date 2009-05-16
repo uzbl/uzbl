@@ -713,9 +713,11 @@ static gboolean
 run_command (const char *command, const char *args, const gboolean sync, char **stdout) {
    //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
     GString* to_execute = g_string_new ("");
+    GError *err = NULL;
+    gchar* cmd = g_strstrip(g_strdup(command));
     gboolean result;
     g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' '%s'",
-                     command, (uzbl.state.config_file ? uzbl.state.config_file : "(null)"),
+                     cmd, (uzbl.state.config_file ? uzbl.state.config_file : "(null)"),
                      (int) getpid(), (int) uzbl.xwin, uzbl.comm.fifo_path,
                      uzbl.comm.socket_path);
     g_string_append_printf (to_execute, " '%s' '%s'",
@@ -723,10 +725,15 @@ run_command (const char *command, const char *args, const gboolean sync, char **
     if(args) g_string_append_printf (to_execute, " %s", args);
 
     if (sync) {
-        result = g_spawn_command_line_sync (to_execute->str, stdout, NULL, NULL, NULL);
-    } else result = g_spawn_command_line_async (to_execute->str, NULL);
+        result = g_spawn_command_line_sync (to_execute->str, stdout, NULL, NULL, &err);
+    } else result = g_spawn_command_line_async (to_execute->str, &err);
     printf("Called %s.  Result: %s\n", to_execute->str, (result ? "TRUE" : "FALSE" ));
     g_string_free (to_execute, TRUE);
+    if (err) {
+        g_printerr("error on run_command: %s\n", err->message);
+        g_error_free (err);
+    }
+    g_free (cmd);
     return result;
 }
 
