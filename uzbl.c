@@ -972,6 +972,7 @@ parse_cmd_line(const char *ctl_line) {
         else
             printf("Error in command: %s\n", tokens[0]);
     }
+    /* KEYCMD command */
     else if(ctl_line[0] == 'K' || ctl_line[0] == 'k') {
         tokens = g_regex_split(uzbl.comm.keycmd_regex, ctl_line, 0);
         if(tokens[0][0] == 0) {
@@ -1269,7 +1270,6 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     //TRUE to stop other handlers from being invoked for the event. FALSE to propagate the event further.
 
     (void) page;
-    Action *action;
 
     if (event->type != GDK_KEY_PRESS || event->keyval == GDK_Page_Up || event->keyval == GDK_Page_Down
         || event->keyval == GDK_Up || event->keyval == GDK_Down || event->keyval == GDK_Left || event->keyval == GDK_Right || event->keyval == GDK_Shift_L || event->keyval == GDK_Shift_R)
@@ -1315,13 +1315,25 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     gboolean key_ret = FALSE;
     if ((event->keyval == GDK_Return) || (event->keyval == GDK_KP_Enter))
         key_ret = TRUE;
-
     if (!key_ret) g_string_append(uzbl.state.keycmd, event->string);
+
+    run_keycmd(key_ret);
+    update_title();
+    if (key_ret) return (!uzbl.behave.insert_mode);
+    return TRUE;
+}
+
+static void
+run_keycmd(const gboolean key_ret) {
+    /* run the keycmd immediately if it isn't incremental and doesn't take args */
+    Action *action;
     if ((action = g_hash_table_lookup(uzbl.bindings, uzbl.state.keycmd->str))) {
         g_string_truncate(uzbl.state.keycmd, 0);
         parse_command(action->name, action->param);
+        return;
     }
 
+    /* try if it's an incremental keycmd or one that takes args, and run it */
     GString* short_keys = g_string_new ("");
     GString* short_keys_inc = g_string_new ("");
     unsigned int i;
@@ -1333,12 +1345,12 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
             
         gboolean exec_now = FALSE;
         if ((action = g_hash_table_lookup(uzbl.bindings, short_keys->str))) {
-            if (key_ret) exec_now = TRUE; // run normal cmds only if return was pressed
+            if (key_ret) exec_now = TRUE; /* run normal cmds only if return was pressed */
         } else if ((action = g_hash_table_lookup(uzbl.bindings, short_keys_inc->str))) {
-            if (key_ret) { // just quit the incremental command on return
+            if (key_ret) { /* just quit the incremental command on return */
                 g_string_truncate(uzbl.state.keycmd, 0);
                 break;
-            } else exec_now = TRUE; // always exec inc. commands on keys other than return
+            } else exec_now = TRUE; /* always exec incr. commands on keys other than return */
         }
 
         if (exec_now) {
@@ -1363,9 +1375,6 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
     }
     g_string_free (short_keys, TRUE);
     g_string_free (short_keys_inc, TRUE);
-    update_title();
-    if (key_ret) return (!uzbl.behave.insert_mode);
-    return TRUE;
 }
 
 static GtkWidget*
