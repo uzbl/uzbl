@@ -32,7 +32,7 @@ set always_insert_mode = 0
 #set	max_conns_host	0
 
 set fifo_dir = /tmp
-#TODO socket dir
+set socket_dir = /tmp
 #set status_top = 1
 
 # Key bindings
