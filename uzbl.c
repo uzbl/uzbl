@@ -441,12 +441,7 @@ new_action(const gchar *name, const gchar *param) {
 
 static bool
 file_exists (const char * filename) {
-    FILE *file = fopen (filename, "r");
-    if (file) {
-        fclose (file);
-        return true;
-    }
-    return false;
+	return (access(filename, F_OK) == 0);
 }
 
 void
