@@ -1046,8 +1046,10 @@ control_fifo(GIOChannel *gio, GIOCondition condition) {
        g_error ("Fifo: GIOChannel broke\n");
 
     ret = g_io_channel_read_line(gio, &ctl_line, NULL, NULL, &err);
-    if (ret == G_IO_STATUS_ERROR)
+    if (ret == G_IO_STATUS_ERROR) {
         g_error ("Fifo: Error reading: %s\n", err->message);
+        g_error_free (err);
+    }
 
     parse_cmd_line(ctl_line);
     g_free(ctl_line);
@@ -1088,6 +1090,7 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
     } else g_warning ("init_fifo: can't create %s: file exists\n", path);
 
     /* if we got this far, there was an error; cleanup */
+    if (error) g_error_free (error);
     g_free(path);
     g_free(dir);
     return NULL;
@@ -1130,6 +1133,7 @@ create_stdin () {
     } else {
         g_error ("Stdin: Error while opening: %s\n", error->message);
     }
+    if (error) g_error_free (error);
 }
 
 static gboolean
