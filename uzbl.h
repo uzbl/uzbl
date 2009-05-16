@@ -86,7 +86,8 @@ typedef struct {
     GHashTable     *proto_var;
     /* command parsing regexes */
     GRegex         *set_regex;
-    GRegex         *cmd_regex;
+    GRegex         *act_regex;
+    GRegex         *keycmd_regex;
     GRegex         *get_regex; 
     GRegex         *bind_regex; 
 } Communication;
@@ -287,6 +288,9 @@ update_title (void);
  
 static gboolean
 key_press_cb (WebKitWebView* page, GdkEventKey* event);
+
+static void
+run_keycmd(const gboolean key_ret);
 
 static GtkWidget*
 create_browser ();
