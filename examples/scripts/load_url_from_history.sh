@@ -14,5 +14,5 @@ fi
 
 # choose from all entries, the first one being current url, and after that all others, sorted and uniqued.
 current=`tail -n 1 $history_file | awk '{print $3}'`; goto=`(echo $current; awk '{print $3}' $history_file | grep -v "^$current\$" | sort -u) | $DMENU`
-#[ -n "$goto" ] && echo "uri $goto" > $4
-[ -n "$goto" ] && uzblctrl -s $5 -c "uri $goto"
+#[ -n "$goto" ] && echo "cmd uri $goto" > $4
+[ -n "$goto" ] && uzblctrl -s $5 -c "cmd uri $goto"
