@@ -733,7 +733,8 @@ run_command (const char *command, const char *args, const gboolean sync, char **
     if (sync) {
         result = g_spawn_command_line_sync (to_execute->str, stdout, NULL, NULL, NULL);
     } else result = g_spawn_command_line_async (to_execute->str, NULL);
-    printf("Called %s.  Result: %s\n", to_execute->str, (result ? "TRUE" : "FALSE" ));
+    if (uzbl.state.verbose)
+        printf("Called %s.  Result: %s\n", to_execute->str, (result ? "TRUE" : "FALSE" ));
     g_string_free (to_execute, TRUE);
     return result;
 }
