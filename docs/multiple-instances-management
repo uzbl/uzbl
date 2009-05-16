@@ -1,0 +1,41 @@
+"multiple instance management" or: how to manage multiple open pages/instances of uzbl.
+
+The way we do MIM in uzbl will be better then what you can do with tabs in other programs.
+Tabs are just one specific gui implementation which aids in some aspects of "multiple instances management" but not all.
+We can get the same and even better features functionality wise, without limiting ourselves to the particular implementation that tabs are.
+We use a "use-case"/tasks driven approach, unlike tabs which is a "lets do this, and then see how we can use it" approach.
+
+The approach we are implementing in uzbl is like this:
+- 1 page per instance.
+- ability to spawn new windows ("open in new window"), keybinds for having the new window focused or not.
+- each instance keeps track of it's page state (loading, loaded but not seen, loaded and seen)
+- ability to "tag" instances (inherited when forking new instances) (eg tag "work" or tag "personal") so you can keep related instances together.
+  The tag can be made visible in the title / statusbar.
+- allow user to make keybinds to focus the next/previous:
+  - window
+  - unseen/seen window
+  - unseen/seen window from the same tag
+  - unseen/seen window from tag <foo> (dmenu)
+- have a program that lists all instances (optionally filtered, or categorized by tag, state, ...) and allow user to select one from it using smart matching techniques which require a minimal amount of keystrokes. (dmenu with vertical patch is great for this)
+
+Here's an overview what do tabs really do, whether we really need it, and if can improve it?
+
+
+* tabs keep multiple open pages together when moving the window other tag/workspace
+   -> in an ideal workspace, you assign windows to a tag/workspace and keep them there.
+   -> in practice, when I was still using Firefox, I noticed I moved my "group of bundled pages" (eg a FF window) sometimes, to aid in copy pasting between browser and another app, or doing something while watching/reading a webpage.
+      This means however I only really need that specific page, not the others. -> With the suggested approach, you can easily temporarily move one window.
+* tabs keep an oversight of which pages you have open
+   -> you should "know" more or less know which pages you have open.  The gui is clutter.  It should however be possible to show the list "on demand".
+   -> a horizontal list of tabs is also not very readable and lacks useful categorisation/grouping.
+   With the suggested approach we will have each url below each other, which is far more readable, and we can use additional text or color themes to denote the state/tag/...
+* tabs aid opening new pages in the background which you will open later and provide shortcuts to go to the previous/next tab.
+   -> our approach is more powerful.
+   -> With tab based browsers you can usually configure if you want new tabs to open "immediately after the current tab", or "at the end of the list". This is much less flexible/usable then what we are building.
+
+Conclusion
+---------
+I think our method is better then tabs.  Bonus advantages:
+* single uzbl instances are simple to implement, no added clutter.
+* one crashing instance does not affect the rest
+* all this stuff is implemented outside of uzbl.  You can even decide to not use it and you won't even know the feature was ever there.  (though i guess most people will want this).
