@@ -18,5 +18,5 @@ else
 	goto=`awk '{print $1}' $file | $DMENU`
 fi
 
-#[ -n "$goto" ] && echo "cmd uri $goto" > $4
-[ -n "$goto" ] && uzblctrl -s $5 -c "cmd uri $goto"
+#[ -n "$goto" ] && echo "act uri $goto" > $4
+[ -n "$goto" ] && uzblctrl -s $5 -c "act uri $goto"
