@@ -6,10 +6,10 @@ test: uzbl
 	./uzbl --uri http://www.uzbl.org
 
 test-config: uzbl
-	./uzbl --uri http://www.uzbl.org --config examples/configs/sampleconfig-dev
+	./uzbl --uri http://www.uzbl.org < examples/configs/sampleconfig-dev
 
 test-config-real: uzbl
-	./uzbl --uri http://www.uzbl.org --config /usr/share/uzbl/examples/configs/sampleconfig
+	./uzbl --uri http://www.uzbl.org < /usr/share/uzbl/examples/configs/sampleconfig
 	
 clean:
 	rm -f uzbl

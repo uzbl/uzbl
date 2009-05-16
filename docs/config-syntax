@@ -1,0 +1,56 @@
+Configuration setting at startup and changing at runtime happens through one of these:
+- stdin at startup (TODO: see if we can keep listening while running) (write command to it + "\n")
+- fifo (write command to it + "\n")
+- socket (uzblctrl -s <file> -c <comand>
+
+Lines written to the above starting with '#' or being empty, are ignored.
+
+** Command syntax:
+commands can have no, one or 2 arguments.
+
+<command>[\t<arg1>[\t<arg2>]]
+
+The 'bind' command is a special command, where argument 1 is a keyboard character (combo) and argument 2 is a command as specified above.
+You can also use a '_' in the <chars> part to denote where you pass on whatever you want, which will be replaced into the specififed command whereever %s is mentioned
+
+** commands
+Commands where one of the arguments is "parameter" expect this arugment to be a valid variable identifier (eg uzbl.behave.status_format) 
+
+set              parameter value # make sure the value complies with the datatype.
+toggle           parameter    # expects parameter to be a gboolean. (eg status, insert_mode, ..)
+get              parameter
+bind             <chars> <command>
+script           <JS code to execute>
+script_file      <filename containing JS code to execute>
+back
+forward
+scroll_vert      <int>
+scroll_horz      <int>
+reload
+reload_ign_cache
+stop
+zoom_in
+zoom_out
+spawn            <filename for process to start asynchronously>
+exit
+search           <string>
+
+The 'set' command may do more then just set the variable. eg 'set uri' commands will also cause uzbl to navigate to the uri.
+
+
+
+Rationale. AKA "why not config files?"
+-> unify code to configure uzbl and to accept incoming commands
+-> no more code needed for config file parsing/handling
+-> runtime changing of configuration
+
+issues
+-> new instances (open link etc) need same config/state
+   solutions?
+   - serialize all state structs -> some libs available, could work. but:
+                                    - binary format not very user friendly
+                                    - not that easy (C has no introspection etc)
+   - iterate over state structs and generate appropriate commands to bring an instance in this state.
+     - plaintext :)
+     - user editable
+     - also useful for saving state if we need to update/shutdown/..
