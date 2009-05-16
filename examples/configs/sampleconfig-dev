@@ -8,9 +8,9 @@
 # from insert mode by combining them with the modkey
 
 # TODO: ability to attach misc things (spawn <foo>, script <bar>,.. to internal events)
-set	history_handler	 = ./examples/scripts/history.sh
-set	download_handler = ./examples/scripts/download.sh
-set	cookie_handler   = ./examples/scripts/cookies.sh
+set history_handler  = ./examples/scripts/history.sh
+set download_handler = ./examples/scripts/download.sh
+set cookie_handler   = ./examples/scripts/cookies.sh
 
 
 

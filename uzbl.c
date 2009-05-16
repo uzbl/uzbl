@@ -712,7 +712,7 @@ run_command_async(const char *command, const char *args) {
                     command, uzbl.state.config_file, (int) getpid() ,
                     (int) uzbl.xwin, uzbl.comm.fifo_path, uzbl.comm.socket_path);
     g_string_append_printf (to_execute, " '%s' '%s'", 
-                    uzbl.state.uri, "TODO title here");
+                    uzbl.state.uri, uzbl.gui.main_title);
     if(args) {
         g_string_append_printf (to_execute, " %s", args);
     }
@@ -728,7 +728,7 @@ run_command_sync(const char *command, const char *args, char **stdout) {
     GString* to_execute = g_string_new ("");
     gboolean result;
     g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' '%s'", command, uzbl.state.config_file, (int) getpid() , (int) uzbl.xwin, uzbl.comm.fifo_path, uzbl.comm.socket_path);
-    g_string_append_printf (to_execute, " '%s' '%s'", uzbl.state.uri, "TODO title here");
+    g_string_append_printf (to_execute, " '%s' '%s'", uzbl.state.uri, uzbl.gui.main_title);
     if(args) {
         g_string_append_printf (to_execute, " %s", args);
     }
@@ -1371,7 +1371,7 @@ create_browser () {
     g_signal_connect (G_OBJECT (g->web_view), "title-changed", G_CALLBACK (title_change_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-progress-changed", G_CALLBACK (progress_change_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-committed", G_CALLBACK (load_commit_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "load-committed", G_CALLBACK (log_history_cb), g->web_view);
+    g_signal_connect (G_OBJECT (g->web_view), "load-finished", G_CALLBACK (log_history_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-finished", G_CALLBACK (load_finish_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "key-press-event", G_CALLBACK (key_press_cb), g->web_view);
