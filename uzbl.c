@@ -711,8 +711,9 @@ run_command (const char *command, const char *args, const gboolean sync, char **
     GString* to_execute = g_string_new ("");
     gboolean result;
     g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' '%s'", 
-                    command, uzbl.state.config_file, (int) getpid() ,
-                    (int) uzbl.xwin, uzbl.comm.fifo_path, uzbl.comm.socket_path);
+                     command, (uzbl.state.config_file ? uzbl.state.config_file : "(null)"),
+                     (int) getpid(), (int) uzbl.xwin, uzbl.comm.fifo_path,
+                     uzbl.comm.socket_path);
     g_string_append_printf (to_execute, " '%s' '%s'", 
                     uzbl.state.uri, "TODO title here");
     if(args) g_string_append_printf (to_execute, " %s", args);
