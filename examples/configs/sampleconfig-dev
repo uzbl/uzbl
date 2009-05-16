@@ -64,8 +64,8 @@ bind    gg _      = uri http://www.google.com/search?q=%s
 bind    i         = insert_mode
 #TODO: no 'toggle' command?
 bind    B         = spawn ./examples/scripts/insert_bookmark.sh
-bind    u         = spawn ./examples/scripts/load_url_from_history.sh
-bind    U         = spawn ./examples/scripts/load_url_from_bookmarks.sh
+bind    U         = spawn ./examples/scripts/load_url_from_history.sh
+bind    u         = spawn ./examples/scripts/load_url_from_bookmarks.sh
 bind    ZZ        = exit
 bind    S         = script alert("hi");
 # Keyboard based link following: work in progress! No C DOM bindings yet, no click() event for hyperlinks so no referrer set..Quite basic but does the job for now...
