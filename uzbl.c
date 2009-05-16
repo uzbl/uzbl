@@ -1135,7 +1135,8 @@ create_stdin () {
         if (!g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_stdin, NULL)) {
             g_error ("Stdin: could not add watch\n");
         } else {
-            printf ("Stdin: watch added successfully\n");
+            if (uzbl.state.verbose)
+                printf ("Stdin: watch added successfully\n");
         }
     } else {
         g_error ("Stdin: Error while opening: %s\n", error->message);
@@ -1224,7 +1225,8 @@ init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL *
 
     len = strlen (local.sun_path) + sizeof (local.sun_family);
     if (bind (sock, (struct sockaddr *) &local, len) != -1) {
-        printf ("init_socket: opened in %s\n", path);
+        if (uzbl.state.verbose)
+            printf ("init_socket: opened in %s\n", path);
         listen (sock, 5);
 
         if( (chan = g_io_channel_unix_new(sock)) ) {
@@ -1557,12 +1559,14 @@ settings_init () {
             }
 
             g_io_channel_unref (chan);
-            printf ("Config %s loaded\n", s->config_file);
+            if (uzbl.state.verbose)
+                printf ("Config %s loaded\n", s->config_file);
         } else {
             fprintf(stderr, "uzbl: error loading file%s\n", s->config_file);
         }
     } else {
-        printf ("No configuration file loaded.\n");
+        if (uzbl.state.verbose)
+            printf ("No configuration file loaded.\n");
     }
     if (!uzbl.behave.status_format)
         uzbl.behave.status_format = g_strdup(STATUS_DEFAULT);

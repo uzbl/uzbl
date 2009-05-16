@@ -15,7 +15,10 @@ code and clone the code to start hacking. (github makes this really easy
 with their "fork" concept).  But it's usually a good thing to tell us first
 what you want to do, to avoid unneeded or duplicate work.
 
-
+Note that cloning and letting us pull (preferably via github) is way more
+workable then submitting plain patches.  Git is good in merging in branches
+even if the base code has changed in the meanwhile.  This does not work with
+patches.
 
 ### VALGRIND PROFILING
 	$ add this to Makefile header: CFLAGS=-g
