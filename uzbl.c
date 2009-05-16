@@ -80,6 +80,7 @@ const struct {
     { "fifo_dir",           (void *)&uzbl.behave.fifo_dir           },
     { "socket_dir",         (void *)&uzbl.behave.socket_dir         },
     { "http_debug",         (void *)&uzbl.behave.http_debug         },
+    { "default_font_size",  (void *)&uzbl.behave.default_font_size  },
     { "proxy_url",          (void *)&uzbl.net.proxy_url             },
     { "max_conns",          (void *)&uzbl.net.max_conns             },
     { "max_conns_host",     (void *)&uzbl.net.max_conns_host        },
@@ -902,6 +903,10 @@ set_var_value(gchar *name, gchar *val) {
             }
             else if (var_is("status_top", name)) {
                 move_statusbar();
+            }
+            else if (var_is("default_font_size", name)) {
+                WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
+                g_object_set (G_OBJECT(ws), "default-font-size", *ip, NULL);
             }
         }
     }

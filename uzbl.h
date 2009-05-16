@@ -136,6 +136,7 @@ typedef struct {
     gchar*   modkey;
     guint    modmask;
     guint    http_debug;
+    guint    default_font_size;
 
     /* command list: name -> Command  */
     GHashTable* commands;
