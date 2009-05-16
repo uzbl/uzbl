@@ -86,7 +86,7 @@ typedef struct {
     GHashTable     *proto_var;
     /* command parsing regexes */
     GRegex         *set_regex;
-    GRegex         *cmd_regex;
+    GRegex         *act_regex;
     GRegex         *keycmd_regex;
     GRegex         *get_regex; 
     GRegex         *bind_regex; 

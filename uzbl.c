@@ -767,7 +767,7 @@ setup_regex() {
             G_REGEX_OPTIMIZE, 0, &err);
     uzbl.comm.bind_regex = g_regex_new("^[Bb][a-zA-Z]*\\s+?(.*[^ ])\\s*?=\\s*([a-z][^\\n].+)$", 
             G_REGEX_UNGREEDY|G_REGEX_OPTIMIZE, 0, &err);
-    uzbl.comm.cmd_regex = g_regex_new("^[Cc][a-zA-Z]*\\s+([^ \\n]+)\\s*([^\\n]*)?$",
+    uzbl.comm.act_regex = g_regex_new("^[Aa][a-zA-Z]*\\s+([^ \\n]+)\\s*([^\\n]*)?$",
             G_REGEX_OPTIMIZE, 0, &err);
     uzbl.comm.keycmd_regex = g_regex_new("^[Kk][a-zA-Z]*\\s+([^\\n]+)$",
             G_REGEX_OPTIMIZE, 0, &err);
@@ -962,9 +962,9 @@ parse_cmd_line(const char *ctl_line) {
         else 
             printf("Error in command: %s\n", tokens[0]);
     }
-    /* CMD command */
-    else if(ctl_line[0] == 'C' || ctl_line[0] == 'c') {
-        tokens = g_regex_split(uzbl.comm.cmd_regex, ctl_line, 0);
+    /* ACT command */
+    else if(ctl_line[0] == 'A' || ctl_line[0] == 'a') {
+        tokens = g_regex_split(uzbl.comm.act_regex, ctl_line, 0);
         if(tokens[0][0] == 0) {
             parse_command(tokens[1], tokens[2]);
             g_strfreev(tokens);
