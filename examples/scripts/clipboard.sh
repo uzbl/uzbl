@@ -9,7 +9,7 @@ selection=$(xclip -o)
 
 case $action in
   "yank" ) echo -n "$url" | xclip;;
-  "goto" ) echo "uri $selection" > "$fifo";;
+  "goto" ) echo "act uri $selection" > "$fifo";;
   * ) echo "clipboard.sh: invalid action";;
 esac
 
