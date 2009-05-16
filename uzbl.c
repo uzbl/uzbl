@@ -82,6 +82,7 @@ const struct {
     { "http_debug",         (void *)&uzbl.behave.http_debug         },
     { "default_font_size",  (void *)&uzbl.behave.default_font_size  },
     { "minimum_font_size",  (void *)&uzbl.behave.minimum_font_size  },
+    { "shell_cmd",          (void *)&uzbl.behave.shell_cmd          },
     { "proxy_url",          (void *)&uzbl.net.proxy_url             },
     { "max_conns",          (void *)&uzbl.net.max_conns             },
     { "max_conns_host",     (void *)&uzbl.net.max_conns_host        },
@@ -401,6 +402,7 @@ static struct {char *name; Command command;} cmdlist[] =
     { "script",           run_js                  },
     { "toggle_status",    toggle_status_cb        },
     { "spawn",            spawn                   },
+    { "sh",               spawn_sh                },
     { "exit",             close_uzbl              },
     { "search",           search_text             },
     { "insert_mode",      set_insert_mode         },
@@ -735,6 +737,14 @@ spawn(WebKitWebView *web_view, const char *param) {
 }
 
 static void
+spawn_sh(WebKitWebView *web_view, const char *param) {
+    (void)web_view;
+    gchar *cmd = g_strdup_printf(uzbl.behave.shell_cmd, param);
+    spawn(NULL, cmd);
+    g_free(cmd);
+}
+
+static void
 parse_command(const char *cmd, const char *param) {
     Command c;
 
@@ -868,6 +878,10 @@ set_var_value(gchar *name, gchar *val) {
         else if(var_is("useragent", name)) {
             if(*p) free(*p);
             *p = set_useragent(g_strdup(val));
+        }
+        else if(var_is("shell_cmd", name)) {
+            if(*p) free(*p);
+            *p = g_strdup(val);
         }
         /* variables that take int values */
         else {
