@@ -80,6 +80,9 @@ const struct {
     { "fifo_dir",           (void *)&uzbl.behave.fifo_dir           },
     { "socket_dir",         (void *)&uzbl.behave.socket_dir         },
     { "http_debug",         (void *)&uzbl.behave.http_debug         },
+    { "default_font_size",  (void *)&uzbl.behave.default_font_size  },
+    { "minimum_font_size",  (void *)&uzbl.behave.minimum_font_size  },
+    { "shell_cmd",          (void *)&uzbl.behave.shell_cmd          },
     { "proxy_url",          (void *)&uzbl.net.proxy_url             },
     { "max_conns",          (void *)&uzbl.net.max_conns             },
     { "max_conns_host",     (void *)&uzbl.net.max_conns_host        },
@@ -404,6 +407,7 @@ static struct {char *name; Command command;} cmdlist[] =
     { "script",           run_js                  },
     { "toggle_status",    toggle_status_cb        },
     { "spawn",            spawn                   },
+    { "sh",               spawn_sh                },
     { "exit",             close_uzbl              },
     { "search",           search_text             },
     { "insert_mode",      set_insert_mode         },
@@ -716,9 +720,11 @@ static gboolean
 run_command (const char *command, const char *args, const gboolean sync, char **stdout) {
    //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
     GString* to_execute = g_string_new ("");
+    GError *err = NULL;
+    gchar* cmd = g_strstrip(g_strdup(command));
     gboolean result;
     g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' '%s'",
-                     command, (uzbl.state.config_file ? uzbl.state.config_file : "(null)"),
+                     cmd, (uzbl.state.config_file ? uzbl.state.config_file : "(null)"),
                      (int) getpid(), (int) uzbl.xwin, uzbl.comm.fifo_path,
                      uzbl.comm.socket_path);
     g_string_append_printf (to_execute, " '%s' '%s'",
@@ -726,11 +732,16 @@ run_command (const char *command, const char *args, const gboolean sync, char **
     if(args) g_string_append_printf (to_execute, " %s", args);
 
     if (sync) {
-        result = g_spawn_command_line_sync (to_execute->str, stdout, NULL, NULL, NULL);
-    } else result = g_spawn_command_line_async (to_execute->str, NULL);
+        result = g_spawn_command_line_sync (to_execute->str, stdout, NULL, NULL, &err);
+    } else result = g_spawn_command_line_async (to_execute->str, &err);
     if (uzbl.state.verbose)
         printf("Called %s.  Result: %s\n", to_execute->str, (result ? "TRUE" : "FALSE" ));
     g_string_free (to_execute, TRUE);
+    if (err) {
+        g_printerr("error on run_command: %s\n", err->message);
+        g_error_free (err);
+    }
+    g_free (cmd);
     return result;
 }
 
@@ -738,6 +749,14 @@ static void
 spawn(WebKitWebView *web_view, const char *param) {
     (void)web_view;
     run_command(param, NULL, FALSE, NULL);
+}
+
+static void
+spawn_sh(WebKitWebView *web_view, const char *param) {
+    (void)web_view;
+    gchar *cmd = g_strdup_printf(uzbl.behave.shell_cmd, param);
+    spawn(NULL, cmd);
+    g_free(cmd);
 }
 
 static void
@@ -753,18 +772,16 @@ parse_command(const char *cmd, const char *param) {
 /* command parser */
 static void
 setup_regex() {
-    GError *err=NULL;
-
     uzbl.comm.get_regex  = g_regex_new("^[Gg][a-zA-Z]*\\s+([^ \\n]+)$",
-            G_REGEX_OPTIMIZE, 0, &err);
+            G_REGEX_OPTIMIZE, 0, NULL);
     uzbl.comm.set_regex  = g_regex_new("^[Ss][a-zA-Z]*\\s+([^ ]+)\\s*=\\s*([^\\n].*)$",
-            G_REGEX_OPTIMIZE, 0, &err);
+            G_REGEX_OPTIMIZE, 0, NULL);
     uzbl.comm.bind_regex = g_regex_new("^[Bb][a-zA-Z]*\\s+?(.*[^ ])\\s*?=\\s*([a-z][^\\n].+)$",
-            G_REGEX_UNGREEDY|G_REGEX_OPTIMIZE, 0, &err);
+            G_REGEX_UNGREEDY|G_REGEX_OPTIMIZE, 0, NULL);
     uzbl.comm.act_regex = g_regex_new("^[Aa][a-zA-Z]*\\s+([^ \\n]+)\\s*([^\\n]*)?$",
-            G_REGEX_OPTIMIZE, 0, &err);
+            G_REGEX_OPTIMIZE, 0, NULL);
     uzbl.comm.keycmd_regex = g_regex_new("^[Kk][a-zA-Z]*\\s+([^\\n]+)$",
-            G_REGEX_OPTIMIZE, 0, &err);
+            G_REGEX_OPTIMIZE, 0, NULL);
 }
 
 static gboolean
@@ -875,6 +892,10 @@ set_var_value(gchar *name, gchar *val) {
             if(*p) free(*p);
             *p = set_useragent(g_strdup(val));
         }
+        else if(var_is("shell_cmd", name)) {
+            if(*p) free(*p);
+            *p = g_strdup(val);
+        }
         /* variables that take int values */
         else {
             int *ip = (int *)p;
@@ -910,6 +931,14 @@ set_var_value(gchar *name, gchar *val) {
             }
             else if (var_is("status_top", name)) {
                 move_statusbar();
+            }
+            else if (var_is("default_font_size", name)) {
+                WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
+                g_object_set (G_OBJECT(ws), "default-font-size", *ip, NULL);
+            }
+            else if (var_is("minimum_font_size", name)) {
+                WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
+                g_object_set (G_OBJECT(ws), "minimum-font-size", *ip, NULL);
             }
         }
     }
@@ -1024,8 +1053,10 @@ control_fifo(GIOChannel *gio, GIOCondition condition) {
        g_error ("Fifo: GIOChannel broke\n");
 
     ret = g_io_channel_read_line(gio, &ctl_line, NULL, NULL, &err);
-    if (ret == G_IO_STATUS_ERROR)
+    if (ret == G_IO_STATUS_ERROR) {
         g_error ("Fifo: Error reading: %s\n", err->message);
+        g_error_free (err);
+    }
 
     parse_cmd_line(ctl_line);
     g_free(ctl_line);
@@ -1067,6 +1098,7 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
     } else g_warning ("init_fifo: can't create %s: file exists\n", path);
 
     /* if we got this far, there was an error; cleanup */
+    if (error) g_error_free (error);
     g_free(path);
     g_free(dir);
     return NULL;
@@ -1077,14 +1109,13 @@ control_stdin(GIOChannel *gio, GIOCondition condition) {
     gchar *ctl_line = NULL;
     gsize ctl_line_len = 0;
     GIOStatus ret;
-    GError *err = NULL;
 
     if (condition & G_IO_HUP) {
-        ret = g_io_channel_shutdown (gio, FALSE, &err);
+        ret = g_io_channel_shutdown (gio, FALSE, NULL);
         return FALSE;
     }
 
-    ret = g_io_channel_read_line(gio, &ctl_line, &ctl_line_len, NULL, &err);
+    ret = g_io_channel_read_line(gio, &ctl_line, &ctl_line_len, NULL, NULL);
     if ( (ret == G_IO_STATUS_ERROR) || (ret == G_IO_STATUS_EOF) )
         return FALSE;
 
@@ -1109,6 +1140,7 @@ create_stdin () {
     } else {
         g_error ("Stdin: Error while opening: %s\n", error->message);
     }
+    if (error) g_error_free (error);
 }
 
 static gboolean
@@ -1512,11 +1544,10 @@ settings_init () {
 
     if (s->config_file) {
         GIOChannel *chan = NULL;
-        GError *error = NULL;
         gchar *readbuf = NULL;
         gsize len;
 
-        chan = g_io_channel_new_file(s->config_file, "r", &error);
+        chan = g_io_channel_new_file(s->config_file, "r", NULL);
 
         if (chan) {
             while (g_io_channel_read_line(chan, &readbuf, &len, NULL, NULL)
@@ -1594,11 +1625,10 @@ main (int argc, char* argv[]) {
 
     strcpy(uzbl.state.executable_path,argv[0]);
 
-    GError *error = NULL;
     GOptionContext* context = g_option_context_new ("- some stuff here maybe someday");
     g_option_context_add_main_entries (context, entries, NULL);
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
-    g_option_context_parse (context, &argc, &argv, &error);
+    g_option_context_parse (context, &argc, &argv, NULL);
     /* initialize hash table */
     uzbl.bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
 

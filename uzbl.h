@@ -138,6 +138,9 @@ typedef struct {
     gchar*   modkey;
     guint    modmask;
     guint    http_debug;
+    guint    default_font_size;
+    guint    minimum_font_size;
+    gchar*   shell_cmd;
 
     /* command list: name -> Command  */
     GHashTable* commands;
@@ -264,6 +267,9 @@ run_command(const char *command, const char *args, const gboolean sync, char **s
 
 static void
 spawn(WebKitWebView *web_view, const char *param);
+
+static void
+spawn_sh(WebKitWebView *web_view, const char *param);
 
 static void
 parse_command(const char *cmd, const char *param);
