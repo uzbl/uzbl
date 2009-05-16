@@ -279,7 +279,7 @@ create_stdin();
 static gchar*
 init_socket(gchar *dir);
 
-static void
+static gboolean
 control_socket(GIOChannel *chan);
 
 static void

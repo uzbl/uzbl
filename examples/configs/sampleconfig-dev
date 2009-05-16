@@ -8,9 +8,9 @@
 # from insert mode by combining them with the modkey
 
 # TODO: ability to attach misc things (spawn <foo>, script <bar>,.. to internal events)
-#set	history_handler	./examples/scripts/history.sh
-#set	download_handler	./examples/scripts/download.sh
-#set	cookie_handler	./examples/scripts/cookies.sh
+set	history_handler	 = ./examples/scripts/history.sh
+set	download_handler = ./examples/scripts/download.sh
+set	cookie_handler   = ./examples/scripts/cookies.sh
 
 
 
@@ -19,7 +19,12 @@ set show_status       = 1
 # you can optionally use this setting to override the background color of the statusbar from your GTK theme.
 set status_background = #303030
 set status_format     = <span font_family="monospace"><span background="khaki" foreground="black">MODE</span> [<span weight="bold" foreground="red">KEYCMD</span>] <span foreground="#606060"> LOAD_PROGRESSBAR </span><span foreground="#99FF66">URI</span> <span foreground="khaki">NAME</span> <span foreground="orange">MSG</span></span>
+set status_top = 0
+
 set modkey = Mod1
+# reset to command mode when new page is loaded
+set reset_command_mode = 1
+# this var has precedence over reset_command_mode
 set always_insert_mode = 0
 # to start a local socks server, do : ssh -fND localhost:8118 localhost
 #set proxy_url = http://127.0.0.1:8118
@@ -32,8 +37,7 @@ set always_insert_mode = 0
 #set	max_conns_host	0
 
 set fifo_dir = /tmp
-#TODO socket dir
-#set status_top = 1
+set socket_dir = /tmp
 
 # Key bindings
 bind    j         = scroll_vert 20
