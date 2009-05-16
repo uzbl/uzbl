@@ -34,15 +34,15 @@ main(int argc, char* argv[]) {
     g_option_context_add_main_entries (context, entries, NULL);
     g_option_context_add_group        (context, gtk_get_option_group (TRUE));
     g_option_context_parse            (context, &argc, &argv, &error);
-    
+
     int s, len;
     struct sockaddr_un remote;
-    
+
     if ((s = socket (AF_UNIX, SOCK_STREAM, 0)) == -1) {
         perror ("socket");
         exit (1);
     }
-    
+
     remote.sun_family = AF_UNIX;
     strcpy (remote.sun_path, (char *) sockpath);
     len = strlen (remote.sun_path) + sizeof (remote.sun_family);
@@ -51,14 +51,14 @@ main(int argc, char* argv[]) {
         perror ("connect");
         exit (1);
     }
-    
+
     if (send (s, command, strlen (command), 0) == -1) {
         perror ("send");
         exit (1);
     }
-    
+
     close(s);
-    
+
     return 0;
 }
 /* vi: set et ts=4: */
