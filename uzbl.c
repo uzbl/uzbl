@@ -976,7 +976,11 @@ parse_cmd_line(const char *ctl_line) {
     else if(ctl_line[0] == 'K' || ctl_line[0] == 'k') {
         tokens = g_regex_split(uzbl.comm.keycmd_regex, ctl_line, 0);
         if(tokens[0][0] == 0) {
-            // TODO: emulate keypresses
+            /* should incremental commands want each individual "keystroke"
+               sent in a loop or the whole string in one go like now? */
+            g_string_assign(uzbl.state.keycmd, tokens[1]);
+            run_keycmd(FALSE);
+            update_title();
             g_strfreev(tokens);
         }
     }
@@ -1300,7 +1304,7 @@ key_press_cb (WebKitWebView* page, GdkEventKey* event)
             str = gtk_clipboard_wait_for_text (gtk_clipboard_get (GDK_SELECTION_CLIPBOARD)); 
         }
         if (str) {
-            g_string_append_printf (uzbl.state.keycmd, "%s",  str);
+            g_string_append (uzbl.state.keycmd, str);
             update_title ();
             free (str);
         }
