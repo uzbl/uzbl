@@ -1,4 +1,5 @@
-/*
+/* -*- c-basic-offset: 4; -*- 
+
  * See LICENSE for license details
  *
  * Changelog:
@@ -104,6 +105,7 @@ typedef struct {
     GString* keycmd;
     gchar    searchtx[500];
     struct utsname unameinfo; /* system info */
+    gboolean verbose;
 } State;
 
 
@@ -165,12 +167,31 @@ typedef struct {
 
 typedef void sigfunc(int);
 
+/* XDG Stuff */
+
+typedef struct {
+    gchar* environmental;
+    gchar* default_value;
+} XDG_Var;
+
+XDG_Var XDG[] = 
+{
+    { "XDG_CONFIG_HOME", "~/.config" },
+    { "XDG_DATA_HOME",   "~/.local/share" },
+    { "XDG_CACHE_HOME",  "~/.cache" },
+    { "XDG_CONFIG_DIRS", "/etc/xdg" },
+    { "XDG_DATA_DIRS",   "/usr/local/share/:/usr/share/" },
+};
+
 /* Functions */
 static void
 setup_scanner();
 
 char *
 itos(int val);
+
+static char *
+str_replace (const char* search, const char* replace, const char* string);
 
 static void
 clean_up(void);
@@ -300,6 +321,12 @@ GtkWidget* create_window ();
 
 static void
 add_binding (const gchar *key, const gchar *act);
+
+static gchar*
+get_xdg_var (XDG_Var xdg);
+
+static gchar*
+find_xdg_file (int xdg_type, char* filename);
 
 static void
 settings_init ();
