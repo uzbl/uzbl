@@ -1,4 +1,4 @@
-/* 
+/*
  * See LICENSE for license details
  *
  * Changelog:
@@ -7,14 +7,14 @@
  * (c) 2009 by Robert Manea
  *     - introduced struct concept
  *     - statusbar template
- *     
+ *
  */
 
 #define STATUS_DEFAULT "<span background=\"darkblue\" foreground=\"white\"> MODE </span> <span background=\"red\" foreground=\"white\">KEYCMD</span> (LOAD_PROGRESS%)  <b>TITLE</b>  - Uzbl browser"
 
 enum {
   /* statusbar symbols */
-  SYM_TITLE, SYM_URI, SYM_NAME, 
+  SYM_TITLE, SYM_URI, SYM_NAME,
   SYM_LOADPRGS, SYM_LOADPRGSBAR,
   SYM_KEYCMD, SYM_MODE, SYM_MSG,
   /* useragent symbols */
@@ -88,8 +88,8 @@ typedef struct {
     GRegex         *set_regex;
     GRegex         *act_regex;
     GRegex         *keycmd_regex;
-    GRegex         *get_regex; 
-    GRegex         *bind_regex; 
+    GRegex         *get_regex;
+    GRegex         *bind_regex;
 } Communication;
 
 
@@ -282,7 +282,7 @@ control_socket(GIOChannel *chan);
 
 static void
 update_title (void);
- 
+
 static gboolean
 key_press_cb (WebKitWebView* page, GdkEventKey* event);
 
