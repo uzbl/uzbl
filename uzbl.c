@@ -132,11 +132,6 @@ static GOptionEntry entries[] =
 
 typedef void (*Command)(WebKitWebView*, const char *);
 
-/* XDG stuff */
-static char *XDG_CONFIG_HOME_default[256];
-static char *XDG_CONFIG_DIRS_default = "/etc/xdg";
-
-
 /* --- UTILITY FUNCTIONS --- */
 
 char *
