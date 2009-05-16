@@ -135,11 +135,6 @@ static GOptionEntry entries[] =
 
 typedef void (*Command)(WebKitWebView*, const char *);
 
-/* XDG stuff */
-static char *XDG_CONFIG_HOME_default[256];
-static char *XDG_CONFIG_DIRS_default = "/etc/xdg";
-
-
 /* --- UTILITY FUNCTIONS --- */
 
 char *
@@ -739,7 +734,8 @@ run_command (const char *command, const char *args, const gboolean sync, char **
     if (sync) {
         result = g_spawn_command_line_sync (to_execute->str, stdout, NULL, NULL, &err);
     } else result = g_spawn_command_line_async (to_execute->str, &err);
-    printf("Called %s.  Result: %s\n", to_execute->str, (result ? "TRUE" : "FALSE" ));
+    if (uzbl.state.verbose)
+        printf("Called %s.  Result: %s\n", to_execute->str, (result ? "TRUE" : "FALSE" ));
     g_string_free (to_execute, TRUE);
     if (err) {
         g_printerr("error on run_command: %s\n", err->message);
@@ -1553,7 +1549,6 @@ find_xdg_file (int xdg_type, char* filename) {
 
 static void
 settings_init () {
-    char *saveptr;
     State *s = &uzbl.state;
     Network *n = &uzbl.net;
 
