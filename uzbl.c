@@ -764,18 +764,16 @@ parse_command(const char *cmd, const char *param) {
 /* command parser */
 static void
 setup_regex() {
-    GError *err=NULL;
-
     uzbl.comm.get_regex  = g_regex_new("^[Gg][a-zA-Z]*\\s+([^ \\n]+)$",
-            G_REGEX_OPTIMIZE, 0, &err);
+            G_REGEX_OPTIMIZE, 0, NULL);
     uzbl.comm.set_regex  = g_regex_new("^[Ss][a-zA-Z]*\\s+([^ ]+)\\s*=\\s*([^\\n].*)$",
-            G_REGEX_OPTIMIZE, 0, &err);
+            G_REGEX_OPTIMIZE, 0, NULL);
     uzbl.comm.bind_regex = g_regex_new("^[Bb][a-zA-Z]*\\s+?(.*[^ ])\\s*?=\\s*([a-z][^\\n].+)$",
-            G_REGEX_UNGREEDY|G_REGEX_OPTIMIZE, 0, &err);
+            G_REGEX_UNGREEDY|G_REGEX_OPTIMIZE, 0, NULL);
     uzbl.comm.act_regex = g_regex_new("^[Aa][a-zA-Z]*\\s+([^ \\n]+)\\s*([^\\n]*)?$",
-            G_REGEX_OPTIMIZE, 0, &err);
+            G_REGEX_OPTIMIZE, 0, NULL);
     uzbl.comm.keycmd_regex = g_regex_new("^[Kk][a-zA-Z]*\\s+([^\\n]+)$",
-            G_REGEX_OPTIMIZE, 0, &err);
+            G_REGEX_OPTIMIZE, 0, NULL);
 }
 
 static gboolean
