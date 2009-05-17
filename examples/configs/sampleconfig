@@ -37,14 +37,14 @@ set reset_command_mode = 1
 # this var has precedence over reset_command_mode
 set always_insert_mode = 0
 # to start a local socks server, do : ssh -fND localhost:8118 localhost
-#set proxy_url = http://127.0.0.1:8118
+#set  proxy_url       = http://127.0.0.1:8118
 #values 0-3
-#set	http_debug = 0
-#set	useragent	uzbl (Webkit %webkit-major%.%webkit-minor%.%webkit-micro%)
+#set  http_debug      = 0
+#set  useragent       = uzbl (Webkit %webkit-major%.%webkit-minor%.%webkit-micro%)
 # Example user agent containing everything:
-#set	useragent	Uzbl (Webkit %webkit-major%.%webkit-minor%.%webkit-micro%) (%sysname% %nodename% %kernrel% %kernver% %arch-system% [%arch-uzbl%]) (Commit %commit%)
-#set	max_conns	0
-#set	max_conns_host	0
+#set  useragent	      = Uzbl (Webkit %webkit-major%.%webkit-minor%.%webkit-micro%) (%sysname% %nodename% %kernrel% %kernver% %arch-system% [%arch-uzbl%]) (Commit %commit%)
+#set  max_conns	      = 0
+#set  max_conns_host  = 0
 
 set fifo_dir = /tmp
 set socket_dir = /tmp
