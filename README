@@ -77,6 +77,9 @@ There are several interfaces to interact with uzbl:
   an utitly we include with uzbl made especially for writing commnands to the socket (and at some point, it will be able to tell you the response
   too):  `uzblctrl -s <socketfile> -c <command>`
 
+When uzbl forks a new instance (eg "open in new window") it will use the same commandline arguments (eg the same --config <file>), except --uri and--name.
+If you made changes to the configuration at runtime, these are not pased on to the child.
+
 ### COMMAND SYNTAX
 TODO
 

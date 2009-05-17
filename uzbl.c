@@ -411,7 +411,8 @@ static struct {char *name; Command command;} cmdlist[] =
     { "spawn",            spawn                   },
     { "sh",               spawn_sh                },
     { "exit",             close_uzbl              },
-    { "search",           search_text             },
+    { "search",           search_forward_text     },
+    { "search_reverse",   search_reverse_text     },
     { "insert_mode",      set_insert_mode         },
     { "runcmd",           runcmd                  }
 };
@@ -483,7 +484,7 @@ run_js (WebKitWebView * web_view, const gchar *param) {
 }
 
 static void
-search_text (WebKitWebView *page, const char *param) {
+search_text (WebKitWebView *page, const char *param, const gboolean forward) {
     if ((param) && (param[0] != '\0')) {
         strcpy(uzbl.state.searchtx, param);
     }
@@ -493,8 +494,18 @@ search_text (WebKitWebView *page, const char *param) {
         webkit_web_view_unmark_text_matches (page);
         webkit_web_view_mark_text_matches (page, uzbl.state.searchtx, FALSE, 0);
         webkit_web_view_set_highlight_text_matches (page, TRUE);
-        webkit_web_view_search_text (page, uzbl.state.searchtx, FALSE, TRUE, TRUE);
+        webkit_web_view_search_text (page, uzbl.state.searchtx, FALSE, forward, TRUE);
     }
+}
+
+static void
+search_forward_text (WebKitWebView *page, const char *param) {
+    search_text(page, param, TRUE);
+}
+
+static void
+search_reverse_text (WebKitWebView *page, const char *param) {
+    search_text(page, param, FALSE);
 }
 
 static void
@@ -503,7 +514,7 @@ new_window_load_uri (const gchar * uri) {
     g_string_append_printf (to_execute, "%s --uri '%s'", uzbl.state.executable_path, uri);
     int i;
     for (i = 0; entries[i].long_name != NULL; i++) {
-        if ((entries[i].arg == G_OPTION_ARG_STRING) && (strcmp(entries[i].long_name,"uri")!=0)) {
+        if ((entries[i].arg == G_OPTION_ARG_STRING) && (strcmp(entries[i].long_name,"uri")!=0) && (strcmp(entries[i].long_name,"name")!=0)) {
             gchar** str = (gchar**)entries[i].arg_data;
             if (*str!=NULL) {
                 g_string_append_printf (to_execute, " --%s '%s'", entries[i].long_name, *str);

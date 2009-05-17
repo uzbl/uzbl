@@ -345,7 +345,13 @@ static void
 settings_init ();
 
 static void
-search_text (WebKitWebView *page, const char *param);
+search_text (WebKitWebView *page, const char *param, const gboolean forward);
+
+static void
+search_forward_text (WebKitWebView *page, const char *param);
+
+static void
+search_reverse_text (WebKitWebView *page, const char *param);
 
 static void
 run_js (WebKitWebView * web_view, const gchar *param);
