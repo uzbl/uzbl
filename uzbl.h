@@ -1,4 +1,5 @@
-/*
+/* -*- c-basic-offset: 4; -*- 
+
  * See LICENSE for license details
  *
  * Changelog:
@@ -11,12 +12,16 @@
  */
 
 #define STATUS_DEFAULT "<span background=\"darkblue\" foreground=\"white\"> MODE </span> <span background=\"red\" foreground=\"white\">KEYCMD</span> (LOAD_PROGRESS%)  <b>TITLE</b>  - Uzbl browser"
+#define TITLE_LONG_DEFAULT "KEYCMD MODE TITLE - Uzbl browser <NAME> > SELECTED_URI"
+#define TITLE_SHORT_DEFAULT "TITLE - Uzbl browser <NAME>"
+
 
 enum {
   /* statusbar symbols */
   SYM_TITLE, SYM_URI, SYM_NAME,
   SYM_LOADPRGS, SYM_LOADPRGSBAR,
   SYM_KEYCMD, SYM_MODE, SYM_MSG,
+  SYM_SELECTED_URI,
   /* useragent symbols */
   SYM_WK_MAJ, SYM_WK_MIN, SYM_WK_MIC,
   SYM_SYSNAME, SYM_NODENAME,
@@ -32,6 +37,7 @@ const struct {
     {"NAME",                 SYM_NAME},
     {"URI",                  SYM_URI},
     {"TITLE",                SYM_TITLE},
+    {"SELECTED_URI",         SYM_SELECTED_URI},
     {"KEYCMD",               SYM_KEYCMD},
     {"MODE",                 SYM_MODE},
     {"MSG",                  SYM_MSG},
@@ -104,6 +110,7 @@ typedef struct {
     GString* keycmd;
     gchar    searchtx[500];
     struct utsname unameinfo; /* system info */
+    gboolean verbose;
 } State;
 
 
@@ -122,6 +129,8 @@ typedef struct {
 typedef struct {
     gchar*   load_finish_handler;
     gchar*   status_format;
+    gchar*   title_format_short;
+    gchar*   title_format_long;
     gchar*   status_background;
     gchar*   history_handler;
     gchar*   fifo_dir;
@@ -136,6 +145,9 @@ typedef struct {
     gchar*   modkey;
     guint    modmask;
     guint    http_debug;
+    guint    default_font_size;
+    guint    minimum_font_size;
+    gchar*   shell_cmd;
 
     /* command list: name -> Command  */
     GHashTable* commands;
@@ -165,12 +177,31 @@ typedef struct {
 
 typedef void sigfunc(int);
 
+/* XDG Stuff */
+
+typedef struct {
+    gchar* environmental;
+    gchar* default_value;
+} XDG_Var;
+
+XDG_Var XDG[] = 
+{
+    { "XDG_CONFIG_HOME", "~/.config" },
+    { "XDG_DATA_HOME",   "~/.local/share" },
+    { "XDG_CACHE_HOME",  "~/.cache" },
+    { "XDG_CONFIG_DIRS", "/etc/xdg" },
+    { "XDG_DATA_DIRS",   "/usr/local/share/:/usr/share/" },
+};
+
 /* Functions */
 static void
 setup_scanner();
 
 char *
 itos(int val);
+
+static char *
+str_replace (const char* search, const char* replace, const char* string);
 
 static void
 clean_up(void);
@@ -245,6 +276,9 @@ static void
 spawn(WebKitWebView *web_view, const char *param);
 
 static void
+spawn_sh(WebKitWebView *web_view, const char *param);
+
+static void
 parse_command(const char *cmd, const char *param);
 
 static void
@@ -300,6 +334,12 @@ GtkWidget* create_window ();
 
 static void
 add_binding (const gchar *key, const gchar *act);
+
+static gchar*
+get_xdg_var (XDG_Var xdg);
+
+static gchar*
+find_xdg_file (int xdg_type, char* filename);
 
 static void
 settings_init ();

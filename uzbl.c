@@ -69,6 +69,8 @@ const struct {
     { "status_top",         (void *)&uzbl.behave.status_top         },
     { "status_format",      (void *)&uzbl.behave.status_format      },
     { "status_background",  (void *)&uzbl.behave.status_background  },
+    { "title_format_long",  (void *)&uzbl.behave.title_format_long  },
+    { "title_format_short", (void *)&uzbl.behave.title_format_short },
     { "insert_mode",        (void *)&uzbl.behave.insert_mode        },
     { "always_insert_mode", (void *)&uzbl.behave.always_insert_mode },
     { "reset_command_mode", (void *)&uzbl.behave.reset_command_mode },
@@ -80,6 +82,9 @@ const struct {
     { "fifo_dir",           (void *)&uzbl.behave.fifo_dir           },
     { "socket_dir",         (void *)&uzbl.behave.socket_dir         },
     { "http_debug",         (void *)&uzbl.behave.http_debug         },
+    { "default_font_size",  (void *)&uzbl.behave.default_font_size  },
+    { "minimum_font_size",  (void *)&uzbl.behave.minimum_font_size  },
+    { "shell_cmd",          (void *)&uzbl.behave.shell_cmd          },
     { "proxy_url",          (void *)&uzbl.net.proxy_url             },
     { "max_conns",          (void *)&uzbl.net.max_conns             },
     { "max_conns_host",     (void *)&uzbl.net.max_conns_host        },
@@ -123,18 +128,14 @@ make_var_to_name_hash() {
 /* commandline arguments (set initial values for the state variables) */
 static GOptionEntry entries[] =
 {
-    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uzbl.state.uri,           "Uri to load", "URI" },
+    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uzbl.state.uri,           "Uri to load at startup (equivalent to 'set uri = URI')", "URI" },
+    { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &uzbl.state.verbose,       "Whether to print all messages or just errors.", NULL },
     { "name",    'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name, "Name of the current instance (defaults to Xorg window id)", "NAME" },
-    { "config",  'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,   "Config file", "FILE" },
+    { "config",  'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,   "Config file (this is pretty much equivalent to uzbl < FILE )", "FILE" },
     { NULL,      0, 0, 0, NULL, NULL, NULL }
 };
 
 typedef void (*Command)(WebKitWebView*, const char *);
-
-/* XDG stuff */
-static char *XDG_CONFIG_HOME_default[256];
-static char *XDG_CONFIG_DIRS_default = "/etc/xdg";
-
 
 /* --- UTILITY FUNCTIONS --- */
 
@@ -144,6 +145,11 @@ itos(int val) {
 
     snprintf(tmp, sizeof(tmp), "%i", val);
     return g_strdup(tmp);
+}
+
+static char *
+str_replace (const char* search, const char* replace, const char* string) {
+    return g_strjoinv (replace, g_strsplit (string, search, -1));
 }
 
 static sigfunc*
@@ -198,7 +204,8 @@ new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequ
     (void) policy_decision;
     (void) user_data;
     const gchar* uri = webkit_network_request_get_uri (request);
-    printf("New window requested -> %s \n", uri);
+    if (uzbl.state.verbose)
+        printf("New window requested -> %s \n", uri);
     new_window_load_uri(uri);
     return (FALSE);
 }
@@ -209,10 +216,12 @@ create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer us
     (void) frame;
     (void) user_data;
     if (uzbl.state.selected_url[0]!=0) {
-        printf("\nNew web view -> %s\n",uzbl.state.selected_url);
+        if (uzbl.state.verbose)
+            printf("\nNew web view -> %s\n",uzbl.state.selected_url);
         new_window_load_uri(uzbl.state.selected_url);
     } else {
-        printf("New web view -> %s\n","Nothing to open, exiting");
+        if (uzbl.state.verbose)
+            printf("New web view -> %s\n","Nothing to open, exiting");
     }
     return (NULL);
 }
@@ -223,7 +232,8 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
     (void) user_data;
     if (uzbl.behave.download_handler) {
         const gchar* uri = webkit_download_get_uri ((WebKitDownload*)download);
-        printf("Download -> %s\n",uri);
+        if (uzbl.state.verbose)
+            printf("Download -> %s\n",uri);
         run_command(uzbl.behave.download_handler, uri, FALSE, NULL);
     }
     return (FALSE);
@@ -293,7 +303,7 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
     (void) page;
     (void) title;
     (void) data;
-    //ADD HOVER URL TO WINDOW TITLE
+    //Set selected_url state variable
     uzbl.state.selected_url[0] = '\0';
     if (link) {
         strcpy (uzbl.state.selected_url, link);
@@ -399,6 +409,7 @@ static struct {char *name; Command command;} cmdlist[] =
     { "script",           run_js                  },
     { "toggle_status",    toggle_status_cb        },
     { "spawn",            spawn                   },
+    { "sh",               spawn_sh                },
     { "exit",             close_uzbl              },
     { "search",           search_text             },
     { "insert_mode",      set_insert_mode         },
@@ -477,7 +488,8 @@ search_text (WebKitWebView *page, const char *param) {
         strcpy(uzbl.state.searchtx, param);
     }
     if (uzbl.state.searchtx[0] != '\0') {
-        printf ("Searching: %s\n", uzbl.state.searchtx);
+        if (uzbl.state.verbose)
+            printf ("Searching: %s\n", uzbl.state.searchtx);
         webkit_web_view_unmark_text_matches (page);
         webkit_web_view_mark_text_matches (page, uzbl.state.searchtx, FALSE, 0);
         webkit_web_view_set_highlight_text_matches (page, TRUE);
@@ -498,7 +510,8 @@ new_window_load_uri (const gchar * uri) {
             }
         }
     }
-    printf("\n%s\n", to_execute->str);
+    if (uzbl.state.verbose)
+        printf("\n%s\n", to_execute->str);
     g_spawn_command_line_async (to_execute->str, NULL);
     g_string_free (to_execute, TRUE);
 }
@@ -621,6 +634,11 @@ expand_template(const char *template) {
                          uzbl.gui.main_title?
                          g_markup_printf_escaped("%s", uzbl.gui.main_title):"");
                      break;
+                 case SYM_SELECTED_URI:
+                     g_string_append(ret,
+                         uzbl.state.selected_url?
+                         g_markup_printf_escaped("%s", uzbl.state.selected_url):"");
+                    break;
                  case SYM_NAME:
                      buf = itos(uzbl.xwin);
                      g_string_append(ret,
@@ -704,25 +722,42 @@ expand_template(const char *template) {
 /* --End Statusbar functions-- */
 
 
-// make sure to put '' around args, so that if there is whitespace we can still keep arguments together.
+// make sure that the args string you pass can properly be interpreted (eg properly escaped against whitespace, quotes etc)
 static gboolean
 run_command (const char *command, const char *args, const gboolean sync, char **stdout) {
    //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
-    GString* to_execute = g_string_new ("");
+    GString *to_execute = g_string_new ("");
+    GError *err = NULL;
+    gchar *cmd = g_strstrip(g_strdup(command));
+    gchar *qcfg = (uzbl.state.config_file ? g_shell_quote(uzbl.state.config_file) : g_strdup("''"));
+    gchar *qfifo = (uzbl.comm.fifo_path ? g_shell_quote(uzbl.comm.fifo_path) : g_strdup("''"));
+    gchar *qsock = (uzbl.comm.socket_path ? g_shell_quote(uzbl.comm.socket_path) : g_strdup("''"));
+    gchar *quri = (uzbl.state.uri ? g_shell_quote(uzbl.state.uri) : g_strdup("''"));
+    gchar *qtitle = (uzbl.gui.main_title ? g_shell_quote(uzbl.gui.main_title) : g_strdup("''"));
+
     gboolean result;
-    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' '%s'",
-                     command, (uzbl.state.config_file ? uzbl.state.config_file : "(null)"),
-                     (int) getpid(), (int) uzbl.xwin, uzbl.comm.fifo_path,
-                     uzbl.comm.socket_path);
-    g_string_append_printf (to_execute, " '%s' '%s'",
-                    uzbl.state.uri, uzbl.gui.main_title);
+    g_string_printf (to_execute, "%s %s '%i' '%i' %s %s",
+                     cmd, qcfg, (int) getpid(), (int) uzbl.xwin, qfifo, qsock);
+    g_string_append_printf (to_execute, " %s %s", quri, qtitle);
     if(args) g_string_append_printf (to_execute, " %s", args);
 
     if (sync) {
-        result = g_spawn_command_line_sync (to_execute->str, stdout, NULL, NULL, NULL);
-    } else result = g_spawn_command_line_async (to_execute->str, NULL);
-    printf("Called %s.  Result: %s\n", to_execute->str, (result ? "TRUE" : "FALSE" ));
+        result = g_spawn_command_line_sync (to_execute->str, stdout, NULL, NULL, &err);
+    } else result = g_spawn_command_line_async (to_execute->str, &err);
+    if (uzbl.state.verbose)
+        printf("Called %s.  Result: %s\n", to_execute->str, (result ? "TRUE" : "FALSE" ));
     g_string_free (to_execute, TRUE);
+    if (err) {
+        g_printerr("error on run_command: %s\n", err->message);
+        g_error_free (err);
+    }
+
+    g_free (qcfg);
+    g_free (qfifo);
+    g_free (qsock);
+    g_free (quri);
+    g_free (qtitle);
+    g_free (cmd);
     return result;
 }
 
@@ -730,6 +765,14 @@ static void
 spawn(WebKitWebView *web_view, const char *param) {
     (void)web_view;
     run_command(param, NULL, FALSE, NULL);
+}
+
+static void
+spawn_sh(WebKitWebView *web_view, const char *param) {
+    (void)web_view;
+    gchar *cmd = g_strdup_printf(uzbl.behave.shell_cmd, param);
+    spawn(NULL, cmd);
+    g_free(cmd);
 }
 
 static void
@@ -745,18 +788,16 @@ parse_command(const char *cmd, const char *param) {
 /* command parser */
 static void
 setup_regex() {
-    GError *err=NULL;
-
     uzbl.comm.get_regex  = g_regex_new("^[Gg][a-zA-Z]*\\s+([^ \\n]+)$",
-            G_REGEX_OPTIMIZE, 0, &err);
+            G_REGEX_OPTIMIZE, 0, NULL);
     uzbl.comm.set_regex  = g_regex_new("^[Ss][a-zA-Z]*\\s+([^ ]+)\\s*=\\s*([^\\n].*)$",
-            G_REGEX_OPTIMIZE, 0, &err);
+            G_REGEX_OPTIMIZE, 0, NULL);
     uzbl.comm.bind_regex = g_regex_new("^[Bb][a-zA-Z]*\\s+?(.*[^ ])\\s*?=\\s*([a-z][^\\n].+)$",
-            G_REGEX_UNGREEDY|G_REGEX_OPTIMIZE, 0, &err);
+            G_REGEX_UNGREEDY|G_REGEX_OPTIMIZE, 0, NULL);
     uzbl.comm.act_regex = g_regex_new("^[Aa][a-zA-Z]*\\s+([^ \\n]+)\\s*([^\\n]*)?$",
-            G_REGEX_OPTIMIZE, 0, &err);
+            G_REGEX_OPTIMIZE, 0, NULL);
     uzbl.comm.keycmd_regex = g_regex_new("^[Kk][a-zA-Z]*\\s+([^\\n]+)$",
-            G_REGEX_OPTIMIZE, 0, &err);
+            G_REGEX_OPTIMIZE, 0, NULL);
 }
 
 static gboolean
@@ -765,7 +806,9 @@ get_var_value(gchar *name) {
 
     if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         if(var_is("status_format", name)
-           || var_is("useragent", name)) {
+           || var_is("useragent", name)
+           || var_is("title_format_short", name)
+           || var_is("title_format_long", name)) {
             printf("VAR: %s VALUE: %s\n", name, (char *)*p);
         } else printf("VAR: %s VALUE: %d\n", name, (int)*p);
     }
@@ -826,6 +869,8 @@ set_var_value(gchar *name, gchar *val) {
         if(var_is("status_message", name)
            || var_is("status_background", name)
            || var_is("status_format", name)
+           || var_is("title_format_long", name)
+           || var_is("title_format_short", name)
            || var_is("load_finish_handler", name)
            || var_is("history_handler", name)
            || var_is("download_handler", name)
@@ -867,6 +912,10 @@ set_var_value(gchar *name, gchar *val) {
             if(*p) free(*p);
             *p = set_useragent(g_strdup(val));
         }
+        else if(var_is("shell_cmd", name)) {
+            if(*p) free(*p);
+            *p = g_strdup(val);
+        }
         /* variables that take int values */
         else {
             int *ip = (int *)p;
@@ -902,6 +951,14 @@ set_var_value(gchar *name, gchar *val) {
             }
             else if (var_is("status_top", name)) {
                 move_statusbar();
+            }
+            else if (var_is("default_font_size", name)) {
+                WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
+                g_object_set (G_OBJECT(ws), "default-font-size", *ip, NULL);
+            }
+            else if (var_is("minimum_font_size", name)) {
+                WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
+                g_object_set (G_OBJECT(ws), "minimum-font-size", *ip, NULL);
             }
         }
     }
@@ -1003,7 +1060,8 @@ build_stream_name(int type, const gchar* dir) {
 
 static gboolean
 control_fifo(GIOChannel *gio, GIOCondition condition) {
-    printf("triggered\n");
+    if (uzbl.state.verbose)
+        printf("triggered\n");
     gchar *ctl_line;
     GIOStatus ret;
     GError *err = NULL;
@@ -1015,8 +1073,10 @@ control_fifo(GIOChannel *gio, GIOCondition condition) {
        g_error ("Fifo: GIOChannel broke\n");
 
     ret = g_io_channel_read_line(gio, &ctl_line, NULL, NULL, &err);
-    if (ret == G_IO_STATUS_ERROR)
+    if (ret == G_IO_STATUS_ERROR) {
         g_error ("Fifo: Error reading: %s\n", err->message);
+        g_error_free (err);
+    }
 
     parse_cmd_line(ctl_line);
     g_free(ctl_line);
@@ -1048,7 +1108,8 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
             chan = g_io_channel_new_file(path, "r+", &error);
             if (chan) {
                 if (g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, NULL)) {
-                    printf ("init_fifo: created successfully as %s\n", path);
+                    if (uzbl.state.verbose)
+                        printf ("init_fifo: created successfully as %s\n", path);
                     uzbl.comm.fifo_path = path;
                     return dir;
                 } else g_warning ("init_fifo: could not add watch on %s\n", path);
@@ -1057,6 +1118,7 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
     } else g_warning ("init_fifo: can't create %s: file exists\n", path);
 
     /* if we got this far, there was an error; cleanup */
+    if (error) g_error_free (error);
     g_free(path);
     g_free(dir);
     return NULL;
@@ -1067,14 +1129,13 @@ control_stdin(GIOChannel *gio, GIOCondition condition) {
     gchar *ctl_line = NULL;
     gsize ctl_line_len = 0;
     GIOStatus ret;
-    GError *err = NULL;
 
     if (condition & G_IO_HUP) {
-        ret = g_io_channel_shutdown (gio, FALSE, &err);
+        ret = g_io_channel_shutdown (gio, FALSE, NULL);
         return FALSE;
     }
 
-    ret = g_io_channel_read_line(gio, &ctl_line, &ctl_line_len, NULL, &err);
+    ret = g_io_channel_read_line(gio, &ctl_line, &ctl_line_len, NULL, NULL);
     if ( (ret == G_IO_STATUS_ERROR) || (ret == G_IO_STATUS_EOF) )
         return FALSE;
 
@@ -1094,11 +1155,13 @@ create_stdin () {
         if (!g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_stdin, NULL)) {
             g_error ("Stdin: could not add watch\n");
         } else {
-            printf ("Stdin: watch added successfully\n");
+            if (uzbl.state.verbose)
+                printf ("Stdin: watch added successfully\n");
         }
     } else {
         g_error ("Stdin: Error while opening: %s\n", error->message);
     }
+    if (error) g_error_free (error);
 }
 
 static gboolean
@@ -1182,7 +1245,8 @@ init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL *
 
     len = strlen (local.sun_path) + sizeof (local.sun_family);
     if (bind (sock, (struct sockaddr *) &local, len) != -1) {
-        printf ("init_socket: opened in %s\n", path);
+        if (uzbl.state.verbose)
+            printf ("init_socket: opened in %s\n", path);
         listen (sock, 5);
 
         if( (chan = g_io_channel_unix_new(sock)) ) {
@@ -1198,60 +1262,40 @@ init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL *
     return NULL;
 }
 
+/*
+ NOTE: we want to keep variables like b->title_format_long in their "unprocessed" state
+ it will probably improve performance if we would "cache" the processed variant, but for now it works well enough...
+*/
+// this function may be called very early when the templates are not set (yet), hence the checks
 static void
 update_title (void) {
-    GString* string_long = g_string_new ("");
-    GString* string_short = g_string_new ("");
-    char* iname = NULL;
-    gchar *statln;
-    int iname_len;
-    State *s = &uzbl.state;
     Behaviour *b = &uzbl.behave;
-
-    if(s->instance_name) {
-            iname_len = strlen(s->instance_name)+4;
-            iname = malloc(iname_len);
-            snprintf(iname, iname_len, "<%s> ", s->instance_name);
-
-            g_string_prepend(string_long, iname);
-            g_string_prepend(string_short, iname);
-            free(iname);
-    }
-
-    g_string_append_printf(string_long, "%s ", s->keycmd->str);
-    if (!b->always_insert_mode)
-        g_string_append (string_long, (b->insert_mode ? "[I] " : "[C] "));
-    if (uzbl.gui.main_title) {
-        g_string_append (string_long, uzbl.gui.main_title);
-        g_string_append (string_short, uzbl.gui.main_title);
-    }
-    g_string_append (string_long, " - Uzbl browser");
-    g_string_append (string_short, " - Uzbl browser");
-    if (s->selected_url[0]!=0) {
-        g_string_append_printf (string_long, " -> (%s)", s->selected_url);
-    }
-
-    gchar* title_long = g_string_free (string_long, FALSE);
-    gchar* title_short = g_string_free (string_short, FALSE);
+    gchar *parsed;
 
     if (b->show_status) {
-        gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), title_short);
-        // TODO: we should probably not do this every time we want to update the title..?
-        statln = expand_template(uzbl.behave.status_format);
-        gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), statln);
+        if (b->title_format_short) {
+            parsed = expand_template(b->title_format_short);
+            gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
+            g_free(parsed);
+        }
+        if (b->status_format) {
+            parsed = expand_template(b->status_format);
+            gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), parsed);
+            g_free(parsed);
+        }
         if (b->status_background) {
             GdkColor color;
             gdk_color_parse (b->status_background, &color);
             //labels and hboxes do not draw their own background.  applying this on the window is ok as we the statusbar is the only affected widget.  (if not, we could also use GtkEventBox)
             gtk_widget_modify_bg (uzbl.gui.main_window, GTK_STATE_NORMAL, &color);
         }
-        g_free(statln);
     } else {
-        gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), title_long);
+        if (b->title_format_long) {
+            parsed = expand_template(b->title_format_long);
+            gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
+            g_free(parsed);
+        }
     }
-
-    g_free (title_long);
-    g_free (title_short);
 }
 
 static gboolean
@@ -1429,7 +1473,8 @@ add_binding (const gchar *key, const gchar *act) {
         return;
 
     //Debug:
-    printf ("Binding %-10s : %s\n", key, act);
+    if (uzbl.state.verbose)
+        printf ("Binding %-10s : %s\n", key, act);
     action = new_action(parts[0], parts[1]);
 
     if(g_hash_table_lookup(uzbl.bindings, key))
@@ -1439,56 +1484,72 @@ add_binding (const gchar *key, const gchar *act) {
     g_strfreev(parts);
 }
 
+static gchar*
+get_xdg_var (XDG_Var xdg) {
+    const gchar* actual_value = getenv (xdg.environmental);
+    const gchar* home         = getenv ("HOME");
+
+    gchar* return_value = str_replace ("~", home, g_strdup (actual_value));
+
+    if (! actual_value || strcmp (actual_value, "") == 0) {
+        if (xdg.default_value) {
+            return_value = str_replace ("~", home, g_strdup (xdg.default_value));
+        } else {
+            return_value = NULL;
+        }
+    }
+
+    return return_value;
+}
+
+static gchar*
+find_xdg_file (int xdg_type, char* filename) {
+    /* xdg_type = 0 => config
+       xdg_type = 1 => data
+       xdg_type = 2 => cache*/
+
+    gchar* temporary_file   = (char *)malloc (1024);
+    gchar* temporary_string = NULL;
+    char*  saveptr;
+
+    strcpy (temporary_file, get_xdg_var (XDG[xdg_type]));
+
+    strcat (temporary_file, filename);
+
+    if (! file_exists (temporary_file) && xdg_type != 2) {
+        temporary_string = (char *) strtok_r (get_xdg_var (XDG[3 + xdg_type]), ":", &saveptr);
+        
+        while (temporary_string && ! file_exists (temporary_file)) {
+            strcpy (temporary_file, temporary_string);
+            strcat (temporary_file, filename);
+            temporary_string = (char * ) strtok_r (NULL, ":", &saveptr);
+        }
+    }
+
+    if (file_exists (temporary_file)) {
+        return temporary_file;
+    } else {
+        return NULL;
+    }
+}
+
 static void
 settings_init () {
-    char *saveptr;
     State *s = &uzbl.state;
     Network *n = &uzbl.net;
 
     uzbl.behave.reset_command_mode = 1;
 
     if (!s->config_file) {
-        const char* XDG_CONFIG_HOME = getenv ("XDG_CONFIG_HOME");
-        if (! XDG_CONFIG_HOME || ! strcmp (XDG_CONFIG_HOME, "")) {
-          XDG_CONFIG_HOME = (char*)XDG_CONFIG_HOME_default;
-        }
-        printf("XDG_CONFIG_HOME: %s\n", XDG_CONFIG_HOME);
-
-        strcpy (s->config_file_path, XDG_CONFIG_HOME);
-        strcat (s->config_file_path, "/uzbl/config");
-        if (file_exists (s->config_file_path)) {
-          printf ("Config file %s found.\n", s->config_file_path);
-          s->config_file = &s->config_file_path[0];
-        } else {
-            // Now we check $XDG_CONFIG_DIRS
-            char *XDG_CONFIG_DIRS = getenv ("XDG_CONFIG_DIRS");
-            if (! XDG_CONFIG_DIRS || ! strcmp (XDG_CONFIG_DIRS, ""))
-                XDG_CONFIG_DIRS = XDG_CONFIG_DIRS_default;
-
-            printf("XDG_CONFIG_DIRS: %s\n", XDG_CONFIG_DIRS);
-
-            char buffer[512];
-            strcpy (buffer, XDG_CONFIG_DIRS);
-            const gchar* dir = (char *) strtok_r (buffer, ":", &saveptr);
-            while (dir && ! file_exists (s->config_file_path)) {
-                strcpy (s->config_file_path, dir);
-                strcat (s->config_file_path, "/uzbl/config_file_pathig");
-                if (file_exists (s->config_file_path)) {
-                    printf ("Config file %s found.\n", s->config_file_path);
-                    s->config_file = &s->config_file_path[0];
-                }
-                dir = (char * ) strtok_r (NULL, ":", &saveptr);
-            }
-        }
+        s->config_file = g_strdup (find_xdg_file (0, "/uzbl/config"));
     }
 
     if (s->config_file) {
         GIOChannel *chan = NULL;
-        GError *error = NULL;
         gchar *readbuf = NULL;
         gsize len;
 
-        chan = g_io_channel_new_file(s->config_file, "r", &error);
+        chan = g_io_channel_new_file(s->config_file, "r", NULL);
 
         if (chan) {
             while (g_io_channel_read_line(chan, &readbuf, &len, NULL, NULL)
@@ -1498,15 +1559,22 @@ settings_init () {
             }
 
             g_io_channel_unref (chan);
-            printf ("Config %s loaded\n", s->config_file);
+            if (uzbl.state.verbose)
+                printf ("Config %s loaded\n", s->config_file);
         } else {
             fprintf(stderr, "uzbl: error loading file%s\n", s->config_file);
         }
     } else {
-        printf ("No configuration file loaded.\n");
+        if (uzbl.state.verbose)
+            printf ("No configuration file loaded.\n");
     }
     if (!uzbl.behave.status_format)
-        uzbl.behave.status_format = g_strdup(STATUS_DEFAULT);
+        set_var_value("status_format", STATUS_DEFAULT);
+    if (!uzbl.behave.title_format_long)
+        set_var_value("title_format_long", TITLE_LONG_DEFAULT);
+    if (!uzbl.behave.title_format_short)
+        set_var_value("title_format_short", TITLE_SHORT_DEFAULT);
+
 
     g_signal_connect(n->soup_session, "request-queued", G_CALLBACK(handle_cookies), NULL);
 }
@@ -1564,17 +1632,12 @@ main (int argc, char* argv[]) {
     if (!g_thread_supported ())
         g_thread_init (NULL);
 
-    printf("Uzbl start location: %s\n", argv[0]);
     strcpy(uzbl.state.executable_path,argv[0]);
 
-    strcat ((char *) XDG_CONFIG_HOME_default, getenv ("HOME"));
-    strcat ((char *) XDG_CONFIG_HOME_default, "/.config");
-
-    GError *error = NULL;
     GOptionContext* context = g_option_context_new ("- some stuff here maybe someday");
     g_option_context_add_main_entries (context, entries, NULL);
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
-    g_option_context_parse (context, &argc, &argv, &error);
+    g_option_context_parse (context, &argc, &argv, NULL);
     /* initialize hash table */
     uzbl.bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
 
@@ -1612,9 +1675,13 @@ main (int argc, char* argv[]) {
     gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
     gtk_widget_show_all (uzbl.gui.main_window);
     uzbl.xwin = GDK_WINDOW_XID (GTK_WIDGET (uzbl.gui.main_window)->window);
-    printf("window_id %i\n",(int) uzbl.xwin);
-    printf("pid %i\n", getpid ());
-    printf("name: %s\n", uzbl.state.instance_name);
+
+    if (uzbl.state.verbose) {
+        printf("Uzbl start location: %s\n", argv[0]);
+        printf("window_id %i\n",(int) uzbl.xwin);
+        printf("pid %i\n", getpid ());
+        printf("name: %s\n", uzbl.state.instance_name);
+    }
 
     uzbl.gui.scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);
     uzbl.gui.bar_v = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_v);

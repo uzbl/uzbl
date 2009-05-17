@@ -1,16 +1,21 @@
-* implement all the ideas from README
-* implement a more advanced dmenu alike that behaves like FF's awesomebar and where you can search in url + window title, with support for Xorg copy paste
-  ideal uri editor: awesome mode like FF, some keyb shortcuts (erase search string, go to end/begin of string,..), history (if you patch dmenu to be in vertical mode and you order correctly, that's it), support copy paste
-  isolate the search field feature from midori and make into a separate dmenu-like-but-more-powerful program?
+More or less in order of importance/urgency
+
+* cookie handler.  storing seems to work, but not yet sending
+* a variable that holds the page state: loading, pending, seen. this can be shown in titlebar/statusbar and used for multiple instances management
+* allow to tag , to group instances together
+* store uri/tag/name/state in xorg window properties
+* split up uzbl.c into multiple files
+* define a basic, simple default config so uzbl is a bit uzbl by default
+* shortcuts to focus other instances (see docs/multiple-instances-management)
+
+
 * recognize -h with GOption?
-* implement a vimperator-like link following scheme.  but let user pick his favorite characters to construct the "link identifiers" with.
-* add a keybind to hand the current url to an external scrips, so you can edit it and/or store it in the primary and secondary clipboards
-* clean up our structures for settings + sane defaults + don't iterate over struct to fill hasthtable. rather fill hashtable directly
+* implement a vimperator-like link following scheme.
 * implement getting feedback from socket
-* select/fork based instead of the pthread stuff -> drops dependency, more lightweight.
 * scrolling: make page up and page down configurable.
 * show % of location in statusbar/title if page doesn't fit entirely on view.
-* make default size configurable, and optional
+* conditionals in format strings: eg if(SELECTED_URI) { "-> SELECTED_URI" } or another smart way to achieve the same.
+* make default window size configurable, and optional
 * on uzbl.org commits overview: add date+time and repository
 * how to handle different content types? (text-plain, image/png, application/pdf,... maybe a map of content-type to uzbl/command
   xdg already has a spec for this i think
@@ -18,49 +23,30 @@
   integration with download and new window thingies?
 * blinking cursor when not in insert mode is confusing.  i suggest dimming it's color if possible
 * open in new window -> uzbl: Fatal IO error 11 (Resource temporarily unavailable) on X server :0.0.
-* note about merging better then patches. because commit names, and code can have changed in meanwhile. also github makes the process quite easy
 * check that in new version pageup etc works also in command
 * tab key to jump between input fields should probably work in both insert and command mode
-* allow to name a uzbl instance, name fifo/socket after it. use xorgwindow id as fallback
-* allow to tag , to group instances together
-* allow users to customize order, separating, colors,.. of items in statusbar using pango markup thing
-* mention bugtracker in readme, move tickets from github to new bugtracker
-* default value for fifo_dir, socket_dir so we don't need to if(fifo_dir). it will always be set to something?
-* change User-agent to contain uzbl + build date or something. + why is there "Mozilla" in the string
+* do not delete fifo/socket if they exist already. rather give error and don't create one.
 * backspace key to pop characters from (multichar) command
 * optional logging of http requests&responses with ip/hostname and port. -> how to implement? handler? stdout? (through a socket so you know what corresponds to what?)
 * bench/optimize fifo vs socket performance. measure delays.  minimize forks. does glib use a shell? how does it detect the shebang line?
-* cookie support.  storing seems to work, but not yet sending
 * "remember account settings" support. but how? configure post data per site? regex match eg '^bbs.archlinux.org' ?
 * http_proxy env var not recognized. libproxy (used by libsoup) should handle this http://mail.gnome.org/archives/libsoup-list/2009-February/msg00018.html
 * support ssl. do ssl certificate & exception management similar to how we do cookies
 * improve DCOMMIT macro.  what if WC is dirty? what if user downloaded tarball without .git?
 * DARCH is not correct (should be at runtime)
-* when loading page foo.com, it can have img src=http://bar/..., uri in uzbl will be set to foo. we must pass bar to cookie handler
-* set default statusbar. line 1284
 * keybinds to open "next" or "previous" by looking for next/prev links and/or looking for numbers in the uri we can inc/decrement
-* variable replacing for title bar in "statusbar_visible" and statusbar_invisible states
-* get rid of config files -> send everything as commands to stdin on program launch -> you can change config at runtime.  
-  how to handle launching new windows? serialize state with tpl? (can also be useful for session saving), fork()ing? if so, how do we handle Xorg window id's?
+* settings iterating "state generator" so we can "open in new window" again.
 * handler for (broken) ssl certs.
-* bring readme up to date and put it on website
 * handlers for mailto: and maybe other thingies?
-* only_on_put
 * configure script
-* a variable that holds the page state: loading, pending, seen. this can be shown in titlebar/statusbar and used for multiple instances management
 * proxy_url is not a good var name. it's not a url.
 * regex style page searching? so you can do 'or' and 'and' things. flags like case sensitive etc.
-* can we export uri/state/tag/.. as xorg window "properties" or "attributes" or do we need to put them in titlebar and parse that?
-
-* config: check in the default place (XDG_CONFIG_HOME/..) for a config file, and if needed, do file reading (interpret line by line). not ini-based.
-* readd the --config flag to allow entering the same commands either through the file/stdin/fifo/socket
 * check for real command name, not just the first letter.
 * let users attach handlers to the most common events/signals in uzbl.
 * write little script to open new urls with the urxvt url thing +document.
 * add Rob/anydots trees on website
 
 SOMEDAY:
-check if we can make the settings loading less hard coded. eg( keep a list of all settings, and for each one, try to load it)
 figure out caching with webkit and in general how we can speed up everything
 figure out how webkit intercepts key input
 make "disable insert mode" (esc key) configurable
