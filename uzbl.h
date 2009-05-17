@@ -257,7 +257,7 @@ new_action(const gchar *name, const gchar *param);
 static bool
 file_exists (const char * filename);
 
-void
+static void
 set_insert_mode(WebKitWebView *page, const gchar *param);
 
 static void

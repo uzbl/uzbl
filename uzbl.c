@@ -456,7 +456,7 @@ file_exists (const char * filename) {
 	return (access(filename, F_OK) == 0);
 }
 
-void
+static void
 set_insert_mode(WebKitWebView *page, const gchar *param) {
     (void)page;
     (void)param;
@@ -1164,14 +1164,10 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
 
 static gboolean
 control_stdin(GIOChannel *gio, GIOCondition condition) {
+    (void) condition;
     gchar *ctl_line = NULL;
     gsize ctl_line_len = 0;
     GIOStatus ret;
-
-    if (condition & G_IO_HUP) {
-        ret = g_io_channel_shutdown (gio, FALSE, NULL);
-        return FALSE;
-    }
 
     ret = g_io_channel_read_line(gio, &ctl_line, &ctl_line_len, NULL, NULL);
     if ( (ret == G_IO_STATUS_ERROR) || (ret == G_IO_STATUS_EOF) )
