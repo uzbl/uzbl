@@ -129,7 +129,7 @@ make_var_to_name_hash() {
 static GOptionEntry entries[] =
 {
     { "uri",     'u', 0, G_OPTION_ARG_STRING, &uzbl.state.uri,           "Uri to load at startup (equivalent to 'set uri = URI')", "URI" },
-    { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &uzbl.state.verbose,       "Whether to print all messages or just errors.", "VERBOSE" },
+    { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &uzbl.state.verbose,       "Whether to print all messages or just errors.", NULL },
     { "name",    'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name, "Name of the current instance (defaults to Xorg window id)", "NAME" },
     { "config",  'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,   "Config file (this is pretty much equivalent to uzbl < FILE )", "FILE" },
     { NULL,      0, 0, 0, NULL, NULL, NULL }
@@ -411,7 +411,8 @@ static struct {char *name; Command command;} cmdlist[] =
     { "spawn",            spawn                   },
     { "sh",               spawn_sh                },
     { "exit",             close_uzbl              },
-    { "search",           search_text             },
+    { "search",           search_forward_text     },
+    { "search_reverse",   search_reverse_text     },
     { "insert_mode",      set_insert_mode         },
     { "runcmd",           runcmd                  }
 };
@@ -483,7 +484,7 @@ run_js (WebKitWebView * web_view, const gchar *param) {
 }
 
 static void
-search_text (WebKitWebView *page, const char *param) {
+search_text (WebKitWebView *page, const char *param, const gboolean forward) {
     if ((param) && (param[0] != '\0')) {
         strcpy(uzbl.state.searchtx, param);
     }
@@ -493,8 +494,18 @@ search_text (WebKitWebView *page, const char *param) {
         webkit_web_view_unmark_text_matches (page);
         webkit_web_view_mark_text_matches (page, uzbl.state.searchtx, FALSE, 0);
         webkit_web_view_set_highlight_text_matches (page, TRUE);
-        webkit_web_view_search_text (page, uzbl.state.searchtx, FALSE, TRUE, TRUE);
+        webkit_web_view_search_text (page, uzbl.state.searchtx, FALSE, forward, TRUE);
     }
+}
+
+static void
+search_forward_text (WebKitWebView *page, const char *param) {
+    search_text(page, param, TRUE);
+}
+
+static void
+search_reverse_text (WebKitWebView *page, const char *param) {
+    search_text(page, param, FALSE);
 }
 
 static void
@@ -503,7 +514,7 @@ new_window_load_uri (const gchar * uri) {
     g_string_append_printf (to_execute, "%s --uri '%s'", uzbl.state.executable_path, uri);
     int i;
     for (i = 0; entries[i].long_name != NULL; i++) {
-        if ((entries[i].arg == G_OPTION_ARG_STRING) && (strcmp(entries[i].long_name,"uri")!=0)) {
+        if ((entries[i].arg == G_OPTION_ARG_STRING) && (strcmp(entries[i].long_name,"uri")!=0) && (strcmp(entries[i].long_name,"name")!=0)) {
             gchar** str = (gchar**)entries[i].arg_data;
             if (*str!=NULL) {
                 g_string_append_printf (to_execute, " --%s '%s'", entries[i].long_name, *str);
@@ -764,6 +775,20 @@ run_command (const char *command, const char *args, const gboolean sync, char **
 static void
 spawn(WebKitWebView *web_view, const char *param) {
     (void)web_view;
+/*
+   TODO: allow more control over argument order so that users can have some arguments before the default ones from run_command, and some after
+    gchar** cmd = g_strsplit(param, " ", 2);
+    gchar * args = NULL;
+    if (cmd[1]) {
+        args = g_shell_quote(cmd[1]);
+    }
+    if (cmd) {
+        run_command(cmd[0], args, FALSE, NULL);
+    }
+    if (args) {
+        g_free(args);
+    }
+*/
     run_command(param, NULL, FALSE, NULL);
 }
 
@@ -1275,25 +1300,39 @@ init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL *
     return NULL;
 }
 
+/*
+ NOTE: we want to keep variables like b->title_format_long in their "unprocessed" state
+ it will probably improve performance if we would "cache" the processed variant, but for now it works well enough...
+*/
+// this function may be called very early when the templates are not set (yet), hence the checks
 static void
 update_title (void) {
     Behaviour *b = &uzbl.behave;
+    gchar *parsed;
 
     if (b->show_status) {
-        gchar *statln;
-        gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), expand_template(b->title_format_short));
-        // TODO: we should probably not do this every time we want to update the title..?
-        statln = expand_template(uzbl.behave.status_format);
-        gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), statln);
+        if (b->title_format_short) {
+            parsed = expand_template(b->title_format_short);
+            gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
+            g_free(parsed);
+        }
+        if (b->status_format) {
+            parsed = expand_template(b->status_format);
+            gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), parsed);
+            g_free(parsed);
+        }
         if (b->status_background) {
             GdkColor color;
             gdk_color_parse (b->status_background, &color);
             //labels and hboxes do not draw their own background.  applying this on the window is ok as we the statusbar is the only affected widget.  (if not, we could also use GtkEventBox)
             gtk_widget_modify_bg (uzbl.gui.main_window, GTK_STATE_NORMAL, &color);
         }
-        g_free(statln);
     } else {
-        gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), expand_template(b->title_format_long));
+        if (b->title_format_long) {
+            parsed = expand_template(b->title_format_long);
+            gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
+            g_free(parsed);
+        }
     }
 }
 
@@ -1507,32 +1546,16 @@ find_xdg_file (int xdg_type, char* filename) {
        xdg_type = 1 => data
        xdg_type = 2 => cache*/
 
-    gchar* xdg_config_home  = get_xdg_var (XDG[0]);
-    gchar* xdg_data_home    = get_xdg_var (XDG[1]);
-    gchar* xdg_cache_home   = get_xdg_var (XDG[2]);
-    gchar* xdg_config_dirs  = get_xdg_var (XDG[3]);
-    gchar* xdg_data_dirs    = get_xdg_var (XDG[4]);
     gchar* temporary_file   = (char *)malloc (1024);
     gchar* temporary_string = NULL;
     char*  saveptr;
 
-    if (xdg_type == 0)
-        strcpy (temporary_file, xdg_config_home);
-
-    if (xdg_type == 1)
-        strcpy (temporary_file, xdg_data_home);
-
-    if (xdg_type == 2)
-        strcpy (temporary_file, xdg_cache_home);
+    strcpy (temporary_file, get_xdg_var (XDG[xdg_type]));
 
     strcat (temporary_file, filename);
 
     if (! file_exists (temporary_file) && xdg_type != 2) {
-        if (xdg_type == 0)
-            temporary_string = (char *) strtok_r (xdg_config_dirs, ":", &saveptr);
-        
-        if (xdg_type == 1)
-            temporary_string = (char *) strtok_r (xdg_data_dirs, ":", &saveptr);
+        temporary_string = (char *) strtok_r (get_xdg_var (XDG[3 + xdg_type]), ":", &saveptr);
         
         while (temporary_string && ! file_exists (temporary_file)) {
             strcpy (temporary_file, temporary_string);
@@ -1584,11 +1607,11 @@ settings_init () {
             printf ("No configuration file loaded.\n");
     }
     if (!uzbl.behave.status_format)
-        uzbl.behave.status_format = g_strdup(STATUS_DEFAULT);
+        set_var_value("status_format", STATUS_DEFAULT);
     if (!uzbl.behave.title_format_long)
-        uzbl.behave.title_format_long = g_strdup(TITLE_LONG_DEFAULT);
+        set_var_value("title_format_long", TITLE_LONG_DEFAULT);
     if (!uzbl.behave.title_format_short)
-        uzbl.behave.title_format_short = g_strdup(TITLE_SHORT_DEFAULT);
+        set_var_value("title_format_short", TITLE_SHORT_DEFAULT);
 
 
     g_signal_connect(n->soup_session, "request-queued", G_CALLBACK(handle_cookies), NULL);

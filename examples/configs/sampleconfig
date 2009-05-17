@@ -8,9 +8,9 @@
 # from insert mode by combining them with the modkey
 
 # TODO: ability to attach misc things (spawn <foo>, script <bar>,.. to internal events)
-set history_handler  = ./examples/scripts/history.sh
-set download_handler = ./examples/scripts/download.sh
-set cookie_handler   = ./examples/scripts/cookies.sh
+set history_handler  = /usr/share/uzbl/examples/scripts/history.sh
+set download_handler = /usr/share/uzbl/examples/scripts/download.sh
+set cookie_handler   = /usr/share/uzbl/examples/scripts/cookies.sh
 set minimum_font_size = 6
 set default_font_size = 11
 
@@ -36,7 +36,6 @@ set modkey = Mod1
 set reset_command_mode = 1
 # this var has precedence over reset_command_mode
 set always_insert_mode = 0
-
 # to start a local socks server, do : ssh -fND localhost:8118 localhost
 #set  proxy_url       = http://127.0.0.1:8118
 #values 0-3
@@ -79,12 +78,12 @@ bind    :wiki _   = uri http://wiki.archlinux.org/index.php/Special:Search?searc
 bind    gg _      = uri http://www.google.com/search?q=%s
 bind    i         = insert_mode
 #TODO: no 'toggle' command?
-bind    B         = spawn ./examples/scripts/insert_bookmark.sh
-bind    U         = spawn ./examples/scripts/load_url_from_history.sh
-bind    u         = spawn ./examples/scripts/load_url_from_bookmarks.sh
+bind    B         = spawn /usr/share/uzbl/examples/scripts/insert_bookmark.sh
+bind    U         = spawn /usr/share/uzbl/examples/scripts/load_url_from_history.sh
+bind    u         = spawn /usr/share/uzbl/examples/scripts/load_url_from_bookmarks.sh
 # with the sample yank script, you can yank one of the arguments into clipboard/selection
-bind    yurl      = spawn ./examples/scripts/yank.sh 8 primary
-bind    ytitle    = spawn ./examples/scripts/yank.sh 9 clipboard
+bind    yurl      = spawn /usr/share/uzbl/examples/scripts/yank.sh 8 primary
+bind    ytitle    = spawn /usr/share/uzbl/examples/scripts/yank.sh 9 clipboard
 bind    ZZ        = exit
 bind    S         = script alert("hi");
 # example showing how to use sh
