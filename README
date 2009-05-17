@@ -138,7 +138,7 @@ actions follows:
 * `back`
 * `forward`
 * `scroll_vert <amount>`
-* `scroll_horiz <amount>`
+* `scroll_horz <amount>`
 * `scroll_begin`
 * `scroll_end`
 * `reload`
