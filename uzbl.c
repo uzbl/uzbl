@@ -1266,7 +1266,7 @@ static void
 update_title (void) {
     Behaviour *b = &uzbl.behave;
 
-    if (b->show_status) {
+    if (b->show_status && b->title_format_short != NULL) {
         gchar *statln;
         gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), expand_template(b->title_format_short));
         // TODO: we should probably not do this every time we want to update the title..?
@@ -1279,7 +1279,7 @@ update_title (void) {
             gtk_widget_modify_bg (uzbl.gui.main_window, GTK_STATE_NORMAL, &color);
         }
         g_free(statln);
-    } else {
+    } else if (b->title_format_long != NULL) {
         gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), expand_template(b->title_format_long));
     }
 }
