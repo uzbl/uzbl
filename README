@@ -109,6 +109,38 @@ This tells uzbl to execute an action immediately.  The simplest example of this 
 This sets the interactive command buffer to `<string>`.  Keycmd is primarily useful for scripts that help you type a command while still letting you edit it before execution.  For example, if you have a binding like "o _" that opens an URL, then you could create a binding `O` that spawns a script which will set the command buffer to "o current-uri-here", letting you enter relative URLs easily.
 
 
+### ACTIONS
+Actions are invoked via bindings and by the ACT command.  Most actions are self-explanatory, though a few need to be clarified.  A list of action follows:
+
+    * `back`
+    * `forward`
+    * `scroll_vert <amount>`
+    * `scroll_horiz <amount>`
+    * `scroll_begin`
+    * `scroll_end`
+    * `reload`
+    * `reload_ign_cache`
+    * `stop`
+    * `zoom_in`
+    * `zoom_out`
+    * `uri <address>`
+    * `script <body>`
+        - execute the javascript in `<body>`
+        - remember that the commands, and thus actions, must not contain line breaks
+    * `toggle_status`
+    * `spawn <executable> <additonal args>`
+        - runs a command; see EXTERNAL SCRIPTS for details
+        - PATH is searched so giving the full path to commands is not neccessary
+    * `sh <script body>`
+        - runs a command by expanding `%s` in shell_cmd with the script body; primarily useful as a shortcut for `spawn sh -c <body>`
+    * `exit`
+    * `search <string>`
+    * `search_reverse <string>`
+    * `insert_mode`
+    * `runcmd`
+        - can be used for running a command such as SET or BIND
+
+
 ### VARIABLE REPLACEMENT
 Some of the variables are interpreted:
 
