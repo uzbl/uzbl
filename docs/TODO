@@ -7,7 +7,7 @@ More or less in order of importance/urgency
 * split up uzbl.c into multiple files
 * define a basic, simple default config so uzbl is a bit uzbl by default
 * shortcuts to focus other instances (see docs/multiple-instances-management)
-
+* password handler (manager)
 
 * recognize -h with GOption?
 * implement a vimperator-like link following scheme.

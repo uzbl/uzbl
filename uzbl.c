@@ -834,10 +834,23 @@ get_var_value(gchar *name) {
     void **p = NULL;
 
     if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
-        if(var_is("status_format", name)
-           || var_is("useragent", name)
+        if(var_is("uri", name)
+           || var_is("status_message", name)
+           || var_is("status_format", name)
+           || var_is("status_background", name)
            || var_is("title_format_short", name)
-           || var_is("title_format_long", name)) {
+           || var_is("title_format_long", name)
+           || var_is("modkey", name)
+           || var_is("load_finish_handler", name)
+           || var_is("history_handler", name)
+           || var_is("download_handler", name)
+           || var_is("cookie_handler", name)
+           || var_is("fifo_dir", name)
+           || var_is("socket_dir", name)
+           || var_is("shell_cmd", name)
+           || var_is("proxy_url", name)
+           || var_is("useragent", name))
+           {
             printf("VAR: %s VALUE: %s\n", name, (char *)*p);
         } else printf("VAR: %s VALUE: %d\n", name, (int)*p);
     }

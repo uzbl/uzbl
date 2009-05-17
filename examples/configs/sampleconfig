@@ -84,6 +84,12 @@ bind    u         = spawn /usr/share/uzbl/examples/scripts/load_url_from_bookmar
 # with the sample yank script, you can yank one of the arguments into clipboard/selection
 bind    yurl      = spawn /usr/share/uzbl/examples/scripts/yank.sh 8 primary
 bind    ytitle    = spawn /usr/share/uzbl/examples/scripts/yank.sh 9 clipboard
+# does the same as yurl but without needing a script
+bind    y2url     = sh 'echo -n $6 | xclip'
+# go the page from primary selection
+bind    p         = sh "echo act uri `xclip -selection primary -o` > $4"
+# go to the page in clipboard
+bind    P         = sh "echo act uri `xclip -selection clipboard -o` > $4"
 bind    ZZ        = exit
 bind    S         = script alert("hi");
 # example showing how to use sh
