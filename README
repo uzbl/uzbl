@@ -77,8 +77,94 @@ There are several interfaces to interact with uzbl:
   an utitly we include with uzbl made especially for writing commnands to the socket (and at some point, it will be able to tell you the response
   too):  `uzblctrl -s <socketfile> -c <command>`
 
+When uzbl forks a new instance (eg "open in new window") it will use the same commandline arguments (eg the same --config <file>), except --uri and--name.
+If you made changes to the configuration at runtime, these are not pased on to the child.
+
 ### COMMAND SYNTAX
-TODO
+Commands are used for:
+
+* creating keybindings
+* altering variables
+* getting the values of variables
+* running actions
+* setting the input buffer
+
+Uzbl will read commands via standard input, named fifo pipe (if `fifo_dir` is set) and IPC socket (when `socket_dir` is set).
+For convenience, uzbl can also be instructed to read commands from a file on startup by using the `-c` option.  Indeed, the config file is nothing more than a list of commands.
+
+Each command starts with the name of the command, which must be the first thing on a line; preceding whitespace is not allowed.
+A command is terminated by a newline.  Empty lines and lines that start with the hash sign are ignored by the parser.  Command names are not case sensitive.
+
+The following commands are recognized:
+
+    SET <key> = <value>
+Set is used for changing variables.  Every variable can be changed on the fly and for some variables, some additional logic is performed.
+For example, setting the variable `uri` will make uzbl start loading it, and changing the format of the statusbar/windowtitle/user agent/.. will be effective immediately.
+If you want to unset a string, use SET with one space after the equals sign.
+
+    GET <key>
+Use this to print the value of a key. (and TODO, get the value through the socket)
+
+    BIND <string> = <action>
+Makes the character sequence `<string>` invoke `<action>` when typed interactively in uzbl.
+There are a few tricks you can do:
+
+* `<string>` ends with an underscore: the action will only be invoked after pressing return/enter. If the user enters text where `<string>` has the underscore, `%s` in the `<action>` string will be replaced by this text. (optional)
+* `<string>` ends with an asterisk: similar behavior as with an underscore, but also makes the binding incremental (i.e. the action will be invoked on every keystroke).
+* `<string>` ends on a different character: you need to type the full string, which will trigger the action immediately, without pressing enter/return.
+
+Examples:
+
+    # uzbl will load the url when you type: 'o <url><enter>'
+    bind o _ = uri %s
+    # a search action which is called on every character typed after the slash, letting you see the search narrow down while typing.
+    #  Hitting return, enter or esc will terminate the search.
+    bind /*  = search %s
+    # when you type `ZZ` and nothing else, the exit action will be triggered immediately.
+    bind ZZ  = exit
+
+    ACT <action>
+This tells uzbl to execute an action immediately.  The simplest example of this would be `act exit`; you know what that'll do.
+
+    KEYCMD <string>
+This sets the interactive command buffer to `<string>`.  Keycmd is primarily useful for scripts that help you type a command while still letting you edit it before execution.
+For example, if you have a binding like "o _" that opens an URL, then you could create a binding `O` that spawns a script which will set the command buffer to "o current-uri-here", letting you enter relative URLs easily.
+(See sample config)
+
+### ACTIONS
+Actions are invoked via bindings and by the ACT command.  Most actions are self-explanatory, though a few need to be clarified.  A list of
+actions follows:
+
+* `back`
+* `forward`
+* `scroll_vert <amount>`
+* `scroll_horz <amount>`
+* `scroll_begin`
+* `scroll_end`
+* `reload`
+* `reload_ign_cache`
+* `stop`
+* `zoom_in`
+* `zoom_out`
+* `uri <address>`
+* `script <body>`
+   - execute the javascript in `<body>`
+   - remember that the commands, and thus actions, must not contain line breaks
+* `toggle_status`
+* `spawn <executable> <additonal args>`
+   - runs a command; see EXTERNAL SCRIPTS for details
+   - PATH is searched so giving the full path to commands is not neccessary
+   - note that the arguments as specified in "EXTERNAL SCRIPTS" are appended at the end, so the argument numbers will be higher.
+* `sh <command>`
+   - runs a shell command by expanding `%s` in the `shell_cmd` variable with the specified command; primarily useful as a shortcut for `spawn sh -c <body>`
+   - note that the arguments as specified in "EXTERNAL SCRIPTS" are appended at the end, so the argument numbers will be higher.
+* `exit`
+* `search <string>`
+* `search_reverse <string>`
+* `insert_mode`
+* `runcmd`
+   - can be used for running a command such as SET or BIND
+
 
 ### VARIABLE REPLACEMENT
 Some of the variables are interpreted:
@@ -102,7 +188,7 @@ You can use external scripts with uzbl the following ways:
 
 Have a look at the sample configs and scripts!
 
-Scripts that are called by uzbl are passed the following arguments:
+Handler scripts that are called by uzbl are passed the following arguments:
 
     $1 uzbl-config-file
     $2 uzbl-pid
@@ -134,6 +220,8 @@ The script specific arguments are this:
     $10 request address path
     $11 cookie (only with PUT requests)
 
+
+Custom, userdefined scripts (`spawn foo bar`) get first the arguments as specified in the config and then the above 7 are added at the end.
 
 ### COMMAND LINE ARGUMENTS
 

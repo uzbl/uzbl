@@ -7,7 +7,7 @@ More or less in order of importance/urgency
 * split up uzbl.c into multiple files
 * define a basic, simple default config so uzbl is a bit uzbl by default
 * shortcuts to focus other instances (see docs/multiple-instances-management)
-
+* password handler (manager)
 
 * recognize -h with GOption?
 * implement a vimperator-like link following scheme.
@@ -26,7 +26,6 @@ More or less in order of importance/urgency
 * check that in new version pageup etc works also in command
 * tab key to jump between input fields should probably work in both insert and command mode
 * do not delete fifo/socket if they exist already. rather give error and don't create one.
-* backspace key to pop characters from (multichar) command
 * optional logging of http requests&responses with ip/hostname and port. -> how to implement? handler? stdout? (through a socket so you know what corresponds to what?)
 * bench/optimize fifo vs socket performance. measure delays.  minimize forks. does glib use a shell? how does it detect the shebang line?
 * "remember account settings" support. but how? configure post data per site? regex match eg '^bbs.archlinux.org' ?
@@ -44,10 +43,11 @@ More or less in order of importance/urgency
 * check for real command name, not just the first letter.
 * let users attach handlers to the most common events/signals in uzbl.
 * write little script to open new urls with the urxvt url thing +document.
-* add Rob/anydots trees on website
 
 SOMEDAY:
 figure out caching with webkit and in general how we can speed up everything
 figure out how webkit intercepts key input
 make "disable insert mode" (esc key) configurable
 keywords don't work for external commands. is this a problem?
+* pass a bit less arguments by default, use the socket to query for them instead, or export the stuff through environment variables, or export them as xorg window properties
+* write a config "generator" that iterates over the Uzbl uzbl and generates the commands needed to become in that state.

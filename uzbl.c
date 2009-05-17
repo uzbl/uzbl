@@ -411,7 +411,8 @@ static struct {char *name; Command command;} cmdlist[] =
     { "spawn",            spawn                   },
     { "sh",               spawn_sh                },
     { "exit",             close_uzbl              },
-    { "search",           search_text             },
+    { "search",           search_forward_text     },
+    { "search_reverse",   search_reverse_text     },
     { "insert_mode",      set_insert_mode         },
     { "runcmd",           runcmd                  }
 };
@@ -483,7 +484,7 @@ run_js (WebKitWebView * web_view, const gchar *param) {
 }
 
 static void
-search_text (WebKitWebView *page, const char *param) {
+search_text (WebKitWebView *page, const char *param, const gboolean forward) {
     if ((param) && (param[0] != '\0')) {
         strcpy(uzbl.state.searchtx, param);
     }
@@ -493,8 +494,18 @@ search_text (WebKitWebView *page, const char *param) {
         webkit_web_view_unmark_text_matches (page);
         webkit_web_view_mark_text_matches (page, uzbl.state.searchtx, FALSE, 0);
         webkit_web_view_set_highlight_text_matches (page, TRUE);
-        webkit_web_view_search_text (page, uzbl.state.searchtx, FALSE, TRUE, TRUE);
+        webkit_web_view_search_text (page, uzbl.state.searchtx, FALSE, forward, TRUE);
     }
+}
+
+static void
+search_forward_text (WebKitWebView *page, const char *param) {
+    search_text(page, param, TRUE);
+}
+
+static void
+search_reverse_text (WebKitWebView *page, const char *param) {
+    search_text(page, param, FALSE);
 }
 
 static void
@@ -503,7 +514,7 @@ new_window_load_uri (const gchar * uri) {
     g_string_append_printf (to_execute, "%s --uri '%s'", uzbl.state.executable_path, uri);
     int i;
     for (i = 0; entries[i].long_name != NULL; i++) {
-        if ((entries[i].arg == G_OPTION_ARG_STRING) && (strcmp(entries[i].long_name,"uri")!=0)) {
+        if ((entries[i].arg == G_OPTION_ARG_STRING) && (strcmp(entries[i].long_name,"uri")!=0) && (strcmp(entries[i].long_name,"name")!=0)) {
             gchar** str = (gchar**)entries[i].arg_data;
             if (*str!=NULL) {
                 g_string_append_printf (to_execute, " --%s '%s'", entries[i].long_name, *str);
@@ -764,6 +775,20 @@ run_command (const char *command, const char *args, const gboolean sync, char **
 static void
 spawn(WebKitWebView *web_view, const char *param) {
     (void)web_view;
+/*
+   TODO: allow more control over argument order so that users can have some arguments before the default ones from run_command, and some after
+    gchar** cmd = g_strsplit(param, " ", 2);
+    gchar * args = NULL;
+    if (cmd[1]) {
+        args = g_shell_quote(cmd[1]);
+    }
+    if (cmd) {
+        run_command(cmd[0], args, FALSE, NULL);
+    }
+    if (args) {
+        g_free(args);
+    }
+*/
     run_command(param, NULL, FALSE, NULL);
 }
 
@@ -805,10 +830,23 @@ get_var_value(gchar *name) {
     void **p = NULL;
 
     if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
-        if(var_is("status_format", name)
-           || var_is("useragent", name)
+        if(var_is("uri", name)
+           || var_is("status_message", name)
+           || var_is("status_format", name)
+           || var_is("status_background", name)
            || var_is("title_format_short", name)
-           || var_is("title_format_long", name)) {
+           || var_is("title_format_long", name)
+           || var_is("modkey", name)
+           || var_is("load_finish_handler", name)
+           || var_is("history_handler", name)
+           || var_is("download_handler", name)
+           || var_is("cookie_handler", name)
+           || var_is("fifo_dir", name)
+           || var_is("socket_dir", name)
+           || var_is("shell_cmd", name)
+           || var_is("proxy_url", name)
+           || var_is("useragent", name))
+           {
             printf("VAR: %s VALUE: %s\n", name, (char *)*p);
         } else printf("VAR: %s VALUE: %d\n", name, (int)*p);
     }
