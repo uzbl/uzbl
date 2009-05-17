@@ -85,7 +85,7 @@ Each command starts with the name of the command, which must be the first thing 
 The following commands are recognized:
 
     SET <key> = <value>
-Set is used for changing variables.  Every variable can be changed on the fly and the changes are effective immediately.  If you want to unset a string, use SET with one space after the equals sign.
+Set is used for changing variables.  Every variable can be changed on the fly and the changes are processed immediately; for example, setting the variable 'uri' will make uzbl start loading it.  If you want to unset a string, use SET with one space after the equals sign.
 
     GET <key>
 Use this to print the value of a key.
