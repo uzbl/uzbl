@@ -10,7 +10,7 @@
 # TODO: ability to attach misc things (spawn <foo>, script <bar>,.. to internal events)
 set history_handler  = ./examples/scripts/history.sh
 set download_handler = ./examples/scripts/download.sh
-#set cookie_handler   = ./examples/scripts/cookies.sh not done yet..
+set cookie_handler   = ./examples/scripts/cookies.sh
 set minimum_font_size = 6
 set default_font_size = 11
 
