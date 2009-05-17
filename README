@@ -91,7 +91,7 @@ Set is used for changing variables.  Every variable can be changed on the fly an
 Use this to print the value of a key.
 
     BIND <string> = <action>
-Makes the character sequence <string> invoke <action> when typed interactively in uzbl.  If <string> ends with an underscore, the action will be invoked when return or enter is pressed, and the input starting from the position of the underscore will be expanded in place of '%s' in the <action> string.  The <action> does not need to have '%s' in it when you use the underscore, in which case no expansion takes place, but you're uzbl will still wait for you to press return before invoking the action.  You can also use an asterisk, which behaves much like underscore, but also makes the binding incremental (i.e. the action will be invoked on every keystroke).  Examples follow:
+Makes the character sequence `<string>` invoke `<action>` when typed interactively in uzbl.  If `<string>` ends with an underscore, the action will be invoked when return or enter is pressed, and the input starting from the position of the underscore will be expanded in place of '%s' in the `<action>` string.  The `<action>` does not need to have '%s' in it when you use the underscore, in which case no expansion takes place, but uzbl will still wait for you to press return before invoking the action.  You can also use an asterisk, which behaves much like underscore, but also makes the binding incremental (i.e. the action will be invoked on every keystroke).  Examples follow:
 
     bind o _ = uri %s
     bind /*  = search %s
@@ -103,7 +103,7 @@ Using the first example, uzbl will load the url you entered by typing an 'o', a 
 This tells uzbl to execute an action immediately.  The simplest example of this would be "act exit"; you know what that'll do.
 
     KEYCMD <string>
-This sets the interactive command buffer to <string>.  Keycmd is primarily useful for scripts that help you type a command while still letting you edit it before execution.  For example, if you have a binding like "o _" that opens an URL, then you could create a binding O that spawns a script which will set the command buffer to "o current-uri-here", letting you enter relative URLs easily.
+This sets the interactive command buffer to `<string>`.  Keycmd is primarily useful for scripts that help you type a command while still letting you edit it before execution.  For example, if you have a binding like "o _" that opens an URL, then you could create a binding O that spawns a script which will set the command buffer to "o current-uri-here", letting you enter relative URLs easily.
 
 
 ### VARIABLE REPLACEMENT
