@@ -10,7 +10,7 @@
 # TODO: ability to attach misc things (spawn <foo>, script <bar>,.. to internal events)
 set history_handler  = ./examples/scripts/history.sh
 set download_handler = ./examples/scripts/download.sh
-set cookie_handler   = ./examples/scripts/cookies.sh
+#set cookie_handler   = ./examples/scripts/cookies.sh not done yet..
 set minimum_font_size = 6
 set default_font_size = 11
 
@@ -68,8 +68,10 @@ bind    t         = toggle_status
 # Hilight matches. Notice the * after the slash - it makes the command incremental, i.e. gets called
 # on every character you type.  You can do `bind /_ = search %s' if you want it less interactive.
 bind    /*        = search %s
+bind    ?*        = search_reverse %s
 #jump to next
-bind    ;         = search
+bind    n         = search
+bind    N         = search_reverse
 bind    gh        = uri http://www.uzbl.org
 #TODO: set uri?
 bind    o _       = uri %s
