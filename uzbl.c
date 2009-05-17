@@ -129,7 +129,7 @@ make_var_to_name_hash() {
 static GOptionEntry entries[] =
 {
     { "uri",     'u', 0, G_OPTION_ARG_STRING, &uzbl.state.uri,           "Uri to load at startup (equivalent to 'set uri = URI')", "URI" },
-    { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &uzbl.state.verbose,       "Whether to print all messages or just errors.", "VERBOSE" },
+    { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &uzbl.state.verbose,       "Whether to print all messages or just errors.", NULL },
     { "name",    'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name, "Name of the current instance (defaults to Xorg window id)", "NAME" },
     { "config",  'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,   "Config file (this is pretty much equivalent to uzbl < FILE )", "FILE" },
     { NULL,      0, 0, 0, NULL, NULL, NULL }
@@ -722,25 +722,23 @@ expand_template(const char *template) {
 /* --End Statusbar functions-- */
 
 
-// make sure to put "" or '' around args, so that if there is whitespace we can still keep arguments together.
-// note: if your args contain ', you must wrap them in "" (you cannot escape inside '')
-// if your args contain ", you should wrap them in "" and escape them
+// make sure that the args string you pass can properly be interpreted (eg properly escaped against whitespace, quotes etc)
 static gboolean
 run_command (const char *command, const char *args, const gboolean sync, char **stdout) {
    //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
-    GString* to_execute = g_string_new ("");
+    GString *to_execute = g_string_new ("");
     GError *err = NULL;
-    gchar* cmd = g_strstrip(g_strdup(command));
+    gchar *cmd = g_strstrip(g_strdup(command));
+    gchar *qcfg = (uzbl.state.config_file ? g_shell_quote(uzbl.state.config_file) : g_strdup("''"));
+    gchar *qfifo = (uzbl.comm.fifo_path ? g_shell_quote(uzbl.comm.fifo_path) : g_strdup("''"));
+    gchar *qsock = (uzbl.comm.socket_path ? g_shell_quote(uzbl.comm.socket_path) : g_strdup("''"));
+    gchar *quri = (uzbl.state.uri ? g_shell_quote(uzbl.state.uri) : g_strdup("''"));
+    gchar *qtitle = (uzbl.gui.main_title ? g_shell_quote(uzbl.gui.main_title) : g_strdup("''"));
+
     gboolean result;
-    const char* search = "\"";
-    const char* replace = "\\\"";
-    g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' '%s'",
-                     cmd, (uzbl.state.config_file ? uzbl.state.config_file : "(null)"),
-                     (int) getpid(), (int) uzbl.xwin, uzbl.comm.fifo_path,
-                     uzbl.comm.socket_path);
-    g_string_append_printf (to_execute, " \"%s\" \"%s\"",
-                    uzbl.state.uri,
-                    str_replace(search, replace, uzbl.gui.main_title));
+    g_string_printf (to_execute, "%s %s '%i' '%i' %s %s",
+                     cmd, qcfg, (int) getpid(), (int) uzbl.xwin, qfifo, qsock);
+    g_string_append_printf (to_execute, " %s %s", quri, qtitle);
     if(args) g_string_append_printf (to_execute, " %s", args);
 
     if (sync) {
@@ -753,6 +751,12 @@ run_command (const char *command, const char *args, const gboolean sync, char **
         g_printerr("error on run_command: %s\n", err->message);
         g_error_free (err);
     }
+
+    g_free (qcfg);
+    g_free (qfifo);
+    g_free (qsock);
+    g_free (quri);
+    g_free (qtitle);
     g_free (cmd);
     return result;
 }
@@ -760,6 +764,20 @@ run_command (const char *command, const char *args, const gboolean sync, char **
 static void
 spawn(WebKitWebView *web_view, const char *param) {
     (void)web_view;
+/*
+   TODO: allow more control over argument order so that users can have some arguments before the default ones from run_command, and some after
+    gchar** cmd = g_strsplit(param, " ", 2);
+    gchar * args = NULL;
+    if (cmd[1]) {
+        args = g_shell_quote(cmd[1]);
+    }
+    if (cmd) {
+        run_command(cmd[0], args, FALSE, NULL);
+    }
+    if (args) {
+        g_free(args);
+    }
+*/
     run_command(param, NULL, FALSE, NULL);
 }
 
@@ -1258,25 +1276,39 @@ init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL *
     return NULL;
 }
 
+/*
+ NOTE: we want to keep variables like b->title_format_long in their "unprocessed" state
+ it will probably improve performance if we would "cache" the processed variant, but for now it works well enough...
+*/
+// this function may be called very early when the templates are not set (yet), hence the checks
 static void
 update_title (void) {
     Behaviour *b = &uzbl.behave;
+    gchar *parsed;
 
     if (b->show_status) {
-        gchar *statln;
-        gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), expand_template(b->title_format_short));
-        // TODO: we should probably not do this every time we want to update the title..?
-        statln = expand_template(uzbl.behave.status_format);
-        gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), statln);
+        if (b->title_format_short) {
+            parsed = expand_template(b->title_format_short);
+            gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
+            g_free(parsed);
+        }
+        if (b->status_format) {
+            parsed = expand_template(b->status_format);
+            gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), parsed);
+            g_free(parsed);
+        }
         if (b->status_background) {
             GdkColor color;
             gdk_color_parse (b->status_background, &color);
             //labels and hboxes do not draw their own background.  applying this on the window is ok as we the statusbar is the only affected widget.  (if not, we could also use GtkEventBox)
             gtk_widget_modify_bg (uzbl.gui.main_window, GTK_STATE_NORMAL, &color);
         }
-        g_free(statln);
     } else {
-        gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), expand_template(b->title_format_long));
+        if (b->title_format_long) {
+            parsed = expand_template(b->title_format_long);
+            gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
+            g_free(parsed);
+        }
     }
 }
 
@@ -1490,32 +1522,16 @@ find_xdg_file (int xdg_type, char* filename) {
        xdg_type = 1 => data
        xdg_type = 2 => cache*/
 
-    gchar* xdg_config_home  = get_xdg_var (XDG[0]);
-    gchar* xdg_data_home    = get_xdg_var (XDG[1]);
-    gchar* xdg_cache_home   = get_xdg_var (XDG[2]);
-    gchar* xdg_config_dirs  = get_xdg_var (XDG[3]);
-    gchar* xdg_data_dirs    = get_xdg_var (XDG[4]);
     gchar* temporary_file   = (char *)malloc (1024);
     gchar* temporary_string = NULL;
     char*  saveptr;
 
-    if (xdg_type == 0)
-        strcpy (temporary_file, xdg_config_home);
-
-    if (xdg_type == 1)
-        strcpy (temporary_file, xdg_data_home);
-
-    if (xdg_type == 2)
-        strcpy (temporary_file, xdg_cache_home);
+    strcpy (temporary_file, get_xdg_var (XDG[xdg_type]));
 
     strcat (temporary_file, filename);
 
     if (! file_exists (temporary_file) && xdg_type != 2) {
-        if (xdg_type == 0)
-            temporary_string = (char *) strtok_r (xdg_config_dirs, ":", &saveptr);
-        
-        if (xdg_type == 1)
-            temporary_string = (char *) strtok_r (xdg_data_dirs, ":", &saveptr);
+        temporary_string = (char *) strtok_r (get_xdg_var (XDG[3 + xdg_type]), ":", &saveptr);
         
         while (temporary_string && ! file_exists (temporary_file)) {
             strcpy (temporary_file, temporary_string);
@@ -1567,11 +1583,11 @@ settings_init () {
             printf ("No configuration file loaded.\n");
     }
     if (!uzbl.behave.status_format)
-        uzbl.behave.status_format = g_strdup(STATUS_DEFAULT);
+        set_var_value("status_format", STATUS_DEFAULT);
     if (!uzbl.behave.title_format_long)
-        uzbl.behave.title_format_long = g_strdup(TITLE_LONG_DEFAULT);
+        set_var_value("title_format_long", TITLE_LONG_DEFAULT);
     if (!uzbl.behave.title_format_short)
-        uzbl.behave.title_format_short = g_strdup(TITLE_SHORT_DEFAULT);
+        set_var_value("title_format_short", TITLE_SHORT_DEFAULT);
 
 
     g_signal_connect(n->soup_session, "request-queued", G_CALLBACK(handle_cookies), NULL);
