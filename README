@@ -102,7 +102,7 @@ You can use external scripts with uzbl the following ways:
 
 Have a look at the sample configs and scripts!
 
-Scripts that are called by uzbl are passed the following arguments:
+Handler scripts that are called by uzbl are passed the following arguments:
 
     $1 uzbl-config-file
     $2 uzbl-pid
@@ -135,10 +135,12 @@ The script specific arguments are this:
     $11 cookie (only with PUT requests)
 
 
+Custom, userdefined scripts (`spawn foo bar`) get first the arguments as specified in the config and then the above 7 are added at the end.
+
 ### COMMAND LINE ARGUMENTS
 
     -u, --uri=URI            Uri to load (equivalent to 'set uri = URI')
-    -v, --verbose=VERBOSE    Whether to print all messages or just errors.
+    -v, --verbose            Whether to print all messages or just errors.
     -n, --name=NAME          Name of the current instance (defaults to Xorg window id)
     -c, --config=FILE        Config file (this is pretty much equivalent to uzbl < FILE )
     --display=DISPLAY        X display to use
