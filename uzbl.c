@@ -129,7 +129,7 @@ make_var_to_name_hash() {
 static GOptionEntry entries[] =
 {
     { "uri",     'u', 0, G_OPTION_ARG_STRING, &uzbl.state.uri,           "Uri to load at startup (equivalent to 'set uri = URI')", "URI" },
-    { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &uzbl.state.verbose,       "Whether to print all messages or just errors.", "VERBOSE" },
+    { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &uzbl.state.verbose,       "Whether to print all messages or just errors.", NULL },
     { "name",    'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name, "Name of the current instance (defaults to Xorg window id)", "NAME" },
     { "config",  'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,   "Config file (this is pretty much equivalent to uzbl < FILE )", "FILE" },
     { NULL,      0, 0, 0, NULL, NULL, NULL }
@@ -1508,32 +1508,16 @@ find_xdg_file (int xdg_type, char* filename) {
        xdg_type = 1 => data
        xdg_type = 2 => cache*/
 
-    gchar* xdg_config_home  = get_xdg_var (XDG[0]);
-    gchar* xdg_data_home    = get_xdg_var (XDG[1]);
-    gchar* xdg_cache_home   = get_xdg_var (XDG[2]);
-    gchar* xdg_config_dirs  = get_xdg_var (XDG[3]);
-    gchar* xdg_data_dirs    = get_xdg_var (XDG[4]);
     gchar* temporary_file   = (char *)malloc (1024);
     gchar* temporary_string = NULL;
     char*  saveptr;
 
-    if (xdg_type == 0)
-        strcpy (temporary_file, xdg_config_home);
-
-    if (xdg_type == 1)
-        strcpy (temporary_file, xdg_data_home);
-
-    if (xdg_type == 2)
-        strcpy (temporary_file, xdg_cache_home);
+    strcpy (temporary_file, get_xdg_var (XDG[xdg_type]));
 
     strcat (temporary_file, filename);
 
     if (! file_exists (temporary_file) && xdg_type != 2) {
-        if (xdg_type == 0)
-            temporary_string = (char *) strtok_r (xdg_config_dirs, ":", &saveptr);
-        
-        if (xdg_type == 1)
-            temporary_string = (char *) strtok_r (xdg_data_dirs, ":", &saveptr);
+        temporary_string = (char *) strtok_r (get_xdg_var (XDG[3 + xdg_type]), ":", &saveptr);
         
         while (temporary_string && ! file_exists (temporary_file)) {
             strcpy (temporary_file, temporary_string);

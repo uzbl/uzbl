@@ -138,7 +138,7 @@ The script specific arguments are this:
 ### COMMAND LINE ARGUMENTS
 
     -u, --uri=URI            Uri to load (equivalent to 'set uri = URI')
-    -v, --verbose=VERBOSE    Whether to print all messages or just errors.
+    -v, --verbose            Whether to print all messages or just errors.
     -n, --name=NAME          Name of the current instance (defaults to Xorg window id)
     -c, --config=FILE        Config file (this is pretty much equivalent to uzbl < FILE )
     --display=DISPLAY        X display to use
