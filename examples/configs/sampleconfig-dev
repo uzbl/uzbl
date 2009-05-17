@@ -79,6 +79,9 @@ bind    i         = insert_mode
 bind    B         = spawn ./examples/scripts/insert_bookmark.sh
 bind    U         = spawn ./examples/scripts/load_url_from_history.sh
 bind    u         = spawn ./examples/scripts/load_url_from_bookmarks.sh
+# with the sample yank script, you can yank one of the arguments into clipboard/selection
+bind    yurl      = spawn ./examples/scripts/yank.sh 8 primary
+bind    ytitle    = spawn ./examples/scripts/yank.sh 9 clipboard
 bind    ZZ        = exit
 bind    S         = script alert("hi");
 # example showing how to use sh
