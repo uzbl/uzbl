@@ -66,10 +66,16 @@ There are several interfaces to interact with uzbl:
   insert mode: keystrokes are not interpreted so you can enter text into html forms
   Press ESC/i to toggle command/insert mode
   But if you don't like modal interfaces, you can set `always_insert_mode` and configure a modkey to execute the commands. (emacs style).
-* FIFO & socket file: if enabled by setting their paths through one of the above means, you can have socket and fifo files available which are very useful to programatically (from scripts etc) to uzbl.
+  There is also support for "chained" commands (multiple characters long) (with backspace/esc shortcuts), and keyworded commands.
+  Also you can have incremental matching on commands or match after pressing return.  (see sampleconfig for more info)
+  Also, copy paste works when typing commands:
+  * insert (paste X cliboard)
+  * shift insert (paste primary selection buffer)
+* FIFO & socket file: if enabled by setting their paths through one of the above means, you can have socket and fifo files available which are very useful to programatically control uzbl (from scripts etc).
   The advantage of the fifo is you can write plaintxt commands to it, but it's half duplex only (uzbl cannot send a response to you).
   The socket is full duplex but you need a socket-compatible wrapper such as netcat to work with it, or uzblctrl of course,
-   an utitly we include with uzbl made especially for writing commnands to the socket (and at some point, it will be able to tell you the response too)
+  an utitly we include with uzbl made especially for writing commnands to the socket (and at some point, it will be able to tell you the response
+  too):  `uzblctrl -s <socketfile> -c <command>`
 
 ### COMMAND SYNTAX
 TODO
@@ -127,6 +133,16 @@ The script specific arguments are this:
     $9 request address host (if current page url is www.foo.com/somepage, this could be something else then foo, eg advertising from another host)
     $10 request address path
     $11 cookie (only with PUT requests)
+
+
+### COMMAND LINE ARGUMENTS
+
+    -u, --uri=URI            Uri to load (equivalent to 'set uri = URI')
+    -v, --verbose=VERBOSE    Whether to print all messages or just errors.
+    -n, --name=NAME          Name of the current instance (defaults to Xorg window id)
+    -c, --config=FILE        Config file (this is pretty much equivalent to uzbl < FILE )
+    --display=DISPLAY        X display to use
+    --help                   Help
 
 
 ### BUGS
