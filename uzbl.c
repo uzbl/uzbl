@@ -413,8 +413,7 @@ static struct {char *name; Command command;} cmdlist[] =
     { "exit",             close_uzbl              },
     { "search",           search_text             },
     { "insert_mode",      set_insert_mode         },
-    { "runcmd",           runcmd                  },
-    { "config",           loadconfig              }
+    { "runcmd",           runcmd                  }
 };
 
 static void
@@ -987,12 +986,6 @@ runcmd(WebKitWebView* page, const char *param) {
 }
 
 static void
-loadconfig(WebKitWebView* page, const char *param) {
-    (void) page;
-    settings_init (param);
-}
-
-static void
 parse_cmd_line(const char *ctl_line) {
     gchar **tokens;
 
@@ -1555,16 +1548,14 @@ find_xdg_file (int xdg_type, char* filename) {
 }
 
 static void
-settings_init (const char *settingsfile) {
+settings_init () {
     State *s = &uzbl.state;
     Network *n = &uzbl.net;
 
     uzbl.behave.reset_command_mode = 1;
 
-    if (!s->config_file && settingsfile == NULL) {
+    if (!s->config_file) {
         s->config_file = g_strdup (find_xdg_file (0, "/uzbl/config"));
-    } else if (!s->config_file) {
-        strcpy (s->config_file, settingsfile);
     }
 
     if (s->config_file) {
@@ -1712,7 +1703,7 @@ main (int argc, char* argv[]) {
     uzbl.gui.bar_h = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_h);
     gtk_widget_set_scroll_adjustments ((GtkWidget*) uzbl.gui.web_view, uzbl.gui.bar_h, uzbl.gui.bar_v);
 
-    settings_init (NULL);
+    settings_init ();
 
     if (!uzbl.behave.show_status)
         gtk_widget_hide(uzbl.gui.mainbar);

@@ -285,9 +285,6 @@ static void
 runcmd(WebKitWebView *page, const char *param);
 
 static void
-loadconfig(WebKitWebView* page, const char *param);
-
-static void
 parse_cmd_line(const char *ctl_line);
 
 static gchar*
@@ -345,7 +342,7 @@ static gchar*
 find_xdg_file (int xdg_type, char* filename);
 
 static void
-settings_init (const char *settingsfile);
+settings_init ();
 
 static void
 search_text (WebKitWebView *page, const char *param);

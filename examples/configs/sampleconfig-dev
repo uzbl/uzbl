@@ -95,9 +95,5 @@ bind    F= script for (var i=0; i < document.links.length; i++) {var uzblid = 'u
 #hit f followed by linknumber and ENTER to follow that link
 bind    f_        = script window.location = document.links[%s].href;
 
-# Reloading config works:
-bind    c_        = config %s
-bind    C         = config
-
 # "home" page if you will
 set uri = uzbl.org
