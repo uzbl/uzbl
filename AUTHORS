@@ -12,6 +12,8 @@ Contributors:
     (sentientswitch) - Cleaned up code. Added some commands.
     Jan Kolkmeier (jouz) - scrolling, link following
     Evgeny Grablyk - libsoup settings
+    Damien Leon - misc
+    Peter Suschlik - backwards searching
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:
