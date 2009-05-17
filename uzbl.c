@@ -764,6 +764,20 @@ run_command (const char *command, const char *args, const gboolean sync, char **
 static void
 spawn(WebKitWebView *web_view, const char *param) {
     (void)web_view;
+/*
+   TODO: allow more control over argument order so that users can have some arguments before the default ones from run_command, and some after
+    gchar** cmd = g_strsplit(param, " ", 2);
+    gchar * args = NULL;
+    if (cmd[1]) {
+        args = g_shell_quote(cmd[1]);
+    }
+    if (cmd) {
+        run_command(cmd[0], args, FALSE, NULL);
+    }
+    if (args) {
+        g_free(args);
+    }
+*/
     run_command(param, NULL, FALSE, NULL);
 }
 
