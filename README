@@ -78,32 +78,32 @@ There are several interfaces to interact with uzbl:
   too):  `uzblctrl -s <socketfile> -c <command>`
 
 ### COMMAND SYNTAX
-Commands are used for creating binds, altering variables and running actions.  Uzbl will read commands via standard input, named fifo pipe (if `fifo_dir` is set) and IPC socket (when `socket_dir` is set).  For convenience, uzbl can also be instructed to read commands from a file on startup by using the `-c' option.  Indeed, the config file is nothing more than a list of commands.
+Commands are used for creating binds, altering variables and running actions.  Uzbl will read commands via standard input, named fifo pipe (if `fifo_dir` is set) and IPC socket (when `socket_dir` is set).  For convenience, uzbl can also be instructed to read commands from a file on startup by using the `-c` option.  Indeed, the config file is nothing more than a list of commands.
 
 Each command starts with the name of the command, which must be the first thing on a line; preceding whitespace is not allowed.  A command is terminated by a newline.  Empty lines and lines that start with the hash sign are ignored by the parser.  Command names are not case sensitive.
 
 The following commands are recognized:
 
     SET <key> = <value>
-Set is used for changing variables.  Every variable can be changed on the fly and the changes are processed immediately; for example, setting the variable 'uri' will make uzbl start loading it.  If you want to unset a string, use SET with one space after the equals sign.
+Set is used for changing variables.  Every variable can be changed on the fly and the changes are processed immediately; for example, setting the variable `uri` will make uzbl start loading it.  If you want to unset a string, use SET with one space after the equals sign.
 
     GET <key>
 Use this to print the value of a key.
 
     BIND <string> = <action>
-Makes the character sequence `<string>` invoke `<action>` when typed interactively in uzbl.  If `<string>` ends with an underscore, the action will be invoked when return or enter is pressed, and the input starting from the position of the underscore will be expanded in place of '%s' in the `<action>` string.  The `<action>` does not need to have '%s' in it when you use the underscore, in which case no expansion takes place, but uzbl will still wait for you to press return before invoking the action.  You can also use an asterisk, which behaves much like underscore, but also makes the binding incremental (i.e. the action will be invoked on every keystroke).  Examples follow:
+Makes the character sequence `<string>` invoke `<action>` when typed interactively in uzbl.  If `<string>` ends with an underscore, the action will be invoked when return or enter is pressed, and the input starting from the position of the underscore will be expanded in place of `%s` in the `<action>` string.  The `<action>` does not need to have `%s` in it when you use the underscore, in which case no expansion takes place, but uzbl will still wait for you to press return before invoking the action.  You can also use an asterisk, which behaves much like underscore, but also makes the binding incremental (i.e. the action will be invoked on every keystroke).  Examples follow:
 
     bind o _ = uri %s
     bind /*  = search %s
     bind ZZ  = exit
 
-Using the first example, uzbl will load the url you entered by typing an 'o', a space, the url you want to see and by finishing with a stroke of return or enter.  In the second example is a search action which is called on every character you type after the slash, letting you see the search narrow down on the words as you type it.  Hitting return, enter or esc will terminate the search.  The last example is a plain binding which will run immediately as soon as it's written; there's no waiting for return.
+Using the first example, uzbl will load the url you entered by typing an `o`, a space, the url you want to see and by finishing with a stroke of return or enter.  In the second example is a search action which is called on every character you type after the slash, letting you see the search narrow down on the words as you type it.  Hitting return, enter or esc will terminate the search.  The last example is a plain binding which will run immediately as soon as it's written; there's no waiting for return.
 
     ACT <action>
-This tells uzbl to execute an action immediately.  The simplest example of this would be "act exit"; you know what that'll do.
+This tells uzbl to execute an action immediately.  The simplest example of this would be `act exit`; you know what that'll do.
 
     KEYCMD <string>
-This sets the interactive command buffer to `<string>`.  Keycmd is primarily useful for scripts that help you type a command while still letting you edit it before execution.  For example, if you have a binding like "o _" that opens an URL, then you could create a binding O that spawns a script which will set the command buffer to "o current-uri-here", letting you enter relative URLs easily.
+This sets the interactive command buffer to `<string>`.  Keycmd is primarily useful for scripts that help you type a command while still letting you edit it before execution.  For example, if you have a binding like `o _` that opens an URL, then you could create a binding O that spawns a script which will set the command buffer to `o current-uri-here`, letting you enter relative URLs easily.
 
 
 ### VARIABLE REPLACEMENT
