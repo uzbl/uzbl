@@ -1262,25 +1262,39 @@ init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL *
     return NULL;
 }
 
+/*
+ NOTE: we want to keep variables like b->title_format_long in their "unprocessed" state
+ it will probably improve performance if we would "cache" the processed variant, but for now it works well enough...
+*/
+// this function may be called very early when the templates are not set (yet), hence the checks
 static void
 update_title (void) {
     Behaviour *b = &uzbl.behave;
+    gchar *parsed;
 
     if (b->show_status) {
-        gchar *statln;
-        gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), expand_template(b->title_format_short));
-        // TODO: we should probably not do this every time we want to update the title..?
-        statln = expand_template(uzbl.behave.status_format);
-        gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), statln);
+        if (b->title_format_short) {
+            parsed = expand_template(b->title_format_short);
+            gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
+            g_free(parsed);
+        }
+        if (b->status_format) {
+            parsed = expand_template(b->status_format);
+            gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), parsed);
+            g_free(parsed);
+        }
         if (b->status_background) {
             GdkColor color;
             gdk_color_parse (b->status_background, &color);
             //labels and hboxes do not draw their own background.  applying this on the window is ok as we the statusbar is the only affected widget.  (if not, we could also use GtkEventBox)
             gtk_widget_modify_bg (uzbl.gui.main_window, GTK_STATE_NORMAL, &color);
         }
-        g_free(statln);
     } else {
-        gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), expand_template(b->title_format_long));
+        if (b->title_format_long) {
+            parsed = expand_template(b->title_format_long);
+            gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
+            g_free(parsed);
+        }
     }
 }
 
@@ -1571,11 +1585,11 @@ settings_init () {
             printf ("No configuration file loaded.\n");
     }
     if (!uzbl.behave.status_format)
-        uzbl.behave.status_format = g_strdup(STATUS_DEFAULT);
+        set_var_value("status_format", STATUS_DEFAULT);
     if (!uzbl.behave.title_format_long)
-        uzbl.behave.title_format_long = g_strdup(TITLE_LONG_DEFAULT);
+        set_var_value("title_format_long", TITLE_LONG_DEFAULT);
     if (!uzbl.behave.title_format_short)
-        uzbl.behave.title_format_short = g_strdup(TITLE_SHORT_DEFAULT);
+        set_var_value("title_format_short", TITLE_SHORT_DEFAULT);
 
 
     g_signal_connect(n->soup_session, "request-queued", G_CALLBACK(handle_cookies), NULL);
