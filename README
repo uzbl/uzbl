@@ -131,7 +131,8 @@ For example, if you have a binding like "o _" that opens an URL, then you could 
 (See sample config)
 
 ### ACTIONS
-Actions are invoked via bindings and by the ACT command.  Most actions are self-explanatory, though a few need to be clarified.  A list of action follows:
+Actions are invoked via bindings and by the ACT command.  Most actions are self-explanatory, though a few need to be clarified.  A list of
+actions follows:
 
     * `back`
     * `forward`
@@ -152,8 +153,10 @@ Actions are invoked via bindings and by the ACT command.  Most actions are self-
     * `spawn <executable> <additonal args>`
         - runs a command; see EXTERNAL SCRIPTS for details
         - PATH is searched so giving the full path to commands is not neccessary
-    * `sh <script body>`
-        - runs a command by expanding `%s` in shell_cmd with the script body; primarily useful as a shortcut for `spawn sh -c <body>`
+        - note that the arguments as specified in "EXTERNAL SCRIPTS" are appended at the end, so the argument numbers will be higher.
+    * `sh <command>`
+        - runs a shell command by expanding `%s` in the `shell_cmd` variable with the specified command; primarily useful as a shortcut for `spawn sh -c <body>`
+        - note that the arguments as specified in "EXTERNAL SCRIPTS" are appended at the end, so the argument numbers will be higher.
     * `exit`
     * `search <string>`
     * `search_reverse <string>`
