@@ -461,7 +461,16 @@ toggle_insert_mode(WebKitWebView *page, const gchar *param) {
     (void)page;
     (void)param;
 
-    uzbl.behave.insert_mode = ! uzbl.behave.insert_mode;
+    if (param != NULL) {
+        if (strcmp (param, "0") == 0) {
+            uzbl.behave.insert_mode = FALSE;
+        } else {
+            uzbl.behave.insert_mode = TRUE;
+        }
+    } else {
+        uzbl.behave.insert_mode = ! uzbl.behave.insert_mode;
+    }
+
     update_title();
 }
 
