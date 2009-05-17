@@ -715,7 +715,9 @@ expand_template(const char *template) {
 /* --End Statusbar functions-- */
 
 
-// make sure to put '' around args, so that if there is whitespace we can still keep arguments together.
+// make sure to put "" or '' around args, so that if there is whitespace we can still keep arguments together.
+// note: if your args contain ', you must wrap them in "" (you cannot escape inside '')
+// if your args contain ", you should wrap them in "" and escape them
 static gboolean
 run_command (const char *command, const char *args, const gboolean sync, char **stdout) {
    //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
@@ -723,12 +725,15 @@ run_command (const char *command, const char *args, const gboolean sync, char **
     GError *err = NULL;
     gchar* cmd = g_strstrip(g_strdup(command));
     gboolean result;
+    const char* search = "\"";
+    const char* replace = "\\\"";
     g_string_printf (to_execute, "%s '%s' '%i' '%i' '%s' '%s'",
                      cmd, (uzbl.state.config_file ? uzbl.state.config_file : "(null)"),
                      (int) getpid(), (int) uzbl.xwin, uzbl.comm.fifo_path,
                      uzbl.comm.socket_path);
-    g_string_append_printf (to_execute, " '%s' '%s'",
-                    uzbl.state.uri, uzbl.gui.main_title);
+    g_string_append_printf (to_execute, " \"%s\" \"%s\"",
+                    uzbl.state.uri,
+                    str_replace(search, replace, uzbl.gui.main_title));
     if(args) g_string_append_printf (to_execute, " %s", args);
 
     if (sync) {
