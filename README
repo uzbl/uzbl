@@ -1,129 +1,155 @@
-THIS PROJECT IS NOT FOR:
-- people want a browser that does everything
-- people who want a browser with things like a built-in bookmark manager, address bar, forward/back buttons, ...
+### THIS PROJECT IS NOT FOR:
+* people want a browser that does everything
+* people who want a browser with things like a built-in bookmark manager, address bar, forward/back buttons, ...
+* people who expect something that works by default.  You'll need to read configs and write/edit scripts
 
 
-
-TO NEW PEOPLE:
- - please read the README in /usr/share/uzbl/docs
- - invoke uzbl --help
- - to get you started: uzbl --uri 'http://www.archlinux.org' --config /usr/share/uzbl/examples/configs/sampleconfig
- - study the sample config, have a look at all the bindings, and note how you can call the scripts to load new url from history and the bookmarks file
- - note that there is no url bar. all url editing is supposed to happen _outside_ of uzbl.
-   for now, you can use the load_from_* dmenu based scripts to pick a url or type a new one (we should have a dmenu-like that functions as a better editor) or write commands into the fifo (see /usr/share/uzbl/docs/CHECKLIST)
- - If you have questions, you are likely to find answers in the FAQ
-
-CURRENT STATE:
- alpha / prototype
+### TO NEW PEOPLE:
+* please read the documentation in /usr/share/uzbl/docs
+* invoke uzbl --help
+* to get you started: uzbl --uri 'http://www.archlinux.org' --config /usr/share/uzbl/examples/configs/sampleconfig
+* study the sample config, have a look at all the bindings, and note how you can call the scripts to load new url from history and the bookmarks file
+* note that there is no url bar. all url editing is supposed to happen _outside_ of uzbl.
+  For now, you can use the `load_from_*` dmenu based scripts to pick a url or type a new one or write commands into the fifo (see /usr/share/uzbl/docs/CHECKLIST)
+* If you have questions, you are likely to find answers in the FAQ or in the other documentation.
 
 
-- Uzbl.
+### INTRODUCTION
   In my opinion, any program can only be really useful if it complies to the unix philosophy.
-  Web browsers are frequent violators of this principle.  Time to change that!
+  Web browsers are frequent violators of this principle:
 
-Right now uzbl is in a very early state but here are some ideas I would like to (not) implement
+* They build in way too much things into the browser, dramatically decreasing the options to do things the way you want. 
+* They store things in way too fancy formats (xml, rdf, sqlite, ... ) which are hard to store under version control, reuse in other scripts, ...
 
-- each instance of uzbl renders 1 page (eg it's a small wrapper around webkit), no tabbing, tab previews, or speed dial things. we have window managers for that.
-  -> well actually, there is lots of dicussion about this, i'll probably implement a basic form of tabbing.
-- simple ini config file ("profile") for keyboard, network,.. settings
-- implement some basic keyboard shortcuts for going up, down, refresh etc. preferably vim-like command style.
-- listen to signals and do useful stuff when triggered.
-- open up a socket file/fifo/.. so we can easily control each instance by writing things like 'uri <foo>' to /tmp/uzbl-windowid
-- MAYBE (if needed): 1 control application called uzblctrl or something. use this to modify the behavior of a uzbl instance (change url, refresh).  use xdotool to get the window with focus.  eg uzblctrl -win <id> -url <http://>.
-  use xbindkeys to bind keys to call uzblctrl.
-- no bookmark management builtin.  make your own solution.  for pulling a bookmark a plaintxt-based program using dmenu would work great here. combine with uzbltcrl and xbindkeys.
-  uzblctrl should support an option to query the current page so you can script something to add to your bookmarks.  use zenity or something to add tags.
-- history: log 'Y-m-d H:M:S <url>' entries to a plaintext file. you can then use dmenu or whatever to select an entry and pipe the output to uzbl's fifo.
-- no ad blocking built in (I think). 
-  alternatives:
-  ->  /etc/hosts (not very good cause you need root and it affects the whole system)-> uzblctrl would need to support an option to list all images on a page, so you can easily pick the links to ads to add them to your /etc/hosts. (dmenu can again be great here to automate this)
-  -> privoxy looks cool and perfectly demonstrates the unix philosphy.
-- no download manager. allow user to pick wget/curl/a custom script/... 
-- no build in command interpreters like ubiquity.  uzbl should be accessible and you should use a shell or similar.
-- no "clear cookies/cache/..." menu items. rm ~/$XDG_{DATA,CACHE}_DIR/uzbl/{cache,cookies}/* 
-- vimperator/konqueror-like hyperlink following.
-- password management. maybe an encrypted store that unlocks with an ssh key?
-- use the XDG basedir spec for separation of config, data and cache. and state will be a subdir in the config dir (not part of the spec yet) too.
+Time to change that!
 
-WIDGET ROADMAP:
-* statusbar? (the bar you see in pretty much every gtk program at the bottom. eg firefox)
-  consumes too much space (if always visible) for the little it is used.  (+ you can put only 1 message in it at a time!)
-  -> option 1: no statusbar at all. when hovering over a link (or pressing key to preview the url without changing page) -> show url in tooltip on page.
-  -> option 2: toggle visibility of statusbar on/off when hovering over a link. since it's at the bottom I don't think it will disturb too much.
-* viewing progress/state of pageload?  most programs use statusbar for this.
-  -> option 1: titlebar can show a percentage when it's loading a new page.
-  -> option 2: toggle a statusbar everytime we start loading a new page.
-* uri bar -> yes, even though we can write stuff to the fifo, it can still be convenient to change the url manually and stuff, so a widget in uzbl itself is good.
-* tabs -> yes. you don't have to use them, but you can.
-* back/forward/.. buttons? -> no: use keyboard shortcuts.
-* searching in a page? not sure.. maybe we can abuse the statusbar for that too.
-  eg toggle it on when the user wants to search for something and then do searching in some vim-like fashion.
-  we don't need a gtk text entry widget, just a feedback display of what the current command is.
-* scrollbar? no: use keyboard shortcuts.  we should however have some info about the page length and where we are.
-  -> option 1: put a percentage in the window title
-  -> option 2: everytime you hit a key to change position, temporarily make a statusbar visible and put the percentage in the statusbar.
-  what will we do with pages who are too wide? horizontal scrolling?
-all of the above goes in 1 bar at the top of the program. there should be a key to toggle visibility of it and one to toggle visibilety + focus on the entrybar at once.
+  Here are the general ideas:
 
-input welcome!
+* each instance of uzbl renders 1 page (eg it's a small wrapper around webkit), no tabbing, tab previews, or speed dial things.
+  For "multiple instances management" use your window managers, or scripts. 
+  This way you can get something much more useful than tabbing (see rationale in docs)
+* very simple, plaintext , changeable at runtime configuration
+* various interfaces for (programmatic) interaction with uzbl (see below)
+* customizable keyboard shortcuts in vim or emacs style (whatever user wants)
+* "outsource" logic that is not browsing to external scripts under the users control:
+    - managing bookmarks
+    - loading a url from bookmarks, history,..  Editing the curent url
+    - control cookies
+    - handling of downloads, history logging, etc.
+    - management of cache.
+    - password management
+    - Leverage the power of utilities such as grep, awk, dmenu, zenity, wget, gnupg (password file) etc.
+* listen to signals and do useful stuff when triggered.
+* no ad blocking built in.
+  Alternatives:
+    - privoxy looks cool and perfectly demonstrates the unix philosphy.
+    - same for http://bfilter.sourceforge.net
+    - /etc/hosts (not very good cause you need root and it affects the whole system)
+      uzblctrl would need to support an option to list all images on a page, so you can easily pick the links to ads to add them to your /etc/hosts.
+* vimperator/konqueror-like hyperlink following.
+* password management. maybe an encrypted store that unlocks with an ssh key?
+* no messing in the users $HOME or in /etc: no writing of anything unless the user (or sysadmin) asks for it.
+  We recommend using XDG basedir spec for separation of config, data and cache. and state should be a subdir in the config dir (not part of the spec yet) too.
 
 
-HISTORY FILE SIZE/PERFORMANCE
-each new pageload -> fopen(history_file, "a"), fwrite one line, fclose.
-I use utf8, so unless you use characters that are "special" (chinese etc)
-each character takes 1 byte.
-So, assume each entry is about 80 chars, you visit 100 pages per day (?), and you wonder when your history file will be 50MB big:
-(50 * 1000 * 1000 ) / ( 80 * 100 ) = 6250 days or 17 years.
-There is code to run a benchmark in the 'extra' dir.  For results & interpretation, see http://dieter.plaetinck.be/poor_mans_dmenu_benchmark
+### CONFIGURATION / CONTROL:
+The general idea is that uzbl by default is very bare bones.  you can send it commands to update settings and perform actions, through various interfaces. (TODO: some default settings)
+For examples, please see the sample config(s).
+There are several interfaces to interact with uzbl:
 
-CONTROL:
-- FIFO opened in /tmp/uzbl_pid
-- See config file for commands
-- Press ESC/i to toggle command/insert mode
+* uzbl --config <filename>: <filename> will be read line by line, and the commands in it will be executed.  useful to configure uzbl at startup.
+  If you have a file in `$XDG_CONFIG_HOME/uzbl/config` (this expands to ~/.config/uzbl/config on most systems) it will be automatically recognized
+* stdin: you can also write commands into stdin
+* interactive: you can enter commands (and bind them to shortcuts, even at runtime)
+  By default, the behaviour is modal (vi style):
+  command mode: every keystroke is interpreted to run commands
+  insert mode: keystrokes are not interpreted so you can enter text into html forms
+  Press ESC/i to toggle command/insert mode
+  But if you don't like modal interfaces, you can set `always_insert_mode` and configure a modkey to execute the commands. (emacs style).
+  There is also support for "chained" commands (multiple characters long) (with backspace/esc shortcuts), and keyworded commands.
+  Also you can have incremental matching on commands or match after pressing return.  (see sampleconfig for more info)
+  Also, copy paste works when typing commands:
+  * insert (paste X cliboard)
+  * shift insert (paste primary selection buffer)
+* FIFO & socket file: if enabled by setting their paths through one of the above means, you can have socket and fifo files available which are very useful to programatically control uzbl (from scripts etc).
+  The advantage of the fifo is you can write plaintxt commands to it, but it's half duplex only (uzbl cannot send a response to you).
+  The socket is full duplex but you need a socket-compatible wrapper such as netcat to work with it, or uzblctrl of course,
+  an utitly we include with uzbl made especially for writing commnands to the socket (and at some point, it will be able to tell you the response
+  too):  `uzblctrl -s <socketfile> -c <command>`
 
-NOTES:
-- My c skills are very rusty, it will take me a while to get back up to speed
-- For more thoughts & ideas see http://bbs.archlinux.org/viewtopic.php?id=67463
+### COMMAND SYNTAX
+TODO
 
-REPO's:
-- http://github.com/Dieterbe/uzbl
-  master -> uzbl stable branch
-  experimental -> bleeding edge stuff that may break. after QA codes gets merged into master
-- various contributors also have their clones on github (http://github.com/dusanx, http://github.com/Barrucadu/uzbl, ...).
-  They may be developing specific features, which get merged into Dieters experimental branch
+### VARIABLE REPLACEMENT
+Some of the variables are interpreted:
+
+* title bar: variable replacement (long and short version, depending if statusbar is visible or not)
+* user agent: variable replacement
+* statusbar: variable replacement + pango markup
+
+This means you can customize how these things appear, what's shown in them and for the statusbar you can even play with the layout.
+For examples, see the example config.
+For a list of possible variables, see uzbl.h
+For more info about the markup format see http://library.gnome.org/devel/pango/stable/PangoMarkupFormat.html
 
 
-EXTERNAL SCRIPTS
+### EXTERNAL SCRIPTS
 You can use external scripts with uzbl the following ways:
-1) let uzbl call them. these scripts are called handlers in the uzbl config. used for handling logging history, handling a new download,.. 
-2) call them yourself from inside uzbl.  you can bind keys for this. examples: add new bookmark, load new url,..
-3) if you want to call scripts that have no option, you can trigger them with something like xbindkeys. example: ? (we try to keep all possibilities inside option 1/2)
+
+* let uzbl call them. these scripts are called handlers in the uzbl config. used for handling logging history, handling a new download,.. 
+* call them yourself from inside uzbl.  you can bind keys for this. examples: add new bookmark, load new url,..
+* You could also use xbindkeys or your WM config to trigger scripts if uzbl does not have focus
+
+Have a look at the sample configs and scripts!
 
 Scripts that are called by uzbl are passed the following arguments:
-$1 uzbl-config-file
-$2 uzbl-pid
-$3 uzbl-x-window-id
-$4 uzbl_fifo-filename
-$5 uzbl_socket-filename
-$6 current page url
-$7 current page title
-.. [ script specific ] (optional)
+
+    $1 uzbl-config-file
+    $2 uzbl-pid
+    $3 uzbl-x-window-id
+    $4 uzbl_fifo-filename
+    $5 uzbl_socket-filename
+    $6 current page url
+    $7 current page title
+    .. [ script specific ] (optional)
 
 The script specific arguments are this:
+
 * history:
-  $8 date of visit (Y-m-d H:i:s localtime)
+
+    $8 date of visit (Y-m-d H:i:s localtime)
+
 * add bookmark:
-  none
+
+    none
+
 * download:
-  $8 url of item to download
+
+    $8 url of item to download
+
 * cookie handler
-  $8 GET/PUT
-  $9 request address host (if current page url is www.foo.com/somepage, this could be something else then foo, eg advertising from another host)
-  $10 request address path
-  $11 cookie (only with PUT requests)
 
-KNOWN BUGS
-- Segfaults when using zoom commands (happens when max zoom already reached?).
-- Something in the FIFO code causes CPU usage to jump.
+    $8 GET/PUT
+    $9 request address host (if current page url is www.foo.com/somepage, this could be something else then foo, eg advertising from another host)
+    $10 request address path
+    $11 cookie (only with PUT requests)
 
-Report new issues @ uzbl.org/bugs
+
+### COMMAND LINE ARGUMENTS
+
+    -u, --uri=URI            Uri to load (equivalent to 'set uri = URI')
+    -v, --verbose=VERBOSE    Whether to print all messages or just errors.
+    -n, --name=NAME          Name of the current instance (defaults to Xorg window id)
+    -c, --config=FILE        Config file (this is pretty much equivalent to uzbl < FILE )
+    --display=DISPLAY        X display to use
+    --help                   Help
+
+
+### BUGS
+known bugs:
+
+* Segfaults when using zoom commands (happens when max zoom already reached?).
+
+Please report new issues @ uzbl.org/bugs
+
+

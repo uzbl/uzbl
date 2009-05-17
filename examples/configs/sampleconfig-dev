@@ -1,71 +1,95 @@
 
 # example uzbl config. in a real config, we should obey the xdg spec
-
-# all keys in the behavior group are optional.  if not set, the corresponding behavior is disabed.
-# bindings_internal denote keys to trigger actions internally in uzbl
-# bindings_external denote keys to trigger scripts outside uzbl
+# all settings are optional.  you can use uzbl without any config at all (but it won't do much)
 
 # keyboard behavior is vimstyle by default (all actions -> 1 key). set
 # always_insert_mode to always be in insert mode and disable going out of it.
 # if you do this, make sure you've set a modkey so you can reach the actions
 # from insert mode by combining them with the modkey
 
-[behavior]
-history_handler = ./examples/scripts/history.sh
-download_handler = ./examples/scripts/download.sh
-fifo_dir = /tmp
-socket_dir = /tmp
-always_insert_mode = 0
-modkey = Mod1
-show_status = 1
-status_top = 0
-status_format = <span font_family="monospace"><span background="khaki" foreground="black">MODE</span> [<span weight="bold" foreground="red">KEYCMD</span>] <span foreground="#606060"> LOAD_PROGRESSBAR </span><span foreground="#99FF66">URI</span> <span foreground="khaki">NAME</span></span>
+# TODO: ability to attach misc things (spawn <foo>, script <bar>,.. to internal events)
+set history_handler  = ./examples/scripts/history.sh
+set download_handler = ./examples/scripts/download.sh
+#set cookie_handler   = ./examples/scripts/cookies.sh not done yet..
+set minimum_font_size = 6
+set default_font_size = 11
+
+# use with bind ... = sh <shell-oneliner>
+# notice the '' - it's a spacer to keep bash and sh from shifting the positional parameters
+# by one, so they will appear in the same position as with scripts invoked via spawn
+set shell_cmd         = sh -c %s ''
+
+
+
+# Behaviour and appearance
+set show_status       = 1
 # you can optionally use this setting to override the background color of the statusbar from your GTK theme.
-status_background = #303030
+set status_background = #303030
+set status_format     = <span font_family="monospace"><span background="khaki" foreground="black">MODE</span> [<span weight="bold" foreground="red">KEYCMD</span>] <span foreground="#606060"> LOAD_PROGRESSBAR </span><span foreground="#99FF66">URI</span> <span foreground="khaki">NAME</span> <span foreground="orange">MSG</span><span foreground="#606060">SELECTED_URI</span></span>
+set status_top = 0
+# define how your titlebar should look like. (short = statusbar is also shown, long = show everything you must see if statusbar is off)
+set title_format_short = TITLE - Uzbl browser <NAME>
+set title_format_long = KEYCMD MODE TITLE - Uzbl browser <NAME> > SELECTED_URI
 
-[bindings]
-# scroll down/up/left/right
-j = scroll_vert 20
-k = scroll_vert -20
-h = scroll_horz -20
-l = scroll_horz 20
-b = back
-m = forward
-s = stop
-r = reload
-R = reload_ign_cache
-+ = zoom_in
-- = zoom_out
-t = toggle_status
-#hilight matches
-/_ = search %s
+set modkey = Mod1
+# reset to command mode when new page is loaded
+set reset_command_mode = 1
+# this var has precedence over reset_command_mode
+set always_insert_mode = 0
+# to start a local socks server, do : ssh -fND localhost:8118 localhost
+#set proxy_url = http://127.0.0.1:8118
+#values 0-3
+#set	http_debug = 0
+#set	useragent	uzbl (Webkit %webkit-major%.%webkit-minor%.%webkit-micro%)
+# Example user agent containing everything:
+#set	useragent	Uzbl (Webkit %webkit-major%.%webkit-minor%.%webkit-micro%) (%sysname% %nodename% %kernrel% %kernver% %arch-system% [%arch-uzbl%]) (Commit %commit%)
+#set	max_conns	0
+#set	max_conns_host	0
+
+set fifo_dir = /tmp
+set socket_dir = /tmp
+
+# Key bindings
+bind    j         = scroll_vert 20
+bind    k         = scroll_vert -20
+bind    h         = scroll_horz -20
+bind    l         = scroll_horz 20
+bind    <<        = scroll_begin
+bind    >>        = scroll_end
+bind    b         = back
+bind    m         = forward
+bind    s         = stop
+bind    r         = reload
+bind    R         = reload_ign_cache
+bind    +         = zoom_in
+bind    -         = zoom_out
+bind    t         = toggle_status
+# Hilight matches. Notice the * after the slash - it makes the command incremental, i.e. gets called
+# on every character you type.  You can do `bind /_ = search %s' if you want it less interactive.
+bind    /*        = search %s
 #jump to next
-; = search
-gh      = uri http://www.uzbl.org
-o _     = uri %s
-:wiki _ = uri http://wiki.archlinux.org/index.php/Special:Search?search=%s&go=Go
-gg _    = uri http://www.google.com/search?q=%s
-i = insert_mode
-B = spawn ./examples/scripts/insert_bookmark.sh
-u = spawn ./examples/scripts/load_url_from_history.sh
-U = spawn ./examples/scripts/load_url_from_bookmarks.sh
-ZZ = exit
-S = script alert("hi");
-
+bind    ;         = search
+bind    gh        = uri http://www.uzbl.org
+#TODO: set uri?
+bind    o _       = uri %s
+bind    :wiki _   = uri http://wiki.archlinux.org/index.php/Special:Search?search=%s&go=Go
+bind    gg _      = uri http://www.google.com/search?q=%s
+bind    i         = insert_mode
+#TODO: no 'toggle' command?
+bind    B         = spawn ./examples/scripts/insert_bookmark.sh
+bind    U         = spawn ./examples/scripts/load_url_from_history.sh
+bind    u         = spawn ./examples/scripts/load_url_from_bookmarks.sh
+bind    ZZ        = exit
+bind    S         = script alert("hi");
+# example showing how to use sh
+# it sends a command to the fifo, whose path is told via a positional param
+# if fifo_dir is not set, it'll echo to a file named (null) somewhere >:) remember to delete it
+bind    XS        = sh 'echo "act script alert (\"This is sent by the shell via a fifo\")" > "$4"'
 # Keyboard based link following: work in progress! No C DOM bindings yet, no click() event for hyperlinks so no referrer set..Quite basic but does the job for now...
 #hit F to toggle the Hints (now in form of link numbering)
-F = script for (var i=0; i < document.links.length; i++) {var uzblid = 'uzbl_link_hint_';var li = document.links[i];var pre = document.getElementById(uzblid+i);if (pre) {li.removeChild(pre);} else {var hint = document.createElement('div');hint.setAttribute('id',uzblid+i);hint.innerHTML = i;hint.style.display='inline';hint.style.lineHeight='90%';hint.style.backgroundColor='red';hint.style.color='white';hint.style.fontSize='small-xx';hint.style.fontWeight='light';hint.style.margin='0px';hint.style.padding='2px';hint.style.position='absolute';hint.style.textDecoration='none';hint.style.left=li.style.left;hint.style.top=li.style.top;li.insertAdjacentElement('afterBegin',hint);}}
+bind    F= script for (var i=0; i < document.links.length; i++) {var uzblid = 'uzbl_link_hint_';var li = document.links[i];var pre = document.getElementById(uzblid+i);if (pre) {li.removeChild(pre);} else {var hint = document.createElement('div');hint.setAttribute('id',uzblid+i);hint.innerHTML = i;hint.style.display='inline';hint.style.lineHeight='90%';hint.style.backgroundColor='red';hint.style.color='white';hint.style.fontSize='small-xx';hint.style.fontWeight='light';hint.style.margin='0px';hint.style.padding='2px';hint.style.position='absolute';hint.style.textDecoration='none';hint.style.left=li.style.left;hint.style.top=li.style.top;li.insertAdjacentElement('afterBegin',hint);}}
 #hit f followed by linknumber and ENTER to follow that link
-f_ = script window.location = document.links[%s].href;
+bind    f_        = script window.location = document.links[%s].href;
 
-[network]
-# to start a local socks server, do : ssh -fND localhost:8118 localhost
-#proxy_server = http://127.0.0.1:8118
-#values 0-3
-http_debug = 0
-user-agent = uzbl (Webkit %webkit-major%.%webkit-minor%.%webkit-micro%)
-# Example user agent containing everything:
-#user-agent = Uzbl (Webkit %webkit-major%.%webkit-minor%.%webkit-micro%) (%sysname% %nodename% %kernrel% %kernver% %arch-system% [%arch-uzbl%]) (Commit %commit%)
-max_conns = 
-max_conns_per_host = 
-
+# "home" page if you will
+set uri = uzbl.org
