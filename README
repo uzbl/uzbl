@@ -117,7 +117,8 @@ Examples:
 
     # uzbl will load the url when you type: 'o <url><enter>'
     bind o _ = uri %s
-    # a search action which is called on every character you type after the slash, letting you see the search narrow down on the words as you type it.  Hitting return, enter or esc will terminate the search.
+    # a search action which is called on every character typed after the slash, letting you see the search narrow down while typing.
+    #  Hitting return, enter or esc will terminate the search.
     bind /*  = search %s
     # when you type `ZZ` and nothing else, the exit action will be triggered immediately.
     bind ZZ  = exit
@@ -134,35 +135,35 @@ For example, if you have a binding like "o _" that opens an URL, then you could 
 Actions are invoked via bindings and by the ACT command.  Most actions are self-explanatory, though a few need to be clarified.  A list of
 actions follows:
 
-    * `back`
-    * `forward`
-    * `scroll_vert <amount>`
-    * `scroll_horiz <amount>`
-    * `scroll_begin`
-    * `scroll_end`
-    * `reload`
-    * `reload_ign_cache`
-    * `stop`
-    * `zoom_in`
-    * `zoom_out`
-    * `uri <address>`
-    * `script <body>`
-        - execute the javascript in `<body>`
-        - remember that the commands, and thus actions, must not contain line breaks
-    * `toggle_status`
-    * `spawn <executable> <additonal args>`
-        - runs a command; see EXTERNAL SCRIPTS for details
-        - PATH is searched so giving the full path to commands is not neccessary
-        - note that the arguments as specified in "EXTERNAL SCRIPTS" are appended at the end, so the argument numbers will be higher.
-    * `sh <command>`
-        - runs a shell command by expanding `%s` in the `shell_cmd` variable with the specified command; primarily useful as a shortcut for `spawn sh -c <body>`
-        - note that the arguments as specified in "EXTERNAL SCRIPTS" are appended at the end, so the argument numbers will be higher.
-    * `exit`
-    * `search <string>`
-    * `search_reverse <string>`
-    * `insert_mode`
-    * `runcmd`
-        - can be used for running a command such as SET or BIND
+* `back`
+* `forward`
+* `scroll_vert <amount>`
+* `scroll_horiz <amount>`
+* `scroll_begin`
+* `scroll_end`
+* `reload`
+* `reload_ign_cache`
+* `stop`
+* `zoom_in`
+* `zoom_out`
+* `uri <address>`
+* `script <body>`
+   - execute the javascript in `<body>`
+   - remember that the commands, and thus actions, must not contain line breaks
+* `toggle_status`
+* `spawn <executable> <additonal args>`
+   - runs a command; see EXTERNAL SCRIPTS for details
+   - PATH is searched so giving the full path to commands is not neccessary
+   - note that the arguments as specified in "EXTERNAL SCRIPTS" are appended at the end, so the argument numbers will be higher.
+* `sh <command>`
+   - runs a shell command by expanding `%s` in the `shell_cmd` variable with the specified command; primarily useful as a shortcut for `spawn sh -c <body>`
+   - note that the arguments as specified in "EXTERNAL SCRIPTS" are appended at the end, so the argument numbers will be higher.
+* `exit`
+* `search <string>`
+* `search_reverse <string>`
+* `insert_mode`
+* `runcmd`
+   - can be used for running a command such as SET or BIND
 
 
 ### VARIABLE REPLACEMENT
