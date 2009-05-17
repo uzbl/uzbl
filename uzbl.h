@@ -270,7 +270,7 @@ static void
 close_uzbl (WebKitWebView *page, const char *param);
 
 static gboolean
-run_command(const char *command, const char *args, const gboolean sync, char **stdout);
+run_command(const gchar *command, const gchar **args, const gboolean sync, char **stdout);
 
 static void
 spawn(WebKitWebView *web_view, const char *param);
@@ -331,6 +331,9 @@ create_mainbar ();
 
 static
 GtkWidget* create_window ();
+
+static void
+run_handler (const gchar *act);
 
 static void
 add_binding (const gchar *key, const gchar *act);
