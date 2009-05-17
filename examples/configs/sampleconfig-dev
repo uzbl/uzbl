@@ -77,7 +77,7 @@ bind    gh        = uri http://www.uzbl.org
 bind    o _       = uri %s
 bind    :wiki _   = uri http://wiki.archlinux.org/index.php/Special:Search?search=%s&go=Go
 bind    gg _      = uri http://www.google.com/search?q=%s
-bind    i         = insert_mode
+bind    i         = toggle_insert_mode
 #TODO: no 'toggle' command?
 bind    B         = spawn ./examples/scripts/insert_bookmark.sh
 bind    U         = spawn ./examples/scripts/load_url_from_history.sh

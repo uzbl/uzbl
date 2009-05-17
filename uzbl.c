@@ -394,27 +394,27 @@ VIEWFUNC(go_forward)
 
 static struct {char *name; Command command;} cmdlist[] =
 {
-    { "back",             view_go_back            },
-    { "forward",          view_go_forward         },
-    { "scroll_vert",      scroll_vert             },
-    { "scroll_horz",      scroll_horz             },
-    { "scroll_begin",     scroll_begin            },
-    { "scroll_end",       scroll_end              },
-    { "reload",           view_reload,            },
-    { "reload_ign_cache", view_reload_bypass_cache},
-    { "stop",             view_stop_loading,      },
-    { "zoom_in",          view_zoom_in,           }, //Can crash (when max zoom reached?).
-    { "zoom_out",         view_zoom_out,          },
-    { "uri",              load_uri                },
-    { "script",           run_js                  },
-    { "toggle_status",    toggle_status_cb        },
-    { "spawn",            spawn                   },
-    { "sh",               spawn_sh                },
-    { "exit",             close_uzbl              },
-    { "search",           search_forward_text     },
-    { "search_reverse",   search_reverse_text     },
-    { "insert_mode",      set_insert_mode         },
-    { "runcmd",           runcmd                  }
+    { "back",               view_go_back            },
+    { "forward",            view_go_forward         },
+    { "scroll_vert",        scroll_vert             },
+    { "scroll_horz",        scroll_horz             },
+    { "scroll_begin",       scroll_begin            },
+    { "scroll_end",         scroll_end              },
+    { "reload",             view_reload,            },
+    { "reload_ign_cache",   view_reload_bypass_cache},
+    { "stop",               view_stop_loading,      },
+    { "zoom_in",            view_zoom_in,           }, //Can crash (when max zoom reached?).
+    { "zoom_out",           view_zoom_out,          },
+    { "uri",                load_uri                },
+    { "script",             run_js                  },
+    { "toggle_status",      toggle_status_cb        },
+    { "spawn",              spawn                   },
+    { "sh",                 spawn_sh                },
+    { "exit",               close_uzbl              },
+    { "search",             search_forward_text     },
+    { "search_reverse",     search_reverse_text     },
+    { "toggle_insert_mode", toggle_insert_mode      },
+    { "runcmd",             runcmd                  }
 };
 
 static void
@@ -457,11 +457,11 @@ file_exists (const char * filename) {
 }
 
 void
-set_insert_mode(WebKitWebView *page, const gchar *param) {
+toggle_insert_mode(WebKitWebView *page, const gchar *param) {
     (void)page;
     (void)param;
 
-    uzbl.behave.insert_mode = TRUE;
+    uzbl.behave.insert_mode = ! uzbl.behave.insert_mode;
     update_title();
 }
 

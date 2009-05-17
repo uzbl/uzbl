@@ -161,7 +161,7 @@ actions follows:
 * `exit`
 * `search <string>`
 * `search_reverse <string>`
-* `insert_mode`
+* `toggle_insert_mode`
 * `runcmd`
    - can be used for running a command such as SET or BIND
 

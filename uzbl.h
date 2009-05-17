@@ -258,7 +258,7 @@ static bool
 file_exists (const char * filename);
 
 void
-set_insert_mode(WebKitWebView *page, const gchar *param);
+toggle_insert_mode(WebKitWebView *page, const gchar *param);
 
 static void
 load_uri (WebKitWebView * web_view, const gchar *param);
