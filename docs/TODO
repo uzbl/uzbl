@@ -14,6 +14,7 @@ More or less in order of importance/urgency
 * implement getting feedback from socket
 * scrolling: make page up and page down configurable.
 * show % of location in statusbar/title if page doesn't fit entirely on view.
+* conditionals in format strings: eg if(SELECTED_URI) { "-> SELECTED_URI" } or another smart way to achieve the same.
 * make default window size configurable, and optional
 * on uzbl.org commits overview: add date+time and repository
 * how to handle different content types? (text-plain, image/png, application/pdf,... maybe a map of content-type to uzbl/command
@@ -34,7 +35,6 @@ More or less in order of importance/urgency
 * improve DCOMMIT macro.  what if WC is dirty? what if user downloaded tarball without .git?
 * DARCH is not correct (should be at runtime)
 * keybinds to open "next" or "previous" by looking for next/prev links and/or looking for numbers in the uri we can inc/decrement
-* variable replacing for title bar in "statusbar_visible" and statusbar_invisible states
 * settings iterating "state generator" so we can "open in new window" again.
 * handler for (broken) ssl certs.
 * handlers for mailto: and maybe other thingies?

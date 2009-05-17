@@ -12,12 +12,16 @@
  */
 
 #define STATUS_DEFAULT "<span background=\"darkblue\" foreground=\"white\"> MODE </span> <span background=\"red\" foreground=\"white\">KEYCMD</span> (LOAD_PROGRESS%)  <b>TITLE</b>  - Uzbl browser"
+#define TITLE_LONG_DEFAULT "KEYCMD MODE TITLE - Uzbl browser <NAME> > SELECTED_URI"
+#define TITLE_SHORT_DEFAULT "TITLE - Uzbl browser <NAME>"
+
 
 enum {
   /* statusbar symbols */
   SYM_TITLE, SYM_URI, SYM_NAME,
   SYM_LOADPRGS, SYM_LOADPRGSBAR,
   SYM_KEYCMD, SYM_MODE, SYM_MSG,
+  SYM_SELECTED_URI,
   /* useragent symbols */
   SYM_WK_MAJ, SYM_WK_MIN, SYM_WK_MIC,
   SYM_SYSNAME, SYM_NODENAME,
@@ -33,6 +37,7 @@ const struct {
     {"NAME",                 SYM_NAME},
     {"URI",                  SYM_URI},
     {"TITLE",                SYM_TITLE},
+    {"SELECTED_URI",         SYM_SELECTED_URI},
     {"KEYCMD",               SYM_KEYCMD},
     {"MODE",                 SYM_MODE},
     {"MSG",                  SYM_MSG},
@@ -124,6 +129,8 @@ typedef struct {
 typedef struct {
     gchar*   load_finish_handler;
     gchar*   status_format;
+    gchar*   title_format_short;
+    gchar*   title_format_long;
     gchar*   status_background;
     gchar*   history_handler;
     gchar*   fifo_dir;

@@ -69,6 +69,8 @@ const struct {
     { "status_top",         (void *)&uzbl.behave.status_top         },
     { "status_format",      (void *)&uzbl.behave.status_format      },
     { "status_background",  (void *)&uzbl.behave.status_background  },
+    { "title_format_long",  (void *)&uzbl.behave.title_format_long  },
+    { "title_format_short", (void *)&uzbl.behave.title_format_short },
     { "insert_mode",        (void *)&uzbl.behave.insert_mode        },
     { "always_insert_mode", (void *)&uzbl.behave.always_insert_mode },
     { "reset_command_mode", (void *)&uzbl.behave.reset_command_mode },
@@ -301,7 +303,7 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
     (void) page;
     (void) title;
     (void) data;
-    //ADD HOVER URL TO WINDOW TITLE
+    //Set selected_url state variable
     uzbl.state.selected_url[0] = '\0';
     if (link) {
         strcpy (uzbl.state.selected_url, link);
@@ -632,6 +634,11 @@ expand_template(const char *template) {
                          uzbl.gui.main_title?
                          g_markup_printf_escaped("%s", uzbl.gui.main_title):"");
                      break;
+                 case SYM_SELECTED_URI:
+                     g_string_append(ret,
+                         uzbl.state.selected_url?
+                         g_markup_printf_escaped("%s", uzbl.state.selected_url):"");
+                    break;
                  case SYM_NAME:
                      buf = itos(uzbl.xwin);
                      g_string_append(ret,
@@ -795,7 +802,9 @@ get_var_value(gchar *name) {
 
     if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         if(var_is("status_format", name)
-           || var_is("useragent", name)) {
+           || var_is("useragent", name)
+           || var_is("title_format_short", name)
+           || var_is("title_format_long", name)) {
             printf("VAR: %s VALUE: %s\n", name, (char *)*p);
         } else printf("VAR: %s VALUE: %d\n", name, (int)*p);
     }
@@ -856,6 +865,8 @@ set_var_value(gchar *name, gchar *val) {
         if(var_is("status_message", name)
            || var_is("status_background", name)
            || var_is("status_format", name)
+           || var_is("title_format_long", name)
+           || var_is("title_format_short", name)
            || var_is("load_finish_handler", name)
            || var_is("history_handler", name)
            || var_is("download_handler", name)
@@ -1249,42 +1260,11 @@ init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL *
 
 static void
 update_title (void) {
-    GString* string_long = g_string_new ("");
-    GString* string_short = g_string_new ("");
-    char* iname = NULL;
-    gchar *statln;
-    int iname_len;
-    State *s = &uzbl.state;
     Behaviour *b = &uzbl.behave;
 
-    if(s->instance_name) {
-            iname_len = strlen(s->instance_name)+4;
-            iname = malloc(iname_len);
-            snprintf(iname, iname_len, "<%s> ", s->instance_name);
-
-            g_string_prepend(string_long, iname);
-            g_string_prepend(string_short, iname);
-            free(iname);
-    }
-
-    g_string_append_printf(string_long, "%s ", s->keycmd->str);
-    if (!b->always_insert_mode)
-        g_string_append (string_long, (b->insert_mode ? "[I] " : "[C] "));
-    if (uzbl.gui.main_title) {
-        g_string_append (string_long, uzbl.gui.main_title);
-        g_string_append (string_short, uzbl.gui.main_title);
-    }
-    g_string_append (string_long, " - Uzbl browser");
-    g_string_append (string_short, " - Uzbl browser");
-    if (s->selected_url[0]!=0) {
-        g_string_append_printf (string_long, " -> (%s)", s->selected_url);
-    }
-
-    gchar* title_long = g_string_free (string_long, FALSE);
-    gchar* title_short = g_string_free (string_short, FALSE);
-
     if (b->show_status) {
-        gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), title_short);
+        gchar *statln;
+        gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), expand_template(b->title_format_short));
         // TODO: we should probably not do this every time we want to update the title..?
         statln = expand_template(uzbl.behave.status_format);
         gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), statln);
@@ -1296,11 +1276,8 @@ update_title (void) {
         }
         g_free(statln);
     } else {
-        gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), title_long);
+        gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), expand_template(b->title_format_long));
     }
-
-    g_free (title_long);
-    g_free (title_short);
 }
 
 static gboolean
@@ -1591,6 +1568,11 @@ settings_init () {
     }
     if (!uzbl.behave.status_format)
         uzbl.behave.status_format = g_strdup(STATUS_DEFAULT);
+    if (!uzbl.behave.title_format_long)
+        uzbl.behave.title_format_long = g_strdup(TITLE_LONG_DEFAULT);
+    if (!uzbl.behave.title_format_short)
+        uzbl.behave.title_format_short = g_strdup(TITLE_SHORT_DEFAULT);
+
 
     g_signal_connect(n->soup_session, "request-queued", G_CALLBACK(handle_cookies), NULL);
 }

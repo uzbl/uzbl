@@ -77,7 +77,7 @@ TODO
 ### VARIABLE REPLACEMENT
 Some of the variables are interpreted:
 
-* title bar: variable replacement (not yet actually)
+* title bar: variable replacement (long and short version, depending if statusbar is visible or not)
 * user agent: variable replacement
 * statusbar: variable replacement + pango markup
 
