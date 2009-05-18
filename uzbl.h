@@ -204,6 +204,9 @@ itos(int val);
 static char *
 str_replace (const char* search, const char* replace, const char* string);
 
+static gchar**
+read_file_by_line (gchar *path);
+
 static
 gchar* parseenv (const char* string);
 

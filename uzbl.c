@@ -152,6 +152,33 @@ str_replace (const char* search, const char* replace, const char* string) {
     return g_strjoinv (replace, g_strsplit (string, search, -1));
 }
 
+static gchar**
+read_file_by_line (gchar *path) {
+    GIOChannel *chan = NULL;
+    gchar *readbuf = NULL;
+    gsize len;
+    gchar *lines[512];
+    int i;
+    
+    chan = g_io_channel_new_file(path, "r", NULL);
+    
+    if (chan) {
+        while (g_io_channel_read_line(chan, &readbuf, &len, NULL, NULL)
+               == G_IO_STATUS_NORMAL) {
+            lines[i] = g_strdup (readbuf);
+            g_free (readbuf);
+            i ++;
+        }
+        
+        g_io_channel_unref (chan);
+    } else {
+        fprintf(stderr, "File '%s' not be read.\n", path);
+    }
+    
+    lines[i] = NULL;
+    return lines;
+}
+
 static
 gchar* parseenv (const char* string) {
     extern char** environ;
