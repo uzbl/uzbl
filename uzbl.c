@@ -547,27 +547,20 @@ static void
 run_external_js (WebKitWebView * web_view, const gchar *param) {
     if (param) {
         gchar** splitted = g_strsplit (param, " ", 2);
+        gchar** lines = read_file_by_line (splitted[0]);
+        gchar*  js = NULL;
+        int i;
 
-        GIOChannel *chan = NULL;
-        gchar *readbuf = NULL;
-        gsize len;
-        gchar* js = NULL;
-
-        chan = g_io_channel_new_file(splitted[0], "r", NULL);
-
-        if (chan) {
-            while (g_io_channel_read_line(chan, &readbuf, &len, NULL, NULL)
-                    == G_IO_STATUS_NORMAL) {
+        if (lines[0] != NULL) {
+            for (i = 0; lines[i] != NULL; i ++) {
                 if (js == NULL) {
-                    js = g_strdup (readbuf);
+                    js = g_strdup (lines[i]);
                 } else {
-                    gchar* newjs = g_strconcat (js, readbuf, NULL);
+                    gchar* newjs = g_strconcat (js, lines[i], NULL);
                     js = newjs;
                 }
-                g_free (readbuf);
             }
 
-            g_io_channel_unref (chan);
             if (uzbl.state.verbose)
                 printf ("External JavaScript file %s loaded\n", splitted[0]);
 
