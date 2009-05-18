@@ -168,7 +168,7 @@ gchar* parseenv (const char* string) {
         newstring = str_replace(envname, env[1], newstring);
 
         g_free (envname);
-        //g_free (env); - This breaks uzbl, but I have no idea why.
+        //g_strfreev (env); - This still breaks uzbl, but shouldn't. The mystery thickens...
         i ++;
     }
 
