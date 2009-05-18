@@ -203,6 +203,9 @@ itos(int val);
 static char *
 str_replace (const char* search, const char* replace, const char* string);
 
+static
+gchar* parseenv (const char* string);
+
 static void
 clean_up(void);
 

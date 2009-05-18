@@ -152,6 +152,29 @@ str_replace (const char* search, const char* replace, const char* string) {
     return g_strjoinv (replace, g_strsplit (string, search, -1));
 }
 
+static
+gchar* parseenv (const char* string) {
+    extern char** environ;
+    gchar* newstring = g_strdup (string);
+    int i = 0;
+
+    while (environ[i] != NULL) {
+        gchar** env = g_strsplit (environ[i], "=", 0);
+        gchar* envname = malloc (strlen (env[0]) + 1);
+
+        strcat (envname, "$");
+        strcat (envname, env[0]);
+
+        newstring = str_replace(envname, env[1], newstring);
+
+        g_free (envname);
+        //g_free (env); - This breaks uzbl, but I have no idea why.
+        i ++;
+    }
+
+    return newstring;
+}
+
 static sigfunc*
 setup_signal(int signr, sigfunc *shandler) {
     struct sigaction nh, oh;
@@ -1026,8 +1049,10 @@ parse_cmd_line(const char *ctl_line) {
     if(ctl_line[0] == 's' || ctl_line[0] == 'S') {
         tokens = g_regex_split(uzbl.comm.set_regex, ctl_line, 0);
         if(tokens[0][0] == 0) {
-            set_var_value(tokens[1], tokens[2]);
+            gchar* value = parseenv (tokens[2]);
+            set_var_value(tokens[1], value);
             g_strfreev(tokens);
+            g_free(value);
         }
         else
             printf("Error in command: %s\n", tokens[0]);
@@ -1046,8 +1071,10 @@ parse_cmd_line(const char *ctl_line) {
     else if(ctl_line[0] == 'b' || ctl_line[0] == 'B') {
         tokens = g_regex_split(uzbl.comm.bind_regex, ctl_line, 0);
         if(tokens[0][0] == 0) {
-            add_binding(tokens[1], tokens[2]);
+            gchar* value = parseenv (tokens[2]);
+            add_binding(tokens[1], value);
             g_strfreev(tokens);
+            g_free(value);
         }
         else
             printf("Error in command: %s\n", tokens[0]);
@@ -1672,7 +1699,6 @@ save_cookies (SoupMessage *msg, gpointer user_data){
     g_slist_free(ck);
 }
 
-
 int
 main (int argc, char* argv[]) {
     gtk_init (&argc, &argv);
@@ -1703,7 +1729,6 @@ main (int argc, char* argv[]) {
     setup_scanner();
     commands_hash ();
     make_var_to_name_hash();
-
 
     uzbl.gui.vbox = gtk_vbox_new (FALSE, 0);
 
