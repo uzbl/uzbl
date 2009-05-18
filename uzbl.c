@@ -1507,9 +1507,6 @@ add_binding (const gchar *key, const gchar *act) {
         printf ("Binding %-10s : %s\n", key, act);
 
     action = new_action(parts[0], parts[1]);
-    /* TODO: create hash table with valid destroy functions 
-     *       so we do not leak in this place
-     */
     g_hash_table_replace(uzbl.bindings, g_strdup(key), action);
 
     g_strfreev(parts);
