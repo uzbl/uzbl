@@ -523,7 +523,7 @@ search_text (WebKitWebView *page, const char *param, const gboolean forward) {
     if (uzbl.state.searchtx[0] != '\0') {
         if (uzbl.state.verbose)
             printf ("Searching: %s\n", uzbl.state.searchtx);
-        if (strcmp (uzbl.state.searchtx, uzbl.state.searchold) != 0) {
+        if (uzbl.state.searchold == NULL || strcmp (uzbl.state.searchtx, uzbl.state.searchold) != 0) {
             webkit_web_view_unmark_text_matches (page);
             webkit_web_view_mark_text_matches (page, uzbl.state.searchtx, FALSE, 0);
             uzbl.state.searchold = g_strdup (uzbl.state.searchtx);
