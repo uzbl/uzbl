@@ -1259,6 +1259,8 @@ parse_cmd_line(const char *ctl_line) {
                sent in a loop or the whole string in one go like now? */
             g_string_assign(uzbl.state.keycmd, tokens[1]);
             run_keycmd(FALSE);
+            if (g_strstr_len(ctl_line, 7, "n") || g_strstr_len(ctl_line, 7, "N"))
+                run_keycmd(TRUE);
             update_title();
             g_strfreev(tokens);
         }
