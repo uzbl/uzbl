@@ -626,9 +626,11 @@ expand_template(const char *template) {
              sym = (int)g_scanner_cur_value(uzbl.scan).v_symbol;
              switch(sym) {
                  case SYM_URI:
-                     g_string_append(ret,
-                         uzbl.state.uri?
-                         g_markup_printf_escaped("%s", uzbl.state.uri):"");
+                     buf = uzbl.state.uri?
+                         g_markup_printf_escaped("%s", uzbl.state.uri) :
+                         g_strdup("");
+                     g_string_append(ret, buf);
+                     free(buf);
                      break;
                  case SYM_LOADPRGS:
                      buf = itos(uzbl.gui.sbar.load_progress);
@@ -641,14 +643,18 @@ expand_template(const char *template) {
                      g_free(buf);
                      break;
                  case SYM_TITLE:
-                     g_string_append(ret,
-                         uzbl.gui.main_title?
-                         g_markup_printf_escaped("%s", uzbl.gui.main_title):"");
+                     buf = uzbl.gui.main_title?
+                         g_markup_printf_escaped("%s", uzbl.gui.main_title) :
+                         g_strdup("");
+                     g_string_append(ret, buf);
+                     free(buf);
                      break;
                  case SYM_SELECTED_URI:
-                     g_string_append(ret,
-                         uzbl.state.selected_url?
-                         g_markup_printf_escaped("%s", uzbl.state.selected_url):"");
+                     buf = uzbl.state.selected_url?
+                         g_markup_printf_escaped("%s", uzbl.state.selected_url) :
+                         g_strdup("");
+                     g_string_append(ret, buf);
+                     free(buf);
                     break;
                  case SYM_NAME:
                      buf = itos(uzbl.xwin);
@@ -657,9 +663,11 @@ expand_template(const char *template) {
                      free(buf);
                      break;
                  case SYM_KEYCMD:
-                     g_string_append(ret,
-                         uzbl.state.keycmd->str ?
-                         g_markup_printf_escaped("%s", uzbl.state.keycmd->str):"");
+                     buf = uzbl.state.keycmd->str?
+                         g_markup_printf_escaped("%s", uzbl.state.keycmd->str) :
+                         g_strdup("");
+                     g_string_append(ret, buf);
+                     free(buf);
                      break;
                  case SYM_MODE:
                      g_string_append(ret,
