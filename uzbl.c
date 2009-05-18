@@ -1450,7 +1450,6 @@ create_browser () {
     GUI *g = &uzbl.gui;
 
     GtkWidget* scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-    //main_window_ref = g_object_ref(scrolled_window);
     gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window), GTK_POLICY_NEVER, GTK_POLICY_NEVER); //todo: some sort of display of position/total length. like what emacs does
 
     g->web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
@@ -1475,9 +1474,6 @@ create_mainbar () {
     GUI *g = &uzbl.gui;
 
     g->mainbar = gtk_hbox_new (FALSE, 0);
-
-    /* keep a reference to the bar so we can re-pack it at runtime*/
-    //sbar_ref = g_object_ref(g->mainbar);
 
     g->mainbar_label = gtk_label_new ("");
     gtk_label_set_selectable((GtkLabel *)g->mainbar_label, TRUE);
@@ -1509,11 +1505,12 @@ add_binding (const gchar *key, const gchar *act) {
     //Debug:
     if (uzbl.state.verbose)
         printf ("Binding %-10s : %s\n", key, act);
-    action = new_action(parts[0], parts[1]);
 
-    if(g_hash_table_lookup(uzbl.bindings, key))
-        g_hash_table_remove(uzbl.bindings, key);
-    g_hash_table_insert(uzbl.bindings, g_strdup(key), action);
+    action = new_action(parts[0], parts[1]);
+    /* TODO: create hash table with valid destroy functions 
+     *       so we do not leak in this place
+     */
+    g_hash_table_replace(uzbl.bindings, g_strdup(key), action);
 
     g_strfreev(parts);
 }
