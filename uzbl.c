@@ -1019,9 +1019,8 @@ runcmd(WebKitWebView* page, const char *param) {
 }
 
 static void
-parse_cmd_line(const char *ctl_line_orig) {
+parse_cmd_line(const char *ctl_line) {
     gchar **tokens;
-    gchar *ctl_line = g_strstrip (ctl_line_orig);
 
     /* SET command */
     if(ctl_line[0] == 's' || ctl_line[0] == 'S') {
@@ -1077,8 +1076,8 @@ parse_cmd_line(const char *ctl_line_orig) {
     }
     /* Comments */
     else if(   (ctl_line[0] == '#')
-            || (ctl_line[0] == '\n')
-            || (ctl_line[0] == '\0'))
+            || (ctl_line[0] == ' ')
+            || (ctl_line[0] == '\n'))
         ; /* ignore these lines */
     else
         printf("Command not understood (%s)\n", ctl_line);
@@ -1246,7 +1245,7 @@ control_socket(GIOChannel *chan) {
     }
     close (clientsock);
     ctl_line = g_strdup(buffer);
-    parse_cmd_line(ctl_line);
+    parse_cmd_line (ctl_line);
 
 /*
    TODO: we should be able to do it with this.  but glib errors out with "Invalid argument"
@@ -1602,7 +1601,7 @@ settings_init () {
         if (chan) {
             while (g_io_channel_read_line(chan, &readbuf, &len, NULL, NULL)
                     == G_IO_STATUS_NORMAL) {
-                parse_cmd_line (readbuf);
+                parse_cmd_line(readbuf);
                 g_free (readbuf);
             }
 
