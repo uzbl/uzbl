@@ -270,7 +270,8 @@ static void
 close_uzbl (WebKitWebView *page, const char *param);
 
 static gboolean
-run_command(const gchar *command, const gchar **args, const gboolean sync, char **stdout);
+run_command(const gchar *command, const guint npre,
+            const gchar **args, const gboolean sync, char **stdout);
 
 static void
 spawn(WebKitWebView *web_view, const char *param);
