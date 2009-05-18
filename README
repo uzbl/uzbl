@@ -147,9 +147,11 @@ actions follows:
 * `zoom_in`
 * `zoom_out`
 * `uri <address>`
-* `script <body>`
+* `js <body>`
    - execute the javascript in `<body>`
    - remember that the commands, and thus actions, must not contain line breaks
+* `script <file>`
+   - execute the javascript in `<file>`
 * `toggle_status`
 * `spawn <executable> <additonal args>`
    - runs a command; see EXTERNAL SCRIPTS for details

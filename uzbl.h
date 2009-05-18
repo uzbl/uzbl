@@ -360,6 +360,9 @@ search_reverse_text (WebKitWebView *page, const char *param);
 static void
 run_js (WebKitWebView * web_view, const gchar *param);
 
+static void
+run_external_js (WebKitWebView * web_view, const gchar *param);
+
 static void handle_cookies (SoupSession *session,
 							SoupMessage *msg,
 							gpointer     user_data);

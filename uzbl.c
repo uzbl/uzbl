@@ -429,7 +429,8 @@ static struct {char *name; Command command;} cmdlist[] =
     { "zoom_in",            view_zoom_in,           }, //Can crash (when max zoom reached?).
     { "zoom_out",           view_zoom_out,          },
     { "uri",                load_uri                },
-    { "script",             run_js                  },
+    { "js",                 run_js                  },
+    { "script",             run_external_js         },
     { "toggle_status",      toggle_status_cb        },
     { "spawn",              spawn                   },
     { "sh",                 spawn_sh                },
@@ -513,6 +514,33 @@ static void
 run_js (WebKitWebView * web_view, const gchar *param) {
     if (param)
         webkit_web_view_execute_script (web_view, param);
+}
+
+static void
+run_external_js (WebKitWebView * web_view, const gchar *param) {
+    if (param) {
+        FILE*  fp = fopen (param, "r");
+        gchar* buffer = malloc(512);
+        gchar* js = NULL;
+
+        if (fp != NULL) {
+            while (fgets (buffer, 512, fp) != NULL) {
+                if (js == NULL) {
+                    js = g_strdup ((const gchar*) buffer);
+                } else {
+                    gchar* newjs = g_strconcat (js, buffer, NULL);
+                    js = newjs;
+                }
+                bzero (buffer, strlen (buffer));
+            }
+            webkit_web_view_execute_script (web_view, js);
+        } else {
+            fprintf (stderr, "JavaScript file '%s' not be read.\n", param);
+        }
+        fclose (fp);
+        g_free (buffer);
+        g_free (js);
+    }
 }
 
 static void
