@@ -333,7 +333,7 @@ static
 GtkWidget* create_window ();
 
 static void
-run_handler (const gchar *act);
+run_handler (const gchar *act, const gchar *args);
 
 static void
 add_binding (const gchar *key, const gchar *act);
