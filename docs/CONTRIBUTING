@@ -25,6 +25,10 @@ If you're new to Git/github, have no fear:
 * [Github guides (highly recommended)](http://github.com/guides/home)
 * [Guides: Fork a project and submit your modifications](http://github.com/guides/fork-a-project-and-submit-your-modifications)
 
+Our convention is to develop in the *experimental* branch, and keep only stable, tested stuff in *master*.
+So ideally, all contributors develop in their experimental, that gets merged into the mainline experimental, and after QA it gets merged into the main master.
+
+
 ### VALGRIND PROFILING
 	$ add this to Makefile header: CFLAGS=-g
 	$ recompile
