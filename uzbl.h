@@ -109,6 +109,7 @@ typedef struct {
     char     executable_path[500];
     GString* keycmd;
     gchar    searchtx[500];
+    gchar    searchtxold[500];
     struct utsname unameinfo; /* system info */
     gboolean verbose;
 } State;

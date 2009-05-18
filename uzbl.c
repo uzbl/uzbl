@@ -523,8 +523,11 @@ search_text (WebKitWebView *page, const char *param, const gboolean forward) {
     if (uzbl.state.searchtx[0] != '\0') {
         if (uzbl.state.verbose)
             printf ("Searching: %s\n", uzbl.state.searchtx);
-        webkit_web_view_unmark_text_matches (page);
-        webkit_web_view_mark_text_matches (page, uzbl.state.searchtx, FALSE, 0);
+        if (strcmp (uzbl.state.searchtx, uzbl.state.searchtxold) != 0) {
+            webkit_web_view_unmark_text_matches (page);
+            webkit_web_view_mark_text_matches (page, uzbl.state.searchtx, FALSE, 0);
+            strcpy (uzbl.state.searchtxold, uzbl.state.searchtx);
+        }
         webkit_web_view_set_highlight_text_matches (page, TRUE);
         webkit_web_view_search_text (page, uzbl.state.searchtx, FALSE, forward, TRUE);
     }
