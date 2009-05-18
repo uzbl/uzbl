@@ -8,16 +8,17 @@
 # from insert mode by combining them with the modkey
 
 # TODO: ability to attach misc things (spawn <foo>, script <bar>,.. to internal events)
-set history_handler  = ./examples/scripts/history.sh
-set download_handler = ./examples/scripts/download.sh
+# Usually you want to spawn a script to handle things, but any action (such as sh) can be used
+set history_handler  = spawn ./examples/scripts/history.sh
+set download_handler = spawn ./examples/scripts/download.sh
+
+# TODO: you can't use actions in cookie handler yet.  
 set cookie_handler   = ./examples/scripts/cookies.sh
 set minimum_font_size = 6
 set default_font_size = 11
 
 # use with bind ... = sh <shell-oneliner>
-# notice the '' - it's a spacer to keep bash and sh from shifting the positional parameters
-# by one, so they will appear in the same position as with scripts invoked via spawn
-set shell_cmd         = sh -c %s ''
+set shell_cmd         = sh -c
 
 
 
@@ -79,6 +80,8 @@ bind    :wiki _   = uri http://wiki.archlinux.org/index.php/Special:Search?searc
 bind    gg _      = uri http://www.google.com/search?q=%s
 bind    i         = insert_mode
 #TODO: no 'toggle' command?
+# Enclose the executable in double quotes if it has spaces.  Any additional parameters you use will
+# appear AFTER the default parameters
 bind    B         = spawn ./examples/scripts/insert_bookmark.sh
 bind    U         = spawn ./examples/scripts/load_url_from_history.sh
 bind    u         = spawn ./examples/scripts/load_url_from_bookmarks.sh
@@ -90,7 +93,11 @@ bind    S         = script alert("hi");
 # example showing how to use sh
 # it sends a command to the fifo, whose path is told via a positional param
 # if fifo_dir is not set, it'll echo to a file named (null) somewhere >:) remember to delete it
-bind    XS        = sh 'echo "act script alert (\"This is sent by the shell via a fifo\")" > "$4"'
+# The body of the shell command should be one parameter, so if it has spaces like here,
+# you must enclose it in double quotes.  Remember to escape (and double-escape) quotes and backslashes
+# in the body.  Any additional parameters you use will appear AFTER the default parameters (cfg file
+# path, fifo & socket dirs, etc.)
+bind    XS        = sh "echo \"act script alert (\\\"This is sent by the shell via a fifo\\\")\" > \"$4\""
 # Keyboard based link following: work in progress! No C DOM bindings yet, no click() event for hyperlinks so no referrer set..Quite basic but does the job for now...
 #hit F to toggle the Hints (now in form of link numbering)
 bind    F= script for (var i=0; i < document.links.length; i++) {var uzblid = 'uzbl_link_hint_';var li = document.links[i];var pre = document.getElementById(uzblid+i);if (pre) {li.removeChild(pre);} else {var hint = document.createElement('div');hint.setAttribute('id',uzblid+i);hint.innerHTML = i;hint.style.display='inline';hint.style.lineHeight='90%';hint.style.backgroundColor='red';hint.style.color='white';hint.style.fontSize='small-xx';hint.style.fontWeight='light';hint.style.margin='0px';hint.style.padding='2px';hint.style.position='absolute';hint.style.textDecoration='none';hint.style.left=li.style.left;hint.style.top=li.style.top;li.insertAdjacentElement('afterBegin',hint);}}
