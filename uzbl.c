@@ -456,7 +456,7 @@ file_exists (const char * filename) {
 	return (access(filename, F_OK) == 0);
 }
 
-void
+static void
 set_insert_mode(WebKitWebView *page, const gchar *param) {
     (void)page;
     (void)param;
@@ -1166,14 +1166,10 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
 
 static gboolean
 control_stdin(GIOChannel *gio, GIOCondition condition) {
+    (void) condition;
     gchar *ctl_line = NULL;
     gsize ctl_line_len = 0;
     GIOStatus ret;
-
-    if (condition & G_IO_HUP) {
-        ret = g_io_channel_shutdown (gio, FALSE, NULL);
-        return FALSE;
-    }
 
     ret = g_io_channel_read_line(gio, &ctl_line, &ctl_line_len, NULL, NULL);
     if ( (ret == G_IO_STATUS_ERROR) || (ret == G_IO_STATUS_EOF) )
@@ -1456,7 +1452,6 @@ create_browser () {
     GUI *g = &uzbl.gui;
 
     GtkWidget* scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-    //main_window_ref = g_object_ref(scrolled_window);
     gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window), GTK_POLICY_NEVER, GTK_POLICY_NEVER); //todo: some sort of display of position/total length. like what emacs does
 
     g->web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
@@ -1481,9 +1476,6 @@ create_mainbar () {
     GUI *g = &uzbl.gui;
 
     g->mainbar = gtk_hbox_new (FALSE, 0);
-
-    /* keep a reference to the bar so we can re-pack it at runtime*/
-    //sbar_ref = g_object_ref(g->mainbar);
 
     g->mainbar_label = gtk_label_new ("");
     gtk_label_set_selectable((GtkLabel *)g->mainbar_label, TRUE);
@@ -1515,11 +1507,9 @@ add_binding (const gchar *key, const gchar *act) {
     //Debug:
     if (uzbl.state.verbose)
         printf ("Binding %-10s : %s\n", key, act);
-    action = new_action(parts[0], parts[1]);
 
-    if(g_hash_table_lookup(uzbl.bindings, key))
-        g_hash_table_remove(uzbl.bindings, key);
-    g_hash_table_insert(uzbl.bindings, g_strdup(key), action);
+    action = new_action(parts[0], parts[1]);
+    g_hash_table_replace(uzbl.bindings, g_strdup(key), action);
 
     g_strfreev(parts);
 }
