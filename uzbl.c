@@ -521,31 +521,38 @@ run_external_js (WebKitWebView * web_view, const gchar *param) {
     if (param) {
         gchar** splitted = g_strsplit (param, " ", 2);
 
-        FILE*  fp = fopen (splitted[0], "r");
-        gchar* buffer = malloc(512);
+        GIOChannel *chan = NULL;
+        gchar *readbuf = NULL;
+        gsize len;
         gchar* js = NULL;
 
-        if (fp != NULL) {
-            while (fgets (buffer, 512, fp) != NULL) {
+        chan = g_io_channel_new_file(splitted[0], "r", NULL);
+
+        if (chan) {
+            while (g_io_channel_read_line(chan, &readbuf, &len, NULL, NULL)
+                    == G_IO_STATUS_NORMAL) {
                 if (js == NULL) {
-                    js = g_strdup ((const gchar*) buffer);
+                    js = g_strdup (readbuf);
                 } else {
-                    gchar* newjs = g_strconcat (js, buffer, NULL);
+                    gchar* newjs = g_strconcat (js, readbuf, NULL);
                     js = newjs;
                 }
-                bzero (buffer, strlen (buffer));
+                g_free (readbuf);
             }
+
+            g_io_channel_unref (chan);
+            if (uzbl.state.verbose)
+                printf ("External JavaScript file %s loaded\n", splitted[0]);
+
             if (splitted[1]) {
                 gchar* newjs = str_replace("%s", splitted[1], js);
                 js = newjs;
             }
             webkit_web_view_execute_script (web_view, js);
+            g_free (js);
         } else {
-            fprintf (stderr, "JavaScript file '%s' not be read.\n", param);
+            fprintf(stderr, "JavaScript file '%s' not be read.\n", splitted[0]);
         }
-        fclose (fp);
-        g_free (buffer);
-        g_free (js);
     }
 }
 
