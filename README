@@ -129,6 +129,9 @@ This tells uzbl to execute an action immediately.  The simplest example of this 
     KEYCMD <string>
 This sets the interactive command buffer to `<string>`.  Keycmd is primarily useful for scripts that help you type a command while still letting you edit it before execution.
 For example, if you have a binding like "o _" that opens an URL, then you could create a binding `O` that spawns a script which will set the command buffer to "o current-uri-here", letting you enter relative URLs easily.
+
+    KEYCMDN <string>
+Like KEYCMD, but also emulates a press of return which causes binds with an asterisk or underscore to execute.
 (See sample config)
 
 ### ACTIONS
