@@ -995,8 +995,6 @@ set_var_value(gchar *name, gchar *val) {
                              SOUP_SESSION_MAX_CONNS_PER_HOST, uzbl.net.max_conns_host, NULL);
             }
             else if (var_is("http_debug", name)) {
-                //soup_session_remove_feature
-                //    (uzbl.net.soup_session, uzbl.net.soup_logger);
                 soup_session_remove_feature
                     (uzbl.net.soup_session, SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
                 /* do we leak if this doesn't get freed? why does it occasionally crash if freed? */
@@ -1685,6 +1683,7 @@ main (int argc, char* argv[]) {
     g_option_context_add_main_entries (context, entries, NULL);
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
     g_option_context_parse (context, &argc, &argv, NULL);
+    g_option_context_free(context);
     /* initialize hash table */
     uzbl.bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
 
@@ -1717,7 +1716,6 @@ main (int argc, char* argv[]) {
     uzbl.gui.main_window = create_window ();
     gtk_container_add (GTK_CONTAINER (uzbl.gui.main_window), uzbl.gui.vbox);
 
-    load_uri (uzbl.gui.web_view, uzbl.state.uri); //TODO: is this needed?
 
     gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
     gtk_widget_show_all (uzbl.gui.main_window);
@@ -1744,6 +1742,10 @@ main (int argc, char* argv[]) {
         update_title();
 
     create_stdin();
+
+    if(uzbl.state.uri)
+        load_uri (uzbl.gui.web_view, uzbl.state.uri);
+
 
     gtk_main ();
     clean_up();
