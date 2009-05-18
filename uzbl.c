@@ -76,6 +76,7 @@ const struct {
     { "reset_command_mode", (void *)&uzbl.behave.reset_command_mode },
     { "modkey"     ,        (void *)&uzbl.behave.modkey             },
     { "load_finish_handler",(void *)&uzbl.behave.load_finish_handler},
+    { "load_commit_handler",(void *)&uzbl.behave.load_commit_handler},
     { "history_handler",    (void *)&uzbl.behave.history_handler    },
     { "download_handler",   (void *)&uzbl.behave.download_handler   },
     { "cookie_handler",     (void *)&uzbl.behave.cookie_handler     },
@@ -352,6 +353,8 @@ load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
         update_title();
     }
     g_string_truncate(uzbl.state.keycmd, 0); // don't need old commands to remain on new page?
+    if (uzbl.behave.load_commit_handler)
+        run_handler(uzbl.behave.load_commit_handler, uzbl.state.uri);
 }
 
 static void
@@ -787,7 +790,9 @@ run_command (const gchar *command, const guint npre, const gchar **args,
 }
 
 static gchar**
-split_quoted(const gchar* src) {  /* split on unquoted space, return array of strings */
+split_quoted(const gchar* src, const gboolean unquote) {
+    /* split on unquoted space, return array of strings;
+       remove a layer of quotes and backslashes if unquote */
     gboolean quote = FALSE;
     GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
     GString *s = g_string_new ("");
@@ -795,8 +800,12 @@ split_quoted(const gchar* src) {  /* split on unquoted space, return array of st
     gchar **ret;
     gchar *dup;
     for (p = src; *p != '\0'; p++) {
-        if (*p == '\\') g_string_append_c(s, *++p); 
-        else if (*p == '"') quote = !quote;
+        if ((*p == '\\') && unquote) g_string_append_c(s, *++p);
+        else if (*p == '\\') { g_string_append_c(s, *p++);
+                               g_string_append_c(s, *p); }
+        else if ((*p == '"') && unquote) quote = !quote;
+        else if (*p == '"') { g_string_append_c(s, *p);
+                              quote = !quote; }
         else if ((*p == ' ') && (!quote)) {
             dup = g_strdup(s->str);
             g_array_append_val(a, dup);
@@ -807,7 +816,7 @@ split_quoted(const gchar* src) {  /* split on unquoted space, return array of st
     g_array_append_val(a, dup);
     ret = (gchar**)a->data;
     g_array_free (a, FALSE);
-    g_string_free (s, TRUE);
+    g_string_free (s, FALSE);
     return ret;
 }
 
@@ -815,7 +824,7 @@ static void
 spawn(WebKitWebView *web_view, const char *param) {
     (void)web_view;
     //TODO: allow more control over argument order so that users can have some arguments before the default ones from run_command, and some after
-    gchar **cmd = split_quoted(param);
+    gchar **cmd = split_quoted(param, TRUE);
     if (cmd) run_command(cmd[0], 0, &cmd[1], FALSE, NULL);
     g_strfreev ((gchar**)cmd);
 }
@@ -831,8 +840,8 @@ spawn_sh(WebKitWebView *web_view, const char *param) {
     guint i;
     gchar *spacer = g_strdup("");
     GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-    gchar **cmd = split_quoted(uzbl.behave.shell_cmd);
-    gchar **p = split_quoted(param);
+    gchar **cmd = split_quoted(uzbl.behave.shell_cmd, TRUE);
+    gchar **p = split_quoted(param, TRUE);
     for (i = 1; i < g_strv_length(cmd); i++)
         sharg_append(a, cmd[i]);
     sharg_append(a, p[0]); /* the first param comes right after shell_cmd;
@@ -885,6 +894,7 @@ get_var_value(gchar *name) {
            || var_is("title_format_long", name)
            || var_is("modkey", name)
            || var_is("load_finish_handler", name)
+           || var_is("load_commit_handler", name)
            || var_is("history_handler", name)
            || var_is("download_handler", name)
            || var_is("cookie_handler", name)
@@ -957,6 +967,7 @@ set_var_value(gchar *name, gchar *val) {
            || var_is("title_format_long", name)
            || var_is("title_format_short", name)
            || var_is("load_finish_handler", name)
+           || var_is("load_commit_handler", name)
            || var_is("history_handler", name)
            || var_is("download_handler", name)
            || var_is("cookie_handler", name)) {
@@ -1549,14 +1560,14 @@ run_handler (const gchar *act, const gchar *args) {
     if (!parts) return;
     else if ((g_strcmp0(parts[0], "spawn") == 0)
              || (g_strcmp0(parts[0], "sh") == 0)) {
+        guint i;
         GString *a = g_string_new ("");
         char **spawnparts;
-        spawnparts = split_quoted(parts[1]);
-        g_string_append_printf(a, "\"%s\"", spawnparts[0]);
+        spawnparts = split_quoted(parts[1], FALSE);
+        g_string_append_printf(a, "%s", spawnparts[0]);
         if (args) g_string_append_printf(a, " %s", args); /* append handler args before user args */
-        guint i;
         for (i = 1; i < g_strv_length(spawnparts); i++) /* user args */
-            g_string_append_printf(a, " \"%s\"", spawnparts[i]);
+            g_string_append_printf(a, " %s", spawnparts[i]);
         parse_command(parts[0], a->str);
         g_string_free (a, TRUE);
         g_strfreev (spawnparts);

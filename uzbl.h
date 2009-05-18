@@ -128,6 +128,7 @@ typedef struct {
 /* behaviour */
 typedef struct {
     gchar*   load_finish_handler;
+    gchar*   load_commit_handler;
     gchar*   status_format;
     gchar*   title_format_short;
     gchar*   title_format_long;
