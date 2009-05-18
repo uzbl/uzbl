@@ -149,7 +149,14 @@ itos(int val) {
 
 static char *
 str_replace (const char* search, const char* replace, const char* string) {
-    return g_strjoinv (replace, g_strsplit (string, search, -1));
+    gchar **buf;
+    char *ret;
+
+    buf = g_strsplit (string, search, -1);
+    ret = g_strjoinv (replace, buf);
+    g_strfreev(buf);
+
+    return ret;
 }
 
 static sigfunc*
@@ -453,7 +460,7 @@ new_action(const gchar *name, const gchar *param) {
 
 static bool
 file_exists (const char * filename) {
-	return (access(filename, F_OK) == 0);
+    return (access(filename, F_OK) == 0);
 }
 
 static void
@@ -471,7 +478,7 @@ load_uri (WebKitWebView * web_view, const gchar *param) {
         GString* newuri = g_string_new (param);
         if (g_strrstr (param, "://") == NULL)
             g_string_prepend (newuri, "http://");
-		/* if we do handle cookies, ask our handler for them */
+        /* if we do handle cookies, ask our handler for them */
         webkit_web_view_load_uri (web_view, newuri->str);
         g_string_free (newuri, TRUE);
     }
@@ -910,6 +917,7 @@ static gboolean
 set_var_value(gchar *name, gchar *val) {
     void **p = NULL;
     char *endp = NULL;
+    char *buf=NULL;
 
     if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         if(var_is("status_message", name)
@@ -938,11 +946,13 @@ set_var_value(gchar *name, gchar *val) {
         }
         else if(var_is("fifo_dir", name)) {
             if(*p) free(*p);
-            *p = init_fifo(g_strdup(val));
+            buf = init_fifo(val);
+            *p = buf?buf:g_strdup("");
         }
         else if(var_is("socket_dir", name)) {
             if(*p) free(*p);
-            *p = init_socket(g_strdup(val));
+            buf = init_socket(val);
+            *p = buf?buf:g_strdup("");
         }
         else if(var_is("modkey", name)) {
             if(*p) free(*p);
@@ -956,7 +966,8 @@ set_var_value(gchar *name, gchar *val) {
         }
         else if(var_is("useragent", name)) {
             if(*p) free(*p);
-            *p = set_useragent(g_strdup(val));
+            buf = set_useragent(val);
+            *p = buf?buf:g_strdup("");
         }
         else if(var_is("shell_cmd", name)) {
             if(*p) free(*p);
@@ -1140,7 +1151,6 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
     }
 
     if (*dir == ' ') { /* space unsets the variable */
-        g_free(dir);
         return NULL;
     }
 
@@ -1166,7 +1176,6 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
     /* if we got this far, there was an error; cleanup */
     if (error) g_error_free (error);
     g_free(path);
-    g_free(dir);
     return NULL;
 }
 
@@ -1174,10 +1183,9 @@ static gboolean
 control_stdin(GIOChannel *gio, GIOCondition condition) {
     (void) condition;
     gchar *ctl_line = NULL;
-    gsize ctl_line_len = 0;
     GIOStatus ret;
 
-    ret = g_io_channel_read_line(gio, &ctl_line, &ctl_line_len, NULL, NULL);
+    ret = g_io_channel_read_line(gio, &ctl_line, NULL, NULL, NULL);
     if ( (ret == G_IO_STATUS_ERROR) || (ret == G_IO_STATUS_EOF) )
         return FALSE;
 
@@ -1525,16 +1533,15 @@ get_xdg_var (XDG_Var xdg) {
     const gchar* actual_value = getenv (xdg.environmental);
     const gchar* home         = getenv ("HOME");
 
-    gchar* return_value = str_replace ("~", home, g_strdup (actual_value));
+    gchar* return_value = str_replace ("~", home, actual_value);
 
     if (! actual_value || strcmp (actual_value, "") == 0) {
         if (xdg.default_value) {
-            return_value = str_replace ("~", home, g_strdup (xdg.default_value));
+            return_value = str_replace ("~", home, xdg.default_value);
         } else {
             return_value = NULL;
         }
     }
-
     return return_value;
 }
 
@@ -1544,17 +1551,21 @@ find_xdg_file (int xdg_type, char* filename) {
        xdg_type = 1 => data
        xdg_type = 2 => cache*/
 
-    gchar* temporary_file   = (char *)malloc (1024);
+    gchar* temporary_file   = malloc (1024);
     gchar* temporary_string = NULL;
     char*  saveptr;
+    char*  buf;
 
-    strcpy (temporary_file, get_xdg_var (XDG[xdg_type]));
-
+    buf = get_xdg_var (XDG[xdg_type]);
+    strcpy (temporary_file, buf);
     strcat (temporary_file, filename);
+    free(buf);
 
     if (! file_exists (temporary_file) && xdg_type != 2) {
-        temporary_string = (char *) strtok_r (get_xdg_var (XDG[3 + xdg_type]), ":", &saveptr);
-        
+        buf = get_xdg_var (XDG[3 + xdg_type]);
+        temporary_string = (char *) strtok_r (buf, ":", &saveptr);
+        free(buf);
+
         while (temporary_string && ! file_exists (temporary_file)) {
             strcpy (temporary_file, temporary_string);
             strcat (temporary_file, filename);
@@ -1577,7 +1588,7 @@ settings_init () {
     uzbl.behave.reset_command_mode = 1;
 
     if (!s->config_file) {
-        s->config_file = g_strdup (find_xdg_file (0, "/uzbl/config"));
+        s->config_file = find_xdg_file (0, "/uzbl/config");
     }
 
     if (s->config_file) {
