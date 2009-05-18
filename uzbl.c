@@ -76,6 +76,7 @@ const struct {
     { "reset_command_mode", (void *)&uzbl.behave.reset_command_mode },
     { "modkey"     ,        (void *)&uzbl.behave.modkey             },
     { "load_finish_handler",(void *)&uzbl.behave.load_finish_handler},
+    { "load_start_handler", (void *)&uzbl.behave.load_start_handler },
     { "load_commit_handler",(void *)&uzbl.behave.load_commit_handler},
     { "history_handler",    (void *)&uzbl.behave.history_handler    },
     { "download_handler",   (void *)&uzbl.behave.download_handler   },
@@ -339,6 +340,15 @@ load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) data;
     if (uzbl.behave.load_finish_handler)
         run_handler(uzbl.behave.load_finish_handler, "");
+}
+
+static void
+load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
+    (void) page;
+    (void) frame;
+    (void) data;
+    if (uzbl.behave.load_start_handler)
+        run_handler(uzbl.behave.load_start_handler, "");
 }
 
 static void
@@ -894,6 +904,7 @@ get_var_value(gchar *name) {
            || var_is("title_format_long", name)
            || var_is("modkey", name)
            || var_is("load_finish_handler", name)
+           || var_is("load_start_handler", name)
            || var_is("load_commit_handler", name)
            || var_is("history_handler", name)
            || var_is("download_handler", name)
@@ -967,6 +978,7 @@ set_var_value(gchar *name, gchar *val) {
            || var_is("title_format_long", name)
            || var_is("title_format_short", name)
            || var_is("load_finish_handler", name)
+           || var_is("load_start_handler", name)
            || var_is("load_commit_handler", name)
            || var_is("history_handler", name)
            || var_is("download_handler", name)
@@ -1518,6 +1530,7 @@ create_browser () {
     g_signal_connect (G_OBJECT (g->web_view), "title-changed", G_CALLBACK (title_change_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-progress-changed", G_CALLBACK (progress_change_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-committed", G_CALLBACK (load_commit_cb), g->web_view);
+    g_signal_connect (G_OBJECT (g->web_view), "load-started", G_CALLBACK (load_start_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-finished", G_CALLBACK (log_history_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-finished", G_CALLBACK (load_finish_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), g->web_view);
