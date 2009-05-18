@@ -519,7 +519,9 @@ run_js (WebKitWebView * web_view, const gchar *param) {
 static void
 run_external_js (WebKitWebView * web_view, const gchar *param) {
     if (param) {
-        FILE*  fp = fopen (param, "r");
+        gchar** splitted = g_strsplit (param, " ", 2);
+
+        FILE*  fp = fopen (splitted[0], "r");
         gchar* buffer = malloc(512);
         gchar* js = NULL;
 
@@ -532,6 +534,10 @@ run_external_js (WebKitWebView * web_view, const gchar *param) {
                     js = newjs;
                 }
                 bzero (buffer, strlen (buffer));
+            }
+            if (splitted[1]) {
+                gchar* newjs = str_replace("%s", splitted[1], js);
+                js = newjs;
             }
             webkit_web_view_execute_script (web_view, js);
         } else {
