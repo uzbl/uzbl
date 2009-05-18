@@ -568,6 +568,7 @@ run_external_js (WebKitWebView * web_view, const gchar *param) {
                     gchar* newjs = g_strconcat (js, lines[i], NULL);
                     js = newjs;
                 }
+                //g_free (lines[i]); - Another mysterious breakage
             }
 
             if (uzbl.state.verbose)
