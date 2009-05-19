@@ -137,7 +137,7 @@ static GOptionEntry entries[] =
     { NULL,      0, 0, 0, NULL, NULL, NULL }
 };
 
-typedef void (*Command)(WebKitWebView*, const char *);
+typedef void (*Command)(WebKitWebView*, GArray *argv);
 
 /* --- UTILITY FUNCTIONS --- */
 
@@ -148,6 +148,9 @@ itos(int val) {
     snprintf(tmp, sizeof(tmp), "%i", val);
     return g_strdup(tmp);
 }
+
+static gchar*
+argv_idx(const GArray *a, const guint idx) { return g_array_index(a, gchar*, idx); }
 
 static char *
 str_replace (const char* search, const char* replace, const char* string) {
@@ -294,34 +297,34 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
 
 /* scroll a bar in a given direction */
 static void
-scroll (GtkAdjustment* bar, const char *param) {
+scroll (GtkAdjustment* bar, GArray *argv) {
     gdouble amount;
     gchar *end;
 
-    amount = g_ascii_strtod(param, &end);
+    amount = g_ascii_strtod(g_array_index(argv, gchar*, 0), &end);
     if (*end == '%') amount = gtk_adjustment_get_page_size(bar) * amount * 0.01;
     gtk_adjustment_set_value (bar, gtk_adjustment_get_value(bar)+amount);
 }
 
-static void scroll_begin(WebKitWebView* page, const char *param) {
-    (void) page; (void) param;
+static void scroll_begin(WebKitWebView* page, GArray *argv) {
+    (void) page; (void) argv;
     gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_lower(uzbl.gui.bar_v));
 }
 
-static void scroll_end(WebKitWebView* page, const char *param) {
-    (void) page; (void) param;
+static void scroll_end(WebKitWebView* page, GArray *argv) {
+    (void) page; (void) argv;
     gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_upper(uzbl.gui.bar_v) -
                               gtk_adjustment_get_page_size(uzbl.gui.bar_v));
 }
 
-static void scroll_vert(WebKitWebView* page, const char *param) {
+static void scroll_vert(WebKitWebView* page, GArray *argv) {
     (void) page;
-    scroll(uzbl.gui.bar_v, param);
+    scroll(uzbl.gui.bar_v, argv);
 }
 
-static void scroll_horz(WebKitWebView* page, const char *param) {
+static void scroll_horz(WebKitWebView* page, GArray *argv) {
     (void) page;
-    scroll(uzbl.gui.bar_h, param);
+    scroll(uzbl.gui.bar_h, argv);
 }
 
 static void
@@ -335,9 +338,9 @@ cmd_set_status() {
 }
 
 static void
-toggle_status_cb (WebKitWebView* page, const char *param) {
+toggle_status_cb (WebKitWebView* page, GArray *argv) {
     (void)page;
-    (void)param;
+    (void)argv;
 
     if (uzbl.behave.show_status) {
         gtk_widget_hide(uzbl.gui.mainbar);
@@ -436,7 +439,7 @@ log_history_cb () {
 
 
 /* VIEW funcs (little webkit wrappers) */
-#define VIEWFUNC(name) static void view_##name(WebKitWebView *page, const char *param){(void)param; webkit_web_view_##name(page);}
+#define VIEWFUNC(name) static void view_##name(WebKitWebView *page, GArray *argv){(void)argv; webkit_web_view_##name(page);}
 VIEWFUNC(reload)
 VIEWFUNC(reload_bypass_cache)
 VIEWFUNC(stop_loading)
@@ -448,31 +451,30 @@ VIEWFUNC(go_forward)
 
 /* -- command to callback/function map for things we cannot attach to any signals */
 // TODO: reload
-
-static struct {char *name; Command command;} cmdlist[] =
-{
-    { "back",               view_go_back            },
-    { "forward",            view_go_forward         },
-    { "scroll_vert",        scroll_vert             },
-    { "scroll_horz",        scroll_horz             },
-    { "scroll_begin",       scroll_begin            },
-    { "scroll_end",         scroll_end              },
-    { "reload",             view_reload,            },
-    { "reload_ign_cache",   view_reload_bypass_cache},
-    { "stop",               view_stop_loading,      },
-    { "zoom_in",            view_zoom_in,           }, //Can crash (when max zoom reached?).
-    { "zoom_out",           view_zoom_out,          },
-    { "uri",                load_uri                },
-    { "js",                 run_js                  },
-    { "script",             run_external_js         },
-    { "toggle_status",      toggle_status_cb        },
-    { "spawn",              spawn                   },
-    { "sh",                 spawn_sh                },
-    { "exit",               close_uzbl              },
-    { "search",             search_forward_text     },
-    { "search_reverse",     search_reverse_text     },
-    { "toggle_insert_mode", toggle_insert_mode      },
-    { "runcmd",             runcmd                  }
+static struct {char *name; Command command[2];} cmdlist[] =
+{   /* key                 function      no_split      */
+    { "back",             {view_go_back, 0}              },
+    { "forward",          {view_go_forward, 0}           },
+    { "scroll_vert",      {scroll_vert, 0}               },
+    { "scroll_horz",      {scroll_horz, 0}               },
+    { "scroll_begin",     {scroll_begin, 0}              },
+    { "scroll_end",       {scroll_end, 0}                },
+    { "reload",           {view_reload, 0},              },
+    { "reload_ign_cache", {view_reload_bypass_cache, 0}  },
+    { "stop",             {view_stop_loading, 0},        },
+    { "zoom_in",          {view_zoom_in, 0},             }, //Can crash (when max zoom reached?).
+    { "zoom_out",         {view_zoom_out, 0},            },
+    { "uri",              {load_uri, NOSPLIT}            },
+    { "js",               {run_js, NOSPLIT}              },
+    { "script",           {run_external_js, 0}           },
+    { "toggle_status",    {toggle_status_cb, 0}          },
+    { "spawn",            {spawn, 0}                     },
+    { "sh",               {spawn_sh, 0}                  },
+    { "exit",             {close_uzbl, 0}                },
+    { "search",           {search_forward_text, NOSPLIT} },
+    { "search_reverse",   {search_reverse_text, NOSPLIT} },
+    { "insert_mode",      {toggle_insert_mode, 0}        },
+    { "runcmd",           {runcmd, NOSPLIT}              }
 };
 
 static void
@@ -514,13 +516,13 @@ file_exists (const char * filename) {
 	return (access(filename, F_OK) == 0);
 }
 
-void
-toggle_insert_mode(WebKitWebView *page, const gchar *param) {
+static void
+toggle_insert_mode(WebKitWebView *page, GArray *argv) {
     (void)page;
-    (void)param;
+    (void)argv;
 
-    if (param != NULL) {
-        if (strcmp (param, "0") == 0) {
+    if (argv_idx(argv, 0)) {
+        if (strcmp (argv_idx(argv, 0), "0") == 0) {
             uzbl.behave.insert_mode = FALSE;
         } else {
             uzbl.behave.insert_mode = TRUE;
@@ -533,10 +535,10 @@ toggle_insert_mode(WebKitWebView *page, const gchar *param) {
 }
 
 static void
-load_uri (WebKitWebView * web_view, const gchar *param) {
-    if (param) {
-        GString* newuri = g_string_new (param);
-        if (g_strrstr (param, "://") == NULL)
+load_uri (WebKitWebView *web_view, GArray *argv) {
+    if (argv_idx(argv, 0)) {
+        GString* newuri = g_string_new (argv_idx(argv, 0));
+        if (g_strrstr (argv_idx(argv, 0), "://") == NULL)
             g_string_prepend (newuri, "http://");
 		/* if we do handle cookies, ask our handler for them */
         webkit_web_view_load_uri (web_view, newuri->str);
@@ -545,16 +547,15 @@ load_uri (WebKitWebView * web_view, const gchar *param) {
 }
 
 static void
-run_js (WebKitWebView * web_view, const gchar *param) {
-    if (param)
-        webkit_web_view_execute_script (web_view, param);
+run_js (WebKitWebView * web_view, GArray *argv) {
+    if (argv_idx(argv, 0))
+        webkit_web_view_execute_script (web_view, argv_idx(argv, 0));
 }
 
 static void
-run_external_js (WebKitWebView * web_view, const gchar *param) {
-    if (param) {
-        gchar** splitted = g_strsplit (param, " ", 2);
-        gchar** lines = read_file_by_line (splitted[0]);
+run_external_js (WebKitWebView * web_view, GArray *argv) {
+    if (argv_idx(argv, 0)) {
+        gchar** lines = read_file_by_line (argv_idx (argv, 0));
         gchar*  js = NULL;
         int i;
 
@@ -570,26 +571,26 @@ run_external_js (WebKitWebView * web_view, const gchar *param) {
             }
 
             if (uzbl.state.verbose)
-                printf ("External JavaScript file %s loaded\n", splitted[0]);
+                printf ("External JavaScript file %s loaded\n", argv_idx(argv, 0));
 
-            if (splitted[1]) {
-                gchar* newjs = str_replace("%s", splitted[1], js);
+            if (argv_idx (argv, 1)) {
+                gchar* newjs = str_replace("%s", argv_idx (argv, 1), js);
                 js = newjs;
             }
             webkit_web_view_execute_script (web_view, js);
             g_free (js);
         } else {
-            fprintf(stderr, "JavaScript file '%s' not be read.\n", splitted[0]);
+            fprintf(stderr, "JavaScript file '%s' not be read.\n", argv_idx(argv, 0));
         }
     }
 }
 
 static void
-search_text (WebKitWebView *page, const char *param, const gboolean forward) {
-    if ((param) && (param[0] != '\0')) {
-        strcpy(uzbl.state.searchtx, param);
-    }
-    if (uzbl.state.searchtx[0] != '\0') {
+search_text (WebKitWebView *page, GArray *argv, const gboolean forward) {
+    if (argv_idx(argv, 0) && (*argv_idx(argv, 0) != '\0'))
+        uzbl.state.searchtx = g_strdup(argv_idx(argv, 0));
+
+    if (uzbl.state.searchtx != NULL) {
         if (uzbl.state.verbose)
             printf ("Searching: %s\n", uzbl.state.searchtx);
 
@@ -609,13 +610,13 @@ search_text (WebKitWebView *page, const char *param, const gboolean forward) {
 }
 
 static void
-search_forward_text (WebKitWebView *page, const char *param) {
-    search_text(page, param, TRUE);
+search_forward_text (WebKitWebView *page, GArray *argv) {
+    search_text(page, argv, TRUE);
 }
 
 static void
-search_reverse_text (WebKitWebView *page, const char *param) {
-    search_text(page, param, FALSE);
+search_reverse_text (WebKitWebView *page, GArray *argv) {
+    search_text(page, argv, FALSE);
 }
 
 static void
@@ -638,9 +639,9 @@ new_window_load_uri (const gchar * uri) {
 }
 
 static void
-close_uzbl (WebKitWebView *page, const char *param) {
+close_uzbl (WebKitWebView *page, GArray *argv) {
     (void)page;
-    (void)param;
+    (void)argv;
     gtk_main_quit ();
 }
 
@@ -903,6 +904,8 @@ static gchar**
 split_quoted(const gchar* src, const gboolean unquote) {
     /* split on unquoted space, return array of strings;
        remove a layer of quotes and backslashes if unquote */
+    if (!src) return NULL;
+    
     gboolean dq = FALSE;
     gboolean sq = FALSE;
     GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
@@ -935,16 +938,14 @@ split_quoted(const gchar* src, const gboolean unquote) {
 }
 
 static void
-spawn(WebKitWebView *web_view, const char *param) {
+spawn(WebKitWebView *web_view, GArray *argv) {
     (void)web_view;
     //TODO: allow more control over argument order so that users can have some arguments before the default ones from run_command, and some after
-    gchar **cmd = split_quoted(param, TRUE);
-    if (cmd) run_command(cmd[0], 0, &cmd[1], FALSE, NULL);
-    g_strfreev ((gchar**)cmd);
+    if (argv_idx(argv, 0)) run_command(argv_idx(argv, 0), 0, (const gchar **) argv->data + sizeof(gchar*), FALSE, NULL);
 }
 
 static void
-spawn_sh(WebKitWebView *web_view, const char *param) {
+spawn_sh(WebKitWebView *web_view, GArray *argv) {
     (void)web_view;
     if (!uzbl.behave.shell_cmd) {
         g_printerr ("spawn_sh: shell_cmd is not set!\n");
@@ -953,31 +954,39 @@ spawn_sh(WebKitWebView *web_view, const char *param) {
     
     guint i;
     gchar *spacer = g_strdup("");
-    GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+    g_array_insert_val(argv, 1, spacer);
     gchar **cmd = split_quoted(uzbl.behave.shell_cmd, TRUE);
-    gchar **p = split_quoted(param, TRUE);
+
     for (i = 1; i < g_strv_length(cmd); i++)
-        sharg_append(a, cmd[i]);
-    sharg_append(a, p[0]); /* the first param comes right after shell_cmd;
-                              the rest come after default args */
-    sharg_append(a, spacer);
-    for (i = 1; i < g_strv_length(p); i++)
-        sharg_append(a, p[i]);
-    if (cmd) run_command(cmd[0], g_strv_length(cmd) + 1, a->data, FALSE, NULL);
+        g_array_prepend_val(argv, cmd[i]);
+
+    if (cmd) run_command(cmd[0], g_strv_length(cmd) + 1, (const gchar **) argv->data, FALSE, NULL);
     g_free (spacer);
     g_strfreev (cmd);
-    g_strfreev (p);
-    g_array_free (a, FALSE);
 }
 
 static void
 parse_command(const char *cmd, const char *param) {
-    Command c;
+    Command *c;
 
-    if ((c = g_hash_table_lookup(uzbl.behave.commands, cmd)))
-        c(uzbl.gui.web_view, param);
-    else
-        fprintf (stderr, "command \"%s\" not understood. ignoring.\n", cmd);
+    if ((c = g_hash_table_lookup(uzbl.behave.commands, cmd))) {
+
+            guint i;
+            gchar **par = split_quoted(param, TRUE);
+            GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+
+            if (c[1]) { /* don't split */
+                sharg_append(a, param);
+            } else {
+                for (i = 0; i < g_strv_length(par); i++)
+                    sharg_append(a, par[i]);
+            }
+            c[0](uzbl.gui.web_view, a);
+            g_strfreev (par);
+            g_array_free (a, TRUE);
+
+    } else
+        g_printerr ("command \"%s\" not understood. ignoring.\n", cmd);
 }
 
 /* command parser */
@@ -1095,7 +1104,10 @@ set_var_value(gchar *name, gchar *val) {
         else if(var_is("uri", name)) {
             if(*p) free(*p);
             *p = g_strdup(val);
-            load_uri(uzbl.gui.web_view, (const gchar*)*p);
+            GArray *a = g_array_new(TRUE, FALSE, sizeof(gchar*));
+            g_array_append_val(a, *p);
+            load_uri(uzbl.gui.web_view, a);
+            g_array_free(a, TRUE);
         }
         else if(var_is("proxy_url", name)) {
             if(*p) free(*p);
@@ -1178,9 +1190,9 @@ set_var_value(gchar *name, gchar *val) {
 }
 
 static void
-runcmd(WebKitWebView* page, const char *param) {
+runcmd(WebKitWebView* page, GArray *argv) {
     (void) page;
-    parse_cmd_line(param);
+    parse_cmd_line(argv_idx(argv, 0));
 }
 
 static void
@@ -1843,7 +1855,7 @@ static void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer use
     sharg_append(a, action);
     sharg_append(a, soup_uri->host);
     sharg_append(a, soup_uri->path);
-    run_command(uzbl.behave.cookie_handler, 0, a->data, TRUE, &stdout); /* TODO: use handler */
+    run_command(uzbl.behave.cookie_handler, 0, (const gchar **) a->data, TRUE, &stdout); /* TODO: use handler */
     //run_handler(uzbl.behave.cookie_handler); /* TODO: global stdout pointer, spawn_sync */
     if(stdout) {
         soup_message_headers_replace (msg->request_headers, "Cookie", stdout);
@@ -1866,7 +1878,7 @@ save_cookies (SoupMessage *msg, gpointer user_data){
         sharg_append(a, soup_uri->host);
         sharg_append(a, soup_uri->path);
         sharg_append(a, cookie);
-        run_command(uzbl.behave.cookie_handler, 0, a->data, FALSE, NULL);
+        run_command(uzbl.behave.cookie_handler, 0, (const gchar **) a->data, FALSE, NULL);
         g_free (cookie);
         g_free (action);
         g_array_free(a, TRUE);
@@ -1917,7 +1929,7 @@ main (int argc, char* argv[]) {
     uzbl.gui.main_window = create_window ();
     gtk_container_add (GTK_CONTAINER (uzbl.gui.main_window), uzbl.gui.vbox);
 
-    load_uri (uzbl.gui.web_view, uzbl.state.uri); //TODO: is this needed?
+    //load_uri (uzbl.gui.web_view, uzbl.state.uri); //TODO: is this needed?
 
     gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
     gtk_widget_show_all (uzbl.gui.main_window);
@@ -1944,6 +1956,10 @@ main (int argc, char* argv[]) {
         update_title();
 
     create_stdin();
+
+    //if(uzbl.state.uri)
+    //    load_uri (uzbl.gui.web_view, uzbl.state.uri);
+
 
     gtk_main ();
     clean_up();

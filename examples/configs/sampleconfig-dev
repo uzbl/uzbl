@@ -103,7 +103,8 @@ bind    S         = js alert("hi");
 # you must enclose it in quotes.  Remember to escape (and double-escape) quotes and backslashes
 # in the body.  Any additional parameters you use will appear AFTER the default parameters (cfg file
 # path, fifo & socket dirs, etc.)
-bind    XS        = sh 'echo "act script alert (\'This is sent by the shell via a fifo\')" > "$4"'
+bind    XS        = sh 'echo "act script alert (\\"This is sent by the shell via a fifo\\")" > "$4"'
+
 # Keyboard based link following: work in progress! No C DOM bindings yet, no click() event for hyperlinks so no referrer set..Quite basic but does the job for now...
 #hit F to toggle the Hints (now in form of link numbering)
 bind    F= script ./examples/scripts/hint.js
