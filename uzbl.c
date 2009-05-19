@@ -59,39 +59,45 @@
 static Uzbl uzbl;
 
 /* define names and pointers to all config specific variables */
+typedef const struct {
+    void **ptr;
+    int is_string;
+} uzbl_cmdprop;
+
 const struct {
     char *name;
-    void **ptr;
+    //void **ptr;
+    uzbl_cmdprop cp;
 } var_name_to_ptr[] = {
-    { "uri",                (void *)&uzbl.state.uri                 },
-    { "status_message",     (void *)&uzbl.gui.sbar.msg              },
-    { "show_status",        (void *)&uzbl.behave.show_status        },
-    { "status_top",         (void *)&uzbl.behave.status_top         },
-    { "status_format",      (void *)&uzbl.behave.status_format      },
-    { "status_background",  (void *)&uzbl.behave.status_background  },
-    { "title_format_long",  (void *)&uzbl.behave.title_format_long  },
-    { "title_format_short", (void *)&uzbl.behave.title_format_short },
-    { "insert_mode",        (void *)&uzbl.behave.insert_mode        },
-    { "always_insert_mode", (void *)&uzbl.behave.always_insert_mode },
-    { "reset_command_mode", (void *)&uzbl.behave.reset_command_mode },
-    { "modkey"     ,        (void *)&uzbl.behave.modkey             },
-    { "load_finish_handler",(void *)&uzbl.behave.load_finish_handler},
-    { "load_start_handler", (void *)&uzbl.behave.load_start_handler },
-    { "load_commit_handler",(void *)&uzbl.behave.load_commit_handler},
-    { "history_handler",    (void *)&uzbl.behave.history_handler    },
-    { "download_handler",   (void *)&uzbl.behave.download_handler   },
-    { "cookie_handler",     (void *)&uzbl.behave.cookie_handler     },
-    { "fifo_dir",           (void *)&uzbl.behave.fifo_dir           },
-    { "socket_dir",         (void *)&uzbl.behave.socket_dir         },
-    { "http_debug",         (void *)&uzbl.behave.http_debug         },
-    { "default_font_size",  (void *)&uzbl.behave.default_font_size  },
-    { "minimum_font_size",  (void *)&uzbl.behave.minimum_font_size  },
-    { "shell_cmd",          (void *)&uzbl.behave.shell_cmd          },
-    { "proxy_url",          (void *)&uzbl.net.proxy_url             },
-    { "max_conns",          (void *)&uzbl.net.max_conns             },
-    { "max_conns_host",     (void *)&uzbl.net.max_conns_host        },
-    { "useragent",          (void *)&uzbl.net.useragent             },
-    { NULL,                 NULL                                    }
+    { "uri",                {(void *)&uzbl.state.uri,                   1}},
+    { "status_message",     {(void *)&uzbl.gui.sbar.msg,                1}},
+    { "show_status",        {(void *)&uzbl.behave.show_status,          0}},
+    { "status_top",         {(void *)&uzbl.behave.status_top,           0}},
+    { "status_format",      {(void *)&uzbl.behave.status_format,        1}},
+    { "status_background",  {(void *)&uzbl.behave.status_background,    1}},
+    { "title_format_long",  {(void *)&uzbl.behave.title_format_long,    1}},
+    { "title_format_short", {(void *)&uzbl.behave.title_format_short,   1}},
+    { "insert_mode",        {(void *)&uzbl.behave.insert_mode,          0}},
+    { "always_insert_mode", {(void *)&uzbl.behave.always_insert_mode,   0}},
+    { "reset_command_mode", {(void *)&uzbl.behave.reset_command_mode,   0}},
+    { "modkey"     ,        {(void *)&uzbl.behave.modkey,               0}},
+    { "load_finish_handler",{(void *)&uzbl.behave.load_finish_handler,  1}},
+    { "load_start_handler", {(void *)&uzbl.behave.load_start_handler,   1 }},
+    { "load_commit_handler",{(void *)&uzbl.behave.load_commit_handler,  1}},
+    { "history_handler",    {(void *)&uzbl.behave.history_handler,      1}},
+    { "download_handler",   {(void *)&uzbl.behave.download_handler,     1}},
+    { "cookie_handler",     {(void *)&uzbl.behave.cookie_handler,       1}},
+    { "fifo_dir",           {(void *)&uzbl.behave.fifo_dir,             1}},
+    { "socket_dir",         {(void *)&uzbl.behave.socket_dir,           1}},
+    { "http_debug",         {(void *)&uzbl.behave.http_debug,           0}},
+    { "default_font_size",  {(void *)&uzbl.behave.default_font_size,    0}},
+    { "minimum_font_size",  {(void *)&uzbl.behave.minimum_font_size,    0}},
+    { "shell_cmd",          {(void *)&uzbl.behave.shell_cmd,            1}},
+    { "proxy_url",          {(void *)&uzbl.net.proxy_url,               1}},
+    { "max_conns",          {(void *)&uzbl.net.max_conns,               1}},
+    { "max_conns_host",     {(void *)&uzbl.net.max_conns_host,          0}},
+    { "useragent",          {(void *)&uzbl.net.useragent,               1}},
+    { NULL,                 {NULL,                                      0}}
 }, *n2v_p = var_name_to_ptr;
 
 const struct {
@@ -117,12 +123,30 @@ const struct {
     { NULL,      0                }
 };
 
+static void
+dump_vars(gpointer key, gpointer val, gpointer data) {
+    (void) data;
+    uzbl_cmdprop *c;
+    int is_string;
+
+    c = val;
+    is_string = c->is_string;
+
+    if(is_string)
+        printf("KEY: %s\tVAL: %s\tIS_STRING: %s\n", 
+                (char *)key, (char *)*c->ptr, "YES");
+    else
+        printf("KEY: %s\tVAL: %d\tIS_STRING: %s\n", 
+                (char *)key, (int)*c->ptr, "NO");
+
+}
+
 /* construct a hash from the var_name_to_ptr array for quick access */
 static void
 make_var_to_name_hash() {
     uzbl.comm.proto_var = g_hash_table_new(g_str_hash, g_str_equal);
     while(n2v_p->name) {
-        g_hash_table_insert(uzbl.comm.proto_var, n2v_p->name, n2v_p->ptr);
+        g_hash_table_insert(uzbl.comm.proto_var, n2v_p->name, (gpointer) &n2v_p->cp);
         n2v_p++;
     }
 }
@@ -913,30 +937,13 @@ setup_regex() {
 
 static gboolean
 get_var_value(gchar *name) {
-    void **p = NULL;
+    uzbl_cmdprop *c;
 
-    if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
-        if(var_is("uri", name)
-           || var_is("status_message", name)
-           || var_is("status_format", name)
-           || var_is("status_background", name)
-           || var_is("title_format_short", name)
-           || var_is("title_format_long", name)
-           || var_is("modkey", name)
-           || var_is("load_finish_handler", name)
-           || var_is("load_start_handler", name)
-           || var_is("load_commit_handler", name)
-           || var_is("history_handler", name)
-           || var_is("download_handler", name)
-           || var_is("cookie_handler", name)
-           || var_is("fifo_dir", name)
-           || var_is("socket_dir", name)
-           || var_is("shell_cmd", name)
-           || var_is("proxy_url", name)
-           || var_is("useragent", name))
-           {
-            printf("VAR: %s VALUE: %s\n", name, (char *)*p);
-        } else printf("VAR: %s VALUE: %d\n", name, (int)*p);
+    if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
+        if(c->is_string)
+            printf("VAR: %s VALUE: %s\n", name, (char *)*c->ptr);
+        else 
+            printf("VAR: %s VALUE: %d\n", name, (int)*c->ptr);
     }
     return TRUE;
 }
@@ -988,108 +995,99 @@ var_is(const char *x, const char *y) {
 
 static gboolean
 set_var_value(gchar *name, gchar *val) {
-    void **p = NULL;
+    void *p = NULL;
+    uzbl_cmdprop *c = NULL;
     char *endp = NULL;
     char *buf=NULL;
 
-    if( (p = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
+    if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
+        if (c->is_string) {
+            free(*c->ptr);
+            *c->ptr = g_strdup(val);
+        } else
+            *c->ptr = (int)strtoul(val, &endp, 10);
+        p = *c->ptr;
+
         if(var_is("status_message", name)
-           || var_is("status_background", name)
-           || var_is("status_format", name)
-           || var_is("title_format_long", name)
-           || var_is("title_format_short", name)
-           || var_is("load_finish_handler", name)
-           || var_is("load_start_handler", name)
-           || var_is("load_commit_handler", name)
-           || var_is("history_handler", name)
-           || var_is("download_handler", name)
-           || var_is("cookie_handler", name)) {
-            if(*p)
-                free(*p);
-            *p = g_strdup(val);
+                || var_is("status_background", name)
+                || var_is("status_format", name)
+                || var_is("title_format_long", name)
+                || var_is("title_format_short", name)
+                || var_is("load_finish_handler", name)
+                || var_is("load_start_handler", name)
+                || var_is("load_commit_handler", name)
+                || var_is("history_handler", name)
+                || var_is("download_handler", name)
+                || var_is("cookie_handler", name)) {
             update_title();
         }
         else if(var_is("uri", name)) {
-            if(*p) free(*p);
-            *p = g_strdup(val);
-            load_uri(uzbl.gui.web_view, (const gchar*)*p);
+            load_uri(uzbl.gui.web_view, uzbl.state.uri);
         }
         else if(var_is("proxy_url", name)) {
-            if(*p) free(*p);
-            *p = g_strdup(val);
             set_proxy_url();
         }
         else if(var_is("fifo_dir", name)) {
-            if(*p) free(*p);
+            if(p) free(p);
             buf = init_fifo(val);
-            *p = buf?buf:g_strdup("");
+            p = buf?buf:g_strdup("");
         }
         else if(var_is("socket_dir", name)) {
-            if(*p) free(*p);
+            if(p) free(p);
             buf = init_socket(val);
-            *p = buf?buf:g_strdup("");
+            p = buf?buf:g_strdup("");
         }
         else if(var_is("modkey", name)) {
-            if(*p) free(*p);
+            if(p) free(p);
             int i;
-            *p = g_utf8_strup(val, -1);
+            p = g_utf8_strup(val, -1);
             uzbl.behave.modmask = 0;
             for (i = 0; modkeys[i].key != NULL; i++) {
-                if (g_strrstr(*p, modkeys[i].key))
+                if (g_strrstr(p, modkeys[i].key))
                     uzbl.behave.modmask |= modkeys[i].mask;
             }
         }
         else if(var_is("useragent", name)) {
-            if(*p) free(*p);
+            if(p) free(p);
             buf = set_useragent(val);
-            *p = buf?buf:g_strdup("");
+            p = buf?buf:g_strdup("");
         }
-        else if(var_is("shell_cmd", name)) {
-            if(*p) free(*p);
-            *p = g_strdup(val);
+        else if(var_is("show_status", name)) {
+            cmd_set_status();
         }
-        /* variables that take int values */
-        else {
-            int *ip = (int *)p;
-            *ip = (int)strtoul(val, &endp, 10);
+        else if(var_is("always_insert_mode", name)) {
+            uzbl.behave.insert_mode =
+                uzbl.behave.always_insert_mode ?  TRUE : FALSE;
+            update_title();
+        }
+        else if (var_is("max_conns", name)) {
+            g_object_set(G_OBJECT(uzbl.net.soup_session),
+                    SOUP_SESSION_MAX_CONNS, uzbl.net.max_conns, NULL);
+        }
+        else if (var_is("max_conns_host", name)) {
+            g_object_set(G_OBJECT(uzbl.net.soup_session),
+                    SOUP_SESSION_MAX_CONNS_PER_HOST, uzbl.net.max_conns_host, NULL);
+        }
+        else if (var_is("http_debug", name)) {
+            soup_session_remove_feature
+                (uzbl.net.soup_session, SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
+            /* do we leak if this doesn't get freed? why does it occasionally crash if freed? */
+            /*g_free(uzbl.net.soup_logger);*/
 
-            if(var_is("show_status", name)) {
-                cmd_set_status();
-            }
-            else if(var_is("always_insert_mode", name)) {
-                uzbl.behave.insert_mode =
-                    uzbl.behave.always_insert_mode ?  TRUE : FALSE;
-                update_title();
-            }
-            else if (var_is("max_conns", name)) {
-                g_object_set(G_OBJECT(uzbl.net.soup_session),
-                             SOUP_SESSION_MAX_CONNS, uzbl.net.max_conns, NULL);
-            }
-            else if (var_is("max_conns_host", name)) {
-                g_object_set(G_OBJECT(uzbl.net.soup_session),
-                             SOUP_SESSION_MAX_CONNS_PER_HOST, uzbl.net.max_conns_host, NULL);
-            }
-            else if (var_is("http_debug", name)) {
-                soup_session_remove_feature
-                    (uzbl.net.soup_session, SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
-                /* do we leak if this doesn't get freed? why does it occasionally crash if freed? */
-                /*g_free(uzbl.net.soup_logger);*/
-
-                uzbl.net.soup_logger = soup_logger_new(uzbl.behave.http_debug, -1);
-                soup_session_add_feature(uzbl.net.soup_session,
-                                         SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
-            }
-            else if (var_is("status_top", name)) {
-                move_statusbar();
-            }
-            else if (var_is("default_font_size", name)) {
-                WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
-                g_object_set (G_OBJECT(ws), "default-font-size", *ip, NULL);
-            }
-            else if (var_is("minimum_font_size", name)) {
-                WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
-                g_object_set (G_OBJECT(ws), "minimum-font-size", *ip, NULL);
-            }
+            uzbl.net.soup_logger = soup_logger_new(uzbl.behave.http_debug, -1);
+            soup_session_add_feature(uzbl.net.soup_session,
+                    SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
+        }
+        else if (var_is("status_top", name)) {
+            move_statusbar();
+        }
+        else if (var_is("default_font_size", name)) {
+            WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
+            g_object_set (G_OBJECT(ws), "default-font-size", uzbl.behave.default_font_size, NULL);
+        }
+        else if (var_is("minimum_font_size", name)) {
+            WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
+            g_object_set (G_OBJECT(ws), "minimum-font-size", uzbl.behave.minimum_font_size, NULL);
         }
     }
     return TRUE;
@@ -1857,7 +1855,6 @@ main (int argc, char* argv[]) {
 
     if(uzbl.state.uri)
         load_uri (uzbl.gui.web_view, uzbl.state.uri);
-
 
     gtk_main ();
     clean_up();
