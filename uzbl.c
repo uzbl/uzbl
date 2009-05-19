@@ -165,7 +165,14 @@ argv_idx(const GArray *a, const guint idx) { return g_array_index(a, gchar*, idx
 
 static char *
 str_replace (const char* search, const char* replace, const char* string) {
-    return g_strjoinv (replace, g_strsplit (string, search, -1));
+    gchar **buf;
+    char *ret;
+
+    buf = g_strsplit (string, search, -1);
+    ret = g_strjoinv (replace, buf);
+    g_strfreev(buf);
+
+    return ret;
 }
 
 static GArray*
@@ -525,7 +532,7 @@ new_action(const gchar *name, const gchar *param) {
 
 static bool
 file_exists (const char * filename) {
-	return (access(filename, F_OK) == 0);
+    return (access(filename, F_OK) == 0);
 }
 
 static void
@@ -552,7 +559,7 @@ load_uri (WebKitWebView *web_view, GArray *argv) {
         GString* newuri = g_string_new (argv_idx(argv, 0));
         if (g_strrstr (argv_idx(argv, 0), "://") == NULL)
             g_string_prepend (newuri, "http://");
-		/* if we do handle cookies, ask our handler for them */
+        /* if we do handle cookies, ask our handler for them */
         webkit_web_view_load_uri (web_view, newuri->str);
         g_string_free (newuri, TRUE);
     }
@@ -1176,6 +1183,7 @@ set_var_value(gchar *name, gchar *val) {
     void *p = NULL;
     uzbl_cmdprop *c = NULL;
     char *endp = NULL;
+    char *buf=NULL;
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         /* check for the variable type */
@@ -1333,7 +1341,6 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
     }
 
     if (*dir == ' ') { /* space unsets the variable */
-        g_free(dir);
         return NULL;
     }
 
@@ -1359,14 +1366,12 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
     /* if we got this far, there was an error; cleanup */
     if (error) g_error_free (error);
     g_free(path);
-    g_free(dir);
     return NULL;
 }
 
 static gboolean
 control_stdin(GIOChannel *gio, GIOCondition condition) {
     gchar *ctl_line = NULL;
-    gsize ctl_line_len = 0;
     GIOStatus ret;
 
     if (condition & G_IO_HUP) {
@@ -1374,7 +1379,7 @@ control_stdin(GIOChannel *gio, GIOCondition condition) {
         return FALSE;
     }
 
-    ret = g_io_channel_read_line(gio, &ctl_line, &ctl_line_len, NULL, NULL);
+    ret = g_io_channel_read_line(gio, &ctl_line, NULL, NULL, NULL);
     if ( (ret == G_IO_STATUS_ERROR) || (ret == G_IO_STATUS_EOF) )
         return FALSE;
 
@@ -1751,16 +1756,15 @@ get_xdg_var (XDG_Var xdg) {
     const gchar* actual_value = getenv (xdg.environmental);
     const gchar* home         = getenv ("HOME");
 
-    gchar* return_value = str_replace ("~", home, g_strdup (actual_value));
+    gchar* return_value = str_replace ("~", home, actual_value);
 
     if (! actual_value || strcmp (actual_value, "") == 0) {
         if (xdg.default_value) {
-            return_value = str_replace ("~", home, g_strdup (xdg.default_value));
+            return_value = str_replace ("~", home, xdg.default_value);
         } else {
             return_value = NULL;
         }
     }
-
     return return_value;
 }
 
@@ -1776,10 +1780,13 @@ find_xdg_file (int xdg_type, char* filename) {
 
     gchar* temporary_string;
     char*  saveptr;
-    
+    char*  buf;
+
     if (! file_exists (temporary_file) && xdg_type != 2) {
-        temporary_string = (char *) strtok_r (get_xdg_var (XDG[3 + xdg_type]), ":", &saveptr);
-        
+        buf = get_xdg_var (XDG[3 + xdg_type]);
+        temporary_string = (char *) strtok_r (buf, ":", &saveptr);
+        free(buf);
+
         while (temporary_string && ! file_exists (temporary_file)) {
             strcpy (temporary_file, temporary_string);
             strcat (temporary_file, filename);
@@ -1804,9 +1811,7 @@ settings_init () {
     uzbl.behave.reset_command_mode = 1;
 
     if (!s->config_file) {
-        gchar* file = find_xdg_file (0, "/uzbl/config");
-        s->config_file = g_strdup (file);
-        g_free (file);
+        s->config_file = find_xdg_file (0, "/uzbl/config");
     }
 
     if (s->config_file) {
