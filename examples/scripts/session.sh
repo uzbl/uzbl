@@ -13,9 +13,9 @@ sessionfile=$XDG_DATA_HOME/uzbl/session # the file in which the "session" (i.e. 
 UZBL="uzbl" # add custom flags and whatever here.
 
 fifodir=/tmp # remember to change this if you instructed uzbl to put its fifos elsewhere
-thisfifo="$5"
-act="$1"
-url="$7"
+thisfifo="$4"
+act="$8"
+url="$6"
 
 case $act in
   "launch" )

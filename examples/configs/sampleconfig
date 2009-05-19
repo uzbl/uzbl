@@ -8,16 +8,17 @@
 # from insert mode by combining them with the modkey
 
 # TODO: ability to attach misc things (spawn <foo>, script <bar>,.. to internal events)
-set history_handler  = /usr/share/uzbl/examples/scripts/history.sh
-set download_handler = /usr/share/uzbl/examples/scripts/download.sh
+# You can use any action in place of spawn
+set history_handler  = spawn /usr/share/uzbl/examples/scripts/history.sh
+set download_handler = spawn /usr/share/uzbl/examples/scripts/download.sh
+
+# TODO: cookie_handler can't take arbitrary actionsyet
 set cookie_handler   = /usr/share/uzbl/examples/scripts/cookies.sh
 set minimum_font_size = 6
 set default_font_size = 11
 
 # use with bind ... = sh <shell-oneliner>
-# notice the '' - it's a spacer to keep bash and sh from shifting the positional parameters
-# by one, so they will appear in the same position as with scripts invoked via spawn
-set shell_cmd         = sh -c %s ''
+set shell_cmd         = sh -c
 
 
 
@@ -40,9 +41,9 @@ set always_insert_mode = 0
 #set  proxy_url       = http://127.0.0.1:8118
 #values 0-3
 #set  http_debug      = 0
-#set  useragent       = uzbl (Webkit %webkit-major%.%webkit-minor%.%webkit-micro%)
+#set  useragent       = uzbl (Webkit WEBKIT_MAJOR.WEBKIT_MINOR.WEBKIT_MICRO)
 # Example user agent containing everything:
-#set  useragent	      = Uzbl (Webkit %webkit-major%.%webkit-minor%.%webkit-micro%) (%sysname% %nodename% %kernrel% %kernver% %arch-system% [%arch-uzbl%]) (Commit %commit%)
+set  useragent       = Uzbl (Webkit WEBKIT_MAJOR.WEBKIT_MINOR.WEBKIT_MICRO) (SYSNAME NODENAME KERNREL KERNVER ARCH_SYSTEM [ARCH_UZBL]) (Commit COMMIT)
 #set  max_conns	      = 0
 #set  max_conns_host  = 0
 
@@ -85,7 +86,7 @@ bind    u         = spawn /usr/share/uzbl/examples/scripts/load_url_from_bookmar
 bind    yurl      = spawn /usr/share/uzbl/examples/scripts/yank.sh 8 primary
 bind    ytitle    = spawn /usr/share/uzbl/examples/scripts/yank.sh 9 clipboard
 # does the same as yurl but without needing a script
-bind    y2url     = sh 'echo -n $6 | xclip'
+bind    y2url     = sh "echo -n $6 | xclip"
 # go the page from primary selection
 bind    p         = sh "echo act uri `xclip -selection primary -o` > $4"
 # go to the page in clipboard
@@ -95,7 +96,9 @@ bind    S         = js alert("hi");
 # example showing how to use sh
 # it sends a command to the fifo, whose path is told via a positional param
 # if fifo_dir is not set, it'll echo to a file named (null) somewhere >:) remember to delete it
-bind    XS        = sh 'echo "act script alert (\"This is sent by the shell via a fifo\")" > "$4"'
+# Parameters are separated by spaces and the script body must be one parameter, so enclose it in
+# quotes and escape any inner quotes using backslashes
+bind    XS        = sh 'echo "act script alert (\'This is sent by the shell via a fifo\')" > "$4"'
 # Keyboard based link following: work in progress! No C DOM bindings yet, no click() event for hyperlinks so no referrer set..Quite basic but does the job for now...
 #hit F to toggle the Hints (now in form of link numbering)
 bind    F= script /usr/share/uzbl/examples/scripts/hint.js

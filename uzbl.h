@@ -128,6 +128,8 @@ typedef struct {
 /* behaviour */
 typedef struct {
     gchar*   load_finish_handler;
+    gchar*   load_start_handler;
+    gchar*   load_commit_handler;
     gchar*   status_format;
     gchar*   title_format_short;
     gchar*   title_format_long;
@@ -243,6 +245,9 @@ static void
 load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
 
 static void
+load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
+
+static void
 load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
 
 static void
@@ -276,7 +281,8 @@ static void
 close_uzbl (WebKitWebView *page, const char *param);
 
 static gboolean
-run_command(const char *command, const char *args, const gboolean sync, char **stdout);
+run_command(const gchar *command, const guint npre,
+            const gchar **args, const gboolean sync, char **stdout);
 
 static void
 spawn(WebKitWebView *web_view, const char *param);
@@ -337,6 +343,9 @@ create_mainbar ();
 
 static
 GtkWidget* create_window ();
+
+static void
+run_handler (const gchar *act, const gchar *args);
 
 static void
 add_binding (const gchar *key, const gchar *act);

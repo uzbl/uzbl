@@ -76,6 +76,8 @@ const struct {
     { "reset_command_mode", (void *)&uzbl.behave.reset_command_mode },
     { "modkey"     ,        (void *)&uzbl.behave.modkey             },
     { "load_finish_handler",(void *)&uzbl.behave.load_finish_handler},
+    { "load_start_handler", (void *)&uzbl.behave.load_start_handler },
+    { "load_commit_handler",(void *)&uzbl.behave.load_commit_handler},
     { "history_handler",    (void *)&uzbl.behave.history_handler    },
     { "download_handler",   (void *)&uzbl.behave.download_handler   },
     { "cookie_handler",     (void *)&uzbl.behave.cookie_handler     },
@@ -292,7 +294,8 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
         const gchar* uri = webkit_download_get_uri ((WebKitDownload*)download);
         if (uzbl.state.verbose)
             printf("Download -> %s\n",uri);
-        run_command(uzbl.behave.download_handler, uri, FALSE, NULL);
+        /* if urls not escaped, we may have to escape and quote uri before this call */
+        run_handler(uzbl.behave.download_handler, uri);
     }
     return (FALSE);
 }
@@ -304,10 +307,7 @@ scroll (GtkAdjustment* bar, const char *param) {
     gchar *end;
 
     amount = g_ascii_strtod(param, &end);
-
-    if (*end)
-        fprintf(stderr, "found something after double: %s\n", end);
-
+    if (*end == '%') amount = gtk_adjustment_get_page_size(bar) * amount * 0.01;
     gtk_adjustment_set_value (bar, gtk_adjustment_get_value(bar)+amount);
 }
 
@@ -394,9 +394,17 @@ load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) page;
     (void) frame;
     (void) data;
-    if (uzbl.behave.load_finish_handler) {
-        run_command(uzbl.behave.load_finish_handler, NULL, FALSE, NULL);
-    }
+    if (uzbl.behave.load_finish_handler)
+        run_handler(uzbl.behave.load_finish_handler, "");
+}
+
+static void
+load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
+    (void) page;
+    (void) frame;
+    (void) data;
+    if (uzbl.behave.load_start_handler)
+        run_handler(uzbl.behave.load_start_handler, "");
 }
 
 static void
@@ -411,6 +419,8 @@ load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
         update_title();
     }
     g_string_truncate(uzbl.state.keycmd, 0); // don't need old commands to remain on new page?
+    if (uzbl.behave.load_commit_handler)
+        run_handler(uzbl.behave.load_commit_handler, uzbl.state.uri);
 }
 
 static void
@@ -428,11 +438,8 @@ log_history_cb () {
        char date [80];
        time ( &rawtime );
        timeinfo = localtime ( &rawtime );
-       strftime (date, 80, "%Y-%m-%d %H:%M:%S", timeinfo);
-       GString* args = g_string_new ("");
-       g_string_printf (args, "'%s'", date);
-       run_command(uzbl.behave.history_handler, args->str, FALSE, NULL);
-       g_string_free (args, TRUE);
+       strftime (date, 80, "\"%Y-%m-%d %H:%M:%S\"", timeinfo);
+       run_handler(uzbl.behave.history_handler, date);
    }
 }
 
@@ -854,72 +861,132 @@ expand_template(const char *template) {
 }
 /* --End Statusbar functions-- */
 
+static void
+sharg_append(GArray *a, const gchar *str) {
+    const gchar *s = (str ? str : "");
+    g_array_append_val(a, s);
+}
 
 // make sure that the args string you pass can properly be interpreted (eg properly escaped against whitespace, quotes etc)
 static gboolean
-run_command (const char *command, const char *args, const gboolean sync, char **stdout) {
+run_command (const gchar *command, const guint npre, const gchar **args,
+             const gboolean sync, char **stdout) {
    //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
-    GString *to_execute = g_string_new ("");
     GError *err = NULL;
-    gchar *cmd = g_strstrip(g_strdup(command));
-    gchar *qcfg = (uzbl.state.config_file ? g_shell_quote(uzbl.state.config_file) : g_strdup("''"));
-    gchar *qfifo = (uzbl.comm.fifo_path ? g_shell_quote(uzbl.comm.fifo_path) : g_strdup("''"));
-    gchar *qsock = (uzbl.comm.socket_path ? g_shell_quote(uzbl.comm.socket_path) : g_strdup("''"));
-    gchar *quri = (uzbl.state.uri ? g_shell_quote(uzbl.state.uri) : g_strdup("''"));
-    gchar *qtitle = (uzbl.gui.main_title ? g_shell_quote(uzbl.gui.main_title) : g_strdup("''"));
+    
+    GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+    gchar *pid = itos(getpid());
+    gchar *xwin = itos(uzbl.xwin);
+    guint i;
+    sharg_append(a, command);
+    for (i = 0; i < npre; i++) /* add n args before the default vars */
+        sharg_append(a, args[i]);
+    sharg_append(a, uzbl.state.config_file);
+    sharg_append(a, pid);
+    sharg_append(a, xwin);
+    sharg_append(a, uzbl.comm.fifo_path);
+    sharg_append(a, uzbl.comm.socket_path);
+    sharg_append(a, uzbl.state.uri);
+    sharg_append(a, uzbl.gui.main_title);
 
+    for (i = npre; i < g_strv_length((gchar**)args); i++)
+        sharg_append(a, args[i]);
     gboolean result;
-    g_string_printf (to_execute, "%s %s '%i' '%i' %s %s",
-                     cmd, qcfg, (int) getpid(), (int) uzbl.xwin, qfifo, qsock);
-    g_string_append_printf (to_execute, " %s %s", quri, qtitle);
-    if(args) g_string_append_printf (to_execute, " %s", args);
+    if (sync) result = g_spawn_sync(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
+                                    NULL, NULL, stdout, NULL, NULL, &err);
+    else result = g_spawn_async(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
+                                NULL, NULL, NULL, &err);
 
-    if (sync) {
-        result = g_spawn_command_line_sync (to_execute->str, stdout, NULL, NULL, &err);
-    } else result = g_spawn_command_line_async (to_execute->str, &err);
-    if (uzbl.state.verbose)
-        printf("Called %s.  Result: %s\n", to_execute->str, (result ? "TRUE" : "FALSE" ));
-    g_string_free (to_execute, TRUE);
+    if (uzbl.state.verbose) {
+        GString *s = g_string_new("spawned:");
+        for (i = 0; i < (a->len); i++) {
+            gchar *qarg = g_shell_quote(g_array_index(a, gchar*, i));
+            g_string_append_printf(s, " %s", qarg);
+            g_free (qarg);
+        }
+        g_string_append_printf(s, " -- result: %s", (result ? "true" : "false"));
+        printf("%s\n", s->str);
+        g_string_free(s, TRUE);
+    }
     if (err) {
         g_printerr("error on run_command: %s\n", err->message);
         g_error_free (err);
     }
-
-    g_free (qcfg);
-    g_free (qfifo);
-    g_free (qsock);
-    g_free (quri);
-    g_free (qtitle);
-    g_free (cmd);
+    g_free (pid);
+    g_free (xwin);
+    g_array_free (a, TRUE);
     return result;
+}
+
+static gchar**
+split_quoted(const gchar* src, const gboolean unquote) {
+    /* split on unquoted space, return array of strings;
+       remove a layer of quotes and backslashes if unquote */
+    gboolean dq = FALSE;
+    gboolean sq = FALSE;
+    GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+    GString *s = g_string_new ("");
+    const gchar *p;
+    gchar **ret;
+    gchar *dup;
+    for (p = src; *p != '\0'; p++) {
+        if ((*p == '\\') && unquote) g_string_append_c(s, *++p);
+        else if (*p == '\\') { g_string_append_c(s, *p++);
+                               g_string_append_c(s, *p); }
+        else if ((*p == '"') && unquote && !sq) dq = !dq;
+        else if (*p == '"' && !sq) { g_string_append_c(s, *p);
+                                     dq = !dq; }
+        else if ((*p == '\'') && unquote && !dq) sq = !sq;
+        else if (*p == '\'' && !dq) { g_string_append_c(s, *p);
+                                      sq = ! sq; }
+        else if ((*p == ' ') && !dq && !sq) {
+            dup = g_strdup(s->str);
+            g_array_append_val(a, dup);
+            g_string_truncate(s, 0);
+        } else g_string_append_c(s, *p);
+    }
+    dup = g_strdup(s->str);
+    g_array_append_val(a, dup);
+    ret = (gchar**)a->data;
+    g_array_free (a, FALSE);
+    g_string_free (s, FALSE);
+    return ret;
 }
 
 static void
 spawn(WebKitWebView *web_view, const char *param) {
     (void)web_view;
-/*
-   TODO: allow more control over argument order so that users can have some arguments before the default ones from run_command, and some after
-    gchar** cmd = g_strsplit(param, " ", 2);
-    gchar * args = NULL;
-    if (cmd[1]) {
-        args = g_shell_quote(cmd[1]);
-    }
-    if (cmd) {
-        run_command(cmd[0], args, FALSE, NULL);
-    }
-    if (args) {
-        g_free(args);
-    }
-*/
-    run_command(param, NULL, FALSE, NULL);
+    //TODO: allow more control over argument order so that users can have some arguments before the default ones from run_command, and some after
+    gchar **cmd = split_quoted(param, TRUE);
+    if (cmd) run_command(cmd[0], 0, &cmd[1], FALSE, NULL);
+    g_strfreev ((gchar**)cmd);
 }
 
 static void
 spawn_sh(WebKitWebView *web_view, const char *param) {
     (void)web_view;
-    gchar *cmd = g_strdup_printf(uzbl.behave.shell_cmd, param);
-    spawn(NULL, cmd);
-    g_free(cmd);
+    if (!uzbl.behave.shell_cmd) {
+        g_printerr ("spawn_sh: shell_cmd is not set!\n");
+        return;
+    }
+    
+    guint i;
+    gchar *spacer = g_strdup("");
+    GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+    gchar **cmd = split_quoted(uzbl.behave.shell_cmd, TRUE);
+    gchar **p = split_quoted(param, TRUE);
+    for (i = 1; i < g_strv_length(cmd); i++)
+        sharg_append(a, cmd[i]);
+    sharg_append(a, p[0]); /* the first param comes right after shell_cmd;
+                              the rest come after default args */
+    sharg_append(a, spacer);
+    for (i = 1; i < g_strv_length(p); i++)
+        sharg_append(a, p[i]);
+    if (cmd) run_command(cmd[0], g_strv_length(cmd) + 1, a->data, FALSE, NULL);
+    g_free (spacer);
+    g_strfreev (cmd);
+    g_strfreev (p);
+    g_array_free (a, FALSE);
 }
 
 static void
@@ -960,6 +1027,8 @@ get_var_value(gchar *name) {
            || var_is("title_format_long", name)
            || var_is("modkey", name)
            || var_is("load_finish_handler", name)
+           || var_is("load_start_handler", name)
+           || var_is("load_commit_handler", name)
            || var_is("history_handler", name)
            || var_is("download_handler", name)
            || var_is("cookie_handler", name)
@@ -1033,6 +1102,8 @@ set_var_value(gchar *name, gchar *val) {
            || var_is("title_format_long", name)
            || var_is("title_format_short", name)
            || var_is("load_finish_handler", name)
+           || var_is("load_start_handler", name)
+           || var_is("load_commit_handler", name)
            || var_is("history_handler", name)
            || var_is("download_handler", name)
            || var_is("cookie_handler", name)) {
@@ -1585,6 +1656,7 @@ create_browser () {
     g_signal_connect (G_OBJECT (g->web_view), "title-changed", G_CALLBACK (title_change_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-progress-changed", G_CALLBACK (progress_change_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-committed", G_CALLBACK (load_commit_cb), g->web_view);
+    g_signal_connect (G_OBJECT (g->web_view), "load-started", G_CALLBACK (load_start_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-finished", G_CALLBACK (log_history_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-finished", G_CALLBACK (load_finish_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), g->web_view);
@@ -1619,6 +1691,28 @@ GtkWidget* create_window () {
     g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (destroy_cb), NULL);
 
     return window;
+}
+
+static void
+run_handler (const gchar *act, const gchar *args) {
+    char **parts = g_strsplit(act, " ", 2);
+    if (!parts) return;
+    else if ((g_strcmp0(parts[0], "spawn") == 0)
+             || (g_strcmp0(parts[0], "sh") == 0)) {
+        guint i;
+        GString *a = g_string_new ("");
+        char **spawnparts;
+        spawnparts = split_quoted(parts[1], FALSE);
+        g_string_append_printf(a, "%s", spawnparts[0]);
+        if (args) g_string_append_printf(a, " %s", args); /* append handler args before user args */
+        for (i = 1; i < g_strv_length(spawnparts); i++) /* user args */
+            g_string_append_printf(a, " %s", spawnparts[i]);
+        parse_command(parts[0], a->str);
+        g_string_free (a, TRUE);
+        g_strfreev (spawnparts);
+    } else
+        parse_command(parts[0], parts[1]);
+    g_strfreev (parts);
 }
 
 static void
@@ -1756,14 +1850,19 @@ static void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer use
 
     gchar * stdout = NULL;
     soup_message_add_header_handler(msg, "got-headers", "Set-Cookie", G_CALLBACK(save_cookies), NULL);
-    GString* args = g_string_new ("");
+    GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+    gchar *action = g_strdup ("GET");
     SoupURI * soup_uri = soup_message_get_uri(msg);
-    g_string_printf (args, "GET %s %s", soup_uri->host, soup_uri->path);
-    run_command(uzbl.behave.cookie_handler, args->str, TRUE, &stdout);
+    sharg_append(a, action);
+    sharg_append(a, soup_uri->host);
+    sharg_append(a, soup_uri->path);
+    run_command(uzbl.behave.cookie_handler, 0, a->data, TRUE, &stdout); /* TODO: use handler */
+    //run_handler(uzbl.behave.cookie_handler); /* TODO: global stdout pointer, spawn_sync */
     if(stdout) {
         soup_message_headers_replace (msg->request_headers, "Cookie", stdout);
     }
-    g_string_free(args, TRUE);
+    g_free (action);
+    g_array_free(a, TRUE);
 }
 
 static void
@@ -1773,12 +1872,17 @@ save_cookies (SoupMessage *msg, gpointer user_data){
     char *cookie;
     for (ck = soup_cookies_from_response(msg); ck; ck = ck->next){
         cookie = soup_cookie_to_set_cookie_header(ck->data);
-        GString* args = g_string_new ("");
+        GArray *a = g_array_new(TRUE, FALSE, sizeof(gchar*));
         SoupURI * soup_uri = soup_message_get_uri(msg);
-        g_string_printf (args, "PUT %s %s \"%s\"", soup_uri->host, soup_uri->path, cookie);
-        run_command(uzbl.behave.cookie_handler, args->str, FALSE, NULL);
-        g_string_free(args, TRUE);
-        free(cookie);
+        gchar *action = strdup("PUT");
+        sharg_append(a, action);
+        sharg_append(a, soup_uri->host);
+        sharg_append(a, soup_uri->path);
+        sharg_append(a, cookie);
+        run_command(uzbl.behave.cookie_handler, 0, a->data, FALSE, NULL);
+        g_free (cookie);
+        g_free (action);
+        g_array_free(a, TRUE);
     }
     g_slist_free(ck);
 }
