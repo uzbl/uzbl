@@ -41,9 +41,9 @@ set always_insert_mode = 0
 #set  proxy_url       = http://127.0.0.1:8118
 #values 0-3
 #set  http_debug      = 0
-#set  useragent       = uzbl (Webkit %webkit-major%.%webkit-minor%.%webkit-micro%)
+#set  useragent       = uzbl (Webkit WEBKIT_MAJOR.WEBKIT_MINOR.WEBKIT_MICRO)
 # Example user agent containing everything:
-#set  useragent	      = Uzbl (Webkit %webkit-major%.%webkit-minor%.%webkit-micro%) (%sysname% %nodename% %kernrel% %kernver% %arch-system% [%arch-uzbl%]) (Commit %commit%)
+set  useragent       = Uzbl (Webkit WEBKIT_MAJOR.WEBKIT_MINOR.WEBKIT_MICRO) (SYSNAME NODENAME KERNREL KERNVER ARCH_SYSTEM [ARCH_UZBL]) (Commit COMMIT)
 #set  max_conns	      = 0
 #set  max_conns_host  = 0
 
