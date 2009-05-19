@@ -354,7 +354,7 @@ static void
 settings_init ();
 
 static void
-search_text (WebKitWebView *page, const char *param, const gboolean forward);
+search_text (WebKitWebView *page, GArray *argv, const gboolean forward);
 
 static void
 search_forward_text (WebKitWebView *page, GArray *argv);
