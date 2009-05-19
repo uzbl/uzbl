@@ -1756,14 +1756,13 @@ find_xdg_file (int xdg_type, char* filename) {
        xdg_type = 1 => data
        xdg_type = 2 => cache*/
 
-    gchar* temporary_file   = (char *)malloc (1024);
-    gchar* temporary_string = NULL;
+    gchar* xdgv = get_xdg_var (XDG[xdg_type]);
+    gchar* temporary_file = g_strconcat (xdgv, filename, NULL);
+    g_free (xdgv);
+
+    gchar* temporary_string;
     char*  saveptr;
-
-    strcpy (temporary_file, get_xdg_var (XDG[xdg_type]));
-
-    strcat (temporary_file, filename);
-
+    
     if (! file_exists (temporary_file) && xdg_type != 2) {
         temporary_string = (char *) strtok_r (get_xdg_var (XDG[3 + xdg_type]), ":", &saveptr);
         
@@ -1773,6 +1772,8 @@ find_xdg_file (int xdg_type, char* filename) {
             temporary_string = (char * ) strtok_r (NULL, ":", &saveptr);
         }
     }
+    
+    g_free (temporary_string);
 
     if (file_exists (temporary_file)) {
         return temporary_file;
@@ -1789,7 +1790,9 @@ settings_init () {
     uzbl.behave.reset_command_mode = 1;
 
     if (!s->config_file) {
-        s->config_file = g_strdup (find_xdg_file (0, "/uzbl/config"));
+        gchar* file = find_xdg_file (0, "/uzbl/config");
+        s->config_file = g_strdup (file);
+        g_free (file);
     }
 
     if (s->config_file) {
