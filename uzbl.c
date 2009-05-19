@@ -483,7 +483,7 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "exit",             {close_uzbl, 0}                },
     { "search",           {search_forward_text, NOSPLIT} },
     { "search_reverse",   {search_reverse_text, NOSPLIT} },
-    { "insert_mode",      {toggle_insert_mode, 0}        },
+    { "toggle_insert_mode",      {toggle_insert_mode, 0}        },
     { "runcmd",           {runcmd, NOSPLIT}              }
 };
 
