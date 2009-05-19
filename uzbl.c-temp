@@ -451,7 +451,11 @@ log_history_cb () {
        char date [80];
        time ( &rawtime );
        timeinfo = localtime ( &rawtime );
+<<<<<<< HEAD:uzbl.c
+       strftime (date, 80, "\"%Y-%m-%d %H:%M:%S\"", timeinfo);
+=======
        strftime (date, 80, " \"%Y-%m-%d %H:%M:%S\"", timeinfo);
+>>>>>>> 17160f7... Remove bunches of old code, fix run_handler, free some stuff:uzbl.c
        run_handler(uzbl.behave.history_handler, date);
    }
 }
@@ -899,7 +903,12 @@ run_command (const gchar *command, const guint npre, const gchar **args,
     sharg_append(a, uzbl.state.uri);
     sharg_append(a, uzbl.gui.main_title);
 
+<<<<<<< HEAD:uzbl.c
     for (i = npre; i < g_strv_length((gchar**)args); i++)
+=======
+    guint i;
+    for (i = 0; i < g_strv_length(args); i++)
+>>>>>>> 17160f7... Remove bunches of old code, fix run_handler, free some stuff:uzbl.c
         sharg_append(a, args[i]);
     gboolean result;
     if (sync) result = g_spawn_sync(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
@@ -908,6 +917,7 @@ run_command (const gchar *command, const guint npre, const gchar **args,
                                 NULL, NULL, NULL, &err);
 
     if (uzbl.state.verbose) {
+<<<<<<< HEAD:uzbl.c
         GString *s = g_string_new("spawned:");
         for (i = 0; i < (a->len); i++) {
             gchar *qarg = g_shell_quote(g_array_index(a, gchar*, i));
@@ -917,6 +927,11 @@ run_command (const gchar *command, const guint npre, const gchar **args,
         g_string_append_printf(s, " -- result: %s", (result ? "true" : "false"));
         printf("%s\n", s->str);
         g_string_free(s, TRUE);
+=======
+        gchar *cli = g_strjoinv(" ", (gchar **)a->data);
+        printf("Called %s.  Result: %s\n", cli, (result ? "TRUE" : "FALSE" ));
+        g_free (cli);
+>>>>>>> 17160f7... Remove bunches of old code, fix run_handler, free some stuff:uzbl.c
     }
     if (err) {
         g_printerr("error on run_command: %s\n", err->message);
@@ -924,7 +939,11 @@ run_command (const gchar *command, const guint npre, const gchar **args,
     }
     g_free (pid);
     g_free (xwin);
+<<<<<<< HEAD:uzbl.c
     g_array_free (a, TRUE);
+=======
+    g_array_free (a, FALSE);
+>>>>>>> 17160f7... Remove bunches of old code, fix run_handler, free some stuff:uzbl.c
     return result;
 }
 
@@ -969,8 +988,13 @@ static void
 spawn(WebKitWebView *web_view, GArray *argv) {
     (void)web_view;
     //TODO: allow more control over argument order so that users can have some arguments before the default ones from run_command, and some after
-    if (argv_idx(argv, 0))
-        run_command(argv_idx(argv, 0), 0, (const gchar **) argv->data + sizeof(gchar*), FALSE, NULL);
+<<<<<<< HEAD:uzbl.c
+    if (argv_idx(argv, 0)) run_command(argv_idx(argv, 0), 0, (const gchar **) argv->data + sizeof(gchar*), FALSE, NULL);
+=======
+    gchar **cmd = split_quoted(param);
+    if (cmd) run_command(cmd[0], &cmd[1], FALSE, NULL);
+    g_strfreev (cmd);
+>>>>>>> 17160f7... Remove bunches of old code, fix run_handler, free some stuff:uzbl.c
 }
 
 static void
@@ -1722,15 +1746,28 @@ static void
 run_handler (const gchar *act, const gchar *args) {
     char **parts = g_strsplit(act, " ", 2);
     if (!parts) return;
+<<<<<<< HEAD:uzbl.c
+    else if ((g_strcmp0(parts[0], "spawn") == 0)
+             || (g_strcmp0(parts[0], "sh") == 0)) {
+        guint i;
+        GString *a = g_string_new ("");
+        char **spawnparts;
+        spawnparts = split_quoted(parts[1], FALSE);
+        g_string_append_printf(a, "%s", spawnparts[0]);
+        if (args) g_string_append_printf(a, " %s", args); /* append handler args before user args */
+        for (i = 1; i < g_strv_length(spawnparts); i++) /* user args */
+            g_string_append_printf(a, " %s", spawnparts[i]);
+=======
     else if (g_strcmp0(parts[0], "spawn") == 0) {
         GString *a = g_string_new ("");
         char **spawnparts;
-        spawnparts = split_quoted(parts[1], TRUE);
+        spawnparts = split_quoted(parts[1]);
         g_string_append_printf(a, "\"%s\"", spawnparts[0]);
         g_string_append(a, args); /* append handler args before user args */
         int i;
         for (i = 1; i < g_strv_length(spawnparts); i++) /* user args */
             g_string_append_printf(a, " \"%s\"", spawnparts[i]);
+>>>>>>> 17160f7... Remove bunches of old code, fix run_handler, free some stuff:uzbl.c
         parse_command(parts[0], a->str);
         g_string_free (a, TRUE);
         g_strfreev (spawnparts);
