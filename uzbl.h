@@ -105,12 +105,15 @@ typedef struct {
     gchar    *uri;
     gchar    *config_file;
     char    *instance_name;
-    gchar    config_file_path[500];
-    gchar    selected_url[500];
-    char     executable_path[500];
+    gchar    *selected_url;
+    gchar    *executable_path;
     GString* keycmd;
+<<<<<<< HEAD:uzbl.h
     gchar*   searchtx;
     gchar*   searchold;
+=======
+    gchar    *searchtx;
+>>>>>>> b520d89... merge in from salinasv:uzbl.h
     struct utsname unameinfo; /* system info */
     gboolean verbose;
 } State;

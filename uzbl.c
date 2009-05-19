@@ -238,6 +238,7 @@ clean_up(void) {
     if (uzbl.behave.socket_dir)
         unlink (uzbl.comm.socket_path);
 
+    g_free(uzbl.state.executable_path);
     g_string_free(uzbl.state.keycmd, TRUE);
     g_hash_table_destroy(uzbl.bindings);
     g_hash_table_destroy(uzbl.behave.commands);
@@ -280,7 +281,7 @@ create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer us
     (void) web_view;
     (void) frame;
     (void) user_data;
-    if (uzbl.state.selected_url[0]!=0) {
+    if (uzbl.state.selected_url != NULL) {
         if (uzbl.state.verbose)
             printf("\nNew web view -> %s\n",uzbl.state.selected_url);
         new_window_load_uri(uzbl.state.selected_url);
@@ -367,9 +368,10 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
     (void) title;
     (void) data;
     //Set selected_url state variable
-    uzbl.state.selected_url[0] = '\0';
+    g_free(uzbl.state.selected_url);
+    uzbl.state.selected_url = NULL;
     if (link) {
-        strcpy (uzbl.state.selected_url, link);
+        uzbl.state.selected_url = g_strdup(link);
     }
     update_title();
 }
@@ -563,6 +565,7 @@ run_js (WebKitWebView * web_view, GArray *argv) {
 }
 
 static void
+<<<<<<< HEAD:uzbl.c
 run_external_js (WebKitWebView * web_view, GArray *argv) {
     if (argv_idx(argv, 0)) {
         GArray* lines = read_file_by_line (argv_idx (argv, 0));
@@ -598,6 +601,12 @@ search_text (WebKitWebView *page, GArray *argv, const gboolean forward) {
     if (argv_idx(argv, 0) && (*argv_idx(argv, 0) != '\0'))
         uzbl.state.searchtx = g_strdup(argv_idx(argv, 0));
 
+=======
+search_text (WebKitWebView *page, const char *param, const gboolean forward) {
+    if ((param) && (param[0] != '\0')) {
+        uzbl.state.searchtx = g_strdup(param);
+    }
+>>>>>>> b520d89... merge in from salinasv:uzbl.c
     if (uzbl.state.searchtx != NULL) {
         if (uzbl.state.verbose)
             printf ("Searching: %s\n", uzbl.state.searchtx);
@@ -614,6 +623,8 @@ search_text (WebKitWebView *page, GArray *argv, const gboolean forward) {
 
         webkit_web_view_set_highlight_text_matches (page, TRUE);
         webkit_web_view_search_text (page, uzbl.state.searchtx, FALSE, forward, TRUE);
+        g_free(uzbl.state.searchtx);
+        uzbl.state.searchtx = NULL;
     }
 }
 
@@ -1899,7 +1910,9 @@ main (int argc, char* argv[]) {
     if (!g_thread_supported ())
         g_thread_init (NULL);
 
-    strcpy(uzbl.state.executable_path,argv[0]);
+    uzbl.state.executable_path = g_strdup(argv[0]);
+    uzbl.state.selected_url = NULL;
+    uzbl.state.searchtx = NULL;
 
     GOptionContext* context = g_option_context_new ("- some stuff here maybe someday");
     g_option_context_add_main_entries (context, entries, NULL);
