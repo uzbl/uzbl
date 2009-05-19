@@ -34,3 +34,6 @@ So ideally, all contributors develop in their experimental, that gets merged int
 	$ recompile
 	$ valgrind --tool=callgrind ./uzbl ....
 	$ kcachegrind callgrind.out.foo
+
+### MEMORY LEAK CHECKING
+    valgrind --tool=memcheck --leak-check=full ./uzbl
