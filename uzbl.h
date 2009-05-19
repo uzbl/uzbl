@@ -96,6 +96,7 @@ typedef struct {
     GRegex         *keycmd_regex;
     GRegex         *get_regex;
     GRegex         *bind_regex;
+    gchar          **sync_stdout;
 } Communication;
 
 
@@ -223,7 +224,7 @@ static gboolean
 download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data);
 
 static void
-toggle_status_cb (WebKitWebView* page, const char *param);
+toggle_status_cb (WebKitWebView* page, GArray *argv);
 
 static void
 link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data);
@@ -262,32 +263,32 @@ static bool
 file_exists (const char * filename);
 
 static void
-set_insert_mode(WebKitWebView *page, const gchar *param);
+set_insert_mode(WebKitWebView *page, GArray *argv);
 
 static void
-load_uri (WebKitWebView * web_view, const gchar *param);
+load_uri (WebKitWebView * web_view, GArray *argv);
 
 static void
 new_window_load_uri (const gchar * uri);
 
 static void
-close_uzbl (WebKitWebView *page, const char *param);
+close_uzbl (WebKitWebView *page, GArray *argv);
 
 static gboolean
 run_command(const gchar *command, const guint npre,
             const gchar **args, const gboolean sync, char **stdout);
 
 static void
-spawn(WebKitWebView *web_view, const char *param);
+spawn(WebKitWebView *web_view, GArray *argv);
 
 static void
-spawn_sh(WebKitWebView *web_view, const char *param);
+spawn_sh(WebKitWebView *web_view, GArray *argv);
 
 static void
 parse_command(const char *cmd, const char *param);
 
 static void
-runcmd(WebKitWebView *page, const char *param);
+runcmd(WebKitWebView *page, GArray *argv);
 
 static void
 parse_cmd_line(const char *ctl_line);
@@ -356,13 +357,13 @@ static void
 search_text (WebKitWebView *page, const char *param, const gboolean forward);
 
 static void
-search_forward_text (WebKitWebView *page, const char *param);
+search_forward_text (WebKitWebView *page, GArray *argv);
 
 static void
-search_reverse_text (WebKitWebView *page, const char *param);
+search_reverse_text (WebKitWebView *page, GArray *argv);
 
 static void
-run_js (WebKitWebView * web_view, const gchar *param);
+run_js (WebKitWebView * web_view, GArray *argv);
 
 static void handle_cookies (SoupSession *session,
 							SoupMessage *msg,

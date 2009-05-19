@@ -252,34 +252,34 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
 
 /* scroll a bar in a given direction */
 static void
-scroll (GtkAdjustment* bar, const char *param) {
+scroll (GtkAdjustment* bar, GArray *argv) {
     gdouble amount;
     gchar *end;
 
-    amount = g_ascii_strtod(param, &end);
+    amount = g_ascii_strtod(g_array_index(argv, gchar*, 0), &end);
     if (*end == '%') amount = gtk_adjustment_get_page_size(bar) * amount * 0.01;
     gtk_adjustment_set_value (bar, gtk_adjustment_get_value(bar)+amount);
 }
 
-static void scroll_begin(WebKitWebView* page, const char *param) {
-    (void) page; (void) param;
+static void scroll_begin(WebKitWebView* page, GArray *argv) {
+    (void) page; (void) argv;
     gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_lower(uzbl.gui.bar_v));
 }
 
-static void scroll_end(WebKitWebView* page, const char *param) {
-    (void) page; (void) param;
+static void scroll_end(WebKitWebView* page, GArray *argv) {
+    (void) page; (void) argv;
     gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_upper(uzbl.gui.bar_v) -
                               gtk_adjustment_get_page_size(uzbl.gui.bar_v));
 }
 
-static void scroll_vert(WebKitWebView* page, const char *param) {
+static void scroll_vert(WebKitWebView* page, GArray *argv) {
     (void) page;
-    scroll(uzbl.gui.bar_v, param);
+    scroll(uzbl.gui.bar_v, argv);
 }
 
-static void scroll_horz(WebKitWebView* page, const char *param) {
+static void scroll_horz(WebKitWebView* page, GArray *argv) {
     (void) page;
-    scroll(uzbl.gui.bar_h, param);
+    scroll(uzbl.gui.bar_h, argv);
 }
 
 static void
@@ -890,9 +890,16 @@ static void
 parse_command(const char *cmd, const char *param) {
     Command c;
 
-    if ((c = g_hash_table_lookup(uzbl.behave.commands, cmd)))
-        c(uzbl.gui.web_view, param);
-    else
+    if ((c = g_hash_table_lookup(uzbl.behave.commands, cmd))) {
+        int i;
+        gchar **par = split_quoted(param, TRUE);
+        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+        for (i = 0; i < g_strv_length(par); i++)
+            sharg_append(a, par[i]);
+        c(uzbl.gui.web_view, a);
+        g_strfreev (par);
+        g_array_free (a, TRUE);
+    } else
         fprintf (stderr, "command \"%s\" not understood. ignoring.\n", cmd);
 }
 
