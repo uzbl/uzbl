@@ -1875,8 +1875,12 @@ main (int argc, char* argv[]) {
 
     create_stdin();
 
-    //if(uzbl.state.uri)
-    //    load_uri (uzbl.gui.web_view, uzbl.state.uri);
+    if(uzbl.state.uri) {
+        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+        g_array_append_val(a, uzbl.state.uri);
+        load_uri (uzbl.gui.web_view, a);
+        g_array_free (a, TRUE);
+    }
 
     gtk_main ();
     clean_up();
