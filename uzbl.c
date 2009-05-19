@@ -1722,15 +1722,16 @@ static void
 run_handler (const gchar *act, const gchar *args) {
     char **parts = g_strsplit(act, " ", 2);
     if (!parts) return;
-    else if (g_strcmp0(parts[0], "spawn") == 0) {
+    else if ((g_strcmp0(parts[0], "spawn") == 0)
+             || (g_strcmp0(parts[0], "sh") == 0)) {
+        guint i;
         GString *a = g_string_new ("");
         char **spawnparts;
-        spawnparts = split_quoted(parts[1], TRUE);
-        g_string_append_printf(a, "\"%s\"", spawnparts[0]);
-        g_string_append(a, args); /* append handler args before user args */
-        int i;
+        spawnparts = split_quoted(parts[1], FALSE);
+        g_string_append_printf(a, "%s", spawnparts[0]);
+        if (args) g_string_append_printf(a, " %s", args); /* append handler args before user args */
         for (i = 1; i < g_strv_length(spawnparts); i++) /* user args */
-            g_string_append_printf(a, " \"%s\"", spawnparts[i]);
+            g_string_append_printf(a, " %s", spawnparts[i]);
         parse_command(parts[0], a->str);
         g_string_free (a, TRUE);
         g_strfreev (spawnparts);
