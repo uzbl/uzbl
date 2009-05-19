@@ -207,7 +207,7 @@ itos(int val);
 static char *
 str_replace (const char* search, const char* replace, const char* string);
 
-static gchar**
+static GArray*
 read_file_by_line (gchar *path);
 
 static

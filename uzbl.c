@@ -157,20 +157,20 @@ str_replace (const char* search, const char* replace, const char* string) {
     return g_strjoinv (replace, g_strsplit (string, search, -1));
 }
 
-static gchar**
+static GArray*
 read_file_by_line (gchar *path) {
     GIOChannel *chan = NULL;
     gchar *readbuf = NULL;
     gsize len;
-    gchar *lines[512];
-    int i;
+    GArray *lines = g_array_new(TRUE, FALSE, sizeof(gchar*));
+    int i = 0;
     
     chan = g_io_channel_new_file(path, "r", NULL);
     
     if (chan) {
-        while (g_io_channel_read_line(chan, &readbuf, &len, NULL, NULL)
-               == G_IO_STATUS_NORMAL) {
-            lines[i] = g_strdup (readbuf);
+        while (g_io_channel_read_line(chan, &readbuf, &len, NULL, NULL) == G_IO_STATUS_NORMAL) {
+            const gchar* val = g_strdup (readbuf);
+            g_array_append_val (lines, val);
             g_free (readbuf);
             i ++;
         }
@@ -180,7 +180,6 @@ read_file_by_line (gchar *path) {
         fprintf(stderr, "File '%s' not be read.\n", path);
     }
     
-    lines[i] = NULL;
     return lines;
 }
 
@@ -555,33 +554,31 @@ run_js (WebKitWebView * web_view, GArray *argv) {
 static void
 run_external_js (WebKitWebView * web_view, GArray *argv) {
     if (argv_idx(argv, 0)) {
-        gchar** lines = read_file_by_line (argv_idx (argv, 0));
+        GArray* lines = read_file_by_line (argv_idx (argv, 0));
         gchar*  js = NULL;
-        int i;
+        int i = 0;
+        gchar* line;
 
-        if (lines[0] != NULL) {
-            for (i = 0; lines[i] != NULL; i ++) {
-                if (js == NULL) {
-                    js = g_strdup (lines[i]);
-                } else {
-                    gchar* newjs = g_strconcat (js, lines[i], NULL);
-                    js = newjs;
-                }
-                //g_free (lines[i]); - Another mysterious breakage
-            }
-
-            if (uzbl.state.verbose)
-                printf ("External JavaScript file %s loaded\n", argv_idx(argv, 0));
-
-            if (argv_idx (argv, 1)) {
-                gchar* newjs = str_replace("%s", argv_idx (argv, 1), js);
+        while (line = g_array_index(lines, gchar*, i)) {
+            if (js == NULL) {
+                js = g_strdup (line);
+            } else {
+                gchar* newjs = g_strconcat (js, line, NULL);
                 js = newjs;
             }
-            webkit_web_view_execute_script (web_view, js);
-            g_free (js);
-        } else {
-            fprintf(stderr, "JavaScript file '%s' not be read.\n", argv_idx(argv, 0));
+            i ++;
         }
+        
+        if (uzbl.state.verbose)
+            printf ("External JavaScript file %s loaded\n", argv_idx(argv, 0));
+
+        if (argv_idx (argv, 1)) {
+            gchar* newjs = str_replace("%s", argv_idx (argv, 1), js);
+            js = newjs;
+        }
+        webkit_web_view_execute_script (web_view, js);
+        g_free (js);
+        g_array_free (lines, TRUE);
     }
 }
 
