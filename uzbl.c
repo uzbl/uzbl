@@ -462,29 +462,29 @@ VIEWFUNC(go_forward)
 /* -- command to callback/function map for things we cannot attach to any signals */
 // TODO: reload
 static struct {char *name; Command command[2];} cmdlist[] =
-{   /* key                 function      no_split      */
-    { "back",             {view_go_back, 0}              },
-    { "forward",          {view_go_forward, 0}           },
-    { "scroll_vert",      {scroll_vert, 0}               },
-    { "scroll_horz",      {scroll_horz, 0}               },
-    { "scroll_begin",     {scroll_begin, 0}              },
-    { "scroll_end",       {scroll_end, 0}                },
-    { "reload",           {view_reload, 0},              },
-    { "reload_ign_cache", {view_reload_bypass_cache, 0}  },
-    { "stop",             {view_stop_loading, 0},        },
-    { "zoom_in",          {view_zoom_in, 0},             }, //Can crash (when max zoom reached?).
-    { "zoom_out",         {view_zoom_out, 0},            },
-    { "uri",              {load_uri, NOSPLIT}            },
-    { "js",               {run_js, NOSPLIT}              },
-    { "script",           {run_external_js, 0}           },
-    { "toggle_status",    {toggle_status_cb, 0}          },
-    { "spawn",            {spawn, 0}                     },
-    { "sh",               {spawn_sh, 0}                  },
-    { "exit",             {close_uzbl, 0}                },
-    { "search",           {search_forward_text, NOSPLIT} },
-    { "search_reverse",   {search_reverse_text, NOSPLIT} },
-    { "toggle_insert_mode",      {toggle_insert_mode, 0}        },
-    { "runcmd",           {runcmd, NOSPLIT}              }
+{   /* key                   function      no_split      */
+    { "back",               {view_go_back, 0}              },
+    { "forward",            {view_go_forward, 0}           },
+    { "scroll_vert",        {scroll_vert, 0}               },
+    { "scroll_horz",        {scroll_horz, 0}               },
+    { "scroll_begin",       {scroll_begin, 0}              },
+    { "scroll_end",         {scroll_end, 0}                },
+    { "reload",             {view_reload, 0},              },
+    { "reload_ign_cache",   {view_reload_bypass_cache, 0}  },
+    { "stop",               {view_stop_loading, 0},        },
+    { "zoom_in",            {view_zoom_in, 0},             }, //Can crash (when max zoom reached?).
+    { "zoom_out",           {view_zoom_out, 0},            },
+    { "uri",                {load_uri, NOSPLIT}            },
+    { "js",                 {run_js, NOSPLIT}              },
+    { "script",             {run_external_js, 0}           },
+    { "toggle_status",      {toggle_status_cb, 0}          },
+    { "spawn",              {spawn, 0}                     },
+    { "sh",                 {spawn_sh, 0}                  },
+    { "exit",               {close_uzbl, 0}                },
+    { "search",             {search_forward_text, NOSPLIT} },
+    { "search_reverse",     {search_reverse_text, NOSPLIT} },
+    { "toggle_insert_mode", {toggle_insert_mode, 0}        },
+    { "runcmd",             {runcmd, NOSPLIT}              }
 };
 
 static void
@@ -1129,7 +1129,7 @@ cmd_modkey() {
         free(uzbl.behave.modkey);
 
     for (i = 0; modkeys[i].key != NULL; i++) {
-        if (g_strrstr(uzbl.behave.modkey, modkeys[i].key))
+        if (g_strrstr(buf, modkeys[i].key))
             uzbl.behave.modmask |= modkeys[i].mask;
     }
 }
