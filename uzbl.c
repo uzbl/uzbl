@@ -822,7 +822,8 @@ static gchar**
 split_quoted(const gchar* src, const gboolean unquote) {
     /* split on unquoted space, return array of strings;
        remove a layer of quotes and backslashes if unquote */
-    gboolean quote = FALSE;
+    gboolean dq = FALSE;
+    gboolean sq = FALSE;
     GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
     GString *s = g_string_new ("");
     const gchar *p;
@@ -832,10 +833,13 @@ split_quoted(const gchar* src, const gboolean unquote) {
         if ((*p == '\\') && unquote) g_string_append_c(s, *++p);
         else if (*p == '\\') { g_string_append_c(s, *p++);
                                g_string_append_c(s, *p); }
-        else if ((*p == '"') && unquote) quote = !quote;
-        else if (*p == '"') { g_string_append_c(s, *p);
-                              quote = !quote; }
-        else if ((*p == ' ') && (!quote)) {
+        else if ((*p == '"') && unquote && !sq) dq = !dq;
+        else if (*p == '"' && !sq) { g_string_append_c(s, *p);
+                                     dq = !dq; }
+        else if ((*p == '\'') && unquote && !dq) sq = !sq;
+        else if (*p == '\'' && !dq) { g_string_append_c(s, *p);
+                                      sq = ! sq; }
+        else if ((*p == ' ') && !dq && !sq) {
             dup = g_strdup(s->str);
             g_array_append_val(a, dup);
             g_string_truncate(s, 0);
