@@ -559,7 +559,7 @@ run_external_js (WebKitWebView * web_view, GArray *argv) {
         int i = 0;
         gchar* line;
 
-        while (line = g_array_index(lines, gchar*, i)) {
+        while ((line = g_array_index(lines, gchar*, i))) {
             if (js == NULL) {
                 js = g_strdup (line);
             } else {
