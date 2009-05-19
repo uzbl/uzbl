@@ -1816,7 +1816,6 @@ static void
 settings_init () {
     State *s = &uzbl.state;
     Network *n = &uzbl.net;
-
     uzbl.behave.reset_command_mode = 1;
 
     if (!s->config_file) {
@@ -1824,25 +1823,15 @@ settings_init () {
     }
 
     if (s->config_file) {
-        GIOChannel *chan = NULL;
-        gchar *readbuf = NULL;
-        gsize len;
+        GArray* lines = read_file_by_line (s->config_file);
+        int i = 0;
+        gchar* line;
 
-        chan = g_io_channel_new_file(s->config_file, "r", NULL);
-
-        if (chan) {
-            while (g_io_channel_read_line(chan, &readbuf, &len, NULL, NULL)
-                    == G_IO_STATUS_NORMAL) {
-                parse_cmd_line(readbuf);
-                g_free (readbuf);
-            }
-
-            g_io_channel_unref (chan);
-            if (uzbl.state.verbose)
-                printf ("Config %s loaded\n", s->config_file);
-        } else {
-            fprintf(stderr, "uzbl: error loading file%s\n", s->config_file);
+        while ((line = g_array_index(lines, gchar*, i))) {
+            parse_cmd_line (line);
+            i ++;
         }
+        g_array_free (lines, TRUE);
     } else {
         if (uzbl.state.verbose)
             printf ("No configuration file loaded.\n");
@@ -1919,7 +1908,6 @@ main (int argc, char* argv[]) {
     gtk_init (&argc, &argv);
     if (!g_thread_supported ())
         g_thread_init (NULL);
-
     uzbl.state.executable_path = g_strdup(argv[0]);
     uzbl.state.selected_url = NULL;
     uzbl.state.searchtx = NULL;
