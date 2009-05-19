@@ -332,7 +332,7 @@ static void
 update_title (void);
 
 static gboolean
-key_press_cb (WebKitWebView* page, GdkEventKey* event);
+key_press_cb (GtkWidget* window, GdkEventKey* event);
 
 static void
 run_keycmd(const gboolean key_ret);
