@@ -257,10 +257,7 @@ scroll (GtkAdjustment* bar, const char *param) {
     gchar *end;
 
     amount = g_ascii_strtod(param, &end);
-
-    if (*end)
-        fprintf(stderr, "found something after double: %s\n", end);
-
+    if (*end == '%') amount = gtk_adjustment_get_page_size(bar) * amount * 0.01;
     gtk_adjustment_set_value (bar, gtk_adjustment_get_value(bar)+amount);
 }
 
