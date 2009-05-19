@@ -587,6 +587,7 @@ run_external_js (WebKitWebView * web_view, GArray *argv) {
 
         if (argv_idx (argv, 1)) {
             gchar* newjs = str_replace("%s", argv_idx (argv, 1), js);
+            g_free (js);
             js = newjs;
         }
         webkit_web_view_execute_script (web_view, js);
