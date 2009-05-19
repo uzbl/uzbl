@@ -104,10 +104,11 @@ typedef struct {
     gchar    *uri;
     gchar    *config_file;
     char    *instance_name;
-    gchar    *selected_url;
-    gchar    *executable_path;
+    gchar    config_file_path[500];
+    gchar    selected_url[500];
+    char     executable_path[500];
     GString* keycmd;
-    gchar    *searchtx;
+    gchar    searchtx[500];
     gchar*   searchold;
     struct utsname unameinfo; /* system info */
     gboolean verbose;
