@@ -108,12 +108,8 @@ typedef struct {
     gchar    *selected_url;
     gchar    *executable_path;
     GString* keycmd;
-<<<<<<< HEAD:uzbl.h
     gchar*   searchtx;
     gchar*   searchold;
-=======
-    gchar    *searchtx;
->>>>>>> b520d89... merge in from salinasv:uzbl.h
     struct utsname unameinfo; /* system info */
     gboolean verbose;
 } State;

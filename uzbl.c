@@ -565,7 +565,6 @@ run_js (WebKitWebView * web_view, GArray *argv) {
 }
 
 static void
-<<<<<<< HEAD:uzbl.c
 run_external_js (WebKitWebView * web_view, GArray *argv) {
     if (argv_idx(argv, 0)) {
         GArray* lines = read_file_by_line (argv_idx (argv, 0));
@@ -601,12 +600,6 @@ search_text (WebKitWebView *page, GArray *argv, const gboolean forward) {
     if (argv_idx(argv, 0) && (*argv_idx(argv, 0) != '\0'))
         uzbl.state.searchtx = g_strdup(argv_idx(argv, 0));
 
-=======
-search_text (WebKitWebView *page, const char *param, const gboolean forward) {
-    if ((param) && (param[0] != '\0')) {
-        uzbl.state.searchtx = g_strdup(param);
-    }
->>>>>>> b520d89... merge in from salinasv:uzbl.c
     if (uzbl.state.searchtx != NULL) {
         if (uzbl.state.verbose)
             printf ("Searching: %s\n", uzbl.state.searchtx);
