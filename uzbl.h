@@ -370,4 +370,17 @@ static void handle_cookies (SoupSession *session,
 static void
 save_cookies (SoupMessage *msg,
 			  gpointer     user_data);
+
+/* Command callbacks */
+static void
+cmd_load_uri();
+
+static void
+cmd_set_status();
+
+static void
+set_proxy_url();
+
+static void
+move_statusbar();
 /* vi: set et ts=4: */
