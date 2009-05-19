@@ -61,9 +61,11 @@ static Uzbl uzbl;
 /* define names and pointers to all config specific variables */
 typedef const struct {
     void **ptr;
-    int is_string;
+    int type;
     void (*func)(void);
 } uzbl_cmdprop;
+
+enum {TYPE_INT, TYPE_STRING};
 
 const struct {
     char *name;
@@ -71,35 +73,35 @@ const struct {
 } var_name_to_ptr[] = {
 /*    variable name           pointer to variable in code                    string variable     callback function      */
 /*  ------------------------------------------------------------------------------------------------------------------- */
-    { "uri",                {.ptr = (void *)&uzbl.state.uri,                   .is_string = 1,  .func = cmd_load_uri}},
-    { "status_message",     {.ptr = (void *)&uzbl.gui.sbar.msg,                .is_string = 1,  .func = update_title}},
-    { "show_status",        {.ptr = (void *)&uzbl.behave.show_status,          .is_string = 0,  .func = cmd_set_status}},
-    { "status_top",         {.ptr = (void *)&uzbl.behave.status_top,           .is_string = 0,  .func = move_statusbar}},
-    { "status_format",      {.ptr = (void *)&uzbl.behave.status_format,        .is_string = 1,  .func = update_title}},
-    { "status_background",  {.ptr = (void *)&uzbl.behave.status_background,    .is_string = 1,  .func = update_title}},
-    { "title_format_long",  {.ptr = (void *)&uzbl.behave.title_format_long,    .is_string = 1,  .func = update_title}},
-    { "title_format_short", {.ptr = (void *)&uzbl.behave.title_format_short,   .is_string = 1,  .func = update_title}},
-    { "insert_mode",        {.ptr = (void *)&uzbl.behave.insert_mode,          .is_string = 0,  .func = NULL}},
-    { "always_insert_mode", {.ptr = (void *)&uzbl.behave.always_insert_mode,   .is_string = 0,  .func = NULL}},
-    { "reset_command_mode", {.ptr = (void *)&uzbl.behave.reset_command_mode,   .is_string = 0,  .func = NULL}},
-    { "modkey"     ,        {.ptr = (void *)&uzbl.behave.modkey,               .is_string = 0,  .func = NULL}},
-    { "load_finish_handler",{.ptr = (void *)&uzbl.behave.load_finish_handler,  .is_string = 1,  .func = update_title}},
-    { "load_start_handler", {.ptr = (void *)&uzbl.behave.load_start_handler,   .is_string = 1,  .func = update_title}},
-    { "load_commit_handler",{.ptr = (void *)&uzbl.behave.load_commit_handler,  .is_string = 1,  .func = update_title}},
-    { "history_handler",    {.ptr = (void *)&uzbl.behave.history_handler,      .is_string = 1,  .func = update_title}},
-    { "download_handler",   {.ptr = (void *)&uzbl.behave.download_handler,     .is_string = 1,  .func = update_title}},
-    { "cookie_handler",     {.ptr = (void *)&uzbl.behave.cookie_handler,       .is_string = 1,  .func = update_title}},
-    { "fifo_dir",           {.ptr = (void *)&uzbl.behave.fifo_dir,             .is_string = 1,  .func = NULL}},
-    { "socket_dir",         {.ptr = (void *)&uzbl.behave.socket_dir,           .is_string = 1,  .func = NULL}},
-    { "http_debug",         {.ptr = (void *)&uzbl.behave.http_debug,           .is_string = 0,  .func = NULL}},
-    { "default_font_size",  {.ptr = (void *)&uzbl.behave.default_font_size,    .is_string = 0,  .func = NULL}},
-    { "minimum_font_size",  {.ptr = (void *)&uzbl.behave.minimum_font_size,    .is_string = 0,  .func = NULL}},
-    { "shell_cmd",          {.ptr = (void *)&uzbl.behave.shell_cmd,            .is_string = 1,  .func = NULL}},
-    { "proxy_url",          {.ptr = (void *)&uzbl.net.proxy_url,               .is_string = 1,  .func = set_proxy_url}},
-    { "max_conns",          {.ptr = (void *)&uzbl.net.max_conns,               .is_string = 1,  .func = NULL}},
-    { "max_conns_host",     {.ptr = (void *)&uzbl.net.max_conns_host,          .is_string = 0,  .func = NULL}},
-    { "useragent",          {.ptr = (void *)&uzbl.net.useragent,               .is_string = 1,  .func = NULL}},
-    { NULL,                 {.ptr = NULL,                                      .is_string = 0,  .func = NULL}}
+    { "uri",                {.ptr = (void *)&uzbl.state.uri,                   .type = TYPE_STRING, .func = cmd_load_uri}},
+    { "status_message",     {.ptr = (void *)&uzbl.gui.sbar.msg,                .type = TYPE_STRING, .func = update_title}},
+    { "show_status",        {.ptr = (void *)&uzbl.behave.show_status,          .type = TYPE_INT,    .func = cmd_set_status}},
+    { "status_top",         {.ptr = (void *)&uzbl.behave.status_top,           .type = TYPE_INT,    .func = move_statusbar}},
+    { "status_format",      {.ptr = (void *)&uzbl.behave.status_format,        .type = TYPE_STRING, .func = update_title}},
+    { "status_background",  {.ptr = (void *)&uzbl.behave.status_background,    .type = TYPE_STRING, .func = update_title}},
+    { "title_format_long",  {.ptr = (void *)&uzbl.behave.title_format_long,    .type = TYPE_STRING, .func = update_title}},
+    { "title_format_short", {.ptr = (void *)&uzbl.behave.title_format_short,   .type = TYPE_STRING, .func = update_title}},
+    { "insert_mode",        {.ptr = (void *)&uzbl.behave.insert_mode,          .type = TYPE_INT,    .func = NULL}},
+    { "always_insert_mode", {.ptr = (void *)&uzbl.behave.always_insert_mode,   .type = TYPE_INT,    .func = NULL}},
+    { "reset_command_mode", {.ptr = (void *)&uzbl.behave.reset_command_mode,   .type = TYPE_INT,    .func = NULL}},
+    { "modkey"     ,        {.ptr = (void *)&uzbl.behave.modkey,               .type = TYPE_STRING, .func = NULL}},
+    { "load_finish_handler",{.ptr = (void *)&uzbl.behave.load_finish_handler,  .type = TYPE_STRING, .func = update_title}},
+    { "load_start_handler", {.ptr = (void *)&uzbl.behave.load_start_handler,   .type = TYPE_STRING, .func = update_title}},
+    { "load_commit_handler",{.ptr = (void *)&uzbl.behave.load_commit_handler,  .type = TYPE_STRING, .func = update_title}},
+    { "history_handler",    {.ptr = (void *)&uzbl.behave.history_handler,      .type = TYPE_STRING, .func = update_title}},
+    { "download_handler",   {.ptr = (void *)&uzbl.behave.download_handler,     .type = TYPE_STRING, .func = update_title}},
+    { "cookie_handler",     {.ptr = (void *)&uzbl.behave.cookie_handler,       .type = TYPE_STRING, .func = update_title}},
+    { "fifo_dir",           {.ptr = (void *)&uzbl.behave.fifo_dir,             .type = TYPE_STRING, .func = NULL}},
+    { "socket_dir",         {.ptr = (void *)&uzbl.behave.socket_dir,           .type = TYPE_STRING, .func = NULL}},
+    { "http_debug",         {.ptr = (void *)&uzbl.behave.http_debug,           .type = TYPE_INT,    .func = NULL}},
+    { "default_font_size",  {.ptr = (void *)&uzbl.behave.default_font_size,    .type = TYPE_INT,    .func = NULL}},
+    { "minimum_font_size",  {.ptr = (void *)&uzbl.behave.minimum_font_size,    .type = TYPE_INT,    .func = NULL}},
+    { "shell_cmd",          {.ptr = (void *)&uzbl.behave.shell_cmd,            .type = TYPE_STRING, .func = NULL}},
+    { "proxy_url",          {.ptr = (void *)&uzbl.net.proxy_url,               .type = TYPE_STRING, .func = set_proxy_url}},
+    { "max_conns",          {.ptr = (void *)&uzbl.net.max_conns,               .type = TYPE_INT,    .func = NULL}},
+    { "max_conns_host",     {.ptr = (void *)&uzbl.net.max_conns_host,          .type = TYPE_INT,    .func = NULL}},
+    { "useragent",          {.ptr = (void *)&uzbl.net.useragent,               .type = TYPE_STRING, .func = NULL}},
+    { NULL,                 {.ptr = NULL,                                      .type = TYPE_INT,    .func = NULL}}
 }, *n2v_p = var_name_to_ptr;
 
 const struct {
@@ -125,23 +127,6 @@ const struct {
     { NULL,      0                }
 };
 
-static void
-dump_vars(gpointer key, gpointer val, gpointer data) {
-    (void) data;
-    uzbl_cmdprop *c;
-    int is_string;
-
-    c = val;
-    is_string = c->is_string;
-
-    if(is_string)
-        printf("KEY: %s\tVAL: %s\tIS_STRING: %s\n", 
-                (char *)key, (char *)*c->ptr, "YES");
-    else
-        printf("KEY: %s\tVAL: %d\tIS_STRING: %s\n", 
-                (char *)key, (int)*c->ptr, "NO");
-
-}
 
 /* construct a hash from the var_name_to_ptr array for quick access */
 static void
@@ -942,9 +927,9 @@ get_var_value(gchar *name) {
     uzbl_cmdprop *c;
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
-        if(c->is_string)
+        if(c->type == TYPE_STRING)
             printf("VAR: %s VALUE: %s\n", name, (char *)*c->ptr);
-        else 
+        else if(c->type == TYPE_INT)
             printf("VAR: %s VALUE: %d\n", name, (int)*c->ptr);
     }
     return TRUE;
@@ -1009,10 +994,10 @@ set_var_value(gchar *name, gchar *val) {
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         /* check for the variable type */
-        if (c->is_string) {
+        if (c->type == TYPE_STRING) {
             free(*c->ptr);
             *c->ptr = g_strdup(val);
-        } else {
+        } else if(c->type == TYPE_INT) {
             *c->ptr = (int)strtoul(val, &endp, 10);
         }
         
