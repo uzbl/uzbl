@@ -71,7 +71,7 @@ const struct {
     char *name;
     uzbl_cmdprop cp;
 } var_name_to_ptr[] = {
-/*    variable name           pointer to variable in code                    string variable     callback function      */
+/*    variable name           pointer to variable in code                         variable type      callback function  */
 /*  ------------------------------------------------------------------------------------------------------------------- */
     { "uri",                {.ptr = (void *)&uzbl.state.uri,                   .type = TYPE_STRING, .func = cmd_load_uri}},
     { "status_message",     {.ptr = (void *)&uzbl.gui.sbar.msg,                .type = TYPE_STRING, .func = update_title}},
@@ -82,25 +82,25 @@ const struct {
     { "title_format_long",  {.ptr = (void *)&uzbl.behave.title_format_long,    .type = TYPE_STRING, .func = update_title}},
     { "title_format_short", {.ptr = (void *)&uzbl.behave.title_format_short,   .type = TYPE_STRING, .func = update_title}},
     { "insert_mode",        {.ptr = (void *)&uzbl.behave.insert_mode,          .type = TYPE_INT,    .func = NULL}},
-    { "always_insert_mode", {.ptr = (void *)&uzbl.behave.always_insert_mode,   .type = TYPE_INT,    .func = NULL}},
+    { "always_insert_mode", {.ptr = (void *)&uzbl.behave.always_insert_mode,   .type = TYPE_INT,    .func = cmd_always_insert_mode}},
     { "reset_command_mode", {.ptr = (void *)&uzbl.behave.reset_command_mode,   .type = TYPE_INT,    .func = NULL}},
-    { "modkey"     ,        {.ptr = (void *)&uzbl.behave.modkey,               .type = TYPE_STRING, .func = NULL}},
-    { "load_finish_handler",{.ptr = (void *)&uzbl.behave.load_finish_handler,  .type = TYPE_STRING, .func = update_title}},
-    { "load_start_handler", {.ptr = (void *)&uzbl.behave.load_start_handler,   .type = TYPE_STRING, .func = update_title}},
-    { "load_commit_handler",{.ptr = (void *)&uzbl.behave.load_commit_handler,  .type = TYPE_STRING, .func = update_title}},
-    { "history_handler",    {.ptr = (void *)&uzbl.behave.history_handler,      .type = TYPE_STRING, .func = update_title}},
-    { "download_handler",   {.ptr = (void *)&uzbl.behave.download_handler,     .type = TYPE_STRING, .func = update_title}},
-    { "cookie_handler",     {.ptr = (void *)&uzbl.behave.cookie_handler,       .type = TYPE_STRING, .func = update_title}},
-    { "fifo_dir",           {.ptr = (void *)&uzbl.behave.fifo_dir,             .type = TYPE_STRING, .func = NULL}},
-    { "socket_dir",         {.ptr = (void *)&uzbl.behave.socket_dir,           .type = TYPE_STRING, .func = NULL}},
-    { "http_debug",         {.ptr = (void *)&uzbl.behave.http_debug,           .type = TYPE_INT,    .func = NULL}},
-    { "default_font_size",  {.ptr = (void *)&uzbl.behave.default_font_size,    .type = TYPE_INT,    .func = NULL}},
-    { "minimum_font_size",  {.ptr = (void *)&uzbl.behave.minimum_font_size,    .type = TYPE_INT,    .func = NULL}},
+    { "modkey"     ,        {.ptr = (void *)&uzbl.behave.modkey,               .type = TYPE_STRING, .func = cmd_modkey}},
+    { "load_finish_handler",{.ptr = (void *)&uzbl.behave.load_finish_handler,  .type = TYPE_STRING, .func = NULL}},
+    { "load_start_handler", {.ptr = (void *)&uzbl.behave.load_start_handler,   .type = TYPE_STRING, .func = NULL}},
+    { "load_commit_handler",{.ptr = (void *)&uzbl.behave.load_commit_handler,  .type = TYPE_STRING, .func = NULL}},
+    { "history_handler",    {.ptr = (void *)&uzbl.behave.history_handler,      .type = TYPE_STRING, .func = NULL}},
+    { "download_handler",   {.ptr = (void *)&uzbl.behave.download_handler,     .type = TYPE_STRING, .func = NULL}},
+    { "cookie_handler",     {.ptr = (void *)&uzbl.behave.cookie_handler,       .type = TYPE_STRING, .func = NULL}},
+    { "fifo_dir",           {.ptr = (void *)&uzbl.behave.fifo_dir,             .type = TYPE_STRING, .func = cmd_fifo_dir}},
+    { "socket_dir",         {.ptr = (void *)&uzbl.behave.socket_dir,           .type = TYPE_STRING, .func = cmd_socket_dir}},
+    { "http_debug",         {.ptr = (void *)&uzbl.behave.http_debug,           .type = TYPE_INT,    .func = cmd_http_debug}},
+    { "default_font_size",  {.ptr = (void *)&uzbl.behave.default_font_size,    .type = TYPE_INT,    .func = cmd_default_font_size}},
+    { "minimum_font_size",  {.ptr = (void *)&uzbl.behave.minimum_font_size,    .type = TYPE_INT,    .func = cmd_minimum_font_size}},
     { "shell_cmd",          {.ptr = (void *)&uzbl.behave.shell_cmd,            .type = TYPE_STRING, .func = NULL}},
     { "proxy_url",          {.ptr = (void *)&uzbl.net.proxy_url,               .type = TYPE_STRING, .func = set_proxy_url}},
-    { "max_conns",          {.ptr = (void *)&uzbl.net.max_conns,               .type = TYPE_INT,    .func = NULL}},
-    { "max_conns_host",     {.ptr = (void *)&uzbl.net.max_conns_host,          .type = TYPE_INT,    .func = NULL}},
-    { "useragent",          {.ptr = (void *)&uzbl.net.useragent,               .type = TYPE_STRING, .func = NULL}},
+    { "max_conns",          {.ptr = (void *)&uzbl.net.max_conns,               .type = TYPE_INT,    .func = cmd_max_conns}},
+    { "max_conns_host",     {.ptr = (void *)&uzbl.net.max_conns_host,          .type = TYPE_INT,    .func = cmd_max_conns_host}},
+    { "useragent",          {.ptr = (void *)&uzbl.net.useragent,               .type = TYPE_STRING, .func = cmd_useragent}},
     { NULL,                 {.ptr = NULL,                                      .type = TYPE_INT,    .func = NULL}}
 }, *n2v_p = var_name_to_ptr;
 
@@ -959,6 +959,99 @@ cmd_load_uri() {
     load_uri(uzbl.gui.web_view, uzbl.state.uri);
 }
 
+static void 
+cmd_always_insert_mode() {
+    uzbl.behave.insert_mode =
+        uzbl.behave.always_insert_mode ?  TRUE : FALSE;
+    update_title();
+}
+
+static void
+cmd_max_conns() {
+    g_object_set(G_OBJECT(uzbl.net.soup_session),
+            SOUP_SESSION_MAX_CONNS, uzbl.net.max_conns, NULL);
+}
+
+static void
+cmd_max_conns_host() {
+    g_object_set(G_OBJECT(uzbl.net.soup_session),
+            SOUP_SESSION_MAX_CONNS_PER_HOST, uzbl.net.max_conns_host, NULL);
+}
+
+static void
+cmd_http_debug() {
+    soup_session_remove_feature
+        (uzbl.net.soup_session, SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
+    /* do we leak if this doesn't get freed? why does it occasionally crash if freed? */
+    /*g_free(uzbl.net.soup_logger);*/
+
+    uzbl.net.soup_logger = soup_logger_new(uzbl.behave.http_debug, -1);
+    soup_session_add_feature(uzbl.net.soup_session,
+            SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
+}
+
+static void
+cmd_default_font_size() {
+    WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
+    g_object_set (G_OBJECT(ws), "default-font-size", uzbl.behave.default_font_size, NULL);
+}
+
+static void
+cmd_minimum_font_size() {
+    WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
+    g_object_set (G_OBJECT(ws), "minimum-font-size", uzbl.behave.minimum_font_size, NULL);
+}
+
+static void
+cmd_fifo_dir() {
+    char *buf;
+
+    buf = init_fifo(uzbl.behave.fifo_dir);
+    if(uzbl.behave.fifo_dir) 
+        free(uzbl.behave.fifo_dir);
+
+    uzbl.behave.fifo_dir = buf?buf:g_strdup("");
+}
+
+static void
+cmd_socket_dir() {
+    char *buf;
+
+    buf = init_socket(uzbl.behave.fifo_dir);
+    if(uzbl.behave.socket_dir) 
+        free(uzbl.behave.socket_dir);
+
+    uzbl.behave.socket_dir = buf?buf:g_strdup("");
+}
+
+static void
+cmd_modkey() {
+    int i;
+    char *buf;
+
+    buf = g_utf8_strup(uzbl.behave.modkey, -1);
+    uzbl.behave.modmask = 0;
+    
+    if(uzbl.behave.modkey) 
+        free(uzbl.behave.modkey);
+
+    for (i = 0; modkeys[i].key != NULL; i++) {
+        if (g_strrstr(uzbl.behave.modkey, modkeys[i].key))
+            uzbl.behave.modmask |= modkeys[i].mask;
+    }
+}
+
+static void
+cmd_useragent() {
+    char *buf;
+
+    buf = set_useragent(uzbl.net.useragent);
+    if(uzbl.net.useragent) 
+        free(uzbl.net.useragent);
+            
+    uzbl.net.useragent = buf?buf:g_strdup("");
+}
+
 static void
 move_statusbar() {
     gtk_widget_ref(uzbl.gui.scrolled_win);
@@ -981,11 +1074,6 @@ move_statusbar() {
 }
 
 static gboolean
-var_is(const char *x, const char *y) {
-    return (strcmp(x, y) == 0 ? TRUE : FALSE );
-}
-
-static gboolean
 set_var_value(gchar *name, gchar *val) {
     void *p = NULL;
     uzbl_cmdprop *c = NULL;
@@ -1000,72 +1088,15 @@ set_var_value(gchar *name, gchar *val) {
         } else if(c->type == TYPE_INT) {
             *c->ptr = (int)strtoul(val, &endp, 10);
         }
-        
+
         /* invoke a command specific function */
         if(c->func)
             c->func();
 
         /* this will be removed as soon as we have converted to
-         * the callback interface
-         */
+        * the callback interface
+        */
         p = *c->ptr;
-
-        if(var_is("fifo_dir", name)) {
-            if(p) free(p);
-            buf = init_fifo(val);
-            p = buf?buf:g_strdup("");
-        }
-        else if(var_is("socket_dir", name)) {
-            if(p) free(p);
-            buf = init_socket(val);
-            p = buf?buf:g_strdup("");
-        }
-        else if(var_is("modkey", name)) {
-            if(p) free(p);
-            int i;
-            p = g_utf8_strup(val, -1);
-            uzbl.behave.modmask = 0;
-            for (i = 0; modkeys[i].key != NULL; i++) {
-                if (g_strrstr(p, modkeys[i].key))
-                    uzbl.behave.modmask |= modkeys[i].mask;
-            }
-        }
-        else if(var_is("useragent", name)) {
-            if(p) free(p);
-            buf = set_useragent(val);
-            p = buf?buf:g_strdup("");
-        }
-        else if(var_is("always_insert_mode", name)) {
-            uzbl.behave.insert_mode =
-                uzbl.behave.always_insert_mode ?  TRUE : FALSE;
-            update_title();
-        }
-        else if (var_is("max_conns", name)) {
-            g_object_set(G_OBJECT(uzbl.net.soup_session),
-                    SOUP_SESSION_MAX_CONNS, uzbl.net.max_conns, NULL);
-        }
-        else if (var_is("max_conns_host", name)) {
-            g_object_set(G_OBJECT(uzbl.net.soup_session),
-                    SOUP_SESSION_MAX_CONNS_PER_HOST, uzbl.net.max_conns_host, NULL);
-        }
-        else if (var_is("http_debug", name)) {
-            soup_session_remove_feature
-                (uzbl.net.soup_session, SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
-            /* do we leak if this doesn't get freed? why does it occasionally crash if freed? */
-            /*g_free(uzbl.net.soup_logger);*/
-
-            uzbl.net.soup_logger = soup_logger_new(uzbl.behave.http_debug, -1);
-            soup_session_add_feature(uzbl.net.soup_session,
-                    SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
-        }
-        else if (var_is("default_font_size", name)) {
-            WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
-            g_object_set (G_OBJECT(ws), "default-font-size", uzbl.behave.default_font_size, NULL);
-        }
-        else if (var_is("minimum_font_size", name)) {
-            WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
-            g_object_set (G_OBJECT(ws), "minimum-font-size", uzbl.behave.minimum_font_size, NULL);
-        }
     }
     return TRUE;
 }
