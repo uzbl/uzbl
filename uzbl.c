@@ -990,6 +990,7 @@ move_statusbar() {
     gtk_widget_unref(uzbl.gui.scrolled_win);
     gtk_widget_unref(uzbl.gui.mainbar);
     gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
+    return;
 }
 
 static gboolean
@@ -1009,11 +1010,13 @@ set_var_value(gchar *name, gchar *val) {
         if (c->is_string) {
             free(*c->ptr);
             *c->ptr = g_strdup(val);
-        } else
+        } else {
             *c->ptr = (int)strtoul(val, &endp, 10);
+        }
         
         /* invoke a command specific function */
-        c->func;
+        if(c->func)
+            c->func();
 
         /* this will be removed as soon as we have converted to
          * the callback interface
