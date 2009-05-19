@@ -304,9 +304,6 @@ parse_cmd_line(const char *ctl_line);
 static gchar*
 build_stream_name(int type, const gchar *dir);
 
-static gboolean
-var_is(const char *x, const char *y);
-
 static gchar*
 set_useragent(gchar *val);
 
@@ -382,4 +379,52 @@ static void handle_cookies (SoupSession *session,
 static void
 save_cookies (SoupMessage *msg,
 			  gpointer     user_data);
+
+/* Command callbacks */
+static void
+cmd_load_uri();
+
+static void
+cmd_set_status();
+
+static void
+set_proxy_url();
+
+static void
+move_statusbar();
+
+static void
+cmd_always_insert_mode();
+
+static void
+cmd_http_debug();
+
+static void
+cmd_max_conns();
+
+static void
+cmd_max_conns_host();
+
+static void
+cmd_default_font_size();
+
+static void
+cmd_minimum_font_size();
+
+static void
+cmd_fifo_dir();
+
+static void
+cmd_socket_dir();
+
+static void
+cmd_modkey();
+
+static void
+cmd_useragent() ;
+
+
+
+
+
 /* vi: set et ts=4: */
