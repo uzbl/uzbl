@@ -69,6 +69,8 @@ const struct {
     char *name;
     uzbl_cmdprop cp;
 } var_name_to_ptr[] = {
+/*    variable name           pointer to variable in code                    string variable     callback function      */
+/*  ------------------------------------------------------------------------------------------------------------------- */
     { "uri",                {.ptr = (void *)&uzbl.state.uri,                   .is_string = 1,  .func = cmd_load_uri}},
     { "status_message",     {.ptr = (void *)&uzbl.gui.sbar.msg,                .is_string = 1,  .func = update_title}},
     { "show_status",        {.ptr = (void *)&uzbl.behave.show_status,          .is_string = 0,  .func = cmd_set_status}},
