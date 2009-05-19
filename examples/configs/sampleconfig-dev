@@ -95,7 +95,7 @@ bind    p         = sh "echo act uri `xclip -selection primary -o` > $4"
 # go to the page in clipboard
 bind    P         = sh "echo act uri `xclip -selection clipboard -o` > $4"
 bind    ZZ        = exit
-bind    S         = script 'alert("hi");'
+bind    S         = script alert("hi");
 # example showing how to use sh
 # it sends a command to the fifo, whose path is told via a positional param
 # if fifo_dir is not set, it'll echo to a file named (null) somewhere >:) remember to delete it
@@ -103,7 +103,7 @@ bind    S         = script 'alert("hi");'
 # you must enclose it in quotes.  Remember to escape (and double-escape) quotes and backslashes
 # in the body.  Any additional parameters you use will appear AFTER the default parameters (cfg file
 # path, fifo & socket dirs, etc.)
-bind    XS        = sh 'echo "act script \'alert (\\\"This is sent by the shell via a fifo\\\")\'" > "$4"'
+bind    XS        = sh 'echo "act script alert (\\"This is sent by the shell via a fifo\\")" > "$4"'
 
 # Keyboard based link following: work in progress! No C DOM bindings yet, no click() event for hyperlinks so no referrer set..Quite basic but does the job for now...
 #hit F to toggle the Hints (now in form of link numbering)

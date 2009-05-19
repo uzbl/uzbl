@@ -14,7 +14,7 @@
 #define STATUS_DEFAULT "<span background=\"darkblue\" foreground=\"white\"> MODE </span> <span background=\"red\" foreground=\"white\">KEYCMD</span> (LOAD_PROGRESS%)  <b>TITLE</b>  - Uzbl browser"
 #define TITLE_LONG_DEFAULT "KEYCMD MODE TITLE - Uzbl browser <NAME> > SELECTED_URI"
 #define TITLE_SHORT_DEFAULT "TITLE - Uzbl browser <NAME>"
-
+#define NOSPLIT ((void*)1)
 
 enum {
   /* statusbar symbols */

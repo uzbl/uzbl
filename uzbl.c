@@ -411,29 +411,29 @@ VIEWFUNC(go_forward)
 /* -- command to callback/function map for things we cannot attach to any signals */
 // TODO: reload
 
-static struct {char *name; Command command;} cmdlist[] =
-{
-    { "back",             view_go_back            },
-    { "forward",          view_go_forward         },
-    { "scroll_vert",      scroll_vert             },
-    { "scroll_horz",      scroll_horz             },
-    { "scroll_begin",     scroll_begin            },
-    { "scroll_end",       scroll_end              },
-    { "reload",           view_reload,            },
-    { "reload_ign_cache", view_reload_bypass_cache},
-    { "stop",             view_stop_loading,      },
-    { "zoom_in",          view_zoom_in,           }, //Can crash (when max zoom reached?).
-    { "zoom_out",         view_zoom_out,          },
-    { "uri",              load_uri                },
-    { "script",           run_js                  },
-    { "toggle_status",    toggle_status_cb        },
-    { "spawn",            spawn                   },
-    { "sh",               spawn_sh                },
-    { "exit",             close_uzbl              },
-    { "search",           search_forward_text     },
-    { "search_reverse",   search_reverse_text     },
-    { "insert_mode",      set_insert_mode         },
-    { "runcmd",           runcmd                  }
+static struct {char *name; Command command[2];} cmdlist[] =
+{   /* key                 function      no_split      */
+    { "back",             {view_go_back, 0}              },
+    { "forward",          {view_go_forward, 0}           },
+    { "scroll_vert",      {scroll_vert, 0}               },
+    { "scroll_horz",      {scroll_horz, 0}               },
+    { "scroll_begin",     {scroll_begin, 0}              },
+    { "scroll_end",       {scroll_end, 0}                },
+    { "reload",           {view_reload, 0},              },
+    { "reload_ign_cache", {view_reload_bypass_cache, 0}  },
+    { "stop",             {view_stop_loading, 0},        },
+    { "zoom_in",          {view_zoom_in, 0},             }, //Can crash (when max zoom reached?).
+    { "zoom_out",         {view_zoom_out, 0},            },
+    { "uri",              {load_uri, NOSPLIT}            },
+    { "script",           {run_js, NOSPLIT}              },
+    { "toggle_status",    {toggle_status_cb, 0}          },
+    { "spawn",            {spawn, 0}                     },
+    { "sh",               {spawn_sh, 0}                  },
+    { "exit",             {close_uzbl, 0}                },
+    { "search",           {search_forward_text, NOSPLIT} },
+    { "search_reverse",   {search_reverse_text, NOSPLIT} },
+    { "insert_mode",      {set_insert_mode, 0}           },
+    { "runcmd",           {runcmd, NOSPLIT}              }
 };
 
 static void
@@ -485,32 +485,27 @@ set_insert_mode(WebKitWebView *page, GArray *argv) {
 }
 
 static void
-load_uri (WebKitWebView * web_view, GArray *argv) { /* TODO: tell load_uri doesn't want splicing */
+load_uri (WebKitWebView *web_view, GArray *argv) {
     if (argv_idx(argv, 0)) {
-        gchar *u = g_strjoinv(" ", (gchar**)argv->data);
-        GString* newuri = g_string_new (u);
-        if (g_strrstr (u, "://") == NULL)
+        GString* newuri = g_string_new (argv_idx(argv, 0));
+        if (g_strrstr (argv_idx(argv, 0), "://") == NULL)
             g_string_prepend (newuri, "http://");
         /* if we do handle cookies, ask our handler for them */
         webkit_web_view_load_uri (web_view, newuri->str);
         g_string_free (newuri, TRUE);
-        g_free (u);
     }
 }
 
 static void
-run_js (WebKitWebView * web_view, GArray *argv) { /* TODO: tell run_js doesn't want splicing */
-    if (argv_idx(argv, 0)) {
-        gchar *body = g_strjoinv(" ", (gchar**)argv->data);
-        webkit_web_view_execute_script (web_view, body);
-        g_free(body);
-    }
+run_js (WebKitWebView * web_view, GArray *argv) {
+    if (argv_idx(argv, 0))
+        webkit_web_view_execute_script (web_view, argv_idx(argv, 0));
 }
 
 static void
-search_text (WebKitWebView *page, GArray *argv, const gboolean forward) { /* TODO: "" */
+search_text (WebKitWebView *page, GArray *argv, const gboolean forward) {
     if (argv_idx(argv, 0) && (*argv_idx(argv, 0) != '\0'))
-        uzbl.state.searchtx = g_strjoinv(" ", (gchar**)argv->data);
+        uzbl.state.searchtx = g_strdup(argv_idx(argv, 0));
 
     if (uzbl.state.searchtx != NULL) {
         if (uzbl.state.verbose)
@@ -890,17 +885,24 @@ spawn_sh(WebKitWebView *web_view, GArray *argv) {
 
 static void
 parse_command(const char *cmd, const char *param) {
-    Command c;
+    Command *c;
 
     if ((c = g_hash_table_lookup(uzbl.behave.commands, cmd))) {
-        guint i;
-        gchar **par = split_quoted(param, TRUE);
-        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-        for (i = 0; i < g_strv_length(par); i++)
-            sharg_append(a, par[i]);
-        c(uzbl.gui.web_view, a);
-        g_strfreev (par);
-        g_array_free (a, TRUE);
+
+            guint i;
+            gchar **par = split_quoted(param, TRUE);
+            GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+
+            if (c[1]) { /* don't split */
+                sharg_append(a, param);
+            } else {
+                for (i = 0; i < g_strv_length(par); i++)
+                    sharg_append(a, par[i]);
+            }
+            c[0](uzbl.gui.web_view, a);
+            g_strfreev (par);
+            g_array_free (a, TRUE);
+
     } else
         g_printerr ("command \"%s\" not understood. ignoring.\n", cmd);
 }
@@ -1108,13 +1110,9 @@ set_var_value(gchar *name, gchar *val) {
 }
 
 static void
-runcmd(WebKitWebView* page, GArray *argv) { /* TODO: tell runcmd doesn't want args spliced
-                                               or just wait 'till actions and commands are
-                                               merged :] */
+runcmd(WebKitWebView* page, GArray *argv) {
     (void) page;
-    gchar *ctl_line = g_strjoinv(" ", (gchar**)argv->data);
-    parse_cmd_line(ctl_line);
-    g_free (ctl_line);
+    parse_cmd_line(argv_idx(argv, 0));
 }
 
 static void
