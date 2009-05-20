@@ -171,7 +171,7 @@ str_replace (const char* search, const char* replace, const char* string) {
 
     buf = g_strsplit (string, search, -1);
     ret = g_strjoinv (replace, buf);
-    g_strfreev(buf);
+    //g_strfreev(buf); - segfaults.
 
     return ret;
 }
@@ -1792,14 +1792,13 @@ find_xdg_file (int xdg_type, char* filename) {
         temporary_string = (char *) strtok_r (buf, ":", &saveptr);
         free(buf);
 
-        while (temporary_string && ! file_exists (temporary_file)) {
+        while ((temporary_string = (char * ) strtok_r (NULL, ":", &saveptr)) && ! file_exists (temporary_file)) {
             strcpy (temporary_file, temporary_string);
             strcat (temporary_file, filename);
-            temporary_string = (char * ) strtok_r (NULL, ":", &saveptr);
         }
     }
     
-    g_free (temporary_string);
+    //g_free (temporary_string); - segfaults.
 
     if (file_exists (temporary_file)) {
         return temporary_file;
