@@ -98,13 +98,13 @@ function generateHint(el, label) {
     hint.style.backgroundColor = '#B9FF00';
     hint.style.border = '2px solid #4A6600';
     hint.style.color = 'black';
-    hint.style.zIndex = '1000';
     hint.style.fontSize = '9px';
     hint.style.fontWeight = 'bold';
     hint.style.lineHeight = '9px';
     hint.style.margin = '0px';
     hint.style.padding = '1px';
     hint.style.position = 'absolute';
+    hint.style.zIndex = '1000';
     hint.style.left = pos[1] + 'px';
     hint.style.top = pos[0] + 'px';
     var img = el.getElementsByTagName('img');
@@ -177,7 +177,6 @@ function reDrawHints(elems, chars) {
     removeAllHints();
     var hintdiv = doc.createElement('div');
     hintdiv.setAttribute('id', uzbldivid);
-    hintdiv.style.opacity = '0.0';
     for (var i = 0; i < elems[0].length; i++) {
         if (elems[0][i]) {
             var label = elems[1][i].substring(chars);
@@ -187,7 +186,6 @@ function reDrawHints(elems, chars) {
     }
     if (document.body) {
         document.body.appendChild(hintdiv);
-        hintdiv.style.opacity = '0.7'
     }
 }
 //Put it all together
