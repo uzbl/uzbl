@@ -212,7 +212,7 @@ gchar* parseenv (const char* string) {
         gchar** env = g_strsplit (environ[i], "=", 0);
         gchar* envname = g_strconcat ("$", env[0], NULL);
 
-        if (g_strrstr (newstring, envname)) {
+        if (g_strrstr (newstring, envname) != NULL) {
             newstring = str_replace(envname, env[1], newstring);
         }
 
@@ -1132,7 +1132,7 @@ static void
 cmd_socket_dir() {
     char *buf;
 
-    buf = init_socket(uzbl.behave.fifo_dir);
+    buf = init_socket(uzbl.behave.socket_dir);
     if(uzbl.behave.socket_dir) 
         g_free(uzbl.behave.socket_dir);
 
