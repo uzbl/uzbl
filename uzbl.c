@@ -213,15 +213,14 @@ gchar* parseenv (const char* string) {
 
     while (environ[i] != NULL) {
         gchar** env = g_strsplit (environ[i], "=", 0);
-        gchar* envname = g_malloc (strlen (env[0]) + 1);
+        gchar* envname = g_strconcat ("$", env[0], NULL);
 
-        strcat (envname, "$");
-        strcat (envname, env[0]);
-
-        newstring = str_replace(envname, env[1], newstring);
+        if (g_strrstr (newstring, envname) != NULL) {
+            newstring = str_replace(envname, env[1], newstring);
+        }
 
         g_free (envname);
-        //g_strfreev (env); - This still breaks uzbl, but shouldn't. The mystery thickens...
+        //g_strfreev (env); //- This still breaks uzbl, but shouldn't. The mystery thickens...
         i ++;
     }
 
@@ -590,6 +589,7 @@ run_external_js (WebKitWebView * web_view, GArray *argv) {
                 js = newjs;
             }
             i ++;
+            g_free (line);
         }
         
         if (uzbl.state.verbose)
@@ -1135,7 +1135,7 @@ static void
 cmd_socket_dir() {
     char *buf;
 
-    buf = init_socket(uzbl.behave.fifo_dir);
+    buf = init_socket(uzbl.behave.socket_dir);
     if(uzbl.behave.socket_dir) 
         g_free(uzbl.behave.socket_dir);
 
@@ -1785,11 +1785,11 @@ find_xdg_file (int xdg_type, char* filename) {
     if (! file_exists (temporary_file) && xdg_type != 2) {
         buf = get_xdg_var (XDG[3 + xdg_type]);
         temporary_string = (char *) strtok_r (buf, ":", &saveptr);
-        free(buf);
+        g_free(buf);
 
         while ((temporary_string = (char * ) strtok_r (NULL, ":", &saveptr)) && ! file_exists (temporary_file)) {
-            strcpy (temporary_file, temporary_string);
-            strcat (temporary_file, filename);
+            g_free (temporary_file);
+            temporary_file = g_strconcat (temporary_string, filename, NULL);
         }
     }
     
@@ -1819,6 +1819,7 @@ settings_init () {
         while ((line = g_array_index(lines, gchar*, i))) {
             parse_cmd_line (line);
             i ++;
+            g_free (line);
         }
         g_array_free (lines, TRUE);
     } else {
