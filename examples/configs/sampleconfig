@@ -107,7 +107,7 @@ bind    XS        = sh 'echo "act script alert (\'This is sent by the shell via 
 
 # Linkfollowing now in one script, very Vimperator alike. 
 # In examples/scripts will be different approaches. Here the most stable one:
-bind    f* = script /usr/share/uzbl/examples/scripts/follow_Numbers.js
+bind    f* = script /usr/share/uzbl/examples/scripts/follow_Numbers.js %s
 
 # "home" page if you will
 set uri = uzbl.org
