@@ -210,15 +210,14 @@ gchar* parseenv (const char* string) {
 
     while (environ[i] != NULL) {
         gchar** env = g_strsplit (environ[i], "=", 0);
-        gchar* envname = g_malloc (strlen (env[0]) + 1);
+        gchar* envname = g_strconcat ("$", env[0], NULL);
 
-        strcat (envname, "$");
-        strcat (envname, env[0]);
-
-        newstring = str_replace(envname, env[1], newstring);
+        if (g_strrstr (newstring, envname)) {
+            newstring = str_replace(envname, env[1], newstring);
+        }
 
         g_free (envname);
-        //g_strfreev (env); - This still breaks uzbl, but shouldn't. The mystery thickens...
+        //g_strfreev (env); //- This still breaks uzbl, but shouldn't. The mystery thickens...
         i ++;
     }
 
@@ -1790,11 +1789,11 @@ find_xdg_file (int xdg_type, char* filename) {
     if (! file_exists (temporary_file) && xdg_type != 2) {
         buf = get_xdg_var (XDG[3 + xdg_type]);
         temporary_string = (char *) strtok_r (buf, ":", &saveptr);
-        free(buf);
+        g_free(buf);
 
         while ((temporary_string = (char * ) strtok_r (NULL, ":", &saveptr)) && ! file_exists (temporary_file)) {
-            strcpy (temporary_file, temporary_string);
-            strcat (temporary_file, filename);
+            g_free (temporary_file);
+            temporary_file = g_strconcat (temporary_string, filename, NULL);
         }
     }
     
