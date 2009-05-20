@@ -539,7 +539,6 @@ file_exists (const char * filename) {
 static void
 toggle_insert_mode(WebKitWebView *page, GArray *argv) {
     (void)page;
-    (void)argv;
 
     if (argv_idx(argv, 0)) {
         if (strcmp (argv_idx(argv, 0), "0") == 0) {
