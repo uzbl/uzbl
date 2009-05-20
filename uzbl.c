@@ -587,6 +587,7 @@ run_external_js (WebKitWebView * web_view, GArray *argv) {
                 js = newjs;
             }
             i ++;
+            g_free (line);
         }
         
         if (uzbl.state.verbose)
@@ -1823,6 +1824,7 @@ settings_init () {
         while ((line = g_array_index(lines, gchar*, i))) {
             parse_cmd_line (line);
             i ++;
+            g_free (line);
         }
         g_array_free (lines, TRUE);
     } else {
