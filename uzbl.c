@@ -1375,13 +1375,9 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
 
 static gboolean
 control_stdin(GIOChannel *gio, GIOCondition condition) {
+    (void) condition;
     gchar *ctl_line = NULL;
     GIOStatus ret;
-
-    if (condition & G_IO_HUP) {
-        ret = g_io_channel_shutdown (gio, FALSE, NULL);
-        return FALSE;
-    }
 
     ret = g_io_channel_read_line(gio, &ctl_line, NULL, NULL, NULL);
     if ( (ret == G_IO_STATUS_ERROR) || (ret == G_IO_STATUS_EOF) )
@@ -1748,10 +1744,7 @@ add_binding (const gchar *key, const gchar *act) {
         printf ("Binding %-10s : %s\n", key, act);
     action = new_action(parts[0], parts[1]);
 
-    if(g_hash_table_lookup(uzbl.bindings, key))
-        g_hash_table_remove(uzbl.bindings, key);
-    g_hash_table_insert(uzbl.bindings, g_strdup(key), action);
-
+    g_hash_table_replace(uzbl.bindings, g_strdup(key), action);
     g_strfreev(parts);
 }
 
