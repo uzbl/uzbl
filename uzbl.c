@@ -90,6 +90,9 @@ const struct {
     { "show_status",        {.ptr = (void *)&uzbl.behave.show_status,          .type = TYPE_INT,    .func = cmd_set_status}},
     { "status_top",         {.ptr = (void *)&uzbl.behave.status_top,           .type = TYPE_INT,    .func = move_statusbar}},
     { "status_format",      {.ptr = (void *)&uzbl.behave.status_format,        .type = TYPE_STRING, .func = update_title}},
+    { "status_pbar_done",   {.ptr = (void *)&uzbl.gui.sbar.progress_s,         .type = TYPE_STRING, .func = update_title}},
+    { "status_pbar_pending",{.ptr = (void *)&uzbl.gui.sbar.progress_u,         .type = TYPE_STRING, .func = update_title}},
+    { "status_pbar_width",  {.ptr = (void *)&uzbl.gui.sbar.progress_w,         .type = TYPE_INT,    .func = update_title}},
     { "status_background",  {.ptr = (void *)&uzbl.behave.status_background,    .type = TYPE_STRING, .func = update_title}},
     { "title_format_long",  {.ptr = (void *)&uzbl.behave.title_format_long,    .type = TYPE_STRING, .func = update_title}},
     { "title_format_short", {.ptr = (void *)&uzbl.behave.title_format_short,   .type = TYPE_STRING, .func = update_title}},
@@ -570,7 +573,7 @@ close_uzbl (WebKitWebView *page, GArray *argv) {
 /* --Statusbar functions-- */
 static char*
 build_progressbar_ascii(int percent) {
-   int width=10;
+   int width=uzbl.gui.sbar.progress_w;
    int i;
    double l;
    GString *bar = g_string_new("");
@@ -579,10 +582,10 @@ build_progressbar_ascii(int percent) {
    l = (int)(l+.5)>=(int)l ? l+.5 : l;
 
    for(i=0; i<(int)l; i++)
-       g_string_append(bar, "=");
+       g_string_append(bar, uzbl.gui.sbar.progress_s);
 
    for(; i<width; i++)
-       g_string_append(bar, "·");
+       g_string_append(bar, uzbl.gui.sbar.progress_u);
 
    return g_string_free(bar, FALSE);
 }
@@ -1825,6 +1828,10 @@ main (int argc, char* argv[]) {
 
     if(uname(&uzbl.state.unameinfo) == -1)
         g_printerr("Can't retrieve unameinfo.  Your useragent might appear wrong.\n");
+
+    uzbl.gui.sbar.progress_s = g_strdup("=");
+    uzbl.gui.sbar.progress_u = g_strdup("·");
+    uzbl.gui.sbar.progress_w = 10;
 
     setup_regex();
     setup_scanner();

@@ -62,6 +62,8 @@ const struct {
 typedef struct {
     gint           load_progress;
     gchar          *msg;
+    gchar          *progress_s, *progress_u;
+    int            progress_w;
 } StatusBar;
 
 
