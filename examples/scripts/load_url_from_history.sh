@@ -17,5 +17,5 @@ else
 	current=`tail -n 1 $history_file | awk '{print $3}'`; goto=`(echo $current; awk '{print $3}' $history_file | grep -v "^$current\$" | sort -u) | $DMENU $COLORS`
 fi 
 
-#[ -n "$goto" ] && echo "act uri $goto" > $4
-[ -n "$goto" ] && uzblctrl -s $5 -c "act uri $goto"
+[ -n "$goto" ] && echo "act uri $goto" > $4
+#[ -n "$goto" ] && uzblctrl -s $5 -c "act uri $goto"

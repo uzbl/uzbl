@@ -57,8 +57,20 @@
 
 
 static Uzbl uzbl;
+typedef void (*Command)(WebKitWebView*, GArray *argv);
 
-/* define names and pointers to all config specific variables */
+/* commandline arguments (set initial values for the state variables) */
+static GOptionEntry entries[] =
+{
+    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uzbl.state.uri,           "Uri to load at startup (equivalent to 'set uri = URI')", "URI" },
+    { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &uzbl.state.verbose,       "Whether to print all messages or just errors.", NULL },
+    { "name",    'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name, "Name of the current instance (defaults to Xorg window id)", "NAME" },
+    { "config",  'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,   "Config file (this is pretty much equivalent to uzbl < FILE )", "FILE" },
+    { NULL,      0, 0, 0, NULL, NULL, NULL }
+};
+
+
+/* associate command names to their properties */
 typedef const struct {
     void **ptr;
     int type;
@@ -84,7 +96,7 @@ const struct {
     { "insert_mode",        {.ptr = (void *)&uzbl.behave.insert_mode,          .type = TYPE_INT,    .func = NULL}},
     { "always_insert_mode", {.ptr = (void *)&uzbl.behave.always_insert_mode,   .type = TYPE_INT,    .func = cmd_always_insert_mode}},
     { "reset_command_mode", {.ptr = (void *)&uzbl.behave.reset_command_mode,   .type = TYPE_INT,    .func = NULL}},
-    { "modkey"     ,        {.ptr = (void *)&uzbl.behave.modkey,               .type = TYPE_STRING, .func = cmd_modkey}},
+    { "modkey",             {.ptr = (void *)&uzbl.behave.modkey,               .type = TYPE_STRING, .func = cmd_modkey}},
     { "load_finish_handler",{.ptr = (void *)&uzbl.behave.load_finish_handler,  .type = TYPE_STRING, .func = NULL}},
     { "load_start_handler", {.ptr = (void *)&uzbl.behave.load_start_handler,   .type = TYPE_STRING, .func = NULL}},
     { "load_commit_handler",{.ptr = (void *)&uzbl.behave.load_commit_handler,  .type = TYPE_STRING, .func = NULL}},
@@ -138,17 +150,6 @@ make_var_to_name_hash() {
     }
 }
 
-/* commandline arguments (set initial values for the state variables) */
-static GOptionEntry entries[] =
-{
-    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uzbl.state.uri,           "Uri to load at startup (equivalent to 'set uri = URI')", "URI" },
-    { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &uzbl.state.verbose,       "Whether to print all messages or just errors.", NULL },
-    { "name",    'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name, "Name of the current instance (defaults to Xorg window id)", "NAME" },
-    { "config",  'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,   "Config file (this is pretty much equivalent to uzbl < FILE )", "FILE" },
-    { NULL,      0, 0, 0, NULL, NULL, NULL }
-};
-
-typedef void (*Command)(WebKitWebView*, GArray *argv);
 
 /* --- UTILITY FUNCTIONS --- */
 
@@ -1045,9 +1046,10 @@ cmd_modkey() {
 
     buf = g_utf8_strup(uzbl.behave.modkey, -1);
     uzbl.behave.modmask = 0;
-    
+
     if(uzbl.behave.modkey) 
         free(uzbl.behave.modkey);
+    uzbl.behave.modkey = buf;
 
     for (i = 0; modkeys[i].key != NULL; i++) {
         if (g_strrstr(uzbl.behave.modkey, modkeys[i].key))
@@ -1062,7 +1064,7 @@ cmd_useragent() {
     buf = set_useragent(uzbl.net.useragent);
     if(uzbl.net.useragent) 
         free(uzbl.net.useragent);
-            
+
     uzbl.net.useragent = buf?buf:g_strdup("");
 }
 
@@ -1089,10 +1091,8 @@ move_statusbar() {
 
 static gboolean
 set_var_value(gchar *name, gchar *val) {
-    void *p = NULL;
     uzbl_cmdprop *c = NULL;
     char *endp = NULL;
-    char *buf=NULL;
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         /* check for the variable type */
@@ -1100,17 +1100,12 @@ set_var_value(gchar *name, gchar *val) {
             free(*c->ptr);
             *c->ptr = g_strdup(val);
         } else if(c->type == TYPE_INT) {
-            int *ip = c->ptr;
+            int *ip = GPOINTER_TO_INT(c->ptr);
             *ip = (int)strtoul(val, &endp, 10);
         }
 
         /* invoke a command specific function */
         if(c->func) c->func();
-
-        /* this will be removed as soon as we have converted to
-        * the callback interface
-        */
-        p = *c->ptr;
     }
     return TRUE;
 }
