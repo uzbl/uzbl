@@ -37,3 +37,11 @@ So ideally, all contributors develop in their experimental, that gets merged int
 
 ### MEMORY LEAK CHECKING
     valgrind --tool=memcheck --leak-check=full ./uzbl
+
+### DEBUGGING / BACKTRACES
+
+* compile with -ggdb (enabled by default on experimental tree)
+* run: `gdb ./uzbl`
+* `(gdb) run -c /path/to/config`
+* `bt` if it segfaults to see a backtrace
+* you'll find more info on the interwebs

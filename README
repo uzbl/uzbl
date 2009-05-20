@@ -54,7 +54,7 @@ Time to change that!
 
 ### CONFIGURATION / CONTROL:
 The general idea is that uzbl by default is very bare bones.  you can send it commands to update settings and perform actions, through various interfaces. (TODO: some default settings)
-For examples, please see the sample config(s).
+For examples of the possibilities, please see the sample config(s).
 There are several interfaces to interact with uzbl:
 
 * uzbl --config <filename>: <filename> will be read line by line, and the commands in it will be executed.  useful to configure uzbl at startup.
