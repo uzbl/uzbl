@@ -803,6 +803,7 @@ run_command (const gchar *command, const guint npre, const gchar **args,
 
     for (i = npre; i < g_strv_length((gchar**)args); i++)
         sharg_append(a, args[i]);
+    
     gboolean result;
     if (sync) result = g_spawn_sync(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
                                     NULL, NULL, stdout, NULL, NULL, &err);
@@ -905,9 +906,9 @@ parse_command(const char *cmd, const char *param) {
             gchar **par = split_quoted(param, TRUE);
             GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
 
-            if (c[1]) { /* don't split */
+            if (c[1] == NOSPLIT) { /* don't split */
                 sharg_append(a, param);
-            } else {
+            } else if (par) {
                 for (i = 0; i < g_strv_length(par); i++)
                     sharg_append(a, par[i]);
             }
