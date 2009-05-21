@@ -454,7 +454,7 @@ log_history_cb () {
        char date [80];
        time ( &rawtime );
        timeinfo = localtime ( &rawtime );
-       strftime (date, 80, " \"%Y-%m-%d %H:%M:%S\"", timeinfo);
+       strftime (date, 80, "\"%Y-%m-%d %H:%M:%S\"", timeinfo);
        run_handler(uzbl.behave.history_handler, date);
    }
 }
@@ -974,7 +974,7 @@ spawn(WebKitWebView *web_view, GArray *argv) {
     (void)web_view;
     //TODO: allow more control over argument order so that users can have some arguments before the default ones from run_command, and some after
     if (argv_idx(argv, 0))
-        run_command(argv_idx(argv, 0), 0, (const gchar **) argv->data + sizeof(gchar*), FALSE, NULL);
+        run_command(argv_idx(argv, 0), 0, ((const gchar **) (argv->data + sizeof(gchar*))), FALSE, NULL);
 }
 
 static void
