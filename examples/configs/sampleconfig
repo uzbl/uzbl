@@ -31,6 +31,10 @@ set status_top = 0
 # define how your titlebar should look like. (short = statusbar is also shown, long = show everything you must see if statusbar is off)
 set title_format_short = TITLE - Uzbl browser <NAME>
 set title_format_long = KEYCMD MODE TITLE - Uzbl browser <NAME> > SELECTED_URI
+# set the characters to use for, and the width of the progress bar
+set status_pbar_done  = *
+set status_pbar_pending = -
+set status_pbar_width = 12
 
 set modkey = Mod1
 # reset to command mode when new page is loaded
@@ -77,8 +81,9 @@ bind    gh        = uri http://www.uzbl.org
 bind    o _       = uri %s
 bind    :wiki _   = uri http://wiki.archlinux.org/index.php/Special:Search?search=%s&go=Go
 bind    gg _      = uri http://www.google.com/search?q=%s
-bind    i         = insert_mode
-#TODO: no 'toggle' command?
+bind    i         = toggle_insert_mode
+# disable insert mode (1 to enable).  note that Esc works to disable, regardless of this setting
+bind    I         = toggle_insert_mode 0
 bind    B         = spawn /usr/share/uzbl/examples/scripts/insert_bookmark.sh
 bind    U         = spawn /usr/share/uzbl/examples/scripts/load_url_from_history.sh
 bind    u         = spawn /usr/share/uzbl/examples/scripts/load_url_from_bookmarks.sh
@@ -92,18 +97,25 @@ bind    p         = sh "echo act uri `xclip -selection primary -o` > $4"
 # go to the page in clipboard
 bind    P         = sh "echo act uri `xclip -selection clipboard -o` > $4"
 bind    ZZ        = exit
-bind    S         = script alert("hi");
+bind    S         = js alert("hi");
 # example showing how to use sh
 # it sends a command to the fifo, whose path is told via a positional param
 # if fifo_dir is not set, it'll echo to a file named (null) somewhere >:) remember to delete it
 # Parameters are separated by spaces and the script body must be one parameter, so enclose it in
 # quotes and escape any inner quotes using backslashes
 bind    XS        = sh 'echo "act script alert (\'This is sent by the shell via a fifo\')" > "$4"'
-# Keyboard based link following: work in progress! No C DOM bindings yet, no click() event for hyperlinks so no referrer set..Quite basic but does the job for now...
+
+
+# we ship some javascripts to do keyboard based link hinting/following.  (webkit does not have C DOM bindings yet)
+# this is similar to how it works in vimperator (and konqueror)
+# TODO: did we resolve: "no click() event for hyperlinks so no referrer set" ?
 #hit F to toggle the Hints (now in form of link numbering)
-bind    F= script for (var i=0; i < document.links.length; i++) {var uzblid = 'uzbl_link_hint_';var li = document.links[i];var pre = document.getElementById(uzblid+i);if (pre) {li.removeChild(pre);} else {var hint = document.createElement('div');hint.setAttribute('id',uzblid+i);hint.innerHTML = i;hint.style.display='inline';hint.style.lineHeight='90%';hint.style.backgroundColor='red';hint.style.color='white';hint.style.fontSize='small-xx';hint.style.fontWeight='light';hint.style.margin='0px';hint.style.padding='2px';hint.style.position='absolute';hint.style.textDecoration='none';hint.style.left=li.style.left;hint.style.top=li.style.top;li.insertAdjacentElement('afterBegin',hint);}}
-#hit f followed by linknumber and ENTER to follow that link
-bind    f_        = script window.location = document.links[%s].href;
+bind    F = script /usr/share/uzbl/examples/scripts/hint.js
+# the most stable version:
+bind    fl* = script /usr/share/uzbl/examples/scripts/follow_Numbers.js %s
+# using strings, not polished yet:
+bind    fL* = script /usr/share/uzbl/examples/scripts/follow_Numbers_Strings.js %s
+
 
 # "home" page if you will
 set uri = uzbl.org

@@ -110,7 +110,8 @@ typedef struct {
     gchar    *selected_url;
     gchar    *executable_path;
     GString* keycmd;
-    gchar    *searchtx;
+    gchar*   searchtx;
+    gchar*   searchold;
     struct utsname unameinfo; /* system info */
     gboolean verbose;
 } State;
@@ -207,6 +208,12 @@ itos(int val);
 static char *
 str_replace (const char* search, const char* replace, const char* string);
 
+static GArray*
+read_file_by_line (gchar *path);
+
+static
+gchar* parseenv (const char* string);
+
 static void
 clean_up(void);
 
@@ -265,7 +272,7 @@ static bool
 file_exists (const char * filename);
 
 static void
-set_insert_mode(WebKitWebView *page, GArray *argv);
+toggle_insert_mode(WebKitWebView *page, GArray *argv);
 
 static void
 load_uri (WebKitWebView * web_view, GArray *argv);
@@ -323,7 +330,7 @@ static void
 update_title (void);
 
 static gboolean
-key_press_cb (WebKitWebView* page, GdkEventKey* event);
+key_press_cb (GtkWidget* window, GdkEventKey* event);
 
 static void
 run_keycmd(const gboolean key_ret);
@@ -363,6 +370,9 @@ search_reverse_text (WebKitWebView *page, GArray *argv);
 
 static void
 run_js (WebKitWebView * web_view, GArray *argv);
+
+static void
+run_external_js (WebKitWebView * web_view, GArray *argv);
 
 static void handle_cookies (SoupSession *session,
 							SoupMessage *msg,
