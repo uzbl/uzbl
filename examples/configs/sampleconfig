@@ -104,11 +104,10 @@ bind    S         = js alert("hi");
 # Parameters are separated by spaces and the script body must be one parameter, so enclose it in
 # quotes and escape any inner quotes using backslashes
 bind    XS        = sh 'echo "act script alert (\'This is sent by the shell via a fifo\')" > "$4"'
-# Keyboard based link following: work in progress! No C DOM bindings yet, no click() event for hyperlinks so no referrer set..Quite basic but does the job for now...
-#hit F to toggle the Hints (now in form of link numbering)
-bind    F= script /usr/share/uzbl/examples/scripts/hint.js
-#hit f followed by linknumber and ENTER to follow that link
-bind    f_        = js window.location = document.links[%s].href;
+
+# Linkfollowing now in one script, very Vimperator alike. 
+# In examples/scripts will be different approaches. Here the most stable one:
+bind    f* = script /usr/share/uzbl/examples/scripts/follow_Numbers.js %s
 
 # "home" page if you will
 set uri = uzbl.org
