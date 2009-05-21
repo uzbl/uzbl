@@ -1,12 +1,16 @@
 #!/bin/bash
-# A bit more advanced, try some pattern matching on the link to determine
-# a target location. pushd and popd might be better than plain cd...
+# just an example of how you could handle your downloads
+# try some pattern matching on the uri to determine what we should do
+
+# Some sites block the default wget --user-agent...
+WGET="wget --user-agent=Firefox"
+
 if [[ $8 =~ .*(.torrent) ]] 
 then
-    pushd /your/place/for/torrent/files
+    pushd $HOME
+    $WGET $8
 else
-    pushd /your/place/for/usual/downloads
+    pushd $HOME
+    $WGET $8
 fi
-# Some sites block the default wget --user-agent...
-wget --user-agent=Firefox $8
 popd
