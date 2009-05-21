@@ -105,9 +105,17 @@ bind    S         = js alert("hi");
 # quotes and escape any inner quotes using backslashes
 bind    XS        = sh 'echo "act script alert (\'This is sent by the shell via a fifo\')" > "$4"'
 
-# Linkfollowing now in one script, very Vimperator alike. 
-# In examples/scripts will be different approaches. Here the most stable one:
-bind    f* = script /usr/share/uzbl/examples/scripts/follow_Numbers.js %s
+
+# we ship some javascripts to do keyboard based link hinting/following.  (webkit does not have C DOM bindings yet)
+# this is similar to how it works in vimperator (and konqueror)
+# TODO: did we resolve: "no click() event for hyperlinks so no referrer set" ?
+#hit F to toggle the Hints (now in form of link numbering)
+bind    F = script /usr/share/uzbl/examples/scripts/hint.js
+# the most stable version:
+bind    fl* = script /usr/share/uzbl/examples/scripts/follow_Numbers.js %s
+# using strings, not polished yet:
+bind    fL* = script /usr/share/uzbl/examples/scripts/follow_Numbers_Strings.js %s
+
 
 # "home" page if you will
 set uri = uzbl.org
