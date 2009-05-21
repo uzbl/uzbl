@@ -22,6 +22,7 @@ install:
 	install -D -m755 uzbl $(DESTDIR)/usr/bin/uzbl
 	install -D -m755 uzblctrl $(DESTDIR)/usr/bin/uzblctrl
 	cp -ax docs     $(DESTDIR)/usr/share/uzbl/
+	cp -ax config.h $(DESTDIR)/usr/share/uzbl/docs/
 	cp -ax examples $(DESTDIR)/usr/share/uzbl/
 	install -D -m644 AUTHORS $(DESTDIR)/usr/share/uzbl/docs
 	install -D -m644 README  $(DESTDIR)/usr/share/uzbl/docs

@@ -1,10 +1,12 @@
 FAQ
 ---
 
-### I just installed uzbl but it doesn't do much.  I can load one uri and quit the program but that's it.
-You did not load a configuration.  Uzbl does not create a default config file on startup like some other programs do.
+### I just installed uzbl but it doesn't do much.  What now?
+Uzbl does not create a default config file on startup like some other programs do.
 Because we want to give you the freedom to place your config where you want, and to use a config or not.
-Have a look in /usr/share/uzbl/examples/configs.
+Uzbl includes *some* default settings hardcoded, but these are rather limited (some navigation keybinds, statusbar settings, but no history/download handlers etc.)
+Look at config.h to see the default settings.
+Have a look in /usr/share/uzbl/examples/configs to see what you can do. You will probably want to create your own config based on an example config.
 Use the --config parameter or save your config as $XDG\_CONFIG\_HOME/uzbl/config to have it auto-loaded.
 
 ### Where is the location bar? How do I change the URL ?
