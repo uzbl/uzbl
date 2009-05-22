@@ -303,9 +303,6 @@ parse_cmd_line(const char *ctl_line);
 static gchar*
 build_stream_name(int type, const gchar *dir);
 
-static gchar*
-set_useragent(gchar *val);
-
 static gboolean
 control_fifo(GIOChannel *gio, GIOCondition condition);
 

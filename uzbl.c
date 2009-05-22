@@ -1164,13 +1164,16 @@ cmd_modkey() {
 
 static void
 cmd_useragent() {
-    char *buf;
-
-    buf = set_useragent(uzbl.net.useragent);
-    if(uzbl.net.useragent) 
+    if (*uzbl.net.useragent == ' ') {
+        g_free (uzbl.net.useragent);
+        uzbl.net.useragent = NULL;
+    } else {
+        gchar *ua = expand_template(uzbl.net.useragent);
+        if (ua)
+            g_object_set(G_OBJECT(uzbl.net.soup_session), SOUP_SESSION_USER_AGENT, ua, NULL);
         g_free(uzbl.net.useragent);
-
-    uzbl.net.useragent = buf?buf:g_strdup("");
+        uzbl.net.useragent = ua;
+    }
 }
 
 static void
@@ -1835,17 +1838,6 @@ settings_init () {
     }
 
     g_signal_connect(n->soup_session, "request-queued", G_CALLBACK(handle_cookies), NULL);
-}
-
-static gchar*
-set_useragent(gchar *val) {
-    if (*val == ' ')
-        return NULL;
-
-    gchar *ua = expand_template(val);
-    if (ua)
-        g_object_set(G_OBJECT(uzbl.net.soup_session), SOUP_SESSION_USER_AGENT, ua, NULL);
-    return ua;
 }
 
 static void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer user_data){
