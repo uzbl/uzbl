@@ -16,6 +16,7 @@ set download_handler = spawn ./examples/scripts/download.sh
 set cookie_handler   = ./examples/scripts/cookies.sh
 set minimum_font_size = 6
 set default_font_size = 11
+set default_monospace_size = 11
 
 # use with bind ... = sh <shell-oneliner>
 set shell_cmd         = sh -c
@@ -124,6 +125,9 @@ bind    F = script ./examples/scripts/hint.js
 bind    fl* = script ./examples/scripts/follow_Numbers.js %s
 # using strings, not polished yet:
 bind    fL* = script ./examples/scripts/follow_Numbers_Strings.js %s
+
+# you can use this to disable all plugins
+set disable_plugins = 0
 
 # "home" page if you will
 set uri = uzbl.org
