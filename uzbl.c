@@ -1839,10 +1839,9 @@ settings_init () {
 
 static gchar*
 set_useragent(gchar *val) {
-    if (*val == ' ') {
-        g_free(val);
+    if (*val == ' ')
         return NULL;
-    }
+
     gchar *ua = expand_template(val);
     if (ua)
         g_object_set(G_OBJECT(uzbl.net.soup_session), SOUP_SESSION_USER_AGENT, ua, NULL);
