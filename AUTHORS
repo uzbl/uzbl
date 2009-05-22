@@ -15,6 +15,7 @@ Contributors:
     Damien Leon - misc
     Peter Suschlik - backwards searching
     (salinasv) - move some variables to heap
+    Sylvester Johansson (scj) - original form filler script
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:
