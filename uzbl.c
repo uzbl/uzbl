@@ -610,27 +610,19 @@ run_external_js (WebKitWebView * web_view, GArray *argv) {
 
 static void
 search_text (WebKitWebView *page, GArray *argv, const gboolean forward) {
-    if (argv_idx(argv, 0) && (*argv_idx(argv, 0) != '\0'))
-        uzbl.state.searchtx = g_strdup(argv_idx(argv, 0));
-
-    if (uzbl.state.searchtx != NULL) {
+    if (argv_idx(argv, 0) && (*argv_idx(argv, 0) != '\0')) {
+        if (g_strcmp0 (uzbl.state.searchtx, argv_idx(argv, 0)) != 0) {
+            webkit_web_view_unmark_text_matches (page);
+            webkit_web_view_mark_text_matches (page, argv_idx(argv, 0), FALSE, 0);
+            uzbl.state.searchtx = g_strdup(argv_idx(argv, 0));
+        }
+    }
+    
+    if (uzbl.state.searchtx) {
         if (uzbl.state.verbose)
             printf ("Searching: %s\n", uzbl.state.searchtx);
-
-        if (g_strcmp0 (uzbl.state.searchtx, uzbl.state.searchold) != 0) {
-            webkit_web_view_unmark_text_matches (page);
-            webkit_web_view_mark_text_matches (page, uzbl.state.searchtx, FALSE, 0);
-
-            if (uzbl.state.searchold != NULL)
-                g_free (uzbl.state.searchold);
-
-            uzbl.state.searchold = g_strdup (uzbl.state.searchtx);
-        }
-
         webkit_web_view_set_highlight_text_matches (page, TRUE);
         webkit_web_view_search_text (page, uzbl.state.searchtx, FALSE, forward, TRUE);
-        g_free(uzbl.state.searchtx);
-        uzbl.state.searchtx = NULL;
     }
 }
 

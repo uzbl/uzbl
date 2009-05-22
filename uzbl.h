@@ -108,7 +108,6 @@ typedef struct {
     gchar    *executable_path;
     GString* keycmd;
     gchar*   searchtx;
-    gchar*   searchold;
     struct utsname unameinfo; /* system info */
     gboolean verbose;
 } State;
