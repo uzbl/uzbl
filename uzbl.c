@@ -110,7 +110,9 @@ const struct {
     { "socket_dir",         {.ptr = (void *)&uzbl.behave.socket_dir,           .type = TYPE_STRING, .func = cmd_socket_dir}},
     { "http_debug",         {.ptr = (void *)&uzbl.behave.http_debug,           .type = TYPE_INT,    .func = cmd_http_debug}},
     { "default_font_size",  {.ptr = (void *)&uzbl.behave.default_font_size,    .type = TYPE_INT,    .func = cmd_default_font_size}},
+    { "default_monospace_size",  {.ptr = (void *)&uzbl.behave.default_monospace_size,    .type = TYPE_INT,    .func = cmd_default_font_size}},
     { "minimum_font_size",  {.ptr = (void *)&uzbl.behave.minimum_font_size,    .type = TYPE_INT,    .func = cmd_minimum_font_size}},
+    { "disable_plugins",    {.ptr = (void *)&uzbl.behave.disable_plugins,      .type = TYPE_INT,    .func = cmd_disable_plugins}},
     { "shell_cmd",          {.ptr = (void *)&uzbl.behave.shell_cmd,            .type = TYPE_STRING, .func = NULL}},
     { "proxy_url",          {.ptr = (void *)&uzbl.net.proxy_url,               .type = TYPE_STRING, .func = set_proxy_url}},
     { "max_conns",          {.ptr = (void *)&uzbl.net.max_conns,               .type = TYPE_INT,    .func = cmd_max_conns}},
@@ -174,7 +176,7 @@ str_replace (const char* search, const char* replace, const char* string) {
 
     buf = g_strsplit (string, search, -1);
     ret = g_strjoinv (replace, buf);
-    //g_strfreev(buf); - segfaults.
+    g_strfreev(buf); // somebody said this segfaults
 
     return ret;
 }
@@ -206,25 +208,29 @@ read_file_by_line (gchar *path) {
 }
 
 static
-gchar* parseenv (const char* string) {
+gchar* parseenv (char* string) {
     extern char** environ;
-    gchar* newstring = g_strdup (string);
+    gchar* tmpstr = NULL;
     int i = 0;
+    
 
     while (environ[i] != NULL) {
-        gchar** env = g_strsplit (environ[i], "=", 0);
+        gchar** env = g_strsplit (environ[i], "=", 2);
         gchar* envname = g_strconcat ("$", env[0], NULL);
 
-        if (g_strrstr (newstring, envname) != NULL) {
-            newstring = str_replace(envname, env[1], newstring);
+        if (g_strrstr (string, envname) != NULL) {
+            tmpstr = g_strdup(string);
+            g_free (string);
+            string = str_replace(envname, env[1], tmpstr);
+            g_free (tmpstr);
         }
 
         g_free (envname);
-        //g_strfreev (env); //- This still breaks uzbl, but shouldn't. The mystery thickens...
-        i ++;
+        g_strfreev (env); // somebody said this breaks uzbl
+        i++;
     }
 
-    return newstring;
+    return string;
 }
 
 static sigfunc*
@@ -608,27 +614,19 @@ run_external_js (WebKitWebView * web_view, GArray *argv) {
 
 static void
 search_text (WebKitWebView *page, GArray *argv, const gboolean forward) {
-    if (argv_idx(argv, 0) && (*argv_idx(argv, 0) != '\0'))
-        uzbl.state.searchtx = g_strdup(argv_idx(argv, 0));
-
-    if (uzbl.state.searchtx != NULL) {
+    if (argv_idx(argv, 0) && (*argv_idx(argv, 0) != '\0')) {
+        if (g_strcmp0 (uzbl.state.searchtx, argv_idx(argv, 0)) != 0) {
+            webkit_web_view_unmark_text_matches (page);
+            webkit_web_view_mark_text_matches (page, argv_idx(argv, 0), FALSE, 0);
+            uzbl.state.searchtx = g_strdup(argv_idx(argv, 0));
+        }
+    }
+    
+    if (uzbl.state.searchtx) {
         if (uzbl.state.verbose)
             printf ("Searching: %s\n", uzbl.state.searchtx);
-
-        if (g_strcmp0 (uzbl.state.searchtx, uzbl.state.searchold) != 0) {
-            webkit_web_view_unmark_text_matches (page);
-            webkit_web_view_mark_text_matches (page, uzbl.state.searchtx, FALSE, 0);
-
-            if (uzbl.state.searchold != NULL)
-                g_free (uzbl.state.searchold);
-
-            uzbl.state.searchold = g_strdup (uzbl.state.searchtx);
-        }
-
         webkit_web_view_set_highlight_text_matches (page, TRUE);
         webkit_web_view_search_text (page, uzbl.state.searchtx, FALSE, forward, TRUE);
-        g_free(uzbl.state.searchtx);
-        uzbl.state.searchtx = NULL;
     }
 }
 
@@ -1111,7 +1109,23 @@ cmd_http_debug() {
 static void
 cmd_default_font_size() {
     WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
-    g_object_set (G_OBJECT(ws), "default-font-size", uzbl.behave.default_font_size, NULL);
+    if (uzbl.behave.default_font_size > 0) {
+        g_object_set (G_OBJECT(ws), "default-font-size", uzbl.behave.default_font_size, NULL);
+    }
+    
+    if (uzbl.behave.default_monospace_size > 0) {
+        g_object_set (G_OBJECT(ws), "default-monospace-font-size",
+                      uzbl.behave.default_monospace_size, NULL);
+    } else {
+        g_object_set (G_OBJECT(ws), "default-monospace-font-size",
+                      uzbl.behave.default_font_size, NULL);
+    }
+}
+
+static void
+cmd_disable_plugins() {
+    WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
+    g_object_set (G_OBJECT(ws), "enable-plugins", !uzbl.behave.disable_plugins, NULL);
 }
 
 static void
@@ -1122,24 +1136,12 @@ cmd_minimum_font_size() {
 
 static void
 cmd_fifo_dir() {
-    char *buf;
-
-    buf = init_fifo(uzbl.behave.fifo_dir);
-    if(uzbl.behave.fifo_dir) 
-        g_free(uzbl.behave.fifo_dir);
-
-    uzbl.behave.fifo_dir = buf?buf:g_strdup("");
+    uzbl.behave.fifo_dir = init_fifo(uzbl.behave.fifo_dir);
 }
 
 static void
 cmd_socket_dir() {
-    char *buf;
-
-    buf = init_socket(uzbl.behave.socket_dir);
-    if(uzbl.behave.socket_dir) 
-        g_free(uzbl.behave.socket_dir);
-
-    uzbl.behave.socket_dir = buf?buf:g_strdup("");
+    uzbl.behave.socket_dir = init_socket(uzbl.behave.socket_dir);
 }
 
 static void
@@ -1162,13 +1164,16 @@ cmd_modkey() {
 
 static void
 cmd_useragent() {
-    char *buf;
-
-    buf = set_useragent(uzbl.net.useragent);
-    if(uzbl.net.useragent) 
+    if (*uzbl.net.useragent == ' ') {
+        g_free (uzbl.net.useragent);
+        uzbl.net.useragent = NULL;
+    } else {
+        gchar *ua = expand_template(uzbl.net.useragent);
+        if (ua)
+            g_object_set(G_OBJECT(uzbl.net.soup_session), SOUP_SESSION_USER_AGENT, ua, NULL);
         g_free(uzbl.net.useragent);
-
-    uzbl.net.useragent = buf?buf:g_strdup("");
+        uzbl.net.useragent = ua;
+    }
 }
 
 static void
@@ -1227,7 +1232,7 @@ parse_cmd_line(const char *ctl_line) {
     if(ctl_line[0] == 's' || ctl_line[0] == 'S') {
         tokens = g_regex_split(uzbl.comm.set_regex, ctl_line, 0);
         if(tokens[0][0] == 0) {
-            gchar* value = parseenv (tokens[2]);
+            gchar* value = parseenv(g_strdup(tokens[2]));
             set_var_value(tokens[1], value);
             g_strfreev(tokens);
             g_free(value);
@@ -1249,7 +1254,7 @@ parse_cmd_line(const char *ctl_line) {
     else if(ctl_line[0] == 'b' || ctl_line[0] == 'B') {
         tokens = g_regex_split(uzbl.comm.bind_regex, ctl_line, 0);
         if(tokens[0][0] == 0) {
-            gchar* value = parseenv (tokens[2]);
+            gchar* value = parseenv(g_strdup(tokens[2]));
             add_binding(tokens[1], value);
             g_strfreev(tokens);
             g_free(value);
@@ -1348,6 +1353,7 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
     }
 
     if (*dir == ' ') { /* space unsets the variable */
+        g_free (dir);
         return NULL;
     }
 
@@ -1372,6 +1378,7 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
 
     /* if we got this far, there was an error; cleanup */
     if (error) g_error_free (error);
+    g_free(dir);
     g_free(path);
     return NULL;
 }
@@ -1831,18 +1838,6 @@ settings_init () {
     }
 
     g_signal_connect(n->soup_session, "request-queued", G_CALLBACK(handle_cookies), NULL);
-}
-
-static gchar*
-set_useragent(gchar *val) {
-    if (*val == ' ') {
-        g_free(val);
-        return NULL;
-    }
-    gchar *ua = expand_template(val);
-    if (ua)
-        g_object_set(G_OBJECT(uzbl.net.soup_session), SOUP_SESSION_USER_AGENT, ua, NULL);
-    return ua;
 }
 
 static void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer user_data){

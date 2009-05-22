@@ -108,7 +108,6 @@ typedef struct {
     gchar    *executable_path;
     GString* keycmd;
     gchar*   searchtx;
-    gchar*   searchold;
     struct utsname unameinfo; /* system info */
     gboolean verbose;
 } State;
@@ -148,7 +147,9 @@ typedef struct {
     guint    modmask;
     guint    http_debug;
     guint    default_font_size;
+    guint    default_monospace_size;
     guint    minimum_font_size;
+    guint    disable_plugins;
     gchar*   shell_cmd;
 
     /* command list: name -> Command  */
@@ -209,7 +210,7 @@ static GArray*
 read_file_by_line (gchar *path);
 
 static
-gchar* parseenv (const char* string);
+gchar* parseenv (char* string);
 
 static void
 clean_up(void);
@@ -301,9 +302,6 @@ parse_cmd_line(const char *ctl_line);
 
 static gchar*
 build_stream_name(int type, const gchar *dir);
-
-static gchar*
-set_useragent(gchar *val);
 
 static gboolean
 control_fifo(GIOChannel *gio, GIOCondition condition);
@@ -405,6 +403,9 @@ cmd_max_conns_host();
 
 static void
 cmd_default_font_size();
+
+static void
+cmd_disable_plugins();
 
 static void
 cmd_minimum_font_size();
