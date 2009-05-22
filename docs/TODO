@@ -5,7 +5,6 @@ More or less in order of importance/urgency
 * allow to tag , to group instances together
 * store uri/tag/name/state in xorg window properties
 * split up uzbl.c into multiple files
-* define a basic, simple default config so uzbl is a bit uzbl by default
 * shortcuts to focus other instances (see docs/multiple-instances-management)
 * password handler (manager)
 

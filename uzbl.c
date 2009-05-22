@@ -54,7 +54,7 @@
 #include <libsoup/soup.h>
 #include <signal.h>
 #include "uzbl.h"
-
+#include "config.h"
 
 static Uzbl uzbl;
 typedef void (*Command)(WebKitWebView*, GArray *argv);
@@ -1805,7 +1805,10 @@ static void
 settings_init () {
     State *s = &uzbl.state;
     Network *n = &uzbl.net;
-    uzbl.behave.reset_command_mode = 1;
+    int i;
+    for (i = 0; default_config[i].command != NULL; i++) {
+        parse_cmd_line(default_config[i].command);
+    }
 
     if (!s->config_file) {
         s->config_file = find_xdg_file (0, "/uzbl/config");
@@ -1826,13 +1829,6 @@ settings_init () {
         if (uzbl.state.verbose)
             printf ("No configuration file loaded.\n");
     }
-    if (!uzbl.behave.status_format)
-        set_var_value("status_format", STATUS_DEFAULT);
-    if (!uzbl.behave.title_format_long)
-        set_var_value("title_format_long", TITLE_LONG_DEFAULT);
-    if (!uzbl.behave.title_format_short)
-        set_var_value("title_format_short", TITLE_SHORT_DEFAULT);
-
 
     g_signal_connect(n->soup_session, "request-queued", G_CALLBACK(handle_cookies), NULL);
 }
