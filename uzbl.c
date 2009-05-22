@@ -112,6 +112,7 @@ const struct {
     { "default_font_size",  {.ptr = (void *)&uzbl.behave.default_font_size,    .type = TYPE_INT,    .func = cmd_default_font_size}},
     { "default_monospace_size",  {.ptr = (void *)&uzbl.behave.default_monospace_size,    .type = TYPE_INT,    .func = cmd_default_font_size}},
     { "minimum_font_size",  {.ptr = (void *)&uzbl.behave.minimum_font_size,    .type = TYPE_INT,    .func = cmd_minimum_font_size}},
+    { "disable_plugins",    {.ptr = (void *)&uzbl.behave.disable_plugins,      .type = TYPE_INT,    .func = cmd_disable_plugins}},
     { "shell_cmd",          {.ptr = (void *)&uzbl.behave.shell_cmd,            .type = TYPE_STRING, .func = NULL}},
     { "proxy_url",          {.ptr = (void *)&uzbl.net.proxy_url,               .type = TYPE_STRING, .func = set_proxy_url}},
     { "max_conns",          {.ptr = (void *)&uzbl.net.max_conns,               .type = TYPE_INT,    .func = cmd_max_conns}},
@@ -1123,6 +1124,12 @@ cmd_default_font_size() {
         g_object_set (G_OBJECT(ws), "default-monospace-font-size",
                       uzbl.behave.default_font_size, NULL);
     }
+}
+
+static void
+cmd_disable_plugins() {
+    WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
+    g_object_set (G_OBJECT(ws), "enable-plugins", !uzbl.behave.disable_plugins, NULL);
 }
 
 static void

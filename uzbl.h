@@ -150,6 +150,7 @@ typedef struct {
     guint    default_font_size;
     guint    default_monospace_size;
     guint    minimum_font_size;
+    guint    disable_plugins;
     gchar*   shell_cmd;
 
     /* command list: name -> Command  */
@@ -406,6 +407,9 @@ cmd_max_conns_host();
 
 static void
 cmd_default_font_size();
+
+static void
+cmd_disable_plugins();
 
 static void
 cmd_minimum_font_size();
