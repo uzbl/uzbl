@@ -176,7 +176,7 @@ str_replace (const char* search, const char* replace, const char* string) {
 
     buf = g_strsplit (string, search, -1);
     ret = g_strjoinv (replace, buf);
-    //g_strfreev(buf); - segfaults.
+    g_strfreev(buf); // somebody said this segfaults
 
     return ret;
 }
@@ -208,25 +208,29 @@ read_file_by_line (gchar *path) {
 }
 
 static
-gchar* parseenv (const char* string) {
+gchar* parseenv (char* string) {
     extern char** environ;
-    gchar* newstring = g_strdup (string);
+    gchar* tmpstr = NULL;
     int i = 0;
+    
 
     while (environ[i] != NULL) {
-        gchar** env = g_strsplit (environ[i], "=", 0);
+        gchar** env = g_strsplit (environ[i], "=", 2);
         gchar* envname = g_strconcat ("$", env[0], NULL);
 
-        if (g_strrstr (newstring, envname) != NULL) {
-            newstring = str_replace(envname, env[1], newstring);
+        if (g_strrstr (string, envname) != NULL) {
+            tmpstr = g_strdup(string);
+            g_free (string);
+            string = str_replace(envname, env[1], tmpstr);
+            g_free (tmpstr);
         }
 
         g_free (envname);
-        //g_strfreev (env); //- This still breaks uzbl, but shouldn't. The mystery thickens...
-        i ++;
+        g_strfreev (env); // somebody said this breaks uzbl
+        i++;
     }
 
-    return newstring;
+    return string;
 }
 
 static sigfunc*
@@ -1225,7 +1229,7 @@ parse_cmd_line(const char *ctl_line) {
     if(ctl_line[0] == 's' || ctl_line[0] == 'S') {
         tokens = g_regex_split(uzbl.comm.set_regex, ctl_line, 0);
         if(tokens[0][0] == 0) {
-            gchar* value = parseenv (tokens[2]);
+            gchar* value = parseenv(g_strdup(tokens[2]));
             set_var_value(tokens[1], value);
             g_strfreev(tokens);
             g_free(value);
@@ -1247,7 +1251,7 @@ parse_cmd_line(const char *ctl_line) {
     else if(ctl_line[0] == 'b' || ctl_line[0] == 'B') {
         tokens = g_regex_split(uzbl.comm.bind_regex, ctl_line, 0);
         if(tokens[0][0] == 0) {
-            gchar* value = parseenv (tokens[2]);
+            gchar* value = parseenv(g_strdup(tokens[2]));
             add_binding(tokens[1], value);
             g_strfreev(tokens);
             g_free(value);

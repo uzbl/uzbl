@@ -210,7 +210,7 @@ static GArray*
 read_file_by_line (gchar *path);
 
 static
-gchar* parseenv (const char* string);
+gchar* parseenv (char* string);
 
 static void
 clean_up(void);
