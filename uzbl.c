@@ -1132,24 +1132,12 @@ cmd_minimum_font_size() {
 
 static void
 cmd_fifo_dir() {
-    char *buf;
-
-    buf = init_fifo(uzbl.behave.fifo_dir);
-    if(uzbl.behave.fifo_dir) 
-        g_free(uzbl.behave.fifo_dir);
-
-    uzbl.behave.fifo_dir = buf?buf:g_strdup("");
+    uzbl.behave.fifo_dir = init_fifo(uzbl.behave.fifo_dir);
 }
 
 static void
 cmd_socket_dir() {
-    char *buf;
-
-    buf = init_socket(uzbl.behave.socket_dir);
-    if(uzbl.behave.socket_dir) 
-        g_free(uzbl.behave.socket_dir);
-
-    uzbl.behave.socket_dir = buf?buf:g_strdup("");
+    uzbl.behave.socket_dir = init_socket(uzbl.behave.socket_dir);
 }
 
 static void
@@ -1358,6 +1346,7 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
     }
 
     if (*dir == ' ') { /* space unsets the variable */
+        g_free (dir);
         return NULL;
     }
 
@@ -1382,6 +1371,7 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
 
     /* if we got this far, there was an error; cleanup */
     if (error) g_error_free (error);
+    g_free(dir);
     g_free(path);
     return NULL;
 }
