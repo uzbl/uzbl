@@ -110,6 +110,7 @@ const struct {
     { "socket_dir",         {.ptr = (void *)&uzbl.behave.socket_dir,           .type = TYPE_STRING, .func = cmd_socket_dir}},
     { "http_debug",         {.ptr = (void *)&uzbl.behave.http_debug,           .type = TYPE_INT,    .func = cmd_http_debug}},
     { "default_font_size",  {.ptr = (void *)&uzbl.behave.default_font_size,    .type = TYPE_INT,    .func = cmd_default_font_size}},
+    { "default_monospace_size",  {.ptr = (void *)&uzbl.behave.default_monospace_size,    .type = TYPE_INT,    .func = cmd_default_font_size}},
     { "minimum_font_size",  {.ptr = (void *)&uzbl.behave.minimum_font_size,    .type = TYPE_INT,    .func = cmd_minimum_font_size}},
     { "shell_cmd",          {.ptr = (void *)&uzbl.behave.shell_cmd,            .type = TYPE_STRING, .func = NULL}},
     { "proxy_url",          {.ptr = (void *)&uzbl.net.proxy_url,               .type = TYPE_STRING, .func = set_proxy_url}},
@@ -1111,7 +1112,17 @@ cmd_http_debug() {
 static void
 cmd_default_font_size() {
     WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
-    g_object_set (G_OBJECT(ws), "default-font-size", uzbl.behave.default_font_size, NULL);
+    if (uzbl.behave.default_font_size > 0) {
+        g_object_set (G_OBJECT(ws), "default-font-size", uzbl.behave.default_font_size, NULL);
+    }
+    
+    if (uzbl.behave.default_monospace_size > 0) {
+        g_object_set (G_OBJECT(ws), "default-monospace-font-size",
+                      uzbl.behave.default_monospace_size, NULL);
+    } else {
+        g_object_set (G_OBJECT(ws), "default-monospace-font-size",
+                      uzbl.behave.default_font_size, NULL);
+    }
 }
 
 static void

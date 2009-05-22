@@ -148,6 +148,7 @@ typedef struct {
     guint    modmask;
     guint    http_debug;
     guint    default_font_size;
+    guint    default_monospace_size;
     guint    minimum_font_size;
     gchar*   shell_cmd;
 
