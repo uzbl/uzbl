@@ -79,51 +79,49 @@ typedef const struct {
 
 enum {TYPE_INT, TYPE_STR};
 
-/* some abbreviations to help keep the table lines' width humane */
-#define VAR(x) .ptr = (void*)&(x)
-#define T(x) .type = TYPE_##x
-#define FUN(x) .func = x
+/* an abbreviation to help keep the table's width humane */
+#define PTR(var, t, fun) { .ptr = (void*)&(var), .type = TYPE_##t, .func = fun }
 
 const struct {
     char *name;
     uzbl_cmdprop cp;
 } var_name_to_ptr[] = {
-/*    variable name         pointer to variable in code           var type  callback function    */
-/*  -------------------------------------------------------------------------------------------- */
-    { "uri",                {VAR(uzbl.state.uri),                  T(STR), FUN(cmd_load_uri)}},
-    { "status_message",     {VAR(uzbl.gui.sbar.msg),               T(STR), FUN(update_title)}},
-    { "show_status",        {VAR(uzbl.behave.show_status),         T(INT), FUN(cmd_set_status)}},
-    { "status_top",         {VAR(uzbl.behave.status_top),          T(INT), FUN(move_statusbar)}},
-    { "status_format",      {VAR(uzbl.behave.status_format),       T(STR), FUN(update_title)}},
-    { "status_pbar_done",   {VAR(uzbl.gui.sbar.progress_s),        T(STR), FUN(update_title)}},
-    { "status_pbar_pending",{VAR(uzbl.gui.sbar.progress_u),        T(STR), FUN(update_title)}},
-    { "status_pbar_width",  {VAR(uzbl.gui.sbar.progress_w),        T(INT), FUN(update_title)}},
-    { "status_background",  {VAR(uzbl.behave.status_background),   T(STR), FUN(update_title)}},
-    { "title_format_long",  {VAR(uzbl.behave.title_format_long),   T(STR), FUN(update_title)}},
-    { "title_format_short", {VAR(uzbl.behave.title_format_short),  T(STR), FUN(update_title)}},
-    { "insert_mode",        {VAR(uzbl.behave.insert_mode),         T(INT), FUN(NULL)}},
-    { "always_insert_mode", {VAR(uzbl.behave.always_insert_mode),  T(INT), FUN(cmd_always_insert_mode)}},
-    { "reset_command_mode", {VAR(uzbl.behave.reset_command_mode),  T(INT), FUN(NULL)}},
-    { "modkey",             {VAR(uzbl.behave.modkey),              T(STR), FUN(cmd_modkey)}},
-    { "load_finish_handler",{VAR(uzbl.behave.load_finish_handler), T(STR), FUN(NULL)}},
-    { "load_start_handler", {VAR(uzbl.behave.load_start_handler),  T(STR), FUN(NULL)}},
-    { "load_commit_handler",{VAR(uzbl.behave.load_commit_handler), T(STR), FUN(NULL)}},
-    { "history_handler",    {VAR(uzbl.behave.history_handler),     T(STR), FUN(NULL)}},
-    { "download_handler",   {VAR(uzbl.behave.download_handler),    T(STR), FUN(NULL)}},
-    { "cookie_handler",     {VAR(uzbl.behave.cookie_handler),      T(STR), FUN(NULL)}},
-    { "fifo_dir",           {VAR(uzbl.behave.fifo_dir),            T(STR), FUN(cmd_fifo_dir)}},
-    { "socket_dir",         {VAR(uzbl.behave.socket_dir),          T(STR), FUN(cmd_socket_dir)}},
-    { "http_debug",         {VAR(uzbl.behave.http_debug),          T(INT), FUN(cmd_http_debug)}},
-    { "font_size",          {VAR(uzbl.behave.font_size),           T(INT), FUN(cmd_font_size)}},
-    { "monospace_size",     {VAR(uzbl.behave.monospace_size),      T(INT), FUN(cmd_font_size)}},
-    { "minimum_font_size",  {VAR(uzbl.behave.minimum_font_size),   T(INT), FUN(cmd_minimum_font_size)}},
-    { "disable_plugins",    {VAR(uzbl.behave.disable_plugins),     T(INT), FUN(cmd_disable_plugins)}},
-    { "shell_cmd",          {VAR(uzbl.behave.shell_cmd),           T(STR), FUN(NULL)}},
-    { "proxy_url",          {VAR(uzbl.net.proxy_url),              T(STR), FUN(set_proxy_url)}},
-    { "max_conns",          {VAR(uzbl.net.max_conns),              T(INT), FUN(cmd_max_conns)}},
-    { "max_conns_host",     {VAR(uzbl.net.max_conns_host),         T(INT), FUN(cmd_max_conns_host)}},
-    { "useragent",          {VAR(uzbl.net.useragent),              T(STR), FUN(cmd_useragent)}},
-    { NULL,                 {.ptr = NULL,                          T(INT), FUN(NULL)}}
+/*    variable name         pointer to variable in code          type  callback function    */
+/*  --------------------------------------------------------------------------------------- */
+    { "uri",                 PTR(uzbl.state.uri,                  STR, cmd_load_uri)},
+    { "status_message",      PTR(uzbl.gui.sbar.msg,               STR, update_title)},
+    { "show_status",         PTR(uzbl.behave.show_status,         INT, cmd_set_status)},
+    { "status_top",          PTR(uzbl.behave.status_top,          INT, move_statusbar)},
+    { "status_format",       PTR(uzbl.behave.status_format,       STR, update_title)},
+    { "status_pbar_done",    PTR(uzbl.gui.sbar.progress_s,        STR, update_title)},
+    { "status_pbar_pending", PTR(uzbl.gui.sbar.progress_u,        STR, update_title)},
+    { "status_pbar_width",   PTR(uzbl.gui.sbar.progress_w,        INT, update_title)},
+    { "status_background",   PTR(uzbl.behave.status_background,   STR, update_title)},
+    { "title_format_long",   PTR(uzbl.behave.title_format_long,   STR, update_title)},
+    { "title_format_short",  PTR(uzbl.behave.title_format_short,  STR, update_title)},
+    { "insert_mode",         PTR(uzbl.behave.insert_mode,         INT, NULL)},
+    { "always_insert_mode",  PTR(uzbl.behave.always_insert_mode,  INT, cmd_always_insert_mode)},
+    { "reset_command_mode",  PTR(uzbl.behave.reset_command_mode,  INT, NULL)},
+    { "modkey",              PTR(uzbl.behave.modkey,              STR, cmd_modkey)},
+    { "load_finish_handler", PTR(uzbl.behave.load_finish_handler, STR, NULL)},
+    { "load_start_handler",  PTR(uzbl.behave.load_start_handler,  STR, NULL)},
+    { "load_commit_handler", PTR(uzbl.behave.load_commit_handler, STR, NULL)},
+    { "history_handler",     PTR(uzbl.behave.history_handler,     STR, NULL)},
+    { "download_handler",    PTR(uzbl.behave.download_handler,    STR, NULL)},
+    { "cookie_handler",      PTR(uzbl.behave.cookie_handler,      STR, NULL)},
+    { "fifo_dir",            PTR(uzbl.behave.fifo_dir,            STR, cmd_fifo_dir)},
+    { "socket_dir",          PTR(uzbl.behave.socket_dir,          STR, cmd_socket_dir)},
+    { "http_debug",          PTR(uzbl.behave.http_debug,          INT, cmd_http_debug)},
+    { "font_size",           PTR(uzbl.behave.font_size,           INT, cmd_font_size)},
+    { "monospace_size",      PTR(uzbl.behave.monospace_size,      INT, cmd_font_size)},
+    { "minimum_font_size",   PTR(uzbl.behave.minimum_font_size,   INT, cmd_minimum_font_size)},
+    { "disable_plugins",     PTR(uzbl.behave.disable_plugins,     INT, cmd_disable_plugins)},
+    { "shell_cmd",           PTR(uzbl.behave.shell_cmd,           STR, NULL)},
+    { "proxy_url",           PTR(uzbl.net.proxy_url,              STR, set_proxy_url)},
+    { "max_conns",           PTR(uzbl.net.max_conns,              INT, cmd_max_conns)},
+    { "max_conns_host",      PTR(uzbl.net.max_conns_host,         INT, cmd_max_conns_host)},
+    { "useragent",           PTR(uzbl.net.useragent,              STR, cmd_useragent)},
+    { NULL,                  {.ptr = NULL, .type = TYPE_INT, .func = NULL}}
 }, *n2v_p = var_name_to_ptr;
 
 const struct {
