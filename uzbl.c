@@ -1226,7 +1226,7 @@ runcmd(WebKitWebView* page, GArray *argv) {
 
 static void
 parse_cmd_line(const char *ctl_line) {
-    gchar **tokens;
+    gchar **tokens = NULL;
 
     /* SET command */
     if(ctl_line[0] == 's' || ctl_line[0] == 'S') {
@@ -1234,7 +1234,6 @@ parse_cmd_line(const char *ctl_line) {
         if(tokens[0][0] == 0) {
             gchar* value = parseenv(g_strdup(tokens[2]));
             set_var_value(tokens[1], value);
-            g_strfreev(tokens);
             g_free(value);
         }
         else
@@ -1245,7 +1244,6 @@ parse_cmd_line(const char *ctl_line) {
         tokens = g_regex_split(uzbl.comm.get_regex, ctl_line, 0);
         if(tokens[0][0] == 0) {
             get_var_value(tokens[1]);
-            g_strfreev(tokens);
         }
         else
             printf("Error in command: %s\n", tokens[0]);
@@ -1256,7 +1254,6 @@ parse_cmd_line(const char *ctl_line) {
         if(tokens[0][0] == 0) {
             gchar* value = parseenv(g_strdup(tokens[2]));
             add_binding(tokens[1], value);
-            g_strfreev(tokens);
             g_free(value);
         }
         else
@@ -1267,7 +1264,6 @@ parse_cmd_line(const char *ctl_line) {
         tokens = g_regex_split(uzbl.comm.act_regex, ctl_line, 0);
         if(tokens[0][0] == 0) {
             parse_command(tokens[1], tokens[2]);
-            g_strfreev(tokens);
         }
         else
             printf("Error in command: %s\n", tokens[0]);
@@ -1283,7 +1279,6 @@ parse_cmd_line(const char *ctl_line) {
             if (g_strstr_len(ctl_line, 7, "n") || g_strstr_len(ctl_line, 7, "N"))
                 run_keycmd(TRUE);
             update_title();
-            g_strfreev(tokens);
         }
     }
     /* Comments */
@@ -1293,6 +1288,9 @@ parse_cmd_line(const char *ctl_line) {
         ; /* ignore these lines */
     else
         printf("Command not understood (%s)\n", ctl_line);
+
+    if(tokens)
+        g_strfreev(tokens);
 
     return;
 }
