@@ -503,9 +503,9 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "script",             {run_external_js, 0}           },
     { "toggle_status",      {toggle_status_cb, 0}          },
     { "spawn",              {spawn, 0}                     },
-    { "spawn_sync",         {spawn_sync, 0}                }, // needed for cookie handler
+    { "sync_spawn",         {spawn_sync, 0}                }, // needed for cookie handler
     { "sh",                 {spawn_sh, 0}                  },
-    { "sh_sync",            {spawn_sh_sync, 0}             }, // needed for cookie handler
+    { "sync_sh",            {spawn_sh_sync, 0}             }, // needed for cookie handler
     { "exit",               {close_uzbl, 0}                },
     { "search",             {search_forward_text, NOSPLIT} },
     { "search_reverse",     {search_reverse_text, NOSPLIT} },
@@ -1908,17 +1908,12 @@ save_cookies (SoupMessage *msg, gpointer user_data){
     char *cookie;
     for (ck = soup_cookies_from_response(msg); ck; ck = ck->next){
         cookie = soup_cookie_to_set_cookie_header(ck->data);
-        GArray *a = g_array_new(TRUE, FALSE, sizeof(gchar*));
         SoupURI * soup_uri = soup_message_get_uri(msg);
-        gchar *action = strdup("PUT");
-        sharg_append(a, action);
-        sharg_append(a, soup_uri->host);
-        sharg_append(a, soup_uri->path);
-        sharg_append(a, cookie);
-        run_command(uzbl.behave.cookie_handler, 0, (const gchar **) a->data, FALSE, NULL);
+        GString *s = g_string_new ("");
+        g_string_printf(s, "PUT '%s' '%s' '%s'", soup_uri->host, soup_uri->path, cookie);
+        run_handler(uzbl.behave.cookie_handler, s->str);
         g_free (cookie);
-        g_free (action);
-        g_array_free(a, TRUE);
+        g_string_free(s, TRUE);
     }
     g_slist_free(ck);
 }
