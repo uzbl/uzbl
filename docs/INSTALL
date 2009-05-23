@@ -20,6 +20,7 @@ If you want to remove uzbl again, you can issue:
 	$ make uninstall
 
 Tarballs can be pulled from [github.com/Dieterbe/uzbl/downloads](http://github.com/Dieterbe/uzbl/downloads)
+
 Though you can only get tagged versions from the master branch, which may be older then what you'll have through git.
 
 Dependencies
@@ -35,7 +36,7 @@ Optional/Recommended
 The following tools are quite useful, and some of them are used in the
 sample scripts:
 
-* dmenu (with vertical patch
+* dmenu (with vertical patch)
 * zenity
 * bash 
 
