@@ -77,48 +77,51 @@ typedef const struct {
     void (*func)(void);
 } uzbl_cmdprop;
 
-enum {TYPE_INT, TYPE_STRING};
+enum {TYPE_INT, TYPE_STR};
+
+/* an abbreviation to help keep the table's width humane */
+#define PTR(var, t, fun) { .ptr = (void*)&(var), .type = TYPE_##t, .func = fun }
 
 const struct {
     char *name;
     uzbl_cmdprop cp;
 } var_name_to_ptr[] = {
-/*    variable name           pointer to variable in code                         variable type      callback function  */
-/*  ------------------------------------------------------------------------------------------------------------------- */
-    { "uri",                {.ptr = (void *)&uzbl.state.uri,                   .type = TYPE_STRING, .func = cmd_load_uri}},
-    { "status_message",     {.ptr = (void *)&uzbl.gui.sbar.msg,                .type = TYPE_STRING, .func = update_title}},
-    { "show_status",        {.ptr = (void *)&uzbl.behave.show_status,          .type = TYPE_INT,    .func = cmd_set_status}},
-    { "status_top",         {.ptr = (void *)&uzbl.behave.status_top,           .type = TYPE_INT,    .func = move_statusbar}},
-    { "status_format",      {.ptr = (void *)&uzbl.behave.status_format,        .type = TYPE_STRING, .func = update_title}},
-    { "status_pbar_done",   {.ptr = (void *)&uzbl.gui.sbar.progress_s,         .type = TYPE_STRING, .func = update_title}},
-    { "status_pbar_pending",{.ptr = (void *)&uzbl.gui.sbar.progress_u,         .type = TYPE_STRING, .func = update_title}},
-    { "status_pbar_width",  {.ptr = (void *)&uzbl.gui.sbar.progress_w,         .type = TYPE_INT,    .func = update_title}},
-    { "status_background",  {.ptr = (void *)&uzbl.behave.status_background,    .type = TYPE_STRING, .func = update_title}},
-    { "title_format_long",  {.ptr = (void *)&uzbl.behave.title_format_long,    .type = TYPE_STRING, .func = update_title}},
-    { "title_format_short", {.ptr = (void *)&uzbl.behave.title_format_short,   .type = TYPE_STRING, .func = update_title}},
-    { "insert_mode",        {.ptr = (void *)&uzbl.behave.insert_mode,          .type = TYPE_INT,    .func = NULL}},
-    { "always_insert_mode", {.ptr = (void *)&uzbl.behave.always_insert_mode,   .type = TYPE_INT,    .func = cmd_always_insert_mode}},
-    { "reset_command_mode", {.ptr = (void *)&uzbl.behave.reset_command_mode,   .type = TYPE_INT,    .func = NULL}},
-    { "modkey",             {.ptr = (void *)&uzbl.behave.modkey,               .type = TYPE_STRING, .func = cmd_modkey}},
-    { "load_finish_handler",{.ptr = (void *)&uzbl.behave.load_finish_handler,  .type = TYPE_STRING, .func = NULL}},
-    { "load_start_handler", {.ptr = (void *)&uzbl.behave.load_start_handler,   .type = TYPE_STRING, .func = NULL}},
-    { "load_commit_handler",{.ptr = (void *)&uzbl.behave.load_commit_handler,  .type = TYPE_STRING, .func = NULL}},
-    { "history_handler",    {.ptr = (void *)&uzbl.behave.history_handler,      .type = TYPE_STRING, .func = NULL}},
-    { "download_handler",   {.ptr = (void *)&uzbl.behave.download_handler,     .type = TYPE_STRING, .func = NULL}},
-    { "cookie_handler",     {.ptr = (void *)&uzbl.behave.cookie_handler,       .type = TYPE_STRING, .func = NULL}},
-    { "fifo_dir",           {.ptr = (void *)&uzbl.behave.fifo_dir,             .type = TYPE_STRING, .func = cmd_fifo_dir}},
-    { "socket_dir",         {.ptr = (void *)&uzbl.behave.socket_dir,           .type = TYPE_STRING, .func = cmd_socket_dir}},
-    { "http_debug",         {.ptr = (void *)&uzbl.behave.http_debug,           .type = TYPE_INT,    .func = cmd_http_debug}},
-    { "default_font_size",  {.ptr = (void *)&uzbl.behave.default_font_size,    .type = TYPE_INT,    .func = cmd_default_font_size}},
-    { "default_monospace_size",  {.ptr = (void *)&uzbl.behave.default_monospace_size,    .type = TYPE_INT,    .func = cmd_default_font_size}},
-    { "minimum_font_size",  {.ptr = (void *)&uzbl.behave.minimum_font_size,    .type = TYPE_INT,    .func = cmd_minimum_font_size}},
-    { "disable_plugins",    {.ptr = (void *)&uzbl.behave.disable_plugins,      .type = TYPE_INT,    .func = cmd_disable_plugins}},
-    { "shell_cmd",          {.ptr = (void *)&uzbl.behave.shell_cmd,            .type = TYPE_STRING, .func = NULL}},
-    { "proxy_url",          {.ptr = (void *)&uzbl.net.proxy_url,               .type = TYPE_STRING, .func = set_proxy_url}},
-    { "max_conns",          {.ptr = (void *)&uzbl.net.max_conns,               .type = TYPE_INT,    .func = cmd_max_conns}},
-    { "max_conns_host",     {.ptr = (void *)&uzbl.net.max_conns_host,          .type = TYPE_INT,    .func = cmd_max_conns_host}},
-    { "useragent",          {.ptr = (void *)&uzbl.net.useragent,               .type = TYPE_STRING, .func = cmd_useragent}},
-    { NULL,                 {.ptr = NULL,                                      .type = TYPE_INT,    .func = NULL}}
+/*    variable name         pointer to variable in code          type  callback function    */
+/*  --------------------------------------------------------------------------------------- */
+    { "uri",                 PTR(uzbl.state.uri,                  STR, cmd_load_uri)},
+    { "status_message",      PTR(uzbl.gui.sbar.msg,               STR, update_title)},
+    { "show_status",         PTR(uzbl.behave.show_status,         INT, cmd_set_status)},
+    { "status_top",          PTR(uzbl.behave.status_top,          INT, move_statusbar)},
+    { "status_format",       PTR(uzbl.behave.status_format,       STR, update_title)},
+    { "status_pbar_done",    PTR(uzbl.gui.sbar.progress_s,        STR, update_title)},
+    { "status_pbar_pending", PTR(uzbl.gui.sbar.progress_u,        STR, update_title)},
+    { "status_pbar_width",   PTR(uzbl.gui.sbar.progress_w,        INT, update_title)},
+    { "status_background",   PTR(uzbl.behave.status_background,   STR, update_title)},
+    { "title_format_long",   PTR(uzbl.behave.title_format_long,   STR, update_title)},
+    { "title_format_short",  PTR(uzbl.behave.title_format_short,  STR, update_title)},
+    { "insert_mode",         PTR(uzbl.behave.insert_mode,         INT, NULL)},
+    { "always_insert_mode",  PTR(uzbl.behave.always_insert_mode,  INT, cmd_always_insert_mode)},
+    { "reset_command_mode",  PTR(uzbl.behave.reset_command_mode,  INT, NULL)},
+    { "modkey",              PTR(uzbl.behave.modkey,              STR, cmd_modkey)},
+    { "load_finish_handler", PTR(uzbl.behave.load_finish_handler, STR, NULL)},
+    { "load_start_handler",  PTR(uzbl.behave.load_start_handler,  STR, NULL)},
+    { "load_commit_handler", PTR(uzbl.behave.load_commit_handler, STR, NULL)},
+    { "history_handler",     PTR(uzbl.behave.history_handler,     STR, NULL)},
+    { "download_handler",    PTR(uzbl.behave.download_handler,    STR, NULL)},
+    { "cookie_handler",      PTR(uzbl.behave.cookie_handler,      STR, cmd_cookie_handler)},
+    { "fifo_dir",            PTR(uzbl.behave.fifo_dir,            STR, cmd_fifo_dir)},
+    { "socket_dir",          PTR(uzbl.behave.socket_dir,          STR, cmd_socket_dir)},
+    { "http_debug",          PTR(uzbl.behave.http_debug,          INT, cmd_http_debug)},
+    { "font_size",           PTR(uzbl.behave.font_size,           INT, cmd_font_size)},
+    { "monospace_size",      PTR(uzbl.behave.monospace_size,      INT, cmd_font_size)},
+    { "minimum_font_size",   PTR(uzbl.behave.minimum_font_size,   INT, cmd_minimum_font_size)},
+    { "disable_plugins",     PTR(uzbl.behave.disable_plugins,     INT, cmd_disable_plugins)},
+    { "shell_cmd",           PTR(uzbl.behave.shell_cmd,           STR, NULL)},
+    { "proxy_url",           PTR(uzbl.net.proxy_url,              STR, set_proxy_url)},
+    { "max_conns",           PTR(uzbl.net.max_conns,              INT, cmd_max_conns)},
+    { "max_conns_host",      PTR(uzbl.net.max_conns_host,         INT, cmd_max_conns_host)},
+    { "useragent",           PTR(uzbl.net.useragent,              STR, cmd_useragent)},
+    { NULL,                  {.ptr = NULL, .type = TYPE_INT, .func = NULL}}
 }, *n2v_p = var_name_to_ptr;
 
 const struct {
@@ -165,6 +168,9 @@ itos(int val) {
     snprintf(tmp, sizeof(tmp), "%i", val);
     return g_strdup(tmp);
 }
+
+static gchar*
+strfree(gchar *str) { g_free(str); return NULL; }  // for freeing & setting to null in one go
 
 static gchar*
 argv_idx(const GArray *a, const guint idx) { return g_array_index(a, gchar*, idx); }
@@ -497,7 +503,9 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "script",             {run_external_js, 0}           },
     { "toggle_status",      {toggle_status_cb, 0}          },
     { "spawn",              {spawn, 0}                     },
+    { "sync_spawn",         {spawn_sync, 0}                }, // needed for cookie handler
     { "sh",                 {spawn_sh, 0}                  },
+    { "sync_sh",            {spawn_sh_sync, 0}             }, // needed for cookie handler
     { "exit",               {close_uzbl, 0}                },
     { "search",             {search_forward_text, NOSPLIT} },
     { "search_reverse",     {search_reverse_text, NOSPLIT} },
@@ -904,10 +912,13 @@ run_command (const gchar *command, const guint npre, const gchar **args,
         sharg_append(a, args[i]);
     
     gboolean result;
-    if (sync) result = g_spawn_sync(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
-                                    NULL, NULL, stdout, NULL, NULL, &err);
-    else result = g_spawn_async(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
-                                NULL, NULL, NULL, &err);
+    if (sync) {
+        if (*stdout) *stdout = strfree(*stdout);
+        
+        result = g_spawn_sync(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
+                              NULL, NULL, stdout, NULL, NULL, &err);
+    } else result = g_spawn_async(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
+                                  NULL, NULL, NULL, &err);
 
     if (uzbl.state.verbose) {
         GString *s = g_string_new("spawned:");
@@ -976,6 +987,15 @@ spawn(WebKitWebView *web_view, GArray *argv) {
 }
 
 static void
+spawn_sync(WebKitWebView *web_view, GArray *argv) {
+    (void)web_view;
+    
+    if (argv_idx(argv, 0))
+        run_command(argv_idx(argv, 0), 0, ((const gchar **) (argv->data + sizeof(gchar*))),
+                    TRUE, &uzbl.comm.sync_stdout);
+}
+
+static void
 spawn_sh(WebKitWebView *web_view, GArray *argv) {
     (void)web_view;
     if (!uzbl.behave.shell_cmd) {
@@ -992,6 +1012,28 @@ spawn_sh(WebKitWebView *web_view, GArray *argv) {
         g_array_prepend_val(argv, cmd[i]);
 
     if (cmd) run_command(cmd[0], g_strv_length(cmd) + 1, (const gchar **) argv->data, FALSE, NULL);
+    g_free (spacer);
+    g_strfreev (cmd);
+}
+
+static void
+spawn_sh_sync(WebKitWebView *web_view, GArray *argv) {
+    (void)web_view;
+    if (!uzbl.behave.shell_cmd) {
+        g_printerr ("spawn_sh_sync: shell_cmd is not set!\n");
+        return;
+    }
+    
+    guint i;
+    gchar *spacer = g_strdup("");
+    g_array_insert_val(argv, 1, spacer);
+    gchar **cmd = split_quoted(uzbl.behave.shell_cmd, TRUE);
+
+    for (i = 1; i < g_strv_length(cmd); i++)
+        g_array_prepend_val(argv, cmd[i]);
+
+    if (cmd) run_command(cmd[0], g_strv_length(cmd) + 1, (const gchar **) argv->data,
+                         TRUE, &uzbl.comm.sync_stdout);
     g_free (spacer);
     g_strfreev (cmd);
 }
@@ -1040,7 +1082,7 @@ get_var_value(gchar *name) {
     uzbl_cmdprop *c;
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
-        if(c->type == TYPE_STRING)
+        if(c->type == TYPE_STR)
             printf("VAR: %s VALUE: %s\n", name, (char *)*c->ptr);
         else if(c->type == TYPE_INT)
             printf("VAR: %s VALUE: %d\n", name, (int)*c->ptr);
@@ -1107,18 +1149,18 @@ cmd_http_debug() {
 }
 
 static void
-cmd_default_font_size() {
+cmd_font_size() {
     WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
-    if (uzbl.behave.default_font_size > 0) {
-        g_object_set (G_OBJECT(ws), "default-font-size", uzbl.behave.default_font_size, NULL);
+    if (uzbl.behave.font_size > 0) {
+        g_object_set (G_OBJECT(ws), "default-font-size", uzbl.behave.font_size, NULL);
     }
     
-    if (uzbl.behave.default_monospace_size > 0) {
+    if (uzbl.behave.monospace_size > 0) {
         g_object_set (G_OBJECT(ws), "default-monospace-font-size",
-                      uzbl.behave.default_monospace_size, NULL);
+                      uzbl.behave.monospace_size, NULL);
     } else {
         g_object_set (G_OBJECT(ws), "default-monospace-font-size",
-                      uzbl.behave.default_font_size, NULL);
+                      uzbl.behave.font_size, NULL);
     }
 }
 
@@ -1132,6 +1174,18 @@ static void
 cmd_minimum_font_size() {
     WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
     g_object_set (G_OBJECT(ws), "minimum-font-size", uzbl.behave.minimum_font_size, NULL);
+}
+
+static void
+cmd_cookie_handler() {
+    gchar **split = g_strsplit(uzbl.behave.cookie_handler, " ", 2);
+    if ((g_strcmp0(split[0], "sh") == 0) ||
+        (g_strcmp0(split[0], "spawn") == 0)) {
+        g_free (uzbl.behave.cookie_handler);
+        uzbl.behave.cookie_handler =
+            g_strdup_printf("sync_%s %s", split[0], split[1]);
+    }
+    g_strfreev (split);
 }
 
 static void
@@ -1204,7 +1258,7 @@ set_var_value(gchar *name, gchar *val) {
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         /* check for the variable type */
-        if (c->type == TYPE_STRING) {
+        if (c->type == TYPE_STR) {
             g_free(*c->ptr);
             *c->ptr = g_strdup(val);
         } else if(c->type == TYPE_INT) {
@@ -1845,21 +1899,18 @@ static void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer use
     (void) user_data;
     if (!uzbl.behave.cookie_handler) return;
 
-    gchar * stdout = NULL;
     soup_message_add_header_handler(msg, "got-headers", "Set-Cookie", G_CALLBACK(save_cookies), NULL);
-    GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-    gchar *action = g_strdup ("GET");
+    GString *s = g_string_new ("");
     SoupURI * soup_uri = soup_message_get_uri(msg);
-    sharg_append(a, action);
-    sharg_append(a, soup_uri->host);
-    sharg_append(a, soup_uri->path);
-    run_command(uzbl.behave.cookie_handler, 0, (const gchar **) a->data, TRUE, &stdout); /* TODO: use handler */
-    //run_handler(uzbl.behave.cookie_handler); /* TODO: global stdout pointer, spawn_sync */
-    if(stdout) {
-        soup_message_headers_replace (msg->request_headers, "Cookie", stdout);
-    }
-    g_free (action);
-    g_array_free(a, TRUE);
+    g_string_printf(s, "GET '%s' '%s'", soup_uri->host, soup_uri->path);
+    run_handler(uzbl.behave.cookie_handler, s->str);
+
+    if(uzbl.comm.sync_stdout)
+        soup_message_headers_replace (msg->request_headers, "Cookie", uzbl.comm.sync_stdout);
+    //printf("stdout: %s\n", uzbl.comm.sync_stdout);   // debugging
+    if (uzbl.comm.sync_stdout) uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
+        
+    g_string_free(s, TRUE);
 }
 
 static void
@@ -1869,17 +1920,12 @@ save_cookies (SoupMessage *msg, gpointer user_data){
     char *cookie;
     for (ck = soup_cookies_from_response(msg); ck; ck = ck->next){
         cookie = soup_cookie_to_set_cookie_header(ck->data);
-        GArray *a = g_array_new(TRUE, FALSE, sizeof(gchar*));
         SoupURI * soup_uri = soup_message_get_uri(msg);
-        gchar *action = strdup("PUT");
-        sharg_append(a, action);
-        sharg_append(a, soup_uri->host);
-        sharg_append(a, soup_uri->path);
-        sharg_append(a, cookie);
-        run_command(uzbl.behave.cookie_handler, 0, (const gchar **) a->data, FALSE, NULL);
+        GString *s = g_string_new ("");
+        g_string_printf(s, "PUT '%s' '%s' '%s'", soup_uri->host, soup_uri->path, cookie);
+        run_handler(uzbl.behave.cookie_handler, s->str);
         g_free (cookie);
-        g_free (action);
-        g_array_free(a, TRUE);
+        g_string_free(s, TRUE);
     }
     g_slist_free(ck);
 }

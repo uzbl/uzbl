@@ -11,12 +11,12 @@
 # Usually you want to spawn a script to handle things, but any action (such as sh) can be used
 set history_handler  = spawn ./examples/scripts/history.sh
 set download_handler = spawn ./examples/scripts/download.sh
+set cookie_handler   = spawn ./examples/scripts/cookies.sh
 
-# TODO: you can't use actions in cookie handler yet.  
-set cookie_handler   = ./examples/scripts/cookies.sh
 set minimum_font_size = 6
-set default_font_size = 11
-set default_monospace_size = 11
+set font_size = 11
+# monospace_size defaults to font_size, but you can alter it independently
+#set monospace_size = 10
 
 # use with bind ... = sh <shell-oneliner>
 set shell_cmd         = sh -c
