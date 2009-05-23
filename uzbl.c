@@ -431,6 +431,7 @@ load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) page;
     (void) frame;
     (void) data;
+    g_string_truncate(uzbl.state.keycmd, 0); // don't need old commands to remain on new page?
     if (uzbl.behave.load_start_handler)
         run_handler(uzbl.behave.load_start_handler, "");
 }
@@ -446,7 +447,6 @@ load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
         uzbl.behave.insert_mode = uzbl.behave.always_insert_mode;
         update_title();
     }
-    g_string_truncate(uzbl.state.keycmd, 0); // don't need old commands to remain on new page?
     if (uzbl.behave.load_commit_handler)
         run_handler(uzbl.behave.load_commit_handler, uzbl.state.uri);
 }
@@ -750,7 +750,7 @@ setup_scanner() {
 }
 
 static gchar *
-expand_template(const char *template) {
+expand_template(const char *template, gboolean escape_markup) {
      if(!template) return NULL;
 
      GTokenType token = G_TOKEN_NONE;
@@ -766,11 +766,15 @@ expand_template(const char *template) {
              sym = (int)g_scanner_cur_value(uzbl.scan).v_symbol;
              switch(sym) {
                  case SYM_URI:
-                     buf = uzbl.state.uri?
-                         g_markup_printf_escaped("%s", uzbl.state.uri) :
-                         g_strdup("");
-                     g_string_append(ret, buf);
-                     g_free(buf);
+                     if(escape_markup) {
+                         buf = uzbl.state.uri?
+                             g_markup_printf_escaped("%s", uzbl.state.uri):g_strdup("");
+                         g_string_append(ret, buf);
+                         g_free(buf);
+                     }
+                     else
+                         g_string_append(ret, uzbl.state.uri?
+                                 uzbl.state.uri:g_strdup(""));
                      break;
                  case SYM_LOADPRGS:
                      buf = itos(uzbl.gui.sbar.load_progress);
@@ -783,39 +787,51 @@ expand_template(const char *template) {
                      g_free(buf);
                      break;
                  case SYM_TITLE:
-                     buf = uzbl.gui.main_title?
-                         g_markup_printf_escaped("%s", uzbl.gui.main_title) :
-                         g_strdup("");
-                     g_string_append(ret, buf);
-                     g_free(buf);
+                     if(escape_markup) {
+                         buf = uzbl.gui.main_title?
+                             g_markup_printf_escaped("%s", uzbl.gui.main_title):g_strdup("");
+                         g_string_append(ret, buf);
+                         g_free(buf);
+                     }
+                     else
+                         g_string_append(ret, uzbl.gui.main_title?
+                                 uzbl.gui.main_title:g_strdup(""));
                      break;
                  case SYM_SELECTED_URI:
-                     buf = uzbl.state.selected_url?
-                         g_markup_printf_escaped("%s", uzbl.state.selected_url) :
-                         g_strdup("");
-                     g_string_append(ret, buf);
-                     g_free(buf);
-                    break;
+                     if(escape_markup) {
+                         buf = uzbl.state.selected_url?
+                             g_markup_printf_escaped("%s", uzbl.state.selected_url):g_strdup("");
+                         g_string_append(ret, buf);
+                         g_free(buf);
+                     }
+                     else
+                         g_string_append(ret, uzbl.state.selected_url?
+                                 uzbl.state.selected_url:g_strdup(""));
+                     break;
                  case SYM_NAME:
                      buf = itos(uzbl.xwin);
                      g_string_append(ret,
-                         uzbl.state.instance_name?uzbl.state.instance_name:buf);
+                             uzbl.state.instance_name?uzbl.state.instance_name:buf);
                      g_free(buf);
                      break;
                  case SYM_KEYCMD:
-                     buf = uzbl.state.keycmd->str?
-                         g_markup_printf_escaped("%s", uzbl.state.keycmd->str) :
-                         g_strdup("");
-                     g_string_append(ret, buf);
-                     g_free(buf);
+                     if(escape_markup) {
+                         buf = uzbl.state.keycmd->str?
+                             g_markup_printf_escaped("%s", uzbl.state.keycmd->str):g_strdup("");
+                         g_string_append(ret, buf);
+                         g_free(buf);
+                     }
+                     else
+                         g_string_append(ret, uzbl.state.keycmd->str?
+                                 uzbl.state.keycmd->str:g_strdup(""));
                      break;
                  case SYM_MODE:
                      g_string_append(ret,
-                         uzbl.behave.insert_mode?"[I]":"[C]");
+                             uzbl.behave.insert_mode?"[I]":"[C]");
                      break;
                  case SYM_MSG:
                      g_string_append(ret,
-                         uzbl.gui.sbar.msg?uzbl.gui.sbar.msg:"");
+                             uzbl.gui.sbar.msg?uzbl.gui.sbar.msg:"");
                      break;
                      /* useragent syms */
                  case SYM_WK_MAJ:
@@ -1222,7 +1238,7 @@ cmd_useragent() {
         g_free (uzbl.net.useragent);
         uzbl.net.useragent = NULL;
     } else {
-        gchar *ua = expand_template(uzbl.net.useragent);
+        gchar *ua = expand_template(uzbl.net.useragent, FALSE);
         if (ua)
             g_object_set(G_OBJECT(uzbl.net.soup_session), SOUP_SESSION_USER_AGENT, ua, NULL);
         g_free(uzbl.net.useragent);
@@ -1280,7 +1296,7 @@ runcmd(WebKitWebView* page, GArray *argv) {
 
 static void
 parse_cmd_line(const char *ctl_line) {
-    gchar **tokens;
+    gchar **tokens = NULL;
 
     /* SET command */
     if(ctl_line[0] == 's' || ctl_line[0] == 'S') {
@@ -1288,7 +1304,6 @@ parse_cmd_line(const char *ctl_line) {
         if(tokens[0][0] == 0) {
             gchar* value = parseenv(g_strdup(tokens[2]));
             set_var_value(tokens[1], value);
-            g_strfreev(tokens);
             g_free(value);
         }
         else
@@ -1299,7 +1314,6 @@ parse_cmd_line(const char *ctl_line) {
         tokens = g_regex_split(uzbl.comm.get_regex, ctl_line, 0);
         if(tokens[0][0] == 0) {
             get_var_value(tokens[1]);
-            g_strfreev(tokens);
         }
         else
             printf("Error in command: %s\n", tokens[0]);
@@ -1310,7 +1324,6 @@ parse_cmd_line(const char *ctl_line) {
         if(tokens[0][0] == 0) {
             gchar* value = parseenv(g_strdup(tokens[2]));
             add_binding(tokens[1], value);
-            g_strfreev(tokens);
             g_free(value);
         }
         else
@@ -1321,7 +1334,6 @@ parse_cmd_line(const char *ctl_line) {
         tokens = g_regex_split(uzbl.comm.act_regex, ctl_line, 0);
         if(tokens[0][0] == 0) {
             parse_command(tokens[1], tokens[2]);
-            g_strfreev(tokens);
         }
         else
             printf("Error in command: %s\n", tokens[0]);
@@ -1337,7 +1349,6 @@ parse_cmd_line(const char *ctl_line) {
             if (g_strstr_len(ctl_line, 7, "n") || g_strstr_len(ctl_line, 7, "N"))
                 run_keycmd(TRUE);
             update_title();
-            g_strfreev(tokens);
         }
     }
     /* Comments */
@@ -1347,6 +1358,9 @@ parse_cmd_line(const char *ctl_line) {
         ; /* ignore these lines */
     else
         printf("Command not understood (%s)\n", ctl_line);
+
+    if(tokens)
+        g_strfreev(tokens);
 
     return;
 }
@@ -1582,12 +1596,12 @@ update_title (void) {
 
     if (b->show_status) {
         if (b->title_format_short) {
-            parsed = expand_template(b->title_format_short);
+            parsed = expand_template(b->title_format_short, FALSE);
             gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
             g_free(parsed);
         }
         if (b->status_format) {
-            parsed = expand_template(b->status_format);
+            parsed = expand_template(b->status_format, TRUE);
             gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), parsed);
             g_free(parsed);
         }
@@ -1599,7 +1613,7 @@ update_title (void) {
         }
     } else {
         if (b->title_format_long) {
-            parsed = expand_template(b->title_format_long);
+            parsed = expand_template(b->title_format_long, FALSE);
             gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
             g_free(parsed);
         }
@@ -1778,13 +1792,16 @@ run_handler (const gchar *act, const gchar *args) {
     char **parts = g_strsplit(act, " ", 2);
     if (!parts) return;
     else if ((g_strcmp0(parts[0], "spawn") == 0)
-             || (g_strcmp0(parts[0], "sh") == 0)) {
+             || (g_strcmp0(parts[0], "sh") == 0)
+             || (g_strcmp0(parts[0], "sync_spawn") == 0)
+             || (g_strcmp0(parts[0], "sync_sh") == 0)) {
         guint i;
         GString *a = g_string_new ("");
         char **spawnparts;
         spawnparts = split_quoted(parts[1], FALSE);
         g_string_append_printf(a, "%s", spawnparts[0]);
         if (args) g_string_append_printf(a, " %s", args); /* append handler args before user args */
+        
         for (i = 1; i < g_strv_length(spawnparts); i++) /* user args */
             g_string_append_printf(a, " %s", spawnparts[i]);
         parse_command(parts[0], a->str);
