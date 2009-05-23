@@ -108,7 +108,7 @@ const struct {
     { "load_commit_handler", PTR(uzbl.behave.load_commit_handler, STR, NULL)},
     { "history_handler",     PTR(uzbl.behave.history_handler,     STR, NULL)},
     { "download_handler",    PTR(uzbl.behave.download_handler,    STR, NULL)},
-    { "cookie_handler",      PTR(uzbl.behave.cookie_handler,      STR, NULL)},
+    { "cookie_handler",      PTR(uzbl.behave.cookie_handler,      STR, cmd_cookie_handler)},
     { "fifo_dir",            PTR(uzbl.behave.fifo_dir,            STR, cmd_fifo_dir)},
     { "socket_dir",          PTR(uzbl.behave.socket_dir,          STR, cmd_socket_dir)},
     { "http_debug",          PTR(uzbl.behave.http_debug,          INT, cmd_http_debug)},
@@ -1177,6 +1177,18 @@ cmd_minimum_font_size() {
 }
 
 static void
+cmd_cookie_handler() {
+    gchar **split = g_strsplit(uzbl.behave.cookie_handler, " ", 2);
+    if ((g_strcmp0(split[0], "sh") == 0) ||
+        (g_strcmp0(split[0], "spawn") == 0)) {
+        g_free (uzbl.behave.cookie_handler);
+        uzbl.behave.cookie_handler =
+            g_strdup_printf("sync_%s %s", split[0], split[1]);
+    }
+    g_strfreev (split);
+}
+
+static void
 cmd_fifo_dir() {
     uzbl.behave.fifo_dir = init_fifo(uzbl.behave.fifo_dir);
 }
@@ -1895,7 +1907,7 @@ static void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer use
 
     if(uzbl.comm.sync_stdout)
         soup_message_headers_replace (msg->request_headers, "Cookie", uzbl.comm.sync_stdout);
-    printf("stdout: %s\n", uzbl.comm.sync_stdout);   // debugging
+    //printf("stdout: %s\n", uzbl.comm.sync_stdout);   // debugging
     if (uzbl.comm.sync_stdout) uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
         
     g_string_free(s, TRUE);

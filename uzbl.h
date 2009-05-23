@@ -393,6 +393,9 @@ static void
 set_proxy_url();
 
 static void
+cmd_cookie_handler();
+
+static void
 move_statusbar();
 
 static void
