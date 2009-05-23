@@ -146,8 +146,8 @@ typedef struct {
     gchar*   modkey;
     guint    modmask;
     guint    http_debug;
-    guint    default_font_size;
-    guint    default_monospace_size;
+    guint    font_size;
+    guint    monospace_size;
     guint    minimum_font_size;
     guint    disable_plugins;
     gchar*   shell_cmd;
@@ -402,7 +402,7 @@ static void
 cmd_max_conns_host();
 
 static void
-cmd_default_font_size();
+cmd_font_size();
 
 static void
 cmd_disable_plugins();

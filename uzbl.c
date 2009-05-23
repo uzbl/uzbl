@@ -77,48 +77,53 @@ typedef const struct {
     void (*func)(void);
 } uzbl_cmdprop;
 
-enum {TYPE_INT, TYPE_STRING};
+enum {TYPE_INT, TYPE_STR};
+
+/* some abbreviations to help keep the table lines' width humane */
+#define VAR(x) .ptr = (void*)&(x)
+#define T(x) .type = TYPE_##x
+#define FUN(x) .func = x
 
 const struct {
     char *name;
     uzbl_cmdprop cp;
 } var_name_to_ptr[] = {
-/*    variable name           pointer to variable in code                         variable type      callback function  */
-/*  ------------------------------------------------------------------------------------------------------------------- */
-    { "uri",                {.ptr = (void *)&uzbl.state.uri,                   .type = TYPE_STRING, .func = cmd_load_uri}},
-    { "status_message",     {.ptr = (void *)&uzbl.gui.sbar.msg,                .type = TYPE_STRING, .func = update_title}},
-    { "show_status",        {.ptr = (void *)&uzbl.behave.show_status,          .type = TYPE_INT,    .func = cmd_set_status}},
-    { "status_top",         {.ptr = (void *)&uzbl.behave.status_top,           .type = TYPE_INT,    .func = move_statusbar}},
-    { "status_format",      {.ptr = (void *)&uzbl.behave.status_format,        .type = TYPE_STRING, .func = update_title}},
-    { "status_pbar_done",   {.ptr = (void *)&uzbl.gui.sbar.progress_s,         .type = TYPE_STRING, .func = update_title}},
-    { "status_pbar_pending",{.ptr = (void *)&uzbl.gui.sbar.progress_u,         .type = TYPE_STRING, .func = update_title}},
-    { "status_pbar_width",  {.ptr = (void *)&uzbl.gui.sbar.progress_w,         .type = TYPE_INT,    .func = update_title}},
-    { "status_background",  {.ptr = (void *)&uzbl.behave.status_background,    .type = TYPE_STRING, .func = update_title}},
-    { "title_format_long",  {.ptr = (void *)&uzbl.behave.title_format_long,    .type = TYPE_STRING, .func = update_title}},
-    { "title_format_short", {.ptr = (void *)&uzbl.behave.title_format_short,   .type = TYPE_STRING, .func = update_title}},
-    { "insert_mode",        {.ptr = (void *)&uzbl.behave.insert_mode,          .type = TYPE_INT,    .func = NULL}},
-    { "always_insert_mode", {.ptr = (void *)&uzbl.behave.always_insert_mode,   .type = TYPE_INT,    .func = cmd_always_insert_mode}},
-    { "reset_command_mode", {.ptr = (void *)&uzbl.behave.reset_command_mode,   .type = TYPE_INT,    .func = NULL}},
-    { "modkey",             {.ptr = (void *)&uzbl.behave.modkey,               .type = TYPE_STRING, .func = cmd_modkey}},
-    { "load_finish_handler",{.ptr = (void *)&uzbl.behave.load_finish_handler,  .type = TYPE_STRING, .func = NULL}},
-    { "load_start_handler", {.ptr = (void *)&uzbl.behave.load_start_handler,   .type = TYPE_STRING, .func = NULL}},
-    { "load_commit_handler",{.ptr = (void *)&uzbl.behave.load_commit_handler,  .type = TYPE_STRING, .func = NULL}},
-    { "history_handler",    {.ptr = (void *)&uzbl.behave.history_handler,      .type = TYPE_STRING, .func = NULL}},
-    { "download_handler",   {.ptr = (void *)&uzbl.behave.download_handler,     .type = TYPE_STRING, .func = NULL}},
-    { "cookie_handler",     {.ptr = (void *)&uzbl.behave.cookie_handler,       .type = TYPE_STRING, .func = NULL}},
-    { "fifo_dir",           {.ptr = (void *)&uzbl.behave.fifo_dir,             .type = TYPE_STRING, .func = cmd_fifo_dir}},
-    { "socket_dir",         {.ptr = (void *)&uzbl.behave.socket_dir,           .type = TYPE_STRING, .func = cmd_socket_dir}},
-    { "http_debug",         {.ptr = (void *)&uzbl.behave.http_debug,           .type = TYPE_INT,    .func = cmd_http_debug}},
-    { "default_font_size",  {.ptr = (void *)&uzbl.behave.default_font_size,    .type = TYPE_INT,    .func = cmd_default_font_size}},
-    { "default_monospace_size",  {.ptr = (void *)&uzbl.behave.default_monospace_size,    .type = TYPE_INT,    .func = cmd_default_font_size}},
-    { "minimum_font_size",  {.ptr = (void *)&uzbl.behave.minimum_font_size,    .type = TYPE_INT,    .func = cmd_minimum_font_size}},
-    { "disable_plugins",    {.ptr = (void *)&uzbl.behave.disable_plugins,      .type = TYPE_INT,    .func = cmd_disable_plugins}},
-    { "shell_cmd",          {.ptr = (void *)&uzbl.behave.shell_cmd,            .type = TYPE_STRING, .func = NULL}},
-    { "proxy_url",          {.ptr = (void *)&uzbl.net.proxy_url,               .type = TYPE_STRING, .func = set_proxy_url}},
-    { "max_conns",          {.ptr = (void *)&uzbl.net.max_conns,               .type = TYPE_INT,    .func = cmd_max_conns}},
-    { "max_conns_host",     {.ptr = (void *)&uzbl.net.max_conns_host,          .type = TYPE_INT,    .func = cmd_max_conns_host}},
-    { "useragent",          {.ptr = (void *)&uzbl.net.useragent,               .type = TYPE_STRING, .func = cmd_useragent}},
-    { NULL,                 {.ptr = NULL,                                      .type = TYPE_INT,    .func = NULL}}
+/*    variable name         pointer to variable in code           var type  callback function    */
+/*  -------------------------------------------------------------------------------------------- */
+    { "uri",                {VAR(uzbl.state.uri),                  T(STR), FUN(cmd_load_uri)}},
+    { "status_message",     {VAR(uzbl.gui.sbar.msg),               T(STR), FUN(update_title)}},
+    { "show_status",        {VAR(uzbl.behave.show_status),         T(INT), FUN(cmd_set_status)}},
+    { "status_top",         {VAR(uzbl.behave.status_top),          T(INT), FUN(move_statusbar)}},
+    { "status_format",      {VAR(uzbl.behave.status_format),       T(STR), FUN(update_title)}},
+    { "status_pbar_done",   {VAR(uzbl.gui.sbar.progress_s),        T(STR), FUN(update_title)}},
+    { "status_pbar_pending",{VAR(uzbl.gui.sbar.progress_u),        T(STR), FUN(update_title)}},
+    { "status_pbar_width",  {VAR(uzbl.gui.sbar.progress_w),        T(INT), FUN(update_title)}},
+    { "status_background",  {VAR(uzbl.behave.status_background),   T(STR), FUN(update_title)}},
+    { "title_format_long",  {VAR(uzbl.behave.title_format_long),   T(STR), FUN(update_title)}},
+    { "title_format_short", {VAR(uzbl.behave.title_format_short),  T(STR), FUN(update_title)}},
+    { "insert_mode",        {VAR(uzbl.behave.insert_mode),         T(INT), FUN(NULL)}},
+    { "always_insert_mode", {VAR(uzbl.behave.always_insert_mode),  T(INT), FUN(cmd_always_insert_mode)}},
+    { "reset_command_mode", {VAR(uzbl.behave.reset_command_mode),  T(INT), FUN(NULL)}},
+    { "modkey",             {VAR(uzbl.behave.modkey),              T(STR), FUN(cmd_modkey)}},
+    { "load_finish_handler",{VAR(uzbl.behave.load_finish_handler), T(STR), FUN(NULL)}},
+    { "load_start_handler", {VAR(uzbl.behave.load_start_handler),  T(STR), FUN(NULL)}},
+    { "load_commit_handler",{VAR(uzbl.behave.load_commit_handler), T(STR), FUN(NULL)}},
+    { "history_handler",    {VAR(uzbl.behave.history_handler),     T(STR), FUN(NULL)}},
+    { "download_handler",   {VAR(uzbl.behave.download_handler),    T(STR), FUN(NULL)}},
+    { "cookie_handler",     {VAR(uzbl.behave.cookie_handler),      T(STR), FUN(NULL)}},
+    { "fifo_dir",           {VAR(uzbl.behave.fifo_dir),            T(STR), FUN(cmd_fifo_dir)}},
+    { "socket_dir",         {VAR(uzbl.behave.socket_dir),          T(STR), FUN(cmd_socket_dir)}},
+    { "http_debug",         {VAR(uzbl.behave.http_debug),          T(INT), FUN(cmd_http_debug)}},
+    { "font_size",          {VAR(uzbl.behave.font_size),           T(INT), FUN(cmd_font_size)}},
+    { "monospace_size",     {VAR(uzbl.behave.monospace_size),      T(INT), FUN(cmd_font_size)}},
+    { "minimum_font_size",  {VAR(uzbl.behave.minimum_font_size),   T(INT), FUN(cmd_minimum_font_size)}},
+    { "disable_plugins",    {VAR(uzbl.behave.disable_plugins),     T(INT), FUN(cmd_disable_plugins)}},
+    { "shell_cmd",          {VAR(uzbl.behave.shell_cmd),           T(STR), FUN(NULL)}},
+    { "proxy_url",          {VAR(uzbl.net.proxy_url),              T(STR), FUN(set_proxy_url)}},
+    { "max_conns",          {VAR(uzbl.net.max_conns),              T(INT), FUN(cmd_max_conns)}},
+    { "max_conns_host",     {VAR(uzbl.net.max_conns_host),         T(INT), FUN(cmd_max_conns_host)}},
+    { "useragent",          {VAR(uzbl.net.useragent),              T(STR), FUN(cmd_useragent)}},
+    { NULL,                 {.ptr = NULL,                          T(INT), FUN(NULL)}}
 }, *n2v_p = var_name_to_ptr;
 
 const struct {
@@ -1040,7 +1045,7 @@ get_var_value(gchar *name) {
     uzbl_cmdprop *c;
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
-        if(c->type == TYPE_STRING)
+        if(c->type == TYPE_STR)
             printf("VAR: %s VALUE: %s\n", name, (char *)*c->ptr);
         else if(c->type == TYPE_INT)
             printf("VAR: %s VALUE: %d\n", name, (int)*c->ptr);
@@ -1107,18 +1112,18 @@ cmd_http_debug() {
 }
 
 static void
-cmd_default_font_size() {
+cmd_font_size() {
     WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
-    if (uzbl.behave.default_font_size > 0) {
-        g_object_set (G_OBJECT(ws), "default-font-size", uzbl.behave.default_font_size, NULL);
+    if (uzbl.behave.font_size > 0) {
+        g_object_set (G_OBJECT(ws), "default-font-size", uzbl.behave.font_size, NULL);
     }
     
-    if (uzbl.behave.default_monospace_size > 0) {
+    if (uzbl.behave.monospace_size > 0) {
         g_object_set (G_OBJECT(ws), "default-monospace-font-size",
-                      uzbl.behave.default_monospace_size, NULL);
+                      uzbl.behave.monospace_size, NULL);
     } else {
         g_object_set (G_OBJECT(ws), "default-monospace-font-size",
-                      uzbl.behave.default_font_size, NULL);
+                      uzbl.behave.font_size, NULL);
     }
 }
 
@@ -1204,7 +1209,7 @@ set_var_value(gchar *name, gchar *val) {
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         /* check for the variable type */
-        if (c->type == TYPE_STRING) {
+        if (c->type == TYPE_STR) {
             g_free(*c->ptr);
             *c->ptr = g_strdup(val);
         } else if(c->type == TYPE_INT) {

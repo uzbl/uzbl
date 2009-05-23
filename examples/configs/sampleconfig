@@ -15,7 +15,9 @@ set download_handler = spawn /usr/share/uzbl/examples/scripts/download.sh
 # TODO: cookie_handler can't take arbitrary actionsyet
 set cookie_handler   = /usr/share/uzbl/examples/scripts/cookies.sh
 set minimum_font_size = 6
-set default_font_size = 11
+set font_size = 11
+# monospace_size defaults to font_size, but you can alter it independently
+#set monospace_size = 10
 
 # use with bind ... = sh <shell-oneliner>
 set shell_cmd         = sh -c
