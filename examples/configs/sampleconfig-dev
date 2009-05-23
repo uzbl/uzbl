@@ -112,9 +112,11 @@ bind    S         = js alert("hi");
 bind    XS        = sh 'echo "act script alert (\\"This is sent by the shell via a fifo\\")" > "$4"'
 
 
-# this script allows you to load predefined values into html forms. (eg login information)
-# if you have no config file yet, it will let you create settings easily.
-bind z = spawn ./examples/scripts/formfiller.sh
+# this script allows you to configure (per domain) values to fill in form fields (eg login information) and to fill in these values automatically
+bind za = spawn ./examples/scripts/formfiller.sh
+bind ze = spawn ./examples/scripts/formfiller.sh edit
+bind zn = spawn ./examples/scripts/formfiller.sh new
+bind zl = spawn ./examples/scripts/formfiller.sh load
 
 # we ship some javascripts to do keyboard based link hinting/following.  (webkit does not have C DOM bindings yet)
 # this is similar to how it works in vimperator (and konqueror)
