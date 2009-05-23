@@ -143,6 +143,8 @@ actions follows:
 * `forward`
 * `scroll_vert <amount>`
 * `scroll_horz <amount>`
+   - amount is given in pixels(?) or as a percentage of the size of the view
+   - set amount to 100% to scroll a whole page
 * `scroll_begin`
 * `scroll_end`
 * `reload`
@@ -167,6 +169,7 @@ actions follows:
 * `exit`
 * `search <string>`
 * `search_reverse <string>`
+   - search with no string will search for the next/previous occurrence of the string previously searched for
 * `toggle_insert_mode <optional state>`
    - if the optional state is 0, disable insert mode. If 1, enable insert mode.
 * `runcmd`

@@ -41,6 +41,7 @@ More or less in order of importance/urgency
 * regex style page searching? so you can do 'or' and 'and' things. flags like case sensitive etc.
 * check for real command name, not just the first letter.
 * let users attach handlers to the most common events/signals in uzbl.
+  great use case: automatically calling formfiller for certain sites
 * write little script to open new urls with the urxvt url thing +document.
 
 SOMEDAY:
