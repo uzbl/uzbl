@@ -742,7 +742,7 @@ setup_scanner() {
 }
 
 static gchar *
-expand_template(const char *template) {
+expand_template(const char *template, gboolean escape_markup) {
      if(!template) return NULL;
 
      GTokenType token = G_TOKEN_NONE;
@@ -758,11 +758,15 @@ expand_template(const char *template) {
              sym = (int)g_scanner_cur_value(uzbl.scan).v_symbol;
              switch(sym) {
                  case SYM_URI:
-                     buf = uzbl.state.uri?
-                         g_markup_printf_escaped("%s", uzbl.state.uri) :
-                         g_strdup("");
-                     g_string_append(ret, buf);
-                     g_free(buf);
+                     if(escape_markup) {
+                         buf = uzbl.state.uri?
+                             g_markup_printf_escaped("%s", uzbl.state.uri):g_strdup("");
+                         g_string_append(ret, buf);
+                         g_free(buf);
+                     }
+                     else
+                         g_string_append(ret, uzbl.state.uri?
+                                 uzbl.state.uri:g_strdup(""));
                      break;
                  case SYM_LOADPRGS:
                      buf = itos(uzbl.gui.sbar.load_progress);
@@ -775,39 +779,51 @@ expand_template(const char *template) {
                      g_free(buf);
                      break;
                  case SYM_TITLE:
-                     buf = uzbl.gui.main_title?
-                         g_markup_printf_escaped("%s", uzbl.gui.main_title) :
-                         g_strdup("");
-                     g_string_append(ret, buf);
-                     g_free(buf);
+                     if(escape_markup) {
+                         buf = uzbl.gui.main_title?
+                             g_markup_printf_escaped("%s", uzbl.gui.main_title):g_strdup("");
+                         g_string_append(ret, buf);
+                         g_free(buf);
+                     }
+                     else
+                         g_string_append(ret, uzbl.gui.main_title?
+                                 uzbl.gui.main_title:g_strdup(""));
                      break;
                  case SYM_SELECTED_URI:
-                     buf = uzbl.state.selected_url?
-                         g_markup_printf_escaped("%s", uzbl.state.selected_url) :
-                         g_strdup("");
-                     g_string_append(ret, buf);
-                     g_free(buf);
-                    break;
+                     if(escape_markup) {
+                         buf = uzbl.state.selected_url?
+                             g_markup_printf_escaped("%s", uzbl.state.selected_url):g_strdup("");
+                         g_string_append(ret, buf);
+                         g_free(buf);
+                     }
+                     else
+                         g_string_append(ret, uzbl.state.selected_url?
+                                 uzbl.state.selected_url:g_strdup(""));
+                     break;
                  case SYM_NAME:
                      buf = itos(uzbl.xwin);
                      g_string_append(ret,
-                         uzbl.state.instance_name?uzbl.state.instance_name:buf);
+                             uzbl.state.instance_name?uzbl.state.instance_name:buf);
                      g_free(buf);
                      break;
                  case SYM_KEYCMD:
-                     buf = uzbl.state.keycmd->str?
-                         g_markup_printf_escaped("%s", uzbl.state.keycmd->str) :
-                         g_strdup("");
-                     g_string_append(ret, buf);
-                     g_free(buf);
+                     if(escape_markup) {
+                         buf = uzbl.state.keycmd->str?
+                             g_markup_printf_escaped("%s", uzbl.state.keycmd->str):g_strdup("");
+                         g_string_append(ret, buf);
+                         g_free(buf);
+                     }
+                     else
+                         g_string_append(ret, uzbl.state.keycmd->str?
+                                 uzbl.state.keycmd->str:g_strdup(""));
                      break;
                  case SYM_MODE:
                      g_string_append(ret,
-                         uzbl.behave.insert_mode?"[I]":"[C]");
+                             uzbl.behave.insert_mode?"[I]":"[C]");
                      break;
                  case SYM_MSG:
                      g_string_append(ret,
-                         uzbl.gui.sbar.msg?uzbl.gui.sbar.msg:"");
+                             uzbl.gui.sbar.msg?uzbl.gui.sbar.msg:"");
                      break;
                      /* useragent syms */
                  case SYM_WK_MAJ:
@@ -1168,7 +1184,7 @@ cmd_useragent() {
         g_free (uzbl.net.useragent);
         uzbl.net.useragent = NULL;
     } else {
-        gchar *ua = expand_template(uzbl.net.useragent);
+        gchar *ua = expand_template(uzbl.net.useragent, FALSE);
         if (ua)
             g_object_set(G_OBJECT(uzbl.net.soup_session), SOUP_SESSION_USER_AGENT, ua, NULL);
         g_free(uzbl.net.useragent);
@@ -1526,12 +1542,12 @@ update_title (void) {
 
     if (b->show_status) {
         if (b->title_format_short) {
-            parsed = expand_template(b->title_format_short);
+            parsed = expand_template(b->title_format_short, FALSE);
             gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
             g_free(parsed);
         }
         if (b->status_format) {
-            parsed = expand_template(b->status_format);
+            parsed = expand_template(b->status_format, TRUE);
             gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), parsed);
             g_free(parsed);
         }
@@ -1543,7 +1559,7 @@ update_title (void) {
         }
     } else {
         if (b->title_format_long) {
-            parsed = expand_template(b->title_format_long);
+            parsed = expand_template(b->title_format_long, FALSE);
             gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
             g_free(parsed);
         }
