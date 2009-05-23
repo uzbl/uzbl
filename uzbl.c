@@ -431,6 +431,7 @@ load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) page;
     (void) frame;
     (void) data;
+    g_string_truncate(uzbl.state.keycmd, 0); // don't need old commands to remain on new page?
     if (uzbl.behave.load_start_handler)
         run_handler(uzbl.behave.load_start_handler, "");
 }
@@ -446,7 +447,6 @@ load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
         uzbl.behave.insert_mode = uzbl.behave.always_insert_mode;
         update_title();
     }
-    g_string_truncate(uzbl.state.keycmd, 0); // don't need old commands to remain on new page?
     if (uzbl.behave.load_commit_handler)
         run_handler(uzbl.behave.load_commit_handler, uzbl.state.uri);
 }
