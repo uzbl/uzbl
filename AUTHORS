@@ -4,7 +4,7 @@ Developers:
     Dusan Popovic (dusanx)
     Michael Walker (Barrucadu) <email is mike AT barrucadu.co.uk>
     Přemysl Hrubý, (anydot) <email is dfenze AT gmail.com>
-    Robert Manea (robm)
+    Robert Manea (robm) <email is rob DOT manea AT gmail DOT com>
 
 Contributors:
     (DuClare) - Various improvements
@@ -15,6 +15,7 @@ Contributors:
     Damien Leon - misc
     Peter Suschlik - backwards searching
     (salinasv) - move some variables to heap
+    Sylvester Johansson (scj) - original form filler script
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:

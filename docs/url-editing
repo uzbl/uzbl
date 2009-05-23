@@ -5,3 +5,5 @@ Use cases:
 * edit current url or one from history/bookmarks: dmenu-vertical is relatively good for this, though it would be better if we had:
 - minimal editing helper key shortcuts (eg to go to beginning/end of input buffer, erase search string, undo)
 - copy/paste support
+
+* Though you can obviously type new urls and edit the current ones with the appropriate statusbar stuff/binds/xclip commands, this is sometimes enough.
