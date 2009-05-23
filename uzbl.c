@@ -170,6 +170,9 @@ itos(int val) {
 }
 
 static gchar*
+strfree(gchar *str) { g_free(str); return NULL; }  // for freeing & setting to null in one go
+
+static gchar*
 argv_idx(const GArray *a, const guint idx) { return g_array_index(a, gchar*, idx); }
 
 static char *
@@ -500,7 +503,9 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "script",             {run_external_js, 0}           },
     { "toggle_status",      {toggle_status_cb, 0}          },
     { "spawn",              {spawn, 0}                     },
+    { "spawn_sync",         {spawn_sync, 0}                }, // needed for cookie handler
     { "sh",                 {spawn_sh, 0}                  },
+    { "sh_sync",            {spawn_sh_sync, 0}             }, // needed for cookie handler
     { "exit",               {close_uzbl, 0}                },
     { "search",             {search_forward_text, NOSPLIT} },
     { "search_reverse",     {search_reverse_text, NOSPLIT} },
@@ -907,10 +912,13 @@ run_command (const gchar *command, const guint npre, const gchar **args,
         sharg_append(a, args[i]);
     
     gboolean result;
-    if (sync) result = g_spawn_sync(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
-                                    NULL, NULL, stdout, NULL, NULL, &err);
-    else result = g_spawn_async(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
-                                NULL, NULL, NULL, &err);
+    if (sync) {
+        if (*stdout) *stdout = strfree(*stdout);
+        
+        result = g_spawn_sync(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
+                              NULL, NULL, stdout, NULL, NULL, &err);
+    } else result = g_spawn_async(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
+                                  NULL, NULL, NULL, &err);
 
     if (uzbl.state.verbose) {
         GString *s = g_string_new("spawned:");
@@ -979,6 +987,15 @@ spawn(WebKitWebView *web_view, GArray *argv) {
 }
 
 static void
+spawn_sync(WebKitWebView *web_view, GArray *argv) {
+    (void)web_view;
+    
+    if (argv_idx(argv, 0))
+        run_command(argv_idx(argv, 0), 0, ((const gchar **) (argv->data + sizeof(gchar*))),
+                    TRUE, &uzbl.comm.sync_stdout);
+}
+
+static void
 spawn_sh(WebKitWebView *web_view, GArray *argv) {
     (void)web_view;
     if (!uzbl.behave.shell_cmd) {
@@ -995,6 +1012,28 @@ spawn_sh(WebKitWebView *web_view, GArray *argv) {
         g_array_prepend_val(argv, cmd[i]);
 
     if (cmd) run_command(cmd[0], g_strv_length(cmd) + 1, (const gchar **) argv->data, FALSE, NULL);
+    g_free (spacer);
+    g_strfreev (cmd);
+}
+
+static void
+spawn_sh_sync(WebKitWebView *web_view, GArray *argv) {
+    (void)web_view;
+    if (!uzbl.behave.shell_cmd) {
+        g_printerr ("spawn_sh_sync: shell_cmd is not set!\n");
+        return;
+    }
+    
+    guint i;
+    gchar *spacer = g_strdup("");
+    g_array_insert_val(argv, 1, spacer);
+    gchar **cmd = split_quoted(uzbl.behave.shell_cmd, TRUE);
+
+    for (i = 1; i < g_strv_length(cmd); i++)
+        g_array_prepend_val(argv, cmd[i]);
+
+    if (cmd) run_command(cmd[0], g_strv_length(cmd) + 1, (const gchar **) argv->data,
+                         TRUE, &uzbl.comm.sync_stdout);
     g_free (spacer);
     g_strfreev (cmd);
 }
@@ -1848,21 +1887,18 @@ static void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer use
     (void) user_data;
     if (!uzbl.behave.cookie_handler) return;
 
-    gchar * stdout = NULL;
     soup_message_add_header_handler(msg, "got-headers", "Set-Cookie", G_CALLBACK(save_cookies), NULL);
-    GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-    gchar *action = g_strdup ("GET");
+    GString *s = g_string_new ("");
     SoupURI * soup_uri = soup_message_get_uri(msg);
-    sharg_append(a, action);
-    sharg_append(a, soup_uri->host);
-    sharg_append(a, soup_uri->path);
-    run_command(uzbl.behave.cookie_handler, 0, (const gchar **) a->data, TRUE, &stdout); /* TODO: use handler */
-    //run_handler(uzbl.behave.cookie_handler); /* TODO: global stdout pointer, spawn_sync */
-    if(stdout) {
-        soup_message_headers_replace (msg->request_headers, "Cookie", stdout);
-    }
-    g_free (action);
-    g_array_free(a, TRUE);
+    g_string_printf(s, "GET '%s' '%s'", soup_uri->host, soup_uri->path);
+    run_handler(uzbl.behave.cookie_handler, s->str);
+
+    if(uzbl.comm.sync_stdout)
+        soup_message_headers_replace (msg->request_headers, "Cookie", uzbl.comm.sync_stdout);
+    printf("stdout: %s\n", uzbl.comm.sync_stdout);   // debugging
+    if (uzbl.comm.sync_stdout) uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
+        
+    g_string_free(s, TRUE);
 }
 
 static void

@@ -95,7 +95,7 @@ typedef struct {
     GRegex         *keycmd_regex;
     GRegex         *get_regex;
     GRegex         *bind_regex;
-    gchar          **sync_stdout;
+    gchar          *sync_stdout;
 } Communication;
 
 
@@ -290,6 +290,12 @@ spawn(WebKitWebView *web_view, GArray *argv);
 
 static void
 spawn_sh(WebKitWebView *web_view, GArray *argv);
+
+static void
+spawn_sync(WebKitWebView *web_view, GArray *argv);
+
+static void
+spawn_sh_sync(WebKitWebView *web_view, GArray *argv);
 
 static void
 parse_command(const char *cmd, const char *param);

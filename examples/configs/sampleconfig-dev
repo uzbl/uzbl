@@ -12,8 +12,7 @@
 set history_handler  = spawn ./examples/scripts/history.sh
 set download_handler = spawn ./examples/scripts/download.sh
 
-# TODO: you can't use actions in cookie handler yet.  
-set cookie_handler   = ./examples/scripts/cookies.sh
+set cookie_handler   = spawn_sync ./examples/scripts/cookies.sh
 set minimum_font_size = 6
 set font_size = 11
 # monospace_size defaults to font_size, but you can alter it independently
