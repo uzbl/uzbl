@@ -146,11 +146,21 @@ typedef struct {
     gchar*   modkey;
     guint    modmask;
     guint    http_debug;
+    gchar*   shell_cmd;
+    /* WebKitWebSettings exports */
     guint    font_size;
     guint    monospace_size;
     guint    minimum_font_size;
     guint    disable_plugins;
-    gchar*   shell_cmd;
+    guint    disable_scripts;
+    guint    autoload_img;    
+    guint    autoshrink_img;  
+    guint    enable_spellcheck;
+    guint    enable_private;  
+    guint    print_bg;        
+    gchar*   style_uri;       
+
+
 
     /* command list: name -> Command  */
     GHashTable* commands;
@@ -417,6 +427,9 @@ static void
 cmd_disable_plugins();
 
 static void
+cmd_disable_scripts();
+
+static void
 cmd_minimum_font_size();
 
 static void
@@ -431,8 +444,23 @@ cmd_modkey();
 static void
 cmd_useragent() ;
 
+static void
+cmd_autoload_img();
 
+static void
+cmd_autoshrink_img();
 
+static void
+cmd_enable_spellcheck();
+
+static void
+cmd_enable_private();
+
+static void
+cmd_print_bg();
+
+static void 
+cmd_style_uri();
 
 
 /* vi: set et ts=4: */

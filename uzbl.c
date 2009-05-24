@@ -112,15 +112,24 @@ const struct {
     { "fifo_dir",            PTR(uzbl.behave.fifo_dir,            STR, cmd_fifo_dir)},
     { "socket_dir",          PTR(uzbl.behave.socket_dir,          STR, cmd_socket_dir)},
     { "http_debug",          PTR(uzbl.behave.http_debug,          INT, cmd_http_debug)},
-    { "font_size",           PTR(uzbl.behave.font_size,           INT, cmd_font_size)},
-    { "monospace_size",      PTR(uzbl.behave.monospace_size,      INT, cmd_font_size)},
-    { "minimum_font_size",   PTR(uzbl.behave.minimum_font_size,   INT, cmd_minimum_font_size)},
-    { "disable_plugins",     PTR(uzbl.behave.disable_plugins,     INT, cmd_disable_plugins)},
     { "shell_cmd",           PTR(uzbl.behave.shell_cmd,           STR, NULL)},
     { "proxy_url",           PTR(uzbl.net.proxy_url,              STR, set_proxy_url)},
     { "max_conns",           PTR(uzbl.net.max_conns,              INT, cmd_max_conns)},
     { "max_conns_host",      PTR(uzbl.net.max_conns_host,         INT, cmd_max_conns_host)},
     { "useragent",           PTR(uzbl.net.useragent,              STR, cmd_useragent)},
+    /* exported WebKitWebSettings properties*/
+    { "font_size",           PTR(uzbl.behave.font_size,           INT, cmd_font_size)},
+    { "monospace_size",      PTR(uzbl.behave.monospace_size,      INT, cmd_font_size)},
+    { "minimum_font_size",   PTR(uzbl.behave.minimum_font_size,   INT, cmd_minimum_font_size)},
+    { "disable_plugins",     PTR(uzbl.behave.disable_plugins,     INT, cmd_disable_plugins)},
+    { "disable_scripts",     PTR(uzbl.behave.disable_scripts,     INT, cmd_disable_scripts)},
+    { "autoload_images",     PTR(uzbl.behave.autoload_img,        INT, cmd_autoload_img)},
+    { "autoshrink_images",   PTR(uzbl.behave.autoshrink_img,      INT, cmd_autoshrink_img)},
+    { "enable_spellcheck",   PTR(uzbl.behave.enable_spellcheck,   INT, cmd_enable_spellcheck)},
+    { "enable_private",      PTR(uzbl.behave.enable_private,      INT, cmd_enable_private)},
+    { "print_backgrounds",   PTR(uzbl.behave.print_bg,            INT, cmd_print_bg)},
+    { "stylesheet_uri",      PTR(uzbl.behave.style_uri,           STR, cmd_style_uri)},
+
     { NULL,                  {.ptr = NULL, .type = TYPE_INT, .func = NULL}}
 }, *n2v_p = var_name_to_ptr;
 
@@ -1164,9 +1173,14 @@ cmd_http_debug() {
             SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
 }
 
+static WebKitWebSettings*
+view_settings() {
+    return webkit_web_view_get_settings(uzbl.gui.web_view);
+}
+
 static void
 cmd_font_size() {
-    WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
+    WebKitWebSettings *ws = view_settings();
     if (uzbl.behave.font_size > 0) {
         g_object_set (G_OBJECT(ws), "default-font-size", uzbl.behave.font_size, NULL);
     }
@@ -1182,14 +1196,57 @@ cmd_font_size() {
 
 static void
 cmd_disable_plugins() {
-    WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
-    g_object_set (G_OBJECT(ws), "enable-plugins", !uzbl.behave.disable_plugins, NULL);
+    g_object_set (G_OBJECT(view_settings()), "enable-plugins", 
+            !uzbl.behave.disable_plugins, NULL);
+}
+
+static void
+cmd_disable_scripts() {
+    g_object_set (G_OBJECT(view_settings()), "enable-scripts",
+            !uzbl.behave.disable_plugins, NULL);
 }
 
 static void
 cmd_minimum_font_size() {
-    WebKitWebSettings *ws = webkit_web_view_get_settings(uzbl.gui.web_view);
-    g_object_set (G_OBJECT(ws), "minimum-font-size", uzbl.behave.minimum_font_size, NULL);
+    g_object_set (G_OBJECT(view_settings()), "minimum-font-size",
+            uzbl.behave.minimum_font_size, NULL);
+}
+static void
+cmd_autoload_img() {
+    g_object_set (G_OBJECT(view_settings()), "auto-load-images",
+            uzbl.behave.autoload_img, NULL);
+}
+
+
+static void
+cmd_autoshrink_img() {
+    g_object_set (G_OBJECT(view_settings()), "auto-shrink-images",
+            uzbl.behave.autoshrink_img, NULL);
+}
+
+
+static void
+cmd_enable_spellcheck() {
+    g_object_set (G_OBJECT(view_settings()), "enable-spell-checking",
+            uzbl.behave.enable_spellcheck, NULL);
+}
+
+static void
+cmd_enable_private() {
+    g_object_set (G_OBJECT(view_settings()), "enable-private-browsing",
+            uzbl.behave.enable_private, NULL);
+}
+
+static void
+cmd_print_bg() {
+    g_object_set (G_OBJECT(view_settings()), "print-backgrounds",
+            uzbl.behave.print_bg, NULL);
+}
+
+static void 
+cmd_style_uri() {
+    g_object_set (G_OBJECT(view_settings()), "user-stylesheet-uri",
+            uzbl.behave.style_uri, NULL);
 }
 
 static void
