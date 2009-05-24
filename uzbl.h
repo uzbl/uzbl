@@ -78,6 +78,10 @@ typedef struct {
     WebKitWebView* web_view;
     gchar*         main_title;
 
+    /* WebInspector */
+    GtkWidget *inspector_window;
+    WebKitWebInspector *inspector;
+
     StatusBar sbar;
 } GUI;
 
