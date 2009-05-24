@@ -15,9 +15,29 @@ set cookie_handler   = spawn ./examples/scripts/cookies.sh
 
 set minimum_font_size = 6
 set font_size = 11
-# monospace_size defaults to font_size, but you can alter it independently
+## monospace_size defaults to font_size, but you can alter it independently
 #set monospace_size = 10
 
+## Display or supress images within html sites
+#set autoload_images = 0
+
+## Shrink images to window size
+#set autoshrink_images = 0
+
+## Spellchecker
+#set enable_spellcheck = 1
+
+## Private browsing
+#set enbale_private = 0
+
+## The URI of a stylesheet that is applied to every page
+#set stylesheet_uri = http://www.user.com/mystylelesheet.css
+
+## enable/disable JavaScript
+#set disbale_scripts = 1
+
+
+#
 # use with bind ... = sh <shell-oneliner>
 set shell_cmd         = sh -c
 
