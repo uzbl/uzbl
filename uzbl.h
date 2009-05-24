@@ -163,8 +163,9 @@ typedef struct {
     guint    enable_private;  
     guint    print_bg;        
     gchar*   style_uri;       
-
-
+    guint    resizable_txt;  
+    gchar*   default_encoding;       
+    guint    enforce_96dpi;  
 
     /* command list: name -> Command  */
     GHashTable* commands;
@@ -469,6 +470,15 @@ cmd_print_bg();
 
 static void 
 cmd_style_uri();
+
+static void 
+cmd_resizable_txt();
+
+static void 
+cmd_default_encoding();
+
+static void 
+cmd_enforce_96dpi();
 
 
 /* vi: set et ts=4: */

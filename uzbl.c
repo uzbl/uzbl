@@ -129,6 +129,9 @@ const struct {
     { "enable_private",      PTR(uzbl.behave.enable_private,      INT, cmd_enable_private)},
     { "print_backgrounds",   PTR(uzbl.behave.print_bg,            INT, cmd_print_bg)},
     { "stylesheet_uri",      PTR(uzbl.behave.style_uri,           STR, cmd_style_uri)},
+    { "resizable_text_areas",PTR(uzbl.behave.resizable_txt,       INT, cmd_resizable_txt)},
+    { "default_encoding",    PTR(uzbl.behave.default_encoding,    STR, cmd_default_encoding)},
+    { "enforce_96_dpi",      PTR(uzbl.behave.enforce_96dpi,       INT, cmd_enforce_96dpi)},
 
     { NULL,                  {.ptr = NULL, .type = TYPE_INT, .func = NULL}}
 }, *n2v_p = var_name_to_ptr;
@@ -1258,6 +1261,24 @@ static void
 cmd_style_uri() {
     g_object_set (G_OBJECT(view_settings()), "user-stylesheet-uri",
             uzbl.behave.style_uri, NULL);
+}
+
+static void 
+cmd_resizable_txt() {
+    g_object_set (G_OBJECT(view_settings()), "resizable-text-areas",
+            uzbl.behave.resizable_txt, NULL);
+}
+
+static void 
+cmd_default_encoding() {
+    g_object_set (G_OBJECT(view_settings()), "default-encoding",
+            uzbl.behave.default_encoding, NULL);
+}
+
+static void 
+cmd_enforce_96dpi() {
+    g_object_set (G_OBJECT(view_settings()), "enforce-96-dpi",
+            uzbl.behave.enforce_96dpi, NULL);
 }
 
 static void

@@ -36,6 +36,19 @@ set font_size = 11
 ## enable/disable JavaScript
 #set disbale_scripts = 1
 
+## Whether text areas are resizable
+#set resizeable_text_areas = 1
+
+## The default encoding used to display text
+#set default_encoding = iso-8859-1
+
+## Whether background images should be printed
+#set print_background = 0
+
+## Enforce a resolution of 96 DPI. This is meant for compatibility with
+## web pages which cope badly with different screen resolutions
+#set enforce_96_dpi = 1
+
 
 #
 # use with bind ... = sh <shell-oneliner>
