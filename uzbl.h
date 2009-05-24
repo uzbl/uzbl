@@ -390,11 +390,15 @@ static void
 run_external_js (WebKitWebView * web_view, GArray *argv);
 
 static void handle_cookies (SoupSession *session,
-							SoupMessage *msg,
-							gpointer     user_data);
+                            SoupMessage *msg,
+                            gpointer     user_data);
 static void
 save_cookies (SoupMessage *msg,
-			  gpointer     user_data);
+                gpointer     user_data);
+
+static void
+set_var(WebKitWebView *page, GArray *argv);
+
 
 /* Command callbacks */
 static void

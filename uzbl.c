@@ -519,7 +519,8 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "search",             {search_forward_text, NOSPLIT} },
     { "search_reverse",     {search_reverse_text, NOSPLIT} },
     { "toggle_insert_mode", {toggle_insert_mode, 0}        },
-    { "runcmd",             {runcmd, NOSPLIT}              }
+    { "runcmd",             {runcmd, NOSPLIT}              },
+    { "set",                {set_var, NOSPLIT}          }
 };
 
 static void
@@ -559,6 +560,16 @@ new_action(const gchar *name, const gchar *param) {
 static bool
 file_exists (const char * filename) {
     return (access(filename, F_OK) == 0);
+}
+
+static void
+set_var(WebKitWebView *page, GArray *argv) {
+    (void) page;
+    gchar *ctl_line;
+
+    ctl_line = g_strdup_printf("%s %s", "set", argv_idx(argv, 0));
+    parse_cmd_line(ctl_line);
+    g_free(ctl_line);
 }
 
 static void
