@@ -21,6 +21,7 @@ COMMUNITY
 
 ### Code repositories
 Remember: dieter/master = official stable branch.
+If you want to develop, develop against dieter/experimental
 
 * http://github.com/Dieterbe/uzbl/
 * http://github.com/anydot/uzbl/
