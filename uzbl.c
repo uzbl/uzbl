@@ -59,16 +59,20 @@
 static Uzbl uzbl;
 typedef void (*Command)(WebKitWebView*, GArray *argv);
 
+
 /* commandline arguments (set initial values for the state variables) */
-static GOptionEntry entries[] =
+const GOptionEntry entries[] =
 {
-    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uzbl.state.uri,           "Uri to load at startup (equivalent to 'set uri = URI')", "URI" },
-    { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &uzbl.state.verbose,       "Whether to print all messages or just errors.", NULL },
-    { "name",    'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name, "Name of the current instance (defaults to Xorg window id)", "NAME" },
-    { "config",  'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,   "Config file (this is pretty much equivalent to uzbl < FILE )", "FILE" },
+    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uzbl.state.uri,
+        "Uri to load at startup (equivalent to 'set uri = URI')", "URI" },
+    { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &uzbl.state.verbose,
+        "Whether to print all messages or just errors.", NULL },
+    { "name",    'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name, 
+        "Name of the current instance (defaults to Xorg window id)", "NAME" },
+    { "config",  'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,   
+        "Config file (this is pretty much equivalent to uzbl < FILE )", "FILE" },
     { NULL,      0, 0, 0, NULL, NULL, NULL }
 };
-
 
 /* associate command names to their properties */
 typedef const struct {
@@ -1367,7 +1371,7 @@ set_var_value(gchar *name, gchar *val) {
             g_free(*c->ptr);
             *c->ptr = g_strdup(val);
         } else if(c->type == TYPE_INT) {
-            int *ip = GPOINTER_TO_INT(c->ptr);
+            int *ip = (int *)c->ptr;
             *ip = (int)strtoul(val, &endp, 10);
         }
 
