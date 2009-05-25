@@ -1,5 +1,5 @@
-CPPFLAGS=$(shell pkg-config --cflags gtk+-2.0 webkit-1.0) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -DG_ERRORCHECK_MUTEXES -DCOMMIT="\"$(shell git log | head -n1 | sed "s/.* //")\""
-LDFLAGS=$(shell pkg-config --libs gtk+-2.0 webkit-1.0)
+CPPFLAGS=$(shell pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -DG_ERRORCHECK_MUTEXES -DCOMMIT="\"$(shell git log | head -n1 | sed "s/.* //")\""
+LDFLAGS=$(shell pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4) -pthread
 all: uzbl uzblctrl
 
 test: uzbl
