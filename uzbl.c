@@ -61,7 +61,8 @@ typedef void (*Command)(WebKitWebView*, GArray *argv);
 
 
 /* commandline arguments (set initial values for the state variables) */
-const GOptionEntry entries[] =
+static const 
+GOptionEntry entries[] =
 {
     { "uri",     'u', 0, G_OPTION_ARG_STRING, &uzbl.state.uri,
         "Uri to load at startup (equivalent to 'set uri = URI')", "URI" },
@@ -93,6 +94,7 @@ const struct {
 /*    variable name         pointer to variable in code          type  callback function    */
 /*  --------------------------------------------------------------------------------------- */
     { "uri",                 PTR(uzbl.state.uri,                  STR, cmd_load_uri)},
+    { "inject_html",         PTR(uzbl.behave.inject_html,         STR, cmd_inject_html)},
     { "status_message",      PTR(uzbl.gui.sbar.msg,               STR, update_title)},
     { "show_status",         PTR(uzbl.behave.show_status,         INT, cmd_set_status)},
     { "status_top",          PTR(uzbl.behave.status_top,          INT, move_statusbar)},
@@ -1305,6 +1307,14 @@ cmd_fifo_dir() {
 static void
 cmd_socket_dir() {
     uzbl.behave.socket_dir = init_socket(uzbl.behave.socket_dir);
+}
+
+static void
+cmd_inject_html() {
+    if(uzbl.behave.inject_html) {
+        webkit_web_view_load_html_string (uzbl.gui.web_view,
+                uzbl.behave.inject_html, NULL);
+    }
 }
 
 static void

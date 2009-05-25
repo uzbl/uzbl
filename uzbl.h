@@ -166,6 +166,7 @@ typedef struct {
     guint    resizable_txt;  
     gchar*   default_encoding;       
     guint    enforce_96dpi;  
+    gchar    *inject_html;
 
     /* command list: name -> Command  */
     GHashTable* commands;
@@ -480,5 +481,7 @@ cmd_default_encoding();
 static void 
 cmd_enforce_96dpi();
 
+static void
+cmd_inject_html();
 
 /* vi: set et ts=4: */
