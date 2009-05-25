@@ -905,7 +905,7 @@ sharg_append(GArray *a, const gchar *str) {
 // make sure that the args string you pass can properly be interpreted (eg properly escaped against whitespace, quotes etc)
 static gboolean
 run_command (const gchar *command, const guint npre, const gchar **args,
-             const gboolean sync, char **stdout) {
+             const gboolean sync, char **_stdout) {
    //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
     GError *err = NULL;
     
@@ -929,10 +929,10 @@ run_command (const gchar *command, const guint npre, const gchar **args,
     
     gboolean result;
     if (sync) {
-        if (*stdout) *stdout = strfree(*stdout);
+        if (*_stdout) *_stdout = strfree(*_stdout);
         
         result = g_spawn_sync(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
-                              NULL, NULL, stdout, NULL, NULL, &err);
+                              NULL, NULL, _stdout, NULL, NULL, &err);
     } else result = g_spawn_async(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
                                   NULL, NULL, NULL, &err);
 
