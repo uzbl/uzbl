@@ -41,6 +41,7 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <sys/utsname.h>
+#include <sys/time.h>
 #include <webkit/webkit.h>
 #include <stdio.h>
 #include <string.h>
@@ -99,6 +100,7 @@ const struct {
     { "inject_html",         PTR(uzbl.behave.inject_html,         STR, cmd_inject_html)},
     { "base_url",            PTR(uzbl.behave.base_url,            STR, NULL)},
     { "html_endmarker",      PTR(uzbl.behave.html_endmarker,      STR, NULL)},
+    { "html_mode_timeout",   PTR(uzbl.behave.html_timeout,        INT, NULL)},
     { "status_message",      PTR(uzbl.gui.sbar.msg,               STR, update_title)},
     { "show_status",         PTR(uzbl.behave.show_status,         INT, cmd_set_status)},
     { "status_top",          PTR(uzbl.behave.status_top,          INT, move_statusbar)},
@@ -289,6 +291,19 @@ clean_up(void) {
     g_hash_table_destroy(uzbl.behave.commands);
 }
 
+/* used for html_mode_timeout 
+ * be sure to extend this function to use
+ * more timers if needed in other places
+*/
+static void
+set_timeout(int seconds) {
+    struct itimerval t;
+    memset(&t, 0, sizeof t);
+
+    t.it_value.tv_sec =  seconds;
+    t.it_value.tv_usec = 0;
+    setitimer(ITIMER_REAL, &t, NULL);
+}
 
 /* --- SIGNAL HANDLER --- */
 
@@ -304,6 +319,15 @@ catch_sigint(int s) {
     clean_up();
     exit(EXIT_SUCCESS);
 }
+
+static void
+catch_alrm(int s) {
+    (void) s;
+
+    set_var_value("mode", "0");
+    render_html();
+}
+
 
 /* --- CALLBACKS --- */
 
@@ -1416,6 +1440,18 @@ runcmd(WebKitWebView* page, GArray *argv) {
     parse_cmd_line(argv_idx(argv, 0));
 }
 
+static void
+render_html() {
+    Behaviour *b = &uzbl.behave;
+
+    if(b->html_buffer->str) {
+        webkit_web_view_load_html_string (uzbl.gui.web_view,
+                b->html_buffer->str, b->base_url);
+        g_string_free(b->html_buffer, TRUE);
+        b->html_buffer = g_string_new("");
+    }
+}
+
 enum {M_CMD, M_HTML};
 static void
 parse_cmd_line(const char *ctl_line) {
@@ -1423,17 +1459,18 @@ parse_cmd_line(const char *ctl_line) {
     Behaviour *b = &uzbl.behave;
 
     if(b->mode == M_HTML) {
+
         if(!strncmp(b->html_endmarker, ctl_line, strlen(b->html_endmarker))) {
+            set_timeout(0);
             set_var_value("mode", "0");
-            if(b->html_buffer->str)
-                webkit_web_view_load_html_string (uzbl.gui.web_view,
-                        b->html_buffer->str, b->base_url);
-            g_string_free(b->html_buffer, TRUE);
-            b->html_buffer = g_string_new("");
+            render_html();
             return;
         }
-        else
+        else {
+            /* set an alarm to kill us after the timeout */
+            set_timeout(b->html_timeout);
             g_string_append(b->html_buffer, ctl_line);
+        }
     }
     else {
         /* SET command */
@@ -2209,6 +2246,9 @@ main (int argc, char* argv[]) {
         fprintf(stderr, "uzbl: error hooking SIGTERM\n");
     if(setup_signal(SIGINT, catch_sigint) == SIG_ERR)
         fprintf(stderr, "uzbl: error hooking SIGINT\n");
+    if(setup_signal(SIGALRM, catch_alrm) == SIG_ERR)
+        fprintf(stderr, "uzbl: error hooking SIGALARM\n");
+
 
     if(uname(&uzbl.state.unameinfo) == -1)
         g_printerr("Can't retrieve unameinfo.  Your useragent might appear wrong.\n");
@@ -2217,9 +2257,10 @@ main (int argc, char* argv[]) {
     uzbl.gui.sbar.progress_u = g_strdup("·");
     uzbl.gui.sbar.progress_w = 10;
 
-    /* HTML mode*/
+    /* HTML mode defaults*/
     uzbl.behave.html_buffer = g_string_new("");
     uzbl.behave.html_endmarker = g_strdup(".");
+    uzbl.behave.html_timeout = 60;
     uzbl.behave.base_url = g_strdup("http://invalid");
 
     setup_regex();
