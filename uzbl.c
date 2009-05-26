@@ -2019,6 +2019,8 @@ add_binding (const gchar *key, const gchar *act) {
         printf ("Binding %-10s : %s\n", key, act);
     action = new_action(parts[0], parts[1]);
 
+    if (g_hash_table_remove (uzbl.bindings, key))
+        g_warning ("Overwriting existing binding for \"%s\"", key);
     g_hash_table_replace(uzbl.bindings, g_strdup(key), action);
     g_strfreev(parts);
 }
