@@ -60,6 +60,7 @@ static Uzbl uzbl;
 typedef void (*Command)(WebKitWebView*, GArray *argv);
 
 
+
 /* commandline arguments (set initial values for the state variables) */
 static const 
 GOptionEntry entries[] =
@@ -94,7 +95,9 @@ const struct {
 /*    variable name         pointer to variable in code          type  callback function    */
 /*  --------------------------------------------------------------------------------------- */
     { "uri",                 PTR(uzbl.state.uri,                  STR, cmd_load_uri)},
+    { "mode",                PTR(uzbl.behave.mode,                INT, NULL)},
     { "inject_html",         PTR(uzbl.behave.inject_html,         STR, cmd_inject_html)},
+    { "base_url",            PTR(uzbl.behave.base_url,            STR, NULL)},
     { "status_message",      PTR(uzbl.gui.sbar.msg,               STR, update_title)},
     { "show_status",         PTR(uzbl.behave.show_status,         INT, cmd_set_status)},
     { "status_top",          PTR(uzbl.behave.status_top,          INT, move_statusbar)},
@@ -138,6 +141,7 @@ const struct {
     { "resizable_text_areas",PTR(uzbl.behave.resizable_txt,       INT, cmd_resizable_txt)},
     { "default_encoding",    PTR(uzbl.behave.default_encoding,    STR, cmd_default_encoding)},
     { "enforce_96_dpi",      PTR(uzbl.behave.enforce_96dpi,       INT, cmd_enforce_96dpi)},
+    { "caret_browsing",      PTR(uzbl.behave.caret_browsing,      INT, cmd_caret_browsing)},
 
     { NULL,                  {.ptr = NULL, .type = TYPE_INT, .func = NULL}}
 }, *n2v_p = var_name_to_ptr;
@@ -1076,7 +1080,7 @@ spawn_sh_sync(WebKitWebView *web_view, GArray *argv) {
 
     for (i = 1; i < g_strv_length(cmd); i++)
         g_array_prepend_val(argv, cmd[i]);
-
+         
     if (cmd) run_command(cmd[0], g_strv_length(cmd) + 1, (const gchar **) argv->data,
                          TRUE, &uzbl.comm.sync_stdout);
     g_free (spacer);
@@ -1287,6 +1291,12 @@ cmd_enforce_96dpi() {
             uzbl.behave.enforce_96dpi, NULL);
 }
 
+static void 
+cmd_caret_browsing() {
+    g_object_set (G_OBJECT(view_settings()), "enable-caret-browsing",
+            uzbl.behave.caret_browsing, NULL);
+}
+
 static void
 cmd_cookie_handler() {
     gchar **split = g_strsplit(uzbl.behave.cookie_handler, " ", 2);
@@ -1397,73 +1407,90 @@ runcmd(WebKitWebView* page, GArray *argv) {
     parse_cmd_line(argv_idx(argv, 0));
 }
 
+enum {M_CMD, M_HTML};
 static void
 parse_cmd_line(const char *ctl_line) {
     gchar **tokens = NULL;
+    Behaviour *b = &uzbl.behave;
 
-    /* SET command */
-    if(ctl_line[0] == 's' || ctl_line[0] == 'S') {
-        tokens = g_regex_split(uzbl.comm.set_regex, ctl_line, 0);
-        if(tokens[0][0] == 0) {
-            gchar* value = parseenv(g_strdup(tokens[2]));
-            set_var_value(tokens[1], value);
-            g_free(value);
+    if(b->mode == M_HTML) {
+        if(ctl_line[0] == '.') {
+            set_var_value("mode", "0");
+            if(b->html_buffer->str)
+                webkit_web_view_load_html_string (uzbl.gui.web_view,
+                        b->html_buffer->str, b->base_url);
+            g_string_free(b->html_buffer, TRUE);
+            b->html_buffer = g_string_new("");
+            return;
         }
         else
-            printf("Error in command: %s\n", tokens[0]);
+            g_string_append(b->html_buffer, ctl_line);
     }
-    /* GET command */
-    else if(ctl_line[0] == 'g' || ctl_line[0] == 'G') {
-        tokens = g_regex_split(uzbl.comm.get_regex, ctl_line, 0);
-        if(tokens[0][0] == 0) {
-            get_var_value(tokens[1]);
+    else {
+        /* SET command */
+        if(ctl_line[0] == 's' || ctl_line[0] == 'S') {
+            tokens = g_regex_split(uzbl.comm.set_regex, ctl_line, 0);
+            if(tokens[0][0] == 0) {
+                gchar* value = parseenv(g_strdup(tokens[2]));
+                set_var_value(tokens[1], value);
+                g_free(value);
+            }
+            else
+                printf("Error in command: %s\n", tokens[0]);
         }
+        /* GET command */
+        else if(ctl_line[0] == 'g' || ctl_line[0] == 'G') {
+            tokens = g_regex_split(uzbl.comm.get_regex, ctl_line, 0);
+            if(tokens[0][0] == 0) {
+                get_var_value(tokens[1]);
+            }
+            else
+                printf("Error in command: %s\n", tokens[0]);
+        }
+        /* BIND command */
+        else if(ctl_line[0] == 'b' || ctl_line[0] == 'B') {
+            tokens = g_regex_split(uzbl.comm.bind_regex, ctl_line, 0);
+            if(tokens[0][0] == 0) {
+                gchar* value = parseenv(g_strdup(tokens[2]));
+                add_binding(tokens[1], value);
+                g_free(value);
+            }
+            else
+                printf("Error in command: %s\n", tokens[0]);
+        }
+        /* ACT command */
+        else if(ctl_line[0] == 'A' || ctl_line[0] == 'a') {
+            tokens = g_regex_split(uzbl.comm.act_regex, ctl_line, 0);
+            if(tokens[0][0] == 0) {
+                parse_command(tokens[1], tokens[2]);
+            }
+            else
+                printf("Error in command: %s\n", tokens[0]);
+        }
+        /* KEYCMD command */
+        else if(ctl_line[0] == 'K' || ctl_line[0] == 'k') {
+            tokens = g_regex_split(uzbl.comm.keycmd_regex, ctl_line, 0);
+            if(tokens[0][0] == 0) {
+                /* should incremental commands want each individual "keystroke"
+                   sent in a loop or the whole string in one go like now? */
+                g_string_assign(uzbl.state.keycmd, tokens[1]);
+                run_keycmd(FALSE);
+                if (g_strstr_len(ctl_line, 7, "n") || g_strstr_len(ctl_line, 7, "N"))
+                    run_keycmd(TRUE);
+                update_title();
+            }
+        }
+        /* Comments */
+        else if(   (ctl_line[0] == '#')
+                || (ctl_line[0] == ' ')
+                || (ctl_line[0] == '\n'))
+            ; /* ignore these lines */
         else
-            printf("Error in command: %s\n", tokens[0]);
-    }
-    /* BIND command */
-    else if(ctl_line[0] == 'b' || ctl_line[0] == 'B') {
-        tokens = g_regex_split(uzbl.comm.bind_regex, ctl_line, 0);
-        if(tokens[0][0] == 0) {
-            gchar* value = parseenv(g_strdup(tokens[2]));
-            add_binding(tokens[1], value);
-            g_free(value);
-        }
-        else
-            printf("Error in command: %s\n", tokens[0]);
-    }
-    /* ACT command */
-    else if(ctl_line[0] == 'A' || ctl_line[0] == 'a') {
-        tokens = g_regex_split(uzbl.comm.act_regex, ctl_line, 0);
-        if(tokens[0][0] == 0) {
-            parse_command(tokens[1], tokens[2]);
-        }
-        else
-            printf("Error in command: %s\n", tokens[0]);
-    }
-    /* KEYCMD command */
-    else if(ctl_line[0] == 'K' || ctl_line[0] == 'k') {
-        tokens = g_regex_split(uzbl.comm.keycmd_regex, ctl_line, 0);
-        if(tokens[0][0] == 0) {
-            /* should incremental commands want each individual "keystroke"
-               sent in a loop or the whole string in one go like now? */
-            g_string_assign(uzbl.state.keycmd, tokens[1]);
-            run_keycmd(FALSE);
-            if (g_strstr_len(ctl_line, 7, "n") || g_strstr_len(ctl_line, 7, "N"))
-                run_keycmd(TRUE);
-            update_title();
-        }
-    }
-    /* Comments */
-    else if(   (ctl_line[0] == '#')
-            || (ctl_line[0] == ' ')
-            || (ctl_line[0] == '\n'))
-        ; /* ignore these lines */
-    else
-        printf("Command not understood (%s)\n", ctl_line);
+            printf("Command not understood (%s)\n", ctl_line);
 
-    if(tokens)
-        g_strfreev(tokens);
+        if(tokens)
+            g_strfreev(tokens);
+    }
 
     return;
 }
@@ -2178,6 +2205,10 @@ main (int argc, char* argv[]) {
     uzbl.gui.sbar.progress_s = g_strdup("=");
     uzbl.gui.sbar.progress_u = g_strdup("·");
     uzbl.gui.sbar.progress_w = 10;
+
+    /* HTML mode*/
+    uzbl.behave.html_buffer = g_string_new("");
+    uzbl.behave.base_url = g_strdup("http://invalid");
 
     setup_regex();
     setup_scanner();

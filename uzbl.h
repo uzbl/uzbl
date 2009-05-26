@@ -167,6 +167,10 @@ typedef struct {
     gchar*   default_encoding;       
     guint    enforce_96dpi;  
     gchar    *inject_html;
+    guint    caret_browsing;  
+    guint    mode;  
+    gchar*   base_url;
+    GString* html_buffer;
 
     /* command list: name -> Command  */
     GHashTable* commands;
@@ -483,5 +487,11 @@ cmd_enforce_96dpi();
 
 static void
 cmd_inject_html();
+
+static void 
+cmd_caret_browsing();
+
+static void 
+cmd_set_mode();
 
 /* vi: set et ts=4: */
