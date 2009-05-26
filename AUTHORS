@@ -16,6 +16,7 @@ Contributors:
     Peter Suschlik - backwards searching
     (salinasv) - move some variables to heap
     Sylvester Johansson (scj) - original form filler script
+    (mxf) - uzblcat
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:

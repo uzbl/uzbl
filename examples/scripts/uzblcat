@@ -1,0 +1,20 @@
+#!/usr/bin/env perl
+# uzblcat - safely push html to uzbl
+# See http://www.uzbl.org/wiki/html-mode
+use strict; use warnings;
+ 
+my $html;
+local $/;      # slurp files
+# automagically choose to read from stdin/files/...
+$html .= $_ for <>;
+ 
+my $endmarker = rand;
+$endmarker .= rand() while $html =~ /^\Q$endmarker\E$/m;
+ 
+print "set base_url = $ENV{BASE_URL}\n" if $ENV{BASE_URL};
+print << "EOS";
+set html_endmarker = $endmarker
+set mode = 1
+$html
+$endmarker
+EOS
