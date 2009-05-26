@@ -1163,7 +1163,7 @@ static void
 setup_regex() {
     uzbl.comm.get_regex  = g_regex_new("^[Gg][a-zA-Z]*\\s+([^ \\n]+)$",
             G_REGEX_OPTIMIZE, 0, NULL);
-    uzbl.comm.set_regex  = g_regex_new("^[Ss][a-zA-Z]*\\s+([^ ]+)\\s*=\\s*([^\\n].*)$",
+    uzbl.comm.set_regex  = g_regex_new("^[Ss][a-zA-Z]*\\s+([^ \\t]+)\\s*=\\s*([^\\n].*)$",
             G_REGEX_OPTIMIZE, 0, NULL);
     uzbl.comm.bind_regex = g_regex_new("^[Bb][a-zA-Z]*\\s+?(.*[^ ])\\s*?=\\s*([a-z][^\\n].+)$",
             G_REGEX_UNGREEDY|G_REGEX_OPTIMIZE, 0, NULL);
