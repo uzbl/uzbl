@@ -2,6 +2,11 @@ CPPFLAGS=$(shell pkg-config --cflags gtk+-2.0 webkit-1.0) -ggdb -Wall -W -DARCH=
 LDFLAGS=$(shell pkg-config --libs gtk+-2.0 webkit-1.0)
 all: uzbl uzblctrl
 
+uzbl: uzbl.c uzbl.h config.h
+
+%: %.c
+	$(CC) $(CPPFLAGS) $(LDFLAGS) $(LIBS) -o $@ $<
+
 test: uzbl
 	./uzbl --uri http://www.uzbl.org
 
