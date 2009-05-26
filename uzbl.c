@@ -1451,7 +1451,6 @@ parse_cmd_line(const char *ctl_line) {
     Behaviour *b = &uzbl.behave;
 
     if(b->mode == M_HTML) {
-
         if(!strncmp(b->html_endmarker, ctl_line, strlen(b->html_endmarker))) {
             set_timeout(0);
             set_var_value("mode", "0");
@@ -1459,7 +1458,6 @@ parse_cmd_line(const char *ctl_line) {
             return;
         }
         else {
-            /* set an alarm to kill us after the timeout */
             set_timeout(b->html_timeout);
             g_string_append(b->html_buffer, ctl_line);
         }
