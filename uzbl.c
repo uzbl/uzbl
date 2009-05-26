@@ -348,6 +348,23 @@ new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequ
     return (FALSE);
 }
 
+static gboolean
+mime_policy_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, gchar *mime_type,  WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
+    (void) frame;
+    (void) request;
+    (void) user_data;
+
+    /* If we can display it, let's display it... */
+    if (webkit_web_view_can_show_mime_type (web_view, mime_type)) {
+        webkit_web_policy_decision_use (policy_decision);
+        return TRUE;
+    }
+
+    /* ...everything we can't displayed is downloaded */
+    webkit_web_policy_decision_download (policy_decision);
+    return TRUE;
+}
+
 WebKitWebView*
 create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data) {
     (void) web_view;
@@ -1948,6 +1965,7 @@ create_browser () {
     g_signal_connect (G_OBJECT (g->web_view), "new-window-policy-decision-requested", G_CALLBACK (new_window_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "download-requested", G_CALLBACK (download_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "create-web-view", G_CALLBACK (create_web_view_cb), g->web_view);
+    g_signal_connect (G_OBJECT (g->web_view), "mime-type-policy-decision-requested", G_CALLBACK (mime_policy_cb), g->web_view);
 
     return scrolled_window;
 }
