@@ -556,6 +556,7 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "exit",               {close_uzbl, 0}                },
     { "search",             {search_forward_text, NOSPLIT} },
     { "search_reverse",     {search_reverse_text, NOSPLIT} },
+    { "dehilight",          {dehilight, 0}                 },
     { "toggle_insert_mode", {toggle_insert_mode, 0}        },
     { "runcmd",             {runcmd, NOSPLIT}              },
     { "set",                {set_var, NOSPLIT}          }
@@ -705,6 +706,13 @@ static void
 search_reverse_text (WebKitWebView *page, GArray *argv) {
     search_text(page, argv, FALSE);
 }
+
+static void
+dehilight (WebKitWebView *page, GArray *argv) {
+    (void) argv;
+    webkit_web_view_set_highlight_text_matches (page, FALSE);
+}
+
 
 static void
 new_window_load_uri (const gchar * uri) {
@@ -1810,6 +1818,7 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
     if (event->keyval == GDK_Escape) {
         g_string_truncate(uzbl.state.keycmd, 0);
         update_title();
+        dehilight(uzbl.gui.web_view, NULL);
         return TRUE;
     }
 
@@ -2192,10 +2201,8 @@ inspector_inspector_destroyed_cb (WebKitWebInspector* inspector){
 static void
 set_up_inspector() {
     GUI *g = &uzbl.gui;
-    WebKitWebSettings *settings = webkit_web_settings_new();
+    WebKitWebSettings *settings = view_settings();
     g_object_set(G_OBJECT(settings), "enable-developer-extras", TRUE, NULL);
-    webkit_web_view_set_settings(WEBKIT_WEB_VIEW(uzbl.gui.web_view), settings);
-
 
     uzbl.gui.inspector = webkit_web_view_get_inspector(uzbl.gui.web_view);
     g_signal_connect (G_OBJECT (g->inspector), "inspect-web-view", G_CALLBACK (create_inspector_cb), NULL);

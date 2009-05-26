@@ -398,6 +398,9 @@ static void
 search_reverse_text (WebKitWebView *page, GArray *argv);
 
 static void
+dehilight (WebKitWebView *page, GArray *argv);
+
+static void
 run_js (WebKitWebView * web_view, GArray *argv);
 
 static void
