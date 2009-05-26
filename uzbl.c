@@ -532,6 +532,7 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "exit",               {close_uzbl, 0}                },
     { "search",             {search_forward_text, NOSPLIT} },
     { "search_reverse",     {search_reverse_text, NOSPLIT} },
+    { "dehilight",          {dehilight, 0}                 },
     { "toggle_insert_mode", {toggle_insert_mode, 0}        },
     { "runcmd",             {runcmd, NOSPLIT}              },
     { "set",                {set_var, NOSPLIT}          }
@@ -681,6 +682,13 @@ static void
 search_reverse_text (WebKitWebView *page, GArray *argv) {
     search_text(page, argv, FALSE);
 }
+
+static void
+dehilight (WebKitWebView *page, GArray *argv) {
+    (void) argv;
+    webkit_web_view_set_highlight_text_matches (page, FALSE);
+}
+
 
 static void
 new_window_load_uri (const gchar * uri) {
@@ -1775,6 +1783,7 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
     if (event->keyval == GDK_Escape) {
         g_string_truncate(uzbl.state.keycmd, 0);
         update_title();
+        dehilight(uzbl.gui.web_view, NULL);
         return TRUE;
     }
 
