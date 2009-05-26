@@ -842,7 +842,7 @@ expand_template(const char *template, gboolean escape_markup) {
          token = g_scanner_get_next_token(uzbl.scan);
 
          if(token == G_TOKEN_SYMBOL) {
-             sym = (int)g_scanner_cur_value(uzbl.scan).v_symbol;
+             sym = GPOINTER_TO_INT(g_scanner_cur_value(uzbl.scan).v_symbol);
              switch(sym) {
                  case SYM_URI:
                      if(escape_markup) {
@@ -1181,7 +1181,7 @@ get_var_value(gchar *name) {
         if(c->type == TYPE_STR)
             printf("VAR: %s VALUE: %s\n", name, (char *)*c->ptr);
         else if(c->type == TYPE_INT)
-            printf("VAR: %s VALUE: %d\n", name, (int)*c->ptr);
+            printf("VAR: %s VALUE: %p\n", name, *c->ptr);
     }
     return TRUE;
 }
@@ -1438,7 +1438,7 @@ set_var_value(gchar *name, gchar *val) {
             g_free(*c->ptr);
             *c->ptr = g_strdup(val);
         } else if(c->type == TYPE_INT) {
-            int *ip = (int *)c->ptr;
+            int *ip = (int *) c->ptr;
             *ip = (int)strtoul(val, &endp, 10);
         }
 
