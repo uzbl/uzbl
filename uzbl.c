@@ -2203,10 +2203,8 @@ inspector_inspector_destroyed_cb (WebKitWebInspector* inspector){
 static void
 set_up_inspector() {
     GUI *g = &uzbl.gui;
-    WebKitWebSettings *settings = webkit_web_settings_new();
+    WebKitWebSettings *settings = view_settings();
     g_object_set(G_OBJECT(settings), "enable-developer-extras", TRUE, NULL);
-    webkit_web_view_set_settings(WEBKIT_WEB_VIEW(uzbl.gui.web_view), settings);
-
 
     uzbl.gui.inspector = webkit_web_view_get_inspector(uzbl.gui.web_view);
     g_signal_connect (G_OBJECT (g->inspector), "inspect-web-view", G_CALLBACK (create_inspector_cb), NULL);
