@@ -151,6 +151,11 @@ bind ze = spawn ./examples/scripts/formfiller.sh edit
 bind zn = spawn ./examples/scripts/formfiller.sh new
 bind zl = spawn ./examples/scripts/formfiller.sh load
 
+# other - more advanced - implementation using perl: (could not get this to run - Dieter )
+bind LL = spawn ./examples/scripts/formfiller.pl load
+bind LN = spawn ./examples/scripts/formfiller.pl new
+bind LE = spawn ./examples/scripts/formfiller.pl edit
+
 # we ship some javascripts to do keyboard based link hinting/following.  (webkit does not have C DOM bindings yet)
 # this is similar to how it works in vimperator (and konqueror)
 # TODO: did we resolve: "no click() event for hyperlinks so no referrer set" ?

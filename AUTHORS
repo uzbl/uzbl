@@ -15,7 +15,7 @@ Contributors:
     Damien Leon - misc
     Peter Suschlik - backwards searching
     (salinasv) - move some variables to heap
-    Sylvester Johansson (scj) - original form filler script
+    Sylvester Johansson (scj) - form filler script & different take on link follower 
     (mxf) - uzblcat
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c

@@ -10,14 +10,14 @@
 # new:  fetch new file	
 
 # usage example:
-# bind LL   = spawn /usr/share/uzbl/examples/scripts/formfiller2.pl load
-# bind LN  	= spawn /usr/share/uzbl/examples/scripts/formfiller2.pl new
-# bind LE		= spawn /usr/share/uzbl/examples/scripts/formfiller2.pl edit
+# bind LL = spawn /usr/share/uzbl/examples/scripts/formfiller.pl load
+# bind LN = spawn /usr/share/uzbl/examples/scripts/formfiller.pl new
+# bind LE = spawn /usr/share/uzbl/examples/scripts/formfiller.pl edit
 
 use strict;
 use Switch;
 
-my $keydir = $ENV{XDG_CONFIG_HOME} . "/uzbl/keys";
+my $keydir = $ENV{XDG_CONFIG_HOME} . "/uzbl/forms";
 my ($config,$pid,$xid,$fifo,$socket,$url,$title,$cmd) = @ARGV;
 if($fifo eq "") { die "No fifo"; };
 
@@ -27,8 +27,8 @@ sub domain {
   return $url;
 };
 
-#my $editor = "xterm -e vim";
-my $editor = "gvim";
+my $editor = "xterm -e vim";
+#my $editor = "gvim";
 
 # ideally, there would be some way to ask uzbl for the html content instead of having to redownload it with
 #	Also, you may need to fake the user-agent on some sites (like facebook)
