@@ -357,6 +357,9 @@ key_press_cb (GtkWidget* window, GdkEventKey* event);
 static void
 run_keycmd(const gboolean key_ret);
 
+static void
+exec_paramcmd(const Action* act, const guint i);
+
 static GtkWidget*
 create_browser ();
 

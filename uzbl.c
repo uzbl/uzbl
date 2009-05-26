@@ -1813,56 +1813,57 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
 static void
 run_keycmd(const gboolean key_ret) {
     /* run the keycmd immediately if it isn't incremental and doesn't take args */
-    Action *action;
-    if ((action = g_hash_table_lookup(uzbl.bindings, uzbl.state.keycmd->str))) {
+    Action *act;
+    if ((act = g_hash_table_lookup(uzbl.bindings, uzbl.state.keycmd->str))) {
         g_string_truncate(uzbl.state.keycmd, 0);
-        parse_command(action->name, action->param);
+        parse_command(act->name, act->param);
         return;
     }
 
     /* try if it's an incremental keycmd or one that takes args, and run it */
     GString* short_keys = g_string_new ("");
     GString* short_keys_inc = g_string_new ("");
-    unsigned int i;
+    guint i;
     for (i=0; i<(uzbl.state.keycmd->len); i++) {
         g_string_append_c(short_keys, uzbl.state.keycmd->str[i]);
         g_string_assign(short_keys_inc, short_keys->str);
         g_string_append_c(short_keys, '_');
         g_string_append_c(short_keys_inc, '*');
 
-        gboolean exec_now = FALSE;
-        if ((action = g_hash_table_lookup(uzbl.bindings, short_keys->str))) {
-            if (key_ret) exec_now = TRUE; /* run normal cmds only if return was pressed */
-        } else if ((action = g_hash_table_lookup(uzbl.bindings, short_keys_inc->str))) {
-            if (key_ret) { /* just quit the incremental command on return */
+        if (key_ret && (act = g_hash_table_lookup(uzbl.bindings, short_keys->str))) {
+            /* run normal cmds only if return was pressed */
+            exec_paramcmd(act, i);
+            g_string_truncate(uzbl.state.keycmd, 0);
+            break;
+        } else if ((act = g_hash_table_lookup(uzbl.bindings, short_keys_inc->str))) {
+            if (key_ret)  /* just quit the incremental command on return */
                 g_string_truncate(uzbl.state.keycmd, 0);
-                break;
-            } else exec_now = TRUE; /* always exec incr. commands on keys other than return */
-        }
-
-        if (exec_now) {
-            GString* parampart = g_string_new (uzbl.state.keycmd->str);
-            GString* actionname = g_string_new ("");
-            GString* actionparam = g_string_new ("");
-            g_string_erase (parampart, 0, i+1);
-            if (action->name)
-                g_string_printf (actionname, action->name, parampart->str);
-            if (action->param)
-                g_string_printf (actionparam, action->param, parampart->str);
-            parse_command(actionname->str, actionparam->str);
-            g_string_free (actionname, TRUE);
-            g_string_free (actionparam, TRUE);
-            g_string_free (parampart, TRUE);
-            if (key_ret)
-                g_string_truncate(uzbl.state.keycmd, 0);
+            else exec_paramcmd(act, i); /* otherwise execute the incremental */
             break;
         }
-
+        
         g_string_truncate(short_keys, short_keys->len - 1);
     }
     g_string_free (short_keys, TRUE);
     g_string_free (short_keys_inc, TRUE);
 }
+
+static void
+exec_paramcmd(const Action *act, const guint i) {
+    GString *parampart = g_string_new (uzbl.state.keycmd->str);
+    GString *actionname = g_string_new ("");
+    GString *actionparam = g_string_new ("");
+    g_string_erase (parampart, 0, i+1);
+    if (act->name)
+        g_string_printf (actionname, act->name, parampart->str);
+    if (act->param)
+        g_string_printf (actionparam, act->param, parampart->str);
+    parse_command(actionname->str, actionparam->str);
+    g_string_free(actionname, TRUE);
+    g_string_free(actionparam, TRUE);
+    g_string_free(parampart, TRUE);
+}
+
 
 static GtkWidget*
 create_browser () {
