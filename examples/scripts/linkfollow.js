@@ -110,7 +110,7 @@ function setHints(r){
 		var item = items.snapshotItem(i);
 		if(re.test(item) && isVisible(item) && elementInViewport(item)){
 			var h = generateHint(item,c);
-			item.appendChild(h);
+			item.parentNode.insertBefore(h,item);
 			c++;
 		}
 	}
@@ -132,15 +132,21 @@ function keyPressHandler(e) {
 				doc.body.removeAttribute("onkeyup");
     }
 }
+function next(elem){
+	do {
+		elem = elem.nextSibling;
+	} while (elem && elem.nodeType != 1);
+	return elem;
+}
 function followLink(follow){
 	var m = new Matcher(follow);
-	var elements = doc.evaluate("//*/div[@class='"+uzblclass+"']",doc,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null);
+	var elements = doc.evaluate("//div[@class='"+uzblclass+"']",doc,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null);
 	// filter
 	var matched = [];
 	for (var i = 0; i < elements.snapshotLength;i++){
 		var item = elements.snapshotItem(i);
-		if(m.test(item.parentNode)){
-			matched.push(item.parentNode);
+		if(m.test(next(item))){
+			matched.push(next(item));
 		}
 	}
 	clearHints();
@@ -150,7 +156,8 @@ function followLink(follow){
 		var item = matched[parseInt(m.numbers,10)-1];
 	}
     if (item) {
-			item.style.backgroundColor = "blue";
+			item.style.borderStyle = "dotted";
+			item.style.borderWidth = "thin";
 
         var name = item.tagName;
         if (name == 'A') {
