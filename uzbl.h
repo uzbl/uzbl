@@ -170,6 +170,7 @@ typedef struct {
     guint    caret_browsing;  
     guint    mode;  
     gchar*   base_url;
+    gchar*   html_endmarker;
     GString* html_buffer;
 
     /* command list: name -> Command  */

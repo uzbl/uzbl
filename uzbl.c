@@ -98,6 +98,7 @@ const struct {
     { "mode",                PTR(uzbl.behave.mode,                INT, NULL)},
     { "inject_html",         PTR(uzbl.behave.inject_html,         STR, cmd_inject_html)},
     { "base_url",            PTR(uzbl.behave.base_url,            STR, NULL)},
+    { "html_endmarker",      PTR(uzbl.behave.html_endmarker,      STR, NULL)},
     { "status_message",      PTR(uzbl.gui.sbar.msg,               STR, update_title)},
     { "show_status",         PTR(uzbl.behave.show_status,         INT, cmd_set_status)},
     { "status_top",          PTR(uzbl.behave.status_top,          INT, move_statusbar)},
@@ -1414,7 +1415,7 @@ parse_cmd_line(const char *ctl_line) {
     Behaviour *b = &uzbl.behave;
 
     if(b->mode == M_HTML) {
-        if(ctl_line[0] == '.') {
+        if(!strncmp(b->html_endmarker, ctl_line, strlen(b->html_endmarker))) {
             set_var_value("mode", "0");
             if(b->html_buffer->str)
                 webkit_web_view_load_html_string (uzbl.gui.web_view,
@@ -2208,6 +2209,7 @@ main (int argc, char* argv[]) {
 
     /* HTML mode*/
     uzbl.behave.html_buffer = g_string_new("");
+    uzbl.behave.html_endmarker = g_strdup(".");
     uzbl.behave.base_url = g_strdup("http://invalid");
 
     setup_regex();
