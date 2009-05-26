@@ -55,6 +55,7 @@ Time to change that!
 ### CONFIGURATION / CONTROL:
 The general idea is that uzbl by default is very bare bones.  you can send it commands to update settings and perform actions, through various interfaces.
 There is a limited default configuration.  Please see config.h to see what it contains.
+By default, there are *no* keybinds defined at all.  (Default keybinds would work counterproductive when you try to customize)
 For examples of the possibilities what you can do, please see the sample config(s).
 There are several interfaces to interact with uzbl:
 
