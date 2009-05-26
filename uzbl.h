@@ -172,6 +172,7 @@ typedef struct {
     gchar*   base_url;
     gchar*   html_endmarker;
     GString* html_buffer;
+    guint    html_timeout;  
 
     /* command list: name -> Command  */
     GHashTable* commands;
@@ -241,6 +242,9 @@ catch_sigterm(int s);
 
 static sigfunc *
 setup_signal(int signe, sigfunc *shandler);
+
+static gboolean
+set_var_value(gchar *name, gchar *val);
 
 static gboolean
 new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data);
@@ -409,6 +413,12 @@ save_cookies (SoupMessage *msg,
 static void
 set_var(WebKitWebView *page, GArray *argv);
 
+static void
+render_html();
+
+static void
+set_timeout(int seconds);
+
 
 /* Command callbacks */
 static void
@@ -494,8 +504,5 @@ cmd_inject_html();
 
 static void 
 cmd_caret_browsing();
-
-static void 
-cmd_set_mode();
 
 /* vi: set et ts=4: */
