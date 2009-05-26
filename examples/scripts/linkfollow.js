@@ -15,9 +15,26 @@
 
 
 var uzblid = 'uzbl_hint';
-var uzblclass = 'uzbl_hint_class'
+var uzblclass = 'uzbl_hint_class';
 
 var doc = document;
+
+
+
+function hasClass(ele,cls) {
+		return ele.className.match(new RegExp('(\\s|^)'+cls+'(\\s|$)'));
+}
+ 
+function addClass(ele,cls) {
+		if (!hasClass(ele,cls)) ele.className += " "+cls;
+}
+ 
+function removeClass(ele,cls) {
+	if (hasClass(ele,cls)) {
+		var reg = new RegExp('(\\s|^)'+cls+'(\\s|$)');
+		ele.className=ele.className.replace(reg,' ');
+	}
+}
 
 function elementPosition(el) {
     var up = el.offsetTop;
@@ -32,9 +49,9 @@ function elementPosition(el) {
     return [up, left, width, height];
 }
 
-function generateHint(el, label) {
+function generateHint(pos, label) {
     var hint = doc.createElement('div');
-    hint.setAttribute('class', uzblclass);
+    hint.setAttribute('name', uzblid);
     hint.innerText = label;
     hint.style.display = 'inline';
     hint.style.backgroundColor = '#B9FF00';
@@ -46,7 +63,13 @@ function generateHint(el, label) {
     hint.style.margin = '0px';
     hint.style.padding = '1px';
     hint.style.position = 'absolute';
-    hint.style.zIndex = '10000';
+    hint.style.zIndex = '1000';
+    hint.style.left = pos[1] + 'px';
+    hint.style.top = pos[0] + 'px';
+    //var img = el.getElementsByTagName('img');
+    //if (img.length > 0) {
+    //    hint.style.left = pos[1] + img[0].width / 2 + 'px';
+    //}
     hint.style.textDecoration = 'none';
     hint.style.webkitBorderRadius = '6px';
     // Play around with this, pretty funny things to do :)
@@ -54,8 +77,8 @@ function generateHint(el, label) {
     return hint;
 }
 
-function elementInViewport(el) {
-    offset = elementPosition(el);
+function elementInViewport(offset) {
+//    offset = elementPosition(el);
     var up = offset[0];
     var left = offset[1];
     var width = offset[2];
@@ -104,24 +127,42 @@ function setHints(r){
 	if(doc.body) doc.body.setAttribute("onkeyup","keyPressHandler(event)");
 	var re = new Matcher(r);
 	clearHints();
+	var hintdiv = doc.createElement('div');
+	hintdiv.setAttribute('id', uzblid);
 	var c = 1;
 	var items = doc.evaluate(hintable,doc,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null);
 	for (var i = 0; i < items.snapshotLength;i++){
 		var item = items.snapshotItem(i);
-		if(re.test(item) && isVisible(item) && elementInViewport(item)){
-			var h = generateHint(item,c);
-			item.parentNode.insertBefore(h,item);
+		var pos = elementPosition(item);
+		if(re.test(item) && isVisible(item) && elementInViewport(pos)){
+			var h = generateHint(pos,c);
+			h.href = function () {return item};
+			hintdiv.appendChild(h);
+			addClass(item,uzblclass);
 			c++;
 		}
+	}
+	if (document.body) {
+			document.body.insertBefore(hintdiv,document.body.firstChild);
 	}
 }
 
 function clearHints(){
-	var items = doc.evaluate("//div[@class='" + uzblclass + "']",doc,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null);
-	for (var i = 0; i < items.snapshotLength;i++){
-		var item = items.snapshotItem(i);
-		item.parentNode.removeChild(item);
+	var hintdiv = doc.getElementById(uzblid);
+	if(hintdiv){
+	//var items = doc.evaluate('//*[contains(@class="' + uzblclass + '"])',doc,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null);
+	//for (var i = 0; i < items.snapshotLength;i++){
+	//	var item = items.snapshotItem(i);
+	//	//item.parentNode.removeChild(item);
+	//	removeClass(item,uzblclass);
+	//}
+		hintdiv.parentNode.removeChild(hintdiv);
 	}
+	var items = doc.getElementsByClassName(uzblclass);
+	for (var i = 0; i<items.length;i++){
+		removeClass(items[i],uzblclass);
+	}
+	
 }
 
 function keyPressHandler(e) {
@@ -132,29 +173,38 @@ function keyPressHandler(e) {
 				doc.body.removeAttribute("onkeyup");
     }
 }
-function next(elem){
-	do {
-		elem = elem.nextSibling;
-	} while (elem && elem.nodeType != 1);
-	return elem;
-}
+//function next(elem){
+//	do {
+//		elem = elem.nextSibling;
+//	} while (elem && elem.nodeType != 1);
+//	return elem;
+//}
 function followLink(follow){
 	var m = new Matcher(follow);
-	var elements = doc.evaluate("//div[@class='"+uzblclass+"']",doc,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null);
+	//var elements = doc.evaluate("//*[@class='"+uzblclass+"']",doc,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null);
+	var elements = doc.getElementsByClassName(uzblclass);
 	// filter
 	var matched = [];
-	for (var i = 0; i < elements.snapshotLength;i++){
-		var item = elements.snapshotItem(i);
-		if(m.test(next(item))){
-			matched.push(next(item));
+	for (var i = 0; i < elements.length;i++){
+		//var item = elements.snapshotItem(i);
+		if(m.test(elements[i])){
+			matched.push(elements[i]);
 		}
 	}
 	clearHints();
-	if(matched.length == 1) {
-		var item = matched[0];
+	var n = parseInt(m.numbers,10);
+	if(n){
+		var item = matched[n-1];
 	} else {
-		var item = matched[parseInt(m.numbers,10)-1];
+		var item = matched[0];
 	}
+
+//	if(matched.length == 1) {
+//		var item = matched[0];
+//	} else {
+//		var item = matched[parseInt(m.numbers,10)-1];
+//	}
+		//alert(matched.length);
     if (item) {
 			item.style.borderStyle = "dotted";
 			item.style.borderWidth = "thin";
