@@ -19,205 +19,210 @@
 //
 // based on follow_Numbers.js
 //
-// TODO: set CSS styles (done, but not working properly)
+// TODO: fix styling for the first element
 // TODO: load the script as soon as the DOM is ready
 
 
-
 function Hints(){
-	var uzblid = 'uzbl_hint';
-	var uzblclass = 'uzbl_highlight';
-	var uzblclassfirst = 'uzbl_h_first';
-	var doc = document;
-	this.set = setHints;
-	this.follow = followHint;
-	this.keyPressHandler = keyPressHandler;
+  var uzblid = 'uzbl_hint';
+  var uzblclass = 'uzbl_highlight';
+  var uzblclassfirst = 'uzbl_h_first';
+  var doc = document;
+  var visible = [];
+  var hintdiv;
 
-	function hasClass(ele,cls) {
-			return ele.className.split(/ /).some(function (n) { return n == cls });
-	}
-	 
-	function addClass(ele,cls) {
-			if (!hasClass(ele,cls)) ele.className += " "+cls;
-	}
-	 
-	function removeClass(ele,cls) {
-		ele.className = ele.className.split(/ /).filter(function (n) { n != cls}).join(" ");
-	}
+  this.set = hint;
+  this.follow = follow;
+  this.keyPressHandler = keyPressHandler;
 
-	function elementPosition(el) {
-			var up = el.offsetTop;
-			var left = el.offsetLeft; var width = el.offsetWidth;
-			var height = el.offsetHeight;
+  function elementPosition(el) {
+    var up = el.offsetTop;
+    var left = el.offsetLeft; var width = el.offsetWidth;
+    var height = el.offsetHeight;
 
-			while (el.offsetParent) {
-					el = el.offsetParent;
-					up += el.offsetTop;
-					left += el.offsetLeft;
-			}
-			return [up, left, width, height];
-	}
+    while (el.offsetParent) {
+      el = el.offsetParent;
+      up += el.offsetTop;
+      left += el.offsetLeft;
+    }
+    return [up, left, width, height];
+  }
 
-	function generateHint(pos, label) {
-			var hint = doc.createElement('div');
-			hint.setAttribute('name', uzblid);
-			hint.innerText = label;
-      //the css is set with ./examples/data/style.css
-			hint.style.left = pos[1] + 'px';
-			hint.style.top = pos[0] + 'px';
-			//var img = el.getElementsByTagName('img');
-			//if (img.length > 0) {
-			//    hint.style.left = pos[1] + img[0].width / 2 + 'px';
-			//}
-			return hint;
-	}
+  function elementInViewport(offset) {
+    var up = offset[0];
+    var left = offset[1];
+    var width = offset[2];
+    var height = offset[3];
+    return  (up < window.pageYOffset + window.innerHeight && 
+            left < window.pageXOffset + window.innerWidth && 
+            (up + height) > window.pageYOffset && 
+            (left + width) > window.pageXOffset);
+  }
 
-	function elementInViewport(offset) {
-			var up = offset[0];
-			var left = offset[1];
-			var width = offset[2];
-			var height = offset[3];
-			return (up < window.pageYOffset + window.innerHeight && 
-					left < window.pageXOffset + window.innerWidth 
-					&& (up + height) > window.pageYOffset 
-					&& (left + width) > window.pageXOffset);
-	}
+  function isVisible(el) {
+    if (el == doc) { return true; }
+    if (!el) { return false; }
+    if (!el.parentNode) { return false; }
+    if (el.style) {
+      if (el.style.display == 'none') {
+          return false;
+      }
+      if (el.style.visibility == 'hidden') {
+          return false;
+      }
+    }
+    return isVisible(el.parentNode);
+  }
 
-	function isVisible(el) {
-				if (el == doc) { return true; }
-				if (!el) { return false; }
-				if (!el.parentNode) { return false; }
-				if (el.style) {
-						if (el.style.display == 'none') {
-								return false;
-						}
-						if (el.style.visibility == 'hidden') {
-								return false;
-						}
-				}
-				return isVisible(el.parentNode);
-	}
+  var hintable = "//a[@href] | //img | //input";
 
-	var hintable = "//a[@href] | //img | //input";
+  function Matcher(str){
+    var numbers = str.replace(/[^\d]/g,"");
+    var words = str.replace(/\d/g,"").split(/\s+/).map(function (n) { return new RegExp(n,"i")});
+    this.test = test;
+    this.toString = toString;
+    this.numbers = numbers;
+    function test(element) {
+      // test all the regexp
+      return words.every(function (regex) { return element.node.textContent.match(regex)});
+    }
+  }
 
-	function Matcher(str){
-		var numbers = str.replace(/[^\d]/g,"");
-		var words = str.replace(/\d/g,"").split(/\s+/).map(function (n) { return new RegExp(n,"i")});
-		this.test = test;
-		this.toString = toString;
-		this.numbers = numbers;
-		function test(element) {
-			// test all the regexp
-			return words.every(function (regex) { return element.textContent.match(regex)});
-		}
-		function toString(){
-			return "{"+numbers+"},{"+words+"}";
-		}
-	}
+  function HintElement(node,pos){
 
+    this.node = node;
+    this.isHinted = false;
+    this.position = pos;
 
-	function setHints(r){
-		if(doc.body) doc.body.onkeyup = this.keyPressHandler;
-		var re = new Matcher(r);
-		clearHints();
-		var hintdiv = doc.createElement('div');
-		hintdiv.setAttribute('id', uzblid);
-		var c = 1;
-		var items = doc.evaluate(hintable,doc,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null);
-		for (var i = 0; i < items.snapshotLength;i++){
-			var item = items.snapshotItem(i);
-			var pos = elementPosition(item);
-			if(re.test(item) && isVisible(item) && elementInViewport(pos)){
-				var h = generateHint(pos,c);
-				h.href = function () {return item};
-				hintdiv.appendChild(h);
-				if(c==1){
-					addClass(item,uzblclassfirst);
-		//			addClass(item,uzblclass);
-				} else {
-					addClass(item,uzblclass);
-				}
-				c++;
-			}
-		}
-		if (document.body) {
-				document.body.insertBefore(hintdiv,document.body.firstChild);
-		}
-	}
+    this.addHint = function (labelNum) {
+      if(!this.isHinted){
+        this.node.className += " " + uzblclass;
+      }
+      this.isHinted = true;
+        
+      // create hint  
+      var hintNode = doc.createElement('div');
+      hintNode.name = uzblid;
+      hintNode.innerText = labelNum;
+      hintNode.style.left = this.position[1] + 'px';
+      hintNode.style.top =  this.position[0] + 'px';
+      hintNode.style.position = "absolute";
+      doc.body.firstChild.appendChild(hintNode);
+        
+    }
+    this.removeHint = function(){
+      if(this.isHinted){
+        var s = (this.num)?uzblclassfirst:uzblclass;
+        this.node.className = this.node.className.replace(new RegExp(" "+s,"g"),"");
+        this.isHinted = false;
+      }
+    }
+  }
 
-	function clearHints(){
-		var hintdiv = doc.getElementById(uzblid);
-		if(hintdiv){
-			hintdiv.parentNode.removeChild(hintdiv);
-		}
-		var first = doc.getElementsByClassName(uzblclassfirst)[0];
-		if(first){
-			removeClass(first,uzblclassfirst);
-		}
-		// TODO: not all class attributes get removed
-		var items = doc.getElementsByClassName(uzblclass);
-		for (var i = 0; i<items.length; i++){
-			removeClass(items[i],uzblclass);
-		};
-		
-	}
+  function createHintDiv(){
+    var hintdiv = doc.getElementById(uzblid);
+    if(hintdiv){
+      hintdiv.parentNode.removeChild(hintdiv);
+    }
+    hintdiv = doc.createElement("div");
+    hintdiv.setAttribute('id',uzblid);
+    doc.body.insertBefore(hintdiv,doc.body.firstChild);
+    return hintdiv;
+  }
 
-	function keyPressHandler(e) {
-			var kC = window.event ? event.keyCode: e.keyCode;
-			var Esc = window.event ? 27 : e.DOM_VK_ESCAPE;
-			if (kC == Esc) {
-					clearHints();
-					doc.body.removeAttribute("onkeyup");
-			}
-	}
-	function followHint(follow){
-		var m = new Matcher(follow);
-		var elements = doc.getElementsByClassName(uzblclass);
-		// filter
-		var matched = [];
-		matched.push(doc.getElementsByClassName(uzblclassfirst)[0]);
-		for (var i = 0; i < elements.length;i++){
-			if(m.test(elements[i])){
-				matched.push(elements[i]);
-			}
-		}
-		clearHints();
-		var n = parseInt(m.numbers,10);
-		if(n){
-			var item = matched[n-1];
-		} else {
-			var item = matched[0];
-		}
-		if (item) {
-			item.style.borderStyle = "dotted";
-			item.style.borderWidth = "thin";
+  function init(){
+    // WHAT?
+    doc.body.setAttribute("onkeyup","hints.keyPressHandler(event)");
+    hintdiv = createHintDiv();
+    visible = [];
+
+    var items = doc.evaluate(hintable,doc,null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,null);
+    for (var i = 0;i<items.snapshotLength;i++){
+      var item = items.snapshotItem(i);
+      var pos = elementPosition(item);
+      if(isVisible && elementInViewport(elementPosition(item))){
+        visible.push(new HintElement(item,pos));
+      }
+    }
+  }
+
+  function clear(){
+
+    visible.forEach(function (n) { n.removeHint(); } );
+    hintdiv = doc.getElementById(uzblid);
+    while(hintdiv){
+      hintdiv.parentNode.removeChild(hintdiv);
+      hintdiv = doc.getElementById(uzblid);
+    }
+  }
+
+  function update(str) {
+    var match = new Matcher(str);
+    hintdiv = createHintDiv();
+    var i = 1;
+    visible.forEach(function (n) {
+      if(match.test(n)) {
+        n.addHint(i);
+        i++;
+      } else {
+        n.removeHint();
+      }});
+  }
+
+  function hint(str){
+    if(str.length == 0) init();
+    update(str);
+  }
+
+  function keyPressHandler(e) {
+    var kC = window.event ? event.keyCode: e.keyCode;
+    var Esc = window.event ? 27 : e.DOM_VK_ESCAPE;
+    if (kC == Esc) {
+        clear();
+        doc.body.removeAttribute("onkeyup");
+    }
+  }
+
+  function follow(str){
+    var m = new Matcher(str);
+
+    var items = visible.filter(function (n) { return n.isHinted });
+    clear();
+    var num = parseInt(m.numbers,10);
+    if(num){
+      var item = items[num-1].node;
+    } else {
+      var item = items[0].node;
+    }
+    if (item) {
+      item.style.borderStyle = "dotted";
+      item.style.borderWidth = "thin";
 
       var name = item.tagName;
       if (name == 'A') {
-          if(item.click) {item.click()};
-          window.location = item.href;
+        if(item.click) {item.click()};
+        window.location = item.href;
       } else if (name == 'INPUT') {
-          var type = item.getAttribute('type').toUpperCase();
-          if (type == 'TEXT' || type == 'FILE' || type == 'PASSWORD') {
-              item.focus();
-              item.select();
-          } else {
-              item.click();
-          }
+        var type = item.getAttribute('type').toUpperCase();
+        if (type == 'TEXT' || type == 'FILE' || type == 'PASSWORD') {
+            item.focus();
+            item.select();
+        } else {
+            item.click();
+        }
       } else if (name == 'TEXTAREA' || name == 'SELECT') {
-          item.focus();
-          item.select();
+        item.focus();
+        item.select();
       } else {
-          item.click();
-          window.location = item.href;
+        item.click();
+        window.location = item.href;
       }
-		}
-	}
+    }
+  }
 }
-var hints;
-//document.addEventListener("DOMContentLoaded",function () { hints = new Hints()},false);
 
 var hints = new Hints();
+//document.attachEvent("onKeyUp",hints.keyPressHandler);
 
 // vim:set et tw=2:
 
