@@ -3,13 +3,16 @@
 //
 // first, it needs to be loaded before every time it is used.
 // One way would be to use something like load_start_handler to send
-// "act script linkfollow.js"
+// "act script /usr/share/examples/scripts/linkfollow.js"
 // (currently, it is recommended to use load_finish_handler since the JS code seems to get
 // flushed. Using a load_start_handler with a 1s delay works but not always)
 //
 // when script is loaded, it can be invoked with
 // bind f* = js hints.set("%s")
 // bind f_ = js hints.follow("%s")
+//
+// At the moment, it may be useful to have way of forcing uzbl to load the script
+// bind :lf = script /usr/share/examples/scripts/linkfollow.js
 //
 // To enable hint highlighting, add:
 // set stylesheet_uri = /usr/share/uzbl/examples/data/style.css
@@ -23,8 +26,8 @@
 
 function Hints(){
 	var uzblid = 'uzbl_hint';
-	var uzblclass = "uzbl_hint_class";
-	var uzblclassfirst = "uzbl_hint_first";
+	var uzblclass = 'uzbl_highlight';
+	var uzblclassfirst = 'uzbl_h_first';
 	var doc = document;
 	this.set = setHints;
 	this.follow = followHint;
@@ -59,27 +62,13 @@ function Hints(){
 			var hint = doc.createElement('div');
 			hint.setAttribute('name', uzblid);
 			hint.innerText = label;
-			hint.style.display = 'inline';
-			hint.style.backgroundColor = '#B9FF00';
-			hint.style.border = '2px solid #4A6600';
-			hint.style.color = 'black';
-			hint.style.fontSize = '9px';
-			hint.style.fontWeight = 'bold';
-			hint.style.lineHeight = '9px';
-			hint.style.margin = '0px';
-			hint.style.padding = '1px';
-			hint.style.position = 'absolute';
-			hint.style.zIndex = '1000';
+      //the css is set with ./examples/data/style.css
 			hint.style.left = pos[1] + 'px';
 			hint.style.top = pos[0] + 'px';
 			//var img = el.getElementsByTagName('img');
 			//if (img.length > 0) {
 			//    hint.style.left = pos[1] + img[0].width / 2 + 'px';
 			//}
-			hint.style.textDecoration = 'none';
-			hint.style.webkitBorderRadius = '6px';
-			// Play around with this, pretty funny things to do :)
-			hint.style.webkitTransform = 'scale(1) rotate(0deg) translate(-6px,-5px)';
 			return hint;
 	}
 
@@ -203,25 +192,25 @@ function Hints(){
 			item.style.borderStyle = "dotted";
 			item.style.borderWidth = "thin";
 
-				var name = item.tagName;
-				if (name == 'A') {
-						if(item.click) {item.click()};
-						window.location = item.href;
-				} else if (name == 'INPUT') {
-						var type = item.getAttribute('type').toUpperCase();
-						if (type == 'TEXT' || type == 'FILE' || type == 'PASSWORD') {
-								item.focus();
-								item.select();
-						} else {
-								item.click();
-						}
-				} else if (name == 'TEXTAREA' || name == 'SELECT') {
-						item.focus();
-						item.select();
-				} else {
-						item.click();
-						window.location = item.href;
-				}
+      var name = item.tagName;
+      if (name == 'A') {
+          if(item.click) {item.click()};
+          window.location = item.href;
+      } else if (name == 'INPUT') {
+          var type = item.getAttribute('type').toUpperCase();
+          if (type == 'TEXT' || type == 'FILE' || type == 'PASSWORD') {
+              item.focus();
+              item.select();
+          } else {
+              item.click();
+          }
+      } else if (name == 'TEXTAREA' || name == 'SELECT') {
+          item.focus();
+          item.select();
+      } else {
+          item.click();
+          window.location = item.href;
+      }
 		}
 	}
 }
@@ -230,5 +219,6 @@ var hints;
 
 var hints = new Hints();
 
+// vim:set et tw=2:
 
 
