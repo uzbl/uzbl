@@ -417,10 +417,22 @@ static void
 set_var(WebKitWebView *page, GArray *argv);
 
 static void
+act_dump_config();
+
+static void
 render_html();
 
 static void
 set_timeout(int seconds);
+
+static void
+dump_var_hash(gpointer k, gpointer v, gpointer ud);
+
+static void
+dump_key_hash(gpointer k, gpointer v, gpointer ud);
+
+static void
+dump_config();
 
 
 /* Command callbacks */

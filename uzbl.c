@@ -386,23 +386,27 @@ scroll (GtkAdjustment* bar, GArray *argv) {
     gtk_adjustment_set_value (bar, gtk_adjustment_get_value(bar)+amount);
 }
 
-static void scroll_begin(WebKitWebView* page, GArray *argv) {
+static void
+scroll_begin(WebKitWebView* page, GArray *argv) {
     (void) page; (void) argv;
     gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_lower(uzbl.gui.bar_v));
 }
 
-static void scroll_end(WebKitWebView* page, GArray *argv) {
+static void
+scroll_end(WebKitWebView* page, GArray *argv) {
     (void) page; (void) argv;
     gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_upper(uzbl.gui.bar_v) -
                               gtk_adjustment_get_page_size(uzbl.gui.bar_v));
 }
 
-static void scroll_vert(WebKitWebView* page, GArray *argv) {
+static void
+scroll_vert(WebKitWebView* page, GArray *argv) {
     (void) page;
     scroll(uzbl.gui.bar_v, argv);
 }
 
-static void scroll_horz(WebKitWebView* page, GArray *argv) {
+static void
+scroll_horz(WebKitWebView* page, GArray *argv) {
     (void) page;
     scroll(uzbl.gui.bar_h, argv);
 }
@@ -559,7 +563,8 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "dehilight",          {dehilight, 0}                 },
     { "toggle_insert_mode", {toggle_insert_mode, 0}        },
     { "runcmd",             {runcmd, NOSPLIT}              },
-    { "set",                {set_var, NOSPLIT}          }
+    { "set",                {set_var, NOSPLIT}             },
+    { "dump_config",        {act_dump_config, 0}           }
 };
 
 static void
@@ -609,6 +614,11 @@ set_var(WebKitWebView *page, GArray *argv) {
     ctl_line = g_strdup_printf("%s %s", "set", argv_idx(argv, 0));
     parse_cmd_line(ctl_line);
     g_free(ctl_line);
+}
+
+static void
+act_dump_config() {
+    dump_config();
 }
 
 static void
@@ -2215,7 +2225,31 @@ set_up_inspector() {
     g_signal_connect (G_OBJECT (g->inspector), "notify::inspected-uri", G_CALLBACK (inspector_uri_changed_cb), NULL);
 }
 
+static void
+dump_var_hash(gpointer k, gpointer v, gpointer ud) {
+    (void) ud;
+    uzbl_cmdprop *c = v;
 
+    if(c->type == TYPE_STR)
+        printf("set %s = %s\n", (char *)k, *c->ptr?(char *)*c->ptr:" ");
+    else if(c->type == TYPE_INT)
+        printf("set %s = %d\n", (char *)k, (int)*c->ptr);
+}
+
+static void
+dump_key_hash(gpointer k, gpointer v, gpointer ud) {
+    (void) ud;
+    Action *a = v;
+
+    printf("bind %s = %s %s\n", (char *)k ,
+            (char *)a->name, a->param?(char *)a->param:"");
+}
+
+static void
+dump_config() {
+    g_hash_table_foreach(uzbl.comm.proto_var, dump_var_hash, NULL);
+    g_hash_table_foreach(uzbl.bindings, dump_key_hash, NULL);
+}
 
 /** -- MAIN -- **/
 int
