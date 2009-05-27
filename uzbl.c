@@ -1471,9 +1471,13 @@ static void
 parse_cmd_line(const char *ctl_line) {
     gchar **tokens = NULL;
     Behaviour *b = &uzbl.behave;
+    size_t len=0;
 
     if(b->mode == M_HTML) {
-        if(!strncmp(b->html_endmarker, ctl_line, strlen(b->html_endmarker))) {
+        len = strlen(b->html_endmarker);
+        /* ctl_line has trailing '\n' so we check for strlen(ctl_line)-1 */
+        if(len == strlen(ctl_line)-1 &&
+           !strncmp(b->html_endmarker, ctl_line, len)) {
             set_timeout(0);
             set_var_value("mode", "0");
             render_html();
