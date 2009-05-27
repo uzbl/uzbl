@@ -45,18 +45,14 @@ function Hints(){
       up += el.offsetTop;
       left += el.offsetLeft;
     }
-    return [up, left, width, height];
+    return {up: up, left: left, width: width, height: height};
   }
 
-  function elementInViewport(offset) {
-    var up = offset[0];
-    var left = offset[1];
-    var width = offset[2];
-    var height = offset[3];
-    return  (up < window.pageYOffset + window.innerHeight && 
-            left < window.pageXOffset + window.innerWidth && 
-            (up + height) > window.pageYOffset && 
-            (left + width) > window.pageXOffset);
+  function elementInViewport(p) {
+    return  (p.up < window.pageYOffset + window.innerHeight && 
+            p.left < window.pageXOffset + window.innerWidth && 
+            (p.up + p.height) > window.pageYOffset && 
+            (p.left + p.width) > window.pageXOffset);
   }
 
   function isVisible(el) {
@@ -95,6 +91,7 @@ function Hints(){
     this.position = pos;
 
     this.addHint = function (labelNum) {
+      // TODO: fix uzblclassfirst
       if(!this.isHinted){
         this.node.className += " " + uzblclass;
       }
@@ -104,8 +101,8 @@ function Hints(){
       var hintNode = doc.createElement('div');
       hintNode.name = uzblid;
       hintNode.innerText = labelNum;
-      hintNode.style.left = this.position[1] + 'px';
-      hintNode.style.top =  this.position[0] + 'px';
+      hintNode.style.left = this.position.left + 'px';
+      hintNode.style.top =  this.position.up + 'px';
       hintNode.style.position = "absolute";
       doc.body.firstChild.appendChild(hintNode);
         
