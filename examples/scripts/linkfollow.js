@@ -183,7 +183,6 @@ function Hints(){
   }
   this.openInNewWindow = function(item){
     // TODO: this doesn't work
-    simulateMouseOver(item);
     window.open(item.href,"uzbl new","");
   }
   this.openInThisWindow = function(item){
@@ -217,6 +216,8 @@ function Hints(){
       var item = items[0].node;
     }
     if (item) {
+      // This causes some elements to move around. Guess it should only be applied to
+      // links
       item.style.margin -= 3;
       item.style.padding -= 3;
       item.style.borderStyle = "dotted";
