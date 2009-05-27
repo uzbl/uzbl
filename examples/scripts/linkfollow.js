@@ -14,7 +14,8 @@
 // At the moment, it may be useful to have way of forcing uzbl to load the script
 // bind :lf = script /usr/share/examples/scripts/linkfollow.js
 //
-// To enable hint highlighting, add:
+// The default style for the hints are pretty ugly, so it is recommended to add the following
+// to config file
 // set stylesheet_uri = /usr/share/uzbl/examples/data/style.css
 //
 // based on follow_Numbers.js
@@ -70,7 +71,8 @@ function Hints(){
     return isVisible(el.parentNode);
   }
 
-  var hintable = "//a[@href] | //img | //input";
+  // the vimperator defaults minus the xhtml elements, since it gave DOM errors
+  var hintable = " //*[@onclick or @onmouseover or @onmousedown or @onmouseup or @oncommand or @class='lk' or @role='link'] | //input[not(@type='hidden')] | //a | //area | //iframe | //textarea | //button | //select";
 
   function Matcher(str){
     var numbers = str.replace(/[^\d]/g,"");
@@ -179,10 +181,33 @@ function Hints(){
         doc.body.removeAttribute("onkeyup");
     }
   }
+  this.openInNewWindow = function(item){
+    // TODO: this doesn't work
+    simulateMouseOver(item);
+    window.open(item.href,"uzbl new","");
+  }
+  this.openInThisWindow = function(item){
+    window.location = item.href;
+  }
 
-  function follow(str){
+// found on stackoverflow
+//  function simulateMouseOver(item){
+//    var evt = doc.createEvent("MouseEvents");
+//    evt.initMouseEvent("mouseover",true,true,
+//        doc.defaultView,0,0,0,0,0,
+//        false,false,false,false,0,null);
+//      var canceled = !item.dispatchEvent(evt);
+//      if(canceled){
+//        alert('Event Cancelled');
+//      }
+//  }
+
+
+  function follow(str,opener){
     var m = new Matcher(str);
-
+    if(!opener){
+      var opener = this.openInThisWindow;
+    }
     var items = visible.filter(function (n) { return n.isHinted });
     clear();
     var num = parseInt(m.numbers,10);
@@ -192,13 +217,15 @@ function Hints(){
       var item = items[0].node;
     }
     if (item) {
+      item.style.margin -= 3;
+      item.style.padding -= 3;
       item.style.borderStyle = "dotted";
       item.style.borderWidth = "thin";
 
       var name = item.tagName;
       if (name == 'A') {
         if(item.click) {item.click()};
-        window.location = item.href;
+          opener(item);
       } else if (name == 'INPUT') {
         var type = item.getAttribute('type').toUpperCase();
         if (type == 'TEXT' || type == 'FILE' || type == 'PASSWORD') {
@@ -212,7 +239,7 @@ function Hints(){
         item.select();
       } else {
         item.click();
-        window.location = item.href;
+        opener(item);
       }
     }
   }
@@ -221,6 +248,6 @@ function Hints(){
 var hints = new Hints();
 //document.attachEvent("onKeyUp",hints.keyPressHandler);
 
-// vim:set et tw=2:
+// vim:set et sw=2:
 
 
