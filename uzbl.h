@@ -171,6 +171,8 @@ typedef struct {
     guint    mode;  
     gchar*   base_url;
     gchar*   html_endmarker;
+    gchar*   insert_indicator;
+    gchar*   cmd_indicator;
     GString* html_buffer;
     guint    html_timeout;  
 
@@ -417,10 +419,22 @@ static void
 set_var(WebKitWebView *page, GArray *argv);
 
 static void
+act_dump_config();
+
+static void
 render_html();
 
 static void
 set_timeout(int seconds);
+
+static void
+dump_var_hash(gpointer k, gpointer v, gpointer ud);
+
+static void
+dump_key_hash(gpointer k, gpointer v, gpointer ud);
+
+static void
+dump_config();
 
 
 /* Command callbacks */

@@ -81,72 +81,75 @@ GOptionEntry entries[] =
 typedef const struct {
     void **ptr;
     int type;
+    int dump;
     void (*func)(void);
 } uzbl_cmdprop;
 
 enum {TYPE_INT, TYPE_STR};
 
 /* an abbreviation to help keep the table's width humane */
-#define PTR(var, t, fun) { .ptr = (void*)&(var), .type = TYPE_##t, .func = fun }
+#define PTR(var, t, d, fun) { .ptr = (void*)&(var), .type = TYPE_##t, .dump = d, .func = fun }
 
 const struct {
     char *name;
     uzbl_cmdprop cp;
 } var_name_to_ptr[] = {
-/*    variable name         pointer to variable in code          type  callback function    */
+/*    variable name         pointer to variable in code          type  dump callback function    */
 /*  --------------------------------------------------------------------------------------- */
-    { "uri",                 PTR(uzbl.state.uri,                  STR, cmd_load_uri)},
-    { "mode",                PTR(uzbl.behave.mode,                INT, NULL)},
-    { "inject_html",         PTR(uzbl.behave.inject_html,         STR, cmd_inject_html)},
-    { "base_url",            PTR(uzbl.behave.base_url,            STR, NULL)},
-    { "html_endmarker",      PTR(uzbl.behave.html_endmarker,      STR, NULL)},
-    { "html_mode_timeout",   PTR(uzbl.behave.html_timeout,        INT, NULL)},
-    { "status_message",      PTR(uzbl.gui.sbar.msg,               STR, update_title)},
-    { "show_status",         PTR(uzbl.behave.show_status,         INT, cmd_set_status)},
-    { "status_top",          PTR(uzbl.behave.status_top,          INT, move_statusbar)},
-    { "status_format",       PTR(uzbl.behave.status_format,       STR, update_title)},
-    { "status_pbar_done",    PTR(uzbl.gui.sbar.progress_s,        STR, update_title)},
-    { "status_pbar_pending", PTR(uzbl.gui.sbar.progress_u,        STR, update_title)},
-    { "status_pbar_width",   PTR(uzbl.gui.sbar.progress_w,        INT, update_title)},
-    { "status_background",   PTR(uzbl.behave.status_background,   STR, update_title)},
-    { "title_format_long",   PTR(uzbl.behave.title_format_long,   STR, update_title)},
-    { "title_format_short",  PTR(uzbl.behave.title_format_short,  STR, update_title)},
-    { "insert_mode",         PTR(uzbl.behave.insert_mode,         INT, NULL)},
-    { "always_insert_mode",  PTR(uzbl.behave.always_insert_mode,  INT, cmd_always_insert_mode)},
-    { "reset_command_mode",  PTR(uzbl.behave.reset_command_mode,  INT, NULL)},
-    { "modkey",              PTR(uzbl.behave.modkey,              STR, cmd_modkey)},
-    { "load_finish_handler", PTR(uzbl.behave.load_finish_handler, STR, NULL)},
-    { "load_start_handler",  PTR(uzbl.behave.load_start_handler,  STR, NULL)},
-    { "load_commit_handler", PTR(uzbl.behave.load_commit_handler, STR, NULL)},
-    { "history_handler",     PTR(uzbl.behave.history_handler,     STR, NULL)},
-    { "download_handler",    PTR(uzbl.behave.download_handler,    STR, NULL)},
-    { "cookie_handler",      PTR(uzbl.behave.cookie_handler,      STR, cmd_cookie_handler)},
-    { "fifo_dir",            PTR(uzbl.behave.fifo_dir,            STR, cmd_fifo_dir)},
-    { "socket_dir",          PTR(uzbl.behave.socket_dir,          STR, cmd_socket_dir)},
-    { "http_debug",          PTR(uzbl.behave.http_debug,          INT, cmd_http_debug)},
-    { "shell_cmd",           PTR(uzbl.behave.shell_cmd,           STR, NULL)},
-    { "proxy_url",           PTR(uzbl.net.proxy_url,              STR, set_proxy_url)},
-    { "max_conns",           PTR(uzbl.net.max_conns,              INT, cmd_max_conns)},
-    { "max_conns_host",      PTR(uzbl.net.max_conns_host,         INT, cmd_max_conns_host)},
-    { "useragent",           PTR(uzbl.net.useragent,              STR, cmd_useragent)},
+    { "uri",                 PTR(uzbl.state.uri,                  STR,  1,   cmd_load_uri)},
+    { "mode",                PTR(uzbl.behave.mode,                INT,  0,   NULL)},
+    { "inject_html",         PTR(uzbl.behave.inject_html,         STR,  0,   cmd_inject_html)},
+    { "base_url",            PTR(uzbl.behave.base_url,            STR,  1,   NULL)},
+    { "html_endmarker",      PTR(uzbl.behave.html_endmarker,      STR,  1,   NULL)},
+    { "html_mode_timeout",   PTR(uzbl.behave.html_timeout,        INT,  1,   NULL)},
+    { "status_message",      PTR(uzbl.gui.sbar.msg,               STR,  1,   update_title)},
+    { "show_status",         PTR(uzbl.behave.show_status,         INT,  1,   cmd_set_status)},
+    { "status_top",          PTR(uzbl.behave.status_top,          INT,  1,   move_statusbar)},
+    { "status_format",       PTR(uzbl.behave.status_format,       STR,  1,   update_title)},
+    { "status_pbar_done",    PTR(uzbl.gui.sbar.progress_s,        STR,  1,   update_title)},
+    { "status_pbar_pending", PTR(uzbl.gui.sbar.progress_u,        STR,  1,   update_title)},
+    { "status_pbar_width",   PTR(uzbl.gui.sbar.progress_w,        INT,  1,   update_title)},
+    { "status_background",   PTR(uzbl.behave.status_background,   STR,  1,   update_title)},
+    { "insert_indicator",    PTR(uzbl.behave.insert_indicator,    STR,  1,   update_title)},
+    { "command_indicator",   PTR(uzbl.behave.cmd_indicator,       STR,  1,   update_title)},
+    { "title_format_long",   PTR(uzbl.behave.title_format_long,   STR,  1,   update_title)},
+    { "title_format_short",  PTR(uzbl.behave.title_format_short,  STR,  1,   update_title)},
+    { "insert_mode",         PTR(uzbl.behave.insert_mode,         INT,  1,   NULL)},
+    { "always_insert_mode",  PTR(uzbl.behave.always_insert_mode,  INT,  1,   cmd_always_insert_mode)},
+    { "reset_command_mode",  PTR(uzbl.behave.reset_command_mode,  INT,  1,   NULL)},
+    { "modkey",              PTR(uzbl.behave.modkey,              STR,  1,   cmd_modkey)},
+    { "load_finish_handler", PTR(uzbl.behave.load_finish_handler, STR,  1,   NULL)},
+    { "load_start_handler",  PTR(uzbl.behave.load_start_handler,  STR,  1,   NULL)},
+    { "load_commit_handler", PTR(uzbl.behave.load_commit_handler, STR,  1,   NULL)},
+    { "history_handler",     PTR(uzbl.behave.history_handler,     STR,  1,   NULL)},
+    { "download_handler",    PTR(uzbl.behave.download_handler,    STR,  1,   NULL)},
+    { "cookie_handler",      PTR(uzbl.behave.cookie_handler,      STR,  1,   cmd_cookie_handler)},
+    { "fifo_dir",            PTR(uzbl.behave.fifo_dir,            STR,  1,   cmd_fifo_dir)},
+    { "socket_dir",          PTR(uzbl.behave.socket_dir,          STR,  1,   cmd_socket_dir)},
+    { "http_debug",          PTR(uzbl.behave.http_debug,          INT,  1,   cmd_http_debug)},
+    { "shell_cmd",           PTR(uzbl.behave.shell_cmd,           STR,  1,   NULL)},
+    { "proxy_url",           PTR(uzbl.net.proxy_url,              STR,  1,   set_proxy_url)},
+    { "max_conns",           PTR(uzbl.net.max_conns,              INT,  1,   cmd_max_conns)},
+    { "max_conns_host",      PTR(uzbl.net.max_conns_host,         INT,  1,   cmd_max_conns_host)},
+    { "useragent",           PTR(uzbl.net.useragent,              STR,  1,   cmd_useragent)},
     /* exported WebKitWebSettings properties*/
-    { "font_size",           PTR(uzbl.behave.font_size,           INT, cmd_font_size)},
-    { "monospace_size",      PTR(uzbl.behave.monospace_size,      INT, cmd_font_size)},
-    { "minimum_font_size",   PTR(uzbl.behave.minimum_font_size,   INT, cmd_minimum_font_size)},
-    { "disable_plugins",     PTR(uzbl.behave.disable_plugins,     INT, cmd_disable_plugins)},
-    { "disable_scripts",     PTR(uzbl.behave.disable_scripts,     INT, cmd_disable_scripts)},
-    { "autoload_images",     PTR(uzbl.behave.autoload_img,        INT, cmd_autoload_img)},
-    { "autoshrink_images",   PTR(uzbl.behave.autoshrink_img,      INT, cmd_autoshrink_img)},
-    { "enable_spellcheck",   PTR(uzbl.behave.enable_spellcheck,   INT, cmd_enable_spellcheck)},
-    { "enable_private",      PTR(uzbl.behave.enable_private,      INT, cmd_enable_private)},
-    { "print_backgrounds",   PTR(uzbl.behave.print_bg,            INT, cmd_print_bg)},
-    { "stylesheet_uri",      PTR(uzbl.behave.style_uri,           STR, cmd_style_uri)},
-    { "resizable_text_areas",PTR(uzbl.behave.resizable_txt,       INT, cmd_resizable_txt)},
-    { "default_encoding",    PTR(uzbl.behave.default_encoding,    STR, cmd_default_encoding)},
-    { "enforce_96_dpi",      PTR(uzbl.behave.enforce_96dpi,       INT, cmd_enforce_96dpi)},
-    { "caret_browsing",      PTR(uzbl.behave.caret_browsing,      INT, cmd_caret_browsing)},
+    { "font_size",           PTR(uzbl.behave.font_size,           INT,  1,   cmd_font_size)},
+    { "monospace_size",      PTR(uzbl.behave.monospace_size,      INT,  1,   cmd_font_size)},
+    { "minimum_font_size",   PTR(uzbl.behave.minimum_font_size,   INT,  1,   cmd_minimum_font_size)},
+    { "disable_plugins",     PTR(uzbl.behave.disable_plugins,     INT,  1,   cmd_disable_plugins)},
+    { "disable_scripts",     PTR(uzbl.behave.disable_scripts,     INT,  1,   cmd_disable_scripts)},
+    { "autoload_images",     PTR(uzbl.behave.autoload_img,        INT,  1,   cmd_autoload_img)},
+    { "autoshrink_images",   PTR(uzbl.behave.autoshrink_img,      INT,  1,   cmd_autoshrink_img)},
+    { "enable_spellcheck",   PTR(uzbl.behave.enable_spellcheck,   INT,  1,   cmd_enable_spellcheck)},
+    { "enable_private",      PTR(uzbl.behave.enable_private,      INT,  1,   cmd_enable_private)},
+    { "print_backgrounds",   PTR(uzbl.behave.print_bg,            INT,  1,   cmd_print_bg)},
+    { "stylesheet_uri",      PTR(uzbl.behave.style_uri,           STR,  1,   cmd_style_uri)},
+    { "resizable_text_areas",PTR(uzbl.behave.resizable_txt,       INT,  1,   cmd_resizable_txt)},
+    { "default_encoding",    PTR(uzbl.behave.default_encoding,    STR,  1,   cmd_default_encoding)},
+    { "enforce_96_dpi",      PTR(uzbl.behave.enforce_96dpi,       INT,  1,   cmd_enforce_96dpi)},
+    { "caret_browsing",      PTR(uzbl.behave.caret_browsing,      INT,  1,   cmd_caret_browsing)},
 
-    { NULL,                  {.ptr = NULL, .type = TYPE_INT, .func = NULL}}
+    { NULL,                  {.ptr = NULL, .type = TYPE_INT, .dump = 0, .func = NULL}}
 }, *n2v_p = var_name_to_ptr;
 
 const struct {
@@ -386,23 +389,27 @@ scroll (GtkAdjustment* bar, GArray *argv) {
     gtk_adjustment_set_value (bar, gtk_adjustment_get_value(bar)+amount);
 }
 
-static void scroll_begin(WebKitWebView* page, GArray *argv) {
+static void
+scroll_begin(WebKitWebView* page, GArray *argv) {
     (void) page; (void) argv;
     gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_lower(uzbl.gui.bar_v));
 }
 
-static void scroll_end(WebKitWebView* page, GArray *argv) {
+static void
+scroll_end(WebKitWebView* page, GArray *argv) {
     (void) page; (void) argv;
     gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_upper(uzbl.gui.bar_v) -
                               gtk_adjustment_get_page_size(uzbl.gui.bar_v));
 }
 
-static void scroll_vert(WebKitWebView* page, GArray *argv) {
+static void
+scroll_vert(WebKitWebView* page, GArray *argv) {
     (void) page;
     scroll(uzbl.gui.bar_v, argv);
 }
 
-static void scroll_horz(WebKitWebView* page, GArray *argv) {
+static void
+scroll_horz(WebKitWebView* page, GArray *argv) {
     (void) page;
     scroll(uzbl.gui.bar_h, argv);
 }
@@ -559,7 +566,8 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "dehilight",          {dehilight, 0}                 },
     { "toggle_insert_mode", {toggle_insert_mode, 0}        },
     { "runcmd",             {runcmd, NOSPLIT}              },
-    { "set",                {set_var, NOSPLIT}          }
+    { "set",                {set_var, NOSPLIT}             },
+    { "dump_config",        {act_dump_config, 0}           }
 };
 
 static void
@@ -609,6 +617,11 @@ set_var(WebKitWebView *page, GArray *argv) {
     ctl_line = g_strdup_printf("%s %s", "set", argv_idx(argv, 0));
     parse_cmd_line(ctl_line);
     g_free(ctl_line);
+}
+
+static void
+act_dump_config() {
+    dump_config();
 }
 
 static void
@@ -893,7 +906,8 @@ expand_template(const char *template, gboolean escape_markup) {
                      break;
                  case SYM_MODE:
                      g_string_append(ret,
-                             uzbl.behave.insert_mode?"[I]":"[C]");
+                             uzbl.behave.insert_mode?
+                             uzbl.behave.insert_indicator:uzbl.behave.cmd_indicator);
                      break;
                  case SYM_MSG:
                      g_string_append(ret,
@@ -1457,17 +1471,19 @@ static void
 parse_cmd_line(const char *ctl_line) {
     gchar **tokens = NULL;
     Behaviour *b = &uzbl.behave;
+    size_t len=0;
 
     if(b->mode == M_HTML) {
-
-        if(!strncmp(b->html_endmarker, ctl_line, strlen(b->html_endmarker))) {
+        len = strlen(b->html_endmarker);
+        /* ctl_line has trailing '\n' so we check for strlen(ctl_line)-1 */
+        if(len == strlen(ctl_line)-1 &&
+           !strncmp(b->html_endmarker, ctl_line, len)) {
             set_timeout(0);
             set_var_value("mode", "0");
             render_html();
             return;
         }
         else {
-            /* set an alarm to kill us after the timeout */
             set_timeout(b->html_timeout);
             g_string_append(b->html_buffer, ctl_line);
         }
@@ -2217,7 +2233,34 @@ set_up_inspector() {
     g_signal_connect (G_OBJECT (g->inspector), "notify::inspected-uri", G_CALLBACK (inspector_uri_changed_cb), NULL);
 }
 
+static void
+dump_var_hash(gpointer k, gpointer v, gpointer ud) {
+    (void) ud;
+    uzbl_cmdprop *c = v;
 
+    if(!c->dump)
+        return;
+
+    if(c->type == TYPE_STR)
+        printf("set %s = %s\n", (char *)k, *c->ptr?(char *)*c->ptr:" ");
+    else if(c->type == TYPE_INT)
+        printf("set %s = %d\n", (char *)k, (int)*c->ptr);
+}
+
+static void
+dump_key_hash(gpointer k, gpointer v, gpointer ud) {
+    (void) ud;
+    Action *a = v;
+
+    printf("bind %s = %s %s\n", (char *)k ,
+            (char *)a->name, a->param?(char *)a->param:"");
+}
+
+static void
+dump_config() {
+    g_hash_table_foreach(uzbl.comm.proto_var, dump_var_hash, NULL);
+    g_hash_table_foreach(uzbl.bindings, dump_key_hash, NULL);
+}
 
 /** -- MAIN -- **/
 int
@@ -2260,6 +2303,10 @@ main (int argc, char* argv[]) {
     uzbl.behave.html_endmarker = g_strdup(".");
     uzbl.behave.html_timeout = 60;
     uzbl.behave.base_url = g_strdup("http://invalid");
+
+    /* default mode indicators */
+    uzbl.behave.insert_indicator = g_strdup("I");
+    uzbl.behave.cmd_indicator    = g_strdup("C");
 
     setup_regex();
     setup_scanner();
