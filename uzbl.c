@@ -88,7 +88,7 @@ typedef const struct {
 enum {TYPE_INT, TYPE_STR};
 
 /* an abbreviation to help keep the table's width humane */
-#define PTR(var, t, d, fun) { .ptr = (void*)&(var), .type = TYPE_##t, .dump = d,.func = fun }
+#define PTR(var, t, d, fun) { .ptr = (void*)&(var), .type = TYPE_##t, .dump = d, .func = fun }
 
 const struct {
     char *name;
@@ -110,6 +110,8 @@ const struct {
     { "status_pbar_pending", PTR(uzbl.gui.sbar.progress_u,        STR,  1,   update_title)},
     { "status_pbar_width",   PTR(uzbl.gui.sbar.progress_w,        INT,  1,   update_title)},
     { "status_background",   PTR(uzbl.behave.status_background,   STR,  1,   update_title)},
+    { "insert_indicator",    PTR(uzbl.behave.insert_indicator,    STR,  1,   update_title)},
+    { "command_indicator",   PTR(uzbl.behave.cmd_indicator,       STR,  1,   update_title)},
     { "title_format_long",   PTR(uzbl.behave.title_format_long,   STR,  1,   update_title)},
     { "title_format_short",  PTR(uzbl.behave.title_format_short,  STR,  1,   update_title)},
     { "insert_mode",         PTR(uzbl.behave.insert_mode,         INT,  1,   NULL)},
@@ -904,7 +906,8 @@ expand_template(const char *template, gboolean escape_markup) {
                      break;
                  case SYM_MODE:
                      g_string_append(ret,
-                             uzbl.behave.insert_mode?"[I]":"[C]");
+                             uzbl.behave.insert_mode?
+                             uzbl.behave.insert_indicator:uzbl.behave.cmd_indicator);
                      break;
                  case SYM_MSG:
                      g_string_append(ret,
@@ -2296,6 +2299,10 @@ main (int argc, char* argv[]) {
     uzbl.behave.html_endmarker = g_strdup(".");
     uzbl.behave.html_timeout = 60;
     uzbl.behave.base_url = g_strdup("http://invalid");
+
+    /* default mode indicators */
+    uzbl.behave.insert_indicator = g_strdup("I");
+    uzbl.behave.cmd_indicator    = g_strdup("C");
 
     setup_regex();
     setup_scanner();

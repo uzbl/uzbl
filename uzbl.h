@@ -171,6 +171,8 @@ typedef struct {
     guint    mode;  
     gchar*   base_url;
     gchar*   html_endmarker;
+    gchar*   insert_indicator;
+    gchar*   cmd_indicator;
     GString* html_buffer;
     guint    html_timeout;  
 
