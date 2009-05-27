@@ -60,7 +60,7 @@ set shell_cmd         = sh -c
 set show_status       = 1
 # you can optionally use this setting to override the background color of the statusbar from your GTK theme.
 set status_background = #303030
-set status_format     = <span font_family="monospace"><span background="khaki" foreground="black">MODE</span> [<span weight="bold" foreground="red">KEYCMD</span>] <span foreground="#606060"> LOAD_PROGRESSBAR </span><span foreground="#99FF66">URI</span> <span foreground="khaki">NAME</span> <span foreground="orange">MSG</span><span foreground="#606060">SELECTED_URI</span></span>
+set status_format     = <span font_family="monospace"><span background="khaki" foreground="black">[MODE]</span> [<span weight="bold" foreground="red">KEYCMD</span>] <span foreground="#606060"> LOAD_PROGRESSBAR </span><span foreground="#99FF66">URI</span> <span foreground="khaki">NAME</span> <span foreground="orange">MSG</span><span foreground="#606060">SELECTED_URI</span></span>
 set status_top = 0
 # define how your titlebar should look like. (short = statusbar is also shown, long = show everything you must see if statusbar is off)
 set title_format_short = TITLE - Uzbl browser <NAME>
@@ -69,7 +69,8 @@ set title_format_long = KEYCMD MODE TITLE - Uzbl browser <NAME> > SELECTED_URI
 set status_pbar_done  = *
 set status_pbar_pending = -
 set status_pbar_width = 12
-
+set insert_indicator = I
+set command_indicator = C
 set modkey = Mod1
 # reset to command mode when new page is loaded
 set reset_command_mode = 1
