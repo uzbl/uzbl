@@ -11,22 +11,27 @@
 // bind f* = js hints.set("%s")
 // bind f_ = js hints.follow("%s")
 //
+// To enable hint highlighting, add:
+// set stylesheet_uri = /usr/share/uzbl/examples/data/style.css
+//
 // based on follow_Numbers.js
 //
-// TODO: set CSS styles
+// TODO: set CSS styles (done, but not working properly)
 // TODO: load the script as soon as the DOM is ready
+
 
 
 function Hints(){
 	var uzblid = 'uzbl_hint';
-	var uzblclass = 'uzbl_hint_class';
+	var uzblclass = "uzbl_hint_class";
+	var uzblclassfirst = "uzbl_hint_first";
 	var doc = document;
 	this.set = setHints;
 	this.follow = followHint;
 	this.keyPressHandler = keyPressHandler;
 
 	function hasClass(ele,cls) {
-			return ele.className.match(new RegExp('(\\s|^)'+cls+'(\\s|$)'));
+			return ele.className.split(/ /).some(function (n) { return n == cls });
 	}
 	 
 	function addClass(ele,cls) {
@@ -34,10 +39,7 @@ function Hints(){
 	}
 	 
 	function removeClass(ele,cls) {
-		if (hasClass(ele,cls)) {
-			var reg = new RegExp('(\\s|^)'+cls+'(\\s|$)');
-			ele.className=ele.className.replace(reg,' ');
-		}
+		ele.className = ele.className.split(/ /).filter(function (n) { n != cls}).join(" ");
 	}
 
 	function elementPosition(el) {
@@ -140,7 +142,12 @@ function Hints(){
 				var h = generateHint(pos,c);
 				h.href = function () {return item};
 				hintdiv.appendChild(h);
-				addClass(item,uzblclass);
+				if(c==1){
+					addClass(item,uzblclassfirst);
+		//			addClass(item,uzblclass);
+				} else {
+					addClass(item,uzblclass);
+				}
 				c++;
 			}
 		}
@@ -154,10 +161,15 @@ function Hints(){
 		if(hintdiv){
 			hintdiv.parentNode.removeChild(hintdiv);
 		}
-		var items = doc.getElementsByClassName(uzblclass);
-		for (var i = 0; i<items.length;i++){
-			removeClass(items[i],uzblclass);
+		var first = doc.getElementsByClassName(uzblclassfirst)[0];
+		if(first){
+			removeClass(first,uzblclassfirst);
 		}
+		// TODO: not all class attributes get removed
+		var items = doc.getElementsByClassName(uzblclass);
+		for (var i = 0; i<items.length; i++){
+			removeClass(items[i],uzblclass);
+		};
 		
 	}
 
@@ -174,6 +186,7 @@ function Hints(){
 		var elements = doc.getElementsByClassName(uzblclass);
 		// filter
 		var matched = [];
+		matched.push(doc.getElementsByClassName(uzblclassfirst)[0]);
 		for (var i = 0; i < elements.length;i++){
 			if(m.test(elements[i])){
 				matched.push(elements[i]);
@@ -186,7 +199,6 @@ function Hints(){
 		} else {
 			var item = matched[0];
 		}
-
 		if (item) {
 			item.style.borderStyle = "dotted";
 			item.style.borderWidth = "thin";
@@ -213,7 +225,10 @@ function Hints(){
 		}
 	}
 }
+var hints;
+//document.addEventListener("DOMContentLoaded",function () { hints = new Hints()},false);
 
 var hints = new Hints();
+
 
 
