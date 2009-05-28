@@ -77,7 +77,7 @@ function Hints(){
   }
 
   // the vimperator defaults minus the xhtml elements, since it gave DOM errors
-  var hintable = " //*[@onclick or @onmouseover or @onmousedown or @onmouseup or @oncommand or @class='lk' or @role='link'] | //input[not(@type='hidden')] | //a | //area | //iframe | //textarea | //button | //select";
+  var hintable = " //*[@onclick or @onmouseover or @onmousedown or @onmouseup or @oncommand or @class='lk' or @role='link' or @href] | //input[not(@type='hidden')] | //a | //area | //iframe | //textarea | //button | //select";
 
   function Matcher(str){
     var numbers = str.replace(/[^\d]/g,"");
