@@ -568,6 +568,8 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "runcmd",             {runcmd, NOSPLIT}              },
     { "set",                {set_var, NOSPLIT}             },
     { "dump_config",        {act_dump_config, 0}           },
+    { "keycmd",             {keycmd, NOSPLIT}              },
+    { "keycmd_nl",          {keycmd_nl, NOSPLIT}           },
     { "keycmd_bs",          {keycmd_bs, 0}                 }
 };
 
@@ -745,6 +747,24 @@ new_window_load_uri (const gchar * uri) {
         printf("\n%s\n", to_execute->str);
     g_spawn_command_line_async (to_execute->str, NULL);
     g_string_free (to_execute, TRUE);
+}
+
+static void
+keycmd (WebKitWebView *page, GArray *argv) {
+    (void)page;
+    (void)argv;
+    g_string_assign(uzbl.state.keycmd, argv_idx(argv, 0));
+    run_keycmd(FALSE);
+    update_title();
+}
+
+static void
+keycmd_nl (WebKitWebView *page, GArray *argv) {
+    (void)page;
+    (void)argv;
+    g_string_assign(uzbl.state.keycmd, argv_idx(argv, 0));
+    run_keycmd(TRUE);
+    update_title();
 }
 
 static void
