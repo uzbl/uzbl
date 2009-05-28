@@ -306,6 +306,9 @@ static void
 new_window_load_uri (const gchar * uri);
 
 static void
+keycmd_bs (WebKitWebView *page, GArray *argv);
+
+static void
 close_uzbl (WebKitWebView *page, GArray *argv);
 
 static gboolean

@@ -567,7 +567,8 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "toggle_insert_mode", {toggle_insert_mode, 0}        },
     { "runcmd",             {runcmd, NOSPLIT}              },
     { "set",                {set_var, NOSPLIT}             },
-    { "dump_config",        {act_dump_config, 0}           }
+    { "dump_config",        {act_dump_config, 0}           },
+    { "keycmd_bs",          {keycmd_bs, 0}                 }
 };
 
 static void
@@ -744,6 +745,14 @@ new_window_load_uri (const gchar * uri) {
         printf("\n%s\n", to_execute->str);
     g_spawn_command_line_async (to_execute->str, NULL);
     g_string_free (to_execute, TRUE);
+}
+
+static void
+keycmd_bs (WebKitWebView *page, GArray *argv) {
+    (void)page;
+    (void)argv;
+    g_string_truncate(uzbl.state.keycmd, uzbl.state.keycmd->len - 1);
+    update_title();
 }
 
 static void
@@ -1856,10 +1865,8 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
         return TRUE;
     }
 
-    if ((event->keyval == GDK_BackSpace) && (uzbl.state.keycmd->len > 0)) {
-        g_string_truncate(uzbl.state.keycmd, uzbl.state.keycmd->len - 1);
-        update_title();
-    }
+    if (event->keyval == GDK_BackSpace)
+        keycmd_bs(NULL, NULL);
 
     gboolean key_ret = FALSE;
     if ((event->keyval == GDK_Return) || (event->keyval == GDK_KP_Enter))
