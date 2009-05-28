@@ -305,6 +305,9 @@ static void
 new_window_load_uri (const gchar * uri);
 
 static void
+chain (WebKitWebView *page, GArray *argv);
+
+static void
 keycmd (WebKitWebView *page, GArray *argv);
 
 static void

@@ -570,7 +570,8 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "dump_config",        {act_dump_config, 0}           },
     { "keycmd",             {keycmd, NOSPLIT}              },
     { "keycmd_nl",          {keycmd_nl, NOSPLIT}           },
-    { "keycmd_bs",          {keycmd_bs, 0}                 }
+    { "keycmd_bs",          {keycmd_bs, 0}                 },
+    { "chain",              {chain, 0}                     }
 };
 
 static void
@@ -747,6 +748,19 @@ new_window_load_uri (const gchar * uri) {
         printf("\n%s\n", to_execute->str);
     g_spawn_command_line_async (to_execute->str, NULL);
     g_string_free (to_execute, TRUE);
+}
+
+static void
+chain (WebKitWebView *page, GArray *argv) {
+    (void)page;
+    gchar *a = NULL;
+    gchar **parts = NULL;
+    guint i = 0;    
+    while ((a = argv_idx(argv, i++))) {
+        parts = g_strsplit (a, " ", 2);
+        parse_command(parts[0], parts[1]);
+        g_strfreev (parts);
+    }
 }
 
 static void
