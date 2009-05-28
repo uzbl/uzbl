@@ -10,7 +10,7 @@
 // bind f_ = js hints.follow("%s",hints.open)
 //
 // At the moment, it may be useful to have way of forcing uzbl to load the script
-// bind :lf = script /usr/share/examples/scripts/linkfollow.js
+// bind :lf = script /usr/share/uzbl/examples/scripts/linkfollow.js
 //
 // The default style for the hints are pretty ugly, so it is recommended to add the following
 // to config file
@@ -25,10 +25,19 @@
 
 function Hints(){
 
+  // Settings
+  ////////////////////////////////////////////////////////////////////////////
 
   // if set to true, you must explicitly call hints.follow(), otherwise it will
   // follow the link if there is only one matching result
   var requireReturn = true;
+
+  // Case sensitivity flag
+  var matchCase = "i";
+
+  // For case sensitive matching, uncomment:
+  // var matchCase = "";
+
 
   var uzblid = 'uzbl_hint';
   var uzblclass = 'uzbl_highlight';
@@ -81,7 +90,7 @@ function Hints(){
 
   function Matcher(str){
     var numbers = str.replace(/[^\d]/g,"");
-    var words = str.replace(/\d/g,"").split(/\s+/).map(function (n) { return new RegExp(n,"i")});
+    var words = str.replace(/\d/g,"").split(/\s+/).map(function (n) { return new RegExp(n,matchCase)});
     this.test = test;
     this.toString = toString;
     this.numbers = numbers;
@@ -195,10 +204,12 @@ function Hints(){
 
   this.openNewWindow = function(item){
     // TODO: this doesn't work yet
+    item.className += " uzbl_follow";
     window.open(item.href,"uzblnew","");
   }
   this.open = function(item){
     simulateMouseOver(item);
+    item.className += " uzbl_follow";
     window.location = item.href;
   }
 
@@ -222,13 +233,6 @@ function Hints(){
       var item = items[0].node;
     }
     if (item) {
-      // This causes some elements to move around. Guess it should only be applied to
-      // links
-      item.style.margin -= 3;
-      item.style.padding -= 3;
-      item.style.borderStyle = "dotted";
-      item.style.borderWidth = "thin";
-
       var name = item.tagName;
       if (name == 'A') {
         if(item.click) {item.click()};
