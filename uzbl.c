@@ -1315,7 +1315,7 @@ cmd_disable_plugins() {
 static void
 cmd_disable_scripts() {
     g_object_set (G_OBJECT(view_settings()), "enable-scripts",
-            !uzbl.behave.disable_plugins, NULL);
+            !uzbl.behave.disable_scripts, NULL);
 }
 
 static void
