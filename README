@@ -174,6 +174,9 @@ actions follows:
    - keycmd sets the interactive command buffer to `<string>`.  If the given string is a valid binding, it will execute.  `Keycmd_nl` is like `keycmd`, but it also emulates a press of return, causing bindings with a parameter to execute.  For example, `keycmd_nl o google.com` would load the said url if you have a binding like `bind o _ = uri %s`.
 * `keycmd_bs`
    - erase (backspace) one character from the command buffer
+* `chain <action> <action> ..`
+   - use for chaining multiple actions
+   - remember to quote the actions; one action must come as one parameter
 
 
 ### VARIABLE REPLACEMENT
