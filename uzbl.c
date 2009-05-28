@@ -1198,8 +1198,6 @@ setup_regex() {
             G_REGEX_UNGREEDY|G_REGEX_OPTIMIZE, 0, NULL);
     uzbl.comm.act_regex = g_regex_new("^[Aa][a-zA-Z]*\\s+([^ \\n]+)\\s*([^\\n]*)?$",
             G_REGEX_OPTIMIZE, 0, NULL);
-    uzbl.comm.keycmd_regex = g_regex_new("^[Kk][a-zA-Z]*\\s+([^\\n]+)$",
-            G_REGEX_OPTIMIZE, 0, NULL);
 }
 
 static gboolean
@@ -1557,19 +1555,6 @@ parse_cmd_line(const char *ctl_line) {
             }
             else
                 printf("Error in command: %s\n", tokens[0]);
-        }
-        /* KEYCMD command */
-        else if(ctl_line[0] == 'K' || ctl_line[0] == 'k') {
-            tokens = g_regex_split(uzbl.comm.keycmd_regex, ctl_line, 0);
-            if(tokens[0][0] == 0) {
-                /* should incremental commands want each individual "keystroke"
-                   sent in a loop or the whole string in one go like now? */
-                g_string_assign(uzbl.state.keycmd, tokens[1]);
-                run_keycmd(FALSE);
-                if (g_strstr_len(ctl_line, 7, "n") || g_strstr_len(ctl_line, 7, "N"))
-                    run_keycmd(TRUE);
-                update_title();
-            }
         }
         /* Comments */
         else if(   (ctl_line[0] == '#')
