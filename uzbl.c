@@ -2392,6 +2392,9 @@ main (int argc, char* argv[]) {
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
     g_option_context_parse (context, &argc, &argv, NULL);
     g_option_context_free(context);
+    
+    gchar *uri_override = (uzbl.state.uri ? g_strdup(uzbl.state.uri) : NULL);
+
     /* initialize hash table */
     uzbl.bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
 
@@ -2469,12 +2472,11 @@ main (int argc, char* argv[]) {
 
     create_stdin();
 
-    if(uzbl.state.uri) {
-        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-        g_array_append_val(a, uzbl.state.uri);
-        load_uri (uzbl.gui.web_view, a);
-        g_array_free (a, TRUE);
-    }
+    if (uri_override) {
+        set_var_value("uri", uri_override);
+        g_free(uri_override);
+    } else if (uzbl.state.uri)
+        cmd_load_uri(uzbl.gui.web_view, NULL);
 
     gtk_main ();
     clean_up();
