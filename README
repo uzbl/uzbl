@@ -95,44 +95,31 @@ Uzbl will read commands via standard input, named fifo pipe (if `fifo_dir` is se
 For convenience, uzbl can also be instructed to read commands from a file on startup by using the `-c` option.  Indeed, the config file is nothing more than a list of commands.
 
 Each command starts with the name of the command, which must be the first thing on a line; preceding whitespace is not allowed.
-A command is terminated by a newline.  Empty lines and lines that start with the hash sign are ignored by the parser.  Command names are not case sensitive.
+A command is terminated by a newline.  Empty lines and lines that start with the hash sign are ignored by the parser.  Command names are always written in lowercase.
 
 The following commands are recognized:
 
-    SET <key> = <value>
-Set is used for changing variables.  Every variable can be changed on the fly and for some variables, some additional logic is performed.
-For example, setting the variable `uri` will make uzbl start loading it, and changing the format of the statusbar/windowtitle/user agent/.. will be effective immediately.
-If you want to unset a string, use SET with one space after the equals sign.
+* `set <key> = <value>`
+   - used for changing variables on the fly
+   - the changes are effective immediately; for example, setting the variable `uri` will make uzbl start loading, and changing `status_format` will make the status bar react immediately
+   - if you want to unset a string, use `set` with one space after the equals sign
+* `get <key>`
+   - use this to print the value of a variable. (and TODO, get the value through the socket)
+* `bind <string> = <command>`
+   - sets the character sequence `<string>` to invoke `<command>` when typed interactively in uzbl
+   - there are a few tricks you can do:
+       * `<string>` ends with an underscore: the command will only be invoked after pressing return/enter. If the user enters text where `<string>` has the underscore, `%s` in the `<command>` string will be replaced by this text. (optional)
+       * `<string>` ends with an asterisk: similar behavior as with an underscore, but also makes the binding incremental (i.e. the command will be invoked on every keystroke).
+       * `<string>` ends on a different character: you need to type the full string, which will trigger the command immediately, without pressing enter/return.
+   - examples:
 
-    GET <key>
-Use this to print the value of a key. (and TODO, get the value through the socket)
-
-    BIND <string> = <action>
-Makes the character sequence `<string>` invoke `<action>` when typed interactively in uzbl.
-There are a few tricks you can do:
-
-* `<string>` ends with an underscore: the action will only be invoked after pressing return/enter. If the user enters text where `<string>` has the underscore, `%s` in the `<action>` string will be replaced by this text. (optional)
-* `<string>` ends with an asterisk: similar behavior as with an underscore, but also makes the binding incremental (i.e. the action will be invoked on every keystroke).
-* `<string>` ends on a different character: you need to type the full string, which will trigger the action immediately, without pressing enter/return.
-
-Examples:
-
-    # uzbl will load the url when you type: 'o <url><enter>'
-    bind o _ = uri %s
-    # a search action which is called on every character typed after the slash, letting you see the search narrow down while typing.
-    #  Hitting return, enter or esc will terminate the search.
-    bind /*  = search %s
-    # when you type `ZZ` and nothing else, the exit action will be triggered immediately.
-    bind ZZ  = exit
-
-    ACT <action>
-This tells uzbl to execute an action immediately.  The simplest example of this would be `act exit`; you know what that'll do.
-
-(See sample config)
-
-### ACTIONS
-Actions are invoked via bindings and by the ACT command.  Most actions are self-explanatory, though a few need to be clarified.  A list of
-actions follows:
+        # uzbl will load the url when you type: 'o <url><enter>'
+        bind o _ = uri %s
+        # a search command which is called on every character typed after the slash, letting you see the search narrow down while typing.
+        #  Hitting return, enter or esc will terminate the search.
+        bind /*  = search %s
+        # when you type `ZZ` and nothing else, the exit command will be triggered immediately.
+        bind ZZ  = exit
 
 * `back`
 * `forward`
@@ -150,7 +137,7 @@ actions follows:
 * `uri <address>`
 * `js <body>`
    - execute the javascript in `<body>`
-   - remember that the commands, and thus actions, must not contain line breaks
+   - remember that the commands must not contain line breaks
 * `script <file>`
    - execute the javascript in `<file>`
 * `toggle_status`
@@ -161,14 +148,16 @@ actions follows:
 * `sh <command>`
    - runs a shell command by expanding `%s` in the `shell_cmd` variable with the specified command; primarily useful as a shortcut for `spawn sh -c <body>`
    - note that the arguments as specified in "EXTERNAL SCRIPTS" are appended at the end, so the argument numbers will be higher.
+* `sync_spawn <executable> <additional args>`
+* `sync_sh <command>`
+   - these are synchronous variants of `spawn` and `sh`, which means uzbl will wait for them to return
+   - you should only need to use these manually if you want to use a chain action in a handler that wants output from the command it runs
 * `exit`
 * `search <string>`
 * `search_reverse <string>`
    - search with no string will search for the next/previous occurrence of the string previously searched for
 * `toggle_insert_mode <optional state>`
    - if the optional state is 0, disable insert mode. If 1, enable insert mode.
-* `runcmd`
-   - can be used for running a command such as SET or BIND
 * `keycmd <string>`
 * `keycmd_nl <string>`
    - keycmd sets the interactive command buffer to `<string>`.  If the given string is a valid binding, it will execute.  `Keycmd_nl` is like `keycmd`, but it also emulates a press of return, causing bindings with a parameter to execute.  For example, `keycmd_nl o google.com` would load the said url if you have a binding like `bind o _ = uri %s`.
@@ -177,6 +166,7 @@ actions follows:
 * `chain <action> <action> ..`
    - use for chaining multiple actions
    - remember to quote the actions; one action must come as one parameter
+   - if you use `chain` with a handler script which must return some output (such as a cookie handler -- uzbl will wait for and use its output), use sync_spawn or sync_sh instead of spawn or sh in the command that should give the output
 
 
 ### VARIABLE REPLACEMENT
