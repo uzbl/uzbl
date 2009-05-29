@@ -198,15 +198,14 @@ expand_vars(char *s) {
     while(*s) {
         /* found quotation char */
         if(*s == '\\') {
-            //g_string_append_c(buf, *s);
-            g_string_append_c(buf, *(s+1));
-            s += 2;
+            g_string_append_c(buf, *++s);
+            s++;
         }
         /* found variable */
         else if(*s == '@') {
             s++;
             if( (vend = strchr(s, ' ')) ||
-                    (vend = strchr(s, '\0')) ) {
+                (vend = strchr(s, '\0')) ) {
                 strncpy(ret, s, vend-s);
                 ret[vend-s] = '\0';
                 if( (c = g_hash_table_lookup(uzbl.comm.proto_var, ret)) ) {
