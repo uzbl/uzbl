@@ -186,8 +186,49 @@ make_var_to_name_hash() {
     }
 }
 
-
 /* --- UTILITY FUNCTIONS --- */
+static gchar *
+expand_vars(char *s) {
+
+    char ret[256],  /* 256 chars per var name should be safe */
+         *vend;
+    uzbl_cmdprop *c;
+    GString *buf = g_string_new("");
+
+    while(*s) {
+        /* found quotation char */
+        if(*s == '\\') {
+            g_string_append_c(buf, *s);
+            g_string_append_c(buf, *(s+1));
+            s += 2;
+        }
+        /* found variable */
+        else if(*s == '@') {
+            s++;
+            if( (vend = strchr(s, ' ')) ||
+                    (vend = strchr(s, '\0')) ) {
+                strncpy(ret, s, vend-s);
+                ret[vend-s] = '\0';
+                if( (c = g_hash_table_lookup(uzbl.comm.proto_var, ret)) ) {
+                    if(c->type == TYPE_STR)
+                        g_string_append(buf, (gchar *)*c->ptr);
+                    else if(c->type == TYPE_INT) {
+                        char *b = itos((int)*c->ptr);
+                        g_string_append(buf, b);
+                        g_free(b);
+                    }
+                }
+                s = vend;
+            }
+        }
+        /* every other char */
+        else {
+            g_string_append_c(buf, *s);
+            s++;
+        }
+    }
+    return g_string_free(buf, FALSE);
+}
 
 char *
 itos(int val) {
@@ -1472,15 +1513,19 @@ static gboolean
 set_var_value(gchar *name, gchar *val) {
     uzbl_cmdprop *c = NULL;
     char *endp = NULL;
+    char *buf = NULL;
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         /* check for the variable type */
         if (c->type == TYPE_STR) {
+            buf = expand_vars(val);
             g_free(*c->ptr);
-            *c->ptr = g_strdup(val);
+            *c->ptr = buf;
         } else if(c->type == TYPE_INT) {
             int *ip = (int *)c->ptr;
-            *ip = (int)strtoul(val, &endp, 10);
+            buf = expand_vars(val);
+            *ip = (int)strtoul(buf, &endp, 10);
+            g_free(buf);
         }
 
         /* invoke a command specific function */
@@ -2388,6 +2433,8 @@ main (int argc, char* argv[]) {
         g_array_free (a, TRUE);
     }
 
+    //char *tstr = "Proxy is @proxy_url and now quoted \\@proxy_url status_top=@status_top \\\\\\";
+    //expand_vars(tstr);
     gtk_main ();
     clean_up();
 
