@@ -1266,13 +1266,6 @@ parse_command(const char *cmd, const char *param) {
         g_printerr ("command \"%s\" not understood. ignoring.\n", cmd);
 }
 
-/* command parser */
-static void
-setup_regex() {
-    uzbl.comm.act_regex = g_regex_new("^[Aa][a-zA-Z]*\\s+([^ \\n]+)\\s*([^\\n]*)?$",
-            G_REGEX_OPTIMIZE, 0, NULL);
-}
-
 static gboolean
 get_var_value(const gchar *name) {
     uzbl_cmdprop *c;
@@ -1568,7 +1561,6 @@ render_html() {
 enum {M_CMD, M_HTML};
 static void
 parse_cmd_line(const char *ctl_line) {
-    gchar **tokens = NULL;
     Behaviour *b = &uzbl.behave;
     size_t len=0;
 
@@ -1587,36 +1579,23 @@ parse_cmd_line(const char *ctl_line) {
             g_string_append(b->html_buffer, ctl_line);
         }
     }
-    else {
-        /* ACT command */
-        if(ctl_line[0] == 'A' || ctl_line[0] == 'a') {
-            tokens = g_regex_split(uzbl.comm.act_regex, ctl_line, 0);
-            if(tokens[0][0] == 0) {
-                parse_command(tokens[1], tokens[2]);
-            }
-            else
-                printf("Error in command: %s\n", tokens[0]);
-        }
-        /* Comments */
-        else if(   (ctl_line[0] == '#')
-                || (ctl_line[0] == ' ')
-                || (ctl_line[0] == '\n'))
-            ; /* ignore these lines */
-        else {
-            gchar *ctlstrip;
-            if (ctl_line[strlen(ctl_line) - 1] == '\n')
-                ctlstrip = g_strndup(ctl_line, strlen(ctl_line) - 1);
-            else ctlstrip = g_strdup(ctl_line);
-            tokens = g_strsplit(ctlstrip, " ", 2);
+    else if((ctl_line[0] == '#') /* Comments */
+            || (ctl_line[0] == ' ')
+            || (ctl_line[0] == '\n'))
+        ; /* ignore these lines */
+    else { /* parse a command */
+        gchar *ctlstrip;
+        gchar **tokens = NULL;
 
-            parse_command(tokens[0], tokens[1]);
-            g_free(ctlstrip);
-        }
-        if(tokens)
-            g_strfreev(tokens);
+        if (ctl_line[strlen(ctl_line) - 1] == '\n') /* strip trailing newline */
+            ctlstrip = g_strndup(ctl_line, strlen(ctl_line) - 1);
+        else ctlstrip = g_strdup(ctl_line);
+
+        tokens = g_strsplit(ctlstrip, " ", 2);
+        parse_command(tokens[0], tokens[1]);
+        g_free(ctlstrip);
+        g_strfreev(tokens);
     }
-
-    return;
 }
 
 static gchar*
@@ -2444,7 +2423,6 @@ main (int argc, char* argv[]) {
     uzbl.behave.insert_indicator = g_strdup("I");
     uzbl.behave.cmd_indicator    = g_strdup("C");
 
-    setup_regex();
     setup_scanner();
     commands_hash ();
     make_var_to_name_hash();

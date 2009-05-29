@@ -93,8 +93,6 @@ typedef struct {
     gchar          *socket_path;
     /* stores (key)"variable name" -> (value)"pointer to this var*/
     GHashTable     *proto_var;
-    /* command parsing regexes */
-    GRegex         *act_regex;
     gchar          *sync_stdout;
 } Communication;
 
