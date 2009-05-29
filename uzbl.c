@@ -1602,9 +1602,16 @@ parse_cmd_line(const char *ctl_line) {
                 || (ctl_line[0] == ' ')
                 || (ctl_line[0] == '\n'))
             ; /* ignore these lines */
-        else
-            printf("Command not understood (%s)\n", ctl_line);
+        else {
+            gchar *ctlstrip;
+            if (ctl_line[strlen(ctl_line) - 1] == '\n')
+                ctlstrip = g_strndup(ctl_line, strlen(ctl_line) - 1);
+            else ctlstrip = g_strdup(ctl_line);
+            tokens = g_strsplit(ctlstrip, " ", 2);
 
+            parse_command(tokens[0], tokens[1]);
+            g_free(ctlstrip);
+        }
         if(tokens)
             g_strfreev(tokens);
     }
