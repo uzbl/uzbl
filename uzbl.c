@@ -186,8 +186,48 @@ make_var_to_name_hash() {
     }
 }
 
-
 /* --- UTILITY FUNCTIONS --- */
+static gchar *
+expand_vars(char *s) {
+
+    char ret[256],  /* 256 chars per var name should be safe */
+         *vend;
+    uzbl_cmdprop *c;
+    GString *buf = g_string_new("");
+
+    while(*s) {
+        /* found quotation char */
+        if(*s == '\\') {
+            g_string_append_c(buf, *++s);
+            s++;
+        }
+        /* found variable */
+        else if(*s == '@') {
+            s++;
+            if( (vend = strchr(s, ' ')) ||
+                (vend = strchr(s, '\0')) ) {
+                strncpy(ret, s, vend-s);
+                ret[vend-s] = '\0';
+                if( (c = g_hash_table_lookup(uzbl.comm.proto_var, ret)) ) {
+                    if(c->type == TYPE_STR)
+                        g_string_append(buf, (gchar *)*c->ptr);
+                    else if(c->type == TYPE_INT) {
+                        char *b = itos((int)*c->ptr);
+                        g_string_append(buf, b);
+                        g_free(b);
+                    }
+                }
+                s = vend;
+            }
+        }
+        /* every other char */
+        else {
+            g_string_append_c(buf, *s);
+            s++;
+        }
+    }
+    return g_string_free(buf, FALSE);
+}
 
 char *
 itos(int val) {
@@ -567,7 +607,11 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "toggle_insert_mode", {toggle_insert_mode, 0}        },
     { "runcmd",             {runcmd, NOSPLIT}              },
     { "set",                {set_var, NOSPLIT}             },
-    { "dump_config",        {act_dump_config, 0}           }
+    { "dump_config",        {act_dump_config, 0}           },
+    { "keycmd",             {keycmd, NOSPLIT}              },
+    { "keycmd_nl",          {keycmd_nl, NOSPLIT}           },
+    { "keycmd_bs",          {keycmd_bs, 0}                 },
+    { "chain",              {chain, 0}                     }
 };
 
 static void
@@ -744,6 +788,45 @@ new_window_load_uri (const gchar * uri) {
         printf("\n%s\n", to_execute->str);
     g_spawn_command_line_async (to_execute->str, NULL);
     g_string_free (to_execute, TRUE);
+}
+
+static void
+chain (WebKitWebView *page, GArray *argv) {
+    (void)page;
+    gchar *a = NULL;
+    gchar **parts = NULL;
+    guint i = 0;    
+    while ((a = argv_idx(argv, i++))) {
+        parts = g_strsplit (a, " ", 2);
+        parse_command(parts[0], parts[1]);
+        g_strfreev (parts);
+    }
+}
+
+static void
+keycmd (WebKitWebView *page, GArray *argv) {
+    (void)page;
+    (void)argv;
+    g_string_assign(uzbl.state.keycmd, argv_idx(argv, 0));
+    run_keycmd(FALSE);
+    update_title();
+}
+
+static void
+keycmd_nl (WebKitWebView *page, GArray *argv) {
+    (void)page;
+    (void)argv;
+    g_string_assign(uzbl.state.keycmd, argv_idx(argv, 0));
+    run_keycmd(TRUE);
+    update_title();
+}
+
+static void
+keycmd_bs (WebKitWebView *page, GArray *argv) {
+    (void)page;
+    (void)argv;
+    g_string_truncate(uzbl.state.keycmd, uzbl.state.keycmd->len - 1);
+    update_title();
 }
 
 static void
@@ -1169,8 +1252,6 @@ setup_regex() {
             G_REGEX_UNGREEDY|G_REGEX_OPTIMIZE, 0, NULL);
     uzbl.comm.act_regex = g_regex_new("^[Aa][a-zA-Z]*\\s+([^ \\n]+)\\s*([^\\n]*)?$",
             G_REGEX_OPTIMIZE, 0, NULL);
-    uzbl.comm.keycmd_regex = g_regex_new("^[Kk][a-zA-Z]*\\s+([^\\n]+)$",
-            G_REGEX_OPTIMIZE, 0, NULL);
 }
 
 static gboolean
@@ -1274,7 +1355,7 @@ cmd_disable_plugins() {
 static void
 cmd_disable_scripts() {
     g_object_set (G_OBJECT(view_settings()), "enable-scripts",
-            !uzbl.behave.disable_plugins, NULL);
+            !uzbl.behave.disable_scripts, NULL);
 }
 
 static void
@@ -1431,15 +1512,19 @@ static gboolean
 set_var_value(gchar *name, gchar *val) {
     uzbl_cmdprop *c = NULL;
     char *endp = NULL;
+    char *buf = NULL;
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         /* check for the variable type */
         if (c->type == TYPE_STR) {
+            buf = expand_vars(val);
             g_free(*c->ptr);
-            *c->ptr = g_strdup(val);
+            *c->ptr = buf;
         } else if(c->type == TYPE_INT) {
             int *ip = (int *)c->ptr;
-            *ip = (int)strtoul(val, &endp, 10);
+            buf = expand_vars(val);
+            *ip = (int)strtoul(buf, &endp, 10);
+            g_free(buf);
         }
 
         /* invoke a command specific function */
@@ -1528,19 +1613,6 @@ parse_cmd_line(const char *ctl_line) {
             }
             else
                 printf("Error in command: %s\n", tokens[0]);
-        }
-        /* KEYCMD command */
-        else if(ctl_line[0] == 'K' || ctl_line[0] == 'k') {
-            tokens = g_regex_split(uzbl.comm.keycmd_regex, ctl_line, 0);
-            if(tokens[0][0] == 0) {
-                /* should incremental commands want each individual "keystroke"
-                   sent in a loop or the whole string in one go like now? */
-                g_string_assign(uzbl.state.keycmd, tokens[1]);
-                run_keycmd(FALSE);
-                if (g_strstr_len(ctl_line, 7, "n") || g_strstr_len(ctl_line, 7, "N"))
-                    run_keycmd(TRUE);
-                update_title();
-            }
         }
         /* Comments */
         else if(   (ctl_line[0] == '#')
@@ -1856,10 +1928,8 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
         return TRUE;
     }
 
-    if ((event->keyval == GDK_BackSpace) && (uzbl.state.keycmd->len > 0)) {
-        g_string_truncate(uzbl.state.keycmd, uzbl.state.keycmd->len - 1);
-        update_title();
-    }
+    if (event->keyval == GDK_BackSpace)
+        keycmd_bs(NULL, NULL);
 
     gboolean key_ret = FALSE;
     if ((event->keyval == GDK_Return) || (event->keyval == GDK_KP_Enter))

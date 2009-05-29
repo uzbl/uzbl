@@ -96,7 +96,6 @@ typedef struct {
     /* command parsing regexes */
     GRegex         *set_regex;
     GRegex         *act_regex;
-    GRegex         *keycmd_regex;
     GRegex         *get_regex;
     GRegex         *bind_regex;
     gchar          *sync_stdout;
@@ -304,6 +303,18 @@ load_uri (WebKitWebView * web_view, GArray *argv);
 
 static void
 new_window_load_uri (const gchar * uri);
+
+static void
+chain (WebKitWebView *page, GArray *argv);
+
+static void
+keycmd (WebKitWebView *page, GArray *argv);
+
+static void
+keycmd_nl (WebKitWebView *page, GArray *argv);
+
+static void
+keycmd_bs (WebKitWebView *page, GArray *argv);
 
 static void
 close_uzbl (WebKitWebView *page, GArray *argv);

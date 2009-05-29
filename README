@@ -128,12 +128,6 @@ Examples:
     ACT <action>
 This tells uzbl to execute an action immediately.  The simplest example of this would be `act exit`; you know what that'll do.
 
-    KEYCMD <string>
-This sets the interactive command buffer to `<string>`.  Keycmd is primarily useful for scripts that help you type a command while still letting you edit it before execution.
-For example, if you have a binding like "o _" that opens an URL, then you could create a binding `O` that spawns a script which will set the command buffer to "o current-uri-here", letting you enter relative URLs easily.
-
-    KEYCMDN <string>
-Like KEYCMD, but also emulates a press of return which causes binds with an asterisk or underscore to execute.
 (See sample config)
 
 ### ACTIONS
@@ -175,6 +169,14 @@ actions follows:
    - if the optional state is 0, disable insert mode. If 1, enable insert mode.
 * `runcmd`
    - can be used for running a command such as SET or BIND
+* `keycmd <string>`
+* `keycmd_nl <string>`
+   - keycmd sets the interactive command buffer to `<string>`.  If the given string is a valid binding, it will execute.  `Keycmd_nl` is like `keycmd`, but it also emulates a press of return, causing bindings with a parameter to execute.  For example, `keycmd_nl o google.com` would load the said url if you have a binding like `bind o _ = uri %s`.
+* `keycmd_bs`
+   - erase (backspace) one character from the command buffer
+* `chain <action> <action> ..`
+   - use for chaining multiple actions
+   - remember to quote the actions; one action must come as one parameter
 
 
 ### VARIABLE REPLACEMENT
