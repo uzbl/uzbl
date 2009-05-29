@@ -612,7 +612,6 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "search_reverse",     {search_reverse_text, NOSPLIT} },
     { "dehilight",          {dehilight, 0}                 },
     { "toggle_insert_mode", {toggle_insert_mode, 0}        },
-    { "runcmd",             {runcmd, NOSPLIT}              },
     { "set",                {set_var, NOSPLIT}             },
     { "get",                {get_var, NOSPLIT}             },
     { "bind",               {act_bind, NOSPLIT}            },
@@ -1552,12 +1551,6 @@ set_var_value(gchar *name, gchar *val) {
         if(c->func) c->func();
     }
     return TRUE;
-}
-
-static void
-runcmd(WebKitWebView* page, GArray *argv) {
-    (void) page;
-    parse_cmd_line(argv_idx(argv, 0));
 }
 
 static void

@@ -339,9 +339,6 @@ static void
 parse_command(const char *cmd, const char *param);
 
 static void
-runcmd(WebKitWebView *page, GArray *argv);
-
-static void
 parse_cmd_line(const char *ctl_line);
 
 static gchar*
