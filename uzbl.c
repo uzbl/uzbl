@@ -614,6 +614,7 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "toggle_insert_mode", {toggle_insert_mode, 0}        },
     { "runcmd",             {runcmd, NOSPLIT}              },
     { "set",                {set_var, NOSPLIT}             },
+    { "get",                {get_var, NOSPLIT}             },
     { "dump_config",        {act_dump_config, 0}           },
     { "keycmd",             {keycmd, NOSPLIT}              },
     { "keycmd_nl",          {keycmd_nl, NOSPLIT}           },
@@ -668,6 +669,12 @@ set_var(WebKitWebView *page, GArray *argv) {
     ctl_line = g_strdup_printf("%s %s", "set", argv_idx(argv, 0));
     parse_cmd_line(ctl_line);
     g_free(ctl_line);
+}
+
+static void
+get_var(WebKitWebView *page, GArray *argv) {
+    (void) page;
+    get_var_value(argv_idx(argv, 0));
 }
 
 static void
@@ -1262,7 +1269,7 @@ setup_regex() {
 }
 
 static gboolean
-get_var_value(gchar *name) {
+get_var_value(const gchar *name) {
     uzbl_cmdprop *c;
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
@@ -1589,15 +1596,6 @@ parse_cmd_line(const char *ctl_line) {
                 gchar* value = parseenv(g_strdup(tokens[2]));
                 set_var_value(tokens[1], value);
                 g_free(value);
-            }
-            else
-                printf("Error in command: %s\n", tokens[0]);
-        }
-        /* GET command */
-        else if(ctl_line[0] == 'g' || ctl_line[0] == 'G') {
-            tokens = g_regex_split(uzbl.comm.get_regex, ctl_line, 0);
-            if(tokens[0][0] == 0) {
-                get_var_value(tokens[1]);
             }
             else
                 printf("Error in command: %s\n", tokens[0]);
