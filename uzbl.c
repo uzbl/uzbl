@@ -664,11 +664,9 @@ file_exists (const char * filename) {
 static void
 set_var(WebKitWebView *page, GArray *argv) {
     (void) page;
-    gchar *ctl_line;
-
-    ctl_line = g_strdup_printf("%s %s", "set", argv_idx(argv, 0));
-    parse_cmd_line(ctl_line);
-    g_free(ctl_line);
+    gchar **split = g_strsplit(argv_idx(argv, 0), "=", 2);
+    set_var_value(g_strstrip(split[0]), (g_strchug(split[1]) ? split[1] : " "));
+    g_strfreev(split);
 }
 
 static void
@@ -1258,10 +1256,6 @@ parse_command(const char *cmd, const char *param) {
 /* command parser */
 static void
 setup_regex() {
-    uzbl.comm.get_regex  = g_regex_new("^[Gg][a-zA-Z]*\\s+([^ \\n]+)$",
-            G_REGEX_OPTIMIZE, 0, NULL);
-    uzbl.comm.set_regex  = g_regex_new("^[Ss][a-zA-Z]*\\s+([^ ]+)\\s*=\\s*([^\\n].*)$",
-            G_REGEX_OPTIMIZE, 0, NULL);
     uzbl.comm.bind_regex = g_regex_new("^[Bb][a-zA-Z]*\\s+?(.*[^ ])\\s*?=\\s*([a-z][^\\n].+)$",
             G_REGEX_UNGREEDY|G_REGEX_OPTIMIZE, 0, NULL);
     uzbl.comm.act_regex = g_regex_new("^[Aa][a-zA-Z]*\\s+([^ \\n]+)\\s*([^\\n]*)?$",
@@ -1589,19 +1583,8 @@ parse_cmd_line(const char *ctl_line) {
         }
     }
     else {
-        /* SET command */
-        if(ctl_line[0] == 's' || ctl_line[0] == 'S') {
-            tokens = g_regex_split(uzbl.comm.set_regex, ctl_line, 0);
-            if(tokens[0][0] == 0) {
-                gchar* value = parseenv(g_strdup(tokens[2]));
-                set_var_value(tokens[1], value);
-                g_free(value);
-            }
-            else
-                printf("Error in command: %s\n", tokens[0]);
-        }
         /* BIND command */
-        else if(ctl_line[0] == 'b' || ctl_line[0] == 'B') {
+        if(ctl_line[0] == 'b' || ctl_line[0] == 'B') {
             tokens = g_regex_split(uzbl.comm.bind_regex, ctl_line, 0);
             if(tokens[0][0] == 0) {
                 gchar* value = parseenv(g_strdup(tokens[2]));

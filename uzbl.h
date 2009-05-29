@@ -94,9 +94,7 @@ typedef struct {
     /* stores (key)"variable name" -> (value)"pointer to this var*/
     GHashTable     *proto_var;
     /* command parsing regexes */
-    GRegex         *set_regex;
     GRegex         *act_regex;
-    GRegex         *get_regex;
     GRegex         *bind_regex;
     gchar          *sync_stdout;
 } Communication;
