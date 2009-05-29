@@ -153,7 +153,6 @@ actions follows:
 * `stop`
 * `zoom_in`
 * `zoom_out`
-* `reset_zoom`
 * `uri <address>`
 * `js <body>`
    - execute the javascript in `<body>`

@@ -84,7 +84,7 @@ typedef const struct {
     void (*func)(void);
 } uzbl_cmdprop;
 
-enum {TYPE_INT, TYPE_STR};
+enum {TYPE_INT, TYPE_STR, TYPE_FLOAT};
 
 /* an abbreviation to help keep the table's width humane */
 #define PTR(var, t, fun) { .ptr = (void*)&(var), .type = TYPE_##t, .func = fun }
@@ -129,10 +129,11 @@ const struct {
     { "max_conns",           PTR(uzbl.net.max_conns,              INT, cmd_max_conns)},
     { "max_conns_host",      PTR(uzbl.net.max_conns_host,         INT, cmd_max_conns_host)},
     { "useragent",           PTR(uzbl.net.useragent,              STR, cmd_useragent)},
-    /* exported WebKitWebSettings properties*/
+    /* exported WebKitWebSettings properties */
     { "font_size",           PTR(uzbl.behave.font_size,           INT, cmd_font_size)},
     { "monospace_size",      PTR(uzbl.behave.monospace_size,      INT, cmd_font_size)},
     { "minimum_font_size",   PTR(uzbl.behave.minimum_font_size,   INT, cmd_minimum_font_size)},
+    { "zoom_level",          PTR(uzbl.behave.zoom_level,          FLOAT, cmd_zoom_level)},
     { "disable_plugins",     PTR(uzbl.behave.disable_plugins,     INT, cmd_disable_plugins)},
     { "disable_scripts",     PTR(uzbl.behave.disable_scripts,     INT, cmd_disable_scripts)},
     { "autoload_images",     PTR(uzbl.behave.autoload_img,        INT, cmd_autoload_img)},
@@ -544,7 +545,6 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "stop",               {view_stop_loading, 0},        },
     { "zoom_in",            {view_zoom_in, 0},             }, //Can crash (when max zoom reached?).
     { "zoom_out",           {view_zoom_out, 0},            },
-    { "reset_zoom",         {reset_zoom_level, 0},         },
     { "uri",                {load_uri, NOSPLIT}            },
     { "js",                 {run_js, NOSPLIT}              },
     { "script",             {run_external_js, 0}           },
@@ -705,12 +705,6 @@ search_forward_text (WebKitWebView *page, GArray *argv) {
 static void
 search_reverse_text (WebKitWebView *page, GArray *argv) {
     search_text(page, argv, FALSE);
-}
-
-static void
-reset_zoom_level (WebKitWebView *page, GArray *argv) {
-    (void) argv;
-    webkit_web_view_set_zoom_level (page, 1.0);
 }
 
 static void
@@ -1258,6 +1252,11 @@ cmd_font_size() {
 }
 
 static void
+cmd_zoom_level() {
+    webkit_web_view_set_zoom_level (uzbl.gui.web_view, uzbl.behave.zoom_level);
+}
+
+static void
 cmd_disable_plugins() {
     g_object_set (G_OBJECT(view_settings()), "enable-plugins", 
             !uzbl.behave.disable_plugins, NULL);
@@ -1429,9 +1428,12 @@ set_var_value(gchar *name, gchar *val) {
         if (c->type == TYPE_STR) {
             g_free(*c->ptr);
             *c->ptr = g_strdup(val);
-        } else if(c->type == TYPE_INT) {
+        } else if (c->type == TYPE_INT) {
             int *ip = (int *)c->ptr;
             *ip = (int)strtoul(val, &endp, 10);
+        } else if (c->type == TYPE_FLOAT) {
+            float *fp = (float *)c->ptr;
+            *fp = (float)strtof(val, &endp);
         }
 
         /* invoke a command specific function */
