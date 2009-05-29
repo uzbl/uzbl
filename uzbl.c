@@ -189,48 +189,44 @@ make_var_to_name_hash() {
 /* --- UTILITY FUNCTIONS --- */
 static gchar *
 expand_vars(char *s) {
-    char ret[256],  /* 256 chars per var name should be safe */
-         *vend;
     uzbl_cmdprop *c;
     char upto = ' ';
+    char ret[256],  *vend;
     GString *buf = g_string_new("");
 
     while(*s) {
-        /* found quotation char */
-        if(*s == '\\') {
-            g_string_append_c(buf, *++s);
-            s++;
-        }
-        /* found variable */
-        else if(*s == '@') {
-            if(*(s+1) == '{') {
-                upto = '}'; s++;
-            }
-            s++;
-            if( (vend = strchr(s, upto)) ||
-                (vend = strchr(s, '\0')) ) {
-                strncpy(ret, s, vend-s);
-                ret[vend-s] = '\0';
-                if( (c = g_hash_table_lookup(uzbl.comm.proto_var, ret)) ) {
-                    if(c->type == TYPE_STR)
-                        g_string_append(buf, (gchar *)*c->ptr);
-                    else if(c->type == TYPE_INT) {
-                        char *b = itos((int)*c->ptr);
-                        g_string_append(buf, b);
-                        g_free(b);
-                    }
+        switch(*s) {
+            case '\\':
+                g_string_append_c(buf, *++s);
+                s++;
+                break;
+            case '@':
+                if(*(s+1) == '{') {
+                    upto = '}'; s++;
                 }
-                if(upto == ' ')
-                    s = vend;
-                else
-                    s = vend+1;
-                upto = ' ';
-            }
-        }
-        /* every other char */
-        else {
-            g_string_append_c(buf, *s);
-            s++;
+                s++;
+                if( (vend = strchr(s, upto)) ||
+                        (vend = strchr(s, '\0')) ) {
+                    strncpy(ret, s, vend-s);
+                    ret[vend-s] = '\0';
+                    if( (c = g_hash_table_lookup(uzbl.comm.proto_var, ret)) ) {
+                        if(c->type == TYPE_STR)
+                            g_string_append(buf, (gchar *)*c->ptr);
+                        else if(c->type == TYPE_INT) {
+                            char *b = itos((int)*c->ptr);
+                            g_string_append(buf, b);
+                            g_free(b);
+                        }
+                    }
+                    if(upto == ' ') s = vend;
+                    else s = vend+1;
+                    upto = ' ';
+                }
+                break;
+            default:
+                g_string_append_c(buf, *s);
+                s++;
+                break;
         }
     }
     return g_string_free(buf, FALSE);
