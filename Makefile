@@ -2,6 +2,8 @@ CPPFLAGS:=$(shell pkg-config --cflags gtk+-2.0 webkit-1.0) -ggdb -Wall -W -DARCH
 LDFLAGS:=$(shell pkg-config --libs gtk+-2.0 webkit-1.0) $(LDFLAGS)
 all: uzbl uzblctrl
 
+PREFIX?=$(DESTDIR)/usr
+
 test: uzbl
 	./uzbl --uri http://www.uzbl.org
 
@@ -16,18 +18,19 @@ clean:
 	rm -f uzblctrl
 
 install:
-	install -d $(DESTDIR)/usr/bin
-	install -d $(DESTDIR)/usr/share/uzbl/docs
-	install -d $(DESTDIR)/usr/share/uzbl/examples
-	install -D -m755 uzbl $(DESTDIR)/usr/bin/uzbl
-	install -D -m755 uzblctrl $(DESTDIR)/usr/bin/uzblctrl
-	cp -ax docs     $(DESTDIR)/usr/share/uzbl/
-	cp -ax config.h $(DESTDIR)/usr/share/uzbl/docs/
-	cp -ax examples $(DESTDIR)/usr/share/uzbl/
-	install -D -m644 AUTHORS $(DESTDIR)/usr/share/uzbl/docs
-	install -D -m644 README  $(DESTDIR)/usr/share/uzbl/docs
+	install -d $(PREFIX)/bin
+	install -d $(PREFIX)/share/uzbl/docs
+	install -d $(PREFIX)/share/uzbl/examples
+	install -D -m755 uzbl $(PREFIX)/bin/uzbl
+	install -D -m755 uzblctrl $(PREFIX)/bin/uzblctrl
+	cp -ax docs     $(PREFIX)/share/uzbl/
+	cp -ax config.h $(PREFIX)/share/uzbl/docs/
+	cp -ax examples $(PREFIX)/share/uzbl/
+	install -D -m644 AUTHORS $(PREFIX)/share/uzbl/docs
+	install -D -m644 README  $(PREFIX)/share/uzbl/docs
+
 
 uninstall:
-	rm -rf $(DESTDIR)/usr/bin/uzbl
-	rm -rf $(DESTDIR)/usr/bin/uzblctrl
-	rm -rf $(DESTDIR)/usr/share/uzbl
+	rm -rf $(PREFIX)/bin/uzbl
+	rm -rf $(PREFIX)/bin/uzblctrl
+	rm -rf $(PREFIX)/share/uzbl
