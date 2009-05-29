@@ -97,6 +97,7 @@ const struct {
 /*    variable name         pointer to variable in code          type  dump callback function    */
 /*  --------------------------------------------------------------------------------------- */
     { "uri",                 PTR(uzbl.state.uri,                  STR,  1,   cmd_load_uri)},
+    { "verbose",             PTR(uzbl.state.verbose,              INT,  1,   NULL)},
     { "mode",                PTR(uzbl.behave.mode,                INT,  0,   NULL)},
     { "inject_html",         PTR(uzbl.behave.inject_html,         STR,  0,   cmd_inject_html)},
     { "base_url",            PTR(uzbl.behave.base_url,            STR,  1,   NULL)},
@@ -2394,6 +2395,7 @@ main (int argc, char* argv[]) {
     g_option_context_free(context);
     
     gchar *uri_override = (uzbl.state.uri ? g_strdup(uzbl.state.uri) : NULL);
+    gboolean verbose_override = uzbl.state.verbose;
 
     /* initialize hash table */
     uzbl.bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
@@ -2472,6 +2474,9 @@ main (int argc, char* argv[]) {
 
     create_stdin();
 
+    if (verbose_override > uzbl.state.verbose)
+        uzbl.state.verbose = verbose_override;
+    
     if (uri_override) {
         set_var_value("uri", uri_override);
         g_free(uri_override);
