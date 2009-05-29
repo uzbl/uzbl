@@ -1388,6 +1388,7 @@ cmd_caret_browsing() {
 static void
 cmd_cookie_handler() {
     gchar **split = g_strsplit(uzbl.behave.cookie_handler, " ", 2);
+    /* pitfall: doesn't handle chain actions; must the sync_ action manually */
     if ((g_strcmp0(split[0], "sh") == 0) ||
         (g_strcmp0(split[0], "spawn") == 0)) {
         g_free (uzbl.behave.cookie_handler);
@@ -2007,29 +2008,105 @@ GtkWidget* create_window () {
     return window;
 }
 
+static gchar**
+inject_handler_args(const gchar *actname, const gchar *origargs, const gchar *newargs) {
+    /*
+      If actname is one that calls an external command, this function will inject
+      newargs in front of the user-provided args in that command line.  They will
+      come become after the body of the script (in sh) or after the name of
+      the command to execute (in spawn).
+      i.e. sh <body> <userargs> becomes sh <body> <ARGS> <userargs> and
+      span <command> <userargs> becomes spawn <command> <ARGS> <userargs>.
+
+      The return value consist of two strings: the action (sh, ...) and its args.
+
+      If act is not one that calls an external command, then the given action merely
+      gets duplicated.
+    */
+    GArray *rets = g_array_new(TRUE, FALSE, sizeof(gchar*));
+    gchar *actdup = g_strdup(actname);
+    g_array_append_val(rets, actdup);
+
+    if ((g_strcmp0(actname, "spawn") == 0) ||
+        (g_strcmp0(actname, "sh") == 0) ||
+        (g_strcmp0(actname, "sync_spawn") == 0) ||
+        (g_strcmp0(actname, "sync_sh") == 0)) {
+        guint i;
+        GString *a = g_string_new("");
+        gchar **spawnparts = split_quoted(origargs, FALSE);
+        g_string_append_printf(a, "%s", spawnparts[0]); /* sh body or script name */
+        if (newargs) g_string_append_printf(a, " %s", newargs); /* handler args */
+
+        for (i = 1; i < g_strv_length(spawnparts); i++) /* user args */
+            if (spawnparts[i]) g_string_append_printf(a, " %s", spawnparts[i]);
+
+        g_array_append_val(rets, a->str);
+        g_string_free(a, FALSE);
+        g_strfreev(spawnparts);
+    } else {
+        gchar *origdup = g_strdup(origargs);
+        g_array_append_val(rets, origdup);
+    }
+    return (gchar**)g_array_free(rets, FALSE);
+}
+
 static void
 run_handler (const gchar *act, const gchar *args) {
+    /* Consider this code a temporary hack to make the handlers usable.
+       In practice, all this splicing, injection, and reconstruction is
+       inefficient, annoying and hard to manage.  Potential pitfalls arise
+       when the handler specific args 1) are not quoted  (the handler
+       callbacks should take care of this)  2) are quoted but interfere
+       with the users' own quotation.  A more ideal solution is
+       to refactor parse_command so that it doesn't just take a string
+       and execute it; rather than that, we should have a function which
+       returns the argument vector parsed from the string.  This vector
+       could be modified (e.g. insert additional args into it) before
+       passing it to the next function that actually executes it.  Though
+       it still isn't perfect for chain actions..  will reconsider & re-
+       factor when I have the time. -duc */
+
     char **parts = g_strsplit(act, " ", 2);
     if (!parts) return;
-    else if ((g_strcmp0(parts[0], "spawn") == 0)
-             || (g_strcmp0(parts[0], "sh") == 0)
-             || (g_strcmp0(parts[0], "sync_spawn") == 0)
-             || (g_strcmp0(parts[0], "sync_sh") == 0)) {
-        guint i;
-        GString *a = g_string_new ("");
-        char **spawnparts;
-        spawnparts = split_quoted(parts[1], FALSE);
-        g_string_append_printf(a, "%s", spawnparts[0]);
-        if (args) g_string_append_printf(a, " %s", args); /* append handler args before user args */
+    if (g_strcmp0(parts[0], "chain") == 0) {
+        GString *newargs = g_string_new("");
+        gchar **chainparts = split_quoted(parts[1], FALSE);
         
-        for (i = 1; i < g_strv_length(spawnparts); i++) /* user args */
-            g_string_append_printf(a, " %s", spawnparts[i]);
-        parse_command(parts[0], a->str);
-        g_string_free (a, TRUE);
-        g_strfreev (spawnparts);
-    } else
-        parse_command(parts[0], parts[1]);
-    g_strfreev (parts);
+        /* for every argument in the chain, inject the handler args
+           and make sure the new parts are wrapped in quotes */
+        gchar **cp = chainparts;
+        gchar quot = '\'';
+        gchar *quotless = NULL;
+        gchar **spliced_quotless = NULL; // sigh -_-;
+        gchar **inpart = NULL;
+        
+        while (*cp) {
+            if ((**cp == '\'') || (**cp == '\"')) { /* strip old quotes */
+                quot = **cp;
+                quotless = g_strndup(&(*cp)[1], strlen(*cp) - 2);
+            } else quotless = g_strdup(*cp);
+
+            spliced_quotless = g_strsplit(quotless, " ", 2);
+            inpart = inject_handler_args(spliced_quotless[0], spliced_quotless[1], args);
+            g_strfreev(spliced_quotless);
+            
+            g_string_append_printf(newargs, " %c%s %s%c", quot, inpart[0], inpart[1], quot);
+            g_free(quotless);
+            g_strfreev(inpart);
+            cp++;
+        }
+
+        parse_command(parts[0], &(newargs->str[1]));
+        g_string_free(newargs, TRUE);
+        g_strfreev(chainparts);
+        
+    } else {
+        gchar **inparts = inject_handler_args(parts[0], parts[1], args);
+        parse_command(inparts[0], inparts[1]);
+        g_free(inparts[0]);
+        g_free(inparts[1]);
+    }
+    g_strfreev(parts);
 }
 
 static void
