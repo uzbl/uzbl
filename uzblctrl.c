@@ -31,7 +31,7 @@ static GOptionEntry entries[] =
 int
 main(int argc, char* argv[]) {
     GError *error = NULL;
-    GOptionContext* context = g_option_context_new ("- utility for controlling and interacting with uzbl through it's socket file"); //TODO: get stuff back from uzbl
+    GOptionContext* context = g_option_context_new ("- utility for controlling and interacting with uzbl through its socket file"); //TODO: get stuff back from uzbl
     g_option_context_add_main_entries (context, entries, NULL);
     g_option_context_add_group        (context, gtk_get_option_group (TRUE));
     g_option_context_parse            (context, &argc, &argv, &error);
