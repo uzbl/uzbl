@@ -198,7 +198,7 @@ expand_vars(char *s) {
     while(*s) {
         /* found quotation char */
         if(*s == '\\') {
-            g_string_append_c(buf, *s);
+            //g_string_append_c(buf, *s);
             g_string_append_c(buf, *(s+1));
             s += 2;
         }
@@ -2433,8 +2433,6 @@ main (int argc, char* argv[]) {
         g_array_free (a, TRUE);
     }
 
-    //char *tstr = "Proxy is @proxy_url and now quoted \\@proxy_url status_top=@status_top \\\\\\";
-    //expand_vars(tstr);
     gtk_main ();
     clean_up();
 
