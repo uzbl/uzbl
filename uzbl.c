@@ -1433,7 +1433,7 @@ set_var_value(gchar *name, gchar *val) {
             *ip = (int)strtoul(val, &endp, 10);
         } else if (c->type == TYPE_FLOAT) {
             float *fp = (float *)c->ptr;
-            *fp = (float)strtof(val, &endp);
+            *fp = strtof(val, &endp);
         }
 
         /* invoke a command specific function */
