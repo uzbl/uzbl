@@ -189,10 +189,10 @@ make_var_to_name_hash() {
 /* --- UTILITY FUNCTIONS --- */
 static gchar *
 expand_vars(char *s) {
-
     char ret[256],  /* 256 chars per var name should be safe */
          *vend;
     uzbl_cmdprop *c;
+    char upto = ' ';
     GString *buf = g_string_new("");
 
     while(*s) {
@@ -203,8 +203,11 @@ expand_vars(char *s) {
         }
         /* found variable */
         else if(*s == '@') {
+            if(*(s+1) == '{') {
+                upto = '}'; s++;
+            }
             s++;
-            if( (vend = strchr(s, ' ')) ||
+            if( (vend = strchr(s, upto)) ||
                 (vend = strchr(s, '\0')) ) {
                 strncpy(ret, s, vend-s);
                 ret[vend-s] = '\0';
@@ -217,7 +220,11 @@ expand_vars(char *s) {
                         g_free(b);
                     }
                 }
-                s = vend;
+                if(upto == ' ')
+                    s = vend;
+                else
+                    s = vend+1;
+                upto = ' ';
             }
         }
         /* every other char */
@@ -1260,7 +1267,7 @@ get_var_value(gchar *name) {
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         if(c->type == TYPE_STR)
-            printf("VAR: %s VALUE: %s\n", name, (char *)*c->ptr);
+            printf("VAR: %s VALUE: (%s)\n", name, (char *)*c->ptr);
         else if(c->type == TYPE_INT)
             printf("VAR: %s VALUE: %d\n", name, (int)*c->ptr);
     }
