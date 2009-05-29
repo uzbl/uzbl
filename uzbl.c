@@ -186,8 +186,55 @@ make_var_to_name_hash() {
     }
 }
 
-
 /* --- UTILITY FUNCTIONS --- */
+static gchar *
+expand_vars(char *s) {
+    char ret[256],  /* 256 chars per var name should be safe */
+         *vend;
+    uzbl_cmdprop *c;
+    char upto = ' ';
+    GString *buf = g_string_new("");
+
+    while(*s) {
+        /* found quotation char */
+        if(*s == '\\') {
+            g_string_append_c(buf, *++s);
+            s++;
+        }
+        /* found variable */
+        else if(*s == '@') {
+            if(*(s+1) == '{') {
+                upto = '}'; s++;
+            }
+            s++;
+            if( (vend = strchr(s, upto)) ||
+                (vend = strchr(s, '\0')) ) {
+                strncpy(ret, s, vend-s);
+                ret[vend-s] = '\0';
+                if( (c = g_hash_table_lookup(uzbl.comm.proto_var, ret)) ) {
+                    if(c->type == TYPE_STR)
+                        g_string_append(buf, (gchar *)*c->ptr);
+                    else if(c->type == TYPE_INT) {
+                        char *b = itos((int)*c->ptr);
+                        g_string_append(buf, b);
+                        g_free(b);
+                    }
+                }
+                if(upto == ' ')
+                    s = vend;
+                else
+                    s = vend+1;
+                upto = ' ';
+            }
+        }
+        /* every other char */
+        else {
+            g_string_append_c(buf, *s);
+            s++;
+        }
+    }
+    return g_string_free(buf, FALSE);
+}
 
 char *
 itos(int val) {
@@ -1220,7 +1267,7 @@ get_var_value(gchar *name) {
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         if(c->type == TYPE_STR)
-            printf("VAR: %s VALUE: %s\n", name, (char *)*c->ptr);
+            printf("VAR: %s VALUE: (%s)\n", name, (char *)*c->ptr);
         else if(c->type == TYPE_INT)
             printf("VAR: %s VALUE: %d\n", name, (int)*c->ptr);
     }
@@ -1473,15 +1520,19 @@ static gboolean
 set_var_value(gchar *name, gchar *val) {
     uzbl_cmdprop *c = NULL;
     char *endp = NULL;
+    char *buf = NULL;
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         /* check for the variable type */
         if (c->type == TYPE_STR) {
+            buf = expand_vars(val);
             g_free(*c->ptr);
-            *c->ptr = g_strdup(val);
+            *c->ptr = buf;
         } else if(c->type == TYPE_INT) {
             int *ip = (int *)c->ptr;
-            *ip = (int)strtoul(val, &endp, 10);
+            buf = expand_vars(val);
+            *ip = (int)strtoul(buf, &endp, 10);
+            g_free(buf);
         }
 
         /* invoke a command specific function */
