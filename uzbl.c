@@ -1,6 +1,6 @@
 /* -*- c-basic-offset: 4; -*- */
-// Original code taken from the example webkit-gtk+ application. see notice below.
-// Modified code is licensed under the GPL 3.  See LICENSE file.
+/* Original code taken from the example webkit-gtk+ application. see notice below. */
+/* Modified code is licensed under the GPL 3.  See LICENSE file. */
 
 
 /*
@@ -36,23 +36,23 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 #include <gdk/gdkkeysyms.h>
+
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/un.h>
 #include <sys/utsname.h>
 #include <sys/time.h>
+#include <sys/un.h>
+
 #include <webkit/webkit.h>
+#include <libsoup/soup.h>
+
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <string.h>
 #include <fcntl.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <libsoup/soup.h>
 #include <signal.h>
 #include "uzbl.h"
 #include "config.h"
@@ -531,7 +531,6 @@ VIEWFUNC(go_forward)
 #undef VIEWFUNC
 
 /* -- command to callback/function map for things we cannot attach to any signals */
-// TODO: reload
 static struct {char *name; Command command[2];} cmdlist[] =
 {   /* key                   function      no_split      */
     { "back",               {view_go_back, 0}              },

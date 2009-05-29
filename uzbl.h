@@ -71,10 +71,10 @@ typedef struct {
     GtkWidget*     vbox;
     GtkWidget*     mainbar;
     GtkWidget*     mainbar_label;
-    GtkScrollbar*  scbar_v;   // Horizontal and Vertical Scrollbar
-    GtkScrollbar*  scbar_h;   // (These are still hidden)
-    GtkAdjustment* bar_v; // Information about document length
-    GtkAdjustment* bar_h; // and scrolling position
+    GtkScrollbar*  scbar_v;   /* Horizontal and Vertical Scrollbar */
+    GtkScrollbar*  scbar_h;   /* (These are still hidden) */
+    GtkAdjustment* bar_v; /* Information about document length */
+    GtkAdjustment* bar_h; /* and scrolling position */
     WebKitWebView* web_view;
     gchar*         main_title;
 
