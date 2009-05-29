@@ -615,6 +615,7 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "runcmd",             {runcmd, NOSPLIT}              },
     { "set",                {set_var, NOSPLIT}             },
     { "get",                {get_var, NOSPLIT}             },
+    { "bind",               {act_bind, NOSPLIT}            },
     { "dump_config",        {act_dump_config, 0}           },
     { "keycmd",             {keycmd, NOSPLIT}              },
     { "keycmd_nl",          {keycmd_nl, NOSPLIT}           },
@@ -665,7 +666,9 @@ static void
 set_var(WebKitWebView *page, GArray *argv) {
     (void) page;
     gchar **split = g_strsplit(argv_idx(argv, 0), "=", 2);
-    set_var_value(g_strstrip(split[0]), (g_strchug(split[1]) ? split[1] : " "));
+    gchar *value = parseenv(g_strdup(split[1] ? g_strchug(split[1]) : " "));
+    set_var_value(g_strstrip(split[0]), value);
+    g_free(value);
     g_strfreev(split);
 }
 
@@ -674,6 +677,17 @@ get_var(WebKitWebView *page, GArray *argv) {
     (void) page;
     get_var_value(argv_idx(argv, 0));
 }
+
+static void
+act_bind(WebKitWebView *page, GArray *argv) {
+    (void) page;
+    gchar **split = g_strsplit(argv_idx(argv, 0), " = ", 2);
+    gchar *value = parseenv(g_strdup(split[1] ? g_strchug(split[1]) : " "));
+    add_binding(g_strstrip(split[0]), value);
+    g_free(value);
+    g_strfreev(split);
+}
+
 
 static void
 act_dump_config() {
@@ -1256,8 +1270,6 @@ parse_command(const char *cmd, const char *param) {
 /* command parser */
 static void
 setup_regex() {
-    uzbl.comm.bind_regex = g_regex_new("^[Bb][a-zA-Z]*\\s+?(.*[^ ])\\s*?=\\s*([a-z][^\\n].+)$",
-            G_REGEX_UNGREEDY|G_REGEX_OPTIMIZE, 0, NULL);
     uzbl.comm.act_regex = g_regex_new("^[Aa][a-zA-Z]*\\s+([^ \\n]+)\\s*([^\\n]*)?$",
             G_REGEX_OPTIMIZE, 0, NULL);
 }
@@ -1583,19 +1595,8 @@ parse_cmd_line(const char *ctl_line) {
         }
     }
     else {
-        /* BIND command */
-        if(ctl_line[0] == 'b' || ctl_line[0] == 'B') {
-            tokens = g_regex_split(uzbl.comm.bind_regex, ctl_line, 0);
-            if(tokens[0][0] == 0) {
-                gchar* value = parseenv(g_strdup(tokens[2]));
-                add_binding(tokens[1], value);
-                g_free(value);
-            }
-            else
-                printf("Error in command: %s\n", tokens[0]);
-        }
         /* ACT command */
-        else if(ctl_line[0] == 'A' || ctl_line[0] == 'a') {
+        if(ctl_line[0] == 'A' || ctl_line[0] == 'a') {
             tokens = g_regex_split(uzbl.comm.act_regex, ctl_line, 0);
             if(tokens[0][0] == 0) {
                 parse_command(tokens[1], tokens[2]);

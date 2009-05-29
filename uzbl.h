@@ -95,7 +95,6 @@ typedef struct {
     GHashTable     *proto_var;
     /* command parsing regexes */
     GRegex         *act_regex;
-    GRegex         *bind_regex;
     gchar          *sync_stdout;
 } Communication;
 
@@ -432,6 +431,9 @@ set_var(WebKitWebView *page, GArray *argv);
 
 static void
 get_var(WebKitWebView *page, GArray *argv);
+
+static void
+act_bind(WebKitWebView *page, GArray *argv);
 
 static void
 act_dump_config();
