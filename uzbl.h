@@ -242,9 +242,6 @@ setup_signal(int signe, sigfunc *shandler);
 static gboolean
 set_var_value(gchar *name, gchar *val);
 
-static gboolean
-get_var_value(const gchar *name);
-
 static void
 print(WebKitWebView *page, GArray *argv);
 
@@ -426,9 +423,6 @@ save_cookies (SoupMessage *msg,
 
 static void
 set_var(WebKitWebView *page, GArray *argv);
-
-static void
-get_var(WebKitWebView *page, GArray *argv);
 
 static void
 act_bind(WebKitWebView *page, GArray *argv);

@@ -610,7 +610,7 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "dehilight",          {dehilight, 0}                 },
     { "toggle_insert_mode", {toggle_insert_mode, 0}        },
     { "set",                {set_var, NOSPLIT}             },
-    { "get",                {get_var, NOSPLIT}             },
+    //{ "get",                {get_var, NOSPLIT}             },
     { "bind",               {act_bind, NOSPLIT}            },
     { "dump_config",        {act_dump_config, 0}           },
     { "keycmd",             {keycmd, NOSPLIT}              },
@@ -667,12 +667,6 @@ set_var(WebKitWebView *page, GArray *argv) {
     set_var_value(g_strstrip(split[0]), value);
     g_free(value);
     g_strfreev(split);
-}
-
-static void
-get_var(WebKitWebView *page, GArray *argv) {
-    (void) page;
-    get_var_value(argv_idx(argv, 0));
 }
 
 static void
@@ -1272,19 +1266,6 @@ parse_command(const char *cmd, const char *param) {
 
     } else
         g_printerr ("command \"%s\" not understood. ignoring.\n", cmd);
-}
-
-static gboolean
-get_var_value(const gchar *name) {
-    uzbl_cmdprop *c;
-
-    if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
-        if(c->type == TYPE_STR)
-            printf("VAR: %s VALUE: (%s)\n", name, (char *)*c->ptr);
-        else if(c->type == TYPE_INT)
-            printf("VAR: %s VALUE: %d\n", name, (int)*c->ptr);
-    }
-    return TRUE;
 }
 
 static void
