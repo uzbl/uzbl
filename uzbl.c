@@ -616,7 +616,8 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "keycmd",             {keycmd, NOSPLIT}              },
     { "keycmd_nl",          {keycmd_nl, NOSPLIT}           },
     { "keycmd_bs",          {keycmd_bs, 0}                 },
-    { "chain",              {chain, 0}                     }
+    { "chain",              {chain, 0}                     },
+    { "print",              {print, NOSPLIT}               }
 };
 
 static void
@@ -672,6 +673,16 @@ static void
 get_var(WebKitWebView *page, GArray *argv) {
     (void) page;
     get_var_value(argv_idx(argv, 0));
+}
+
+static void
+print(WebKitWebView *page, GArray *argv) {
+    (void) page;
+    gchar* buf;
+
+    buf = expand_vars(argv_idx(argv, 0));
+    puts(buf);
+    g_free(buf);
 }
 
 static void
@@ -1583,9 +1594,10 @@ parse_cmd_line(const char *ctl_line) {
     else { /* parse a command */
         gchar *ctlstrip;
         gchar **tokens = NULL;
+        len = strlen(ctl_line);
 
-        if (ctl_line[strlen(ctl_line) - 1] == '\n') /* strip trailing newline */
-            ctlstrip = g_strndup(ctl_line, strlen(ctl_line) - 1);
+        if (ctl_line[len - 1] == '\n') /* strip trailing newline */
+            ctlstrip = g_strndup(ctl_line, len - 1);
         else ctlstrip = g_strdup(ctl_line);
 
         tokens = g_strsplit(ctlstrip, " ", 2);
