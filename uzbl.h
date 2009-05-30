@@ -93,11 +93,6 @@ typedef struct {
     gchar          *socket_path;
     /* stores (key)"variable name" -> (value)"pointer to this var*/
     GHashTable     *proto_var;
-    /* command parsing regexes */
-    GRegex         *set_regex;
-    GRegex         *act_regex;
-    GRegex         *get_regex;
-    GRegex         *bind_regex;
     gchar          *sync_stdout;
 } Communication;
 
@@ -248,6 +243,9 @@ static gboolean
 set_var_value(gchar *name, gchar *val);
 
 static gboolean
+get_var_value(const gchar *name);
+
+static gboolean
 new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data);
 
 WebKitWebView*
@@ -339,9 +337,6 @@ static void
 parse_command(const char *cmd, const char *param);
 
 static void
-runcmd(WebKitWebView *page, GArray *argv);
-
-static void
 parse_cmd_line(const char *ctl_line);
 
 static gchar*
@@ -428,6 +423,12 @@ save_cookies (SoupMessage *msg,
 
 static void
 set_var(WebKitWebView *page, GArray *argv);
+
+static void
+get_var(WebKitWebView *page, GArray *argv);
+
+static void
+act_bind(WebKitWebView *page, GArray *argv);
 
 static void
 act_dump_config();

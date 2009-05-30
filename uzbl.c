@@ -97,6 +97,7 @@ const struct {
 /*    variable name         pointer to variable in code          type  dump callback function    */
 /*  --------------------------------------------------------------------------------------- */
     { "uri",                 PTR(uzbl.state.uri,                  STR,  1,   cmd_load_uri)},
+    { "verbose",             PTR(uzbl.state.verbose,              INT,  1,   NULL)},
     { "mode",                PTR(uzbl.behave.mode,                INT,  0,   NULL)},
     { "inject_html",         PTR(uzbl.behave.inject_html,         STR,  0,   cmd_inject_html)},
     { "base_url",            PTR(uzbl.behave.base_url,            STR,  1,   NULL)},
@@ -608,8 +609,9 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "search_reverse",     {search_reverse_text, NOSPLIT} },
     { "dehilight",          {dehilight, 0}                 },
     { "toggle_insert_mode", {toggle_insert_mode, 0}        },
-    { "runcmd",             {runcmd, NOSPLIT}              },
     { "set",                {set_var, NOSPLIT}             },
+    { "get",                {get_var, NOSPLIT}             },
+    { "bind",               {act_bind, NOSPLIT}            },
     { "dump_config",        {act_dump_config, 0}           },
     { "keycmd",             {keycmd, NOSPLIT}              },
     { "keycmd_nl",          {keycmd_nl, NOSPLIT}           },
@@ -659,12 +661,29 @@ file_exists (const char * filename) {
 static void
 set_var(WebKitWebView *page, GArray *argv) {
     (void) page;
-    gchar *ctl_line;
-
-    ctl_line = g_strdup_printf("%s %s", "set", argv_idx(argv, 0));
-    parse_cmd_line(ctl_line);
-    g_free(ctl_line);
+    gchar **split = g_strsplit(argv_idx(argv, 0), "=", 2);
+    gchar *value = parseenv(g_strdup(split[1] ? g_strchug(split[1]) : " "));
+    set_var_value(g_strstrip(split[0]), value);
+    g_free(value);
+    g_strfreev(split);
 }
+
+static void
+get_var(WebKitWebView *page, GArray *argv) {
+    (void) page;
+    get_var_value(argv_idx(argv, 0));
+}
+
+static void
+act_bind(WebKitWebView *page, GArray *argv) {
+    (void) page;
+    gchar **split = g_strsplit(argv_idx(argv, 0), " = ", 2);
+    gchar *value = parseenv(g_strdup(split[1] ? g_strchug(split[1]) : " "));
+    add_binding(g_strstrip(split[0]), value);
+    g_free(value);
+    g_strfreev(split);
+}
+
 
 static void
 act_dump_config() {
@@ -1244,21 +1263,8 @@ parse_command(const char *cmd, const char *param) {
         g_printerr ("command \"%s\" not understood. ignoring.\n", cmd);
 }
 
-/* command parser */
-static void
-setup_regex() {
-    uzbl.comm.get_regex  = g_regex_new("^[Gg][a-zA-Z]*\\s+([^ \\n]+)$",
-            G_REGEX_OPTIMIZE, 0, NULL);
-    uzbl.comm.set_regex  = g_regex_new("^[Ss][a-zA-Z]*\\s+([^ ]+)\\s*=\\s*([^\\n].*)$",
-            G_REGEX_OPTIMIZE, 0, NULL);
-    uzbl.comm.bind_regex = g_regex_new("^[Bb][a-zA-Z]*\\s+?(.*[^ ])\\s*?=\\s*([a-z][^\\n].+)$",
-            G_REGEX_UNGREEDY|G_REGEX_OPTIMIZE, 0, NULL);
-    uzbl.comm.act_regex = g_regex_new("^[Aa][a-zA-Z]*\\s+([^ \\n]+)\\s*([^\\n]*)?$",
-            G_REGEX_OPTIMIZE, 0, NULL);
-}
-
 static gboolean
-get_var_value(gchar *name) {
+get_var_value(const gchar *name) {
     uzbl_cmdprop *c;
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
@@ -1431,6 +1437,7 @@ cmd_caret_browsing() {
 static void
 cmd_cookie_handler() {
     gchar **split = g_strsplit(uzbl.behave.cookie_handler, " ", 2);
+    /* pitfall: doesn't handle chain actions; must the sync_ action manually */
     if ((g_strcmp0(split[0], "sh") == 0) ||
         (g_strcmp0(split[0], "spawn") == 0)) {
         g_free (uzbl.behave.cookie_handler);
@@ -1537,12 +1544,6 @@ set_var_value(gchar *name, gchar *val) {
 }
 
 static void
-runcmd(WebKitWebView* page, GArray *argv) {
-    (void) page;
-    parse_cmd_line(argv_idx(argv, 0));
-}
-
-static void
 render_html() {
     Behaviour *b = &uzbl.behave;
 
@@ -1557,7 +1558,6 @@ render_html() {
 enum {M_CMD, M_HTML};
 static void
 parse_cmd_line(const char *ctl_line) {
-    gchar **tokens = NULL;
     Behaviour *b = &uzbl.behave;
     size_t len=0;
 
@@ -1576,60 +1576,23 @@ parse_cmd_line(const char *ctl_line) {
             g_string_append(b->html_buffer, ctl_line);
         }
     }
-    else {
-        /* SET command */
-        if(ctl_line[0] == 's' || ctl_line[0] == 'S') {
-            tokens = g_regex_split(uzbl.comm.set_regex, ctl_line, 0);
-            if(tokens[0][0] == 0) {
-                gchar* value = parseenv(g_strdup(tokens[2]));
-                set_var_value(tokens[1], value);
-                g_free(value);
-            }
-            else
-                printf("Error in command: %s\n", tokens[0]);
-        }
-        /* GET command */
-        else if(ctl_line[0] == 'g' || ctl_line[0] == 'G') {
-            tokens = g_regex_split(uzbl.comm.get_regex, ctl_line, 0);
-            if(tokens[0][0] == 0) {
-                get_var_value(tokens[1]);
-            }
-            else
-                printf("Error in command: %s\n", tokens[0]);
-        }
-        /* BIND command */
-        else if(ctl_line[0] == 'b' || ctl_line[0] == 'B') {
-            tokens = g_regex_split(uzbl.comm.bind_regex, ctl_line, 0);
-            if(tokens[0][0] == 0) {
-                gchar* value = parseenv(g_strdup(tokens[2]));
-                add_binding(tokens[1], value);
-                g_free(value);
-            }
-            else
-                printf("Error in command: %s\n", tokens[0]);
-        }
-        /* ACT command */
-        else if(ctl_line[0] == 'A' || ctl_line[0] == 'a') {
-            tokens = g_regex_split(uzbl.comm.act_regex, ctl_line, 0);
-            if(tokens[0][0] == 0) {
-                parse_command(tokens[1], tokens[2]);
-            }
-            else
-                printf("Error in command: %s\n", tokens[0]);
-        }
-        /* Comments */
-        else if(   (ctl_line[0] == '#')
-                || (ctl_line[0] == ' ')
-                || (ctl_line[0] == '\n'))
-            ; /* ignore these lines */
-        else
-            printf("Command not understood (%s)\n", ctl_line);
+    else if((ctl_line[0] == '#') /* Comments */
+            || (ctl_line[0] == ' ')
+            || (ctl_line[0] == '\n'))
+        ; /* ignore these lines */
+    else { /* parse a command */
+        gchar *ctlstrip;
+        gchar **tokens = NULL;
 
-        if(tokens)
-            g_strfreev(tokens);
+        if (ctl_line[strlen(ctl_line) - 1] == '\n') /* strip trailing newline */
+            ctlstrip = g_strndup(ctl_line, strlen(ctl_line) - 1);
+        else ctlstrip = g_strdup(ctl_line);
+
+        tokens = g_strsplit(ctlstrip, " ", 2);
+        parse_command(tokens[0], tokens[1]);
+        g_free(ctlstrip);
+        g_strfreev(tokens);
     }
-
-    return;
 }
 
 static gchar*
@@ -2054,29 +2017,105 @@ GtkWidget* create_window () {
     return window;
 }
 
+static gchar**
+inject_handler_args(const gchar *actname, const gchar *origargs, const gchar *newargs) {
+    /*
+      If actname is one that calls an external command, this function will inject
+      newargs in front of the user-provided args in that command line.  They will
+      come become after the body of the script (in sh) or after the name of
+      the command to execute (in spawn).
+      i.e. sh <body> <userargs> becomes sh <body> <ARGS> <userargs> and
+      span <command> <userargs> becomes spawn <command> <ARGS> <userargs>.
+
+      The return value consist of two strings: the action (sh, ...) and its args.
+
+      If act is not one that calls an external command, then the given action merely
+      gets duplicated.
+    */
+    GArray *rets = g_array_new(TRUE, FALSE, sizeof(gchar*));
+    gchar *actdup = g_strdup(actname);
+    g_array_append_val(rets, actdup);
+
+    if ((g_strcmp0(actname, "spawn") == 0) ||
+        (g_strcmp0(actname, "sh") == 0) ||
+        (g_strcmp0(actname, "sync_spawn") == 0) ||
+        (g_strcmp0(actname, "sync_sh") == 0)) {
+        guint i;
+        GString *a = g_string_new("");
+        gchar **spawnparts = split_quoted(origargs, FALSE);
+        g_string_append_printf(a, "%s", spawnparts[0]); /* sh body or script name */
+        if (newargs) g_string_append_printf(a, " %s", newargs); /* handler args */
+
+        for (i = 1; i < g_strv_length(spawnparts); i++) /* user args */
+            if (spawnparts[i]) g_string_append_printf(a, " %s", spawnparts[i]);
+
+        g_array_append_val(rets, a->str);
+        g_string_free(a, FALSE);
+        g_strfreev(spawnparts);
+    } else {
+        gchar *origdup = g_strdup(origargs);
+        g_array_append_val(rets, origdup);
+    }
+    return (gchar**)g_array_free(rets, FALSE);
+}
+
 static void
 run_handler (const gchar *act, const gchar *args) {
+    /* Consider this code a temporary hack to make the handlers usable.
+       In practice, all this splicing, injection, and reconstruction is
+       inefficient, annoying and hard to manage.  Potential pitfalls arise
+       when the handler specific args 1) are not quoted  (the handler
+       callbacks should take care of this)  2) are quoted but interfere
+       with the users' own quotation.  A more ideal solution is
+       to refactor parse_command so that it doesn't just take a string
+       and execute it; rather than that, we should have a function which
+       returns the argument vector parsed from the string.  This vector
+       could be modified (e.g. insert additional args into it) before
+       passing it to the next function that actually executes it.  Though
+       it still isn't perfect for chain actions..  will reconsider & re-
+       factor when I have the time. -duc */
+
     char **parts = g_strsplit(act, " ", 2);
     if (!parts) return;
-    else if ((g_strcmp0(parts[0], "spawn") == 0)
-             || (g_strcmp0(parts[0], "sh") == 0)
-             || (g_strcmp0(parts[0], "sync_spawn") == 0)
-             || (g_strcmp0(parts[0], "sync_sh") == 0)) {
-        guint i;
-        GString *a = g_string_new ("");
-        char **spawnparts;
-        spawnparts = split_quoted(parts[1], FALSE);
-        g_string_append_printf(a, "%s", spawnparts[0]);
-        if (args) g_string_append_printf(a, " %s", args); /* append handler args before user args */
+    if (g_strcmp0(parts[0], "chain") == 0) {
+        GString *newargs = g_string_new("");
+        gchar **chainparts = split_quoted(parts[1], FALSE);
         
-        for (i = 1; i < g_strv_length(spawnparts); i++) /* user args */
-            g_string_append_printf(a, " %s", spawnparts[i]);
-        parse_command(parts[0], a->str);
-        g_string_free (a, TRUE);
-        g_strfreev (spawnparts);
-    } else
-        parse_command(parts[0], parts[1]);
-    g_strfreev (parts);
+        /* for every argument in the chain, inject the handler args
+           and make sure the new parts are wrapped in quotes */
+        gchar **cp = chainparts;
+        gchar quot = '\'';
+        gchar *quotless = NULL;
+        gchar **spliced_quotless = NULL; // sigh -_-;
+        gchar **inpart = NULL;
+        
+        while (*cp) {
+            if ((**cp == '\'') || (**cp == '\"')) { /* strip old quotes */
+                quot = **cp;
+                quotless = g_strndup(&(*cp)[1], strlen(*cp) - 2);
+            } else quotless = g_strdup(*cp);
+
+            spliced_quotless = g_strsplit(quotless, " ", 2);
+            inpart = inject_handler_args(spliced_quotless[0], spliced_quotless[1], args);
+            g_strfreev(spliced_quotless);
+            
+            g_string_append_printf(newargs, " %c%s %s%c", quot, inpart[0], inpart[1], quot);
+            g_free(quotless);
+            g_strfreev(inpart);
+            cp++;
+        }
+
+        parse_command(parts[0], &(newargs->str[1]));
+        g_string_free(newargs, TRUE);
+        g_strfreev(chainparts);
+        
+    } else {
+        gchar **inparts = inject_handler_args(parts[0], parts[1], args);
+        parse_command(inparts[0], inparts[1]);
+        g_free(inparts[0]);
+        g_free(inparts[1]);
+    }
+    g_strfreev(parts);
 }
 
 static void
@@ -2350,6 +2389,10 @@ main (int argc, char* argv[]) {
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
     g_option_context_parse (context, &argc, &argv, NULL);
     g_option_context_free(context);
+    
+    gchar *uri_override = (uzbl.state.uri ? g_strdup(uzbl.state.uri) : NULL);
+    gboolean verbose_override = uzbl.state.verbose;
+
     /* initialize hash table */
     uzbl.bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
 
@@ -2381,7 +2424,6 @@ main (int argc, char* argv[]) {
     uzbl.behave.insert_indicator = g_strdup("I");
     uzbl.behave.cmd_indicator    = g_strdup("C");
 
-    setup_regex();
     setup_scanner();
     commands_hash ();
     make_var_to_name_hash();
@@ -2428,12 +2470,14 @@ main (int argc, char* argv[]) {
 
     create_stdin();
 
-    if(uzbl.state.uri) {
-        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-        g_array_append_val(a, uzbl.state.uri);
-        load_uri (uzbl.gui.web_view, a);
-        g_array_free (a, TRUE);
-    }
+    if (verbose_override > uzbl.state.verbose)
+        uzbl.state.verbose = verbose_override;
+    
+    if (uri_override) {
+        set_var_value("uri", uri_override);
+        g_free(uri_override);
+    } else if (uzbl.state.uri)
+        cmd_load_uri(uzbl.gui.web_view, NULL);
 
     gtk_main ();
     clean_up();
