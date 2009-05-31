@@ -1134,6 +1134,9 @@ run_command (const gchar *command, const guint npre, const gchar **args,
         g_string_append_printf(s, " -- result: %s", (result ? "true" : "false"));
         printf("%s\n", s->str);
         g_string_free(s, TRUE);
+        if(stdout) {
+            printf("Stdout: %s\n", *stdout);
+        }
     }
     if (err) {
         g_printerr("error on run_command: %s\n", err->message);
@@ -2223,7 +2226,8 @@ settings_init () {
 static void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer user_data){
     (void) session;
     (void) user_data;
-    if (!uzbl.behave.cookie_handler) return;
+    if (!uzbl.behave.cookie_handler)
+         return;
 
     soup_message_add_header_handler(msg, "got-headers", "Set-Cookie", G_CALLBACK(save_cookies), NULL);
     GString *s = g_string_new ("");
@@ -2233,7 +2237,6 @@ static void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer use
 
     if(uzbl.comm.sync_stdout)
         soup_message_headers_replace (msg->request_headers, "Cookie", uzbl.comm.sync_stdout);
-    //printf("stdout: %s\n", uzbl.comm.sync_stdout);   // debugging
     if (uzbl.comm.sync_stdout) uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
         
     g_string_free(s, TRUE);
