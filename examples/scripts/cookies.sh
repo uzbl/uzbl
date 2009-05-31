@@ -21,15 +21,16 @@
 # http://kb.mozillazine.org/Cookies.txt
 # don't always append cookies, sometimes we need to overwrite
 
-if [ -f /usr/share/uzbl/examples/configs/cookies ]
-then
-	file=/usr/share/uzbl/examples/configs/cookies
-else
-	file=./examples/configs/cookies #useful when developing
-fi
+[ -f /usr/share/uzbl/examples/configs/cookies ] && file=/usr/share/uzbl/examples/configs/cookies
+[ -f $XDG_CONFIG_HOME/uzbl/cookies            ] && file=$XDG_CONFIG_HOME/uzbl/cookies
+[ -f ./examples/configs/cookies               ] && file=./examples/configs/cookies #useful when developing
+[ -z "$file" ] && exit 1
 
-#cookie_file=$XDG_DATA_HOME/uzbl/cookies.txt
-cookie_file=./examples/data/cookies.txt
+[ -d /usr/share/uzbl/examples/data ] && cookie_file=/usr/share/uzbl/examples/data/cookies.txt
+[ -d $XDG_DATA_HOME/uzbl/          ] && cookie_file=$XDG_DATA_HOME/uzbl/cookies.txt
+[ -d ./examples/data/              ] && cookie_file=./examples/data/cookies.txt #useful when developing
+[ -z "$cookie_file" ] && exit 1
+
 
 which zenity &>/dev/null || exit 2
 
