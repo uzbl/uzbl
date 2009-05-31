@@ -2235,9 +2235,13 @@ static void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer use
     g_string_printf(s, "GET '%s' '%s'", soup_uri->host, soup_uri->path);
     run_handler(uzbl.behave.cookie_handler, s->str);
 
-    if(uzbl.comm.sync_stdout)
-        soup_message_headers_replace (msg->request_headers, "Cookie", uzbl.comm.sync_stdout);
-    if (uzbl.comm.sync_stdout) uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
+    if(uzbl.comm.sync_stdout && strcmp (uzbl.comm.sync_stdout, "") != 0) {
+        char *p = strchr(uzbl.comm.sync_stdout, '\n' );
+        if ( p != NULL ) *p = '\0';
+        soup_message_headers_replace (msg->request_headers, "Cookie", (const char *) uzbl.comm.sync_stdout);
+    }
+    if (uzbl.comm.sync_stdout)
+        uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
         
     g_string_free(s, TRUE);
 }
