@@ -1,10 +1,12 @@
-Arch Linux
-----------
+Packages
+--------
 [Arch Linux](http://www.archlinux.org) is our distro of choice, and the distro we use for testing.
 
 You can find a [PKGBUILD](http://aur.archlinux.org/packages.php?ID=25972) on the AUR, which installs the latest
 from the master branch. You can edit the PKGBUILD to change to any other
 branch you want.
+
+For other distros, see [uzbl.org/wiki/howtos](http://www.uzbl.org/wiki/howtos)
 
 From source
 -----------
