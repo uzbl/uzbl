@@ -97,10 +97,7 @@ const struct {
 /*    variable name         pointer to variable in code          type  dump callback function    */
 /*  --------------------------------------------------------------------------------------- */
     { "uri",                 PTR(uzbl.state.uri,                  STR,  1,   cmd_load_uri)},
-<<<<<<< HEAD:uzbl.c
-=======
     { "verbose",             PTR(uzbl.state.verbose,              INT,  1,   NULL)},
->>>>>>> dieterbe/experimental:uzbl.c
     { "mode",                PTR(uzbl.behave.mode,                INT,  0,   NULL)},
     { "inject_html",         PTR(uzbl.behave.inject_html,         STR,  0,   cmd_inject_html)},
     { "base_url",            PTR(uzbl.behave.base_url,            STR,  1,   NULL)},
@@ -612,11 +609,6 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "search_reverse",     {search_reverse_text, NOSPLIT} },
     { "dehilight",          {dehilight, 0}                 },
     { "toggle_insert_mode", {toggle_insert_mode, 0}        },
-<<<<<<< HEAD:uzbl.c
-    { "runcmd",             {runcmd, NOSPLIT}              },
-    { "set",                {set_var, NOSPLIT}             },
-    { "dump_config",        {act_dump_config, 0}           }
-=======
     { "set",                {set_var, NOSPLIT}             },
     //{ "get",                {get_var, NOSPLIT}             },
     { "bind",               {act_bind, NOSPLIT}            },
@@ -626,7 +618,6 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "keycmd_bs",          {keycmd_bs, 0}                 },
     { "chain",              {chain, 0}                     },
     { "print",              {print, NOSPLIT}               }
->>>>>>> dieterbe/experimental:uzbl.c
 };
 
 static void
@@ -698,11 +689,6 @@ act_bind(WebKitWebView *page, GArray *argv) {
     g_strfreev(split);
 }
 
-
-static void
-act_dump_config() {
-    dump_config();
-}
 
 static void
 act_dump_config() {
@@ -2377,19 +2363,11 @@ static void
 dump_key_hash(gpointer k, gpointer v, gpointer ud) {
     (void) ud;
     Action *a = v;
-<<<<<<< HEAD:uzbl.c
 
     printf("bind %s = %s %s\n", (char *)k ,
             (char *)a->name, a->param?(char *)a->param:"");
 }
 
-=======
-
-    printf("bind %s = %s %s\n", (char *)k ,
-            (char *)a->name, a->param?(char *)a->param:"");
-}
-
->>>>>>> dieterbe/experimental:uzbl.c
 static void
 dump_config() {
     g_hash_table_foreach(uzbl.comm.proto_var, dump_var_hash, NULL);
@@ -2446,10 +2424,6 @@ main (int argc, char* argv[]) {
     uzbl.behave.insert_indicator = g_strdup("I");
     uzbl.behave.cmd_indicator    = g_strdup("C");
 
-<<<<<<< HEAD:uzbl.c
-    setup_regex();
-=======
->>>>>>> dieterbe/experimental:uzbl.c
     setup_scanner();
     commands_hash ();
     make_var_to_name_hash();

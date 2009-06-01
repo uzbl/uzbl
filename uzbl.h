@@ -425,12 +425,9 @@ static void
 set_var(WebKitWebView *page, GArray *argv);
 
 static void
-<<<<<<< HEAD:uzbl.h
-=======
 act_bind(WebKitWebView *page, GArray *argv);
 
 static void
->>>>>>> dieterbe/experimental:uzbl.h
 act_dump_config();
 
 static void
