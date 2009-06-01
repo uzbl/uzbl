@@ -53,13 +53,13 @@ $command{load} = sub {
       my ($type,$name,$value) = ($line =~ /^\s*(\w+)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*$/);
       if ($type eq "checkbox")
       {
-        printf $fifo 'act js document.getElementsByName("%s")[0].checked = %s;', $name, $value;
+        printf $fifo 'js document.getElementsByName("%s")[0].checked = %s;', $name, $value;
       } elsif ($type eq "submit")
       {
-        printf $fifo 'act js function fs (n) {try{n.submit()} catch (e){fs(n.parentNode)}}; fs(document.getElementsByName("%s")[0]);', $name;
+        printf $fifo 'js function fs (n) {try{n.submit()} catch (e){fs(n.parentNode)}}; fs(document.getElementsByName("%s")[0]);', $name;
       } elsif ($type ne "")
       {
-        printf $fifo 'act js document.getElementsByName("%s")[0].value = "%s";', $name, $value;
+        printf $fifo 'js document.getElementsByName("%s")[0].value = "%s";', $name, $value;
       }
       print $fifo "\n";
     }

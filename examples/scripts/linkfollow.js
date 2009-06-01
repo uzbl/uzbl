@@ -3,7 +3,7 @@
 //
 // first, it needs to be loaded before every time it is used.
 // One way would be to use the load_commit_handler:
-// set load_commit_handler = sh 'echo "act script /usr/share/uzbl/examples/scripts/linkfollow.js" > "$4"'
+// set load_commit_handler = sh 'echo "script /usr/share/uzbl/examples/scripts/linkfollow.js" > "$4"'
 //
 // when script is loaded, it can be invoked with
 // bind f* = js hints.set("%s",   hints.open)
