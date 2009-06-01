@@ -126,8 +126,8 @@ bind    B         = spawn ./examples/scripts/insert_bookmark.sh
 bind    U         = spawn ./examples/scripts/load_url_from_history.sh
 bind    u         = spawn ./examples/scripts/load_url_from_bookmarks.sh
 # with the sample yank script, you can yank one of the arguments into clipboard/selection
-bind    yurl      = spawn ./examples/scripts/yank.sh 8 primary
-bind    ytitle    = spawn ./examples/scripts/yank.sh 9 clipboard
+bind    yurl      = spawn ./examples/scripts/yank.sh 6 primary
+bind    ytitle    = spawn ./examples/scripts/yank.sh 7 clipboard
 # does the same as yurl but without needing a script
 bind    y2url     = sh 'echo -n $6 | xclip'
 # go the page from primary selection
