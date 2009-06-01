@@ -97,6 +97,7 @@ const struct {
 /*    variable name         pointer to variable in code          type  dump callback function    */
 /*  --------------------------------------------------------------------------------------- */
     { "uri",                 PTR(uzbl.state.uri,                  STR,  1,   cmd_load_uri)},
+    { "verbose",             PTR(uzbl.state.verbose,              INT,  1,   NULL)},
     { "mode",                PTR(uzbl.behave.mode,                INT,  0,   NULL)},
     { "inject_html",         PTR(uzbl.behave.inject_html,         STR,  0,   cmd_inject_html)},
     { "base_url",            PTR(uzbl.behave.base_url,            STR,  1,   NULL)},
@@ -189,48 +190,44 @@ make_var_to_name_hash() {
 /* --- UTILITY FUNCTIONS --- */
 static gchar *
 expand_vars(char *s) {
-    char ret[256],  /* 256 chars per var name should be safe */
-         *vend;
     uzbl_cmdprop *c;
     char upto = ' ';
+    char ret[256],  *vend;
     GString *buf = g_string_new("");
 
     while(*s) {
-        /* found quotation char */
-        if(*s == '\\') {
-            g_string_append_c(buf, *++s);
-            s++;
-        }
-        /* found variable */
-        else if(*s == '@') {
-            if(*(s+1) == '{') {
-                upto = '}'; s++;
-            }
-            s++;
-            if( (vend = strchr(s, upto)) ||
-                (vend = strchr(s, '\0')) ) {
-                strncpy(ret, s, vend-s);
-                ret[vend-s] = '\0';
-                if( (c = g_hash_table_lookup(uzbl.comm.proto_var, ret)) ) {
-                    if(c->type == TYPE_STR)
-                        g_string_append(buf, (gchar *)*c->ptr);
-                    else if(c->type == TYPE_INT) {
-                        char *b = itos((int)*c->ptr);
-                        g_string_append(buf, b);
-                        g_free(b);
-                    }
+        switch(*s) {
+            case '\\':
+                g_string_append_c(buf, *++s);
+                s++;
+                break;
+            case '@':
+                if(*(s+1) == '{') {
+                    upto = '}'; s++;
                 }
-                if(upto == ' ')
-                    s = vend;
-                else
-                    s = vend+1;
-                upto = ' ';
-            }
-        }
-        /* every other char */
-        else {
-            g_string_append_c(buf, *s);
-            s++;
+                s++;
+                if( (vend = strchr(s, upto)) ||
+                        (vend = strchr(s, '\0')) ) {
+                    strncpy(ret, s, vend-s);
+                    ret[vend-s] = '\0';
+                    if( (c = g_hash_table_lookup(uzbl.comm.proto_var, ret)) ) {
+                        if(c->type == TYPE_STR)
+                            g_string_append(buf, (gchar *)*c->ptr);
+                        else if(c->type == TYPE_INT) {
+                            char *b = itos((int)*c->ptr);
+                            g_string_append(buf, b);
+                            g_free(b);
+                        }
+                    }
+                    if(upto == ' ') s = vend;
+                    else s = vend+1;
+                    upto = ' ';
+                }
+                break;
+            default:
+                g_string_append_c(buf, *s);
+                s++;
+                break;
         }
     }
     return g_string_free(buf, FALSE);
@@ -613,13 +610,14 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "dehilight",          {dehilight, 0}                 },
     { "toggle_insert_mode", {toggle_insert_mode, 0}        },
     { "set",                {set_var, NOSPLIT}             },
-    { "get",                {get_var, NOSPLIT}             },
+    //{ "get",                {get_var, NOSPLIT}             },
     { "bind",               {act_bind, NOSPLIT}            },
     { "dump_config",        {act_dump_config, 0}           },
     { "keycmd",             {keycmd, NOSPLIT}              },
     { "keycmd_nl",          {keycmd_nl, NOSPLIT}           },
     { "keycmd_bs",          {keycmd_bs, 0}                 },
-    { "chain",              {chain, 0}                     }
+    { "chain",              {chain, 0}                     },
+    { "print",              {print, NOSPLIT}               }
 };
 
 static void
@@ -672,9 +670,13 @@ set_var(WebKitWebView *page, GArray *argv) {
 }
 
 static void
-get_var(WebKitWebView *page, GArray *argv) {
+print(WebKitWebView *page, GArray *argv) {
     (void) page;
-    get_var_value(argv_idx(argv, 0));
+    gchar* buf;
+
+    buf = expand_vars(argv_idx(argv, 0));
+    puts(buf);
+    g_free(buf);
 }
 
 static void
@@ -1269,19 +1271,6 @@ parse_command(const char *cmd, const char *param) {
         g_printerr ("command \"%s\" not understood. ignoring.\n", cmd);
 }
 
-static gboolean
-get_var_value(const gchar *name) {
-    uzbl_cmdprop *c;
-
-    if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
-        if(c->type == TYPE_STR)
-            printf("VAR: %s VALUE: (%s)\n", name, (char *)*c->ptr);
-        else if(c->type == TYPE_INT)
-            printf("VAR: %s VALUE: %d\n", name, (int)*c->ptr);
-    }
-    return TRUE;
-}
-
 static void
 set_proxy_url() {
     SoupURI *suri;
@@ -1589,9 +1578,10 @@ parse_cmd_line(const char *ctl_line) {
     else { /* parse a command */
         gchar *ctlstrip;
         gchar **tokens = NULL;
+        len = strlen(ctl_line);
 
-        if (ctl_line[strlen(ctl_line) - 1] == '\n') /* strip trailing newline */
-            ctlstrip = g_strndup(ctl_line, strlen(ctl_line) - 1);
+        if (ctl_line[len - 1] == '\n') /* strip trailing newline */
+            ctlstrip = g_strndup(ctl_line, len - 1);
         else ctlstrip = g_strdup(ctl_line);
 
         tokens = g_strsplit(ctlstrip, " ", 2);
@@ -2399,6 +2389,10 @@ main (int argc, char* argv[]) {
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
     g_option_context_parse (context, &argc, &argv, NULL);
     g_option_context_free(context);
+    
+    gchar *uri_override = (uzbl.state.uri ? g_strdup(uzbl.state.uri) : NULL);
+    gboolean verbose_override = uzbl.state.verbose;
+
     /* initialize hash table */
     uzbl.bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
 
@@ -2476,12 +2470,14 @@ main (int argc, char* argv[]) {
 
     create_stdin();
 
-    if(uzbl.state.uri) {
-        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-        g_array_append_val(a, uzbl.state.uri);
-        load_uri (uzbl.gui.web_view, a);
-        g_array_free (a, TRUE);
-    }
+    if (verbose_override > uzbl.state.verbose)
+        uzbl.state.verbose = verbose_override;
+    
+    if (uri_override) {
+        set_var_value("uri", uri_override);
+        g_free(uri_override);
+    } else if (uzbl.state.uri)
+        cmd_load_uri(uzbl.gui.web_view, NULL);
 
     gtk_main ();
     clean_up();
