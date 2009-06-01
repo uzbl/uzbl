@@ -93,12 +93,6 @@ typedef struct {
     gchar          *socket_path;
     /* stores (key)"variable name" -> (value)"pointer to this var*/
     GHashTable     *proto_var;
-    /* command parsing regexes */
-    GRegex         *set_regex;
-    GRegex         *act_regex;
-    GRegex         *keycmd_regex;
-    GRegex         *get_regex;
-    GRegex         *bind_regex;
     gchar          *sync_stdout;
 } Communication;
 
@@ -248,6 +242,9 @@ setup_signal(int signe, sigfunc *shandler);
 static gboolean
 set_var_value(gchar *name, gchar *val);
 
+static void
+print(WebKitWebView *page, GArray *argv);
+
 static gboolean
 new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data);
 
@@ -306,6 +303,18 @@ static void
 new_window_load_uri (const gchar * uri);
 
 static void
+chain (WebKitWebView *page, GArray *argv);
+
+static void
+keycmd (WebKitWebView *page, GArray *argv);
+
+static void
+keycmd_nl (WebKitWebView *page, GArray *argv);
+
+static void
+keycmd_bs (WebKitWebView *page, GArray *argv);
+
+static void
 close_uzbl (WebKitWebView *page, GArray *argv);
 
 static gboolean
@@ -326,9 +335,6 @@ spawn_sh_sync(WebKitWebView *web_view, GArray *argv);
 
 static void
 parse_command(const char *cmd, const char *param);
-
-static void
-runcmd(WebKitWebView *page, GArray *argv);
 
 static void
 parse_cmd_line(const char *ctl_line);
@@ -419,6 +425,12 @@ static void
 set_var(WebKitWebView *page, GArray *argv);
 
 static void
+<<<<<<< HEAD:uzbl.h
+=======
+act_bind(WebKitWebView *page, GArray *argv);
+
+static void
+>>>>>>> dieterbe/experimental:uzbl.h
 act_dump_config();
 
 static void
