@@ -94,9 +94,17 @@ function Hints(){
     this.test = test;
     this.toString = toString;
     this.numbers = numbers;
+    function matchAgainst(element){
+      if(element.node.nodeName == "INPUT"){
+        return element.node.title;
+      } else {
+        return element.node.textContent;
+      }
+    }
     function test(element) {
       // test all the regexp
-      return words.every(function (regex) { return element.node.textContent.match(regex)});
+      var item = matchAgainst(element);
+      return words.every(function (regex) { return item.match(regex)});
     }
   }
 
