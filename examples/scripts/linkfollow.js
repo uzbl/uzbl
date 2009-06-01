@@ -96,7 +96,7 @@ function Hints(){
     this.numbers = numbers;
     function matchAgainst(element){
       if(element.node.nodeName == "INPUT"){
-        return element.node.title;
+        return element.node.value;
       } else {
         return element.node.textContent;
       }
