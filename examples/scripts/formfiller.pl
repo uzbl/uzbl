@@ -15,11 +15,11 @@
 # bind LE = spawn /usr/share/uzbl/examples/scripts/formfiller.pl edit
 
 use strict;
-use Switch;
+use warnings;
 
 my $keydir = $ENV{XDG_CONFIG_HOME} . "/uzbl/forms";
-my ($config,$pid,$xid,$fifo,$socket,$url,$title,$cmd) = @ARGV;
-if($fifo eq "") { die "No fifo"; };
+my ($config,$pid,$xid,$fifoname,$socket,$url,$title,$cmd) = @ARGV;
+if (!defined $fifoname || $fifoname eq "") { die "No fifo"; }
 
 sub domain {
   my ($url) = @_;
@@ -41,29 +41,29 @@ my %command;
 
 $command{load} = sub {
   my ($domain) = @_;
-  my $file = "$keydir/$domain";
-  if( -e $file){
-    open(FH,$file);
-    my (@lines) = <FH>;
-    close(FH);
+  my $filename = "$keydir/$domain";
+  if (-e $filename){
+    open(my $file, $filename) or die "Failed to open $filename: $!";
+    my (@lines) = <$file>;
+    close($file);
     $|++;
-    open(FIFO,">>$fifo");
-    print "opened $fifo\n";
+    open(my $fifo, ">>", $fifoname) or die "Failed to open $fifoname: $!";
     foreach my $line (@lines) {
-        if($line !~ m/^#/){
-          my ($type,$name,$value) = ($line =~ /\s*(\w+)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*$/);
-          switch ($type) {
-            case ""         {}
-            case "checkbox" { printf FIFO 'act js document.getElementsByName("%s")[0].checked = %s;',	$name, $value}
-            case "submit"   { printf FIFO 'act js function fs (n) {try{n.submit()} catch (e){fs(n.parentNode)}}; fs(document.getElementsByName("%s")[0]);', $name }
-            else            { printf FIFO 'act js document.getElementsByName("%s")[0].value = "%s";',	$name, $value}
-          }
-
-        print FIFO "\n";
+      next if ($line =~ m/^#/);
+      my ($type,$name,$value) = ($line =~ /^\s*(\w+)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*$/);
+      if ($type eq "checkbox")
+      {
+        printf $fifo 'js document.getElementsByName("%s")[0].checked = %s;', $name, $value;
+      } elsif ($type eq "submit")
+      {
+        printf $fifo 'js function fs (n) {try{n.submit()} catch (e){fs(n.parentNode)}}; fs(document.getElementsByName("%s")[0]);', $name;
+      } elsif ($type ne "")
+      {
+        printf $fifo 'js document.getElementsByName("%s")[0].value = "%s";', $name, $value;
       }
+      print $fifo "\n";
     }
     $|--;
-    close(FIFO);
   } else {
     $command{new}->($domain);
     $command{edit}->($domain);
@@ -76,24 +76,24 @@ $command{edit} = sub {
     system ($editor, $file);
   } else {
     $command{new}->($domain);
-}
+  }
 };
 $command{new} = sub {
   my ($domain) = @_;
-  my $file = "$keydir/$domain";
-  open(FILE,">>$file");
+  my $filename = "$keydir/$domain";
+  open (my $file,">>", $filename) or die "Failed to open $filename: $!";
   $|++;
-  print FILE "#make sure that there are no extra submits, since it may trigger the wrong one\n";
-  printf FILE "#%-10s | %-10s | %s\n", @fields;
-  print FILE "#------------------------------\n";
+  print $file "# Make sure that there are no extra submits, since it may trigger the wrong one.\n";
+  printf $file "#%-10s | %-10s | %s\n", @fields;
+  print $file "#------------------------------\n";
   my @data = `$downloader $url`;
   foreach my $line (@data){
     if($line =~ m/<input ([^>].*?)>/i){
-      $line =~ s/.*(<input ([^>].*?)>).*/\1/;
-      printf FILE " %-10s | %-10s | %s\n", map { my ($r) = $line =~ /.*$_=["'](.*?)["']/;$r } @fields;
+      $line =~ s/.*(<input ([^>].*?)>).*/$1/;
+      printf $file " %-10s | %-10s | %s\n", map { my ($r) = $line =~ /.*$_=["'](.*?)["']/;$r } @fields;
     };
   };
-  close(FILE);
   $|--;
 };
+
 $command{$cmd}->(domain($url));

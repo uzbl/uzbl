@@ -49,7 +49,7 @@ domain=$(echo $url | sed -re 's|(http\|https)+://([A-Za-z0-9\.]+)/.*|\2|')
 if [ "$action" = 'load' ]
 then
 	[[ -e $keydir/$domain ]] || exit 2
-	gawk -F': ' '{ print "act js document.getElementsByName(\"" $1 "\")[0].value = \"" $2 "\";"}' $keydir/$domain >> $fifo
+	gawk -F': ' '{ print "js document.getElementsByName(\"" $1 "\")[0].value = \"" $2 "\";"}' $keydir/$domain >> $fifo
 else
 	if [ "$action" == 'new' ]
 	then

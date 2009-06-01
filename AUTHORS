@@ -3,11 +3,11 @@ Developers:
     Dieter Plaetinck (Dieter@be) <email is dieter AT plaetinck.be>
     Dusan Popovic (dusanx)
     Michael Walker (Barrucadu) <email is mike AT barrucadu.co.uk>
-    Přemysl Hrubý, (anydot) <email is dfenze AT gmail.com>
+    Přemysl Hrubý (anydot) <email is dfenze AT gmail.com>
     Robert Manea (robm) <email is rob DOT manea AT gmail DOT com>
+    Henri Kemppainen (DuClare) <email is akarinotengoku AT THE DOMAIN OF gmail.com> 
 
 Contributors:
-    (DuClare) - Various improvements
     Zane Ashby (HashBox) - Rewrote FIFO interface. Fixed various bugs.
     (sentientswitch) - Cleaned up code. Added some commands.
     Jan Kolkmeier (jouz) - scrolling, link following
@@ -17,6 +17,7 @@ Contributors:
     (salinasv) - move some variables to heap
     Sylvester Johansson (scj) - form filler script & different take on link follower 
     (mxf) - uzblcat
+    Mark Nevill - misc patches
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:

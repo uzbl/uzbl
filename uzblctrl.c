@@ -23,7 +23,7 @@ static gchar* command;
 
 static GOptionEntry entries[] =
 {
-    { "socket",  's', 0, G_OPTION_ARG_STRING, &sockpath, "Socket path of the client uzbl", NULL },
+    { "socket",  's', 0, G_OPTION_ARG_STRING, &sockpath, "Path to the uzbl socket",        NULL },
     { "command", 'c', 0, G_OPTION_ARG_STRING, &command,  "The uzbl command to execute",    NULL },
     { NULL,       0,  0, 0,                    NULL,      NULL,                            NULL }
 };
@@ -31,7 +31,7 @@ static GOptionEntry entries[] =
 int
 main(int argc, char* argv[]) {
     GError *error = NULL;
-    GOptionContext* context = g_option_context_new ("- some stuff here maybe someday");
+    GOptionContext* context = g_option_context_new ("- utility for controlling and interacting with uzbl through its socket file"); //TODO: get stuff back from uzbl
     g_option_context_add_main_entries (context, entries, NULL);
     g_option_context_add_group        (context, gtk_get_option_group (TRUE));
     g_option_context_parse            (context, &argc, &argv, &error);
@@ -64,8 +64,7 @@ main(int argc, char* argv[]) {
         
         return 0;
     } else {
-        printf ("You need to specify the -s and -c parameters for uzblctrl to do anything of use.\n");
-        printf ("Usage: uzblctrl -s /path/to/socket -c \"command\"\n");
+        puts ("Usage: uzblctrl -s /path/to/socket -c \"command\"");
         return 1;
     }
 }
