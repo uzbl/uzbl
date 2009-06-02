@@ -392,6 +392,23 @@ new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequ
     return (FALSE);
 }
 
+static gboolean
+mime_policy_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, gchar *mime_type,  WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
+    (void) frame;
+    (void) request;
+    (void) user_data;
+
+    /* If we can display it, let's display it... */
+    if (webkit_web_view_can_show_mime_type (web_view, mime_type)) {
+        webkit_web_policy_decision_use (policy_decision);
+        return TRUE;
+    }
+
+    /* ...everything we can't displayed is downloaded */
+    webkit_web_policy_decision_download (policy_decision);
+    return TRUE;
+}
+
 WebKitWebView*
 create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data) {
     (void) web_view;
@@ -952,7 +969,7 @@ expand_template(const char *template, gboolean escape_markup) {
          token = g_scanner_get_next_token(uzbl.scan);
 
          if(token == G_TOKEN_SYMBOL) {
-             sym = (int)g_scanner_cur_value(uzbl.scan).v_symbol;
+             sym = GPOINTER_TO_INT(g_scanner_cur_value(uzbl.scan).v_symbol);
              switch(sym) {
                  case SYM_URI:
                      if(escape_markup) {
@@ -1980,6 +1997,7 @@ create_browser () {
     g_signal_connect (G_OBJECT (g->web_view), "new-window-policy-decision-requested", G_CALLBACK (new_window_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "download-requested", G_CALLBACK (download_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "create-web-view", G_CALLBACK (create_web_view_cb), g->web_view);
+    g_signal_connect (G_OBJECT (g->web_view), "mime-type-policy-decision-requested", G_CALLBACK (mime_policy_cb), g->web_view);
 
     return scrolled_window;
 }
@@ -2127,6 +2145,8 @@ add_binding (const gchar *key, const gchar *act) {
         printf ("Binding %-10s : %s\n", key, act);
     action = new_action(parts[0], parts[1]);
 
+    if (g_hash_table_remove (uzbl.bindings, key))
+        g_warning ("Overwriting existing binding for \"%s\"", key);
     g_hash_table_replace(uzbl.bindings, g_strdup(key), action);
     g_strfreev(parts);
 }

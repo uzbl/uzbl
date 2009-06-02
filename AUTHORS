@@ -18,6 +18,7 @@ Contributors:
     Sylvester Johansson (scj) - form filler script & different take on link follower 
     (mxf) - uzblcat
     Mark Nevill - misc patches
+    Uli Schlachter (psychon) - basic mime_policy_cb & Makefile patch
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:
