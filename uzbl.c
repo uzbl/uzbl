@@ -43,16 +43,14 @@
 #include <sys/utsname.h>
 #include <sys/time.h>
 #include <webkit/webkit.h>
+#include <libsoup/soup.h>
+
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <string.h>
 #include <fcntl.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <libsoup/soup.h>
 #include <signal.h>
 #include "uzbl.h"
 #include "config.h"
@@ -85,7 +83,7 @@ typedef const struct {
     void (*func)(void);
 } uzbl_cmdprop;
 
-enum {TYPE_INT, TYPE_STR};
+enum {TYPE_INT, TYPE_STR, TYPE_FLOAT};
 
 /* an abbreviation to help keep the table's width humane */
 #define PTR(var, t, d, fun) { .ptr = (void*)&(var), .type = TYPE_##t, .dump = d, .func = fun }
@@ -133,7 +131,8 @@ const struct {
     { "max_conns",           PTR(uzbl.net.max_conns,              INT,  1,   cmd_max_conns)},
     { "max_conns_host",      PTR(uzbl.net.max_conns_host,         INT,  1,   cmd_max_conns_host)},
     { "useragent",           PTR(uzbl.net.useragent,              STR,  1,   cmd_useragent)},
-    /* exported WebKitWebSettings properties*/
+    /* exported WebKitWebSettings properties */
+    { "zoom_level",          PTR(uzbl.behave.zoom_level,          FLOAT,1,   cmd_zoom_level)},
     { "font_size",           PTR(uzbl.behave.font_size,           INT,  1,   cmd_font_size)},
     { "monospace_size",      PTR(uzbl.behave.monospace_size,      INT,  1,   cmd_font_size)},
     { "minimum_font_size",   PTR(uzbl.behave.minimum_font_size,   INT,  1,   cmd_minimum_font_size)},
@@ -599,7 +598,6 @@ VIEWFUNC(go_forward)
 #undef VIEWFUNC
 
 /* -- command to callback/function map for things we cannot attach to any signals */
-// TODO: reload
 static struct {char *name; Command command[2];} cmdlist[] =
 {   /* key                   function      no_split      */
     { "back",               {view_go_back, 0}              },
@@ -1368,6 +1366,11 @@ cmd_font_size() {
 }
 
 static void
+cmd_zoom_level() {
+    webkit_web_view_set_zoom_level (uzbl.gui.web_view, uzbl.behave.zoom_level);
+}
+
+static void
 cmd_disable_plugins() {
     g_object_set (G_OBJECT(view_settings()), "enable-plugins", 
             !uzbl.behave.disable_plugins, NULL);
@@ -1546,6 +1549,11 @@ set_var_value(gchar *name, gchar *val) {
             int *ip = (int *)c->ptr;
             buf = expand_vars(val);
             *ip = (int)strtoul(buf, &endp, 10);
+            g_free(buf);
+        } else if (c->type == TYPE_FLOAT) {
+            float *fp = (float *)c->ptr;
+            buf = expand_vars(val);
+            *fp = strtof(buf, &endp);
             g_free(buf);
         }
 

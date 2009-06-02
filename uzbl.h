@@ -149,6 +149,7 @@ typedef struct {
     guint    font_size;
     guint    monospace_size;
     guint    minimum_font_size;
+    gfloat   zoom_level;
     guint    disable_plugins;
     guint    disable_scripts;
     guint    autoload_img;    
@@ -477,8 +478,13 @@ cmd_max_conns();
 static void
 cmd_max_conns_host();
 
+/* exported WebKitWebSettings properties */
+
 static void
 cmd_font_size();
+
+static void
+cmd_zoom_level();
 
 static void
 cmd_disable_plugins();
