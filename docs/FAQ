@@ -37,8 +37,9 @@ You have to look at the bigger picture.  In fact, we do support all these things
 These ideas are something we want to consistently apply throughout the entire application.  (Even more, throughout our entire desktop environment)
 In fact, we actually ship various sample scripts and some sample configs that make it easy for you to implement your workflow.
 
-### Where can I find a list of commands that can be used in the config?
-  * Commands are documented in README.  Read it.
+### Okay, what can I actually do?  What commands are there?  How do I get more information?
+  * Commands and other features are documented in README.  Read it.
+  * You should also peek into the sampleconfigs to see how commands are used in practice.
 
 ### Why can't I type anything in forms?  How does the keybinding work?
 You are in command mode, not in insert mode.
