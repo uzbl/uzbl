@@ -1680,6 +1680,12 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
     GError *error = NULL;
     gchar *path = build_stream_name(FIFO, dir);
 
+    // This extra check is an alternative to recursively calling init_fifo() or using goto 
+    if (file_exists(path)) {
+        if (unlink(path))
+            g_warning ("init_fifo: can't delete %s: %s", path, strerror(errno));
+    }
+
     if (!file_exists(path)) {
         if (mkfifo (path, 0666) == 0) {
             // we don't really need to write to the file, but if we open the file as 'r' we will block here, waiting for a writer to open the file.
