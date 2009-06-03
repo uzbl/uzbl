@@ -7,10 +7,9 @@ WGET="wget --user-agent=Firefox"
 
 if [[ $8 =~ .*(.torrent) ]] 
 then
-    pushd $HOME
+    cd $HOME
     $WGET $8
 else
-    pushd $HOME
+    cd $HOME
     $WGET $8
 fi
-popd
