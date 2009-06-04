@@ -2037,7 +2037,7 @@ create_mainbar () {
 static
 GtkWidget* create_window () {
     GtkWidget* window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-    gchar* uzbl_icon = g_strdup(find_xdg_file(1, "/uzbl/uzbl.png"));
+    gchar* uzbl_icon = find_xdg_file(1, "/uzbl/uzbl.png");
     gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
     gtk_widget_set_name (window, "Uzbl browser");
     gtk_window_set_icon_from_file (GTK_WINDOW (window), uzbl_icon, NULL);
