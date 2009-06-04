@@ -44,7 +44,7 @@ case $act in
     ;;
 
   "endsession" )
-    echo -n "" > "$sessionfile"
+    mv "$sessionfile" "$sessionfile~"
     for fifo in $fifodir/uzbl_fifo_*; do
       if [ "$fifo" != "$thisfifo" ]; then
         echo "spawn $scriptfile endinstance" > "$fifo"
