@@ -29,9 +29,9 @@
 [ -f ./examples/configs/cookies               ] && file=./examples/configs/cookies #useful when developing
 [ -z "$file" ] && exit 1
 
-[ -d /usr/share/uzbl/examples/data ] && cookie_dir=/usr/share/uzbl/examples/data/cookies.d
-[ -d $XDG_DATA_HOME/uzbl/          ] && cookie_dir=$XDG_DATA_HOME/uzbl/cookies.d
-[ -d ./examples/data/              ] && cookie_dir=./examples/data/cookies.d #useful when developing
+[ -d /usr/share/uzbl/examples/data/cookies.d  ] && cookie_dir=/usr/share/uzbl/examples/data/cookies.d
+[ -d $XDG_DATA_HOME/uzbl/cookies.d            ] && cookie_dir=$XDG_DATA_HOME/uzbl/cookies.d
+[ -d ./examples/data/cookies.d                ] && cookie_dir=./examples/data/cookies.d #useful when developing
 [ -z "$cookie_dir" ] && exit 1
 
 # if this variable is set, we will use it to inform you when and which cookies we store, and when/which we send.
