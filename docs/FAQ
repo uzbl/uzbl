@@ -86,5 +86,4 @@ We also like open source.  We take a lot of things from other projects and we al
 Yes.  If you don't agree, don't use it :)
 
 ### Why can't I get uzbl to work on Ubuntu?
-Instead of using the old version in the apt repository (1.0.1), 
-[download the latest webkit](http://webkitgtk.org/?page=download), compile, and install.
+See [Duwanis' blog](http://blog.duwanis.com/past/2009/5/17/installing_uzbl_on_ubuntubased_distros/) for instructions on how to install under Ubuntu.
