@@ -29,9 +29,9 @@
 [ -f ./examples/configs/cookies               ] && file=./examples/configs/cookies #useful when developing
 [ -z "$file" ] && exit 1
 
-[ -d /usr/share/uzbl/examples/data ] && cookie_file=/usr/share/uzbl/examples/data/cookies.txt
-[ -d $XDG_DATA_HOME/uzbl/          ] && cookie_file=$XDG_DATA_HOME/uzbl/cookies.txt
-[ -d ./examples/data/              ] && cookie_file=./examples/data/cookies.txt #useful when developing
+[ -d /usr/share/uzbl/examples/data ] && cookie_file=/usr/share/uzbl/examples/data/cookies.d
+[ -d $XDG_DATA_HOME/uzbl/          ] && cookie_file=$XDG_DATA_HOME/uzbl/cookies.d
+[ -d ./examples/data/              ] && cookie_file=./examples/data/cookies.d #useful when developing
 [ -z "$cookie_file" ] && exit 1
 
 # if this variable is set, we will use it to inform you when and which cookies we store, and when/which we send.
@@ -94,13 +94,13 @@ function parse_cookie () {
 function get_cookie () {
 	path_esc=${path//\//\\/}
 	search="^[^\t]*$host\t[^\t]*\t$path_esc"
-	cookie=`awk "/$search/" $cookie_file 2>/dev/null | tail -n 1`
+	cookie=`awk "/$search/" $cookie_file/$host.cookie 2>/dev/null | tail -n 1`
 	if [ -z "$cookie" ]
 	then
-		notify "Get_cookie: search: $search in $cookie_file -> no result"
+		notify "Get_cookie: search: $search in $cookie_file/$host.cookie -> no result"
 		false
 	else
-		notify "Get_cookie: search: $search in $cookie_file -> result: $cookie"
+		notify "Get_cookie: search: $search in $cookie_file/$host.cookie -> result: $cookie"
 		read domain alow_read_other_subdomains path http_required expiration name value <<< "$cookie"
 		cookie="$name=$value" 
 		true
@@ -111,8 +111,8 @@ function save_cookie () {
 	if parse_cookie
 	then
 		data="$field_domain\tFALSE\t$field_path\tFALSE\t$field_exp\t$field_name\t$field_value"
-		notify "save_cookie: adding $data to $cookie_file"
-		echo -e "$data" >> $cookie_file
+		notify "save_cookie: adding $data to $cookie_file/$host.cookie"
+		echo -e "$data" >> $cookie_file/$host.cookie
 	else
 		notify "not saving a cookie. since we don't have policies yet, parse_cookie must have returned false. this is a bug"
 	fi
