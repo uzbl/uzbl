@@ -545,6 +545,7 @@ load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) page;
     (void) frame;
     (void) data;
+    uzbl.gui.sbar.load_progress = 0;
     g_string_truncate(uzbl.state.keycmd, 0); // don't need old commands to remain on new page?
     if (uzbl.behave.load_start_handler)
         run_handler(uzbl.behave.load_start_handler, "");
