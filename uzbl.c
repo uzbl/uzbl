@@ -731,6 +731,10 @@ static void
 load_uri (WebKitWebView *web_view, GArray *argv) {
     if (argv_idx(argv, 0)) {
         GString* newuri = g_string_new (argv_idx(argv, 0));
+        if (g_strstr_len (argv_idx(argv, 0), 11, "javascript:") != NULL) {
+            run_js(web_view, argv);
+            return;
+        }
         if (g_strrstr (argv_idx(argv, 0), "://") == NULL)
             g_string_prepend (newuri, "http://");
         /* if we do handle cookies, ask our handler for them */
