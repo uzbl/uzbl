@@ -12,7 +12,7 @@ test-config: uzbl
 
 test-config-real: uzbl
 	./uzbl --uri http://www.uzbl.org < /usr/share/uzbl/examples/configs/sampleconfig
-	
+
 clean:
 	rm -f uzbl
 	rm -f uzblctrl
