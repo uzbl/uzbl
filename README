@@ -83,14 +83,6 @@ When uzbl forks a new instance (eg "open in new window") it will use the same co
 If you made changes to the configuration at runtime, these are not pased on to the child.
 
 ### COMMAND SYNTAX
-Commands are used for:
-
-* creating keybindings
-* altering variables
-* getting the values of variables
-* running actions
-* setting the input buffer
-
 Uzbl will read commands via standard input, named fifo pipe (if `fifo_dir` is set) and IPC socket (when `socket_dir` is set).
 For convenience, uzbl can also be instructed to read commands from a file on startup by using the `-c` option.  Indeed, the config file is nothing more than a list of commands.
 
@@ -151,7 +143,7 @@ The following commands are recognized:
 * `sync_spawn <executable> <additional args>`
 * `sync_sh <command>`
    - these are synchronous variants of `spawn` and `sh`, which means uzbl will wait for them to return
-   - you should only need to use these manually if you want to use a chain action in a handler that wants output from the command it runs
+   - you should only need to use these manually if you want to use a chain command in a handler that wants output from the command it runs
 * `exit`
 * `search <string>`
 * `search_reverse <string>`
@@ -163,9 +155,9 @@ The following commands are recognized:
    - keycmd sets the interactive command buffer to `<string>`.  If the given string is a valid binding, it will execute.  `Keycmd_nl` is like `keycmd`, but it also emulates a press of return, causing bindings with a parameter to execute.  For example, `keycmd_nl o google.com` would load the said url if you have a binding like `bind o _ = uri %s`.
 * `keycmd_bs`
    - erase (backspace) one character from the command buffer
-* `chain <action> <action> ..`
-   - use for chaining multiple actions
-   - remember to quote the actions; one action must come as one parameter
+* `chain <command> <command> ..`
+   - use for chaining multiple commands
+   - remember to quote the commands; one command must come as one parameter
    - if you use `chain` with a handler script which must return some output (such as a cookie handler -- uzbl will wait for and use its output), use sync_spawn or sync_sh instead of spawn or sh in the command that should give the output
 
 

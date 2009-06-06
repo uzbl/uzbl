@@ -69,6 +69,8 @@ bind    r         = reload
 bind    R         = reload_ign_cache
 bind    +         = zoom_in
 bind    -         = zoom_out
+bind    1         = sh "echo set zoom_level = 1.0 > $4"
+bind    2         = sh "echo set zoom_level = 2.0 > $4"
 bind    t         = toggle_status
 # Hilight matches. Notice the * after the slash - it makes the command incremental, i.e. gets called
 # on every character you type.  You can do `bind /_ = search %s' if you want it less interactive.
@@ -89,8 +91,8 @@ bind    B         = spawn /usr/share/uzbl/examples/scripts/insert_bookmark.sh
 bind    U         = spawn /usr/share/uzbl/examples/scripts/load_url_from_history.sh
 bind    u         = spawn /usr/share/uzbl/examples/scripts/load_url_from_bookmarks.sh
 # with the sample yank script, you can yank one of the arguments into clipboard/selection
-bind    yurl      = spawn /usr/share/uzbl/examples/scripts/yank.sh 8 primary
-bind    ytitle    = spawn /usr/share/uzbl/examples/scripts/yank.sh 9 clipboard
+bind    yurl      = spawn /usr/share/uzbl/examples/scripts/yank.sh 6 primary
+bind    ytitle    = spawn /usr/share/uzbl/examples/scripts/yank.sh 7 clipboard
 # does the same as yurl but without needing a script
 bind    y2url     = sh "echo -n $6 | xclip"
 # go the page from primary selection
