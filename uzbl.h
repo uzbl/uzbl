@@ -146,6 +146,7 @@ typedef struct {
     guint    http_debug;
     gchar*   shell_cmd;
     /* WebKitWebSettings exports */
+    gfloat   zoom_level;
     guint    font_size;
     guint    monospace_size;
     guint    minimum_font_size;
@@ -482,6 +483,9 @@ cmd_max_conns_host();
 
 static void
 cmd_font_size();
+
+static void
+cmd_zoom_level();
 
 static void
 cmd_disable_plugins();

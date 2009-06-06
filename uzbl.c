@@ -84,7 +84,7 @@ typedef const struct {
     void (*func)(void);
 } uzbl_cmdprop;
 
-enum {TYPE_INT, TYPE_STR};
+enum {TYPE_INT, TYPE_STR, TYPE_FLOAT};
 
 /* an abbreviation to help keep the table's width humane */
 #define PTR(var, t, d, fun) { .ptr = (void*)&(var), .type = TYPE_##t, .dump = d, .func = fun }
@@ -1376,6 +1376,11 @@ cmd_font_size() {
         g_object_set (G_OBJECT(ws), "default-monospace-font-size",
                       uzbl.behave.font_size, NULL);
     }
+}
+ 
+static void
+cmd_zoom_level() {
+    webkit_web_view_set_zoom_level (uzbl.gui.web_view, uzbl.behave.zoom_level);
 }
 
 static void
