@@ -69,7 +69,7 @@ bind    r         = reload
 bind    R         = reload_ign_cache
 bind    +         = zoom_in
 bind    -         = zoom_out
-bind    0         = sh "echo set zoom_level = 1.0 > $4"
+bind    =         = sh "echo set zoom_level = 1.0 > $4"
 bind    t         = toggle_status
 # Hilight matches. Notice the * after the slash - it makes the command incremental, i.e. gets called
 # on every character you type.  You can do `bind /_ = search %s' if you want it less interactive.
