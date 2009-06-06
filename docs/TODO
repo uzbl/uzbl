@@ -1,12 +1,11 @@
 More or less in order of importance/urgency
 
-* cookie handler.  storing seems to work, but not yet sending
+* improve cookie handler.
 * a variable that holds the page state: loading, pending, seen. this can be shown in titlebar/statusbar and used for multiple instances management
 * allow to tag , to group instances together
 * store uri/tag/name/state in xorg window properties
 * split up uzbl.c into multiple files
 * shortcuts to focus other instances (see docs/multiple-instances-management)
-* password handler (manager)
 
 * recognize -h with GOption?
 * implement a vimperator-like link following scheme.
@@ -43,6 +42,18 @@ More or less in order of importance/urgency
 * let users attach handlers to the most common events/signals in uzbl.
   great use case: automatically calling formfiller for certain sites
 * write little script to open new urls with the urxvt url thing +document.
+* document:
+  stylesheet overridding
+  formfiller
+  link following
+  webkit inspector usage
+  scroll commands can take %s, eg scroll 100% for pages
+  chaining of actions, dump_config, print (and other actions that aren't documented yet)
+  overriding variables (such as -u)
+  variable expansion (@var, @{var}, where do they get expanded? can users have their own vars?, should we merge this with the replacement we do for useragent/window title etc?)
+  how %s works for the js command
+* consider switching to CMAKE. (someone already ported the makefile etc)
+  
 
 SOMEDAY:
 figure out caching with webkit and in general how we can speed up everything
