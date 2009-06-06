@@ -2242,7 +2242,7 @@ settings_init () {
             printf ("No configuration file loaded.\n");
     }
 
-    g_signal_connect(n->soup_session, "request-queued", G_CALLBACK(handle_cookies), NULL);
+    g_signal_connect_after(n->soup_session, "request-started", G_CALLBACK(handle_cookies), NULL);
 }
 
 static void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer user_data){
