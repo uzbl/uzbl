@@ -93,12 +93,6 @@ typedef struct {
     gchar          *socket_path;
     /* stores (key)"variable name" -> (value)"pointer to this var*/
     GHashTable     *proto_var;
-    /* command parsing regexes */
-    GRegex         *set_regex;
-    GRegex         *act_regex;
-    GRegex         *keycmd_regex;
-    GRegex         *get_regex;
-    GRegex         *bind_regex;
     gchar          *sync_stdout;
 } Communication;
 
@@ -155,6 +149,7 @@ typedef struct {
     guint    font_size;
     guint    monospace_size;
     guint    minimum_font_size;
+    gfloat   zoom_level;
     guint    disable_plugins;
     guint    disable_scripts;
     guint    autoload_img;    
@@ -171,6 +166,8 @@ typedef struct {
     guint    mode;  
     gchar*   base_url;
     gchar*   html_endmarker;
+    gchar*   insert_indicator;
+    gchar*   cmd_indicator;
     GString* html_buffer;
     guint    html_timeout;  
 
@@ -246,8 +243,14 @@ setup_signal(int signe, sigfunc *shandler);
 static gboolean
 set_var_value(gchar *name, gchar *val);
 
+static void
+print(WebKitWebView *page, GArray *argv);
+
 static gboolean
 new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data);
+
+static gboolean
+mime_policy_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, gchar *mime_type,  WebKitWebPolicyDecision *policy_decision, gpointer user_data);
 
 WebKitWebView*
 create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data);
@@ -304,11 +307,23 @@ static void
 new_window_load_uri (const gchar * uri);
 
 static void
+chain (WebKitWebView *page, GArray *argv);
+
+static void
+keycmd (WebKitWebView *page, GArray *argv);
+
+static void
+keycmd_nl (WebKitWebView *page, GArray *argv);
+
+static void
+keycmd_bs (WebKitWebView *page, GArray *argv);
+
+static void
 close_uzbl (WebKitWebView *page, GArray *argv);
 
 static gboolean
 run_command(const gchar *command, const guint npre,
-            const gchar **args, const gboolean sync, char **stdout);
+            const gchar **args, const gboolean sync, char **output_stdout);
 
 static void
 spawn(WebKitWebView *web_view, GArray *argv);
@@ -324,9 +339,6 @@ spawn_sh_sync(WebKitWebView *web_view, GArray *argv);
 
 static void
 parse_command(const char *cmd, const char *param);
-
-static void
-runcmd(WebKitWebView *page, GArray *argv);
 
 static void
 parse_cmd_line(const char *ctl_line);
@@ -417,10 +429,25 @@ static void
 set_var(WebKitWebView *page, GArray *argv);
 
 static void
+act_bind(WebKitWebView *page, GArray *argv);
+
+static void
+act_dump_config();
+
+static void
 render_html();
 
 static void
 set_timeout(int seconds);
+
+static void
+dump_var_hash(gpointer k, gpointer v, gpointer ud);
+
+static void
+dump_key_hash(gpointer k, gpointer v, gpointer ud);
+
+static void
+dump_config();
 
 
 /* Command callbacks */
@@ -451,8 +478,13 @@ cmd_max_conns();
 static void
 cmd_max_conns_host();
 
+/* exported WebKitWebSettings properties */
+
 static void
 cmd_font_size();
+
+static void
+cmd_zoom_level();
 
 static void
 cmd_disable_plugins();

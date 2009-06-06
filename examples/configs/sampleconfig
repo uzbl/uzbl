@@ -2,16 +2,16 @@
 # example uzbl config. in a real config, we should obey the xdg spec
 # all settings are optional.  you can use uzbl without any config at all (but it won't do much)
 
-# keyboard behavior is vimstyle by default (all actions -> 1 key). set
+# keyboard behavior is vimstyle by default (all commands -> 1 key). set
 # always_insert_mode to always be in insert mode and disable going out of it.
-# if you do this, make sure you've set a modkey so you can reach the actions
+# if you do this, make sure you've set a modkey so you can reach the commands
 # from insert mode by combining them with the modkey
 
 # TODO: ability to attach misc things (spawn <foo>, script <bar>,.. to internal events)
-# You can use any action in place of spawn
+# You can use any command in place of spawn
 set history_handler  = spawn /usr/share/uzbl/examples/scripts/history.sh
 set download_handler = spawn /usr/share/uzbl/examples/scripts/download.sh
-#set cookie_handler   = spawn /usr/share/uzbl/examples/scripts/cookies.sh
+set cookie_handler   = spawn /usr/share/uzbl/examples/scripts/cookies.sh
 
 set minimum_font_size = 6
 set font_size = 11
@@ -69,6 +69,8 @@ bind    r         = reload
 bind    R         = reload_ign_cache
 bind    +         = zoom_in
 bind    -         = zoom_out
+bind    1         = sh "echo set zoom_level = 1.0 > $4"
+bind    2         = sh "echo set zoom_level = 2.0 > $4"
 bind    t         = toggle_status
 # Hilight matches. Notice the * after the slash - it makes the command incremental, i.e. gets called
 # on every character you type.  You can do `bind /_ = search %s' if you want it less interactive.
@@ -89,14 +91,14 @@ bind    B         = spawn /usr/share/uzbl/examples/scripts/insert_bookmark.sh
 bind    U         = spawn /usr/share/uzbl/examples/scripts/load_url_from_history.sh
 bind    u         = spawn /usr/share/uzbl/examples/scripts/load_url_from_bookmarks.sh
 # with the sample yank script, you can yank one of the arguments into clipboard/selection
-bind    yurl      = spawn /usr/share/uzbl/examples/scripts/yank.sh 8 primary
-bind    ytitle    = spawn /usr/share/uzbl/examples/scripts/yank.sh 9 clipboard
+bind    yurl      = spawn /usr/share/uzbl/examples/scripts/yank.sh 6 primary
+bind    ytitle    = spawn /usr/share/uzbl/examples/scripts/yank.sh 7 clipboard
 # does the same as yurl but without needing a script
 bind    y2url     = sh "echo -n $6 | xclip"
 # go the page from primary selection
-bind    p         = sh "echo act uri `xclip -selection primary -o` > $4"
+bind    p         = sh "echo uri `xclip -selection primary -o` > $4"
 # go to the page in clipboard
-bind    P         = sh "echo act uri `xclip -selection clipboard -o` > $4"
+bind    P         = sh "echo uri `xclip -selection clipboard -o` > $4"
 bind    ZZ        = exit
 bind    S         = js alert("hi");
 # example showing how to use sh
@@ -104,7 +106,7 @@ bind    S         = js alert("hi");
 # if fifo_dir is not set, it'll echo to a file named (null) somewhere >:) remember to delete it
 # Parameters are separated by spaces and the script body must be one parameter, so enclose it in
 # quotes and escape any inner quotes using backslashes
-bind    XS        = sh 'echo "act script alert (\'This is sent by the shell via a fifo\')" > "$4"'
+bind    XS        = sh 'echo "js alert (\'This is sent by the shell via a fifo\')" > "$4"'
 
 
 # we ship some javascripts to do keyboard based link hinting/following.  (webkit does not have C DOM bindings yet)

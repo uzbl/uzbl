@@ -40,23 +40,23 @@ case $act in
     if [ "$url" != "(null)" ]; then
       echo "$url" >> $sessionfile;
     fi
-    echo "act exit" > "$thisfifo"
+    echo "exit" > "$thisfifo"
     ;;
 
   "endsession" )
     mv "$sessionfile" "$sessionfile~"
     for fifo in $fifodir/uzbl_fifo_*; do
       if [ "$fifo" != "$thisfifo" ]; then
-        echo "act spawn $scriptfile endinstance" > "$fifo"
+        echo "spawn $scriptfile endinstance" > "$fifo"
       fi
     done
-    echo "act spawn $scriptfile endinstance" > "$thisfifo"
+    echo "spawn $scriptfile endinstance" > "$thisfifo"
     ;;
 
   * ) echo "session manager: bad action"
       echo "Usage: $scriptfile [COMMAND] where commands are:"
       echo " launch 	- Restore a saved session or start a new one"
       echo " endsession	- Quit the running session. Must be called from uzbl"
-    ;;
+      ;;
 esac
 
