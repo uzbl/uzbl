@@ -1,5 +1,5 @@
-CFLAGS:=-std=c99 $(shell pkg-config --cflags gtk+-2.0 webkit-1.0) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -DG_ERRORCHECK_MUTEXES -DCOMMIT="\"$(shell git log | head -n1 | sed "s/.* //")\"" $(CPPFLAGS)
-LDFLAGS:=$(shell pkg-config --libs gtk+-2.0 webkit-1.0) $(LDFLAGS)
+CFLAGS:=-std=c99 $(shell pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -DG_ERRORCHECK_MUTEXES -DCOMMIT="\"$(shell git log | head -n1 | sed "s/.* //")\"" $(CPPFLAGS)
+LDFLAGS:=$(shell pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4) -pthread $(LDFLAGS)
 all: uzbl uzblctrl
 
 PREFIX?=$(DESTDIR)/usr
