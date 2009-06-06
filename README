@@ -104,14 +104,13 @@ The following commands are recognized:
        * `<string>` ends with an asterisk: similar behavior as with an underscore, but also makes the binding incremental (i.e. the command will be invoked on every keystroke).
        * `<string>` ends on a different character: you need to type the full string, which will trigger the command immediately, without pressing enter/return.
    - examples:
-
-        # uzbl will load the url when you type: 'o <url><enter>'
-        bind o _ = uri %s
-        # a search command which is called on every character typed after the slash, letting you see the search narrow down while typing.
-        #  Hitting return, enter or esc will terminate the search.
-        bind /*  = search %s
-        # when you type `ZZ` and nothing else, the exit command will be triggered immediately.
-        bind ZZ  = exit
+       * `bind o _ = uri %s`
+         - uzbl will load the url when you type: 'o <url><enter>'
+       * `bind /*  = search %s`
+         - a search command which is called on every character typed after the slash, letting you see the search narrow down while typing.
+         - Hitting return, enter or esc will terminate the search.
+       * `bind ZZ  = exit`
+         - When you type `ZZ` and nothing else, the exit command will be triggered immediately.
 
 * `back`
 * `forward`

@@ -32,6 +32,7 @@
 
 #define LENGTH(x) (sizeof x / sizeof x[0])
 #define MAX_BINDINGS 256
+#define _POSIX_SOURCE
 
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
@@ -545,6 +546,7 @@ load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) page;
     (void) frame;
     (void) data;
+    uzbl.gui.sbar.load_progress = 0;
     g_string_truncate(uzbl.state.keycmd, 0); // don't need old commands to remain on new page?
     if (uzbl.behave.load_start_handler)
         run_handler(uzbl.behave.load_start_handler, "");
@@ -1114,7 +1116,7 @@ sharg_append(GArray *a, const gchar *str) {
 // make sure that the args string you pass can properly be interpreted (eg properly escaped against whitespace, quotes etc)
 static gboolean
 run_command (const gchar *command, const guint npre, const gchar **args,
-             const gboolean sync, char **stdout) {
+             const gboolean sync, char **output_stdout) {
    //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
     GError *err = NULL;
     
@@ -1138,10 +1140,10 @@ run_command (const gchar *command, const guint npre, const gchar **args,
     
     gboolean result;
     if (sync) {
-        if (*stdout) *stdout = strfree(*stdout);
+        if (*output_stdout) *output_stdout = strfree(*output_stdout);
         
         result = g_spawn_sync(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
-                              NULL, NULL, stdout, NULL, NULL, &err);
+                              NULL, NULL, output_stdout, NULL, NULL, &err);
     } else result = g_spawn_async(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
                                   NULL, NULL, NULL, &err);
 
@@ -1155,8 +1157,8 @@ run_command (const gchar *command, const guint npre, const gchar **args,
         g_string_append_printf(s, " -- result: %s", (result ? "true" : "false"));
         printf("%s\n", s->str);
         g_string_free(s, TRUE);
-        if(stdout) {
-            printf("Stdout: %s\n", *stdout);
+        if(output_stdout) {
+            printf("Stdout: %s\n", *output_stdout);
         }
     }
     if (err) {
@@ -1557,7 +1559,7 @@ set_var_value(gchar *name, gchar *val) {
         } else if (c->type == TYPE_FLOAT) {
             float *fp = (float *)c->ptr;
             buf = expand_vars(val);
-            *fp = strtof(buf, &endp);
+            *fp = strtod(buf, &endp);
             g_free(buf);
         }
 
@@ -2029,6 +2031,7 @@ create_mainbar () {
     gtk_misc_set_alignment (GTK_MISC(g->mainbar_label), 0, 0);
     gtk_misc_set_padding (GTK_MISC(g->mainbar_label), 2, 2);
     gtk_box_pack_start (GTK_BOX (g->mainbar), g->mainbar_label, TRUE, TRUE, 0);
+    g_signal_connect (G_OBJECT (g->mainbar), "key-press-event", G_CALLBACK (key_press_cb), NULL);
     return g->mainbar;
 }
 
