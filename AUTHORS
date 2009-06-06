@@ -21,6 +21,7 @@ Contributors:
     Uli Schlachter (psychon) - basic mime_policy_cb & Makefile patch
     (uranther) - zoom level
     (bobpaul) - session script patches
+    Tom Adams (holizz.com) - few patches
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:
