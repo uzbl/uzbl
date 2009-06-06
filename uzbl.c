@@ -32,6 +32,7 @@
 
 #define LENGTH(x) (sizeof x / sizeof x[0])
 #define MAX_BINDINGS 256
+#define _POSIX_SOURCE
 
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
