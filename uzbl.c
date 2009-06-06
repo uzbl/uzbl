@@ -83,7 +83,7 @@ typedef const struct {
     void (*func)(void);
 } uzbl_cmdprop;
 
-enum {TYPE_INT, TYPE_STR, TYPE_FLOAT};
+enum {TYPE_INT, TYPE_STR};
 
 /* an abbreviation to help keep the table's width humane */
 #define PTR(var, t, d, fun) { .ptr = (void*)&(var), .type = TYPE_##t, .dump = d, .func = fun }
@@ -611,6 +611,7 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "stop",               {view_stop_loading, 0},        },
     { "zoom_in",            {view_zoom_in, 0},             }, //Can crash (when max zoom reached?).
     { "zoom_out",           {view_zoom_out, 0},            },
+    { "reset_zoom",         {reset_zoom_level, 0},         },
     { "uri",                {load_uri, NOSPLIT}            },
     { "js",                 {run_js, NOSPLIT}              },
     { "script",             {run_external_js, 0}           },
@@ -804,6 +805,12 @@ search_forward_text (WebKitWebView *page, GArray *argv) {
 static void
 search_reverse_text (WebKitWebView *page, GArray *argv) {
     search_text(page, argv, FALSE);
+}
+
+static void
+reset_zoom_level (WebKitWebView *page, GArray *argv) {
+    (void) argv;
+    webkit_web_view_set_zoom_level (page, 1.0);
 }
 
 static void
@@ -1363,11 +1370,6 @@ cmd_font_size() {
         g_object_set (G_OBJECT(ws), "default-monospace-font-size",
                       uzbl.behave.font_size, NULL);
     }
-}
-
-static void
-cmd_zoom_level() {
-    webkit_web_view_set_zoom_level (uzbl.gui.web_view, uzbl.behave.zoom_level);
 }
 
 static void
