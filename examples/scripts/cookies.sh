@@ -24,22 +24,24 @@
 # http://kb.mozillazine.org/Cookies.txt
 # don't always append cookies, sometimes we need to overwrite
 
-[ -f /usr/share/uzbl/examples/configs/cookies ] && file=/usr/share/uzbl/examples/configs/cookies
-[ -f $XDG_CONFIG_HOME/uzbl/cookies            ] && file=$XDG_CONFIG_HOME/uzbl/cookies
-[ -f ./examples/configs/cookies               ] && file=./examples/configs/cookies #useful when developing
-[ -z "$file" ] && exit 1
+[ -f /usr/share/uzbl/examples/configs/cookies ] && cookie_config=/usr/share/uzbl/examples/configs/cookies
+[ -f $XDG_CONFIG_HOME/uzbl/cookies            ] && cookie_config=$XDG_CONFIG_HOME/uzbl/cookies
+[ -f ./examples/configs/cookies               ] && cookie_config=./examples/configs/cookies #useful when developing
+[ -z "$cookie_config" ] && exit 1
 
-[ -d /usr/share/uzbl/examples/data ] && cookie_file=/usr/share/uzbl/examples/data/cookies.txt
-[ -d $XDG_DATA_HOME/uzbl/          ] && cookie_file=$XDG_DATA_HOME/uzbl/cookies.txt
-[ -d ./examples/data/              ] && cookie_file=./examples/data/cookies.txt #useful when developing
-[ -z "$cookie_file" ] && exit 1
+[ -d /usr/share/uzbl/examples/data ] && cookie_data=/usr/share/uzbl/examples/data/cookies.txt
+[ -d $XDG_DATA_HOME/uzbl/          ] && cookie_data=$XDG_DATA_HOME/uzbl/cookies.txt
+[ -d ./examples/data/              ] && cookie_data=./examples/data/cookies.txt #useful when developing
+[ -z "$cookie_data" ] && exit 1
 
-# if this variable is set, we will use it to inform you when and which cookies we store, and when/which we send.
+
 #notifier=
 #notifier=notify-send
 notify_wrapper () {
 	echo "$@" >> $HOME/cookielog
 }
+
+# if this variable is set, we will use it to inform you when and which cookies we store, and when/which we send.
 notifier=notify_wrapper
 which zenity &>/dev/null || exit 2
 
@@ -90,17 +92,17 @@ function parse_cookie () {
 	unset IFS
 }
 
-# match cookies in cookies.txt againsh hostname and path
+# match cookies in cookies.txt against hostname and path
 function get_cookie () {
 	path_esc=${path//\//\\/}
 	search="^[^\t]*$host\t[^\t]*\t$path_esc"
-	cookie=`awk "/$search/" $cookie_file 2>/dev/null | tail -n 1`
+	cookie=`awk "/$search/" $cookie_data 2>/dev/null | tail -n 1`
 	if [ -z "$cookie" ]
 	then
-		notify "Get_cookie: search: $search in $cookie_file -> no result"
+		notify "Get_cookie: search: $search in $cookie_data -> no result"
 		false
 	else
-		notify "Get_cookie: search: $search in $cookie_file -> result: $cookie"
+		notify "Get_cookie: search: $search in $cookie_data -> result: $cookie"
 		read domain alow_read_other_subdomains path http_required expiration name value <<< "$cookie"
 		cookie="$name=$value" 
 		true
@@ -111,8 +113,8 @@ function save_cookie () {
 	if parse_cookie
 	then
 		data="$field_domain\tFALSE\t$field_path\tFALSE\t$field_exp\t$field_name\t$field_value"
-		notify "save_cookie: adding $data to $cookie_file"
-		echo -e "$data" >> $cookie_file
+		notify "save_cookie: adding $data to $cookie_data"
+		echo -e "$data" >> $cookie_data
 	else
 		notify "not saving a cookie. since we don't have policies yet, parse_cookie must have returned false. this is a bug"
 	fi
@@ -128,15 +130,15 @@ exit
 # $1 = section (TRUSTED or DENY)
 # $2 =url
 function match () {
-	sed -n "/$1/,/^\$/p" $file 2>/dev/null | grep -q "^$host"
+	sed -n "/$1/,/^\$/p" $cookie_config 2>/dev/null | grep -q "^$host"
 }
 
 function fetch_cookie () {
-	cookie=`cat $cookie_file/$host.cookie`
+	cookie=`cat $cookie_data`
 }
 
 function store_cookie () {
-	echo $cookie > $cookie_file/$host.cookie
+	echo $cookie > $cookie_data
 }
 
 if match TRUSTED $host
