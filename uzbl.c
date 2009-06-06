@@ -1558,7 +1558,7 @@ set_var_value(gchar *name, gchar *val) {
         } else if (c->type == TYPE_FLOAT) {
             float *fp = (float *)c->ptr;
             buf = expand_vars(val);
-            *fp = atof(buf);
+            *fp = strtod(buf, &endp);
             g_free(buf);
         }
 
