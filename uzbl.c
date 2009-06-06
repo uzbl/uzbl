@@ -207,7 +207,7 @@ expand_vars(char *s) {
                 }
                 s++;
                 if( (vend = strchr(s, upto)) ||
-                        (vend = strchr(s, '\0')) ) {
+                    (vend = strchr(s, '\0')) ) {
                     strncpy(ret, s, vend-s);
                     ret[vend-s] = '\0';
                     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, ret)) ) {
