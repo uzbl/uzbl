@@ -2038,10 +2038,14 @@ create_mainbar () {
 static
 GtkWidget* create_window () {
     GtkWidget* window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+    gchar* uzbl_icon = find_xdg_file(1, "/uzbl/uzbl.png");
     gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
     gtk_widget_set_name (window, "Uzbl browser");
+    gtk_window_set_icon_from_file (GTK_WINDOW (window), uzbl_icon, NULL);
     g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (destroy_cb), NULL);
     g_signal_connect (G_OBJECT (window), "key-press-event", G_CALLBACK (key_press_cb), NULL);
+
+    g_free (uzbl_icon);
 
     return window;
 }
@@ -2170,8 +2174,7 @@ static gchar*
 get_xdg_var (XDG_Var xdg) {
     const gchar* actual_value = getenv (xdg.environmental);
     const gchar* home         = getenv ("HOME");
-
-    gchar* return_value = str_replace ("~", home, actual_value);
+    gchar* return_value;
 
     if (! actual_value || strcmp (actual_value, "") == 0) {
         if (xdg.default_value) {
@@ -2179,7 +2182,10 @@ get_xdg_var (XDG_Var xdg) {
         } else {
             return_value = NULL;
         }
+    } else {
+        return_value = str_replace("~", home, actual_value);
     }
+
     return return_value;
 }
 
@@ -2346,7 +2352,7 @@ inspector_attach_window_cb (WebKitWebInspector* inspector){
 }
 
 static gboolean
-inspector_dettach_window_cb (WebKitWebInspector* inspector){
+inspector_detach_window_cb (WebKitWebInspector* inspector){
     (void) inspector;
     return FALSE;
 }
@@ -2374,8 +2380,8 @@ set_up_inspector() {
     g_signal_connect (G_OBJECT (g->inspector), "show-window", G_CALLBACK (inspector_show_window_cb), NULL);
     g_signal_connect (G_OBJECT (g->inspector), "close-window", G_CALLBACK (inspector_close_window_cb), NULL);
     g_signal_connect (G_OBJECT (g->inspector), "attach-window", G_CALLBACK (inspector_attach_window_cb), NULL);
-    g_signal_connect (G_OBJECT (g->inspector), "dettach-window", G_CALLBACK (inspector_dettach_window_cb), NULL);
-    g_signal_connect (G_OBJECT (g->inspector), "destroy", G_CALLBACK (inspector_inspector_destroyed_cb), NULL);
+    g_signal_connect (G_OBJECT (g->inspector), "detach-window", G_CALLBACK (inspector_detach_window_cb), NULL);
+    g_signal_connect (G_OBJECT (g->inspector), "finished", G_CALLBACK (inspector_inspector_destroyed_cb), NULL);
 
     g_signal_connect (G_OBJECT (g->inspector), "notify::inspected-uri", G_CALLBACK (inspector_uri_changed_cb), NULL);
 }

@@ -26,6 +26,7 @@ install:
 	cp -ax docs     $(PREFIX)/share/uzbl/
 	cp -ax config.h $(PREFIX)/share/uzbl/docs/
 	cp -ax examples $(PREFIX)/share/uzbl/
+	cp -ax uzbl.png $(PREFIX)/share/uzbl/
 	install -D -m644 AUTHORS $(PREFIX)/share/uzbl/docs
 	install -D -m644 README  $(PREFIX)/share/uzbl/docs
 
