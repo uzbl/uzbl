@@ -2,7 +2,7 @@
 
 # THIS IS EXPERIMENTAL AND COULD BE INSECURE !!!!!!
 
-# this is an example script of how you could manage your cookies..
+# this is an example bash script of how you could manage your cookies. it is very raw and basic and not as good as cookies.py
 # we use the cookies.txt format (See http://kb.mozillazine.org/Cookies.txt)
 # This is one textfile with entries like this:
 # kb.mozillazine.org	FALSE	/	FALSE	1146030396	wikiUserID	16993

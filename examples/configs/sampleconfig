@@ -11,7 +11,7 @@
 # You can use any command in place of spawn
 set history_handler  = spawn /usr/share/uzbl/examples/scripts/history.sh
 set download_handler = spawn /usr/share/uzbl/examples/scripts/download.sh
-set cookie_handler   = spawn /usr/share/uzbl/examples/scripts/cookies.sh
+set cookie_handler   = spawn /usr/share/uzbl/examples/scripts/cookies.py
 
 set minimum_font_size = 6
 set font_size = 11
