@@ -73,6 +73,8 @@ GOptionEntry entries[] =
         "Name of the current instance (defaults to Xorg window id)", "NAME" },
     { "config",  'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,   
         "Config file (this is pretty much equivalent to uzbl < FILE )", "FILE" },
+    { "socket",  's', 0, G_OPTION_ARG_INT, &uzbl.state.socket_id,   
+        "Socket ID", "SOCKET" },
     { NULL,      0, 0, 0, NULL, NULL, NULL }
 };
 
@@ -1854,7 +1856,8 @@ update_title (void) {
     if (b->show_status) {
         if (b->title_format_short) {
             parsed = expand_template(b->title_format_short, FALSE);
-            gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
+            if (uzbl.gui.main_window)
+                gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
             g_free(parsed);
         }
         if (b->status_format) {
@@ -1866,12 +1869,14 @@ update_title (void) {
             GdkColor color;
             gdk_color_parse (b->status_background, &color);
             //labels and hboxes do not draw their own background.  applying this on the window is ok as we the statusbar is the only affected widget.  (if not, we could also use GtkEventBox)
-            gtk_widget_modify_bg (uzbl.gui.main_window, GTK_STATE_NORMAL, &color);
+            if (uzbl.gui.main_window)
+                gtk_widget_modify_bg (uzbl.gui.main_window, GTK_STATE_NORMAL, &color);
         }
     } else {
         if (b->title_format_long) {
             parsed = expand_template(b->title_format_long, FALSE);
-            gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
+            if (uzbl.gui.main_window)
+                gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
             g_free(parsed);
         }
     }
@@ -2045,6 +2050,16 @@ GtkWidget* create_window () {
 
     return window;
 }
+
+static
+GtkPlug* create_plug () {
+    GtkPlug* plug = GTK_PLUG (gtk_plug_new (uzbl.state.socket_id));
+    g_signal_connect (G_OBJECT (plug), "destroy", G_CALLBACK (destroy_cb), NULL);
+    g_signal_connect (G_OBJECT (plug), "key-press-event", G_CALLBACK (key_press_cb), NULL);
+
+    return plug;
+}
+
 
 static gchar**
 inject_handler_args(const gchar *actname, const gchar *origargs, const gchar *newargs) {
@@ -2374,8 +2389,10 @@ set_up_inspector() {
     g_signal_connect (G_OBJECT (g->inspector), "show-window", G_CALLBACK (inspector_show_window_cb), NULL);
     g_signal_connect (G_OBJECT (g->inspector), "close-window", G_CALLBACK (inspector_close_window_cb), NULL);
     g_signal_connect (G_OBJECT (g->inspector), "attach-window", G_CALLBACK (inspector_attach_window_cb), NULL);
-    g_signal_connect (G_OBJECT (g->inspector), "dettach-window", G_CALLBACK (inspector_dettach_window_cb), NULL);
-    g_signal_connect (G_OBJECT (g->inspector), "destroy", G_CALLBACK (inspector_inspector_destroyed_cb), NULL);
+    if (uzbl.gui.main_window) {
+        g_signal_connect (G_OBJECT (g->inspector), "dettach-window", G_CALLBACK (inspector_dettach_window_cb), NULL);
+        g_signal_connect (G_OBJECT (g->inspector), "destroy", G_CALLBACK (inspector_inspector_destroyed_cb), NULL);
+    }
 
     g_signal_connect (G_OBJECT (g->inspector), "notify::inspected-uri", G_CALLBACK (inspector_uri_changed_cb), NULL);
 }
@@ -2472,17 +2489,25 @@ main (int argc, char* argv[]) {
     gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
     gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.mainbar, FALSE, TRUE, 0);
 
-    uzbl.gui.main_window = create_window ();
-    gtk_container_add (GTK_CONTAINER (uzbl.gui.main_window), uzbl.gui.vbox);
-
+    if (uzbl.state.socket_id) {
+        uzbl.gui.plug = create_plug ();
+        gtk_container_add (GTK_CONTAINER (uzbl.gui.plug), uzbl.gui.vbox);
+        gtk_widget_show_all (GTK_WIDGET (uzbl.gui.plug));
+    } else {
+        uzbl.gui.main_window = create_window ();
+        gtk_container_add (GTK_CONTAINER (uzbl.gui.main_window), uzbl.gui.vbox);
+        gtk_widget_show_all (uzbl.gui.main_window);
+        uzbl.xwin = GDK_WINDOW_XID (GTK_WIDGET (uzbl.gui.main_window)->window);
+    }
 
     gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
-    gtk_widget_show_all (uzbl.gui.main_window);
-    uzbl.xwin = GDK_WINDOW_XID (GTK_WIDGET (uzbl.gui.main_window)->window);
 
     if (uzbl.state.verbose) {
         printf("Uzbl start location: %s\n", argv[0]);
-        printf("window_id %i\n",(int) uzbl.xwin);
+        if (uzbl.state.socket_id)
+            printf("plug_id %i\n", gtk_plug_get_id(uzbl.gui.plug));
+        else
+            printf("window_id %i\n",(int) uzbl.xwin);
         printf("pid %i\n", getpid ());
         printf("name: %s\n", uzbl.state.instance_name);
     }

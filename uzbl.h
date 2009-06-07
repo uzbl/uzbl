@@ -67,6 +67,7 @@ typedef struct {
 /* gui elements */
 typedef struct {
     GtkWidget*     main_window;
+    GtkPlug*       plug;
     GtkWidget*     scrolled_win;
     GtkWidget*     vbox;
     GtkWidget*     mainbar;
@@ -101,7 +102,8 @@ typedef struct {
 typedef struct {
     gchar    *uri;
     gchar    *config_file;
-    char    *instance_name;
+    int      socket_id;
+    char     *instance_name;
     gchar    *selected_url;
     gchar    *executable_path;
     GString* keycmd;
@@ -384,6 +386,9 @@ create_mainbar ();
 
 static
 GtkWidget* create_window ();
+
+static
+GtkPlug* create_plug ();
 
 static void
 run_handler (const gchar *act, const gchar *args);
