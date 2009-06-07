@@ -114,6 +114,7 @@ const struct {
     { "command_indicator",   PTR(uzbl.behave.cmd_indicator,       STR,  1,   update_title)},
     { "title_format_long",   PTR(uzbl.behave.title_format_long,   STR,  1,   update_title)},
     { "title_format_short",  PTR(uzbl.behave.title_format_short,  STR,  1,   update_title)},
+    { "icon",                PTR(uzbl.gui.icon,                   STR,  1,   set_icon)},
     { "insert_mode",         PTR(uzbl.behave.insert_mode,         INT,  1,   NULL)},
     { "always_insert_mode",  PTR(uzbl.behave.always_insert_mode,  INT,  1,   cmd_always_insert_mode)},
     { "reset_command_mode",  PTR(uzbl.behave.reset_command_mode,  INT,  1,   NULL)},
@@ -1312,6 +1313,16 @@ set_proxy_url() {
 }
 
 static void
+set_icon() {
+    if(file_exists(uzbl.gui.icon)) {
+        gtk_window_set_icon_from_file (GTK_WINDOW (uzbl.gui.main_window), uzbl.gui.icon, NULL);
+    } else {
+        g_printerr ("Icon \"%s\" not found. ignoring.\n", uzbl.gui.icon);
+    }
+    g_free (uzbl.gui.icon);
+}
+
+static void
 cmd_load_uri() {
     GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
     g_array_append_val (a, uzbl.state.uri);
@@ -2038,14 +2049,10 @@ create_mainbar () {
 static
 GtkWidget* create_window () {
     GtkWidget* window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-    gchar* uzbl_icon = find_xdg_file(1, "/uzbl/uzbl.png");
     gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
     gtk_widget_set_name (window, "Uzbl browser");
-    gtk_window_set_icon_from_file (GTK_WINDOW (window), uzbl_icon, NULL);
     g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (destroy_cb), NULL);
     g_signal_connect (G_OBJECT (window), "key-press-event", G_CALLBACK (key_press_cb), NULL);
-
-    g_free (uzbl_icon);
 
     return window;
 }
