@@ -48,7 +48,7 @@ More or less in order of importance/urgency
   link following
   webkit inspector usage
   scroll commands can take %s, eg scroll 100% for pages
-  chaining of actions, dump_config, print (and other actions that aren't documented yet)
+  chaining of actions, print (and other actions that aren't documented yet)
   overriding variables (such as -u)
   variable expansion (@var, @{var}, where do they get expanded? can users have their own vars?, should we merge this with the replacement we do for useragent/window title etc?)
   how %s works for the js command
