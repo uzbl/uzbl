@@ -613,7 +613,6 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "stop",               {view_stop_loading, 0},        },
     { "zoom_in",            {view_zoom_in, 0},             }, //Can crash (when max zoom reached?).
     { "zoom_out",           {view_zoom_out, 0},            },
-    { "reset_zoom",         {reset_zoom_level, 0},         },
     { "uri",                {load_uri, NOSPLIT}            },
     { "js",                 {run_js, NOSPLIT}              },
     { "script",             {run_external_js, 0}           },
@@ -811,12 +810,6 @@ search_forward_text (WebKitWebView *page, GArray *argv) {
 static void
 search_reverse_text (WebKitWebView *page, GArray *argv) {
     search_text(page, argv, FALSE);
-}
-
-static void
-reset_zoom_level (WebKitWebView *page, GArray *argv) {
-    (void) argv;
-    webkit_web_view_set_zoom_level (page, 1.0);
 }
 
 static void
@@ -1692,12 +1685,6 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
     GIOChannel *chan = NULL;
     GError *error = NULL;
     gchar *path = build_stream_name(FIFO, dir);
-
-    // This extra check is an alternative to recursively calling init_fifo() or using goto 
-    if (file_exists(path)) {
-        if (unlink(path))
-            g_warning ("init_fifo: can't delete %s: %s", path, strerror(errno));
-    }
 
     if (!file_exists(path)) {
         if (mkfifo (path, 0666) == 0) {

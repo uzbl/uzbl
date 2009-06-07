@@ -410,9 +410,6 @@ static void
 search_reverse_text (WebKitWebView *page, GArray *argv);
 
 static void
-reset_zoom_level (WebKitWebView *page, GArray *argv);
-
-static void
 dehilight (WebKitWebView *page, GArray *argv);
 
 static void
