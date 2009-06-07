@@ -5,13 +5,13 @@ all: uzbl uzblctrl
 PREFIX?=$(DESTDIR)/usr
 
 test: uzbl
-	./uzbl --uri http://www.uzbl.org
+	./uzbl --uri http://www.uzbl.org --verbose
 
 test-config: uzbl
-	./uzbl --uri http://www.uzbl.org < examples/configs/sampleconfig-dev
+	./uzbl --uri http://www.uzbl.org --config examples/configs/sampleconfig-dev --verbose
 
 test-config-real: uzbl
-	./uzbl --uri http://www.uzbl.org < /usr/share/uzbl/examples/configs/sampleconfig
+	./uzbl --uri http://www.uzbl.org --config /usr/share/uzbl/examples/configs/sampleconfig --verbose
 	
 clean:
 	rm -f uzbl

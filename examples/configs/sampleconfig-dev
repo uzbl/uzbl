@@ -11,7 +11,7 @@
 # Usually you want to spawn a script to handle things, but any command (such as sh) can be used
 set history_handler  = spawn ./examples/scripts/history.sh
 set download_handler = spawn ./examples/scripts/download.sh
-set cookie_handler   = spawn ./examples/scripts/cookies.sh
+set cookie_handler   = spawn ./examples/scripts/cookies.py
 
 set minimum_font_size = 6
 set font_size = 11
@@ -146,7 +146,7 @@ bind    S         = js alert("hi");
 # in the body.  Any additional parameters you use will appear AFTER the default parameters (cfg file
 # path, fifo & socket dirs, etc.)
 bind    XS        = sh 'echo "js alert (\\"This is sent by the shell via a fifo\\")" > "$4"'
-
+bind    dump      = sh "echo dump_config > $4"
 # this script allows you to configure (per domain) values to fill in form fields (eg login information) and to fill in these values automatically
 bind za = spawn ./examples/scripts/formfiller.sh
 bind ze = spawn ./examples/scripts/formfiller.sh edit

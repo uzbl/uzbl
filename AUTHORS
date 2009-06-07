@@ -21,7 +21,7 @@ Contributors:
     Uli Schlachter (psychon) - basic mime_policy_cb & Makefile patch
     (uranther) - zoom level
     (bobpaul) - session script patches
-    Tom Adams (holizz) - few patches
+    Tom Adams (holizz) - few patches, cookies.py
     neutralinsomniac - load_progress = 0 fix
     Maximilian Gaß (mxey) - small patches
     Abel Camarillo (00z) - make it compile on OpenBSD

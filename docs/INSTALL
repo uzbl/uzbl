@@ -41,6 +41,8 @@ sample scripts:
 * dmenu (with vertical patch)
 * zenity
 * bash 
+* python (cookies.py)
+* perl (formfiller.pl)
 
 File locations
 --------------
