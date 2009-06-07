@@ -149,6 +149,8 @@ The following commands are recognized:
    - search with no string will search for the next/previous occurrence of the string previously searched for
 * `toggle_insert_mode <optional state>`
    - if the optional state is 0, disable insert mode. If 1, enable insert mode.
+* `dump_config`
+   - dumps your current config (which may have been changed at runtime) to stdout, in a format you can use to pipe into uzbl again (or use as config file)
 * `keycmd <string>`
 * `keycmd_nl <string>`
    - keycmd sets the interactive command buffer to `<string>`.  If the given string is a valid binding, it will execute.  `Keycmd_nl` is like `keycmd`, but it also emulates a press of return, causing bindings with a parameter to execute.  For example, `keycmd_nl o google.com` would load the said url if you have a binding like `bind o _ = uri %s`.

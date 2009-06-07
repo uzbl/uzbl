@@ -107,7 +107,7 @@ bind    S         = js alert("hi");
 # Parameters are separated by spaces and the script body must be one parameter, so enclose it in
 # quotes and escape any inner quotes using backslashes
 bind    XS        = sh 'echo "js alert (\'This is sent by the shell via a fifo\')" > "$4"'
-
+bind    dump      = sh "echo dump_config > $4"
 
 # we ship some javascripts to do keyboard based link hinting/following.  (webkit does not have C DOM bindings yet)
 # this is similar to how it works in vimperator (and konqueror)
