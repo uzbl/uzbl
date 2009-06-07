@@ -7,10 +7,10 @@ PREFIX?=$(DESTDIR)/usr
 test: uzbl
 	./uzbl --uri http://www.uzbl.org --verbose
 
-test-config-dev: uzbl
+test-dev: uzbl
 	XDG_DATA_HOME=./examples/data               XDG_CONFIG_HOME=./examples/config               ./uzbl --uri http://www.uzbl.org --verbose
 
-test-config-share: uzbl
+test-share: uzbl
 	XDG_DATA_HOME=/usr/share/uzbl/examples/data XDG_CONFIG_HOME=/usr/share/uzbl/examples/config ./uzbl --uri http://www.uzbl.org --verbose
 
 	
