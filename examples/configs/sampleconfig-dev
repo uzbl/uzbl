@@ -171,5 +171,7 @@ bind    fL* = script ./examples/scripts/follow_Numbers_Strings.js %s
 # you can use this to disable all plugins
 set disable_plugins = 0
 
+set icon = ./uzbl.png
+
 # "home" page if you will
 set uri = uzbl.org

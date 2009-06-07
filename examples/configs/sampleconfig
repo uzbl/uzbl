@@ -119,6 +119,7 @@ bind    fl* = script /usr/share/uzbl/examples/scripts/follow_Numbers.js %s
 # using strings, not polished yet:
 bind    fL* = script /usr/share/uzbl/examples/scripts/follow_Numbers_Strings.js %s
 
+set icon = /usr/share/uzbl/uzbl.png
 
 # "home" page if you will
 set uri = uzbl.org

@@ -116,6 +116,7 @@ const struct {
     { "command_indicator",   PTR(uzbl.behave.cmd_indicator,       STR,  1,   update_title)},
     { "title_format_long",   PTR(uzbl.behave.title_format_long,   STR,  1,   update_title)},
     { "title_format_short",  PTR(uzbl.behave.title_format_short,  STR,  1,   update_title)},
+    { "icon",                PTR(uzbl.gui.icon,                   STR,  1,   set_icon)},
     { "insert_mode",         PTR(uzbl.behave.insert_mode,         INT,  1,   NULL)},
     { "always_insert_mode",  PTR(uzbl.behave.always_insert_mode,  INT,  1,   cmd_always_insert_mode)},
     { "reset_command_mode",  PTR(uzbl.behave.reset_command_mode,  INT,  1,   NULL)},
@@ -1314,6 +1315,16 @@ set_proxy_url() {
 }
 
 static void
+set_icon() {
+    if(file_exists(uzbl.gui.icon)) {
+        gtk_window_set_icon_from_file (GTK_WINDOW (uzbl.gui.main_window), uzbl.gui.icon, NULL);
+    } else {
+        g_printerr ("Icon \"%s\" not found. ignoring.\n", uzbl.gui.icon);
+    }
+    g_free (uzbl.gui.icon);
+}
+
+static void
 cmd_load_uri() {
     GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
     g_array_append_val (a, uzbl.state.uri);
@@ -2185,8 +2196,7 @@ static gchar*
 get_xdg_var (XDG_Var xdg) {
     const gchar* actual_value = getenv (xdg.environmental);
     const gchar* home         = getenv ("HOME");
-
-    gchar* return_value = str_replace ("~", home, actual_value);
+    gchar* return_value;
 
     if (! actual_value || strcmp (actual_value, "") == 0) {
         if (xdg.default_value) {
@@ -2194,7 +2204,10 @@ get_xdg_var (XDG_Var xdg) {
         } else {
             return_value = NULL;
         }
+    } else {
+        return_value = str_replace("~", home, actual_value);
     }
+
     return return_value;
 }
 
@@ -2361,7 +2374,7 @@ inspector_attach_window_cb (WebKitWebInspector* inspector){
 }
 
 static gboolean
-inspector_dettach_window_cb (WebKitWebInspector* inspector){
+inspector_detach_window_cb (WebKitWebInspector* inspector){
     (void) inspector;
     return FALSE;
 }
@@ -2389,10 +2402,8 @@ set_up_inspector() {
     g_signal_connect (G_OBJECT (g->inspector), "show-window", G_CALLBACK (inspector_show_window_cb), NULL);
     g_signal_connect (G_OBJECT (g->inspector), "close-window", G_CALLBACK (inspector_close_window_cb), NULL);
     g_signal_connect (G_OBJECT (g->inspector), "attach-window", G_CALLBACK (inspector_attach_window_cb), NULL);
-    if (uzbl.gui.main_window) {
-        g_signal_connect (G_OBJECT (g->inspector), "dettach-window", G_CALLBACK (inspector_dettach_window_cb), NULL);
-        g_signal_connect (G_OBJECT (g->inspector), "destroy", G_CALLBACK (inspector_inspector_destroyed_cb), NULL);
-    }
+    g_signal_connect (G_OBJECT (g->inspector), "detach-window", G_CALLBACK (inspector_detach_window_cb), NULL);
+    g_signal_connect (G_OBJECT (g->inspector), "finished", G_CALLBACK (inspector_inspector_destroyed_cb), NULL);
 
     g_signal_connect (G_OBJECT (g->inspector), "notify::inspected-uri", G_CALLBACK (inspector_uri_changed_cb), NULL);
 }

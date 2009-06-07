@@ -78,6 +78,7 @@ typedef struct {
     GtkAdjustment* bar_h; // and scrolling position
     WebKitWebView* web_view;
     gchar*         main_title;
+    gchar*         icon;
 
     /* WebInspector */
     GtkWidget *inspector_window;
@@ -464,6 +465,9 @@ cmd_set_status();
 
 static void
 set_proxy_url();
+
+static void
+set_icon();
 
 static void
 cmd_cookie_handler();
