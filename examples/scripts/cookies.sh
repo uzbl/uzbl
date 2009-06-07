@@ -35,14 +35,16 @@
 [ -z "$cookie_data" ] && exit 1
 
 
-#notifier=
+notifier=
 #notifier=notify-send
-notify_wrapper () {
-	echo "$@" >> $HOME/cookielog
-}
+#notify_wrapper () {
+#	echo "$@" >> $HOME/cookielog
+#}
+#notifier=notifier_wrapper
 
 # if this variable is set, we will use it to inform you when and which cookies we store, and when/which we send.
-notifier=notify_wrapper
+# it's primarily used for debugging
+notifier=
 which zenity &>/dev/null || exit 2
 
 # Example cookie:

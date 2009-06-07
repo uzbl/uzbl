@@ -23,6 +23,8 @@ Contributors:
     (bobpaul) - session script patches
     Tom Adams (holizz) - few patches
     neutralinsomniac - load_progress = 0 fix
+    Maximilian Gaß (mxey) - small patches
+    Abel Camarillo (00z) - make it compile on OpenBSD
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:
