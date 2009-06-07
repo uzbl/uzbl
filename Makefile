@@ -8,10 +8,14 @@ test: uzbl
 	./uzbl --uri http://www.uzbl.org --verbose
 
 test-config: uzbl
-	./uzbl --uri http://www.uzbl.org --config examples/configs/sampleconfig-dev --verbose
+	./uzbl --uri http://www.uzbl.org --verbose
 
-test-config-real: uzbl
-	./uzbl --uri http://www.uzbl.org --config /usr/share/uzbl/examples/configs/sampleconfig --verbose
+test-config-dev: uzbl
+	XDG_DATA_HOME=./examples/data               XDG_CONFIG_HOME=./examples/config               ./uzbl --uri http://www.uzbl.org --config $XDG_CONFIG_HOME/uzbl/sampleconfig --verbose
+
+test-config-share: uzbl
+	XDG_DATA_HOME=/usr/share/uzbl/examples/data XDG_CONFIG_HOME=/usr/share/uzbl/examples/config ./uzbl --uri http://www.uzbl.org --config $XDG_CONFIG_HOME/uzbl/sampleconfig --verbose
+
 	
 clean:
 	rm -f uzbl
@@ -26,7 +30,6 @@ install:
 	cp -ax docs     $(PREFIX)/share/uzbl/
 	cp -ax config.h $(PREFIX)/share/uzbl/docs/
 	cp -ax examples $(PREFIX)/share/uzbl/
-	cp -ax uzbl.png $(PREFIX)/share/uzbl/
 	install -D -m644 AUTHORS $(PREFIX)/share/uzbl/docs
 	install -D -m644 README  $(PREFIX)/share/uzbl/docs
 
