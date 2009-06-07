@@ -61,6 +61,13 @@ class FakeResponse:
         return FakeHeaders(self.argv)
 
 if __name__ == '__main__':
+    search = ['/usr/share/uzbl/examples/data',
+              os.environ['XDG_DATA_HOME']+'/uzbl',
+              './examples/data']
+    for dir in search:
+        if os.path.isdir(dir):
+            cookie_file = dir+'/cookies.txt'
+
     jar = cookielib.MozillaCookieJar(os.environ['XDG_DATA_HOME']+'/uzbl/cookies.txt')
     try:
         jar.load()
