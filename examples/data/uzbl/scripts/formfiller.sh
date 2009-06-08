@@ -12,8 +12,9 @@
 
 # something else (or empty): if file not available: new, otherwise load.
 
-keydir=$XDG_DATA_HOME/uzbl/forms
-[ -z "$keydir" ] && exit 1
+keydir=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/forms
+[ -d "`dirname $keydir`" ] || exit 1
+[ -d "$keydir" ] || mkdir "$keydir"
 
 #editor=gvim
 editor='urxvt -e vim'
