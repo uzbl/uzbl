@@ -104,6 +104,7 @@ bind    r         = reload
 bind    R         = reload_ign_cache
 bind    +         = zoom_in
 bind    -         = zoom_out
+bind    T         = toggle_zoom_type
 bind    1         = sh "echo set zoom_level = 1.0 > $4"
 bind    2         = sh "echo set zoom_level = 2.0 > $4"
 bind    t         = toggle_status
