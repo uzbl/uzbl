@@ -61,9 +61,9 @@ class FakeResponse:
         return FakeHeaders(self.argv)
 
 if __name__ == '__main__':
-	if os.environ['XDG_DATA_HOME']:
+    if os.environ['XDG_DATA_HOME']:
     		jar = cookielib.MozillaCookieJar(os.environ['XDG_DATA_HOME']+'/uzbl/cookies.txt')
-	else:
+    else:
 		jar = cookielib.MozillaCookieJar(os.environ['HOME']+'.local/share/uzbl/cookies.txt')
     try:
         jar.load()
