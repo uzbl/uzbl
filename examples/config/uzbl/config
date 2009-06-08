@@ -147,6 +147,8 @@ bind    y2url     = sh 'echo -n $6 | xclip'
 bind    p         = sh 'echo "uri `xclip -selection primary -o`" > $4'
 # go to the page in clipboard
 bind    P         = sh 'echo "uri `xclip -selection clipboard -o`" > $4'
+# start a new uzbl instance from the page in primary selection
+bind    'p        = sh 'exec uzbl --uri $(xclip -o)'
 bind    ZZ        = exit
 bind    Xs         = js alert("hi");
 # example showing how to use sh
