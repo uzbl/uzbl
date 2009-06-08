@@ -1,11 +1,8 @@
 #!/bin/bash
 # you probably want your bookmarks file in your $XDG_DATA_HOME ( eg $HOME/.local/share/uzbl/bookmarks)
 
-
-[ -f /usr/share/uzbl/examples/data/bookmarks ] && file=/usr/share/uzbl/examples/data/bookmarks  # you will probably get permission denied errors here.
-[ -f $XDG_DATA_HOME/uzbl/bookmarks           ] && file=$XDG_DATA_HOME/uzbl/bookmarks
-[ -f ./examples/data/bookmarks               ] && file=./examples/data/bookmarks #useful when developing
-[ -z "$file" ] && exit 1
+[ -d "$XDG_DATA_HOME/uzbl" ] || exit 1
+file=$XDG_DATA_HOME/uzbl/bookmarks
 
 which zenity &>/dev/null || exit 2
 
