@@ -78,6 +78,8 @@ GOptionEntry entries[] =
 
 /* associate command names to their properties */
 typedef const struct {
+    /* TODO: Make this ambiguous void **ptr into a union { char *char_p; int *int_p; float *float_p; } val;
+             the PTR() macro is kind of preventing this change at the moment. */
     void **ptr;
     int type;
     int dump;
@@ -215,9 +217,10 @@ expand_vars(char *s) {
                         if(c->type == TYPE_STR)
                             g_string_append(buf, (gchar *)*c->ptr);
                         else if(c->type == TYPE_INT) {
-                            char *b = itos((int)*c->ptr);
-                            g_string_append(buf, b);
-                            g_free(b);
+                            g_string_append_printf(buf, "%d", (int)*c->ptr);
+                        }
+                        else if(c->type == TYPE_FLOAT) {
+                            g_string_append_printf(buf, "%f", *(float *)c->ptr);
                         }
                     }
                     if(upto == ' ') s = vend;
@@ -1319,7 +1322,6 @@ set_icon() {
     } else {
         g_printerr ("Icon \"%s\" not found. ignoring.\n", uzbl.gui.icon);
     }
-    g_free (uzbl.gui.icon);
 }
 
 static void
@@ -2402,9 +2404,11 @@ dump_var_hash(gpointer k, gpointer v, gpointer ud) {
         return;
 
     if(c->type == TYPE_STR)
-        printf("set %s = %s\n", (char *)k, *c->ptr?(char *)*c->ptr:" ");
+        printf("set %s = %s\n", (char *)k, *c->ptr ? (char *)*c->ptr : " ");
     else if(c->type == TYPE_INT)
         printf("set %s = %d\n", (char *)k, (int)*c->ptr);
+    else if(c->type == TYPE_FLOAT)
+        printf("set %s = %f\n", (char *)k, *(float *)c->ptr);
 }
 
 static void
