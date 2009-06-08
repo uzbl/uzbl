@@ -134,9 +134,9 @@ bind    ytitle    = spawn $XDG_DATA_HOME/uzbl/scripts/yank.sh 7 clipboard
 # does the same as yurl but without needing a script
 bind    y2url     = sh 'echo -n $6 | xclip'
 # go the page from primary selection
-bind    p         = sh "echo uri `xclip -selection primary -o` > $4"
+bind    p         = sh 'echo "uri `xclip -selection primary -o`" > $4'
 # go to the page in clipboard
-bind    P         = sh "echo uri `xclip -selection clipboard -o` > $4"
+bind    P         = sh 'echo "uri `xclip -selection clipboard -o`" > $4'
 bind    ZZ        = exit
 bind    S         = js alert("hi");
 # example showing how to use sh
