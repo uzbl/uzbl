@@ -489,6 +489,14 @@ cmd_set_status() {
 }
 
 static void
+toggle_zoom_type (WebKitWebView* page, GArray *argv) {
+    (void)page;
+    (void)argv;
+
+    webkit_web_view_set_full_content_zoom (page, !webkit_web_view_get_full_content_zoom (page));
+}
+
+static void
 toggle_status_cb (WebKitWebView* page, GArray *argv) {
     (void)page;
     (void)argv;
@@ -616,6 +624,7 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "stop",               {view_stop_loading, 0},        },
     { "zoom_in",            {view_zoom_in, 0},             }, //Can crash (when max zoom reached?).
     { "zoom_out",           {view_zoom_out, 0},            },
+    { "toggle_zoom_type",   {toggle_zoom_type, 0},         },
     { "uri",                {load_uri, NOSPLIT}            },
     { "js",                 {run_js, NOSPLIT}              },
     { "script",             {run_external_js, 0}           },

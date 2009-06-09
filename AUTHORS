@@ -25,6 +25,7 @@ Contributors:
     neutralinsomniac - load_progress = 0 fix
     Maximilian Gaß (mxey) - small patches
     Abel Camarillo (00z) - make it compile on OpenBSD
+    (israellevin) - toggle_zoom_type
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:

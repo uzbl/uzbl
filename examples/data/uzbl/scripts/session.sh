@@ -8,9 +8,10 @@
 # and doesn't need to be called manually at any point.
 # Add a line like 'bind quit = /path/to/session.sh endsession' to your config
 
+[ -d ${XDG_DATA_HOME:-$HOME/.local/share}/uzbl ] || exit 1
 scriptfile=$0 				# this script
-sessionfile=$XDG_DATA_HOME/uzbl/session # the file in which the "session" (i.e. urls) are stored
-configfile=$XDG_DATA_HOME/uzbl/config   # uzbl configuration file
+sessionfile=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/session # the file in which the "session" (i.e. urls) are stored
+configfile=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/config   # uzbl configuration file
 UZBL="uzbl -c $configfile"           # add custom flags and whatever here.
 
 fifodir=/tmp # remember to change this if you instructed uzbl to put its fifos elsewhere

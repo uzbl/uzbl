@@ -262,6 +262,9 @@ static gboolean
 download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data);
 
 static void
+toggle_zoom_type (WebKitWebView* page, GArray *argv);
+
+static void
 toggle_status_cb (WebKitWebView* page, GArray *argv);
 
 static void

@@ -3,7 +3,7 @@
 # a slightly more advanced form filler
 #
 # uses settings file like: $keydir/<domain>
-
+#TODO: fallback to $HOME/.local/share
 # user arg 1:
 # edit: force editing of the file (fetches if file is missing)
 # load: fill forms from file (fetches if file is missing)
