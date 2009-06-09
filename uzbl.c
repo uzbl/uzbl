@@ -1326,7 +1326,8 @@ set_proxy_url() {
 static void
 set_icon() {
     if(file_exists(uzbl.gui.icon)) {
-        gtk_window_set_icon_from_file (GTK_WINDOW (uzbl.gui.main_window), uzbl.gui.icon, NULL);
+        if (uzbl.gui.main_window)
+            gtk_window_set_icon_from_file (GTK_WINDOW (uzbl.gui.main_window), uzbl.gui.icon, NULL);
     } else {
         g_printerr ("Icon \"%s\" not found. ignoring.\n", uzbl.gui.icon);
     }
