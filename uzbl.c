@@ -577,6 +577,7 @@ destroy_cb (GtkWidget* widget, gpointer data) {
     (void) widget;
     (void) data;
     gtk_main_quit ();
+    clean_up();
 }
 
 static void
@@ -892,6 +893,7 @@ close_uzbl (WebKitWebView *page, GArray *argv) {
     (void)page;
     (void)argv;
     gtk_main_quit ();
+    clean_up();
 }
 
 /* --Statusbar functions-- */
