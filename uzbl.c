@@ -340,6 +340,7 @@ clean_up(void) {
     g_string_free(uzbl.state.keycmd, TRUE);
     g_hash_table_destroy(uzbl.bindings);
     g_hash_table_destroy(uzbl.behave.commands);
+    g_scanner_destroy(uzbl.scan);
 }
 
 /* used for html_mode_timeout 
