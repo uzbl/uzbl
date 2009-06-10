@@ -4,11 +4,15 @@ FAQ
 ### I just installed uzbl but it doesn't do much.  What now?
 Uzbl includes very limited default settings (statusbar settings, but no keybinds, history/download handlers etc.)
 Look at /usr/share/uzbl/docs/config.h to see the default settings.
-Neither does uzbl create a default config file on startup like some other programs do.
-Because we want to give you the freedom to place your config where you want, and to use a config or not.
-Have a look in /usr/share/uzbl/examples/configs to see what you can do. You will probably want to create your own config based on an example config
-so you can add keybinds and to use scripts.
-Use the --config parameter or save your config as $XDG\_CONFIG\_HOME/uzbl/config to have it auto-loaded.
+Neither does uzbl create a default config file on startup like some other programs do because we want to give you the freedom to place your config where you want, and to use a config or not.
+Have a look in /usr/share/uzbl/examples/configs to see what you can do.
+If you save a config as $XDG\_CONFIG\_HOME/uzbl/config it will be loaded automatically.
+Running with the `--verbose` flag on a command line can also be interesting.
+To get you started, try this:
+`XDG_DATA_HOME=/usr/share/uzbl/examples/data XDG_CONFIG_HOME=/usr/share/uzbl/examples/config uzbl`
+It will temporarily override your $XDG\_CONFIG\_HOME and $XDG\_DATA\_HOME
+variables so you can try the sample stuff directly in /usr/share/uzbl/examples.
+If you like what you can do, you can copy the sample stuff into your ~ and edit to your liking.
 
 ### Where is the location bar? How do I change the URL ?
 Uzbl has no location bar.  All changes to the uri (editing of current uri, typing new uri, loading of uri from bookmarks/history/...) happens *outside* of uzbl.
@@ -17,11 +21,25 @@ useful with history/bookmarks) with a limited set of keystrokes.  see man dmenu.
 You can also use it to make edits to a uri (press tab to load it into the
 search field) or type a url from scratch, though dmenu
 is not the most suitable editor. We're looking into a better way to make edits.
-Zenity is also an option, if you want copy-paste support.
+Tools such as Zenity are also quite suited for this.
+And you can always make keybinds to load the current uri in the command field, paste/load urls from
+clipboard etc.
 
 ### Where are the widgets (forward, back,.. button etc)
 Uzbl's layout only contains what you really need to see.  we only have a statusbar, which even can also be disabled.  There are no buttons, but we do
 have lots of keybinding possibilities.
+
+### No tabs? Why do you need a new window for each page?
+We stick to "one page per uzbl instance" because that's a simple, clean and flexible method.  We believe "multiple instances management" is something that must
+be handled outside of uzbl by a separate/different program.  Here are some solutions:
+
+ * many window managers can (and should) handle this by default.  Xmonads tabbed layout, Wmii's stacked layout and so on.
+ * you can write a custom script.  The only thing you need to do is focus/maximize the instance you want, 
+   keep the others out of sight and use tools like dmenu and wmctrl to switch instances.
+   This allows you to use application-specific properties (such as uzbl tag, name etc).
+   For more information about this approach, see docs/multiple-instances-management
+   (we'll maybe include some sample scripts in the future)
+ * We might implement a GtkPlug (Xembed child) in the future.  So you could abuse that.
 
 ### What?  No support for bookmarks/history/downloads/cookies/... ? Your project sucks!
 We do not support *management* of those things, because we believe a browser should only do browsing.  We are firm believers in the unix philosophy.

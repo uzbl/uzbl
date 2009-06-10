@@ -5,13 +5,14 @@ all: uzbl uzblctrl
 PREFIX?=$(DESTDIR)/usr
 
 test: uzbl
-	./uzbl --uri http://www.uzbl.org
+	./uzbl --uri http://www.uzbl.org --verbose
 
-test-config: uzbl
-	./uzbl --uri http://www.uzbl.org < examples/configs/sampleconfig-dev
+test-dev: uzbl
+	XDG_DATA_HOME=./examples/data               XDG_CONFIG_HOME=./examples/config               ./uzbl --uri http://www.uzbl.org --verbose
 
-test-config-real: uzbl
-	./uzbl --uri http://www.uzbl.org < /usr/share/uzbl/examples/configs/sampleconfig
+test-share: uzbl
+	XDG_DATA_HOME=/usr/share/uzbl/examples/data XDG_CONFIG_HOME=/usr/share/uzbl/examples/config ./uzbl --uri http://www.uzbl.org --verbose
+
 	
 clean:
 	rm -f uzbl

@@ -12,10 +12,9 @@
 
 # something else (or empty): if file not available: new, otherwise load.
 
-[ -d /usr/share/uzbl/examples/data/forms  ] && keydir=/usr/share/uzbl/examples/data/forms  # you will probably get permission denied errors here.
-[ -d $XDG_DATA_HOME/uzbl/forms            ] && keydir=$XDG_DATA_HOME/uzbl/forms
-[ -d ./examples/data/forms                ] && keydir=./examples/data/forms #useful when developing
-[ -z "$keydir" ] && exit 1
+keydir=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/forms
+[ -d "`dirname $keydir`" ] || exit 1
+[ -d "$keydir" ] || mkdir "$keydir"
 
 #editor=gvim
 editor='urxvt -e vim'

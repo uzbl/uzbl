@@ -7,7 +7,7 @@
 ### TO NEW PEOPLE:
 * please read the documentation in /usr/share/uzbl/docs
 * invoke uzbl --help
-* to get you started: uzbl --uri 'http://www.archlinux.org' --config /usr/share/uzbl/examples/configs/sampleconfig
+* to get you started: `XDG_DATA_HOME=/usr/share/uzbl/examples/data XDG_CONFIG_HOME=/usr/share/uzbl/examples/config uzbl --uri www.archlinux.org`
 * study the sample config, have a look at all the bindings, and note how you can call the scripts to load new url from history and the bookmarks file
 * note that there is no url bar. all url editing is supposed to happen _outside_ of uzbl.
   For now, you can use the `load_from_*` dmenu based scripts to pick a url or type a new one or write commands into the fifo (see /usr/share/uzbl/docs/CHECKLIST)
@@ -149,6 +149,8 @@ The following commands are recognized:
    - search with no string will search for the next/previous occurrence of the string previously searched for
 * `toggle_insert_mode <optional state>`
    - if the optional state is 0, disable insert mode. If 1, enable insert mode.
+* `dump_config`
+   - dumps your current config (which may have been changed at runtime) to stdout, in a format you can use to pipe into uzbl again (or use as config file)
 * `keycmd <string>`
 * `keycmd_nl <string>`
    - keycmd sets the interactive command buffer to `<string>`.  If the given string is a valid binding, it will execute.  `Keycmd_nl` is like `keycmd`, but it also emulates a press of return, causing bindings with a parameter to execute.  For example, `keycmd_nl o google.com` would load the said url if you have a binding like `bind o _ = uri %s`.

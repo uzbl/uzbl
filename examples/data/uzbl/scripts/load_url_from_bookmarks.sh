@@ -2,10 +2,8 @@
 
 #NOTE: it's the job of the script that inserts bookmarks to make sure there are no dupes.
 
-[ -f /usr/share/uzbl/examples/data/bookmarks ] && file=/usr/share/uzbl/examples/data/bookmarks
-[ -f $XDG_DATA_HOME/uzbl/bookmarks           ] && file=$XDG_DATA_HOME/uzbl/bookmarks
-[ -f ./examples/data/bookmarks               ] && file=./examples/data/bookmarks #useful when developing
-[ -z "$file" ] && exit 1
+file=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/bookmarks
+[ -r "$file" ] || exit 
 COLORS=" -nb #303030 -nf khaki -sb #CCFFAA -sf #303030"
 if dmenu --help 2>&1 | grep -q '\[-rs\] \[-ni\] \[-nl\] \[-xs\]'
 then
