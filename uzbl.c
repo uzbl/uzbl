@@ -1100,15 +1100,19 @@ expand_template(const char *template, gboolean escape_markup) {
              }
          }
          else if(token == G_TOKEN_INT) {
-             buf = itos(g_scanner_cur_value(uzbl.scan).v_int);
-             g_string_append(ret, buf);
-             g_free(buf);
+             g_string_append_printf(ret, "%lu", g_scanner_cur_value(uzbl.scan).v_int);
          }
          else if(token == G_TOKEN_IDENTIFIER) {
              g_string_append(ret, (gchar *)g_scanner_cur_value(uzbl.scan).v_identifier);
          }
          else if(token == G_TOKEN_CHAR) {
              g_string_append_c(ret, (gchar)g_scanner_cur_value(uzbl.scan).v_char);
+         }
+         else if(token == G_TOKEN_ERROR) {
+             g_scanner_error(uzbl.scan, "Token error in template ('%s') at line %d, column %d.", 
+                                        template, 
+                                        g_scanner_cur_line(uzbl.scan), 
+                                        g_scanner_cur_position(uzbl.scan));
          }
      }
 
