@@ -627,6 +627,7 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "sh",                 {spawn_sh, 0}                  },
     { "sync_sh",            {spawn_sh_sync, 0}             }, // needed for cookie handler
     { "exit",               {close_uzbl, 0}                },
+    { "quit",               {close_uzbl, 0}                },
     { "search",             {search_forward_text, NOSPLIT} },
     { "search_reverse",     {search_reverse_text, NOSPLIT} },
     { "dehilight",          {dehilight, 0}                 },
