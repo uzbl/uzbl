@@ -99,6 +99,7 @@ const struct {
 /*  --------------------------------------------------------------------------------------- */
     { "uri",                 PTR(uzbl.state.uri,                  STR,  1,   cmd_load_uri)},
     { "verbose",             PTR(uzbl.state.verbose,              INT,  1,   NULL)},
+    { "disable_stdin",       PTR(uzbl.behave.disable_stdin,       INT,  1,   NULL)},
     { "mode",                PTR(uzbl.behave.mode,                INT,  0,   NULL)},
     { "inject_html",         PTR(uzbl.behave.inject_html,         STR,  0,   cmd_inject_html)},
     { "base_url",            PTR(uzbl.behave.base_url,            STR,  1,   NULL)},
@@ -2548,8 +2549,9 @@ main (int argc, char* argv[]) {
 
     /* WebInspector */
     set_up_inspector();
-
-    create_stdin();
+    
+    if (!uzbl.behave.disable_stdin)
+        create_stdin();
 
     if (verbose_override > uzbl.state.verbose)
         uzbl.state.verbose = verbose_override;
