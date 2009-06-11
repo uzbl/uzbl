@@ -1,17 +1,18 @@
-CFLAGS:=-std=c99 $(shell pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -DG_ERRORCHECK_MUTEXES -DCOMMIT="\"$(shell git log | head -n1 | sed "s/.* //")\"" $(CPPFLAGS)
+CFLAGS:=-std=c99 $(shell pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -lgthread-2.0 -DG_ERRORCHECK_MUTEXES -DCOMMIT="\"$(shell git log | head -n1 | sed "s/.* //")\"" $(CPPFLAGS)
 LDFLAGS:=$(shell pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4) -pthread $(LDFLAGS)
 all: uzbl uzblctrl
 
 PREFIX?=$(DESTDIR)/usr
 
 test: uzbl
-	./uzbl --uri http://www.uzbl.org
+	./uzbl --uri http://www.uzbl.org --verbose
 
-test-config: uzbl
-	./uzbl --uri http://www.uzbl.org < examples/configs/sampleconfig-dev
+test-dev: uzbl
+	XDG_DATA_HOME=./examples/data               XDG_CONFIG_HOME=./examples/config               ./uzbl --uri http://www.uzbl.org --verbose
 
-test-config-real: uzbl
-	./uzbl --uri http://www.uzbl.org < /usr/share/uzbl/examples/configs/sampleconfig
+test-share: uzbl
+	XDG_DATA_HOME=/usr/share/uzbl/examples/data XDG_CONFIG_HOME=/usr/share/uzbl/examples/config ./uzbl --uri http://www.uzbl.org --verbose
+
 	
 clean:
 	rm -f uzbl

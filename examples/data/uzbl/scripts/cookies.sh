@@ -24,15 +24,9 @@
 # http://kb.mozillazine.org/Cookies.txt
 # don't always append cookies, sometimes we need to overwrite
 
-[ -f /usr/share/uzbl/examples/configs/cookies ] && cookie_config=/usr/share/uzbl/examples/configs/cookies
-[ -f $XDG_CONFIG_HOME/uzbl/cookies            ] && cookie_config=$XDG_CONFIG_HOME/uzbl/cookies
-[ -f ./examples/configs/cookies               ] && cookie_config=./examples/configs/cookies #useful when developing
+cookie_config=${XDG_CONFIG_HOME:-$HOME/.config}/uzbl/cookies
 [ -z "$cookie_config" ] && exit 1
-
-[ -d /usr/share/uzbl/examples/data ] && cookie_data=/usr/share/uzbl/examples/data/cookies.txt
-[ -d $XDG_DATA_HOME/uzbl/          ] && cookie_data=$XDG_DATA_HOME/uzbl/cookies.txt
-[ -d ./examples/data/              ] && cookie_data=./examples/data/cookies.txt #useful when developing
-[ -z "$cookie_data" ] && exit 1
+[ -d ${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/ ] && cookie_data=${XDG_DATA_HOME:-$home/.local/share}/uzbl/cookies.txt || exit 1
 
 
 notifier=
