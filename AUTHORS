@@ -27,6 +27,7 @@ Contributors:
     Abel Camarillo (00z) - make it compile on OpenBSD
     (israellevin) - toggle_zoom_type
     (kmeaw) - fix for multibyte utf8 characters segfault
+    (evocallaghan) - tiny patch
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:
