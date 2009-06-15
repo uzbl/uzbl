@@ -706,7 +706,7 @@ print(WebKitWebView *page, GArray *argv, GString *result) {
     gchar* buf;
 
     buf = expand_vars(argv_idx(argv, 0));
-    puts(buf); /*TODO: result?*/
+    g_string_assign(result, buf);
     g_free(buf);
 }
 
@@ -1313,8 +1313,8 @@ parse_command(const char *cmd, const char *param, GString *result) {
                 GString *result_print = g_string_new("");
 
                 c->function(uzbl.gui.web_view, a, result_print);
-                if (uzbl.state.verbose)
-                    printf("%s returned %s\n", cmd, result_print->str);
+                if (result_print->len)
+                    printf("%*s\n", result_print->len, result_print->str);
 
                 g_string_free(result_print, TRUE);
             } else {
@@ -1817,22 +1817,27 @@ control_client_socket(GIOChannel *clientchan) {
 
     ret = g_io_channel_read_line(clientchan, &ctl_line, &len, NULL, &error);
     if (ret == G_IO_STATUS_ERROR) {
-        g_error ("Error reading: %s\n", error->message);
+        g_warning ("Error reading: %s\n", error->message);
+        g_io_channel_shutdown(clientchan, TRUE, &error);
         return FALSE;
     } else if (ret == G_IO_STATUS_EOF) {
-        /* socket closed, remove channel watch from main loop */
+        /* shutdown and remove channel watch from main loop */
+        g_io_channel_shutdown(clientchan, TRUE, &error);
         return FALSE;
     }
 
     if (ctl_line) {
         parse_cmd_line (ctl_line, result);
+        g_string_append_c(result, '\n');
         ret = g_io_channel_write_chars (clientchan, result->str, result->len,
                                         &len, &error);
         if (ret == G_IO_STATUS_ERROR) {
-            g_error ("Error writing: %s", error->message);
+            g_warning ("Error writing: %s", error->message);
         }
+        g_io_channel_flush(clientchan, &error);
     }
 
+    if (error) g_error_free (error);
     g_string_free(result, TRUE);
     g_free(ctl_line);
     return TRUE;

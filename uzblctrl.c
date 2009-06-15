@@ -2,17 +2,9 @@
 /* Socket code more or less completely copied from here: http://www.ecst.csuchico.edu/~beej/guide/ipc/usock.html */
 
 #include <gtk/gtk.h>
-#include <gdk/gdkx.h>
-#include <gdk/gdkkeysyms.h>
-#include <webkit/webkit.h>
-#include <pthread.h>
 #include <stdio.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -40,6 +32,7 @@ main(int argc, char* argv[]) {
     if (sockpath && command) {
         int s, len;
         struct sockaddr_un remote;
+        char tmp;
         
         if ((s = socket (AF_UNIX, SOCK_STREAM, 0)) == -1) {
             perror ("socket");
@@ -55,11 +48,18 @@ main(int argc, char* argv[]) {
             exit (1);
         }
         
-        if (send (s, command, strlen (command), 0) == -1) {
+        if ((send (s, command, strlen (command), 0) == -1) ||
+            (send (s, "\n", 1, 0) == -1)) {
             perror ("send");
             exit (1);
         }
         
+        while ((len = recv (s, &tmp, 1, 0))) {
+            putchar(tmp);
+            if (tmp == '\n')
+                break;
+        }
+
         close(s);
         
         return 0;
