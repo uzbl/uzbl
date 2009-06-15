@@ -176,6 +176,12 @@ typedef struct {
     GHashTable* commands;
 } Behaviour;
 
+/* javascript */
+typedef struct {
+    gboolean            initialized;
+    JSClassDefinition   classdef;
+    JSClassRef          classref;
+} Javascript;
 
 /* main uzbl data structure */
 typedef struct {
@@ -184,6 +190,7 @@ typedef struct {
     Network       net;
     Behaviour     behave;
     Communication comm;
+    Javascript    js;
 
     Window        xwin;
     GScanner      *scan;
@@ -456,6 +463,9 @@ search_reverse_text (WebKitWebView *page, GArray *argv, GString *result);
 
 static void
 dehilight (WebKitWebView *page, GArray *argv, GString *result);
+
+static void
+eval_js(WebKitWebView * web_view, gchar *script, GString *result);
 
 static void
 run_js (WebKitWebView * web_view, GArray *argv, GString *result);

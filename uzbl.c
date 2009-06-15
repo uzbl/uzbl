@@ -45,6 +45,7 @@
 #include <sys/time.h>
 #include <webkit/webkit.h>
 #include <libsoup/soup.h>
+#include <JavaScriptCore/JavaScript.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -760,12 +761,106 @@ load_uri (WebKitWebView *web_view, GArray *argv, GString *result) {
     }
 }
 
+
+/* Javascript*/
+
+static JSValueRef
+js_run_command (JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject,
+                size_t argumentCount, const JSValueRef arguments[],
+                JSValueRef* exception) {
+    (void) function;
+    (void) thisObject;
+    (void) exception;
+    
+    JSStringRef js_result_string;
+    GString *result = g_string_new("");
+
+    if (argumentCount >= 1) {
+        JSStringRef arg = JSValueToStringCopy(ctx, arguments[0], NULL);
+        size_t arg_size = JSStringGetMaximumUTF8CStringSize(arg);
+        char ctl_line[arg_size];
+        JSStringGetUTF8CString(arg, ctl_line, arg_size);
+
+        parse_cmd_line(ctl_line, result);
+
+        JSStringRelease(arg);
+    }
+    js_result_string = JSStringCreateWithUTF8CString(result->str);
+
+    g_string_free(result, TRUE);
+
+    return JSValueMakeString(ctx, js_result_string);
+}
+
+static JSStaticFunction js_static_functions[] = {
+    {"run", js_run_command, kJSPropertyAttributeNone},
+};
+
+static void
+js_init() {
+    /* This function creates the class and its definition, only once */
+    if (!uzbl.js.initialized) {
+        /* it would be pretty cool to make this dynamic */
+        uzbl.js.classdef = kJSClassDefinitionEmpty;
+        uzbl.js.classdef.staticFunctions = js_static_functions;
+
+        uzbl.js.classref = JSClassCreate(&uzbl.js.classdef);
+    }
+}
+
+
+static void 
+eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
+    WebKitWebFrame *frame;
+    JSGlobalContextRef context;
+    JSObjectRef globalobject;
+    JSStringRef var_name;
+
+    JSStringRef js_script;
+    JSValueRef js_result;
+    JSStringRef js_result_string;
+    size_t js_result_size;
+    
+    js_init();
+
+    frame = webkit_web_view_get_main_frame(WEBKIT_WEB_VIEW(web_view));
+    context = webkit_web_frame_get_global_context(frame);
+    globalobject = JSContextGetGlobalObject(context);
+    
+    /* uzbl javascript namespace */
+    var_name = JSStringCreateWithUTF8CString("Uzbl");
+    JSObjectSetProperty(context, globalobject, var_name,
+                        JSObjectMake(context, uzbl.js.classref, NULL),  
+                        kJSClassAttributeNone, NULL);
+    
+    /* evaluate the script and get return value*/ 
+    js_script = JSStringCreateWithUTF8CString(script);
+    js_result = JSEvaluateScript(context, js_script, globalobject, NULL, 0, NULL);
+    if (js_result && !JSValueIsUndefined(context, js_result)) {
+        js_result_string = JSValueToStringCopy(context, js_result, NULL);
+        js_result_size = JSStringGetMaximumUTF8CStringSize(js_result_string);
+
+        if (js_result_size) {
+            char js_result_utf8[js_result_size];
+            JSStringGetUTF8CString(js_result_string, js_result_utf8, js_result_size);
+            g_string_assign(result, js_result_utf8);
+        }
+
+        JSStringRelease(js_result_string);
+    }
+
+    /* cleanup */
+    JSObjectDeleteProperty(context, globalobject, var_name, NULL);
+
+    JSStringRelease(var_name);
+    JSStringRelease(js_script);
+}
+
 static void
 run_js (WebKitWebView * web_view, GArray *argv, GString *result) {
-    (void) result;
-    /* TODO: result! */
+
     if (argv_idx(argv, 0))
-        webkit_web_view_execute_script (web_view, argv_idx(argv, 0));
+        eval_js(web_view, argv_idx(argv, 0), result);
 }
 
 static void
@@ -796,7 +891,7 @@ run_external_js (WebKitWebView * web_view, GArray *argv, GString *result) {
             g_free (js);
             js = newjs;
         }
-        webkit_web_view_execute_script (web_view, js);
+        eval_js (web_view, js, result);
         g_free (js);
         g_array_free (lines, TRUE);
     }
