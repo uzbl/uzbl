@@ -207,11 +207,15 @@ get_exp_type(gchar *s) {
 return EXP_ERR;
 }
 
+/* setting 'recurse = 1' will prevent expand() from
+ * expanding '@(command)'
+ */
 static gchar *
-expand_vars(char *s) {
+expand(char *s, gboolean recurse) {
     uzbl_cmdprop *c;
     char upto = ' ';
-    char ret[4096],  *vend;
+    char ret[4096];
+    char *vend;
     GString *buf = g_string_new("");
     guint etype;
     GError *err = NULL;
@@ -224,6 +228,7 @@ expand_vars(char *s) {
                 g_string_append_c(buf, *++s);
                 s++;
                 break;
+
             case '@':
                 etype = get_exp_type(s);
 
@@ -246,7 +251,8 @@ expand_vars(char *s) {
                     ret[vend-s] = '\0';
                 }
 
-                if(etype == EXP_SIMPLE_VAR || etype == EXP_BRACED_VAR) {
+                if(etype == EXP_SIMPLE_VAR || 
+                   etype == EXP_BRACED_VAR) {
                     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, ret)) ) {
                         if(c->type == TYPE_STR)
                             g_string_append(buf, (gchar *)*c->ptr);
@@ -259,8 +265,9 @@ expand_vars(char *s) {
                     if(upto == ' ') s = vend;
                     else s = vend+1;
                 }
-                else if(etype == EXP_EXPR) {
-                    mycmd = expand_vars(ret);
+                else if(!recurse && 
+                        etype == EXP_EXPR) {
+                    mycmd = expand(ret, 1);
                     g_spawn_command_line_sync(mycmd, &cmd_stdout, NULL, NULL, &err);
                     g_free(mycmd);
 
@@ -275,6 +282,7 @@ expand_vars(char *s) {
                     s = vend+1;
                 }
                 break;
+
             default:
                 g_string_append_c(buf, *s);
                 s++;
@@ -751,7 +759,7 @@ print(WebKitWebView *page, GArray *argv) {
     (void) page;
     gchar* buf;
 
-    buf = expand_vars(argv_idx(argv, 0));
+    buf = expand(argv_idx(argv, 0), 0);
     puts(buf);
     g_free(buf);
 }
@@ -1622,17 +1630,17 @@ set_var_value(gchar *name, gchar *val) {
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         /* check for the variable type */
         if (c->type == TYPE_STR) {
-            buf = expand_vars(val);
+            buf = expand(val, 0);
             g_free(*c->ptr);
             *c->ptr = buf;
         } else if(c->type == TYPE_INT) {
             int *ip = (int *)c->ptr;
-            buf = expand_vars(val);
+            buf = expand(val, 0);
             *ip = (int)strtoul(buf, &endp, 10);
             g_free(buf);
         } else if (c->type == TYPE_FLOAT) {
             float *fp = (float *)c->ptr;
-            buf = expand_vars(val);
+            buf = expand(val, 0);
             *fp = strtod(buf, &endp);
             g_free(buf);
         }
