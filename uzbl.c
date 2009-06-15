@@ -883,9 +883,12 @@ keycmd_nl (WebKitWebView *page, GArray *argv) {
 
 static void
 keycmd_bs (WebKitWebView *page, GArray *argv) {
+    gchar *prev;
     (void)page;
     (void)argv;
-    g_string_truncate(uzbl.state.keycmd, uzbl.state.keycmd->len - 1);
+    prev = g_utf8_find_prev_char(uzbl.state.keycmd->str, uzbl.state.keycmd->str + uzbl.state.keycmd->len);
+    if (prev)
+      g_string_truncate(uzbl.state.keycmd, prev - uzbl.state.keycmd->str);
     update_title();
 }
 
@@ -1647,9 +1650,9 @@ parse_cmd_line(const char *ctl_line) {
 
 static gchar*
 build_stream_name(int type, const gchar* dir) {
-    char *xwin_str;
+    char *xwin_str = NULL;
     State *s = &uzbl.state;
-    gchar *str;
+    gchar *str = NULL;
 
     xwin_str = itos((int)uzbl.xwin);
     if (type == FIFO) {
