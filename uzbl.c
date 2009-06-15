@@ -191,12 +191,32 @@ make_var_to_name_hash() {
 }
 
 /* --- UTILITY FUNCTIONS --- */
+
+enum {EXP_ERR, EXP_SIMPLE_VAR, EXP_BRACED_VAR, EXP_EXPR};
+
+static guint
+get_exp_type(gchar *s) {
+    /* variables */
+    if(*(s+1) == '(')
+        return EXP_EXPR;
+    else if(*(s+1) == '{')
+        return EXP_BRACED_VAR;
+    else
+        return EXP_SIMPLE_VAR;
+
+return EXP_ERR;
+}
+
 static gchar *
 expand_vars(char *s) {
     uzbl_cmdprop *c;
     char upto = ' ';
-    char ret[256],  *vend;
+    char ret[4096],  *vend;
     GString *buf = g_string_new("");
+    guint etype;
+    GError *err = NULL;
+    gchar *cmd_stdout = NULL;
+    gchar *mycmd = NULL;
 
     while(*s) {
         switch(*s) {
@@ -205,14 +225,28 @@ expand_vars(char *s) {
                 s++;
                 break;
             case '@':
-                if(*(s+1) == '{') {
-                    upto = '}'; s++;
+                etype = get_exp_type(s);
+
+                switch(etype) {
+                    case EXP_SIMPLE_VAR:
+                        upto = ' ';
+                        break;
+                    case EXP_BRACED_VAR:
+                        s++; upto = '}';
+                        break;
+                    case EXP_EXPR:
+                        s++; upto = ')';
+                        break;
                 }
                 s++;
+
                 if( (vend = strchr(s, upto)) ||
                     (vend = strchr(s, '\0')) ) {
                     strncpy(ret, s, vend-s);
                     ret[vend-s] = '\0';
+                }
+
+                if(etype == EXP_SIMPLE_VAR || etype == EXP_BRACED_VAR) {
                     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, ret)) ) {
                         if(c->type == TYPE_STR)
                             g_string_append(buf, (gchar *)*c->ptr);
@@ -224,7 +258,21 @@ expand_vars(char *s) {
                     }
                     if(upto == ' ') s = vend;
                     else s = vend+1;
-                    upto = ' ';
+                }
+                else if(etype == EXP_EXPR) {
+                    mycmd = expand_vars(ret);
+                    g_spawn_command_line_sync(mycmd, &cmd_stdout, NULL, NULL, &err);
+                    g_free(mycmd);
+
+                    if (err) {
+                        g_printerr("error on running command: %s\n", err->message);
+                        g_error_free (err);
+                    }
+                    else if (*cmd_stdout) {
+                        g_string_append(buf, cmd_stdout);
+                        g_free(cmd_stdout);
+                    }
+                    s = vend+1;
                 }
                 break;
             default:
