@@ -57,7 +57,6 @@
 #include "config.h"
 
 static Uzbl uzbl;
-typedef void (*Command)(WebKitWebView*, GArray *argv);
 
 
 
@@ -455,27 +454,27 @@ scroll (GtkAdjustment* bar, GArray *argv) {
 }
 
 static void
-scroll_begin(WebKitWebView* page, GArray *argv) {
-    (void) page; (void) argv;
+scroll_begin(WebKitWebView* page, GArray *argv, GString *result) {
+    (void) page; (void) argv; (void) result;
     gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_lower(uzbl.gui.bar_v));
 }
 
 static void
-scroll_end(WebKitWebView* page, GArray *argv) {
-    (void) page; (void) argv;
+scroll_end(WebKitWebView* page, GArray *argv, GString *result) {
+    (void) page; (void) argv; (void) result;
     gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_upper(uzbl.gui.bar_v) -
                               gtk_adjustment_get_page_size(uzbl.gui.bar_v));
 }
 
 static void
-scroll_vert(WebKitWebView* page, GArray *argv) {
-    (void) page;
+scroll_vert(WebKitWebView* page, GArray *argv, GString *result) {
+    (void) page; (void) result;
     scroll(uzbl.gui.bar_v, argv);
 }
 
 static void
-scroll_horz(WebKitWebView* page, GArray *argv) {
-    (void) page;
+scroll_horz(WebKitWebView* page, GArray *argv, GString *result) {
+    (void) page; (void) result;
     scroll(uzbl.gui.bar_h, argv);
 }
 
@@ -490,17 +489,19 @@ cmd_set_status() {
 }
 
 static void
-toggle_zoom_type (WebKitWebView* page, GArray *argv) {
+toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result) {
     (void)page;
     (void)argv;
+    (void)result;
 
     webkit_web_view_set_full_content_zoom (page, !webkit_web_view_get_full_content_zoom (page));
 }
 
 static void
-toggle_status_cb (WebKitWebView* page, GArray *argv) {
+toggle_status_cb (WebKitWebView* page, GArray *argv, GString *result) {
     (void)page;
     (void)argv;
+    (void)result;
 
     if (uzbl.behave.show_status) {
         gtk_widget_hide(uzbl.gui.mainbar);
@@ -601,7 +602,7 @@ log_history_cb () {
 
 
 /* VIEW funcs (little webkit wrappers) */
-#define VIEWFUNC(name) static void view_##name(WebKitWebView *page, GArray *argv){(void)argv; webkit_web_view_##name(page);}
+#define VIEWFUNC(name) static void view_##name(WebKitWebView *page, GArray *argv, GString *result){(void)argv; (void)result; webkit_web_view_##name(page);}
 VIEWFUNC(reload)
 VIEWFUNC(reload_bypass_cache)
 VIEWFUNC(stop_loading)
@@ -612,7 +613,7 @@ VIEWFUNC(go_forward)
 #undef VIEWFUNC
 
 /* -- command to callback/function map for things we cannot attach to any signals */
-static struct {char *name; Command command[2];} cmdlist[] =
+static struct {char *key; CommandInfo value;} cmdlist[] =
 {   /* key                   function      no_split      */
     { "back",               {view_go_back, 0}              },
     { "forward",            {view_go_forward, 0}           },
@@ -626,8 +627,8 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "zoom_in",            {view_zoom_in, 0},             }, //Can crash (when max zoom reached?).
     { "zoom_out",           {view_zoom_out, 0},            },
     { "toggle_zoom_type",   {toggle_zoom_type, 0},         },
-    { "uri",                {load_uri, NOSPLIT}            },
-    { "js",                 {run_js, NOSPLIT}              },
+    { "uri",                {load_uri, TRUE}               },
+    { "js",                 {run_js, TRUE}                 },
     { "script",             {run_external_js, 0}           },
     { "toggle_status",      {toggle_status_cb, 0}          },
     { "spawn",              {spawn, 0}                     },
@@ -635,19 +636,19 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "sh",                 {spawn_sh, 0}                  },
     { "sync_sh",            {spawn_sh_sync, 0}             }, // needed for cookie handler
     { "exit",               {close_uzbl, 0}                },
-    { "search",             {search_forward_text, NOSPLIT} },
-    { "search_reverse",     {search_reverse_text, NOSPLIT} },
+    { "search",             {search_forward_text, TRUE}    },
+    { "search_reverse",     {search_reverse_text, TRUE}    },
     { "dehilight",          {dehilight, 0}                 },
     { "toggle_insert_mode", {toggle_insert_mode, 0}        },
-    { "set",                {set_var, NOSPLIT}             },
-    //{ "get",                {get_var, NOSPLIT}             },
-    { "bind",               {act_bind, NOSPLIT}            },
+    { "set",                {set_var, TRUE}                },
+  //{ "get",                {get_var, TRUE}                },
+    { "bind",               {act_bind, TRUE}               },
     { "dump_config",        {act_dump_config, 0}           },
-    { "keycmd",             {keycmd, NOSPLIT}              },
-    { "keycmd_nl",          {keycmd_nl, NOSPLIT}           },
+    { "keycmd",             {keycmd, TRUE}                 },
+    { "keycmd_nl",          {keycmd_nl, TRUE}              },
     { "keycmd_bs",          {keycmd_bs, 0}                 },
     { "chain",              {chain, 0}                     },
-    { "print",              {print, NOSPLIT}               }
+    { "print",              {print, TRUE}                  }
 };
 
 static void
@@ -657,7 +658,7 @@ commands_hash(void)
     uzbl.behave.commands = g_hash_table_new(g_str_hash, g_str_equal);
 
     for (i = 0; i < LENGTH(cmdlist); i++)
-        g_hash_table_insert(uzbl.behave.commands, cmdlist[i].name, cmdlist[i].command);
+        g_hash_table_insert(uzbl.behave.commands, cmdlist[i].key, &cmdlist[i].value);
 }
 
 /* -- CORE FUNCTIONS -- */
@@ -690,8 +691,8 @@ file_exists (const char * filename) {
 }
 
 static void
-set_var(WebKitWebView *page, GArray *argv) {
-    (void) page;
+set_var(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page; (void) result;
     gchar **split = g_strsplit(argv_idx(argv, 0), "=", 2);
     gchar *value = parseenv(g_strdup(split[1] ? g_strchug(split[1]) : " "));
     set_var_value(g_strstrip(split[0]), value);
@@ -700,18 +701,18 @@ set_var(WebKitWebView *page, GArray *argv) {
 }
 
 static void
-print(WebKitWebView *page, GArray *argv) {
-    (void) page;
+print(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page; (void) result;
     gchar* buf;
 
     buf = expand_vars(argv_idx(argv, 0));
-    puts(buf);
+    puts(buf); /*TODO: result?*/
     g_free(buf);
 }
 
 static void
-act_bind(WebKitWebView *page, GArray *argv) {
-    (void) page;
+act_bind(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page; (void) result;
     gchar **split = g_strsplit(argv_idx(argv, 0), " = ", 2);
     gchar *value = parseenv(g_strdup(split[1] ? g_strchug(split[1]) : " "));
     add_binding(g_strstrip(split[0]), value);
@@ -726,8 +727,8 @@ act_dump_config() {
 }
 
 static void
-toggle_insert_mode(WebKitWebView *page, GArray *argv) {
-    (void)page;
+toggle_insert_mode(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page; (void) result;
 
     if (argv_idx(argv, 0)) {
         if (strcmp (argv_idx(argv, 0), "0") == 0) {
@@ -743,11 +744,13 @@ toggle_insert_mode(WebKitWebView *page, GArray *argv) {
 }
 
 static void
-load_uri (WebKitWebView *web_view, GArray *argv) {
+load_uri (WebKitWebView *web_view, GArray *argv, GString *result) {
+    (void) result;
+
     if (argv_idx(argv, 0)) {
         GString* newuri = g_string_new (argv_idx(argv, 0));
         if (g_strstr_len (argv_idx(argv, 0), 11, "javascript:") != NULL) {
-            run_js(web_view, argv);
+            run_js(web_view, argv, NULL);
             return;
         }
         if (g_strrstr (argv_idx(argv, 0), "://") == NULL && g_strstr_len (argv_idx(argv, 0), 5, "data:") == NULL)
@@ -759,13 +762,16 @@ load_uri (WebKitWebView *web_view, GArray *argv) {
 }
 
 static void
-run_js (WebKitWebView * web_view, GArray *argv) {
+run_js (WebKitWebView * web_view, GArray *argv, GString *result) {
+    (void) result;
+    /* TODO: result! */
     if (argv_idx(argv, 0))
         webkit_web_view_execute_script (web_view, argv_idx(argv, 0));
 }
 
 static void
-run_external_js (WebKitWebView * web_view, GArray *argv) {
+run_external_js (WebKitWebView * web_view, GArray *argv, GString *result) {
+    (void) result;
     if (argv_idx(argv, 0)) {
         GArray* lines = read_file_by_line (argv_idx (argv, 0));
         gchar*  js = NULL;
@@ -816,18 +822,20 @@ search_text (WebKitWebView *page, GArray *argv, const gboolean forward) {
 }
 
 static void
-search_forward_text (WebKitWebView *page, GArray *argv) {
+search_forward_text (WebKitWebView *page, GArray *argv, GString *result) {
+    (void) result;
     search_text(page, argv, TRUE);
 }
 
 static void
-search_reverse_text (WebKitWebView *page, GArray *argv) {
+search_reverse_text (WebKitWebView *page, GArray *argv, GString *result) {
+    (void) result;
     search_text(page, argv, FALSE);
 }
 
 static void
-dehilight (WebKitWebView *page, GArray *argv) {
-    (void) argv;
+dehilight (WebKitWebView *page, GArray *argv, GString *result) {
+    (void) argv; (void) result;
     webkit_web_view_set_highlight_text_matches (page, FALSE);
 }
 
@@ -852,48 +860,52 @@ new_window_load_uri (const gchar * uri) {
 }
 
 static void
-chain (WebKitWebView *page, GArray *argv) {
-    (void)page;
+chain (WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page; (void) result;
     gchar *a = NULL;
     gchar **parts = NULL;
     guint i = 0;    
     while ((a = argv_idx(argv, i++))) {
         parts = g_strsplit (a, " ", 2);
-        parse_command(parts[0], parts[1]);
+        parse_command(parts[0], parts[1], result);
         g_strfreev (parts);
     }
 }
 
 static void
-keycmd (WebKitWebView *page, GArray *argv) {
+keycmd (WebKitWebView *page, GArray *argv, GString *result) {
     (void)page;
     (void)argv;
+    (void)result;
     g_string_assign(uzbl.state.keycmd, argv_idx(argv, 0));
     run_keycmd(FALSE);
     update_title();
 }
 
 static void
-keycmd_nl (WebKitWebView *page, GArray *argv) {
+keycmd_nl (WebKitWebView *page, GArray *argv, GString *result) {
     (void)page;
     (void)argv;
+    (void)result;
     g_string_assign(uzbl.state.keycmd, argv_idx(argv, 0));
     run_keycmd(TRUE);
     update_title();
 }
 
 static void
-keycmd_bs (WebKitWebView *page, GArray *argv) {
+keycmd_bs (WebKitWebView *page, GArray *argv, GString *result) {
     (void)page;
     (void)argv;
+    (void)result;
     g_string_truncate(uzbl.state.keycmd, uzbl.state.keycmd->len - 1);
     update_title();
 }
 
 static void
-close_uzbl (WebKitWebView *page, GArray *argv) {
+close_uzbl (WebKitWebView *page, GArray *argv, GString *result) {
     (void)page;
     (void)argv;
+    (void)result;
     gtk_main_quit ();
 }
 
@@ -1222,16 +1234,16 @@ split_quoted(const gchar* src, const gboolean unquote) {
 }
 
 static void
-spawn(WebKitWebView *web_view, GArray *argv) {
-    (void)web_view;
+spawn(WebKitWebView *web_view, GArray *argv, GString *result) {
+    (void)web_view; (void)result;
     //TODO: allow more control over argument order so that users can have some arguments before the default ones from run_command, and some after
     if (argv_idx(argv, 0))
         run_command(argv_idx(argv, 0), 0, ((const gchar **) (argv->data + sizeof(gchar*))), FALSE, NULL);
 }
 
 static void
-spawn_sync(WebKitWebView *web_view, GArray *argv) {
-    (void)web_view;
+spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
+    (void)web_view; (void)result;
     
     if (argv_idx(argv, 0))
         run_command(argv_idx(argv, 0), 0, ((const gchar **) (argv->data + sizeof(gchar*))),
@@ -1239,8 +1251,8 @@ spawn_sync(WebKitWebView *web_view, GArray *argv) {
 }
 
 static void
-spawn_sh(WebKitWebView *web_view, GArray *argv) {
-    (void)web_view;
+spawn_sh(WebKitWebView *web_view, GArray *argv, GString *result) {
+    (void)web_view; (void)result;
     if (!uzbl.behave.shell_cmd) {
         g_printerr ("spawn_sh: shell_cmd is not set!\n");
         return;
@@ -1260,8 +1272,8 @@ spawn_sh(WebKitWebView *web_view, GArray *argv) {
 }
 
 static void
-spawn_sh_sync(WebKitWebView *web_view, GArray *argv) {
-    (void)web_view;
+spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
+    (void)web_view; (void)result;
     if (!uzbl.behave.shell_cmd) {
         g_printerr ("spawn_sh_sync: shell_cmd is not set!\n");
         return;
@@ -1282,22 +1294,32 @@ spawn_sh_sync(WebKitWebView *web_view, GArray *argv) {
 }
 
 static void
-parse_command(const char *cmd, const char *param) {
-    Command *c;
+parse_command(const char *cmd, const char *param, GString *result) {
+    CommandInfo *c;
 
     if ((c = g_hash_table_lookup(uzbl.behave.commands, cmd))) {
-
             guint i;
             gchar **par = split_quoted(param, TRUE);
             GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
 
-            if (c[1] == NOSPLIT) { /* don't split */
+            if (c->no_split) { /* don't split */
                 sharg_append(a, param);
             } else if (par) {
                 for (i = 0; i < g_strv_length(par); i++)
                     sharg_append(a, par[i]);
             }
-            c[0](uzbl.gui.web_view, a);
+
+            if (result == NULL) {
+                GString *result_print = g_string_new("");
+
+                c->function(uzbl.gui.web_view, a, result_print);
+                if (uzbl.state.verbose)
+                    printf("%s returned %s\n", cmd, result_print->str);
+
+                g_string_free(result_print, TRUE);
+            } else {
+                c->function(uzbl.gui.web_view, a, result);
+            }
             g_strfreev (par);
             g_array_free (a, TRUE);
 
@@ -1339,7 +1361,7 @@ static void
 cmd_load_uri() {
     GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
     g_array_append_val (a, uzbl.state.uri);
-    load_uri(uzbl.gui.web_view, a);
+    load_uri(uzbl.gui.web_view, a, NULL);
     g_array_free (a, TRUE);
 }
 
@@ -1607,7 +1629,7 @@ render_html() {
 
 enum {M_CMD, M_HTML};
 static void
-parse_cmd_line(const char *ctl_line) {
+parse_cmd_line(const char *ctl_line, GString *result) {
     Behaviour *b = &uzbl.behave;
     size_t len=0;
 
@@ -1640,7 +1662,7 @@ parse_cmd_line(const char *ctl_line) {
         else ctlstrip = g_strdup(ctl_line);
 
         tokens = g_strsplit(ctlstrip, " ", 2);
-        parse_command(tokens[0], tokens[1]);
+        parse_command(tokens[0], tokens[1], result);
         g_free(ctlstrip);
         g_strfreev(tokens);
     }
@@ -1686,7 +1708,7 @@ control_fifo(GIOChannel *gio, GIOCondition condition) {
         g_error_free (err);
     }
 
-    parse_cmd_line(ctl_line);
+    parse_cmd_line(ctl_line, NULL);
     g_free(ctl_line);
 
     return TRUE;
@@ -1742,7 +1764,7 @@ control_stdin(GIOChannel *gio, GIOCondition condition) {
     if ( (ret == G_IO_STATUS_ERROR) || (ret == G_IO_STATUS_EOF) )
         return FALSE;
 
-    parse_cmd_line(ctl_line);
+    parse_cmd_line(ctl_line, NULL);
     g_free(ctl_line);
 
     return TRUE;
@@ -1769,8 +1791,11 @@ create_stdin () {
 
 static gboolean
 control_socket(GIOChannel *chan) {
+    char *ctl_line;
+    GString *result = g_string_new("");
+#if 1
     struct sockaddr_un remote;
-    char buffer[512], *ctl_line;
+    char buffer[512];
     char temp[128];
     int sock, clientsock, n, done;
     unsigned int t;
@@ -1799,24 +1824,33 @@ control_socket(GIOChannel *chan) {
     } else {
         buffer[strlen (buffer)] = '\0';
     }
-    close (clientsock);
-    ctl_line = g_strdup(buffer);
-    parse_cmd_line (ctl_line);
 
-/*
-   TODO: we should be able to do it with this.  but glib errors out with "Invalid argument"
+    ctl_line = g_strdup(buffer);
+    parse_cmd_line (ctl_line, result);
+    
+    send (clientsock, result->str, result->len, 0);
+     
+    close (clientsock);
+#else
+    /* TODO: we should be able to do it with this.  but glib errors out with "Invalid argument" */
     GError *error = NULL;
     gsize len;
     GIOStatus ret;
+
     ret = g_io_channel_read_line(chan, &ctl_line, &len, NULL, &error);
     if (ret == G_IO_STATUS_ERROR)
         g_error ("Error reading: %s\n", error->message);
 
     printf("Got line %s (%u bytes) \n",ctl_line, len);
-    if(ctl_line) {
-       parse_line(ctl_line);
-*/
-
+    if (ctl_line) {
+        parse_cmd_line (ctl_line, result);
+        ret = g_io_channel_write_chars (chan, result->str, result->len, &len, &error);
+        if (ret == G_IO_STATUS_ERROR) {
+            g_error ("Error writing: %s", error->message)
+        }
+    }
+#endif
+    g_string_free(result, TRUE);
     g_free(ctl_line);
     return TRUE;
 }
@@ -1928,7 +1962,7 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
     if (event->keyval == GDK_Escape) {
         g_string_truncate(uzbl.state.keycmd, 0);
         update_title();
-        dehilight(uzbl.gui.web_view, NULL);
+        dehilight(uzbl.gui.web_view, NULL, NULL);
         return TRUE;
     }
 
@@ -1949,7 +1983,7 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
     }
 
     if (event->keyval == GDK_BackSpace)
-        keycmd_bs(NULL, NULL);
+        keycmd_bs(NULL, NULL, NULL);
 
     gboolean key_ret = FALSE;
     if ((event->keyval == GDK_Return) || (event->keyval == GDK_KP_Enter))
@@ -1968,7 +2002,7 @@ run_keycmd(const gboolean key_ret) {
     Action *act;
     if ((act = g_hash_table_lookup(uzbl.bindings, uzbl.state.keycmd->str))) {
         g_string_truncate(uzbl.state.keycmd, 0);
-        parse_command(act->name, act->param);
+        parse_command(act->name, act->param, NULL);
         return;
     }
 
@@ -2010,7 +2044,7 @@ exec_paramcmd(const Action *act, const guint i) {
         g_string_printf (actionname, act->name, parampart->str);
     if (act->param)
         g_string_printf (actionparam, act->param, parampart->str);
-    parse_command(actionname->str, actionparam->str);
+    parse_command(actionname->str, actionparam->str, NULL);
     g_string_free(actionname, TRUE);
     g_string_free(actionparam, TRUE);
     g_string_free(parampart, TRUE);
@@ -2171,13 +2205,13 @@ run_handler (const gchar *act, const gchar *args) {
             cp++;
         }
 
-        parse_command(parts[0], &(newargs->str[1]));
+        parse_command(parts[0], &(newargs->str[1]), NULL);
         g_string_free(newargs, TRUE);
         g_strfreev(chainparts);
         
     } else {
         gchar **inparts = inject_handler_args(parts[0], parts[1], args);
-        parse_command(inparts[0], inparts[1]);
+        parse_command(inparts[0], inparts[1], NULL);
         g_free(inparts[0]);
         g_free(inparts[1]);
     }
@@ -2261,7 +2295,7 @@ settings_init () {
     Network *n = &uzbl.net;
     int i;
     for (i = 0; default_config[i].command != NULL; i++) {
-        parse_cmd_line(default_config[i].command);
+        parse_cmd_line(default_config[i].command, NULL);
     }
 
     if (!s->config_file) {
@@ -2274,7 +2308,7 @@ settings_init () {
         gchar* line;
 
         while ((line = g_array_index(lines, gchar*, i))) {
-            parse_cmd_line (line);
+            parse_cmd_line (line, NULL);
             i ++;
             g_free (line);
         }
