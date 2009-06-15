@@ -1791,65 +1791,48 @@ create_stdin () {
 
 static gboolean
 control_socket(GIOChannel *chan) {
+    struct sockaddr_un remote;
+    unsigned int t = sizeof(remote);
+    int clientsock;
+    GIOChannel *clientchan;
+
+    clientsock = accept (g_io_channel_unix_get_fd(chan),
+                         (struct sockaddr *) &remote, &t);
+    
+    if ((clientchan = g_io_channel_unix_new(clientsock))) {
+        g_io_add_watch(clientchan, G_IO_IN|G_IO_HUP,
+                       (GIOFunc) control_client_socket, clientchan);
+    }
+
+    return TRUE;
+}
+
+static gboolean
+control_client_socket(GIOChannel *clientchan) {
     char *ctl_line;
     GString *result = g_string_new("");
-#if 1
-    struct sockaddr_un remote;
-    char buffer[512];
-    char temp[128];
-    int sock, clientsock, n, done;
-    unsigned int t;
+    GError *error = NULL;
+    GIOStatus ret;
+    gsize len;
 
-    sock = g_io_channel_unix_get_fd(chan);
-
-    memset (buffer, 0, sizeof (buffer));
-
-    t          = sizeof (remote);
-    clientsock = accept (sock, (struct sockaddr *) &remote, &t);
-
-    done = 0;
-    do {
-        memset (temp, 0, sizeof (temp));
-        n = recv (clientsock, temp, 128, 0);
-        if (n == 0) {
-            buffer[strlen (buffer)] = '\0';
-            done = 1;
-        }
-        if (!done)
-            strcat (buffer, temp);
-    } while (!done);
-
-    if (strcmp (buffer, "\n") < 0) {
-        buffer[strlen (buffer) - 1] = '\0';
-    } else {
-        buffer[strlen (buffer)] = '\0';
+    ret = g_io_channel_read_line(clientchan, &ctl_line, &len, NULL, &error);
+    if (ret == G_IO_STATUS_ERROR) {
+        g_error ("Error reading: %s\n", error->message);
+        return FALSE;
+    } else if (ret == G_IO_STATUS_EOF) {
+        /* socket closed, remove channel watch from main loop */
+        return FALSE;
     }
 
-    ctl_line = g_strdup(buffer);
-    parse_cmd_line (ctl_line, result);
-    
-    send (clientsock, result->str, result->len, 0);
-     
-    close (clientsock);
-#else
-    /* TODO: we should be able to do it with this.  but glib errors out with "Invalid argument" */
-    GError *error = NULL;
-    gsize len;
-    GIOStatus ret;
-
-    ret = g_io_channel_read_line(chan, &ctl_line, &len, NULL, &error);
-    if (ret == G_IO_STATUS_ERROR)
-        g_error ("Error reading: %s\n", error->message);
-
-    printf("Got line %s (%u bytes) \n",ctl_line, len);
     if (ctl_line) {
         parse_cmd_line (ctl_line, result);
-        ret = g_io_channel_write_chars (chan, result->str, result->len, &len, &error);
+        ret = g_io_channel_write_chars (clientchan, result->str, result->len,
+                                        &len, &error);
         if (ret == G_IO_STATUS_ERROR) {
-            g_error ("Error writing: %s", error->message)
+            g_error ("Error writing: %s", error->message);
         }
     }
-#endif
+
     g_string_free(result, TRUE);
     g_free(ctl_line);
     return TRUE;

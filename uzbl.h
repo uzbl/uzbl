@@ -328,6 +328,9 @@ init_socket(gchar *dir);
 static gboolean
 control_socket(GIOChannel *chan);
 
+static gboolean
+control_client_socket(GIOChannel *chan);
+
 static void
 update_title (void);
 
