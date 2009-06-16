@@ -192,7 +192,7 @@ make_var_to_name_hash() {
 
 /* --- UTILITY FUNCTIONS --- */
 
-enum {EXP_ERR, EXP_SIMPLE_VAR, EXP_BRACED_VAR, EXP_EXPR};
+enum {EXP_ERR, EXP_SIMPLE_VAR, EXP_BRACED_VAR, EXP_EXPR, EXP_JS};
 static guint
 get_exp_type(gchar *s) {
     /* variables */
@@ -200,6 +200,8 @@ get_exp_type(gchar *s) {
         return EXP_EXPR;
     else if(*(s+1) == '{')
         return EXP_BRACED_VAR;
+    else if(*(s+1) == '<')
+        return EXP_JS;
     else
         return EXP_SIMPLE_VAR;
 
@@ -220,6 +222,7 @@ expand(char *s, gboolean recurse) {
     gchar *cmd_stdout = NULL;
     gchar *mycmd = NULL;
     GString *buf = g_string_new("");
+    GString *js_ret = g_string_new("");
 
     while(*s) {
         switch(*s) {
@@ -240,6 +243,9 @@ expand(char *s, gboolean recurse) {
                         break;
                     case EXP_EXPR:
                         s++; upto = ')';
+                        break;
+                    case EXP_JS:
+                        s++; upto = '>';
                         break;
                 }
                 s++;
@@ -279,6 +285,17 @@ expand(char *s, gboolean recurse) {
                         g_free(cmd_stdout);
                     }
                     s = vend+1;
+                }
+                else if(!recurse && 
+                        etype == EXP_JS) {
+                    mycmd = expand(ret, 1);
+                    eval_js(uzbl.gui.web_view, mycmd, js_ret);
+                    g_free(mycmd);
+
+                    if(js_ret->str) {
+                        g_string_append(buf, js_ret->str);
+                        g_string_free(js_ret, 1);
+                    }
                 }
                 break;
 
