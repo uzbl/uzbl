@@ -193,7 +193,6 @@ make_var_to_name_hash() {
 /* --- UTILITY FUNCTIONS --- */
 
 enum {EXP_ERR, EXP_SIMPLE_VAR, EXP_BRACED_VAR, EXP_EXPR};
-
 static guint
 get_exp_type(gchar *s) {
     /* variables */
@@ -213,14 +212,14 @@ return EXP_ERR;
 static gchar *
 expand(char *s, gboolean recurse) {
     uzbl_cmdprop *c;
+    guint etype;
     char upto = ' ';
     char ret[4096];
     char *vend;
-    GString *buf = g_string_new("");
-    guint etype;
     GError *err = NULL;
     gchar *cmd_stdout = NULL;
     gchar *mycmd = NULL;
+    GString *buf = g_string_new("");
 
     while(*s) {
         switch(*s) {
