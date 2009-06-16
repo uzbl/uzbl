@@ -1,37 +1,51 @@
-CFLAGS:=-std=c99 $(shell pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -lgthread-2.0 -DG_ERRORCHECK_MUTEXES -DCOMMIT="\"$(shell git log | head -n1 | sed "s/.* //")\"" $(CPPFLAGS)
-LDFLAGS:=$(shell pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4) -pthread $(LDFLAGS)
+LIBS      := gtk+-2.0 webkit-1.0 gthread-2.0 libsoup-2.4
+ARCH      := $(shell uname -m)
+COMMIT    := $(shell git log | head -n1 | sed "s/.* //")
+DEBUG     := -ggdb -Wall -W -DG_ERRORCHECK_MUTEXES
+
+CFLAGS    := $(shell pkg-config --cflags $(LIBS)) $(DEBUG) -DARCH="\"$(ARCH)\"" -DCOMMIT="\"$(COMMIT)\"" -std=c99
+LDFLAGS   := $(shell pkg-config --libs $(LIBS)) $(LDFLAGS)
+
+PREFIX    ?= $(DESTDIR)/usr
+BINDIR    ?= $(PREFIX)/bin
+UZBLDATA  ?= $(PREFIX)/share/uzbl
+DOCSDIR   ?= $(PREFIX)/share/uzbl/docs
+EXMPLSDIR ?= $(PREFIX)/share/uzbl/examples
+
 all: uzbl uzblctrl
 
-PREFIX?=$(DESTDIR)/usr
+uzbl: uzbl.c uzbl.h config.h
+
+%: %.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -o $@ $<
 
 test: uzbl
-	./uzbl --uri http://www.uzbl.org --verbose
+	./uzbl --uri http://www.uzbl.org
 
-test-dev: uzbl
-	XDG_DATA_HOME=./examples/data               XDG_CONFIG_HOME=./examples/config               ./uzbl --uri http://www.uzbl.org --verbose
+test-config: uzbl
+	./uzbl --uri http://www.uzbl.org < examples/configs/sampleconfig-dev
 
-test-share: uzbl
-	XDG_DATA_HOME=/usr/share/uzbl/examples/data XDG_CONFIG_HOME=/usr/share/uzbl/examples/config ./uzbl --uri http://www.uzbl.org --verbose
-
+test-config-real: uzbl
+	./uzbl --uri http://www.uzbl.org < $(EXMPLSDIR)/configs/sampleconfig
 	
 clean:
 	rm -f uzbl
 	rm -f uzblctrl
 
 install:
-	install -d $(PREFIX)/bin
-	install -d $(PREFIX)/share/uzbl/docs
-	install -d $(PREFIX)/share/uzbl/examples
-	install -D -m755 uzbl $(PREFIX)/bin/uzbl
-	install -D -m755 uzblctrl $(PREFIX)/bin/uzblctrl
-	cp -ax docs     $(PREFIX)/share/uzbl/
-	cp -ax config.h $(PREFIX)/share/uzbl/docs/
-	cp -ax examples $(PREFIX)/share/uzbl/
-	install -D -m644 AUTHORS $(PREFIX)/share/uzbl/docs
-	install -D -m644 README  $(PREFIX)/share/uzbl/docs
+	install -d $(BINDIR)
+	install -d $(DOCSDIR)
+	install -d $(EXMPLSDIR)
+	install -D -m755 uzbl $(BINDIR)/uzbl
+	install -D -m755 uzblctrl $(BINDIR)/uzblctrl
+	cp -ax docs/*   $(DOCSDIR)
+	cp -ax config.h $(DOCSDIR)
+	cp -ax examples/* $(EXMPLSDIR)
+	install -D -m644 AUTHORS $(DOCSDIR)
+	install -D -m644 README $(DOCSDIR)
 
 
 uninstall:
-	rm -rf $(PREFIX)/bin/uzbl
-	rm -rf $(PREFIX)/bin/uzblctrl
-	rm -rf $(PREFIX)/share/uzbl
+	rm -rf $(BINDIR)/uzbl
+	rm -rf $(BINDIR)/uzblctrl
+	rm -rf $(UZBLDATA)
