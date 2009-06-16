@@ -296,6 +296,7 @@ expand(char *s, gboolean recurse) {
                         g_string_append(buf, js_ret->str);
                         g_string_free(js_ret, 1);
                     }
+                    s = vend+1;
                 }
                 break;
 
