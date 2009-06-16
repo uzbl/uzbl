@@ -760,7 +760,7 @@ print(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
     gchar* buf;
 
-    buf = expand_vars(argv_idx(argv, 0));
+    buf = expand(argv_idx(argv, 0), 0);
     g_string_assign(result, buf);
     g_free(buf);
 }
@@ -1042,10 +1042,11 @@ keycmd_nl (WebKitWebView *page, GArray *argv, GString *result) {
 }
 
 static void
-keycmd_bs (WebKitWebView *page, GArray *argv) {
+keycmd_bs (WebKitWebView *page, GArray *argv, GString *result) {
     gchar *prev;
     (void)page;
     (void)argv;
+    (void)result;
     prev = g_utf8_find_prev_char(uzbl.state.keycmd->str, uzbl.state.keycmd->str + uzbl.state.keycmd->len);
     if (prev)
       g_string_truncate(uzbl.state.keycmd, prev - uzbl.state.keycmd->str);
