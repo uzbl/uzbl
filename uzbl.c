@@ -209,13 +209,14 @@ return EXP_ERR;
 }
 
 /* setting 'recurse = 1' will prevent expand() from
- * expanding '@(command)'
+ * expanding '@(command)@' and '@<js>@'
  */
 static gchar *
 expand(char *s, gboolean recurse) {
     uzbl_cmdprop *c;
     guint etype;
     char upto = ' ';
+    char str_end[2];
     char ret[4096];
     char *vend;
     GError *err = NULL;
@@ -233,27 +234,45 @@ expand(char *s, gboolean recurse) {
 
             case '@':
                 etype = get_exp_type(s);
+                s++;
 
                 switch(etype) {
                     case EXP_SIMPLE_VAR:
                         upto = ' ';
+                        if( (vend = strchr(s, upto)) ||
+                                (vend = strchr(s, '\0')) ) {
+                            strncpy(ret, s, vend-s);
+                            ret[vend-s] = '\0';
+                        }
                         break;
                     case EXP_BRACED_VAR:
                         s++; upto = '}';
+                        if( (vend = strchr(s, upto)) ||
+                                (vend = strchr(s, '\0')) ) {
+                            strncpy(ret, s, vend-s);
+                            ret[vend-s] = '\0';
+                        }
                         break;
                     case EXP_EXPR:
-                        s++; upto = ')';
+                        s++;
+                        strcpy(str_end, ")@");
+                        str_end[2] = '\0';
+                        if( (vend = strstr(s, str_end)) ||
+                                (vend = strchr(s, '\0')) ) {
+                            strncpy(ret, s, vend-s);
+                            ret[vend-s] = '\0';
+                        }
                         break;
                     case EXP_JS:
-                        s++; upto = '>';
+                        s++;
+                        strcpy(str_end, ">@");
+                        str_end[2] = '\0';
+                        if( (vend = strstr(s, str_end)) ||
+                                (vend = strchr(s, '\0')) ) {
+                            strncpy(ret, s, vend-s);
+                            ret[vend-s] = '\0';
+                        }
                         break;
-                }
-                s++;
-
-                if( (vend = strchr(s, upto)) ||
-                    (vend = strchr(s, '\0')) ) {
-                    strncpy(ret, s, vend-s);
-                    ret[vend-s] = '\0';
                 }
 
                 if(etype == EXP_SIMPLE_VAR || 
@@ -284,7 +303,7 @@ expand(char *s, gboolean recurse) {
                         g_string_append(buf, cmd_stdout);
                         g_free(cmd_stdout);
                     }
-                    s = vend+1;
+                    s = vend+2;
                 }
                 else if(!recurse && 
                         etype == EXP_JS) {
@@ -296,7 +315,7 @@ expand(char *s, gboolean recurse) {
                         g_string_append(buf, js_ret->str);
                         g_string_free(js_ret, 1);
                     }
-                    s = vend+1;
+                    s = vend+2;
                 }
                 break;
 
