@@ -289,7 +289,7 @@ expand(char *s, gboolean recurse) {
                     if(upto == ' ') s = vend;
                     else s = vend+1;
                 }
-                else if(!recurse && 
+                else if(recurse != 1 && 
                         etype == EXP_EXPR) {
                     mycmd = expand(ret, 1);
                     g_spawn_command_line_sync(mycmd, &cmd_stdout, NULL, NULL, &err);
@@ -305,9 +305,9 @@ expand(char *s, gboolean recurse) {
                     }
                     s = vend+2;
                 }
-                else if(!recurse && 
+                else if(recurse != 2 && 
                         etype == EXP_JS) {
-                    mycmd = expand(ret, 1);
+                    mycmd = expand(ret, 2);
                     eval_js(uzbl.gui.web_view, mycmd, js_ret);
                     g_free(mycmd);
 
