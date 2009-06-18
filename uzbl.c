@@ -216,6 +216,7 @@ expand(char *s, gboolean recurse) {
     uzbl_cmdprop *c;
     guint etype;
     char upto = ' ';
+    char *end_simple_var = "^°!\"§$%&/()=?'`'+~*'#-.:,;@<>| \\{}[]¹²³¼½";
     char str_end[2];
     char ret[4096];
     char *vend;
@@ -238,9 +239,8 @@ expand(char *s, gboolean recurse) {
 
                 switch(etype) {
                     case EXP_SIMPLE_VAR:
-                        upto = ' ';
-                        if( (vend = strchr(s, upto)) ||
-                                (vend = strchr(s, '\0')) ) {
+                        if( (vend = strpbrk(s, end_simple_var)) ||
+                            (vend = strchr(s, '\0')) ) {
                             strncpy(ret, s, vend-s);
                             ret[vend-s] = '\0';
                         }
@@ -248,7 +248,7 @@ expand(char *s, gboolean recurse) {
                     case EXP_BRACED_VAR:
                         s++; upto = '}';
                         if( (vend = strchr(s, upto)) ||
-                                (vend = strchr(s, '\0')) ) {
+                            (vend = strchr(s, '\0')) ) {
                             strncpy(ret, s, vend-s);
                             ret[vend-s] = '\0';
                         }
@@ -258,7 +258,7 @@ expand(char *s, gboolean recurse) {
                         strcpy(str_end, ")@");
                         str_end[2] = '\0';
                         if( (vend = strstr(s, str_end)) ||
-                                (vend = strchr(s, '\0')) ) {
+                            (vend = strchr(s, '\0')) ) {
                             strncpy(ret, s, vend-s);
                             ret[vend-s] = '\0';
                         }
@@ -268,7 +268,7 @@ expand(char *s, gboolean recurse) {
                         strcpy(str_end, ">@");
                         str_end[2] = '\0';
                         if( (vend = strstr(s, str_end)) ||
-                                (vend = strchr(s, '\0')) ) {
+                            (vend = strchr(s, '\0')) ) {
                             strncpy(ret, s, vend-s);
                             ret[vend-s] = '\0';
                         }
