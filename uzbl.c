@@ -208,11 +208,12 @@ get_exp_type(gchar *s) {
 return EXP_ERR;
 }
 
-/* setting 'recurse = 1' will prevent expand() from
- * expanding '@(command)@' and '@<js>@'
+/* 
+ * recurse == 1: don't expand '@(command)@'
+ * recurse == 2: don't expand '@<java script>@'
  */
 static gchar *
-expand(char *s, gboolean recurse) {
+expand(char *s, guint recurse) {
     uzbl_cmdprop *c;
     guint etype;
     char upto = ' ';
@@ -263,7 +264,7 @@ expand(char *s, gboolean recurse) {
                             ret[vend-s] = '\0';
                         }
                         break;
-                    case EXP_JS:
+                    case EXP_JS: 
                         s++;
                         strcpy(str_end, ">@");
                         str_end[2] = '\0';
@@ -286,8 +287,10 @@ expand(char *s, gboolean recurse) {
                             g_free(b);
                         }
                     }
-                    if(upto == ' ') s = vend;
-                    else s = vend+1;
+                    if(etype == EXP_SIMPLE_VAR)
+                        s = vend;
+                    else
+                        s = vend+1;
                 }
                 else if(recurse != 1 && 
                         etype == EXP_EXPR) {
@@ -313,7 +316,8 @@ expand(char *s, gboolean recurse) {
 
                     if(js_ret->str) {
                         g_string_append(buf, js_ret->str);
-                        g_string_free(js_ret, 1);
+                        g_string_free(js_ret, TRUE);
+                        js_ret = g_string_new("");
                     }
                     s = vend+2;
                 }
@@ -325,6 +329,7 @@ expand(char *s, gboolean recurse) {
                 break;
         }
     }
+    g_string_free(js_ret, TRUE);
     return g_string_free(buf, FALSE);
 }
 
