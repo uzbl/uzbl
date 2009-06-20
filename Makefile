@@ -24,9 +24,9 @@ install:
 	install -d $(PREFIX)/share/uzbl/examples
 	install -m755 uzbl $(PREFIX)/bin/uzbl
 	install -m755 uzblctrl $(PREFIX)/bin/uzblctrl
-	cp -ax docs     $(PREFIX)/share/uzbl/
-	cp -ax config.h $(PREFIX)/share/uzbl/docs/
-	cp -ax examples $(PREFIX)/share/uzbl/
+	cp -rp docs     $(PREFIX)/share/uzbl/
+	cp -rp config.h $(PREFIX)/share/uzbl/docs/
+	cp -rp examples $(PREFIX)/share/uzbl/
 	install -m644 AUTHORS $(PREFIX)/share/uzbl/docs
 	install -m644 README  $(PREFIX)/share/uzbl/docs
 
