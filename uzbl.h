@@ -142,7 +142,6 @@ typedef struct {
     gboolean insert_mode;
     gboolean status_top;
     gboolean reset_command_mode;
-    gboolean disable_stdin;
     gchar*   modkey;
     guint    modmask;
     guint    http_debug;
