@@ -22,13 +22,13 @@ install:
 	install -d $(PREFIX)/bin
 	install -d $(PREFIX)/share/uzbl/docs
 	install -d $(PREFIX)/share/uzbl/examples
-	install -D -m755 uzbl $(PREFIX)/bin/uzbl
-	install -D -m755 uzblctrl $(PREFIX)/bin/uzblctrl
+	install -m755 uzbl $(PREFIX)/bin/uzbl
+	install -m755 uzblctrl $(PREFIX)/bin/uzblctrl
 	cp -ax docs     $(PREFIX)/share/uzbl/
 	cp -ax config.h $(PREFIX)/share/uzbl/docs/
 	cp -ax examples $(PREFIX)/share/uzbl/
-	install -D -m644 AUTHORS $(PREFIX)/share/uzbl/docs
-	install -D -m644 README  $(PREFIX)/share/uzbl/docs
+	install -m644 AUTHORS $(PREFIX)/share/uzbl/docs
+	install -m644 README  $(PREFIX)/share/uzbl/docs
 
 
 uninstall:
