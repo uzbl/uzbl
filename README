@@ -165,7 +165,7 @@ The following commands are recognized:
 ### VARIABLE EXPANSION AND COMMAND/JAVA SCRIPT SUBSTITUTION
 
 Variable expansion works pretty much as known from shell interpreters (sh, bash, etc.). This means you can 
-constructs strings with uzbl variables in them and have uzbl replace the variable name with its contents.
+construct strings with uzbl variables in them and have uzbl replace the variable name with its contents.
 
 In order to let uzbl know what to expand you'll need to prepend @ to the variable name:
 
@@ -186,7 +186,7 @@ The above example demonstrates two things:
 
 Command substitution will launch any commands and substitute the call with the return value of the command.
 
-Uzbl will substitute any commands enclosed withing @(  )@:
+Uzbl will substitute any commands enclosed within @(  )@:
 
     print Command substitution: @(uname -a)@
 
