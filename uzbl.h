@@ -223,7 +223,6 @@ XDG_Var XDG[] =
     { "XDG_DATA_DIRS",   "/usr/local/share/:/usr/share/" },
 };
 
-
 /* Functions */
 static void
 setup_scanner();
@@ -252,6 +251,9 @@ setup_signal(int signe, sigfunc *shandler);
 static gboolean
 set_var_value(gchar *name, gchar *val);
 
+static void
+print(WebKitWebView *page, GArray *argv, GString *result);
+
 static gboolean
 new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data);
 
@@ -263,6 +265,12 @@ create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer us
 
 static gboolean
 download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data);
+
+static void
+toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result);
+
+static void
+toggle_status_cb (WebKitWebView* page, GArray *argv, GString *result);
 
 static void
 link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data);
@@ -301,11 +309,44 @@ static bool
 file_exists (const char * filename);
 
 static void
+toggle_insert_mode(WebKitWebView *page, GArray *argv, GString *result);
+
+static void
+load_uri (WebKitWebView * web_view, GArray *argv, GString *result);
+
+static void
 new_window_load_uri (const gchar * uri);
+
+static void
+chain (WebKitWebView *page, GArray *argv, GString *result);
+
+static void
+keycmd (WebKitWebView *page, GArray *argv, GString *result);
+
+static void
+keycmd_nl (WebKitWebView *page, GArray *argv, GString *result);
+
+static void
+keycmd_bs (WebKitWebView *page, GArray *argv, GString *result);
+
+static void
+close_uzbl (WebKitWebView *page, GArray *argv, GString *result);
 
 static gboolean
 run_command(const gchar *command, const guint npre,
             const gchar **args, const gboolean sync, char **output_stdout);
+
+static void
+spawn(WebKitWebView *web_view, GArray *argv, GString *result);
+
+static void
+spawn_sh(WebKitWebView *web_view, GArray *argv, GString *result);
+
+static void
+spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result);
+
+static void
+spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result);
 
 static void
 parse_command(const char *cmd, const char *param, GString *result);
@@ -379,12 +420,36 @@ settings_init ();
 static void
 search_text (WebKitWebView *page, GArray *argv, const gboolean forward);
 
+static void
+search_forward_text (WebKitWebView *page, GArray *argv, GString *result);
+
+static void
+search_reverse_text (WebKitWebView *page, GArray *argv, GString *result);
+
+static void
+dehilight (WebKitWebView *page, GArray *argv, GString *result);
+
+static void
+run_js (WebKitWebView * web_view, GArray *argv, GString *result);
+
+static void
+run_external_js (WebKitWebView * web_view, GArray *argv, GString *result);
+
+static void
+eval_js(WebKitWebView * web_view, gchar *script, GString *result);
+
 static void handle_cookies (SoupSession *session,
                             SoupMessage *msg,
                             gpointer     user_data);
 static void
 save_cookies (SoupMessage *msg,
                 gpointer     user_data);
+
+static void
+set_var(WebKitWebView *page, GArray *argv, GString *result);
+
+static void
+act_bind(WebKitWebView *page, GArray *argv, GString *result);
 
 static void
 act_dump_config();
@@ -405,80 +470,11 @@ static void
 dump_config();
 
 
-/* Commands */
-
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
 typedef struct {
     Command function;
     gboolean no_split;
 } CommandInfo;
-
-static void
-print(WebKitWebView *page, GArray *argv, GString *result);
-
-static void
-toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result);
-
-static void
-toggle_status_cb (WebKitWebView* page, GArray *argv, GString *result);
-
-static void
-toggle_insert_mode(WebKitWebView *page, GArray *argv, GString *result);
-
-static void
-load_uri (WebKitWebView * web_view, GArray *argv, GString *result);
-
-static void
-chain (WebKitWebView *page, GArray *argv, GString *result);
-
-static void
-keycmd (WebKitWebView *page, GArray *argv, GString *result);
-
-static void
-keycmd_nl (WebKitWebView *page, GArray *argv, GString *result);
-
-static void
-keycmd_bs (WebKitWebView *page, GArray *argv, GString *result);
-
-static void
-close_uzbl (WebKitWebView *page, GArray *argv, GString *result);
-
-static void
-spawn(WebKitWebView *web_view, GArray *argv, GString *result);
-
-static void
-spawn_sh(WebKitWebView *web_view, GArray *argv, GString *result);
-
-static void
-spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result);
-
-static void
-spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result);
-
-static void
-search_forward_text (WebKitWebView *page, GArray *argv, GString *result);
-
-static void
-search_reverse_text (WebKitWebView *page, GArray *argv, GString *result);
-
-static void
-dehilight (WebKitWebView *page, GArray *argv, GString *result);
-
-static void
-eval_js(WebKitWebView * web_view, gchar *script, GString *result);
-
-static void
-run_js (WebKitWebView * web_view, GArray *argv, GString *result);
-
-static void
-run_external_js (WebKitWebView * web_view, GArray *argv, GString *result);
-
-static void
-set_var(WebKitWebView *page, GArray *argv, GString *result);
-
-static void
-act_bind(WebKitWebView *page, GArray *argv, GString *result);
-
 
 /* Command callbacks */
 static void
