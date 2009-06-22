@@ -162,6 +162,52 @@ The following commands are recognized:
    - if you use `chain` with a handler script which must return some output (such as a cookie handler -- uzbl will wait for and use its output), use sync_spawn or sync_sh instead of spawn or sh in the command that should give the output
 
 
+### VARIABLE EXPANSION AND COMMAND/JAVA SCRIPT SUBSTITUTION
+
+Variable expansion works pretty much as known from shell interpreters (sh, bash, etc.). This means you can 
+constructs strings with uzbl variables in them and have uzbl replace the variable name with its contents.
+
+In order to let uzbl know what to expand you'll need to prepend @ to the variable name:
+
+    print The variable \@show_status contains @show_status
+
+The above example demonstrates two things:
+
+    * '\' is treated as escape character and will use the character immediatelly following it literallily
+      this means '\@show_status' will not expand to the variable content but be rather printed as
+      '@show_status'
+
+    * prepending the variable with '@' will expand to its contents
+
+    * like in the shell you can use @{uzbl_var} to denote the beginning/end of the variable name in
+      cases where it is not obvious what belongs to the name and what not.
+      E.g.:  print @{show_status}foobar
+
+
+Command substitution will launch any commands and substitute the call with the return value of the command.
+
+Uzbl will substitute any commands enclosed withing @(  )@:
+
+    print Command substitution: @(uname -a)@
+
+You can access any uzbl variable from within a command substitution:
+
+    print @(echo -n 'Accessing the show_status var from an external script, value: @show_status')@
+
+
+Java script substitution works in the exact same way as command substitution but you will need to enclose
+the java script in @< >@.
+
+    print The currently viewed document contains @<document.links.length>@ links
+
+Variable expansion also works within a java script substitution.
+
+
+NOTE: If you need to use literal @ or \ characters you will need to escape them:
+
+    print At sign: \@  and backslash: \\
+
+
 ### VARIABLE REPLACEMENT
 Some of the variables are interpreted:
 
