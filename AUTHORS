@@ -29,6 +29,7 @@ Contributors:
     (kmeaw) - fix for multibyte utf8 characters segfault
     (evocallaghan) - tiny patches
     Aaron Griffin (phrakture) - Makefile patches to build on OSX
+    Mason Larobina - os.environ.keys() & os.path.join fix in cookies.py
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:
