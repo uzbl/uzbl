@@ -229,8 +229,8 @@ str_replace (const char* search, const char* replace, const char* string);
 GArray*
 read_file_by_line (gchar *path);
 
-static
-gchar* parseenv (char* string);
+gchar*
+parseenv (char* string);
 
 void
 clean_up(void);
@@ -383,8 +383,8 @@ create_browser ();
 GtkWidget*
 create_mainbar ();
 
-static
-GtkWidget* create_window ();
+GtkWidget*
+create_window ();
 
 void
 run_handler (const gchar *act, const gchar *args);
