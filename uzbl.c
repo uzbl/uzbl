@@ -289,8 +289,8 @@ read_file_by_line (gchar *path) {
     return lines;
 }
 
-static
-gchar* parseenv (char* string) {
+gchar* 
+parseenv (char* string) {
     extern char** environ;
     gchar* tmpstr = NULL;
     int i = 0;
@@ -2047,8 +2047,8 @@ create_mainbar () {
     return g->mainbar;
 }
 
-static
-GtkWidget* create_window () {
+GtkWidget*
+create_window () {
     GtkWidget* window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
     gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
     gtk_widget_set_name (window, "Uzbl browser");
@@ -2425,6 +2425,7 @@ dump_config() {
     g_hash_table_foreach(uzbl.bindings, dump_key_hash, NULL);
 }
 
+#ifndef UZBL_LIBRARY
 /** -- MAIN -- **/
 int
 main (int argc, char* argv[]) {
@@ -2535,5 +2536,6 @@ main (int argc, char* argv[]) {
 
     return EXIT_SUCCESS;
 }
+#endif
 
 /* vi: set et ts=4: */

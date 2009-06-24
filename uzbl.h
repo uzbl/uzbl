@@ -217,6 +217,9 @@ XDG_Var XDG[] =
 };
 
 /* Functions */
+gchar *
+expand_template(const char *template, gboolean escape_markup);
+
 void
 setup_scanner();
 
