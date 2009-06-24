@@ -537,13 +537,13 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
 }
 
 static void
-title_change_cb (WebKitWebView* web_view, WebKitWebFrame* web_frame, const gchar* title, gpointer data) {
+title_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
     (void) web_view;
-    (void) web_frame;
-    (void) data;
+    (void) param_spec;
+    const gchar *title = webkit_web_view_get_title(web_view);
     if (uzbl.gui.main_title)
         g_free (uzbl.gui.main_title);
-    uzbl.gui.main_title = g_strdup (title);
+    uzbl.gui.main_title = title ? g_strdup (title) : g_strdup ("(no title)");
     update_title();
 }
 
@@ -2044,7 +2044,7 @@ create_browser () {
     g->web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
     gtk_container_add (GTK_CONTAINER (scrolled_window), GTK_WIDGET (g->web_view));
 
-    g_signal_connect (G_OBJECT (g->web_view), "title-changed", G_CALLBACK (title_change_cb), g->web_view);
+    g_signal_connect (G_OBJECT (g->web_view), "notify::title", G_CALLBACK (title_change_cb), NULL);
     g_signal_connect (G_OBJECT (g->web_view), "load-progress-changed", G_CALLBACK (progress_change_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-committed", G_CALLBACK (load_commit_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-started", G_CALLBACK (load_start_cb), g->web_view);
