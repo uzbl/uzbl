@@ -704,9 +704,11 @@ static void
 set_var(WebKitWebView *page, GArray *argv) {
     (void) page;
     gchar **split = g_strsplit(argv_idx(argv, 0), "=", 2);
-    gchar *value = parseenv(g_strdup(split[1] ? g_strchug(split[1]) : " "));
-    set_var_value(g_strstrip(split[0]), value);
-    g_free(value);
+    if (split[0] != NULL) {
+        gchar *value = parseenv(g_strdup(split[1] ? g_strchug(split[1]) : " "));
+        set_var_value(g_strstrip(split[0]), value);
+        g_free(value);
+    }
     g_strfreev(split);
 }
 
