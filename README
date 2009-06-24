@@ -95,8 +95,8 @@ The following commands are recognized:
    - used for changing variables on the fly
    - the changes are effective immediately; for example, setting the variable `uri` will make uzbl start loading, and changing `status_format` will make the status bar react immediately
    - if you want to unset a string, use `set` with one space after the equals sign
-* `get <key>`
-   - use this to print the value of a variable. (and TODO, get the value through the socket)
+* `print @<key>`
+   - use this to print the value of a variable.
 * `bind <string> = <command>`
    - sets the character sequence `<string>` to invoke `<command>` when typed interactively in uzbl
    - there are a few tricks you can do:
@@ -163,7 +163,7 @@ The following commands are recognized:
 
 ### JAVASCRIPT HELPER OBJECT
 
-Javascript code run from uzbl is given a special object in the global namespace which gives special privileges to these scripts. This object is called `Uzbl`, and it is added and removed before and after the script execution so that it is hidden to web javascripts.
+Javascript code run from uzbl is given a special object in the global namespace which gives special privileges to these scripts. This object is called `Uzbl`, and it is added and removed before and after the script execution so that it is hidden to web javascripts (There is no race condition, since all the javascript code runs in a single thread)
 
 Currently, the `Uzbl` object provides only one function:
 
