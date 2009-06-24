@@ -95,8 +95,8 @@ The following commands are recognized:
    - used for changing variables on the fly
    - the changes are effective immediately; for example, setting the variable `uri` will make uzbl start loading, and changing `status_format` will make the status bar react immediately
    - if you want to unset a string, use `set` with one space after the equals sign
-* `get <key>`
-   - use this to print the value of a variable. (and TODO, get the value through the socket)
+* `print @<key>`
+   - use this to print the value of a variable.
 * `bind <string> = <command>`
    - sets the character sequence `<string>` to invoke `<command>` when typed interactively in uzbl
    - there are a few tricks you can do:
@@ -161,6 +161,84 @@ The following commands are recognized:
    - remember to quote the commands; one command must come as one parameter
    - if you use `chain` with a handler script which must return some output (such as a cookie handler -- uzbl will wait for and use its output), use sync_spawn or sync_sh instead of spawn or sh in the command that should give the output
 
+### JAVASCRIPT HELPER OBJECT
+
+Javascript code run from uzbl is given a special object in the global namespace which gives special privileges to these scripts. This object is called `Uzbl`, and it is added and removed before and after the script execution so that it is hidden to web javascripts (There is no race condition, since all the javascript code runs in a single thread)
+
+Currently, the `Uzbl` object provides only one function:
+
+* `Uzbl.run( <command> )`
+   - command is any uzbl command as defined above
+   - return value: a string, either empty or containing the output of the command. Very few commands return their output currently, including js, script, and print.
+   - Examples:
+       * `Uzbl.run("spawn insert_bookmark.sh")`
+       * `uri = Uzbl.run("print @uri")` (see variable expansion below)
+
+### JAVASCRIPT SECURITY
+
+Since defined variables and functions are set in the global namespace (`window` object) as default, it is recommended to wrap your scripts like this:
+
+    (function(Uzbl) {
+        ...
+    })(Uzbl);
+
+This way, everything is kept private. It also turns Uzbl into a local variable, which can be accessed from callback functions defined inside. However for some situations, isolating everything isn't an option, for example, with binds. You can define them directly in the script body, and use `var Uzbl = window.Uzbl;` to make the Uzbl variable local, as in the following example:
+
+    function f() {
+        var Uzbl = window.Uzbl;
+        Uzbl.run(...);
+        setTimeout(function() {
+            Uzbl.run(...);
+        }, 500);
+    }
+
+Copying the Uzbl object and creating public functions should be taken with care to avoid creating security holes. Keep in mind that the "f" function above would be defined in the `window` object, and as such any javascript in the current page can call it.
+
+### VARIABLE EXPANSION AND COMMAND/JAVA SCRIPT SUBSTITUTION
+
+Variable expansion works pretty much as known from shell interpreters (sh, bash, etc.). This means you can 
+construct strings with uzbl variables in them and have uzbl replace the variable name with its contents.
+
+In order to let uzbl know what to expand you'll need to prepend @ to the variable name:
+
+    print The variable \@show_status contains @show_status
+
+The above example demonstrates two things:
+
+    * '\' is treated as escape character and will use the character immediatelly following it literallily
+      this means '\@show_status' will not expand to the variable content but be rather printed as
+      '@show_status'
+
+    * prepending the variable with '@' will expand to its contents
+
+    * like in the shell you can use @{uzbl_var} to denote the beginning/end of the variable name in
+      cases where it is not obvious what belongs to the name and what not.
+      E.g.:  print @{show_status}foobar
+
+
+Command substitution will launch any commands and substitute the call with the return value of the command.
+
+Uzbl will substitute any commands enclosed within @(  )@:
+
+    print Command substitution: @(uname -a)@
+
+You can access any uzbl variable from within a command substitution:
+
+    print @(echo -n 'Accessing the show_status var from an external script, value: @show_status')@
+
+
+Java script substitution works in the exact same way as command substitution but you will need to enclose
+the java script in @< >@.
+
+    print The currently viewed document contains @<document.links.length>@ links
+
+Variable expansion also works within a java script substitution.
+
+
+NOTE: If you need to use literal @ or \ characters you will need to escape them:
+
+    print At sign: \@  and backslash: \\
+
 
 ### VARIABLE REPLACEMENT
 Some of the variables are interpreted:
@@ -212,7 +290,7 @@ The script specific arguments are this:
 * cookie handler
 
     $8 GET/PUT
-    $9 request address host (if current page url is www.foo.com/somepage, this could be something else then foo, eg advertising from another host)
+    $9 request address host (if current page url is www.foo.com/somepage, this could be something else than foo, eg advertising from another host)
     $10 request address path
     $11 cookie (only with PUT requests)
 
