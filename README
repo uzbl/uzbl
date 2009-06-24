@@ -61,7 +61,7 @@ There are several interfaces to interact with uzbl:
 
 * uzbl --config <filename>: <filename> will be read line by line, and the commands in it will be executed.  useful to configure uzbl at startup.
   If you have a file in `$XDG_CONFIG_HOME/uzbl/config` (this expands to ~/.config/uzbl/config on most systems) it will be automatically recognized
-* stdin: you can also write commands into stdin
+* stdin: to write commands into stdin, use `--config -` (or `-c -`)
 * interactive: you can enter commands (and bind them to shortcuts, even at runtime)
   By default, the behaviour is modal (vi style):
   command mode: every keystroke is interpreted to run commands
@@ -224,7 +224,7 @@ Custom, userdefined scripts (`spawn foo bar`) get first the arguments as specifi
     -u, --uri=URI            Uri to load (equivalent to 'set uri = URI')
     -v, --verbose            Whether to print all messages or just errors.
     -n, --name=NAME          Name of the current instance (defaults to Xorg window id)
-    -c, --config=FILE        Config file (this is pretty much equivalent to uzbl < FILE )
+    -c, --config=FILE        Config file (or `-` to use stdin)
     --display=DISPLAY        X display to use
     --help                   Help
 
