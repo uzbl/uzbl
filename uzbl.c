@@ -191,12 +191,41 @@ make_var_to_name_hash() {
 }
 
 /* --- UTILITY FUNCTIONS --- */
+
+enum {EXP_ERR, EXP_SIMPLE_VAR, EXP_BRACED_VAR, EXP_EXPR, EXP_JS};
+static guint
+get_exp_type(gchar *s) {
+    /* variables */
+    if(*(s+1) == '(')
+        return EXP_EXPR;
+    else if(*(s+1) == '{')
+        return EXP_BRACED_VAR;
+    else if(*(s+1) == '<')
+        return EXP_JS;
+    else
+        return EXP_SIMPLE_VAR;
+
+return EXP_ERR;
+}
+
+/* 
+ * recurse == 1: don't expand '@(command)@'
+ * recurse == 2: don't expand '@<java script>@'
+ */
 static gchar *
-expand_vars(char *s) {
+expand(char *s, guint recurse) {
     uzbl_cmdprop *c;
+    guint etype;
     char upto = ' ';
-    char ret[256],  *vend;
+    char *end_simple_var = "^°!\"§$%&/()=?'`'+~*'#-.:,;@<>| \\{}[]¹²³¼½";
+    char str_end[2];
+    char ret[4096];
+    char *vend;
+    GError *err = NULL;
+    gchar *cmd_stdout = NULL;
+    gchar *mycmd = NULL;
     GString *buf = g_string_new("");
+    GString *js_ret = g_string_new("");
 
     while(*s) {
         switch(*s) {
@@ -204,15 +233,51 @@ expand_vars(char *s) {
                 g_string_append_c(buf, *++s);
                 s++;
                 break;
+
             case '@':
-                if(*(s+1) == '{') {
-                    upto = '}'; s++;
-                }
+                etype = get_exp_type(s);
                 s++;
-                if( (vend = strchr(s, upto)) ||
-                        (vend = strchr(s, '\0')) ) {
-                    strncpy(ret, s, vend-s);
-                    ret[vend-s] = '\0';
+
+                switch(etype) {
+                    case EXP_SIMPLE_VAR:
+                        if( (vend = strpbrk(s, end_simple_var)) ||
+                            (vend = strchr(s, '\0')) ) {
+                            strncpy(ret, s, vend-s);
+                            ret[vend-s] = '\0';
+                        }
+                        break;
+                    case EXP_BRACED_VAR:
+                        s++; upto = '}';
+                        if( (vend = strchr(s, upto)) ||
+                            (vend = strchr(s, '\0')) ) {
+                            strncpy(ret, s, vend-s);
+                            ret[vend-s] = '\0';
+                        }
+                        break;
+                    case EXP_EXPR:
+                        s++;
+                        strcpy(str_end, ")@");
+                        str_end[2] = '\0';
+                        if( (vend = strstr(s, str_end)) ||
+                            (vend = strchr(s, '\0')) ) {
+                            strncpy(ret, s, vend-s);
+                            ret[vend-s] = '\0';
+                        }
+                        break;
+                    case EXP_JS: 
+                        s++;
+                        strcpy(str_end, ">@");
+                        str_end[2] = '\0';
+                        if( (vend = strstr(s, str_end)) ||
+                            (vend = strchr(s, '\0')) ) {
+                            strncpy(ret, s, vend-s);
+                            ret[vend-s] = '\0';
+                        }
+                        break;
+                }
+
+                if(etype == EXP_SIMPLE_VAR || 
+                   etype == EXP_BRACED_VAR) {
                     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, ret)) ) {
                         if(c->type == TYPE_STR)
                             g_string_append(buf, (gchar *)*c->ptr);
@@ -222,17 +287,49 @@ expand_vars(char *s) {
                             g_free(b);
                         }
                     }
-                    if(upto == ' ') s = vend;
-                    else s = vend+1;
-                    upto = ' ';
+                    if(etype == EXP_SIMPLE_VAR)
+                        s = vend;
+                    else
+                        s = vend+1;
+                }
+                else if(recurse != 1 && 
+                        etype == EXP_EXPR) {
+                    mycmd = expand(ret, 1);
+                    g_spawn_command_line_sync(mycmd, &cmd_stdout, NULL, NULL, &err);
+                    g_free(mycmd);
+
+                    if (err) {
+                        g_printerr("error on running command: %s\n", err->message);
+                        g_error_free (err);
+                    }
+                    else if (*cmd_stdout) {
+                        g_string_append(buf, cmd_stdout);
+                        g_free(cmd_stdout);
+                    }
+                    s = vend+2;
+                }
+                else if(recurse != 2 && 
+                        etype == EXP_JS) {
+                    mycmd = expand(ret, 2);
+                    eval_js(uzbl.gui.web_view, mycmd, js_ret);
+                    g_free(mycmd);
+
+                    if(js_ret->str) {
+                        g_string_append(buf, js_ret->str);
+                        g_string_free(js_ret, TRUE);
+                        js_ret = g_string_new("");
+                    }
+                    s = vend+2;
                 }
                 break;
+
             default:
                 g_string_append_c(buf, *s);
                 s++;
                 break;
         }
     }
+    g_string_free(js_ret, TRUE);
     return g_string_free(buf, FALSE);
 }
 
@@ -717,7 +814,7 @@ print(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
     gchar* buf;
 
-    buf = expand_vars(argv_idx(argv, 0));
+    buf = expand(argv_idx(argv, 0), 0);
     g_string_assign(result, buf);
     g_free(buf);
 }
@@ -1703,17 +1800,17 @@ set_var_value(gchar *name, gchar *val) {
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         /* check for the variable type */
         if (c->type == TYPE_STR) {
-            buf = expand_vars(val);
+            buf = expand(val, 0);
             g_free(*c->ptr);
             *c->ptr = buf;
         } else if(c->type == TYPE_INT) {
             int *ip = (int *)c->ptr;
-            buf = expand_vars(val);
+            buf = expand(val, 0);
             *ip = (int)strtoul(buf, &endp, 10);
             g_free(buf);
         } else if (c->type == TYPE_FLOAT) {
             float *fp = (float *)c->ptr;
-            buf = expand_vars(val);
+            buf = expand(val, 0);
             *fp = strtod(buf, &endp);
             g_free(buf);
         }
