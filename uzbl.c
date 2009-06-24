@@ -56,13 +56,13 @@
 #include "uzbl.h"
 #include "config.h"
 
-static Uzbl uzbl;
+Uzbl uzbl;
 typedef void (*Command)(WebKitWebView*, GArray *argv);
 
 
 
 /* commandline arguments (set initial values for the state variables) */
-static const 
+const 
 GOptionEntry entries[] =
 {
     { "uri",     'u', 0, G_OPTION_ARG_STRING, &uzbl.state.uri,
@@ -181,7 +181,7 @@ const struct {
 
 
 /* construct a hash from the var_name_to_ptr array for quick access */
-static void
+void
 make_var_to_name_hash() {
     uzbl.comm.proto_var = g_hash_table_new(g_str_hash, g_str_equal);
     while(n2v_p->name) {
@@ -191,7 +191,7 @@ make_var_to_name_hash() {
 }
 
 /* --- UTILITY FUNCTIONS --- */
-static gchar *
+gchar *
 expand_vars(char *s) {
     uzbl_cmdprop *c;
     char upto = ' ';
@@ -245,13 +245,13 @@ itos(int val) {
     return g_strdup(tmp);
 }
 
-static gchar*
+gchar*
 strfree(gchar *str) { g_free(str); return NULL; }  // for freeing & setting to null in one go
 
-static gchar*
+gchar*
 argv_idx(const GArray *a, const guint idx) { return g_array_index(a, gchar*, idx); }
 
-static char *
+char *
 str_replace (const char* search, const char* replace, const char* string) {
     gchar **buf;
     char *ret;
@@ -263,7 +263,7 @@ str_replace (const char* search, const char* replace, const char* string) {
     return ret;
 }
 
-static GArray*
+GArray*
 read_file_by_line (gchar *path) {
     GIOChannel *chan = NULL;
     gchar *readbuf = NULL;
@@ -315,7 +315,7 @@ gchar* parseenv (char* string) {
     return string;
 }
 
-static sigfunc*
+sigfunc*
 setup_signal(int signr, sigfunc *shandler) {
     struct sigaction nh, oh;
 
@@ -329,7 +329,7 @@ setup_signal(int signr, sigfunc *shandler) {
     return NULL;
 }
 
-static void
+void
 clean_up(void) {
     if (uzbl.behave.fifo_dir)
         unlink (uzbl.comm.fifo_path);
@@ -347,7 +347,7 @@ clean_up(void) {
  * be sure to extend this function to use
  * more timers if needed in other places
 */
-static void
+void
 set_timeout(int seconds) {
     struct itimerval t;
     memset(&t, 0, sizeof t);
@@ -359,20 +359,20 @@ set_timeout(int seconds) {
 
 /* --- SIGNAL HANDLER --- */
 
-static void
+void
 catch_sigterm(int s) {
     (void) s;
     clean_up();
 }
 
-static void
+void
 catch_sigint(int s) {
     (void) s;
     clean_up();
     exit(EXIT_SUCCESS);
 }
 
-static void
+void
 catch_alrm(int s) {
     (void) s;
 
@@ -383,7 +383,7 @@ catch_alrm(int s) {
 
 /* --- CALLBACKS --- */
 
-static gboolean
+gboolean
 new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
     (void) web_view;
     (void) frame;
@@ -397,7 +397,7 @@ new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequ
     return (FALSE);
 }
 
-static gboolean
+gboolean
 mime_policy_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, gchar *mime_type,  WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
     (void) frame;
     (void) request;
@@ -430,7 +430,7 @@ create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer us
     return (NULL);
 }
 
-static gboolean
+gboolean
 download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
     (void) web_view;
     (void) user_data;
@@ -445,7 +445,7 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
 }
 
 /* scroll a bar in a given direction */
-static void
+void
 scroll (GtkAdjustment* bar, GArray *argv) {
     gdouble amount;
     gchar *end;
@@ -455,32 +455,32 @@ scroll (GtkAdjustment* bar, GArray *argv) {
     gtk_adjustment_set_value (bar, gtk_adjustment_get_value(bar)+amount);
 }
 
-static void
+void
 scroll_begin(WebKitWebView* page, GArray *argv) {
     (void) page; (void) argv;
     gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_lower(uzbl.gui.bar_v));
 }
 
-static void
+void
 scroll_end(WebKitWebView* page, GArray *argv) {
     (void) page; (void) argv;
     gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_upper(uzbl.gui.bar_v) -
                               gtk_adjustment_get_page_size(uzbl.gui.bar_v));
 }
 
-static void
+void
 scroll_vert(WebKitWebView* page, GArray *argv) {
     (void) page;
     scroll(uzbl.gui.bar_v, argv);
 }
 
-static void
+void
 scroll_horz(WebKitWebView* page, GArray *argv) {
     (void) page;
     scroll(uzbl.gui.bar_h, argv);
 }
 
-static void
+void
 cmd_set_status() {
     if (!uzbl.behave.show_status) {
         gtk_widget_hide(uzbl.gui.mainbar);
@@ -490,7 +490,7 @@ cmd_set_status() {
     update_title();
 }
 
-static void
+void
 toggle_status_cb (WebKitWebView* page, GArray *argv) {
     (void)page;
     (void)argv;
@@ -504,7 +504,7 @@ toggle_status_cb (WebKitWebView* page, GArray *argv) {
     update_title();
 }
 
-static void
+void
 link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data) {
     (void) page;
     (void) title;
@@ -518,7 +518,7 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
     update_title();
 }
 
-static void
+void
 title_change_cb (WebKitWebView* web_view, WebKitWebFrame* web_frame, const gchar* title, gpointer data) {
     (void) web_view;
     (void) web_frame;
@@ -529,7 +529,7 @@ title_change_cb (WebKitWebView* web_view, WebKitWebFrame* web_frame, const gchar
     update_title();
 }
 
-static void
+void
 progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
     (void) page;
     (void) data;
@@ -537,7 +537,7 @@ progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
     update_title();
 }
 
-static void
+void
 load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) page;
     (void) frame;
@@ -546,7 +546,7 @@ load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
         run_handler(uzbl.behave.load_finish_handler, "");
 }
 
-static void
+void
 load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) page;
     (void) frame;
@@ -557,7 +557,7 @@ load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
         run_handler(uzbl.behave.load_start_handler, "");
 }
 
-static void
+void
 load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) page;
     (void) data;
@@ -572,14 +572,14 @@ load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
         run_handler(uzbl.behave.load_commit_handler, uzbl.state.uri);
 }
 
-static void
+void
 destroy_cb (GtkWidget* widget, gpointer data) {
     (void) widget;
     (void) data;
     gtk_main_quit ();
 }
 
-static void
+void
 log_history_cb () {
    if (uzbl.behave.history_handler) {
        time_t rawtime;
@@ -594,7 +594,7 @@ log_history_cb () {
 
 
 /* VIEW funcs (little webkit wrappers) */
-#define VIEWFUNC(name) static void view_##name(WebKitWebView *page, GArray *argv){(void)argv; webkit_web_view_##name(page);}
+#define VIEWFUNC(name) void view_##name(WebKitWebView *page, GArray *argv){(void)argv; webkit_web_view_##name(page);}
 VIEWFUNC(reload)
 VIEWFUNC(reload_bypass_cache)
 VIEWFUNC(stop_loading)
@@ -605,7 +605,7 @@ VIEWFUNC(go_forward)
 #undef VIEWFUNC
 
 /* -- command to callback/function map for things we cannot attach to any signals */
-static struct {char *name; Command command[2];} cmdlist[] =
+struct {char *name; Command command[2];} cmdlist[] =
 {   /* key                   function      no_split      */
     { "back",               {view_go_back, 0}              },
     { "forward",            {view_go_forward, 0}           },
@@ -643,7 +643,7 @@ static struct {char *name; Command command[2];} cmdlist[] =
     { "print",              {print, NOSPLIT}               }
 };
 
-static void
+void
 commands_hash(void)
 {
     unsigned int i;
@@ -677,12 +677,12 @@ new_action(const gchar *name, const gchar *param) {
     return action;
 }
 
-static bool
+bool
 file_exists (const char * filename) {
     return (access(filename, F_OK) == 0);
 }
 
-static void
+void
 set_var(WebKitWebView *page, GArray *argv) {
     (void) page;
     gchar **split = g_strsplit(argv_idx(argv, 0), "=", 2);
@@ -692,7 +692,7 @@ set_var(WebKitWebView *page, GArray *argv) {
     g_strfreev(split);
 }
 
-static void
+void
 print(WebKitWebView *page, GArray *argv) {
     (void) page;
     gchar* buf;
@@ -702,7 +702,7 @@ print(WebKitWebView *page, GArray *argv) {
     g_free(buf);
 }
 
-static void
+void
 act_bind(WebKitWebView *page, GArray *argv) {
     (void) page;
     gchar **split = g_strsplit(argv_idx(argv, 0), " = ", 2);
@@ -713,12 +713,12 @@ act_bind(WebKitWebView *page, GArray *argv) {
 }
 
 
-static void
+void
 act_dump_config() {
     dump_config();
 }
 
-static void
+void
 toggle_insert_mode(WebKitWebView *page, GArray *argv) {
     (void)page;
 
@@ -735,7 +735,7 @@ toggle_insert_mode(WebKitWebView *page, GArray *argv) {
     update_title();
 }
 
-static void
+void
 load_uri (WebKitWebView *web_view, GArray *argv) {
     if (argv_idx(argv, 0)) {
         GString* newuri = g_string_new (argv_idx(argv, 0));
@@ -751,13 +751,13 @@ load_uri (WebKitWebView *web_view, GArray *argv) {
     }
 }
 
-static void
+void
 run_js (WebKitWebView * web_view, GArray *argv) {
     if (argv_idx(argv, 0))
         webkit_web_view_execute_script (web_view, argv_idx(argv, 0));
 }
 
-static void
+void
 run_external_js (WebKitWebView * web_view, GArray *argv) {
     if (argv_idx(argv, 0)) {
         GArray* lines = read_file_by_line (argv_idx (argv, 0));
@@ -790,7 +790,7 @@ run_external_js (WebKitWebView * web_view, GArray *argv) {
     }
 }
 
-static void
+void
 search_text (WebKitWebView *page, GArray *argv, const gboolean forward) {
     if (argv_idx(argv, 0) && (*argv_idx(argv, 0) != '\0')) {
         if (g_strcmp0 (uzbl.state.searchtx, argv_idx(argv, 0)) != 0) {
@@ -808,24 +808,24 @@ search_text (WebKitWebView *page, GArray *argv, const gboolean forward) {
     }
 }
 
-static void
+void
 search_forward_text (WebKitWebView *page, GArray *argv) {
     search_text(page, argv, TRUE);
 }
 
-static void
+void
 search_reverse_text (WebKitWebView *page, GArray *argv) {
     search_text(page, argv, FALSE);
 }
 
-static void
+void
 dehilight (WebKitWebView *page, GArray *argv) {
     (void) argv;
     webkit_web_view_set_highlight_text_matches (page, FALSE);
 }
 
 
-static void
+void
 new_window_load_uri (const gchar * uri) {
     GString* to_execute = g_string_new ("");
     g_string_append_printf (to_execute, "%s --uri '%s'", uzbl.state.executable_path, uri);
@@ -844,7 +844,7 @@ new_window_load_uri (const gchar * uri) {
     g_string_free (to_execute, TRUE);
 }
 
-static void
+void
 chain (WebKitWebView *page, GArray *argv) {
     (void)page;
     gchar *a = NULL;
@@ -857,7 +857,7 @@ chain (WebKitWebView *page, GArray *argv) {
     }
 }
 
-static void
+void
 keycmd (WebKitWebView *page, GArray *argv) {
     (void)page;
     (void)argv;
@@ -866,7 +866,7 @@ keycmd (WebKitWebView *page, GArray *argv) {
     update_title();
 }
 
-static void
+void
 keycmd_nl (WebKitWebView *page, GArray *argv) {
     (void)page;
     (void)argv;
@@ -875,7 +875,7 @@ keycmd_nl (WebKitWebView *page, GArray *argv) {
     update_title();
 }
 
-static void
+void
 keycmd_bs (WebKitWebView *page, GArray *argv) {
     (void)page;
     (void)argv;
@@ -888,7 +888,7 @@ keycmd_bs (WebKitWebView *page, GArray *argv) {
     update_title();
 }
 
-static void
+void
 close_uzbl (WebKitWebView *page, GArray *argv) {
     (void)page;
     (void)argv;
@@ -896,7 +896,7 @@ close_uzbl (WebKitWebView *page, GArray *argv) {
 }
 
 /* --Statusbar functions-- */
-static char*
+char*
 build_progressbar_ascii(int percent) {
    int width=uzbl.gui.sbar.progress_w;
    int i;
@@ -915,7 +915,7 @@ build_progressbar_ascii(int percent) {
    return g_string_free(bar, FALSE);
 }
 
-static void
+void
 setup_scanner() {
      const GScannerConfig scan_config = {
              (
@@ -970,7 +970,7 @@ setup_scanner() {
      }
 }
 
-static gchar *
+gchar *
 expand_template(const char *template, gboolean escape_markup) {
      if(!template) return NULL;
 
@@ -1122,14 +1122,14 @@ expand_template(const char *template, gboolean escape_markup) {
 }
 /* --End Statusbar functions-- */
 
-static void
+void
 sharg_append(GArray *a, const gchar *str) {
     const gchar *s = (str ? str : "");
     g_array_append_val(a, s);
 }
 
 // make sure that the args string you pass can properly be interpreted (eg properly escaped against whitespace, quotes etc)
-static gboolean
+gboolean
 run_command (const gchar *command, const guint npre, const gchar **args,
              const gboolean sync, char **output_stdout) {
    //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
@@ -1186,7 +1186,7 @@ run_command (const gchar *command, const guint npre, const gchar **args,
     return result;
 }
 
-static gchar**
+gchar**
 split_quoted(const gchar* src, const gboolean unquote) {
     /* split on unquoted space, return array of strings;
        remove a layer of quotes and backslashes if unquote */
@@ -1223,7 +1223,7 @@ split_quoted(const gchar* src, const gboolean unquote) {
     return ret;
 }
 
-static void
+void
 spawn(WebKitWebView *web_view, GArray *argv) {
     (void)web_view;
     //TODO: allow more control over argument order so that users can have some arguments before the default ones from run_command, and some after
@@ -1231,7 +1231,7 @@ spawn(WebKitWebView *web_view, GArray *argv) {
         run_command(argv_idx(argv, 0), 0, ((const gchar **) (argv->data + sizeof(gchar*))), FALSE, NULL);
 }
 
-static void
+void
 spawn_sync(WebKitWebView *web_view, GArray *argv) {
     (void)web_view;
     
@@ -1240,7 +1240,7 @@ spawn_sync(WebKitWebView *web_view, GArray *argv) {
                     TRUE, &uzbl.comm.sync_stdout);
 }
 
-static void
+void
 spawn_sh(WebKitWebView *web_view, GArray *argv) {
     (void)web_view;
     if (!uzbl.behave.shell_cmd) {
@@ -1261,7 +1261,7 @@ spawn_sh(WebKitWebView *web_view, GArray *argv) {
     g_strfreev (cmd);
 }
 
-static void
+void
 spawn_sh_sync(WebKitWebView *web_view, GArray *argv) {
     (void)web_view;
     if (!uzbl.behave.shell_cmd) {
@@ -1283,7 +1283,7 @@ spawn_sh_sync(WebKitWebView *web_view, GArray *argv) {
     g_strfreev (cmd);
 }
 
-static void
+void
 parse_command(const char *cmd, const char *param) {
     Command *c;
 
@@ -1307,7 +1307,7 @@ parse_command(const char *cmd, const char *param) {
         g_printerr ("command \"%s\" not understood. ignoring.\n", cmd);
 }
 
-static void
+void
 set_proxy_url() {
     SoupURI *suri;
 
@@ -1326,7 +1326,7 @@ set_proxy_url() {
     return;
 }
 
-static void
+void
 set_icon() {
     if(file_exists(uzbl.gui.icon)) {
         gtk_window_set_icon_from_file (GTK_WINDOW (uzbl.gui.main_window), uzbl.gui.icon, NULL);
@@ -1335,7 +1335,7 @@ set_icon() {
     }
 }
 
-static void
+void
 cmd_load_uri() {
     GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
     g_array_append_val (a, uzbl.state.uri);
@@ -1343,26 +1343,26 @@ cmd_load_uri() {
     g_array_free (a, TRUE);
 }
 
-static void 
+void 
 cmd_always_insert_mode() {
     uzbl.behave.insert_mode =
         uzbl.behave.always_insert_mode ?  TRUE : FALSE;
     update_title();
 }
 
-static void
+void
 cmd_max_conns() {
     g_object_set(G_OBJECT(uzbl.net.soup_session),
             SOUP_SESSION_MAX_CONNS, uzbl.net.max_conns, NULL);
 }
 
-static void
+void
 cmd_max_conns_host() {
     g_object_set(G_OBJECT(uzbl.net.soup_session),
             SOUP_SESSION_MAX_CONNS_PER_HOST, uzbl.net.max_conns_host, NULL);
 }
 
-static void
+void
 cmd_http_debug() {
     soup_session_remove_feature
         (uzbl.net.soup_session, SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
@@ -1374,12 +1374,12 @@ cmd_http_debug() {
             SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
 }
 
-static WebKitWebSettings*
+WebKitWebSettings*
 view_settings() {
     return webkit_web_view_get_settings(uzbl.gui.web_view);
 }
 
-static void
+void
 cmd_font_size() {
     WebKitWebSettings *ws = view_settings();
     if (uzbl.behave.font_size > 0) {
@@ -1395,91 +1395,91 @@ cmd_font_size() {
     }
 }
 
-static void
+void
 cmd_zoom_level() {
     webkit_web_view_set_zoom_level (uzbl.gui.web_view, uzbl.behave.zoom_level);
 }
 
-static void
+void
 cmd_disable_plugins() {
     g_object_set (G_OBJECT(view_settings()), "enable-plugins", 
             !uzbl.behave.disable_plugins, NULL);
 }
 
-static void
+void
 cmd_disable_scripts() {
     g_object_set (G_OBJECT(view_settings()), "enable-scripts",
             !uzbl.behave.disable_scripts, NULL);
 }
 
-static void
+void
 cmd_minimum_font_size() {
     g_object_set (G_OBJECT(view_settings()), "minimum-font-size",
             uzbl.behave.minimum_font_size, NULL);
 }
-static void
+void
 cmd_autoload_img() {
     g_object_set (G_OBJECT(view_settings()), "auto-load-images",
             uzbl.behave.autoload_img, NULL);
 }
 
 
-static void
+void
 cmd_autoshrink_img() {
     g_object_set (G_OBJECT(view_settings()), "auto-shrink-images",
             uzbl.behave.autoshrink_img, NULL);
 }
 
 
-static void
+void
 cmd_enable_spellcheck() {
     g_object_set (G_OBJECT(view_settings()), "enable-spell-checking",
             uzbl.behave.enable_spellcheck, NULL);
 }
 
-static void
+void
 cmd_enable_private() {
     g_object_set (G_OBJECT(view_settings()), "enable-private-browsing",
             uzbl.behave.enable_private, NULL);
 }
 
-static void
+void
 cmd_print_bg() {
     g_object_set (G_OBJECT(view_settings()), "print-backgrounds",
             uzbl.behave.print_bg, NULL);
 }
 
-static void 
+void 
 cmd_style_uri() {
     g_object_set (G_OBJECT(view_settings()), "user-stylesheet-uri",
             uzbl.behave.style_uri, NULL);
 }
 
-static void 
+void 
 cmd_resizable_txt() {
     g_object_set (G_OBJECT(view_settings()), "resizable-text-areas",
             uzbl.behave.resizable_txt, NULL);
 }
 
-static void 
+void 
 cmd_default_encoding() {
     g_object_set (G_OBJECT(view_settings()), "default-encoding",
             uzbl.behave.default_encoding, NULL);
 }
 
-static void 
+void 
 cmd_enforce_96dpi() {
     g_object_set (G_OBJECT(view_settings()), "enforce-96-dpi",
             uzbl.behave.enforce_96dpi, NULL);
 }
 
-static void 
+void 
 cmd_caret_browsing() {
     g_object_set (G_OBJECT(view_settings()), "enable-caret-browsing",
             uzbl.behave.caret_browsing, NULL);
 }
 
-static void
+void
 cmd_cookie_handler() {
     gchar **split = g_strsplit(uzbl.behave.cookie_handler, " ", 2);
     /* pitfall: doesn't handle chain actions; must the sync_ action manually */
@@ -1492,17 +1492,17 @@ cmd_cookie_handler() {
     g_strfreev (split);
 }
 
-static void
+void
 cmd_fifo_dir() {
     uzbl.behave.fifo_dir = init_fifo(uzbl.behave.fifo_dir);
 }
 
-static void
+void
 cmd_socket_dir() {
     uzbl.behave.socket_dir = init_socket(uzbl.behave.socket_dir);
 }
 
-static void
+void
 cmd_inject_html() {
     if(uzbl.behave.inject_html) {
         webkit_web_view_load_html_string (uzbl.gui.web_view,
@@ -1510,7 +1510,7 @@ cmd_inject_html() {
     }
 }
 
-static void
+void
 cmd_modkey() {
     int i;
     char *buf;
@@ -1528,7 +1528,7 @@ cmd_modkey() {
     }
 }
 
-static void
+void
 cmd_useragent() {
     if (*uzbl.net.useragent == ' ') {
         g_free (uzbl.net.useragent);
@@ -1542,7 +1542,7 @@ cmd_useragent() {
     }
 }
 
-static void
+void
 move_statusbar() {
     gtk_widget_ref(uzbl.gui.scrolled_win);
     gtk_widget_ref(uzbl.gui.mainbar);
@@ -1563,7 +1563,7 @@ move_statusbar() {
     return;
 }
 
-static gboolean
+gboolean
 set_var_value(gchar *name, gchar *val) {
     uzbl_cmdprop *c = NULL;
     char *endp = NULL;
@@ -1593,7 +1593,7 @@ set_var_value(gchar *name, gchar *val) {
     return TRUE;
 }
 
-static void
+void
 render_html() {
     Behaviour *b = &uzbl.behave;
 
@@ -1606,7 +1606,7 @@ render_html() {
 }
 
 enum {M_CMD, M_HTML};
-static void
+void
 parse_cmd_line(const char *ctl_line) {
     Behaviour *b = &uzbl.behave;
     size_t len=0;
@@ -1646,7 +1646,7 @@ parse_cmd_line(const char *ctl_line) {
     }
 }
 
-static gchar*
+gchar*
 build_stream_name(int type, const gchar* dir) {
     char *xwin_str;
     State *s = &uzbl.state;
@@ -1666,7 +1666,7 @@ build_stream_name(int type, const gchar* dir) {
     return str;
 }
 
-static gboolean
+gboolean
 control_fifo(GIOChannel *gio, GIOCondition condition) {
     if (uzbl.state.verbose)
         printf("triggered\n");
@@ -1692,7 +1692,7 @@ control_fifo(GIOChannel *gio, GIOCondition condition) {
     return TRUE;
 }
 
-static gchar*
+gchar*
 init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
     GIOChannel *chan = NULL;
     GError *error = NULL;
@@ -1720,7 +1720,7 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
     return NULL;
 }
 
-static gboolean
+gboolean
 control_stdin(GIOChannel *gio, GIOCondition condition) {
     (void) condition;
     gchar *ctl_line = NULL;
@@ -1736,7 +1736,7 @@ control_stdin(GIOChannel *gio, GIOCondition condition) {
     return TRUE;
 }
 
-static void
+void
 create_stdin () {
     GIOChannel *chan = NULL;
     GError *error = NULL;
@@ -1755,7 +1755,7 @@ create_stdin () {
     if (error) g_error_free (error);
 }
 
-static gboolean
+gboolean
 control_socket(GIOChannel *chan) {
     struct sockaddr_un remote;
     char buffer[512], *ctl_line;
@@ -1809,7 +1809,7 @@ control_socket(GIOChannel *chan) {
     return TRUE;
 }
 
-static gchar*
+gchar*
 init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL */
     if (uzbl.comm.socket_path) { /* remove an existing socket should one exist */
         if (unlink(uzbl.comm.socket_path) == -1)
@@ -1858,7 +1858,7 @@ init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL *
  it will probably improve performance if we would "cache" the processed variant, but for now it works well enough...
 */
 // this function may be called very early when the templates are not set (yet), hence the checks
-static void
+void
 update_title (void) {
     Behaviour *b = &uzbl.behave;
     gchar *parsed;
@@ -1889,7 +1889,7 @@ update_title (void) {
     }
 }
 
-static gboolean
+gboolean
 key_press_cb (GtkWidget* window, GdkEventKey* event)
 {
     //TRUE to stop other handlers from being invoked for the event. FALSE to propagate the event further.
@@ -1947,7 +1947,7 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
     return TRUE;
 }
 
-static void
+void
 run_keycmd(const gboolean key_ret) {
     /* run the keycmd immediately if it isn't incremental and doesn't take args */
     Action *act;
@@ -1985,7 +1985,7 @@ run_keycmd(const gboolean key_ret) {
     g_string_free (short_keys_inc, TRUE);
 }
 
-static void
+void
 exec_paramcmd(const Action *act, const guint i) {
     GString *parampart = g_string_new (uzbl.state.keycmd->str);
     GString *actionname = g_string_new ("");
@@ -2002,7 +2002,7 @@ exec_paramcmd(const Action *act, const guint i) {
 }
 
 
-static GtkWidget*
+GtkWidget*
 create_browser () {
     GUI *g = &uzbl.gui;
 
@@ -2028,7 +2028,7 @@ create_browser () {
     return scrolled_window;
 }
 
-static GtkWidget*
+GtkWidget*
 create_mainbar () {
     GUI *g = &uzbl.gui;
 
@@ -2058,7 +2058,7 @@ GtkWidget* create_window () {
     return window;
 }
 
-static gchar**
+gchar**
 inject_handler_args(const gchar *actname, const gchar *origargs, const gchar *newargs) {
     /*
       If actname is one that calls an external command, this function will inject
@@ -2100,7 +2100,7 @@ inject_handler_args(const gchar *actname, const gchar *origargs, const gchar *ne
     return (gchar**)g_array_free(rets, FALSE);
 }
 
-static void
+void
 run_handler (const gchar *act, const gchar *args) {
     /* Consider this code a temporary hack to make the handlers usable.
        In practice, all this splicing, injection, and reconstruction is
@@ -2159,7 +2159,7 @@ run_handler (const gchar *act, const gchar *args) {
     g_strfreev(parts);
 }
 
-static void
+void
 add_binding (const gchar *key, const gchar *act) {
     char **parts = g_strsplit(act, " ", 2);
     Action *action;
@@ -2178,7 +2178,7 @@ add_binding (const gchar *key, const gchar *act) {
     g_strfreev(parts);
 }
 
-static gchar*
+gchar*
 get_xdg_var (XDG_Var xdg) {
     const gchar* actual_value = getenv (xdg.environmental);
     const gchar* home         = getenv ("HOME");
@@ -2197,7 +2197,7 @@ get_xdg_var (XDG_Var xdg) {
     return return_value;
 }
 
-static gchar*
+gchar*
 find_xdg_file (int xdg_type, char* filename) {
     /* xdg_type = 0 => config
        xdg_type = 1 => data
@@ -2230,7 +2230,7 @@ find_xdg_file (int xdg_type, char* filename) {
         return NULL;
     }
 }
-static void
+void
 settings_init () {
     State *s = &uzbl.state;
     Network *n = &uzbl.net;
@@ -2262,7 +2262,7 @@ settings_init () {
     g_signal_connect_after(n->soup_session, "request-started", G_CALLBACK(handle_cookies), NULL);
 }
 
-static void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer user_data){
+void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer user_data){
     (void) session;
     (void) user_data;
     if (!uzbl.behave.cookie_handler)
@@ -2285,7 +2285,7 @@ static void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer use
     g_string_free(s, TRUE);
 }
 
-static void
+void
 save_cookies (SoupMessage *msg, gpointer user_data){
     (void) user_data;
     GSList *ck;
@@ -2303,14 +2303,14 @@ save_cookies (SoupMessage *msg, gpointer user_data){
 }
 
 /* --- WEBINSPECTOR --- */
-static void
+void
 hide_window_cb(GtkWidget *widget, gpointer data) {
     (void) data;
 
     gtk_widget_hide(widget);
 }
 
-static WebKitWebView*
+WebKitWebView*
 create_inspector_cb (WebKitWebInspector* web_inspector, WebKitWebView* page, gpointer data){
     (void) data;
     (void) page;
@@ -2339,7 +2339,7 @@ create_inspector_cb (WebKitWebInspector* web_inspector, WebKitWebView* page, gpo
     return WEBKIT_WEB_VIEW(new_web_view);
 }
 
-static gboolean
+gboolean
 inspector_show_window_cb (WebKitWebInspector* inspector){
     (void) inspector;
     gtk_widget_show(uzbl.gui.inspector_window);
@@ -2347,37 +2347,37 @@ inspector_show_window_cb (WebKitWebInspector* inspector){
 }
 
 /* TODO: Add variables and code to make use of these functions */
-static gboolean
+gboolean
 inspector_close_window_cb (WebKitWebInspector* inspector){
     (void) inspector;
     return TRUE;
 }
 
-static gboolean
+gboolean
 inspector_attach_window_cb (WebKitWebInspector* inspector){
     (void) inspector;
     return FALSE;
 }
 
-static gboolean
+gboolean
 inspector_detach_window_cb (WebKitWebInspector* inspector){
     (void) inspector;
     return FALSE;
 }
 
-static gboolean
+gboolean
 inspector_uri_changed_cb (WebKitWebInspector* inspector){
     (void) inspector;
     return FALSE;
 }
 
-static gboolean
+gboolean
 inspector_inspector_destroyed_cb (WebKitWebInspector* inspector){
     (void) inspector;
     return FALSE;
 }
 
-static void
+void
 set_up_inspector() {
     GUI *g = &uzbl.gui;
     WebKitWebSettings *settings = view_settings();
@@ -2394,7 +2394,7 @@ set_up_inspector() {
     g_signal_connect (G_OBJECT (g->inspector), "notify::inspected-uri", G_CALLBACK (inspector_uri_changed_cb), NULL);
 }
 
-static void
+void
 dump_var_hash(gpointer k, gpointer v, gpointer ud) {
     (void) ud;
     uzbl_cmdprop *c = v;
@@ -2410,7 +2410,7 @@ dump_var_hash(gpointer k, gpointer v, gpointer ud) {
         printf("set %s = %f\n", (char *)k, *(float *)c->ptr);
 }
 
-static void
+void
 dump_key_hash(gpointer k, gpointer v, gpointer ud) {
     (void) ud;
     Action *a = v;
@@ -2419,7 +2419,7 @@ dump_key_hash(gpointer k, gpointer v, gpointer ud) {
             (char *)a->name, a->param?(char *)a->param:"");
 }
 
-static void
+void
 dump_config() {
     g_hash_table_foreach(uzbl.comm.proto_var, dump_var_hash, NULL);
     g_hash_table_foreach(uzbl.bindings, dump_key_hash, NULL);
