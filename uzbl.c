@@ -1016,7 +1016,7 @@ expand_template(const char *template, gboolean escape_markup) {
                      }
                      else
                          g_string_append(ret, uzbl.gui.main_title ?
-                                 uzbl.gui.main_title : g_strdup(""));
+                                 uzbl.gui.main_title : "");
                      break;
                  case SYM_SELECTED_URI:
                      if(escape_markup) {
@@ -1027,7 +1027,7 @@ expand_template(const char *template, gboolean escape_markup) {
                      }
                      else
                          g_string_append(ret, uzbl.state.selected_url ?
-                                 uzbl.state.selected_url : g_strdup(""));
+                                 uzbl.state.selected_url : "");
                      break;
                  case SYM_NAME:
                      buf = itos(uzbl.xwin);
@@ -1044,7 +1044,7 @@ expand_template(const char *template, gboolean escape_markup) {
                      }
                      else
                          g_string_append(ret, uzbl.state.keycmd->str ?
-                                 uzbl.state.keycmd->str : g_strdup(""));
+                                 uzbl.state.keycmd->str : "");
                      break;
                  case SYM_MODE:
                      g_string_append(ret,
