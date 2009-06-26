@@ -2068,7 +2068,7 @@ inject_handler_args(const gchar *actname, const gchar *origargs, const gchar *ne
       come become after the body of the script (in sh) or after the name of
       the command to execute (in spawn).
       i.e. sh <body> <userargs> becomes sh <body> <ARGS> <userargs> and
-      span <command> <userargs> becomes spawn <command> <ARGS> <userargs>.
+      spawn <command> <userargs> becomes spawn <command> <ARGS> <userargs>.
 
       The return value consist of two strings: the action (sh, ...) and its args.
 
@@ -2076,6 +2076,7 @@ inject_handler_args(const gchar *actname, const gchar *origargs, const gchar *ne
       gets duplicated.
     */
     GArray *rets = g_array_new(TRUE, FALSE, sizeof(gchar*));
+    /* Arrr! Here be memory leaks */
     gchar *actdup = g_strdup(actname);
     g_array_append_val(rets, actdup);
 
