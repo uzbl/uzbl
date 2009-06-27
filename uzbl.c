@@ -62,18 +62,18 @@ static Uzbl uzbl;
 
 
 /* commandline arguments (set initial values for the state variables) */
-static const 
+static const
 GOptionEntry entries[] =
 {
     { "uri",     'u', 0, G_OPTION_ARG_STRING, &uzbl.state.uri,
         "Uri to load at startup (equivalent to 'set uri = URI')", "URI" },
     { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &uzbl.state.verbose,
         "Whether to print all messages or just errors.", NULL },
-    { "name",    'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name, 
+    { "name",    'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name,
         "Name of the current instance (defaults to Xorg window id)", "NAME" },
-    { "config",  'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,   
+    { "config",  'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,
         "Config file (this is pretty much equivalent to uzbl < FILE )", "FILE" },
-    { "socket",  's', 0, G_OPTION_ARG_INT, &uzbl.state.socket_id,   
+    { "socket",  's', 0, G_OPTION_ARG_INT, &uzbl.state.socket_id,
         "Socket ID", "SOCKET" },
     { NULL,      0, 0, 0, NULL, NULL, NULL }
 };
@@ -208,7 +208,7 @@ get_exp_type(gchar *s) {
 return EXP_ERR;
 }
 
-/* 
+/*
  * recurse == 1: don't expand '@(command)@'
  * recurse == 2: don't expand '@<java script>@'
  */
@@ -264,7 +264,7 @@ expand(char *s, guint recurse) {
                             ret[vend-s] = '\0';
                         }
                         break;
-                    case EXP_JS: 
+                    case EXP_JS:
                         s++;
                         strcpy(str_end, ">@");
                         str_end[2] = '\0';
@@ -276,7 +276,7 @@ expand(char *s, guint recurse) {
                         break;
                 }
 
-                if(etype == EXP_SIMPLE_VAR || 
+                if(etype == EXP_SIMPLE_VAR ||
                    etype == EXP_BRACED_VAR) {
                     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, ret)) ) {
                         if(c->type == TYPE_STR)
@@ -292,7 +292,7 @@ expand(char *s, guint recurse) {
                     else
                         s = vend+1;
                 }
-                else if(recurse != 1 && 
+                else if(recurse != 1 &&
                         etype == EXP_EXPR) {
                     mycmd = expand(ret, 1);
                     g_spawn_command_line_sync(mycmd, &cmd_stdout, NULL, NULL, &err);
@@ -308,7 +308,7 @@ expand(char *s, guint recurse) {
                     }
                     s = vend+2;
                 }
-                else if(recurse != 2 && 
+                else if(recurse != 2 &&
                         etype == EXP_JS) {
                     mycmd = expand(ret, 2);
                     eval_js(uzbl.gui.web_view, mycmd, js_ret);
@@ -366,9 +366,9 @@ read_file_by_line (gchar *path) {
     gsize len;
     GArray *lines = g_array_new(TRUE, FALSE, sizeof(gchar*));
     int i = 0;
-    
+
     chan = g_io_channel_new_file(path, "r", NULL);
-    
+
     if (chan) {
         while (g_io_channel_read_line(chan, &readbuf, &len, NULL, NULL) == G_IO_STATUS_NORMAL) {
             const gchar* val = g_strdup (readbuf);
@@ -376,12 +376,12 @@ read_file_by_line (gchar *path) {
             g_free (readbuf);
             i ++;
         }
-        
+
         g_io_channel_unref (chan);
     } else {
         fprintf(stderr, "File '%s' not be read.\n", path);
     }
-    
+
     return lines;
 }
 
@@ -390,7 +390,7 @@ gchar* parseenv (char* string) {
     extern char** environ;
     gchar* tmpstr = NULL;
     int i = 0;
-    
+
 
     while (environ[i] != NULL) {
         gchar** env = g_strsplit (environ[i], "=", 2);
@@ -438,7 +438,7 @@ clean_up(void) {
     g_hash_table_destroy(uzbl.behave.commands);
 }
 
-/* used for html_mode_timeout 
+/* used for html_mode_timeout
  * be sure to extend this function to use
  * more timers if needed in other places
 */
@@ -882,7 +882,7 @@ js_run_command (JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject,
     (void) function;
     (void) thisObject;
     (void) exception;
-    
+
     JSStringRef js_result_string;
     GString *result = g_string_new("");
 
@@ -920,7 +920,7 @@ js_init() {
 }
 
 
-static void 
+static void
 eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
     WebKitWebFrame *frame;
     JSGlobalContextRef context;
@@ -931,20 +931,20 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
     JSValueRef js_result;
     JSStringRef js_result_string;
     size_t js_result_size;
-    
+
     js_init();
 
     frame = webkit_web_view_get_main_frame(WEBKIT_WEB_VIEW(web_view));
     context = webkit_web_frame_get_global_context(frame);
     globalobject = JSContextGetGlobalObject(context);
-    
+
     /* uzbl javascript namespace */
     var_name = JSStringCreateWithUTF8CString("Uzbl");
     JSObjectSetProperty(context, globalobject, var_name,
-                        JSObjectMake(context, uzbl.js.classref, NULL),  
+                        JSObjectMake(context, uzbl.js.classref, NULL),
                         kJSClassAttributeNone, NULL);
-    
-    /* evaluate the script and get return value*/ 
+
+    /* evaluate the script and get return value*/
     js_script = JSStringCreateWithUTF8CString(script);
     js_result = JSEvaluateScript(context, js_script, globalobject, NULL, 0, NULL);
     if (js_result && !JSValueIsUndefined(context, js_result)) {
@@ -993,7 +993,7 @@ run_external_js (WebKitWebView * web_view, GArray *argv, GString *result) {
             i ++;
             g_free (line);
         }
-        
+
         if (uzbl.state.verbose)
             printf ("External JavaScript file %s loaded\n", argv_idx(argv, 0));
 
@@ -1017,7 +1017,7 @@ search_text (WebKitWebView *page, GArray *argv, const gboolean forward) {
             uzbl.state.searchtx = g_strdup(argv_idx(argv, 0));
         }
     }
-    
+
     if (uzbl.state.searchtx) {
         if (uzbl.state.verbose)
             printf ("Searching: %s\n", uzbl.state.searchtx);
@@ -1069,7 +1069,7 @@ chain (WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
     gchar *a = NULL;
     gchar **parts = NULL;
-    guint i = 0;    
+    guint i = 0;
     while ((a = argv_idx(argv, i++))) {
         parts = g_strsplit (a, " ", 2);
         parse_command(parts[0], parts[1], result);
@@ -1352,7 +1352,7 @@ run_command (const gchar *command, const guint npre, const gchar **args,
              const gboolean sync, char **output_stdout) {
    //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
     GError *err = NULL;
-    
+
     GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
     gchar *pid = itos(getpid());
     gchar *xwin = itos(uzbl.xwin);
@@ -1370,11 +1370,11 @@ run_command (const gchar *command, const guint npre, const gchar **args,
 
     for (i = npre; i < g_strv_length((gchar**)args); i++)
         sharg_append(a, args[i]);
-    
+
     gboolean result;
     if (sync) {
         if (*output_stdout) *output_stdout = strfree(*output_stdout);
-        
+
         result = g_spawn_sync(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
                               NULL, NULL, output_stdout, NULL, NULL, &err);
     } else result = g_spawn_async(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
@@ -1409,7 +1409,7 @@ split_quoted(const gchar* src, const gboolean unquote) {
     /* split on unquoted space, return array of strings;
        remove a layer of quotes and backslashes if unquote */
     if (!src) return NULL;
-    
+
     gboolean dq = FALSE;
     gboolean sq = FALSE;
     GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
@@ -1452,7 +1452,7 @@ spawn(WebKitWebView *web_view, GArray *argv, GString *result) {
 static void
 spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
-    
+
     if (argv_idx(argv, 0))
         run_command(argv_idx(argv, 0), 0, ((const gchar **) (argv->data + sizeof(gchar*))),
                     TRUE, &uzbl.comm.sync_stdout);
@@ -1465,7 +1465,7 @@ spawn_sh(WebKitWebView *web_view, GArray *argv, GString *result) {
         g_printerr ("spawn_sh: shell_cmd is not set!\n");
         return;
     }
-    
+
     guint i;
     gchar *spacer = g_strdup("");
     g_array_insert_val(argv, 1, spacer);
@@ -1486,7 +1486,7 @@ spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
         g_printerr ("spawn_sh_sync: shell_cmd is not set!\n");
         return;
     }
-    
+
     guint i;
     gchar *spacer = g_strdup("");
     g_array_insert_val(argv, 1, spacer);
@@ -1494,7 +1494,7 @@ spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
 
     for (i = 1; i < g_strv_length(cmd); i++)
         g_array_prepend_val(argv, cmd[i]);
-         
+
     if (cmd) run_command(cmd[0], g_strv_length(cmd) + 1, (const gchar **) argv->data,
                          TRUE, &uzbl.comm.sync_stdout);
     g_free (spacer);
@@ -1573,7 +1573,7 @@ cmd_load_uri() {
     g_array_free (a, TRUE);
 }
 
-static void 
+static void
 cmd_always_insert_mode() {
     uzbl.behave.insert_mode =
         uzbl.behave.always_insert_mode ?  TRUE : FALSE;
@@ -1615,7 +1615,7 @@ cmd_font_size() {
     if (uzbl.behave.font_size > 0) {
         g_object_set (G_OBJECT(ws), "default-font-size", uzbl.behave.font_size, NULL);
     }
-    
+
     if (uzbl.behave.monospace_size > 0) {
         g_object_set (G_OBJECT(ws), "default-monospace-font-size",
                       uzbl.behave.monospace_size, NULL);
@@ -1632,7 +1632,7 @@ cmd_zoom_level() {
 
 static void
 cmd_disable_plugins() {
-    g_object_set (G_OBJECT(view_settings()), "enable-plugins", 
+    g_object_set (G_OBJECT(view_settings()), "enable-plugins",
             !uzbl.behave.disable_plugins, NULL);
 }
 
@@ -1679,31 +1679,31 @@ cmd_print_bg() {
             uzbl.behave.print_bg, NULL);
 }
 
-static void 
+static void
 cmd_style_uri() {
     g_object_set (G_OBJECT(view_settings()), "user-stylesheet-uri",
             uzbl.behave.style_uri, NULL);
 }
 
-static void 
+static void
 cmd_resizable_txt() {
     g_object_set (G_OBJECT(view_settings()), "resizable-text-areas",
             uzbl.behave.resizable_txt, NULL);
 }
 
-static void 
+static void
 cmd_default_encoding() {
     g_object_set (G_OBJECT(view_settings()), "default-encoding",
             uzbl.behave.default_encoding, NULL);
 }
 
-static void 
+static void
 cmd_enforce_96dpi() {
     g_object_set (G_OBJECT(view_settings()), "enforce-96-dpi",
             uzbl.behave.enforce_96dpi, NULL);
 }
 
-static void 
+static void
 cmd_caret_browsing() {
     g_object_set (G_OBJECT(view_settings()), "enable-caret-browsing",
             uzbl.behave.caret_browsing, NULL);
@@ -1748,7 +1748,7 @@ cmd_modkey() {
     buf = g_utf8_strup(uzbl.behave.modkey, -1);
     uzbl.behave.modmask = 0;
 
-    if(uzbl.behave.modkey) 
+    if(uzbl.behave.modkey)
         g_free(uzbl.behave.modkey);
     uzbl.behave.modkey = buf;
 
@@ -2006,7 +2006,7 @@ control_socket(GIOChannel *chan) {
 
     clientsock = accept (g_io_channel_unix_get_fd(chan),
                          (struct sockaddr *) &remote, &t);
-    
+
     if ((clientchan = g_io_channel_unix_new(clientsock))) {
         g_io_add_watch(clientchan, G_IO_IN|G_IO_HUP,
                        (GIOFunc) control_client_socket, clientchan);
@@ -2225,7 +2225,7 @@ run_keycmd(const gboolean key_ret) {
             else exec_paramcmd(act, i); /* otherwise execute the incremental */
             break;
         }
-        
+
         g_string_truncate(short_keys, short_keys->len - 1);
     }
     g_string_free (short_keys, TRUE);
@@ -2378,7 +2378,7 @@ run_handler (const gchar *act, const gchar *args) {
     if (g_strcmp0(parts[0], "chain") == 0) {
         GString *newargs = g_string_new("");
         gchar **chainparts = split_quoted(parts[1], FALSE);
-        
+
         /* for every argument in the chain, inject the handler args
            and make sure the new parts are wrapped in quotes */
         gchar **cp = chainparts;
@@ -2386,7 +2386,7 @@ run_handler (const gchar *act, const gchar *args) {
         gchar *quotless = NULL;
         gchar **spliced_quotless = NULL; // sigh -_-;
         gchar **inpart = NULL;
-        
+
         while (*cp) {
             if ((**cp == '\'') || (**cp == '\"')) { /* strip old quotes */
                 quot = **cp;
@@ -2396,7 +2396,7 @@ run_handler (const gchar *act, const gchar *args) {
             spliced_quotless = g_strsplit(quotless, " ", 2);
             inpart = inject_handler_args(spliced_quotless[0], spliced_quotless[1], args);
             g_strfreev(spliced_quotless);
-            
+
             g_string_append_printf(newargs, " %c%s %s%c", quot, inpart[0], inpart[1], quot);
             g_free(quotless);
             g_strfreev(inpart);
@@ -2406,7 +2406,7 @@ run_handler (const gchar *act, const gchar *args) {
         parse_command(parts[0], &(newargs->str[1]), NULL);
         g_string_free(newargs, TRUE);
         g_strfreev(chainparts);
-        
+
     } else {
         gchar **inparts = inject_handler_args(parts[0], parts[1], args);
         parse_command(inparts[0], inparts[1], NULL);
@@ -2478,7 +2478,7 @@ find_xdg_file (int xdg_type, char* filename) {
             temporary_file = g_strconcat (temporary_string, filename, NULL);
         }
     }
-    
+
     //g_free (temporary_string); - segfaults.
 
     if (file_exists (temporary_file)) {
@@ -2543,7 +2543,7 @@ static void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer use
     }
     if (uzbl.comm.sync_stdout)
         uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
-        
+
     g_string_free(s, TRUE);
 }
 
@@ -2700,7 +2700,7 @@ main (int argc, char* argv[]) {
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
     g_option_context_parse (context, &argc, &argv, NULL);
     g_option_context_free(context);
-    
+
     gchar *uri_override = (uzbl.state.uri ? g_strdup(uzbl.state.uri) : NULL);
     gboolean verbose_override = uzbl.state.verbose;
 
@@ -2789,7 +2789,7 @@ main (int argc, char* argv[]) {
 
     if (verbose_override > uzbl.state.verbose)
         uzbl.state.verbose = verbose_override;
-    
+
     if (uri_override) {
         set_var_value("uri", uri_override);
         g_free(uri_override);

@@ -1,4 +1,4 @@
-/* -*- c-basic-offset: 4; -*- 
+/* -*- c-basic-offset: 4; -*-
 
  * See LICENSE for license details
  *
@@ -153,24 +153,24 @@ typedef struct {
     gfloat   zoom_level;
     guint    disable_plugins;
     guint    disable_scripts;
-    guint    autoload_img;    
-    guint    autoshrink_img;  
+    guint    autoload_img;
+    guint    autoshrink_img;
     guint    enable_spellcheck;
-    guint    enable_private;  
-    guint    print_bg;        
-    gchar*   style_uri;       
-    guint    resizable_txt;  
-    gchar*   default_encoding;       
-    guint    enforce_96dpi;  
+    guint    enable_private;
+    guint    print_bg;
+    gchar*   style_uri;
+    guint    resizable_txt;
+    gchar*   default_encoding;
+    guint    enforce_96dpi;
     gchar    *inject_html;
-    guint    caret_browsing;  
-    guint    mode;  
+    guint    caret_browsing;
+    guint    mode;
     gchar*   base_url;
     gchar*   html_endmarker;
     gchar*   insert_indicator;
     gchar*   cmd_indicator;
     GString* html_buffer;
-    guint    html_timeout;  
+    guint    html_timeout;
 
     /* command list: name -> Command  */
     GHashTable* commands;
@@ -214,7 +214,7 @@ typedef struct {
     gchar* default_value;
 } XDG_Var;
 
-XDG_Var XDG[] = 
+XDG_Var XDG[] =
 {
     { "XDG_CONFIG_HOME", "~/.config" },
     { "XDG_DATA_HOME",   "~/.local/share" },
@@ -551,22 +551,22 @@ cmd_enable_private();
 static void
 cmd_print_bg();
 
-static void 
+static void
 cmd_style_uri();
 
-static void 
+static void
 cmd_resizable_txt();
 
-static void 
+static void
 cmd_default_encoding();
 
-static void 
+static void
 cmd_enforce_96dpi();
 
 static void
 cmd_inject_html();
 
-static void 
+static void
 cmd_caret_browsing();
 
 /* vi: set et ts=4: */
