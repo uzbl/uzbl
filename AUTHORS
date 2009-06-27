@@ -30,6 +30,7 @@ Contributors:
     (evocallaghan) - tiny patches
     Aaron Griffin (phrakture) - Makefile patches to build on OSX
     Mason Larobina - os.environ.keys() & os.path.join fix in cookies.py
+    (dequis) - Uzbl.run, birectional socket, javascript commands
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:
