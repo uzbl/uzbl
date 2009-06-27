@@ -589,8 +589,8 @@ log_history_cb () {
        /* no need to wrap this string with quotes since it contains no spaces.
           format is like: 2009-06-26T20:02:05.262864Z */
        date = g_time_val_to_iso8601(&the_time);
-
        run_handler(uzbl.behave.history_handler, date);
+       g_free(date);
    }
 }
 
