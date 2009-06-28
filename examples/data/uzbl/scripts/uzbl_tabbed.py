@@ -158,8 +158,6 @@ def counter():
 class UzblTabbed:
     '''A tabbed version of uzbl using gtk.Notebook'''
 
-    TIMEOUT = 100 # Millisecond interval between timeouts
-
     class UzblInstance:
         '''Uzbl instance meta-data/meta-action object.'''
 
