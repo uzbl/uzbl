@@ -8,7 +8,6 @@ More or less in order of importance/urgency
 * shortcuts to focus other instances (see docs/multiple-instances-management)
 
 * recognize -h with GOption?
-* implement a vimperator-like link following scheme.
 * implement getting feedback from socket
 * scrolling: make page up and page down configurable.
 * show % of location in statusbar/title if page doesn't fit entirely on view.
@@ -35,7 +34,7 @@ More or less in order of importance/urgency
 * settings iterating "state generator" so we can "open in new window" again.
 * handler for (broken) ssl certs.
 * handlers for mailto: and maybe other thingies?
-* configure script
+* make sample scripts less depending on bash, but more posix sh.
 * proxy_url is not a good var name. it's not a url.
 * regex style page searching? so you can do 'or' and 'and' things. flags like case sensitive etc.
 * check for real command name, not just the first letter.
@@ -45,14 +44,16 @@ More or less in order of importance/urgency
 * document:
   stylesheet overridding
   formfiller
+  full duplex socket
+  ^X and such binds
   link following
+  scrolling in %
   webkit inspector usage
   scroll commands can take %s, eg scroll 100% for pages
   chaining of actions, print (and other actions that aren't documented yet)
   overriding variables (such as -u)
   variable expansion (@var, @{var}, where do they get expanded? can users have their own vars?, should we merge this with the replacement we do for useragent/window title etc?)
   how %s works for the js command
-* consider switching to CMAKE. (someone already ported the makefile etc)
   
 
 SOMEDAY:
