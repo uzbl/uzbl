@@ -94,6 +94,14 @@ They both have advantages and disadvantages:
 
 So, when writing scripts, using fifo's is usually the fastest method (because you do not need to fork another process), so fifo is preferred unless you need a response.
 
+### What the hell is this 'XDG' stuff??
+You'll notice our example scripts and configs use variables such as `$XDG_CONFIG_HOME` and `$XDG_DATA_HOME`.
+Most of us really like the [xdg basedir spec](http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html)
+so our example material folows it.  Basically it helps you keeping a clean `$HOME` and it separates config, data and cache.
+If these variables are not defined on your system, it could be that you need to install an xdg package.
+If you don't like this, no one is stopping you from changing the scripts and configs to point to a single `$HOME/.uzbl` directory or whatever you want.
+
+
 ### Does the world really need another browser?
 We did try a lot of browsers, and we do not suffer [NIH](http://en.wikipedia.org/wiki/Not_Invented_Here).
 We believe that the approach taken by way too many browsers is wrong.  We do not want browsers that try to do everything,
