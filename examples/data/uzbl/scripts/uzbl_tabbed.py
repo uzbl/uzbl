@@ -72,10 +72,6 @@
 
 # Issues: 
 #   - new windows are not caught and opened in a new tab.
-#   - need an easier way to read a uzbl instances window title instead of 
-#     spawning a shell to spawn uzblctrl to communicate to the uzbl 
-#     instance via socket to dump the window title to then pipe it to 
-#     the tabbing managers fifo socket.
 #   - probably missing some os.path.expandvars somewhere. 
 
 
