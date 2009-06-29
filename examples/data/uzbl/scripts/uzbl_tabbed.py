@@ -658,7 +658,7 @@ class UzblTabbed:
             del self.pages[socket]
         
         if self.notebook.get_n_pages() == 0:
-            gtk.main_quit()
+            self.quit()
 
         self.update_tablist()
 
@@ -699,7 +699,8 @@ class UzblTabbed:
         return True
 
 
-    def quit(self, window, event):
+    #def quit(self, window, event):
+    def quit(self, *args):
         '''Cleanup the application and quit. Called by delete-event signal.'''
 
         for fd in self._watchers.keys():
@@ -717,21 +718,28 @@ class UzblTabbed:
         
         if config['save_session']:
             session_file = os.path.expandvars(config['session_file'])
-            if not os.path.isfile(session_file):
-                dirname = os.path.dirname(session_file)
-                rmkdir(dirname)
-            h = open(session_file, 'w')
-            h.write('current = %s\n' % self.notebook.get_current_page())
-            h.close()
-            for socket in list(self.notebook):
-                if socket not in self.pages.keys(): continue
-                uzbl = self.pages[socket]
-                uzbl.send('sh "echo $6 >> %s"' % session_file)
-                time.sleep(0.05)
+            if self.notebook.get_n_pages():
+                if not os.path.isfile(session_file):
+                    dirname = os.path.dirname(session_file)
+                    if not os.path.isdir(dirname):
+                        rmkdir(dirname)
+
+                h = open(session_file, 'w')
+                h.write('current = %s\n' % self.notebook.get_current_page())
+                h.close()
+                for socket in list(self.notebook):
+                    if socket not in self.pages.keys(): continue
+                    uzbl = self.pages[socket]
+                    uzbl.send('sh "echo $6 >> %s"' % session_file)
+                    time.sleep(0.05)
+
+            else:
+                # Notebook has no pages so delete session file if it exists.
+                # Its better to not exist than be blank IMO. 
+                if os.path.isfile(session_file):
+                    os.remove(session_file)
 
         gtk.main_quit() 
-
-
 
 
 if __name__ == "__main__":
