@@ -192,7 +192,7 @@ make_var_to_name_hash() {
 
 /* --- UTILITY FUNCTIONS --- */
 enum {EXP_ERR, EXP_SIMPLE_VAR, EXP_BRACED_VAR, EXP_EXPR, EXP_JS};
-static guint
+guint
 get_exp_type(gchar *s) {
     /* variables */
     if(*(s+1) == '(')
@@ -211,7 +211,7 @@ return EXP_ERR;
  * recurse == 1: don't expand '@(command)@'
  * recurse == 2: don't expand '@<java script>@'
  */
-static gchar *
+gchar *
 expand(char *s, guint recurse) {
     uzbl_cmdprop *c;
     guint etype;
@@ -569,20 +569,20 @@ scroll_begin(WebKitWebView* page, GArray *argv, GString *result) {
     gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_lower(uzbl.gui.bar_v));
 }
 
-static void
+void
 scroll_end(WebKitWebView* page, GArray *argv, GString *result) {
     (void) page; (void) argv; (void) result;
     gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_upper(uzbl.gui.bar_v) -
                               gtk_adjustment_get_page_size(uzbl.gui.bar_v));
 }
 
-static void
+void
 scroll_vert(WebKitWebView* page, GArray *argv, GString *result) {
     (void) page; (void) result;
     scroll(uzbl.gui.bar_v, argv);
 }
 
-static void
+void
 scroll_horz(WebKitWebView* page, GArray *argv, GString *result) {
     (void) page; (void) result;
     scroll(uzbl.gui.bar_h, argv);
@@ -598,7 +598,7 @@ cmd_set_status() {
     update_title();
 }
 
-static void
+void
 toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result) {
     (void)page;
     (void)argv;
@@ -714,7 +714,7 @@ log_history_cb () {
 
 
 /* VIEW funcs (little webkit wrappers) */
-#define VIEWFUNC(name) static void view_##name(WebKitWebView *page, GArray *argv, GString *result){(void)argv; (void)result; webkit_web_view_##name(page);}
+#define VIEWFUNC(name) void view_##name(WebKitWebView *page, GArray *argv, GString *result){(void)argv; (void)result; webkit_web_view_##name(page);}
 VIEWFUNC(reload)
 VIEWFUNC(reload_bypass_cache)
 VIEWFUNC(stop_loading)
@@ -725,7 +725,7 @@ VIEWFUNC(go_forward)
 #undef VIEWFUNC
 
 /* -- command to callback/function map for things we cannot attach to any signals */
-static struct {char *key; CommandInfo value;} cmdlist[] =
+struct {char *key; CommandInfo value;} cmdlist[] =
 {   /* key                   function      no_split      */
     { "back",               {view_go_back, 0}              },
     { "forward",            {view_go_forward, 0}           },
@@ -803,7 +803,7 @@ file_exists (const char * filename) {
     return (access(filename, F_OK) == 0);
 }
 
-static void
+void
 set_var(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
     gchar **split = g_strsplit(argv_idx(argv, 0), "=", 2);
@@ -813,7 +813,7 @@ set_var(WebKitWebView *page, GArray *argv, GString *result) {
     g_strfreev(split);
 }
 
-static void
+void
 print(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
     gchar* buf;
@@ -823,7 +823,7 @@ print(WebKitWebView *page, GArray *argv, GString *result) {
     g_free(buf);
 }
 
-static void
+void
 act_bind(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
     gchar **split = g_strsplit(argv_idx(argv, 0), " = ", 2);
@@ -839,7 +839,7 @@ act_dump_config() {
     dump_config();
 }
 
-static void
+void
 toggle_insert_mode(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
 
@@ -856,7 +856,7 @@ toggle_insert_mode(WebKitWebView *page, GArray *argv, GString *result) {
     update_title();
 }
 
-static void
+void
 load_uri (WebKitWebView *web_view, GArray *argv, GString *result) {
     (void) result;
 
@@ -876,7 +876,7 @@ load_uri (WebKitWebView *web_view, GArray *argv, GString *result) {
 
 /* Javascript*/
 
-static JSValueRef
+JSValueRef
 js_run_command (JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject,
                 size_t argumentCount, const JSValueRef arguments[],
                 JSValueRef* exception) {
@@ -904,11 +904,11 @@ js_run_command (JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject,
     return JSValueMakeString(ctx, js_result_string);
 }
 
-static JSStaticFunction js_static_functions[] = {
+JSStaticFunction js_static_functions[] = {
     {"run", js_run_command, kJSPropertyAttributeNone},
 };
 
-static void
+void
 js_init() {
     /* This function creates the class and its definition, only once */
     if (!uzbl.js.initialized) {
@@ -921,7 +921,7 @@ js_init() {
 }
 
 
-static void 
+void 
 eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
     WebKitWebFrame *frame;
     JSGlobalContextRef context;
@@ -968,13 +968,13 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
     JSStringRelease(js_script);
 }
 
-static void
+void
 run_js (WebKitWebView * web_view, GArray *argv, GString *result) {
     if (argv_idx(argv, 0))
         eval_js(web_view, argv_idx(argv, 0), result);
 }
 
-static void
+void
 run_external_js (WebKitWebView * web_view, GArray *argv, GString *result) {
     (void) result;
     if (argv_idx(argv, 0)) {
@@ -1026,19 +1026,19 @@ search_text (WebKitWebView *page, GArray *argv, const gboolean forward) {
     }
 }
 
-static void
+void
 search_forward_text (WebKitWebView *page, GArray *argv, GString *result) {
     (void) result;
     search_text(page, argv, TRUE);
 }
 
-static void
+void
 search_reverse_text (WebKitWebView *page, GArray *argv, GString *result) {
     (void) result;
     search_text(page, argv, FALSE);
 }
 
-static void
+void
 dehilight (WebKitWebView *page, GArray *argv, GString *result) {
     (void) argv; (void) result;
     webkit_web_view_set_highlight_text_matches (page, FALSE);
@@ -1064,7 +1064,7 @@ new_window_load_uri (const gchar * uri) {
     g_string_free (to_execute, TRUE);
 }
 
-static void
+void
 chain (WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
     gchar *a = NULL;
@@ -1077,7 +1077,7 @@ chain (WebKitWebView *page, GArray *argv, GString *result) {
     }
 }
 
-static void
+void
 keycmd (WebKitWebView *page, GArray *argv, GString *result) {
     (void)page;
     (void)argv;
@@ -1087,7 +1087,7 @@ keycmd (WebKitWebView *page, GArray *argv, GString *result) {
     update_title();
 }
 
-static void
+void
 keycmd_nl (WebKitWebView *page, GArray *argv, GString *result) {
     (void)page;
     (void)argv;
@@ -1097,7 +1097,7 @@ keycmd_nl (WebKitWebView *page, GArray *argv, GString *result) {
     update_title();
 }
 
-static void
+void
 keycmd_bs (WebKitWebView *page, GArray *argv, GString *result) {
     gchar *prev;
     (void)page;
@@ -1109,7 +1109,7 @@ keycmd_bs (WebKitWebView *page, GArray *argv, GString *result) {
     update_title();
 }
 
-static void
+void
 close_uzbl (WebKitWebView *page, GArray *argv, GString *result) {
     (void)page;
     (void)argv;
@@ -1445,7 +1445,7 @@ split_quoted(const gchar* src, const gboolean unquote) {
     return ret;
 }
 
-static void
+void
 spawn(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
     //TODO: allow more control over argument order so that users can have some arguments before the default ones from run_command, and some after
@@ -1453,7 +1453,7 @@ spawn(WebKitWebView *web_view, GArray *argv, GString *result) {
         run_command(argv_idx(argv, 0), 0, ((const gchar **) (argv->data + sizeof(gchar*))), FALSE, NULL);
 }
 
-static void
+void
 spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
     
@@ -1462,7 +1462,7 @@ spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
                     TRUE, &uzbl.comm.sync_stdout);
 }
 
-static void
+void
 spawn_sh(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
     if (!uzbl.behave.shell_cmd) {
@@ -1483,7 +1483,7 @@ spawn_sh(WebKitWebView *web_view, GArray *argv, GString *result) {
     g_strfreev (cmd);
 }
 
-static void
+void
 spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
     if (!uzbl.behave.shell_cmd) {
@@ -1505,7 +1505,7 @@ spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
     g_strfreev (cmd);
 }
 
-static void
+void
 parse_command(const char *cmd, const char *param, GString *result) {
     CommandInfo *c;
 
@@ -1839,7 +1839,7 @@ render_html() {
 }
 
 enum {M_CMD, M_HTML};
-static void
+void
 parse_cmd_line(const char *ctl_line, GString *result) {
     Behaviour *b = &uzbl.behave;
     size_t len=0;
@@ -2006,7 +2006,7 @@ control_socket(GIOChannel *chan) {
     return TRUE;
 }
 
-static gboolean
+gboolean
 control_client_socket(GIOChannel *clientchan) {
     char *ctl_line;
     GString *result = g_string_new("");
@@ -2294,8 +2294,8 @@ create_window () {
     return window;
 }
 
-static
-GtkPlug* create_plug () {
+GtkPlug* 
+create_plug () {
     GtkPlug* plug = GTK_PLUG (gtk_plug_new (uzbl.state.socket_id));
     g_signal_connect (G_OBJECT (plug), "destroy", G_CALLBACK (destroy_cb), NULL);
     g_signal_connect (G_OBJECT (plug), "key-press-event", G_CALLBACK (key_press_cb), NULL);
@@ -2304,7 +2304,7 @@ GtkPlug* create_plug () {
 }
 
 
-static gchar**
+gchar**
 inject_handler_args(const gchar *actname, const gchar *origargs, const gchar *newargs) {
     /*
       If actname is one that calls an external command, this function will inject
