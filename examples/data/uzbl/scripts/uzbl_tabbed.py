@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
 # Uzbl tabbing wrapper using a fifo socket interface
-# Copyrite (c) 2009, Tom Adams <tom@holizz.com>
-# Copyrite (c) 2009, quigybo <?>
-# Copyrite (c) 2009, Mason Larobina <mason.larobina@gmail.com>
+# Copyright (c) 2009, Tom Adams <tom@holizz.com>
+# Copyright (c) 2009, quigybo <?>
+# Copyright (c) 2009, Mason Larobina <mason.larobina@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
