@@ -32,7 +32,8 @@
 #       and inherit configuration options from the user's uzbl config.
 #
 # Contributor(s):
-#   (None yet)
+#   mxey <mxey@ghosthacking.net>
+#       uzbl_config path now honors XDG_CONFIG_HOME if it exists.
 
 
 # Issues: 
