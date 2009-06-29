@@ -11,8 +11,6 @@
  *
  */
 
-#define NOSPLIT ((void*)1)
-
 enum {
   /* statusbar symbols */
   SYM_TITLE, SYM_URI, SYM_NAME,
@@ -67,6 +65,7 @@ typedef struct {
 /* gui elements */
 typedef struct {
     GtkWidget*     main_window;
+    GtkPlug*       plug;
     GtkWidget*     scrolled_win;
     GtkWidget*     vbox;
     GtkWidget*     mainbar;
@@ -102,7 +101,8 @@ typedef struct {
 typedef struct {
     gchar    *uri;
     gchar    *config_file;
-    char    *instance_name;
+    int      socket_id;
+    char     *instance_name;
     gchar    *selected_url;
     gchar    *executable_path;
     GString* keycmd;
@@ -176,6 +176,12 @@ typedef struct {
     GHashTable* commands;
 } Behaviour;
 
+/* javascript */
+typedef struct {
+    gboolean            initialized;
+    JSClassDefinition   classdef;
+    JSClassRef          classref;
+} Javascript;
 
 /* main uzbl data structure */
 typedef struct {
@@ -184,6 +190,7 @@ typedef struct {
     Network       net;
     Behaviour     behave;
     Communication comm;
+    Javascript    js;
 
     Window        xwin;
     GScanner      *scan;
@@ -247,8 +254,8 @@ setup_signal(int signe, sigfunc *shandler);
 gboolean
 set_var_value(gchar *name, gchar *val);
 
-void
-print(WebKitWebView *page, GArray *argv);
+static void
+print(WebKitWebView *page, GArray *argv, GString *result);
 
 gboolean
 new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data);
@@ -262,8 +269,11 @@ create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer us
 gboolean
 download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data);
 
-void
-toggle_status_cb (WebKitWebView* page, GArray *argv);
+static void
+toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result);
+
+static void
+toggle_status_cb (WebKitWebView* page, GArray *argv, GString *result);
 
 void
 link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data);
@@ -301,51 +311,51 @@ new_action(const gchar *name, const gchar *param);
 bool
 file_exists (const char * filename);
 
-void
-toggle_insert_mode(WebKitWebView *page, GArray *argv);
+static void
+toggle_insert_mode(WebKitWebView *page, GArray *argv, GString *result);
 
-void
-load_uri (WebKitWebView * web_view, GArray *argv);
+static void
+load_uri (WebKitWebView * web_view, GArray *argv, GString *result);
 
 void
 new_window_load_uri (const gchar * uri);
 
-void
-chain (WebKitWebView *page, GArray *argv);
+static void
+chain (WebKitWebView *page, GArray *argv, GString *result);
 
-void
-keycmd (WebKitWebView *page, GArray *argv);
+static void
+keycmd (WebKitWebView *page, GArray *argv, GString *result);
 
-void
-keycmd_nl (WebKitWebView *page, GArray *argv);
+static void
+keycmd_nl (WebKitWebView *page, GArray *argv, GString *result);
 
-void
-keycmd_bs (WebKitWebView *page, GArray *argv);
+static void
+keycmd_bs (WebKitWebView *page, GArray *argv, GString *result);
 
-void
-close_uzbl (WebKitWebView *page, GArray *argv);
+static void
+close_uzbl (WebKitWebView *page, GArray *argv, GString *result);
 
 gboolean
 run_command(const gchar *command, const guint npre,
             const gchar **args, const gboolean sync, char **output_stdout);
 
-void
-spawn(WebKitWebView *web_view, GArray *argv);
+static void
+spawn(WebKitWebView *web_view, GArray *argv, GString *result);
 
-void
-spawn_sh(WebKitWebView *web_view, GArray *argv);
+static void
+spawn_sh(WebKitWebView *web_view, GArray *argv, GString *result);
 
-void
-spawn_sync(WebKitWebView *web_view, GArray *argv);
+static void
+spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result);
 
-void
-spawn_sh_sync(WebKitWebView *web_view, GArray *argv);
+static void
+spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result);
 
-void
-parse_command(const char *cmd, const char *param);
+static void
+parse_command(const char *cmd, const char *param, GString *result);
 
-void
-parse_cmd_line(const char *ctl_line);
+static void
+parse_cmd_line(const char *ctl_line, GString *result);
 
 gchar*
 build_stream_name(int type, const gchar *dir);
@@ -368,7 +378,10 @@ init_socket(gchar *dir);
 gboolean
 control_socket(GIOChannel *chan);
 
-void
+static gboolean
+control_client_socket(GIOChannel *chan);
+
+static void
 update_title (void);
 
 gboolean
@@ -389,7 +402,10 @@ create_mainbar ();
 GtkWidget*
 create_window ();
 
-void
+static
+GtkPlug* create_plug ();
+
+static void
 run_handler (const gchar *act, const gchar *args);
 
 void
@@ -407,20 +423,23 @@ settings_init ();
 void
 search_text (WebKitWebView *page, GArray *argv, const gboolean forward);
 
-void
-search_forward_text (WebKitWebView *page, GArray *argv);
+static void
+search_forward_text (WebKitWebView *page, GArray *argv, GString *result);
 
-void
-search_reverse_text (WebKitWebView *page, GArray *argv);
+static void
+search_reverse_text (WebKitWebView *page, GArray *argv, GString *result);
 
-void
-dehilight (WebKitWebView *page, GArray *argv);
+static void
+dehilight (WebKitWebView *page, GArray *argv, GString *result);
 
-void
-run_js (WebKitWebView * web_view, GArray *argv);
+static void
+run_js (WebKitWebView * web_view, GArray *argv, GString *result);
 
-void
-run_external_js (WebKitWebView * web_view, GArray *argv);
+static void
+run_external_js (WebKitWebView * web_view, GArray *argv, GString *result);
+
+static void
+eval_js(WebKitWebView * web_view, gchar *script, GString *result);
 
 void handle_cookies (SoupSession *session,
                             SoupMessage *msg,
@@ -429,11 +448,11 @@ void
 save_cookies (SoupMessage *msg,
                 gpointer     user_data);
 
-void
-set_var(WebKitWebView *page, GArray *argv);
+static void
+set_var(WebKitWebView *page, GArray *argv, GString *result);
 
-void
-act_bind(WebKitWebView *page, GArray *argv);
+static void
+act_bind(WebKitWebView *page, GArray *argv, GString *result);
 
 void
 act_dump_config();
@@ -453,6 +472,11 @@ dump_key_hash(gpointer k, gpointer v, gpointer ud);
 void
 dump_config();
 
+typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
+typedef struct {
+    Command function;
+    gboolean no_split;
+} CommandInfo;
 
 /* Command callbacks */
 void

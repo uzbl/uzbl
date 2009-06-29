@@ -1,5 +1,6 @@
 #!/bin/bash
-history_file=$XDG_DATA_HOME/uzbl/history
+history_file=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/history
+[ -r "$history_file" ] || exit 1
 
 # choose from all entries, sorted and uniqued
 # goto=`awk '{print $3}' $history_file | sort -u | dmenu -i`

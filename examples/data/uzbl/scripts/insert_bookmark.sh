@@ -1,8 +1,7 @@
 #!/bin/bash
-# you probably want your bookmarks file in your $XDG_DATA_HOME ( eg $HOME/.local/share/uzbl/bookmarks)
 
-[ -d "$XDG_DATA_HOME/uzbl" ] || exit 1
-file=$XDG_DATA_HOME/uzbl/bookmarks
+[ -d "${XDG_DATA_HOME:-$HOME/.local/share}/uzbl" ] || exit 1
+file=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/bookmarks
 
 which zenity &>/dev/null || exit 2
 

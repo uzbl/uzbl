@@ -21,10 +21,16 @@ Contributors:
     Uli Schlachter (psychon) - basic mime_policy_cb & Makefile patch
     (uranther) - zoom level
     (bobpaul) - session script patches
-    Tom Adams (holizz) - few patches, cookies.py
+    Tom Adams (holizz) - few patches, cookies.py, gtkplugk/socket & uzbl_tabbed.py
     neutralinsomniac - load_progress = 0 fix
     Maximilian Gaß (mxey) - small patches
     Abel Camarillo (00z) - make it compile on OpenBSD
+    (israellevin) - toggle_zoom_type
+    (kmeaw) - fix for multibyte utf8 characters segfault
+    (evocallaghan) - tiny patches
+    Aaron Griffin (phrakture) - Makefile patches to build on OSX
+    Mason Larobina - os.environ.keys() & os.path.join fix in cookies.py
+    (dequis) - Uzbl.run, birectional socket, javascript commands
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:
