@@ -85,7 +85,10 @@ else:
 # === Default Configuration ====================================================
 
 # Location of your uzbl configuration file.
-uzbl_config = os.path.join(os.environ['HOME'],'.config/uzbl/config')
+if 'XDG_CONFIG_HOME' in os.environ.keys() and os.environ['XDG_CONFIG_HOME']:
+    uzbl_config = os.path.join(os.environ['XDG_CONFIG_HOME'], 'uzbl/config')
+else:
+    uzbl_config = os.path.join(os.environ['HOME'],'.config/uzbl/config')
 
 # All of these settings can be inherited from your uzbl config file.
 config = {'show_tabs': True,
