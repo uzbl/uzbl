@@ -549,7 +549,9 @@ class UzblTabbed:
         # has been created. 
         timerid = gobject.timeout_add(100, uzbl.flush, "flush-initial-config")
         uzbl.timers['flush-initial-config'] = timerid
-       
+    
+        self.update_tablist()
+
 
     def config_uzbl(self, uzbl):
         '''Send bind commands for tab new/close/next/prev to a uzbl 
@@ -583,9 +585,11 @@ class UzblTabbed:
             page = notebook[n]
             i = notebook.index(page)
             self.notebook.set_current_page(i)
-
+        
         except IndexError:
             pass
+
+        self.update_tablist()
 
 
     def next_tab(self, n=1):
@@ -595,6 +599,8 @@ class UzblTabbed:
             numofpages = self.notebook.get_n_pages()
             pagen = self.notebook.get_current_page() + n
             self.notebook.set_current_page( pagen % numofpages ) 
+
+        self.update_tablist()
 
 
     def prev_tab(self, n=1):
@@ -606,6 +612,8 @@ class UzblTabbed:
             while pagen < 0: 
                 pagen += numofpages
             self.notebook.set_current_page(pagen)
+
+        self.update_tablist()
 
 
     def close_tab(self, tabid=None):
@@ -632,6 +640,8 @@ class UzblTabbed:
         del self.pages[socket]
         self.notebook.remove_page(tabid)
 
+        self.update_tablist()
+
 
     def tab_closed(self, notebook, socket, page_num):
         '''Close the window if no tabs are left. Called by page-removed 
@@ -650,11 +660,11 @@ class UzblTabbed:
         if self.notebook.get_n_pages() == 0:
             gtk.main_quit()
 
+        self.update_tablist()
+
 
     def tab_changed(self, notebook, page, page_num):
         '''Refresh tab list. Called by switch-page signal.'''
-
-        self.tablist.set_text(str(list(self.notebook)))
 
         self.update_tablist()
 
