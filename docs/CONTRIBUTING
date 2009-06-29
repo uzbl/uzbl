@@ -1,12 +1,11 @@
 ### Users
 
-Right now, the best way to contribute to Uzbl is to use it, hang around in
-our IRC channel, and tell us when things break. If you're feeling more
-adventerous, you can use one of the development branches and give bug
+Just use Uzbl, hang around in our IRC channel, try out different things and tell us when things break.
+If you're feeling more adventerous, you can use one of the development branches and give bug
 reports and suggestions straight to the developer in charge of that, so the
-same problems don't occur when they get merged into the master branch. Have
-a look at the CHECKLIST file to see all the stuff that is supposed to work.
+same problems don't occur when they get merged into the master branch.
 Play around with the configs and scripts and see if you can improve things.
+The wiki can be a good source of inspiration.
 
 ### Developers
 
@@ -29,16 +28,30 @@ Our convention is to develop in the *experimental* branch, and keep only stable,
 So ideally, all contributors develop in their experimental, that gets merged into the mainline experimental, and after QA it gets merged into the main master.
 
 
-### VALGRIND PROFILING
+### Patch/branch requirements before merging:
+
+* patches/merges must be about one thing.  If you want to work on multiple things, create new branches.
+  I allow exceptions for trivial typo fixes and such, but that's it.
+  This also implies that you also need to update your tree reguraly.  Don't fall behind too much. (ie merge from Dieter)
+* any change in functionality that you want merged in must also be documented.
+  There is a readme and some files in the 'docs' directory who should correspond to the code base at all times.
+  Update them, not only for end users but also for your fellow hackers.
+* We recommend you finish your stuff first and then let Dieter know you want your stuff to be merged in, but
+  we know for bigger changes this is not always feasible.  Just try to keep the merges about bigger "clean changesets".
+
+That said, you can always ask us to check on your stuff or ask for advice.
+
+
+### Valgrind profiling
 	$ add this to Makefile header: CFLAGS=-g
 	$ recompile
 	$ valgrind --tool=callgrind ./uzbl ....
 	$ kcachegrind callgrind.out.foo
 
-### MEMORY LEAK CHECKING
+### Memory leak checking
     valgrind --tool=memcheck --leak-check=full ./uzbl
 
-### DEBUGGING / BACKTRACES
+### Debugging / backtraces
 
 * compile with -ggdb (enabled by default on experimental tree)
 * run: `gdb ./uzbl`
