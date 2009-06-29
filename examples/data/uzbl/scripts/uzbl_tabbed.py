@@ -95,8 +95,10 @@ config = {'show_tabs': True,
   'fifo_dir': '/tmp',
   'icon_path': os.path.join(data_dir, 'uzbl.png'),
   'session_file': os.path.join(data_dir, 'session'),
-  'tab_colours': 'foreground = "#000000"',
-  'selected_tab': 'foreground = "#000000" background="#bbbbbb"',
+  'tab_colours': 'foreground = "#999"',
+  'tab_text_colours': 'foreground = "#444"',
+  'selected_tab': 'foreground = "#aaa" background="#303030"',
+  'selected_tab_text': 'foreground = "green"',
   'window_size': "800,800",
   'monospace_size': 10, 
   'bind_new_tab': 'gn',
@@ -292,7 +294,7 @@ class UzblTabbed:
             self.tablist.set_justify(gtk.JUSTIFY_LEFT)
             self.tablist.set_line_wrap(False)
             self.tablist.set_selectable(False)
-            self.tablist.set_padding(2,2)
+            self.tablist.set_padding(0,2)
             self.tablist.set_alignment(0,0)
             self.tablist.set_ellipsize(pango.ELLIPSIZE_END)
             self.tablist.set_text(" ")
@@ -674,9 +676,13 @@ class UzblTabbed:
 
         pango = ""
 
-        normal, selected = config['tab_colours'], config['selected_tab']
-        tab_format = "<span %s> [ %d %s ] </span>"
+        normal = (config['tab_colours'], config['tab_text_colours'])
+        selected = (config['selected_tab'], config['selected_tab_text'])
         
+        tab_format = "<span %s> [ %d <span %s> %s</span> ] </span>"
+        
+        title_format = "%s - Uzbl Browser"
+
         uzblkeys = self.pages.keys()
         curpage = self.notebook.get_current_page()
 
@@ -689,10 +695,12 @@ class UzblTabbed:
             
             if index == curpage:
                 colours = selected
+                self.window.set_title(title_format % uzbl.title)
+
             else:
                 colours = normal
             
-            pango += tab_format % (colours, index, uzbl.title)
+            pango += tab_format % (colours[0], index, colours[1], uzbl.title)
 
         self.tablist.set_markup(pango)
 
