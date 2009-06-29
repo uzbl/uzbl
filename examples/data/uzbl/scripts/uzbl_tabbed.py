@@ -46,6 +46,7 @@
 #   set show_gtk_tabs       = 0
 #   set switch_to_new_tabs  = 1
 #   set save_session        = 1
+#   set new_tab_title       = New tab
 #   set status_background   = #303030
 #   set session_file        = $HOME/.local/share/session
 #   set tab_colours         = foreground = "#999"
@@ -103,6 +104,7 @@ import pango
 import select
 import sys
 import gobject
+import socket
 
 pygtk.require('2.0')
 
@@ -129,6 +131,8 @@ config = {'show_tabs': True,
   'switch_to_new_tabs': True,
   'save_session': True,
   'fifo_dir': '/tmp',
+  'socket_dir': '/tmp',
+  'new_tab_title': 'New tab',
   'icon_path': os.path.join(data_dir, 'uzbl.png'),
   'session_file': os.path.join(data_dir, 'session'),
   'status_background': "#303030",
@@ -197,115 +201,126 @@ def counter():
 class UzblTabbed:
     '''A tabbed version of uzbl using gtk.Notebook'''
 
-    class UzblInstance:
+    class UzblInstance: 
         '''Uzbl instance meta-data/meta-action object.'''
 
-        def __init__(self, parent, socket, fifo, pid, url='', switch=True):
+        def __init__(self, parent, tab, fifo_socket, socket_file, pid,\
+          uri, switch):
+
             self.parent = parent
-            self.socket = socket # the gtk socket
-            self.fifo = fifo
+            self.tab = tab 
+            self.fifo_socket = fifo_socket
+            self.socket_file = socket_file
             self.pid = pid
-            self.title = "New tab"
-            self.url = url
+            self.title = config['new_tab_title']
+            self.uri = uri
             self.timers = {}
             self._lastprobe = 0
-            self._switch_on_config = switch
-            self._outgoing = []
-            self._configured = False
-
-            # Probe commands
-            self._probeurl = 'sh \'echo "url %s $6" > "%s"\'' % (self.pid,\
-              self.parent.fifo_socket)
-            
-            # As soon as the variable expansion bug is fixed in uzbl
-            # I can start using this command to fetch the winow title
-            self._probetitle = 'sh \'echo "title %s @window_title" > "%s"\'' \
-              % (self.pid, self.parent.fifo_socket)
-
-            # When notebook tab deleted the kill switch is raised.
+            self._fifoout = []
+            self._socketout = []
+            self._socket = None
+            self._buffer = ""
+            # Switch to tab after connection
+            self._switch = switch
+            # fifo/socket files exists and socket connected. 
+            self._connected = False
+            # The kill switch
             self._kill = False
+            
+            # Gen probe commands string
+            probes = []
+            probe = probes.append
+            probe('print uri %d @uri' % self.pid)
+            probe('print title %d @<document.title>@' % self.pid)
+            self._probecmds = '\n'.join(probes)
              
-            # Queue binds for uzbl child
+            # Enqueue keybinding config for child uzbl instance
             self.parent.config_uzbl(self)
 
 
         def flush(self, timer_call=False):
-            '''Flush messages from the queue.'''
+            '''Flush messages from the socket-out and fifo-out queues.'''
             
             if self._kill:
-                error("Flush called on dead page.")
+                if self._socket: 
+                    self._socket.close()
+                    self._socket = None
+
+                error("Flush called on dead tab.")
                 return False
 
-            if os.path.exists(self.fifo):
-                h = open(self.fifo, 'w')
-                while len(self._outgoing):
-                    msg = self._outgoing.pop(0)
-                    h.write("%s\n" % msg)
-                h.close()
-
-            elif not timer_call and self._configured:
-                # TODO: I dont know what to do here. A previously thought
-                # alright uzbl client fifo socket has now gone missing.
-                # I think this should be fatal (at least for the page in
-                # question). I'll wait until this error appears in the wild. 
-                error("Error: fifo %r lost in action." % self.fifo)
+            if len(self._fifoout):
+                if os.path.exists(self.fifo_socket):
+                    h = open(self.fifo_socket, 'w')
+                    while len(self._fifoout):
+                        msg = self._fifoout.pop(0)
+                        h.write("%s\n"%msg)
+                    h.close()
             
-            if not len(self._outgoing) and timer_call:
-                self._configured = True
+            if len(self._socketout):
+                if not self._socket and os.path.exists(self.socket_file):
+                    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                    sock.connect(self.socket_file)
+                    self._socket = sock
 
-                if timer_call in self.timers.keys():
-                    gobject.source_remove(self.timers[timer_call])
-                    del self.timers[timer_call]
+                if self._socket:
+                    while len(self._socketout):
+                        msg = self._socketout.pop(0)
+                        self._socket.send("%s\n"%msg)
+            
+            if not self._connected and timer_call:
+                if not len(self._fifoout + self._socketout):
+                    self._connected = True
+                    
+                    if timer_call in self.timers.keys():
+                        gobject.source_remove(self.timers[timer_call])
+                        del self.timers[timer_call]
 
-                if self._switch_on_config:
-                    notebook = list(self.parent.notebook)
-                    try:
-                        tabid = notebook.index(self.socket)
+                    if self._switch:
+                        tabs = list(self.parent.notebook)
+                        tabid = tabs.index(self.tab)
                         self.parent.goto_tab(tabid)
-
-                    except ValueError:
-                        pass
                 
-            return len(self._outgoing)
+            return len(self._fifoout + self._socketout)
 
 
         def probe(self):
             '''Probes the client for information about its self.'''
             
-            # Ugly way of getting the socket path. Screwed if fifo is in any
-            # other part of the fifo socket path.
-            socket = 'socket'.join(self.fifo.split('fifo'))
-            # Hackish & wasteful way of getting the window title. 
-            subcmd = 'print title %s @<document.title>@' % self.pid
-            cmd = 'uzblctrl -s "%s" -c "%s" > "%s" &' % (socket, subcmd, \
-              self.parent.fifo_socket)
-            subprocess.Popen([cmd], shell=True)
-            self.send(self._probeurl)
-            
-            # Wont work yet.
-            #self.send(self._probetitle)
-
-            self._lastprobe = time.time()
+            if self._connected:
+                self.send(self._probecmds)
+                self._lastprobe = time.time()
 
 
-        def send(self, msg):
+        def write(self, msg):
             '''Child fifo write function.'''
 
-            self._outgoing.append(msg)
+            self._fifoout.append(msg)
             # Flush messages from the queue if able.
             return self.flush()
 
 
+        def send(self, msg):
+            '''Child socket send function.'''
+
+            self._socketout.append(msg)
+            # Flush messages from queue if able.
+            return self.flush()
+              
+
     def __init__(self):
         '''Create tablist, window and notebook.'''
         
-        self.pages = {}
-        self._pidcounter = counter()
-        self.next_pid = self._pidcounter.next
-        self._watchers = {}
+        self._fifos = {}
         self._timers = {}
         self._buffer = ""
-
+        
+        # Holds metadata on the uzbl childen open.
+        self.tabs = {}
+        
+        # Generates a unique id for uzbl socket filenames.
+        self.next_pid = counter().next
+        
         # Create main window
         self.window = gtk.Window()
         try: 
@@ -367,39 +382,12 @@ class UzblTabbed:
         
         self.window.show()
         self.wid = self.notebook.window.xid
-        # Fifo socket definition
-        self._refindfifos = re.compile('^uzbl_fifo_%s_[0-9]+$' % self.wid)
+        
+        # Create the uzbl_tabbed fifo
         fifo_filename = 'uzbltabbed_%d' % os.getpid()
         self.fifo_socket = os.path.join(config['fifo_dir'], fifo_filename)
-
-        self._watchers = {}
-        self._buffer = ""
         self._create_fifo_socket(self.fifo_socket)
         self._setup_fifo_watcher(self.fifo_socket)
-
-
-    def run(self):
-        
-        # Update tablist timer
-        timer = "update-tablist"
-        timerid = gobject.timeout_add(500, self.update_tablist,timer)
-        self._timers[timer] = timerid
-
-        # Due to the hackish way in which the window titles are read 
-        # too many window will cause the application to slow down insanely
-        timer = "probe-clients"
-        timerid = gobject.timeout_add(1000, self.probe_clients, timer)
-        self._timers[timer] = timerid
-
-        gtk.main()
-
-
-    def _find_fifos(self, fifo_dir):
-        '''Find all child fifo sockets in fifo_dir.'''
-        
-        dirlist = '\n'.join(os.listdir(fifo_dir))
-        allfifos = self._refindfifos.findall(dirlist)
-        return sorted(allfifos)
 
 
     def _create_fifo_socket(self, fifo_socket):
@@ -418,75 +406,112 @@ class UzblTabbed:
         print "Listening on %s" % self.fifo_socket
 
 
-    def _setup_fifo_watcher(self, fifo_socket, fd=None):
+    def _setup_fifo_watcher(self, fifo_socket):
         '''Open fifo socket fd and setup gobject IO_IN & IO_HUP watchers.
         Also log the creation of a fd and store the the internal
         self._watchers dictionary along with the filename of the fd.'''
-        
-        #TODO: Convert current self._watcher dict manipulation to the better 
-        # IMHO self._timers handling by using "timer-keys" as the keys instead
-        # of the fifo fd's as keys.
 
-        if fd:
+        if fifo_socket in self._fifos.keys():
+            fd, watchers = self._fifos[fifo_socket]
             os.close(fd)
-            if fd in self._watchers.keys():
-                d = self._watchers[fd]
-                watchers = d['watchers']
-                for watcher in list(watchers):
-                    gobject.source_remove(watcher)
-                    watchers.remove(watcher)
-                del self._watchers[fd]         
+            for watcherid in watchers.keys():
+                gobject.source_remove(watchers[watcherid])
+                del watchers[watcherid]
+
+            del self._fifos[fifo_socket]
         
+        # Re-open fifo and add listeners.
         fd = os.open(fifo_socket, os.O_RDONLY | os.O_NONBLOCK)
-        self._watchers[fd] = {'watchers': [], 'filename': fifo_socket}
-            
-        watcher = self._watchers[fd]['watchers'].append
-        watcher(gobject.io_add_watch(fd, gobject.IO_IN, self.read_fifo))
-        watcher(gobject.io_add_watch(fd, gobject.IO_HUP, self.fifo_hangup))
+        watchers = {}
+        self._fifos[fifo_socket] = (fd, watchers)
+        watcher = lambda key, id: watchers.__setitem__(key, id)
         
+        # Watch for incoming data.
+        gid = gobject.io_add_watch(fd, gobject.IO_IN, self.main_fifo_read)
+        watcher('main-fifo-read', gid)
+        
+        # Watch for fifo hangups.
+        gid = gobject.io_add_watch(fd, gobject.IO_HUP, self.main_fifo_hangup)
+        watcher('main-fifo-hangup', gid)
+        
+
+    def run(self):
+        '''UzblTabbed main function that calls the gtk loop.'''
+
+        # Update tablist timer
+        #timer = "update-tablist"
+        #timerid = gobject.timeout_add(500, self.update_tablist,timer)
+        #self._timers[timer] = timerid
+        
+        # Probe clients every second for window titles and location
+        timer = "probe-clients"
+        timerid = gobject.timeout_add(1000, self.probe_clients, timer)
+        self._timers[timer] = timerid
+
+        gtk.main()
+
 
     def probe_clients(self, timer_call):
-        '''Load balance probe all uzbl clients for up-to-date window titles 
-        and uri's.'''
+        '''Probe all uzbl clients for up-to-date window titles and uri's.'''
         
-        p = self.pages 
-        probetimes = [(s, p[s]._lastprobe) for s in p.keys()]
-        socket, lasttime = sorted(probetimes, key=lambda t: t[1])[0]
+        sockd = {}
 
-        if (time.time()-lasttime) > 5:
-            # Probe a uzbl instance at most once every 10 seconds
-            self.pages[socket].probe()
+        for tab in self.tabs.keys():
+            uzbl = self.tabs[tab]
+            uzbl.probe()
+            if uzbl._socket:
+                sockd[uzbl._socket] = uzbl
+
+        sockets = sockd.keys()
+        (reading, _, errors) = select.select(sockets, [], sockets, 0)
+        
+        for sock in reading:
+            uzbl = sockd[sock]
+            uzbl._buffer = sock.recv(1024)
+            temp = uzbl._buffer.split("\n")
+            self._buffer = temp.pop()
+            cmds = [s.strip().split() for s in temp if len(s.strip())]
+            for cmd in cmds:
+                try:
+                    print cmd
+                    self.parse_command(cmd)
+
+                except:
+                    error("parse_command: invalid command %s" % ' '.join(cmd))
+                    raise
 
         return True
 
 
-    def fifo_hangup(self, fd, cb_condition):
-        '''Handle fifo socket hangups.'''
+    def main_fifo_hangup(self, fd, cb_condition):
+        '''Handle main fifo socket hangups.'''
         
         # Close fd, re-open fifo_socket and watch.
-        self._setup_fifo_watcher(self.fifo_socket, fd)
+        self._setup_fifo_watcher(self.fifo_socket)
 
         # And to kill any gobject event handlers calling this function:
         return False
 
 
-    def read_fifo(self, fd, cb_condition):
-        '''Read from fifo socket and handle fifo socket hangups.'''
+    def main_fifo_read(self, fd, cb_condition):
+        '''Read from main fifo socket.'''
 
         self._buffer = os.read(fd, 1024)
         temp = self._buffer.split("\n")
         self._buffer = temp.pop()
+        cmds = [s.strip().split() for s in temp if len(s.strip())]
 
-        for cmd in [s.strip().split() for s in temp if len(s.strip())]:
+        for cmd in cmds:
             try:
-                #print cmd
+                print cmd
                 self.parse_command(cmd)
 
             except:
-                #raise
-                error("Invalid command: %s" % ' '.join(cmd))
+                error("parse_command: invalid command %s" % ' '.join(cmd))
+                raise
         
         return True
+
 
     def parse_command(self, cmd):
         '''Parse instructions from uzbl child processes.'''
@@ -508,9 +533,7 @@ class UzblTabbed:
         #   goto last tab. 
         # title {pid} {document-title}
         #   updates tablist title.
-        # url {pid} {document-location}
-         
-        # WARNING SOME OF THESE COMMANDS MIGHT NOT BE WORKING YET OR FAIL.
+        # uri {pid} {document-location}
 
         if cmd[0] == "new":
             if len(cmd) == 2:
@@ -520,10 +543,10 @@ class UzblTabbed:
                 self.new_tab()
 
         elif cmd[0] == "newfromclip":
-            url = subprocess.Popen(['xclip','-selection','clipboard','-o'],\
+            uri = subprocess.Popen(['xclip','-selection','clipboard','-o'],\
               stdout=subprocess.PIPE).communicate()[0]
-            if url:
-                self.new_tab(url)
+            if uri:
+                self.new_tab(uri)
 
         elif cmd[0] == "close":
             if len(cmd) == 2:
@@ -555,9 +578,9 @@ class UzblTabbed:
         elif cmd[0] == "last":
             self.goto_tab(-1)
 
-        elif cmd[0] in ["title", "url"]:
+        elif cmd[0] in ["title", "uri"]:
             if len(cmd) > 2:
-                uzbl = self.get_uzbl_by_pid(int(cmd[1]))
+                uzbl = self.get_tab_by_pid(int(cmd[1]))
                 if uzbl:
                     old = getattr(uzbl, cmd[0])
                     new = ' '.join(cmd[2:])
@@ -565,42 +588,45 @@ class UzblTabbed:
                     if old != new:
                        self.update_tablist()
                 else:
-                    error("Cannot find uzbl instance with pid %r" % int(cmd[1]))
+                    error("parse_command: no uzbl with pid %r" % int(cmd[1]))
         else:
-            error("Unknown command: %s" % ' '.join(cmd))
+            error("parse_command: unknown command %r" % ' '.join(cmd))
 
     
-    def get_uzbl_by_pid(self, pid):
+    def get_tab_by_pid(self, pid):
         '''Return uzbl instance by pid.'''
 
-        for socket in self.pages.keys():
-            if self.pages[socket].pid == pid:
-                return self.pages[socket]
+        for tab in self.tabs.keys():
+            if self.tabs[tab].pid == pid:
+                return self.tabs[tab]
+
         return False
    
 
-    def new_tab(self,url='', switch=True):
+    def new_tab(self, uri='', switch=True):
         '''Add a new tab to the notebook and start a new instance of uzbl.
         Use the switch option to negate config['switch_to_new_tabs'] option 
         when you need to load multiple tabs at a time (I.e. like when 
         restoring a session from a file).'''
        
         pid = self.next_pid()
-        socket = gtk.Socket()
-        socket.show()
-        self.notebook.append_page(socket)
-        sid = socket.get_id()
-        
-        if url:
-            url = '--uri %s' % url
+        tab = gtk.Socket()
+        tab.show()
+        self.notebook.append_page(tab)
+        sid = tab.get_id()
         
         fifo_filename = 'uzbl_fifo_%s_%0.2d' % (self.wid, pid)
         fifo_socket = os.path.join(config['fifo_dir'], fifo_filename)
-        uzbl = self.UzblInstance(self, socket, fifo_socket, pid,\
-          url=url, switch=switch)
-        self.pages[socket] = uzbl
-        cmd = 'uzbl -s %s -n %s_%0.2d %s &' % (sid, self.wid, pid, url)
-        subprocess.Popen([cmd], shell=True)        
+        socket_filename = 'uzbl_socket_%s_%0.2d' % (self.wid, pid)
+        socket_file = os.path.join(config['socket_dir'], socket_filename)
+        
+        # Create meta-instance and spawn child
+        if uri: uri = '--uri %s' % uri
+        uzbl = self.UzblInstance(self, tab, fifo_socket, socket_file, pid,\
+          uri, switch)
+        self.tabs[tab] = uzbl
+        cmd = 'uzbl -s %s -n %s_%0.2d %s &' % (sid, self.wid, pid, uri)
+        subprocess.Popen([cmd], shell=True) # TODO: do i need close_fds=True ?
         
         # Add gobject timer to make sure the config is pushed when fifo socket
         # has been created. 
@@ -630,89 +656,91 @@ class UzblTabbed:
         bind(config['bind_goto_first'], 'goto 0')
         bind(config['bind_goto_last'], 'goto -1')
 
+        # uzbl.send via socket or uzbl.write via fifo, I'll try send. 
         uzbl.send("\n".join(binds))
 
 
     def goto_tab(self, n):
         '''Goto tab n (supports negative indexing).'''
         
-        notebook = list(self.notebook)
-        
+        if 0 <= n < self.notebook.get_n_pages():
+            self.notebook.set_current_page(n)
+            self.update_tablist()
+            return None
+
         try: 
-            page = notebook[n]
-            i = notebook.index(page)
+            tabs = list(self.notebook)
+            tab = tabs[n]
+            i = tabs.index(tab)
             self.notebook.set_current_page(i)
+            self.update_tablist()
         
         except IndexError:
             pass
 
-        self.update_tablist()
 
-
-    def next_tab(self, n=1):
+    def next_tab(self, step=1):
         '''Switch to next tab or n tabs right.'''
         
-        if n >= 1:
-            numofpages = self.notebook.get_n_pages()
-            pagen = self.notebook.get_current_page() + n
-            self.notebook.set_current_page( pagen % numofpages ) 
-
+        if step < 1:
+            error("next_tab: invalid step %r" % step)
+            return None
+                
+        ntabs = self.notebook.get_n_pages()
+        tabn = self.notebook.get_current_page() + step
+        self.notebook.set_current_page(tabn % ntabs)
         self.update_tablist()
 
 
-    def prev_tab(self, n=1):
+    def prev_tab(self, step=1):
         '''Switch to prev tab or n tabs left.'''
         
-        if n >= 1:
-            numofpages = self.notebook.get_n_pages()
-            pagen = self.notebook.get_current_page() - n
-            while pagen < 0: 
-                pagen += numofpages
-            self.notebook.set_current_page(pagen)
+        if step < 1:
+            error("prev_tab: invalid step %r" % step)
+            return None
 
+        ntabs = self.notebook.get_n_pages()
+        tabn = self.notebook.get_current_page() - step
+        while tabn < 0: tabn += ntabs
+        self.notebook.set_current_page(tabn)
         self.update_tablist()
 
 
-    def close_tab(self, tabid=None):
+    def close_tab(self, tabn=None):
         '''Closes current tab. Supports negative indexing.'''
         
-        if not tabid: 
-            tabid = self.notebook.get_current_page()
+        if tabn is None: 
+            tabn = self.notebook.get_current_page()
         
         try: 
-            socket = list(self.notebook)[tabid]
+            tab = list(self.notebook)[tabn]
+        
 
         except IndexError:
-            error("Invalid index. Cannot close tab.")
-            return False
+            error("close_tab: invalid index %r" % tabn)
+            return None
 
-        uzbl = self.pages[socket]
-        # Kill timers:
-        for timer in uzbl.timers.keys():
-            error("Removing timer %r %r" % (timer, uzbl.timers[timer]))
-            gobject.source_remove(uzbl.timers[timer])
-
-        uzbl._outgoing = []
-        uzbl._kill = True
-        del self.pages[socket]
-        self.notebook.remove_page(tabid)
-
-        self.update_tablist()
+        self.notebook.remove_page(tabn)
 
 
-    def tab_closed(self, notebook, socket, page_num):
+    def tab_closed(self, notebook, tab, page_num):
         '''Close the window if no tabs are left. Called by page-removed 
         signal.'''
         
-        if socket in self.pages.keys():
-            uzbl = self.pages[socket]
+        if tab in self.tabs.keys():
+            uzbl = self.tabs[tab]
             for timer in uzbl.timers.keys():
-                error("Removing timer %r %r" % (timer, uzbl.timers[timer]))
+                error("tab_closed: removing timer %r" % timer)
                 gobject.source_remove(uzbl.timers[timer])
+            
+            if uzbl._socket:
+                uzbl._socket.close()
+                uzbl._socket = None
 
-            uzbl._outgoing = []
+            uzbl._fifoout = []
+            uzbl._socketout = []
             uzbl._kill = True
-            del self.pages[socket]
+            del self.tabs[tab]
         
         if self.notebook.get_n_pages() == 0:
             self.quit()
@@ -726,7 +754,7 @@ class UzblTabbed:
         self.update_tablist()
 
 
-    def update_tablist(self, timer_call=None):
+    def update_tablist(self):
         '''Upate tablist status bar.'''
 
         pango = ""
@@ -735,21 +763,17 @@ class UzblTabbed:
         selected = (config['selected_tab'], config['selected_tab_text'])
         
         tab_format = "<span %s> [ %d <span %s> %s</span> ] </span>"
-        
         title_format = "%s - Uzbl Browser"
 
-        uzblkeys = self.pages.keys()
+        tabs = self.tabs.keys()
         curpage = self.notebook.get_current_page()
 
-        for index, socket in enumerate(self.notebook):
-            if socket not in uzblkeys:
-                #error("Theres a socket in the notebook that I have no uzbl "\
-                #  "record of.")
-                continue
-            uzbl = self.pages[socket]
+        for index, tab in enumerate(self.notebook):
+            if tab not in tabs: continue
+            uzbl = self.tabs[tab]
             
             if index == curpage:
-                colours = selected
+                colours = selected                    
                 self.window.set_title(title_format % uzbl.title)
 
             else:
@@ -762,23 +786,26 @@ class UzblTabbed:
         return True
 
 
-    #def quit(self, window, event):
     def quit(self, *args):
         '''Cleanup the application and quit. Called by delete-event signal.'''
-
-        for fd in self._watchers.keys():
-            d = self._watchers[fd]
-            watchers = d['watchers']
-            for watcher in list(watchers):
-                gobject.source_remove(watcher)
         
-        for timer in self._timers.keys():
-            gobject.source_remove(self._timers[timer])
+        for fifo_socket in self._fifos.keys():
+            fd, watchers = self._fifos[fifo_socket]
+            os.close(fd)
+            for watcherid in watchers.keys():
+                gobject.source_remove(watchers[watcherid])
+                del watchers[watcherid]
+
+            del self._fifos[fifo_socket]
+        
+        for timerid in self._timers.keys():
+            gobject.source_remove(self._timers[timerid])
+            del self._timers[timerid]
 
         if os.path.exists(self.fifo_socket):
             os.unlink(self.fifo_socket)
             print "Unlinked %s" % self.fifo_socket
-        
+
         if config['save_session']:
             session_file = os.path.expandvars(config['session_file'])
             if self.notebook.get_n_pages():
@@ -789,16 +816,15 @@ class UzblTabbed:
 
                 h = open(session_file, 'w')
                 h.write('current = %s\n' % self.notebook.get_current_page())
+                tabs = self.tabs.keys()
+                for tab in list(self.notebook):                       
+                    if tab not in tabs: continue
+                    uzbl = self.tabs[tab]
+                    h.write("%s\n" % uzbl.uri)
                 h.close()
-                for socket in list(self.notebook):
-                    if socket not in self.pages.keys(): continue
-                    uzbl = self.pages[socket]
-                    uzbl.send('sh "echo $6 >> %s"' % session_file)
-                    time.sleep(0.05)
-
+                
             else:
                 # Notebook has no pages so delete session file if it exists.
-                # Its better to not exist than be blank IMO. 
                 if os.path.isfile(session_file):
                     os.remove(session_file)
 
@@ -814,14 +840,19 @@ if __name__ == "__main__":
     
     if os.path.isfile(os.path.expandvars(config['session_file'])):
         h = open(os.path.expandvars(config['session_file']),'r')
-        urls = [s.strip() for s in h.readlines()]
+        lines = [line.strip() for line in h.readlines()]
         h.close()
         current = 0
-        for url in urls:
-            if url.startswith("current"):
-                current = int(url.split()[-1])
+        for line in lines:
+            if line.startswith("current"):
+                current = int(line.split()[-1])
+
             else:
-                uzbl.new_tab(url, False)
+                uzbl.new_tab(line, False)
+
+        if not len(lines):
+            self.new_tab()
+
     else:
         uzbl.new_tab()
 
