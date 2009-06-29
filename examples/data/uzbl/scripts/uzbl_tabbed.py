@@ -176,9 +176,18 @@ class UzblTabbed:
             self._outgoing = []
             self._configured = False
 
+            # Probe commands
+            self._probeurl = 'sh \'echo "url %s $6" > "%s"\'' % (self.pid,\
+              self.parent.fifo_socket)
+            
+            # As soon as the variable expansion bug is fixed in uzbl
+            # I can start using this command to fetch the winow title
+            self._probetitle = 'sh \'echo "title %s @window_title" > "%s"\'' \
+              % (self.pid, self.parent.fifo_socket)
+
             # When notebook tab deleted the kill switch is raised.
             self._kill = False
-            
+             
             # Queue binds for uzbl child
             self.parent.config_uzbl(self)
 
@@ -228,19 +237,20 @@ class UzblTabbed:
             
             # Ugly way of getting the socket path. Screwed if fifo is in any
             # other part of the fifo socket path.
-
             socket = 'socket'.join(self.fifo.split('fifo'))
-            
-            # I feel so dirty
+            # Hackish & wasteful way of getting the window title. 
             subcmd = 'print title %s @<document.title>@' % self.pid
             cmd = 'uzblctrl -s "%s" -c "%s" > "%s" &' % (socket, subcmd, \
               self.parent.fifo_socket)
-
             subprocess.Popen([cmd], shell=True)
+            self.send(self._probeurl)
+            
+            # Wont work yet.
+            #self.send(self._probetitle)
 
             self._lastprobe = time.time()
-            
-        
+
+
         def send(self, msg):
             '''Child fifo write function.'''
 
@@ -508,7 +518,11 @@ class UzblTabbed:
             if len(cmd) > 2:
                 uzbl = self.get_uzbl_by_pid(int(cmd[1]))
                 if uzbl:
-                    setattr(uzbl, cmd[0], ' '.join(cmd[2:]))
+                    old = getattr(uzbl, cmd[0])
+                    new = ' '.join(cmd[2:])
+                    setattr(uzbl, cmd[0], new)
+                    if old != new:
+                       self.update_tablist()
                 else:
                     error("Cannot find uzbl instance with pid %r" % int(cmd[1]))
         else:
