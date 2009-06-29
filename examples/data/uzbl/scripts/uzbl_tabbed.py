@@ -36,8 +36,40 @@
 #       uzbl_config path now honors XDG_CONFIG_HOME if it exists.
 
 
+# Configuration:
+# Because this version of uzbl_tabbed is able to inherit options from your main
+# uzbl configuration file you may wish to configure uzbl tabbed from there.
+# Here is a list of configuration options that can be customised and some
+# example values for each:
+#
+#   set show_tabs           = 1
+#   set show_gtk_tabs       = 0
+#   set switch_to_new_tabs  = 1
+#   set save_session        = 1
+#   set status_background   = #303030
+#   set session_file        = $HOME/.local/share/session
+#   set tab_colours         = foreground = "#999"
+#   set tab_text_colours    = foreground = "#444"
+#   set selected_tab        = foreground = "#aaa" background="#303030"
+#   set selected_tab_text   = foreground = "green" 
+#   set window_size         = 800,800
+#
+# And the keybindings:
+#
+#   set bind_new_tab        = gn
+#   set bind_tab_from_clip  = gY
+#   set bind_close_tab      = gC
+#   set bind_next_tab       = gt
+#   set bind_prev_tab       = gT
+#   set bind_goto_tab       = gi_
+#   set bind_goto_first     = g<
+#   set bind_goto_last      = g>
+#
+# And uzbl_tabbed.py takes care of the actual binding of the commands via each
+# instances fifo socket. 
+
+
 # Issues: 
-#   - status_background colour is not honoured (reverts to gtk default).
 #   - new windows are not caught and opened in a new tab.
 #   - need an easier way to read a uzbl instances window title instead of 
 #     spawning a shell to spawn uzblctrl to communicate to the uzbl 
@@ -99,14 +131,15 @@ config = {'show_tabs': True,
   'fifo_dir': '/tmp',
   'icon_path': os.path.join(data_dir, 'uzbl.png'),
   'session_file': os.path.join(data_dir, 'session'),
-  'tab_colours': 'foreground = "#999"',
-  'tab_text_colours': 'foreground = "#444"',
-  'selected_tab': 'foreground = "#aaa" background="#303030"',
-  'selected_tab_text': 'foreground = "green"',
+  'status_background': "#303030",
+  'tab_colours': 'foreground = "#888"',
+  'tab_text_colours': 'foreground = "#bbb"',
+  'selected_tab': 'foreground = "#fff" background = "#303030"',
+  'selected_tab_text': 'foreground = "#99FF66"',
   'window_size': "800,800",
   'monospace_size': 10, 
   'bind_new_tab': 'gn',
-  'bind_tab_from_clipboard': 'gY', 
+  'bind_tab_from_clip': 'gY', 
   'bind_close_tab': 'gC',
   'bind_next_tab': 'gt',
   'bind_prev_tab': 'gT',
@@ -302,18 +335,22 @@ class UzblTabbed:
         if config['show_tabs']:
             vbox = gtk.VBox()
             self.window.add(vbox)
-
+            ebox = gtk.EventBox()
             self.tablist = gtk.Label()
             self.tablist.set_use_markup(True)
             self.tablist.set_justify(gtk.JUSTIFY_LEFT)
             self.tablist.set_line_wrap(False)
             self.tablist.set_selectable(False)
-            self.tablist.set_padding(0,2)
+            self.tablist.set_padding(2,2)
             self.tablist.set_alignment(0,0)
             self.tablist.set_ellipsize(pango.ELLIPSIZE_END)
             self.tablist.set_text(" ")
             self.tablist.show()
-            vbox.pack_start(self.tablist, False, False, 0)
+            ebox.add(self.tablist)
+            ebox.show()
+            bgcolor = gtk.gdk.color_parse(config['status_background'])
+            ebox.modify_bg(gtk.STATE_NORMAL, bgcolor)
+            vbox.pack_start(ebox, False, False, 0)
         
         # Create notebook
         self.notebook = gtk.Notebook()
@@ -585,7 +622,7 @@ class UzblTabbed:
         # Keys are defined in the config section
         # bind ( key , command back to fifo ) 
         bind(config['bind_new_tab'], 'new')
-        bind(config['bind_tab_from_clipboard'], 'newfromclip')
+        bind(config['bind_tab_from_clip'], 'newfromclip')
         bind(config['bind_close_tab'], 'close')
         bind(config['bind_next_tab'], 'next')
         bind(config['bind_prev_tab'], 'prev')
