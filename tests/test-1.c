@@ -12,6 +12,7 @@
 #include <sys/time.h>
 #include <webkit/webkit.h>
 #include <libsoup/soup.h>
+#include <JavaScriptCore/JavaScript.h>
 
 #include <stdio.h>
 #include <string.h>
