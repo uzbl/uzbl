@@ -33,13 +33,15 @@ have lots of keybinding possibilities.
 We stick to "one page per uzbl instance" because that's a simple, clean and flexible method.  We believe "multiple instances management" is something that must
 be handled outside of uzbl by a separate/different program.  Here are some solutions:
 
- * many window managers can (and should) handle this by default.  Xmonads tabbed layout, Wmii's stacked layout and so on.
- * you can write a custom script.  The only thing you need to do is focus/maximize the instance you want, 
+ * Many window managers can (and should) handle this by default.  Xmonads tabbed layout, Wmii's stacked layout and so on.
+ * Uzbl supports acting as a GtkPlug to plug into GtkSockets (Xembed) so you can embed uzbl instances in other Gtk applications.
+   This allows several implementatinos, a popular one is [uzbl_tabbed.py](http://www.uzbl.org/wiki/uzbl_tabbed) (TODO: include with sample scripts)
+ * If you want highest customizablity, you need the 3rd option:
+   You can also write a custom script.  The only thing you need to do is focus/maximize the instance you want,
    keep the others out of sight and use tools like dmenu and wmctrl to switch instances.
    This allows you to use application-specific properties (such as uzbl tag, name etc).
-   For more information about this approach, see docs/multiple-instances-management
-   (we'll maybe include some sample scripts in the future)
- * We might implement a GtkPlug (Xembed child) in the future.  So you could abuse that.
+   For more information about this approach, see docs/multiple-instances-management.
+   (If you want to work on such script, let us know and we might include it along with the other sample scripts)
 
 ### What?  No support for bookmarks/history/downloads/cookies/... ? Your project sucks!
 We do not support *management* of those things, because we believe a browser should only do browsing.  We are firm believers in the unix philosophy.
