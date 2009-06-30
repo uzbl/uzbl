@@ -488,8 +488,8 @@ new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequ
     const gchar* uri = webkit_network_request_get_uri (request);
     if (uzbl.state.verbose)
         printf("New window requested -> %s \n", uri);
-    new_window_load_uri(uri);
-    return (FALSE);
+    webkit_web_policy_decision_use(policy_decision);
+    return TRUE;
 }
 
 static gboolean
