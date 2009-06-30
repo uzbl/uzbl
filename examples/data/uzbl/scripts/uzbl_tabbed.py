@@ -46,6 +46,8 @@
 #   set show_gtk_tabs       = 0
 #   set switch_to_new_tabs  = 1
 #   set save_session        = 1
+#   set gtk_tab_pos         = (left|bottom|top|right)
+#   set max_title_len       = 50
 #   set new_tab_title       = New tab
 #   set status_background   = #303030
 #   set session_file        = $HOME/.local/share/session
@@ -125,11 +127,14 @@ else:
 # All of these settings can be inherited from your uzbl config file.
 config = {'show_tablist': True,
   'show_gtk_tabs': False,
+  'gtk_tab_pos': "top", # top left bottom right
   'switch_to_new_tabs': True,
   'save_session': True,
   'fifo_dir': '/tmp',
+  'tab_titles': True,
   'socket_dir': '/tmp',
   'new_tab_title': 'New tab',
+  'max_title_len': 50,
   'tablist_top': True,
   'icon_path': os.path.join(data_dir, 'uzbl.png'),
   'session_file': os.path.join(data_dir, 'session'),
@@ -411,6 +416,13 @@ class UzblTabbed:
         # Create notebook
         self.notebook = gtk.Notebook()
         self.notebook.set_show_tabs(config['show_gtk_tabs'])
+
+        # Set tab position
+        allposes = {'left': gtk.POS_LEFT, 'right':gtk.POS_RIGHT, 
+          'top':gtk.POS_TOP, 'bottom':gtk.POS_BOTTOM}
+        if config['gtk_tab_pos'] in allposes.keys():
+            self.notebook.set_tab_pos(allposes[config['gtk_tab_pos']])
+
         self.notebook.set_show_border(False)
         self.notebook.connect("page-removed", self.tab_closed)
         self.notebook.connect("switch-page", self.tab_changed)
@@ -808,18 +820,23 @@ class UzblTabbed:
     
         show_tablist = config['show_tablist']
         show_gtk_tabs = config['show_gtk_tabs']
+        tab_titles = config['tab_titles']
         if not show_tablist and not show_gtk_tabs:
             return True
 
         tabs = self.tabs.keys()
         curpage = self.notebook.get_current_page()
         title_format = "%s - Uzbl Browser"
+        max_title_len = config['max_title_len']
 
         if show_tablist:
             pango = ""
             normal = (config['tab_colours'], config['tab_text_colours'])
             selected = (config['selected_tab'], config['selected_tab_text'])
-            tab_format = "<span %s> [ %d <span %s> %s</span> ] </span>"
+            if tab_titles:
+                tab_format = "<span %s> [ %d <span %s> %s</span> ] </span>"
+            else:
+                tab_format = "<span %s> [ <span %s>%d</span> ] </span>"
        
         if show_gtk_tabs:
             gtk_tab_format = "%d %s"
@@ -832,13 +849,20 @@ class UzblTabbed:
                 self.window.set_title(title_format % uzbl.title)
 
             if show_gtk_tabs:
-                self.notebook.set_tab_label_text(tab, \
-                  gtk_tab_format % (index, uzbl.title))
+                if tab_titles:
+                    self.notebook.set_tab_label_text(tab, \
+                      gtk_tab_format % (index, uzbl.title[:max_title_len]))
+                else:
+                    self.notebook.set_tab_label_text(tab, str(index))
 
             if show_tablist:
                 style = colour_selector(index, curpage, uzbl)
                 (tabc, textc) = style
-                pango += tab_format % (tabc, index, textc, uzbl.title)
+                if tab_titles:
+                    pango += tab_format % (tabc, index, textc,\
+                      uzbl.title[:max_title_len])
+                else:
+                    pango += tab_format % (tabc, textc, index)
         
         if show_tablist:
             self.tablist.set_markup(pango)
