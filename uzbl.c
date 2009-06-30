@@ -2493,6 +2493,11 @@ settings_init () {
     for (i = 0; default_config[i].command != NULL; i++) {
         parse_cmd_line(default_config[i].command, NULL);
     }
+    
+    if (g_strcmp0(s->config_file, "-") == 0) {
+        s->config_file = NULL;
+        create_stdin();
+    }
 
     if (!s->config_file) {
         s->config_file = find_xdg_file (0, "/uzbl/config");
@@ -2779,8 +2784,6 @@ main (int argc, char* argv[]) {
 
     /* WebInspector */
     set_up_inspector();
-
-    create_stdin();
 
     if (verbose_override > uzbl.state.verbose)
         uzbl.state.verbose = verbose_override;
