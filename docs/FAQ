@@ -33,13 +33,15 @@ have lots of keybinding possibilities.
 We stick to "one page per uzbl instance" because that's a simple, clean and flexible method.  We believe "multiple instances management" is something that must
 be handled outside of uzbl by a separate/different program.  Here are some solutions:
 
- * many window managers can (and should) handle this by default.  Xmonads tabbed layout, Wmii's stacked layout and so on.
- * you can write a custom script.  The only thing you need to do is focus/maximize the instance you want, 
+ * Many window managers can (and should) handle this by default.  Xmonads tabbed layout, Wmii's stacked layout and so on.
+ * Uzbl supports acting as a GtkPlug to plug into GtkSockets (Xembed) so you can embed uzbl instances in other Gtk applications.
+   This allows several implementatinos, a popular one is [uzbl_tabbed.py](http://www.uzbl.org/wiki/uzbl_tabbed) (TODO: include with sample scripts)
+ * If you want highest customizablity, you need the 3rd option:
+   You can also write a custom script.  The only thing you need to do is focus/maximize the instance you want,
    keep the others out of sight and use tools like dmenu and wmctrl to switch instances.
    This allows you to use application-specific properties (such as uzbl tag, name etc).
-   For more information about this approach, see docs/multiple-instances-management
-   (we'll maybe include some sample scripts in the future)
- * We might implement a GtkPlug (Xembed child) in the future.  So you could abuse that.
+   For more information about this approach, see docs/multiple-instances-management.
+   (If you want to work on such script, let us know and we might include it along with the other sample scripts)
 
 ### What?  No support for bookmarks/history/downloads/cookies/... ? Your project sucks!
 We do not support *management* of those things, because we believe a browser should only do browsing.  We are firm believers in the unix philosophy.
@@ -93,6 +95,14 @@ They both have advantages and disadvantages:
  * Sockets are bidirectional but more complex.  You cannot just write a plaintext string into them.  In shellscripts you can use uzblctrl or netcat to work with sockets, when programming you need to use library functions.
 
 So, when writing scripts, using fifo's is usually the fastest method (because you do not need to fork another process), so fifo is preferred unless you need a response.
+
+### What the hell is this 'XDG' stuff??
+You'll notice our example scripts and configs use variables such as `$XDG_CONFIG_HOME` and `$XDG_DATA_HOME`.
+Most of us really like the [xdg basedir spec](http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html)
+so our example material folows it.  Basically it helps you keeping a clean `$HOME` and it separates config, data and cache.
+If these variables are not defined on your system, it could be that you need to install an xdg package.
+If you don't like this, no one is stopping you from changing the scripts and configs to point to a single `$HOME/.uzbl` directory or whatever you want.
+
 
 ### Does the world really need another browser?
 We did try a lot of browsers, and we do not suffer [NIH](http://en.wikipedia.org/wiki/Not_Invented_Here).
