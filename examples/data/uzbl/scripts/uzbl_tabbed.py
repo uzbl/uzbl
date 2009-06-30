@@ -2,7 +2,7 @@
 
 # Uzbl tabbing wrapper using a fifo socket interface
 # Copyright (c) 2009, Tom Adams <tom@holizz.com>
-# Copyright (c) 2009, quigybo <?>
+# Copyright (c) 2009, Chris van Dijk <cn.vandijk@hotmail.com>
 # Copyright (c) 2009, Mason Larobina <mason.larobina@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -23,8 +23,8 @@
 #   Tom Adams <tom@holizz.com>
 #       Wrote the original uzbl_tabbed.py as a proof of concept.
 #
-#   quigybo <?>
-#       Made signifigant headway on the uzbl_tabbing.py script on the 
+#  Chris van Dijk (quigybo) <cn.vandijk@hotmail.com>
+#       Made signifigant headway on the old uzbl_tabbing.py script on the 
 #       uzbl wiki <http://www.uzbl.org/wiki/uzbl_tabbed> 
 #
 #   Mason Larobina <mason.larobina@gmail.com>
@@ -42,7 +42,7 @@
 # Here is a list of configuration options that can be customised and some
 # example values for each:
 #
-#   set show_tabs           = 1
+#   set show_tablist        = 1
 #   set show_gtk_tabs       = 0
 #   set switch_to_new_tabs  = 1
 #   set save_session        = 1
@@ -83,7 +83,6 @@
 #     currently open tabs are being displayed on the tablist.
 #   - probably missing some os.path.expandvars somewhere and other 
 #     user-friendly.. things, this is still a very early version. 
-#   - fix status_background issues & style tablist. 
 #   - add the small tab-list display when both gtk tabs and text vim-like
 #     tablist are hidden (I.e. [ 1 2 3 4 5 ])
 #   - check spelling.
@@ -113,7 +112,9 @@ if 'XDG_DATA_HOME' in os.environ.keys() and os.environ['XDG_DATA_HOME']:
 else:
     data_dir = os.path.join(os.environ['HOME'], '.local/share/uzbl/')
 
+
 # === Default Configuration ====================================================
+
 
 # Location of your uzbl configuration file.
 if 'XDG_CONFIG_HOME' in os.environ.keys() and os.environ['XDG_CONFIG_HOME']:
@@ -122,22 +123,21 @@ else:
     uzbl_config = os.path.join(os.environ['HOME'],'.config/uzbl/config')
 
 # All of these settings can be inherited from your uzbl config file.
-config = {'show_tabs': True,
+config = {'show_tablist': True,
   'show_gtk_tabs': False,
   'switch_to_new_tabs': True,
   'save_session': True,
   'fifo_dir': '/tmp',
   'socket_dir': '/tmp',
   'new_tab_title': 'New tab',
+  'tablist_top': True,
   'icon_path': os.path.join(data_dir, 'uzbl.png'),
   'session_file': os.path.join(data_dir, 'session'),
   'status_background': "#303030",
-  'tab_colours': 'foreground = "#888"',
-  'tab_text_colours': 'foreground = "#bbb"',
-  'selected_tab': 'foreground = "#fff" background = "#303030"',
-  'selected_tab_text': 'foreground = "#99FF66"',
   'window_size': "800,800",
   'monospace_size': 10, 
+  
+  # Key binding options.
   'bind_new_tab': 'gn',
   'bind_tab_from_clip': 'gY', 
   'bind_close_tab': 'gC',
@@ -145,9 +145,55 @@ config = {'show_tabs': True,
   'bind_prev_tab': 'gT',
   'bind_goto_tab': 'gi_',
   'bind_goto_first': 'g<',
-  'bind_goto_last':'g>'}
+  'bind_goto_last':'g>',
+  
+  # Add custom tab style definitions to be used by the tab colour policy 
+  # handler here. Because these are added to the config dictionary like
+  # any other uzbl_tabbed configuration option remember that they can 
+  # be superseeded from your main uzbl config file. 
+  'tab_colours': 'foreground = "#888"',
+  'tab_text_colours': 'foreground = "#bbb"',  
+  'selected_tab': 'foreground = "#fff"',
+  'selected_tab_text': 'foreground = "green"',
+  'tab_indicate_https': True,
+  'https_colours': 'foreground = "#888"',
+  'https_text_colours': 'foreground = "#9c8e2d"', 
+  'selected_https': 'foreground = "#fff"',
+  'selected_https_text': 'foreground = "gold"',}
+
+# This is the tab style policy handler. Every time the tablist is updated 
+# this function is called to determine how to colourise that specific tab
+# according the simple/complex rules as defined here. You may even wish to 
+# move this function into another python script and import it using:
+#   from mycustomtabbingconfig import colour_selector
+# Remember to rename, delete or comment out this function if you do that.
+
+def colour_selector(tabindex, currentpage, uzbl):
+    '''Tablist styling policy handler. This function must return a tuple of 
+    the form (tab style, text style).'''
+    
+    # Just as an example: 
+    # if 'error' in uzbl.title:
+    #     if tabindex == currentpage:
+    #         return ('foreground="#fff"', 'foreground="red"')
+    #     return ('foreground="#888"', 'foreground="red"')
+
+    # Style tabs to indicate connected via https.
+    if config['tab_indicate_https'] and uzbl.uri.startswith("https://"):
+        if tabindex == currentpage:
+            return (config['selected_https'], config['selected_https_text'])
+        return (config['https_colours'], config['https_text_colours'])
+
+    # Style to indicate selected.
+    if tabindex == currentpage: 
+        return (config['selected_tab'], config['selected_tab_text'])
+
+    # Default tab style.
+    return (config['tab_colours'], config['tab_text_colours'])    
+
 
 # === End Configuration =======================================================
+
 
 def readconfig(uzbl_config, config):
     '''Loads relevant config from the users uzbl config file into the global
@@ -158,7 +204,7 @@ def readconfig(uzbl_config, config):
         return None
     
     # Define parsing regular expressions
-    isint = re.compile("^[0-9]+$").match
+    isint = re.compile("^(\-|)[0-9]+$").match
     findsets = re.compile("^set\s+([^\=]+)\s*\=\s*(.+)$",\
       re.MULTILINE).findall
 
@@ -167,7 +213,7 @@ def readconfig(uzbl_config, config):
     h.close()
     
     for (key, value) in findsets(rawconfig):
-        key = key.strip()
+        key, value = key.strip(), value.strip()
         if key not in config.keys(): continue
         if isint(value): value = int(value)
         config[key] = value
@@ -343,7 +389,7 @@ class UzblTabbed:
         self.window.connect("delete-event", self.quit)
         
         # Create tab list 
-        if config['show_tabs']:
+        if config['show_tablist']:
             vbox = gtk.VBox()
             self.window.add(vbox)
             ebox = gtk.EventBox()
@@ -361,7 +407,6 @@ class UzblTabbed:
             ebox.show()
             bgcolor = gtk.gdk.color_parse(config['status_background'])
             ebox.modify_bg(gtk.STATE_NORMAL, bgcolor)
-            vbox.pack_start(ebox, False, False, 0)
         
         # Create notebook
         self.notebook = gtk.Notebook()
@@ -370,9 +415,17 @@ class UzblTabbed:
         self.notebook.connect("page-removed", self.tab_closed)
         self.notebook.connect("switch-page", self.tab_changed)
         self.notebook.show()
-        if config['show_tabs']:
-            vbox.pack_end(self.notebook, True, True, 0)
+        if config['show_tablist']:
+            if config['tablist_top']:
+                vbox.pack_start(ebox, False, False, 0)
+                vbox.pack_end(self.notebook, True, True, 0)
+
+            else:
+                vbox.pack_start(self.notebook, True, True, 0)
+                vbox.pack_end(ebox, False, False, 0)
+
             vbox.show()
+
         else:
             self.window.add(self.notebook)
         
@@ -469,7 +522,7 @@ class UzblTabbed:
             cmds = [s.strip().split() for s in temp if len(s.strip())]
             for cmd in cmds:
                 try:
-                    print cmd
+                    #print cmd
                     self.parse_command(cmd)
 
                 except:
@@ -499,7 +552,7 @@ class UzblTabbed:
 
         for cmd in cmds:
             try:
-                print cmd
+                #print cmd
                 self.parse_command(cmd)
 
             except:
@@ -752,32 +805,43 @@ class UzblTabbed:
 
     def update_tablist(self):
         '''Upate tablist status bar.'''
-
-        pango = ""
-
-        normal = (config['tab_colours'], config['tab_text_colours'])
-        selected = (config['selected_tab'], config['selected_tab_text'])
-        
-        tab_format = "<span %s> [ %d <span %s> %s</span> ] </span>"
-        title_format = "%s - Uzbl Browser"
+    
+        show_tablist = config['show_tablist']
+        show_gtk_tabs = config['show_gtk_tabs']
+        if not show_tablist and not show_gtk_tabs:
+            return True
 
         tabs = self.tabs.keys()
         curpage = self.notebook.get_current_page()
+        title_format = "%s - Uzbl Browser"
+
+        if show_tablist:
+            pango = ""
+            normal = (config['tab_colours'], config['tab_text_colours'])
+            selected = (config['selected_tab'], config['selected_tab_text'])
+            tab_format = "<span %s> [ %d <span %s> %s</span> ] </span>"
+       
+        if show_gtk_tabs:
+            gtk_tab_format = "%d %s"
 
         for index, tab in enumerate(self.notebook):
             if tab not in tabs: continue
             uzbl = self.tabs[tab]
             
             if index == curpage:
-                colours = selected                    
                 self.window.set_title(title_format % uzbl.title)
 
-            else:
-                colours = normal
-            
-            pango += tab_format % (colours[0], index, colours[1], uzbl.title)
+            if show_gtk_tabs:
+                self.notebook.set_tab_label_text(tab, \
+                  gtk_tab_format % (index, uzbl.title))
 
-        self.tablist.set_markup(pango)
+            if show_tablist:
+                style = colour_selector(index, curpage, uzbl)
+                (tabc, textc) = style
+                pango += tab_format % (tabc, index, textc, uzbl.title)
+        
+        if show_tablist:
+            self.tablist.set_markup(pango)
 
         return True
 
