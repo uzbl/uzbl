@@ -2499,7 +2499,7 @@ settings_init () {
         create_stdin();
     }
 
-    if (!s->config_file) {
+    else if (!s->config_file) {
         s->config_file = find_xdg_file (0, "/uzbl/config");
     }
 
