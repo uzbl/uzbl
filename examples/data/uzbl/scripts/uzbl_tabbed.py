@@ -74,7 +74,7 @@
 
 # Issues: 
 #   - new windows are not caught and opened in a new tab.
-#   - probably missing some os.path.expandvars somewhere. 
+#   - when uzbl_tabbed.py crashes it takes all the children with it.
 
 
 # Todo: 
@@ -83,11 +83,11 @@
 #   - ellipsize individual tab titles when the tab-list becomes over-crowded
 #   - add "<" & ">" arrows to tablist to indicate that only a subset of the 
 #     currently open tabs are being displayed on the tablist.
-#   - probably missing some os.path.expandvars somewhere and other 
-#     user-friendly.. things, this is still a very early version. 
 #   - add the small tab-list display when both gtk tabs and text vim-like
 #     tablist are hidden (I.e. [ 1 2 3 4 5 ])
 #   - check spelling.
+#   - pass a uzbl socketid to uzbl_tabbed.py and have it assimilated into 
+#     the collective. Resistance is futile!
 
 
 import pygtk
@@ -102,69 +102,82 @@ import select
 import sys
 import gobject
 import socket
+import random
+import hashlib
 
 pygtk.require('2.0')
 
 def error(msg):
     sys.stderr.write("%s\n"%msg)
 
+
+# ============================================================================
+# ::: Default configuration section ::::::::::::::::::::::::::::::::::::::::::
+# ============================================================================
+
+# Location of your uzbl data directory. 
 if 'XDG_DATA_HOME' in os.environ.keys() and os.environ['XDG_DATA_HOME']:
     data_dir = os.path.join(os.environ['XDG_DATA_HOME'], 'uzbl/')
-
 else:
     data_dir = os.path.join(os.environ['HOME'], '.local/share/uzbl/')
-
-
-# === Default Configuration ====================================================
-
+if not os.path.exists(data_dir):
+    error("Warning: uzbl data_dir does not exist: %r" % data_dir)
 
 # Location of your uzbl configuration file.
 if 'XDG_CONFIG_HOME' in os.environ.keys() and os.environ['XDG_CONFIG_HOME']:
     uzbl_config = os.path.join(os.environ['XDG_CONFIG_HOME'], 'uzbl/config')
 else:
     uzbl_config = os.path.join(os.environ['HOME'],'.config/uzbl/config')
+if not os.path.exists(uzbl_config):
+    error("Warning: Cannot locate your uzbl_config file %r" % uzbl_config)
 
 # All of these settings can be inherited from your uzbl config file.
-config = {'show_tablist': True,
-  'show_gtk_tabs': False,
-  'gtk_tab_pos': "top", # top left bottom right
-  'switch_to_new_tabs': True,
-  'save_session': True,
-  'fifo_dir': '/tmp',
-  'tab_titles': True,
-  'socket_dir': '/tmp',
-  'new_tab_title': 'New tab',
-  'max_title_len': 50,
-  'tablist_top': True,
-  'icon_path': os.path.join(data_dir, 'uzbl.png'),
-  'session_file': os.path.join(data_dir, 'session'),
-  'status_background': "#303030",
-  'window_size': "800,800",
-  'monospace_size': 10, 
+config = { 
+  # Tab options
+  'show_tablist':           True,
+  'show_gtk_tabs':          False,
+  'max_title_len':          50,
+  'tablist_top':            True,
+  'tab_titles':             True,
+  'gtk_tab_pos':            'top', # (top|left|bottom|right)
+  'new_tab_title':          'New tab',
+  'switch_to_new_tabs':     True,
   
-  # Key binding options.
-  'bind_new_tab': 'gn',
-  'bind_tab_from_clip': 'gY', 
-  'bind_close_tab': 'gC',
-  'bind_next_tab': 'gt',
-  'bind_prev_tab': 'gT',
-  'bind_goto_tab': 'gi_',
-  'bind_goto_first': 'g<',
-  'bind_goto_last':'g>',
+  # uzbl options
+  'save_session':           True,
+  'fifo_dir':               '/tmp',
+  'socket_dir':             '/tmp',
+  'icon_path':              os.path.join(data_dir, 'uzbl.png'),
+  'session_file':           os.path.join(data_dir, 'session'),
+  'status_background':      "#303030",
+  'window_size':            "800,800", # in pixels
+  'monospace_size':         10, 
+  
+  # Key bindings.
+  'bind_new_tab':           'gn',
+  'bind_tab_from_clip':     'gY', 
+  'bind_close_tab':         'gC',
+  'bind_next_tab':          'gt',
+  'bind_prev_tab':          'gT',
+  'bind_goto_tab':          'gi_',
+  'bind_goto_first':        'g<',
+  'bind_goto_last':         'g>',
   
   # Add custom tab style definitions to be used by the tab colour policy 
   # handler here. Because these are added to the config dictionary like
   # any other uzbl_tabbed configuration option remember that they can 
   # be superseeded from your main uzbl config file. 
-  'tab_colours': 'foreground = "#888"',
-  'tab_text_colours': 'foreground = "#bbb"',  
-  'selected_tab': 'foreground = "#fff"',
-  'selected_tab_text': 'foreground = "green"',
-  'tab_indicate_https': True,
-  'https_colours': 'foreground = "#888"',
-  'https_text_colours': 'foreground = "#9c8e2d"', 
-  'selected_https': 'foreground = "#fff"',
-  'selected_https_text': 'foreground = "gold"',}
+  'tab_colours':            'foreground = "#888" background = "#303030"',
+  'tab_text_colours':       'foreground = "#bbb"',  
+  'selected_tab':           'foreground = "#fff"',
+  'selected_tab_text':      'foreground = "green"',
+  'tab_indicate_https':     True,
+  'https_colours':          'foreground = "#888"',
+  'https_text_colours':     'foreground = "#9c8e2d"', 
+  'selected_https':         'foreground = "#fff"',
+  'selected_https_text':    'foreground = "gold"',
+  
+  } # End of config dict.
 
 # This is the tab style policy handler. Every time the tablist is updated 
 # this function is called to determine how to colourise that specific tab
@@ -197,7 +210,9 @@ def colour_selector(tabindex, currentpage, uzbl):
     return (config['tab_colours'], config['tab_text_colours'])    
 
 
-# === End Configuration =======================================================
+# ============================================================================
+# ::: End of configuration section :::::::::::::::::::::::::::::::::::::::::::
+# ============================================================================
 
 
 def readconfig(uzbl_config, config):
@@ -212,7 +227,7 @@ def readconfig(uzbl_config, config):
     isint = re.compile("^(\-|)[0-9]+$").match
     findsets = re.compile("^set\s+([^\=]+)\s*\=\s*(.+)$",\
       re.MULTILINE).findall
-
+    
     h = open(os.path.expandvars(uzbl_config), 'r')
     rawconfig = h.read()
     h.close()
@@ -222,6 +237,11 @@ def readconfig(uzbl_config, config):
         if key not in config.keys(): continue
         if isint(value): value = int(value)
         config[key] = value
+    
+    # Ensure that config keys that relate to paths are expanded.
+    expand = ['fifo_dir', 'socket_dir', 'session_file', 'icon_path']
+    for key in expand:
+        config[key] = os.path.expandvars(config[key]) 
 
 
 def rmkdir(path):
@@ -243,6 +263,12 @@ def counter():
     while True:
         i += 1
         yield i
+
+
+def gen_endmarker():
+    '''Generates a random md5 for socket message-termination endmarkers.'''
+
+    return hashlib.md5(str(random.random()*time.time())).hexdigest()
 
 
 class UzblTabbed:
@@ -273,12 +299,16 @@ class UzblTabbed:
             self._connected = False
             # The kill switch
             self._kill = False
-            
+
+            # Message termination endmarker. 
+            self._marker = gen_endmarker()
+
             # Gen probe commands string
             probes = []
             probe = probes.append
-            probe('print uri %d @uri' % self.pid)
-            probe('print title %d @<document.title>@' % self.pid)
+            probe('print uri %d @uri %s' % (self.pid, self._marker))
+            probe('print title %d @<document.title>@ %s' % (self.pid,\
+              self._marker))
             self._probecmds = '\n'.join(probes)
              
             # Enqueue keybinding config for child uzbl instance
@@ -528,8 +558,8 @@ class UzblTabbed:
         
         for sock in reading:
             uzbl = sockd[sock]
-            uzbl._buffer = sock.recv(1024)
-            temp = uzbl._buffer.split("\n")
+            uzbl._buffer = sock.recv(1024).replace('\n',' ')
+            temp = uzbl._buffer.split(uzbl._marker)
             self._buffer = temp.pop()
             cmds = [s.strip().split() for s in temp if len(s.strip())]
             for cmd in cmds:
