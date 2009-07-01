@@ -32,13 +32,13 @@ set font_size = 11
 #set enable_spellcheck = 1
 
 ## Private browsing
-#set enbale_private = 0
+#set enable_private = 0
 
 ## The URI of a stylesheet that is applied to every page
 #set stylesheet_uri = http://www.user.com/mystylelesheet.css
 
 ## enable/disable JavaScript
-#set disbale_scripts = 1
+#set disable_scripts = 1
 
 ## Whether text areas are resizable
 #set resizeable_text_areas = 1
