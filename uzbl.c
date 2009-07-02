@@ -636,13 +636,13 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
 }
 
 static void
-title_change_cb (WebKitWebView* web_view, WebKitWebFrame* web_frame, const gchar* title, gpointer data) {
+title_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
     (void) web_view;
-    (void) web_frame;
-    (void) data;
+    (void) param_spec;
+    const gchar *title = webkit_web_view_get_title(web_view);
     if (uzbl.gui.main_title)
         g_free (uzbl.gui.main_title);
-    uzbl.gui.main_title = g_strdup (title);
+    uzbl.gui.main_title = title ? g_strdup (title) : g_strdup ("(no title)");
     update_title();
 }
 
@@ -803,9 +803,11 @@ static void
 set_var(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
     gchar **split = g_strsplit(argv_idx(argv, 0), "=", 2);
-    gchar *value = parseenv(g_strdup(split[1] ? g_strchug(split[1]) : " "));
-    set_var_value(g_strstrip(split[0]), value);
-    g_free(value);
+    if (split[0] != NULL) {
+        gchar *value = parseenv(g_strdup(split[1] ? g_strchug(split[1]) : " "));
+        set_var_value(g_strstrip(split[0]), value);
+        g_free(value);
+    }
     g_strfreev(split);
 }
 
@@ -2258,7 +2260,7 @@ create_browser () {
     g->web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
     gtk_container_add (GTK_CONTAINER (scrolled_window), GTK_WIDGET (g->web_view));
 
-    g_signal_connect (G_OBJECT (g->web_view), "title-changed", G_CALLBACK (title_change_cb), g->web_view);
+    g_signal_connect (G_OBJECT (g->web_view), "notify::title", G_CALLBACK (title_change_cb), NULL);
     g_signal_connect (G_OBJECT (g->web_view), "load-progress-changed", G_CALLBACK (progress_change_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-committed", G_CALLBACK (load_commit_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-started", G_CALLBACK (load_start_cb), g->web_view);
@@ -2493,8 +2495,13 @@ settings_init () {
     for (i = 0; default_config[i].command != NULL; i++) {
         parse_cmd_line(default_config[i].command, NULL);
     }
+    
+    if (g_strcmp0(s->config_file, "-") == 0) {
+        s->config_file = NULL;
+        create_stdin();
+    }
 
-    if (!s->config_file) {
+    else if (!s->config_file) {
         s->config_file = find_xdg_file (0, "/uzbl/config");
     }
 
@@ -2779,8 +2786,6 @@ main (int argc, char* argv[]) {
 
     /* WebInspector */
     set_up_inspector();
-
-    create_stdin();
 
     if (verbose_override > uzbl.state.verbose)
         uzbl.state.verbose = verbose_override;
