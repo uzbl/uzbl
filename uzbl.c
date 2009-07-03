@@ -2114,9 +2114,11 @@ update_title (void) {
         if (b->status_background) {
             GdkColor color;
             gdk_color_parse (b->status_background, &color);
-            //labels and hboxes do not draw their own background.  applying this on the window is ok as we the statusbar is the only affected widget.  (if not, we could also use GtkEventBox)
-            if (uzbl.gui.main_window)
-                gtk_widget_modify_bg (uzbl.gui.main_window, GTK_STATE_NORMAL, &color);
+            //labels and hboxes do not draw their own background. applying this on the window/vbox is ok as the statusbar is the only affected widget. (if not, we could also use GtkEventBox)
+	    if (uzbl.gui.main_window)
+	            gtk_widget_modify_bg (uzbl.gui.main_window, GTK_STATE_NORMAL, &color);
+	    else if (uzbl.gui.plug)
+	    	    gtk_widget_modify_bg ((GtkWidget * ) uzbl.gui.plug, GTK_STATE_NORMAL, &color);
         }
     } else {
         if (b->title_format_long) {
