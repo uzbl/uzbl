@@ -75,6 +75,10 @@
 # Issues: 
 #   - new windows are not caught and opened in a new tab.
 #   - when uzbl_tabbed.py crashes it takes all the children with it.
+#   - when a new tab is opened when using gtk tabs the tab button itself 
+#     grabs focus from its child for a few seconds. 
+#   - when switch_to_new_tabs is not selected the notebook page is 
+#     maintained but the new window grabs focus (try as I might to stop it).
 
 
 # Todo: 
@@ -134,34 +138,39 @@ if not os.path.exists(uzbl_config):
 # All of these settings can be inherited from your uzbl config file.
 config = { 
   # Tab options
-  'show_tablist':           True,
-  'show_gtk_tabs':          False,
-  'max_title_len':          50,
-  'tablist_top':            True,
-  'tab_titles':             True,
-  'gtk_tab_pos':            'top', # (top|left|bottom|right)
-  'new_tab_title':          'New tab',
-  'switch_to_new_tabs':     True,
+  'show_tablist':           True,   # Show text uzbl like statusbar tab-list
+  'show_gtk_tabs':          False,  # Show gtk notebook tabs
+  'tablist_top':            True,   # Display tab-list at top of window
+  'gtk_tab_pos':            'top',  # Gtk tab position (top|left|bottom|right)
+  'switch_to_new_tabs':     True,   # Upon opening a new tab switch to it
   
-  # uzbl options
-  'save_session':           True,
-  'fifo_dir':               '/tmp',
-  'socket_dir':             '/tmp',
+  # Tab title options
+  'tab_titles':             True,   # Display tab titles (else only tab-nums)
+  'new_tab_title':          'Loading', # New tab title
+  'max_title_len':          50,     # Truncate title at n characters
+  'show_ellipsis':          True,   # Show ellipsis when truncating titles
+
+  # Core options
+  'save_session':           True,   # Save session in file when quit
+  'fifo_dir':               '/tmp', # Path to look for uzbl fifo
+  'socket_dir':             '/tmp', # Path to look for uzbl socket 
   'icon_path':              os.path.join(data_dir, 'uzbl.png'),
   'session_file':           os.path.join(data_dir, 'session'),
-  'status_background':      "#303030",
-  'window_size':            "800,800", # in pixels
-  'monospace_size':         10, 
+
+  # Window options
+  'status_background':      "#303030", # Default background for all panels
+  'window_size':            "800,800", # width,height in pixels
   
   # Key bindings.
-  'bind_new_tab':           'gn',
-  'bind_tab_from_clip':     'gY', 
-  'bind_close_tab':         'gC',
-  'bind_next_tab':          'gt',
-  'bind_prev_tab':          'gT',
-  'bind_goto_tab':          'gi_',
-  'bind_goto_first':        'g<',
-  'bind_goto_last':         'g>',
+  'bind_new_tab':           'gn',   # Open new tab. 
+  'bind_tab_from_clip':     'gY',   # Open tab from clipboard.
+  'bind_tab_from_uri':      'go _', # Open new tab and goto entered uri.
+  'bind_close_tab':         'gC',   # Close tab.  
+  'bind_next_tab':          'gt',   # Next tab.
+  'bind_prev_tab':          'gT',   # Prev tab.
+  'bind_goto_tab':          'gi_',  # Goto tab by tab-number (in title)
+  'bind_goto_first':        'g<',   # Goto first tab
+  'bind_goto_last':         'g>',   # Goto last tab
   
   # Add custom tab style definitions to be used by the tab colour policy 
   # handler here. Because these are added to the config dictionary like
@@ -293,7 +302,7 @@ class UzblTabbed:
             self._socketout = []
             self._socket = None
             self._buffer = ""
-            # Switch to tab after connection
+            # Switch to tab after loading
             self._switch = switch
             # fifo/socket files exists and socket connected. 
             self._connected = False
@@ -354,11 +363,17 @@ class UzblTabbed:
                         del self.timers[timer_call]
 
                     if self._switch:
-                        tabs = list(self.parent.notebook)
-                        tabid = tabs.index(self.tab)
-                        self.parent.goto_tab(tabid)
-                
+                        self.grabfocus()
+
             return len(self._fifoout + self._socketout)
+
+        
+        def grabfocus(self):
+            '''Steal parent focus and switch the notebook to my own tab.'''
+            
+            tabs = list(self.parent.notebook)
+            tabid = tabs.index(self.tab)
+            self.parent.goto_tab(tabid)
 
 
         def probe(self):
@@ -392,6 +407,12 @@ class UzblTabbed:
         self._timers = {}
         self._buffer = ""
         
+        # Once a second is updated with the latest tabs' uris so that when the 
+        # window is killed the session is saved.
+        self._tabsuris = []
+        # And index of current page in self._tabsuris
+        self._curpage = 0
+
         # Holds metadata on the uzbl childen open.
         self.tabs = {}
         
@@ -454,8 +475,13 @@ class UzblTabbed:
             self.notebook.set_tab_pos(allposes[config['gtk_tab_pos']])
 
         self.notebook.set_show_border(False)
+        self.notebook.set_scrollable(True)
+        self.notebook.set_border_width(0)
+
         self.notebook.connect("page-removed", self.tab_closed)
         self.notebook.connect("switch-page", self.tab_changed)
+        self.notebook.connect("page-added", self.tab_opened)
+
         self.notebook.show()
         if config['show_tablist']:
             if config['tablist_top']:
@@ -525,7 +551,7 @@ class UzblTabbed:
         gid = gobject.io_add_watch(fd, gobject.IO_HUP, self.main_fifo_hangup)
         watcher('main-fifo-hangup', gid)
         
-
+    
     def run(self):
         '''UzblTabbed main function that calls the gtk loop.'''
 
@@ -546,12 +572,20 @@ class UzblTabbed:
         '''Probe all uzbl clients for up-to-date window titles and uri's.'''
         
         sockd = {}
+        uriinventory = []
+        tabskeys = self.tabs.keys()
+        notebooklist = list(self.notebook)
 
-        for tab in self.tabs.keys():
+        for tab in notebooklist:
+            if tab not in tabskeys: continue
             uzbl = self.tabs[tab]
+            uriinventory.append(uzbl.uri)
             uzbl.probe()
             if uzbl._socket:
                 sockd[uzbl._socket] = uzbl
+
+        self._tabsuris = uriinventory
+        self._curpage = self.notebook.get_current_page()
 
         sockets = sockd.keys()
         (reading, _, errors) = select.select(sockets, [], sockets, 0)
@@ -694,7 +728,7 @@ class UzblTabbed:
         return False
    
 
-    def new_tab(self, uri='', switch=True):
+    def new_tab(self, uri='', switch=None):
         '''Add a new tab to the notebook and start a new instance of uzbl.
         Use the switch option to negate config['switch_to_new_tabs'] option 
         when you need to load multiple tabs at a time (I.e. like when 
@@ -711,8 +745,14 @@ class UzblTabbed:
         socket_filename = 'uzbl_socket_%s_%0.2d' % (self.wid, pid)
         socket_file = os.path.join(config['socket_dir'], socket_filename)
         
+        if switch is None:
+            switch = config['switch_to_new_tabs']
+
+
         # Create meta-instance and spawn child
-        if uri: uri = '--uri %s' % uri
+        if len(uri.strip()):
+            uri = '--uri %s' % uri
+
         uzbl = self.UzblInstance(self, tab, fifo_socket, socket_file, pid,\
           uri, switch)
         self.tabs[tab] = uzbl
@@ -740,6 +780,7 @@ class UzblTabbed:
         # bind ( key , command back to fifo ) 
         bind(config['bind_new_tab'], 'new')
         bind(config['bind_tab_from_clip'], 'newfromclip')
+        bind(config['bind_tab_from_uri'], 'new %s')
         bind(config['bind_close_tab'], 'close')
         bind(config['bind_next_tab'], 'next')
         bind(config['bind_prev_tab'], 'prev')
@@ -751,19 +792,21 @@ class UzblTabbed:
         uzbl.send("\n".join(binds))
 
 
-    def goto_tab(self, n):
+    def goto_tab(self, index):
         '''Goto tab n (supports negative indexing).'''
         
-        if 0 <= n < self.notebook.get_n_pages():
-            self.notebook.set_current_page(n)
+        tabs = list(self.notebook)
+        if 0 <= index < len(tabs):
+            self.notebook.set_current_page(index)
             self.update_tablist()
             return None
 
         try: 
-            tabs = list(self.notebook)
-            tab = tabs[n]
-            i = tabs.index(tab)
-            self.notebook.set_current_page(i)
+            tab = tabs[index]
+            # Update index because index might have previously been a
+            # negative index. 
+            index = tabs.index(tab)
+            self.notebook.set_current_page(index)
             self.update_tablist()
         
         except IndexError:
@@ -778,8 +821,8 @@ class UzblTabbed:
             return None
                 
         ntabs = self.notebook.get_n_pages()
-        tabn = self.notebook.get_current_page() + step
-        self.notebook.set_current_page(tabn % ntabs)
+        tabn = (self.notebook.get_current_page() + step) % ntabs
+        self.notebook.set_current_page(tabn)
         self.update_tablist()
 
 
@@ -803,18 +846,30 @@ class UzblTabbed:
         if tabn is None: 
             tabn = self.notebook.get_current_page()
         
-        try: 
-            tab = list(self.notebook)[tabn]
+        else:
+            try: 
+                tab = list(self.notebook)[tabn]
         
-
-        except IndexError:
-            error("close_tab: invalid index %r" % tabn)
-            return None
+            except IndexError:
+                error("close_tab: invalid index %r" % tabn)
+                return None
 
         self.notebook.remove_page(tabn)
 
+    
+    def tab_opened(self, notebook, tab, index):
+        '''Called upon tab creation. Called by page-added signal.'''
+        
+        if config['switch_to_new_tabs']:
+            self.notebook.set_focus_child(tab)
 
-    def tab_closed(self, notebook, tab, page_num):
+        else:
+            oldindex = self.notebook.get_current_page()
+            oldtab = self.notebook.get_nth_page(oldindex)
+            self.notebook.set_focus_child(oldtab)
+
+
+    def tab_closed(self, notebook, tab, index):
         '''Close the window if no tabs are left. Called by page-removed 
         signal.'''
         
@@ -838,24 +893,32 @@ class UzblTabbed:
 
         self.update_tablist()
 
+        return True
 
-    def tab_changed(self, notebook, page, page_num):
+
+    def tab_changed(self, notebook, page, index):
         '''Refresh tab list. Called by switch-page signal.'''
+        
+        tab = self.notebook.get_nth_page(index)
+        self.notebook.set_focus_child(tab)
+        self.update_tablist(index)
+        return True
 
-        self.update_tablist()
 
-
-    def update_tablist(self):
+    def update_tablist(self, curpage=None):
         '''Upate tablist status bar.'''
     
         show_tablist = config['show_tablist']
         show_gtk_tabs = config['show_gtk_tabs']
         tab_titles = config['tab_titles']
+        show_ellipsis = config['show_ellipsis']
         if not show_tablist and not show_gtk_tabs:
             return True
 
         tabs = self.tabs.keys()
-        curpage = self.notebook.get_current_page()
+        if curpage is None:
+            curpage = self.notebook.get_current_page()
+
         title_format = "%s - Uzbl Browser"
         max_title_len = config['max_title_len']
 
@@ -877,20 +940,24 @@ class UzblTabbed:
             
             if index == curpage:
                 self.window.set_title(title_format % uzbl.title)
+            
+            tabtitle = uzbl.title[:max_title_len]
+            if show_ellipsis and len(tabtitle) != len(uzbl.title):
+                tabtitle = "%s\xe2\x80\xa6" % tabtitle[:-1] # Show Ellipsis
 
             if show_gtk_tabs:
                 if tab_titles:
-                    self.notebook.set_tab_label_text(tab, \
-                      gtk_tab_format % (index, uzbl.title[:max_title_len]))
+                    self.notebook.set_tab_label_text(tab,\
+                      gtk_tab_format % (index, tabtitle))
                 else:
                     self.notebook.set_tab_label_text(tab, str(index))
 
             if show_tablist:
                 style = colour_selector(index, curpage, uzbl)
                 (tabc, textc) = style
+
                 if tab_titles:
-                    pango += tab_format % (tabc, index, textc,\
-                      uzbl.title[:max_title_len])
+                    pango += tab_format % (tabc, index, textc, tabtitle)
                 else:
                     pango += tab_format % (tabc, textc, index)
         
@@ -921,20 +988,17 @@ class UzblTabbed:
             print "Unlinked %s" % self.fifo_socket
 
         if config['save_session']:
-            session_file = os.path.expandvars(config['session_file'])
-            if self.notebook.get_n_pages():
+            session_file = config['session_file']
+            if len(self._tabsuris):
                 if not os.path.isfile(session_file):
                     dirname = os.path.dirname(session_file)
                     if not os.path.isdir(dirname):
+                        # Recursive mkdir not rmdir. 
                         rmkdir(dirname)
-
+                
+                sessionstr = '\n'.join(self._tabsuris)
                 h = open(session_file, 'w')
-                h.write('current = %s\n' % self.notebook.get_current_page())
-                tabs = self.tabs.keys()
-                for tab in list(self.notebook):                       
-                    if tab not in tabs: continue
-                    uzbl = self.tabs[tab]
-                    h.write("%s\n" % uzbl.uri)
+                h.write('current = %s\n%s' % (self._curpage, sessionstr))
                 h.close()
                 
             else:
@@ -957,14 +1021,22 @@ if __name__ == "__main__":
         lines = [line.strip() for line in h.readlines()]
         h.close()
         current = 0
+        urls = []
         for line in lines:
             if line.startswith("current"):
                 current = int(line.split()[-1])
 
             else:
+                urls.append(line.strip())
+
+        for (index, url) in enumerate(urls):
+            if current == index:
+                uzbl.new_tab(line, True)
+            
+            else:        
                 uzbl.new_tab(line, False)
 
-        if not len(lines):
+        if not len(urls):
             self.new_tab()
 
     else:
