@@ -35,7 +35,7 @@ be handled outside of uzbl by a separate/different program.  Here are some solut
 
  * Many window managers can (and should) handle this by default.  Xmonads tabbed layout, Wmii's stacked layout and so on.
  * Uzbl supports acting as a GtkPlug to plug into GtkSockets (Xembed) so you can embed uzbl instances in other Gtk applications.
-   This allows several implementatinos, a popular one is [uzbl_tabbed.py](http://www.uzbl.org/wiki/uzbl_tabbed) (TODO: include with sample scripts)
+   This allows several implementatinos, a popular one is [uzbl_tabbed.py](http://www.uzbl.org/wiki/uzbl_tabbed)
  * If you want highest customizablity, you need the 3rd option:
    You can also write a custom script.  The only thing you need to do is focus/maximize the instance you want,
    keep the others out of sight and use tools like dmenu and wmctrl to switch instances.

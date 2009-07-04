@@ -42,34 +42,60 @@
 # Here is a list of configuration options that can be customised and some
 # example values for each:
 #
-#   set show_tablist        = 1
-#   set show_gtk_tabs       = 0
-#   set switch_to_new_tabs  = 1
-#   set save_session        = 1
-#   set gtk_tab_pos         = (left|bottom|top|right)
-#   set max_title_len       = 50
-#   set new_tab_title       = New tab
-#   set status_background   = #303030
-#   set session_file        = $HOME/.local/share/session
-#   set tab_colours         = foreground = "#999"
-#   set tab_text_colours    = foreground = "#444"
-#   set selected_tab        = foreground = "#aaa" background="#303030"
-#   set selected_tab_text   = foreground = "green" 
-#   set window_size         = 800,800
+# General tabbing options:
+#   show_tablist            = 1   
+#   show_gtk_tabs           = 0  
+#   tablist_top             = 1   
+#   gtk_tab_pos             = (top|left|bottom|right)
+#   switch_to_new_tabs      = 1
+#  
+# Tab title options:
+#   tab_titles              = 1
+#   new_tab_title           = Loading
+#   max_title_len           = 50
+#   show_ellipsis           = 1
 #
-# And the keybindings:
+# Core options:
+#   save_session            = 1
+#   fifo_dir                = /tmp
+#   socket_dir              = /tmp 
+#   icon_path               = $HOME/.local/share/uzbl/uzbl.png
+#   session_file            = $HOME/.local/share/uzbl/session
 #
-#   set bind_new_tab        = gn
-#   set bind_tab_from_clip  = gY
-#   set bind_close_tab      = gC
-#   set bind_next_tab       = gt
-#   set bind_prev_tab       = gT
-#   set bind_goto_tab       = gi_
-#   set bind_goto_first     = g<
-#   set bind_goto_last      = g>
+# Window options:
+#   status_background       = #303030
+#   window_size             = 800,800
+# 
+# And the key bindings:
+#   bind_new_tab            = gn 
+#   bind_tab_from_clip      = gY
+#   bind_tab_from_uri       = go _
+#   bind_close_tab          = gC  
+#   bind_next_tab           = gt
+#   bind_prev_tab           = gT
+#   bind_goto_tab           = gi_
+#   bind_goto_first         = g<
+#   bind_goto_last          = g>
 #
 # And uzbl_tabbed.py takes care of the actual binding of the commands via each
 # instances fifo socket. 
+#
+# Custom tab styling: 
+#   tab_colours             = foreground = "#888" background = "#303030"
+#   tab_text_colours        = foreground = "#bbb"
+#   selected_tab            = foreground = "#fff"
+#   selected_tab_text       = foreground = "green"
+#   tab_indicate_https      = 1
+#   https_colours           = foreground = "#888"
+#   https_text_colours      = foreground = "#9c8e2d"
+#   selected_https          = foreground = "#fff"
+#   selected_https_text     = foreground = "gold"
+#
+# How these styling values are used are soley defined by the syling policy
+# handler below (the function in the config section). So you can for example
+# turn the tab text colour Firetruck-Red in the event "error" appears in the 
+# tab title or some other arbitrary event. You may wish to make a trusted
+# hosts file and turn tab titles of tabs visiting trusted hosts purple. 
 
 
 # Issues: 
@@ -92,6 +118,7 @@
 #   - check spelling.
 #   - pass a uzbl socketid to uzbl_tabbed.py and have it assimilated into 
 #     the collective. Resistance is futile!
+#   - on demand store the session to file (need binding & command for that)
 
 
 import pygtk
