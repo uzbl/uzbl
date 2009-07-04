@@ -40,7 +40,6 @@ More or less in order of importance/urgency
 * check for real command name, not just the first letter.
 * let users attach handlers to the most common events/signals in uzbl.
   great use case: automatically calling formfiller for certain sites
-* default session path in uzbl_tabbed is not ok
 * document:
   stylesheet overridding
   formfiller
