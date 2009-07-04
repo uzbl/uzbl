@@ -33,6 +33,7 @@ Contributors:
     (dequis) - Uzbl.run, birectional socket, javascript commands
     Brendan Taylor (bct) - various bugfixes
     Chris van Dijk (quigybo) - work on uzbl_tabbed.py
+    Moritz Lenz - small doc fix
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:
