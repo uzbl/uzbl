@@ -376,7 +376,7 @@ run_keycmd(const gboolean key_ret);
 static void
 exec_paramcmd(const Action* act, const guint i);
 
-static GtkWidget*
+GtkWidget*
 create_browser ();
 
 static GtkWidget*

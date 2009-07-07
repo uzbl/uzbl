@@ -244,7 +244,7 @@ return EXP_ERR;
  * recurse == 2: don't expand '@<java script>@'
  */
 gchar *
-expand(char *s, guint recurse) {
+expand(char *s, guint recurse, gboolean escape_markup) {
     uzbl_cmdprop *c;
     guint etype;
     char upto = ' ';
@@ -319,7 +319,14 @@ expand(char *s, guint recurse) {
                     }
 
                     if(c && c->type == TYPE_STR) {
-                        g_string_append(buf, (gchar *)ptr);
+                        if(escape_markup) {
+                            char *b = g_markup_escape_text((gchar *)ptr,
+                                strlen((gchar *)ptr));
+                            g_string_append(buf, b);
+                            g_free(b);
+                        } else {
+                            g_string_append(buf, (gchar *)ptr);
+                        }
                     } else if(c && c->type == TYPE_INT) {
                         char *b = itos((uintptr_t)ptr);
                         g_string_append(buf, b);
@@ -331,9 +338,9 @@ expand(char *s, guint recurse) {
                     else
                         s = vend+1;
                 }
-                else if(recurse != 1 && 
+                else if(recurse != 1 &&
                         etype == EXP_EXPR) {
-                    mycmd = expand(ret, 1);
+                    mycmd = expand(ret, 1, escape_markup);
                     g_spawn_command_line_sync(mycmd, &cmd_stdout, NULL, NULL, &err);
                     g_free(mycmd);
 
@@ -342,19 +349,33 @@ expand(char *s, guint recurse) {
                         g_error_free (err);
                     }
                     else if (*cmd_stdout) {
-                        g_string_append(buf, cmd_stdout);
+                        if(escape_markup) {
+                            char *b = g_markup_escape_text(cmd_stdout,
+                                strlen(cmd_stdout));
+                            g_string_append(buf, b);
+                            g_free(b);
+                        } else {
+                          g_string_append(buf, cmd_stdout);
+                        }
                         g_free(cmd_stdout);
                     }
                     s = vend+2;
                 }
-                else if(recurse != 2 && 
+                else if(recurse != 2 &&
                         etype == EXP_JS) {
-                    mycmd = expand(ret, 2);
+                    mycmd = expand(ret, 2, escape_markup);
                     eval_js(uzbl.gui.web_view, mycmd, js_ret);
                     g_free(mycmd);
 
                     if(js_ret->str) {
-                        g_string_append(buf, js_ret->str);
+                        if(escape_markup) {
+                            char *b = g_markup_escape_text(js_ret->str,
+                                strlen(js_ret->str));
+                            g_string_append(buf, b);
+                            g_free(b);
+                        } else {
+                            g_string_append(buf, js_ret->str);
+                        }
                         g_string_free(js_ret, TRUE);
                         js_ret = g_string_new("");
                     }
@@ -855,7 +876,7 @@ print(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
     gchar* buf;
 
-    buf = expand(argv_idx(argv, 0), 0);
+    buf = expand(argv_idx(argv, 0), 0, FALSE);
     g_string_assign(result, buf);
     g_free(buf);
 }
@@ -1797,17 +1818,17 @@ set_var_value(gchar *name, gchar *val) {
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         /* check for the variable type */
         if (c->type == TYPE_STR) {
-            buf = expand(val, 0);
+            buf = expand(val, 0, FALSE);
             g_free(*c->ptr);
             *c->ptr = buf;
         } else if(c->type == TYPE_INT) {
             int *ip = (int *)c->ptr;
-            buf = expand(val, 0);
+            buf = expand(val, 0, FALSE);
             *ip = (int)strtoul(buf, &endp, 10);
             g_free(buf);
         } else if (c->type == TYPE_FLOAT) {
             float *fp = (float *)c->ptr;
-            buf = expand(val, 0);
+            buf = expand(val, 0, FALSE);
             *fp = strtod(buf, &endp);
             g_free(buf);
         }
@@ -2244,7 +2265,7 @@ exec_paramcmd(const Action *act, const guint i) {
 }
 
 
-static GtkWidget*
+GtkWidget*
 create_browser () {
     GUI *g = &uzbl.gui;
 

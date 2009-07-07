@@ -27,7 +27,7 @@
 
 extern Uzbl uzbl;
 
-extern gchar* expand(char*, guint);
+extern gchar* expand(char*, guint, gboolean);
 extern gchar* expand_template(const char*, gboolean);
 extern void make_var_to_name_hash(void);
 
@@ -107,7 +107,7 @@ test_WEBKIT_VERSION (void) {
     g_string_append(expected, " ");
     g_string_append(expected, itos(WEBKIT_MICRO_VERSION));
 
-    g_assert_cmpstr(expand("@WEBKIT_MAJOR @WEBKIT_MINOR @WEBKIT_MICRO", 0), ==, g_string_free(expected, FALSE));
+    g_assert_cmpstr(expand("@WEBKIT_MAJOR @WEBKIT_MINOR @WEBKIT_MICRO", 0, FALSE), ==, g_string_free(expected, FALSE));
 }
 
 void
@@ -124,17 +124,17 @@ test_UNAMEINFO (void) {
     g_string_append(expected, " ");
     g_string_append(expected, uzbl.state.unameinfo.machine);
 
-    g_assert_cmpstr(expand("@SYSNAME @NODENAME @KERNREL @KERNVER @ARCH_SYSTEM", 0), ==, g_string_free(expected, FALSE));
+    g_assert_cmpstr(expand("@SYSNAME @NODENAME @KERNREL @KERNVER @ARCH_SYSTEM", 0, FALSE), ==, g_string_free(expected, FALSE));
 }
 
 void
 test_ARCH_UZBL (void) {
-    g_assert_cmpstr(expand("@ARCH_UZBL", 0), ==, ARCH);
+    g_assert_cmpstr(expand("@ARCH_UZBL", 0, FALSE), ==, ARCH);
 }
 
 void
 test_COMMIT (void) {
-    g_assert_cmpstr(expand("@COMMIT", 0), ==, COMMIT);
+    g_assert_cmpstr(expand("@COMMIT", 0, FALSE), ==, COMMIT);
 }
 
 void
@@ -180,6 +180,24 @@ test_cmd_useragent_full (void) {
     g_assert_cmpstr(uzbl.net.useragent, ==, g_string_free(expected, FALSE));
 }
 
+void
+test_escape_markup (void) {
+    /* simple expansion */
+    uzbl.state.uri = g_strdup("<&>");
+    g_assert_cmpstr(expand("@uri", 0, FALSE), ==, uzbl.state.uri);
+    g_assert_cmpstr(expand("@uri", 0, TRUE), ==, "&lt;&amp;&gt;");
+
+    /* shell expansion */
+    g_assert_cmpstr(expand("@(echo -n '<&>')@", 0, FALSE), ==, "<&>");
+    g_assert_cmpstr(expand("@(echo -n '<&>')@", 0, TRUE), ==, "&lt;&amp;&gt;");
+
+    /* javascript expansion */
+    g_assert_cmpstr(expand("@<'<&>'>@", 0, FALSE), ==, "<&>");
+    g_assert_cmpstr(expand("@<'<&>'>@", 0, TRUE), ==, "&lt;&amp;&gt;");
+
+    g_free(uzbl.state.uri);
+}
+
 int
 main (int argc, char *argv[]) {
     g_type_init();
@@ -204,6 +222,9 @@ main (int argc, char *argv[]) {
     g_test_add_func("/test-expand/cmd_useragent_simple", test_cmd_useragent_simple);
     g_test_add_func("/test-expand/cmd_useragent_full", test_cmd_useragent_full);
 
+    g_test_add_func("/test-expand/escape_markup", test_escape_markup);
+
+    gtk_init(&argc, &argv);
     if (!g_thread_supported ())
         g_thread_init (NULL);
 
@@ -214,6 +235,8 @@ main (int argc, char *argv[]) {
 
     setup_scanner();
     make_var_to_name_hash();
+
+    uzbl.gui.scrolled_win = create_browser();
 
     return g_test_run();
 }
