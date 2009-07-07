@@ -301,6 +301,14 @@ def counter():
         yield i
 
 
+def escape(s):
+    '''Replaces html markup in tab titles that screw around with pango.'''
+
+    for (split, glue) in [('&','&amp;'), ('<', '&lt;'), ('>', '&gt;')]:
+        s = s.replace(split, glue)
+    return s
+
+
 def gen_endmarker():
     '''Generates a random md5 for socket message-termination endmarkers.'''
 
@@ -984,7 +992,8 @@ class UzblTabbed:
                 (tabc, textc) = style
 
                 if tab_titles:
-                    pango += tab_format % (tabc, index, textc, tabtitle)
+                    pango += tab_format % (tabc, index, textc,\
+                      escape(tabtitle))
                 else:
                     pango += tab_format % (tabc, textc, index)
         
