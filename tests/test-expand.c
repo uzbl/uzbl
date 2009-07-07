@@ -28,6 +28,7 @@
 extern Uzbl uzbl;
 
 extern gchar* expand_template(const char*, gboolean);
+extern void make_var_to_name_hash(void);
 
 void
 test_URI (void) {
@@ -139,19 +140,45 @@ test_COMMIT (void) {
 }
 
 void
-test_cmd_useragent (void) {
+test_cmd_useragent_simple (void) {
     GString* expected = g_string_new("Uzbl (Webkit ");
     g_string_append(expected, itos(WEBKIT_MAJOR_VERSION));
     g_string_append(expected, ".");
     g_string_append(expected, itos(WEBKIT_MINOR_VERSION));
     g_string_append(expected, ".");
     g_string_append(expected, itos(WEBKIT_MICRO_VERSION));
-    g_string_append(expected, " ");
-    g_string_append(expected, ARCH);
     g_string_append(expected, ")");
 
-    set_var_value("useragent", "Uzbl (Webkit WEBKIT_MAJOR.WEBKIT_MINOR.WEBKIT_MICRO ARCH_UZBL)");
-    cmd_useragent();
+    set_var_value("useragent", "Uzbl (Webkit WEBKIT_MAJOR.WEBKIT_MINOR.WEBKIT_MICRO)");
+    g_assert_cmpstr(uzbl.net.useragent, ==, g_string_free(expected, FALSE));
+}
+
+void
+test_cmd_useragent_full (void) {
+    GString* expected = g_string_new("Uzbl (Webkit ");
+    g_string_append(expected, itos(WEBKIT_MAJOR_VERSION));
+    g_string_append(expected, ".");
+    g_string_append(expected, itos(WEBKIT_MINOR_VERSION));
+    g_string_append(expected, ".");
+    g_string_append(expected, itos(WEBKIT_MICRO_VERSION));
+    g_string_append(expected, ") (");
+
+    g_string_append(expected, uzbl.state.unameinfo.sysname);
+    g_string_append(expected, " ");
+    g_string_append(expected, uzbl.state.unameinfo.nodename);
+    g_string_append(expected, " ");
+    g_string_append(expected, uzbl.state.unameinfo.release);
+    g_string_append(expected, " ");
+    g_string_append(expected, uzbl.state.unameinfo.version);
+    g_string_append(expected, " ");
+    g_string_append(expected, uzbl.state.unameinfo.machine);
+    g_string_append(expected, " [");
+    g_string_append(expected, ARCH);
+    g_string_append(expected, "]) (Commit ");
+    g_string_append(expected, COMMIT);
+    g_string_append(expected, ")");
+
+    set_var_value("useragent", "Uzbl (Webkit WEBKIT_MAJOR.WEBKIT_MINOR.WEBKIT_MICRO) (SYSNAME NODENAME KERNREL KERNVER ARCH_SYSTEM [ARCH_UZBL]) (Commit COMMIT)");
     g_assert_cmpstr(uzbl.net.useragent, ==, g_string_free(expected, FALSE));
 }
 
@@ -176,7 +203,8 @@ main (int argc, char *argv[]) {
     /* g_test_add_func("/test-expand/DOMAINNAME", test_DOMAINNAME); */
     g_test_add_func("/test-expand/COMMIT", test_COMMIT);
 
-    g_test_add_func("/test-expand/cmd_useragent", test_cmd_useragent);
+    g_test_add_func("/test-expand/cmd_useragent_simple", test_cmd_useragent_simple);
+    g_test_add_func("/test-expand/cmd_useragent_full", test_cmd_useragent_full);
 
     if (!g_thread_supported ())
         g_thread_init (NULL);
