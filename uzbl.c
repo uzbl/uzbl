@@ -157,6 +157,30 @@ const struct {
 }, *n2v_p = var_name_to_ptr;
 
 const struct {
+    char *name;
+    struct {
+      void *ptr;
+      int type;
+    } cp;
+} const_name_to_ptr[] = {
+    { "WEBKIT_MAJOR",  {(void*)WEBKIT_MAJOR_VERSION,        TYPE_INT}},
+    { "WEBKIT_MINOR",  {(void*)WEBKIT_MINOR_VERSION,        TYPE_INT}},
+    { "WEBKIT_MICRO",  {(void*)WEBKIT_MICRO_VERSION,        TYPE_INT}},
+    { "SYSNAME",       {&(uzbl.state.unameinfo.sysname),    TYPE_STR}},
+    { "NODENAME",      {&(uzbl.state.unameinfo.nodename),   TYPE_STR}},
+    { "KERNREL",       {&(uzbl.state.unameinfo.release),    TYPE_STR}},
+    { "KERNVER",       {&(uzbl.state.unameinfo.version),    TYPE_STR}},
+    { "ARCH_SYSTEM",   {&(uzbl.state.unameinfo.machine),    TYPE_STR}},
+    { "ARCH_UZBL",     {&(ARCH),                            TYPE_STR}},
+#ifdef _GNU_SOURCE
+    { "DOMAINNAME",    {&(uzbl.state.unameinfo.domainname), TYPE_STR}},
+#endif
+    { "COMMIT",        {&(COMMIT),                          TYPE_STR}},
+
+    { NULL,            {NULL,                               TYPE_INT}}
+}, *n2c_p = const_name_to_ptr;
+
+const struct {
     char *key;
     guint mask;
 } modkeys[] = {
@@ -180,13 +204,20 @@ const struct {
 };
 
 
-/* construct a hash from the var_name_to_ptr array for quick access */
+/* construct a hash from the var_name_to_ptr and the const_name_to_ptr array
+ * for quick access */
 void
 make_var_to_name_hash() {
     uzbl.comm.proto_var = g_hash_table_new(g_str_hash, g_str_equal);
     while(n2v_p->name) {
         g_hash_table_insert(uzbl.comm.proto_var, n2v_p->name, (gpointer) &n2v_p->cp);
         n2v_p++;
+    }
+
+    uzbl.comm.proto_const = g_hash_table_new(g_str_hash, g_str_equal);
+    while(n2c_p->name) {
+        g_hash_table_insert(uzbl.comm.proto_const, n2c_p->name, (gpointer) &n2c_p->cp);
+        n2c_p++;
     }
 }
 
@@ -212,7 +243,7 @@ return EXP_ERR;
  * recurse == 1: don't expand '@(command)@'
  * recurse == 2: don't expand '@<java script>@'
  */
-static gchar *
+gchar *
 expand(char *s, guint recurse) {
     uzbl_cmdprop *c;
     guint etype;
@@ -276,17 +307,25 @@ expand(char *s, guint recurse) {
                         break;
                 }
 
-                if(etype == EXP_SIMPLE_VAR || 
+                if(etype == EXP_SIMPLE_VAR ||
                    etype == EXP_BRACED_VAR) {
-                    if( (c = g_hash_table_lookup(uzbl.comm.proto_var, ret)) ) {
-                        if(c->type == TYPE_STR)
-                            g_string_append(buf, (gchar *)*c->ptr);
-                        else if(c->type == TYPE_INT) {
-                            char *b = itos((int)*c->ptr);
-                            g_string_append(buf, b);
-                            g_free(b);
-                        }
+                    void *ptr;
+
+                    if('A' <= ret[0] && 'Z' >= ret[0] &&
+                       (c = g_hash_table_lookup(uzbl.comm.proto_const, ret))) {
+                        ptr = c->ptr;
+                    } else if( (c = g_hash_table_lookup(uzbl.comm.proto_var, ret)) ) {
+                        ptr = *c->ptr;
                     }
+
+                    if(c && c->type == TYPE_STR) {
+                        g_string_append(buf, (gchar *)ptr);
+                    } else if(c && c->type == TYPE_INT) {
+                        char *b = itos((uintptr_t)ptr);
+                        g_string_append(buf, b);
+                        g_free(b);
+                    }
+
                     if(etype == EXP_SIMPLE_VAR)
                         s = vend;
                     else
@@ -1278,47 +1317,6 @@ expand_template(const char *template, gboolean escape_markup) {
                              uzbl.gui.sbar.msg?uzbl.gui.sbar.msg:"");
                      break;
                      /* useragent syms */
-                 case SYM_WK_MAJ:
-                     buf = itos(WEBKIT_MAJOR_VERSION);
-                     g_string_append(ret, buf);
-                     g_free(buf);
-                     break;
-                 case SYM_WK_MIN:
-                     buf = itos(WEBKIT_MINOR_VERSION);
-                     g_string_append(ret, buf);
-                     g_free(buf);
-                     break;
-                 case SYM_WK_MIC:
-                     buf = itos(WEBKIT_MICRO_VERSION);
-                     g_string_append(ret, buf);
-                     g_free(buf);
-                     break;
-                 case SYM_SYSNAME:
-                     g_string_append(ret, uzbl.state.unameinfo.sysname);
-                     break;
-                 case SYM_NODENAME:
-                     g_string_append(ret, uzbl.state.unameinfo.nodename);
-                     break;
-                 case SYM_KERNREL:
-                     g_string_append(ret, uzbl.state.unameinfo.release);
-                     break;
-                 case SYM_KERNVER:
-                     g_string_append(ret, uzbl.state.unameinfo.version);
-                     break;
-                 case SYM_ARCHSYS:
-                     g_string_append(ret, uzbl.state.unameinfo.machine);
-                     break;
-                 case SYM_ARCHUZBL:
-                     g_string_append(ret, ARCH);
-                     break;
-#ifdef _GNU_SOURCE
-                 case SYM_DOMAINNAME:
-                     g_string_append(ret, uzbl.state.unameinfo.domainname);
-                     break;
-#endif
-                 case SYM_COMMIT:
-                     g_string_append(ret, COMMIT);
-                     break;
                  default:
                      break;
              }
@@ -1764,11 +1762,8 @@ cmd_useragent() {
         g_free (uzbl.net.useragent);
         uzbl.net.useragent = NULL;
     } else {
-        gchar *ua = expand_template(uzbl.net.useragent, FALSE);
-        if (ua)
-            g_object_set(G_OBJECT(uzbl.net.soup_session), SOUP_SESSION_USER_AGENT, ua, NULL);
-        g_free(uzbl.net.useragent);
-        uzbl.net.useragent = ua;
+        g_object_set(G_OBJECT(uzbl.net.soup_session), SOUP_SESSION_USER_AGENT,
+            uzbl.net.useragent, NULL);
     }
 }
 

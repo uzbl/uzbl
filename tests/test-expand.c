@@ -27,6 +27,7 @@
 
 extern Uzbl uzbl;
 
+extern gchar* expand(char*, guint);
 extern gchar* expand_template(const char*, gboolean);
 extern void make_var_to_name_hash(void);
 
@@ -106,15 +107,12 @@ test_WEBKIT_VERSION (void) {
     g_string_append(expected, " ");
     g_string_append(expected, itos(WEBKIT_MICRO_VERSION));
 
-    g_assert_cmpstr(expand_template("WEBKIT_MAJOR WEBKIT_MINOR WEBKIT_MICRO", FALSE), ==, g_string_free(expected, FALSE));
+    g_assert_cmpstr(expand("@WEBKIT_MAJOR @WEBKIT_MINOR @WEBKIT_MICRO", 0), ==, g_string_free(expected, FALSE));
 }
 
 void
 test_UNAMEINFO (void) {
     GString* expected = g_string_new("");
-
-    if(uname(&uzbl.state.unameinfo) == -1)
-      g_printerr("Can't retrieve unameinfo. This test might fail.\n");
 
     g_string_append(expected, uzbl.state.unameinfo.sysname);
     g_string_append(expected, " ");
@@ -126,17 +124,17 @@ test_UNAMEINFO (void) {
     g_string_append(expected, " ");
     g_string_append(expected, uzbl.state.unameinfo.machine);
 
-    g_assert_cmpstr(expand_template("SYSNAME NODENAME KERNREL KERNVER ARCH_SYSTEM", FALSE), ==, g_string_free(expected, FALSE));
+    g_assert_cmpstr(expand("@SYSNAME @NODENAME @KERNREL @KERNVER @ARCH_SYSTEM", 0), ==, g_string_free(expected, FALSE));
 }
 
 void
 test_ARCH_UZBL (void) {
-    g_assert_cmpstr(expand_template("ARCH_UZBL", FALSE), ==, ARCH);
+    g_assert_cmpstr(expand("@ARCH_UZBL", 0), ==, ARCH);
 }
 
 void
 test_COMMIT (void) {
-    g_assert_cmpstr(expand_template("COMMIT", FALSE), ==, COMMIT);
+    g_assert_cmpstr(expand("@COMMIT", 0), ==, COMMIT);
 }
 
 void
@@ -149,7 +147,7 @@ test_cmd_useragent_simple (void) {
     g_string_append(expected, itos(WEBKIT_MICRO_VERSION));
     g_string_append(expected, ")");
 
-    set_var_value("useragent", "Uzbl (Webkit WEBKIT_MAJOR.WEBKIT_MINOR.WEBKIT_MICRO)");
+    set_var_value("useragent", "Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO)");
     g_assert_cmpstr(uzbl.net.useragent, ==, g_string_free(expected, FALSE));
 }
 
@@ -178,7 +176,7 @@ test_cmd_useragent_full (void) {
     g_string_append(expected, COMMIT);
     g_string_append(expected, ")");
 
-    set_var_value("useragent", "Uzbl (Webkit WEBKIT_MAJOR.WEBKIT_MINOR.WEBKIT_MICRO) (SYSNAME NODENAME KERNREL KERNVER ARCH_SYSTEM [ARCH_UZBL]) (Commit COMMIT)");
+    set_var_value("useragent", "Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@SYSNAME @NODENAME @KERNREL @KERNVER @ARCH_SYSTEM [@ARCH_UZBL]) (Commit @COMMIT)");
     g_assert_cmpstr(uzbl.net.useragent, ==, g_string_free(expected, FALSE));
 }
 
@@ -210,6 +208,10 @@ main (int argc, char *argv[]) {
         g_thread_init (NULL);
 
     uzbl.net.soup_session = webkit_get_default_session();
+
+    if(uname(&uzbl.state.unameinfo) == -1)
+      g_printerr("Can't retrieve unameinfo. This test might fail.\n");
+
     setup_scanner();
     make_var_to_name_hash();
 

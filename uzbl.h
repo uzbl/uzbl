@@ -17,12 +17,6 @@ enum {
   SYM_LOADPRGS, SYM_LOADPRGSBAR,
   SYM_KEYCMD, SYM_MODE, SYM_MSG,
   SYM_SELECTED_URI,
-  /* useragent symbols */
-  SYM_WK_MAJ, SYM_WK_MIN, SYM_WK_MIC,
-  SYM_SYSNAME, SYM_NODENAME,
-  SYM_KERNREL, SYM_KERNVER,
-  SYM_ARCHSYS, SYM_ARCHUZBL,
-  SYM_DOMAINNAME, SYM_COMMIT
 };
 
 const struct {
@@ -39,17 +33,6 @@ const struct {
     {"LOAD_PROGRESS",        SYM_LOADPRGS},
     {"LOAD_PROGRESSBAR",     SYM_LOADPRGSBAR},
 
-    {"WEBKIT_MAJOR",         SYM_WK_MAJ},
-    {"WEBKIT_MINOR",         SYM_WK_MIN},
-    {"WEBKIT_MICRO",         SYM_WK_MIC},
-    {"SYSNAME",              SYM_SYSNAME},
-    {"NODENAME",             SYM_NODENAME},
-    {"KERNREL",              SYM_KERNREL},
-    {"KERNVER",              SYM_KERNVER},
-    {"ARCH_SYSTEM",          SYM_ARCHSYS},
-    {"ARCH_UZBL",            SYM_ARCHUZBL},
-    {"DOMAINNAME",           SYM_DOMAINNAME},
-    {"COMMIT",               SYM_COMMIT},
     {NULL,                   0}
 }, *symp = symbols;
 
@@ -93,6 +76,9 @@ typedef struct {
     gchar          *socket_path;
     /* stores (key)"variable name" -> (value)"pointer to this var*/
     GHashTable     *proto_var;
+    /* stores (key)"CONSTANT NAME" -> (value)"pointer to this var*/
+    GHashTable     *proto_const;
+
     gchar          *sync_stdout;
 } Communication;
 
