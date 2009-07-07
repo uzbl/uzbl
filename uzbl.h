@@ -248,7 +248,7 @@ catch_sigterm(int s);
 static sigfunc *
 setup_signal(int signe, sigfunc *shandler);
 
-static gboolean
+gboolean
 set_var_value(gchar *name, gchar *val);
 
 static void
@@ -533,7 +533,7 @@ cmd_socket_dir();
 static void
 cmd_modkey();
 
-static void
+void
 cmd_useragent() ;
 
 static void

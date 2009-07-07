@@ -138,6 +138,23 @@ test_COMMIT (void) {
     g_assert_cmpstr(expand_template("COMMIT", FALSE), ==, COMMIT);
 }
 
+void
+test_cmd_useragent (void) {
+    GString* expected = g_string_new("Uzbl (Webkit ");
+    g_string_append(expected, itos(WEBKIT_MAJOR_VERSION));
+    g_string_append(expected, ".");
+    g_string_append(expected, itos(WEBKIT_MINOR_VERSION));
+    g_string_append(expected, ".");
+    g_string_append(expected, itos(WEBKIT_MICRO_VERSION));
+    g_string_append(expected, " ");
+    g_string_append(expected, ARCH);
+    g_string_append(expected, ")");
+
+    set_var_value("useragent", "Uzbl (Webkit WEBKIT_MAJOR.WEBKIT_MINOR.WEBKIT_MICRO ARCH_UZBL)");
+    cmd_useragent();
+    g_assert_cmpstr(uzbl.net.useragent, ==, g_string_free(expected, FALSE));
+}
+
 int
 main (int argc, char *argv[]) {
     g_type_init();
@@ -159,7 +176,14 @@ main (int argc, char *argv[]) {
     /* g_test_add_func("/test-expand/DOMAINNAME", test_DOMAINNAME); */
     g_test_add_func("/test-expand/COMMIT", test_COMMIT);
 
+    g_test_add_func("/test-expand/cmd_useragent", test_cmd_useragent);
+
+    if (!g_thread_supported ())
+        g_thread_init (NULL);
+
+    uzbl.net.soup_session = webkit_get_default_session();
     setup_scanner();
+    make_var_to_name_hash();
 
     return g_test_run();
 }

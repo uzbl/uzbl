@@ -181,7 +181,7 @@ const struct {
 
 
 /* construct a hash from the var_name_to_ptr array for quick access */
-static void
+void
 make_var_to_name_hash() {
     uzbl.comm.proto_var = g_hash_table_new(g_str_hash, g_str_equal);
     while(n2v_p->name) {
@@ -1758,7 +1758,7 @@ cmd_modkey() {
     }
 }
 
-static void
+void
 cmd_useragent() {
     if (*uzbl.net.useragent == ' ') {
         g_free (uzbl.net.useragent);
@@ -1793,7 +1793,7 @@ move_statusbar() {
     return;
 }
 
-static gboolean
+gboolean
 set_var_value(gchar *name, gchar *val) {
     uzbl_cmdprop *c = NULL;
     char *endp = NULL;
