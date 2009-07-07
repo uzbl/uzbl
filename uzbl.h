@@ -224,7 +224,7 @@ XDG_Var XDG[] =
 };
 
 /* Functions */
-static void
+void
 setup_scanner();
 
 char *

@@ -57,7 +57,7 @@
 #include "uzbl.h"
 #include "config.h"
 
-static Uzbl uzbl;
+Uzbl uzbl;
 
 
 
@@ -1137,7 +1137,7 @@ build_progressbar_ascii(int percent) {
    return g_string_free(bar, FALSE);
 }
 
-static void
+void
 setup_scanner() {
      const GScannerConfig scan_config = {
              (
@@ -1192,7 +1192,7 @@ setup_scanner() {
      }
 }
 
-static gchar *
+gchar *
 expand_template(const char *template, gboolean escape_markup) {
      if(!template) return NULL;
 
@@ -2685,6 +2685,7 @@ dump_config() {
     g_hash_table_foreach(uzbl.bindings, dump_key_hash, NULL);
 }
 
+#ifndef UZBL_LIBRARY
 /** -- MAIN -- **/
 int
 main (int argc, char* argv[]) {
@@ -2801,5 +2802,6 @@ main (int argc, char* argv[]) {
 
     return EXIT_SUCCESS;
 }
+#endif
 
 /* vi: set et ts=4: */
