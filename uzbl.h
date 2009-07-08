@@ -171,6 +171,7 @@ typedef struct {
     gchar*   cmd_indicator;
     GString* html_buffer;
     guint    html_timeout;
+    gboolean print_version;
 
     /* command list: name -> Command  */
     GHashTable* commands;

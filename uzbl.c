@@ -75,6 +75,8 @@ GOptionEntry entries[] =
         "Config file (this is pretty much equivalent to uzbl < FILE )", "FILE" },
     { "socket",  's', 0, G_OPTION_ARG_INT, &uzbl.state.socket_id,
         "Socket ID", "SOCKET" },
+    { "version",  'V', 0, G_OPTION_ARG_NONE, &uzbl.behave.print_version,
+        "Print the version and exit", NULL },
     { NULL,      0, 0, 0, NULL, NULL, NULL }
 };
 
@@ -2699,6 +2701,11 @@ main (int argc, char* argv[]) {
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
     g_option_context_parse (context, &argc, &argv, NULL);
     g_option_context_free(context);
+
+    if (uzbl.behave.print_version) {
+        printf("Commit: %s\n", COMMIT);
+        exit(0);
+    }
 
     gchar *uri_override = (uzbl.state.uri ? g_strdup(uzbl.state.uri) : NULL);
     if (argc > 1 && !uzbl.state.uri)
