@@ -34,6 +34,9 @@
 # Contributor(s):
 #   mxey <mxey@ghosthacking.net>
 #       uzbl_config path now honors XDG_CONFIG_HOME if it exists.
+#
+#   Romain Bignon <romain@peerfuse.org>
+#       Fix for session restoration code.
 
 
 # Configuration:
@@ -1073,7 +1076,7 @@ if __name__ == "__main__":
                 uzbl.new_tab(line, False)
 
         if not len(urls):
-            self.new_tab()
+            uzbl.new_tab()
 
     else:
         uzbl.new_tab()
