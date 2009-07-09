@@ -161,6 +161,11 @@ const struct {
     { "WEBKIT_MICRO",        PTR_C(uzbl.info.webkit_micro,          INT,       NULL)},
     { "ARCH_UZBL",           PTR_C(uzbl.info.arch,                  STR,       NULL)},
     { "COMMIT",              PTR_C(uzbl.info.commit,                STR,       NULL)},
+    { "LOAD_PROGRESS",       PTR_C(uzbl.gui.sbar.load_progress,     INT,       NULL)},
+    { "LOAD_PROGRESSBAR",    PTR_C(uzbl.gui.sbar.progress_bar,      STR,       NULL)},
+    { "TITLE",               PTR_C(uzbl.gui.main_title,             STR,       NULL)},
+    { "SELECTED_URI",        PTR_C(uzbl.state.selected_url,         STR,       NULL)},
+    { "MSG",                 PTR_C(uzbl.gui.sbar.msg,               STR,       NULL)},
 
     { NULL,                  {.ptr = NULL, .type = TYPE_INT, .dump = 0, .writeable = 0, .func = NULL}}
 }, *n2v_p = var_name_to_ptr;
@@ -683,11 +688,15 @@ title_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
     update_title();
 }
 
-static void
+void
 progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
     (void) page;
     (void) data;
     uzbl.gui.sbar.load_progress = progress;
+
+    g_free(uzbl.gui.sbar.progress_bar);
+    uzbl.gui.sbar.progress_bar = build_progressbar_ascii(uzbl.gui.sbar.load_progress);
+
     update_title();
 }
 
@@ -1245,49 +1254,6 @@ expand_template(const char *template, gboolean escape_markup) {
          if(token == G_TOKEN_SYMBOL) {
              sym = GPOINTER_TO_INT(g_scanner_cur_value(uzbl.scan).v_symbol);
              switch(sym) {
-                 case SYM_URI:
-                     if(escape_markup) {
-                         buf = uzbl.state.uri?
-                             g_markup_printf_escaped("%s", uzbl.state.uri):g_strdup("");
-                         g_string_append(ret, buf);
-                         g_free(buf);
-                     }
-                     else
-                         g_string_append(ret, uzbl.state.uri?
-                                 uzbl.state.uri:g_strdup(""));
-                     break;
-                 case SYM_LOADPRGS:
-                     buf = itos(uzbl.gui.sbar.load_progress);
-                     g_string_append(ret, buf);
-                     g_free(buf);
-                     break;
-                 case SYM_LOADPRGSBAR:
-                     buf = build_progressbar_ascii(uzbl.gui.sbar.load_progress);
-                     g_string_append(ret, buf);
-                     g_free(buf);
-                     break;
-                 case SYM_TITLE:
-                     if(escape_markup) {
-                         buf = uzbl.gui.main_title?
-                             g_markup_printf_escaped("%s", uzbl.gui.main_title):g_strdup("");
-                         g_string_append(ret, buf);
-                         g_free(buf);
-                     }
-                     else
-                         g_string_append(ret, uzbl.gui.main_title?
-                                 uzbl.gui.main_title:g_strdup(""));
-                     break;
-                 case SYM_SELECTED_URI:
-                     if(escape_markup) {
-                         buf = uzbl.state.selected_url?
-                             g_markup_printf_escaped("%s", uzbl.state.selected_url):g_strdup("");
-                         g_string_append(ret, buf);
-                         g_free(buf);
-                     }
-                     else
-                         g_string_append(ret, uzbl.state.selected_url?
-                                 uzbl.state.selected_url:g_strdup(""));
-                     break;
                  case SYM_NAME:
                      buf = itos(uzbl.xwin);
                      g_string_append(ret,
@@ -1310,11 +1276,6 @@ expand_template(const char *template, gboolean escape_markup) {
                              uzbl.behave.insert_mode?
                              uzbl.behave.insert_indicator:uzbl.behave.cmd_indicator);
                      break;
-                 case SYM_MSG:
-                     g_string_append(ret,
-                             uzbl.gui.sbar.msg?uzbl.gui.sbar.msg:"");
-                     break;
-                     /* useragent syms */
                  default:
                      break;
              }

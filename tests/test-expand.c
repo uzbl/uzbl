@@ -32,36 +32,38 @@ extern gchar* expand_template(const char*, gboolean);
 extern void make_var_to_name_hash(void);
 
 void
-test_URI (void) {
+test_uri (void) {
+    g_assert_cmpstr(expand("@uri", 0, FALSE), ==, "");
+
     uzbl.state.uri = g_strdup("http://www.uzbl.org/");
-    g_assert_cmpstr(expand_template("URI", FALSE), ==, uzbl.state.uri);
+    g_assert_cmpstr(expand("@uri", 0, FALSE), ==, uzbl.state.uri);
     g_free(uzbl.state.uri);
 }
 
 void
 test_LOAD_PROGRESS (void) {
     uzbl.gui.sbar.load_progress = 50;
-    g_assert_cmpstr(expand_template("LOAD_PROGRESS", FALSE), ==, "50");
+    g_assert_cmpstr(expand("@LOAD_PROGRESS", 0, FALSE), ==, "50");
 }
 
 void
 test_LOAD_PROGRESSBAR (void) {
-    uzbl.gui.sbar.load_progress = 75;
     uzbl.gui.sbar.progress_w = 4;
+    progress_change_cb(NULL, 75, NULL);
 
-    g_assert_cmpstr(expand_template("LOAD_PROGRESSBAR", FALSE), ==, "===·");
+    g_assert_cmpstr(expand("@LOAD_PROGRESSBAR", 0, FALSE), ==, "===·");
 }
 
 void
 test_TITLE (void) {
     uzbl.gui.main_title = "Lorem Ipsum";
-    g_assert_cmpstr(expand_template("TITLE", FALSE), ==, "Lorem Ipsum");
+    g_assert_cmpstr(expand("@TITLE", 0, FALSE), ==, "Lorem Ipsum");
 }
 
 void
 test_SELECTED_URI (void) {
     uzbl.state.selected_url = "http://example.org/";
-    g_assert_cmpstr(expand_template("SELECTED_URI", FALSE), ==, "http://example.org/");
+    g_assert_cmpstr(expand("@SELECTED_URI", 0, FALSE), ==, "http://example.org/");
 }
 
 void
@@ -89,7 +91,7 @@ test_MODE (void) {
 void
 test_MSG (void) {
     uzbl.gui.sbar.msg = "Hello from frosty Edmonton!";
-    g_assert_cmpstr(expand_template("MSG", FALSE), ==, "Hello from frosty Edmonton!");
+    g_assert_cmpstr(expand("@MSG", 0, FALSE), ==, "Hello from frosty Edmonton!");
 }
 
 void
@@ -184,18 +186,18 @@ main (int argc, char *argv[]) {
     g_type_init();
     g_test_init(&argc, &argv, NULL);
 
-    g_test_add_func("/test-expand/URI", test_URI);
-    g_test_add_func("/test-expand/LOAD_PROGRESS", test_LOAD_PROGRESS);
-    g_test_add_func("/test-expand/LOAD_PROGRESSBAR", test_LOAD_PROGRESSBAR);
-    g_test_add_func("/test-expand/TITLE", test_TITLE);
-    g_test_add_func("/test-expand/SELECTED_URI", test_SELECTED_URI);
+    g_test_add_func("/test-expand/@uri", test_uri);
+    g_test_add_func("/test-expand/@LOAD_PROGRESS", test_LOAD_PROGRESS);
+    g_test_add_func("/test-expand/@LOAD_PROGRESSBAR", test_LOAD_PROGRESSBAR);
+    g_test_add_func("/test-expand/@TITLE", test_TITLE);
+    g_test_add_func("/test-expand/@SELECTED_URI", test_SELECTED_URI);
     g_test_add_func("/test-expand/NAME", test_NAME);
     g_test_add_func("/test-expand/KEYCMD", test_KEYCMD);
     g_test_add_func("/test-expand/MODE", test_MODE);
     g_test_add_func("/test-expand/MSG", test_MSG);
-    g_test_add_func("/test-expand/WEBKIT_VERSION", test_WEBKIT_VERSION);
-    g_test_add_func("/test-expand/ARCH_UZBL", test_ARCH_UZBL);
-    g_test_add_func("/test-expand/COMMIT", test_COMMIT);
+    g_test_add_func("/test-expand/@WEBKIT_*", test_WEBKIT_VERSION);
+    g_test_add_func("/test-expand/@ARCH_UZBL", test_ARCH_UZBL);
+    g_test_add_func("/test-expand/@COMMIT", test_COMMIT);
 
     g_test_add_func("/test-expand/cmd_useragent_simple", test_cmd_useragent_simple);
     g_test_add_func("/test-expand/cmd_useragent_full", test_cmd_useragent_full);

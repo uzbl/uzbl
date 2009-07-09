@@ -42,6 +42,7 @@ typedef struct {
     gchar          *msg;
     gchar          *progress_s, *progress_u;
     int            progress_w;
+    gchar          *progress_bar;
 } StatusBar;
 
 
@@ -271,7 +272,7 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
 static void
 title_change_cb (WebKitWebView* web_view, GParamSpec param_spec);
 
-static void
+void
 progress_change_cb (WebKitWebView* page, gint progress, gpointer data);
 
 static void
@@ -328,6 +329,9 @@ close_uzbl (WebKitWebView *page, GArray *argv, GString *result);
 static gboolean
 run_command(const gchar *command, const guint npre,
             const gchar **args, const gboolean sync, char **output_stdout);
+
+static char*
+build_progressbar_ascii(int percent);
 
 static void
 spawn(WebKitWebView *web_view, GArray *argv, GString *result);
