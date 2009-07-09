@@ -322,9 +322,13 @@ expand(char *s, guint recurse, gboolean escape_markup) {
                         g_error_free (err);
                     }
                     else if (*cmd_stdout) {
+                        int len = strlen(cmd_stdout);
+
+                        if(cmd_stdout[len-1] == '\n')
+                            cmd_stdout[--len] = 0; /* strip trailing newline */
+
                         if(escape_markup) {
-                            char *b = g_markup_escape_text(cmd_stdout,
-                                strlen(cmd_stdout));
+                            char *b = g_markup_escape_text(cmd_stdout, len);
                             g_string_append(buf, b);
                             g_free(b);
                         } else {
