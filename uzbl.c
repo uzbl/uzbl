@@ -596,6 +596,12 @@ cmd_set_geometry() {
         if(uzbl.state.verbose)
             printf("Error in geometry string: %s\n", uzbl.gui.geometry);
     }
+    /* update geometry var with the actual geometry 
+       this is necessary as some WMs don't seem to honour
+       the above setting and we don't want to end up with
+       wrong geometry information
+    */
+    retreive_geometry();
 }
 
 static void
