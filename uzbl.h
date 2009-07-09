@@ -76,8 +76,6 @@ typedef struct {
     gchar          *socket_path;
     /* stores (key)"variable name" -> (value)"pointer to this var*/
     GHashTable     *proto_var;
-    /* stores (key)"CONSTANT NAME" -> (value)"pointer to this var*/
-    GHashTable     *proto_const;
 
     gchar          *sync_stdout;
 } Communication;
@@ -93,7 +91,6 @@ typedef struct {
     gchar    *executable_path;
     GString* keycmd;
     gchar*   searchtx;
-    struct utsname unameinfo; /* system info */
     gboolean verbose;
 } State;
 
@@ -169,6 +166,15 @@ typedef struct {
     JSClassRef          classref;
 } Javascript;
 
+/* static information */
+typedef struct {
+    int   webkit_major;
+    int   webkit_minor;
+    int   webkit_micro;
+    gchar *arch;
+    gchar *commit;
+} Info;
+
 /* main uzbl data structure */
 typedef struct {
     GUI           gui;
@@ -177,6 +183,7 @@ typedef struct {
     Behaviour     behave;
     Communication comm;
     Javascript    js;
+    Info          info;
 
     Window        xwin;
     GScanner      *scan;
@@ -375,6 +382,9 @@ run_keycmd(const gboolean key_ret);
 
 static void
 exec_paramcmd(const Action* act, const guint i);
+
+void
+initialize ();
 
 GtkWidget*
 create_browser ();
