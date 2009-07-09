@@ -49,10 +49,7 @@ test_LOAD_PROGRESSBAR (void) {
     uzbl.gui.sbar.load_progress = 75;
     uzbl.gui.sbar.progress_w = 4;
 
-    uzbl.gui.sbar.progress_s = "*";
-    uzbl.gui.sbar.progress_u = "-";
-
-    g_assert_cmpstr(expand_template("LOAD_PROGRESSBAR", FALSE), ==, "***-");
+    g_assert_cmpstr(expand_template("LOAD_PROGRESSBAR", FALSE), ==, "===·");
 }
 
 void
@@ -82,9 +79,6 @@ test_KEYCMD (void) {
 
 void
 test_MODE (void) {
-    uzbl.behave.cmd_indicator = "C";
-    uzbl.behave.insert_indicator = "I";
-
     uzbl.behave.insert_mode = 0;
     g_assert_cmpstr(expand_template("MODE", FALSE), ==, "C");
 
