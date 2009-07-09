@@ -2696,6 +2696,18 @@ dump_config() {
     g_hash_table_foreach(uzbl.bindings, dump_key_hash, NULL);
 }
 
+static void
+retreive_geometry() {
+    int w, h, x, y;
+    GString *buf = g_string_new("");
+
+    gtk_window_get_size(GTK_WINDOW(uzbl.gui.main_window), &w, &h);
+    gtk_window_get_position(GTK_WINDOW(uzbl.gui.main_window), &x, &y);
+
+    g_string_printf(buf, "%dx%d+%d+%d", w, h, x, y);
+    uzbl.gui.geometry = g_string_free(buf, FALSE);
+}
+
 /** -- MAIN -- **/
 int
 main (int argc, char* argv[]) {
@@ -2790,6 +2802,8 @@ main (int argc, char* argv[]) {
 
     if(uzbl.gui.geometry)
         cmd_set_geometry();
+    else
+        retreive_geometry();
 
     settings_init ();
 
