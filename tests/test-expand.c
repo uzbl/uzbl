@@ -195,6 +195,16 @@ test_escape_expansion (void) {
     g_assert_cmpstr(expand("\\@<\"hi\">\\@", 0, FALSE), ==, "@<\"hi\">@");
 }
 
+void
+test_nested (void) {
+    uzbl.gui.sbar.msg = "xxx";
+    g_assert_cmpstr(expand("@<\"..@MSG..\">@", 0, FALSE), ==, "..xxx..");
+    g_assert_cmpstr(expand("@<\"..\\@MSG..\">@", 0, FALSE), ==, "..@MSG..");
+
+    g_assert_cmpstr(expand("@(echo ..@MSG..)@", 0, FALSE), ==, "..xxx..");
+    g_assert_cmpstr(expand("@(echo ..\\@MSG..)@", 0, FALSE), ==, "..@MSG..");
+}
+
 int
 main (int argc, char *argv[]) {
     g_type_init();
@@ -218,6 +228,7 @@ main (int argc, char *argv[]) {
 
     g_test_add_func("/test-expand/escape_markup", test_escape_markup);
     g_test_add_func("/test-expand/escape_expansion", test_escape_expansion);
+    g_test_add_func("/test-expand/nested", test_nested);
 
     initialize(argc, argv);
 
