@@ -165,6 +165,7 @@ const struct {
     { "LOAD_PROGRESSBAR",    PTR_C(uzbl.gui.sbar.progress_bar,      STR,       NULL)},
     { "TITLE",               PTR_C(uzbl.gui.main_title,             STR,       NULL)},
     { "SELECTED_URI",        PTR_C(uzbl.state.selected_url,         STR,       NULL)},
+    { "MODE",                PTR_C(uzbl.gui.sbar.mode_indicator,    STR,       NULL)},
     { "MSG",                 PTR_C(uzbl.gui.sbar.msg,               STR,       NULL)},
     { "NAME",                PTR_C(uzbl.state.instance_name,        STR,       NULL)},
 
@@ -729,7 +730,7 @@ load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     GString* newuri = g_string_new (webkit_web_frame_get_uri (frame));
     uzbl.state.uri = g_string_free (newuri, FALSE);
     if (uzbl.behave.reset_command_mode && uzbl.behave.insert_mode) {
-        uzbl.behave.insert_mode = uzbl.behave.always_insert_mode;
+        set_insert_mode(uzbl.behave.always_insert_mode);
         update_title();
     }
     if (uzbl.behave.load_commit_handler)
@@ -884,18 +885,24 @@ act_dump_config() {
     dump_config();
 }
 
+void set_insert_mode(gboolean mode) {
+    uzbl.behave.insert_mode = mode;
+    uzbl.gui.sbar.mode_indicator = (mode ?
+        uzbl.behave.insert_indicator : uzbl.behave.cmd_indicator);
+}
+
 static void
 toggle_insert_mode(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
 
     if (argv_idx(argv, 0)) {
         if (strcmp (argv_idx(argv, 0), "0") == 0) {
-            uzbl.behave.insert_mode = FALSE;
+            set_insert_mode(FALSE);
         } else {
-            uzbl.behave.insert_mode = TRUE;
+            set_insert_mode(TRUE);
         }
     } else {
-        uzbl.behave.insert_mode = ! uzbl.behave.insert_mode;
+        set_insert_mode( !uzbl.behave.insert_mode );
     }
 
     update_title();
@@ -1266,11 +1273,6 @@ expand_template(const char *template, gboolean escape_markup) {
                          g_string_append(ret, uzbl.state.keycmd->str?
                                  uzbl.state.keycmd->str:g_strdup(""));
                      break;
-                 case SYM_MODE:
-                     g_string_append(ret,
-                             uzbl.behave.insert_mode?
-                             uzbl.behave.insert_indicator:uzbl.behave.cmd_indicator);
-                     break;
                  default:
                      break;
              }
@@ -1527,8 +1529,7 @@ cmd_load_uri() {
 
 static void 
 cmd_always_insert_mode() {
-    uzbl.behave.insert_mode =
-        uzbl.behave.always_insert_mode ?  TRUE : FALSE;
+    set_insert_mode(uzbl.behave.always_insert_mode);
     update_title();
 }
 
@@ -2098,7 +2099,7 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
 
     /* turn off insert mode (if always_insert_mode is not used) */
     if (uzbl.behave.insert_mode && (event->keyval == GDK_Escape)) {
-        uzbl.behave.insert_mode = uzbl.behave.always_insert_mode;
+        set_insert_mode(uzbl.behave.always_insert_mode);
         update_title();
         return TRUE;
     }

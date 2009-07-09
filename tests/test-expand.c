@@ -80,10 +80,10 @@ test_KEYCMD (void) {
 
 void
 test_MODE (void) {
-    uzbl.behave.insert_mode = 0;
+    set_insert_mode(FALSE);
     g_assert_cmpstr(expand("@MODE", 0, FALSE), ==, "C");
 
-    uzbl.behave.insert_mode = 1;
+    set_insert_mode(TRUE);
     g_assert_cmpstr(expand("@MODE", 0, FALSE), ==, "I");
 }
 
@@ -207,7 +207,7 @@ main (int argc, char *argv[]) {
     g_test_add_func("/test-expand/@SELECTED_URI", test_SELECTED_URI);
     g_test_add_func("/test-expand/@NAME", test_NAME);
 //    g_test_add_func("/test-expand/@KEYCMD", test_KEYCMD);
-//    g_test_add_func("/test-expand/@MODE", test_MODE);
+    g_test_add_func("/test-expand/@MODE", test_MODE);
     g_test_add_func("/test-expand/@MSG", test_MSG);
     g_test_add_func("/test-expand/@WEBKIT_*", test_WEBKIT_VERSION);
     g_test_add_func("/test-expand/@ARCH_UZBL", test_ARCH_UZBL);

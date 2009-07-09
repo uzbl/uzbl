@@ -36,6 +36,7 @@ typedef struct {
     gchar          *progress_s, *progress_u;
     int            progress_w;
     gchar          *progress_bar;
+    gchar          *mode_indicator;
 } StatusBar;
 
 
