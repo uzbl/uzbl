@@ -166,6 +166,7 @@ const struct {
     { "TITLE",               PTR_C(uzbl.gui.main_title,             STR,       NULL)},
     { "SELECTED_URI",        PTR_C(uzbl.state.selected_url,         STR,       NULL)},
     { "MSG",                 PTR_C(uzbl.gui.sbar.msg,               STR,       NULL)},
+    { "NAME",                PTR_C(uzbl.state.instance_name,        STR,       NULL)},
 
     { NULL,                  {.ptr = NULL, .type = TYPE_INT, .dump = 0, .writeable = 0, .func = NULL}}
 }, *n2v_p = var_name_to_ptr;
@@ -1254,12 +1255,6 @@ expand_template(const char *template, gboolean escape_markup) {
          if(token == G_TOKEN_SYMBOL) {
              sym = GPOINTER_TO_INT(g_scanner_cur_value(uzbl.scan).v_symbol);
              switch(sym) {
-                 case SYM_NAME:
-                     buf = itos(uzbl.xwin);
-                     g_string_append(ret,
-                             uzbl.state.instance_name?uzbl.state.instance_name:buf);
-                     g_free(buf);
-                     break;
                  case SYM_KEYCMD:
                      if(escape_markup) {
                          buf = uzbl.state.keycmd->str?
@@ -1834,21 +1829,16 @@ parse_cmd_line(const char *ctl_line, GString *result) {
 
 static gchar*
 build_stream_name(int type, const gchar* dir) {
-    char *xwin_str = NULL;
     State *s = &uzbl.state;
     gchar *str = NULL;
 
-    xwin_str = itos((int)uzbl.xwin);
     if (type == FIFO) {
         str = g_strdup_printf
-            ("%s/uzbl_fifo_%s", dir,
-             s->instance_name ? s->instance_name : xwin_str);
+            ("%s/uzbl_fifo_%s", dir, s->instance_name);
     } else if (type == SOCKET) {
         str = g_strdup_printf
-            ("%s/uzbl_socket_%s", dir,
-             s->instance_name ? s->instance_name : xwin_str );
+            ("%s/uzbl_socket_%s", dir, s->instance_name);
     }
-    g_free(xwin_str);
     return str;
 }
 
@@ -2722,6 +2712,9 @@ main (int argc, char* argv[]) {
         gtk_widget_show_all (uzbl.gui.main_window);
         uzbl.xwin = GDK_WINDOW_XID (GTK_WIDGET (uzbl.gui.main_window)->window);
     }
+
+    if(!uzbl.state.instance_name)
+        uzbl.state.instance_name = itos((int)uzbl.xwin);
 
     gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
 

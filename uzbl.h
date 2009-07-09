@@ -23,7 +23,6 @@ const struct {
     gchar *symbol_name;
     guint symbol_token;
 } symbols[] = {
-    {"NAME",                 SYM_NAME},
     {"KEYCMD",               SYM_KEYCMD},
     {"MODE",                 SYM_MODE},
 
