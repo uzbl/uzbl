@@ -24,7 +24,6 @@ const struct {
     guint symbol_token;
 } symbols[] = {
     {"KEYCMD",               SYM_KEYCMD},
-    {"MODE",                 SYM_MODE},
 
     {NULL,                   0}
 }, *symp = symbols;
