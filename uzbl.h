@@ -471,6 +471,12 @@ static void
 dump_config();
 
 
+static void
+retreive_geometry();
+
+static gboolean
+configure_event_cb(GtkWidget* window, GdkEventConfigure* event);
+
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
 typedef struct {
     Command function;

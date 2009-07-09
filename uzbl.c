@@ -2148,6 +2148,15 @@ update_title (void) {
 }
 
 static gboolean
+configure_event_cb(GtkWidget* window, GdkEventConfigure* event) {
+    (void) window;
+    (void) event;
+
+    retreive_geometry();
+    return FALSE;
+}
+
+static gboolean
 key_press_cb (GtkWidget* window, GdkEventKey* event)
 {
     //TRUE to stop other handlers from being invoked for the event. FALSE to propagate the event further.
@@ -2312,6 +2321,7 @@ GtkWidget* create_window () {
     gtk_widget_set_name (window, "Uzbl browser");
     g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (destroy_cb), NULL);
     g_signal_connect (G_OBJECT (window), "key-press-event", G_CALLBACK (key_press_cb), NULL);
+    g_signal_connect (G_OBJECT (window), "configure-event", G_CALLBACK (configure_event_cb), NULL);
 
     return window;
 }
