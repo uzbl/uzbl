@@ -290,7 +290,7 @@ expand(char *s, guint recurse, gboolean escape_markup) {
                 if(etype == EXP_SIMPLE_VAR ||
                    etype == EXP_BRACED_VAR) {
                     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, ret)) ) {
-                        if(c->type == TYPE_STR) {
+                        if(c->type == TYPE_STR && *c->ptr != NULL) {
                             if(escape_markup) {
                                 char *b = g_markup_escape_text((gchar *)*c->ptr,
                                     strlen((gchar *)*c->ptr));
@@ -299,7 +299,7 @@ expand(char *s, guint recurse, gboolean escape_markup) {
                             } else {
                                 g_string_append(buf, (gchar *)*c->ptr);
                             }
-                        } else if(c && c->type == TYPE_INT) {
+                        } else if(c->type == TYPE_INT) {
                             char *b = itos((uintptr_t)*c->ptr);
                             g_string_append(buf, b);
                             g_free(b);
