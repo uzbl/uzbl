@@ -65,16 +65,18 @@ static Uzbl uzbl;
 static const 
 GOptionEntry entries[] =
 {
-    { "uri",     'u', 0, G_OPTION_ARG_STRING, &uzbl.state.uri,
+    { "uri",      'u', 0, G_OPTION_ARG_STRING, &uzbl.state.uri,
         "Uri to load at startup (equivalent to 'set uri = URI')", "URI" },
-    { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &uzbl.state.verbose,
+    { "verbose",  'v', 0, G_OPTION_ARG_NONE,   &uzbl.state.verbose,
         "Whether to print all messages or just errors.", NULL },
-    { "name",    'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name, 
+    { "name",     'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name, 
         "Name of the current instance (defaults to Xorg window id)", "NAME" },
-    { "config",  'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,   
+    { "config",   'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,   
         "Config file (this is pretty much equivalent to uzbl < FILE )", "FILE" },
-    { "socket",  's', 0, G_OPTION_ARG_INT, &uzbl.state.socket_id,   
+    { "socket",   's', 0, G_OPTION_ARG_INT, &uzbl.state.socket_id,   
         "Socket ID", "SOCKET" },
+    { "geometry", 'g', 0, G_OPTION_ARG_STRING, &uzbl.gui.geometry, 
+        "Set window geometry (format: WIDTHxHEIGHT+-X+-Y)", "GEOMETRY" },
     { NULL,      0, 0, 0, NULL, NULL, NULL }
 };
 
@@ -98,6 +100,7 @@ const struct {
 /*    variable name         pointer to variable in code          type  dump callback function    */
 /*  --------------------------------------------------------------------------------------- */
     { "uri",                 PTR(uzbl.state.uri,                  STR,  1,   cmd_load_uri)},
+    { "geometry",            PTR(uzbl.gui.geometry,               STR,  1,   cmd_set_geometry)},
     { "verbose",             PTR(uzbl.state.verbose,              INT,  1,   NULL)},
     { "mode",                PTR(uzbl.behave.mode,                INT,  0,   NULL)},
     { "inject_html",         PTR(uzbl.behave.inject_html,         STR,  0,   cmd_inject_html)},
@@ -585,6 +588,14 @@ static void
 scroll_horz(WebKitWebView* page, GArray *argv, GString *result) {
     (void) page; (void) result;
     scroll(uzbl.gui.bar_h, argv);
+}
+
+static void
+cmd_set_geometry() {
+    if(!gtk_window_parse_geometry(GTK_WINDOW(uzbl.gui.main_window), uzbl.gui.geometry)) {
+        if(uzbl.state.verbose)
+            printf("Error in geometry string: %s\n", uzbl.gui.geometry);
+    }
 }
 
 static void
@@ -2776,6 +2787,9 @@ main (int argc, char* argv[]) {
     uzbl.gui.scbar_h = (GtkScrollbar*) gtk_hscrollbar_new (NULL);
     uzbl.gui.bar_h = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_h);
     gtk_widget_set_scroll_adjustments ((GtkWidget*) uzbl.gui.web_view, uzbl.gui.bar_h, uzbl.gui.bar_v);
+
+    if(uzbl.gui.geometry)
+        cmd_set_geometry();
 
     settings_init ();
 

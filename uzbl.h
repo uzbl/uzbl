@@ -65,6 +65,7 @@ typedef struct {
 /* gui elements */
 typedef struct {
     GtkWidget*     main_window;
+    gchar*         geometry;
     GtkPlug*       plug;
     GtkWidget*     scrolled_win;
     GtkWidget*     vbox;
@@ -568,5 +569,8 @@ cmd_inject_html();
 
 static void 
 cmd_caret_browsing();
+
+static void
+cmd_set_geometry();
 
 /* vi: set et ts=4: */
