@@ -24,14 +24,8 @@ const struct {
     guint symbol_token;
 } symbols[] = {
     {"NAME",                 SYM_NAME},
-    {"URI",                  SYM_URI},
-    {"TITLE",                SYM_TITLE},
-    {"SELECTED_URI",         SYM_SELECTED_URI},
     {"KEYCMD",               SYM_KEYCMD},
     {"MODE",                 SYM_MODE},
-    {"MSG",                  SYM_MSG},
-    {"LOAD_PROGRESS",        SYM_LOADPRGS},
-    {"LOAD_PROGRESSBAR",     SYM_LOADPRGSBAR},
 
     {NULL,                   0}
 }, *symp = symbols;
