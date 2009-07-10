@@ -498,6 +498,9 @@ mime_policy_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequ
     (void) request;
     (void) user_data;
 
+    if (uzbl.state.verbose)
+        printf("MIME Type: %s \n", mime_type);
+
     /* If we can display it, let's display it... */
     if (webkit_web_view_can_show_mime_type (web_view, mime_type)) {
         webkit_web_policy_decision_use (policy_decision);
@@ -1083,7 +1086,7 @@ keycmd (WebKitWebView *page, GArray *argv, GString *result) {
     (void)argv;
     (void)result;
     g_string_assign(uzbl.state.keycmd, argv_idx(argv, 0));
-    run_keycmd(FALSE);
+    run_keycmd(FALSE, uzbl.state.keycmd);
     update_title();
 }
 
@@ -1093,7 +1096,7 @@ keycmd_nl (WebKitWebView *page, GArray *argv, GString *result) {
     (void)argv;
     (void)result;
     g_string_assign(uzbl.state.keycmd, argv_idx(argv, 0));
-    run_keycmd(TRUE);
+    run_keycmd(TRUE, uzbl.state.keycmd);
     update_title();
 }
 
@@ -2188,18 +2191,101 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
         key_ret = TRUE;
     if (!key_ret) g_string_append(uzbl.state.keycmd, event->string);
 
-    run_keycmd(key_ret);
+    run_keycmd(key_ret, uzbl.state.keycmd);
     update_title();
     if (key_ret) return (!uzbl.behave.insert_mode);
     return TRUE;
 }
 
+static gboolean
+mouse_button_cb (GtkWidget* window, GdkEventButton* event)
+{
+    GString* mousecmd = g_string_new("");
+
+    (void) window;
+
+    if (event->type != GDK_BUTTON_PRESS || event->button >= 10)
+        return FALSE;
+
+    g_string_assign(mousecmd, "<mouse");
+    g_string_append_c(mousecmd, event->button + '0');
+    g_string_append_c(mousecmd, '>');
+
+    if (uzbl.state.verbose)
+        printf("Mouse Button: %s\n", mousecmd->str);
+
+    if (g_hash_table_lookup(uzbl.bindings, mousecmd->str)) {
+        run_keycmd(FALSE, mousecmd);
+        g_string_free(mousecmd, TRUE);
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+static gboolean
+wk_mouse_button_cb (WebKitWebView *web_view, GdkEventButton* event)
+{
+    (void) web_view;
+
+    return mouse_button_cb(NULL, event);
+}
+
+static gboolean
+mouse_scroll_cb (GtkWidget* window, GdkEventScroll* event)
+{
+    GString* mousecmd = g_string_new("");
+    g_string_assign(mousecmd, "<wheel");
+
+    (void) window;
+
+    switch (event->direction) {
+        case GDK_SCROLL_UP:
+            g_string_append(mousecmd, "up>");
+            break;
+        case GDK_SCROLL_DOWN:
+            g_string_append(mousecmd, "down>");
+            break;
+
+        case GDK_SCROLL_LEFT:
+            g_string_append(mousecmd, "left>");
+            break;
+
+        case GDK_SCROLL_RIGHT:
+            g_string_append(mousecmd, "right>");
+            break;
+
+        default:
+            g_string_free(mousecmd, TRUE);
+            return FALSE;
+    }
+
+    if (uzbl.state.verbose)
+        printf("Mouse Scroll: %s\n", mousecmd->str);
+
+    if (g_hash_table_lookup(uzbl.bindings, mousecmd->str)) {
+        run_keycmd(FALSE, mousecmd);
+        g_string_free(mousecmd, TRUE);
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+static gboolean
+wk_mouse_scroll_cb (WebKitWebView *web_view, GdkEventScroll* event)
+{
+    (void) web_view;
+
+    return mouse_scroll_cb(NULL, event);
+}
+
 static void
-run_keycmd(const gboolean key_ret) {
+run_keycmd(const gboolean key_ret, GString* keycmd) {
     /* run the keycmd immediately if it isn't incremental and doesn't take args */
     Action *act;
-    if ((act = g_hash_table_lookup(uzbl.bindings, uzbl.state.keycmd->str))) {
-        g_string_truncate(uzbl.state.keycmd, 0);
+    if ((act = g_hash_table_lookup(uzbl.bindings, keycmd->str))) {
+        g_string_truncate(keycmd, 0);
         parse_command(act->name, act->param, NULL);
         return;
     }
@@ -2208,8 +2294,8 @@ run_keycmd(const gboolean key_ret) {
     GString* short_keys = g_string_new ("");
     GString* short_keys_inc = g_string_new ("");
     guint i;
-    for (i=0; i<(uzbl.state.keycmd->len); i++) {
-        g_string_append_c(short_keys, uzbl.state.keycmd->str[i]);
+    for (i=0; i<(keycmd->len); i++) {
+        g_string_append_c(short_keys, keycmd->str[i]);
         g_string_assign(short_keys_inc, short_keys->str);
         g_string_append_c(short_keys, '_');
         g_string_append_c(short_keys_inc, '*');
@@ -2217,11 +2303,11 @@ run_keycmd(const gboolean key_ret) {
         if (key_ret && (act = g_hash_table_lookup(uzbl.bindings, short_keys->str))) {
             /* run normal cmds only if return was pressed */
             exec_paramcmd(act, i);
-            g_string_truncate(uzbl.state.keycmd, 0);
+            g_string_truncate(keycmd, 0);
             break;
         } else if ((act = g_hash_table_lookup(uzbl.bindings, short_keys_inc->str))) {
             if (key_ret)  /* just quit the incremental command on return */
-                g_string_truncate(uzbl.state.keycmd, 0);
+                g_string_truncate(keycmd, 0);
             else exec_paramcmd(act, i); /* otherwise execute the incremental */
             break;
         }
@@ -2271,6 +2357,8 @@ create_browser () {
     g_signal_connect (G_OBJECT (g->web_view), "download-requested", G_CALLBACK (download_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "create-web-view", G_CALLBACK (create_web_view_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "mime-type-policy-decision-requested", G_CALLBACK (mime_policy_cb), g->web_view);
+    g_signal_connect (G_OBJECT (g->web_view), "button-press-event", G_CALLBACK (wk_mouse_button_cb), g->web_view);
+    g_signal_connect (G_OBJECT (g->web_view), "scroll-event", G_CALLBACK (wk_mouse_scroll_cb), g->web_view);
 
     return scrolled_window;
 }
@@ -2291,6 +2379,8 @@ create_mainbar () {
     gtk_misc_set_padding (GTK_MISC(g->mainbar_label), 2, 2);
     gtk_box_pack_start (GTK_BOX (g->mainbar), g->mainbar_label, TRUE, TRUE, 0);
     g_signal_connect (G_OBJECT (g->mainbar), "key-press-event", G_CALLBACK (key_press_cb), NULL);
+    g_signal_connect (G_OBJECT (g->mainbar), "button-press-event", G_CALLBACK (mouse_button_cb), NULL);
+    g_signal_connect (G_OBJECT (g->mainbar), "scroll-event", G_CALLBACK (mouse_scroll_cb), NULL);
     return g->mainbar;
 }
 
@@ -2301,6 +2391,8 @@ GtkWidget* create_window () {
     gtk_widget_set_name (window, "Uzbl browser");
     g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (destroy_cb), NULL);
     g_signal_connect (G_OBJECT (window), "key-press-event", G_CALLBACK (key_press_cb), NULL);
+    g_signal_connect (G_OBJECT (window), "button-press-event", G_CALLBACK (mouse_button_cb), NULL);
+    g_signal_connect (G_OBJECT (window), "scroll-event", G_CALLBACK (mouse_scroll_cb), NULL);
 
     return window;
 }
@@ -2310,6 +2402,8 @@ GtkPlug* create_plug () {
     GtkPlug* plug = GTK_PLUG (gtk_plug_new (uzbl.state.socket_id));
     g_signal_connect (G_OBJECT (plug), "destroy", G_CALLBACK (destroy_cb), NULL);
     g_signal_connect (G_OBJECT (plug), "key-press-event", G_CALLBACK (key_press_cb), NULL);
+    g_signal_connect (G_OBJECT (plug), "button-press-event", G_CALLBACK (mouse_button_cb), NULL);
+    g_signal_connect (G_OBJECT (plug), "scroll-event", G_CALLBACK (mouse_scroll_cb), NULL);
 
     return plug;
 }

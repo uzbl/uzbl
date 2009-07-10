@@ -384,8 +384,20 @@ update_title (void);
 static gboolean
 key_press_cb (GtkWidget* window, GdkEventKey* event);
 
+static gboolean
+mouse_button_cb (GtkWidget* window, GdkEventButton* event);
+
+static gboolean
+wk_mouse_button_cb (WebKitWebView *web_view, GdkEventButton* event);
+
+static gboolean
+mouse_scroll_cb (GtkWidget* window, GdkEventScroll* event);
+
+static gboolean
+wk_mouse_scroll_cb (WebKitWebView *web_view, GdkEventScroll* event);
+
 static void
-run_keycmd(const gboolean key_ret);
+run_keycmd(const gboolean key_ret, GString* keycmd);
 
 static void
 exec_paramcmd(const Action* act, const guint i);
