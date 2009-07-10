@@ -2677,6 +2677,7 @@ initialize(int argc, char *argv[]) {
     /* default mode indicators */
     uzbl.behave.insert_indicator = g_strdup("I");
     uzbl.behave.cmd_indicator    = g_strdup("C");
+    set_insert_mode(FALSE);
 
     uzbl.info.webkit_major = WEBKIT_MAJOR_VERSION;
     uzbl.info.webkit_minor = WEBKIT_MINOR_VERSION;
