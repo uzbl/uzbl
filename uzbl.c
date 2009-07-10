@@ -166,7 +166,6 @@ const struct {
     { "TITLE",               PTR_C(uzbl.gui.main_title,             STR,       NULL)},
     { "SELECTED_URI",        PTR_C(uzbl.state.selected_url,         STR,       NULL)},
     { "MODE",                PTR_C(uzbl.gui.sbar.mode_indicator,    STR,       NULL)},
-    { "MSG",                 PTR_C(uzbl.gui.sbar.msg,               STR,       NULL)},
     { "NAME",                PTR_C(uzbl.state.instance_name,        STR,       NULL)},
 
     { NULL,                  {.ptr = NULL, .type = TYPE_INT, .dump = 0, .writeable = 0, .func = NULL}}
