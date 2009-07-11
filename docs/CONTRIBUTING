@@ -1,32 +1,58 @@
 ### Users
 
-Just use Uzbl, hang around in our IRC channel, try out different things and tell us when things break.
-If you're feeling more adventerous, you can use one of the development branches and give bug
+Just use Uzbl, hang around in our IRC channel, try out different things and report bugs.
+If you're feeling more adventurous, you can use one of the development branches and give bug
 reports and suggestions straight to the developer in charge of that, so the
 same problems don't occur when they get merged into the master branch.
 Play around with the configs and scripts and see if you can improve things.
 The wiki can be a good source of inspiration.
+You may also find mistakes in our documentation.
 
 ### Developers
 
-If you don't feel like just sending bug reports, by all means dive into the
-code and clone the code to start hacking. (github makes this really easy
-with their "fork" concept).  But it's usually a good thing to tell us first
+If you don't feel like just sending bug reports, you can dive into the
+code and start hacking.
+Even if you're not good at C, thanks to uzbl's 'ecosystem' of scripts there
+is a lot that can be done.
+However, it's usually a good idea to tell us first
 what you want to do, to avoid unneeded or duplicate work.
 
-Note that cloning and letting us pull (preferably via github) is way more
-workable then submitting plain patches.  Git is good in merging in branches
-even if the base code has changed in the meanwhile.  This does not work with
-patches.
+Read on for more info...
 
-If you're new to Git/github, have no fear:
+### Clone/patch/merge workflow
 
-* [Github guides (highly recommended)](http://github.com/guides/home)
-* [Guides: Fork a project and submit your modifications](http://github.com/guides/fork-a-project-and-submit-your-modifications)
+1. clone the code with git.
+   Either you host your git repo yourself, or use something userfriendly
+   like [Github](http://www.github.com)
+   If you want to use github, you basically just need to register and click
+   the fork button on [Dieterbe/uzbl](http://github.com/Dieterbe/uzbl)
+   If you're new to Git/github, have no fear:
 
-Our convention is to develop in the *experimental* branch, and keep only stable, tested stuff in *master*.
-So ideally, all contributors develop in their experimental, that gets merged into the mainline experimental, and after QA it gets merged into the main master.
+   * [Github guides (highly recommended)](http://github.com/guides/home)
+   * [Guides: Fork a project and submit your modifications](http://github.com/guides/fork-a-project-and-submit-your-modifications)
 
+2. Do your work, test it and push to your repo. It may be interesting to ask
+   others for input on your work.  Make sure you do not develop against the
+   master branch! It is meant for stable, tested code.
+   All contributors develop in their experimental or other specific branches,
+   which get merged into the mainline experimental, and after QA it gets merged into the main master.
+
+3. If you think your code should be in the main uzbl code and meets all
+   requirements (see below), then ask Dieter to merge it.
+
+   * send a mail to the mailing list with subject "`Pull request: <title>`"
+     with a short description of your stuff and link to your git clone and
+     which branch you're talking about.
+     We prefer you send us links to git clones, and not just patches.  They
+     seem to be easier to merge, especially if the 'base code' has changed in the
+     meanwhile.
+   * If you really don't want to subscribe to the ML and only if it's a
+     small change, you can email Dieter personally.
+   * Please avoid sending private messages on github or asking Dieter to merge on IRC.
+   * If your patch is big, if it will help a lot if you can mention
+     that your code has been tested and is supported by other people.
+
+This is a relatively easy, solid and transparent way to handle all requests in order.
 
 ### Patch/branch requirements before merging:
 
@@ -38,7 +64,8 @@ So ideally, all contributors develop in their experimental, that gets merged int
   Update them, not only for end users but also for your fellow hackers.
 * We recommend you finish your stuff first and then let Dieter know you want your stuff to be merged in, but
   we know for bigger changes this is not always feasible.  Just try to keep the merges about bigger "clean changesets".
-
+* Your code should not introduce any compile warnings or errors.  And also,
+  no regressions but that's harder to check.
 That said, you can always ask us to check on your stuff or ask for advice.
 
 
