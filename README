@@ -303,8 +303,13 @@ Custom, userdefined scripts (`spawn foo bar`) get first the arguments as specifi
     -v, --verbose            Whether to print all messages or just errors.
     -n, --name=NAME          Name of the current instance (defaults to Xorg window id)
     -c, --config=FILE        Config file (or `-` to use stdin)
+    -s, --socket=SOCKET      Socket ID
+    -V, --version            Print the version and exit
     --display=DISPLAY        X display to use
     --help                   Help
+
+
+
 
 
 ### BUGS
