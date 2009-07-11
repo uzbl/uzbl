@@ -22,10 +22,10 @@ Read on for more info...
 ### Clone/patch/merge workflow
 
 1. clone the code with git.
-   Either you host your git repo or yourself, or use something userfriendly
+   Either you host your git repo yourself, or use something userfriendly
    like [Github](http://www.github.com)
    If you want to use github, you basically just need to register and click
-   the fork button on (Dieterbe/uzbl)[http://github.com/Dieterbe/uzbl]
+   the fork button on [Dieterbe/uzbl](http://github.com/Dieterbe/uzbl)
    If you're new to Git/github, have no fear:
 
    * [Github guides (highly recommended)](http://github.com/guides/home)
@@ -39,7 +39,8 @@ Read on for more info...
 
 3. If you think your code should be in the main uzbl code and meets all
    requirements (see below), then ask Dieter to merge it.
-   * send a mail to the mailing list with subject "Pull request: <title>"
+
+   * send a mail to the mailing list with subject "`Pull request: <title>`"
      with a short description of your stuff and link to your git clone and
      which branch you're talking about.
      We prefer you send us links to git clones, and not just patches.  They

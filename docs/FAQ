@@ -5,6 +5,7 @@ FAQ
 Uzbl includes very limited default settings (statusbar settings, but no keybinds, history/download handlers etc.)
 Look at /usr/share/uzbl/docs/config.h to see the default settings.
 Have a look in /usr/share/uzbl/examples/configs to see what you can do.
+
 If you save a config as $XDG\_CONFIG\_HOME/uzbl/config it will be loaded automatically.
 Running with the `--verbose` flag on a command line can also be interesting.
 To get you started, try this:
@@ -16,6 +17,7 @@ If you like what you can do, you can copy the sample stuff into your ~ and edit 
 ### Why don't you just use a reasonable config by default?
 We actually did some attempts to make uzbl "usable by default" but in the
 end we had to conclude it cannot be done because of the following reasons:
+
  * We don't want to store anything "automagically" in the users home.
    Some people prefer different file/directory layouts, most of just want to
    control the files in $HOME themselves.
