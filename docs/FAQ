@@ -4,8 +4,8 @@ FAQ
 ### I just installed uzbl but it doesn't do much.  What now?
 Uzbl includes very limited default settings (statusbar settings, but no keybinds, history/download handlers etc.)
 Look at /usr/share/uzbl/docs/config.h to see the default settings.
-Neither does uzbl create a default config file on startup like some other programs do because we want to give you the freedom to place your config where you want, and to use a config or not.
 Have a look in /usr/share/uzbl/examples/configs to see what you can do.
+
 If you save a config as $XDG\_CONFIG\_HOME/uzbl/config it will be loaded automatically.
 Running with the `--verbose` flag on a command line can also be interesting.
 To get you started, try this:
@@ -13,6 +13,26 @@ To get you started, try this:
 It will temporarily override your $XDG\_CONFIG\_HOME and $XDG\_DATA\_HOME
 variables so you can try the sample stuff directly in /usr/share/uzbl/examples.
 If you like what you can do, you can copy the sample stuff into your ~ and edit to your liking.
+
+### Why don't you just use a reasonable config by default?
+We actually did some attempts to make uzbl "usable by default" but in the
+end we had to conclude it cannot be done because of the following reasons:
+
+ * We don't want to store anything "automagically" in the users home.
+   Some people prefer different file/directory layouts, most of just want to
+   control the files in $HOME themselves.
+ * We considered the option of having a global '/etc/uzbl' which user
+   specific ones could override but that would overcomplicate things.
+ * We adhere to the [FHS](http://www.pathname.com/fhs/) (`man hier`), so
+   `uzbl -c /usr/share/...` is not an option.
+
+So even though we would like to make uzbl more usable by default, we think
+there is no sensible way to do it.  Maybe downstream packagers could provide
+a note that users could copy the examples from /usr/share/uzbl/examples into
+their homes, because really, that's all that is needed if you want it to
+just "work" without controlling how yourself. (unless you have no
+xdg variables set, in which case you should be smart enough to edit the sample
+config yourself).
 
 ### Where is the location bar? How do I change the URL ?
 Uzbl has no location bar.  All changes to the uri (editing of current uri, typing new uri, loading of uri from bookmarks/history/...) happens *outside* of uzbl.
@@ -33,13 +53,15 @@ have lots of keybinding possibilities.
 We stick to "one page per uzbl instance" because that's a simple, clean and flexible method.  We believe "multiple instances management" is something that must
 be handled outside of uzbl by a separate/different program.  Here are some solutions:
 
- * many window managers can (and should) handle this by default.  Xmonads tabbed layout, Wmii's stacked layout and so on.
- * you can write a custom script.  The only thing you need to do is focus/maximize the instance you want, 
+ * Many window managers can (and should) handle this by default.  Xmonads tabbed layout, Wmii's stacked layout and so on.
+ * Uzbl supports acting as a GtkPlug to plug into GtkSockets (Xembed) so you can embed uzbl instances in other Gtk applications.
+   This allows several implementatinos, a popular one is [uzbl_tabbed.py](http://www.uzbl.org/wiki/uzbl_tabbed)
+ * If you want highest customizablity, you need the 3rd option:
+   You can also write a custom script.  The only thing you need to do is focus/maximize the instance you want,
    keep the others out of sight and use tools like dmenu and wmctrl to switch instances.
    This allows you to use application-specific properties (such as uzbl tag, name etc).
-   For more information about this approach, see docs/multiple-instances-management
-   (we'll maybe include some sample scripts in the future)
- * We might implement a GtkPlug (Xembed child) in the future.  So you could abuse that.
+   For more information about this approach, see docs/multiple-instances-management.
+   (If you want to work on such script, let us know and we might include it along with the other sample scripts)
 
 ### What?  No support for bookmarks/history/downloads/cookies/... ? Your project sucks!
 We do not support *management* of those things, because we believe a browser should only do browsing.  We are firm believers in the unix philosophy.
@@ -93,6 +115,14 @@ They both have advantages and disadvantages:
  * Sockets are bidirectional but more complex.  You cannot just write a plaintext string into them.  In shellscripts you can use uzblctrl or netcat to work with sockets, when programming you need to use library functions.
 
 So, when writing scripts, using fifo's is usually the fastest method (because you do not need to fork another process), so fifo is preferred unless you need a response.
+
+### What the hell is this 'XDG' stuff??
+You'll notice our example scripts and configs use variables such as `$XDG_CONFIG_HOME` and `$XDG_DATA_HOME`.
+Most of us really like the [xdg basedir spec](http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html)
+so our example material folows it.  Basically it helps you keeping a clean `$HOME` and it separates config, data and cache.
+If these variables are not defined on your system, it could be that you need to install an xdg package.
+If you don't like this, no one is stopping you from changing the scripts and configs to point to a single `$HOME/.uzbl` directory or whatever you want.
+
 
 ### Does the world really need another browser?
 We did try a lot of browsers, and we do not suffer [NIH](http://en.wikipedia.org/wiki/Not_Invented_Here).

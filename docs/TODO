@@ -12,7 +12,7 @@ More or less in order of importance/urgency
 * scrolling: make page up and page down configurable.
 * show % of location in statusbar/title if page doesn't fit entirely on view.
 * conditionals in format strings: eg if(SELECTED_URI) { "-> SELECTED_URI" } or another smart way to achieve the same.
-* make default window size configurable, and optional
+* make default window size configurable, and optional if this is not too much work
 * on uzbl.org commits overview: add date+time and repository
 * how to handle different content types? (text-plain, image/png, application/pdf,... maybe a map of content-type to uzbl/command
   xdg already has a spec for this i think
@@ -40,7 +40,6 @@ More or less in order of importance/urgency
 * check for real command name, not just the first letter.
 * let users attach handlers to the most common events/signals in uzbl.
   great use case: automatically calling formfiller for certain sites
-* write little script to open new urls with the urxvt url thing +document.
 * document:
   stylesheet overridding
   formfiller
@@ -62,4 +61,3 @@ figure out how webkit intercepts key input
 make "disable insert mode" (esc key) configurable
 keywords don't work for external commands. is this a problem?
 * pass a bit less arguments by default, use the socket to query for them instead, or export the stuff through environment variables, or export them as xorg window properties
-* write a config "generator" that iterates over the Uzbl uzbl and generates the commands needed to become in that state.

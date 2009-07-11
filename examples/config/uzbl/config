@@ -11,6 +11,10 @@ set history_handler  = spawn $XDG_DATA_HOME/uzbl/scripts/history.sh
 set download_handler = spawn $XDG_DATA_HOME/uzbl/scripts/download.sh
 set cookie_handler   = spawn $XDG_DATA_HOME/uzbl/scripts/cookies.py
 
+# Control how new windows should open
+#set new_window       = sh 'uzbl -u $8' # equivalent to the default behaviour
+#set new_window       = sh 'echo uri "$8" > $4' # open in same window
+
 # You can bind whatever things (spawn <foo>, script <bar>,..) to some events TODO: make events system more generic
 set load_start_handler = set status_message = <span foreground="khaki">wait</span>
 set load_commit_handler = set status_message = <span foreground="green">recv</span>
@@ -32,13 +36,13 @@ set font_size = 11
 #set enable_spellcheck = 1
 
 ## Private browsing
-#set enbale_private = 0
+#set enable_private = 0
 
 ## The URI of a stylesheet that is applied to every page
 #set stylesheet_uri = http://www.user.com/mystylelesheet.css
 
 ## enable/disable JavaScript
-#set disbale_scripts = 1
+#set disable_scripts = 1
 
 ## Whether text areas are resizable
 #set resizeable_text_areas = 1
