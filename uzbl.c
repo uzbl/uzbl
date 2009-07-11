@@ -2716,7 +2716,7 @@ main (int argc, char* argv[]) {
     uzbl.state.selected_url = NULL;
     uzbl.state.searchtx = NULL;
 
-    GOptionContext* context = g_option_context_new ("- some stuff here maybe someday");
+    GOptionContext* context = g_option_context_new ("[ uri ] - load a uri by default");
     g_option_context_add_main_entries (context, entries, NULL);
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
     g_option_context_parse (context, &argc, &argv, NULL);

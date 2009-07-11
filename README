@@ -298,8 +298,8 @@ The script specific arguments are this:
 Custom, userdefined scripts (`spawn foo bar`) get first the arguments as specified in the config and then the above 7 are added at the end.
 
 ### COMMAND LINE ARGUMENTS
-
-    -u, --uri=URI            Uri to load (equivalent to 'set uri = URI')
+    uzbl [ uri ]
+    -u, --uri=URI            alternative way to load uri on start. (equivalent to 'set uri = URI')
     -v, --verbose            Whether to print all messages or just errors.
     -n, --name=NAME          Name of the current instance (defaults to Xorg window id)
     -c, --config=FILE        Config file (or `-` to use stdin)
