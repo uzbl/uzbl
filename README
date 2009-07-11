@@ -9,8 +9,8 @@
 * invoke uzbl --help
 * to get you started: `XDG_DATA_HOME=/usr/share/uzbl/examples/data XDG_CONFIG_HOME=/usr/share/uzbl/examples/config uzbl --uri www.archlinux.org`
 * study the sample config, have a look at all the bindings, and note how you can call the scripts to load new url from history and the bookmarks file
-* note that there is no url bar. all url editing is supposed to happen _outside_ of uzbl.
-  For now, you can use the `load_from_*` dmenu based scripts to pick a url or type a new one or write commands into the fifo (see /usr/share/uzbl/docs/CHECKLIST)
+* You can change the url with commands (if you have setup the appropriate keybinds) but to be most effective it's better to do url editing/changing _outside_ of uzbl.
+  Eg, you can use the `load_from_*` dmenu based scripts to pick/edit a url or type a new one.
 * If you have questions, you are likely to find answers in the FAQ or in the other documentation.
 
 
@@ -26,8 +26,8 @@ Time to change that!
   Here are the general ideas:
 
 * each instance of uzbl renders 1 page (eg it's a small wrapper around webkit), no tabbing, tab previews, or speed dial things.
-  For "multiple instances management" use your window managers, or scripts. 
-  This way you can get something much more useful than tabbing (see rationale in docs)
+  For "multiple instances management" use your window managers, scripts or wrappers. 
+  This way you can get something much more useful than tabbing by default
 * very simple, plaintext , changeable at runtime configuration
 * various interfaces for (programmatic) interaction with uzbl (see below)
 * customizable keyboard shortcuts in vim or emacs style (whatever user wants)
