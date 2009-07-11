@@ -16,8 +16,10 @@ keydir=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/forms
 [ -d "`dirname $keydir`" ] || exit 1
 [ -d "$keydir" ] || mkdir "$keydir"
 
-#editor=gvim
-editor='urxvt -e vim'
+editor=${VISUAL}
+if [[ -z ${editor} ]]; then
+    editor='urxvt -e vim'
+fi
 
 config=$1; shift
 pid=$1;    shift
