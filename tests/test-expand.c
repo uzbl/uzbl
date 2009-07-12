@@ -27,29 +27,28 @@
 
 extern Uzbl uzbl;
 
-extern gchar* expand(char*, guint, gboolean);
+extern gchar* expand(char*, guint);
 extern void make_var_to_name_hash(void);
 
 void
 test_keycmd (void) {
-    uzbl.state.keycmd = g_string_new("gg winslow");
-    g_assert_cmpstr(expand("@keycmd", 0, FALSE), ==, "gg winslow");
-    g_string_free(uzbl.state.keycmd, TRUE);
+    uzbl.state.keycmd = "gg winslow";
+    g_assert_cmpstr(expand("@keycmd", 0), ==, "gg winslow");
 }
 
 void
 test_uri (void) {
-    g_assert_cmpstr(expand("@uri", 0, FALSE), ==, "");
+    g_assert_cmpstr(expand("@uri", 0), ==, "");
 
     uzbl.state.uri = g_strdup("http://www.uzbl.org/");
-    g_assert_cmpstr(expand("@uri", 0, FALSE), ==, uzbl.state.uri);
+    g_assert_cmpstr(expand("@uri", 0), ==, uzbl.state.uri);
     g_free(uzbl.state.uri);
 }
 
 void
 test_LOAD_PROGRESS (void) {
     uzbl.gui.sbar.load_progress = 50;
-    g_assert_cmpstr(expand("@LOAD_PROGRESS", 0, FALSE), ==, "50");
+    g_assert_cmpstr(expand("@LOAD_PROGRESS", 0), ==, "50");
 }
 
 void
@@ -57,40 +56,40 @@ test_LOAD_PROGRESSBAR (void) {
     uzbl.gui.sbar.progress_w = 4;
     progress_change_cb(NULL, 75, NULL);
 
-    g_assert_cmpstr(expand("@LOAD_PROGRESSBAR", 0, FALSE), ==, "===·");
+    g_assert_cmpstr(expand("@LOAD_PROGRESSBAR", 0), ==, "===·");
 }
 
 void
 test_TITLE (void) {
     uzbl.gui.main_title = "Lorem Ipsum";
-    g_assert_cmpstr(expand("@TITLE", 0, FALSE), ==, "Lorem Ipsum");
+    g_assert_cmpstr(expand("@TITLE", 0), ==, "Lorem Ipsum");
 }
 
 void
 test_SELECTED_URI (void) {
     uzbl.state.selected_url = "http://example.org/";
-    g_assert_cmpstr(expand("@SELECTED_URI", 0, FALSE), ==, "http://example.org/");
+    g_assert_cmpstr(expand("@SELECTED_URI", 0), ==, "http://example.org/");
 }
 
 void
 test_NAME (void) {
     uzbl.state.instance_name = "testing";
-    g_assert_cmpstr(expand("@NAME", 0, FALSE), ==, "testing");
+    g_assert_cmpstr(expand("@NAME", 0), ==, "testing");
 }
 
 void
 test_MODE (void) {
     set_insert_mode(FALSE);
-    g_assert_cmpstr(expand("@MODE", 0, FALSE), ==, "C");
+    g_assert_cmpstr(expand("@MODE", 0), ==, "C");
 
     set_insert_mode(TRUE);
-    g_assert_cmpstr(expand("@MODE", 0, FALSE), ==, "I");
+    g_assert_cmpstr(expand("@MODE", 0), ==, "I");
 }
 
 void
 test_status_message (void) {
     uzbl.gui.sbar.msg = "Hello from frosty Edmonton!";
-    g_assert_cmpstr(expand("@status_message", 0, FALSE), ==, "Hello from frosty Edmonton!");
+    g_assert_cmpstr(expand("@status_message", 0), ==, "Hello from frosty Edmonton!");
 }
 
 void
@@ -102,17 +101,17 @@ test_WEBKIT_VERSION (void) {
     g_string_append(expected, " ");
     g_string_append(expected, itos(WEBKIT_MICRO_VERSION));
 
-    g_assert_cmpstr(expand("@WEBKIT_MAJOR @WEBKIT_MINOR @WEBKIT_MICRO", 0, FALSE), ==, g_string_free(expected, FALSE));
+    g_assert_cmpstr(expand("@WEBKIT_MAJOR @WEBKIT_MINOR @WEBKIT_MICRO", 0), ==, g_string_free(expected, FALSE));
 }
 
 void
 test_ARCH_UZBL (void) {
-    g_assert_cmpstr(expand("@ARCH_UZBL", 0, FALSE), ==, ARCH);
+    g_assert_cmpstr(expand("@ARCH_UZBL", 0), ==, ARCH);
 }
 
 void
 test_COMMIT (void) {
-    g_assert_cmpstr(expand("@COMMIT", 0, FALSE), ==, COMMIT);
+    g_assert_cmpstr(expand("@COMMIT", 0), ==, COMMIT);
 }
 
 void
@@ -166,16 +165,16 @@ void
 test_escape_markup (void) {
     /* simple expansion */
     uzbl.state.uri = g_strdup("<&>");
-    g_assert_cmpstr(expand("@uri", 0, FALSE), ==, uzbl.state.uri);
-    g_assert_cmpstr(expand("@uri", 0, TRUE), ==, "&lt;&amp;&gt;");
+    g_assert_cmpstr(expand("@uri", 0), ==, uzbl.state.uri);
+    g_assert_cmpstr(expand("@[@uri]@", 0), ==, "&lt;&amp;&gt;");
 
     /* shell expansion */
-    g_assert_cmpstr(expand("@(echo -n '<&>')@", 0, FALSE), ==, "<&>");
-    g_assert_cmpstr(expand("@(echo -n '<&>')@", 0, TRUE), ==, "&lt;&amp;&gt;");
+    g_assert_cmpstr(expand("@(echo -n '<&>')@", 0), ==, "<&>");
+    g_assert_cmpstr(expand("@[@(echo -n '<&>')@]@", 0), ==, "&lt;&amp;&gt;");
 
     /* javascript expansion */
-    g_assert_cmpstr(expand("@<'<&>'>@", 0, FALSE), ==, "<&>");
-    g_assert_cmpstr(expand("@<'<&>'>@", 0, TRUE), ==, "&lt;&amp;&gt;");
+    g_assert_cmpstr(expand("@<'<&>'>@", 0), ==, "<&>");
+    g_assert_cmpstr(expand("@[@<'<&>'>@]@", 0), ==, "&lt;&amp;&gt;");
 
     g_free(uzbl.state.uri);
 }
@@ -183,26 +182,26 @@ test_escape_markup (void) {
 void
 test_escape_expansion (void) {
     /* \@ -> @ */
-    g_assert_cmpstr(expand("\\@uri", 0, FALSE), ==, "@uri");
+    g_assert_cmpstr(expand("\\@uri", 0), ==, "@uri");
 
     /* \\\@ -> \@ */
-    g_assert_cmpstr(expand("\\\\\\@uri", 0, FALSE), ==, "\\@uri");
+    g_assert_cmpstr(expand("\\\\\\@uri", 0), ==, "\\@uri");
 
     /* \@(...)\@ -> @(...)@ */
-    g_assert_cmpstr(expand("\\@(echo hi)\\@", 0, FALSE), ==, "@(echo hi)@");
+    g_assert_cmpstr(expand("\\@(echo hi)\\@", 0), ==, "@(echo hi)@");
 
     /* \@<...>\@ -> @<...>@ */
-    g_assert_cmpstr(expand("\\@<\"hi\">\\@", 0, FALSE), ==, "@<\"hi\">@");
+    g_assert_cmpstr(expand("\\@<\"hi\">\\@", 0), ==, "@<\"hi\">@");
 }
 
 void
 test_nested (void) {
     uzbl.gui.sbar.msg = "xxx";
-    g_assert_cmpstr(expand("@<\"..@status_message..\">@", 0, FALSE), ==, "..xxx..");
-    g_assert_cmpstr(expand("@<\"..\\@status_message..\">@", 0, FALSE), ==, "..@status_message..");
+    g_assert_cmpstr(expand("@<\"..@status_message..\">@", 0), ==, "..xxx..");
+    g_assert_cmpstr(expand("@<\"..\\@status_message..\">@", 0), ==, "..@status_message..");
 
-    g_assert_cmpstr(expand("@(echo ..@status_message..)@", 0, FALSE), ==, "..xxx..");
-    g_assert_cmpstr(expand("@(echo ..\\@status_message..)@", 0, FALSE), ==, "..@status_message..");
+    g_assert_cmpstr(expand("@(echo ..@status_message..)@", 0), ==, "..xxx..");
+    g_assert_cmpstr(expand("@(echo ..\\@status_message..)@", 0), ==, "..@status_message..");
 }
 
 int
@@ -210,7 +209,7 @@ main (int argc, char *argv[]) {
     g_type_init();
     g_test_init(&argc, &argv, NULL);
 
-//    g_test_add_func("/test-expand/@keycmd", test_keycmd);
+    g_test_add_func("/test-expand/@keycmd", test_keycmd);
     g_test_add_func("/test-expand/@status_message", test_status_message);
     g_test_add_func("/test-expand/@uri", test_uri);
     g_test_add_func("/test-expand/@LOAD_PROGRESS", test_LOAD_PROGRESS);

@@ -83,7 +83,7 @@ typedef struct {
     char     *instance_name;
     gchar    *selected_url;
     gchar    *executable_path;
-    GString* keycmd;
+    gchar*   keycmd;
     gchar*   searchtx;
     gboolean verbose;
 } State;

@@ -108,6 +108,7 @@ const struct {
     { "base_url",            PTR_V(uzbl.behave.base_url,            STR,  1,   NULL)},
     { "html_endmarker",      PTR_V(uzbl.behave.html_endmarker,      STR,  1,   NULL)},
     { "html_mode_timeout",   PTR_V(uzbl.behave.html_timeout,        INT,  1,   NULL)},
+    { "keycmd",              PTR_V(uzbl.state.keycmd,               STR,  1,   NULL)}, /* XXX */
     { "status_message",      PTR_V(uzbl.gui.sbar.msg,               STR,  1,   update_title)},
     { "show_status",         PTR_V(uzbl.behave.show_status,         INT,  1,   cmd_set_status)},
     { "status_top",          PTR_V(uzbl.behave.status_top,          INT,  1,   move_statusbar)},
@@ -121,7 +122,7 @@ const struct {
     { "title_format_long",   PTR_V(uzbl.behave.title_format_long,   STR,  1,   update_title)},
     { "title_format_short",  PTR_V(uzbl.behave.title_format_short,  STR,  1,   update_title)},
     { "icon",                PTR_V(uzbl.gui.icon,                   STR,  1,   set_icon)},
-    { "insert_mode",         PTR_V(uzbl.behave.insert_mode,         INT,  1,   NULL)},
+    { "insert_mode",         PTR_V(uzbl.behave.insert_mode,         INT,  1,   NULL)}, /* XXX */
     { "always_insert_mode",  PTR_V(uzbl.behave.always_insert_mode,  INT,  1,   cmd_always_insert_mode)},
     { "reset_command_mode",  PTR_V(uzbl.behave.reset_command_mode,  INT,  1,   NULL)},
     { "modkey",              PTR_V(uzbl.behave.modkey,              STR,  1,   cmd_modkey)},
@@ -212,7 +213,7 @@ make_var_to_name_hash() {
 
 /* --- UTILITY FUNCTIONS --- */
 
-enum {EXP_ERR, EXP_SIMPLE_VAR, EXP_BRACED_VAR, EXP_EXPR, EXP_JS};
+enum {EXP_ERR, EXP_SIMPLE_VAR, EXP_BRACED_VAR, EXP_EXPR, EXP_JS, EXP_ESCAPE};
 static guint
 get_exp_type(gchar *s) {
     /* variables */
@@ -222,6 +223,8 @@ get_exp_type(gchar *s) {
         return EXP_BRACED_VAR;
     else if(*(s+1) == '<')
         return EXP_JS;
+    else if(*(s+1) == '[')
+        return EXP_ESCAPE;
     else
         return EXP_SIMPLE_VAR;
 
@@ -233,7 +236,7 @@ return EXP_ERR;
  * recurse == 2: don't expand '@<java script>@'
  */
 gchar *
-expand(char *s, guint recurse, gboolean escape_markup) {
+expand(char *s, guint recurse) {
     uzbl_cmdprop *c;
     guint etype;
     char upto = ' ';
@@ -294,20 +297,23 @@ expand(char *s, guint recurse, gboolean escape_markup) {
                             ret[vend-s] = '\0';
                         }
                         break;
+                    case EXP_ESCAPE:
+                        s++;
+                        strcpy(str_end, "]@");
+                        str_end[2] = '\0';
+                        if( (vend = strstr(s, str_end)) ||
+                            (vend = strchr(s, '\0')) ) {
+                            strncpy(ret, s, vend-s);
+                            ret[vend-s] = '\0';
+                        }
+                        break;
                 }
 
                 if(etype == EXP_SIMPLE_VAR ||
                    etype == EXP_BRACED_VAR) {
                     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, ret)) ) {
                         if(c->type == TYPE_STR && *c->ptr != NULL) {
-                            if(escape_markup) {
-                                char *b = g_markup_escape_text((gchar *)*c->ptr,
-                                    strlen((gchar *)*c->ptr));
-                                g_string_append(buf, b);
-                                g_free(b);
-                            } else {
-                                g_string_append(buf, (gchar *)*c->ptr);
-                            }
+                            g_string_append(buf, (gchar *)*c->ptr);
                         } else if(c->type == TYPE_INT) {
                             char *b = itos((uintptr_t)*c->ptr);
                             g_string_append(buf, b);
@@ -322,7 +328,7 @@ expand(char *s, guint recurse, gboolean escape_markup) {
                 }
                 else if(recurse != 1 &&
                         etype == EXP_EXPR) {
-                    mycmd = expand(ret, 1, escape_markup);
+                    mycmd = expand(ret, 1);
                     g_spawn_command_line_sync(mycmd, &cmd_stdout, NULL, NULL, &err);
                     g_free(mycmd);
 
@@ -336,35 +342,32 @@ expand(char *s, guint recurse, gboolean escape_markup) {
                         if(cmd_stdout[len-1] == '\n')
                             cmd_stdout[--len] = 0; /* strip trailing newline */
 
-                        if(escape_markup) {
-                            char *b = g_markup_escape_text(cmd_stdout, len);
-                            g_string_append(buf, b);
-                            g_free(b);
-                        } else {
-                          g_string_append(buf, cmd_stdout);
-                        }
+                        g_string_append(buf, cmd_stdout);
                         g_free(cmd_stdout);
                     }
                     s = vend+2;
                 }
                 else if(recurse != 2 &&
                         etype == EXP_JS) {
-                    mycmd = expand(ret, 2, escape_markup);
+                    mycmd = expand(ret, 2);
                     eval_js(uzbl.gui.web_view, mycmd, js_ret);
                     g_free(mycmd);
 
                     if(js_ret->str) {
-                        if(escape_markup) {
-                            char *b = g_markup_escape_text(js_ret->str,
-                                strlen(js_ret->str));
-                            g_string_append(buf, b);
-                            g_free(b);
-                        } else {
-                            g_string_append(buf, js_ret->str);
-                        }
+                        g_string_append(buf, js_ret->str);
                         g_string_free(js_ret, TRUE);
                         js_ret = g_string_new("");
                     }
+                    s = vend+2;
+                }
+                else if(etype == EXP_ESCAPE) {
+                    mycmd = expand(ret, 0);
+                    char *escaped = g_markup_escape_text(mycmd, strlen(mycmd));
+
+                    g_string_append(buf, escaped);
+
+                    g_free(escaped);
+                    g_free(mycmd);
                     s = vend+2;
                 }
                 break;
@@ -479,7 +482,7 @@ clean_up(void) {
         unlink (uzbl.comm.socket_path);
 
     g_free(uzbl.state.executable_path);
-    g_string_free(uzbl.state.keycmd, TRUE);
+    g_free(uzbl.state.keycmd);
     g_hash_table_destroy(uzbl.bindings);
     g_hash_table_destroy(uzbl.behave.commands);
 }
@@ -713,13 +716,18 @@ load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
         run_handler(uzbl.behave.load_finish_handler, "");
 }
 
+void clear_keycmd() {
+  g_free(uzbl.state.keycmd);
+  uzbl.state.keycmd = g_strdup("");
+}
+
 static void
 load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) page;
     (void) frame;
     (void) data;
     uzbl.gui.sbar.load_progress = 0;
-    g_string_truncate(uzbl.state.keycmd, 0); // don't need old commands to remain on new page?
+    clear_keycmd(); // don't need old commands to remain on new page?
     if (uzbl.behave.load_start_handler)
         run_handler(uzbl.behave.load_start_handler, "");
 }
@@ -866,7 +874,7 @@ print(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
     gchar* buf;
 
-    buf = expand(argv_idx(argv, 0), 0, FALSE);
+    buf = expand(argv_idx(argv, 0), 0);
     g_string_assign(result, buf);
     g_free(buf);
 }
@@ -887,6 +895,7 @@ act_dump_config() {
     dump_config();
 }
 
+/* XXX set_var_value instead? */
 void set_insert_mode(gboolean mode) {
     uzbl.behave.insert_mode = mode;
     uzbl.gui.sbar.mode_indicator = (mode ?
@@ -1144,7 +1153,7 @@ keycmd (WebKitWebView *page, GArray *argv, GString *result) {
     (void)page;
     (void)argv;
     (void)result;
-    g_string_assign(uzbl.state.keycmd, argv_idx(argv, 0));
+    uzbl.state.keycmd = g_strdup(argv_idx(argv, 0));
     run_keycmd(FALSE);
     update_title();
 }
@@ -1154,7 +1163,7 @@ keycmd_nl (WebKitWebView *page, GArray *argv, GString *result) {
     (void)page;
     (void)argv;
     (void)result;
-    g_string_assign(uzbl.state.keycmd, argv_idx(argv, 0));
+    uzbl.state.keycmd = g_strdup(argv_idx(argv, 0));
     run_keycmd(TRUE);
     update_title();
 }
@@ -1165,9 +1174,10 @@ keycmd_bs (WebKitWebView *page, GArray *argv, GString *result) {
     (void)page;
     (void)argv;
     (void)result;
-    prev = g_utf8_find_prev_char(uzbl.state.keycmd->str, uzbl.state.keycmd->str + uzbl.state.keycmd->len);
+    int len = strlen(uzbl.state.keycmd);
+    prev = g_utf8_find_prev_char(uzbl.state.keycmd, uzbl.state.keycmd + len);
     if (prev)
-      g_string_truncate(uzbl.state.keycmd, prev - uzbl.state.keycmd->str);
+      uzbl.state.keycmd[prev - uzbl.state.keycmd] = '\0';
     update_title();
 }
 
@@ -1197,108 +1207,6 @@ build_progressbar_ascii(int percent) {
        g_string_append(bar, uzbl.gui.sbar.progress_u);
 
    return g_string_free(bar, FALSE);
-}
-
-void
-setup_scanner() {
-     const GScannerConfig scan_config = {
-             (
-              "\t\r\n"
-             )            /* cset_skip_characters */,
-             (
-              G_CSET_a_2_z
-              "_#"
-              G_CSET_A_2_Z
-             )            /* cset_identifier_first */,
-             (
-              G_CSET_a_2_z
-              "_0123456789"
-              G_CSET_A_2_Z
-              G_CSET_LATINS
-              G_CSET_LATINC
-             )            /* cset_identifier_nth */,
-             ( "" )    /* cpair_comment_single */,
-
-             TRUE         /* case_sensitive */,
-
-             FALSE        /* skip_comment_multi */,
-             FALSE        /* skip_comment_single */,
-             FALSE        /* scan_comment_multi */,
-             TRUE         /* scan_identifier */,
-             TRUE         /* scan_identifier_1char */,
-             FALSE        /* scan_identifier_NULL */,
-             TRUE         /* scan_symbols */,
-             FALSE        /* scan_binary */,
-             FALSE        /* scan_octal */,
-             FALSE        /* scan_float */,
-             FALSE        /* scan_hex */,
-             FALSE        /* scan_hex_dollar */,
-             FALSE        /* scan_string_sq */,
-             FALSE        /* scan_string_dq */,
-             TRUE         /* numbers_2_int */,
-             FALSE        /* int_2_float */,
-             FALSE        /* identifier_2_string */,
-             FALSE        /* char_2_token */,
-             FALSE        /* symbol_2_token */,
-             TRUE         /* scope_0_fallback */,
-             FALSE,
-             TRUE
-     };
-
-     uzbl.scan = g_scanner_new(&scan_config);
-     while(symp->symbol_name) {
-         g_scanner_scope_add_symbol(uzbl.scan, 0,
-                         symp->symbol_name,
-                         GINT_TO_POINTER(symp->symbol_token));
-         symp++;
-     }
-}
-
-gchar *
-expand_template(const char *template, gboolean escape_markup) {
-     if(!template) return NULL;
-
-     GTokenType token = G_TOKEN_NONE;
-     GString *ret = g_string_new("");
-     char *buf=NULL;
-     int sym;
-
-     g_scanner_input_text(uzbl.scan, template, strlen(template));
-     while(!g_scanner_eof(uzbl.scan) && token != G_TOKEN_LAST) {
-         token = g_scanner_get_next_token(uzbl.scan);
-
-         if(token == G_TOKEN_SYMBOL) {
-             sym = GPOINTER_TO_INT(g_scanner_cur_value(uzbl.scan).v_symbol);
-             switch(sym) {
-                 case SYM_KEYCMD:
-                     if(escape_markup) {
-                         buf = uzbl.state.keycmd->str?
-                             g_markup_printf_escaped("%s", uzbl.state.keycmd->str):g_strdup("");
-                         g_string_append(ret, buf);
-                         g_free(buf);
-                     }
-                     else
-                         g_string_append(ret, uzbl.state.keycmd->str?
-                                 uzbl.state.keycmd->str:g_strdup(""));
-                     break;
-                 default:
-                     break;
-             }
-         }
-         else if(token == G_TOKEN_INT) {
-             buf = itos(g_scanner_cur_value(uzbl.scan).v_int);
-             g_string_append(ret, buf);
-             g_free(buf);
-         }
-         else if(token == G_TOKEN_IDENTIFIER) {
-             g_string_append(ret, (gchar *)g_scanner_cur_value(uzbl.scan).v_identifier);
-         }
-         else if(token == G_TOKEN_CHAR) {
-             g_string_append_c(ret, (gchar)g_scanner_cur_value(uzbl.scan).v_char);
-         }
-     }
-
-     return g_string_free(ret, FALSE);
 }
 /* --End Statusbar functions-- */
 
@@ -1774,17 +1682,17 @@ set_var_value(gchar *name, gchar *val) {
 
         /* check for the variable type */
         if (c->type == TYPE_STR) {
-            buf = expand(val, 0, FALSE);
+            buf = expand(val, 0);
             g_free(*c->ptr);
             *c->ptr = buf;
         } else if(c->type == TYPE_INT) {
             int *ip = (int *)c->ptr;
-            buf = expand(val, 0, FALSE);
+            buf = expand(val, 0);
             *ip = (int)strtoul(buf, &endp, 10);
             g_free(buf);
         } else if (c->type == TYPE_FLOAT) {
             float *fp = (float *)c->ptr;
-            buf = expand(val, 0, FALSE);
+            buf = expand(val, 0);
             *fp = strtod(buf, &endp);
             g_free(buf);
         }
@@ -2074,15 +1982,13 @@ update_title (void) {
 
     if (b->show_status) {
         if (b->title_format_short) {
-            parsed = expand_template(b->title_format_short, FALSE);
-            parsed = expand(parsed, 0, FALSE);
+            parsed = expand(b->title_format_short, 0);
             if (uzbl.gui.main_window)
                 gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
             g_free(parsed);
         }
         if (b->status_format) {
-            parsed = expand_template(b->status_format, TRUE);
-            parsed = expand(parsed, 0, TRUE);
+            parsed = expand(b->status_format, 0);
             gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), parsed);
             g_free(parsed);
         }
@@ -2097,8 +2003,7 @@ update_title (void) {
         }
     } else {
         if (b->title_format_long) {
-            parsed = expand_template(b->title_format_long, FALSE);
-            parsed = expand(parsed, 0, FALSE);
+            parsed = expand(b->title_format_long, 0);
             if (uzbl.gui.main_window)
                 gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
             g_free(parsed);
@@ -2128,7 +2033,7 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
         return FALSE;
 
     if (event->keyval == GDK_Escape) {
-        g_string_truncate(uzbl.state.keycmd, 0);
+        clear_keycmd();
         update_title();
         dehilight(uzbl.gui.web_view, NULL, NULL);
         return TRUE;
@@ -2143,7 +2048,9 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
             str = gtk_clipboard_wait_for_text (gtk_clipboard_get (GDK_SELECTION_CLIPBOARD));
         }
         if (str) {
-            g_string_append (uzbl.state.keycmd, str);
+            GString* keycmd = g_string_new(uzbl.state.keycmd);
+            g_string_append (keycmd, str);
+            uzbl.state.keycmd = g_string_free(keycmd, FALSE);
             update_title ();
             g_free (str);
         }
@@ -2156,7 +2063,11 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
     gboolean key_ret = FALSE;
     if ((event->keyval == GDK_Return) || (event->keyval == GDK_KP_Enter))
         key_ret = TRUE;
-    if (!key_ret) g_string_append(uzbl.state.keycmd, event->string);
+    if (!key_ret) {
+        GString* keycmd = g_string_new(uzbl.state.keycmd);
+        g_string_append(keycmd, event->string);
+        uzbl.state.keycmd = g_string_free(keycmd, FALSE);
+    }
 
     run_keycmd(key_ret);
     update_title();
@@ -2168,8 +2079,8 @@ static void
 run_keycmd(const gboolean key_ret) {
     /* run the keycmd immediately if it isn't incremental and doesn't take args */
     Action *act;
-    if ((act = g_hash_table_lookup(uzbl.bindings, uzbl.state.keycmd->str))) {
-        g_string_truncate(uzbl.state.keycmd, 0);
+    if ((act = g_hash_table_lookup(uzbl.bindings, uzbl.state.keycmd))) {
+        clear_keycmd();
         parse_command(act->name, act->param, NULL);
         return;
     }
@@ -2178,8 +2089,9 @@ run_keycmd(const gboolean key_ret) {
     GString* short_keys = g_string_new ("");
     GString* short_keys_inc = g_string_new ("");
     guint i;
-    for (i=0; i<(uzbl.state.keycmd->len); i++) {
-        g_string_append_c(short_keys, uzbl.state.keycmd->str[i]);
+    guint len = strlen(uzbl.state.keycmd);
+    for (i=0; i<len; i++) {
+        g_string_append_c(short_keys, uzbl.state.keycmd[i]);
         g_string_assign(short_keys_inc, short_keys->str);
         g_string_append_c(short_keys, '_');
         g_string_append_c(short_keys_inc, '*');
@@ -2187,11 +2099,11 @@ run_keycmd(const gboolean key_ret) {
         if (key_ret && (act = g_hash_table_lookup(uzbl.bindings, short_keys->str))) {
             /* run normal cmds only if return was pressed */
             exec_paramcmd(act, i);
-            g_string_truncate(uzbl.state.keycmd, 0);
+            clear_keycmd();
             break;
         } else if ((act = g_hash_table_lookup(uzbl.bindings, short_keys_inc->str))) {
             if (key_ret)  /* just quit the incremental command on return */
-                g_string_truncate(uzbl.state.keycmd, 0);
+                clear_keycmd();
             else exec_paramcmd(act, i); /* otherwise execute the incremental */
             break;
         }
@@ -2204,7 +2116,7 @@ run_keycmd(const gboolean key_ret) {
 
 static void
 exec_paramcmd(const Action *act, const guint i) {
-    GString *parampart = g_string_new (uzbl.state.keycmd->str);
+    GString *parampart = g_string_new (uzbl.state.keycmd);
     GString *actionname = g_string_new ("");
     GString *actionparam = g_string_new ("");
     g_string_erase (parampart, 0, i+1);
@@ -2681,7 +2593,7 @@ initialize(int argc, char *argv[]) {
     uzbl.bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
 
     uzbl.net.soup_session = webkit_get_default_session();
-    uzbl.state.keycmd = g_string_new("");
+    uzbl.state.keycmd = g_strdup("");
 
     if(setup_signal(SIGTERM, catch_sigterm) == SIG_ERR)
         fprintf(stderr, "uzbl: error hooking SIGTERM\n");
@@ -2711,7 +2623,6 @@ initialize(int argc, char *argv[]) {
     uzbl.info.arch         = ARCH;
     uzbl.info.commit       = COMMIT;
 
-    setup_scanner();
     commands_hash ();
     make_var_to_name_hash();
 
