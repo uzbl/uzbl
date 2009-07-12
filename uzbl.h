@@ -297,7 +297,11 @@ new_action(const gchar *name, const gchar *param);
 static bool
 file_exists (const char * filename);
 
-void set_insert_mode(gboolean mode);
+void
+set_mode_indicator();
+
+void
+set_insert_mode(gboolean mode);
 
 static void
 toggle_insert_mode(WebKitWebView *page, GArray *argv, GString *result);

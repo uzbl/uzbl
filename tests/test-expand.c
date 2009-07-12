@@ -79,10 +79,10 @@ test_NAME (void) {
 
 void
 test_MODE (void) {
-    set_insert_mode(FALSE);
+    set_var_value("insert_mode", "0");
     g_assert_cmpstr(expand("@MODE", 0), ==, "C");
 
-    set_insert_mode(TRUE);
+    set_var_value("insert_mode", "1");
     g_assert_cmpstr(expand("@MODE", 0), ==, "I");
 }
 

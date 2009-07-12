@@ -122,7 +122,7 @@ const struct {
     { "title_format_long",   PTR_V(uzbl.behave.title_format_long,   STR,  1,   update_title)},
     { "title_format_short",  PTR_V(uzbl.behave.title_format_short,  STR,  1,   update_title)},
     { "icon",                PTR_V(uzbl.gui.icon,                   STR,  1,   set_icon)},
-    { "insert_mode",         PTR_V(uzbl.behave.insert_mode,         INT,  1,   NULL)}, /* XXX */
+    { "insert_mode",         PTR_V(uzbl.behave.insert_mode,         INT,  1,   set_mode_indicator)},
     { "always_insert_mode",  PTR_V(uzbl.behave.always_insert_mode,  INT,  1,   cmd_always_insert_mode)},
     { "reset_command_mode",  PTR_V(uzbl.behave.reset_command_mode,  INT,  1,   NULL)},
     { "modkey",              PTR_V(uzbl.behave.modkey,              STR,  1,   cmd_modkey)},
@@ -885,11 +885,14 @@ act_dump_config() {
     dump_config();
 }
 
-/* XXX set_var_value instead? */
+void set_mode_indicator() {
+    uzbl.gui.sbar.mode_indicator = (uzbl.behave.insert_mode ?
+        uzbl.behave.insert_indicator : uzbl.behave.cmd_indicator);
+}
+
 void set_insert_mode(gboolean mode) {
     uzbl.behave.insert_mode = mode;
-    uzbl.gui.sbar.mode_indicator = (mode ?
-        uzbl.behave.insert_indicator : uzbl.behave.cmd_indicator);
+    set_mode_indicator();
 }
 
 static void
