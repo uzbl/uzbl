@@ -2169,8 +2169,15 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
 
     (void) window;
 
-    if (event->type != GDK_KEY_PRESS || event->keyval == GDK_Page_Up || event->keyval == GDK_Page_Down
-        || event->keyval == GDK_Up || event->keyval == GDK_Down || event->keyval == GDK_Left || event->keyval == GDK_Right || event->keyval == GDK_Shift_L || event->keyval == GDK_Shift_R)
+    if (event->type   != GDK_KEY_PRESS ||
+        event->keyval == GDK_Page_Up   ||
+        event->keyval == GDK_Page_Down ||
+        event->keyval == GDK_Up        ||
+        event->keyval == GDK_Down      ||
+        event->keyval == GDK_Left      ||
+        event->keyval == GDK_Right     ||
+        event->keyval == GDK_Shift_L   ||
+        event->keyval == GDK_Shift_R)
         return FALSE;
 
     /* turn off insert mode (if always_insert_mode is not used) */
@@ -2180,7 +2187,11 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
         return TRUE;
     }
 
-    if (uzbl.behave.insert_mode && (((event->state & uzbl.behave.modmask) != uzbl.behave.modmask) || (!uzbl.behave.modmask)))
+    if (uzbl.behave.insert_mode && 
+        ( ((event->state & uzbl.behave.modmask) != uzbl.behave.modmask) || 
+          (!uzbl.behave.modmask)
+        )
+       )
         return FALSE;
 
     if (event->keyval == GDK_Escape) {
@@ -2707,7 +2718,7 @@ dump_key_hash(gpointer k, gpointer v, gpointer ud) {
 }
 
 static void
-dump_config() {
+dump_config() { //ADD "result" var so we can use this with uzblctrl
     g_hash_table_foreach(uzbl.comm.proto_var, dump_var_hash, NULL);
     g_hash_table_foreach(uzbl.bindings, dump_key_hash, NULL);
 }
