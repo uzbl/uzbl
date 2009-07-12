@@ -35,6 +35,7 @@ Contributors:
     Chris van Dijk (quigybo) - work on uzbl_tabbed.py
     Moritz Lenz - small doc fix
     Sergey Shepelev (temoto) - doc patch
+    Tassilo Horn (tsdh) - $VISUAL patch
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:

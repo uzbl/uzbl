@@ -2141,7 +2141,7 @@ update_title (void) {
         if (b->status_background) {
             GdkColor color;
             gdk_color_parse (b->status_background, &color);
-            //labels and hboxes do not draw their own background. applying this on the vbox is ok as the statusbar is the only affected widget. (if not, we could also use GtkEventBox)
+            //labels and hboxes do not draw their own background. applying this on the vbox/main_window is ok as the statusbar is the only affected widget. (if not, we could also use GtkEventBox)
             if (uzbl.gui.main_window)
                 gtk_widget_modify_bg (uzbl.gui.main_window, GTK_STATE_NORMAL, &color);
             else if (uzbl.gui.plug)
@@ -2716,7 +2716,7 @@ main (int argc, char* argv[]) {
     uzbl.state.selected_url = NULL;
     uzbl.state.searchtx = NULL;
 
-    GOptionContext* context = g_option_context_new ("- some stuff here maybe someday");
+    GOptionContext* context = g_option_context_new ("[ uri ] - load a uri by default");
     g_option_context_add_main_entries (context, entries, NULL);
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
     g_option_context_parse (context, &argc, &argv, NULL);
