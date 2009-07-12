@@ -298,6 +298,9 @@ static bool
 file_exists (const char * filename);
 
 void
+set_keycmd();
+
+void
 set_mode_indicator();
 
 void
@@ -346,7 +349,7 @@ spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result);
 static void
 spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result);
 
-static void
+void
 parse_command(const char *cmd, const char *param, GString *result);
 
 static void
@@ -406,7 +409,7 @@ GtkPlug* create_plug ();
 static void
 run_handler (const gchar *act, const gchar *args);
 
-static void
+void
 add_binding (const gchar *key, const gchar *act);
 
 static gchar*

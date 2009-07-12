@@ -108,7 +108,7 @@ const struct {
     { "base_url",            PTR_V(uzbl.behave.base_url,            STR,  1,   NULL)},
     { "html_endmarker",      PTR_V(uzbl.behave.html_endmarker,      STR,  1,   NULL)},
     { "html_mode_timeout",   PTR_V(uzbl.behave.html_timeout,        INT,  1,   NULL)},
-    { "keycmd",              PTR_V(uzbl.state.keycmd,               STR,  1,   NULL)}, /* XXX */
+    { "keycmd",              PTR_V(uzbl.state.keycmd,               STR,  1,   set_keycmd)},
     { "status_message",      PTR_V(uzbl.gui.sbar.msg,               STR,  1,   update_title)},
     { "show_status",         PTR_V(uzbl.behave.show_status,         INT,  1,   cmd_set_status)},
     { "status_top",          PTR_V(uzbl.behave.status_top,          INT,  1,   move_statusbar)},
@@ -885,6 +885,11 @@ act_dump_config() {
     dump_config();
 }
 
+void set_keycmd() {
+    run_keycmd(FALSE);
+    update_title();
+}
+
 void set_mode_indicator() {
     uzbl.gui.sbar.mode_indicator = (uzbl.behave.insert_mode ?
         uzbl.behave.insert_indicator : uzbl.behave.cmd_indicator);
@@ -1364,7 +1369,7 @@ spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
     g_strfreev (cmd);
 }
 
-static void
+void
 parse_command(const char *cmd, const char *param, GString *result) {
     CommandInfo *c;
 
@@ -2291,7 +2296,7 @@ run_handler (const gchar *act, const gchar *args) {
     g_strfreev(parts);
 }
 
-static void
+void
 add_binding (const gchar *key, const gchar *act) {
     char **parts = g_strsplit(act, " ", 2);
     Action *action;
