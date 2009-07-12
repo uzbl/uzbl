@@ -68,11 +68,11 @@ set shell_cmd         = sh -c
 set show_status       = 1
 # you can optionally use this setting to override the background color of the statusbar from your GTK theme.
 set status_background = #303030
-set status_format     = <span font_family="monospace"><span background="khaki" foreground="black">[MODE]</span> [<span weight="bold" foreground="red">KEYCMD</span>] <span foreground="#606060"> LOAD_PROGRESSBAR </span><span foreground="#99FF66">URI</span> <span foreground="khaki">NAME</span> <span foreground="orange">MSG</span><span foreground="#606060">SELECTED_URI</span></span>
+set status_format     = <span font_family="monospace"><span background="khaki"            foreground="black">[\@[\@MODE]\@]</span> [<span weight="bold" foreground="red">\@[\@      keycmd]\@</span>] <span foreground="#606060"> \@[\@LOAD_PROGRESSBAR]\@ </span><span       foreground="#99FF66">\@[\@uri]\@</span> <span foreground="khaki">\@[\@NAME]\@</span>      <span foreground="orange">\@status_message</span><span foreground="#606060">\@[\@         SELECTED_URI]\@</span></span>
 set status_top        = 0
 # define how your titlebar should look like. (short = statusbar is also shown, long = show everything you must see if statusbar is off)
-set title_format_short = TITLE - Uzbl browser <NAME>
-set title_format_long = KEYCMD MODE TITLE - Uzbl browser <NAME> > SELECTED_URI
+set title_format_short = \@TITLE - Uzbl browser <\@NAME>
+set title_format_long = \@keycmd \@MODE \@TITLE - Uzbl browser <\@NAME> > \@SELECTED_URI
 # set the characters to use for, and the width of the progress bar
 set status_pbar_done  = *
 set status_pbar_pending = -
@@ -91,7 +91,7 @@ set always_insert_mode = 0
 #set  http_debug      = 0
 #set  useragent       = uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO)
 # Example user agent containing everything:
-set  useragent       = Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@SYSNAME @NODENAME @KERNREL @KERNVER @ARCH_SYSTEM [@ARCH_UZBL]) (Commit @COMMIT)
+set  useragent       = Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@(uname-s)@ @(uname -n)@ @(uname -r)@ @(uname -v)@ @(uname -m)@ [@ARCH_UZBL]) (Commit @COMMIT)
 #set  max_conns	      = 0
 #set  max_conns_host  = 0
 

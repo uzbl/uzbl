@@ -235,22 +235,48 @@ the java script in @< >@.
 Variable expansion also works within a java script substitution.
 
 
+When a piece of text needs to be XML escaped after it is expanded (for example,
+in the status bar format), you can use @[ ]@ substitution:
+
+    print This text is XML escaped: @[<&>]@
+
+    # prints: This text is XML escaped: &lt;&amp;&gt;
+
+
 NOTE: If you need to use literal @ or \ characters you will need to escape them:
 
     print At sign: \@  and backslash: \\
 
 
-### VARIABLE REPLACEMENT
-Some of the variables are interpreted:
+### TITLE AND STATUS BAR EVALUATION
 
-* title bar: variable replacement (long and short version, depending if statusbar is visible or not)
-* user agent: variable replacement
-* statusbar: variable replacement + pango markup
+The contents of the status bar can be customized by setting the status_format
+variable. The contents of the window title can be customized by setting the
+title_format_short variable (which is used when the status bar is displayed) and
+the title_format_long variable (which is used when the status bar is not
+displayed). Their values can be set using the expansion and substitution
+techniques described above.
 
-This means you can customize how these things appear, what's shown in them and for the statusbar you can even play with the layout.
-For examples, see the example config.
-For a list of possible variables, see uzbl.h
-For more info about the markup format see http://library.gnome.org/devel/pango/stable/PangoMarkupFormat.html
+These variables are expanded in multiple stages; once when the variable is set,
+and again every time that the status bar or window title are updated. Expansions
+that should be evaluated on every update need to be escaped:
+
+    set title_format_short = @(date)@
+    # this expansion will be evaluated when the variable is set.
+    # the title will stay constant with the date that the variable was set.
+
+    set title_format_short = \@(date)\@
+    # this expansion will be evaluated when the window title is updated.
+    # the date in the title will change when you change pages, for example.
+
+    set title_format_short = \\\@(date)\\\@
+    # the title will stay constant as a literal "@(date)@"
+
+The status_format variable can contain Pango markup (see
+<http://library.gnome.org/devel/pango/stable/PangoMarkupFormat.html>). In the
+status_format, variables that might contain characters like '<', '&' and '>',
+should be wrapped in a @[]@ substitution so that they don't interfere with the
+status bar's markup; see the example config for examples.
 
 
 ### EXTERNAL SCRIPTS
