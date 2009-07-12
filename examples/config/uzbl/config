@@ -11,6 +11,10 @@ set history_handler  = spawn $XDG_DATA_HOME/uzbl/scripts/history.sh
 set download_handler = spawn $XDG_DATA_HOME/uzbl/scripts/download.sh
 set cookie_handler   = spawn $XDG_DATA_HOME/uzbl/scripts/cookies.py
 
+# Control how new windows should open
+#set new_window       = sh 'uzbl -u $8' # equivalent to the default behaviour
+#set new_window       = sh 'echo uri "$8" > $4' # open in same window
+
 # You can bind whatever things (spawn <foo>, script <bar>,..) to some events TODO: make events system more generic
 set load_start_handler = set status_message = <span foreground="khaki">wait</span>
 set load_commit_handler = set status_message = <span foreground="green">recv</span>
