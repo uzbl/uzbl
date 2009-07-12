@@ -1,11 +1,13 @@
-CFLAGS:=-std=c99 $(shell pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -lgthread-2.0 -DG_ERRORCHECK_MUTEXES -DCOMMIT="\"$(shell git log | head -n1 | sed "s/.* //")\"" $(CPPFLAGS)
+CFLAGS:=-std=c99 $(shell pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -lgthread-2.0 -DG_ERRORCHECK_MUTEXES -DCOMMIT="\"$(shell git log | head -n1 | sed "s/.* //")\"" $(CPPFLAGS) -fPIC
 LDFLAGS:=$(shell pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0) -pthread $(LDFLAGS)
 all: uzbl uzblctrl
 
 PREFIX?=$(DESTDIR)/usr
 
-test: uzbl
-	./uzbl --uri http://www.uzbl.org --verbose
+# When compiling unit tests, compile uzbl as a library first
+test: uzbl.o
+	$(CC) -DUZBL_LIBRARY -shared -Wl uzbl.o -o ./tests/libuzbl.so
+	cd ./tests/; $(MAKE)
 
 test-dev: uzbl
 	XDG_DATA_HOME=./examples/data               XDG_CONFIG_HOME=./examples/config               ./uzbl --uri http://www.uzbl.org --verbose
@@ -13,10 +15,12 @@ test-dev: uzbl
 test-share: uzbl
 	XDG_DATA_HOME=/usr/share/uzbl/examples/data XDG_CONFIG_HOME=/usr/share/uzbl/examples/config ./uzbl --uri http://www.uzbl.org --verbose
 
-	
+
 clean:
 	rm -f uzbl
 	rm -f uzblctrl
+	rm -f uzbl.o
+	cd ./tests/; $(MAKE) clean
 
 install:
 	install -d $(PREFIX)/bin

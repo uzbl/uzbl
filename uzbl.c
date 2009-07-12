@@ -57,7 +57,7 @@
 #include "uzbl.h"
 #include "config.h"
 
-static Uzbl uzbl;
+Uzbl uzbl;
 
 
 
@@ -87,80 +87,96 @@ typedef const struct {
     void **ptr;
     int type;
     int dump;
+    int writeable;
     void (*func)(void);
 } uzbl_cmdprop;
 
 enum {TYPE_INT, TYPE_STR, TYPE_FLOAT};
 
-/* an abbreviation to help keep the table's width humane */
-#define PTR(var, t, d, fun) { .ptr = (void*)&(var), .type = TYPE_##t, .dump = d, .func = fun }
+/* abbreviations to help keep the table's width humane */
+#define PTR_V(var, t, d, fun) { .ptr = (void*)&(var), .type = TYPE_##t, .dump = d, .writeable = 1, .func = fun }
+#define PTR_C(var, t,    fun) { .ptr = (void*)&(var), .type = TYPE_##t, .dump = 0, .writeable = 0, .func = fun }
 
 const struct {
     char *name;
     uzbl_cmdprop cp;
 } var_name_to_ptr[] = {
-/*    variable name         pointer to variable in code          type  dump callback function    */
-/*  --------------------------------------------------------------------------------------- */
-    { "uri",                 PTR(uzbl.state.uri,                  STR,  1,   cmd_load_uri)},
-    { "geometry",            PTR(uzbl.gui.geometry,               STR,  1,   cmd_set_geometry)},
-    { "verbose",             PTR(uzbl.state.verbose,              INT,  1,   NULL)},
-    { "mode",                PTR(uzbl.behave.mode,                INT,  0,   NULL)},
-    { "inject_html",         PTR(uzbl.behave.inject_html,         STR,  0,   cmd_inject_html)},
-    { "base_url",            PTR(uzbl.behave.base_url,            STR,  1,   NULL)},
-    { "html_endmarker",      PTR(uzbl.behave.html_endmarker,      STR,  1,   NULL)},
-    { "html_mode_timeout",   PTR(uzbl.behave.html_timeout,        INT,  1,   NULL)},
-    { "status_message",      PTR(uzbl.gui.sbar.msg,               STR,  1,   update_title)},
-    { "show_status",         PTR(uzbl.behave.show_status,         INT,  1,   cmd_set_status)},
-    { "status_top",          PTR(uzbl.behave.status_top,          INT,  1,   move_statusbar)},
-    { "status_format",       PTR(uzbl.behave.status_format,       STR,  1,   update_title)},
-    { "status_pbar_done",    PTR(uzbl.gui.sbar.progress_s,        STR,  1,   update_title)},
-    { "status_pbar_pending", PTR(uzbl.gui.sbar.progress_u,        STR,  1,   update_title)},
-    { "status_pbar_width",   PTR(uzbl.gui.sbar.progress_w,        INT,  1,   update_title)},
-    { "status_background",   PTR(uzbl.behave.status_background,   STR,  1,   update_title)},
-    { "insert_indicator",    PTR(uzbl.behave.insert_indicator,    STR,  1,   update_title)},
-    { "command_indicator",   PTR(uzbl.behave.cmd_indicator,       STR,  1,   update_title)},
-    { "title_format_long",   PTR(uzbl.behave.title_format_long,   STR,  1,   update_title)},
-    { "title_format_short",  PTR(uzbl.behave.title_format_short,  STR,  1,   update_title)},
-    { "icon",                PTR(uzbl.gui.icon,                   STR,  1,   set_icon)},
-    { "insert_mode",         PTR(uzbl.behave.insert_mode,         INT,  1,   NULL)},
-    { "always_insert_mode",  PTR(uzbl.behave.always_insert_mode,  INT,  1,   cmd_always_insert_mode)},
-    { "reset_command_mode",  PTR(uzbl.behave.reset_command_mode,  INT,  1,   NULL)},
-    { "modkey",              PTR(uzbl.behave.modkey,              STR,  1,   cmd_modkey)},
-    { "load_finish_handler", PTR(uzbl.behave.load_finish_handler, STR,  1,   NULL)},
-    { "load_start_handler",  PTR(uzbl.behave.load_start_handler,  STR,  1,   NULL)},
-    { "load_commit_handler", PTR(uzbl.behave.load_commit_handler, STR,  1,   NULL)},
-    { "history_handler",     PTR(uzbl.behave.history_handler,     STR,  1,   NULL)},
-    { "download_handler",    PTR(uzbl.behave.download_handler,    STR,  1,   NULL)},
-    { "cookie_handler",      PTR(uzbl.behave.cookie_handler,      STR,  1,   cmd_cookie_handler)},
-    { "new_window",          PTR(uzbl.behave.new_window,          STR,  1,   cmd_new_window)},
-    { "fifo_dir",            PTR(uzbl.behave.fifo_dir,            STR,  1,   cmd_fifo_dir)},
-    { "socket_dir",          PTR(uzbl.behave.socket_dir,          STR,  1,   cmd_socket_dir)},
-    { "http_debug",          PTR(uzbl.behave.http_debug,          INT,  1,   cmd_http_debug)},
-    { "shell_cmd",           PTR(uzbl.behave.shell_cmd,           STR,  1,   NULL)},
-    { "proxy_url",           PTR(uzbl.net.proxy_url,              STR,  1,   set_proxy_url)},
-    { "max_conns",           PTR(uzbl.net.max_conns,              INT,  1,   cmd_max_conns)},
-    { "max_conns_host",      PTR(uzbl.net.max_conns_host,         INT,  1,   cmd_max_conns_host)},
-    { "useragent",           PTR(uzbl.net.useragent,              STR,  1,   cmd_useragent)},
+/*    variable name         pointer to variable in code            type  dump callback function    */
+/*  ---------------------------------------------------------------------------------------------- */
+    { "uri",                 PTR_V(uzbl.state.uri,                  STR,  1,   cmd_load_uri)},
+    { "verbose",             PTR_V(uzbl.state.verbose,              INT,  1,   NULL)},
+    { "mode",                PTR_V(uzbl.behave.mode,                INT,  0,   NULL)},
+    { "inject_html",         PTR_V(uzbl.behave.inject_html,         STR,  0,   cmd_inject_html)},
+    { "base_url",            PTR_V(uzbl.behave.base_url,            STR,  1,   NULL)},
+    { "html_endmarker",      PTR_V(uzbl.behave.html_endmarker,      STR,  1,   NULL)},
+    { "html_mode_timeout",   PTR_V(uzbl.behave.html_timeout,        INT,  1,   NULL)},
+    { "keycmd",              PTR_V(uzbl.state.keycmd,               STR,  1,   set_keycmd)},
+    { "status_message",      PTR_V(uzbl.gui.sbar.msg,               STR,  1,   update_title)},
+    { "show_status",         PTR_V(uzbl.behave.show_status,         INT,  1,   cmd_set_status)},
+    { "status_top",          PTR_V(uzbl.behave.status_top,          INT,  1,   move_statusbar)},
+    { "status_format",       PTR_V(uzbl.behave.status_format,       STR,  1,   update_title)},
+    { "status_pbar_done",    PTR_V(uzbl.gui.sbar.progress_s,        STR,  1,   update_title)},
+    { "status_pbar_pending", PTR_V(uzbl.gui.sbar.progress_u,        STR,  1,   update_title)},
+    { "status_pbar_width",   PTR_V(uzbl.gui.sbar.progress_w,        INT,  1,   update_title)},
+    { "status_background",   PTR_V(uzbl.behave.status_background,   STR,  1,   update_title)},
+    { "insert_indicator",    PTR_V(uzbl.behave.insert_indicator,    STR,  1,   update_title)},
+    { "command_indicator",   PTR_V(uzbl.behave.cmd_indicator,       STR,  1,   update_title)},
+    { "title_format_long",   PTR_V(uzbl.behave.title_format_long,   STR,  1,   update_title)},
+    { "title_format_short",  PTR_V(uzbl.behave.title_format_short,  STR,  1,   update_title)},
+    { "icon",                PTR_V(uzbl.gui.icon,                   STR,  1,   set_icon)},
+    { "insert_mode",         PTR_V(uzbl.behave.insert_mode,         INT,  1,   set_mode_indicator)},
+    { "always_insert_mode",  PTR_V(uzbl.behave.always_insert_mode,  INT,  1,   cmd_always_insert_mode)},
+    { "reset_command_mode",  PTR_V(uzbl.behave.reset_command_mode,  INT,  1,   NULL)},
+    { "modkey",              PTR_V(uzbl.behave.modkey,              STR,  1,   cmd_modkey)},
+    { "load_finish_handler", PTR_V(uzbl.behave.load_finish_handler, STR,  1,   NULL)},
+    { "load_start_handler",  PTR_V(uzbl.behave.load_start_handler,  STR,  1,   NULL)},
+    { "load_commit_handler", PTR_V(uzbl.behave.load_commit_handler, STR,  1,   NULL)},
+    { "history_handler",     PTR_V(uzbl.behave.history_handler,     STR,  1,   NULL)},
+    { "download_handler",    PTR_V(uzbl.behave.download_handler,    STR,  1,   NULL)},
+    { "cookie_handler",      PTR_V(uzbl.behave.cookie_handler,      STR,  1,   cmd_cookie_handler)},
+    { "new_window",          PTR_V(uzbl.behave.new_window,          STR,  1,   cmd_new_window)},
+    { "fifo_dir",            PTR_V(uzbl.behave.fifo_dir,            STR,  1,   cmd_fifo_dir)},
+    { "socket_dir",          PTR_V(uzbl.behave.socket_dir,          STR,  1,   cmd_socket_dir)},
+    { "http_debug",          PTR_V(uzbl.behave.http_debug,          INT,  1,   cmd_http_debug)},
+    { "shell_cmd",           PTR_V(uzbl.behave.shell_cmd,           STR,  1,   NULL)},
+    { "proxy_url",           PTR_V(uzbl.net.proxy_url,              STR,  1,   set_proxy_url)},
+    { "max_conns",           PTR_V(uzbl.net.max_conns,              INT,  1,   cmd_max_conns)},
+    { "max_conns_host",      PTR_V(uzbl.net.max_conns_host,         INT,  1,   cmd_max_conns_host)},
+    { "useragent",           PTR_V(uzbl.net.useragent,              STR,  1,   cmd_useragent)},
     /* exported WebKitWebSettings properties */
-    { "zoom_level",          PTR(uzbl.behave.zoom_level,          FLOAT,1,   cmd_zoom_level)},
-    { "font_size",           PTR(uzbl.behave.font_size,           INT,  1,   cmd_font_size)},
-    { "monospace_size",      PTR(uzbl.behave.monospace_size,      INT,  1,   cmd_font_size)},
-    { "minimum_font_size",   PTR(uzbl.behave.minimum_font_size,   INT,  1,   cmd_minimum_font_size)},
-    { "disable_plugins",     PTR(uzbl.behave.disable_plugins,     INT,  1,   cmd_disable_plugins)},
-    { "disable_scripts",     PTR(uzbl.behave.disable_scripts,     INT,  1,   cmd_disable_scripts)},
-    { "autoload_images",     PTR(uzbl.behave.autoload_img,        INT,  1,   cmd_autoload_img)},
-    { "autoshrink_images",   PTR(uzbl.behave.autoshrink_img,      INT,  1,   cmd_autoshrink_img)},
-    { "enable_spellcheck",   PTR(uzbl.behave.enable_spellcheck,   INT,  1,   cmd_enable_spellcheck)},
-    { "enable_private",      PTR(uzbl.behave.enable_private,      INT,  1,   cmd_enable_private)},
-    { "print_backgrounds",   PTR(uzbl.behave.print_bg,            INT,  1,   cmd_print_bg)},
-    { "stylesheet_uri",      PTR(uzbl.behave.style_uri,           STR,  1,   cmd_style_uri)},
-    { "resizable_text_areas",PTR(uzbl.behave.resizable_txt,       INT,  1,   cmd_resizable_txt)},
-    { "default_encoding",    PTR(uzbl.behave.default_encoding,    STR,  1,   cmd_default_encoding)},
-    { "enforce_96_dpi",      PTR(uzbl.behave.enforce_96dpi,       INT,  1,   cmd_enforce_96dpi)},
-    { "caret_browsing",      PTR(uzbl.behave.caret_browsing,      INT,  1,   cmd_caret_browsing)},
+    { "zoom_level",          PTR_V(uzbl.behave.zoom_level,          FLOAT,1,   cmd_zoom_level)},
+    { "font_size",           PTR_V(uzbl.behave.font_size,           INT,  1,   cmd_font_size)},
+    { "monospace_size",      PTR_V(uzbl.behave.monospace_size,      INT,  1,   cmd_font_size)},
+    { "minimum_font_size",   PTR_V(uzbl.behave.minimum_font_size,   INT,  1,   cmd_minimum_font_size)},
+    { "disable_plugins",     PTR_V(uzbl.behave.disable_plugins,     INT,  1,   cmd_disable_plugins)},
+    { "disable_scripts",     PTR_V(uzbl.behave.disable_scripts,     INT,  1,   cmd_disable_scripts)},
+    { "autoload_images",     PTR_V(uzbl.behave.autoload_img,        INT,  1,   cmd_autoload_img)},
+    { "autoshrink_images",   PTR_V(uzbl.behave.autoshrink_img,      INT,  1,   cmd_autoshrink_img)},
+    { "enable_spellcheck",   PTR_V(uzbl.behave.enable_spellcheck,   INT,  1,   cmd_enable_spellcheck)},
+    { "enable_private",      PTR_V(uzbl.behave.enable_private,      INT,  1,   cmd_enable_private)},
+    { "print_backgrounds",   PTR_V(uzbl.behave.print_bg,            INT,  1,   cmd_print_bg)},
+    { "stylesheet_uri",      PTR_V(uzbl.behave.style_uri,           STR,  1,   cmd_style_uri)},
+    { "resizable_text_areas",PTR_V(uzbl.behave.resizable_txt,       INT,  1,   cmd_resizable_txt)},
+    { "default_encoding",    PTR_V(uzbl.behave.default_encoding,    STR,  1,   cmd_default_encoding)},
+    { "enforce_96_dpi",      PTR_V(uzbl.behave.enforce_96dpi,       INT,  1,   cmd_enforce_96dpi)},
+    { "caret_browsing",      PTR_V(uzbl.behave.caret_browsing,      INT,  1,   cmd_caret_browsing)},
 
-    { NULL,                  {.ptr = NULL, .type = TYPE_INT, .dump = 0, .func = NULL}}
+  /* constants (not dumpable or writeable) */
+    { "WEBKIT_MAJOR",        PTR_C(uzbl.info.webkit_major,          INT,       NULL)},
+    { "WEBKIT_MINOR",        PTR_C(uzbl.info.webkit_minor,          INT,       NULL)},
+    { "WEBKIT_MICRO",        PTR_C(uzbl.info.webkit_micro,          INT,       NULL)},
+    { "ARCH_UZBL",           PTR_C(uzbl.info.arch,                  STR,       NULL)},
+    { "COMMIT",              PTR_C(uzbl.info.commit,                STR,       NULL)},
+    { "LOAD_PROGRESS",       PTR_C(uzbl.gui.sbar.load_progress,     INT,       NULL)},
+    { "LOAD_PROGRESSBAR",    PTR_C(uzbl.gui.sbar.progress_bar,      STR,       NULL)},
+    { "TITLE",               PTR_C(uzbl.gui.main_title,             STR,       NULL)},
+    { "SELECTED_URI",        PTR_C(uzbl.state.selected_url,         STR,       NULL)},
+    { "MODE",                PTR_C(uzbl.gui.sbar.mode_indicator,    STR,       NULL)},
+    { "NAME",                PTR_C(uzbl.state.instance_name,        STR,       NULL)},
+
+    { NULL,                  {.ptr = NULL, .type = TYPE_INT, .dump = 0, .writeable = 0, .func = NULL}}
 }, *n2v_p = var_name_to_ptr;
+
 
 const struct {
     char *key;
@@ -186,8 +202,9 @@ const struct {
 };
 
 
-/* construct a hash from the var_name_to_ptr array for quick access */
-static void
+/* construct a hash from the var_name_to_ptr and the const_name_to_ptr array
+ * for quick access */
+void
 make_var_to_name_hash() {
     uzbl.comm.proto_var = g_hash_table_new(g_str_hash, g_str_equal);
     while(n2v_p->name) {
@@ -198,7 +215,7 @@ make_var_to_name_hash() {
 
 /* --- UTILITY FUNCTIONS --- */
 
-enum {EXP_ERR, EXP_SIMPLE_VAR, EXP_BRACED_VAR, EXP_EXPR, EXP_JS};
+enum {EXP_ERR, EXP_SIMPLE_VAR, EXP_BRACED_VAR, EXP_EXPR, EXP_JS, EXP_ESCAPE};
 static guint
 get_exp_type(gchar *s) {
     /* variables */
@@ -208,6 +225,8 @@ get_exp_type(gchar *s) {
         return EXP_BRACED_VAR;
     else if(*(s+1) == '<')
         return EXP_JS;
+    else if(*(s+1) == '[')
+        return EXP_ESCAPE;
     else
         return EXP_SIMPLE_VAR;
 
@@ -218,7 +237,7 @@ return EXP_ERR;
  * recurse == 1: don't expand '@(command)@'
  * recurse == 2: don't expand '@<java script>@'
  */
-static gchar *
+gchar *
 expand(char *s, guint recurse) {
     uzbl_cmdprop *c;
     guint etype;
@@ -226,7 +245,7 @@ expand(char *s, guint recurse) {
     char *end_simple_var = "^°!\"§$%&/()=?'`'+~*'#-.:,;@<>| \\{}[]¹²³¼½";
     char str_end[2];
     char ret[4096];
-    char *vend;
+    char *vend = NULL;
     GError *err = NULL;
     gchar *cmd_stdout = NULL;
     gchar *mycmd = NULL;
@@ -246,53 +265,54 @@ expand(char *s, guint recurse) {
 
                 switch(etype) {
                     case EXP_SIMPLE_VAR:
-                        if( (vend = strpbrk(s, end_simple_var)) ||
-                            (vend = strchr(s, '\0')) ) {
-                            strncpy(ret, s, vend-s);
-                            ret[vend-s] = '\0';
-                        }
+                        vend = strpbrk(s, end_simple_var);
+                        if(!vend) vend = strchr(s, '\0');
                         break;
                     case EXP_BRACED_VAR:
                         s++; upto = '}';
-                        if( (vend = strchr(s, upto)) ||
-                            (vend = strchr(s, '\0')) ) {
-                            strncpy(ret, s, vend-s);
-                            ret[vend-s] = '\0';
-                        }
+                        vend = strchr(s, upto);
+                        if(!vend) vend = strchr(s, '\0');
                         break;
                     case EXP_EXPR:
                         s++;
                         strcpy(str_end, ")@");
                         str_end[2] = '\0';
-                        if( (vend = strstr(s, str_end)) ||
-                            (vend = strchr(s, '\0')) ) {
-                            strncpy(ret, s, vend-s);
-                            ret[vend-s] = '\0';
-                        }
+                        vend = strstr(s, str_end);
+                        if(!vend) vend = strchr(s, '\0');
                         break;
                     case EXP_JS:
                         s++;
                         strcpy(str_end, ">@");
                         str_end[2] = '\0';
-                        if( (vend = strstr(s, str_end)) ||
-                            (vend = strchr(s, '\0')) ) {
-                            strncpy(ret, s, vend-s);
-                            ret[vend-s] = '\0';
-                        }
+                        vend = strstr(s, str_end);
+                        if(!vend) vend = strchr(s, '\0');
                         break;
+                    case EXP_ESCAPE:
+                        s++;
+                        strcpy(str_end, "]@");
+                        str_end[2] = '\0';
+                        vend = strstr(s, str_end);
+                        if(!vend) vend = strchr(s, '\0');
+                        break;
+                }
+
+                if(vend) {
+                    strncpy(ret, s, vend-s);
+                    ret[vend-s] = '\0';
                 }
 
                 if(etype == EXP_SIMPLE_VAR ||
                    etype == EXP_BRACED_VAR) {
                     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, ret)) ) {
-                        if(c->type == TYPE_STR)
+                        if(c->type == TYPE_STR && *c->ptr != NULL) {
                             g_string_append(buf, (gchar *)*c->ptr);
-                        else if(c->type == TYPE_INT) {
-                            char *b = itos((int)*c->ptr);
+                        } else if(c->type == TYPE_INT) {
+                            char *b = itos((uintptr_t)*c->ptr);
                             g_string_append(buf, b);
                             g_free(b);
                         }
                     }
+
                     if(etype == EXP_SIMPLE_VAR)
                         s = vend;
                     else
@@ -309,6 +329,11 @@ expand(char *s, guint recurse) {
                         g_error_free (err);
                     }
                     else if (*cmd_stdout) {
+                        int len = strlen(cmd_stdout);
+
+                        if(cmd_stdout[len-1] == '\n')
+                            cmd_stdout[--len] = 0; /* strip trailing newline */
+
                         g_string_append(buf, cmd_stdout);
                         g_free(cmd_stdout);
                     }
@@ -325,6 +350,16 @@ expand(char *s, guint recurse) {
                         g_string_free(js_ret, TRUE);
                         js_ret = g_string_new("");
                     }
+                    s = vend+2;
+                }
+                else if(etype == EXP_ESCAPE) {
+                    mycmd = expand(ret, 0);
+                    char *escaped = g_markup_escape_text(mycmd, strlen(mycmd));
+
+                    g_string_append(buf, escaped);
+
+                    g_free(escaped);
+                    g_free(mycmd);
                     s = vend+2;
                 }
                 break;
@@ -439,7 +474,7 @@ clean_up(void) {
         unlink (uzbl.comm.socket_path);
 
     g_free(uzbl.state.executable_path);
-    g_string_free(uzbl.state.keycmd, TRUE);
+    g_free(uzbl.state.keycmd);
     g_hash_table_destroy(uzbl.bindings);
     g_hash_table_destroy(uzbl.behave.commands);
 }
@@ -666,11 +701,15 @@ title_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
     update_title();
 }
 
-static void
+void
 progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
     (void) page;
     (void) data;
     uzbl.gui.sbar.load_progress = progress;
+
+    g_free(uzbl.gui.sbar.progress_bar);
+    uzbl.gui.sbar.progress_bar = build_progressbar_ascii(uzbl.gui.sbar.load_progress);
+
     update_title();
 }
 
@@ -683,13 +722,18 @@ load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
         run_handler(uzbl.behave.load_finish_handler, "");
 }
 
+void clear_keycmd() {
+  g_free(uzbl.state.keycmd);
+  uzbl.state.keycmd = g_strdup("");
+}
+
 static void
 load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) page;
     (void) frame;
     (void) data;
     uzbl.gui.sbar.load_progress = 0;
-    g_string_truncate(uzbl.state.keycmd, 0); // don't need old commands to remain on new page?
+    clear_keycmd(); // don't need old commands to remain on new page?
     if (uzbl.behave.load_start_handler)
         run_handler(uzbl.behave.load_start_handler, "");
 }
@@ -702,7 +746,7 @@ load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     GString* newuri = g_string_new (webkit_web_frame_get_uri (frame));
     uzbl.state.uri = g_string_free (newuri, FALSE);
     if (uzbl.behave.reset_command_mode && uzbl.behave.insert_mode) {
-        uzbl.behave.insert_mode = uzbl.behave.always_insert_mode;
+        set_insert_mode(uzbl.behave.always_insert_mode);
         update_title();
     }
     if (uzbl.behave.load_commit_handler)
@@ -857,18 +901,33 @@ act_dump_config() {
     dump_config();
 }
 
+void set_keycmd() {
+    run_keycmd(FALSE);
+    update_title();
+}
+
+void set_mode_indicator() {
+    uzbl.gui.sbar.mode_indicator = (uzbl.behave.insert_mode ?
+        uzbl.behave.insert_indicator : uzbl.behave.cmd_indicator);
+}
+
+void set_insert_mode(gboolean mode) {
+    uzbl.behave.insert_mode = mode;
+    set_mode_indicator();
+}
+
 static void
 toggle_insert_mode(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
 
     if (argv_idx(argv, 0)) {
         if (strcmp (argv_idx(argv, 0), "0") == 0) {
-            uzbl.behave.insert_mode = FALSE;
+            set_insert_mode(FALSE);
         } else {
-            uzbl.behave.insert_mode = TRUE;
+            set_insert_mode(TRUE);
         }
     } else {
-        uzbl.behave.insert_mode = ! uzbl.behave.insert_mode;
+        set_insert_mode( !uzbl.behave.insert_mode );
     }
 
     update_title();
@@ -1108,7 +1167,7 @@ keycmd (WebKitWebView *page, GArray *argv, GString *result) {
     (void)page;
     (void)argv;
     (void)result;
-    g_string_assign(uzbl.state.keycmd, argv_idx(argv, 0));
+    uzbl.state.keycmd = g_strdup(argv_idx(argv, 0));
     run_keycmd(FALSE);
     update_title();
 }
@@ -1118,7 +1177,7 @@ keycmd_nl (WebKitWebView *page, GArray *argv, GString *result) {
     (void)page;
     (void)argv;
     (void)result;
-    g_string_assign(uzbl.state.keycmd, argv_idx(argv, 0));
+    uzbl.state.keycmd = g_strdup(argv_idx(argv, 0));
     run_keycmd(TRUE);
     update_title();
 }
@@ -1129,9 +1188,10 @@ keycmd_bs (WebKitWebView *page, GArray *argv, GString *result) {
     (void)page;
     (void)argv;
     (void)result;
-    prev = g_utf8_find_prev_char(uzbl.state.keycmd->str, uzbl.state.keycmd->str + uzbl.state.keycmd->len);
+    int len = strlen(uzbl.state.keycmd);
+    prev = g_utf8_find_prev_char(uzbl.state.keycmd, uzbl.state.keycmd + len);
     if (prev)
-      g_string_truncate(uzbl.state.keycmd, prev - uzbl.state.keycmd->str);
+      uzbl.state.keycmd[prev - uzbl.state.keycmd] = '\0';
     update_title();
 }
 
@@ -1161,208 +1221,6 @@ build_progressbar_ascii(int percent) {
        g_string_append(bar, uzbl.gui.sbar.progress_u);
 
    return g_string_free(bar, FALSE);
-}
-
-static void
-setup_scanner() {
-     const GScannerConfig scan_config = {
-             (
-              "\t\r\n"
-             )            /* cset_skip_characters */,
-             (
-              G_CSET_a_2_z
-              "_#"
-              G_CSET_A_2_Z
-             )            /* cset_identifier_first */,
-             (
-              G_CSET_a_2_z
-              "_0123456789"
-              G_CSET_A_2_Z
-              G_CSET_LATINS
-              G_CSET_LATINC
-             )            /* cset_identifier_nth */,
-             ( "" )    /* cpair_comment_single */,
-
-             TRUE         /* case_sensitive */,
-
-             FALSE        /* skip_comment_multi */,
-             FALSE        /* skip_comment_single */,
-             FALSE        /* scan_comment_multi */,
-             TRUE         /* scan_identifier */,
-             TRUE         /* scan_identifier_1char */,
-             FALSE        /* scan_identifier_NULL */,
-             TRUE         /* scan_symbols */,
-             FALSE        /* scan_binary */,
-             FALSE        /* scan_octal */,
-             FALSE        /* scan_float */,
-             FALSE        /* scan_hex */,
-             FALSE        /* scan_hex_dollar */,
-             FALSE        /* scan_string_sq */,
-             FALSE        /* scan_string_dq */,
-             TRUE         /* numbers_2_int */,
-             FALSE        /* int_2_float */,
-             FALSE        /* identifier_2_string */,
-             FALSE        /* char_2_token */,
-             FALSE        /* symbol_2_token */,
-             TRUE         /* scope_0_fallback */,
-             FALSE,
-             TRUE
-     };
-
-     uzbl.scan = g_scanner_new(&scan_config);
-     while(symp->symbol_name) {
-         g_scanner_scope_add_symbol(uzbl.scan, 0,
-                         symp->symbol_name,
-                         GINT_TO_POINTER(symp->symbol_token));
-         symp++;
-     }
-}
-
-static gchar *
-expand_template(const char *template, gboolean escape_markup) {
-     if(!template) return NULL;
-
-     GTokenType token = G_TOKEN_NONE;
-     GString *ret = g_string_new("");
-     char *buf=NULL;
-     int sym;
-
-     g_scanner_input_text(uzbl.scan, template, strlen(template));
-     while(!g_scanner_eof(uzbl.scan) && token != G_TOKEN_LAST) {
-         token = g_scanner_get_next_token(uzbl.scan);
-
-         if(token == G_TOKEN_SYMBOL) {
-             sym = GPOINTER_TO_INT(g_scanner_cur_value(uzbl.scan).v_symbol);
-             switch(sym) {
-                 case SYM_URI:
-                     if(escape_markup) {
-                         buf = uzbl.state.uri?
-                             g_markup_printf_escaped("%s", uzbl.state.uri):g_strdup("");
-                         g_string_append(ret, buf);
-                         g_free(buf);
-                     }
-                     else
-                         g_string_append(ret, uzbl.state.uri?
-                                 uzbl.state.uri:g_strdup(""));
-                     break;
-                 case SYM_LOADPRGS:
-                     buf = itos(uzbl.gui.sbar.load_progress);
-                     g_string_append(ret, buf);
-                     g_free(buf);
-                     break;
-                 case SYM_LOADPRGSBAR:
-                     buf = build_progressbar_ascii(uzbl.gui.sbar.load_progress);
-                     g_string_append(ret, buf);
-                     g_free(buf);
-                     break;
-                 case SYM_TITLE:
-                     if(escape_markup) {
-                         buf = uzbl.gui.main_title?
-                             g_markup_printf_escaped("%s", uzbl.gui.main_title):g_strdup("");
-                         g_string_append(ret, buf);
-                         g_free(buf);
-                     }
-                     else
-                         g_string_append(ret, uzbl.gui.main_title?
-                                 uzbl.gui.main_title:g_strdup(""));
-                     break;
-                 case SYM_SELECTED_URI:
-                     if(escape_markup) {
-                         buf = uzbl.state.selected_url?
-                             g_markup_printf_escaped("%s", uzbl.state.selected_url):g_strdup("");
-                         g_string_append(ret, buf);
-                         g_free(buf);
-                     }
-                     else
-                         g_string_append(ret, uzbl.state.selected_url?
-                                 uzbl.state.selected_url:g_strdup(""));
-                     break;
-                 case SYM_NAME:
-                     buf = itos(uzbl.xwin);
-                     g_string_append(ret,
-                             uzbl.state.instance_name?uzbl.state.instance_name:buf);
-                     g_free(buf);
-                     break;
-                 case SYM_KEYCMD:
-                     if(escape_markup) {
-                         buf = uzbl.state.keycmd->str?
-                             g_markup_printf_escaped("%s", uzbl.state.keycmd->str):g_strdup("");
-                         g_string_append(ret, buf);
-                         g_free(buf);
-                     }
-                     else
-                         g_string_append(ret, uzbl.state.keycmd->str?
-                                 uzbl.state.keycmd->str:g_strdup(""));
-                     break;
-                 case SYM_MODE:
-                     g_string_append(ret,
-                             uzbl.behave.insert_mode?
-                             uzbl.behave.insert_indicator:uzbl.behave.cmd_indicator);
-                     break;
-                 case SYM_MSG:
-                     g_string_append(ret,
-                             uzbl.gui.sbar.msg?uzbl.gui.sbar.msg:"");
-                     break;
-                     /* useragent syms */
-                 case SYM_WK_MAJ:
-                     buf = itos(WEBKIT_MAJOR_VERSION);
-                     g_string_append(ret, buf);
-                     g_free(buf);
-                     break;
-                 case SYM_WK_MIN:
-                     buf = itos(WEBKIT_MINOR_VERSION);
-                     g_string_append(ret, buf);
-                     g_free(buf);
-                     break;
-                 case SYM_WK_MIC:
-                     buf = itos(WEBKIT_MICRO_VERSION);
-                     g_string_append(ret, buf);
-                     g_free(buf);
-                     break;
-                 case SYM_SYSNAME:
-                     g_string_append(ret, uzbl.state.unameinfo.sysname);
-                     break;
-                 case SYM_NODENAME:
-                     g_string_append(ret, uzbl.state.unameinfo.nodename);
-                     break;
-                 case SYM_KERNREL:
-                     g_string_append(ret, uzbl.state.unameinfo.release);
-                     break;
-                 case SYM_KERNVER:
-                     g_string_append(ret, uzbl.state.unameinfo.version);
-                     break;
-                 case SYM_ARCHSYS:
-                     g_string_append(ret, uzbl.state.unameinfo.machine);
-                     break;
-                 case SYM_ARCHUZBL:
-                     g_string_append(ret, ARCH);
-                     break;
-#ifdef _GNU_SOURCE
-                 case SYM_DOMAINNAME:
-                     g_string_append(ret, uzbl.state.unameinfo.domainname);
-                     break;
-#endif
-                 case SYM_COMMIT:
-                     g_string_append(ret, COMMIT);
-                     break;
-                 default:
-                     break;
-             }
-         }
-         else if(token == G_TOKEN_INT) {
-             buf = itos(g_scanner_cur_value(uzbl.scan).v_int);
-             g_string_append(ret, buf);
-             g_free(buf);
-         }
-         else if(token == G_TOKEN_IDENTIFIER) {
-             g_string_append(ret, (gchar *)g_scanner_cur_value(uzbl.scan).v_identifier);
-         }
-         else if(token == G_TOKEN_CHAR) {
-             g_string_append_c(ret, (gchar)g_scanner_cur_value(uzbl.scan).v_char);
-         }
-     }
-
-     return g_string_free(ret, FALSE);
 }
 /* --End Statusbar functions-- */
 
@@ -1527,7 +1385,7 @@ spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
     g_strfreev (cmd);
 }
 
-static void
+void
 parse_command(const char *cmd, const char *param, GString *result) {
     CommandInfo *c;
 
@@ -1600,8 +1458,7 @@ cmd_load_uri() {
 
 static void
 cmd_always_insert_mode() {
-    uzbl.behave.insert_mode =
-        uzbl.behave.always_insert_mode ?  TRUE : FALSE;
+    set_insert_mode(uzbl.behave.always_insert_mode);
     update_title();
 }
 
@@ -1796,17 +1653,14 @@ cmd_modkey() {
     }
 }
 
-static void
+void
 cmd_useragent() {
     if (*uzbl.net.useragent == ' ') {
         g_free (uzbl.net.useragent);
         uzbl.net.useragent = NULL;
     } else {
-        gchar *ua = expand_template(uzbl.net.useragent, FALSE);
-        if (ua)
-            g_object_set(G_OBJECT(uzbl.net.soup_session), SOUP_SESSION_USER_AGENT, ua, NULL);
-        g_free(uzbl.net.useragent);
-        uzbl.net.useragent = ua;
+        g_object_set(G_OBJECT(uzbl.net.soup_session), SOUP_SESSION_USER_AGENT,
+            uzbl.net.useragent, NULL);
     }
 }
 
@@ -1831,13 +1685,15 @@ move_statusbar() {
     return;
 }
 
-static gboolean
+gboolean
 set_var_value(gchar *name, gchar *val) {
     uzbl_cmdprop *c = NULL;
     char *endp = NULL;
     char *buf = NULL;
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
+        if(!c->writeable) return TRUE;
+
         /* check for the variable type */
         if (c->type == TYPE_STR) {
             buf = expand(val, 0);
@@ -1916,21 +1772,16 @@ parse_cmd_line(const char *ctl_line, GString *result) {
 
 static gchar*
 build_stream_name(int type, const gchar* dir) {
-    char *xwin_str = NULL;
     State *s = &uzbl.state;
     gchar *str = NULL;
 
-    xwin_str = itos((int)uzbl.xwin);
     if (type == FIFO) {
         str = g_strdup_printf
-            ("%s/uzbl_fifo_%s", dir,
-             s->instance_name ? s->instance_name : xwin_str);
+            ("%s/uzbl_fifo_%s", dir, s->instance_name);
     } else if (type == SOCKET) {
         str = g_strdup_printf
-            ("%s/uzbl_socket_%s", dir,
-             s->instance_name ? s->instance_name : xwin_str );
+            ("%s/uzbl_socket_%s", dir, s->instance_name);
     }
-    g_free(xwin_str);
     return str;
 }
 
@@ -2145,13 +1996,13 @@ update_title (void) {
 
     if (b->show_status) {
         if (b->title_format_short) {
-            parsed = expand_template(b->title_format_short, FALSE);
+            parsed = expand(b->title_format_short, 0);
             if (uzbl.gui.main_window)
                 gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
             g_free(parsed);
         }
         if (b->status_format) {
-            parsed = expand_template(b->status_format, TRUE);
+            parsed = expand(b->status_format, 0);
             gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), parsed);
             g_free(parsed);
         }
@@ -2166,7 +2017,7 @@ update_title (void) {
         }
     } else {
         if (b->title_format_long) {
-            parsed = expand_template(b->title_format_long, FALSE);
+            parsed = expand(b->title_format_long, 0);
             if (uzbl.gui.main_window)
                 gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
             g_free(parsed);
@@ -2203,7 +2054,7 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
 
     /* turn off insert mode (if always_insert_mode is not used) */
     if (uzbl.behave.insert_mode && (event->keyval == GDK_Escape)) {
-        uzbl.behave.insert_mode = uzbl.behave.always_insert_mode;
+        set_insert_mode(uzbl.behave.always_insert_mode);
         update_title();
         return TRUE;
     }
@@ -2216,7 +2067,7 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
         return FALSE;
 
     if (event->keyval == GDK_Escape) {
-        g_string_truncate(uzbl.state.keycmd, 0);
+        clear_keycmd();
         update_title();
         dehilight(uzbl.gui.web_view, NULL, NULL);
         return TRUE;
@@ -2231,7 +2082,9 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
             str = gtk_clipboard_wait_for_text (gtk_clipboard_get (GDK_SELECTION_CLIPBOARD));
         }
         if (str) {
-            g_string_append (uzbl.state.keycmd, str);
+            GString* keycmd = g_string_new(uzbl.state.keycmd);
+            g_string_append (keycmd, str);
+            uzbl.state.keycmd = g_string_free(keycmd, FALSE);
             update_title ();
             g_free (str);
         }
@@ -2244,7 +2097,11 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
     gboolean key_ret = FALSE;
     if ((event->keyval == GDK_Return) || (event->keyval == GDK_KP_Enter))
         key_ret = TRUE;
-    if (!key_ret) g_string_append(uzbl.state.keycmd, event->string);
+    if (!key_ret) {
+        GString* keycmd = g_string_new(uzbl.state.keycmd);
+        g_string_append(keycmd, event->string);
+        uzbl.state.keycmd = g_string_free(keycmd, FALSE);
+    }
 
     run_keycmd(key_ret);
     update_title();
@@ -2256,8 +2113,8 @@ static void
 run_keycmd(const gboolean key_ret) {
     /* run the keycmd immediately if it isn't incremental and doesn't take args */
     Action *act;
-    if ((act = g_hash_table_lookup(uzbl.bindings, uzbl.state.keycmd->str))) {
-        g_string_truncate(uzbl.state.keycmd, 0);
+    if ((act = g_hash_table_lookup(uzbl.bindings, uzbl.state.keycmd))) {
+        clear_keycmd();
         parse_command(act->name, act->param, NULL);
         return;
     }
@@ -2266,8 +2123,9 @@ run_keycmd(const gboolean key_ret) {
     GString* short_keys = g_string_new ("");
     GString* short_keys_inc = g_string_new ("");
     guint i;
-    for (i=0; i<(uzbl.state.keycmd->len); i++) {
-        g_string_append_c(short_keys, uzbl.state.keycmd->str[i]);
+    guint len = strlen(uzbl.state.keycmd);
+    for (i=0; i<len; i++) {
+        g_string_append_c(short_keys, uzbl.state.keycmd[i]);
         g_string_assign(short_keys_inc, short_keys->str);
         g_string_append_c(short_keys, '_');
         g_string_append_c(short_keys_inc, '*');
@@ -2275,11 +2133,11 @@ run_keycmd(const gboolean key_ret) {
         if (key_ret && (act = g_hash_table_lookup(uzbl.bindings, short_keys->str))) {
             /* run normal cmds only if return was pressed */
             exec_paramcmd(act, i);
-            g_string_truncate(uzbl.state.keycmd, 0);
+            clear_keycmd();
             break;
         } else if ((act = g_hash_table_lookup(uzbl.bindings, short_keys_inc->str))) {
             if (key_ret)  /* just quit the incremental command on return */
-                g_string_truncate(uzbl.state.keycmd, 0);
+                clear_keycmd();
             else exec_paramcmd(act, i); /* otherwise execute the incremental */
             break;
         }
@@ -2292,7 +2150,7 @@ run_keycmd(const gboolean key_ret) {
 
 static void
 exec_paramcmd(const Action *act, const guint i) {
-    GString *parampart = g_string_new (uzbl.state.keycmd->str);
+    GString *parampart = g_string_new (uzbl.state.keycmd);
     GString *actionname = g_string_new ("");
     GString *actionparam = g_string_new ("");
     g_string_erase (parampart, 0, i+1);
@@ -2307,7 +2165,7 @@ exec_paramcmd(const Action *act, const guint i) {
 }
 
 
-static GtkWidget*
+GtkWidget*
 create_browser () {
     GUI *g = &uzbl.gui;
 
@@ -2475,7 +2333,7 @@ run_handler (const gchar *act, const gchar *args) {
     g_strfreev(parts);
 }
 
-static void
+void
 add_binding (const gchar *key, const gchar *act) {
     char **parts = g_strsplit(act, " ", 2);
     Action *action;
@@ -2762,6 +2620,10 @@ retreive_geometry() {
 /** -- MAIN -- **/
 int
 main (int argc, char* argv[]) {
+/* set up gtk, gobject, variable defaults and other things that tests and other
+ * external applications need to do anyhow */
+void
+initialize(int argc, char *argv[]) {
     gtk_init (&argc, &argv);
     if (!g_thread_supported ())
         g_thread_init (NULL);
@@ -2780,16 +2642,11 @@ main (int argc, char* argv[]) {
         exit(0);
     }
 
-    gchar *uri_override = (uzbl.state.uri ? g_strdup(uzbl.state.uri) : NULL);
-    if (argc > 1 && !uzbl.state.uri)
-        uri_override = g_strdup(argv[1]);
-    gboolean verbose_override = uzbl.state.verbose;
-
     /* initialize hash table */
     uzbl.bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
 
     uzbl.net.soup_session = webkit_get_default_session();
-    uzbl.state.keycmd = g_string_new("");
+    uzbl.state.keycmd = g_strdup("");
 
     if(setup_signal(SIGTERM, catch_sigterm) == SIG_ERR)
         fprintf(stderr, "uzbl: error hooking SIGTERM\n");
@@ -2797,10 +2654,6 @@ main (int argc, char* argv[]) {
         fprintf(stderr, "uzbl: error hooking SIGINT\n");
     if(setup_signal(SIGALRM, catch_alrm) == SIG_ERR)
         fprintf(stderr, "uzbl: error hooking SIGALARM\n");
-
-
-    if(uname(&uzbl.state.unameinfo) == -1)
-        g_printerr("Can't retrieve unameinfo.  Your useragent might appear wrong.\n");
 
     uzbl.gui.sbar.progress_s = g_strdup("=");
     uzbl.gui.sbar.progress_u = g_strdup("·");
@@ -2815,14 +2668,28 @@ main (int argc, char* argv[]) {
     /* default mode indicators */
     uzbl.behave.insert_indicator = g_strdup("I");
     uzbl.behave.cmd_indicator    = g_strdup("C");
+    set_insert_mode(FALSE);
 
-    setup_scanner();
+    uzbl.info.webkit_major = WEBKIT_MAJOR_VERSION;
+    uzbl.info.webkit_minor = WEBKIT_MINOR_VERSION;
+    uzbl.info.webkit_micro = WEBKIT_MICRO_VERSION;
+    uzbl.info.arch         = ARCH;
+    uzbl.info.commit       = COMMIT;
+
     commands_hash ();
     make_var_to_name_hash();
 
+    uzbl.gui.scrolled_win = create_browser();
+}
+
+#ifndef UZBL_LIBRARY
+/** -- MAIN -- **/
+int
+main (int argc, char* argv[]) {
+    initialize(argc, argv);
+
     uzbl.gui.vbox = gtk_vbox_new (FALSE, 0);
 
-    uzbl.gui.scrolled_win = create_browser();
     create_mainbar();
 
     /* initial packing */
@@ -2839,6 +2706,9 @@ main (int argc, char* argv[]) {
         gtk_widget_show_all (uzbl.gui.main_window);
         uzbl.xwin = GDK_WINDOW_XID (GTK_WIDGET (uzbl.gui.main_window)->window);
     }
+
+    if(!uzbl.state.instance_name)
+        uzbl.state.instance_name = itos((int)uzbl.xwin);
 
     gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
 
@@ -2862,6 +2732,9 @@ main (int argc, char* argv[]) {
         cmd_set_geometry();
     else
         retreive_geometry();
+
+    gchar *uri_override = (uzbl.state.uri ? g_strdup(uzbl.state.uri) : NULL);
+    gboolean verbose_override = uzbl.state.verbose;
 
     settings_init ();
 
@@ -2887,5 +2760,6 @@ main (int argc, char* argv[]) {
 
     return EXIT_SUCCESS;
 }
+#endif
 
 /* vi: set et ts=4: */

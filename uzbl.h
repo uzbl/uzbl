@@ -17,39 +17,14 @@ enum {
   SYM_LOADPRGS, SYM_LOADPRGSBAR,
   SYM_KEYCMD, SYM_MODE, SYM_MSG,
   SYM_SELECTED_URI,
-  /* useragent symbols */
-  SYM_WK_MAJ, SYM_WK_MIN, SYM_WK_MIC,
-  SYM_SYSNAME, SYM_NODENAME,
-  SYM_KERNREL, SYM_KERNVER,
-  SYM_ARCHSYS, SYM_ARCHUZBL,
-  SYM_DOMAINNAME, SYM_COMMIT
 };
 
 const struct {
     gchar *symbol_name;
     guint symbol_token;
 } symbols[] = {
-    {"NAME",                 SYM_NAME},
-    {"URI",                  SYM_URI},
-    {"TITLE",                SYM_TITLE},
-    {"SELECTED_URI",         SYM_SELECTED_URI},
     {"KEYCMD",               SYM_KEYCMD},
-    {"MODE",                 SYM_MODE},
-    {"MSG",                  SYM_MSG},
-    {"LOAD_PROGRESS",        SYM_LOADPRGS},
-    {"LOAD_PROGRESSBAR",     SYM_LOADPRGSBAR},
 
-    {"WEBKIT_MAJOR",         SYM_WK_MAJ},
-    {"WEBKIT_MINOR",         SYM_WK_MIN},
-    {"WEBKIT_MICRO",         SYM_WK_MIC},
-    {"SYSNAME",              SYM_SYSNAME},
-    {"NODENAME",             SYM_NODENAME},
-    {"KERNREL",              SYM_KERNREL},
-    {"KERNVER",              SYM_KERNVER},
-    {"ARCH_SYSTEM",          SYM_ARCHSYS},
-    {"ARCH_UZBL",            SYM_ARCHUZBL},
-    {"DOMAINNAME",           SYM_DOMAINNAME},
-    {"COMMIT",               SYM_COMMIT},
     {NULL,                   0}
 }, *symp = symbols;
 
@@ -59,6 +34,8 @@ typedef struct {
     gchar          *msg;
     gchar          *progress_s, *progress_u;
     int            progress_w;
+    gchar          *progress_bar;
+    gchar          *mode_indicator;
 } StatusBar;
 
 
@@ -94,6 +71,7 @@ typedef struct {
     gchar          *socket_path;
     /* stores (key)"variable name" -> (value)"pointer to this var*/
     GHashTable     *proto_var;
+
     gchar          *sync_stdout;
 } Communication;
 
@@ -106,9 +84,8 @@ typedef struct {
     char     *instance_name;
     gchar    *selected_url;
     gchar    *executable_path;
-    GString* keycmd;
+    gchar*   keycmd;
     gchar*   searchtx;
-    struct utsname unameinfo; /* system info */
     gboolean verbose;
 } State;
 
@@ -186,6 +163,15 @@ typedef struct {
     JSClassRef          classref;
 } Javascript;
 
+/* static information */
+typedef struct {
+    int   webkit_major;
+    int   webkit_minor;
+    int   webkit_micro;
+    gchar *arch;
+    gchar *commit;
+} Info;
+
 /* main uzbl data structure */
 typedef struct {
     GUI           gui;
@@ -194,6 +180,7 @@ typedef struct {
     Behaviour     behave;
     Communication comm;
     Javascript    js;
+    Info          info;
 
     Window        xwin;
     GScanner      *scan;
@@ -227,7 +214,7 @@ XDG_Var XDG[] =
 };
 
 /* Functions */
-static void
+void
 setup_scanner();
 
 char *
@@ -251,7 +238,7 @@ catch_sigterm(int s);
 static sigfunc *
 setup_signal(int signe, sigfunc *shandler);
 
-static gboolean
+gboolean
 set_var_value(gchar *name, gchar *val);
 
 static void
@@ -281,7 +268,7 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
 static void
 title_change_cb (WebKitWebView* web_view, GParamSpec param_spec);
 
-static void
+void
 progress_change_cb (WebKitWebView* page, gint progress, gpointer data);
 
 static void
@@ -311,6 +298,15 @@ new_action(const gchar *name, const gchar *param);
 static bool
 file_exists (const char * filename);
 
+void
+set_keycmd();
+
+void
+set_mode_indicator();
+
+void
+set_insert_mode(gboolean mode);
+
 static void
 toggle_insert_mode(WebKitWebView *page, GArray *argv, GString *result);
 
@@ -339,6 +335,9 @@ static gboolean
 run_command(const gchar *command, const guint npre,
             const gchar **args, const gboolean sync, char **output_stdout);
 
+static char*
+build_progressbar_ascii(int percent);
+
 static void
 spawn(WebKitWebView *web_view, GArray *argv, GString *result);
 
@@ -351,7 +350,7 @@ spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result);
 static void
 spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result);
 
-static void
+void
 parse_command(const char *cmd, const char *param, GString *result);
 
 static void
@@ -393,7 +392,10 @@ run_keycmd(const gboolean key_ret);
 static void
 exec_paramcmd(const Action* act, const guint i);
 
-static GtkWidget*
+void
+initialize ();
+
+GtkWidget*
 create_browser ();
 
 static GtkWidget*
@@ -408,7 +410,7 @@ GtkPlug* create_plug ();
 static void
 run_handler (const gchar *act, const gchar *args);
 
-static void
+void
 add_binding (const gchar *key, const gchar *act);
 
 static gchar*
@@ -545,7 +547,7 @@ cmd_socket_dir();
 static void
 cmd_modkey();
 
-static void
+void
 cmd_useragent() ;
 
 static void
