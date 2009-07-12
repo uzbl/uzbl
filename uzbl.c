@@ -2617,9 +2617,6 @@ retreive_geometry() {
     uzbl.gui.geometry = g_string_free(buf, FALSE);
 }
 
-/** -- MAIN -- **/
-int
-main (int argc, char* argv[]) {
 /* set up gtk, gobject, variable defaults and other things that tests and other
  * external applications need to do anyhow */
 void
