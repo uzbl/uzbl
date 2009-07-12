@@ -243,7 +243,7 @@ expand(char *s, guint recurse) {
     char *end_simple_var = "^°!\"§$%&/()=?'`'+~*'#-.:,;@<>| \\{}[]¹²³¼½";
     char str_end[2];
     char ret[4096];
-    char *vend;
+    char *vend = NULL;
     GError *err = NULL;
     gchar *cmd_stdout = NULL;
     gchar *mycmd = NULL;
@@ -263,50 +263,40 @@ expand(char *s, guint recurse) {
 
                 switch(etype) {
                     case EXP_SIMPLE_VAR:
-                        if( (vend = strpbrk(s, end_simple_var)) ||
-                            (vend = strchr(s, '\0')) ) {
-                            strncpy(ret, s, vend-s);
-                            ret[vend-s] = '\0';
-                        }
+                        vend = strpbrk(s, end_simple_var);
+                        if(!vend) vend = strchr(s, '\0');
                         break;
                     case EXP_BRACED_VAR:
                         s++; upto = '}';
-                        if( (vend = strchr(s, upto)) ||
-                            (vend = strchr(s, '\0')) ) {
-                            strncpy(ret, s, vend-s);
-                            ret[vend-s] = '\0';
-                        }
+                        vend = strchr(s, upto);
+                        if(!vend) vend = strchr(s, '\0');
                         break;
                     case EXP_EXPR:
                         s++;
                         strcpy(str_end, ")@");
                         str_end[2] = '\0';
-                        if( (vend = strstr(s, str_end)) ||
-                            (vend = strchr(s, '\0')) ) {
-                            strncpy(ret, s, vend-s);
-                            ret[vend-s] = '\0';
-                        }
+                        vend = strstr(s, str_end);
+                        if(!vend) vend = strchr(s, '\0');
                         break;
                     case EXP_JS:
                         s++;
                         strcpy(str_end, ">@");
                         str_end[2] = '\0';
-                        if( (vend = strstr(s, str_end)) ||
-                            (vend = strchr(s, '\0')) ) {
-                            strncpy(ret, s, vend-s);
-                            ret[vend-s] = '\0';
-                        }
+                        vend = strstr(s, str_end);
+                        if(!vend) vend = strchr(s, '\0');
                         break;
                     case EXP_ESCAPE:
                         s++;
                         strcpy(str_end, "]@");
                         str_end[2] = '\0';
-                        if( (vend = strstr(s, str_end)) ||
-                            (vend = strchr(s, '\0')) ) {
-                            strncpy(ret, s, vend-s);
-                            ret[vend-s] = '\0';
-                        }
+                        vend = strstr(s, str_end);
+                        if(!vend) vend = strchr(s, '\0');
                         break;
+                }
+
+                if(vend) {
+                    strncpy(ret, s, vend-s);
+                    ret[vend-s] = '\0';
                 }
 
                 if(etype == EXP_SIMPLE_VAR ||
