@@ -143,6 +143,7 @@ const struct {
     { "max_conns",           PTR_V(uzbl.net.max_conns,              INT,  1,   cmd_max_conns)},
     { "max_conns_host",      PTR_V(uzbl.net.max_conns_host,         INT,  1,   cmd_max_conns_host)},
     { "useragent",           PTR_V(uzbl.net.useragent,              STR,  1,   cmd_useragent)},
+
     /* exported WebKitWebSettings properties */
     { "zoom_level",          PTR_V(uzbl.behave.zoom_level,          FLOAT,1,   cmd_zoom_level)},
     { "font_size",           PTR_V(uzbl.behave.font_size,           INT,  1,   cmd_font_size)},
@@ -2665,7 +2666,6 @@ initialize(int argc, char *argv[]) {
     /* default mode indicators */
     uzbl.behave.insert_indicator = g_strdup("I");
     uzbl.behave.cmd_indicator    = g_strdup("C");
-    set_insert_mode(FALSE);
 
     uzbl.info.webkit_major = WEBKIT_MAJOR_VERSION;
     uzbl.info.webkit_minor = WEBKIT_MINOR_VERSION;
@@ -2734,6 +2734,7 @@ main (int argc, char* argv[]) {
     gboolean verbose_override = uzbl.state.verbose;
 
     settings_init ();
+    set_insert_mode(FALSE);
 
     if (!uzbl.behave.show_status)
         gtk_widget_hide(uzbl.gui.mainbar);
