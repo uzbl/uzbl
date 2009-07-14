@@ -66,6 +66,9 @@ This is a relatively easy, solid and transparent way to handle all requests in o
   we know for bigger changes this is not always feasible.  Just try to keep the merges about bigger "clean changesets".
 * Your code should not introduce any compile warnings or errors.  And also,
   no regressions but that's harder to check.
+* Please try to keep the code clean - we don't like extraneous whitespace.
+  The sample pre-commit hook can check for this - so go ahead and
+  $ cp .git/hooks/pre-commit.sample .git/hooks/pre-commit
 That said, you can always ask us to check on your stuff or ask for advice.
 
 
