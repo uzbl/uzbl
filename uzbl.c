@@ -60,7 +60,7 @@
 Uzbl uzbl;
 
 /* commandline arguments (set initial values for the state variables) */
-const 
+const
 GOptionEntry entries[] =
 {
     { "uri",     'u', 0, G_OPTION_ARG_STRING, &uzbl.state.uri,
@@ -388,7 +388,7 @@ read_file_by_line (gchar *path) {
     return lines;
 }
 
-gchar* 
+gchar*
 parseenv (char* string) {
     extern char** environ;
     gchar* tmpstr = NULL;
@@ -606,7 +606,7 @@ toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result) {
     (void)page;
     (void)argv;
     (void)result;
- 
+
     webkit_web_view_set_full_content_zoom (page, !webkit_web_view_get_full_content_zoom (page));
 }
 
@@ -705,7 +705,7 @@ log_history_cb () {
    if (uzbl.behave.history_handler) {
        GTimeVal the_time;
        gchar *date;
-       
+      
        g_get_current_time(&the_time);
        /* no need to wrap this string with quotes since it contains no spaces.
           format is like: 2009-06-26T20:02:05.262864Z */
@@ -925,7 +925,7 @@ js_init() {
 }
 
 
-void 
+void
 eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
     WebKitWebFrame *frame;
     JSGlobalContextRef context;
@@ -1344,9 +1344,9 @@ expand_template(const char *template, gboolean escape_markup) {
              g_string_append_c(ret, (gchar)g_scanner_cur_value(uzbl.scan).v_char);
          }
          else if(token == G_TOKEN_ERROR) {
-             g_scanner_error(uzbl.scan, "Token error in template ('%s') at line %d, column %d.", 
-                                        template, 
-                                        g_scanner_cur_line(uzbl.scan), 
+             g_scanner_error(uzbl.scan, "Token error in template ('%s') at line %d, column %d.",
+                                        template,
+                                        g_scanner_cur_line(uzbl.scan),
                                         g_scanner_cur_position(uzbl.scan));
          }
      }
@@ -1587,7 +1587,7 @@ cmd_load_uri() {
     g_array_free (a, TRUE);
 }
 
-void 
+void
 cmd_always_insert_mode() {
     uzbl.behave.insert_mode =
         uzbl.behave.always_insert_mode ?  TRUE : FALSE;
@@ -1693,31 +1693,31 @@ cmd_print_bg() {
             uzbl.behave.print_bg, NULL);
 }
 
-void 
+void
 cmd_style_uri() {
     g_object_set (G_OBJECT(view_settings()), "user-stylesheet-uri",
             uzbl.behave.style_uri, NULL);
 }
 
-void 
+void
 cmd_resizable_txt() {
     g_object_set (G_OBJECT(view_settings()), "resizable-text-areas",
             uzbl.behave.resizable_txt, NULL);
 }
 
-void 
+void
 cmd_default_encoding() {
     g_object_set (G_OBJECT(view_settings()), "default-encoding",
             uzbl.behave.default_encoding, NULL);
 }
 
-void 
+void
 cmd_enforce_96dpi() {
     g_object_set (G_OBJECT(view_settings()), "enforce-96-dpi",
             uzbl.behave.enforce_96dpi, NULL);
 }
 
-void 
+void
 cmd_caret_browsing() {
     g_object_set (G_OBJECT(view_settings()), "enable-caret-browsing",
             uzbl.behave.caret_browsing, NULL);
@@ -2320,7 +2320,7 @@ create_window () {
     return window;
 }
 
-GtkPlug* 
+GtkPlug*
 create_plug () {
     GtkPlug* plug = GTK_PLUG (gtk_plug_new (uzbl.state.socket_id));
     g_signal_connect (G_OBJECT (plug), "destroy", G_CALLBACK (destroy_cb), NULL);
@@ -2511,7 +2511,7 @@ settings_init () {
     for (i = 0; default_config[i].command != NULL; i++) {
         parse_cmd_line(default_config[i].command, NULL);
     }
-    
+   
     if (g_strcmp0(s->config_file, "-") == 0) {
         s->config_file = NULL;
         create_stdin();

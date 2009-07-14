@@ -404,7 +404,7 @@ create_mainbar ();
 GtkWidget*
 create_window ();
 
-GtkPlug* 
+GtkPlug*
 create_plug ();
 
 void
@@ -558,22 +558,22 @@ cmd_enable_private();
 void
 cmd_print_bg();
 
-void 
+void
 cmd_style_uri();
 
-void 
+void
 cmd_resizable_txt();
 
-void 
+void
 cmd_default_encoding();
 
-void 
+void
 cmd_enforce_96dpi();
 
 void
 cmd_inject_html();
 
-void 
+void
 cmd_caret_browsing();
 
 /* vi: set et ts=4: */
