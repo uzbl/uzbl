@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Very simple session manager for uzbl.  When called with "endsession" as the
 # argument, it'll backup $sessionfile, look for fifos in $fifodir and
@@ -26,7 +26,7 @@ fi
 
 case $act in
   "launch" )
-    urls=$(cat $sessionfile)
+    urls=`cat $sessionfile`
     if [ "$urls." = "." ]; then
       $UZBL
     else
