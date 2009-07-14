@@ -751,7 +751,6 @@ struct {char *key; CommandInfo value;} cmdlist[] =
     { "sh",                 {spawn_sh, 0}                  },
     { "sync_sh",            {spawn_sh_sync, 0}             }, // needed for cookie handler
     { "exit",               {close_uzbl, 0}                },
-    { "quit",               {close_uzbl, 0}                },
     { "search",             {search_forward_text, TRUE}    },
     { "search_reverse",     {search_reverse_text, TRUE}    },
     { "dehilight",          {dehilight, 0}                 },
