@@ -48,6 +48,7 @@ which zenity &>/dev/null || exit 2
 # uri=${uri/http:\/\/} # strip 'http://' part
 # host=${uri/\/*/}
 action=$8 # GET/PUT
+shift
 host=$9
 shift
 path=$9

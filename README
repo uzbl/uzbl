@@ -290,9 +290,10 @@ The script specific arguments are this:
 * cookie handler
 
     $8 GET/PUT
-    $9 request address host (if current page url is www.foo.com/somepage, this could be something else than foo, eg advertising from another host)
-    $10 request address path
-    $11 cookie (only with PUT requests)
+    $9 request address scheme (e.g. http or https)
+    $10 request address host (if current page url is www.foo.com/somepage, this could be something else than foo, eg advertising from another host)
+    $11 request address path
+    $12 cookie (only with PUT requests)
 
 
 Custom, userdefined scripts (`spawn foo bar`) get first the arguments as specified in the config and then the above 7 are added at the end.
