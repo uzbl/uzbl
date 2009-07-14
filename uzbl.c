@@ -640,7 +640,7 @@ cmd_set_geometry() {
        the above setting and we don't want to end up with
        wrong geometry information
     */
-    retreive_geometry();
+    retrieve_geometry();
 }
 
 static void
@@ -2031,7 +2031,7 @@ configure_event_cb(GtkWidget* window, GdkEventConfigure* event) {
     (void) window;
     (void) event;
 
-    retreive_geometry();
+    retrieve_geometry();
     return FALSE;
 }
 
@@ -2604,7 +2604,7 @@ dump_config() { //ADD "result" var so we can use this with uzblctrl
 }
 
 static void
-retreive_geometry() {
+retrieve_geometry() {
     int w, h, x, y;
     GString *buf = g_string_new("");
 
@@ -2728,7 +2728,7 @@ main (int argc, char* argv[]) {
     if(uzbl.gui.geometry)
         cmd_set_geometry();
     else
-        retreive_geometry();
+        retrieve_geometry();
 
     gchar *uri_override = (uzbl.state.uri ? g_strdup(uzbl.state.uri) : NULL);
     gboolean verbose_override = uzbl.state.verbose;

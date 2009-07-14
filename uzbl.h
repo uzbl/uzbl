@@ -476,7 +476,7 @@ dump_config();
 
 
 static void
-retreive_geometry();
+retrieve_geometry();
 
 static gboolean
 configure_event_cb(GtkWidget* window, GdkEventConfigure* event);
