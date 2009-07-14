@@ -24,7 +24,7 @@ Contributors:
     Tom Adams (holizz) - few patches, cookies.py, gtkplug/socket & proof of concept uzbl_tabbed.py
     neutralinsomniac - load_progress = 0 fix
     Maximilian Gaß (mxey) - several small patches
-    Abel Camarillo (00z) - make it compile on OpenBSD
+    Abel Camarillo (00z) - various portability fixes, such as BSD fixes for Makefile and posix shell scripts
     (israellevin) - toggle_zoom_type
     (kmeaw) - fix for multibyte utf8 characters segfault
     (evocallaghan) - tiny patches

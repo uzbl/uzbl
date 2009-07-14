@@ -1,3 +1,4 @@
+#!/bin/bash
 # use this script to pipe any variable to xclip, so you have it in your clipboard
 # in your uzbl config, make the first argument the number of the (later) argument you want to use (see README for list of args)
 # make the 2nd argument one of : primary, secondary, clipboard.
