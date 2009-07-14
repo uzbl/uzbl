@@ -53,7 +53,7 @@ More or less in order of importance/urgency
   overriding variables (such as -u)
   variable expansion (@var, @{var}, where do they get expanded? can users have their own vars?, should we merge this with the replacement we do for useragent/window title etc?)
   how %s works for the js command
-  
+
 
 SOMEDAY:
 figure out caching with webkit and in general how we can speed up everything

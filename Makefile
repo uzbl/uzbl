@@ -19,7 +19,7 @@ test-dev: uzbl
 test-share: uzbl
 	XDG_DATA_HOME=/usr/share/uzbl/examples/data XDG_CONFIG_HOME=/usr/share/uzbl/examples/config ./uzbl --uri http://www.uzbl.org --verbose
 
-	
+
 clean:
 	rm -f uzbl
 	rm -f uzblctrl

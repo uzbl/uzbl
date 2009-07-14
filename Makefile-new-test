@@ -27,7 +27,7 @@ test-config: uzbl
 
 test-config-real: uzbl
 	./uzbl --uri http://www.uzbl.org < $(EXMPLSDIR)/configs/sampleconfig
-	
+
 clean:
 	rm -f uzbl
 	rm -f uzblctrl

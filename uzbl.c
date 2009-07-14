@@ -2516,7 +2516,7 @@ settings_init () {
     for (i = 0; default_config[i].command != NULL; i++) {
         parse_cmd_line(default_config[i].command, NULL);
     }
-    
+
     if (g_strcmp0(s->config_file, "-") == 0) {
         s->config_file = NULL;
         create_stdin();

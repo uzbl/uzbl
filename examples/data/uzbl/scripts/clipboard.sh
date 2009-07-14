@@ -15,4 +15,3 @@ case $action in
   "goto" ) echo "uri $selection" > "$fifo";;
   * ) echo "clipboard.sh: invalid action";;
 esac
-
