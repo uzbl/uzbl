@@ -12,13 +12,13 @@ then
         # choose an item in reverse order, showing also the date and page titles
         # pick the last field from the first 3 fields. this way you can pick a url (prefixed with date & time) or type just a new url.
         goto=`tac $history_file | $DMENU $COLORS | cut -d ' ' -f -3  | awk '{print $NF}'`
-else    
+else
         DMENU="dmenu -i"
 	# choose from all entries (no date or title), the first one being current url, and after that all others, sorted and uniqued, in ascending order
-	current=`tail -n 1 $history_file | awk '{print $3}'`; 
+	current=`tail -n 1 $history_file | awk '{print $3}'`;
   goto=`(echo $current; awk '{print $3}' $history_file | grep -v "^$current\$" \
       | sort -u) | $DMENU $COLORS`
-fi 
+fi
 
 [ -n "$goto" ] && echo "uri $goto" > $4
 #[ -n "$goto" ] && uzblctrl -s $5 -c "uri $goto"

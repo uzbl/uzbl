@@ -40,7 +40,7 @@ sample scripts:
 
 * dmenu (with vertical patch)
 * zenity
-* bash 
+* bash
 * python (cookies.py)
 * perl (formfiller.pl)
 
@@ -50,7 +50,7 @@ After installing - using either method - you will find:
 
 * /usr/bin : uzbl [and uzblctrl]
 * /usr/share/uzbl/docs/ : documentation files included with uzbl. (readme, checklist, .. )
-* /usr/share/uzbl/examples: sample scripts, config files and a sample data (boomarks, .. ) 
+* /usr/share/uzbl/examples: sample scripts, config files and a sample data (boomarks, .. )
 
 You will probably want to change the scripts to behave more like you want, so copy the scripts to your home dir. If you save your config as
 $XDG\_CONFIG\_HOME/uzbl/config (this expands to ~/.config/uzbl/config on most systems) it will be recognized automatically. You can also pass the path to
