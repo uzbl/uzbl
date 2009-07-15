@@ -705,7 +705,7 @@ log_history_cb () {
    if (uzbl.behave.history_handler) {
        GTimeVal the_time;
        gchar *date;
-      
+
        g_get_current_time(&the_time);
        /* no need to wrap this string with quotes since it contains no spaces.
           format is like: 2009-06-26T20:02:05.262864Z */
@@ -2511,7 +2511,7 @@ settings_init () {
     for (i = 0; default_config[i].command != NULL; i++) {
         parse_cmd_line(default_config[i].command, NULL);
     }
-   
+
     if (g_strcmp0(s->config_file, "-") == 0) {
         s->config_file = NULL;
         create_stdin();
