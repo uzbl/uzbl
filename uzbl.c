@@ -703,15 +703,13 @@ destroy_cb (GtkWidget* widget, gpointer data) {
 void
 log_history_cb () {
    if (uzbl.behave.history_handler) {
-       GTimeVal the_time;
-       gchar *date;
-
-       g_get_current_time(&the_time);
-       /* no need to wrap this string with quotes since it contains no spaces.
-          format is like: 2009-06-26T20:02:05.262864Z */
-       date = g_time_val_to_iso8601(&the_time);
+       time_t rawtime;
+       struct tm * timeinfo;
+       char date [80];
+       time ( &rawtime );
+       timeinfo = localtime ( &rawtime );
+       strftime (date, 80, "\"%Y-%m-%d %H:%M:%S\"", timeinfo);
        run_handler(uzbl.behave.history_handler, date);
-       g_free(date);
    }
 }
 
