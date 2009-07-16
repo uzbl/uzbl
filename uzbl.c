@@ -2516,7 +2516,7 @@ settings_init () {
     for (i = 0; default_config[i].command != NULL; i++) {
         parse_cmd_line(default_config[i].command, NULL);
     }
-    
+
     if (g_strcmp0(s->config_file, "-") == 0) {
         s->config_file = NULL;
         create_stdin();
@@ -2554,7 +2554,7 @@ static void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer use
     soup_message_add_header_handler(msg, "got-headers", "Set-Cookie", G_CALLBACK(save_cookies), NULL);
     GString *s = g_string_new ("");
     SoupURI * soup_uri = soup_message_get_uri(msg);
-    g_string_printf(s, "GET '%s' '%s'", soup_uri->host, soup_uri->path);
+    g_string_printf(s, "GET '%s' '%s' '%s'", soup_uri->scheme, soup_uri->host, soup_uri->path);
     run_handler(uzbl.behave.cookie_handler, s->str);
 
     if(uzbl.comm.sync_stdout && strcmp (uzbl.comm.sync_stdout, "") != 0) {
@@ -2577,7 +2577,7 @@ save_cookies (SoupMessage *msg, gpointer user_data){
         cookie = soup_cookie_to_set_cookie_header(ck->data);
         SoupURI * soup_uri = soup_message_get_uri(msg);
         GString *s = g_string_new ("");
-        g_string_printf(s, "PUT '%s' '%s' '%s'", soup_uri->host, soup_uri->path, cookie);
+        g_string_printf(s, "PUT '%s' '%s' '%s' '%s'", soup_uri->scheme, soup_uri->host, soup_uri->path, cookie);
         run_handler(uzbl.behave.cookie_handler, s->str);
         g_free (cookie);
         g_string_free(s, TRUE);

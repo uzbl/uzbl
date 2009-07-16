@@ -7,7 +7,7 @@
 # user arg 1:
 # edit: force editing of the file (fetches if file is missing)
 # load: fill forms from file (fetches if file is missing)
-# new:  fetch new file	
+# new:  fetch new file
 
 # usage example:
 # bind LL = spawn /usr/share/uzbl/examples/scripts/formfiller.pl load

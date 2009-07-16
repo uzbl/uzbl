@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/bin/sh
+
+set -n;
 
 # THIS IS EXPERIMENTAL AND COULD BE INSECURE !!!!!!
 
@@ -6,7 +8,7 @@
 # we use the cookies.txt format (See http://kb.mozillazine.org/Cookies.txt)
 # This is one textfile with entries like this:
 # kb.mozillazine.org	FALSE	/	FALSE	1146030396	wikiUserID	16993
-# domain alow-read-other-subdomains path http-required expiration name value  
+# domain alow-read-other-subdomains path http-required expiration name value
 # you probably want your cookies config file in your $XDG_CONFIG_HOME ( eg $HOME/.config/uzbl/cookies)
 # Note. in uzbl there is no strict definition on what a session is.  it's YOUR job to clear cookies marked as end_session if you want to keep cookies only valid during a "session"
 # MAYBE TODO: allow user to edit cookie before saving. this cannot be done with zenity :(
@@ -24,10 +26,10 @@
 # http://kb.mozillazine.org/Cookies.txt
 # don't always append cookies, sometimes we need to overwrite
 
-cookie_config=${XDG_CONFIG_HOME:-$HOME/.config}/uzbl/cookies
-[ -z "$cookie_config" ] && exit 1
-[ -d ${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/ ] && cookie_data=${XDG_DATA_HOME:-$home/.local/share}/uzbl/cookies.txt || exit 1
-
+cookie_config=${XDG_CONFIG_HOME:-${HOME}/.config}/uzbl/cookies
+[ "x$cookie_config" = x ] && exit 1
+[ -d "${XDG_DATA_HOME:-${HOME}/.local/share}/uzbl/" ] &&\
+cookie_data=${XDG_DATA_HOME:-${HOME}/.local/share}/uzbl/cookies.txt || exit 1
 
 notifier=
 #notifier=notify-send
@@ -48,6 +50,7 @@ which zenity &>/dev/null || exit 2
 # uri=${uri/http:\/\/} # strip 'http://' part
 # host=${uri/\/*/}
 action=$8 # GET/PUT
+shift
 host=$9
 shift
 path=$9
@@ -60,24 +63,24 @@ field_name=
 field_value=
 field_exp='end_session'
 
-function notify () {
+notify() {
 	[ -n "$notifier" ] && $notifier "$@"
 }
 
 
 # FOR NOW LETS KEEP IT SIMPLE AND JUST ALWAYS PUT AND ALWAYS GET
-function parse_cookie () {
+parse_cookie() {
 	IFS=$';'
 	first_pair=1
 	for pair in $cookie
 	do
-		if [ "$first_pair" == 1 ]
+		if [ "x$first_pair" = x1 ]
 		then
 			field_name=${pair%%=*}
 			field_value=${pair#*=}
 			first_pair=0
 		else
-			read -r pair <<< "$pair" #strip leading/trailing wite space
+			echo "$pair" | read -r pair #strip leading/trailing wite space
 			key=${pair%%=*}
 			val=${pair#*=}
 			[ "$key" == expires ] && field_exp=`date -u -d "$val" +'%s'`
@@ -89,7 +92,7 @@ function parse_cookie () {
 }
 
 # match cookies in cookies.txt against hostname and path
-function get_cookie () {
+get_cookie() {
 	path_esc=${path//\//\\/}
 	search="^[^\t]*$host\t[^\t]*\t$path_esc"
 	cookie=`awk "/$search/" $cookie_data 2>/dev/null | tail -n 1`
@@ -99,13 +102,15 @@ function get_cookie () {
 		false
 	else
 		notify "Get_cookie: search: $search in $cookie_data -> result: $cookie"
-		read domain alow_read_other_subdomains path http_required expiration name value <<< "$cookie"
-		cookie="$name=$value" 
+		echo "$cookie" | \
+      read domain alow_read_other_subdomains path http_required expiration name \
+        value;
+		cookie="$name=$value"
 		true
 	fi
 }
 
-function save_cookie () {
+save_cookie() {
 	if parse_cookie
 	then
 		data="$field_domain\tFALSE\t$field_path\tFALSE\t$field_exp\t$field_name\t$field_value"
@@ -116,8 +121,8 @@ function save_cookie () {
 	fi
 }
 
-[ $action == PUT ] && save_cookie
-[ $action == GET ] && get_cookie && echo "$cookie"
+[ "x$action" = xPUT ] && save_cookie
+[ "x$action" = xGET ] && get_cookie && echo "$cookie"
 
 exit
 
@@ -125,25 +130,25 @@ exit
 # TODO: implement this later.
 # $1 = section (TRUSTED or DENY)
 # $2 =url
-function match () {
+match() {
 	sed -n "/$1/,/^\$/p" $cookie_config 2>/dev/null | grep -q "^$host"
 }
 
-function fetch_cookie () {
+fetch_cookie() {
 	cookie=`cat $cookie_data`
 }
 
-function store_cookie () {
+store_cookie() {
 	echo $cookie > $cookie_data
 }
 
 if match TRUSTED $host
 then
-	[ $action == PUT ] && store_cookie $host
-	[ $action == GET ] && fetch_cookie && echo "$cookie"
+	[ "x$action" = xPUT ] && store_cookie $host
+	[ "x$action" = xGET ] && fetch_cookie && echo "$cookie"
 elif ! match DENY $host
 then
-	[ $action == PUT ] &&                 cookie=`zenity --entry --title 'Uzbl Cookie handler' --text "Accept this cookie from $host ?" --entry-text="$cookie"` && store_cookie $host
-	[ $action == GET ] && fetch_cookie && cookie=`zenity --entry --title 'Uzbl Cookie handler' --text "Submit this cookie to $host ?"   --entry-text="$cookie"` && echo $cookie
+	[ "x$action" = xPUT ] &&                 cookie=`zenity --entry --title 'Uzbl Cookie handler' --text "Accept this cookie from $host ?" --entry-text="$cookie"` && store_cookie $host
+	[ "x$action" = xGET ] && fetch_cookie && cookie=`zenity --entry --title 'Uzbl Cookie handler' --text "Submit this cookie to $host ?"   --entry-text="$cookie"` && echo $cookie
 fi
 exit 0
