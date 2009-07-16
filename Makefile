@@ -10,6 +10,11 @@ all: uzbl uzblctrl
 
 PREFIX?=$(DESTDIR)/usr
 
+# When compiling unit tests, compile uzbl as a library first
+tests: uzbl.o
+	$(CC) -DUZBL_LIBRARY -shared -Wl uzbl.o -o ./tests/libuzbl.so
+	cd ./tests/; $(MAKE)
+
 test: uzbl
 	./uzbl --uri http://www.uzbl.org --verbose
 
@@ -23,6 +28,8 @@ test-share: uzbl
 clean:
 	rm -f uzbl
 	rm -f uzblctrl
+	rm -f uzbl.o
+	cd ./tests/; $(MAKE) clean
 
 install:
 	install -d $(PREFIX)/bin
