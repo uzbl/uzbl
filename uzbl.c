@@ -1951,6 +1951,13 @@ control_fifo(GIOChannel *gio, GIOCondition condition) {
 
 gchar*
 init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
+    if (uzbl.comm.fifo_path) { /* get rid of the old fifo if one exists */
+        if (unlink(uzbl.comm.fifo_path) == -1)
+            g_warning ("Fifo: Can't unlink old fifo at %s\n", uzbl.comm.fifo_path);
+        g_free(uzbl.comm.fifo_path);
+        uzbl.comm.fifo_path = NULL;
+    }
+
     GIOChannel *chan = NULL;
     GError *error = NULL;
     gchar *path = build_stream_name(FIFO, dir);
