@@ -3,7 +3,7 @@
 #NOTE: it's the job of the script that inserts bookmarks to make sure there are no dupes.
 
 file=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/bookmarks
-[ -r "$file" ] || exit 
+[ -r "$file" ] || exit
 COLORS=" -nb #303030 -nf khaki -sb #CCFFAA -sf #303030"
 if dmenu --help 2>&1 | grep -q '\[-rs\] \[-ni\] \[-nl\] \[-xs\]'
 then

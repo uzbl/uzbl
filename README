@@ -18,7 +18,7 @@
   In my opinion, any program can only be really useful if it complies to the unix philosophy.
   Web browsers are frequent violators of this principle:
 
-* They build in way too much things into the browser, dramatically decreasing the options to do things the way you want. 
+* They build in way too much things into the browser, dramatically decreasing the options to do things the way you want.
 * They store things in way too fancy formats (xml, rdf, sqlite, ... ) which are hard to store under version control, reuse in other scripts, ...
 
 Time to change that!
@@ -26,7 +26,7 @@ Time to change that!
   Here are the general ideas:
 
 * each instance of uzbl renders 1 page (eg it's a small wrapper around webkit), no tabbing, tab previews, or speed dial things.
-  For "multiple instances management" use your window managers, scripts or wrappers. 
+  For "multiple instances management" use your window managers, scripts or wrappers.
   This way you can get something much more useful than tabbing by default
 * very simple, plaintext , changeable at runtime configuration
 * various interfaces for (programmatic) interaction with uzbl (see below)
@@ -196,7 +196,7 @@ Copying the Uzbl object and creating public functions should be taken with care 
 
 ### VARIABLE EXPANSION AND COMMAND/JAVA SCRIPT SUBSTITUTION
 
-Variable expansion works pretty much as known from shell interpreters (sh, bash, etc.). This means you can 
+Variable expansion works pretty much as known from shell interpreters (sh, bash, etc.). This means you can
 construct strings with uzbl variables in them and have uzbl replace the variable name with its contents.
 
 In order to let uzbl know what to expand you'll need to prepend @ to the variable name:
@@ -282,7 +282,7 @@ status bar's markup; see the example config for examples.
 ### EXTERNAL SCRIPTS
 You can use external scripts with uzbl the following ways:
 
-* let uzbl call them. these scripts are called handlers in the uzbl config. used for handling logging history, handling a new download,.. 
+* let uzbl call them. these scripts are called handlers in the uzbl config. used for handling logging history, handling a new download,..
 * call them yourself from inside uzbl.  you can bind keys for this. examples: add new bookmark, load new url,..
 * You could also use xbindkeys or your WM config to trigger scripts if uzbl does not have focus
 
@@ -345,5 +345,3 @@ known bugs:
 * Segfaults when using zoom commands (happens when max zoom already reached?).
 
 Please report new issues @ uzbl.org/bugs
-
-

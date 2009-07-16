@@ -5,7 +5,7 @@ Developers:
     Michael Walker (Barrucadu) <email is mike AT barrucadu.co.uk>
     Přemysl Hrubý (anydot) <email is dfenze AT gmail.com>
     Robert Manea (robm) <email is rob DOT manea AT gmail DOT com>
-    Henri Kemppainen (DuClare) <email is akarinotengoku AT THE DOMAIN OF gmail.com> 
+    Henri Kemppainen (DuClare) <email is akarinotengoku AT THE DOMAIN OF gmail.com>
 
 Contributors:
     Zane Ashby (HashBox) - Rewrote FIFO interface. Fixed various bugs.
@@ -15,7 +15,7 @@ Contributors:
     Damien Leon - misc
     Peter Suschlik - backwards searching
     (salinasv) - move some variables to heap
-    Sylvester Johansson (scj) - form filler script & different take on link follower 
+    Sylvester Johansson (scj) - form filler script & different take on link follower
     (mxf) - uzblcat
     Mark Nevill - misc patches
     Uli Schlachter (psychon) - basic mime_policy_cb & Makefile patch

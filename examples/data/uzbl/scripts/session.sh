@@ -60,4 +60,3 @@ case $act in
       echo " endsession	- Quit the running session. Must be called from uzbl"
       ;;
 esac
-

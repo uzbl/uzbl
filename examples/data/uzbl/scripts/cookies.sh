@@ -8,7 +8,7 @@ set -n;
 # we use the cookies.txt format (See http://kb.mozillazine.org/Cookies.txt)
 # This is one textfile with entries like this:
 # kb.mozillazine.org	FALSE	/	FALSE	1146030396	wikiUserID	16993
-# domain alow-read-other-subdomains path http-required expiration name value  
+# domain alow-read-other-subdomains path http-required expiration name value
 # you probably want your cookies config file in your $XDG_CONFIG_HOME ( eg $HOME/.config/uzbl/cookies)
 # Note. in uzbl there is no strict definition on what a session is.  it's YOUR job to clear cookies marked as end_session if you want to keep cookies only valid during a "session"
 # MAYBE TODO: allow user to edit cookie before saving. this cannot be done with zenity :(
@@ -105,7 +105,7 @@ get_cookie() {
 		echo "$cookie" | \
       read domain alow_read_other_subdomains path http_required expiration name \
         value;
-		cookie="$name=$value" 
+		cookie="$name=$value"
 		true
 	fi
 }

@@ -64,9 +64,9 @@ function Hints(){
   }
 
   function elementInViewport(p) {
-    return  (p.up < window.pageYOffset + window.innerHeight && 
-            p.left < window.pageXOffset + window.innerWidth && 
-            (p.up + p.height) > window.pageYOffset && 
+    return  (p.up < window.pageYOffset + window.innerHeight &&
+            p.left < window.pageXOffset + window.innerWidth &&
+            (p.up + p.height) > window.pageYOffset &&
             (p.left + p.width) > window.pageXOffset);
   }
 
@@ -121,8 +121,8 @@ function Hints(){
         this.node.className += " " + uzblclass;
       }
       this.isHinted = true;
-        
-      // create hint  
+
+      // create hint
       var hintNode = doc.createElement('div');
       hintNode.name = uzblid;
       hintNode.innerText = labelNum;
@@ -130,7 +130,7 @@ function Hints(){
       hintNode.style.top =  this.position.up + 'px';
       hintNode.style.position = "absolute";
       doc.body.firstChild.appendChild(hintNode);
-        
+
     }
     this.removeHint = function(){
       if(this.isHinted){
@@ -267,5 +267,3 @@ function Hints(){
 var hints = new Hints();
 
 // vim:set et sw=2:
-
-
