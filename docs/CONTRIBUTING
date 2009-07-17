@@ -93,6 +93,13 @@ is, please supply:
 ### Memory leak checking
     valgrind --tool=memcheck --leak-check=full ./uzbl
 
+### Writing unit tests
+
+If you can, write a unit test for a bugfix or new functionality. Add relevant unit
+tests to existing .c files in tests/. Others should be made in new source files with
+corresponding changes to the tests/Makefile.
+Run all tests with `make tests`
+
 ### Debugging / backtraces
 
 * compile with -ggdb (enabled by default on experimental tree)
