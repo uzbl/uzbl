@@ -11,9 +11,12 @@ all: uzbl uzblctrl
 PREFIX?=$(DESTDIR)/usr
 
 # When compiling unit tests, compile uzbl as a library first
-test: uzbl.o
+tests: uzbl.o
 	$(CC) -DUZBL_LIBRARY -shared -Wl uzbl.o -o ./tests/libuzbl.so
 	cd ./tests/; $(MAKE)
+
+test: uzbl
+	./uzbl --uri http://www.uzbl.org --verbose
 
 test-dev: uzbl
 	XDG_DATA_HOME=./examples/data               XDG_CONFIG_HOME=./examples/config               ./uzbl --uri http://www.uzbl.org --verbose

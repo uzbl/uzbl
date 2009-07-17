@@ -340,8 +340,4 @@ Custom, userdefined scripts (`spawn foo bar`) get first the arguments as specifi
 
 
 ### BUGS
-known bugs:
-
-* Segfaults when using zoom commands (happens when max zoom already reached?).
-
 Please report new issues @ uzbl.org/bugs
