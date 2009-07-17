@@ -38,6 +38,7 @@ More or less in order of importance/urgency
 * proxy_url is not a good var name. it's not a url.
 * regex style page searching? so you can do 'or' and 'and' things. flags like case sensitive etc.
 * check for real command name, not just the first letter.
+* Allow the spacebar to be binded to a command
 * let users attach handlers to the most common events/signals in uzbl.
   great use case: automatically calling formfiller for certain sites
 * document:
@@ -53,7 +54,7 @@ More or less in order of importance/urgency
   overriding variables (such as -u)
   variable expansion (@var, @{var}, where do they get expanded? can users have their own vars?, should we merge this with the replacement we do for useragent/window title etc?)
   how %s works for the js command
-  
+
 
 SOMEDAY:
 figure out caching with webkit and in general how we can speed up everything

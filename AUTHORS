@@ -5,7 +5,7 @@ Developers:
     Michael Walker (Barrucadu) <email is mike AT barrucadu.co.uk>
     Přemysl Hrubý (anydot) <email is dfenze AT gmail.com>
     Robert Manea (robm) <email is rob DOT manea AT gmail DOT com>
-    Henri Kemppainen (DuClare) <email is akarinotengoku AT THE DOMAIN OF gmail.com> 
+    Henri Kemppainen (DuClare) <email is akarinotengoku AT THE DOMAIN OF gmail.com>
 
 Contributors:
     Zane Ashby (HashBox) - Rewrote FIFO interface. Fixed various bugs.
@@ -15,26 +15,27 @@ Contributors:
     Damien Leon - misc
     Peter Suschlik - backwards searching
     (salinasv) - move some variables to heap
-    Sylvester Johansson (scj) - form filler script & different take on link follower 
+    Sylvester Johansson (scj) - form filler script & different take on link follower
     (mxf) - uzblcat
     Mark Nevill - misc patches
     Uli Schlachter (psychon) - basic mime_policy_cb & Makefile patch
-    (uranther) - zoom level
+    James S Wheaton (uranther) - zoom level, test framework
     (bobpaul) - session script patches
     Tom Adams (holizz) - few patches, cookies.py, gtkplug/socket & proof of concept uzbl_tabbed.py
     neutralinsomniac - load_progress = 0 fix
     Maximilian Gaß (mxey) - several small patches
-    Abel Camarillo (00z) - make it compile on OpenBSD
+    Abel Camarillo (00z) - various portability fixes, such as BSD fixes for Makefile and posix shell scripts
     (israellevin) - toggle_zoom_type
     (kmeaw) - fix for multibyte utf8 characters segfault
     (evocallaghan) - tiny patches
     Aaron Griffin (phrakture) - Makefile patches to build on OSX
     Mason Larobina - os.environ.keys() & os.path.join fix in cookies.py, work on uzbl_tabbed.py
     (dequis) - Uzbl.run, birectional socket, javascript commands
-    Brendan Taylor (bct) - various bugfixes
+    Brendan Taylor (bct) - various bugfixes, making misc variables much better using expand(), refactoring some internal var stuff
     Chris van Dijk (quigybo) - work on uzbl_tabbed.py
     Moritz Lenz - small doc fix
     Sergey Shepelev (temoto) - doc patch
+    Tassilo Horn (tsdh) - $VISUAL patch
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:

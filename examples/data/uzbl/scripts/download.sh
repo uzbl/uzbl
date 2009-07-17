@@ -1,15 +1,19 @@
-#!/bin/bash
+#!/bin/sh
 # just an example of how you could handle your downloads
 # try some pattern matching on the uri to determine what we should do
 
-# Some sites block the default wget --user-agent...
-WGET="wget --user-agent=Firefox"
+# Some sites block the default wget --user-agent..
+GET="wget --user-agent=Firefox"
 
-if [[ $8 =~ .*(.torrent) ]] 
+dest="$HOME"
+url="$8"
+
+test "x$url" = "x" && { echo "you must supply a url! ($url)"; exit 1; }
+
+# only changes the dir for the $get sub process
+if echo "$url" | grep -E '.*\.torrent' >/dev/null;
 then
-    cd $HOME
-    $WGET $8
+    ( cd "$dest"; eval "$GET" "$url")
 else
-    cd $HOME
-    $WGET $8
+    ( cd "$dest"; eval "$GET" "$url")
 fi
