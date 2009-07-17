@@ -19,7 +19,7 @@ Contributors:
     (mxf) - uzblcat
     Mark Nevill - misc patches
     Uli Schlachter (psychon) - basic mime_policy_cb & Makefile patch
-    (uranther) - zoom level
+    James S Wheaton (uranther) - zoom level, test framework
     (bobpaul) - session script patches
     Tom Adams (holizz) - few patches, cookies.py, gtkplug/socket & proof of concept uzbl_tabbed.py
     neutralinsomniac - load_progress = 0 fix
