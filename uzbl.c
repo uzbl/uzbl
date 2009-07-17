@@ -2653,7 +2653,7 @@ initialize(int argc, char *argv[]) {
     if(setup_signal(SIGALRM, catch_alrm) == SIG_ERR)
         fprintf(stderr, "uzbl: error hooking SIGALARM\n");
 
-    uzbl.gui.sbar.progress_s = g_strdup("=");
+    uzbl.gui.sbar.progress_s = g_strdup("="); //TODO: move these to config.h
     uzbl.gui.sbar.progress_u = g_strdup("·");
     uzbl.gui.sbar.progress_w = 10;
 

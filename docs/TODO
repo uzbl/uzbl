@@ -40,7 +40,7 @@ More or less in order of importance/urgency
 * check for real command name, not just the first letter.
 * Allow the spacebar to be binded to a command
 * let users attach handlers to the most common events/signals in uzbl.
-  great use case: automatically calling formfiller for certain sites
+  great use case: automatically calling formfiller for certain sites, doing stuff at uzbl startup, etc
 * document:
   stylesheet overridding
   formfiller
