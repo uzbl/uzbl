@@ -283,18 +283,6 @@ def readconfig(uzbl_config, config):
         config[key] = os.path.expandvars(config[key])
 
 
-def rmkdir(path):
-    '''Recursively make directories.
-    I.e. `mkdir -p /some/nonexistant/path/`'''
-
-    path, sep = os.path.realpath(path), os.path.sep
-    dirs = path.split(sep)
-    for i in range(2,len(dirs)+1):
-        dir = os.path.join(sep,sep.join(dirs[:i]))
-        if not os.path.exists(dir):
-            os.mkdir(dir)
-
-
 def counter():
     '''To infinity and beyond!'''
 
@@ -555,7 +543,8 @@ class UzblTabbed:
         else:
             basedir = os.path.dirname(self.fifo_socket)
             if not os.path.exists(basedir):
-                rmkdir(basedir)
+                os.makedirs(basedir)
+
             os.mkfifo(self.fifo_socket)
 
         print "Listening on %s" % self.fifo_socket
@@ -1032,8 +1021,7 @@ class UzblTabbed:
                 if not os.path.isfile(session_file):
                     dirname = os.path.dirname(session_file)
                     if not os.path.isdir(dirname):
-                        # Recursive mkdir not rmdir.
-                        rmkdir(dirname)
+                        os.makedirs(dirname)
 
                 sessionstr = '\n'.join(self._tabsuris)
                 h = open(session_file, 'w')
