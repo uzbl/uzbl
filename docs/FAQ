@@ -53,7 +53,7 @@ have lots of keybinding possibilities.
 We stick to "one page per uzbl instance" because that's a simple, clean and flexible method.  We believe "multiple instances management" is something that must
 be handled outside of uzbl by a separate/different program.  Here are some solutions:
 
- * Many window managers can (and should) handle this by default.  Xmonads tabbed layout, Wmii's stacked layout and so on.
+ * Many window managers can (and should) handle this by default.  Xmonads tabbed layout, Wmii's stacked layout, flubox tabs and so on.
  * Uzbl supports acting as a GtkPlug to plug into GtkSockets (Xembed) so you can embed uzbl instances in other Gtk applications.
    This allows several implementatinos, a popular one is [uzbl_tabbed.py](http://www.uzbl.org/wiki/uzbl_tabbed)
  * If you want highest customizablity, you need the 3rd option:
