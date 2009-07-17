@@ -7,10 +7,10 @@ LDFLAGS!=echo `pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` -p
 GTESTER:=gtester
 GTESTER_REPORT:=gtester-report
 
-TEST_PROGS:=test-1
+TEST_PROGS:=test-expand test-command
 
 all: $(TEST_PROGS)
-	LD_LIBRARY_PATH="$LD_LIBRARY_PATH:." $(GTESTER) --verbose $(TEST_PROGS)
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):." $(GTESTER) --verbose $(TEST_PROGS)
 
 clean:
 	rm -f $(TEST_PROGS)

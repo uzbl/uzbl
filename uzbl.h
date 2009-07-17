@@ -17,39 +17,14 @@ enum {
   SYM_LOADPRGS, SYM_LOADPRGSBAR,
   SYM_KEYCMD, SYM_MODE, SYM_MSG,
   SYM_SELECTED_URI,
-  /* useragent symbols */
-  SYM_WK_MAJ, SYM_WK_MIN, SYM_WK_MIC,
-  SYM_SYSNAME, SYM_NODENAME,
-  SYM_KERNREL, SYM_KERNVER,
-  SYM_ARCHSYS, SYM_ARCHUZBL,
-  SYM_DOMAINNAME, SYM_COMMIT
 };
 
 const struct {
     gchar *symbol_name;
     guint symbol_token;
 } symbols[] = {
-    {"NAME",                 SYM_NAME},
-    {"URI",                  SYM_URI},
-    {"TITLE",                SYM_TITLE},
-    {"SELECTED_URI",         SYM_SELECTED_URI},
     {"KEYCMD",               SYM_KEYCMD},
-    {"MODE",                 SYM_MODE},
-    {"MSG",                  SYM_MSG},
-    {"LOAD_PROGRESS",        SYM_LOADPRGS},
-    {"LOAD_PROGRESSBAR",     SYM_LOADPRGSBAR},
 
-    {"WEBKIT_MAJOR",         SYM_WK_MAJ},
-    {"WEBKIT_MINOR",         SYM_WK_MIN},
-    {"WEBKIT_MICRO",         SYM_WK_MIC},
-    {"SYSNAME",              SYM_SYSNAME},
-    {"NODENAME",             SYM_NODENAME},
-    {"KERNREL",              SYM_KERNREL},
-    {"KERNVER",              SYM_KERNVER},
-    {"ARCH_SYSTEM",          SYM_ARCHSYS},
-    {"ARCH_UZBL",            SYM_ARCHUZBL},
-    {"DOMAINNAME",           SYM_DOMAINNAME},
-    {"COMMIT",               SYM_COMMIT},
     {NULL,                   0}
 }, *symp = symbols;
 
@@ -59,12 +34,15 @@ typedef struct {
     gchar          *msg;
     gchar          *progress_s, *progress_u;
     int            progress_w;
+    gchar          *progress_bar;
+    gchar          *mode_indicator;
 } StatusBar;
 
 
 /* gui elements */
 typedef struct {
     GtkWidget*     main_window;
+    gchar*         geometry;
     GtkPlug*       plug;
     GtkWidget*     scrolled_win;
     GtkWidget*     vbox;
@@ -93,6 +71,7 @@ typedef struct {
     gchar          *socket_path;
     /* stores (key)"variable name" -> (value)"pointer to this var*/
     GHashTable     *proto_var;
+
     gchar          *sync_stdout;
 } Communication;
 
@@ -105,9 +84,8 @@ typedef struct {
     char     *instance_name;
     gchar    *selected_url;
     gchar    *executable_path;
-    GString* keycmd;
+    gchar*   keycmd;
     gchar*   searchtx;
-    struct utsname unameinfo; /* system info */
     gboolean verbose;
 } State;
 
@@ -185,6 +163,15 @@ typedef struct {
     JSClassRef          classref;
 } Javascript;
 
+/* static information */
+typedef struct {
+    int   webkit_major;
+    int   webkit_minor;
+    int   webkit_micro;
+    gchar *arch;
+    gchar *commit;
+} Info;
+
 /* main uzbl data structure */
 typedef struct {
     GUI           gui;
@@ -193,6 +180,7 @@ typedef struct {
     Behaviour     behave;
     Communication comm;
     Javascript    js;
+    Info          info;
 
     Window        xwin;
     GScanner      *scan;
@@ -226,12 +214,6 @@ XDG_Var XDG[] =
 };
 
 /* Functions */
-gchar *
-expand_template(const char *template, gboolean escape_markup);
-
-void
-setup_scanner();
-
 char *
 itos(int val);
 
@@ -314,6 +296,15 @@ bool
 file_exists (const char * filename);
 
 void
+set_keycmd();
+
+void
+set_mode_indicator();
+
+void
+set_insert_mode(gboolean mode);
+
+void
 toggle_insert_mode(WebKitWebView *page, GArray *argv, GString *result);
 
 void
@@ -340,6 +331,9 @@ close_uzbl (WebKitWebView *page, GArray *argv, GString *result);
 gboolean
 run_command(const gchar *command, const guint npre,
             const gchar **args, const gboolean sync, char **output_stdout);
+
+char*
+build_progressbar_ascii(int percent);
 
 void
 spawn(WebKitWebView *web_view, GArray *argv, GString *result);
@@ -394,6 +388,9 @@ run_keycmd(const gboolean key_ret);
 
 void
 exec_paramcmd(const Action* act, const guint i);
+
+void
+initialize ();
 
 GtkWidget*
 create_browser ();
@@ -473,6 +470,12 @@ dump_key_hash(gpointer k, gpointer v, gpointer ud);
 
 void
 dump_config();
+
+void
+retreive_geometry();
+
+gboolean
+configure_event_cb(GtkWidget* window, GdkEventConfigure* event);
 
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
 typedef struct {
@@ -575,5 +578,8 @@ cmd_inject_html();
 
 void
 cmd_caret_browsing();
+
+void
+cmd_set_geometry();
 
 /* vi: set et ts=4: */

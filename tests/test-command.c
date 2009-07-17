@@ -25,14 +25,24 @@
 #include <uzbl.h>
 #include <config.h>
 
-Uzbl uzbl;
+extern Uzbl uzbl;
 
-static void
-test_URI (void) {
-    setup_scanner();
-    uzbl.state.uri = g_strdup("http://www.uzbl.org");
-    g_assert_cmpstr(expand_template("URI", FALSE), ==, uzbl.state.uri);
-    g_free(uzbl.state.uri);
+void
+test_keycmd (void) {
+  add_binding("insert", "set insert_mode = 1");
+  add_binding("command", "set insert_mode = 0");
+
+  /* the 'keycmd' command */
+  parse_command("keycmd", "insert", NULL);
+
+  g_assert_cmpint(1, ==, uzbl.behave.insert_mode);
+  g_assert_cmpstr("", ==, uzbl.state.keycmd);
+
+  /* setting the keycmd variable directly, equivalent to the 'keycmd' comand */
+  set_var_value("keycmd", "command");
+
+  g_assert_cmpint(0, ==, uzbl.behave.insert_mode);
+  g_assert_cmpstr("", ==, uzbl.state.keycmd);
 }
 
 int
@@ -40,7 +50,9 @@ main (int argc, char *argv[]) {
     g_type_init();
     g_test_init(&argc, &argv, NULL);
 
-    g_test_add_func("/test-1/URI", test_URI);
+    g_test_add_func("/test-command/keycmd", test_keycmd);
+
+    initialize(argc, argv);
 
     return g_test_run();
 }
