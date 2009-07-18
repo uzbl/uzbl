@@ -302,6 +302,9 @@ void
 set_mode_indicator();
 
 void
+update_indicator();
+
+void
 set_insert_mode(gboolean mode);
 
 void
