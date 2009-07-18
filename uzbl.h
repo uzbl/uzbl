@@ -398,7 +398,7 @@ gboolean
 wk_mouse_scroll_cb (WebKitWebView *web_view, GdkEventScroll* event);
 
 void
-run_keycmd(const gboolean key_ret, gchar* keycmd);
+run_keycmd(const gboolean key_ret);
 
 void
 exec_paramcmd(const Action* act, const guint i);

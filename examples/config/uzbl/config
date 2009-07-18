@@ -33,6 +33,21 @@ set modkey = Mod1
 # like this you can enter any command at runtime, interactively. prefixed by ':'
 bind    :_        = chain '%s'
 
+# Open links in new window when middle-clicked
+bind    <link-mouse2>_ = spawn uzbl -u %s
+# Open link in clipboard (current window), when middle-clicking any part
+# of the page (that isn't a link)
+bind    <mouse2>  = sh 'echo "uri `xclip -selection clipboard -o`" > $4'
+# Back and Forward buttons
+bind    <mouse8>  = back
+bind    <mouse9>  = forward
+# Increase the amount of page scroll
+bind    <wheelup>   = scroll_vert -100
+bind    <wheeldown> = scroll_vert 100
+# wheel-up/down on status bar moves to top and bottom of page
+bind    <status-wheelup> = scroll_begin
+bind    <status-wheeldown> = scroll_end
+
 bind    j         = scroll_vert 20
 bind    k         = scroll_vert -20
 bind    h         = scroll_horz -20

@@ -539,9 +539,6 @@ mime_policy_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequ
     (void) request;
     (void) user_data;
 
-    if (uzbl.state.verbose)
-        printf("MIME Type: %s \n", mime_type);
-
     /* If we can display it, let's display it... */
     if (webkit_web_view_can_show_mime_type (web_view, mime_type)) {
         webkit_web_policy_decision_use (policy_decision);
@@ -725,11 +722,9 @@ load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
         run_handler(uzbl.behave.load_finish_handler, "");
 }
 
-void clear_keycmd(gchar** keycmd) {
-  if (keycmd && *keycmd) {
-    g_free(*keycmd);
-    *keycmd = g_strdup("");
-  }
+void clear_keycmd() {
+  g_free(uzbl.state.keycmd);
+  uzbl.state.keycmd = g_strdup("");
 }
 
 void
@@ -738,7 +733,7 @@ load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) frame;
     (void) data;
     uzbl.gui.sbar.load_progress = 0;
-    clear_keycmd(&uzbl.state.keycmd); // don't need old commands to remain on new page?
+    clear_keycmd(); // don't need old commands to remain on new page?
     if (uzbl.behave.load_start_handler)
         run_handler(uzbl.behave.load_start_handler, "");
 }
@@ -908,7 +903,7 @@ act_dump_config() {
 
 void
 set_keycmd() {
-    run_keycmd(FALSE, uzbl.state.keycmd);
+    run_keycmd(FALSE);
     update_title();
 }
 
@@ -1181,7 +1176,7 @@ keycmd (WebKitWebView *page, GArray *argv, GString *result) {
     (void)argv;
     (void)result;
     uzbl.state.keycmd = g_strdup(argv_idx(argv, 0));
-    run_keycmd(FALSE, uzbl.state.keycmd);
+    run_keycmd(FALSE);
     update_title();
 }
 
@@ -1191,7 +1186,7 @@ keycmd_nl (WebKitWebView *page, GArray *argv, GString *result) {
     (void)argv;
     (void)result;
     uzbl.state.keycmd = g_strdup(argv_idx(argv, 0));
-    run_keycmd(TRUE, uzbl.state.keycmd);
+    run_keycmd(TRUE);
     update_title();
 }
 
@@ -2075,7 +2070,7 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
         return FALSE;
 
     if (event->keyval == GDK_Escape) {
-        clear_keycmd(&uzbl.state.keycmd);
+        clear_keycmd();
         update_title();
         dehilight(uzbl.gui.web_view, NULL, NULL);
         return TRUE;
@@ -2111,49 +2106,144 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
         uzbl.state.keycmd = g_string_free(keycmd, FALSE);
     }
 
-    run_keycmd(key_ret, uzbl.state.keycmd);
+    run_keycmd(key_ret);
     update_title();
     if (key_ret) return (!uzbl.behave.insert_mode);
     return TRUE;
 }
 
+/* Handler for mouse button events NOT within the webkit frame.  These
+ * are represented with binds like the following:
+ *
+ *   bind <status-mouse2> = set uri = http://www.example.com/
+ *
+ * which would navigate to Example, whenever the middle-button was
+ * clicked on the status bar.
+ *
+ * The following should work (depending on your configuration):
+ *   <status-mouse1> through to <status-mouse9>
+ */
 gboolean
 mouse_button_cb (GtkWidget* window, GdkEventButton* event)
 {
-    gchar* mousecmd = g_strdup("<mouseX>");
+    gchar* mousecmd = NULL;
 
     (void) window;
 
     if (event->type != GDK_BUTTON_PRESS || event->button >= 10)
         return FALSE;
 
-    /* mousecmd = "<mouseX>" */
-    *(mousecmd+6) = '0' + event->button;
+    /* Status (and non-webkit bits) click */
+
+    mousecmd = g_strdup("<status-mouseX>");
+    *(mousecmd+13) = '0' + event->button;
 
     if (uzbl.state.verbose)
         printf("Mouse Button: %s\n", mousecmd);
 
+    /* Look for binding, and execute if found */
     if (g_hash_table_lookup(uzbl.bindings, mousecmd)) {
-        run_keycmd(FALSE, mousecmd);
+        uzbl.state.keycmd = g_strdup(mousecmd);
+        g_free(mousecmd);
+        run_keycmd(FALSE);
         return TRUE;
     }
+
+    /* No binds found */
 
     g_free(mousecmd);
     return FALSE;
 }
 
+/* Handler for mouse button events within the webkit frame.  To bind
+ * a click of a mouse button on any area of the page (other than links):
+ *
+ *   bind <mouse2> = set uri = http://www.example.com/
+ *
+ * which would navigate to Example, whenever the middle-button was
+ * clicked on the page body.  You can bind for clicking on links:
+ *
+ *   bind <link-mouse2>_ = spawn uzbl -u %s
+ *
+ * With the above, when a link is middle-clicked, a new uzbl process
+ * would be spawned, opening the URL of the link you clicked.
+ *
+ * The following should work (depending on your configuration):
+ *   <mouse1> through to <mouse9>, and
+ *   <link-mouse1> through to <link-mouse9>
+ *
+ * In order to use the link URI in <link-*> binds, define thus:
+ *   bind <link-mouse1>_ = set uri = %s
+ */
 gboolean
 wk_mouse_button_cb (WebKitWebView *web_view, GdkEventButton* event)
 {
+    gchar* mousecmd = NULL;
+
     (void) web_view;
 
-    return mouse_button_cb(NULL, event);
+    if (event->type != GDK_BUTTON_PRESS || event->button >= 10)
+        return FALSE;
+
+    mousecmd = g_strdup("<");
+
+    if (uzbl.state.selected_url) {
+        /* It's a link click */
+
+        /* In order to use the URL, we are specify the "_" in the bind */
+        mousecmd = g_strconcat(mousecmd, "link-mouseX>_", NULL);
+        *(mousecmd+11) = '0' + event->button;
+
+        /* Check for bind (with _) */
+        if (g_hash_table_lookup(uzbl.bindings, mousecmd)) {
+            /* If found, call the binding with the hovered over URI as the
+             * parameter.
+             */
+            mousecmd[strlen(mousecmd) - 1] = '\0';
+            uzbl.state.keycmd = g_strconcat(mousecmd, uzbl.state.selected_url, NULL);
+            g_free(mousecmd);
+            run_keycmd(TRUE);
+            return TRUE;
+        }
+
+        /* Get rid of '_' so we can check for a bind without it below */
+        mousecmd[strlen(mousecmd) - 1] = '\0';
+
+    } else {
+        /* Body click */
+
+        mousecmd = g_strconcat(mousecmd, "mouseX>", NULL);
+        *(mousecmd+6) = '0' + event->button;
+    }
+
+    if (uzbl.state.verbose)
+        printf("Mouse Button: %s\n", mousecmd);
+
+    /* Look for binding, and execute if found */
+    if (g_hash_table_lookup(uzbl.bindings, mousecmd)) {
+        uzbl.state.keycmd = g_strdup(mousecmd);
+        g_free(mousecmd);
+        run_keycmd(FALSE);
+        return TRUE;
+    }
+
+    /* No binds found */
+
+    g_free(mousecmd);
+    return FALSE;
 }
 
+/* Handler for mouse scroll events NOT within the webkit frame.  Works
+ * the same as mouse_button_cb, except the names are:
+ *   <status-wheelup>, <status-wheeldown>, <status-wheelleft>, and
+ *   <status-wheelright>
+ */
 gboolean
 mouse_scroll_cb (GtkWidget* window, GdkEventScroll* event)
 {
-    gchar* mousecmd = g_strdup("<wheel");
+    /* Status (and non-webkit bits) click */
+
+    gchar* mousecmd = g_strdup("<status-wheel");
 
     (void) window;
 
@@ -2181,29 +2271,105 @@ mouse_scroll_cb (GtkWidget* window, GdkEventScroll* event)
     if (uzbl.state.verbose)
         printf("Mouse Scroll: %s\n", mousecmd);
 
+    /* Look for binding, and execute if found */
     if (g_hash_table_lookup(uzbl.bindings, mousecmd)) {
-        run_keycmd(FALSE, mousecmd);
+        uzbl.state.keycmd = g_strdup(mousecmd);
+        g_free(mousecmd);
+        run_keycmd(FALSE);
         return TRUE;
     }
+
+    /* No binds found */
 
     g_free(mousecmd);
     return FALSE;
 }
 
+/* Handler for mouse scroll events within the webkit frame.  Works
+ * the same as wk_mouse_button_cb, except the names are:
+ *   <wheelup>, <wheeldown>, <wheelleft>, <wheelright>, <link-wheelup>,
+ *   <link-wheeldown>, <link-wheelleft> and <link-wheelright>
+ *
+ * In order to use the link URI in <link-*> binds, define thus:
+ *   bind <link-wheeldown>_ = set uri = %s
+ */
 gboolean
 wk_mouse_scroll_cb (WebKitWebView *web_view, GdkEventScroll* event)
 {
+    gchar* mousecmd = g_strdup("<");
+
     (void) web_view;
 
-    return mouse_scroll_cb(NULL, event);
+    if (uzbl.state.selected_url) {
+        /* It's a link click */
+
+        mousecmd = g_strconcat(mousecmd, "link-", NULL);
+    }
+
+    mousecmd = g_strconcat(mousecmd, "wheel", NULL);
+
+    switch (event->direction) {
+        case GDK_SCROLL_UP:
+            mousecmd = g_strconcat(mousecmd, "up>", NULL);
+            break;
+        case GDK_SCROLL_DOWN:
+            mousecmd = g_strconcat(mousecmd, "down>", NULL);
+            break;
+
+        case GDK_SCROLL_LEFT:
+            mousecmd = g_strconcat(mousecmd, "left>", NULL);
+            break;
+
+        case GDK_SCROLL_RIGHT:
+            mousecmd = g_strconcat(mousecmd, "right>", NULL);
+            break;
+
+        default:
+            g_free(mousecmd);
+            return FALSE;
+    }
+
+    if (uzbl.state.verbose)
+        printf("Mouse Scroll: %s\n", mousecmd);
+
+    if (uzbl.state.selected_url) {
+        /* It's a link click */
+
+        mousecmd = g_strconcat(mousecmd, "_", NULL);
+
+        /* Check for binding with '_' */
+        if (g_hash_table_lookup(uzbl.bindings, mousecmd)) {
+            mousecmd[strlen(mousecmd) - 1] = '\0';
+            uzbl.state.keycmd = g_strconcat(mousecmd, uzbl.state.selected_url, NULL);
+            g_free(mousecmd);
+            run_keycmd(TRUE);
+            return TRUE;
+        }
+
+        /* Get rid of '_' so we can check for a bind without it below */
+        mousecmd[strlen(mousecmd) - 1] = '\0';
+    }
+
+    /* Look for binding, and execute if found */
+    if (g_hash_table_lookup(uzbl.bindings, mousecmd)) {
+        uzbl.state.keycmd = g_strdup(mousecmd);
+        g_free(mousecmd);
+        run_keycmd(FALSE);
+        return TRUE;
+    }
+
+    /* No binds found */
+
+    g_free(mousecmd);
+    return FALSE;
 }
 
 void
-run_keycmd(const gboolean key_ret, gchar* keycmd) {
+run_keycmd(const gboolean key_ret) {
     /* run the keycmd immediately if it isn't incremental and doesn't take args */
     Action *act;
-    if ((act = g_hash_table_lookup(uzbl.bindings, keycmd))) {
-        clear_keycmd(&keycmd);
+    if ((act = g_hash_table_lookup(uzbl.bindings, uzbl.state.keycmd))) {
+        clear_keycmd();
         parse_command(act->name, act->param, NULL);
         return;
     }
@@ -2212,9 +2378,9 @@ run_keycmd(const gboolean key_ret, gchar* keycmd) {
     GString* short_keys = g_string_new ("");
     GString* short_keys_inc = g_string_new ("");
     guint i;
-    guint len = strlen(keycmd);
+    guint len = strlen(uzbl.state.keycmd);
     for (i=0; i<len; i++) {
-        g_string_append_c(short_keys, keycmd[i]);
+        g_string_append_c(short_keys, uzbl.state.keycmd[i]);
         g_string_assign(short_keys_inc, short_keys->str);
         g_string_append_c(short_keys, '_');
         g_string_append_c(short_keys_inc, '*');
@@ -2222,11 +2388,11 @@ run_keycmd(const gboolean key_ret, gchar* keycmd) {
         if (key_ret && (act = g_hash_table_lookup(uzbl.bindings, short_keys->str))) {
             /* run normal cmds only if return was pressed */
             exec_paramcmd(act, i);
-            clear_keycmd(&keycmd);
+            clear_keycmd();
             break;
         } else if ((act = g_hash_table_lookup(uzbl.bindings, short_keys_inc->str))) {
             if (key_ret)  /* just quit the incremental command on return */
-                clear_keycmd(&keycmd);
+                clear_keycmd();
             else exec_paramcmd(act, i); /* otherwise execute the incremental */
             break;
         }
@@ -2298,6 +2464,10 @@ create_mainbar () {
     gtk_misc_set_padding (GTK_MISC(g->mainbar_label), 2, 2);
     gtk_box_pack_start (GTK_BOX (g->mainbar), g->mainbar_label, TRUE, TRUE, 0);
     g_signal_connect (G_OBJECT (g->mainbar), "key-press-event", G_CALLBACK (key_press_cb), NULL);
+    /* These are here and not in create_window as webkit sometimes passes
+     * events through to the window if it doesn't deal with them.  This isn't
+     * desired behaviour in this case.
+     */
     g_signal_connect (G_OBJECT (g->mainbar), "button-press-event", G_CALLBACK (mouse_button_cb), NULL);
     g_signal_connect (G_OBJECT (g->mainbar), "scroll-event", G_CALLBACK (mouse_scroll_cb), NULL);
     return g->mainbar;
@@ -2311,8 +2481,6 @@ create_window () {
     g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (destroy_cb), NULL);
     g_signal_connect (G_OBJECT (window), "key-press-event", G_CALLBACK (key_press_cb), NULL);
     g_signal_connect (G_OBJECT (window), "configure-event", G_CALLBACK (configure_event_cb), NULL);
-    g_signal_connect (G_OBJECT (window), "button-press-event", G_CALLBACK (mouse_button_cb), NULL);
-    g_signal_connect (G_OBJECT (window), "scroll-event", G_CALLBACK (mouse_scroll_cb), NULL);
 
     return window;
 }
