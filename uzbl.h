@@ -183,7 +183,6 @@ typedef struct {
     Info          info;
 
     Window        xwin;
-    GScanner      *scan;
 
     /* group bindings: key -> action */
     GHashTable* bindings;
@@ -300,6 +299,9 @@ set_keycmd();
 
 void
 set_mode_indicator();
+
+void
+update_indicator();
 
 void
 set_insert_mode(gboolean mode);

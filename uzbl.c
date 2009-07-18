@@ -119,8 +119,8 @@ const struct {
     { "status_pbar_pending", PTR_V(uzbl.gui.sbar.progress_u,        STR,  1,   update_title)},
     { "status_pbar_width",   PTR_V(uzbl.gui.sbar.progress_w,        INT,  1,   update_title)},
     { "status_background",   PTR_V(uzbl.behave.status_background,   STR,  1,   update_title)},
-    { "insert_indicator",    PTR_V(uzbl.behave.insert_indicator,    STR,  1,   update_title)},
-    { "command_indicator",   PTR_V(uzbl.behave.cmd_indicator,       STR,  1,   update_title)},
+    { "insert_indicator",    PTR_V(uzbl.behave.insert_indicator,    STR,  1,   update_indicator)},
+    { "command_indicator",   PTR_V(uzbl.behave.cmd_indicator,       STR,  1,   update_indicator)},
     { "title_format_long",   PTR_V(uzbl.behave.title_format_long,   STR,  1,   update_title)},
     { "title_format_short",  PTR_V(uzbl.behave.title_format_short,  STR,  1,   update_title)},
     { "icon",                PTR_V(uzbl.gui.icon,                   STR,  1,   set_icon)},
@@ -477,7 +477,6 @@ clean_up(void) {
     g_free(uzbl.state.keycmd);
     g_hash_table_destroy(uzbl.bindings);
     g_hash_table_destroy(uzbl.behave.commands);
-    g_scanner_destroy(uzbl.scan);
 }
 
 /* used for html_mode_timeout
@@ -917,6 +916,12 @@ void
 set_mode_indicator() {
     uzbl.gui.sbar.mode_indicator = (uzbl.behave.insert_mode ?
         uzbl.behave.insert_indicator : uzbl.behave.cmd_indicator);
+}
+
+void
+update_indicator() {
+  set_mode_indicator();
+  update_title();
 }
 
 void
@@ -2747,7 +2752,7 @@ initialize(int argc, char *argv[]) {
     if(setup_signal(SIGALRM, catch_alrm) == SIG_ERR)
         fprintf(stderr, "uzbl: error hooking SIGALARM\n");
 
-    uzbl.gui.sbar.progress_s = g_strdup("=");
+    uzbl.gui.sbar.progress_s = g_strdup("="); //TODO: move these to config.h
     uzbl.gui.sbar.progress_u = g_strdup("·");
     uzbl.gui.sbar.progress_w = 10;
 
@@ -2825,6 +2830,8 @@ main (int argc, char* argv[]) {
         retreive_geometry();
 
     gchar *uri_override = (uzbl.state.uri ? g_strdup(uzbl.state.uri) : NULL);
+    if (argc > 1 && !uzbl.state.uri)
+        uri_override = g_strdup(argv[1]);
     gboolean verbose_override = uzbl.state.verbose;
 
     settings_init ();
