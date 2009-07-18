@@ -183,7 +183,6 @@ typedef struct {
     Info          info;
 
     Window        xwin;
-    GScanner      *scan;
 
     /* group bindings: key -> action */
     GHashTable* bindings;
