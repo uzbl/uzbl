@@ -2730,6 +2730,8 @@ main (int argc, char* argv[]) {
         retreive_geometry();
 
     gchar *uri_override = (uzbl.state.uri ? g_strdup(uzbl.state.uri) : NULL);
+    if (argc > 1 && !uzbl.state.uri)
+        uri_override = g_strdup(argv[1]);
     gboolean verbose_override = uzbl.state.verbose;
 
     settings_init ();
