@@ -119,8 +119,8 @@ const struct {
     { "status_pbar_pending", PTR_V(uzbl.gui.sbar.progress_u,        STR,  1,   update_title)},
     { "status_pbar_width",   PTR_V(uzbl.gui.sbar.progress_w,        INT,  1,   update_title)},
     { "status_background",   PTR_V(uzbl.behave.status_background,   STR,  1,   update_title)},
-    { "insert_indicator",    PTR_V(uzbl.behave.insert_indicator,    STR,  1,   update_title)},
-    { "command_indicator",   PTR_V(uzbl.behave.cmd_indicator,       STR,  1,   update_title)},
+    { "insert_indicator",    PTR_V(uzbl.behave.insert_indicator,    STR,  1,   update_indicator)},
+    { "command_indicator",   PTR_V(uzbl.behave.cmd_indicator,       STR,  1,   update_indicator)},
     { "title_format_long",   PTR_V(uzbl.behave.title_format_long,   STR,  1,   update_title)},
     { "title_format_short",  PTR_V(uzbl.behave.title_format_short,  STR,  1,   update_title)},
     { "icon",                PTR_V(uzbl.gui.icon,                   STR,  1,   set_icon)},
@@ -911,6 +911,12 @@ void
 set_mode_indicator() {
     uzbl.gui.sbar.mode_indicator = (uzbl.behave.insert_mode ?
         uzbl.behave.insert_indicator : uzbl.behave.cmd_indicator);
+}
+
+void
+update_indicator() {
+  set_mode_indicator();
+  update_title();
 }
 
 void
