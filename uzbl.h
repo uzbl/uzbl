@@ -502,9 +502,6 @@ void
 cmd_cookie_handler();
 
 void
-cmd_new_window();
-
-void
 move_statusbar();
 
 void

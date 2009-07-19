@@ -134,7 +134,7 @@ const struct {
     { "history_handler",     PTR_V(uzbl.behave.history_handler,     STR,  1,   NULL)},
     { "download_handler",    PTR_V(uzbl.behave.download_handler,    STR,  1,   NULL)},
     { "cookie_handler",      PTR_V(uzbl.behave.cookie_handler,      STR,  1,   cmd_cookie_handler)},
-    { "new_window",          PTR_V(uzbl.behave.new_window,          STR,  1,   cmd_new_window)},
+    { "new_window",          PTR_V(uzbl.behave.new_window,          STR,  1,   NULL)},
     { "fifo_dir",            PTR_V(uzbl.behave.fifo_dir,            STR,  1,   cmd_fifo_dir)},
     { "socket_dir",          PTR_V(uzbl.behave.socket_dir,          STR,  1,   cmd_socket_dir)},
     { "http_debug",          PTR_V(uzbl.behave.http_debug,          INT,  1,   cmd_http_debug)},
@@ -1608,19 +1608,6 @@ cmd_cookie_handler() {
         g_free (uzbl.behave.cookie_handler);
         uzbl.behave.cookie_handler =
             g_strdup_printf("sync_%s %s", split[0], split[1]);
-    }
-    g_strfreev (split);
-}
-
-void
-cmd_new_window() {
-    gchar **split = g_strsplit(uzbl.behave.new_window, " ", 2);
-    /* pitfall: doesn't handle chain actions; must the sync_ action manually */
-    if ((g_strcmp0(split[0], "sh") == 0) ||
-        (g_strcmp0(split[0], "spawn") == 0)) {
-        g_free (uzbl.behave.new_window);
-        uzbl.behave.new_window =
-            g_strdup_printf("%s %s", split[0], split[1]);
     }
     g_strfreev (split);
 }
