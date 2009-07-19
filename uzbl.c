@@ -2711,6 +2711,7 @@ main (int argc, char* argv[]) {
             printf("window_id %i\n",(int) uzbl.xwin);
         printf("pid %i\n", getpid ());
         printf("name: %s\n", uzbl.state.instance_name);
+        printf("commit: %s\n", uzbl.info.commit);
     }
 
     uzbl.gui.scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);
