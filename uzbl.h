@@ -394,7 +394,7 @@ exec_paramcmd(const Action* act, const guint i);
 void
 initialize ();
 
-GtkWidget*
+void
 create_browser ();
 
 GtkWidget*
