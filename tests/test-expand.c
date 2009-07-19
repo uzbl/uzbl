@@ -111,7 +111,7 @@ test_ARCH_UZBL (void) {
 
 void
 test_COMMIT (void) {
-    g_assert_cmpstr(expand("@COMMIT", 0), ==, COMMIT);
+    g_assert_cmpstr(expand("@COMMIT", 0), ==, uzbl.info.commit);
 }
 
 void
@@ -154,7 +154,7 @@ test_cmd_useragent_full (void) {
     g_string_append(expected, " [");
     g_string_append(expected, ARCH);
     g_string_append(expected, "]) (Commit ");
-    g_string_append(expected, COMMIT);
+    g_string_append(expected, uzbl.info.commit);
     g_string_append(expected, ")");
 
     set_var_value("useragent", "Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@(uname -s)@ @(uname -n)@ @(uname -r)@ @(uname -v)@ @(uname -m)@ [@ARCH_UZBL]) (Commit @COMMIT)");

@@ -64,13 +64,13 @@ const
 GOptionEntry entries[] =
 {
     { "uri",      'u', 0, G_OPTION_ARG_STRING, &uzbl.state.uri,
-        "Uri to load at startup (equivalent to 'set uri = URI')", "URI" },
+        "Uri to load at startup (equivalent to 'uzbl <uri>' or 'set uri = URI' after uzbl has launched)", "URI" },
     { "verbose",  'v', 0, G_OPTION_ARG_NONE,   &uzbl.state.verbose,
         "Whether to print all messages or just errors.", NULL },
     { "name",     'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name,
         "Name of the current instance (defaults to Xorg window id)", "NAME" },
     { "config",   'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,
-        "Config file (this is pretty much equivalent to uzbl < FILE )", "FILE" },
+        "Path to config file or '-' for stdin", "FILE" },
     { "socket",   's', 0, G_OPTION_ARG_INT, &uzbl.state.socket_id,
         "Socket ID", "SOCKET" },
     { "geometry", 'g', 0, G_OPTION_ARG_STRING, &uzbl.gui.geometry,
@@ -2420,16 +2420,11 @@ exec_paramcmd(const Action *act, const guint i) {
 }
 
 
-GtkWidget*
+void
 create_browser () {
     GUI *g = &uzbl.gui;
 
-    GtkWidget* scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-    //main_window_ref = g_object_ref(scrolled_window);
-    gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window), GTK_POLICY_NEVER, GTK_POLICY_NEVER); //todo: some sort of display of position/total length. like what emacs does
-
     g->web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
-    gtk_container_add (GTK_CONTAINER (scrolled_window), GTK_WIDGET (g->web_view));
 
     g_signal_connect (G_OBJECT (g->web_view), "notify::title", G_CALLBACK (title_change_cb), NULL);
     g_signal_connect (G_OBJECT (g->web_view), "load-progress-changed", G_CALLBACK (progress_change_cb), g->web_view);
@@ -2444,8 +2439,6 @@ create_browser () {
     g_signal_connect (G_OBJECT (g->web_view), "mime-type-policy-decision-requested", G_CALLBACK (mime_policy_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "button-press-event", G_CALLBACK (wk_mouse_button_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "scroll-event", G_CALLBACK (wk_mouse_scroll_cb), g->web_view);
-
-    return scrolled_window;
 }
 
 GtkWidget*
@@ -2889,7 +2882,6 @@ retreive_geometry() {
  * external applications need to do anyhow */
 void
 initialize(int argc, char *argv[]) {
-    gtk_init (&argc, &argv);
     if (!g_thread_supported ())
         g_thread_init (NULL);
     uzbl.state.executable_path = g_strdup(argv[0]);
@@ -2943,7 +2935,7 @@ initialize(int argc, char *argv[]) {
     commands_hash ();
     make_var_to_name_hash();
 
-    uzbl.gui.scrolled_win = create_browser();
+    create_browser();
 }
 
 #ifndef UZBL_LIBRARY
@@ -2951,6 +2943,16 @@ initialize(int argc, char *argv[]) {
 int
 main (int argc, char* argv[]) {
     initialize(argc, argv);
+
+    gtk_init (&argc, &argv);
+
+    uzbl.gui.scrolled_win = gtk_scrolled_window_new (NULL, NULL);
+    //main_window_ref = g_object_ref(scrolled_window);
+    gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win),
+        GTK_POLICY_NEVER, GTK_POLICY_NEVER); //todo: some sort of display of position/total length. like what emacs does
+
+    gtk_container_add (GTK_CONTAINER (uzbl.gui.scrolled_win),
+        GTK_WIDGET (uzbl.gui.web_view));
 
     uzbl.gui.vbox = gtk_vbox_new (FALSE, 0);
 
