@@ -116,6 +116,7 @@ typedef struct {
     gchar*   download_handler;
     gchar*   cookie_handler;
     gchar*   new_window;
+    gchar*   scheme_handler;
     gboolean always_insert_mode;
     gboolean show_status;
     gboolean insert_mode;
@@ -239,6 +240,9 @@ set_var_value(gchar *name, gchar *val);
 
 void
 print(WebKitWebView *page, GArray *argv, GString *result);
+
+gboolean
+navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data);
 
 gboolean
 new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data);

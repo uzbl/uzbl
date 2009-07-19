@@ -198,6 +198,7 @@ Some variables have callback functions which will get called after setting the v
   - download_handler
   - cookie_handler
   - new_window: handler to execute to invoke new uzbl window (TODO better name)
+  - scheme_handler: handler to be executed for all URIs not of the http/https/data schema
   - fifo_dir: location to store fifo's
   - socket_dir: location to store sockets
   - http_debug: http debug mode (value 0-3)

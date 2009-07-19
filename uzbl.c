@@ -135,6 +135,7 @@ const struct {
     { "download_handler",    PTR_V(uzbl.behave.download_handler,    STR,  1,   NULL)},
     { "cookie_handler",      PTR_V(uzbl.behave.cookie_handler,      STR,  1,   cmd_cookie_handler)},
     { "new_window",          PTR_V(uzbl.behave.new_window,          STR,  1,   NULL)},
+    { "scheme_handler",      PTR_V(uzbl.behave.scheme_handler,      STR,  1,   NULL)},
     { "fifo_dir",            PTR_V(uzbl.behave.fifo_dir,            STR,  1,   cmd_fifo_dir)},
     { "socket_dir",          PTR_V(uzbl.behave.socket_dir,          STR,  1,   cmd_socket_dir)},
     { "http_debug",          PTR_V(uzbl.behave.http_debug,          INT,  1,   cmd_http_debug)},
@@ -518,6 +519,32 @@ catch_alrm(int s) {
 
 
 /* --- CALLBACKS --- */
+
+gboolean
+navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
+    (void) web_view;
+    (void) frame;
+    (void) navigation_action;
+    (void) policy_decision;
+    (void) user_data;
+    const gchar* uri = webkit_network_request_get_uri (request);
+    if (uzbl.state.verbose)
+        printf("Navigation requested -> %s\n", uri);
+    SoupURI *suri = soup_uri_new(uri);
+    if (suri && strcmp (suri->scheme, "http") &&
+                strcmp (suri->scheme, "https") &&
+                strcmp (suri->scheme, "data") &&
+                strcmp (suri->scheme, "about")) {
+        if (uzbl.behave.scheme_handler) {
+            GString *s = g_string_new ("");
+            g_string_printf(s, "'%s'", uri);
+            run_handler(uzbl.behave.scheme_handler, s->str);
+            webkit_web_policy_decision_ignore(policy_decision);
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
 
 gboolean
 new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
@@ -2168,6 +2195,7 @@ create_browser () {
     g_signal_connect (G_OBJECT (g->web_view), "load-finished", G_CALLBACK (log_history_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-finished", G_CALLBACK (load_finish_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), g->web_view);
+    g_signal_connect (G_OBJECT (g->web_view), "navigation-policy-decision-requested", G_CALLBACK (navigation_decision_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "new-window-policy-decision-requested", G_CALLBACK (new_window_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "download-requested", G_CALLBACK (download_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "create-web-view", G_CALLBACK (create_web_view_cb), g->web_view);
