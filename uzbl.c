@@ -64,13 +64,13 @@ const
 GOptionEntry entries[] =
 {
     { "uri",      'u', 0, G_OPTION_ARG_STRING, &uzbl.state.uri,
-        "Uri to load at startup (equivalent to 'set uri = URI')", "URI" },
+        "Uri to load at startup (equivalent to 'uzbl <uri>' or 'set uri = URI' after uzbl has launched)", "URI" },
     { "verbose",  'v', 0, G_OPTION_ARG_NONE,   &uzbl.state.verbose,
         "Whether to print all messages or just errors.", NULL },
     { "name",     'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name,
         "Name of the current instance (defaults to Xorg window id)", "NAME" },
     { "config",   'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,
-        "Config file (this is pretty much equivalent to uzbl < FILE )", "FILE" },
+        "Path to config file or '-' for stdin", "FILE" },
     { "socket",   's', 0, G_OPTION_ARG_INT, &uzbl.state.socket_id,
         "Socket ID", "SOCKET" },
     { "geometry", 'g', 0, G_OPTION_ARG_STRING, &uzbl.gui.geometry,
