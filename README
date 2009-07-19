@@ -2,20 +2,20 @@
 * people want a browser that does everything
 * people who want a browser with things like a built-in bookmark manager, address bar, forward/back buttons, ...
 * people who expect something that works by default.  You'll need to read configs and write/edit scripts
-
+* people who like nothing from this list: mpd, moc, wmii, dwm, awesome, mutt, pine, vim, dmenu, screen, irssi, weechat, bitlbee
 
 ### TO NEW PEOPLE:
 * please read the documentation in /usr/share/uzbl/docs
 * invoke uzbl --help
 * to get you started: `XDG_DATA_HOME=/usr/share/uzbl/examples/data XDG_CONFIG_HOME=/usr/share/uzbl/examples/config uzbl --uri www.archlinux.org`
-* study the sample config, have a look at all the bindings, and note how you can call the scripts to load new url from history and the bookmarks file
+* try and study the sample config, read the readme to find out how it works.
 * You can change the url with commands (if you have setup the appropriate keybinds) but to be most effective it's better to do url editing/changing _outside_ of uzbl.
   Eg, you can use the `load_from_*` dmenu based scripts to pick/edit a url or type a new one.
 * If you have questions, you are likely to find answers in the FAQ or in the other documentation.
 
 
 ### INTRODUCTION
-  In my opinion, any program can only be really useful if it complies to the unix philosophy.
+  Any program can only be really useful if it complies to the unix philosophy.
   Web browsers are frequent violators of this principle:
 
 * They build in way too much things into the browser, dramatically decreasing the options to do things the way you want.
@@ -23,11 +23,10 @@
 
 Time to change that!
 
-  Here are the general ideas:
+  Here are the general ideas (not all of these are implemented perfectly yet):
 
 * each instance of uzbl renders 1 page (eg it's a small wrapper around webkit), no tabbing, tab previews, or speed dial things.
   For "multiple instances management" use your window managers, scripts or wrappers.
-  This way you can get something much more useful than tabbing by default
 * very simple, plaintext , changeable at runtime configuration
 * various interfaces for (programmatic) interaction with uzbl (see below)
 * customizable keyboard shortcuts in vim or emacs style (whatever user wants)
@@ -56,7 +55,7 @@ Time to change that!
 The general idea is that uzbl by default is very bare bones.  you can send it commands to update settings and perform actions, through various interfaces.
 There is a limited default configuration.  Please see config.h to see what it contains.
 By default, there are *no* keybinds defined at all.  (Default keybinds would work counterproductive when you try to customize)
-For examples of the possibilities what you can do, please see the sample config(s).
+For examples of the possibilities what you can do, please see the sample config(s), and uzbl wiki page.
 There are several interfaces to interact with uzbl:
 
 * uzbl --config <filename>: <filename> will be read line by line, and the commands in it will be executed.  useful to configure uzbl at startup.
@@ -66,7 +65,6 @@ There are several interfaces to interact with uzbl:
   By default, the behaviour is modal (vi style):
   command mode: every keystroke is interpreted to run commands
   insert mode: keystrokes are not interpreted so you can enter text into html forms
-  Press ESC/i to toggle command/insert mode
   But if you don't like modal interfaces, you can set `always_insert_mode` and configure a modkey to execute the commands. (emacs style).
   There is also support for "chained" commands (multiple characters long) (with backspace/esc shortcuts), and keyworded commands.
   Also you can have incremental matching on commands or match after pressing return.  (see sampleconfig for more info)
@@ -161,38 +159,83 @@ The following commands are recognized:
    - remember to quote the commands; one command must come as one parameter
    - if you use `chain` with a handler script which must return some output (such as a cookie handler -- uzbl will wait for and use its output), use sync_spawn or sync_sh instead of spawn or sh in the command that should give the output
 
-### JAVASCRIPT HELPER OBJECT
+### VARIABLES AND CONSTANTS
+Uzbl has a lot of internal variables and constants.  You can get the values (using the `print` command, see above), and for variables you can also change the value at
+runtime.  Some of the values can be passed at start up through commandline arguments, others need to be set by using commands (eg in config file). 
+Some of them have default values (see config.h)
+Some variables have callback functions which will get called after setting the variable to perform some additional logic (see below)
 
-Javascript code run from uzbl is given a special object in the global namespace which gives special privileges to these scripts. This object is called `Uzbl`, and it is added and removed before and after the script execution so that it is hidden to web javascripts (There is no race condition, since all the javascript code runs in a single thread)
+* Variables:
+  - uri (callback: load the uri)
+  - verbose: affects output on stdout
+  - mode:insert or command mode
+  - inject_html
+  - base_url: used when passing html through stdin
+  - html_endmarker: delimiter when passing html through stdin
+  - html_mode_timeout: consider end of html input after x seconds when no endmarker found
+  - keycmd: holds the input buffer (callback: update input buffer)
+  - status_message (callback: update title)
+  - show_status: show statusbar or not
+  - status_top: statusbar on top?
+  - status_format: marked up, to be expanded string for statusbar (callback: update statusbar)
+  - status_pbar_done: character to denote done % of pageload
+  - status_pbar_pending: character to denote pending % of pageload
+  - status_pbar_width: width of progressbar
+  - status_background: color which can be used to override Gtk theme.
+  - insert_indicator: string to denote insert mode
+  - command_indicator: string to denote command mode
+  - title_format_long: titlebar string when no statusbar shown (will be expanded
+  - title_format_short: titlebar string when statusbar shown (will be expanded)
+  - icon: path to icon for Gtk
+  - insert_mode: whether insert mode is active
+  - always_insert_mode: set this to true if you don't like modal (vim-like) interfaces
+  - reset_command_mode: automatically revert to command mode on pageload (unless always_insert_mode is set)
+  - modkey: modkey which can be pressed to activate keybind from inside insert mode
+  - load_finish_handler
+  - load_start_handler
+  - load_commit_handler
+  - history_handler
+  - download_handler
+  - cookie_handler
+  - new_window: handler to execute to invoke new uzbl window (TODO better name)
+  - fifo_dir: location to store fifo's
+  - socket_dir: location to store sockets
+  - http_debug: http debug mode (value 0-3)
+  - shell_cmd: alias which will be expanded to use shell commands (eg sh -c)
+  - proxy_url: http traffic socks proxy (eg: http://<host>:<port>)
+  - max_conns
+  - max_conns_host
+  - useragent: to be expanded strin
+  - zoom_level
+  - font_size
+  - monospace_size
+  - minimum_font_size
+  - disable_plugins (TODO rename to enable)
+  - disable_scripts (TODO rename to enable)
+  - autoload_images
+  - autoshrink_images: shrink images to window size (default 0)
+  - enable_spellcheck
+  - enable_private
+  - print_backgrounds: print background images? (default 0)
+  - stylesheet_uri: use this to override the pagelayout with a custom stylesheet
+  - resizable_text_areas
+  - default_encoding: iso-8859-1 by default
+  - enforce_96_dpi: 1 by default
+  - caret_browsing
 
-Currently, the `Uzbl` object provides only one function:
+* Constants (not dumpable or writeable):
+  - WEBKIT_MAJOR: set at compile time
+  - WEBKIT_MINOR: set at compile time
+  - WEBKIT_MICRO: set at compile time
+  - ARCH_UZBL: set at compile time
+  - COMMIT: set at compile time
+  - LOAD_PROGRESS
+  - LOAD_PROGRESSBAR
+  - TITLE
+  - SELECTED_URI
+  - MODE
+  - NAME: name of the uzbl instance (Xorg window id, unless set by cmdline arg) (TODO: can't we make this a variable?)
 
-* `Uzbl.run( <command> )`
-   - command is any uzbl command as defined above
-   - return value: a string, either empty or containing the output of the command. Very few commands return their output currently, including js, script, and print.
-   - Examples:
-       * `Uzbl.run("spawn insert_bookmark.sh")`
-       * `uri = Uzbl.run("print @uri")` (see variable expansion below)
-
-### JAVASCRIPT SECURITY
-
-Since defined variables and functions are set in the global namespace (`window` object) as default, it is recommended to wrap your scripts like this:
-
-    (function(Uzbl) {
-        ...
-    })(Uzbl);
-
-This way, everything is kept private. It also turns Uzbl into a local variable, which can be accessed from callback functions defined inside. However for some situations, isolating everything isn't an option, for example, with binds. You can define them directly in the script body, and use `var Uzbl = window.Uzbl;` to make the Uzbl variable local, as in the following example:
-
-    function f() {
-        var Uzbl = window.Uzbl;
-        Uzbl.run(...);
-        setTimeout(function() {
-            Uzbl.run(...);
-        }, 500);
-    }
-
-Copying the Uzbl object and creating public functions should be taken with care to avoid creating security holes. Keep in mind that the "f" function above would be defined in the `window` object, and as such any javascript in the current page can call it.
 
 ### VARIABLE EXPANSION AND COMMAND/JAVA SCRIPT SUBSTITUTION
 
@@ -235,22 +278,48 @@ the java script in @< >@.
 Variable expansion also works within a java script substitution.
 
 
+When a piece of text needs to be XML escaped after it is expanded (for example,
+in the status bar format), you can use @[ ]@ substitution:
+
+    print This text is XML escaped: @[<&>]@
+
+    # prints: This text is XML escaped: &lt;&amp;&gt;
+
+
 NOTE: If you need to use literal @ or \ characters you will need to escape them:
 
     print At sign: \@  and backslash: \\
 
 
-### VARIABLE REPLACEMENT
-Some of the variables are interpreted:
+### TITLE AND STATUS BAR EVALUATION
 
-* title bar: variable replacement (long and short version, depending if statusbar is visible or not)
-* user agent: variable replacement
-* statusbar: variable replacement + pango markup
+The contents of the status bar can be customized by setting the status_format
+variable. The contents of the window title can be customized by setting the
+title_format_short variable (which is used when the status bar is displayed) and
+the title_format_long variable (which is used when the status bar is not
+displayed). Their values can be set using the expansion and substitution
+techniques described above.
 
-This means you can customize how these things appear, what's shown in them and for the statusbar you can even play with the layout.
-For examples, see the example config.
-For a list of possible variables, see uzbl.h
-For more info about the markup format see http://library.gnome.org/devel/pango/stable/PangoMarkupFormat.html
+These variables are expanded in multiple stages; once when the variable is set,
+and again every time that the status bar or window title are updated. Expansions
+that should be evaluated on every update need to be escaped:
+
+    set title_format_short = @(date)@
+    # this expansion will be evaluated when the variable is set.
+    # the title will stay constant with the date that the variable was set.
+
+    set title_format_short = \@(date)\@
+    # this expansion will be evaluated when the window title is updated.
+    # the date in the title will change when you change pages, for example.
+
+    set title_format_short = \\\@(date)\\\@
+    # the title will stay constant as a literal "@(date)@"
+
+The status_format variable can contain Pango markup (see
+<http://library.gnome.org/devel/pango/stable/PangoMarkupFormat.html>). In the
+status_format, variables that might contain characters like '<', '&' and '>',
+should be wrapped in a @[]@ substitution so that they don't interfere with the
+status bar's markup; see the example config for examples.
 
 
 ### EXTERNAL SCRIPTS
@@ -298,17 +367,50 @@ The script specific arguments are this:
 
 Custom, userdefined scripts (`spawn foo bar`) get first the arguments as specified in the config and then the above 7 are added at the end.
 
+### JAVASCRIPT HELPER OBJECT
+
+Javascript code run from uzbl is given a special object in the global namespace which gives special privileges to these scripts. This object is called `Uzbl`, and it is added and removed before and after the script execution so that it is hidden to web javascripts (There is no race condition, since all the javascript code runs in a single thread)
+
+Currently, the `Uzbl` object provides only one function:
+
+* `Uzbl.run( <command> )`
+   - command is any uzbl command as defined above
+   - return value: a string, either empty or containing the output of the command. Very few commands return their output currently, including js, script, and print.
+   - Examples:
+       * `Uzbl.run("spawn insert_bookmark.sh")`
+       * `uri = Uzbl.run("print @uri")` (see variable expansion below)
+
+### JAVASCRIPT SECURITY
+
+Since defined variables and functions are set in the global namespace (`window` object) as default, it is recommended to wrap your scripts like this:
+
+    (function(Uzbl) {
+        ...
+    })(Uzbl);
+
+This way, everything is kept private. It also turns Uzbl into a local variable, which can be accessed from callback functions defined inside. However for some situations, isolating everything isn't an option, for example, with binds. You can define them directly in the script body, and use `var Uzbl = window.Uzbl;` to make the Uzbl variable local, as in the following example:
+
+    function f() {
+        var Uzbl = window.Uzbl;
+        Uzbl.run(...);
+        setTimeout(function() {
+            Uzbl.run(...);
+        }, 500);
+    }
+
+Copying the Uzbl object and creating public functions should be taken with care to avoid creating security holes. Keep in mind that the "f" function above would be defined in the `window` object, and as such any javascript in the current page can call it.
+
 ### COMMAND LINE ARGUMENTS
     uzbl [ uri ]
-    -u, --uri=URI            alternative way to load uri on start. (equivalent to 'set uri = URI')
+    -u, --uri=URI            Uri to load at startup (equivalent to 'uzbl <uri>' or 'set uri = URI' after uzbl has launched)
     -v, --verbose            Whether to print all messages or just errors.
     -n, --name=NAME          Name of the current instance (defaults to Xorg window id)
-    -c, --config=FILE        Config file (or `-` to use stdin)
+    -c, --config=FILE        Path to config file or '-' for stdin
     -s, --socket=SOCKET      Socket ID
+    -g, --geometry=GEOMETRY  Set window geometry (format: WIDTHxHEIGHT+-X+-Y)
     -V, --version            Print the version and exit
     --display=DISPLAY        X display to use
     --help                   Help
-
 
 
 

@@ -19,7 +19,7 @@ Contributors:
     (mxf) - uzblcat
     Mark Nevill - misc patches
     Uli Schlachter (psychon) - basic mime_policy_cb & Makefile patch
-    (uranther) - zoom level
+    James S Wheaton (uranther) - zoom level, test framework
     (bobpaul) - session script patches
     Tom Adams (holizz) - few patches, cookies.py, gtkplug/socket & proof of concept uzbl_tabbed.py
     neutralinsomniac - load_progress = 0 fix
@@ -31,7 +31,7 @@ Contributors:
     Aaron Griffin (phrakture) - Makefile patches to build on OSX
     Mason Larobina - os.environ.keys() & os.path.join fix in cookies.py, work on uzbl_tabbed.py
     (dequis) - Uzbl.run, birectional socket, javascript commands
-    Brendan Taylor (bct) - various bugfixes
+    Brendan Taylor (bct) - various bugfixes, making misc variables much better using expand(), refactoring some internal var stuff
     Chris van Dijk (quigybo) - work on uzbl_tabbed.py
     Moritz Lenz - small doc fix
     Sergey Shepelev (temoto) - doc patch
