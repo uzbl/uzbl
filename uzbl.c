@@ -71,8 +71,6 @@ GOptionEntry entries[] =
         "Name of the current instance (defaults to Xorg window id)", "NAME" },
     { "config",   'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,
         "Path to config file or '-' for stdin", "FILE" },
-    { "execute",  'x', 0, G_OPTION_ARG_STRING, &uzbl.state.keycmd,
-        "Command to execute after starting", "COMMAND" },
     { "socket",   's', 0, G_OPTION_ARG_INT, &uzbl.state.socket_id,
         "Socket ID", "SOCKET" },
     { "geometry", 'g', 0, G_OPTION_ARG_STRING, &uzbl.gui.geometry,
@@ -2905,9 +2903,7 @@ initialize(int argc, char *argv[]) {
     uzbl.bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
 
     uzbl.net.soup_session = webkit_get_default_session();
-
-    /* If it hasn't been provided on the cmdline */
-    if (!uzbl.state.keycmd) uzbl.state.keycmd = g_strdup("");
+    uzbl.state.keycmd = g_strdup("");
 
     if(setup_signal(SIGTERM, catch_sigterm) == SIG_ERR)
         fprintf(stderr, "uzbl: error hooking SIGTERM\n");
@@ -3021,18 +3017,6 @@ main (int argc, char* argv[]) {
 
     if (verbose_override > uzbl.state.verbose)
         uzbl.state.verbose = verbose_override;
-
-    /* Whilst a command isn't a keycmd, using the variable, avoids the
-     * need for a custom one.  Command was chosen instead of keycmd as
-     * an option because keycmd is easier to emulate (using keycmd_nl)
-     * than the other way around.
-     */
-    if (strlen(uzbl.state.keycmd) > 0) {
-        GArray *cmd = g_array_new(TRUE, FALSE, sizeof(gchar*));
-        g_array_append_val(cmd, uzbl.state.keycmd);
-        chain(uzbl.gui.web_view, cmd, NULL);
-        g_array_free(cmd, TRUE);
-    }
 
     if (uri_override) {
         set_var_value("uri", uri_override);
