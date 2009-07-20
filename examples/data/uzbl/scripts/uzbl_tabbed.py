@@ -64,6 +64,7 @@
 #   socket_dir              = /tmp
 #   icon_path               = $HOME/.local/share/uzbl/uzbl.png
 #   session_file            = $HOME/.local/share/uzbl/session
+#   capture_new_windows     = 1
 #
 # Window options:
 #   status_background       = #303030
@@ -186,6 +187,7 @@ config = {
   'socket_dir':             '/tmp', # Path to look for uzbl socket
   'icon_path':              os.path.join(data_dir, 'uzbl.png'),
   'session_file':           os.path.join(data_dir, 'session'),
+  'capture_new_windows':    True,   # Use uzbl_tabbed to catch new windows
 
   # Window options
   'status_background':      "#303030", # Default background for all panels
@@ -799,12 +801,17 @@ class UzblTabbed:
         instance.'''
 
         binds = []
-        bind_format = 'bind %s = sh "echo \\\"%s\\\" > \\\"%s\\\""'
-        bind = lambda key, action: binds.append(bind_format % (key, action, \
+        bind_format = r'bind %s = sh "echo \"%s\" > \"%s\""'
+        bind = lambda key, action: binds.append(bind_format % (key, action,\
           self.fifo_socket))
 
-        # Keys are defined in the config section
-        # bind ( key , command back to fifo )
+        sets = []
+        set_format = r'set %s = sh \"echo \\"%s\\" > \\"%s\\""'
+        set = lambda key, action: binds.append(set_format % (key, action,\
+          self.fifo_socket))
+
+        # Bind definitions here
+        # bind(key, command back to fifo)
         bind(config['bind_new_tab'], 'new')
         bind(config['bind_tab_from_clip'], 'newfromclip')
         bind(config['bind_tab_from_uri'], 'new %s')
@@ -814,9 +821,14 @@ class UzblTabbed:
         bind(config['bind_goto_tab'], 'goto %s')
         bind(config['bind_goto_first'], 'goto 0')
         bind(config['bind_goto_last'], 'goto -1')
-
-        # uzbl.send via socket or uzbl.write via fifo, I'll try send.
-        uzbl.send("\n".join(binds))
+        
+        # Set definitions here
+        # set(key, command back to fifo)
+        if config['capture_new_windows']:
+            set("new_window", r'new $8')
+        
+        # Send config to uzbl instance via its socket file.
+        uzbl.send("\n".join(binds+sets))
 
 
     def goto_tab(self, index):
