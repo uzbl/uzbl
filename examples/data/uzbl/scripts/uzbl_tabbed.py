@@ -273,9 +273,10 @@ def readconfig(uzbl_config, config):
     rawconfig = h.read()
     h.close()
 
+    configkeys, strip = config.keys(), str.strip
     for (key, value) in findsets(rawconfig):
-        key, value = key.strip(), value.strip()
-        if key not in config.keys(): continue
+        key, value = strip(key), strip(value)
+        if key not in configkeys: continue
         if isint(value): value = int(value)
         config[key] = value
 
@@ -560,8 +561,8 @@ class UzblTabbed:
         if fifo_socket in self._fifos.keys():
             fd, watchers = self._fifos[fifo_socket]
             os.close(fd)
-            for watcherid in watchers.keys():
-                gobject.source_remove(watchers[watcherid])
+            for (watcherid, gid) in watchers.items():
+                gobject.source_remove(gid)
                 del watchers[watcherid]
 
             del self._fifos[fifo_socket]
@@ -750,9 +751,9 @@ class UzblTabbed:
     def get_tab_by_pid(self, pid):
         '''Return uzbl instance by pid.'''
 
-        for tab in self.tabs.keys():
-            if self.tabs[tab].pid == pid:
-                return self.tabs[tab]
+        for (tab, uzbl) in self.tabs.items():
+            if uzbl.pid == pid:
+                return uzbl
 
         return False
 
@@ -914,9 +915,10 @@ class UzblTabbed:
 
         if tab in self.tabs.keys():
             uzbl = self.tabs[tab]
-            for timer in uzbl.timers.keys():
+            for (timer, gid) in uzbl.timers.items():
                 error("tab_closed: removing timer %r" % timer)
-                gobject.source_remove(uzbl.timers[timer])
+                gobject.source_remove(gid)
+                del uzbl.timers[timer]
 
             if uzbl._socket:
                 uzbl._socket.close()
@@ -1010,17 +1012,16 @@ class UzblTabbed:
     def quit(self, *args):
         '''Cleanup the application and quit. Called by delete-event signal.'''
 
-        for fifo_socket in self._fifos.keys():
-            fd, watchers = self._fifos[fifo_socket]
+        for (fifo_socket, (fd, watchers)) in self._fifos.items():
             os.close(fd)
-            for watcherid in watchers.keys():
-                gobject.source_remove(watchers[watcherid])
+            for (watcherid, gid) in watchers.items():
+                gobject.source_remove(gid)
                 del watchers[watcherid]
 
             del self._fifos[fifo_socket]
 
-        for timerid in self._timers.keys():
-            gobject.source_remove(self._timers[timerid])
+        for (timerid, gid) in self._timers.items():
+            gobject.source_remove(gid)
             del self._timers[timerid]
 
         if os.path.exists(self.fifo_socket):
