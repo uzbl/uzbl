@@ -63,7 +63,7 @@
 #   fifo_dir                = /tmp
 #   socket_dir              = /tmp
 #   icon_path               = $HOME/.local/share/uzbl/uzbl.png
-#   session_file            = $HOME/.local/share/uzbl/session
+#   session_file            = $HOME/.local/share/uzbl/session.json
 #   capture_new_windows     = 1
 #
 # Window options:
@@ -140,6 +140,9 @@ import socket
 import random
 import hashlib
 
+# simplejson required for session saving & restoration.
+import simplejson as json    
+
 pygtk.require('2.0')
 
 def error(msg):
@@ -186,7 +189,7 @@ config = {
   'fifo_dir':               '/tmp', # Path to look for uzbl fifo
   'socket_dir':             '/tmp', # Path to look for uzbl socket
   'icon_path':              os.path.join(data_dir, 'uzbl.png'),
-  'session_file':           os.path.join(data_dir, 'session'),
+  'session_file':           os.path.join(data_dir, 'session.json'),
   'capture_new_windows':    True,   # Use uzbl_tabbed to catch new windows
 
   # Window options
@@ -316,14 +319,14 @@ class UzblTabbed:
         '''Uzbl instance meta-data/meta-action object.'''
 
         def __init__(self, parent, tab, fifo_socket, socket_file, pid,\
-          uri, switch):
+          uri, title, switch):
 
             self.parent = parent
             self.tab = tab
             self.fifo_socket = fifo_socket
             self.socket_file = socket_file
             self.pid = pid
-            self.title = config['new_tab_title']
+            self.title = title
             self.uri = uri
             self.timers = {}
             self._lastprobe = 0
@@ -436,10 +439,8 @@ class UzblTabbed:
         self._timers = {}
         self._buffer = ""
 
-        # Once a second is updated with the latest tabs' uris so that when the
-        # window is killed the session is saved.
-        self._tabsuris = []
-        # And index of current page in self._tabsuris
+        # Is updated periodically with the current uzbl_tabbed.py state.
+        self._state = []
         self._curpage = 0
 
         # Holds metadata on the uzbl childen open.
@@ -602,19 +603,19 @@ class UzblTabbed:
         '''Probe all uzbl clients for up-to-date window titles and uri's.'''
 
         sockd = {}
-        uriinventory = []
+        state = []
         tabskeys = self.tabs.keys()
         notebooklist = list(self.notebook)
 
         for tab in notebooklist:
             if tab not in tabskeys: continue
             uzbl = self.tabs[tab]
-            uriinventory.append(uzbl.uri)
+            state += [(uzbl.uri, uzbl.title),]
             uzbl.probe()
             if uzbl._socket:
-                sockd[uzbl._socket] = uzbl
+                sockd[uzbl._socket] = uzbl          
 
-        self._tabsuris = uriinventory
+        self._state = state
         self._curpage = self.notebook.get_current_page()
 
         sockets = sockd.keys()
@@ -758,7 +759,7 @@ class UzblTabbed:
         return False
 
 
-    def new_tab(self, uri='', switch=None):
+    def new_tab(self, uri='', title='', switch=None):
         '''Add a new tab to the notebook and start a new instance of uzbl.
         Use the switch option to negate config['switch_to_new_tabs'] option
         when you need to load multiple tabs at a time (I.e. like when
@@ -778,12 +779,15 @@ class UzblTabbed:
 
         if switch is None:
             switch = config['switch_to_new_tabs']
+        
+        if not title:
+            title = config['new_tab_title']
 
         uzbl = self.UzblInstance(self, tab, fifo_socket, socket_file, pid,\
-          uri, switch)
+          uri, title, switch)
 
         if len(uri):
-            uri = "--uri %s" % uri
+            uri = "--uri %r" % uri
 
         self.tabs[tab] = uzbl
         cmd = 'uzbl -s %s -n %s_%0.2d %s &' % (sid, self.wid, pid, uri)
@@ -1030,15 +1034,17 @@ class UzblTabbed:
 
         if config['save_session']:
             session_file = config['session_file']
-            if len(self._tabsuris):
+            if len(self._state):
                 if not os.path.isfile(session_file):
                     dirname = os.path.dirname(session_file)
                     if not os.path.isdir(dirname):
                         os.makedirs(dirname)
 
-                sessionstr = '\n'.join(self._tabsuris)
+                session = {'curtab': self._curpage,
+                  'state': self._state}
+
                 h = open(session_file, 'w')
-                h.write('current = %s\n%s' % (self._curpage, sessionstr))
+                h.write(json.dumps(session))
                 h.close()
 
             else:
@@ -1055,28 +1061,23 @@ if __name__ == "__main__":
     readconfig(uzbl_config, config)
 
     uzbl = UzblTabbed()
+    session_file = config['session_file']
+    if os.path.isfile(os.path.expandvars(session_file)):
+        try:
+            h = open(os.path.expandvars(session_file),'r')
+            rawjson = h.read()
+            h.close()
+            session = json.loads(rawjson)
+            currenttab = session['curtab']
+            for (index, (uri, title)) in enumerate(session['state']):
+                uzbl.new_tab(uri=uri, title=title, switch=(currenttab == index))
 
-    if os.path.isfile(os.path.expandvars(config['session_file'])):
-        h = open(os.path.expandvars(config['session_file']),'r')
-        lines = [line.strip() for line in h.readlines()]
-        h.close()
-        current = 0
-        urls = []
-        for line in lines:
-            if line.startswith("current"):
-                current = int(line.split()[-1])
+            if not len(session['state']):
+                uzbl.new_tab()
 
-            else:
-                urls.append(line.strip())
-        
-        for (index, url) in enumerate(urls):
-            if current == index:
-                uzbl.new_tab(url, True)
-
-            else:
-                uzbl.new_tab(url, False)
-
-        if not len(urls):
+        except:
+            error("Error loading jsonified state from %r" % session_file)
+            os.remove(session_file)
             uzbl.new_tab()
 
     else:
