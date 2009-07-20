@@ -781,6 +781,10 @@ class UzblTabbed:
 
         uzbl = self.UzblInstance(self, tab, fifo_socket, socket_file, pid,\
           uri, switch)
+
+        if len(uri):
+            uri = "--uri %s" % uri
+
         self.tabs[tab] = uzbl
         cmd = 'uzbl -s %s -n %s_%0.2d %s &' % (sid, self.wid, pid, uri)
         subprocess.Popen([cmd], shell=True) # TODO: do i need close_fds=True ?
@@ -1064,13 +1068,13 @@ if __name__ == "__main__":
 
             else:
                 urls.append(line.strip())
-
+        
         for (index, url) in enumerate(urls):
             if current == index:
-                uzbl.new_tab(line, True)
+                uzbl.new_tab(url, True)
 
             else:
-                uzbl.new_tab(line, False)
+                uzbl.new_tab(url, False)
 
         if not len(urls):
             uzbl.new_tab()
