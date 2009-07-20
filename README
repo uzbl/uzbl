@@ -406,6 +406,7 @@ Copying the Uzbl object and creating public functions should be taken with care 
     -v, --verbose            Whether to print all messages or just errors.
     -n, --name=NAME          Name of the current instance (defaults to Xorg window id)
     -c, --config=FILE        Path to config file or '-' for stdin
+    -x, --execute=COMMAND    Command to execute
     -s, --socket=SOCKET      Socket ID
     -g, --geometry=GEOMETRY  Set window geometry (format: WIDTHxHEIGHT+-X+-Y)
     -V, --version            Print the version and exit
