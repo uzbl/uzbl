@@ -769,6 +769,7 @@ class UzblTabbed:
         tab.show()
         self.notebook.append_page(tab)
         sid = tab.get_id()
+        uri = uri.strip()
 
         fifo_filename = 'uzbl_fifo_%s_%0.2d' % (self.wid, pid)
         fifo_socket = os.path.join(config['fifo_dir'], fifo_filename)
@@ -777,11 +778,6 @@ class UzblTabbed:
 
         if switch is None:
             switch = config['switch_to_new_tabs']
-
-
-        # Create meta-instance and spawn child
-        if len(uri.strip()):
-            uri = '--uri %s' % uri
 
         uzbl = self.UzblInstance(self, tab, fifo_socket, socket_file, pid,\
           uri, switch)
