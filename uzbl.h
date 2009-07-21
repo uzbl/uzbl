@@ -506,6 +506,9 @@ void
 cmd_cookie_handler();
 
 void
+cmd_scheme_handler();
+
+void
 move_statusbar();
 
 void

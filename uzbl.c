@@ -135,7 +135,7 @@ const struct {
     { "download_handler",    PTR_V(uzbl.behave.download_handler,    STR,  1,   NULL)},
     { "cookie_handler",      PTR_V(uzbl.behave.cookie_handler,      STR,  1,   cmd_cookie_handler)},
     { "new_window",          PTR_V(uzbl.behave.new_window,          STR,  1,   NULL)},
-    { "scheme_handler",      PTR_V(uzbl.behave.scheme_handler,      STR,  1,   NULL)},
+    { "scheme_handler",      PTR_V(uzbl.behave.scheme_handler,      STR,  1,   cmd_scheme_handler)},
     { "fifo_dir",            PTR_V(uzbl.behave.fifo_dir,            STR,  1,   cmd_fifo_dir)},
     { "socket_dir",          PTR_V(uzbl.behave.socket_dir,          STR,  1,   cmd_socket_dir)},
     { "http_debug",          PTR_V(uzbl.behave.http_debug,          INT,  1,   cmd_http_debug)},
@@ -525,12 +525,15 @@ navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNe
     (void) web_view;
     (void) frame;
     (void) navigation_action;
-    (void) policy_decision;
     (void) user_data;
+
     const gchar* uri = webkit_network_request_get_uri (request);
+    SoupURI *suri = soup_uri_new(uri);
+    gboolean decision_made = FALSE;
+
     if (uzbl.state.verbose)
         printf("Navigation requested -> %s\n", uri);
-    SoupURI *suri = soup_uri_new(uri);
+
     if (suri && strcmp (suri->scheme, "http") &&
                 strcmp (suri->scheme, "https") &&
                 strcmp (suri->scheme, "data") &&
@@ -539,12 +542,27 @@ navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNe
         if (uzbl.behave.scheme_handler) {
             GString *s = g_string_new ("");
             g_string_printf(s, "'%s'", uri);
+
             run_handler(uzbl.behave.scheme_handler, s->str);
-            webkit_web_policy_decision_ignore(policy_decision);
-            return TRUE;
+
+            if(uzbl.comm.sync_stdout && strcmp (uzbl.comm.sync_stdout, "") != 0) {
+                char *p = strchr(uzbl.comm.sync_stdout, '\n' );
+                if ( p != NULL ) *p = '\0';
+                if (!strcmp(uzbl.comm.sync_stdout, "USED")) {
+                    webkit_web_policy_decision_ignore(policy_decision);
+                    decision_made = TRUE;
+                }
+            }
+            if (uzbl.comm.sync_stdout)
+                uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
+
+            g_string_free(s, TRUE);
         }
     }
-    return FALSE;
+    if (!decision_made)
+        webkit_web_policy_decision_use(policy_decision);
+
+    return TRUE;
 }
 
 gboolean
@@ -1635,6 +1653,19 @@ cmd_cookie_handler() {
         (g_strcmp0(split[0], "spawn") == 0)) {
         g_free (uzbl.behave.cookie_handler);
         uzbl.behave.cookie_handler =
+            g_strdup_printf("sync_%s %s", split[0], split[1]);
+    }
+    g_strfreev (split);
+}
+
+void
+cmd_scheme_handler() {
+    gchar **split = g_strsplit(uzbl.behave.scheme_handler, " ", 2);
+    /* pitfall: doesn't handle chain actions; must the sync_ action manually */
+    if ((g_strcmp0(split[0], "sh") == 0) ||
+        (g_strcmp0(split[0], "spawn") == 0)) {
+        g_free (uzbl.behave.scheme_handler);
+        uzbl.behave.scheme_handler =
             g_strdup_printf("sync_%s %s", split[0], split[1]);
     }
     g_strfreev (split);

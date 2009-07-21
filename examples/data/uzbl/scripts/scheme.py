@@ -2,13 +2,25 @@
 
 import os, subprocess, sys, urlparse
 
+def detach_open(cmd):
+    # Thanks to the vast knowledge of Laurence Withers (lwithers) and this message:
+    # http://mail.python.org/pipermail/python-list/2006-November/587523.html
+    if not os.fork():
+        null = os.open(os.devnull,os.O_WRONLY)
+        for i in range(3): os.dup2(null,i)
+        os.close(null)
+        subprocess.Popen(cmd)
+
 if __name__ == '__main__':
     uri = sys.argv[8]
     u = urlparse.urlparse(uri)
     if u.scheme == 'mailto':
-        subprocess.call(['xterm', '-e', 'mail %s' % u.path])
+        detach_open(['xterm', '-e', 'mail %s' % u.path])
     elif u.scheme == 'xmpp':
-        subprocess.call(['gajim-remote', 'open_chat', uri])
-    #elif u.scheme == 'git':
-        #os.chdir(os.path.expanduser('~/src'))
-        #subprocess.call(['git', 'clone', uri])
+        detach_open(['gajim-remote', 'open_chat', uri])
+    elif u.scheme == 'git':
+        detach_open(['git', 'clone', uri], cwd=os.path.expanduser('~/src'))
+    else:
+        print 'DIY!'
+        exit()
+    print 'USED'
