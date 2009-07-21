@@ -534,6 +534,7 @@ navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNe
     if (suri && strcmp (suri->scheme, "http") &&
                 strcmp (suri->scheme, "https") &&
                 strcmp (suri->scheme, "data") &&
+                strcmp (suri->scheme, "file") &&
                 strcmp (suri->scheme, "about")) {
         if (uzbl.behave.scheme_handler) {
             GString *s = g_string_new ("");
