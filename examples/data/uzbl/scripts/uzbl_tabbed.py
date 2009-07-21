@@ -60,10 +60,11 @@
 #
 # Core options:
 #   save_session            = 1
+#   json_session            = 1 
 #   fifo_dir                = /tmp
 #   socket_dir              = /tmp
 #   icon_path               = $HOME/.local/share/uzbl/uzbl.png
-#   session_file            = $HOME/.local/share/uzbl/session.json
+#   session_file            = $HOME/.local/share/uzbl/session
 #   capture_new_windows     = 1
 #
 # Window options:
@@ -140,9 +141,6 @@ import socket
 import random
 import hashlib
 
-# simplejson required for session saving & restoration.
-import simplejson as json    
-
 pygtk.require('2.0')
 
 def error(msg):
@@ -186,10 +184,11 @@ config = {
 
   # Core options
   'save_session':           True,   # Save session in file when quit
+  'json_session':           True,   # Use json to save session.
   'fifo_dir':               '/tmp', # Path to look for uzbl fifo
   'socket_dir':             '/tmp', # Path to look for uzbl socket
   'icon_path':              os.path.join(data_dir, 'uzbl.png'),
-  'session_file':           os.path.join(data_dir, 'session.json'),
+  'session_file':           os.path.join(data_dir, 'session'),
   'capture_new_windows':    True,   # Use uzbl_tabbed to catch new windows
 
   # Window options
@@ -439,9 +438,9 @@ class UzblTabbed:
         self._timers = {}
         self._buffer = ""
 
-        # Is updated periodically with the current uzbl_tabbed.py state.
-        self._state = []
-        self._curpage = 0
+        # This is updated periodically with the current state.
+        # Tabs is a list of (url, title) tuples.  
+        self._state = {'curtab': 0, 'tabs': []}
 
         # Holds metadata on the uzbl childen open.
         self.tabs = {}
@@ -535,7 +534,7 @@ class UzblTabbed:
         self.fifo_socket = os.path.join(config['fifo_dir'], fifo_filename)
         self._create_fifo_socket(self.fifo_socket)
         self._setup_fifo_watcher(self.fifo_socket)
-
+        
 
     def _create_fifo_socket(self, fifo_socket):
         '''Create interprocess communication fifo socket.'''
@@ -585,7 +584,13 @@ class UzblTabbed:
 
     def run(self):
         '''UzblTabbed main function that calls the gtk loop.'''
-
+        
+        if config['save_session']:
+            self.load_session()
+        
+        if not len(self.tabs):
+            self.new_tab()
+        
         # Update tablist timer
         #timer = "update-tablist"
         #timerid = gobject.timeout_add(500, self.update_tablist,timer)
@@ -601,22 +606,28 @@ class UzblTabbed:
 
     def probe_clients(self, timer_call):
         '''Probe all uzbl clients for up-to-date window titles and uri's.'''
+    
+        save_session = config['save_session']
 
         sockd = {}
-        state = []
+        if save_session:
+            session = []
         tabskeys = self.tabs.keys()
         notebooklist = list(self.notebook)
 
         for tab in notebooklist:
             if tab not in tabskeys: continue
             uzbl = self.tabs[tab]
-            state += [(uzbl.uri, uzbl.title),]
             uzbl.probe()
             if uzbl._socket:
                 sockd[uzbl._socket] = uzbl          
+            
+            if save_session:
+                session += [(uzbl.uri, uzbl.title),]
 
-        self._state = state
-        self._curpage = self.notebook.get_current_page()
+        if save_session:
+            self._state['tabs'] = session
+            self._state['curtab'] = self.notebook.get_current_page()
 
         sockets = sockd.keys()
         (reading, _, errors) = select.select(sockets, [], sockets, 0)
@@ -1013,6 +1024,93 @@ class UzblTabbed:
         return True
 
 
+    def save_session(self, session_file=None):
+        '''Save the current session to file for restoration on next load.'''
+
+        strip = str.strip
+
+        if session_file is None:
+            session_file = config['session_file']
+
+        if config['json_session']:
+            session = json.dumps(self._state)
+
+        else:
+            lines = ["curtab = %d" % self._state['curtab'],]
+            for (uri, title) in self._state['tabs']:
+                lines += ["%s\t%s" % (strip(uri), strip(title)),]
+
+            session = "\n".join(lines)
+        
+        if not os.path.isfile(session_file):
+            dirname = os.path.dirname(session_file)
+            if not os.path.isdir(dirname):
+                os.makedirs(dirname)
+
+        h = open(session_file, 'w')
+        h.write(session)
+        h.close()
+        
+
+    def load_session(self, session_file=None):
+        '''Load a saved session from file.'''
+        
+        default_path = False
+        strip = str.strip
+        json_session = config['json_session']
+
+        if session_file is None:
+            default_path = True
+            session_file = config['session_file']
+
+        if not os.path.isfile(session_file):
+            return False
+
+        h = open(session_file, 'r')
+        raw = h.read()
+        h.close()
+        
+        if json_session:
+            if sum([1 for s in raw.split("\n") if strip(s)]) != 1:
+                error("Warning: The session file %r does not look json. "\
+                  "Trying to load it as a non-json session file."\
+                  % session_file)
+                json_session = False
+        
+        if json_session: 
+            try:
+                session = json.loads(raw)
+                curtab, tabs = session['curtab'], session['tabs']
+
+            except:
+                if not default_path:
+                    error("Failed to load json session from %r"\
+                      % session_file)
+                return None
+
+        else:
+            tabs = []
+            strip = str.strip
+            curtab, tabs = 0, []
+            lines = [s for s in raw.split("\n") if strip(s)]
+            if len(lines) < 2:
+                error("Warning: The non-json session file %r looks invalid."\
+                  % session_file)
+                return None
+                
+            for line in lines:
+                if line.startswith("curtab"):
+                    curtab = int(line.split()[-1])
+
+                else:
+                    uri, title = line.split("\t")
+                    tabs += [(strip(uri), strip(title)),]
+        
+        # Now populate notebook with the loaded session.
+        for (index, (uri, title)) in enumerate(tabs):
+            self.new_tab(uri=uri, title=title, switch=(curtab==index))
+
+
     def quit(self, *args):
         '''Cleanup the application and quit. Called by delete-event signal.'''
 
@@ -1033,19 +1131,8 @@ class UzblTabbed:
             print "Unlinked %s" % self.fifo_socket
 
         if config['save_session']:
-            session_file = config['session_file']
-            if len(self._state):
-                if not os.path.isfile(session_file):
-                    dirname = os.path.dirname(session_file)
-                    if not os.path.isdir(dirname):
-                        os.makedirs(dirname)
-
-                session = {'curtab': self._curpage,
-                  'state': self._state}
-
-                h = open(session_file, 'w')
-                h.write(json.dumps(session))
-                h.close()
+            if len(self._state['tabs']):
+                self.save_session()
 
             else:
                 # Notebook has no pages so delete session file if it exists.
@@ -1060,27 +1147,17 @@ if __name__ == "__main__":
     # Read from the uzbl config into the global config dictionary.
     readconfig(uzbl_config, config)
 
-    uzbl = UzblTabbed()
-    session_file = config['session_file']
-    if os.path.isfile(os.path.expandvars(session_file)):
+    if config['json_session']:
         try:
-            h = open(os.path.expandvars(session_file),'r')
-            rawjson = h.read()
-            h.close()
-            session = json.loads(rawjson)
-            currenttab = session['curtab']
-            for (index, (uri, title)) in enumerate(session['state']):
-                uzbl.new_tab(uri=uri, title=title, switch=(currenttab == index))
-
-            if not len(session['state']):
-                uzbl.new_tab()
+            import simplejson as json
 
         except:
-            error("Error loading jsonified state from %r" % session_file)
-            os.remove(session_file)
-            uzbl.new_tab()
+            error("Warning: json_session set but cannot import the python "\
+              "module simplejson. Fix: \"set json_session = 0\" or "\
+              "install the simplejson python module to remove this warning.")
+            config['json_session'] = False
 
-    else:
-        uzbl.new_tab()
-
+    uzbl = UzblTabbed()
     uzbl.run()
+
+
