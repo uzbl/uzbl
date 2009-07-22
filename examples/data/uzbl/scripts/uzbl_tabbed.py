@@ -39,6 +39,19 @@
 #       Fix for session restoration code.
 
 
+# Dependencies:
+#   pygtk - python bindings for gtk.
+#   pango - python bindings needed for text rendering & layout in gtk widgets.
+#   pygobject - GLib's GObject bindings for python.
+#
+# Optional dependencies:
+#   simplejson - save uzbl_tabbed.py sessions & presets in json.
+#
+# Note: I haven't included version numbers with this dependency list because 
+# I've only ever tested uzbl_tabbed.py on the latest stable versions of these
+# packages in Gentoo's portage. Package names may vary on different systems.
+
+
 # Configuration:
 # Because this version of uzbl_tabbed is able to inherit options from your main
 # uzbl configuration file you may wish to configure uzbl tabbed from there.
