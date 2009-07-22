@@ -1185,14 +1185,19 @@ class UzblTabbed:
                 error("Warning: The non-json session file %r looks invalid."\
                   % session_file)
                 return None
-                
-            for line in lines:
-                if line.startswith("curtab"):
-                    curtab = int(line.split()[-1])
+            
+            try:
+                for line in lines:
+                    if line.startswith("curtab"):
+                        curtab = int(line.split()[-1])
 
                 else:
                     uri, title = line.split("\t",1)
                     tabs += [(strip(uri), strip(title)),]
+
+            except:
+                error("Warning: failed to load session file %r" % session_file)
+                return None
 
             session = {'curtab': curtab, 'tabs': tabs}
         
