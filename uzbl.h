@@ -338,6 +338,9 @@ char*
 build_progressbar_ascii(int percent);
 
 void
+talk_to_socket(WebKitWebView *web_view, GArray *argv, GString *result);
+
+void
 spawn(WebKitWebView *web_view, GArray *argv, GString *result);
 
 void

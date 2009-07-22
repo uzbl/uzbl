@@ -54,6 +54,8 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <poll.h>
+#include <sys/ioctl.h>
 #include "uzbl.h"
 #include "config.h"
 
@@ -808,6 +810,7 @@ struct {char *key; CommandInfo value;} cmdlist[] =
     { "sync_spawn",         {spawn_sync, 0}                }, // needed for cookie handler
     { "sh",                 {spawn_sh, 0}                  },
     { "sync_sh",            {spawn_sh_sync, 0}             }, // needed for cookie handler
+    { "talk_to_socket",     {talk_to_socket, TRUE}         },
     { "exit",               {close_uzbl, 0}                },
     { "search",             {search_forward_text, TRUE}    },
     { "search_reverse",     {search_reverse_text, TRUE}    },
@@ -1391,6 +1394,114 @@ spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
                          TRUE, &uzbl.comm.sync_stdout);
     g_free (spacer);
     g_strfreev (cmd);
+}
+
+void
+talk_to_socket(WebKitWebView *web_view, GArray *argv, GString *result) {
+    (void)web_view; (void)result;
+
+    int fd, len;
+    struct sockaddr_un sa;
+    char* sockpath, * cmd;
+    ssize_t cmd_len, ret;
+    struct pollfd pfd;
+
+    if(uzbl.comm.sync_stdout) uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
+
+    /* This function could be optimised by storing a hash table of socket paths
+       and associated connected file descriptors rather than closing and
+       re-opening for every call. Also we could launch a script if socket connect
+       fails. */
+
+    /* Test arguments passed in correctly: argv should be an array of one element,
+       which should be a string consisting of the socket path followed by a space
+       followed by the command to write to the socket. Check that the socket path
+       is valid (starts with '/' and fits in a sockaddr_un.sun_path[]). */
+    if(argv->len != 1) {
+        g_printerr("talk_to_socket called with argv->len %d\n", (int)(argv->len));
+        return;
+    }
+
+    sockpath = g_array_index(argv, char*, 0);
+    cmd = strchr(sockpath, ' ');
+    if(!cmd || *sockpath != '/' || (cmd - sockpath) >= (int)sizeof(sa.sun_path)) {
+        g_printerr("talk_to_socket called incorrectly (%s)\n", sockpath);
+        return;
+    }
+
+    /* copy socket path, null terminate result */
+    memcpy(sa.sun_path, sockpath, (cmd - sockpath));
+    sa.sun_path[cmd - sockpath] = 0;
+    sa.sun_family = AF_UNIX;
+
+    /* point to start of command, find its length in bytes */
+    ++cmd;
+    cmd_len = strlen(cmd);
+
+    /* create socket file descriptor and connect it to path */
+    fd = socket(AF_UNIX, SOCK_SEQPACKET, 0);
+    if(fd == -1) {
+        g_printerr("talk_to_socket: creating socket failed (%s)\n", strerror(errno));
+        return;
+    }
+    if(connect(fd, (struct sockaddr*)&sa, sizeof(sa))) {
+        g_printerr("talk_to_socket: connect failed (%s)\n", strerror(errno));
+        close(fd);
+        return;
+    }
+
+    /* write request */
+    ret = write(fd, cmd, cmd_len);
+    if(ret == -1) {
+        g_printerr("talk_to_socket: write failed (%s)\n", strerror(errno));
+        close(fd);
+        return;
+    }
+
+    /* wait for a response, with a 500ms timeout */
+    pfd.fd = fd;
+    pfd.events = POLLIN;
+    while(1) {
+        ret = poll(&pfd, 1, 500);
+        if(ret == 1) break;
+        if(ret == 0) errno = ETIMEDOUT;
+        if(errno == EINTR) continue;
+        g_printerr("talk_to_socket: poll failed while waiting for input (%s)\n",
+            strerror(errno));
+        close(fd);
+        return;
+    }
+
+    /* get length of response */
+    if(ioctl(fd, FIONREAD, &len) == -1) {
+        g_printerr("talk_to_socket: cannot find daemon response length, "
+            "ioctl failed (%s)\n", strerror(errno));
+        close(fd);
+        return;
+    }
+
+    /* if there is a response, read it */
+    if(len) {
+        uzbl.comm.sync_stdout = g_malloc(len + 1);
+        if(!uzbl.comm.sync_stdout) {
+            g_printerr("talk_to_socket: failed to allocate %d bytes\n", len);
+            close(fd);
+            return;
+        }
+        uzbl.comm.sync_stdout[len] = 0; /* ensure result is null terminated */
+
+        ret = read(fd, uzbl.comm.sync_stdout, len);
+        if(ret == -1) {
+            g_printerr("talk_to_socket: failed to read from socket (%s)\n",
+                strerror(errno));
+            close(fd);
+            return;
+        }
+    }
+
+    /* clean up */
+    close(fd);
+    return;
 }
 
 void
@@ -2251,7 +2362,8 @@ inject_handler_args(const gchar *actname, const gchar *origargs, const gchar *ne
     if ((g_strcmp0(actname, "spawn") == 0) ||
         (g_strcmp0(actname, "sh") == 0) ||
         (g_strcmp0(actname, "sync_spawn") == 0) ||
-        (g_strcmp0(actname, "sync_sh") == 0)) {
+        (g_strcmp0(actname, "sync_sh") == 0) ||
+        (g_strcmp0(actname, "talk_to_socket") == 0)) {
         guint i;
         GString *a = g_string_new("");
         gchar **spawnparts = split_quoted(origargs, FALSE);
