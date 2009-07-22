@@ -528,36 +528,29 @@ navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNe
     (void) user_data;
 
     const gchar* uri = webkit_network_request_get_uri (request);
-    SoupURI *suri = soup_uri_new(uri);
     gboolean decision_made = FALSE;
 
     if (uzbl.state.verbose)
         printf("Navigation requested -> %s\n", uri);
 
-    if (suri && strcmp (suri->scheme, "http") &&
-                strcmp (suri->scheme, "https") &&
-                strcmp (suri->scheme, "data") &&
-                strcmp (suri->scheme, "file") &&
-                strcmp (suri->scheme, "about")) {
-        if (uzbl.behave.scheme_handler) {
-            GString *s = g_string_new ("");
-            g_string_printf(s, "'%s'", uri);
+    if (uzbl.behave.scheme_handler) {
+        GString *s = g_string_new ("");
+        g_string_printf(s, "'%s'", uri);
 
-            run_handler(uzbl.behave.scheme_handler, s->str);
+        run_handler(uzbl.behave.scheme_handler, s->str);
 
-            if(uzbl.comm.sync_stdout && strcmp (uzbl.comm.sync_stdout, "") != 0) {
-                char *p = strchr(uzbl.comm.sync_stdout, '\n' );
-                if ( p != NULL ) *p = '\0';
-                if (!strcmp(uzbl.comm.sync_stdout, "USED")) {
-                    webkit_web_policy_decision_ignore(policy_decision);
-                    decision_made = TRUE;
-                }
+        if(uzbl.comm.sync_stdout && strcmp (uzbl.comm.sync_stdout, "") != 0) {
+            char *p = strchr(uzbl.comm.sync_stdout, '\n' );
+            if ( p != NULL ) *p = '\0';
+            if (!strcmp(uzbl.comm.sync_stdout, "USED")) {
+                webkit_web_policy_decision_ignore(policy_decision);
+                decision_made = TRUE;
             }
-            if (uzbl.comm.sync_stdout)
-                uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
-
-            g_string_free(s, TRUE);
         }
+        if (uzbl.comm.sync_stdout)
+            uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
+
+        g_string_free(s, TRUE);
     }
     if (!decision_made)
         webkit_web_policy_decision_use(policy_decision);
