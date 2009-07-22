@@ -1204,9 +1204,9 @@ class UzblTabbed:
                     if line.startswith("curtab"):
                         curtab = int(line.split()[-1])
 
-                else:
-                    uri, title = line.split("\t",1)
-                    tabs += [(strip(uri), strip(title)),]
+                    else:
+                        uri, title = line.split("\t",1)
+                        tabs += [(strip(uri), strip(title)),]
 
             except:
                 error("Warning: failed to load session file %r" % session_file)
