@@ -61,7 +61,7 @@
 #
 # Session options:
 #   save_session            = 1
-#   json_session            = 1 
+#   json_session            = 0
 #   session_file            = $HOME/.local/share/uzbl/session
 #
 # Inherited uzbl options:
@@ -193,7 +193,7 @@ config = {
 
   # Session options
   'save_session':           True,   # Save session in file when quit
-  'json_session':           True,   # Use json to save session.
+  'json_session':           False,   # Use json to save session.
   'saved_sessions_dir':     os.path.join(data_dir, 'sessions/'),
   'session_file':           os.path.join(data_dir, 'session'),
 
