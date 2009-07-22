@@ -51,6 +51,7 @@
 #   tablist_top             = 1
 #   gtk_tab_pos             = (top|left|bottom|right)
 #   switch_to_new_tabs      = 1
+#   capture_new_windows     = 1
 #
 # Tab title options:
 #   tab_titles              = 1
@@ -58,17 +59,18 @@
 #   max_title_len           = 50
 #   show_ellipsis           = 1
 #
-# Core options:
+# Session options:
 #   save_session            = 1
 #   json_session            = 1 
+#   session_file            = $HOME/.local/share/uzbl/session
+#
+# Inherited uzbl options:
 #   fifo_dir                = /tmp
 #   socket_dir              = /tmp
 #   icon_path               = $HOME/.local/share/uzbl/uzbl.png
-#   session_file            = $HOME/.local/share/uzbl/session
-#   capture_new_windows     = 1
+#   status_background       = #303030
 #
 # Window options:
-#   status_background       = #303030
 #   window_size             = 800,800
 #
 # And the key bindings:
@@ -81,6 +83,13 @@
 #   bind_goto_tab           = gi_
 #   bind_goto_first         = g<
 #   bind_goto_last          = g>
+#   bind_clean_slate        = gQ
+#
+# Session preset key bindings:
+#   bind_save_preset       = gsave _
+#   bind_load_preset       = gload _
+#   bind_del_preset        = gdel _
+#   bind_list_presets      = glist
 #
 # And uzbl_tabbed.py takes care of the actual binding of the commands via each
 # instances fifo socket.
@@ -123,7 +132,6 @@
 #   - check spelling.
 #   - pass a uzbl socketid to uzbl_tabbed.py and have it assimilated into
 #     the collective. Resistance is futile!
-#   - on demand store the session to file (need binding & command for that)
 
 
 import pygtk
@@ -175,6 +183,7 @@ config = {
   'tablist_top':            True,   # Display tab-list at top of window
   'gtk_tab_pos':            'top',  # Gtk tab position (top|left|bottom|right)
   'switch_to_new_tabs':     True,   # Upon opening a new tab switch to it
+  'capture_new_windows':    True,   # Use uzbl_tabbed to catch new windows
 
   # Tab title options
   'tab_titles':             True,   # Display tab titles (else only tab-nums)
@@ -182,29 +191,38 @@ config = {
   'max_title_len':          50,     # Truncate title at n characters
   'show_ellipsis':          True,   # Show ellipsis when truncating titles
 
-  # Core options
+  # Session options
   'save_session':           True,   # Save session in file when quit
   'json_session':           True,   # Use json to save session.
-  'fifo_dir':               '/tmp', # Path to look for uzbl fifo
-  'socket_dir':             '/tmp', # Path to look for uzbl socket
-  'icon_path':              os.path.join(data_dir, 'uzbl.png'),
+  'saved_sessions_dir':     os.path.join(data_dir, 'sessions/'),
   'session_file':           os.path.join(data_dir, 'session'),
-  'capture_new_windows':    True,   # Use uzbl_tabbed to catch new windows
+
+  # Inherited uzbl options
+  'fifo_dir':               '/tmp', # Path to look for uzbl fifo.
+  'socket_dir':             '/tmp', # Path to look for uzbl socket.
+  'icon_path':              os.path.join(data_dir, 'uzbl.png'),
+  'status_background':      "#303030", # Default background for all panels.
 
   # Window options
-  'status_background':      "#303030", # Default background for all panels
-  'window_size':            "800,800", # width,height in pixels
+  'window_size':            "800,800", # width,height in pixels.
 
-  # Key bindings.
+  # Key bindings
   'bind_new_tab':           'gn',   # Open new tab.
   'bind_tab_from_clip':     'gY',   # Open tab from clipboard.
   'bind_tab_from_uri':      'go _', # Open new tab and goto entered uri.
   'bind_close_tab':         'gC',   # Close tab.
   'bind_next_tab':          'gt',   # Next tab.
   'bind_prev_tab':          'gT',   # Prev tab.
-  'bind_goto_tab':          'gi_',  # Goto tab by tab-number (in title)
-  'bind_goto_first':        'g<',   # Goto first tab
-  'bind_goto_last':         'g>',   # Goto last tab
+  'bind_goto_tab':          'gi_',  # Goto tab by tab-number (in title).
+  'bind_goto_first':        'g<',   # Goto first tab.
+  'bind_goto_last':         'g>',   # Goto last tab.
+  'bind_clean_slate':       'gQ',   # Close all tabs and open new tab.
+
+  # Session preset key bindings
+  'bind_save_preset':       'gsave _', # Save session to file %s.
+  'bind_load_preset':       'gload _', # Load preset session from file %s.
+  'bind_del_preset':        'gdel _',  # Delete preset session %s.
+  'bind_list_presets':      'glist',   # List all session presets.
 
   # Add custom tab style definitions to be used by the tab colour policy
   # handler here. Because these are added to the config dictionary like
@@ -437,10 +455,10 @@ class UzblTabbed:
         self._fifos = {}
         self._timers = {}
         self._buffer = ""
-
-        # This is updated periodically with the current state.
-        # Tabs is a list of (url, title) tuples.  
-        self._state = {'curtab': 0, 'tabs': []}
+        self._killed = False
+        
+        # A list of the recently closed tabs
+        self._closed = []
 
         # Holds metadata on the uzbl childen open.
         self.tabs = {}
@@ -471,7 +489,7 @@ class UzblTabbed:
                 self.window.set_icon(gtk.gdk.pixbuf_new_from_file(icon_path))
 
         # Attach main window event handlers
-        self.window.connect("delete-event", self.quit)
+        self.window.connect("delete-event", self.quitrequest)
 
         # Create tab list
         if config['show_tablist']:
@@ -610,8 +628,6 @@ class UzblTabbed:
         save_session = config['save_session']
 
         sockd = {}
-        if save_session:
-            session = []
         tabskeys = self.tabs.keys()
         notebooklist = list(self.notebook)
 
@@ -621,13 +637,6 @@ class UzblTabbed:
             uzbl.probe()
             if uzbl._socket:
                 sockd[uzbl._socket] = uzbl          
-            
-            if save_session:
-                session += [(uzbl.uri, uzbl.title),]
-
-        if save_session:
-            self._state['tabs'] = session
-            self._state['curtab'] = self.notebook.get_current_page()
 
         sockets = sockd.keys()
         (reading, _, errors) = select.select(sockets, [], sockets, 0)
@@ -756,6 +765,50 @@ class UzblTabbed:
                        self.update_tablist()
                 else:
                     error("parse_command: no uzbl with pid %r" % int(cmd[1]))
+
+        elif cmd[0] == "preset":
+            if len(cmd) < 3:
+                error("parse_command: invalid preset command")
+            
+            elif cmd[1] == "save":
+                path = os.path.join(config['saved_sessions_dir'], cmd[2])
+                self.save_session(path)
+
+            elif cmd[1] == "load":
+                path = os.path.join(config['saved_sessions_dir'], cmd[2])
+                self.load_session(path)
+
+            elif cmd[1] == "del":
+                path = os.path.join(config['saved_sessions_dir'], cmd[2])
+                if os.path.isfile(path):
+                    os.remove(path)
+
+                else:
+                    error("parse_command: preset %r does not exist." % path)
+            
+            elif cmd[1] == "list":
+                uzbl = self.get_tab_by_pid(int(cmd[2]))
+                if uzbl:
+                    if not os.path.isdir(config['saved_sessions_dir']):
+                        js = "js alert('No saved presets.');"
+                        uzbl.send(js)
+
+                    else:
+                        listdir = os.listdir(config['saved_sessions_dir'])
+                        listdir = "\\n".join(listdir)
+                        js = "js alert('Session presets:\\n\\n%s');" % listdir
+                        uzbl.send(js)
+
+                else:
+                    error("parse_command: unknown tab pid.")
+
+            else:
+                error("parse_command: unknown parse command %r"\
+                  % ' '.join(cmd))
+
+        elif cmd[0] == "clean":
+            self.clean_slate()
+            
         else:
             error("parse_command: unknown command %r" % ' '.join(cmd))
 
@@ -812,6 +865,17 @@ class UzblTabbed:
         self.update_tablist()
 
 
+    def clean_slate(self):
+        '''Close all open tabs and open a fresh brand new one.'''
+
+        self.new_tab()
+        tabs = self.tabs.keys()
+        for tab in list(self.notebook)[:-1]:
+            if tab not in tabs: continue
+            uzbl = self.tabs[tab]
+            uzbl.send("exit")
+    
+
     def config_uzbl(self, uzbl):
         '''Send bind commands for tab new/close/next/prev to a uzbl
         instance.'''
@@ -837,7 +901,14 @@ class UzblTabbed:
         bind(config['bind_goto_tab'], 'goto %s')
         bind(config['bind_goto_first'], 'goto 0')
         bind(config['bind_goto_last'], 'goto -1')
-        
+        bind(config['bind_clean_slate'], 'clean')
+
+        # session preset binds
+        bind(config['bind_save_preset'], 'preset save %s')
+        bind(config['bind_load_preset'], 'preset load %s')
+        bind(config['bind_del_preset'], 'preset del %s')
+        bind(config['bind_list_presets'], 'preset list %d' % uzbl.pid)
+
         # Set definitions here
         # set(key, command back to fifo)
         if config['capture_new_windows']:
@@ -942,9 +1013,16 @@ class UzblTabbed:
             uzbl._fifoout = []
             uzbl._socketout = []
             uzbl._kill = True
+            self._closed.append((uzbl.uri, uzbl.title))
+            self._closed = self._closed[-10:]
             del self.tabs[tab]
 
         if self.notebook.get_n_pages() == 0:
+            if not self._killed and config['save_session']:
+                if len(self._closed):
+                    d = {'curtab': 0, 'tabs': [self._closed[-1],]}
+                    self.save_session(session=d)
+
             self.quit()
 
         self.update_tablist()
@@ -1024,23 +1102,35 @@ class UzblTabbed:
         return True
 
 
-    def save_session(self, session_file=None):
+    def save_session(self, session_file=None, session=None):
         '''Save the current session to file for restoration on next load.'''
 
         strip = str.strip
 
         if session_file is None:
             session_file = config['session_file']
+        
+        if session is None:
+            tabs = self.tabs.keys()
+            state = []
+            for tab in list(self.notebook):
+                if tab not in tabs: continue
+                uzbl = self.tabs[tab]
+                if not uzbl.uri: continue
+                state += [(uzbl.uri, uzbl.title),]
+
+            session = {'curtab': self.notebook.get_current_page(),
+              'tabs': state}
 
         if config['json_session']:
-            session = json.dumps(self._state)
+            raw = json.dumps(session)
 
         else:
-            lines = ["curtab = %d" % self._state['curtab'],]
-            for (uri, title) in self._state['tabs']:
+            lines = ["curtab = %d" % session['curtab'],]
+            for (uri, title) in session['tabs']:
                 lines += ["%s\t%s" % (strip(uri), strip(title)),]
 
-            session = "\n".join(lines)
+            raw = "\n".join(lines)
         
         if not os.path.isfile(session_file):
             dirname = os.path.dirname(session_file)
@@ -1048,7 +1138,7 @@ class UzblTabbed:
                 os.makedirs(dirname)
 
         h = open(session_file, 'w')
-        h.write(session)
+        h.write(raw)
         h.close()
         
 
@@ -1069,7 +1159,6 @@ class UzblTabbed:
         h = open(session_file, 'r')
         raw = h.read()
         h.close()
-        
         if json_session:
             if sum([1 for s in raw.split("\n") if strip(s)]) != 1:
                 error("Warning: The session file %r does not look json. "\
@@ -1083,9 +1172,8 @@ class UzblTabbed:
                 curtab, tabs = session['curtab'], session['tabs']
 
             except:
-                if not default_path:
-                    error("Failed to load json session from %r"\
-                      % session_file)
+                error("Failed to load jsonifed session from %r"\
+                  % session_file)
                 return None
 
         else:
@@ -1103,17 +1191,45 @@ class UzblTabbed:
                     curtab = int(line.split()[-1])
 
                 else:
-                    uri, title = line.split("\t")
+                    uri, title = line.split("\t",1)
                     tabs += [(strip(uri), strip(title)),]
+
+            session = {'curtab': curtab, 'tabs': tabs}
         
         # Now populate notebook with the loaded session.
         for (index, (uri, title)) in enumerate(tabs):
             self.new_tab(uri=uri, title=title, switch=(curtab==index))
 
+        # There may be other state information in the session dict of use to 
+        # other functions. Of course however the non-json session object is 
+        # just a dummy object of no use to no one.
+        return session
 
+
+    def quitrequest(self, *args):
+        '''Called by delete-event signal to kill all uzbl instances.'''
+        
+        #TODO: Even though I send the kill request to all uzbl instances 
+        # i should add a gobject timeout to check they all die.
+
+        self._killed = True
+
+        if config['save_session']:
+            if len(list(self.notebook)):
+                self.save_session()
+
+            else:
+                # Notebook has no pages so delete session file if it exists.
+                if os.path.isfile(session_file):
+                    os.remove(session_file)
+        
+        for (tab, uzbl) in self.tabs.items():
+            uzbl.send("exit")
+    
+        
     def quit(self, *args):
         '''Cleanup the application and quit. Called by delete-event signal.'''
-
+        
         for (fifo_socket, (fd, watchers)) in self._fifos.items():
             os.close(fd)
             for (watcherid, gid) in watchers.items():
@@ -1129,15 +1245,6 @@ class UzblTabbed:
         if os.path.exists(self.fifo_socket):
             os.unlink(self.fifo_socket)
             print "Unlinked %s" % self.fifo_socket
-
-        if config['save_session']:
-            if len(self._state['tabs']):
-                self.save_session()
-
-            else:
-                # Notebook has no pages so delete session file if it exists.
-                if os.path.isfile(session_file):
-                    os.remove(session_file)
 
         gtk.main_quit()
 
