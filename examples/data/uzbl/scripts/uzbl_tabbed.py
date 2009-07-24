@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # Uzbl tabbing wrapper using a fifo socket interface
 # Copyright (c) 2009, Tom Adams <tom@holizz.com>
