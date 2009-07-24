@@ -303,8 +303,11 @@ expand(char *s, guint recurse) {
                 if(etype == EXP_SIMPLE_VAR ||
                    etype == EXP_BRACED_VAR) {
                     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, ret)) ) {
+                        //printf("expand() RET: %s\n", ret);
                         if(c->type == TYPE_STR && *c->ptr != NULL) {
-                            g_string_append(buf, (gchar *)*c->ptr);
+                            //printf("expand() buf: %s\n\n", (char *)*c->ptr); 
+                            gchar *tmp = g_strdup((char *)*c->ptr);
+                            g_string_append(buf, tmp);
                         } else if(c->type == TYPE_INT) {
                             g_string_append_printf(buf, "%d", (int)*c->ptr);
                         }
@@ -1710,7 +1713,7 @@ set_var_value(gchar *name, gchar *val) {
         /* check for the variable type */
         if (c->type == TYPE_STR) {
             buf = expand(val, 0);
-            g_free(*c->ptr);
+            if(*c->ptr) g_free(*c->ptr);
             *c->ptr = buf;
         } else if(c->type == TYPE_INT) {
             int *ip = (int *)c->ptr;
@@ -1739,6 +1742,7 @@ set_var_value(gchar *name, gchar *val) {
         c->type = TYPE_STR;
         c->dump = 0;
         c->func = NULL;
+        c->writeable = 1;
         buf = expand(val, 0);
         *c->ptr = buf;
         g_hash_table_insert(uzbl.comm.proto_var,
