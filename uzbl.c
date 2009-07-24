@@ -1667,6 +1667,10 @@ cmd_useragent() {
 
 static void
 move_statusbar() {
+    if (!uzbl.gui.scrolled_win &&
+            !uzbl.gui.mainbar)
+        return;
+
     gtk_widget_ref(uzbl.gui.scrolled_win);
     gtk_widget_ref(uzbl.gui.mainbar);
     gtk_container_remove(GTK_CONTAINER(uzbl.gui.vbox), uzbl.gui.scrolled_win);
