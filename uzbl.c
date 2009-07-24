@@ -1744,6 +1744,7 @@ set_var_value(gchar *name, gchar *val) {
         c->func = NULL;
         c->writeable = 1;
         buf = expand(val, 0);
+        c->ptr = malloc(sizeof(char *));
         *c->ptr = buf;
         g_hash_table_insert(uzbl.comm.proto_var,
                 g_strdup(name), (gpointer) c);
