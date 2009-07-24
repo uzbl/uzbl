@@ -303,11 +303,8 @@ expand(char *s, guint recurse) {
                 if(etype == EXP_SIMPLE_VAR ||
                    etype == EXP_BRACED_VAR) {
                     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, ret)) ) {
-                        //printf("expand() RET: %s\n", ret);
                         if(c->type == TYPE_STR && *c->ptr != NULL) {
-                            //printf("expand() buf: %s\n\n", (char *)*c->ptr); 
-                            gchar *tmp = g_strdup((char *)*c->ptr);
-                            g_string_append(buf, tmp);
+                            g_string_append(buf, (gchar *)*c->ptr);
                         } else if(c->type == TYPE_INT) {
                             g_string_append_printf(buf, "%d", (int)*c->ptr);
                         }
