@@ -2606,7 +2606,7 @@ dump_config() {
 }
 
 void
-retreive_geometry() {
+retrieve_geometry() {
     int w, h, x, y;
     GString *buf = g_string_new("");
 
