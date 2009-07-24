@@ -5,7 +5,7 @@
                   border-width:     thin;
 }
 
-#uzbl_hint > div    { 
+#uzbl_hint > div    {
 	display:                        inline;
 	border:                         2px solid #4a6600;
 	background-color:               #b9ff00;
@@ -23,4 +23,3 @@
 }
 
 /* vim:set et ts=4: */
-

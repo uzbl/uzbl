@@ -66,8 +66,23 @@ This is a relatively easy, solid and transparent way to handle all requests in o
   we know for bigger changes this is not always feasible.  Just try to keep the merges about bigger "clean changesets".
 * Your code should not introduce any compile warnings or errors.  And also,
   no regressions but that's harder to check.
+* Please try to keep the code clean - we don't like extraneous whitespace.
+  The sample pre-commit hook can check for this - so go ahead and
+  $ cp .git/hooks/pre-commit.sample .git/hooks/pre-commit
 That said, you can always ask us to check on your stuff or ask for advice.
 
+
+### Bugreporting
+
+Bug reports are also welcome, especially the ones that come with a patch ;-)
+Before making a new ticket, check whether the bug is reported already.
+If you want to report a bug and you don't know where the problem in the code
+is, please supply:
+
+* version (commit hash) (see `uzbl --version`)
+* operating system
+* versions of libsoup, webkit, gtk.
+* output of uzbl --verbose (with http_debug set, if relevant)
 
 ### Valgrind profiling
 	$ add this to Makefile header: CFLAGS=-g
@@ -77,6 +92,13 @@ That said, you can always ask us to check on your stuff or ask for advice.
 
 ### Memory leak checking
     valgrind --tool=memcheck --leak-check=full ./uzbl
+
+### Writing unit tests
+
+If you can, write a unit test for a bugfix or new functionality. Add relevant unit
+tests to existing .c files in tests/. Others should be made in new source files with
+corresponding changes to the tests/Makefile.
+Run all tests with `make tests`
 
 ### Debugging / backtraces
 
