@@ -36,6 +36,7 @@ Contributors:
     Moritz Lenz - small doc fix
     Sergey Shepelev (temoto) - doc patch
     Tassilo Horn (tsdh) - $VISUAL patch
+    Laurence Withers (lwithers) - talk_to_socket
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:
