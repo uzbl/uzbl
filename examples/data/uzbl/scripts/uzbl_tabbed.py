@@ -23,7 +23,7 @@
 #   Tom Adams <tom@holizz.com>
 #       Wrote the original uzbl_tabbed.py as a proof of concept.
 #
-#  Chris van Dijk (quigybo) <cn.vandijk@hotmail.com>
+#   Chris van Dijk (quigybo) <cn.vandijk@hotmail.com>
 #       Made signifigant headway on the old uzbl_tabbing.py script on the
 #       uzbl wiki <http://www.uzbl.org/wiki/uzbl_tabbed>
 #
