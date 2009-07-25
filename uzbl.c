@@ -81,7 +81,7 @@ GOptionEntry entries[] =
 };
 
 /* associate command names to their properties */
-typedef const struct {
+typedef struct {
     /* TODO: Make this ambiguous void **ptr into a union { char *char_p; int *int_p; float *float_p; } val;
              the PTR() macro is kind of preventing this change at the moment. */
     void **ptr;
@@ -1702,6 +1702,7 @@ set_var_value(gchar *name, gchar *val) {
     uzbl_cmdprop *c = NULL;
     char *endp = NULL;
     char *buf = NULL;
+    char *invalid_chars = "^°!\"§$%&/()=?'`'+~*'#-.:,;@<>| \\{}[]¹²³¼½";
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         if(!c->writeable) return FALSE;
@@ -1725,6 +1726,25 @@ set_var_value(gchar *name, gchar *val) {
 
         /* invoke a command specific function */
         if(c->func) c->func();
+    } else {
+        /* check wether name violates our naming scheme */
+        if(strpbrk(name, invalid_chars)) {
+            if (uzbl.state.verbose)
+                printf("Invalid variable name\n");
+            return FALSE;
+        }
+
+        /* custom vars */
+        c = malloc(sizeof(uzbl_cmdprop));
+        c->type = TYPE_STR;
+        c->dump = 0;
+        c->func = NULL;
+        c->writeable = 1;
+        buf = expand(val, 0);
+        c->ptr = malloc(sizeof(char *));
+        *c->ptr = buf;
+        g_hash_table_insert(uzbl.comm.proto_var,
+                g_strdup(name), (gpointer) c);
     }
     return TRUE;
 }
