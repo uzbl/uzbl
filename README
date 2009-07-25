@@ -222,6 +222,13 @@ Some variables have callback functions which will get called after setting the v
   - default_encoding: iso-8859-1 by default
   - enforce_96_dpi: 1 by default
   - caret_browsing
+  - default_font_family = sans-serif
+  - monospace_font_family = monospace (example "Aerial Mono" )
+  - cursive_font_family = sans
+  - fantasy_font_family = "Pterra"
+  - serif_font_family = serif (example "DejaVu Serif")
+  - sans_serif_font_family = sans (example "DejaVu Sans")
+
 
 * Constants (not dumpable or writeable):
   - WEBKIT_MAJOR: set at compile time

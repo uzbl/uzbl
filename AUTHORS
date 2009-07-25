@@ -36,6 +36,7 @@ Contributors:
     Moritz Lenz - small doc fix
     Sergey Shepelev (temoto) - doc patch
     Tassilo Horn (tsdh) - $VISUAL patch
+    Andraž 'ruskie' Levstik - _font_family patch
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:
