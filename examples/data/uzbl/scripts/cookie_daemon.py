@@ -182,8 +182,7 @@ class CookieMonster:
         
 
     def handle_request(self, client_socket):
-        '''Connection has been made by uzbl instance now to serve 
-        cookie PUT or GET request.'''
+        '''Connection made, now to serve a cookie PUT or GET request.'''
          
         # Receive full request from client.
         data = client_socket.recv(4096)
