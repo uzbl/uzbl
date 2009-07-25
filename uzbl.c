@@ -80,18 +80,18 @@ GOptionEntry entries[] =
     { NULL,      0, 0, 0, NULL, NULL, NULL }
 };
 
+enum ptr_type {TYPE_INT, TYPE_STR, TYPE_FLOAT};
+
 /* associate command names to their properties */
 typedef const struct {
     /* TODO: Make this ambiguous void **ptr into a union { char *char_p; int *int_p; float *float_p; } val;
              the PTR() macro is kind of preventing this change at the moment. */
     void **ptr;
-    int type;
+    enum ptr_type type;
     int dump;
     int writeable;
     void (*func)(void);
 } uzbl_cmdprop;
-
-enum {TYPE_INT, TYPE_STR, TYPE_FLOAT};
 
 /* abbreviations to help keep the table's width humane */
 #define PTR_V(var, t, d, fun) { .ptr = (void*)&(var), .type = TYPE_##t, .dump = d, .writeable = 1, .func = fun }
