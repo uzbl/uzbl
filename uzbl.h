@@ -392,7 +392,7 @@ void
 exec_paramcmd(const Action* act, const guint i);
 
 void
-initialize ();
+initialize (int argc, char *argv[]);
 
 GtkWidget*
 create_browser ();
