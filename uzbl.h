@@ -116,6 +116,12 @@ typedef struct {
     gchar*   download_handler;
     gchar*   cookie_handler;
     gchar*   new_window;
+    gchar*   default_font_family;
+    gchar*   monospace_font_family;
+    gchar*   sans_serif_font_family;
+    gchar*   serif_font_family;
+    gchar*   fantasy_font_family;
+    gchar*   cursive_font_family;
     gboolean always_insert_mode;
     gboolean show_status;
     gboolean insert_mode;
@@ -526,6 +532,24 @@ cmd_max_conns_host();
 
 void
 cmd_font_size();
+
+void
+cmd_default_font_family();
+
+void
+cmd_monospace_font_family();
+
+void
+cmd_sans_serif_font_family();
+
+void
+cmd_serif_font_family();
+
+void
+cmd_cursive_font_family();
+
+void
+cmd_fantasy_font_family();
 
 void
 cmd_zoom_level();
