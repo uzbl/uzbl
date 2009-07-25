@@ -476,6 +476,9 @@ dump_config();
 void
 retrieve_geometry();
 
+void
+update_gui(WebKitWebView *page, GArray *argv, GString *result);
+
 gboolean
 configure_event_cb(GtkWidget* window, GdkEventConfigure* event);
 

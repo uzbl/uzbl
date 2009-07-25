@@ -821,7 +821,8 @@ struct {char *key; CommandInfo value;} cmdlist[] =
     { "keycmd_nl",          {keycmd_nl, TRUE}              },
     { "keycmd_bs",          {keycmd_bs, 0}                 },
     { "chain",              {chain, 0}                     },
-    { "print",              {print, TRUE}                  }
+    { "print",              {print, TRUE}                  },
+    { "update_gui",         {update_gui, TRUE}           }
 };
 
 void
@@ -873,6 +874,13 @@ set_var(WebKitWebView *page, GArray *argv, GString *result) {
         g_free(value);
     }
     g_strfreev(split);
+}
+
+void
+update_gui(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page; (void) argv; (void) result;
+
+    update_title();
 }
 
 void
