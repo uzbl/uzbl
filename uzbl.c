@@ -1710,7 +1710,7 @@ set_var_value(gchar *name, gchar *val) {
         /* check for the variable type */
         if (c->type == TYPE_STR) {
             buf = expand(val, 0);
-            if(*c->ptr) g_free(*c->ptr);
+            g_free(*c->ptr);
             *c->ptr = buf;
         } else if(c->type == TYPE_INT) {
             int *ip = (int *)c->ptr;
