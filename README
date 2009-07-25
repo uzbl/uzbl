@@ -141,6 +141,8 @@ The following commands are recognized:
 * `sync_sh <command>`
    - these are synchronous variants of `spawn` and `sh`, which means uzbl will wait for them to return
    - you should only need to use these manually if you want to use a chain command in a handler that wants output from the command it runs
+* `talk_to_socket <socketfile> <tokens/command>`
+   - lets uzbl talk to a socketfile
 * `exit`
 * `search <string>`
 * `search_reverse <string>`
@@ -222,6 +224,13 @@ Some variables have callback functions which will get called after setting the v
   - default_encoding: iso-8859-1 by default
   - enforce_96_dpi: 1 by default
   - caret_browsing
+  - default_font_family = sans-serif
+  - monospace_font_family = monospace (example "Aerial Mono" )
+  - cursive_font_family = sans
+  - fantasy_font_family = "Pterra"
+  - serif_font_family = serif (example "DejaVu Serif")
+  - sans_serif_font_family = sans (example "DejaVu Sans")
+
 
 * Constants (not dumpable or writeable):
   - WEBKIT_MAJOR: set at compile time
