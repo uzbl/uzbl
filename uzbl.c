@@ -242,7 +242,7 @@ expand(char *s, guint recurse) {
     guint etype;
     char upto = ' ';
     char *end_simple_var = "^°!\"§$%&/()=?'`'+~*'#-.:,;@<>| \\{}[]¹²³¼½";
-    char str_end[2];
+    char str_end[3];
     char ret[4096];
     char *vend = NULL;
     GError *err = NULL;
