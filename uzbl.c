@@ -98,7 +98,7 @@ typedef const struct {
 #define PTR_C(var, t,    fun) { .ptr = (void*)&(var), .type = TYPE_##t, .dump = 0, .writeable = 0, .func = fun }
 
 const struct {
-    char *name;
+    const char *name;
     uzbl_cmdprop cp;
 } var_name_to_ptr[] = {
 /*    variable name         pointer to variable in code            type  dump callback function    */
