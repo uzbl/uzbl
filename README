@@ -141,6 +141,8 @@ The following commands are recognized:
 * `sync_sh <command>`
    - these are synchronous variants of `spawn` and `sh`, which means uzbl will wait for them to return
    - you should only need to use these manually if you want to use a chain command in a handler that wants output from the command it runs
+* `talk_to_socket <socketfile> <tokens/command>`
+   - lets uzbl talk to a socketfile
 * `exit`
 * `search <string>`
 * `search_reverse <string>`
