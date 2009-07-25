@@ -10,6 +10,7 @@ def detach_open(cmd):
         for i in range(3): os.dup2(null,i)
         os.close(null)
         subprocess.Popen(cmd)
+    print 'USED'
 
 if __name__ == '__main__':
     uri = sys.argv[8]
@@ -20,7 +21,3 @@ if __name__ == '__main__':
         detach_open(['gajim-remote', 'open_chat', uri])
     elif u.scheme == 'git':
         detach_open(['git', 'clone', uri], cwd=os.path.expanduser('~/src'))
-    else:
-        print 'DIY!'
-        exit()
-    print 'USED'
