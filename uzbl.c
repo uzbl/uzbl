@@ -55,6 +55,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <poll.h>
+#include <sys/uio.h>
 #include <sys/ioctl.h>
 #include "uzbl.h"
 #include "config.h"
@@ -810,7 +811,7 @@ struct {char *key; CommandInfo value;} cmdlist[] =
     { "sync_spawn",         {spawn_sync, 0}                }, // needed for cookie handler
     { "sh",                 {spawn_sh, 0}                  },
     { "sync_sh",            {spawn_sh_sync, 0}             }, // needed for cookie handler
-    { "talk_to_socket",     {talk_to_socket, TRUE}         },
+    { "talk_to_socket",     {talk_to_socket, 0}            },
     { "exit",               {close_uzbl, 0}                },
     { "search",             {search_forward_text, TRUE}    },
     { "search_reverse",     {search_reverse_text, TRUE}    },
@@ -1402,9 +1403,11 @@ talk_to_socket(WebKitWebView *web_view, GArray *argv, GString *result) {
 
     int fd, len;
     struct sockaddr_un sa;
-    char* sockpath, * cmd;
-    ssize_t cmd_len, ret;
+    char* sockpath;
+    ssize_t ret;
     struct pollfd pfd;
+    struct iovec* iov;
+    guint i;
 
     if(uzbl.comm.sync_stdout) uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
 
@@ -1413,30 +1416,19 @@ talk_to_socket(WebKitWebView *web_view, GArray *argv, GString *result) {
        re-opening for every call. Also we could launch a script if socket connect
        fails. */
 
-    /* Test arguments passed in correctly: argv should be an array of one element,
-       which should be a string consisting of the socket path followed by a space
-       followed by the command to write to the socket. Check that the socket path
-       is valid (starts with '/' and fits in a sockaddr_un.sun_path[]). */
-    if(argv->len != 1) {
-        g_printerr("talk_to_socket called with argv->len %d\n", (int)(argv->len));
-        return;
-    }
-
-    sockpath = g_array_index(argv, char*, 0);
-    cmd = strchr(sockpath, ' ');
-    if(!cmd || *sockpath != '/' || (cmd - sockpath) >= (int)sizeof(sa.sun_path)) {
-        g_printerr("talk_to_socket called incorrectly (%s)\n", sockpath);
+    /* First element argv[0] is path to socket. Following elements are tokens to
+       write to the socket. We write them as a single packet with each token
+       separated by an ASCII nul (\0). */
+    if(argv->len < 2) {
+        g_printerr("talk_to_socket called with only %d args (need at least two).\n",
+            (int)argv->len);
         return;
     }
 
     /* copy socket path, null terminate result */
-    memcpy(sa.sun_path, sockpath, (cmd - sockpath));
-    sa.sun_path[cmd - sockpath] = 0;
+    sockpath = g_array_index(argv, char*, 0);
+    g_strlcpy(sa.sun_path, sockpath, sizeof(sa.sun_path));
     sa.sun_family = AF_UNIX;
-
-    /* point to start of command, find its length in bytes */
-    ++cmd;
-    cmd_len = strlen(cmd);
 
     /* create socket file descriptor and connect it to path */
     fd = socket(AF_UNIX, SOCK_SEQPACKET, 0);
@@ -1450,8 +1442,21 @@ talk_to_socket(WebKitWebView *web_view, GArray *argv, GString *result) {
         return;
     }
 
+    /* build request vector */
+    iov = g_malloc(sizeof(struct iovec) * (argv->len - 1));
+    if(!iov) {
+        g_printerr("talk_to_socket: unable to allocated memory for token vector\n");
+        close(fd);
+        return;
+    }
+    for(i = 1; i < argv->len; ++i) {
+        iov[i - 1].iov_base = g_array_index(argv, char*, i);
+        iov[i - 1].iov_len = strlen(iov[i - 1].iov_base) + 1; /* string plus \0 */
+    }
+
     /* write request */
-    ret = write(fd, cmd, cmd_len);
+    ret = writev(fd, iov, argv->len - 1);
+    g_free(iov);
     if(ret == -1) {
         g_printerr("talk_to_socket: write failed (%s)\n", strerror(errno));
         close(fd);
