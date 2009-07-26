@@ -168,9 +168,13 @@ class CookieMonster:
         '''Open the cookie jar.'''
         
         # Open cookie jar.
-        self.jar = cookielib.MozillaCookieJar(cookie_jar)
+        self.jar = cookielib.MozillaCookieJar(self.cookie_jar)
         try:
+            # Load cookies from the cookie_jar file.
             self.jar.load(ignore_discard=True)
+
+            # Check cookie_jar only readable and writable by this user.
+            os.chmod(self.cookie_jar, 0600)
 
         except:
             pass
