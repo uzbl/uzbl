@@ -11,23 +11,6 @@
  *
  */
 
-enum {
-  /* statusbar symbols */
-  SYM_TITLE, SYM_URI, SYM_NAME,
-  SYM_LOADPRGS, SYM_LOADPRGSBAR,
-  SYM_KEYCMD, SYM_MODE, SYM_MSG,
-  SYM_SELECTED_URI,
-};
-
-const struct {
-    gchar *symbol_name;
-    guint symbol_token;
-} symbols[] = {
-    {"KEYCMD",               SYM_KEYCMD},
-
-    {NULL,                   0}
-}, *symp = symbols;
-
 /* status bar elements */
 typedef struct {
     gint           load_progress;
