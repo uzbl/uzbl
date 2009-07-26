@@ -103,7 +103,7 @@ class CookieMonster:
         if self.daemon_mode:
             self.daemonize()
         
-        # Cleanup & quit function
+        # Register a function to cleanup on exit. 
         atexit.register(self.quit)
 
         # Tell SIGTERM to act orderly.
