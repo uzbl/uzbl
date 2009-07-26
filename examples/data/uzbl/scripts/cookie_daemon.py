@@ -19,6 +19,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+# Todo list:
+#  - Setup some option parsing so the daemon can take optional command line
+#    arguments. 
+
+
 import cookielib
 import os
 import sys
@@ -26,6 +31,8 @@ import urllib2
 import select
 import socket
 import time
+import atexit
+from signal import signal, SIGTERM
 
 try:
     import cStringIO as StringIO
@@ -60,8 +67,14 @@ for path in [data_dir, cache_dir]:
 # Default config
 cookie_socket = os.path.join(cache_dir, 'cookie_daemon_socket')
 cookie_jar = os.path.join(data_dir, 'cookies.txt')
-#daemon_timeout = 360
+
+# Time out after x seconds of inactivity (set to 0 for never time out).
+# Set to 0 by default until talk_to_socket is doing the spawning.
 daemon_timeout = 0
+
+# Enable/disable daemonizing the process (useful when debugging). 
+# Set to False by default until talk_to_socket is doing the spawning.
+daemon_mode = False
 
 # ============================================================================
 # ::: End of configuration section :::::::::::::::::::::::::::::::::::::::::::
@@ -71,11 +84,13 @@ daemon_timeout = 0
 class CookieMonster:
     '''The uzbl cookie daemon class.'''
 
-    def __init__(self, cookie_socket, cookie_jar, daemon_timeout):
+    def __init__(self, cookie_socket, cookie_jar, daemon_timeout,\
+      daemon_mode):
 
         self.cookie_socket = os.path.expandvars(cookie_socket)
         self.server_socket = None
         self.cookie_jar = os.path.expandvars(cookie_jar)
+        self.daemon_mode = daemon_mode
         self.jar = None
         self.daemon_timeout = daemon_timeout
         self.last_request = time.time()
@@ -84,31 +99,42 @@ class CookieMonster:
     def run(self):
         '''Start the daemon.'''
         
-        try:
-            # Daemonize process. 
-            #self.daemonize()
+        # Daemonize process.
+        if self.daemon_mode:
+            self.daemonize()
         
+        # Cleanup & quit function
+        atexit.register(self.quit)
+
+        # Tell SIGTERM to act orderly.
+        signal(SIGTERM, lambda signum, stack_frame: sys.exit(1))
+
+        try:
             # Create cookie_socket 
             self.create_socket()
         
             # Create jar object
             self.open_cookie_jar()
-
+            
             # Listen for GET and PULL cookie requests.
             self.listen()
+       
+        except KeyboardInterrupt:
+            print
 
         except:
-            #raise
-            print "%r" % sys.exc_info()[1]
-        
-        self.quit()
+            # Clean up
+            self.del_socket()
 
+            # Raise exception
+            raise
+       
 
     def daemonize(function):
         '''Daemonize the process using the Stevens' double-fork magic.'''
 
         try:
-            if os.fork(): sys.exit(0)
+            if os.fork(): os._exit(0)
 
         except OSError, e:
             sys.stderr.write("fork #1 failed: %s\n" % e)
@@ -119,7 +145,7 @@ class CookieMonster:
         os.umask(0)
         
         try:
-            if os.fork(): sys.exit(0)
+            if os.fork(): os._exit(0)
 
         except OSError, e:
             sys.stderr.write("fork #2 failed: %s\n" % e)
@@ -162,6 +188,9 @@ class CookieMonster:
           socket.SOCK_SEQPACKET)
 
         self.server_socket.bind(self.cookie_socket)
+        
+        # Only allow the current user to read and write to the socket.
+        os.chmod(self.cookie_socket, 0600)
 
 
     def listen(self):
@@ -184,16 +213,15 @@ class CookieMonster:
     def handle_request(self, client_socket):
         '''Connection made, now to serve a cookie PUT or GET request.'''
          
-        # Receive full request from client.
-        data = client_socket.recv(4096)
-
+        # Receive cookie request from client.
+        data = client_socket.recv(8192)
         argv = data.split("\0")
                 
         # For debugging:
-        print ' '.join(argv)
+        print ' '.join(argv[:4])
 
         action = argv[0]
-        set_cookie = argv[4] if len(argv) > 3 else None
+        
         uri = urllib2.urlparse.ParseResult(
           scheme=argv[1],
           netloc=argv[2],
@@ -207,29 +235,39 @@ class CookieMonster:
         if action == "GET":
             self.jar.add_cookie_header(req)
             if req.has_header('Cookie'):
-                client_socket.send(req.get_header('Cookie'))
+                cookie = req.get_header('Cookie')
+                client_socket.send(cookie)
+                print cookie
 
             else:
                 client_socket.send("\0")
 
         elif action == "PUT":
+            if len(argv) > 3:
+                set_cookie = argv[4]
+                print set_cookie
+
+            else:
+                set_cookie = None
+
             hdr = urllib2.httplib.HTTPMessage(\
               StringIO.StringIO('Set-Cookie: %s' % set_cookie))
             res = urllib2.addinfourl(StringIO.StringIO(), hdr,\
               req.get_full_url())
             self.jar.extract_cookies(res,req)
-            self.jar.save(ignore_discard=True)
+            self.jar.save(ignore_discard=True) 
+
+        print
             
         client_socket.close()
 
 
-    def quit(self):
+    def quit(self, *args):
         '''Called on exit to make sure all loose ends are tied up.'''
         
         # Only one loose end so far.
         self.del_socket()
-        
-        # And die gracefully.
+
         sys.exit(0)
     
 
@@ -250,5 +288,6 @@ if __name__ == "__main__":
         print "Error: cookie socket already exists: %r" % cookie_socket
         sys.exit(1)
     
-    CookieMonster(cookie_socket, cookie_jar, daemon_timeout).run()
+    CookieMonster(cookie_socket, cookie_jar, daemon_timeout,\
+      daemon_mode).run()
 
