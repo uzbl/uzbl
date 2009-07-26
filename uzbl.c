@@ -2792,7 +2792,7 @@ main (int argc, char* argv[]) {
         set_var_value("uri", uri_override);
         g_free(uri_override);
     } else if (uzbl.state.uri)
-        cmd_load_uri(uzbl.gui.web_view, NULL);
+        cmd_load_uri();
 
     gtk_main ();
     clean_up();
