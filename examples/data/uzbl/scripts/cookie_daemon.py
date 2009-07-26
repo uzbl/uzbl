@@ -188,9 +188,9 @@ class CookieMonster:
         data = client_socket.recv(4096)
 
         argv = data.split("\0")
-        
+                
         # For debugging:
-        #print argv
+        print ' '.join(argv)
 
         action = argv[0]
         set_cookie = argv[4] if len(argv) > 3 else None
