@@ -76,9 +76,18 @@ daemon_timeout = 0
 # Set to False by default until talk_to_socket is doing the spawning.
 daemon_mode = False
 
+# Set true to print helpful debugging messages to the terminal.
+verbose = True
+
 # ============================================================================
 # ::: End of configuration section :::::::::::::::::::::::::::::::::::::::::::
 # ============================================================================
+
+
+_scriptname = os.path.basename(sys.argv[0])
+def echo(msg):
+    if verbose:
+        print "%s: %s" % (_scriptname, msg)
 
 
 class CookieMonster:
@@ -99,24 +108,31 @@ class CookieMonster:
     def run(self):
         '''Start the daemon.'''
         
+        # Check if another daemon is running. The reclaim_socket function will
+        # exit if another daemon is detected listening on the cookie socket 
+        # and remove the abandoned socket if there isnt. 
+        if os.path.exists(self.cookie_socket):
+            self.reclaim_socket()
+
         # Daemonize process.
         if self.daemon_mode:
+            echo("entering daemon mode.")
             self.daemonize()
         
         # Register a function to cleanup on exit. 
         atexit.register(self.quit)
 
-        # Tell SIGTERM to act orderly.
+        # Make SIGTERM act orderly.
         signal(SIGTERM, lambda signum, stack_frame: sys.exit(1))
-
-        try:
-            # Create cookie_socket 
-            self.create_socket()
+     
+        # Create cookie daemon socket.
+        self.create_socket()
         
-            # Create jar object
-            self.open_cookie_jar()
-            
-            # Listen for GET and PULL cookie requests.
+        # Create cookie jar object from file.
+        self.open_cookie_jar()
+        
+        try:
+            # Listen for incoming cookie puts/gets.
             self.listen()
        
         except KeyboardInterrupt:
@@ -128,7 +144,34 @@ class CookieMonster:
 
             # Raise exception
             raise
-       
+
+    
+    def reclaim_socket(self):
+        '''Check if another process (hopefully a cookie_daemon.py) is listening
+        on the cookie daemon socket. If another process is found to be 
+        listening on the socket exit the daemon immediately and leave the 
+        socket alone. If the connect fails assume the socket has been abandoned
+        and delete it (to be re-created in the create socket function).'''
+    
+        try:
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
+            sock.connect(self.cookie_socket)
+            sock.close()
+
+        except socket.error:
+            # Failed to connect to cookie_socket so assume it has been
+            # abandoned by another cookie daemon process.
+            echo("reclaiming abandoned cookie_socket %r." % self.cookie_socket)
+            if os.path.exists(self.cookie_socket):
+                os.remove(self.cookie_socket)
+
+            return 
+
+        echo("detected another process listening on %r." % self.cookie_socket)
+        echo("exiting.")
+        # Use os._exit() to avoid tripping the atexit cleanup function.
+        os._exit(1)
+
 
     def daemonize(function):
         '''Daemonize the process using the Stevens' double-fork magic.'''
@@ -167,13 +210,16 @@ class CookieMonster:
     def open_cookie_jar(self):
         '''Open the cookie jar.'''
         
-        # Open cookie jar.
+        # Create cookie jar object from file.
         self.jar = cookielib.MozillaCookieJar(self.cookie_jar)
+
         try:
-            # Load cookies from the cookie_jar file.
+            # Attempt to load cookies from the cookie jar.
             self.jar.load(ignore_discard=True)
 
-            # Check cookie_jar only readable and writable by this user.
+            # Ensure restrictive permissions are set on the cookie jar 
+            # to prevent other users on the system from hi-jacking your 
+            # authenticated sessions simply by copying your cookie jar.
             os.chmod(self.cookie_jar, 0600)
 
         except:
@@ -181,19 +227,20 @@ class CookieMonster:
 
 
     def create_socket(self):
-        '''Open socket AF_UNIX socket for uzbl instance <-> daemon
-        communication.'''
+        '''Create AF_UNIX socket for interprocess uzbl instance <-> cookie
+        daemon communication.'''
     
-        if os.path.exists(self.cookie_socket):
-            # Don't you just love racetrack conditions! 
-            sys.exit(1)
-            
         self.server_socket = socket.socket(socket.AF_UNIX,\
           socket.SOCK_SEQPACKET)
 
+        if os.path.exists(self.cookie_socket):
+            # Accounting for super-rare super-fast racetrack condition.
+            self.reclaim_socket()
+            
         self.server_socket.bind(self.cookie_socket)
         
-        # Only allow the current user to read and write to the socket.
+        # Set restrictive permissions on the cookie socket to prevent other
+        # users on the system from data-mining your cookies. 
         os.chmod(self.cookie_socket, 0600)
 
 
@@ -201,9 +248,11 @@ class CookieMonster:
         '''Listen for incoming cookie PUT and GET requests.'''
 
         while True:
-            # If you get broken pipe errors increase this listen number.
+            # This line tells the socket how many pending incoming connections 
+            # to enqueue. I haven't had any broken pipe errors so far while 
+            # using the non-obvious value of 1 under heavy load conditions.
             self.server_socket.listen(1)
-
+           
             if bool(select.select([self.server_socket],[],[],1)[0]):
                 client_socket, _ = self.server_socket.accept()
                 self.handle_request(client_socket)
@@ -219,11 +268,15 @@ class CookieMonster:
          
         # Receive cookie request from client.
         data = client_socket.recv(8192)
-        argv = data.split("\0")
-                
-        # For debugging:
-        print ' '.join(argv[:4])
+        if not data: return
 
+        # Cookie argument list in packet is null separated.
+        argv = data.split("\0")
+
+        # Determine whether or not to print cookie data to terminal.
+        print_cookie = (verbose and not self.daemon_mode)
+        if print_cookie: print ' '.join(argv[:4])
+        
         action = argv[0]
         
         uri = urllib2.urlparse.ParseResult(
@@ -241,7 +294,7 @@ class CookieMonster:
             if req.has_header('Cookie'):
                 cookie = req.get_header('Cookie')
                 client_socket.send(cookie)
-                print cookie
+                if print_cookie: print cookie
 
             else:
                 client_socket.send("\0")
@@ -249,7 +302,7 @@ class CookieMonster:
         elif action == "PUT":
             if len(argv) > 3:
                 set_cookie = argv[4]
-                print set_cookie
+                if print_cookie: print set_cookie
 
             else:
                 set_cookie = None
@@ -261,7 +314,7 @@ class CookieMonster:
             self.jar.extract_cookies(res,req)
             self.jar.save(ignore_discard=True) 
 
-        print
+        if print_cookie: print
             
         client_socket.close()
 
@@ -272,7 +325,7 @@ class CookieMonster:
         # Only one loose end so far.
         self.del_socket()
 
-        sys.exit(0)
+        os._exit(0)
     
 
     def del_socket(self):
@@ -287,10 +340,6 @@ class CookieMonster:
 
 
 if __name__ == "__main__":
-    
-    if os.path.exists(cookie_socket):
-        print "Error: cookie socket already exists: %r" % cookie_socket
-        sys.exit(1)
     
     CookieMonster(cookie_socket, cookie_jar, daemon_timeout,\
       daemon_mode).run()
