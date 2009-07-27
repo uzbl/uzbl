@@ -257,6 +257,7 @@ class CookieMonster:
                 client_socket, _ = self.server_socket.accept()
                 self.handle_request(client_socket)
                 self.last_request = time.time()
+                client_socket.close()
             
             if self.daemon_timeout:
                 idle = time.time() - self.last_request
@@ -316,8 +317,6 @@ class CookieMonster:
 
         if print_cookie: print
             
-        client_socket.close()
-
 
     def quit(self, *args):
         '''Called on exit to make sure all loose ends are tied up.'''
