@@ -91,7 +91,7 @@ typedef const struct {
     enum ptr_type type;
     int dump;
     int writeable;
-    void (*func)(void);
+    /*@null@*/ void (*func)(void);
 } uzbl_cmdprop;
 
 /* abbreviations to help keep the table's width humane */
@@ -181,7 +181,7 @@ const struct {
 
 
 const struct {
-    char *key;
+    /*@null@*/ char *key;
     guint mask;
 } modkeys[] = {
     { "SHIFT",   GDK_SHIFT_MASK   }, // shift
@@ -230,6 +230,7 @@ get_exp_type(const gchar *s) {
     else
         return EXP_SIMPLE_VAR;
 
+    /*@notreached@*/
 return EXP_ERR;
 }
 

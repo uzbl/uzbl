@@ -1,5 +1,5 @@
 const struct {
-    char *command;
+    /*@null@*/ char *command;
 } default_config[] = {
 { "set reset_command_mode = 1"},
 { "set status_format = <span background=\"darkblue\" foreground=\"white\"> \\@MODE </span> <span background=\"red\" foreground=\"white\">\\@[\\@keycmd]\\@</span> (\\@LOAD_PROGRESS%)  <b>\\@[\\@TITLE]\\@</b>  - Uzbl browser"},

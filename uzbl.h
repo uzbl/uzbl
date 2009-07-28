@@ -20,7 +20,7 @@ enum {
 };
 
 const struct {
-    gchar *symbol_name;
+    /*@null@*/ gchar *symbol_name;
     guint symbol_token;
 } symbols[] = {
     {"KEYCMD",               SYM_KEYCMD},
