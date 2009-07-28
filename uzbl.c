@@ -216,7 +216,7 @@ make_var_to_name_hash() {
 /* --- UTILITY FUNCTIONS --- */
 enum {EXP_ERR, EXP_SIMPLE_VAR, EXP_BRACED_VAR, EXP_EXPR, EXP_JS, EXP_ESCAPE};
 guint
-get_exp_type(gchar *s) {
+get_exp_type(const gchar *s) {
     /* variables */
     if(*(s+1) == '(')
         return EXP_EXPR;
@@ -237,7 +237,7 @@ return EXP_ERR;
  * recurse == 2: don't expand '@<java script>@'
  */
 gchar *
-expand(char *s, guint recurse) {
+expand(const char *s, guint recurse) {
     uzbl_cmdprop *c;
     guint etype;
     char upto = ' ';
