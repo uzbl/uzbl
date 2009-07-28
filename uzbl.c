@@ -54,6 +54,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <assert.h>
 #include <poll.h>
 #include <sys/uio.h>
 #include <sys/ioctl.h>
@@ -249,10 +250,8 @@ gchar *
 expand(char *s, guint recurse) {
     uzbl_cmdprop *c;
     guint etype;
-    char upto = ' ';
     char *end_simple_var = "^°!\"§$%&/()=?'`'+~*'#-.:,;@<>| \\{}[]¹²³¼½";
-    char str_end[3];
-    char ret[4096];
+    char *ret = NULL;
     char *vend = NULL;
     GError *err = NULL;
     gchar *cmd_stdout = NULL;
@@ -277,37 +276,31 @@ expand(char *s, guint recurse) {
                         if(!vend) vend = strchr(s, '\0');
                         break;
                     case EXP_BRACED_VAR:
-                        s++; upto = '}';
-                        vend = strchr(s, upto);
+                        s++;
+                        vend = strchr(s, '}');
                         if(!vend) vend = strchr(s, '\0');
                         break;
                     case EXP_EXPR:
                         s++;
-                        strcpy(str_end, ")@");
-                        str_end[2] = '\0';
-                        vend = strstr(s, str_end);
+                        vend = strstr(s, ")@");
                         if(!vend) vend = strchr(s, '\0');
                         break;
                     case EXP_JS:
                         s++;
-                        strcpy(str_end, ">@");
-                        str_end[2] = '\0';
-                        vend = strstr(s, str_end);
+                        vend = strstr(s, ">@");
                         if(!vend) vend = strchr(s, '\0');
                         break;
                     case EXP_ESCAPE:
                         s++;
-                        strcpy(str_end, "]@");
-                        str_end[2] = '\0';
-                        vend = strstr(s, str_end);
+                        vend = strstr(s, "]@");
                         if(!vend) vend = strchr(s, '\0');
                         break;
                 }
+                assert(vend);
 
-                if(vend) {
-                    strncpy(ret, s, vend-s);
-                    ret[vend-s] = '\0';
-                }
+                ret = g_strndup(s, vend-s);
+                if(!ret)
+                        abort();
 
                 if(etype == EXP_SIMPLE_VAR ||
                    etype == EXP_BRACED_VAR) {
@@ -338,10 +331,10 @@ expand(char *s, guint recurse) {
                         g_error_free (err);
                     }
                     else if (*cmd_stdout) {
-                        int len = strlen(cmd_stdout);
+                        size_t len = strlen(cmd_stdout);
 
-                        if(cmd_stdout[len-1] == '\n')
-                            cmd_stdout[--len] = 0; /* strip trailing newline */
+                        if(len > 0 && cmd_stdout[len-1] == '\n')
+                            cmd_stdout[--len] = '\0'; /* strip trailing newline */
 
                         g_string_append(buf, cmd_stdout);
                         g_free(cmd_stdout);
@@ -371,6 +364,9 @@ expand(char *s, guint recurse) {
                     g_free(mycmd);
                     s = vend+2;
                 }
+
+                free(ret);
+                ret = NULL;
                 break;
 
             default:
