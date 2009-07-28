@@ -162,6 +162,8 @@ import socket
 import random
 import hashlib
 
+from optparse import OptionParser, OptionGroup
+
 pygtk.require('2.0')
 
 def error(msg):
@@ -566,6 +568,10 @@ class UzblTabbed:
         self._create_fifo_socket(self.fifo_socket)
         self._setup_fifo_watcher(self.fifo_socket)
         
+        # If we are using sessions then load the last one if it exists.
+        if config['save_session']:
+            self.load_session()
+
 
     def _create_fifo_socket(self, fifo_socket):
         '''Create interprocess communication fifo socket.'''
@@ -615,9 +621,6 @@ class UzblTabbed:
 
     def run(self):
         '''UzblTabbed main function that calls the gtk loop.'''
-        
-        if config['save_session']:
-            self.load_session()
         
         if not len(self.tabs):
             self.new_tab()
@@ -1272,6 +1275,20 @@ if __name__ == "__main__":
     # Read from the uzbl config into the global config dictionary.
     readconfig(uzbl_config, config)
 
+    # Build command line parser
+    parser = OptionParser()
+    parser.add_option('-n', '--no-session', dest='nosession',\
+      action='store_true', help="ignore session saving a loading.")
+    group = OptionGroup(parser, "Note", "All other command line arguments are "\
+      "interpreted as uris and loaded in new tabs.")
+    parser.add_option_group(group)
+
+    # Parse command line options
+    (options, uris) = parser.parse_args()
+
+    if options.nosession:
+        config['save_session'] = False
+
     if config['json_session']:
         try:
             import simplejson as json
@@ -1283,6 +1300,11 @@ if __name__ == "__main__":
             config['json_session'] = False
 
     uzbl = UzblTabbed()
+
+    # All extra arguments given to uzbl_tabbed.py are interpreted as
+    # web-locations to opened in new tabs.
+    lasturi = len(uris)-1
+    for (index,uri) in enumerate(uris):
+        uzbl.new_tab(uri, switch=(index==lasturi))
+
     uzbl.run()
-
-
