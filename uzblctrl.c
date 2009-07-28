@@ -36,7 +36,7 @@ main(int argc, char* argv[]) {
 
         if ((s = socket (AF_UNIX, SOCK_STREAM, 0)) == -1) {
             perror ("socket");
-            exit (1);
+            exit (EXIT_FAILURE);
         }
 
         remote.sun_family = AF_UNIX;
@@ -45,13 +45,13 @@ main(int argc, char* argv[]) {
 
         if (connect (s, (struct sockaddr *) &remote, len) == -1) {
             perror ("connect");
-            exit (1);
+            exit (EXIT_FAILURE);
         }
 
         if ((send (s, command, strlen (command), 0) == -1) ||
             (send (s, "\n", 1, 0) == -1)) {
             perror ("send");
-            exit (1);
+            exit (EXIT_FAILURE);
         }
 
         while ((len = recv (s, &tmp, 1, 0))) {

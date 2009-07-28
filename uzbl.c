@@ -2642,7 +2642,7 @@ initialize(int argc, char *argv[]) {
 
     if (uzbl.behave.print_version) {
         printf("Commit: %s\n", COMMIT);
-        exit(0);
+        exit(EXIT_SUCCESS);
     }
 
     /* initialize hash table */
