@@ -105,7 +105,7 @@ typedef const struct {
 #define PTR_C_INT(var,    fun) { .ptr.i = (int*)&(var), .type = TYPE_INT, .dump = 0, .writeable = 0, .func = fun }
 #define PTR_C_FLOAT(var,  fun) { .ptr.f = &(var), .type = TYPE_FLOAT, .dump = 0, .writeable = 0, .func = fun }
 
-const struct {
+const struct var_name_to_ptr_t {
     const char *name;
     uzbl_cmdprop cp;
 } var_name_to_ptr[] = {
@@ -184,7 +184,7 @@ const struct {
     { "NAME",                PTR_C_STR(uzbl.state.instance_name,               NULL)},
 
     { NULL,                  {.ptr.s = NULL, .type = TYPE_INT, .dump = 0, .writeable = 0, .func = NULL}}
-}, *n2v_p = var_name_to_ptr;
+};
 
 
 const struct {
@@ -214,6 +214,7 @@ const struct {
 /* construct a hash from the var_name_to_ptr array for quick access */
 void
 make_var_to_name_hash() {
+    struct var_name_to_ptr_t *n2v_p = &var_name_to_ptr;
     uzbl.comm.proto_var = g_hash_table_new(g_str_hash, g_str_equal);
     while(n2v_p->name) {
         g_hash_table_insert(uzbl.comm.proto_var, n2v_p->name, (gpointer) &n2v_p->cp);
