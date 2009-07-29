@@ -38,6 +38,8 @@ Contributors:
     Tassilo Horn (tsdh) - $VISUAL patch
     Laurence Withers (lwithers) - talk_to_socket
     Andraž 'ruskie' Levstik - font_family patch
+    Helmut Grohne (helmut) - move void **ptr to union, various fixes
+
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:
