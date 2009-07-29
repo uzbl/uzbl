@@ -223,8 +223,8 @@ make_var_to_name_hash() {
 }
 
 /* --- UTILITY FUNCTIONS --- */
-enum {EXP_ERR, EXP_SIMPLE_VAR, EXP_BRACED_VAR, EXP_EXPR, EXP_JS, EXP_ESCAPE};
-guint
+enum exp_type {EXP_ERR, EXP_SIMPLE_VAR, EXP_BRACED_VAR, EXP_EXPR, EXP_JS, EXP_ESCAPE};
+enum exp_type
 get_exp_type(const gchar *s) {
     /* variables */
     if(*(s+1) == '(')
@@ -249,7 +249,7 @@ return EXP_ERR;
 gchar *
 expand(const char *s, guint recurse) {
     uzbl_cmdprop *c;
-    guint etype;
+    enum exp_type etype;
     char *end_simple_var = "^°!\"§$%&/()=?'`'+~*'#-.:,;@<>| \\{}[]¹²³¼½";
     char *ret = NULL;
     char *vend = NULL;
