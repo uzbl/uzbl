@@ -1434,8 +1434,7 @@ void
 set_proxy_url() {
     SoupURI *suri;
 
-    if(*uzbl.net.proxy_url == ' '
-       || uzbl.net.proxy_url == NULL) {
+    if(uzbl.net.proxy_url == NULL || *uzbl.net.proxy_url == ' ') {
         soup_session_remove_feature_by_type(uzbl.net.soup_session,
                 (GType) SOUP_SESSION_PROXY_URI);
     }
