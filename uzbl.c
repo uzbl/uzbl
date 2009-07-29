@@ -1408,7 +1408,7 @@ parse_command(const char *cmd, const char *param, GString *result) {
 
                 c->function(uzbl.gui.web_view, a, result_print);
                 if (result_print->len)
-                    printf("%*s\n", result_print->len, result_print->str);
+                    printf("%*s\n", (int)result_print->len, result_print->str);
 
                 g_string_free(result_print, TRUE);
             } else {
