@@ -2405,6 +2405,7 @@ find_xdg_file (int xdg_type, char* filename) {
     if (file_exists (temporary_file)) {
         return temporary_file;
     } else {
+        g_free(temporary_file);
         return NULL;
     }
 }
