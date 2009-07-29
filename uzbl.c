@@ -108,7 +108,7 @@ typedef const struct {
 #define PTR_C_INT(var,    fun) { .ptr.i = (int*)&(var), .type = TYPE_INT, .dump = 0, .writeable = 0, .func = fun }
 #define PTR_C_FLOAT(var,  fun) { .ptr.f = &(var), .type = TYPE_FLOAT, .dump = 0, .writeable = 0, .func = fun }
 
-const struct {
+const struct var_name_to_ptr_t {
     const char *name;
     uzbl_cmdprop cp;
 } var_name_to_ptr[] = {
@@ -193,7 +193,7 @@ const struct {
     { "NAME",                   PTR_C_STR(uzbl.state.instance_name,                  NULL)},
 
     { NULL,                     {.ptr.s = NULL, .type = TYPE_INT, .dump = 0, .writeable = 0, .func = NULL}}
-}, *n2v_p = var_name_to_ptr;
+};
 
 
 const struct {
@@ -223,6 +223,7 @@ const struct {
 /* construct a hash from the var_name_to_ptr array for quick access */
 void
 make_var_to_name_hash() {
+    struct var_name_to_ptr_t *n2v_p = &var_name_to_ptr;
     uzbl.comm.proto_var = g_hash_table_new(g_str_hash, g_str_equal);
     while(n2v_p->name) {
         g_hash_table_insert(uzbl.comm.proto_var, n2v_p->name, (gpointer) &n2v_p->cp);
@@ -231,8 +232,8 @@ make_var_to_name_hash() {
 }
 
 /* --- UTILITY FUNCTIONS --- */
-enum {EXP_ERR, EXP_SIMPLE_VAR, EXP_BRACED_VAR, EXP_EXPR, EXP_JS, EXP_ESCAPE};
-guint
+enum exp_type {EXP_ERR, EXP_SIMPLE_VAR, EXP_BRACED_VAR, EXP_EXPR, EXP_JS, EXP_ESCAPE};
+enum exp_type
 get_exp_type(const gchar *s) {
     /* variables */
     if(*(s+1) == '(')
@@ -257,7 +258,7 @@ return EXP_ERR;
 gchar *
 expand(const char *s, guint recurse) {
     uzbl_cmdprop *c;
-    guint etype;
+    enum exp_type etype;
     char *end_simple_var = "^°!\"§$%&/()=?'`'+~*'#-.:,;@<>| \\{}[]¹²³¼½";
     char *ret = NULL;
     char *vend = NULL;
@@ -412,7 +413,7 @@ str_replace (const char* search, const char* replace, const char* string) {
 }
 
 GArray*
-read_file_by_line (gchar *path) {
+read_file_by_line (const gchar *path) {
     GIOChannel *chan = NULL;
     gchar *readbuf = NULL;
     gsize len;
@@ -561,7 +562,7 @@ mime_policy_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequ
     return TRUE;
 }
 
-WebKitWebView*
+/*@null@*/ WebKitWebView*
 create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data) {
     (void) web_view;
     (void) frame;
@@ -797,7 +798,7 @@ VIEWFUNC(go_forward)
 #undef VIEWFUNC
 
 /* -- command to callback/function map for things we cannot attach to any signals */
-struct {char *key; CommandInfo value;} cmdlist[] =
+struct {const char *key; CommandInfo value;} cmdlist[] =
 {   /* key                   function      no_split      */
     { "back",               {view_go_back, 0}              },
     { "forward",            {view_go_forward, 0}           },
@@ -1308,7 +1309,7 @@ run_command (const gchar *command, const guint npre, const gchar **args,
     return result;
 }
 
-gchar**
+/*@null@*/ gchar**
 split_quoted(const gchar* src, const gboolean unquote) {
     /* split on unquoted space, return array of strings;
        remove a layer of quotes and backslashes if unquote */
@@ -1555,8 +1556,7 @@ void
 set_proxy_url() {
     SoupURI *suri;
 
-    if(*uzbl.net.proxy_url == ' '
-       || uzbl.net.proxy_url == NULL) {
+    if(uzbl.net.proxy_url == NULL || *uzbl.net.proxy_url == ' ') {
         soup_session_remove_feature_by_type(uzbl.net.soup_session,
                 (GType) SOUP_SESSION_PROXY_URI);
     }
@@ -1854,7 +1854,7 @@ move_statusbar() {
 }
 
 gboolean
-set_var_value(gchar *name, gchar *val) {
+set_var_value(const gchar *name, gchar *val) {
     uzbl_cmdprop *c = NULL;
     char *endp = NULL;
     char *buf = NULL;
@@ -1936,7 +1936,7 @@ parse_cmd_line(const char *ctl_line, GString *result) {
     }
 }
 
-gchar*
+/*@null@*/ gchar*
 build_stream_name(int type, const gchar* dir) {
     State *s = &uzbl.state;
     gchar *str = NULL;
@@ -1977,7 +1977,7 @@ control_fifo(GIOChannel *gio, GIOCondition condition) {
     return TRUE;
 }
 
-gchar*
+/*@null@*/ gchar*
 init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
     if (uzbl.comm.fifo_path) { /* get rid of the old fifo if one exists */
         if (unlink(uzbl.comm.fifo_path) == -1)
@@ -2101,7 +2101,7 @@ control_client_socket(GIOChannel *clientchan) {
     return TRUE;
 }
 
-gchar*
+/*@null@*/ gchar*
 init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL */
     if (uzbl.comm.socket_path) { /* remove an existing socket should one exist */
         if (unlink(uzbl.comm.socket_path) == -1)
@@ -2508,7 +2508,7 @@ add_binding (const gchar *key, const gchar *act) {
     g_strfreev(parts);
 }
 
-gchar*
+/*@null@*/ gchar*
 get_xdg_var (XDG_Var xdg) {
     const gchar* actual_value = getenv (xdg.environmental);
     const gchar* home         = getenv ("HOME");
@@ -2527,8 +2527,8 @@ get_xdg_var (XDG_Var xdg) {
     return return_value;
 }
 
-gchar*
-find_xdg_file (int xdg_type, char* filename) {
+/*@null@*/ gchar*
+find_xdg_file (int xdg_type, const char* filename) {
     /* xdg_type = 0 => config
        xdg_type = 1 => data
        xdg_type = 2 => cache*/
@@ -2557,6 +2557,7 @@ find_xdg_file (int xdg_type, char* filename) {
     if (file_exists (temporary_file)) {
         return temporary_file;
     } else {
+        g_free(temporary_file);
         return NULL;
     }
 }
