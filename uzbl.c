@@ -404,7 +404,7 @@ str_replace (const char* search, const char* replace, const char* string) {
 }
 
 GArray*
-read_file_by_line (gchar *path) {
+read_file_by_line (const gchar *path) {
     GIOChannel *chan = NULL;
     gchar *readbuf = NULL;
     gsize len;
@@ -553,7 +553,7 @@ mime_policy_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequ
     return TRUE;
 }
 
-WebKitWebView*
+/*@null@*/ WebKitWebView*
 create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data) {
     (void) web_view;
     (void) frame;
@@ -789,7 +789,7 @@ VIEWFUNC(go_forward)
 #undef VIEWFUNC
 
 /* -- command to callback/function map for things we cannot attach to any signals */
-struct {char *key; CommandInfo value;} cmdlist[] =
+struct {const char *key; CommandInfo value;} cmdlist[] =
 {   /* key                   function      no_split      */
     { "back",               {view_go_back, 0}              },
     { "forward",            {view_go_forward, 0}           },
@@ -1299,7 +1299,7 @@ run_command (const gchar *command, const guint npre, const gchar **args,
     return result;
 }
 
-gchar**
+/*@null@*/ gchar**
 split_quoted(const gchar* src, const gboolean unquote) {
     /* split on unquoted space, return array of strings;
        remove a layer of quotes and backslashes if unquote */
@@ -1696,7 +1696,7 @@ move_statusbar() {
 }
 
 gboolean
-set_var_value(gchar *name, gchar *val) {
+set_var_value(const gchar *name, gchar *val) {
     uzbl_cmdprop *c = NULL;
     char *endp = NULL;
     char *buf = NULL;
@@ -1778,7 +1778,7 @@ parse_cmd_line(const char *ctl_line, GString *result) {
     }
 }
 
-gchar*
+/*@null@*/ gchar*
 build_stream_name(int type, const gchar* dir) {
     State *s = &uzbl.state;
     gchar *str = NULL;
@@ -1819,7 +1819,7 @@ control_fifo(GIOChannel *gio, GIOCondition condition) {
     return TRUE;
 }
 
-gchar*
+/*@null@*/ gchar*
 init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
     if (uzbl.comm.fifo_path) { /* get rid of the old fifo if one exists */
         if (unlink(uzbl.comm.fifo_path) == -1)
@@ -1943,7 +1943,7 @@ control_client_socket(GIOChannel *clientchan) {
     return TRUE;
 }
 
-gchar*
+/*@null@*/ gchar*
 init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL */
     if (uzbl.comm.socket_path) { /* remove an existing socket should one exist */
         if (unlink(uzbl.comm.socket_path) == -1)
@@ -2356,7 +2356,7 @@ add_binding (const gchar *key, const gchar *act) {
     g_strfreev(parts);
 }
 
-gchar*
+/*@null@*/ gchar*
 get_xdg_var (XDG_Var xdg) {
     const gchar* actual_value = getenv (xdg.environmental);
     const gchar* home         = getenv ("HOME");
@@ -2375,8 +2375,8 @@ get_xdg_var (XDG_Var xdg) {
     return return_value;
 }
 
-gchar*
-find_xdg_file (int xdg_type, char* filename) {
+/*@null@*/ gchar*
+find_xdg_file (int xdg_type, const char* filename) {
     /* xdg_type = 0 => config
        xdg_type = 1 => data
        xdg_type = 2 => cache*/

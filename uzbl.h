@@ -220,7 +220,7 @@ char *
 str_replace (const char* search, const char* replace, const char* string);
 
 GArray*
-read_file_by_line (gchar *path);
+read_file_by_line (const gchar *path);
 
 gchar*
 parseenv (char* string);
@@ -235,7 +235,7 @@ sigfunc *
 setup_signal(int signe, sigfunc *shandler);
 
 gboolean
-set_var_value(gchar *name, gchar *val);
+set_var_value(const gchar *name, gchar *val);
 
 void
 print(WebKitWebView *page, GArray *argv, GString *result);
@@ -246,7 +246,7 @@ new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequ
 gboolean
 mime_policy_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, gchar *mime_type,  WebKitWebPolicyDecision *policy_decision, gpointer user_data);
 
-WebKitWebView*
+/*@null@*/ WebKitWebView*
 create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data);
 
 gboolean
@@ -355,13 +355,13 @@ parse_command(const char *cmd, const char *param, GString *result);
 void
 parse_cmd_line(const char *ctl_line, GString *result);
 
-gchar*
+/*@null@*/ gchar*
 build_stream_name(int type, const gchar *dir);
 
 gboolean
 control_fifo(GIOChannel *gio, GIOCondition condition);
 
-gchar*
+/*@null@*/ gchar*
 init_fifo(gchar *dir);
 
 gboolean
@@ -370,7 +370,7 @@ control_stdin(GIOChannel *gio, GIOCondition condition);
 void
 create_stdin();
 
-gchar*
+/*@null@*/ gchar*
 init_socket(gchar *dir);
 
 gboolean
@@ -412,11 +412,11 @@ run_handler (const gchar *act, const gchar *args);
 void
 add_binding (const gchar *key, const gchar *act);
 
-gchar*
+/*@null@*/ gchar*
 get_xdg_var (XDG_Var xdg);
 
-gchar*
-find_xdg_file (int xdg_type, char* filename);
+/*@null@*/ gchar*
+find_xdg_file (int xdg_type, const char* filename);
 
 void
 settings_init ();
