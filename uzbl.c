@@ -88,8 +88,6 @@ enum ptr_type {TYPE_INT, TYPE_STR, TYPE_FLOAT};
 
 /* associate command names to their properties */
 typedef struct {
-    /* TODO: Make this ambiguous void **ptr into a union { char *char_p; int *int_p; float *float_p; } val;
-             the PTR() macro is kind of preventing this change at the moment. */
     enum ptr_type type;
     union {
         int *i;
