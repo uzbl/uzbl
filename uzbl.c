@@ -289,9 +289,7 @@ expand(const char *s, guint recurse) {
                 }
                 assert(vend);
 
-                ret = strndup(s, vend-s);
-                if(!ret)
-                        abort();
+                ret = g_strndup(s, vend-s);
 
                 if(etype == EXP_SIMPLE_VAR ||
                    etype == EXP_BRACED_VAR) {
