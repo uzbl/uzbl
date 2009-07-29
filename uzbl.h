@@ -20,7 +20,7 @@ enum {
 };
 
 const struct {
-    gchar *symbol_name;
+    /*@null@*/ gchar *symbol_name;
     guint symbol_token;
 } symbols[] = {
     {"KEYCMD",               SYM_KEYCMD},
@@ -401,7 +401,7 @@ void
 exec_paramcmd(const Action* act, const guint i);
 
 void
-initialize ();
+initialize (int argc, char *argv[]);
 
 void
 create_browser ();
