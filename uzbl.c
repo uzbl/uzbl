@@ -362,7 +362,7 @@ expand(const char *s, guint recurse) {
                     s = vend+2;
                 }
 
-                free(ret);
+                g_free(ret);
                 ret = NULL;
                 break;
 
