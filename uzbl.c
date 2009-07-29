@@ -227,7 +227,9 @@ make_var_to_name_hash() {
     struct var_name_to_ptr_t *n2v_p = &var_name_to_ptr;
     uzbl.comm.proto_var = g_hash_table_new(g_str_hash, g_str_equal);
     while(n2v_p->name) {
-        g_hash_table_insert(uzbl.comm.proto_var, n2v_p->name, (gpointer) &n2v_p->cp);
+        g_hash_table_insert(uzbl.comm.proto_var,
+                (gpointer) n2v_p->name,
+                (gpointer) &n2v_p->cp);
         n2v_p++;
     }
 }
@@ -304,6 +306,9 @@ expand(const char *s, guint recurse) {
                         s++;
                         vend = strstr(s, "]@");
                         if(!vend) vend = strchr(s, '\0');
+                        break;
+                    /*@notreached@*/
+                    case EXP_ERR:
                         break;
                 }
                 assert(vend);
@@ -846,7 +851,7 @@ commands_hash(void)
     uzbl.behave.commands = g_hash_table_new(g_str_hash, g_str_equal);
 
     for (i = 0; i < LENGTH(cmdlist); i++)
-        g_hash_table_insert(uzbl.behave.commands, cmdlist[i].key, &cmdlist[i].value);
+        g_hash_table_insert(uzbl.behave.commands, (gpointer) cmdlist[i].key, &cmdlist[i].value);
 }
 
 /* -- CORE FUNCTIONS -- */
