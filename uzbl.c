@@ -318,7 +318,8 @@ expand(const char *s, guint recurse) {
                     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, ret)) ) {
                         if(c->type == TYPE_STR && *c->ptr.s != NULL) {
                             g_string_append(buf, (gchar *)*c->ptr.s);
-                        } else if(c->type == TYPE_INT) {
+                        }
+                        else if(c->type == TYPE_INT) {
                             g_string_append_printf(buf, "%d", *c->ptr.i);
                         }
                         else if(c->type == TYPE_FLOAT) {
