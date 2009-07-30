@@ -2929,10 +2929,13 @@ main (int argc, char* argv[]) {
     uzbl.gui.bar_h = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_h);
     gtk_widget_set_scroll_adjustments ((GtkWidget*) uzbl.gui.web_view, uzbl.gui.bar_h, uzbl.gui.bar_v);
 
-    if(uzbl.gui.geometry)
-        cmd_set_geometry();
-    else
-        retrieve_geometry();
+    /* Check uzbl is in window mode before getting/setting geometry */
+    if (uzbl.gui.main_window) {
+        if(uzbl.gui.geometry)
+            cmd_set_geometry();
+        else
+            retrieve_geometry();
+    }
 
     gchar *uri_override = (uzbl.state.uri ? g_strdup(uzbl.state.uri) : NULL);
     if (argc > 1 && !uzbl.state.uri)
