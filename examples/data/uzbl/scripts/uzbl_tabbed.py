@@ -47,7 +47,7 @@
 # Optional dependencies:
 #   simplejson - save uzbl_tabbed.py sessions & presets in json.
 #
-# Note: I haven't included version numbers with this dependency list because 
+# Note: I haven't included version numbers with this dependency list because
 # I've only ever tested uzbl_tabbed.py on the latest stable versions of these
 # packages in Gentoo's portage. Package names may vary on different systems.
 
@@ -163,7 +163,7 @@ import random
 import hashlib
 import atexit
 
-from gobject import io_add_watch, source_remove, timeout_add, IO_IN, IO_HUP 
+from gobject import io_add_watch, source_remove, timeout_add, IO_IN, IO_HUP
 from signal import signal, SIGTERM, SIGINT
 from optparse import OptionParser, OptionGroup
 
@@ -481,7 +481,7 @@ class UzblTabbed:
         self._timers = {}
         self._buffer = ""
         self._killed = False
-        
+
         # A list of the recently closed tabs
         self._closed = []
 
@@ -515,7 +515,7 @@ class UzblTabbed:
 
         # Attach main window event handlers
         self.window.connect("delete-event", self.quitrequest)
- 
+
         # Create tab list
         if config['show_tablist']:
             vbox = gtk.VBox()
@@ -572,13 +572,13 @@ class UzblTabbed:
         self.window.show()
         self.wid = self.notebook.window.xid
 
-        # Generate the fifo socket filename. 
+        # Generate the fifo socket filename.
         fifo_filename = 'uzbltabbed_%d' % os.getpid()
         self.fifo_socket = os.path.join(config['fifo_dir'], fifo_filename)
 
         # Now initialise the fifo socket at self.fifo_socket
         self.init_fifo_socket()
-        
+
         # If we are using sessions then load the last one if it exists.
         if config['save_session']:
             self.load_session()
@@ -586,7 +586,7 @@ class UzblTabbed:
 
     def run(self):
         '''UzblTabbed main function that calls the gtk loop.'''
-        
+
         if not len(self.tabs):
             self.new_tab()
 
@@ -600,13 +600,13 @@ class UzblTabbed:
         timerid = timeout_add(1000, self.probe_clients, timer)
         self._timers[timer] = timerid
 
-        # Make SIGTERM act orderly. 
+        # Make SIGTERM act orderly.
         signal(SIGTERM, lambda signum, stack_frame: self.terminate(SIGTERM))
 
         # Catch keyboard interrupts
         signal(SIGINT, lambda signum, stack_frame: self.terminate(SIGINT))
 
-        try: 
+        try:
             gtk.main()
 
         except:
@@ -615,7 +615,7 @@ class UzblTabbed:
             # Unlink fifo socket
             self.unlink_fifo_socket()
 
-            # Attempt to close all uzbl instances nicely. 
+            # Attempt to close all uzbl instances nicely.
             self.quitrequest()
 
             # Allow time for all the uzbl instances to quit.
@@ -623,18 +623,18 @@ class UzblTabbed:
 
             raise
 
-        
+
     def terminate(self, termsig=None):
         '''Handle termination signals and exit safely and cleanly.'''
-        
-        # Not required but at least it lets the user know what killed his 
+
+        # Not required but at least it lets the user know what killed his
         # browsing session.
-        if termsig == SIGTERM: 
+        if termsig == SIGTERM:
             error("caught SIGTERM signal")
 
         elif termsig == SIGINT:
             error("caught keyboard interrupt")
-        
+
         else:
             error("caught unknown signal")
 
@@ -657,8 +657,8 @@ class UzblTabbed:
                 os.makedirs(basedir)
 
             os.mkfifo(self.fifo_socket)
-        
-        # Add event handlers for IO_IN & IO_HUP events.  
+
+        # Add event handlers for IO_IN & IO_HUP events.
         self.setup_fifo_watchers()
 
         echo("listening at %r" % self.fifo_socket)
@@ -670,7 +670,7 @@ class UzblTabbed:
     def unlink_fifo_socket(self):
         '''Unlink the fifo socket. Note: This function is called automatically
         on exit by an atexit register.'''
-        
+
         # Make sure the fifo_socket fd is closed.
         self.close_fifo()
 
@@ -679,10 +679,10 @@ class UzblTabbed:
             os.unlink(self.fifo_socket)
             echo("unlinked %r" % self.fifo_socket)
 
-   
+
     def close_fifo(self):
         '''Remove all event handlers watching the fifo and close the fd.'''
-        
+
         # Already closed
         if self._fifo is None: return
 
@@ -705,7 +705,7 @@ class UzblTabbed:
 
         fd = os.open(self.fifo_socket, os.O_RDONLY | os.O_NONBLOCK)
 
-        # Add gobject io event handlers to the fifo socket. 
+        # Add gobject io event handlers to the fifo socket.
         watchers = [io_add_watch(fd, IO_IN, self.main_fifo_read),\
           io_add_watch(fd, IO_HUP, self.main_fifo_hangup)]
 
@@ -744,7 +744,7 @@ class UzblTabbed:
 
     def probe_clients(self, timer_call):
         '''Probe all uzbl clients for up-to-date window titles and uri's.'''
-    
+
         save_session = config['save_session']
 
         sockd = {}
@@ -756,7 +756,7 @@ class UzblTabbed:
             uzbl = self.tabs[tab]
             uzbl.probe()
             if uzbl._socket:
-                sockd[uzbl._socket] = uzbl          
+                sockd[uzbl._socket] = uzbl
 
         sockets = sockd.keys()
         (reading, _, errors) = select.select(sockets, [], sockets, 0)
@@ -860,7 +860,7 @@ class UzblTabbed:
         elif cmd[0] == "preset":
             if len(cmd) < 3:
                 error("parse_command: invalid preset command")
-            
+
             elif cmd[1] == "save":
                 path = os.path.join(config['saved_sessions_dir'], cmd[2])
                 self.save_session(path)
@@ -876,7 +876,7 @@ class UzblTabbed:
 
                 else:
                     error("parse_command: preset %r does not exist." % path)
-            
+
             elif cmd[1] == "list":
                 uzbl = self.get_tab_by_pid(int(cmd[2]))
                 if uzbl:
@@ -899,7 +899,7 @@ class UzblTabbed:
 
         elif cmd[0] == "clean":
             self.clean_slate()
-            
+
         else:
             error("parse_command: unknown command %r" % ' '.join(cmd))
 
@@ -934,7 +934,7 @@ class UzblTabbed:
 
         if switch is None:
             switch = config['switch_to_new_tabs']
-        
+
         if not title:
             title = config['new_tab_title']
 
@@ -965,7 +965,7 @@ class UzblTabbed:
             if tab not in tabs: continue
             uzbl = self.tabs[tab]
             uzbl.send("exit")
-    
+
 
     def config_uzbl(self, uzbl):
         '''Send bind commands for tab new/close/next/prev to a uzbl
@@ -1002,7 +1002,7 @@ class UzblTabbed:
         # set(key, command back to fifo)
         if config['capture_new_windows']:
             set("new_window", r'new $8')
-        
+
         # Send config to uzbl instance via its socket file.
         uzbl.send("\n".join(binds+sets))
 
@@ -1113,7 +1113,7 @@ class UzblTabbed:
                     self.save_session(session=d)
 
             self.quit()
-        
+
         self.update_tablist()
 
         return True
@@ -1198,7 +1198,7 @@ class UzblTabbed:
 
         if session_file is None:
             session_file = config['session_file']
-        
+
         if session is None:
             tabs = self.tabs.keys()
             state = []
@@ -1220,7 +1220,7 @@ class UzblTabbed:
                 lines += ["%s\t%s" % (strip(uri), strip(title)),]
 
             raw = "\n".join(lines)
-        
+
         if not os.path.isfile(session_file):
             dirname = os.path.dirname(session_file)
             if not os.path.isdir(dirname):
@@ -1229,11 +1229,11 @@ class UzblTabbed:
         h = open(session_file, 'w')
         h.write(raw)
         h.close()
-        
+
 
     def load_session(self, session_file=None):
         '''Load a saved session from file.'''
-        
+
         default_path = False
         strip = str.strip
         json_session = config['json_session']
@@ -1254,8 +1254,8 @@ class UzblTabbed:
                   "Trying to load it as a non-json session file."\
                   % session_file)
                 json_session = False
-        
-        if json_session: 
+
+        if json_session:
             try:
                 session = json.loads(raw)
                 curtab, tabs = session['curtab'], session['tabs']
@@ -1274,7 +1274,7 @@ class UzblTabbed:
                 error("Warning: The non-json session file %r looks invalid."\
                   % session_file)
                 return None
-            
+
             try:
                 for line in lines:
                     if line.startswith("curtab"):
@@ -1289,20 +1289,20 @@ class UzblTabbed:
                 return None
 
             session = {'curtab': curtab, 'tabs': tabs}
-        
+
         # Now populate notebook with the loaded session.
         for (index, (uri, title)) in enumerate(tabs):
             self.new_tab(uri=uri, title=title, switch=(curtab==index))
 
-        # There may be other state information in the session dict of use to 
-        # other functions. Of course however the non-json session object is 
+        # There may be other state information in the session dict of use to
+        # other functions. Of course however the non-json session object is
         # just a dummy object of no use to no one.
         return session
 
 
     def quitrequest(self, *args):
         '''Called by delete-event signal to kill all uzbl instances.'''
-        
+
         self._killed = True
 
         if config['save_session']:
@@ -1313,7 +1313,7 @@ class UzblTabbed:
                 # Notebook has no pages so delete session file if it exists.
                 if os.path.isfile(config['session_file']):
                     os.remove(config['session_file'])
-        
+
         for (tab, uzbl) in self.tabs.items():
             uzbl.send("exit")
 
@@ -1325,22 +1325,22 @@ class UzblTabbed:
 
     def quit(self, *args):
         '''Cleanup and quit. Called by delete-event signal.'''
-            
-        # Close the fifo socket, remove any gobject io event handlers and 
+
+        # Close the fifo socket, remove any gobject io event handlers and
         # delete socket.
         self.unlink_fifo_socket()
-        
+
         # Remove all gobject timers that are still ticking.
         for (timerid, gid) in self._timers.items():
             source_remove(gid)
             del self._timers[timerid]
-        
+
         try:
             gtk.main_quit()
 
-        except: 
+        except:
             pass
-        
+
 
 if __name__ == "__main__":
 
