@@ -161,18 +161,26 @@ import gobject
 import socket
 import random
 import hashlib
+import atexit
 
+from gobject import io_add_watch, source_remove, timeout_add, IO_IN, IO_HUP 
+from signal import signal, SIGTERM, SIGINT
 from optparse import OptionParser, OptionGroup
 
 pygtk.require('2.0')
 
+_scriptname = os.path.basename(sys.argv[0])
 def error(msg):
-    sys.stderr.write("%s\n"%msg)
+    sys.stderr.write("%s: %s\n" % (_scriptname, msg))
+
+def echo(msg):
+    print "%s: %s" % (_scriptname, msg)
 
 
 # ============================================================================
 # ::: Default configuration section ::::::::::::::::::::::::::::::::::::::::::
 # ============================================================================
+
 
 # Location of your uzbl data directory.
 if 'XDG_DATA_HOME' in os.environ.keys() and os.environ['XDG_DATA_HOME']:
@@ -253,7 +261,7 @@ config = {
   'selected_https':         'foreground = "#fff"',
   'selected_https_text':    'foreground = "gold"',
 
-  } # End of config dict.
+} # End of config dict.
 
 # This is the tab style policy handler. Every time the tablist is updated
 # this function is called to determine how to colourise that specific tab
@@ -423,7 +431,7 @@ class UzblTabbed:
                     self._connected = True
 
                     if timer_call in self.timers.keys():
-                        gobject.source_remove(self.timers[timer_call])
+                        source_remove(self.timers[timer_call])
                         del self.timers[timer_call]
 
                     if self._switch:
@@ -467,7 +475,9 @@ class UzblTabbed:
     def __init__(self):
         '''Create tablist, window and notebook.'''
 
-        self._fifos = {}
+        # Store information about the applications fifo_socket.
+        self._fifo = None
+
         self._timers = {}
         self._buffer = ""
         self._killed = False
@@ -505,7 +515,7 @@ class UzblTabbed:
 
         # Attach main window event handlers
         self.window.connect("delete-event", self.quitrequest)
-
+ 
         # Create tab list
         if config['show_tablist']:
             vbox = gtk.VBox()
@@ -562,61 +572,16 @@ class UzblTabbed:
         self.window.show()
         self.wid = self.notebook.window.xid
 
-        # Create the uzbl_tabbed fifo
+        # Generate the fifo socket filename. 
         fifo_filename = 'uzbltabbed_%d' % os.getpid()
         self.fifo_socket = os.path.join(config['fifo_dir'], fifo_filename)
-        self._create_fifo_socket(self.fifo_socket)
-        self._setup_fifo_watcher(self.fifo_socket)
+
+        # Now initialise the fifo socket at self.fifo_socket
+        self.init_fifo_socket()
         
         # If we are using sessions then load the last one if it exists.
         if config['save_session']:
             self.load_session()
-
-
-    def _create_fifo_socket(self, fifo_socket):
-        '''Create interprocess communication fifo socket.'''
-
-        if os.path.exists(fifo_socket):
-            if not os.access(fifo_socket, os.F_OK | os.R_OK | os.W_OK):
-                os.mkfifo(fifo_socket)
-
-        else:
-            basedir = os.path.dirname(self.fifo_socket)
-            if not os.path.exists(basedir):
-                os.makedirs(basedir)
-
-            os.mkfifo(self.fifo_socket)
-
-        print "Listening on %s" % self.fifo_socket
-
-
-    def _setup_fifo_watcher(self, fifo_socket):
-        '''Open fifo socket fd and setup gobject IO_IN & IO_HUP watchers.
-        Also log the creation of a fd and store the the internal
-        self._watchers dictionary along with the filename of the fd.'''
-
-        if fifo_socket in self._fifos.keys():
-            fd, watchers = self._fifos[fifo_socket]
-            os.close(fd)
-            for (watcherid, gid) in watchers.items():
-                gobject.source_remove(gid)
-                del watchers[watcherid]
-
-            del self._fifos[fifo_socket]
-
-        # Re-open fifo and add listeners.
-        fd = os.open(fifo_socket, os.O_RDONLY | os.O_NONBLOCK)
-        watchers = {}
-        self._fifos[fifo_socket] = (fd, watchers)
-        watcher = lambda key, id: watchers.__setitem__(key, id)
-
-        # Watch for incoming data.
-        gid = gobject.io_add_watch(fd, gobject.IO_IN, self.main_fifo_read)
-        watcher('main-fifo-read', gid)
-
-        # Watch for fifo hangups.
-        gid = gobject.io_add_watch(fd, gobject.IO_HUP, self.main_fifo_hangup)
-        watcher('main-fifo-hangup', gid)
 
 
     def run(self):
@@ -624,18 +589,157 @@ class UzblTabbed:
         
         if not len(self.tabs):
             self.new_tab()
-        
+
         # Update tablist timer
         #timer = "update-tablist"
-        #timerid = gobject.timeout_add(500, self.update_tablist,timer)
+        #timerid = timeout_add(500, self.update_tablist,timer)
         #self._timers[timer] = timerid
 
         # Probe clients every second for window titles and location
         timer = "probe-clients"
-        timerid = gobject.timeout_add(1000, self.probe_clients, timer)
+        timerid = timeout_add(1000, self.probe_clients, timer)
         self._timers[timer] = timerid
 
-        gtk.main()
+        # Make SIGTERM act orderly. 
+        signal(SIGTERM, lambda signum, stack_frame: self.terminate(SIGTERM))
+
+        # Catch keyboard interrupts
+        signal(SIGINT, lambda signum, stack_frame: self.terminate(SIGINT))
+
+        try: 
+            gtk.main()
+
+        except:
+            error("encounted error %r" % sys.exc_info()[1])
+
+            # Unlink fifo socket
+            self.unlink_fifo_socket()
+
+            # Attempt to close all uzbl instances nicely. 
+            self.quitrequest()
+
+            # Allow time for all the uzbl instances to quit.
+            time.sleep(1)
+
+            raise
+
+        
+    def terminate(self, termsig=None):
+        '''Handle termination signals and exit safely and cleanly.'''
+        
+        # Not required but at least it lets the user know what killed his 
+        # browsing session.
+        if termsig == SIGTERM: 
+            error("caught SIGTERM signal")
+
+        elif termsig == SIGINT:
+            error("caught keyboard interrupt")
+        
+        else:
+            error("caught unknown signal")
+
+        error("commencing infanticide!")
+
+        # Sends the exit signal to all uzbl instances.
+        self.quitrequest()
+
+
+    def init_fifo_socket(self):
+        '''Create interprocess communication fifo socket.'''
+
+        if os.path.exists(self.fifo_socket):
+            if not os.access(self.fifo_socket, os.F_OK | os.R_OK | os.W_OK):
+                os.mkfifo(self.fifo_socket)
+
+        else:
+            basedir = os.path.dirname(self.fifo_socket)
+            if not os.path.exists(basedir):
+                os.makedirs(basedir)
+
+            os.mkfifo(self.fifo_socket)
+        
+        # Add event handlers for IO_IN & IO_HUP events.  
+        self.setup_fifo_watchers()
+
+        echo("listening at %r" % self.fifo_socket)
+
+        # Add atexit register to destroy the socket on program termination.
+        atexit.register(self.unlink_fifo_socket)
+
+
+    def unlink_fifo_socket(self):
+        '''Unlink the fifo socket. Note: This function is called automatically
+        on exit by an atexit register.'''
+        
+        # Make sure the fifo_socket fd is closed.
+        self.close_fifo()
+
+        # And unlink if the real fifo_socket exists.
+        if os.path.exists(self.fifo_socket):
+            os.unlink(self.fifo_socket)
+            echo("unlinked %r" % self.fifo_socket)
+
+   
+    def close_fifo(self):
+        '''Remove all event handlers watching the fifo and close the fd.'''
+        
+        # Already closed
+        if self._fifo is None: return
+
+        (fd, watchers) = self._fifo
+        os.close(fd)
+
+        # Stop all gobject io watchers watching the fifo.
+        for gid in watchers:
+            source_remove(gid)
+
+        self._fifo = None
+
+
+    def setup_fifo_watchers(self):
+        '''Open fifo socket fd and setup gobject IO_IN & IO_HUP event
+        handlers.'''
+
+        # Close currently open fifo_socket fd and kill all watchers
+        self.close_fifo()
+
+        fd = os.open(self.fifo_socket, os.O_RDONLY | os.O_NONBLOCK)
+
+        # Add gobject io event handlers to the fifo socket. 
+        watchers = [io_add_watch(fd, IO_IN, self.main_fifo_read),\
+          io_add_watch(fd, IO_HUP, self.main_fifo_hangup)]
+
+        self._fifo = (fd, watchers)
+
+
+    def main_fifo_hangup(self, fd, cb_condition):
+        '''Handle main fifo socket hangups.'''
+
+        # Close old fd, open new fifo socket and add io event handlers.
+        self.setup_fifo_watchers()
+
+        # Kill the gobject event handler calling this handler function.
+        return False
+
+
+    def main_fifo_read(self, fd, cb_condition):
+        '''Read from main fifo socket.'''
+
+        self._buffer = os.read(fd, 1024)
+        temp = self._buffer.split("\n")
+        self._buffer = temp.pop()
+        cmds = [s.strip().split() for s in temp if len(s.strip())]
+
+        for cmd in cmds:
+            try:
+                #print cmd
+                self.parse_command(cmd)
+
+            except:
+                error("parse_command: invalid command %s" % ' '.join(cmd))
+                raise
+
+        return True
 
 
     def probe_clients(self, timer_call):
@@ -671,36 +775,6 @@ class UzblTabbed:
                 except:
                     error("parse_command: invalid command %s" % ' '.join(cmd))
                     raise
-
-        return True
-
-
-    def main_fifo_hangup(self, fd, cb_condition):
-        '''Handle main fifo socket hangups.'''
-
-        # Close fd, re-open fifo_socket and watch.
-        self._setup_fifo_watcher(self.fifo_socket)
-
-        # And to kill any gobject event handlers calling this function:
-        return False
-
-
-    def main_fifo_read(self, fd, cb_condition):
-        '''Read from main fifo socket.'''
-
-        self._buffer = os.read(fd, 1024)
-        temp = self._buffer.split("\n")
-        self._buffer = temp.pop()
-        cmds = [s.strip().split() for s in temp if len(s.strip())]
-
-        for cmd in cmds:
-            try:
-                #print cmd
-                self.parse_command(cmd)
-
-            except:
-                error("parse_command: invalid command %s" % ' '.join(cmd))
-                raise
 
         return True
 
@@ -778,7 +852,8 @@ class UzblTabbed:
                     new = ' '.join(cmd[2:])
                     setattr(uzbl, cmd[0], new)
                     if old != new:
-                       self.update_tablist()
+                        self.update_tablist()
+
                 else:
                     error("parse_command: no uzbl with pid %r" % int(cmd[1]))
 
@@ -875,7 +950,7 @@ class UzblTabbed:
 
         # Add gobject timer to make sure the config is pushed when fifo socket
         # has been created.
-        timerid = gobject.timeout_add(100, uzbl.flush, "flush-initial-config")
+        timerid = timeout_add(100, uzbl.flush, "flush-initial-config")
         uzbl.timers['flush-initial-config'] = timerid
 
         self.update_tablist()
@@ -918,8 +993,6 @@ class UzblTabbed:
         bind(config['bind_goto_first'], 'goto 0')
         bind(config['bind_goto_last'], 'goto -1')
         bind(config['bind_clean_slate'], 'clean')
-
-        # session preset binds
         bind(config['bind_save_preset'], 'preset save %s')
         bind(config['bind_load_preset'], 'preset load %s')
         bind(config['bind_del_preset'], 'preset del %s')
@@ -1019,7 +1092,7 @@ class UzblTabbed:
             uzbl = self.tabs[tab]
             for (timer, gid) in uzbl.timers.items():
                 error("tab_closed: removing timer %r" % timer)
-                gobject.source_remove(gid)
+                source_remove(gid)
                 del uzbl.timers[timer]
 
             if uzbl._socket:
@@ -1040,7 +1113,7 @@ class UzblTabbed:
                     self.save_session(session=d)
 
             self.quit()
-
+        
         self.update_tablist()
 
         return True
@@ -1230,9 +1303,6 @@ class UzblTabbed:
     def quitrequest(self, *args):
         '''Called by delete-event signal to kill all uzbl instances.'''
         
-        #TODO: Even though I send the kill request to all uzbl instances 
-        # i should add a gobject timeout to check they all die.
-
         self._killed = True
 
         if config['save_session']:
@@ -1241,34 +1311,36 @@ class UzblTabbed:
 
             else:
                 # Notebook has no pages so delete session file if it exists.
-                if os.path.isfile(session_file):
-                    os.remove(session_file)
+                if os.path.isfile(config['session_file']):
+                    os.remove(config['session_file'])
         
         for (tab, uzbl) in self.tabs.items():
             uzbl.send("exit")
-    
-        
+
+        # Add a gobject timer to make sure the application force-quits after a period.
+        timer = "force-quit"
+        timerid = timeout_add(5000, self.quit, timer)
+        self._timers[timer] = timerid
+
+
     def quit(self, *args):
-        '''Cleanup the application and quit. Called by delete-event signal.'''
+        '''Cleanup and quit. Called by delete-event signal.'''
+            
+        # Close the fifo socket, remove any gobject io event handlers and 
+        # delete socket.
+        self.unlink_fifo_socket()
         
-        for (fifo_socket, (fd, watchers)) in self._fifos.items():
-            os.close(fd)
-            for (watcherid, gid) in watchers.items():
-                gobject.source_remove(gid)
-                del watchers[watcherid]
-
-            del self._fifos[fifo_socket]
-
+        # Remove all gobject timers that are still ticking.
         for (timerid, gid) in self._timers.items():
-            gobject.source_remove(gid)
+            source_remove(gid)
             del self._timers[timerid]
+        
+        try:
+            gtk.main_quit()
 
-        if os.path.exists(self.fifo_socket):
-            os.unlink(self.fifo_socket)
-            print "Unlinked %s" % self.fifo_socket
-
-        gtk.main_quit()
-
+        except: 
+            pass
+        
 
 if __name__ == "__main__":
 
