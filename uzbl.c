@@ -417,10 +417,12 @@ expand(const char *s, guint recurse) {
 
 /* send events as strings over any of our interfaces 
  *
- * TODO: also use an output fifo and the socket
- *       probably we also want a variable/CL option
- *       that specifies wether to send events and through 
- *       which interface to send them
+ * TODO: - also use an output fifo and the socket
+ *       - probably we also want a variable/CL option
+ *         that specifies wether to send events and through 
+ *         which interface to send them
+ *       - let the user select which event types
+ *         to report
 */
 void
 send_event(int type, const gchar *details) {
