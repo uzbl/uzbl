@@ -141,8 +141,10 @@ typedef struct {
     guint    html_timeout;
     gboolean print_version;
 
-    /* command list: name -> Command  */
+    /* command list: (key)name -> (value)Command  */
     GHashTable* commands;
+    /* event lookup: (key)event_id -> (value)event_name */
+    GHashTable *event_lookup;
 } Behaviour;
 
 /* javascript */
@@ -185,8 +187,18 @@ typedef struct {
 
 typedef void sigfunc(int);
 
-/* XDG Stuff */
+/* Event system */
+enum event_type {
+    LOAD_START, LOAD_COMMIT, LOAD_FINISH, LOAD_ERROR,
+    KEYPRESS, DOWNLOAD_REQ, COMMAND_EXECUTED,
+    LINK_HOVER, TITLE_CHANGED, GEOMETRY_CHANGED, 
+    WEBINSPECTOR, COOKIE, NEW_WINDOW,
+    
+    /* must be last entry */
+    LAST_EVENT
+};
 
+/* XDG Stuff */
 typedef struct {
     gchar* environmental;
     gchar* default_value;

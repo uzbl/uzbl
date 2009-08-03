@@ -194,6 +194,29 @@ const struct var_name_to_ptr_t {
     { NULL,                     {.ptr.s = NULL, .type = TYPE_INT, .dump = 0, .writeable = 0, .func = NULL}}
 };
 
+/* Event id to name mapping
+ * Event names must be in the same 
+ * order as in 'enum event_type'
+ *
+ * TODO: Add more useful events
+*/
+const char *event_table[LAST_EVENT] = {
+     "LOAD_START"       , 
+     "LOAD_COMMIT"      , 
+     "LOAD_FINISH"      , 
+     "LOAD_ERROR"       , 
+     "KEYPRESS"         , 
+     "DOWNLOAD_REQUEST" , 
+     "COMMAND_EXECUTED" ,
+     "LINK_HOVER"       ,
+     "TITLE_CHANGED"    ,
+     "GEOMETRY_CHANGED" ,
+     "WEBINSPECTOR"     ,
+     "COOKIE"           ,
+     "NEW_WINDOW"       ,
+
+};
+
 
 const struct {
     /*@null@*/ char *key;
@@ -221,7 +244,7 @@ const struct {
 
 /* construct a hash from the var_name_to_ptr array for quick access */
 void
-make_var_to_name_hash() {
+create_var_to_name_hash() {
     const struct var_name_to_ptr_t *n2v_p = var_name_to_ptr;
     uzbl.comm.proto_var = g_hash_table_new(g_str_hash, g_str_equal);
     while(n2v_p->name) {
@@ -231,6 +254,7 @@ make_var_to_name_hash() {
         n2v_p++;
     }
 }
+
 
 /* --- UTILITY FUNCTIONS --- */
 enum exp_type {EXP_ERR, EXP_SIMPLE_VAR, EXP_BRACED_VAR, EXP_EXPR, EXP_JS, EXP_ESCAPE};
@@ -255,7 +279,7 @@ return EXP_ERR;
 /*
  * recurse == 1: don't expand '@(command)@'
  * recurse == 2: don't expand '@<java script>@'
- */
+*/
 gchar *
 expand(const char *s, guint recurse) {
     uzbl_cmdprop *c;
@@ -389,6 +413,22 @@ expand(const char *s, guint recurse) {
     }
     g_string_free(js_ret, TRUE);
     return g_string_free(buf, FALSE);
+}
+
+/* send events as strings over any of our interfaces 
+ *
+ * TODO: also use an output fifo and the socket
+ *       probably we also want a variable/CL option
+ *       that specifies wether to send events and through 
+ *       which interface to send them
+*/
+void
+send_event(int type, const gchar *details) {
+
+    if(type < LAST_EVENT) {
+        printf("%s [%s] %s\n", event_table[type], uzbl.state.instance_name, details);
+        fflush(stdout);
+    }
 }
 
 char *
@@ -547,6 +587,7 @@ new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequ
     if (uzbl.state.verbose)
         printf("New window requested -> %s \n", uri);
     webkit_web_policy_decision_use(policy_decision);
+    send_event(NEW_WINDOW, uri);
     return TRUE;
 }
 
@@ -594,6 +635,7 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
         /* if urls not escaped, we may have to escape and quote uri before this call */
         run_handler(uzbl.behave.download_handler, uri);
     }
+    send_event(DOWNLOAD_REQ, webkit_download_get_uri ((WebKitDownload*)download));
     return (FALSE);
 }
 
@@ -703,6 +745,7 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
     uzbl.state.selected_url = NULL;
     if (link) {
         uzbl.state.selected_url = g_strdup(link);
+        send_event(LINK_HOVER, uzbl.state.selected_url);
     }
     update_title();
 }
@@ -716,6 +759,7 @@ title_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
         g_free (uzbl.gui.main_title);
     uzbl.gui.main_title = title ? g_strdup (title) : g_strdup ("(no title)");
     update_title();
+    send_event(TITLE_CHANGED, uzbl.gui.main_title);
 }
 
 void
@@ -733,10 +777,12 @@ progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
 void
 load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) page;
-    (void) frame;
     (void) data;
+
     if (uzbl.behave.load_finish_handler)
         run_handler(uzbl.behave.load_finish_handler, "");
+
+    send_event(LOAD_FINISH, webkit_web_frame_get_uri(frame));
 }
 
 void clear_keycmd() {
@@ -753,6 +799,21 @@ load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     clear_keycmd(); // don't need old commands to remain on new page?
     if (uzbl.behave.load_start_handler)
         run_handler(uzbl.behave.load_start_handler, "");
+
+    send_event(LOAD_START, uzbl.state.uri);
+}
+
+void
+load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer web_err, gpointer ud) {
+    (void) page;
+    (void) frame;
+    (void) ud;
+    GError *err = web_err;
+    gchar *details;
+
+    details = g_strdup_printf("%s %d:%s", uri, err->code, err->message);
+    send_event(LOAD_ERROR, details);
+    g_free(details);
 }
 
 void
@@ -768,6 +829,9 @@ load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     }
     if (uzbl.behave.load_commit_handler)
         run_handler(uzbl.behave.load_commit_handler, uzbl.state.uri);
+
+    /* event message */
+    send_event(LOAD_COMMIT, webkit_web_frame_get_uri (frame));
 }
 
 void
@@ -1163,6 +1227,7 @@ new_window_load_uri (const gchar * uri) {
         GString *s = g_string_new ("");
         g_string_printf(s, "'%s'", uri);
         run_handler(uzbl.behave.new_window, s->str);
+        send_event(NEW_WINDOW, s->str);
         return;
     }
     GString* to_execute = g_string_new ("");
@@ -1179,6 +1244,7 @@ new_window_load_uri (const gchar * uri) {
     if (uzbl.state.verbose)
         printf("\n%s\n", to_execute->str);
     g_spawn_command_line_async (to_execute->str, NULL);
+    send_event(NEW_WINDOW, to_execute->str);
     g_string_free (to_execute, TRUE);
 }
 
@@ -2229,6 +2295,7 @@ configure_event_cb(GtkWidget* window, GdkEventConfigure* event) {
     (void) event;
 
     retrieve_geometry();
+    send_event(GEOMETRY_CHANGED, uzbl.gui.geometry);  
     return FALSE;
 }
 
@@ -2238,6 +2305,9 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
     //TRUE to stop other handlers from being invoked for the event. FALSE to propagate the event further.
 
     (void) window;
+
+    if(event->type == GDK_KEY_PRESS)
+        send_event(KEYPRESS, gdk_keyval_name(event->keyval) );
 
     if (event->type   != GDK_KEY_PRESS ||
         event->keyval == GDK_Page_Up   ||
@@ -2309,11 +2379,18 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
 
 void
 run_keycmd(const gboolean key_ret) {
+    
     /* run the keycmd immediately if it isn't incremental and doesn't take args */
     Action *act;
+    gchar *tmp;
+
     if ((act = g_hash_table_lookup(uzbl.bindings, uzbl.state.keycmd))) {
         clear_keycmd();
         parse_command(act->name, act->param, NULL);
+
+        tmp = g_strdup_printf("%s %s", act->name, act->param?act->param:"");
+        send_event(COMMAND_EXECUTED, tmp);
+        g_free(tmp);
         return;
     }
 
@@ -2332,11 +2409,19 @@ run_keycmd(const gboolean key_ret) {
             /* run normal cmds only if return was pressed */
             exec_paramcmd(act, i);
             clear_keycmd();
+            tmp = g_strdup_printf("%s %s", act->name, act->param?act->param:"");
+            send_event(COMMAND_EXECUTED, tmp);
+            g_free(tmp);
             break;
         } else if ((act = g_hash_table_lookup(uzbl.bindings, short_keys_inc->str))) {
             if (key_ret)  /* just quit the incremental command on return */
                 clear_keycmd();
-            else exec_paramcmd(act, i); /* otherwise execute the incremental */
+            else {
+                exec_paramcmd(act, i); /* otherwise execute the incremental */
+                tmp = g_strdup_printf("%s %s", act->name, act->param?act->param:"");
+                send_event(COMMAND_EXECUTED, tmp);
+                g_free(tmp);
+            }
             break;
         }
 
@@ -2375,6 +2460,7 @@ create_browser () {
     g_signal_connect (G_OBJECT (g->web_view), "load-started", G_CALLBACK (load_start_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-finished", G_CALLBACK (log_history_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-finished", G_CALLBACK (load_finish_cb), g->web_view);
+    g_signal_connect (G_OBJECT (g->web_view), "load-error", G_CALLBACK (load_error_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "new-window-policy-decision-requested", G_CALLBACK (new_window_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "download-requested", G_CALLBACK (download_cb), g->web_view);
@@ -2646,11 +2732,13 @@ void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer user_data)
     SoupURI * soup_uri = soup_message_get_uri(msg);
     g_string_printf(s, "GET '%s' '%s' '%s'", soup_uri->scheme, soup_uri->host, soup_uri->path);
     run_handler(uzbl.behave.cookie_handler, s->str);
+    send_event(COOKIE, s->str);
 
     if(uzbl.comm.sync_stdout && strcmp (uzbl.comm.sync_stdout, "") != 0) {
         char *p = strchr(uzbl.comm.sync_stdout, '\n' );
         if ( p != NULL ) *p = '\0';
         soup_message_headers_replace (msg->request_headers, "Cookie", (const char *) uzbl.comm.sync_stdout);
+
     }
     if (uzbl.comm.sync_stdout)
         uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
@@ -2716,6 +2804,8 @@ gboolean
 inspector_show_window_cb (WebKitWebInspector* inspector){
     (void) inspector;
     gtk_widget_show(uzbl.gui.inspector_window);
+
+    send_event(WEBINSPECTOR, "open");
     return TRUE;
 }
 
@@ -2723,6 +2813,7 @@ inspector_show_window_cb (WebKitWebInspector* inspector){
 gboolean
 inspector_close_window_cb (WebKitWebInspector* inspector){
     (void) inspector;
+    send_event(WEBINSPECTOR, "close");
     return TRUE;
 }
 
@@ -2868,7 +2959,7 @@ initialize(int argc, char *argv[]) {
     uzbl.info.commit       = COMMIT;
 
     commands_hash ();
-    make_var_to_name_hash();
+    create_var_to_name_hash();
 
     create_browser();
 }
