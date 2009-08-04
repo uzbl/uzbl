@@ -214,6 +214,7 @@ const char *event_table[LAST_EVENT] = {
      "WEBINSPECTOR"     ,
      "COOKIE"           ,
      "NEW_WINDOW"       ,
+     "SELECTION_CHANGED",
 
 };
 
@@ -774,6 +775,17 @@ progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
     uzbl.gui.sbar.progress_bar = build_progressbar_ascii(uzbl.gui.sbar.load_progress);
 
     update_title();
+}
+
+void
+selection_changed_cb(WebKitWebView *webkitwebview, gpointer ud) {
+    (void)ud;
+    gchar *tmp;
+
+    webkit_web_view_copy_clipboard(webkitwebview);
+    tmp = gtk_clipboard_wait_for_text(gtk_clipboard_get (GDK_SELECTION_CLIPBOARD));
+    send_event(SELECTION_CHANGED, tmp);
+    g_free(tmp);
 }
 
 void
@@ -2458,6 +2470,7 @@ create_browser () {
     g->web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
 
     g_signal_connect (G_OBJECT (g->web_view), "notify::title", G_CALLBACK (title_change_cb), NULL);
+    g_signal_connect (G_OBJECT (g->web_view), "selection-changed", G_CALLBACK (selection_changed_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-progress-changed", G_CALLBACK (progress_change_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-committed", G_CALLBACK (load_commit_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-started", G_CALLBACK (load_start_cb), g->web_view);
@@ -2727,17 +2740,19 @@ settings_init () {
 void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer user_data){
     (void) session;
     (void) user_data;
-    if (!uzbl.behave.cookie_handler)
-         return;
+    //if (!uzbl.behave.cookie_handler)
+    //     return;
 
     soup_message_add_header_handler(msg, "got-headers", "Set-Cookie", G_CALLBACK(save_cookies), NULL);
     GString *s = g_string_new ("");
     SoupURI * soup_uri = soup_message_get_uri(msg);
     g_string_printf(s, "GET '%s' '%s' '%s'", soup_uri->scheme, soup_uri->host, soup_uri->path);
-    run_handler(uzbl.behave.cookie_handler, s->str);
+    if(uzbl.behave.cookie_handler)
+        run_handler(uzbl.behave.cookie_handler, s->str);
     send_event(COOKIE, s->str);
 
-    if(uzbl.comm.sync_stdout && strcmp (uzbl.comm.sync_stdout, "") != 0) {
+    if(uzbl.behave.cookie_handler &&
+            uzbl.comm.sync_stdout && strcmp (uzbl.comm.sync_stdout, "") != 0) {
         char *p = strchr(uzbl.comm.sync_stdout, '\n' );
         if ( p != NULL ) *p = '\0';
         soup_message_headers_replace (msg->request_headers, "Cookie", (const char *) uzbl.comm.sync_stdout);

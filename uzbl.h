@@ -192,7 +192,7 @@ enum event_type {
     LOAD_START, LOAD_COMMIT, LOAD_FINISH, LOAD_ERROR,
     KEYPRESS, DOWNLOAD_REQ, COMMAND_EXECUTED,
     LINK_HOVER, TITLE_CHANGED, GEOMETRY_CHANGED, 
-    WEBINSPECTOR, COOKIE, NEW_WINDOW,
+    WEBINSPECTOR, COOKIE, NEW_WINDOW, SELECTION_CHANGED,
     
     /* must be last entry */
     LAST_EVENT
@@ -276,6 +276,9 @@ load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
 
 void
 load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
+
+void
+selection_changed_cb(WebKitWebView *webkitwebview, gpointer ud);
 
 void
 destroy_cb (GtkWidget* widget, gpointer data);
