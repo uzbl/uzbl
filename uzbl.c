@@ -2775,6 +2775,7 @@ save_cookies (SoupMessage *msg, gpointer user_data){
         GString *s = g_string_new ("");
         g_string_printf(s, "PUT '%s' '%s' '%s' '%s'", soup_uri->scheme, soup_uri->host, soup_uri->path, cookie);
         run_handler(uzbl.behave.cookie_handler, s->str);
+        send_event(COOKIE, s->str);
         g_free (cookie);
         g_string_free(s, TRUE);
     }
