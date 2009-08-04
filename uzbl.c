@@ -1246,6 +1246,7 @@ new_window_load_uri (const gchar * uri) {
     if (uzbl.state.verbose)
         printf("\n%s\n", to_execute->str);
     g_spawn_command_line_async (to_execute->str, NULL);
+    /* TODO: should we just report the uri as event detail? */
     send_event(NEW_WINDOW, to_execute->str);
     g_string_free (to_execute, TRUE);
 }
