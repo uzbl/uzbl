@@ -215,7 +215,6 @@ const char *event_table[LAST_EVENT] = {
      "COOKIE"           ,
      "NEW_WINDOW"       ,
      "SELECTION_CHANGED",
-
 };
 
 
