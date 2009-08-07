@@ -134,11 +134,8 @@ typedef struct {
     guint    caret_browsing;
     guint    mode;
     gchar*   base_url;
-    gchar*   html_endmarker;
     gchar*   insert_indicator;
     gchar*   cmd_indicator;
-    GString* html_buffer;
-    guint    html_timeout;
     gboolean print_version;
 
     /* command list: name -> Command  */
@@ -449,9 +446,6 @@ act_bind(WebKitWebView *page, GArray *argv, GString *result);
 
 void
 act_dump_config();
-
-void
-render_html();
 
 void
 set_timeout(int seconds);

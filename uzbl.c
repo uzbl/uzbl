@@ -115,11 +115,8 @@ const struct var_name_to_ptr_t {
 /*  ---------------------------------------------------------------------------------------------- */
     { "uri",                    PTR_V_STR(uzbl.state.uri,                       1,   cmd_load_uri)},
     { "verbose",                PTR_V_INT(uzbl.state.verbose,                   1,   NULL)},
-    { "mode",                   PTR_V_INT(uzbl.behave.mode,                     0,   NULL)},
     { "inject_html",            PTR_V_STR(uzbl.behave.inject_html,              0,   cmd_inject_html)},
     { "base_url",               PTR_V_STR(uzbl.behave.base_url,                 1,   NULL)},
-    { "html_endmarker",         PTR_V_STR(uzbl.behave.html_endmarker,           1,   NULL)},
-    { "html_mode_timeout",      PTR_V_INT(uzbl.behave.html_timeout,             1,   NULL)},
     { "keycmd",                 PTR_V_STR(uzbl.state.keycmd,                    1,   set_keycmd)},
     { "status_message",         PTR_V_STR(uzbl.gui.sbar.msg,                    1,   update_title)},
     { "show_status",            PTR_V_INT(uzbl.behave.show_status,              1,   cmd_set_status)},
@@ -496,20 +493,6 @@ clean_up(void) {
     g_hash_table_destroy(uzbl.behave.commands);
 }
 
-/* used for html_mode_timeout
- * be sure to extend this function to use
- * more timers if needed in other places
-*/
-void
-set_timeout(int seconds) {
-    struct itimerval t;
-    memset(&t, 0, sizeof t);
-
-    t.it_value.tv_sec =  seconds;
-    t.it_value.tv_usec = 0;
-    setitimer(ITIMER_REAL, &t, NULL);
-}
-
 /* --- SIGNAL HANDLER --- */
 
 void
@@ -524,15 +507,6 @@ catch_sigint(int s) {
     clean_up();
     exit(EXIT_SUCCESS);
 }
-
-void
-catch_alrm(int s) {
-    (void) s;
-
-    set_var_value("mode", "0");
-    render_html();
-}
-
 
 /* --- CALLBACKS --- */
 
@@ -1920,40 +1894,12 @@ set_var_value(const gchar *name, gchar *val) {
     return TRUE;
 }
 
-void
-render_html() {
-    Behaviour *b = &uzbl.behave;
-
-    if(b->html_buffer->str) {
-        webkit_web_view_load_html_string (uzbl.gui.web_view,
-                b->html_buffer->str, b->base_url);
-        g_string_free(b->html_buffer, TRUE);
-        b->html_buffer = g_string_new("");
-    }
-}
-
 enum {M_CMD, M_HTML};
 void
 parse_cmd_line(const char *ctl_line, GString *result) {
-    Behaviour *b = &uzbl.behave;
     size_t len=0;
 
-    if(b->mode == M_HTML) {
-        len = strlen(b->html_endmarker);
-        /* ctl_line has trailing '\n' so we check for strlen(ctl_line)-1 */
-        if(len == strlen(ctl_line)-1 &&
-           !strncmp(b->html_endmarker, ctl_line, len)) {
-            set_timeout(0);
-            set_var_value("mode", "0");
-            render_html();
-            return;
-        }
-        else {
-            set_timeout(b->html_timeout);
-            g_string_append(b->html_buffer, ctl_line);
-        }
-    }
-    else if((ctl_line[0] == '#') /* Comments */
+    if((ctl_line[0] == '#') /* Comments */
             || (ctl_line[0] == ' ')
             || (ctl_line[0] == '\n'))
         ; /* ignore these lines */
@@ -2844,18 +2790,10 @@ initialize(int argc, char *argv[]) {
         fprintf(stderr, "uzbl: error hooking SIGTERM\n");
     if(setup_signal(SIGINT, catch_sigint) == SIG_ERR)
         fprintf(stderr, "uzbl: error hooking SIGINT\n");
-    if(setup_signal(SIGALRM, catch_alrm) == SIG_ERR)
-        fprintf(stderr, "uzbl: error hooking SIGALARM\n");
 
     uzbl.gui.sbar.progress_s = g_strdup("="); //TODO: move these to config.h
     uzbl.gui.sbar.progress_u = g_strdup("·");
     uzbl.gui.sbar.progress_w = 10;
-
-    /* HTML mode defaults*/
-    uzbl.behave.html_buffer = g_string_new("");
-    uzbl.behave.html_endmarker = g_strdup(".");
-    uzbl.behave.html_timeout = 60;
-    uzbl.behave.base_url = g_strdup("http://invalid");
 
     /* default mode indicators */
     uzbl.behave.insert_indicator = g_strdup("I");
