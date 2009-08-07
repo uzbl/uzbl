@@ -448,9 +448,6 @@ void
 act_dump_config();
 
 void
-set_timeout(int seconds);
-
-void
 dump_var_hash(gpointer k, gpointer v, gpointer ud);
 
 void
