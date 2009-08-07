@@ -116,7 +116,6 @@ const struct var_name_to_ptr_t {
     { "uri",                    PTR_V_STR(uzbl.state.uri,                       1,   cmd_load_uri)},
     { "verbose",                PTR_V_INT(uzbl.state.verbose,                   1,   NULL)},
     { "inject_html",            PTR_V_STR(uzbl.behave.inject_html,              0,   cmd_inject_html)},
-    { "base_url",               PTR_V_STR(uzbl.behave.base_url,                 1,   NULL)},
     { "keycmd",                 PTR_V_STR(uzbl.state.keycmd,                    1,   set_keycmd)},
     { "status_message",         PTR_V_STR(uzbl.gui.sbar.msg,                    1,   update_title)},
     { "show_status",            PTR_V_INT(uzbl.behave.show_status,              1,   cmd_set_status)},
