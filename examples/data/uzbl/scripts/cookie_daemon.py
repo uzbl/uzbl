@@ -29,8 +29,6 @@
 #  - add {start|stop|restart} command line arguments to make the cookie_daemon
 #    functionally similar to the daemons found in /etc/init.d/ (in gentoo)
 #    or /etc/rc.d/ (in arch).
-#  - Add option to create a throwaway cookie jar in /tmp and delete it upon
-#    closing the daemon.
 
 
 import cookielib
@@ -242,22 +240,24 @@ class CookieMonster:
         '''Open the cookie jar.'''
 
         cookie_jar = config['cookie_jar']
-        mkbasedir(cookie_jar)
+        if config['cookie_jar']:
+            mkbasedir(cookie_jar)
 
         # Create cookie jar object from file.
         self.jar = cookielib.MozillaCookieJar(cookie_jar)
 
-        try:
-            # Attempt to load cookies from the cookie jar.
-            self.jar.load(ignore_discard=True)
+        if config['cookie_jar']:
+            try:
+                # Attempt to load cookies from the cookie jar.
+                self.jar.load(ignore_discard=True)
 
-            # Ensure restrictive permissions are set on the cookie jar
-            # to prevent other users on the system from hi-jacking your
-            # authenticated sessions simply by copying your cookie jar.
-            os.chmod(cookie_jar, 0600)
+                # Ensure restrictive permissions are set on the cookie jar
+                # to prevent other users on the system from hi-jacking your
+                # authenticated sessions simply by copying your cookie jar.
+                os.chmod(cookie_jar, 0600)
 
-        except:
-            pass
+            except:
+                pass
 
 
     def create_socket(self):
@@ -358,7 +358,8 @@ class CookieMonster:
             res = urllib2.addinfourl(StringIO.StringIO(), hdr,\
               req.get_full_url())
             self.jar.extract_cookies(res,req)
-            self.jar.save(ignore_discard=True)
+            if config['cookie_jar']:
+                self.jar.save(ignore_discard=True)
 
         if print_cookie: print
 
@@ -412,6 +413,9 @@ if __name__ == "__main__":
     parser.add_option('-j', '--cookie-jar', dest='cookie_jar',\
       metavar="FILE", help="manually specify the cookie jar location.")
 
+    parser.add_option('-m', '--memory', dest='memory', action='store_true',
+            help="store cookies in memory only - do not write to disk")
+
     (options, args) = parser.parse_args()
 
     if options.verbose:
@@ -430,6 +434,10 @@ if __name__ == "__main__":
         echo("using cookie_jar %r" % options.cookie_jar)
         config['cookie_jar'] = options.cookie_jar
 
+    if options.memory:
+        echo("using memory %r" % options.memory)
+        config['cookie_jar'] = None
+
     if options.daemon_timeout:
         try:
             config['daemon_timeout'] = int(options.daemon_timeout)
@@ -441,6 +449,7 @@ if __name__ == "__main__":
             sys.exit(1)
 
     for key in ['cookie_socket', 'cookie_jar']:
-        config[key] = os.path.expandvars(config[key])
+        if config[key]:
+            config[key] = os.path.expandvars(config[key])
 
     CookieMonster().run()
