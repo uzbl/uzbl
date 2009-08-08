@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# For configuration and cookie daemon usage examples check out the the 
+# For configuration and cookie daemon usage examples check out the the
 # cookie daemon wiki page at http://www.uzbl.org/wiki/cookie_daemon.py
 #
 # Issues:
@@ -240,13 +240,13 @@ class CookieMonster:
         '''Open the cookie jar.'''
 
         cookie_jar = config['cookie_jar']
-        if config['cookie_jar']:
+        if cookie_jar:
             mkbasedir(cookie_jar)
 
         # Create cookie jar object from file.
         self.jar = cookielib.MozillaCookieJar(cookie_jar)
 
-        if config['cookie_jar']:
+        if cookie_jar:
             try:
                 # Attempt to load cookies from the cookie jar.
                 self.jar.load(ignore_discard=True)
@@ -414,7 +414,7 @@ if __name__ == "__main__":
       metavar="FILE", help="manually specify the cookie jar location.")
 
     parser.add_option('-m', '--memory', dest='memory', action='store_true',
-            help="store cookies in memory only - do not write to disk")
+      help="store cookies in memory only - do not write to disk")
 
     (options, args) = parser.parse_args()
 
@@ -423,7 +423,7 @@ if __name__ == "__main__":
         echo("verbose mode on.")
 
     if options.no_daemon:
-        echo("daemon mode off")
+        echo("daemon mode off.")
         config['daemon_mode'] = False
 
     if options.cookie_socket:
@@ -448,6 +448,7 @@ if __name__ == "__main__":
             echo("fatal error: expected int argument for --daemon-timeout")
             sys.exit(1)
 
+    # Expand $VAR's in config keys that relate to paths.
     for key in ['cookie_socket', 'cookie_jar']:
         if config[key]:
             config[key] = os.path.expandvars(config[key])
