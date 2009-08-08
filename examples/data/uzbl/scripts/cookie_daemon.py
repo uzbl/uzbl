@@ -21,8 +21,6 @@
 
 # Issues:
 #  - There is no easy way of stopping a running daemon.
-#  - Some users experience the broken pipe socket error seemingly randomly.
-#    Currently when a broken pipe error is received the daemon fatally fails.
 
 
 # Todo list:
@@ -30,7 +28,6 @@
 #  - add {start|stop|restart} command line arguments to make the cookie_daemon
 #    functionally similar to the daemons found in /etc/init.d/ (in gentoo)
 #    or /etc/rc.d/ (in arch).
-#  - Recover from broken pipe socket errors.
 #  - Add option to create a throwaway cookie jar in /tmp and delete it upon
 #    closing the daemon.
 
@@ -43,6 +40,7 @@ import select
 import socket
 import time
 import atexit
+from traceback import print_exc
 from signal import signal, SIGTERM
 from optparse import OptionParser
 
@@ -83,8 +81,7 @@ config = {
   # Set to 0 by default until talk_to_socket is doing the spawning.
   'daemon_timeout': 0,
 
-  # Enable/disable daemonizing the process (useful when debugging).
-  # Set to False by default until talk_to_socket is doing the spawning.
+  # Tell process to daemonise
   'daemon_mode': True,
 
   # Set true to print helpful debugging messages to the terminal.
@@ -122,6 +119,7 @@ class CookieMonster:
         self.server_socket = None
         self.jar = None
         self.last_request = time.time()
+        self._running = False
 
 
     def run(self):
@@ -144,26 +142,36 @@ class CookieMonster:
         # Make SIGTERM act orderly.
         signal(SIGTERM, lambda signum, stack_frame: sys.exit(1))
 
-        # Create cookie daemon socket.
-        self.create_socket()
-
         # Create cookie jar object from file.
         self.open_cookie_jar()
 
-        try:
-            # Listen for incoming cookie puts/gets.
-            echo("listening on %r" % config['cookie_socket'])
-            self.listen()
+        # Creating a way to exit nested loops by setting a running flag.
+        self._running = True
 
-        except KeyboardInterrupt:
-            print
+        while self._running:
+            # Create cookie daemon socket.
+            self.create_socket()
 
-        except:
-            # Clean up
+            try:
+                # Enter main listen loop.
+                self.listen()
+
+            except KeyboardInterrupt:
+                self._running = False
+                print
+
+            except socket.error:
+                print_exc()
+
+            except:
+                # Clean up
+                self.del_socket()
+
+                # Raise exception
+                raise
+
+            # Always delete the socket before calling create again.
             self.del_socket()
-
-            # Raise exception
-            raise
 
 
     def reclaim_socket(self):
@@ -275,7 +283,9 @@ class CookieMonster:
     def listen(self):
         '''Listen for incoming cookie PUT and GET requests.'''
 
-        while True:
+        echo("listening on %r" % config['cookie_socket'])
+
+        while self._running:
             # This line tells the socket how many pending incoming connections
             # to enqueue. I haven't had any broken pipe errors so far while
             # using the non-obvious value of 1 under heavy load conditions.
@@ -289,7 +299,8 @@ class CookieMonster:
 
             if config['daemon_timeout']:
                 idle = time.time() - self.last_request
-                if idle > config['daemon_timeout']: break
+                if idle > config['daemon_timeout']:
+                    self._running = False
 
 
     def handle_request(self, client_socket):
@@ -301,6 +312,11 @@ class CookieMonster:
 
         # Cookie argument list in packet is null separated.
         argv = data.split("\0")
+
+        # Catch the EXIT command sent to kill the daemon.
+        if len(argv) == 1 and argv[0].strip() == "EXIT":
+            self._running = False
+            return None
 
         # Determine whether or not to print cookie data to terminal.
         print_cookie = (config['verbose'] and not config['daemon_mode'])
@@ -360,7 +376,13 @@ class CookieMonster:
         is the daemons pid file equivalent.'''
 
         if self.server_socket:
-            self.server_socket.close()
+            try:
+                self.server_socket.close()
+
+            except:
+                pass
+
+        self.server_socket = None
 
         cookie_socket = config['cookie_socket']
         if os.path.exists(cookie_socket):
@@ -372,9 +394,6 @@ if __name__ == "__main__":
 
 
     parser = OptionParser()
-    parser.add_option('-d', '--daemon-mode', dest='daemon_mode',\
-      action='store_true', help="daemonise the cookie handler.")
-
     parser.add_option('-n', '--no-daemon', dest='no_daemon',\
       action='store_true', help="don't daemonise the process.")
 
@@ -394,18 +413,9 @@ if __name__ == "__main__":
 
     (options, args) = parser.parse_args()
 
-    if options.daemon_mode and options.no_daemon:
-        config['verbose'] = True
-        echo("fatal error: conflicting options --daemon-mode & --no-daemon")
-        sys.exit(1)
-
     if options.verbose:
         config['verbose'] = True
         echo("verbose mode on.")
-
-    if options.daemon_mode:
-        echo("daemon mode on.")
-        config['daemon_mode'] = True
 
     if options.no_daemon:
         echo("daemon mode off")
