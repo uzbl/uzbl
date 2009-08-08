@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# For configuration and cookie daemon usage examples check out the the 
+# For configuration and cookie daemon usage examples check out the the
 # cookie daemon wiki page at http://www.uzbl.org/wiki/cookie_daemon.py
 #
 # Issues:
