@@ -17,12 +17,13 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-
+#
+# For configuration and cookie daemon usage examples check out the the 
+# cookie daemon wiki page at http://www.uzbl.org/wiki/cookie_daemon.py
+#
 # Issues:
 #  - There is no easy way of stopping a running daemon.
-
-
+#
 # Todo list:
 #  - Use a pid file to make stopping a running daemon easy.
 #  - add {start|stop|restart} command line arguments to make the cookie_daemon
