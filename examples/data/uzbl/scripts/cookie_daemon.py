@@ -152,7 +152,7 @@ config = {
 
 _SCRIPTNAME = os.path.basename(sys.argv[0])
 def echo(msg):
-    '''Prints messages sent to it only if the verbose flag has been set.'''
+    '''Prints messages sent only if the verbose flag has been set.'''
 
     if config['verbose']:
         print "%s: %s" % (_SCRIPTNAME, msg)
