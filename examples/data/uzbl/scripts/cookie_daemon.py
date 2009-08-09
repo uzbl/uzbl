@@ -27,8 +27,8 @@ uzbl's master branch. This script provides more functionality than the original
 cookies.py by adding command line options to specify different cookie jar
 locations, socket locations, verbose output, etc.
 
-Keep up to date
-===============
+Keeping up to date
+==================
 
 Check the cookie daemon uzbl-wiki page for more information on where to
 find the latest version of the cookie_daemon.py
