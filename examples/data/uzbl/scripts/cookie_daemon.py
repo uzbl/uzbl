@@ -22,10 +22,12 @@
 The Python Cookie Daemon
 ========================
 
-This application is a re-write of the original cookies.py script found in
-uzbl's master branch. This script provides more functionality than the original
-cookies.py by adding command line options to specify different cookie jar
-locations, socket locations, verbose output, etc.
+This daemon is a re-write of the original cookies.py script found in uzbl's
+master branch. This script provides more functionality than the original
+cookies.py by adding numerous command line options to specify different cookie
+jar locations, socket locations, verbose output, etc. This functionality is
+very useful as it allows you to run multiple daemons at once serving cookies
+to different groups of uzbl instances as required.
 
 Keeping up to date
 ==================
@@ -82,8 +84,8 @@ Todo list
 Reporting bugs / getting help
 =============================
 
-The best and fastest way to get hold of the maintainers of the cookie_daemon.py
-is to send them a message in the #uzbl irc channel found on the Freenode IRC
+The best way to report bugs and or get help with the cookie daemon is to
+contact the maintainers it the #uzbl irc channel found on the Freenode IRC
 network (irc.freenode.org).
 '''
 
@@ -133,13 +135,13 @@ config = {
   'cookie_jar': os.path.join(DATA_DIR, 'cookies.txt'),
 
   # Time out after x seconds of inactivity (set to 0 for never time out).
-  # Set to 0 by default until talk_to_socket is doing the spawning.
+  # WARNING: Do not use this option if you are manually launching the daemon.
   'daemon_timeout': 0,
 
-  # Tell process to daemonise
+  # Daemonise by default.
   'daemon_mode': True,
 
-  # Set true to print helpful debugging messages to the terminal.
+  # Optionally print helpful debugging messages to the terminal.
   'verbose': False,
 
 } # End of config dictionary.
@@ -152,14 +154,22 @@ config = {
 
 _SCRIPTNAME = os.path.basename(sys.argv[0])
 def echo(msg):
-    '''Prints messages sent only if the verbose flag has been set.'''
+    '''Prints only if the verbose flag has been set.'''
 
     if config['verbose']:
-        print "%s: %s" % (_SCRIPTNAME, msg)
+        sys.stderr.write("%s: %s\n" % (_SCRIPTNAME, msg))
+
+
+def error(msg):
+    '''Prints error message and exits.'''
+
+    sys.stderr.write("%s: error: %s\n" % (_SCRIPTNAME, msg))
+    sys.exit(1)
 
 
 def mkbasedir(filepath):
-    '''Create base directory of filepath if it doesn't exist.'''
+    '''Create the base directories of the file in the file-path if the dirs
+    don't exist.'''
 
     dirname = os.path.dirname(filepath)
     if not os.path.exists(dirname):
@@ -167,33 +177,35 @@ def mkbasedir(filepath):
         os.makedirs(dirname)
 
 
-def reclaim_socket():
+def check_socket_health(cookie_socket):
     '''Check if another process (hopefully a cookie_daemon.py) is listening
     on the cookie daemon socket. If another process is found to be
     listening on the socket exit the daemon immediately and leave the
     socket alone. If the connect fails assume the socket has been abandoned
     and delete it (to be re-created in the create socket function).'''
 
-    cookie_socket = config['cookie_socket']
+    if not os.path.exists(cookie_socket):
+        # What once was is now no more.
+        return None
+
+    if os.path.isfile(cookie_socket):
+        error("regular file at %r is not a socket" % cookie_socket)
+
+    if os.path.isdir(cookie_socket):
+        error("directory at %r is not a socket" % cookie_socket)
 
     try:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
         sock.connect(cookie_socket)
         sock.close()
+        error("detected another process listening on %r" % cookie_socket)
 
     except socket.error:
         # Failed to connect to cookie_socket so assume it has been
         # abandoned by another cookie daemon process.
-        echo("reclaiming abandoned cookie_socket %r." % cookie_socket)
         if os.path.exists(cookie_socket):
+            echo("deleting abandoned socket %r" % cookie_socket)
             os.remove(cookie_socket)
-
-        return
-
-    echo("detected another process listening on %r." % cookie_socket)
-    echo("exiting.")
-    # Use os._exit() to avoid tripping the atexit cleanup function.
-    sys.exit(1)
 
 
 def daemonize():
@@ -249,15 +261,15 @@ class CookieMonster:
     def run(self):
         '''Start the daemon.'''
 
-        # Check if another daemon is running. The reclaim_socket function will
-        # exit if another daemon is detected listening on the cookie socket
-        # and remove the abandoned socket if there isnt.
+        # The check healthy function will exit if another daemon is detected
+        # listening on the cookie socket and remove the abandoned socket if
+        # there isnt.
         if os.path.exists(config['cookie_socket']):
-            reclaim_socket()
+            check_socket_health(config['cookie_socket'])
 
         # Daemonize process.
         if config['daemon_mode']:
-            echo("entering daemon mode.")
+            echo("entering daemon mode")
             daemonize()
 
         # Register a function to cleanup on exit.
@@ -269,7 +281,7 @@ class CookieMonster:
         # Create cookie jar object from file.
         self.open_cookie_jar()
 
-        # Creating a way to exit nested loops by setting a running flag.
+        # Create a way to exit nested loops by setting a running flag.
         self._running = True
 
         while self._running:
@@ -323,8 +335,7 @@ class CookieMonster:
 
 
     def create_socket(self):
-        '''Create AF_UNIX socket for interprocess uzbl instance <-> cookie
-        daemon communication.'''
+        '''Create AF_UNIX socket for communication with uzbl instances.'''
 
         cookie_socket = config['cookie_socket']
         mkbasedir(cookie_socket)
@@ -334,7 +345,7 @@ class CookieMonster:
 
         if os.path.exists(cookie_socket):
             # Accounting for super-rare super-fast racetrack condition.
-            reclaim_socket()
+            check_socket_health(cookie_socket)
 
         self.server_socket.bind(cookie_socket)
 
@@ -350,8 +361,8 @@ class CookieMonster:
 
         while self._running:
             # This line tells the socket how many pending incoming connections
-            # to enqueue. I haven't had any broken pipe errors so far while
-            # using the non-obvious value of 1 under heavy load conditions.
+            # to enqueue at once. Raising this number may or may not increase
+            # performance.
             self.server_socket.listen(1)
 
             if bool(select.select([self.server_socket], [], [], 1)[0]):
@@ -361,6 +372,7 @@ class CookieMonster:
                 client_socket.close()
 
             if config['daemon_timeout']:
+                # Checks if the daemon has been idling for too long.
                 idle = time.time() - self.last_request
                 if idle > config['daemon_timeout']:
                     self._running = False
@@ -377,10 +389,10 @@ class CookieMonster:
         # Cookie argument list in packet is null separated.
         argv = data.split("\0")
 
-        # Catch the EXIT command sent to kill the daemon.
+        # Catch the EXIT command sent to kill running daemons.
         if len(argv) == 1 and argv[0].strip() == "EXIT":
             self._running = False
-            return None
+            return
 
         # Determine whether or not to print cookie data to terminal.
         print_cookie = (config['verbose'] and not config['daemon_mode'])
@@ -433,13 +445,6 @@ class CookieMonster:
             self.jar.save(ignore_discard=True)
 
 
-    def quit(self):
-        '''Called on exit to make sure all loose ends are tied up.'''
-
-        self.del_socket()
-        sys.exit(0)
-
-
     def del_socket(self):
         '''Remove the cookie_socket file on exit. In a way the cookie_socket
         is the daemons pid file equivalent.'''
@@ -457,6 +462,13 @@ class CookieMonster:
         if os.path.exists(cookie_socket):
             echo("deleting socket %r" % cookie_socket)
             os.remove(cookie_socket)
+
+
+    def quit(self):
+        '''Called on exit to make sure all loose ends are tied up.'''
+
+        self.del_socket()
+        sys.exit(0)
 
 
 def main():
@@ -488,19 +500,14 @@ def main():
     (options, args) = parser.parse_args()
 
     if len(args):
-        config['verbose'] = True
-        for arg in args:
-            echo("unknown argument %r" % arg)
-
-        echo("exiting.")
-        sys.exit(1)
+        error("unknown argument %r" % args[0])
 
     if options.verbose:
         config['verbose'] = True
-        echo("verbose mode on.")
+        echo("verbose mode on")
 
     if options.no_daemon:
-        echo("daemon mode off.")
+        echo("daemon mode off")
         config['daemon_mode'] = False
 
     if options.cookie_socket:
@@ -518,12 +525,10 @@ def main():
     if options.daemon_timeout:
         try:
             config['daemon_timeout'] = int(options.daemon_timeout)
-            echo("set timeout to %d seconds." % config['daemon_timeout'])
+            echo("set timeout to %d seconds" % config['daemon_timeout'])
 
         except ValueError:
-            config['verbose'] = True
-            echo("fatal error: expected int argument for --daemon-timeout")
-            sys.exit(1)
+            error("expected int argument for -t, --daemon-timeout")
 
     # Expand $VAR's in config keys that relate to paths.
     for key in ['cookie_socket', 'cookie_jar']:
