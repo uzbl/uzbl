@@ -364,6 +364,7 @@ The script specific arguments are this:
 * download:
 
     $8 url of item to download
+    $9 url of http proxy (optional)
 
 * cookie handler
 

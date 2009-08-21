@@ -565,7 +565,17 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
         if (uzbl.state.verbose)
             printf("Download -> %s\n",uri);
         /* if urls not escaped, we may have to escape and quote uri before this call */
-        run_handler(uzbl.behave.download_handler, uri);
+
+        GString *args = g_string_new(uri);
+
+        if (uzbl.net.proxy_url) {
+           g_string_append_c(args, ' ');
+           g_string_append(args, uzbl.net.proxy_url);
+        }
+
+        run_handler(uzbl.behave.download_handler, args->str);
+
+        g_string_free(args, TRUE);
     }
     return (FALSE);
 }
