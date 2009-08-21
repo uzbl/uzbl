@@ -1317,7 +1317,9 @@ class UzblTabbed:
         for (tab, uzbl) in self.tabs.items():
             uzbl.send("exit")
 
-        # Add a gobject timer to make sure the application force-quits after a period.
+        # Add a gobject timer to make sure the application force-quits after a
+        # reasonable period. Calling quit when all the tabs haven't had time to
+        # close should be a last resort.
         timer = "force-quit"
         timerid = timeout_add(5000, self.quit, timer)
         self._timers[timer] = timerid
