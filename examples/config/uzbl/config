@@ -4,14 +4,13 @@
 # keyboard behavior in this sample config is sort of vimstyle
 
 # Handlers
-set history_handler  = spawn $XDG_DATA_HOME/uzbl/scripts/history.sh
 set download_handler = spawn $XDG_DATA_HOME/uzbl/scripts/download.sh
 set cookie_handler   = spawn $XDG_DATA_HOME/uzbl/scripts/cookies.py
 #set new_window      = sh 'echo uri "$8" > $4' # open in same window
 set new_window       = sh 'uzbl -u $8' # equivalent to the default behaviour
 set load_start_handler = set status_message = <span foreground="khaki">wait</span>
 set load_commit_handler = set status_message = <span foreground="green">recv</span>
-set load_finish_handler = set status_message = <span foreground="gold">done</span>
+set load_finish_handler = chain 'set status_message = <span foreground="gold">done</span>' 'spawn $XDG_DATA_HOME/uzbl/scripts/history.sh'
 
 
 

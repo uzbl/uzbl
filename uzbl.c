@@ -137,7 +137,6 @@ const struct var_name_to_ptr_t {
     { "load_finish_handler",    PTR_V_STR(uzbl.behave.load_finish_handler,      1,   NULL)},
     { "load_start_handler",     PTR_V_STR(uzbl.behave.load_start_handler,       1,   NULL)},
     { "load_commit_handler",    PTR_V_STR(uzbl.behave.load_commit_handler,      1,   NULL)},
-    { "history_handler",        PTR_V_STR(uzbl.behave.history_handler,          1,   NULL)},
     { "download_handler",       PTR_V_STR(uzbl.behave.download_handler,         1,   NULL)},
     { "cookie_handler",         PTR_V_STR(uzbl.behave.cookie_handler,           1,   cmd_cookie_handler)},
     { "new_window",             PTR_V_STR(uzbl.behave.new_window,               1,   cmd_new_window)},
@@ -748,19 +747,6 @@ destroy_cb (GtkWidget* widget, gpointer data) {
     (void) widget;
     (void) data;
     gtk_main_quit ();
-}
-
-void
-log_history_cb () {
-   if (uzbl.behave.history_handler) {
-       time_t rawtime;
-       struct tm * timeinfo;
-       char date [80];
-       time ( &rawtime );
-       timeinfo = localtime ( &rawtime );
-       strftime (date, 80, "\"%Y-%m-%d %H:%M:%S\"", timeinfo);
-       run_handler(uzbl.behave.history_handler, date);
-   }
 }
 
 
@@ -2318,7 +2304,6 @@ create_browser () {
     g_signal_connect (G_OBJECT (g->web_view), "load-progress-changed", G_CALLBACK (progress_change_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-committed", G_CALLBACK (load_commit_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-started", G_CALLBACK (load_start_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "load-finished", G_CALLBACK (log_history_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-finished", G_CALLBACK (load_finish_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "new-window-policy-decision-requested", G_CALLBACK (new_window_cb), g->web_view);
