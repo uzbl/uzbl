@@ -2865,7 +2865,9 @@ main (int argc, char* argv[]) {
     gboolean verbose_override = uzbl.state.verbose;
 
     settings_init ();
-    set_insert_mode(FALSE);
+
+    if (!uzbl.behave.always_insert_mode)
+      set_insert_mode(FALSE);
 
     if (!uzbl.behave.show_status)
         gtk_widget_hide(uzbl.gui.mainbar);
