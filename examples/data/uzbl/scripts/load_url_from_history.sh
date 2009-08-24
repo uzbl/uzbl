@@ -21,4 +21,4 @@ else
 fi
 
 [ -n "$goto" ] && echo "uri $goto" > $4
-#[ -n "$goto" ] && uzblctrl -s $5 -c "uri $goto"
+#[ -n "$goto" ] && echo "uri $goto" | socat - unix-connect:$5

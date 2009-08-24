@@ -6,7 +6,7 @@ CFLAGS!=echo -std=c99 `pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthre
 LDFLAGS:=$(shell pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0) -pthread $(LDFLAGS)
 LDFLAGS!=echo `pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` -pthread $(LDFLAGS)
 
-all: uzbl uzblctrl
+all: uzbl
 
 PREFIX?=$(DESTDIR)/usr
 
@@ -27,7 +27,6 @@ test-share: uzbl
 
 clean:
 	rm -f uzbl
-	rm -f uzblctrl
 	rm -f uzbl.o
 	cd ./tests/; $(MAKE) clean
 
@@ -36,7 +35,6 @@ install:
 	install -d $(PREFIX)/share/uzbl/docs
 	install -d $(PREFIX)/share/uzbl/examples
 	install -m755 uzbl $(PREFIX)/bin/uzbl
-	install -m755 uzblctrl $(PREFIX)/bin/uzblctrl
 	cp -rp docs     $(PREFIX)/share/uzbl/
 	cp -rp config.h $(PREFIX)/share/uzbl/docs/
 	cp -rp examples $(PREFIX)/share/uzbl/
@@ -46,5 +44,4 @@ install:
 
 uninstall:
 	rm -rf $(PREFIX)/bin/uzbl
-	rm -rf $(PREFIX)/bin/uzblctrl
 	rm -rf $(PREFIX)/share/uzbl

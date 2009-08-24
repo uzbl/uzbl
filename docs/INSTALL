@@ -48,7 +48,7 @@ File locations
 --------------
 After installing - using either method - you will find:
 
-* /usr/bin : uzbl [and uzblctrl]
+* /usr/bin : uzbl
 * /usr/share/uzbl/docs/ : documentation files included with uzbl. (readme, checklist, .. )
 * /usr/share/uzbl/examples: sample scripts, config files and a sample data (boomarks, .. )
 
