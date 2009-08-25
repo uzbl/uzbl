@@ -21,7 +21,7 @@ Contributors:
     Uli Schlachter (psychon) - basic mime_policy_cb & Makefile patch
     James S Wheaton (uranther) - zoom level, test framework
     (bobpaul) - session script patches
-    Tom Adams (holizz) - few patches, cookies.py, gtkplug/socket & proof of concept uzbl_tabbed.py
+    Tom Adams (holizz) - few patches, cookies.py, gtkplug/socket & proof of concept uzbl_tabbed.py, scheme_handler
     neutralinsomniac - load_progress = 0 fix
     Maximilian Gaß (mxey) - several small patches
     Abel Camarillo (00z) - various portability fixes, such as BSD fixes for Makefile and posix shell scripts
@@ -39,6 +39,7 @@ Contributors:
     Laurence Withers (lwithers) - talk_to_socket
     Andraž 'ruskie' Levstik - font_family patch
     Helmut Grohne (helmut) - move void **ptr to union, various fixes
+    Paweł Zuzelski (pawelz) - download handler proxy patch
 
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
