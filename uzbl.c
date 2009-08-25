@@ -2236,6 +2236,8 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
     if (event->type   != GDK_KEY_PRESS ||
         event->keyval == GDK_Page_Up   ||
         event->keyval == GDK_Page_Down ||
+        event->keyval == GDK_Home      ||
+        event->keyval == GDK_End       ||
         event->keyval == GDK_Up        ||
         event->keyval == GDK_Down      ||
         event->keyval == GDK_Left      ||
