@@ -200,6 +200,7 @@ Besides the builtin variables you can also define your own ones and use them in 
   - download_handler
   - cookie_handler
   - new_window: handler to execute to invoke new uzbl window (TODO better name)
+  - scheme_handler: handler to execute for each URI navigated to - the navigation request will be ignored if handler prints "USED\n"
   - fifo_dir: location to store fifo's
   - socket_dir: location to store sockets
   - http_debug: http debug mode (value 0-3)
@@ -372,6 +373,10 @@ The script specific arguments are this:
     $10 request address host (if current page url is www.foo.com/somepage, this could be something else than foo, eg advertising from another host)
     $11 request address path
     $12 cookie (only with PUT requests)
+
+* scheme handler:
+
+    $8 URI of the page to be navigated to
 
 
 Custom, userdefined scripts (`spawn foo bar`) get first the arguments as specified in the config and then the above 7 are added at the end.
