@@ -8,7 +8,7 @@ LDFLAGS!=echo `pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` -p
 
 all: uzbl uzblctrl
 
-PREFIX?=$(DESTDIR)/usr
+PREFIX?=$(DESTDIR)/usr/local
 
 # When compiling unit tests, compile uzbl as a library first
 tests: uzbl.o
@@ -22,7 +22,7 @@ test-dev: uzbl
 	XDG_DATA_HOME=./examples/data               XDG_CONFIG_HOME=./examples/config               ./uzbl --uri http://www.uzbl.org --verbose
 
 test-share: uzbl
-	XDG_DATA_HOME=/usr/share/uzbl/examples/data XDG_CONFIG_HOME=/usr/share/uzbl/examples/config ./uzbl --uri http://www.uzbl.org --verbose
+	XDG_DATA_HOME=${PREFIX}/share/uzbl/examples/data XDG_CONFIG_HOME=${PREFIX}/share/uzbl/examples/config ./uzbl --uri http://www.uzbl.org --verbose
 
 
 clean:
