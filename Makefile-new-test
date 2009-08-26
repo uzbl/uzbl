@@ -12,7 +12,7 @@ UZBLDATA  ?= $(PREFIX)/share/uzbl
 DOCSDIR   ?= $(PREFIX)/share/uzbl/docs
 EXMPLSDIR ?= $(PREFIX)/share/uzbl/examples
 
-all: uzbl uzblctrl
+all: uzbl
 
 uzbl: uzbl.c uzbl.h config.h
 
@@ -30,14 +30,12 @@ test-config-real: uzbl
 
 clean:
 	rm -f uzbl
-	rm -f uzblctrl
 
 install:
 	install -d $(BINDIR)
 	install -d $(DOCSDIR)
 	install -d $(EXMPLSDIR)
 	install -D -m755 uzbl $(BINDIR)/uzbl
-	install -D -m755 uzblctrl $(BINDIR)/uzblctrl
 	cp -ax docs/*   $(DOCSDIR)
 	cp -ax config.h $(DOCSDIR)
 	cp -ax examples/* $(EXMPLSDIR)
@@ -47,5 +45,4 @@ install:
 
 uninstall:
 	rm -rf $(BINDIR)/uzbl
-	rm -rf $(BINDIR)/uzblctrl
 	rm -rf $(UZBLDATA)
