@@ -240,6 +240,7 @@ config = {
   'bind_goto_first':        'g<',   # Goto first tab.
   'bind_goto_last':         'g>',   # Goto last tab.
   'bind_clean_slate':       'gQ',   # Close all tabs and open new tab.
+  'bind_exit':              'gZ',   # Exit nicely.
 
   # Session preset key bindings
   'bind_save_preset':       'gsave _', # Save session to file %s.
@@ -901,6 +902,9 @@ class UzblTabbed:
         elif cmd[0] == "clean":
             self.clean_slate()
 
+        elif cmd[0] == "exit":
+            self.quitrequest()
+
         else:
             error("parse_command: unknown command %r" % ' '.join(cmd))
 
@@ -998,6 +1002,7 @@ class UzblTabbed:
         bind(config['bind_load_preset'], 'preset load %s')
         bind(config['bind_del_preset'], 'preset del %s')
         bind(config['bind_list_presets'], 'preset list %d' % uzbl.pid)
+        bind(config['bind_exit'], 'exit')
 
         # Set definitions here
         # set(key, command back to fifo)
@@ -1306,7 +1311,7 @@ class UzblTabbed:
 
 
     def quitrequest(self, *args):
-        '''Called by delete-event signal to kill all uzbl instances.'''
+        '''Attempt to close all uzbl instances nicely and exit.'''
 
         self._killed = True
 
