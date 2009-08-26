@@ -196,7 +196,6 @@ Besides the builtin variables you can also define your own ones and use them in 
   - load_finish_handler
   - load_start_handler
   - load_commit_handler
-  - history_handler
   - download_handler
   - cookie_handler
   - new_window: handler to execute to invoke new uzbl window (TODO better name)
@@ -353,10 +352,6 @@ Handler scripts that are called by uzbl are passed the following arguments:
     .. [ script specific ] (optional)
 
 The script specific arguments are this:
-
-* history:
-
-    $8 date of visit (Y-m-d H:i:s localtime)
 
 * add bookmark:
 
