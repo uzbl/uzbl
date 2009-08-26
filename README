@@ -204,8 +204,8 @@ Besides the builtin variables you can also define your own ones and use them in 
   - http_debug: http debug mode (value 0-3)
   - shell_cmd: alias which will be expanded to use shell commands (eg sh -c)
   - proxy_url: http traffic socks proxy (eg: http://<host>:<port>)
-  - max_conns
-  - max_conns_host
+  - max_conns: max simultaneous connections (default: 100)
+  - max_conns_host: max simultaneous connections per hostname (default: 6)
   - useragent: to be expanded strin
   - zoom_level
   - font_size
