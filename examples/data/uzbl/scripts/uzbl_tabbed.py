@@ -324,8 +324,9 @@ def readconfig(uzbl_config, config):
         config[key] = value
 
     # Ensure that config keys that relate to paths are expanded.
-    expand = ['fifo_dir', 'socket_dir', 'session_file', 'icon_path']
-    for key in expand:
+    pathkeys = ['fifo_dir', 'socket_dir', 'session_file', 'icon_path',
+      'saved_sessions_dir']
+    for key in pathkeys:
         config[key] = os.path.expandvars(config[key])
 
 
@@ -1108,9 +1109,8 @@ class UzblTabbed:
 
         if self.notebook.get_n_pages() == 0:
             if not self._killed and config['save_session']:
-                if len(self._closed):
-                    d = {'curtab': 0, 'tabs': [self._closed[-1],]}
-                    self.save_session(session=d)
+                if os.path.exists(config['session_file']):
+                    os.remove(config['session_file'])
 
             self.quit()
 
@@ -1191,7 +1191,7 @@ class UzblTabbed:
         return True
 
 
-    def save_session(self, session_file=None, session=None):
+    def save_session(self, session_file=None):
         '''Save the current session to file for restoration on next load.'''
 
         strip = str.strip
@@ -1199,17 +1199,16 @@ class UzblTabbed:
         if session_file is None:
             session_file = config['session_file']
 
-        if session is None:
-            tabs = self.tabs.keys()
-            state = []
-            for tab in list(self.notebook):
-                if tab not in tabs: continue
-                uzbl = self.tabs[tab]
-                if not uzbl.uri: continue
-                state += [(uzbl.uri, uzbl.title),]
+        tabs = self.tabs.keys()
+        state = []
+        for tab in list(self.notebook):
+            if tab not in tabs: continue
+            uzbl = self.tabs[tab]
+            if not uzbl.uri: continue
+            state += [(uzbl.uri, uzbl.title),]
 
-            session = {'curtab': self.notebook.get_current_page(),
-              'tabs': state}
+        session = {'curtab': self.notebook.get_current_page(),
+          'tabs': state}
 
         if config['json_session']:
             raw = json.dumps(session)
@@ -1237,9 +1236,11 @@ class UzblTabbed:
         default_path = False
         strip = str.strip
         json_session = config['json_session']
+        delete_loaded = False
 
         if session_file is None:
             default_path = True
+            delete_loaded = True
             session_file = config['session_file']
 
         if not os.path.isfile(session_file):
@@ -1294,6 +1295,10 @@ class UzblTabbed:
         for (index, (uri, title)) in enumerate(tabs):
             self.new_tab(uri=uri, title=title, switch=(curtab==index))
 
+        # A saved session has been loaded now delete it.
+        if delete_loaded and os.path.exists(session_file):
+            os.remove(session_file)
+
         # There may be other state information in the session dict of use to
         # other functions. Of course however the non-json session object is
         # just a dummy object of no use to no one.
@@ -1306,11 +1311,11 @@ class UzblTabbed:
         self._killed = True
 
         if config['save_session']:
-            if len(list(self.notebook)):
+            if len(list(self.notebook)) > 1:
                 self.save_session()
 
             else:
-                # Notebook has no pages so delete session file if it exists.
+                # Notebook has one page open so delete the session file.
                 if os.path.isfile(config['session_file']):
                     os.remove(config['session_file'])
 
