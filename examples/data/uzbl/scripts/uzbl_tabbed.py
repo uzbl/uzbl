@@ -100,10 +100,10 @@
 #   bind_exit               = gZ
 #
 # Session preset key bindings:
-#   bind_save_preset       = gsave _
-#   bind_load_preset       = gload _
-#   bind_del_preset        = gdel _
-#   bind_list_presets      = glist
+#   bind_save_preset        = gsave _
+#   bind_load_preset        = gload _
+#   bind_del_preset         = gdel _
+#   bind_list_presets       = glist
 #
 # And uzbl_tabbed.py takes care of the actual binding of the commands via each
 # instances fifo socket.
