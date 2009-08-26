@@ -38,6 +38,7 @@ Optional/Recommended
 The following tools are quite useful, and some of them are used in the
 sample scripts:
 
+* socat (for socket communication)
 * dmenu (with vertical patch)
 * zenity
 * bash
