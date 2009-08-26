@@ -97,6 +97,7 @@
 #   bind_goto_first         = g<
 #   bind_goto_last          = g>
 #   bind_clean_slate        = gQ
+#   bind_exit               = gZ
 #
 # Session preset key bindings:
 #   bind_save_preset       = gsave _
@@ -802,6 +803,9 @@ class UzblTabbed:
         # title {pid} {document-title}
         #   updates tablist title.
         # uri {pid} {document-location}
+        #   updates tablist uri
+        # exit
+        #   exits uzbl_tabbed.py
 
         if cmd[0] == "new":
             if len(cmd) == 2:
