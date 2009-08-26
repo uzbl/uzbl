@@ -29,7 +29,7 @@ Contributors:
     (kmeaw) - fix for multibyte utf8 characters segfault
     (evocallaghan) - tiny patches
     Aaron Griffin (phrakture) - Makefile patches to build on OSX
-    Mason Larobina - os.environ.keys() & os.path.join fix in cookies.py, work on uzbl_tabbed.py
+    Mason Larobina - os.environ.keys() & os.path.join fix in cookies.py, work on uzbl_tabbed.py, cookies_daemon.py
     (dequis) - Uzbl.run, birectional socket, javascript commands
     Brendan Taylor (bct) - various bugfixes, making misc variables much better using expand(), refactoring some internal var stuff
     Chris van Dijk (quigybo) - work on uzbl_tabbed.py
