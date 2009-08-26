@@ -139,7 +139,8 @@ const struct var_name_to_ptr_t {
     { "load_commit_handler",    PTR_V_STR(uzbl.behave.load_commit_handler,      1,   NULL)},
     { "download_handler",       PTR_V_STR(uzbl.behave.download_handler,         1,   NULL)},
     { "cookie_handler",         PTR_V_STR(uzbl.behave.cookie_handler,           1,   cmd_cookie_handler)},
-    { "new_window",             PTR_V_STR(uzbl.behave.new_window,               1,   cmd_new_window)},
+    { "new_window",             PTR_V_STR(uzbl.behave.new_window,               1,   NULL)},
+    { "scheme_handler",         PTR_V_STR(uzbl.behave.scheme_handler,           1,   cmd_scheme_handler)},
     { "fifo_dir",               PTR_V_STR(uzbl.behave.fifo_dir,                 1,   cmd_fifo_dir)},
     { "socket_dir",             PTR_V_STR(uzbl.behave.socket_dir,               1,   cmd_socket_dir)},
     { "http_debug",             PTR_V_INT(uzbl.behave.http_debug,               1,   cmd_http_debug)},
@@ -509,6 +510,44 @@ catch_sigint(int s) {
 /* --- CALLBACKS --- */
 
 gboolean
+navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
+    (void) web_view;
+    (void) frame;
+    (void) navigation_action;
+    (void) user_data;
+
+    const gchar* uri = webkit_network_request_get_uri (request);
+    gboolean decision_made = FALSE;
+
+    if (uzbl.state.verbose)
+        printf("Navigation requested -> %s\n", uri);
+
+    if (uzbl.behave.scheme_handler) {
+        GString *s = g_string_new ("");
+        g_string_printf(s, "'%s'", uri);
+
+        run_handler(uzbl.behave.scheme_handler, s->str);
+
+        if(uzbl.comm.sync_stdout && strcmp (uzbl.comm.sync_stdout, "") != 0) {
+            char *p = strchr(uzbl.comm.sync_stdout, '\n' );
+            if ( p != NULL ) *p = '\0';
+            if (!strcmp(uzbl.comm.sync_stdout, "USED")) {
+                webkit_web_policy_decision_ignore(policy_decision);
+                decision_made = TRUE;
+            }
+        }
+        if (uzbl.comm.sync_stdout)
+            uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
+
+        g_string_free(s, TRUE);
+    }
+    if (!decision_made)
+        webkit_web_policy_decision_use(policy_decision);
+
+    return TRUE;
+}
+
+gboolean
 new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
     (void) web_view;
     (void) frame;
@@ -564,7 +603,17 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
         if (uzbl.state.verbose)
             printf("Download -> %s\n",uri);
         /* if urls not escaped, we may have to escape and quote uri before this call */
-        run_handler(uzbl.behave.download_handler, uri);
+
+        GString *args = g_string_new(uri);
+
+        if (uzbl.net.proxy_url) {
+           g_string_append_c(args, ' ');
+           g_string_append(args, uzbl.net.proxy_url);
+        }
+
+        run_handler(uzbl.behave.download_handler, args->str);
+
+        g_string_free(args, TRUE);
     }
     return (FALSE);
 }
@@ -936,7 +985,7 @@ load_uri (WebKitWebView *web_view, GArray *argv, GString *result) {
             run_js(web_view, argv, NULL);
             return;
         }
-        if (g_strrstr (argv_idx(argv, 0), "://") == NULL && g_strstr_len (argv_idx(argv, 0), 5, "data:") == NULL)
+        if (!soup_uri_new(argv_idx(argv, 0)))
             g_string_prepend (newuri, "http://");
         /* if we do handle cookies, ask our handler for them */
         webkit_web_view_load_uri (web_view, newuri->str);
@@ -1744,14 +1793,14 @@ cmd_cookie_handler() {
 }
 
 void
-cmd_new_window() {
-    gchar **split = g_strsplit(uzbl.behave.new_window, " ", 2);
+cmd_scheme_handler() {
+    gchar **split = g_strsplit(uzbl.behave.scheme_handler, " ", 2);
     /* pitfall: doesn't handle chain actions; must the sync_ action manually */
     if ((g_strcmp0(split[0], "sh") == 0) ||
         (g_strcmp0(split[0], "spawn") == 0)) {
-        g_free (uzbl.behave.new_window);
-        uzbl.behave.new_window =
-            g_strdup_printf("%s %s", split[0], split[1]);
+        g_free (uzbl.behave.scheme_handler);
+        uzbl.behave.scheme_handler =
+            g_strdup_printf("sync_%s %s", split[0], split[1]);
     }
     g_strfreev (split);
 }
@@ -2172,6 +2221,8 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
     if (event->type   != GDK_KEY_PRESS ||
         event->keyval == GDK_Page_Up   ||
         event->keyval == GDK_Page_Down ||
+        event->keyval == GDK_Home      ||
+        event->keyval == GDK_End       ||
         event->keyval == GDK_Up        ||
         event->keyval == GDK_Down      ||
         event->keyval == GDK_Left      ||
@@ -2305,6 +2356,7 @@ create_browser () {
     g_signal_connect (G_OBJECT (g->web_view), "load-started", G_CALLBACK (load_start_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-finished", G_CALLBACK (load_finish_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), g->web_view);
+    g_signal_connect (G_OBJECT (g->web_view), "navigation-policy-decision-requested", G_CALLBACK (navigation_decision_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "new-window-policy-decision-requested", G_CALLBACK (new_window_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "download-requested", G_CALLBACK (download_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "create-web-view", G_CALLBACK (create_web_view_cb), g->web_view);
@@ -2842,6 +2894,7 @@ main (int argc, char* argv[]) {
             printf("window_id %i\n",(int) uzbl.xwin);
         printf("pid %i\n", getpid ());
         printf("name: %s\n", uzbl.state.instance_name);
+        printf("commit: %s\n", uzbl.info.commit);
     }
 
     uzbl.gui.scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);
