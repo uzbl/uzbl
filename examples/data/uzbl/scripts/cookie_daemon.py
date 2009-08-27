@@ -101,6 +101,7 @@ import atexit
 from traceback import print_exc
 from signal import signal, SIGTERM
 from optparse import OptionParser
+from os.path import join
 
 try:
     import cStringIO as StringIO
@@ -113,34 +114,33 @@ except ImportError:
 # ::: Default configuration section ::::::::::::::::::::::::::::::::::::::::::
 # ============================================================================
 
+def xdghome(key, default):
+    '''Attempts to use the environ XDG_*_HOME paths if they exist otherwise
+    use $HOME and the default path.'''
 
-# Location of the uzbl cache directory.
-if 'XDG_CACHE_HOME' in os.environ.keys() and os.environ['XDG_CACHE_HOME']:
-    CACHE_DIR = os.path.join(os.environ['XDG_CACHE_HOME'], 'uzbl/')
+    xdgkey = "XDG_%s_HOME" % key
+    if xdgkey in os.environ.keys() and os.environ[xdgkey]:
+        return os.environ[xdgkey]
 
-else:
-    CACHE_DIR = os.path.join(os.environ['HOME'], '.cache/uzbl/')
+    return join(os.environ['HOME'], default)
 
-# Location of the uzbl data directory.
-if 'XDG_DATA_HOME' in os.environ.keys() and os.environ['XDG_DATA_HOME']:
-    DATA_DIR = os.path.join(os.environ['XDG_DATA_HOME'], 'uzbl/')
+# Setup xdg paths.
+CACHE_DIR = join(xdghome('CACHE', '.cache/'), 'uzbl/')
+DATA_DIR = join(xdghome('DATA', '.local/share/'), 'uzbl/')
+CONFIG_DIR = join(xdghome('CONFIG', '.config/'), 'uzbl/')
 
-else:
-    DATA_DIR = os.path.join(os.environ['HOME'], '.local/share/uzbl/')
-
-# Location of the uzbl configuration directory.
-if 'XDG_CONFIG_HOME' in os.environ.keys() and os.environ['XDG_DATA_HOME']:
-    CONFIG_DIR = os.path.join(os.environ['XDG_CONFIG_HOME'], 'uzbl/')
-else:
-    CONFIG_DIR = os.path.join(os.environ['HOME'], '.config/uzbl/')
+# Ensure data paths exist.
+for path in [CACHE_DIR, DATA_DIR, CONFIG_DIR]:
+    if not os.path.exists(path):
+        os.makedirs(path)
 
 # Default config
 config = {
 
   # Default cookie jar, whitelist, and daemon socket locations.
-  'cookie_jar': os.path.join(DATA_DIR, 'cookies.txt'),
-  'cookie_whitelist': os.path.join(CONFIG_DIR, 'cookie_whitelist'),
-  'cookie_socket': os.path.join(CACHE_DIR, 'cookie_daemon_socket'),
+  'cookie_jar': join(DATA_DIR, 'cookies.txt'),
+  'cookie_whitelist': join(CONFIG_DIR, 'cookie_whitelist'),
+  'cookie_socket': join(CACHE_DIR, 'cookie_daemon_socket'),
 
   # Time out after x seconds of inactivity (set to 0 for never time out).
   # WARNING: Do not use this option if you are manually launching the daemon.
