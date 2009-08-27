@@ -93,7 +93,6 @@ typedef struct {
     gchar*   title_format_short;
     gchar*   title_format_long;
     gchar*   status_background;
-    gchar*   history_handler;
     gchar*   fifo_dir;
     gchar*   socket_dir;
     gchar*   download_handler;
@@ -268,9 +267,6 @@ load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
 
 void
 destroy_cb (GtkWidget* widget, gpointer data);
-
-void
-log_history_cb ();
 
 void
 commands_hash(void);
