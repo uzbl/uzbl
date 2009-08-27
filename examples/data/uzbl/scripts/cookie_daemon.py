@@ -41,21 +41,10 @@ find the latest version of the cookie_daemon.py
 Command line options
 ====================
 
-Usage: cookie_daemon.py [options]
+Use the following command to get a full list of the cookie_daemon.py command
+line options:
 
-Options:
-  -h, --help            show this help message and exit
-  -n, --no-daemon       don't daemonise the process.
-  -v, --verbose         print verbose output.
-  -t SECONDS, --daemon-timeout=SECONDS
-                        shutdown the daemon after x seconds inactivity.
-                        WARNING: Do not use this when launching the cookie
-                        daemon manually.
-  -s SOCKET, --cookie-socket=SOCKET
-                        manually specify the socket location.
-  -j FILE, --cookie-jar=FILE
-                        manually specify the cookie jar location.
-  -m, --memory          store cookies in memory only - do not write to disk
+  ./cookie_daemon.py --help
 
 Talking with uzbl
 =================
