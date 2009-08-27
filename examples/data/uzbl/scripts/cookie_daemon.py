@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-# Uzbl tabbing wrapper using a fifo socket interface
+# The Python Cookie Daemon for Uzbl.
 # Copyright (c) 2009, Tom Adams <tom@holizz.com>
-# Copyright (c) 2009, Dieter Plaetinck <dieter AT plaetinck.be>
+# Copyright (c) 2009, Dieter Plaetinck <dieter@plaetinck.be>
 # Copyright (c) 2009, Mason Larobina <mason.larobina@gmail.com>
 # Copyright (c) 2009, Michael Fiano <axionix@gmail.com>
 #
