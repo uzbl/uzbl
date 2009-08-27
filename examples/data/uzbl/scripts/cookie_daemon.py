@@ -4,6 +4,7 @@
 # Copyright (c) 2009, Tom Adams <tom@holizz.com>
 # Copyright (c) 2009, Dieter Plaetinck <dieter AT plaetinck.be>
 # Copyright (c) 2009, Mason Larobina <mason.larobina@gmail.com>
+# Copyright (c) 2009, Michael Fiano <axionix@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
