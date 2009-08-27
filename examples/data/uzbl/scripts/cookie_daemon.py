@@ -407,6 +407,9 @@ class CookieMonster:
 
         daemon_timeout = config['daemon_timeout']
         use_whitelist = config['use_whitelist']
+        if use_whitelist:
+            check_whitelist = False
+
         echo("listening on %r" % config['cookie_socket'])
 
         while self._running:
@@ -416,6 +419,12 @@ class CookieMonster:
             self.server_socket.listen(1)
 
             if bool(select.select([self.server_socket], [], [], 1)[0]):
+                # If the daemons been idle check if the whitelist has been
+                # modified.
+                if use_whitelist and check_whitelist:
+                    self.check_whitelist()
+                    check_whitelist = False
+
                 client_socket, _ = self.server_socket.accept()
                 self.handle_request(client_socket)
                 self.last_request = time.time()
@@ -428,8 +437,10 @@ class CookieMonster:
                 if idle > daemon_timeout:
                     self._running = False
 
-            if use_whitelist:
-                self.check_whitelist()
+            if use_whitelist and not check_whitelist:
+                # Signals that the daemon has been idle and the whitelist
+                # should be checked before serving the next cookie request.
+                check_whitelist = True
 
 
     def handle_request(self, client_socket):
