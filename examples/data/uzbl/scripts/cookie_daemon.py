@@ -142,6 +142,9 @@ config = {
   'cookie_whitelist': join(CONFIG_DIR, 'cookie_whitelist'),
   'cookie_socket': join(CACHE_DIR, 'cookie_daemon_socket'),
 
+  # Don't use a cookie whitelist policy by default.
+  'use_whitelist': False,
+
   # Time out after x seconds of inactivity (set to 0 for never time out).
   # WARNING: Do not use this option if you are manually launching the daemon.
   'daemon_timeout': 0,
@@ -265,6 +268,9 @@ class CookieMonster:
         self.last_request = time.time()
         self._running = False
 
+        # Grab the last modified time of the cookie whitelist.
+        self._whitelistmtime = None
+
 
     def run(self):
         '''Start the daemon.'''
@@ -318,14 +324,11 @@ class CookieMonster:
             self.del_socket()
 
 
-    def open_cookie_jar(self):
-        '''Open the cookie jar.'''
+    def load_whitelist(self):
+        '''Load the cookie jar whitelist policy.'''
 
-        cookie_jar = config['cookie_jar']
         cookie_whitelist = config['cookie_whitelist']
 
-        if cookie_jar:
-            mkbasedir(cookie_jar)
         if cookie_whitelist:
             mkbasedir(cookie_whitelist)
 
@@ -338,12 +341,29 @@ class CookieMonster:
         domain_list = [line.rstrip('\n') for line in file]
         file.close()
 
+        # Define policy of allowed domains
+        policy = cookielib.DefaultCookiePolicy(allowed_domains=domain_list)
+        self.jar.set_policy(policy)
+
+        # Save the last modified time of the whitelist.
+        self._whitelistmtime = os.stat(cookie_whitelist).st_mtime
+
+
+    def open_cookie_jar(self):
+        '''Open the cookie jar.'''
+
+        cookie_jar = config['cookie_jar']
+        cookie_whitelist = config['cookie_whitelist']
+
+        if cookie_jar:
+            mkbasedir(cookie_jar)
+
         # Create cookie jar object from file.
         self.jar = cookielib.MozillaCookieJar(cookie_jar)
 
-        # Define policy of allowed domains.
-        policy = cookielib.DefaultCookiePolicy(allowed_domains=domain_list)
-        self.jar.set_policy(policy)
+        # Load cookie whitelist policy.
+        if config['use_whitelist']:
+            self.load_whitelist()
 
         if cookie_jar:
             try:
@@ -357,6 +377,20 @@ class CookieMonster:
 
             except:
                 pass
+
+    def check_whitelist(self):
+        '''Check if the cookie whitelist has been modified since it was last
+        loaded.'''
+
+        cookie_whitelist = config['cookie_whitelist']
+        if os.path.exists(cookie_whitelist):
+            mtime = os.stat(cookie_whitelist).st_mtime
+
+            # Reload cookie jar if the mtimes don't match.
+            if self._whitelistmtime != mtime:
+                del self.jar
+                echo("reloading modified whitelist %r" % cookie_whitelist)
+                self.open_cookie_jar()
 
 
     def create_socket(self):
@@ -382,6 +416,8 @@ class CookieMonster:
     def listen(self):
         '''Listen for incoming cookie PUT and GET requests.'''
 
+        daemon_timeout = config['daemon_timeout']
+        use_whitelist = config['use_whitelist']
         echo("listening on %r" % config['cookie_socket'])
 
         while self._running:
@@ -395,12 +431,16 @@ class CookieMonster:
                 self.handle_request(client_socket)
                 self.last_request = time.time()
                 client_socket.close()
+                continue
 
-            if config['daemon_timeout']:
+            if daemon_timeout:
                 # Checks if the daemon has been idling for too long.
                 idle = time.time() - self.last_request
-                if idle > config['daemon_timeout']:
+                if idle > daemon_timeout:
                     self._running = False
+
+            if use_whitelist:
+                self.check_whitelist()
 
 
     def handle_request(self, client_socket):
@@ -521,8 +561,17 @@ def main():
     parser.add_option('-m', '--memory', dest='memory', action='store_true',
       help="store cookies in memory only - do not write to disk")
 
+    parser.add_option('-u', '--use-whitelist', dest='usewhitelist',
+      action='store_true', help="use cookie whitelist policy")
+
+    parser.add_option('-w', '--cookie-whitelist', dest='whitelist',
+      action='store', help="manually specify whitelist location",
+      metavar='FILE')
+
     # Parse the command line arguments.
     (options, args) = parser.parse_args()
+
+    expand = lambda p: os.path.realpath(os.path.expandvars(p))
 
     if len(args):
         error("unknown argument %r" % args[0])
@@ -536,16 +585,26 @@ def main():
         config['daemon_mode'] = False
 
     if options.cookie_socket:
-        echo("using cookie_socket %r" % options.cookie_socket)
-        config['cookie_socket'] = options.cookie_socket
+        config['cookie_socket'] = expand(options.cookie_socket)
+        echo("using cookie_socket %r" % config['cookie_socket'])
 
     if options.cookie_jar:
-        echo("using cookie_jar %r" % options.cookie_jar)
-        config['cookie_jar'] = options.cookie_jar
+        config['cookie_jar'] = expand(options.cookie_jar)
+        echo("using cookie_jar %r" % config['cookie_jar'])
 
     if options.memory:
         echo("using memory %r" % options.memory)
         config['cookie_jar'] = None
+
+    if options.whitelist:
+        echo("whitelist mode on")
+        config['use_whitelist'] = True
+        config['cookie_whitelist'] = expand(options.whitelist)
+        echo("using whitelist %r" % config['cookie_whitelist'])
+
+    if not config['use_whitelist'] and options.usewhitelist:
+        echo("whitelist mode on")
+        config['use_whitelist'] = True
 
     if options.daemon_timeout:
         try:
