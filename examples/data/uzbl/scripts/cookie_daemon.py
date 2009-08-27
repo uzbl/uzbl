@@ -127,12 +127,19 @@ if 'XDG_DATA_HOME' in os.environ.keys() and os.environ['XDG_DATA_HOME']:
 else:
     DATA_DIR = os.path.join(os.environ['HOME'], '.local/share/uzbl/')
 
+# Location of the uzbl configuration directory.
+if 'XDG_CONFIG_HOME' in os.environ.keys() and os.environ['XDG_DATA_HOME']:
+    CONFIG_DIR = os.path.join(os.environ['XDG_CONFIG_HOME'], 'uzbl/')
+else:
+    CONFIG_DIR = os.path.join(os.environ['HOME'], '.config/uzbl/')
+
 # Default config
 config = {
 
-  # Default cookie jar and daemon socket locations.
-  'cookie_socket': os.path.join(CACHE_DIR, 'cookie_daemon_socket'),
+  # Default cookie jar, whitelist, and daemon socket locations.
   'cookie_jar': os.path.join(DATA_DIR, 'cookies.txt'),
+  'cookie_whitelist': os.path.join(CONFIG_DIR, 'cookie_whitelist'),
+  'cookie_socket': os.path.join(CACHE_DIR, 'cookie_daemon_socket'),
 
   # Time out after x seconds of inactivity (set to 0 for never time out).
   # WARNING: Do not use this option if you are manually launching the daemon.
@@ -314,11 +321,28 @@ class CookieMonster:
         '''Open the cookie jar.'''
 
         cookie_jar = config['cookie_jar']
+        cookie_whitelist = config['cookie_whitelist']
+
         if cookie_jar:
             mkbasedir(cookie_jar)
+        if cookie_whitelist:
+            mkbasedir(cookie_whitelist)
+
+        # Create cookie whitelist file if it does not exist.
+        if not os.path.exists(cookie_whitelist):
+            open(cookie_whitelist, 'w').close()
+
+        # Read cookie whitelist file into list.
+        file = open(cookie_whitelist,'r')
+        domain_list = [line.rstrip('\n') for line in file]
+        file.close()
 
         # Create cookie jar object from file.
         self.jar = cookielib.MozillaCookieJar(cookie_jar)
+
+        # Define policy of allowed domains.
+        policy = cookielib.DefaultCookiePolicy(allowed_domains=domain_list)
+        self.jar.set_policy(policy)
 
         if cookie_jar:
             try:
@@ -531,7 +555,7 @@ def main():
             error("expected int argument for -t, --daemon-timeout")
 
     # Expand $VAR's in config keys that relate to paths.
-    for key in ['cookie_socket', 'cookie_jar']:
+    for key in ['cookie_socket', 'cookie_jar', 'cookie_whitelist']:
         if config[key]:
             config[key] = os.path.expandvars(config[key])
 
