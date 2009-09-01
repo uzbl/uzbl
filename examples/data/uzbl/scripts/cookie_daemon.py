@@ -58,18 +58,10 @@ Or if you prefer using the $HOME variable:
 
   set cookie_handler = talk_to_socket $HOME/.cache/uzbl/cookie_daemon_socket
 
-Issues
-======
-
- - There is no easy way of stopping a running daemon.
-
 Todo list
 =========
 
- - Use a pid file to make stopping a running daemon easy.
- - add {start|stop|restart} command line arguments to make the cookie_daemon
-   functionally similar to the daemons found in /etc/init.d/ (in gentoo)
-   or /etc/rc.d/ (in arch).
+ - Use a pid file to make force killing a running daemon possible.
 
 Reporting bugs / getting help
 =============================
@@ -177,7 +169,7 @@ def mkbasedir(filepath):
         os.makedirs(dirname)
 
 
-def check_socket_health(cookie_socket):
+def daemon_running(cookie_socket):
     '''Check if another process (hopefully a cookie_daemon.py) is listening
     on the cookie daemon socket. If another process is found to be
     listening on the socket exit the daemon immediately and leave the
@@ -185,27 +177,57 @@ def check_socket_health(cookie_socket):
     and delete it (to be re-created in the create socket function).'''
 
     if not os.path.exists(cookie_socket):
-        # What once was is now no more.
-        return None
+        return False
 
     if os.path.isfile(cookie_socket):
-        error("regular file at %r is not a socket" % cookie_socket)
+        raise Exception("regular file at %r is not a socket" % cookie_socket)
+
 
     if os.path.isdir(cookie_socket):
-        error("directory at %r is not a socket" % cookie_socket)
+        raise Exception("directory at %r is not a socket" % cookie_socket)
 
     try:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
         sock.connect(cookie_socket)
         sock.close()
-        error("detected another process listening on %r" % cookie_socket)
+        echo("detected daemon listening on %r" % cookie_socket)
+        return True
 
     except socket.error:
         # Failed to connect to cookie_socket so assume it has been
         # abandoned by another cookie daemon process.
         if os.path.exists(cookie_socket):
-            echo("deleting abandoned socket %r" % cookie_socket)
+            echo("deleting abandoned socket at %r" % cookie_socket)
             os.remove(cookie_socket)
+
+    return False
+
+
+def kill_daemon(cookie_socket):
+    '''Send the "EXIT" command to running cookie_daemon.'''
+
+    if not daemon_running(cookie_socket):
+        return
+
+    try:
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
+        sock.connect(cookie_socket)
+        sock.send("EXIT")
+        sock.close()
+
+        failed, start = False, time.time()
+        while not failed and os.path.exists(cookie_socket):
+            time.sleep(0.1)
+            if (time.time() - start) > 5:
+                raise Exception("Failed to kill socket in time.")
+
+        echo("stopped daemon listening on %r"% cookie_socket)
+
+    except:
+        print_exc()
+        if os.path.exists(cookie_socket):
+            os.remove(cookie_socket)
+            echo("removed abandoned socket %r" % cookie_socket)
 
 
 def daemonize():
@@ -268,7 +290,8 @@ class CookieMonster:
         # listening on the cookie socket and remove the abandoned socket if
         # there isnt.
         if os.path.exists(config['cookie_socket']):
-            check_socket_health(config['cookie_socket'])
+            if daemon_running(config['cookie_socket']):
+                sys.exit(1)
 
         # Daemonize process.
         if config['daemon_mode']:
@@ -347,6 +370,10 @@ class CookieMonster:
         if cookie_jar:
             mkbasedir(cookie_jar)
 
+        # Remove any stale cookie jars.
+        if self.jar:
+            del self.jar
+
         # Create cookie jar object from file.
         self.jar = cookielib.MozillaCookieJar(cookie_jar)
 
@@ -367,19 +394,14 @@ class CookieMonster:
             except:
                 pass
 
-    def check_whitelist(self):
-        '''Check if the cookie whitelist has been modified since it was last
-        loaded.'''
+
+    def reload_whitelist(self):
+        '''Reload the cookie whitelist.'''
 
         cookie_whitelist = config['cookie_whitelist']
         if os.path.exists(cookie_whitelist):
-            mtime = os.stat(cookie_whitelist).st_mtime
-
-            # Reload cookie jar if the mtimes don't match.
-            if self._whitelistmtime != mtime:
-                del self.jar
-                echo("reloading modified whitelist %r" % cookie_whitelist)
-                self.open_cookie_jar()
+            echo("reloading whitelist %r" % cookie_whitelist)
+            self.open_cookie_jar()
 
 
     def create_socket(self):
@@ -390,10 +412,6 @@ class CookieMonster:
 
         self.server_socket = socket.socket(socket.AF_UNIX,
           socket.SOCK_SEQPACKET)
-
-        if os.path.exists(cookie_socket):
-            # Accounting for super-rare super-fast racetrack condition.
-            check_socket_health(cookie_socket)
 
         self.server_socket.bind(cookie_socket)
 
@@ -406,10 +424,6 @@ class CookieMonster:
         '''Listen for incoming cookie PUT and GET requests.'''
 
         daemon_timeout = config['daemon_timeout']
-        use_whitelist = config['use_whitelist']
-        if use_whitelist:
-            check_whitelist = False
-
         echo("listening on %r" % config['cookie_socket'])
 
         while self._running:
@@ -419,12 +433,6 @@ class CookieMonster:
             self.server_socket.listen(1)
 
             if bool(select.select([self.server_socket], [], [], 1)[0]):
-                # If the daemons been idle check if the whitelist has been
-                # modified.
-                if use_whitelist and check_whitelist:
-                    self.check_whitelist()
-                    check_whitelist = False
-
                 client_socket, _ = self.server_socket.accept()
                 self.handle_request(client_socket)
                 self.last_request = time.time()
@@ -437,11 +445,6 @@ class CookieMonster:
                 if idle > daemon_timeout:
                     self._running = False
 
-            if use_whitelist and not check_whitelist:
-                # Signals that the daemon has been idle and the whitelist
-                # should be checked before serving the next cookie request.
-                check_whitelist = True
-
 
     def handle_request(self, client_socket):
         '''Connection made, now to serve a cookie PUT or GET request.'''
@@ -453,18 +456,27 @@ class CookieMonster:
 
         # Cookie argument list in packet is null separated.
         argv = data.split("\0")
+        action = argv[0].upper().strip()
 
         # Catch the EXIT command sent to kill running daemons.
-        if len(argv) == 1 and argv[0].strip() == "EXIT":
+        if action == "EXIT":
             self._running = False
+            return
+
+        # Catch whitelist RELOAD command.
+        elif action == "RELOAD":
+            self.reload_whitelist()
+            return
+
+        # Return if command unknown.
+        elif action not in ['GET', 'PUT']:
+            error("unknown command %r." % argv)
             return
 
         # Determine whether or not to print cookie data to terminal.
         print_cookie = (config['verbose'] and not config['daemon_mode'])
         if print_cookie:
             print ' '.join(argv[:4])
-
-        action = argv[0]
 
         uri = urllib2.urlparse.ParseResult(
           scheme=argv[1],
@@ -540,7 +552,8 @@ def main():
     '''Main function.'''
 
     # Define command line parameters.
-    parser = OptionParser()
+    usage = "usage: %prog [options] {start|stop|restart}"
+    parser = OptionParser(usage=usage)
     parser.add_option('-n', '--no-daemon', dest='no_daemon',
       action='store_true', help="don't daemonise the process.")
 
@@ -573,43 +586,43 @@ def main():
 
     expand = lambda p: os.path.realpath(os.path.expandvars(p))
 
-    if len(args):
-        error("unknown argument %r" % args[0])
+    initcommands = ['start', 'stop', 'restart']
+    for arg in args:
+        if arg not in initcommands:
+            error("unknown argument %r" % args[0])
+            sys.exit(1)
 
-    if options.verbose:
-        config['verbose'] = True
-        echo("verbose mode on")
+    if len(args) > 1:
+        error("the daemon only accepts one command line argument at a time.")
+        sys.exit(1)
+
+    if len(args):
+        action = args[0]
+
+    else:
+        action = "start"
 
     if options.no_daemon:
-        echo("daemon mode off")
         config['daemon_mode'] = False
 
     if options.cookie_socket:
         config['cookie_socket'] = expand(options.cookie_socket)
-        echo("using cookie_socket %r" % config['cookie_socket'])
 
     if options.cookie_jar:
         config['cookie_jar'] = expand(options.cookie_jar)
-        echo("using cookie_jar %r" % config['cookie_jar'])
 
     if options.memory:
-        echo("using memory %r" % options.memory)
         config['cookie_jar'] = None
 
     if options.whitelist:
-        echo("whitelist mode on")
-        config['use_whitelist'] = True
         config['cookie_whitelist'] = expand(options.whitelist)
-        echo("using whitelist %r" % config['cookie_whitelist'])
 
-    if not config['use_whitelist'] and options.usewhitelist:
-        echo("whitelist mode on")
+    if options.whitelist or options.usewhitelist:
         config['use_whitelist'] = True
 
     if options.daemon_timeout:
         try:
             config['daemon_timeout'] = int(options.daemon_timeout)
-            echo("set timeout to %d seconds" % config['daemon_timeout'])
 
         except ValueError:
             error("expected int argument for -t, --daemon-timeout")
@@ -619,7 +632,16 @@ def main():
         if config[key]:
             config[key] = os.path.expandvars(config[key])
 
-    CookieMonster().run()
+    if options.verbose:
+        config['verbose'] = True
+        import pprint
+        map(echo, pprint.pformat(config).split('\n'))
+
+    if action in ['stop', 'restart']:
+        kill_daemon(config['cookie_socket'])
+
+    if action in ['start', 'restart']:
+        CookieMonster().run()
 
 
 if __name__ == "__main__":
