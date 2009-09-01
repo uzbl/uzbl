@@ -83,8 +83,9 @@
 #   icon_path               = $HOME/.local/share/uzbl/uzbl.png
 #   status_background       = #303030
 #
-# Window options:
+# Misc options:
 #   window_size             = 800,800
+#   verbose                 = 0
 #
 # And the key bindings:
 #   bind_new_tab            = gn
@@ -168,36 +169,41 @@ from gobject import io_add_watch, source_remove, timeout_add, IO_IN, IO_HUP
 from signal import signal, SIGTERM, SIGINT
 from optparse import OptionParser, OptionGroup
 
+
 pygtk.require('2.0')
 
-_scriptname = os.path.basename(sys.argv[0])
+_SCRIPTNAME = os.path.basename(sys.argv[0])
 def error(msg):
-    sys.stderr.write("%s: %s\n" % (_scriptname, msg))
-
-def echo(msg):
-    print "%s: %s" % (_scriptname, msg)
-
+    sys.stderr.write("%s: error: %s\n" % (_SCRIPTNAME, msg))
 
 # ============================================================================
 # ::: Default configuration section ::::::::::::::::::::::::::::::::::::::::::
 # ============================================================================
 
+def xdghome(key, default):
+    '''Attempts to use the environ XDG_*_HOME paths if they exist otherwise
+    use $HOME and the default path.'''
 
-# Location of your uzbl data directory.
-if 'XDG_DATA_HOME' in os.environ.keys() and os.environ['XDG_DATA_HOME']:
-    data_dir = os.path.join(os.environ['XDG_DATA_HOME'], 'uzbl/')
-else:
-    data_dir = os.path.join(os.environ['HOME'], '.local/share/uzbl/')
-if not os.path.exists(data_dir):
-    error("Warning: uzbl data_dir does not exist: %r" % data_dir)
+    xdgkey = "XDG_%s_HOME" % key
+    if xdgkey in os.environ.keys() and os.environ[xdgkey]:
+        return os.environ[xdgkey]
 
-# Location of your uzbl configuration file.
-if 'XDG_CONFIG_HOME' in os.environ.keys() and os.environ['XDG_CONFIG_HOME']:
-    uzbl_config = os.path.join(os.environ['XDG_CONFIG_HOME'], 'uzbl/config')
-else:
-    uzbl_config = os.path.join(os.environ['HOME'],'.config/uzbl/config')
-if not os.path.exists(uzbl_config):
-    error("Warning: Cannot locate your uzbl_config file %r" % uzbl_config)
+    return os.path.join(os.environ['HOME'], default)
+
+# Setup xdg paths.
+DATA_DIR = os.path.join(xdghome('DATA', '.local/share/'), 'uzbl/')
+CONFIG_DIR = os.path.join(xdghome('CONFIG', '.config/'), 'uzbl/')
+
+# Ensure uzbl xdg paths exist
+for path in [DATA_DIR, CONFIG_DIR]:
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+# Path to uzbl config
+UZBL_CONFIG = os.path.join(CONFIG_DIR, 'config')
+if not os.path.exists(UZBL_CONFIG):
+    error("cannot find uzbl config file at %r" % UZBL_CONFIG)
+    sys.exit(1)
 
 # All of these settings can be inherited from your uzbl config file.
 config = {
@@ -218,17 +224,18 @@ config = {
   # Session options
   'save_session':           True,   # Save session in file when quit
   'json_session':           False,   # Use json to save session.
-  'saved_sessions_dir':     os.path.join(data_dir, 'sessions/'),
-  'session_file':           os.path.join(data_dir, 'session'),
+  'saved_sessions_dir':     os.path.join(DATA_DIR, 'sessions/'),
+  'session_file':           os.path.join(DATA_DIR, 'session'),
 
   # Inherited uzbl options
   'fifo_dir':               '/tmp', # Path to look for uzbl fifo.
   'socket_dir':             '/tmp', # Path to look for uzbl socket.
-  'icon_path':              os.path.join(data_dir, 'uzbl.png'),
+  'icon_path':              os.path.join(DATA_DIR, 'uzbl.png'),
   'status_background':      "#303030", # Default background for all panels.
 
-  # Window options
+  # Misc options
   'window_size':            "800,800", # width,height in pixels.
+  'verbose':                False,  # Print verbose output.
 
   # Key bindings
   'bind_new_tab':           'gn',   # Open new tab.
@@ -295,10 +302,13 @@ def colour_selector(tabindex, currentpage, uzbl):
     # Default tab style.
     return (config['tab_colours'], config['tab_text_colours'])
 
-
 # ============================================================================
 # ::: End of configuration section :::::::::::::::::::::::::::::::::::::::::::
 # ============================================================================
+
+def echo(msg):
+    if config['verbose']:
+        sys.stderr.write("%s: %s\n" % (_SCRIPTNAME, msg))
 
 
 def readconfig(uzbl_config, config):
@@ -1361,21 +1371,24 @@ class UzblTabbed:
 if __name__ == "__main__":
 
     # Read from the uzbl config into the global config dictionary.
-    readconfig(uzbl_config, config)
+    readconfig(UZBL_CONFIG, config)
 
     # Build command line parser
-    parser = OptionParser()
-    parser.add_option('-n', '--no-session', dest='nosession',\
+    usage = "usage: %prog [OPTIONS] {URIS}..."
+    parser = OptionParser(usage=usage)
+    parser.add_option('-n', '--no-session', dest='nosession',
       action='store_true', help="ignore session saving a loading.")
-    group = OptionGroup(parser, "Note", "All other command line arguments are "\
-      "interpreted as uris and loaded in new tabs.")
-    parser.add_option_group(group)
+    parser.add_option('-v', '--verbose', dest='verbose',
+      action='store_true', help='print verbose output.')
 
     # Parse command line options
     (options, uris) = parser.parse_args()
 
     if options.nosession:
         config['save_session'] = False
+
+    if options.verbose:
+        config['verbose'] = True
 
     if config['json_session']:
         try:
@@ -1386,6 +1399,10 @@ if __name__ == "__main__":
               "module simplejson. Fix: \"set json_session = 0\" or "\
               "install the simplejson python module to remove this warning.")
             config['json_session'] = False
+
+    if config['verbose']:
+        import pprint
+        map(echo, pprint.pformat(config).split('\n'))
 
     uzbl = UzblTabbed()
 
