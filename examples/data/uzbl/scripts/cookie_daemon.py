@@ -203,31 +203,45 @@ def daemon_running(cookie_socket):
     return False
 
 
-def kill_daemon(cookie_socket):
-    '''Send the "EXIT" command to running cookie_daemon.'''
+def send_command(cookie_socket, cmd):
+    '''Send a command to a running cookie daemon.'''
 
     if not daemon_running(cookie_socket):
-        return
+        return False
 
     try:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
         sock.connect(cookie_socket)
-        sock.send("EXIT")
+        sock.send(cmd)
         sock.close()
+        echo("sent command %r to %r" % (cmd, cookie_socket))
+        return True
 
-        failed, start = False, time.time()
-        while not failed and os.path.exists(cookie_socket):
+    except socket.error:
+        print_exc()
+        error("failed to send message %r to %r" % (cmd, cookie_socket))
+        return False
+
+
+def kill_daemon(cookie_socket):
+    '''Send the "EXIT" command to running cookie_daemon.'''
+
+    if send_command(cookie_socket, "EXIT"):
+        # Now ensure the cookie_socket is cleaned up.
+        start = time.time()
+        while os.path.exists(cookie_socket):
             time.sleep(0.1)
             if (time.time() - start) > 5:
-                raise Exception("Failed to kill socket in time.")
+                error("force deleting socket %r" % cookie_socket)
+                os.remove(cookie_socket)
+                return
 
         echo("stopped daemon listening on %r"% cookie_socket)
 
-    except:
-        print_exc()
+    else:
         if os.path.exists(cookie_socket):
             os.remove(cookie_socket)
-            echo("removed abandoned socket %r" % cookie_socket)
+            echo("removed abandoned/broken socket %r" % cookie_socket)
 
 
 def daemonize():
@@ -552,7 +566,7 @@ def main():
     '''Main function.'''
 
     # Define command line parameters.
-    usage = "usage: %prog [options] {start|stop|restart}"
+    usage = "usage: %prog [options] {start|stop|restart|reload}"
     parser = OptionParser(usage=usage)
     parser.add_option('-n', '--no-daemon', dest='no_daemon',
       action='store_true', help="don't daemonise the process.")
@@ -586,14 +600,15 @@ def main():
 
     expand = lambda p: os.path.realpath(os.path.expandvars(p))
 
-    initcommands = ['start', 'stop', 'restart']
+    initcommands = ['start', 'stop', 'restart', 'reload']
     for arg in args:
         if arg not in initcommands:
             error("unknown argument %r" % args[0])
             sys.exit(1)
 
     if len(args) > 1:
-        error("the daemon only accepts one command line argument at a time.")
+        error("the daemon only accepts one {%s} action at a time."
+          % '|'.join(initcommands))
         sys.exit(1)
 
     if len(args):
@@ -635,7 +650,10 @@ def main():
     if options.verbose:
         config['verbose'] = True
         import pprint
-        map(echo, pprint.pformat(config).split('\n'))
+        sys.stderr.write("%s\n" % pprint.pformat(config))
+
+    if action == "reload":
+        send_command(config['cookie_socket'], "RELOAD")
 
     if action in ['stop', 'restart']:
         kill_daemon(config['cookie_socket'])
