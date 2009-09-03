@@ -12,6 +12,7 @@ VERBOSE=1
 
 
 ALTPRESSED=0
+KEYCMD= # buffer for building up commands
 
 log () {
 	[ -n "$VERBOSE" ] && echo "$1"
