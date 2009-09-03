@@ -213,6 +213,7 @@ const char *event_table[LAST_EVENT] = {
      "NEW_WINDOW"       ,
      "SELECTION_CHANGED",
      "VARIABLE_SET",
+     "FIFO_SET"
 
 };
 
@@ -2096,6 +2097,7 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
                 if (g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, NULL)) {
                     if (uzbl.state.verbose)
                         printf ("init_fifo: created successfully as %s\n", path);
+                        send_event(FIFO_SET, path);
                     uzbl.comm.fifo_path = path;
                     return dir;
                 } else g_warning ("init_fifo: could not add watch on %s\n", path);
