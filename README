@@ -5,13 +5,14 @@
 * people who like nothing from this list: mpd, moc, wmii, dwm, awesome, mutt, pine, vim, dmenu, screen, irssi, weechat, bitlbee
 
 ### TO NEW PEOPLE:
-* please read the documentation in /usr/share/uzbl/docs
 * invoke uzbl --help
 * to get you started: `XDG_DATA_HOME=/usr/share/uzbl/examples/data XDG_CONFIG_HOME=/usr/share/uzbl/examples/config uzbl --uri www.archlinux.org`
+* alternatively, copy the above data to your real `$XDG_DATA_HOME` and `$XDG_CONFIG_HOME` directories
 * try and study the sample config, read the readme to find out how it works.
 * You can change the url with commands (if you have setup the appropriate keybinds) but to be most effective it's better to do url editing/changing _outside_ of uzbl.
   Eg, you can use the `load_from_*` dmenu based scripts to pick/edit a url or type a new one.
 * If you have questions, you are likely to find answers in the FAQ or in the other documentation.
+* documentation is in /usr/share/uzbl/docs
 
 
 ### INTRODUCTION
@@ -44,7 +45,7 @@ Time to change that!
     - privoxy looks cool and perfectly demonstrates the unix philosphy.
     - same for http://bfilter.sourceforge.net
     - /etc/hosts (not very good cause you need root and it affects the whole system)
-      uzblctrl would need to support an option to list all images on a page, so you can easily pick the links to ads to add them to your /etc/hosts.
+      one can list all images on a page using the socket, so you can easily pick the links to ads to add them to your /etc/hosts.
 * vimperator/konqueror-like hyperlink following.
 * password management. maybe an encrypted store that unlocks with an ssh key?
 * no messing in the users $HOME or in /etc: no writing of anything unless the user (or sysadmin) asks for it.
@@ -73,9 +74,8 @@ There are several interfaces to interact with uzbl:
   * shift insert (paste primary selection buffer)
 * FIFO & socket file: if enabled by setting their paths through one of the above means, you can have socket and fifo files available which are very useful to programatically control uzbl (from scripts etc).
   The advantage of the fifo is you can write plaintxt commands to it, but it's half duplex only (uzbl cannot send a response to you).
-  The socket is full duplex but you need a socket-compatible wrapper such as netcat to work with it, or uzblctrl of course,
-  an utitly we include with uzbl made especially for writing commnands to the socket (and at some point, it will be able to tell you the response
-  too):  `uzblctrl -s <socketfile> -c <command>`
+  The socket is full duplex but you need a socket-compatible wrapper such as socat to work with it.
+  For example: echo <command> | socat - unix-connect:<socketfile>
 
 When uzbl forks a new instance (eg "open in new window") it will use the same commandline arguments (eg the same --config <file>), except --uri and--name.
 If you made changes to the configuration at runtime, these are not pased on to the child.
@@ -196,17 +196,17 @@ Besides the builtin variables you can also define your own ones and use them in 
   - load_finish_handler
   - load_start_handler
   - load_commit_handler
-  - history_handler
   - download_handler
   - cookie_handler
   - new_window: handler to execute to invoke new uzbl window (TODO better name)
+  - scheme_handler: handler to execute for each URI navigated to - the navigation request will be ignored if handler prints "USED\n"
   - fifo_dir: location to store fifo's
   - socket_dir: location to store sockets
   - http_debug: http debug mode (value 0-3)
   - shell_cmd: alias which will be expanded to use shell commands (eg sh -c)
   - proxy_url: http traffic socks proxy (eg: http://<host>:<port>)
-  - max_conns
-  - max_conns_host
+  - max_conns: max simultaneous connections (default: 100)
+  - max_conns_host: max simultaneous connections per hostname (default: 6)
   - useragent: to be expanded strin
   - zoom_level
   - font_size
@@ -353,10 +353,6 @@ Handler scripts that are called by uzbl are passed the following arguments:
 
 The script specific arguments are this:
 
-* history:
-
-    $8 date of visit (Y-m-d H:i:s localtime)
-
 * add bookmark:
 
     none
@@ -364,6 +360,7 @@ The script specific arguments are this:
 * download:
 
     $8 url of item to download
+    $9 url of http proxy (optional)
 
 * cookie handler
 
@@ -372,6 +369,10 @@ The script specific arguments are this:
     $10 request address host (if current page url is www.foo.com/somepage, this could be something else than foo, eg advertising from another host)
     $11 request address path
     $12 cookie (only with PUT requests)
+
+* scheme handler:
+
+    $8 URI of the page to be navigated to
 
 
 Custom, userdefined scripts (`spawn foo bar`) get first the arguments as specified in the config and then the above 7 are added at the end.
@@ -408,6 +409,20 @@ This way, everything is kept private. It also turns Uzbl into a local variable, 
     }
 
 Copying the Uzbl object and creating public functions should be taken with care to avoid creating security holes. Keep in mind that the "f" function above would be defined in the `window` object, and as such any javascript in the current page can call it.
+
+### EVENTS ###
+
+unlike commands, events are not handled in uzbl itself, but are propagated asynchronously through text stream on
+stdout.  You'll usually use uzbl by piping it's output to a so called 'dispatcher'
+- makes it possible to use whichever language you want for event handling (python, perl, bash, .. you name it).
+  you'll usually send commands (see above) back to uzbl through its fifo or socket
+- keybindings use x keysyms
+- many finegrained events (hover_over_link, key_press, key_down,..)
+- see example dispatcher.sh
+
+Note: cookie events are not sent to a dispatcher but handled internally through the cookie handler because of their synchronous nature.
+Cookie events are really something completely different from all other events.  maybe someday we'll use http proxies or something for cookies, but
+for now we still use the handler code)
 
 ### COMMAND LINE ARGUMENTS
     uzbl [ uri ]

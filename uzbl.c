@@ -138,10 +138,10 @@ const struct var_name_to_ptr_t {
     { "load_finish_handler",    PTR_V_STR(uzbl.behave.load_finish_handler,      1,   NULL)},
     { "load_start_handler",     PTR_V_STR(uzbl.behave.load_start_handler,       1,   NULL)},
     { "load_commit_handler",    PTR_V_STR(uzbl.behave.load_commit_handler,      1,   NULL)},
-    { "history_handler",        PTR_V_STR(uzbl.behave.history_handler,          1,   NULL)},
     { "download_handler",       PTR_V_STR(uzbl.behave.download_handler,         1,   NULL)},
     { "cookie_handler",         PTR_V_STR(uzbl.behave.cookie_handler,           1,   cmd_cookie_handler)},
-    { "new_window",             PTR_V_STR(uzbl.behave.new_window,               1,   cmd_new_window)},
+    { "new_window",             PTR_V_STR(uzbl.behave.new_window,               1,   NULL)},
+    { "scheme_handler",         PTR_V_STR(uzbl.behave.scheme_handler,           1,   cmd_scheme_handler)},
     { "fifo_dir",               PTR_V_STR(uzbl.behave.fifo_dir,                 1,   cmd_fifo_dir)},
     { "socket_dir",             PTR_V_STR(uzbl.behave.socket_dir,               1,   cmd_socket_dir)},
     { "http_debug",             PTR_V_INT(uzbl.behave.http_debug,               1,   cmd_http_debug)},
@@ -202,7 +202,8 @@ const char *event_table[LAST_EVENT] = {
      "LOAD_COMMIT"      , 
      "LOAD_FINISH"      , 
      "LOAD_ERROR"       , 
-     "KEYPRESS"         , 
+     "KEY_PRESS"        ,
+     "KEY_RELEASE"      ,
      "DOWNLOAD_REQUEST" , 
      "COMMAND_EXECUTED" ,
      "LINK_HOVER"       ,
@@ -212,6 +213,8 @@ const char *event_table[LAST_EVENT] = {
      "COOKIE"           ,
      "NEW_WINDOW"       ,
      "SELECTION_CHANGED",
+     "VARIABLE_SET",
+     "FIFO_SET"
 };
 
 
@@ -412,20 +415,14 @@ expand(const char *s, guint recurse) {
     return g_string_free(buf, FALSE);
 }
 
-/* send events as strings over any of our interfaces 
- *
- * TODO: - also use an output fifo and the socket
- *       - probably we also want a variable/CL option
- *         that specifies wether to send events and through 
- *         which interface to send them
- *       - let the user select which event types
- *         to report
+/* send events as strings to stdout (do we need to support fifo/socket as output mechanism?)
+ * we send all events to the output. it's the users task to filter out what he cares about.
 */
 void
 send_event(int type, const gchar *details) {
 
     if(type < LAST_EVENT) {
-        printf("%s [%s] %s\n", event_table[type], uzbl.state.instance_name, details);
+        printf("EVENT %s [%s] %s\n", event_table[type], uzbl.state.instance_name, details);
         fflush(stdout);
     }
 }
@@ -553,6 +550,44 @@ catch_sigint(int s) {
 /* --- CALLBACKS --- */
 
 gboolean
+navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
+    (void) web_view;
+    (void) frame;
+    (void) navigation_action;
+    (void) user_data;
+
+    const gchar* uri = webkit_network_request_get_uri (request);
+    gboolean decision_made = FALSE;
+
+    if (uzbl.state.verbose)
+        printf("Navigation requested -> %s\n", uri);
+
+    if (uzbl.behave.scheme_handler) {
+        GString *s = g_string_new ("");
+        g_string_printf(s, "'%s'", uri);
+
+        run_handler(uzbl.behave.scheme_handler, s->str);
+
+        if(uzbl.comm.sync_stdout && strcmp (uzbl.comm.sync_stdout, "") != 0) {
+            char *p = strchr(uzbl.comm.sync_stdout, '\n' );
+            if ( p != NULL ) *p = '\0';
+            if (!strcmp(uzbl.comm.sync_stdout, "USED")) {
+                webkit_web_policy_decision_ignore(policy_decision);
+                decision_made = TRUE;
+            }
+        }
+        if (uzbl.comm.sync_stdout)
+            uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
+
+        g_string_free(s, TRUE);
+    }
+    if (!decision_made)
+        webkit_web_policy_decision_use(policy_decision);
+
+    return TRUE;
+}
+
+gboolean
 new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
     (void) web_view;
     (void) frame;
@@ -579,7 +614,7 @@ mime_policy_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequ
         return TRUE;
     }
 
-    /* ...everything we can't displayed is downloaded */
+    /* ...everything we can't display is downloaded */
     webkit_web_policy_decision_download (policy_decision);
     return TRUE;
 }
@@ -609,7 +644,17 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
         if (uzbl.state.verbose)
             printf("Download -> %s\n",uri);
         /* if urls not escaped, we may have to escape and quote uri before this call */
-        run_handler(uzbl.behave.download_handler, uri);
+
+        GString *args = g_string_new(uri);
+
+        if (uzbl.net.proxy_url) {
+           g_string_append_c(args, ' ');
+           g_string_append(args, uzbl.net.proxy_url);
+        }
+
+        run_handler(uzbl.behave.download_handler, args->str);
+
+        g_string_free(args, TRUE);
     }
     send_event(DOWNLOAD_REQ, webkit_download_get_uri ((WebKitDownload*)download));
     return (FALSE);
@@ -783,7 +828,6 @@ load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) frame;
     (void) data;
     uzbl.gui.sbar.load_progress = 0;
-    clear_keycmd(); // don't need old commands to remain on new page?
     if (uzbl.behave.load_start_handler)
         run_handler(uzbl.behave.load_start_handler, "");
 
@@ -826,19 +870,6 @@ destroy_cb (GtkWidget* widget, gpointer data) {
     (void) widget;
     (void) data;
     gtk_main_quit ();
-}
-
-void
-log_history_cb () {
-   if (uzbl.behave.history_handler) {
-       time_t rawtime;
-       struct tm * timeinfo;
-       char date [80];
-       time ( &rawtime );
-       timeinfo = localtime ( &rawtime );
-       strftime (date, 80, "\"%Y-%m-%d %H:%M:%S\"", timeinfo);
-       run_handler(uzbl.behave.history_handler, date);
-   }
 }
 
 
@@ -1029,7 +1060,7 @@ load_uri (WebKitWebView *web_view, GArray *argv, GString *result) {
             run_js(web_view, argv, NULL);
             return;
         }
-        if (g_strrstr (argv_idx(argv, 0), "://") == NULL && g_strstr_len (argv_idx(argv, 0), 5, "data:") == NULL)
+        if (!soup_uri_new(argv_idx(argv, 0)))
             g_string_prepend (newuri, "http://");
         /* if we do handle cookies, ask our handler for them */
         webkit_web_view_load_uri (web_view, newuri->str);
@@ -1840,14 +1871,14 @@ cmd_cookie_handler() {
 }
 
 void
-cmd_new_window() {
-    gchar **split = g_strsplit(uzbl.behave.new_window, " ", 2);
+cmd_scheme_handler() {
+    gchar **split = g_strsplit(uzbl.behave.scheme_handler, " ", 2);
     /* pitfall: doesn't handle chain actions; must the sync_ action manually */
     if ((g_strcmp0(split[0], "sh") == 0) ||
         (g_strcmp0(split[0], "spawn") == 0)) {
-        g_free (uzbl.behave.new_window);
-        uzbl.behave.new_window =
-            g_strdup_printf("%s %s", split[0], split[1]);
+        g_free (uzbl.behave.scheme_handler);
+        uzbl.behave.scheme_handler =
+            g_strdup_printf("sync_%s %s", split[0], split[1]);
     }
     g_strfreev (split);
 }
@@ -1930,6 +1961,7 @@ set_var_value(const gchar *name, gchar *val) {
     char *endp = NULL;
     char *buf = NULL;
     char *invalid_chars = "^°!\"§$%&/()=?'`'+~*'#-.:,;@<>| \\{}[]¹²³¼½";
+    GString *msg;
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         if(!c->writeable) return FALSE;
@@ -1939,6 +1971,10 @@ set_var_value(const gchar *name, gchar *val) {
             buf = expand(val, 0);
             g_free(*c->ptr.s);
             *c->ptr.s = buf;
+            msg = g_string_new(name);
+            g_string_append_printf(msg, " %s", buf);
+            send_event(VARIABLE_SET, msg->str);
+            g_string_free(msg,TRUE);
         } else if(c->type == TYPE_INT) {
             buf = expand(val, 0);
             *c->ptr.i = (int)strtoul(buf, &endp, 10);
@@ -2061,6 +2097,7 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
                 if (g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, NULL)) {
                     if (uzbl.state.verbose)
                         printf ("init_fifo: created successfully as %s\n", path);
+                        send_event(FIFO_SET, path);
                     uzbl.comm.fifo_path = path;
                     return dir;
                 } else g_warning ("init_fifo: could not add watch on %s\n", path);
@@ -2267,11 +2304,13 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
     (void) window;
 
     if(event->type == GDK_KEY_PRESS)
-        send_event(KEYPRESS, gdk_keyval_name(event->keyval) );
+        send_event(KEY_PRESS, gdk_keyval_name(event->keyval) );
 
     if (event->type   != GDK_KEY_PRESS ||
         event->keyval == GDK_Page_Up   ||
         event->keyval == GDK_Page_Down ||
+        event->keyval == GDK_Home      ||
+        event->keyval == GDK_End       ||
         event->keyval == GDK_Up        ||
         event->keyval == GDK_Down      ||
         event->keyval == GDK_Left      ||
@@ -2280,13 +2319,6 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
         event->keyval == GDK_Shift_R)
         return FALSE;
 
-    /* turn off insert mode (if always_insert_mode is not used) */
-    if (uzbl.behave.insert_mode && (event->keyval == GDK_Escape)) {
-        set_insert_mode(uzbl.behave.always_insert_mode);
-        update_title();
-        return TRUE;
-    }
-
     if (uzbl.behave.insert_mode &&
         ( ((event->state & uzbl.behave.modmask) != uzbl.behave.modmask) ||
           (!uzbl.behave.modmask)
@@ -2294,46 +2326,6 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
        )
         return FALSE;
 
-    if (event->keyval == GDK_Escape) {
-        clear_keycmd();
-        update_title();
-        dehilight(uzbl.gui.web_view, NULL, NULL);
-        return TRUE;
-    }
-
-    //Insert without shift - insert from clipboard; Insert with shift - insert from primary
-    if (event->keyval == GDK_Insert) {
-        gchar * str;
-        if ((event->state & GDK_SHIFT_MASK) == GDK_SHIFT_MASK) {
-            str = gtk_clipboard_wait_for_text (gtk_clipboard_get (GDK_SELECTION_PRIMARY));
-        } else {
-            str = gtk_clipboard_wait_for_text (gtk_clipboard_get (GDK_SELECTION_CLIPBOARD));
-        }
-        if (str) {
-            GString* keycmd = g_string_new(uzbl.state.keycmd);
-            g_string_append (keycmd, str);
-            uzbl.state.keycmd = g_string_free(keycmd, FALSE);
-            update_title ();
-            g_free (str);
-        }
-        return TRUE;
-    }
-
-    if (event->keyval == GDK_BackSpace)
-        keycmd_bs(NULL, NULL, NULL);
-
-    gboolean key_ret = FALSE;
-    if ((event->keyval == GDK_Return) || (event->keyval == GDK_KP_Enter))
-        key_ret = TRUE;
-    if (!key_ret) {
-        GString* keycmd = g_string_new(uzbl.state.keycmd);
-        g_string_append(keycmd, event->string);
-        uzbl.state.keycmd = g_string_free(keycmd, FALSE);
-    }
-
-    run_keycmd(key_ret);
-    update_title();
-    if (key_ret) return (!uzbl.behave.insert_mode);
     return TRUE;
 }
 
@@ -2419,10 +2411,10 @@ create_browser () {
     g_signal_connect (G_OBJECT (g->web_view), "load-progress-changed", G_CALLBACK (progress_change_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-committed", G_CALLBACK (load_commit_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-started", G_CALLBACK (load_start_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "load-finished", G_CALLBACK (log_history_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-finished", G_CALLBACK (load_finish_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "load-error", G_CALLBACK (load_error_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), g->web_view);
+    g_signal_connect (G_OBJECT (g->web_view), "navigation-policy-decision-requested", G_CALLBACK (navigation_decision_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "new-window-policy-decision-requested", G_CALLBACK (new_window_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "download-requested", G_CALLBACK (download_cb), g->web_view);
     g_signal_connect (G_OBJECT (g->web_view), "create-web-view", G_CALLBACK (create_web_view_cb), g->web_view);
@@ -2968,6 +2960,7 @@ main (int argc, char* argv[]) {
             printf("window_id %i\n",(int) uzbl.xwin);
         printf("pid %i\n", getpid ());
         printf("name: %s\n", uzbl.state.instance_name);
+        printf("commit: %s\n", uzbl.info.commit);
     }
 
     uzbl.gui.scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);
@@ -2990,7 +2983,9 @@ main (int argc, char* argv[]) {
     gboolean verbose_override = uzbl.state.verbose;
 
     settings_init ();
-    set_insert_mode(FALSE);
+
+    if (!uzbl.behave.always_insert_mode)
+      set_insert_mode(FALSE);
 
     if (!uzbl.behave.show_status)
         gtk_widget_hide(uzbl.gui.mainbar);

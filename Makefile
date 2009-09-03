@@ -6,9 +6,9 @@ CFLAGS!=echo -std=c99 `pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthre
 LDFLAGS:=$(shell pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0) -pthread $(LDFLAGS)
 LDFLAGS!=echo `pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` -pthread $(LDFLAGS)
 
-all: uzbl uzblctrl
+all: uzbl
 
-PREFIX?=$(DESTDIR)/usr
+PREFIX?=$(DESTDIR)/usr/local
 
 # When compiling unit tests, compile uzbl as a library first
 tests: uzbl.o
@@ -21,13 +21,15 @@ test: uzbl
 test-dev: uzbl
 	XDG_DATA_HOME=./examples/data               XDG_CONFIG_HOME=./examples/config               ./uzbl --uri http://www.uzbl.org --verbose
 
+test-dev-dispatched: uzbl
+	XDG_DATA_HOME=./examples/data               XDG_CONFIG_HOME=./examples/config               ./uzbl --uri http://www.uzbl.org --verbose | ./examples/data/uzbl/scripts/dispatcher.sh
+
 test-share: uzbl
-	XDG_DATA_HOME=/usr/share/uzbl/examples/data XDG_CONFIG_HOME=/usr/share/uzbl/examples/config ./uzbl --uri http://www.uzbl.org --verbose
+	XDG_DATA_HOME=${PREFIX}/share/uzbl/examples/data XDG_CONFIG_HOME=${PREFIX}/share/uzbl/examples/config ./uzbl --uri http://www.uzbl.org --verbose
 
 
 clean:
 	rm -f uzbl
-	rm -f uzblctrl
 	rm -f uzbl.o
 	cd ./tests/; $(MAKE) clean
 
@@ -36,7 +38,6 @@ install:
 	install -d $(PREFIX)/share/uzbl/docs
 	install -d $(PREFIX)/share/uzbl/examples
 	install -m755 uzbl $(PREFIX)/bin/uzbl
-	install -m755 uzblctrl $(PREFIX)/bin/uzblctrl
 	cp -rp docs     $(PREFIX)/share/uzbl/
 	cp -rp config.h $(PREFIX)/share/uzbl/docs/
 	cp -rp examples $(PREFIX)/share/uzbl/
@@ -46,5 +47,4 @@ install:
 
 uninstall:
 	rm -rf $(PREFIX)/bin/uzbl
-	rm -rf $(PREFIX)/bin/uzblctrl
 	rm -rf $(PREFIX)/share/uzbl

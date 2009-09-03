@@ -93,7 +93,6 @@ typedef struct {
     gchar*   title_format_short;
     gchar*   title_format_long;
     gchar*   status_background;
-    gchar*   history_handler;
     gchar*   fifo_dir;
     gchar*   socket_dir;
     gchar*   download_handler;
@@ -105,6 +104,7 @@ typedef struct {
     gchar*   serif_font_family;
     gchar*   fantasy_font_family;
     gchar*   cursive_font_family;
+    gchar*   scheme_handler;
     gboolean always_insert_mode;
     gboolean show_status;
     gboolean insert_mode;
@@ -187,9 +187,10 @@ typedef void sigfunc(int);
 /* Event system */
 enum event_type {
     LOAD_START, LOAD_COMMIT, LOAD_FINISH, LOAD_ERROR,
-    KEYPRESS, DOWNLOAD_REQ, COMMAND_EXECUTED,
+    KEY_PRESS, KEY_RELEASE, DOWNLOAD_REQ, COMMAND_EXECUTED,
     LINK_HOVER, TITLE_CHANGED, GEOMETRY_CHANGED, 
     WEBINSPECTOR, COOKIE, NEW_WINDOW, SELECTION_CHANGED,
+    VARIABLE_SET, FIFO_SET,
     
     /* must be last entry */
     LAST_EVENT
@@ -239,6 +240,9 @@ void
 print(WebKitWebView *page, GArray *argv, GString *result);
 
 gboolean
+navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data);
+
+gboolean
 new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data);
 
 gboolean
@@ -279,9 +283,6 @@ selection_changed_cb(WebKitWebView *webkitwebview, gpointer ud);
 
 void
 destroy_cb (GtkWidget* widget, gpointer data);
-
-void
-log_history_cb ();
 
 void
 commands_hash(void);
@@ -503,7 +504,7 @@ void
 cmd_cookie_handler();
 
 void
-cmd_new_window();
+cmd_scheme_handler();
 
 void
 move_statusbar();
