@@ -5,13 +5,14 @@
 * people who like nothing from this list: mpd, moc, wmii, dwm, awesome, mutt, pine, vim, dmenu, screen, irssi, weechat, bitlbee
 
 ### TO NEW PEOPLE:
-* please read the documentation in /usr/share/uzbl/docs
 * invoke uzbl --help
 * to get you started: `XDG_DATA_HOME=/usr/share/uzbl/examples/data XDG_CONFIG_HOME=/usr/share/uzbl/examples/config uzbl --uri www.archlinux.org`
+* alternatively, copy the above data to your real `$XDG_DATA_HOME` and `$XDG_CONFIG_HOME` directories
 * try and study the sample config, read the readme to find out how it works.
 * You can change the url with commands (if you have setup the appropriate keybinds) but to be most effective it's better to do url editing/changing _outside_ of uzbl.
   Eg, you can use the `load_from_*` dmenu based scripts to pick/edit a url or type a new one.
 * If you have questions, you are likely to find answers in the FAQ or in the other documentation.
+* documentation is in /usr/share/uzbl/docs
 
 
 ### INTRODUCTION
