@@ -1,3 +1,23 @@
+== event-messages specific ==
+* throw out all old code
+* document the dispatching mechanism, all events, how to get started with sample dispatcher
+* add key_release callback and event
+* remove all binding ('bind = ' etc.) stuff and port to new system
+
+= key handling (example dispatcher.sh) =
+* on escape:
+if insert mode: set_insert_mode(uzbl.behave.always_insert_mode); update_title
+else: clear_keycmd(); update_title; dehilight(uzbl.gui.web_view, NULL, NULL);
+* demonstrate separate key_press and key_release (eg press 'z' to zoom in, on release reset zoom to what it was before. use "locking boolean" as discussed on irc)
+* port the Modkey concept
+* BackSpace -> keycmd_bs
+
+* Insert: insert from clipboard -> keycmd + update_title
+* shift+Insert: insert from primary -> keycmd + update_title
+* handle Return and/or KP_Enter
+
+
+
 More or less in order of importance/urgency
 
 * improve cookie handler.

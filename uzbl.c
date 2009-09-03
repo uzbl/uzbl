@@ -201,7 +201,8 @@ const char *event_table[LAST_EVENT] = {
      "LOAD_COMMIT"      , 
      "LOAD_FINISH"      , 
      "LOAD_ERROR"       , 
-     "KEYPRESS"         , 
+     "KEY_PRESS"        ,
+     "KEY_RELEASE"      ,
      "DOWNLOAD_REQUEST" , 
      "COMMAND_EXECUTED" ,
      "LINK_HOVER"       ,
@@ -412,14 +413,8 @@ expand(const char *s, guint recurse) {
     return g_string_free(buf, FALSE);
 }
 
-/* send events as strings over any of our interfaces 
- *
- * TODO: - also use an output fifo and the socket
- *       - probably we also want a variable/CL option
- *         that specifies wether to send events and through 
- *         which interface to send them
- *       - let the user select which event types
- *         to report
+/* send events as strings to stdout (do we need to support fifo/socket as output mechanism?)
+ * we send all events to the output. it's the users task to filter out what he cares about.
 */
 void
 send_event(int type, const gchar *details) {
@@ -617,7 +612,7 @@ mime_policy_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequ
         return TRUE;
     }
 
-    /* ...everything we can't displayed is downloaded */
+    /* ...everything we can't display is downloaded */
     webkit_web_policy_decision_download (policy_decision);
     return TRUE;
 }
@@ -2301,7 +2296,7 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
     (void) window;
 
     if(event->type == GDK_KEY_PRESS)
-        send_event(KEYPRESS, gdk_keyval_name(event->keyval) );
+        send_event(KEY_PRESS, gdk_keyval_name(event->keyval) );
 
     if (event->type   != GDK_KEY_PRESS ||
         event->keyval == GDK_Page_Up   ||
@@ -2316,13 +2311,6 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
         event->keyval == GDK_Shift_R)
         return FALSE;
 
-    /* turn off insert mode (if always_insert_mode is not used) */
-    if (uzbl.behave.insert_mode && (event->keyval == GDK_Escape)) {
-        set_insert_mode(uzbl.behave.always_insert_mode);
-        update_title();
-        return TRUE;
-    }
-
     if (uzbl.behave.insert_mode &&
         ( ((event->state & uzbl.behave.modmask) != uzbl.behave.modmask) ||
           (!uzbl.behave.modmask)
@@ -2330,46 +2318,6 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
        )
         return FALSE;
 
-    if (event->keyval == GDK_Escape) {
-        clear_keycmd();
-        update_title();
-        dehilight(uzbl.gui.web_view, NULL, NULL);
-        return TRUE;
-    }
-
-    //Insert without shift - insert from clipboard; Insert with shift - insert from primary
-    if (event->keyval == GDK_Insert) {
-        gchar * str;
-        if ((event->state & GDK_SHIFT_MASK) == GDK_SHIFT_MASK) {
-            str = gtk_clipboard_wait_for_text (gtk_clipboard_get (GDK_SELECTION_PRIMARY));
-        } else {
-            str = gtk_clipboard_wait_for_text (gtk_clipboard_get (GDK_SELECTION_CLIPBOARD));
-        }
-        if (str) {
-            GString* keycmd = g_string_new(uzbl.state.keycmd);
-            g_string_append (keycmd, str);
-            uzbl.state.keycmd = g_string_free(keycmd, FALSE);
-            update_title ();
-            g_free (str);
-        }
-        return TRUE;
-    }
-
-    if (event->keyval == GDK_BackSpace)
-        keycmd_bs(NULL, NULL, NULL);
-
-    gboolean key_ret = FALSE;
-    if ((event->keyval == GDK_Return) || (event->keyval == GDK_KP_Enter))
-        key_ret = TRUE;
-    if (!key_ret) {
-        GString* keycmd = g_string_new(uzbl.state.keycmd);
-        g_string_append(keycmd, event->string);
-        uzbl.state.keycmd = g_string_free(keycmd, FALSE);
-    }
-
-    run_keycmd(key_ret);
-    update_title();
-    if (key_ret) return (!uzbl.behave.insert_mode);
     return TRUE;
 }
 
