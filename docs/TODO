@@ -3,6 +3,7 @@
 * document the dispatching mechanism, all events, how to get started with sample dispatcher
 * add key_release callback and event
 * remove all binding ('bind = ' etc.) stuff and port to new system
+* VARIABLE_SET for all types (but probably not useful for custom vars)
 
 = key handling (example dispatcher.sh) =
 * on escape:

@@ -212,6 +212,7 @@ const char *event_table[LAST_EVENT] = {
      "COOKIE"           ,
      "NEW_WINDOW"       ,
      "SELECTION_CHANGED",
+     "VARIABLE_SET",
 
 };
 
@@ -1959,6 +1960,7 @@ set_var_value(const gchar *name, gchar *val) {
     char *endp = NULL;
     char *buf = NULL;
     char *invalid_chars = "^°!\"§$%&/()=?'`'+~*'#-.:,;@<>| \\{}[]¹²³¼½";
+    GString *msg;
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         if(!c->writeable) return FALSE;
@@ -1968,6 +1970,10 @@ set_var_value(const gchar *name, gchar *val) {
             buf = expand(val, 0);
             g_free(*c->ptr.s);
             *c->ptr.s = buf;
+            msg = g_string_new(name);
+            g_string_append_printf(msg, " %s", buf);
+            send_event(VARIABLE_SET, msg->str);
+            g_string_free(msg,TRUE);
         } else if(c->type == TYPE_INT) {
             buf = expand(val, 0);
             *c->ptr.i = (int)strtoul(buf, &endp, 10);
