@@ -42,9 +42,8 @@ while read EVENT; do
     if [ x"$ENAME" = 'xFIFO_SET' ]; then
         FIFO_PATH=`echo $EVENT | cut -d ' ' -f 3`
 
-    elif [ x"$ENAME" = x'KEYPRESS' ]; then
-        KEY=$(echo "$EVENT" | sed -ne 's/KEYPRESS \[.*\] \(.*$\)/\1/p')
-        FIFO_PATH='/tmp/uzbl_fifo_'$(echo "$EVENT" | sed -ne 's/KEYPRESS \[\(.*\)\] .*$/\1/p')
+    elif [ x"$ENAME" = x'KEY_PRESS' ]; then
+        KEY=$(echo "$EVENT" | sed -ne 's/KEY_PRESS \[.*\] \(.*$\)/\1/p')
 
         # Clear mofifiers on Escape
         #
