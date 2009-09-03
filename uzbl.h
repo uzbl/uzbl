@@ -93,7 +93,6 @@ typedef struct {
     gchar*   title_format_short;
     gchar*   title_format_long;
     gchar*   status_background;
-    gchar*   history_handler;
     gchar*   fifo_dir;
     gchar*   socket_dir;
     gchar*   download_handler;
@@ -105,6 +104,7 @@ typedef struct {
     gchar*   serif_font_family;
     gchar*   fantasy_font_family;
     gchar*   cursive_font_family;
+    gchar*   scheme_handler;
     gboolean always_insert_mode;
     gboolean show_status;
     gboolean insert_mode;
@@ -134,11 +134,8 @@ typedef struct {
     guint    caret_browsing;
     guint    mode;
     gchar*   base_url;
-    gchar*   html_endmarker;
     gchar*   insert_indicator;
     gchar*   cmd_indicator;
-    GString* html_buffer;
-    guint    html_timeout;
     gboolean print_version;
 
     /* command list: (key)name -> (value)Command  */
@@ -242,6 +239,9 @@ void
 print(WebKitWebView *page, GArray *argv, GString *result);
 
 gboolean
+navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data);
+
+gboolean
 new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data);
 
 gboolean
@@ -282,9 +282,6 @@ selection_changed_cb(WebKitWebView *webkitwebview, gpointer ud);
 
 void
 destroy_cb (GtkWidget* widget, gpointer data);
-
-void
-log_history_cb ();
 
 void
 commands_hash(void);
@@ -466,12 +463,6 @@ void
 act_dump_config();
 
 void
-render_html();
-
-void
-set_timeout(int seconds);
-
-void
 dump_var_hash(gpointer k, gpointer v, gpointer ud);
 
 void
@@ -512,7 +503,7 @@ void
 cmd_cookie_handler();
 
 void
-cmd_new_window();
+cmd_scheme_handler();
 
 void
 move_statusbar();
