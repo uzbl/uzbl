@@ -422,7 +422,7 @@ void
 send_event(int type, const gchar *details) {
 
     if(type < LAST_EVENT) {
-        printf("%s [%s] %s\n", event_table[type], uzbl.state.instance_name, details);
+        printf("EVENT %s [%s] %s\n", event_table[type], uzbl.state.instance_name, details);
         fflush(stdout);
     }
 }

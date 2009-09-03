@@ -32,6 +32,10 @@ clear_modifiers() {
 }
 
 while read EVENT; do
+	if [ "$(echo $EVENT | cut -d ' ' -f 1)" != 'EVENT' ]; then
+		continue;
+	fi
+	EVENT="`echo $EVENT | sed 's/^EVENT //'`"
     # get eventname
     ENAME=`echo "$EVENT" | sed -ne 's/\([A-Z]*\) .*/\1/p'`
 
