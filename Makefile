@@ -22,7 +22,7 @@ test-dev: uzbl
 	XDG_DATA_HOME=./examples/data               XDG_CONFIG_HOME=./examples/config               ./uzbl --uri http://www.uzbl.org --verbose
 
 test-dev-dispatched: uzbl
-	XDG_DATA_HOME=./examples/data               XDG_CONFIG_HOME=./examples/config               ./uzbl --uri http://www.uzbl.org --verbose | ./examples/data/uzbl/scripts/dispatcher.sh
+	XDG_DATA_HOME=./examples/data               XDG_CONFIG_HOME=./examples/config               ./uzbl --uri http://www.uzbl.org --verbose | ./examples/data/uzbl/scripts/event_manager.py
 
 test-share: uzbl
 	XDG_DATA_HOME=${PREFIX}/share/uzbl/examples/data XDG_CONFIG_HOME=${PREFIX}/share/uzbl/examples/config ./uzbl --uri http://www.uzbl.org --verbose

@@ -412,15 +412,15 @@ Copying the Uzbl object and creating public functions should be taken with care 
 
 ### EVENTS ###
 
-unlike commands, events are not handled in uzbl itself, but are propagated asynchronously through text stream on
-stdout.  You'll usually use uzbl by piping it's output to a so called 'dispatcher'
+unlike commands, events are not handled in uzbl itself, but are propagated (dispatched) asynchronously through
+a text stream on stdout.  You'll usually use uzbl by piping it's output to a so called 'event handler'
 - makes it possible to use whichever language you want for event handling (python, perl, bash, .. you name it).
   you'll usually send commands (see above) back to uzbl through its fifo or socket
 - keybindings use x keysyms
 - many finegrained events (hover_over_link, key_press, key_down,..)
-- see example dispatcher.sh
+- see example event_handler.py
 
-Note: cookie events are not sent to a dispatcher but handled internally through the cookie handler because of their synchronous nature.
+Note: cookie events are not sent to an event handler but handled internally through the cookie handler because of their synchronous nature.
 Cookie events are really something completely different from all other events.  maybe someday we'll use http proxies or something for cookies, but
 for now we still use the handler code)
 
