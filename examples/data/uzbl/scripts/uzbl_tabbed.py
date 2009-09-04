@@ -1402,7 +1402,7 @@ if __name__ == "__main__":
 
     if config['verbose']:
         import pprint
-        map(echo, pprint.pformat(config).split('\n'))
+        sys.stderr.write("%s\n" % pprint.pformat(config))
 
     uzbl = UzblTabbed()
 
