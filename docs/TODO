@@ -5,9 +5,33 @@
 * remove all binding ('bind = ' etc.) stuff and port to new system
 * VARIABLE_SET for all types (but probably not useful for custom vars)
 * port keycmd to evt handler.  we can now more cleanly send BackSpace instead of keycmd_bs and so on
-* use a data-driven new config format which supports keypresses and keyreleases, modkey and all x keysyms
 
-= key handling (example event_handler.py) =
+
+= keybinding features =
+* use a datadriven config format to allow simple implementations in different languages.
+* allow binding all 'normal' keys ('a', 'Z', '_', '1', '@', '{', ...)
+* allow binding all 'special' keys and modkeys ('Space', 'BackSpace', 'Alt_L', 'Escape')
+* i _think_ we could receive anything from /usr/include/X11/keysymdef.h (mines the 'XK_')
+* support keypresses and keyreleases
+* maybe: finegrained definitions of when releases can happen during a bigger command.  this may be an overcomplication (YAGNI?)
+* maybe: after triggering, support resetting keycmd not to '', but something else. eg after 'gbbs' has triggered, set keycmd to 'bbs search' or something
+  thoughts: do we send fake key events to uzbl (xdotool?) or more a way to set the keycmd inside the event handler?
+            maybe not use a command but a static definition in the bind configs
+            it may be cumbersome to support special chars here, so lets not overcomplicate this
+
+== proposed workflow ==
+in event_handler.py:
+ * incoming key.length > 1 (this should separate all special cases like F11, Alt_L etc from normal chars) -> put '[' and ']' around it
+   this allows to separate [F11] from a sequence of literal 'F', '1' '1'.
+ * to bind literal [, it should be escapable with '\' (which itself is also escapable. eg '\\' for literal '\')
+ * In most implementations, you'll want to:
+   if [BackSpace] && keycmd == '' -> go back or whatever. otherwise remove last char from keycmd
+ * this gives us the ' ' character for free. what to do with it?
+   ideas:
+   * use it as token for key_release event: 'z ' would mean: bind something on release of 'z', but we could also use a special marker like [release:<char>] for this (where <char> itself can also contain [] )
+   * use it a separator for "combo's" (like xbindkeys does)
+
+= key handling (example event_handler.py) examples to implement =
 * on escape:
 if insert mode: set_insert_mode(uzbl.behave.always_insert_mode); update_title
 else: clear_keycmd(); update_title; dehilight(uzbl.gui.web_view, NULL, NULL);
