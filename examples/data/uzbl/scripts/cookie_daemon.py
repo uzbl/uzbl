@@ -293,9 +293,6 @@ class CookieMonster:
         self.last_request = time.time()
         self._running = False
 
-        # Grab the last modified time of the cookie whitelist.
-        self._whitelistmtime = None
-
 
     def run(self):
         '''Start the daemon.'''
@@ -383,10 +380,6 @@ class CookieMonster:
 
         if cookie_jar:
             mkbasedir(cookie_jar)
-
-        # Remove any stale cookie jars.
-        if self.jar:
-            del self.jar
 
         # Create cookie jar object from file.
         self.jar = cookielib.MozillaCookieJar(cookie_jar)
