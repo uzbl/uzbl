@@ -645,6 +645,7 @@ def main():
         import pprint
         sys.stderr.write("%s\n" % pprint.pformat(config))
 
+    # it would be better if we didn't need to start this python process just to send a command to the socket, but unfortunately socat doesn't seem to support SEQPACKET
     if action == "reload":
         send_command(config['cookie_socket'], "RELOAD")
 
