@@ -11,13 +11,44 @@
 * use a datadriven config format to allow simple implementations in different languages.
 * allow binding all 'normal' keys ('a', 'Z', '_', '1', '@', '{', ...)
 * allow binding all 'special' keys and modkeys ('Space', 'BackSpace', 'Alt_L', 'Escape')
-* i _think_ we could receive anything from /usr/include/X11/keysymdef.h (mines the 'XK_')
+* we could receive anything from /usr/include/X11/keysymdef.h (minus the 'XK_')
 * support keypresses and keyreleases
 * maybe: finegrained definitions of when releases can happen during a bigger command.  this may be an overcomplication (YAGNI?)
 * maybe: after triggering, support resetting keycmd not to '', but something else. eg after 'gbbs' has triggered, set keycmd to 'bbs search' or something
   thoughts: do we send fake key events to uzbl (xdotool?) or more a way to set the keycmd inside the event handler?
             maybe not use a command but a static definition in the bind configs
             it may be cumbersome to support special chars here, so lets not overcomplicate this
+* since we use key_press and release events, we don't need to support modmasks, we can "know" the state of any key, even non-modifier keys can be used as "fake" modkeys!
+* port old behaviors:
+  * `<string>` ends with underscore: the command will only be invoked after pressing return/enter, `%s` in the `<command>` string will be replaced by this text. (optional) (old `bind o _ = uri %s`)
+    -> we can now use Literal 'Enter' keysym. we could have the convention that any bind who ends with 'Enter' which gets extra text, will do the replacement thing.
+  * `<string>` ends with an asterisk: similar behavior as with an underscore, but also makes the binding incremental (i.e. the command will be invoked on every keystroke). (old `bind /*  = search %s` )
+    -> we'll come up with a special marker. [!Enter] or whatever.
+  * `<string>` ends on a different character: you need to type the full string, which will trigger the command immediately, without pressing enter/return. (old  `bind ZZ  = exit`)
+    -> this should be the default.
+
+= proposed implementations =
+option1: always assume combo's (simultaneous keypresses)
+' ' -> combo separator
+'a  ' -> bind something to key_release of 'a'
+
+abc -> press a b c at same time
+a b c -> press string 'abc'
+
+option2: combo's are explicit (dieters preference):
+'+' -> define combo (make + escapable)
+'a ' -> key_release a
+
+'a+b+c' -> press a b c at same time.
+'abc' -> string 'abc'
+'a+b+cfoo' -> a b c at same time, then 'foo'
+'a+(bc)' -> 'bc' with 'a' as fake modkey (make '()' escapable)
+'a+b a+c' -> same (though you could temporarily release a between pressing 'b' and 'c' if you want)
+'[Space]+foo' -> press space while typing 'f', then type 'oo' (make '[]' escapable)
+'[Alt_L]+[Backspace]' -> press alt while hitting backspace
+'[Alt_L][Backspace]' -> hit alt, then backspace
+'[Alt_L][Backspace] ' -> hit alt, then backspace then release backspace
+'z' and 'z ' -> bind things on press and release of 'z'
 
 == proposed workflow ==
 in event_handler.py:
