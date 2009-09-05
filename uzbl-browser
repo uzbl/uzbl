@@ -1,0 +1,9 @@
+#!/bin/sh
+# this script implements are more useful "browsing experience". make sure to have the event manager in the appropriate place.
+
+if [ x"$XDG_DATA_HOME" != 'x' ]
+then
+	uzbl-core "$@" | $XDG_DATA_HOME/uzbl/scripts/event_manager.py
+else
+	uzbl-core "$@" | $HOME/.local/share/uzbl/scripts/event_manager.py
+fi

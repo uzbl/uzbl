@@ -174,7 +174,7 @@ typedef struct {
 
     /* group bindings: key -> action */
     GHashTable* bindings;
-} Uzbl;
+} UzblCore;
 
 
 typedef struct {

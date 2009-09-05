@@ -58,10 +58,10 @@
 #include <sys/uio.h>
 #include <sys/ioctl.h>
 #include <assert.h>
-#include "uzbl.h"
+#include "uzbl-core.h"
 #include "config.h"
 
-Uzbl uzbl;
+UzblCore uzbl;
 
 /* commandline arguments (set initial values for the state variables) */
 const

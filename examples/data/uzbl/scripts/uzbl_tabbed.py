@@ -945,7 +945,7 @@ class UzblTabbed:
             uri = "--uri %r" % uri
 
         self.tabs[tab] = uzbl
-        cmd = 'uzbl -s %s -n %s_%0.2d %s &' % (sid, self.wid, pid, uri)
+        cmd = 'uzbl-browser -s %s -n %s_%0.2d %s &' % (sid, self.wid, pid, uri)
         subprocess.Popen([cmd], shell=True) # TODO: do i need close_fds=True ?
 
         # Add gobject timer to make sure the config is pushed when fifo socket

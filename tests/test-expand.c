@@ -22,10 +22,10 @@
 #include <fcntl.h>
 #include <signal.h>
 
-#include <uzbl.h>
+#include <uzbl-core.h>
 #include <config.h>
 
-extern Uzbl uzbl;
+extern UzblCore uzbl;
 
 extern gchar* expand(char*, guint);
 extern void make_var_to_name_hash(void);

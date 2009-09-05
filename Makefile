@@ -8,43 +8,46 @@ LDFLAGS!=echo `pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` -p
 
 all: uzbl
 
+uzbl: uzbl-core
+
 PREFIX?=$(DESTDIR)/usr/local
 
 # When compiling unit tests, compile uzbl as a library first
-tests: uzbl.o
-	$(CC) -DUZBL_LIBRARY -shared -Wl uzbl.o -o ./tests/libuzbl.so
+tests: uzbl-core.o
+	$(CC) -DUZBL_LIBRARY -shared -Wl uzbl-core.o -o ./tests/libuzbl-core.so
 	cd ./tests/; $(MAKE)
 
 test: uzbl
-	./uzbl --uri http://www.uzbl.org --verbose
+	PATH="`pwd`:$$PATH" ./uzbl-browser --uri http://www.uzbl.org --verbose
 
 test-dev: uzbl
-	XDG_DATA_HOME=./examples/data               XDG_CONFIG_HOME=./examples/config               ./uzbl --uri http://www.uzbl.org --verbose
+	XDG_DATA_HOME=./examples/data               XDG_CONFIG_HOME=./examples/config               ./uzbl-browser --uri http://www.uzbl.org --verbose
 
 test-dev-dispatched: uzbl
-	XDG_DATA_HOME=./examples/data               XDG_CONFIG_HOME=./examples/config               ./uzbl --uri http://www.uzbl.org --verbose | ./examples/data/uzbl/scripts/event_manager.py
+	XDG_DATA_HOME=./examples/data               XDG_CONFIG_HOME=./examples/config               ./uzbl-browser --uri http://www.uzbl.org --verbose | ./examples/data/uzbl/scripts/event_manager.py
 
 test-share: uzbl
-	XDG_DATA_HOME=${PREFIX}/share/uzbl/examples/data XDG_CONFIG_HOME=${PREFIX}/share/uzbl/examples/config ./uzbl --uri http://www.uzbl.org --verbose
+	XDG_DATA_HOME=${PREFIX}/share/uzbl/examples/data XDG_CONFIG_HOME=${PREFIX}/share/uzbl/examples/config ./uzbl-browser --uri http://www.uzbl.org --verbose
 
 
 clean:
-	rm -f uzbl
-	rm -f uzbl.o
+	rm -f uzbl-core
+	rm -f uzbl-core.o
 	cd ./tests/; $(MAKE) clean
 
 install:
 	install -d $(PREFIX)/bin
 	install -d $(PREFIX)/share/uzbl/docs
 	install -d $(PREFIX)/share/uzbl/examples
-	install -m755 uzbl $(PREFIX)/bin/uzbl
 	cp -rp docs     $(PREFIX)/share/uzbl/
 	cp -rp config.h $(PREFIX)/share/uzbl/docs/
 	cp -rp examples $(PREFIX)/share/uzbl/
-	install -m644 AUTHORS $(PREFIX)/share/uzbl/docs
-	install -m644 README  $(PREFIX)/share/uzbl/docs
+	install -m755 uzbl-core    $(PREFIX)/bin/uzbl-core
+	install -m755 uzbl-browser $(PREFIX)/bin/uzbl-browser
+	install -m644 AUTHORS      $(PREFIX)/share/uzbl/docs
+	install -m644 README       $(PREFIX)/share/uzbl/docs
 
 
 uninstall:
-	rm -rf $(PREFIX)/bin/uzbl
+	rm -rf $(PREFIX)/bin/uzbl-*
 	rm -rf $(PREFIX)/share/uzbl
