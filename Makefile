@@ -6,9 +6,9 @@ CFLAGS!=echo -std=c99 `pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthre
 LDFLAGS:=$(shell pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0) -pthread $(LDFLAGS)
 LDFLAGS!=echo `pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` -pthread $(LDFLAGS)
 
-all: uzbl
+all: uzbl-browser
 
-uzbl: uzbl-core
+uzbl-browser: uzbl-core
 
 PREFIX?=$(DESTDIR)/usr/local
 
@@ -17,18 +17,23 @@ tests: uzbl-core.o
 	$(CC) -DUZBL_LIBRARY -shared -Wl uzbl-core.o -o ./tests/libuzbl-core.so
 	cd ./tests/; $(MAKE)
 
-test: uzbl
+test: uzbl-core
+	                    ./uzbl-core --uri http://www.uzbl.org --verbose
+
+test-browser: uzbl-browser
 	PATH="`pwd`:$$PATH" ./uzbl-browser --uri http://www.uzbl.org --verbose
 
-test-dev: uzbl
-	XDG_DATA_HOME=./examples/data               XDG_CONFIG_HOME=./examples/config               ./uzbl-browser --uri http://www.uzbl.org --verbose
+test-dev: uzbl-core
+	XDG_DATA_HOME=./examples/data                    XDG_CONFIG_HOME=./examples/config                                        ./uzbl-core --uri http://www.uzbl.org --verbose
 
-test-dev-dispatched: uzbl
-	XDG_DATA_HOME=./examples/data               XDG_CONFIG_HOME=./examples/config               ./uzbl-browser --uri http://www.uzbl.org --verbose | ./examples/data/uzbl/scripts/event_manager.py
+test-dev-browser: uzbl-browser
+	XDG_DATA_HOME=./examples/data                    XDG_CONFIG_HOME=./examples/config                    PATH="`pwd`:$$PATH" ./uzbl-browser --uri http://www.uzbl.org --verbose
 
-test-share: uzbl
-	XDG_DATA_HOME=${PREFIX}/share/uzbl/examples/data XDG_CONFIG_HOME=${PREFIX}/share/uzbl/examples/config ./uzbl-browser --uri http://www.uzbl.org --verbose
+test-share: uzbl-core
+	XDG_DATA_HOME=${PREFIX}/share/uzbl/examples/data XDG_CONFIG_HOME=${PREFIX}/share/uzbl/examples/config                     ./uzbl-core --uri http://www.uzbl.org --verbose
 
+test-share-browser: uzbl-browser
+	XDG_DATA_HOME=${PREFIX}/share/uzbl/examples/data XDG_CONFIG_HOME=${PREFIX}/share/uzbl/examples/config PATH="`pwd`:$$PATH" ./uzbl-browser --uri http://www.uzbl.org --verbose
 
 clean:
 	rm -f uzbl-core
