@@ -5,7 +5,10 @@
 * remove all binding ('bind = ' etc.) stuff and port to new system
 * VARIABLE_SET for all types (but probably not useful for custom vars)
 * port keycmd to evt handler.  we can now more cleanly send BackSpace instead of keycmd_bs and so on
-
+* port the concept of modes and all related variables
+* uzbl -> uzbl-core, uzbl-browser script like 'uzbl | $XDG.../event_manager.py'
+* event manager dynamic config system that configures itself based on events from uzbl (eg to set vars in "uzbl slaves" such as this, set custom vars in uzbl which we react to)
+* remove chain command
 
 = keybinding features =
 * use a datadriven config format to allow simple implementations in different languages.
