@@ -27,6 +27,18 @@
   * `<string>` ends on a different character: you need to type the full string, which will trigger the command immediately, without pressing enter/return. (old  `bind ZZ  = exit`)
     -> this should be the default.
 
+== proposed workflow ==
+in event_handler.py:
+ * incoming key.length > 1 (this should separate all special cases like F11, Alt_L etc from normal chars) -> put '[' and ']' around it
+   this allows to separate [F11] from a sequence of literal 'F', '1' '1'.
+ * to bind literal [, it should be escapable with '\' (which itself is also escapable. eg '\\' for literal '\')
+ * In most implementations, you'll want to:
+   if [BackSpace] && keycmd == '' -> go back or whatever. otherwise remove last char from keycmd
+ * this gives us the ' ' character for free. what to do with it?
+   ideas:
+   * use it as token for key_release event: 'z ' would mean: bind something on release of 'z', but we could also use a special marker like [release:<char>] for this (where <char> itself can also contain [] )
+   * use it a separator for "combo's" (like xbindkeys does)
+
 = proposed implementations =
 option1: always assume combo's (simultaneous keypresses)
 ' ' -> combo separator
@@ -49,18 +61,6 @@ option2: combo's are explicit (dieters preference):
 '[Alt_L][Backspace]' -> hit alt, then backspace
 '[Alt_L][Backspace] ' -> hit alt, then backspace then release backspace
 'z' and 'z ' -> bind things on press and release of 'z'
-
-== proposed workflow ==
-in event_handler.py:
- * incoming key.length > 1 (this should separate all special cases like F11, Alt_L etc from normal chars) -> put '[' and ']' around it
-   this allows to separate [F11] from a sequence of literal 'F', '1' '1'.
- * to bind literal [, it should be escapable with '\' (which itself is also escapable. eg '\\' for literal '\')
- * In most implementations, you'll want to:
-   if [BackSpace] && keycmd == '' -> go back or whatever. otherwise remove last char from keycmd
- * this gives us the ' ' character for free. what to do with it?
-   ideas:
-   * use it as token for key_release event: 'z ' would mean: bind something on release of 'z', but we could also use a special marker like [release:<char>] for this (where <char> itself can also contain [] )
-   * use it a separator for "combo's" (like xbindkeys does)
 
 = key handling (example event_handler.py) examples to implement =
 * on escape:
