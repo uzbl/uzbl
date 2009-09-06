@@ -1,9 +1,35 @@
 #!/bin/sh
-# this script implements are more useful "browsing experience". make sure to have the event manager in the appropriate place.
+# this script implements are more useful "browsing experience". 
+# We are assuming you want to use the event_manager.py and cookie_daemon.py.
+# So, you must have them in the appropriate place, and cookie_daemon_socket must be configured in the default location
 
-if [ x"$XDG_DATA_HOME" != 'x' ]
+# Also, we assume existence of fifo/socket == correctly functioning cookie_daemon/event_manager.
+# Checking correct functioning of the daemons here would be too complex here, and it's not implemented in uzbl-core either.
+# But this shouldn't cause much problems..
+
+
+if [ x"$XDG_DATA_HOME" == 'x' ]
 then
-	uzbl-core "$@" | $XDG_DATA_HOME/uzbl/scripts/event_manager.py
-else
-	uzbl-core "$@" | $HOME/.local/share/uzbl/scripts/event_manager.py
+	XDG_DATA_HOME=$HOME/.local/share
 fi
+
+if [ x"$XDG_CACHE_HOME" == 'x' ]
+then
+	XDG_CACHE_HOME=$HOME/.cache
+fi
+
+if [ ! -S $XDG_CACHE_HOME/uzbl/cookie_daemon_socket ]
+then
+	$XDG_DATA_HOME/uzbl/scripts/cookie_daemon.py
+fi
+
+FIFO=/tmp/uzbl-fifo-eventmanager
+EVENT_MANAGER=$XDG_DATA_HOME/uzbl/scripts/event_manager.py
+
+if [ ! -p $FIFO ]
+then
+	mkfifo $FIFO
+	(cat $FIFO | $EVENT_MANAGER && rm $FIFO) &
+fi
+
+uzbl-core "$@" > $FIFO
