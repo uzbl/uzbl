@@ -444,9 +444,11 @@ class UzblInstance:
 
         elif event == 'FIFO_SET':
             self.uzbl_fifo = args
+            self._flush()
 
         elif event == 'SOCKET_SET':
             self.uzbl_socket = args
+            self._flush()
 
         self.dispatch_event(event, args)
 
