@@ -46,6 +46,7 @@ import select
 import re
 import types
 import socket
+import pprint
 from traceback import print_exc
 
 
@@ -193,7 +194,22 @@ class PluginManager(dict):
         self.load_plugins()
 
 
-class UzblInstance:
+def export_wrapper(uzbl, function):
+    '''Return an object that appends the uzbl meta-instance to the front of
+    the argument queue. I.e. (*args, **kargs) -> (uzbl, *args, **kargs)'''
+
+    class Export(object):
+        def __init__(self, uzbl, function):
+            self.function = function
+            self.uzbl = uzbl
+
+        def call(self, *args, **kargs):
+            return self.function(self.uzbl, *args, **kargs)
+
+    return Export(uzbl, function).call
+
+
+class UzblInstance(object):
     '''Event manager for a uzbl instance.'''
 
     # Singleton plugin manager.
@@ -201,6 +217,9 @@ class UzblInstance:
 
     def __init__(self):
         '''Initialise event manager.'''
+
+        # Hold functions exported by plugins.
+        self._exports = {}
 
         class ConfigDict(dict):
             def __init__(self, setcmd):
@@ -251,6 +270,17 @@ class UzblInstance:
         self._init_plugins()
 
 
+    def __getattribute__(self, name):
+        '''Expose any exported functions before class functions.'''
+
+        if not name.startswith('_'):
+            exports = object.__getattribute__(self, '_exports')
+            if name in exports:
+                return exports[name]
+
+        return object.__getattribute__(self, name)
+
+
     def _get_config(self):
         '''Return the uzbl config dictionary.'''
 
@@ -260,11 +290,27 @@ class UzblInstance:
 
 
     def _init_plugins(self):
-        '''Call the init() function in every plugin.'''
+        '''Call the init() function in every plugin and expose all exposable
+        functions in the plugins root namespace.'''
 
-        for plugin in self.plugins.keys():
+        # Map all plugin exports
+        for (name, plugin) in self.plugins.items():
+            for attr in dir(plugin):
+                if not attr.startswith('export_') or attr == 'export_':
+                    continue
+
+                obj = getattr(plugin, attr)
+                if type(obj) in [types.LambdaType, types.FunctionType]:
+                    obj = export_wrapper(self, obj)
+
+                self._exports[attr[7:]] = obj
+
+        echo("exposed attribute(s): %s" % ', '.join(self._exports.keys()))
+
+        # Now call the init function in all plugins.
+        for (name, plugin) in self.plugins.items():
             try:
-                self.plugins[plugin].init(self)
+                plugin.init(self)
 
             except:
                 print_exc()
@@ -336,43 +382,6 @@ class UzblInstance:
             if id in self.handlers[event].keys():
                 echo("removed handler %d" % id)
                 del self.handlers[event][id]
-
-
-    def bind(self, glob, cmd=None):
-        '''Support for classic uzbl binds.
-
-        For example:
-          bind ZZ = exit          -> bind('ZZ', 'exit')
-          bind o _ = uri %s       -> bind('o _', 'uri %s')
-          bind fl* = sh 'echo %s' -> bind('fl*', "sh 'echo %s'")
-          bind fl* =              -> bind('fl*')
-
-        And it is also possible to execute a function on activation:
-          bind('DD', myhandler)
-
-        NOTE: This wont work yet but the groundwork has been layed out.
-        '''
-
-        if not cmd:
-            if glob in self.binds.keys():
-                echo("deleted bind: %r" % self.binds[glob])
-                del self.binds[glob]
-
-        d = {'glob': glob, 'once': True, 'hasargs': True, 'cmd': cmd}
-
-        if glob.endswith('*'):
-            d['pre'] = glob.rstrip('*')
-            d['once'] = False
-
-        elif glob.endswith('_'):
-            d['pre'] = glob.rstrip('_')
-
-        else:
-            d['pre'] = glob
-            d['hasargs'] = False
-
-        self.binds[glob] = d
-        echo("added bind: %r" % d)
 
 
     def set(self, key, value):
@@ -449,6 +458,11 @@ class UzblInstance:
         elif event == 'SOCKET_SET':
             self.uzbl_socket = args
             self._flush()
+
+        elif event == 'SHUTDOWN':
+            for (name, plugin) in self.plugins.items():
+                if hasattr(plugin, "cleanup"):
+                    plugin.cleanup(uzbl)
 
         self.dispatch_event(event, args)
 
