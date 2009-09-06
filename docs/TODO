@@ -1,3 +1,12 @@
+what if fifo/socket doesn't exist, or exists but nothing working behind it (anymore)?
+-> useful for both cookie handler and event manager
+-> implementing in uzbl-core needs refactoring of handler args, or some edge-case workarounds 
+   (mason-l's proposal was not too bad: basically make cookie stuff more cookie specific.
+   we don't need a generic talk_to_socket. 3 vars: cookie_handler, cookie_handler_socket and 
+   cookie_handler_launcher. act depending on which vars are set)
+-> for now, assume that we don't need to check for crashes, just make sure there is the initial socket/fifo -> can be done in uzbl-browser script
+
+
 == event-messages specific ==
 * throw out all old code
 * document the event handling mechanism, all events, how to get started with sample event handler
@@ -9,6 +18,10 @@
 * uzbl -> uzbl-core, uzbl-browser script like 'uzbl | $XDG.../event_manager.py'
 * event manager dynamic config system that configures itself based on events from uzbl (eg to set vars in "uzbl slaves" such as this, set custom vars in uzbl which we react to)
 * remove chain command
+* scalability -> 1 event manager per n uzbl-browser instances -> mkfifo and redirect uzbl-core stdout to fifo in uzbl-browser
+* event manager -> everything based on per instance basis (associative array with uzbl instance name as key)
+* why the need of queues in mason-l branch?
+
 
 = keybinding features =
 * use a datadriven config format to allow simple implementations in different languages.

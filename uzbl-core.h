@@ -390,6 +390,9 @@ update_title (void);
 gboolean
 key_press_cb (GtkWidget* window, GdkEventKey* event);
 
+gboolean
+key_release_cb (GtkWidget* window, GdkEventKey* event);
+
 void
 run_keycmd(const gboolean key_ret);
 

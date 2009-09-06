@@ -2322,7 +2322,7 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
     (void) window;
 
     if(event->type == GDK_KEY_PRESS)
-        send_event(KEY_PRESS, gdk_keyval_name(event->keyval) );
+        send_event(KEY_PRESS, gdk_keyval_name(event->keyval));
 
     if (event->type   != GDK_KEY_PRESS ||
         event->keyval == GDK_Page_Up   ||
@@ -2343,6 +2343,16 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
         )
        )
         return FALSE;
+
+    return TRUE;
+}
+
+gboolean
+key_release_cb (GtkWidget* window, GdkEventKey* event) {
+    (void) window;
+
+    if(event->type == GDK_KEY_RELEASE)
+        send_event(KEY_RELEASE, gdk_keyval_name(event->keyval));
 
     return TRUE;
 }
@@ -2455,6 +2465,7 @@ create_mainbar () {
     gtk_misc_set_padding (GTK_MISC(g->mainbar_label), 2, 2);
     gtk_box_pack_start (GTK_BOX (g->mainbar), g->mainbar_label, TRUE, TRUE, 0);
     g_signal_connect (G_OBJECT (g->mainbar), "key-press-event", G_CALLBACK (key_press_cb), NULL);
+    g_signal_connect (G_OBJECT (g->mainbar), "key-release-event", G_CALLBACK (key_release_cb), NULL);
     return g->mainbar;
 }
 
@@ -2465,6 +2476,7 @@ create_window () {
     gtk_widget_set_name (window, "Uzbl browser");
     g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (destroy_cb), NULL);
     g_signal_connect (G_OBJECT (window), "key-press-event", G_CALLBACK (key_press_cb), NULL);
+    g_signal_connect (G_OBJECT (window), "key-release-event", G_CALLBACK (key_release_cb), NULL);
     g_signal_connect (G_OBJECT (window), "configure-event", G_CALLBACK (configure_event_cb), NULL);
 
     return window;
@@ -2475,6 +2487,7 @@ create_plug () {
     GtkPlug* plug = GTK_PLUG (gtk_plug_new (uzbl.state.socket_id));
     g_signal_connect (G_OBJECT (plug), "destroy", G_CALLBACK (destroy_cb), NULL);
     g_signal_connect (G_OBJECT (plug), "key-press-event", G_CALLBACK (key_press_cb), NULL);
+    g_signal_connect (G_OBJECT (plug), "key-release-event", G_CALLBACK (key_release_cb), NULL);
 
     return plug;
 }
