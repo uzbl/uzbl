@@ -1966,36 +1966,30 @@ set_var_value(const gchar *name, gchar *val) {
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         if(!c->writeable) return FALSE;
 
-        if (uzbl.state.config_loaded)
-            msg = g_string_new(name);
+        msg = g_string_new(name);
 
         /* check for the variable type */
         if (c->type == TYPE_STR) {
             buf = expand(val, 0);
             g_free(*c->ptr.s);
             *c->ptr.s = buf;
-            if (uzbl.state.config_loaded)
-                g_string_append_printf(msg, " str %s", buf);
+            g_string_append_printf(msg, " str %s", buf);
 
         } else if(c->type == TYPE_INT) {
             buf = expand(val, 0);
             *c->ptr.i = (int)strtoul(buf, &endp, 10);
             g_free(buf);
-            if (uzbl.state.config_loaded)
-                g_string_append_printf(msg, " int %d", *c->ptr.i);
+            g_string_append_printf(msg, " int %d", *c->ptr.i);
 
         } else if (c->type == TYPE_FLOAT) {
             buf = expand(val, 0);
             *c->ptr.f = strtod(buf, &endp);
             g_free(buf);
-            if (uzbl.state.config_loaded)
-                g_string_append_printf(msg, " float %f", *c->ptr.f);
+            g_string_append_printf(msg, " float %f", *c->ptr.f);
         }
 
-        if (uzbl.state.config_loaded) {
-            send_event(VARIABLE_SET, msg->str);
-            g_string_free(msg,TRUE);
-        }
+        send_event(VARIABLE_SET, msg->str);
+        g_string_free(msg,TRUE);
 
         /* invoke a command specific function */
         if(c->func) c->func();
@@ -2019,12 +2013,10 @@ set_var_value(const gchar *name, gchar *val) {
         g_hash_table_insert(uzbl.comm.proto_var,
                 g_strdup(name), (gpointer) c);
 
-        if (uzbl.state.config_loaded) {
-            msg = g_string_new(name);
-            g_string_append_printf(msg, " str %s", buf);
-            send_event(VARIABLE_SET, msg->str);
-            g_string_free(msg,TRUE);
-        }
+        msg = g_string_new(name);
+        g_string_append_printf(msg, " str %s", buf);
+        send_event(VARIABLE_SET, msg->str);
+        g_string_free(msg,TRUE);
     }
     return TRUE;
 }
@@ -2661,7 +2653,6 @@ void
 settings_init () {
     State *s = &uzbl.state;
     Network *n = &uzbl.net;
-    uzbl.state.config_loaded = FALSE;
 
     int i;
     for (i = 0; default_config[i].command != NULL; i++) {
@@ -2692,11 +2683,6 @@ settings_init () {
         if (uzbl.state.verbose)
             printf ("No configuration file loaded.\n");
     }
-
-    /* The config has now been loaded so dump the complete hash table for the
-     * event manager to parse */
-    uzbl.state.config_loaded = TRUE;
-    dump_config();
 
     g_signal_connect_after(n->soup_session, "request-started", G_CALLBACK(handle_cookies), NULL);
 }
