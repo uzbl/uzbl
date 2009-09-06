@@ -70,6 +70,7 @@ typedef struct {
     gchar*   keycmd;
     gchar*   searchtx;
     gboolean verbose;
+    gboolean config_loaded;
 } State;
 
 
@@ -188,10 +189,10 @@ typedef void sigfunc(int);
 enum event_type {
     LOAD_START, LOAD_COMMIT, LOAD_FINISH, LOAD_ERROR,
     KEY_PRESS, KEY_RELEASE, DOWNLOAD_REQ, COMMAND_EXECUTED,
-    LINK_HOVER, TITLE_CHANGED, GEOMETRY_CHANGED, 
-    WEBINSPECTOR, COOKIE, NEW_WINDOW, SELECTION_CHANGED,
-    VARIABLE_SET, FIFO_SET,
-    
+    LINK_HOVER, TITLE_CHANGED, GEOMETRY_CHANGED,
+    WEBINSPECTOR, NEW_WINDOW, SELECTION_CHANGED,
+    VARIABLE_SET, FIFO_SET, SOCKET_SET,
+
     /* must be last entry */
     LAST_EVENT
 };

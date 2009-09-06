@@ -192,29 +192,29 @@ const struct var_name_to_ptr_t {
 };
 
 /* Event id to name mapping
- * Event names must be in the same 
+ * Event names must be in the same
  * order as in 'enum event_type'
  *
  * TODO: Add more useful events
 */
 const char *event_table[LAST_EVENT] = {
-     "LOAD_START"       , 
-     "LOAD_COMMIT"      , 
-     "LOAD_FINISH"      , 
-     "LOAD_ERROR"       , 
+     "LOAD_START"       ,
+     "LOAD_COMMIT"      ,
+     "LOAD_FINISH"      ,
+     "LOAD_ERROR"       ,
      "KEY_PRESS"        ,
      "KEY_RELEASE"      ,
-     "DOWNLOAD_REQUEST" , 
+     "DOWNLOAD_REQUEST" ,
      "COMMAND_EXECUTED" ,
      "LINK_HOVER"       ,
      "TITLE_CHANGED"    ,
      "GEOMETRY_CHANGED" ,
      "WEBINSPECTOR"     ,
-     "COOKIE"           ,
      "NEW_WINDOW"       ,
      "SELECTION_CHANGED",
      "VARIABLE_SET",
-     "FIFO_SET"
+     "FIFO_SET",
+     "SOCKET_SET"
 };
 
 
@@ -1966,23 +1966,35 @@ set_var_value(const gchar *name, gchar *val) {
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         if(!c->writeable) return FALSE;
 
+        if (uzbl.state.config_loaded)
+            msg = g_string_new(name);
+
         /* check for the variable type */
         if (c->type == TYPE_STR) {
             buf = expand(val, 0);
             g_free(*c->ptr.s);
             *c->ptr.s = buf;
-            msg = g_string_new(name);
-            g_string_append_printf(msg, " %s", buf);
-            send_event(VARIABLE_SET, msg->str);
-            g_string_free(msg,TRUE);
+            if (uzbl.state.config_loaded)
+                g_string_append_printf(msg, " str %s", buf);
+
         } else if(c->type == TYPE_INT) {
             buf = expand(val, 0);
             *c->ptr.i = (int)strtoul(buf, &endp, 10);
             g_free(buf);
+            if (uzbl.state.config_loaded)
+                g_string_append_printf(msg, " int %d", *c->ptr.i);
+
         } else if (c->type == TYPE_FLOAT) {
             buf = expand(val, 0);
             *c->ptr.f = strtod(buf, &endp);
             g_free(buf);
+            if (uzbl.state.config_loaded)
+                g_string_append_printf(msg, " float %f", *c->ptr.f);
+        }
+
+        if (uzbl.state.config_loaded) {
+            send_event(VARIABLE_SET, msg->str);
+            g_string_free(msg,TRUE);
         }
 
         /* invoke a command specific function */
@@ -2006,6 +2018,13 @@ set_var_value(const gchar *name, gchar *val) {
         *c->ptr.s = buf;
         g_hash_table_insert(uzbl.comm.proto_var,
                 g_strdup(name), (gpointer) c);
+
+        if (uzbl.state.config_loaded) {
+            msg = g_string_new(name);
+            g_string_append_printf(msg, " str %s", buf);
+            send_event(VARIABLE_SET, msg->str);
+            g_string_free(msg,TRUE);
+        }
     }
     return TRUE;
 }
@@ -2235,6 +2254,7 @@ init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL *
         if( (chan = g_io_channel_unix_new(sock)) ) {
             g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_socket, chan);
             uzbl.comm.socket_path = path;
+            send_event(SOCKET_SET, path);
             return dir;
         }
     } else g_warning ("init_socket: could not open in %s: %s\n", path, strerror(errno));
@@ -2292,7 +2312,7 @@ configure_event_cb(GtkWidget* window, GdkEventConfigure* event) {
     (void) event;
 
     retrieve_geometry();
-    send_event(GEOMETRY_CHANGED, uzbl.gui.geometry);  
+    send_event(GEOMETRY_CHANGED, uzbl.gui.geometry);
     return FALSE;
 }
 
@@ -2331,7 +2351,7 @@ key_press_cb (GtkWidget* window, GdkEventKey* event)
 
 void
 run_keycmd(const gboolean key_ret) {
-    
+
     /* run the keycmd immediately if it isn't incremental and doesn't take args */
     Action *act;
     gchar *tmp;
@@ -2641,6 +2661,8 @@ void
 settings_init () {
     State *s = &uzbl.state;
     Network *n = &uzbl.net;
+    uzbl.state.config_loaded = FALSE;
+
     int i;
     for (i = 0; default_config[i].command != NULL; i++) {
         parse_cmd_line(default_config[i].command, NULL);
@@ -2671,6 +2693,11 @@ settings_init () {
             printf ("No configuration file loaded.\n");
     }
 
+    /* The config has now been loaded so dump the complete hash table for the
+     * event manager to parse */
+    uzbl.state.config_loaded = TRUE;
+    dump_config();
+
     g_signal_connect_after(n->soup_session, "request-started", G_CALLBACK(handle_cookies), NULL);
 }
 
@@ -2686,7 +2713,6 @@ void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer user_data)
     g_string_printf(s, "GET '%s' '%s' '%s'", soup_uri->scheme, soup_uri->host, soup_uri->path);
     if(uzbl.behave.cookie_handler)
         run_handler(uzbl.behave.cookie_handler, s->str);
-    send_event(COOKIE, s->str);
 
     if(uzbl.behave.cookie_handler &&
             uzbl.comm.sync_stdout && strcmp (uzbl.comm.sync_stdout, "") != 0) {
@@ -2712,7 +2738,6 @@ save_cookies (SoupMessage *msg, gpointer user_data){
         GString *s = g_string_new ("");
         g_string_printf(s, "PUT '%s' '%s' '%s' '%s'", soup_uri->scheme, soup_uri->host, soup_uri->path, cookie);
         run_handler(uzbl.behave.cookie_handler, s->str);
-        send_event(COOKIE, s->str);
         g_free (cookie);
         g_string_free(s, TRUE);
     }
@@ -2818,31 +2843,28 @@ void
 dump_var_hash(gpointer k, gpointer v, gpointer ud) {
     (void) ud;
     uzbl_cmdprop *c = v;
+    GString *msg;
 
     if(!c->dump)
         return;
 
-    if(c->type == TYPE_STR)
-        printf("set %s = %s\n", (char *)k, *c->ptr.s ? *c->ptr.s : " ");
-    else if(c->type == TYPE_INT)
-        printf("set %s = %d\n", (char *)k, *c->ptr.i);
-    else if(c->type == TYPE_FLOAT)
-        printf("set %s = %f\n", (char *)k, *c->ptr.f);
-}
+    /* check for the variable type */
+    msg = g_string_new((char *)k);
+    if (c->type == TYPE_STR) {
+        g_string_append_printf(msg, " str %s", *c->ptr.s ? *c->ptr.s : " ");
+    } else if(c->type == TYPE_INT) {
+        g_string_append_printf(msg, " int %d", *c->ptr.i);
+    } else if (c->type == TYPE_FLOAT) {
+        g_string_append_printf(msg, " float %f", *c->ptr.f);
+    }
 
-void
-dump_key_hash(gpointer k, gpointer v, gpointer ud) {
-    (void) ud;
-    Action *a = v;
-
-    printf("bind %s = %s %s\n", (char *)k ,
-            (char *)a->name, a->param?(char *)a->param:"");
+    send_event(VARIABLE_SET, msg->str);
+    g_string_free(msg, TRUE);
 }
 
 void
 dump_config() {
     g_hash_table_foreach(uzbl.comm.proto_var, dump_var_hash, NULL);
-    g_hash_table_foreach(uzbl.bindings, dump_key_hash, NULL);
 }
 
 void

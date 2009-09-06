@@ -45,7 +45,6 @@ import sys
 import select
 import re
 import types
-import pprint
 import socket
 from traceback import print_exc
 
@@ -83,13 +82,13 @@ config = {
 # Define some globals.
 _VALIDSETKEY = re.compile("^[a-zA-Z][a-zA-Z0-9_]*$").match
 _SCRIPTNAME = os.path.basename(sys.argv[0])
-
+_TYPECONVERT = {'int': int, 'float': float, 'str': str}
 
 def echo(msg):
     '''Prints only if the verbose flag has been set.'''
 
     if config['verbose']:
-        sys.stderr.write("%s: %s\n" % (_SCRIPTNAME, msg))
+        sys.stdout.write("%s: %s\n" % (_SCRIPTNAME, msg))
 
 
 def counter():
@@ -177,11 +176,12 @@ class PluginManager(dict):
                 if not hasattr(plugin, 'init'):
                     raise ImportError('plugin missing main "init" function.')
 
-                print "Loaded plugin: %r" % name
-
             except:
                 print_exc()
                 self._unload_plugin(name)
+
+        if len(self.keys()):
+            echo("loaded plugin(s): %s" % ', '.join(self.keys()))
 
 
     def reload_plugins(self):
@@ -213,6 +213,16 @@ class UzblInstance:
             def __setitem__(self, key, value):
                 '''Updates the config dict and relays any changes back to the
                 uzbl instance via the set function.'''
+
+                if type(value) == types.BooleanType:
+                    value = int(value)
+
+                if key in self.keys() and type(value) != type(self[key]):
+                    raise TypeError("%r for %r" % (type(value), key))
+
+                else:
+                    # All custom variables are strings.
+                    value = "" if value is None else str(value)
 
                 self._setcmd(key, value)
                 dict.__setitem__(self, key, value)
@@ -280,8 +290,6 @@ class UzblInstance:
     def _init_plugins(self):
         '''Call the init() function in every plugin.'''
 
-        pprint.pprint(self.plugins)
-
         for plugin in self.plugins.keys():
             try:
                 self.plugins[plugin].init(self)
@@ -344,7 +352,7 @@ class UzblInstance:
         d = {'handler': handler, 'args': args, 'kargs': kargs}
 
         self.handlers[event][id] = d
-        print "Added handler:", event, d
+        echo("added handler for %s: %r" % (event, d))
 
         # The unique id is returned so that the newly created event handler can
         # be destroyed if need be.
@@ -356,7 +364,7 @@ class UzblInstance:
 
         for event in self.handlers.keys():
             if id in self.handlers[event].keys():
-                print "Removed handler:", self.handlers[event][id]
+                echo("removed handler %d" % id)
                 del self.handlers[event][id]
 
 
@@ -377,7 +385,7 @@ class UzblInstance:
 
         if not cmd:
             if glob in self.binds.keys():
-                print "Deleted bind:", self.binds[glob]
+                echo("deleted bind: %r" % self.binds[glob])
                 del self.binds[glob]
 
         d = {'glob': glob, 'once': True, 'hasargs': True, 'cmd': cmd}
@@ -394,7 +402,7 @@ class UzblInstance:
             d['hasargs'] = False
 
         self.binds[glob] = d
-        print "Added bind:", d
+        echo("added bind: %r" % d)
 
 
     def set(self, key, value):
@@ -453,19 +461,18 @@ class UzblInstance:
     def handle_event(self, event, args):
         '''Handle uzbl events internally before dispatch.'''
 
+        print event, args
+
         if event == 'VARIABLE_SET':
-            l = args.split(' ', 1)
-            if len(l) == 1:
+            l = args.split(' ', 2)
+            if len(l) == 2:
                 l.append("")
 
-            key, value = l
-            dict.__setitem__(self._config, key, value)
+            key, type, value = l
+            dict.__setitem__(self._config, key, _TYPECONVERT[type](value))
 
         elif event == 'FIFO_SET':
             self.fifo_socket = args
-
-            # Workaround until SOCKET_SET is implemented.
-            self.socket_file = args.replace("fifo", "socket")
 
         elif event == 'SOCKET_SET':
             self.socket_file = args
@@ -477,21 +484,16 @@ class UzblInstance:
     def dispatch_event(self, event, args):
         '''Now send the event to any event handlers added with the connect
         function. In other words: handle plugin's event hooks.'''
-        unhandled = True
 
         if event in self.handlers.keys():
             for hid in self.handlers[event]:
                 try:
-                    unhandled = False
                     handler = self.handlers[event][hid]
                     print "Executing handler:", event, handler
                     self.exc_handler(handler, args)
 
                 except:
                     print_exc()
-
-        if unhandled:
-            print "Unhandled event:", event, args
 
 
     def exc_handler(self, d, args):
