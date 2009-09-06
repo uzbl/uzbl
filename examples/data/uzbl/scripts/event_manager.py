@@ -22,7 +22,7 @@
 E V E N T _ M A N A G E R . P Y
 ===============================
 
-Some descriptive text here.
+Event manager for uzbl written in python.
 
 Usage
 =====
@@ -108,7 +108,6 @@ class PluginManager(dict):
         if not os.path.exists(self.plugin_dir):
             os.makedirs(self.plugin_dir)
 
-        # Load all plugins in the plugin_dir.
         self.load_plugins()
 
 
@@ -147,7 +146,6 @@ class PluginManager(dict):
             dict.__delitem__(self, plugin)
 
         if remove_pyc:
-            # Now remove bytecode.
             pyc = os.path.join(self.plugin_dir, '%s.pyc' % plugin)
             if os.path.exists(pyc):
                 os.remove(pyc)
@@ -155,10 +153,8 @@ class PluginManager(dict):
 
     def load_plugins(self):
 
-        # Get a list of python files in the plugin_dir.
         pluginlist = self._find_plugins()
 
-        # Load the plugins
         for name in pluginlist:
             try:
                 # Make sure the plugin isn't already loaded.
@@ -228,53 +224,30 @@ class UzblInstance:
                 dict.__setitem__(self, key, value)
 
         self._config = ConfigDict(self.set)
-
-        # Keep track of keys typed.
-        self.cmdbuffer = ""
-
-        # Keep track of non-meta keys held.
-        self.heldkeys = []
-
-        # Keep track of meta keys held.
-        self.metaheld = []
-
-        # Hold classic bind commands.
-        self.binds = {}
-
-        # Keep track of the mode.
-        self.mode = "command"
-
-        # Event handlers
-        self.handlers = {}
-
-        # Handler object id generator
-        self.nextid = counter().next
-
-        # Fifo socket and socket file locations.
-        self.fifo_socket = None
-        self.socket_file = None
-
-        # Outgoing socket
-        self._socketout = []
-        self._socket = None
-
-        # Outgoing fifo
-        self._fifoout = []
-
-        # Default send method
-        self.send = self._send_socket
-
-        # Running flag
         self._running = None
 
-        # Incoming message buffer
-        self._buffer = ""
+        self._cmdbuffer = []
+        self.keysheld = []
+        self.metaheld = []
+        self.mode = "command"
 
-        # Initialise plugin manager
+        self.binds = {}
+        self.handlers = {}
+        self.nexthid = counter().next
+
+        # Variables needed for fifo & socket communication with uzbl.
+        self.uzbl_fifo = None
+        self.uzbl_socket = None
+        self._fifo_cmd_queue = []
+        self._socket_cmd_queue = []
+        self._socket = None
+        self.send = self._send_socket
+
         if not self.plugins:
             self.plugins = PluginManager()
 
-        # Call the init() function in every plugin.
+        # Call the init() function in every plugin which then setup their
+        # respective hooks (event handlers, binds or timers).
         self._init_plugins()
 
 
@@ -283,7 +256,6 @@ class UzblInstance:
 
         return self._config
 
-    # Set read-only config dict getter.
     config = property(_get_config)
 
 
@@ -301,24 +273,24 @@ class UzblInstance:
     def _flush(self):
         '''Flush messages from the outgoing queue to the uzbl instance.'''
 
-        if len(self._fifoout) and self.fifo_socket:
-            if os.path.exists(self.fifo_socket):
-                h = open(self.fifo_socket, 'w')
-                while len(self._fifoout):
-                    msg = self._fifoout.pop(0)
+        if len(self._fifo_cmd_queue) and self.uzbl_fifo:
+            if os.path.exists(self.uzbl_fifo):
+                h = open(self.uzbl_fifo, 'w')
+                while len(self._fifo_cmd_queue):
+                    msg = self._fifo_cmd_queue.pop(0)
                     print "Sending via fifo: %r" % msg
                     h.write("%s\n" % msg)
                 h.close()
 
-        if len(self._socketout) and self.socket_file:
-            if not self._socket and os.path.exists(self.socket_file):
+        if len(self._socket_cmd_queue) and self.uzbl_socket:
+            if not self._socket and os.path.exists(self.uzbl_socket):
                 sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                sock.connect(self.socket_file)
+                sock.connect(self.uzbl_socket)
                 self._socket = sock
 
             if self._socket:
-                while len(self._socketout):
-                    msg = self._socketout.pop(0)
+                while len(self._socket_cmd_queue):
+                    msg = self._socket_cmd_queue.pop(0)
                     print "Sending via socket: %r" % msg
                     self._socket.send("%s\n" % msg)
 
@@ -326,14 +298,14 @@ class UzblInstance:
     def _send_fifo(self, msg):
         '''Send a command to the uzbl instance via the fifo socket.'''
 
-        self._fifoout.append(msg)
+        self._fifo_cmd_queue.append(msg)
         self._flush()
 
 
     def _send_socket(self, msg):
         '''Send a command to the uzbl instance via the socket file.'''
 
-        self._socketout.append(msg)
+        self._socket_cmd_queue.append(msg)
         self._flush()
 
 
@@ -348,14 +320,12 @@ class UzblInstance:
         if event not in self.handlers.keys():
             self.handlers[event] = {}
 
-        id = self.nextid()
+        id = self.nexthid()
         d = {'handler': handler, 'args': args, 'kargs': kargs}
 
         self.handlers[event][id] = d
         echo("added handler for %s: %r" % (event, d))
 
-        # The unique id is returned so that the newly created event handler can
-        # be destroyed if need be.
         return id
 
 
@@ -424,19 +394,20 @@ class UzblInstance:
         '''Main loop reading event messages from stdin.'''
 
         self._running = True
-        try:
-            while self._running:
-
-                # Poll for reading & errors from fd.
+        while self._running:
+            try:
                 if select.select([fd,], [], [], 1)[0]:
                     self.read_from_fd(fd)
                     continue
 
-                # Check that all messages have been purged from the out queue.
                 self._flush()
 
-        except KeyboardInterrupt:
-            print
+            except KeyboardInterrupt:
+                self._running = False
+                print
+
+            except:
+                print_exc()
 
 
     def read_from_fd(self, fd):
@@ -472,12 +443,11 @@ class UzblInstance:
             dict.__setitem__(self._config, key, _TYPECONVERT[type](value))
 
         elif event == 'FIFO_SET':
-            self.fifo_socket = args
+            self.uzbl_fifo = args
 
         elif event == 'SOCKET_SET':
-            self.socket_file = args
+            self.uzbl_socket = args
 
-        # Now dispatch event to plugin's event handlers.
         self.dispatch_event(event, args)
 
 
