@@ -886,43 +886,44 @@ VIEWFUNC(go_forward)
 
 /* -- command to callback/function map for things we cannot attach to any signals */
 struct {const char *key; CommandInfo value;} cmdlist[] =
-{   /* key                   function      no_split      */
-    { "back",               {view_go_back, 0}              },
-    { "forward",            {view_go_forward, 0}           },
-    { "scroll_vert",        {scroll_vert, 0}               },
-    { "scroll_horz",        {scroll_horz, 0}               },
-    { "scroll_begin",       {scroll_begin, 0}              },
-    { "scroll_end",         {scroll_end, 0}                },
-    { "reload",             {view_reload, 0},              },
-    { "reload_ign_cache",   {view_reload_bypass_cache, 0}  },
-    { "stop",               {view_stop_loading, 0},        },
-    { "zoom_in",            {view_zoom_in, 0},             }, //Can crash (when max zoom reached?).
-    { "zoom_out",           {view_zoom_out, 0},            },
-    { "toggle_zoom_type",   {toggle_zoom_type, 0},         },
-    { "uri",                {load_uri, TRUE}               },
-    { "js",                 {run_js, TRUE}                 },
-    { "script",             {run_external_js, 0}           },
-    { "toggle_status",      {toggle_status_cb, 0}          },
-    { "spawn",              {spawn, 0}                     },
-    { "sync_spawn",         {spawn_sync, 0}                }, // needed for cookie handler
-    { "sh",                 {spawn_sh, 0}                  },
-    { "sync_sh",            {spawn_sh_sync, 0}             }, // needed for cookie handler
-    { "talk_to_socket",     {talk_to_socket, 0}            },
-    { "exit",               {close_uzbl, 0}                },
-    { "search",             {search_forward_text, TRUE}    },
-    { "search_reverse",     {search_reverse_text, TRUE}    },
-    { "dehilight",          {dehilight, 0}                 },
-    { "toggle_insert_mode", {toggle_insert_mode, 0}        },
-    { "set",                {set_var, TRUE}                },
-  //{ "get",                {get_var, TRUE}                },
-    { "bind",               {act_bind, TRUE}               },
-    { "dump_config",        {act_dump_config, 0}           },
-    { "keycmd",             {keycmd, TRUE}                 },
-    { "keycmd_nl",          {keycmd_nl, TRUE}              },
-    { "keycmd_bs",          {keycmd_bs, 0}                 },
-    { "chain",              {chain, 0}                     },
-    { "print",              {print, TRUE}                  },
-    { "update_gui",         {update_gui, TRUE}           }
+{   /* key                     function      no_split      */
+    { "back",                  {view_go_back, 0}              },
+    { "forward",               {view_go_forward, 0}           },
+    { "scroll_vert",           {scroll_vert, 0}               },
+    { "scroll_horz",           {scroll_horz, 0}               },
+    { "scroll_begin",          {scroll_begin, 0}              },
+    { "scroll_end",            {scroll_end, 0}                },
+    { "reload",                {view_reload, 0},              },
+    { "reload_ign_cache",      {view_reload_bypass_cache, 0}  },
+    { "stop",                  {view_stop_loading, 0},        },
+    { "zoom_in",               {view_zoom_in, 0},             }, //Can crash (when max zoom reached?).
+    { "zoom_out",              {view_zoom_out, 0},            },
+    { "toggle_zoom_type",      {toggle_zoom_type, 0},         },
+    { "uri",                   {load_uri, TRUE}               },
+    { "js",                    {run_js, TRUE}                 },
+    { "script",                {run_external_js, 0}           },
+    { "toggle_status",         {toggle_status_cb, 0}          },
+    { "spawn",                 {spawn, 0}                     },
+    { "sync_spawn",            {spawn_sync, 0}                }, // needed for cookie handler
+    { "sh",                    {spawn_sh, 0}                  },
+    { "sync_sh",               {spawn_sh_sync, 0}             }, // needed for cookie handler
+    { "talk_to_socket",        {talk_to_socket, 0}            },
+    { "exit",                  {close_uzbl, 0}                },
+    { "search",                {search_forward_text, TRUE}    },
+    { "search_reverse",        {search_reverse_text, TRUE}    },
+    { "dehilight",             {dehilight, 0}                 },
+    { "toggle_insert_mode",    {toggle_insert_mode, 0}        },
+    { "set",                   {set_var, TRUE}                },
+  //{ "get",                   {get_var, TRUE}                },
+    { "bind",                  {act_bind, TRUE}               },
+    { "dump_config",           {act_dump_config, 0}           },
+    { "dump_config_as_events", {act_dump_config_as_events, 0} },
+    { "keycmd",                {keycmd, TRUE}                 },
+    { "keycmd_nl",             {keycmd_nl, TRUE}              },
+    { "keycmd_bs",             {keycmd_bs, 0}                 },
+    { "chain",                 {chain, 0}                     },
+    { "print",                 {print, TRUE}                  },
+    { "update_gui",            {update_gui, TRUE}             }
 };
 
 void
@@ -1007,6 +1008,11 @@ act_bind(WebKitWebView *page, GArray *argv, GString *result) {
 void
 act_dump_config() {
     dump_config();
+}
+
+void
+act_dump_config_as_events() {
+    dump_config_as_events();
 }
 
 void
@@ -2829,6 +2835,27 @@ void
 dump_var_hash(gpointer k, gpointer v, gpointer ud) {
     (void) ud;
     uzbl_cmdprop *c = v;
+
+    if(!c->dump)
+        return;
+
+    if(c->type == TYPE_STR)
+        printf("set %s = %s\n", (char *)k, *c->ptr.s ? *c->ptr.s : " ");
+    else if(c->type == TYPE_INT)
+        printf("set %s = %d\n", (char *)k, *c->ptr.i);
+    else if(c->type == TYPE_FLOAT)
+        printf("set %s = %f\n", (char *)k, *c->ptr.f);
+}
+
+void
+dump_config() {
+    g_hash_table_foreach(uzbl.comm.proto_var, dump_var_hash, NULL);
+}
+
+void
+dump_var_hash_as_event(gpointer k, gpointer v, gpointer ud) {
+    (void) ud;
+    uzbl_cmdprop *c = v;
     GString *msg;
 
     if(!c->dump)
@@ -2849,8 +2876,8 @@ dump_var_hash(gpointer k, gpointer v, gpointer ud) {
 }
 
 void
-dump_config() {
-    g_hash_table_foreach(uzbl.comm.proto_var, dump_var_hash, NULL);
+dump_config_as_events() {
+    g_hash_table_foreach(uzbl.comm.proto_var, dump_var_hash_as_event, NULL);
 }
 
 void

@@ -464,6 +464,9 @@ void
 act_dump_config();
 
 void
+act_dump_config_as_events();
+
+void
 dump_var_hash(gpointer k, gpointer v, gpointer ud);
 
 void
@@ -471,6 +474,9 @@ dump_key_hash(gpointer k, gpointer v, gpointer ud);
 
 void
 dump_config();
+
+void
+dump_config_as_events();
 
 void
 retrieve_geometry();
