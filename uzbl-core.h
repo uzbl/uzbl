@@ -110,7 +110,6 @@ typedef struct {
     gboolean insert_mode;
     gboolean status_top;
     gboolean reset_command_mode;
-    gchar*   modkey;
     guint    modmask;
     guint    http_debug;
     gchar*   shell_cmd;
@@ -572,9 +571,6 @@ cmd_fifo_dir();
 
 void
 cmd_socket_dir();
-
-void
-cmd_modkey();
 
 void
 cmd_useragent() ;

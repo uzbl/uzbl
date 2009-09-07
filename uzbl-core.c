@@ -134,7 +134,6 @@ const struct var_name_to_ptr_t {
     { "insert_mode",            PTR_V_INT(uzbl.behave.insert_mode,              1,   set_mode_indicator)},
     { "always_insert_mode",     PTR_V_INT(uzbl.behave.always_insert_mode,       1,   cmd_always_insert_mode)},
     { "reset_command_mode",     PTR_V_INT(uzbl.behave.reset_command_mode,       1,   NULL)},
-    { "modkey",                 PTR_V_STR(uzbl.behave.modkey,                   1,   cmd_modkey)},
     { "load_finish_handler",    PTR_V_STR(uzbl.behave.load_finish_handler,      1,   NULL)},
     { "load_start_handler",     PTR_V_STR(uzbl.behave.load_start_handler,       1,   NULL)},
     { "load_commit_handler",    PTR_V_STR(uzbl.behave.load_commit_handler,      1,   NULL)},
@@ -218,30 +217,6 @@ const char *event_table[LAST_EVENT] = {
      "SOCKET_SET"       ,
      "INSTANCE_START"   ,
      "INSTANCE_EXIT"
-};
-
-
-const struct {
-    /*@null@*/ char *key;
-    guint mask;
-} modkeys[] = {
-    { "SHIFT",   GDK_SHIFT_MASK   }, // shift
-    { "LOCK",    GDK_LOCK_MASK    }, // capslock or shiftlock, depending on xserver's modmappings
-    { "CONTROL", GDK_CONTROL_MASK }, // control
-    { "MOD1",    GDK_MOD1_MASK    }, // 4th mod - normally alt but depends on modmappings
-    { "MOD2",    GDK_MOD2_MASK    }, // 5th mod
-    { "MOD3",    GDK_MOD3_MASK    }, // 6th mod
-    { "MOD4",    GDK_MOD4_MASK    }, // 7th mod
-    { "MOD5",    GDK_MOD5_MASK    }, // 8th mod
-    { "BUTTON1", GDK_BUTTON1_MASK }, // 1st mouse button
-    { "BUTTON2", GDK_BUTTON2_MASK }, // 2nd mouse button
-    { "BUTTON3", GDK_BUTTON3_MASK }, // 3rd mouse button
-    { "BUTTON4", GDK_BUTTON4_MASK }, // 4th mouse button
-    { "BUTTON5", GDK_BUTTON5_MASK }, // 5th mouse button
-    { "SUPER",   GDK_SUPER_MASK   }, // super (since 2.10)
-    { "HYPER",   GDK_HYPER_MASK   }, // hyper (since 2.10)
-    { "META",    GDK_META_MASK    }, // meta (since 2.10)
-    { NULL,      0                }
 };
 
 
@@ -1909,24 +1884,6 @@ cmd_inject_html() {
     if(uzbl.behave.inject_html) {
         webkit_web_view_load_html_string (uzbl.gui.web_view,
                 uzbl.behave.inject_html, NULL);
-    }
-}
-
-void
-cmd_modkey() {
-    int i;
-    char *buf;
-
-    buf = g_utf8_strup(uzbl.behave.modkey, -1);
-    uzbl.behave.modmask = 0;
-
-    if(uzbl.behave.modkey)
-        g_free(uzbl.behave.modkey);
-    uzbl.behave.modkey = buf;
-
-    for (i = 0; modkeys[i].key != NULL; i++) {
-        if (g_strrstr(buf, modkeys[i].key))
-            uzbl.behave.modmask |= modkeys[i].mask;
     }
 }
 
