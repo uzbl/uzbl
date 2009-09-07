@@ -101,6 +101,18 @@ def counter():
         yield i
 
 
+def iscallable(obj):
+    '''Return true if the object is callable.'''
+
+    return hasattr(obj, "__call__")
+
+
+def isiterable(obj):
+    '''Return true if you can iterate over the item.'''
+
+    return hasattr(obj, "__iter__")
+
+
 class PluginManager(dict):
     def __init__(self):
 
@@ -194,19 +206,83 @@ class PluginManager(dict):
         self.load_plugins()
 
 
-def export_wrapper(uzbl, function):
-    '''Return an object that appends the uzbl meta-instance to the front of
-    the argument queue. I.e. (*args, **kargs) -> (uzbl, *args, **kargs)'''
+class CallPrepender(object):
+    '''Execution argument modifier. Takes (arg, function) then modifies the
+    function call:
 
-    class Export(object):
-        def __init__(self, uzbl, function):
-            self.function = function
-            self.uzbl = uzbl
+    -> function(*args, **kargs) ->  function(arg, *args, **kargs) ->'''
 
-        def call(self, *args, **kargs):
-            return self.function(self.uzbl, *args, **kargs)
+    def __init__(self, uzbl, function):
+        self.function = function
+        self.uzbl = uzbl
 
-    return Export(uzbl, function).call
+    def call(self, *args, **kargs):
+        return self.function(self.uzbl, *args, **kargs)
+
+
+class Handler(object):
+
+    nexthid = counter().next
+
+    def __init__(self, uzbl, event, handler, *args, **kargs):
+        self._callable = iscallable(handler)
+        if self._callable:
+            self._function = handler
+            self._args = args
+            self._kargs = kargs
+
+        elif kargs:
+            raise ArgumentError("cannot supply kargs with a uzbl command")
+
+        elif isiterable(handler):
+            self._commands = handler
+
+        else:
+            self._commands = [handler,] + list(args)
+
+        self._uzbl = uzbl
+        self.event = event
+        self.hid = self.nexthid()
+
+
+    def exec_handler(self, *args, **kargs):
+        '''Execute either the handler function or send the uzbl commands to
+        the socket.'''
+
+        if self._callable:
+            args = args + self._args
+            kargs = dict(self._kargs.items()+kargs.items())
+            self._function(self._uzbl, *args, **kargs)
+
+        else:
+            for command in self._commands:
+                if '%s' in command and len(args) == 1:
+                    command.replace('%s', args[0])
+
+                elif '%s' in command:
+                    for arg in args:
+                        command.replace('%s', arg, 1)
+
+                self._uzbl.send(command)
+
+
+    def __repr__(self):
+        args = ["event=%s" % self.event, "hid=%d" % self.hid]
+
+        if self._callable:
+            args.append("function=%r" % self._function)
+            if self._args:
+                args.append("args=%r" % self.args)
+
+            if self._kargs:
+                args.append("kargs=%r" % self.kargs)
+
+        else:
+            cmdlen = len(self._commands)
+            cmds = self._commands[0] if cmdlen == 1 else self._commands
+            args.append("command%s=%r" % ("s" if cmdlen-1 else "", cmds))
+
+        return "<EventHandler(%s)>" % ', '.join(args)
 
 
 class UzblInstance(object):
@@ -215,44 +291,38 @@ class UzblInstance(object):
     # Singleton plugin manager.
     plugins = None
 
+    # Internal uzbl config dict.
+    class ConfigDict(dict):
+        def __init__(self, setcmd):
+            self._setcmd = setcmd
+
+        def __setitem__(self, key, value):
+            '''Updates the config dict and relays any changes back to the
+            uzbl instance via the set function.'''
+
+            if type(value) == types.BooleanType:
+                value = int(value)
+
+            if key in self.keys() and type(value) != type(self[key]):
+                raise TypeError("%r for %r" % (type(value), key))
+
+            else:
+                # All custom variables are strings.
+                value = "" if value is None else str(value)
+
+            self._setcmd(key, value)
+            dict.__setitem__(self, key, value)
+
+
     def __init__(self):
         '''Initialise event manager.'''
 
         # Hold functions exported by plugins.
         self._exports = {}
-
-        class ConfigDict(dict):
-            def __init__(self, setcmd):
-                self._setcmd = setcmd
-
-            def __setitem__(self, key, value):
-                '''Updates the config dict and relays any changes back to the
-                uzbl instance via the set function.'''
-
-                if type(value) == types.BooleanType:
-                    value = int(value)
-
-                if key in self.keys() and type(value) != type(self[key]):
-                    raise TypeError("%r for %r" % (type(value), key))
-
-                else:
-                    # All custom variables are strings.
-                    value = "" if value is None else str(value)
-
-                self._setcmd(key, value)
-                dict.__setitem__(self, key, value)
-
-        self._config = ConfigDict(self.set)
+        self._config = self.ConfigDict(self.set)
         self._running = None
 
-        self._cmdbuffer = []
-        self.keysheld = []
-        self.metaheld = []
-        self.mode = "command"
-
-        self.binds = {}
-        self.handlers = {}
-        self.nexthid = counter().next
+        self._handlers = {}
 
         # Variables needed for fifo & socket communication with uzbl.
         self.uzbl_fifo = None
@@ -300,8 +370,10 @@ class UzblInstance(object):
                     continue
 
                 obj = getattr(plugin, attr)
-                if type(obj) in [types.LambdaType, types.FunctionType]:
-                    obj = export_wrapper(self, obj)
+                if iscallable(obj):
+                    # Wrap the function in the CallPrepender object to make
+                    # the exposed functions act like instance methods.
+                    obj = CallPrepender(self, obj).call
 
                 self._exports[attr[7:]] = obj
 
@@ -356,32 +428,44 @@ class UzblInstance(object):
 
 
     def connect(self, event, handler, *args, **kargs):
-        '''Connect event with handler and return unique handler id. It goes
-        without saying that if you connect handlers with non-existent events
-        nothing will happen so be careful.
+        '''Connect event with handler and return the newly created handler.
+        Handlers can either be a function or a uzbl command string.'''
 
-        If you choose the handler may be a uzbl command and upon receiving the
-        event the chosen command will be executed by the uzbl instance.'''
+        if event not in self._handlers.keys():
+            self._handlers[event] = []
 
-        if event not in self.handlers.keys():
-            self.handlers[event] = {}
+        handler = Handler(self, event, handler, *args, **kargs)
+        self._handlers[event].append(handler)
 
-        id = self.nexthid()
-        d = {'handler': handler, 'args': args, 'kargs': kargs}
-
-        self.handlers[event][id] = d
-        echo("added handler for %s: %r" % (event, d))
-
-        return id
+        print "New event handler:", handler
+        return handler
 
 
-    def remove(self, id):
+    def remove_by_id(self, hid):
         '''Remove connected event handler by unique handler id.'''
 
-        for event in self.handlers.keys():
-            if id in self.handlers[event].keys():
-                echo("removed handler %d" % id)
-                del self.handlers[event][id]
+        for (event, handlers) in self._handlers.items():
+            for handler in list(handlers):
+                if hid != handler.hid:
+                    continue
+
+                echo("removed %r" % handler)
+                handlers.remove(handler)
+                return
+
+        echo('unable to find & remove handler with id: %d' % handler.hid)
+
+
+    def remove(self, handler):
+        '''Remove connected event handler.'''
+
+        for (event, handlers) in self._handlers.items():
+            if handler in handlers:
+                echo("removed %r" % handler)
+                handlers.remove(handler)
+                return
+
+        echo('unable to find & remove handler: %r' % handler)
 
 
     def set(self, key, value):
@@ -432,6 +516,7 @@ class UzblInstance(object):
 
         if not msg or msg[0] != "EVENT":
             # Not an event message
+            print raw.rstrip()
             return
 
         event, args = msg[1], msg[3]
@@ -464,6 +549,7 @@ class UzblInstance(object):
                 if hasattr(plugin, "cleanup"):
                     plugin.cleanup(uzbl)
 
+        # Now handle the event "publically".
         self.dispatch_event(event, args)
 
 
@@ -471,27 +557,27 @@ class UzblInstance(object):
         '''Now send the event to any event handlers added with the connect
         function. In other words: handle plugin's event hooks.'''
 
-        if event in self.handlers.keys():
-            for hid in self.handlers[event]:
+        if event in self._handlers:
+            for handler in self._handlers[event]:
                 try:
-                    handler = self.handlers[event][hid]
-                    print "Executing handler:", event, handler
-                    self.exc_handler(handler, args)
+                    handler.exec_handler(args)
 
                 except:
                     print_exc()
 
 
-    def exc_handler(self, d, args):
-        '''Handle handler.'''
+    def event(self, event, *args, **kargs):
+        '''Raise a custom event.'''
 
-        if type(d['handler']) == types.FunctionType:
-            handler = d['handler']
-            handler(self, args, *d['args'], **d['kargs'])
+        print "Got custom event:", event, args, kargs
 
-        else:
-            cmd = d['handler']
-            self.send(cmd)
+        if event in self._handlers:
+            for handler in self._handlers[event]:
+                try:
+                    handler.exec_handler(*args, **kargs)
+
+                except:
+                    print_ext()
 
 
 if __name__ == "__main__":
