@@ -158,6 +158,7 @@ typedef struct {
     int   webkit_micro;
     gchar *arch;
     gchar *commit;
+    gchar *pid_str;
 } Info;
 
 /* main uzbl data structure */
@@ -190,7 +191,7 @@ enum event_type {
     KEY_PRESS, KEY_RELEASE, DOWNLOAD_REQ, COMMAND_EXECUTED,
     LINK_HOVER, TITLE_CHANGED, GEOMETRY_CHANGED, 
     WEBINSPECTOR, COOKIE, NEW_WINDOW, SELECTION_CHANGED,
-    VARIABLE_SET, FIFO_SET,
+    VARIABLE_SET, FIFO_SET, INSTANCE_START, INSTANCE_EXIT,
     
     /* must be last entry */
     LAST_EVENT

@@ -187,6 +187,7 @@ const struct var_name_to_ptr_t {
     { "SELECTED_URI",           PTR_C_STR(uzbl.state.selected_url,                   NULL)},
     { "MODE",                   PTR_C_STR(uzbl.gui.sbar.mode_indicator,              NULL)},
     { "NAME",                   PTR_C_STR(uzbl.state.instance_name,                  NULL)},
+    { "PID",                    PTR_C_STR(uzbl.info.pid_str,                         NULL)},
 
     { NULL,                     {.ptr.s = NULL, .type = TYPE_INT, .dump = 0, .writeable = 0, .func = NULL}}
 };
@@ -214,7 +215,9 @@ const char *event_table[LAST_EVENT] = {
      "NEW_WINDOW"       ,
      "SELECTION_CHANGED",
      "VARIABLE_SET",
-     "FIFO_SET"
+     "FIFO_SET",
+     "INSTANCE_START",
+     "INSTANCE_EXIT",
 };
 
 
@@ -530,6 +533,8 @@ clean_up(void) {
     g_free(uzbl.state.keycmd);
     g_hash_table_destroy(uzbl.bindings);
     g_hash_table_destroy(uzbl.behave.commands);
+
+    send_event(INSTANCE_EXIT, uzbl.info.pid_str);
 }
 
 /* --- SIGNAL HANDLER --- */
@@ -2962,6 +2967,11 @@ main (int argc, char* argv[]) {
 
     if(!uzbl.state.instance_name)
         uzbl.state.instance_name = itos((int)uzbl.xwin);
+
+    GString *tmp = g_string_new("");
+    g_string_printf(tmp, "%d", getpid());
+    uzbl.info.pid_str = g_string_free(tmp, FALSE);
+    send_event(INSTANCE_START, uzbl.info.pid_str);
 
     gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
 
