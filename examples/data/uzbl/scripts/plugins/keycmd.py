@@ -20,6 +20,8 @@ class Keylet(object):
             return fmt % ("%s+%s" % (helds, self.cmd))
 
 
+keymap = {'period': '.'}
+
 class KeycmdTracker(dict):
     def get_cmd(self, uzbl):
         '''Returns a tuple of the form (keys held, cmdstr)'''
@@ -32,11 +34,28 @@ class KeycmdTracker(dict):
 
     def key_press(self, uzbl, key):
 
-        if key.startswith('Shift_'):
+        if key.startswith("Shift_"):
             return
 
         t = self.get_keylet(uzbl)
-        if key not in t.held:
+        if key == "BackSpace":
+            if t.cmd:
+                t.cmd = t.cmd[:-1]
+
+        elif key == "Escape":
+            self.clear(uzbl)
+
+        elif key == "space":
+            if t.cmd:
+                t.cmd += " "
+
+        elif key in keymap:
+            t.cmd += keymap[key]
+
+        elif len(key) == 1:
+            t.cmd += key
+
+        elif key not in t.held:
             if not t.held and not t.cmd and len(key) != 1:
                 t.modfirst = True
 
@@ -47,14 +66,18 @@ class KeycmdTracker(dict):
 
     def key_release(self, uzbl, key):
 
+        #if key == "Return":
+        # TODO: Something here
+
         t = self.get_keylet(uzbl)
         if key in t.held:
             t.held.remove(key)
-            if len(key) == 1:
-                t.cmd += key
 
-            elif t.modfirst and not len(t.held):
-                self.clear(uzbl)
+        if key == "Return":
+            self.clear(uzbl)
+
+        if t.modfirst and not len(t.held):
+            self.clear(uzbl)
 
         self.raise_event(uzbl)
 
@@ -84,6 +107,8 @@ class KeycmdTracker(dict):
     def raise_event(self, uzbl):
         '''Raise a custom event.'''
 
+        keylet = self.get_keylet(uzbl)
+        uzbl.config['keycmd'] = keylet.cmd
         uzbl.event('KEYCMD_UPDATE', self.get_keylet(uzbl))
 
 
