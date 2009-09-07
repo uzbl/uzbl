@@ -41,6 +41,7 @@ Contributors:
     Helmut Grohne (helmut) - move void **ptr to union, various fixes
     Paweł Zuzelski (pawelz) - download handler proxy patch
     Michael Fiano (axionix) - added cookie_daemon.py whitelist
+    Jake Probst <jake.probst@gmail.com> - uzbl_tabbed: multiline tablist
 
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c

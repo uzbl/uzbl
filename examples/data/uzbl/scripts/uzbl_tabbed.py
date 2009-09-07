@@ -37,6 +37,10 @@
 #
 #   Romain Bignon <romain@peerfuse.org>
 #       Fix for session restoration code.
+#
+#   Jake Probst <jake.probst@gmail.com>
+#       Wrote a patch that overflows tabs in the tablist on to new lines when
+#       running of room.
 
 
 # Dependencies:
@@ -63,8 +67,10 @@
 #   show_gtk_tabs           = 0
 #   tablist_top             = 1
 #   gtk_tab_pos             = (top|left|bottom|right)
+#   gtk_refresh             = 1000
 #   switch_to_new_tabs      = 1
 #   capture_new_windows     = 1
+#   multiline_tabs          = 1
 #
 # Tab title options:
 #   tab_titles              = 1
@@ -164,6 +170,7 @@ import socket
 import random
 import hashlib
 import atexit
+import types
 
 from gobject import io_add_watch, source_remove, timeout_add, IO_IN, IO_HUP
 from signal import signal, SIGTERM, SIGINT
@@ -212,8 +219,10 @@ config = {
   'show_gtk_tabs':          False,  # Show gtk notebook tabs
   'tablist_top':            True,   # Display tab-list at top of window
   'gtk_tab_pos':            'top',  # Gtk tab position (top|left|bottom|right)
+  'gtk_refresh':            1000,   # Tablist refresh millisecond interval
   'switch_to_new_tabs':     True,   # Upon opening a new tab switch to it
   'capture_new_windows':    True,   # Use uzbl_tabbed to catch new windows
+  'multiline_tabs':         True,   # Tabs overflow onto new tablist lines.
 
   # Tab title options
   'tab_titles':             True,   # Display tab titles (else only tab-nums)
@@ -535,6 +544,7 @@ class UzblTabbed:
             self.window.add(vbox)
             ebox = gtk.EventBox()
             self.tablist = gtk.Label()
+
             self.tablist.set_use_markup(True)
             self.tablist.set_justify(gtk.JUSTIFY_LEFT)
             self.tablist.set_line_wrap(False)
@@ -584,7 +594,6 @@ class UzblTabbed:
 
         self.window.show()
         self.wid = self.notebook.window.xid
-
         # Generate the fifo socket filename.
         fifo_filename = 'uzbltabbed_%d' % os.getpid()
         self.fifo_socket = os.path.join(config['fifo_dir'], fifo_filename)
@@ -603,15 +612,17 @@ class UzblTabbed:
         if not len(self.tabs):
             self.new_tab()
 
+        gtk_refresh = int(config['gtk_refresh'])
+        if gtk_refresh < 100:
+            gtk_refresh = 100
+
         # Update tablist timer
-        #timer = "update-tablist"
-        #timerid = timeout_add(500, self.update_tablist,timer)
-        #self._timers[timer] = timerid
+        timerid = timeout_add(gtk_refresh, self.update_tablist)
+        self._timers["update-tablist"] = timerid
 
         # Probe clients every second for window titles and location
-        timer = "probe-clients"
-        timerid = timeout_add(1000, self.probe_clients, timer)
-        self._timers[timer] = timerid
+        timerid = timeout_add(gtk_refresh, self.probe_clients)
+        self._timers["probe-clients"] = timerid
 
         # Make SIGTERM act orderly.
         signal(SIGTERM, lambda signum, stack_frame: self.terminate(SIGTERM))
@@ -755,7 +766,7 @@ class UzblTabbed:
         return True
 
 
-    def probe_clients(self, timer_call):
+    def probe_clients(self):
         '''Probe all uzbl clients for up-to-date window titles and uri's.'''
 
         save_session = config['save_session']
@@ -1154,6 +1165,11 @@ class UzblTabbed:
         show_gtk_tabs = config['show_gtk_tabs']
         tab_titles = config['tab_titles']
         show_ellipsis = config['show_ellipsis']
+        multiline_tabs = config['multiline_tabs']
+
+        if multiline_tabs:
+            multiline = []
+
         if not show_tablist and not show_gtk_tabs:
             return True
 
@@ -1168,8 +1184,10 @@ class UzblTabbed:
             pango = ""
             normal = (config['tab_colours'], config['tab_text_colours'])
             selected = (config['selected_tab'], config['selected_tab_text'])
+
             if tab_titles:
                 tab_format = "<span %s> [ %d <span %s> %s</span> ] </span>"
+
             else:
                 tab_format = "<span %s> [ <span %s>%d</span> ] </span>"
 
@@ -1183,14 +1201,22 @@ class UzblTabbed:
             if index == curpage:
                 self.window.set_title(title_format % uzbl.title)
 
-            tabtitle = uzbl.title[:max_title_len]
+            # Unicode heavy strings do not like being truncated/sliced so by
+            # re-encoding the string sliced of limbs are removed.
+            tabtitle = uzbl.title[:max_title_len + int(show_ellipsis)]
+            if type(tabtitle) != types.UnicodeType:
+                tabtitle = unicode(tabtitle, 'utf-8', 'ignore')
+
+            tabtitle = tabtitle.encode('utf-8', 'ignore').strip()
+
             if show_ellipsis and len(tabtitle) != len(uzbl.title):
-                tabtitle = "%s\xe2\x80\xa6" % tabtitle[:-1] # Show Ellipsis
+                tabtitle += "\xe2\x80\xa6"
 
             if show_gtk_tabs:
                 if tab_titles:
-                    self.notebook.set_tab_label_text(tab,\
+                    self.notebook.set_tab_label_text(tab,
                       gtk_tab_format % (index, tabtitle))
+
                 else:
                     self.notebook.set_tab_label_text(tab, str(index))
 
@@ -1198,14 +1224,39 @@ class UzblTabbed:
                 style = colour_selector(index, curpage, uzbl)
                 (tabc, textc) = style
 
-                if tab_titles:
-                    pango += tab_format % (tabc, index, textc,\
+                if multiline_tabs:
+                    opango = pango
+
+                    if tab_titles:
+                        pango += tab_format % (tabc, index, textc,
+                          escape(tabtitle))
+
+                    else:
+                        pango += tab_format % (tabc, textc, index)
+
+                    self.tablist.set_markup(pango)
+                    listwidth = self.tablist.get_layout().get_pixel_size()[0]
+                    winwidth = self.window.get_size()[0]
+
+                    if listwidth > (winwidth - 20):
+                        multiline.append(opango)
+                        pango = tab_format % (tabc, index, textc,
+                          escape(tabtitle))
+
+                elif tab_titles:
+                    pango += tab_format % (tabc, index, textc,
                       escape(tabtitle))
+
                 else:
                     pango += tab_format % (tabc, textc, index)
 
         if show_tablist:
-            self.tablist.set_markup(pango)
+            if multiline_tabs:
+                multiline.append(pango)
+                self.tablist.set_markup('&#10;'.join(multiline))
+
+            else:
+                self.tablist.set_markup(pango)
 
         return True
 
