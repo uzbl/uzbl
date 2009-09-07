@@ -903,6 +903,7 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "keycmd_bs",             {keycmd_bs, 0}                 },
     { "chain",                 {chain, 0}                     },
     { "print",                 {print, TRUE}                  },
+    { "event",                 {event, 0}                     },
     { "update_gui",            {update_gui, TRUE}             }
 };
 
@@ -962,6 +963,31 @@ update_gui(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) argv; (void) result;
 
     update_title();
+}
+
+void
+event(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page; (void) result;
+    GString *event_name;
+    gchar *event_details = NULL;
+
+    if(argv_idx(argv, 0))
+        event_name = g_string_ascii_up(g_string_new(argv_idx(argv, 0)));
+    else
+        return;
+
+    if(argv_idx(argv, 1))
+        event_details = expand(argv_idx(argv, 1), 0);
+
+    printf("EVENT %s [%s] %s\n",
+            event_name->str,
+            uzbl.state.instance_name,
+            event_details?event_details:"");
+    fflush(stdout);
+
+    g_string_free(event_name, TRUE);
+    if(event_details)
+        g_free(event_details);
 }
 
 void
