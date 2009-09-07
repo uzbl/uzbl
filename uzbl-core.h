@@ -190,8 +190,9 @@ enum event_type {
     LOAD_START, LOAD_COMMIT, LOAD_FINISH, LOAD_ERROR,
     KEY_PRESS, KEY_RELEASE, DOWNLOAD_REQ, COMMAND_EXECUTED,
     LINK_HOVER, TITLE_CHANGED, GEOMETRY_CHANGED, 
-    WEBINSPECTOR, COOKIE, NEW_WINDOW, SELECTION_CHANGED,
-    VARIABLE_SET, FIFO_SET, INSTANCE_START, INSTANCE_EXIT,
+    WEBINSPECTOR, NEW_WINDOW, SELECTION_CHANGED,
+    VARIABLE_SET, FIFO_SET, SOCKET_SET, 
+    INSTANCE_START, INSTANCE_EXIT,
     
     /* must be last entry */
     LAST_EVENT
@@ -468,6 +469,9 @@ void
 act_dump_config();
 
 void
+act_dump_config_as_events();
+
+void
 dump_var_hash(gpointer k, gpointer v, gpointer ud);
 
 void
@@ -475,6 +479,9 @@ dump_key_hash(gpointer k, gpointer v, gpointer ud);
 
 void
 dump_config();
+
+void
+dump_config_as_events();
 
 void
 retrieve_geometry();

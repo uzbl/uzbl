@@ -1,113 +1,498 @@
 #!/usr/bin/env python
 
-# Uzbl sample event manager
+# Event Manager for Uzbl
+# Copyright (c) 2009, Mason Larobina <mason.larobina@gmail.com>
+# Copyright (c) 2009, Dieter Plaetinck <diterer@plaetinck.be>
 #
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by 
+# it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.   
+# (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the  
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 '''
-The Python Event Manager
-========================
 
-Sample event manager written in python
+E V E N T _ M A N A G E R . P Y
+===============================
+
+Event manager for uzbl written in python.
 
 Usage
+=====
+
+  uzbl | $XDG_DATA_HOME/uzbl/scripts/event_manager.py
+
+Todo
 ====
-uzbl | <path to event_manager.py>
+
+ - Command line options including supplying a list of plugins to load or not
+   load (default is load all plugins in the plugin_dir).
+ - Spell checking.
+
 
 '''
 
-import sys
+import imp
 import os
+import sys
+import select
+import re
+import types
+import socket
+import pprint
+from traceback import print_exc
 
-# config dir. needed for bindings config
-if 'XDG_CONFIG_HOME' in os.environ.keys() and os.environ['XDG_CONFIG_HOME']:
-    CONFIG_DIR = os.path.join(os.environ['XDG_CONFIG_HOME'], 'uzbl/')
-else:
-    CONFIG_DIR = os.path.join(os.environ['HOME'], '.config/uzbl/')
+
+# ============================================================================
+# ::: Default configuration section ::::::::::::::::::::::::::::::::::::::::::
+# ============================================================================
 
 
-# Default config
+def xdghome(key, default):
+    '''Attempts to use the environ XDG_*_HOME paths if they exist otherwise
+    use $HOME and the default path.'''
+
+    xdgkey = "XDG_%s_HOME" % key
+    if xdgkey in os.environ.keys() and os.environ[xdgkey]:
+        return os.environ[xdgkey]
+
+    return os.path.join(os.environ['HOME'], default)
+
+# Setup xdg paths.
+DATA_DIR = os.path.join(xdghome('DATA', '.local/share/'), 'uzbl/')
+
+# Config dict (NOT the same as the uzbl.config).
 config = {
-
-  'uzbl_fifo': '',
-  'verbose': True,
-
-} # End of config dictionary.
-
-# buffer for building up commands
-keycmd = ''
+    'verbose': True,
+    'plugin_dir': "$XDG_DATA_HOME/uzbl/scripts/plugins/"
+}
 
 
+# ============================================================================
+# ::: End of configuration section :::::::::::::::::::::::::::::::::::::::::::
+# ============================================================================
+
+
+# Define some globals.
+_VALIDSETKEY = re.compile("^[a-zA-Z][a-zA-Z0-9_]*$").match
 _SCRIPTNAME = os.path.basename(sys.argv[0])
+_TYPECONVERT = {'int': int, 'float': float, 'str': str}
+
 def echo(msg):
     '''Prints only if the verbose flag has been set.'''
 
     if config['verbose']:
-        sys.stderr.write("%s: %s\n" % (_SCRIPTNAME, msg))
+        sys.stdout.write("%s: %s\n" % (_SCRIPTNAME, msg))
 
 
-def error(msg):
-    '''Prints error message and exits.'''
+def counter():
+    '''Generate unique object id's.'''
 
-    sys.stderr.write("%s: error: %s\n" % (_SCRIPTNAME, msg))
-    sys.exit(1)
-
-def fifo(msg):
-    '''Writes commands to uzbl's fifo, if the fifo path is known'''
-
-    echo ('Fifo msg: ' + msg + '(fifo path: ' + config['uzbl_fifo'] + ')')
-    if config['uzbl_fifo']:
-        fd = os.open(config['uzbl_fifo'], os.O_WRONLY)
-        os.write(fd, msg)
-        os.close(fd)
-
-def submit_keycmd():
-    '''Sends the updated keycmd to uzbl, which can render it and stuff'''
-
-    fifo ('set keycmd = ' + keycmd)
+    i = 0
+    while True:
+        i += 1
+        yield i
 
 
-def main():
-    '''Main function.'''
+class PluginManager(dict):
+    def __init__(self):
 
-    echo ("Init eventhandler")
+        plugin_dir = os.path.expandvars(config['plugin_dir'])
+        self.plugin_dir = os.path.realpath(plugin_dir)
+        if not os.path.exists(self.plugin_dir):
+            os.makedirs(self.plugin_dir)
 
-    for line in sys.stdin:
-        line = line.strip()
-        data = line.partition('EVENT ')
-        if (data[0] == ""):
-            line = data[2]
-            echo ("Got event: " + line)
-            data = line.partition(' ')
-            event_name = data[0]
-            event_data = data[2]
+        self.load_plugins()
+
+
+    def _find_plugins(self):
+        '''Find all python scripts in plugin dir and return a list of
+        locations and imp moduleinfo's.'''
+
+        dirlist = os.listdir(self.plugin_dir)
+        pythonfiles = filter(lambda s: s.endswith('.py'), dirlist)
+
+        plugins = []
+
+        for filename in pythonfiles:
+            plugins.append(filename[:-3])
+
+        return plugins
+
+
+    def _unload_plugin(self, plugin, remove_pyc=True):
+        '''Unload specific plugin and remove all waste in sys.modules
+
+        Notice: manual manipulation of sys.modules is very un-pythonic but I
+        see no other way to make sure you have 100% unloaded the module. Also
+        this allows us to implement a reload plugins function.'''
+
+        allmodules = sys.modules.keys()
+        allrefs = filter(lambda s: s.startswith("%s." % plugin), allmodules)
+
+        for ref in allrefs:
+            del sys.modules[ref]
+
+        if plugin in sys.modules.keys():
+            del sys.modules[plugin]
+
+        if plugin in self.keys():
+            dict.__delitem__(self, plugin)
+
+        if remove_pyc:
+            pyc = os.path.join(self.plugin_dir, '%s.pyc' % plugin)
+            if os.path.exists(pyc):
+                os.remove(pyc)
+
+
+    def load_plugins(self):
+
+        pluginlist = self._find_plugins()
+
+        for name in pluginlist:
+            try:
+                # Make sure the plugin isn't already loaded.
+                self._unload_plugin(name)
+
+            except:
+                print_exc()
+
+            try:
+                moduleinfo = imp.find_module(name, [self.plugin_dir,])
+                plugin = imp.load_module(name, *moduleinfo)
+                dict.__setitem__(self, name, plugin)
+
+                # Check it has the init function.
+                if not hasattr(plugin, 'init'):
+                    raise ImportError('plugin missing main "init" function.')
+
+            except:
+                print_exc()
+                self._unload_plugin(name)
+
+        if len(self.keys()):
+            echo("loaded plugin(s): %s" % ', '.join(self.keys()))
+
+
+    def reload_plugins(self):
+        '''Unload all loaded plugins then run load_plugins() again.
+
+        IMPORTANT: It is crucial that the event handler be deleted if you
+        are going to unload any modules because there is now way to track
+        which module created wich handler.'''
+
+        for plugin in self.keys():
+            self._unload_plugin(plugin)
+
+        self.load_plugins()
+
+
+def export_wrapper(uzbl, function):
+    '''Return an object that appends the uzbl meta-instance to the front of
+    the argument queue. I.e. (*args, **kargs) -> (uzbl, *args, **kargs)'''
+
+    class Export(object):
+        def __init__(self, uzbl, function):
+            self.function = function
+            self.uzbl = uzbl
+
+        def call(self, *args, **kargs):
+            return self.function(self.uzbl, *args, **kargs)
+
+    return Export(uzbl, function).call
+
+
+class UzblInstance(object):
+    '''Event manager for a uzbl instance.'''
+
+    # Singleton plugin manager.
+    plugins = None
+
+    def __init__(self):
+        '''Initialise event manager.'''
+
+        # Hold functions exported by plugins.
+        self._exports = {}
+
+        class ConfigDict(dict):
+            def __init__(self, setcmd):
+                self._setcmd = setcmd
+
+            def __setitem__(self, key, value):
+                '''Updates the config dict and relays any changes back to the
+                uzbl instance via the set function.'''
+
+                if type(value) == types.BooleanType:
+                    value = int(value)
+
+                if key in self.keys() and type(value) != type(self[key]):
+                    raise TypeError("%r for %r" % (type(value), key))
+
+                else:
+                    # All custom variables are strings.
+                    value = "" if value is None else str(value)
+
+                self._setcmd(key, value)
+                dict.__setitem__(self, key, value)
+
+        self._config = ConfigDict(self.set)
+        self._running = None
+
+        self._cmdbuffer = []
+        self.keysheld = []
+        self.metaheld = []
+        self.mode = "command"
+
+        self.binds = {}
+        self.handlers = {}
+        self.nexthid = counter().next
+
+        # Variables needed for fifo & socket communication with uzbl.
+        self.uzbl_fifo = None
+        self.uzbl_socket = None
+        self._fifo_cmd_queue = []
+        self._socket_cmd_queue = []
+        self._socket = None
+        self.send = self._send_socket
+
+        if not self.plugins:
+            self.plugins = PluginManager()
+
+        # Call the init() function in every plugin which then setup their
+        # respective hooks (event handlers, binds or timers).
+        self._init_plugins()
+
+
+    def __getattribute__(self, name):
+        '''Expose any exported functions before class functions.'''
+
+        if not name.startswith('_'):
+            exports = object.__getattribute__(self, '_exports')
+            if name in exports:
+                return exports[name]
+
+        return object.__getattribute__(self, name)
+
+
+    def _get_config(self):
+        '''Return the uzbl config dictionary.'''
+
+        return self._config
+
+    config = property(_get_config)
+
+
+    def _init_plugins(self):
+        '''Call the init() function in every plugin and expose all exposable
+        functions in the plugins root namespace.'''
+
+        # Map all plugin exports
+        for (name, plugin) in self.plugins.items():
+            for attr in dir(plugin):
+                if not attr.startswith('export_') or attr == 'export_':
+                    continue
+
+                obj = getattr(plugin, attr)
+                if type(obj) in [types.LambdaType, types.FunctionType]:
+                    obj = export_wrapper(self, obj)
+
+                self._exports[attr[7:]] = obj
+
+        echo("exposed attribute(s): %s" % ', '.join(self._exports.keys()))
+
+        # Now call the init function in all plugins.
+        for (name, plugin) in self.plugins.items():
+            try:
+                plugin.init(self)
+
+            except:
+                print_exc()
+
+
+    def _flush(self):
+        '''Flush messages from the outgoing queue to the uzbl instance.'''
+
+        if len(self._fifo_cmd_queue) and self.uzbl_fifo:
+            if os.path.exists(self.uzbl_fifo):
+                h = open(self.uzbl_fifo, 'w')
+                while len(self._fifo_cmd_queue):
+                    msg = self._fifo_cmd_queue.pop(0)
+                    print "Sending via fifo: %r" % msg
+                    h.write("%s\n" % msg)
+                h.close()
+
+        if len(self._socket_cmd_queue) and self.uzbl_socket:
+            if not self._socket and os.path.exists(self.uzbl_socket):
+                sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                sock.connect(self.uzbl_socket)
+                self._socket = sock
+
+            if self._socket:
+                while len(self._socket_cmd_queue):
+                    msg = self._socket_cmd_queue.pop(0)
+                    print "Sending via socket: %r" % msg
+                    self._socket.send("%s\n" % msg)
+
+
+    def _send_fifo(self, msg):
+        '''Send a command to the uzbl instance via the fifo socket.'''
+
+        self._fifo_cmd_queue.append(msg)
+        self._flush()
+
+
+    def _send_socket(self, msg):
+        '''Send a command to the uzbl instance via the socket file.'''
+
+        self._socket_cmd_queue.append(msg)
+        self._flush()
+
+
+    def connect(self, event, handler, *args, **kargs):
+        '''Connect event with handler and return unique handler id. It goes
+        without saying that if you connect handlers with non-existent events
+        nothing will happen so be careful.
+
+        If you choose the handler may be a uzbl command and upon receiving the
+        event the chosen command will be executed by the uzbl instance.'''
+
+        if event not in self.handlers.keys():
+            self.handlers[event] = {}
+
+        id = self.nexthid()
+        d = {'handler': handler, 'args': args, 'kargs': kargs}
+
+        self.handlers[event][id] = d
+        echo("added handler for %s: %r" % (event, d))
+
+        return id
+
+
+    def remove(self, id):
+        '''Remove connected event handler by unique handler id.'''
+
+        for event in self.handlers.keys():
+            if id in self.handlers[event].keys():
+                echo("removed handler %d" % id)
+                del self.handlers[event][id]
+
+
+    def set(self, key, value):
+        '''Sets key "key" with value "value" in the uzbl instance.'''
+
+        # TODO: Make a real escaping function.
+        escape = str
+
+        if not _VALIDSETKEY(key):
+            raise KeyError("%r" % key)
+
+        if '\n' in value:
+            raise ValueError("invalid character: \\n")
+
+        self.send('set %s = %s' % (key, escape(value)))
+
+
+    def listen_from_fd(self, fd):
+        '''Main loop reading event messages from stdin.'''
+
+        self._running = True
+        while self._running:
+            try:
+                if select.select([fd,], [], [], 1)[0]:
+                    self.read_from_fd(fd)
+                    continue
+
+                self._flush()
+
+            except KeyboardInterrupt:
+                self._running = False
+                print
+
+            except:
+                print_exc()
+
+
+    def read_from_fd(self, fd):
+        '''Reads incoming event messages from fd.'''
+
+        raw = fd.readline()
+        if not raw:
+            # Read null byte (i.e. uzbl closed).
+            self._running = False
+            return
+
+        msg = raw.strip().split(' ', 3)
+
+        if not msg or msg[0] != "EVENT":
+            # Not an event message
+            return
+
+        event, args = msg[1], msg[3]
+        self.handle_event(event, args)
+
+
+    def handle_event(self, event, args):
+        '''Handle uzbl events internally before dispatch.'''
+
+        print event, args
+
+        if event == 'VARIABLE_SET':
+            l = args.split(' ', 2)
+            if len(l) == 2:
+                l.append("")
+
+            key, type, value = l
+            dict.__setitem__(self._config, key, _TYPECONVERT[type](value))
+
+        elif event == 'FIFO_SET':
+            self.uzbl_fifo = args
+            self._flush()
+
+        elif event == 'SOCKET_SET':
+            self.uzbl_socket = args
+            self._flush()
+
+        elif event == 'SHUTDOWN':
+            for (name, plugin) in self.plugins.items():
+                if hasattr(plugin, "cleanup"):
+                    plugin.cleanup(uzbl)
+
+        self.dispatch_event(event, args)
+
+
+    def dispatch_event(self, event, args):
+        '''Now send the event to any event handlers added with the connect
+        function. In other words: handle plugin's event hooks.'''
+
+        if event in self.handlers.keys():
+            for hid in self.handlers[event]:
+                try:
+                    handler = self.handlers[event][hid]
+                    print "Executing handler:", event, handler
+                    self.exc_handler(handler, args)
+
+                except:
+                    print_exc()
+
+
+    def exc_handler(self, d, args):
+        '''Handle handler.'''
+
+        if type(d['handler']) == types.FunctionType:
+            handler = d['handler']
+            handler(self, args, *d['args'], **d['kargs'])
+
         else:
-            echo ("Non-event: " + line)
-            continue
-        
-        if (event_name == 'FIFO_SET'):
-            config['uzbl_fifo'] = event_data.split()[-1]
-        elif (event_name == 'KEY_PRESS'):
-            # todo: keep a table of pressed modkeys. do we work with Mod[1-4] here or Alt_L and such?
-            key = event_data.split()[-1]
-            if (key == 'Escape'):
-                keycmd = ''
-            submit_keycmd
-        elif (event_name == 'KEY_RELEASE'):
-           #todo : update table of pressed modkeys
-           submit_keycmd
+            cmd = d['handler']
+            self.send(cmd)
+
 
 if __name__ == "__main__":
-    main()
- 
+    uzbl = UzblInstance().listen_from_fd(sys.stdin)
