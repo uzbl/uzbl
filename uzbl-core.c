@@ -134,7 +134,6 @@ const struct var_name_to_ptr_t {
     { "insert_mode",            PTR_V_INT(uzbl.behave.insert_mode,              1,   set_mode_indicator)},
     { "always_insert_mode",     PTR_V_INT(uzbl.behave.always_insert_mode,       1,   cmd_always_insert_mode)},
     { "reset_command_mode",     PTR_V_INT(uzbl.behave.reset_command_mode,       1,   NULL)},
-    { "modkey",                 PTR_V_STR(uzbl.behave.modkey,                   1,   cmd_modkey)},
     { "load_finish_handler",    PTR_V_STR(uzbl.behave.load_finish_handler,      1,   NULL)},
     { "load_start_handler",     PTR_V_STR(uzbl.behave.load_start_handler,       1,   NULL)},
     { "load_commit_handler",    PTR_V_STR(uzbl.behave.load_commit_handler,      1,   NULL)},
@@ -187,6 +186,7 @@ const struct var_name_to_ptr_t {
     { "SELECTED_URI",           PTR_C_STR(uzbl.state.selected_url,                   NULL)},
     { "MODE",                   PTR_C_STR(uzbl.gui.sbar.mode_indicator,              NULL)},
     { "NAME",                   PTR_C_STR(uzbl.state.instance_name,                  NULL)},
+    { "PID",                    PTR_C_STR(uzbl.info.pid_str,                         NULL)},
 
     { NULL,                     {.ptr.s = NULL, .type = TYPE_INT, .dump = 0, .writeable = 0, .func = NULL}}
 };
@@ -212,33 +212,11 @@ const char *event_table[LAST_EVENT] = {
      "WEBINSPECTOR"     ,
      "NEW_WINDOW"       ,
      "SELECTION_CHANGED",
-     "VARIABLE_SET",
-     "FIFO_SET",
-     "SOCKET_SET"
-};
-
-
-const struct {
-    /*@null@*/ char *key;
-    guint mask;
-} modkeys[] = {
-    { "SHIFT",   GDK_SHIFT_MASK   }, // shift
-    { "LOCK",    GDK_LOCK_MASK    }, // capslock or shiftlock, depending on xserver's modmappings
-    { "CONTROL", GDK_CONTROL_MASK }, // control
-    { "MOD1",    GDK_MOD1_MASK    }, // 4th mod - normally alt but depends on modmappings
-    { "MOD2",    GDK_MOD2_MASK    }, // 5th mod
-    { "MOD3",    GDK_MOD3_MASK    }, // 6th mod
-    { "MOD4",    GDK_MOD4_MASK    }, // 7th mod
-    { "MOD5",    GDK_MOD5_MASK    }, // 8th mod
-    { "BUTTON1", GDK_BUTTON1_MASK }, // 1st mouse button
-    { "BUTTON2", GDK_BUTTON2_MASK }, // 2nd mouse button
-    { "BUTTON3", GDK_BUTTON3_MASK }, // 3rd mouse button
-    { "BUTTON4", GDK_BUTTON4_MASK }, // 4th mouse button
-    { "BUTTON5", GDK_BUTTON5_MASK }, // 5th mouse button
-    { "SUPER",   GDK_SUPER_MASK   }, // super (since 2.10)
-    { "HYPER",   GDK_HYPER_MASK   }, // hyper (since 2.10)
-    { "META",    GDK_META_MASK    }, // meta (since 2.10)
-    { NULL,      0                }
+     "VARIABLE_SET"     ,
+     "FIFO_SET"         ,
+     "SOCKET_SET"       ,
+     "INSTANCE_START"   ,
+     "INSTANCE_EXIT"
 };
 
 
@@ -530,6 +508,8 @@ clean_up(void) {
     g_free(uzbl.state.keycmd);
     g_hash_table_destroy(uzbl.bindings);
     g_hash_table_destroy(uzbl.behave.commands);
+
+    send_event(INSTANCE_EXIT, uzbl.info.pid_str);
 }
 
 /* --- SIGNAL HANDLER --- */
@@ -923,6 +903,7 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "keycmd_bs",             {keycmd_bs, 0}                 },
     { "chain",                 {chain, 0}                     },
     { "print",                 {print, TRUE}                  },
+    { "event",                 {event, 0}                     },
     { "update_gui",            {update_gui, TRUE}             }
 };
 
@@ -982,6 +963,31 @@ update_gui(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) argv; (void) result;
 
     update_title();
+}
+
+void
+event(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page; (void) result;
+    GString *event_name;
+    gchar *event_details = NULL;
+
+    if(argv_idx(argv, 0))
+        event_name = g_string_ascii_up(g_string_new(argv_idx(argv, 0)));
+    else
+        return;
+
+    if(argv_idx(argv, 1))
+        event_details = expand(argv_idx(argv, 1), 0);
+
+    printf("EVENT %s [%s] %s\n",
+            event_name->str,
+            uzbl.state.instance_name,
+            event_details?event_details:"");
+    fflush(stdout);
+
+    g_string_free(event_name, TRUE);
+    if(event_details)
+        g_free(event_details);
 }
 
 void
@@ -1904,24 +1910,6 @@ cmd_inject_html() {
     if(uzbl.behave.inject_html) {
         webkit_web_view_load_html_string (uzbl.gui.web_view,
                 uzbl.behave.inject_html, NULL);
-    }
-}
-
-void
-cmd_modkey() {
-    int i;
-    char *buf;
-
-    buf = g_utf8_strup(uzbl.behave.modkey, -1);
-    uzbl.behave.modmask = 0;
-
-    if(uzbl.behave.modkey)
-        g_free(uzbl.behave.modkey);
-    uzbl.behave.modkey = buf;
-
-    for (i = 0; modkeys[i].key != NULL; i++) {
-        if (g_strrstr(buf, modkeys[i].key))
-            uzbl.behave.modmask |= modkeys[i].mask;
     }
 }
 
@@ -2997,6 +2985,11 @@ main (int argc, char* argv[]) {
 
     if(!uzbl.state.instance_name)
         uzbl.state.instance_name = itos((int)uzbl.xwin);
+
+    GString *tmp = g_string_new("");
+    g_string_printf(tmp, "%d", getpid());
+    uzbl.info.pid_str = g_string_free(tmp, FALSE);
+    send_event(INSTANCE_START, uzbl.info.pid_str);
 
     gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
 

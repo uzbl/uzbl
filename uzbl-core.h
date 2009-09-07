@@ -110,7 +110,6 @@ typedef struct {
     gboolean insert_mode;
     gboolean status_top;
     gboolean reset_command_mode;
-    gchar*   modkey;
     guint    modmask;
     guint    http_debug;
     gchar*   shell_cmd;
@@ -158,6 +157,7 @@ typedef struct {
     int   webkit_micro;
     gchar *arch;
     gchar *commit;
+    gchar *pid_str;
 } Info;
 
 /* main uzbl data structure */
@@ -188,10 +188,11 @@ typedef void sigfunc(int);
 enum event_type {
     LOAD_START, LOAD_COMMIT, LOAD_FINISH, LOAD_ERROR,
     KEY_PRESS, KEY_RELEASE, DOWNLOAD_REQ, COMMAND_EXECUTED,
-    LINK_HOVER, TITLE_CHANGED, GEOMETRY_CHANGED,
+    LINK_HOVER, TITLE_CHANGED, GEOMETRY_CHANGED, 
     WEBINSPECTOR, NEW_WINDOW, SELECTION_CHANGED,
-    VARIABLE_SET, FIFO_SET, SOCKET_SET,
-
+    VARIABLE_SET, FIFO_SET, SOCKET_SET, 
+    INSTANCE_START, INSTANCE_EXIT,
+    
     /* must be last entry */
     LAST_EVENT
 };
@@ -487,6 +488,9 @@ retrieve_geometry();
 void
 update_gui(WebKitWebView *page, GArray *argv, GString *result);
 
+void
+event(WebKitWebView *page, GArray *argv, GString *result);
+
 gboolean
 configure_event_cb(GtkWidget* window, GdkEventConfigure* event);
 
@@ -570,9 +574,6 @@ cmd_fifo_dir();
 
 void
 cmd_socket_dir();
-
-void
-cmd_modkey();
 
 void
 cmd_useragent() ;
