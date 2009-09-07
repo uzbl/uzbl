@@ -424,6 +424,76 @@ Note: cookie events are not sent to an event handler but handled internally thro
 Cookie events are really something completely different from all other events.  maybe someday we'll use http proxies or something for cookies, but
 for now we still use the handler code)
 
+Basically all events have this format:
+
+     EVENT EVENT_NAME [uzbl_instance_name] event_details
+
+
+Reported events and their specific format:
+
+- on start uzbl will generate:
+
+     EVENT INSTANCE_START [uzbl_instance_name] process_id
+
+- on exit:
+
+     EVENT INSTANCE_EXIT [uzbl_instance_name] process_id
+
+- whenever an uzbl variable is set:
+
+     EVENT VARIABLE_SET [uzbl_instance_name] variable_name variable_value
+
+- upon execution of an uzbl command:
+
+     EVENT COMMAND_EXECUTED [uzbl_instance_name] command_name optional_command_arguments
+
+- when the size or position of the uzbl window changes:
+
+     EVENT GEOMETRY_CHANGED [uzbl_instance_name] WIDTHxHEIGHT+X_POSITION+Y_POSITION
+
+- when the fifo and/or the socket path is set or changed:
+
+     EVENT FIFO_SET [uzbl_instance_name] path_to_fifo
+     EVENT SOCKET_SET [uzbl_instance_name] path_to_socket
+
+- when a website is being loaded:
+
+     EVENT LOAD_COMMIT [uzbl_instance_name] uri
+     EVENT LOAD_START [uzbl_instance_name] uri
+     EVENT LOAD_FINISHED [uzbl_instance_name] uri
+     EVENT LOAD_ERROR [uzbl_instance_name] reason_of_error
+
+- when the title of the uzbl window changes:
+
+     EVENT TITLE_CHANGED [uzbl_instance_name] title_name
+
+- when content needs to be downloaded:
+
+     EVENT DOWNLOAD_REQUEST [uzbl_instance_name] download_uri
+
+- when you hover with the mouse over a link:
+
+     EVENT LINK_HOVER [uzbl_instance_name] uri
+
+- when you press or release a key:
+
+     EVENT KEY_PRESS [uzbl_instance_name] key_name
+     EVENT KEY_RELEASE [uzbl_instance_name] key_name
+
+- when you select some text inside the uzbl window:
+
+     EVENT SELECTION_CHANGED [uzbl_instance_name] selected_text
+
+- when a new uzbl window is created:
+
+     EVENT NEW_WINDOW [uzbl_instance_name] uri
+
+- upon opening/closing of the webinspector window:
+
+     EVENT WEBINSPECTOR [uzbl_instance_name] open
+     EVENT WEBINSPECTOR [uzbl_instance_name] close
+
+
 ### COMMAND LINE ARGUMENTS
     uzbl [ uri ]
     -u, --uri=URI            Uri to load at startup (equivalent to 'uzbl <uri>' or 'set uri = URI' after uzbl has launched)
