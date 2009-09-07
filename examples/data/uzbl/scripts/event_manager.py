@@ -256,12 +256,13 @@ class Handler(object):
 
         else:
             for command in self._commands:
-                if '%s' in command and len(args) == 1:
-                    command.replace('%s', args[0])
+                if '%s' in command:
+                    if len(args) > 1:
+                        for arg in args:
+                           command = command.replace('%s', arg, 1)
 
-                elif '%s' in command:
-                    for arg in args:
-                        command.replace('%s', arg, 1)
+                    elif len(args) == 1:
+                        command = command.replace('%s', args[0])
 
                 self._uzbl.send(command)
 
