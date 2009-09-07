@@ -37,6 +37,10 @@
 #
 #   Romain Bignon <romain@peerfuse.org>
 #       Fix for session restoration code.
+#
+#   Jake Probst <jake.probst@gmail.com>
+#       Wrote a patch that overflows tabs in the tablist on to new lines when
+#       running of room.
 
 
 # Dependencies:
@@ -65,6 +69,7 @@
 #   gtk_tab_pos             = (top|left|bottom|right)
 #   switch_to_new_tabs      = 1
 #   capture_new_windows     = 1
+#   multiline_tabs          = 1
 #
 # Tab title options:
 #   tab_titles              = 1
@@ -207,6 +212,7 @@ if not os.path.exists(UZBL_CONFIG):
 
 # All of these settings can be inherited from your uzbl config file.
 config = {
+  'multiline_tabs':         True,   # tabs wrap to the window
   # Tab options
   'show_tablist':           True,   # Show text uzbl like statusbar tab-list
   'show_gtk_tabs':          False,  # Show gtk notebook tabs
@@ -535,6 +541,7 @@ class UzblTabbed:
             self.window.add(vbox)
             ebox = gtk.EventBox()
             self.tablist = gtk.Label()
+
             self.tablist.set_use_markup(True)
             self.tablist.set_justify(gtk.JUSTIFY_LEFT)
             self.tablist.set_line_wrap(False)
@@ -584,7 +591,6 @@ class UzblTabbed:
 
         self.window.show()
         self.wid = self.notebook.window.xid
-
         # Generate the fifo socket filename.
         fifo_filename = 'uzbltabbed_%d' % os.getpid()
         self.fifo_socket = os.path.join(config['fifo_dir'], fifo_filename)
@@ -1147,6 +1153,7 @@ class UzblTabbed:
         return True
 
 
+            pangols = []
     def update_tablist(self, curpage=None):
         '''Upate tablist status bar.'''
 
@@ -1169,6 +1176,10 @@ class UzblTabbed:
             normal = (config['tab_colours'], config['tab_text_colours'])
             selected = (config['selected_tab'], config['selected_tab_text'])
             if tab_titles:
+            # ok this kinda shits itself when it truncates multibyte utf8
+            # characters so heres a cheap fix:
+            tabtitle = unicode(tabtitle,"utf-8", "ignore").encode('utf-8')
+
                 tab_format = "<span %s> [ %d <span %s> %s</span> ] </span>"
             else:
                 tab_format = "<span %s> [ <span %s>%d</span> ] </span>"
@@ -1198,14 +1209,35 @@ class UzblTabbed:
                 style = colour_selector(index, curpage, uzbl)
                 (tabc, textc) = style
 
-                if tab_titles:
-                    pango += tab_format % (tabc, index, textc,\
-                      escape(tabtitle))
+                if config['multiline_tabs']:
+                    opango = pango
+
+                    if tab_titles:
+                        pango += tab_format % (tabc, index, textc,\
+                        escape(tabtitle))
+                    else:
+                        pango += tab_format % (tabc, textc, index)
+                    self.tablist.set_markup(pango)
+                    w = self.tablist.get_layout().get_pixel_size()[0]
+                    ww = self.window.get_size()[0]
+                    if w > ww-20: # 20 seems to be a good number
+                        pangols.append(opango)
+                        pango = tab_format % (tabc, index, textc,\
+                                escape(tabtitle))
                 else:
-                    pango += tab_format % (tabc, textc, index)
+                    if tab_titles:
+                        pango += tab_format % (tabc, index, textc,\
+                        escape(tabtitle))
+                    else:
+                        pango += tab_format % (tabc, textc, index)
+
 
         if show_tablist:
-            self.tablist.set_markup(pango)
+            if config['multiline_tabs']:
+                pangols.append(pango)
+                self.tablist.set_markup('&#10;'.join(pangols))
+            else:
+                self.tablist.set_markup(pango)
 
         return True
 
