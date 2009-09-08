@@ -2,7 +2,7 @@
 
 # Event Manager for Uzbl
 # Copyright (c) 2009, Mason Larobina <mason.larobina@gmail.com>
-# Copyright (c) 2009, Dieter Plaetinck <diterer@plaetinck.be>
+# Copyright (c) 2009, Dieter Plaetinck <dieter@plaetinck.be>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
