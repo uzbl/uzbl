@@ -527,7 +527,9 @@ class UzblInstance(object):
     def handle_event(self, event, args):
         '''Handle uzbl events internally before dispatch.'''
 
-        print event, args
+        # Silence _printing_ of geo events while still debugging.
+        if event != "GEOMETRY_CHANGED":
+            print event, args
 
         if event == 'VARIABLE_SET':
             l = args.split(' ', 2)
