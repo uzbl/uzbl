@@ -2302,35 +2302,30 @@ configure_event_cb(GtkWidget* window, GdkEventConfigure* event) {
     return FALSE;
 }
 
+void
+key_to_event(guint keyval, gint mode) {
+    char byte[2];
+
+    /* check for Latin-1 characters  (1:1 mapping) */
+    if ((keyval >= 0x0020 && keyval <= 0x007e) ||
+        (keyval >= 0x00a0 && keyval <= 0x00ff)) {
+        sprintf(byte, "%c", keyval);
+        send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
+                byte);
+    }
+    else
+        send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
+                gdk_keyval_name(keyval));
+
+}
+
 gboolean
-key_press_cb (GtkWidget* window, GdkEventKey* event)
-{
-    //TRUE to stop other handlers from being invoked for the event. FALSE to propagate the event further.
+key_press_cb (GtkWidget* window, GdkEventKey* event) {
 
     (void) window;
 
     if(event->type == GDK_KEY_PRESS)
-        send_event(KEY_PRESS, gdk_keyval_name(event->keyval));
-
-    if (event->type   != GDK_KEY_PRESS ||
-        event->keyval == GDK_Page_Up   ||
-        event->keyval == GDK_Page_Down ||
-        event->keyval == GDK_Home      ||
-        event->keyval == GDK_End       ||
-        event->keyval == GDK_Up        ||
-        event->keyval == GDK_Down      ||
-        event->keyval == GDK_Left      ||
-        event->keyval == GDK_Right     ||
-        event->keyval == GDK_Shift_L   ||
-        event->keyval == GDK_Shift_R)
-        return FALSE;
-
-    if (uzbl.behave.insert_mode &&
-        ( ((event->state & uzbl.behave.modmask) != uzbl.behave.modmask) ||
-          (!uzbl.behave.modmask)
-        )
-       )
-        return FALSE;
+        key_to_event(event->keyval, GDK_KEY_PRESS);
 
     return TRUE;
 }
@@ -2340,7 +2335,7 @@ key_release_cb (GtkWidget* window, GdkEventKey* event) {
     (void) window;
 
     if(event->type == GDK_KEY_RELEASE)
-        send_event(KEY_RELEASE, gdk_keyval_name(event->keyval));
+        key_to_event(event->keyval, GDK_KEY_RELEASE);
 
     return TRUE;
 }
