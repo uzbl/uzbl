@@ -393,15 +393,55 @@ expand(const char *s, guint recurse) {
     return g_string_free(buf, FALSE);
 }
 
-/* send events as strings to stdout (do we need to support fifo/socket as output mechanism?)
- * we send all events to the output. it's the users task to filter out what he cares about.
-*/
 void
-send_event(int type, const gchar *details) {
+send_event_socket(GString *msg) {
+    GError *error = NULL;
+    GIOStatus ret;
+    gsize len;
 
-    if(type < LAST_EVENT) {
-        printf("EVENT %s [%s] %s\n", event_table[type], uzbl.state.instance_name, details);
-        fflush(stdout);
+    if(uzbl.comm.socket_path && 
+            uzbl.comm.clientchan  &&
+            uzbl.comm.clientchan->is_writeable) {
+        ret = g_io_channel_write_chars (uzbl.comm.clientchan, 
+                msg->str, msg->len,
+                &len, &error);
+        if (ret == G_IO_STATUS_ERROR) {
+            g_warning ("Error sending event to socket: %s", error->message);
+        }
+        g_io_channel_flush(uzbl.comm.clientchan, &error);
+    }
+}
+
+void send_event_stdout(GString *msg) {
+    printf("%s", msg->str);
+    fflush(stdout);
+}
+
+/* 
+ * build event string and send over the supported interfaces 
+ * cutom_event == NULL indicates an internal event
+*/ 
+void
+send_event(int type, const gchar *details, const gchar *custom_event) {
+    GString *event_message = g_string_new("");
+
+    /* check for custom events */
+    if(custom_event) {
+        g_string_printf(event_message, "EVENT %s [%s] %s\n",
+                custom_event, uzbl.state.instance_name, details);
+    }
+    /* check wether we support the internal event */
+    else if(type < LAST_EVENT) {
+        g_string_printf(event_message, "EVENT %s [%s] %s\n",
+                event_table[type], uzbl.state.instance_name, details);
+    }
+
+    if(event_message->str) {
+        /* TODO: a means to select the interface to which events are sent */
+        send_event_stdout(event_message);
+        send_event_socket(event_message);
+
+        g_string_free(event_message, TRUE);
     }
 }
 
@@ -509,7 +549,7 @@ clean_up(void) {
     g_hash_table_destroy(uzbl.bindings);
     g_hash_table_destroy(uzbl.behave.commands);
 
-    send_event(INSTANCE_EXIT, uzbl.info.pid_str);
+    send_event(INSTANCE_EXIT, uzbl.info.pid_str, NULL);
 }
 
 /* --- SIGNAL HANDLER --- */
@@ -578,7 +618,7 @@ new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequ
     if (uzbl.state.verbose)
         printf("New window requested -> %s \n", uri);
     webkit_web_policy_decision_use(policy_decision);
-    send_event(NEW_WINDOW, uri);
+    send_event(NEW_WINDOW, uri, NULL);
     return TRUE;
 }
 
@@ -636,7 +676,7 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
 
         g_string_free(args, TRUE);
     }
-    send_event(DOWNLOAD_REQ, webkit_download_get_uri ((WebKitDownload*)download));
+    send_event(DOWNLOAD_REQ, webkit_download_get_uri ((WebKitDownload*)download), NULL);
     return (FALSE);
 }
 
@@ -746,7 +786,7 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
     uzbl.state.selected_url = NULL;
     if (link) {
         uzbl.state.selected_url = g_strdup(link);
-        send_event(LINK_HOVER, uzbl.state.selected_url);
+        send_event(LINK_HOVER, uzbl.state.selected_url, NULL);
     }
     update_title();
 }
@@ -760,7 +800,7 @@ title_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
         g_free (uzbl.gui.main_title);
     uzbl.gui.main_title = title ? g_strdup (title) : g_strdup ("(no title)");
     update_title();
-    send_event(TITLE_CHANGED, uzbl.gui.main_title);
+    send_event(TITLE_CHANGED, uzbl.gui.main_title, NULL);
 }
 
 void
@@ -782,7 +822,7 @@ selection_changed_cb(WebKitWebView *webkitwebview, gpointer ud) {
 
     webkit_web_view_copy_clipboard(webkitwebview);
     tmp = gtk_clipboard_wait_for_text(gtk_clipboard_get (GDK_SELECTION_CLIPBOARD));
-    send_event(SELECTION_CHANGED, tmp);
+    send_event(SELECTION_CHANGED, tmp, NULL);
     g_free(tmp);
 }
 
@@ -794,7 +834,7 @@ load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     if (uzbl.behave.load_finish_handler)
         run_handler(uzbl.behave.load_finish_handler, "");
 
-    send_event(LOAD_FINISH, webkit_web_frame_get_uri(frame));
+    send_event(LOAD_FINISH, webkit_web_frame_get_uri(frame), NULL);
 }
 
 void clear_keycmd() {
@@ -811,7 +851,7 @@ load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     if (uzbl.behave.load_start_handler)
         run_handler(uzbl.behave.load_start_handler, "");
 
-    send_event(LOAD_START, uzbl.state.uri);
+    send_event(LOAD_START, uzbl.state.uri, NULL);
 }
 
 void
@@ -823,7 +863,7 @@ load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer 
     gchar *details;
 
     details = g_strdup_printf("%s %d:%s", uri, err->code, err->message);
-    send_event(LOAD_ERROR, details);
+    send_event(LOAD_ERROR, details, NULL);
     g_free(details);
 }
 
@@ -842,7 +882,7 @@ load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
         run_handler(uzbl.behave.load_commit_handler, uzbl.state.uri);
 
     /* event message */
-    send_event(LOAD_COMMIT, webkit_web_frame_get_uri (frame));
+    send_event(LOAD_COMMIT, webkit_web_frame_get_uri (frame), NULL);
 }
 
 void
@@ -979,11 +1019,7 @@ event(WebKitWebView *page, GArray *argv, GString *result) {
     if(argv_idx(argv, 1))
         event_details = expand(argv_idx(argv, 1), 0);
 
-    printf("EVENT %s [%s] %s\n",
-            event_name->str,
-            uzbl.state.instance_name,
-            event_details?event_details:"");
-    fflush(stdout);
+    send_event(0, event_details?event_details:"", event_name->str);
 
     g_string_free(event_name, TRUE);
     if(event_details)
@@ -1257,7 +1293,7 @@ new_window_load_uri (const gchar * uri) {
         GString *s = g_string_new ("");
         g_string_printf(s, "'%s'", uri);
         run_handler(uzbl.behave.new_window, s->str);
-        send_event(NEW_WINDOW, s->str);
+        send_event(NEW_WINDOW, s->str, NULL);
         return;
     }
     GString* to_execute = g_string_new ("");
@@ -1275,7 +1311,7 @@ new_window_load_uri (const gchar * uri) {
         printf("\n%s\n", to_execute->str);
     g_spawn_command_line_async (to_execute->str, NULL);
     /* TODO: should we just report the uri as event detail? */
-    send_event(NEW_WINDOW, to_execute->str);
+    send_event(NEW_WINDOW, to_execute->str, NULL);
     g_string_free (to_execute, TRUE);
 }
 
@@ -1982,7 +2018,7 @@ set_var_value(const gchar *name, gchar *val) {
             g_string_append_printf(msg, " float %f", *c->ptr.f);
         }
 
-        send_event(VARIABLE_SET, msg->str);
+        send_event(VARIABLE_SET, msg->str, NULL);
         g_string_free(msg,TRUE);
 
         /* invoke a command specific function */
@@ -2009,7 +2045,7 @@ set_var_value(const gchar *name, gchar *val) {
 
         msg = g_string_new(name);
         g_string_append_printf(msg, " str %s", buf);
-        send_event(VARIABLE_SET, msg->str);
+        send_event(VARIABLE_SET, msg->str, NULL);
         g_string_free(msg,TRUE);
     }
     return TRUE;
@@ -2102,7 +2138,7 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
                 if (g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, NULL)) {
                     if (uzbl.state.verbose)
                         printf ("init_fifo: created successfully as %s\n", path);
-                        send_event(FIFO_SET, path);
+                        send_event(FIFO_SET, path, NULL);
                     uzbl.comm.fifo_path = path;
                     return dir;
                 } else g_warning ("init_fifo: could not add watch on %s\n", path);
@@ -2157,14 +2193,14 @@ control_socket(GIOChannel *chan) {
     struct sockaddr_un remote;
     unsigned int t = sizeof(remote);
     int clientsock;
-    GIOChannel *clientchan;
+    //GIOChannel *clientchan;
 
     clientsock = accept (g_io_channel_unix_get_fd(chan),
                          (struct sockaddr *) &remote, &t);
 
-    if ((clientchan = g_io_channel_unix_new(clientsock))) {
-        g_io_add_watch(clientchan, G_IO_IN|G_IO_HUP,
-                       (GIOFunc) control_client_socket, clientchan);
+    if ((uzbl.comm.clientchan = g_io_channel_unix_new(clientsock))) {
+        g_io_add_watch(uzbl.comm.clientchan, G_IO_IN|G_IO_HUP,
+                       (GIOFunc) control_client_socket, uzbl.comm.clientchan);
     }
 
     return TRUE;
@@ -2240,7 +2276,7 @@ init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL *
         if( (chan = g_io_channel_unix_new(sock)) ) {
             g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_socket, chan);
             uzbl.comm.socket_path = path;
-            send_event(SOCKET_SET, path);
+            send_event(SOCKET_SET, path, NULL);
             return dir;
         }
     } else g_warning ("init_socket: could not open in %s: %s\n", path, strerror(errno));
@@ -2298,7 +2334,7 @@ configure_event_cb(GtkWidget* window, GdkEventConfigure* event) {
     (void) event;
 
     retrieve_geometry();
-    send_event(GEOMETRY_CHANGED, uzbl.gui.geometry);
+    send_event(GEOMETRY_CHANGED, uzbl.gui.geometry, NULL);
     return FALSE;
 }
 
@@ -2311,11 +2347,11 @@ key_to_event(guint keyval, gint mode) {
         (keyval >= 0x00a0 && keyval <= 0x00ff)) {
         sprintf(byte, "%c", keyval);
         send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
-                byte);
+                byte, NULL);
     }
     else
         send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
-                gdk_keyval_name(keyval));
+                gdk_keyval_name(keyval), NULL);
 
 }
 
@@ -2352,7 +2388,7 @@ run_keycmd(const gboolean key_ret) {
         parse_command(act->name, act->param, NULL);
 
         tmp = g_strdup_printf("%s %s", act->name, act->param?act->param:"");
-        send_event(COMMAND_EXECUTED, tmp);
+        send_event(COMMAND_EXECUTED, tmp, NULL);
         g_free(tmp);
         return;
     }
@@ -2373,7 +2409,7 @@ run_keycmd(const gboolean key_ret) {
             exec_paramcmd(act, i);
             clear_keycmd();
             tmp = g_strdup_printf("%s %s", act->name, act->param?act->param:"");
-            send_event(COMMAND_EXECUTED, tmp);
+            send_event(COMMAND_EXECUTED, tmp, NULL);
             g_free(tmp);
             break;
         } else if ((act = g_hash_table_lookup(uzbl.bindings, short_keys_inc->str))) {
@@ -2382,7 +2418,7 @@ run_keycmd(const gboolean key_ret) {
             else {
                 exec_paramcmd(act, i); /* otherwise execute the incremental */
                 tmp = g_strdup_printf("%s %s", act->name, act->param?act->param:"");
-                send_event(COMMAND_EXECUTED, tmp);
+                send_event(COMMAND_EXECUTED, tmp, NULL);
                 g_free(tmp);
             }
             break;
@@ -2774,7 +2810,7 @@ inspector_show_window_cb (WebKitWebInspector* inspector){
     (void) inspector;
     gtk_widget_show(uzbl.gui.inspector_window);
 
-    send_event(WEBINSPECTOR, "open");
+    send_event(WEBINSPECTOR, "open", NULL);
     return TRUE;
 }
 
@@ -2782,7 +2818,7 @@ inspector_show_window_cb (WebKitWebInspector* inspector){
 gboolean
 inspector_close_window_cb (WebKitWebInspector* inspector){
     (void) inspector;
-    send_event(WEBINSPECTOR, "close");
+    send_event(WEBINSPECTOR, "close", NULL);
     return TRUE;
 }
 
@@ -2867,7 +2903,7 @@ dump_var_hash_as_event(gpointer k, gpointer v, gpointer ud) {
         g_string_append_printf(msg, " float %f", *c->ptr.f);
     }
 
-    send_event(VARIABLE_SET, msg->str);
+    send_event(VARIABLE_SET, msg->str, NULL);
     g_string_free(msg, TRUE);
 }
 
@@ -2984,7 +3020,7 @@ main (int argc, char* argv[]) {
     GString *tmp = g_string_new("");
     g_string_printf(tmp, "%d", getpid());
     uzbl.info.pid_str = g_string_free(tmp, FALSE);
-    send_event(INSTANCE_START, uzbl.info.pid_str);
+    send_event(INSTANCE_START, uzbl.info.pid_str, NULL);
 
     gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
 

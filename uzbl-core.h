@@ -56,6 +56,7 @@ typedef struct {
     GHashTable     *proto_var;
 
     gchar          *sync_stdout;
+    GIOChannel     *clientchan;
 } Communication;
 
 
