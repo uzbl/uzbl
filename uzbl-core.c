@@ -419,7 +419,7 @@ void send_event_stdout(GString *msg) {
 
 /* 
  * build event string and send over the supported interfaces 
- * cutom_event == NULL indicates an internal event
+ * custom_event == NULL indicates an internal event
 */ 
 void
 send_event(int type, const gchar *details, const gchar *custom_event) {

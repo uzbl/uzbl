@@ -162,6 +162,8 @@ The following commands are recognized:
    - if you use `chain` with a handler script which must return some output (such as a cookie handler -- uzbl will wait for and use its output), use sync_spawn or sync_sh instead of spawn or sh in the command that should give the output
 * `update_gui`
    - update the contents of the status and title bars
+* `event <event_name> [event_details]`
+   - send custom event
 
 ### VARIABLES AND CONSTANTS
 Uzbl has a lot of internal variables and constants.  You can get the values (using the `print` command, see above), and for variables you can also change the value at
@@ -441,7 +443,7 @@ Reported events and their specific format:
 
 - whenever an uzbl variable is set:
 
-     EVENT VARIABLE_SET [uzbl_instance_name] str|int|float variable_name variable_value
+     EVENT VARIABLE_SET [uzbl_instance_name] variable_name str|int|float variable_value
 
      Note: str|int|float denote the type of variable_value
 
