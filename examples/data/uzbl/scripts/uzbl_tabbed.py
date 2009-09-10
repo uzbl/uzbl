@@ -41,6 +41,9 @@
 #   Jake Probst <jake.probst@gmail.com>
 #       Wrote a patch that overflows tabs in the tablist on to new lines when
 #       running of room.
+#
+#   Devon Jones <devon.jones@gmail.com>
+#       Fifo command bring_to_front which brings the gtk window to focus.
 
 
 # Dependencies:
@@ -825,6 +828,8 @@ class UzblTabbed:
         #   updates tablist title.
         # uri {pid} {document-location}
         #   updates tablist uri
+        # bring_to_front
+        #   brings the gtk window to focus.
         # exit
         #   exits uzbl_tabbed.py
 
@@ -923,6 +928,9 @@ class UzblTabbed:
             else:
                 error("parse_command: unknown parse command %r"\
                   % ' '.join(cmd))
+
+        elif cmd[0] == "bring_to_front":
+            self.window.present()
 
         elif cmd[0] == "clean":
             self.clean_slate()
