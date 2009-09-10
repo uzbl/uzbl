@@ -10,9 +10,12 @@ And it is also possible to execute a function on activation:
   bind('DD', myhandler)
 '''
 
+__export__ = ['bind',]
+
 uzbls = {}
 
-def export_bind(uzbl, glob, cmd=None):
+
+def bind(uzbl, glob, cmd=None):
 
     if uzbl not in uzbls:
         uzbls[uzbl] = {}
