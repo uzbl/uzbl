@@ -375,17 +375,21 @@ class UzblInstance(object):
 
         # Map all plugin exports
         for (name, plugin) in self.plugins.items():
-            for attr in dir(plugin):
-                if not attr.startswith('export_') or attr == 'export_':
-                    continue
+            if not hasattr(plugin, '__export__'):
+                continue
 
-                obj = getattr(plugin, attr)
+            for export in plugin.__export__:
+                if export in self._exports:
+                    orig = self._exports[export]
+                    raise KeyError("already exported attribute: %r" % export)
+
+                obj = getattr(plugin, export)
                 if iscallable(obj):
                     # Wrap the function in the CallPrepender object to make
                     # the exposed functions act like instance methods.
                     obj = CallPrepender(self, obj).call
 
-                self._exports[attr[7:]] = obj
+                self._exports[export] = obj
 
         echo("exposed attribute(s): %s" % ', '.join(self._exports.keys()))
 
