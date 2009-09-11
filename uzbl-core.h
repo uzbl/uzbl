@@ -114,6 +114,7 @@ typedef struct {
     guint    modmask;
     guint    http_debug;
     gchar*   shell_cmd;
+    guint    view_source;
     /* WebKitWebSettings exports */
     guint    font_size;
     guint    monospace_size;
@@ -614,5 +615,10 @@ cmd_caret_browsing();
 
 void
 cmd_set_geometry();
+
+/*
+void
+cmd_view_source();
+*/
 
 /* vi: set et ts=4: */

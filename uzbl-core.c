@@ -149,6 +149,8 @@ const struct var_name_to_ptr_t {
     { "max_conns",              PTR_V_INT(uzbl.net.max_conns,                   1,   cmd_max_conns)},
     { "max_conns_host",         PTR_V_INT(uzbl.net.max_conns_host,              1,   cmd_max_conns_host)},
     { "useragent",              PTR_V_STR(uzbl.net.useragent,                   1,   cmd_useragent)},
+    /* requires webkit >=1.1.14 */
+    //{ "view_source",            PTR_V_INT(uzbl.behave.view_source,              0,   cmd_view_source)},
 
     /* exported WebKitWebSettings properties */
     { "zoom_level",             PTR_V_FLOAT(uzbl.behave.zoom_level,             1,   cmd_zoom_level)},
@@ -412,7 +414,8 @@ send_event_socket(GString *msg) {
     }
 }
 
-void send_event_stdout(GString *msg) {
+void
+send_event_stdout(GString *msg) {
     printf("%s", msg->str);
     fflush(stdout);
 }
@@ -466,7 +469,7 @@ str_replace (const char* search, const char* replace, const char* string) {
 
     buf = g_strsplit (string, search, -1);
     ret = g_strjoinv (replace, buf);
-    g_strfreev(buf); // somebody said this segfaults
+    g_strfreev(buf);
 
     return ret;
 }
@@ -1959,6 +1962,15 @@ cmd_useragent() {
             uzbl.net.useragent, NULL);
     }
 }
+
+/* requires webkit >=1.1.14 */
+/*
+void
+cmd_view_source() {
+    webkit_web_view_set_view_source_mode(uzbl.gui.web_view,
+            (gboolean) uzbl.behave.view_source);
+}
+*/
 
 void
 move_statusbar() {
