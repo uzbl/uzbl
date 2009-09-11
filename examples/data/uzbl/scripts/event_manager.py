@@ -232,63 +232,40 @@ class Handler(object):
 
     nexthid = counter().next
 
-    def __init__(self, uzbl, event, handler, *args, **kargs):
-        self._callable = iscallable(handler)
-        if self._callable:
-            self._function = handler
-            self._args = args
-            self._kargs = kargs
+    def __init__(self, event, handler, *args, **kargs):
+        self.callable = iscallable(handler)
+        if self.callable:
+            self.function = handler
+            self.args = args
+            self.kargs = kargs
 
         elif kargs:
             raise ArgumentError("cannot supply kargs with a uzbl command")
 
         elif isiterable(handler):
-            self._commands = handler
+            self.commands = handler
 
         else:
-            self._commands = [handler,] + list(args)
+            self.commands = [handler,] + list(args)
 
-        self._uzbl = uzbl
         self.event = event
         self.hid = self.nexthid()
-
-
-    def exec_handler(self, *args, **kargs):
-        '''Execute either the handler function or send the uzbl commands to
-        the socket.'''
-
-        if self._callable:
-            args = args + self._args
-            kargs = dict(self._kargs.items()+kargs.items())
-            self._function(self._uzbl, *args, **kargs)
-
-        else:
-            for command in self._commands:
-                if '%s' in command:
-                    if len(args) > 1:
-                        for arg in args:
-                           command = command.replace('%s', arg, 1)
-
-                    elif len(args) == 1:
-                        command = command.replace('%s', args[0])
-
-                self._uzbl.send(command)
 
 
     def __repr__(self):
         args = ["event=%s" % self.event, "hid=%d" % self.hid]
 
-        if self._callable:
-            args.append("function=%r" % self._function)
-            if self._args:
+        if self.callable:
+            args.append("function=%r" % self.function)
+            if self.args:
                 args.append("args=%r" % self.args)
 
-            if self._kargs:
+            if self.kargs:
                 args.append("kargs=%r" % self.kargs)
 
         else:
-            cmdlen = len(self._commands)
-            cmds = self._commands[0] if cmdlen == 1 else self._commands
+            cmdlen = len(self.commands)
+            cmds = self.commands[0] if cmdlen == 1 else self.commands
             args.append("command%s=%r" % ("s" if cmdlen-1 else "", cmds))
 
         return "<EventHandler(%s)>" % ', '.join(args)
@@ -476,7 +453,7 @@ class UzblInstance(object):
         if event not in self._handlers.keys():
             self._handlers[event] = []
 
-        handler = Handler(self, event, handler, *args, **kargs)
+        handler = Handler(event, handler, *args, **kargs)
         self._handlers[event].append(handler)
 
         print "New event handler:", handler
@@ -658,6 +635,31 @@ class UzblInstance(object):
         self.dispatch_event(event, args)
 
 
+    def exec_handler(self, handler, *args, **kargs):
+        '''Execute either the handler function or send the handlers uzbl
+        commands via the socket.'''
+
+        if handler.callable:
+            args = args + handler.args
+            kargs = dict(handler.kargs.items()+kargs.items())
+            handler.function(uzbl, *args, **kargs)
+
+        else:
+            if kargs:
+                raise ArgumentError('cannot supply kargs for uzbl commands')
+
+            for command in handler.commands:
+                if '%s' in command:
+                    if len(args) > 1:
+                        for arg in args:
+                            command = command.replace('%s', arg, 1)
+
+                    elif len(args) == 1:
+                        command = command.replace('%s', args[0])
+
+                uzbl.send(command)
+
+
     def dispatch_event(self, event, args):
         '''Now send the event to any event handlers added with the connect
         function. In other words: handle plugin's event hooks.'''
@@ -665,7 +667,7 @@ class UzblInstance(object):
         if event in self._handlers:
             for handler in self._handlers[event]:
                 try:
-                    handler.exec_handler(args)
+                    self.exec_handler(handler, args)
 
                 except:
                     #print_exc()
@@ -680,10 +682,10 @@ class UzblInstance(object):
         if event in self._handlers:
             for handler in self._handlers[event]:
                 try:
-                    handler.exec_handler(*args, **kargs)
+                    self.exec_handler(handler, *args, **kargs)
 
                 except:
-                    #print_ext()
+                    #print_exc()
                     raise
 
 
