@@ -23,13 +23,15 @@ then
 	$XDG_DATA_HOME/uzbl/scripts/cookie_daemon.py
 fi
 
-FIFO=/tmp/uzbl-fifo-eventmanager
-EVENT_MANAGER=$XDG_DATA_HOME/uzbl/scripts/event_manager.py
 
-if [ ! -p $FIFO ]
+SOCKET_ID="$RANDOM$RANDOM"
+SOCKET_DIR="/tmp"
+SOCKET_PATH="$SOCKET_DIR/uzbl_socket_$SOCKET_ID"
+
+uzbl-core -n $SOCKET_ID &
+$XDG_DATA_HOME/uzbl/scripts/event_manager.py -vs $SOCKET_PATH
+
+if [[ -S $SOCKETPATH ]]
 then
-	mkfifo $FIFO
-	(cat $FIFO | $EVENT_MANAGER && rm $FIFO) &
+	rm $SOCKET_PATH
 fi
-
-uzbl-core "$@" > $FIFO
