@@ -42,6 +42,7 @@ Contributors:
     Paweł Zuzelski (pawelz) - download handler proxy patch
     Michael Fiano (axionix) - added cookie_daemon.py whitelist
     Jake Probst <jake.probst@gmail.com> - uzbl_tabbed: multiline tablist
+    Devon Jones <devon.jones@gmail.com> - uzbl_tabbed: bring_to_front
 
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
