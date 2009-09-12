@@ -37,6 +37,13 @@
 #
 #   Romain Bignon <romain@peerfuse.org>
 #       Fix for session restoration code.
+#
+#   Jake Probst <jake.probst@gmail.com>
+#       Wrote a patch that overflows tabs in the tablist on to new lines when
+#       running of room.
+#
+#   Devon Jones <devon.jones@gmail.com>
+#       Fifo command bring_to_front which brings the gtk window to focus.
 
 
 # Dependencies:
@@ -63,8 +70,10 @@
 #   show_gtk_tabs           = 0
 #   tablist_top             = 1
 #   gtk_tab_pos             = (top|left|bottom|right)
+#   gtk_refresh             = 1000
 #   switch_to_new_tabs      = 1
 #   capture_new_windows     = 1
+#   multiline_tabs          = 1
 #
 # Tab title options:
 #   tab_titles              = 1
@@ -83,8 +92,9 @@
 #   icon_path               = $HOME/.local/share/uzbl/uzbl.png
 #   status_background       = #303030
 #
-# Window options:
+# Misc options:
 #   window_size             = 800,800
+#   verbose                 = 0
 #
 # And the key bindings:
 #   bind_new_tab            = gn
@@ -97,12 +107,13 @@
 #   bind_goto_first         = g<
 #   bind_goto_last          = g>
 #   bind_clean_slate        = gQ
+#   bind_exit               = gZ
 #
 # Session preset key bindings:
-#   bind_save_preset       = gsave _
-#   bind_load_preset       = gload _
-#   bind_del_preset        = gdel _
-#   bind_list_presets      = glist
+#   bind_save_preset        = gsave _
+#   bind_load_preset        = gload _
+#   bind_del_preset         = gdel _
+#   bind_list_presets       = glist
 #
 # And uzbl_tabbed.py takes care of the actual binding of the commands via each
 # instances fifo socket.
@@ -162,41 +173,47 @@ import socket
 import random
 import hashlib
 import atexit
+import types
 
 from gobject import io_add_watch, source_remove, timeout_add, IO_IN, IO_HUP
 from signal import signal, SIGTERM, SIGINT
 from optparse import OptionParser, OptionGroup
 
+
 pygtk.require('2.0')
 
-_scriptname = os.path.basename(sys.argv[0])
+_SCRIPTNAME = os.path.basename(sys.argv[0])
 def error(msg):
-    sys.stderr.write("%s: %s\n" % (_scriptname, msg))
-
-def echo(msg):
-    print "%s: %s" % (_scriptname, msg)
-
+    sys.stderr.write("%s: error: %s\n" % (_SCRIPTNAME, msg))
 
 # ============================================================================
 # ::: Default configuration section ::::::::::::::::::::::::::::::::::::::::::
 # ============================================================================
 
+def xdghome(key, default):
+    '''Attempts to use the environ XDG_*_HOME paths if they exist otherwise
+    use $HOME and the default path.'''
 
-# Location of your uzbl data directory.
-if 'XDG_DATA_HOME' in os.environ.keys() and os.environ['XDG_DATA_HOME']:
-    data_dir = os.path.join(os.environ['XDG_DATA_HOME'], 'uzbl/')
-else:
-    data_dir = os.path.join(os.environ['HOME'], '.local/share/uzbl/')
-if not os.path.exists(data_dir):
-    error("Warning: uzbl data_dir does not exist: %r" % data_dir)
+    xdgkey = "XDG_%s_HOME" % key
+    if xdgkey in os.environ.keys() and os.environ[xdgkey]:
+        return os.environ[xdgkey]
 
-# Location of your uzbl configuration file.
-if 'XDG_CONFIG_HOME' in os.environ.keys() and os.environ['XDG_CONFIG_HOME']:
-    uzbl_config = os.path.join(os.environ['XDG_CONFIG_HOME'], 'uzbl/config')
-else:
-    uzbl_config = os.path.join(os.environ['HOME'],'.config/uzbl/config')
-if not os.path.exists(uzbl_config):
-    error("Warning: Cannot locate your uzbl_config file %r" % uzbl_config)
+    return os.path.join(os.environ['HOME'], default)
+
+# Setup xdg paths.
+DATA_DIR = os.path.join(xdghome('DATA', '.local/share/'), 'uzbl/')
+CONFIG_DIR = os.path.join(xdghome('CONFIG', '.config/'), 'uzbl/')
+
+# Ensure uzbl xdg paths exist
+for path in [DATA_DIR, CONFIG_DIR]:
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+# Path to uzbl config
+UZBL_CONFIG = os.path.join(CONFIG_DIR, 'config')
+if not os.path.exists(UZBL_CONFIG):
+    error("cannot find uzbl config file at %r" % UZBL_CONFIG)
+    sys.exit(1)
 
 # All of these settings can be inherited from your uzbl config file.
 config = {
@@ -205,8 +222,10 @@ config = {
   'show_gtk_tabs':          False,  # Show gtk notebook tabs
   'tablist_top':            True,   # Display tab-list at top of window
   'gtk_tab_pos':            'top',  # Gtk tab position (top|left|bottom|right)
+  'gtk_refresh':            1000,   # Tablist refresh millisecond interval
   'switch_to_new_tabs':     True,   # Upon opening a new tab switch to it
   'capture_new_windows':    True,   # Use uzbl_tabbed to catch new windows
+  'multiline_tabs':         True,   # Tabs overflow onto new tablist lines.
 
   # Tab title options
   'tab_titles':             True,   # Display tab titles (else only tab-nums)
@@ -217,17 +236,18 @@ config = {
   # Session options
   'save_session':           True,   # Save session in file when quit
   'json_session':           False,   # Use json to save session.
-  'saved_sessions_dir':     os.path.join(data_dir, 'sessions/'),
-  'session_file':           os.path.join(data_dir, 'session'),
+  'saved_sessions_dir':     os.path.join(DATA_DIR, 'sessions/'),
+  'session_file':           os.path.join(DATA_DIR, 'session'),
 
   # Inherited uzbl options
   'fifo_dir':               '/tmp', # Path to look for uzbl fifo.
   'socket_dir':             '/tmp', # Path to look for uzbl socket.
-  'icon_path':              os.path.join(data_dir, 'uzbl.png'),
+  'icon_path':              os.path.join(DATA_DIR, 'uzbl.png'),
   'status_background':      "#303030", # Default background for all panels.
 
-  # Window options
+  # Misc options
   'window_size':            "800,800", # width,height in pixels.
+  'verbose':                False,  # Print verbose output.
 
   # Key bindings
   'bind_new_tab':           'gn',   # Open new tab.
@@ -240,6 +260,7 @@ config = {
   'bind_goto_first':        'g<',   # Goto first tab.
   'bind_goto_last':         'g>',   # Goto last tab.
   'bind_clean_slate':       'gQ',   # Close all tabs and open new tab.
+  'bind_exit':              'gZ',   # Exit nicely.
 
   # Session preset key bindings
   'bind_save_preset':       'gsave _', # Save session to file %s.
@@ -293,10 +314,13 @@ def colour_selector(tabindex, currentpage, uzbl):
     # Default tab style.
     return (config['tab_colours'], config['tab_text_colours'])
 
-
 # ============================================================================
 # ::: End of configuration section :::::::::::::::::::::::::::::::::::::::::::
 # ============================================================================
+
+def echo(msg):
+    if config['verbose']:
+        sys.stderr.write("%s: %s\n" % (_SCRIPTNAME, msg))
 
 
 def readconfig(uzbl_config, config):
@@ -324,8 +348,9 @@ def readconfig(uzbl_config, config):
         config[key] = value
 
     # Ensure that config keys that relate to paths are expanded.
-    expand = ['fifo_dir', 'socket_dir', 'session_file', 'icon_path']
-    for key in expand:
+    pathkeys = ['fifo_dir', 'socket_dir', 'session_file', 'icon_path',
+      'saved_sessions_dir']
+    for key in pathkeys:
         config[key] = os.path.expandvars(config[key])
 
 
@@ -522,6 +547,7 @@ class UzblTabbed:
             self.window.add(vbox)
             ebox = gtk.EventBox()
             self.tablist = gtk.Label()
+
             self.tablist.set_use_markup(True)
             self.tablist.set_justify(gtk.JUSTIFY_LEFT)
             self.tablist.set_line_wrap(False)
@@ -571,7 +597,6 @@ class UzblTabbed:
 
         self.window.show()
         self.wid = self.notebook.window.xid
-
         # Generate the fifo socket filename.
         fifo_filename = 'uzbltabbed_%d' % os.getpid()
         self.fifo_socket = os.path.join(config['fifo_dir'], fifo_filename)
@@ -590,15 +615,17 @@ class UzblTabbed:
         if not len(self.tabs):
             self.new_tab()
 
+        gtk_refresh = int(config['gtk_refresh'])
+        if gtk_refresh < 100:
+            gtk_refresh = 100
+
         # Update tablist timer
-        #timer = "update-tablist"
-        #timerid = timeout_add(500, self.update_tablist,timer)
-        #self._timers[timer] = timerid
+        timerid = timeout_add(gtk_refresh, self.update_tablist)
+        self._timers["update-tablist"] = timerid
 
         # Probe clients every second for window titles and location
-        timer = "probe-clients"
-        timerid = timeout_add(1000, self.probe_clients, timer)
-        self._timers[timer] = timerid
+        timerid = timeout_add(gtk_refresh, self.probe_clients)
+        self._timers["probe-clients"] = timerid
 
         # Make SIGTERM act orderly.
         signal(SIGTERM, lambda signum, stack_frame: self.terminate(SIGTERM))
@@ -742,7 +769,7 @@ class UzblTabbed:
         return True
 
 
-    def probe_clients(self, timer_call):
+    def probe_clients(self):
         '''Probe all uzbl clients for up-to-date window titles and uri's.'''
 
         save_session = config['save_session']
@@ -800,6 +827,11 @@ class UzblTabbed:
         # title {pid} {document-title}
         #   updates tablist title.
         # uri {pid} {document-location}
+        #   updates tablist uri
+        # bring_to_front
+        #   brings the gtk window to focus.
+        # exit
+        #   exits uzbl_tabbed.py
 
         if cmd[0] == "new":
             if len(cmd) == 2:
@@ -897,8 +929,14 @@ class UzblTabbed:
                 error("parse_command: unknown parse command %r"\
                   % ' '.join(cmd))
 
+        elif cmd[0] == "bring_to_front":
+            self.window.present()
+
         elif cmd[0] == "clean":
             self.clean_slate()
+
+        elif cmd[0] == "exit":
+            self.quitrequest()
 
         else:
             error("parse_command: unknown command %r" % ' '.join(cmd))
@@ -997,6 +1035,7 @@ class UzblTabbed:
         bind(config['bind_load_preset'], 'preset load %s')
         bind(config['bind_del_preset'], 'preset del %s')
         bind(config['bind_list_presets'], 'preset list %d' % uzbl.pid)
+        bind(config['bind_exit'], 'exit')
 
         # Set definitions here
         # set(key, command back to fifo)
@@ -1108,9 +1147,8 @@ class UzblTabbed:
 
         if self.notebook.get_n_pages() == 0:
             if not self._killed and config['save_session']:
-                if len(self._closed):
-                    d = {'curtab': 0, 'tabs': [self._closed[-1],]}
-                    self.save_session(session=d)
+                if os.path.exists(config['session_file']):
+                    os.remove(config['session_file'])
 
             self.quit()
 
@@ -1135,6 +1173,11 @@ class UzblTabbed:
         show_gtk_tabs = config['show_gtk_tabs']
         tab_titles = config['tab_titles']
         show_ellipsis = config['show_ellipsis']
+        multiline_tabs = config['multiline_tabs']
+
+        if multiline_tabs:
+            multiline = []
+
         if not show_tablist and not show_gtk_tabs:
             return True
 
@@ -1149,8 +1192,10 @@ class UzblTabbed:
             pango = ""
             normal = (config['tab_colours'], config['tab_text_colours'])
             selected = (config['selected_tab'], config['selected_tab_text'])
+
             if tab_titles:
                 tab_format = "<span %s> [ %d <span %s> %s</span> ] </span>"
+
             else:
                 tab_format = "<span %s> [ <span %s>%d</span> ] </span>"
 
@@ -1164,14 +1209,22 @@ class UzblTabbed:
             if index == curpage:
                 self.window.set_title(title_format % uzbl.title)
 
-            tabtitle = uzbl.title[:max_title_len]
+            # Unicode heavy strings do not like being truncated/sliced so by
+            # re-encoding the string sliced of limbs are removed.
+            tabtitle = uzbl.title[:max_title_len + int(show_ellipsis)]
+            if type(tabtitle) != types.UnicodeType:
+                tabtitle = unicode(tabtitle, 'utf-8', 'ignore')
+
+            tabtitle = tabtitle.encode('utf-8', 'ignore').strip()
+
             if show_ellipsis and len(tabtitle) != len(uzbl.title):
-                tabtitle = "%s\xe2\x80\xa6" % tabtitle[:-1] # Show Ellipsis
+                tabtitle += "\xe2\x80\xa6"
 
             if show_gtk_tabs:
                 if tab_titles:
-                    self.notebook.set_tab_label_text(tab,\
+                    self.notebook.set_tab_label_text(tab,
                       gtk_tab_format % (index, tabtitle))
+
                 else:
                     self.notebook.set_tab_label_text(tab, str(index))
 
@@ -1179,19 +1232,44 @@ class UzblTabbed:
                 style = colour_selector(index, curpage, uzbl)
                 (tabc, textc) = style
 
-                if tab_titles:
-                    pango += tab_format % (tabc, index, textc,\
+                if multiline_tabs:
+                    opango = pango
+
+                    if tab_titles:
+                        pango += tab_format % (tabc, index, textc,
+                          escape(tabtitle))
+
+                    else:
+                        pango += tab_format % (tabc, textc, index)
+
+                    self.tablist.set_markup(pango)
+                    listwidth = self.tablist.get_layout().get_pixel_size()[0]
+                    winwidth = self.window.get_size()[0]
+
+                    if listwidth > (winwidth - 20):
+                        multiline.append(opango)
+                        pango = tab_format % (tabc, index, textc,
+                          escape(tabtitle))
+
+                elif tab_titles:
+                    pango += tab_format % (tabc, index, textc,
                       escape(tabtitle))
+
                 else:
                     pango += tab_format % (tabc, textc, index)
 
         if show_tablist:
-            self.tablist.set_markup(pango)
+            if multiline_tabs:
+                multiline.append(pango)
+                self.tablist.set_markup('&#10;'.join(multiline))
+
+            else:
+                self.tablist.set_markup(pango)
 
         return True
 
 
-    def save_session(self, session_file=None, session=None):
+    def save_session(self, session_file=None):
         '''Save the current session to file for restoration on next load.'''
 
         strip = str.strip
@@ -1199,17 +1277,16 @@ class UzblTabbed:
         if session_file is None:
             session_file = config['session_file']
 
-        if session is None:
-            tabs = self.tabs.keys()
-            state = []
-            for tab in list(self.notebook):
-                if tab not in tabs: continue
-                uzbl = self.tabs[tab]
-                if not uzbl.uri: continue
-                state += [(uzbl.uri, uzbl.title),]
+        tabs = self.tabs.keys()
+        state = []
+        for tab in list(self.notebook):
+            if tab not in tabs: continue
+            uzbl = self.tabs[tab]
+            if not uzbl.uri: continue
+            state += [(uzbl.uri, uzbl.title),]
 
-            session = {'curtab': self.notebook.get_current_page(),
-              'tabs': state}
+        session = {'curtab': self.notebook.get_current_page(),
+          'tabs': state}
 
         if config['json_session']:
             raw = json.dumps(session)
@@ -1237,9 +1314,11 @@ class UzblTabbed:
         default_path = False
         strip = str.strip
         json_session = config['json_session']
+        delete_loaded = False
 
         if session_file is None:
             default_path = True
+            delete_loaded = True
             session_file = config['session_file']
 
         if not os.path.isfile(session_file):
@@ -1294,6 +1373,10 @@ class UzblTabbed:
         for (index, (uri, title)) in enumerate(tabs):
             self.new_tab(uri=uri, title=title, switch=(curtab==index))
 
+        # A saved session has been loaded now delete it.
+        if delete_loaded and os.path.exists(session_file):
+            os.remove(session_file)
+
         # There may be other state information in the session dict of use to
         # other functions. Of course however the non-json session object is
         # just a dummy object of no use to no one.
@@ -1301,16 +1384,16 @@ class UzblTabbed:
 
 
     def quitrequest(self, *args):
-        '''Called by delete-event signal to kill all uzbl instances.'''
+        '''Attempt to close all uzbl instances nicely and exit.'''
 
         self._killed = True
 
         if config['save_session']:
-            if len(list(self.notebook)):
+            if len(list(self.notebook)) > 1:
                 self.save_session()
 
             else:
-                # Notebook has no pages so delete session file if it exists.
+                # Notebook has one page open so delete the session file.
                 if os.path.isfile(config['session_file']):
                     os.remove(config['session_file'])
 
@@ -1347,21 +1430,24 @@ class UzblTabbed:
 if __name__ == "__main__":
 
     # Read from the uzbl config into the global config dictionary.
-    readconfig(uzbl_config, config)
+    readconfig(UZBL_CONFIG, config)
 
     # Build command line parser
-    parser = OptionParser()
-    parser.add_option('-n', '--no-session', dest='nosession',\
+    usage = "usage: %prog [OPTIONS] {URIS}..."
+    parser = OptionParser(usage=usage)
+    parser.add_option('-n', '--no-session', dest='nosession',
       action='store_true', help="ignore session saving a loading.")
-    group = OptionGroup(parser, "Note", "All other command line arguments are "\
-      "interpreted as uris and loaded in new tabs.")
-    parser.add_option_group(group)
+    parser.add_option('-v', '--verbose', dest='verbose',
+      action='store_true', help='print verbose output.')
 
     # Parse command line options
     (options, uris) = parser.parse_args()
 
     if options.nosession:
         config['save_session'] = False
+
+    if options.verbose:
+        config['verbose'] = True
 
     if config['json_session']:
         try:
@@ -1372,6 +1458,10 @@ if __name__ == "__main__":
               "module simplejson. Fix: \"set json_session = 0\" or "\
               "install the simplejson python module to remove this warning.")
             config['json_session'] = False
+
+    if config['verbose']:
+        import pprint
+        sys.stderr.write("%s\n" % pprint.pformat(config))
 
     uzbl = UzblTabbed()
 
