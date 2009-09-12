@@ -29,7 +29,7 @@ Contributors:
     (kmeaw) - fix for multibyte utf8 characters segfault
     (evocallaghan) - tiny patches
     Aaron Griffin (phrakture) - Makefile patches to build on OSX
-    Mason Larobina - os.environ.keys() & os.path.join fix in cookies.py, work on uzbl_tabbed.py, cookies_daemon.py
+    Mason Larobina - os.environ.keys() & os.path.join fix in cookies.py, work on uzbl_tabbed.py, cookie_daemon.py
     (dequis) - Uzbl.run, birectional socket, javascript commands
     Brendan Taylor (bct) - various bugfixes, making misc variables much better using expand(), refactoring some internal var stuff
     Chris van Dijk (quigybo) - work on uzbl_tabbed.py
@@ -40,6 +40,9 @@ Contributors:
     Andraž 'ruskie' Levstik - font_family patch
     Helmut Grohne (helmut) - move void **ptr to union, various fixes
     Paweł Zuzelski (pawelz) - download handler proxy patch
+    Michael Fiano (axionix) - added cookie_daemon.py whitelist
+    Jake Probst <jake.probst@gmail.com> - uzbl_tabbed: multiline tablist
+    Devon Jones <devon.jones@gmail.com> - uzbl_tabbed: bring_to_front
 
 
 Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
