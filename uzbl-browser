@@ -28,7 +28,7 @@ SOCKET_ID="$RANDOM$RANDOM"
 SOCKET_DIR="/tmp"
 SOCKET_PATH="$SOCKET_DIR/uzbl_socket_$SOCKET_ID"
 
-uzbl-core -n $SOCKET_ID &
+uzbl-core "$@" -n $SOCKET_ID &
 $XDG_DATA_HOME/uzbl/scripts/event_manager.py -vs $SOCKET_PATH
 
 if [[ -S $SOCKETPATH ]]
