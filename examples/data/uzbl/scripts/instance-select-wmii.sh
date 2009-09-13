@@ -1,7 +1,9 @@
 #!/bin/sh
 
-# This script lists all uzbl instances in the current wmii tag
-# You can select one of them, and it will focus that window
+
+# This script allows you to focus another uzbl window
+# It considers all uzbl windows in the current tag
+# you can select one from a list, or go to the next/previous one
 # It does not change the layout (stacked/tiled/floating) nor does it
 # changes the size or viewing mode of a uzbl window
 # When your current uzbl window is maximized, the one you change to 
