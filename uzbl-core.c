@@ -149,6 +149,8 @@ const struct var_name_to_ptr_t {
     { "max_conns",              PTR_V_INT(uzbl.net.max_conns,                   1,   cmd_max_conns)},
     { "max_conns_host",         PTR_V_INT(uzbl.net.max_conns_host,              1,   cmd_max_conns_host)},
     { "useragent",              PTR_V_STR(uzbl.net.useragent,                   1,   cmd_useragent)},
+    /* requires webkit >=1.1.14 */
+    //{ "view_source",            PTR_V_INT(uzbl.behave.view_source,              0,   cmd_view_source)},
 
     /* exported WebKitWebSettings properties */
     { "zoom_level",             PTR_V_FLOAT(uzbl.behave.zoom_level,             1,   cmd_zoom_level)},
@@ -394,25 +396,68 @@ expand(const char *s, guint recurse) {
 }
 
 void
+event_buffer_timeout(guint sec) {
+    struct itimerval t;
+    memset(&t, 0, sizeof t);
+    t.it_value.tv_sec = sec;
+    t.it_value.tv_usec = 0;
+    setitimer(ITIMER_REAL, &t, NULL);
+}
+
+
+void
 send_event_socket(GString *msg) {
     GError *error = NULL;
+    GString *tmp;
     GIOStatus ret;
     gsize len;
+    guint i=0;
 
     if(uzbl.comm.socket_path && 
             uzbl.comm.clientchan  &&
             uzbl.comm.clientchan->is_writeable) {
-        ret = g_io_channel_write_chars (uzbl.comm.clientchan, 
-                msg->str, msg->len,
-                &len, &error);
-        if (ret == G_IO_STATUS_ERROR) {
-            g_warning ("Error sending event to socket: %s", error->message);
+
+        if(uzbl.state.event_buffer) {
+            event_buffer_timeout(0);
+
+            while(i < uzbl.state.event_buffer->len) {
+                tmp = g_ptr_array_index(uzbl.state.event_buffer, i++);
+                ret = g_io_channel_write_chars (uzbl.comm.clientchan, 
+                        tmp->str, tmp->len,
+                        &len, &error);
+                /* is g_ptr_array_free(uzbl.state.event_buffer, TRUE) enough? */
+                //g_string_free(tmp, TRUE);
+                if (ret == G_IO_STATUS_ERROR) {
+                    g_warning ("Error sending event to socket: %s", error->message);
+                }
+                g_io_channel_flush(uzbl.comm.clientchan, &error);
+            }
+            g_ptr_array_free(uzbl.state.event_buffer, TRUE);
+            uzbl.state.event_buffer = NULL;
         }
-        g_io_channel_flush(uzbl.comm.clientchan, &error);
+        if(msg) {
+            ret = g_io_channel_write_chars (uzbl.comm.clientchan, 
+                    msg->str, msg->len,
+                    &len, &error);
+
+            if (ret == G_IO_STATUS_ERROR) {
+                g_warning ("Error sending event to socket: %s", error->message);
+            }
+            g_io_channel_flush(uzbl.comm.clientchan, &error);
+        }
+    }
+    /* buffer events until a socket is set and connected
+    * or a timeout is encountered
+     */
+    else {
+        if(!uzbl.state.event_buffer)
+            uzbl.state.event_buffer = g_ptr_array_new();
+        g_ptr_array_add(uzbl.state.event_buffer, (gpointer)g_string_new(msg->str));
     }
 }
 
-void send_event_stdout(GString *msg) {
+void
+send_event_stdout(GString *msg) {
     printf("%s", msg->str);
     fflush(stdout);
 }
@@ -466,7 +511,7 @@ str_replace (const char* search, const char* replace, const char* string) {
 
     buf = g_strsplit (string, search, -1);
     ret = g_strjoinv (replace, buf);
-    g_strfreev(buf); // somebody said this segfaults
+    g_strfreev(buf);
 
     return ret;
 }
@@ -565,6 +610,13 @@ catch_sigint(int s) {
     (void) s;
     clean_up();
     exit(EXIT_SUCCESS);
+}
+
+void
+catch_sigalrm(int s) {
+    (void) s;
+    g_ptr_array_free(uzbl.state.event_buffer, TRUE);
+    uzbl.state.event_buffer = NULL;
 }
 
 /* --- CALLBACKS --- */
@@ -1960,6 +2012,15 @@ cmd_useragent() {
     }
 }
 
+/* requires webkit >=1.1.14 */
+/*
+void
+cmd_view_source() {
+    webkit_web_view_set_view_source_mode(uzbl.gui.web_view,
+            (gboolean) uzbl.behave.view_source);
+}
+*/
+
 void
 move_statusbar() {
     if (!uzbl.gui.scrolled_win &&
@@ -2201,6 +2262,8 @@ control_socket(GIOChannel *chan) {
     if ((uzbl.comm.clientchan = g_io_channel_unix_new(clientsock))) {
         g_io_add_watch(uzbl.comm.clientchan, G_IO_IN|G_IO_HUP,
                        (GIOFunc) control_client_socket, uzbl.comm.clientchan);
+        /* replay buffered events */
+        send_event_socket(NULL);
     }
 
     return TRUE;
@@ -2958,6 +3021,13 @@ initialize(int argc, char *argv[]) {
         fprintf(stderr, "uzbl: error hooking SIGTERM\n");
     if(setup_signal(SIGINT, catch_sigint) == SIG_ERR)
         fprintf(stderr, "uzbl: error hooking SIGINT\n");
+
+    /* Set up the timer for the event buffer */
+    if(setup_signal(SIGALRM, catch_sigalrm) == SIG_ERR) {
+        fprintf(stderr, "uzbl: error hooking SIGALRM\n");
+        exit(EXIT_FAILURE);
+    }
+    event_buffer_timeout(10);
 
     uzbl.gui.sbar.progress_s = g_strdup("="); //TODO: move these to config.h
     uzbl.gui.sbar.progress_u = g_strdup("·");
