@@ -71,6 +71,7 @@ typedef struct {
     gchar*   keycmd;
     gchar*   searchtx;
     gboolean verbose;
+    GPtrArray *event_buffer;
 } State;
 
 
