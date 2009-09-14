@@ -447,8 +447,8 @@ send_event_socket(GString *msg) {
         }
     }
     /* buffer events until a socket is set and connected
-    * or a timeout is encountered
-     */
+     * or a timeout is encountered
+    */
     else {
         if(!uzbl.state.event_buffer)
             uzbl.state.event_buffer = g_ptr_array_new();
@@ -988,6 +988,10 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "chain",                 {chain, 0}                     },
     { "print",                 {print, TRUE}                  },
     { "event",                 {event, 0}                     },
+    /* a request is just semantic sugar to make things more obvious for
+     * the user, technically events and requests are the very same thing
+    */
+    { "request",               {event, 0}                     }, 
     { "update_gui",            {update_gui, TRUE}             }
 };
 
@@ -2368,7 +2372,7 @@ key_press_cb (GtkWidget* window, GdkEventKey* event) {
     if(event->type == GDK_KEY_PRESS)
         key_to_event(event->keyval, GDK_KEY_PRESS);
 
-    return TRUE;
+    return uzbl.behave.insert_mode ? FALSE : TRUE;
 }
 
 gboolean
