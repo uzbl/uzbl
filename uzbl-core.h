@@ -141,6 +141,7 @@ typedef struct {
     gboolean print_version;
 
     /* command list: (key)name -> (value)Command  */
+    /* command list: (key)name -> (value)Command  */
     GHashTable* commands;
     /* event lookup: (key)event_id -> (value)event_name */
     GHashTable *event_lookup;
@@ -174,9 +175,6 @@ typedef struct {
     Info          info;
 
     Window        xwin;
-
-    /* group bindings: key -> action */
-    GHashTable* bindings;
 } UzblCore;
 
 
@@ -325,15 +323,6 @@ void
 chain (WebKitWebView *page, GArray *argv, GString *result);
 
 void
-keycmd (WebKitWebView *page, GArray *argv, GString *result);
-
-void
-keycmd_nl (WebKitWebView *page, GArray *argv, GString *result);
-
-void
-keycmd_bs (WebKitWebView *page, GArray *argv, GString *result);
-
-void
 close_uzbl (WebKitWebView *page, GArray *argv, GString *result);
 
 gboolean
@@ -401,9 +390,6 @@ void
 run_keycmd(const gboolean key_ret);
 
 void
-exec_paramcmd(const Action* act, const guint i);
-
-void
 initialize (int argc, char *argv[]);
 
 void
@@ -420,9 +406,6 @@ create_plug ();
 
 void
 run_handler (const gchar *act, const gchar *args);
-
-void
-add_binding (const gchar *key, const gchar *act);
 
 /*@null@*/ gchar*
 get_xdg_var (XDG_Var xdg);
@@ -458,14 +441,10 @@ void handle_cookies (SoupSession *session,
                             SoupMessage *msg,
                             gpointer     user_data);
 void
-save_cookies (SoupMessage *msg,
-                gpointer     user_data);
+save_cookies (SoupMessage *msg, gpointer     user_data);
 
 void
 set_var(WebKitWebView *page, GArray *argv, GString *result);
-
-void
-act_bind(WebKitWebView *page, GArray *argv, GString *result);
 
 void
 act_dump_config();
