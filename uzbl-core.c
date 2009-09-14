@@ -117,7 +117,7 @@ const struct var_name_to_ptr_t {
     { "verbose",                PTR_V_INT(uzbl.state.verbose,                   1,   NULL)},
     { "inject_html",            PTR_V_STR(uzbl.behave.inject_html,              0,   cmd_inject_html)},
     { "geometry",               PTR_V_STR(uzbl.gui.geometry,                    1,   cmd_set_geometry)},
-    { "keycmd",                 PTR_V_STR(uzbl.state.keycmd,                    1,   set_keycmd)},
+    { "keycmd",                 PTR_V_STR(uzbl.state.keycmd,                    1,   update_title)},
     { "status_message",         PTR_V_STR(uzbl.gui.sbar.msg,                    1,   update_title)},
     { "show_status",            PTR_V_INT(uzbl.behave.show_status,              1,   cmd_set_status)},
     { "status_top",             PTR_V_INT(uzbl.behave.status_top,               1,   move_statusbar)},
@@ -447,8 +447,8 @@ send_event_socket(GString *msg) {
         }
     }
     /* buffer events until a socket is set and connected
-    * or a timeout is encountered
-     */
+     * or a timeout is encountered
+    */
     else {
         if(!uzbl.state.event_buffer)
             uzbl.state.event_buffer = g_ptr_array_new();
@@ -584,17 +584,19 @@ setup_signal(int signr, sigfunc *shandler) {
 
 void
 clean_up(void) {
+    send_event(INSTANCE_EXIT, uzbl.info.pid_str, NULL);
+    g_free(uzbl.info.pid_str);
+
+    g_free(uzbl.state.executable_path);
+    g_hash_table_destroy(uzbl.behave.commands);
+
+    if(uzbl.state.event_buffer)
+        g_ptr_array_free(uzbl.state.event_buffer, TRUE);
+
     if (uzbl.behave.fifo_dir)
         unlink (uzbl.comm.fifo_path);
     if (uzbl.behave.socket_dir)
         unlink (uzbl.comm.socket_path);
-
-    g_free(uzbl.state.executable_path);
-    g_free(uzbl.state.keycmd);
-    g_hash_table_destroy(uzbl.bindings);
-    g_hash_table_destroy(uzbl.behave.commands);
-
-    send_event(INSTANCE_EXIT, uzbl.info.pid_str, NULL);
 }
 
 /* --- SIGNAL HANDLER --- */
@@ -889,11 +891,6 @@ load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     send_event(LOAD_FINISH, webkit_web_frame_get_uri(frame), NULL);
 }
 
-void clear_keycmd() {
-  g_free(uzbl.state.keycmd);
-  uzbl.state.keycmd = g_strdup("");
-}
-
 void
 load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) page;
@@ -986,16 +983,15 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "dehilight",             {dehilight, 0}                 },
     { "toggle_insert_mode",    {toggle_insert_mode, 0}        },
     { "set",                   {set_var, TRUE}                },
-  //{ "get",                   {get_var, TRUE}                },
-    { "bind",                  {act_bind, TRUE}               },
     { "dump_config",           {act_dump_config, 0}           },
     { "dump_config_as_events", {act_dump_config_as_events, 0} },
-    { "keycmd",                {keycmd, TRUE}                 },
-    { "keycmd_nl",             {keycmd_nl, TRUE}              },
-    { "keycmd_bs",             {keycmd_bs, 0}                 },
     { "chain",                 {chain, 0}                     },
     { "print",                 {print, TRUE}                  },
     { "event",                 {event, 0}                     },
+    /* a request is just semantic sugar to make things more obvious for
+     * the user, technically events and requests are the very same thing
+    */
+    { "request",               {event, 0}                     }, 
     { "update_gui",            {update_gui, TRUE}             }
 };
 
@@ -1089,17 +1085,6 @@ print(WebKitWebView *page, GArray *argv, GString *result) {
 }
 
 void
-act_bind(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page; (void) result;
-    gchar **split = g_strsplit(argv_idx(argv, 0), " = ", 2);
-    gchar *value = parseenv(g_strdup(split[1] ? g_strchug(split[1]) : " "));
-    add_binding(g_strstrip(split[0]), value);
-    g_free(value);
-    g_strfreev(split);
-}
-
-
-void
 act_dump_config() {
     dump_config();
 }
@@ -1107,12 +1092,6 @@ act_dump_config() {
 void
 act_dump_config_as_events() {
     dump_config_as_events();
-}
-
-void
-set_keycmd() {
-    run_keycmd(FALSE);
-    update_title();
 }
 
 void
@@ -1130,6 +1109,7 @@ update_indicator() {
 void
 set_insert_mode(gboolean mode) {
     uzbl.behave.insert_mode = mode;
+    send_event(VARIABLE_SET, uzbl.behave.insert_mode ? "insert_mode int 1" : "insert_mode int 0", NULL);
     set_mode_indicator();
 }
 
@@ -1379,39 +1359,6 @@ chain (WebKitWebView *page, GArray *argv, GString *result) {
           parse_command(parts[0], parts[1], result);
         g_strfreev (parts);
     }
-}
-
-void
-keycmd (WebKitWebView *page, GArray *argv, GString *result) {
-    (void)page;
-    (void)argv;
-    (void)result;
-    uzbl.state.keycmd = g_strdup(argv_idx(argv, 0));
-    run_keycmd(FALSE);
-    update_title();
-}
-
-void
-keycmd_nl (WebKitWebView *page, GArray *argv, GString *result) {
-    (void)page;
-    (void)argv;
-    (void)result;
-    uzbl.state.keycmd = g_strdup(argv_idx(argv, 0));
-    run_keycmd(TRUE);
-    update_title();
-}
-
-void
-keycmd_bs (WebKitWebView *page, GArray *argv, GString *result) {
-    gchar *prev;
-    (void)page;
-    (void)argv;
-    (void)result;
-    int len = strlen(uzbl.state.keycmd);
-    prev = g_utf8_find_prev_char(uzbl.state.keycmd, uzbl.state.keycmd + len);
-    if (prev)
-      uzbl.state.keycmd[prev - uzbl.state.keycmd] = '\0';
-    update_title();
 }
 
 void
@@ -2420,13 +2367,12 @@ key_to_event(guint keyval, gint mode) {
 
 gboolean
 key_press_cb (GtkWidget* window, GdkEventKey* event) {
-
     (void) window;
 
     if(event->type == GDK_KEY_PRESS)
         key_to_event(event->keyval, GDK_KEY_PRESS);
 
-    return TRUE;
+    return uzbl.behave.insert_mode ? FALSE : TRUE;
 }
 
 gboolean
@@ -2438,77 +2384,6 @@ key_release_cb (GtkWidget* window, GdkEventKey* event) {
 
     return TRUE;
 }
-
-void
-run_keycmd(const gboolean key_ret) {
-
-    /* run the keycmd immediately if it isn't incremental and doesn't take args */
-    Action *act;
-    gchar *tmp;
-
-    if ((act = g_hash_table_lookup(uzbl.bindings, uzbl.state.keycmd))) {
-        clear_keycmd();
-        parse_command(act->name, act->param, NULL);
-
-        tmp = g_strdup_printf("%s %s", act->name, act->param?act->param:"");
-        send_event(COMMAND_EXECUTED, tmp, NULL);
-        g_free(tmp);
-        return;
-    }
-
-    /* try if it's an incremental keycmd or one that takes args, and run it */
-    GString* short_keys = g_string_new ("");
-    GString* short_keys_inc = g_string_new ("");
-    guint i;
-    guint len = strlen(uzbl.state.keycmd);
-    for (i=0; i<len; i++) {
-        g_string_append_c(short_keys, uzbl.state.keycmd[i]);
-        g_string_assign(short_keys_inc, short_keys->str);
-        g_string_append_c(short_keys, '_');
-        g_string_append_c(short_keys_inc, '*');
-
-        if (key_ret && (act = g_hash_table_lookup(uzbl.bindings, short_keys->str))) {
-            /* run normal cmds only if return was pressed */
-            exec_paramcmd(act, i);
-            clear_keycmd();
-            tmp = g_strdup_printf("%s %s", act->name, act->param?act->param:"");
-            send_event(COMMAND_EXECUTED, tmp, NULL);
-            g_free(tmp);
-            break;
-        } else if ((act = g_hash_table_lookup(uzbl.bindings, short_keys_inc->str))) {
-            if (key_ret)  /* just quit the incremental command on return */
-                clear_keycmd();
-            else {
-                exec_paramcmd(act, i); /* otherwise execute the incremental */
-                tmp = g_strdup_printf("%s %s", act->name, act->param?act->param:"");
-                send_event(COMMAND_EXECUTED, tmp, NULL);
-                g_free(tmp);
-            }
-            break;
-        }
-
-        g_string_truncate(short_keys, short_keys->len - 1);
-    }
-    g_string_free (short_keys, TRUE);
-    g_string_free (short_keys_inc, TRUE);
-}
-
-void
-exec_paramcmd(const Action *act, const guint i) {
-    GString *parampart = g_string_new (uzbl.state.keycmd);
-    GString *actionname = g_string_new ("");
-    GString *actionparam = g_string_new ("");
-    g_string_erase (parampart, 0, i+1);
-    if (act->name)
-        g_string_printf (actionname, act->name, parampart->str);
-    if (act->param)
-        g_string_printf (actionparam, act->param, parampart->str);
-    parse_command(actionname->str, actionparam->str, NULL);
-    g_string_free(actionname, TRUE);
-    g_string_free(actionparam, TRUE);
-    g_string_free(parampart, TRUE);
-}
-
 
 void
 create_browser () {
@@ -2675,25 +2550,6 @@ run_handler (const gchar *act, const gchar *args) {
         g_free(inparts[0]);
         g_free(inparts[1]);
     }
-    g_strfreev(parts);
-}
-
-void
-add_binding (const gchar *key, const gchar *act) {
-    char **parts = g_strsplit(act, " ", 2);
-    Action *action;
-
-    if (!parts)
-        return;
-
-    //Debug:
-    if (uzbl.state.verbose)
-        printf ("Binding %-10s : %s\n", key, act);
-    action = new_action(parts[0], parts[1]);
-
-    if (g_hash_table_remove (uzbl.bindings, key))
-        g_warning ("Overwriting existing binding for \"%s\"", key);
-    g_hash_table_replace(uzbl.bindings, g_strdup(key), action);
     g_strfreev(parts);
 }
 
@@ -3010,9 +2866,6 @@ initialize(int argc, char *argv[]) {
         printf("Commit: %s\n", COMMIT);
         exit(EXIT_SUCCESS);
     }
-
-    /* initialize hash table */
-    uzbl.bindings = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, free_action);
 
     uzbl.net.soup_session = webkit_get_default_session();
     uzbl.state.keycmd = g_strdup("");
