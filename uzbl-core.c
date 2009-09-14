@@ -1109,6 +1109,7 @@ update_indicator() {
 void
 set_insert_mode(gboolean mode) {
     uzbl.behave.insert_mode = mode;
+    send_event(VARIABLE_SET, uzbl.behave.insert_mode ? "insert_mode int 1" : "insert_mode int 0", NULL);
     set_mode_indicator();
 }
 
@@ -2366,7 +2367,6 @@ key_to_event(guint keyval, gint mode) {
 
 gboolean
 key_press_cb (GtkWidget* window, GdkEventKey* event) {
-
     (void) window;
 
     if(event->type == GDK_KEY_PRESS)
