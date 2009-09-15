@@ -987,11 +987,11 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "dump_config_as_events", {act_dump_config_as_events, 0} },
     { "chain",                 {chain, 0}                     },
     { "print",                 {print, TRUE}                  },
-    { "event",                 {event, 0}                     },
+    { "event",                 {event, TRUE}                     },
     /* a request is just semantic sugar to make things more obvious for
      * the user, technically events and requests are the very same thing
     */
-    { "request",               {event, 0}                     }, 
+    { "request",               {event, TRUE}                     }, 
     { "update_gui",            {update_gui, TRUE}             }
 };
 
@@ -1058,20 +1058,22 @@ event(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
     GString *event_name;
     gchar *event_details = NULL;
+    gchar **split = g_strsplit(argv_idx(argv, 0), " ", 2);
 
-    if(argv_idx(argv, 0))
-        event_name = g_string_ascii_up(g_string_new(argv_idx(argv, 0)));
+    if(split[0])
+        event_name = g_string_ascii_up(g_string_new(split[0]));
     else
         return;
 
-    if(argv_idx(argv, 1))
-        event_details = expand(argv_idx(argv, 1), 0);
+    if(split[1])
+        event_details = expand(split[1], 0);
 
     send_event(0, event_details?event_details:"", event_name->str);
 
     g_string_free(event_name, TRUE);
     if(event_details)
         g_free(event_details);
+    g_strfreev(split);
 }
 
 void
