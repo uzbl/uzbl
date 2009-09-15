@@ -472,13 +472,13 @@ send_event(int type, const gchar *details, const gchar *custom_event) {
 
     /* check for custom events */
     if(custom_event) {
-        g_string_printf(event_message, "EVENT %s [%s] %s\n",
-                custom_event, uzbl.state.instance_name, details);
+        g_string_printf(event_message, "EVENT [%s] %s %s\n",
+                uzbl.state.instance_name, custom_event, details);
     }
     /* check wether we support the internal event */
     else if(type < LAST_EVENT) {
-        g_string_printf(event_message, "EVENT %s [%s] %s\n",
-                event_table[type], uzbl.state.instance_name, details);
+        g_string_printf(event_message, "EVENT [%s] %s %s\n",
+                uzbl.state.instance_name, event_table[type], details);
     }
 
     if(event_message->str) {
