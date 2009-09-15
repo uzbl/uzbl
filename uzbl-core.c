@@ -2201,7 +2201,6 @@ control_socket(GIOChannel *chan) {
     struct sockaddr_un remote;
     unsigned int t = sizeof(remote);
     int clientsock;
-    //GIOChannel *clientchan;
 
     clientsock = accept (g_io_channel_unix_get_fd(chan),
                          (struct sockaddr *) &remote, &t);
