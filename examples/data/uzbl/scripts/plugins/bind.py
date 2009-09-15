@@ -58,13 +58,6 @@ def sort_mods(glob):
 def add_instance(uzbl, *args):
     _UZBLS[uzbl] = []
 
-    # Until the inital event messages over socket bug is resolved put your
-    # bind events here:
-    uzbl.event("BIND", "ZZ = exit")
-    uzbl.event("BIND", "<Ctrl>q = exit")
-    uzbl.event("BIND", "<Ctrl><Alt>h = uri http://uzbl.org/")
-    uzbl.event("BIND", "rr = uri http://reddit.com")
-
 
 def del_instance(uzbl, *args):
     if uzbl in _UZBLS:
