@@ -85,9 +85,7 @@ config = {
 
 
 # Define some globals.
-_VALIDSETKEY = re.compile("^[a-zA-Z][a-zA-Z0-9_]*$").match
 _SCRIPTNAME = os.path.basename(sys.argv[0])
-_TYPECONVERT = {'int': int, 'float': float, 'str': str}
 
 def echo(msg):
     '''Prints only if the verbose flag has been set.'''
@@ -277,35 +275,11 @@ class UzblInstance(object):
     # Singleton plugin manager.
     plugins = None
 
-    # Internal uzbl config dict.
-    class ConfigDict(dict):
-        def __init__(self, setcmd):
-            self._setcmd = setcmd
-
-        def __setitem__(self, key, value):
-            '''Updates the config dict and relays any changes back to the
-            uzbl instance via the set function.'''
-
-            if type(value) == types.BooleanType:
-                value = int(value)
-
-            if key in self.keys() and type(value) != type(self[key]):
-                raise TypeError("%r for %r" % (type(value), key))
-
-            else:
-                # All custom variables are strings.
-                value = "" if value is None else str(value)
-
-            self._setcmd(key, value)
-            dict.__setitem__(self, key, value)
-
-
     def __init__(self):
         '''Initialise event manager.'''
 
         # Hold functions exported by plugins.
         self._exports = {}
-        self._config = self.ConfigDict(self.set)
         self._running = None
         self._buffer = ''
 
@@ -336,14 +310,6 @@ class UzblInstance(object):
                 return exports[name]
 
         return object.__getattribute__(self, name)
-
-
-    def _get_config(self):
-        '''Return the uzbl config dictionary.'''
-
-        return self._config
-
-    config = property(_get_config)
 
 
     def _init_plugins(self):
@@ -487,21 +453,6 @@ class UzblInstance(object):
         echo('unable to find & remove handler: %r' % handler)
 
 
-    def set(self, key, value):
-        '''Sets key "key" with value "value" in the uzbl instance.'''
-
-        # TODO: Make a real escaping function.
-        escape = str
-
-        if not _VALIDSETKEY(key):
-            raise KeyError("%r" % key)
-
-        if '\n' in value:
-            raise ValueError("invalid character: \\n")
-
-        self.send('set %s = %s' % (key, escape(value)))
-
-
     def listen_from_fd(self, fd):
         '''Polls for event messages from fd.'''
 
@@ -609,15 +560,7 @@ class UzblInstance(object):
         if event != "GEOMETRY_CHANGED":
             print event, args
 
-        if event == 'VARIABLE_SET':
-            l = args.split(' ', 2)
-            if len(l) == 2:
-                l.append("")
-
-            key, type, value = l
-            dict.__setitem__(self._config, key, _TYPECONVERT[type](value))
-
-        elif event == 'FIFO_SET':
+        if event == 'FIFO_SET':
             self.uzbl_fifo = args
             self._flush()
 

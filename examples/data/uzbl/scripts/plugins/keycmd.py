@@ -124,19 +124,21 @@ def clear_keycmd(uzbl):
         k.wasmod = True
 
     k.modcmd = False
-    uzbl.config['keycmd'] = ""
+    uzbl.get_config()['keycmd'] = ""
     uzbl.event("KEYCMD_CLEAR")
 
 
 def update_event(uzbl, keylet):
     '''Raise keycmd/modcmd update events.'''
 
+    config = uzbl.get_config()
+
     if keylet.modcmd:
-        uzbl.config['keycmd'] = keylet.to_string()
+        config['keycmd'] = keylet.to_string()
         uzbl.event("MODCMD_UPDATE", keylet)
 
     else:
-        uzbl.config['keycmd'] = keylet.cmd
+        config['keycmd'] = keylet.cmd
         uzbl.event("KEYCMD_UPDATE", keylet)
 
 
@@ -265,6 +267,6 @@ def init(uzbl):
     '''Connect handlers to uzbl events.'''
 
     uzbl.connect('INSTANCE_START', add_instance)
-    uzbl.connect('INSTANCE_STOP', del_instance)
+    uzbl.connect('INSTANCE_EXIT', del_instance)
     uzbl.connect('KEY_PRESS', key_press)
     uzbl.connect('KEY_RELEASE', key_release)
