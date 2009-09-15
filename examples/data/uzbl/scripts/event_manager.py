@@ -86,6 +86,7 @@ config = {
 
 # Define some globals.
 _SCRIPTNAME = os.path.basename(sys.argv[0])
+_RE_FINDSPACES = re.compile("\s+")
 
 def echo(msg):
     '''Prints only if the verbose flag has been set.'''
@@ -538,13 +539,13 @@ class UzblInstance(object):
             if not msg:
                 continue
 
-            cmd = msg.strip().split(' ', 3)
+            cmd = _RE_FINDSPACES.split(msg, 3)
             if not cmd or cmd[0] != "EVENT":
                 # Not an event message
                 print msg.rstrip()
                 continue
 
-            event, args = cmd[1], cmd[3]
+            event, args = cmd[2], cmd[3]
             try:
                 self.handle_event(event, args)
 
