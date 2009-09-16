@@ -912,11 +912,12 @@ update_gui(WebKitWebView *page, GArray *argv, GString *result) {
 void
 print(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
-    gchar* buf;
+    //gchar* buf;
 
-    buf = expand(argv_idx(argv, 0), 0);
-    g_string_assign(result, buf);
-    g_free(buf);
+    //buf = expand(argv_idx(argv, 0), 0);
+    //g_string_assign(result, buf);
+    g_string_assign(result, argv_idx(argv, 0));
+    //g_free(buf);
 }
 
 void
@@ -1928,30 +1929,44 @@ set_var_value(const gchar *name, gchar *val) {
     return TRUE;
 }
 
-enum {M_CMD, M_HTML};
 void
 parse_cmd_line(const char *ctl_line, GString *result) {
     size_t len=0;
+    gchar *ctlstrip = NULL;
+    gchar *exp_line = NULL;
+    gchar *work_string = NULL;
 
-    if((ctl_line[0] == '#') /* Comments */
-            || (ctl_line[0] == ' ')
-            || (ctl_line[0] == '\n'))
-        ; /* ignore these lines */
-    else { /* parse a command */
-        gchar *ctlstrip;
-        gchar **tokens = NULL;
-        len = strlen(ctl_line);
+    work_string = g_strdup(ctl_line);
 
-        if (ctl_line[len - 1] == '\n') /* strip trailing newline */
-            ctlstrip = g_strndup(ctl_line, len - 1);
-        else ctlstrip = g_strdup(ctl_line);
+    /* strip trailing newline */
+    len = strlen(ctl_line);
+    if (work_string[len - 1] == '\n')
+        ctlstrip = g_strndup(work_string, len - 1);
+    else
+        ctlstrip = g_strdup(work_string);
+    g_free(work_string);
 
-        tokens = g_strsplit(ctlstrip, " ", 2);
-        parse_command(tokens[0], tokens[1], result);
-        g_free(ctlstrip);
-        g_strfreev(tokens);
+    if( strcmp(g_strchug(ctlstrip), "") &&
+        strcmp(exp_line = expand(ctlstrip, 0), "") 
+      ) {
+            /* ignore comments */
+            if((exp_line[0] == '#'))
+                ;
+
+            /* parse a command */
+            else {
+                gchar **tokens = NULL;
+
+                tokens = g_strsplit(exp_line, " ", 2);
+                parse_command(tokens[0], tokens[1], result);
+                g_strfreev(tokens);
+            }
+        g_free(exp_line);
     }
+
+    g_free(ctlstrip);
 }
+
 
 /*@null@*/ gchar*
 build_stream_name(int type, const gchar* dir) {
