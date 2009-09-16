@@ -125,7 +125,7 @@ def clear_keycmd(uzbl):
 
     k.modcmd = False
     config = uzbl.get_config()
-    if config['keycmd'] != '':
+    if 'keycmd' not in config or config['keycmd'] != '':
         config['keycmd'] = ''
 
     uzbl.event('KEYCMD_CLEAR')
