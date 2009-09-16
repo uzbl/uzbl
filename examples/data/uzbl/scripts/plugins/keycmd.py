@@ -32,7 +32,7 @@ class Keylet(object):
     typed.'''
 
     def __init__(self):
-        self.cmd = ""
+        self.cmd = ''
         self.held = []
 
         # to_string() string building cache.
@@ -43,7 +43,7 @@ class Keylet(object):
 
 
     def __repr__(self):
-        return "<Keycmd(%r)>" % self.to_string()
+        return '<Keycmd(%r)>' % self.to_string()
 
 
     def to_string(self):
@@ -58,9 +58,9 @@ class Keylet(object):
             self._to_string = self.cmd
 
         else:
-            self._to_string = ''.join(["<%s>" % key for key in self.held])
+            self._to_string = ''.join(['<%s>' % key for key in self.held])
             if self.cmd:
-                self._to_string += "%s" % self.cmd
+                self._to_string += '%s' % self.cmd
 
         return self._to_string
 
@@ -75,7 +75,7 @@ def make_simple(key):
     '''Make some obscure names for some keys friendlier.'''
 
     # Remove left-right discrimination.
-    if key.endswith("_L") or key.endswith("_R"):
+    if key.endswith('_L') or key.endswith('_R'):
         key = key[:-2]
 
     if key in _SIMPLEKEYS:
@@ -117,15 +117,18 @@ def clear_keycmd(uzbl):
     if not k:
         return
 
-    k.cmd = ""
+    k.cmd = ''
     k._to_string = None
 
     if k.modcmd:
         k.wasmod = True
 
     k.modcmd = False
-    uzbl.get_config()['keycmd'] = ""
-    uzbl.event("KEYCMD_CLEAR")
+    config = uzbl.get_config()
+    if config['keycmd'] != '':
+        config['keycmd'] = ''
+
+    uzbl.event('KEYCMD_CLEAR')
 
 
 def update_event(uzbl, keylet):
@@ -134,12 +137,16 @@ def update_event(uzbl, keylet):
     config = uzbl.get_config()
 
     if keylet.modcmd:
-        config['keycmd'] = keylet.to_string()
-        uzbl.event("MODCMD_UPDATE", keylet)
+        keycmd = keylet.to_string()
+        uzbl.event('MODCMD_UPDATE', keylet)
+        if keycmd == keylet.to_string():
+            config['keycmd'] = keylet.to_string()
 
     else:
-        config['keycmd'] = keylet.cmd
-        uzbl.event("KEYCMD_UPDATE", keylet)
+        keycmd = keylet.cmd
+        uzbl.event('KEYCMD_UPDATE', keylet)
+        if keycmd == keylet.cmd:
+            config['keycmd'] = keylet.cmd
 
 
 def key_press(uzbl, key):
@@ -153,13 +160,12 @@ def key_press(uzbl, key):
          a. BackSpace deletes the last character in the keycmd.
          b. Return raises a KEYCMD_EXEC event then clears the keycmd.
          c. Escape clears the keycmd.
-         d. Normal keys are added to held keys list (I.e. <a><b>+c).
     4. If keycmd and held keys are both empty/null and a modkey was pressed
        set modcmd mode.
     5. If in modcmd mode only mod keys are added to the held keys list.
     6. Keycmd is updated and events raised if anything is changed.'''
 
-    if key.startswith("Shift_"):
+    if key.startswith('Shift_'):
         return
 
     if len(key) > 1:
@@ -175,9 +181,9 @@ def key_press(uzbl, key):
         k.wasmod = False
         cmdmod = True
 
-    if k.cmd and key == "Space":
+    if k.cmd and key == 'Space':
         if k.cmd:
-            k.cmd += " "
+            k.cmd += ' '
             cmdmod = True
 
     elif not k.modcmd and key == 'BackSpace':
@@ -190,23 +196,23 @@ def key_press(uzbl, key):
                 cmdmod = True
 
     elif not k.modcmd and key == 'Return':
-        uzbl.event("KEYCMD_EXEC", k)
+        uzbl.event('KEYCMD_EXEC', k)
         clear_keycmd(uzbl)
 
     elif not k.modcmd and key == 'Escape':
         clear_keycmd(uzbl)
 
-    elif not k.held and not k.cmd:
-        k.modcmd = True if len(key) > 1 else False
+    elif not k.held and not k.cmd and len(key) > 1:
+        k.modcmd = True
         k.held.append(key)
-        k.held.sort()
         cmdmod = True
-        if not k.modcmd:
-            k.cmd += key
 
     elif k.modcmd:
         cmdmod = True
         if len(key) > 1:
+            if key == 'Shift-Tab' and 'Tab' in k.held:
+                k.held.remove('Tab')
+
             if key not in k.held:
                 k.held.append(key)
                 k.held.sort()
@@ -215,12 +221,8 @@ def key_press(uzbl, key):
             k.cmd += key
 
     else:
-        cmdmod = True
         if len(key) == 1:
-            if key not in k.held:
-                k.held.append(key)
-                k.held.sort()
-
+            cmdmod = True
             k.cmd += key
 
     if cmdmod:
@@ -245,16 +247,15 @@ def key_release(uzbl, key):
         return
 
     cmdmod = False
-    if k.modcmd and key in k.held:
-        uzbl.event("MODCMD_EXEC", k)
-        k.held.remove(key)
-        k.held.sort()
-        clear_keycmd(uzbl)
+    if key in ['Shift', 'Tab'] and 'Shift-Tab' in k.held:
+        key = 'Shift-Tab'
 
-    elif not k.modcmd and key in k.held:
+    if key in k.held:
+        if k.modcmd:
+            uzbl.event('MODCMD_EXEC', k)
+
         k.held.remove(key)
-        k.held.sort()
-        cmdmod = True
+        clear_keycmd(uzbl)
 
     if not k.held and not k.cmd and k.wasmod:
         k.wasmod = False
