@@ -2393,7 +2393,7 @@ create_browser () {
 
     g->web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
 
-    g_object_connect(G_OBJECT (g->web_view),
+    g_object_connect((GObject*)g->web_view,
       "signal::key-press-event",                      (GCallback)key_press_cb,            NULL,
       "signal::key-release-event",                    (GCallback)key_release_cb,          NULL,
       "signal::title-changed",                        (GCallback)title_change_cb,         NULL,
@@ -2409,7 +2409,6 @@ create_browser () {
       "signal::download-requested",                   (GCallback)download_cb,             NULL,
       "signal::create-web-view",                      (GCallback)create_web_view_cb,      NULL,
       "signal::mime-type-policy-decision-requested",  (GCallback)mime_policy_cb,          NULL,
-
       NULL);
 }
 
@@ -2418,18 +2417,18 @@ create_mainbar () {
     GUI *g = &uzbl.gui;
 
     g->mainbar = gtk_hbox_new (FALSE, 0);
-
-    /* keep a reference to the bar so we can re-pack it at runtime*/
-    //sbar_ref = g_object_ref(g->mainbar);
-
     g->mainbar_label = gtk_label_new ("");
     gtk_label_set_selectable((GtkLabel *)g->mainbar_label, TRUE);
     gtk_label_set_ellipsize(GTK_LABEL(g->mainbar_label), PANGO_ELLIPSIZE_END);
     gtk_misc_set_alignment (GTK_MISC(g->mainbar_label), 0, 0);
     gtk_misc_set_padding (GTK_MISC(g->mainbar_label), 2, 2);
     gtk_box_pack_start (GTK_BOX (g->mainbar), g->mainbar_label, TRUE, TRUE, 0);
-    g_signal_connect (G_OBJECT (g->mainbar), "key-press-event", G_CALLBACK (key_press_cb), NULL);
-    g_signal_connect (G_OBJECT (g->mainbar), "key-release-event", G_CALLBACK (key_release_cb), NULL);
+
+    g_object_connect((GObject*)g->mainbar,
+      "signal::key-press-event",                    (GCallback)key_press_cb,    NULL,
+      "signal::key-release-event",                  (GCallback)key_release_cb,  NULL,
+      NULL);
+
     return g->mainbar;
 }
 
@@ -2439,9 +2438,6 @@ create_window () {
     gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
     gtk_widget_set_name (window, "Uzbl browser");
     g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (destroy_cb), NULL);
-    g_signal_connect (G_OBJECT (window), "key-press-event", G_CALLBACK (key_press_cb), NULL);
-    //g_signal_connect (G_OBJECT (window), "key-release-event", G_CALLBACK (key_release_cb), NULL);
-    //g_signal_connect (G_OBJECT (window), "configure-event", G_CALLBACK (configure_event_cb), NULL);
 
     return window;
 }
