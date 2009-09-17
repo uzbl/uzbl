@@ -2393,19 +2393,24 @@ create_browser () {
 
     g->web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
 
-    g_signal_connect (G_OBJECT (g->web_view), "notify::title", G_CALLBACK (title_change_cb), NULL);
-    g_signal_connect (G_OBJECT (g->web_view), "selection-changed", G_CALLBACK (selection_changed_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "load-progress-changed", G_CALLBACK (progress_change_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "load-committed", G_CALLBACK (load_commit_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "load-started", G_CALLBACK (load_start_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "load-finished", G_CALLBACK (load_finish_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "load-error", G_CALLBACK (load_error_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "navigation-policy-decision-requested", G_CALLBACK (navigation_decision_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "new-window-policy-decision-requested", G_CALLBACK (new_window_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "download-requested", G_CALLBACK (download_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "create-web-view", G_CALLBACK (create_web_view_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "mime-type-policy-decision-requested", G_CALLBACK (mime_policy_cb), g->web_view);
+    g_object_connect(G_OBJECT (g->web_view),
+      "signal::key-press-event",                      (GCallback)key_press_cb,            NULL,
+      "signal::key-release-event",                    (GCallback)key_release_cb,          NULL,
+      "signal::title-changed",                        (GCallback)title_change_cb,         NULL,
+      "signal::selection-changed",                    (GCallback)selection_changed_cb,    NULL,
+      "signal::load-progress-changed",                (GCallback)progress_change_cb,      NULL,
+      "signal::load-committed",                       (GCallback)load_commit_cb,          NULL,
+      "signal::load-started",                         (GCallback)load_start_cb,           NULL,
+      "signal::load-finished",                        (GCallback)load_finish_cb,          NULL,
+      "signal::load-error",                           (GCallback)load_error_cb,           NULL,
+      "signal::hovering-over-link",                   (GCallback)link_hover_cb,           NULL,
+      "signal::navigation-policy-decision-requested", (GCallback)navigation_decision_cb,  NULL,
+      "signal::new-window-policy-decision-requested", (GCallback)new_window_cb,           NULL,
+      "signal::download-requested",                   (GCallback)download_cb,             NULL,
+      "signal::create-web-view",                      (GCallback)create_web_view_cb,      NULL,
+      "signal::mime-type-policy-decision-requested",  (GCallback)mime_policy_cb,          NULL,
+
+      NULL);
 }
 
 GtkWidget*
@@ -2435,8 +2440,8 @@ create_window () {
     gtk_widget_set_name (window, "Uzbl browser");
     g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (destroy_cb), NULL);
     g_signal_connect (G_OBJECT (window), "key-press-event", G_CALLBACK (key_press_cb), NULL);
-    g_signal_connect (G_OBJECT (window), "key-release-event", G_CALLBACK (key_release_cb), NULL);
-    g_signal_connect (G_OBJECT (window), "configure-event", G_CALLBACK (configure_event_cb), NULL);
+    //g_signal_connect (G_OBJECT (window), "key-release-event", G_CALLBACK (key_release_cb), NULL);
+    //g_signal_connect (G_OBJECT (window), "configure-event", G_CALLBACK (configure_event_cb), NULL);
 
     return window;
 }
