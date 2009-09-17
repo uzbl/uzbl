@@ -1891,17 +1891,14 @@ set_var_value(const gchar *name, gchar *val) {
 
         /* check for the variable type */
         if (c->type == TYPE_STR) {
-            buf = expand(val, 0);
+            buf = g_strdup(val);
             g_free(*c->ptr.s);
             *c->ptr.s = buf;
         } else if(c->type == TYPE_INT) {
-            buf = expand(val, 0);
-            *c->ptr.i = (int)strtoul(buf, &endp, 10);
-            g_free(buf);
+            *c->ptr.i = (int)strtoul(val, &endp, 10);
+
         } else if (c->type == TYPE_FLOAT) {
-            buf = expand(val, 0);
-            *c->ptr.f = strtod(buf, &endp);
-            g_free(buf);
+            *c->ptr.f = strtod(val, &endp);
         }
 
         /* invoke a command specific function */
@@ -1920,7 +1917,7 @@ set_var_value(const gchar *name, gchar *val) {
         c->dump = 0;
         c->func = NULL;
         c->writeable = 1;
-        buf = expand(val, 0);
+        buf = g_strdup(val);
         c->ptr.s = malloc(sizeof(char *));
         *c->ptr.s = buf;
         g_hash_table_insert(uzbl.comm.proto_var,
