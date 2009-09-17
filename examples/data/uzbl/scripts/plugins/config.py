@@ -24,10 +24,11 @@ def set(uzbl, key, value):
     if not _VALIDSETKEY(key):
         raise KeyError("%r" % key)
 
+    value = escape(value)
     if '\n' in value:
         value = value.replace("\n", "\\n")
 
-    uzbl.send('set %s = %s' % (key, escape(value)))
+    uzbl.send('set %s = %s' % (key, value))
 
 
 def add_instance(uzbl, *args):
