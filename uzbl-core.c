@@ -1057,7 +1057,6 @@ void
 event(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
     GString *event_name;
-    gchar *event_details = NULL;
     gchar **split = g_strsplit(argv_idx(argv, 0), " ", 2);
 
     if(split[0])
@@ -1065,25 +1064,17 @@ event(WebKitWebView *page, GArray *argv, GString *result) {
     else
         return;
 
-    if(split[1])
-        event_details = expand(split[1], 0);
-
-    send_event(0, event_details?event_details:"", event_name->str);
+    send_event(0, split[1]?split[1]:"", event_name->str);
 
     g_string_free(event_name, TRUE);
-    if(event_details)
-        g_free(event_details);
     g_strfreev(split);
 }
 
 void
 print(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
-    gchar* buf;
 
-    buf = expand(argv_idx(argv, 0), 0);
-    g_string_assign(result, buf);
-    g_free(buf);
+    g_string_assign(result, argv_idx(argv, 0));
 }
 
 void
@@ -2010,21 +2001,17 @@ set_var_value(const gchar *name, gchar *val) {
 
         /* check for the variable type */
         if (c->type == TYPE_STR) {
-            buf = expand(val, 0);
+            buf = g_strdup(val);
             g_free(*c->ptr.s);
             *c->ptr.s = buf;
             g_string_append_printf(msg, " str %s", buf);
 
         } else if(c->type == TYPE_INT) {
-            buf = expand(val, 0);
-            *c->ptr.i = (int)strtoul(buf, &endp, 10);
-            g_free(buf);
+            *c->ptr.i = (int)strtoul(val, &endp, 10);
             g_string_append_printf(msg, " int %d", *c->ptr.i);
 
         } else if (c->type == TYPE_FLOAT) {
-            buf = expand(val, 0);
-            *c->ptr.f = strtod(buf, &endp);
-            g_free(buf);
+            *c->ptr.f = strtod(val, &endp);
             g_string_append_printf(msg, " float %f", *c->ptr.f);
         }
 
@@ -2047,7 +2034,7 @@ set_var_value(const gchar *name, gchar *val) {
         c->dump = 0;
         c->func = NULL;
         c->writeable = 1;
-        buf = expand(val, 0);
+        buf = g_strdup(val);
         c->ptr.s = malloc(sizeof(char *));
         *c->ptr.s = buf;
         g_hash_table_insert(uzbl.comm.proto_var,
@@ -2061,30 +2048,44 @@ set_var_value(const gchar *name, gchar *val) {
     return TRUE;
 }
 
-enum {M_CMD, M_HTML};
 void
 parse_cmd_line(const char *ctl_line, GString *result) {
     size_t len=0;
+    gchar *ctlstrip = NULL;
+    gchar *exp_line = NULL;
+    gchar *work_string = NULL;
 
-    if((ctl_line[0] == '#') /* Comments */
-            || (ctl_line[0] == ' ')
-            || (ctl_line[0] == '\n'))
-        ; /* ignore these lines */
-    else { /* parse a command */
-        gchar *ctlstrip;
-        gchar **tokens = NULL;
-        len = strlen(ctl_line);
+    work_string = g_strdup(ctl_line);
 
-        if (ctl_line[len - 1] == '\n') /* strip trailing newline */
-            ctlstrip = g_strndup(ctl_line, len - 1);
-        else ctlstrip = g_strdup(ctl_line);
+    /* strip trailing newline */
+    len = strlen(ctl_line);
+    if (work_string[len - 1] == '\n')
+        ctlstrip = g_strndup(work_string, len - 1);
+    else
+        ctlstrip = g_strdup(work_string);
+    g_free(work_string);
 
-        tokens = g_strsplit(ctlstrip, " ", 2);
-        parse_command(tokens[0], tokens[1], result);
-        g_free(ctlstrip);
-        g_strfreev(tokens);
+    if( strcmp(g_strchug(ctlstrip), "") &&
+        strcmp(exp_line = expand(ctlstrip, 0), "") 
+      ) {
+            /* ignore comments */
+            if((exp_line[0] == '#'))
+                ;
+
+            /* parse a command */
+            else {
+                gchar **tokens = NULL;
+
+                tokens = g_strsplit(exp_line, " ", 2);
+                parse_command(tokens[0], tokens[1], result);
+                g_strfreev(tokens);
+            }
+        g_free(exp_line);
     }
+
+    g_free(ctlstrip);
 }
+
 
 /*@null@*/ gchar*
 build_stream_name(int type, const gchar* dir) {
@@ -2392,19 +2393,23 @@ create_browser () {
 
     g->web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
 
-    g_signal_connect (G_OBJECT (g->web_view), "notify::title", G_CALLBACK (title_change_cb), NULL);
-    g_signal_connect (G_OBJECT (g->web_view), "selection-changed", G_CALLBACK (selection_changed_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "load-progress-changed", G_CALLBACK (progress_change_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "load-committed", G_CALLBACK (load_commit_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "load-started", G_CALLBACK (load_start_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "load-finished", G_CALLBACK (load_finish_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "load-error", G_CALLBACK (load_error_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "hovering-over-link", G_CALLBACK (link_hover_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "navigation-policy-decision-requested", G_CALLBACK (navigation_decision_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "new-window-policy-decision-requested", G_CALLBACK (new_window_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "download-requested", G_CALLBACK (download_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "create-web-view", G_CALLBACK (create_web_view_cb), g->web_view);
-    g_signal_connect (G_OBJECT (g->web_view), "mime-type-policy-decision-requested", G_CALLBACK (mime_policy_cb), g->web_view);
+    g_object_connect((GObject*)g->web_view,
+      "signal::key-press-event",                      (GCallback)key_press_cb,            NULL,
+      "signal::key-release-event",                    (GCallback)key_release_cb,          NULL,
+      "signal::title-changed",                        (GCallback)title_change_cb,         NULL,
+      "signal::selection-changed",                    (GCallback)selection_changed_cb,    NULL,
+      "signal::load-progress-changed",                (GCallback)progress_change_cb,      NULL,
+      "signal::load-committed",                       (GCallback)load_commit_cb,          NULL,
+      "signal::load-started",                         (GCallback)load_start_cb,           NULL,
+      "signal::load-finished",                        (GCallback)load_finish_cb,          NULL,
+      "signal::load-error",                           (GCallback)load_error_cb,           NULL,
+      "signal::hovering-over-link",                   (GCallback)link_hover_cb,           NULL,
+      "signal::navigation-policy-decision-requested", (GCallback)navigation_decision_cb,  NULL,
+      "signal::new-window-policy-decision-requested", (GCallback)new_window_cb,           NULL,
+      "signal::download-requested",                   (GCallback)download_cb,             NULL,
+      "signal::create-web-view",                      (GCallback)create_web_view_cb,      NULL,
+      "signal::mime-type-policy-decision-requested",  (GCallback)mime_policy_cb,          NULL,
+      NULL);
 }
 
 GtkWidget*
@@ -2412,18 +2417,18 @@ create_mainbar () {
     GUI *g = &uzbl.gui;
 
     g->mainbar = gtk_hbox_new (FALSE, 0);
-
-    /* keep a reference to the bar so we can re-pack it at runtime*/
-    //sbar_ref = g_object_ref(g->mainbar);
-
     g->mainbar_label = gtk_label_new ("");
     gtk_label_set_selectable((GtkLabel *)g->mainbar_label, TRUE);
     gtk_label_set_ellipsize(GTK_LABEL(g->mainbar_label), PANGO_ELLIPSIZE_END);
     gtk_misc_set_alignment (GTK_MISC(g->mainbar_label), 0, 0);
     gtk_misc_set_padding (GTK_MISC(g->mainbar_label), 2, 2);
     gtk_box_pack_start (GTK_BOX (g->mainbar), g->mainbar_label, TRUE, TRUE, 0);
-    g_signal_connect (G_OBJECT (g->mainbar), "key-press-event", G_CALLBACK (key_press_cb), NULL);
-    g_signal_connect (G_OBJECT (g->mainbar), "key-release-event", G_CALLBACK (key_release_cb), NULL);
+
+    g_object_connect((GObject*)g->mainbar,
+      "signal::key-press-event",                    (GCallback)key_press_cb,    NULL,
+      "signal::key-release-event",                  (GCallback)key_release_cb,  NULL,
+      NULL);
+
     return g->mainbar;
 }
 
@@ -2433,9 +2438,6 @@ create_window () {
     gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
     gtk_widget_set_name (window, "Uzbl browser");
     g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (destroy_cb), NULL);
-    g_signal_connect (G_OBJECT (window), "key-press-event", G_CALLBACK (key_press_cb), NULL);
-    g_signal_connect (G_OBJECT (window), "key-release-event", G_CALLBACK (key_release_cb), NULL);
-    g_signal_connect (G_OBJECT (window), "configure-event", G_CALLBACK (configure_event_cb), NULL);
 
     return window;
 }

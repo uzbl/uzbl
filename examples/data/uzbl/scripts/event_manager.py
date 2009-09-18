@@ -386,6 +386,7 @@ class UzblInstance(object):
                     msg = self._fifo_cmd_queue.pop(0)
                     print "Sending via fifo: %r" % msg
                     h.write("%s\n" % msg)
+
                 h.close()
 
         if len(self._socket_cmd_queue) and self.uzbl_socket:

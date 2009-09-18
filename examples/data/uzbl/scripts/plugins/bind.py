@@ -20,16 +20,16 @@ __export__ = ['bind', 'del_bind', 'del_bind_by_glob', 'get_binds']
 _UZBLS = {}
 
 # Commonly used regular expressions.
-starts_with_mod = re.compile('^<([A-Za-z0-9-_]+|.)>')
+starts_with_mod = re.compile('^<([A-Z][A-Za-z0-9-_]+)>')
 
 
 def echo(msg):
     if config['verbose']:
-        print "plugin: bind:", msg
+        print 'bind plugin:', msg
 
 
 def error(msg):
-    sys.stderr.write("plugin: bind: error: %s" % msg)
+    sys.stderr.write('bind plugin: error: %s\n' % msg)
 
 
 def ismodbind(glob):
@@ -52,7 +52,7 @@ def sort_mods(glob):
         mods.append(glob[:end])
         glob = glob[end:]
 
-    return "%s%s" % (''.join(sorted(mods)), glob)
+    return '%s%s' % (''.join(sorted(mods)), glob)
 
 
 def add_instance(uzbl, *args):
@@ -79,7 +79,7 @@ def del_bind(uzbl, bind):
     binds = get_binds(uzbl)
     if bind in binds:
         binds.remove(bind)
-        uzbl.event("DELETED_BIND", bind)
+        uzbl.event('DELETED_BIND', bind)
         return True
 
     return False
@@ -92,7 +92,7 @@ def del_bind_by_glob(uzbl, glob):
     for bind in list(binds):
         if bind.glob == glob:
             binds.remove(bind)
-            uzbl.event("DELETED_BIND", bind)
+            uzbl.event('DELETED_BIND', bind)
             return True
 
     return False
@@ -114,7 +114,7 @@ class Bind(object):
             self.kargs = kargs
 
         elif kargs:
-            raise ArgumentError("cannot supply kargs for uzbl commands")
+            raise ArgumentError('cannot supply kargs for uzbl commands')
 
         elif isiterable(handler):
             self.commands = handler
@@ -142,22 +142,22 @@ class Bind(object):
 
 
     def __repr__(self):
-        args = ["glob=%r" % self.glob, "bid=%d" % self.bid]
+        args = ['glob=%r' % self.glob, 'bid=%d' % self.bid]
 
         if self.callable:
-            args.append("function=%r" % self.function)
+            args.append('function=%r' % self.function)
             if self.args:
-                args.append("args=%r" % self.args)
+                args.append('args=%r' % self.args)
 
             if self.kargs:
-                args.append("kargs=%r" % self.kargs)
+                args.append('kargs=%r' % self.kargs)
 
         else:
             cmdlen = len(self.commands)
             cmds = self.commands[0] if cmdlen == 1 else self.commands
-            args.append("command%s=%r" % ("s" if cmdlen-1 else "", cmds))
+            args.append('command%s=%r' % ('s' if cmdlen-1 else '', cmds))
 
-        return "<Bind(%s)>" % ', '.join(args)
+        return '<Bind(%s)>' % ', '.join(args)
 
 
 def bind(uzbl, glob, handler, *args, **kargs):
@@ -179,10 +179,11 @@ def bind(uzbl, glob, handler, *args, **kargs):
 def parse_bind_event(uzbl, args):
     '''Parse "event BIND fl* = js follownums.js" commands.'''
 
-    if len(args.split('=', 1)) != 2:
-        error('invalid bind format: %r' % args)
+    split = map(str.strip, args.split('=', 1))
+    if len(split) != 2:
+        return error('missing "=" in bind definition: %r' % args)
 
-    glob, command = map(str.strip, args.split('=', 1))
+    glob, command = split
     bind(uzbl, glob, command)
 
 
