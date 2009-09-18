@@ -10,7 +10,6 @@ what if fifo/socket doesn't exist, or exists but nothing working behind it (anym
 == event-messages specific ==
 * throw out all old code
 * document the event handling mechanism, all events, how to get started with sample event handler
-* remove all binding ('bind = ' etc.) stuff and port to new system
 * VARIABLE_SET for all types (but probably not useful for custom vars)
 * port keycmd to evt handler.  we can now more cleanly send BackSpace instead of keycmd_bs and so on
 * port the concept of modes and all related variables
