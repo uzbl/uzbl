@@ -987,11 +987,11 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "dump_config_as_events", {act_dump_config_as_events, 0} },
     { "chain",                 {chain, 0}                     },
     { "print",                 {print, TRUE}                  },
-    { "event",                 {event, TRUE}                     },
+    { "event",                 {event, TRUE}                  },
     /* a request is just semantic sugar to make things more obvious for
      * the user, technically events and requests are the very same thing
     */
-    { "request",               {event, TRUE}                     }, 
+    { "request",               {event, TRUE}                  }, 
     { "update_gui",            {update_gui, TRUE}             }
 };
 
