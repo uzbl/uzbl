@@ -84,8 +84,8 @@ If you made changes to the configuration at runtime, these are not pased on to t
 Uzbl will read commands via standard input, named fifo pipe (if `fifo_dir` is set) and IPC socket (when `socket_dir` is set).
 For convenience, uzbl can also be instructed to read commands from a file on startup by using the `-c` option.  Indeed, the config file is nothing more than a list of commands.
 
-Each command starts with the name of the command, which must be the first thing on a line; preceding whitespace is not allowed.
-A command is terminated by a newline.  Empty lines and lines that start with the hash sign are ignored by the parser.  Command names are always written in lowercase.
+Each command starts with the name of the command or an uzbl variable that expands to it.  A command is terminated by a newline.
+Empty lines and lines that start with the hash sign are ignored by the parser.  Command names are always written in lowercase.
 
 The following commands are recognized:
 
