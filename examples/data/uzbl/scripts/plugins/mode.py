@@ -123,7 +123,7 @@ def mode_config(uzbl, args):
         uzbl.set(key, value)
 
 
-def commit_reset(uzbl, *args):
+def load_reset(uzbl, *args):
     config = uzbl.get_config()
     if 'reset_on_commit' not in config or config['reset_on_commit'] == '1':
         set_mode(uzbl)
@@ -151,7 +151,7 @@ def init(uzbl):
       'INSTANCE_START': add_instance,
       'KEY_PRESS': key_press,
       'MODE_CONFIG': mode_config,
-      'LOAD_COMMIT': commit_reset,
+      'LOAD_START': load_reset,
       'TOGGLE_MODES': toggle_modes}
 
     for (event, handler) in connects.items():
