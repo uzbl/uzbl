@@ -82,8 +82,8 @@ def set_mode(uzbl, mode=None):
         elif config[key] != value:
             config[key] = value
 
-    if 'indicator' not in mode_config:
-        config['indicator'] = mode
+    if 'mode_indicator' not in mode_config:
+        config['mode_indicator'] = mode
 
     uzbl.clear_keycmd()
     uzbl.send('update_gui')
