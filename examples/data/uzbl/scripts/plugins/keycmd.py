@@ -195,8 +195,10 @@ def key_press(uzbl, key):
             else:
                 cmdmod = True
 
-    elif not k.modcmd and key == 'Return' and k.cmd or k.held:
-        uzbl.event('KEYCMD_EXEC', k)
+    elif not k.modcmd and key == 'Return':
+        if k.cmd:
+            uzbl.event('KEYCMD_EXEC', k)
+
         clear_keycmd(uzbl)
 
     elif not k.held and not k.cmd and len(key) > 1:
@@ -246,6 +248,9 @@ def key_release(uzbl, key):
     cmdmod = False
     if key in ['Shift', 'Tab'] and 'Shift-Tab' in k.held:
         key = 'Shift-Tab'
+
+    elif key in ['Shift', 'Alt'] and 'Meta' in k.held:
+        key = 'Meta'
 
     if key in k.held:
         if k.modcmd:
