@@ -126,14 +126,10 @@ const struct var_name_to_ptr_t {
     { "status_pbar_pending",    PTR_V_STR(uzbl.gui.sbar.progress_u,             1,   update_title)},
     { "status_pbar_width",      PTR_V_INT(uzbl.gui.sbar.progress_w,             1,   update_title)},
     { "status_background",      PTR_V_STR(uzbl.behave.status_background,        1,   update_title)},
-    { "insert_indicator",       PTR_V_STR(uzbl.behave.insert_indicator,         1,   update_indicator)},
-    { "command_indicator",      PTR_V_STR(uzbl.behave.cmd_indicator,            1,   update_indicator)},
     { "title_format_long",      PTR_V_STR(uzbl.behave.title_format_long,        1,   update_title)},
     { "title_format_short",     PTR_V_STR(uzbl.behave.title_format_short,       1,   update_title)},
     { "icon",                   PTR_V_STR(uzbl.gui.icon,                        1,   set_icon)},
-    { "insert_mode",            PTR_V_INT(uzbl.behave.insert_mode,              1,   set_mode_indicator)},
-    { "always_insert_mode",     PTR_V_INT(uzbl.behave.always_insert_mode,       1,   cmd_always_insert_mode)},
-    { "reset_command_mode",     PTR_V_INT(uzbl.behave.reset_command_mode,       1,   NULL)},
+    { "forward_keys",           PTR_V_INT(uzbl.behave.forward_keys,             1,   NULL)},
     { "load_finish_handler",    PTR_V_STR(uzbl.behave.load_finish_handler,      1,   NULL)},
     { "load_start_handler",     PTR_V_STR(uzbl.behave.load_start_handler,       1,   NULL)},
     { "load_commit_handler",    PTR_V_STR(uzbl.behave.load_commit_handler,      1,   NULL)},
@@ -186,7 +182,6 @@ const struct var_name_to_ptr_t {
     { "LOAD_PROGRESSBAR",       PTR_C_STR(uzbl.gui.sbar.progress_bar,                NULL)},
     { "TITLE",                  PTR_C_STR(uzbl.gui.main_title,                       NULL)},
     { "SELECTED_URI",           PTR_C_STR(uzbl.state.selected_url,                   NULL)},
-    { "MODE",                   PTR_C_STR(uzbl.gui.sbar.mode_indicator,              NULL)},
     { "NAME",                   PTR_C_STR(uzbl.state.instance_name,                  NULL)},
     { "PID",                    PTR_C_STR(uzbl.info.pid_str,                         NULL)},
 
@@ -923,10 +918,7 @@ load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     g_free (uzbl.state.uri);
     GString* newuri = g_string_new (webkit_web_frame_get_uri (frame));
     uzbl.state.uri = g_string_free (newuri, FALSE);
-    if (uzbl.behave.reset_command_mode && uzbl.behave.insert_mode) {
-        set_insert_mode(uzbl.behave.always_insert_mode);
-        update_title();
-    }
+
     if (uzbl.behave.load_commit_handler)
         run_handler(uzbl.behave.load_commit_handler, uzbl.state.uri);
 
@@ -981,7 +973,6 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "search",                {search_forward_text, TRUE}    },
     { "search_reverse",        {search_reverse_text, TRUE}    },
     { "dehilight",             {dehilight, 0}                 },
-    { "toggle_insert_mode",    {toggle_insert_mode, 0}        },
     { "set",                   {set_var, TRUE}                },
     { "dump_config",           {act_dump_config, 0}           },
     { "dump_config_as_events", {act_dump_config_as_events, 0} },
@@ -1085,42 +1076,6 @@ act_dump_config() {
 void
 act_dump_config_as_events() {
     dump_config_as_events();
-}
-
-void
-set_mode_indicator() {
-    uzbl.gui.sbar.mode_indicator = (uzbl.behave.insert_mode ?
-        uzbl.behave.insert_indicator : uzbl.behave.cmd_indicator);
-}
-
-void
-update_indicator() {
-  set_mode_indicator();
-  update_title();
-}
-
-void
-set_insert_mode(gboolean mode) {
-    uzbl.behave.insert_mode = mode;
-    send_event(VARIABLE_SET, uzbl.behave.insert_mode ? "insert_mode int 1" : "insert_mode int 0", NULL);
-    set_mode_indicator();
-}
-
-void
-toggle_insert_mode(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page; (void) result;
-
-    if (argv_idx(argv, 0)) {
-        if (strcmp (argv_idx(argv, 0), "0") == 0) {
-            set_insert_mode(FALSE);
-        } else {
-            set_insert_mode(TRUE);
-        }
-    } else {
-        set_insert_mode( !uzbl.behave.insert_mode );
-    }
-
-    update_title();
 }
 
 void
@@ -1724,12 +1679,6 @@ cmd_load_uri() {
     g_array_append_val (a, uzbl.state.uri);
     load_uri(uzbl.gui.web_view, a, NULL);
     g_array_free (a, TRUE);
-}
-
-void
-cmd_always_insert_mode() {
-    set_insert_mode(uzbl.behave.always_insert_mode);
-    update_title();
 }
 
 void
@@ -2374,7 +2323,7 @@ key_press_cb (GtkWidget* window, GdkEventKey* event) {
     if(event->type == GDK_KEY_PRESS)
         key_to_event(event->keyval, GDK_KEY_PRESS);
 
-    return uzbl.behave.insert_mode ? FALSE : TRUE;
+    return uzbl.behave.forward_keys ? FALSE : TRUE;
 }
 
 gboolean
@@ -2889,10 +2838,6 @@ initialize(int argc, char *argv[]) {
     uzbl.gui.sbar.progress_u = g_strdup("·");
     uzbl.gui.sbar.progress_w = 10;
 
-    /* default mode indicators */
-    uzbl.behave.insert_indicator = g_strdup("I");
-    uzbl.behave.cmd_indicator    = g_strdup("C");
-
     uzbl.info.webkit_major = WEBKIT_MAJOR_VERSION;
     uzbl.info.webkit_minor = WEBKIT_MINOR_VERSION;
     uzbl.info.webkit_micro = WEBKIT_MICRO_VERSION;
@@ -2981,9 +2926,6 @@ main (int argc, char* argv[]) {
     gboolean verbose_override = uzbl.state.verbose;
 
     settings_init ();
-
-    if (!uzbl.behave.always_insert_mode)
-      set_insert_mode(FALSE);
 
     if (!uzbl.behave.show_status)
         gtk_widget_hide(uzbl.gui.mainbar);
