@@ -142,7 +142,7 @@ def update_event(uzbl, keylet):
         if keycmd == keylet.to_string():
             config['keycmd'] = keylet.to_string()
 
-    else:
+    elif 'keycmd_events' not in config or config['keycmd_events'] == '1':
         keycmd = keylet.cmd
         uzbl.event('KEYCMD_UPDATE', keylet)
         if keycmd == keylet.cmd:
@@ -195,11 +195,8 @@ def key_press(uzbl, key):
             else:
                 cmdmod = True
 
-    elif not k.modcmd and key == 'Return':
+    elif not k.modcmd and key == 'Return' and k.cmd or k.held:
         uzbl.event('KEYCMD_EXEC', k)
-        clear_keycmd(uzbl)
-
-    elif not k.modcmd and key == 'Escape':
         clear_keycmd(uzbl)
 
     elif not k.held and not k.cmd and len(key) > 1:
@@ -267,7 +264,10 @@ def key_release(uzbl, key):
 def init(uzbl):
     '''Connect handlers to uzbl events.'''
 
-    uzbl.connect('INSTANCE_START', add_instance)
-    uzbl.connect('INSTANCE_EXIT', del_instance)
-    uzbl.connect('KEY_PRESS', key_press)
-    uzbl.connect('KEY_RELEASE', key_release)
+    connects = {'INSTANCE_START': add_instance,
+      'INSTANCE_EXIT': del_instance,
+      'KEY_PRESS': key_press,
+      'KEY_RELEASE': key_release}
+
+    for (event, handler) in connects.items():
+        uzbl.connect(event, handler)
