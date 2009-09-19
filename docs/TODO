@@ -10,11 +10,10 @@ what if fifo/socket doesn't exist, or exists but nothing working behind it (anym
 == event-messages specific ==
 * throw out all old code
 * document the event handling mechanism, all events, how to get started with sample event handler
-* remove all binding ('bind = ' etc.) stuff and port to new system
 * VARIABLE_SET for all types (but probably not useful for custom vars)
 * port keycmd to evt handler.  we can now more cleanly send BackSpace instead of keycmd_bs and so on
 * port the concept of modes and all related variables
-* uzbl -> uzbl-core, uzbl-browser script like 'uzbl | $XDG.../event_manager.py'
+* many uzbl-core's for 1 event manager. needs support in event_manager and uzbl-browser
 * event manager dynamic config system that configures itself based on events from uzbl (eg to set vars in "uzbl slaves" such as this, set custom vars in uzbl which we react to)
 * remove chain command
 * scalability -> 1 event manager per n uzbl-browser instances -> mkfifo and redirect uzbl-core stdout to fifo in uzbl-browser

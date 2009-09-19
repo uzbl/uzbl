@@ -1,6 +1,10 @@
 # example uzbl config.
 # all settings are optional.  you can use uzbl without any config at all (but it won't do much)
 
+# set some shortcuts
+set bind = request BIND
+set shell_cmd         = sh -c
+
 # keyboard behavior in this sample config is sort of vimstyle
 
 # Handlers
@@ -26,63 +30,62 @@ set useragent       = Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@
 
 set fifo_dir = /tmp
 set socket_dir = /tmp
-set shell_cmd         = sh -c
 
 # Keyboard interface
 set modkey = Mod1
 # like this you can enter any command at runtime, interactively. prefixed by ':'
-bind    :_        = chain '%s'
+@bind    :_        = chain '%s'
 
-bind    j         = scroll_vert 20
-bind    k         = scroll_vert -20
-bind    h         = scroll_horz -20
-bind    l         = scroll_horz 20
-bind    <<        = scroll_begin
-bind    >>        = scroll_end
-bind    b         = back
-bind    m         = forward
-bind    S         = stop
-bind    r         = reload
-bind    R         = reload_ign_cache
-bind    +         = zoom_in
-bind    -         = zoom_out
-bind    T         = toggle_zoom_type
-bind    1         = sh "echo set zoom_level = 1.0 > $4"
-bind    2         = sh "echo set zoom_level = 2.0 > $4"
-bind    t         = toggle_status
-bind    /*        = search %s
-bind    ?*        = search_reverse %s
+@bind    j         = scroll_vert 20
+@bind    k         = scroll_vert -20
+@bind    h         = scroll_horz -20
+@bind    l         = scroll_horz 20
+@bind    <<        = scroll_begin
+@bind    >>        = scroll_end
+@bind    b         = back
+@bind    m         = forward
+@bind    S         = stop
+@bind    r         = reload
+@bind    R         = reload_ign_cache
+@bind    +         = zoom_in
+@bind    -         = zoom_out
+@bind    T         = toggle_zoom_type
+@bind    1         = sh "echo set zoom_level = 1.0 > $4"
+@bind    2         = sh "echo set zoom_level = 2.0 > $4"
+@bind    t         = toggle_status
+@bind    /*        = search %s
+@bind    ?*        = search_reverse %s
 #jump to next
-bind    n         = search
-bind    N         = search_reverse
-bind    gh        = uri http://www.uzbl.org
+@bind    n         = search
+@bind    N         = search_reverse
+@bind    gh        = uri http://www.uzbl.org
 # shortcut to set the uri. TODO: i think we can abandon the uri command in favor of 'set uri = ..'
-bind    o _       = uri %s
+@bind    o _       = uri %s
 # shortcut to set variables
-bind    s _       = set %s
-bind    \wiki _   = uri http://wiki.archlinux.org/index.php/Special:Search?search=%s&go=Go
-bind    gg _      = uri http://www.google.com/search?q=%s
-bind    i         = toggle_insert_mode
+@bind    s _       = set %s
+@bind    \wiki _   = uri http://wiki.archlinux.org/index.php/Special:Search?search=%s&go=Go
+@bind    gg _      = uri http://www.google.com/search?q=%s
+@bind    i         = toggle_insert_mode
 # disable insert mode (1 to enable).  note that Esc works to disable, regardless of this setting
-bind    I         = toggle_insert_mode 0
+@bind    I         = toggle_insert_mode 0
 # Enclose the executable in quotes if it has spaces.  Any additional parameters you use will
 # appear AFTER the default parameters
-bind    B         = spawn $XDG_DATA_HOME/uzbl/scripts/insert_bookmark.sh
-bind    U         = spawn $XDG_DATA_HOME/uzbl/scripts/load_url_from_history.sh
-bind    u         = spawn $XDG_DATA_HOME/uzbl/scripts/load_url_from_bookmarks.sh
+@bind    B         = spawn $XDG_DATA_HOME/uzbl/scripts/insert_bookmark.sh
+@bind    U         = spawn $XDG_DATA_HOME/uzbl/scripts/load_url_from_history.sh
+@bind    u         = spawn $XDG_DATA_HOME/uzbl/scripts/load_url_from_bookmarks.sh
 # with the sample yank script, you can yank one of the arguments into clipboard/selection
-bind    yurl      = spawn $XDG_DATA_HOME/uzbl/scripts/yank.sh 6 primary
-bind    ytitle    = spawn $XDG_DATA_HOME/uzbl/scripts/yank.sh 7 clipboard
+@bind    yurl      = spawn $XDG_DATA_HOME/uzbl/scripts/yank.sh 6 primary
+@bind    ytitle    = spawn $XDG_DATA_HOME/uzbl/scripts/yank.sh 7 clipboard
 # does the same as yurl but without needing a script
-bind    y2url     = sh 'echo -n $6 | xclip'
+@bind    y2url     = sh 'echo -n $6 | xclip'
 # go the page from primary selection
-bind    p         = sh 'echo "uri `xclip -selection primary -o`" > $4'
+@bind    p         = sh 'echo "uri `xclip -selection primary -o`" > $4'
 # go to the page in clipboard
-bind    P         = sh 'echo "uri `xclip -selection clipboard -o`" > $4'
+@bind    P         = sh 'echo "uri `xclip -selection clipboard -o`" > $4'
 # start a new uzbl instance from the page in primary selection
-bind    'p        = sh 'exec uzbl --uri $(xclip -o)'
-bind    ZZ        = exit
-bind    Xs         = js alert("hi");
+@bind    'p        = sh 'exec uzbl --uri $(xclip -o)'
+@bind    ZZ        = exit
+@bind    Xs         = js alert("hi");
 # example showing how to use sh
 # it sends a command to the fifo, whose path is told via a positional param
 # if fifo_dir is not set, it'll echo to a file named (null) somewhere >:) remember to delete it
@@ -90,31 +93,31 @@ bind    Xs         = js alert("hi");
 # you must enclose it in quotes.  Remember to escape (and double-escape) quotes and backslashes
 # in the body.  Any additional parameters you use will appear AFTER the default parameters (cfg file
 # path, fifo & socket dirs, etc.)
-bind    XS        = sh 'echo "js alert (\\"This is sent by the shell via a fifo\\")" > "$4"'
+@bind    XS        = sh 'echo "js alert (\\"This is sent by the shell via a fifo\\")" > "$4"'
 
-bind    !dump     = sh "echo dump_config > $4"
-bind    !reload   = sh 'cat $1 > $4'
+@bind    !dump     = sh "echo dump_config > $4"
+@bind    !reload   = sh 'cat $1 > $4'
 
 # this script allows you to configure (per domain) values to fill in form fields (eg login information) and to fill in these values automatically
-bind za = spawn $XDG_DATA_HOME/uzbl/scripts/formfiller.sh
-bind ze = spawn $XDG_DATA_HOME/uzbl/scripts/formfiller.sh edit
-bind zn = spawn $XDG_DATA_HOME/uzbl/scripts/formfiller.sh new
-bind zl = spawn $XDG_DATA_HOME/uzbl/scripts/formfiller.sh load
+@bind za = spawn $XDG_DATA_HOME/uzbl/scripts/formfiller.sh
+@bind ze = spawn $XDG_DATA_HOME/uzbl/scripts/formfiller.sh edit
+@bind zn = spawn $XDG_DATA_HOME/uzbl/scripts/formfiller.sh new
+@bind zl = spawn $XDG_DATA_HOME/uzbl/scripts/formfiller.sh load
 
 # other - more advanced - implementation using perl: (could not get this to run - Dieter )
-bind LL = spawn $XDG_DATA_HOME/uzbl/scripts/formfiller.pl load
-bind LN = spawn $XDG_DATA_HOME/uzbl/scripts/formfiller.pl new
-bind LE = spawn $XDG_DATA_HOME/uzbl/scripts/formfiller.pl edit
+@bind LL = spawn $XDG_DATA_HOME/uzbl/scripts/formfiller.pl load
+@bind LN = spawn $XDG_DATA_HOME/uzbl/scripts/formfiller.pl new
+@bind LE = spawn $XDG_DATA_HOME/uzbl/scripts/formfiller.pl edit
 
 # we ship some javascripts to do keyboard based link hinting/following.  (webkit does not have C DOM bindings yet)
 # this is similar to how it works in vimperator (and konqueror)
 # TODO: did we resolve: "no click() event for hyperlinks so no referrer set" ?
 #hit F to toggle the Hints (now in form of link numbering)
-bind    F = script $XDG_DATA_HOME/uzbl/scripts/hint.js
+@bind    F = script $XDG_DATA_HOME/uzbl/scripts/hint.js
 # the most stable version:
-bind    fl* = script $XDG_DATA_HOME/uzbl/scripts/follow_Numbers.js %s
+@bind    fl* = script $XDG_DATA_HOME/uzbl/scripts/follow_Numbers.js %s
 # using strings, not polished yet:
-bind    fL* = script $XDG_DATA_HOME/uzbl/scripts/follow_Numbers_Strings.js %s
+@bind    fL* = script $XDG_DATA_HOME/uzbl/scripts/follow_Numbers_Strings.js %s
 
 
 # "home" page if you will
