@@ -18,7 +18,6 @@ typedef struct {
     gchar          *progress_s, *progress_u;
     int            progress_w;
     gchar          *progress_bar;
-    gchar          *mode_indicator;
 } StatusBar;
 
 
@@ -107,11 +106,9 @@ typedef struct {
     gchar*   fantasy_font_family;
     gchar*   cursive_font_family;
     gchar*   scheme_handler;
-    gboolean always_insert_mode;
     gboolean show_status;
-    gboolean insert_mode;
+    gboolean forward_keys;
     gboolean status_top;
-    gboolean reset_command_mode;
     guint    modmask;
     guint    http_debug;
     gchar*   shell_cmd;
@@ -136,8 +133,6 @@ typedef struct {
     guint    caret_browsing;
     guint    mode;
     gchar*   base_url;
-    gchar*   insert_indicator;
-    gchar*   cmd_indicator;
     gboolean print_version;
 
     /* command list: (key)name -> (value)Command  */
@@ -300,18 +295,6 @@ file_exists (const char * filename);
 
 void
 set_keycmd();
-
-void
-set_mode_indicator();
-
-void
-update_indicator();
-
-void
-set_insert_mode(gboolean mode);
-
-void
-toggle_insert_mode(WebKitWebView *page, GArray *argv, GString *result);
 
 void
 load_uri (WebKitWebView * web_view, GArray *argv, GString *result);
@@ -503,9 +486,6 @@ cmd_scheme_handler();
 
 void
 move_statusbar();
-
-void
-cmd_always_insert_mode();
 
 void
 cmd_http_debug();

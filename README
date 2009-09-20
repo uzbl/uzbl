@@ -147,7 +147,7 @@ The following commands are recognized:
 * `search <string>`
 * `search_reverse <string>`
    - search with no string will search for the next/previous occurrence of the string previously searched for
-* `toggle_insert_mode <optional state>`
+* `toggle_insert_mode <optional state>` TODO new plugin based syntax
    - if the optional state is 0, disable insert mode. If 1, enable insert mode.
 * `dump_config`
    - dumps your current config (which may have been changed at runtime) to stdout, in a format you can use to pipe into uzbl again (or use as config file)
@@ -186,14 +186,15 @@ Besides the builtin variables you can also define your own ones and use them in 
   - status_pbar_pending: character to denote pending % of pageload
   - status_pbar_width: width of progressbar
   - status_background: color which can be used to override Gtk theme.
-  - insert_indicator: string to denote insert mode
-  - command_indicator: string to denote command mode
+  - insert_indicator: string to denote insert mode TODO plugin variable
+  - command_indicator: string to denote command mode TODO plugin variable
   - title_format_long: titlebar string when no statusbar shown (will be expanded
   - title_format_short: titlebar string when statusbar shown (will be expanded)
   - icon: path to icon for Gtk
-  - insert_mode: whether insert mode is active
-  - always_insert_mode: set this to true if you don't like modal (vim-like) interfaces
-  - reset_command_mode: automatically revert to command mode on pageload (unless always_insert_mode is set)
+  - forward_keys: whether uzbl-core should send key events to the webkit view
+  - insert_mode: whether insert mode is active TODO explain plugin variable
+  - always_insert_mode: set this to true if you don't like modal (vim-like) interfaces TODO explain plugin variable
+  - reset_command_mode: automatically revert to command mode on pageload (unless always_insert_mode is set) TODO explain plugin variable
   - modkey: modkey which can be pressed to activate keybind from inside insert mode
   - load_finish_handler
   - load_start_handler
