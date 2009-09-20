@@ -9,9 +9,10 @@ set shell_cmd         = sh -c
 
 # Handlers
 set download_handler = spawn $XDG_DATA_HOME/uzbl/scripts/download.sh
-set cookie_handler   = spawn $XDG_DATA_HOME/uzbl/scripts/cookies.py
+#set cookie_handler   = spawn $XDG_DATA_HOME/uzbl/scripts/cookies.py
+set cookie_handler = talk_to_socket $XDG_CACHE_HOME/uzbl/cookie_daemon_socket
 #set new_window      = sh 'echo uri "$8" > $4' # open in same window
-set new_window       = sh 'uzbl -u $8' # equivalent to the default behaviour
+set new_window       = sh 'uzbl-browser -u $8' # equivalent to the default behaviour
 set scheme_handler   = spawn $XDG_DATA_HOME/uzbl/scripts/scheme.py
 set load_start_handler = set status_message = <span foreground="khaki">wait</span>
 set load_commit_handler = set status_message = <span foreground="green">recv</span>
