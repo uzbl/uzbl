@@ -220,9 +220,15 @@ def key_press(uzbl, key):
             k.cmd += key
 
     else:
-        if len(key) == 1:
+        config = uzbl.get_config()
+        if 'keycmd_events' not in config or config['keycmd_events'] == '1':
+            if len(key) == 1:
+                cmdmod = True
+                k.cmd += key
+
+        elif k.cmd:
             cmdmod = True
-            k.cmd += key
+            k.cmd = ''
 
     if cmdmod:
         update_event(uzbl, k)
