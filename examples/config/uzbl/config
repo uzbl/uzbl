@@ -9,30 +9,27 @@ set shell_cmd         = sh -c
 
 # Handlers
 set download_handler = spawn $XDG_DATA_HOME/uzbl/scripts/download.sh
-set cookie_handler   = spawn $XDG_DATA_HOME/uzbl/scripts/cookies.py
+#set cookie_handler   = spawn $XDG_DATA_HOME/uzbl/scripts/cookies.py
+set cookie_handler = talk_to_socket $XDG_CACHE_HOME/uzbl/cookie_daemon_socket
 #set new_window      = sh 'echo uri "$8" > $4' # open in same window
-set new_window       = sh 'uzbl -u $8' # equivalent to the default behaviour
+set new_window       = sh 'uzbl-browser -u $8' # equivalent to the default behaviour
 set scheme_handler   = spawn $XDG_DATA_HOME/uzbl/scripts/scheme.py
-set load_start_handler = chain 'set keycmd = ' 'set status_message = <span foreground="khaki">wait</span>'
+set load_start_handler = set status_message = <span foreground="khaki">wait</span>
 set load_commit_handler = set status_message = <span foreground="green">recv</span>
 set load_finish_handler = chain 'set status_message = <span foreground="gold">done</span>' 'spawn $XDG_DATA_HOME/uzbl/scripts/history.sh'
-
 
 
 # Behaviour and appearance
 set show_status       = 1
 set status_background = #303030
-set status_format     = <span font_family="monospace"><span background="khaki" foreground="black">[\@[\@MODE]\@]</span> [<span weight="bold" foreground="red">\@[\@keycmd]\@</span>] <span foreground="#606060"> \@[\@LOAD_PROGRESSBAR]\@ </span><span foreground="#99FF66">\@[\@uri]\@</span> <span foreground="khaki">\@[\@NAME]\@</span>   <span foreground="orange">\@status_message</span><span foreground="#606060"> \@[\@SELECTED_URI]\@</span></span>
+set keycmd_style      = weight="bold" foreground="red"
+set status_format     = <span font_family="monospace"><span background="khaki" foreground="black">[\@[\@mode_indicator]\@]</span> [<span \@keycmd_style>\@[\@keycmd]\@</span>] <span foreground="#606060"> \@[\@LOAD_PROGRESSBAR]\@ </span><span foreground="#99FF66">\@[\@uri]\@</span> <span foreground="khaki">\@[\@NAME]\@</span> <span foreground="orange">\@status_message</span><span foreground="#606060"> \@[\@SELECTED_URI]\@</span></span>
 set status_top        = 0
-set insert_indicator = I
-set command_indicator = C
 set useragent       = Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@(uname -o)@ @(uname -m)@ [@ARCH_UZBL]) (Commit @COMMIT)
 
 set fifo_dir = /tmp
 set socket_dir = /tmp
 
-# Keyboard interface
-set modkey = Mod1
 # like this you can enter any command at runtime, interactively. prefixed by ':'
 @bind    :_        = chain '%s'
 
@@ -118,6 +115,35 @@ set modkey = Mod1
 @bind    fl* = script $XDG_DATA_HOME/uzbl/scripts/follow_Numbers.js %s
 # using strings, not polished yet:
 @bind    fL* = script $XDG_DATA_HOME/uzbl/scripts/follow_Numbers_Strings.js %s
+
+
+### Mode config
+
+set default_mode = command
+
+# Define some mode specific uzbl configurations.
+set mode_config = request MODE_CONFIG
+set command = @mode_config command
+set insert  = @mode_config insert
+
+@command  keycmd_style        = weight="bold" foreground="red"
+@command  status_background   = #202020
+@command  mode_indicator      = Cmd
+
+@insert   keycmd_style        = foreground="green"
+@insert   status_background   = #303030
+@insert   mode_indicator      = Ins
+
+# Changing mode method via set.
+set set_mode = set mode =
+@bind I = @set_mode insert
+
+# Or toggle between modes by rasing request events.
+set toggle_modes = request TOGGLE_MODES
+set toggle_cmd_ins = @toggle_modes command insert
+
+@bind i        = @toggle_cmd_ins
+@bind <Ctrl>i  = @toggle_cmd_ins
 
 
 # "home" page if you will

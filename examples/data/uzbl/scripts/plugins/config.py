@@ -15,6 +15,13 @@ def escape(value):
     return str(value)
 
 
+def get_config(uzbl):
+    if uzbl not in UZBLS:
+        add_instance(uzbl)
+
+    return UZBLS[uzbl]
+
+
 def set(uzbl, key, value):
     '''Sends a: "set key = value" command to the uzbl instance.'''
 
@@ -24,10 +31,13 @@ def set(uzbl, key, value):
     if not _VALIDSETKEY(key):
         raise KeyError("%r" % key)
 
+    value = escape(value)
     if '\n' in value:
         value = value.replace("\n", "\\n")
 
-    uzbl.send('set %s = %s' % (key, escape(value)))
+    config = get_config(uzbl)
+    if key not in config or str(config[key]) != str(value):
+        uzbl.send('set %s = %s' % (key, value))
 
 
 def add_instance(uzbl, *args):
