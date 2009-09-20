@@ -23,7 +23,8 @@ set load_finish_handler = chain 'set status_message = <span foreground="gold">do
 set show_status       = 1
 set status_background = #303030
 set keycmd_style      = weight="bold" foreground="red"
-set status_format     = <span font_family="monospace"><span background="khaki" foreground="black">[\@[\@mode_indicator]\@]</span> [<span \@keycmd_style>\@[\@keycmd]\@</span>] <span foreground="#606060"> \@[\@LOAD_PROGRESSBAR]\@ </span><span foreground="#99FF66">\@[\@uri]\@</span> <span foreground="khaki">\@[\@NAME]\@</span> <span foreground="orange">\@status_message</span><span foreground="#606060"> \@[\@SELECTED_URI]\@</span></span>
+set prompt_style      = foreground="grey"
+set status_format     = <span font_family="monospace"><span background="khaki" foreground="black">[\@[\@mode_indicator]\@]</span> [<span \@prompt_style>\@[\@keycmd_prompt]\@</span><span \@keycmd_style>\@[\@keycmd]\@</span>] <span foreground="#606060"> \@[\@LOAD_PROGRESSBAR]\@ </span><span foreground="#99FF66">\@[\@uri]\@</span> <span foreground="khaki">\@[\@NAME]\@</span> <span foreground="orange">\@status_message</span><span foreground="#606060"> \@[\@SELECTED_URI]\@</span></span>
 set status_top        = 0
 set useragent       = Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@(uname -o)@ @(uname -m)@ [@ARCH_UZBL]) (Commit @COMMIT)
 
@@ -57,7 +58,7 @@ set socket_dir = /tmp
 @bind    N         = search_reverse
 @bind    gh        = uri http://www.uzbl.org
 # shortcut to set the uri. TODO: i think we can abandon the uri command in favor of 'set uri = ..'
-@bind    o _       = uri %s
+#@bind    o _       = uri %s
 # shortcut to set variables
 @bind    s _       = set %s
 @bind    \wiki _   = uri http://wiki.archlinux.org/index.php/Special:Search?search=%s&go=Go
@@ -67,7 +68,7 @@ set socket_dir = /tmp
 @bind    I         = toggle_insert_mode 0
 # Enclose the executable in quotes if it has spaces.  Any additional parameters you use will
 # appear AFTER the default parameters
-@bind    B         = spawn $XDG_DATA_HOME/uzbl/scripts/insert_bookmark.sh
+#@bind    B         = spawn $XDG_DATA_HOME/uzbl/scripts/insert_bookmark.sh
 @bind    U         = spawn $XDG_DATA_HOME/uzbl/scripts/load_url_from_history.sh
 @bind    u         = spawn $XDG_DATA_HOME/uzbl/scripts/load_url_from_bookmarks.sh
 # with the sample yank script, you can yank one of the arguments into clipboard/selection
@@ -117,6 +118,16 @@ set socket_dir = /tmp
 @bind    fL* = script $XDG_DATA_HOME/uzbl/scripts/follow_Numbers_Strings.js %s
 
 
+# Examples using multi-stage-bindings with text prompts
+@bind o<uri:>_ = uri %s
+
+# Prints tab separated "uri title keyword tags" to the bookmarks file.
+@bind <Ctrl>b<bookmark keyword:>_<bookmark tags:>_ = sh 'echo -e "$6	$7	%s	%s" >> $XDG_DATA_HOME/uzbl/bookmarks'
+
+@bind <Ctrl>a<:>q = exit
+@bind <Ctrl>a<:>h = uri http://uzbl.org/
+
+
 ### Mode config
 
 set default_mode = command
@@ -134,6 +145,14 @@ set insert  = @mode_config insert
 @insert   status_background   = #303030
 @insert   mode_indicator      = Ins
 
+# Multi-stage-binding mode config.
+set stack = @mode_config stack
+@stack    keycmd_events       = 1
+@stack    prompt_style        = foreground="#888" weight="light"
+@stack    status_background   = #202020
+@stack    mode_indicator      = Bnd
+
+
 # Changing mode method via set.
 set set_mode = set mode =
 @bind I = @set_mode insert
@@ -144,7 +163,6 @@ set toggle_cmd_ins = @toggle_modes command insert
 
 @bind i        = @toggle_cmd_ins
 @bind <Ctrl>i  = @toggle_cmd_ins
-
 
 # "home" page if you will
 set uri = uzbl.org

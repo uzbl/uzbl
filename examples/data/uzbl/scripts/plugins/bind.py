@@ -17,10 +17,18 @@ from event_manager import config, counter, iscallable, isiterable
 __export__ = ['bind', 'del_bind', 'del_bind_by_glob', 'get_binds']
 
 # Hold the bind lists per uzbl instance.
-_UZBLS = {}
+UZBLS = {}
 
 # Commonly used regular expressions.
 starts_with_mod = re.compile('^<([A-Z][A-Za-z0-9-_]+)>')
+find_prompts = re.compile('<([^:>]*):>').split
+
+# For accessing a bind glob stack.
+MOD_CMD, ON_EXEC, HAS_ARGS, GLOB = range(4)
+
+
+class BindParseError(Exception):
+    pass
 
 
 def echo(msg):
@@ -56,21 +64,45 @@ def sort_mods(glob):
 
 
 def add_instance(uzbl, *args):
-    _UZBLS[uzbl] = []
+    UZBLS[uzbl] = {'binds': [], 'depth': 0, 'filter': [],
+      'args': [], 'last_mode': ''}
 
 
 def del_instance(uzbl, *args):
-    if uzbl in _UZBLS:
-        del _UZBLS[uzbl]
+    if uzbl in UZBLS:
+        del UZBLS[uzbl]
+
+
+def get_bind_dict(uzbl):
+    '''Return the bind dict for the uzbl instance.'''
+
+    if uzbl not in UZBLS:
+        add_instance(uzbl)
+
+    return UZBLS[uzbl]
 
 
 def get_binds(uzbl):
     '''Return the bind list for the uzbl instance.'''
 
-    if uzbl not in _UZBLS:
-        add_instance(uzbl)
+    return get_bind_dict(uzbl)['binds']
 
-    return _UZBLS[uzbl]
+
+def get_stack_depth(uzbl):
+    '''Return the stack for the uzbl instance.'''
+
+    return get_bind_dict(uzbl)['depth']
+
+
+def get_filtered_binds(uzbl):
+    '''Return the bind list for the uzbl instance or return the filtered
+    bind list thats on the current stack.'''
+
+    bind_dict = get_bind_dict(uzbl)
+    if bind_dict['depth']:
+        return list(bind_dict['filter'])
+
+    return list(bind_dict['binds'])
 
 
 def del_bind(uzbl, bind):
@@ -125,20 +157,35 @@ class Bind(object):
         self.glob = glob
         self.bid = self.nextbid()
 
-        # Is the binding a MODCMD or KEYCMD.
-        self.mod_bind = ismodbind(glob)
+        self.split = split = find_prompts(glob)
+        self.prompts = split[1::2]
 
-        # Execute the command on UPDATES or EXEC's.
-        self.on_exec = True if glob.endswith('_') else False
+        # Check that there is nothing like: fl*<int:>*
+        for glob in split[:-1:2]:
+            if glob.endswith('*'):
+                msg = "token '*' not at the end of a prompt bind: %r" % split
+                raise BindParseError(msg)
 
-        if glob[-1] in ['*', '_']:
-            self.has_args = True
-            glob = glob[:-1]
+        # Check that there is nothing like: fl<prompt1:><prompt2:>_
+        for glob in split[2::2]:
+            if not glob:
+                msg = 'found null segment after first prompt: %r' % split
+                raise BindParseError(msg)
 
-        else:
-            self.has_args = False
+        self.stack = []
 
-        self.match = glob
+        for glob in split[::2]:
+            # Is the binding a MODCMD or KEYCMD:
+            mod_cmd = ismodbind(glob)
+
+            # Execute the command on UPDATES or EXEC's:
+            on_exec = True if glob.endswith('_') else False
+
+            # Does the command store arguments:
+            has_args = True if glob[-1] in ['*', '_'] else False
+            glob = glob[:-1] if has_args else glob
+
+            self.stack.append((mod_cmd, on_exec, has_args, glob))
 
 
     def __repr__(self):
@@ -173,11 +220,12 @@ def bind(uzbl, glob, handler, *args, **kargs):
     bind = Bind(glob, handler, *args, **kargs)
     binds.append(bind)
 
+    print bind
     uzbl.event('ADDED_BIND', bind)
 
 
 def parse_bind_event(uzbl, args):
-    '''Parse "event BIND fl* = js follownums.js" commands.'''
+    '''Break "event BIND fl* = js follownums.js" into (glob, command).'''
 
     split = map(str.strip, args.split('=', 1))
     if len(split) != 2:
@@ -187,68 +235,138 @@ def parse_bind_event(uzbl, args):
     bind(uzbl, glob, command)
 
 
-def match_and_exec(uzbl, bind, keylet):
+def set_stack_mode(uzbl, prompt):
+    if uzbl.get_mode() != 'stack':
+        uzbl.set_mode('stack')
 
-    keycmd = keylet.to_string()
-    if bind.has_args:
-        if not keycmd.startswith(bind.match):
+    if prompt:
+        prompt = "%s: " % prompt
+
+    uzbl.set('keycmd_prompt', prompt)
+
+
+def clear_stack(uzbl, mode):
+    bind_dict = get_bind_dict(uzbl)
+    if mode != "stack" and bind_dict['last_mode'] == "stack":
+        uzbl.set('keycmd_prompt', '')
+
+    if mode != "stack":
+        bind_dict = get_bind_dict(uzbl)
+        bind_dict['filter'] = []
+        bind_dict['depth'] = 0
+        bind_dict['args'] = []
+
+    bind_dict['last_mode'] = mode
+
+
+def filter_bind(uzbl, bind_dict, bind):
+    '''Remove a bind from the stack filter list.'''
+
+    if bind in bind_dict['filter']:
+        bind_dict['filter'].remove(bind)
+
+        if not bind_dict['filter']:
+            uzbl.set_mode()
+
+
+def match_and_exec(uzbl, bind, depth, keycmd):
+    bind_dict = get_bind_dict(uzbl)
+    mode_cmd, on_exec, has_args, glob = bind.stack[depth]
+
+    if has_args:
+        if not keycmd.startswith(glob):
+            filter_bind(uzbl, bind_dict, bind)
             return False
 
-        args = [keycmd[len(bind.match):],]
+        args = [keycmd[len(glob):],]
 
-    elif keycmd != bind.match:
+    elif keycmd != glob:
+        filter_bind(uzbl, bind_dict, bind)
         return False
 
     else:
         args = []
 
-    uzbl.exec_handler(bind, *args)
+    execindex = len(bind.stack)-1
+    if execindex == depth == 0:
+        uzbl.exec_handler(bind, *args)
+        if not has_args:
+            uzbl.clear_keycmd()
 
-    if not bind.has_args:
-        uzbl.clear_keycmd()
+        return True
+
+    elif depth != execindex:
+        if bind_dict['depth'] == depth:
+            bind_dict['filter'] = [bind,]
+            bind_dict['args'] += args
+            bind_dict['depth'] = depth + 1
+
+        else:
+            if bind not in bind_dict['filter']:
+                bind_dict['filter'].append(bind)
+
+        set_stack_mode(uzbl, bind.prompts[depth])
+        return False
+
+    args = bind_dict['args'] + args
+    uzbl.exec_handler(bind, *args)
+    if on_exec:
+        uzbl.set_mode()
 
     return True
 
 
 def keycmd_update(uzbl, keylet):
-    for bind in get_binds(uzbl):
-        if bind.mod_bind or bind.on_exec:
+    depth = get_stack_depth(uzbl)
+    keycmd = keylet.to_string()
+    for bind in get_filtered_binds(uzbl):
+        t = bind.stack[depth]
+        if t[MOD_CMD] or t[ON_EXEC]:
             continue
 
-        match_and_exec(uzbl, bind, keylet)
+        match_and_exec(uzbl, bind, depth, keycmd)
 
 
 def keycmd_exec(uzbl, keylet):
-    for bind in get_binds(uzbl):
-        if bind.mod_bind or not bind.on_exec:
+    depth = get_stack_depth(uzbl)
+    keycmd = keylet.to_string()
+    for bind in get_filtered_binds(uzbl):
+        t = bind.stack[depth]
+        if t[MOD_CMD] or not t[ON_EXEC]:
             continue
 
-        match_and_exec(uzbl, bind, keylet)
+        match_and_exec(uzbl, bind, depth, keycmd)
 
 
 def modcmd_update(uzbl, keylet):
-    for bind in get_binds(uzbl):
-        if not bind.mod_bind or bind.on_exec:
+    depth = get_stack_depth(uzbl)
+    keycmd = keylet.to_string()
+    for bind in get_filtered_binds(uzbl):
+        t = bind.stack[depth]
+        if not t[MOD_CMD] or t[ON_EXEC]:
             continue
 
-        match_and_exec(uzbl, bind, keylet)
+        match_and_exec(uzbl, bind, depth, keycmd)
 
 
 def modcmd_exec(uzbl, keylet):
-    for bind in get_binds(uzbl):
-        if not bind.mod_bind or not bind.on_exec:
+    depth = get_stack_depth(uzbl)
+    keycmd = keylet.to_string()
+    for bind in get_filtered_binds(uzbl):
+        t = bind.stack[depth]
+        if not t[MOD_CMD] or not t[ON_EXEC]:
             continue
 
-        match_and_exec(uzbl, bind, keylet)
+        match_and_exec(uzbl, bind, depth, keycmd)
 
 
 def init(uzbl):
-
     connects = {'BIND': parse_bind_event,
       'KEYCMD_UPDATE': keycmd_update,
       'MODCMD_UPDATE': modcmd_update,
       'KEYCMD_EXEC': keycmd_exec,
-      'MODCMD_EXEC': modcmd_exec}
+      'MODCMD_EXEC': modcmd_exec,
+      'MODE_CHANGED': clear_stack}
 
     for (event, handler) in connects.items():
         uzbl.connect(event, handler)

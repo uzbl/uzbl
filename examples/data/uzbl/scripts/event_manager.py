@@ -376,6 +376,17 @@ class UzblInstance(object):
         self._socket = sock
 
 
+    def _close_socket(self):
+        '''Close the socket used for communication with the uzbl instance.
+        This function is normally called upon receiving the INSTANCE_EXIT
+        event.'''
+
+        if self._socket:
+            self._socket.close()
+
+        self.uzbl_socket = self._socket = None
+
+
     def _flush(self):
         '''Flush messages from the outgoing queue to the uzbl instance.'''
 
@@ -384,7 +395,7 @@ class UzblInstance(object):
                 h = open(self.uzbl_fifo, 'w')
                 while len(self._fifo_cmd_queue):
                     msg = self._fifo_cmd_queue.pop(0)
-                    print "Sending via fifo: %r" % msg
+                    print '<-- %s' % msg
                     h.write("%s\n" % msg)
 
                 h.close()
@@ -396,7 +407,7 @@ class UzblInstance(object):
             if self._socket:
                 while len(self._socket_cmd_queue):
                     msg = self._socket_cmd_queue.pop(0)
-                    print "Sending via socket: %r" % msg
+                    print '<-- %s' % msg
                     self._socket.send("%s\n" % msg)
 
 
@@ -424,7 +435,7 @@ class UzblInstance(object):
         handler = Handler(event, handler, *args, **kargs)
         self._handlers[event].append(handler)
 
-        print "New event handler:", handler
+        print handler
         return handler
 
 
@@ -488,7 +499,7 @@ class UzblInstance(object):
 
         if not msg or msg[0] != "EVENT":
             # Not an event message
-            print raw.rstrip()
+            print "---", raw.rstrip()
             return
 
         event, args = msg[1], msg[3]
@@ -558,10 +569,6 @@ class UzblInstance(object):
     def handle_event(self, event, args):
         '''Handle uzbl events internally before dispatch.'''
 
-        # Silence _printing_ of geo events while still debugging.
-        if event != "GEOMETRY_CHANGED":
-            print event, args
-
         if event == 'FIFO_SET':
             self.uzbl_fifo = args
             self._flush()
@@ -571,7 +578,9 @@ class UzblInstance(object):
                 self._init_uzbl_socket(args)
                 self._flush()
 
-        elif event == 'SHUTDOWN':
+        elif event == 'INSTANCE_EXIT':
+            self._close_socket()
+            self._running = False
             for (name, plugin) in self.plugins.items():
                 if hasattr(plugin, "cleanup"):
                     plugin.cleanup(uzbl)
@@ -608,6 +617,10 @@ class UzblInstance(object):
     def event(self, event, *args, **kargs):
         '''Raise a custom event.'''
 
+        # Silence _printing_ of geo events while still debugging.
+        if event != "GEOMETRY_CHANGED":
+            print "--> %s %s %s" % (event, args, '' if not kargs else kargs)
+
         if event in self._handlers:
             for handler in self._handlers[event]:
                 try:
@@ -630,7 +643,7 @@ if __name__ == "__main__":
       help="print verbose output.")
 
     parser.add_option('-d', '--plugin-dir', dest='plugin_dir', action="store",
-      metavar="FILE", help="change plugin directory.")
+      metavar="DIR", help="change plugin directory.")
 
     parser.add_option('-p', '--load-plugins', dest="load", action="store",
       metavar="PLUGINS", help="comma separated list of plugins to load")
