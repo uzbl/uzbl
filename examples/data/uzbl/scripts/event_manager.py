@@ -577,7 +577,7 @@ class UzblInstance(object):
                     plugin.cleanup(uzbl)
 
         # Now handle the event "publically".
-        self.dispatch_event(event, args)
+        self.event(event, args)
 
 
     def exec_handler(self, handler, *args, **kargs):
@@ -605,24 +605,8 @@ class UzblInstance(object):
                 uzbl.send(command)
 
 
-    def dispatch_event(self, event, args):
-        '''Now send the event to any event handlers added with the connect
-        function. In other words: handle plugin's event hooks.'''
-
-        if event in self._handlers:
-            for handler in self._handlers[event]:
-                try:
-                    self.exec_handler(handler, args)
-
-                except:
-                    #print_exc()
-                    raise
-
-
     def event(self, event, *args, **kargs):
         '''Raise a custom event.'''
-
-        print "Got custom event:", event, args, kargs
 
         if event in self._handlers:
             for handler in self._handlers[event]:
