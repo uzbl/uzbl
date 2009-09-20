@@ -7,7 +7,7 @@ __export__ = ['clear_keycmd',]
 _RE_CACHE = {}
 
 # Hold the keylets.
-_UZBLS = {}
+UZBLS = {}
 
 # Simple key names map.
 _SIMPLEKEYS = {
@@ -87,14 +87,14 @@ def make_simple(key):
 def add_instance(uzbl, *args):
     '''Create the Keylet object for this uzbl instance.'''
 
-    _UZBLS[uzbl] = Keylet()
+    UZBLS[uzbl] = Keylet()
 
 
 def del_instance(uzbl, *args):
     '''Delete the Keylet object for this uzbl instance.'''
 
-    if uzbl in _UZBLS:
-        del _UZBLS[uzbl]
+    if uzbl in UZBLS:
+        del UZBLS[uzbl]
 
 
 def get_keylet(uzbl):
@@ -102,10 +102,10 @@ def get_keylet(uzbl):
 
     # Startup events are not correctly captured and sent over the uzbl socket
     # yet so this line is needed because the INSTANCE_START event is lost.
-    if uzbl not in _UZBLS:
+    if uzbl not in UZBLS:
         add_instance(uzbl)
 
-    keylet = _UZBLS[uzbl]
+    keylet = UZBLS[uzbl]
     keylet._to_string = None
     return keylet
 
