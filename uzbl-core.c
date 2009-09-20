@@ -213,7 +213,8 @@ const char *event_table[LAST_EVENT] = {
      "FIFO_SET"         ,
      "SOCKET_SET"       ,
      "INSTANCE_START"   ,
-     "INSTANCE_EXIT"
+     "INSTANCE_EXIT"    ,
+     "LOAD_PROGRESS"
 };
 
 
@@ -857,9 +858,14 @@ progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
     (void) page;
     (void) data;
     uzbl.gui.sbar.load_progress = progress;
+    gchar *prg_str;
 
     g_free(uzbl.gui.sbar.progress_bar);
     uzbl.gui.sbar.progress_bar = build_progressbar_ascii(uzbl.gui.sbar.load_progress);
+
+    prg_str = itos(progress);
+    send_event(LOAD_PROGRESS, prg_str, NULL);
+    g_free(prg_str);
 
     update_title();
 }
