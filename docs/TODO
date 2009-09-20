@@ -18,6 +18,9 @@ what if fifo/socket doesn't exist, or exists but nothing working behind it (anym
 * remove chain command
 * scalability -> 1 event manager per n uzbl-browser instances -> mkfifo and redirect uzbl-core stdout to fifo in uzbl-browser
 * event manager -> everything based on per instance basis (associative array with uzbl instance name as key)
+* migrate progress(bar) related code
+* migrate all *_handler to EM plugins
+* cookies over EM (but we can delay that. it works okay for now)
 
 
 = keybinding features =
@@ -97,7 +100,7 @@ More or less in order of importance/urgency
 * store uri/tag/name/state in xorg window properties
 * split up uzbl.c into multiple files
 * shortcuts to focus other instances (see docs/multiple-instances-management)
-
+* cookie daemon (and maybe other daemons) are not scoped to the testing session when running some test-*-browser targets
 * recognize -h with GOption?
 * implement getting feedback from socket
 * scrolling: make page up and page down configurable.
