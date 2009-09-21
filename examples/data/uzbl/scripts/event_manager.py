@@ -557,6 +557,9 @@ class UzblInstance(object):
                 print msg.rstrip()
                 continue
 
+            if len(cmd) < 4:
+                cmd.append('')
+
             event, args = cmd[2], cmd[3]
             try:
                 self.handle_event(event, args)
