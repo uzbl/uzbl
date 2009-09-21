@@ -11,7 +11,8 @@ set mode_config    = request MODE_CONFIG
 set toggle_modes   = request TOGGLE_MODES
 # request ON_EVENT <EVENT_NAME> <command>
 set on_event       = request ON_EVENT
-
+# request PROGRESS_CONFIG <key> = <value>
+set progress       = request PROGRESS_CONFIG
 
 set set_mode       = set mode =
 set set_status     = set status_message =
@@ -49,13 +50,28 @@ set prompt_style      = foreground="grey"
 
 set mode_section      = <span background="khaki" foreground="black">[\@[\@mode_indicator]\@]</span>
 set keycmd_section    = [<span \@prompt_style>\@[\@keycmd_prompt]\@</span><span \@keycmd_style>\@[\@keycmd]\@</span>]
-set progress_section  = <span foreground="#606060">\@[\@LOAD_PROGRESSBAR]\@</span>
+set progress_section  = <span foreground="#606060">\@[\@progress_format]\@</span>
 set uri_section       = <span foreground="#99FF66">\@[\@uri]\@</span>
 set name_section      = <span foreground="khaki">\@[\@NAME]\@</span>
 set status_section    = <span foreground="orange">\@status_message</span>
-set selected_section  = <span foreground="#606060"> \@[\@SELECTED_URI]\@</span>
+set selected_section  = <span foreground="#606060">\@[\@SELECTED_URI]\@</span>
 
 set status_format     = <span font_family="monospace">@mode_section @keycmd_section @progress_section @uri_section @name_section @status_section @selected_section</span>
+
+# Progress bar config
+@progress width    = 8
+# %d = done, %p = pending, %a = arrow, %c = percent done, %i = int done,
+# %s = spinner, %t = percent pending, %o = int pending.
+@progress format   = [%d>%p]%c
+@progress spinner  = -\\|/
+@progress arrow    = >
+@progress done     = =
+@progress pending  = .
+
+# Or ride those spinnas'
+#@progress format   = [%d%s%p]
+#@progress done     = -
+#@progress pending  =
 
 # Core settings
 set useragent         = Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@(uname -o)@ @(uname -m)@ [@ARCH_UZBL]) (Commit @COMMIT)
