@@ -834,10 +834,14 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
     //Set selected_url state variable
     g_free(uzbl.state.selected_url);
     uzbl.state.selected_url = NULL;
+
     if (link) {
         uzbl.state.selected_url = g_strdup(link);
         send_event(LINK_HOVER, uzbl.state.selected_url, NULL);
     }
+    else
+        send_event(LINK_HOVER, "", NULL);
+
     update_title();
 }
 

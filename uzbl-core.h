@@ -581,4 +581,7 @@ void
 cmd_view_source();
 */
 
+void
+cmd_load_start();
+
 /* vi: set et ts=4: */
