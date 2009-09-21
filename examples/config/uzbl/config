@@ -2,24 +2,41 @@
 # all settings are optional.  you can use uzbl without any config at all (but it won't do much)
 
 # set some shortcuts
+
+# request BIND <keycmd> = <command>
 set bind           = request BIND
+# request MODE_CONFIG <mode> <key> = <value
 set mode_config    = request MODE_CONFIG
+# request TOGGLE_MODES <mode1> <mode2> ... <moden>
 set toggle_modes   = request TOGGLE_MODES
+# request ON_EVENT <EVENT_NAME> <command>
+set on_event       = request ON_EVENT
+
+
 set set_mode       = set mode =
+set set_status     = set status_message =
 set shell_cmd      = sh -c
-# keyboard behavior in this sample config is sort of vimstyle
+
 
 # Handlers
-set download_handler = spawn $XDG_DATA_HOME/uzbl/scripts/download.sh
-#set cookie_handler   = spawn $XDG_DATA_HOME/uzbl/scripts/cookies.py
-set cookie_handler = talk_to_socket $XDG_CACHE_HOME/uzbl/cookie_daemon_socket
-#set new_window      = sh 'echo uri "$8" > $4' # open in same window
-set new_window       = sh 'uzbl-browser -u $8' # equivalent to the default behaviour
+set download_handler   = spawn $XDG_DATA_HOME/uzbl/scripts/download.sh
+set cookie_handler     = talk_to_socket $XDG_CACHE_HOME/uzbl/cookie_daemon_socket
+set scheme_handler     = spawn $XDG_DATA_HOME/uzbl/scripts/scheme.py
 
-set scheme_handler   = spawn $XDG_DATA_HOME/uzbl/scripts/scheme.py
-set load_start_handler = set status_message = <span foreground="khaki">wait</span>
-set load_commit_handler = set status_message = <span foreground="green">recv</span>
-set load_finish_handler = chain 'set status_message = <span foreground="gold">done</span>' 'spawn $XDG_DATA_HOME/uzbl/scripts/history.sh'
+# New window handler options
+#set new_window        = sh 'echo uri "$8" > $4' # open in same window
+set new_window         = sh 'uzbl-browser -u $8' # equivalent to the default behaviour
+
+
+# Load start handler
+@on_event   LOAD_START     @set_status <span foreground="khaki">wait</span>
+
+# Load commit handler
+@on_event   LOAD_COMMIT    @set_status <span foreground="green">recv</span>
+
+# Load finish handlers
+@on_event   LOAD_FINISH    @set_status <span foreground="gold">done</span>
+@on_event   LOAD_FINISH    spawn $XDG_DATA_HOME/uzbl/scripts/history.sh
 
 
 # Behaviour and appearance
@@ -41,10 +58,12 @@ set selected_section  = <span foreground="#606060"> \@[\@SELECTED_URI]\@</span>
 set status_format     = <span font_family="monospace">@mode_section @keycmd_section @progress_section @uri_section @name_section @status_section @selected_section</span>
 
 # Core settings
-set useragent       = Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@(uname -o)@ @(uname -m)@ [@ARCH_UZBL]) (Commit @COMMIT)
-set fifo_dir = /tmp
-set socket_dir = /tmp
+set useragent         = Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@(uname -o)@ @(uname -m)@ [@ARCH_UZBL]) (Commit @COMMIT)
+set fifo_dir          = /tmp
+set socket_dir        = /tmp
 
+
+### Keyboard binding section:
 
 # like this you can enter any command at runtime, interactively. prefixed by ':'
 @bind    :_        = chain '%s'
@@ -78,9 +97,6 @@ set socket_dir = /tmp
 @bind    s _       = set %s
 @bind    \wiki _   = uri http://wiki.archlinux.org/index.php/Special:Search?search=%s&go=Go
 @bind    gg _      = uri http://www.google.com/search?q=%s
-@bind    i         = toggle_insert_mode
-# disable insert mode (1 to enable).  note that Esc works to disable, regardless of this setting
-@bind    I         = toggle_insert_mode 0
 # Enclose the executable in quotes if it has spaces.  Any additional parameters you use will
 # appear AFTER the default parameters
 #@bind    B         = spawn $XDG_DATA_HOME/uzbl/scripts/insert_bookmark.sh
@@ -143,7 +159,7 @@ set socket_dir = /tmp
 @bind <Ctrl>a<:>h = uri http://uzbl.org/
 
 
-### Mode config
+### Mode config section:
 
 set default_mode = command
 
