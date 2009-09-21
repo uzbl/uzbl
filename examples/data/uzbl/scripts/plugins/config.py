@@ -4,7 +4,7 @@ import types
 __export__ = ['set', 'get_config']
 
 _VALIDSETKEY = re.compile("^[a-zA-Z][a-zA-Z0-9_]*$").match
-_TYPECONVERT = {'int': int, 'float': float, 'str': str}
+_TYPECONVERT = {'int': int, 'float': float, 'str': unicode}
 
 UZBLS = {}
 
@@ -12,7 +12,7 @@ UZBLS = {}
 def escape(value):
     '''A real escaping function may be required.'''
 
-    return str(value)
+    return unicode(value)
 
 
 def get_config(uzbl):
@@ -36,7 +36,7 @@ def set(uzbl, key, value):
         value = value.replace("\n", "\\n")
 
     config = get_config(uzbl)
-    if key not in config or str(config[key]) != str(value):
+    if key not in config or unicode(config[key]) != unicode(value):
         uzbl.send('set %s = %s' % (key, value))
 
 

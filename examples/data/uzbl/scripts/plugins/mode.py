@@ -106,12 +106,12 @@ def config_changed(uzbl, key, value):
 
 def mode_config(uzbl, args):
 
-    split = map(str.strip, _RE_FINDSPACES.split(args.lstrip(), 1))
+    split = map(unicode.strip, _RE_FINDSPACES.split(args.lstrip(), 1))
     if len(split) != 2:
         return error("invalid MODE_CONFIG syntax: %r" % args)
 
     mode, set = split
-    split = map(str.strip, set.split('=', 1))
+    split = map(unicode.strip, set.split('=', 1))
     if len(split) != 2:
         return error("invalid MODE_CONFIG set command: %r" % args)
 

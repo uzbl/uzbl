@@ -227,7 +227,7 @@ def bind(uzbl, glob, handler, *args, **kargs):
 def parse_bind_event(uzbl, args):
     '''Break "event BIND fl* = js follownums.js" into (glob, command).'''
 
-    split = map(str.strip, args.split('=', 1))
+    split = map(unicode.strip, args.split('=', 1))
     if len(split) != 2:
         return error('missing "=" in bind definition: %r' % args)
 

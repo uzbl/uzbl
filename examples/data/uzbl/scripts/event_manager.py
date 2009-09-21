@@ -396,7 +396,7 @@ class UzblInstance(object):
                 while len(self._fifo_cmd_queue):
                     msg = self._fifo_cmd_queue.pop(0)
                     print '<-- %s' % msg
-                    h.write("%s\n" % msg)
+                    h.write(("%s\n" % msg).encode('utf-8'))
 
                 h.close()
 
@@ -408,7 +408,7 @@ class UzblInstance(object):
                 while len(self._socket_cmd_queue):
                     msg = self._socket_cmd_queue.pop(0)
                     print '<-- %s' % msg
-                    self._socket.send("%s\n" % msg)
+                    self._socket.send(("%s\n" % msg).encode('utf-8'))
 
 
     def _send_fifo(self, msg):
@@ -536,7 +536,7 @@ class UzblInstance(object):
     def read_from_uzbl_socket(self):
         '''Reads event messages from a uzbl socket.'''
 
-        raw = self._socket.recv(1024)
+        raw = unicode(self._socket.recv(8192), 'utf-8', 'ignore')
         if not raw:
             # Read null byte
             self._running = False

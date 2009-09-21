@@ -50,10 +50,10 @@ def expand(cmd, args):
 
     if len(args) > 1:
         for arg in args:
-            cmd = cmd.replace('%s', str(arg), 1)
+            cmd = cmd.replace('%s', unicode(arg), 1)
 
     else:
-        cmd = cmd.replace('%s', str(args[0]))
+        cmd = cmd.replace('%s', unicode(args[0]))
 
     return cmd
 

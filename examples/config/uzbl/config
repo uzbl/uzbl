@@ -60,18 +60,18 @@ set status_format     = <span font_family="monospace">@mode_section @keycmd_sect
 
 # Progress bar config
 @progress width    = 8
-# %d = done, %p = pending, %a = arrow, %c = percent done, %i = int done,
-# %s = spinner, %t = percent pending, %o = int pending.
+# %d = done, %p = pending %c = percent done, %i = int done, %s = spinner,
+# %t = percent pending, %o = int pending, %r = sprite scroll
 @progress format   = [%d>%p]%c
-@progress spinner  = -\\|/
-@progress arrow    = >
 @progress done     = =
 @progress pending  =
 
 # Or ride those spinnas'
 #@progress format   = [%d%s%p]
+#@progress spinner  = -\\|/
 #@progress done     = -
 #@progress pending  =
+
 
 # Core settings
 set useragent         = Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@(uname -o)@ @(uname -m)@ [@ARCH_UZBL]) (Commit @COMMIT)

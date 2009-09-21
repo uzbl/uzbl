@@ -5,9 +5,9 @@ UZBLS = {}
 DEFAULTS = {'width': 8,
   'done': '=',
   'pending': '.',
-  'arrow': '>',
   'format': '[%d%a%p]%c',
   'spinner': '-\\|/',
+  'sprites': 'loading',
   'updates': 0,
   'progress': 100}
 
@@ -38,12 +38,12 @@ def update_progress(uzbl, prog=None):
     The current substitution options are:
         %d = done char * done
         %p = pending char * remaining
-        %a = arrow
         %c = percent done
         %i = int done
         %s = -\|/ spinner
         %t = percent pending
         %o = int pending
+        %r = sprites
     '''
 
     prog_config = get_progress_config(uzbl)
@@ -52,9 +52,11 @@ def update_progress(uzbl, prog=None):
     if prog is None:
         prog = prog_config['progress']
 
-    prog = int(prog)
+    else:
+        prog = int(prog)
+        prog_config['progress'] = prog
+
     prog_config['updates'] += 1
-    prog_config['progress'] = prog
     format = prog_config['format']
     width = prog_config['width']
 
@@ -77,9 +79,6 @@ def update_progress(uzbl, prog=None):
     if '%p' in format:
         format = format.replace('%p', prog_config['pending']*pending)
 
-    if '%a' in format:
-        format = format.replace('%a', prog_config['arrow'])
-
     if '%c' in format:
         format = format.replace('%c', '%d%%' % prog)
 
@@ -93,10 +92,18 @@ def update_progress(uzbl, prog=None):
         format = format.replace('%o', '%d' % (100-prog))
 
     if '%s' in format:
-        spin = '-' if not prog_config['spinner'] else prog_config['spinner']
+        spinner = prog_config['spinner']
+        spin = '-' if not spinner else spinner
         index = 0 if prog == 100 else prog_config['updates'] % len(spin)
         char = '\\\\' if spin[index] == '\\' else spin[index]
         format = format.replace('%s', char)
+
+    if '%r' in format:
+        sprites = prog_config['sprites']
+        sprites = '-' if not sprites else sprites
+        index = int(((prog/100.0)*len(sprites))+0.5)-1
+        sprite = '\\\\' if sprites[index] == '\\' else sprites[index]
+        format = format.replace('%r', sprite)
 
     if 'progress_format' not in config or config['progress_format'] != format:
         config['progress_format'] = format
@@ -112,7 +119,7 @@ def progress_config(uzbl, args):
     if len(split) != 2:
         return error("invalid syntax: %r" % args)
 
-    key, value = map(str.strip, split)
+    key, value = map(unicode.strip, split)
     prog_config = get_progress_config(uzbl)
 
     if key not in prog_config:
