@@ -66,6 +66,7 @@ typedef struct {
     int      socket_id;
     char     *instance_name;
     gchar    *selected_url;
+    gchar    *last_selected_url;
     gchar    *executable_path;
     gchar*   keycmd;
     gchar*   searchtx;
@@ -188,6 +189,7 @@ enum event_type {
     WEBINSPECTOR, NEW_WINDOW, SELECTION_CHANGED,
     VARIABLE_SET, FIFO_SET, SOCKET_SET, 
     INSTANCE_START, INSTANCE_EXIT, LOAD_PROGRESS,
+    LINK_UNHOVER,
     
     /* must be last entry */
     LAST_EVENT

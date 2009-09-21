@@ -214,7 +214,8 @@ const char *event_table[LAST_EVENT] = {
      "SOCKET_SET"       ,
      "INSTANCE_START"   ,
      "INSTANCE_EXIT"    ,
-     "LOAD_PROGRESS"
+     "LOAD_PROGRESS"    ,
+     "LINK_UNHOVER"
 };
 
 
@@ -831,16 +832,33 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
     (void) page;
     (void) title;
     (void) data;
-    //Set selected_url state variable
-    g_free(uzbl.state.selected_url);
-    uzbl.state.selected_url = NULL;
+    State *s = &uzbl.state;
+
+    if(s->selected_url) {
+        if(s->last_selected_url)
+            g_free(s->last_selected_url);
+        s->last_selected_url = g_strdup(s->selected_url);
+    }
+    else {
+        if(s->last_selected_url) g_free(s->last_selected_url);
+        s->last_selected_url = NULL;
+    }
+
+    g_free(s->selected_url);
+    s->selected_url = NULL;
 
     if (link) {
-        uzbl.state.selected_url = g_strdup(link);
-        send_event(LINK_HOVER, uzbl.state.selected_url, NULL);
+        s->selected_url = g_strdup(link);
+
+        if(s->last_selected_url &&
+           g_strcmp0(s->selected_url, s->last_selected_url))
+            send_event(LINK_UNHOVER, s->last_selected_url, NULL);
+
+        send_event(LINK_HOVER, s->selected_url, NULL);
     }
-    else
-        send_event(LINK_HOVER, "", NULL);
+    else if(s->last_selected_url) {
+            send_event(LINK_UNHOVER, s->last_selected_url, NULL);
+    }
 
     update_title();
 }
