@@ -2,7 +2,6 @@ import sys
 
 UZBLS = {}
 
-
 DEFAULTS = {'width': 8,
   'done': '=',
   'pending': '.',
@@ -54,9 +53,6 @@ def update_progress(uzbl, prog=None):
         prog = prog_config['progress']
 
     prog = int(prog)
-    if prog < prog_config['progress']:
-        prog_config['updates'] = 0
-
     prog_config['updates'] += 1
     prog_config['progress'] = prog
     format = prog_config['format']
@@ -107,6 +103,11 @@ def update_progress(uzbl, prog=None):
 
 
 def progress_config(uzbl, args):
+    '''Parse PROGRESS_CONFIG events from the uzbl instance.
+
+    Syntax: event PROGRESS_CONFIG <key> = <value>
+    '''
+
     split = args.split('=', 1)
     if len(split) != 2:
         return error("invalid syntax: %r" % args)
@@ -131,12 +132,21 @@ def progress_config(uzbl, args):
     update_progress(uzbl)
 
 
-def init(uzbl):
+def reset_progress(uzbl, args):
+    '''Reset the spinner counter, reset the progress int and re-draw the
+    progress bar on LOAD_COMMIT.'''
 
+    prog_dict = get_progress_config(uzbl)
+    prog_dict['updates'] = prog_dict['progress'] = 0
+    update_progress(uzbl)
+
+
+def init(uzbl):
     connects = {'LOAD_PROGRESS': update_progress,
       'INSTANCE_START': add_instance,
       'INSTANCE_EXIT': del_instance,
-      'PROGRESS_CONFIG': progress_config}
+      'PROGRESS_CONFIG': progress_config,
+      'LOAD_COMMIT': reset_progress}
 
     for (event, handler) in connects.items():
         uzbl.connect(event, handler)
