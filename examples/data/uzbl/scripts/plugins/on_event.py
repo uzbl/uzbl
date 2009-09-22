@@ -95,8 +95,10 @@ def on_event(uzbl, event, cmd):
 def parse_on_event(uzbl, args):
     '''Parse ON_EVENT events and pass them to the on_event function.
 
-    Syntax: "event ON_EVENT <EVENT_NAME> commands"
-    '''
+    Syntax: "event ON_EVENT <EVENT_NAME> commands".'''
+
+    if not args:
+        return error("missing on_event arguments")
 
     split = args.split(' ', 1)
     if len(split) != 2:
