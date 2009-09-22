@@ -35,9 +35,7 @@ def set(uzbl, key, value):
     if '\n' in value:
         value = value.replace("\n", "\\n")
 
-    config = get_config(uzbl)
-    if key not in config or unicode(config[key]) != unicode(value):
-        uzbl.send('set %s = %s' % (key, value))
+    uzbl.send('set %s = %s' % (key, value))
 
 
 def add_instance(uzbl, *args):
@@ -63,7 +61,8 @@ class ConfigDict(dict):
     def __setitem__(self, key, value):
         '''Makes "config[key] = value" a wrapper for the set function.'''
 
-        set(self._uzbl, key, value)
+        if key not in self or unicode(self[key]) != unicode(value):
+            set(self._uzbl, key, value)
 
 
 def variable_set(uzbl, args):
