@@ -122,9 +122,6 @@ const struct var_name_to_ptr_t {
     { "show_status",            PTR_V_INT(uzbl.behave.show_status,              1,   cmd_set_status)},
     { "status_top",             PTR_V_INT(uzbl.behave.status_top,               1,   move_statusbar)},
     { "status_format",          PTR_V_STR(uzbl.behave.status_format,            1,   update_title)},
-    { "status_pbar_done",       PTR_V_STR(uzbl.gui.sbar.progress_s,             1,   update_title)},
-    { "status_pbar_pending",    PTR_V_STR(uzbl.gui.sbar.progress_u,             1,   update_title)},
-    { "status_pbar_width",      PTR_V_INT(uzbl.gui.sbar.progress_w,             1,   update_title)},
     { "status_background",      PTR_V_STR(uzbl.behave.status_background,        1,   update_title)},
     { "title_format_long",      PTR_V_STR(uzbl.behave.title_format_long,        1,   update_title)},
     { "title_format_short",     PTR_V_STR(uzbl.behave.title_format_short,       1,   update_title)},
@@ -179,7 +176,6 @@ const struct var_name_to_ptr_t {
     { "ARCH_UZBL",              PTR_C_STR(uzbl.info.arch,                            NULL)},
     { "COMMIT",                 PTR_C_STR(uzbl.info.commit,                          NULL)},
     { "LOAD_PROGRESS",          PTR_C_INT(uzbl.gui.sbar.load_progress,               NULL)},
-    { "LOAD_PROGRESSBAR",       PTR_C_STR(uzbl.gui.sbar.progress_bar,                NULL)},
     { "TITLE",                  PTR_C_STR(uzbl.gui.main_title,                       NULL)},
     { "SELECTED_URI",           PTR_C_STR(uzbl.state.selected_url,                   NULL)},
     { "NAME",                   PTR_C_STR(uzbl.state.instance_name,                  NULL)},
@@ -879,11 +875,7 @@ void
 progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
     (void) page;
     (void) data;
-    uzbl.gui.sbar.load_progress = progress;
     gchar *prg_str;
-
-    g_free(uzbl.gui.sbar.progress_bar);
-    uzbl.gui.sbar.progress_bar = build_progressbar_ascii(uzbl.gui.sbar.load_progress);
 
     prg_str = itos(progress);
     send_event(LOAD_PROGRESS, prg_str, NULL);
@@ -1344,27 +1336,6 @@ close_uzbl (WebKitWebView *page, GArray *argv, GString *result) {
     (void)result;
     gtk_main_quit ();
 }
-
-/* --Statusbar functions-- */
-char*
-build_progressbar_ascii(int percent) {
-   int width=uzbl.gui.sbar.progress_w;
-   int i;
-   double l;
-   GString *bar = g_string_new("");
-
-   l = (double)percent*((double)width/100.);
-   l = (int)(l+.5)>=(int)l ? l+.5 : l;
-
-   for(i=0; i<(int)l; i++)
-       g_string_append(bar, uzbl.gui.sbar.progress_s);
-
-   for(; i<width; i++)
-       g_string_append(bar, uzbl.gui.sbar.progress_u);
-
-   return g_string_free(bar, FALSE);
-}
-/* --End Statusbar functions-- */
 
 void
 sharg_append(GArray *a, const gchar *str) {
@@ -2861,10 +2832,6 @@ initialize(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
     event_buffer_timeout(10);
-
-    uzbl.gui.sbar.progress_s = g_strdup("="); //TODO: move these to config.h
-    uzbl.gui.sbar.progress_u = g_strdup("·");
-    uzbl.gui.sbar.progress_w = 10;
 
     uzbl.info.webkit_major = WEBKIT_MAJOR_VERSION;
     uzbl.info.webkit_minor = WEBKIT_MINOR_VERSION;

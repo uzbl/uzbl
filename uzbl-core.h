@@ -15,9 +15,6 @@
 typedef struct {
     gint           load_progress;
     gchar          *msg;
-    gchar          *progress_s, *progress_u;
-    int            progress_w;
-    gchar          *progress_bar;
 } StatusBar;
 
 
@@ -313,9 +310,6 @@ close_uzbl (WebKitWebView *page, GArray *argv, GString *result);
 gboolean
 run_command(const gchar *command, const guint npre,
             const gchar **args, const gboolean sync, char **output_stdout);
-
-char*
-build_progressbar_ascii(int percent);
 
 void
 talk_to_socket(WebKitWebView *web_view, GArray *argv, GString *result);
