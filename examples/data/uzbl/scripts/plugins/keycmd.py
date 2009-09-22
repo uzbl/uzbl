@@ -17,6 +17,17 @@ _SIMPLEKEYS = {
 }
 
 
+def keycmd_escape(keycmd):
+    '''Prevent outgoing keycmd values from expanding inside the
+    status_format.'''
+
+    for char in ['\\', '@']:
+        if char in keycmd:
+            keycmd = keycmd.replace(char, '\\'+char)
+
+    return keycmd
+
+
 def get_regex(regex):
     '''Compiling regular expressions is a very time consuming so return a
     pre-compiled regex match object if possible.'''
@@ -139,14 +150,15 @@ def update_event(uzbl, keylet):
     if keylet.modcmd:
         keycmd = keylet.to_string()
         uzbl.event('MODCMD_UPDATE', keylet)
-        if keycmd == keylet.to_string():
-            config['keycmd'] = keylet.to_string()
+        if 'modcmd_updates' not in config or config['modcmd_updates'] == '1':
+            if keycmd == keylet.to_string():
+                config['keycmd'] = keycmd_escape(keycmd)
 
     elif 'keycmd_events' not in config or config['keycmd_events'] == '1':
         keycmd = keylet.cmd
         uzbl.event('KEYCMD_UPDATE', keylet)
         if keycmd == keylet.cmd:
-            config['keycmd'] = keylet.cmd
+            config['keycmd'] = keycmd_escape(keycmd)
 
 
 def key_press(uzbl, key):

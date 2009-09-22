@@ -12,10 +12,12 @@ DEFAULTS = {
     'insert': {
       'forward_keys': True,
       'keycmd_events': False,
+      'modcmd_updates': False,
       'indicator': 'I'},
     'command': {
       'forward_keys': False,
       'keycmd_events': True,
+      'modcmd_updates': True,
       'indicator': 'C'}}}
 
 _RE_FINDSPACES = re.compile("\s+")

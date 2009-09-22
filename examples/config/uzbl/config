@@ -39,6 +39,9 @@ set new_window         = sh 'uzbl-browser -u $8' # equivalent to the default beh
 @on_event   LOAD_FINISH    @set_status <span foreground="gold">done</span>
 @on_event   LOAD_FINISH    spawn $XDG_DATA_HOME/uzbl/scripts/history.sh
 
+# Misc on_event handlers
+#@on_event  CONFIG_CHANGED print Config changed: %1 = %2
+
 
 # Behaviour and appearance
 set show_status       = 1
@@ -196,6 +199,7 @@ set stack    = @mode_config stack
 
 # Multi-stage-binding mode config.
 @stack    keycmd_events       = 1
+@stack    modcmd_updates      = 1
 @stack    prompt_style        = foreground="#888" weight="light"
 @stack    status_background   = #202020
 @stack    mode_indicator      = Bnd
