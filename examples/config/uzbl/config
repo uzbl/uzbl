@@ -199,6 +199,7 @@ set stack    = @mode_config stack
 
 # Multi-stage-binding mode config.
 @stack    keycmd_events       = 1
+@stack    modcmd_updates      = 1
 @stack    prompt_style        = foreground="#888" weight="light"
 @stack    status_background   = #202020
 @stack    mode_indicator      = Bnd
