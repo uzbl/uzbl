@@ -1,9 +1,19 @@
-'''Plugin provides arbitrarily binding uzbl events to uzbl commands.
-   You can use $1,$2 to refer to the arguments appearing in the relevant event messages
+'''Plugin provides arbitrary binding of uzbl events to uzbl commands.
 
-For example:
-  request ON_EVENT LINK_HOVER 'set SELECTED_URI = $1'
-  this will set the SELECTED_URI variable which you can display in your statusbar
+Formatting options:
+  %@ = space separated string of the arguments
+  %1 = argument 1
+  %2 = argument 2
+  %n = argument n
+
+Usage:
+  request ON_EVENT LINK_HOVER set selected_uri = $1
+    --> LINK_HOVER http://uzbl.org/
+    <-- set selected_uri = http://uzbl.org/
+
+  request ON_EVENT CONFIG_CHANGED print Config changed: %1 = %2
+    --> CONFIG_CHANGED selected_uri http://uzbl.org/
+    <-- print Config changed: selected_uri = http://uzbl.org/
 '''
 
 import sys
@@ -40,20 +50,15 @@ def get_on_events(uzbl):
 
 
 def expand(cmd, args):
-    '''Replaces "%s %s %s.." with "arg1 arg2 arg3..".
+    '''Replaces "%@ %1 %2 %3..." with "<all args> <arg 0> <arg 1>...".'''
 
-    This could be improved by specifing explicitly which argument to substitue
-    for what by parsing "$@ $0 $1 $2 $3.." found in the command string.'''
+    if '%@' in cmd:
+        cmd = cmd.replace('%@', ' '.join(map(unicode, args)))
 
-    if '%s' not in cmd or not len(args):
-        return cmd
-
-    if len(args) > 1:
-        for arg in args:
-            cmd = cmd.replace('%s', unicode(arg), 1)
-
-    else:
-        cmd = cmd.replace('%s', unicode(args[0]))
+    for (index, arg) in enumerate(args):
+        index += 1
+        if '%%%d' % index in cmd:
+            cmd = cmd.replace('%%%d' % index, unicode(arg))
 
     return cmd
 
