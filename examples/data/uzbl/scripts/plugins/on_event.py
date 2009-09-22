@@ -81,6 +81,7 @@ def event_handler(uzbl, *args, **kargs):
 def on_event(uzbl, event, cmd):
     '''Add a new event to watch and respond to.'''
 
+    event = event.upper()
     events = get_on_events(uzbl)
     if event not in events:
         uzbl.connect(event, event_handler, on_event=event)
