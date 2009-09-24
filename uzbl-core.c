@@ -462,16 +462,23 @@ send_event_stdout(GString *msg) {
 void
 send_event(int type, const gchar *details, const gchar *custom_event) {
     GString *event_message = g_string_new("");
+    gchar *buf, *p_val = NULL;
+
+    /* expand shell vars */
+    if(details) {
+        buf = g_strdup(details);
+        p_val = parseenv(g_strdup(buf ? g_strchug(buf) : " "));
+    }
 
     /* check for custom events */
     if(custom_event) {
         g_string_printf(event_message, "EVENT [%s] %s %s\n",
-                uzbl.state.instance_name, custom_event, details);
+                uzbl.state.instance_name, custom_event, p_val);
     }
     /* check wether we support the internal event */
     else if(type < LAST_EVENT) {
         g_string_printf(event_message, "EVENT [%s] %s %s\n",
-                uzbl.state.instance_name, event_table[type], details);
+                uzbl.state.instance_name, event_table[type], p_val);
     }
 
     if(event_message->str) {
@@ -481,6 +488,7 @@ send_event(int type, const gchar *details, const gchar *custom_event) {
 
         g_string_free(event_message, TRUE);
     }
+    g_free(p_val);
 }
 
 char *
@@ -1084,8 +1092,11 @@ event(WebKitWebView *page, GArray *argv, GString *result) {
 void
 print(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
+    gchar* buf;                                                                                                                          
 
-    g_string_assign(result, argv_idx(argv, 0));
+    buf = expand(argv_idx(argv, 0), 0);
+    g_string_assign(result, buf);
+    g_free(buf);
 }
 
 void
