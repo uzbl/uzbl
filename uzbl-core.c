@@ -468,6 +468,7 @@ send_event(int type, const gchar *details, const gchar *custom_event) {
     if(details) {
         buf = g_strdup(details);
         p_val = parseenv(g_strdup(buf ? g_strchug(buf) : " "));
+        g_free(buf);
     }
 
     /* check for custom events */
