@@ -587,6 +587,7 @@ find_existing_file(gchar* path_list) {
         i++;
     }
 
+    g_free(executable);
     g_strfreev(split);
     return NULL;
 }
