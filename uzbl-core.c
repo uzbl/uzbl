@@ -550,6 +550,7 @@ find_existing_file(gchar* path_list) {
     int cnt;
     gchar **split;
     gchar *tmp = NULL;
+    gchar *executable;
 
     if(!path_list)
         return NULL;
@@ -567,8 +568,16 @@ find_existing_file(gchar* path_list) {
         cnt = i-1;
 
     i=0;
+    tmp = g_strdup(split[cnt]);
+    g_strstrip(tmp);
+    if(tmp[0] == '/')
+        executable = g_strdup_printf("%s", tmp+1);
+    else
+        executable = g_strdup(tmp);
+    g_free(tmp);
+
     while(i<cnt) {
-        tmp = g_strconcat(split[i], "/", split[cnt], NULL);
+        tmp = g_strconcat(g_strstrip(split[i]), "/", executable, NULL);
         if(g_file_test(tmp, G_FILE_TEST_EXISTS)) {
             g_strfreev(split);
             return tmp;
