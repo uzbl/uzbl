@@ -544,6 +544,46 @@ read_file_by_line (const gchar *path) {
     return lines;
 }
 
+/* search a PATH style string for an existing file+path combination */
+gchar*
+find_existing_file(gchar* path_list) {
+    int i=0;
+    int cnt;
+    gchar **split;
+    gchar *tmp = NULL;
+
+    if(!path_list)
+        return NULL;
+
+    split = g_strsplit(path_list, ":", 0);
+    while(split[i])
+        i++;
+
+    if(i<=1) {
+        tmp = g_strdup(split[0]);
+        g_strfreev(split);
+        return tmp;
+    }
+    else
+        cnt = i-1;
+
+    i=0;
+    while(i<cnt) {
+        tmp = g_strconcat(split[i], "/", split[cnt], NULL);
+        if(g_file_test(tmp, G_FILE_TEST_EXISTS)) {
+            g_strfreev(split);
+            return tmp;
+        }
+        else
+            g_free(tmp);
+        i++;
+    }
+
+    g_strfreev(split);
+    return NULL;
+}
+
+
 gchar*
 parseenv (char* string) {
     extern char** environ;
@@ -1453,9 +1493,15 @@ split_quoted(const gchar* src, const gboolean unquote) {
 void
 spawn(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
+    gchar *path = NULL;
     //TODO: allow more control over argument order so that users can have some arguments before the default ones from run_command, and some after
-    if (argv_idx(argv, 0))
-        run_command(argv_idx(argv, 0), 0, ((const gchar **) (argv->data + sizeof(gchar*))), FALSE, NULL);
+    if ( argv_idx(argv, 0) &&
+            ((path = find_existing_file(argv_idx(argv, 0)))) ) {
+        run_command(path, 0,
+                ((const gchar **) (argv->data + sizeof(gchar*))),
+                FALSE, NULL);
+        g_free(path);
+    }
 }
 
 void
@@ -2951,6 +2997,7 @@ main (int argc, char* argv[]) {
     } else if (uzbl.state.uri)
         cmd_load_uri();
 
+    //printf("FILE:  %s\n", find_existing_file("/bar:/home/robert:/usr:/tmp:style.css"));
     gtk_main ();
     clean_up();
 
