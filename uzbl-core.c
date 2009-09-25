@@ -406,7 +406,7 @@ send_event_socket(GString *msg) {
     gsize len;
     guint i=0;
 
-    if(uzbl.comm.socket_path && 
+    if(uzbl.comm.socket_path &&
             uzbl.comm.clientchan  &&
             uzbl.comm.clientchan->is_writeable) {
 
@@ -415,7 +415,7 @@ send_event_socket(GString *msg) {
 
             while(i < uzbl.state.event_buffer->len) {
                 tmp = g_ptr_array_index(uzbl.state.event_buffer, i++);
-                ret = g_io_channel_write_chars (uzbl.comm.clientchan, 
+                ret = g_io_channel_write_chars (uzbl.comm.clientchan,
                         tmp->str, tmp->len,
                         &len, &error);
                 /* is g_ptr_array_free(uzbl.state.event_buffer, TRUE) enough? */
@@ -429,7 +429,7 @@ send_event_socket(GString *msg) {
             uzbl.state.event_buffer = NULL;
         }
         if(msg) {
-            ret = g_io_channel_write_chars (uzbl.comm.clientchan, 
+            ret = g_io_channel_write_chars (uzbl.comm.clientchan,
                     msg->str, msg->len,
                     &len, &error);
 
@@ -455,10 +455,10 @@ send_event_stdout(GString *msg) {
     fflush(stdout);
 }
 
-/* 
- * build event string and send over the supported interfaces 
+/*
+ * build event string and send over the supported interfaces
  * custom_event == NULL indicates an internal event
-*/ 
+*/
 void
 send_event(int type, const gchar *details, const gchar *custom_event) {
     GString *event_message = g_string_new("");
@@ -1011,7 +1011,7 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     /* a request is just semantic sugar to make things more obvious for
      * the user, technically events and requests are the very same thing
     */
-    { "request",               {event, TRUE}                  }, 
+    { "request",               {event, TRUE}                  },
     { "update_gui",            {update_gui, TRUE}             }
 };
 
@@ -1093,7 +1093,7 @@ event(WebKitWebView *page, GArray *argv, GString *result) {
 void
 print(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
-    gchar* buf;                                                                                                                          
+    gchar* buf;
 
     buf = expand(argv_idx(argv, 0), 0);
     g_string_assign(result, buf);
@@ -2026,7 +2026,7 @@ parse_cmd_line(const char *ctl_line, GString *result) {
     g_free(work_string);
 
     if( strcmp(g_strchug(ctlstrip), "") &&
-        strcmp(exp_line = expand(ctlstrip, 0), "") 
+        strcmp(exp_line = expand(ctlstrip, 0), "")
       ) {
             /* ignore comments */
             if((exp_line[0] == '#'))
