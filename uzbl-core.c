@@ -527,7 +527,6 @@ read_file_by_line (const gchar *path) {
     int i = 0;
 
     chan = g_io_channel_new_file(path, "r", NULL);
-
     if (chan) {
         while (g_io_channel_read_line(chan, &readbuf, &len, NULL, NULL) == G_IO_STATUS_NORMAL) {
             const gchar* val = g_strdup (readbuf);
@@ -1271,8 +1270,11 @@ run_js (WebKitWebView * web_view, GArray *argv, GString *result) {
 void
 run_external_js (WebKitWebView * web_view, GArray *argv, GString *result) {
     (void) result;
-    if (argv_idx(argv, 0)) {
-        GArray* lines = read_file_by_line (argv_idx (argv, 0));
+    gchar *path = NULL;
+
+    if (argv_idx(argv, 0) &&
+        ((path = find_existing_file(argv_idx(argv, 0)))) ) {
+        GArray* lines = read_file_by_line (path);
         gchar*  js = NULL;
         int i = 0;
         gchar* line;
@@ -1299,6 +1301,7 @@ run_external_js (WebKitWebView * web_view, GArray *argv, GString *result) {
         eval_js (web_view, js, result);
         g_free (js);
         g_array_free (lines, TRUE);
+        g_free(path);
     }
 }
 
