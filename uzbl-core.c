@@ -2228,6 +2228,7 @@ control_socket(GIOChannel *chan) {
                          (struct sockaddr *) &remote, &t);
 
     if ((uzbl.comm.clientchan = g_io_channel_unix_new(clientsock))) {
+        g_io_channel_set_encoding(uzbl.comm.clientchan, NULL, NULL);
         g_io_add_watch(uzbl.comm.clientchan, G_IO_IN|G_IO_HUP,
                        (GIOFunc) control_client_socket, uzbl.comm.clientchan);
         /* replay buffered events */
