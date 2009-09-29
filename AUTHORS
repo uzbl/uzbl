@@ -20,6 +20,7 @@ In alphabetical order:
     Aaron Griffin (phrakture) - Makefile patches to build on OSX
     Abel Camarillo (00z) - various portability fixes, such as BSD fixes for Makefile and posix shell scripts
     Andraž 'ruskie' Levstik - font_family patch
+    Barak A. Pearlmutter - typo fix
     Brendan Taylor (bct) - various bugfixes, making misc variables much better using expand(), refactoring some internal var stuff
     Chris Mason - code snippets such as basic cookie handler
     Chris van Dijk (quigybo) - work on uzbl_tabbed.py
