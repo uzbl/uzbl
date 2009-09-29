@@ -8,12 +8,12 @@
 # But this shouldn't cause much problems..
 
 
-if [ x"$XDG_DATA_HOME" == 'x' ]
+if [ -z "$XDG_DATA_HOME" ]
 then
 	XDG_DATA_HOME=$HOME/.local/share
 fi
 
-if [ x"$XDG_CACHE_HOME" == 'x' ]
+if [ -z "$XDG_CACHE_HOME" ]
 then
 	XDG_CACHE_HOME=$HOME/.cache
 fi
@@ -31,7 +31,7 @@ SOCKET_PATH="$SOCKET_DIR/uzbl_socket_$SOCKET_ID"
 uzbl-core "$@" -n $SOCKET_ID &
 $XDG_DATA_HOME/uzbl/scripts/event_manager.py -vs $SOCKET_PATH
 
-if [[ -S $SOCKETPATH ]]
+if [ -S $SOCKETPATH ]
 then
 	rm $SOCKET_PATH
 fi
