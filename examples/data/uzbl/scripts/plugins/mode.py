@@ -156,5 +156,4 @@ def init(uzbl):
       'LOAD_START': load_reset,
       'TOGGLE_MODES': toggle_modes}
 
-    for (event, handler) in connects.items():
-        uzbl.connect(event, handler)
+    uzbl.connect_dict(connects)

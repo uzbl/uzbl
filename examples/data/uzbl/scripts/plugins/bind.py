@@ -371,5 +371,4 @@ def init(uzbl):
       'MODCMD_EXEC': modcmd_exec,
       'MODE_CHANGED': clear_stack}
 
-    for (event, handler) in connects.items():
-        uzbl.connect(event, handler)
+    uzbl.connect_dict(connects)

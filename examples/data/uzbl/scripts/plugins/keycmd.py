@@ -296,5 +296,4 @@ def init(uzbl):
       'KEY_PRESS': key_press,
       'KEY_RELEASE': key_release}
 
-    for (event, handler) in connects.items():
-        uzbl.connect(event, handler)
+    uzbl.connect_dict(connects)

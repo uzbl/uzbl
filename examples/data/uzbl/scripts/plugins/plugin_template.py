@@ -10,13 +10,13 @@ UZBLS = {}
 DEFAULTS = {}
 
 
-def add_instance(uzbl, pid):
+def add_instance(uzbl, *args):
     '''Add a new instance with default config options.'''
 
     UZBLS[uzbl] = dict(DEFAULTS)
 
 
-def del_instance(uzbl, pid):
+def del_instance(uzbl, *args):
     '''Delete data stored for an instance.'''
 
     if uzbl in UZBLS:
@@ -58,12 +58,18 @@ def init(uzbl):
     is called each time a UzblInstance() object is created in the event
     manager.'''
 
+    # Make a dictionary comprising of {"EVENT_NAME": handler, ..} to the event
+    # handler stack:
     connects = {
-      # EVENT_NAME       HANDLER_FUNCTION
       'INSTANCE_START':  add_instance,
       'INSTANCE_EXIT':   del_instance,
       'MYPLUGIN_EVENT':  myplugin_event_parser,
     }
 
-    for (event, handler) in connects.items():
-        uzbl.connect(event, handler)
+    # And connect the dicts event handlers to the handler stack.
+    uzbl.connect_dict(connects)
+
+    # Or connect a handler to an event manually and supply additional optional
+    # arguments:
+
+    #uzbl.connect("MYOTHER_EVENT", myother_event_parser, True, limit=20)

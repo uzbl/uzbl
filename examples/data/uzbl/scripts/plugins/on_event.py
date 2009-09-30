@@ -109,9 +109,9 @@ def parse_on_event(uzbl, args):
 
 
 def init(uzbl):
+
     connects = {'ON_EVENT': parse_on_event,
       'INSTANCE_START': add_instance,
       'INSTANCE_EXIT': del_instance}
 
-    for (event, handler) in connects.items():
-        uzbl.connect(event, handler)
+    uzbl.connect_dict(connects)
