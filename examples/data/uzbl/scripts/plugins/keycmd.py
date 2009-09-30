@@ -44,14 +44,14 @@ class Keylet(object):
 
     def __init__(self):
         self.cmd = ''
+        self.cmd_s = ''
         self.held = []
 
         # to_string() string building cache.
         self._to_string = None
 
         self.modcmd = False
-        self.wasmod = True
-
+        self.wasmod = False
 
     def __repr__(self):
         return '<Keycmd(%r)>' % self.to_string()
@@ -66,12 +66,12 @@ class Keylet(object):
             return self._to_string
 
         if not self.held:
-            self._to_string = self.cmd
+            self._to_string = self.cmd + self.cmd_s
 
         else:
             self._to_string = ''.join(['<%s>' % key for key in self.held])
-            if self.cmd:
-                self._to_string += '%s' % self.cmd
+            if self.cmd or self.cmd_s:
+                self._to_string += '%s%s' % (self.cmd, self.cmd_s)
 
         return self._to_string
 
@@ -128,7 +128,7 @@ def clear_keycmd(uzbl):
     if not k:
         return
 
-    k.cmd = ''
+    k.cmd = k.cmd_s = ''
     k._to_string = None
 
     if k.modcmd:
@@ -156,13 +156,13 @@ def update_event(uzbl, keylet):
         if 'modcmd_updates' in config and config['modcmd_updates'] != '1':
             return
 
-        uzbl.set('keycmd', keycmd_escape(keycmd))
-
     elif 'keycmd_events' not in config or config['keycmd_events'] == '1':
-        keycmd = keylet.cmd
+        keycmd = keylet.cmd + keylet.cmd_s
         uzbl.event('KEYCMD_UPDATE', keylet)
-        if keycmd == keylet.cmd:
-            uzbl.set('keycmd', keycmd_escape(keycmd))
+        if keycmd != (keylet.cmd + keylet.cmd_s):
+            return
+
+    uzbl.set('keycmd', keycmd_escape(keycmd))
 
 
 def key_press(uzbl, key):
@@ -191,16 +191,16 @@ def key_press(uzbl, key):
     if not k:
         return
 
+    print k.held, k.modcmd, k.wasmod, k.cmd, k.cmd_s
     cmdmod = False
     if k.held and k.wasmod:
         k.modcmd = True
         k.wasmod = False
         cmdmod = True
 
-    if k.cmd and key == 'Space':
-        if k.cmd:
-            k.cmd += ' '
-            cmdmod = True
+    if (k.cmd or k.cmd_s) and key == 'Space':
+        k.cmd += ' '
+        cmdmod = True
 
     elif not k.modcmd and key == 'BackSpace':
         if k.cmd:
@@ -211,11 +211,40 @@ def key_press(uzbl, key):
             else:
                 cmdmod = True
 
+    elif not k.modcmd and key == 'Left':
+        if k.cmd:
+            k.cmd_s = k.cmd[-1] + k.cmd_s
+            k.cmd = k.cmd[:-1]
+            cmdmod = True
+
+    elif not k.modcmd and key == 'Right':
+        if k.cmd_s:
+            k.cmd = k.cmd + k.cmd_s[0]
+            k.cmd_s = k.cmd_s[1:]
+            cmdmod = True
+
     elif not k.modcmd and key == 'Return':
         if k.cmd:
             uzbl.event('KEYCMD_EXEC', k)
 
         clear_keycmd(uzbl)
+
+    elif not k.modcmd and key == 'Escape':
+        clear_keycmd(uzbl)
+
+    elif not k.modcmd and key == 'Ctrl':
+           k.held.append(key)
+
+    elif not k.modcmd and k.held and len(key) == 1:
+        if key == 'w':
+            cmdmod = True
+            k.cmd = ' '.join(k.cmd.split(' ')[:-1])
+        elif key == 'a':
+            k.cmd_s = k.cmd + k.cmd_s
+            k.cmd = ''
+        elif key == 'e':
+            k.cmd = k.cmd + k.cmd_s
+            k.cmd_s = ''
 
     elif not k.held and not k.cmd and len(key) > 1:
         k.modcmd = True
@@ -242,9 +271,9 @@ def key_press(uzbl, key):
                 cmdmod = True
                 k.cmd += key
 
-        elif k.cmd:
+        elif k.cmd or k.cmd_s:
             cmdmod = True
-            k.cmd = ''
+            k.cmd = k.cmd_s = ''
 
     if cmdmod:
         update_event(uzbl, k)
@@ -288,12 +317,23 @@ def key_release(uzbl, key):
        update_event(uzbl, k)
 
 
+def config_changed(uzbl, key, value):
+    '''Check for external keycmd updates and update the keylet accordingly.'''
+
+    if key == 'keycmd':
+        k = get_keylet(uzbl)
+        if value != k.cmd + k.cmd_s:
+            k.cmd = value
+            k.cmd_s = ''
+
+
 def init(uzbl):
     '''Connect handlers to uzbl events.'''
 
     connects = {'INSTANCE_START': add_instance,
       'INSTANCE_EXIT': del_instance,
       'KEY_PRESS': key_press,
-      'KEY_RELEASE': key_release}
+      'KEY_RELEASE': key_release,
+      'CONFIG_CHANGED': config_changed}
 
     uzbl.connect_dict(connects)
