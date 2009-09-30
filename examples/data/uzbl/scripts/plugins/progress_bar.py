@@ -155,5 +155,4 @@ def init(uzbl):
       'PROGRESS_CONFIG': progress_config,
       'LOAD_COMMIT': reset_progress}
 
-    for (event, handler) in connects.items():
-        uzbl.connect(event, handler)
+    uzbl.connect_dict(connects)

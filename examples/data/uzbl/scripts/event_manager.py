@@ -439,6 +439,17 @@ class UzblInstance(object):
         return handler
 
 
+    def connect_dict(self, connect_dict):
+        '''Connect a dictionary comprising of {"EVENT_NAME": handler, ..} to
+        the event handler stack.
+
+        If you need to supply args or kargs to an event use the normal connect
+        function.'''
+
+        for (event, handler) in connect_dict.items():
+            self.connect(event, handler)
+
+
     def remove_by_id(self, hid):
         '''Remove connected event handler by unique handler id.'''
 

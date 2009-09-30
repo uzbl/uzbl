@@ -28,7 +28,7 @@ Though you can only get tagged versions from the master branch, which may be old
 Dependencies
 ------------
 * git (for downloading)
-* pkgconfig (for Make/gcc)
+* pkg-config (for Make/gcc)
 * libwebkit 1.1.4 or higher
 * libsoup 2.24 or higher (dep for webkit/gtk+)
 * gtk 2.14 or higher

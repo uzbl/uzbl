@@ -8,12 +8,12 @@
 # But this shouldn't cause much problems..
 
 
-if [ x"$XDG_DATA_HOME" == 'x' ]
+if [ -z "$XDG_DATA_HOME" ]
 then
 	XDG_DATA_HOME=$HOME/.local/share
 fi
 
-if [ x"$XDG_CACHE_HOME" == 'x' ]
+if [ -z "$XDG_CACHE_HOME" ]
 then
 	XDG_CACHE_HOME=$HOME/.cache
 fi
