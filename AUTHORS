@@ -25,6 +25,7 @@ In alphabetical order:
     Chris Mason - code snippets such as basic cookie handler
     Chris van Dijk (quigybo) - work on uzbl_tabbed.py
     Damien Leon - misc
+    David Keijser - keycmd line editing patch for the keycmd plugin.
     Devon Jones <devon.jones@gmail.com> - uzbl_tabbed: bring_to_front
     Dieter Plaetinck (Dieter@be) <dieter AT plaetinck.be> - several contributions
     Dusan Popovic (dusanx) - many contributions to early uzbl
