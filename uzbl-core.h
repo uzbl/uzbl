@@ -11,6 +11,36 @@
  *
  */
 
+#define _POSIX_SOURCE
+
+#include <gtk/gtk.h>
+#include <gdk/gdkx.h>
+#include <gdk/gdkkeysyms.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <sys/utsname.h>
+#include <sys/time.h>
+#include <webkit/webkit.h>
+#include <libsoup/soup.h>
+#include <JavaScriptCore/JavaScript.h>
+
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <assert.h>
+#include <poll.h>
+#include <sys/uio.h>
+#include <sys/ioctl.h>
+#include <assert.h>
+
+#define LENGTH(x) (sizeof x / sizeof x[0])
+
 /* status bar elements */
 typedef struct {
     gint           load_progress;
@@ -170,27 +200,15 @@ typedef struct {
     Window        xwin;
 } UzblCore;
 
+/* Main Uzbl object */
+extern UzblCore uzbl;
+
+typedef void sigfunc(int);
 
 typedef struct {
     char* name;
     char* param;
 } Action;
-
-typedef void sigfunc(int);
-
-/* Event system */
-enum event_type {
-    LOAD_START, LOAD_COMMIT, LOAD_FINISH, LOAD_ERROR,
-    KEY_PRESS, KEY_RELEASE, DOWNLOAD_REQ, COMMAND_EXECUTED,
-    LINK_HOVER, TITLE_CHANGED, GEOMETRY_CHANGED,
-    WEBINSPECTOR, NEW_WINDOW, SELECTION_CHANGED,
-    VARIABLE_SET, FIFO_SET, SOCKET_SET,
-    INSTANCE_START, INSTANCE_EXIT, LOAD_PROGRESS,
-    LINK_UNHOVER,
-
-    /* must be last entry */
-    LAST_EVENT
-};
 
 /* XDG Stuff */
 typedef struct {
@@ -198,14 +216,6 @@ typedef struct {
     gchar* default_value;
 } XDG_Var;
 
-XDG_Var XDG[] =
-{
-    { "XDG_CONFIG_HOME", "~/.config" },
-    { "XDG_DATA_HOME",   "~/.local/share" },
-    { "XDG_CACHE_HOME",  "~/.cache" },
-    { "XDG_CONFIG_DIRS", "/etc/xdg" },
-    { "XDG_DATA_DIRS",   "/usr/local/share/:/usr/share/" },
-};
 
 /* Functions */
 char *
@@ -228,6 +238,9 @@ catch_sigterm(int s);
 
 sigfunc *
 setup_signal(int signe, sigfunc *shandler);
+
+gchar*
+parseenv (char* string);
 
 gboolean
 set_var_value(const gchar *name, gchar *val);
