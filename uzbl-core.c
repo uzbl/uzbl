@@ -2163,7 +2163,6 @@ main (int argc, char* argv[]) {
     } else if (uzbl.state.uri)
         cmd_load_uri();
 
-    //printf("FILE:  %s\n", find_existing_file("/bar:/home/robert:/usr:/tmp:style.css"));
     gtk_main ();
     clean_up();
 
