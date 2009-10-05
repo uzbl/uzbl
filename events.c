@@ -1,5 +1,6 @@
-/* Uzbl event routines 
- * (c) 2009 by Robert Manea
+/* 
+ ** Uzbl event routines 
+ ** (c) 2009 by Robert Manea
 */
 
 #include "uzbl-core.h"

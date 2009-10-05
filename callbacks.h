@@ -1,5 +1,6 @@
-/* (c) 2009 by Robert Manea
- * Callbacks
+/* 
+ ** Callbacks
+ ** (c) 2009 by Robert Manea et al.
 */
 
 void
