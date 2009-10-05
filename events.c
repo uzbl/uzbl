@@ -3,7 +3,7 @@
 */
 
 #include "uzbl-core.h"
-#include "uzbl-events.h"
+#include "events.h"
 
 UzblCore uzbl;
 
