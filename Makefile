@@ -12,19 +12,26 @@ OBJ = ${SRC:.c=.o}
 all: uzbl-browser options
 
 options:
-	@echo uzbl-core build options:
+	@echo
+	@echo BUILD OPTIONS:
 	@echo "CFLAGS   = ${CFLAGS}"
 	@echo "LDFLAGS  = ${LDFLAGS}"
+	@echo
+	@echo See the README file for usage instructions.
+
 
 .c.o:
-	@echo Compiling $<
+	@echo COMPILING $<
 	@${CC} -c ${CFLAGS} $<
+	@echo ... done.
 
 ${OBJ}: uzbl-core.h events.h callbacks.h config.h
 
 uzbl-core: ${OBJ}
-	@echo Linking object files
+	@echo
+	@echo LINKING object files
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
+	@echo ... done.
 
 
 
