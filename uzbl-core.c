@@ -32,6 +32,7 @@
 #include "uzbl-core.h"
 #include "callbacks.h"
 #include "events.h"
+#include "inspector.h"
 #include "config.h"
 
 UzblCore uzbl;
@@ -1653,24 +1654,6 @@ update_title (void) {
     }
 }
 
-
-void
-key_to_event(guint keyval, gint mode) {
-    char byte[2];
-
-    /* check for Latin-1 characters  (1:1 mapping) */
-    if ((keyval >  0x0020 && keyval <= 0x007e) ||
-        (keyval >= 0x00a0 && keyval <= 0x00ff)) {
-        sprintf(byte, "%c", keyval);
-        send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
-                byte, NULL);
-    }
-    else
-        send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
-                gdk_keyval_name(keyval), NULL);
-
-}
-
 void
 create_browser () {
     GUI *g = &uzbl.gui;
@@ -1972,101 +1955,6 @@ save_cookies (SoupMessage *msg, gpointer user_data){
         g_string_free(s, TRUE);
     }
     g_slist_free(ck);
-}
-
-/* --- WEBINSPECTOR --- */
-void
-hide_window_cb(GtkWidget *widget, gpointer data) {
-    (void) data;
-
-    gtk_widget_hide(widget);
-}
-
-WebKitWebView*
-create_inspector_cb (WebKitWebInspector* web_inspector, WebKitWebView* page, gpointer data){
-    (void) data;
-    (void) page;
-    (void) web_inspector;
-    GtkWidget* scrolled_window;
-    GtkWidget* new_web_view;
-    GUI *g = &uzbl.gui;
-
-    g->inspector_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    g_signal_connect(G_OBJECT(g->inspector_window), "delete-event",
-            G_CALLBACK(hide_window_cb), NULL);
-
-    gtk_window_set_title(GTK_WINDOW(g->inspector_window), "Uzbl WebInspector");
-    gtk_window_set_default_size(GTK_WINDOW(g->inspector_window), 400, 300);
-    gtk_widget_show(g->inspector_window);
-
-    scrolled_window = gtk_scrolled_window_new(NULL, NULL);
-    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window),
-            GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-    gtk_container_add(GTK_CONTAINER(g->inspector_window), scrolled_window);
-    gtk_widget_show(scrolled_window);
-
-    new_web_view = webkit_web_view_new();
-    gtk_container_add(GTK_CONTAINER(scrolled_window), new_web_view);
-
-    return WEBKIT_WEB_VIEW(new_web_view);
-}
-
-gboolean
-inspector_show_window_cb (WebKitWebInspector* inspector){
-    (void) inspector;
-    gtk_widget_show(uzbl.gui.inspector_window);
-
-    send_event(WEBINSPECTOR, "open", NULL);
-    return TRUE;
-}
-
-/* TODO: Add variables and code to make use of these functions */
-gboolean
-inspector_close_window_cb (WebKitWebInspector* inspector){
-    (void) inspector;
-    send_event(WEBINSPECTOR, "close", NULL);
-    return TRUE;
-}
-
-gboolean
-inspector_attach_window_cb (WebKitWebInspector* inspector){
-    (void) inspector;
-    return FALSE;
-}
-
-gboolean
-inspector_detach_window_cb (WebKitWebInspector* inspector){
-    (void) inspector;
-    return FALSE;
-}
-
-gboolean
-inspector_uri_changed_cb (WebKitWebInspector* inspector){
-    (void) inspector;
-    return FALSE;
-}
-
-gboolean
-inspector_inspector_destroyed_cb (WebKitWebInspector* inspector){
-    (void) inspector;
-    return FALSE;
-}
-
-void
-set_up_inspector() {
-    GUI *g = &uzbl.gui;
-    WebKitWebSettings *settings = view_settings();
-    g_object_set(G_OBJECT(settings), "enable-developer-extras", TRUE, NULL);
-
-    uzbl.gui.inspector = webkit_web_view_get_inspector(uzbl.gui.web_view);
-    g_signal_connect (G_OBJECT (g->inspector), "inspect-web-view", G_CALLBACK (create_inspector_cb), NULL);
-    g_signal_connect (G_OBJECT (g->inspector), "show-window", G_CALLBACK (inspector_show_window_cb), NULL);
-    g_signal_connect (G_OBJECT (g->inspector), "close-window", G_CALLBACK (inspector_close_window_cb), NULL);
-    g_signal_connect (G_OBJECT (g->inspector), "attach-window", G_CALLBACK (inspector_attach_window_cb), NULL);
-    g_signal_connect (G_OBJECT (g->inspector), "detach-window", G_CALLBACK (inspector_detach_window_cb), NULL);
-    g_signal_connect (G_OBJECT (g->inspector), "finished", G_CALLBACK (inspector_inspector_destroyed_cb), NULL);
-
-    g_signal_connect (G_OBJECT (g->inspector), "notify::inspected-uri", G_CALLBACK (inspector_uri_changed_cb), NULL);
 }
 
 void

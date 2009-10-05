@@ -6,7 +6,7 @@ CFLAGS!=echo -std=c99 `pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthre
 LDFLAGS:=$(shell pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0) -pthread $(LDFLAGS)
 LDFLAGS!=echo `pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` -pthread $(LDFLAGS)
 
-SRC = uzbl-core.c events.c callbacks.c
+SRC = uzbl-core.c events.c callbacks.c inspector.c
 OBJ = ${SRC:.c=.o}
 
 all: uzbl-browser options
@@ -25,7 +25,7 @@ options:
 	@${CC} -c ${CFLAGS} $<
 	@echo ... done.
 
-${OBJ}: uzbl-core.h events.h callbacks.h config.h
+${OBJ}: uzbl-core.h events.h callbacks.h inspector.h config.h
 
 uzbl-core: ${OBJ}
 	@echo
@@ -69,6 +69,7 @@ clean:
 	rm -f uzbl-core.o
 	rm -f events.o
 	rm -f callbacks.o
+	rm -f inspector.o
 	cd ./tests/; $(MAKE) clean
 
 install: all

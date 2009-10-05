@@ -28,3 +28,6 @@ send_event_stdout(GString *msg);
 
 void
 send_event(int type, const gchar *details, const gchar *custom_event);
+
+void
+key_to_event(guint keyval, gint mode);

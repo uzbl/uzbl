@@ -422,9 +422,6 @@ update_gui(WebKitWebView *page, GArray *argv, GString *result);
 void
 event(WebKitWebView *page, GArray *argv, GString *result);
 
-void
-key_to_event(guint keyval, gint mode);
-
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
 typedef struct {
     Command function;
