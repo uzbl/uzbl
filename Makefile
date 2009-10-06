@@ -1,20 +1,50 @@
 # first entries are for gnu make, 2nd for BSD make.  see http://lists.uzbl.org/pipermail/uzbl-dev-uzbl.org/2009-July/000177.html
 
-CFLAGS:=-std=c99 $(shell pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -lgthread-2.0 -DG_ERRORCHECK_MUTEXES -DCOMMIT="\"$(shell git log | head -n1 | sed "s/.* //")\"" $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic -ggdb3
-CFLAGS!=echo -std=c99 `pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` -ggdb -Wall -W -DARCH='"\""'`uname -m`'"\""' -lgthread-2.0 -DG_ERRORCHECK_MUTEXES -DCOMMIT='"\""'`git log | head -n1 | sed "s/.* //"`'"\""' $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic -ggdb3
+CFLAGS:=-std=c99 $(shell pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -lgthread-2.0 -DCOMMIT="\"$(shell git log | head -n1 | sed "s/.* //")\"" $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic -ggdb3
+CFLAGS!=echo -std=c99 `pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` -ggdb -Wall -W -DARCH='"\""'`uname -m`'"\""' -lgthread-2.0 -DCOMMIT='"\""'`git log | head -n1 | sed "s/.* //"`'"\""' $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic -ggdb3
 
 LDFLAGS:=$(shell pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0) -pthread $(LDFLAGS)
 LDFLAGS!=echo `pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` -pthread $(LDFLAGS)
 
-all: uzbl-browser
+SRC = uzbl-core.c events.c callbacks.c inspector.c
+OBJ = ${SRC:.c=.o}
+
+all: uzbl-browser options
+
+options:
+	@echo
+	@echo BUILD OPTIONS:
+	@echo "CFLAGS   = ${CFLAGS}"
+	@echo "LDFLAGS  = ${LDFLAGS}"
+	@echo
+	@echo See the README file for usage instructions.
+
+
+.c.o:
+	@echo COMPILING $<
+	@${CC} -c ${CFLAGS} $<
+	@echo ... done.
+
+${OBJ}: uzbl-core.h events.h callbacks.h inspector.h config.h
+
+uzbl-core: ${OBJ}
+	@echo
+	@echo LINKING object files
+	@${CC} -o $@ ${OBJ} ${LDFLAGS}
+	@echo ... done.
+	@echo Stripping binary
+	@strip $@
+	@echo ... done.
+
+
 
 uzbl-browser: uzbl-core
 
 PREFIX?=$(DESTDIR)/usr/local
 
 # When compiling unit tests, compile uzbl as a library first
-tests: uzbl-core.o
-	$(CC) -DUZBL_LIBRARY -shared -Wl uzbl-core.o -o ./tests/libuzbl-core.so
+tests: uzbl-core.o uzbl-events.o
+	$(CC) -DUZBL_LIBRARY -shared -Wl uzbl-core.o uzbl-events.o -o ./tests/libuzbl-core.so
 	cd ./tests/; $(MAKE)
 
 test: uzbl-core
@@ -40,9 +70,12 @@ test-share-browser: uzbl-browser
 clean:
 	rm -f uzbl-core
 	rm -f uzbl-core.o
+	rm -f events.o
+	rm -f callbacks.o
+	rm -f inspector.o
 	cd ./tests/; $(MAKE) clean
 
-install:
+install: all
 	install -d $(PREFIX)/bin
 	install -d $(PREFIX)/share/uzbl/docs
 	install -d $(PREFIX)/share/uzbl/examples
@@ -58,3 +91,4 @@ install:
 uninstall:
 	rm -rf $(PREFIX)/bin/uzbl-*
 	rm -rf $(PREFIX)/share/uzbl
+

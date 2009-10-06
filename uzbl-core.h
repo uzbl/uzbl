@@ -7,9 +7,38 @@
  *
  * (c) 2009 by Robert Manea
  *     - introduced struct concept
- *     - statusbar template
  *
  */
+
+#define _POSIX_SOURCE
+
+#include <gtk/gtk.h>
+#include <gdk/gdkx.h>
+#include <gdk/gdkkeysyms.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <sys/utsname.h>
+#include <sys/time.h>
+#include <webkit/webkit.h>
+#include <libsoup/soup.h>
+#include <JavaScriptCore/JavaScript.h>
+
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <assert.h>
+#include <poll.h>
+#include <sys/uio.h>
+#include <sys/ioctl.h>
+#include <assert.h>
+
+#define LENGTH(x) (sizeof x / sizeof x[0])
 
 /* status bar elements */
 typedef struct {
@@ -170,27 +199,15 @@ typedef struct {
     Window        xwin;
 } UzblCore;
 
+/* Main Uzbl object */
+extern UzblCore uzbl;
+
+typedef void sigfunc(int);
 
 typedef struct {
     char* name;
     char* param;
 } Action;
-
-typedef void sigfunc(int);
-
-/* Event system */
-enum event_type {
-    LOAD_START, LOAD_COMMIT, LOAD_FINISH, LOAD_ERROR,
-    KEY_PRESS, KEY_RELEASE, DOWNLOAD_REQ, COMMAND_EXECUTED,
-    LINK_HOVER, TITLE_CHANGED, GEOMETRY_CHANGED,
-    WEBINSPECTOR, NEW_WINDOW, SELECTION_CHANGED,
-    VARIABLE_SET, FIFO_SET, SOCKET_SET,
-    INSTANCE_START, INSTANCE_EXIT, LOAD_PROGRESS,
-    LINK_UNHOVER,
-
-    /* must be last entry */
-    LAST_EVENT
-};
 
 /* XDG Stuff */
 typedef struct {
@@ -198,14 +215,6 @@ typedef struct {
     gchar* default_value;
 } XDG_Var;
 
-XDG_Var XDG[] =
-{
-    { "XDG_CONFIG_HOME", "~/.config" },
-    { "XDG_DATA_HOME",   "~/.local/share" },
-    { "XDG_CACHE_HOME",  "~/.cache" },
-    { "XDG_CONFIG_DIRS", "/etc/xdg" },
-    { "XDG_DATA_DIRS",   "/usr/local/share/:/usr/share/" },
-};
 
 /* Functions */
 char *
@@ -213,6 +222,9 @@ itos(int val);
 
 char *
 str_replace (const char* search, const char* replace, const char* string);
+
+gchar*
+strfree(gchar *str);
 
 GArray*
 read_file_by_line (const gchar *path);
@@ -229,56 +241,14 @@ catch_sigterm(int s);
 sigfunc *
 setup_signal(int signe, sigfunc *shandler);
 
+gchar*
+parseenv (char* string);
+
 gboolean
 set_var_value(const gchar *name, gchar *val);
 
 void
 print(WebKitWebView *page, GArray *argv, GString *result);
-
-gboolean
-navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data);
-
-gboolean
-new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data);
-
-gboolean
-mime_policy_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, gchar *mime_type,  WebKitWebPolicyDecision *policy_decision, gpointer user_data);
-
-/*@null@*/ WebKitWebView*
-create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data);
-
-gboolean
-download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data);
-
-void
-toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result);
-
-void
-toggle_status_cb (WebKitWebView* page, GArray *argv, GString *result);
-
-void
-link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data);
-
-void
-title_change_cb (WebKitWebView* web_view, GParamSpec param_spec);
-
-void
-progress_change_cb (WebKitWebView* page, gint progress, gpointer data);
-
-void
-load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
-
-void
-load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
-
-void
-load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
-
-void
-selection_changed_cb(WebKitWebView *webkitwebview, gpointer ud);
-
-void
-destroy_cb (GtkWidget* widget, gpointer data);
 
 void
 commands_hash(void);
@@ -452,132 +422,10 @@ update_gui(WebKitWebView *page, GArray *argv, GString *result);
 void
 event(WebKitWebView *page, GArray *argv, GString *result);
 
-gboolean
-configure_event_cb(GtkWidget* window, GdkEventConfigure* event);
-
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
 typedef struct {
     Command function;
     gboolean no_split;
 } CommandInfo;
-
-/* Command callbacks */
-void
-cmd_load_uri();
-
-void
-cmd_set_status();
-
-void
-set_proxy_url();
-
-void
-set_icon();
-
-void
-cmd_cookie_handler();
-
-void
-cmd_scheme_handler();
-
-void
-move_statusbar();
-
-void
-cmd_http_debug();
-
-void
-cmd_max_conns();
-
-void
-cmd_max_conns_host();
-
-/* exported WebKitWebSettings properties */
-
-void
-cmd_font_size();
-
-void
-cmd_default_font_family();
-
-void
-cmd_monospace_font_family();
-
-void
-cmd_sans_serif_font_family();
-
-void
-cmd_serif_font_family();
-
-void
-cmd_cursive_font_family();
-
-void
-cmd_fantasy_font_family();
-
-void
-cmd_zoom_level();
-
-void
-cmd_disable_plugins();
-
-void
-cmd_disable_scripts();
-
-void
-cmd_minimum_font_size();
-
-void
-cmd_fifo_dir();
-
-void
-cmd_socket_dir();
-
-void
-cmd_useragent() ;
-
-void
-cmd_autoload_img();
-
-void
-cmd_autoshrink_img();
-
-void
-cmd_enable_spellcheck();
-
-void
-cmd_enable_private();
-
-void
-cmd_print_bg();
-
-void
-cmd_style_uri();
-
-void
-cmd_resizable_txt();
-
-void
-cmd_default_encoding();
-
-void
-cmd_enforce_96dpi();
-
-void
-cmd_inject_html();
-
-void
-cmd_caret_browsing();
-
-void
-cmd_set_geometry();
-
-/*
-void
-cmd_view_source();
-*/
-
-void
-cmd_load_start();
 
 /* vi: set et ts=4: */

@@ -29,36 +29,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-#define LENGTH(x) (sizeof x / sizeof x[0])
-#define _POSIX_SOURCE
-
-#include <gtk/gtk.h>
-#include <gdk/gdkx.h>
-#include <gdk/gdkkeysyms.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/un.h>
-#include <sys/utsname.h>
-#include <sys/time.h>
-#include <webkit/webkit.h>
-#include <libsoup/soup.h>
-#include <JavaScriptCore/JavaScript.h>
-
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <assert.h>
-#include <poll.h>
-#include <sys/uio.h>
-#include <sys/ioctl.h>
-#include <assert.h>
 #include "uzbl-core.h"
+#include "callbacks.h"
+#include "events.h"
+#include "inspector.h"
 #include "config.h"
 
 UzblCore uzbl;
@@ -84,9 +58,17 @@ GOptionEntry entries[] =
     { NULL,      0, 0, 0, NULL, NULL, NULL }
 };
 
-enum ptr_type {TYPE_INT, TYPE_STR, TYPE_FLOAT};
+XDG_Var XDG[] =
+{
+    { "XDG_CONFIG_HOME", "~/.config" },
+    { "XDG_DATA_HOME",   "~/.local/share" },
+    { "XDG_CACHE_HOME",  "~/.cache" },
+    { "XDG_CONFIG_DIRS", "/etc/xdg" },
+    { "XDG_DATA_DIRS",   "/usr/local/share/:/usr/share/" },
+};
 
 /* associate command names to their properties */
+enum ptr_type {TYPE_INT, TYPE_STR, TYPE_FLOAT};
 typedef struct {
     enum ptr_type type;
     union {
@@ -183,38 +165,6 @@ const struct var_name_to_ptr_t {
 
     { NULL,                     {.ptr.s = NULL, .type = TYPE_INT, .dump = 0, .writeable = 0, .func = NULL}}
 };
-
-/* Event id to name mapping
- * Event names must be in the same
- * order as in 'enum event_type'
- *
- * TODO: Add more useful events
-*/
-const char *event_table[LAST_EVENT] = {
-     "LOAD_START"       ,
-     "LOAD_COMMIT"      ,
-     "LOAD_FINISH"      ,
-     "LOAD_ERROR"       ,
-     "KEY_PRESS"        ,
-     "KEY_RELEASE"      ,
-     "DOWNLOAD_REQUEST" ,
-     "COMMAND_EXECUTED" ,
-     "LINK_HOVER"       ,
-     "TITLE_CHANGED"    ,
-     "GEOMETRY_CHANGED" ,
-     "WEBINSPECTOR"     ,
-     "NEW_WINDOW"       ,
-     "SELECTION_CHANGED",
-     "VARIABLE_SET"     ,
-     "FIFO_SET"         ,
-     "SOCKET_SET"       ,
-     "INSTANCE_START"   ,
-     "INSTANCE_EXIT"    ,
-     "LOAD_PROGRESS"    ,
-     "LINK_UNHOVER"
-};
-
-
 /* construct a hash from the var_name_to_ptr array for quick access */
 void
 create_var_to_name_hash() {
@@ -388,110 +338,6 @@ expand(const char *s, guint recurse) {
     return g_string_free(buf, FALSE);
 }
 
-void
-event_buffer_timeout(guint sec) {
-    struct itimerval t;
-    memset(&t, 0, sizeof t);
-    t.it_value.tv_sec = sec;
-    t.it_value.tv_usec = 0;
-    setitimer(ITIMER_REAL, &t, NULL);
-}
-
-
-void
-send_event_socket(GString *msg) {
-    GError *error = NULL;
-    GString *tmp;
-    GIOStatus ret;
-    gsize len;
-    guint i=0;
-
-    if(uzbl.comm.socket_path &&
-            uzbl.comm.clientchan  &&
-            uzbl.comm.clientchan->is_writeable) {
-
-        if(uzbl.state.event_buffer) {
-            event_buffer_timeout(0);
-
-            while(i < uzbl.state.event_buffer->len) {
-                tmp = g_ptr_array_index(uzbl.state.event_buffer, i++);
-                ret = g_io_channel_write_chars (uzbl.comm.clientchan,
-                        tmp->str, tmp->len,
-                        &len, &error);
-                /* is g_ptr_array_free(uzbl.state.event_buffer, TRUE) enough? */
-                //g_string_free(tmp, TRUE);
-                if (ret == G_IO_STATUS_ERROR) {
-                    g_warning ("Error sending event to socket: %s", error->message);
-                }
-                g_io_channel_flush(uzbl.comm.clientchan, &error);
-            }
-            g_ptr_array_free(uzbl.state.event_buffer, TRUE);
-            uzbl.state.event_buffer = NULL;
-        }
-        if(msg) {
-            ret = g_io_channel_write_chars (uzbl.comm.clientchan,
-                    msg->str, msg->len,
-                    &len, &error);
-
-            if (ret == G_IO_STATUS_ERROR) {
-                g_warning ("Error sending event to socket: %s", error->message);
-            }
-            g_io_channel_flush(uzbl.comm.clientchan, &error);
-        }
-    }
-    /* buffer events until a socket is set and connected
-     * or a timeout is encountered
-    */
-    else {
-        if(!uzbl.state.event_buffer)
-            uzbl.state.event_buffer = g_ptr_array_new();
-        g_ptr_array_add(uzbl.state.event_buffer, (gpointer)g_string_new(msg->str));
-    }
-}
-
-void
-send_event_stdout(GString *msg) {
-    printf("%s", msg->str);
-    fflush(stdout);
-}
-
-/*
- * build event string and send over the supported interfaces
- * custom_event == NULL indicates an internal event
-*/
-void
-send_event(int type, const gchar *details, const gchar *custom_event) {
-    GString *event_message = g_string_new("");
-    gchar *buf, *p_val = NULL;
-
-    /* expand shell vars */
-    if(details) {
-        buf = g_strdup(details);
-        p_val = parseenv(g_strdup(buf ? g_strchug(buf) : " "));
-        g_free(buf);
-    }
-
-    /* check for custom events */
-    if(custom_event) {
-        g_string_printf(event_message, "EVENT [%s] %s %s\n",
-                uzbl.state.instance_name, custom_event, p_val);
-    }
-    /* check wether we support the internal event */
-    else if(type < LAST_EVENT) {
-        g_string_printf(event_message, "EVENT [%s] %s %s\n",
-                uzbl.state.instance_name, event_table[type], p_val);
-    }
-
-    if(event_message->str) {
-        /* TODO: a means to select the interface to which events are sent */
-        send_event_stdout(event_message);
-        send_event_socket(event_message);
-
-        g_string_free(event_message, TRUE);
-    }
-    g_free(p_val);
-}
-
 char *
 itos(int val) {
     char tmp[20];
@@ -501,7 +347,10 @@ itos(int val) {
 }
 
 gchar*
-strfree(gchar *str) { g_free(str); return NULL; }  // for freeing & setting to null in one go
+strfree(gchar *str) {
+    g_free(str);
+    return NULL; 
+}
 
 gchar*
 argv_idx(const GArray *a, const guint idx) { return g_array_index(a, gchar*, idx); }
@@ -651,7 +500,6 @@ clean_up(void) {
 }
 
 /* --- SIGNAL HANDLER --- */
-
 void
 catch_sigterm(int s) {
     (void) s;
@@ -670,119 +518,6 @@ catch_sigalrm(int s) {
     (void) s;
     g_ptr_array_free(uzbl.state.event_buffer, TRUE);
     uzbl.state.event_buffer = NULL;
-}
-
-/* --- CALLBACKS --- */
-
-gboolean
-navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
-    (void) web_view;
-    (void) frame;
-    (void) navigation_action;
-    (void) user_data;
-
-    const gchar* uri = webkit_network_request_get_uri (request);
-    gboolean decision_made = FALSE;
-
-    if (uzbl.state.verbose)
-        printf("Navigation requested -> %s\n", uri);
-
-    if (uzbl.behave.scheme_handler) {
-        GString *s = g_string_new ("");
-        g_string_printf(s, "'%s'", uri);
-
-        run_handler(uzbl.behave.scheme_handler, s->str);
-
-        if(uzbl.comm.sync_stdout && strcmp (uzbl.comm.sync_stdout, "") != 0) {
-            char *p = strchr(uzbl.comm.sync_stdout, '\n' );
-            if ( p != NULL ) *p = '\0';
-            if (!strcmp(uzbl.comm.sync_stdout, "USED")) {
-                webkit_web_policy_decision_ignore(policy_decision);
-                decision_made = TRUE;
-            }
-        }
-        if (uzbl.comm.sync_stdout)
-            uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
-
-        g_string_free(s, TRUE);
-    }
-    if (!decision_made)
-        webkit_web_policy_decision_use(policy_decision);
-
-    return TRUE;
-}
-
-gboolean
-new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
-    (void) web_view;
-    (void) frame;
-    (void) navigation_action;
-    (void) policy_decision;
-    (void) user_data;
-    const gchar* uri = webkit_network_request_get_uri (request);
-    if (uzbl.state.verbose)
-        printf("New window requested -> %s \n", uri);
-    webkit_web_policy_decision_use(policy_decision);
-    send_event(NEW_WINDOW, uri, NULL);
-    return TRUE;
-}
-
-gboolean
-mime_policy_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, gchar *mime_type,  WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
-    (void) frame;
-    (void) request;
-    (void) user_data;
-
-    /* If we can display it, let's display it... */
-    if (webkit_web_view_can_show_mime_type (web_view, mime_type)) {
-        webkit_web_policy_decision_use (policy_decision);
-        return TRUE;
-    }
-
-    /* ...everything we can't display is downloaded */
-    webkit_web_policy_decision_download (policy_decision);
-    return TRUE;
-}
-
-/*@null@*/ WebKitWebView*
-create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data) {
-    (void) web_view;
-    (void) frame;
-    (void) user_data;
-    if (uzbl.state.selected_url != NULL) {
-        if (uzbl.state.verbose)
-            printf("\nNew web view -> %s\n",uzbl.state.selected_url);
-        new_window_load_uri(uzbl.state.selected_url);
-    } else {
-        if (uzbl.state.verbose)
-            printf("New web view -> %s\n","Nothing to open, exiting");
-    }
-    return (NULL);
-}
-
-gboolean
-download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
-    (void) web_view;
-    (void) user_data;
-    if (uzbl.behave.download_handler) {
-        const gchar* uri = webkit_download_get_uri ((WebKitDownload*)download);
-        if (uzbl.state.verbose)
-            printf("Download -> %s\n",uri);
-        /* if urls not escaped, we may have to escape and quote uri before this call */
-
-        GString *args = g_string_new(uri);
-
-        if (uzbl.net.proxy_url) {
-           g_string_append_c(args, ' ');
-           g_string_append(args, uzbl.net.proxy_url);
-        }
-
-        run_handler(uzbl.behave.download_handler, args->str);
-
-        g_string_free(args, TRUE);
-    }
-    send_event(DOWNLOAD_REQ, webkit_download_get_uri ((WebKitDownload*)download), NULL);
-    return (FALSE);
 }
 
 /* scroll a bar in a given direction */
@@ -833,183 +568,6 @@ scroll_horz(WebKitWebView* page, GArray *argv, GString *result) {
     scroll(uzbl.gui.bar_h, argv);
 }
 
-void
-cmd_set_geometry() {
-    if(!gtk_window_parse_geometry(GTK_WINDOW(uzbl.gui.main_window), uzbl.gui.geometry)) {
-        if(uzbl.state.verbose)
-            printf("Error in geometry string: %s\n", uzbl.gui.geometry);
-    }
-    /* update geometry var with the actual geometry
-       this is necessary as some WMs don't seem to honour
-       the above setting and we don't want to end up with
-       wrong geometry information
-    */
-    retrieve_geometry();
-}
-
-void
-cmd_set_status() {
-    if (!uzbl.behave.show_status) {
-        gtk_widget_hide(uzbl.gui.mainbar);
-    } else {
-        gtk_widget_show(uzbl.gui.mainbar);
-    }
-    update_title();
-}
-
-void
-toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result) {
-    (void)page;
-    (void)argv;
-    (void)result;
-
-    webkit_web_view_set_full_content_zoom (page, !webkit_web_view_get_full_content_zoom (page));
-}
-
-void
-toggle_status_cb (WebKitWebView* page, GArray *argv, GString *result) {
-    (void)page;
-    (void)argv;
-    (void)result;
-
-    if (uzbl.behave.show_status) {
-        gtk_widget_hide(uzbl.gui.mainbar);
-    } else {
-        gtk_widget_show(uzbl.gui.mainbar);
-    }
-    uzbl.behave.show_status = !uzbl.behave.show_status;
-    update_title();
-}
-
-void
-link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data) {
-    (void) page;
-    (void) title;
-    (void) data;
-    State *s = &uzbl.state;
-
-    if(s->selected_url) {
-        if(s->last_selected_url)
-            g_free(s->last_selected_url);
-        s->last_selected_url = g_strdup(s->selected_url);
-    }
-    else {
-        if(s->last_selected_url) g_free(s->last_selected_url);
-        s->last_selected_url = NULL;
-    }
-
-    g_free(s->selected_url);
-    s->selected_url = NULL;
-
-    if (link) {
-        s->selected_url = g_strdup(link);
-
-        if(s->last_selected_url &&
-           g_strcmp0(s->selected_url, s->last_selected_url))
-            send_event(LINK_UNHOVER, s->last_selected_url, NULL);
-
-        send_event(LINK_HOVER, s->selected_url, NULL);
-    }
-    else if(s->last_selected_url) {
-            send_event(LINK_UNHOVER, s->last_selected_url, NULL);
-    }
-
-    update_title();
-}
-
-void
-title_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
-    (void) web_view;
-    (void) param_spec;
-    const gchar *title = webkit_web_view_get_title(web_view);
-    if (uzbl.gui.main_title)
-        g_free (uzbl.gui.main_title);
-    uzbl.gui.main_title = title ? g_strdup (title) : g_strdup ("(no title)");
-    update_title();
-    send_event(TITLE_CHANGED, uzbl.gui.main_title, NULL);
-}
-
-void
-progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
-    (void) page;
-    (void) data;
-    gchar *prg_str;
-
-    prg_str = itos(progress);
-    send_event(LOAD_PROGRESS, prg_str, NULL);
-    g_free(prg_str);
-
-    update_title();
-}
-
-void
-selection_changed_cb(WebKitWebView *webkitwebview, gpointer ud) {
-    (void)ud;
-    gchar *tmp;
-
-    webkit_web_view_copy_clipboard(webkitwebview);
-    tmp = gtk_clipboard_wait_for_text(gtk_clipboard_get (GDK_SELECTION_CLIPBOARD));
-    send_event(SELECTION_CHANGED, tmp, NULL);
-    g_free(tmp);
-}
-
-void
-load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
-    (void) page;
-    (void) data;
-
-    if (uzbl.behave.load_finish_handler)
-        run_handler(uzbl.behave.load_finish_handler, "");
-
-    send_event(LOAD_FINISH, webkit_web_frame_get_uri(frame), NULL);
-}
-
-void
-load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
-    (void) page;
-    (void) frame;
-    (void) data;
-    uzbl.gui.sbar.load_progress = 0;
-    if (uzbl.behave.load_start_handler)
-        run_handler(uzbl.behave.load_start_handler, "");
-
-    send_event(LOAD_START, uzbl.state.uri, NULL);
-}
-
-void
-load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer web_err, gpointer ud) {
-    (void) page;
-    (void) frame;
-    (void) ud;
-    GError *err = web_err;
-    gchar *details;
-
-    details = g_strdup_printf("%s %d:%s", uri, err->code, err->message);
-    send_event(LOAD_ERROR, details, NULL);
-    g_free(details);
-}
-
-void
-load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
-    (void) page;
-    (void) data;
-    g_free (uzbl.state.uri);
-    GString* newuri = g_string_new (webkit_web_frame_get_uri (frame));
-    uzbl.state.uri = g_string_free (newuri, FALSE);
-
-    if (uzbl.behave.load_commit_handler)
-        run_handler(uzbl.behave.load_commit_handler, uzbl.state.uri);
-
-    /* event message */
-    send_event(LOAD_COMMIT, webkit_web_frame_get_uri (frame), NULL);
-}
-
-void
-destroy_cb (GtkWidget* widget, gpointer data) {
-    (void) widget;
-    (void) data;
-    gtk_main_quit ();
-}
 
 
 /* VIEW funcs (little webkit wrappers) */
@@ -1715,270 +1273,6 @@ parse_command(const char *cmd, const char *param, GString *result) {
         g_printerr ("command \"%s\" not understood. ignoring.\n", cmd);
 }
 
-void
-set_proxy_url() {
-    SoupURI *suri;
-
-    if(uzbl.net.proxy_url == NULL || *uzbl.net.proxy_url == ' ') {
-        soup_session_remove_feature_by_type(uzbl.net.soup_session,
-                (GType) SOUP_SESSION_PROXY_URI);
-    }
-    else {
-        suri = soup_uri_new(uzbl.net.proxy_url);
-        g_object_set(G_OBJECT(uzbl.net.soup_session),
-                SOUP_SESSION_PROXY_URI,
-                suri, NULL);
-        soup_uri_free(suri);
-    }
-    return;
-}
-
-void
-set_icon() {
-    if(file_exists(uzbl.gui.icon)) {
-        if (uzbl.gui.main_window)
-            gtk_window_set_icon_from_file (GTK_WINDOW (uzbl.gui.main_window), uzbl.gui.icon, NULL);
-    } else {
-        g_printerr ("Icon \"%s\" not found. ignoring.\n", uzbl.gui.icon);
-    }
-}
-
-void
-cmd_load_uri() {
-    GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-    g_array_append_val (a, uzbl.state.uri);
-    load_uri(uzbl.gui.web_view, a, NULL);
-    g_array_free (a, TRUE);
-}
-
-void
-cmd_max_conns() {
-    g_object_set(G_OBJECT(uzbl.net.soup_session),
-            SOUP_SESSION_MAX_CONNS, uzbl.net.max_conns, NULL);
-}
-
-void
-cmd_max_conns_host() {
-    g_object_set(G_OBJECT(uzbl.net.soup_session),
-            SOUP_SESSION_MAX_CONNS_PER_HOST, uzbl.net.max_conns_host, NULL);
-}
-
-void
-cmd_http_debug() {
-    soup_session_remove_feature
-        (uzbl.net.soup_session, SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
-    /* do we leak if this doesn't get freed? why does it occasionally crash if freed? */
-    /*g_free(uzbl.net.soup_logger);*/
-
-    uzbl.net.soup_logger = soup_logger_new(uzbl.behave.http_debug, -1);
-    soup_session_add_feature(uzbl.net.soup_session,
-            SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
-}
-
-WebKitWebSettings*
-view_settings() {
-    return webkit_web_view_get_settings(uzbl.gui.web_view);
-}
-
-void
-cmd_font_size() {
-    WebKitWebSettings *ws = view_settings();
-    if (uzbl.behave.font_size > 0) {
-        g_object_set (G_OBJECT(ws), "default-font-size", uzbl.behave.font_size, NULL);
-    }
-
-    if (uzbl.behave.monospace_size > 0) {
-        g_object_set (G_OBJECT(ws), "default-monospace-font-size",
-                      uzbl.behave.monospace_size, NULL);
-    } else {
-        g_object_set (G_OBJECT(ws), "default-monospace-font-size",
-                      uzbl.behave.font_size, NULL);
-    }
-}
-
-void
-cmd_default_font_family() {
-    g_object_set (G_OBJECT(view_settings()), "default-font-family",
-            uzbl.behave.default_font_family, NULL);
-}
-
-void
-cmd_monospace_font_family() {
-    g_object_set (G_OBJECT(view_settings()), "monospace-font-family",
-            uzbl.behave.monospace_font_family, NULL);
-}
-
-void
-cmd_sans_serif_font_family() {
-    g_object_set (G_OBJECT(view_settings()), "sans_serif-font-family",
-            uzbl.behave.sans_serif_font_family, NULL);
-}
-
-void
-cmd_serif_font_family() {
-    g_object_set (G_OBJECT(view_settings()), "serif-font-family",
-            uzbl.behave.serif_font_family, NULL);
-}
-
-void
-cmd_cursive_font_family() {
-    g_object_set (G_OBJECT(view_settings()), "cursive-font-family",
-            uzbl.behave.cursive_font_family, NULL);
-}
-
-void
-cmd_fantasy_font_family() {
-    g_object_set (G_OBJECT(view_settings()), "fantasy-font-family",
-            uzbl.behave.fantasy_font_family, NULL);
-}
-
-void
-cmd_zoom_level() {
-    webkit_web_view_set_zoom_level (uzbl.gui.web_view, uzbl.behave.zoom_level);
-}
-
-void
-cmd_disable_plugins() {
-    g_object_set (G_OBJECT(view_settings()), "enable-plugins",
-            !uzbl.behave.disable_plugins, NULL);
-}
-
-void
-cmd_disable_scripts() {
-    g_object_set (G_OBJECT(view_settings()), "enable-scripts",
-            !uzbl.behave.disable_scripts, NULL);
-}
-
-void
-cmd_minimum_font_size() {
-    g_object_set (G_OBJECT(view_settings()), "minimum-font-size",
-            uzbl.behave.minimum_font_size, NULL);
-}
-void
-cmd_autoload_img() {
-    g_object_set (G_OBJECT(view_settings()), "auto-load-images",
-            uzbl.behave.autoload_img, NULL);
-}
-
-
-void
-cmd_autoshrink_img() {
-    g_object_set (G_OBJECT(view_settings()), "auto-shrink-images",
-            uzbl.behave.autoshrink_img, NULL);
-}
-
-
-void
-cmd_enable_spellcheck() {
-    g_object_set (G_OBJECT(view_settings()), "enable-spell-checking",
-            uzbl.behave.enable_spellcheck, NULL);
-}
-
-void
-cmd_enable_private() {
-    g_object_set (G_OBJECT(view_settings()), "enable-private-browsing",
-            uzbl.behave.enable_private, NULL);
-}
-
-void
-cmd_print_bg() {
-    g_object_set (G_OBJECT(view_settings()), "print-backgrounds",
-            uzbl.behave.print_bg, NULL);
-}
-
-void
-cmd_style_uri() {
-    g_object_set (G_OBJECT(view_settings()), "user-stylesheet-uri",
-            uzbl.behave.style_uri, NULL);
-}
-
-void
-cmd_resizable_txt() {
-    g_object_set (G_OBJECT(view_settings()), "resizable-text-areas",
-            uzbl.behave.resizable_txt, NULL);
-}
-
-void
-cmd_default_encoding() {
-    g_object_set (G_OBJECT(view_settings()), "default-encoding",
-            uzbl.behave.default_encoding, NULL);
-}
-
-void
-cmd_enforce_96dpi() {
-    g_object_set (G_OBJECT(view_settings()), "enforce-96-dpi",
-            uzbl.behave.enforce_96dpi, NULL);
-}
-
-void
-cmd_caret_browsing() {
-    g_object_set (G_OBJECT(view_settings()), "enable-caret-browsing",
-            uzbl.behave.caret_browsing, NULL);
-}
-
-void
-cmd_cookie_handler() {
-    gchar **split = g_strsplit(uzbl.behave.cookie_handler, " ", 2);
-    /* pitfall: doesn't handle chain actions; must the sync_ action manually */
-    if ((g_strcmp0(split[0], "sh") == 0) ||
-        (g_strcmp0(split[0], "spawn") == 0)) {
-        g_free (uzbl.behave.cookie_handler);
-        uzbl.behave.cookie_handler =
-            g_strdup_printf("sync_%s %s", split[0], split[1]);
-    }
-    g_strfreev (split);
-}
-
-void
-cmd_scheme_handler() {
-    gchar **split = g_strsplit(uzbl.behave.scheme_handler, " ", 2);
-    /* pitfall: doesn't handle chain actions; must the sync_ action manually */
-    if ((g_strcmp0(split[0], "sh") == 0) ||
-        (g_strcmp0(split[0], "spawn") == 0)) {
-        g_free (uzbl.behave.scheme_handler);
-        uzbl.behave.scheme_handler =
-            g_strdup_printf("sync_%s %s", split[0], split[1]);
-    }
-    g_strfreev (split);
-}
-
-void
-cmd_fifo_dir() {
-    uzbl.behave.fifo_dir = init_fifo(uzbl.behave.fifo_dir);
-}
-
-void
-cmd_socket_dir() {
-    uzbl.behave.socket_dir = init_socket(uzbl.behave.socket_dir);
-}
-
-void
-cmd_inject_html() {
-    if(uzbl.behave.inject_html) {
-        webkit_web_view_load_html_string (uzbl.gui.web_view,
-                uzbl.behave.inject_html, NULL);
-    }
-}
-
-void
-cmd_useragent() {
-    if (*uzbl.net.useragent == ' ') {
-        g_free (uzbl.net.useragent);
-        uzbl.net.useragent = NULL;
-    } else {
-        g_object_set(G_OBJECT(uzbl.net.soup_session), SOUP_SESSION_USER_AGENT,
-            uzbl.net.useragent, NULL);
-    }
-}
-
-/* requires webkit >=1.1.14 */
-/*
-void
-cmd_view_source() {
-    webkit_web_view_set_view_source_mode(uzbl.gui.web_view,
-            (gboolean) uzbl.behave.view_source);
-}
-*/
 
 void
 move_statusbar() {
@@ -2228,6 +1522,7 @@ control_socket(GIOChannel *chan) {
                          (struct sockaddr *) &remote, &t);
 
     if ((uzbl.comm.clientchan = g_io_channel_unix_new(clientsock))) {
+        g_io_channel_set_encoding(uzbl.comm.clientchan, NULL, NULL);
         g_io_add_watch(uzbl.comm.clientchan, G_IO_IN|G_IO_HUP,
                        (GIOFunc) control_client_socket, uzbl.comm.clientchan);
         /* replay buffered events */
@@ -2357,53 +1652,6 @@ update_title (void) {
             g_free(parsed);
         }
     }
-}
-
-gboolean
-configure_event_cb(GtkWidget* window, GdkEventConfigure* event) {
-    (void) window;
-    (void) event;
-
-    retrieve_geometry();
-    send_event(GEOMETRY_CHANGED, uzbl.gui.geometry, NULL);
-    return FALSE;
-}
-
-void
-key_to_event(guint keyval, gint mode) {
-    char byte[2];
-
-    /* check for Latin-1 characters  (1:1 mapping) */
-    if ((keyval >  0x0020 && keyval <= 0x007e) ||
-        (keyval >= 0x00a0 && keyval <= 0x00ff)) {
-        sprintf(byte, "%c", keyval);
-        send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
-                byte, NULL);
-    }
-    else
-        send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
-                gdk_keyval_name(keyval), NULL);
-
-}
-
-gboolean
-key_press_cb (GtkWidget* window, GdkEventKey* event) {
-    (void) window;
-
-    if(event->type == GDK_KEY_PRESS)
-        key_to_event(event->keyval, GDK_KEY_PRESS);
-
-    return uzbl.behave.forward_keys ? FALSE : TRUE;
-}
-
-gboolean
-key_release_cb (GtkWidget* window, GdkEventKey* event) {
-    (void) window;
-
-    if(event->type == GDK_KEY_RELEASE)
-        key_to_event(event->keyval, GDK_KEY_RELEASE);
-
-    return TRUE;
 }
 
 void
@@ -2709,101 +1957,6 @@ save_cookies (SoupMessage *msg, gpointer user_data){
     g_slist_free(ck);
 }
 
-/* --- WEBINSPECTOR --- */
-void
-hide_window_cb(GtkWidget *widget, gpointer data) {
-    (void) data;
-
-    gtk_widget_hide(widget);
-}
-
-WebKitWebView*
-create_inspector_cb (WebKitWebInspector* web_inspector, WebKitWebView* page, gpointer data){
-    (void) data;
-    (void) page;
-    (void) web_inspector;
-    GtkWidget* scrolled_window;
-    GtkWidget* new_web_view;
-    GUI *g = &uzbl.gui;
-
-    g->inspector_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    g_signal_connect(G_OBJECT(g->inspector_window), "delete-event",
-            G_CALLBACK(hide_window_cb), NULL);
-
-    gtk_window_set_title(GTK_WINDOW(g->inspector_window), "Uzbl WebInspector");
-    gtk_window_set_default_size(GTK_WINDOW(g->inspector_window), 400, 300);
-    gtk_widget_show(g->inspector_window);
-
-    scrolled_window = gtk_scrolled_window_new(NULL, NULL);
-    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window),
-            GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-    gtk_container_add(GTK_CONTAINER(g->inspector_window), scrolled_window);
-    gtk_widget_show(scrolled_window);
-
-    new_web_view = webkit_web_view_new();
-    gtk_container_add(GTK_CONTAINER(scrolled_window), new_web_view);
-
-    return WEBKIT_WEB_VIEW(new_web_view);
-}
-
-gboolean
-inspector_show_window_cb (WebKitWebInspector* inspector){
-    (void) inspector;
-    gtk_widget_show(uzbl.gui.inspector_window);
-
-    send_event(WEBINSPECTOR, "open", NULL);
-    return TRUE;
-}
-
-/* TODO: Add variables and code to make use of these functions */
-gboolean
-inspector_close_window_cb (WebKitWebInspector* inspector){
-    (void) inspector;
-    send_event(WEBINSPECTOR, "close", NULL);
-    return TRUE;
-}
-
-gboolean
-inspector_attach_window_cb (WebKitWebInspector* inspector){
-    (void) inspector;
-    return FALSE;
-}
-
-gboolean
-inspector_detach_window_cb (WebKitWebInspector* inspector){
-    (void) inspector;
-    return FALSE;
-}
-
-gboolean
-inspector_uri_changed_cb (WebKitWebInspector* inspector){
-    (void) inspector;
-    return FALSE;
-}
-
-gboolean
-inspector_inspector_destroyed_cb (WebKitWebInspector* inspector){
-    (void) inspector;
-    return FALSE;
-}
-
-void
-set_up_inspector() {
-    GUI *g = &uzbl.gui;
-    WebKitWebSettings *settings = view_settings();
-    g_object_set(G_OBJECT(settings), "enable-developer-extras", TRUE, NULL);
-
-    uzbl.gui.inspector = webkit_web_view_get_inspector(uzbl.gui.web_view);
-    g_signal_connect (G_OBJECT (g->inspector), "inspect-web-view", G_CALLBACK (create_inspector_cb), NULL);
-    g_signal_connect (G_OBJECT (g->inspector), "show-window", G_CALLBACK (inspector_show_window_cb), NULL);
-    g_signal_connect (G_OBJECT (g->inspector), "close-window", G_CALLBACK (inspector_close_window_cb), NULL);
-    g_signal_connect (G_OBJECT (g->inspector), "attach-window", G_CALLBACK (inspector_attach_window_cb), NULL);
-    g_signal_connect (G_OBJECT (g->inspector), "detach-window", G_CALLBACK (inspector_detach_window_cb), NULL);
-    g_signal_connect (G_OBJECT (g->inspector), "finished", G_CALLBACK (inspector_inspector_destroyed_cb), NULL);
-
-    g_signal_connect (G_OBJECT (g->inspector), "notify::inspected-uri", G_CALLBACK (inspector_uri_changed_cb), NULL);
-}
-
 void
 dump_var_hash(gpointer k, gpointer v, gpointer ud) {
     (void) ud;
@@ -3010,7 +2163,6 @@ main (int argc, char* argv[]) {
     } else if (uzbl.state.uri)
         cmd_load_uri();
 
-    //printf("FILE:  %s\n", find_existing_file("/bar:/home/robert:/usr:/tmp:style.css"));
     gtk_main ();
     clean_up();
 
