@@ -511,7 +511,10 @@ Reported events and their specific format:
     --display=DISPLAY        X display to use
     --help                   Help
 
-
+uzbl scheme://address will work as you expect. If you don't provide the
+scheme:// part, it will check if the argument is an existing file in the
+filesystem: if it is, it will prepend file://, if not, it will
+prepend http://.
 
 
 ### BUGS
