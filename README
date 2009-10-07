@@ -5,11 +5,11 @@
 * people who like nothing from this list: mpd, moc, wmii, dwm, awesome, mutt, pine, vim, dmenu, screen, irssi, weechat, bitlbee
 
 ### TO NEW PEOPLE:
-* invoke uzbl --help
-* to get you started: `XDG_DATA_HOME=/usr/share/uzbl/examples/data XDG_CONFIG_HOME=/usr/share/uzbl/examples/config uzbl --uri www.archlinux.org`
+* invoke uzbl-browser --help
+* to get you started: `XDG_DATA_HOME=/usr/share/uzbl/examples/data XDG_CONFIG_HOME=/usr/share/uzbl/examples/config uzbl-browser --uri www.archlinux.org`
 * alternatively, copy the above data to your real `$XDG_DATA_HOME` and `$XDG_CONFIG_HOME` directories
 * try and study the sample config, read the readme to find out how it works.
-* You can change the url with commands (if you have setup the appropriate keybinds) but to be most effective it's better to do url editing/changing _outside_ of uzbl.
+* You can change the url with commands (if you have setup the appropriate keybinds) but to be most effective it's better to do url editing/changing _outside_ of uzbl-browser.
   Eg, you can use the `load_from_*` dmenu based scripts to pick/edit a url or type a new one.
 * If you have questions, you are likely to find answers in the FAQ or in the other documentation.
 * documentation is in /usr/share/uzbl/docs
@@ -81,7 +81,7 @@ When uzbl forks a new instance (eg "open in new window") it will use the same co
 If you made changes to the configuration at runtime, these are not pased on to the child.
 
 ### COMMAND SYNTAX
-Uzbl will read commands via standard input, named fifo pipe (if `fifo_dir` is set) and IPC socket (when `socket_dir` is set).
+Uzbl-browser will read commands via standard input, named fifo pipe (if `fifo_dir` is set) and IPC socket (when `socket_dir` is set).
 For convenience, uzbl can also be instructed to read commands from a file on startup by using the `-c` option.  Indeed, the config file is nothing more than a list of commands.
 
 Each command starts with the name of the command, which must be the first thing on a line; preceding whitespace is not allowed.
@@ -147,7 +147,7 @@ The following commands are recognized:
 * `search <string>`
 * `search_reverse <string>`
    - search with no string will search for the next/previous occurrence of the string previously searched for
-* `toggle_insert_mode <optional state>`
+* `toggle_insert_mode <optional state>` TODO new plugin based syntax
    - if the optional state is 0, disable insert mode. If 1, enable insert mode.
 * `dump_config`
    - dumps your current config (which may have been changed at runtime) to stdout, in a format you can use to pipe into uzbl again (or use as config file)
@@ -162,6 +162,8 @@ The following commands are recognized:
    - if you use `chain` with a handler script which must return some output (such as a cookie handler -- uzbl will wait for and use its output), use sync_spawn or sync_sh instead of spawn or sh in the command that should give the output
 * `update_gui`
    - update the contents of the status and title bars
+* `event <event_name> [event_details]`
+   - send custom event
 
 ### VARIABLES AND CONSTANTS
 Uzbl has a lot of internal variables and constants.  You can get the values (using the `print` command, see above), and for variables you can also change the value at
@@ -184,14 +186,15 @@ Besides the builtin variables you can also define your own ones and use them in 
   - status_pbar_pending: character to denote pending % of pageload
   - status_pbar_width: width of progressbar
   - status_background: color which can be used to override Gtk theme.
-  - insert_indicator: string to denote insert mode
-  - command_indicator: string to denote command mode
+  - insert_indicator: string to denote insert mode TODO plugin variable
+  - command_indicator: string to denote command mode TODO plugin variable
   - title_format_long: titlebar string when no statusbar shown (will be expanded
   - title_format_short: titlebar string when statusbar shown (will be expanded)
   - icon: path to icon for Gtk
-  - insert_mode: whether insert mode is active
-  - always_insert_mode: set this to true if you don't like modal (vim-like) interfaces
-  - reset_command_mode: automatically revert to command mode on pageload (unless always_insert_mode is set)
+  - forward_keys: whether uzbl-core should send key events to the webkit view
+  - insert_mode: whether insert mode is active TODO explain plugin variable
+  - always_insert_mode: set this to true if you don't like modal (vim-like) interfaces TODO explain plugin variable
+  - reset_command_mode: automatically revert to command mode on pageload (unless always_insert_mode is set) TODO explain plugin variable
   - modkey: modkey which can be pressed to activate keybind from inside insert mode
   - load_finish_handler
   - load_start_handler
@@ -409,6 +412,92 @@ This way, everything is kept private. It also turns Uzbl into a local variable, 
     }
 
 Copying the Uzbl object and creating public functions should be taken with care to avoid creating security holes. Keep in mind that the "f" function above would be defined in the `window` object, and as such any javascript in the current page can call it.
+
+### EVENTS ###
+
+unlike commands, events are not handled in uzbl itself, but are propagated (dispatched) asynchronously through
+a text stream on stdout.  You'll usually use uzbl by piping it's output to a so called 'event handler'
+- makes it possible to use whichever language you want for event handling (python, perl, bash, .. you name it).
+  you'll usually send commands (see above) back to uzbl through its fifo or socket
+- keybindings use x keysyms
+- many finegrained events (hover_over_link, key_press, key_down,..)
+- see example event_handler.py
+
+Note: cookie events are not sent to an event handler but handled internally through the cookie handler because of their synchronous nature.
+Cookie events are really something completely different from all other events.  maybe someday we'll use http proxies or something for cookies, but
+for now we still use the handler code)
+
+Basically all events have this format:
+
+     EVENT EVENT_NAME [uzbl_instance_name] event_details
+
+
+Reported events and their specific format:
+
+- on start uzbl will generate:
+
+     EVENT INSTANCE_START [uzbl_instance_name] process_id
+
+- on exit:
+
+     EVENT INSTANCE_EXIT [uzbl_instance_name] process_id
+
+- whenever an uzbl variable is set:
+
+     EVENT VARIABLE_SET [uzbl_instance_name] variable_name str|int|float variable_value
+
+     Note: str|int|float denote the type of variable_value
+
+- upon execution of an uzbl command:
+
+     EVENT COMMAND_EXECUTED [uzbl_instance_name] command_name optional_command_arguments
+
+- when the size or position of the uzbl window changes:
+
+     EVENT GEOMETRY_CHANGED [uzbl_instance_name] WIDTHxHEIGHT+X_POSITION+Y_POSITION
+
+- when the fifo and/or the socket path is set or changed:
+
+     EVENT FIFO_SET [uzbl_instance_name] path_to_fifo
+     EVENT SOCKET_SET [uzbl_instance_name] path_to_socket
+
+- when a website is being loaded:
+
+     EVENT LOAD_COMMIT [uzbl_instance_name] uri
+     EVENT LOAD_START [uzbl_instance_name] uri
+     EVENT LOAD_FINISHED [uzbl_instance_name] uri
+     EVENT LOAD_ERROR [uzbl_instance_name] reason_of_error
+
+- when the title of the uzbl window changes:
+
+     EVENT TITLE_CHANGED [uzbl_instance_name] title_name
+
+- when content needs to be downloaded:
+
+     EVENT DOWNLOAD_REQUEST [uzbl_instance_name] download_uri
+
+- when you hover with the mouse over a link:
+
+     EVENT LINK_HOVER [uzbl_instance_name] uri
+
+- when you press or release a key:
+
+     EVENT KEY_PRESS [uzbl_instance_name] key_name
+     EVENT KEY_RELEASE [uzbl_instance_name] key_name
+
+- when you select some text inside the uzbl window:
+
+     EVENT SELECTION_CHANGED [uzbl_instance_name] selected_text
+
+- when a new uzbl window is created:
+
+     EVENT NEW_WINDOW [uzbl_instance_name] uri
+
+- upon opening/closing of the webinspector window:
+
+     EVENT WEBINSPECTOR [uzbl_instance_name] open
+     EVENT WEBINSPECTOR [uzbl_instance_name] close
+
 
 ### COMMAND LINE ARGUMENTS
     uzbl [ uri ]

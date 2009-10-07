@@ -22,10 +22,10 @@
 #include <fcntl.h>
 #include <signal.h>
 
-#include <uzbl.h>
+#include <uzbl-core.h>
 #include <config.h>
 
-extern Uzbl uzbl;
+extern UzblCore uzbl;
 
 extern gchar* expand(char*, guint);
 extern void make_var_to_name_hash(void);
@@ -79,10 +79,10 @@ test_NAME (void) {
 
 void
 test_MODE (void) {
-    set_var_value("insert_mode", "0");
+    set_var_value("forward_keys", "0");
     g_assert_cmpstr(expand("@MODE", 0), ==, "C");
 
-    set_var_value("insert_mode", "1");
+    set_var_value("forward_keys", "1");
     g_assert_cmpstr(expand("@MODE", 0), ==, "I");
 }
 
