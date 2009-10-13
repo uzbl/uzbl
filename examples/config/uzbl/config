@@ -176,6 +176,7 @@ set formfiller = spawn @scripts_dir/formfiller
 
 # Examples using multi-stage-bindings with text prompts.
 @bind o<uri:>_ = uri %s
+@bind O<uri:"\@uri">_ = uri %s
 
 # Prints tab separated "uri title keyword tags" to the bookmarks file.
 # TODO: Improve bookmarks script to handle this format & include date in bookmark format.
