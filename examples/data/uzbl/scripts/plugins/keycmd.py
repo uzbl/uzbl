@@ -328,11 +328,16 @@ def set_cursor_pos(uzbl, index):
     '''Allow setting of the cursor position externally. Supports negative
     indexing.'''
 
-    cursor = int(index.strip())
     k = get_keylet(uzbl)
 
-    if cursor < 0:
-        cursor = len(k.cmd) + cursor
+    if index == '-':
+        cursor = k.cursor - 1
+    elif index == '+':
+        cursor = k.cursor + 1
+    else:
+        cursor = int(index.strip())
+        if cursor < 0:
+            cursor = len(k.cmd) + cursor + 1
 
     if cursor < 0:
         cursor = 0
