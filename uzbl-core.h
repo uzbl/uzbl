@@ -81,7 +81,7 @@ typedef struct {
     GHashTable     *proto_var;
 
     gchar          *sync_stdout;
-    GIOChannel     *connect_chan;
+    GPtrArray      *connect_chan;
     GPtrArray      *client_chan;
 } Communication;
 
@@ -99,7 +99,7 @@ typedef struct {
     gchar*   searchtx;
     gboolean verbose;
     GPtrArray *event_buffer;
-    gchar*   connect_socket_name;
+    gchar**   connect_socket_names;
 } State;
 
 
@@ -423,6 +423,9 @@ update_gui(WebKitWebView *page, GArray *argv, GString *result);
 
 void
 event(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+init_connect_socket();
 
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
 typedef struct {
