@@ -51,6 +51,8 @@ GOptionEntry entries[] =
         "Path to config file or '-' for stdin", "FILE" },
     { "socket",   's', 0, G_OPTION_ARG_INT, &uzbl.state.socket_id,
         "Socket ID", "SOCKET" },
+    { "connect-socket",   0, 0, G_OPTION_ARG_STRING, &uzbl.state.connect_socket_name,
+        "Socket Name", "CSOCKET" },
     { "geometry", 'g', 0, G_OPTION_ARG_STRING, &uzbl.gui.geometry,
         "Set window geometry (format: WIDTHxHEIGHT+-X+-Y)", "GEOMETRY" },
     { "version",  'V', 0, G_OPTION_ARG_NONE, &uzbl.behave.print_version,
@@ -1517,20 +1519,42 @@ gboolean
 control_socket(GIOChannel *chan) {
     struct sockaddr_un remote;
     unsigned int t = sizeof(remote);
+    GIOChannel *iochan;
     int clientsock;
 
     clientsock = accept (g_io_channel_unix_get_fd(chan),
                          (struct sockaddr *) &remote, &t);
 
-    if ((uzbl.comm.clientchan = g_io_channel_unix_new(clientsock))) {
-        g_io_channel_set_encoding(uzbl.comm.clientchan, NULL, NULL);
-        g_io_add_watch(uzbl.comm.clientchan, G_IO_IN|G_IO_HUP,
-                       (GIOFunc) control_client_socket, uzbl.comm.clientchan);
+    if(!uzbl.comm.client_chan)
+        uzbl.comm.client_chan = g_ptr_array_new();
+
+    if ((iochan = g_io_channel_unix_new(clientsock))) {
+        g_io_channel_set_encoding(iochan, NULL, NULL);
+        g_io_add_watch(iochan, G_IO_IN|G_IO_HUP,
+                       (GIOFunc) control_client_socket, iochan);
+        g_ptr_array_add(uzbl.comm.client_chan, (gpointer)iochan);
+    }
+    return TRUE;
+}
+
+void
+init_connect_socket(gchar *name) {
+    int sockfd;
+    struct sockaddr_un local;
+
+    sockfd = socket (AF_UNIX, SOCK_STREAM, 0);
+    local.sun_family = AF_UNIX;
+    strcpy (local.sun_path, name);
+
+    if(!connect(sockfd, (struct sockaddr *) &local, sizeof(local))) {
+        if ((uzbl.comm.connect_chan = g_io_channel_unix_new(sockfd))) {
+            g_io_channel_set_encoding(uzbl.comm.connect_chan, NULL, NULL);
+            g_io_add_watch(uzbl.comm.connect_chan, G_IO_IN|G_IO_HUP,
+                    (GIOFunc) control_client_socket, uzbl.comm.connect_chan);
         /* replay buffered events */
         send_event_socket(NULL);
+        }
     }
-
-    return TRUE;
 }
 
 gboolean
@@ -1911,6 +1935,9 @@ settings_init () {
         if (uzbl.state.verbose)
             printf ("No configuration file loaded.\n");
     }
+
+    if(s->connect_socket_name)
+        init_connect_socket(s->connect_socket_name);
 
     g_signal_connect_after(n->soup_session, "request-started", G_CALLBACK(handle_cookies), NULL);
 }

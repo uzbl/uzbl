@@ -52,20 +52,19 @@ void
 send_event_socket(GString *msg) {
     GError *error = NULL;
     GString *tmp;
+    GIOChannel *gio = NULL;
     GIOStatus ret = 0;
     gsize len;
-    guint i=0;
+    guint i=0, j=0;
 
-    if(uzbl.comm.socket_path &&
-            uzbl.comm.clientchan  &&
-            uzbl.comm.clientchan->is_writeable) {
-
+    if(uzbl.comm.connect_chan &&
+            uzbl.comm.connect_chan->is_writeable) {
         if(uzbl.state.event_buffer) {
             event_buffer_timeout(0);
 
-            while(i < uzbl.state.event_buffer->len) {
-                tmp = g_ptr_array_index(uzbl.state.event_buffer, i++);
-                ret = g_io_channel_write_chars (uzbl.comm.clientchan,
+            while(j < uzbl.state.event_buffer->len) {
+                tmp = g_ptr_array_index(uzbl.state.event_buffer, j++);
+                ret = g_io_channel_write_chars (uzbl.comm.connect_chan,
                         tmp->str, tmp->len,
                         &len, &error);
                 /* is g_ptr_array_free(uzbl.state.event_buffer, TRUE) enough? */
@@ -73,15 +72,16 @@ send_event_socket(GString *msg) {
                 if (ret == G_IO_STATUS_ERROR) {
                     g_warning ("Error sending event to socket: %s", error->message);
                 }
-                g_io_channel_flush(uzbl.comm.clientchan, &error);
+                g_io_channel_flush(uzbl.comm.connect_chan, &error);
             }
             g_ptr_array_free(uzbl.state.event_buffer, TRUE);
             uzbl.state.event_buffer = NULL;
         }
+
         if(msg) {
             while(!ret ||
-                  ret == G_IO_STATUS_AGAIN) {
-                ret = g_io_channel_write_chars (uzbl.comm.clientchan,
+                    ret == G_IO_STATUS_AGAIN) {
+                ret = g_io_channel_write_chars (uzbl.comm.connect_chan,
                         msg->str, msg->len,
                         &len, &error);
             }
@@ -89,16 +89,35 @@ send_event_socket(GString *msg) {
             if (ret == G_IO_STATUS_ERROR) {
                 g_warning ("Error sending event to socket: %s", error->message);
             }
-            g_io_channel_flush(uzbl.comm.clientchan, &error);
+            g_io_channel_flush(uzbl.comm.connect_chan, &error);
         }
     }
     /* buffer events until a socket is set and connected
-     * or a timeout is encountered
+    * or a timeout is encountered
     */
     else {
         if(!uzbl.state.event_buffer)
             uzbl.state.event_buffer = g_ptr_array_new();
         g_ptr_array_add(uzbl.state.event_buffer, (gpointer)g_string_new(msg->str));
+    }
+
+    if(msg && uzbl.comm.client_chan) {
+        while(i < uzbl.comm.client_chan->len) {
+            gio = g_ptr_array_index(uzbl.comm.client_chan, i++);
+            ret = 0;
+
+            if(gio && gio->is_writeable && msg) {
+                while(!ret || ret == G_IO_STATUS_AGAIN) {
+                    ret = g_io_channel_write_chars (gio,
+                            msg->str, msg->len,
+                            &len, &error);
+                }
+
+                if (ret == G_IO_STATUS_ERROR)
+                    g_warning ("Error sending event to socket: %s", error->message);
+                g_io_channel_flush(gio, &error);
+            }
+        }
     }
 }
 

@@ -81,7 +81,8 @@ typedef struct {
     GHashTable     *proto_var;
 
     gchar          *sync_stdout;
-    GIOChannel     *clientchan;
+    GIOChannel     *connect_chan;
+    GPtrArray      *client_chan;
 } Communication;
 
 
@@ -98,6 +99,7 @@ typedef struct {
     gchar*   searchtx;
     gboolean verbose;
     GPtrArray *event_buffer;
+    gchar*   connect_socket_name;
 } State;
 
 
