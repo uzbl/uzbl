@@ -20,7 +20,7 @@ __export__ = ['bind', 'del_bind', 'del_bind_by_glob', 'get_binds']
 UZBLS = {}
 
 # Commonly used regular expressions.
-starts_with_mod = re.compile('^<([A-Z][A-Za-z0-9-_]+)>')
+starts_with_mod = re.compile('^<([A-Z][A-Za-z0-9-_]*)>')
 find_prompts = re.compile('<([^:>]*):>').split
 
 # For accessing a bind glob stack.
