@@ -216,6 +216,19 @@ typedef struct {
     gchar* default_value;
 } XDG_Var;
 
+/* uzbl variables */
+enum ptr_type {TYPE_INT, TYPE_STR, TYPE_FLOAT};
+typedef struct {
+    enum ptr_type type;
+    union {
+        int *i;
+        float *f;
+        gchar **s;
+    } ptr;
+    int dump;
+    int writeable;
+    /*@null@*/ void (*func)(void);
+} uzbl_cmdprop;
 
 /* Functions */
 char *
