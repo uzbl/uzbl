@@ -318,6 +318,12 @@ def keycmd_backspace(uzbl, _foo):
     update_event(uzbl, k, False)
 
 
+def keycmd_exec_current(uzbl, _foo):
+    k = get_keylet(uzbl)
+    uzbl.event('KEYCMD_EXEC', k)
+    clear_keycmd(uzbl)
+
+
 def set_cursor_pos(uzbl, index):
     '''Allow setting of the cursor position externally. Supports negative
     indexing.'''
@@ -348,6 +354,7 @@ def init(uzbl):
       'SET_KEYCMD': set_keycmd,
       'KEYCMD_STRIP_WORD': keycmd_strip_word,
       'KEYCMD_BACKSPACE': keycmd_backspace,
+      'KEYCMD_EXEC_CURRENT': keycmd_exec_current,
       'SET_CURSOR_POS': set_cursor_pos}
 
     uzbl.connect_dict(connects)
