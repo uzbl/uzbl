@@ -37,7 +37,6 @@ uzbl-core: ${OBJ}
 	@echo ... done.
 
 
-
 uzbl-browser: uzbl-core
 
 PREFIX?=$(DESTDIR)/usr/local
@@ -58,8 +57,10 @@ test-dev: uzbl-core
 
 test-dev-browser: uzbl-browser
 	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:$$PATH" ./examples/data/uzbl/scripts/cookie_daemon.py start -nv &
+	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:$$PATH" ./uzbl-daemon start -nv &
 	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:$$PATH" ./uzbl-browser --uri http://www.uzbl.org --verbose
 	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:$$PATH" ./examples/data/uzbl/scripts/cookie_daemon.py stop -v
+	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:$$PATH" ./uzbl-daemon stop -v
 
 test-share: uzbl-core
 	XDG_DATA_HOME=${PREFIX}/share/uzbl/examples/data XDG_CONFIG_HOME=${PREFIX}/share/uzbl/examples/config                     ./uzbl-core --uri http://www.uzbl.org --verbose
@@ -84,6 +85,7 @@ install: all
 	cp -rp examples $(PREFIX)/share/uzbl/
 	install -m755 uzbl-core    $(PREFIX)/bin/uzbl-core
 	install -m755 uzbl-browser $(PREFIX)/bin/uzbl-browser
+	install -m755 uzbl-daemon  $(PREFIX)/bin/uzbl-daemon
 	install -m644 AUTHORS      $(PREFIX)/share/uzbl/docs
 	install -m644 README       $(PREFIX)/share/uzbl/docs
 
@@ -91,4 +93,3 @@ install: all
 uninstall:
 	rm -rf $(PREFIX)/bin/uzbl-*
 	rm -rf $(PREFIX)/share/uzbl
-
