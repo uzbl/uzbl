@@ -57,15 +57,17 @@ send_event_socket(GString *msg) {
     gsize len;
     guint i=0, j=0;
 
+    /* write to all --connect-socket sockets */
     if(uzbl.comm.connect_chan) {
         while(i < uzbl.comm.connect_chan->len) {
             gio = g_ptr_array_index(uzbl.comm.connect_chan, i++);
-            j=0;
+            j=0; ret = 0;
 
             if(gio && gio->is_writeable) {
                 if(uzbl.state.event_buffer) {
                     event_buffer_timeout(0);
 
+                    /* replay buffered events */
                     while(j < uzbl.state.event_buffer->len) {
                         tmp = g_ptr_array_index(uzbl.state.event_buffer, j++);
                         ret = g_io_channel_write_chars (gio,
@@ -108,6 +110,7 @@ send_event_socket(GString *msg) {
         g_ptr_array_add(uzbl.state.event_buffer, (gpointer)g_string_new(msg->str));
     }
 
+    /* write to all client sockets */
     i=0;
     if(msg && uzbl.comm.client_chan) {
         while(i < uzbl.comm.client_chan->len) {

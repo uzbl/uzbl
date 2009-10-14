@@ -127,7 +127,7 @@ const struct var_name_to_ptr_t {
     { "max_conns_host",         PTR_V_INT(uzbl.net.max_conns_host,              1,   cmd_max_conns_host)},
     { "useragent",              PTR_V_STR(uzbl.net.useragent,                   1,   cmd_useragent)},
     /* requires webkit >=1.1.14 */
-    //{ "view_source",            PTR_V_INT(uzbl.behave.view_source,              0,   cmd_view_source)},
+    { "view_source",            PTR_V_INT(uzbl.behave.view_source,              0,   cmd_view_source)},
 
     /* exported WebKitWebSettings properties */
     { "zoom_level",             PTR_V_FLOAT(uzbl.behave.zoom_level,             1,   cmd_zoom_level)},
@@ -1516,6 +1516,20 @@ create_stdin () {
 }
 
 gboolean
+remove_socket_from_array(GIOChannel *chan) {
+    gboolean ret = 0;
+
+    /* TODO: Do wee need to manually free the IO channel or is this
+     *       happening implicitly on unref?
+     */
+    ret = g_ptr_array_remove_fast(uzbl.comm.connect_chan, chan);
+    if(!ret)
+        ret = g_ptr_array_remove_fast(uzbl.comm.client_chan, chan);
+
+    return ret;
+}
+
+gboolean
 control_socket(GIOChannel *chan) {
     struct sockaddr_un remote;
     unsigned int t = sizeof(remote);
@@ -1563,6 +1577,8 @@ init_connect_socket() {
                 replay++;
             }
         }
+        else
+            g_warning("Error connecting to socket: %s\n", *name);
         name++;
     }
 
@@ -1582,9 +1598,11 @@ control_client_socket(GIOChannel *clientchan) {
     ret = g_io_channel_read_line(clientchan, &ctl_line, &len, NULL, &error);
     if (ret == G_IO_STATUS_ERROR) {
         g_warning ("Error reading: %s\n", error->message);
+        remove_socket_from_array(clientchan);
         g_io_channel_shutdown(clientchan, TRUE, &error);
         return FALSE;
     } else if (ret == G_IO_STATUS_EOF) {
+        remove_socket_from_array(clientchan);
         /* shutdown and remove channel watch from main loop */
         g_io_channel_shutdown(clientchan, TRUE, &error);
         return FALSE;

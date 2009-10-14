@@ -289,13 +289,11 @@ cmd_useragent() {
 }
 
 /* requires webkit >=1.1.14 */
-/*
 void
 cmd_view_source() {
     webkit_web_view_set_view_source_mode(uzbl.gui.web_view,
             (gboolean) uzbl.behave.view_source);
 }
-*/
 
 void
 toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result) {
