@@ -60,10 +60,15 @@ class Keylet(object):
 
     def mod_held(self):
         return any([len(x) != 1 for x in self.held])
-        
+
+    def key_cmd(self):
+        return self.cmd
+
+    def mod_cmd(self):
+        return ''.join(['<%s>' % key for key in self.held])
+
     def __repr__(self):
         return '<Keycmd(%r)>' % self.to_string()
-
 
     def to_string(self):
         '''Return a string representation of the keys held and pressed that
@@ -72,15 +77,8 @@ class Keylet(object):
         if self._to_string is not None:
             # Return cached keycmd string.
             return self._to_string
-
-        if not self.held:
-            self._to_string = self.cmd
-
-        else:
-            self._to_string = ''.join(['<%s>' % key for key in self.held])
-            if self.cmd:
-                self._to_string += self.cmd
-
+        
+        self._to_string = self.mod_cmd() + self.key_cmd()
         return self._to_string
 
 

@@ -274,7 +274,7 @@ def filter_bind(uzbl, bind_dict, bind):
 
 def match_and_exec(uzbl, bind, depth, keycmd):
     bind_dict = get_bind_dict(uzbl)
-    mode_cmd, on_exec, has_args, glob = bind.stack[depth]
+    mod_cmd, on_exec, has_args, glob = bind.stack[depth]
 
     if has_args:
         if not keycmd.startswith(glob):
@@ -293,7 +293,7 @@ def match_and_exec(uzbl, bind, depth, keycmd):
     execindex = len(bind.stack)-1
     if execindex == depth == 0:
         uzbl.exec_handler(bind, *args)
-        if not has_args:
+        if not has_args and not mod_cmd:
             uzbl.clear_keycmd()
 
         return True
@@ -321,7 +321,7 @@ def match_and_exec(uzbl, bind, depth, keycmd):
 
 def keycmd_update(uzbl, keylet):
     depth = get_stack_depth(uzbl)
-    keycmd = keylet.to_string()
+    keycmd = keylet.key_cmd()
     for bind in get_filtered_binds(uzbl):
         t = bind.stack[depth]
         if t[MOD_CMD] or t[ON_EXEC]:
@@ -332,7 +332,7 @@ def keycmd_update(uzbl, keylet):
 
 def keycmd_exec(uzbl, keylet):
     depth = get_stack_depth(uzbl)
-    keycmd = keylet.to_string()
+    keycmd = keylet.key_cmd()
     for bind in get_filtered_binds(uzbl):
         t = bind.stack[depth]
         if t[MOD_CMD] or not t[ON_EXEC]:
@@ -343,7 +343,7 @@ def keycmd_exec(uzbl, keylet):
 
 def modcmd_update(uzbl, keylet):
     depth = get_stack_depth(uzbl)
-    keycmd = keylet.to_string()
+    keycmd = keylet.mod_cmd()
     for bind in get_filtered_binds(uzbl):
         t = bind.stack[depth]
         if not t[MOD_CMD] or t[ON_EXEC]:
@@ -354,7 +354,7 @@ def modcmd_update(uzbl, keylet):
 
 def modcmd_exec(uzbl, keylet):
     depth = get_stack_depth(uzbl)
-    keycmd = keylet.to_string()
+    keycmd = keylet.mod_cmd()
     for bind in get_filtered_binds(uzbl):
         t = bind.stack[depth]
         if not t[MOD_CMD] or not t[ON_EXEC]:
