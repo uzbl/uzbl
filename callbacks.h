@@ -112,10 +112,8 @@ cmd_caret_browsing();
 void
 cmd_set_geometry();
 
-/*
 void
 cmd_view_source();
-*/
 
 void
 cmd_load_start();
