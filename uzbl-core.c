@@ -1000,7 +1000,8 @@ run_command (const gchar *command, const guint npre, const gchar **args,
 
         result = g_spawn_sync(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
                               NULL, NULL, output_stdout, NULL, NULL, &err);
-    } else result = g_spawn_async(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
+    } else
+        result = g_spawn_async(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
                                   NULL, NULL, NULL, &err);
 
     if (uzbl.state.verbose) {
@@ -1245,6 +1246,7 @@ talk_to_socket(WebKitWebView *web_view, GArray *argv, GString *result) {
 void
 parse_command(const char *cmd, const char *param, GString *result) {
     CommandInfo *c;
+    GString *tmp = g_string_new("");
 
     if ((c = g_hash_table_lookup(uzbl.behave.commands, cmd))) {
             guint i;
@@ -1271,6 +1273,14 @@ parse_command(const char *cmd, const char *param, GString *result) {
             }
             g_strfreev (par);
             g_array_free (a, TRUE);
+
+            if(strcmp("set", cmd)     &&
+               strcmp("event", cmd)   &&
+               strcmp("request", cmd)) {
+                g_string_printf(tmp, "%s %s", cmd, param?param:"");
+                send_event(COMMAND_EXECUTED, tmp->str, NULL);
+                g_string_free(tmp, TRUE);
+            }
 
     } else
         g_printerr ("command \"%s\" not understood. ignoring.\n", cmd);
