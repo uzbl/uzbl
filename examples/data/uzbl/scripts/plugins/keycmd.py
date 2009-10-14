@@ -145,13 +145,14 @@ def clear_keycmd(uzbl):
     uzbl.event('KEYCMD_CLEAR')
 
 
-def update_event(uzbl, k):
+def update_event(uzbl, k, execute=True):
     '''Raise keycmd & modcmd update events.'''
 
     config = uzbl.get_config()
     if k.modcmd:
         keycmd = k.to_string()
-        uzbl.event('MODCMD_UPDATE', k)
+        if execute:
+            uzbl.event('MODCMD_UPDATE', k)
         if keycmd != k.to_string():
             return
 
@@ -164,7 +165,8 @@ def update_event(uzbl, k):
         return
 
     keycmd = k.cmd
-    uzbl.event('KEYCMD_UPDATE', k)
+    if execute:
+        uzbl.event('KEYCMD_UPDATE', k)
     if keycmd != k.cmd:
         return
 
@@ -270,10 +272,10 @@ def key_release(uzbl, key):
 
     if key in k.held:
         cmdmod = True
-        if k.modcmd:
-            uzbl.event('MODCMD_EXEC', k)
         k.held.remove(key)
         k.modcmd = k.mod_held()
+        if k.modcmd:
+            uzbl.event('MODCMD_EXEC', k)
 
     if cmdmod:
        update_event(uzbl, k)
@@ -287,7 +289,8 @@ def set_keycmd(uzbl, keycmd):
     k._to_string = None
     k.cmd = keycmd
     k.cursor = len(keycmd)
-    update_event(uzbl, k)
+
+    update_event(uzbl, k, False)
 
 
 def set_cursor_pos(uzbl, index):
@@ -307,7 +310,7 @@ def set_cursor_pos(uzbl, index):
         cursor = len(k.cmd)
 
     k.cursor = cursor
-    update_event(uzbl, k)
+    update_event(uzbl, k, False)
 
 
 def init(uzbl):
