@@ -291,6 +291,25 @@ def set_keycmd(uzbl, keycmd):
     update_event(uzbl, k, False)
 
 
+def keycmd_strip_word(uzbl, sep):
+    sep = sep or ' '
+    k = get_keylet(uzbl)
+    cmd = k.cmd[:k.cursor]
+    tail = len(k.cmd) - k.cursor
+
+    if sep in cmd:
+        tmp = cmd.rstrip(sep).rsplit(sep, 1)
+    else:
+        tmp = ('',)
+
+    k.cmd = tmp[0] + (sep if len(tmp) == 2 else '') + k.cmd[k.cursor:]
+    k.cursor = len(tmp[0]) + (len(tmp) - 1)
+
+    assert len(k.cmd) - k.cursor == tail, "tail size changed (%s) (%s - %s)" % (tail, len(k.cmd), k.cursor)
+
+    update_event(uzbl, k, False)
+
+
 def set_cursor_pos(uzbl, index):
     '''Allow setting of the cursor position externally. Supports negative
     indexing.'''
@@ -319,6 +338,7 @@ def init(uzbl):
       'KEY_PRESS': key_press,
       'KEY_RELEASE': key_release,
       'SET_KEYCMD': set_keycmd,
+      'KEYCMD_STRIP_WORD': keycmd_strip_word,
       'SET_CURSOR_POS': set_cursor_pos}
 
     uzbl.connect_dict(connects)
