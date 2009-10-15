@@ -188,9 +188,11 @@ class Bind(object):
             self._stack.append((mod_cmd, on_exec, has_args, glob))
 
     def is_global(self):
+        ''' Returns True if this Bind should be applied in all depths '''
         return len(self._stack) == 1 and self._stack[0][MOD_CMD]
 
     def __getitem__(self, depth):
+        ''' get bind info at a depth '''
         if self.is_global():
             return self._stack[0], False
         return self._stack[depth], depth - len(self._stack) + 1
@@ -322,8 +324,7 @@ def match_and_exec(uzbl, bind, depth, keycmd):
 
     args = bind_dict['args'] + args
     uzbl.exec_handler(bind, *args)
-    if on_exec:
-        uzbl.set_mode()
+    uzbl.set_mode()
 
     return True
 

@@ -59,12 +59,15 @@ class Keylet(object):
         self.modcmd = False
 
     def mod_held(self):
+        ''' returns true if any modkey is held. '''
         return any([len(x) != 1 for x in self.held])
 
     def key_cmd(self):
+        ''' get the keycmd-part of the keylet. '''
         return self.cmd
 
     def mod_cmd(self):
+        ''' get the modcmd-part of the keylet. '''
         return ''.join(['<%s>' % key for key in self.held])
 
     def __repr__(self):
@@ -186,19 +189,10 @@ def key_press(uzbl, key):
     '''Handle KEY_PRESS events. Things done by this function include:
 
     1. Ignore all shift key presses (shift can be detected by capital chars)
-    2. Re-enable modcmd var if the user presses another key with at least one
-       modkey still held from the previous modcmd (I.e. <Ctrl>+t, clear &
-       <Ctrl>+o without having to re-press <Ctrl>)
     3. In non-modcmd mode:
-         a. BackSpace deletes the character before the cursor position.
-         b. Delete deletes the character at the cursor position.
-         c. End moves the cursor to the end of the keycmd.
-         d. Home moves the cursor to the beginning of the keycmd.
-         e. Return raises a KEYCMD_EXEC event then clears the keycmd.
-         f. Escape clears the keycmd.
-    4. If keycmd and held keys are both empty/null and a modkey was pressed
-       set modcmd mode.
-    5. If in modcmd mode only mod keys are added to the held keys list.
+         a. append char to keycmd
+    4. If not in modcmd mode and a modkey was pressed set modcmd mode.
+    5. If in modcmd mode the pressed key is added to the held keys list.
     6. Keycmd is updated and events raised if anything is changed.'''
 
     if key.startswith('Shift_'):
@@ -219,10 +213,7 @@ def key_press(uzbl, key):
         k.modcmd = True
         cmdmod = True
 
-    elif k.modcmd:
-        cmdmod = True
-
-    else:
+    elif not k.modcmd:
         config = uzbl.get_config()
         if 'keycmd_events' not in config or config['keycmd_events'] == '1':
             if len(key) == 1:
@@ -235,12 +226,14 @@ def key_press(uzbl, key):
             k.cmd = ''
             k.cursor = 0
 
-    if key == 'Shift-Tab' and 'Tab' in k.held:
-        k.held.remove('Tab')
+    if k.modcmd:
+        if key == 'Shift-Tab' and 'Tab' in k.held:
+            k.held.remove('Tab')
 
-    if key not in k.held:
-        k.held.append(key)
-        k.held.sort()
+        if key not in k.held:
+            k.held.append(key)
+            k.held.sort()
+            cmdmod = True
 
     if cmdmod:
         update_event(uzbl, k)
@@ -250,10 +243,8 @@ def key_release(uzbl, key):
     '''Respond to KEY_RELEASE event. Things done by this function include:
 
     1. Remove the key from the keylet held list.
-    2. If the key removed was a mod key and it was in a mod-command then
-       raise a MODCMD_EXEC event then clear the keycmd.
-    3. Stop trying to restore mod-command status with wasmod if both the
-       keycmd and held list are empty/null.
+    2. If in a mod-command then raise a MODCMD_EXEC.
+    3. Check if any modkey is held, if so set modcmd mode.
     4. Update the keycmd uzbl variable if anything changed.'''
 
     if len(key) > 1:
@@ -292,8 +283,12 @@ def set_keycmd(uzbl, keycmd):
 
 
 def keycmd_strip_word(uzbl, sep):
+    ''' Removes the last word from the keycmd, similar to readline ^W '''
     sep = sep or ' '
     k = get_keylet(uzbl)
+    if not k.cmd:
+        return
+
     cmd = k.cmd[:k.cursor]
     tail = len(k.cmd) - k.cursor
 
@@ -311,7 +306,11 @@ def keycmd_strip_word(uzbl, sep):
 
 
 def keycmd_backspace(uzbl, _foo):
+    ''' Removes the last char of the keycmd '''
     k = get_keylet(uzbl)
+    if not k.cmd:
+        return
+
     k.cmd = k.cmd[:k.cursor-1] + k.cmd[k.cursor:]
     k.cursor -= 1
 
@@ -319,6 +318,7 @@ def keycmd_backspace(uzbl, _foo):
 
 
 def keycmd_exec_current(uzbl, _foo):
+    ''' Raise a KEYCMD_EXEC with the current keylet and then clear the keycmd '''
     k = get_keylet(uzbl)
     uzbl.event('KEYCMD_EXEC', k)
     clear_keycmd(uzbl)
@@ -326,7 +326,7 @@ def keycmd_exec_current(uzbl, _foo):
 
 def set_cursor_pos(uzbl, index):
     '''Allow setting of the cursor position externally. Supports negative
-    indexing.'''
+    indexing and relative stepping with '+' and '-'.'''
 
     k = get_keylet(uzbl)
 
