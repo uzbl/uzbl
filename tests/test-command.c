@@ -97,8 +97,15 @@ event_fixture_setup(struct EventFixture *ef, const void* data)
 
     /* attach uzbl_sock to uzbl's event dispatcher. */
     uzbl.comm.socket_path = "/tmp/some-nonexistant-socket";
-    uzbl.comm.clientchan = g_io_channel_unix_new(ef->uzbl_sock);
-    g_io_channel_set_encoding(uzbl.comm.clientchan, NULL, NULL);
+
+    GIOChannel *iochan = g_io_channel_unix_new(ef->uzbl_sock);
+    g_io_channel_set_encoding(iochan, NULL, NULL);
+
+    if(!uzbl.comm.connect_chan)
+        uzbl.comm.connect_chan = g_ptr_array_new();
+    if(!uzbl.comm.client_chan)
+        uzbl.comm.client_chan = g_ptr_array_new();
+    g_ptr_array_add(uzbl.comm.client_chan, (gpointer)iochan);
 }
 
 void
@@ -110,8 +117,8 @@ event_fixture_teardown(struct EventFixture *ef, const void *data)
     assert_no_event(ef);
 
     /* clean up the io channel we opened for uzbl */
-    g_io_channel_shutdown(uzbl.comm.clientchan, FALSE, NULL);
-    g_io_channel_unref(uzbl.comm.clientchan);
+    GIOChannel *iochan = g_ptr_array_index(uzbl.comm.client_chan, 0);
+    remove_socket_from_array(iochan);
 
     /* close the sockets so that nothing sticks around between tests */
     close(ef->uzbl_sock);
