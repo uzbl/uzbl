@@ -172,7 +172,7 @@ class Bind(object):
                 msg = 'found null segment after first prompt: %r' % split
                 raise BindParseError(msg)
 
-        self.stack = []
+        self._stack = []
 
         for glob in split[::2]:
             # Is the binding a MODCMD or KEYCMD:
@@ -185,8 +185,15 @@ class Bind(object):
             has_args = True if glob[-1] in ['*', '_'] else False
             glob = glob[:-1] if has_args else glob
 
-            self.stack.append((mod_cmd, on_exec, has_args, glob))
+            self._stack.append((mod_cmd, on_exec, has_args, glob))
 
+    def is_global(self):
+        return len(self._stack) == 1 and self._stack[0][MOD_CMD]
+
+    def __getitem__(self, depth):
+        if self.is_global():
+            return self._stack[0], False
+        return self._stack[depth], depth - len(self._stack) + 1
 
     def __repr__(self):
         args = ['glob=%r' % self.glob, 'bid=%d' % self.bid]
@@ -274,33 +281,35 @@ def filter_bind(uzbl, bind_dict, bind):
 
 def match_and_exec(uzbl, bind, depth, keycmd):
     bind_dict = get_bind_dict(uzbl)
-    mod_cmd, on_exec, has_args, glob = bind.stack[depth]
+    (mod_cmd, on_exec, has_args, glob), more = bind[depth]
 
     if has_args:
         if not keycmd.startswith(glob):
-            filter_bind(uzbl, bind_dict, bind)
+            if not mod_cmd:
+                filter_bind(uzbl, bind_dict, bind)
             return False
 
         args = [keycmd[len(glob):],]
 
     elif keycmd != glob:
-        filter_bind(uzbl, bind_dict, bind)
+        if not mod_cmd:
+            filter_bind(uzbl, bind_dict, bind)
         return False
 
     else:
         args = []
 
-    execindex = len(bind.stack)-1
-    if execindex == depth == 0:
+    if bind.is_global() or (not more and depth == 0):
         uzbl.exec_handler(bind, *args)
         if not has_args and not mod_cmd:
             uzbl.clear_keycmd()
 
         return True
 
-    elif depth != execindex:
+    elif more:
         if bind_dict['depth'] == depth:
-            bind_dict['filter'] = [bind,]
+            globalcmds = [cmd for cmd in bind_dict['binds'] if cmd.is_global()]
+            bind_dict['filter'] = [bind,] + globalcmds
             bind_dict['args'] += args
             bind_dict['depth'] = depth + 1
 
@@ -323,7 +332,7 @@ def keycmd_update(uzbl, keylet):
     depth = get_stack_depth(uzbl)
     keycmd = keylet.key_cmd()
     for bind in get_filtered_binds(uzbl):
-        t = bind.stack[depth]
+        (t,more) = bind[depth]
         if t[MOD_CMD] or t[ON_EXEC]:
             continue
 
@@ -334,7 +343,7 @@ def keycmd_exec(uzbl, keylet):
     depth = get_stack_depth(uzbl)
     keycmd = keylet.key_cmd()
     for bind in get_filtered_binds(uzbl):
-        t = bind.stack[depth]
+        (t,more) = bind[depth]
         if t[MOD_CMD] or not t[ON_EXEC]:
             continue
 
@@ -345,7 +354,7 @@ def modcmd_update(uzbl, keylet):
     depth = get_stack_depth(uzbl)
     keycmd = keylet.mod_cmd()
     for bind in get_filtered_binds(uzbl):
-        t = bind.stack[depth]
+        (t,more) = bind[depth]
         if not t[MOD_CMD] or t[ON_EXEC]:
             continue
 
@@ -356,7 +365,7 @@ def modcmd_exec(uzbl, keylet):
     depth = get_stack_depth(uzbl)
     keycmd = keylet.mod_cmd()
     for bind in get_filtered_binds(uzbl):
-        t = bind.stack[depth]
+        (t,more) = bind[depth]
         if not t[MOD_CMD] or not t[ON_EXEC]:
             continue
 
