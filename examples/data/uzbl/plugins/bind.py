@@ -216,6 +216,32 @@ class Bind(object):
         return '<Bind(%s)>' % ', '.join(args)
 
 
+def exec_bind(uzbl, bind, *args, **kargs):
+    '''Execute bind objects.'''
+
+    if bind.callable:
+        args += bind.args
+        kargs = dict(bind.kargs.items()+kargs.items())
+        bind.function(uzbl, *args, **kargs)
+        return
+
+    if kargs:
+        raise ArgumentError('cannot supply kargs for uzbl commands')
+
+    commands = []
+
+    for cmd in bind.commands:
+        if '%s' in cmd:
+            if len(args) > 1:
+                for arg in args:
+                    cmd = cmd.replace('%s', arg, 1)
+
+            elif len(args) == 1:
+                cmd = cmd.replace('%s', args[0])
+
+        uzbl.send(cmd)
+
+
 def bind(uzbl, glob, handler, *args, **kargs):
     '''Add a bind handler object.'''
 
@@ -302,7 +328,7 @@ def match_and_exec(uzbl, bind, depth, keycmd):
         args = []
 
     if bind.is_global() or (not more and depth == 0):
-        uzbl.exec_handler(bind, *args)
+        exec_bind(uzbl, bind, *args)
         if not has_args and not mod_cmd:
             uzbl.clear_keycmd()
 
@@ -323,7 +349,7 @@ def match_and_exec(uzbl, bind, depth, keycmd):
         return False
 
     args = bind_dict['args'] + args
-    uzbl.exec_handler(bind, *args)
+    exec_bind(uzbl, bind, *args)
     uzbl.set_mode()
 
     return True

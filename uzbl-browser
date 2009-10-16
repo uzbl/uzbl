@@ -1,5 +1,5 @@
 #!/bin/sh
-# this script implements are more useful "browsing experience". 
+# this script implements are more useful "browsing experience".
 # We are assuming you want to use the event_manager.py and cookie_daemon.py.
 # So, you must have them in the appropriate place, and cookie_daemon_socket must be configured in the default location
 
@@ -10,29 +10,30 @@
 
 if [ -z "$XDG_DATA_HOME" ]
 then
-	XDG_DATA_HOME=$HOME/.local/share
+	export XDG_DATA_HOME=$HOME/.local/share
 fi
 
 if [ -z "$XDG_CACHE_HOME" ]
 then
-	XDG_CACHE_HOME=$HOME/.cache
+	export XDG_CACHE_HOME=$HOME/.cache
 fi
 
 if [ ! -S $XDG_CACHE_HOME/uzbl/cookie_daemon_socket ]
 then
-	$XDG_DATA_HOME/uzbl/scripts/cookie_daemon.py
+	if [ -f "$XDG_DATA_HOME/uzbl/scripts/cookie_daemon.py" ]
+	then
+		$XDG_DATA_HOME/uzbl/scripts/cookie_daemon.py
+	else
+		/usr/local/share/uzbl/examples/data/uzbl/scripts/cookie_daemon.py
+	fi
 fi
 
+DAEMON_SOCKET=$XDG_CACHE_HOME/uzbl/event_daemon
+DAEMON_PID=$XDG_CACHE_HOME/uzbl/event_daemon.pid
 
-SOCKET_ID="$RANDOM$RANDOM"
-SOCKET_DIR="/tmp"
-SOCKET_PATH="$SOCKET_DIR/uzbl_socket_$SOCKET_ID"
+#if [ -f "$DAEMON_PID" ]
+#then
+	uzbl-daemon start
+#fi
 
-uzbl-core "$@" -n $SOCKET_ID &
-$XDG_DATA_HOME/uzbl/scripts/event_manager.py -vs $SOCKET_PATH
-
-# TODO: make posix sh compliant. [ -S ] is said to not work. what about test -S ?
-if [[ -S $SOCKETPATH ]]
-then
-	rm $SOCKET_PATH
-fi
+uzbl-core "$@" --connect-socket $DAEMON_SOCKET

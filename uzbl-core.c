@@ -51,6 +51,8 @@ GOptionEntry entries[] =
         "Path to config file or '-' for stdin", "FILE" },
     { "socket",   's', 0, G_OPTION_ARG_INT, &uzbl.state.socket_id,
         "Socket ID", "SOCKET" },
+    { "connect-socket",   0, 0, G_OPTION_ARG_STRING_ARRAY, &uzbl.state.connect_socket_names,
+        "Socket Name", "CSOCKET" },
     { "geometry", 'g', 0, G_OPTION_ARG_STRING, &uzbl.gui.geometry,
         "Set window geometry (format: WIDTHxHEIGHT+-X+-Y)", "GEOMETRY" },
     { "version",  'V', 0, G_OPTION_ARG_NONE, &uzbl.behave.print_version,
@@ -468,19 +470,6 @@ parseenv (char* string) {
     return string;
 }
 
-sigfunc*
-setup_signal(int signr, sigfunc *shandler) {
-    struct sigaction nh, oh;
-
-    nh.sa_handler = shandler;
-    sigemptyset(&nh.sa_mask);
-    nh.sa_flags = 0;
-
-    if(sigaction(signr, &nh, &oh) < 0)
-        return SIG_ERR;
-
-    return NULL;
-}
 
 void
 clean_up(void) {
@@ -499,7 +488,21 @@ clean_up(void) {
         unlink (uzbl.comm.socket_path);
 }
 
-/* --- SIGNAL HANDLER --- */
+/* --- SIGNALS --- */
+sigfunc*
+setup_signal(int signr, sigfunc *shandler) {
+    struct sigaction nh, oh;
+
+    nh.sa_handler = shandler;
+    sigemptyset(&nh.sa_mask);
+    nh.sa_flags = 0;
+
+    if(sigaction(signr, &nh, &oh) < 0)
+        return SIG_ERR;
+
+    return NULL;
+}
+
 void
 catch_sigterm(int s) {
     (void) s;
@@ -1533,20 +1536,56 @@ gboolean
 control_socket(GIOChannel *chan) {
     struct sockaddr_un remote;
     unsigned int t = sizeof(remote);
+    GIOChannel *iochan;
     int clientsock;
 
     clientsock = accept (g_io_channel_unix_get_fd(chan),
                          (struct sockaddr *) &remote, &t);
 
-    if ((uzbl.comm.clientchan = g_io_channel_unix_new(clientsock))) {
-        g_io_channel_set_encoding(uzbl.comm.clientchan, NULL, NULL);
-        g_io_add_watch(uzbl.comm.clientchan, G_IO_IN|G_IO_HUP,
-                       (GIOFunc) control_client_socket, uzbl.comm.clientchan);
-        /* replay buffered events */
-        send_event_socket(NULL);
+    if(!uzbl.comm.client_chan)
+        uzbl.comm.client_chan = g_ptr_array_new();
+
+    if ((iochan = g_io_channel_unix_new(clientsock))) {
+        g_io_channel_set_encoding(iochan, NULL, NULL);
+        g_io_add_watch(iochan, G_IO_IN|G_IO_HUP,
+                       (GIOFunc) control_client_socket, iochan);
+        g_ptr_array_add(uzbl.comm.client_chan, (gpointer)iochan);
+    }
+    return TRUE;
+}
+
+void
+init_connect_socket() {
+    int sockfd, replay = 0;
+    struct sockaddr_un local;
+    GIOChannel *chan;
+    gchar **name = NULL;
+
+    if(!uzbl.comm.connect_chan)
+        uzbl.comm.connect_chan = g_ptr_array_new();
+
+    name = uzbl.state.connect_socket_names;
+
+    while(name && *name) {
+        sockfd = socket (AF_UNIX, SOCK_STREAM, 0);
+        local.sun_family = AF_UNIX;
+        strcpy (local.sun_path, *name);
+
+        if(!connect(sockfd, (struct sockaddr *) &local, sizeof(local))) {
+            if ((chan = g_io_channel_unix_new(sockfd))) {
+                g_io_channel_set_encoding(chan, NULL, NULL);
+                g_io_add_watch(chan, G_IO_IN|G_IO_HUP,
+                        (GIOFunc) control_client_socket, chan);
+                g_ptr_array_add(uzbl.comm.connect_chan, (gpointer)chan);
+                replay++;
+            }
+        }
+        name++;
     }
 
-    return TRUE;
+    /* replay buffered events */
+    if(replay)
+        send_event_socket(NULL);
 }
 
 gboolean
@@ -1927,6 +1966,9 @@ settings_init () {
         if (uzbl.state.verbose)
             printf ("No configuration file loaded.\n");
     }
+
+    if(s->connect_socket_names)
+        init_connect_socket();
 
     g_signal_connect_after(n->soup_session, "request-started", G_CALLBACK(handle_cookies), NULL);
 }
