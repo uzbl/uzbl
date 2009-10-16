@@ -2,7 +2,7 @@
 * people want a browser that does everything
 * people who want a browser with things like a built-in bookmark manager, address bar, forward/back buttons, ...
 * people who expect something that works by default.  You'll need to read configs and write/edit scripts
-* people who like nothing from this list: mpd, moc, wmii, dwm, awesome, mutt, pine, vim, dmenu, screen, irssi, weechat, bitlbee
+* people who like nothing from this list: mpd, moc, wmii, dwm, awesome, xmonad, mutt, pine, vim, dmenu, screen, irssi, weechat, bitlbee
 
 ### TO NEW PEOPLE:
 * invoke uzbl-browser --help
@@ -511,7 +511,10 @@ Reported events and their specific format:
     --display=DISPLAY        X display to use
     --help                   Help
 
-
+uzbl scheme://address will work as you expect. If you don't provide the
+scheme:// part, it will check if the argument is an existing file in the
+filesystem: if it is, it will prepend file://, if not, it will
+prepend http://.
 
 
 ### BUGS

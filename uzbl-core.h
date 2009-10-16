@@ -12,6 +12,7 @@
 
 #define _POSIX_SOURCE
 
+#include <glib/gstdio.h>
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 #include <gdk/gdkkeysyms.h>

@@ -123,7 +123,7 @@ set socket_dir        = /tmp
 @bind    gg _      = uri http://www.google.com/search?q=%s
 # Enclose the executable in quotes if it has spaces.  Any additional parameters you use will
 # appear AFTER the default parameters
-#@bind    B         = spawn @scripts_dir}/insert_bookmark.sh
+#@bind    B         = spawn @scripts_dir/insert_bookmark.sh
 @bind    U         = spawn @scripts_dir/load_url_from_history.sh
 @bind    u         = spawn @scripts_dir/load_url_from_bookmarks.sh
 # with the sample yank script, you can yank one of the arguments into clipboard/selection

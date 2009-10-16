@@ -730,8 +730,25 @@ load_uri (WebKitWebView *web_view, GArray *argv, GString *result) {
             run_js(web_view, argv, NULL);
             return;
         }
-        if (!soup_uri_new(argv_idx(argv, 0)))
-            g_string_prepend (newuri, "http://");
+        if (!soup_uri_new(argv_idx(argv, 0))) {
+            GString* fullpath = g_string_new ("");
+            if (g_path_is_absolute (newuri->str))
+                g_string_assign (fullpath, newuri->str);
+            else {
+                gchar* wd;
+                wd = g_get_current_dir ();
+                g_string_assign (fullpath, g_build_filename (wd, newuri->str, NULL));
+                free(wd);
+            }
+            struct stat stat_result;
+            if (! g_stat(fullpath->str, &stat_result)) {
+                g_string_prepend (fullpath, "file://");
+                g_string_assign (newuri, fullpath->str);
+            }
+            else
+                g_string_prepend (newuri, "http://");
+            g_string_free (fullpath, TRUE);
+        }
         /* if we do handle cookies, ask our handler for them */
         webkit_web_view_load_uri (web_view, newuri->str);
         g_string_free (newuri, TRUE);

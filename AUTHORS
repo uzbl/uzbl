@@ -42,6 +42,7 @@ In alphabetical order:
     Michael Fiano (axionix) - added cookie_daemon.py whitelist
     Michael Walker (Barrucadu) <mike AT barrucadu.co.uk> - contributions to early uzbl 
     Moritz Lenz - small doc fix
+    Olivier Schwander - auto file:// prepend
     Paweł Zuzelski (pawelz) - download handler proxy patch
     Peter Suschlik - backwards searching
     Přemysl Hrubý (anydot) <email is dfenze AT gmail.com> - several C contributions and cleanups
