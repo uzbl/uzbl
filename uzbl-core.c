@@ -2044,6 +2044,8 @@ void
 initialize(int argc, char *argv[]) {
     if (!g_thread_supported ())
         g_thread_init (NULL);
+    gtk_init (&argc, &argv);
+
     uzbl.state.executable_path = g_strdup(argv[0]);
     uzbl.state.selected_url = NULL;
     uzbl.state.searchtx = NULL;
@@ -2091,8 +2093,6 @@ initialize(int argc, char *argv[]) {
 int
 main (int argc, char* argv[]) {
     initialize(argc, argv);
-
-    gtk_init (&argc, &argv);
 
     uzbl.gui.scrolled_win = gtk_scrolled_window_new (NULL, NULL);
     //main_window_ref = g_object_ref(scrolled_window);
