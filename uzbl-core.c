@@ -624,6 +624,7 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "request",               {event, TRUE}                  },
     { "update_gui",            {update_gui, TRUE}             },
     { "menu_add",              {menu_add, 0}                  },
+    { "menu_add_separator",    {menu_add_separator, TRUE}     },
     { "menu_remove",           {menu_remove, 0}               }
 };
 
@@ -702,12 +703,37 @@ menu_add(WebKitWebView *page, GArray *argv, GString *result) {
         m = malloc(sizeof(MenuItem));
         m->name = g_strdup(argv_idx(argv, 0));
         m->cmd  = g_strdup(item_cmd?item_cmd:"");
+        m->issep = FALSE;
         g_ptr_array_add(uzbl.gui.menu_items, m);
     }
     else
         g_free(item_cmd);
 
 }
+
+void
+menu_add_separator(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page;
+    (void) result;
+    (void) argv;
+    MenuItem *m;
+    gchar *sep_name;
+
+    if(!uzbl.gui.menu_items)
+        uzbl.gui.menu_items = g_ptr_array_new();
+
+    if(!argv_idx(argv, 0))
+        return;
+    else
+        sep_name = argv_idx(argv, 0);
+
+    m = malloc(sizeof(MenuItem));
+    m->name  = g_strdup(sep_name);
+    m->cmd   = NULL;
+    m->issep = TRUE;
+    g_ptr_array_add(uzbl.gui.menu_items, m);
+}
+
 
 void
 menu_remove(WebKitWebView *page, GArray *argv, GString *result) {
@@ -720,10 +746,10 @@ menu_remove(WebKitWebView *page, GArray *argv, GString *result) {
     if(!uzbl.gui.menu_items)
         return;
 
-    if(argv_idx(argv, 0))
-        name = argv_idx(argv, 0);
-    else
+    if(!argv_idx(argv, 0))
         return;
+    else
+        name = argv_idx(argv, 0);
 
     for(i=0; i < uzbl.gui.menu_items->len; i++) {
         mi = g_ptr_array_index(uzbl.gui.menu_items, i);

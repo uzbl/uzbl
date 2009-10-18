@@ -435,6 +435,9 @@ void
 menu_add(WebKitWebView *page, GArray *argv, GString *result);
 
 void
+menu_add_separator(WebKitWebView *page, GArray *argv, GString *result);
+
+void
 menu_remove(WebKitWebView *page, GArray *argv, GString *result);
 
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
@@ -446,6 +449,7 @@ typedef struct {
 typedef struct {
     gchar *name;
     gchar *cmd;
+    gboolean issep;
 } MenuItem;
 
 

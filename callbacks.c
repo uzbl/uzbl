@@ -617,11 +617,18 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
     for(i=0; i < uzbl.gui.menu_items->len; i++) {
         mi = g_ptr_array_index(uzbl.gui.menu_items, i);
 
-        item = gtk_menu_item_new_with_label(mi->name);
-        g_signal_connect(item, "activate",
-                G_CALLBACK(run_menu_command), mi->cmd);
-        gtk_menu_append(GTK_MENU(m), item);
-        gtk_widget_show(item);
+        if(mi->issep) {
+            item = gtk_separator_menu_item_new();
+            gtk_menu_append(GTK_MENU(m), item);
+            gtk_widget_show(item);
+        }
+        else {
+            item = gtk_menu_item_new_with_label(mi->name);
+            g_signal_connect(item, "activate",
+                    G_CALLBACK(run_menu_command), mi->cmd);
+            gtk_menu_append(GTK_MENU(m), item);
+            gtk_widget_show(item);
+        }
     }
 
 }
