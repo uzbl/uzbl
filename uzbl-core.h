@@ -205,11 +205,6 @@ extern UzblCore uzbl;
 
 typedef void sigfunc(int);
 
-typedef struct {
-    char* name;
-    char* param;
-} Action;
-
 /* XDG Stuff */
 typedef struct {
     gchar* environmental;
@@ -253,12 +248,6 @@ print(WebKitWebView *page, GArray *argv, GString *result);
 
 void
 commands_hash(void);
-
-void
-free_action(gpointer act);
-
-Action*
-new_action(const gchar *name, const gchar *param);
 
 bool
 file_exists (const char * filename);

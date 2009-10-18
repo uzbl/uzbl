@@ -635,28 +635,6 @@ commands_hash(void)
 
 /* -- CORE FUNCTIONS -- */
 
-void
-free_action(gpointer act) {
-    Action *action = (Action*)act;
-    g_free(action->name);
-    if (action->param)
-        g_free(action->param);
-    g_free(action);
-}
-
-Action*
-new_action(const gchar *name, const gchar *param) {
-    Action *action = g_new(Action, 1);
-
-    action->name = g_strdup(name);
-    if (param)
-        action->param = g_strdup(param);
-    else
-        action->param = NULL;
-
-    return action;
-}
-
 bool
 file_exists (const char * filename) {
     return (access(filename, F_OK) == 0);
