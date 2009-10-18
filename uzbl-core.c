@@ -736,7 +736,7 @@ load_uri (WebKitWebView *web_view, GArray *argv, GString *result) {
                 gchar* wd;
                 wd = g_get_current_dir ();
                 g_string_assign (fullpath, g_build_filename (wd, newuri->str, NULL));
-                free(wd);
+                g_free(wd);
             }
             struct stat stat_result;
             if (! g_stat(fullpath->str, &stat_result)) {
@@ -1360,13 +1360,13 @@ set_var_value(const gchar *name, gchar *val) {
         }
 
         /* custom vars */
-        c = malloc(sizeof(uzbl_cmdprop));
+        c = g_malloc(sizeof(uzbl_cmdprop));
         c->type = TYPE_STR;
         c->dump = 0;
         c->func = NULL;
         c->writeable = 1;
         buf = g_strdup(val);
-        c->ptr.s = malloc(sizeof(char *));
+        c->ptr.s = g_malloc(sizeof(char *));
         *c->ptr.s = buf;
         g_hash_table_insert(uzbl.comm.proto_var,
                 g_strdup(name), (gpointer) c);
