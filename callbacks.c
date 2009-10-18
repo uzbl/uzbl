@@ -609,6 +609,11 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
     if(!uzbl.gui.menu_items)
         return;
 
+    /* Separate custom entries from default ones */
+    item = gtk_separator_menu_item_new();
+    gtk_menu_append(GTK_MENU(m), item);
+    gtk_widget_show(item);
+
     for(i=0; i < uzbl.gui.menu_items->len; i++) {
         mi = g_ptr_array_index(uzbl.gui.menu_items, i);
 
