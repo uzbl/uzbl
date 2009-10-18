@@ -62,10 +62,7 @@ cmd_set_status() {
 
 void
 cmd_load_uri() {
-    GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-    g_array_append_val (a, uzbl.state.uri);
-    load_uri(uzbl.gui.web_view, a, NULL);
-    g_array_free (a, TRUE);
+	load_uri_imp (uzbl.state.uri);
 }
 
 void

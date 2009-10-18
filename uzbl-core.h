@@ -246,6 +246,9 @@ gboolean
 set_var_value(const gchar *name, gchar *val);
 
 void
+load_uri_imp(gchar *uri);
+
+void
 print(WebKitWebView *page, GArray *argv, GString *result);
 
 void

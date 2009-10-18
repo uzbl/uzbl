@@ -720,37 +720,8 @@ act_dump_config_as_events() {
 
 void
 load_uri (WebKitWebView *web_view, GArray *argv, GString *result) {
-    (void) result;
-
-    if (argv_idx(argv, 0)) {
-        GString* newuri = g_string_new (argv_idx(argv, 0));
-        if (g_strstr_len (argv_idx(argv, 0), 11, "javascript:") != NULL) {
-            run_js(web_view, argv, NULL);
-            return;
-        }
-        if (!soup_uri_new(argv_idx(argv, 0))) {
-            GString* fullpath = g_string_new ("");
-            if (g_path_is_absolute (newuri->str))
-                g_string_assign (fullpath, newuri->str);
-            else {
-                gchar* wd;
-                wd = g_get_current_dir ();
-                g_string_assign (fullpath, g_build_filename (wd, newuri->str, NULL));
-                g_free(wd);
-            }
-            struct stat stat_result;
-            if (! g_stat(fullpath->str, &stat_result)) {
-                g_string_prepend (fullpath, "file://");
-                g_string_assign (newuri, fullpath->str);
-            }
-            else
-                g_string_prepend (newuri, "http://");
-            g_string_free (fullpath, TRUE);
-        }
-        /* if we do handle cookies, ask our handler for them */
-        webkit_web_view_load_uri (web_view, newuri->str);
-        g_string_free (newuri, TRUE);
-    }
+    (void) web_view; (void) result;
+    load_uri_imp (argv_idx (argv, 0));
 }
 
 /* Javascript*/
@@ -2089,6 +2060,39 @@ initialize(int argc, char *argv[]) {
     create_browser();
 }
 
+void
+load_uri_imp(gchar *uri) {
+    GString* newuri;
+    if (g_strstr_len (uri, 11, "javascript:") != NULL) {
+        eval_js(uzbl.gui.web_view, uri, NULL);
+        return;
+    }
+    newuri = g_string_new (uri);
+    if (!soup_uri_new(uri)) {
+        GString* fullpath = g_string_new ("");
+        if (g_path_is_absolute (newuri->str))
+            g_string_assign (fullpath, newuri->str);
+        else {
+            gchar* wd;
+            wd = g_get_current_dir ();
+            g_string_assign (fullpath, g_build_filename (wd, newuri->str, NULL));
+            free(wd);
+        }
+        struct stat stat_result;
+        if (! g_stat(fullpath->str, &stat_result)) {
+            g_string_prepend (fullpath, "file://");
+            g_string_assign (newuri, fullpath->str);
+        }
+        else
+            g_string_prepend (newuri, "http://");
+        g_string_free (fullpath, TRUE);
+    }
+    /* if we do handle cookies, ask our handler for them */
+    webkit_web_view_load_uri (uzbl.gui.web_view, newuri->str);
+    g_string_free (newuri, TRUE);
+}
+
+
 #ifndef UZBL_LIBRARY
 /** -- MAIN -- **/
 int
@@ -2178,8 +2182,7 @@ main (int argc, char* argv[]) {
     if (uri_override) {
         set_var_value("uri", uri_override);
         g_free(uri_override);
-    } else if (uzbl.state.uri)
-        cmd_load_uri();
+    }
 
     gtk_main ();
     clean_up();
