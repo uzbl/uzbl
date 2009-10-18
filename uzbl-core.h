@@ -231,7 +231,7 @@ GArray*
 read_file_by_line (const gchar *path);
 
 gchar*
-parseenv (char* string);
+parseenv (gchar* string);
 
 void
 clean_up(void);
@@ -241,9 +241,6 @@ catch_sigterm(int s);
 
 sigfunc *
 setup_signal(int signe, sigfunc *shandler);
-
-gchar*
-parseenv (char* string);
 
 gboolean
 set_var_value(const gchar *name, gchar *val);

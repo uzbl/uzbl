@@ -442,21 +442,22 @@ find_existing_file(gchar* path_list) {
 }
 
 
+/* Returns a new string with environment $variables expanded */
 gchar*
-parseenv (char* string) {
+parseenv (gchar* string) {
     extern char** environ;
-    gchar* tmpstr = NULL;
+    gchar* tmpstr = NULL, * out;
     int i = 0;
 
+    out = g_strdup(string);
 
     while (environ[i] != NULL) {
         gchar** env = g_strsplit (environ[i], "=", 2);
         gchar* envname = g_strconcat ("$", env[0], NULL);
 
         if (g_strrstr (string, envname) != NULL) {
-            tmpstr = g_strdup(string);
-            g_free (string);
-            string = str_replace(envname, env[1], tmpstr);
+            tmpstr = out;
+            out = str_replace(envname, env[1], out);
             g_free (tmpstr);
         }
 
@@ -465,7 +466,7 @@ parseenv (char* string) {
         i++;
     }
 
-    return string;
+    return out;
 }
 
 sigfunc*
@@ -666,7 +667,7 @@ set_var(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
     gchar **split = g_strsplit(argv_idx(argv, 0), "=", 2);
     if (split[0] != NULL) {
-        gchar *value = parseenv(g_strdup(split[1] ? g_strchug(split[1]) : " "));
+        gchar *value = parseenv(split[1] ? g_strchug(split[1]) : " ");
         set_var_value(g_strstrip(split[0]), value);
         g_free(value);
     }
