@@ -1050,6 +1050,7 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
 
     JSStringRef js_script;
     JSValueRef js_result;
+    JSValueRef js_exc = NULL;
     JSStringRef js_result_string;
     size_t js_result_size;
 
@@ -1067,7 +1068,7 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
 
     /* evaluate the script and get return value*/
     js_script = JSStringCreateWithUTF8CString(script);
-    js_result = JSEvaluateScript(context, js_script, globalobject, NULL, 0, NULL);
+    js_result = JSEvaluateScript(context, js_script, globalobject, NULL, 0, &js_exc);
     if (js_result && !JSValueIsUndefined(context, js_result)) {
         js_result_string = JSValueToStringCopy(context, js_result, NULL);
         js_result_size = JSStringGetMaximumUTF8CStringSize(js_result_string);
@@ -1079,6 +1080,37 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
         }
 
         JSStringRelease(js_result_string);
+    }
+    else if (js_exc && JSValueIsObject(context, js_exc)) {
+        size_t size;
+        JSStringRef prop, val;
+        JSObjectRef exc = JSValueToObject(context, js_exc, NULL);
+        
+        printf("Exception occured while executing script:\n");
+        
+        /* Print line */
+        prop = JSStringCreateWithUTF8CString("line");
+        val = JSValueToStringCopy(context, JSObjectGetProperty(context, exc, prop, NULL), NULL);
+        size = JSStringGetMaximumUTF8CStringSize(val);
+        if(size) {
+            char cstr[size];
+            JSStringGetUTF8CString(val, cstr, size);
+            printf("At line %s: ", cstr);
+        }
+        JSStringRelease(prop);
+        JSStringRelease(val);
+        
+        /* Print message */
+        prop = JSStringCreateWithUTF8CString("message");
+        val = JSValueToStringCopy(context, JSObjectGetProperty(context, exc, prop, NULL), NULL);
+        size = JSStringGetMaximumUTF8CStringSize(val);
+        if(size) {
+            char cstr[size];
+            JSStringGetUTF8CString(val, cstr, size);
+            printf("%s\n", cstr);
+        }
+        JSStringRelease(prop);
+        JSStringRelease(val);
     }
 
     /* cleanup */
