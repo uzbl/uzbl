@@ -589,3 +589,35 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
     send_event(DOWNLOAD_REQ, webkit_download_get_uri ((WebKitDownload*)download), NULL);
     return (FALSE);
 }
+
+void
+run_menu_command(GtkWidget *menu, const char *line) {
+    (void) menu;
+
+    parse_cmd_line(line, NULL);
+}
+
+
+void
+populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
+    (void) v;
+    (void) c;
+    GtkWidget *item;
+    MenuItem *mi;
+    guint i=0;
+
+    if(!uzbl.gui.menu_items)
+        return;
+
+    for(i=0; i < uzbl.gui.menu_items->len; i++) {
+        mi = g_ptr_array_index(uzbl.gui.menu_items, i);
+
+        item = gtk_menu_item_new_with_label(mi->name);
+        g_signal_connect(item, "activate",
+                G_CALLBACK(run_menu_command), mi->cmd);
+        gtk_menu_append(GTK_MENU(m), item);
+        gtk_widget_show(item);
+    }
+
+}
+

@@ -32,8 +32,8 @@ uzbl-core: ${OBJ}
 	@echo LINKING object files
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
 	@echo ... done.
-	#@echo Stripping binary
-	#@strip $@
+	@echo Stripping binary
+	@strip $@
 	@echo ... done.
 
 

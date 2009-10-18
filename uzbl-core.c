@@ -622,7 +622,9 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
      * the user, technically events and requests are the very same thing
     */
     { "request",               {event, TRUE}                  },
-    { "update_gui",            {update_gui, TRUE}             }
+    { "update_gui",            {update_gui, TRUE}             },
+    { "menu_add",              {menu_add, 0}                  },
+    { "menu_remove",           {menu_remove, 0}               }
 };
 
 void
@@ -681,6 +683,58 @@ update_gui(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) argv; (void) result;
 
     update_title();
+}
+
+void
+menu_add(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page;
+    (void) result;
+    MenuItem *m;
+    gchar *item_cmd = NULL;
+
+    if(!uzbl.gui.menu_items)
+        uzbl.gui.menu_items = g_ptr_array_new();
+
+    if(argv_idx(argv, 1))
+        item_cmd = g_strdup(argv_idx(argv, 1));
+
+    if(argv_idx(argv, 0)) {
+        m = malloc(sizeof(MenuItem));
+        m->name = g_strdup(argv_idx(argv, 0));
+        m->cmd  = g_strdup(item_cmd?item_cmd:"");
+        g_ptr_array_add(uzbl.gui.menu_items, m);
+    }
+    else
+        g_free(item_cmd);
+
+}
+
+void
+menu_remove(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page;
+    (void) result;
+    MenuItem *mi;
+    gchar *name = NULL;
+    guint i=0;
+
+    if(!uzbl.gui.menu_items)
+        return;
+
+    if(argv_idx(argv, 0))
+        name = argv_idx(argv, 0);
+    else
+        return;
+
+    for(i=0; i < uzbl.gui.menu_items->len; i++) {
+        mi = g_ptr_array_index(uzbl.gui.menu_items, i);
+
+        if(!strcmp(name, mi->name)) {
+            g_free(mi->name);
+            g_free(mi->cmd);
+            g_free(mi);
+            g_ptr_array_remove_index(uzbl.gui.menu_items, i);
+        }
+    }
 }
 
 void
@@ -1760,6 +1814,7 @@ create_browser () {
       "signal::download-requested",                   (GCallback)download_cb,             NULL,
       "signal::create-web-view",                      (GCallback)create_web_view_cb,      NULL,
       "signal::mime-type-policy-decision-requested",  (GCallback)mime_policy_cb,          NULL,
+      "signal::populate-popup",                       (GCallback)populate_popup_cb,       NULL,
       NULL);
 }
 

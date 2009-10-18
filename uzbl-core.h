@@ -70,6 +70,9 @@ typedef struct {
     WebKitWebInspector *inspector;
 
     StatusBar sbar;
+
+    /* custom context menu item */
+    GPtrArray    *menu_items;
 } GUI;
 
 
@@ -428,10 +431,22 @@ event(WebKitWebView *page, GArray *argv, GString *result);
 void
 init_connect_socket();
 
+void
+menu_add(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_remove(WebKitWebView *page, GArray *argv, GString *result);
+
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
 typedef struct {
     Command function;
     gboolean no_split;
 } CommandInfo;
+
+typedef struct {
+    gchar *name;
+    gchar *cmd;
+} MenuItem;
+
 
 /* vi: set et ts=4: */

@@ -186,3 +186,6 @@ create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer us
 gboolean
 download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data);
 
+void
+populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c);
+
