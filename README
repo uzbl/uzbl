@@ -164,6 +164,16 @@ The following commands are recognized:
    - update the contents of the status and title bars
 * `event <event_name> [event_details]`
    - send custom event
+* menu_add <label> [uzbl command]
+   - add a new entry "label" that will execute "uzbl command" to the right click menu
+   - NOTE: you will need to quote 'label' and 'uzbl command' if they contain any spaces
+* menu_add_separator <label>
+   - adds a separator line to the right click menu
+   - no qouting needed
+* menu_remove <label>
+   - removes the entry "label" from the right click menu
+   - no quoting needed
+
 
 ### VARIABLES AND CONSTANTS
 Uzbl has a lot of internal variables and constants.  You can get the values (using the `print` command, see above), and for variables you can also change the value at

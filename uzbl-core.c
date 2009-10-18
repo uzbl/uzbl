@@ -625,7 +625,7 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "update_gui",            {update_gui, TRUE}             },
     { "menu_add",              {menu_add, 0}                  },
     { "menu_add_separator",    {menu_add_separator, TRUE}     },
-    { "menu_remove",           {menu_remove, 0}               }
+    { "menu_remove",           {menu_remove, TRUE}               }
 };
 
 void
