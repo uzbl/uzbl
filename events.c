@@ -36,7 +36,8 @@ const char *event_table[LAST_EVENT] = {
      "INSTANCE_EXIT"    ,
      "LOAD_PROGRESS"    ,
      "LINK_UNHOVER"     ,
-     "FORM_ACTIVE"
+     "FORM_ACTIVE"      ,
+     "ROOT_ACTIVE"
 };
 
 void
