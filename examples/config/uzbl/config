@@ -42,6 +42,9 @@ set new_window         = sh 'uzbl-browser -u $8' # equivalent to the default beh
 @on_event   LOAD_FINISH    @set_status <span foreground="gold">done</span>
 @on_event   LOAD_FINISH    spawn @scripts_dir/history.sh
 
+# Switch to insert mode if clicked on a html form
+@on_event   FORM_ACTIVE    @set_mode insert
+
 # Misc on_event handlers
 #@on_event  CONFIG_CHANGED print Config changed: %1 = %2
 

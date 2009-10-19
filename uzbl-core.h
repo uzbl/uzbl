@@ -459,6 +459,9 @@ menu_remove_link(WebKitWebView *page, GArray *argv, GString *result);
 void
 menu_remove_image(WebKitWebView *page, GArray *argv, GString *result);
 
+gint
+get_click_context();
+
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
 typedef struct {
     Command function;

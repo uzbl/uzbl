@@ -482,11 +482,20 @@ key_release_cb (GtkWidget* window, GdkEventKey* event) {
 gboolean
 button_press_cb (GtkWidget* window, GdkEventButton* event) {
     (void) window;
+    gint context;
 
     if(event->type == GDK_BUTTON_PRESS) {
         if(uzbl.state.last_button)
             gdk_event_free((GdkEvent *)uzbl.state.last_button);
         uzbl.state.last_button = (GdkEventButton *)gdk_event_copy((GdkEvent *)event);
+
+        /* left click */
+        if(event->button == 1) {
+            context = get_click_context();
+
+            if((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE))
+                send_event(FORM_ACTIVE, "", NULL);
+        }
     }
 
     return FALSE;
@@ -619,15 +628,15 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
     GtkWidget *item;
     MenuItem *mi;
     guint i=0;
-    WebKitHitTestResult *ht;
-    guint context, hit=0;
+    gint context, hit=0;
 
     if(!g->menu_items)
         return;
 
     /* check context */
-    ht = webkit_web_view_get_hit_test_result(g->web_view, uzbl.state.last_button);
-    g_object_get(ht, "context", &context, NULL);
+    if((context = get_click_context()) == -1)
+        return;
+
 
     for(i=0; i < uzbl.gui.menu_items->len; i++) {
         hit = 0;
