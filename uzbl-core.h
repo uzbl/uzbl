@@ -73,6 +73,8 @@ typedef struct {
 
     /* custom context menu item */
     GPtrArray    *menu_items;
+    GPtrArray    *menu_items_link;
+    GPtrArray    *menu_items_image;
 } GUI;
 
 
@@ -104,6 +106,7 @@ typedef struct {
     gboolean verbose;
     GPtrArray *event_buffer;
     gchar**   connect_socket_names;
+    GdkEventButton *last_button;
 } State;
 
 
@@ -435,10 +438,28 @@ void
 menu_add(WebKitWebView *page, GArray *argv, GString *result);
 
 void
+menu_add_link(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_add_image(WebKitWebView *page, GArray *argv, GString *result);
+
+void
 menu_add_separator(WebKitWebView *page, GArray *argv, GString *result);
 
 void
+menu_add_separator_link(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_add_separator_image(WebKitWebView *page, GArray *argv, GString *result);
+
+void
 menu_remove(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_remove_link(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_remove_image(WebKitWebView *page, GArray *argv, GString *result);
 
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
 typedef struct {

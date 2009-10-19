@@ -189,3 +189,6 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data);
 void
 populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c);
 
+gboolean
+button_press_cb (GtkWidget* window, GdkEventButton* event);
+

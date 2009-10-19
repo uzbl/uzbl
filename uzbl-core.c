@@ -586,46 +586,52 @@ VIEWFUNC(go_forward)
 
 /* -- command to callback/function map for things we cannot attach to any signals */
 struct {const char *key; CommandInfo value;} cmdlist[] =
-{   /* key                     function      no_split      */
-    { "back",                  {view_go_back, 0}              },
-    { "forward",               {view_go_forward, 0}           },
-    { "scroll_vert",           {scroll_vert, 0}               },
-    { "scroll_horz",           {scroll_horz, 0}               },
-    { "scroll_begin",          {scroll_begin, 0}              },
-    { "scroll_end",            {scroll_end, 0}                },
-    { "reload",                {view_reload, 0},              },
-    { "reload_ign_cache",      {view_reload_bypass_cache, 0}  },
-    { "stop",                  {view_stop_loading, 0},        },
-    { "zoom_in",               {view_zoom_in, 0},             }, //Can crash (when max zoom reached?).
-    { "zoom_out",              {view_zoom_out, 0},            },
-    { "toggle_zoom_type",      {toggle_zoom_type, 0},         },
-    { "uri",                   {load_uri, TRUE}               },
-    { "js",                    {run_js, TRUE}                 },
-    { "script",                {run_external_js, 0}           },
-    { "toggle_status",         {toggle_status_cb, 0}          },
-    { "spawn",                 {spawn, 0}                     },
-    { "sync_spawn",            {spawn_sync, 0}                }, // needed for cookie handler
-    { "sh",                    {spawn_sh, 0}                  },
-    { "sync_sh",               {spawn_sh_sync, 0}             }, // needed for cookie handler
-    { "talk_to_socket",        {talk_to_socket, 0}            },
-    { "exit",                  {close_uzbl, 0}                },
-    { "search",                {search_forward_text, TRUE}    },
-    { "search_reverse",        {search_reverse_text, TRUE}    },
-    { "dehilight",             {dehilight, 0}                 },
-    { "set",                   {set_var, TRUE}                },
-    { "dump_config",           {act_dump_config, 0}           },
-    { "dump_config_as_events", {act_dump_config_as_events, 0} },
-    { "chain",                 {chain, 0}                     },
-    { "print",                 {print, TRUE}                  },
-    { "event",                 {event, TRUE}                  },
-    /* a request is just semantic sugar to make things more obvious for
-     * the user, technically events and requests are the very same thing
+{   /* key                              function      no_split      */
+    { "back",                           {view_go_back, 0}               },
+    { "forward",                        {view_go_forward, 0}            },
+    { "scroll_vert",                    {scroll_vert, 0}                },
+    { "scroll_horz",                    {scroll_horz, 0}                },
+    { "scroll_begin",                   {scroll_begin, 0}               },
+    { "scroll_end",                     {scroll_end, 0}                 },
+    { "reload",                         {view_reload, 0},               },
+    { "reload_ign_cache",               {view_reload_bypass_cache, 0}   },
+    { "stop",                           {view_stop_loading, 0},         },
+    { "zoom_in",                        {view_zoom_in, 0},              }, //Can crash (when max zoom reached?).
+    { "zoom_out",                       {view_zoom_out, 0},             },
+    { "toggle_zoom_type",               {toggle_zoom_type, 0},          },
+    { "uri",                            {load_uri, TRUE}                },
+    { "js",                             {run_js, TRUE}                  },
+    { "script",                         {run_external_js, 0}            },
+    { "toggle_status",                  {toggle_status_cb, 0}           },
+    { "spawn",                          {spawn, 0}                      },
+    { "sync_spawn",                     {spawn_sync, 0}                 }, // needed for cookie handler
+    { "sh",                             {spawn_sh, 0}                   },
+    { "sync_sh",                        {spawn_sh_sync, 0}              }, // needed for cookie handler
+    { "talk_to_socket",                 {talk_to_socket, 0}             },
+    { "exit",                           {close_uzbl, 0}                 },
+    { "search",                         {search_forward_text, TRUE}     },
+    { "search_reverse",                 {search_reverse_text, TRUE}     },
+    { "dehilight",                      {dehilight, 0}                  },
+    { "set",                            {set_var, TRUE}                 },
+    { "dump_config",                    {act_dump_config, 0}            },
+    { "dump_config_as_events",          {act_dump_config_as_events, 0}  },
+    { "chain",                          {chain, 0}                      },
+    { "print",                          {print, TRUE}                   },
+    { "event",                          {event, TRUE}                   },
+    /* a request is just semantic sugar to make things more obvious for 
+     * the user, technically events and requests are the very same thin g
     */
-    { "request",               {event, TRUE}                  },
-    { "update_gui",            {update_gui, TRUE}             },
-    { "menu_add",              {menu_add, TRUE}               },
-    { "menu_add_separator",    {menu_add_separator, TRUE}     },
-    { "menu_remove",           {menu_remove, TRUE}            }
+    { "request",                        {event, TRUE}                   },
+    { "update_gui",                     {update_gui, TRUE}              },
+    { "menu_add",                       {menu_add, TRUE}                },
+    { "menu_link_add",                  {menu_add_link, TRUE}           },
+    { "menu_image_add",                 {menu_add_image, TRUE}          },
+    { "menu_separator",                 {menu_add_separator, TRUE}      },
+    { "menu_link_separator",            {menu_add_separator_link, TRUE} },
+    { "menu_image_separator",           {menu_add_separator_image, TRUE}},
+    { "menu_remove",                    {menu_remove, TRUE}             },
+    { "menu_link_remove",               {menu_remove_link, TRUE}        },
+    { "menu_image_remove",              {menu_remove_image, TRUE}       }
 };
 
 void
@@ -687,15 +693,13 @@ update_gui(WebKitWebView *page, GArray *argv, GString *result) {
 }
 
 void
-menu_add(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page;
-    (void) result;
+add_to_menu(GArray *argv, GPtrArray **p) {
     MenuItem *m;
     gchar *item_cmd = NULL;
     gchar **split = g_strsplit(argv_idx(argv, 0), "=", 2);
 
-    if(!uzbl.gui.menu_items)
-        uzbl.gui.menu_items = g_ptr_array_new();
+    if(!*p)
+        *p = g_ptr_array_new();
 
     if(split[1])
         item_cmd = g_strdup(split[1]);
@@ -705,25 +709,46 @@ menu_add(WebKitWebView *page, GArray *argv, GString *result) {
         m->name = g_strdup(split[0]);
         m->cmd  = g_strdup(item_cmd?item_cmd:"");
         m->issep = FALSE;
-        g_ptr_array_add(uzbl.gui.menu_items, m);
+        g_ptr_array_add(*p, m);
     }
     else
         g_free(item_cmd);
 
     g_strfreev(split);
+}
+
+void
+menu_add(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page;
+    (void) result;
+
+    add_to_menu(argv, &uzbl.gui.menu_items);
 
 }
 
 void
-menu_add_separator(WebKitWebView *page, GArray *argv, GString *result) {
+menu_add_link(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page;
     (void) result;
-    (void) argv;
+
+    add_to_menu(argv, &uzbl.gui.menu_items_link);
+}
+
+void
+menu_add_image(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page;
+    (void) result;
+
+    add_to_menu(argv, &uzbl.gui.menu_items_image);
+}
+
+void
+add_separator_to_menu(GArray *argv, GPtrArray **p) {
     MenuItem *m;
     gchar *sep_name;
 
-    if(!uzbl.gui.menu_items)
-        uzbl.gui.menu_items = g_ptr_array_new();
+    if(!*p)
+        *p = g_ptr_array_new();
 
     if(!argv_idx(argv, 0))
         return;
@@ -734,19 +759,39 @@ menu_add_separator(WebKitWebView *page, GArray *argv, GString *result) {
     m->name  = g_strdup(sep_name);
     m->cmd   = NULL;
     m->issep = TRUE;
-    g_ptr_array_add(uzbl.gui.menu_items, m);
+    g_ptr_array_add(*p, m);
 }
 
-
 void
-menu_remove(WebKitWebView *page, GArray *argv, GString *result) {
+menu_add_separator(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page;
     (void) result;
+
+    add_separator_to_menu(argv, &uzbl.gui.menu_items);
+}
+
+void
+menu_add_separator_link(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page;
+    (void) result;
+
+    add_separator_to_menu(argv, &uzbl.gui.menu_items_link);
+}
+void
+menu_add_separator_image(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page;
+    (void) result;
+
+    add_separator_to_menu(argv, &uzbl.gui.menu_items_image);
+}
+
+void
+remove_from_menu(GArray *argv, GPtrArray **p) {
     MenuItem *mi;
     gchar *name = NULL;
     guint i=0;
 
-    if(!uzbl.gui.menu_items)
+    if(!*p)
         return;
 
     if(!argv_idx(argv, 0))
@@ -754,16 +799,40 @@ menu_remove(WebKitWebView *page, GArray *argv, GString *result) {
     else
         name = argv_idx(argv, 0);
 
-    for(i=0; i < uzbl.gui.menu_items->len; i++) {
-        mi = g_ptr_array_index(uzbl.gui.menu_items, i);
+    for(i=0; i < (*p)->len; i++) {
+        mi = g_ptr_array_index(*p, i);
 
         if(!strcmp(name, mi->name)) {
             g_free(mi->name);
             g_free(mi->cmd);
             g_free(mi);
-            g_ptr_array_remove_index(uzbl.gui.menu_items, i);
+            g_ptr_array_remove_index(*p, i);
         }
     }
+}
+
+void
+menu_remove(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page;
+    (void) result;
+
+    remove_from_menu(argv, &uzbl.gui.menu_items);
+}
+
+void
+menu_remove_link(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page;
+    (void) result;
+
+    remove_from_menu(argv, &uzbl.gui.menu_items_link);
+}
+
+void
+menu_remove_image(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page;
+    (void) result;
+
+    remove_from_menu(argv, &uzbl.gui.menu_items_image);
 }
 
 void
@@ -1830,6 +1899,7 @@ create_browser () {
     g_object_connect((GObject*)g->web_view,
       "signal::key-press-event",                      (GCallback)key_press_cb,            NULL,
       "signal::key-release-event",                    (GCallback)key_release_cb,          NULL,
+      "signal::button-press-event",                   (GCallback)button_press_cb,            NULL,
       "signal::title-changed",                        (GCallback)title_change_cb,         NULL,
       "signal::selection-changed",                    (GCallback)selection_changed_cb,    NULL,
       "signal::load-progress-changed",                (GCallback)progress_change_cb,      NULL,

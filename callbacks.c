@@ -480,6 +480,19 @@ key_release_cb (GtkWidget* window, GdkEventKey* event) {
 }
 
 gboolean
+button_press_cb (GtkWidget* window, GdkEventButton* event) {
+    (void) window;
+
+    if(event->type == GDK_BUTTON_PRESS) {
+        if(uzbl.state.last_button)
+            gdk_event_free((GdkEvent *)uzbl.state.last_button);
+        uzbl.state.last_button = (GdkEventButton *)gdk_event_copy((GdkEvent *)event);
+    }
+
+    return FALSE;
+}
+
+gboolean
 navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
     (void) web_view;
     (void) frame;
@@ -605,31 +618,82 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
     GtkWidget *item;
     MenuItem *mi;
     guint i=0;
+    WebKitHitTestResult *ht;
+    guint context, hit=0;
 
-    if(!uzbl.gui.menu_items)
-        return;
+    /* check context */
+    ht = webkit_web_view_get_hit_test_result(uzbl.gui.web_view, uzbl.state.last_button);
+    g_object_get(ht, "context", &context, NULL);
 
     /* Separate custom entries from default ones */
     item = gtk_separator_menu_item_new();
     gtk_menu_append(GTK_MENU(m), item);
     gtk_widget_show(item);
 
-    for(i=0; i < uzbl.gui.menu_items->len; i++) {
-        mi = g_ptr_array_index(uzbl.gui.menu_items, i);
+    if(uzbl.gui.menu_items_link &&
+            (context & WEBKIT_HIT_TEST_RESULT_CONTEXT_LINK)) {
 
-        if(mi->issep) {
-            item = gtk_separator_menu_item_new();
-            gtk_menu_append(GTK_MENU(m), item);
-            gtk_widget_show(item);
+        for(i=0; i < uzbl.gui.menu_items_link->len; i++) {
+            mi = g_ptr_array_index(uzbl.gui.menu_items_link, i);
+
+            if(mi->issep) {
+                item = gtk_separator_menu_item_new();
+                gtk_menu_append(GTK_MENU(m), item);
+                gtk_widget_show(item);
+            }
+            else {
+                item = gtk_menu_item_new_with_label(mi->name);
+                g_signal_connect(item, "activate",
+                        G_CALLBACK(run_menu_command), mi->cmd);
+                gtk_menu_append(GTK_MENU(m), item);
+                gtk_widget_show(item);
+            }
         }
-        else {
-            item = gtk_menu_item_new_with_label(mi->name);
-            g_signal_connect(item, "activate",
-                    G_CALLBACK(run_menu_command), mi->cmd);
-            gtk_menu_append(GTK_MENU(m), item);
-            gtk_widget_show(item);
-        }
+        hit++;
     }
 
+    if(uzbl.gui.menu_items_image &&
+            (context & WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE)) {
+
+        for(i=0; i < uzbl.gui.menu_items_image->len; i++) {
+            mi = g_ptr_array_index(uzbl.gui.menu_items_image, i);
+
+            if(mi->issep) {
+                item = gtk_separator_menu_item_new();
+                gtk_menu_append(GTK_MENU(m), item);
+                gtk_widget_show(item);
+            }
+            else {
+                item = gtk_menu_item_new_with_label(mi->name);
+                g_signal_connect(item, "activate",
+                        G_CALLBACK(run_menu_command), mi->cmd);
+                gtk_menu_append(GTK_MENU(m), item);
+                gtk_widget_show(item);
+            }
+        }
+        hit++;
+    }
+
+    if(uzbl.gui.menu_items &&
+            !hit && 
+            (context & WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT)) {
+
+        for(i=0; i < uzbl.gui.menu_items->len; i++) {
+            mi = g_ptr_array_index(uzbl.gui.menu_items, i);
+
+            if(mi->issep) {
+                item = gtk_separator_menu_item_new();
+                gtk_menu_append(GTK_MENU(m), item);
+                gtk_widget_show(item);
+            }
+            else {
+                item = gtk_menu_item_new_with_label(mi->name);
+                g_signal_connect(item, "activate",
+                        G_CALLBACK(run_menu_command), mi->cmd);
+                gtk_menu_append(GTK_MENU(m), item);
+                gtk_widget_show(item);
+            }
+        }
+    }
 }
 

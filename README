@@ -164,12 +164,18 @@ The following commands are recognized:
    - update the contents of the status and title bars
 * `event <event_name> [event_details]`
    - send custom event
-* menu_add <label>  = <uzbl command>
-   - add a new entry "label" that will execute "uzbl command" to the right click menu
-* menu_add_separator <label>
-   - adds a separator line to the right click menu
-* menu_remove <label>
-   - removes the entry "label" from the right click menu
+* menu_add       <label>  = <uzbl command>
+* menu_link_add  <label>  = <uzbl command>
+* menu_image_add <label>  = <uzbl command>
+   - add a new entry "label" that will execute "uzbl command" to one of the right click context menus
+* menu_separator       <label>
+* menu_link_separator  <label>
+* menu_image_separator <label>
+   - adds a separator line to one of the right click context menus
+* menu_remove       <label>
+* menu_link_remove  <label>
+* menu_image_remove <label>
+   - removes the entry "label" from one of the right click context menus
 
 
 ### VARIABLES AND CONSTANTS

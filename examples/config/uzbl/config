@@ -188,10 +188,14 @@ set formfiller = spawn @scripts_dir/formfiller
 
 # === Context menu items =====================================================
 
+# Default context menu
 menu_add Google = set uri = http://google.com
 menu_add Go Home = set uri = http://uzbl.org
-menu_add_separator separator_1
+menu_separator separator_1
 menu_add Quit uzbl = exit
+
+# Link context menu
+menu_link_add Print Link = print \@SELECTED_URI
 
 
 # === Mode configuration =====================================================
