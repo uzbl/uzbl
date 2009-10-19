@@ -73,8 +73,6 @@ typedef struct {
 
     /* custom context menu item */
     GPtrArray    *menu_items;
-    GPtrArray    *menu_items_link;
-    GPtrArray    *menu_items_image;
 } GUI;
 
 
@@ -471,6 +469,7 @@ typedef struct {
     gchar *name;
     gchar *cmd;
     gboolean issep;
+    guint context;
 } MenuItem;
 
 
