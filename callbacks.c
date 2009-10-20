@@ -658,7 +658,7 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
             hit++;
         }
 
-        if((mi->context == WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT) &&
+        if((mi->context == WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT)  &&
                 (context <= WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT) &&
                 !hit) {
             if(mi->issep) {
