@@ -152,7 +152,7 @@ send_event(int type, const gchar *details, const gchar *custom_event) {
     /* expand shell vars */
     if(details) {
         buf = g_strdup(details);
-        p_val = parseenv(g_strdup(buf ? g_strchug(buf) : " "));
+        p_val = parseenv(buf ? g_strchug(buf) : " ");
         g_free(buf);
     }
 
