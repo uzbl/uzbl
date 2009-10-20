@@ -37,7 +37,9 @@ const char *event_table[LAST_EVENT] = {
      "LOAD_PROGRESS"    ,
      "LINK_UNHOVER"     ,
      "FORM_ACTIVE"      ,
-     "ROOT_ACTIVE"
+     "ROOT_ACTIVE"      ,
+     "FOCUS_LOST"       ,
+     "FOCUS_GAINED"
 };
 
 void

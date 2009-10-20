@@ -1896,7 +1896,7 @@ create_browser () {
     g_object_connect((GObject*)g->web_view,
       "signal::key-press-event",                      (GCallback)key_press_cb,            NULL,
       "signal::key-release-event",                    (GCallback)key_release_cb,          NULL,
-      "signal::button-press-event",                   (GCallback)button_press_cb,            NULL,
+      "signal::button-press-event",                   (GCallback)button_press_cb,         NULL,
       "signal::title-changed",                        (GCallback)title_change_cb,         NULL,
       "signal::selection-changed",                    (GCallback)selection_changed_cb,    NULL,
       "signal::load-progress-changed",                (GCallback)progress_change_cb,      NULL,
@@ -1911,6 +1911,8 @@ create_browser () {
       "signal::create-web-view",                      (GCallback)create_web_view_cb,      NULL,
       "signal::mime-type-policy-decision-requested",  (GCallback)mime_policy_cb,          NULL,
       "signal::populate-popup",                       (GCallback)populate_popup_cb,       NULL,
+      "signal::focus-in-event",                       (GCallback)focus_cb,                NULL,
+      "signal::focus-out-event",                      (GCallback)focus_cb,                NULL,
       NULL);
 }
 
@@ -1934,12 +1936,14 @@ create_mainbar () {
     return g->mainbar;
 }
 
+
 GtkWidget*
 create_window () {
     GtkWidget* window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
     gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
     gtk_widget_set_name (window, "Uzbl browser");
-    g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (destroy_cb), NULL);
+    g_signal_connect (G_OBJECT (window), "destroy",         G_CALLBACK (destroy_cb),         NULL);
+    g_signal_connect (G_OBJECT (window), "configure-event", G_CALLBACK (configure_event_cb), NULL);
 
     return window;
 }

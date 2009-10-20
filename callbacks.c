@@ -452,8 +452,23 @@ configure_event_cb(GtkWidget* window, GdkEventConfigure* event) {
     (void) event;
 
     retrieve_geometry();
-    send_event(GEOMETRY_CHANGED, uzbl.gui.geometry, NULL);
+    /* TODO: Do we need this? */
+    //send_event(GEOMETRY_CHANGED, uzbl.gui.geometry, NULL);
     return FALSE;
+}
+
+gboolean
+focus_cb(GtkWidget* window, GdkEventFocus* event, void *ud) {
+    (void) window;
+    (void) event;
+    (void) ud;
+
+    if(event->in)
+        send_event(FOCUS_GAINED, "", NULL);
+    else
+        send_event(FOCUS_LOST, "", NULL);
+
+    return TRUE;
 }
 
 gboolean
