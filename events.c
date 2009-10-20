@@ -35,7 +35,11 @@ const char *event_table[LAST_EVENT] = {
      "INSTANCE_START"   ,
      "INSTANCE_EXIT"    ,
      "LOAD_PROGRESS"    ,
-     "LINK_UNHOVER"
+     "LINK_UNHOVER"     ,
+     "FORM_ACTIVE"      ,
+     "ROOT_ACTIVE"      ,
+     "FOCUS_LOST"       ,
+     "FOCUS_GAINED"
 };
 
 void
@@ -57,15 +61,17 @@ send_event_socket(GString *msg) {
     gsize len;
     guint i=0, j=0;
 
+    /* write to all --connect-socket sockets */
     if(uzbl.comm.connect_chan) {
         while(i < uzbl.comm.connect_chan->len) {
             gio = g_ptr_array_index(uzbl.comm.connect_chan, i++);
-            j=0;
+            j=0; ret = 0;
 
             if(gio && gio->is_writeable) {
                 if(uzbl.state.event_buffer) {
                     event_buffer_timeout(0);
 
+                    /* replay buffered events */
                     while(j < uzbl.state.event_buffer->len) {
                         tmp = g_ptr_array_index(uzbl.state.event_buffer, j++);
                         ret = g_io_channel_write_chars (gio,
@@ -108,6 +114,7 @@ send_event_socket(GString *msg) {
         g_ptr_array_add(uzbl.state.event_buffer, (gpointer)g_string_new(msg->str));
     }
 
+    /* write to all client sockets */
     i=0;
     if(msg && uzbl.comm.client_chan) {
         while(i < uzbl.comm.client_chan->len) {
@@ -147,7 +154,7 @@ send_event(int type, const gchar *details, const gchar *custom_event) {
     /* expand shell vars */
     if(details) {
         buf = g_strdup(details);
-        p_val = parseenv(g_strdup(buf ? g_strchug(buf) : " "));
+        p_val = parseenv(buf ? g_strchug(buf) : " ");
         g_free(buf);
     }
 
@@ -189,3 +196,4 @@ key_to_event(guint keyval, gint mode) {
                 gdk_keyval_name(keyval), NULL);
 
 }
+

@@ -42,6 +42,16 @@ set new_window         = sh 'uzbl-browser -u $8' # equivalent to the default beh
 @on_event   LOAD_FINISH    @set_status <span foreground="gold">done</span>
 @on_event   LOAD_FINISH    spawn @scripts_dir/history.sh
 
+# Generate a FORM_ACTIVE event if a text element on the loaded site
+# has initial focus unfortunatelly this only works for text elements,
+# yet due to webkit limitations
+@on_event   LOAD_FINISH    js if(document.activeElement.type == 'text') {Uzbl.run("event FORM_ACTIVE");}
+
+# Switch to insert mode if a (editable) html form is clicked
+@on_event   FORM_ACTIVE    @set_mode insert
+# Switch to command mode if anything else is clicked
+@on_event   ROOT_ACTIVE    @set_mode command
+
 # Misc on_event handlers
 #@on_event  CONFIG_CHANGED print Config changed: %1 = %2
 
@@ -203,6 +213,18 @@ set formfiller = spawn @scripts_dir/formfiller
 @bind <Ctrl><u>      = request SET_KEYCMD
 @bind <Ctrl><a>      = request SET_CURSOR_POS 0
 @bind <Ctrl><e>      = request SET_CURSOR_POS -1
+
+
+# === Context menu items =====================================================
+
+# Default context menu
+menu_add Google = set uri = http://google.com
+menu_add Go Home = set uri = http://uzbl.org
+menu_separator separator_1
+menu_add Quit uzbl = exit
+
+# Link context menu
+menu_link_add Print Link = print \@SELECTED_URI
 
 
 # === Mode configuration =====================================================

@@ -62,10 +62,7 @@ cmd_set_status() {
 
 void
 cmd_load_uri() {
-    GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-    g_array_append_val (a, uzbl.state.uri);
-    load_uri(uzbl.gui.web_view, a, NULL);
-    g_array_free (a, TRUE);
+	load_uri_imp (uzbl.state.uri);
 }
 
 void
@@ -289,13 +286,11 @@ cmd_useragent() {
 }
 
 /* requires webkit >=1.1.14 */
-/*
 void
 cmd_view_source() {
     webkit_web_view_set_view_source_mode(uzbl.gui.web_view,
             (gboolean) uzbl.behave.view_source);
 }
-*/
 
 void
 toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result) {
@@ -457,8 +452,23 @@ configure_event_cb(GtkWidget* window, GdkEventConfigure* event) {
     (void) event;
 
     retrieve_geometry();
-    send_event(GEOMETRY_CHANGED, uzbl.gui.geometry, NULL);
+    /* TODO: Do we need this? */
+    //send_event(GEOMETRY_CHANGED, uzbl.gui.geometry, NULL);
     return FALSE;
+}
+
+gboolean
+focus_cb(GtkWidget* window, GdkEventFocus* event, void *ud) {
+    (void) window;
+    (void) event;
+    (void) ud;
+
+    if(event->in)
+        send_event(FOCUS_GAINED, "", NULL);
+    else
+        send_event(FOCUS_LOST, "", NULL);
+
+    return TRUE;
 }
 
 gboolean
@@ -479,6 +489,30 @@ key_release_cb (GtkWidget* window, GdkEventKey* event) {
         key_to_event(event->keyval, GDK_KEY_RELEASE);
 
     return TRUE;
+}
+
+gboolean
+button_press_cb (GtkWidget* window, GdkEventButton* event) {
+    (void) window;
+    gint context;
+
+    if(event->type == GDK_BUTTON_PRESS) {
+        if(uzbl.state.last_button)
+            gdk_event_free((GdkEvent *)uzbl.state.last_button);
+        uzbl.state.last_button = (GdkEventButton *)gdk_event_copy((GdkEvent *)event);
+
+        /* left click */
+        if(event->button == 1) {
+            context = get_click_context();
+
+            if((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE))
+                send_event(FORM_ACTIVE, "button1", NULL);
+            else if((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT))
+                send_event(ROOT_ACTIVE, "button1", NULL);
+        }
+    }
+
+    return FALSE;
 }
 
 gboolean
@@ -591,3 +625,70 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
     send_event(DOWNLOAD_REQ, webkit_download_get_uri ((WebKitDownload*)download), NULL);
     return (FALSE);
 }
+
+void
+run_menu_command(GtkWidget *menu, const char *line) {
+    (void) menu;
+
+    parse_cmd_line(line, NULL);
+}
+
+
+void
+populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
+    (void) v;
+    (void) c;
+    GUI *g = &uzbl.gui;
+    GtkWidget *item;
+    MenuItem *mi;
+    guint i=0;
+    gint context, hit=0;
+
+    if(!g->menu_items)
+        return;
+
+    /* check context */
+    if((context = get_click_context()) == -1)
+        return;
+
+
+    for(i=0; i < uzbl.gui.menu_items->len; i++) {
+        hit = 0;
+        mi = g_ptr_array_index(uzbl.gui.menu_items, i);
+
+        if((mi->context > WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT) &&
+                (context & mi->context)) {
+            if(mi->issep) {
+                item = gtk_separator_menu_item_new();
+                gtk_menu_append(GTK_MENU(m), item);
+                gtk_widget_show(item);
+            }
+            else {
+                item = gtk_menu_item_new_with_label(mi->name);
+                g_signal_connect(item, "activate",
+                        G_CALLBACK(run_menu_command), mi->cmd);
+                gtk_menu_append(GTK_MENU(m), item);
+                gtk_widget_show(item);
+            }
+            hit++;
+        }
+
+        if((mi->context == WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT)  &&
+                (context <= WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT) &&
+                !hit) {
+            if(mi->issep) {
+                item = gtk_separator_menu_item_new();
+                gtk_menu_append(GTK_MENU(m), item);
+                gtk_widget_show(item);
+            }
+            else {
+                item = gtk_menu_item_new_with_label(mi->name);
+                g_signal_connect(item, "activate",
+                        G_CALLBACK(run_menu_command), mi->cmd);
+                gtk_menu_append(GTK_MENU(m), item);
+                gtk_widget_show(item);
+            }
+        }
+    }
+}
+

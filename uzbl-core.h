@@ -70,6 +70,9 @@ typedef struct {
     WebKitWebInspector *inspector;
 
     StatusBar sbar;
+
+    /* custom context menu item */
+    GPtrArray    *menu_items;
 } GUI;
 
 
@@ -101,6 +104,7 @@ typedef struct {
     gboolean verbose;
     GPtrArray *event_buffer;
     gchar**   connect_socket_names;
+    GdkEventButton *last_button;
 } State;
 
 
@@ -207,11 +211,6 @@ extern UzblCore uzbl;
 
 typedef void sigfunc(int);
 
-typedef struct {
-    char* name;
-    char* param;
-} Action;
-
 /* XDG Stuff */
 typedef struct {
     gchar* environmental;
@@ -233,7 +232,7 @@ GArray*
 read_file_by_line (const gchar *path);
 
 gchar*
-parseenv (char* string);
+parseenv (gchar* string);
 
 void
 clean_up(void);
@@ -244,23 +243,17 @@ catch_sigterm(int s);
 sigfunc *
 setup_signal(int signe, sigfunc *shandler);
 
-gchar*
-parseenv (char* string);
-
 gboolean
 set_var_value(const gchar *name, gchar *val);
+
+void
+load_uri_imp(gchar *uri);
 
 void
 print(WebKitWebView *page, GArray *argv, GString *result);
 
 void
 commands_hash(void);
-
-void
-free_action(gpointer act);
-
-Action*
-new_action(const gchar *name, const gchar *param);
 
 bool
 file_exists (const char * filename);
@@ -428,10 +421,57 @@ event(WebKitWebView *page, GArray *argv, GString *result);
 void
 init_connect_socket();
 
+void
+menu_add(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_add_link(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_add_image(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_add_edit(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_add_separator(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_add_separator_link(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_add_separator_image(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_add_separator_edit(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_remove(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_remove_link(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_remove_image(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_remove_edit(WebKitWebView *page, GArray *argv, GString *result);
+
+gint
+get_click_context();
+
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
 typedef struct {
     Command function;
     gboolean no_split;
 } CommandInfo;
+
+typedef struct {
+    gchar *name;
+    gchar *cmd;
+    gboolean issep;
+    guint context;
+} MenuItem;
+
 
 /* vi: set et ts=4: */

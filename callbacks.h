@@ -112,10 +112,8 @@ cmd_caret_browsing();
 void
 cmd_set_geometry();
 
-/*
 void
 cmd_view_source();
-*/
 
 void
 cmd_load_start();
@@ -187,4 +185,13 @@ create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer us
 
 gboolean
 download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data);
+
+void
+populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c);
+
+gboolean
+button_press_cb (GtkWidget* window, GdkEventButton* event);
+
+gboolean
+focus_cb(GtkWidget* window, GdkEventFocus* event, void *ud);
 
