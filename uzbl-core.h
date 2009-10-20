@@ -442,6 +442,9 @@ void
 menu_add_image(WebKitWebView *page, GArray *argv, GString *result);
 
 void
+menu_add_edit(WebKitWebView *page, GArray *argv, GString *result);
+
+void
 menu_add_separator(WebKitWebView *page, GArray *argv, GString *result);
 
 void
@@ -451,6 +454,9 @@ void
 menu_add_separator_image(WebKitWebView *page, GArray *argv, GString *result);
 
 void
+menu_add_separator_edit(WebKitWebView *page, GArray *argv, GString *result);
+
+void
 menu_remove(WebKitWebView *page, GArray *argv, GString *result);
 
 void
@@ -458,6 +464,9 @@ menu_remove_link(WebKitWebView *page, GArray *argv, GString *result);
 
 void
 menu_remove_image(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_remove_edit(WebKitWebView *page, GArray *argv, GString *result);
 
 gint
 get_click_context();

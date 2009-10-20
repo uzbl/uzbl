@@ -641,12 +641,15 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "menu_add",                       {menu_add, TRUE}                },
     { "menu_link_add",                  {menu_add_link, TRUE}           },
     { "menu_image_add",                 {menu_add_image, TRUE}          },
+    { "menu_editable_add",              {menu_add_edit, TRUE}           },
     { "menu_separator",                 {menu_add_separator, TRUE}      },
     { "menu_link_separator",            {menu_add_separator_link, TRUE} },
     { "menu_image_separator",           {menu_add_separator_image, TRUE}},
+    { "menu_editable_separator",        {menu_add_separator_edit, TRUE} },
     { "menu_remove",                    {menu_remove, TRUE}             },
     { "menu_link_remove",               {menu_remove_link, TRUE}        },
-    { "menu_image_remove",              {menu_remove_image, TRUE}       }
+    { "menu_image_remove",              {menu_remove_image, TRUE}       },
+    { "menu_editable_remove",           {menu_remove_edit, TRUE}        }
 };
 
 void
@@ -760,6 +763,14 @@ menu_add_image(WebKitWebView *page, GArray *argv, GString *result) {
 }
 
 void
+menu_add_edit(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page;
+    (void) result;
+
+    add_to_menu(argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE);
+}
+
+void
 add_separator_to_menu(GArray *argv, guint context) {
     GUI *g = &uzbl.gui;
     MenuItem *m;
@@ -802,6 +813,14 @@ menu_add_separator_image(WebKitWebView *page, GArray *argv, GString *result) {
     (void) result;
 
     add_separator_to_menu(argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE);
+}
+
+void
+menu_add_separator_edit(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page;
+    (void) result;
+
+    add_separator_to_menu(argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE);
 }
 
 void
@@ -853,6 +872,14 @@ menu_remove_image(WebKitWebView *page, GArray *argv, GString *result) {
     (void) result;
 
     remove_from_menu(argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE);
+}
+
+void
+menu_remove_edit(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page;
+    (void) result;
+
+    remove_from_menu(argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE);
 }
 
 void
