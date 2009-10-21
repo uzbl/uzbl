@@ -634,9 +634,6 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "chain",                          {chain, 0}                      },
     { "print",                          {print, TRUE}                   },
     { "event",                          {event, TRUE}                   },
-    /* a request is just semantic sugar to make things more obvious for 
-     * the user, technically events and requests are the very same thin g
-    */
     { "request",                        {event, TRUE}                   },
     { "update_gui",                     {update_gui, TRUE}              },
     { "menu_add",                       {menu_add, TRUE}                },

@@ -42,9 +42,8 @@ set new_window         = sh 'uzbl-browser -u $8' # equivalent to the default beh
 @on_event   LOAD_FINISH    @set_status <span foreground="gold">done</span>
 @on_event   LOAD_FINISH    spawn @scripts_dir/history.sh
 
-# Generate a FORM_ACTIVE event if a text element on the loaded site
-# has initial focus unfortunatelly this only works for text elements,
-# yet due to webkit limitations
+# Generate a FORM_ACTIVE event if an editable 
+# element on the loaded site has initial focus 
 @on_event   LOAD_FINISH    js if(document.activeElement.type == 'text') {Uzbl.run("event FORM_ACTIVE");}
 
 # Switch to insert mode if a (editable) html form is clicked
