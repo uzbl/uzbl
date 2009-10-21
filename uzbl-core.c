@@ -650,7 +650,8 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "menu_remove",                    {menu_remove, TRUE}             },
     { "menu_link_remove",               {menu_remove_link, TRUE}        },
     { "menu_image_remove",              {menu_remove_image, TRUE}       },
-    { "menu_editable_remove",           {menu_remove_edit, TRUE}        }
+    { "menu_editable_remove",           {menu_remove_edit, TRUE}        },
+    { "hardcopy",                       {hardcopy, TRUE}                }
 };
 
 void
@@ -886,6 +887,14 @@ print(WebKitWebView *page, GArray *argv, GString *result) {
     buf = expand(argv_idx(argv, 0), 0);
     g_string_assign(result, buf);
     g_free(buf);
+}
+
+void
+hardcopy(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) argv;
+    (void) result;
+
+    webkit_web_frame_print(webkit_web_view_get_main_frame(page));
 }
 
 void
