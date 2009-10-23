@@ -460,7 +460,11 @@ menu_remove_edit(WebKitWebView *page, GArray *argv, GString *result);
 gint
 get_click_context();
 
+void
+hardcopy(WebKitWebView *page, GArray *argv, GString *result);
+
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
+
 typedef struct {
     Command function;
     gboolean no_split;

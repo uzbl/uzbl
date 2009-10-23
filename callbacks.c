@@ -450,10 +450,30 @@ gboolean
 configure_event_cb(GtkWidget* window, GdkEventConfigure* event) {
     (void) window;
     (void) event;
+    gchar *lastgeo = NULL;
 
+    lastgeo = g_strdup(uzbl.gui.geometry);
     retrieve_geometry();
-    send_event(GEOMETRY_CHANGED, uzbl.gui.geometry, NULL);
+
+    if(strcmp(lastgeo, uzbl.gui.geometry))
+        send_event(GEOMETRY_CHANGED, uzbl.gui.geometry, NULL);
+    g_free(lastgeo);
+
     return FALSE;
+}
+
+gboolean
+focus_cb(GtkWidget* window, GdkEventFocus* event, void *ud) {
+    (void) window;
+    (void) event;
+    (void) ud;
+
+    if(event->in)
+        send_event(FOCUS_GAINED, "", NULL);
+    else
+        send_event(FOCUS_LOST, "", NULL);
+
+    return TRUE;
 }
 
 gboolean

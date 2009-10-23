@@ -634,9 +634,6 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "chain",                          {chain, 0}                      },
     { "print",                          {print, TRUE}                   },
     { "event",                          {event, TRUE}                   },
-    /* a request is just semantic sugar to make things more obvious for 
-     * the user, technically events and requests are the very same thin g
-    */
     { "request",                        {event, TRUE}                   },
     { "update_gui",                     {update_gui, TRUE}              },
     { "menu_add",                       {menu_add, TRUE}                },
@@ -650,7 +647,8 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "menu_remove",                    {menu_remove, TRUE}             },
     { "menu_link_remove",               {menu_remove_link, TRUE}        },
     { "menu_image_remove",              {menu_remove_image, TRUE}       },
-    { "menu_editable_remove",           {menu_remove_edit, TRUE}        }
+    { "menu_editable_remove",           {menu_remove_edit, TRUE}        },
+    { "hardcopy",                       {hardcopy, TRUE}                }
 };
 
 void
@@ -886,6 +884,14 @@ print(WebKitWebView *page, GArray *argv, GString *result) {
     buf = expand(argv_idx(argv, 0), 0);
     g_string_assign(result, buf);
     g_free(buf);
+}
+
+void
+hardcopy(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) argv;
+    (void) result;
+
+    webkit_web_frame_print(webkit_web_view_get_main_frame(page));
 }
 
 void
@@ -1896,7 +1902,7 @@ create_browser () {
     g_object_connect((GObject*)g->web_view,
       "signal::key-press-event",                      (GCallback)key_press_cb,            NULL,
       "signal::key-release-event",                    (GCallback)key_release_cb,          NULL,
-      "signal::button-press-event",                   (GCallback)button_press_cb,            NULL,
+      "signal::button-press-event",                   (GCallback)button_press_cb,         NULL,
       "signal::title-changed",                        (GCallback)title_change_cb,         NULL,
       "signal::selection-changed",                    (GCallback)selection_changed_cb,    NULL,
       "signal::load-progress-changed",                (GCallback)progress_change_cb,      NULL,
@@ -1911,6 +1917,8 @@ create_browser () {
       "signal::create-web-view",                      (GCallback)create_web_view_cb,      NULL,
       "signal::mime-type-policy-decision-requested",  (GCallback)mime_policy_cb,          NULL,
       "signal::populate-popup",                       (GCallback)populate_popup_cb,       NULL,
+      "signal::focus-in-event",                       (GCallback)focus_cb,                NULL,
+      "signal::focus-out-event",                      (GCallback)focus_cb,                NULL,
       NULL);
 }
 
@@ -1934,12 +1942,17 @@ create_mainbar () {
     return g->mainbar;
 }
 
+
 GtkWidget*
 create_window () {
     GtkWidget* window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+
     gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
+    gtk_window_set_wmclass(GTK_WINDOW(window), "uzbl", "uzbl");
     gtk_widget_set_name (window, "Uzbl browser");
-    g_signal_connect (G_OBJECT (window), "destroy", G_CALLBACK (destroy_cb), NULL);
+
+    g_signal_connect (G_OBJECT (window), "destroy",         G_CALLBACK (destroy_cb),         NULL);
+    g_signal_connect (G_OBJECT (window), "configure-event", G_CALLBACK (configure_event_cb), NULL);
 
     return window;
 }

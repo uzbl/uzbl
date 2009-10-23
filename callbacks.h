@@ -192,3 +192,6 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c);
 gboolean
 button_press_cb (GtkWidget* window, GdkEventButton* event);
 
+gboolean
+focus_cb(GtkWidget* window, GdkEventFocus* event, void *ud);
+
