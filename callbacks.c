@@ -62,10 +62,7 @@ cmd_set_status() {
 
 void
 cmd_load_uri() {
-    GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-    g_array_append_val (a, uzbl.state.uri);
-    load_uri(uzbl.gui.web_view, a, NULL);
-    g_array_free (a, TRUE);
+	load_uri_imp (uzbl.state.uri);
 }
 
 void
@@ -661,7 +658,7 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
             hit++;
         }
 
-        if((mi->context == WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT) &&
+        if((mi->context == WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT)  &&
                 (context <= WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT) &&
                 !hit) {
             if(mi->issep) {

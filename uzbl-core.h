@@ -211,11 +211,6 @@ extern UzblCore uzbl;
 
 typedef void sigfunc(int);
 
-typedef struct {
-    char* name;
-    char* param;
-} Action;
-
 /* XDG Stuff */
 typedef struct {
     gchar* environmental;
@@ -237,7 +232,7 @@ GArray*
 read_file_by_line (const gchar *path);
 
 gchar*
-parseenv (char* string);
+parseenv (gchar* string);
 
 void
 clean_up(void);
@@ -248,23 +243,17 @@ catch_sigterm(int s);
 sigfunc *
 setup_signal(int signe, sigfunc *shandler);
 
-gchar*
-parseenv (char* string);
-
 gboolean
 set_var_value(const gchar *name, gchar *val);
+
+void
+load_uri_imp(gchar *uri);
 
 void
 print(WebKitWebView *page, GArray *argv, GString *result);
 
 void
 commands_hash(void);
-
-void
-free_action(gpointer act);
-
-Action*
-new_action(const gchar *name, const gchar *param);
 
 bool
 file_exists (const char * filename);

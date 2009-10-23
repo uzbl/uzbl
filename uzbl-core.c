@@ -444,21 +444,22 @@ find_existing_file(gchar* path_list) {
 }
 
 
+/* Returns a new string with environment $variables expanded */
 gchar*
-parseenv (char* string) {
+parseenv (gchar* string) {
     extern char** environ;
-    gchar* tmpstr = NULL;
+    gchar* tmpstr = NULL, * out;
     int i = 0;
 
+    out = g_strdup(string);
 
     while (environ[i] != NULL) {
         gchar** env = g_strsplit (environ[i], "=", 2);
         gchar* envname = g_strconcat ("$", env[0], NULL);
 
         if (g_strrstr (string, envname) != NULL) {
-            tmpstr = g_strdup(string);
-            g_free (string);
-            string = str_replace(envname, env[1], tmpstr);
+            tmpstr = out;
+            out = str_replace(envname, env[1], out);
             g_free (tmpstr);
         }
 
@@ -467,7 +468,7 @@ parseenv (char* string) {
         i++;
     }
 
-    return string;
+    return out;
 }
 
 
@@ -664,28 +665,6 @@ commands_hash(void)
 
 /* -- CORE FUNCTIONS -- */
 
-void
-free_action(gpointer act) {
-    Action *action = (Action*)act;
-    g_free(action->name);
-    if (action->param)
-        g_free(action->param);
-    g_free(action);
-}
-
-Action*
-new_action(const gchar *name, const gchar *param) {
-    Action *action = g_new(Action, 1);
-
-    action->name = g_strdup(name);
-    if (param)
-        action->param = g_strdup(param);
-    else
-        action->param = NULL;
-
-    return action;
-}
-
 bool
 file_exists (const char * filename) {
     return (access(filename, F_OK) == 0);
@@ -696,7 +675,7 @@ set_var(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
     gchar **split = g_strsplit(argv_idx(argv, 0), "=", 2);
     if (split[0] != NULL) {
-        gchar *value = parseenv(g_strdup(split[1] ? g_strchug(split[1]) : " "));
+        gchar *value = parseenv(split[1] ? g_strchug(split[1]) : " ");
         set_var_value(g_strstrip(split[0]), value);
         g_free(value);
     }
@@ -921,37 +900,8 @@ act_dump_config_as_events() {
 
 void
 load_uri (WebKitWebView *web_view, GArray *argv, GString *result) {
-    (void) result;
-
-    if (argv_idx(argv, 0)) {
-        GString* newuri = g_string_new (argv_idx(argv, 0));
-        if (g_strstr_len (argv_idx(argv, 0), 11, "javascript:") != NULL) {
-            run_js(web_view, argv, NULL);
-            return;
-        }
-        if (!soup_uri_new(argv_idx(argv, 0))) {
-            GString* fullpath = g_string_new ("");
-            if (g_path_is_absolute (newuri->str))
-                g_string_assign (fullpath, newuri->str);
-            else {
-                gchar* wd;
-                wd = g_get_current_dir ();
-                g_string_assign (fullpath, g_build_filename (wd, newuri->str, NULL));
-                free(wd);
-            }
-            struct stat stat_result;
-            if (! g_stat(fullpath->str, &stat_result)) {
-                g_string_prepend (fullpath, "file://");
-                g_string_assign (newuri, fullpath->str);
-            }
-            else
-                g_string_prepend (newuri, "http://");
-            g_string_free (fullpath, TRUE);
-        }
-        /* if we do handle cookies, ask our handler for them */
-        webkit_web_view_load_uri (web_view, newuri->str);
-        g_string_free (newuri, TRUE);
-    }
+    (void) web_view; (void) result;
+    load_uri_imp (argv_idx (argv, 0));
 }
 
 /* Javascript*/
@@ -1571,13 +1521,13 @@ set_var_value(const gchar *name, gchar *val) {
         }
 
         /* custom vars */
-        c = malloc(sizeof(uzbl_cmdprop));
+        c = g_malloc(sizeof(uzbl_cmdprop));
         c->type = TYPE_STR;
         c->dump = 0;
         c->func = NULL;
         c->writeable = 1;
         buf = g_strdup(val);
-        c->ptr.s = malloc(sizeof(char *));
+        c->ptr.s = g_malloc(sizeof(char *));
         *c->ptr.s = buf;
         g_hash_table_insert(uzbl.comm.proto_var,
                 g_strdup(name), (gpointer) c);
@@ -2315,6 +2265,8 @@ void
 initialize(int argc, char *argv[]) {
     if (!g_thread_supported ())
         g_thread_init (NULL);
+    gtk_init (&argc, &argv);
+
     uzbl.state.executable_path = g_strdup(argv[0]);
     uzbl.state.selected_url = NULL;
     uzbl.state.searchtx = NULL;
@@ -2357,13 +2309,44 @@ initialize(int argc, char *argv[]) {
     create_browser();
 }
 
+void
+load_uri_imp(gchar *uri) {
+    GString* newuri;
+    if (g_strstr_len (uri, 11, "javascript:") != NULL) {
+        eval_js(uzbl.gui.web_view, uri, NULL);
+        return;
+    }
+    newuri = g_string_new (uri);
+    if (!soup_uri_new(uri)) {
+        GString* fullpath = g_string_new ("");
+        if (g_path_is_absolute (newuri->str))
+            g_string_assign (fullpath, newuri->str);
+        else {
+            gchar* wd;
+            wd = g_get_current_dir ();
+            g_string_assign (fullpath, g_build_filename (wd, newuri->str, NULL));
+            free(wd);
+        }
+        struct stat stat_result;
+        if (! g_stat(fullpath->str, &stat_result)) {
+            g_string_prepend (fullpath, "file://");
+            g_string_assign (newuri, fullpath->str);
+        }
+        else
+            g_string_prepend (newuri, "http://");
+        g_string_free (fullpath, TRUE);
+    }
+    /* if we do handle cookies, ask our handler for them */
+    webkit_web_view_load_uri (uzbl.gui.web_view, newuri->str);
+    g_string_free (newuri, TRUE);
+}
+
+
 #ifndef UZBL_LIBRARY
 /** -- MAIN -- **/
 int
 main (int argc, char* argv[]) {
     initialize(argc, argv);
-
-    gtk_init (&argc, &argv);
 
     uzbl.gui.scrolled_win = gtk_scrolled_window_new (NULL, NULL);
     //main_window_ref = g_object_ref(scrolled_window);
@@ -2448,8 +2431,7 @@ main (int argc, char* argv[]) {
     if (uri_override) {
         set_var_value("uri", uri_override);
         g_free(uri_override);
-    } else if (uzbl.state.uri)
-        cmd_load_uri();
+    }
 
     gtk_main ();
     clean_up();
