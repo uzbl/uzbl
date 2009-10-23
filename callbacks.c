@@ -494,7 +494,9 @@ button_press_cb (GtkWidget* window, GdkEventButton* event) {
             context = get_click_context();
 
             if((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE))
-                send_event(FORM_ACTIVE, "", NULL);
+                send_event(FORM_ACTIVE, "button1", NULL);
+            else if((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT))
+                send_event(ROOT_ACTIVE, "button1", NULL);
         }
     }
 
