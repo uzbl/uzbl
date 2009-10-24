@@ -36,4 +36,4 @@ DAEMON_PID=$XDG_CACHE_HOME/uzbl/event_daemon.pid
 	uzbl-daemon start
 #fi
 
-uzbl-core "$@" --connect-socket $DAEMON_SOCKET
+uzbl-core "$@" --connect-socket $DAEMON_SOCKET 1>/dev/null

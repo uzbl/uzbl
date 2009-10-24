@@ -450,10 +450,15 @@ gboolean
 configure_event_cb(GtkWidget* window, GdkEventConfigure* event) {
     (void) window;
     (void) event;
+    gchar *lastgeo = NULL;
 
+    lastgeo = g_strdup(uzbl.gui.geometry);
     retrieve_geometry();
-    /* TODO: Do we need this? */
-    //send_event(GEOMETRY_CHANGED, uzbl.gui.geometry, NULL);
+
+    if(strcmp(lastgeo, uzbl.gui.geometry))
+        send_event(GEOMETRY_CHANGED, uzbl.gui.geometry, NULL);
+    g_free(lastgeo);
+
     return FALSE;
 }
 

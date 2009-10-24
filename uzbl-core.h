@@ -217,6 +217,19 @@ typedef struct {
     gchar* default_value;
 } XDG_Var;
 
+/* uzbl variables */
+enum ptr_type {TYPE_INT, TYPE_STR, TYPE_FLOAT};
+typedef struct {
+    enum ptr_type type;
+    union {
+        int *i;
+        float *f;
+        gchar **s;
+    } ptr;
+    int dump;
+    int writeable;
+    /*@null@*/ void (*func)(void);
+} uzbl_cmdprop;
 
 /* Functions */
 char *
@@ -421,6 +434,9 @@ event(WebKitWebView *page, GArray *argv, GString *result);
 void
 init_connect_socket();
 
+gboolean
+remove_socket_from_array(GIOChannel *chan);
+
 void
 menu_add(WebKitWebView *page, GArray *argv, GString *result);
 
@@ -460,7 +476,11 @@ menu_remove_edit(WebKitWebView *page, GArray *argv, GString *result);
 gint
 get_click_context();
 
+void
+hardcopy(WebKitWebView *page, GArray *argv, GString *result);
+
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
+
 typedef struct {
     Command function;
     gboolean no_split;

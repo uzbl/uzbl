@@ -70,18 +70,6 @@ XDG_Var XDG[] =
 };
 
 /* associate command names to their properties */
-enum ptr_type {TYPE_INT, TYPE_STR, TYPE_FLOAT};
-typedef struct {
-    enum ptr_type type;
-    union {
-        int *i;
-        float *f;
-        gchar **s;
-    } ptr;
-    int dump;
-    int writeable;
-    /*@null@*/ void (*func)(void);
-} uzbl_cmdprop;
 
 /* abbreviations to help keep the table's width humane */
 #define PTR_V_STR(var, d, fun) { .ptr.s = &(var), .type = TYPE_STR, .dump = d, .writeable = 1, .func = fun }
@@ -634,9 +622,6 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "chain",                          {chain, 0}                      },
     { "print",                          {print, TRUE}                   },
     { "event",                          {event, TRUE}                   },
-    /* a request is just semantic sugar to make things more obvious for 
-     * the user, technically events and requests are the very same thin g
-    */
     { "request",                        {event, TRUE}                   },
     { "update_gui",                     {update_gui, TRUE}              },
     { "menu_add",                       {menu_add, TRUE}                },
@@ -650,7 +635,8 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "menu_remove",                    {menu_remove, TRUE}             },
     { "menu_link_remove",               {menu_remove_link, TRUE}        },
     { "menu_image_remove",              {menu_remove_image, TRUE}       },
-    { "menu_editable_remove",           {menu_remove_edit, TRUE}        }
+    { "menu_editable_remove",           {menu_remove_edit, TRUE}        },
+    { "hardcopy",                       {hardcopy, TRUE}                }
 };
 
 void
@@ -886,6 +872,14 @@ print(WebKitWebView *page, GArray *argv, GString *result) {
     buf = expand(argv_idx(argv, 0), 0);
     g_string_assign(result, buf);
     g_free(buf);
+}
+
+void
+hardcopy(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) argv;
+    (void) result;
+
+    webkit_web_frame_print(webkit_web_view_get_main_frame(page));
 }
 
 void
@@ -1940,8 +1934,11 @@ create_mainbar () {
 GtkWidget*
 create_window () {
     GtkWidget* window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+
     gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
+    gtk_window_set_wmclass(GTK_WINDOW(window), "uzbl", "uzbl");
     gtk_widget_set_name (window, "Uzbl browser");
+
     g_signal_connect (G_OBJECT (window), "destroy",         G_CALLBACK (destroy_cb),         NULL);
     g_signal_connect (G_OBJECT (window), "configure-event", G_CALLBACK (configure_event_cb), NULL);
 
@@ -2310,6 +2307,7 @@ initialize(int argc, char *argv[]) {
     commands_hash ();
     create_var_to_name_hash();
 
+    create_mainbar();
     create_browser();
 }
 
@@ -2353,16 +2351,13 @@ main (int argc, char* argv[]) {
     initialize(argc, argv);
 
     uzbl.gui.scrolled_win = gtk_scrolled_window_new (NULL, NULL);
-    //main_window_ref = g_object_ref(scrolled_window);
     gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win),
-        GTK_POLICY_NEVER, GTK_POLICY_NEVER); //todo: some sort of display of position/total length. like what emacs does
+        GTK_POLICY_NEVER, GTK_POLICY_NEVER);
 
     gtk_container_add (GTK_CONTAINER (uzbl.gui.scrolled_win),
         GTK_WIDGET (uzbl.gui.web_view));
 
     uzbl.gui.vbox = gtk_vbox_new (FALSE, 0);
-
-    create_mainbar();
 
     /* initial packing */
     gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
@@ -2378,6 +2373,12 @@ main (int argc, char* argv[]) {
         gtk_widget_show_all (uzbl.gui.main_window);
         uzbl.xwin = GDK_WINDOW_XID (GTK_WIDGET (uzbl.gui.main_window)->window);
     }
+
+    uzbl.gui.scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);
+    uzbl.gui.bar_v = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_v);
+    uzbl.gui.scbar_h = (GtkScrollbar*) gtk_hscrollbar_new (NULL);
+    uzbl.gui.bar_h = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_h);
+    gtk_widget_set_scroll_adjustments ((GtkWidget*) uzbl.gui.web_view, uzbl.gui.bar_h, uzbl.gui.bar_v);
 
     if(!uzbl.state.instance_name)
         uzbl.state.instance_name = itos((int)uzbl.xwin);
@@ -2399,12 +2400,6 @@ main (int argc, char* argv[]) {
         printf("name: %s\n", uzbl.state.instance_name);
         printf("commit: %s\n", uzbl.info.commit);
     }
-
-    uzbl.gui.scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);
-    uzbl.gui.bar_v = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_v);
-    uzbl.gui.scbar_h = (GtkScrollbar*) gtk_hscrollbar_new (NULL);
-    uzbl.gui.bar_h = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_h);
-    gtk_widget_set_scroll_adjustments ((GtkWidget*) uzbl.gui.web_view, uzbl.gui.bar_h, uzbl.gui.bar_v);
 
     /* Check uzbl is in window mode before getting/setting geometry */
     if (uzbl.gui.main_window) {
