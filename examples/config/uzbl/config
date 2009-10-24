@@ -62,12 +62,13 @@ set show_status       = 1
 set status_top        = 0
 set status_background = #303030
 
-set keycmd_style      = weight="bold" foreground="red"
+set modcmd_style      = weight="bold" foreground="red"
+set keycmd_style      = weight="light" foreground="red"
 set prompt_style      = foreground="grey"
 set cursor_style      = underline="single"
 
 set mode_section      = <span background="khaki" foreground="black">[\@[\@mode_indicator]\@]</span>
-set keycmd_section    = [<span \@prompt_style>\@[\@keycmd_prompt]\@</span><span \@keycmd_style>\@keycmd</span>]
+set keycmd_section    = [<span \@prompt_style>\@[\@keycmd_prompt]\@</span><span \@modcmd_style>\@modcmd</span><span \@keycmd_style>\@keycmd</span>]
 set progress_section  = <span foreground="#606060">\@[\@progress_format]\@</span>
 set uri_section       = <span foreground="#99FF66">\@[\@uri]\@</span>
 set name_section      = <span foreground="khaki">\@[\@NAME]\@</span>
@@ -189,30 +190,32 @@ set formfiller = spawn @scripts_dir/formfiller
 
 # Prints tab separated "uri title keyword tags" to the bookmarks file.
 # TODO: Improve bookmarks script to handle this format & include date in bookmark format.
-@bind <Ctrl><b><name:>_<tags:>_ = sh 'echo -e "$6	$7	%s	%s" >> $XDG_DATA_HOME/uzbl/bookmarks'
+@bind <Ctrl>b<name:>_<tags:>_ = sh 'echo -e "$6	$7	%s	%s" >> $XDG_DATA_HOME/uzbl/bookmarks'
 
 # Multi-stage bindings with blank prompts (similar behaviour to emacs M-c M-s bindings?)
-@bind <Ctrl><a><:><Ctrl><q> = exit
-@bind <Ctrl><a><:><Ctrl><h> = uri http://uzbl.org/
+@bind <Ctrl>a<:><Ctrl>q = exit
+@bind <Ctrl>a<:><Ctrl>h = uri http://uzbl.org/
 
 
 # === command editing configuration ==========================================
 
 # you'll want this at the very least
-@bind <Return>       = request KEYCMD_EXEC_CURRENT 
+@bind <Return>       = event KEYCMD_EXEC_CURRENT
+@bind <Escape>       = event @set_mode
 
 # basic searching
-@bind <Home>         = request SET_CURSOR_POS 0
-@bind <End>          = request SET_CURSOR_POS -1
-@bind <Left>         = request SET_CURSOR_POS -
-@bind <Right>        = request SET_CURSOR_POS +
-@bind <BackSpace>    = request KEYCMD_BACKSPACE
+@bind <Home>         = event SET_CURSOR_POS 0
+@bind <End>          = event SET_CURSOR_POS -1
+@bind <Left>         = event SET_CURSOR_POS -
+@bind <Right>        = event SET_CURSOR_POS +
+@bind <BackSpace>    = event KEYCMD_BACKSPACE
+@bind <Delete>       = event KEYCMD_DELETE
 
 # readline-ish bindings
-@bind <Ctrl><w>      = request KEYCMD_STRIP_WORD
-@bind <Ctrl><u>      = request SET_KEYCMD
-@bind <Ctrl><a>      = request SET_CURSOR_POS 0
-@bind <Ctrl><e>      = request SET_CURSOR_POS -1
+@bind <Ctrl>w      = event KEYCMD_STRIP_WORD
+@bind <Ctrl>u      = event SET_KEYCMD
+@bind <Ctrl>a      = event SET_CURSOR_POS 0
+@bind <Ctrl>e      = event SET_CURSOR_POS -1
 
 
 # === Context menu items =====================================================
@@ -235,7 +238,7 @@ set insert   = @mode_config insert
 set stack    = @mode_config stack
 
 # Command mode config.
-@command  keycmd_style        = weight="bold" foreground="red"
+@command  keycmd_style        = foreground="red"
 @command  status_background   = #202020
 @command  mode_indicator      = Cmd
 
