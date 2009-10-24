@@ -41,9 +41,13 @@ uzbl-browser: uzbl-core
 
 PREFIX?=$(DESTDIR)/usr/local
 
+# the 'tests' target can never be up to date
+.PHONY: tests
+force:
+
 # When compiling unit tests, compile uzbl as a library first
-tests: uzbl-core.o uzbl-events.o
-	$(CC) -DUZBL_LIBRARY -shared -Wl uzbl-core.o uzbl-events.o -o ./tests/libuzbl-core.so
+tests: ${OBJ} force
+	$(CC) -shared -Wl ${OBJ} -o ./tests/libuzbl-core.so
 	cd ./tests/; $(MAKE)
 
 test: uzbl-core
