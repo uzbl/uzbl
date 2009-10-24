@@ -15,6 +15,11 @@ then
 	XDG_CACHE_HOME=$HOME/.cache
 fi
 
-EVENT_MANAGER=/usr/local/share/uzbl/examples/data/uzbl/scripts/event_manager.py
+if [ -f "$XDG_DATA_HOME/uzbl/scripts/event_manager.py" ]
+then
+	EVENT_MANAGER=$XDG_DATA_HOME/uzbl/scripts/event_manager.py
+else
+	EVENT_MANAGER=/usr/local/share/uzbl/examples/data/uzbl/scripts/event_manager.py
+fi
 
 $EVENT_MANAGER -v "$@"
