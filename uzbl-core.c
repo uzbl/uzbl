@@ -2308,16 +2308,7 @@ initialize(int argc, char *argv[]) {
     create_var_to_name_hash();
 
     create_mainbar();
-
     create_browser();
-
-    uzbl.gui.scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);
-    uzbl.gui.bar_v = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_v);
-
-    uzbl.gui.scbar_h = (GtkScrollbar*) gtk_hscrollbar_new (NULL);
-    uzbl.gui.bar_h = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_h);
-
-    gtk_widget_set_scroll_adjustments ((GtkWidget*) uzbl.gui.web_view, uzbl.gui.bar_h, uzbl.gui.bar_v);
 }
 
 void
@@ -2360,9 +2351,8 @@ main (int argc, char* argv[]) {
     initialize(argc, argv);
 
     uzbl.gui.scrolled_win = gtk_scrolled_window_new (NULL, NULL);
-    //main_window_ref = g_object_ref(scrolled_window);
     gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win),
-        GTK_POLICY_NEVER, GTK_POLICY_NEVER); //todo: some sort of display of position/total length. like what emacs does
+        GTK_POLICY_NEVER, GTK_POLICY_NEVER);
 
     gtk_container_add (GTK_CONTAINER (uzbl.gui.scrolled_win),
         GTK_WIDGET (uzbl.gui.web_view));
@@ -2383,6 +2373,12 @@ main (int argc, char* argv[]) {
         gtk_widget_show_all (uzbl.gui.main_window);
         uzbl.xwin = GDK_WINDOW_XID (GTK_WIDGET (uzbl.gui.main_window)->window);
     }
+
+    uzbl.gui.scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);
+    uzbl.gui.bar_v = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_v);
+    uzbl.gui.scbar_h = (GtkScrollbar*) gtk_hscrollbar_new (NULL);
+    uzbl.gui.bar_h = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_h);
+    gtk_widget_set_scroll_adjustments ((GtkWidget*) uzbl.gui.web_view, uzbl.gui.bar_h, uzbl.gui.bar_v);
 
     if(!uzbl.state.instance_name)
         uzbl.state.instance_name = itos((int)uzbl.xwin);

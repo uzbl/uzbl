@@ -32,7 +32,7 @@ set scheme_handler     = spawn @scripts_dir/scheme.py
 #set new_window        = sh 'echo uri "$8" > $4' # open in same window
 set new_window         = sh 'uzbl-browser -u $8' # equivalent to the default behaviour
 
-# Load start handler
+# Load start handlers
 @on_event   LOAD_START     @set_status <span foreground="khaki">wait</span>
 
 # Load commit handler
