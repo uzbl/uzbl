@@ -70,18 +70,6 @@ XDG_Var XDG[] =
 };
 
 /* associate command names to their properties */
-enum ptr_type {TYPE_INT, TYPE_STR, TYPE_FLOAT};
-typedef struct {
-    enum ptr_type type;
-    union {
-        int *i;
-        float *f;
-        gchar **s;
-    } ptr;
-    int dump;
-    int writeable;
-    /*@null@*/ void (*func)(void);
-} uzbl_cmdprop;
 
 /* abbreviations to help keep the table's width humane */
 #define PTR_V_STR(var, d, fun) { .ptr.s = &(var), .type = TYPE_STR, .dump = d, .writeable = 1, .func = fun }
@@ -2319,7 +2307,17 @@ initialize(int argc, char *argv[]) {
     commands_hash ();
     create_var_to_name_hash();
 
+    create_mainbar();
+
     create_browser();
+
+    uzbl.gui.scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);
+    uzbl.gui.bar_v = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_v);
+
+    uzbl.gui.scbar_h = (GtkScrollbar*) gtk_hscrollbar_new (NULL);
+    uzbl.gui.bar_h = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_h);
+
+    gtk_widget_set_scroll_adjustments ((GtkWidget*) uzbl.gui.web_view, uzbl.gui.bar_h, uzbl.gui.bar_v);
 }
 
 void
@@ -2371,8 +2369,6 @@ main (int argc, char* argv[]) {
 
     uzbl.gui.vbox = gtk_vbox_new (FALSE, 0);
 
-    create_mainbar();
-
     /* initial packing */
     gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
     gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.mainbar, FALSE, TRUE, 0);
@@ -2408,12 +2404,6 @@ main (int argc, char* argv[]) {
         printf("name: %s\n", uzbl.state.instance_name);
         printf("commit: %s\n", uzbl.info.commit);
     }
-
-    uzbl.gui.scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);
-    uzbl.gui.bar_v = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_v);
-    uzbl.gui.scbar_h = (GtkScrollbar*) gtk_hscrollbar_new (NULL);
-    uzbl.gui.bar_h = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_h);
-    gtk_widget_set_scroll_adjustments ((GtkWidget*) uzbl.gui.web_view, uzbl.gui.bar_h, uzbl.gui.bar_v);
 
     /* Check uzbl is in window mode before getting/setting geometry */
     if (uzbl.gui.main_window) {
@@ -2451,6 +2441,5 @@ main (int argc, char* argv[]) {
 
     return EXIT_SUCCESS;
 }
-#endif
 
 /* vi: set et ts=4: */

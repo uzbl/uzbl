@@ -52,14 +52,6 @@ test_LOAD_PROGRESS (void) {
 }
 
 void
-test_LOAD_PROGRESSBAR (void) {
-    uzbl.gui.sbar.progress_w = 4;
-    progress_change_cb(NULL, 75, NULL);
-
-    g_assert_cmpstr(expand("@LOAD_PROGRESSBAR", 0), ==, "===·");
-}
-
-void
 test_TITLE (void) {
     uzbl.gui.main_title = "Lorem Ipsum";
     g_assert_cmpstr(expand("@TITLE", 0), ==, "Lorem Ipsum");
@@ -75,15 +67,6 @@ void
 test_NAME (void) {
     uzbl.state.instance_name = "testing";
     g_assert_cmpstr(expand("@NAME", 0), ==, "testing");
-}
-
-void
-test_MODE (void) {
-    set_var_value("forward_keys", "0");
-    g_assert_cmpstr(expand("@MODE", 0), ==, "C");
-
-    set_var_value("forward_keys", "1");
-    g_assert_cmpstr(expand("@MODE", 0), ==, "I");
 }
 
 void
@@ -124,8 +107,7 @@ test_cmd_useragent_simple (void) {
     g_string_append(expected, itos(WEBKIT_MICRO_VERSION));
     g_string_append(expected, ")");
 
-    set_var_value("useragent", "Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO)");
-    g_assert_cmpstr(uzbl.net.useragent, ==, g_string_free(expected, FALSE));
+    g_assert_cmpstr(expand("Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO)", 0), ==, g_string_free(expected, FALSE));
 }
 
 void
@@ -157,8 +139,7 @@ test_cmd_useragent_full (void) {
     g_string_append(expected, uzbl.info.commit);
     g_string_append(expected, ")");
 
-    set_var_value("useragent", "Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@(uname -s)@ @(uname -n)@ @(uname -r)@ @(uname -v)@ @(uname -m)@ [@ARCH_UZBL]) (Commit @COMMIT)");
-    g_assert_cmpstr(uzbl.net.useragent, ==, g_string_free(expected, FALSE));
+    g_assert_cmpstr(expand("Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@(uname -s)@ @(uname -n)@ @(uname -r)@ @(uname -v)@ @(uname -m)@ [@ARCH_UZBL]) (Commit @COMMIT)", 0), ==, g_string_free(expected, FALSE));
 }
 
 void
@@ -213,11 +194,9 @@ main (int argc, char *argv[]) {
     g_test_add_func("/test-expand/@status_message", test_status_message);
     g_test_add_func("/test-expand/@uri", test_uri);
     g_test_add_func("/test-expand/@LOAD_PROGRESS", test_LOAD_PROGRESS);
-    g_test_add_func("/test-expand/@LOAD_PROGRESSBAR", test_LOAD_PROGRESSBAR);
     g_test_add_func("/test-expand/@TITLE", test_TITLE);
     g_test_add_func("/test-expand/@SELECTED_URI", test_SELECTED_URI);
     g_test_add_func("/test-expand/@NAME", test_NAME);
-    g_test_add_func("/test-expand/@MODE", test_MODE);
     g_test_add_func("/test-expand/@WEBKIT_*", test_WEBKIT_VERSION);
     g_test_add_func("/test-expand/@ARCH_UZBL", test_ARCH_UZBL);
     g_test_add_func("/test-expand/@COMMIT", test_COMMIT);
