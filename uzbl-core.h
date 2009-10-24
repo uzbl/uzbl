@@ -434,6 +434,9 @@ event(WebKitWebView *page, GArray *argv, GString *result);
 void
 init_connect_socket();
 
+gboolean
+remove_socket_from_array(GIOChannel *chan);
+
 void
 menu_add(WebKitWebView *page, GArray *argv, GString *result);
 
