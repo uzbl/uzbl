@@ -163,8 +163,17 @@ test_set_variable (struct EventFixture *ef, const void *data) {
     g_assert_cmpint(0, ==, uzbl.behave.forward_keys);
 
     /* set a float */
-    parse_cmd_line("set zoom_level = 0.25", NULL);
-    ASSERT_EVENT(ef, "VARIABLE_SET zoom_level float 0.250000");
+    /* we have to be careful about locales here */
+    GString *cmd, *ev;
+    cmd = g_string_new("set zoom_level = ");
+    g_string_append_printf(cmd, "%f", 0.25);
+    parse_cmd_line(g_string_free(cmd, FALSE), NULL);
+
+    ev = g_string_new("EVENT [" INSTANCE_NAME "] VARIABLE_SET zoom_level float ");
+    g_string_append_printf(ev, "%f\n", 0.25);
+    read_event(ef);
+    g_assert_cmpstr(g_string_free(ev, FALSE), ==, ef->event_buffer);
+
     g_assert_cmpfloat(0.25, ==, uzbl.behave.zoom_level);
 
     /* set a constant int (nothing should happen) */
@@ -209,6 +218,9 @@ test_print (void) {
 
 void
 test_scroll (void) {
+    uzbl.gui.scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);
+    uzbl.gui.bar_v = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_v);
+
     gtk_adjustment_set_lower(uzbl.gui.bar_v, 0);
     gtk_adjustment_set_upper(uzbl.gui.bar_v, 100);
     gtk_adjustment_set_page_size(uzbl.gui.bar_v, 5);
