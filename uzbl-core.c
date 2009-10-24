@@ -2441,5 +2441,6 @@ main (int argc, char* argv[]) {
 
     return EXIT_SUCCESS;
 }
+#endif
 
 /* vi: set et ts=4: */
