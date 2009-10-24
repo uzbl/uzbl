@@ -84,8 +84,8 @@ If you made changes to the configuration at runtime, these are not pased on to t
 Uzbl-browser will read commands via standard input, named fifo pipe (if `fifo_dir` is set) and IPC socket (when `socket_dir` is set).
 For convenience, uzbl can also be instructed to read commands from a file on startup by using the `-c` option.  Indeed, the config file is nothing more than a list of commands.
 
-Each command starts with the name of the command, which must be the first thing on a line; preceding whitespace is not allowed.
-A command is terminated by a newline.  Empty lines and lines that start with the hash sign are ignored by the parser.  Command names are always written in lowercase.
+Each command starts with the name of the command or an uzbl variable that expands to it.  A command is terminated by a newline.
+Empty lines and lines that start with the hash sign are ignored by the parser.  Command names are always written in lowercase.
 
 The following commands are recognized:
 
@@ -164,6 +164,24 @@ The following commands are recognized:
    - update the contents of the status and title bars
 * `event <event_name> [event_details]`
    - send custom event
+* menu_add          <label>  = <uzbl command>
+* menu_link_add     <label>  = <uzbl command>
+* menu_image_add    <label>  = <uzbl command>
+* menu_editable_add <label>  = <uzbl command>
+   - add a new entry "label" that will execute "uzbl command" to one of the right click context menus
+* menu_separator          <label>
+* menu_link_separator     <label>
+* menu_image_separator    <label>
+* menu_editable_separator <label>
+   - adds a separator line to one of the right click context menus
+* menu_remove          <label>
+* menu_link_remove     <label>
+* menu_image_remove    <label>
+* menu_editable_remove <label>
+   - removes the entry "label" from one of the right click context menus
+* hardcopy
+   - open print dialog
+
 
 ### VARIABLES AND CONSTANTS
 Uzbl has a lot of internal variables and constants.  You can get the values (using the `print` command, see above), and for variables you can also change the value at
@@ -429,74 +447,89 @@ for now we still use the handler code)
 
 Basically all events have this format:
 
-     EVENT EVENT_NAME [uzbl_instance_name] event_details
+     EVENT [uzbl_instance_name] EVENT_NAME event_details
 
 
 Reported events and their specific format:
 
 - on start uzbl will generate:
 
-     EVENT INSTANCE_START [uzbl_instance_name] process_id
+     EVENT [uzbl_instance_name] INSTANCE_START process_id
 
 - on exit:
 
-     EVENT INSTANCE_EXIT [uzbl_instance_name] process_id
+     EVENT [uzbl_instance_name] INSTANCE_EXIT process_id
 
 - whenever an uzbl variable is set:
 
-     EVENT VARIABLE_SET [uzbl_instance_name] variable_name str|int|float variable_value
+     EVENT [uzbl_instance_name] VARIABLE_SET variable_name str|int|float variable_value
 
      Note: str|int|float denote the type of variable_value
 
 - upon execution of an uzbl command:
 
-     EVENT COMMAND_EXECUTED [uzbl_instance_name] command_name optional_command_arguments
+     EVENT [uzbl_instance_name] COMMAND_EXECUTED command_name optional_command_arguments
 
 - when the size or position of the uzbl window changes:
 
-     EVENT GEOMETRY_CHANGED [uzbl_instance_name] WIDTHxHEIGHT+X_POSITION+Y_POSITION
+     EVENT [uzbl_instance_name] GEOMETRY_CHANGED WIDTHxHEIGHT+X_POSITION+Y_POSITION
 
 - when the fifo and/or the socket path is set or changed:
 
-     EVENT FIFO_SET [uzbl_instance_name] path_to_fifo
-     EVENT SOCKET_SET [uzbl_instance_name] path_to_socket
+     EVENT [uzbl_instance_name] FIFO_SET path_to_fifo
+     EVENT [uzbl_instance_name] SOCKET_SET path_to_socket
 
 - when a website is being loaded:
 
-     EVENT LOAD_COMMIT [uzbl_instance_name] uri
-     EVENT LOAD_START [uzbl_instance_name] uri
-     EVENT LOAD_FINISHED [uzbl_instance_name] uri
-     EVENT LOAD_ERROR [uzbl_instance_name] reason_of_error
+     EVENT [uzbl_instance_name] LOAD_COMMIT uri
+     EVENT [uzbl_instance_name] LOAD_START uri
+     EVENT [uzbl_instance_name] LOAD_FINISHED uri
+     EVENT [uzbl_instance_name] LOAD_ERROR reason_of_error
 
 - when the title of the uzbl window changes:
 
-     EVENT TITLE_CHANGED [uzbl_instance_name] title_name
+     EVENT [uzbl_instance_name] TITLE_CHANGED title_name
 
 - when content needs to be downloaded:
 
-     EVENT DOWNLOAD_REQUEST [uzbl_instance_name] download_uri
+     EVENT [uzbl_instance_name] DOWNLOAD_REQUEST download_uri
 
 - when you hover with the mouse over a link:
 
-     EVENT LINK_HOVER [uzbl_instance_name] uri
+     EVENT [uzbl_instance_name] LINK_HOVER uri
+     EVENT [uzbl_instance_name] LINK_UNHOVER uri
 
 - when you press or release a key:
 
-     EVENT KEY_PRESS [uzbl_instance_name] key_name
-     EVENT KEY_RELEASE [uzbl_instance_name] key_name
+     EVENT [uzbl_instance_name] KEY_PRESS key_name
+     EVENT [uzbl_instance_name] KEY_RELEASE key_name
 
 - when you select some text inside the uzbl window:
 
-     EVENT SELECTION_CHANGED [uzbl_instance_name] selected_text
+     EVENT [uzbl_instance_name] SELECTION_CHANGED selected_text
 
 - when a new uzbl window is created:
 
-     EVENT NEW_WINDOW [uzbl_instance_name] uri
+     EVENT [uzbl_instance_name] NEW_WINDOW uri
 
 - upon opening/closing of the webinspector window:
 
-     EVENT WEBINSPECTOR [uzbl_instance_name] open
-     EVENT WEBINSPECTOR [uzbl_instance_name] close
+     EVENT [uzbl_instance_name] WEBINSPECTOR open
+     EVENT [uzbl_instance_name] WEBINSPECTOR close
+
+- when the uzbl windows gained/lost keyboard focus
+
+     EVENT [uzbl_instance_name] FOCUS_GAINED
+     EVENT [uzbl_instance_name] FOCUS_LOST
+
+- when a editable HTML is clicked
+
+     EVENT [uzbl_instance_name] FORM_ACTIVE
+
+- when the document body or any non-editable element is clicked
+
+     EVENT [uzbl_instance_name] ROOT_ACTIVE
+
 
 
 ### COMMAND LINE ARGUMENTS

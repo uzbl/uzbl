@@ -32,7 +32,7 @@ set scheme_handler     = spawn @scripts_dir/scheme.py
 #set new_window        = sh 'echo uri "$8" > $4' # open in same window
 set new_window         = sh 'uzbl-browser -u $8' # equivalent to the default behaviour
 
-# Load start handler
+# Load start handlers
 @on_event   LOAD_START     @set_status <span foreground="khaki">wait</span>
 
 # Load commit handler
@@ -41,6 +41,15 @@ set new_window         = sh 'uzbl-browser -u $8' # equivalent to the default beh
 # Load finish handlers
 @on_event   LOAD_FINISH    @set_status <span foreground="gold">done</span>
 @on_event   LOAD_FINISH    spawn @scripts_dir/history.sh
+
+# Generate a FORM_ACTIVE event if an editable 
+# element on the loaded site has initial focus 
+@on_event   LOAD_FINISH    js if(document.activeElement.type == 'text') {Uzbl.run("event FORM_ACTIVE");}
+
+# Switch to insert mode if a (editable) html form is clicked
+@on_event   FORM_ACTIVE    @set_mode insert
+# Switch to command mode if anything else is clicked
+@on_event   ROOT_ACTIVE    @set_mode command
 
 # Misc on_event handlers
 #@on_event  CONFIG_CHANGED print Config changed: %1 = %2
@@ -52,12 +61,13 @@ set show_status       = 1
 set status_top        = 0
 set status_background = #303030
 
-set keycmd_style      = weight="bold" foreground="red"
+set modcmd_style      = weight="bold" foreground="red"
+set keycmd_style      = weight="light" foreground="red"
 set prompt_style      = foreground="grey"
 set cursor_style      = underline="single"
 
 set mode_section      = <span background="khaki" foreground="black">[\@[\@mode_indicator]\@]</span>
-set keycmd_section    = [<span \@prompt_style>\@[\@keycmd_prompt]\@</span><span \@keycmd_style>\@keycmd</span>]
+set keycmd_section    = [<span \@prompt_style>\@[\@keycmd_prompt]\@</span><span \@modcmd_style>\@modcmd</span><span \@keycmd_style>\@keycmd</span>]
 set progress_section  = <span foreground="#606060">\@[\@progress_format]\@</span>
 set uri_section       = <span foreground="#99FF66">\@[\@uri]\@</span>
 set name_section      = <span foreground="khaki">\@[\@NAME]\@</span>
@@ -183,8 +193,41 @@ set formfiller = spawn @scripts_dir/formfiller
 @bind <Ctrl>b<name:>_<tags:>_ = sh 'echo -e "$6	$7	%s	%s" >> $XDG_DATA_HOME/uzbl/bookmarks'
 
 # Multi-stage bindings with blank prompts (similar behaviour to emacs M-c M-s bindings?)
-@bind <Ctrl>a<:>q = exit
-@bind <Ctrl>a<:>h = uri http://uzbl.org/
+@bind <Ctrl>a<:><Ctrl>q = exit
+@bind <Ctrl>a<:><Ctrl>h = uri http://uzbl.org/
+
+
+# === command editing configuration ==========================================
+
+# you'll want this at the very least
+@bind <Return>       = event KEYCMD_EXEC_CURRENT
+@bind <Escape>       = event @set_mode
+
+# basic searching
+@bind <Home>         = event SET_CURSOR_POS 0
+@bind <End>          = event SET_CURSOR_POS -1
+@bind <Left>         = event SET_CURSOR_POS -
+@bind <Right>        = event SET_CURSOR_POS +
+@bind <BackSpace>    = event KEYCMD_BACKSPACE
+@bind <Delete>       = event KEYCMD_DELETE
+
+# readline-ish bindings
+@bind <Ctrl>w      = event KEYCMD_STRIP_WORD
+@bind <Ctrl>u      = event SET_KEYCMD
+@bind <Ctrl>a      = event SET_CURSOR_POS 0
+@bind <Ctrl>e      = event SET_CURSOR_POS -1
+
+
+# === Context menu items =====================================================
+
+# Default context menu
+menu_add Google = set uri = http://google.com
+menu_add Go Home = set uri = http://uzbl.org
+menu_separator separator_1
+menu_add Quit uzbl = exit
+
+# Link context menu
+menu_link_add Print Link = print \@SELECTED_URI
 
 
 # === Mode configuration =====================================================
@@ -195,7 +238,7 @@ set insert   = @mode_config insert
 set stack    = @mode_config stack
 
 # Command mode config.
-@command  keycmd_style        = weight="bold" foreground="red"
+@command  keycmd_style        = foreground="red"
 @command  status_background   = #202020
 @command  mode_indicator      = Cmd
 
@@ -221,7 +264,7 @@ set default_mode = command
 set toggle_cmd_ins = @toggle_modes command insert
 
 @bind i        = @toggle_cmd_ins
-@bind <Ctrl>i  = @toggle_cmd_ins
+@bind <Ctrl><i>  = @toggle_cmd_ins
 
 
 # === Post-load misc commands  ===============================================

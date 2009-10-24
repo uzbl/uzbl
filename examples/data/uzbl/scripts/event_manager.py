@@ -24,30 +24,19 @@ E V E N T _ M A N A G E R . P Y
 
 Event manager for uzbl written in python.
 
-Usage
-=====
-
-  uzbl | $XDG_DATA_HOME/uzbl/scripts/event_manager.py
-
-Todo
-====
-
- - Command line options including supplying a list of plugins to load or not
-   load (default is load all plugins in the plugin_dir).
- - Spell checking.
-
-
 '''
 
 import imp
 import os
 import sys
-import select
 import re
 import types
 import socket
 import pprint
 import time
+import atexit
+from select import select
+from signal import signal, SIGTERM
 from optparse import OptionParser
 from traceback import print_exc
 
@@ -69,13 +58,21 @@ def xdghome(key, default):
 
 # Setup xdg paths.
 DATA_DIR = os.path.join(xdghome('DATA', '.local/share/'), 'uzbl/')
+CACHE_DIR = os.path.join(xdghome('CACHE', '.cache/'), 'uzbl/')
 
 # Config dict (NOT the same as the uzbl.config).
 config = {
-    'verbose': False,
-    'plugin_dir': "$XDG_DATA_HOME/uzbl/scripts/plugins/",
-    'plugins_load': [],
-    'plugins_ignore': [],
+    'verbose':         False,
+    'daemon_mode':     True,
+
+    'plugins_load':    [],
+    'plugins_ignore':  [],
+
+    'plugin_dirs':     [os.path.join(DATA_DIR, 'plugins/'),
+        '/usr/local/share/uzbl/examples/data/uzbl/plugins/'],
+
+    'server_socket':   os.path.join(CACHE_DIR, 'event_daemon'),
+    'pid_file':        os.path.join(CACHE_DIR, 'event_daemon.pid'),
 }
 
 
@@ -122,223 +119,265 @@ def isiterable(obj):
     return hasattr(obj, "__iter__")
 
 
-class PluginManager(dict):
-    def __init__(self):
+def find_plugins(plugin_dirs):
+    '''Find all event manager plugins in the plugin dirs and return a
+    dictionary of {'plugin-name.py': '/full/path/to/plugin-name.py', ...}'''
 
-        plugin_dir = os.path.expandvars(config['plugin_dir'])
-        self.plugin_dir = os.path.realpath(plugin_dir)
-        if not os.path.exists(self.plugin_dir):
-            os.makedirs(self.plugin_dir)
+    plugins = {}
 
-        self.load_plugins()
+    for plugin_dir in plugin_dirs:
+        plugin_dir = os.path.realpath(os.path.expandvars(plugin_dir))
+        if not os.path.isdir(plugin_dir):
+            continue
 
+        for file in os.listdir(plugin_dir):
+            if not file.lower().endswith('.py'):
+                continue
 
-    def _find_all_plugins(self):
-        '''Find all python scripts in plugin dir and return a list of
-        locations and imp moduleinfo's.'''
+            path = os.path.join(plugin_dir, file)
+            if not os.path.isfile(path):
+                continue
 
-        dirlist = os.listdir(self.plugin_dir)
-        pythonfiles = filter(lambda s: s.endswith('.py'), dirlist)
+            if file not in plugins:
+                plugins[file] = plugin_dir
 
-        plugins = []
-
-        for filename in pythonfiles:
-            plugins.append(filename[:-3])
-
-        return plugins
-
-
-    def _unload_plugin(self, name, remove_pyc=True):
-        '''Unload specific plugin and remove all waste in sys.modules
-
-        Notice: manual manipulation of sys.modules is very un-pythonic but I
-        see no other way to make sure you have 100% unloaded the module. Also
-        this allows us to implement a reload plugins function.'''
-
-        allmodules = sys.modules.keys()
-        allrefs = filter(lambda s: s.startswith("%s." % name), allmodules)
-
-        for ref in allrefs:
-            del sys.modules[ref]
-
-        if name in sys.modules.keys():
-            del sys.modules[name]
-
-        if name in self:
-            del self[name]
-
-        if remove_pyc:
-            pyc = os.path.join(self.plugin_dir, '%s.pyc' % name)
-            if os.path.exists(pyc):
-                os.remove(pyc)
+    return plugins
 
 
-    def load_plugins(self):
+def load_plugins(plugin_dirs, load=[], ignore=[]):
+    '''Load event manager plugins found in the plugin_dirs.'''
 
-        if config['plugins_load']:
-            pluginlist = config['plugins_load']
+    # Find the plugins in the plugin_dirs.
+    found = find_plugins(plugin_dirs)
 
-        else:
-            pluginlist = self._find_all_plugins()
-            for name in config['plugins_ignore']:
-                if name in pluginlist:
-                    pluginlist.remove(name)
+    if load:
+        # Ignore anything not in the load list.
+        for plugin in found.keys():
+            if plugin not in load:
+                del found[plugin]
 
-        for name in pluginlist:
-            # Make sure the plugin isn't already loaded.
-            self._unload_plugin(name)
+    if ignore:
+        # Ignore anything in the ignore list.
+        for plugin in found.keys():
+            if plugin in ignore:
+                del found[plugin]
 
-            try:
-                moduleinfo = imp.find_module(name, [self.plugin_dir,])
-                plugin = imp.load_module(name, *moduleinfo)
-                self[name] = plugin
+    # Print plugin list to be loaded.
+    pprint.pprint(found)
 
-            except:
-                raise
+    loaded = {}
+    # Load all found plugins into the loaded dict.
+    for (filename, dir) in found.items():
+        name = filename[:-3]
+        info = imp.find_module(name, [dir,])
+        plugin = imp.load_module(name, *info)
+        loaded[(dir, filename)] = plugin
 
-        if self.keys():
-            echo("loaded plugin(s): %s" % ', '.join(self.keys()))
-
-
-    def reload_plugins(self):
-        '''Unload all loaded plugins then run load_plugins() again.
-
-        IMPORTANT: It is crucial that the event handler be deleted if you
-        are going to unload any modules because there is now way to track
-        which module created wich handler.'''
-
-        for plugin in self.keys():
-            self._unload_plugin(plugin)
-
-        self.load_plugins()
+    return loaded
 
 
-class CallPrepender(object):
-    '''Execution argument modifier. Takes (arg, function) then modifies the
-    function call:
+def daemonize():
+    '''Daemonize the process using the Stevens' double-fork magic.'''
 
-    -> function(*args, **kargs) ->  function(arg, *args, **kargs) ->'''
+    try:
+        if os.fork():
+            os._exit(0)
 
-    def __init__(self, uzbl, function):
-        self.function = function
-        self.uzbl = uzbl
+    except OSError:
+        print_exc()
+        sys.stderr.write("fork #1 failed")
+        sys.exit(1)
 
-    def call(self, *args, **kargs):
-        return self.function(self.uzbl, *args, **kargs)
+    os.chdir('/')
+    os.setsid()
+    os.umask(0)
+
+    try:
+        if os.fork():
+            os._exit(0)
+
+    except OSError:
+        print_exc()
+        sys.stderr.write("fork #2 failed")
+        sys.exit(1)
+
+    sys.stdout.flush()
+    sys.stderr.flush()
+
+    devnull = '/dev/null'
+    stdin = file(devnull, 'r')
+    stdout = file(devnull, 'a+')
+    stderr = file(devnull, 'a+', 0)
+
+    os.dup2(stdin.fileno(), sys.stdin.fileno())
+    os.dup2(stdout.fileno(), sys.stdout.fileno())
+    os.dup2(stderr.fileno(), sys.stderr.fileno())
 
 
-class Handler(object):
+def make_dirs(path):
+    '''Make all basedirs recursively as required.'''
+
+    dirname = os.path.dirname(path)
+    if not os.path.isdir(dirname):
+        os.makedirs(dirname)
+
+
+def make_pid_file(pid_file):
+    '''Make pid file at given pid_file location.'''
+
+    make_dirs(pid_file)
+    file = open(pid_file, 'w')
+    file.write('%d' % os.getpid())
+    file.close()
+
+
+def del_pid_file(pid_file):
+    '''Delete pid file at given pid_file location.'''
+
+    if os.path.isfile(pid_file):
+        os.remove(pid_file)
+
+
+def get_pid(pid_file):
+    '''Read pid from pid_file.'''
+
+    try:
+        file = open(pid_file, 'r')
+        strpid = file.read()
+        file.close()
+        pid = int(strpid.strip())
+        return pid
+
+    except:
+        print_exc()
+        return None
+
+
+def pid_running(pid):
+    '''Returns True if a process with the given pid is running.'''
+
+    try:
+        os.kill(pid, 0)
+
+    except OSError:
+        return False
+
+    else:
+        return True
+
+
+def term_process(pid):
+    '''Send a SIGTERM signal to the process with the given pid.'''
+
+    if not pid_running(pid):
+        return False
+
+    os.kill(pid, SIGTERM)
+
+    start = time.time()
+    while True:
+        if not pid_running(pid):
+            return True
+
+        if time.time() - start > 5:
+            raise OSError('failed to stop process with pid: %d' % pid)
+
+        time.sleep(0.25)
+
+
+def prepender(function, *pre_args):
+    '''Creates a wrapper around a callable object injecting a list of
+    arguments before the called arguments.'''
+
+    locals = (function, pre_args)
+    def _prepender(*args, **kargs):
+        (function, pre_args) = locals
+        return function(*(pre_args + args), **kargs)
+
+    return _prepender
+
+
+class EventHandler(object):
 
     nexthid = counter().next
 
     def __init__(self, event, handler, *args, **kargs):
-        self.callable = iscallable(handler)
-        if self.callable:
-            self.function = handler
-            self.args = args
-            self.kargs = kargs
+        if not iscallable(handler):
+            raise ArgumentError("EventHandler object requires a callable "
+                "object function for the handler argument not: %r" % handler)
 
-        elif kargs:
-            raise ArgumentError("cannot supply kargs with a uzbl command")
-
-        elif isiterable(handler):
-            self.commands = handler
-
-        else:
-            self.commands = [handler,] + list(args)
-
+        self.function = handler
+        self.args = args
+        self.kargs = kargs
         self.event = event
         self.hid = self.nexthid()
 
 
     def __repr__(self):
-        args = ["event=%s" % self.event, "hid=%d" % self.hid]
+        args = ["event=%s" % self.event, "hid=%d" % self.hid,
+            "function=%r" % self.function]
 
-        if self.callable:
-            args.append("function=%r" % self.function)
-            if self.args:
-                args.append("args=%r" % self.args)
+        if self.args:
+            args.append("args=%r" % self.args)
 
-            if self.kargs:
-                args.append("kargs=%r" % self.kargs)
-
-        else:
-            cmdlen = len(self.commands)
-            cmds = self.commands[0] if cmdlen == 1 else self.commands
-            args.append("command%s=%r" % ("s" if cmdlen-1 else "", cmds))
+        if self.kargs:
+            args.append("kargs=%r" % self.kargs)
 
         return "<EventHandler(%s)>" % ', '.join(args)
 
 
 class UzblInstance(object):
-    '''Event manager for a uzbl instance.'''
+    def __init__(self, parent, client_socket):
 
-    # Singleton plugin manager.
-    plugins = None
-
-    def __init__(self):
-        '''Initialise event manager.'''
-
-        # Hold functions exported by plugins.
+        # Internal variables.
         self._exports = {}
-        self._running = None
-        self._buffer = ''
-
         self._handlers = {}
+        self._parent = parent
+        self._client_socket = client_socket
 
-        # Variables needed for fifo & socket communication with uzbl.
-        self.uzbl_fifo = None
-        self.uzbl_socket = None
-        self._fifo_cmd_queue = []
-        self._socket_cmd_queue = []
-        self._socket = None
-        self.send = self._send_socket
+        self.buffer = ''
 
-        if not self.plugins:
-            self.plugins = PluginManager()
-
-        # Call the init() function in every plugin which then setup their
-        # respective hooks (event handlers, binds or timers).
+        # Call the init() function in every plugin. Inside the init function
+        # is where the plugins insert the hooks into the event system.
         self._init_plugins()
 
 
-    def __getattribute__(self, name):
+    def __getattribute__(self, attr):
         '''Expose any exported functions before class functions.'''
 
-        if not name.startswith('_'):
+        if not attr.startswith('_'):
             exports = object.__getattribute__(self, '_exports')
-            if name in exports:
-                return exports[name]
+            if attr in exports:
+                return exports[attr]
 
-        return object.__getattribute__(self, name)
+        return object.__getattribute__(self, attr)
 
 
     def _init_plugins(self):
         '''Call the init() function in every plugin and expose all exposable
         functions in the plugins root namespace.'''
 
+        plugins = self._parent['plugins']
+
         # Map all plugin exports
-        for (name, plugin) in self.plugins.items():
+        for (name, plugin) in plugins.items():
             if not hasattr(plugin, '__export__'):
                 continue
 
             for export in plugin.__export__:
                 if export in self._exports:
-                    orig = self._exports[export]
-                    raise KeyError("already exported attribute: %r" % export)
+                    raise KeyError("conflicting export: %r" % export)
 
                 obj = getattr(plugin, export)
                 if iscallable(obj):
-                    # Wrap the function in the CallPrepender object to make
-                    # the exposed functions act like instance methods.
-                    obj = CallPrepender(self, obj).call
+                    obj = prepender(obj, self)
 
                 self._exports[export] = obj
 
         echo("exposed attribute(s): %s" % ', '.join(self._exports.keys()))
 
         # Now call the init function in all plugins.
-        for (name, plugin) in self.plugins.items():
+        for (name, plugin) in plugins.items():
             try:
                 plugin.init(self)
 
@@ -347,82 +386,15 @@ class UzblInstance(object):
                 raise
 
 
-    def _init_uzbl_socket(self, uzbl_socket=None, timeout=None):
-        '''Store socket location and open socket connection to uzbl socket.'''
-
-        if uzbl_socket is None:
-            uzbl_socket = self.uzbl_socket
-
-        if not uzbl_socket:
-            error("no socket location.")
-            return
-
-        if not os.path.exists(uzbl_socket):
-            if timeout is None:
-                error("uzbl socket doesn't exist: %r" % uzbl_socket)
-                return
-
-            waitlimit = time.time() + timeout
-            echo("waiting for uzbl socket: %r" % uzbl_socket)
-            while not os.path.exists(uzbl_socket):
-                time.sleep(0.25)
-                if time.time() > waitlimit:
-                    error("timed out waiting for socket: %r" % uzbl_socket)
-                    return
-
-        self.uzbl_socket = uzbl_socket
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.connect(self.uzbl_socket)
-        self._socket = sock
-
-
-    def _close_socket(self):
-        '''Close the socket used for communication with the uzbl instance.
-        This function is normally called upon receiving the INSTANCE_EXIT
-        event.'''
-
-        if self._socket:
-            self._socket.close()
-
-        self.uzbl_socket = self._socket = None
-
-
-    def _flush(self):
-        '''Flush messages from the outgoing queue to the uzbl instance.'''
-
-        if len(self._fifo_cmd_queue) and self.uzbl_fifo:
-            if os.path.exists(self.uzbl_fifo):
-                h = open(self.uzbl_fifo, 'w')
-                while len(self._fifo_cmd_queue):
-                    msg = self._fifo_cmd_queue.pop(0)
-                    print '<-- %s' % msg
-                    h.write(("%s\n" % msg).encode('utf-8'))
-
-                h.close()
-
-        if len(self._socket_cmd_queue) and self.uzbl_socket:
-            if not self._socket and os.path.exists(self.uzbl_socket):
-                self._init_uzbl_socket()
-
-            if self._socket:
-                while len(self._socket_cmd_queue):
-                    msg = self._socket_cmd_queue.pop(0)
-                    print '<-- %s' % msg
-                    self._socket.send(("%s\n" % msg).encode('utf-8'))
-
-
-    def _send_fifo(self, msg):
-        '''Send a command to the uzbl instance via the fifo socket.'''
-
-        self._fifo_cmd_queue.append(msg)
-        self._flush()
-
-
-    def _send_socket(self, msg):
+    def send(self, msg):
         '''Send a command to the uzbl instance via the socket file.'''
 
-        self._socket_cmd_queue.append(msg)
-        self._flush()
+        if self._client_socket:
+            print '<-- %s' % msg
+            self._client_socket.send(("%s\n" % msg).encode('utf-8'))
+
+        else:
+            print '!-- %s' % msg
 
 
     def connect(self, event, handler, *args, **kargs):
@@ -432,11 +404,9 @@ class UzblInstance(object):
         if event not in self._handlers.keys():
             self._handlers[event] = []
 
-        handler = Handler(event, handler, *args, **kargs)
-        self._handlers[event].append(handler)
-
-        print handler
-        return handler
+        handlerobj = EventHandler(event, handler, *args, **kargs)
+        self._handlers[event].append(handlerobj)
+        print handlerobj
 
 
     def connect_dict(self, connect_dict):
@@ -477,216 +447,362 @@ class UzblInstance(object):
         echo('unable to find & remove handler: %r' % handler)
 
 
-    def listen_from_fd(self, fd):
-        '''Polls for event messages from fd.'''
-
-        try:
-            self._running = True
-            while self._running:
-                if select.select([fd,], [], [], 1)[0]:
-                    self.read_from_fd(fd)
-                    continue
-
-                self._flush()
-
-        except KeyboardInterrupt:
-            print
-
-        except:
-            #print_exc()
-            raise
-
-
-    def read_from_fd(self, fd):
-        '''Reads event messages from a single fd.'''
-
-        raw = fd.readline()
-        if not raw:
-            # Read null byte (i.e. uzbl closed).
-            self._running = False
-            return
-
-        msg = raw.strip().split(' ', 3)
-
-        if not msg or msg[0] != "EVENT":
-            # Not an event message
-            print "---", raw.rstrip()
-            return
-
-        event, args = msg[1], msg[3]
-        self.handle_event(event, args)
-
-
-    def listen_from_uzbl_socket(self, uzbl_socket):
-        '''Polls for event messages from a single uzbl socket.'''
-
-        self._init_uzbl_socket(uzbl_socket, 10)
-
-        if not self._socket:
-            error("failed to init socket: %r" % uzbl_socket)
-            return
-
-        self._flush()
-        try:
-            self._running = True
-            while self._running:
-                if select.select([self._socket], [], [], 1):
-                    self.read_from_uzbl_socket()
-                    continue
-
-                self._flush()
-
-        except KeyboardInterrupt:
-            print
-
-        except:
-            #print_exc()
-            raise
-
-
-    def read_from_uzbl_socket(self):
-        '''Reads event messages from a uzbl socket.'''
-
-        raw = unicode(self._socket.recv(8192), 'utf-8', 'ignore')
-        if not raw:
-            # Read null byte
-            self._running = False
-            return
-
-        self._buffer += raw
-        msgs = self._buffer.split("\n")
-        self._buffer = msgs.pop()
-
-        for msg in msgs:
-            msg = msg.rstrip()
-            if not msg:
-                continue
-
-            cmd = _RE_FINDSPACES.split(msg, 3)
-            if not cmd or cmd[0] != "EVENT":
-                # Not an event message
-                print msg.rstrip()
-                continue
-
-            if len(cmd) < 4:
-                cmd.append('')
-
-            event, args = cmd[2], cmd[3]
-            try:
-                self.handle_event(event, args)
-
-            except:
-                #print_exc()
-                raise
-
-
-    def handle_event(self, event, args):
-        '''Handle uzbl events internally before dispatch.'''
-
-        if event == 'FIFO_SET':
-            self.uzbl_fifo = args
-            self._flush()
-
-        elif event == 'SOCKET_SET':
-            if not self.uzbl_socket or not self._socket:
-                self._init_uzbl_socket(args)
-                self._flush()
-
-        elif event == 'INSTANCE_EXIT':
-            self._close_socket()
-            self._running = False
-            for (name, plugin) in self.plugins.items():
-                if hasattr(plugin, "cleanup"):
-                    plugin.cleanup(uzbl)
-
-        # Now handle the event "publically".
-        self.event(event, args)
-
-
     def exec_handler(self, handler, *args, **kargs):
-        '''Execute either the handler function or send the handlers uzbl
-        commands via the socket.'''
+        '''Execute event handler function.'''
 
-        if handler.callable:
-            args = args + handler.args
-            kargs = dict(handler.kargs.items()+kargs.items())
-            handler.function(uzbl, *args, **kargs)
-
-        else:
-            if kargs:
-                raise ArgumentError('cannot supply kargs for uzbl commands')
-
-            for command in handler.commands:
-                if '%s' in command:
-                    if len(args) > 1:
-                        for arg in args:
-                            command = command.replace('%s', arg, 1)
-
-                    elif len(args) == 1:
-                        command = command.replace('%s', args[0])
-
-                uzbl.send(command)
+        args += handler.args
+        kargs = dict(handler.kargs.items()+kargs.items())
+        handler.function(self, *args, **kargs)
 
 
     def event(self, event, *args, **kargs):
         '''Raise a custom event.'''
 
-        # Silence _printing_ of geo events while still debugging.
+        # Silence _printing_ of geo events while debugging.
         if event != "GEOMETRY_CHANGED":
             print "--> %s %s %s" % (event, args, '' if not kargs else kargs)
 
-        if event in self._handlers:
-            for handler in self._handlers[event]:
-                try:
-                    self.exec_handler(handler, *args, **kargs)
+        if event not in self._handlers:
+            return
 
-                except:
-                    #print_exc()
-                    raise
+        for handler in self._handlers[event]:
+            try:
+                self.exec_handler(handler, *args, **kargs)
+
+            except:
+                print_exc()
+
+
+    def close(self):
+        '''Close the client socket and clean up.'''
+
+        try:
+            self._client_socket.close()
+
+        except:
+            pass
+
+        for (name, plugin) in self._parent['plugins'].items():
+            if hasattr(plugin, 'cleanup'):
+                plugin.cleanup(self)
+
+        del self._exports
+        del self._handlers
+        del self._client_socket
+
+
+class UzblEventDaemon(dict):
+    def __init__(self):
+
+        # Init variables and dict keys.
+        dict.__init__(self, {'uzbls': {}})
+        self.running = None
+        self.server_socket = None
+        self.socket_location = None
+
+        # Register that the event daemon server has started by creating the
+        # pid file.
+        make_pid_file(config['pid_file'])
+
+        # Register a function to clean up the socket and pid file on exit.
+        atexit.register(self.quit)
+
+        # Make SIGTERM act orderly.
+        signal(SIGTERM, lambda signum, stack_frame: sys.exit(1))
+
+        # Load plugins, first-build of the plugins may be a costly operation.
+        self['plugins'] = load_plugins(config['plugin_dirs'],
+            config['plugins_load'], config['plugins_ignore'])
+
+
+    def _create_server_socket(self):
+        '''Create the event manager daemon socket for uzbl instance duplex
+        communication.'''
+
+        server_socket = config['server_socket']
+        server_socket = os.path.realpath(os.path.expandvars(server_socket))
+        self.socket_location = server_socket
+
+        # Delete socket if it exists.
+        if os.path.exists(server_socket):
+            os.remove(server_socket)
+
+        self.server_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.server_socket.bind(server_socket)
+        self.server_socket.listen(5)
+
+
+    def _close_server_socket(self):
+        '''Close and delete the server socket.'''
+
+        try:
+            self.server_socket.close()
+            self.server_socket = None
+
+            if os.path.exists(self.socket_location):
+                os.remove(self.socket_location)
+
+        except:
+            pass
+
+
+    def run(self):
+        '''Main event daemon loop.'''
+
+        if config['daemon_mode']:
+            echo('entering daemon mode.')
+            daemonize()
+            # The pid has changed so update the pid file.
+            make_pid_file(config['pid_file'])
+
+        # Create event daemon socket.
+        self._create_server_socket()
+        echo('listening on: %s' % self.socket_location)
+
+        # Now listen for incoming connections and or data.
+        self.listen()
+
+        # Clean up.
+        self.quit()
+
+
+    def listen(self):
+        '''Accept incoming connections and constantly poll instance sockets
+        for incoming data.'''
+
+        self.running = True
+        while self.running:
+
+            sockets = [self.server_socket,] + self['uzbls'].keys()
+
+            read, _, error = select(sockets, [], sockets, 1)
+
+            if self.server_socket in read:
+                self.accept_connection()
+                read.remove(self.server_socket)
+
+            for client in read:
+                self.read_socket(client)
+
+            for client in error:
+                error('Unknown error on socket: %r' % client)
+                self.close_connection(client)
+
+
+    def read_socket(self, client):
+        '''Read data from an instance socket and pass to the uzbl objects
+        event handler function.'''
+
+        try:
+            uzbl = self['uzbls'][client]
+            try:
+                raw = unicode(client.recv(8192), 'utf-8', 'ignore')
+
+            except:
+                print_exc()
+                raw = None
+
+            if not raw:
+                # Read null byte, close socket.
+                return self.close_connection(client)
+
+            uzbl.buffer += raw
+            msgs = uzbl.buffer.split('\n')
+            uzbl.buffer = msgs.pop()
+
+            for msg in msgs:
+                self.parse_msg(uzbl, msg)
+
+        except:
+            raise
+
+
+    def parse_msg(self, uzbl, msg):
+        '''Parse an incoming msg from a uzbl instance. All non-event messages
+        will be printed here and not be passed to the uzbl instance event
+        handler function.'''
+
+        msg = msg.strip()
+        if not msg:
+            return
+
+        cmd = _RE_FINDSPACES.split(msg, 3)
+        if not cmd or cmd[0] != 'EVENT':
+            # Not an event message.
+            print '---', msg
+            return
+
+        if len(cmd) < 4:
+            cmd.append('')
+
+        event, args = cmd[2], cmd[3]
+
+        try:
+            uzbl.event(event, args)
+
+        except:
+            print_exc()
+
+
+    def accept_connection(self):
+        '''Accept incoming connection to the server socket.'''
+
+        client_socket = self.server_socket.accept()[0]
+
+        uzbl = UzblInstance(self, client_socket)
+        self['uzbls'][client_socket] = uzbl
+
+
+    def close_connection(self, client):
+        '''Clean up after instance close.'''
+
+        try:
+            if client not in self['uzbls']:
+                return
+
+            uzbl = self['uzbls'][client]
+            uzbl.close()
+            del self['uzbls'][client]
+
+        except:
+            print_exc()
+
+
+    def quit(self):
+        '''Close all instance socket objects, server socket and delete the
+        pid file.'''
+
+        echo('shutting down event manager.')
+
+        for client in self['uzbls'].keys():
+            self.close_connection(client)
+
+        echo('unlinking: %r' % self.socket_location)
+        self._close_server_socket()
+
+        echo('deleting pid file: %r' % config['pid_file'])
+        del_pid_file(config['pid_file'])
+
+
+def stop():
+    '''Stop the event manager daemon.'''
+
+    pid_file = config['pid_file']
+    if not os.path.isfile(pid_file):
+        return echo('no running daemon found.')
+
+    echo('found pid file: %r' % pid_file)
+    pid = get_pid(pid_file)
+    if not pid_running(pid):
+        echo('no process with pid: %d' % pid)
+        return os.remove(pid_file)
+
+    echo("terminating process with pid: %d" % pid)
+    term_process(pid)
+    if os.path.isfile(pid_file):
+        os.remove(pid_file)
+
+    echo('stopped event daemon.')
+
+
+def start():
+    '''Start the event manager daemon.'''
+
+    pid_file = config['pid_file']
+    if os.path.isfile(pid_file):
+        echo('found pid file: %r' % pid_file)
+        pid = get_pid(pid_file)
+        if pid_running(pid):
+            return echo('event daemon already started with pid: %d' % pid)
+
+        echo('no process with pid: %d' % pid)
+        os.remove(pid_file)
+
+    echo('starting event manager.')
+    UzblEventDaemon().run()
+
+
+def restart():
+    '''Restart the event manager daemon.'''
+
+    echo('restarting event manager daemon.')
+    stop()
+    start()
+
+
+def list_plugins():
+    '''List all the plugins being loaded by the event daemon.'''
+
+    plugins = find_plugins(config['plugin_dirs'])
+    dirs = {}
+
+    for (plugin, dir) in plugins.items():
+        if dir not in dirs:
+            dirs[dir] = []
+
+        dirs[dir].append(plugin)
+
+    for (index, (dir, plugin_list)) in enumerate(sorted(dirs.items())):
+        if index:
+            print
+
+        print "%s:" % dir
+        for plugin in sorted(plugin_list):
+            print "    %s" % plugin
 
 
 if __name__ == "__main__":
-    #uzbl = UzblInstance().listen_from_fd(sys.stdin)
-
-    parser = OptionParser()
-    parser.add_option('-s', '--uzbl-socket', dest='socket',
-      action="store", metavar="SOCKET",
-      help="read event messages from uzbl socket.")
-
+    usage = "usage: %prog [options] {start|stop|restart|list}"
+    parser = OptionParser(usage=usage)
     parser.add_option('-v', '--verbose', dest='verbose', action="store_true",
       help="print verbose output.")
 
-    parser.add_option('-d', '--plugin-dir', dest='plugin_dir', action="store",
-      metavar="DIR", help="change plugin directory.")
+    parser.add_option('-d', '--plugin-dirs', dest='plugin_dirs', action="store",
+      metavar="DIRS", help="Specify plugin directories in the form of "\
+      "'dir1:dir2:dir3'.")
 
-    parser.add_option('-p', '--load-plugins', dest="load", action="store",
+    parser.add_option('-l', '--load-plugins', dest="load", action="store",
       metavar="PLUGINS", help="comma separated list of plugins to load")
 
     parser.add_option('-i', '--ignore-plugins', dest="ignore", action="store",
       metavar="PLUGINS", help="comma separated list of plugins to ignore")
 
-    parser.add_option('-l', '--list-plugins', dest='list', action='store_true',
-      help="list all the plugins in the plugin dir.")
+    parser.add_option('-p', '--pid-file', dest='pid', action='store',
+      metavar='FILE', help="specify pid file location")
+
+    parser.add_option('-s', '--server-socket', dest='socket', action='store',
+      metavar='SOCKET', help="specify the daemon socket location")
+
+    parser.add_option('-n', '--no-daemon', dest="daemon",
+      action="store_true", help="don't enter daemon mode.")
 
     (options, args) = parser.parse_args()
 
-    if len(args):
-        for arg in args:
-            error("unknown argument: %r" % arg)
+    # init like {start|stop|..} daemon control section.
+    daemon_controls = {'start': start, 'stop': stop, 'restart': restart,
+        'list': list_plugins}
 
-        raise ArgumentError
+    if len(args) == 1:
+        action = args[0]
+        if action not in daemon_controls:
+            error('unknown action: %r' % action)
+            sys.exit(1)
 
+    elif len(args) > 1:
+        error("too many arguments: %r" % args)
+        sys.exit(1)
+
+    else:
+        action = 'start'
+
+    # parse other flags & options.
     if options.verbose:
         config['verbose'] = True
 
-    if options.plugin_dir:
-        plugin_dir = os.path.expandvars(options.plugin_dir)
-        if not os.path.isdir(plugin_dir):
-            error("%r is not a directory" % plugin_dir)
-            sys.exit(1)
-
-        config['plugin_dir'] = plugin_dir
-        echo("changed plugin dir: %r" % plugin_dir)
+    if options.plugin_dirs:
+        plugin_dirs = map(str.strip, options.plugin_dirs.split(':'))
+        config['plugin_dirs'] = plugin_dirs
+        echo("plugin search dirs: %r" % plugin_dirs)
 
     if options.load and options.ignore:
         error("you can't load and ignore at the same time.")
@@ -708,21 +824,16 @@ if __name__ == "__main__":
 
         echo('ignoring plugin(s): %s' % ', '.join(plugins_ignore))
 
+    if options.pid:
+        config['pid_file'] = options.pid
+        echo("pid file location: %r" % config['pid_file'])
 
-    if options.list:
-        plugin_dir = os.path.expandvars(config['plugin_dir'])
-        if not os.path.isdir(plugin_dir):
-            error("not a directory: %r" % plugin_dir)
-            sys.exit(1)
+    if options.socket:
+        config['server_socket'] = options.socket
+        echo("daemon socket location: %s" % config['server_socket'])
 
-        dirlist = filter(lambda p: p.endswith('.py'), os.listdir(plugin_dir))
-        print ', '.join([p[:-3] for p in dirlist])
+    if options.daemon:
+        config['daemon_mode'] = False
 
-    else:
-        uzbl = UzblInstance()
-        if options.socket:
-            echo("listen from uzbl socket: %r" % options.socket)
-            uzbl.listen_from_uzbl_socket(options.socket)
-
-        else:
-            uzbl.listen_from_fd(sys.stdin)
+    # Now {start|stop|...}
+    daemon_controls[action]()
