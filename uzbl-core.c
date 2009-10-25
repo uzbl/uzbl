@@ -1537,6 +1537,7 @@ set_var_value(const gchar *name, gchar *val) {
         send_event(VARIABLE_SET, msg->str, NULL);
         g_string_free(msg,TRUE);
     }
+    update_title();
     return TRUE;
 }
 
