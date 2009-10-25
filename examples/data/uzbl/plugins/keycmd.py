@@ -249,7 +249,6 @@ def key_press(uzbl, key):
 
     k = get_keylet(uzbl)
     key = k.key_modmap(key.strip())
-    print 'KEY', key
     if key.startswith("ISO_"):
         return
 
