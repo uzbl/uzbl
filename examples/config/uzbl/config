@@ -13,6 +13,8 @@ set toggle_modes   = request TOGGLE_MODES
 set on_event       = request ON_EVENT
 # request PROGRESS_CONFIG <key> = <value>
 set progress       = request PROGRESS_CONFIG
+# request MODMAP From To
+set modmap         = request MODMAP
 
 set set_mode       = set mode =
 set set_status     = set status_message =
@@ -42,8 +44,8 @@ set new_window         = sh 'uzbl-browser -u $8' # equivalent to the default beh
 @on_event   LOAD_FINISH    @set_status <span foreground="gold">done</span>
 @on_event   LOAD_FINISH    spawn @scripts_dir/history.sh
 
-# Generate a FORM_ACTIVE event if an editable 
-# element on the loaded site has initial focus 
+# Generate a FORM_ACTIVE event if an editable
+# element on the loaded site has initial focus
 @on_event   LOAD_FINISH    js if(document.activeElement.type == 'text') {Uzbl.run("event FORM_ACTIVE");}
 
 # Switch to insert mode if a (editable) html form is clicked
@@ -96,6 +98,14 @@ set status_format     = <span font_family="monospace">@mode_section @keycmd_sect
 set useragent         = Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@(uname -o)@ @(uname -m)@ [@ARCH_UZBL]) (Commit @COMMIT)
 set fifo_dir          = /tmp
 set socket_dir        = /tmp
+
+
+# === Binding modmaps ========================================================
+
+#modmap from           to
+@modmap Control        Ctrl
+@modmap ISO_Left_Tab   Shift-Tab
+@modmap space          Space
 
 
 # === Keyboard bindings ======================================================
