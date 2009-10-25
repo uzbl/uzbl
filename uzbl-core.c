@@ -1229,8 +1229,9 @@ void
 spawn(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
     gchar *path = NULL;
+
     //TODO: allow more control over argument order so that users can have some arguments before the default ones from run_command, and some after
-    if ( argv_idx(argv, 0) &&
+    if (argv_idx(argv, 0) &&
             ((path = find_existing_file(argv_idx(argv, 0)))) ) {
         run_command(path, 0,
                 ((const gchar **) (argv->data + sizeof(gchar*))),
@@ -1242,10 +1243,15 @@ spawn(WebKitWebView *web_view, GArray *argv, GString *result) {
 void
 spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
+    gchar *path = NULL;
 
-    if (argv_idx(argv, 0))
-        run_command(argv_idx(argv, 0), 0, ((const gchar **) (argv->data + sizeof(gchar*))),
+    if (argv_idx(argv, 0) &&
+            ((path = find_existing_file(argv_idx(argv, 0)))) ) {
+        run_command(path, 0,
+                ((const gchar **) (argv->data + sizeof(gchar*))),
                     TRUE, &uzbl.comm.sync_stdout);
+        g_free(path);
+    }
 }
 
 void

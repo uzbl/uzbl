@@ -61,4 +61,4 @@ DAEMON_PID=$XDG_CACHE_HOME/uzbl/event_daemon.pid
 	event_manager.py -v start
 #fi
 
-uzbl-core "$@" --connect-socket $DAEMON_SOCKET 1>/dev/null
+uzbl-core "$@" --connect-socket $DAEMON_SOCKET | grep -v ^EVENT
