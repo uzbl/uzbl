@@ -2,17 +2,10 @@ import re
 
 # Map these functions/variables in the plugins namespace to the uzbl object.
 __export__ = ['clear_keycmd', 'set_keycmd', 'set_cursor_pos', 'get_keylet',
-    'clear_current', 'clear_modcmd']
+    'clear_current', 'clear_modcmd', 'add_modmap']
 
 # Hold the keylets.
 UZBLS = {}
-
-# Simple key names map.
-SIMPLEKEYS = {
-  'Control': 'Ctrl',
-  'ISO_Left_Tab': 'Shift-Tab',
-  'space':'Space',
-}
 
 # Keycmd format which includes the markup for the cursor.
 KEYCMD_FORMAT = "%s<span @cursor_style>%s</span>%s"
@@ -46,6 +39,9 @@ class Keylet(object):
         self.keycmd = ''
         self.cursor = 0
 
+        # Key modmaps.
+        self.modmap = {}
+
         # Keylet string repr cache.
         self._repr_cache = None
 
@@ -63,6 +59,20 @@ class Keylet(object):
             return ''
 
         return ''.join(['<%s>' % key for key in self.held]) + self.modcmd
+
+
+    def key_modmap(self, key):
+        '''Make some obscure names for some keys friendlier.'''
+
+        if key in self.modmap:
+            return self.modmap[key]
+
+        elif key.endswith('_L') or key.endswith('_R'):
+            # Remove left-right discrimination and try again.
+            return self.key_modmap(key[:-2])
+
+        else:
+            return key
 
 
     def __repr__(self):
@@ -85,17 +95,30 @@ class Keylet(object):
         return self._repr_cache
 
 
-def make_simple(key):
-    '''Make some obscure names for some keys friendlier.'''
+def add_modmap(uzbl, key, map=None):
+    '''Add modmaps.'''
 
-    # Remove left-right discrimination.
-    if key.endswith('_L') or key.endswith('_R'):
-        key = key[:-2]
+    keylet = get_keylet(uzbl)
+    if not map:
+        if key in keylet.modmap:
+            map = keylet.modmap[key]
+            del keylet.modmap[key]
+            uzbl.event("DEL_MODMAP", key, map)
 
-    if key in SIMPLEKEYS:
-        key = SIMPLEKEYS[key]
+    else:
+        keylet.modmap[key] = map
+        uzbl.event("NEW_MODMAP", key, map)
 
-    return key
+
+def modmap_parse(uzbl, map):
+    '''Parse a modmap definiton.'''
+
+    split = [s.strip() for s in map.split(' ') if s.split()]
+
+    if not split or len(split) > 2:
+        raise Exception('Invalid modmap arugments: %r' % map)
+
+    add_modmap(uzbl, *split)
 
 
 def add_instance(uzbl, *args):
@@ -229,10 +252,12 @@ def key_press(uzbl, key):
     if key.startswith('Shift_'):
         return
 
-    if len(key) > 1:
-        key = make_simple(key)
-
     k = get_keylet(uzbl)
+    key = k.key_modmap(key.strip())
+    print 'KEY', key
+    if key.startswith("<ISO_"):
+        return
+
     if key == 'Space' and not k.held and k.keycmd:
         k.keycmd = inject_char(k.keycmd, k.cursor, ' ')
         k.cursor += 1
@@ -271,10 +296,9 @@ def key_release(uzbl, key):
     3. Check if any modkey is held, if so set modcmd mode.
     4. Update the keycmd uzbl variable if anything changed.'''
 
-    if len(key) > 1:
-        key = make_simple(key)
-
     k = get_keylet(uzbl)
+    key = k.key_modmap(key)
+
     if key in ['Shift', 'Tab'] and 'Shift-Tab' in k.held:
         key = 'Shift-Tab'
 
@@ -286,9 +310,6 @@ def key_release(uzbl, key):
             uzbl.event('MODCMD_EXEC', k)
 
         k.held.remove(key)
-        #k.is_modcmd = False
-        #k.modcmd = ''
-        #update_event(uzbl, k)
         clear_modcmd(uzbl)
 
 
@@ -390,6 +411,7 @@ def init(uzbl):
       'KEYCMD_EXEC_CURRENT': keycmd_exec_current,
       'SET_CURSOR_POS': set_cursor_pos,
       'FOCUS_LOST': focus_changed,
-      'FOCUS_GAINED': focus_changed}
+      'FOCUS_GAINED': focus_changed,
+      'MODMAP': modmap_parse}
 
     uzbl.connect_dict(connects)
