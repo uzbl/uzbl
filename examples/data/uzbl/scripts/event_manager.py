@@ -595,7 +595,13 @@ class UzblEventDaemon(dict):
 
         try:
             uzbl = self['uzbls'][client]
-            raw = unicode(client.recv(8192), 'utf-8', 'ignore')
+            try:
+                raw = unicode(client.recv(8192), 'utf-8', 'ignore')
+
+            except:
+                print_exc()
+                raw = None
+
             if not raw:
                 # Read null byte, close socket.
                 return self.close_connection(client)

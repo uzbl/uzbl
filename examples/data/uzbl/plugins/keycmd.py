@@ -1,16 +1,14 @@
 import re
 
 # Map these functions/variables in the plugins namespace to the uzbl object.
-__export__ = ['clear_keycmd', 'set_keycmd', 'set_cursor_pos', 'get_keylet']
-
-# Regular expression compile cache.
-_RE_CACHE = {}
+__export__ = ['clear_keycmd', 'set_keycmd', 'set_cursor_pos', 'get_keylet',
+    'clear_current', 'clear_modcmd']
 
 # Hold the keylets.
 UZBLS = {}
 
 # Simple key names map.
-_SIMPLEKEYS = {
+SIMPLEKEYS = {
   'Control': 'Ctrl',
   'ISO_Left_Tab': 'Shift-Tab',
   'space':'Space',
@@ -20,7 +18,7 @@ _SIMPLEKEYS = {
 KEYCMD_FORMAT = "%s<span @cursor_style>%s</span>%s"
 
 
-def escape(str):
+def uzbl_escape(str):
     '''Prevent outgoing keycmd values from expanding inside the
     status_format.'''
 
@@ -34,58 +32,57 @@ def escape(str):
     return "@[%s]@" % str
 
 
-def get_regex(regex):
-    '''Compiling regular expressions is a very time consuming so return a
-    pre-compiled regex match object if possible.'''
-
-    if regex not in _RE_CACHE:
-        _RE_CACHE[regex] = re.compile(regex).match
-
-    return _RE_CACHE[regex]
-
-
 class Keylet(object):
     '''Small per-instance object that tracks all the keys held and characters
     typed.'''
 
     def __init__(self):
-        self.cmd = ''
-        self.cursor = 0
+        # Modcmd tracking
         self.held = []
+        self.modcmd = ''
+        self.is_modcmd = False
 
-        # to_string() string building cache.
-        self._to_string = None
+        # Keycmd tracking
+        self.keycmd = ''
+        self.cursor = 0
 
-        self.modcmd = False
-        self.wasmod = False
+        # Keylet string repr cache.
+        self._repr_cache = None
+
+
+    def get_keycmd(self):
+        '''Get the keycmd-part of the keylet.'''
+
+        return self.keycmd
+
+
+    def get_modcmd(self):
+        '''Get the modcmd-part of the keylet.'''
+
+        if not self.is_modcmd:
+            return ''
+
+        return ''.join(['<%s>' % key for key in self.held]) + self.modcmd
+
 
     def __repr__(self):
-        return '<Keycmd(%r)>' % self.to_string()
+        '''Return a string representation of the keylet.'''
 
+        if self._repr_cache:
+            return self._repr_cache
 
-    def to_string(self):
-        '''Return a string representation of the keys held and pressed that
-        have been recorded.'''
+        l = []
+        if self.is_modcmd:
+            l.append('modcmd=%r' % self.get_modcmd())
 
-        if self._to_string is not None:
-            # Return cached keycmd string.
-            return self._to_string
+        elif self.held:
+            l.append('held=%r' % ''.join(['<%s>'%key for key in self.held]))
 
-        if not self.held:
-            self._to_string = self.cmd
+        if self.keycmd:
+            l.append('keycmd=%r' % self.get_keycmd())
 
-        else:
-            self._to_string = ''.join(['<%s>' % key for key in self.held])
-            if self.cmd:
-                self._to_string += self.cmd
-
-        return self._to_string
-
-
-    def match(self, regex):
-        '''See if the keycmd string matches the given regex.'''
-
-        return bool(get_regex(regex)(self.to_string()))
+        self._repr_cache = '<Keylet(%s)>' % ', '.join(l)
+        return self._repr_cache
 
 
 def make_simple(key):
@@ -95,8 +92,8 @@ def make_simple(key):
     if key.endswith('_L') or key.endswith('_R'):
         key = key[:-2]
 
-    if key in _SIMPLEKEYS:
-        key = _SIMPLEKEYS[key]
+    if key in SIMPLEKEYS:
+        key = SIMPLEKEYS[key]
 
     return key
 
@@ -123,7 +120,7 @@ def get_keylet(uzbl):
         add_instance(uzbl)
 
     keylet = UZBLS[uzbl]
-    keylet._to_string = None
+    keylet._repr_cache = False
     return keylet
 
 
@@ -131,75 +128,102 @@ def clear_keycmd(uzbl):
     '''Clear the keycmd for this uzbl instance.'''
 
     k = get_keylet(uzbl)
-    k.cmd = ''
+    k.keycmd = ''
     k.cursor = 0
-    k._to_string = None
-
-    if k.modcmd:
-        k.wasmod = True
-
-    k.modcmd = False
+    k._repr_cache = False
     config = uzbl.get_config()
     if 'keycmd' not in config or config['keycmd'] != '':
-        config['keycmd'] = ''
+        uzbl.set('keycmd', '')
+        uzbl.send('update_gui')
 
     uzbl.event('KEYCMD_CLEAR')
 
 
-def update_event(uzbl, k):
+def clear_modcmd(uzbl, clear_held=False):
+    '''Clear the modcmd for this uzbl instance.'''
+
+    k = get_keylet(uzbl)
+    k.modcmd = ''
+    k.is_modcmd = False
+    k._repr_cache = False
+    if clear_held:
+        k.held = []
+
+    config = uzbl.get_config()
+    if 'modcmd' not in config or config['modcmd'] != '':
+        uzbl.set('modcmd', '')
+        uzbl.send('update_gui')
+
+    uzbl.event('MODCMD_CLEAR')
+
+
+def clear_current(uzbl):
+    '''Clear the modcmd if is_modcmd else clear keycmd.'''
+
+    k = get_keylet(uzbl)
+    if k.is_modcmd:
+        clear_modcmd(uzbl)
+
+    else:
+        clear_keycmd(uzbl)
+
+
+def focus_changed(uzbl, *args):
+    '''Focus to the uzbl instance has now been lost which means all currently
+    held keys in the held list will not get a KEY_RELEASE event so clear the
+    entire held list.'''
+
+    clear_modcmd(uzbl, clear_held=True)
+
+
+def update_event(uzbl, k, execute=True):
     '''Raise keycmd & modcmd update events.'''
 
     config = uzbl.get_config()
-    if k.modcmd:
-        keycmd = k.to_string()
+    keycmd, modcmd = k.get_keycmd(), k.get_modcmd()
+
+    if k.is_modcmd:
         uzbl.event('MODCMD_UPDATE', k)
-        if keycmd != k.to_string():
-            return
-
-        if 'modcmd_updates' in config and config['modcmd_updates'] != '1':
-            return
-
-        return uzbl.set('keycmd', escape(keycmd))
-
-    if 'keycmd_events' in config and config['keycmd_events'] != '1':
-        return
-
-    keycmd = k.cmd
-    uzbl.event('KEYCMD_UPDATE', k)
-    if keycmd != k.cmd:
-        return
-
-    if not k.cmd:
-        return uzbl.set('keycmd', '')
-
-    # Generate the pango markup for the cursor in the keycmd.
-    if k.cursor < len(k.cmd):
-        cursor = k.cmd[k.cursor]
 
     else:
-        cursor = ' '
+        uzbl.event('KEYCMD_UPDATE', k)
 
-    chunks = map(escape, [k.cmd[:k.cursor], cursor, k.cmd[k.cursor+1:]])
-    uzbl.set('keycmd', KEYCMD_FORMAT % tuple(chunks))
+    if 'modcmd_updates' not in config or config['modcmd_updates'] == '1':
+        new_modcmd = k.get_modcmd()
+        if not new_modcmd or new_modcmd == modcmd:
+            uzbl.set('modcmd', uzbl_escape(new_modcmd))
+
+    if 'keycmd_events' in config and config['keycmd_events'] != '1':
+        return uzbl.send('update_gui')
+
+    new_keycmd = k.get_keycmd()
+    if not new_keycmd or new_keycmd != keycmd:
+        uzbl.set('keycmd', '')
+        return uzbl.send('update_gui')
+
+
+    # Generate the pango markup for the cursor in the keycmd.
+    curchar = keycmd[k.cursor] if k.cursor < len(keycmd) else ' '
+    chunks = [keycmd[:k.cursor], curchar, keycmd[k.cursor+1:]]
+    uzbl.set('keycmd', KEYCMD_FORMAT % tuple(map(uzbl_escape, chunks)))
+    uzbl.send('update_gui')
+
+
+def inject_char(str, index, char):
+    '''Inject character into string at at given index.'''
+
+    assert len(char) == 1
+    return "%s%s%s" % (str[:index], char, str[index:])
 
 
 def key_press(uzbl, key):
     '''Handle KEY_PRESS events. Things done by this function include:
 
     1. Ignore all shift key presses (shift can be detected by capital chars)
-    2. Re-enable modcmd var if the user presses another key with at least one
-       modkey still held from the previous modcmd (I.e. <Ctrl>+t, clear &
-       <Ctrl>+o without having to re-press <Ctrl>)
     3. In non-modcmd mode:
-         a. BackSpace deletes the character before the cursor position.
-         b. Delete deletes the character at the cursor position.
-         c. End moves the cursor to the end of the keycmd.
-         d. Home moves the cursor to the beginning of the keycmd.
-         e. Return raises a KEYCMD_EXEC event then clears the keycmd.
-         f. Escape clears the keycmd.
-    4. If keycmd and held keys are both empty/null and a modkey was pressed
-       set modcmd mode.
-    5. If in modcmd mode only mod keys are added to the held keys list.
+         a. append char to keycmd
+    4. If not in modcmd mode and a modkey was pressed set modcmd mode.
+    5. If in modcmd mode the pressed key is added to the held keys list.
     6. Keycmd is updated and events raised if anything is changed.'''
 
     if key.startswith('Shift_'):
@@ -209,115 +233,48 @@ def key_press(uzbl, key):
         key = make_simple(key)
 
     k = get_keylet(uzbl)
-    cmdmod = False
-    if k.held and k.wasmod:
-        k.modcmd = True
-        k.wasmod = False
-        cmdmod = True
-
-    if k.cmd and key == 'Space':
-        k.cmd = "%s %s" % (k.cmd[:k.cursor], k.cmd[k.cursor:])
+    if key == 'Space' and not k.held and k.keycmd:
+        k.keycmd = inject_char(k.keycmd, k.cursor, ' ')
         k.cursor += 1
-        cmdmod = True
 
-    elif not k.modcmd and k.cmd and key in ['BackSpace', 'Delete']:
-        if key == 'BackSpace' and k.cursor > 0:
-            k.cursor -= 1
-            k.cmd = k.cmd[:k.cursor] + k.cmd[k.cursor+1:]
-
-        elif key == 'Delete':
-            cmd = k.cmd
-            k.cmd = k.cmd[:k.cursor] + k.cmd[k.cursor+1:]
-            if k.cmd != cmd:
-                cmdmod = True
-
-        if not k.cmd:
-            clear_keycmd(uzbl)
-
-        elif key == 'BackSpace':
-            cmdmod = True
-
-    elif not k.modcmd and key == 'Return':
-        if k.cmd:
-            uzbl.event('KEYCMD_EXEC', k)
-
-        clear_keycmd(uzbl)
-
-    elif not k.modcmd and key == 'Escape':
-        clear_keycmd(uzbl)
-
-    elif not k.modcmd and k.cmd and key == 'Left':
-        if k.cursor > 0:
-            k.cursor -= 1
-            cmdmod = True
-
-    elif not k.modcmd and k.cmd and key == 'Right':
-        if k.cursor < len(k.cmd):
-            k.cursor += 1
-            cmdmod = True
-
-    elif not k.modcmd and k.cmd and key == 'End':
-        if k.cursor != len(k.cmd):
-            k.cursor = len(k.cmd)
-            cmdmod = True
-
-    elif not k.modcmd and k.cmd and key == 'Home':
-        if k.cursor:
-            k.cursor = 0
-            cmdmod = True
-
-    elif not k.held and not k.cmd and len(key) > 1:
-        k.modcmd = True
-        k.held.append(key)
-        cmdmod = True
-
-    elif k.modcmd:
-        cmdmod = True
-        if len(key) > 1:
-            if key == 'Shift-Tab' and 'Tab' in k.held:
-                k.held.remove('Tab')
-
-            if key not in k.held:
-                k.held.append(key)
-                k.held.sort()
-
-        else:
-            k.cmd = "%s%s%s" % (k.cmd[:k.cursor], key, k.cmd[k.cursor:])
-            k.cursor += 1
-
-    else:
+    elif not k.held and len(key) == 1:
         config = uzbl.get_config()
         if 'keycmd_events' not in config or config['keycmd_events'] == '1':
-            if len(key) == 1:
-                cmdmod = True
-                k.cmd = "%s%s%s" % (k.cmd[:k.cursor], key, k.cmd[k.cursor:])
-                k.cursor += 1
+            k.keycmd = inject_char(k.keycmd, k.cursor, key)
+            k.cursor += 1
 
-        elif k.cmd:
-            cmdmod = True
-            k.cmd = ''
+        elif k.keycmd:
+            k.keycmd = ''
             k.cursor = 0
 
-    if cmdmod:
-        update_event(uzbl, k)
+    elif len(key) > 1:
+        k.is_modcmd = True
+        if key == 'Shift-Tab' and 'Tab' in k.held:
+            k.held.remove('Tab')
+
+        if key not in k.held:
+            k.held.append(key)
+            k.held.sort()
+
+    else:
+        k.is_modcmd = True
+        k.modcmd += key
+
+    update_event(uzbl, k)
 
 
 def key_release(uzbl, key):
     '''Respond to KEY_RELEASE event. Things done by this function include:
 
     1. Remove the key from the keylet held list.
-    2. If the key removed was a mod key and it was in a mod-command then
-       raise a MODCMD_EXEC event then clear the keycmd.
-    3. Stop trying to restore mod-command status with wasmod if both the
-       keycmd and held list are empty/null.
+    2. If in a mod-command then raise a MODCMD_EXEC.
+    3. Check if any modkey is held, if so set modcmd mode.
     4. Update the keycmd uzbl variable if anything changed.'''
 
     if len(key) > 1:
         key = make_simple(key)
 
     k = get_keylet(uzbl)
-
-    cmdmod = False
     if key in ['Shift', 'Tab'] and 'Shift-Tab' in k.held:
         key = 'Shift-Tab'
 
@@ -325,48 +282,98 @@ def key_release(uzbl, key):
         key = 'Meta'
 
     if key in k.held:
-        if k.modcmd:
+        if k.is_modcmd:
             uzbl.event('MODCMD_EXEC', k)
 
         k.held.remove(key)
-        clear_keycmd(uzbl)
-
-    if not k.held and not k.cmd and k.wasmod:
-        k.wasmod = False
-
-    if cmdmod:
-       update_event(uzbl, k)
+        #k.is_modcmd = False
+        #k.modcmd = ''
+        #update_event(uzbl, k)
+        clear_modcmd(uzbl)
 
 
 def set_keycmd(uzbl, keycmd):
     '''Allow setting of the keycmd externally.'''
 
     k = get_keylet(uzbl)
-    k.wasmod = k.modcmd = False
-    k._to_string = None
-    k.cmd = keycmd
+    k.keycmd = keycmd
+    k._repr_cache = None
     k.cursor = len(keycmd)
-    update_event(uzbl, k)
+    update_event(uzbl, k, False)
+
+
+def keycmd_strip_word(uzbl, sep):
+    ''' Removes the last word from the keycmd, similar to readline ^W '''
+
+    sep = sep or ' '
+    k = get_keylet(uzbl)
+    if not k.keycmd:
+        return
+
+    head, tail = k.keycmd[:k.cursor].rstrip(sep), k.keycmd[k.cursor:]
+    rfind = head.rfind(sep)
+    head = head[:rfind] if rfind + 1 else ''
+    k.keycmd = head + tail
+    k.cursor = len(head)
+    update_event(uzbl, k, False)
+
+
+def keycmd_backspace(uzbl, *args):
+    '''Removes the character at the cursor position in the keycmd.'''
+
+    k = get_keylet(uzbl)
+    if not k.keycmd:
+        return
+
+    k.keycmd = k.keycmd[:k.cursor-1] + k.keycmd[k.cursor:]
+    k.cursor -= 1
+    update_event(uzbl, k, False)
+
+
+def keycmd_delete(uzbl, *args):
+    '''Removes the character after the cursor position in the keycmd.'''
+
+    k = get_keylet(uzbl)
+    if not k.keycmd:
+        return
+
+    k.keycmd = k.keycmd[:k.cursor] + k.keycmd[k.cursor+1:]
+    update_event(uzbl, k, False)
+
+
+def keycmd_exec_current(uzbl, *args):
+    '''Raise a KEYCMD_EXEC with the current keylet and then clear the
+    keycmd.'''
+
+    k = get_keylet(uzbl)
+    uzbl.event('KEYCMD_EXEC', k)
+    clear_keycmd(uzbl)
 
 
 def set_cursor_pos(uzbl, index):
     '''Allow setting of the cursor position externally. Supports negative
-    indexing.'''
+    indexing and relative stepping with '+' and '-'.'''
 
-    cursor = int(index.strip())
     k = get_keylet(uzbl)
+    if index == '-':
+        cursor = k.cursor - 1
 
-    if cursor < 0:
-        cursor = len(k.cmd) + cursor
+    elif index == '+':
+        cursor = k.cursor + 1
+
+    else:
+        cursor = int(index.strip())
+        if cursor < 0:
+            cursor = len(k.keycmd) + cursor + 1
 
     if cursor < 0:
         cursor = 0
 
-    if cursor > len(k.cmd):
-        cursor = len(k.cmd)
+    if cursor > len(k.keycmd):
+        cursor = len(k.keycmd)
 
     k.cursor = cursor
-    update_event(uzbl, k)
+    update_event(uzbl, k, False)
 
 
 def init(uzbl):
@@ -377,6 +384,12 @@ def init(uzbl):
       'KEY_PRESS': key_press,
       'KEY_RELEASE': key_release,
       'SET_KEYCMD': set_keycmd,
-      'SET_CURSOR_POS': set_cursor_pos}
+      'KEYCMD_STRIP_WORD': keycmd_strip_word,
+      'KEYCMD_BACKSPACE': keycmd_backspace,
+      'KEYCMD_DELETE': keycmd_delete,
+      'KEYCMD_EXEC_CURRENT': keycmd_exec_current,
+      'SET_CURSOR_POS': set_cursor_pos,
+      'FOCUS_LOST': focus_changed,
+      'FOCUS_GAINED': focus_changed}
 
     uzbl.connect_dict(connects)
