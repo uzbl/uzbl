@@ -133,7 +133,8 @@ set socket_dir        = /tmp
 @bind    gg _      = uri http://www.google.com/search?q=%s
 # Enclose the executable in quotes if it has spaces.  Any additional parameters you use will
 # appear AFTER the default parameters
-#@bind    B         = spawn @scripts_dir/insert_bookmark.sh
+# use a script to insert bookmarks. or use the EM/keycmd technique a bit further down
+@bind    B         = spawn @scripts_dir/insert_bookmark.sh
 @bind    U         = spawn @scripts_dir/load_url_from_history.sh
 @bind    u         = spawn @scripts_dir/load_url_from_bookmarks.sh
 # with the sample yank script, you can yank one of the arguments into clipboard/selection
@@ -159,7 +160,7 @@ set socket_dir        = /tmp
 @bind    XS        = sh 'echo "js alert (\\"This is sent by the shell via a fifo\\")" > "$4"'
 
 @bind    !dump     = sh "echo dump_config > $4"
-@bind    !reload   = sh 'cat $1 > $4'
+@bind    !reload   = sh "sed '/^# === Post-load misc commands/,$d' $1 > $4"
 
 # this script allows you to configure (per domain) values to fill in form fields (eg login information) and to fill in these values automatically
 set formfiller = spawn @scripts_dir/formfiller
@@ -187,9 +188,8 @@ set formfiller = spawn @scripts_dir/formfiller
 # Examples using multi-stage-bindings with text prompts.
 @bind o<uri:>_ = uri %s
 
-# Prints tab separated "uri title keyword tags" to the bookmarks file.
-# TODO: Improve bookmarks script to handle this format & include date in bookmark format.
-@bind <Ctrl>b<name:>_<tags:>_ = sh 'echo -e "$6	$7	%s	%s" >> $XDG_DATA_HOME/uzbl/bookmarks'
+# multi-stage binding way to write bookmarks to file from inside uzbl.
+@bind <Ctrl>b<tags:>_ = sh 'echo -e "$6 %s" >> $XDG_DATA_HOME/uzbl/bookmarks'
 
 # Multi-stage bindings with blank prompts (similar behaviour to emacs M-c M-s bindings?)
 @bind <Ctrl>a<:><Ctrl>q = exit
