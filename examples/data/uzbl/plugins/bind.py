@@ -24,7 +24,7 @@ starts_with_mod = re.compile('^<([A-Z][A-Za-z0-9-_]*)>')
 find_prompts = re.compile('<([^:>]*):>').split
 
 # For accessing a bind glob stack.
-MOD_CMD, ON_EXEC, HAS_ARGS, GLOB = range(4)
+MOD_CMD, ON_EXEC, HAS_ARGS, GLOB, MORE = range(5)
 
 
 class BindParseError(Exception):
@@ -188,7 +188,7 @@ class Bind(object):
             stack.append((mod_cmd, on_exec, has_args, glob, index))
 
         self.stack = list(reversed(stack))
-        self.is_global = len(self.stack) == 1
+        self.is_global = (len(self.stack) == 1 and self.stack[0][MOD_CMD])
 
 
     def __getitem__(self, depth):
