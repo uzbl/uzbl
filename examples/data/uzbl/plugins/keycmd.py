@@ -157,7 +157,6 @@ def clear_keycmd(uzbl):
     config = uzbl.get_config()
     if 'keycmd' not in config or config['keycmd'] != '':
         uzbl.set('keycmd', '')
-        uzbl.send('update_gui')
 
     uzbl.event('KEYCMD_CLEAR')
 
@@ -175,7 +174,6 @@ def clear_modcmd(uzbl, clear_held=False):
     config = uzbl.get_config()
     if 'modcmd' not in config or config['modcmd'] != '':
         uzbl.set('modcmd', '')
-        uzbl.send('update_gui')
 
     uzbl.event('MODCMD_CLEAR')
 
@@ -217,19 +215,16 @@ def update_event(uzbl, k, execute=True):
             uzbl.set('modcmd', uzbl_escape(new_modcmd))
 
     if 'keycmd_events' in config and config['keycmd_events'] != '1':
-        return uzbl.send('update_gui')
+        return
 
     new_keycmd = k.get_keycmd()
     if not new_keycmd or new_keycmd != keycmd:
-        uzbl.set('keycmd', '')
-        return uzbl.send('update_gui')
-
+        return uzbl.set('keycmd', '')
 
     # Generate the pango markup for the cursor in the keycmd.
     curchar = keycmd[k.cursor] if k.cursor < len(keycmd) else ' '
     chunks = [keycmd[:k.cursor], curchar, keycmd[k.cursor+1:]]
     uzbl.set('keycmd', KEYCMD_FORMAT % tuple(map(uzbl_escape, chunks)))
-    uzbl.send('update_gui')
 
 
 def inject_char(str, index, char):
