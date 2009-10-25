@@ -1,3 +1,5 @@
+THIS FILE IS SORT OF OUTDATED
+
 what if fifo/socket doesn't exist, or exists but nothing working behind it (anymore)?
 -> useful for both cookie handler and event manager
 -> implementing in uzbl-core needs refactoring of handler args, or some edge-case workarounds 
@@ -98,11 +100,10 @@ More or less in order of importance/urgency
 * a variable that holds the page state: loading, pending, seen. this can be shown in titlebar/statusbar and used for multiple instances management
 * allow to tag , to group instances together
 * store uri/tag/name/state in xorg window properties
-* split up uzbl.c into multiple files
+* scripts that we use in uzbl-browser -> move from examples dir to $PREFIX/share/uzbl/ (update scripts_dir in sampleconfig accordingly)
 * shortcuts to focus other instances (see docs/multiple-instances-management)
 * cookie daemon (and maybe other daemons) are not scoped to the testing session when running some test-*-browser targets
 * recognize -h with GOption?
-* implement getting feedback from socket
 * scrolling: make page up and page down configurable.
 * show % of location in statusbar/title if page doesn't fit entirely on view.
 * conditionals in format strings: eg if(SELECTED_URI) { "-> SELECTED_URI" } or another smart way to achieve the same.
