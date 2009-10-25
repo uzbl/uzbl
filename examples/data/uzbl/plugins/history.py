@@ -85,13 +85,13 @@ def del_instance(uzbl, *args):
 
 def keycmd_exec(uzbl, keylet):
     history = get_history(uzbl)
-    cmd = keylet.key_cmd()
+    cmd = keylet.get_keycmd()
     if cmd:
         history.add(cmd)
 
 def history_prev(uzbl, _x):
     history = get_history(uzbl)
-    cmd = uzbl.get_keylet().key_cmd()
+    cmd = uzbl.get_keylet().get_keycmd()
     if history.cursor is None and cmd:
         history.add_temporary(cmd)
 
@@ -100,7 +100,7 @@ def history_prev(uzbl, _x):
 
 def history_next(uzbl, _x):
     history = get_history(uzbl)
-    cmd = uzbl.get_keylet().key_cmd()
+    cmd = uzbl.get_keylet().get_keycmd()
 
     uzbl.set_keycmd(history.next())
     print 'NEXT', history
