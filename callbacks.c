@@ -231,32 +231,6 @@ cmd_caret_browsing() {
 }
 
 void
-cmd_cookie_handler() {
-    gchar **split = g_strsplit(uzbl.behave.cookie_handler, " ", 2);
-    /* pitfall: doesn't handle chain actions; must the sync_ action manually */
-    if ((g_strcmp0(split[0], "sh") == 0) ||
-        (g_strcmp0(split[0], "spawn") == 0)) {
-        g_free (uzbl.behave.cookie_handler);
-        uzbl.behave.cookie_handler =
-            g_strdup_printf("sync_%s %s", split[0], split[1]);
-    }
-    g_strfreev (split);
-}
-
-void
-cmd_scheme_handler() {
-    gchar **split = g_strsplit(uzbl.behave.scheme_handler, " ", 2);
-    /* pitfall: doesn't handle chain actions; must the sync_ action manually */
-    if ((g_strcmp0(split[0], "sh") == 0) ||
-        (g_strcmp0(split[0], "spawn") == 0)) {
-        g_free (uzbl.behave.scheme_handler);
-        uzbl.behave.scheme_handler =
-            g_strdup_printf("sync_%s %s", split[0], split[1]);
-    }
-    g_strfreev (split);
-}
-
-void
 cmd_fifo_dir() {
     uzbl.behave.fifo_dir = init_fifo(uzbl.behave.fifo_dir);
 }

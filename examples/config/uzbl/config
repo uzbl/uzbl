@@ -28,7 +28,7 @@ set scripts_dir    = $XDG_DATA_HOME/uzbl:/usr/local/share/uzbl/examples/data/uzb
 
 set download_handler   = spawn @scripts_dir/download.sh
 set cookie_handler     = talk_to_socket $XDG_CACHE_HOME/uzbl/cookie_daemon_socket
-set scheme_handler     = spawn @scripts_dir/scheme.py
+set scheme_handler     = sync_spawn @scripts_dir/scheme.py
 
 # New window handler options
 #set new_window        = sh 'echo uri "$8" > $4' # open in same window
