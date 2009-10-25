@@ -2051,10 +2051,15 @@ run_handler (const gchar *act, const gchar *args) {
         g_strfreev(chainparts);
 
     } else {
-        gchar **inparts = inject_handler_args(parts[0], parts[1], args);
+        /* expand the user-specified arguments */
+        gchar* expanded = expand(parts[1], 0);
+        gchar **inparts = inject_handler_args(parts[0], expanded, args);
+
         parse_command(inparts[0], inparts[1], NULL);
+
         g_free(inparts[0]);
         g_free(inparts[1]);
+        g_free(expanded);
     }
     g_strfreev(parts);
 }
