@@ -623,7 +623,6 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "print",                          {print, TRUE}                   },
     { "event",                          {event, TRUE}                   },
     { "request",                        {event, TRUE}                   },
-    { "update_gui",                     {update_gui, TRUE}              },
     { "menu_add",                       {menu_add, TRUE}                },
     { "menu_link_add",                  {menu_add_link, TRUE}           },
     { "menu_image_add",                 {menu_add_image, TRUE}          },
@@ -666,13 +665,6 @@ set_var(WebKitWebView *page, GArray *argv, GString *result) {
         g_free(value);
     }
     g_strfreev(split);
-}
-
-void
-update_gui(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page; (void) argv; (void) result;
-
-    update_title();
 }
 
 void

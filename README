@@ -159,8 +159,6 @@ The following commands are recognized:
    - use for chaining multiple commands
    - remember to quote the commands; one command must come as one parameter
    - if you use `chain` with a handler script which must return some output (such as a cookie handler -- uzbl will wait for and use its output), use sync_spawn or sync_sh instead of spawn or sh in the command that should give the output
-* `update_gui`
-   - update the contents of the status and title bars
 * `event <event_name> [event_details]`
    - send custom event
 * menu_add          <label>  = <uzbl command>
