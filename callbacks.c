@@ -447,7 +447,7 @@ focus_cb(GtkWidget* window, GdkEventFocus* event, void *ud) {
     else
         send_event(FOCUS_LOST, "", NULL);
 
-    return TRUE;
+    return FALSE;
 }
 
 gboolean
