@@ -99,6 +99,7 @@ install-uzbl-browser: all
 	install -m755 examples/data/uzbl/scripts/cookie_daemon.py $(PREFIX)/bin/cookie_daemon.py
 	install -m755 examples/data/uzbl/scripts/event_manager.py $(PREFIX)/bin/event_manager.py
 	sed -i 's#^PREFIX=.*#PREFIX=$(PREFIX)#' $(PREFIX)/bin/uzbl-browser
+	sed -i "s#^PREFIX = None#PREFIX = '$(PREFIX)'#" $(PREFIX)/bin/event_manager.py
 
 install-uzbl-tabbed: all
 	install -d $(PREFIX)/bin

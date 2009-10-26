@@ -45,6 +45,12 @@ from traceback import print_exc
 # ::: Default configuration section ::::::::::::::::::::::::::::::::::::::::::
 # ============================================================================
 
+# Automagically set during `make install`
+PREFIX = None
+
+# Check if PREFIX not set and set to default /usr/local/
+if not PREFIX:
+    PREFIX = '/usr/local/'
 
 def xdghome(key, default):
     '''Attempts to use the environ XDG_*_HOME paths if they exist otherwise
@@ -60,6 +66,7 @@ def xdghome(key, default):
 DATA_DIR = os.path.join(xdghome('DATA', '.local/share/'), 'uzbl/')
 CACHE_DIR = os.path.join(xdghome('CACHE', '.cache/'), 'uzbl/')
 
+
 # Config dict (NOT the same as the uzbl.config).
 config = {
     'verbose':         False,
@@ -69,7 +76,7 @@ config = {
     'plugins_ignore':  [],
 
     'plugin_dirs':     [os.path.join(DATA_DIR, 'plugins/'),
-        '/usr/local/share/uzbl/examples/data/uzbl/plugins/'],
+        os.path.join(PREFIX, 'share/uzbl/examples/data/uzbl/plugins/')],
 
     'server_socket':   os.path.join(CACHE_DIR, 'event_daemon'),
     'pid_file':        os.path.join(CACHE_DIR, 'event_daemon.pid'),
