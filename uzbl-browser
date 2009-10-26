@@ -58,7 +58,7 @@ DAEMON_PID=${DAEMON_SOCKET}.pid
 
 #if [ -f "$DAEMON_PID" ]
 #then
-	event_manager.py -v start
+	event_manager.py -va start
 #fi
 
 uzbl-core "$@" --connect-socket $DAEMON_SOCKET | grep -v ^EVENT
