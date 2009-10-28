@@ -45,6 +45,12 @@ from traceback import print_exc
 # ::: Default configuration section ::::::::::::::::::::::::::::::::::::::::::
 # ============================================================================
 
+# Automagically set during `make install`
+PREFIX = None
+
+# Check if PREFIX not set and set to default /usr/local/
+if not PREFIX:
+    PREFIX = '/usr/local/'
 
 def xdghome(key, default):
     '''Attempts to use the environ XDG_*_HOME paths if they exist otherwise
@@ -60,16 +66,18 @@ def xdghome(key, default):
 DATA_DIR = os.path.join(xdghome('DATA', '.local/share/'), 'uzbl/')
 CACHE_DIR = os.path.join(xdghome('CACHE', '.cache/'), 'uzbl/')
 
+
 # Config dict (NOT the same as the uzbl.config).
 config = {
     'verbose':         False,
     'daemon_mode':     True,
+    'auto_close':      False,
 
     'plugins_load':    [],
     'plugins_ignore':  [],
 
     'plugin_dirs':     [os.path.join(DATA_DIR, 'plugins/'),
-        '/usr/local/share/uzbl/examples/data/uzbl/plugins/'],
+        os.path.join(PREFIX, 'share/uzbl/examples/data/uzbl/plugins/')],
 
     'server_socket':   os.path.join(CACHE_DIR, 'event_daemon'),
     'pid_file':        os.path.join(CACHE_DIR, 'event_daemon.pid'),
@@ -657,15 +665,17 @@ class UzblEventDaemon(dict):
         '''Clean up after instance close.'''
 
         try:
-            if client not in self['uzbls']:
-                return
-
-            uzbl = self['uzbls'][client]
-            uzbl.close()
-            del self['uzbls'][client]
+            if client in self['uzbls']:
+                uzbl = self['uzbls'][client]
+                uzbl.close()
+                del self['uzbls'][client]
 
         except:
             print_exc()
+
+        if not len(self['uzbls']) and config['auto_close']:
+            echo('auto closing event manager.')
+            self.running = False
 
 
     def quit(self):
@@ -776,6 +786,9 @@ if __name__ == "__main__":
     parser.add_option('-n', '--no-daemon', dest="daemon",
       action="store_true", help="don't enter daemon mode.")
 
+    parser.add_option('-a', '--auto-close', dest='autoclose',
+      action='store_true', help='auto close after all instances disconnect.')
+
     (options, args) = parser.parse_args()
 
     # init like {start|stop|..} daemon control section.
@@ -823,6 +836,10 @@ if __name__ == "__main__":
                 plugins_ignore.append(plugin.strip())
 
         echo('ignoring plugin(s): %s' % ', '.join(plugins_ignore))
+
+    if options.autoclose:
+        config['auto_close'] = True
+        echo('will auto close.')
 
     if options.pid:
         config['pid_file'] = options.pid

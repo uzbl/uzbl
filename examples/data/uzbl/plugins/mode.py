@@ -88,7 +88,6 @@ def set_mode(uzbl, mode=None):
         config['mode_indicator'] = mode
 
     uzbl.clear_keycmd()
-    uzbl.send('update_gui')
     uzbl.event("MODE_CHANGED", mode)
 
 

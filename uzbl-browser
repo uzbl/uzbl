@@ -1,13 +1,15 @@
 #!/bin/sh
-# this script implements are more useful "browsing experience".
-# We are assuming you want to use the event_manager.py and cookie_daemon.py.
-# So, you must have them in the appropriate place, and cookie_daemon_socket must be configured in the default location
+# this script implements a more useful out-of-the-box "browsing experience".
+# it does so by combining uzbl-core with a set of "recommended" tools and practices.
+# see docs for more info
+# If you want to customize the behavior of the cookie-daemon or similar helper tools,
+# copy them to your $XDG_DATA_HOME/uzbl/scripts/, edit them and update $PATH
 
 # Also, we assume existence of fifo/socket == correctly functioning cookie_daemon/event_manager.
 # Checking correct functioning of the daemons here would be too complex here, and it's not implemented in uzbl-core either.
 # But this shouldn't cause much problems..
 
-
+PREFIX=/usr/local
 if [ -z "$XDG_DATA_HOME" ]
 then
 	export XDG_DATA_HOME=$HOME/.local/share
@@ -18,22 +20,45 @@ then
 	export XDG_CACHE_HOME=$HOME/.cache
 fi
 
+if [ -z "$XDG_CONFIG_HOME" ]
+then
+	export XDG_CONFIG_HOME=$HOME/.config
+fi
+
+# assure the relevant directories exist.
+for dir in $XDG_CACHE_HOME/uzbl $XDG_DATA_HOME/uzbl $XDG_CONFIG_HOME/uzbl
+do
+	if [ ! -d $dir ]
+	then
+		if ! mkdir -p $dir
+		then
+			echo "could not create $dir" >&2
+			exit 2
+		fi
+		# if we're initialising a new config directory, put the default (recommended) config in it
+		if [ "$dir" == $XDG_CONFIG_HOME/uzbl ]
+		then
+			if ! cp $PREFIX/share/uzbl/examples/config/uzbl/config $XDG_CONFIG_HOME/uzbl/config
+			then
+				echo "Could not copy default config to $XDG_CONFIG_HOME/uzbl/config" >&2
+				exit 3
+			fi
+		fi
+	fi
+done
+
 if [ ! -S $XDG_CACHE_HOME/uzbl/cookie_daemon_socket ]
 then
-	if [ -f "$XDG_DATA_HOME/uzbl/scripts/cookie_daemon.py" ]
-	then
-		$XDG_DATA_HOME/uzbl/scripts/cookie_daemon.py
-	else
-		/usr/local/share/uzbl/examples/data/uzbl/scripts/cookie_daemon.py
-	fi
+	# if you want to customize it, copy to your $XDG_DATA_HOME/uzbl/scripts/ and update $PATH
+	cookie_daemon.py
 fi
 
 DAEMON_SOCKET=$XDG_CACHE_HOME/uzbl/event_daemon
-DAEMON_PID=$XDG_CACHE_HOME/uzbl/event_daemon.pid
+DAEMON_PID=${DAEMON_SOCKET}.pid
 
 #if [ -f "$DAEMON_PID" ]
 #then
-	uzbl-daemon start
+	event_manager.py -va start
 #fi
 
-uzbl-core "$@" --connect-socket $DAEMON_SOCKET 1>/dev/null
+uzbl-core "$@" --connect-socket $DAEMON_SOCKET | grep -v ^EVENT
