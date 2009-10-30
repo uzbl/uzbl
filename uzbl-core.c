@@ -1079,11 +1079,18 @@ new_window_load_uri (const gchar * uri) {
     g_string_append_printf (to_execute, "%s --uri '%s'", uzbl.state.executable_path, uri);
     int i;
     for (i = 0; entries[i].long_name != NULL; i++) {
-        if ((entries[i].arg == G_OPTION_ARG_STRING) && (strcmp(entries[i].long_name,"uri")!=0) && (strcmp(entries[i].long_name,"name")!=0)) {
+        if ((entries[i].arg == G_OPTION_ARG_STRING) &&
+                !strcmp(entries[i].long_name,"uri") &&
+                !strcmp(entries[i].long_name,"name")) {
             gchar** str = (gchar**)entries[i].arg_data;
-            if (*str!=NULL) {
+            if (*str!=NULL)
                 g_string_append_printf (to_execute, " --%s '%s'", entries[i].long_name, *str);
-            }
+        }
+        else if(entries[i].arg == G_OPTION_ARG_STRING_ARRAY) {
+            int j;
+            gchar **str = *((gchar ***)entries[i].arg_data);
+            for(j=0; str[j]; j++)
+                g_string_append_printf(to_execute, " --%s '%s'", entries[i].long_name, str[j]);
         }
     }
     if (uzbl.state.verbose)
