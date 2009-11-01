@@ -35,17 +35,17 @@ do
 			echo "could not create $dir" >&2
 			exit 2
 		fi
-		# if we're initialising a new config directory, put the default (recommended) config in it
-		if [ "$dir" == $XDG_CONFIG_HOME/uzbl ]
-		then
-			if ! cp $PREFIX/share/uzbl/examples/config/uzbl/config $XDG_CONFIG_HOME/uzbl/config
-			then
-				echo "Could not copy default config to $XDG_CONFIG_HOME/uzbl/config" >&2
-				exit 3
-			fi
-		fi
 	fi
 done
+# if no config exists yet in the recommended location, put the default (recommended) config there
+if [ ! -f $XDG_CONFIG_HOME/uzbl/config ]
+then
+	if ! cp $PREFIX/share/uzbl/examples/config/uzbl/config $XDG_CONFIG_HOME/uzbl/config
+	then
+		echo "Could not copy default config to $XDG_CONFIG_HOME/uzbl/config" >&2
+		exit 3
+	fi
+fi
 
 if [ ! -S $XDG_CACHE_HOME/uzbl/cookie_daemon_socket ]
 then
