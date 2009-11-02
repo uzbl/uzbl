@@ -592,31 +592,6 @@ scroll_cmd(WebKitWebView* page, GArray *argv, GString *result) {
         puts("Unrecognized scroll format");
 }
 
-void
-scroll_begin(WebKitWebView* page, GArray *argv, GString *result) {
-    (void) page; (void) argv; (void) result;
-    gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_lower(uzbl.gui.bar_v));
-}
-
-void
-scroll_end(WebKitWebView* page, GArray *argv, GString *result) {
-    (void) page; (void) argv; (void) result;
-    gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_upper(uzbl.gui.bar_v) -
-                              gtk_adjustment_get_page_size(uzbl.gui.bar_v));
-}
-
-void
-scroll_vert(WebKitWebView* page, GArray *argv, GString *result) {
-    (void) page; (void) result;
-    scroll(uzbl.gui.bar_v, g_array_index(argv, gchar*, 0));
-}
-
-void
-scroll_horz(WebKitWebView* page, GArray *argv, GString *result) {
-    (void) page; (void) result;
-    scroll(uzbl.gui.bar_h, g_array_index(argv, gchar*, 0));
-}
-
 
 
 /* VIEW funcs (little webkit wrappers) */
@@ -636,10 +611,6 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "back",                           {view_go_back, 0}               },
     { "forward",                        {view_go_forward, 0}            },
     { "scroll",                         {scroll_cmd, 0}                 },
-    { "scroll_vert",                    {scroll_vert, 0}                },
-    { "scroll_horz",                    {scroll_horz, 0}                },
-    { "scroll_begin",                   {scroll_begin, 0}               },
-    { "scroll_end",                     {scroll_end, 0}                 },
     { "reload",                         {view_reload, 0},               },
     { "reload_ign_cache",               {view_reload_bypass_cache, 0}   },
     { "stop",                           {view_stop_loading, 0},         },
