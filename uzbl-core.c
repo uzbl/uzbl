@@ -529,13 +529,13 @@ catch_sigalrm(int s) {
 
 /* scroll a bar in a given direction */
 void
-scroll (GtkAdjustment* bar, GArray *argv) {
+scroll (GtkAdjustment* bar, gchar *amount_str) {
     gchar *end;
     gdouble max_value;
 
     gdouble page_size = gtk_adjustment_get_page_size(bar);
     gdouble value = gtk_adjustment_get_value(bar);
-    gdouble amount = g_ascii_strtod(g_array_index(argv, gchar*, 0), &end);
+    gdouble amount = g_ascii_strtod(amount_str, &end);
 
     if (*end == '%')
         value += page_size * amount * 0.01;
@@ -548,6 +548,48 @@ scroll (GtkAdjustment* bar, GArray *argv) {
         value = max_value; /* don't scroll past the end of the page */
 
     gtk_adjustment_set_value (bar, value);
+}
+
+/*
+ * scroll vertical 20
+ * scroll vertical 20%
+ * scroll vertical -40
+ * scroll vertical begin
+ * scroll vertical end
+ * scroll horizontal 10
+ * scroll horizontal -500
+ * scroll horizontal begin
+ * scroll horizontal end
+ */
+void
+scroll_cmd(WebKitWebView* page, GArray *argv, GString *result) {
+    (void) page; (void) result;
+    gchar *direction = g_array_index(argv, gchar*, 0);
+    gchar *argv1     = g_array_index(argv, gchar*, 1);
+
+    if (g_strcmp0(direction, "horizontal") == 0)
+    {
+      if (g_strcmp0(argv1, "begin") == 0)
+        gtk_adjustment_set_value(uzbl.gui.bar_h, gtk_adjustment_get_lower(uzbl.gui.bar_h));
+      else if (g_strcmp0(argv1, "end") == 0)
+        gtk_adjustment_set_value (uzbl.gui.bar_h, gtk_adjustment_get_upper(uzbl.gui.bar_h) -
+                                  gtk_adjustment_get_page_size(uzbl.gui.bar_h));
+      else
+        scroll(uzbl.gui.bar_h, argv1);
+    }
+    else if (g_strcmp0(direction, "vertical") == 0)
+    {
+      if (g_strcmp0(argv1, "begin") == 0)
+        gtk_adjustment_set_value(uzbl.gui.bar_v, gtk_adjustment_get_lower(uzbl.gui.bar_v));
+      else if (g_strcmp0(argv1, "end") == 0)
+        gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_upper(uzbl.gui.bar_v) -
+                                  gtk_adjustment_get_page_size(uzbl.gui.bar_v));
+      else
+        scroll(uzbl.gui.bar_v, argv1);
+    }
+    else
+      if(uzbl.state.verbose)
+        puts("Unrecognized scroll format");
 }
 
 void
@@ -566,13 +608,13 @@ scroll_end(WebKitWebView* page, GArray *argv, GString *result) {
 void
 scroll_vert(WebKitWebView* page, GArray *argv, GString *result) {
     (void) page; (void) result;
-    scroll(uzbl.gui.bar_v, argv);
+    scroll(uzbl.gui.bar_v, g_array_index(argv, gchar*, 0));
 }
 
 void
 scroll_horz(WebKitWebView* page, GArray *argv, GString *result) {
     (void) page; (void) result;
-    scroll(uzbl.gui.bar_h, argv);
+    scroll(uzbl.gui.bar_h, g_array_index(argv, gchar*, 0));
 }
 
 
@@ -593,6 +635,7 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
 {   /* key                              function      no_split      */
     { "back",                           {view_go_back, 0}               },
     { "forward",                        {view_go_forward, 0}            },
+    { "scroll",                         {scroll_cmd, 0}                 },
     { "scroll_vert",                    {scroll_vert, 0}                },
     { "scroll_horz",                    {scroll_horz, 0}                },
     { "scroll_begin",                   {scroll_begin, 0}               },
