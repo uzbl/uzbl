@@ -111,12 +111,10 @@ The following commands are recognized:
 
 * `back`
 * `forward`
-* `scroll_vert <amount>`
-* `scroll_horz <amount>`
-   - amount is given in pixels(?) or as a percentage of the size of the view
-   - set amount to 100% to scroll a whole page
-* `scroll_begin`
-* `scroll_end`
+* `scroll <vertical|horizontal> <argument>`
+   - argument can be `begin`, `end`, or an amount given in pixels(?)
+     or as a percentage of the size of the view
+   - set the amount to 100% to scroll a whole page
 * `reload`
 * `reload_ign_cache`
 * `stop`
