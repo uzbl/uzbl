@@ -94,6 +94,8 @@ const struct var_name_to_ptr_t {
     { "show_status",            PTR_V_INT(uzbl.behave.show_status,              1,   cmd_set_status)},
     { "status_top",             PTR_V_INT(uzbl.behave.status_top,               1,   move_statusbar)},
     { "status_format",          PTR_V_STR(uzbl.behave.status_format,            1,   update_title)},
+    { "status_format_center",   PTR_V_STR(uzbl.behave.status_format_center,     1,   update_title)},
+    { "status_format_right",    PTR_V_STR(uzbl.behave.status_format_right,      1,   update_title)},
     { "status_background",      PTR_V_STR(uzbl.behave.status_background,        1,   update_title)},
     { "title_format_long",      PTR_V_STR(uzbl.behave.title_format_long,        1,   update_title)},
     { "title_format_short",     PTR_V_STR(uzbl.behave.title_format_short,       1,   update_title)},
@@ -1864,9 +1866,19 @@ update_title (void) {
                 gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
             g_free(parsed);
         }
-        if (b->status_format) {
+        if(b->status_format) {
             parsed = expand(b->status_format, 0);
             gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), parsed);
+            g_free(parsed);
+        }
+        if(b->status_format_center) {
+            parsed = expand(b->status_format_center, 0);
+            gtk_label_set_markup(GTK_LABEL(uzbl.gui.bar_center), parsed);
+            g_free(parsed);
+        }
+        if(b->status_format_right) {
+            parsed = expand(b->status_format_right, 0);
+            gtk_label_set_markup(GTK_LABEL(uzbl.gui.bar_right), parsed);
             g_free(parsed);
         }
         if (b->status_background) {
@@ -1925,9 +1937,25 @@ create_mainbar () {
     g->mainbar_label = gtk_label_new ("");
     gtk_label_set_selectable((GtkLabel *)g->mainbar_label, TRUE);
     gtk_label_set_ellipsize(GTK_LABEL(g->mainbar_label), PANGO_ELLIPSIZE_END);
-    gtk_misc_set_alignment (GTK_MISC(g->mainbar_label), 0, 0);
-    gtk_misc_set_padding (GTK_MISC(g->mainbar_label), 2, 2);
+    //gtk_misc_set_padding (GTK_MISC(g->mainbar_label), 2, 0);
+    gtk_misc_set_alignment((GtkMisc *)g->mainbar_label, 0, 0);
+
+
+    g->bar_center = gtk_label_new ("");
+    gtk_label_set_selectable((GtkLabel *)g->bar_center, TRUE);
+    gtk_label_set_ellipsize(GTK_LABEL(g->bar_center), PANGO_ELLIPSIZE_END);
+    //gtk_misc_set_padding (GTK_MISC(g->bar_center), 2, 0);
+    gtk_misc_set_alignment((GtkMisc *)g->bar_center, 0.5, 0);
+
+    g->bar_right = gtk_label_new ("");
+    gtk_label_set_selectable((GtkLabel *)g->bar_right, TRUE);
+    gtk_label_set_ellipsize(GTK_LABEL(g->bar_right), PANGO_ELLIPSIZE_END);
+    //gtk_misc_set_padding (GTK_MISC(g->bar_right), 2, 0);
+    gtk_misc_set_alignment((GtkMisc *)g->bar_right, 1, 0);
+
     gtk_box_pack_start (GTK_BOX (g->mainbar), g->mainbar_label, TRUE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (g->mainbar), g->bar_center, TRUE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (g->mainbar), g->bar_right, TRUE, TRUE, 0);
 
     g_object_connect((GObject*)g->mainbar,
       "signal::key-press-event",                    (GCallback)key_press_cb,    NULL,

@@ -57,6 +57,12 @@ typedef struct {
     GtkWidget*     vbox;
     GtkWidget*     mainbar;
     GtkWidget*     mainbar_label;
+
+    //GtkWidget*     mainbar_hbox;
+    GtkWidget*     bar_left;
+    GtkWidget*     bar_center;
+    GtkWidget*     bar_right;
+
     GtkScrollbar*  scbar_v;   // Horizontal and Vertical Scrollbar
     GtkScrollbar*  scbar_h;   // (These are still hidden)
     GtkAdjustment* bar_v; // Information about document length
@@ -125,6 +131,8 @@ typedef struct {
     gchar*   load_start_handler;
     gchar*   load_commit_handler;
     gchar*   status_format;
+    gchar*   status_format_center;
+    gchar*   status_format_right;
     gchar*   title_format_short;
     gchar*   title_format_long;
     gchar*   status_background;
