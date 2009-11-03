@@ -119,6 +119,7 @@ const struct var_name_to_ptr_t {
 
     /* exported WebKitWebSettings properties */
     { "zoom_level",             PTR_V_FLOAT(uzbl.behave.zoom_level,             1,   cmd_zoom_level)},
+    { "zoom_type",              PTR_V_INT(uzbl.behave.zoom_type,                1,   cmd_set_zoom_type)},
     { "font_size",              PTR_V_INT(uzbl.behave.font_size,                1,   cmd_font_size)},
     { "default_font_family",    PTR_V_STR(uzbl.behave.default_font_family,      1,   cmd_default_font_family)},
     { "monospace_font_family",  PTR_V_STR(uzbl.behave.monospace_font_family,    1,   cmd_monospace_font_family)},
