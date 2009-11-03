@@ -474,7 +474,7 @@ key_release_cb (GtkWidget* window, GdkEventKey* event) {
     if(event->type == GDK_KEY_RELEASE)
         key_to_event(event->keyval, GDK_KEY_RELEASE);
 
-    return TRUE;
+    return uzbl.behave.forward_keys ? FALSE : TRUE;
 }
 
 gboolean
