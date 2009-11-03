@@ -39,7 +39,8 @@ const char *event_table[LAST_EVENT] = {
      "FORM_ACTIVE"      ,
      "ROOT_ACTIVE"      ,
      "FOCUS_LOST"       ,
-     "FOCUS_GAINED"
+     "FOCUS_GAINED"     ,
+     "FILE_INCLUDED"
 };
 
 void

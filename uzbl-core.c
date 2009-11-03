@@ -889,10 +889,7 @@ include(WebKitWebView *page, GArray *argv, GString *result) {
 
     pe = parseenv(argv_idx(argv, 0));
     if((path = find_existing_file(pe))) {
-        g_free(pe);
-
         GArray* lines = read_file_by_line(path);
-        g_free(path);
 
         while ((line = g_array_index(lines, gchar*, i))) {
             parse_cmd_line (line, NULL);
@@ -900,7 +897,11 @@ include(WebKitWebView *page, GArray *argv, GString *result) {
             g_free (line);
         }
         g_array_free (lines, TRUE);
+
+        send_event(FILE_INCLUDED, path, NULL);
+        g_free(path);
     }
+    g_free(pe);
 }
 
 void

@@ -529,6 +529,10 @@ Reported events and their specific format:
 
      EVENT [uzbl_instance_name] ROOT_ACTIVE
 
+- when the include commands succesfully loads a file
+
+     EVENT [uzbl_instance_name] FILE_INCLUDED /path/to/file
+
 
 
 ### COMMAND LINE ARGUMENTS
