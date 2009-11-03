@@ -197,7 +197,7 @@ set formfiller = spawn @scripts_dir/formfiller
 
 # Examples using multi-stage-bindings with text prompts.
 @bind o<uri:>_ = uri %s
-@bind O<uri:"\@uri">_ = uri %s
+@bind O<uri:\@uri>_ = uri %s
 
 # multi-stage binding way to write bookmarks to file from inside uzbl.
 @bind <Ctrl>b<tags:>_ = sh 'echo -e "$6 %s" >> $XDG_DATA_HOME/uzbl/bookmarks'

@@ -21,7 +21,7 @@ UZBLS = {}
 
 # Commonly used regular expressions.
 starts_with_mod = re.compile('^<([A-Z][A-Za-z0-9-_]*)>')
-find_prompts = re.compile('<([^:>]*):(\"[^>]*\"|)>').split
+find_prompts = re.compile('<([^:>]*):(\"[^\"]*\"|\'[^\']*\'|[^>]*)>').split
 
 # For accessing a bind glob stack.
 MOD_CMD, ON_EXEC, HAS_ARGS, GLOB, MORE = range(5)
@@ -159,7 +159,13 @@ class Bind(object):
         self.bid = self.nextbid()
 
         self.split = split = find_prompts(glob)
-        self.prompts = zip(split[1::3],[x.strip('"') for x in split[2::3]])
+        self.prompts = []
+        for (prompt, set) in zip(split[1::3], split[2::3]):
+            if set and set[0] == set[-1] and set[0] in ['"', "'"]:
+                # Remove quotes around set.
+                set = set[1:-1]
+
+            self.prompts.append((prompt, set))
 
         # Check that there is nothing like: fl*<int:>*
         for glob in split[:-1:3]:
@@ -282,7 +288,7 @@ def parse_bind_event(uzbl, args):
 
 
 def set_stack_mode(uzbl, prompt):
-    prompt,data = prompt
+    prompt, set = prompt
     if uzbl.get_mode() != 'stack':
         uzbl.set_mode('stack')
 
@@ -291,9 +297,9 @@ def set_stack_mode(uzbl, prompt):
 
     uzbl.set('keycmd_prompt', prompt)
 
-    if data:
-		# go through uzbl-core to expand potential @-variables
-		uzbl.send('event SET_KEYCMD %s' % data)
+    if set:
+        # Go through uzbl-core to expand potential @-variables
+        uzbl.send('event SET_KEYCMD %s' % set)
 
 
 def clear_stack(uzbl, mode):
