@@ -882,7 +882,7 @@ include(WebKitWebView *page, GArray *argv, GString *result) {
     (void) result;
     gchar *pe = NULL, *path = NULL;
     gchar *line;
-    int i;
+    int i=0;
 
     if(!argv_idx(argv, 0))
         return;
