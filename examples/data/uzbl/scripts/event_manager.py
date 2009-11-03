@@ -813,7 +813,8 @@ if __name__ == "__main__":
         config['verbose'] = True
 
     if options.plugin_dirs:
-        plugin_dirs = map(str.strip, options.plugin_dirs.split(':'))
+        plugin_dirs = map(os.path.realpath, map(str.strip,
+            options.plugin_dirs.split(':')))
         config['plugin_dirs'] = plugin_dirs
         echo("plugin search dirs: %r" % plugin_dirs)
 
@@ -842,11 +843,11 @@ if __name__ == "__main__":
         echo('will auto close.')
 
     if options.pid:
-        config['pid_file'] = options.pid
+        config['pid_file'] = os.path.realpath(options.pid)
         echo("pid file location: %r" % config['pid_file'])
 
     if options.socket:
-        config['server_socket'] = options.socket
+        config['server_socket'] = os.path.realpath(options.socket)
         echo("daemon socket location: %s" % config['server_socket'])
 
     if options.daemon:
