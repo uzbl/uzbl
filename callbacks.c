@@ -267,8 +267,15 @@ cmd_view_source() {
 }
 
 void
+cmd_set_zoom_type () {
+    if(uzbl.behave.zoom_type) 
+        webkit_web_view_set_full_content_zoom (uzbl.gui.web_view, TRUE);
+    else
+        webkit_web_view_set_full_content_zoom (uzbl.gui.web_view, FALSE);
+}
+
+void
 toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result) {
-    (void)page;
     (void)argv;
     (void)result;
 
