@@ -21,7 +21,7 @@ UZBLS = {}
 
 # Commonly used regular expressions.
 starts_with_mod = re.compile('^<([A-Z][A-Za-z0-9-_]*)>')
-find_prompts = re.compile('<([^:>]*):>').split
+find_prompts = re.compile('<([^:>]*):(\"[^>]*\"|)>').split
 
 # For accessing a bind glob stack.
 MOD_CMD, ON_EXEC, HAS_ARGS, GLOB, MORE = range(5)
@@ -159,22 +159,22 @@ class Bind(object):
         self.bid = self.nextbid()
 
         self.split = split = find_prompts(glob)
-        self.prompts = split[1::2]
+        self.prompts = zip(split[1::3],[x.strip('"') for x in split[2::3]])
 
         # Check that there is nothing like: fl*<int:>*
-        for glob in split[:-1:2]:
+        for glob in split[:-1:3]:
             if glob.endswith('*'):
                 msg = "token '*' not at the end of a prompt bind: %r" % split
                 raise BindParseError(msg)
 
         # Check that there is nothing like: fl<prompt1:><prompt2:>_
-        for glob in split[2::2]:
+        for glob in split[3::3]:
             if not glob:
                 msg = 'found null segment after first prompt: %r' % split
                 raise BindParseError(msg)
 
         stack = []
-        for (index, glob) in enumerate(reversed(split[::2])):
+        for (index, glob) in enumerate(reversed(split[::3])):
             # Is the binding a MODCMD or KEYCMD:
             mod_cmd = ismodbind(glob)
 
@@ -282,6 +282,7 @@ def parse_bind_event(uzbl, args):
 
 
 def set_stack_mode(uzbl, prompt):
+    prompt,data = prompt
     if uzbl.get_mode() != 'stack':
         uzbl.set_mode('stack')
 
@@ -289,6 +290,10 @@ def set_stack_mode(uzbl, prompt):
         prompt = "%s: " % prompt
 
     uzbl.set('keycmd_prompt', prompt)
+
+    if data:
+		# go through uzbl-core to expand potential @-variables
+		uzbl.send('event SET_KEYCMD %s' % data)
 
 
 def clear_stack(uzbl, mode):
