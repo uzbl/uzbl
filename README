@@ -178,6 +178,8 @@ The following commands are recognized:
    - removes the entry "label" from one of the right click context menus
 * hardcopy
    - open print dialog
+* include <file>
+   - read contents of file and interprete commands
 
 
 ### VARIABLES AND CONSTANTS

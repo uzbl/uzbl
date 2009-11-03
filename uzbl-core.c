@@ -636,7 +636,8 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "menu_link_remove",               {menu_remove_link, TRUE}        },
     { "menu_image_remove",              {menu_remove_image, TRUE}       },
     { "menu_editable_remove",           {menu_remove_edit, TRUE}        },
-    { "hardcopy",                       {hardcopy, TRUE}                }
+    { "hardcopy",                       {hardcopy, TRUE}                },
+    { "include",                        {include, TRUE}                 }
 };
 
 void
@@ -873,6 +874,33 @@ hardcopy(WebKitWebView *page, GArray *argv, GString *result) {
     (void) result;
 
     webkit_web_frame_print(webkit_web_view_get_main_frame(page));
+}
+
+void
+include(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page;
+    (void) result;
+    gchar *pe = NULL, *path = NULL;
+    gchar *line;
+    int i;
+
+    if(!argv_idx(argv, 0))
+        return;
+
+    pe = parseenv(argv_idx(argv, 0));
+    if((path = find_existing_file(pe))) {
+        g_free(pe);
+
+        GArray* lines = read_file_by_line(path);
+        g_free(path);
+
+        while ((line = g_array_index(lines, gchar*, i))) {
+            parse_cmd_line (line, NULL);
+            i++;
+            g_free (line);
+        }
+        g_array_free (lines, TRUE);
+    }
 }
 
 void

@@ -477,6 +477,9 @@ get_click_context();
 void
 hardcopy(WebKitWebView *page, GArray *argv, GString *result);
 
+void
+include(WebKitWebView *page, GArray *argv, GString *result);
+
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
 
 typedef struct {
