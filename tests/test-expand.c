@@ -46,12 +46,6 @@ test_uri (void) {
 }
 
 void
-test_LOAD_PROGRESS (void) {
-    uzbl.gui.sbar.load_progress = 50;
-    g_assert_cmpstr(expand("@LOAD_PROGRESS", 0), ==, "50");
-}
-
-void
 test_TITLE (void) {
     uzbl.gui.main_title = "Lorem Ipsum";
     g_assert_cmpstr(expand("@TITLE", 0), ==, "Lorem Ipsum");
@@ -193,7 +187,6 @@ main (int argc, char *argv[]) {
     g_test_add_func("/test-expand/@keycmd", test_keycmd);
     g_test_add_func("/test-expand/@status_message", test_status_message);
     g_test_add_func("/test-expand/@uri", test_uri);
-    g_test_add_func("/test-expand/@LOAD_PROGRESS", test_LOAD_PROGRESS);
     g_test_add_func("/test-expand/@TITLE", test_TITLE);
     g_test_add_func("/test-expand/@SELECTED_URI", test_SELECTED_URI);
     g_test_add_func("/test-expand/@NAME", test_NAME);
