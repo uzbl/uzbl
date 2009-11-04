@@ -2408,8 +2408,8 @@ main (int argc, char* argv[]) {
         uzbl.gui.plug = create_plug ();
         gtk_container_add (GTK_CONTAINER (uzbl.gui.plug), uzbl.gui.vbox);
         gtk_widget_show_all (GTK_WIDGET (uzbl.gui.plug));
-        /* in xembed mode the window has now unique id and thus
-         * sockets/fifos don't either.
+        /* in xembed mode the window has no unique id and thus
+         * socket/fifo names aren't unique either.
          * we use a custom randomizer to create a random id
         */
         struct timeval tv;
