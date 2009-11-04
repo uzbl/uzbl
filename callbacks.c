@@ -354,8 +354,6 @@ progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
     prg_str = itos(progress);
     send_event(LOAD_PROGRESS, prg_str, NULL);
     g_free(prg_str);
-
-    update_title();
 }
 
 void
@@ -374,9 +372,6 @@ load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) page;
     (void) data;
 
-    if (uzbl.behave.load_finish_handler)
-        run_handler(uzbl.behave.load_finish_handler, "");
-
     send_event(LOAD_FINISH, webkit_web_frame_get_uri(frame), NULL);
 }
 
@@ -385,9 +380,6 @@ load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) page;
     (void) frame;
     (void) data;
-    uzbl.gui.sbar.load_progress = 0;
-    if (uzbl.behave.load_start_handler)
-        run_handler(uzbl.behave.load_start_handler, "");
 
     send_event(LOAD_START, uzbl.state.uri, NULL);
 }
@@ -413,10 +405,6 @@ load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     GString* newuri = g_string_new (webkit_web_frame_get_uri (frame));
     uzbl.state.uri = g_string_free (newuri, FALSE);
 
-    if (uzbl.behave.load_commit_handler)
-        run_handler(uzbl.behave.load_commit_handler, uzbl.state.uri);
-
-    /* event message */
     send_event(LOAD_COMMIT, webkit_web_frame_get_uri (frame), NULL);
 }
 
@@ -595,8 +583,8 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
         const gchar* uri = webkit_download_get_uri ((WebKitDownload*)download);
         if (uzbl.state.verbose)
             printf("Download -> %s\n",uri);
-        /* if urls not escaped, we may have to escape and quote uri before this call */
 
+        /* if urls not escaped, we may have to escape and quote uri before this call */
         GString *args = g_string_new(uri);
 
         if (uzbl.net.proxy_url) {

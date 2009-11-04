@@ -69,8 +69,6 @@ XDG_Var XDG[] =
     { "XDG_DATA_DIRS",   "/usr/local/share/:/usr/share/" },
 };
 
-/* associate command names to their properties */
-
 /* abbreviations to help keep the table's width humane */
 #define PTR_V_STR(var, d, fun) { .ptr.s = &(var), .type = TYPE_STR, .dump = d, .writeable = 1, .func = fun }
 #define PTR_V_INT(var, d, fun) { .ptr.i = (int*)&(var), .type = TYPE_INT, .dump = d, .writeable = 1, .func = fun }
@@ -89,19 +87,16 @@ const struct var_name_to_ptr_t {
     { "verbose",                PTR_V_INT(uzbl.state.verbose,                   1,   NULL)},
     { "inject_html",            PTR_V_STR(uzbl.behave.inject_html,              0,   cmd_inject_html)},
     { "geometry",               PTR_V_STR(uzbl.gui.geometry,                    1,   cmd_set_geometry)},
-    { "keycmd",                 PTR_V_STR(uzbl.state.keycmd,                    1,   update_title)},
-    { "status_message",         PTR_V_STR(uzbl.gui.sbar.msg,                    1,   update_title)},
+    { "keycmd",                 PTR_V_STR(uzbl.state.keycmd,                    1,   NULL)},
+    { "status_message",         PTR_V_STR(uzbl.gui.sbar.msg,                    1,   NULL)},
     { "show_status",            PTR_V_INT(uzbl.behave.show_status,              1,   cmd_set_status)},
     { "status_top",             PTR_V_INT(uzbl.behave.status_top,               1,   move_statusbar)},
-    { "status_format",          PTR_V_STR(uzbl.behave.status_format,            1,   update_title)},
-    { "status_background",      PTR_V_STR(uzbl.behave.status_background,        1,   update_title)},
-    { "title_format_long",      PTR_V_STR(uzbl.behave.title_format_long,        1,   update_title)},
-    { "title_format_short",     PTR_V_STR(uzbl.behave.title_format_short,       1,   update_title)},
+    { "status_format",          PTR_V_STR(uzbl.behave.status_format,            1,   NULL)},
+    { "status_background",      PTR_V_STR(uzbl.behave.status_background,        1,   NULL)},
+    { "title_format_long",      PTR_V_STR(uzbl.behave.title_format_long,        1,   NULL)},
+    { "title_format_short",     PTR_V_STR(uzbl.behave.title_format_short,       1,   NULL)},
     { "icon",                   PTR_V_STR(uzbl.gui.icon,                        1,   set_icon)},
     { "forward_keys",           PTR_V_INT(uzbl.behave.forward_keys,             1,   NULL)},
-    { "load_finish_handler",    PTR_V_STR(uzbl.behave.load_finish_handler,      1,   NULL)},
-    { "load_start_handler",     PTR_V_STR(uzbl.behave.load_start_handler,       1,   NULL)},
-    { "load_commit_handler",    PTR_V_STR(uzbl.behave.load_commit_handler,      1,   NULL)},
     { "download_handler",       PTR_V_STR(uzbl.behave.download_handler,         1,   NULL)},
     { "cookie_handler",         PTR_V_STR(uzbl.behave.cookie_handler,           1,   NULL)},
     { "new_window",             PTR_V_STR(uzbl.behave.new_window,               1,   NULL)},
@@ -142,13 +137,12 @@ const struct var_name_to_ptr_t {
     { "enforce_96_dpi",         PTR_V_INT(uzbl.behave.enforce_96dpi,            1,   cmd_enforce_96dpi)},
     { "caret_browsing",         PTR_V_INT(uzbl.behave.caret_browsing,           1,   cmd_caret_browsing)},
 
-  /* constants (not dumpable or writeable) */
+    /* constants (not dumpable or writeable) */
     { "WEBKIT_MAJOR",           PTR_C_INT(uzbl.info.webkit_major,                    NULL)},
     { "WEBKIT_MINOR",           PTR_C_INT(uzbl.info.webkit_minor,                    NULL)},
     { "WEBKIT_MICRO",           PTR_C_INT(uzbl.info.webkit_micro,                    NULL)},
     { "ARCH_UZBL",              PTR_C_STR(uzbl.info.arch,                            NULL)},
     { "COMMIT",                 PTR_C_STR(uzbl.info.commit,                          NULL)},
-    { "LOAD_PROGRESS",          PTR_C_INT(uzbl.gui.sbar.load_progress,               NULL)},
     { "TITLE",                  PTR_C_STR(uzbl.gui.main_title,                       NULL)},
     { "SELECTED_URI",           PTR_C_STR(uzbl.state.selected_url,                   NULL)},
     { "NAME",                   PTR_C_STR(uzbl.state.instance_name,                  NULL)},
@@ -156,6 +150,7 @@ const struct var_name_to_ptr_t {
 
     { NULL,                     {.ptr.s = NULL, .type = TYPE_INT, .dump = 0, .writeable = 0, .func = NULL}}
 };
+
 /* construct a hash from the var_name_to_ptr array for quick access */
 void
 create_var_to_name_hash() {
@@ -880,8 +875,9 @@ void
 include(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page;
     (void) result;
-    gchar *pe = NULL, *path = NULL;
-    gchar *line;
+    gchar *pe   = NULL,
+          *path = NULL,
+          *line;
     int i=0;
 
     if(!argv_idx(argv, 0))
