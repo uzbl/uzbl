@@ -840,8 +840,12 @@ void
 event(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
     GString *event_name;
-    gchar **split = g_strsplit(argv_idx(argv, 0), " ", 2);
-
+    gchar **split = NULL; 
+    
+    if(!argv_idx(argv, 0))
+       return;
+    
+    split = g_strsplit(argv_idx(argv, 0), " ", 2);
     if(split[0])
         event_name = g_string_ascii_up(g_string_new(split[0]));
     else
@@ -2404,6 +2408,14 @@ main (int argc, char* argv[]) {
         uzbl.gui.plug = create_plug ();
         gtk_container_add (GTK_CONTAINER (uzbl.gui.plug), uzbl.gui.vbox);
         gtk_widget_show_all (GTK_WIDGET (uzbl.gui.plug));
+        /* in xembed mode the window has now unique id and thus
+         * sockets/fifos don't either.
+         * we use a custom randomizer to create a random id
+        */
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        srand((unsigned int)tv.tv_sec*tv.tv_usec);
+        uzbl.xwin = rand()%65536;
     } else {
         uzbl.gui.main_window = create_window ();
         gtk_container_add (GTK_CONTAINER (uzbl.gui.main_window), uzbl.gui.vbox);
