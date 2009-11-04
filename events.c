@@ -183,7 +183,7 @@ send_event(int type, const gchar *details, const gchar *custom_event) {
 /* Transform gdk key events to our own events */
 void
 key_to_event(guint keyval, gint mode) {
-    char byte[2];
+    char byte[2] = {0, 0};
 
     /* check for Latin-1 characters  (1:1 mapping) */
     if ((keyval >  0x0020 && keyval <= 0x007e) ||
