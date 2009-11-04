@@ -2415,7 +2415,7 @@ main (int argc, char* argv[]) {
         struct timeval tv;
         gettimeofday(&tv, NULL);
         srand((unsigned int)tv.tv_sec*tv.tv_usec);
-        uzbl.xwin = rand()%65536;
+        uzbl.xwin = rand();
     } else {
         uzbl.gui.main_window = create_window ();
         gtk_container_add (GTK_CONTAINER (uzbl.gui.main_window), uzbl.gui.vbox);
