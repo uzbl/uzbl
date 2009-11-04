@@ -187,7 +187,7 @@ key_to_event(guint keyval, gint mode) {
 
     /* check for Latin-1 characters  (1:1 mapping) */
     if ((keyval >  0x0020 && keyval <= 0x007e) ||
-        (keyval >= 0x00a0 && keyval <= 0x00ff)) {
+        (keyval >= 0x0080 && keyval <= 0x00ff)) {
         sprintf(byte, "%c", keyval);
         send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
                 byte, NULL);
