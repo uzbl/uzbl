@@ -211,7 +211,7 @@ set formfiller = spawn @scripts_dir/formfiller
 
 # you'll want this at the very least
 @bind <Return>       = event KEYCMD_EXEC_CURRENT
-@bind <Escape>       = event @set_mode
+@bind <Escape>       = @set_mode
 
 # basic searching
 @bind <Home>         = event SET_CURSOR_POS 0
