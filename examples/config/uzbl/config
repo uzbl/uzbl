@@ -206,6 +206,13 @@ set formfiller = spawn @scripts_dir/formfiller
 @bind <Ctrl>a<:><Ctrl>q = exit
 @bind <Ctrl>a<:><Ctrl>h = uri http://uzbl.org/
 
+# Inject handy values into the keycmd.
+@bind <Ctrl>su = event INJECT_KEYCMD \@uri
+@bind <Ctrl>st = event INJECT_KEYCMD \@TITLE
+# Or append.
+@bind <Ctrl>du = event APPEND_KEYCMD \@uri
+@bind <Ctrl>dt = event APPEND_KEYCMD \@TITLE
+
 
 # === command editing configuration ==========================================
 

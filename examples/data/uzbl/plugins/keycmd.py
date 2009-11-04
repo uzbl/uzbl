@@ -227,11 +227,10 @@ def update_event(uzbl, k, execute=True):
     uzbl.set('keycmd', KEYCMD_FORMAT % tuple(map(uzbl_escape, chunks)))
 
 
-def inject_char(str, index, char):
-    '''Inject character into string at at given index.'''
+def inject_str(str, index, inj):
+    '''Inject a string into string at at given index.'''
 
-    assert len(char) == 1
-    return "%s%s%s" % (str[:index], char, str[index:])
+    return "%s%s%s" % (str[:index], inj, str[index:])
 
 
 def key_press(uzbl, key):
@@ -253,13 +252,13 @@ def key_press(uzbl, key):
         return
 
     if key == 'Space' and not k.held and k.keycmd:
-        k.keycmd = inject_char(k.keycmd, k.cursor, ' ')
+        k.keycmd = inject_str(k.keycmd, k.cursor, ' ')
         k.cursor += 1
 
     elif not k.held and len(key) == 1:
         config = uzbl.get_config()
         if 'keycmd_events' not in config or config['keycmd_events'] == '1':
-            k.keycmd = inject_char(k.keycmd, k.cursor, key)
+            k.keycmd = inject_str(k.keycmd, k.cursor, key)
             k.cursor += 1
 
         elif k.keycmd:
@@ -314,6 +313,26 @@ def set_keycmd(uzbl, keycmd):
     k.keycmd = keycmd
     k._repr_cache = None
     k.cursor = len(keycmd)
+    update_event(uzbl, k, False)
+
+
+def inject_keycmd(uzbl, keycmd):
+    '''Allow injecting of a string into the keycmd at the cursor position.'''
+
+    k = get_keylet(uzbl)
+    k.keycmd = inject_str(k.keycmd, k.cursor, keycmd)
+    k._repr_cache = None
+    k.cursor += len(keycmd)
+    update_event(uzbl, k, False)
+
+
+def append_keycmd(uzbl, keycmd):
+    '''Allow appening of a string to the keycmd.'''
+
+    k = get_keylet(uzbl)
+    k.keycmd += keycmd
+    k._repr_cache = None
+    k.cursor = len(k.keycmd)
     update_event(uzbl, k, False)
 
 
@@ -406,6 +425,8 @@ def init(uzbl):
       'SET_CURSOR_POS': set_cursor_pos,
       'FOCUS_LOST': focus_changed,
       'FOCUS_GAINED': focus_changed,
-      'MODMAP': modmap_parse}
+      'MODMAP': modmap_parse,
+      'APPEND_KEYCMD': append_keycmd,
+      'INJECT_KEYCMD': inject_keycmd}
 
     uzbl.connect_dict(connects)
