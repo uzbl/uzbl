@@ -13,66 +13,69 @@ class History(object):
         self.search_key = None
 
     def prev(self):
-        commands = shared_history + self._temporary
         if self.cursor is None:
-            self.cursor = len(commands) - 1
+            self.cursor = len(self) - 1
         else:
             self.cursor -= 1
 
         if self.search_key:
-            while self.cursor >= 0 and self.search_key not in commands[self.cursor]:
+            while self.cursor >= 0 and self.search_key not in self[self.cursor]:
                 self.cursor -= 1
 
-        if self.cursor < 0 or len(commands) == 0:
+        if self.cursor < 0 or len(self) == 0:
             self.cursor = -1
             return random.choice(end_messages)
 
-        return commands[self.cursor]
+        return self[self.cursor]
 
     def next(self):
-        commands = shared_history + self._temporary
         if self.cursor is None:
             return ''
 
         self.cursor += 1
 
         if self.search_key:
-            while self.cursor < len(commands) and self.search_key not in commands[self.cursor]:
+            while self.cursor < len(self) and self.search_key not in self[self.cursor]:
                 self.cursor += 1
 
-        if self.cursor >= len(commands) - (1 if self.__temp_tail else 0):
+        if self.cursor >= len(shared_history):
             self.cursor = None
             self.search_key = None
 
-            if self.__temp_tail:
+            if self._temporary:
                 print 'popping temporary'
-                self.__temp_tail = False
                 return self._temporary.pop()
             return ''
 
-        return commands[self.cursor]
+        return self[self.cursor]
 
     def search(self, key):
         self.search_key = key
         return self.prev()
 
     def add(self, cmd):
-        if self.__temp_tail:
+        if self._temporary:
             self._temporary.pop()
-            self.__temp_tail = False
 
         shared_history.append(cmd)
         self.cursor = None
         self.search_key = None
 
     def add_temporary(self, cmd):
-        assert not self.__temp_tail
+        assert not self._temporary
 
         self._temporary.append(cmd)
-        self.__temp_tail = True
-        self.cursor = len(self._temporary) + len(shared_history) - 1
+        self.cursor = len(self) - 1
 
         print 'adding temporary', self
+
+    def __getitem__(self, i):
+        if i < len(shared_history):
+            return shared_history[i]
+        return self._temporary[i-len(shared_history)+1]
+
+    def __len__(self):
+        return len(shared_history) + len(self._temporary)
 
     def __str__(self):
         return "(History %s)" % (self.cursor)
