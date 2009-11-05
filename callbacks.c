@@ -38,10 +38,15 @@ set_icon() {
 
 void
 cmd_set_geometry() {
-    if(!gtk_window_parse_geometry(GTK_WINDOW(uzbl.gui.main_window), uzbl.gui.geometry)) {
-        if(uzbl.state.verbose)
-            printf("Error in geometry string: %s\n", uzbl.gui.geometry);
-    }
+    int ret=0, x=0, y=0;
+    unsigned int w=0, h=0;
+
+    ret = XParseGeometry(uzbl.gui.geometry, &x, &y, &w, &h);
+    if(ret & XValue)
+        gtk_window_move((GtkWindow *)uzbl.gui.main_window, x, y);
+    if(ret & WidthValue)
+        gtk_window_resize((GtkWindow *)uzbl.gui.main_window, w, h);
+
     /* update geometry var with the actual geometry
        this is necessary as some WMs don't seem to honour
        the above setting and we don't want to end up with
