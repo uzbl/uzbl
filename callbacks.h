@@ -16,12 +16,6 @@ void
 set_icon();
 
 void
-cmd_cookie_handler();
-
-void
-cmd_scheme_handler();
-
-void
 move_statusbar();
 
 void
@@ -57,6 +51,9 @@ cmd_fantasy_font_family();
 
 void
 cmd_zoom_level();
+
+void
+cmd_set_zoom_type();
 
 void
 cmd_disable_plugins();

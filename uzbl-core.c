@@ -69,8 +69,6 @@ XDG_Var XDG[] =
     { "XDG_DATA_DIRS",   "/usr/local/share/:/usr/share/" },
 };
 
-/* associate command names to their properties */
-
 /* abbreviations to help keep the table's width humane */
 #define PTR_V_STR(var, d, fun) { .ptr.s = &(var), .type = TYPE_STR, .dump = d, .writeable = 1, .func = fun }
 #define PTR_V_INT(var, d, fun) { .ptr.i = (int*)&(var), .type = TYPE_INT, .dump = d, .writeable = 1, .func = fun }
@@ -89,23 +87,20 @@ const struct var_name_to_ptr_t {
     { "verbose",                PTR_V_INT(uzbl.state.verbose,                   1,   NULL)},
     { "inject_html",            PTR_V_STR(uzbl.behave.inject_html,              0,   cmd_inject_html)},
     { "geometry",               PTR_V_STR(uzbl.gui.geometry,                    1,   cmd_set_geometry)},
-    { "keycmd",                 PTR_V_STR(uzbl.state.keycmd,                    1,   update_title)},
-    { "status_message",         PTR_V_STR(uzbl.gui.sbar.msg,                    1,   update_title)},
+    { "keycmd",                 PTR_V_STR(uzbl.state.keycmd,                    1,   NULL)},
+    { "status_message",         PTR_V_STR(uzbl.gui.sbar.msg,                    1,   NULL)},
     { "show_status",            PTR_V_INT(uzbl.behave.show_status,              1,   cmd_set_status)},
     { "status_top",             PTR_V_INT(uzbl.behave.status_top,               1,   move_statusbar)},
-    { "status_format",          PTR_V_STR(uzbl.behave.status_format,            1,   update_title)},
-    { "status_background",      PTR_V_STR(uzbl.behave.status_background,        1,   update_title)},
-    { "title_format_long",      PTR_V_STR(uzbl.behave.title_format_long,        1,   update_title)},
-    { "title_format_short",     PTR_V_STR(uzbl.behave.title_format_short,       1,   update_title)},
+    { "status_format",          PTR_V_STR(uzbl.behave.status_format,            1,   NULL)},
+    { "status_background",      PTR_V_STR(uzbl.behave.status_background,        1,   NULL)},
+    { "title_format_long",      PTR_V_STR(uzbl.behave.title_format_long,        1,   NULL)},
+    { "title_format_short",     PTR_V_STR(uzbl.behave.title_format_short,       1,   NULL)},
     { "icon",                   PTR_V_STR(uzbl.gui.icon,                        1,   set_icon)},
     { "forward_keys",           PTR_V_INT(uzbl.behave.forward_keys,             1,   NULL)},
-    { "load_finish_handler",    PTR_V_STR(uzbl.behave.load_finish_handler,      1,   NULL)},
-    { "load_start_handler",     PTR_V_STR(uzbl.behave.load_start_handler,       1,   NULL)},
-    { "load_commit_handler",    PTR_V_STR(uzbl.behave.load_commit_handler,      1,   NULL)},
     { "download_handler",       PTR_V_STR(uzbl.behave.download_handler,         1,   NULL)},
-    { "cookie_handler",         PTR_V_STR(uzbl.behave.cookie_handler,           1,   cmd_cookie_handler)},
+    { "cookie_handler",         PTR_V_STR(uzbl.behave.cookie_handler,           1,   NULL)},
     { "new_window",             PTR_V_STR(uzbl.behave.new_window,               1,   NULL)},
-    { "scheme_handler",         PTR_V_STR(uzbl.behave.scheme_handler,           1,   cmd_scheme_handler)},
+    { "scheme_handler",         PTR_V_STR(uzbl.behave.scheme_handler,           1,   NULL)},
     { "fifo_dir",               PTR_V_STR(uzbl.behave.fifo_dir,                 1,   cmd_fifo_dir)},
     { "socket_dir",             PTR_V_STR(uzbl.behave.socket_dir,               1,   cmd_socket_dir)},
     { "http_debug",             PTR_V_INT(uzbl.behave.http_debug,               1,   cmd_http_debug)},
@@ -119,6 +114,7 @@ const struct var_name_to_ptr_t {
 
     /* exported WebKitWebSettings properties */
     { "zoom_level",             PTR_V_FLOAT(uzbl.behave.zoom_level,             1,   cmd_zoom_level)},
+    { "zoom_type",              PTR_V_INT(uzbl.behave.zoom_type,                1,   cmd_set_zoom_type)},
     { "font_size",              PTR_V_INT(uzbl.behave.font_size,                1,   cmd_font_size)},
     { "default_font_family",    PTR_V_STR(uzbl.behave.default_font_family,      1,   cmd_default_font_family)},
     { "monospace_font_family",  PTR_V_STR(uzbl.behave.monospace_font_family,    1,   cmd_monospace_font_family)},
@@ -141,13 +137,12 @@ const struct var_name_to_ptr_t {
     { "enforce_96_dpi",         PTR_V_INT(uzbl.behave.enforce_96dpi,            1,   cmd_enforce_96dpi)},
     { "caret_browsing",         PTR_V_INT(uzbl.behave.caret_browsing,           1,   cmd_caret_browsing)},
 
-  /* constants (not dumpable or writeable) */
+    /* constants (not dumpable or writeable) */
     { "WEBKIT_MAJOR",           PTR_C_INT(uzbl.info.webkit_major,                    NULL)},
     { "WEBKIT_MINOR",           PTR_C_INT(uzbl.info.webkit_minor,                    NULL)},
     { "WEBKIT_MICRO",           PTR_C_INT(uzbl.info.webkit_micro,                    NULL)},
     { "ARCH_UZBL",              PTR_C_STR(uzbl.info.arch,                            NULL)},
     { "COMMIT",                 PTR_C_STR(uzbl.info.commit,                          NULL)},
-    { "LOAD_PROGRESS",          PTR_C_INT(uzbl.gui.sbar.load_progress,               NULL)},
     { "TITLE",                  PTR_C_STR(uzbl.gui.main_title,                       NULL)},
     { "SELECTED_URI",           PTR_C_STR(uzbl.state.selected_url,                   NULL)},
     { "NAME",                   PTR_C_STR(uzbl.state.instance_name,                  NULL)},
@@ -155,6 +150,7 @@ const struct var_name_to_ptr_t {
 
     { NULL,                     {.ptr.s = NULL, .type = TYPE_INT, .dump = 0, .writeable = 0, .func = NULL}}
 };
+
 /* construct a hash from the var_name_to_ptr array for quick access */
 void
 create_var_to_name_hash() {
@@ -623,7 +619,6 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "print",                          {print, TRUE}                   },
     { "event",                          {event, TRUE}                   },
     { "request",                        {event, TRUE}                   },
-    { "update_gui",                     {update_gui, TRUE}              },
     { "menu_add",                       {menu_add, TRUE}                },
     { "menu_link_add",                  {menu_add_link, TRUE}           },
     { "menu_image_add",                 {menu_add_image, TRUE}          },
@@ -636,7 +631,8 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "menu_link_remove",               {menu_remove_link, TRUE}        },
     { "menu_image_remove",              {menu_remove_image, TRUE}       },
     { "menu_editable_remove",           {menu_remove_edit, TRUE}        },
-    { "hardcopy",                       {hardcopy, TRUE}                }
+    { "hardcopy",                       {hardcopy, TRUE}                },
+    { "include",                        {include, TRUE}                 }
 };
 
 void
@@ -666,13 +662,6 @@ set_var(WebKitWebView *page, GArray *argv, GString *result) {
         g_free(value);
     }
     g_strfreev(split);
-}
-
-void
-update_gui(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page; (void) argv; (void) result;
-
-    update_title();
 }
 
 void
@@ -851,8 +840,12 @@ void
 event(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
     GString *event_name;
-    gchar **split = g_strsplit(argv_idx(argv, 0), " ", 2);
-
+    gchar **split = NULL; 
+    
+    if(!argv_idx(argv, 0))
+       return;
+    
+    split = g_strsplit(argv_idx(argv, 0), " ", 2);
     if(split[0])
         event_name = g_string_ascii_up(g_string_new(split[0]));
     else
@@ -880,6 +873,35 @@ hardcopy(WebKitWebView *page, GArray *argv, GString *result) {
     (void) result;
 
     webkit_web_frame_print(webkit_web_view_get_main_frame(page));
+}
+
+void
+include(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page;
+    (void) result;
+    gchar *pe   = NULL,
+          *path = NULL,
+          *line;
+    int i=0;
+
+    if(!argv_idx(argv, 0))
+        return;
+
+    pe = parseenv(argv_idx(argv, 0));
+    if((path = find_existing_file(pe))) {
+        GArray* lines = read_file_by_line(path);
+
+        while ((line = g_array_index(lines, gchar*, i))) {
+            parse_cmd_line (line, NULL);
+            i++;
+            g_free (line);
+        }
+        g_array_free (lines, TRUE);
+
+        send_event(FILE_INCLUDED, path, NULL);
+        g_free(path);
+    }
+    g_free(pe);
 }
 
 void
@@ -1086,11 +1108,18 @@ new_window_load_uri (const gchar * uri) {
     g_string_append_printf (to_execute, "%s --uri '%s'", uzbl.state.executable_path, uri);
     int i;
     for (i = 0; entries[i].long_name != NULL; i++) {
-        if ((entries[i].arg == G_OPTION_ARG_STRING) && (strcmp(entries[i].long_name,"uri")!=0) && (strcmp(entries[i].long_name,"name")!=0)) {
+        if ((entries[i].arg == G_OPTION_ARG_STRING) &&
+                !strcmp(entries[i].long_name,"uri") &&
+                !strcmp(entries[i].long_name,"name")) {
             gchar** str = (gchar**)entries[i].arg_data;
-            if (*str!=NULL) {
+            if (*str!=NULL)
                 g_string_append_printf (to_execute, " --%s '%s'", entries[i].long_name, *str);
-            }
+        }
+        else if(entries[i].arg == G_OPTION_ARG_STRING_ARRAY) {
+            int j;
+            gchar **str = *((gchar ***)entries[i].arg_data);
+            for(j=0; str[j]; j++)
+                g_string_append_printf(to_execute, " --%s '%s'", entries[i].long_name, str[j]);
         }
     }
     if (uzbl.state.verbose)
@@ -1229,8 +1258,9 @@ void
 spawn(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
     gchar *path = NULL;
+
     //TODO: allow more control over argument order so that users can have some arguments before the default ones from run_command, and some after
-    if ( argv_idx(argv, 0) &&
+    if (argv_idx(argv, 0) &&
             ((path = find_existing_file(argv_idx(argv, 0)))) ) {
         run_command(path, 0,
                 ((const gchar **) (argv->data + sizeof(gchar*))),
@@ -1242,10 +1272,15 @@ spawn(WebKitWebView *web_view, GArray *argv, GString *result) {
 void
 spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
+    gchar *path = NULL;
 
-    if (argv_idx(argv, 0))
-        run_command(argv_idx(argv, 0), 0, ((const gchar **) (argv->data + sizeof(gchar*))),
+    if (argv_idx(argv, 0) &&
+            ((path = find_existing_file(argv_idx(argv, 0)))) ) {
+        run_command(path, 0,
+                ((const gchar **) (argv->data + sizeof(gchar*))),
                     TRUE, &uzbl.comm.sync_stdout);
+        g_free(path);
+    }
 }
 
 void
@@ -1531,6 +1566,7 @@ set_var_value(const gchar *name, gchar *val) {
         send_event(VARIABLE_SET, msg->str, NULL);
         g_string_free(msg,TRUE);
     }
+    update_title();
     return TRUE;
 }
 
@@ -2051,10 +2087,15 @@ run_handler (const gchar *act, const gchar *args) {
         g_strfreev(chainparts);
 
     } else {
-        gchar **inparts = inject_handler_args(parts[0], parts[1], args);
+        /* expand the user-specified arguments */
+        gchar* expanded = expand(parts[1], 0);
+        gchar **inparts = inject_handler_args(parts[0], expanded, args);
+
         parse_command(inparts[0], inparts[1], NULL);
+
         g_free(inparts[0]);
         g_free(inparts[1]);
+        g_free(expanded);
     }
     g_strfreev(parts);
 }
@@ -2367,6 +2408,14 @@ main (int argc, char* argv[]) {
         uzbl.gui.plug = create_plug ();
         gtk_container_add (GTK_CONTAINER (uzbl.gui.plug), uzbl.gui.vbox);
         gtk_widget_show_all (GTK_WIDGET (uzbl.gui.plug));
+        /* in xembed mode the window has no unique id and thus
+         * socket/fifo names aren't unique either.
+         * we use a custom randomizer to create a random id
+        */
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        srand((unsigned int)tv.tv_sec*tv.tv_usec);
+        uzbl.xwin = rand();
     } else {
         uzbl.gui.main_window = create_window ();
         gtk_container_add (GTK_CONTAINER (uzbl.gui.main_window), uzbl.gui.vbox);

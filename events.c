@@ -39,7 +39,8 @@ const char *event_table[LAST_EVENT] = {
      "FORM_ACTIVE"      ,
      "ROOT_ACTIVE"      ,
      "FOCUS_LOST"       ,
-     "FOCUS_GAINED"
+     "FOCUS_GAINED"     ,
+     "FILE_INCLUDED"
 };
 
 void
@@ -182,11 +183,11 @@ send_event(int type, const gchar *details, const gchar *custom_event) {
 /* Transform gdk key events to our own events */
 void
 key_to_event(guint keyval, gint mode) {
-    char byte[2];
+    char byte[2] = {0, 0};
 
     /* check for Latin-1 characters  (1:1 mapping) */
     if ((keyval >  0x0020 && keyval <= 0x007e) ||
-        (keyval >= 0x00a0 && keyval <= 0x00ff)) {
+        (keyval >= 0x0080 && keyval <= 0x00ff)) {
         sprintf(byte, "%c", keyval);
         send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
                 byte, NULL);

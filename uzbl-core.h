@@ -43,7 +43,6 @@
 
 /* status bar elements */
 typedef struct {
-    gint           load_progress;
     gchar          *msg;
 } StatusBar;
 
@@ -81,7 +80,7 @@ enum { FIFO, SOCKET};
 typedef struct {
     gchar          *fifo_path;
     gchar          *socket_path;
-    /* stores (key)"variable name" -> (value)"pointer to this var*/
+    /* stores (key)"variable name" -> (value)"pointer to var*/
     GHashTable     *proto_var;
 
     gchar          *sync_stdout;
@@ -121,9 +120,6 @@ typedef struct {
 
 /* behaviour */
 typedef struct {
-    gchar*   load_finish_handler;
-    gchar*   load_start_handler;
-    gchar*   load_commit_handler;
     gchar*   status_format;
     gchar*   title_format_short;
     gchar*   title_format_long;
@@ -152,6 +148,7 @@ typedef struct {
     guint    monospace_size;
     guint    minimum_font_size;
     gfloat   zoom_level;
+    gboolean zoom_type;
     guint    disable_plugins;
     guint    disable_scripts;
     guint    autoload_img;
@@ -426,9 +423,6 @@ void
 retrieve_geometry();
 
 void
-update_gui(WebKitWebView *page, GArray *argv, GString *result);
-
-void
 event(WebKitWebView *page, GArray *argv, GString *result);
 
 void
@@ -478,6 +472,9 @@ get_click_context();
 
 void
 hardcopy(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+include(WebKitWebView *page, GArray *argv, GString *result);
 
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
 

@@ -29,6 +29,33 @@ extern UzblCore uzbl;
 
 #define INSTANCE_NAME "testing"
 
+gchar*
+assert_str_beginswith(GString *expected, gchar *actual) {
+    gchar *actual_beginning = g_strndup(actual, expected->len);
+    g_assert_cmpstr(expected->str, ==, actual_beginning);
+    g_free(actual_beginning);
+
+    /* return the part of the actual string that hasn't been compared yet */
+    return &actual[expected->len];
+}
+
+/* compare the contents of uzbl.comm.sync_stdout to the standard arguments that
+ * should have been passed. This is meant to be called after something like "sync echo". */
+gchar*
+assert_sync_beginswith_stdarg() {
+    GString *stdargs = g_string_new("");
+
+    g_string_append_printf(stdargs, "%s %d %d ", uzbl.state.config_file, getpid(), (int)uzbl.xwin);
+    g_string_append_printf(stdargs, "%s %s ", uzbl.comm.fifo_path, uzbl.comm.socket_path);
+    g_string_append_printf(stdargs, "%s %s ", uzbl.state.uri, uzbl.gui.main_title);
+
+    gchar *rest = assert_str_beginswith(stdargs, uzbl.comm.sync_stdout);
+
+    g_string_free(stdargs, TRUE);
+
+    return rest;
+}
+
 #define ASSERT_EVENT(EF, STR) { read_event(ef); \
     g_assert_cmpstr("EVENT [" INSTANCE_NAME "] " STR "\n", ==, ef->event_buffer); }
 
@@ -96,8 +123,6 @@ event_fixture_setup(struct EventFixture *ef, const void* data)
     ef->test_sock = socks[1];
 
     /* attach uzbl_sock to uzbl's event dispatcher. */
-    uzbl.comm.socket_path = "/tmp/some-nonexistant-socket";
-
     GIOChannel *iochan = g_io_channel_unix_new(ef->uzbl_sock);
     g_io_channel_set_encoding(iochan, NULL, NULL);
 
@@ -163,8 +188,17 @@ test_set_variable (struct EventFixture *ef, const void *data) {
     g_assert_cmpint(0, ==, uzbl.behave.forward_keys);
 
     /* set a float */
-    parse_cmd_line("set zoom_level = 0.25", NULL);
-    ASSERT_EVENT(ef, "VARIABLE_SET zoom_level float 0.250000");
+    /* we have to be careful about locales here */
+    GString *cmd, *ev;
+    cmd = g_string_new("set zoom_level = ");
+    g_string_append_printf(cmd, "%f", 0.25);
+    parse_cmd_line(g_string_free(cmd, FALSE), NULL);
+
+    ev = g_string_new("EVENT [" INSTANCE_NAME "] VARIABLE_SET zoom_level float ");
+    g_string_append_printf(ev, "%f\n", 0.25);
+    read_event(ef);
+    g_assert_cmpstr(g_string_free(ev, FALSE), ==, ef->event_buffer);
+
     g_assert_cmpfloat(0.25, ==, uzbl.behave.zoom_level);
 
     /* set a constant int (nothing should happen) */
@@ -209,6 +243,9 @@ test_print (void) {
 
 void
 test_scroll (void) {
+    uzbl.gui.scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);
+    uzbl.gui.bar_v = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_v);
+
     gtk_adjustment_set_lower(uzbl.gui.bar_v, 0);
     gtk_adjustment_set_upper(uzbl.gui.bar_v, 100);
     gtk_adjustment_set_page_size(uzbl.gui.bar_v, 5);
@@ -255,6 +292,9 @@ void
 test_sync_sh (void) {
     parse_cmd_line("sync_sh 'echo Test echo.'", NULL);
     g_assert_cmpstr("Test echo.\n", ==, uzbl.comm.sync_stdout);
+
+    /* clean up after ourselves */
+    uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
 }
 
 void
@@ -273,6 +313,36 @@ test_js (void) {
     g_string_free(result, TRUE);
 }
 
+void
+test_run_handler_arg_order (void) {
+    run_handler("sync_spawn echo uvw xyz", "abc def");
+
+    assert(uzbl.comm.sync_stdout);
+
+    /* the result should begin with the standard handler arguments */
+    gchar *rest = assert_sync_beginswith_stdarg();
+
+    /* the rest of the result should be the arguments passed to run_handler. */
+    /* the arguments in the second argument to run_handler should be placed before any
+     * included in the first argument to run handler. */
+    g_assert_cmpstr("abc def uvw xyz\n", ==, rest);
+}
+
+void
+test_run_handler_expand (void) {
+    uzbl.gui.sbar.msg = "Test message";
+    run_handler("sync_spawn echo @status_message", "result:");
+
+    assert(uzbl.comm.sync_stdout);
+
+    /* the result should begin with the standard handler arguments */
+    gchar *rest = assert_sync_beginswith_stdarg();
+
+    /* the rest of the result should be the arguments passed to run_handler. */
+    /* the user-specified arguments to the handler should have been expanded */
+    g_assert_cmpstr("result: Test message\n", ==, rest);
+}
+
 int
 main (int argc, char *argv[]) {
     /* set up tests */
@@ -289,8 +359,19 @@ main (int argc, char *argv[]) {
 
     g_test_add_func("/test-command/js",             test_js);
 
+    /* the following aren't really "command" tests, but they're not worth
+     * splitting into a separate file yet */
+    g_test_add_func("/test-command/run_handler/arg-order",      test_run_handler_arg_order);
+    g_test_add_func("/test-command/run_handler/expand",         test_run_handler_expand);
+
     /* set up uzbl */
     initialize(argc, argv);
+
+    uzbl.state.config_file = "/tmp/uzbl-config";
+    uzbl.comm.fifo_path = "/tmp/some-nonexistant-fifo";
+    uzbl.comm.socket_path = "/tmp/some-nonexistant-socket";
+    uzbl.state.uri = "http://example.org/";
+    uzbl.gui.main_title = "Example.Org";
 
     uzbl.state.instance_name = INSTANCE_NAME;
     uzbl.behave.shell_cmd = "sh -c";

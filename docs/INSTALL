@@ -2,9 +2,8 @@ Packages
 --------
 [Arch Linux](http://www.archlinux.org) is our distro of choice, and the distro we use for testing.
 
-You can find a [PKGBUILD](http://aur.archlinux.org/packages.php?ID=25972) on the AUR, which installs the latest
-from the master branch. You can edit the PKGBUILD to change to any other
-branch you want.
+You can find [PKGBUILDS](http://aur.archlinux.org/packages.php?K=uzbl) on the AUR
+for all subprojects and for both the master and experimental branches.
 
 For other distros, see [uzbl.org/wiki/howtos](http://www.uzbl.org/wiki/howtos)
 
@@ -25,43 +24,30 @@ Tarballs can be pulled from [github.com/Dieterbe/uzbl/downloads](http://github.c
 
 Though you can only get tagged versions from the master branch, which may be older then what you'll have through git.
 
+If you want the specific subprojects, you can issue:
+
+	$ sudo make install-uzbl-core
+	$ sudo make install-uzbl-browser
+	$ sudo make install-uzbl-tabbed
+
 Dependencies
 ------------
-* git (for downloading)
-* pkg-config (for Make/gcc)
+Dependencies which are optional for uzbl-core are marked with an asterisk. (i.e. these are needed for extra scripts)
 * libwebkit 1.1.4 or higher
 * libsoup 2.24 or higher (dep for webkit/gtk+)
 * gtk 2.14 or higher
+* socat (for socket communication) [*]
+* dmenu (vertical patch recommended) [*]
+* zenity [*]
+* bash [*]
+* python [*]
+* perl (formfiller.pl) [*]
 
-Optional/Recommended
---------------------
-The following tools are quite useful, and some of them are used in the
-sample scripts:
+Make dependencies
+-----------------
+* git (for downloading)
+* pkg-config (for Make/gcc)
 
-* socat (for socket communication)
-* dmenu (with vertical patch)
-* zenity
-* bash
-* python (cookies.py)
-* perl (formfiller.pl)
-
-File locations
---------------
-After installing - using either method - you will find:
-
-* /usr/bin : uzbl
-* /usr/share/uzbl/docs/ : documentation files included with uzbl. (readme, checklist, .. )
-* /usr/share/uzbl/examples: sample scripts, config files and a sample data (boomarks, .. )
-
-You will probably want to change the scripts to behave more like you want, so copy the scripts to your home dir. If you save your config as
-$XDG\_CONFIG\_HOME/uzbl/config (this expands to ~/.config/uzbl/config on most systems) it will be recognized automatically. You can also pass the path to
-the config file with the --config parameter.
-
-You're free to store your personal stuff where you want, but we think the [XDG basedir spec](http://standards.freedesktop.org/basedir-spec/basedir-spec-0.6.html)
-is very useful for keeping a clean home directory, so we recommend:
-
-* $XDG\_CONFIG\_HOME/uzbl/config* (~/.config/uzbl/config on most systems): config file
-* $XDG\_DATA\_HOME/uzbl (~/.local/share/uzbl on most systems): bookmarks file, history file. and "scripts" directory with scripts
 
 Git Repo's & branches
 --------------------

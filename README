@@ -1,55 +1,43 @@
-### THIS PROJECT IS NOT FOR:
-* people want a browser that does everything
-* people who want a browser with things like a built-in bookmark manager, address bar, forward/back buttons, ...
-* people who expect something that works by default.  You'll need to read configs and write/edit scripts
-* people who like nothing from this list: mpd, moc, wmii, dwm, awesome, xmonad, mutt, pine, vim, dmenu, screen, irssi, weechat, bitlbee
-
-### TO NEW PEOPLE:
-* invoke uzbl-browser --help
-* to get you started: `XDG_DATA_HOME=/usr/share/uzbl/examples/data XDG_CONFIG_HOME=/usr/share/uzbl/examples/config uzbl-browser --uri www.archlinux.org`
-* alternatively, copy the above data to your real `$XDG_DATA_HOME` and `$XDG_CONFIG_HOME` directories
-* try and study the sample config, read the readme to find out how it works.
-* You can change the url with commands (if you have setup the appropriate keybinds) but to be most effective it's better to do url editing/changing _outside_ of uzbl-browser.
-  Eg, you can use the `load_from_*` dmenu based scripts to pick/edit a url or type a new one.
-* If you have questions, you are likely to find answers in the FAQ or in the other documentation.
-* documentation is in /usr/share/uzbl/docs
-
-
 ### INTRODUCTION
   Any program can only be really useful if it complies to the unix philosophy.
-  Web browsers are frequent violators of this principle:
+  Web browsers (and other tools that work with html, such as feedreaders) are frequent violators of this principle:
 
-* They build in way too much things into the browser, dramatically decreasing the options to do things the way you want.
+* They build in way too much things into one (complex) program, dramatically decreasing the options to do things the way you want.
 * They store things in way too fancy formats (xml, rdf, sqlite, ... ) which are hard to store under version control, reuse in other scripts, ...
 
-Time to change that!
+The uzbl project was started as an attempt to resolve this.
 
-  Here are the general ideas (not all of these are implemented perfectly yet):
+### EDITIONS
 
-* each instance of uzbl renders 1 page (eg it's a small wrapper around webkit), no tabbing, tab previews, or speed dial things.
-  For "multiple instances management" use your window managers, scripts or wrappers.
-* very simple, plaintext , changeable at runtime configuration
-* various interfaces for (programmatic) interaction with uzbl (see below)
-* customizable keyboard shortcuts in vim or emacs style (whatever user wants)
-* "outsource" logic that is not browsing to external scripts under the users control:
-    - managing bookmarks
-    - loading a url from bookmarks, history,..  Editing the curent url
-    - control cookies
-    - handling of downloads, history logging, etc.
-    - management of cache.
-    - password management
-    - Leverage the power of utilities such as grep, awk, dmenu, zenity, wget, gnupg (password file) etc.
-* listen to signals and do useful stuff when triggered.
-* no ad blocking built in.
-  Alternatives:
-    - privoxy looks cool and perfectly demonstrates the unix philosphy.
-    - same for http://bfilter.sourceforge.net
-    - /etc/hosts (not very good cause you need root and it affects the whole system)
-      one can list all images on a page using the socket, so you can easily pick the links to ads to add them to your /etc/hosts.
-* vimperator/konqueror-like hyperlink following.
-* password management. maybe an encrypted store that unlocks with an ssh key?
-* no messing in the users $HOME or in /etc: no writing of anything unless the user (or sysadmin) asks for it.
-  We recommend using XDG basedir spec for separation of config, data and cache. and state should be a subdir in the config dir (not part of the spec yet) too.
+"Uzbl" is an umbrella-project consisting of different flavors.
+In the future more things may come, but for now:
+
+#### uzbl-core: main component meant for integration with other tools and scripts
+
+ * Uses WebkitGtk+ for rendering, network interaction (libsoup).  Css, javascript, plugin support etc come for free
+ * Provides interfaces to get data in (commands/configuration) and out (events): stdin/stdout/fifo/unix sockets    
+ * You see a webkit view and (optionally) a statusbar which gets popuplated externally       
+ * No built-in means for url changing, loading/saving of bookmarks, saving history, keybinds, downloads, ...
+ * Extra functionality: many sample scripts come with it, on <a href="http://www.uzbl.org/wiki/scripts">uzbl wiki</a> or write them yourself
+ * Entire configuration/state can be changed at runtime
+ * Uzbl keeps it simple, and puts <strong>you</strong> in charge.
+
+#### uzbl-browser: a complete browser experience based on uzbl-core
+
+ * Uses a set of scripts (mostly python) that will fit most people, so things work out of the box.  Yet plenty of room for customisation
+ * Brings everything you expect: url changing, history, downloads, form filling, link navigation, cookies, event management etc
+ * Advanced, customizable keyboard interface with support for modes, modkeys, multichars, variables (keywords) etc. (eg you can tweak the interface to be vim-like, emacs-like or any-other-program-like)
+ * Adequate default configuration      
+ * Focus on plaintext storage for your data and configs in simple, parseable formats and adherence to the xdg basedir spec
+ * Visually, similar to uzbl-core except that the statusbar contains useful things.  One window per webpage  
+
+#### uzbl-tabbed: wraps around uzbl-browser and multiplexes it
+
+ * Spawns one window containing multiple tabs, each tab containing a full embedded uzbl-browser
+ * Ideal as a quick and simple solution to manage multiple uzbl-browser instances without getting lost
+
+
+Throughout the documentation, when referring to `uzbl` we mean uzbl-core, unless otherwise specified.
 
 
 ### CONFIGURATION / CONTROL:
@@ -80,8 +68,19 @@ There are several interfaces to interact with uzbl:
 When uzbl forks a new instance (eg "open in new window") it will use the same commandline arguments (eg the same --config <file>), except --uri and--name.
 If you made changes to the configuration at runtime, these are not pased on to the child.
 
+
+#### Uzbl-browser
+- default config
+- EM
+- EM plugins
+- bindings/events/requests
+
+#### Uzbl-tabbed
+- also has some own keybindings
+
+
 ### COMMAND SYNTAX
-Uzbl-browser will read commands via standard input, named fifo pipe (if `fifo_dir` is set) and IPC socket (when `socket_dir` is set).
+Uzbl will read commands via standard input, named fifo pipe (if `fifo_dir` is set) and IPC socket (when `socket_dir` is set).
 For convenience, uzbl can also be instructed to read commands from a file on startup by using the `-c` option.  Indeed, the config file is nothing more than a list of commands.
 
 Each command starts with the name of the command or an uzbl variable that expands to it.  A command is terminated by a newline.
@@ -95,7 +94,7 @@ The following commands are recognized:
    - if you want to unset a string, use `set` with one space after the equals sign
 * `print @<key>`
    - use this to print the value of a variable.
-* `bind <string> = <command>`
+* `bind <string> = <command>` OUTDATED !!!
    - sets the character sequence `<string>` to invoke `<command>` when typed interactively in uzbl
    - there are a few tricks you can do:
        * `<string>` ends with an underscore: the command will only be invoked after pressing return/enter. If the user enters text where `<string>` has the underscore, `%s` in the `<command>` string will be replaced by this text. (optional)
@@ -130,7 +129,7 @@ The following commands are recognized:
 * `script <file>`
    - execute the javascript in `<file>`
 * `toggle_status`
-* `spawn <executable> <additonal args>`
+* `spawn <executable> <additonal args>` TODO explain path-alike expansion
    - runs a command; see EXTERNAL SCRIPTS for details
    - PATH is searched so giving the full path to commands is not neccessary
    - note that the arguments as specified in "EXTERNAL SCRIPTS" are appended at the end, so the argument numbers will be higher.
@@ -160,8 +159,6 @@ The following commands are recognized:
    - use for chaining multiple commands
    - remember to quote the commands; one command must come as one parameter
    - if you use `chain` with a handler script which must return some output (such as a cookie handler -- uzbl will wait for and use its output), use sync_spawn or sync_sh instead of spawn or sh in the command that should give the output
-* `update_gui`
-   - update the contents of the status and title bars
 * `event <event_name> [event_details]`
    - send custom event
 * menu_add          <label>  = <uzbl command>
@@ -181,6 +178,8 @@ The following commands are recognized:
    - removes the entry "label" from one of the right click context menus
 * hardcopy
    - open print dialog
+* include <file>
+   - read contents of file and interprete commands
 
 
 ### VARIABLES AND CONSTANTS
@@ -529,6 +528,10 @@ Reported events and their specific format:
 - when the document body or any non-editable element is clicked
 
      EVENT [uzbl_instance_name] ROOT_ACTIVE
+
+- when the include commands succesfully loads a file
+
+     EVENT [uzbl_instance_name] FILE_INCLUDED /path/to/file
 
 
 

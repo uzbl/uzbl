@@ -21,10 +21,10 @@ UZBLS = {}
 
 # Commonly used regular expressions.
 starts_with_mod = re.compile('^<([A-Z][A-Za-z0-9-_]*)>')
-find_prompts = re.compile('<([^:>]*):>').split
+find_prompts = re.compile('<([^:>]*):(\"[^\"]*\"|\'[^\']*\'|[^>]*)>').split
 
 # For accessing a bind glob stack.
-MOD_CMD, ON_EXEC, HAS_ARGS, GLOB = range(4)
+MOD_CMD, ON_EXEC, HAS_ARGS, GLOB, MORE = range(5)
 
 
 class BindParseError(Exception):
@@ -159,22 +159,28 @@ class Bind(object):
         self.bid = self.nextbid()
 
         self.split = split = find_prompts(glob)
-        self.prompts = split[1::2]
+        self.prompts = []
+        for (prompt, set) in zip(split[1::3], split[2::3]):
+            if set and set[0] == set[-1] and set[0] in ['"', "'"]:
+                # Remove quotes around set.
+                set = set[1:-1]
+
+            self.prompts.append((prompt, set))
 
         # Check that there is nothing like: fl*<int:>*
-        for glob in split[:-1:2]:
+        for glob in split[:-1:3]:
             if glob.endswith('*'):
                 msg = "token '*' not at the end of a prompt bind: %r" % split
                 raise BindParseError(msg)
 
         # Check that there is nothing like: fl<prompt1:><prompt2:>_
-        for glob in split[2::2]:
+        for glob in split[3::3]:
             if not glob:
                 msg = 'found null segment after first prompt: %r' % split
                 raise BindParseError(msg)
 
         stack = []
-        for (index, glob) in enumerate(reversed(split[::2])):
+        for (index, glob) in enumerate(reversed(split[::3])):
             # Is the binding a MODCMD or KEYCMD:
             mod_cmd = ismodbind(glob)
 
@@ -188,7 +194,7 @@ class Bind(object):
             stack.append((mod_cmd, on_exec, has_args, glob, index))
 
         self.stack = list(reversed(stack))
-        self.is_global = len(self.stack) == 1
+        self.is_global = (len(self.stack) == 1 and self.stack[0][MOD_CMD])
 
 
     def __getitem__(self, depth):
@@ -282,6 +288,7 @@ def parse_bind_event(uzbl, args):
 
 
 def set_stack_mode(uzbl, prompt):
+    prompt, set = prompt
     if uzbl.get_mode() != 'stack':
         uzbl.set_mode('stack')
 
@@ -289,6 +296,10 @@ def set_stack_mode(uzbl, prompt):
         prompt = "%s: " % prompt
 
     uzbl.set('keycmd_prompt', prompt)
+
+    if set:
+        # Go through uzbl-core to expand potential @-variables
+        uzbl.send('event SET_KEYCMD %s' % set)
 
 
 def clear_stack(uzbl, mode):

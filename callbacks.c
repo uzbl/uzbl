@@ -38,10 +38,15 @@ set_icon() {
 
 void
 cmd_set_geometry() {
-    if(!gtk_window_parse_geometry(GTK_WINDOW(uzbl.gui.main_window), uzbl.gui.geometry)) {
-        if(uzbl.state.verbose)
-            printf("Error in geometry string: %s\n", uzbl.gui.geometry);
-    }
+    int ret=0, x=0, y=0;
+    unsigned int w=0, h=0;
+
+    ret = XParseGeometry(uzbl.gui.geometry, &x, &y, &w, &h);
+    if(ret & XValue)
+        gtk_window_move((GtkWindow *)uzbl.gui.main_window, x, y);
+    if(ret & WidthValue)
+        gtk_window_resize((GtkWindow *)uzbl.gui.main_window, w, h);
+
     /* update geometry var with the actual geometry
        this is necessary as some WMs don't seem to honour
        the above setting and we don't want to end up with
@@ -231,32 +236,6 @@ cmd_caret_browsing() {
 }
 
 void
-cmd_cookie_handler() {
-    gchar **split = g_strsplit(uzbl.behave.cookie_handler, " ", 2);
-    /* pitfall: doesn't handle chain actions; must the sync_ action manually */
-    if ((g_strcmp0(split[0], "sh") == 0) ||
-        (g_strcmp0(split[0], "spawn") == 0)) {
-        g_free (uzbl.behave.cookie_handler);
-        uzbl.behave.cookie_handler =
-            g_strdup_printf("sync_%s %s", split[0], split[1]);
-    }
-    g_strfreev (split);
-}
-
-void
-cmd_scheme_handler() {
-    gchar **split = g_strsplit(uzbl.behave.scheme_handler, " ", 2);
-    /* pitfall: doesn't handle chain actions; must the sync_ action manually */
-    if ((g_strcmp0(split[0], "sh") == 0) ||
-        (g_strcmp0(split[0], "spawn") == 0)) {
-        g_free (uzbl.behave.scheme_handler);
-        uzbl.behave.scheme_handler =
-            g_strdup_printf("sync_%s %s", split[0], split[1]);
-    }
-    g_strfreev (split);
-}
-
-void
 cmd_fifo_dir() {
     uzbl.behave.fifo_dir = init_fifo(uzbl.behave.fifo_dir);
 }
@@ -293,8 +272,15 @@ cmd_view_source() {
 }
 
 void
+cmd_set_zoom_type () {
+    if(uzbl.behave.zoom_type) 
+        webkit_web_view_set_full_content_zoom (uzbl.gui.web_view, TRUE);
+    else
+        webkit_web_view_set_full_content_zoom (uzbl.gui.web_view, FALSE);
+}
+
+void
 toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result) {
-    (void)page;
     (void)argv;
     (void)result;
 
@@ -373,8 +359,6 @@ progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
     prg_str = itos(progress);
     send_event(LOAD_PROGRESS, prg_str, NULL);
     g_free(prg_str);
-
-    update_title();
 }
 
 void
@@ -393,9 +377,6 @@ load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) page;
     (void) data;
 
-    if (uzbl.behave.load_finish_handler)
-        run_handler(uzbl.behave.load_finish_handler, "");
-
     send_event(LOAD_FINISH, webkit_web_frame_get_uri(frame), NULL);
 }
 
@@ -404,9 +385,6 @@ load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     (void) page;
     (void) frame;
     (void) data;
-    uzbl.gui.sbar.load_progress = 0;
-    if (uzbl.behave.load_start_handler)
-        run_handler(uzbl.behave.load_start_handler, "");
 
     send_event(LOAD_START, uzbl.state.uri, NULL);
 }
@@ -432,10 +410,6 @@ load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
     GString* newuri = g_string_new (webkit_web_frame_get_uri (frame));
     uzbl.state.uri = g_string_free (newuri, FALSE);
 
-    if (uzbl.behave.load_commit_handler)
-        run_handler(uzbl.behave.load_commit_handler, uzbl.state.uri);
-
-    /* event message */
     send_event(LOAD_COMMIT, webkit_web_frame_get_uri (frame), NULL);
 }
 
@@ -473,7 +447,7 @@ focus_cb(GtkWidget* window, GdkEventFocus* event, void *ud) {
     else
         send_event(FOCUS_LOST, "", NULL);
 
-    return TRUE;
+    return FALSE;
 }
 
 gboolean
@@ -493,7 +467,7 @@ key_release_cb (GtkWidget* window, GdkEventKey* event) {
     if(event->type == GDK_KEY_RELEASE)
         key_to_event(event->keyval, GDK_KEY_RELEASE);
 
-    return TRUE;
+    return uzbl.behave.forward_keys ? FALSE : TRUE;
 }
 
 gboolean
@@ -614,8 +588,8 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
         const gchar* uri = webkit_download_get_uri ((WebKitDownload*)download);
         if (uzbl.state.verbose)
             printf("Download -> %s\n",uri);
-        /* if urls not escaped, we may have to escape and quote uri before this call */
 
+        /* if urls not escaped, we may have to escape and quote uri before this call */
         GString *args = g_string_new(uri);
 
         if (uzbl.net.proxy_url) {
