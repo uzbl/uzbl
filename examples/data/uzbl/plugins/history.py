@@ -3,50 +3,54 @@ UZBLS = {}
 
 import random
 
+shared_history = []
+
 class History(object):
     def __init__(self):
-        self._commands = []
+        self._temporary = []
         self.cursor = None
         self.__temp_tail = False
         self.search_key = None
 
     def prev(self):
+        commands = shared_history + self._temporary
         if self.cursor is None:
-            self.cursor = len(self._commands) - 1
+            self.cursor = len(commands) - 1
         else:
             self.cursor -= 1
 
         if self.search_key:
-            while self.cursor >= 0 and self.search_key not in self._commands[self.cursor]:
+            while self.cursor >= 0 and self.search_key not in commands[self.cursor]:
                 self.cursor -= 1
 
-        if self.cursor < 0 or len(self._commands) == 0:
+        if self.cursor < 0 or len(commands) == 0:
             self.cursor = -1
             return random.choice(end_messages)
 
-        return self._commands[self.cursor]
+        return commands[self.cursor]
 
     def next(self):
+        commands = shared_history + self._temporary
         if self.cursor is None:
             return ''
 
         self.cursor += 1
 
         if self.search_key:
-            while self.cursor < len(self._commands) and self.search_key not in self._commands[self.cursor]:
+            while self.cursor < len(commands) and self.search_key not in commands[self.cursor]:
                 self.cursor += 1
 
-        if self.cursor >= len(self._commands) - (1 if self.__temp_tail else 0):
+        if self.cursor >= len(commands) - (1 if self.__temp_tail else 0):
             self.cursor = None
             self.search_key = None
 
             if self.__temp_tail:
                 print 'popping temporary'
                 self.__temp_tail = False
-                return self._commands.pop()
+                return self._temporary.pop()
             return ''
 
-        return self._commands[self.cursor]
+        return commands[self.cursor]
 
     def search(self, key):
         self.search_key = key
@@ -54,24 +58,24 @@ class History(object):
 
     def add(self, cmd):
         if self.__temp_tail:
-            self._commands.pop()
+            self._temporary.pop()
             self.__temp_tail = False
 
-        self._commands.append(cmd)
+        shared_history.append(cmd)
         self.cursor = None
         self.search_key = None
 
     def add_temporary(self, cmd):
         assert not self.__temp_tail
 
-        self._commands.append(cmd)
+        self._temporary.append(cmd)
         self.__temp_tail = True
-        self.cursor = len(self._commands) - 1
+        self.cursor = len(self._temporary) + len(shared_history) - 1
 
         print 'adding temporary', self
 
     def __str__(self):
-        return "(History %s, %s)" % (self.cursor, str(self._commands))
+        return "(History %s)" % (self.cursor)
 
 def get_history(uzbl):
     return UZBLS[uzbl]
