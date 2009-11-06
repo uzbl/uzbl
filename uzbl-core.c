@@ -2446,6 +2446,12 @@ main (int argc, char* argv[]) {
     uzbl.info.pid_str = g_string_free(tmp, FALSE);
     send_event(INSTANCE_START, uzbl.info.pid_str, NULL);
 
+    if(uzbl.state.plug_mode) {
+        char *t = itos(gtk_plug_get_id(uzbl.gui.plug));
+        send_event(PLUG_CREATED, t, NULL);
+        g_free(t);
+    }
+
     gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
 
     if (uzbl.state.verbose) {

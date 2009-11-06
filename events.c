@@ -40,7 +40,8 @@ const char *event_table[LAST_EVENT] = {
      "ROOT_ACTIVE"      ,
      "FOCUS_LOST"       ,
      "FOCUS_GAINED"     ,
-     "FILE_INCLUDED"
+     "FILE_INCLUDED"    ,
+     "PLUG_CREATED"
 };
 
 void

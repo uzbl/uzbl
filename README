@@ -533,6 +533,10 @@ Reported events and their specific format:
 
      EVENT [uzbl_instance_name] FILE_INCLUDED /path/to/file
 
+- when uzbl-core is in xembed mode
+
+     EVENT [uzbl_instance_name] PLUG_CREATED plug-id
+
 
 
 ### COMMAND LINE ARGUMENTS
