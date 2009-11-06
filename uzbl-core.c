@@ -52,7 +52,7 @@ GOptionEntry entries[] =
     { "socket",   's', 0, G_OPTION_ARG_INT, &uzbl.state.socket_id,
         "Socket ID", "SOCKET" },
     { "connect-socket",   0, 0, G_OPTION_ARG_STRING_ARRAY, &uzbl.state.connect_socket_names,
-        "Socket Name", "CSOCKET" },
+        "Connect to server socket", "CSOCKET" },
     { "geometry", 'g', 0, G_OPTION_ARG_STRING, &uzbl.gui.geometry,
         "Set window geometry (format: WIDTHxHEIGHT+-X+-Y)", "GEOMETRY" },
     { "version",  'V', 0, G_OPTION_ARG_NONE, &uzbl.behave.print_version,
@@ -2305,6 +2305,15 @@ retrieve_geometry() {
  * external applications need to do anyhow */
 void
 initialize(int argc, char *argv[]) {
+    int i;
+    
+    for(i=0; i<argc; ++i) {
+        if(!strcmp(argv[i], "-s") || !strcmp(argv[i], "--socket")) {
+            uzbl.state.plug_mode = TRUE;
+            break;
+        }
+    }
+
     if (!g_thread_supported ())
         g_thread_init (NULL);
     gtk_init (&argc, &argv);
@@ -2404,7 +2413,7 @@ main (int argc, char* argv[]) {
     gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
     gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.mainbar, FALSE, TRUE, 0);
 
-    if (uzbl.state.socket_id) {
+    if (uzbl.state.plug_mode) {
         uzbl.gui.plug = create_plug ();
         gtk_container_add (GTK_CONTAINER (uzbl.gui.plug), uzbl.gui.vbox);
         gtk_widget_show_all (GTK_WIDGET (uzbl.gui.plug));

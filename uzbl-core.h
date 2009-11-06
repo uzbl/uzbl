@@ -104,6 +104,7 @@ typedef struct {
     GPtrArray *event_buffer;
     gchar**   connect_socket_names;
     GdkEventButton *last_button;
+    gboolean plug_mode;
 } State;
 
 
