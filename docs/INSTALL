@@ -33,7 +33,7 @@ If you want the specific subprojects, you can issue:
 Dependencies
 ------------
 Dependencies which are optional for uzbl-core are marked with an asterisk. (i.e. these are needed for extra scripts)
-* libwebkit 1.1.4 or higher
+* libwebkit 1.1.15 or higher
 * libsoup 2.24 or higher (dep for webkit/gtk+)
 * gtk 2.14 or higher
 * socat (for socket communication) [*]
