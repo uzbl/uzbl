@@ -263,7 +263,10 @@ Besides the builtin variables you can also define your own ones and use them in 
   - TITLE
   - SELECTED_URI
   - MODE
-  - NAME: name of the uzbl instance (Xorg window id, unless set by cmdline arg) (TODO: can't we make this a variable?)
+  - NAME: name of the uzbl instance (TODO: can't we make this a variable?)
+          * default: Xorg window id
+          * overridable with cmdline arg
+          * in GtkSocket mode, this is a random number to prevent name clashes
 
 
 ### VARIABLE EXPANSION AND COMMAND/JAVA SCRIPT SUBSTITUTION
