@@ -113,13 +113,22 @@ set socket_dir        = /tmp
 # With this command you can enter in any command at runtime when prefixed with
 # a colon.
 @bind    :_        = chain '%s'
-
-@bind    j         = scroll_vert 20
-@bind    k         = scroll_vert -20
-@bind    h         = scroll_horz -20
-@bind    l         = scroll_horz 20
-@bind    <<        = scroll_begin
-@bind    >>        = scroll_end
+@bind    j         = scroll vertical 20
+@bind    <Down>    = scroll vertical 20
+@bind    <Page_Down> = scroll vertical 500
+@bind    k         = scroll vertical -20
+@bind    <Up>      = scroll vertical -20
+@bind    <Page_Up> = scroll vertical -500
+@bind    h         = scroll horizontal -20
+@bind    <Left>    = scroll horizontal -20
+@bind    l         = scroll horizontal 20
+@bind    <Right>   = scroll horizontal 20
+@bind    <<        = scroll vertical begin
+@bind    <Home>    = scroll vertical begin
+@bind    >>        = scroll vertical end
+@bind    <End>     = scroll vertical end
+@bind    ^         = scroll horizontal begin
+@bind    $         = scroll horizontal end
 @bind    b         = back
 @bind    m         = forward
 @bind    S         = stop
