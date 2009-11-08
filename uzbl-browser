@@ -47,11 +47,13 @@ then
 	fi
 fi
 
-if [ ! -S $XDG_CACHE_HOME/uzbl/cookie_daemon_socket ]
-then
+# Uncomment this for a slight speedup at the expense of not having
+# stale cookie daemon sockets cleaned up.
+#if [ ! -S $XDG_CACHE_HOME/uzbl/cookie_daemon_socket ]
+#then
 	# if you want to customize it, copy to your $XDG_DATA_HOME/uzbl/scripts/ and update $PATH
-	cookie_daemon.py
-fi
+	cookie_daemon.py -v
+#fi
 
 DAEMON_SOCKET=$XDG_CACHE_HOME/uzbl/event_daemon
 DAEMON_PID=${DAEMON_SOCKET}.pid
