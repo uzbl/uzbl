@@ -474,6 +474,7 @@ gboolean
 button_press_cb (GtkWidget* window, GdkEventButton* event) {
     (void) window;
     gint context;
+    gchar *details;
 
     if(event->type == GDK_BUTTON_PRESS) {
         if(uzbl.state.last_button)
@@ -489,6 +490,23 @@ button_press_cb (GtkWidget* window, GdkEventButton* event) {
             else if((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT))
                 send_event(ROOT_ACTIVE, "button1", NULL);
         }
+        details = g_strdup_printf("Button%d", event->button);
+        send_event(KEY_PRESS, details, NULL);
+        g_free(details);
+    }
+
+    return FALSE;
+}
+
+gboolean
+button_release_cb (GtkWidget* window, GdkEventButton* event) {
+    (void) window;
+    gchar *details;
+
+    if(event->type == GDK_BUTTON_RELEASE) {
+        details = g_strdup_printf("Button%d", event->button);
+        send_event(KEY_RELEASE, details, NULL);
+        g_free(details);
     }
 
     return FALSE;

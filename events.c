@@ -80,25 +80,22 @@ send_event_socket(GString *msg) {
                                 tmp->str, tmp->len,
                                 &len, &error);
 
-                        if (ret == G_IO_STATUS_ERROR) {
+                        if (ret == G_IO_STATUS_ERROR) 
                             g_warning ("Error sending event to socket: %s", error->message);
-                        }
-                        g_io_channel_flush(gio, &error);
+                        else
+                            g_io_channel_flush(gio, &error);
                     }
                 }
 
                 if(msg) {
-                    while(!ret ||
-                            ret == G_IO_STATUS_AGAIN) {
-                        ret = g_io_channel_write_chars (gio,
-                                msg->str, msg->len,
-                                &len, &error);
-                    }
+                    ret = g_io_channel_write_chars (gio,
+                            msg->str, msg->len,
+                            &len, &error);
 
-                    if (ret == G_IO_STATUS_ERROR) {
+                    if (ret == G_IO_STATUS_ERROR)
                         g_warning ("Error sending event to socket: %s", error->message);
-                    }
-                    g_io_channel_flush(gio, &error);
+                    else
+                        g_io_channel_flush(gio, &error);
                 }
             }
         }
@@ -124,15 +121,14 @@ send_event_socket(GString *msg) {
             ret = 0;
 
             if(gio && gio->is_writeable && msg) {
-                while(!ret || ret == G_IO_STATUS_AGAIN) {
-                    ret = g_io_channel_write_chars (gio,
-                            msg->str, msg->len,
-                            &len, &error);
-                }
+                ret = g_io_channel_write_chars (gio,
+                        msg->str, msg->len,
+                        &len, &error);
 
                 if (ret == G_IO_STATUS_ERROR)
                     g_warning ("Error sending event to socket: %s", error->message);
-                g_io_channel_flush(gio, &error);
+                else
+                    g_io_channel_flush(gio, &error);
             }
         }
     }
