@@ -190,5 +190,8 @@ gboolean
 button_press_cb (GtkWidget* window, GdkEventButton* event);
 
 gboolean
+button_release_cb (GtkWidget* window, GdkEventButton* event);
+
+gboolean
 focus_cb(GtkWidget* window, GdkEventFocus* event, void *ud);
 

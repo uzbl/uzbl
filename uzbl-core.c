@@ -1927,6 +1927,7 @@ create_browser () {
       "signal::key-press-event",                      (GCallback)key_press_cb,            NULL,
       "signal::key-release-event",                    (GCallback)key_release_cb,          NULL,
       "signal::button-press-event",                   (GCallback)button_press_cb,         NULL,
+      "signal::button-release-event",                 (GCallback)button_release_cb,       NULL,
       "signal::title-changed",                        (GCallback)title_change_cb,         NULL,
       "signal::selection-changed",                    (GCallback)selection_changed_cb,    NULL,
       "signal::load-progress-changed",                (GCallback)progress_change_cb,      NULL,
