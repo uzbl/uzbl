@@ -161,24 +161,24 @@ The following commands are recognized:
    - if you use `chain` with a handler script which must return some output (such as a cookie handler -- uzbl will wait for and use its output), use sync_spawn or sync_sh instead of spawn or sh in the command that should give the output
 * `event <event_name> [event_details]`
    - send custom event
-* menu_add          <label>  = <uzbl command>
-* menu_link_add     <label>  = <uzbl command>
-* menu_image_add    <label>  = <uzbl command>
-* menu_editable_add <label>  = <uzbl command>
+* `menu_add          <label>  = <uzbl command>`
+* `menu_link_add     <label>  = <uzbl command>`
+* `menu_image_add    <label>  = <uzbl command>`
+* `menu_editable_add <label>  = <uzbl command>`
    - add a new entry "label" that will execute "uzbl command" to one of the right click context menus
-* menu_separator          <label>
-* menu_link_separator     <label>
-* menu_image_separator    <label>
-* menu_editable_separator <label>
+* `menu_separator          <label>`
+* `menu_link_separator     <label>`
+* `menu_image_separator    <label>`
+* `menu_editable_separator <label>`
    - adds a separator line to one of the right click context menus
-* menu_remove          <label>
-* menu_link_remove     <label>
-* menu_image_remove    <label>
-* menu_editable_remove <label>
+* `menu_remove          <label>`
+* `menu_link_remove     <label>`
+* `menu_image_remove    <label>`
+* `menu_editable_remove <label>`
    - removes the entry "label" from one of the right click context menus
-* hardcopy
+* `hardcopy`
    - open print dialog
-* include <file>
+* `include <file>`
    - read contents of file and interprete commands
 
 
@@ -191,65 +191,62 @@ Some variables have callback functions which will get called after setting the v
 Besides the builtin variables you can also define your own ones and use them in the exact same way as the buitin ones.
 
 * Variables:
-  - uri (callback: load the uri)
-  - verbose: affects output on stdout
-  - inject_html
-  - keycmd: holds the input buffer (callback: update input buffer)
-  - status_message (callback: update title)
-  - show_status: show statusbar or not
-  - status_top: statusbar on top?
-  - status_format: marked up, to be expanded string for statusbar (callback: update statusbar)
-  - status_pbar_done: character to denote done % of pageload
-  - status_pbar_pending: character to denote pending % of pageload
-  - status_pbar_width: width of progressbar
-  - status_background: color which can be used to override Gtk theme.
-  - insert_indicator: string to denote insert mode TODO plugin variable
-  - command_indicator: string to denote command mode TODO plugin variable
-  - title_format_long: titlebar string when no statusbar shown (will be expanded
-  - title_format_short: titlebar string when statusbar shown (will be expanded)
-  - icon: path to icon for Gtk
-  - forward_keys: whether uzbl-core should send key events to the webkit view
-  - insert_mode: whether insert mode is active TODO explain plugin variable
-  - always_insert_mode: set this to true if you don't like modal (vim-like) interfaces TODO explain plugin variable
-  - reset_command_mode: automatically revert to command mode on pageload (unless always_insert_mode is set) TODO explain plugin variable
-  - modkey: modkey which can be pressed to activate keybind from inside insert mode
-  - load_finish_handler
-  - load_start_handler
-  - load_commit_handler
-  - download_handler
-  - cookie_handler
-  - new_window: handler to execute to invoke new uzbl window (TODO better name)
-  - scheme_handler: handler to execute for each URI navigated to - the navigation request will be ignored if handler prints "USED\n"
-  - fifo_dir: location to store fifo's
-  - socket_dir: location to store sockets
-  - http_debug: http debug mode (value 0-3)
-  - shell_cmd: alias which will be expanded to use shell commands (eg sh -c)
-  - proxy_url: http traffic socks proxy (eg: http://<host>:<port>)
-  - max_conns: max simultaneous connections (default: 100)
-  - max_conns_host: max simultaneous connections per hostname (default: 6)
-  - useragent: to be expanded strin
-  - zoom_level
-  - font_size
-  - monospace_size
-  - minimum_font_size
-  - disable_plugins (TODO rename to enable)
-  - disable_scripts (TODO rename to enable)
-  - autoload_images
-  - autoshrink_images: shrink images to window size (default 0)
-  - enable_spellcheck
-  - enable_private
-  - print_backgrounds: print background images? (default 0)
-  - stylesheet_uri: use this to override the pagelayout with a custom stylesheet
-  - resizable_text_areas
-  - default_encoding: iso-8859-1 by default
-  - enforce_96_dpi: 1 by default
-  - caret_browsing
-  - default_font_family = sans-serif
-  - monospace_font_family = monospace (example "Aerial Mono" )
-  - cursive_font_family = sans
-  - fantasy_font_family = "Pterra"
-  - serif_font_family = serif (example "DejaVu Serif")
-  - sans_serif_font_family = sans (example "DejaVu Sans")
+  - `uri`: (callback: load the uri)
+  - `verbose`: affects output on stdout
+  - `inject_html`
+  - `keycmd`: holds the input buffer (callback: update input buffer)
+  - `status_message`: (callback: update title)
+  - `show_status`: show statusbar or not
+  - `status_top`: statusbar on top?
+  - `status_format`: marked up, to be expanded string for statusbar (callback: update statusbar)
+  - `status_pbar_done`: character to denote done % of pageload
+  - `status_pbar_pending`: character to denote pending % of pageload
+  - `status_pbar_width`: width of progressbar
+  - `status_background`: color which can be used to override Gtk theme.
+  - `insert_indicator`: string to denote insert mode TODO plugin variable
+  - `command_indicator`: string to denote command mode TODO plugin variable
+  - `title_format_long`: titlebar string when no statusbar shown (will be expanded
+  - `title_format_short`: titlebar string when statusbar shown (will be expanded)
+  - `icon`: path to icon for Gtk
+  - `forward_keys`: whether uzbl-core should send key events to the webkit view
+  - `insert_mode`: whether insert mode is active TODO explain plugin variable
+  - `always_insert_mode`: set this to true if you don't like modal (vim-like) interfaces TODO explain plugin variable
+  - `reset_command_mode`: automatically revert to command mode on pageload (unless always_insert_mode is set) TODO explain plugin variable
+  - `modkey`: modkey which can be pressed to activate keybind from inside insert mode
+  - `download_handler`
+  - `cookie_handler`
+  - `new_window`: handler to execute to invoke new uzbl window (TODO better name)
+  - `scheme_handler`: handler to execute for each URI navigated to - the navigation request will be ignored if handler prints "USED\n"
+  - `fifo_dir`: location to store fifo's
+  - `socket_dir`: location to store sockets
+  - `http_debug`: http debug mode (value 0-3)
+  - `shell_cmd`: alias which will be expanded to use shell commands (eg sh -c)
+  - `proxy_url`: http traffic socks proxy (eg: http://<host>:<port>)
+  - `max_conns`: max simultaneous connections (default: 100)
+  - `max_conns_host`: max simultaneous connections per hostname (default: 6)
+  - `useragent`: to be expanded strin
+  - `zoom_level`
+  - `font_size`
+  - `monospace_size`
+  - `minimum_font_size`
+  - `disable_plugins` (TODO rename to enable)
+  - `disable_scripts` (TODO rename to enable)
+  - `autoload_images`
+  - `autoshrink_images`: shrink images to window size (default 0)
+  - `enable_spellcheck`
+  - `enable_private`
+  - `print_backgrounds`: print background images? (default 0)
+  - `stylesheet_uri`: use this to override the pagelayout with a custom stylesheet
+  - `resizable_text_areas`
+  - `default_encoding`: iso-8859-1 by default
+  - `enforce_96_dpi`: 1 by default
+  - `caret_browsing`
+  - `default_font_family` = sans-serif
+  - `monospace_font_family` = monospace (example "Aerial Mono" )
+  - `cursive_font_family` = sans
+  - `fantasy_font_family` = "Pterra"
+  - `serif_font_family` = serif (example "DejaVu Serif")
+  - `sans_serif_font_family` = sans (example "DejaVu Sans")
 
 
 * Constants (not dumpable or writeable):
