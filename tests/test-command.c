@@ -250,27 +250,27 @@ test_scroll (void) {
     gtk_adjustment_set_upper(uzbl.gui.bar_v, 100);
     gtk_adjustment_set_page_size(uzbl.gui.bar_v, 5);
 
-    /* scroll_end should scroll it to upper - page_size */
-    parse_cmd_line("scroll_end", NULL);
+    /* scroll vertical end should scroll it to upper - page_size */
+    parse_cmd_line("scroll vertical end", NULL);
     g_assert_cmpfloat(gtk_adjustment_get_value(uzbl.gui.bar_v), ==, 95);
 
-    /* scroll_begin should scroll it to lower */
-    parse_cmd_line("scroll_begin", NULL);
+    /* scroll vertical begin should scroll it to lower */
+    parse_cmd_line("scroll vertical begin", NULL);
     g_assert_cmpfloat(gtk_adjustment_get_value(uzbl.gui.bar_v), ==, 0);
 
-    /* scroll_vert can scroll by pixels */
-    parse_cmd_line("scroll_vert 15", NULL);
+    /* scroll vertical can scroll by pixels */
+    parse_cmd_line("scroll vertical 15", NULL);
     g_assert_cmpfloat(gtk_adjustment_get_value(uzbl.gui.bar_v), ==, 15);
 
-    parse_cmd_line("scroll_vert -10", NULL);
+    parse_cmd_line("scroll vertical -10", NULL);
     g_assert_cmpfloat(gtk_adjustment_get_value(uzbl.gui.bar_v), ==, 5);
 
-    /* scroll_vert can scroll by a percentage of the page size */
-    parse_cmd_line("scroll_vert 100%", NULL);
+    /* scroll vertical can scroll by a percentage of the page size */
+    parse_cmd_line("scroll vertical 100%", NULL);
     g_assert_cmpfloat(gtk_adjustment_get_value(uzbl.gui.bar_v), ==, 10);
 
-    parse_cmd_line("scroll_vert -150%", NULL);
-    g_assert_cmpfloat(gtk_adjustment_get_value(uzbl.gui.bar_v), ==, 2.5);
+    parse_cmd_line("scroll vertical 150%", NULL);
+    g_assert_cmpfloat(gtk_adjustment_get_value(uzbl.gui.bar_v), ==, 17.5);
 
     /* scroll_horz behaves basically the same way. */
 }
