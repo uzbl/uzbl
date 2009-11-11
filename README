@@ -159,6 +159,8 @@ The following commands are recognized:
    - if you use `chain` with a handler script which must return some output (such as a cookie handler -- uzbl will wait for and use its output), use sync_spawn or sync_sh instead of spawn or sh in the command that should give the output
 * `event <event_name> [event_details]`
    - send custom event
+* `request <request_name> [request_details]`
+   - send custom request (same idea as events, but to be processed by EM, not uzbl-core)
 * `menu_add          <label>  = <uzbl command>`
 * `menu_link_add     <label>  = <uzbl command>`
 * `menu_image_add    <label>  = <uzbl command>`
@@ -177,7 +179,7 @@ The following commands are recognized:
 * `hardcopy`
    - open print dialog
 * `include <file>`
-   - read contents of file and interprete commands
+   - read contents of file and interpret commands
 
 
 ### VARIABLES AND CONSTANTS
