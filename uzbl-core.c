@@ -507,6 +507,7 @@ void
 catch_sigterm(int s) {
     (void) s;
     clean_up();
+    exit(EXIT_SUCCESS);
 }
 
 void
