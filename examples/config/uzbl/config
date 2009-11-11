@@ -1,6 +1,8 @@
 # example uzbl config.
 # all settings are optional.  you can use uzbl without any config at all (but it won't do much)
 
+set prefix      = /usr/local
+
 # === Shortcuts ==============================================================
 
 # request BIND <keycmd> = <command>
@@ -21,7 +23,7 @@ set set_status     = set status_message =
 set shell_cmd      = sh -c
 
 # Spawn path shortcuts. In spawn the first dir+path match is used in "dir1:dir2:dir3:executable"
-set scripts_dir    = $XDG_DATA_HOME/uzbl:/usr/local/share/uzbl/examples/data/uzbl:scripts
+set scripts_dir    = $XDG_DATA_HOME/uzbl:@prefix/share/uzbl/examples/data/uzbl:scripts
 
 
 # === Handlers ===============================================================

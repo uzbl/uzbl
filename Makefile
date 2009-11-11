@@ -40,6 +40,7 @@ uzbl-core: ${OBJ}
 uzbl-browser: uzbl-core
 
 # packagers, set DESTDIR to your "package directory" and PREFIX to the prefix you want to have on the end-user system
+# end-users who build from source: don't care about DESTDIR, update PREFIX if you want to
 PREFIX?=/usr/local
 INSTALLDIR?=$(DESTDIR)$(PREFIX)
 
@@ -102,6 +103,7 @@ install-uzbl-browser: all
 	install -m755 examples/data/uzbl/scripts/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
 	sed -i 's#^PREFIX=.*#PREFIX=$(PREFIX)#' $(INSTALLDIR)/bin/uzbl-browser
 	sed -i "s#^PREFIX = None#PREFIX = '$(PREFIX)'#" $(INSTALLDIR)/bin/uzbl-event-manager
+	sed -i 's#^set prefix.*=.*#set prefix     = $(PREFIX)#' $(INSTALLDIR)/share/uzbl/examples/config/uzbl/config
 
 install-uzbl-tabbed: all
 	install -d $(INSTALLDIR)/bin
