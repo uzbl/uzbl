@@ -45,12 +45,8 @@ from traceback import print_exc
 # ::: Default configuration section ::::::::::::::::::::::::::::::::::::::::::
 # ============================================================================
 
-# Automagically set during `make install`
-PREFIX = None
-
-# Check if PREFIX not set and set to default /usr/local/
-if not PREFIX:
-    PREFIX = '/usr/local/'
+# `make install` will put the correct value here for your system
+PREFIX = '/usr/local/'
 
 def xdghome(key, default):
     '''Attempts to use the environ XDG_*_HOME paths if they exist otherwise
