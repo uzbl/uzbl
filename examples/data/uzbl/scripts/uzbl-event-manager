@@ -335,6 +335,10 @@ class EventHandler(object):
 
 
 class UzblInstance(object):
+
+    # Give all plugins access to the main config dict.
+    config = config
+
     def __init__(self, parent, client_socket):
 
         # Internal variables.

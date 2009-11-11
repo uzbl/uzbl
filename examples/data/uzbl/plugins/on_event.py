@@ -18,15 +18,10 @@ Usage:
 
 import sys
 import re
-from event_manager import config
 
 __export__ = ['get_on_events', 'on_event']
 
 UZBLS = {}
-
-def echo(msg):
-    if config['verbose']:
-        print 'on_event plugin:', msg
 
 
 def error(msg):

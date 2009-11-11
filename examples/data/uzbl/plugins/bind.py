@@ -11,7 +11,6 @@ And it is also possible to execute a function on activation:
 
 import sys
 import re
-from event_manager import config, counter, iscallable, isiterable
 
 # Export these variables/functions to uzbl.<name>
 __export__ = ['bind', 'del_bind', 'del_bind_by_glob', 'get_binds']
@@ -29,11 +28,6 @@ MOD_CMD, ON_EXEC, HAS_ARGS, GLOB, MORE = range(5)
 
 class BindParseError(Exception):
     pass
-
-
-def echo(msg):
-    if config['verbose']:
-        print 'bind plugin:', msg
 
 
 def error(msg):
@@ -132,10 +126,11 @@ def del_bind_by_glob(uzbl, glob):
 
 class Bind(object):
 
-    nextbid = counter().next
+    # Class attribute to hold the number of Bind classes created.
+    counter = [0,]
 
     def __init__(self, glob, handler, *args, **kargs):
-        self.is_callable = iscallable(handler)
+        self.is_callable = callable(handler)
         self._repr_cache = None
 
         if not glob:
@@ -149,14 +144,17 @@ class Bind(object):
         elif kargs:
             raise ArgumentError('cannot supply kargs for uzbl commands')
 
-        elif isiterable(handler):
+        elif hasattr(handler, '__iter__'):
             self.commands = handler
 
         else:
             self.commands = [handler,] + list(args)
 
         self.glob = glob
-        self.bid = self.nextbid()
+
+        # Assign unique id.
+        self.counter[0] += 1
+        self.bid = self.counter[0]
 
         self.split = split = find_prompts(glob)
         self.prompts = []
