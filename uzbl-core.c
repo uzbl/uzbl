@@ -1492,8 +1492,8 @@ parse_command(const char *cmd, const char *param, GString *result) {
                 g_string_free(tmp, TRUE);
             }
 
-    } else
-        g_printerr ("command \"%s\" not understood. ignoring.\n", cmd);
+    } else 
+        send_event(COMMAND_ERROR, cmd, NULL);
 }
 
 

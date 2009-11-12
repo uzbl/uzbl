@@ -41,7 +41,8 @@ const char *event_table[LAST_EVENT] = {
      "FOCUS_LOST"       ,
      "FOCUS_GAINED"     ,
      "FILE_INCLUDED"    ,
-     "PLUG_CREATED"
+     "PLUG_CREATED"     ,
+     "COMMAND_ERROR"
 };
 
 void
