@@ -60,7 +60,7 @@ send_event_socket(GString *msg) {
     GError *error = NULL;
     GString *tmp;
     GIOChannel *gio = NULL;
-    GIOStatus ret = 0;
+    GIOStatus ret;
     gsize len;
     guint i=0, j=0;
 
@@ -68,7 +68,7 @@ send_event_socket(GString *msg) {
     if(uzbl.comm.connect_chan) {
         while(i < uzbl.comm.connect_chan->len) {
             gio = g_ptr_array_index(uzbl.comm.connect_chan, i++);
-            j=0; ret = 0;
+            j=0;
 
             if(gio && gio->is_writeable) {
                 if(uzbl.state.event_buffer) {
@@ -119,7 +119,6 @@ send_event_socket(GString *msg) {
     if(msg && uzbl.comm.client_chan) {
         while(i < uzbl.comm.client_chan->len) {
             gio = g_ptr_array_index(uzbl.comm.client_chan, i++);
-            ret = 0;
 
             if(gio && gio->is_writeable && msg) {
                 ret = g_io_channel_write_chars (gio,
