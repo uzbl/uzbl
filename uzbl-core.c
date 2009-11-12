@@ -88,7 +88,6 @@ const struct var_name_to_ptr_t {
     { "inject_html",            PTR_V_STR(uzbl.behave.inject_html,              0,   cmd_inject_html)},
     { "geometry",               PTR_V_STR(uzbl.gui.geometry,                    1,   cmd_set_geometry)},
     { "keycmd",                 PTR_V_STR(uzbl.state.keycmd,                    1,   NULL)},
-    { "status_message",         PTR_V_STR(uzbl.gui.sbar.msg,                    1,   NULL)},
     { "show_status",            PTR_V_INT(uzbl.behave.show_status,              1,   cmd_set_status)},
     { "status_top",             PTR_V_INT(uzbl.behave.status_top,               1,   move_statusbar)},
     { "status_format",          PTR_V_STR(uzbl.behave.status_format,            1,   NULL)},
