@@ -41,12 +41,6 @@
 
 #define LENGTH(x) (sizeof x / sizeof x[0])
 
-/* status bar elements */
-typedef struct {
-    gchar          *msg;
-} StatusBar;
-
-
 /* gui elements */
 typedef struct {
     GtkWidget*     main_window;
@@ -67,8 +61,6 @@ typedef struct {
     /* WebInspector */
     GtkWidget *inspector_window;
     WebKitWebInspector *inspector;
-
-    StatusBar sbar;
 
     /* custom context menu item */
     GPtrArray    *menu_items;

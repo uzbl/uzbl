@@ -455,6 +455,7 @@ Basically all events have this format:
   - `EVENT [uzbl_instance_name] INSTANCE_EXIT process_id`: uzbl shutdown
   - `EVENT [uzbl_instance_name] VARIABLE_SET variable_name str|int|float variable_value`.  Note: str|int|float denote the type of variable_value
   - `EVENT [uzbl_instance_name] COMMAND_EXECUTED command_name optional_command_arguments`
+  - `EVENT [uzbl_instance_name] COMMAND_ERROR command`
   - `EVENT [uzbl_instance_name] GEOMETRY_CHANGED WIDTHxHEIGHT+X_POSITION+Y_POSITION`: when the size or position of the uzbl window changes
   - `EVENT [uzbl_instance_name] FIFO_SET path_to_fifo`
   - `EVENT [uzbl_instance_name] SOCKET_SET path_to_socket`
@@ -462,6 +463,7 @@ Basically all events have this format:
   - `EVENT [uzbl_instance_name] LOAD_START uri`
   - `EVENT [uzbl_instance_name] LOAD_FINISHED uri`
   - `EVENT [uzbl_instance_name] LOAD_ERROR reason_of_error`
+  - `EVENT [uzbl_instance_name] LOAD_PROGRESS percentage` : while the page is loading
   - `EVENT [uzbl_instance_name] TITLE_CHANGED title_name`: when the title of the webpage (and hence maybe, the window title) changed
   - `EVENT [uzbl_instance_name] DOWNLOAD_REQUEST download_uri`: when content needs to be downloaded
   - `EVENT [uzbl_instance_name] LINK_HOVER uri`: mouse hovers over a link
