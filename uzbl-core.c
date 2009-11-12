@@ -1491,9 +1491,12 @@ parse_command(const char *cmd, const char *param, GString *result) {
                 send_event(COMMAND_EXECUTED, tmp->str, NULL);
                 g_string_free(tmp, TRUE);
             }
-
-    } else 
-        send_event(COMMAND_ERROR, cmd, NULL);
+    } 
+    else { 
+        gchar *tmp = g_strdup_printf("%s %s", cmd, param?param:"");
+        send_event(COMMAND_ERROR, tmp, NULL);
+        g_free(tmp);
+    }
 }
 
 
