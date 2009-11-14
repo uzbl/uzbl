@@ -181,13 +181,17 @@ send_event(int type, const gchar *details, const gchar *custom_event) {
 void
 key_to_event(guint keyval, gint mode) {
     char byte[2] = {0, 0};
+    gchar *utf_conv = NULL;
 
     /* check for Latin-1 characters  (1:1 mapping) */
     if ((keyval >  0x0020 && keyval <= 0x007e) ||
         (keyval >= 0x0080 && keyval <= 0x00ff)) {
-        sprintf(byte, "%c", keyval);
-        send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
-                byte, NULL);
+        byte[0] = (char) keyval;
+
+        /* convert to utf-8 */
+        utf_conv = g_convert(byte, -1, "UTF-8", "ISO-8859-1", NULL, NULL, NULL);
+
+        send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE, utf_conv ? utf_conv : byte, NULL);
     }
     else
         send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
