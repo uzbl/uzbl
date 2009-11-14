@@ -192,6 +192,7 @@ key_to_event(guint keyval, gint mode) {
         utf_conv = g_convert(byte, -1, "UTF-8", "ISO-8859-1", NULL, NULL, NULL);
 
         send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE, utf_conv ? utf_conv : byte, NULL);
+        g_free(utf_conv);
     }
     else
         send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
