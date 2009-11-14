@@ -345,6 +345,9 @@ str_replace (const char* search, const char* replace, const char* string) {
     gchar **buf;
     char *ret;
 
+    if(!string)
+        return NULL;
+
     buf = g_strsplit (string, search, -1);
     ret = g_strjoinv (replace, buf);
     g_strfreev(buf);
@@ -434,8 +437,10 @@ parseenv (gchar* string) {
     gchar* tmpstr = NULL, * out;
     int i = 0;
 
-    out = g_strdup(string);
+    if(!string)
+        return NULL;
 
+    out = g_strdup(string);
     while (environ[i] != NULL) {
         gchar** env = g_strsplit (environ[i], "=", 2);
         gchar* envname = g_strconcat ("$", env[0], NULL);
@@ -669,6 +674,10 @@ file_exists (const char * filename) {
 void
 set_var(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
+
+    if(!argv_idx(argv, 0))
+        return;
+
     gchar **split = g_strsplit(argv_idx(argv, 0), "=", 2);
     if (split[0] != NULL) {
         gchar *value = parseenv(split[1] ? g_strchug(split[1]) : " ");
@@ -683,8 +692,11 @@ add_to_menu(GArray *argv, guint context) {
     GUI *g = &uzbl.gui;
     MenuItem *m;
     gchar *item_cmd = NULL;
-    gchar **split = g_strsplit(argv_idx(argv, 0), "=", 2);
 
+    if(!argv_idx(argv, 0))
+        return;
+
+    gchar **split = g_strsplit(argv_idx(argv, 0), "=", 2);
     if(!g->menu_items)
         g->menu_items = g_ptr_array_new();
 
