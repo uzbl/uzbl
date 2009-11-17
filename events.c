@@ -180,23 +180,26 @@ send_event(int type, const gchar *details, const gchar *custom_event) {
 /* Transform gdk key events to our own events */
 void
 key_to_event(guint keyval, gint mode) {
-    char byte[2] = {0, 0};
-    gchar *utf_conv = NULL;
+    gchar ucs[7];
+    gint ulen;
+    guint32 ukval = gdk_keyval_to_unicode(keyval);
 
-    /* check for Latin-1 characters  (1:1 mapping) */
-    if ((keyval >  0x0020 && keyval <= 0x007e) ||
-        (keyval >= 0x0080 && keyval <= 0x00ff)) {
-        byte[0] = (char) keyval;
+    /* check for printable unicode char */
+    /* TODO: Pass the keyvals through a GtkIMContext so that
+     *       we also get combining chars right
+    */
+    if(ukval) {
+        ulen = g_unichar_to_utf8(ukval, ucs);
+        ucs[ulen] = 0;
 
-        /* convert to utf-8 */
-        utf_conv = g_convert(byte, -1, "UTF-8", "ISO-8859-1", NULL, NULL, NULL);
-
-        send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE, utf_conv ? utf_conv : byte, NULL);
-        g_free(utf_conv);
+        send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
+                ucs, NULL);
     }
-    else
+    /* send keysym for non-printable chars */
+    else {
         send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
                 gdk_keyval_name(keyval), NULL);
+    }
 
 }
 
