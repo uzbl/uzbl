@@ -188,7 +188,7 @@ key_to_event(guint keyval, gint mode) {
     /* TODO: Pass the keyvals through a GtkIMContext so that
      *       we also get combining chars right
     */
-    if(ukval) {
+    if(g_unichar_isgraph(ukval)) {
         ulen = g_unichar_to_utf8(ukval, ucs);
         ucs[ulen] = 0;
 
