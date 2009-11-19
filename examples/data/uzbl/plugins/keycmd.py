@@ -31,7 +31,7 @@ class Keylet(object):
 
     def __init__(self):
         # Modcmd tracking
-        self.held = []
+        self.held = set()
         self.modcmd = ''
         self.is_modcmd = False
 
@@ -169,7 +169,7 @@ def clear_modcmd(uzbl, clear_held=False):
     k.is_modcmd = False
     k._repr_cache = False
     if clear_held:
-        k.held = []
+        k.held = set()
 
     config = uzbl.get_config()
     if 'modcmd' not in config or config['modcmd'] != '':
@@ -271,8 +271,7 @@ def key_press(uzbl, key):
             k.held.remove('Tab')
 
         if key not in k.held:
-            k.held.append(key)
-            k.held.sort()
+            k.held.add(key)
 
     else:
         k.is_modcmd = True
