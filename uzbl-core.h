@@ -374,6 +374,9 @@ void
 search_reverse_text (WebKitWebView *page, GArray *argv, GString *result);
 
 void
+search_clear(WebKitWebView *page, GArray *argv, GString *result);
+
+void
 dehilight (WebKitWebView *page, GArray *argv, GString *result);
 
 void

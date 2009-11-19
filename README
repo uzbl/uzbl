@@ -144,6 +144,8 @@ The following commands are recognized:
 * `search <string>`
 * `search_reverse <string>`
    - search with no string will search for the next/previous occurrence of the string previously searched for
+* `search_clear`
+   - unmark and clear the search string
 * `toggle_insert_mode <optional state>` TODO new plugin based syntax
    - if the optional state is 0, disable insert mode. If 1, enable insert mode.
 * `dump_config`
