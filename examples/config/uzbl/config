@@ -17,7 +17,7 @@ set on_event       = request ON_EVENT
 set progress       = request PROGRESS_CONFIG
 # request MODMAP From To
 set modmap         = request MODMAP
-# request KEY_IGNORE <glob>
+# request IGNORE_KEY <glob>
 set ignore_key     = request IGNORE_KEY
 
 set set_mode       = set mode =
