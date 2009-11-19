@@ -113,7 +113,7 @@ set socket_dir        = /tmp
 
 #ignore_key <glob>
 @ignore_key <ISO_*>
-@ignore_key <Sh*>
+@ignore_key <Shift>
 
 # === Keyboard & Mouse bindings ==============================================
 
