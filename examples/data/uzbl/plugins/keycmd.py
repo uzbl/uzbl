@@ -2,7 +2,7 @@ import re
 
 # Map these functions/variables in the plugins namespace to the uzbl object.
 __export__ = ['clear_keycmd', 'set_keycmd', 'set_cursor_pos', 'get_keylet',
-    'clear_current', 'clear_modcmd', 'add_modmap']
+    'clear_current', 'clear_modcmd', 'add_modmap', 'add_key_ignore']
 
 # Hold the keylets.
 UZBLS = {}
@@ -39,8 +39,8 @@ class Keylet(object):
         self.keycmd = ''
         self.cursor = 0
 
-        # Key modmaps.
-        self.modmap = {}
+        self.modmaps = {}
+        self.ignores = {}
 
         # Keylet string repr cache.
         self._repr_cache = None
@@ -61,18 +61,28 @@ class Keylet(object):
         return ''.join(self.held) + self.modcmd
 
 
-    def key_modmap(self, key):
+    def modmap_key(self, key):
         '''Make some obscure names for some keys friendlier.'''
 
-        if key in self.modmap:
-            return self.modmap[key]
+        if key in self.modmaps:
+            return self.modmaps[key]
 
         elif key.endswith('_L') or key.endswith('_R'):
             # Remove left-right discrimination and try again.
-            return self.key_modmap(key[:-2])
+            return self.modmap_key(key[:-2])
 
         else:
             return key
+
+
+    def key_ignored(self, key):
+        '''Check if the given key is ignored by any ignore rules.'''
+
+        for (glob, match) in self.ignores.items():
+            if match(key):
+                return True
+
+        return False
 
 
     def __repr__(self):
@@ -95,23 +105,17 @@ class Keylet(object):
         return self._repr_cache
 
 
-def add_modmap(uzbl, key, map=None):
+def add_modmap(uzbl, key, map):
     '''Add modmaps.'''
 
-    keylet = get_keylet(uzbl)
+    assert len(key)
+    modmaps = get_keylet(uzbl).modmaps
 
     if key[0] == "<" and key[-1] == ">":
         key = key[1:-1]
 
-    if not map:
-        if key in keylet.modmap:
-            map = keylet.modmap[key]
-            del keylet.modmap[key]
-            uzbl.event("DEL_MODMAP", key, map)
-
-    else:
-        keylet.modmap[key] = map
-        uzbl.event("NEW_MODMAP", key, map)
+    modmaps[key] = map
+    uzbl.event("NEW_MODMAP", key, map)
 
 
 def modmap_parse(uzbl, map):
@@ -123,6 +127,20 @@ def modmap_parse(uzbl, map):
         raise Exception('Invalid modmap arugments: %r' % map)
 
     add_modmap(uzbl, *split)
+
+
+def add_key_ignore(uzbl, glob):
+    '''Add an ignore definition.'''
+
+    assert len(glob) > 1
+    ignores = get_keylet(uzbl).ignores
+
+    glob = "<%s>" % glob.strip("<> ")
+    restr = glob.replace('*', '[^\s]*')
+    match = re.compile(restr).match
+
+    ignores[glob] = match
+    uzbl.event('NEW_KEY_IGNORE', glob)
 
 
 def add_instance(uzbl, *args):
@@ -258,9 +276,9 @@ def key_press(uzbl, key):
     6. Keycmd is updated and events raised if anything is changed.'''
 
     k = get_keylet(uzbl)
-    key = chevronate(k.key_modmap(key.strip()))
+    key = chevronate(k.modmap_key(key.strip()))
 
-    if key.startswith("<ISO_") or key == '<Shift>':
+    if k.key_ignored(key):
         return
 
     if key.lower() == '<space>' and not k.held and k.keycmd:
@@ -301,7 +319,7 @@ def key_release(uzbl, key):
     4. Update the keycmd uzbl variable if anything changed.'''
 
     k = get_keylet(uzbl)
-    key = chevronate(k.key_modmap(key))
+    key = chevronate(k.modmap_key(key))
 
     if key in ['<Shift>', '<Tab>'] and '<Shift-Tab>' in k.held:
         key = '<Shift-Tab>'
@@ -438,6 +456,7 @@ def init(uzbl):
       'FOCUS_GAINED': focus_changed,
       'MODMAP': modmap_parse,
       'APPEND_KEYCMD': append_keycmd,
-      'INJECT_KEYCMD': inject_keycmd}
+      'INJECT_KEYCMD': inject_keycmd,
+      'IGNORE_KEY': add_key_ignore}
 
     uzbl.connect_dict(connects)

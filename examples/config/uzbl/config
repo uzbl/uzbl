@@ -17,6 +17,8 @@ set on_event       = request ON_EVENT
 set progress       = request PROGRESS_CONFIG
 # request MODMAP From To
 set modmap         = request MODMAP
+# request KEY_IGNORE <glob>
+set ignore_key     = request IGNORE_KEY
 
 set set_mode       = set mode =
 set set_status     = set status_message =
@@ -102,15 +104,18 @@ set fifo_dir          = /tmp
 set socket_dir        = /tmp
 
 
-# === Binding modmaps ========================================================
+# === Key modmapping and ignoring ============================================
 
-#modmap from           to
-@modmap Control        Ctrl
-@modmap ISO_Left_Tab   Shift-Tab
-@modmap space          Space
+#modmap from            to
+@modmap <Control>       <Ctrl>
+@modmap <ISO_Left_Tab>  <Shift-Tab>
+@modmap <space>         <Space>
 
+#ignore_key <glob>
+@ignore_key <ISO_*>
+@ignore_key <Sh*>
 
-# === Keyboard & Mouse bindings ======================================================
+# === Keyboard & Mouse bindings ==============================================
 
 # With this command you can enter in any command at runtime when prefixed with
 # a colon.
