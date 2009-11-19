@@ -630,6 +630,7 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "exit",                           {close_uzbl, 0}                 },
     { "search",                         {search_forward_text, TRUE}     },
     { "search_reverse",                 {search_reverse_text, TRUE}     },
+    { "search_clear",                   {search_clear, TRUE}            },
     { "dehilight",                      {dehilight, 0}                  },
     { "set",                            {set_var, TRUE}                 },
     { "dump_config",                    {act_dump_config, 0}            },
@@ -1094,11 +1095,24 @@ search_text (WebKitWebView *page, GArray *argv, const gboolean forward) {
         }
     }
 
+
     if (uzbl.state.searchtx) {
         if (uzbl.state.verbose)
             printf ("Searching: %s\n", uzbl.state.searchtx);
         webkit_web_view_set_highlight_text_matches (page, TRUE);
         webkit_web_view_search_text (page, uzbl.state.searchtx, FALSE, forward, TRUE);
+    }
+}
+
+void
+search_clear(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) argv;
+    (void) result;
+
+    webkit_web_view_unmark_text_matches (page);
+    if(uzbl.state.searchtx) {
+        g_free(uzbl.state.searchtx);
+        uzbl.state.searchtx = NULL;
     }
 }
 
