@@ -58,7 +58,7 @@ class Keylet(object):
         if not self.is_modcmd:
             return ''
 
-        return ''.join(['<%s>' % key for key in self.held]) + self.modcmd
+        return ''.join(self.held) + self.modcmd
 
 
     def key_modmap(self, key):
@@ -99,6 +99,10 @@ def add_modmap(uzbl, key, map=None):
     '''Add modmaps.'''
 
     keylet = get_keylet(uzbl)
+
+    if key[0] == "<" and key[-1] == ">":
+        key = key[1:-1]
+
     if not map:
         if key in keylet.modmap:
             map = keylet.modmap[key]
@@ -233,6 +237,16 @@ def inject_str(str, index, inj):
     return "%s%s%s" % (str[:index], inj, str[index:])
 
 
+def chevronate(key):
+    '''If a modkey isn't already chevronated then chevronate it. Ignore all
+    other keys.'''
+
+    if len(key) == 1:
+        return key
+
+    return "<%s>" % key.strip("<>")
+
+
 def key_press(uzbl, key):
     '''Handle KEY_PRESS events. Things done by this function include:
 
@@ -243,15 +257,13 @@ def key_press(uzbl, key):
     5. If in modcmd mode the pressed key is added to the held keys list.
     6. Keycmd is updated and events raised if anything is changed.'''
 
-    if key.startswith('Shift_'):
-        return
-
     k = get_keylet(uzbl)
-    key = k.key_modmap(key.strip())
-    if key.startswith("ISO_"):
+    key = chevronate(k.key_modmap(key.strip()))
+
+    if key.startswith("<ISO_") or key == '<Shift>':
         return
 
-    if key == 'Space' and not k.held and k.keycmd:
+    if key.lower() == '<space>' and not k.held and k.keycmd:
         k.keycmd = inject_str(k.keycmd, k.cursor, ' ')
         k.cursor += 1
 
@@ -267,8 +279,8 @@ def key_press(uzbl, key):
 
     elif len(key) > 1:
         k.is_modcmd = True
-        if key == 'Shift-Tab' and 'Tab' in k.held:
-            k.held.remove('Tab')
+        if key == '<Shift-Tab>' and '<Tab>' in k.held:
+            k.held.remove('<Tab>')
 
         if key not in k.held:
             k.held.add(key)
@@ -289,13 +301,13 @@ def key_release(uzbl, key):
     4. Update the keycmd uzbl variable if anything changed.'''
 
     k = get_keylet(uzbl)
-    key = k.key_modmap(key)
+    key = chevronate(k.key_modmap(key))
 
-    if key in ['Shift', 'Tab'] and 'Shift-Tab' in k.held:
-        key = 'Shift-Tab'
+    if key in ['<Shift>', '<Tab>'] and '<Shift-Tab>' in k.held:
+        key = '<Shift-Tab>'
 
-    elif key in ['Shift', 'Alt'] and 'Meta' in k.held:
-        key = 'Meta'
+    elif key in ['<Shift>', '<Alt>'] and '<Meta>' in k.held:
+        key = '<Meta>'
 
     if key in k.held:
         if k.is_modcmd:

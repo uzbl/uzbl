@@ -43,7 +43,7 @@ def split_glob(glob):
             break
 
         end = match.span()[1]
-        mods.add(glob[:end].strip("<>"))
+        mods.add(glob[:end])
         glob = glob[end:]
 
     return (mods, glob)
