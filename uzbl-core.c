@@ -665,6 +665,21 @@ commands_hash(void)
         g_hash_table_insert(uzbl.behave.commands, (gpointer) cmdlist[i].key, &cmdlist[i].value);
 }
 
+void
+builtins() {
+    unsigned int i,
+             len = LENGTH(cmdlist);
+    GString *command_list = g_string_new("");
+
+    for (i = 0; i < len; i++) {
+        g_string_append(command_list, cmdlist[i].key);
+        g_string_append_c(command_list, ' ');
+    }
+
+    send_event(BUILTINS, command_list->str, NULL);
+    g_string_free(command_list, TRUE);
+}
+
 /* -- CORE FUNCTIONS -- */
 
 bool
@@ -2495,6 +2510,9 @@ main (int argc, char* argv[]) {
         send_event(PLUG_CREATED, t, NULL);
         g_free(t);
     }
+
+    /* generate an event with a list of built in commands */
+    builtins();
 
     gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
 
