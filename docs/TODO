@@ -13,86 +13,20 @@ what if fifo/socket doesn't exist, or exists but nothing working behind it (anym
 * throw out all old code
 * document the event handling mechanism, all events, how to get started with sample event handler
 * VARIABLE_SET for all types (but probably not useful for custom vars)
-* port keycmd to evt handler.  we can now more cleanly send BackSpace instead of keycmd_bs and so on
-* port the concept of modes and all related variables
-* many uzbl-core's for 1 event manager. needs support in event_manager and uzbl-browser
-* event manager dynamic config system that configures itself based on events from uzbl (eg to set vars in "uzbl slaves" such as this, set custom vars in uzbl which we react to)
 * remove chain command
 * scalability -> 1 event manager per n uzbl-browser instances -> mkfifo and redirect uzbl-core stdout to fifo in uzbl-browser
 * event manager -> everything based on per instance basis (associative array with uzbl instance name as key)
-* migrate progress(bar) related code
 * migrate all *_handler to EM plugins
 * cookies over EM (but we can delay that. it works okay for now)
 
 
 = keybinding features =
 * use a datadriven config format to allow simple implementations in different languages.
-* allow binding all 'normal' keys ('a', 'Z', '_', '1', '@', '{', ...)
-* allow binding all 'special' keys and modkeys ('Space', 'BackSpace', 'Alt_L', 'Escape')
 * we could receive anything from /usr/include/X11/keysymdef.h (minus the 'XK_')
-* support keypresses and keyreleases
-* maybe: finegrained definitions of when releases can happen during a bigger command.  this may be an overcomplication (YAGNI?)
-* maybe: after triggering, support resetting keycmd not to '', but something else. eg after 'gbbs' has triggered, set keycmd to 'bbs search' or something
-  thoughts: do we send fake key events to uzbl (xdotool?) or more a way to set the keycmd inside the event handler?
-            maybe not use a command but a static definition in the bind configs
-            it may be cumbersome to support special chars here, so lets not overcomplicate this
 * since we use key_press and release events, we don't need to support modmasks, we can "know" the state of any key, even non-modifier keys can be used as "fake" modkeys!
-* port old behaviors:
-  * `<string>` ends with underscore: the command will only be invoked after pressing return/enter, `%s` in the `<command>` string will be replaced by this text. (optional) (old `bind o _ = uri %s`)
-    -> we can now use Literal 'Enter' keysym. we could have the convention that any bind who ends with 'Enter' which gets extra text, will do the replacement thing.
-  * `<string>` ends with an asterisk: similar behavior as with an underscore, but also makes the binding incremental (i.e. the command will be invoked on every keystroke). (old `bind /*  = search %s` )
-    -> we'll come up with a special marker. [!Enter] or whatever.
-  * `<string>` ends on a different character: you need to type the full string, which will trigger the command immediately, without pressing enter/return. (old  `bind ZZ  = exit`)
-    -> this should be the default.
-
-== proposed workflow ==
-in event_handler.py:
- * incoming key.length > 1 (this should separate all special cases like F11, Alt_L etc from normal chars) -> put '[' and ']' around it
-   this allows to separate [F11] from a sequence of literal 'F', '1' '1'.
- * to bind literal [, it should be escapable with '\' (which itself is also escapable. eg '\\' for literal '\')
- * In most implementations, you'll want to:
-   if [BackSpace] && keycmd == '' -> go back or whatever. otherwise remove last char from keycmd
- * this gives us the ' ' character for free. what to do with it?
-   ideas:
-   * use it as token for key_release event: 'z ' would mean: bind something on release of 'z', but we could also use a special marker like [release:<char>] for this (where <char> itself can also contain [] )
-   * use it a separator for "combo's" (like xbindkeys does)
-
-= proposed implementations =
-option1: always assume combo's (simultaneous keypresses)
-' ' -> combo separator
-'a  ' -> bind something to key_release of 'a'
-
-abc -> press a b c at same time
-a b c -> press string 'abc'
-
-option2: combo's are explicit (dieters preference):
-'+' -> define combo (make + escapable)
-'a ' -> key_release a
-
-'a+b+c' -> press a b c at same time.
-'abc' -> string 'abc'
-'a+b+cfoo' -> a b c at same time, then 'foo'
-'a+(bc)' -> 'bc' with 'a' as fake modkey (make '()' escapable)
-'a+b a+c' -> same (though you could temporarily release a between pressing 'b' and 'c' if you want)
-'[Space]+foo' -> press space while typing 'f', then type 'oo' (make '[]' escapable)
-'[Alt_L]+[Backspace]' -> press alt while hitting backspace
-'[Alt_L][Backspace]' -> hit alt, then backspace
-'[Alt_L][Backspace] ' -> hit alt, then backspace then release backspace
-'z' and 'z ' -> bind things on press and release of 'z'
 
 = key handling (example event_handler.py) examples to implement =
-* on escape:
-if insert mode: set_insert_mode(uzbl.behave.always_insert_mode); update_title
-else: clear_keycmd(); update_title; dehilight(uzbl.gui.web_view, NULL, NULL);
 * demonstrate separate key_press and key_release (eg press 'z' to zoom in, on release reset zoom to what it was before. use "locking boolean" as discussed on irc)
-* port the Modkey concept
-* BackSpace -> keycmd_bs
-
-* Insert: insert from clipboard -> keycmd + update_title
-* shift+Insert: insert from primary -> keycmd + update_title
-* handle Return and/or KP_Enter
-
-
 
 More or less in order of importance/urgency
 
