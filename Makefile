@@ -81,6 +81,7 @@ clean:
 	rm -f events.o
 	rm -f callbacks.o
 	rm -f inspector.o
+	find examples/ -name "*.pyc" -exec rm {} +
 	cd ./tests/; $(MAKE) clean
 
 install: install-uzbl-core install-uzbl-browser install-uzbl-tabbed
