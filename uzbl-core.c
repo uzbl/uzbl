@@ -652,7 +652,8 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "menu_image_remove",              {menu_remove_image, TRUE}       },
     { "menu_editable_remove",           {menu_remove_edit, TRUE}        },
     { "hardcopy",                       {hardcopy, TRUE}                },
-    { "include",                        {include, TRUE}                 }
+    { "include",                        {include, TRUE}                 },
+    { "builtins",                       {builtins, TRUE}                }
 };
 
 void
@@ -663,6 +664,30 @@ commands_hash(void)
 
     for (i = 0; i < LENGTH(cmdlist); i++)
         g_hash_table_insert(uzbl.behave.commands, (gpointer) cmdlist[i].key, &cmdlist[i].value);
+}
+
+// TODO: we should probably build the command list once and just re-use that on every
+//       invocation of "builtins"
+void
+builtins(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page;
+    (void) argv;
+    // see TODO below
+    (void) result;
+    unsigned int i,
+             len = LENGTH(cmdlist);
+    GString *command_list = g_string_new("");
+
+    for (i = 0; i < len; i++) {
+        g_string_append(command_list, cmdlist[i].key);
+        g_string_append_c(command_list, ' ');
+    }
+
+    // TODO: Do we also want to query for the builtins without generating an event?
+    //result = command_list;
+
+    send_event(BUILTINS, command_list->str, NULL);
+    g_string_free(command_list, TRUE);
 }
 
 /* -- CORE FUNCTIONS -- */
