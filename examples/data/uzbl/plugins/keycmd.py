@@ -240,9 +240,9 @@ def update_event(uzbl, k, execute=True):
     if 'keycmd_events' in config and config['keycmd_events'] != '1':
         return
 
-    new_keycmd = k.get_keycmd()
-    if not new_keycmd or new_keycmd != keycmd:
-        return uzbl.set('keycmd', '')
+    keycmd = k.get_keycmd()
+    if not keycmd:
+        return uzbl.set('keycmd')
 
     # Generate the pango markup for the cursor in the keycmd.
     curchar = keycmd[k.cursor] if k.cursor < len(keycmd) else ' '
