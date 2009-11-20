@@ -2,7 +2,8 @@ import re
 
 # Map these functions/variables in the plugins namespace to the uzbl object.
 __export__ = ['clear_keycmd', 'set_keycmd', 'set_cursor_pos', 'get_keylet',
-    'clear_current', 'clear_modcmd', 'add_modmap', 'add_key_ignore']
+    'clear_current', 'clear_modcmd', 'add_modmap', 'add_key_ignore',
+    'append_keycmd', 'inject_keycmd']
 
 # Hold the keylets.
 UZBLS = {}

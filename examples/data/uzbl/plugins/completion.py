@@ -1,0 +1,175 @@
+'''Keycmd completion.'''
+
+# A list of functions this plugin exports to be used via uzbl object.
+__export__ = ['start_completion', 'get_completion_dict']
+
+import re
+
+# Holds the per-instance completion dicts.
+UZBLS = {}
+
+# Completion level
+NONE, ONCE, LIST = range(3)
+
+# Default instance dict.
+DEFAULTS = {'completions': [], 'level': NONE, 'lock': False}
+
+# The reverse keyword finding re.
+FIND_SEGMENT = re.compile("(\@[\w_]+|[\w_]+)$").findall
+
+# Formats
+LIST_FORMAT = "[ %s ]"
+ITEM_FORMAT = "<b>%s</b>%s"
+
+
+def escape(str):
+    return str.replace("@", "\@")
+
+
+def add_instance(uzbl, *args):
+    UZBLS[uzbl] = dict(DEFAULTS)
+
+
+def del_instance(uzbl, *args):
+    if uzbl in UZBLS:
+        del UZBLS[uzbl]
+
+
+def get_completion_dict(uzbl):
+    '''Get data stored for an instance.'''
+
+    if uzbl not in UZBLS:
+        add_instance(uzbl)
+
+    return UZBLS[uzbl]
+
+
+def get_incomplete_cmd(uzbl):
+    '''Gets the segment of the keycmd leading up to the cursor position and
+    uses a regular expression to search backwards finding parially completed
+    keywords or @variables. Returns a null string if the correct completion
+    conditions aren't met.'''
+
+    keylet = uzbl.get_keylet()
+    left_segment = keylet.keycmd[:keylet.cursor]
+    return (FIND_SEGMENT(left_segment) + ['',])[0].lstrip()
+
+
+def stop_completion(uzbl, *args):
+    d = get_completion_dict(uzbl)
+    d['level'] = NONE
+    uzbl.set('completion_list')
+
+
+def complete_completion(uzbl, partial, hint):
+    '''Inject the remaining porition of the keyword into the keycmd then stop
+    the completioning.'''
+
+    remainder = "%s " % hint[len(partial):]
+    uzbl.inject_keycmd(remainder)
+    stop_completion(uzbl)
+
+
+def partial_completion(uzbl, partial, hint):
+    '''Inject a common portion of the hints into the keycmd.'''
+
+    remainder = hint[len(partial):]
+    uzbl.inject_keycmd(remainder)
+
+
+def start_completion(uzbl, start=True):
+
+    d = get_completion_dict(uzbl)
+    if d['lock'] or not start and not d['level']:
+        return
+
+    partial = get_incomplete_cmd(uzbl)
+    if not partial:
+        return stop_completion(uzbl)
+
+    if d['level'] < LIST:
+        d['level'] += 1
+
+    hints = [h for h in d['completions'] if h.startswith(partial)]
+    if not hints:
+        return
+
+    elif len(hints) == 1:
+        d['lock'] = True
+        complete_completion(uzbl, partial, hints[0])
+        d['lock'] = False
+        return
+
+    elif partial in hints:
+        d['lock'] = True
+        complete_completion(uzbl, partial, partial)
+        d['lock'] = False
+        return
+
+    smalllen, smallest = sorted([(len(h), h) for h in hints])[0]
+    common = ''
+    for i in range(len(partial), smalllen):
+        char, same = smallest[i], True
+        for hint in hints:
+            if hint[i] != char:
+                same = False
+                break
+
+        if not same:
+            break
+
+        common += char
+
+    if common:
+        d['lock'] = True
+        partial_completion(uzbl, partial, partial+common)
+        d['lock'] = False
+
+    partial += common
+    if d['level'] == LIST:
+        j = len(partial)
+        l = [ITEM_FORMAT % (h[:j], h[j:]) for h in sorted(hints)]
+        print l
+        uzbl.set('completion_list', escape(LIST_FORMAT % ' '.join(l)))
+
+
+def add_builtins(uzbl, args):
+    '''Pump the space delimited list of builtin commands into the
+    builtin list.'''
+
+    completions = get_completion_dict(uzbl)['completions']
+    builtins = filter(None, map(unicode.strip, args.split(" ")))
+    for builtin in builtins:
+        if builtin not in completions:
+            completions.append(builtin)
+
+
+def add_config_key(uzbl, key, value):
+    '''Listen on the CONFIG_CHANGED event and add config keys to the variable
+    list for @var<Tab> like expansion support.'''
+
+    completions = get_completion_dict(uzbl)['completions']
+    key = "@%s" % key
+    if key not in completions:
+        completions.append(key)
+
+
+def init(uzbl):
+    connects = {
+      'INSTANCE_START':    add_instance,
+      'INSTANCE_EXIT':     del_instance,
+      'BUILTINS':          add_builtins,
+      'CONFIG_CHANGED':    add_config_key,
+    }
+
+    # And connect the dicts event handlers to the handler stack.
+    uzbl.connect_dict(connects)
+
+    for event in ['STOP_COMPLETION', 'KEYCMD_EXEC', 'KEYCMD_CLEAR']:
+        uzbl.connect(event, stop_completion)
+
+    uzbl.connect('START_COMPLETION',
+            lambda uzbl, args: start_completion(uzbl))
+
+    uzbl.connect('KEYCMD_UPDATE',
+            lambda uzbl, args: start_completion(uzbl, False))

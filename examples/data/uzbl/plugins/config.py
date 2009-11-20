@@ -22,7 +22,7 @@ def get_config(uzbl):
     return UZBLS[uzbl]
 
 
-def set(uzbl, key, value):
+def set(uzbl, key, value=''):
     '''Sends a: "set key = value" command to the uzbl instance.'''
 
     if type(value) == types.BooleanType:

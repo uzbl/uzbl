@@ -73,7 +73,7 @@ set prompt_style      = foreground="grey"
 set cursor_style      = underline="single"
 
 set mode_section      = <span background="khaki" foreground="black">[\@[\@mode_indicator]\@]</span>
-set keycmd_section    = [<span \@prompt_style>\@[\@keycmd_prompt]\@</span><span \@modcmd_style>\@modcmd</span><span \@keycmd_style>\@keycmd</span>]
+set keycmd_section    = [<span \@prompt_style>\@[\@keycmd_prompt]\@</span><span \@modcmd_style>\@modcmd</span><span \@keycmd_style>\@keycmd</span>] <span foreground="green">\@completion_list</span>
 set progress_section  = <span foreground="#606060">\@[\@progress_format]\@</span>
 set uri_section       = <span foreground="#99FF66">\@[\@uri]\@</span>
 set name_section      = <span foreground="khaki">\@[\@NAME]\@</span>
@@ -243,6 +243,7 @@ set formfiller = spawn @scripts_dir/formfiller
 @bind <Right>        = event SET_CURSOR_POS +
 @bind <BackSpace>    = event KEYCMD_BACKSPACE
 @bind <Delete>       = event KEYCMD_DELETE
+@bind <Tab>          = event START_COMPLETION
 
 # readline-ish bindings
 @bind <Ctrl>w      = event KEYCMD_STRIP_WORD
