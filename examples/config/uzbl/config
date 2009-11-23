@@ -71,9 +71,11 @@ set modcmd_style      = weight="bold" foreground="red"
 set keycmd_style      = weight="light" foreground="red"
 set prompt_style      = foreground="grey"
 set cursor_style      = underline="single"
+set completion_style  = foreground="green"
+set hint_style        = weight="bold"
 
 set mode_section      = <span background="khaki" foreground="black">[\@[\@mode_indicator]\@]</span>
-set keycmd_section    = [<span \@prompt_style>\@[\@keycmd_prompt]\@</span><span \@modcmd_style>\@modcmd</span><span \@keycmd_style>\@keycmd</span>] <span foreground="green">\@completion_list</span>
+set keycmd_section    = [<span \@prompt_style>\@[\@keycmd_prompt]\@</span><span \@modcmd_style>\@modcmd</span><span \@keycmd_style>\@keycmd</span><span \@completion_style>\@completion_list</span>]
 set progress_section  = <span foreground="#606060">\@[\@progress_format]\@</span>
 set uri_section       = <span foreground="#99FF66">\@[\@uri]\@</span>
 set name_section      = <span foreground="khaki">\@[\@NAME]\@</span>
