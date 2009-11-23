@@ -97,7 +97,7 @@ class Keylet(object):
             l.append('modcmd=%r' % self.get_modcmd())
 
         elif self.held:
-            l.append('held=%r' % ''.join(['<%s>'%key for key in self.held]))
+            l.append('held=%r' % ''.join(sorted(self.held)))
 
         if self.keycmd:
             l.append('keycmd=%r' % self.get_keycmd())
@@ -178,8 +178,8 @@ def clear_keycmd(uzbl):
     k.cursor = 0
     k._repr_cache = False
     config = uzbl.get_config()
-    if 'keycmd' not in config or config['keycmd'] != '':
-        uzbl.set('keycmd', '')
+    if 'keycmd' not in config or config['keycmd']:
+        uzbl.set('keycmd')
 
     uzbl.event('KEYCMD_CLEAR')
 
@@ -195,8 +195,8 @@ def clear_modcmd(uzbl, clear_held=False):
         k.held = set()
 
     config = uzbl.get_config()
-    if 'modcmd' not in config or config['modcmd'] != '':
-        uzbl.set('modcmd', '')
+    if 'modcmd' not in config or config['modcmd']:
+        uzbl.set('modcmd')
 
     uzbl.event('MODCMD_CLEAR')
 
@@ -288,13 +288,16 @@ def key_press(uzbl, key):
 
     elif not k.held and len(key) == 1:
         config = uzbl.get_config()
-        if 'keycmd_events' not in config or config['keycmd_events'] == '1':
-            k.keycmd = inject_str(k.keycmd, k.cursor, key)
-            k.cursor += 1
-
-        elif k.keycmd:
+        if 'keycmd_events' in config and config['keycmd_events'] != '1':
             k.keycmd = ''
             k.cursor = 0
+            if config['keycmd']:
+                uzbl.set('keycmd')
+
+            return
+
+        k.keycmd = inject_str(k.keycmd, k.cursor, key)
+        k.cursor += 1
 
     elif len(key) > 1:
         k.is_modcmd = True
