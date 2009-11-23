@@ -16,8 +16,9 @@ if __name__ == '__main__':
     uri = sys.argv[8]
     u = urlparse.urlparse(uri)
     if u.scheme == 'mailto':
-        detach_open(['xterm', '-e', 'mail %s' % u.path])
+        detach_open(['xterm', '-e', 'mail', u.path])
     elif u.scheme == 'xmpp':
+        # Someone check for safe arguments to gajim-remote
         detach_open(['gajim-remote', 'open_chat', uri])
     elif u.scheme == 'git':
-        detach_open(['git', 'clone', uri], cwd=os.path.expanduser('~/src'))
+        detach_open(['git', 'clone', '--', uri], cwd=os.path.expanduser('~/src'))
