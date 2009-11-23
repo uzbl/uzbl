@@ -18,8 +18,8 @@ DEFAULTS = {'completions': [], 'level': NONE, 'lock': False}
 FIND_SEGMENT = re.compile("(\@[\w_]+|[\w_]+)$").findall
 
 # Formats
-LIST_FORMAT = "[ %s ]"
-ITEM_FORMAT = "<b>%s</b>%s"
+LIST_FORMAT = "<span> %s </span>"
+ITEM_FORMAT = "<span @hint_style>%s</span>%s"
 
 
 def escape(str):
@@ -44,7 +44,7 @@ def get_completion_dict(uzbl):
     return UZBLS[uzbl]
 
 
-def get_incomplete_cmd(uzbl):
+def get_incomplete_keyword(uzbl):
     '''Gets the segment of the keycmd leading up to the cursor position and
     uses a regular expression to search backwards finding parially completed
     keywords or @variables. Returns a null string if the correct completion
@@ -56,6 +56,8 @@ def get_incomplete_cmd(uzbl):
 
 
 def stop_completion(uzbl, *args):
+    '''Stop command completion and return the level to NONE.'''
+
     d = get_completion_dict(uzbl)
     d['level'] = NONE
     uzbl.set('completion_list')
@@ -77,13 +79,34 @@ def partial_completion(uzbl, partial, hint):
     uzbl.inject_keycmd(remainder)
 
 
-def start_completion(uzbl, start=True):
+def update_completion_list(uzbl, *args):
+    '''Checks if the user still has a partially completed keyword under his
+    cursor then update the completion hints list.'''
+
+    partial = get_incomplete_keyword(uzbl)
+    if not partial:
+        return stop_completion(uzbl)
 
     d = get_completion_dict(uzbl)
-    if d['lock'] or not start and not d['level']:
+    if d['level'] != LIST:
         return
 
-    partial = get_incomplete_cmd(uzbl)
+    hints = [h for h in d['completions'] if h.startswith(partial)]
+    if not hints:
+        return uzbl.set('completion_list')
+
+    j = len(partial)
+    l = [ITEM_FORMAT % (escape(h[:j]), h[j:]) for h in sorted(hints)]
+    uzbl.set('completion_list', LIST_FORMAT % ' '.join(l))
+
+
+def start_completion(uzbl, *args):
+
+    d = get_completion_dict(uzbl)
+    if d['lock']:
+        return
+
+    partial = get_incomplete_keyword(uzbl)
     if not partial:
         return stop_completion(uzbl)
 
@@ -125,12 +148,7 @@ def start_completion(uzbl, start=True):
         partial_completion(uzbl, partial, partial+common)
         d['lock'] = False
 
-    partial += common
-    if d['level'] == LIST:
-        j = len(partial)
-        l = [ITEM_FORMAT % (h[:j], h[j:]) for h in sorted(hints)]
-        print l
-        uzbl.set('completion_list', escape(LIST_FORMAT % ' '.join(l)))
+    update_completion_list(uzbl)
 
 
 def add_builtins(uzbl, args):
@@ -160,6 +178,8 @@ def init(uzbl):
       'INSTANCE_EXIT':     del_instance,
       'BUILTINS':          add_builtins,
       'CONFIG_CHANGED':    add_config_key,
+      'KEYCMD_UPDATE':     update_completion_list,
+      'START_COMPLETION':  start_completion,
     }
 
     # And connect the dicts event handlers to the handler stack.
@@ -167,9 +187,3 @@ def init(uzbl):
 
     for event in ['STOP_COMPLETION', 'KEYCMD_EXEC', 'KEYCMD_CLEAR']:
         uzbl.connect(event, stop_completion)
-
-    uzbl.connect('START_COMPLETION',
-            lambda uzbl, args: start_completion(uzbl))
-
-    uzbl.connect('KEYCMD_UPDATE',
-            lambda uzbl, args: start_completion(uzbl, False))
