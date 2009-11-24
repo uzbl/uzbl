@@ -259,7 +259,6 @@ def bind(uzbl, glob, handler, *args, **kargs):
     bind = Bind(glob, handler, *args, **kargs)
     binds.append(bind)
 
-    print bind
     uzbl.event('ADDED_BIND', bind)
 
 
