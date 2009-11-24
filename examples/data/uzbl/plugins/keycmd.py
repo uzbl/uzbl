@@ -234,8 +234,11 @@ def update_event(uzbl, k, execute=True):
 
     if 'modcmd_updates' not in config or config['modcmd_updates'] == '1':
         new_modcmd = k.get_modcmd()
-        if not new_modcmd or new_modcmd == modcmd:
-            uzbl.set('modcmd', uzbl_escape(new_modcmd))
+        if not new_modcmd:
+            uzbl.set('modcmd')
+
+        elif new_modcmd == modcmd:
+            uzbl.set('modcmd', "<span> %s </span>" % uzbl_escape(new_modcmd))
 
     if 'keycmd_events' in config and config['keycmd_events'] != '1':
         return

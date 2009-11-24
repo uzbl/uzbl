@@ -121,7 +121,7 @@ set socket_dir        = /tmp
 
 # With this command you can enter in any command at runtime when prefixed with
 # a colon.
-@bind    :_        = chain '%s'
+@bind    :_        = %s
 
 # Middle click
 # if clicked on a link open the link in a new uzbl window
