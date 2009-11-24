@@ -343,6 +343,7 @@ class UzblInstance(object):
         self._parent = parent
         self._client_socket = client_socket
 
+        self.depth = 0
         self.buffer = ''
 
         # Call the init() function in every plugin. Inside the init function
@@ -397,12 +398,13 @@ class UzblInstance(object):
     def send(self, msg):
         '''Send a command to the uzbl instance via the socket file.'''
 
+        msg = msg.strip()
         if self._client_socket:
-            print '<-- %s' % msg
+            print '%s<-- %s' % ('  ' * self.depth, msg)
             self._client_socket.send(("%s\n" % msg).encode('utf-8'))
 
         else:
-            print '!-- %s' % msg
+            print '%s!-- %s' % ('  ' * self.depth, msg)
 
 
     def connect(self, event, handler, *args, **kargs):
@@ -468,17 +470,21 @@ class UzblInstance(object):
 
         # Silence _printing_ of geo events while debugging.
         if event != "GEOMETRY_CHANGED":
-            print "--> %s %s %s" % (event, args, '' if not kargs else kargs)
+            print "%s--> %s %s %s" % ('  ' * self.depth, event, args,
+                '' if not kargs else kargs)
 
         if event not in self._handlers:
             return
 
         for handler in self._handlers[event]:
+            self.depth += 1
             try:
                 self.exec_handler(handler, *args, **kargs)
 
             except:
                 print_exc()
+
+            self.depth -= 1
 
 
     def close(self):
