@@ -482,6 +482,7 @@ Basically all events have this format:
   - `EVENT [uzbl_instance_name] ROOT_ACTIVE`: when the document body or any non-editable element is clicked
   - `EVENT [uzbl_instance_name] FILE_INCLUDED /path/to/file`: when the include commands succesfully loads a file
   - `EVENT [uzbl_instance_name] PLUG_CREATED plug-id`: when uzbl-core is in xembed mode
+  - `EVENT [uzbl_instance_name] BUILTINS command_list`: shows a list of all uzbl commands, whitespace separated, on startup
 
 
 ### COMMAND LINE ARGUMENTS
