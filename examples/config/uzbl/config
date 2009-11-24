@@ -125,8 +125,10 @@ set socket_dir        = /tmp
 
 # Middle click
 # if clicked on a link open the link in a new uzbl window
-# otherwise open the selection in the current window
-@bind    <Button2> = sh 'if [ "\@SELECTED_URI" ]; then uzbl-browser -u \@SELECTED_URI; else echo "uri $(xclip -o)" > $4; fi'
+# otherwise open the selection in the current window1
+set load_from_xclip = sh 'echo "uri $(xclip -o)" > $4'
+set open_new_window = sh 'uzbl-browser -u \@SELECTED_URI'
+@bind    <Button2>  = js if("\@SELECTED_URI") { Uzbl.run("\@open_new_window"); } else { Uzbl.run("\\\@load_from_xclip"); }
 
 @bind    j         = scroll vertical 20
 @bind    <Page_Down> = scroll vertical 100%
@@ -157,7 +159,7 @@ set socket_dir        = /tmp
 @bind    gh        = uri http://www.uzbl.org
 # shortcut to set variables
 @bind    s _       = set %s
-@bind    \wiki _   = uri http://wiki.archlinux.org/index.php/Special:Search?search=%s&go=Go
+@bind    \\wiki _   = uri http://wiki.archlinux.org/index.php/Special:Search?search=%s&go=Go
 @bind    gg _      = uri http://www.google.com/search?q=%s
 # Enclose the executable in quotes if it has spaces.  Any additional parameters you use will
 # appear AFTER the default parameters
