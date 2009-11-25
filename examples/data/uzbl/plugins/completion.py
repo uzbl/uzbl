@@ -9,13 +9,13 @@ import re
 UZBLS = {}
 
 # Completion level
-NONE, ONCE, LIST = range(3)
+NONE, ONCE, LIST, COMPLETE = range(4)
 
 # Default instance dict.
 DEFAULTS = {'completions': [], 'level': NONE, 'lock': False}
 
 # The reverse keyword finding re.
-FIND_SEGMENT = re.compile("(\@[\w_]+|[\w_]+)$").findall
+FIND_SEGMENT = re.compile("(\@[\w_]+|set[\s]+[\w_]+|[\w_]+)$").findall
 
 # Formats
 LIST_FORMAT = "<span> %s </span>"
@@ -52,7 +52,11 @@ def get_incomplete_keyword(uzbl):
 
     keylet = uzbl.get_keylet()
     left_segment = keylet.keycmd[:keylet.cursor]
-    return (FIND_SEGMENT(left_segment) + ['',])[0].lstrip()
+    partial = (FIND_SEGMENT(left_segment) + ['',])[0].lstrip()
+    if partial.startswith('set '):
+        return ('@%s' % partial[4:].lstrip(), True)
+
+    return (partial, False)
 
 
 def stop_completion(uzbl, *args):
@@ -63,11 +67,16 @@ def stop_completion(uzbl, *args):
     uzbl.set('completion_list')
 
 
-def complete_completion(uzbl, partial, hint):
+def complete_completion(uzbl, partial, hint, set_completion=False):
     '''Inject the remaining porition of the keyword into the keycmd then stop
     the completioning.'''
 
-    remainder = "%s " % hint[len(partial):]
+    if set_completion:
+        remainder = "%s = " % hint[len(partial):]
+
+    else:
+        remainder = "%s " % hint[len(partial):]
+
     uzbl.inject_keycmd(remainder)
     stop_completion(uzbl)
 
@@ -83,12 +92,12 @@ def update_completion_list(uzbl, *args):
     '''Checks if the user still has a partially completed keyword under his
     cursor then update the completion hints list.'''
 
-    partial = get_incomplete_keyword(uzbl)
+    partial = get_incomplete_keyword(uzbl)[0]
     if not partial:
         return stop_completion(uzbl)
 
     d = get_completion_dict(uzbl)
-    if d['level'] != LIST:
+    if d['level'] < LIST:
         return
 
     hints = [h for h in d['completions'] if h.startswith(partial)]
@@ -106,11 +115,11 @@ def start_completion(uzbl, *args):
     if d['lock']:
         return
 
-    partial = get_incomplete_keyword(uzbl)
+    (partial, set_completion) = get_incomplete_keyword(uzbl)
     if not partial:
         return stop_completion(uzbl)
 
-    if d['level'] < LIST:
+    if d['level'] < COMPLETE:
         d['level'] += 1
 
     hints = [h for h in d['completions'] if h.startswith(partial)]
@@ -119,13 +128,13 @@ def start_completion(uzbl, *args):
 
     elif len(hints) == 1:
         d['lock'] = True
-        complete_completion(uzbl, partial, hints[0])
+        complete_completion(uzbl, partial, hints[0], set_completion)
         d['lock'] = False
         return
 
-    elif partial in hints:
+    elif partial in hints and d['level'] == COMPLETE:
         d['lock'] = True
-        complete_completion(uzbl, partial, partial)
+        complete_completion(uzbl, partial, partial, set_completion)
         d['lock'] = False
         return
 
