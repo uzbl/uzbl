@@ -9,7 +9,7 @@ import re
 UZBLS = {}
 
 # Completion level
-NONE, ONCE, LIST = range(3)
+NONE, ONCE, LIST, COMPLETE = range(4)
 
 # Default instance dict.
 DEFAULTS = {'completions': [], 'level': NONE, 'lock': False}
@@ -97,7 +97,7 @@ def update_completion_list(uzbl, *args):
         return stop_completion(uzbl)
 
     d = get_completion_dict(uzbl)
-    if d['level'] != LIST:
+    if d['level'] < LIST:
         return
 
     hints = [h for h in d['completions'] if h.startswith(partial)]
@@ -119,7 +119,7 @@ def start_completion(uzbl, *args):
     if not partial:
         return stop_completion(uzbl)
 
-    if d['level'] < LIST:
+    if d['level'] < COMPLETE:
         d['level'] += 1
 
     hints = [h for h in d['completions'] if h.startswith(partial)]
@@ -132,7 +132,7 @@ def start_completion(uzbl, *args):
         d['lock'] = False
         return
 
-    elif partial in hints:
+    elif partial in hints and d['level'] == COMPLETE:
         d['lock'] = True
         complete_completion(uzbl, partial, partial, set_completion)
         d['lock'] = False
