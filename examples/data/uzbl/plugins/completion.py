@@ -15,7 +15,7 @@ NONE, ONCE, LIST = range(3)
 DEFAULTS = {'completions': [], 'level': NONE, 'lock': False}
 
 # The reverse keyword finding re.
-FIND_SEGMENT = re.compile("(\@[\w_]+|[\w_]+)$").findall
+FIND_SEGMENT = re.compile("(\@[\w_]+|set[\s]+[\w_]+|[\w_]+)$").findall
 
 # Formats
 LIST_FORMAT = "<span> %s </span>"
@@ -52,7 +52,11 @@ def get_incomplete_keyword(uzbl):
 
     keylet = uzbl.get_keylet()
     left_segment = keylet.keycmd[:keylet.cursor]
-    return (FIND_SEGMENT(left_segment) + ['',])[0].lstrip()
+    partial = (FIND_SEGMENT(left_segment) + ['',])[0].lstrip()
+    if partial.startswith('set '):
+        partial = '@%s' % partial[4:].lstrip()
+
+    return partial
 
 
 def stop_completion(uzbl, *args):
