@@ -290,6 +290,9 @@ def set_stack_mode(uzbl, prompt):
         # Go through uzbl-core to expand potential @-variables
         uzbl.send('event SET_KEYCMD %s' % set)
 
+    else:
+        uzbl.clear_keycmd()
+
 
 def clear_stack(uzbl, mode):
     bind_dict = get_bind_dict(uzbl)
