@@ -273,7 +273,6 @@ menu_link_add Print Link = print \@SELECTED_URI
 # Define some mode specific uzbl configurations.
 set command  = @mode_config command
 set insert   = @mode_config insert
-set stack    = @mode_config stack
 
 # Command mode config.
 @command  keycmd_style        = foreground="red"
@@ -283,14 +282,6 @@ set stack    = @mode_config stack
 # Insert mode config.
 @insert   status_background   = #303030
 @insert   mode_indicator      = Ins
-
-# Multi-stage-binding mode config.
-@stack    keycmd_events       = 1
-@stack    modcmd_updates      = 1
-@stack    keycmd_style        = foreground="red"
-@stack    prompt_style        = foreground="#888" weight="light"
-@stack    status_background   = #202020
-@stack    mode_indicator      = Bnd
 
 set default_mode = command
 

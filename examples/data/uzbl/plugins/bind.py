@@ -17,6 +17,7 @@ __export__ = ['bind', 'del_bind', 'del_bind_by_glob', 'get_binds']
 
 # Hold the bind dicts for each uzbl instance.
 UZBLS = {}
+DEFAULTS = {'binds': [], 'depth': 0, 'stack': [], 'args': []}
 
 # Commonly used regular expressions.
 starts_with_mod = re.compile('^<([A-Z][A-Za-z0-9-_]*)>')
@@ -50,8 +51,7 @@ def split_glob(glob):
 
 
 def add_instance(uzbl, *args):
-    UZBLS[uzbl] = {'binds': [], 'depth': 0, 'stack': [],
-      'args': [], 'last_mode': ''}
+    UZBLS[uzbl] = dict(DEFAULTS)
 
 
 def del_instance(uzbl, *args):
@@ -276,39 +276,50 @@ def parse_bind_event(uzbl, args):
     bind(uzbl, glob, command)
 
 
-def set_stack_mode(uzbl, prompt):
-    prompt, set = prompt
-    if uzbl.get_mode() != 'stack':
-        uzbl.set_mode('stack')
+def clear_stack(uzbl, mode):
+    '''Clear everything related to stacked binds.'''
 
+    bind_dict = get_bind_dict(uzbl)
+    bind_dict['stack'] = []
+    bind_dict['depth'] = 0
+    bind_dict['args'] = []
+
+    uzbl.set('keycmd_prompt', '')
+
+
+def stack_bind(uzbl, bind, args, depth):
+    '''Increment the stack depth in the bind dict, generate filtered bind
+    list for stack mode and set keycmd prompt.'''
+
+    bind_dict = get_bind_dict(uzbl)
+    if bind_dict['depth'] != depth:
+        if bind not in bind_dict['stack']:
+            bind_dict['stack'].append(bind)
+
+        return
+
+    globalcmds = [cmd for cmd in bind_dict['binds'] if cmd.is_global]
+    bind_dict['stack'] = [bind,] + globalcmds
+    bind_dict['args'] += args
+    bind_dict['depth'] = depth + 1
+
+    uzbl.send('event BIND_STACK_LEVEL %d' % bind_dict['depth'])
+
+    (prompt, set) = bind.prompts[depth]
     if prompt:
-        prompt = "%s: " % prompt
+        uzbl.set('keycmd_prompt', '%s:' % prompt)
 
-    uzbl.set('keycmd_prompt', prompt)
+    else:
+        uzbl.set('keycmd_prompt')
 
     if set:
-        # Go through uzbl-core to expand potential @-variables
         uzbl.send('event SET_KEYCMD %s' % set)
 
     else:
         uzbl.clear_keycmd()
 
 
-def clear_stack(uzbl, mode):
-    bind_dict = get_bind_dict(uzbl)
-    if mode != "stack" and bind_dict['last_mode'] == "stack":
-        uzbl.set('keycmd_prompt', '')
-
-    if mode != "stack":
-        bind_dict = get_bind_dict(uzbl)
-        bind_dict['stack'] = []
-        bind_dict['depth'] = 0
-        bind_dict['args'] = []
-
-    bind_dict['last_mode'] = mode
-
-
-def match_and_exec(uzbl, bind, depth, keylet, mod_event=False):
+def match_and_exec(uzbl, bind, depth, keylet):
     bind_dict = get_bind_dict(uzbl)
     (on_exec, has_args, mod_cmd, glob, more) = bind[depth]
 
@@ -338,16 +349,7 @@ def match_and_exec(uzbl, bind, depth, keylet, mod_event=False):
         return True
 
     elif more:
-        if bind_dict['depth'] == depth:
-            globalcmds = [cmd for cmd in bind_dict['binds'] if cmd.is_global]
-            bind_dict['stack'] = [bind,] + globalcmds
-            bind_dict['args'] += args
-            bind_dict['depth'] = depth + 1
-
-        elif bind not in bind_dict['stack']:
-            bind_dict['stack'].append(bind)
-
-        set_stack_mode(uzbl, bind.prompts[depth])
+        stack_bind(uzbl, bind, args, depth)
         return False
 
     args = bind_dict['args'] + args
