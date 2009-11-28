@@ -2107,8 +2107,9 @@ run_handler (const gchar *act, const gchar *args) {
        it still isn't perfect for chain actions..  will reconsider & re-
        factor when I have the time. -duc */
 
+    if (!act) return;
     char **parts = g_strsplit(act, " ", 2);
-    if (!parts) return;
+    if (!parts || !parts[0]) return;
     if (g_strcmp0(parts[0], "chain") == 0) {
         GString *newargs = g_string_new("");
         gchar **chainparts = split_quoted(parts[1], FALSE);
