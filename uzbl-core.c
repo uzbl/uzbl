@@ -201,7 +201,7 @@ expand(const char *s, guint recurse) {
     GString *buf = g_string_new("");
     GString *js_ret = g_string_new("");
 
-    while(*s) {
+    while(s && *s) {
         switch(*s) {
             case '\\':
                 g_string_append_c(buf, *++s);
