@@ -17,7 +17,7 @@ __export__ = ['bind', 'del_bind', 'del_bind_by_glob', 'get_binds']
 
 # Hold the bind dicts for each uzbl instance.
 UZBLS = {}
-DEFAULTS = {'binds': [], 'depth': 0, 'stack': [], 'args': []}
+DEFAULTS = {'binds': [], 'depth': 0, 'stack': [], 'args': [], 'last_mode': ''}
 
 # Commonly used regular expressions.
 starts_with_mod = re.compile('^<([A-Z][A-Za-z0-9-_]*)>')
@@ -276,15 +276,25 @@ def parse_bind_event(uzbl, args):
     bind(uzbl, glob, command)
 
 
-def clear_stack(uzbl, mode):
+def mode_changed(uzbl, mode):
+    '''Clear the stack on all non-stack mode changes.'''
+
+    if mode != 'stack':
+        clear_stack(uzbl)
+
+
+def clear_stack(uzbl):
     '''Clear everything related to stacked binds.'''
 
     bind_dict = get_bind_dict(uzbl)
     bind_dict['stack'] = []
     bind_dict['depth'] = 0
     bind_dict['args'] = []
+    if bind_dict['last_mode']:
+        uzbl.set_mode(bind_dict['last_mode'])
+        bind_dict['last_mode'] = ''
 
-    uzbl.set('keycmd_prompt', '')
+    uzbl.set('keycmd_prompt', force=False)
 
 
 def stack_bind(uzbl, bind, args, depth):
@@ -297,6 +307,10 @@ def stack_bind(uzbl, bind, args, depth):
             bind_dict['stack'].append(bind)
 
         return
+
+    if uzbl.get_mode() != 'stack':
+        bind_dict['last_mode'] = uzbl.get_mode()
+        uzbl.set_mode('stack')
 
     globalcmds = [cmd for cmd in bind_dict['binds'] if cmd.is_global]
     bind_dict['stack'] = [bind,] + globalcmds
@@ -356,6 +370,7 @@ def match_and_exec(uzbl, bind, depth, keylet):
     exec_bind(uzbl, bind, *args)
     uzbl.set_mode()
     if not has_args:
+        clear_stack(uzbl)
         uzbl.clear_current()
 
     return True
@@ -411,6 +426,6 @@ def init(uzbl):
       'MODCMD_UPDATE': modcmd_update,
       'KEYCMD_EXEC': keycmd_exec,
       'MODCMD_EXEC': modcmd_exec,
-      'MODE_CHANGED': clear_stack}
+      'MODE_CHANGED': mode_changed}
 
     uzbl.connect_dict(connects)
