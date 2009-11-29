@@ -11,7 +11,7 @@ url="$7"
 selection=`$clip -o`
 
 case $action in
-  "yank" ) echo -n "$url" | $clip;;
+  "yank" ) echo -n "$url" | eval "$clip";;
   "goto" ) echo "uri $selection" > "$fifo";;
   * ) echo "clipboard.sh: invalid action";;
 esac

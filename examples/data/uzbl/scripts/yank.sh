@@ -9,6 +9,9 @@
 clip=xclip
 
 which $clip &>/dev/null || exit 1
-[ "$9" = primary -o "$9" = secondary -o "$9" = clipboard ] || exit 2
+[ "x$9" = xprimary -o "x$9" = xsecondary -o "x$9" = xclipboard ] || exit 2
 
-echo -n "$8" | $clip -selection $9
+value=`eval "echo -n \\${$8}"` # bash: value = ${!8}
+
+echo "echo -n '${value}' | $clip -selection $9"
+echo -n "'${value}' | $clip -selection $9"
