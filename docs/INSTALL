@@ -42,6 +42,7 @@ Dependencies which are optional for uzbl-core are marked with an asterisk. (i.e.
 * bash [*]
 * python [*]
 * perl (formfiller.pl) [*]
+* xclip [*]
 
 Make dependencies
 -----------------
