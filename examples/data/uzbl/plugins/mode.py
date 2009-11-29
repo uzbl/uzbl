@@ -72,6 +72,9 @@ def mode_changed(uzbl, mode):
     if 'mode_indicator' not in mode_config:
         config['mode_indicator'] = mode
 
+    uzbl.clear_keycmd()
+    uzbl.clear_modcmd()
+
 
 def set_mode(uzbl, mode=None):
     '''Set the mode and raise the MODE_CHANGED event if the mode has changed.
