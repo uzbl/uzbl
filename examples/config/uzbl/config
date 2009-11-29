@@ -19,6 +19,8 @@ set progress       = request PROGRESS_CONFIG
 set modmap         = request MODMAP
 # request IGNORE_KEY <glob>
 set ignore_key     = request IGNORE_KEY
+# request MODKEY_ADDITION <key1> <key2> <keyn> <result>
+set modkey_addition = request MODKEY_ADDITION
 
 set set_mode       = set mode =
 set set_status     = set status_message =
@@ -108,14 +110,19 @@ set socket_dir        = /tmp
 
 # === Key modmapping and ignoring ============================================
 
-#modmap from            to
+#modmap <From>          <To>
 @modmap <Control>       <Ctrl>
 @modmap <ISO_Left_Tab>  <Shift-Tab>
 @modmap <space>         <Space>
 
+#modkey_addition <Key1>  <Key2>    <Result>
+@modkey_addition <Shift> <Ctrl>    <Meta>
+@modkey_addition <Shift> <Tab>     <Shift-Tab>
+
 #ignore_key <glob>
 @ignore_key <ISO_*>
 @ignore_key <Shift>
+
 
 # === Keyboard & Mouse bindings ==============================================
 
