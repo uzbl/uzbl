@@ -3,7 +3,7 @@ import re
 # Map these functions/variables in the plugins namespace to the uzbl object.
 __export__ = ['clear_keycmd', 'set_keycmd', 'set_cursor_pos', 'get_keylet',
     'clear_current', 'clear_modcmd', 'add_modmap', 'add_key_ignore',
-    'append_keycmd', 'inject_keycmd']
+    'append_keycmd', 'inject_keycmd', 'add_modkey_addition']
 
 # Hold the keylets.
 UZBLS = {}
@@ -42,6 +42,7 @@ class Keylet(object):
 
         self.modmaps = {}
         self.ignores = {}
+        self.additions = {}
 
         # Keylet string repr cache.
         self._repr_cache = None
@@ -76,6 +77,25 @@ class Keylet(object):
             return key
 
 
+    def find_addition(self, modkey):
+        '''Key has just been pressed, check if this key + the held list
+        results in a modkey addition. Return that addition and remove all
+        modkeys that created it.'''
+
+        already_added = self.held & set(self.additions.keys())
+        for key in already_added:
+            if modkey in self.additions[key]:
+                return key
+
+        modkeys = set(list(self.held) + [modkey,])
+        for (key, value) in self.additions.items():
+            if modkeys.issuperset(value):
+                self.held = modkeys ^ value
+                return key
+
+        return modkey
+
+
     def key_ignored(self, key):
         '''Check if the given key is ignored by any ignore rules.'''
 
@@ -107,7 +127,20 @@ class Keylet(object):
 
 
 def add_modmap(uzbl, key, map):
-    '''Add modmaps.'''
+    '''Add modmaps.
+
+    Examples:
+        set modmap = request MODMAP
+        @modmap <Control> <Ctrl>
+        @modmap <ISO_Left_Tab> <Shift-Tab>
+        ...
+
+    Then:
+        @bind <Shift-Tab> = <command1>
+        @bind <Ctrl>x = <command2>
+        ...
+
+    '''
 
     assert len(key)
     modmaps = get_keylet(uzbl).modmaps
@@ -131,7 +164,14 @@ def modmap_parse(uzbl, map):
 
 
 def add_key_ignore(uzbl, glob):
-    '''Add an ignore definition.'''
+    '''Add an ignore definition.
+
+    Examples:
+        set ignore_key = request IGNORE_KEY
+        @ignore_key <Shift>
+        @ignore_key <ISO_*>
+        ...
+    '''
 
     assert len(glob) > 1
     ignores = get_keylet(uzbl).ignores
@@ -142,6 +182,45 @@ def add_key_ignore(uzbl, glob):
 
     ignores[glob] = match
     uzbl.event('NEW_KEY_IGNORE', glob)
+
+
+def add_modkey_addition(uzbl, modkeys, result):
+    '''Add a modkey addition definition.
+
+    Examples:
+        set mod_addition = request MODKEY_ADDITION
+        @mod_addition <Shift> <Control> <Meta>
+        @mod_addition <Left> <Up> <Left-Up>
+        @mod_addition <Right> <Up> <Right-Up>
+        ...
+
+    Then:
+        @bind <Right-Up> = <command1>
+        @bind <Meta>o = <command2>
+        ...
+    '''
+
+    additions = get_keylet(uzbl).additions
+    modkeys = set(modkeys)
+
+    assert len(modkeys) and result and result not in modkeys
+
+    for (existing_result, existing_modkeys) in additions.items():
+        if existing_result != result:
+            assert modkeys != existing_modkeys
+
+    additions[result] = modkeys
+    uzbl.event('NEW_MODKEY_ADDITION', modkeys, result)
+
+
+def modkey_addition_parse(uzbl, modkeys):
+    '''Parse modkey addition definition.'''
+
+    keys = filter(None, map(unicode.strip, modkeys.split(" ")))
+    keys = ['<%s>' % key.strip("<>") for key in keys if key.strip("<>")]
+
+    assert len(keys) > 1
+    add_modkey_addition(uzbl, keys[:-1], keys[-1])
 
 
 def add_instance(uzbl, *args):
@@ -234,8 +313,11 @@ def update_event(uzbl, k, execute=True):
 
     if 'modcmd_updates' not in config or config['modcmd_updates'] == '1':
         new_modcmd = k.get_modcmd()
-        if not new_modcmd or new_modcmd == modcmd:
-            uzbl.set('modcmd', uzbl_escape(new_modcmd))
+        if not new_modcmd:
+            uzbl.set('modcmd')
+
+        elif new_modcmd == modcmd:
+            uzbl.set('modcmd', "<span> %s </span>" % uzbl_escape(new_modcmd))
 
     if 'keycmd_events' in config and config['keycmd_events'] != '1':
         return
@@ -256,14 +338,23 @@ def inject_str(str, index, inj):
     return "%s%s%s" % (str[:index], inj, str[index:])
 
 
-def chevronate(key):
-    '''If a modkey isn't already chevronated then chevronate it. Ignore all
-    other keys.'''
+def get_keylet_and_key(uzbl, key):
+    '''Return the keylet and apply any transformations to the key as defined
+    by the modmapping or modkey addition rules. Return None if the key is
+    ignored.'''
 
+    keylet = get_keylet(uzbl)
+    key = keylet.modmap_key(key)
     if len(key) == 1:
-        return key
+        return (keylet, key)
 
-    return "<%s>" % key.strip("<>")
+    modkey = "<%s>" % key.strip("<>")
+    modkey = keylet.find_addition(modkey)
+
+    if keylet.key_ignored(modkey):
+        return (keylet, None)
+
+    return (keylet, modkey)
 
 
 def key_press(uzbl, key):
@@ -276,10 +367,8 @@ def key_press(uzbl, key):
     5. If in modcmd mode the pressed key is added to the held keys list.
     6. Keycmd is updated and events raised if anything is changed.'''
 
-    k = get_keylet(uzbl)
-    key = chevronate(k.modmap_key(key.strip()))
-
-    if k.key_ignored(key):
+    (k, key) = get_keylet_and_key(uzbl, key.strip())
+    if not key:
         return
 
     if key.lower() == '<space>' and not k.held and k.keycmd:
@@ -301,9 +390,6 @@ def key_press(uzbl, key):
 
     elif len(key) > 1:
         k.is_modcmd = True
-        if key == '<Shift-Tab>' and '<Tab>' in k.held:
-            k.held.remove('<Tab>')
-
         if key not in k.held:
             k.held.add(key)
 
@@ -322,14 +408,9 @@ def key_release(uzbl, key):
     3. Check if any modkey is held, if so set modcmd mode.
     4. Update the keycmd uzbl variable if anything changed.'''
 
-    k = get_keylet(uzbl)
-    key = chevronate(k.modmap_key(key))
-
-    if key in ['<Shift>', '<Tab>'] and '<Shift-Tab>' in k.held:
-        key = '<Shift-Tab>'
-
-    elif key in ['<Shift>', '<Alt>'] and '<Meta>' in k.held:
-        key = '<Meta>'
+    (k, key) = get_keylet_and_key(uzbl, key.strip())
+    if not key:
+        return
 
     if key in k.held:
         if k.is_modcmd:
@@ -461,6 +542,7 @@ def init(uzbl):
       'MODMAP': modmap_parse,
       'APPEND_KEYCMD': append_keycmd,
       'INJECT_KEYCMD': inject_keycmd,
-      'IGNORE_KEY': add_key_ignore}
+      'IGNORE_KEY': add_key_ignore,
+      'MODKEY_ADDITION': modkey_addition_parse}
 
     uzbl.connect_dict(connects)

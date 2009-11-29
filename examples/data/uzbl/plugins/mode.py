@@ -1,30 +1,26 @@
 import sys
 import re
 
-__export__ = ['set_mode', 'get_mode']
+__export__ = ['set_mode', 'get_mode', 'set_mode_config', 'get_mode_config']
 
 UZBLS = {}
 
 DEFAULTS = {
   'mode': '',
-  'default': '',
   'modes': {
     'insert': {
       'forward_keys': True,
       'keycmd_events': False,
       'modcmd_updates': False,
-      'indicator': 'I'},
+      'mode_indicator': 'I'},
     'command': {
       'forward_keys': False,
       'keycmd_events': True,
       'modcmd_updates': True,
-      'indicator': 'C'}}}
+      'mode_indicator': 'C'}}}
 
-_RE_FINDSPACES = re.compile("\s+")
-
-
-def error(msg):
-    sys.stderr.write("mode plugin: error: %s\n" % msg)
+FINDSPACES = re.compile("\s+")
+VALID_KEY = re.compile("^[\w_]+$").match
 
 
 def add_instance(uzbl, *args):
@@ -37,6 +33,8 @@ def del_instance(uzbl, *args):
 
 
 def get_mode_dict(uzbl):
+    '''Return the mode dict for an instance.'''
+
     if uzbl not in UZBLS:
         add_instance(uzbl)
 
@@ -44,6 +42,8 @@ def get_mode_dict(uzbl):
 
 
 def get_mode_config(uzbl, mode):
+    '''Return the mode config for a given mode.'''
+
     modes = get_mode_dict(uzbl)['modes']
     if mode not in modes:
         modes[mode] = {}
@@ -55,28 +55,13 @@ def get_mode(uzbl):
     return get_mode_dict(uzbl)['mode']
 
 
-def key_press(uzbl, key):
-    if key != "Escape":
-        return
+def mode_changed(uzbl, mode):
+    '''The mode has just been changed, now set the per-mode config.'''
 
-    set_mode(uzbl)
-
-
-def set_mode(uzbl, mode=None):
-    mode_dict = get_mode_dict(uzbl)
-    if mode is None:
-        if not mode_dict['default']:
-            return error("no default mode to fallback on")
-
-        mode = mode_dict['default']
+    get_mode_dict(uzbl)['mode'] = mode
 
     config = uzbl.get_config()
-    if 'mode' not in config or config['mode'] != mode:
-        config['mode'] = mode
-
-    mode_dict['mode'] = mode
     mode_config = get_mode_config(uzbl, mode)
-
     for (key, value) in mode_config.items():
         if key not in config:
             config[key] = value
@@ -88,35 +73,55 @@ def set_mode(uzbl, mode=None):
         config['mode_indicator'] = mode
 
     uzbl.clear_keycmd()
+    uzbl.clear_modcmd()
+
+
+def set_mode(uzbl, mode=None):
+    '''Set the mode and raise the MODE_CHANGED event if the mode has changed.
+    Fallback on the default mode if no mode argument was given and the default
+    mode is not null.'''
+
+    config = uzbl.get_config()
+    mode_dict = get_mode_dict(uzbl)
+    if mode is None:
+        mode_dict['mode'] = ''
+        if 'default_mode' in config:
+            mode = config['default_mode']
+
+        else:
+            mode = 'command'
+
+    if not VALID_KEY(mode):
+        raise KeyError("invalid mode name: %r" % mode)
+
+    if 'mode' not in config or config['mode'] != mode:
+        config['mode'] = mode
+        return
+
+    elif get_mode(uzbl) == mode:
+        return
+
     uzbl.event("MODE_CHANGED", mode)
 
 
 def config_changed(uzbl, key, value):
+    '''Check for mode related config changes.'''
+
+    value = None if not value else value
     if key == 'default_mode':
-        mode_dict = get_mode_dict(uzbl)
-        mode_dict['default'] = value
-        if value and not mode_dict['mode']:
+        if not get_mode(uzbl):
             set_mode(uzbl, value)
 
     elif key == 'mode':
-        if not value:
-            value = None
-
         set_mode(uzbl, value)
 
 
-def mode_config(uzbl, args):
+def set_mode_config(uzbl, mode, key, value):
+    '''Set mode specific configs. If the mode being modified is the current
+    mode then apply the changes on the go.'''
 
-    split = map(unicode.strip, _RE_FINDSPACES.split(args.lstrip(), 1))
-    if len(split) != 2:
-        return error("invalid MODE_CONFIG syntax: %r" % args)
+    assert VALID_KEY(mode) and VALID_KEY(key)
 
-    mode, set = split
-    split = map(unicode.strip, set.split('=', 1))
-    if len(split) != 2:
-        return error("invalid MODE_CONFIG set command: %r" % args)
-
-    key, value = split
     mode_config = get_mode_config(uzbl, mode)
     mode_config[key] = value
 
@@ -124,25 +129,35 @@ def mode_config(uzbl, args):
         uzbl.set(key, value)
 
 
-def load_reset(uzbl, *args):
-    config = uzbl.get_config()
-    if 'reset_on_commit' not in config or config['reset_on_commit'] == '1':
-        set_mode(uzbl)
+def mode_config(uzbl, args):
+    '''Parse mode config events.'''
+
+    split = map(unicode.strip, FINDSPACES.split(args.lstrip(), 1))
+    if len(split) != 2:
+        raise SyntaxError('invalid mode config syntax: %r' % args)
+
+    mode, set = split
+    split = map(unicode.strip, set.split('=', 1))
+    if len(split) != 2:
+        raise SyntaxError('invalid set syntax: %r' % args)
+
+    key, value = split
+    set_mode_config(uzbl, mode, key, value)
 
 
 def toggle_modes(uzbl, modes):
+    '''Toggle or cycle between or through a list of modes.'''
 
-    modelist = [s.strip() for s in modes.split(' ') if s]
-    if not len(modelist):
-        return error("no modes specified to toggle")
+    assert len(modes.strip())
 
-    mode_dict = get_mode_dict(uzbl)
-    oldmode = mode_dict['mode']
-    if oldmode not in modelist:
-        return set_mode(uzbl, modelist[0])
+    modelist = filter(None, map(unicode.strip, modes.split(' ')))
+    mode = get_mode(uzbl)
 
-    newmode = modelist[(modelist.index(oldmode)+1) % len(modelist)]
-    set_mode(uzbl, newmode)
+    index = 0
+    if mode in modelist:
+        index = (modelist.index(mode)+1) % len(modelist)
+
+    set_mode(uzbl, modelist[index])
 
 
 def init(uzbl):
@@ -150,9 +165,8 @@ def init(uzbl):
     connects = {'CONFIG_CHANGED': config_changed,
       'INSTANCE_EXIT': del_instance,
       'INSTANCE_START': add_instance,
-      'KEY_PRESS': key_press,
       'MODE_CONFIG': mode_config,
-      'LOAD_START': load_reset,
-      'TOGGLE_MODES': toggle_modes}
+      'TOGGLE_MODES': toggle_modes,
+      'MODE_CHANGED': mode_changed}
 
     uzbl.connect_dict(connects)
