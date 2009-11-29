@@ -2152,7 +2152,7 @@ run_handler (const gchar *act, const gchar *args) {
             g_free(expanded);
         } else {
             inparts_[0] = parts[0];
-            inparts_[1] = args;
+            inparts_[1] = g_strdup(args);
             inparts = inparts_;
         }
 
@@ -2161,7 +2161,8 @@ run_handler (const gchar *act, const gchar *args) {
         if (inparts != inparts_) {
             g_free(inparts[0]);
             g_free(inparts[1]);
-        }
+        } else
+            g_free(inparts[1]);
     }
     g_strfreev(parts);
 }
