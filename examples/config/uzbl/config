@@ -174,11 +174,8 @@ set open_new_window = sh 'uzbl-browser -u \@SELECTED_URI'
 @bind    B         = spawn @scripts_dir/insert_bookmark.sh
 @bind    U         = spawn @scripts_dir/load_url_from_history.sh
 @bind    u         = spawn @scripts_dir/load_url_from_bookmarks.sh
-# with the sample yank script, you can yank one of the arguments into clipboard/selection
-@bind    yurl      = spawn @scripts_dir/yank.sh 6 primary
-@bind    ytitle    = spawn @scripts_dir/yank.sh 7 clipboard
-# does the same as yurl but without needing a script
-@bind    y2url     = sh 'echo -n $6 | xclip'
+@bind    yurl      = sh 'echo -n $6 | xclip'
+@bind    ytitle    = sh 'echo -n $7 | xclip'
 # go the page from primary selection
 @bind    p         = sh 'echo "uri `xclip -selection primary -o`" > $4'
 # go to the page in clipboard
