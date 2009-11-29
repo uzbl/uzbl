@@ -53,8 +53,8 @@ Git Repo's & branches
 --------------------
 * Main official repo:
   http://github.com/Dieterbe/uzbl
-- master -> uzbl stable branch
-- experimental -> bleeding edge stuff that may break. after QA Dieter merges into his master
-
+- master -> main development branch
+- experimental -> intrusive/experimental stuff
+- <..>  -> specific topic branches that come and go. they are a place to work on specific features
 * Most contributors & developers also have their clones on github (http://github.com/dusanx, http://github.com/Barrucadu/uzbl, ...).
   They may be developing specific features, which get merged into Dieters experimental branch

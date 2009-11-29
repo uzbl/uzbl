@@ -32,10 +32,8 @@ Read on for more info...
    * [Guides: Fork a project and submit your modifications](http://github.com/guides/fork-a-project-and-submit-your-modifications)
 
 2. Do your work, test it and push to your repo. It may be interesting to ask
-   others for input on your work.  Make sure you do not develop against the
-   master branch! It is meant for stable, tested code.
-   All contributors develop in their experimental or other specific branches,
-   which get merged into the mainline experimental, and after QA it gets merged into the main master.
+   others for input on your work.  Develop against master for small changes/fixes,
+   experimental or a new topic branch for experimental/intrusive work.
 
 3. If you think your code should be in the main uzbl code and meets all
    requirements (see below), then ask Dieter to merge it.
@@ -65,7 +63,8 @@ This is a relatively easy, solid and transparent way to handle all requests in o
 * We recommend you finish your stuff first and then let Dieter know you want your stuff to be merged in, but
   we know for bigger changes this is not always feasible.  Just try to keep the merges about bigger "clean changesets".
 * Your code should not introduce any compile warnings or errors.  And also,
-  no regressions but that's harder to check.
+  no regressions but that's harder to check.  Always run `make tests` to run
+  the test suite.
 * Please try to keep the code clean - we don't like extraneous whitespace.
   The sample pre-commit hook can check for this - so go ahead and
   $ cp .git/hooks/pre-commit.sample .git/hooks/pre-commit
