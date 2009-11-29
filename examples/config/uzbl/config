@@ -310,7 +310,7 @@ set default_mode = command
 set toggle_cmd_ins = @toggle_modes command insert
 
 @bind i        = @toggle_cmd_ins
-@bind <Ctrl><i>  = @toggle_cmd_ins
+@bind <Ctrl>i  = @toggle_cmd_ins
 
 
 # === Post-load misc commands  ===============================================
