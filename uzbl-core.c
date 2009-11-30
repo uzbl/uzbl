@@ -493,6 +493,8 @@ get_click_context() {
 }
 
 /* --- SIGNALS --- */
+int sigs[] = {SIGTERM, SIGINT, SIGSEGV, SIGILL, SIGFPE, SIGQUIT, SIGALRM, 0};
+
 sigfunc*
 setup_signal(int signr, sigfunc *shandler) {
     struct sigaction nh, oh;
@@ -508,24 +510,20 @@ setup_signal(int signr, sigfunc *shandler) {
 }
 
 void
-catch_sigterm(int s) {
-    (void) s;
-    clean_up();
-    exit(EXIT_SUCCESS);
-}
-
-void
-catch_sigint(int s) {
-    (void) s;
-    clean_up();
-    exit(EXIT_SUCCESS);
-}
-
-void
-catch_sigalrm(int s) {
-    (void) s;
-    g_ptr_array_free(uzbl.state.event_buffer, TRUE);
-    uzbl.state.event_buffer = NULL;
+catch_signal(int s) {
+    if(s == SIGTERM ||
+       s == SIGINT  ||
+       s == SIGSEGV ||
+       s == SIGILL  ||
+       s == SIGFPE  ||
+       s == SIGQUIT) {
+        clean_up();
+        exit(EXIT_SUCCESS);
+    }
+    else if(s == SIGALRM && uzbl.state.event_buffer) {
+        g_ptr_array_free(uzbl.state.event_buffer, TRUE);
+        uzbl.state.event_buffer = NULL;
+    }
 }
 
 /* scroll a bar in a given direction */
@@ -2395,15 +2393,9 @@ initialize(int argc, char *argv[]) {
     uzbl.net.soup_session = webkit_get_default_session();
     uzbl.state.keycmd = g_strdup("");
 
-    if(setup_signal(SIGTERM, catch_sigterm) == SIG_ERR)
-        fprintf(stderr, "uzbl: error hooking SIGTERM\n");
-    if(setup_signal(SIGINT, catch_sigint) == SIG_ERR)
-        fprintf(stderr, "uzbl: error hooking SIGINT\n");
-
-    /* Set up the timer for the event buffer */
-    if(setup_signal(SIGALRM, catch_sigalrm) == SIG_ERR) {
-        fprintf(stderr, "uzbl: error hooking SIGALRM\n");
-        exit(EXIT_FAILURE);
+    for(i=0; sigs[i]; i++) {
+        if(setup_signal(sigs[i], catch_signal) == SIG_ERR)
+            fprintf(stderr, "uzbl: error hooking %d: %s\n", sigs[i], strerror(errno));
     }
     event_buffer_timeout(10);
 
