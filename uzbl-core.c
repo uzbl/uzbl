@@ -1086,7 +1086,7 @@ run_external_js (WebKitWebView * web_view, GArray *argv, GString *result) {
         if (uzbl.state.verbose)
             printf ("External JavaScript file %s loaded\n", argv_idx(argv, 0));
 
-        gchar* newjs = str_replace("%s", argv_idx (argv, 1), js);
+        gchar* newjs = str_replace("%s", argv_idx (argv, 1)?argv_idx (argv, 1):"", js);
         g_free (js);
         js = newjs;
 
