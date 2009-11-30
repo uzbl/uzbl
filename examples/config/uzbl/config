@@ -3,7 +3,7 @@
 
 set prefix      = /usr/local
 
-# === Shortcuts ==============================================================
+# === Shortcuts / Aliases  ===================================================
 
 # request BIND <keycmd> = <command>
 set bind           = request BIND
@@ -19,6 +19,8 @@ set progress       = request PROGRESS_CONFIG
 set modmap         = request MODMAP
 # request IGNORE_KEY <glob>
 set ignore_key     = request IGNORE_KEY
+# request MODKEY_ADDITION <key1> <key2> <keyn> <result>
+set modkey_addition = request MODKEY_ADDITION
 
 set set_mode       = set mode =
 set set_status     = set status_message =
@@ -108,14 +110,19 @@ set socket_dir        = /tmp
 
 # === Key modmapping and ignoring ============================================
 
-#modmap from            to
+#modmap <From>          <To>
 @modmap <Control>       <Ctrl>
 @modmap <ISO_Left_Tab>  <Shift-Tab>
 @modmap <space>         <Space>
 
+#modkey_addition <Key1>  <Key2>    <Result>
+@modkey_addition <Shift> <Ctrl>    <Meta>
+@modkey_addition <Shift> <Tab>     <Shift-Tab>
+
 #ignore_key <glob>
 @ignore_key <ISO_*>
 @ignore_key <Shift>
+
 
 # === Keyboard & Mouse bindings ==============================================
 
@@ -125,7 +132,7 @@ set socket_dir        = /tmp
 
 # Middle click
 # if clicked on a link open the link in a new uzbl window
-# otherwise open the selection in the current window1
+# otherwise open the selection in the current window
 set load_from_xclip = sh 'echo "uri $(xclip -o)" > $4'
 set open_new_window = sh 'uzbl-browser -u \@SELECTED_URI'
 @bind    <Button2>  = js if("\@SELECTED_URI") { Uzbl.run("\@open_new_window"); } else { Uzbl.run("\\\@load_from_xclip"); }
@@ -167,11 +174,8 @@ set open_new_window = sh 'uzbl-browser -u \@SELECTED_URI'
 @bind    B         = spawn @scripts_dir/insert_bookmark.sh
 @bind    U         = spawn @scripts_dir/load_url_from_history.sh
 @bind    u         = spawn @scripts_dir/load_url_from_bookmarks.sh
-# with the sample yank script, you can yank one of the arguments into clipboard/selection
-@bind    yurl      = spawn @scripts_dir/yank.sh 6 primary
-@bind    ytitle    = spawn @scripts_dir/yank.sh 7 clipboard
-# does the same as yurl but without needing a script
-@bind    y2url     = sh 'echo -n $6 | xclip'
+@bind    yurl      = sh 'echo -n $6 | xclip'
+@bind    ytitle    = sh 'echo -n $7 | xclip'
 # go the page from primary selection
 @bind    p         = sh 'echo "uri `xclip -selection primary -o`" > $4'
 # go to the page in clipboard
@@ -287,6 +291,7 @@ set stack    = @mode_config stack
 # Multi-stage-binding mode config.
 @stack    keycmd_events       = 1
 @stack    modcmd_updates      = 1
+@stack    forward_keys        = 0
 @stack    keycmd_style        = foreground="red"
 @stack    prompt_style        = foreground="#888" weight="light"
 @stack    status_background   = #202020
@@ -302,7 +307,7 @@ set default_mode = command
 set toggle_cmd_ins = @toggle_modes command insert
 
 @bind i        = @toggle_cmd_ins
-@bind <Ctrl><i>  = @toggle_cmd_ins
+@bind <Ctrl>i  = @toggle_cmd_ins
 
 
 # === Post-load misc commands  ===============================================
