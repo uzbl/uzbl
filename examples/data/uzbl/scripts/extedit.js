@@ -87,8 +87,8 @@ function utf8_encode ( argString ) {
  var actelem  = document.activeElement;
 
  if(actelem.type == 'text' || actelem.type == 'textarea') {
-    var editor   = Uzbl.run("print @editor") || "gvim";
-    var filename = Uzbl.run("print @(mktemp /tmp/uzbl_edit_@NAME.XXXXXX)@");
+    var editor   = Uzbl.run("print @external_editor") || "gvim";
+    var filename = Uzbl.run("print @(mktemp /tmp/uzbl_edit.XXXXXX)@");
 
     if(actelem.value)
         Uzbl.run("sh 'echo " + window.btoa(utf8_encode(actelem.value)) + " | base64 -d > " + filename + "'");
