@@ -137,6 +137,11 @@ set load_from_xclip = sh 'echo "uri $(xclip -o)" > $4'
 set open_new_window = sh 'uzbl-browser -u \@SELECTED_URI'
 @bind    <Button2>  = js if("\@SELECTED_URI") { Uzbl.run("\@open_new_window"); } else { Uzbl.run("\\\@load_from_xclip"); }
 
+# Edit HTML forms in external editor
+set editor = gvim
+@bind    E         = script @scripts_dir/extedit.js
+menu_editable_add Open in @editor = script @scripts_dir/extedit.js
+
 @bind    j         = scroll vertical 20
 @bind    <Page_Down> = scroll vertical 100%
 @bind    k         = scroll vertical -20
