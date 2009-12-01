@@ -294,7 +294,7 @@ def clear_stack(uzbl):
         uzbl.set_mode(bind_dict['last_mode'])
         bind_dict['last_mode'] = ''
 
-    uzbl.set('keycmd_prompt', force=False)
+    uzbl.set('keycmd_prompt')
 
 
 def stack_bind(uzbl, bind, args, depth):

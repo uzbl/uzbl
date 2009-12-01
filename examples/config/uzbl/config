@@ -43,9 +43,11 @@ set new_window         = sh 'uzbl-browser -u $8' # equivalent to the default beh
 # Load start handlers
 @on_event   LOAD_START     @set_status <span foreground="khaki">wait</span>
 
-# Load commit handler
+# Load commit handlers
 @on_event   LOAD_COMMIT    @set_status <span foreground="green">recv</span>
 @on_event   LOAD_COMMIT    script @scripts_dir/scroll-percentage.js
+# Reset the keycmd on navigation
+@on_event   LOAD_COMMIT    @set_mode
 
 # Load finish handlers
 @on_event   LOAD_FINISH    @set_status <span foreground="gold">done</span>
@@ -62,7 +64,6 @@ set new_window         = sh 'uzbl-browser -u $8' # equivalent to the default beh
 
 # Misc on_event handlers
 #@on_event  CONFIG_CHANGED print Config changed: %1 = %2
-
 
 # === Behaviour and appearance ===============================================
 
