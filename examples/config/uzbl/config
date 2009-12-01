@@ -10,7 +10,7 @@ set bind           = request BIND
 # request MODE_CONFIG <mode> <key> = <value
 set mode_config    = request MODE_CONFIG
 # request TOGGLE_MODES <mode1> <mode2> ... <moden>
-set toggle_modes   = request TOGGLE_MODES
+set toggle_modes   = event TOGGLE_MODES
 # request ON_EVENT <EVENT_NAME> <command>
 set on_event       = request ON_EVENT
 # request PROGRESS_CONFIG <key> = <value>
@@ -313,7 +313,7 @@ set default_mode = command
 # Changing mode method via set.
 @bind I = @set_mode insert
 
-# Or toggle between modes by rasing request events.
+# Or toggle between modes by rasing the toggle event.
 set toggle_cmd_ins = @toggle_modes command insert
 
 @bind i        = @toggle_cmd_ins
