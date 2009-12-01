@@ -201,7 +201,7 @@ expand(const char *s, guint recurse) {
     GString *buf = g_string_new("");
     GString *js_ret = g_string_new("");
 
-    while(*s) {
+    while(s && *s) {
         switch(*s) {
             case '\\':
                 g_string_append_c(buf, *++s);
@@ -2107,8 +2107,9 @@ run_handler (const gchar *act, const gchar *args) {
        it still isn't perfect for chain actions..  will reconsider & re-
        factor when I have the time. -duc */
 
+    if (!act) return;
     char **parts = g_strsplit(act, " ", 2);
-    if (!parts) return;
+    if (!parts || !parts[0]) return;
     if (g_strcmp0(parts[0], "chain") == 0) {
         GString *newargs = g_string_new("");
         gchar **chainparts = split_quoted(parts[1], FALSE);
@@ -2142,15 +2143,26 @@ run_handler (const gchar *act, const gchar *args) {
         g_strfreev(chainparts);
 
     } else {
-        /* expand the user-specified arguments */
-        gchar* expanded = expand(parts[1], 0);
-        gchar **inparts = inject_handler_args(parts[0], expanded, args);
+        gchar **inparts;
+        gchar *inparts_[2];
+        if (parts[1]) {
+            /* expand the user-specified arguments */
+            gchar* expanded = expand(parts[1], 0);
+            inparts = inject_handler_args(parts[0], expanded, args);
+            g_free(expanded);
+        } else {
+            inparts_[0] = parts[0];
+            inparts_[1] = g_strdup(args);
+            inparts = inparts_;
+        }
 
         parse_command(inparts[0], inparts[1], NULL);
 
-        g_free(inparts[0]);
-        g_free(inparts[1]);
-        g_free(expanded);
+        if (inparts != inparts_) {
+            g_free(inparts[0]);
+            g_free(inparts[1]);
+        } else
+            g_free(inparts[1]);
     }
     g_strfreev(parts);
 }

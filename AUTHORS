@@ -24,6 +24,7 @@ In alphabetical order:
     Andy Spencer - security fixes
     Barak A. Pearlmutter - typo fix
     Brendan Taylor (bct) - various bugfixes, making misc variables much better using expand(), refactoring some internal var stuff
+    Ciprian Dorin, Craciun - patches
     Chris Mason - code snippets such as basic cookie handler
     Chris van Dijk (quigybo) - work on uzbl_tabbed.py
     Damien Leon - misc
