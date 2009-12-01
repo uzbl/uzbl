@@ -256,10 +256,7 @@ def clear_keycmd(uzbl):
     k.keycmd = ''
     k.cursor = 0
     k._repr_cache = False
-    config = uzbl.get_config()
-    if 'keycmd' not in config or config['keycmd']:
-        uzbl.set('keycmd')
-
+    uzbl.set('keycmd')
     uzbl.event('KEYCMD_CLEAR')
 
 
@@ -273,10 +270,7 @@ def clear_modcmd(uzbl, clear_held=False):
     if clear_held:
         k.held = set()
 
-    config = uzbl.get_config()
-    if 'modcmd' not in config or config['modcmd']:
-        uzbl.set('modcmd')
-
+    uzbl.set('modcmd')
     uzbl.event('MODCMD_CLEAR')
 
 
@@ -314,22 +308,25 @@ def update_event(uzbl, k, execute=True):
     if 'modcmd_updates' not in config or config['modcmd_updates'] == '1':
         new_modcmd = k.get_modcmd()
         if not new_modcmd:
-            uzbl.set('modcmd')
+            uzbl.set('modcmd', config=config)
 
         elif new_modcmd == modcmd:
-            uzbl.set('modcmd', "<span> %s </span>" % uzbl_escape(new_modcmd))
+            uzbl.set('modcmd', '<span> %s </span>' % uzbl_escape(new_modcmd),
+                config=config)
 
     if 'keycmd_events' in config and config['keycmd_events'] != '1':
         return
 
-    keycmd = k.get_keycmd()
-    if not keycmd:
-        return uzbl.set('keycmd')
+    new_keycmd = k.get_keycmd()
+    if not new_keycmd:
+        uzbl.set('keycmd', config=config)
 
-    # Generate the pango markup for the cursor in the keycmd.
-    curchar = keycmd[k.cursor] if k.cursor < len(keycmd) else ' '
-    chunks = [keycmd[:k.cursor], curchar, keycmd[k.cursor+1:]]
-    uzbl.set('keycmd', KEYCMD_FORMAT % tuple(map(uzbl_escape, chunks)))
+    elif new_keycmd == keycmd:
+        # Generate the pango markup for the cursor in the keycmd.
+        curchar = keycmd[k.cursor] if k.cursor < len(keycmd) else ' '
+        chunks = [keycmd[:k.cursor], curchar, keycmd[k.cursor+1:]]
+        value = KEYCMD_FORMAT % tuple(map(uzbl_escape, chunks))
+        uzbl.set('keycmd', value, config=config)
 
 
 def inject_str(str, index, inj):
@@ -380,9 +377,7 @@ def key_press(uzbl, key):
         if 'keycmd_events' in config and config['keycmd_events'] != '1':
             k.keycmd = ''
             k.cursor = 0
-            if config['keycmd']:
-                uzbl.set('keycmd')
-
+            uzbl.set('keycmd', config=config)
             return
 
         k.keycmd = inject_str(k.keycmd, k.cursor, key)

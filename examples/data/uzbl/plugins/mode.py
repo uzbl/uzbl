@@ -63,11 +63,7 @@ def mode_changed(uzbl, mode):
     config = uzbl.get_config()
     mode_config = get_mode_config(uzbl, mode)
     for (key, value) in mode_config.items():
-        if key not in config:
-            config[key] = value
-
-        elif config[key] != value:
-            config[key] = value
+        uzbl.set(key, value, config=config)
 
     if 'mode_indicator' not in mode_config:
         config['mode_indicator'] = mode
