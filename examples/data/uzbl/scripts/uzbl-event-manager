@@ -39,6 +39,7 @@ from select import select
 from signal import signal, SIGTERM
 from optparse import OptionParser
 from traceback import print_exc
+from functools import partial
 
 
 # ============================================================================
@@ -109,18 +110,6 @@ def counter():
     while True:
         i += 1
         yield i
-
-
-def iscallable(obj):
-    '''Return true if the object is callable.'''
-
-    return hasattr(obj, "__call__")
-
-
-def isiterable(obj):
-    '''Return true if you can iterate over the item.'''
-
-    return hasattr(obj, "__iter__")
 
 
 def find_plugins(plugin_dirs):
@@ -289,24 +278,12 @@ def term_process(pid):
         time.sleep(0.25)
 
 
-def prepender(function, *pre_args):
-    '''Creates a wrapper around a callable object injecting a list of
-    arguments before the called arguments.'''
-
-    locals = (function, pre_args)
-    def _prepender(*args, **kargs):
-        (function, pre_args) = locals
-        return function(*(pre_args + args), **kargs)
-
-    return _prepender
-
-
 class EventHandler(object):
 
     nexthid = counter().next
 
     def __init__(self, event, handler, *args, **kargs):
-        if not iscallable(handler):
+        if not callable(handler):
             raise ArgumentError("EventHandler object requires a callable "
                 "object function for the handler argument not: %r" % handler)
 
@@ -378,8 +355,8 @@ class UzblInstance(object):
                     raise KeyError("conflicting export: %r" % export)
 
                 obj = getattr(plugin, export)
-                if iscallable(obj):
-                    obj = prepender(obj, self)
+                if callable(obj):
+                    obj = partial(obj, self)
 
                 self._exports[export] = obj
 
