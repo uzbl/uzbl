@@ -266,6 +266,7 @@ expand(const char *s, guint recurse) {
                 }
                 else if(recurse != 1 &&
                         etype == EXP_EXPR) {
+
                     mycmd = expand(ret, 1);
                     gchar *quoted = g_shell_quote(mycmd);
                     gchar *tmp = g_strdup_printf("%s %s", 
@@ -293,9 +294,22 @@ expand(const char *s, guint recurse) {
                 }
                 else if(recurse != 2 &&
                         etype == EXP_JS) {
-                    mycmd = expand(ret, 2);
-                    eval_js(uzbl.gui.web_view, mycmd, js_ret);
-                    g_free(mycmd);
+
+                    /* read JS from file */
+                    if(ret[0] == '+') {
+                        GArray *tmp = g_array_new(TRUE, FALSE, sizeof(gchar *));
+                        mycmd = expand(ret+1, 2);
+                        g_array_append_val(tmp, mycmd);
+
+                        run_external_js(uzbl.gui.web_view, tmp, js_ret);
+                        g_array_free(tmp, TRUE);
+                    }
+                    /* JS from string */
+                    else {
+                        mycmd = expand(ret, 2);
+                        eval_js(uzbl.gui.web_view, mycmd, js_ret);
+                        g_free(mycmd);
+                    }
 
                     if(js_ret->str) {
                         g_string_append(buf, js_ret->str);
