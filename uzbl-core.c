@@ -394,7 +394,9 @@ read_file_by_line (const gchar *path) {
 
         g_io_channel_unref (chan);
     } else {
-        fprintf(stderr, "File '%s' not be read.\n", path);
+        gchar *tmp = g_strdup_printf("File %s can not be read.", path);
+        send_event(COMMAND_ERROR, tmp, NULL);
+        g_free(tmp);
     }
 
     return lines;
