@@ -27,6 +27,10 @@ find_prompts = re.compile('<([^:>]*):(\"[^\"]*\"|\'[^\']*\'|[^>]*)>').split
 ON_EXEC, HAS_ARGS, MOD_CMD, GLOB, MORE = range(5)
 
 
+class ArgumentError(Exception):
+    pass
+
+
 def ismodbind(glob):
     '''Return True if the glob specifies a modbind.'''
 
