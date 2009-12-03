@@ -22,11 +22,15 @@ def get_config(uzbl):
     return UZBLS[uzbl]
 
 
-def set(uzbl, key, value):
-    '''Sends a: "set key = value" command to the uzbl instance.'''
+def set(uzbl, key, value='', force=True):
+    '''Sends a: "set key = value" command to the uzbl instance. If force is
+    False then only send a set command if the values aren't equal.'''
 
     if type(value) == types.BooleanType:
         value = int(value)
+
+    else:
+        value = unicode(value)
 
     if not _VALIDSETKEY(key):
         raise KeyError("%r" % key)
@@ -34,6 +38,11 @@ def set(uzbl, key, value):
     value = escape(value)
     if '\n' in value:
         value = value.replace("\n", "\\n")
+
+    if not force:
+        config = get_config(uzbl)
+        if key in config and config[key] == value:
+            return
 
     uzbl.send('set %s = %s' % (key, value))
 
@@ -61,8 +70,7 @@ class ConfigDict(dict):
     def __setitem__(self, key, value):
         '''Makes "config[key] = value" a wrapper for the set function.'''
 
-        if key not in self or unicode(self[key]) != unicode(value):
-            set(self._uzbl, key, value)
+        set(self._uzbl, key, value, force=False)
 
 
 def variable_set(uzbl, args):

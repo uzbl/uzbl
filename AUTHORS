@@ -19,7 +19,9 @@ In alphabetical order:
     (sentientswitch) - Cleaned up code. Added some commands.
     Aaron Griffin (phrakture) - Makefile patches to build on OSX
     Abel Camarillo (00z) - various portability fixes, such as BSD fixes for Makefile and posix shell scripts
+    Aldrik Dunbar (n30n) - scroll % script
     Andraž 'ruskie' Levstik - font_family patch
+    Andy Spencer - security fixes
     Barak A. Pearlmutter - typo fix
     Brendan Taylor (bct) - various bugfixes, making misc variables much better using expand(), refactoring some internal var stuff
     Chris Mason - code snippets such as basic cookie handler
@@ -37,11 +39,12 @@ In alphabetical order:
     Jan Kolkmeier (jouz) - scrolling, link following
     Laurence Withers (lwithers) - talk_to_socket
     Mark Nevill - misc patches
-    Mason Larobina - os.environ.keys() & os.path.join fix in cookies.py, work on uzbl_tabbed.py, cookie_daemon.py
+    Mason Larobina - uzbl-tabbed.py, cookie-daemon, event-manager&plugins, ...
     Maximilian Gaß (mxey) - several small patches
     Michael Fiano (axionix) - added cookie_daemon.py whitelist
     Michael Walker (Barrucadu) <mike AT barrucadu.co.uk> - contributions to early uzbl 
     Moritz Lenz - small doc fix
+    Nicolas Pouillard - refactored scroll command
     Olivier Schwander - auto file:// prepend
     Paweł Zuzelski (pawelz) - download handler proxy patch
     Peter Suschlik - backwards searching

@@ -64,9 +64,9 @@ test_NAME (void) {
 }
 
 void
-test_status_message (void) {
-    uzbl.gui.sbar.msg = "Hello from frosty Edmonton!";
-    g_assert_cmpstr(expand("@status_message", 0), ==, "Hello from frosty Edmonton!");
+test_useragent (void) {
+    uzbl.net.useragent = "This is the uzbl browser (sort of).  and btw: Hello from frosty Edmonton!";
+    g_assert_cmpstr(expand("@useragent", 0), ==, "This is the uzbl browser (sort of).  and btw: Hello from frosty Edmonton!");
 }
 
 void
@@ -171,12 +171,12 @@ test_escape_expansion (void) {
 
 void
 test_nested (void) {
-    uzbl.gui.sbar.msg = "xxx";
-    g_assert_cmpstr(expand("@<\"..@status_message..\">@", 0), ==, "..xxx..");
-    g_assert_cmpstr(expand("@<\"..\\@status_message..\">@", 0), ==, "..@status_message..");
+    uzbl.net.useragent = "xxx";
+    g_assert_cmpstr(expand("@<\"..@useragent..\">@", 0), ==, "..xxx..");
+    g_assert_cmpstr(expand("@<\"..\\@useragent..\">@", 0), ==, "..@useragent..");
 
-    g_assert_cmpstr(expand("@(echo ..@status_message..)@", 0), ==, "..xxx..");
-    g_assert_cmpstr(expand("@(echo ..\\@status_message..)@", 0), ==, "..@status_message..");
+    g_assert_cmpstr(expand("@(echo ..@useragent..)@", 0), ==, "..xxx..");
+    g_assert_cmpstr(expand("@(echo ..\\@useragent..)@", 0), ==, "..@useragent..");
 }
 
 int
@@ -185,7 +185,7 @@ main (int argc, char *argv[]) {
     g_test_init(&argc, &argv, NULL);
 
     g_test_add_func("/test-expand/@keycmd", test_keycmd);
-    g_test_add_func("/test-expand/@status_message", test_status_message);
+    g_test_add_func("/test-expand/@useragent", test_useragent);
     g_test_add_func("/test-expand/@uri", test_uri);
     g_test_add_func("/test-expand/@TITLE", test_TITLE);
     g_test_add_func("/test-expand/@SELECTED_URI", test_SELECTED_URI);

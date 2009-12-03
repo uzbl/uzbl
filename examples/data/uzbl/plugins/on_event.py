@@ -1,7 +1,7 @@
 '''Plugin provides arbitrary binding of uzbl events to uzbl commands.
 
 Formatting options:
-  %@ = space separated string of the arguments
+  %s = space separated string of the arguments
   %1 = argument 1
   %2 = argument 2
   %n = argument n
@@ -18,15 +18,10 @@ Usage:
 
 import sys
 import re
-from event_manager import config
 
 __export__ = ['get_on_events', 'on_event']
 
 UZBLS = {}
-
-def echo(msg):
-    if config['verbose']:
-        print 'on_event plugin:', msg
 
 
 def error(msg):
@@ -50,10 +45,10 @@ def get_on_events(uzbl):
 
 
 def expand(cmd, args):
-    '''Replaces "%@ %1 %2 %3..." with "<all args> <arg 0> <arg 1>...".'''
+    '''Replaces "%s %1 %2 %3..." with "<all args> <arg 0> <arg 1>...".'''
 
-    if '%@' in cmd:
-        cmd = cmd.replace('%@', ' '.join(map(unicode, args)))
+    if '%s' in cmd:
+        cmd = cmd.replace('%s', ' '.join(map(unicode, args)))
 
     for (index, arg) in enumerate(args):
         index += 1

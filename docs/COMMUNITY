@@ -10,6 +10,7 @@ COMMUNITY
 ### IRC
 
 * `#uzbl` on irc.freenode.net
+* [Archive](http://www.uzbl.org/irc-log)
 
 ### Website
 
@@ -20,8 +21,6 @@ COMMUNITY
 * [www.uzbl.org/bugs/](http://www.uzbl.org/bugs/)
 
 ### Code repositories
-Remember: dieter/master = official stable branch.
-If you want to develop, develop against dieter/experimental
 
 * [github.com/Dieterbe/uzbl](http://github.com/Dieterbe/uzbl/)
 * [github.com/anydot/uzbl](http://github.com/anydot/uzbl/)

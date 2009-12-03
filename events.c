@@ -40,7 +40,10 @@ const char *event_table[LAST_EVENT] = {
      "ROOT_ACTIVE"      ,
      "FOCUS_LOST"       ,
      "FOCUS_GAINED"     ,
-     "FILE_INCLUDED"
+     "FILE_INCLUDED"    ,
+     "PLUG_CREATED"     ,
+     "COMMAND_ERROR"    ,
+     "BUILTINS"
 };
 
 void
@@ -58,7 +61,7 @@ send_event_socket(GString *msg) {
     GError *error = NULL;
     GString *tmp;
     GIOChannel *gio = NULL;
-    GIOStatus ret = 0;
+    GIOStatus ret;
     gsize len;
     guint i=0, j=0;
 
@@ -66,7 +69,7 @@ send_event_socket(GString *msg) {
     if(uzbl.comm.connect_chan) {
         while(i < uzbl.comm.connect_chan->len) {
             gio = g_ptr_array_index(uzbl.comm.connect_chan, i++);
-            j=0; ret = 0;
+            j=0;
 
             if(gio && gio->is_writeable) {
                 if(uzbl.state.event_buffer) {
@@ -79,25 +82,22 @@ send_event_socket(GString *msg) {
                                 tmp->str, tmp->len,
                                 &len, &error);
 
-                        if (ret == G_IO_STATUS_ERROR) {
+                        if (ret == G_IO_STATUS_ERROR) 
                             g_warning ("Error sending event to socket: %s", error->message);
-                        }
-                        g_io_channel_flush(gio, &error);
+                        else
+                            g_io_channel_flush(gio, &error);
                     }
                 }
 
                 if(msg) {
-                    while(!ret ||
-                            ret == G_IO_STATUS_AGAIN) {
-                        ret = g_io_channel_write_chars (gio,
-                                msg->str, msg->len,
-                                &len, &error);
-                    }
+                    ret = g_io_channel_write_chars (gio,
+                            msg->str, msg->len,
+                            &len, &error);
 
-                    if (ret == G_IO_STATUS_ERROR) {
+                    if (ret == G_IO_STATUS_ERROR)
                         g_warning ("Error sending event to socket: %s", error->message);
-                    }
-                    g_io_channel_flush(gio, &error);
+                    else
+                        g_io_channel_flush(gio, &error);
                 }
             }
         }
@@ -120,18 +120,16 @@ send_event_socket(GString *msg) {
     if(msg && uzbl.comm.client_chan) {
         while(i < uzbl.comm.client_chan->len) {
             gio = g_ptr_array_index(uzbl.comm.client_chan, i++);
-            ret = 0;
 
             if(gio && gio->is_writeable && msg) {
-                while(!ret || ret == G_IO_STATUS_AGAIN) {
-                    ret = g_io_channel_write_chars (gio,
-                            msg->str, msg->len,
-                            &len, &error);
-                }
+                ret = g_io_channel_write_chars (gio,
+                        msg->str, msg->len,
+                        &len, &error);
 
                 if (ret == G_IO_STATUS_ERROR)
                     g_warning ("Error sending event to socket: %s", error->message);
-                g_io_channel_flush(gio, &error);
+                else
+                    g_io_channel_flush(gio, &error);
             }
         }
     }
@@ -183,18 +181,26 @@ send_event(int type, const gchar *details, const gchar *custom_event) {
 /* Transform gdk key events to our own events */
 void
 key_to_event(guint keyval, gint mode) {
-    char byte[2] = {0, 0};
+    gchar ucs[7];
+    gint ulen;
+    guint32 ukval = gdk_keyval_to_unicode(keyval);
 
-    /* check for Latin-1 characters  (1:1 mapping) */
-    if ((keyval >  0x0020 && keyval <= 0x007e) ||
-        (keyval >= 0x0080 && keyval <= 0x00ff)) {
-        sprintf(byte, "%c", keyval);
+    /* check for printable unicode char */
+    /* TODO: Pass the keyvals through a GtkIMContext so that
+     *       we also get combining chars right
+    */
+    if(g_unichar_isgraph(ukval)) {
+        ulen = g_unichar_to_utf8(ukval, ucs);
+        ucs[ulen] = 0;
+
         send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
-                byte, NULL);
+                ucs, NULL);
     }
-    else
+    /* send keysym for non-printable chars */
+    else {
         send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
                 gdk_keyval_name(keyval), NULL);
+    }
 
 }
 

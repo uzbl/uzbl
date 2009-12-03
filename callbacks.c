@@ -40,7 +40,7 @@ void
 cmd_set_geometry() {
     int ret=0, x=0, y=0;
     unsigned int w=0, h=0;
-
+    /* we used to use gtk_window_parse_geometry() but that didn't work how it was supposed to */
     ret = XParseGeometry(uzbl.gui.geometry, &x, &y, &w, &h);
     if(ret & XValue)
         gtk_window_move((GtkWindow *)uzbl.gui.main_window, x, y);
@@ -474,24 +474,69 @@ gboolean
 button_press_cb (GtkWidget* window, GdkEventButton* event) {
     (void) window;
     gint context;
+    gchar *details;
+    gboolean propagate = FALSE,
+             sendev    = FALSE;
 
     if(event->type == GDK_BUTTON_PRESS) {
         if(uzbl.state.last_button)
             gdk_event_free((GdkEvent *)uzbl.state.last_button);
         uzbl.state.last_button = (GdkEventButton *)gdk_event_copy((GdkEvent *)event);
 
+        context = get_click_context(NULL);
         /* left click */
         if(event->button == 1) {
-            context = get_click_context();
-
             if((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE))
                 send_event(FORM_ACTIVE, "button1", NULL);
             else if((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT))
                 send_event(ROOT_ACTIVE, "button1", NULL);
         }
+        else if(event->button == 2 && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
+            sendev    = TRUE;
+            propagate = TRUE;
+        }
+        else if(event->button > 3) {
+            sendev    = TRUE;
+            propagate = TRUE;
+        }
+
+        if(sendev) {
+            details = g_strdup_printf("Button%d", event->button);
+            send_event(KEY_PRESS, details, NULL);
+            g_free(details);
+        }
     }
 
-    return FALSE;
+    return propagate;
+}
+
+gboolean
+button_release_cb (GtkWidget* window, GdkEventButton* event) {
+    (void) window;
+    gint context;
+    gchar *details;
+    gboolean propagate = FALSE,
+             sendev    = FALSE;
+
+    context = get_click_context(NULL);
+    if(event->type == GDK_BUTTON_RELEASE) {
+        if(event->button == 2 && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
+            sendev    = TRUE;
+            propagate = TRUE;
+        }
+        else if(event->button > 3) {
+            sendev    = TRUE;
+            propagate = TRUE;
+        }
+
+        if(sendev) {
+            details = g_strdup_printf("Button%d", event->button);
+            send_event(KEY_RELEASE, details, NULL);
+            g_free(details);
+        }
+    }
+
+    return propagate;
 }
 
 gboolean
@@ -627,7 +672,7 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
         return;
 
     /* check context */
-    if((context = get_click_context()) == -1)
+    if((context = get_click_context(NULL)) == -1)
         return;
 
 

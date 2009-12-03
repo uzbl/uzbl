@@ -41,12 +41,6 @@
 
 #define LENGTH(x) (sizeof x / sizeof x[0])
 
-/* status bar elements */
-typedef struct {
-    gchar          *msg;
-} StatusBar;
-
-
 /* gui elements */
 typedef struct {
     GtkWidget*     main_window;
@@ -67,8 +61,6 @@ typedef struct {
     /* WebInspector */
     GtkWidget *inspector_window;
     WebKitWebInspector *inspector;
-
-    StatusBar sbar;
 
     /* custom context menu item */
     GPtrArray    *menu_items;
@@ -104,6 +96,7 @@ typedef struct {
     GPtrArray *event_buffer;
     gchar**   connect_socket_names;
     GdkEventButton *last_button;
+    gboolean plug_mode;
 } State;
 
 
@@ -381,6 +374,9 @@ void
 search_reverse_text (WebKitWebView *page, GArray *argv, GString *result);
 
 void
+search_clear(WebKitWebView *page, GArray *argv, GString *result);
+
+void
 dehilight (WebKitWebView *page, GArray *argv, GString *result);
 
 void
@@ -475,6 +471,9 @@ hardcopy(WebKitWebView *page, GArray *argv, GString *result);
 
 void
 include(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+builtins();
 
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
 

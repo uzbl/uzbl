@@ -46,13 +46,13 @@ GOptionEntry entries[] =
     { "verbose",  'v', 0, G_OPTION_ARG_NONE,   &uzbl.state.verbose,
         "Whether to print all messages or just errors.", NULL },
     { "name",     'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name,
-        "Name of the current instance (defaults to Xorg window id)", "NAME" },
+        "Name of the current instance (defaults to Xorg window id or random for GtkSocket mode)", "NAME" },
     { "config",   'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,
         "Path to config file or '-' for stdin", "FILE" },
     { "socket",   's', 0, G_OPTION_ARG_INT, &uzbl.state.socket_id,
         "Socket ID", "SOCKET" },
     { "connect-socket",   0, 0, G_OPTION_ARG_STRING_ARRAY, &uzbl.state.connect_socket_names,
-        "Socket Name", "CSOCKET" },
+        "Connect to server socket", "CSOCKET" },
     { "geometry", 'g', 0, G_OPTION_ARG_STRING, &uzbl.gui.geometry,
         "Set window geometry (format: WIDTHxHEIGHT+-X+-Y)", "GEOMETRY" },
     { "version",  'V', 0, G_OPTION_ARG_NONE, &uzbl.behave.print_version,
@@ -88,7 +88,6 @@ const struct var_name_to_ptr_t {
     { "inject_html",            PTR_V_STR(uzbl.behave.inject_html,              0,   cmd_inject_html)},
     { "geometry",               PTR_V_STR(uzbl.gui.geometry,                    1,   cmd_set_geometry)},
     { "keycmd",                 PTR_V_STR(uzbl.state.keycmd,                    1,   NULL)},
-    { "status_message",         PTR_V_STR(uzbl.gui.sbar.msg,                    1,   NULL)},
     { "show_status",            PTR_V_INT(uzbl.behave.show_status,              1,   cmd_set_status)},
     { "status_top",             PTR_V_INT(uzbl.behave.status_top,               1,   move_statusbar)},
     { "status_format",          PTR_V_STR(uzbl.behave.status_format,            1,   NULL)},
@@ -346,6 +345,9 @@ str_replace (const char* search, const char* replace, const char* string) {
     gchar **buf;
     char *ret;
 
+    if(!string)
+        return NULL;
+
     buf = g_strsplit (string, search, -1);
     ret = g_strjoinv (replace, buf);
     g_strfreev(buf);
@@ -435,8 +437,10 @@ parseenv (gchar* string) {
     gchar* tmpstr = NULL, * out;
     int i = 0;
 
-    out = g_strdup(string);
+    if(!string)
+        return NULL;
 
+    out = g_strdup(string);
     while (environ[i] != NULL) {
         gchar** env = g_strsplit (environ[i], "=", 2);
         gchar* envname = g_strconcat ("$", env[0], NULL);
@@ -489,6 +493,8 @@ get_click_context() {
 }
 
 /* --- SIGNALS --- */
+int sigs[] = {SIGTERM, SIGINT, SIGSEGV, SIGILL, SIGFPE, SIGQUIT, SIGALRM, 0};
+
 sigfunc*
 setup_signal(int signr, sigfunc *shandler) {
     struct sigaction nh, oh;
@@ -504,34 +510,31 @@ setup_signal(int signr, sigfunc *shandler) {
 }
 
 void
-catch_sigterm(int s) {
-    (void) s;
-    clean_up();
-}
-
-void
-catch_sigint(int s) {
-    (void) s;
-    clean_up();
-    exit(EXIT_SUCCESS);
-}
-
-void
-catch_sigalrm(int s) {
-    (void) s;
-    g_ptr_array_free(uzbl.state.event_buffer, TRUE);
-    uzbl.state.event_buffer = NULL;
+catch_signal(int s) {
+    if(s == SIGTERM ||
+       s == SIGINT  ||
+       s == SIGSEGV ||
+       s == SIGILL  ||
+       s == SIGFPE  ||
+       s == SIGQUIT) {
+        clean_up();
+        exit(EXIT_SUCCESS);
+    }
+    else if(s == SIGALRM && uzbl.state.event_buffer) {
+        g_ptr_array_free(uzbl.state.event_buffer, TRUE);
+        uzbl.state.event_buffer = NULL;
+    }
 }
 
 /* scroll a bar in a given direction */
 void
-scroll (GtkAdjustment* bar, GArray *argv) {
+scroll (GtkAdjustment* bar, gchar *amount_str) {
     gchar *end;
     gdouble max_value;
 
     gdouble page_size = gtk_adjustment_get_page_size(bar);
     gdouble value = gtk_adjustment_get_value(bar);
-    gdouble amount = g_ascii_strtod(g_array_index(argv, gchar*, 0), &end);
+    gdouble amount = g_ascii_strtod(amount_str, &end);
 
     if (*end == '%')
         value += page_size * amount * 0.01;
@@ -546,29 +549,46 @@ scroll (GtkAdjustment* bar, GArray *argv) {
     gtk_adjustment_set_value (bar, value);
 }
 
+/*
+ * scroll vertical 20
+ * scroll vertical 20%
+ * scroll vertical -40
+ * scroll vertical begin
+ * scroll vertical end
+ * scroll horizontal 10
+ * scroll horizontal -500
+ * scroll horizontal begin
+ * scroll horizontal end
+ */
 void
-scroll_begin(WebKitWebView* page, GArray *argv, GString *result) {
-    (void) page; (void) argv; (void) result;
-    gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_lower(uzbl.gui.bar_v));
-}
-
-void
-scroll_end(WebKitWebView* page, GArray *argv, GString *result) {
-    (void) page; (void) argv; (void) result;
-    gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_upper(uzbl.gui.bar_v) -
-                              gtk_adjustment_get_page_size(uzbl.gui.bar_v));
-}
-
-void
-scroll_vert(WebKitWebView* page, GArray *argv, GString *result) {
+scroll_cmd(WebKitWebView* page, GArray *argv, GString *result) {
     (void) page; (void) result;
-    scroll(uzbl.gui.bar_v, argv);
-}
+    gchar *direction = g_array_index(argv, gchar*, 0);
+    gchar *argv1     = g_array_index(argv, gchar*, 1);
 
-void
-scroll_horz(WebKitWebView* page, GArray *argv, GString *result) {
-    (void) page; (void) result;
-    scroll(uzbl.gui.bar_h, argv);
+    if (g_strcmp0(direction, "horizontal") == 0)
+    {
+      if (g_strcmp0(argv1, "begin") == 0)
+        gtk_adjustment_set_value(uzbl.gui.bar_h, gtk_adjustment_get_lower(uzbl.gui.bar_h));
+      else if (g_strcmp0(argv1, "end") == 0)
+        gtk_adjustment_set_value (uzbl.gui.bar_h, gtk_adjustment_get_upper(uzbl.gui.bar_h) -
+                                  gtk_adjustment_get_page_size(uzbl.gui.bar_h));
+      else
+        scroll(uzbl.gui.bar_h, argv1);
+    }
+    else if (g_strcmp0(direction, "vertical") == 0)
+    {
+      if (g_strcmp0(argv1, "begin") == 0)
+        gtk_adjustment_set_value(uzbl.gui.bar_v, gtk_adjustment_get_lower(uzbl.gui.bar_v));
+      else if (g_strcmp0(argv1, "end") == 0)
+        gtk_adjustment_set_value (uzbl.gui.bar_v, gtk_adjustment_get_upper(uzbl.gui.bar_v) -
+                                  gtk_adjustment_get_page_size(uzbl.gui.bar_v));
+      else
+        scroll(uzbl.gui.bar_v, argv1);
+    }
+    else
+      if(uzbl.state.verbose)
+        puts("Unrecognized scroll format");
 }
 
 
@@ -589,10 +609,7 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
 {   /* key                              function      no_split      */
     { "back",                           {view_go_back, 0}               },
     { "forward",                        {view_go_forward, 0}            },
-    { "scroll_vert",                    {scroll_vert, 0}                },
-    { "scroll_horz",                    {scroll_horz, 0}                },
-    { "scroll_begin",                   {scroll_begin, 0}               },
-    { "scroll_end",                     {scroll_end, 0}                 },
+    { "scroll",                         {scroll_cmd, 0}                 },
     { "reload",                         {view_reload, 0},               },
     { "reload_ign_cache",               {view_reload_bypass_cache, 0}   },
     { "stop",                           {view_stop_loading, 0},         },
@@ -611,6 +628,7 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "exit",                           {close_uzbl, 0}                 },
     { "search",                         {search_forward_text, TRUE}     },
     { "search_reverse",                 {search_reverse_text, TRUE}     },
+    { "search_clear",                   {search_clear, TRUE}            },
     { "dehilight",                      {dehilight, 0}                  },
     { "set",                            {set_var, TRUE}                 },
     { "dump_config",                    {act_dump_config, 0}            },
@@ -645,6 +663,21 @@ commands_hash(void)
         g_hash_table_insert(uzbl.behave.commands, (gpointer) cmdlist[i].key, &cmdlist[i].value);
 }
 
+void
+builtins() {
+    unsigned int i,
+             len = LENGTH(cmdlist);
+    GString *command_list = g_string_new("");
+
+    for (i = 0; i < len; i++) {
+        g_string_append(command_list, cmdlist[i].key);
+        g_string_append_c(command_list, ' ');
+    }
+
+    send_event(BUILTINS, command_list->str, NULL);
+    g_string_free(command_list, TRUE);
+}
+
 /* -- CORE FUNCTIONS -- */
 
 bool
@@ -655,6 +688,10 @@ file_exists (const char * filename) {
 void
 set_var(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
+
+    if(!argv_idx(argv, 0))
+        return;
+
     gchar **split = g_strsplit(argv_idx(argv, 0), "=", 2);
     if (split[0] != NULL) {
         gchar *value = parseenv(split[1] ? g_strchug(split[1]) : " ");
@@ -669,8 +706,11 @@ add_to_menu(GArray *argv, guint context) {
     GUI *g = &uzbl.gui;
     MenuItem *m;
     gchar *item_cmd = NULL;
-    gchar **split = g_strsplit(argv_idx(argv, 0), "=", 2);
 
+    if(!argv_idx(argv, 0))
+        return;
+
+    gchar **split = g_strsplit(argv_idx(argv, 0), "=", 2);
     if(!g->menu_items)
         g->menu_items = g_ptr_array_new();
 
@@ -1046,11 +1086,10 @@ run_external_js (WebKitWebView * web_view, GArray *argv, GString *result) {
         if (uzbl.state.verbose)
             printf ("External JavaScript file %s loaded\n", argv_idx(argv, 0));
 
-        if (argv_idx (argv, 1)) {
-            gchar* newjs = str_replace("%s", argv_idx (argv, 1), js);
-            g_free (js);
-            js = newjs;
-        }
+        gchar* newjs = str_replace("%s", argv_idx (argv, 1)?argv_idx (argv, 1):"", js);
+        g_free (js);
+        js = newjs;
+
         eval_js (web_view, js, result);
         g_free (js);
         g_array_free (lines, TRUE);
@@ -1068,11 +1107,24 @@ search_text (WebKitWebView *page, GArray *argv, const gboolean forward) {
         }
     }
 
+
     if (uzbl.state.searchtx) {
         if (uzbl.state.verbose)
             printf ("Searching: %s\n", uzbl.state.searchtx);
         webkit_web_view_set_highlight_text_matches (page, TRUE);
         webkit_web_view_search_text (page, uzbl.state.searchtx, FALSE, forward, TRUE);
+    }
+}
+
+void
+search_clear(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) argv;
+    (void) result;
+
+    webkit_web_view_unmark_text_matches (page);
+    if(uzbl.state.searchtx) {
+        g_free(uzbl.state.searchtx);
+        uzbl.state.searchtx = NULL;
     }
 }
 
@@ -1476,9 +1528,12 @@ parse_command(const char *cmd, const char *param, GString *result) {
                 send_event(COMMAND_EXECUTED, tmp->str, NULL);
                 g_string_free(tmp, TRUE);
             }
-
-    } else
-        g_printerr ("command \"%s\" not understood. ignoring.\n", cmd);
+    } 
+    else { 
+        gchar *tmp = g_strdup_printf("%s %s", cmd, param?param:"");
+        send_event(COMMAND_ERROR, tmp, NULL);
+        g_free(tmp);
+    }
 }
 
 
@@ -1927,6 +1982,7 @@ create_browser () {
       "signal::key-press-event",                      (GCallback)key_press_cb,            NULL,
       "signal::key-release-event",                    (GCallback)key_release_cb,          NULL,
       "signal::button-press-event",                   (GCallback)button_press_cb,         NULL,
+      "signal::button-release-event",                 (GCallback)button_release_cb,       NULL,
       "signal::title-changed",                        (GCallback)title_change_cb,         NULL,
       "signal::selection-changed",                    (GCallback)selection_changed_cb,    NULL,
       "signal::load-progress-changed",                (GCallback)progress_change_cb,      NULL,
@@ -1972,7 +2028,6 @@ create_window () {
     GtkWidget* window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 
     gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
-    gtk_window_set_wmclass(GTK_WINDOW(window), "uzbl", "uzbl");
     gtk_widget_set_name (window, "Uzbl browser");
 
     g_signal_connect (G_OBJECT (window), "destroy",         G_CALLBACK (destroy_cb),         NULL);
@@ -2305,6 +2360,15 @@ retrieve_geometry() {
  * external applications need to do anyhow */
 void
 initialize(int argc, char *argv[]) {
+    int i;
+    
+    for(i=0; i<argc; ++i) {
+        if(!strcmp(argv[i], "-s") || !strcmp(argv[i], "--socket")) {
+            uzbl.state.plug_mode = TRUE;
+            break;
+        }
+    }
+
     if (!g_thread_supported ())
         g_thread_init (NULL);
     gtk_init (&argc, &argv);
@@ -2327,15 +2391,9 @@ initialize(int argc, char *argv[]) {
     uzbl.net.soup_session = webkit_get_default_session();
     uzbl.state.keycmd = g_strdup("");
 
-    if(setup_signal(SIGTERM, catch_sigterm) == SIG_ERR)
-        fprintf(stderr, "uzbl: error hooking SIGTERM\n");
-    if(setup_signal(SIGINT, catch_sigint) == SIG_ERR)
-        fprintf(stderr, "uzbl: error hooking SIGINT\n");
-
-    /* Set up the timer for the event buffer */
-    if(setup_signal(SIGALRM, catch_sigalrm) == SIG_ERR) {
-        fprintf(stderr, "uzbl: error hooking SIGALRM\n");
-        exit(EXIT_FAILURE);
+    for(i=0; sigs[i]; i++) {
+        if(setup_signal(sigs[i], catch_signal) == SIG_ERR)
+            fprintf(stderr, "uzbl: error hooking %d: %s\n", sigs[i], strerror(errno));
     }
     event_buffer_timeout(10);
 
@@ -2404,7 +2462,7 @@ main (int argc, char* argv[]) {
     gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
     gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.mainbar, FALSE, TRUE, 0);
 
-    if (uzbl.state.socket_id) {
+    if (uzbl.state.plug_mode) {
         uzbl.gui.plug = create_plug ();
         gtk_container_add (GTK_CONTAINER (uzbl.gui.plug), uzbl.gui.vbox);
         gtk_widget_show_all (GTK_WIDGET (uzbl.gui.plug));
@@ -2436,6 +2494,15 @@ main (int argc, char* argv[]) {
     g_string_printf(tmp, "%d", getpid());
     uzbl.info.pid_str = g_string_free(tmp, FALSE);
     send_event(INSTANCE_START, uzbl.info.pid_str, NULL);
+
+    if(uzbl.state.plug_mode) {
+        char *t = itos(gtk_plug_get_id(uzbl.gui.plug));
+        send_event(PLUG_CREATED, t, NULL);
+        g_free(t);
+    }
+
+    /* generate an event with a list of built in commands */
+    builtins();
 
     gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
 

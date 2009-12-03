@@ -178,9 +178,9 @@ test_set_variable (struct EventFixture *ef, const void *data) {
     (void) data;
 
     /* set a string */
-    parse_cmd_line("set status_message = A Simple Testing Message", NULL);
-    ASSERT_EVENT(ef, "VARIABLE_SET status_message str A Simple Testing Message");
-    g_assert_cmpstr("A Simple Testing Message", ==, uzbl.gui.sbar.msg);
+    parse_cmd_line("set useragent = Uzbl browser kthxbye!", NULL);
+    ASSERT_EVENT(ef, "VARIABLE_SET useragent str Uzbl browser kthxbye!");
+    g_assert_cmpstr("Uzbl browser kthxbye!", ==, uzbl.net.useragent);
 
     /* set an int */
     parse_cmd_line("set forward_keys = 0", NULL);
@@ -250,27 +250,27 @@ test_scroll (void) {
     gtk_adjustment_set_upper(uzbl.gui.bar_v, 100);
     gtk_adjustment_set_page_size(uzbl.gui.bar_v, 5);
 
-    /* scroll_end should scroll it to upper - page_size */
-    parse_cmd_line("scroll_end", NULL);
+    /* scroll vertical end should scroll it to upper - page_size */
+    parse_cmd_line("scroll vertical end", NULL);
     g_assert_cmpfloat(gtk_adjustment_get_value(uzbl.gui.bar_v), ==, 95);
 
-    /* scroll_begin should scroll it to lower */
-    parse_cmd_line("scroll_begin", NULL);
+    /* scroll vertical begin should scroll it to lower */
+    parse_cmd_line("scroll vertical begin", NULL);
     g_assert_cmpfloat(gtk_adjustment_get_value(uzbl.gui.bar_v), ==, 0);
 
-    /* scroll_vert can scroll by pixels */
-    parse_cmd_line("scroll_vert 15", NULL);
+    /* scroll vertical can scroll by pixels */
+    parse_cmd_line("scroll vertical 15", NULL);
     g_assert_cmpfloat(gtk_adjustment_get_value(uzbl.gui.bar_v), ==, 15);
 
-    parse_cmd_line("scroll_vert -10", NULL);
+    parse_cmd_line("scroll vertical -10", NULL);
     g_assert_cmpfloat(gtk_adjustment_get_value(uzbl.gui.bar_v), ==, 5);
 
-    /* scroll_vert can scroll by a percentage of the page size */
-    parse_cmd_line("scroll_vert 100%", NULL);
+    /* scroll vertical can scroll by a percentage of the page size */
+    parse_cmd_line("scroll vertical 100%", NULL);
     g_assert_cmpfloat(gtk_adjustment_get_value(uzbl.gui.bar_v), ==, 10);
 
-    parse_cmd_line("scroll_vert -150%", NULL);
-    g_assert_cmpfloat(gtk_adjustment_get_value(uzbl.gui.bar_v), ==, 2.5);
+    parse_cmd_line("scroll vertical 150%", NULL);
+    g_assert_cmpfloat(gtk_adjustment_get_value(uzbl.gui.bar_v), ==, 17.5);
 
     /* scroll_horz behaves basically the same way. */
 }
@@ -306,9 +306,9 @@ test_js (void) {
     g_assert_cmpstr("X345", ==, result->str);
 
     /* uzbl commands can be run from javascript */
-    uzbl.gui.sbar.msg = "Test message";
-    parse_cmd_line("js Uzbl.run('print @status_message').toUpperCase();", result);
-    g_assert_cmpstr("TEST MESSAGE", ==, result->str);
+    uzbl.net.useragent = "Test useragent";
+    parse_cmd_line("js Uzbl.run('print @useragent').toUpperCase();", result);
+    g_assert_cmpstr("TEST USERAGENT", ==, result->str);
 
     g_string_free(result, TRUE);
 }
@@ -330,8 +330,8 @@ test_run_handler_arg_order (void) {
 
 void
 test_run_handler_expand (void) {
-    uzbl.gui.sbar.msg = "Test message";
-    run_handler("sync_spawn echo @status_message", "result:");
+    uzbl.net.useragent = "Test uzbl uzr agent";
+    run_handler("sync_spawn echo @useragent", "result:");
 
     assert(uzbl.comm.sync_stdout);
 
@@ -340,7 +340,7 @@ test_run_handler_expand (void) {
 
     /* the rest of the result should be the arguments passed to run_handler. */
     /* the user-specified arguments to the handler should have been expanded */
-    g_assert_cmpstr("result: Test message\n", ==, rest);
+    g_assert_cmpstr("result: Test uzbl uzr agent\n", ==, rest);
 }
 
 int

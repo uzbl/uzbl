@@ -111,12 +111,10 @@ The following commands are recognized:
 
 * `back`
 * `forward`
-* `scroll_vert <amount>`
-* `scroll_horz <amount>`
-   - amount is given in pixels(?) or as a percentage of the size of the view
-   - set amount to 100% to scroll a whole page
-* `scroll_begin`
-* `scroll_end`
+* `scroll <vertical|horizontal> <argument>`
+   - argument can be `begin`, `end`, or an amount given in pixels(?)
+     or as a percentage of the size of the view
+   - set the amount to 100% to scroll a whole page
 * `reload`
 * `reload_ign_cache`
 * `stop`
@@ -146,6 +144,8 @@ The following commands are recognized:
 * `search <string>`
 * `search_reverse <string>`
    - search with no string will search for the next/previous occurrence of the string previously searched for
+* `search_clear`
+   - unmark and clear the search string
 * `toggle_insert_mode <optional state>` TODO new plugin based syntax
    - if the optional state is 0, disable insert mode. If 1, enable insert mode.
 * `dump_config`
@@ -161,25 +161,27 @@ The following commands are recognized:
    - if you use `chain` with a handler script which must return some output (such as a cookie handler -- uzbl will wait for and use its output), use sync_spawn or sync_sh instead of spawn or sh in the command that should give the output
 * `event <event_name> [event_details]`
    - send custom event
-* menu_add          <label>  = <uzbl command>
-* menu_link_add     <label>  = <uzbl command>
-* menu_image_add    <label>  = <uzbl command>
-* menu_editable_add <label>  = <uzbl command>
+* `request <request_name> [request_details]`
+   - send custom request (same idea as events, but to be processed by EM, not uzbl-core)
+* `menu_add          <label>  = <uzbl command>`
+* `menu_link_add     <label>  = <uzbl command>`
+* `menu_image_add    <label>  = <uzbl command>`
+* `menu_editable_add <label>  = <uzbl command>`
    - add a new entry "label" that will execute "uzbl command" to one of the right click context menus
-* menu_separator          <label>
-* menu_link_separator     <label>
-* menu_image_separator    <label>
-* menu_editable_separator <label>
+* `menu_separator          <label>`
+* `menu_link_separator     <label>`
+* `menu_image_separator    <label>`
+* `menu_editable_separator <label>`
    - adds a separator line to one of the right click context menus
-* menu_remove          <label>
-* menu_link_remove     <label>
-* menu_image_remove    <label>
-* menu_editable_remove <label>
+* `menu_remove          <label>`
+* `menu_link_remove     <label>`
+* `menu_image_remove    <label>`
+* `menu_editable_remove <label>`
    - removes the entry "label" from one of the right click context menus
-* hardcopy
+* `hardcopy`
    - open print dialog
-* include <file>
-   - read contents of file and interprete commands
+* `include <file>`
+   - read contents of file and interpret commands
 
 
 ### VARIABLES AND CONSTANTS
@@ -191,65 +193,62 @@ Some variables have callback functions which will get called after setting the v
 Besides the builtin variables you can also define your own ones and use them in the exact same way as the buitin ones.
 
 * Variables:
-  - uri (callback: load the uri)
-  - verbose: affects output on stdout
-  - inject_html
-  - keycmd: holds the input buffer (callback: update input buffer)
-  - status_message (callback: update title)
-  - show_status: show statusbar or not
-  - status_top: statusbar on top?
-  - status_format: marked up, to be expanded string for statusbar (callback: update statusbar)
-  - status_pbar_done: character to denote done % of pageload
-  - status_pbar_pending: character to denote pending % of pageload
-  - status_pbar_width: width of progressbar
-  - status_background: color which can be used to override Gtk theme.
-  - insert_indicator: string to denote insert mode TODO plugin variable
-  - command_indicator: string to denote command mode TODO plugin variable
-  - title_format_long: titlebar string when no statusbar shown (will be expanded
-  - title_format_short: titlebar string when statusbar shown (will be expanded)
-  - icon: path to icon for Gtk
-  - forward_keys: whether uzbl-core should send key events to the webkit view
-  - insert_mode: whether insert mode is active TODO explain plugin variable
-  - always_insert_mode: set this to true if you don't like modal (vim-like) interfaces TODO explain plugin variable
-  - reset_command_mode: automatically revert to command mode on pageload (unless always_insert_mode is set) TODO explain plugin variable
-  - modkey: modkey which can be pressed to activate keybind from inside insert mode
-  - load_finish_handler
-  - load_start_handler
-  - load_commit_handler
-  - download_handler
-  - cookie_handler
-  - new_window: handler to execute to invoke new uzbl window (TODO better name)
-  - scheme_handler: handler to execute for each URI navigated to - the navigation request will be ignored if handler prints "USED\n"
-  - fifo_dir: location to store fifo's
-  - socket_dir: location to store sockets
-  - http_debug: http debug mode (value 0-3)
-  - shell_cmd: alias which will be expanded to use shell commands (eg sh -c)
-  - proxy_url: http traffic socks proxy (eg: http://<host>:<port>)
-  - max_conns: max simultaneous connections (default: 100)
-  - max_conns_host: max simultaneous connections per hostname (default: 6)
-  - useragent: to be expanded strin
-  - zoom_level
-  - font_size
-  - monospace_size
-  - minimum_font_size
-  - disable_plugins (TODO rename to enable)
-  - disable_scripts (TODO rename to enable)
-  - autoload_images
-  - autoshrink_images: shrink images to window size (default 0)
-  - enable_spellcheck
-  - enable_private
-  - print_backgrounds: print background images? (default 0)
-  - stylesheet_uri: use this to override the pagelayout with a custom stylesheet
-  - resizable_text_areas
-  - default_encoding: iso-8859-1 by default
-  - enforce_96_dpi: 1 by default
-  - caret_browsing
-  - default_font_family = sans-serif
-  - monospace_font_family = monospace (example "Aerial Mono" )
-  - cursive_font_family = sans
-  - fantasy_font_family = "Pterra"
-  - serif_font_family = serif (example "DejaVu Serif")
-  - sans_serif_font_family = sans (example "DejaVu Sans")
+  - `uri`: (callback: load the uri)
+  - `verbose`: affects output on stdout
+  - `inject_html`
+  - `keycmd`: holds the input buffer (callback: update input buffer)
+  - `status_message`: (callback: update title)
+  - `show_status`: show statusbar or not
+  - `status_top`: statusbar on top?
+  - `status_format`: marked up, to be expanded string for statusbar (callback: update statusbar)
+  - `status_pbar_done`: character to denote done % of pageload
+  - `status_pbar_pending`: character to denote pending % of pageload
+  - `status_pbar_width`: width of progressbar
+  - `status_background`: color which can be used to override Gtk theme.
+  - `insert_indicator`: string to denote insert mode TODO plugin variable
+  - `command_indicator`: string to denote command mode TODO plugin variable
+  - `title_format_long`: titlebar string when no statusbar shown (will be expanded
+  - `title_format_short`: titlebar string when statusbar shown (will be expanded)
+  - `icon`: path to icon for Gtk
+  - `forward_keys`: whether uzbl-core should send key events to the webkit view
+  - `insert_mode`: whether insert mode is active TODO explain plugin variable
+  - `always_insert_mode`: set this to true if you don't like modal (vim-like) interfaces TODO explain plugin variable
+  - `reset_command_mode`: automatically revert to command mode on pageload (unless always_insert_mode is set) TODO explain plugin variable
+  - `modkey`: modkey which can be pressed to activate keybind from inside insert mode
+  - `download_handler`
+  - `cookie_handler`
+  - `new_window`: handler to execute to invoke new uzbl window (TODO better name)
+  - `scheme_handler`: handler to execute for each URI navigated to - the navigation request will be ignored if handler prints "USED\n"
+  - `fifo_dir`: location to store fifo's
+  - `socket_dir`: location to store sockets
+  - `http_debug`: http debug mode (value 0-3)
+  - `shell_cmd`: alias which will be expanded to use shell commands (eg sh -c)
+  - `proxy_url`: http traffic socks proxy (eg: http://<host>:<port>)
+  - `max_conns`: max simultaneous connections (default: 100)
+  - `max_conns_host`: max simultaneous connections per hostname (default: 6)
+  - `useragent`: to be expanded strin
+  - `zoom_level`
+  - `font_size`
+  - `monospace_size`
+  - `minimum_font_size`
+  - `disable_plugins` (TODO rename to enable)
+  - `disable_scripts` (TODO rename to enable)
+  - `autoload_images`
+  - `autoshrink_images`: shrink images to window size (default 0)
+  - `enable_spellcheck`
+  - `enable_private`
+  - `print_backgrounds`: print background images? (default 0)
+  - `stylesheet_uri`: use this to override the pagelayout with a custom stylesheet
+  - `resizable_text_areas`
+  - `default_encoding`: iso-8859-1 by default
+  - `enforce_96_dpi`: 1 by default
+  - `caret_browsing`
+  - `default_font_family` = sans-serif
+  - `monospace_font_family` = monospace (example "Aerial Mono" )
+  - `cursive_font_family` = sans
+  - `fantasy_font_family` = "Pterra"
+  - `serif_font_family` = serif (example "DejaVu Serif")
+  - `sans_serif_font_family` = sans (example "DejaVu Sans")
 
 
 * Constants (not dumpable or writeable):
@@ -263,7 +262,10 @@ Besides the builtin variables you can also define your own ones and use them in 
   - TITLE
   - SELECTED_URI
   - MODE
-  - NAME: name of the uzbl instance (Xorg window id, unless set by cmdline arg) (TODO: can't we make this a variable?)
+  - NAME: name of the uzbl instance (TODO: can't we make this a variable?)
+          * default: Xorg window id
+          * overridable with cmdline arg
+          * in GtkSocket mode, this is a random number to prevent name clashes
 
 
 ### VARIABLE EXPANSION AND COMMAND/JAVA SCRIPT SUBSTITUTION
@@ -433,7 +435,8 @@ Copying the Uzbl object and creating public functions should be taken with care 
 ### EVENTS ###
 
 unlike commands, events are not handled in uzbl itself, but are propagated (dispatched) asynchronously through
-a text stream on stdout.  You'll usually use uzbl by piping it's output to a so called 'event handler'
+a text stream on stdout and/or through a socket.  You'll usually use uzbl by piping it's output to a so called 'event manager'
+or by having the EM listen to a socket.
 - makes it possible to use whichever language you want for event handling (python, perl, bash, .. you name it).
   you'll usually send commands (see above) back to uzbl through its fifo or socket
 - keybindings use x keysyms
@@ -441,98 +444,45 @@ a text stream on stdout.  You'll usually use uzbl by piping it's output to a so 
 - see example event_handler.py
 
 Note: cookie events are not sent to an event handler but handled internally through the cookie handler because of their synchronous nature.
-Cookie events are really something completely different from all other events.  maybe someday we'll use http proxies or something for cookies, but
-for now we still use the handler code)
+Cookie events are really something completely different from all other events.  maybe someday we'll use http proxies or something for cookies
+or synchronous events (which also have other nice use cases), but for now we still use the handler code)
 
 Basically all events have this format:
 
      EVENT [uzbl_instance_name] EVENT_NAME event_details
 
 
-Reported events and their specific format:
-
-- on start uzbl will generate:
-
-     EVENT [uzbl_instance_name] INSTANCE_START process_id
-
-- on exit:
-
-     EVENT [uzbl_instance_name] INSTANCE_EXIT process_id
-
-- whenever an uzbl variable is set:
-
-     EVENT [uzbl_instance_name] VARIABLE_SET variable_name str|int|float variable_value
-
-     Note: str|int|float denote the type of variable_value
-
-- upon execution of an uzbl command:
-
-     EVENT [uzbl_instance_name] COMMAND_EXECUTED command_name optional_command_arguments
-
-- when the size or position of the uzbl window changes:
-
-     EVENT [uzbl_instance_name] GEOMETRY_CHANGED WIDTHxHEIGHT+X_POSITION+Y_POSITION
-
-- when the fifo and/or the socket path is set or changed:
-
-     EVENT [uzbl_instance_name] FIFO_SET path_to_fifo
-     EVENT [uzbl_instance_name] SOCKET_SET path_to_socket
-
-- when a website is being loaded:
-
-     EVENT [uzbl_instance_name] LOAD_COMMIT uri
-     EVENT [uzbl_instance_name] LOAD_START uri
-     EVENT [uzbl_instance_name] LOAD_FINISHED uri
-     EVENT [uzbl_instance_name] LOAD_ERROR reason_of_error
-
-- when the title of the uzbl window changes:
-
-     EVENT [uzbl_instance_name] TITLE_CHANGED title_name
-
-- when content needs to be downloaded:
-
-     EVENT [uzbl_instance_name] DOWNLOAD_REQUEST download_uri
-
-- when you hover with the mouse over a link:
-
-     EVENT [uzbl_instance_name] LINK_HOVER uri
-     EVENT [uzbl_instance_name] LINK_UNHOVER uri
-
-- when you press or release a key:
-
-     EVENT [uzbl_instance_name] KEY_PRESS key_name
-     EVENT [uzbl_instance_name] KEY_RELEASE key_name
-
-- when you select some text inside the uzbl window:
-
-     EVENT [uzbl_instance_name] SELECTION_CHANGED selected_text
-
-- when a new uzbl window is created:
-
-     EVENT [uzbl_instance_name] NEW_WINDOW uri
-
-- upon opening/closing of the webinspector window:
-
-     EVENT [uzbl_instance_name] WEBINSPECTOR open
-     EVENT [uzbl_instance_name] WEBINSPECTOR close
-
-- when the uzbl windows gained/lost keyboard focus
-
-     EVENT [uzbl_instance_name] FOCUS_GAINED
-     EVENT [uzbl_instance_name] FOCUS_LOST
-
-- when a editable HTML is clicked
-
-     EVENT [uzbl_instance_name] FORM_ACTIVE
-
-- when the document body or any non-editable element is clicked
-
-     EVENT [uzbl_instance_name] ROOT_ACTIVE
-
-- when the include commands succesfully loads a file
-
-     EVENT [uzbl_instance_name] FILE_INCLUDED /path/to/file
-
+* Reported events:
+  - `EVENT [uzbl_instance_name] INSTANCE_START process_id`: uzbl startup
+  - `EVENT [uzbl_instance_name] INSTANCE_EXIT process_id`: uzbl shutdown
+  - `EVENT [uzbl_instance_name] VARIABLE_SET variable_name str|int|float variable_value`.  Note: str|int|float denote the type of variable_value
+  - `EVENT [uzbl_instance_name] COMMAND_EXECUTED command_name optional_command_arguments`
+  - `EVENT [uzbl_instance_name] COMMAND_ERROR command`
+  - `EVENT [uzbl_instance_name] GEOMETRY_CHANGED WIDTHxHEIGHT+X_POSITION+Y_POSITION`: when the size or position of the uzbl window changes
+  - `EVENT [uzbl_instance_name] FIFO_SET path_to_fifo`
+  - `EVENT [uzbl_instance_name] SOCKET_SET path_to_socket`
+  - `EVENT [uzbl_instance_name] LOAD_COMMIT uri`
+  - `EVENT [uzbl_instance_name] LOAD_START uri`
+  - `EVENT [uzbl_instance_name] LOAD_FINISHED uri`
+  - `EVENT [uzbl_instance_name] LOAD_ERROR reason_of_error`
+  - `EVENT [uzbl_instance_name] LOAD_PROGRESS percentage` : while the page is loading
+  - `EVENT [uzbl_instance_name] TITLE_CHANGED title_name`: when the title of the webpage (and hence maybe, the window title) changed
+  - `EVENT [uzbl_instance_name] DOWNLOAD_REQUEST download_uri`: when content needs to be downloaded
+  - `EVENT [uzbl_instance_name] LINK_HOVER uri`: mouse hovers over a link
+  - `EVENT [uzbl_instance_name] LINK_UNHOVER uri`: same but unhover.
+  - `EVENT [uzbl_instance_name] KEY_PRESS key_name`: press of a keyboard key or mouse button
+  - `EVENT [uzbl_instance_name] KEY_RELEASE key_name`: release of keyboard key or mouse button
+  - `EVENT [uzbl_instance_name] SELECTION_CHANGED selected_text`: when you select text inside the uzbl window
+  - `EVENT [uzbl_instance_name] NEW_WINDOW uri`: creation of new uzbl window
+  - `EVENT [uzbl_instance_name] WEBINSPECTOR open`: upon opening webinspector window
+  - `EVENT [uzbl_instance_name] WEBINSPECTOR close`: upon closing webinspector window
+  - `EVENT [uzbl_instance_name] FOCUS_GAINED`: when uzbl window gained keyboard focus
+  - `EVENT [uzbl_instance_name] FOCUS_LOST`: when uzbl window lost keyboard focus
+  - `EVENT [uzbl_instance_name] FORM_ACTIVE`: when a editable HTML is clicked
+  - `EVENT [uzbl_instance_name] ROOT_ACTIVE`: when the document body or any non-editable element is clicked
+  - `EVENT [uzbl_instance_name] FILE_INCLUDED /path/to/file`: when the include commands succesfully loads a file
+  - `EVENT [uzbl_instance_name] PLUG_CREATED plug-id`: when uzbl-core is in xembed mode
+  - `EVENT [uzbl_instance_name] BUILTINS command_list`: shows a list of all uzbl commands, whitespace separated, on startup
 
 
 ### COMMAND LINE ARGUMENTS

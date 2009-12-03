@@ -33,7 +33,7 @@ If you want the specific subprojects, you can issue:
 Dependencies
 ------------
 Dependencies which are optional for uzbl-core are marked with an asterisk. (i.e. these are needed for extra scripts)
-* libwebkit 1.1.4 or higher
+* libwebkit 1.1.15 or higher
 * libsoup 2.24 or higher (dep for webkit/gtk+)
 * gtk 2.14 or higher
 * socat (for socket communication) [*]
@@ -42,6 +42,7 @@ Dependencies which are optional for uzbl-core are marked with an asterisk. (i.e.
 * bash [*]
 * python [*]
 * perl (formfiller.pl) [*]
+* xclip [*]
 
 Make dependencies
 -----------------
@@ -53,8 +54,8 @@ Git Repo's & branches
 --------------------
 * Main official repo:
   http://github.com/Dieterbe/uzbl
-- master -> uzbl stable branch
-- experimental -> bleeding edge stuff that may break. after QA Dieter merges into his master
-
+- master -> main development branch
+- experimental -> intrusive/experimental stuff
+- <..>  -> specific topic branches that come and go. they are a place to work on specific features
 * Most contributors & developers also have their clones on github (http://github.com/dusanx, http://github.com/Barrucadu/uzbl, ...).
   They may be developing specific features, which get merged into Dieters experimental branch

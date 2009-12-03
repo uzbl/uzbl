@@ -40,6 +40,7 @@ uzbl-core: ${OBJ}
 uzbl-browser: uzbl-core
 
 # packagers, set DESTDIR to your "package directory" and PREFIX to the prefix you want to have on the end-user system
+# end-users who build from source: don't care about DESTDIR, update PREFIX if you want to
 PREFIX?=/usr/local
 INSTALLDIR?=$(DESTDIR)$(PREFIX)
 
@@ -62,11 +63,11 @@ test-dev: uzbl-core
 	XDG_DATA_HOME=./examples/data                    XDG_CONFIG_HOME=./examples/config                                        ./uzbl-core --uri http://www.uzbl.org --verbose
 
 test-dev-browser: uzbl-browser
-	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:$$PATH" ./examples/data/uzbl/scripts/cookie_daemon.py start -nv &
-	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:$$PATH" ./examples/data/uzbl/scripts/event_manager.py start -nv &
+	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:$$PATH" ./examples/data/uzbl/scripts/uzbl-cookie-daemon start -nv &
+	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:$$PATH" ./examples/data/uzbl/scripts/uzbl-event-manager start -nv &
 	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:`pwd`/examples/data/uzbl/scripts/:$$PATH" ./uzbl-browser --uri http://www.uzbl.org --verbose
-	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:$$PATH" ./examples/data/uzbl/scripts/cookie_daemon.py stop -v
-	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:$$PATH" ./examples/data/uzbl/scripts/event_manager.py stop -v
+	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:$$PATH" ./examples/data/uzbl/scripts/uzbl-cookie-daemon stop -v
+	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:$$PATH" ./examples/data/uzbl/scripts/uzbl-event-manager stop -v
 
 test-share: uzbl-core
 	XDG_DATA_HOME=${INSTALLDIR}/share/uzbl/examples/data XDG_CONFIG_HOME=${INSTALLDIR}/share/uzbl/examples/config                     ./uzbl-core --uri http://www.uzbl.org --verbose
@@ -80,6 +81,7 @@ clean:
 	rm -f events.o
 	rm -f callbacks.o
 	rm -f inspector.o
+	find examples/ -name "*.pyc" -exec rm {} +
 	cd ./tests/; $(MAKE) clean
 
 install: install-uzbl-core install-uzbl-browser install-uzbl-tabbed
@@ -98,17 +100,16 @@ install-uzbl-core: all
 install-uzbl-browser: all
 	install -d $(INSTALLDIR)/bin
 	install -m755 uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
-	install -m755 examples/data/uzbl/scripts/cookie_daemon.py $(INSTALLDIR)/bin/cookie_daemon.py
-	install -m755 examples/data/uzbl/scripts/event_manager.py $(INSTALLDIR)/bin/event_manager.py
+	install -m755 examples/data/uzbl/scripts/uzbl-cookie-daemon $(INSTALLDIR)/bin/uzbl-cookie-daemon
+	install -m755 examples/data/uzbl/scripts/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
 	sed -i 's#^PREFIX=.*#PREFIX=$(PREFIX)#' $(INSTALLDIR)/bin/uzbl-browser
-	sed -i "s#^PREFIX = None#PREFIX = '$(PREFIX)'#" $(INSTALLDIR)/bin/event_manager.py
+	sed -i "s#^PREFIX = .*#PREFIX = '$(PREFIX)'#" $(INSTALLDIR)/bin/uzbl-event-manager
+	sed -i 's#^set prefix.*=.*#set prefix     = $(PREFIX)#' $(INSTALLDIR)/share/uzbl/examples/config/uzbl/config
 
 install-uzbl-tabbed: all
 	install -d $(INSTALLDIR)/bin
-	install -m755 examples/data/uzbl/scripts/uzbl_tabbed.py $(INSTALLDIR)/bin/uzbl-tabbed
+	install -m755 examples/data/uzbl/scripts/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed
 
 uninstall:
 	rm -rf $(INSTALLDIR)/bin/uzbl-*
-	rm -rf $(INSTALLDIR)/bin/cookie_daemon.py
-	rm -rf $(INSTALLDIR)/bin/event_manager.py
 	rm -rf $(INSTALLDIR)/share/uzbl
