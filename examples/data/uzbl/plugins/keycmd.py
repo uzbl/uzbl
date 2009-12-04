@@ -257,7 +257,7 @@ def clear_keycmd(uzbl):
     k.cursor = 0
     k._repr_cache = False
     uzbl.set('keycmd')
-    uzbl.event('KEYCMD_CLEAR')
+    uzbl.event('KEYCMD_CLEARED')
 
 
 def clear_modcmd(uzbl, clear_held=False):
@@ -271,7 +271,7 @@ def clear_modcmd(uzbl, clear_held=False):
         k.held = set()
 
     uzbl.set('modcmd')
-    uzbl.event('MODCMD_CLEAR')
+    uzbl.event('MODCMD_CLEARED')
 
 
 def clear_current(uzbl):

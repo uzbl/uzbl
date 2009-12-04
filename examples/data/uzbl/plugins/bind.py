@@ -27,6 +27,10 @@ find_prompts = re.compile('<([^:>]*):(\"[^\"]*\"|\'[^\']*\'|[^>]*)>').split
 ON_EXEC, HAS_ARGS, MOD_CMD, GLOB, MORE = range(5)
 
 
+class ArgumentError(Exception):
+    pass
+
+
 def ismodbind(glob):
     '''Return True if the glob specifies a modbind.'''
 
@@ -291,8 +295,9 @@ def clear_stack(uzbl):
     bind_dict['depth'] = 0
     bind_dict['args'] = []
     if bind_dict['last_mode']:
-        uzbl.set_mode(bind_dict['last_mode'])
+        mode = bind_dict['last_mode']
         bind_dict['last_mode'] = ''
+        uzbl.set_mode(mode)
 
     uzbl.set('keycmd_prompt')
 

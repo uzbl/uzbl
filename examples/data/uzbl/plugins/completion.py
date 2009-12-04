@@ -194,5 +194,5 @@ def init(uzbl):
     # And connect the dicts event handlers to the handler stack.
     uzbl.connect_dict(connects)
 
-    for event in ['STOP_COMPLETION', 'KEYCMD_EXEC', 'KEYCMD_CLEAR']:
+    for event in ['STOP_COMPLETION', 'KEYCMD_EXEC', 'KEYCMD_CLEARED']:
         uzbl.connect(event, stop_completion)
