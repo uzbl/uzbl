@@ -33,6 +33,7 @@ class Keylet(object):
     def __init__(self):
         # Modcmd tracking
         self.held = set()
+        self.ignored = set()
         self.modcmd = ''
         self.is_modcmd = False
 
@@ -82,15 +83,18 @@ class Keylet(object):
         results in a modkey addition. Return that addition and remove all
         modkeys that created it.'''
 
-        already_added = self.held & set(self.additions.keys())
-        for key in already_added:
-            if modkey in self.additions[key]:
+        # Intersection of (held list + modkey) and additions.
+        added = (self.held | set([modkey])) & set(self.additions.keys())
+        for key in added:
+            if key == modkey or modkey in self.additions[key]:
+                self.held -= self.additions[key]
                 return key
 
-        modkeys = set(list(self.held) + [modkey,])
+        # Held list + ignored list + modkey.
+        modkeys = self.held | self.ignored | set([modkey])
         for (key, value) in self.additions.items():
             if modkeys.issuperset(value):
-                self.held = modkeys ^ value
+                self.held -= value
                 return key
 
         return modkey
@@ -268,6 +272,7 @@ def clear_modcmd(uzbl, clear_held=False):
     k.is_modcmd = False
     k._repr_cache = False
     if clear_held:
+        k.ignored = set()
         k.held = set()
 
     uzbl.set('modcmd')
@@ -335,7 +340,7 @@ def inject_str(str, index, inj):
     return "%s%s%s" % (str[:index], inj, str[index:])
 
 
-def get_keylet_and_key(uzbl, key):
+def get_keylet_and_key(uzbl, key, add=True):
     '''Return the keylet and apply any transformations to the key as defined
     by the modmapping or modkey addition rules. Return None if the key is
     ignored.'''
@@ -346,6 +351,14 @@ def get_keylet_and_key(uzbl, key):
         return (keylet, key)
 
     modkey = "<%s>" % key.strip("<>")
+
+    if keylet.key_ignored(modkey):
+        if add:
+            keylet.ignored.add(modkey)
+
+        elif modkey in keylet.ignored:
+            keylet.ignored.remove(modkey)
+
     modkey = keylet.find_addition(modkey)
 
     if keylet.key_ignored(modkey):
@@ -403,9 +416,7 @@ def key_release(uzbl, key):
     3. Check if any modkey is held, if so set modcmd mode.
     4. Update the keycmd uzbl variable if anything changed.'''
 
-    (k, key) = get_keylet_and_key(uzbl, key.strip())
-    if not key:
-        return
+    (k, key) = get_keylet_and_key(uzbl, key.strip(), add=False)
 
     if key in k.held:
         if k.is_modcmd:
