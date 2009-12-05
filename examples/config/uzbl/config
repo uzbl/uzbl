@@ -29,6 +29,8 @@ set shell_cmd      = sh -c
 # Spawn path shortcuts. In spawn the first dir+path match is used in "dir1:dir2:dir3:executable"
 set scripts_dir    = $XDG_DATA_HOME/uzbl:@prefix/share/uzbl/examples/data/uzbl:scripts
 
+# Javascipt helpers.
+set jsh = js var run=Uzbl.run; function get(k){return run("print \\\@"+k)}; function set(k, v) {run("set "+k+" = "+v)};
 
 # === Handlers ===============================================================
 
@@ -141,7 +143,6 @@ set open_new_window = sh 'uzbl-browser -u \@SELECTED_URI'
 @bind    <Button2>  = js if("\@SELECTED_URI") { Uzbl.run("\@open_new_window"); } else { Uzbl.run("\\\@load_from_xclip"); }
 
 # Edit HTML forms in external editor
-#
 set external_editor = gvim
 #set external_editor = xterm -e vim
 @bind    E         = script @scripts_dir/extedit.js
