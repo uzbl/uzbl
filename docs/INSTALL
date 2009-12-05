@@ -1,11 +1,8 @@
 Packages
 --------
-[Arch Linux](http://www.archlinux.org) is our distro of choice, and the distro we use for testing.
-
-You can find [PKGBUILDS](http://aur.archlinux.org/packages.php?K=uzbl) on the AUR
-for all subprojects and for both the master and experimental branches.
-
-For other distros, see [uzbl.org/wiki/howtos](http://www.uzbl.org/wiki/howtos)
+Uzbl is available through the package managers of Arch, Gentoo, Debian,
+Ubuntu and more.  If you cannot find a package for your system you may find
+a tutorial on [uzbl.org/wiki/howtos](http://www.uzbl.org/wiki/howtos)
 
 From source
 -----------
