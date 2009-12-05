@@ -43,6 +43,9 @@ Dependencies which are optional for uzbl-core are marked with an asterisk. (i.e.
 * python [*]
 * perl (formfiller.pl) [*]
 * xclip [*]
+* pygtk [*]
+* pygobject [*]
+* python-simplejson [*]
 
 Make dependencies
 -----------------
