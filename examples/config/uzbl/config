@@ -140,7 +140,7 @@ set socket_dir        = /tmp
 # otherwise open the selection in the current window
 set load_from_xclip = sh 'echo "uri $(xclip -o)" > $4'
 set open_new_window = sh 'uzbl-browser -u \@SELECTED_URI'
-@bind    <Button2>  = js if("\@SELECTED_URI") { Uzbl.run("\@open_new_window"); } else { Uzbl.run("\\\@load_from_xclip"); }
+@bind    <Button2>  = @jsh if(get("SELECTED_URI")) { run("\@open_new_window"); } else { run("\\\@load_from_xclip"); }
 
 # Edit HTML forms in external editor
 set external_editor = gvim
