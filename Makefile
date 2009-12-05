@@ -96,6 +96,7 @@ install-uzbl-core: all
 	install -m755 uzbl-core    $(INSTALLDIR)/bin/uzbl-core
 	install -m644 AUTHORS      $(INSTALLDIR)/share/uzbl/docs
 	install -m644 README       $(INSTALLDIR)/share/uzbl/docs
+	sed -i 's#^set prefix.*=.*#set prefix     = $(PREFIX)#' $(INSTALLDIR)/share/uzbl/examples/config/uzbl/config
 
 install-uzbl-browser: all
 	install -d $(INSTALLDIR)/bin
@@ -104,7 +105,6 @@ install-uzbl-browser: all
 	install -m755 examples/data/uzbl/scripts/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
 	sed -i 's#^PREFIX=.*#PREFIX=$(PREFIX)#' $(INSTALLDIR)/bin/uzbl-browser
 	sed -i "s#^PREFIX = .*#PREFIX = '$(PREFIX)'#" $(INSTALLDIR)/bin/uzbl-event-manager
-	sed -i 's#^set prefix.*=.*#set prefix     = $(PREFIX)#' $(INSTALLDIR)/share/uzbl/examples/config/uzbl/config
 
 install-uzbl-tabbed: all
 	install -d $(INSTALLDIR)/bin
