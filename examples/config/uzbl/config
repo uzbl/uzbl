@@ -10,7 +10,7 @@ set bind           = request BIND
 # request MODE_CONFIG <mode> <key> = <value
 set mode_config    = request MODE_CONFIG
 # request TOGGLE_MODES <mode1> <mode2> ... <moden>
-set toggle_modes   = request TOGGLE_MODES
+set toggle_modes   = event TOGGLE_MODES
 # request ON_EVENT <EVENT_NAME> <command>
 set on_event       = request ON_EVENT
 # request PROGRESS_CONFIG <key> = <value>
@@ -29,6 +29,8 @@ set shell_cmd      = sh -c
 # Spawn path shortcuts. In spawn the first dir+path match is used in "dir1:dir2:dir3:executable"
 set scripts_dir    = $XDG_DATA_HOME/uzbl:@prefix/share/uzbl/examples/data/uzbl:scripts
 
+# Javascipt helpers.
+set jsh = js var run=Uzbl.run; function get(k){return run("print \\\@"+k)}; function set(k, v) {run("set "+k+" = "+v)};
 
 # === Handlers ===============================================================
 
@@ -43,9 +45,11 @@ set new_window         = sh 'uzbl-browser -u $8' # equivalent to the default beh
 # Load start handlers
 @on_event   LOAD_START     @set_status <span foreground="khaki">wait</span>
 
-# Load commit handler
+# Load commit handlers
 @on_event   LOAD_COMMIT    @set_status <span foreground="green">recv</span>
 @on_event   LOAD_COMMIT    script @scripts_dir/scroll-percentage.js
+# Reset the keycmd on navigation
+@on_event   LOAD_COMMIT    @set_mode
 
 # Load finish handlers
 @on_event   LOAD_FINISH    @set_status <span foreground="gold">done</span>
@@ -62,7 +66,6 @@ set new_window         = sh 'uzbl-browser -u $8' # equivalent to the default beh
 
 # Misc on_event handlers
 #@on_event  CONFIG_CHANGED print Config changed: %1 = %2
-
 
 # === Behaviour and appearance ===============================================
 
@@ -137,10 +140,9 @@ set socket_dir        = /tmp
 # otherwise open the selection in the current window
 set load_from_xclip = sh 'echo "uri $(xclip -o)" > $4'
 set open_new_window = sh 'uzbl-browser -u \@SELECTED_URI'
-@bind    <Button2>  = js if("\@SELECTED_URI") { Uzbl.run("\@open_new_window"); } else { Uzbl.run("\\\@load_from_xclip"); }
+@bind    <Button2>  = @jsh if(get("SELECTED_URI")) { run("\@open_new_window"); } else { run("\\\@load_from_xclip"); }
 
 # Edit HTML forms in external editor
-#
 set external_editor = gvim
 #set external_editor = xterm -e vim
 @bind    E         = script @scripts_dir/extedit.js
@@ -312,7 +314,7 @@ set default_mode = command
 # Changing mode method via set.
 @bind I = @set_mode insert
 
-# Or toggle between modes by rasing request events.
+# Or toggle between modes by rasing the toggle event.
 set toggle_cmd_ins = @toggle_modes command insert
 
 @bind i        = @toggle_cmd_ins

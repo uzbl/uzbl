@@ -266,9 +266,16 @@ expand(const char *s, guint recurse) {
                 }
                 else if(recurse != 1 &&
                         etype == EXP_EXPR) {
+
                     mycmd = expand(ret, 1);
-                    g_spawn_command_line_sync(mycmd, &cmd_stdout, NULL, NULL, &err);
+                    gchar *quoted = g_shell_quote(mycmd);
+                    gchar *tmp = g_strdup_printf("%s %s", 
+                            uzbl.behave.shell_cmd?uzbl.behave.shell_cmd:"/bin/sh -c", 
+                            quoted);
+                    g_spawn_command_line_sync(tmp, &cmd_stdout, NULL, NULL, &err);
                     g_free(mycmd);
+                    g_free(quoted);
+                    g_free(tmp);
 
                     if (err) {
                         g_printerr("error on running command: %s\n", err->message);
@@ -287,9 +294,22 @@ expand(const char *s, guint recurse) {
                 }
                 else if(recurse != 2 &&
                         etype == EXP_JS) {
-                    mycmd = expand(ret, 2);
-                    eval_js(uzbl.gui.web_view, mycmd, js_ret);
-                    g_free(mycmd);
+
+                    /* read JS from file */
+                    if(ret[0] == '+') {
+                        GArray *tmp = g_array_new(TRUE, FALSE, sizeof(gchar *));
+                        mycmd = expand(ret+1, 2);
+                        g_array_append_val(tmp, mycmd);
+
+                        run_external_js(uzbl.gui.web_view, tmp, js_ret);
+                        g_array_free(tmp, TRUE);
+                    }
+                    /* JS from string */
+                    else {
+                        mycmd = expand(ret, 2);
+                        eval_js(uzbl.gui.web_view, mycmd, js_ret);
+                        g_free(mycmd);
+                    }
 
                     if(js_ret->str) {
                         g_string_append(buf, js_ret->str);
@@ -374,7 +394,9 @@ read_file_by_line (const gchar *path) {
 
         g_io_channel_unref (chan);
     } else {
-        fprintf(stderr, "File '%s' not be read.\n", path);
+        gchar *tmp = g_strdup_printf("File %s can not be read.", path);
+        send_event(COMMAND_ERROR, tmp, NULL);
+        g_free(tmp);
     }
 
     return lines;
@@ -513,12 +535,16 @@ void
 catch_signal(int s) {
     if(s == SIGTERM ||
        s == SIGINT  ||
-       s == SIGSEGV ||
        s == SIGILL  ||
        s == SIGFPE  ||
        s == SIGQUIT) {
         clean_up();
         exit(EXIT_SUCCESS);
+    }
+    else if(s == SIGSEGV) {
+        clean_up();
+        fprintf(stderr, "Program aborted, segmentation fault!\nAttempting to clean up...\n");
+        exit(EXIT_FAILURE);
     }
     else if(s == SIGALRM && uzbl.state.event_buffer) {
         g_ptr_array_free(uzbl.state.event_buffer, TRUE);

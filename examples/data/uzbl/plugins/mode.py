@@ -58,16 +58,13 @@ def get_mode(uzbl):
 def mode_changed(uzbl, mode):
     '''The mode has just been changed, now set the per-mode config.'''
 
-    get_mode_dict(uzbl)['mode'] = mode
+    if get_mode(uzbl) != mode:
+        return
 
     config = uzbl.get_config()
     mode_config = get_mode_config(uzbl, mode)
     for (key, value) in mode_config.items():
-        if key not in config:
-            config[key] = value
-
-        elif config[key] != value:
-            config[key] = value
+        uzbl.set(key, value, config=config)
 
     if 'mode_indicator' not in mode_config:
         config['mode_indicator'] = mode
@@ -96,12 +93,10 @@ def set_mode(uzbl, mode=None):
 
     if 'mode' not in config or config['mode'] != mode:
         config['mode'] = mode
-        return
 
-    elif get_mode(uzbl) == mode:
-        return
-
-    uzbl.event("MODE_CHANGED", mode)
+    elif mode_dict['mode'] != mode:
+        mode_dict['mode'] = mode
+        uzbl.event("MODE_CHANGED", mode)
 
 
 def config_changed(uzbl, key, value):
