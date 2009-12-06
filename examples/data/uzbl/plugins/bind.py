@@ -224,6 +224,20 @@ class Bind(object):
         return self._repr_cache
 
 
+def expand(cmd, args):
+    '''Replaces "%s %1 %2 %3..." with "<all args> <arg 0> <arg 1>...".'''
+
+    if '%s' in cmd:
+        cmd = cmd.replace('%s', ' '.join(map(unicode, args)))
+
+    for (index, arg) in enumerate(args):
+        index += 1
+        if '%%%d' % index in cmd:
+            cmd = cmd.replace('%%%d' % index, unicode(arg))
+
+    return cmd
+
+
 def exec_bind(uzbl, bind, *args, **kargs):
     '''Execute bind objects.'''
 
@@ -240,14 +254,7 @@ def exec_bind(uzbl, bind, *args, **kargs):
 
     commands = []
     for cmd in bind.commands:
-        if '%s' in cmd:
-            if len(args) > 1:
-                for arg in args:
-                    cmd = cmd.replace('%s', arg, 1)
-
-            elif len(args) == 1:
-                cmd = cmd.replace('%s', args[0])
-
+        cmd = expand(cmd, args)
         uzbl.send(cmd)
 
 
