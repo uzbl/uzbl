@@ -291,12 +291,21 @@ The above example demonstrates two things:
 
 
 Command substitution will launch any commands and substitute the call with the return value of the command.
+There are two methods:
 
-Uzbl will substitute any commands enclosed within @(  )@:
+    * through a shell: enclose commands with @(  )@ (quotes escaping is handled by uzbl):
 
     print Command substitution: @(uname -a)@
 
-You can access any uzbl variable from within a command substitution:
+This method allows you to use posix shell syntax in your commands
+
+    * directly:
+
+     print Command substitution: @(+uname -a)@
+
+This example will execute uname directly
+
+Note that you can access any uzbl variable from within a command substitution:
 
     print @(echo -n 'Accessing the show_status var from an external script, value: @show_status')@
 
