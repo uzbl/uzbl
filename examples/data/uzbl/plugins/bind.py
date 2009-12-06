@@ -11,13 +11,15 @@ And it is also possible to execute a function on activation:
 
 import sys
 import re
+import pprint
 
 # Export these functions to uzbl.<name>
 __export__ = ['bind', 'del_bind', 'del_bind_by_glob', 'get_binds']
 
 # Hold the bind dicts for each uzbl instance.
 UZBLS = {}
-DEFAULTS = {'binds': [], 'depth': 0, 'stack': [], 'args': [], 'last_mode': ''}
+DEFAULTS = {'binds': [], 'depth': 0, 'stack': [], 'args': [],
+    'last_mode': '', 'after': None}
 
 # Commonly used regular expressions.
 starts_with_mod = re.compile('^<([A-Z][A-Za-z0-9-_]*)>')
@@ -78,21 +80,11 @@ def get_binds(uzbl):
     return get_bind_dict(uzbl)['binds']
 
 
-def get_stack_depth(uzbl):
-    '''Return the stack for the uzbl instance.'''
-
-    return get_bind_dict(uzbl)['depth']
-
-
-def get_filtered_binds(uzbl):
+def get_filtered_binds(uzbl, bd):
     '''Return the bind list for the uzbl instance or return the filtered
     bind list thats on the current stack.'''
 
-    bind_dict = get_bind_dict(uzbl)
-    if bind_dict['depth']:
-        return list(bind_dict['stack'])
-
-    return list(bind_dict['binds'])
+    return bd['stack'] if bd['depth'] else bd['binds']
 
 
 def del_bind(uzbl, bind):
@@ -294,44 +286,51 @@ def mode_changed(uzbl, mode):
         clear_stack(uzbl)
 
 
-def clear_stack(uzbl):
+def clear_stack(uzbl, bd=None):
     '''Clear everything related to stacked binds.'''
 
-    bind_dict = get_bind_dict(uzbl)
-    bind_dict['stack'] = []
-    bind_dict['depth'] = 0
-    bind_dict['args'] = []
-    if bind_dict['last_mode']:
-        mode = bind_dict['last_mode']
-        bind_dict['last_mode'] = ''
+    if bd is None:
+        bd = get_bind_dict(uzbl)
+
+    bd['stack'] = []
+    bd['depth'] = 0
+    bd['args'] = []
+    bd['after'] = None
+    if bd['last_mode']:
+        mode, bd['last_mode'] = bd['last_mode'], ''
         uzbl.set_mode(mode)
 
     uzbl.set('keycmd_prompt')
 
 
-def stack_bind(uzbl, bind, args, depth):
+def stack_bind(uzbl, bind, args, depth, bd):
     '''Increment the stack depth in the bind dict, generate filtered bind
     list for stack mode and set keycmd prompt.'''
 
-    bind_dict = get_bind_dict(uzbl)
-    if bind_dict['depth'] != depth:
-        if bind not in bind_dict['stack']:
-            bind_dict['stack'].append(bind)
+    if bd['depth'] != depth:
+        if bind not in bd['stack']:
+            bd['stack'].append(bind)
 
         return
 
     if uzbl.get_mode() != 'stack':
-        bind_dict['last_mode'] = uzbl.get_mode()
+        bd['last_mode'] = uzbl.get_mode()
         uzbl.set_mode('stack')
 
-    globalcmds = [cmd for cmd in bind_dict['binds'] if cmd.is_global]
-    bind_dict['stack'] = [bind,] + globalcmds
-    bind_dict['args'] += args
-    bind_dict['depth'] = depth + 1
+    globalcmds = [cmd for cmd in bd['binds'] if cmd.is_global]
+    bd['stack'] = [bind,] + globalcmds
+    bd['args'] += args
+    bd['depth'] = depth + 1
+    bd['after'] = bind.prompts[depth]
 
-    uzbl.send('event BIND_STACK_LEVEL %d' % bind_dict['depth'])
 
-    (prompt, set) = bind.prompts[depth]
+def after_bind(uzbl, bd):
+    '''Check if there are afte-actions to perform.'''
+
+    if bd['after'] is None:
+        return
+
+    (prompt, set), bd['after'] = bd['after'], None
     if prompt:
         uzbl.set('keycmd_prompt', '%s:' % prompt)
 
@@ -344,9 +343,11 @@ def stack_bind(uzbl, bind, args, depth):
     else:
         uzbl.clear_keycmd()
 
+    uzbl.send('event BIND_STACK_LEVEL %d' % bd['depth'])
 
-def match_and_exec(uzbl, bind, depth, keylet):
-    bind_dict = get_bind_dict(uzbl)
+
+def match_and_exec(uzbl, bind, depth, keylet, bd):
+
     (on_exec, has_args, mod_cmd, glob, more) = bind[depth]
 
     held = keylet.held
@@ -375,61 +376,73 @@ def match_and_exec(uzbl, bind, depth, keylet):
         return True
 
     elif more:
-        stack_bind(uzbl, bind, args, depth)
+        stack_bind(uzbl, bind, args, depth, bd)
         return False
 
-    args = bind_dict['args'] + args
+    args = bd['args'] + args
     exec_bind(uzbl, bind, *args)
     uzbl.set_mode()
     if not has_args:
-        clear_stack(uzbl)
+        clear_stack(uzbl, bd)
         uzbl.clear_current()
 
     return True
 
 
 def keycmd_update(uzbl, keylet):
-    depth = get_stack_depth(uzbl)
-    for bind in get_filtered_binds(uzbl):
+    bd = get_bind_dict(uzbl)
+    depth = bd['depth']
+    for bind in get_filtered_binds(uzbl, bd):
         t = bind[depth]
         if t[MOD_CMD] or t[ON_EXEC]:
             continue
 
-        if match_and_exec(uzbl, bind, depth, keylet):
+        if match_and_exec(uzbl, bind, depth, keylet, bd):
             return
+
+    after_bind(uzbl, bd)
 
 
 def keycmd_exec(uzbl, keylet):
-    depth = get_stack_depth(uzbl)
-    for bind in get_filtered_binds(uzbl):
+    bd = get_bind_dict(uzbl)
+    depth = bd['depth']
+    for bind in get_filtered_binds(uzbl, bd):
         t = bind[depth]
         if t[MOD_CMD] or not t[ON_EXEC]:
             continue
 
-        if match_and_exec(uzbl, bind, depth, keylet):
+        if match_and_exec(uzbl, bind, depth, keylet, bd):
             return uzbl.clear_keycmd()
+
+    after_bind(uzbl, bd)
 
 
 def modcmd_update(uzbl, keylet):
-    depth = get_stack_depth(uzbl)
-    for bind in get_filtered_binds(uzbl):
+    bd = get_bind_dict(uzbl)
+    depth = bd['depth']
+    for bind in get_filtered_binds(uzbl, bd):
         t = bind[depth]
         if not t[MOD_CMD] or t[ON_EXEC]:
             continue
 
-        if match_and_exec(uzbl, bind, depth, keylet):
+        if match_and_exec(uzbl, bind, depth, keylet, bd):
             return
+
+    after_bind(uzbl, bd)
 
 
 def modcmd_exec(uzbl, keylet):
-    depth = get_stack_depth(uzbl)
-    for bind in get_filtered_binds(uzbl):
+    bd = get_bind_dict(uzbl)
+    depth = bd['depth']
+    for bind in get_filtered_binds(uzbl, bd):
         t = bind[depth]
         if not t[MOD_CMD] or not t[ON_EXEC]:
             continue
 
-        if match_and_exec(uzbl, bind, depth, keylet):
+        if match_and_exec(uzbl, bind, depth, keylet, bd):
             return uzbl.clear_modcmd()
+
+    after_bind(uzbl, bd)
 
 
 def init(uzbl):
