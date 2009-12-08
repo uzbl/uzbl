@@ -41,7 +41,7 @@ cmd_set_geometry() {
     int ret=0, x=0, y=0;
     unsigned int w=0, h=0;
     if(uzbl.gui.geometry) {
-        if(strcmp(uzbl.gui.geometry, "maximized") == 0) {
+        if(uzbl.gui.geometry[0] == 'm') { /* m/maximize/maximized */
             gtk_window_maximize((GtkWindow *)(uzbl.gui.main_window));
         } else {
             /* we used to use gtk_window_parse_geometry() but that didn't work how it was supposed to */
