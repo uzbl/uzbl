@@ -496,7 +496,7 @@ Basically all events have this format:
     -n, --name=NAME          Name of the current instance (defaults to Xorg window id)
     -c, --config=FILE        Path to config file or '-' for stdin
     -s, --socket=SOCKET      Socket ID
-    -g, --geometry=GEOMETRY  Set window geometry (format: WIDTHxHEIGHT+-X+-Y)
+    -g, --geometry=GEOMETRY  Set window geometry (format: WIDTHxHEIGHT+-X+-Y or maximized)
     -V, --version            Print the version and exit
     --display=DISPLAY        X display to use
     --help                   Help

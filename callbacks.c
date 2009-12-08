@@ -40,12 +40,18 @@ void
 cmd_set_geometry() {
     int ret=0, x=0, y=0;
     unsigned int w=0, h=0;
-    /* we used to use gtk_window_parse_geometry() but that didn't work how it was supposed to */
-    ret = XParseGeometry(uzbl.gui.geometry, &x, &y, &w, &h);
-    if(ret & XValue)
-        gtk_window_move((GtkWindow *)uzbl.gui.main_window, x, y);
-    if(ret & WidthValue)
-        gtk_window_resize((GtkWindow *)uzbl.gui.main_window, w, h);
+    if(uzbl.gui.geometry) {
+        if(strcmp(uzbl.gui.geometry, "maximized") == 0) {
+            gtk_window_maximize((GtkWindow *)(uzbl.gui.main_window));
+        } else {
+            /* we used to use gtk_window_parse_geometry() but that didn't work how it was supposed to */
+            ret = XParseGeometry(uzbl.gui.geometry, &x, &y, &w, &h);
+            if(ret & XValue)
+                gtk_window_move((GtkWindow *)uzbl.gui.main_window, x, y);
+            if(ret & WidthValue)
+                gtk_window_resize((GtkWindow *)uzbl.gui.main_window, w, h);
+        }
+    }
 
     /* update geometry var with the actual geometry
        this is necessary as some WMs don't seem to honour
