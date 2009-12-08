@@ -3,11 +3,12 @@ UZBLS = {}
 
 import random
 
-shared_history = []
+shared_history = {'':[]}
 
 class History(object):
     def __init__(self):
         self._temporary = []
+        self.prompt = ''
         self.cursor = None
         self.__temp_tail = False
         self.search_key = None
@@ -38,7 +39,7 @@ class History(object):
             while self.cursor < len(self) and self.search_key not in self[self.cursor]:
                 self.cursor += 1
 
-        if self.cursor >= len(shared_history):
+        if self.cursor >= len(shared_history[self.prompt]):
             self.cursor = None
             self.search_key = None
 
@@ -49,6 +50,13 @@ class History(object):
 
         return self[self.cursor]
 
+    def change_prompt(self, prompt):
+        self.prompt = prompt
+        self._temporary = []
+        self.__temp_tail = False
+        if prompt not in shared_history:
+            shared_history[prompt] = []
+
     def search(self, key):
         self.search_key = key
         return self.prev()
@@ -57,7 +65,7 @@ class History(object):
         if self._temporary:
             self._temporary.pop()
 
-        shared_history.append(cmd)
+        shared_history[self.prompt].append(cmd)
         self.cursor = None
         self.search_key = None
 
@@ -70,17 +78,20 @@ class History(object):
         print 'adding temporary', self
 
     def __getitem__(self, i):
-        if i < len(shared_history):
-            return shared_history[i]
+        if i < len(shared_history[self.prompt]):
+            return shared_history[self.prompt][i]
         return self._temporary[i-len(shared_history)+1]
 
     def __len__(self):
-        return len(shared_history) + len(self._temporary)
+        return len(shared_history[self.prompt]) + len(self._temporary)
 
     def __str__(self):
         return "(History %s)" % (self.cursor)
 
 def get_history(uzbl):
+    if uzbl not in UZBLS:
+        add_instance(uzbl)
+
     return UZBLS[uzbl]
 
 def add_instance(uzbl, *args):
@@ -95,6 +106,11 @@ def keycmd_exec(uzbl, keylet):
     cmd = keylet.get_keycmd()
     if cmd:
         history.add(cmd)
+
+def config_changed(uzbl, key, value):
+    if key == 'keycmd_prompt':
+        history = get_history(uzbl)
+        history.change_prompt(value)
 
 def history_prev(uzbl, _x):
     history = get_history(uzbl)
@@ -123,6 +139,7 @@ def init(uzbl):
     connects = {'INSTANCE_START': add_instance,
         'INSTANCE_EXIT': del_instance,
         'KEYCMD_EXEC': keycmd_exec,
+        'CONFIG_CHANGED': config_changed,
         'HISTORY_PREV': history_prev,
         'HISTORY_NEXT': history_next,
         'HISTORY_SEARCH': history_search
