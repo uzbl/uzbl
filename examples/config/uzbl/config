@@ -248,8 +248,8 @@ set formfiller = spawn @scripts_dir/formfiller
 @bind <Ctrl>du = event APPEND_KEYCMD \@uri
 @bind <Ctrl>dt = event APPEND_KEYCMD \@TITLE
 
-@bind <Up>           = request HISTORY_PREV
-@bind <Down>         = request HISTORY_NEXT
+@bind <Up>           = event HISTORY_PREV
+@bind <Down>         = event HISTORY_NEXT
 
 # === command editing configuration ==========================================
 
