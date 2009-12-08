@@ -33,6 +33,7 @@ class Keylet(object):
     def __init__(self):
         # Modcmd tracking
         self.held = set()
+        self.ignored = set()
         self.modcmd = ''
         self.is_modcmd = False
 
@@ -82,15 +83,18 @@ class Keylet(object):
         results in a modkey addition. Return that addition and remove all
         modkeys that created it.'''
 
-        already_added = self.held & set(self.additions.keys())
-        for key in already_added:
-            if modkey in self.additions[key]:
+        # Intersection of (held list + modkey) and additions.
+        added = (self.held | set([modkey])) & set(self.additions.keys())
+        for key in added:
+            if key == modkey or modkey in self.additions[key]:
+                self.held -= self.additions[key]
                 return key
 
-        modkeys = set(list(self.held) + [modkey,])
+        # Held list + ignored list + modkey.
+        modkeys = self.held | self.ignored | set([modkey])
         for (key, value) in self.additions.items():
             if modkeys.issuperset(value):
-                self.held = modkeys ^ value
+                self.held -= value
                 return key
 
         return modkey
@@ -256,11 +260,8 @@ def clear_keycmd(uzbl):
     k.keycmd = ''
     k.cursor = 0
     k._repr_cache = False
-    config = uzbl.get_config()
-    if 'keycmd' not in config or config['keycmd']:
-        uzbl.set('keycmd')
-
-    uzbl.event('KEYCMD_CLEAR')
+    uzbl.set('keycmd')
+    uzbl.event('KEYCMD_CLEARED')
 
 
 def clear_modcmd(uzbl, clear_held=False):
@@ -271,13 +272,11 @@ def clear_modcmd(uzbl, clear_held=False):
     k.is_modcmd = False
     k._repr_cache = False
     if clear_held:
+        k.ignored = set()
         k.held = set()
 
-    config = uzbl.get_config()
-    if 'modcmd' not in config or config['modcmd']:
-        uzbl.set('modcmd')
-
-    uzbl.event('MODCMD_CLEAR')
+    uzbl.set('modcmd')
+    uzbl.event('MODCMD_CLEARED')
 
 
 def clear_current(uzbl):
@@ -314,22 +313,25 @@ def update_event(uzbl, k, execute=True):
     if 'modcmd_updates' not in config or config['modcmd_updates'] == '1':
         new_modcmd = k.get_modcmd()
         if not new_modcmd:
-            uzbl.set('modcmd')
+            uzbl.set('modcmd', config=config)
 
         elif new_modcmd == modcmd:
-            uzbl.set('modcmd', "<span> %s </span>" % uzbl_escape(new_modcmd))
+            uzbl.set('modcmd', '<span> %s </span>' % uzbl_escape(new_modcmd),
+                config=config)
 
     if 'keycmd_events' in config and config['keycmd_events'] != '1':
         return
 
-    keycmd = k.get_keycmd()
-    if not keycmd:
-        return uzbl.set('keycmd')
+    new_keycmd = k.get_keycmd()
+    if not new_keycmd:
+        uzbl.set('keycmd', config=config)
 
-    # Generate the pango markup for the cursor in the keycmd.
-    curchar = keycmd[k.cursor] if k.cursor < len(keycmd) else ' '
-    chunks = [keycmd[:k.cursor], curchar, keycmd[k.cursor+1:]]
-    uzbl.set('keycmd', KEYCMD_FORMAT % tuple(map(uzbl_escape, chunks)))
+    elif new_keycmd == keycmd:
+        # Generate the pango markup for the cursor in the keycmd.
+        curchar = keycmd[k.cursor] if k.cursor < len(keycmd) else ' '
+        chunks = [keycmd[:k.cursor], curchar, keycmd[k.cursor+1:]]
+        value = KEYCMD_FORMAT % tuple(map(uzbl_escape, chunks))
+        uzbl.set('keycmd', value, config=config)
 
 
 def inject_str(str, index, inj):
@@ -338,7 +340,7 @@ def inject_str(str, index, inj):
     return "%s%s%s" % (str[:index], inj, str[index:])
 
 
-def get_keylet_and_key(uzbl, key):
+def get_keylet_and_key(uzbl, key, add=True):
     '''Return the keylet and apply any transformations to the key as defined
     by the modmapping or modkey addition rules. Return None if the key is
     ignored.'''
@@ -349,6 +351,14 @@ def get_keylet_and_key(uzbl, key):
         return (keylet, key)
 
     modkey = "<%s>" % key.strip("<>")
+
+    if keylet.key_ignored(modkey):
+        if add:
+            keylet.ignored.add(modkey)
+
+        elif modkey in keylet.ignored:
+            keylet.ignored.remove(modkey)
+
     modkey = keylet.find_addition(modkey)
 
     if keylet.key_ignored(modkey):
@@ -380,9 +390,7 @@ def key_press(uzbl, key):
         if 'keycmd_events' in config and config['keycmd_events'] != '1':
             k.keycmd = ''
             k.cursor = 0
-            if config['keycmd']:
-                uzbl.set('keycmd')
-
+            uzbl.set('keycmd', config=config)
             return
 
         k.keycmd = inject_str(k.keycmd, k.cursor, key)
@@ -408,9 +416,7 @@ def key_release(uzbl, key):
     3. Check if any modkey is held, if so set modcmd mode.
     4. Update the keycmd uzbl variable if anything changed.'''
 
-    (k, key) = get_keylet_and_key(uzbl, key.strip())
-    if not key:
-        return
+    (k, key) = get_keylet_and_key(uzbl, key.strip(), add=False)
 
     if key in k.held:
         if k.is_modcmd:

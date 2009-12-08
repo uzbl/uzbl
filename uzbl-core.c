@@ -201,7 +201,7 @@ expand(const char *s, guint recurse) {
     GString *buf = g_string_new("");
     GString *js_ret = g_string_new("");
 
-    while(*s) {
+    while(s && *s) {
         switch(*s) {
             case '\\':
                 g_string_append_c(buf, *++s);
@@ -266,9 +266,16 @@ expand(const char *s, guint recurse) {
                 }
                 else if(recurse != 1 &&
                         etype == EXP_EXPR) {
+
                     mycmd = expand(ret, 1);
-                    g_spawn_command_line_sync(mycmd, &cmd_stdout, NULL, NULL, &err);
+                    gchar *quoted = g_shell_quote(mycmd);
+                    gchar *tmp = g_strdup_printf("%s %s", 
+                            uzbl.behave.shell_cmd?uzbl.behave.shell_cmd:"/bin/sh -c", 
+                            quoted);
+                    g_spawn_command_line_sync(tmp, &cmd_stdout, NULL, NULL, &err);
                     g_free(mycmd);
+                    g_free(quoted);
+                    g_free(tmp);
 
                     if (err) {
                         g_printerr("error on running command: %s\n", err->message);
@@ -287,9 +294,22 @@ expand(const char *s, guint recurse) {
                 }
                 else if(recurse != 2 &&
                         etype == EXP_JS) {
-                    mycmd = expand(ret, 2);
-                    eval_js(uzbl.gui.web_view, mycmd, js_ret);
-                    g_free(mycmd);
+
+                    /* read JS from file */
+                    if(ret[0] == '+') {
+                        GArray *tmp = g_array_new(TRUE, FALSE, sizeof(gchar *));
+                        mycmd = expand(ret+1, 2);
+                        g_array_append_val(tmp, mycmd);
+
+                        run_external_js(uzbl.gui.web_view, tmp, js_ret);
+                        g_array_free(tmp, TRUE);
+                    }
+                    /* JS from string */
+                    else {
+                        mycmd = expand(ret, 2);
+                        eval_js(uzbl.gui.web_view, mycmd, js_ret);
+                        g_free(mycmd);
+                    }
 
                     if(js_ret->str) {
                         g_string_append(buf, js_ret->str);
@@ -374,7 +394,9 @@ read_file_by_line (const gchar *path) {
 
         g_io_channel_unref (chan);
     } else {
-        fprintf(stderr, "File '%s' not be read.\n", path);
+        gchar *tmp = g_strdup_printf("File %s can not be read.", path);
+        send_event(COMMAND_ERROR, tmp, NULL);
+        g_free(tmp);
     }
 
     return lines;
@@ -513,12 +535,16 @@ void
 catch_signal(int s) {
     if(s == SIGTERM ||
        s == SIGINT  ||
-       s == SIGSEGV ||
        s == SIGILL  ||
        s == SIGFPE  ||
        s == SIGQUIT) {
         clean_up();
         exit(EXIT_SUCCESS);
+    }
+    else if(s == SIGSEGV) {
+        clean_up();
+        fprintf(stderr, "Program aborted, segmentation fault!\nAttempting to clean up...\n");
+        exit(EXIT_FAILURE);
     }
     else if(s == SIGALRM && uzbl.state.event_buffer) {
         g_ptr_array_free(uzbl.state.event_buffer, TRUE);
@@ -2107,8 +2133,9 @@ run_handler (const gchar *act, const gchar *args) {
        it still isn't perfect for chain actions..  will reconsider & re-
        factor when I have the time. -duc */
 
+    if (!act) return;
     char **parts = g_strsplit(act, " ", 2);
-    if (!parts) return;
+    if (!parts || !parts[0]) return;
     if (g_strcmp0(parts[0], "chain") == 0) {
         GString *newargs = g_string_new("");
         gchar **chainparts = split_quoted(parts[1], FALSE);
@@ -2142,15 +2169,26 @@ run_handler (const gchar *act, const gchar *args) {
         g_strfreev(chainparts);
 
     } else {
-        /* expand the user-specified arguments */
-        gchar* expanded = expand(parts[1], 0);
-        gchar **inparts = inject_handler_args(parts[0], expanded, args);
+        gchar **inparts;
+        gchar *inparts_[2];
+        if (parts[1]) {
+            /* expand the user-specified arguments */
+            gchar* expanded = expand(parts[1], 0);
+            inparts = inject_handler_args(parts[0], expanded, args);
+            g_free(expanded);
+        } else {
+            inparts_[0] = parts[0];
+            inparts_[1] = g_strdup(args);
+            inparts = inparts_;
+        }
 
         parse_command(inparts[0], inparts[1], NULL);
 
-        g_free(inparts[0]);
-        g_free(inparts[1]);
-        g_free(expanded);
+        if (inparts != inparts_) {
+            g_free(inparts[0]);
+            g_free(inparts[1]);
+        } else
+            g_free(inparts[1]);
     }
     g_strfreev(parts);
 }

@@ -3,8 +3,8 @@ import types
 
 __export__ = ['set', 'get_config']
 
-_VALIDSETKEY = re.compile("^[a-zA-Z][a-zA-Z0-9_]*$").match
-_TYPECONVERT = {'int': int, 'float': float, 'str': unicode}
+VALIDKEY = re.compile("^[a-zA-Z][a-zA-Z0-9_]*$").match
+TYPECONVERT = {'int': int, 'float': float, 'str': unicode}
 
 UZBLS = {}
 
@@ -15,14 +15,7 @@ def escape(value):
     return unicode(value)
 
 
-def get_config(uzbl):
-    if uzbl not in UZBLS:
-        add_instance(uzbl)
-
-    return UZBLS[uzbl]
-
-
-def set(uzbl, key, value='', force=True):
+def set(uzbl, key, value='', config=None, force=False):
     '''Sends a: "set key = value" command to the uzbl instance. If force is
     False then only send a set command if the values aren't equal.'''
 
@@ -32,7 +25,7 @@ def set(uzbl, key, value='', force=True):
     else:
         value = unicode(value)
 
-    if not _VALIDSETKEY(key):
+    if not VALIDKEY(key):
         raise KeyError("%r" % key)
 
     value = escape(value)
@@ -40,11 +33,23 @@ def set(uzbl, key, value='', force=True):
         value = value.replace("\n", "\\n")
 
     if not force:
-        config = get_config(uzbl)
+        if config is None:
+            config = get_config(uzbl)
+
         if key in config and config[key] == value:
             return
 
     uzbl.send('set %s = %s' % (key, value))
+
+
+class ConfigDict(dict):
+    def __init__(self, uzbl):
+        self._uzbl = uzbl
+
+    def __setitem__(self, key, value):
+        '''Makes "config[key] = value" a wrapper for the set function.'''
+
+        set(self._uzbl, key, value, config=self)
 
 
 def add_instance(uzbl, *args):
@@ -63,22 +68,12 @@ def get_config(uzbl):
     return UZBLS[uzbl]
 
 
-class ConfigDict(dict):
-    def __init__(self, uzbl):
-        self._uzbl = uzbl
-
-    def __setitem__(self, key, value):
-        '''Makes "config[key] = value" a wrapper for the set function.'''
-
-        set(self._uzbl, key, value, force=False)
-
-
 def variable_set(uzbl, args):
     config = get_config(uzbl)
 
     key, type, value = list(args.split(' ', 2) + ['',])[:3]
     old = config[key] if key in config else None
-    value = _TYPECONVERT[type](value)
+    value = TYPECONVERT[type](value)
 
     dict.__setitem__(config, key, value)
 

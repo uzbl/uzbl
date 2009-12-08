@@ -306,6 +306,10 @@ the java script in @< >@.
 
     print The currently viewed document contains @<document.links.length>@ links
 
+The @<>@ substitution can also load JavaScript from a file, syntax:  @<+filename>@
+
+    print JS return value from file: @<+/path/to/file.js>@
+
 Variable expansion also works within a java script substitution.
 
 
