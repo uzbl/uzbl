@@ -54,7 +54,7 @@ GOptionEntry entries[] =
     { "connect-socket",   0, 0, G_OPTION_ARG_STRING_ARRAY, &uzbl.state.connect_socket_names,
         "Connect to server socket", "CSOCKET" },
     { "geometry", 'g', 0, G_OPTION_ARG_STRING, &uzbl.gui.geometry,
-        "Set window geometry (format: WIDTHxHEIGHT+-X+-Y)", "GEOMETRY" },
+        "Set window geometry (format: WIDTHxHEIGHT+-X+-Y or maximized)", "GEOMETRY" },
     { "version",  'V', 0, G_OPTION_ARG_NONE, &uzbl.behave.print_version,
         "Print the version and exit", NULL },
     { NULL,      0, 0, 0, NULL, NULL, NULL }
