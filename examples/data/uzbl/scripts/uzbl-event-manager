@@ -357,6 +357,7 @@ class UzblInstance(object):
 
         self.depth = 0
         self.buffer = ''
+        self.pid = None
 
         # Call the init() function in every plugin. Inside the init function
         # is where the plugins insert the hooks into the event system.
@@ -423,6 +424,9 @@ class UzblInstance(object):
         '''Connect event with handler and return the newly created handler.
         Handlers can either be a function or a uzbl command string.'''
 
+        event = event.upper().strip()
+        assert event and ' ' not in event
+
         if event not in self._handlers.keys():
             self._handlers[event] = []
 
@@ -478,12 +482,16 @@ class UzblInstance(object):
 
 
     def event(self, event, *args, **kargs):
-        '''Raise a custom event.'''
+        '''Raise an event.'''
 
-        # Silence _printing_ of geo events while debugging.
-        if event != "GEOMETRY_CHANGED":
-            print "%s--> %s %s %s" % ('  ' * self.depth, event, args,
-                '' if not kargs else kargs)
+        event = event.upper()
+        elems = [event,]
+        if args: elems.append(unicode(args))
+        if kargs: elems.append(unicode(kargs))
+        print "%s--> %s" % ('  ' * self.depth, ' '.join(elems))
+
+        if event == "INSTANCE_START" and args:
+            self.pid = int(args[0])
 
         if event not in self._handlers:
             return
