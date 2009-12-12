@@ -456,7 +456,7 @@ def match_and_exec(uzbl, bind, depth, keylet, bindlet):
     exec_bind(uzbl, bind, *args)
     uzbl.set_mode()
     if not has_args:
-        clear_stack(uzbl, bd)
+        bindlet.reset()
         uzbl.clear_current()
 
     return True
