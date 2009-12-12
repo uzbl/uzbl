@@ -96,16 +96,16 @@ class Bindlet(object):
         if self.after_cmds is None:
             return
 
-        (prompt, cmd, set), self.after_cmds = self.after_cmds, None
+        (prompt, is_cmd, set), self.after_cmds = self.after_cmds, None
 
         self.uzbl.clear_keycmd()
         if prompt:
             self.uzbl.set('keycmd_prompt', prompt)
 
-        if set and cmd:
-            self.uzbl.send(cmd)
+        if set and is_cmd:
+            self.uzbl.send(set)
 
-        elif set and not cmd:
+        elif set and not is_cmd:
             self.uzbl.send('event SET_KEYCMD %s' % set)
 
 
