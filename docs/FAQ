@@ -1,6 +1,19 @@
 FAQ
 ---
 
+### Uzbl crashes immediately (segfaults). WTF ?
+You are using a libwebkit version (usually 1.1.15.*) that uses enchant which
+is compiled with zemberek support built-in.  Compile enchant with
+--disable-zemberek or ask your package maintainer.
+See also:
+
+ * https://bugs.webkit.org/show_bug.cgi?id=30860
+ * http://bugzilla.abisource.com/show_bug.cgi?id=12413
+ * http://bugzilla.abisource.com/show_bug.cgi?id=12529
+ * http://bugs.archlinux.org/task/17401
+ * http://www.uzbl.org/news.php?id=17
+
+
 ### I just installed uzbl but it doesn't do much.  What now?
 "Uzbl" is the name for the umbrella project that has several subprojects.
 You probably want `uzbl-browser` or any of the other projects.

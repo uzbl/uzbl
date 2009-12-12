@@ -192,7 +192,7 @@ menu_editable_add Open in @external_editor = script @scripts_dir/extedit.js
 # go to the page in clipboard
 @bind    P         = sh 'echo "uri `xclip -selection clipboard -o`" > $4'
 # start a new uzbl instance from the page in primary selection
-@bind    'p        = sh 'exec uzbl --uri $(xclip -o)'
+@bind    'p        = sh 'exec uzbl-browser --uri $(xclip -o)'
 @bind    ZZ        = exit
 @bind    Xs        = js alert("hi");
 # example showing how to use sh
