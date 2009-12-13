@@ -1,33 +1,36 @@
 # example uzbl config.
 # all settings are optional.  you can use uzbl without any config at all (but it won't do much)
 
-set prefix      = /usr/local
+set prefix = /usr/local
 
 # === Shortcuts / Aliases  ===================================================
 
+# Config related events (use the request function):
 # request BIND <keycmd> = <command>
-set bind           = request BIND
+set bind            = request BIND
 # request MODE_CONFIG <mode> <key> = <value
-set mode_config    = request MODE_CONFIG
-# request TOGGLE_MODES <mode1> <mode2> ... <moden>
-set toggle_modes   = event TOGGLE_MODES
+set mode_config     = request MODE_CONFIG
 # request ON_EVENT <EVENT_NAME> <command>
-set on_event       = request ON_EVENT
+set on_event        = request ON_EVENT
 # request PROGRESS_CONFIG <key> = <value>
-set progress       = request PROGRESS_CONFIG
+set progress        = request PROGRESS_CONFIG
 # request MODMAP From To
-set modmap         = request MODMAP
+set modmap          = request MODMAP
 # request IGNORE_KEY <glob>
-set ignore_key     = request IGNORE_KEY
+set ignore_key      = request IGNORE_KEY
 # request MODKEY_ADDITION <key1> <key2> <keyn> <result>
 set modkey_addition = request MODKEY_ADDITION
 
-set set_mode       = set mode =
-set set_status     = set status_message =
-set shell_cmd      = sh -c
+# Action related events (use the event function):
+# event TOGGLE_MODES <mode1> <mode2> ... <moden>
+set toggle_modes    = event TOGGLE_MODES
+
+set set_mode        = set mode =
+set set_status      = set status_message =
+set shell_cmd       = sh -c
 
 # Spawn path shortcuts. In spawn the first dir+path match is used in "dir1:dir2:dir3:executable"
-set scripts_dir    = $XDG_DATA_HOME/uzbl:@prefix/share/uzbl/examples/data/uzbl:scripts
+set scripts_dir     = $XDG_DATA_HOME/uzbl:@prefix/share/uzbl/examples/data/uzbl:scripts
 
 # Javascipt helpers.
 set jsh = js var run=Uzbl.run; function get(k){return run("print \\\@"+k)}; function set(k, v) {run("set "+k+" = "+v)};
@@ -231,15 +234,15 @@ set formfiller = spawn @scripts_dir/formfiller
 
 
 # Examples using multi-stage-bindings with text prompts.
-@bind o<uri:>_ = uri %s
-@bind O<uri:\@uri>_ = uri %s
+@bind o<uri:>_           = uri %s
+@bind O<uri:\@uri>_      = uri %s
 
 # multi-stage binding way to write bookmarks to file from inside uzbl.
-@bind <Ctrl>b<tags:>_ = sh 'echo -e "$6 %s" >> $XDG_DATA_HOME/uzbl/bookmarks'
+@bind <Ctrl>b<tags:>_    = sh 'echo -e "$6 %s" >> $XDG_DATA_HOME/uzbl/bookmarks'
 
 # Multi-stage bindings with blank prompts (similar behaviour to emacs M-c M-s bindings?)
-@bind <Ctrl>a<:><Ctrl>q = exit
-@bind <Ctrl>a<:><Ctrl>h = uri http://uzbl.org/
+@bind <Ctrl>a<:><Ctrl>q  = exit
+@bind <Ctrl>a<:><Ctrl>h  = uri http://uzbl.org/
 
 # Inject handy values into the keycmd.
 @bind <Ctrl>su = event INJECT_KEYCMD \@uri
