@@ -2,5 +2,4 @@ uzbl-core
 *.o
 *~
 tags
-examples/data
 examples/config/enchant
