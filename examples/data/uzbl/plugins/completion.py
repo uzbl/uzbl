@@ -29,6 +29,9 @@ def escape(str):
 def add_instance(uzbl, *args):
     UZBLS[uzbl] = dict(DEFAULTS)
 
+    # Make sure the config keys for all possible completions are known.
+    uzbl.send('dump_config_as_events')
+
 
 def del_instance(uzbl, *args):
     if uzbl in UZBLS:
