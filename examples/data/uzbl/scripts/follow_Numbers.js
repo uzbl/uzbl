@@ -17,6 +17,10 @@ var doc = document;
 var win = window;
 var links = document.links;
 var forms = document.forms;
+
+//Reset keycmd, modcmd and return to default mode.
+function clearKeycmd() { Uzbl.run('set mode ='); }
+
 //Make onlick-links "clickable"
 try {
     HTMLElement.prototype.click = function() {
@@ -123,6 +127,7 @@ function generateHint(el, label) {
 //but at least set the href of the link. (needs some improvements)
 function clickElem(item) {
     removeAllHints();
+    clearKeycmd();
     if (item) {
         var name = item.tagName;
         if (name == 'A') {

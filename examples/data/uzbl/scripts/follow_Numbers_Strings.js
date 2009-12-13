@@ -4,6 +4,10 @@ var doc = document;
 var win = window;
 var links = document.links;
 var forms = document.forms;
+
+//Reset keycmd, modcmd and return to default mode.
+function clearKeycmd() { Uzbl.run('set mode ='); }
+
 try {
     HTMLElement.prototype.click = function() {
         if (typeof this.onclick == 'function') {
@@ -93,8 +97,10 @@ function generateHint(el, label) {
     hint.style.webkitTransform = 'scale(1) rotate(0deg) translate(-6px,-5px)';
     return hint;
 }
+
 function clickElem(item) {
     removeAllHints();
+    clearKeycmd();
     if (item) {
         var name = item.tagName;
         if (name == 'A') {
@@ -117,6 +123,7 @@ function clickElem(item) {
         }
     }
 }
+
 function addLinks() {
     res = [[], []];
     for (var l = 0; l < links.length; l++) {
