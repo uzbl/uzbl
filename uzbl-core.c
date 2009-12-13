@@ -53,6 +53,8 @@ GOptionEntry entries[] =
         "Socket ID", "SOCKET" },
     { "connect-socket",   0, 0, G_OPTION_ARG_STRING_ARRAY, &uzbl.state.connect_socket_names,
         "Connect to server socket", "CSOCKET" },
+    { "print-events", 'p', 0, G_OPTION_ARG_NONE, &uzbl.state.events_stdout,
+        "Whether to print events to stdout.", NULL },
     { "geometry", 'g', 0, G_OPTION_ARG_STRING, &uzbl.gui.geometry,
         "Set window geometry (format: WIDTHxHEIGHT+-X+-Y or maximized)", "GEOMETRY" },
     { "version",  'V', 0, G_OPTION_ARG_NONE, &uzbl.behave.print_version,
@@ -85,6 +87,7 @@ const struct var_name_to_ptr_t {
 /*  ---------------------------------------------------------------------------------------------- */
     { "uri",                    PTR_V_STR(uzbl.state.uri,                       1,   cmd_load_uri)},
     { "verbose",                PTR_V_INT(uzbl.state.verbose,                   1,   NULL)},
+    { "print_events",           PTR_V_INT(uzbl.state.events_stdout,             1,   NULL)},
     { "inject_html",            PTR_V_STR(uzbl.behave.inject_html,              0,   cmd_inject_html)},
     { "geometry",               PTR_V_STR(uzbl.gui.geometry,                    1,   cmd_set_geometry)},
     { "keycmd",                 PTR_V_STR(uzbl.state.keycmd,                    1,   NULL)},

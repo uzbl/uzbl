@@ -206,6 +206,7 @@ Besides the builtin variables you can also define your own ones and use them in 
   - `scheme_handler`: handler to execute for each URI navigated to - the navigation request will be ignored if handler prints "USED\n"
   - `fifo_dir`: location to store fifo's
   - `socket_dir`: location to store sockets
+  - `print_events`: show events on stdout
   - `http_debug`: http debug mode (value 0-3)
   - `shell_cmd`: alias which will be expanded to use shell commands (eg sh -c)
   - `proxy_url`: http traffic socks proxy (eg: http://<host>:<port>)
