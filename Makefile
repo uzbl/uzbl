@@ -41,8 +41,10 @@ uzbl-browser: uzbl-core
 
 # packagers, set DESTDIR to your "package directory" and PREFIX to the prefix you want to have on the end-user system
 # end-users who build from source: don't care about DESTDIR, update PREFIX if you want to
+# RUN_PREFIX : what the prefix is when the software is run. usually the same as PREFIX
 PREFIX?=/usr/local
 INSTALLDIR?=$(DESTDIR)$(PREFIX)
+RUN_PREFIX?=$(PREFIX)
 
 # the 'tests' target can never be up to date
 .PHONY: tests
@@ -53,27 +55,28 @@ tests: ${OBJ} force
 	$(CC) -shared -Wl ${OBJ} -o ./tests/libuzbl-core.so
 	cd ./tests/; $(MAKE)
 
-test: uzbl-core
-	                    ./uzbl-core --uri http://www.uzbl.org --verbose
+test-uzbl-core: uzbl-core
+	./uzbl-core --uri http://www.uzbl.org --verbose
 
-test-browser: uzbl-browser
-	PATH="`pwd`:$$PATH" ./uzbl-browser --uri http://www.uzbl.org --verbose
+test-uzbl-browser: uzbl-browser
+	./uzbl-browser --uri http://www.uzbl.org --verbose
 
-test-dev: uzbl-core
-	XDG_DATA_HOME=./examples/data                    XDG_CONFIG_HOME=./examples/config                                        ./uzbl-core --uri http://www.uzbl.org --verbose
+test-uzbl-core-sandbox: uzbl-core
+	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-core
+	source ./sandbox/env.sh && uzbl-core --uri http://www.uzbl.org --verbose
+	make DESTDIR=./sandbox uninstall
+	rm -rf ./sandbox/usr
 
-test-dev-browser: uzbl-browser
-	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:$$PATH" ./examples/data/uzbl/scripts/uzbl-cookie-daemon restart -nv &
-	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:$$PATH" ./examples/data/uzbl/scripts/uzbl-event-manager restart -nav &
-	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:`pwd`/examples/data/uzbl/scripts/:$$PATH" ./uzbl-browser --uri http://www.uzbl.org --verbose
-	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:$$PATH" ./examples/data/uzbl/scripts/uzbl-cookie-daemon stop -v
-	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:$$PATH" ./examples/data/uzbl/scripts/uzbl-event-manager stop -v
+test-uzbl-browser-sandbox: uzbl-browser
+	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-browser
+	source ./sandbox/env.sh && uzbl-cookie-daemon restart -nv &
+	source ./sandbox/env.sh && uzbl-event-manager restart -nav &
+	source ./sandbox/env.sh && uzbl-browser --uri http://www.uzbl.org --verbose
+	source ./sandbox/env.sh && uzbl-cookie-daemon stop -v
+	source ./sandbox/env.sh && uzbl-event-manager stop -v
+	make DESTDIR=./sandbox uninstall
+	rm -rf ./sandbox/usr
 
-test-share: uzbl-core
-	XDG_DATA_HOME=${INSTALLDIR}/share/uzbl/examples/data XDG_CONFIG_HOME=${INSTALLDIR}/share/uzbl/examples/config                     ./uzbl-core --uri http://www.uzbl.org --verbose
-
-test-share-browser: uzbl-browser
-	XDG_DATA_HOME=${INSTALLDIR}/share/uzbl/examples/data XDG_CONFIG_HOME=${INSTALLDIR}/share/uzbl/examples/config PATH="`pwd`:$$PATH" ./uzbl-browser --uri http://www.uzbl.org --verbose
 
 clean:
 	rm -f uzbl-core
@@ -96,15 +99,15 @@ install-uzbl-core: all
 	install -m755 uzbl-core    $(INSTALLDIR)/bin/uzbl-core
 	install -m644 AUTHORS      $(INSTALLDIR)/share/uzbl/docs
 	install -m644 README       $(INSTALLDIR)/share/uzbl/docs
-	sed -i 's#^set prefix.*=.*#set prefix     = $(PREFIX)#' $(INSTALLDIR)/share/uzbl/examples/config/uzbl/config
+	sed -i 's#^set prefix.*=.*#set prefix     = $(RUN_PREFIX)#' $(INSTALLDIR)/share/uzbl/examples/config/uzbl/config
 
 install-uzbl-browser: all
 	install -d $(INSTALLDIR)/bin
 	install -m755 uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
 	install -m755 examples/data/uzbl/scripts/uzbl-cookie-daemon $(INSTALLDIR)/bin/uzbl-cookie-daemon
 	install -m755 examples/data/uzbl/scripts/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
-	sed -i 's#^PREFIX=.*#PREFIX=$(PREFIX)#' $(INSTALLDIR)/bin/uzbl-browser
-	sed -i "s#^PREFIX = .*#PREFIX = '$(PREFIX)'#" $(INSTALLDIR)/bin/uzbl-event-manager
+	sed -i 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' $(INSTALLDIR)/bin/uzbl-browser
+	sed -i "s#^PREFIX = .*#PREFIX = '$(RUN_PREFIX)'#" $(INSTALLDIR)/bin/uzbl-event-manager
 
 install-uzbl-tabbed: all
 	install -d $(INSTALLDIR)/bin
