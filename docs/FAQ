@@ -1,61 +1,38 @@
 FAQ
 ---
 
+### Uzbl crashes immediately (segfaults). WTF ?
+You are using a libwebkit version (usually 1.1.15.*) that uses enchant which
+is compiled with zemberek support built-in.  Compile enchant with
+--disable-zemberek or ask your package maintainer.
+See also:
+
+ * https://bugs.webkit.org/show_bug.cgi?id=30860
+ * http://bugzilla.abisource.com/show_bug.cgi?id=12413
+ * http://bugzilla.abisource.com/show_bug.cgi?id=12529
+ * http://bugs.archlinux.org/task/17401
+ * http://www.uzbl.org/news.php?id=17
+
+
 ### I just installed uzbl but it doesn't do much.  What now?
-Uzbl includes very limited default settings (statusbar settings, but no keybinds, history/download handlers etc.)
-Look at /usr/share/uzbl/docs/config.h to see the default settings.
-Have a look in /usr/share/uzbl/examples/configs to see what you can do.
-
-If you save a config as $XDG\_CONFIG\_HOME/uzbl/config it will be loaded automatically.
-Running with the `--verbose` flag on a command line can also be interesting.
-To get you started, try this:
-`XDG_DATA_HOME=/usr/share/uzbl/examples/data XDG_CONFIG_HOME=/usr/share/uzbl/examples/config uzbl`
-It will temporarily override your $XDG\_CONFIG\_HOME and $XDG\_DATA\_HOME
-variables so you can try the sample stuff directly in /usr/share/uzbl/examples.
-If you like what you can do, you can copy the sample stuff into your ~ and edit to your liking.
-
-### Why don't you just use a reasonable config by default?
-We actually did some attempts to make uzbl "usable by default" but in the
-end we had to conclude it cannot be done because of the following reasons:
-
- * We don't want to store anything "automagically" in the users home.
-   Some people prefer different file/directory layouts, most of just want to
-   control the files in $HOME themselves.
- * We considered the option of having a global '/etc/uzbl' which user
-   specific ones could override but that would overcomplicate things.
- * We adhere to the [FHS](http://www.pathname.com/fhs/) (`man hier`), so
-   `uzbl -c /usr/share/...` is not an option.
-
-So even though we would like to make uzbl more usable by default, we think
-there is no sensible way to do it.  Maybe downstream packagers could provide
-a note that users could copy the examples from /usr/share/uzbl/examples into
-their homes, because really, that's all that is needed if you want it to
-just "work" without controlling how yourself. (unless you have no
-xdg variables set, in which case you should be smart enough to edit the sample
-config yourself).
-
-### Where is the location bar? How do I change the URL ?
-Uzbl has no location bar.  All changes to the uri (editing of current uri, typing new uri, loading of uri from bookmarks/history/...) happens *outside* of uzbl.
-Have a look at the sample scripts in /usr/share/uzbl/examples.  Most of our examples use dmenu which is a nifty little tool to pick an item from a list of items (very
-useful with history/bookmarks) with a limited set of keystrokes.  see man dmenu.
-You can also use it to make edits to a uri (press tab to load it into the
-search field) or type a url from scratch, though dmenu
-is not the most suitable editor. We're looking into a better way to make edits.
-Tools such as Zenity are also quite suited for this.
-And you can always make keybinds to load the current uri in the command field, paste/load urls from
-clipboard etc.
+"Uzbl" is the name for the umbrella project that has several subprojects.
+You probably want `uzbl-browser` or any of the other projects.
+The main program (uzbl-core) is a program meant for integration with other
+tools and scripts, by itself doesn't do many usefull things.  See README.
 
 ### Where are the widgets (forward, back,.. button etc)
-Uzbl's layout only contains what you really need to see.  we only have a statusbar, which even can also be disabled.  There are no buttons, but we do
+The layout of uzbl (and derivatives) only contains what you really need to see.  we only have a statusbar, which even can also be disabled.  There are no buttons, but we do
 have lots of keybinding possibilities.
 
-### No tabs? Why do you need a new window for each page?
-We stick to "one page per uzbl instance" because that's a simple, clean and flexible method.  We believe "multiple instances management" is something that must
+### Why can uzbl-browser only show one page?
+Among uzbl hackers, there are 2 groups: some people prefer tabs, they use
+uzbl-tabbed.  The others stick to "one page per uzbl-browser instance" because
+it's a very flexible approach.  They believe "multiple instances management" is something that must
 be handled outside of uzbl by a separate/different program.  Here are some solutions:
 
- * Many window managers can (and should) handle this by default.  Xmonads tabbed layout, Wmii's stacked layout, fluxbox or kwin tabs and so on.
+ * Many window managers can handle this by default.  Xmonads tabbed layout, Wmii's stacked layout, fluxbox or kwin tabs and so on.
  * Uzbl supports acting as a GtkPlug to plug into GtkSockets (Xembed) so you can embed uzbl instances in other Gtk applications.
-   This allows several implementatinos, a popular one is [uzbl_tabbed.py](http://www.uzbl.org/wiki/uzbl_tabbed)
+   (This is also what uzbl-tabbed does)
  * If you want highest customizablity, you need the 3rd option:
    You can also write a custom script.  The only thing you need to do is focus/maximize the instance you want,
    keep the others out of sight and use tools like dmenu and wmctrl to switch instances.
@@ -63,23 +40,10 @@ be handled outside of uzbl by a separate/different program.  Here are some solut
    For more information about this approach, see docs/multiple-instances-management.
    (If you want to work on such script, let us know and we might include it along with the other sample scripts)
 
-### What?  No support for bookmarks/history/downloads/cookies/... ? Your project sucks!
-We do not support *management* of those things, because we believe a browser should only do browsing.  We are firm believers in the unix philosophy.
-You have to look at the bigger picture.  In fact, we do support all these things.  Take bookmarks as an example:
-
- * we support keybinding and spawning external programs, so you can bind a key to spawn any script you want
- * Your script receives properties such as the current url, window title etc.
- * You can then call a tool such as zenity to prompt for any more information you may want to specify (tags,...)
- * You have the freedom to store the bookmarks in whichever format you want. (plaintext, sqlite, any database, on a remote system, in version control, ...)
- * To load a bookmark, you trigger another script which invokes a tool such as dmenu to let you pick a bookmark.  Your script can send the command to load the url to uzbl very easily by using the socket or fifo interface.
- * To manage your bookmarks, you can use whatever you want, depending on how you store them (simple text editor, database interface, ... )
-
-These ideas are something we want to consistently apply throughout the entire application.  (Even more, throughout our entire desktop environment)
-In fact, we actually ship various sample scripts and some sample configs that make it easy for you to implement your workflow.
-
 ### Okay, what can I actually do?  What commands are there?  How do I get more information?
   * Commands and other features are documented in README.  Read it.
   * You should also peek into the sampleconfigs to see how commands are used in practice.
+  * The wiki is also a great resource.
 
 ### Why can't I type anything in forms?  How does the keybinding work?
 You are in command mode, not in insert mode.
@@ -87,17 +51,11 @@ You are in command mode, not in insert mode.
 * command mode: you can trigger actions inside uzbl with minimum amount of keypresses (eg 'b' to go back, 'ZZ' to quit etc)  (see config examples), but not to type actual text into forms, because all your keypresses are interpreted.
 * insert mode: after going into insert mode (by default this is the 'i' binding from inside command mode), your keypresses are not interpreted but passed on, so you can enter text into forms.  Press Esc to go out of insert mode.
 
-The above method is called "modal" as inspired on VI.  If you don't like
-this you can easily change this:
-
-* enable always\_insert\_mode in your config.  You will always be in insert mode.
-* configure a modkey.  Since your keypresses are not interpreted anymore to trigger actions, you need a modkey to do things (eg alt+'b' to go back instead of just 'b' from command mode)
+The above method is called "modal" as inspired on VI.  If you don't like this you can easily change this.
 
 This method is how many applications work.
+TODO: you can call things from inside insert mode by using modkeys, right?
 
-Both have their pro's and cons.  We don't want to force anyone in using
-either, so by tuning the modkey and always\_insert\_mode settings you can pick
-whichever method you like, or both at the same time (command mode, insert mode, and the modkey to perform actions while in insert mode)
 
 ### Why do you depend on gtk?
 Uzbl itself doesn't use much gtk stuff (only the statusbar) so we could do without gtk.  But Webkit needs a widget toolkit to create widgets (think javascript popups, html forms etc).
@@ -112,14 +70,14 @@ Yes, Webkit takes care of all of that.  Not that we like all of these, but you c
 They both have advantages and disadvantages:
 
  * fifo's are _very_ easy to work with. You can write just plaintext commands into them, but they are unidirectional (you can only communicate in one direction)
- * Sockets are bidirectional but more complex.  You cannot just write a plaintext string into them.  In shellscripts you can use uzblctrl or netcat to work with sockets, when programming you need to use library functions.
+ * Sockets are bidirectional but more complex.  You cannot just write a plaintext string into them.  In shellscripts you can use socat to work with sockets, when programming you need to use library functions.
 
 So, when writing scripts, using fifo's is usually the fastest method (because you do not need to fork another process), so fifo is preferred unless you need a response.
 
 ### What the hell is this 'XDG' stuff??
-You'll notice our example scripts and configs use variables such as `$XDG_CONFIG_HOME` and `$XDG_DATA_HOME`.
-Most of us really like the [xdg basedir spec](http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html)
-so our example material folows it.  Basically it helps you keeping a clean `$HOME` and it separates config, data and cache.
+You'll notice our example/default scripts and configs use variables such as `$XDG_CONFIG_HOME` and `$XDG_DATA_HOME`.
+Most of us really like the [xdg basedir spec](http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html).
+Basically it helps you keeping a clean `$HOME` and it separates config, data and cache.
 If these variables are not defined on your system, it could be that you need to install an xdg package.
 If you don't like this, no one is stopping you from changing the scripts and configs to point to a single `$HOME/.uzbl` directory or whatever you want.
 

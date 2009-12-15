@@ -22,10 +22,10 @@
 #include <fcntl.h>
 #include <signal.h>
 
-#include <uzbl.h>
+#include <uzbl-core.h>
 #include <config.h>
 
-extern Uzbl uzbl;
+extern UzblCore uzbl;
 
 extern gchar* expand(char*, guint);
 extern void make_var_to_name_hash(void);
@@ -43,20 +43,6 @@ test_uri (void) {
     uzbl.state.uri = g_strdup("http://www.uzbl.org/");
     g_assert_cmpstr(expand("@uri", 0), ==, uzbl.state.uri);
     g_free(uzbl.state.uri);
-}
-
-void
-test_LOAD_PROGRESS (void) {
-    uzbl.gui.sbar.load_progress = 50;
-    g_assert_cmpstr(expand("@LOAD_PROGRESS", 0), ==, "50");
-}
-
-void
-test_LOAD_PROGRESSBAR (void) {
-    uzbl.gui.sbar.progress_w = 4;
-    progress_change_cb(NULL, 75, NULL);
-
-    g_assert_cmpstr(expand("@LOAD_PROGRESSBAR", 0), ==, "===·");
 }
 
 void
@@ -78,18 +64,9 @@ test_NAME (void) {
 }
 
 void
-test_MODE (void) {
-    set_var_value("insert_mode", "0");
-    g_assert_cmpstr(expand("@MODE", 0), ==, "C");
-
-    set_var_value("insert_mode", "1");
-    g_assert_cmpstr(expand("@MODE", 0), ==, "I");
-}
-
-void
-test_status_message (void) {
-    uzbl.gui.sbar.msg = "Hello from frosty Edmonton!";
-    g_assert_cmpstr(expand("@status_message", 0), ==, "Hello from frosty Edmonton!");
+test_useragent (void) {
+    uzbl.net.useragent = "This is the uzbl browser (sort of).  and btw: Hello from frosty Edmonton!";
+    g_assert_cmpstr(expand("@useragent", 0), ==, "This is the uzbl browser (sort of).  and btw: Hello from frosty Edmonton!");
 }
 
 void
@@ -124,8 +101,7 @@ test_cmd_useragent_simple (void) {
     g_string_append(expected, itos(WEBKIT_MICRO_VERSION));
     g_string_append(expected, ")");
 
-    set_var_value("useragent", "Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO)");
-    g_assert_cmpstr(uzbl.net.useragent, ==, g_string_free(expected, FALSE));
+    g_assert_cmpstr(expand("Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO)", 0), ==, g_string_free(expected, FALSE));
 }
 
 void
@@ -157,8 +133,7 @@ test_cmd_useragent_full (void) {
     g_string_append(expected, uzbl.info.commit);
     g_string_append(expected, ")");
 
-    set_var_value("useragent", "Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@(uname -s)@ @(uname -n)@ @(uname -r)@ @(uname -v)@ @(uname -m)@ [@ARCH_UZBL]) (Commit @COMMIT)");
-    g_assert_cmpstr(uzbl.net.useragent, ==, g_string_free(expected, FALSE));
+    g_assert_cmpstr(expand("Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@(uname -s)@ @(uname -n)@ @(uname -r)@ @(uname -v)@ @(uname -m)@ [@ARCH_UZBL]) (Commit @COMMIT)", 0), ==, g_string_free(expected, FALSE));
 }
 
 void
@@ -196,12 +171,12 @@ test_escape_expansion (void) {
 
 void
 test_nested (void) {
-    uzbl.gui.sbar.msg = "xxx";
-    g_assert_cmpstr(expand("@<\"..@status_message..\">@", 0), ==, "..xxx..");
-    g_assert_cmpstr(expand("@<\"..\\@status_message..\">@", 0), ==, "..@status_message..");
+    uzbl.net.useragent = "xxx";
+    g_assert_cmpstr(expand("@<\"..@useragent..\">@", 0), ==, "..xxx..");
+    g_assert_cmpstr(expand("@<\"..\\@useragent..\">@", 0), ==, "..@useragent..");
 
-    g_assert_cmpstr(expand("@(echo ..@status_message..)@", 0), ==, "..xxx..");
-    g_assert_cmpstr(expand("@(echo ..\\@status_message..)@", 0), ==, "..@status_message..");
+    g_assert_cmpstr(expand("@(echo ..@useragent..)@", 0), ==, "..xxx..");
+    g_assert_cmpstr(expand("@(echo ..\\@useragent..)@", 0), ==, "..@useragent..");
 }
 
 int
@@ -210,14 +185,11 @@ main (int argc, char *argv[]) {
     g_test_init(&argc, &argv, NULL);
 
     g_test_add_func("/test-expand/@keycmd", test_keycmd);
-    g_test_add_func("/test-expand/@status_message", test_status_message);
+    g_test_add_func("/test-expand/@useragent", test_useragent);
     g_test_add_func("/test-expand/@uri", test_uri);
-    g_test_add_func("/test-expand/@LOAD_PROGRESS", test_LOAD_PROGRESS);
-    g_test_add_func("/test-expand/@LOAD_PROGRESSBAR", test_LOAD_PROGRESSBAR);
     g_test_add_func("/test-expand/@TITLE", test_TITLE);
     g_test_add_func("/test-expand/@SELECTED_URI", test_SELECTED_URI);
     g_test_add_func("/test-expand/@NAME", test_NAME);
-    g_test_add_func("/test-expand/@MODE", test_MODE);
     g_test_add_func("/test-expand/@WEBKIT_*", test_WEBKIT_VERSION);
     g_test_add_func("/test-expand/@ARCH_UZBL", test_ARCH_UZBL);
     g_test_add_func("/test-expand/@COMMIT", test_COMMIT);

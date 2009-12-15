@@ -1,64 +1,53 @@
-### THIS PROJECT IS NOT FOR:
-* people want a browser that does everything
-* people who want a browser with things like a built-in bookmark manager, address bar, forward/back buttons, ...
-* people who expect something that works by default.  You'll need to read configs and write/edit scripts
-* people who like nothing from this list: mpd, moc, wmii, dwm, awesome, mutt, pine, vim, dmenu, screen, irssi, weechat, bitlbee
-
-### TO NEW PEOPLE:
-* please read the documentation in /usr/share/uzbl/docs
-* invoke uzbl --help
-* to get you started: `XDG_DATA_HOME=/usr/share/uzbl/examples/data XDG_CONFIG_HOME=/usr/share/uzbl/examples/config uzbl --uri www.archlinux.org`
-* try and study the sample config, read the readme to find out how it works.
-* You can change the url with commands (if you have setup the appropriate keybinds) but to be most effective it's better to do url editing/changing _outside_ of uzbl.
-  Eg, you can use the `load_from_*` dmenu based scripts to pick/edit a url or type a new one.
-* If you have questions, you are likely to find answers in the FAQ or in the other documentation.
-
-
 ### INTRODUCTION
   Any program can only be really useful if it complies to the unix philosophy.
-  Web browsers are frequent violators of this principle:
+  Web browsers (and other tools that work with html, such as feedreaders) are frequent violators of this principle:
 
-* They build in way too much things into the browser, dramatically decreasing the options to do things the way you want.
+* They build in way too much things into one (complex) program, dramatically decreasing the options to do things the way you want.
 * They store things in way too fancy formats (xml, rdf, sqlite, ... ) which are hard to store under version control, reuse in other scripts, ...
 
-Time to change that!
+The uzbl project was started as an attempt to resolve this.
 
-  Here are the general ideas (not all of these are implemented perfectly yet):
+### EDITIONS
 
-* each instance of uzbl renders 1 page (eg it's a small wrapper around webkit), no tabbing, tab previews, or speed dial things.
-  For "multiple instances management" use your window managers, scripts or wrappers.
-* very simple, plaintext , changeable at runtime configuration
-* various interfaces for (programmatic) interaction with uzbl (see below)
-* customizable keyboard shortcuts in vim or emacs style (whatever user wants)
-* "outsource" logic that is not browsing to external scripts under the users control:
-    - managing bookmarks
-    - loading a url from bookmarks, history,..  Editing the curent url
-    - control cookies
-    - handling of downloads, history logging, etc.
-    - management of cache.
-    - password management
-    - Leverage the power of utilities such as grep, awk, dmenu, zenity, wget, gnupg (password file) etc.
-* listen to signals and do useful stuff when triggered.
-* no ad blocking built in.
-  Alternatives:
-    - privoxy looks cool and perfectly demonstrates the unix philosphy.
-    - same for http://bfilter.sourceforge.net
-    - /etc/hosts (not very good cause you need root and it affects the whole system)
-      uzblctrl would need to support an option to list all images on a page, so you can easily pick the links to ads to add them to your /etc/hosts.
-* vimperator/konqueror-like hyperlink following.
-* password management. maybe an encrypted store that unlocks with an ssh key?
-* no messing in the users $HOME or in /etc: no writing of anything unless the user (or sysadmin) asks for it.
-  We recommend using XDG basedir spec for separation of config, data and cache. and state should be a subdir in the config dir (not part of the spec yet) too.
+"Uzbl" is an umbrella-project consisting of different flavors.
+In the future more things may come, but for now:
+
+#### uzbl-core: main component meant for integration with other tools and scripts
+
+ * Uses WebkitGtk+ for rendering, network interaction (libsoup).  Css, javascript, plugin support etc come for free
+ * Provides interfaces to get data in (commands/configuration) and out (events): stdin/stdout/fifo/unix sockets    
+ * You see a webkit view and (optionally) a statusbar which gets popuplated externally       
+ * No built-in means for url changing, loading/saving of bookmarks, saving history, keybinds, downloads, ...
+ * Extra functionality: many sample scripts come with it, on <a href="http://www.uzbl.org/wiki/scripts">uzbl wiki</a> or write them yourself
+ * Entire configuration/state can be changed at runtime
+ * Uzbl keeps it simple, and puts <strong>you</strong> in charge.
+
+#### uzbl-browser: a complete browser experience based on uzbl-core
+
+ * Uses a set of scripts (mostly python) that will fit most people, so things work out of the box.  Yet plenty of room for customisation
+ * Brings everything you expect: url changing, history, downloads, form filling, link navigation, cookies, event management etc
+ * Advanced, customizable keyboard interface with support for modes, modkeys, multichars, variables (keywords) etc. (eg you can tweak the interface to be vim-like, emacs-like or any-other-program-like)
+ * Adequate default configuration      
+ * Focus on plaintext storage for your data and configs in simple, parseable formats and adherence to the xdg basedir spec
+ * Visually, similar to uzbl-core except that the statusbar contains useful things.  One window per webpage  
+
+#### uzbl-tabbed: wraps around uzbl-browser and multiplexes it
+
+ * Spawns one window containing multiple tabs, each tab containing a full embedded uzbl-browser
+ * Ideal as a quick and simple solution to manage multiple uzbl-browser instances without getting lost
+
+
+Throughout the documentation, when referring to `uzbl` we mean uzbl-core, unless otherwise specified.
 
 
 ### CONFIGURATION / CONTROL:
-The general idea is that uzbl by default is very bare bones.  you can send it commands to update settings and perform actions, through various interfaces.
+The general idea is that uzbl by default is very bare bones.  You can send it commands to update settings and perform actions, through various interfaces.
 There is a limited default configuration.  Please see config.h to see what it contains.
 By default, there are *no* keybinds defined at all.  (Default keybinds would work counterproductive when you try to customize)
 For examples of the possibilities what you can do, please see the sample config(s), and uzbl wiki page.
 There are several interfaces to interact with uzbl:
 
-* uzbl --config <filename>: <filename> will be read line by line, and the commands in it will be executed.  useful to configure uzbl at startup.
+* uzbl --config <filename>: <filename> will be read line by line, and the commands in it will be executed.  Useful to configure uzbl at startup.
   If you have a file in `$XDG_CONFIG_HOME/uzbl/config` (this expands to ~/.config/uzbl/config on most systems) it will be automatically recognized
 * stdin: to write commands into stdin, use `--config -` (or `-c -`)
 * interactive: you can enter commands (and bind them to shortcuts, even at runtime)
@@ -73,19 +62,29 @@ There are several interfaces to interact with uzbl:
   * shift insert (paste primary selection buffer)
 * FIFO & socket file: if enabled by setting their paths through one of the above means, you can have socket and fifo files available which are very useful to programatically control uzbl (from scripts etc).
   The advantage of the fifo is you can write plaintxt commands to it, but it's half duplex only (uzbl cannot send a response to you).
-  The socket is full duplex but you need a socket-compatible wrapper such as netcat to work with it, or uzblctrl of course,
-  an utitly we include with uzbl made especially for writing commnands to the socket (and at some point, it will be able to tell you the response
-  too):  `uzblctrl -s <socketfile> -c <command>`
+  The socket is full duplex but you need a socket-compatible wrapper such as socat to work with it.
+  For example: echo <command> | socat - unix-connect:<socketfile>
 
 When uzbl forks a new instance (eg "open in new window") it will use the same commandline arguments (eg the same --config <file>), except --uri and--name.
-If you made changes to the configuration at runtime, these are not pased on to the child.
+If you made changes to the configuration at runtime, these are not passed on to the child.
+
+
+#### Uzbl-browser
+- default config
+- EM
+- EM plugins
+- bindings/events/requests
+
+#### Uzbl-tabbed
+- also has some own keybindings
+
 
 ### COMMAND SYNTAX
 Uzbl will read commands via standard input, named fifo pipe (if `fifo_dir` is set) and IPC socket (when `socket_dir` is set).
 For convenience, uzbl can also be instructed to read commands from a file on startup by using the `-c` option.  Indeed, the config file is nothing more than a list of commands.
 
-Each command starts with the name of the command, which must be the first thing on a line; preceding whitespace is not allowed.
-A command is terminated by a newline.  Empty lines and lines that start with the hash sign are ignored by the parser.  Command names are always written in lowercase.
+Each command starts with the name of the command or an uzbl variable that expands to it.  A command is terminated by a newline.
+Empty lines and lines that start with the hash sign are ignored by the parser.  Command names are always written in lowercase.
 
 The following commands are recognized:
 
@@ -95,7 +94,7 @@ The following commands are recognized:
    - if you want to unset a string, use `set` with one space after the equals sign
 * `print @<key>`
    - use this to print the value of a variable.
-* `bind <string> = <command>`
+* `bind <string> = <command>` OUTDATED !!!
    - sets the character sequence `<string>` to invoke `<command>` when typed interactively in uzbl
    - there are a few tricks you can do:
        * `<string>` ends with an underscore: the command will only be invoked after pressing return/enter. If the user enters text where `<string>` has the underscore, `%s` in the `<command>` string will be replaced by this text. (optional)
@@ -112,12 +111,10 @@ The following commands are recognized:
 
 * `back`
 * `forward`
-* `scroll_vert <amount>`
-* `scroll_horz <amount>`
-   - amount is given in pixels(?) or as a percentage of the size of the view
-   - set amount to 100% to scroll a whole page
-* `scroll_begin`
-* `scroll_end`
+* `scroll <vertical|horizontal> <argument>`
+   - argument can be `begin`, `end`, or an amount given in pixels(?)
+     or as a percentage of the size of the view
+   - set the amount to 100% to scroll a whole page
 * `reload`
 * `reload_ign_cache`
 * `stop`
@@ -130,9 +127,9 @@ The following commands are recognized:
 * `script <file>`
    - execute the javascript in `<file>`
 * `toggle_status`
-* `spawn <executable> <additonal args>`
+* `spawn <executable> <additional args>` TODO explain path-alike expansion
    - runs a command; see EXTERNAL SCRIPTS for details
-   - PATH is searched so giving the full path to commands is not neccessary
+   - PATH is searched so giving the full path to commands is not necessary
    - note that the arguments as specified in "EXTERNAL SCRIPTS" are appended at the end, so the argument numbers will be higher.
 * `sh <command>`
    - runs a shell command by expanding `%s` in the `shell_cmd` variable with the specified command; primarily useful as a shortcut for `spawn sh -c <body>`
@@ -147,7 +144,9 @@ The following commands are recognized:
 * `search <string>`
 * `search_reverse <string>`
    - search with no string will search for the next/previous occurrence of the string previously searched for
-* `toggle_insert_mode <optional state>`
+* `search_clear`
+   - unmark and clear the search string
+* `toggle_insert_mode <optional state>` TODO new plugin based syntax
    - if the optional state is 0, disable insert mode. If 1, enable insert mode.
 * `dump_config`
    - dumps your current config (which may have been changed at runtime) to stdout, in a format you can use to pipe into uzbl again (or use as config file)
@@ -160,6 +159,30 @@ The following commands are recognized:
    - use for chaining multiple commands
    - remember to quote the commands; one command must come as one parameter
    - if you use `chain` with a handler script which must return some output (such as a cookie handler -- uzbl will wait for and use its output), use sync_spawn or sync_sh instead of spawn or sh in the command that should give the output
+* `event <event_name> [event_details]`
+   - send custom event
+* `request <request_name> [request_details]`
+   - send custom request (same idea as events, but to be processed by EM, not uzbl-core)
+* `menu_add          <label>  = <uzbl command>`
+* `menu_link_add     <label>  = <uzbl command>`
+* `menu_image_add    <label>  = <uzbl command>`
+* `menu_editable_add <label>  = <uzbl command>`
+   - add a new entry "label" that will execute "uzbl command" to one of the right click context menus
+* `menu_separator          <label>`
+* `menu_link_separator     <label>`
+* `menu_image_separator    <label>`
+* `menu_editable_separator <label>`
+   - adds a separator line to one of the right click context menus
+* `menu_remove          <label>`
+* `menu_link_remove     <label>`
+* `menu_image_remove    <label>`
+* `menu_editable_remove <label>`
+   - removes the entry "label" from one of the right click context menus
+* `hardcopy`
+   - open print dialog
+* `include <file>`
+   - read contents of file and interpret commands
+
 
 ### VARIABLES AND CONSTANTS
 Uzbl has a lot of internal variables and constants.  You can get the values (using the `print` command, see above), and for variables you can also change the value at
@@ -167,69 +190,65 @@ runtime.  Some of the values can be passed at start up through commandline argum
 Some of them have default values (see config.h)
 Some variables have callback functions which will get called after setting the variable to perform some additional logic (see below)
 
+Besides the builtin variables you can also define your own ones and use them in the exact same way as the builtin ones.
+
 * Variables:
-  - uri (callback: load the uri)
-  - verbose: affects output on stdout
-  - mode:insert or command mode
-  - inject_html
-  - base_url: used when passing html through stdin
-  - html_endmarker: delimiter when passing html through stdin
-  - html_mode_timeout: consider end of html input after x seconds when no endmarker found
-  - keycmd: holds the input buffer (callback: update input buffer)
-  - status_message (callback: update title)
-  - show_status: show statusbar or not
-  - status_top: statusbar on top?
-  - status_format: marked up, to be expanded string for statusbar (callback: update statusbar)
-  - status_pbar_done: character to denote done % of pageload
-  - status_pbar_pending: character to denote pending % of pageload
-  - status_pbar_width: width of progressbar
-  - status_background: color which can be used to override Gtk theme.
-  - insert_indicator: string to denote insert mode
-  - command_indicator: string to denote command mode
-  - title_format_long: titlebar string when no statusbar shown (will be expanded
-  - title_format_short: titlebar string when statusbar shown (will be expanded)
-  - icon: path to icon for Gtk
-  - insert_mode: whether insert mode is active
-  - always_insert_mode: set this to true if you don't like modal (vim-like) interfaces
-  - reset_command_mode: automatically revert to command mode on pageload (unless always_insert_mode is set)
-  - modkey: modkey which can be pressed to activate keybind from inside insert mode
-  - load_finish_handler
-  - load_start_handler
-  - load_commit_handler
-  - history_handler
-  - download_handler
-  - cookie_handler
-  - new_window: handler to execute to invoke new uzbl window (TODO better name)
-  - fifo_dir: location to store fifo's
-  - socket_dir: location to store sockets
-  - http_debug: http debug mode (value 0-3)
-  - shell_cmd: alias which will be expanded to use shell commands (eg sh -c)
-  - proxy_url: http traffic socks proxy (eg: http://<host>:<port>)
-  - max_conns
-  - max_conns_host
-  - useragent: to be expanded strin
-  - zoom_level
-  - font_size
-  - monospace_size
-  - minimum_font_size
-  - disable_plugins (TODO rename to enable)
-  - disable_scripts (TODO rename to enable)
-  - autoload_images
-  - autoshrink_images: shrink images to window size (default 0)
-  - enable_spellcheck
-  - enable_private
-  - print_backgrounds: print background images? (default 0)
-  - stylesheet_uri: use this to override the pagelayout with a custom stylesheet
-  - resizable_text_areas
-  - default_encoding: iso-8859-1 by default
-  - enforce_96_dpi: 1 by default
-  - caret_browsing
-  - default_font_family = sans-serif
-  - monospace_font_family = monospace (example "Aerial Mono" )
-  - cursive_font_family = sans
-  - fantasy_font_family = "Pterra"
-  - serif_font_family = serif (example "DejaVu Serif")
-  - sans_serif_font_family = sans (example "DejaVu Sans")
+  - `uri`: (callback: load the uri)
+  - `verbose`: affects output on stdout
+  - `inject_html`
+  - `keycmd`: holds the input buffer (callback: update input buffer)
+  - `status_message`: (callback: update title)
+  - `show_status`: show statusbar or not
+  - `status_top`: statusbar on top?
+  - `status_format`: marked up, to be expanded string for statusbar (callback: update statusbar)
+  - `status_pbar_done`: character to denote done % of pageload
+  - `status_pbar_pending`: character to denote pending % of pageload
+  - `status_pbar_width`: width of progressbar
+  - `status_background`: color which can be used to override Gtk theme.
+  - `insert_indicator`: string to denote insert mode TODO plugin variable
+  - `command_indicator`: string to denote command mode TODO plugin variable
+  - `title_format_long`: titlebar string when no statusbar shown (will be expanded
+  - `title_format_short`: titlebar string when statusbar shown (will be expanded)
+  - `icon`: path to icon for Gtk
+  - `forward_keys`: whether uzbl-core should send key events to the webkit view
+  - `insert_mode`: whether insert mode is active TODO explain plugin variable
+  - `always_insert_mode`: set this to true if you don't like modal (vim-like) interfaces TODO explain plugin variable
+  - `reset_command_mode`: automatically revert to command mode on pageload (unless always_insert_mode is set) TODO explain plugin variable
+  - `modkey`: modkey which can be pressed to activate keybind from inside insert mode
+  - `download_handler`
+  - `cookie_handler`
+  - `new_window`: handler to execute to invoke new uzbl window (TODO better name)
+  - `scheme_handler`: handler to execute for each URI navigated to - the navigation request will be ignored if handler prints "USED\n"
+  - `fifo_dir`: location to store fifo's
+  - `socket_dir`: location to store sockets
+  - `http_debug`: http debug mode (value 0-3)
+  - `shell_cmd`: alias which will be expanded to use shell commands (eg sh -c)
+  - `proxy_url`: http traffic socks proxy (eg: http://<host>:<port>)
+  - `max_conns`: max simultaneous connections (default: 100)
+  - `max_conns_host`: max simultaneous connections per hostname (default: 6)
+  - `useragent`: to be expanded string
+  - `zoom_level`
+  - `font_size`
+  - `monospace_size`
+  - `minimum_font_size`
+  - `disable_plugins` (TODO rename to enable)
+  - `disable_scripts` (TODO rename to enable)
+  - `autoload_images`
+  - `autoshrink_images`: shrink images to window size (default 0)
+  - `enable_spellcheck`
+  - `enable_private`
+  - `print_backgrounds`: print background images? (default 0)
+  - `stylesheet_uri`: use this to override the pagelayout with a custom stylesheet
+  - `resizable_text_areas`
+  - `default_encoding`: iso-8859-1 by default
+  - `enforce_96_dpi`: 1 by default
+  - `caret_browsing`
+  - `default_font_family` = sans-serif
+  - `monospace_font_family` = monospace (example "Aerial Mono" )
+  - `cursive_font_family` = sans
+  - `fantasy_font_family` = "Pterra"
+  - `serif_font_family` = serif (example "DejaVu Serif")
+  - `sans_serif_font_family` = sans (example "DejaVu Sans")
 
 
 * Constants (not dumpable or writeable):
@@ -243,7 +262,10 @@ Some variables have callback functions which will get called after setting the v
   - TITLE
   - SELECTED_URI
   - MODE
-  - NAME: name of the uzbl instance (Xorg window id, unless set by cmdline arg) (TODO: can't we make this a variable?)
+  - NAME: name of the uzbl instance (TODO: can't we make this a variable?)
+          * default: Xorg window id
+          * overridable with cmdline arg
+          * in GtkSocket mode, this is a random number to prevent name clashes
 
 
 ### VARIABLE EXPANSION AND COMMAND/JAVA SCRIPT SUBSTITUTION
@@ -257,7 +279,7 @@ In order to let uzbl know what to expand you'll need to prepend @ to the variabl
 
 The above example demonstrates two things:
 
-    * '\' is treated as escape character and will use the character immediatelly following it literallily
+    * '\' is treated as escape character and will use the character immediately following it literally
       this means '\@show_status' will not expand to the variable content but be rather printed as
       '@show_status'
 
@@ -269,12 +291,21 @@ The above example demonstrates two things:
 
 
 Command substitution will launch any commands and substitute the call with the return value of the command.
+There are two methods:
 
-Uzbl will substitute any commands enclosed within @(  )@:
+    * through a shell: enclose commands with @(  )@ (quotes escaping is handled by uzbl):
 
     print Command substitution: @(uname -a)@
 
-You can access any uzbl variable from within a command substitution:
+This method allows you to use posix shell syntax in your commands
+
+    * directly:
+
+     print Command substitution: @(+uname -a)@
+
+This example will execute uname directly
+
+Note that you can access any uzbl variable from within a command substitution:
 
     print @(echo -n 'Accessing the show_status var from an external script, value: @show_status')@
 
@@ -283,6 +314,10 @@ Java script substitution works in the exact same way as command substitution but
 the java script in @< >@.
 
     print The currently viewed document contains @<document.links.length>@ links
+
+The @<>@ substitution can also load JavaScript from a file, syntax:  @<+filename>@
+
+    print JS return value from file: @<+/path/to/file.js>@
 
 Variable expansion also works within a java script substitution.
 
@@ -353,10 +388,6 @@ Handler scripts that are called by uzbl are passed the following arguments:
 
 The script specific arguments are this:
 
-* history:
-
-    $8 date of visit (Y-m-d H:i:s localtime)
-
 * add bookmark:
 
     none
@@ -364,6 +395,7 @@ The script specific arguments are this:
 * download:
 
     $8 url of item to download
+    $9 url of http proxy (optional)
 
 * cookie handler
 
@@ -372,6 +404,10 @@ The script specific arguments are this:
     $10 request address host (if current page url is www.foo.com/somepage, this could be something else than foo, eg advertising from another host)
     $11 request address path
     $12 cookie (only with PUT requests)
+
+* scheme handler:
+
+    $8 URI of the page to be navigated to
 
 
 Custom, userdefined scripts (`spawn foo bar`) get first the arguments as specified in the config and then the above 7 are added at the end.
@@ -409,6 +445,59 @@ This way, everything is kept private. It also turns Uzbl into a local variable, 
 
 Copying the Uzbl object and creating public functions should be taken with care to avoid creating security holes. Keep in mind that the "f" function above would be defined in the `window` object, and as such any javascript in the current page can call it.
 
+### EVENTS ###
+
+Unlike commands, events are not handled in uzbl itself, but are propagated (dispatched) asynchronously through
+a text stream on stdout and/or through a socket.  You'll usually use uzbl by piping it's output to a so called 'event manager'
+or by having the EM listen to a socket.
+- makes it possible to use whichever language you want for event handling (python, perl, bash, .. you name it).
+  you'll usually send commands (see above) back to uzbl through its fifo or socket
+- keybindings use x keysyms
+- many finegrained events (hover_over_link, key_press, key_down,..)
+- see example event_handler.py
+
+Note: cookie events are not sent to an event handler but handled internally through the cookie handler because of their synchronous nature.
+Cookie events are really something completely different from all other events.  Maybe someday we'll use HTTP proxies or something for cookies
+or synchronous events (which also have other nice use cases), but for now we still use the handler code)
+
+Basically all events have this format:
+
+     EVENT [uzbl_instance_name] EVENT_NAME event_details
+
+
+* Reported events:
+  - `EVENT [uzbl_instance_name] INSTANCE_START process_id`: uzbl startup
+  - `EVENT [uzbl_instance_name] INSTANCE_EXIT process_id`: uzbl shutdown
+  - `EVENT [uzbl_instance_name] VARIABLE_SET variable_name str|int|float variable_value`.  Note: str|int|float denote the type of variable_value
+  - `EVENT [uzbl_instance_name] COMMAND_EXECUTED command_name optional_command_arguments`
+  - `EVENT [uzbl_instance_name] COMMAND_ERROR command`
+  - `EVENT [uzbl_instance_name] GEOMETRY_CHANGED WIDTHxHEIGHT+X_POSITION+Y_POSITION`: when the size or position of the uzbl window changes
+  - `EVENT [uzbl_instance_name] FIFO_SET path_to_fifo`
+  - `EVENT [uzbl_instance_name] SOCKET_SET path_to_socket`
+  - `EVENT [uzbl_instance_name] LOAD_COMMIT uri`
+  - `EVENT [uzbl_instance_name] LOAD_START uri`
+  - `EVENT [uzbl_instance_name] LOAD_FINISHED uri`
+  - `EVENT [uzbl_instance_name] LOAD_ERROR reason_of_error`
+  - `EVENT [uzbl_instance_name] LOAD_PROGRESS percentage` : while the page is loading
+  - `EVENT [uzbl_instance_name] TITLE_CHANGED title_name`: when the title of the webpage (and hence maybe, the window title) changed
+  - `EVENT [uzbl_instance_name] DOWNLOAD_REQUEST download_uri`: when content needs to be downloaded
+  - `EVENT [uzbl_instance_name] LINK_HOVER uri`: mouse hovers over a link
+  - `EVENT [uzbl_instance_name] LINK_UNHOVER uri`: same but unhover.
+  - `EVENT [uzbl_instance_name] KEY_PRESS key_name`: press of a keyboard key or mouse button
+  - `EVENT [uzbl_instance_name] KEY_RELEASE key_name`: release of keyboard key or mouse button
+  - `EVENT [uzbl_instance_name] SELECTION_CHANGED selected_text`: when you select text inside the uzbl window
+  - `EVENT [uzbl_instance_name] NEW_WINDOW uri`: creation of new uzbl window
+  - `EVENT [uzbl_instance_name] WEBINSPECTOR open`: upon opening webinspector window
+  - `EVENT [uzbl_instance_name] WEBINSPECTOR close`: upon closing webinspector window
+  - `EVENT [uzbl_instance_name] FOCUS_GAINED`: when uzbl window gained keyboard focus
+  - `EVENT [uzbl_instance_name] FOCUS_LOST`: when uzbl window lost keyboard focus
+  - `EVENT [uzbl_instance_name] FORM_ACTIVE`: when a editable HTML is clicked
+  - `EVENT [uzbl_instance_name] ROOT_ACTIVE`: when the document body or any non-editable element is clicked
+  - `EVENT [uzbl_instance_name] FILE_INCLUDED /path/to/file`: when the include commands succesfully loads a file
+  - `EVENT [uzbl_instance_name] PLUG_CREATED plug-id`: when uzbl-core is in xembed mode
+  - `EVENT [uzbl_instance_name] BUILTINS command_list`: shows a list of all uzbl commands, whitespace separated, on startup
+
+
 ### COMMAND LINE ARGUMENTS
     uzbl [ uri ]
     -u, --uri=URI            Uri to load at startup (equivalent to 'uzbl <uri>' or 'set uri = URI' after uzbl has launched)
@@ -416,12 +505,15 @@ Copying the Uzbl object and creating public functions should be taken with care 
     -n, --name=NAME          Name of the current instance (defaults to Xorg window id)
     -c, --config=FILE        Path to config file or '-' for stdin
     -s, --socket=SOCKET      Socket ID
-    -g, --geometry=GEOMETRY  Set window geometry (format: WIDTHxHEIGHT+-X+-Y)
+    -g, --geometry=GEOMETRY  Set window geometry (format: WIDTHxHEIGHT+-X+-Y or maximized)
     -V, --version            Print the version and exit
     --display=DISPLAY        X display to use
     --help                   Help
 
-
+uzbl scheme://address will work as you expect. If you don't provide the
+scheme:// part, it will check if the argument is an existing file in the
+filesystem: if it is, it will prepend file://, if not, it will
+prepend http://.
 
 
 ### BUGS

@@ -7,37 +7,39 @@
  *
  * (c) 2009 by Robert Manea
  *     - introduced struct concept
- *     - statusbar template
  *
  */
 
-enum {
-  /* statusbar symbols */
-  SYM_TITLE, SYM_URI, SYM_NAME,
-  SYM_LOADPRGS, SYM_LOADPRGSBAR,
-  SYM_KEYCMD, SYM_MODE, SYM_MSG,
-  SYM_SELECTED_URI,
-};
+#define _POSIX_SOURCE
 
-const struct {
-    gchar *symbol_name;
-    guint symbol_token;
-} symbols[] = {
-    {"KEYCMD",               SYM_KEYCMD},
+#include <glib/gstdio.h>
+#include <gtk/gtk.h>
+#include <gdk/gdkx.h>
+#include <gdk/gdkkeysyms.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <sys/utsname.h>
+#include <sys/time.h>
+#include <webkit/webkit.h>
+#include <libsoup/soup.h>
+#include <JavaScriptCore/JavaScript.h>
 
-    {NULL,                   0}
-}, *symp = symbols;
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <assert.h>
+#include <poll.h>
+#include <sys/uio.h>
+#include <sys/ioctl.h>
+#include <assert.h>
 
-/* status bar elements */
-typedef struct {
-    gint           load_progress;
-    gchar          *msg;
-    gchar          *progress_s, *progress_u;
-    int            progress_w;
-    gchar          *progress_bar;
-    gchar          *mode_indicator;
-} StatusBar;
-
+#define LENGTH(x) (sizeof x / sizeof x[0])
 
 /* gui elements */
 typedef struct {
@@ -60,7 +62,8 @@ typedef struct {
     GtkWidget *inspector_window;
     WebKitWebInspector *inspector;
 
-    StatusBar sbar;
+    /* custom context menu item */
+    GPtrArray    *menu_items;
 } GUI;
 
 
@@ -69,10 +72,12 @@ enum { FIFO, SOCKET};
 typedef struct {
     gchar          *fifo_path;
     gchar          *socket_path;
-    /* stores (key)"variable name" -> (value)"pointer to this var*/
+    /* stores (key)"variable name" -> (value)"pointer to var*/
     GHashTable     *proto_var;
 
     gchar          *sync_stdout;
+    GPtrArray      *connect_chan;
+    GPtrArray      *client_chan;
 } Communication;
 
 
@@ -83,10 +88,15 @@ typedef struct {
     int      socket_id;
     char     *instance_name;
     gchar    *selected_url;
+    gchar    *last_selected_url;
     gchar    *executable_path;
     gchar*   keycmd;
     gchar*   searchtx;
     gboolean verbose;
+    GPtrArray *event_buffer;
+    gchar**   connect_socket_names;
+    GdkEventButton *last_button;
+    gboolean plug_mode;
 } State;
 
 
@@ -103,14 +113,10 @@ typedef struct {
 
 /* behaviour */
 typedef struct {
-    gchar*   load_finish_handler;
-    gchar*   load_start_handler;
-    gchar*   load_commit_handler;
     gchar*   status_format;
     gchar*   title_format_short;
     gchar*   title_format_long;
     gchar*   status_background;
-    gchar*   history_handler;
     gchar*   fifo_dir;
     gchar*   socket_dir;
     gchar*   download_handler;
@@ -122,20 +128,20 @@ typedef struct {
     gchar*   serif_font_family;
     gchar*   fantasy_font_family;
     gchar*   cursive_font_family;
-    gboolean always_insert_mode;
+    gchar*   scheme_handler;
     gboolean show_status;
-    gboolean insert_mode;
+    gboolean forward_keys;
     gboolean status_top;
-    gboolean reset_command_mode;
-    gchar*   modkey;
     guint    modmask;
     guint    http_debug;
     gchar*   shell_cmd;
+    guint    view_source;
     /* WebKitWebSettings exports */
     guint    font_size;
     guint    monospace_size;
     guint    minimum_font_size;
     gfloat   zoom_level;
+    gboolean zoom_type;
     guint    disable_plugins;
     guint    disable_scripts;
     guint    autoload_img;
@@ -151,15 +157,13 @@ typedef struct {
     guint    caret_browsing;
     guint    mode;
     gchar*   base_url;
-    gchar*   html_endmarker;
-    gchar*   insert_indicator;
-    gchar*   cmd_indicator;
-    GString* html_buffer;
-    guint    html_timeout;
     gboolean print_version;
 
-    /* command list: name -> Command  */
+    /* command list: (key)name -> (value)Command  */
+    /* command list: (key)name -> (value)Command  */
     GHashTable* commands;
+    /* event lookup: (key)event_id -> (value)event_name */
+    GHashTable *event_lookup;
 } Behaviour;
 
 /* javascript */
@@ -176,6 +180,7 @@ typedef struct {
     int   webkit_micro;
     gchar *arch;
     gchar *commit;
+    gchar *pid_str;
 } Info;
 
 /* main uzbl data structure */
@@ -189,34 +194,32 @@ typedef struct {
     Info          info;
 
     Window        xwin;
+} UzblCore;
 
-    /* group bindings: key -> action */
-    GHashTable* bindings;
-} Uzbl;
-
-
-typedef struct {
-    char* name;
-    char* param;
-} Action;
+/* Main Uzbl object */
+extern UzblCore uzbl;
 
 typedef void sigfunc(int);
 
 /* XDG Stuff */
-
 typedef struct {
     gchar* environmental;
     gchar* default_value;
 } XDG_Var;
 
-XDG_Var XDG[] =
-{
-    { "XDG_CONFIG_HOME", "~/.config" },
-    { "XDG_DATA_HOME",   "~/.local/share" },
-    { "XDG_CACHE_HOME",  "~/.cache" },
-    { "XDG_CONFIG_DIRS", "/etc/xdg" },
-    { "XDG_DATA_DIRS",   "/usr/local/share/:/usr/share/" },
-};
+/* uzbl variables */
+enum ptr_type {TYPE_INT, TYPE_STR, TYPE_FLOAT};
+typedef struct {
+    enum ptr_type type;
+    union {
+        int *i;
+        float *f;
+        gchar **s;
+    } ptr;
+    int dump;
+    int writeable;
+    /*@null@*/ void (*func)(void);
+} uzbl_cmdprop;
 
 /* Functions */
 char *
@@ -225,11 +228,14 @@ itos(int val);
 char *
 str_replace (const char* search, const char* replace, const char* string);
 
+gchar*
+strfree(gchar *str);
+
 GArray*
-read_file_by_line (gchar *path);
+read_file_by_line (const gchar *path);
 
 gchar*
-parseenv (char* string);
+parseenv (gchar* string);
 
 void
 clean_up(void);
@@ -241,79 +247,22 @@ sigfunc *
 setup_signal(int signe, sigfunc *shandler);
 
 gboolean
-set_var_value(gchar *name, gchar *val);
+set_var_value(const gchar *name, gchar *val);
+
+void
+load_uri_imp(gchar *uri);
 
 void
 print(WebKitWebView *page, GArray *argv, GString *result);
 
-gboolean
-new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data);
-
-gboolean
-mime_policy_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, gchar *mime_type,  WebKitWebPolicyDecision *policy_decision, gpointer user_data);
-
-WebKitWebView*
-create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data);
-
-gboolean
-download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data);
-
-void
-toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result);
-
-void
-toggle_status_cb (WebKitWebView* page, GArray *argv, GString *result);
-
-void
-link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data);
-
-void
-title_change_cb (WebKitWebView* web_view, GParamSpec param_spec);
-
-void
-progress_change_cb (WebKitWebView* page, gint progress, gpointer data);
-
-void
-load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
-
-void
-load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
-
-void
-load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
-
-void
-destroy_cb (GtkWidget* widget, gpointer data);
-
-void
-log_history_cb ();
-
 void
 commands_hash(void);
-
-void
-free_action(gpointer act);
-
-Action*
-new_action(const gchar *name, const gchar *param);
 
 bool
 file_exists (const char * filename);
 
 void
 set_keycmd();
-
-void
-set_mode_indicator();
-
-void
-update_indicator();
-
-void
-set_insert_mode(gboolean mode);
-
-void
-toggle_insert_mode(WebKitWebView *page, GArray *argv, GString *result);
 
 void
 load_uri (WebKitWebView * web_view, GArray *argv, GString *result);
@@ -325,23 +274,11 @@ void
 chain (WebKitWebView *page, GArray *argv, GString *result);
 
 void
-keycmd (WebKitWebView *page, GArray *argv, GString *result);
-
-void
-keycmd_nl (WebKitWebView *page, GArray *argv, GString *result);
-
-void
-keycmd_bs (WebKitWebView *page, GArray *argv, GString *result);
-
-void
 close_uzbl (WebKitWebView *page, GArray *argv, GString *result);
 
 gboolean
 run_command(const gchar *command, const guint npre,
             const gchar **args, const gboolean sync, char **output_stdout);
-
-char*
-build_progressbar_ascii(int percent);
 
 void
 talk_to_socket(WebKitWebView *web_view, GArray *argv, GString *result);
@@ -364,13 +301,13 @@ parse_command(const char *cmd, const char *param, GString *result);
 void
 parse_cmd_line(const char *ctl_line, GString *result);
 
-gchar*
+/*@null@*/ gchar*
 build_stream_name(int type, const gchar *dir);
 
 gboolean
 control_fifo(GIOChannel *gio, GIOCondition condition);
 
-gchar*
+/*@null@*/ gchar*
 init_fifo(gchar *dir);
 
 gboolean
@@ -379,7 +316,7 @@ control_stdin(GIOChannel *gio, GIOCondition condition);
 void
 create_stdin();
 
-gchar*
+/*@null@*/ gchar*
 init_socket(gchar *dir);
 
 gboolean
@@ -395,25 +332,13 @@ gboolean
 key_press_cb (GtkWidget* window, GdkEventKey* event);
 
 gboolean
-mouse_button_cb (GtkWidget* window, GdkEventButton* event);
-
-gboolean
-wk_mouse_button_cb (WebKitWebView *web_view, GdkEventButton* event);
-
-gboolean
-mouse_scroll_cb (GtkWidget* window, GdkEventScroll* event);
-
-gboolean
-wk_mouse_scroll_cb (WebKitWebView *web_view, GdkEventScroll* event);
+key_release_cb (GtkWidget* window, GdkEventKey* event);
 
 void
 run_keycmd(const gboolean key_ret);
 
 void
-exec_paramcmd(const Action* act, const guint i);
-
-void
-initialize ();
+initialize (int argc, char *argv[]);
 
 void
 create_browser ();
@@ -430,14 +355,11 @@ create_plug ();
 void
 run_handler (const gchar *act, const gchar *args);
 
-void
-add_binding (const gchar *key, const gchar *act);
-
-gchar*
+/*@null@*/ gchar*
 get_xdg_var (XDG_Var xdg);
 
-gchar*
-find_xdg_file (int xdg_type, char* filename);
+/*@null@*/ gchar*
+find_xdg_file (int xdg_type, const char* filename);
 
 void
 settings_init ();
@@ -450,6 +372,9 @@ search_forward_text (WebKitWebView *page, GArray *argv, GString *result);
 
 void
 search_reverse_text (WebKitWebView *page, GArray *argv, GString *result);
+
+void
+search_clear(WebKitWebView *page, GArray *argv, GString *result);
 
 void
 dehilight (WebKitWebView *page, GArray *argv, GString *result);
@@ -467,23 +392,16 @@ void handle_cookies (SoupSession *session,
                             SoupMessage *msg,
                             gpointer     user_data);
 void
-save_cookies (SoupMessage *msg,
-                gpointer     user_data);
+save_cookies (SoupMessage *msg, gpointer     user_data);
 
 void
 set_var(WebKitWebView *page, GArray *argv, GString *result);
 
 void
-act_bind(WebKitWebView *page, GArray *argv, GString *result);
-
-void
 act_dump_config();
 
 void
-render_html();
-
-void
-set_timeout(int seconds);
+act_dump_config_as_events();
 
 void
 dump_var_hash(gpointer k, gpointer v, gpointer ud);
@@ -495,132 +413,81 @@ void
 dump_config();
 
 void
-retreive_geometry();
+dump_config_as_events();
+
+void
+retrieve_geometry();
+
+void
+event(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+init_connect_socket();
 
 gboolean
-configure_event_cb(GtkWidget* window, GdkEventConfigure* event);
+remove_socket_from_array(GIOChannel *chan);
+
+void
+menu_add(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_add_link(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_add_image(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_add_edit(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_add_separator(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_add_separator_link(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_add_separator_image(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_add_separator_edit(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_remove(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_remove_link(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_remove_image(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+menu_remove_edit(WebKitWebView *page, GArray *argv, GString *result);
+
+gint
+get_click_context();
+
+void
+hardcopy(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+include(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+builtins();
 
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
+
 typedef struct {
     Command function;
     gboolean no_split;
 } CommandInfo;
 
-/* Command callbacks */
-void
-cmd_load_uri();
+typedef struct {
+    gchar *name;
+    gchar *cmd;
+    gboolean issep;
+    guint context;
+} MenuItem;
 
-void
-cmd_set_status();
-
-void
-set_proxy_url();
-
-void
-set_icon();
-
-void
-cmd_cookie_handler();
-
-void
-cmd_new_window();
-
-void
-move_statusbar();
-
-void
-cmd_always_insert_mode();
-
-void
-cmd_http_debug();
-
-void
-cmd_max_conns();
-
-void
-cmd_max_conns_host();
-
-/* exported WebKitWebSettings properties */
-
-void
-cmd_font_size();
-
-void
-cmd_default_font_family();
-
-void
-cmd_monospace_font_family();
-
-void
-cmd_sans_serif_font_family();
-
-void
-cmd_serif_font_family();
-
-void
-cmd_cursive_font_family();
-
-void
-cmd_fantasy_font_family();
-
-void
-cmd_zoom_level();
-
-void
-cmd_disable_plugins();
-
-void
-cmd_disable_scripts();
-
-void
-cmd_minimum_font_size();
-
-void
-cmd_fifo_dir();
-
-void
-cmd_socket_dir();
-
-void
-cmd_modkey();
-
-void
-cmd_useragent() ;
-
-void
-cmd_autoload_img();
-
-void
-cmd_autoshrink_img();
-
-void
-cmd_enable_spellcheck();
-
-void
-cmd_enable_private();
-
-void
-cmd_print_bg();
-
-void
-cmd_style_uri();
-
-void
-cmd_resizable_txt();
-
-void
-cmd_default_encoding();
-
-void
-cmd_enforce_96dpi();
-
-void
-cmd_inject_html();
-
-void
-cmd_caret_browsing();
-
-void
-cmd_set_geometry();
 
 /* vi: set et ts=4: */

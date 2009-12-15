@@ -8,12 +8,15 @@ GET="wget --user-agent=Firefox"
 dest="$HOME"
 url="$8"
 
+http_proxy="$9"
+export http_proxy
+
 test "x$url" = "x" && { echo "you must supply a url! ($url)"; exit 1; }
 
 # only changes the dir for the $get sub process
 if echo "$url" | grep -E '.*\.torrent' >/dev/null;
 then
-    ( cd "$dest"; eval "$GET" "$url")
+    ( cd "$dest"; $GET "$url")
 else
-    ( cd "$dest"; eval "$GET" "$url")
+    ( cd "$dest"; $GET "$url")
 fi

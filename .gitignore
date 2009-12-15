@@ -1,6 +1,6 @@
-uzbl
-uzblctrl
-uzbl.o
+uzbl-core
+*.o
 *~
 tags
 examples/data
+examples/config/enchant
