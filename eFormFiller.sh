@@ -1,18 +1,34 @@
 #!/bin/sh
-# enhanced html form (eg for logins) filler (and manager) for uzbl.
-
+#   This program is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#   Copyright (c) 2009 by Paweł Tomak <satherot (at) gmail (dot) com>
+#
+#
+# Enhanced html form (eg for logins) filler (and manager) for uzbl.
+#
 # uses settings files like: $keydir/<domain>
 # files contain lines like: !profile=<profile_name>
 #                           <fieldname>(fieldtype): <value>
 # profile_name should be replaced with a name that will tell sth about that profile
 # fieldtype can be text or password - only for information pupropse (auto-generated) - don't change that
-
+#
 # user arg 1:
 # edit: force editing the file (falls back to new if not found)
 # new:  start with a new file.
 # load: try to load from file into form
 # add: try to add another profile to an existing file
-
+#
 # something else (or empty): if file not available: new, otherwise load.
 
 # config dmenu colors and prompt
@@ -102,3 +118,5 @@ else
 	[[ -e $keydir/$domain ]] || exit 3 #this should never happen, but you never know.
 	$editor $keydir/$domain #TODO: if user aborts save in editor, the file is already overwritten
 fi
+
+# vim:fileencoding=utf-8:sw=4
