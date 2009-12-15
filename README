@@ -1,11 +1,13 @@
 Copy the eFormFiller.sh to $XDG_DATA_HOME/uzbl/scripts/
 In the Uzbl config file add bindings(for example):
 
-    set formfiller = spawn @scripts_dir/eFormFiller
-    @bind    za        = @{eFormFiller}.sh add
-    @bind    ze        = @{eFormFiller}.sh edit
-    @bind    zn        = @{eFormFiller}.sh new
-    @bind    zl        = @{eFormFiller}.sh load
+
+    set eFormFiller = spawn @scripts_dir/eFormFiller.sh
+    @bind    za        = @eFormFiller add
+    @bind    ze        = @eFormFiller edit
+    @bind    zn        = @eFormFiller new
+    @bind    zl        = @eFormFiller load
+    
 
 scripts_dir is set by default in uzbl config
 
