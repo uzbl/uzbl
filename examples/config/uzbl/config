@@ -111,7 +111,7 @@ set status_format     = <span font_family="monospace">@mode_section @keycmd_sect
 
 # === Core settings ==========================================================
 
-set useragent         = Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@(uname -o)@ @(uname -m)@ [@ARCH_UZBL]) (Commit @COMMIT)
+set useragent         = Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@(+uname -o)@ @(+uname -m)@ [@ARCH_UZBL]) (Commit @COMMIT)
 set fifo_dir          = /tmp
 set socket_dir        = /tmp
 
