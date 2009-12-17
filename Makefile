@@ -62,13 +62,13 @@ test-uzbl-browser: uzbl-browser
 	./uzbl-browser --uri http://www.uzbl.org --verbose
 
 test-uzbl-core-sandbox: uzbl-core
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-core
+	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install
 	source ./sandbox/env.sh && uzbl-core --uri http://www.uzbl.org --verbose
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
 test-uzbl-browser-sandbox: uzbl-browser
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-browser
+	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install
 	source ./sandbox/env.sh && uzbl-cookie-daemon restart -nv &
 	source ./sandbox/env.sh && uzbl-event-manager restart -nav &
 	source ./sandbox/env.sh && uzbl-browser --uri http://www.uzbl.org --verbose
@@ -76,7 +76,6 @@ test-uzbl-browser-sandbox: uzbl-browser
 	source ./sandbox/env.sh && uzbl-event-manager stop -v
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
-
 
 clean:
 	rm -f uzbl-core
