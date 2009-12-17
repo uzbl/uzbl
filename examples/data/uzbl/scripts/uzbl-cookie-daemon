@@ -304,6 +304,9 @@ class CookieMonster:
             if daemon_running(config['cookie_socket']):
                 sys.exit(1)
 
+        # Create cookie daemon socket.
+        self.create_socket()
+
         # Daemonize process.
         if config['daemon_mode']:
             echo("entering daemon mode")
@@ -322,9 +325,6 @@ class CookieMonster:
         self._running = True
 
         while self._running:
-            # Create cookie daemon socket.
-            self.create_socket()
-
             try:
                 # Enter main listen loop.
                 self.listen()
@@ -345,6 +345,8 @@ class CookieMonster:
 
             # Always delete the socket before calling create again.
             self.del_socket()
+            # Create cookie daemon socket.
+            self.create_socket()
 
 
     def load_whitelist(self):
