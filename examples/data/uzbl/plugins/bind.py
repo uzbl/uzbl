@@ -348,11 +348,9 @@ def after_bind(uzbl, bd):
 def match_and_exec(uzbl, bind, depth, keylet, bd):
 
     (on_exec, has_args, mod_cmd, glob, more) = bind[depth]
-
-    held = keylet.held
     cmd = keylet.modcmd if mod_cmd else keylet.keycmd
 
-    if mod_cmd and held != mod_cmd:
+    if mod_cmd and keylet.held != mod_cmd:
         return False
 
     if has_args:
