@@ -583,15 +583,15 @@ class UzblEventDaemon(dict):
     def run(self):
         '''Main event daemon loop.'''
 
+        # Create event daemon socket.
+        self._create_server_socket()
+        echo('listening on: %s' % self.socket_location)
+
         if CONFIG['daemon_mode']:
             echo('entering daemon mode.')
             daemonize()
             # The pid has changed so update the pid file.
             make_pid_file(CONFIG['pid_file'])
-
-        # Create event daemon socket.
-        self._create_server_socket()
-        echo('listening on: %s' % self.socket_location)
 
         # Now listen for incoming connections and or data.
         self.listen()
