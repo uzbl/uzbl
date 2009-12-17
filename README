@@ -41,13 +41,13 @@ Throughout the documentation, when referring to `uzbl` we mean uzbl-core, unless
 
 
 ### CONFIGURATION / CONTROL:
-The general idea is that uzbl by default is very bare bones.  you can send it commands to update settings and perform actions, through various interfaces.
+The general idea is that uzbl by default is very bare bones.  You can send it commands to update settings and perform actions, through various interfaces.
 There is a limited default configuration.  Please see config.h to see what it contains.
 By default, there are *no* keybinds defined at all.  (Default keybinds would work counterproductive when you try to customize)
 For examples of the possibilities what you can do, please see the sample config(s), and uzbl wiki page.
 There are several interfaces to interact with uzbl:
 
-* uzbl --config <filename>: <filename> will be read line by line, and the commands in it will be executed.  useful to configure uzbl at startup.
+* uzbl --config <filename>: <filename> will be read line by line, and the commands in it will be executed.  Useful to configure uzbl at startup.
   If you have a file in `$XDG_CONFIG_HOME/uzbl/config` (this expands to ~/.config/uzbl/config on most systems) it will be automatically recognized
 * stdin: to write commands into stdin, use `--config -` (or `-c -`)
 * interactive: you can enter commands (and bind them to shortcuts, even at runtime)
@@ -66,7 +66,7 @@ There are several interfaces to interact with uzbl:
   For example: echo <command> | socat - unix-connect:<socketfile>
 
 When uzbl forks a new instance (eg "open in new window") it will use the same commandline arguments (eg the same --config <file>), except --uri and--name.
-If you made changes to the configuration at runtime, these are not pased on to the child.
+If you made changes to the configuration at runtime, these are not passed on to the child.
 
 
 #### Uzbl-browser
@@ -127,9 +127,9 @@ The following commands are recognized:
 * `script <file>`
    - execute the javascript in `<file>`
 * `toggle_status`
-* `spawn <executable> <additonal args>` TODO explain path-alike expansion
+* `spawn <executable> <additional args>` TODO explain path-alike expansion
    - runs a command; see EXTERNAL SCRIPTS for details
-   - PATH is searched so giving the full path to commands is not neccessary
+   - PATH is searched so giving the full path to commands is not necessary
    - note that the arguments as specified in "EXTERNAL SCRIPTS" are appended at the end, so the argument numbers will be higher.
 * `sh <command>`
    - runs a shell command by expanding `%s` in the `shell_cmd` variable with the specified command; primarily useful as a shortcut for `spawn sh -c <body>`
@@ -190,7 +190,7 @@ runtime.  Some of the values can be passed at start up through commandline argum
 Some of them have default values (see config.h)
 Some variables have callback functions which will get called after setting the variable to perform some additional logic (see below)
 
-Besides the builtin variables you can also define your own ones and use them in the exact same way as the buitin ones.
+Besides the builtin variables you can also define your own ones and use them in the exact same way as the builtin ones.
 
 * Variables:
   - `uri`: (callback: load the uri)
@@ -226,7 +226,7 @@ Besides the builtin variables you can also define your own ones and use them in 
   - `proxy_url`: http traffic socks proxy (eg: http://<host>:<port>)
   - `max_conns`: max simultaneous connections (default: 100)
   - `max_conns_host`: max simultaneous connections per hostname (default: 6)
-  - `useragent`: to be expanded strin
+  - `useragent`: to be expanded string
   - `zoom_level`
   - `font_size`
   - `monospace_size`
@@ -279,7 +279,7 @@ In order to let uzbl know what to expand you'll need to prepend @ to the variabl
 
 The above example demonstrates two things:
 
-    * '\' is treated as escape character and will use the character immediatelly following it literallily
+    * '\' is treated as escape character and will use the character immediately following it literally
       this means '\@show_status' will not expand to the variable content but be rather printed as
       '@show_status'
 
@@ -291,12 +291,21 @@ The above example demonstrates two things:
 
 
 Command substitution will launch any commands and substitute the call with the return value of the command.
+There are two methods:
 
-Uzbl will substitute any commands enclosed within @(  )@:
+    * through a shell: enclose commands with @(  )@ (quotes escaping is handled by uzbl):
 
     print Command substitution: @(uname -a)@
 
-You can access any uzbl variable from within a command substitution:
+This method allows you to use posix shell syntax in your commands
+
+    * directly:
+
+     print Command substitution: @(+uname -a)@
+
+This example will execute uname directly
+
+Note that you can access any uzbl variable from within a command substitution:
 
     print @(echo -n 'Accessing the show_status var from an external script, value: @show_status')@
 
@@ -438,7 +447,7 @@ Copying the Uzbl object and creating public functions should be taken with care 
 
 ### EVENTS ###
 
-unlike commands, events are not handled in uzbl itself, but are propagated (dispatched) asynchronously through
+Unlike commands, events are not handled in uzbl itself, but are propagated (dispatched) asynchronously through
 a text stream on stdout and/or through a socket.  You'll usually use uzbl by piping it's output to a so called 'event manager'
 or by having the EM listen to a socket.
 - makes it possible to use whichever language you want for event handling (python, perl, bash, .. you name it).
@@ -448,7 +457,7 @@ or by having the EM listen to a socket.
 - see example event_handler.py
 
 Note: cookie events are not sent to an event handler but handled internally through the cookie handler because of their synchronous nature.
-Cookie events are really something completely different from all other events.  maybe someday we'll use http proxies or something for cookies
+Cookie events are really something completely different from all other events.  Maybe someday we'll use HTTP proxies or something for cookies
 or synchronous events (which also have other nice use cases), but for now we still use the handler code)
 
 Basically all events have this format:
@@ -496,7 +505,7 @@ Basically all events have this format:
     -n, --name=NAME          Name of the current instance (defaults to Xorg window id)
     -c, --config=FILE        Path to config file or '-' for stdin
     -s, --socket=SOCKET      Socket ID
-    -g, --geometry=GEOMETRY  Set window geometry (format: WIDTHxHEIGHT+-X+-Y)
+    -g, --geometry=GEOMETRY  Set window geometry (format: WIDTHxHEIGHT+-X+-Y or maximized)
     -V, --version            Print the version and exit
     --display=DISPLAY        X display to use
     --help                   Help

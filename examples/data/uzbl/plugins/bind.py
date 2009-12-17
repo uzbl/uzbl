@@ -11,7 +11,6 @@ And it is also possible to execute a function on activation:
 
 import sys
 import re
-import pprint
 
 # Export these functions to uzbl.<name>
 __export__ = ['bind', 'del_bind', 'del_bind_by_glob', 'get_binds']

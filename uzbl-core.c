@@ -54,7 +54,7 @@ GOptionEntry entries[] =
     { "connect-socket",   0, 0, G_OPTION_ARG_STRING_ARRAY, &uzbl.state.connect_socket_names,
         "Connect to server socket", "CSOCKET" },
     { "geometry", 'g', 0, G_OPTION_ARG_STRING, &uzbl.gui.geometry,
-        "Set window geometry (format: WIDTHxHEIGHT+-X+-Y)", "GEOMETRY" },
+        "Set window geometry (format: WIDTHxHEIGHT+-X+-Y or maximized)", "GEOMETRY" },
     { "version",  'V', 0, G_OPTION_ARG_NONE, &uzbl.behave.print_version,
         "Print the version and exit", NULL },
     { NULL,      0, 0, 0, NULL, NULL, NULL }
@@ -267,15 +267,24 @@ expand(const char *s, guint recurse) {
                 else if(recurse != 1 &&
                         etype == EXP_EXPR) {
 
-                    mycmd = expand(ret, 1);
-                    gchar *quoted = g_shell_quote(mycmd);
-                    gchar *tmp = g_strdup_printf("%s %s", 
-                            uzbl.behave.shell_cmd?uzbl.behave.shell_cmd:"/bin/sh -c", 
-                            quoted);
-                    g_spawn_command_line_sync(tmp, &cmd_stdout, NULL, NULL, &err);
-                    g_free(mycmd);
-                    g_free(quoted);
-                    g_free(tmp);
+                    /* execute program directly */
+                    if(ret[0] == '+') {
+                        mycmd = expand(ret+1, 1);
+                        g_spawn_command_line_sync(mycmd, &cmd_stdout, NULL, NULL, &err);
+                        g_free(mycmd);
+                    }
+                    /* execute program through shell, quote it first */
+                    else {
+                        mycmd = expand(ret, 1);
+                        gchar *quoted = g_shell_quote(mycmd);
+                        gchar *tmp = g_strdup_printf("%s %s",
+                                uzbl.behave.shell_cmd?uzbl.behave.shell_cmd:"/bin/sh -c",
+                                quoted);
+                        g_spawn_command_line_sync(tmp, &cmd_stdout, NULL, NULL, &err);
+                        g_free(mycmd);
+                        g_free(quoted);
+                        g_free(tmp);
+                    }
 
                     if (err) {
                         g_printerr("error on running command: %s\n", err->message);
@@ -354,7 +363,7 @@ itos(int val) {
 gchar*
 strfree(gchar *str) {
     g_free(str);
-    return NULL; 
+    return NULL;
 }
 
 gchar*
@@ -616,7 +625,6 @@ scroll_cmd(WebKitWebView* page, GArray *argv, GString *result) {
       if(uzbl.state.verbose)
         puts("Unrecognized scroll format");
 }
-
 
 
 /* VIEW funcs (little webkit wrappers) */
@@ -906,11 +914,11 @@ void
 event(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
     GString *event_name;
-    gchar **split = NULL; 
-    
+    gchar **split = NULL;
+
     if(!argv_idx(argv, 0))
        return;
-    
+
     split = g_strsplit(argv_idx(argv, 0), " ", 2);
     if(split[0])
         event_name = g_string_ascii_up(g_string_new(split[0]));
@@ -1554,8 +1562,8 @@ parse_command(const char *cmd, const char *param, GString *result) {
                 send_event(COMMAND_EXECUTED, tmp->str, NULL);
                 g_string_free(tmp, TRUE);
             }
-    } 
-    else { 
+    }
+    else {
         gchar *tmp = g_strdup_printf("%s %s", cmd, param?param:"");
         send_event(COMMAND_ERROR, tmp, NULL);
         g_free(tmp);
@@ -2399,7 +2407,7 @@ retrieve_geometry() {
 void
 initialize(int argc, char *argv[]) {
     int i;
-    
+
     for(i=0; i<argc; ++i) {
         if(!strcmp(argv[i], "-s") || !strcmp(argv[i], "--socket")) {
             uzbl.state.plug_mode = TRUE;
