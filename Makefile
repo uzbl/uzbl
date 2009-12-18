@@ -100,7 +100,7 @@ install-uzbl-core: all
 	install -m644 README       $(INSTALLDIR)/share/uzbl/docs
 	sed -i 's#^set prefix.*=.*#set prefix     = $(RUN_PREFIX)#' $(INSTALLDIR)/share/uzbl/examples/config/uzbl/config
 
-install-uzbl-browser: all
+install-uzbl-browser: install-uzbl-core
 	install -d $(INSTALLDIR)/bin
 	install -m755 uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
 	install -m755 examples/data/uzbl/scripts/uzbl-cookie-daemon $(INSTALLDIR)/bin/uzbl-cookie-daemon
@@ -108,7 +108,7 @@ install-uzbl-browser: all
 	sed -i 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' $(INSTALLDIR)/bin/uzbl-browser
 	sed -i "s#^PREFIX = .*#PREFIX = '$(RUN_PREFIX)'#" $(INSTALLDIR)/bin/uzbl-event-manager
 
-install-uzbl-tabbed: all
+install-uzbl-tabbed: install-uzbl-browser
 	install -d $(INSTALLDIR)/bin
 	install -m755 examples/data/uzbl/scripts/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed
 
