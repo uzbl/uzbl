@@ -327,4 +327,4 @@ set toggle_cmd_ins = @toggle_modes command insert
 # === Post-load misc commands  ===============================================
 
 # Set the "home" page.
-set uri = uzbl.org
+set uri = uzbl.org/doesitwork/@COMMIT
