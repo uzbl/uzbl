@@ -59,8 +59,9 @@ TODO: you can call things from inside insert mode by using modkeys, right?
 
 ### Why do you depend on gtk?
 Uzbl itself doesn't use much gtk stuff (only the statusbar) so we could do without gtk.  But Webkit needs a widget toolkit to create widgets (think javascript popups, html forms etc).
-Officially, it also supports QT and wxwigdets.  There are also some unofficial patchsets floating on the interwebs for the EFL and FLTK toolkits.  One could argue we don't need no popups or fancy form widgets and you could have a point, but
+Officially, webkit also supportss Qt and wxwigdets.  There are also some unofficial patchsets floating on the interwebs for the EFL and FLTK toolkits.  One could argue we don't need no popups or fancy form widgets and you could have a point, but
 we prefer being reasonably assured that things work as they are supposed to rather then using some obscure patchset which may be incomplete, broken and/or badly designed, or wasting time ourselves in what is not our core objective.
+That's why we picked the Gtk variant of Webkit.
 Note that we do *not* depend on any Gnome libraries such as gconf.  _That_ would be something worth complaining about :)
 
 ### Do you support flash? javascript? Ajax?  Recent html/css/.. standards?
