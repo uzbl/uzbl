@@ -5,8 +5,8 @@
 # - executing limits scope of variables too much (even with exporting)
 # maybe we should spawn processes from here with an 'exec' at the end?
 
-XDG_DATA_HOME=./sandbox/examples/data
-XDG_CACHE_HOME=./sandbox/examples/cache
-XDG_CONFIG_HOME=./sandbox/examples/config
-#PATH="./sandbox/usr/local/share/uzbl/examples/data/uzbl/scripts/:$PATH" # needed when running uzbl-browser from here? don't think so..
-PATH="./sandbox/usr/local/bin:$PATH" # needed to run uzbl-browser etc from here
+export XDG_DATA_HOME=./sandbox/examples/data
+export XDG_CACHE_HOME=./sandbox/examples/cache
+export XDG_CONFIG_HOME=./sandbox/examples/config
+#export PATH="./sandbox/usr/local/share/uzbl/examples/data/uzbl/scripts/:$PATH" # needed when running uzbl-browser from here? don't think so..
+export PATH="./sandbox/usr/local/bin:$PATH" # needed to run uzbl-browser etc from here

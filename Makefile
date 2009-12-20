@@ -77,7 +77,6 @@ test-uzbl-browser-sandbox: uzbl-browser
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
-
 clean:
 	rm -f uzbl-core
 	rm -f uzbl-core.o
@@ -86,6 +85,7 @@ clean:
 	rm -f inspector.o
 	find examples/ -name "*.pyc" -delete
 	cd ./tests/; $(MAKE) clean
+	rm -rf ./sandbox/{examples,usr}/
 
 install: install-uzbl-core install-uzbl-browser install-uzbl-tabbed
 
