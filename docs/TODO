@@ -10,7 +10,6 @@ what if fifo/socket doesn't exist, or exists but nothing working behind it (anym
 
 
 == event-messages specific ==
-* throw out all old code
 * document the event handling mechanism, all events, how to get started with sample event handler
 * VARIABLE_SET for all types (but probably not useful for custom vars)
 * remove chain command
@@ -21,16 +20,13 @@ what if fifo/socket doesn't exist, or exists but nothing working behind it (anym
 
 
 = keybinding features =
-* use a datadriven config format to allow simple implementations in different languages.
-* we could receive anything from /usr/include/X11/keysymdef.h (minus the 'XK_')
-* since we use key_press and release events, we don't need to support modmasks, we can "know" the state of any key, even non-modifier keys can be used as "fake" modkeys!
+* bring somehow the old 'modkey' possibility back. (have all bindings available in insert mode by holding an extra modkey).. enum plugin?
 
 = key handling (example event_handler.py) examples to implement =
 * demonstrate separate key_press and key_release (eg press 'z' to zoom in, on release reset zoom to what it was before. use "locking boolean" as discussed on irc)
 
 More or less in order of importance/urgency
 
-* improve cookie handler.
 * a variable that holds the page state: loading, pending, seen. this can be shown in titlebar/statusbar and used for multiple instances management
 * allow to tag , to group instances together
 * store uri/tag/name/state in xorg window properties
@@ -39,35 +35,27 @@ More or less in order of importance/urgency
 * cookie daemon (and maybe other daemons) are not scoped to the testing session when running some test-*-browser targets
 * recognize -h with GOption?
 * scrolling: make page up and page down configurable.
-* show % of location in statusbar/title if page doesn't fit entirely on view.
 * conditionals in format strings: eg if(SELECTED_URI) { "-> SELECTED_URI" } or another smart way to achieve the same.
-* make default window size configurable, and optional if this is not too much work
 * on uzbl.org commits overview: add date+time and repository
 * how to handle different content types? (text-plain, image/png, application/pdf,... maybe a map of content-type to uzbl/command
   xdg already has a spec for this i think
   different "opening" modes (open as configured vs ask before opening)
   integration with download and new window thingies?
 * blinking cursor when not in insert mode is confusing.  i suggest dimming it's color if possible
-* open in new window -> uzbl: Fatal IO error 11 (Resource temporarily unavailable) on X server :0.0.
-* check that in new version pageup etc works also in command
 * tab key to jump between input fields should probably work in both insert and command mode
-* do not delete fifo/socket if they exist already. rather give error and don't create one.
 * optional logging of http requests&responses with ip/hostname and port. -> how to implement? handler? stdout? (through a socket so you know what corresponds to what?)
 * bench/optimize fifo vs socket performance. measure delays.  minimize forks. does glib use a shell? how does it detect the shebang line?
 * "remember account settings" support. but how? configure post data per site? regex match eg '^bbs.archlinux.org' ?
 * http_proxy env var not recognized. libproxy (used by libsoup) should handle this http://mail.gnome.org/archives/libsoup-list/2009-February/msg00018.html
 * support ssl. do ssl certificate & exception management similar to how we do cookies
-* improve DCOMMIT macro.  what if WC is dirty? what if user downloaded tarball without .git?
+* improve DCOMMIT macro.  what if WC is dirty?
 * DARCH is not correct (should be at runtime)
 * keybinds to open "next" or "previous" by looking for next/prev links and/or looking for numbers in the uri we can inc/decrement
 * settings iterating "state generator" so we can "open in new window" again.
 * handler for (broken) ssl certs.
-* handlers for mailto: and maybe other thingies?
-* make sample scripts less depending on bash, but more posix sh.
 * proxy_url is not a good var name. it's not a url.
 * regex style page searching? so you can do 'or' and 'and' things. flags like case sensitive etc.
 * check for real command name, not just the first letter.
-* Allow the spacebar to be binded to a command
 * let users attach handlers to the most common events/signals in uzbl.
   great use case: automatically calling formfiller for certain sites, doing stuff at uzbl startup, etc
 * document:
