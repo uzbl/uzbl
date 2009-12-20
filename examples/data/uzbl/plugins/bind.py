@@ -257,13 +257,13 @@ class Bind(object):
             # Is the binding a MODCMD or KEYCMD:
             mod_cmd = ismodbind(glob)
 
-            # Execute the command on UPDATES or EXEC's:
-            on_exec = True if glob.endswith('_') else False
+            # Do we execute on UPDATES or EXEC events?
+            on_exec = True if glob[-1] in ['!', '_'] else False
 
-            # Does the command store arguments:
+            # Does the command take arguments?
             has_args = True if glob[-1] in ['*', '_'] else False
-            glob = glob[:-1] if has_args else glob
 
+            glob = glob[:-1] if has_args or on_exec else glob
             mods, glob = split_glob(glob)
             stack.append((on_exec, has_args, mods, glob, index))
 
