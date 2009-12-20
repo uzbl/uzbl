@@ -317,7 +317,7 @@ set default_mode = command
 # Changing mode method via set.
 @bind I = @set_mode insert
 
-# Or toggle between modes by rasing the toggle event.
+# Or toggle between modes by raising the toggle event.
 set toggle_cmd_ins = @toggle_modes command insert
 
 @bind i        = @toggle_cmd_ins
