@@ -94,7 +94,6 @@ The following commands are recognized:
    - if you want to unset a string, use `set` with one space after the equals sign
 * `print @<key>`
    - use this to print the value of a variable.
-
 * `back`
 * `forward`
 * `scroll <vertical|horizontal> <argument>`
@@ -484,8 +483,8 @@ Basically all events have this format:
   - `EVENT [uzbl_instance_name] BUILTINS command_list`: shows a list of all uzbl commands, whitespace separated, on startup
 
 * Events/requests which the EM and its plugins listens for:
-  - `BIND` and `MODE_BIND`: define global resp. per-mode keybinds.
-    `request BIND <keycmd> = <command>` # set global keybinding (this is a shortcut for `request MODE_BIND global <keycmd> = <command>`)
+  - `BIND` and `MODE_BIND`: define global resp. per-mode key/button binds.
+    `request BIND <keycmd> = <command>` # set global binding (this is a shortcut for `request MODE_BIND global <keycmd> = <command>`)
     `request MODE_BIND <modespec> <keycmd> = <command>`
     The `<modespec>` can be anything like 'command', 'insert,command', 'global', 'global,-insert'.
     The `<keycmd>` has a special syntax:
@@ -493,7 +492,8 @@ Basically all events have this format:
        * `<keycmd>` ends with an asterisk: similar behavior as with an underscore, but also makes the binding incremental (i.e. the command will be invoked on every keystroke).
        * `<keycmd>` ends with an '!': the command will only be invoked after pressing return/enter, no replacement happens. this is useful for preventing 'x' to match when you want to bind 'xx' also.
        * `<keycmd>` ends on a different character: you need to type the full string, which will trigger the command immediately, without pressing enter/return.
-       * TODO explain stacked bindings and what else am i missing?
+       * TODO explain stacked bindings and multi-stage (is that the same?) and what else am i missing? modkeys, showing a prompt mid-bind.
+    The `<keycmd>` can be any representation of a key on your keyboard or a mousebutton. (note: not all mousebuttons work correctly yet)
     examples:
        * `event BIND o _ = uri %s`
          - uzbl will load the url when you type: 'o <url><enter>'
@@ -516,6 +516,14 @@ Basically all events have this format:
      request MODKEY_ADDITION <key1> <key2> <keyn> <result>
   - `TOGGLE_MODES`
      event TOGGLE_MODES <mode1> <mode2> ... <moden>
+  - `APPEND_KEYCMD`: append `<string> to keycmd
+  - `INJECT_KEYCMD <string>`: replace keycmd by `<string>`
+  - `KEYCMD_DELETE`
+  - `KEYCMD_STRIP_WORD`
+  - `KEYCMD_EXEC_CURRENT`: (tries to) execute whatever is in the keycmd
+  - `SET_KEYCMD`
+  - `SET_CURSOR_POS`
+  - `START_COMPLETION`: TODO explain completion
 
 
 

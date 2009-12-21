@@ -8,6 +8,8 @@ set prefix = /usr/local
 # Config related events (use the request function):
 # request BIND <keycmd> = <command>
 set bind            = request BIND
+# request MODE_BIND <mode spec> <keycmd> = <command>
+set mode_bind       = request MODE_BIND
 # request MODE_CONFIG <mode> <key> = <value
 set mode_config     = request MODE_CONFIG
 # request ON_EVENT <EVENT_NAME> <command>
@@ -161,6 +163,7 @@ menu_editable_add Open in @external_editor = script @scripts_dir/extedit.js
 @bind    >>        = scroll vertical end
 @bind    ^         = scroll horizontal begin
 @bind    $         = scroll horizontal end
+@mode_bind global,-insert <Space> = scroll vertical end
 @bind    b         = back
 @bind    m         = forward
 @bind    S         = stop
