@@ -262,8 +262,8 @@ set toggle_cmd_ins = @toggle_modes command insert
 @cbind  gh  = uri http://www.uzbl.org
 
 # --- Yanking & pasting binds ---
-@cbind  y<Yank:>url    = sh 'echo -n $6 | xclip'
-@cbind  y<Yank:>title  = sh 'echo -n $7 | xclip'
+@cbind  y<Yank (t)itle or (u)rl:>* = @jsh if('%s' == 'u') { run("sh 'echo -n $6 | xclip'"); } else if('%s' == 't') { run("sh 'echo -n $7 | xclip'"); }; run('event SET_KEYCMD');
+
 # Go the page from primary selection
 @cbind  p   = sh 'echo "uri `xclip -selection primary -o`" > $4'
 # Go to the page in clipboard
