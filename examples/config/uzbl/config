@@ -6,17 +6,17 @@ set prefix = /usr/local
 # === Shortcuts / Aliases  ===================================================
 
 # Config related events (use the request function):
-# request BIND <keycmd> = <command>
+# request BIND <bind cmd> = <command>
 set bind            = request BIND
-# request MODE_BIND <mode spec> <keycmd> = <command>
+# request MODE_BIND <mode> <bind cmd> = <command>
 set mode_bind       = request MODE_BIND
-# request MODE_CONFIG <mode> <key> = <value
+# request MODE_CONFIG <mode> <key> = <value>
 set mode_config     = request MODE_CONFIG
 # request ON_EVENT <EVENT_NAME> <command>
 set on_event        = request ON_EVENT
 # request PROGRESS_CONFIG <key> = <value>
 set progress        = request PROGRESS_CONFIG
-# request MODMAP From To
+# request MODMAP <From> <To>
 set modmap          = request MODMAP
 # request IGNORE_KEY <glob>
 set ignore_key      = request IGNORE_KEY
@@ -134,73 +134,159 @@ set socket_dir        = /tmp
 @ignore_key <Shift>
 
 
-# === Keyboard & Mouse bindings ==============================================
+# === Mode bind aliases ======================================================
 
-# With this command you can enter in any command at runtime when prefixed with
-# a colon.
-@bind    :_        = %s
+# Global binding alias (this is done automatically inside the bind plugin).
+#set bind = @mode_bind global
+
+# Insert mode binding alias
+set ibind = @mode_bind insert
+
+# Command mode binding alias
+set cbind = @mode_bind command
+
+# Non-insert mode bindings alias (ebind for edit-bind).
+set ebind = @mode_bind global,-insert
+
+
+# === Global & keycmd editing binds ==========================================
+
+# Resets keycmd and returns to default mode.
+@bind   <Escape>     = @set_mode
+
+# Commands for editing and traversing the keycmd.
+@ebind  <Return>     = event KEYCMD_EXEC_CURRENT
+@ebind  <Home>       = event SET_CURSOR_POS
+@ebind  <End>        = event SET_CURSOR_POS -1
+@ebind  <Left>       = event SET_CURSOR_POS -
+@ebind  <Right>      = event SET_CURSOR_POS +
+@ebind  <BackSpace>  = event KEYCMD_BACKSPACE
+@ebind  <Delete>     = event KEYCMD_DELETE
+@ebind  <Tab>        = event START_COMPLETION
+# Readline-ish bindings.
+@ebind  <Ctrl>w      = event KEYCMD_STRIP_WORD
+@ebind  <Ctrl>u      = event SET_KEYCMD
+@ebind  <Ctrl>a      = event SET_CURSOR_POS 0
+@ebind  <Ctrl>e      = event SET_CURSOR_POS -1
+
+# Keycmd injection/append examples.
+#@ebind  <Ctrl>su = event INJECT_KEYCMD \@uri
+#@ebind  <Ctrl>st = event INJECT_KEYCMD \@title
+#@ebind  <Ctrl>du = event APPEND_KEYCMD \@uri
+#@ebind  <Ctrl>dt = event APPEND_KEYCMD \@title
+
+
+# === Mouse bindings =========================================================
 
 # Middle click
 # if clicked on a link open the link in a new uzbl window
 # otherwise open the selection in the current window
 set load_from_xclip = sh 'echo "uri $(xclip -o)" > $4'
 set open_new_window = sh 'uzbl-browser -u \@SELECTED_URI'
-@bind    <Button2>  = @jsh if(get("SELECTED_URI")) { run("\@open_new_window"); } else { run("\\\@load_from_xclip"); }
+@bind <Button2> = @jsh if(get("SELECTED_URI")) { run("\@open_new_window"); } else { run("\\\@load_from_xclip"); }
 
-# Edit HTML forms in external editor
-set external_editor = gvim
-#set external_editor = xterm -e vim
-@bind    E         = script @scripts_dir/extedit.js
-menu_editable_add Open in @external_editor = script @scripts_dir/extedit.js
 
-@bind    j         = scroll vertical 20
-@bind    <Page_Down> = scroll vertical 100%
-@bind    k         = scroll vertical -20
-@bind    <Page_Up> = scroll vertical -100%
-@bind    h         = scroll horizontal -20
-@bind    l         = scroll horizontal 20
-@bind    <<        = scroll vertical begin
-@bind    >>        = scroll vertical end
-@bind    ^         = scroll horizontal begin
-@bind    $         = scroll horizontal end
-@mode_bind global,-insert <Space> = scroll vertical end
-@bind    b         = back
-@bind    m         = forward
-@bind    S         = stop
-@bind    r         = reload
-@bind    R         = reload_ign_cache
-@bind    +         = zoom_in
-@bind    -         = zoom_out
-@bind    T         = toggle_zoom_type
-@bind    1         = sh "echo set zoom_level = 1.0 > $4"
-@bind    2         = sh "echo set zoom_level = 2.0 > $4"
-@bind    t         = toggle_status
-@bind    /*        = search %s
-@bind    ?*        = search_reverse %s
-#jump to next
-@bind    n         = search
-@bind    N         = search_reverse
-@bind    gh        = uri http://www.uzbl.org
-# shortcut to set variables
-@bind    s _       = set %s
-@bind    \\wiki _   = uri http://wiki.archlinux.org/index.php/Special:Search?search=%s&go=Go
-@bind    gg _      = uri http://www.google.com/search?q=%s
-# Enclose the executable in quotes if it has spaces.  Any additional parameters you use will
-# appear AFTER the default parameters
-# use a script to insert bookmarks. or use the EM/keycmd technique a bit further down
-@bind    B         = spawn @scripts_dir/insert_bookmark.sh
-@bind    U         = spawn @scripts_dir/load_url_from_history.sh
-@bind    u         = spawn @scripts_dir/load_url_from_bookmarks.sh
-@bind    yurl      = sh 'echo -n $6 | xclip'
-@bind    ytitle    = sh 'echo -n $7 | xclip'
-# go the page from primary selection
-@bind    p         = sh 'echo "uri `xclip -selection primary -o`" > $4'
-# go to the page in clipboard
-@bind    P         = sh 'echo "uri `xclip -selection clipboard -o`" > $4'
-# start a new uzbl instance from the page in primary selection
-@bind    'p        = sh 'exec uzbl-browser --uri $(xclip -o)'
-@bind    ZZ        = exit
-@bind    Xs        = js alert("hi");
+# === Keyboard bindings ======================================================
+
+# With this command you can enter in any command at runtime when prefixed with
+# a colon.
+@cbind    :_        = %s
+
+# --- Page movement binds ---
+@cbind  j            = scroll vertical 20
+@cbind  k            = scroll vertical -20
+@cbind  h            = scroll horizontal -20
+@cbind  l            = scroll horizontal 20
+@cbind  <Page_Up>    = scroll vertical -100%
+@cbind  <Page_Down>  = scroll vertical 100%
+@cbind  <<           = scroll vertical begin
+@cbind  >>           = scroll vertical end
+@cbind  ^            = scroll horizontal begin
+@cbind  $            = scroll horizontal end
+@cbind  <Space>      = scroll vertical end
+
+# --- Navigation binds ---
+@cbind  b   = back
+@cbind  m   = forward
+@cbind  S   = stop
+@cbind  r   = reload
+@cbind  R   = reload_ign_cache
+
+# --- Zoom binds ---
+@cbind  +   = zoom_in
+@cbind  -   = zoom_out
+@cbind  T   = toggle_zoom_type
+@cbind  1   = set zoom_level 1.0
+@cbind  2   = set zoom_level 2.0
+
+# --- Appearance binds ---
+@cbind  t   = toggle_status
+
+# --- Page searching binds ---
+@cbind  /*  = search %s
+@cbind  ?*  = search_reverse %s
+# Jump to next and previous items
+@cbind  n   = search
+@cbind  N   = search_reverse
+
+# --- Web searching binds ---
+@cbind  gg<Google:>_         = uri http://www.google.com/search?q=%s
+@cbind  \\awiki<Archwiki:>_  = uri http://wiki.archlinux.org/index.php/Special:Search?search=%s&go=Go
+@cbind  \\wiki<Wikipedia:>_  = uri http://en.wikipedia.org/w/index.php?title=Special:Search&search=%s&go=Go
+
+# --- Handy binds ---
+# Set function shortcut
+@cbind  s<var:>_<value:>_  = set %1 = %2
+# Exit binding
+@cbind  ZZ                 = exit
+# Dump config to stdout
+@cbind  !dump              = sh "echo dump_config > $4"
+# Reload config
+@cbind  !reload            = sh "sed '/^# === Post-load misc commands/,$d' $1 > $4"
+
+# --- Uri opening prompts ---
+@cbind  o<uri:>_       = uri %s
+# Or have it load the current uri into the keycmd for editing
+@cbind  O<uri:\@uri>_  = uri %s
+
+# --- Mode setting binds ---
+# Changing mode via  set.
+@cbind  I  = @set_mode insert
+# Or toggle between modes by raising the toggle event.
+set toggle_cmd_ins = @toggle_modes command insert
+@cbind  i          = @toggle_cmd_ins
+# And the global toggle bind.
+@bind   <Ctrl>i    = @toggle_cmd_ins
+
+# --- Hard-bound bookmarks ---
+@cbind  gh  = uri http://www.uzbl.org
+
+# --- Yanking & pasting binds ---
+@cbind  y<Yank:>url    = sh 'echo -n $6 | xclip'
+@cbind  y<Yank:>title  = sh 'echo -n $7 | xclip'
+# Go the page from primary selection
+@cbind  p   = sh 'echo "uri `xclip -selection primary -o`" > $4'
+# Go to the page in clipboard
+@cbind  P   = sh 'echo "uri `xclip -selection clipboard -o`" > $4'
+# Start a new uzbl instance from the page in primary selection
+@cbind  'p  = sh 'exec uzbl-browser --uri $(xclip -o)'
+
+# --- Bookmark inserting binds ---
+@cbind <Ctrl>b<tags:>_  = sh 'echo -e "$6 %s" >> $XDG_DATA_HOME/uzbl/bookmarks'
+# Or use a script to insert a bookmark.
+@cbind  B  = spawn @scripts_dir/insert_bookmark.sh
+
+# --- Bookmark/history loading ---
+@cbind  U  = spawn @scripts_dir/load_url_from_history.sh
+@cbind  u  = spawn @scripts_dir/load_url_from_bookmarks.sh
+
+# --- Link following (similar to vimperator and konqueror) ---
+@cbind  fl*  = script @scripts_dir/follow_Numbers.js %s
+# Or number with strings instead of numbers:
+@cbind  fL*  = script @scripts_dir/follow_Numbers_Strings.js %s
+
+
+@cbind    Xs        = js alert("hi");
 # example showing how to use sh
 # it sends a command to the fifo, whose path is told via a positional param
 # if fifo_dir is not set, it'll echo to a file named (null) somewhere >:) remember to delete it
@@ -208,73 +294,37 @@ menu_editable_add Open in @external_editor = script @scripts_dir/extedit.js
 # you must enclose it in quotes.  Remember to escape (and double-escape) quotes and backslashes
 # in the body.  Any additional parameters you use will appear AFTER the default parameters (cfg file
 # path, fifo & socket dirs, etc.)
-@bind    XS        = sh 'echo "js alert (\\"This is sent by the shell via a fifo\\")" > "$4"'
+@cbind    XS        = sh 'echo "js alert (\\"This is sent by the shell via a fifo\\")" > "$4"'
 
-@bind    !dump     = sh "echo dump_config > $4"
-@bind    !reload   = sh "sed '/^# === Post-load misc commands/,$d' $1 > $4"
-
-# this script allows you to configure (per domain) values to fill in form fields (eg login information) and to fill in these values automatically
+# --- Form filler binds ---
+# this script allows you to configure (per domain) values to fill in form
+# fields (eg login information) and to fill in these values automatically
 set formfiller = spawn @scripts_dir/formfiller
-@bind    za        = @{formfiller}.sh
-@bind    ze        = @{formfiller}.sh edit
-@bind    zn        = @{formfiller}.sh new
-@bind    zl        = @{formfiller}.sh load
-
+@cbind  za  = @{formfiller}.sh
+@cbind  ze  = @{formfiller}.sh edit
+@cbind  zn  = @{formfiller}.sh new
+@cbind  zl  = @{formfiller}.sh load
 # Or the more advanced implementation using perl: (could not get this to run - Dieter)
-@bind    LL        = @{formfiller}.pl load
-@bind    LN        = @{formfiller}.pl new
-@bind    LE        = @{formfiller}.pl edit
+@cbind  LL  = @{formfiller}.pl load
+@cbind  LN  = @{formfiller}.pl new
+@cbind  LE  = @{formfiller}.pl edit
 
-# we ship some javascripts to do keyboard based link hinting/following.  (webkit does not have C DOM bindings yet)
-# this is similar to how it works in vimperator (and konqueror)
-# TODO: did we resolve: "no click() event for hyperlinks so no referrer set" ?
-#hit F to toggle the Hints (now in form of link numbering)
-@bind    F         = script @scripts_dir/hint.js
-# the most stable version:
-@bind    fl*       = script @scripts_dir/follow_Numbers.js %s
-# using strings, not polished yet:
-@bind    fL*       = script @scripts_dir/follow_Numbers_Strings.js %s
+# --- External edit script configuration & binds ---
+# Edit form input fields in an external editor (gvim, emacs, urxvt -e vim, ..)
+set external_editor = gvim
+#set external_editor = xterm -e vim
+@cbind  E  = script @scripts_dir/extedit.js
+# And add menu option.
+menu_editable_add Open in @external_editor = script @scripts_dir/extedit.js
 
+# --- Examples ---
+# Example showing how to use uzbl's fifo to execute a command.
+#@bind  X1 = sh 'echo "set zoom_level = 1.0" > "$4"'
+#@bind  X2 = sh 'echo "js alert (\\"This is sent by the shell via a fifo\\")" > "$4"'
 
-# Examples using multi-stage-bindings with text prompts.
-@bind o<uri:>_           = uri %s
-@bind O<uri:\@uri>_      = uri %s
-
-# multi-stage binding way to write bookmarks to file from inside uzbl.
-@bind <Ctrl>b<tags:>_    = sh 'echo -e "$6 %s" >> $XDG_DATA_HOME/uzbl/bookmarks'
-
-# Multi-stage bindings with blank prompts (similar behaviour to emacs M-c M-s bindings?)
-@bind <Ctrl>a<:><Ctrl>q  = exit
-@bind <Ctrl>a<:><Ctrl>h  = uri http://uzbl.org/
-
-# Inject handy values into the keycmd.
-@bind <Ctrl>su = event INJECT_KEYCMD \@uri
-@bind <Ctrl>st = event INJECT_KEYCMD \@TITLE
-# Or append.
-@bind <Ctrl>du = event APPEND_KEYCMD \@uri
-@bind <Ctrl>dt = event APPEND_KEYCMD \@TITLE
-
-
-# === command editing configuration ==========================================
-
-# you'll want this at the very least
-@bind <Return>       = event KEYCMD_EXEC_CURRENT
-@bind <Escape>       = @set_mode
-
-# basic searching
-@bind <Home>         = event SET_CURSOR_POS 0
-@bind <End>          = event SET_CURSOR_POS -1
-@bind <Left>         = event SET_CURSOR_POS -
-@bind <Right>        = event SET_CURSOR_POS +
-@bind <BackSpace>    = event KEYCMD_BACKSPACE
-@bind <Delete>       = event KEYCMD_DELETE
-@bind <Tab>          = event START_COMPLETION
-
-# readline-ish bindings
-@bind <Ctrl>w      = event KEYCMD_STRIP_WORD
-@bind <Ctrl>u      = event SET_KEYCMD
-@bind <Ctrl>a      = event SET_CURSOR_POS 0
-@bind <Ctrl>e      = event SET_CURSOR_POS -1
+# Working with the javascript helper variable jsh.
+#@bind  X3 = @jsh alert(get('zoom_level'));
+#@bind  X4 = @jsh if(get('mode') == "insert") { alert("You are in insert mode") } else { alert(get('mode')+" is a silly mode.") };
 
 
 # === Context menu items =====================================================
@@ -315,16 +365,6 @@ set stack    = @mode_config stack
 @stack    mode_indicator      = Bnd
 
 set default_mode = command
-
-# Mode bindings:
-# Changing mode method via set.
-@bind I = @set_mode insert
-
-# Or toggle between modes by raising the toggle event.
-set toggle_cmd_ins = @toggle_modes command insert
-
-@bind i        = @toggle_cmd_ins
-@bind <Ctrl>i  = @toggle_cmd_ins
 
 
 # === Post-load misc commands  ===============================================
