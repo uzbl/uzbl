@@ -303,30 +303,6 @@ class Bind(object):
         return self._repr_cache
 
 
-def expand(cmd, args):
-    '''Replaces "%s %1 %2 %3..." with "<all args> <arg 0> <arg 1>...".'''
-
-    # Direct string replace.
-    if '%s' in cmd:
-        cmd = cmd.replace('%s', ' '.join(map(unicode, args)))
-
-    # Escaped and quoted string replace.
-    if '%r' in cmd:
-        joined = ('%r' % ' '.join(map(unicode, args)))[1:]
-        for char in ['\\', '@']:
-            joined = joined.replace(char, '\\'+char)
-
-        cmd = cmd.replace('%r', joined)
-
-    # Arg index string replace.
-    for (index, arg) in enumerate(args):
-        index += 1
-        if '%%%d' % index in cmd:
-            cmd = cmd.replace('%%%d' % index, unicode(arg))
-
-    return cmd
-
-
 def exec_bind(uzbl, bind, *args, **kargs):
     '''Execute bind objects.'''
 
@@ -342,8 +318,9 @@ def exec_bind(uzbl, bind, *args, **kargs):
         raise ArgumentError('cannot supply kargs for uzbl commands')
 
     commands = []
+    cmd_expand = uzbl.cmd_expand
     for cmd in bind.commands:
-        cmd = expand(cmd, args)
+        cmd = cmd_expand(cmd, args)
         uzbl.send(cmd)
 
 
