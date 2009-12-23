@@ -2,6 +2,7 @@
 
 Formatting options:
   %s = space separated string of the arguments
+  %r = escaped and quoted version of %s
   %1 = argument 1
   %2 = argument 2
   %n = argument n
@@ -47,9 +48,19 @@ def get_on_events(uzbl):
 def expand(cmd, args):
     '''Replaces "%s %1 %2 %3..." with "<all args> <arg 0> <arg 1>...".'''
 
+    # Direct string replace.
     if '%s' in cmd:
         cmd = cmd.replace('%s', ' '.join(map(unicode, args)))
 
+    # Escaped and quoted string replace.
+    if '%r' in cmd:
+        joined = ('%r' % ' '.join(map(unicode, args)))[1:]
+        for char in ['\\', '@']:
+            joined = joined.replace(char, '\\'+char)
+
+        cmd = cmd.replace('%r', joined)
+
+    # Arg index string replace.
     for (index, arg) in enumerate(args):
         index += 1
         if '%%%d' % index in cmd:
