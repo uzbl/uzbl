@@ -45,30 +45,6 @@ def get_on_events(uzbl):
     return UZBLS[uzbl]
 
 
-def expand(cmd, args):
-    '''Replaces "%s %1 %2 %3..." with "<all args> <arg 0> <arg 1>...".'''
-
-    # Direct string replace.
-    if '%s' in cmd:
-        cmd = cmd.replace('%s', ' '.join(map(unicode, args)))
-
-    # Escaped and quoted string replace.
-    if '%r' in cmd:
-        joined = ('%r' % ' '.join(map(unicode, args)))[1:]
-        for char in ['\\', '@']:
-            joined = joined.replace(char, '\\'+char)
-
-        cmd = cmd.replace('%r', joined)
-
-    # Arg index string replace.
-    for (index, arg) in enumerate(args):
-        index += 1
-        if '%%%d' % index in cmd:
-            cmd = cmd.replace('%%%d' % index, unicode(arg))
-
-    return cmd
-
-
 def event_handler(uzbl, *args, **kargs):
     '''This function handles all the events being watched by various
     on_event definitions and responds accordingly.'''
@@ -79,8 +55,9 @@ def event_handler(uzbl, *args, **kargs):
         return
 
     commands = events[event]
+    cmd_expand = uzbl.cmd_expand
     for cmd in commands:
-        cmd = expand(cmd, args)
+        cmd = cmd_expand(cmd, args)
         uzbl.send(cmd)
 
 
