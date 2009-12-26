@@ -10,20 +10,18 @@ UZBLS = {}
 
 # Keycmd format which includes the markup for the cursor.
 KEYCMD_FORMAT = "%s<span @cursor_style>%s</span>%s"
+MODCMD_FORMAT = "<span> %s </span>"
+
+
+def escape(str):
+    for char in ['\\', '@']:
+        str = str.replace(char, '\\'+char)
+
+    return str
 
 
 def uzbl_escape(str):
-    '''Prevent outgoing keycmd values from expanding inside the
-    status_format.'''
-
-    if not str:
-        return ''
-
-    for char in ['\\', '@']:
-        if char in str:
-            str = str.replace(char, '\\'+char)
-
-    return "@[%s]@" % str
+    return "@[%s]@" % escape(str) if str else ''
 
 
 class Keylet(object):
@@ -261,6 +259,7 @@ def clear_keycmd(uzbl):
     k.cursor = 0
     k._repr_cache = False
     uzbl.set('keycmd')
+    uzbl.set('raw_keycmd')
     uzbl.event('KEYCMD_CLEARED')
 
 
@@ -276,6 +275,7 @@ def clear_modcmd(uzbl, clear_held=False):
         k.held = set()
 
     uzbl.set('modcmd')
+    uzbl.set('raw_modcmd')
     uzbl.event('MODCMD_CLEARED')
 
 
@@ -314,9 +314,11 @@ def update_event(uzbl, k, execute=True):
         new_modcmd = k.get_modcmd()
         if not new_modcmd:
             uzbl.set('modcmd', config=config)
+            uzbl.set('raw_modcmd', config=config)
 
         elif new_modcmd == modcmd:
-            uzbl.set('modcmd', '<span> %s </span>' % uzbl_escape(new_modcmd),
+            uzbl.set('raw_modcmd', escape(modcmd), config=config)
+            uzbl.set('modcmd', MODCMD_FORMAT % uzbl_escape(modcmd),
                 config=config)
 
     if 'keycmd_events' in config and config['keycmd_events'] != '1':
@@ -325,6 +327,7 @@ def update_event(uzbl, k, execute=True):
     new_keycmd = k.get_keycmd()
     if not new_keycmd:
         uzbl.set('keycmd', config=config)
+        uzbl.set('raw_keycmd', config=config)
 
     elif new_keycmd == keycmd:
         # Generate the pango markup for the cursor in the keycmd.
@@ -332,6 +335,7 @@ def update_event(uzbl, k, execute=True):
         chunks = [keycmd[:k.cursor], curchar, keycmd[k.cursor+1:]]
         value = KEYCMD_FORMAT % tuple(map(uzbl_escape, chunks))
         uzbl.set('keycmd', value, config=config)
+        uzbl.set('raw_keycmd', escape(keycmd), config=config)
 
 
 def inject_str(str, index, inj):
@@ -391,6 +395,7 @@ def key_press(uzbl, key):
             k.keycmd = ''
             k.cursor = 0
             uzbl.set('keycmd', config=config)
+            uzbl.set('raw_keycmd', config=config)
             return
 
         k.keycmd = inject_str(k.keycmd, k.cursor, key)
