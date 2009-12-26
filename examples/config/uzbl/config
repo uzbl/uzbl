@@ -230,9 +230,9 @@ set open_new_window = sh 'uzbl-browser -u \@SELECTED_URI'
 @cbind  N   = search_reverse
 
 # --- Web searching binds ---
-@cbind  gg<Google:>_         = uri http://www.google.com/search?q=%s
-@cbind  \\awiki<Archwiki:>_  = uri http://wiki.archlinux.org/index.php/Special:Search?search=%s&go=Go
-@cbind  \\wiki<Wikipedia:>_  = uri http://en.wikipedia.org/w/index.php?title=Special:Search&search=%s&go=Go
+@cbind  gg<Google:>_         = uri http://www.google.com/search?q=\@<encodeURIComponent(%r)>\@
+@cbind  \\awiki<Archwiki:>_  = uri http://wiki.archlinux.org/index.php/Special:Search?search=\@<encodeURIComponent(%r)>\@&go=Go
+@cbind  \\wiki<Wikipedia:>_  = uri http://en.wikipedia.org/w/index.php?title=Special:Search&search=\@<encodeURIComponent(%r)>\@&go=Go
 
 # --- Handy binds ---
 # Set function shortcut
