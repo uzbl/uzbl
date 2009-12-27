@@ -68,6 +68,7 @@ test-uzbl-core-sandbox: uzbl-core
 	rm -rf ./sandbox/usr
 
 test-uzbl-browser-sandbox: uzbl-browser
+	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-core
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-browser
 	source ./sandbox/env.sh && uzbl-cookie-daemon restart -nv &
 	source ./sandbox/env.sh && uzbl-event-manager restart -nav &
