@@ -183,12 +183,10 @@ def xdghome(key, default):
 
 # Setup xdg paths.
 DATA_DIR = os.path.join(xdghome('DATA', '.local/share/'), 'uzbl/')
-CONFIG_DIR = os.path.join(xdghome('CONFIG', '.config/'), 'uzbl/')
 
 # Ensure uzbl xdg paths exist
-for path in [DATA_DIR, CONFIG_DIR]:
-    if not os.path.exists(path):
-        os.makedirs(path)
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR)
 
 # All of these settings can be inherited from your uzbl config file.
 config = {
@@ -240,6 +238,8 @@ config = {
 
 } # End of config dict.
 
+UZBL_TABBED_VARS = config.keys()
+
 # This is the tab style policy handler. Every time the tablist is updated
 # this function is called to determine how to colourise that specific tab
 # according the simple/complex rules as defined here. You may even wish to
@@ -277,37 +277,6 @@ def colour_selector(tabindex, currentpage, uzbl):
 def echo(msg):
     if config['verbose']:
         sys.stderr.write("%s: %s\n" % (_SCRIPTNAME, msg))
-
-
-def readconfig(uzbl_config, config):
-    '''Loads relevant config from the users uzbl config file into the global
-    config dictionary.'''
-
-    if not os.path.exists(uzbl_config):
-        error("Unable to load config %r" % uzbl_config)
-        return None
-
-    # Define parsing regular expressions
-    isint = re.compile("^(\-|)[0-9]+$").match
-    findsets = re.compile("^set\s+([^\=]+)\s*\=\s*(.+)$",\
-      re.MULTILINE).findall
-
-    h = open(os.path.expandvars(uzbl_config), 'r')
-    rawconfig = h.read()
-    h.close()
-
-    configkeys, strip = config.keys(), str.strip
-    for (key, value) in findsets(rawconfig):
-        key, value = strip(key), strip(value)
-        if key not in configkeys: continue
-        if isint(value): value = int(value)
-        config[key] = value
-
-    # Ensure that config keys that relate to paths are expanded.
-    pathkeys = ['fifo_dir', 'socket_dir', 'session_file', 'icon_path',
-      'saved_sessions_dir']
-    for key in pathkeys:
-        config[key] = os.path.expandvars(config[key])
 
 
 def counter():
@@ -429,7 +398,7 @@ class UzblInstance:
         self._client.send('set %s = %s') #TODO: escape chars ?
 
 
-    def exit(sedf):
+    def exit(self):
         ''' Ask the Uzbl instance to close '''
 
         self._client.send('exit') #TODO: escape chars ?
@@ -444,6 +413,34 @@ class UzblInstance:
             if type == "TITLE_CHANGED":
                 self.title = args
                 self.parent.update_tablist()
+            elif type == "VARIABLE_SET":
+                var, _, val = args.split(" ", 2)
+                try:
+                    val = int(val)
+                except:
+                    pass
+
+                if var in UZBL_TABBED_VARS:
+                    if config[var] != val:
+                        config[var] = val
+                        if var == "show_gtk_tabs":
+                            self.parent.notebook.set_show_tabs(bool(val))
+                        elif var == "show_tablist" or var == "tablist_top":
+                            self.parent.update_tablist_display()
+                        elif var == "gtk_tab_pos":
+                            self.parent.update_gtk_tab_pos()
+                        elif var == "status_background":
+                            col = gtk.gdk.color_parse(config['status_background'])
+                            self.parent.ebox.modify_bg(gtk.STATE_NORMAL, col)
+                        self.parent.update_tablist()
+                else:
+                    config[var] = val
+
+                if var == "uri":
+                    self.uri = var
+                    self.parent.update_tablist()
+            else:
+                print type, args
 
 
     def close(self):
@@ -502,35 +499,33 @@ class UzblTabbed:
         self.window.connect("delete-event", self.quitrequest)
 
         # Create tab list
-        if config['show_tablist']:
-            vbox = gtk.VBox()
-            self.window.add(vbox)
-            ebox = gtk.EventBox()
-            self.tablist = gtk.Label()
+        vbox = gtk.VBox()
+        self.vbox = vbox
+        self.window.add(vbox)
+        ebox = gtk.EventBox()
+        self.ebox = ebox
+        self.tablist = gtk.Label()
 
-            self.tablist.set_use_markup(True)
-            self.tablist.set_justify(gtk.JUSTIFY_LEFT)
-            self.tablist.set_line_wrap(False)
-            self.tablist.set_selectable(False)
-            self.tablist.set_padding(2,2)
-            self.tablist.set_alignment(0,0)
-            self.tablist.set_ellipsize(pango.ELLIPSIZE_END)
-            self.tablist.set_text(" ")
-            self.tablist.show()
-            ebox.add(self.tablist)
-            ebox.show()
-            bgcolor = gtk.gdk.color_parse(config['status_background'])
-            ebox.modify_bg(gtk.STATE_NORMAL, bgcolor)
+        self.tablist.set_use_markup(True)
+        self.tablist.set_justify(gtk.JUSTIFY_LEFT)
+        self.tablist.set_line_wrap(False)
+        self.tablist.set_selectable(False)
+        self.tablist.set_padding(2,2)
+        self.tablist.set_alignment(0,0)
+        self.tablist.set_ellipsize(pango.ELLIPSIZE_END)
+        self.tablist.set_text(" ")
+        self.tablist.show()
+        ebox.add(self.tablist)
+        ebox.show()
+        bgcolor = gtk.gdk.color_parse(config['status_background'])
+        ebox.modify_bg(gtk.STATE_NORMAL, bgcolor)
 
         # Create notebook
         self.notebook = gtk.Notebook()
         self.notebook.set_show_tabs(config['show_gtk_tabs'])
 
         # Set tab position
-        allposes = {'left': gtk.POS_LEFT, 'right':gtk.POS_RIGHT,
-          'top':gtk.POS_TOP, 'bottom':gtk.POS_BOTTOM}
-        if config['gtk_tab_pos'] in allposes.keys():
-            self.notebook.set_tab_pos(allposes[config['gtk_tab_pos']])
+        self.update_gtk_tab_pos()
 
         self.notebook.set_show_border(False)
         self.notebook.set_scrollable(True)
@@ -541,20 +536,11 @@ class UzblTabbed:
         self.notebook.connect("page-added", self.tab_opened)
 
         self.notebook.show()
-        if config['show_tablist']:
-            if config['tablist_top']:
-                vbox.pack_start(ebox, False, False, 0)
-                vbox.pack_end(self.notebook, True, True, 0)
+        vbox.pack_start(self.notebook, True, True, 0)
+        vbox.reorder_child(self.notebook, 1)
+        self.update_tablist_display()
 
-            else:
-                vbox.pack_start(self.notebook, True, True, 0)
-                vbox.pack_end(ebox, False, False, 0)
-
-            vbox.show()
-
-        else:
-            self.window.add(self.notebook)
-
+        self.vbox.show()
         self.window.show()
         self.wid = self.notebook.window.xid
 
@@ -603,6 +589,7 @@ class UzblTabbed:
 
             # Unlink fifo socket
             self.unlink_fifo()
+            self.close_socket()
 
             # Attempt to close all uzbl instances nicely.
             self.quitrequest()
@@ -660,9 +647,12 @@ class UzblTabbed:
     def close_socket(self):
         '''Close the socket when closing the application'''
 
-        (fd, watcher) = self._socket
-        source_remove(watcher)
-        fd.close()
+        if self._socket:
+            (fd, watcher) = self._socket
+            source_remove(watcher)
+            fd.close()
+            os.unlink(self.socket_path)
+            self._socket = None
 
 
     def init_fifo(self):
@@ -1067,6 +1057,28 @@ class UzblTabbed:
         return True
 
 
+    def update_tablist_display(self):
+        '''Called when show_tablist or tablist_top has changed'''
+
+        if self.ebox in self.vbox.get_children():
+            self.vbox.remove(self.ebox)
+
+        if config['show_tablist']:
+            self.vbox.pack_start(self.ebox, False, False, 0)
+            if config['tablist_top']:
+                self.vbox.reorder_child(self.ebox, 0)
+            else:
+                self.vbox.reorder_child(self.ebox, 2)
+
+    def update_gtk_tab_pos(self):
+        ''' Called when gtk_tab_pos has changed '''
+
+        allposes = {'left': gtk.POS_LEFT, 'right':gtk.POS_RIGHT,
+          'top':gtk.POS_TOP, 'bottom':gtk.POS_BOTTOM}
+        if config['gtk_tab_pos'] in allposes.keys():
+            self.notebook.set_tab_pos(allposes[config['gtk_tab_pos']])
+
+
     def update_tablist(self, curpage=None):
         '''Upate tablist status bar.'''
 
@@ -1315,6 +1327,7 @@ class UzblTabbed:
         # Close the fifo socket, remove any gobject io event handlers and
         # delete socket.
         self.unlink_fifo()
+        self.close_socket()
 
         # Remove all gobject timers that are still ticking.
         for (timerid, gid) in self._timers.items():
@@ -1329,9 +1342,6 @@ class UzblTabbed:
 
 
 if __name__ == "__main__":
-
-    # Read from the uzbl config into the global config dictionary.
-    readconfig(UZBL_CONFIG, config)
 
     # Build command line parser
     usage = "usage: %prog [OPTIONS] {URIS}..."
