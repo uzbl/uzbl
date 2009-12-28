@@ -383,25 +383,22 @@ class UzblTabbed:
     class UzblInstance:
         '''Uzbl instance meta-data/meta-action object.'''
 
-        def __init__(self, parent, tab, fifo_socket, socket_file, pid,\
-          uri, title, switch):
+        def __init__(self, parent, tab, socket_file, pid, uri, title, switch):
 
             self.parent = parent
             self.tab = tab
-            self.fifo_socket = fifo_socket
             self.socket_file = socket_file
             self.pid = pid
             self.title = title
             self.uri = uri
             self.timers = {}
             self._lastprobe = 0
-            self._fifoout = []
             self._socketout = []
             self._socket = None
             self._buffer = ""
             # Switch to tab after loading
             self._switch = switch
-            # fifo/socket files exists and socket connected.
+            # socket files exists and socket connected.
             self._connected = False
             # The kill switch
             self._kill = False
@@ -422,7 +419,7 @@ class UzblTabbed:
 
 
         def flush(self, timer_call=False):
-            '''Flush messages from the socket-out and fifo-out queues.'''
+            '''Flush messages from the socket-out queue.'''
 
             if self._kill:
                 if self._socket:
@@ -431,14 +428,6 @@ class UzblTabbed:
 
                 error("Flush called on dead tab.")
                 return False
-
-            if len(self._fifoout):
-                if os.path.exists(self.fifo_socket):
-                    h = open(self.fifo_socket, 'w')
-                    while len(self._fifoout):
-                        msg = self._fifoout.pop(0)
-                        h.write("%s\n"%msg)
-                    h.close()
 
             if len(self._socketout):
                 if not self._socket and os.path.exists(self.socket_file):
@@ -452,7 +441,7 @@ class UzblTabbed:
                         self._socket.send("%s\n"%msg)
 
             if not self._connected and timer_call:
-                if not len(self._fifoout + self._socketout):
+                if not self._socketout:
                     self._connected = True
 
                     if timer_call in self.timers.keys():
@@ -462,7 +451,7 @@ class UzblTabbed:
                     if self._switch:
                         self.grabfocus()
 
-            return len(self._fifoout + self._socketout)
+            return len(self._socketout)
 
 
         def grabfocus(self):
@@ -479,14 +468,6 @@ class UzblTabbed:
             if self._connected:
                 self.send(self._probecmds)
                 self._lastprobe = time.time()
-
-
-        def write(self, msg):
-            '''Child fifo write function.'''
-
-            self._fifoout.append(msg)
-            # Flush messages from the queue if able.
-            return self.flush()
 
 
         def send(self, msg):
@@ -965,8 +946,6 @@ class UzblTabbed:
         sid = tab.get_id()
         uri = uri.strip()
 
-        fifo_filename = 'uzbl_fifo_%s_%0.2d' % (self.wid, pid)
-        fifo_socket = os.path.join(config['fifo_dir'], fifo_filename)
         socket_filename = 'uzbl_socket_%s_%0.2d' % (self.wid, pid)
         socket_file = os.path.join(config['socket_dir'], socket_filename)
 
@@ -976,7 +955,7 @@ class UzblTabbed:
         if not title:
             title = config['new_tab_title']
 
-        uzbl = self.UzblInstance(self, tab, fifo_socket, socket_file, pid,\
+        uzbl = self.UzblInstance(self, tab, socket_file, pid,\
           uri, title, switch)
 
         if len(uri):
@@ -986,7 +965,7 @@ class UzblTabbed:
         cmd = 'uzbl-browser -s %s -n %s_%0.2d %s &' % (sid, self.wid, pid, uri)
         subprocess.Popen([cmd], shell=True) # TODO: do i need close_fds=True ?
 
-        # Add gobject timer to make sure the config is pushed when fifo socket
+        # Add gobject timer to make sure the config is pushed when socket
         # has been created.
         timerid = timeout_add(100, uzbl.flush, "flush-initial-config")
         uzbl.timers['flush-initial-config'] = timerid
@@ -1138,7 +1117,6 @@ class UzblTabbed:
                 uzbl._socket.close()
                 uzbl._socket = None
 
-            uzbl._fifoout = []
             uzbl._socketout = []
             uzbl._kill = True
             self._closed.append((uzbl.uri, uzbl.title))
