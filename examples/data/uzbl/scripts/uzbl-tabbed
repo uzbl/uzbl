@@ -377,106 +377,105 @@ def gen_endmarker():
     return hashlib.md5(str(random.random()*time.time())).hexdigest()
 
 
+class UzblInstance:
+    '''Uzbl instance meta-data/meta-action object.'''
+
+    def __init__(self, parent, tab, socket_file, pid, uri, title, switch):
+
+        self.parent = parent
+        self.tab = tab
+        self.socket_file = socket_file
+        self.pid = pid
+        self.title = title
+        self.uri = uri
+        self.timers = {}
+        self._lastprobe = 0
+        self._socketout = []
+        self._socket = None
+        self._buffer = ""
+        # Switch to tab after loading
+        self._switch = switch
+        # socket files exists and socket connected.
+        self._connected = False
+        # The kill switch
+        self._kill = False
+
+        # Message termination endmarker.
+        self._marker = gen_endmarker()
+
+        # Gen probe commands string
+        probes = []
+        probe = probes.append
+        probe('print uri %d @uri %s' % (self.pid, self._marker))
+        probe('print title %d @<document.title>@ %s' % (self.pid,\
+          self._marker))
+        self._probecmds = '\n'.join(probes)
+
+        # Enqueue keybinding config for child uzbl instance
+        self.parent.config_uzbl(self)
+
+
+    def flush(self, timer_call=False):
+        '''Flush messages from the socket-out queue.'''
+
+        if self._kill:
+            if self._socket:
+                self._socket.close()
+                self._socket = None
+
+            error("Flush called on dead tab.")
+            return False
+
+        if len(self._socketout):
+            if not self._socket and os.path.exists(self.socket_file):
+                sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                sock.connect(self.socket_file)
+                self._socket = sock
+
+            if self._socket:
+                while len(self._socketout):
+                    msg = self._socketout.pop(0)
+                    self._socket.send("%s\n"%msg)
+
+        if not self._connected and timer_call:
+            if not self._socketout:
+                self._connected = True
+
+                if timer_call in self.timers.keys():
+                    source_remove(self.timers[timer_call])
+                    del self.timers[timer_call]
+
+                if self._switch:
+                    self.grabfocus()
+
+        return len(self._socketout)
+
+
+    def grabfocus(self):
+        '''Steal parent focus and switch the notebook to my own tab.'''
+
+        tabs = list(self.parent.notebook)
+        tabid = tabs.index(self.tab)
+        self.parent.goto_tab(tabid)
+
+
+    def probe(self):
+        '''Probes the client for information about its self.'''
+
+        if self._connected:
+            self.send(self._probecmds)
+            self._lastprobe = time.time()
+
+
+    def send(self, msg):
+        '''Child socket send function.'''
+
+        self._socketout.append(msg)
+        # Flush messages from queue if able.
+        return self.flush()
+
 class UzblTabbed:
     '''A tabbed version of uzbl using gtk.Notebook'''
-
-    class UzblInstance:
-        '''Uzbl instance meta-data/meta-action object.'''
-
-        def __init__(self, parent, tab, socket_file, pid, uri, title, switch):
-
-            self.parent = parent
-            self.tab = tab
-            self.socket_file = socket_file
-            self.pid = pid
-            self.title = title
-            self.uri = uri
-            self.timers = {}
-            self._lastprobe = 0
-            self._socketout = []
-            self._socket = None
-            self._buffer = ""
-            # Switch to tab after loading
-            self._switch = switch
-            # socket files exists and socket connected.
-            self._connected = False
-            # The kill switch
-            self._kill = False
-
-            # Message termination endmarker.
-            self._marker = gen_endmarker()
-
-            # Gen probe commands string
-            probes = []
-            probe = probes.append
-            probe('print uri %d @uri %s' % (self.pid, self._marker))
-            probe('print title %d @<document.title>@ %s' % (self.pid,\
-              self._marker))
-            self._probecmds = '\n'.join(probes)
-
-            # Enqueue keybinding config for child uzbl instance
-            self.parent.config_uzbl(self)
-
-
-        def flush(self, timer_call=False):
-            '''Flush messages from the socket-out queue.'''
-
-            if self._kill:
-                if self._socket:
-                    self._socket.close()
-                    self._socket = None
-
-                error("Flush called on dead tab.")
-                return False
-
-            if len(self._socketout):
-                if not self._socket and os.path.exists(self.socket_file):
-                    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                    sock.connect(self.socket_file)
-                    self._socket = sock
-
-                if self._socket:
-                    while len(self._socketout):
-                        msg = self._socketout.pop(0)
-                        self._socket.send("%s\n"%msg)
-
-            if not self._connected and timer_call:
-                if not self._socketout:
-                    self._connected = True
-
-                    if timer_call in self.timers.keys():
-                        source_remove(self.timers[timer_call])
-                        del self.timers[timer_call]
-
-                    if self._switch:
-                        self.grabfocus()
-
-            return len(self._socketout)
-
-
-        def grabfocus(self):
-            '''Steal parent focus and switch the notebook to my own tab.'''
-
-            tabs = list(self.parent.notebook)
-            tabid = tabs.index(self.tab)
-            self.parent.goto_tab(tabid)
-
-
-        def probe(self):
-            '''Probes the client for information about its self.'''
-
-            if self._connected:
-                self.send(self._probecmds)
-                self._lastprobe = time.time()
-
-
-        def send(self, msg):
-            '''Child socket send function.'''
-
-            self._socketout.append(msg)
-            # Flush messages from queue if able.
-            return self.flush()
-
 
     def __init__(self):
         '''Create tablist, window and notebook.'''
