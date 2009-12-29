@@ -77,6 +77,7 @@
 #
 # Tab title options:
 #   tab_titles              = 1
+#   tab_indexes             = 1
 #   new_tab_title           = Loading
 #   max_title_len           = 50
 #   show_ellipsis           = 1
@@ -202,6 +203,7 @@ config = {
 
   # Tab title options
   'tab_titles':             True,   # Display tab titles (else only tab-nums)
+  'tab_indexes':             True,   # Display tab nums (else only tab titles)
   'new_tab_title':          'Loading', # New tab title
   'max_title_len':          50,     # Truncate title at n characters
   'show_ellipsis':          True,   # Show ellipsis when truncating titles
@@ -381,11 +383,9 @@ class UzblInstance:
 
     def got_socket(self, client):
         '''Uzbl instance is now connected'''
+
         self._client = client
-
-        self.parent.tabs[self.tab] = self
         self.parent.config_uzbl(self)
-
         if self._switch:
             tabid = self.parent.notebook.page_num(self.tab)
             self.parent.goto_tab(tabid)
@@ -395,6 +395,7 @@ class UzblInstance:
         '''self.title has changed, update the tabs list'''
 
         tab_titles = config['tab_titles']
+        tab_indexes = config['tab_indexes']
         show_ellipsis = config['show_ellipsis']
         max_title_len = config['max_title_len']
 
@@ -410,13 +411,19 @@ class UzblInstance:
             self.tabtitle += "\xe2\x80\xa6"
 
         gtk_tab_format = "%d %s"
-        tab_titles = config['tab_titles']
         index = self.parent.notebook.page_num(self.tab)
-        if tab_titles:
+        if tab_titles and tab_indexes:
             self.parent.notebook.set_tab_label_text(self.tab,
               gtk_tab_format % (index, self.tabtitle))
+        elif tab_titles:
+            self.parent.notebook.set_tab_label_text(self.tab, self.tabtitle)
         else:
             self.parent.notebook.set_tab_label_text(self.tab, str(index))
+
+        # If instance is current tab, update window title
+        if index == self.parent.notebook.get_current_page():
+            title_format = "%s - Uzbl Browser"
+            self.parent.window.set_title(title_format % self.title)
 
         # Non-GTK tabs
         if not gtk_only:
@@ -426,13 +433,15 @@ class UzblInstance:
     def set(self, key, val):
         ''' Send the SET command to Uzbl '''
 
-        self._client.send('set %s = %s') #TODO: escape chars ?
+        if self._client:
+            self._client.send('set %s = %s') #TODO: escape chars ?
 
 
     def exit(self):
         ''' Ask the Uzbl instance to close '''
 
-        self._client.send('exit')
+        if self._client:
+            self._client.send('exit')
 
 
     def parse_command(self, cmd):
@@ -463,6 +472,10 @@ class UzblInstance:
                         elif var == "status_background":
                             col = gtk.gdk.color_parse(config['status_background'])
                             self.parent.ebox.modify_bg(gtk.STATE_NORMAL, col)
+                        elif var == "tab_titles" or var == "tab_indexes":
+                            for tab in self.parent.notebook:
+                                self.parent.tabs[tab].title_changed(True)
+
                         self.parent.update_tablist()
                 else:
                     config[var] = val
@@ -975,6 +988,7 @@ class UzblTabbed:
 
         uzbl = UzblInstance(self, tab, name, uri, title, switch)
         SocketClient.instances_queue[name] = uzbl
+        self.tabs[tab] = uzbl
 
 
     def clean_slate(self):
@@ -1143,6 +1157,7 @@ class UzblTabbed:
             return True
 
         tab_titles = config['tab_titles']
+        tab_indexes = config['tab_indexes']
         multiline_tabs = config['multiline_tabs']
 
         if multiline_tabs:
@@ -1156,15 +1171,17 @@ class UzblTabbed:
         normal = (config['tab_colours'], config['tab_text_colours'])
         selected = (config['selected_tab'], config['selected_tab_text'])
 
-        if tab_titles:
-            tab_format = "<span %s> [ %d <span %s> %s</span> ] </span>"
-
+        if tab_titles and tab_indexes:
+            tab_format = "<span %(tabc)s> [ %(index)d <span %(textc)s> %(title)s</span> ] </span>"
+        elif tab_titles:
+            tab_format = "<span %(tabc)s> [ <span %(textc)s>%(title)s</span> ] </span>"
         else:
-            tab_format = "<span %s> [ <span %s>%d</span> ] </span>"
+            tab_format = "<span %(tabc)s> [ <span %(textc)s>%(index)d</span> ] </span>"
 
         for index, tab in enumerate(self.notebook):
             if tab not in tabs: continue
             uzbl = self.tabs[tab]
+            title = escape(uzbl.tabtitle)
 
             style = colour_selector(index, curpage, uzbl)
             (tabc, textc) = style
@@ -1172,12 +1189,7 @@ class UzblTabbed:
             if multiline_tabs:
                 opango = pango
 
-                if tab_titles:
-                    pango += tab_format % (tabc, index, textc,
-                      escape(uzbl.tabtitle))
-
-                else:
-                    pango += tab_format % (tabc, textc, index)
+                pango += tab_format % locals()
 
                 self.tablist.set_markup(pango)
                 listwidth = self.tablist.get_layout().get_pixel_size()[0]
@@ -1185,15 +1197,9 @@ class UzblTabbed:
 
                 if listwidth > (winwidth - 20):
                     multiline.append(opango)
-                    pango = tab_format % (tabc, index, textc,
-                      escape(uzbl.tabtitle))
-
-            elif tab_titles:
-                pango += tab_format % (tabc, index, textc,
-                  escape(uzbl.tabtitle))
-
+                    pango = tab_format % locals()
             else:
-                pango += tab_format % (tabc, textc, index)
+                pango += tab_format % locals()
 
         if multiline_tabs:
             multiline.append(pango)
