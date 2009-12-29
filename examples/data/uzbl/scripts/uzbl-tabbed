@@ -372,9 +372,11 @@ class UzblInstance:
         self.tab = tab
         self.name = name
         self.title = title
+        self.tabtitle = ""
         self.uri = uri
         self._client = None
         self._switch = switch # Switch to tab after loading ?
+        self.title_changed()
 
 
     def got_socket(self, client):
@@ -382,14 +384,43 @@ class UzblInstance:
         self._client = client
 
         self.parent.tabs[self.tab] = self
-        self.parent.update_tablist()
-
         self.parent.config_uzbl(self)
 
         if self._switch:
-            tabs = list(self.parent.notebook)
-            tabid = tabs.index(self.tab)
+            tabid = self.parent.notebook.page_num(self.tab)
             self.parent.goto_tab(tabid)
+
+
+    def title_changed(self, gtk_only = True): # GTK-only is for indexes
+        '''self.title has changed, update the tabs list'''
+
+        tab_titles = config['tab_titles']
+        show_ellipsis = config['show_ellipsis']
+        max_title_len = config['max_title_len']
+
+        # Unicode heavy strings do not like being truncated/sliced so by
+        # re-encoding the string sliced of limbs are removed.
+        self.tabtitle = self.title[:max_title_len + int(show_ellipsis)]
+        if type(self.tabtitle) != types.UnicodeType:
+            self.tabtitle = unicode(self.tabtitle, 'utf-8', 'ignore')
+
+        self.tabtitle = self.tabtitle.encode('utf-8', 'ignore').strip()
+
+        if show_ellipsis and len(self.tabtitle) != len(self.title):
+            self.tabtitle += "\xe2\x80\xa6"
+
+        gtk_tab_format = "%d %s"
+        tab_titles = config['tab_titles']
+        index = self.parent.notebook.page_num(self.tab)
+        if tab_titles:
+            self.parent.notebook.set_tab_label_text(self.tab,
+              gtk_tab_format % (index, self.tabtitle))
+        else:
+            self.parent.notebook.set_tab_label_text(self.tab, str(index))
+
+        # Non-GTK tabs
+        if not gtk_only:
+            self.parent.update_tablist()
 
 
     def set(self, key, val):
@@ -401,7 +432,7 @@ class UzblInstance:
     def exit(self):
         ''' Ask the Uzbl instance to close '''
 
-        self._client.send('exit') #TODO: escape chars ?
+        self._client.send('exit')
 
 
     def parse_command(self, cmd):
@@ -412,7 +443,7 @@ class UzblInstance:
             type, args = args.split(" ", 1)
             if type == "TITLE_CHANGED":
                 self.title = args
-                self.parent.update_tablist()
+                self.title_changed()
             elif type == "VARIABLE_SET":
                 var, _, val = args.split(" ", 2)
                 try:
@@ -594,10 +625,6 @@ class UzblTabbed:
         gtk_refresh = int(config['gtk_refresh'])
         if gtk_refresh < 100:
             gtk_refresh = 100
-
-        # Update tablist timer
-        timerid = timeout_add(gtk_refresh, self.update_tablist)
-        self._timers["update-tablist"] = timerid
 
         # Make SIGTERM act orderly.
         signal(SIGTERM, lambda signum, stack_frame: self.terminate(SIGTERM))
@@ -974,9 +1001,13 @@ class UzblTabbed:
     def goto_tab(self, index):
         '''Goto tab n (supports negative indexing).'''
 
+        title_format = "%s - Uzbl Browser"
+
         tabs = list(self.notebook)
         if 0 <= index < len(tabs):
             self.notebook.set_current_page(index)
+            uzbl = self.tabs[self.notebook.get_nth_page(index)]
+            self.window.set_title(title_format % uzbl.title)
             self.update_tablist()
             return None
 
@@ -986,6 +1017,8 @@ class UzblTabbed:
             # negative index.
             index = tabs.index(tab)
             self.notebook.set_current_page(index)
+            uzbl = self.tabs[self.notebook.get_nth_page(index)]
+            self.window.set_title(title_format % uzbl.title)
             self.update_tablist()
 
         except IndexError:
@@ -1001,8 +1034,7 @@ class UzblTabbed:
 
         ntabs = self.notebook.get_n_pages()
         tabn = (self.notebook.get_current_page() + step) % ntabs
-        self.notebook.set_current_page(tabn)
-        self.update_tablist()
+        self.goto_tab(tabn)
 
 
     def prev_tab(self, step=1):
@@ -1015,8 +1047,7 @@ class UzblTabbed:
         ntabs = self.notebook.get_n_pages()
         tabn = self.notebook.get_current_page() - step
         while tabn < 0: tabn += ntabs
-        self.notebook.set_current_page(tabn)
-        self.update_tablist()
+        self.goto_tab(tabn)
 
 
     def close_tab(self, tabn=None):
@@ -1067,6 +1098,8 @@ class UzblTabbed:
 
             self.quit()
 
+        for tab in self.notebook:
+            self.tabs[tab].title_changed(True)
         self.update_tablist()
 
         return True
@@ -1106,102 +1139,68 @@ class UzblTabbed:
     def update_tablist(self, curpage=None):
         '''Upate tablist status bar.'''
 
-        show_tablist = config['show_tablist']
-        show_gtk_tabs = config['show_gtk_tabs']
+        if not config['show_tablist']:
+            return True
+
         tab_titles = config['tab_titles']
-        show_ellipsis = config['show_ellipsis']
         multiline_tabs = config['multiline_tabs']
 
         if multiline_tabs:
             multiline = []
 
-        if not show_tablist and not show_gtk_tabs:
-            return True
-
         tabs = self.tabs.keys()
         if curpage is None:
             curpage = self.notebook.get_current_page()
 
-        title_format = "%s - Uzbl Browser"
-        max_title_len = config['max_title_len']
+        pango = ""
+        normal = (config['tab_colours'], config['tab_text_colours'])
+        selected = (config['selected_tab'], config['selected_tab_text'])
 
-        if show_tablist:
-            pango = ""
-            normal = (config['tab_colours'], config['tab_text_colours'])
-            selected = (config['selected_tab'], config['selected_tab_text'])
+        if tab_titles:
+            tab_format = "<span %s> [ %d <span %s> %s</span> ] </span>"
 
-            if tab_titles:
-                tab_format = "<span %s> [ %d <span %s> %s</span> ] </span>"
-
-            else:
-                tab_format = "<span %s> [ <span %s>%d</span> ] </span>"
-
-        if show_gtk_tabs:
-            gtk_tab_format = "%d %s"
+        else:
+            tab_format = "<span %s> [ <span %s>%d</span> ] </span>"
 
         for index, tab in enumerate(self.notebook):
             if tab not in tabs: continue
             uzbl = self.tabs[tab]
 
-            if index == curpage:
-                self.window.set_title(title_format % uzbl.title)
+            style = colour_selector(index, curpage, uzbl)
+            (tabc, textc) = style
 
-            # Unicode heavy strings do not like being truncated/sliced so by
-            # re-encoding the string sliced of limbs are removed.
-            tabtitle = uzbl.title[:max_title_len + int(show_ellipsis)]
-            if type(tabtitle) != types.UnicodeType:
-                tabtitle = unicode(tabtitle, 'utf-8', 'ignore')
+            if multiline_tabs:
+                opango = pango
 
-            tabtitle = tabtitle.encode('utf-8', 'ignore').strip()
-
-            if show_ellipsis and len(tabtitle) != len(uzbl.title):
-                tabtitle += "\xe2\x80\xa6"
-
-            if show_gtk_tabs:
                 if tab_titles:
-                    self.notebook.set_tab_label_text(tab,
-                      gtk_tab_format % (index, tabtitle))
-
-                else:
-                    self.notebook.set_tab_label_text(tab, str(index))
-
-            if show_tablist:
-                style = colour_selector(index, curpage, uzbl)
-                (tabc, textc) = style
-
-                if multiline_tabs:
-                    opango = pango
-
-                    if tab_titles:
-                        pango += tab_format % (tabc, index, textc,
-                          escape(tabtitle))
-
-                    else:
-                        pango += tab_format % (tabc, textc, index)
-
-                    self.tablist.set_markup(pango)
-                    listwidth = self.tablist.get_layout().get_pixel_size()[0]
-                    winwidth = self.window.get_size()[0]
-
-                    if listwidth > (winwidth - 20):
-                        multiline.append(opango)
-                        pango = tab_format % (tabc, index, textc,
-                          escape(tabtitle))
-
-                elif tab_titles:
                     pango += tab_format % (tabc, index, textc,
-                      escape(tabtitle))
+                      escape(uzbl.tabtitle))
 
                 else:
                     pango += tab_format % (tabc, textc, index)
 
-        if show_tablist:
-            if multiline_tabs:
-                multiline.append(pango)
-                self.tablist.set_markup('&#10;'.join(multiline))
+                self.tablist.set_markup(pango)
+                listwidth = self.tablist.get_layout().get_pixel_size()[0]
+                winwidth = self.window.get_size()[0]
+
+                if listwidth > (winwidth - 20):
+                    multiline.append(opango)
+                    pango = tab_format % (tabc, index, textc,
+                      escape(uzbl.tabtitle))
+
+            elif tab_titles:
+                pango += tab_format % (tabc, index, textc,
+                  escape(uzbl.tabtitle))
 
             else:
-                self.tablist.set_markup(pango)
+                pango += tab_format % (tabc, textc, index)
+
+        if multiline_tabs:
+            multiline.append(pango)
+            self.tablist.set_markup('&#10;'.join(multiline))
+
+        else:
+            self.tablist.set_markup(pango)
 
         return True
 
