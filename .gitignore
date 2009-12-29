@@ -1,5 +1,6 @@
 uzbl-core
 *.o
+*.pyc
 *~
 tags
 examples/config/enchant
