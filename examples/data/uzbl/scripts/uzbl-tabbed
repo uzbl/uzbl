@@ -439,8 +439,32 @@ class UzblInstance:
                 if var == "uri":
                     self.uri = var
                     self.parent.update_tablist()
-            else:
-                print type, args
+            elif type == "NEW_TAB":
+                self.parent.new_tab(args)
+            elif type == "NEXT_TAB":
+                if args:
+                    self.parent.next_tab(int(args))
+                else:
+                    self.parent.next_tab()
+            elif type == "PREV_TAB":
+                if args:
+                    self.parent.prev_tab(int(args))
+                else:
+                    self.parent.prev_tab()
+            elif type == "GOTO_TAB":
+                self.parent.goto_tab(int(args))
+            elif type == "FIRST_TAB":
+                self.parent.goto_tab(0)
+            elif type == "LAST_TAB":
+                self.parent.goto_tab(-1)
+            elif type == "PRESET_TABS":
+                self.parent.parse_command(["preset"] + args.split())
+            elif type == "BRING_TO_FRONT":
+                self.parent.window.present()
+            elif type == "CLEAN_TABS":
+                self.parent.clean_slate()
+            elif type == "EXIT_ALL_TABS":
+                self.parent.quitrequest()
 
 
     def close(self):
