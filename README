@@ -48,21 +48,21 @@ There are several interfaces to interact with Uzbl:
 * Interactive: you can enter commands (and bind them to shortcuts, even at runtime)
   By default, the behaviour is modal (vi style):
 
-    - command mode: every keystroke is interpreted to run commands
-    - insert mode: keystrokes are not interpreted so you can enter text into html forms
+  - command mode: every keystroke is interpreted to run commands
+  - insert mode: keystrokes are not interpreted so you can enter text into html forms
 
   There is also support for "chained" commands (multiple characters long) (with backspace/esc shortcuts), and keyworded commands. Also you can have incremental matching on commands or match after pressing return.  (see sampleconfig for more info)
 
   Also, copy paste works when typing commands:
 
-    - insert (paste X cliboard)
-    - shift insert (paste primary selection buffer)
+  - insert (paste X cliboard)
+  - shift insert (paste primary selection buffer)
 
 * FIFO & socket file: If enabled by setting their paths through one of the above means, you can have socket and fifo files available which are very useful to programmatically control `uzbl` (from scripts etc).
 
-    - The advantage of the fifo is you can write plaintxt commands to it, but it's half duplex only (`uzbl` cannot send a response to you).
-    - The socket is full duplex but you need a socket-compatible wrapper such as socat to work with it.
-    - For example: `echo <command> | socat - unix-connect:<socketfile>`
+  - The advantage of the fifo is you can write plaintxt commands to it, but it's half duplex only (`uzbl` cannot send a response to you).
+  - The socket is full duplex but you need a socket-compatible wrapper such as socat to work with it.
+  - For example: `echo <command> | socat - unix-connect:<socketfile>`
 
 When uzbl forks a new instance (eg "open in new window") it will use the same commandline arguments (eg the same `--config <file>`), except `--uri` and `--name`. If you made changes to the configuration at runtime, these are not passed on to the child.
 
@@ -86,17 +86,17 @@ Each command starts with the name of the command or an uzbl variable that expand
 The following commands are recognized:
 
 * `set <key> = <value>`
-    - used for changing variables on the fly
-    - the changes are effective immediately; for example, setting the variable `uri` will make uzbl start loading, and changing `status_format` will make the status bar react immediately
-    - if you want to unset a string, use `set` with one space after the equals sign
+  - used for changing variables on the fly
+  - the changes are effective immediately; for example, setting the variable `uri` will make uzbl start loading, and changing `status_format` will make the status bar react immediately
+  - if you want to unset a string, use `set` with one space after the equals sign
 * `print @<key>`
-    - use this to print the value of a variable.
+  - use this to print the value of a variable.
 * `back`
 * `forward`
 * `scroll <vertical|horizontal> <argument>`
-    - argument can be `begin`, `end`, or an amount given in pixels(?)
+  - argument can be `begin`, `end`, or an amount given in pixels(?)
      or as a percentage of the size of the view
-    - set the amount to 100% to scroll a whole page
+  - set the amount to 100% to scroll a whole page
 * `reload`
 * `reload_ign_cache`
 * `stop`
@@ -104,66 +104,66 @@ The following commands are recognized:
 * `zoom_out`
 * `uri <address>`
 * `js <body>`
-    - execute the javascript in `<body>`
-    - remember that the commands must not contain line breaks
+  - execute the javascript in `<body>`
+  - remember that the commands must not contain line breaks
 * `script <file>`
-    - execute the javascript in `<file>`
+  - execute the javascript in `<file>`
 * `toggle_status`
 * `spawn <executable> <additional args>` TODO explain path-alike expansion
-    - runs a command; see EXTERNAL SCRIPTS for details
-    - PATH is searched so giving the full path to commands is not necessary
-    - note that the arguments as specified in "EXTERNAL SCRIPTS" are appended at the end, so the argument numbers will be higher.
+  - runs a command; see EXTERNAL SCRIPTS for details
+  - PATH is searched so giving the full path to commands is not necessary
+  - note that the arguments as specified in "EXTERNAL SCRIPTS" are appended at the end, so the argument numbers will be higher.
 * `sh <command>`
-    - runs a shell command by expanding `%s` in the `shell_cmd` variable with the specified command; primarily useful as a shortcut for `spawn sh -c <body>`
-    - note that the arguments as specified in "EXTERNAL SCRIPTS" are appended at the end, so the argument numbers will be higher.
+  - runs a shell command by expanding `%s` in the `shell_cmd` variable with the specified command; primarily useful as a shortcut for `spawn sh -c <body>`
+  - note that the arguments as specified in "EXTERNAL SCRIPTS" are appended at the end, so the argument numbers will be higher.
 * `sync_spawn <executable> <additional args>`
 * `sync_sh <command>`
-    - these are synchronous variants of `spawn` and `sh`, which means uzbl will wait for them to return
-    - you should only need to use these manually if you want to use a chain command in a handler that wants output from the command it runs
+  - these are synchronous variants of `spawn` and `sh`, which means uzbl will wait for them to return
+  - you should only need to use these manually if you want to use a chain command in a handler that wants output from the command it runs
 * `talk_to_socket <socketfile> <tokens/command>`
-    - lets uzbl talk to a socketfile
+  - lets uzbl talk to a socketfile
 * `exit`
 * `search <string>`
 * `search_reverse <string>`
-    - search with no string will search for the next/previous occurrence of the string previously searched for
+  - search with no string will search for the next/previous occurrence of the string previously searched for
 * `search_clear`
-    - unmark and clear the search string
+  - unmark and clear the search string
 * `toggle_insert_mode <optional state>` TODO new plugin based syntax
-    - if the optional state is 0, disable insert mode. If 1, enable insert mode.
+  - if the optional state is 0, disable insert mode. If 1, enable insert mode.
 * `dump_config`
-    - dumps your current config (which may have been changed at runtime) to stdout, in a format you can use to pipe into uzbl again (or use as config file)
+  - dumps your current config (which may have been changed at runtime) to stdout, in a format you can use to pipe into uzbl again (or use as config file)
 * `keycmd <string>`
 * `keycmd_nl <string>`
-    - keycmd sets the interactive command buffer to `<string>`.  If the given string is a valid binding, it will execute.  `Keycmd_nl` is like `keycmd`, but it also emulates a press of return, causing bindings with a parameter to execute.  For example, `keycmd_nl o google.com` would load the said url if you have a binding like `bind o _ = uri %s`.
+  - keycmd sets the interactive command buffer to `<string>`.  If the given string is a valid binding, it will execute.  `Keycmd_nl` is like `keycmd`, but it also emulates a press of return, causing bindings with a parameter to execute.  For example, `keycmd_nl o google.com` would load the said url if you have a binding like `bind o _ = uri %s`.
 * `keycmd_bs`
-    - erase (backspace) one character from the command buffer
+  - erase (backspace) one character from the command buffer
 * `chain <command> <command> ..`
-    - use for chaining multiple commands
-    - remember to quote the commands; one command must come as one parameter
-    - if you use `chain` with a handler script which must return some output (such as a cookie handler -- uzbl will wait for and use its output), use sync_spawn or sync_sh instead of spawn or sh in the command that should give the output
+  - use for chaining multiple commands
+  - remember to quote the commands; one command must come as one parameter
+  - if you use `chain` with a handler script which must return some output (such as a cookie handler -- uzbl will wait for and use its output), use sync_spawn or sync_sh instead of spawn or sh in the command that should give the output
 * `event <event_name> [event_details]`
-    - send custom event
+  - send custom event
 * `request <request_name> [request_details]`
-    - send custom request (same idea as events, but to be processed by EM, not uzbl-core)
+  - send custom request (same idea as events, but to be processed by EM, not uzbl-core)
 * `menu_add          <label>  = <uzbl command>`
 * `menu_link_add     <label>  = <uzbl command>`
 * `menu_image_add    <label>  = <uzbl command>`
 * `menu_editable_add <label>  = <uzbl command>`
-    - add a new entry "label" that will execute "uzbl command" to one of the right click context menus
+  - add a new entry "label" that will execute "uzbl command" to one of the right click context menus
 * `menu_separator          <label>`
 * `menu_link_separator     <label>`
 * `menu_image_separator    <label>`
 * `menu_editable_separator <label>`
-    - adds a separator line to one of the right click context menus
+  - adds a separator line to one of the right click context menus
 * `menu_remove          <label>`
 * `menu_link_remove     <label>`
 * `menu_image_remove    <label>`
 * `menu_editable_remove <label>`
-    - removes the entry "label" from one of the right click context menus
+  - removes the entry "label" from one of the right click context menus
 * `hardcopy`
-    - open print dialog
+  - open print dialog
 * `include <file>`
-    - read contents of file and interpret commands
+  - read contents of file and interpret commands
 
 ### VARIABLES AND CONSTANTS
 
@@ -189,14 +189,14 @@ Uzbl has a lot of internal variables and constants.  You can get the values (usi
 * `icon`: path to icon for Gtk.
 * `forward_keys`: Whether `uzbl-core` should send key events to the webkit view.
 * `download_handler`: Handler called when page requests a download. In addition to the standard handler arguments, appends the following extra arguments:
-    - `url`: The URL of the item to be downloaded.
-    - `proxy`: (optional) The URL of an HTTP proxy.
+  - `url`: The URL of the item to be downloaded.
+  - `proxy`: (optional) The URL of an HTTP proxy.
 * `cookie_handler`: Handler called when the page requests a cookie to be retrieved or set. Appends the following arguments to the standard handler arguments.
-    - `op`: Either "GET" if the browser requests a cookie to be sent to the server or "PUT" if the server requests the browser save a cookie.
-    - `scheme`: The request address scheme ("http" or "https").
-    - `host`: The host requesting the cookie.
-    - `path`: The request address path.
-    - `data`: The cookie data. Only included for "PUT" requests.
+  - `op`: Either "GET" if the browser requests a cookie to be sent to the server or "PUT" if the server requests the browser save a cookie.
+  - `scheme`: The request address scheme ("http" or "https").
+  - `host`: The host requesting the cookie.
+  - `path`: The request address path.
+  - `data`: The cookie data. Only included for "PUT" requests.
 * `new_window`: handler to execute to invoke new uzbl window (TODO better name)
 * `scheme_handler`: handler to execute for each URI navigated to - the navigation request will be ignored if handler prints "USED\n"
 * `fifo_dir`: location to store FIFOs.
@@ -242,9 +242,9 @@ Uzbl has a lot of internal variables and constants.  You can get the values (usi
 * `TITLE`: The current page title or "(no title)" if no title exists for the current page.
 * `SELECTED_URI`: The URL currently hovered over by the mouse.
 * `NAME`: name of the uzbl instance (TODO: can't we make this a variable?)
-    - default: Xorg window id
-    - overridable with cmdline arg
-    - in GtkSocket mode, this is a random number to prevent name clashes
+  - default: Xorg window id
+  - overridable with cmdline arg
+  - in GtkSocket mode, this is a random number to prevent name clashes
 * `PID`: The process ID of this Uzbl instance.
 
 ### VARIABLE EXPANSION AND COMMAND / JAVASCRIPT SUBSTITUTION
@@ -342,20 +342,20 @@ The script specific arguments are:
 
 * download
 
-    - `$8 url`: The URL of the item to be downloaded.
-    - `$9 proxy`: (optional) The URL of an HTTP proxy.
+  - `$8 url`: The URL of the item to be downloaded.
+  - `$9 proxy`: (optional) The URL of an HTTP proxy.
 
 * cookie handler
 
-    - `$8 GET/PUT`: Whether a cookie should be sent to the server (`GET`) or stored by the browser (`PUT`).
-    - `$9 scheme`: Either `http` or `https`.
-    - `$10 host`: If current page URL is `www.example.com/somepage`, this could be something else than `example.com`, eg advertising from another host.
-    - `$11 path`: The request address path.
-    - `$12 data`: The cookie data. Only included for `PUT` requests.
+  - `$8 GET/PUT`: Whether a cookie should be sent to the server (`GET`) or stored by the browser (`PUT`).
+  - `$9 scheme`: Either `http` or `https`.
+  - `$10 host`: If current page URL is `www.example.com/somepage`, this could be something else than `example.com`, eg advertising from another host.
+  - `$11 path`: The request address path.
+  - `$12 data`: The cookie data. Only included for `PUT` requests.
 
 * scheme handler
 
-    - `$8 URI` of the page to be navigated to
+  - `$8 URI` of the page to be navigated to
 
 Custom, userdefined scripts (`spawn foo bar`) get first the arguments as specified in the config and then the above 7 are added at the end.
 
@@ -366,11 +366,11 @@ JavaScript code run from `uzbl` is given a special object in the global namespac
 Currently, the `Uzbl` object provides only one function:
 
 * `Uzbl.run( <command> )`
-    - Command is any `uzbl` command as defined above.
-    - Return value: a string, either empty or containing the output of the command. Very few commands return their output currently, including `js`, `script`, and `print`.
-    - Examples:
-       * `Uzbl.run("spawn insert_bookmark.sh")`
-       * `uri = Uzbl.run("print @uri")` (see variable expansion below)
+  - Command is any `uzbl` command as defined above.
+  - Return value: a string, either empty or containing the output of the command. Very few commands return their output currently, including `js`, `script`, and `print`.
+  - Examples:
+    * `Uzbl.run("spawn insert_bookmark.sh")`
+    * `uri = Uzbl.run("print @uri")` (see variable expansion below)
 
 ### JAVASCRIPT SECURITY
 
@@ -445,50 +445,50 @@ Basically all events have this format:
 Events/requests which the EM and its plugins listens for
 
 * `BIND` and `MODE_BIND`: Define global and per-mode key/button binds.
-    - `request BIND <keycmd> = <command>` Set global binding (this is a shortcut for `request MODE_BIND global <keycmd> = <command>`).
-    - `request MODE_BIND <modespec> <keycmd> = <command>` Set a local binding for `<modespec>`. The `<modespec>` can be anything like `command`, `insert,command`, `global`, `global,-insert`.
+  - `request BIND <keycmd> = <command>` Set global binding (this is a shortcut for `request MODE_BIND global <keycmd> = <command>`).
+  - `request MODE_BIND <modespec> <keycmd> = <command>` Set a local binding for `<modespec>`. The `<modespec>` can be anything like `command`, `insert,command`, `global`, `global,-insert`.
 
   The `<keycmd>` has a special syntax:
-    - `<keycmd>` ends with a `_`: the command will only be invoked after pressing return/enter. If the user enters text where `<string>` has the underscore, `%s` in the `<command>` string will be replaced by this text (optional).
-    - `<keycmd>` ends with a `*`: similar behavior as with an underscore, but also makes the binding incremental (i.e. the command will be invoked on every keystroke).
-    - `<keycmd>` ends with a `!`: the command will only be invoked after pressing return/enter, no replacement happens. this is useful for preventing `x` to match when you want to bind `xx` also.
-    - `<keycmd>` ends on a different character: you need to type the full string, which will trigger the command immediately, without pressing enter/return.
-    - TODO explain stacked bindings and multi-stage (is that the same?) and what else am i missing? modkeys, showing a prompt mid-bind.
+  - `<keycmd>` ends with a `_`: the command will only be invoked after pressing return/enter. If the user enters text where `<string>` has the underscore, `%s` in the `<command>` string will be replaced by this text (optional).
+  - `<keycmd>` ends with a `*`: similar behavior as with an underscore, but also makes the binding incremental (i.e. the command will be invoked on every keystroke).
+  - `<keycmd>` ends with a `!`: the command will only be invoked after pressing return/enter, no replacement happens. this is useful for preventing `x` to match when you want to bind `xx` also.
+  - `<keycmd>` ends on a different character: you need to type the full string, which will trigger the command immediately, without pressing enter/return.
+  - TODO explain stacked bindings and multi-stage (is that the same?) and what else am i missing? modkeys, showing a prompt mid-bind.
 
   The `<keycmd>` can be any representation of a key on your keyboard or a mousebutton. (note: not all mousebuttons work correctly yet). Examples:
 
-    - `event BIND o _ = uri %s`
-      - `uzbl` will load the url when you type: `o <url><enter>`
-    - `event BIND /*  = search %s`
-      - A `search` command which is called on every character typed after the slash, letting you see the search narrow down while typing.
-      - Hitting return, enter or esc will terminate the search.
-    - `event BIND ZZ  = exit`
-      - When you type `ZZ` and nothing else, the `exit` command will be triggered immediately.
+  - `event BIND o _ = uri %s`
+  - `uzbl` will load the url when you type: `o <url><enter>`
+  - `event BIND /*  = search %s`
+  - A `search` command which is called on every character typed after the slash, letting you see the search narrow down while typing.
+  - Hitting return, enter or esc will terminate the search.
+  - `event BIND ZZ  = exit`
+  - When you type `ZZ` and nothing else, the `exit` command will be triggered immediately.
 * `MODE_CONFIG`: Set mode specific configs. If the mode being modified is the current mode then apply the changes immediately.
-    - `request MODE_CONFIG <mode> <key> = <value>`
+  - `request MODE_CONFIG <mode> <key> = <value>`
 * `ON_EVENT`: Execute a command when a given event is fired.
-    - `request ON_EVENT <EVENT_NAME> <command>`
+  - `request ON_EVENT <EVENT_NAME> <command>`
 * `PROGRESS_CONFIG`: Set a configuration option for `LOAD_PROGRESS` updates.
-    - `request PROGRESS_CONFIG <key> = <value>`: Set progress config variable `key` to `value`.
+  - `request PROGRESS_CONFIG <key> = <value>`: Set progress config variable `key` to `value`.
 * `MODMAP`: Set an alternate name for a key or button.
-    - `request MODMAP <from> <to>`: Create an alias `<to>` for key command `<from>`. This allows `<to>` to be bound to a command, which will be invoked when the `<from>` key or button is pressed.
+  - `request MODMAP <from> <to>`: Create an alias `<to>` for key command `<from>`. This allows `<to>` to be bound to a command, which will be invoked when the `<from>` key or button is pressed.
 * `IGNORE_KEY`: Ignore a key pattern, specified by `<glob>`.
-    - `request IGNORE_KEY <glob>`
+  - `request IGNORE_KEY <glob>`
 * `MODKEY_ADDITION`: Create a compound modkey from multiple individual keys.
-    - `request MODKEY_ADDITION <key1> <key2> <keyn> <result>`: The modkey `<result>` is considered pressed when all of `<key1>`, `<key2>`, and `<keyn>` are pressed.
+  - `request MODKEY_ADDITION <key1> <key2> <keyn> <result>`: The modkey `<result>` is considered pressed when all of `<key1>`, `<key2>`, and `<keyn>` are pressed.
 * `TOGGLE_MODES`
-    - `request TOGGLE_MODES <mode1> <mode2> ... <moden>`
+  - `request TOGGLE_MODES <mode1> <mode2> ... <moden>`
 * `APPEND_KEYCMD`: Append a string to the current keycmd.
-    - `request APPEND_KEYCMD <string>`: Append `<string>` to the current keycmd.
+  - `request APPEND_KEYCMD <string>`: Append `<string>` to the current keycmd.
 * `INJECT_KEYCMD`: Injecting a string into the keycmd at the cursor position.
-    - `request INJECT_KEYCMD <string>`: Inject `<string>` into the keycmd at the current cursor position.
+  - `request INJECT_KEYCMD <string>`: Inject `<string>` into the keycmd at the current cursor position.
 * `KEYCMD_DELETE`: Removes the character after the cursor position in the keycmd.
 * `KEYCMD_STRIP_WORD`: Removes the last word from the keycmd, similar to readline `^W`.
 * `KEYCMD_EXEC_CURRENT`: (tries to) execute whatever is in the keycmd.
 * `SET_KEYCMD`: Allow setting of the keycmd externally.
-    - `request SET_KEYCMD <string>`: Set the keycmd to `<string>`.
+  - `request SET_KEYCMD <string>`: Set the keycmd to `<string>`.
 * `SET_CURSOR_POS`: Allow setting of the cursor position externally.
-    - `request SET_CURSOR_POS <index>`: Set the keycmd cursor to `<index>`. If `<index>` is `+`, advance the cursor by one character, and if it is `-`, move the cursor back by one character.
+  - `request SET_CURSOR_POS <index>`: Set the keycmd cursor to `<index>`. If `<index>` is `+`, advance the cursor by one character, and if it is `-`, move the cursor back by one character.
 * `START_COMPLETION`: TODO explain completion
 
 ### COMMAND LINE ARGUMENTS
