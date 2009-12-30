@@ -322,38 +322,38 @@ The `status_format` variable can contain [Pango](http://library.gnome.org/devel/
 You can use external scripts with Uzbl the following ways:
 
 * Let `uzbl` call them. These scripts are called "handlers" in the `uzbl` config. Used for handling cookies, starting a new download, and more.
-* Call them yourself from inside `uzbl`.  You can bind keys for this. Examples: add new bookmark, load new url
+* Call them yourself from inside `uzbl`.  You can bind keys for this. Examples: add new bookmark, load new url.
 * You could also use `xbindkeys` or your WM config to trigger scripts if `uzbl` does not have focus.
 
 Have a look at the sample configs and scripts!
 
 Handler scripts that are called by uzbl are passed the following arguments:
 
-* `$1 uzbl-config-file`
-* `$2 uzbl-pid`
-* `$3 uzbl-x-window-id`
-* `$4 uzbl_fifo-filename`
-* `$5 uzbl_socket-filename`
-* `$6 current page url`
-* `$7 current page title`
+* `$1 config-file`: The configuration file loaded by this `uzbl` instance.
+* `$2 pid`: The process ID of this `uzbl` instance.
+* `$3 x_id`: The X Windows ID of the process.
+* `$4 fifo`: The filename of the FIFO being used, if any.
+* `$5 socket`: The filename of the Unix socket being used, if any.
+* `$6 uri`: The URI of the current page.
+* `$7 title`: The current page title.
 * `.. [ script specific ] (optional)`
 
 The script specific arguments are:
 
 * download
 
-    - `$8 url of item to download`
-    - `$9 url of http proxy (optional)`
+    - `$8 url`: The URL of the item to be downloaded.
+    - `$9 proxy`: (optional) The URL of an HTTP proxy.
 
 * cookie handler
 
-    - `$8 GET/PUT`
-    - `$9 request address scheme` (e.g. http or https)
-    - `$10 request address host` (if current page url is www.foo.com/somepage, this could be something else than foo, eg advertising from another host)
-    - `$11 request address path`
-    - `$12 cookie-data` (only with PUT requests)
+    - `$8 GET/PUT`: Whether a cookie should be sent to the server (`GET`) or stored by the browser (`PUT`).
+    - `$9 scheme`: Either `http` or `https`.
+    - `$10 host`: If current page URL is `www.example.com/somepage`, this could be something else than `example.com`, eg advertising from another host.
+    - `$11 path`: The request address path.
+    - `$12 data`: The cookie data. Only included for `PUT` requests.
 
-* scheme handler:
+* scheme handler
 
     - `$8 URI` of the page to be navigated to
 
