@@ -1,49 +1,45 @@
 ### INTRODUCTION
-  Any program can only be really useful if it complies to the unix philosophy.
-  Web browsers (and other tools that work with html, such as feedreaders) are frequent violators of this principle:
+Any program can only be really useful if it complies to the unix philosophy. Web browsers (and other tools that work with HTML, such as feed readers) are frequent violators of this principle:
 
 * They build in way too much things into one (complex) program, dramatically decreasing the options to do things the way you want.
-* They store things in way too fancy formats (xml, rdf, sqlite, ... ) which are hard to store under version control, reuse in other scripts, ...
+* They store things in way too fancy formats (XML, RDF, SQLite, etc.) which are hard to store under version control, reuse in other scripts, and so on.
 
-The uzbl project was started as an attempt to resolve this.
+The Uzbl project was started as an attempt to resolve this.
 
 ### EDITIONS
 
-"Uzbl" is an umbrella-project consisting of different flavors.
-In the future more things may come, but for now:
+"Uzbl" is an umbrella project consisting of different flavors. In the future more things may come, but for now:
 
 #### uzbl-core: main component meant for integration with other tools and scripts
 
- * Uses WebkitGtk+ for rendering, network interaction (libsoup).  Css, javascript, plugin support etc come for free
- * Provides interfaces to get data in (commands/configuration) and out (events): stdin/stdout/fifo/unix sockets
- * You see a webkit view and (optionally) a statusbar which gets popuplated externally
- * No built-in means for url changing, loading/saving of bookmarks, saving history, keybinds, downloads, ...
- * Extra functionality: many sample scripts come with it, on <a href="http://www.uzbl.org/wiki/scripts">uzbl wiki</a> or write them yourself
- * Entire configuration/state can be changed at runtime
- * Uzbl keeps it simple, and puts <strong>you</strong> in charge.
+* Uses WebKitGtk+ for rendering and network interaction (libsoup). CSS, JavaScript, and plugin support come for free.
+* Provides interfaces to get data in (commands/configuration) and out (events): stdin/stdout/fifo/Unix sockets.
+* You see a WebKit view and (optionally) a statusbar which gets popuplated externally.
+* No built-in means for url changing, loading/saving of bookmarks, saving history, keybinds, downloads, etc.
+* Extra functionality: many sample scripts come with it. More are available on the [Uzbl wiki](http://www.uzbl.org/wiki/scripts) or you can write them yourself.
+* Entire configuration/state can be changed at runtime.
+* Uzbl keeps it simple, and puts **you** in charge.
 
 #### uzbl-browser: a complete browser experience based on uzbl-core
 
- * Uses a set of scripts (mostly python) that will fit most people, so things work out of the box.  Yet plenty of room for customisation
- * Brings everything you expect: url changing, history, downloads, form filling, link navigation, cookies, event management etc. However: one page per instance
- * Advanced, customizable keyboard interface with support for modes, modkeys, multichars, variables (keywords) etc. (eg you can tweak the interface to be vim-like, emacs-like or any-other-program-like)
- * Adequate default configuration
- * Focus on plaintext storage for your data and configs in simple, parseable formats and adherence to the xdg basedir spec
- * Visually, similar to uzbl-core except that the statusbar contains useful things.  One window per webpage
+* Uses a set of scripts (mostly Python) that will fit most people, so things work out of the box; yet plenty of room for customization.
+* Brings everything you expect: URL changing, history, downloads, form filling, link navigation, cookies, event management etc. However: one page per instance.
+* Advanced, customizable keyboard interface with support for modes, modkeys, multichars, variables (keywords) etc. (eg you can tweak the interface to be vim-like, emacs-like or any-other-program-like).
+* Adequate default configuration.
+* Focus on plaintext storage for your data and configs in simple, parseable formats and adherence to the XDG basedir spec.
+* Visually, similar to `uzbl-core` except that the statusbar contains useful information. One window per webpage.
 
 #### uzbl-tabbed: wraps around uzbl-browser and multiplexes it
 
- * Spawns one window containing multiple tabs, each tab containing a full embedded uzbl-browser
- * Ideal as a quick and simple solution to manage multiple uzbl-browser instances without getting lost
+* Spawns one window containing multiple tabs, each tab containing a full embedded uzbl-browser.
+* Ideal as a quick and simple solution to manage multiple uzbl-browser instances without getting lost.
 
-
-Throughout the documentation, when referring to `uzbl` we mean uzbl-core, unless otherwise specified.
-
+Throughout the documentation, when referring to `uzbl` we mean `uzbl-core`, unless otherwise specified.
 
 ### CONFIGURATION / CONTROL:
-The general idea is that uzbl by default is very bare bones.  You can send it commands to update settings and perform actions, through various interfaces.
-There is a limited default configuration.  Please see config.h to see what it contains.
-By default, there are *no* keybinds defined at all.  (Default keybinds would work counterproductive when you try to customize)
+The general idea is that uzbl by default is very bare bones. You can send it commands to update settings and perform actions, through various interfaces.
+There is a limited default configuration. Please see config.h to see what it contains.
+By default, there are *no* keybinds defined at all. (Default keybinds would work counterproductive when you try to customize)
 For examples of the possibilities what you can do, please see the sample config(s), and uzbl wiki page.
 There are several interfaces to interact with uzbl:
 
