@@ -15,8 +15,8 @@ In the future more things may come, but for now:
 #### uzbl-core: main component meant for integration with other tools and scripts
 
  * Uses WebkitGtk+ for rendering, network interaction (libsoup).  Css, javascript, plugin support etc come for free
- * Provides interfaces to get data in (commands/configuration) and out (events): stdin/stdout/fifo/unix sockets    
- * You see a webkit view and (optionally) a statusbar which gets popuplated externally       
+ * Provides interfaces to get data in (commands/configuration) and out (events): stdin/stdout/fifo/unix sockets
+ * You see a webkit view and (optionally) a statusbar which gets popuplated externally
  * No built-in means for url changing, loading/saving of bookmarks, saving history, keybinds, downloads, ...
  * Extra functionality: many sample scripts come with it, on <a href="http://www.uzbl.org/wiki/scripts">uzbl wiki</a> or write them yourself
  * Entire configuration/state can be changed at runtime
@@ -27,9 +27,9 @@ In the future more things may come, but for now:
  * Uses a set of scripts (mostly python) that will fit most people, so things work out of the box.  Yet plenty of room for customisation
  * Brings everything you expect: url changing, history, downloads, form filling, link navigation, cookies, event management etc. However: one page per instance
  * Advanced, customizable keyboard interface with support for modes, modkeys, multichars, variables (keywords) etc. (eg you can tweak the interface to be vim-like, emacs-like or any-other-program-like)
- * Adequate default configuration      
+ * Adequate default configuration
  * Focus on plaintext storage for your data and configs in simple, parseable formats and adherence to the xdg basedir spec
- * Visually, similar to uzbl-core except that the statusbar contains useful things.  One window per webpage  
+ * Visually, similar to uzbl-core except that the statusbar contains useful things.  One window per webpage
 
 #### uzbl-tabbed: wraps around uzbl-browser and multiplexes it
 
@@ -84,7 +84,7 @@ Uzbl will read commands via standard input, named fifo pipe (if `fifo_dir` is se
 For convenience, uzbl can also be instructed to read commands from a file on startup by using the `-c` option.  Indeed, the config file is nothing more than a list of commands.
 
 Each command starts with the name of the command or an uzbl variable that expands to it.  A command is terminated by a newline.
-Empty lines and lines that start with the hash sign are ignored by the parser.  Command names are always written in lowercase.
+Empty lines and lines that start with the hash sign are ignored by the parser. Command names are always written in lowercase.
 
 The following commands are recognized:
 
@@ -171,7 +171,7 @@ The following commands are recognized:
 
 ### VARIABLES AND CONSTANTS
 Uzbl has a lot of internal variables and constants.  You can get the values (using the `print` command, see above), and for variables you can also change the value at
-runtime.  Some of the values can be passed at start up through commandline arguments, others need to be set by using commands (eg in config file). 
+runtime.  Some of the values can be passed at start up through commandline arguments, others need to be set by using commands (eg in config file).
 Some of them have default values (see config.h)
 Some variables have callback functions which will get called after setting the variable to perform some additional logic (see below)
 
@@ -300,7 +300,7 @@ the java script in @< >@.
 
     print The currently viewed document contains @<document.links.length>@ links
 
-The @<>@ substitution can also load JavaScript from a file, syntax:  @<+filename>@
+The @<>@ substitution can also load JavaScript from a file, syntax: @<+filename>@
 
     print JS return value from file: @<+/path/to/file.js>@
 
@@ -442,7 +442,7 @@ or by having the EM listen to a socket.
 - see example event_handler.py
 
 Note: cookie events are not sent to an event handler but handled internally through the cookie handler because of their synchronous nature.
-Cookie events are really something completely different from all other events.  Maybe someday we'll use HTTP proxies or something for cookies
+Cookie events are really something completely different from all other events. Maybe someday we'll use HTTP proxies or something for cookies
 or synchronous events (which also have other nice use cases), but for now we still use the handler code)
 
 Basically all events have this format:
