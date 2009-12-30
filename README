@@ -218,30 +218,31 @@ Besides the builtin variables you can also define your own ones and use them in 
   - `proxy_url`: http traffic socks proxy (eg: http://<host>:<port>)
   - `max_conns`: max simultaneous connections (default: 100)
   - `max_conns_host`: max simultaneous connections per hostname (default: 6)
+  - `view_source`: Set the browser in "view source" mode (default 0). Any URI visited while "view_source" is 1 will display the page source rather than the rendered content.
   - `useragent`: to be expanded string
-  - `zoom_level`
-  - `font_size`
-  - `monospace_size`
-  - `minimum_font_size`
-  - `disable_plugins` (TODO rename to enable)
-  - `disable_scripts` (TODO rename to enable)
-  - `autoload_images`
-  - `autoshrink_images`: shrink images to window size (default 0)
-  - `enable_spellcheck`
-  - `enable_private`
-  - `print_backgrounds`: print background images? (default 0)
-  - `stylesheet_uri`: use this to override the pagelayout with a custom stylesheet
-  - `resizable_text_areas`
-  - `default_encoding`: iso-8859-1 by default
-  - `enforce_96_dpi`: 1 by default
-  - `caret_browsing`
-  - `default_font_family` = sans-serif
-  - `monospace_font_family` = monospace (example "Aerial Mono" )
-  - `cursive_font_family` = sans
-  - `fantasy_font_family` = "Pterra"
-  - `serif_font_family` = serif (example "DejaVu Serif")
-  - `sans_serif_font_family` = sans (example "DejaVu Sans")
-
+  - `zoom_level`: The factor by which elements in the page are scaled with respect to their original size. Setting this will resize the currently displayed page.
+  - `zoom_type`: Whether to use "full-content" zoom (defaults to true). With full-content zoom on, all page content, not just text, is zoomed. When full-content zoom is off, only the text of a page is zoomed.
+  - `font_size`: The default font size.
+  - `default_font_family`: The default font family used to display text.
+  - `monospace_font_family`: The default font family used to display monospace text.
+  - `cursive_font_family`: The default Cursive font family used to display text.
+  - `sans_serif_font_family`: The default Sans Serif font family used to display text.
+  - `serif_font_family`: The default Serif font family used to display text.
+  - `fantasy_font_family`: The default Fantasy font family used to display text.
+  - `monospace_size`: The default size of monospaced font (default 1).
+  - `minimum_font_size`: The minimum font size used to display text (default 1).
+  - `disable_plugins`: (TODO rename to enable)
+  - `disable_scripts`: (TODO rename to enable)
+  - `autoload_images`: Automatically load images (default 1).
+  - `autoshrink_images`: Shrink images to window size (default 0).
+  - `enable_spellcheck`:
+  - `enable_private`:
+  - `print_backgrounds`: Print background images? (default 0).
+  - `stylesheet_uri`: Use this to override the pagelayout with a custom stylesheet.
+  - `resizable_text_areas`: Whether text areas can be resized (default 0).
+  - `default_encoding`: The default text encoding (default "iso-8859-1").
+  - `enforce_96_dpi`: Enforce a resolution of 96 DPI (default 1).
+  - `caret_browsing`: Whether the caret is enabled in the text portion of pages (default 0).
 
 * Constants (not dumpable or writeable):
   - WEBKIT_MAJOR: set at compile time
