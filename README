@@ -178,28 +178,19 @@ Some variables have callback functions which will get called after setting the v
 Besides the builtin variables you can also define your own ones and use them in the exact same way as the builtin ones.
 
 * Variables:
-  - `uri`: (callback: load the uri)
+  - `uri`: The URI of the current page. (callback: load the uri)
   - `verbose`: affects output on stdout
-  - `inject_html`
+  - `inject_html`: Inject an HTML string, navigating to the URI "about:blank" and rendering the HTML sting given.
+  - `geometry`: Geometry and position of the Uzbl window. Format is "<width>x<height>+<x-offset>+<y-offset>".
   - `keycmd`: holds the input buffer (callback: update input buffer)
-  - `status_message`: (callback: update title)
   - `show_status`: show statusbar or not
   - `status_top`: statusbar on top?
   - `status_format`: marked up, to be expanded string for statusbar (callback: update statusbar)
-  - `status_pbar_done`: character to denote done % of pageload
-  - `status_pbar_pending`: character to denote pending % of pageload
-  - `status_pbar_width`: width of progressbar
   - `status_background`: color which can be used to override Gtk theme.
-  - `insert_indicator`: string to denote insert mode TODO plugin variable
-  - `command_indicator`: string to denote command mode TODO plugin variable
   - `title_format_long`: titlebar string when no statusbar shown (will be expanded
   - `title_format_short`: titlebar string when statusbar shown (will be expanded)
   - `icon`: path to icon for Gtk
   - `forward_keys`: whether uzbl-core should send key events to the webkit view
-  - `insert_mode`: whether insert mode is active TODO explain plugin variable
-  - `always_insert_mode`: set this to true if you don't like modal (vim-like) interfaces TODO explain plugin variable
-  - `reset_command_mode`: automatically revert to command mode on pageload (unless always_insert_mode is set) TODO explain plugin variable
-  - `modkey`: modkey which can be pressed to activate keybind from inside insert mode
   - `download_handler`: Handler called when page requests a download. In addition to the standard handler arguments, appends the following extra arguments:
     - `url`: The URL of the item to be downloaded.
     - `proxy`: (optional) The URL of an HTTP proxy.
