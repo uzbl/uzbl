@@ -1010,7 +1010,7 @@ class UzblTabbed:
         instance.'''
 
         binds = []
-        bind_format = r'bind %s = sh "echo \"%s\" > \"%s\""'
+        bind_format = r'@bind %s = sh "echo \"%s\" > \"%s\""'
         bind = lambda key, action: binds.append(bind_format % (key, action,\
           self.fifo_socket))
 
