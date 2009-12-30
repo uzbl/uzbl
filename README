@@ -447,9 +447,9 @@ Events/requests which the EM and its plugins listens for
     - `request MODE_BIND <modespec> <keycmd> = <command>` Set a local binding for `<modespec>`. The `<modespec>` can be anything like `command`, `insert,command`, `global`, `global,-insert`.
 
   The `<keycmd>` has a special syntax:
-    - `<keycmd>` ends with an `_`: the command will only be invoked after pressing return/enter. If the user enters text where `<string>` has the underscore, `%s` in the `<command>` string will be replaced by this text (optional).
-    - `<keycmd>` ends with an `*`: similar behavior as with an underscore, but also makes the binding incremental (i.e. the command will be invoked on every keystroke).
-    - `<keycmd>` ends with an `!`: the command will only be invoked after pressing return/enter, no replacement happens. this is useful for preventing `x` to match when you want to bind `xx` also.
+    - `<keycmd>` ends with a `_`: the command will only be invoked after pressing return/enter. If the user enters text where `<string>` has the underscore, `%s` in the `<command>` string will be replaced by this text (optional).
+    - `<keycmd>` ends with a `*`: similar behavior as with an underscore, but also makes the binding incremental (i.e. the command will be invoked on every keystroke).
+    - `<keycmd>` ends with a `!`: the command will only be invoked after pressing return/enter, no replacement happens. this is useful for preventing `x` to match when you want to bind `xx` also.
     - `<keycmd>` ends on a different character: you need to type the full string, which will trigger the command immediately, without pressing enter/return.
     - TODO explain stacked bindings and multi-stage (is that the same?) and what else am i missing? modkeys, showing a prompt mid-bind.
 
