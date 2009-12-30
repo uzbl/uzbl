@@ -200,8 +200,15 @@ Besides the builtin variables you can also define your own ones and use them in 
   - `always_insert_mode`: set this to true if you don't like modal (vim-like) interfaces TODO explain plugin variable
   - `reset_command_mode`: automatically revert to command mode on pageload (unless always_insert_mode is set) TODO explain plugin variable
   - `modkey`: modkey which can be pressed to activate keybind from inside insert mode
-  - `download_handler`
-  - `cookie_handler`
+  - `download_handler`: Handler called when page requests a download. In addition to the standard handler arguments, appends the following extra arguments:
+    - `url`: The URL of the item to be downloaded.
+    - `proxy`: (optional) The URL of an HTTP proxy.
+  - `cookie_handler`: Handler called when the page requests a cookie to be retrieved or set. Appends the following arguments to the standard handler arguments.
+    - `op`: Either "GET" if the browser requests a cookie to be sent to the server or "PUT" if the server requests the browser save a cookie.
+    - `scheme`: The request address scheme ("http" or "https").
+    - `host`: The host requesting the cookie.
+    - `path`: The request address path.
+    - `data`: The cookie data. Only included for "PUT" requests.
   - `new_window`: handler to execute to invoke new uzbl window (TODO better name)
   - `scheme_handler`: handler to execute for each URI navigated to - the navigation request will be ignored if handler prints "USED\n"
   - `fifo_dir`: location to store fifo's
