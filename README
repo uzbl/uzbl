@@ -177,80 +177,79 @@ Some variables have callback functions which will get called after setting the v
 
 Besides the builtin variables you can also define your own ones and use them in the exact same way as the builtin ones.
 
-* Variables:
-  - `uri`: The URI of the current page. (callback: load the uri)
-  - `verbose`: affects output on stdout
-  - `inject_html`: Inject an HTML string, navigating to the URI "about:blank" and rendering the HTML sting given.
-  - `geometry`: Geometry and position of the Uzbl window. Format is "<width>x<height>+<x-offset>+<y-offset>".
-  - `keycmd`: holds the input buffer (callback: update input buffer)
-  - `show_status`: show statusbar or not
-  - `status_top`: statusbar on top?
-  - `status_format`: marked up, to be expanded string for statusbar (callback: update statusbar)
-  - `status_background`: color which can be used to override Gtk theme.
-  - `title_format_long`: titlebar string when no statusbar shown (will be expanded
-  - `title_format_short`: titlebar string when statusbar shown (will be expanded)
-  - `icon`: path to icon for Gtk
-  - `forward_keys`: whether uzbl-core should send key events to the webkit view
-  - `download_handler`: Handler called when page requests a download. In addition to the standard handler arguments, appends the following extra arguments:
+#### Variables:
+
+* `uri`: The URI of the current page. (callback: load the uri)
+* `verbose`: affects output on stdout
+* `inject_html`: Inject an HTML string, navigating to the URI "about:blank" and rendering the HTML sting given.
+* `geometry`: Geometry and position of the Uzbl window. Format is "<width>x<height>+<x-offset>+<y-offset>".
+* `keycmd`: holds the input buffer (callback: update input buffer)
+* `show_status`: show statusbar or not
+* `status_top`: statusbar on top?
+* `status_format`: marked up, to be expanded string for statusbar (callback: update statusbar)
+* `status_background`: color which can be used to override Gtk theme.
+* `title_format_long`: titlebar string when no statusbar shown (will be expanded
+* `title_format_short`: titlebar string when statusbar shown (will be expanded)
+* `icon`: path to icon for Gtk
+* `forward_keys`: whether uzbl-core should send key events to the webkit view
+* `download_handler`: Handler called when page requests a download. In addition to the standard handler arguments, appends the following extra arguments:
     - `url`: The URL of the item to be downloaded.
     - `proxy`: (optional) The URL of an HTTP proxy.
-  - `cookie_handler`: Handler called when the page requests a cookie to be retrieved or set. Appends the following arguments to the standard handler arguments.
+* `cookie_handler`: Handler called when the page requests a cookie to be retrieved or set. Appends the following arguments to the standard handler arguments.
     - `op`: Either "GET" if the browser requests a cookie to be sent to the server or "PUT" if the server requests the browser save a cookie.
     - `scheme`: The request address scheme ("http" or "https").
     - `host`: The host requesting the cookie.
     - `path`: The request address path.
     - `data`: The cookie data. Only included for "PUT" requests.
-  - `new_window`: handler to execute to invoke new uzbl window (TODO better name)
-  - `scheme_handler`: handler to execute for each URI navigated to - the navigation request will be ignored if handler prints "USED\n"
-  - `fifo_dir`: location to store fifo's
-  - `socket_dir`: location to store sockets
-  - `http_debug`: http debug mode (value 0-3)
-  - `shell_cmd`: alias which will be expanded to use shell commands (eg sh -c)
-  - `proxy_url`: http traffic socks proxy (eg: http://<host>:<port>)
-  - `max_conns`: max simultaneous connections (default: 100)
-  - `max_conns_host`: max simultaneous connections per hostname (default: 6)
-  - `view_source`: Set the browser in "view source" mode (default 0). Any URI visited while "view_source" is 1 will display the page source rather than the rendered content.
-  - `useragent`: to be expanded string
-  - `zoom_level`: The factor by which elements in the page are scaled with respect to their original size. Setting this will resize the currently displayed page.
-  - `zoom_type`: Whether to use "full-content" zoom (defaults to true). With full-content zoom on, all page content, not just text, is zoomed. When full-content zoom is off, only the text of a page is zoomed.
-  - `font_size`: The default font size.
-  - `default_font_family`: The default font family used to display text.
-  - `monospace_font_family`: The default font family used to display monospace text.
-  - `cursive_font_family`: The default Cursive font family used to display text.
-  - `sans_serif_font_family`: The default Sans Serif font family used to display text.
-  - `serif_font_family`: The default Serif font family used to display text.
-  - `fantasy_font_family`: The default Fantasy font family used to display text.
-  - `monospace_size`: The default size of monospaced font (default 1).
-  - `minimum_font_size`: The minimum font size used to display text (default 1).
-  - `disable_plugins`: (TODO rename to enable)
-  - `disable_scripts`: (TODO rename to enable)
-  - `autoload_images`: Automatically load images (default 1).
-  - `autoshrink_images`: Shrink images to window size (default 0).
-  - `enable_spellcheck`:
-  - `enable_private`:
-  - `print_backgrounds`: Print background images? (default 0).
-  - `stylesheet_uri`: Use this to override the pagelayout with a custom stylesheet.
-  - `resizable_text_areas`: Whether text areas can be resized (default 0).
-  - `default_encoding`: The default text encoding (default "iso-8859-1").
-  - `enforce_96_dpi`: Enforce a resolution of 96 DPI (default 1).
-  - `caret_browsing`: Whether the caret is enabled in the text portion of pages (default 0).
+* `new_window`: handler to execute to invoke new uzbl window (TODO better name)
+* `scheme_handler`: handler to execute for each URI navigated to - the navigation request will be ignored if handler prints "USED\n"
+* `fifo_dir`: location to store fifo's
+* `socket_dir`: location to store sockets
+* `http_debug`: http debug mode (value 0-3)
+* `shell_cmd`: alias which will be expanded to use shell commands (eg sh -c)
+* `proxy_url`: http traffic socks proxy (eg: http://<host>:<port>)
+* `max_conns`: max simultaneous connections (default: 100)
+* `max_conns_host`: max simultaneous connections per hostname (default: 6)
+* `view_source`: Set the browser in "view source" mode (default 0). Any URI visited while "view_source" is 1 will display the page source rather than the rendered content.
+* `useragent`: to be expanded string
+* `zoom_level`: The factor by which elements in the page are scaled with respect to their original size. Setting this will resize the currently displayed page.
+* `zoom_type`: Whether to use "full-content" zoom (defaults to true). With full-content zoom on, all page content, not just text, is zoomed. When full-content zoom is off, only the text of a page is zoomed.
+* `font_size`: The default font size.
+* `default_font_family`: The default font family used to display text.
+* `monospace_font_family`: The default font family used to display monospace text.
+* `cursive_font_family`: The default Cursive font family used to display text.
+* `sans_serif_font_family`: The default Sans Serif font family used to display text.
+* `serif_font_family`: The default Serif font family used to display text.
+* `fantasy_font_family`: The default Fantasy font family used to display text.
+* `monospace_size`: The default size of monospaced font (default 1).
+* `minimum_font_size`: The minimum font size used to display text (default 1).
+* `disable_plugins`: (TODO rename to enable)
+* `disable_scripts`: (TODO rename to enable)
+* `autoload_images`: Automatically load images (default 1).
+* `autoshrink_images`: Shrink images to window size (default 0).
+* `enable_spellcheck`:
+* `enable_private`:
+* `print_backgrounds`: Print background images? (default 0).
+* `stylesheet_uri`: Use this to override the pagelayout with a custom stylesheet.
+* `resizable_text_areas`: Whether text areas can be resized (default 0).
+* `default_encoding`: The default text encoding (default "iso-8859-1").
+* `enforce_96_dpi`: Enforce a resolution of 96 DPI (default 1).
+* `caret_browsing`: Whether the caret is enabled in the text portion of pages (default 0).
 
-* Constants (not dumpable or writeable):
-  - WEBKIT_MAJOR: set at compile time
-  - WEBKIT_MINOR: set at compile time
-  - WEBKIT_MICRO: set at compile time
-  - ARCH_UZBL: set at compile time
-  - COMMIT: set at compile time
-  - LOAD_PROGRESS
-  - LOAD_PROGRESSBAR
-  - TITLE
-  - SELECTED_URI
-  - MODE
-  - NAME: name of the uzbl instance (TODO: can't we make this a variable?)
-          * default: Xorg window id
-          * overridable with cmdline arg
-          * in GtkSocket mode, this is a random number to prevent name clashes
+#### Constants (not dumpable or writeable):
 
+* `WEBKIT_MAJOR`: WebKit major version number, set at compile time.
+* `WEBKIT_MINOR`: WebKit minor version number, set at compile time.
+* `WEBKIT_MICRO`: WebKit micro version number, set at compile time
+* `ARCH_UZBL`: Processor architecture for which Uzbl is compiled, set at compile time.
+* `COMMIT`: ID of the current Git commit, set at compile time.
+* `TITLE`: The current page title or "(no title)" if no title exists for the current page.
+* `SELECTED_URI`: The URL currently hovered over by the mouse.
+* `NAME`: name of the uzbl instance (TODO: can't we make this a variable?)
+    - default: Xorg window id
+    - overridable with cmdline arg
+    - in GtkSocket mode, this is a random number to prevent name clashes
+* `PID`: The process ID of this Uzbl instance.
 
 ### VARIABLE EXPANSION AND COMMAND/JAVA SCRIPT SUBSTITUTION
 
