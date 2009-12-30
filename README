@@ -490,22 +490,27 @@ Events/requests which the EM and its plugins listens for
 * `START_COMPLETION`: TODO explain completion
 
 ### COMMAND LINE ARGUMENTS
-    uzbl [ uri ]
-    -u, --uri=URI            Uri to load at startup (equivalent to 'uzbl <uri>' or 'set uri = URI' after uzbl has launched)
-    -v, --verbose            Whether to print all messages or just errors.
-    -n, --name=NAME          Name of the current instance (defaults to Xorg window id)
-    -c, --config=FILE        Path to config file or '-' for stdin
-    -s, --socket=SOCKET      Socket ID
-    -g, --geometry=GEOMETRY  Set window geometry (format: WIDTHxHEIGHT+-X+-Y or maximized)
-    -V, --version            Print the version and exit
-    --display=DISPLAY        X display to use
-    --help                   Help
 
-uzbl scheme://address will work as you expect. If you don't provide the
-scheme:// part, it will check if the argument is an existing file in the
-filesystem: if it is, it will prepend file://, if not, it will
-prepend http://.
+Uzbl is invoked as
+
+    uzbl-(core|browser|tabbed) [ arguments ] [ uri ]
+
+where `arguments` and `uri` are both optional. `arguments` can be:
+
+* `-u`, `--uri=URI`: URI to load at startup. Equivalent to `uzbl <uri>` or `set uri = URI` after `uzbl` has launched.
+* `-v`, `--verbose`: Whether to print all messages or just errors.
+* `-n`, `--name=NAME`: Name of the current instance (defaults to Xorg window id).
+* `-c`, `--config=FILE`: Path to config file or `-` for stdin.
+* `-s`, `--socket=SOCKET`: Xembed socket ID.
+* `--connect-socket=SOCKET`: Connect to server socket for event managing.
+* `-g`, `--geometry=GEOMETRY`: Set window geometry (format: `WIDTHxHEIGHT+-X+-Y` or `maximized`).
+* `-V`, `--version`: Print the version and exit.
+* `--display=DISPLAY`: X display to use.
+* `--help`: Help
+
+`uzbl-core scheme://address` will work as you expect. If you don't provide the `scheme://` part, it will check if the argument is an existing file in the filesystem, if it is, it will prepend `file://`, if not, it will prepend `http://`.
 
 
 ### BUGS
+
 Please report new issues @ uzbl.org/bugs
