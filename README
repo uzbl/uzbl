@@ -1,4 +1,5 @@
 ### INTRODUCTION
+
 Any program can only be really useful if it complies to the unix philosophy. Web browsers (and other tools that work with HTML, such as feed readers) are frequent violators of this principle:
 
 * They build in way too much things into one (complex) program, dramatically decreasing the options to do things the way you want.
@@ -74,9 +75,10 @@ When uzbl forks a new instance (eg "open in new window") it will use the same co
 
 #### Uzbl-tabbed
 
-* also has some own keybindings
+* also has some of its own keybindings.
 
 ### COMMAND SYNTAX
+
 Uzbl will read commands via standard input, named fifo pipe (if `fifo_dir` is set) and IPC socket (when `socket_dir` is set). For convenience, uzbl can also be instructed to read commands from a file on startup by using the `--config` option. Indeed, the config file is nothing more than a list of commands.
 
 Each command starts with the name of the command or an uzbl variable that expands to it. A command is terminated by a newline. Empty lines and lines that start with the hash sign are ignored by the parser. Command names are always written in lowercase.
@@ -509,7 +511,6 @@ where `arguments` and `uri` are both optional. `arguments` can be:
 * `--help`: Help
 
 `uzbl-core scheme://address` will work as you expect. If you don't provide the `scheme://` part, it will check if the argument is an existing file in the filesystem, if it is, it will prepend `file://`, if not, it will prepend `http://`.
-
 
 ### BUGS
 
