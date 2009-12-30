@@ -442,7 +442,7 @@ Basically all events have this format:
 
 Events/requests which the EM and its plugins listens for
 
-* `BIND` and `MODE_BIND`: define global resp. per-mode key/button binds.
+* `BIND` and `MODE_BIND`: Define global and per-mode key/button binds.
     - `request BIND <keycmd> = <command>` Set global binding (this is a shortcut for `request MODE_BIND global <keycmd> = <command>`).
     - `request MODE_BIND <modespec> <keycmd> = <command>` Set a local binding for `<modespec>`. The `<modespec>` can be anything like `command`, `insert,command`, `global`, `global,-insert`.
 
@@ -462,30 +462,32 @@ Events/requests which the EM and its plugins listens for
       - Hitting return, enter or esc will terminate the search.
     - `event BIND ZZ  = exit`
       - When you type `ZZ` and nothing else, the `exit` command will be triggered immediately.
-* `MODE_CONFIG`: ??
-     request MODE_CONFIG <mode> <key> = <value>
-* `ON_EVENT`: allows you to bind misc commands to misc events
-     request ON_EVENT <EVENT_NAME> <command>
-* `PROGRESS_CONFIG`
-     request PROGRESS_CONFIG <key> = <value>
-* `MODMAD`
-     request MODMAP From To
-* `IGNORE_KEY`
-     request IGNORE_KEY <glob>
-* `MODKEY_ADDITION`
-     request MODKEY_ADDITION <key1> <key2> <keyn> <result>
+* `MODE_CONFIG`: Set mode specific configs. If the mode being modified is the current mode then apply the changes immediately.
+    - `request MODE_CONFIG <mode> <key> = <value>`
+* `ON_EVENT`: Execute a command when a given event is fired.
+    - `request ON_EVENT <EVENT_NAME> <command>`
+* `PROGRESS_CONFIG`: Set a configuration option for `LOAD_PROGRESS` updates.
+    - `request PROGRESS_CONFIG <key> = <value>`: Set progress config variable `key` to `value`.
+* `MODMAP`: Set an alternate name for a key or button.
+    - `request MODMAP <from> <to>`: Create an alias `<to>` for key command `<from>`. This allows `<to>` to be bound to a command, which will be invoked when the `<from>` key or button is pressed.
+* `IGNORE_KEY`: Ignore a key pattern, specified by `<glob>`.
+    - `request IGNORE_KEY <glob>`
+* `MODKEY_ADDITION`: Create a compound modkey from multiple individual keys.
+    - `request MODKEY_ADDITION <key1> <key2> <keyn> <result>`: The modkey `<result>` is considered pressed when all of `<key1>`, `<key2>`, and `<keyn>` are pressed.
 * `TOGGLE_MODES`
-     event TOGGLE_MODES <mode1> <mode2> ... <moden>
-* `APPEND_KEYCMD`: append `<string> to keycmd
-* `INJECT_KEYCMD <string>`: replace keycmd by `<string>`
-* `KEYCMD_DELETE`
-* `KEYCMD_STRIP_WORD`
-* `KEYCMD_EXEC_CURRENT`: (tries to) execute whatever is in the keycmd
-* `SET_KEYCMD`
-* `SET_CURSOR_POS`
+    - `request TOGGLE_MODES <mode1> <mode2> ... <moden>`
+* `APPEND_KEYCMD`: Append a string to the current keycmd.
+    - `request APPEND_KEYCMD <string>`: Append `<string>` to the current keycmd.
+* `INJECT_KEYCMD`: Injecting a string into the keycmd at the cursor position.
+    - `request INJECT_KEYCMD <string>`: Inject `<string>` into the keycmd at the current cursor position.
+* `KEYCMD_DELETE`: Removes the character after the cursor position in the keycmd.
+* `KEYCMD_STRIP_WORD`: Removes the last word from the keycmd, similar to readline `^W`.
+* `KEYCMD_EXEC_CURRENT`: (tries to) execute whatever is in the keycmd.
+* `SET_KEYCMD`: Allow setting of the keycmd externally.
+    - `request SET_KEYCMD <string>`: Set the keycmd to `<string>`.
+* `SET_CURSOR_POS`: Allow setting of the cursor position externally.
+    - `request SET_CURSOR_POS <index>`: Set the keycmd cursor to `<index>`. If `<index>` is `+`, advance the cursor by one character, and if it is `-`, move the cursor back by one character.
 * `START_COMPLETION`: TODO explain completion
-
-
 
 ### COMMAND LINE ARGUMENTS
     uzbl [ uri ]
