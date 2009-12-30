@@ -34,53 +34,52 @@ The Uzbl project was started as an attempt to resolve this.
 * Spawns one window containing multiple tabs, each tab containing a full embedded uzbl-browser.
 * Ideal as a quick and simple solution to manage multiple uzbl-browser instances without getting lost.
 
-Throughout the documentation, when referring to `uzbl` we mean `uzbl-core`, unless otherwise specified.
+Throughout the documentation, when referring to Uzbl we mean `uzbl-core`, unless otherwise specified.
 
 ### CONFIGURATION / CONTROL:
-The general idea is that uzbl by default is very bare bones. You can send it commands to update settings and perform actions, through various interfaces.
-There is a limited default configuration. Please see config.h to see what it contains.
-By default, there are *no* keybinds defined at all. (Default keybinds would work counterproductive when you try to customize)
-For examples of the possibilities what you can do, please see the sample config(s), and uzbl wiki page.
-There are several interfaces to interact with uzbl:
 
-* uzbl --config <filename>: <filename> will be read line by line, and the commands in it will be executed.  Useful to configure uzbl at startup.
-  If you have a file in `$XDG_CONFIG_HOME/uzbl/config` (this expands to ~/.config/uzbl/config on most systems) it will be automatically recognized
-* stdin: to write commands into stdin, use `--config -` (or `-c -`)
-* interactive: you can enter commands (and bind them to shortcuts, even at runtime)
+The general idea is that Uzbl by default is very bare bones. You can send it commands to update settings and perform actions, through various interfaces. There is a limited default configuration. Please see `config.h` to see what it contains. By default, there are *no* keybinds defined at all. (Default keybinds would work counterproductive when you try to customize). For examples of the possibilities what you can do, please see the sample config(s), and uzbl wiki page.
+
+There are several interfaces to interact with Uzbl:
+
+* `uzbl --config <filename>`: `<filename>` will be read line by line, and the commands in it will be executed. Useful to configure Uzbl at startup. If you have a file in `$XDG_CONFIG_HOME/uzbl/config` (this expands to `~/.config/uzbl/config` on most systems), it will be automatically recognized.
+* `stdin`: to write commands into `stdin`, use `--config -` (or `-c -`).
+* Interactive: you can enter commands (and bind them to shortcuts, even at runtime)
   By default, the behaviour is modal (vi style):
-  command mode: every keystroke is interpreted to run commands
-  insert mode: keystrokes are not interpreted so you can enter text into html forms
-  But if you don't like modal interfaces, you can set `always_insert_mode` and configure a modkey to execute the commands. (emacs style).
-  There is also support for "chained" commands (multiple characters long) (with backspace/esc shortcuts), and keyworded commands.
-  Also you can have incremental matching on commands or match after pressing return.  (see sampleconfig for more info)
+
+    - command mode: every keystroke is interpreted to run commands
+    - insert mode: keystrokes are not interpreted so you can enter text into html forms
+
+  There is also support for "chained" commands (multiple characters long) (with backspace/esc shortcuts), and keyworded commands. Also you can have incremental matching on commands or match after pressing return.  (see sampleconfig for more info)
+
   Also, copy paste works when typing commands:
-  * insert (paste X cliboard)
-  * shift insert (paste primary selection buffer)
-* FIFO & socket file: if enabled by setting their paths through one of the above means, you can have socket and fifo files available which are very useful to programatically control uzbl (from scripts etc).
-  The advantage of the fifo is you can write plaintxt commands to it, but it's half duplex only (uzbl cannot send a response to you).
-  The socket is full duplex but you need a socket-compatible wrapper such as socat to work with it.
-  For example: echo <command> | socat - unix-connect:<socketfile>
 
-When uzbl forks a new instance (eg "open in new window") it will use the same commandline arguments (eg the same --config <file>), except --uri and--name.
-If you made changes to the configuration at runtime, these are not passed on to the child.
+    - insert (paste X cliboard)
+    - shift insert (paste primary selection buffer)
 
+* FIFO & socket file: If enabled by setting their paths through one of the above means, you can have socket and fifo files available which are very useful to programmatically control `uzbl` (from scripts etc).
+
+    - The advantage of the fifo is you can write plaintxt commands to it, but it's half duplex only (`uzbl` cannot send a response to you).
+    - The socket is full duplex but you need a socket-compatible wrapper such as socat to work with it.
+    - For example: `echo <command> | socat - unix-connect:<socketfile>`
+
+When uzbl forks a new instance (eg "open in new window") it will use the same commandline arguments (eg the same `--config <file>`), except `--uri` and `--name`. If you made changes to the configuration at runtime, these are not passed on to the child.
 
 #### Uzbl-browser
-- default config
-- EM
-- EM plugins
-- bindings/events/requests
+
+* default config
+* Event Manager
+* Event Manager plugins
+* bindings/events/requests
 
 #### Uzbl-tabbed
-- also has some own keybindings
 
+* also has some own keybindings
 
 ### COMMAND SYNTAX
-Uzbl will read commands via standard input, named fifo pipe (if `fifo_dir` is set) and IPC socket (when `socket_dir` is set).
-For convenience, uzbl can also be instructed to read commands from a file on startup by using the `-c` option.  Indeed, the config file is nothing more than a list of commands.
+Uzbl will read commands via standard input, named fifo pipe (if `fifo_dir` is set) and IPC socket (when `socket_dir` is set). For convenience, uzbl can also be instructed to read commands from a file on startup by using the `--config` option. Indeed, the config file is nothing more than a list of commands.
 
-Each command starts with the name of the command or an uzbl variable that expands to it.  A command is terminated by a newline.
-Empty lines and lines that start with the hash sign are ignored by the parser. Command names are always written in lowercase.
+Each command starts with the name of the command or an uzbl variable that expands to it. A command is terminated by a newline. Empty lines and lines that start with the hash sign are ignored by the parser. Command names are always written in lowercase.
 
 The following commands are recognized:
 
@@ -164,29 +163,29 @@ The following commands are recognized:
 * `include <file>`
     - read contents of file and interpret commands
 
-
 ### VARIABLES AND CONSTANTS
+
 Uzbl has a lot of internal variables and constants.  You can get the values (using the `print` command, see above), and for variables you can also change the value at runtime. Some of the values can be passed at start up through commandline arguments, others need to be set by using commands (eg in config file).
-Some of them have default values (see config.h)
-Some variables have callback functions which will get called after setting the variable to perform some additional logic (see below)
 
-Besides the builtin variables you can also define your own ones and use them in the exact same way as the builtin ones.
+* Some of them have default values (see config.h)
+* Some variables have callback functions which will get called after setting the variable to perform some additional logic (see below).
+* Besides the builtin variables you can also define your own ones and use them in the exact same way as the builtin ones.
 
-#### Variables:
+#### Variables
 
 * `uri`: The URI of the current page. (callback: load the uri)
-* `verbose`: affects output on stdout
+* `verbose`: Controls the verbosity printed to `stdout`.
 * `inject_html`: Inject an HTML string, navigating to the URI "about:blank" and rendering the HTML sting given.
 * `geometry`: Geometry and position of the Uzbl window. Format is "<width>x<height>+<x-offset>+<y-offset>".
-* `keycmd`: holds the input buffer (callback: update input buffer)
-* `show_status`: show statusbar or not
+* `keycmd`: Holds the input buffer (callback: update input buffer).
+* `show_status`: Show statusbar or not.
 * `status_top`: statusbar on top?
-* `status_format`: marked up, to be expanded string for statusbar (callback: update statusbar)
+* `status_format`: Marked up, to be expanded string for statusbar (callback: update statusbar).
 * `status_background`: color which can be used to override Gtk theme.
-* `title_format_long`: titlebar string when no statusbar shown (will be expanded
-* `title_format_short`: titlebar string when statusbar shown (will be expanded)
-* `icon`: path to icon for Gtk
-* `forward_keys`: whether uzbl-core should send key events to the webkit view
+* `title_format_long`: titlebar string when no statusbar shown (will be expanded).
+* `title_format_short`: titlebar string when statusbar shown (will be expanded).
+* `icon`: path to icon for Gtk.
+* `forward_keys`: Whether `uzbl-core` should send key events to the webkit view.
 * `download_handler`: Handler called when page requests a download. In addition to the standard handler arguments, appends the following extra arguments:
     - `url`: The URL of the item to be downloaded.
     - `proxy`: (optional) The URL of an HTTP proxy.
@@ -198,15 +197,15 @@ Besides the builtin variables you can also define your own ones and use them in 
     - `data`: The cookie data. Only included for "PUT" requests.
 * `new_window`: handler to execute to invoke new uzbl window (TODO better name)
 * `scheme_handler`: handler to execute for each URI navigated to - the navigation request will be ignored if handler prints "USED\n"
-* `fifo_dir`: location to store fifo's
-* `socket_dir`: location to store sockets
-* `http_debug`: http debug mode (value 0-3)
-* `shell_cmd`: alias which will be expanded to use shell commands (eg sh -c)
-* `proxy_url`: http traffic socks proxy (eg: http://<host>:<port>)
-* `max_conns`: max simultaneous connections (default: 100)
+* `fifo_dir`: location to store FIFOs.
+* `socket_dir`: location to store sockets.
+* `http_debug`: HTTP debug mode (value 0-3).
+* `shell_cmd`: Alias which will be expanded to use shell commands (eg `sh -c`).
+* `proxy_url`: HTTP traffic SOCKS proxy (eg: `http://<host>:<port>`).
+* `max_conns`: Max simultaneous connections (default: 100).
 * `max_conns_host`: max simultaneous connections per hostname (default: 6)
 * `view_source`: Set the browser in "view source" mode (default 0). Any URI visited while "view_source" is 1 will display the page source rather than the rendered content.
-* `useragent`: to be expanded string
+* `useragent`: The User-Agent to send to the browser, expands variables in its definition.
 * `zoom_level`: The factor by which elements in the page are scaled with respect to their original size. Setting this will resize the currently displayed page.
 * `zoom_type`: Whether to use "full-content" zoom (defaults to true). With full-content zoom on, all page content, not just text, is zoomed. When full-content zoom is off, only the text of a page is zoomed.
 * `font_size`: The default font size.
@@ -218,12 +217,12 @@ Besides the builtin variables you can also define your own ones and use them in 
 * `fantasy_font_family`: The default Fantasy font family used to display text.
 * `monospace_size`: The default size of monospaced font (default 1).
 * `minimum_font_size`: The minimum font size used to display text (default 1).
-* `disable_plugins`: (TODO rename to enable)
-* `disable_scripts`: (TODO rename to enable)
+* `disable_plugins`: Disable embedded plugin objects (default 0).
+* `disable_scripts`: Disable embedded scripting languages (default 0).
 * `autoload_images`: Automatically load images (default 1).
 * `autoshrink_images`: Shrink images to window size (default 0).
-* `enable_spellcheck`:
-* `enable_private`:
+* `enable_spellcheck`: Whether to enable spell checking while typing (default 0).
+* `enable_private`: Whether to enable private browsing mode (default 0).
 * `print_backgrounds`: Print background images? (default 0).
 * `stylesheet_uri`: Use this to override the pagelayout with a custom stylesheet.
 * `resizable_text_areas`: Whether text areas can be resized (default 0).
@@ -231,7 +230,7 @@ Besides the builtin variables you can also define your own ones and use them in 
 * `enforce_96_dpi`: Enforce a resolution of 96 DPI (default 1).
 * `caret_browsing`: Whether the caret is enabled in the text portion of pages (default 0).
 
-#### Constants (not dumpable or writeable):
+#### Constants (not dumpable or writeable)
 
 * `WEBKIT_MAJOR`: WebKit major version number, set at compile time.
 * `WEBKIT_MINOR`: WebKit minor version number, set at compile time.
@@ -246,10 +245,9 @@ Besides the builtin variables you can also define your own ones and use them in 
     - in GtkSocket mode, this is a random number to prevent name clashes
 * `PID`: The process ID of this Uzbl instance.
 
-### VARIABLE EXPANSION AND COMMAND/JAVA SCRIPT SUBSTITUTION
+### VARIABLE EXPANSION AND COMMAND / JAVASCRIPT SUBSTITUTION
 
-Variable expansion works pretty much as known from shell interpreters (sh, bash, etc.). This means you can
-construct strings with uzbl variables in them and have uzbl replace the variable name with its contents.
+Variable expansion works pretty much as known from shell interpreters (sh, bash, etc.). This means you can construct strings with uzbl variables in them and have uzbl replace the variable name with its contents.
 
 In order to let uzbl know what to expand you'll need to prepend @ to the variable name:
 
@@ -257,74 +255,52 @@ In order to let uzbl know what to expand you'll need to prepend @ to the variabl
 
 The above example demonstrates two things:
 
-    * '\' is treated as escape character and will use the character immediately following it literally
-      this means '\@show_status' will not expand to the variable content but be rather printed as
-      '@show_status'
+* `\` is treated as escape character and will use the character immediately following it literally this means `\@show_status` will not expand to the variable content but be rather printed as `@show_status`
+* prepending the variable with `@` will expand to its contents
+* like in the shell you can use `@{uzbl_var}` to denote the beginning/end of the variable name in cases where it is not obvious what belongs to the name and what not. E.g. `print @{show_status}foobar`
 
-    * prepending the variable with '@' will expand to its contents
+Command substitution will launch any commands and substitute the call with the return value of the command. There are two methods:
 
-    * like in the shell you can use @{uzbl_var} to denote the beginning/end of the variable name in
-      cases where it is not obvious what belongs to the name and what not.
-      E.g.:  print @{show_status}foobar
-
-
-Command substitution will launch any commands and substitute the call with the return value of the command.
-There are two methods:
-
-    * through a shell: enclose commands with @(  )@ (quotes escaping is handled by uzbl):
-
+* Through a shell: enclose commands with @(  )@ (quote escaping is handled by Uzbl):
     print Command substitution: @(uname -a)@
 
-This method allows you to use posix shell syntax in your commands
+This method allows you to use posix shell syntax in your commands.
 
-    * directly:
-
+* directly:
      print Command substitution: @(+uname -a)@
 
-This example will execute uname directly
+This example will execute uname directly.
 
 Note that you can access any uzbl variable from within a command substitution:
 
     print @(echo -n 'Accessing the show_status var from an external script, value: @show_status')@
 
 
-Java script substitution works in the exact same way as command substitution but you will need to enclose
-the java script in @< >@.
+JavaScript substitution works in the exact same way as command substitution but you will need to enclose the java script in `@< >@`.
 
     print The currently viewed document contains @<document.links.length>@ links
 
-The @<>@ substitution can also load JavaScript from a file, syntax: @<+filename>@
+The `@<>@` substitution can also load JavaScript from a file, syntax: `@<+filename>@`
 
     print JS return value from file: @<+/path/to/file.js>@
 
-Variable expansion also works within a java script substitution.
+Variable expansion also works within a JavaScript substitution.
 
-
-When a piece of text needs to be XML escaped after it is expanded (for example,
-in the status bar format), you can use @[ ]@ substitution:
+When a piece of text needs to be XML escaped after it is expanded (for example, in the status bar format), you can use `@[ ]@` substitution:
 
     print This text is XML escaped: @[<&>]@
 
     # prints: This text is XML escaped: &lt;&amp;&gt;
 
-
-NOTE: If you need to use literal @ or \ characters you will need to escape them:
+NOTE: If you need to use literal `@` or `\` characters you will need to escape them:
 
     print At sign: \@  and backslash: \\
 
-
 ### TITLE AND STATUS BAR EVALUATION
 
-The contents of the status bar can be customized by setting the status_format
-variable. The contents of the window title can be customized by setting the
-title_format_short variable (which is used when the status bar is displayed) and
-the title_format_long variable (which is used when the status bar is not
-displayed). Their values can be set using the expansion and substitution
-techniques described above.
+The contents of the status bar can be customized by setting the `status_format` variable. The contents of the window title can be customized by setting the `title_format_short` variable (which is used when the status bar is displayed) and the `title_format_long` variable (which is used when the status bar is not displayed). Their values can be set using the expansion and substitution techniques described above.
 
-These variables are expanded in multiple stages; once when the variable is set,
-and again every time that the status bar or window title are updated. Expansions
-that should be evaluated on every update need to be escaped:
+These variables are expanded in multiple stages; once when the variable is set, and again every time that the status bar or window title are updated. Expansions that should be evaluated on every update need to be escaped:
 
     set title_format_short = @(date)@
     # this expansion will be evaluated when the variable is set.
@@ -337,68 +313,59 @@ that should be evaluated on every update need to be escaped:
     set title_format_short = \\\@(date)\\\@
     # the title will stay constant as a literal "@(date)@"
 
-The status_format variable can contain Pango markup (see
-<http://library.gnome.org/devel/pango/stable/PangoMarkupFormat.html>). In the
-status_format, variables that might contain characters like '<', '&' and '>',
-should be wrapped in a @[]@ substitution so that they don't interfere with the
-status bar's markup; see the example config for examples.
-
+The `status_format` variable can contain [Pango](http://library.gnome.org/devel/pango/stable/PangoMarkupFormat.html) markup . In the `status_format`, variables that might contain characters like `<`, `&` and `>`, should be wrapped in a `@[ ]@` substitution so that they don't interfere with the status bar's markup; see the sample config for examples.
 
 ### EXTERNAL SCRIPTS
-You can use external scripts with uzbl the following ways:
 
-* let uzbl call them. these scripts are called handlers in the uzbl config. used for handling logging history, handling a new download,..
-* call them yourself from inside uzbl.  you can bind keys for this. examples: add new bookmark, load new url,..
-* You could also use xbindkeys or your WM config to trigger scripts if uzbl does not have focus
+You can use external scripts with Uzbl the following ways:
+
+* Let `uzbl` call them. These scripts are called "handlers" in the `uzbl` config. Used for handling cookies, starting a new download, and more.
+* Call them yourself from inside `uzbl`.  You can bind keys for this. Examples: add new bookmark, load new url
+* You could also use `xbindkeys` or your WM config to trigger scripts if `uzbl` does not have focus.
 
 Have a look at the sample configs and scripts!
 
 Handler scripts that are called by uzbl are passed the following arguments:
 
-    $1 uzbl-config-file
-    $2 uzbl-pid
-    $3 uzbl-x-window-id
-    $4 uzbl_fifo-filename
-    $5 uzbl_socket-filename
-    $6 current page url
-    $7 current page title
-    .. [ script specific ] (optional)
+* `$1 uzbl-config-file`
+* `$2 uzbl-pid`
+* `$3 uzbl-x-window-id`
+* `$4 uzbl_fifo-filename`
+* `$5 uzbl_socket-filename`
+* `$6 current page url`
+* `$7 current page title`
+* `.. [ script specific ] (optional)`
 
-The script specific arguments are this:
+The script specific arguments are:
 
-* add bookmark:
+* download
 
-    none
-
-* download:
-
-    $8 url of item to download
-    $9 url of http proxy (optional)
+    - `$8 url of item to download`
+    - `$9 url of http proxy (optional)`
 
 * cookie handler
 
-    $8 GET/PUT
-    $9 request address scheme (e.g. http or https)
-    $10 request address host (if current page url is www.foo.com/somepage, this could be something else than foo, eg advertising from another host)
-    $11 request address path
-    $12 cookie (only with PUT requests)
+    - `$8 GET/PUT`
+    - `$9 request address scheme` (e.g. http or https)
+    - `$10 request address host` (if current page url is www.foo.com/somepage, this could be something else than foo, eg advertising from another host)
+    - `$11 request address path`
+    - `$12 cookie-data` (only with PUT requests)
 
 * scheme handler:
 
-    $8 URI of the page to be navigated to
-
+    - `$8 URI` of the page to be navigated to
 
 Custom, userdefined scripts (`spawn foo bar`) get first the arguments as specified in the config and then the above 7 are added at the end.
 
 ### JAVASCRIPT HELPER OBJECT
 
-Javascript code run from uzbl is given a special object in the global namespace which gives special privileges to these scripts. This object is called `Uzbl`, and it is added and removed before and after the script execution so that it is hidden to web javascripts (There is no race condition, since all the javascript code runs in a single thread)
+JavaScript code run from `uzbl` is given a special object in the global namespace which gives special privileges to these scripts. This object is called `Uzbl`, and it is added and removed before and after the script execution so that it is hidden to web JavaScript code (there is no race condition, since all the JavaScript code runs in a single thread).
 
 Currently, the `Uzbl` object provides only one function:
 
 * `Uzbl.run( <command> )`
-    - command is any uzbl command as defined above
-    - return value: a string, either empty or containing the output of the command. Very few commands return their output currently, including js, script, and print.
+    - Command is any `uzbl` command as defined above.
+    - Return value: a string, either empty or containing the output of the command. Very few commands return their output currently, including `js`, `script`, and `print`.
     - Examples:
        * `Uzbl.run("spawn insert_bookmark.sh")`
        * `uri = Uzbl.run("print @uri")` (see variable expansion below)
@@ -421,59 +388,57 @@ This way, everything is kept private. It also turns Uzbl into a local variable, 
         }, 500);
     }
 
-Copying the Uzbl object and creating public functions should be taken with care to avoid creating security holes. Keep in mind that the "f" function above would be defined in the `window` object, and as such any javascript in the current page can call it.
+Copying the Uzbl object and creating public functions should be taken with care to avoid creating security holes. Keep in mind that the `f` function above would be defined in the `window` object, and as such any javascript in the current page can call it.
 
-### EVENTS ###
+### EVENTS
 
-Unlike commands, events are not handled in uzbl itself, but are propagated (dispatched) asynchronously through
-a text stream on stdout and/or through a socket.  You'll usually use uzbl by piping it's output to a so called 'event manager'
-or by having the EM listen to a socket.
-- makes it possible to use whichever language you want for event handling (python, perl, bash, .. you name it).
-  you'll usually send commands (see above) back to uzbl through its fifo or socket
-- keybindings use x keysyms
-- many finegrained events (hover_over_link, key_press, key_down,..)
-- see example event_handler.py
+Unlike commands, events are not handled in `uzbl` itself, but are propagated (dispatched) asynchronously through a text stream on `stdout` and/or through a socket.  You'll usually use uzbl by piping it's output to a so-called "event manager" (EM), or by having the EM listen to a socket.
 
-Note: cookie events are not sent to an event handler but handled internally through the cookie handler because of their synchronous nature.
-Cookie events are really something completely different from all other events. Maybe someday we'll use HTTP proxies or something for cookies
-or synchronous events (which also have other nice use cases), but for now we still use the handler code)
+The EM allows:
+
+* Use of whichever language you want for event handling (Python, Perl, Bash, ... you name it). You'll usually send commands (see above) back to `uzbl` through its FIFO or socket.
+* Keybindings use X keysyms.
+* Many fine-grained events (`hover_over_link`, `key_press`, `key_release`,..)
+* See example `uzbl-event-manager`.
+
+**Note**: cookie events are not sent to an event handler but handled internally through the cookie handler because of their synchronous nature. Cookie events are really something completely different from all other events. Maybe someday we'll use HTTP proxies or synchronous events (which also have other nice use cases), but for now we still use the handler code.
 
 Basically all events have this format:
 
      EVENT [uzbl_instance_name] EVENT_NAME event_details
 
+#### Reported events
 
-* Reported events:
-  - `EVENT [uzbl_instance_name] INSTANCE_START process_id`: uzbl startup
-  - `EVENT [uzbl_instance_name] INSTANCE_EXIT process_id`: uzbl shutdown
-  - `EVENT [uzbl_instance_name] VARIABLE_SET variable_name str|int|float variable_value`.  Note: str|int|float denote the type of variable_value
-  - `EVENT [uzbl_instance_name] COMMAND_EXECUTED command_name optional_command_arguments`
-  - `EVENT [uzbl_instance_name] COMMAND_ERROR command`
-  - `EVENT [uzbl_instance_name] GEOMETRY_CHANGED WIDTHxHEIGHT+X_POSITION+Y_POSITION`: when the size or position of the uzbl window changes
-  - `EVENT [uzbl_instance_name] FIFO_SET path_to_fifo`
-  - `EVENT [uzbl_instance_name] SOCKET_SET path_to_socket`
-  - `EVENT [uzbl_instance_name] LOAD_COMMIT uri`
-  - `EVENT [uzbl_instance_name] LOAD_START uri`
-  - `EVENT [uzbl_instance_name] LOAD_FINISHED uri`
-  - `EVENT [uzbl_instance_name] LOAD_ERROR reason_of_error`
-  - `EVENT [uzbl_instance_name] LOAD_PROGRESS percentage` : while the page is loading
-  - `EVENT [uzbl_instance_name] TITLE_CHANGED title_name`: when the title of the webpage (and hence maybe, the window title) changed
-  - `EVENT [uzbl_instance_name] DOWNLOAD_REQUEST download_uri`: when content needs to be downloaded
-  - `EVENT [uzbl_instance_name] LINK_HOVER uri`: mouse hovers over a link
-  - `EVENT [uzbl_instance_name] LINK_UNHOVER uri`: same but unhover.
-  - `EVENT [uzbl_instance_name] KEY_PRESS key_name`: press of a keyboard key or mouse button
-  - `EVENT [uzbl_instance_name] KEY_RELEASE key_name`: release of keyboard key or mouse button
-  - `EVENT [uzbl_instance_name] SELECTION_CHANGED selected_text`: when you select text inside the uzbl window
-  - `EVENT [uzbl_instance_name] NEW_WINDOW uri`: creation of new uzbl window
-  - `EVENT [uzbl_instance_name] WEBINSPECTOR open`: upon opening webinspector window
-  - `EVENT [uzbl_instance_name] WEBINSPECTOR close`: upon closing webinspector window
-  - `EVENT [uzbl_instance_name] FOCUS_GAINED`: when uzbl window gained keyboard focus
-  - `EVENT [uzbl_instance_name] FOCUS_LOST`: when uzbl window lost keyboard focus
-  - `EVENT [uzbl_instance_name] FORM_ACTIVE`: when a editable HTML is clicked
-  - `EVENT [uzbl_instance_name] ROOT_ACTIVE`: when the document body or any non-editable element is clicked
-  - `EVENT [uzbl_instance_name] FILE_INCLUDED /path/to/file`: when the include commands succesfully loads a file
-  - `EVENT [uzbl_instance_name] PLUG_CREATED plug-id`: when uzbl-core is in xembed mode
-  - `EVENT [uzbl_instance_name] BUILTINS command_list`: shows a list of all uzbl commands, whitespace separated, on startup
+* `EVENT [uzbl_instance_name] INSTANCE_START process_id`: `uzbl` startup.
+* `EVENT [uzbl_instance_name] INSTANCE_EXIT process_id`: `uzbl` shutdown
+* `EVENT [uzbl_instance_name] VARIABLE_SET variable_name str|int|float variable_value`:  Note: `str|int|float` denote the type of `variable_value`.
+* `EVENT [uzbl_instance_name] COMMAND_EXECUTED command_name optional_command_arguments`: A command is executed.
+* `EVENT [uzbl_instance_name] COMMAND_ERROR command_name`: Tried to execute the command `command_name`, but it does not exist.
+* `EVENT [uzbl_instance_name] GEOMETRY_CHANGED WIDTHxHEIGHT+X_POSITION+Y_POSITION`: When the size or position of the `uzbl` window changes.
+* `EVENT [uzbl_instance_name] FIFO_SET path_to_fifo`: The path to the FIFO is set.
+* `EVENT [uzbl_instance_name] SOCKET_SET path_to_socket`: The path to the socket is set.
+* `EVENT [uzbl_instance_name] LOAD_COMMIT uri`: The first data of a page has loaded. `uri` is the URI of the page being loaded.
+* `EVENT [uzbl_instance_name] LOAD_START uri`: A change of the page has been requested. `uri` is the current URI; the one being departed.
+* `EVENT [uzbl_instance_name] LOAD_FINISHED uri`: Loading has finished for the page at `uri`.
+* `EVENT [uzbl_instance_name] LOAD_ERROR uri reason_of_error`: The URI `uri` could not be loaded for the reason described in `reason_of_error`.
+* `EVENT [uzbl_instance_name] LOAD_PROGRESS percentage` : While the page is loading, gives the `percentage` of the page that has finished loading.
+* `EVENT [uzbl_instance_name] TITLE_CHANGED title_name`: When the title of the page (and hence maybe, the window title) changed. `title_name` is the new title.
+* `EVENT [uzbl_instance_name] DOWNLOAD_REQUEST download_uri`: When content needs to be downloaded, `download_uri` is the URI to get.
+* `EVENT [uzbl_instance_name] LINK_HOVER uri`: The mouse hovers over the link `uri`.
+* `EVENT [uzbl_instance_name] LINK_UNHOVER uri`: The mouse leaves the link `uri`.
+* `EVENT [uzbl_instance_name] KEY_PRESS key_name`: The key (or mouse button) `key_name` is pressed.
+* `EVENT [uzbl_instance_name] KEY_RELEASE key_name`: The key (or mouse button) `key_name` is released.
+* `EVENT [uzbl_instance_name] SELECTION_CHANGED selected_text`: When text is selected in the `uzbl` window.
+* `EVENT [uzbl_instance_name] NEW_WINDOW uri`: Creation of new `uzbl` window, with URI `uri`.
+* `EVENT [uzbl_instance_name] WEBINSPECTOR open`: Upon opening webinspector window.
+* `EVENT [uzbl_instance_name] WEBINSPECTOR close`: Upon closing webinspector window.
+* `EVENT [uzbl_instance_name] FOCUS_GAINED`: When `uzbl` window gains keyboard focus.
+* `EVENT [uzbl_instance_name] FOCUS_LOST`: when uzbl window lost keyboard focus
+* `EVENT [uzbl_instance_name] FORM_ACTIVE`: when a editable HTML is clicked
+* `EVENT [uzbl_instance_name] ROOT_ACTIVE`: when the document body or any non-editable element is clicked
+* `EVENT [uzbl_instance_name] FILE_INCLUDED /path/to/file`: when the include commands succesfully loads a file
+* `EVENT [uzbl_instance_name] PLUG_CREATED plug-id`: when uzbl-core is in xembed mode
+* `EVENT [uzbl_instance_name] BUILTINS command_list`: shows a list of all uzbl commands, whitespace separated, on startup
 
 * Events/requests which the EM and its plugins listens for:
   - `BIND` and `MODE_BIND`: define global resp. per-mode key/button binds.
