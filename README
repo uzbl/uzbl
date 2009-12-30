@@ -170,8 +170,7 @@ The following commands are recognized:
 
 
 ### VARIABLES AND CONSTANTS
-Uzbl has a lot of internal variables and constants.  You can get the values (using the `print` command, see above), and for variables you can also change the value at
-runtime.  Some of the values can be passed at start up through commandline arguments, others need to be set by using commands (eg in config file).
+Uzbl has a lot of internal variables and constants.  You can get the values (using the `print` command, see above), and for variables you can also change the value at runtime. Some of the values can be passed at start up through commandline arguments, others need to be set by using commands (eg in config file).
 Some of them have default values (see config.h)
 Some variables have callback functions which will get called after setting the variable to perform some additional logic (see below)
 
