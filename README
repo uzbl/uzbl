@@ -89,17 +89,17 @@ Empty lines and lines that start with the hash sign are ignored by the parser. C
 The following commands are recognized:
 
 * `set <key> = <value>`
-   - used for changing variables on the fly
-   - the changes are effective immediately; for example, setting the variable `uri` will make uzbl start loading, and changing `status_format` will make the status bar react immediately
-   - if you want to unset a string, use `set` with one space after the equals sign
+    - used for changing variables on the fly
+    - the changes are effective immediately; for example, setting the variable `uri` will make uzbl start loading, and changing `status_format` will make the status bar react immediately
+    - if you want to unset a string, use `set` with one space after the equals sign
 * `print @<key>`
-   - use this to print the value of a variable.
+    - use this to print the value of a variable.
 * `back`
 * `forward`
 * `scroll <vertical|horizontal> <argument>`
-   - argument can be `begin`, `end`, or an amount given in pixels(?)
+    - argument can be `begin`, `end`, or an amount given in pixels(?)
      or as a percentage of the size of the view
-   - set the amount to 100% to scroll a whole page
+    - set the amount to 100% to scroll a whole page
 * `reload`
 * `reload_ign_cache`
 * `stop`
@@ -107,66 +107,66 @@ The following commands are recognized:
 * `zoom_out`
 * `uri <address>`
 * `js <body>`
-   - execute the javascript in `<body>`
-   - remember that the commands must not contain line breaks
+    - execute the javascript in `<body>`
+    - remember that the commands must not contain line breaks
 * `script <file>`
-   - execute the javascript in `<file>`
+    - execute the javascript in `<file>`
 * `toggle_status`
 * `spawn <executable> <additional args>` TODO explain path-alike expansion
-   - runs a command; see EXTERNAL SCRIPTS for details
-   - PATH is searched so giving the full path to commands is not necessary
-   - note that the arguments as specified in "EXTERNAL SCRIPTS" are appended at the end, so the argument numbers will be higher.
+    - runs a command; see EXTERNAL SCRIPTS for details
+    - PATH is searched so giving the full path to commands is not necessary
+    - note that the arguments as specified in "EXTERNAL SCRIPTS" are appended at the end, so the argument numbers will be higher.
 * `sh <command>`
-   - runs a shell command by expanding `%s` in the `shell_cmd` variable with the specified command; primarily useful as a shortcut for `spawn sh -c <body>`
-   - note that the arguments as specified in "EXTERNAL SCRIPTS" are appended at the end, so the argument numbers will be higher.
+    - runs a shell command by expanding `%s` in the `shell_cmd` variable with the specified command; primarily useful as a shortcut for `spawn sh -c <body>`
+    - note that the arguments as specified in "EXTERNAL SCRIPTS" are appended at the end, so the argument numbers will be higher.
 * `sync_spawn <executable> <additional args>`
 * `sync_sh <command>`
-   - these are synchronous variants of `spawn` and `sh`, which means uzbl will wait for them to return
-   - you should only need to use these manually if you want to use a chain command in a handler that wants output from the command it runs
+    - these are synchronous variants of `spawn` and `sh`, which means uzbl will wait for them to return
+    - you should only need to use these manually if you want to use a chain command in a handler that wants output from the command it runs
 * `talk_to_socket <socketfile> <tokens/command>`
-   - lets uzbl talk to a socketfile
+    - lets uzbl talk to a socketfile
 * `exit`
 * `search <string>`
 * `search_reverse <string>`
-   - search with no string will search for the next/previous occurrence of the string previously searched for
+    - search with no string will search for the next/previous occurrence of the string previously searched for
 * `search_clear`
-   - unmark and clear the search string
+    - unmark and clear the search string
 * `toggle_insert_mode <optional state>` TODO new plugin based syntax
-   - if the optional state is 0, disable insert mode. If 1, enable insert mode.
+    - if the optional state is 0, disable insert mode. If 1, enable insert mode.
 * `dump_config`
-   - dumps your current config (which may have been changed at runtime) to stdout, in a format you can use to pipe into uzbl again (or use as config file)
+    - dumps your current config (which may have been changed at runtime) to stdout, in a format you can use to pipe into uzbl again (or use as config file)
 * `keycmd <string>`
 * `keycmd_nl <string>`
-   - keycmd sets the interactive command buffer to `<string>`.  If the given string is a valid binding, it will execute.  `Keycmd_nl` is like `keycmd`, but it also emulates a press of return, causing bindings with a parameter to execute.  For example, `keycmd_nl o google.com` would load the said url if you have a binding like `bind o _ = uri %s`.
+    - keycmd sets the interactive command buffer to `<string>`.  If the given string is a valid binding, it will execute.  `Keycmd_nl` is like `keycmd`, but it also emulates a press of return, causing bindings with a parameter to execute.  For example, `keycmd_nl o google.com` would load the said url if you have a binding like `bind o _ = uri %s`.
 * `keycmd_bs`
-   - erase (backspace) one character from the command buffer
+    - erase (backspace) one character from the command buffer
 * `chain <command> <command> ..`
-   - use for chaining multiple commands
-   - remember to quote the commands; one command must come as one parameter
-   - if you use `chain` with a handler script which must return some output (such as a cookie handler -- uzbl will wait for and use its output), use sync_spawn or sync_sh instead of spawn or sh in the command that should give the output
+    - use for chaining multiple commands
+    - remember to quote the commands; one command must come as one parameter
+    - if you use `chain` with a handler script which must return some output (such as a cookie handler -- uzbl will wait for and use its output), use sync_spawn or sync_sh instead of spawn or sh in the command that should give the output
 * `event <event_name> [event_details]`
-   - send custom event
+    - send custom event
 * `request <request_name> [request_details]`
-   - send custom request (same idea as events, but to be processed by EM, not uzbl-core)
+    - send custom request (same idea as events, but to be processed by EM, not uzbl-core)
 * `menu_add          <label>  = <uzbl command>`
 * `menu_link_add     <label>  = <uzbl command>`
 * `menu_image_add    <label>  = <uzbl command>`
 * `menu_editable_add <label>  = <uzbl command>`
-   - add a new entry "label" that will execute "uzbl command" to one of the right click context menus
+    - add a new entry "label" that will execute "uzbl command" to one of the right click context menus
 * `menu_separator          <label>`
 * `menu_link_separator     <label>`
 * `menu_image_separator    <label>`
 * `menu_editable_separator <label>`
-   - adds a separator line to one of the right click context menus
+    - adds a separator line to one of the right click context menus
 * `menu_remove          <label>`
 * `menu_link_remove     <label>`
 * `menu_image_remove    <label>`
 * `menu_editable_remove <label>`
-   - removes the entry "label" from one of the right click context menus
+    - removes the entry "label" from one of the right click context menus
 * `hardcopy`
-   - open print dialog
+    - open print dialog
 * `include <file>`
-   - read contents of file and interpret commands
+    - read contents of file and interpret commands
 
 
 ### VARIABLES AND CONSTANTS
@@ -401,9 +401,9 @@ Javascript code run from uzbl is given a special object in the global namespace 
 Currently, the `Uzbl` object provides only one function:
 
 * `Uzbl.run( <command> )`
-   - command is any uzbl command as defined above
-   - return value: a string, either empty or containing the output of the command. Very few commands return their output currently, including js, script, and print.
-   - Examples:
+    - command is any uzbl command as defined above
+    - return value: a string, either empty or containing the output of the command. Very few commands return their output currently, including js, script, and print.
+    - Examples:
        * `Uzbl.run("spawn insert_bookmark.sh")`
        * `uri = Uzbl.run("print @uri")` (see variable expansion below)
 
