@@ -1104,15 +1104,13 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
         JSStringRelease(val);
         
         /* Print message */
-        prop = JSStringCreateWithUTF8CString("message");
-        val = JSValueToStringCopy(context, JSObjectGetProperty(context, exc, prop, NULL), NULL);
+        val = JSValueToStringCopy(context, exc, NULL);
         size = JSStringGetMaximumUTF8CStringSize(val);
         if(size) {
             char cstr[size];
             JSStringGetUTF8CString(val, cstr, size);
             printf("%s\n", cstr);
         }
-        JSStringRelease(prop);
         JSStringRelease(val);
     }
 
