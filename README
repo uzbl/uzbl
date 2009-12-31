@@ -425,9 +425,9 @@ The EM allows:
 * Many fine-grained events (`hover_over_link`, `key_press`, `key_release`,..)
 * See example `uzbl-event-manager`.
 
-**Note**: cookie events are not sent to an event handler but handled internally through the cookie handler because of their synchronous nature. Cookie events are really something completely different from all other events. Maybe someday we'll use HTTP proxies or synchronous events (which also have other nice use cases), but for now we still use the handler code.
+**Note**: Cookie events are not sent to an event handler but handled internally through the cookie handler because of their synchronous nature. Cookie events are really something completely different from all other events. Maybe someday we'll use HTTP proxies or synchronous events (which also have other nice use cases), but for now we still use the handler code.
 
-Basically all events have this format:
+Events have this format:
 
      EVENT [uzbl_instance_name] EVENT_NAME event_details
 
@@ -515,7 +515,7 @@ Events/requests which the EM and its plugins listens for
 
 ### COMMAND LINE ARGUMENTS
 
-Uzbl is invoked as
+`uzbl` is invoked as
 
     uzbl-(core|browser|tabbed) [ arguments ] [ uri ]
 
@@ -530,10 +530,10 @@ where `arguments` and `uri` are both optional. `arguments` can be:
 * `-g`, `--geometry=GEOMETRY`: Set window geometry (format: `WIDTHxHEIGHT+-X+-Y` or `maximized`).
 * `-V`, `--version`: Print the version and exit.
 * `--display=DISPLAY`: X display to use.
-* `--help`: Help
+* `--help`: Display help.
 
 `uzbl-core scheme://address` will work as you expect. If you don't provide the `scheme://` part, it will check if the argument is an existing file in the filesystem, if it is, it will prepend `file://`, if not, it will prepend `http://`.
 
 ### BUGS
 
-Please report new issues @ uzbl.org/bugs
+Please report new issues to the [Uzbl bugtracker](http://uzbl.org/bugs).
