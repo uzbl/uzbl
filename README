@@ -84,87 +84,108 @@ Each command starts with the name of a command or a `uzbl` variable that expands
 
 The following commands are recognized:
 
-* `set <key> = <value>`
-  - used for changing variables on the fly
-  - the changes are effective immediately; for example, setting the variable `uri` will make uzbl start loading, and changing `status_format` will make the status bar react immediately
-  - if you want to unset a string, use `set` with one space after the equals sign
-* `print @<key>`
-  - use this to print the value of a variable.
 * `back`
+  - Navigate to the previous URI in the history.
 * `forward`
+  - Navigate to the next URI in the history.
 * `scroll <vertical|horizontal> <argument>`
   - argument can be `begin`, `end`, or an amount given in pixels(?)
      or as a percentage of the size of the view
   - set the amount to 100% to scroll a whole page
 * `reload`
+  - Reload the current page.
 * `reload_ign_cache`
+  - Reload the current page, discarding any cached resources.
 * `stop`
+  - Stop loading the current page.
 * `zoom_in`
+  - Increase the zoom level.
 * `zoom_out`
+  - Decrease the zoom level.
+* `toggle_zoom_type`
+  - Toggles the variable `zoom_type` between "full-content" and "text-only" zoom. In "text-only" zoom, only the text of the page is zoomed, while in "full-content" zoom, images and other page elements are zoomed along with the text.
 * `uri <address>`
+  - Attempt to load `<address>`. This is equivalent to `set uri = <address>`.
 * `js <body>`
-  - Execute the javascript in `<body>`.
+  - Execute the JavaScript in `<body>`.
   - Remember that the commands must not contain line breaks.
 * `script <file>`
-  - Execute the javascript in `<file>`.
+  - Execute the JavaScript in `<file>`.
 * `toggle_status`
+  - Toggle the display of the status bar.
 * `spawn <executable> <additional args>` TODO explain path-alike expansion
   - Runs a command; see EXTERNAL SCRIPTS for details.
   - `$PATH` is searched, so giving the full path to commands is not necessary.
   - Note that the arguments as specified in "EXTERNAL SCRIPTS" are appended at the end, so the argument numbers will be higher.
+* `sync_spawn <executable> <additional args>`
+  - A synchronous variant of `spawn`, which means `uzbl` will wait for it to return.
+  - You should only need to use this manually if you want to use a `chain` command in a handler that wants output from the command it runs.
 * `sh <command>`
   - Runs a shell command by expanding `%s` in the `shell_cmd` variable with the specified command; primarily useful as a shortcut for `spawn sh -c <command>`
   - Note that the arguments as specified in "EXTERNAL SCRIPTS" are appended at the end, so the argument numbers will be higher.
-* `sync_spawn <executable> <additional args>`
 * `sync_sh <command>`
-  - These are synchronous variants of `spawn` and `sh`, which means `uzbl` will wait for them to return.
-  - You should only need to use these manually if you want to use a chain command in a handler that wants output from the command it runs.
+  - Synchronous version of `sh`, See `sync_spawn`.
 * `talk_to_socket <socketfile> <tokens>`
   - Send a message to `<socketfile>` and wait for a response. `<tokens>` are concatenated and separated by ASCII NUL bytes.
   - Expects the socket type to be `SOCK_SEQPACKET` (see connect(2) ).
   - Waits for 500ms for a response.
 * `exit`
+  - Closes `uzbl`.
 * `search <string>`
+  - Search forward for `<string>`. With no string, search for the next occurrence of the previously searched string.
 * `search_reverse <string>`
-  - search with no string will search for the next/previous occurrence of the string previously searched for
+  - Like `search`, but searches backward.
 * `search_clear`
-  - unmark and clear the search string
-* `toggle_insert_mode <optional state>` TODO new plugin based syntax
-  - if the optional state is 0, disable insert mode. If 1, enable insert mode.
+  - Dehighlight matches and clear the search string.
+* `dehilight`
+  - Remove highlighting of search matches.
+* `set <key> = <value>`
+  - Sets `<key>` to `<value>`.
+  - The changes are effective immediately; for example, setting the variable `uri` will make `uzbl` start loading, and changing `status_format` will make the status bar react immediately.
+  - If you want to unset a string, use `set` with one space after the equals sign.
 * `dump_config`
-  - dumps your current config (which may have been changed at runtime) to stdout, in a format you can use to pipe into uzbl again (or use as config file)
-* `keycmd <string>`
-* `keycmd_nl <string>`
-  - keycmd sets the interactive command buffer to `<string>`.  If the given string is a valid binding, it will execute.  `Keycmd_nl` is like `keycmd`, but it also emulates a press of return, causing bindings with a parameter to execute.  For example, `keycmd_nl o google.com` would load the said url if you have a binding like `bind o _ = uri %s`.
-* `keycmd_bs`
-  - erase (backspace) one character from the command buffer
-* `chain <command> <command> ..`
-  - use for chaining multiple commands
-  - remember to quote the commands; one command must come as one parameter
-  - if you use `chain` with a handler script which must return some output (such as a cookie handler -- uzbl will wait for and use its output), use sync_spawn or sync_sh instead of spawn or sh in the command that should give the output
+  - Dumps the current config (which may have been changed at runtime) to stdout.
+  - Uses a format which can be piped into `uzbl` again or saved as a config file.
+* `dump_config_as_events`
+  - Dump the current config as a series of `VARIABLE_SET` events, which can be handled by an event manager.
+* `chain <command> <command> ...`
+  - Used for chaining multiple commands.
+  - Remember to quote the commands; one command must come as one parameter.
+  - If you use `chain` with a handler script which must return some output (such as a cookie handler -- `uzbl` will wait for and use its output), use `sync_spawn` or `sync_sh` instead of `spawn` or `sh` in the command that should give the output.
+* `print <string>`
+  - Expands variables in `<string>` and prints its output to stdout. Is useful for getting the value of variables.
 * `event <event_name> [event_details]`
-  - send custom event
+  - Send a custom event.
 * `request <request_name> [request_details]`
-  - send custom request (same idea as events, but to be processed by EM, not uzbl-core)
-* `menu_add          <label>  = <uzbl command>`
-* `menu_link_add     <label>  = <uzbl command>`
-* `menu_image_add    <label>  = <uzbl command>`
-* `menu_editable_add <label>  = <uzbl command>`
-  - add a new entry "label" that will execute "uzbl command" to one of the right click context menus
+  - Send a custom request (same idea as events, but to be processed by the event manager, not `uzbl-core`).
+* `menu_add          <label>  = <command>`
+  - Add a new entry `<label>` to the default right-click menu that will execute `<command>`.
+* `menu_link_add     <label>  = <command>`
+  - Add a new entry `<label>`, executing `<command>` to the right-click menu for links.
+* `menu_image_add    <label>  = <command>`
+  - Same as `menu_add`, but for images.
+* `menu_editable_add <label>  = <command>`
+  - Same as `menu_add`, but for editable text areas.
 * `menu_separator          <label>`
+  - Add a separator, named `<label>` to the default right-click menu.
 * `menu_link_separator     <label>`
+  - Same as `menu_separator`, but for links.
 * `menu_image_separator    <label>`
+  - Same as `menu_separator`, but for images.
 * `menu_editable_separator <label>`
-  - adds a separator line to one of the right click context menus
+  - Same as `menu_separator`, but for editable text areas.
 * `menu_remove          <label>`
+  - Removes the menu entry `<label>` from the default right-click menu.
 * `menu_link_remove     <label>`
+  - Same as `menu_remove`, but for links.
 * `menu_image_remove    <label>`
+  - Same as `menu_remove`, but for images.
 * `menu_editable_remove <label>`
-  - removes the entry "label" from one of the right click context menus
+  - Same as `menu_remove`, but for editable text areas.
 * `hardcopy`
-  - open print dialog
+  - Open the print dialog.
 * `include <file>`
-  - read contents of file and interpret commands
+  - Read contents of `<file>` and interpret as a set of `uzbl` commands.
 
 ### VARIABLES AND CONSTANTS
 
