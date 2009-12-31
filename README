@@ -189,7 +189,7 @@ The following commands are recognized:
 
 ### VARIABLES AND CONSTANTS
 
-Uzbl has a lot of internal variables and constants.  You can get the values (using the `print` command, see above), and for variables you can also change the value at runtime. Some of the values can be passed at start up through commandline arguments, others need to be set by using commands (eg in config file).
+Uzbl has a lot of internal variables and constants. You can get the values (using the `print` command, see above), and for variables you can also change the value at runtime. Some of the values can be passed at start up through commandline arguments, others need to be set by using commands (eg in config file).
 
 * Some of them have default values (see config.h)
 * Some variables have callback functions which will get called after setting the variable to perform some additional logic (see below).
@@ -344,7 +344,7 @@ The `status_format` variable can contain [Pango](http://library.gnome.org/devel/
 You can use external scripts with Uzbl the following ways:
 
 * Let `uzbl` call them. These scripts are called "handlers" in the `uzbl` config. Used for handling cookies, starting a new download, and more.
-* Call them yourself from inside `uzbl`.  You can bind keys for this. Examples: add new bookmark, load new url.
+* Call them yourself from inside `uzbl`. You can bind keys for this. Examples: add new bookmark, load new url.
 * You could also use `xbindkeys` or your WM config to trigger scripts if `uzbl` does not have focus.
 
 Have a look at the sample configs and scripts!
@@ -416,7 +416,7 @@ Copying the Uzbl object and creating public functions should be taken with care 
 
 ### EVENTS
 
-Unlike commands, events are not handled in `uzbl` itself, but are propagated (dispatched) asynchronously through a text stream on `stdout` and/or through a socket.  You'll usually use uzbl by piping it's output to a so-called "event manager" (EM), or by having the EM listen to a socket.
+Unlike commands, events are not handled in `uzbl` itself, but are propagated (dispatched) asynchronously through a text stream on `stdout` and/or through a socket. You'll usually use uzbl by piping it's output to a so-called "event manager" (EM), or by having the EM listen to a socket.
 
 The EM allows:
 
