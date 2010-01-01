@@ -41,13 +41,6 @@ from traceback import print_exc
 from functools import partial
 
 
-# ============================================================================
-# ::: Default configuration section ::::::::::::::::::::::::::::::::::::::::::
-# ============================================================================
-
-# `make install` will put the correct value here for your system
-PREFIX = '/usr/local/'
-
 def xdghome(key, default):
     '''Attempts to use the environ XDG_*_HOME paths if they exist otherwise
     use $HOME and the default path.'''
@@ -58,10 +51,17 @@ def xdghome(key, default):
 
     return os.path.join(os.environ['HOME'], default)
 
+
+# ============================================================================
+# ::: Default configuration section ::::::::::::::::::::::::::::::::::::::::::
+# ============================================================================
+
+# `make install` will put the correct value here for your system
+PREFIX = '/usr/local/'
+
 # Setup xdg paths.
 DATA_DIR = os.path.join(xdghome('DATA', '.local/share/'), 'uzbl/')
 CACHE_DIR = os.path.join(xdghome('CACHE', '.cache/'), 'uzbl/')
-
 
 # Event manager config dictionary. This is not to be confused with the config
 # dict that tracks variables in the uzbl instance.
@@ -79,7 +79,6 @@ CONFIG = {
     'server_socket':   os.path.join(CACHE_DIR, 'event_daemon'),
     'pid_file':        os.path.join(CACHE_DIR, 'event_daemon.pid'),
 }
-
 
 # ============================================================================
 # ::: End of configuration section :::::::::::::::::::::::::::::::::::::::::::
