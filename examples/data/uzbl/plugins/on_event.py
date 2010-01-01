@@ -92,9 +92,16 @@ def parse_on_event(uzbl, args):
 
 
 def init(uzbl):
+    # Event handling hooks.
+    uzbl.connect_dict({
+        'INSTANCE_EXIT':    del_instance,
+        'INSTANCE_START':   add_instance,
+        'ON_EVENT':         parse_on_event,
+    })
 
-    connects = {'ON_EVENT': parse_on_event,
-      'INSTANCE_START': add_instance,
-      'INSTANCE_EXIT': del_instance}
-
-    uzbl.connect_dict(connects)
+    # Function exports to the uzbl object, `function(uzbl, *args, ..)`
+    # becomes `uzbl.function(*args, ..)`.
+    uzbl.export_dict({
+        'get_on_events':    get_on_events,
+        'on_event':         on_event,
+    })

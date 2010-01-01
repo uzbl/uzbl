@@ -1,6 +1,3 @@
-__export__ = ['cmd_expand',]
-
-
 def escape(str):
     for (level, char) in [(3, '\\'), (2, "'"), (2, '"'), (1, '@')]:
         str = str.replace(char, (level * '\\') + char)
@@ -39,5 +36,7 @@ def cmd_expand(uzbl, cmd, args):
     return cmd
 
 
-def init(*args):
-    pass
+def init(uzbl):
+    # Function exports to the uzbl object, `function(uzbl, *args, ..)`
+    # becomes `uzbl.function(*args, ..)`.
+    uzbl.export('cmd_expand', cmd_expand)

@@ -1,10 +1,5 @@
 import re
 
-# Map these functions/variables in the plugins namespace to the uzbl object.
-__export__ = ['clear_keycmd', 'set_keycmd', 'set_cursor_pos', 'get_keylet',
-    'clear_current', 'clear_modcmd', 'add_modmap', 'add_key_ignore',
-    'append_keycmd', 'inject_keycmd', 'add_modkey_addition']
-
 # Hold the keylets.
 UZBLS = {}
 
@@ -538,22 +533,39 @@ def set_cursor_pos(uzbl, index):
 def init(uzbl):
     '''Connect handlers to uzbl events.'''
 
-    connects = {'INSTANCE_START': add_instance,
-      'INSTANCE_EXIT': del_instance,
-      'KEY_PRESS': key_press,
-      'KEY_RELEASE': key_release,
-      'SET_KEYCMD': set_keycmd,
-      'KEYCMD_STRIP_WORD': keycmd_strip_word,
-      'KEYCMD_BACKSPACE': keycmd_backspace,
-      'KEYCMD_DELETE': keycmd_delete,
-      'KEYCMD_EXEC_CURRENT': keycmd_exec_current,
-      'SET_CURSOR_POS': set_cursor_pos,
-      'FOCUS_LOST': focus_changed,
-      'FOCUS_GAINED': focus_changed,
-      'MODMAP': modmap_parse,
-      'APPEND_KEYCMD': append_keycmd,
-      'INJECT_KEYCMD': inject_keycmd,
-      'IGNORE_KEY': add_key_ignore,
-      'MODKEY_ADDITION': modkey_addition_parse}
+    # Event handling hooks.
+    uzbl.connect_dict({
+        'APPEND_KEYCMD':        append_keycmd,
+        'FOCUS_GAINED':         focus_changed,
+        'FOCUS_LOST':           focus_changed,
+        'IGNORE_KEY':           add_key_ignore,
+        'INJECT_KEYCMD':        inject_keycmd,
+        'INSTANCE_EXIT':        del_instance,
+        'INSTANCE_START':       add_instance,
+        'KEYCMD_BACKSPACE':     keycmd_backspace,
+        'KEYCMD_DELETE':        keycmd_delete,
+        'KEYCMD_EXEC_CURRENT':  keycmd_exec_current,
+        'KEYCMD_STRIP_WORD':    keycmd_strip_word,
+        'KEY_PRESS':            key_press,
+        'KEY_RELEASE':          key_release,
+        'MODKEY_ADDITION':      modkey_addition_parse,
+        'MODMAP':               modmap_parse,
+        'SET_CURSOR_POS':       set_cursor_pos,
+        'SET_KEYCMD':           set_keycmd,
+    })
 
-    uzbl.connect_dict(connects)
+    # Function exports to the uzbl object, `function(uzbl, *args, ..)`
+    # becomes `uzbl.function(*args, ..)`.
+    uzbl.export_dict({
+        'add_key_ignore':       add_key_ignore,
+        'add_modkey_addition':  add_modkey_addition,
+        'add_modmap':           add_modmap,
+        'append_keycmd':        append_keycmd,
+        'clear_current':        clear_current,
+        'clear_keycmd':         clear_keycmd,
+        'clear_modcmd':         clear_modcmd,
+        'get_keylet':           get_keylet,
+        'inject_keycmd':        inject_keycmd,
+        'set_cursor_pos':       set_cursor_pos,
+        'set_keycmd':           set_keycmd,
+    })

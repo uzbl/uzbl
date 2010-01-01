@@ -185,17 +185,22 @@ def add_config_key(uzbl, key, value):
 
 
 def init(uzbl):
-    connects = {
-      'INSTANCE_START':    add_instance,
-      'INSTANCE_EXIT':     del_instance,
+    # Event handling hooks.
+    uzbl.connect_dict({
       'BUILTINS':          add_builtins,
       'CONFIG_CHANGED':    add_config_key,
+      'INSTANCE_EXIT':     del_instance,
+      'INSTANCE_START':    add_instance,
+      'KEYCMD_CLEARED':    stop_completion,
+      'KEYCMD_EXEC':       stop_completion,
       'KEYCMD_UPDATE':     update_completion_list,
       'START_COMPLETION':  start_completion,
-    }
+      'STOP_COMPLETION':   stop_completion,
+    })
 
-    # And connect the dicts event handlers to the handler stack.
-    uzbl.connect_dict(connects)
-
-    for event in ['STOP_COMPLETION', 'KEYCMD_EXEC', 'KEYCMD_CLEARED']:
-        uzbl.connect(event, stop_completion)
+    # Function exports to the uzbl object, `function(uzbl, *args, ..)`
+    # becomes `uzbl.function(*args, ..)`.
+    uzbl.export_dict({
+        'get_completion_dict':  get_completion_dict,
+        'start_completion':     start_completion,
+    })
