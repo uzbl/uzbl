@@ -245,6 +245,9 @@ set open_new_window = sh 'uzbl-browser -u \@SELECTED_URI'
 @cbind  !dump              = sh "echo dump_config > $4"
 # Reload config
 @cbind  !reload            = sh "sed '/^# === Post-load misc commands/,$d' $1 > $4"
+# Uzbl Terminal
+@cbind  <Ctrl><Alt>t  = sh 'xterm -e "socat unix-connect:$5 -"'
+#@cbind  <Ctrl><Alt>t  = sh 'urxvt -e socat unix-connect:$5 -'
 
 # --- Uri opening prompts ---
 @cbind  o<uri:>_       = uri %s
@@ -286,17 +289,6 @@ set toggle_cmd_ins = @toggle_modes command insert
 @cbind  fl*  = script @scripts_dir/follow_Numbers.js %s
 # Or number with strings instead of numbers:
 @cbind  fL*  = script @scripts_dir/follow_Numbers_Strings.js %s
-
-
-@cbind    Xs        = js alert("hi");
-# example showing how to use sh
-# it sends a command to the fifo, whose path is told via a positional param
-# if fifo_dir is not set, it'll echo to a file named (null) somewhere >:) remember to delete it
-# The body of the shell command should be one parameter, so if it has spaces like here,
-# you must enclose it in quotes.  Remember to escape (and double-escape) quotes and backslashes
-# in the body.  Any additional parameters you use will appear AFTER the default parameters (cfg file
-# path, fifo & socket dirs, etc.)
-@cbind    XS        = sh 'echo "js alert (\\"This is sent by the shell via a fifo\\")" > "$4"'
 
 # --- Form filler binds ---
 # this script allows you to configure (per domain) values to fill in form
