@@ -529,12 +529,14 @@ Basically all events have this format:
 
 
 ### COMMAND LINE ARGUMENTS
-    uzbl [ uri ]
+    uzbl-core [OPTION...] [ uri ]
     -u, --uri=URI            Uri to load at startup (equivalent to 'uzbl <uri>' or 'set uri = URI' after uzbl has launched)
     -v, --verbose            Whether to print all messages or just errors.
-    -n, --name=NAME          Name of the current instance (defaults to Xorg window id)
+    -n, --name=NAME          Name of the current instance (defaults to Xorg window id or random for GtkSocket mode)
     -c, --config=FILE        Path to config file or '-' for stdin
     -s, --socket=SOCKET      Socket ID
+    --connect-socket=CSOCKET Connect to server socket
+    -p, --print-events       Whether to print events to stdout
     -g, --geometry=GEOMETRY  Set window geometry (format: WIDTHxHEIGHT+-X+-Y or maximized)
     -V, --version            Print the version and exit
     --display=DISPLAY        X display to use
