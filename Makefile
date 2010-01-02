@@ -96,9 +96,9 @@ install-uzbl-core: all
 	install -d $(INSTALLDIR)/bin
 	install -d $(INSTALLDIR)/share/uzbl/docs
 	install -d $(INSTALLDIR)/share/uzbl/examples
-	cp -rp docs     $(INSTALLDIR)/share/uzbl/
-	cp -rp config.h $(INSTALLDIR)/share/uzbl/docs/
-	cp -rp examples $(INSTALLDIR)/share/uzbl/
+	cp -rp docs         $(INSTALLDIR)/share/uzbl/
+	cp -rp src/config.h $(INSTALLDIR)/share/uzbl/docs/
+	cp -rp examples     $(INSTALLDIR)/share/uzbl/
 	install -m755 uzbl-core    $(INSTALLDIR)/bin/uzbl-core
 	install -m644 AUTHORS      $(INSTALLDIR)/share/uzbl/docs
 	install -m644 README       $(INSTALLDIR)/share/uzbl/docs
