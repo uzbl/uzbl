@@ -156,12 +156,21 @@ def toggle_modes(uzbl, modes):
 
 
 def init(uzbl):
+    # Event handling hooks.
+    uzbl.connect_dict({
+        'CONFIG_CHANGED':   config_changed,
+        'INSTANCE_EXIT':    del_instance,
+        'INSTANCE_START':   add_instance,
+        'MODE_CHANGED':     mode_changed,
+        'MODE_CONFIG':      mode_config,
+        'TOGGLE_MODES':     toggle_modes,
+    })
 
-    connects = {'CONFIG_CHANGED': config_changed,
-      'INSTANCE_EXIT': del_instance,
-      'INSTANCE_START': add_instance,
-      'MODE_CONFIG': mode_config,
-      'TOGGLE_MODES': toggle_modes,
-      'MODE_CHANGED': mode_changed}
-
-    uzbl.connect_dict(connects)
+    # Function exports to the uzbl object, `function(uzbl, *args, ..)`
+    # becomes `uzbl.function(*args, ..)`.
+    uzbl.export_dict({
+        'get_mode': get_mode,
+        'get_mode_config': get_mode_config,
+        'set_mode': set_mode,
+        'set_mode_config': set_mode_config,
+    })

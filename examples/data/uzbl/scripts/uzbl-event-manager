@@ -349,61 +349,23 @@ class UzblInstance(object):
     def __init__(self, parent, client_socket):
 
         # Internal variables.
-        self._exports = {}
-        self._handlers = {}
-        self._parent = parent
-        self._client_socket = client_socket
+        self.exports = {}
+        self.handlers = {}
+        self.parent = parent
+        self.client_socket = client_socket
 
         self.depth = 0
         self.buffer = ''
         self.pid = None
 
-        # Call the init() function in every plugin. Inside the init function
-        # is where the plugins insert the hooks into the event system.
-        self._init_plugins()
-
-
-    def __getattribute__(self, attr):
-        '''Expose any exported functions before class functions.'''
-
-        if not attr.startswith('_'):
-            exports = object.__getattribute__(self, '_exports')
-            if attr in exports:
-                return exports[attr]
-
-        return object.__getattribute__(self, attr)
-
-
-    def _init_plugins(self):
-        '''Call the init() function in every plugin and expose all exposable
-        functions in the plugins root namespace.'''
-
-        plugins = self._parent['plugins']
-
-        # Map all plugin exports
-        for (name, plugin) in plugins.items():
-            if not hasattr(plugin, '__export__'):
-                continue
-
-            for export in plugin.__export__:
-                if export in self._exports:
-                    raise KeyError("conflicting export: %r" % export)
-
-                obj = getattr(plugin, export)
-                if callable(obj):
-                    obj = partial(obj, self)
-
-                self._exports[export] = obj
-
-        echo("exposed attribute(s): %s" % ', '.join(self._exports.keys()))
-
-        # Now call the init function in all plugins.
-        for (name, plugin) in plugins.items():
+        # Call the init function in every plugin. The init function in each
+        # plugin is where that plugin connects functions to events and exports
+        # functions to the uzbl object.
+        for plugin in self.parent['plugins'].values():
             try:
                 plugin.init(self)
 
             except:
-                #print_exc()
                 raise
 
 
@@ -411,26 +373,43 @@ class UzblInstance(object):
         '''Send a command to the uzbl instance via the socket file.'''
 
         msg = msg.strip()
-        if self._client_socket:
+        if self.client_socket:
             print '%s<-- %s' % ('  ' * self.depth, msg)
-            self._client_socket.send(("%s\n" % msg).encode('utf-8'))
+            self.client_socket.send(("%s\n" % msg).encode('utf-8'))
 
         else:
             print '%s!-- %s' % ('  ' * self.depth, msg)
 
 
+    def export(self, name, function):
+        '''Export `function(uzbl, *args, ..)` inside a plugin to the uzbl
+        object like so `uzbl.function(*args, ..)`. This will allow other
+        plugins to call functions inside the current plugin (which is currently
+        calling this function) via the uzbl object.'''
+
+        self.__dict__.__setitem__(name, partial(function, self))
+
+
+    def export_dict(self, export_dict):
+        '''Export multiple (name, function)'s at once inside a dict of the
+        form `{name1: function1, name2: function2, ...}`.'''
+
+        for (name, function) in export_dict.items():
+            self.export(name, function)
+
+
     def connect(self, event, handler, *args, **kargs):
-        '''Connect event with handler and return the newly created handler.
-        Handlers can either be a function or a uzbl command string.'''
+        '''Connect a uzbl event with a handler. Handlers can either be a
+        function or a uzbl command string.'''
 
         event = event.upper().strip()
         assert event and ' ' not in event
 
-        if event not in self._handlers.keys():
-            self._handlers[event] = []
+        if event not in self.handlers.keys():
+            self.handlers[event] = []
 
         handlerobj = EventHandler(event, handler, *args, **kargs)
-        self._handlers[event].append(handlerobj)
+        self.handlers[event].append(handlerobj)
         print handlerobj
 
 
@@ -448,7 +427,7 @@ class UzblInstance(object):
     def remove_by_id(self, hid):
         '''Remove connected event handler by unique handler id.'''
 
-        for (event, handlers) in self._handlers.items():
+        for (event, handlers) in self.handlers.items():
             for handler in list(handlers):
                 if hid != handler.hid:
                     continue
@@ -463,7 +442,7 @@ class UzblInstance(object):
     def remove(self, handler):
         '''Remove connected event handler.'''
 
-        for (event, handlers) in self._handlers.items():
+        for (event, handlers) in self.handlers.items():
             if handler in handlers:
                 echo("removed %r" % handler)
                 handlers.remove(handler)
@@ -492,10 +471,10 @@ class UzblInstance(object):
         if event == "INSTANCE_START" and args:
             self.pid = int(args[0])
 
-        if event not in self._handlers:
+        if event not in self.handlers:
             return
 
-        for handler in self._handlers[event]:
+        for handler in self.handlers[event]:
             self.depth += 1
             try:
                 self.exec_handler(handler, *args, **kargs)
@@ -510,18 +489,14 @@ class UzblInstance(object):
         '''Close the client socket and clean up.'''
 
         try:
-            self._client_socket.close()
+            self.client_socket.close()
 
         except:
             pass
 
-        for (name, plugin) in self._parent['plugins'].items():
+        for (name, plugin) in self.parent['plugins'].items():
             if hasattr(plugin, 'cleanup'):
                 plugin.cleanup(self)
-
-        del self._exports
-        del self._handlers
-        del self._client_socket
 
 
 class UzblEventDaemon(dict):

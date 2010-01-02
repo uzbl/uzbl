@@ -82,9 +82,16 @@ def variable_set(uzbl, args):
 
 
 def init(uzbl):
+    # Event handling hooks.
+    uzbl.connect_dict({
+        'INSTANCE_EXIT':    del_instance,
+        'INSTANCE_START':   add_instance,
+        'VARIABLE_SET':     variable_set,
+    })
 
-    connects = {'VARIABLE_SET': variable_set,
-      'INSTANCE_START': add_instance,
-      'INSTANCE_EXIT': del_instance}
-
-    uzbl.connect_dict(connects)
+    # Function exports to the uzbl object, `function(uzbl, *args, ..)`
+    # becomes `uzbl.function(*args, ..)`.
+    uzbl.export_dict({
+        'get_config':   get_config,
+        'set':          set,
+    })

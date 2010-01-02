@@ -39,15 +39,24 @@ set jsh = js var run=Uzbl.run; function get(k){return run("print \\\@"+k)}; func
 
 # === Handlers ===============================================================
 
-set download_handler   = spawn @scripts_dir/download.sh
-set cookie_handler     = talk_to_socket $XDG_CACHE_HOME/uzbl/cookie_daemon_socket
-set scheme_handler     = sync_spawn @scripts_dir/scheme.py
+# --- Hardcoded event handlers -----------------------------------------------
 
-# New window handler options
-#set new_window        = sh 'echo uri "$8" > $4' # open in same window
-set new_window         = sh 'uzbl-browser -u $8' # equivalent to the default behaviour
+# These handlers can't be moved to the new event system yet as we don't
+# support events that can wait for a response from a script.
+set cookie_handler      = talk_to_socket $XDG_CACHE_HOME/uzbl/cookie_daemon_socket
+set scheme_handler      = sync_spawn @scripts_dir/scheme.py
 
-# Load start handlers
+# Open in the same window.
+#set new_window         = sh 'echo uri "$8" > $4'
+# Open a link in a new window. equivalent to default behavior
+set new_window          = sh 'uzbl-browser -u $8'
+
+# --- Optional dynamic event handlers ----------------------------------------
+
+# Download handler
+@on_event   DOWNLOAD_REQUEST    spawn @scripts_dir/download.sh %s \@proxy_url
+
+# Load start handler
 @on_event   LOAD_START     @set_status <span foreground="khaki">wait</span>
 
 # Load commit handlers
@@ -69,7 +78,7 @@ set new_window         = sh 'uzbl-browser -u $8' # equivalent to the default beh
 # Switch to command mode if anything else is clicked
 @on_event   ROOT_ACTIVE    @set_mode command
 
-# Misc on_event handlers
+# Example CONFIG_CHANGED event handler
 #@on_event  CONFIG_CHANGED print Config changed: %1 = %2
 
 # === Behaviour and appearance ===============================================
@@ -95,6 +104,8 @@ set status_section    = <span foreground="orange">\@status_message</span>
 set selected_section  = <span foreground="#606060">\@[\@SELECTED_URI]\@</span>
 
 set status_format     = <span font_family="monospace">@mode_section @keycmd_section @progress_section @uri_section @name_section @status_section @scroll_section @selected_section</span>
+
+set title_format_long = \@keycmd_prompt \@raw_modcmd \@raw_keycmd \@TITLE - Uzbl browser <\@NAME> \@SELECTED_URI
 
 # Progress bar config
 @progress width    = 8
@@ -243,6 +254,9 @@ set open_new_window = sh 'uzbl-browser -u \@SELECTED_URI'
 @cbind  !dump              = sh "echo dump_config > $4"
 # Reload config
 @cbind  !reload            = sh "sed '/^# === Post-load misc commands/,$d' $1 > $4"
+# Uzbl Terminal. TODO explain why this is useful
+@cbind  <Ctrl><Alt>t  = sh 'xterm -e "socat unix-connect:$5 -"'
+#@cbind  <Ctrl><Alt>t  = sh 'urxvt -e socat unix-connect:$5 -'
 
 # --- Uri opening prompts ---
 @cbind  o<uri:>_       = uri %s
@@ -284,17 +298,6 @@ set toggle_cmd_ins = @toggle_modes command insert
 @cbind  fl*  = script @scripts_dir/follow_Numbers.js %s
 # Or number with strings instead of numbers:
 @cbind  fL*  = script @scripts_dir/follow_Numbers_Strings.js %s
-
-
-@cbind    Xs        = js alert("hi");
-# example showing how to use sh
-# it sends a command to the fifo, whose path is told via a positional param
-# if fifo_dir is not set, it'll echo to a file named (null) somewhere >:) remember to delete it
-# The body of the shell command should be one parameter, so if it has spaces like here,
-# you must enclose it in quotes.  Remember to escape (and double-escape) quotes and backslashes
-# in the body.  Any additional parameters you use will appear AFTER the default parameters (cfg file
-# path, fifo & socket dirs, etc.)
-@cbind    XS        = sh 'echo "js alert (\\"This is sent by the shell via a fifo\\")" > "$4"'
 
 # --- Form filler binds ---
 # this script allows you to configure (per domain) values to fill in form
