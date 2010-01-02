@@ -93,6 +93,7 @@ typedef struct {
     gchar*   keycmd;
     gchar*   searchtx;
     gboolean verbose;
+    gboolean events_stdout;
     GPtrArray *event_buffer;
     gchar**   connect_socket_names;
     GdkEventButton *last_button;

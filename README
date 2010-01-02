@@ -206,6 +206,7 @@ Besides the builtin variables you can also define your own ones and use them in 
   - `scheme_handler`: handler to execute for each URI navigated to - the navigation request will be ignored if handler prints "USED\n"
   - `fifo_dir`: location to store fifo's
   - `socket_dir`: location to store sockets
+  - `print_events`: show events on stdout
   - `http_debug`: http debug mode (value 0-3)
   - `shell_cmd`: alias which will be expanded to use shell commands (eg sh -c)
   - `proxy_url`: http traffic socks proxy (eg: http://<host>:<port>)
@@ -528,12 +529,14 @@ Basically all events have this format:
 
 
 ### COMMAND LINE ARGUMENTS
-    uzbl [ uri ]
+    uzbl-core [OPTION...] [ uri ]
     -u, --uri=URI            Uri to load at startup (equivalent to 'uzbl <uri>' or 'set uri = URI' after uzbl has launched)
     -v, --verbose            Whether to print all messages or just errors.
-    -n, --name=NAME          Name of the current instance (defaults to Xorg window id)
+    -n, --name=NAME          Name of the current instance (defaults to Xorg window id or random for GtkSocket mode)
     -c, --config=FILE        Path to config file or '-' for stdin
     -s, --socket=SOCKET      Socket ID
+    --connect-socket=CSOCKET Connect to server socket
+    -p, --print-events       Whether to print events to stdout
     -g, --geometry=GEOMETRY  Set window geometry (format: WIDTHxHEIGHT+-X+-Y or maximized)
     -V, --version            Print the version and exit
     --display=DISPLAY        X display to use
