@@ -6,8 +6,10 @@ CFLAGS!=echo -std=c99 `pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthre
 LDFLAGS:=$(shell pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0) -pthread $(LDFLAGS)
 LDFLAGS!=echo `pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` -pthread $(LDFLAGS)
 
-SRC = uzbl-core.c events.c callbacks.c inspector.c
-OBJ = ${SRC:.c=.o}
+SRC = $(wildcard src/*.c)
+HEAD = $(wildcard src/*.h)
+TOBJ = $(SRC:.c=.o)
+OBJ = $(foreach obj, $(TOBJ), $(notdir $(obj)))
 
 all: uzbl-browser options
 
@@ -25,7 +27,7 @@ options:
 	@${CC} -c ${CFLAGS} $<
 	@echo ... done.
 
-${OBJ}: uzbl-core.h events.h callbacks.h inspector.h config.h
+${OBJ}: ${HEAD}
 
 uzbl-core: ${OBJ}
 	@echo
@@ -59,7 +61,7 @@ test-uzbl-core: uzbl-core
 	./uzbl-core --uri http://www.uzbl.org --verbose
 
 test-uzbl-browser: uzbl-browser
-	./uzbl-browser --uri http://www.uzbl.org --verbose
+	./src/uzbl-browser --uri http://www.uzbl.org --verbose
 
 test-uzbl-core-sandbox: uzbl-core
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-core
@@ -104,7 +106,7 @@ install-uzbl-core: all
 
 install-uzbl-browser:
 	install -d $(INSTALLDIR)/bin
-	install -m755 uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
+	install -m755 src/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
 	install -m755 examples/data/uzbl/scripts/uzbl-cookie-daemon $(INSTALLDIR)/bin/uzbl-cookie-daemon
 	install -m755 examples/data/uzbl/scripts/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
 	sed -i 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' $(INSTALLDIR)/bin/uzbl-browser
