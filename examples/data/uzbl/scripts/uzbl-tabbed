@@ -44,6 +44,9 @@
 #
 #   Devon Jones <devon.jones@gmail.com>
 #       Fifo command bring_to_front which brings the gtk window to focus.
+#
+#   Simon Lipp (sloonz)
+#       Various
 
 
 # Dependencies:
