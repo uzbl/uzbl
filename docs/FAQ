@@ -35,17 +35,21 @@ So, given that uzbl-core and uzbl-browser only deal with one page at a time (see
 above), how can you have a window with multiple pages?
 
 Basically this is involves concerns on two sides:
-* window management: can I keep all pages together in 1 X window so
-  that I can move all at once to a different workspace, can I "split off"
-  pages into separate windows (i.e. move only one specific page/window to a
-  different desktop), can I integrate uzbl pages/windows into WM features?
-  (alt-tab, tiling layouts, taskbar, ...), etc
-* application-level: having a realtime overview of all page titles of all uzbl
-  instances, special representation styles which are tightly coupled to the
-  application such as treeviews that show from which you page you opened
-  others, or page state (loading etc)
+
+* window management
+  - can I keep all pages together in 1 X window so that I can move all at once to a different workspace
+  - can I "split off" pages into separate windows (i.e. move only one specific page/window to a different desktop)
+    or merge windows together?
+  - can I integrate uzbl pages/windows into WM features? (alt-tab, tiling layouts, taskbar, ...)
+  - ...
+* application-level
+  - realtime overview of all page titles of all uzbl instances
+  - representation styles which are tightly coupled to the application such as treeviews that show from which you page you opened
+    others, or page state (loading etc)
+  - ...
 
 Uzbl itself can hardly be a limiting factor, as it supports/has:
+
 * Xembed (GtkPlug mode) so you can embed a uzbl-browser or uzbl-core into another window
 * an events system you can have realtime updates of window title, pageload state, etc.
 * command interface to programmatically change it's behavior.
@@ -54,7 +58,7 @@ And then there is the style of representation (tabs, tree overviews, visual
 thumbnails etc) which can be handled from the WM side or the application
 side.
 
-There are multiple approaches, each with pros and cons and you can pick the one that suits you best.
+There are multiple approaches, each with pros and cons.
 
 * Tabbing in the WM:  Xmonads tabbed layout, Wmii's stacked layout, fluxbox or kwin tabs and so on.
 * Visual overview in the WM: commonly used with dwm or Awesome's tiling layouts with master/slave areas.
@@ -72,9 +76,10 @@ There are multiple approaches, each with pros and cons and you can pick the one 
   For more ideas on such an approach, see docs/multiple-instances-management.
   Examples:
   - [wmctrl-based](http://www.uzbl.org/wiki/metacity-tabs) (works on at least Metacity)
-  - [wmii] (http://www.uzbl.org/wiki/wmii)
+  - [wmii](http://www.uzbl.org/wiki/wmii)
 
-There are really a lot of options.
+There are really a lot of options.  You need to think about what you need,
+what you want and what you don't care about.
 On the wiki you'll find a lot of related scripts, some of them providing new
 workflows (do you really need open windows for all pages you intend to read, or is a list enough?
 [articlecue](http://www.uzbl.org/wiki/article_queue.py)), some providing integration with WM's such as
