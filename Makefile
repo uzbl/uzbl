@@ -29,7 +29,7 @@ options:
 
 ${OBJ}: ${HEAD}
 
-uzbl-core: ${OBJ}
+uzbl-core: ${TOBJ} # why doesn't ${OBJ} work?
 	@echo
 	@echo LINKING object files
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
