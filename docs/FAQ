@@ -75,6 +75,12 @@ They both have advantages and disadvantages:
 
 So, when writing scripts, using fifo's is usually the fastest method (because you do not need to fork another process), so fifo is preferred unless you need a response.
 
+### Uzbl uses too much memory! Especially when having multiple windows (i.e. with uzbl-tabbed)
+Don't be fooled with how memory usage is measured and reported on Linux. (or other systems)
+You need to be aware of the difference between RSS and VSS.
+And dynamic libraries (libwebkit, libgtk, etc) that are used by multiple processes are only stored in RAM once.
+See [this page](http://virtualthreads.blogspot.com/2006/02/understanding-memory-usage-on-linux.html) for a good explanation.
+
 ### What the hell is this 'XDG' stuff??
 You'll notice our example/default scripts and configs use variables such as `$XDG_CONFIG_HOME` and `$XDG_DATA_HOME`.
 Most of us really like the [xdg basedir spec](http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html).
