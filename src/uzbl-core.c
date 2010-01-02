@@ -1077,7 +1077,7 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
 
         JSStringRelease(js_result_string);
     }
-    else if (js_exc && JSValueIsObject(context, js_exc)) {
+    else if (js_exc) {
         size_t size;
         JSStringRef prop, val;
         JSObjectRef exc = JSValueToObject(context, js_exc, NULL);
