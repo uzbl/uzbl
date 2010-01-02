@@ -3,4 +3,3 @@ uzbl-core
 *.pyc
 *~
 tags
-examples/config/enchant

@@ -562,7 +562,7 @@ class UzblTabbed:
             self.window.set_icon(gtk.gdk.pixbuf_new_from_file(icon_path))
 
         else:
-            icon_path = '/usr/share/uzbl/examples/data/uzbl/uzbl.png'
+            icon_path = '/usr/share/uzbl/examples/data/uzbl.png'
             if os.path.exists(icon_path):
                 self.window.set_icon(gtk.gdk.pixbuf_new_from_file(icon_path))
 

@@ -32,7 +32,7 @@ set set_status      = set status_message =
 set shell_cmd       = sh -c
 
 # Spawn path shortcuts. In spawn the first dir+path match is used in "dir1:dir2:dir3:executable"
-set scripts_dir     = $XDG_DATA_HOME/uzbl:@prefix/share/uzbl/examples/data/uzbl:scripts
+set scripts_dir     = $XDG_DATA_HOME/uzbl:@prefix/share/uzbl/examples/data:scripts
 
 # Javascipt helpers.
 set jsh = js var run=Uzbl.run; function get(k){return run("print \\\@"+k)}; function set(k, v) {run("set "+k+" = "+v)};
