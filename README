@@ -98,8 +98,9 @@ There are several interfaces to interact with Uzbl:
   - The advantage of the FIFO is you can write plaintext commands to it, but
     it's half duplex only (`uzbl` cannot send a response to you).
   - The socket is full duplex but you need a socket-compatible wrapper such as
-    `socat` to work with it. For example: `echo <command> | socat -
-    unix-connect:<socketfile>`
+    `socat` to work with it. For example:
+
+      echo <command> | socat - unix-connect:<socketfile>
 
 When `uzbl` forks a new instance (eg "open in new window") it will use the same
 command line arguments (eg the same `--config <file>`), except `--uri` and
@@ -185,7 +186,7 @@ The following commands are recognized:
 * `talk_to_socket <socketfile> <tokens>`
   - Send a message to `<socketfile>` and wait for a response. `<tokens>` are
     concatenated and separated by ASCII NUL bytes.
-  - Expects the socket type to be `SOCK_SEQPACKET` (see connect(2) ).
+  - Expects the socket type to be `SOCK_SEQPACKET` (see `connect(2)`).
   - Waits for 500ms for a response.
 * `exit`
   - Closes `uzbl`.
@@ -392,21 +393,25 @@ The above example demonstrates two things:
 Command substitution will launch any commands and substitute the call with the
 return value of the command. There are two methods:
 
-* Through a shell: enclose commands with @( )@ (quote escaping is handled by
-    Uzbl): print Command substitution: @(uname -a)@
+* Through a shell: enclose commands with `@( )@` (quote escaping is handled by
+    Uzbl):
 
-This method allows you to use posix shell syntax in your commands.
+    print Command substitution: @(uname -a)@
 
-* directly: print Command substitution: @(+uname -a)@
+This method allows you to use POSIX shell syntax in your commands.
+
+* directly:
+
+    print Command substitution: @(+uname -a)@
 
 This example will execute uname directly.
 
-Note that you can access any uzbl variable from within a command substitution:
+Note that you can access any `uzbl` variable from within a command substitution:
 
     print @(echo -n 'Accessing the show_status var from an external script, value: @show_status')@
 
 JavaScript substitution works in the exact same way as command substitution but
-you will need to enclose the java script in `@< >@`.
+you will need to enclose the JavaScript in `@< >@`.
 
     print The currently viewed document contains @<document.links.length>@ links
 
@@ -465,15 +470,15 @@ You can use external scripts with Uzbl the following ways:
 * Let `uzbl` call them. These scripts are called "handlers" in the `uzbl`
   config. Used for handling cookies, starting a new download, and more.
 * Call them yourself from inside `uzbl`. You can bind keys for this. Examples:
-  add new bookmark, load new url.
+  add new bookmark, load new URL.
 * You could also use `xbindkeys` or your WM config to trigger scripts if `uzbl`
   does not have focus.
 
 Have a look at the sample configs and scripts!
 
-Handler scripts that are called by uzbl are passed the following arguments:
+Handler scripts that are called by `uzbl` are passed the following arguments:
 
-* `$1 config-file`: The configuration file loaded by this `uzbl` instance.
+* `$1 config`: The configuration file loaded by this `uzbl` instance.
 * `$2 pid`: The process ID of this `uzbl` instance.
 * `$3 x_id`: The X Windows ID of the process.
 * `$4 fifo`: The filename of the FIFO being used, if any.
@@ -532,11 +537,11 @@ object) as default, it is recommended to wrap your scripts like this:
 
     (function(Uzbl) { ...  })(Uzbl);
 
-This way, everything is kept private. It also turns Uzbl into a local variable,
-which can be accessed from callback functions defined inside. However for some
-situations, isolating everything isn't an option, for example, with binds. You
-can define them directly in the script body, and use `var Uzbl = window.Uzbl;`
-to make the Uzbl variable local, as in the following example:
+This way, everything is kept private. It also turns `Uzbl` into a local
+variable, which can be accessed from callback functions defined inside. However
+for some situations, isolating everything isn't an option, for example, with
+binds. You can define them directly in the script body, and use `var Uzbl =
+window.Uzbl;` to make the `Uzbl` variable local, as in the following example:
 
     function f() {
         var Uzbl = window.Uzbl;
@@ -548,7 +553,7 @@ to make the Uzbl variable local, as in the following example:
 
 Copying the Uzbl object and creating public functions should be taken with care
 to avoid creating security holes. Keep in mind that the `f` function above would
-be defined in the `window` object, and as such any javascript in the current
+be defined in the `window` object, and as such any JavaScript in the current
 page can call it.
 
 ### EVENTS
@@ -583,8 +588,8 @@ Events have this format:
 * `EVENT [uzbl_instance_name] INSTANCE_EXIT process_id`: `uzbl` shutdown
 * `EVENT [uzbl_instance_name] VARIABLE_SET variable_name str|int|float
   variable_value`: Note: `str|int|float` denote the type of `variable_value`.
-* `EVENT [uzbl_instance_name] COMMAND_EXECUTED command_name
-  optional_command_arguments`: A command is executed.
+* `EVENT [uzbl_instance_name] COMMAND_EXECUTED command_name optional_arguments`:
+  A command is executed.
 * `EVENT [uzbl_instance_name] COMMAND_ERROR command_name`: Tried to execute the
   command `command_name`, but it does not exist.
 * `EVENT [uzbl_instance_name] GEOMETRY_CHANGED
