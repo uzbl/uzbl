@@ -1,6 +1,6 @@
 ### INTRODUCTION
 
-Any program can only be really useful if it complies to the unix philosophy. Web browsers (and other tools that work with HTML, such as feed readers) are frequent violators of this principle:
+Any program can only be really useful if it complies with the Unix philosophy. Web browsers (and other tools that work with HTML, such as feed readers) are frequent violators of this principle:
 
 * They build in way too much things into one (complex) program, dramatically decreasing the options to do things the way you want.
 * They store things in way too fancy formats (XML, RDF, SQLite, etc.) which are hard to store under version control, reuse in other scripts, and so on.
@@ -15,7 +15,7 @@ The Uzbl project was started as an attempt to resolve this.
 
 * Uses WebKitGtk+ for rendering and network interaction (libsoup). CSS, JavaScript, and plugin support come for free.
 * Provides interfaces to get data in (commands/configuration) and out (events): stdin/stdout/fifo/Unix sockets.
-* You see a WebKit view and (optionally) a statusbar which gets popuplated externally.
+* You see a WebKit view and (optionally) a statusbar which gets populated externally.
 * No built-in means for URL changing, loading/saving of bookmarks, saving history, keybinds, downloads, etc.
 * Extra functionality: many sample scripts come with it. More are available on the [Uzbl wiki](http://www.uzbl.org/wiki/scripts) or you can write them yourself.
 * Entire configuration/state can be changed at runtime.
