@@ -375,11 +375,11 @@ class UzblInstance(object):
 
         msg = msg.strip()
         if self.client_socket:
-            print '%s<-- %s' % ('  ' * self.depth, msg)
+            print u'%s<-- %s' % ('  ' * self.depth, msg)
             self.client_socket.send(("%s\n" % msg).encode('utf-8'))
 
         else:
-            print '%s!-- %s' % ('  ' * self.depth, msg)
+            print u'%s!-- %s' % ('  ' * self.depth, msg)
 
 
     def export(self, name, function):
@@ -467,7 +467,7 @@ class UzblInstance(object):
         elems = [event,]
         if args: elems.append(unicode(args))
         if kargs: elems.append(unicode(kargs))
-        print "%s--> %s" % ('  ' * self.depth, ' '.join(elems))
+        print u'%s--> %s' % ('  ' * self.depth, ' '.join(elems))
 
         if event == "INSTANCE_START" and args:
             self.pid = int(args[0])
