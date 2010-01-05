@@ -296,7 +296,7 @@ def parse_msg(uzbl, msg):
     cmd = FINDSPACES.split(msg, 3)
     if not cmd or cmd[0] != 'EVENT':
         # Not an event message.
-        print '---', msg
+        print '---', msg.encode('utf-8')
         return
 
     while len(cmd) < 4:
@@ -375,11 +375,11 @@ class UzblInstance(object):
 
         msg = msg.strip()
         if self.client_socket:
-            print u'%s<-- %s' % ('  ' * self.depth, msg)
+            print (u'%s<-- %s' % ('  ' * self.depth, msg)).encode('utf-8')
             self.client_socket.send(("%s\n" % msg).encode('utf-8'))
 
         else:
-            print u'%s!-- %s' % ('  ' * self.depth, msg)
+            print (u'%s!-- %s' % ('  ' * self.depth, msg)).encode('utf-8')
 
 
     def export(self, name, function):
@@ -467,7 +467,7 @@ class UzblInstance(object):
         elems = [event,]
         if args: elems.append(unicode(args))
         if kargs: elems.append(unicode(kargs))
-        print u'%s--> %s' % ('  ' * self.depth, ' '.join(elems))
+        print (u'%s--> %s' % ('  ' * self.depth, ' '.join(elems))).encode('utf-8')
 
         if event == "INSTANCE_START" and args:
             self.pid = int(args[0])
