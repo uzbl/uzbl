@@ -13,9 +13,6 @@ import sys
 import re
 import pprint
 
-# Export these functions to uzbl.<name>
-__export__ = ['bind', 'mode_bind', 'get_bindlet']
-
 # Hold the bind dicts for each uzbl instance.
 UZBLS = {}
 
@@ -303,20 +300,6 @@ class Bind(object):
         return self._repr_cache
 
 
-def expand(cmd, args):
-    '''Replaces "%s %1 %2 %3..." with "<all args> <arg 0> <arg 1>...".'''
-
-    if '%s' in cmd:
-        cmd = cmd.replace('%s', ' '.join(map(unicode, args)))
-
-    for (index, arg) in enumerate(args):
-        index += 1
-        if '%%%d' % index in cmd:
-            cmd = cmd.replace('%%%d' % index, unicode(arg))
-
-    return cmd
-
-
 def exec_bind(uzbl, bind, *args, **kargs):
     '''Execute bind objects.'''
 
@@ -332,8 +315,9 @@ def exec_bind(uzbl, bind, *args, **kargs):
         raise ArgumentError('cannot supply kargs for uzbl commands')
 
     commands = []
+    cmd_expand = uzbl.cmd_expand
     for cmd in bind.commands:
-        cmd = expand(cmd, args)
+        cmd = cmd_expand(cmd, args)
         uzbl.send(cmd)
 
 
@@ -517,12 +501,21 @@ def modcmd_exec(uzbl, keylet):
 
 
 def init(uzbl):
-    connects = {'BIND': parse_bind,
-      'MODE_BIND': parse_mode_bind,
-      'KEYCMD_UPDATE': keycmd_update,
-      'MODCMD_UPDATE': modcmd_update,
-      'KEYCMD_EXEC': keycmd_exec,
-      'MODCMD_EXEC': modcmd_exec,
-      'MODE_CHANGED': mode_changed}
+    # Event handling hooks.
+    uzbl.connect_dict({
+        'BIND':             parse_bind,
+        'KEYCMD_EXEC':      keycmd_exec,
+        'KEYCMD_UPDATE':    keycmd_update,
+        'MODCMD_EXEC':      modcmd_exec,
+        'MODCMD_UPDATE':    modcmd_update,
+        'MODE_BIND':        parse_mode_bind,
+        'MODE_CHANGED':     mode_changed,
+    })
 
-    uzbl.connect_dict(connects)
+    # Function exports to the uzbl object, `function(uzbl, *args, ..)`
+    # becomes `uzbl.function(*args, ..)`.
+    uzbl.export_dict({
+        'bind':         bind,
+        'mode_bind':    mode_bind,
+        'get_bindlet':  get_bindlet,
+    })

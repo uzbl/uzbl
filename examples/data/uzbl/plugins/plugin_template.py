@@ -1,8 +1,5 @@
 '''Plugin template.'''
 
-# A list of functions this plugin exports to be used via uzbl object.
-__export__ = ['myplugin_function',]
-
 # Holds the per-instance data dict.
 UZBLS = {}
 
@@ -60,16 +57,20 @@ def init(uzbl):
 
     # Make a dictionary comprising of {"EVENT_NAME": handler, ..} to the event
     # handler stack:
-    connects = {
-      'INSTANCE_START':  add_instance,
-      'INSTANCE_EXIT':   del_instance,
-      'MYPLUGIN_EVENT':  myplugin_event_parser,
-    }
-
-    # And connect the dicts event handlers to the handler stack.
-    uzbl.connect_dict(connects)
+    uzbl.connect_dict({
+        # event name       function
+        'INSTANCE_START':  add_instance,
+        'INSTANCE_EXIT':   del_instance,
+        'MYPLUGIN_EVENT':  myplugin_event_parser,
+    })
 
     # Or connect a handler to an event manually and supply additional optional
     # arguments:
-
     #uzbl.connect("MYOTHER_EVENT", myother_event_parser, True, limit=20)
+
+    # Function exports to the uzbl object, `function(uzbl, *args, ..)`
+    # becomes `uzbl.function(*args, ..)`.
+    uzbl.connect_dict({
+        # external name      function
+        'myplugin_function': myplugin_function,
+    })
