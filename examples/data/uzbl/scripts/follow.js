@@ -106,15 +106,17 @@ function generateHint(el, label) {
     hint.style.padding = '1px';
     hint.style.position = 'absolute';
     hint.style.zIndex = '1000';
-//    hint.style.textTransform = 'uppercase';
-    hint.style.left = Math.max(-1, (pos[1] - (7 + label.length * 9))) + 'px';
-    hint.style.top = (pos[0] + 1) + 'px';
-    var img = el.getElementsByTagName('img');
-    //if (img.length > 0) {
-        //hint.style.top = pos[1] + img[0].height / 2 - 6 + 'px';
-    //}
+    // hint.style.textTransform = 'uppercase';
+    hint.style.left = pos[1] + 'px';
+    hint.style.top = pos[0] + 'px';
+    // var img = el.getElementsByTagName('img');
+    // if (img.length > 0) {
+    //     hint.style.top = pos[1] + img[0].height / 2 - 6 + 'px';
+    // }
     hint.style.textDecoration = 'none';
     // hint.style.webkitBorderRadius = '6px'; // slow
+    // Play around with this, pretty funny things to do :)
+    // hint.style.webkitTransform = 'scale(1) rotate(0deg) translate(-6px,-5px)';
     return hint;
 }
 //Here we choose what to do with an element if we
