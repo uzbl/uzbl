@@ -39,7 +39,7 @@ In alphabetical order:
     Jake Probst <jake.probst@gmail.com> - uzbl_tabbed: multiline tablist
     James S Wheaton (uranther) - zoom level, test framework
     Jan Kolkmeier (jouz) - scrolling, link following
-    Jason Woofenden (JasonWoof) - geometry=maximized
+    Jason Woofenden (JasonWoof) - geometry=maximized, link following
     Laurence Withers (lwithers) - talk_to_socket
     Mark Nevill - misc patches
     Mason Larobina - uzbl-tabbed.py, cookie-daemon, event-manager&plugins, ...
