@@ -1,7 +1,6 @@
 /* This is the basic linkfollowing script.
+ * Its pretty stable, only using numbers to navigate.
  *
- * TODO: check if all characters in follow_hint_keys from config
- * are unique.
  * TODO: Some pages mess around a lot with the zIndex which
  * lets some hints in the background.
  * TODO: Some positions are not calculated correctly (mostly
@@ -18,18 +17,7 @@ var doc = document;
 var win = window;
 var links = document.links;
 var forms = document.forms;
-
-//This string should be 10 unique characters long. Set it in your config
-//with:
-// set follow_hint_keys = asdfghjkl;  # no quotes!
-var defaultHintKeys = '0123456789';
-var hintKeys = Uzbl.run("print @follow_hint_keys") || defaultHintKeys;
-if (hintKeys.length != 10) hintKeys = defaultHintKeys;
-
-//Reset keycmd, modcmd and return to default mode.
-function clearKeycmd() { Uzbl.run('set mode ='); }
-
-//Make onclick-links "clickable"
+//Make onlick-links "clickable"
 try {
     HTMLElement.prototype.click = function() {
         if (typeof this.onclick == 'function') {
@@ -114,19 +102,19 @@ function generateHint(el, label) {
     hint.style.fontWeight = 'bold';
     hint.style.lineHeight = '9px';
     hint.style.margin = '0px';
+    hint.style.width = 'auto'; // fix broken rendering on w3schools.com
     hint.style.padding = '1px';
     hint.style.position = 'absolute';
     hint.style.zIndex = '1000';
-    hint.style.left = pos[1] + 'px';
-    hint.style.top = pos[0] + 'px';
+//    hint.style.textTransform = 'uppercase';
+    hint.style.left = Math.max(-1, (pos[1] - (7 + label.length * 9))) + 'px';
+    hint.style.top = (pos[0] + 1) + 'px';
     var img = el.getElementsByTagName('img');
-    if (img.length > 0) {
-        hint.style.left = pos[1] + img[0].width / 2 + 'px';
-    }
+    //if (img.length > 0) {
+        //hint.style.top = pos[1] + img[0].height / 2 - 6 + 'px';
+    //}
     hint.style.textDecoration = 'none';
-    hint.style.webkitBorderRadius = '6px';
-    // Play around with this, pretty funny things to do :)
-    hint.style.webkitTransform = 'scale(1) rotate(0deg) translate(-6px,-5px)';
+    // hint.style.webkitBorderRadius = '6px'; // slow
     return hint;
 }
 //Here we choose what to do with an element if we
@@ -135,7 +123,6 @@ function generateHint(el, label) {
 //but at least set the href of the link. (needs some improvements)
 function clickElem(item) {
     removeAllHints();
-    clearKeycmd();
     if (item) {
         var name = item.tagName;
         if (name == 'A') {
@@ -201,47 +188,67 @@ function reDrawHints(elems, chars) {
         document.body.appendChild(hintdiv);
     }
 }
-//Map 0123456789 to hintKeys
-function mapNumToHintKeys(label) {
-    label = label + '';
-    for (var j = 0; j < label.length; j++) {
-	var pos = parseInt(label[j]);
-	label = label.replace(label[j], hintKeys[pos]);
-    }
-    return label;
+// pass: number of keys
+// returns: key length
+function labelLength(n) {
+	var oldn = n;
+	var keylen = 0;
+	if(n < 2) {
+		return 1;
+	}
+	n -= 1; // our highest key will be n-1
+	while(n) {
+		keylen += 1;
+		n = Math.floor(n / charset.length);
+	}
+	return keylen;
 }
-//Map hintKeys to 0123456789
-function mapHintKeysToNum(label) {
-    label = label + '';
-    for (var j = 0; j < label.length; j++) {
-	var pos = hintKeys.search(label[j]);
-	if (pos < 0 || pos > 9) return;  // bad input, key not in hintKeys
-	label = label.replace(label[j], pos+'');
-    }
-    return parseInt(label);
+// pass: number
+// returns: label
+function intToLabel(n) {
+	var label = '';
+	do {
+		label = charset.charAt(n % charset.length) + label;
+		n = Math.floor(n / charset.length);
+	} while(n);
+	return label;
+}
+// pass: label
+// returns: number
+function labelToInt(label) {
+	var n = 0;
+	var i;
+	for(i = 0; i < label.length; ++i) {
+		n *= charset.length;
+		n += charset.indexOf(label[i]);
+	}
+	return n;
 }
 //Put it all together
 function followLinks(follow) {
+    // if(follow.charAt(0) == 'l') {
+    //     follow = follow.substr(1);
+    //     charset = 'thsnlrcgfdbmwvz-/';
+    // }
     var s = follow.split('');
-    var linknr = mapHintKeysToNum(follow);
+    var linknr = labelToInt(follow);
     if (document.body) document.body.setAttribute('onkeyup', 'keyPressHandler(event)');
     var linkelems = addLinks();
     var formelems = addFormElems();
     var elems = [linkelems[0].concat(formelems[0]), linkelems[1].concat(formelems[1])];
-    var len = (elems[0].length + '').length;
+    var len = labelLength(elems[0].length);
     var oldDiv = doc.getElementById(uzbldivid);
     var leftover = [[], []];
-    if (linknr + 1 && s.length == len && linknr < elems[0].length && linknr >= 0) {
+    if (s.length == len && linknr < elems[0].length && linknr >= 0) {
         clickElem(elems[0][linknr]);
     } else {
         for (var j = 0; j < elems[0].length; j++) {
             var b = true;
-            var label = j + '';
+            var label = intToLabel(j);
             var n = label.length;
             for (n; n < len; n++) {
-                label = '0' + label;
+                label = charset.charAt(0) + label;
             }
-	    label = mapNumToHintKeys(label);
             for (var k = 0; k < s.length; k++) {
                 b = b && label.charAt(k) == s[k];
             }
@@ -253,4 +260,10 @@ function followLinks(follow) {
         reDrawHints(leftover, s.length);
     }
 }
-followLinks('%s');
+
+//Parse input: first argument is user input, second is allowed hint keys.
+var args = '%s'.split(' ');
+var following = args[0];
+var charset = args[1];
+
+followLinks(following);
