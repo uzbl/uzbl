@@ -46,7 +46,11 @@ keydir=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/dforms
 
 editor=${VISUAL}
 if [[ -z ${editor} ]]; then
-    editor='xterm -e vim'
+    if [[ -z ${EDITOR} ]]; then
+        editor='xterm -e vim'
+    else
+        editor="xterm -e ${EDITOR}"
+    fi
 fi
 
 config=$1; shift
