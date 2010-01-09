@@ -397,7 +397,7 @@ The script specific arguments are this:
 
 Custom, userdefined scripts (`spawn foo bar`) get first the arguments as specified in the config and then the above 7 are added at the end.
 
-### JAVASCRIPT HELPER OBJECT
+### JAVASCRIPT HELPER OBJECT DISABLED BECAUSE OF SECURITY LEAK
 
 Javascript code run from uzbl is given a special object in the global namespace which gives special privileges to these scripts. This object is called `Uzbl`, and it is added and removed before and after the script execution so that it is hidden to web javascripts (There is no race condition, since all the javascript code runs in a single thread)
 
@@ -410,25 +410,6 @@ Currently, the `Uzbl` object provides only one function:
        * `Uzbl.run("spawn insert_bookmark.sh")`
        * `uri = Uzbl.run("print @uri")` (see variable expansion below)
 
-### JAVASCRIPT SECURITY
-
-Since defined variables and functions are set in the global namespace (`window` object) as default, it is recommended to wrap your scripts like this:
-
-    (function(Uzbl) {
-        ...
-    })(Uzbl);
-
-This way, everything is kept private. It also turns Uzbl into a local variable, which can be accessed from callback functions defined inside. However for some situations, isolating everything isn't an option, for example, with binds. You can define them directly in the script body, and use `var Uzbl = window.Uzbl;` to make the Uzbl variable local, as in the following example:
-
-    function f() {
-        var Uzbl = window.Uzbl;
-        Uzbl.run(...);
-        setTimeout(function() {
-            Uzbl.run(...);
-        }, 500);
-    }
-
-Copying the Uzbl object and creating public functions should be taken with care to avoid creating security holes. Keep in mind that the "f" function above would be defined in the `window` object, and as such any javascript in the current page can call it.
 
 ### EVENTS ###
 
