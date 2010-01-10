@@ -45,6 +45,7 @@ set jsh = js var run=Uzbl.run; function get(k){return run("print \\\@"+k)}; func
 # support events that can wait for a response from a script.
 set cookie_handler      = talk_to_socket $XDG_CACHE_HOME/uzbl/cookie_daemon_socket
 set scheme_handler      = sync_spawn @scripts_dir/scheme.py
+set authentication_handler = sync_spawn @scripts_dir/auth.py
 
 # Open in the same window.
 #set new_window         = sh 'echo uri "$8" > $4'

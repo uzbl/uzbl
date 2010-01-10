@@ -27,6 +27,17 @@ set_proxy_url() {
 }
 
 void
+set_authentication_handler() {
+    if (uzbl.behave.authentication_handler)
+        soup_session_remove_feature_by_type
+            (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
+    else
+        soup_session_add_feature_by_type
+            (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
+    return;
+}
+
+void
 set_icon() {
     if(file_exists(uzbl.gui.icon)) {
         if (uzbl.gui.main_window)
