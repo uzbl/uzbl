@@ -2357,13 +2357,9 @@ void handle_authentication (SoupSession *session, SoupMessage *msg, SoupAuth *au
         }
 
         /* If stdout was correct (contains exactly two lines of text) do
-         * authenticate. Otherwise fail. */
-        if (number_of_endls == 2) {
+         * authenticate. */
+        if (number_of_endls == 2)
             soup_auth_authenticate(auth, username, password);
-        } else {
-            g_free(username);
-            g_free(password);
-        }
 
         soup_session_unpause_message(session, msg);
 
