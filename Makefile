@@ -34,9 +34,6 @@ uzbl-core: ${TOBJ} # why doesn't ${OBJ} work?
 	@echo LINKING object files
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
 	@echo ... done.
-	@echo Stripping binary
-	@strip $@
-	@echo ... done.
 
 
 uzbl-browser: uzbl-core
@@ -91,6 +88,11 @@ clean:
 	find examples/ -name "*.pyc" -delete
 	cd ./tests/; $(MAKE) clean
 	rm -rf ./sandbox/{examples,usr}/
+
+strip:
+	@echo Stripping binary
+	@strip uzbl-core
+	@echo ... done.
 
 install: install-uzbl-core install-uzbl-browser install-uzbl-tabbed
 
