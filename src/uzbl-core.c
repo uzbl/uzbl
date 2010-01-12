@@ -2534,6 +2534,13 @@ initialize(int argc, char *argv[]) {
 void
 load_uri_imp(gchar *uri) {
     GString* newuri;
+
+    /* Strip leading whitespaces */
+    while (*uri) {
+        if (!isspace(*uri)) break;
+        uri++;
+    }
+
     if (g_strstr_len (uri, 11, "javascript:") != NULL) {
         eval_js(uzbl.gui.web_view, uri, NULL);
         return;
