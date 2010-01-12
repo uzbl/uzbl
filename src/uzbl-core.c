@@ -2467,9 +2467,9 @@ initialize(int argc, char *argv[]) {
     }
     event_buffer_timeout(10);
 
-    uzbl.info.webkit_major = WEBKIT_MAJOR_VERSION;
-    uzbl.info.webkit_minor = WEBKIT_MINOR_VERSION;
-    uzbl.info.webkit_micro = WEBKIT_MICRO_VERSION;
+    uzbl.info.webkit_major = webkit_major_version();
+    uzbl.info.webkit_minor = webkit_minor_version();
+    uzbl.info.webkit_micro = webkit_micro_version();
     uzbl.info.arch         = ARCH;
     uzbl.info.commit       = COMMIT;
 
