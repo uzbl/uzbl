@@ -189,12 +189,8 @@ set ebind = @mode_bind global,-insert
 
 # === Mouse bindings =========================================================
 
-# Middle click
-# if clicked on a link open the link in a new uzbl window
-# otherwise open the selection in the current window
-#set load_from_xclip = sh 'echo "uri $(xclip -o)" > $4'
-#set open_new_window = sh 'uzbl-browser -u \@SELECTED_URI'
-#@bind <Button2> = @jsh if(get("SELECTED_URI")) { run("\@open_new_window"); } else { run("\\\@load_from_xclip"); }
+# Middle click open in new window
+@bind  <Button2>  = sh 'uzbl-browser -u \@SELECTED_URI'
 
 
 # === Keyboard bindings ======================================================
