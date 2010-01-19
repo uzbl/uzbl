@@ -236,6 +236,7 @@ Besides the builtin variables you can also define your own ones and use them in 
   - `fantasy_font_family` = "Pterra"
   - `serif_font_family` = serif (example "DejaVu Serif")
   - `sans_serif_font_family` = sans (example "DejaVu Sans")
+  - `scrollbars_visible`: set to 1 to have GTK scrollbars if the document doesn't fit into the window (defaults to 0)
 
 
 * Constants (not dumpable or writeable):

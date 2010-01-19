@@ -281,6 +281,19 @@ cmd_useragent() {
     }
 }
 
+void
+cmd_scrollbars_visibility() {
+    if(uzbl.gui.scrollbars_visible) {
+        uzbl.gui.bar_h = gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win));
+        uzbl.gui.bar_v = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win));
+    }
+    else {
+        uzbl.gui.bar_v = gtk_range_get_adjustment (GTK_RANGE (uzbl.gui.scbar_v));
+        uzbl.gui.bar_h = gtk_range_get_adjustment (GTK_RANGE (uzbl.gui.scbar_h));
+    }
+    gtk_widget_set_scroll_adjustments (GTK_WIDGET (uzbl.gui.web_view), uzbl.gui.bar_h, uzbl.gui.bar_v);
+}
+
 /* requires webkit >=1.1.14 */
 void
 cmd_view_source() {

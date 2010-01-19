@@ -116,6 +116,9 @@ void
 cmd_view_source();
 
 void
+cmd_scrollbars_visibility();
+
+void
 cmd_load_start();
 
 WebKitWebSettings*
