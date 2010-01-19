@@ -333,12 +333,12 @@ class EventHandler(object):
             "function=%r" % self.function]
 
         if self.args:
-            args.append("args=%r" % self.args)
+            args.append(u"args=%r" % unicode(self.args))
 
         if self.kargs:
-            args.append("kargs=%r" % self.kargs)
+            args.append(u"kargs=%r" % unicode(self.kargs))
 
-        return "<EventHandler(%s)>" % ', '.join(args)
+        return u"<EventHandler(%s)>" % ', '.join(args)
 
 
 class UzblInstance(object):
