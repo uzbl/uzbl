@@ -444,58 +444,16 @@ def match_and_exec(uzbl, bind, depth, keylet, bindlet):
     return True
 
 
-def keycmd_update(uzbl, keylet):
+def key_event(uzbl, keylet, modcmd=False, onexec=False):
     bindlet = get_bindlet(uzbl)
     depth = bindlet.depth
     for bind in bindlet.get_binds():
         t = bind[depth]
-        if t[MOD_CMD] or t[ON_EXEC]:
+        if (bool(t[MOD_CMD]) != modcmd) or (t[ON_EXEC] != onexec):
             continue
 
         if match_and_exec(uzbl, bind, depth, keylet, bindlet):
             return
-
-    bindlet.after()
-
-
-def keycmd_exec(uzbl, keylet):
-    bindlet = get_bindlet(uzbl)
-    depth = bindlet.depth
-    for bind in bindlet.get_binds():
-        t = bind[depth]
-        if t[MOD_CMD] or not t[ON_EXEC]:
-            continue
-
-        if match_and_exec(uzbl, bind, depth, keylet, bindlet):
-            return uzbl.clear_keycmd()
-
-    bindlet.after()
-
-
-def modcmd_update(uzbl, keylet):
-    bindlet = get_bindlet(uzbl)
-    depth = bindlet.depth
-    for bind in bindlet.get_binds():
-        t = bind[depth]
-        if not t[MOD_CMD] or t[ON_EXEC]:
-            continue
-
-        if match_and_exec(uzbl, bind, depth, keylet, bindlet):
-            return
-
-    bindlet.after()
-
-
-def modcmd_exec(uzbl, keylet):
-    bindlet = get_bindlet(uzbl)
-    depth = bindlet.depth
-    for bind in bindlet.get_binds():
-        t = bind[depth]
-        if not t[MOD_CMD] or not t[ON_EXEC]:
-            continue
-
-        if match_and_exec(uzbl, bind, depth, keylet, bindlet):
-            return uzbl.clear_modcmd()
 
     bindlet.after()
 
@@ -504,13 +462,18 @@ def init(uzbl):
     # Event handling hooks.
     uzbl.connect_dict({
         'BIND':             parse_bind,
-        'KEYCMD_EXEC':      keycmd_exec,
-        'KEYCMD_UPDATE':    keycmd_update,
-        'MODCMD_EXEC':      modcmd_exec,
-        'MODCMD_UPDATE':    modcmd_update,
         'MODE_BIND':        parse_mode_bind,
         'MODE_CHANGED':     mode_changed,
     })
+
+    # Connect key related events to the key_event function.
+    events = [['KEYCMD_UPDATE', 'KEYCMD_EXEC'],
+              ['MODCMD_UPDATE', 'MODCMD_EXEC']]
+
+    for modcmd in range(2):
+        for onexec in range(2):
+            event = events[modcmd][onexec]
+            uzbl.connect(event, key_event, bool(modcmd), bool(onexec))
 
     # Function exports to the uzbl object, `function(uzbl, *args, ..)`
     # becomes `uzbl.function(*args, ..)`.
