@@ -296,7 +296,7 @@ set toggle_cmd_ins = @toggle_modes command insert
 
 # --- Link following (similar to vimperator and konqueror) ---
 # Set custom keys you wish to use for navigation. Some common examples:
-#set follow_hint_keys = qwerty
+set follow_hint_keys = qwerty
 #set follow_hint_keys = asdfghjkl;
 #set follow_hint_keys = thsnd-rcgmvwb/;789aefijkopquxyz234
 @cbind  f*  = script @scripts_dir/follow.js '%s @{follow_hint_keys}'
