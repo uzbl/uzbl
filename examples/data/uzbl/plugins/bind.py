@@ -404,7 +404,6 @@ def mode_changed(uzbl, mode):
 
 
 def match_and_exec(uzbl, bind, depth, keylet, bindlet):
-
     (on_exec, has_args, mod_cmd, glob, more) = bind[depth]
     cmd = keylet.modcmd if mod_cmd else keylet.keycmd
 
@@ -436,26 +435,31 @@ def match_and_exec(uzbl, bind, depth, keylet, bindlet):
 
     args = bindlet.args + args
     exec_bind(uzbl, bind, *args)
-    uzbl.set_mode()
-    if not has_args:
+    if not has_args or on_exec:
+        uzbl.set_mode()
         bindlet.reset()
         uzbl.clear_current()
 
     return True
 
 
-def key_event(uzbl, keylet, modcmd=False, onexec=False):
+def key_event(uzbl, keylet, mod_cmd=False, on_exec=False):
     bindlet = get_bindlet(uzbl)
     depth = bindlet.depth
     for bind in bindlet.get_binds():
         t = bind[depth]
-        if (bool(t[MOD_CMD]) != modcmd) or (t[ON_EXEC] != onexec):
+        if (bool(t[MOD_CMD]) != mod_cmd) or (t[ON_EXEC] != on_exec):
             continue
 
         if match_and_exec(uzbl, bind, depth, keylet, bindlet):
             return
 
     bindlet.after()
+
+    # Return to the previous mode if the KEYCMD_EXEC keycmd doesn't match any
+    # binds in the stack mode.
+    if on_exec and not mod_cmd and depth and depth == bindlet.depth:
+        uzbl.set_mode()
 
 
 def init(uzbl):
@@ -470,10 +474,10 @@ def init(uzbl):
     events = [['KEYCMD_UPDATE', 'KEYCMD_EXEC'],
               ['MODCMD_UPDATE', 'MODCMD_EXEC']]
 
-    for modcmd in range(2):
-        for onexec in range(2):
-            event = events[modcmd][onexec]
-            uzbl.connect(event, key_event, bool(modcmd), bool(onexec))
+    for mod_cmd in range(2):
+        for on_exec in range(2):
+            event = events[mod_cmd][on_exec]
+            uzbl.connect(event, key_event, bool(mod_cmd), bool(on_exec))
 
     # Function exports to the uzbl object, `function(uzbl, *args, ..)`
     # becomes `uzbl.function(*args, ..)`.
