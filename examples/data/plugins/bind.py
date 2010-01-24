@@ -431,6 +431,10 @@ def match_and_exec(uzbl, bind, depth, keylet, bindlet):
 
     elif more:
         bindlet.stack(bind, args, depth)
+        (on_exec, has_args, mod_cmd, glob, more) = bind[depth+1]
+        if not on_exec and has_args and not glob and not more:
+            exec_bind(uzbl, bind, *(args+['',]))
+
         return False
 
     args = bindlet.args + args
