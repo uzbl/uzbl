@@ -3,14 +3,14 @@
 //
 // first, it needs to be loaded before every time it is used.
 // One way would be to use the load_commit_handler:
-// set load_commit_handler = sh 'echo "script /usr/share/uzbl/examples/scripts/linkfollow.js" > "$4"'
+// set load_commit_handler = sh 'echo "script /usr/share/uzbl/examples/data/scripts/linkfollow.js" > "$4"'
 //
 // when script is loaded, it can be invoked with
 // bind f* = js hints.set("%s",   hints.open)
 // bind f_ = js hints.follow("%s",hints.open)
 //
 // At the moment, it may be useful to have way of forcing uzbl to load the script
-// bind :lf = script /usr/share/uzbl/examples/scripts/linkfollow.js
+// bind :lf = script /usr/share/uzbl/examples/data/scripts/linkfollow.js
 //
 // The default style for the hints are pretty ugly, so it is recommended to add the following
 // to config file
