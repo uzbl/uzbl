@@ -217,9 +217,13 @@ def daemonize():
 def make_dirs(path):
     '''Make all basedirs recursively as required.'''
 
-    dirname = os.path.dirname(path)
-    if not os.path.isdir(dirname):
-        os.makedirs(dirname)
+    try:
+        dirname = os.path.dirname(path)
+        if not os.path.isdir(dirname):
+            os.makedirs(dirname)
+
+    except OSError:
+        print_exc()
 
 
 def make_pid_file(pid_file):
