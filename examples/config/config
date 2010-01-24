@@ -35,7 +35,7 @@ set shell_cmd       = sh -c
 set scripts_dir     = $XDG_DATA_HOME/uzbl:@prefix/share/uzbl/examples/data:scripts
 
 # Javascipt helpers.
-set jsh = js var run=Uzbl.run; function get(k){return run("print \\\@"+k)}; function set(k, v) {run("set "+k+" = "+v)};
+#set jsh = js var run=Uzbl.run; function get(k){return run("print \\\@"+k)}; function set(k, v) {run("set "+k+" = "+v)};
 
 # === Handlers ===============================================================
 
@@ -45,6 +45,7 @@ set jsh = js var run=Uzbl.run; function get(k){return run("print \\\@"+k)}; func
 # support events that can wait for a response from a script.
 set cookie_handler      = talk_to_socket $XDG_CACHE_HOME/uzbl/cookie_daemon_socket
 set scheme_handler      = sync_spawn @scripts_dir/scheme.py
+set authentication_handler = sync_spawn @scripts_dir/auth.py
 
 # Open in the same window.
 #set new_window         = sh 'echo uri "$8" > $4'
@@ -71,7 +72,7 @@ set new_window          = sh 'uzbl-browser -u $8'
 
 # Generate a FORM_ACTIVE event if an editable
 # element on the loaded site has initial focus
-@on_event   LOAD_FINISH    js if(document.activeElement.type == 'text') {Uzbl.run("event FORM_ACTIVE");}
+#@on_event   LOAD_FINISH    js if(document.activeElement.type == 'text') {Uzbl.run("event FORM_ACTIVE");}
 
 # Switch to insert mode if a (editable) html form is clicked
 @on_event   FORM_ACTIVE    @set_mode insert
@@ -189,12 +190,8 @@ set ebind = @mode_bind global,-insert
 
 # === Mouse bindings =========================================================
 
-# Middle click
-# if clicked on a link open the link in a new uzbl window
-# otherwise open the selection in the current window
-set load_from_xclip = sh 'echo "uri $(xclip -o)" > $4'
-set open_new_window = sh 'uzbl-browser -u \@SELECTED_URI'
-@bind <Button2> = @jsh if(get("SELECTED_URI")) { run("\@open_new_window"); } else { run("\\\@load_from_xclip"); }
+# Middle click open in new window
+@bind  <Button2>  = sh 'uzbl-browser -u \@SELECTED_URI'
 
 
 # === Keyboard bindings ======================================================
@@ -276,7 +273,8 @@ set toggle_cmd_ins = @toggle_modes command insert
 @cbind  gh  = uri http://www.uzbl.org
 
 # --- Yanking & pasting binds ---
-@cbind  y<Yank (t)itle or (u)rl:>* = @jsh if('%s' == 'u') { run("sh 'echo -n $6 | xclip'"); } else if('%s' == 't') { run("sh 'echo -n $7 | xclip'"); }; run('event SET_KEYCMD');
+@cbind  yu  = sh 'echo -n $6 | xclip'
+@cbind  yy  = sh 'echo -n $7 | xclip'
 
 # Go the page from primary selection
 @cbind  p   = sh 'echo "uri `xclip -selection primary -o`" > $4'

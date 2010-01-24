@@ -513,8 +513,51 @@ The script specific arguments are:
 
   - `$8 URI` of the page to be navigated to
 
+* authentication handler:
+
+    $8 authentication zone unique identifier
+    $9 domain part of URL that requests authentication
+    $10 authentication realm
+    $11 FALSE if this is the first attempt to authenticate, TRUE otherwise
+
 Custom, userdefined scripts (`spawn foo bar`) get first the arguments as
 specified in the config and then the above 7 are added at the end.
+
+### HTTP/BASIC AUTHENTICATION ###
+
+If authentication_handler variable is not set, http authentication is handled
+internally by WebKit. If you want to use custom script for http authentication,
+set authentication_handler. For example:
+
+  set authentication_handler = sync_spawn /patch/to/your/script
+
+Script will be executed on each authentication request.
+It will receive four auth-related parameters:
+
+    $8 authentication zone unique identifier (may be used as 'key')
+    $9 domain part of URL that requests authentication
+    $10 authentication realm
+    $11 FALSE if this is the first attempt to authenticate, TRUE otherwise
+
+Script is expected to print exactly two lines of text on stdout (that means
+its output must contain exactly two '\n' bytes).
+The first line contains username, the second one - password.
+If authentication fails, script will be executed again (with $11 = TRUE).
+Non-interactive scripts should handle this case and do not try to
+authenticate again to avoid loops. If number of '\n' characters in scripts
+output does not equal 2, authentication will fail.
+That means 401 error will be displayed and uzbl won't try to authenticate anymore.
+
+The simplest example of authentication handler script is:
+
+#!/bin/sh
+[ "$11" == "TRUE ] && exit
+echo alice
+echo wonderland
+
+This script tries to authenticate as user alice with password wonderland once
+and never retries authentication.
+See examples for more sofisticated, interactive authentication handler.
 
 ### JAVASCRIPT HELPER OBJECT DISABLED BECAUSE OF SECURITY LEAK
 

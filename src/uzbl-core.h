@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -123,6 +124,7 @@ typedef struct {
     gchar*   socket_dir;
     gchar*   download_handler;
     gchar*   cookie_handler;
+    gchar*   authentication_handler;
     gchar*   new_window;
     gchar*   default_font_family;
     gchar*   monospace_font_family;
@@ -389,6 +391,13 @@ run_external_js (WebKitWebView * web_view, GArray *argv, GString *result);
 
 void
 eval_js(WebKitWebView * web_view, gchar *script, GString *result);
+
+void
+handle_authentication (SoupSession *session,
+                            SoupMessage *msg,
+                            SoupAuth    *auth,
+                            gboolean     retrying,
+                            gpointer     user_data);
 
 void handle_cookies (SoupSession *session,
                             SoupMessage *msg,
