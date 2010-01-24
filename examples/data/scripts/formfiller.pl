@@ -10,9 +10,9 @@
 # new:  fetch new file
 
 # usage example:
-# bind LL = spawn /usr/share/uzbl/examples/scripts/formfiller.pl load
-# bind LN = spawn /usr/share/uzbl/examples/scripts/formfiller.pl new
-# bind LE = spawn /usr/share/uzbl/examples/scripts/formfiller.pl edit
+# bind LL = spawn /usr/share/uzbl/examples/data/scripts/formfiller.pl load
+# bind LN = spawn /usr/share/uzbl/examples/data/scripts/formfiller.pl new
+# bind LE = spawn /usr/share/uzbl/examples/data/scripts/formfiller.pl edit
 
 use strict;
 use warnings;
