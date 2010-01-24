@@ -17,10 +17,6 @@ var doc = document;
 var win = window;
 var links = document.links;
 var forms = document.forms;
-
-//Reset keycmd, modcmd and return to default mode.
-function clearKeycmd() { Uzbl.run('set mode ='); }
-
 //Make onlick-links "clickable"
 try {
     HTMLElement.prototype.click = function() {
@@ -106,19 +102,21 @@ function generateHint(el, label) {
     hint.style.fontWeight = 'bold';
     hint.style.lineHeight = '9px';
     hint.style.margin = '0px';
+    hint.style.width = 'auto'; // fix broken rendering on w3schools.com
     hint.style.padding = '1px';
     hint.style.position = 'absolute';
     hint.style.zIndex = '1000';
+    // hint.style.textTransform = 'uppercase';
     hint.style.left = pos[1] + 'px';
     hint.style.top = pos[0] + 'px';
-    var img = el.getElementsByTagName('img');
-    if (img.length > 0) {
-        hint.style.left = pos[1] + img[0].width / 2 + 'px';
-    }
+    // var img = el.getElementsByTagName('img');
+    // if (img.length > 0) {
+    //     hint.style.top = pos[1] + img[0].height / 2 - 6 + 'px';
+    // }
     hint.style.textDecoration = 'none';
-    hint.style.webkitBorderRadius = '6px';
+    // hint.style.webkitBorderRadius = '6px'; // slow
     // Play around with this, pretty funny things to do :)
-    hint.style.webkitTransform = 'scale(1) rotate(0deg) translate(-6px,-5px)';
+    // hint.style.webkitTransform = 'scale(1) rotate(0deg) translate(-6px,-5px)';
     return hint;
 }
 //Here we choose what to do with an element if we
@@ -127,7 +125,6 @@ function generateHint(el, label) {
 //but at least set the href of the link. (needs some improvements)
 function clickElem(item) {
     removeAllHints();
-    clearKeycmd();
     if (item) {
         var name = item.tagName;
         if (name == 'A') {
@@ -193,26 +190,66 @@ function reDrawHints(elems, chars) {
         document.body.appendChild(hintdiv);
     }
 }
+// pass: number of keys
+// returns: key length
+function labelLength(n) {
+	var oldn = n;
+	var keylen = 0;
+	if(n < 2) {
+		return 1;
+	}
+	n -= 1; // our highest key will be n-1
+	while(n) {
+		keylen += 1;
+		n = Math.floor(n / charset.length);
+	}
+	return keylen;
+}
+// pass: number
+// returns: label
+function intToLabel(n) {
+	var label = '';
+	do {
+		label = charset.charAt(n % charset.length) + label;
+		n = Math.floor(n / charset.length);
+	} while(n);
+	return label;
+}
+// pass: label
+// returns: number
+function labelToInt(label) {
+	var n = 0;
+	var i;
+	for(i = 0; i < label.length; ++i) {
+		n *= charset.length;
+		n += charset.indexOf(label[i]);
+	}
+	return n;
+}
 //Put it all together
 function followLinks(follow) {
+    // if(follow.charAt(0) == 'l') {
+    //     follow = follow.substr(1);
+    //     charset = 'thsnlrcgfdbmwvz-/';
+    // }
     var s = follow.split('');
-    var linknr = parseInt(follow, 10);
+    var linknr = labelToInt(follow);
     if (document.body) document.body.setAttribute('onkeyup', 'keyPressHandler(event)');
     var linkelems = addLinks();
     var formelems = addFormElems();
     var elems = [linkelems[0].concat(formelems[0]), linkelems[1].concat(formelems[1])];
-    var len = (elems[0].length + '').length;
+    var len = labelLength(elems[0].length);
     var oldDiv = doc.getElementById(uzbldivid);
     var leftover = [[], []];
-    if (linknr + 1 && s.length == len && linknr < elems[0].length && linknr >= 0) {
+    if (s.length == len && linknr < elems[0].length && linknr >= 0) {
         clickElem(elems[0][linknr]);
     } else {
         for (var j = 0; j < elems[0].length; j++) {
             var b = true;
-            var label = j + '';
+            var label = intToLabel(j);
             var n = label.length;
             for (n; n < len; n++) {
-                label = '0' + label;
+                label = charset.charAt(0) + label;
             }
             for (var k = 0; k < s.length; k++) {
                 b = b && label.charAt(k) == s[k];
@@ -225,4 +262,9 @@ function followLinks(follow) {
         reDrawHints(leftover, s.length);
     }
 }
-followLinks('%s');
+
+//Parse input: first argument is user input, second is defined hint keys.
+var args = '%s'.split(' ');
+var charset = args[1];
+
+followLinks(args[0]);
