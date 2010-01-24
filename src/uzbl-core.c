@@ -101,6 +101,7 @@ const struct var_name_to_ptr_t {
     { "forward_keys",           PTR_V_INT(uzbl.behave.forward_keys,             1,   NULL)},
     { "download_handler",       PTR_V_STR(uzbl.behave.download_handler,         1,   NULL)},
     { "cookie_handler",         PTR_V_STR(uzbl.behave.cookie_handler,           1,   NULL)},
+    { "authentication_handler", PTR_V_STR(uzbl.behave.authentication_handler,   1,   set_authentication_handler)},
     { "new_window",             PTR_V_STR(uzbl.behave.new_window,               1,   NULL)},
     { "scheme_handler",         PTR_V_STR(uzbl.behave.scheme_handler,           1,   NULL)},
     { "fifo_dir",               PTR_V_STR(uzbl.behave.fifo_dir,                 1,   cmd_fifo_dir)},
@@ -2317,6 +2318,57 @@ settings_init () {
         init_connect_socket();
 
     g_signal_connect_after(n->soup_session, "request-started", G_CALLBACK(handle_cookies), NULL);
+    g_signal_connect(n->soup_session, "authenticate", G_CALLBACK(handle_authentication), NULL);
+}
+
+void handle_authentication (SoupSession *session, SoupMessage *msg, SoupAuth *auth, gboolean retrying, gpointer user_data) {
+
+    (void) user_data;
+
+    if(uzbl.behave.authentication_handler) {
+        char  *username, *password;
+        gchar *info, *host, *realm;
+        int    number_of_endls=0;
+        gchar *p;
+
+        soup_session_pause_message(session, msg);
+
+        /* Sanitize strings */
+            info  = g_strdup(soup_auth_get_info(auth));
+            host  = g_strdup(soup_auth_get_host(auth));
+            realm = g_strdup(soup_auth_get_realm(auth));
+            for (p = info; *p; p++)  if (*p == '\'') *p = '\"';
+            for (p = host; *p; p++)  if (*p == '\'') *p = '\"';
+            for (p = realm; *p; p++) if (*p == '\'') *p = '\"';
+
+        GString *s = g_string_new ("");
+        g_string_printf(s, "'%s' '%s' '%s' '%s'",
+            info, host, realm, retrying?"TRUE":"FALSE");
+
+        run_handler(uzbl.behave.authentication_handler, s->str);
+
+        username = uzbl.comm.sync_stdout;
+
+        for (p = uzbl.comm.sync_stdout; *p; p++) {
+            if (*p == '\n') {
+                *p = '\0';
+                if (++number_of_endls == 1)
+                    password = p + 1;
+            }
+        }
+
+        /* If stdout was correct (contains exactly two lines of text) do
+         * authenticate. */
+        if (number_of_endls == 2)
+            soup_auth_authenticate(auth, username, password);
+
+        soup_session_unpause_message(session, msg);
+
+        g_string_free(s, TRUE);
+        g_free(info);
+        g_free(host);
+        g_free(realm);
+    }
 }
 
 void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer user_data){
@@ -2467,9 +2519,9 @@ initialize(int argc, char *argv[]) {
     }
     event_buffer_timeout(10);
 
-    uzbl.info.webkit_major = WEBKIT_MAJOR_VERSION;
-    uzbl.info.webkit_minor = WEBKIT_MINOR_VERSION;
-    uzbl.info.webkit_micro = WEBKIT_MICRO_VERSION;
+    uzbl.info.webkit_major = webkit_major_version();
+    uzbl.info.webkit_minor = webkit_minor_version();
+    uzbl.info.webkit_micro = webkit_micro_version();
     uzbl.info.arch         = ARCH;
     uzbl.info.commit       = COMMIT;
 
@@ -2483,6 +2535,13 @@ initialize(int argc, char *argv[]) {
 void
 load_uri_imp(gchar *uri) {
     GString* newuri;
+
+    /* Strip leading whitespaces */
+    while (*uri) {
+        if (!isspace(*uri)) break;
+        uri++;
+    }
+
     if (g_strstr_len (uri, 11, "javascript:") != NULL) {
         eval_js(uzbl.gui.web_view, uri, NULL);
         return;

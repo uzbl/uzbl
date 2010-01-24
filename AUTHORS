@@ -50,7 +50,7 @@ In alphabetical order:
     Moritz Lenz - small doc fix
     Nicolas Pouillard - refactored scroll command
     Olivier Schwander - auto file:// prepend
-    Paweł Zuzelski (pawelz) - download handler proxy patch
+    Paweł Zuzelski (pawelz) - http auth handler, misc patches
     Peter Suschlik - backwards searching
     Přemysl Hrubý (anydot) <email is dfenze AT gmail.com> - several C contributions and cleanups
     Robert Manea (robm) <email is rob DOT manea AT gmail DOT com> - C code all over the place

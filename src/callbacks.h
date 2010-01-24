@@ -13,6 +13,9 @@ void
 set_proxy_url();
 
 void
+set_authentication_handler();
+
+void
 set_icon();
 
 void
