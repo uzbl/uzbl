@@ -231,6 +231,27 @@ set ebind = @mode_bind global,-insert
 @cbind  n   = search
 @cbind  N   = search_reverse
 
+# --- Uzbl tabbed binds ---
+# Tab opening
+@cbind  gn              = event NEW_TAB
+@cbind  go<uri:>_       = event NEW_TAB %s
+@cbind  gY              = sh 'echo "event NEW_TAB `xclip -selection primary -o`" > $4'
+# Closing / resting
+@cbind  gC              = exit
+@cbind  gQ              = event CLEAN_TABS
+# Tab navigating
+@cbind  g<              = event FIRST_TAB
+@cbind  g>              = event LAST_TAB
+@cbind  gt              = event NEXT_TAB
+@cbind  gT              = event PREV_TAB
+@cbind  gi<index:>_     = event GOTO_TAB %s
+# Preset loading
+set preset = event PRESET_TABS
+@cbind  gs<preset save:>_   = @preset save %s
+@cbind  glo<preset load:>_  = @preset load %s
+@cbind  gd<preset del:>_    = @preset del %s
+@cbind  gli                 = @preset list
+
 # --- Web searching binds ---
 @cbind  gg<Google:>_         = uri http://www.google.com/search?q=\@<encodeURIComponent(%r)>\@
 @cbind  \\awiki<Archwiki:>_  = uri http://wiki.archlinux.org/index.php/Special:Search?search=\@<encodeURIComponent(%r)>\@&go=Go

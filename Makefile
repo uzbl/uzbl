@@ -66,6 +66,7 @@ test-uzbl-browser: uzbl-browser
 test-uzbl-core-sandbox: uzbl-core
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-core
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
+	cp -np ./misc/env.sh ./sandbox/env.sh
 	source ./sandbox/env.sh && uzbl-core --uri http://www.uzbl.org --verbose
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
@@ -74,6 +75,7 @@ test-uzbl-browser-sandbox: uzbl-browser
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-core
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-browser
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
+	cp -np ./misc/env.sh ./sandbox/env.sh
 	source ./sandbox/env.sh && uzbl-cookie-daemon restart -nv &
 	source ./sandbox/env.sh && uzbl-event-manager restart -nav &
 	source ./sandbox/env.sh && uzbl-browser --uri http://www.uzbl.org --verbose
@@ -88,9 +90,9 @@ clean:
 	rm -f events.o
 	rm -f callbacks.o
 	rm -f inspector.o
-	find examples/ -name "*.pyc" -delete
+	find ./examples/ -name "*.pyc" -delete
 	cd ./tests/; $(MAKE) clean
-	rm -rf ./sandbox/{examples,usr}/
+	rm -rf ./sandbox/
 
 install: install-uzbl-core install-uzbl-browser install-uzbl-tabbed
 
