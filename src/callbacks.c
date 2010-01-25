@@ -28,12 +28,20 @@ set_proxy_url() {
 
 void
 set_authentication_handler() {
-    if (uzbl.behave.authentication_handler)
-        soup_session_remove_feature_by_type
-            (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
-    else
-        soup_session_add_feature_by_type
-            (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
+    /* Check if WEBKIT_TYPE_SOUP_AUTH_DIALOG feature is set */
+    GSList *flist = soup_session_get_features (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
+    guint feature_is_set = g_slist_length(flist);
+    g_slist_free(flist);
+
+    if (uzbl.behave.authentication_handler == NULL || *uzbl.behave.authentication_handler == NULL) {
+        if (!feature_is_set)
+            soup_session_add_feature_by_type
+                (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
+    } else {
+        if (feature_is_set)
+            soup_session_remove_feature_by_type
+                (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
+    }
     return;
 }
 
@@ -567,6 +575,19 @@ button_release_cb (GtkWidget* window, GdkEventButton* event) {
     }
 
     return propagate;
+}
+
+gboolean
+motion_notify_cb(GtkWidget* window, GdkEventMotion* event, gpointer user_data) {
+    (void) window;
+    (void) event;
+    (void) user_data;
+
+    gchar *details;
+    details = g_strdup_printf("%.0lf %.0lf %u", event->x, event->y, event->state);
+    send_event(PTR_MOVE, details, NULL);
+
+    return FALSE;
 }
 
 gboolean

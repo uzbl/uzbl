@@ -2042,6 +2042,7 @@ create_browser () {
       "signal::key-release-event",                    (GCallback)key_release_cb,          NULL,
       "signal::button-press-event",                   (GCallback)button_press_cb,         NULL,
       "signal::button-release-event",                 (GCallback)button_release_cb,       NULL,
+      "signal::motion-notify-event",                  (GCallback)motion_notify_cb,        NULL,
       "signal::title-changed",                        (GCallback)title_change_cb,         NULL,
       "signal::selection-changed",                    (GCallback)selection_changed_cb,    NULL,
       "signal::load-progress-changed",                (GCallback)progress_change_cb,      NULL,
@@ -2325,10 +2326,8 @@ void handle_authentication (SoupSession *session, SoupMessage *msg, SoupAuth *au
 
     (void) user_data;
 
-    if(uzbl.behave.authentication_handler) {
-        char  *username, *password;
+    if(uzbl.behave.authentication_handler && *uzbl.behave.authentication_handler != NULL) {
         gchar *info, *host, *realm;
-        int    number_of_endls=0;
         gchar *p;
 
         soup_session_pause_message(session, msg);
@@ -2347,20 +2346,28 @@ void handle_authentication (SoupSession *session, SoupMessage *msg, SoupAuth *au
 
         run_handler(uzbl.behave.authentication_handler, s->str);
 
-        username = uzbl.comm.sync_stdout;
+        if (uzbl.comm.sync_stdout && strcmp (uzbl.comm.sync_stdout, "") != 0) {
+            char  *username, *password;
+            int    number_of_endls=0;
 
-        for (p = uzbl.comm.sync_stdout; *p; p++) {
-            if (*p == '\n') {
-                *p = '\0';
-                if (++number_of_endls == 1)
-                    password = p + 1;
+            username = uzbl.comm.sync_stdout;
+
+            for (p = uzbl.comm.sync_stdout; *p; p++) {
+                if (*p == '\n') {
+                    *p = '\0';
+                    if (++number_of_endls == 1)
+                        password = p + 1;
+                }
             }
+
+            /* If stdout was correct (contains exactly two lines of text) do
+             * authenticate. */
+            if (number_of_endls == 2)
+                soup_auth_authenticate(auth, username, password);
         }
 
-        /* If stdout was correct (contains exactly two lines of text) do
-         * authenticate. */
-        if (number_of_endls == 2)
-            soup_auth_authenticate(auth, username, password);
+        if (uzbl.comm.sync_stdout)
+            uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
 
         soup_session_unpause_message(session, msg);
 
