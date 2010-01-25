@@ -525,9 +525,16 @@ specified in the config and then the above 7 are added at the end.
 
 ### HTTP/BASIC AUTHENTICATION
 
-If authentication_handler variable is not set, http authentication is handled
-internally by WebKit. If you want to use custom script for http authentication,
-set authentication_handler. For example:
+You can use the authentication_handler variable to denote how http
+authentication should be handled.
+If this variable is:
+
+* not set or empty: use webkit internal auth dialog
+* a valid handler (i.e. {sh,sync}_spawn correct_script), use this handler
+* innvalid handler (spawn, some other command, uses script that does not
+  print anything): skip authentication.
+
+Example:
 
   set authentication_handler = sync_spawn /patch/to/your/script
 
