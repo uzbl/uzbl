@@ -578,6 +578,19 @@ button_release_cb (GtkWidget* window, GdkEventButton* event) {
 }
 
 gboolean
+motion_notify_cb(GtkWidget* window, GdkEventMotion* event, gpointer user_data) {
+    (void) window;
+    (void) event;
+    (void) user_data;
+
+    gchar *details;
+    details = g_strdup_printf("%.0lf %.0lf %u", event->x, event->y, event->state);
+    send_event(PTR_MOVE, details, NULL);
+
+    return FALSE;
+}
+
+gboolean
 navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
     (void) web_view;
     (void) frame;

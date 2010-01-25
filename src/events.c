@@ -43,7 +43,8 @@ const char *event_table[LAST_EVENT] = {
      "FILE_INCLUDED"    ,
      "PLUG_CREATED"     ,
      "COMMAND_ERROR"    ,
-     "BUILTINS"
+     "BUILTINS"         ,
+     "PTR_MOVE"
 };
 
 void
