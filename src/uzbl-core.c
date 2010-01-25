@@ -2326,9 +2326,7 @@ void handle_authentication (SoupSession *session, SoupMessage *msg, SoupAuth *au
     (void) user_data;
 
     if(uzbl.behave.authentication_handler) {
-        char  *username, *password;
         gchar *info, *host, *realm;
-        int    number_of_endls=0;
         gchar *p;
 
         soup_session_pause_message(session, msg);
@@ -2347,20 +2345,28 @@ void handle_authentication (SoupSession *session, SoupMessage *msg, SoupAuth *au
 
         run_handler(uzbl.behave.authentication_handler, s->str);
 
-        username = uzbl.comm.sync_stdout;
+        if (uzbl.comm.sync_stdout && strcmp (uzbl.comm.sync_stdout, "") != 0) {
+            char  *username, *password;
+            int    number_of_endls=0;
 
-        for (p = uzbl.comm.sync_stdout; *p; p++) {
-            if (*p == '\n') {
-                *p = '\0';
-                if (++number_of_endls == 1)
-                    password = p + 1;
+            username = uzbl.comm.sync_stdout;
+
+            for (p = uzbl.comm.sync_stdout; *p; p++) {
+                if (*p == '\n') {
+                    *p = '\0';
+                    if (++number_of_endls == 1)
+                        password = p + 1;
+                }
             }
+
+            /* If stdout was correct (contains exactly two lines of text) do
+             * authenticate. */
+            if (number_of_endls == 2)
+                soup_auth_authenticate(auth, username, password);
         }
 
-        /* If stdout was correct (contains exactly two lines of text) do
-         * authenticate. */
-        if (number_of_endls == 2)
-            soup_auth_authenticate(auth, username, password);
+        if (uzbl.comm.sync_stdout)
+            uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
 
         soup_session_unpause_message(session, msg);
 

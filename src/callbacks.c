@@ -28,11 +28,11 @@ set_proxy_url() {
 
 void
 set_authentication_handler() {
-    if (uzbl.behave.authentication_handler)
-        soup_session_remove_feature_by_type
+    if (uzbl.behave.authentication_handler == NULL || *uzbl.behave.authentication_handler == NULL)
+        soup_session_add_feature_by_type
             (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
     else
-        soup_session_add_feature_by_type
+        soup_session_remove_feature_by_type
             (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
     return;
 }
