@@ -40,12 +40,18 @@ void
 cmd_set_geometry() {
     int ret=0, x=0, y=0;
     unsigned int w=0, h=0;
-    /* we used to use gtk_window_parse_geometry() but that didn't work how it was supposed to */
-    ret = XParseGeometry(uzbl.gui.geometry, &x, &y, &w, &h);
-    if(ret & XValue)
-        gtk_window_move((GtkWindow *)uzbl.gui.main_window, x, y);
-    if(ret & WidthValue)
-        gtk_window_resize((GtkWindow *)uzbl.gui.main_window, w, h);
+    if(uzbl.gui.geometry) {
+        if(uzbl.gui.geometry[0] == 'm') { /* m/maximize/maximized */
+            gtk_window_maximize((GtkWindow *)(uzbl.gui.main_window));
+        } else {
+            /* we used to use gtk_window_parse_geometry() but that didn't work how it was supposed to */
+            ret = XParseGeometry(uzbl.gui.geometry, &x, &y, &w, &h);
+            if(ret & XValue)
+                gtk_window_move((GtkWindow *)uzbl.gui.main_window, x, y);
+            if(ret & WidthValue)
+                gtk_window_resize((GtkWindow *)uzbl.gui.main_window, w, h);
+        }
+    }
 
     /* update geometry var with the actual geometry
        this is necessary as some WMs don't seem to honour
@@ -262,6 +268,19 @@ cmd_useragent() {
         g_object_set(G_OBJECT(uzbl.net.soup_session), SOUP_SESSION_USER_AGENT,
             uzbl.net.useragent, NULL);
     }
+}
+
+void
+cmd_scrollbars_visibility() {
+    if(uzbl.gui.scrollbars_visible) {
+        uzbl.gui.bar_h = gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win));
+        uzbl.gui.bar_v = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win));
+    }
+    else {
+        uzbl.gui.bar_v = gtk_range_get_adjustment (GTK_RANGE (uzbl.gui.scbar_v));
+        uzbl.gui.bar_h = gtk_range_get_adjustment (GTK_RANGE (uzbl.gui.scbar_h));
+    }
+    gtk_widget_set_scroll_adjustments (GTK_WIDGET (uzbl.gui.web_view), uzbl.gui.bar_h, uzbl.gui.bar_v);
 }
 
 /* requires webkit >=1.1.14 */

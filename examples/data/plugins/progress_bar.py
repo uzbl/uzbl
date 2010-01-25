@@ -149,10 +149,11 @@ def reset_progress(uzbl, args):
 
 
 def init(uzbl):
-    connects = {'LOAD_PROGRESS': update_progress,
-      'INSTANCE_START': add_instance,
-      'INSTANCE_EXIT': del_instance,
-      'PROGRESS_CONFIG': progress_config,
-      'LOAD_COMMIT': reset_progress}
-
-    uzbl.connect_dict(connects)
+    # Event handling hooks.
+    uzbl.connect_dict({
+        'INSTANCE_EXIT':    del_instance,
+        'INSTANCE_START':   add_instance,
+        'LOAD_COMMIT':      reset_progress,
+        'LOAD_PROGRESS':    update_progress,
+        'PROGRESS_CONFIG':  progress_config,
+    })

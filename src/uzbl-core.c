@@ -50,11 +50,13 @@ GOptionEntry entries[] =
     { "config",   'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,
         "Path to config file or '-' for stdin", "FILE" },
     { "socket",   's', 0, G_OPTION_ARG_INT, &uzbl.state.socket_id,
-        "Socket ID", "SOCKET" },
+        "Xembed Socket ID", "SOCKET" },
     { "connect-socket",   0, 0, G_OPTION_ARG_STRING_ARRAY, &uzbl.state.connect_socket_names,
-        "Connect to server socket", "CSOCKET" },
+        "Connect to server socket for event managing", "CSOCKET" },
+    { "print-events", 'p', 0, G_OPTION_ARG_NONE, &uzbl.state.events_stdout,
+        "Whether to print events to stdout.", NULL },
     { "geometry", 'g', 0, G_OPTION_ARG_STRING, &uzbl.gui.geometry,
-        "Set window geometry (format: WIDTHxHEIGHT+-X+-Y)", "GEOMETRY" },
+        "Set window geometry (format: 'WIDTHxHEIGHT+-X+-Y' or 'maximized')", "GEOMETRY" },
     { "version",  'V', 0, G_OPTION_ARG_NONE, &uzbl.behave.print_version,
         "Print the version and exit", NULL },
     { NULL,      0, 0, 0, NULL, NULL, NULL }
@@ -85,6 +87,7 @@ const struct var_name_to_ptr_t {
 /*  ---------------------------------------------------------------------------------------------- */
     { "uri",                    PTR_V_STR(uzbl.state.uri,                       1,   cmd_load_uri)},
     { "verbose",                PTR_V_INT(uzbl.state.verbose,                   1,   NULL)},
+    { "print_events",           PTR_V_INT(uzbl.state.events_stdout,             1,   NULL)},
     { "inject_html",            PTR_V_STR(uzbl.behave.inject_html,              0,   cmd_inject_html)},
     { "geometry",               PTR_V_STR(uzbl.gui.geometry,                    1,   cmd_set_geometry)},
     { "keycmd",                 PTR_V_STR(uzbl.state.keycmd,                    1,   NULL)},
@@ -135,6 +138,7 @@ const struct var_name_to_ptr_t {
     { "default_encoding",       PTR_V_STR(uzbl.behave.default_encoding,         1,   cmd_default_encoding)},
     { "enforce_96_dpi",         PTR_V_INT(uzbl.behave.enforce_96dpi,            1,   cmd_enforce_96dpi)},
     { "caret_browsing",         PTR_V_INT(uzbl.behave.caret_browsing,           1,   cmd_caret_browsing)},
+    { "scrollbars_visible",     PTR_V_INT(uzbl.gui.scrollbars_visible,          1,   cmd_scrollbars_visibility)},
 
     /* constants (not dumpable or writeable) */
     { "WEBKIT_MAJOR",           PTR_C_INT(uzbl.info.webkit_major,                    NULL)},
@@ -267,15 +271,24 @@ expand(const char *s, guint recurse) {
                 else if(recurse != 1 &&
                         etype == EXP_EXPR) {
 
-                    mycmd = expand(ret, 1);
-                    gchar *quoted = g_shell_quote(mycmd);
-                    gchar *tmp = g_strdup_printf("%s %s", 
-                            uzbl.behave.shell_cmd?uzbl.behave.shell_cmd:"/bin/sh -c", 
-                            quoted);
-                    g_spawn_command_line_sync(tmp, &cmd_stdout, NULL, NULL, &err);
-                    g_free(mycmd);
-                    g_free(quoted);
-                    g_free(tmp);
+                    /* execute program directly */
+                    if(ret[0] == '+') {
+                        mycmd = expand(ret+1, 1);
+                        g_spawn_command_line_sync(mycmd, &cmd_stdout, NULL, NULL, &err);
+                        g_free(mycmd);
+                    }
+                    /* execute program through shell, quote it first */
+                    else {
+                        mycmd = expand(ret, 1);
+                        gchar *quoted = g_shell_quote(mycmd);
+                        gchar *tmp = g_strdup_printf("%s %s",
+                                uzbl.behave.shell_cmd?uzbl.behave.shell_cmd:"/bin/sh -c",
+                                quoted);
+                        g_spawn_command_line_sync(tmp, &cmd_stdout, NULL, NULL, &err);
+                        g_free(mycmd);
+                        g_free(quoted);
+                        g_free(tmp);
+                    }
 
                     if (err) {
                         g_printerr("error on running command: %s\n", err->message);
@@ -354,7 +367,7 @@ itos(int val) {
 gchar*
 strfree(gchar *str) {
     g_free(str);
-    return NULL; 
+    return NULL;
 }
 
 gchar*
@@ -616,7 +629,6 @@ scroll_cmd(WebKitWebView* page, GArray *argv, GString *result) {
       if(uzbl.state.verbose)
         puts("Unrecognized scroll format");
 }
-
 
 
 /* VIEW funcs (little webkit wrappers) */
@@ -906,11 +918,11 @@ void
 event(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
     GString *event_name;
-    gchar **split = NULL; 
-    
+    gchar **split = NULL;
+
     if(!argv_idx(argv, 0))
        return;
-    
+
     split = g_strsplit(argv_idx(argv, 0), " ", 2);
     if(split[0])
         event_name = g_string_ascii_up(g_string_new(split[0]));
@@ -1038,10 +1050,10 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
     WebKitWebFrame *frame;
     JSGlobalContextRef context;
     JSObjectRef globalobject;
-    JSStringRef var_name;
 
     JSStringRef js_script;
     JSValueRef js_result;
+    JSValueRef js_exc = NULL;
     JSStringRef js_result_string;
     size_t js_result_size;
 
@@ -1051,15 +1063,9 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
     context = webkit_web_frame_get_global_context(frame);
     globalobject = JSContextGetGlobalObject(context);
 
-    /* uzbl javascript namespace */
-    var_name = JSStringCreateWithUTF8CString("Uzbl");
-    JSObjectSetProperty(context, globalobject, var_name,
-                        JSObjectMake(context, uzbl.js.classref, NULL),
-                        kJSClassAttributeNone, NULL);
-
     /* evaluate the script and get return value*/
     js_script = JSStringCreateWithUTF8CString(script);
-    js_result = JSEvaluateScript(context, js_script, globalobject, NULL, 0, NULL);
+    js_result = JSEvaluateScript(context, js_script, globalobject, NULL, 0, &js_exc);
     if (js_result && !JSValueIsUndefined(context, js_result)) {
         js_result_string = JSValueToStringCopy(context, js_result, NULL);
         js_result_size = JSStringGetMaximumUTF8CStringSize(js_result_string);
@@ -1072,11 +1078,37 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
 
         JSStringRelease(js_result_string);
     }
+    else if (js_exc) {
+        size_t size;
+        JSStringRef prop, val;
+        JSObjectRef exc = JSValueToObject(context, js_exc, NULL);
+        
+        printf("Exception occured while executing script:\n");
+        
+        /* Print line */
+        prop = JSStringCreateWithUTF8CString("line");
+        val = JSValueToStringCopy(context, JSObjectGetProperty(context, exc, prop, NULL), NULL);
+        size = JSStringGetMaximumUTF8CStringSize(val);
+        if(size) {
+            char cstr[size];
+            JSStringGetUTF8CString(val, cstr, size);
+            printf("At line %s: ", cstr);
+        }
+        JSStringRelease(prop);
+        JSStringRelease(val);
+        
+        /* Print message */
+        val = JSValueToStringCopy(context, exc, NULL);
+        size = JSStringGetMaximumUTF8CStringSize(val);
+        if(size) {
+            char cstr[size];
+            JSStringGetUTF8CString(val, cstr, size);
+            printf("%s\n", cstr);
+        }
+        JSStringRelease(val);
+    }
 
     /* cleanup */
-    JSObjectDeleteProperty(context, globalobject, var_name, NULL);
-
-    JSStringRelease(var_name);
     JSStringRelease(js_script);
 }
 
@@ -1554,8 +1586,8 @@ parse_command(const char *cmd, const char *param, GString *result) {
                 send_event(COMMAND_EXECUTED, tmp->str, NULL);
                 g_string_free(tmp, TRUE);
             }
-    } 
-    else { 
+    }
+    else {
         gchar *tmp = g_strdup_printf("%s %s", cmd, param?param:"");
         send_event(COMMAND_ERROR, tmp, NULL);
         g_free(tmp);
@@ -2399,7 +2431,7 @@ retrieve_geometry() {
 void
 initialize(int argc, char *argv[]) {
     int i;
-    
+
     for(i=0; i<argc; ++i) {
         if(!strcmp(argv[i], "-s") || !strcmp(argv[i], "--socket")) {
             uzbl.state.plug_mode = TRUE;

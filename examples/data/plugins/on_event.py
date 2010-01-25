@@ -2,6 +2,7 @@
 
 Formatting options:
   %s = space separated string of the arguments
+  %r = escaped and quoted version of %s
   %1 = argument 1
   %2 = argument 2
   %n = argument n
@@ -44,20 +45,6 @@ def get_on_events(uzbl):
     return UZBLS[uzbl]
 
 
-def expand(cmd, args):
-    '''Replaces "%s %1 %2 %3..." with "<all args> <arg 0> <arg 1>...".'''
-
-    if '%s' in cmd:
-        cmd = cmd.replace('%s', ' '.join(map(unicode, args)))
-
-    for (index, arg) in enumerate(args):
-        index += 1
-        if '%%%d' % index in cmd:
-            cmd = cmd.replace('%%%d' % index, unicode(arg))
-
-    return cmd
-
-
 def event_handler(uzbl, *args, **kargs):
     '''This function handles all the events being watched by various
     on_event definitions and responds accordingly.'''
@@ -68,8 +55,9 @@ def event_handler(uzbl, *args, **kargs):
         return
 
     commands = events[event]
+    cmd_expand = uzbl.cmd_expand
     for cmd in commands:
-        cmd = expand(cmd, args)
+        cmd = cmd_expand(cmd, args)
         uzbl.send(cmd)
 
 
@@ -104,9 +92,16 @@ def parse_on_event(uzbl, args):
 
 
 def init(uzbl):
+    # Event handling hooks.
+    uzbl.connect_dict({
+        'INSTANCE_EXIT':    del_instance,
+        'INSTANCE_START':   add_instance,
+        'ON_EVENT':         parse_on_event,
+    })
 
-    connects = {'ON_EVENT': parse_on_event,
-      'INSTANCE_START': add_instance,
-      'INSTANCE_EXIT': del_instance}
-
-    uzbl.connect_dict(connects)
+    # Function exports to the uzbl object, `function(uzbl, *args, ..)`
+    # becomes `uzbl.function(*args, ..)`.
+    uzbl.export_dict({
+        'get_on_events':    get_on_events,
+        'on_event':         on_event,
+    })

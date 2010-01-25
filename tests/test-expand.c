@@ -22,8 +22,8 @@
 #include <fcntl.h>
 #include <signal.h>
 
-#include <uzbl-core.h>
-#include <config.h>
+#include <src/uzbl-core.h>
+#include <src/config.h>
 
 extern UzblCore uzbl;
 

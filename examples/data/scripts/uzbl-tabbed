@@ -44,6 +44,9 @@
 #
 #   Devon Jones <devon.jones@gmail.com>
 #       Fifo command bring_to_front which brings the gtk window to focus.
+#
+#   Simon Lipp (sloonz)
+#       Various
 
 
 # Dependencies:
@@ -77,6 +80,7 @@
 #
 # Tab title options:
 #   tab_titles              = 1
+#   tab_indexes             = 1
 #   new_tab_title           = Loading
 #   max_title_len           = 50
 #   show_ellipsis           = 1
@@ -95,25 +99,6 @@
 # Misc options:
 #   window_size             = 800,800
 #   verbose                 = 0
-#
-# And the key bindings:
-#   bind_new_tab            = gn
-#   bind_tab_from_clip      = gY
-#   bind_tab_from_uri       = go _
-#   bind_close_tab          = gC
-#   bind_next_tab           = gt
-#   bind_prev_tab           = gT
-#   bind_goto_tab           = gi_
-#   bind_goto_first         = g<
-#   bind_goto_last          = g>
-#   bind_clean_slate        = gQ
-#   bind_exit               = gZ
-#
-# Session preset key bindings:
-#   bind_save_preset        = gsave _
-#   bind_load_preset        = gload _
-#   bind_del_preset         = gdel _
-#   bind_list_presets       = glist
 #
 # And uzbl_tabbed.py takes care of the actual binding of the commands via each
 # instances fifo socket.
@@ -202,18 +187,10 @@ def xdghome(key, default):
 
 # Setup xdg paths.
 DATA_DIR = os.path.join(xdghome('DATA', '.local/share/'), 'uzbl/')
-CONFIG_DIR = os.path.join(xdghome('CONFIG', '.config/'), 'uzbl/')
 
 # Ensure uzbl xdg paths exist
-for path in [DATA_DIR, CONFIG_DIR]:
-    if not os.path.exists(path):
-        os.makedirs(path)
-
-# Path to uzbl config
-UZBL_CONFIG = os.path.join(CONFIG_DIR, 'config')
-if not os.path.exists(UZBL_CONFIG):
-    error("cannot find uzbl config file at %r" % UZBL_CONFIG)
-    sys.exit(1)
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR)
 
 # All of these settings can be inherited from your uzbl config file.
 config = {
@@ -229,6 +206,7 @@ config = {
 
   # Tab title options
   'tab_titles':             True,   # Display tab titles (else only tab-nums)
+  'tab_indexes':             True,   # Display tab nums (else only tab titles)
   'new_tab_title':          'Loading', # New tab title
   'max_title_len':          50,     # Truncate title at n characters
   'show_ellipsis':          True,   # Show ellipsis when truncating titles
@@ -249,25 +227,6 @@ config = {
   'window_size':            "800,800", # width,height in pixels.
   'verbose':                False,  # Print verbose output.
 
-  # Key bindings
-  'bind_new_tab':           'gn',   # Open new tab.
-  'bind_tab_from_clip':     'gY',   # Open tab from clipboard.
-  'bind_tab_from_uri':      'go _', # Open new tab and goto entered uri.
-  'bind_close_tab':         'gC',   # Close tab.
-  'bind_next_tab':          'gt',   # Next tab.
-  'bind_prev_tab':          'gT',   # Prev tab.
-  'bind_goto_tab':          'gi_',  # Goto tab by tab-number (in title).
-  'bind_goto_first':        'g<',   # Goto first tab.
-  'bind_goto_last':         'g>',   # Goto last tab.
-  'bind_clean_slate':       'gQ',   # Close all tabs and open new tab.
-  'bind_exit':              'gZ',   # Exit nicely.
-
-  # Session preset key bindings
-  'bind_save_preset':       'gsave _', # Save session to file %s.
-  'bind_load_preset':       'gload _', # Load preset session from file %s.
-  'bind_del_preset':        'gdel _',  # Delete preset session %s.
-  'bind_list_presets':      'glist',   # List all session presets.
-
   # Add custom tab style definitions to be used by the tab colour policy
   # handler here. Because these are added to the config dictionary like
   # any other uzbl_tabbed configuration option remember that they can
@@ -283,6 +242,8 @@ config = {
   'selected_https_text':    'foreground = "gold"',
 
 } # End of config dict.
+
+UZBL_TABBED_VARS = config.keys()
 
 # This is the tab style policy handler. Every time the tablist is updated
 # this function is called to determine how to colourise that specific tab
@@ -323,37 +284,6 @@ def echo(msg):
         sys.stderr.write("%s: %s\n" % (_SCRIPTNAME, msg))
 
 
-def readconfig(uzbl_config, config):
-    '''Loads relevant config from the users uzbl config file into the global
-    config dictionary.'''
-
-    if not os.path.exists(uzbl_config):
-        error("Unable to load config %r" % uzbl_config)
-        return None
-
-    # Define parsing regular expressions
-    isint = re.compile("^(\-|)[0-9]+$").match
-    findsets = re.compile("^set\s+([^\=]+)\s*\=\s*(.+)$",\
-      re.MULTILINE).findall
-
-    h = open(os.path.expandvars(uzbl_config), 'r')
-    rawconfig = h.read()
-    h.close()
-
-    configkeys, strip = config.keys(), str.strip
-    for (key, value) in findsets(rawconfig):
-        key, value = strip(key), strip(value)
-        if key not in configkeys: continue
-        if isint(value): value = int(value)
-        config[key] = value
-
-    # Ensure that config keys that relate to paths are expanded.
-    pathkeys = ['fifo_dir', 'socket_dir', 'session_file', 'icon_path',
-      'saved_sessions_dir']
-    for key in pathkeys:
-        config[key] = os.path.expandvars(config[key])
-
-
 def counter():
     '''To infinity and beyond!'''
 
@@ -371,137 +301,232 @@ def escape(s):
     return s
 
 
-def gen_endmarker():
-    '''Generates a random md5 for socket message-termination endmarkers.'''
+class SocketClient:
+    '''Represents a Uzbl instance, which is not necessarly linked with a UzblInstance'''
 
-    return hashlib.md5(str(random.random()*time.time())).hexdigest()
+    # List of UzblInstance objects not already linked with a SocketClient
+    instances_queue = {}
+
+    def __init__(self, socket):
+        self._buffer = ""
+        self._socket = socket
+        self._watchers = [io_add_watch(socket, IO_IN, self._socket_recv),\
+          io_add_watch(socket, IO_HUP, self._socket_closed)]
+        self.uzbl = None
+
+
+    def _socket_recv(self, fd, condition):
+        '''Data available on socket, process it'''
+
+        self._feed(self._socket.recv(1024)) #TODO: is io_add_watch edge or level-triggered ?
+        return True
+
+
+    def _socket_closed(self, fd, condition):
+        '''Remote client exited'''
+        self.uzbl.close()
+        return False
+
+
+    def _feed(self, data):
+        '''An Uzbl instance sent some data, parse it'''
+
+        self._buffer += data
+        if self.uzbl:
+            if "\n" in self._buffer:
+                cmds = self._buffer.split("\n")
+
+                if cmds[-1]: # Last command has been received incomplete, don't process it
+                    self._buffer, cmds = cmds[-1], cmds[:-1]
+                else:
+                    self._buffer = ""
+
+                for cmd in cmds:
+                    if cmd:
+                        self.uzbl.parse_command(cmd)
+        else:
+            name = re.findall('^EVENT \[(\d+-\d+)\] INSTANCE_START \d+$', self._buffer, re.M)
+            uzbl = self.instances_queue.get(name[0])
+            if uzbl:
+                del self.instances_queue[name[0]]
+                self.uzbl = uzbl
+                self.uzbl.got_socket(self)
+                self._feed("")
+
+    def send(self, data):
+        '''Child socket send function.'''
+
+        self._socket.send(data + "\n")
+
+    def close(self):
+        '''Close the connection'''
+
+        if self._socket:
+            self._socket.close()
+            self._socket = None
+            map(source_remove, self._watchers)
+            self._watchers = []
+
+
+class UzblInstance:
+    '''Uzbl instance meta-data/meta-action object.'''
+
+    def __init__(self, parent, tab, name, uri, title, switch):
+
+        self.parent = parent
+        self.tab = tab
+        self.name = name
+        self.title = title
+        self.tabtitle = ""
+        self.uri = uri
+        self._client = None
+        self._switch = switch # Switch to tab after loading ?
+        self.title_changed()
+
+
+    def got_socket(self, client):
+        '''Uzbl instance is now connected'''
+
+        self._client = client
+        self.parent.config_uzbl(self)
+        if self._switch:
+            tabid = self.parent.notebook.page_num(self.tab)
+            self.parent.goto_tab(tabid)
+
+
+    def title_changed(self, gtk_only = True): # GTK-only is for indexes
+        '''self.title has changed, update the tabs list'''
+
+        tab_titles = config['tab_titles']
+        tab_indexes = config['tab_indexes']
+        show_ellipsis = config['show_ellipsis']
+        max_title_len = config['max_title_len']
+
+        # Unicode heavy strings do not like being truncated/sliced so by
+        # re-encoding the string sliced of limbs are removed.
+        self.tabtitle = self.title[:max_title_len + int(show_ellipsis)]
+        if type(self.tabtitle) != types.UnicodeType:
+            self.tabtitle = unicode(self.tabtitle, 'utf-8', 'ignore')
+
+        self.tabtitle = self.tabtitle.encode('utf-8', 'ignore').strip()
+
+        if show_ellipsis and len(self.tabtitle) != len(self.title):
+            self.tabtitle += "\xe2\x80\xa6"
+
+        gtk_tab_format = "%d %s"
+        index = self.parent.notebook.page_num(self.tab)
+        if tab_titles and tab_indexes:
+            self.parent.notebook.set_tab_label_text(self.tab,
+              gtk_tab_format % (index, self.tabtitle))
+        elif tab_titles:
+            self.parent.notebook.set_tab_label_text(self.tab, self.tabtitle)
+        else:
+            self.parent.notebook.set_tab_label_text(self.tab, str(index))
+
+        # If instance is current tab, update window title
+        if index == self.parent.notebook.get_current_page():
+            title_format = "%s - Uzbl Browser"
+            self.parent.window.set_title(title_format % self.title)
+
+        # Non-GTK tabs
+        if not gtk_only:
+            self.parent.update_tablist()
+
+
+    def set(self, key, val):
+        ''' Send the SET command to Uzbl '''
+
+        if self._client:
+            self._client.send('set %s = %s') #TODO: escape chars ?
+
+
+    def exit(self):
+        ''' Ask the Uzbl instance to close '''
+
+        if self._client:
+            self._client.send('exit')
+
+
+    def parse_command(self, cmd):
+        ''' Parse event givent by the Uzbl instance '''
+
+        type, _, args = cmd.split(" ", 2)
+        if type == "EVENT":
+            type, args = args.split(" ", 1)
+            if type == "TITLE_CHANGED":
+                self.title = args
+                self.title_changed()
+            elif type == "VARIABLE_SET":
+                var, _, val = args.split(" ", 2)
+                try:
+                    val = int(val)
+                except:
+                    pass
+
+                if var in UZBL_TABBED_VARS:
+                    if config[var] != val:
+                        config[var] = val
+                        if var == "show_gtk_tabs":
+                            self.parent.notebook.set_show_tabs(bool(val))
+                        elif var == "show_tablist" or var == "tablist_top":
+                            self.parent.update_tablist_display()
+                        elif var == "gtk_tab_pos":
+                            self.parent.update_gtk_tab_pos()
+                        elif var == "status_background":
+                            col = gtk.gdk.color_parse(config['status_background'])
+                            self.parent.ebox.modify_bg(gtk.STATE_NORMAL, col)
+                        elif var == "tab_titles" or var == "tab_indexes":
+                            for tab in self.parent.notebook:
+                                self.parent.tabs[tab].title_changed(True)
+
+                        self.parent.update_tablist()
+                else:
+                    config[var] = val
+
+                if var == "uri":
+                    self.uri = var
+                    self.parent.update_tablist()
+            elif type == "NEW_TAB":
+                self.parent.new_tab(args)
+            elif type == "NEXT_TAB":
+                if args:
+                    self.parent.next_tab(int(args))
+                else:
+                    self.parent.next_tab()
+            elif type == "PREV_TAB":
+                if args:
+                    self.parent.prev_tab(int(args))
+                else:
+                    self.parent.prev_tab()
+            elif type == "GOTO_TAB":
+                self.parent.goto_tab(int(args))
+            elif type == "FIRST_TAB":
+                self.parent.goto_tab(0)
+            elif type == "LAST_TAB":
+                self.parent.goto_tab(-1)
+            elif type == "PRESET_TABS":
+                self.parent.parse_command(["preset"] + args.split())
+            elif type == "BRING_TO_FRONT":
+                self.parent.window.present()
+            elif type == "CLEAN_TABS":
+                self.parent.clean_slate()
+            elif type == "EXIT_ALL_TABS":
+                self.parent.quitrequest()
+
+
+    def close(self):
+        '''The remote instance exited'''
+
+        if self._client:
+            self._client.close()
+            self._client = None
 
 
 class UzblTabbed:
     '''A tabbed version of uzbl using gtk.Notebook'''
 
-    class UzblInstance:
-        '''Uzbl instance meta-data/meta-action object.'''
-
-        def __init__(self, parent, tab, fifo_socket, socket_file, pid,\
-          uri, title, switch):
-
-            self.parent = parent
-            self.tab = tab
-            self.fifo_socket = fifo_socket
-            self.socket_file = socket_file
-            self.pid = pid
-            self.title = title
-            self.uri = uri
-            self.timers = {}
-            self._lastprobe = 0
-            self._fifoout = []
-            self._socketout = []
-            self._socket = None
-            self._buffer = ""
-            # Switch to tab after loading
-            self._switch = switch
-            # fifo/socket files exists and socket connected.
-            self._connected = False
-            # The kill switch
-            self._kill = False
-
-            # Message termination endmarker.
-            self._marker = gen_endmarker()
-
-            # Gen probe commands string
-            probes = []
-            probe = probes.append
-            probe('print uri %d @uri %s' % (self.pid, self._marker))
-            probe('print title %d @<document.title>@ %s' % (self.pid,\
-              self._marker))
-            self._probecmds = '\n'.join(probes)
-
-            # Enqueue keybinding config for child uzbl instance
-            self.parent.config_uzbl(self)
-
-
-        def flush(self, timer_call=False):
-            '''Flush messages from the socket-out and fifo-out queues.'''
-
-            if self._kill:
-                if self._socket:
-                    self._socket.close()
-                    self._socket = None
-
-                error("Flush called on dead tab.")
-                return False
-
-            if len(self._fifoout):
-                if os.path.exists(self.fifo_socket):
-                    h = open(self.fifo_socket, 'w')
-                    while len(self._fifoout):
-                        msg = self._fifoout.pop(0)
-                        h.write("%s\n"%msg)
-                    h.close()
-
-            if len(self._socketout):
-                if not self._socket and os.path.exists(self.socket_file):
-                    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                    sock.connect(self.socket_file)
-                    self._socket = sock
-
-                if self._socket:
-                    while len(self._socketout):
-                        msg = self._socketout.pop(0)
-                        self._socket.send("%s\n"%msg)
-
-            if not self._connected and timer_call:
-                if not len(self._fifoout + self._socketout):
-                    self._connected = True
-
-                    if timer_call in self.timers.keys():
-                        source_remove(self.timers[timer_call])
-                        del self.timers[timer_call]
-
-                    if self._switch:
-                        self.grabfocus()
-
-            return len(self._fifoout + self._socketout)
-
-
-        def grabfocus(self):
-            '''Steal parent focus and switch the notebook to my own tab.'''
-
-            tabs = list(self.parent.notebook)
-            tabid = tabs.index(self.tab)
-            self.parent.goto_tab(tabid)
-
-
-        def probe(self):
-            '''Probes the client for information about its self.'''
-
-            if self._connected:
-                self.send(self._probecmds)
-                self._lastprobe = time.time()
-
-
-        def write(self, msg):
-            '''Child fifo write function.'''
-
-            self._fifoout.append(msg)
-            # Flush messages from the queue if able.
-            return self.flush()
-
-
-        def send(self, msg):
-            '''Child socket send function.'''
-
-            self._socketout.append(msg)
-            # Flush messages from queue if able.
-            return self.flush()
-
-
     def __init__(self):
         '''Create tablist, window and notebook.'''
-
-        # Store information about the applications fifo_socket.
-        self._fifo = None
 
         self._timers = {}
         self._buffer = ""
@@ -512,6 +537,9 @@ class UzblTabbed:
 
         # Holds metadata on the uzbl childen open.
         self.tabs = {}
+
+        # Uzbl sockets (socket => SocketClient)
+        self.clients = {}
 
         # Generates a unique id for uzbl socket filenames.
         self.next_pid = counter().next
@@ -534,7 +562,7 @@ class UzblTabbed:
             self.window.set_icon(gtk.gdk.pixbuf_new_from_file(icon_path))
 
         else:
-            icon_path = '/usr/share/uzbl/examples/data/uzbl/uzbl.png'
+            icon_path = '/usr/share/uzbl/examples/data/uzbl.png'
             if os.path.exists(icon_path):
                 self.window.set_icon(gtk.gdk.pixbuf_new_from_file(icon_path))
 
@@ -542,35 +570,33 @@ class UzblTabbed:
         self.window.connect("delete-event", self.quitrequest)
 
         # Create tab list
-        if config['show_tablist']:
-            vbox = gtk.VBox()
-            self.window.add(vbox)
-            ebox = gtk.EventBox()
-            self.tablist = gtk.Label()
+        vbox = gtk.VBox()
+        self.vbox = vbox
+        self.window.add(vbox)
+        ebox = gtk.EventBox()
+        self.ebox = ebox
+        self.tablist = gtk.Label()
 
-            self.tablist.set_use_markup(True)
-            self.tablist.set_justify(gtk.JUSTIFY_LEFT)
-            self.tablist.set_line_wrap(False)
-            self.tablist.set_selectable(False)
-            self.tablist.set_padding(2,2)
-            self.tablist.set_alignment(0,0)
-            self.tablist.set_ellipsize(pango.ELLIPSIZE_END)
-            self.tablist.set_text(" ")
-            self.tablist.show()
-            ebox.add(self.tablist)
-            ebox.show()
-            bgcolor = gtk.gdk.color_parse(config['status_background'])
-            ebox.modify_bg(gtk.STATE_NORMAL, bgcolor)
+        self.tablist.set_use_markup(True)
+        self.tablist.set_justify(gtk.JUSTIFY_LEFT)
+        self.tablist.set_line_wrap(False)
+        self.tablist.set_selectable(False)
+        self.tablist.set_padding(2,2)
+        self.tablist.set_alignment(0,0)
+        self.tablist.set_ellipsize(pango.ELLIPSIZE_END)
+        self.tablist.set_text(" ")
+        self.tablist.show()
+        ebox.add(self.tablist)
+        ebox.show()
+        bgcolor = gtk.gdk.color_parse(config['status_background'])
+        ebox.modify_bg(gtk.STATE_NORMAL, bgcolor)
 
         # Create notebook
         self.notebook = gtk.Notebook()
         self.notebook.set_show_tabs(config['show_gtk_tabs'])
 
         # Set tab position
-        allposes = {'left': gtk.POS_LEFT, 'right':gtk.POS_RIGHT,
-          'top':gtk.POS_TOP, 'bottom':gtk.POS_BOTTOM}
-        if config['gtk_tab_pos'] in allposes.keys():
-            self.notebook.set_tab_pos(allposes[config['gtk_tab_pos']])
+        self.update_gtk_tab_pos()
 
         self.notebook.set_show_border(False)
         self.notebook.set_scrollable(True)
@@ -581,28 +607,25 @@ class UzblTabbed:
         self.notebook.connect("page-added", self.tab_opened)
 
         self.notebook.show()
-        if config['show_tablist']:
-            if config['tablist_top']:
-                vbox.pack_start(ebox, False, False, 0)
-                vbox.pack_end(self.notebook, True, True, 0)
+        vbox.pack_start(self.notebook, True, True, 0)
+        vbox.reorder_child(self.notebook, 1)
+        self.update_tablist_display()
 
-            else:
-                vbox.pack_start(self.notebook, True, True, 0)
-                vbox.pack_end(ebox, False, False, 0)
-
-            vbox.show()
-
-        else:
-            self.window.add(self.notebook)
-
+        self.vbox.show()
         self.window.show()
         self.wid = self.notebook.window.xid
-        # Generate the fifo socket filename.
-        fifo_filename = 'uzbltabbed_%d' % os.getpid()
-        self.fifo_socket = os.path.join(config['fifo_dir'], fifo_filename)
 
-        # Now initialise the fifo socket at self.fifo_socket
-        self.init_fifo_socket()
+        # Store information about the applications fifo and socket.
+        fifo_filename = 'uzbltabbed_%d.fifo' % os.getpid()
+        socket_filename = 'uzbltabbed_%d.socket' % os.getpid()
+        self._fifo = None
+        self._socket = None
+        self.fifo_path = os.path.join(config['fifo_dir'], fifo_filename)
+        self.socket_path = os.path.join(config['socket_dir'], socket_filename)
+
+        # Now initialise the fifo and the socket
+        self.init_fifo()
+        self.init_socket()
 
         # If we are using sessions then load the last one if it exists.
         if config['save_session']:
@@ -612,20 +635,12 @@ class UzblTabbed:
     def run(self):
         '''UzblTabbed main function that calls the gtk loop.'''
 
-        if not len(self.tabs):
+        if not self.clients and not SocketClient.instances_queue and not self.tabs:
             self.new_tab()
 
         gtk_refresh = int(config['gtk_refresh'])
         if gtk_refresh < 100:
             gtk_refresh = 100
-
-        # Update tablist timer
-        timerid = timeout_add(gtk_refresh, self.update_tablist)
-        self._timers["update-tablist"] = timerid
-
-        # Probe clients every second for window titles and location
-        timerid = timeout_add(gtk_refresh, self.probe_clients)
-        self._timers["probe-clients"] = timerid
 
         # Make SIGTERM act orderly.
         signal(SIGTERM, lambda signum, stack_frame: self.terminate(SIGTERM))
@@ -640,7 +655,8 @@ class UzblTabbed:
             error("encounted error %r" % sys.exc_info()[1])
 
             # Unlink fifo socket
-            self.unlink_fifo_socket()
+            self.unlink_fifo()
+            self.close_socket()
 
             # Attempt to close all uzbl instances nicely.
             self.quitrequest()
@@ -671,40 +687,75 @@ class UzblTabbed:
         self.quitrequest()
 
 
-    def init_fifo_socket(self):
-        '''Create interprocess communication fifo socket.'''
+    def init_socket(self):
+        '''Create interprocess communication socket.'''
 
-        if os.path.exists(self.fifo_socket):
-            if not os.access(self.fifo_socket, os.F_OK | os.R_OK | os.W_OK):
-                os.mkfifo(self.fifo_socket)
+        def accept(sock, condition):
+            '''A new uzbl instance was created'''
+
+            client, _ = sock.accept()
+            self.clients[client] = SocketClient(client)
+
+            return True
+
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.bind(self.socket_path)
+        sock.listen(1)
+
+        # Add event handler for IO_IN event.
+        self._socket = (sock, io_add_watch(sock, IO_IN, accept))
+
+        echo("[socket] listening at %r" % self.socket_path)
+
+        # Add atexit register to destroy the socket on program termination.
+        atexit.register(self.close_socket)
+
+
+    def close_socket(self):
+        '''Close the socket when closing the application'''
+
+        if self._socket:
+            (fd, watcher) = self._socket
+            source_remove(watcher)
+            fd.close()
+            os.unlink(self.socket_path)
+            self._socket = None
+
+
+    def init_fifo(self):
+        '''Create interprocess communication fifo.'''
+
+        if os.path.exists(self.fifo_path):
+            if not os.access(self.fifo_path, os.F_OK | os.R_OK | os.W_OK):
+                os.mkfifo(self.fifo_path)
 
         else:
-            basedir = os.path.dirname(self.fifo_socket)
+            basedir = os.path.dirname(self.fifo_path)
             if not os.path.exists(basedir):
                 os.makedirs(basedir)
 
-            os.mkfifo(self.fifo_socket)
+            os.mkfifo(self.fifo_path)
 
         # Add event handlers for IO_IN & IO_HUP events.
         self.setup_fifo_watchers()
 
-        echo("listening at %r" % self.fifo_socket)
+        echo("[fifo] listening at %r" % self.fifo_path)
 
-        # Add atexit register to destroy the socket on program termination.
-        atexit.register(self.unlink_fifo_socket)
+        # Add atexit register to destroy the fifo on program termination.
+        atexit.register(self.unlink_fifo)
 
 
-    def unlink_fifo_socket(self):
+    def unlink_fifo(self):
         '''Unlink the fifo socket. Note: This function is called automatically
         on exit by an atexit register.'''
 
-        # Make sure the fifo_socket fd is closed.
+        # Make sure the fifo fd is closed.
         self.close_fifo()
 
-        # And unlink if the real fifo_socket exists.
-        if os.path.exists(self.fifo_socket):
-            os.unlink(self.fifo_socket)
-            echo("unlinked %r" % self.fifo_socket)
+        # And unlink if the real fifo exists.
+        if os.path.exists(self.fifo_path):
+            os.unlink(self.fifo_path)
+            echo("unlinked %r" % self.fifo_path)
 
 
     def close_fifo(self):
@@ -727,10 +778,10 @@ class UzblTabbed:
         '''Open fifo socket fd and setup gobject IO_IN & IO_HUP event
         handlers.'''
 
-        # Close currently open fifo_socket fd and kill all watchers
+        # Close currently open fifo fd and kill all watchers
         self.close_fifo()
 
-        fd = os.open(self.fifo_socket, os.O_RDONLY | os.O_NONBLOCK)
+        fd = os.open(self.fifo_path, os.O_RDONLY | os.O_NONBLOCK)
 
         # Add gobject io event handlers to the fifo socket.
         watchers = [io_add_watch(fd, IO_IN, self.main_fifo_read),\
@@ -765,43 +816,6 @@ class UzblTabbed:
             except:
                 error("parse_command: invalid command %s" % ' '.join(cmd))
                 raise
-
-        return True
-
-
-    def probe_clients(self):
-        '''Probe all uzbl clients for up-to-date window titles and uri's.'''
-
-        save_session = config['save_session']
-
-        sockd = {}
-        tabskeys = self.tabs.keys()
-        notebooklist = list(self.notebook)
-
-        for tab in notebooklist:
-            if tab not in tabskeys: continue
-            uzbl = self.tabs[tab]
-            uzbl.probe()
-            if uzbl._socket:
-                sockd[uzbl._socket] = uzbl
-
-        sockets = sockd.keys()
-        (reading, _, errors) = select.select(sockets, [], sockets, 0)
-
-        for sock in reading:
-            uzbl = sockd[sock]
-            uzbl._buffer = sock.recv(1024).replace('\n',' ')
-            temp = uzbl._buffer.split(uzbl._marker)
-            self._buffer = temp.pop()
-            cmds = [s.strip().split() for s in temp if len(s.strip())]
-            for cmd in cmds:
-                try:
-                    #print cmd
-                    self.parse_command(cmd)
-
-                except:
-                    error("parse_command: invalid command %s" % ' '.join(cmd))
-                    raise
 
         return True
 
@@ -878,7 +892,7 @@ class UzblTabbed:
 
         elif cmd[0] in ["title", "uri"]:
             if len(cmd) > 2:
-                uzbl = self.get_tab_by_pid(int(cmd[1]))
+                uzbl = self.get_tab_by_name(int(cmd[1]))
                 if uzbl:
                     old = getattr(uzbl, cmd[0])
                     new = ' '.join(cmd[2:])
@@ -887,7 +901,7 @@ class UzblTabbed:
                         self.update_tablist()
 
                 else:
-                    error("parse_command: no uzbl with pid %r" % int(cmd[1]))
+                    error("parse_command: no uzbl with name %r" % int(cmd[1]))
 
         elif cmd[0] == "preset":
             if len(cmd) < 3:
@@ -910,20 +924,20 @@ class UzblTabbed:
                     error("parse_command: preset %r does not exist." % path)
 
             elif cmd[1] == "list":
-                uzbl = self.get_tab_by_pid(int(cmd[2]))
+                uzbl = self.get_tab_by_name(int(cmd[2]))
                 if uzbl:
                     if not os.path.isdir(config['saved_sessions_dir']):
                         js = "js alert('No saved presets.');"
-                        uzbl.send(js)
+                        uzbl._client.send(js)
 
                     else:
                         listdir = os.listdir(config['saved_sessions_dir'])
                         listdir = "\\n".join(listdir)
                         js = "js alert('Session presets:\\n\\n%s');" % listdir
-                        uzbl.send(js)
+                        uzbl._client.send(js)
 
                 else:
-                    error("parse_command: unknown tab pid.")
+                    error("parse_command: unknown tab name.")
 
             else:
                 error("parse_command: unknown parse command %r"\
@@ -942,11 +956,11 @@ class UzblTabbed:
             error("parse_command: unknown command %r" % ' '.join(cmd))
 
 
-    def get_tab_by_pid(self, pid):
-        '''Return uzbl instance by pid.'''
+    def get_tab_by_name(self, name):
+        '''Return uzbl instance by name.'''
 
         for (tab, uzbl) in self.tabs.items():
-            if uzbl.pid == pid:
+            if uzbl.name == name:
                 return uzbl
 
         return False
@@ -958,17 +972,12 @@ class UzblTabbed:
         when you need to load multiple tabs at a time (I.e. like when
         restoring a session from a file).'''
 
-        pid = self.next_pid()
         tab = gtk.Socket()
         tab.show()
         self.notebook.append_page(tab)
         sid = tab.get_id()
         uri = uri.strip()
-
-        fifo_filename = 'uzbl_fifo_%s_%0.2d' % (self.wid, pid)
-        fifo_socket = os.path.join(config['fifo_dir'], fifo_filename)
-        socket_filename = 'uzbl_socket_%s_%0.2d' % (self.wid, pid)
-        socket_file = os.path.join(config['socket_dir'], socket_filename)
+        name = "%d-%d" % (os.getpid(), self.next_pid())
 
         if switch is None:
             switch = config['switch_to_new_tabs']
@@ -976,22 +985,13 @@ class UzblTabbed:
         if not title:
             title = config['new_tab_title']
 
-        uzbl = self.UzblInstance(self, tab, fifo_socket, socket_file, pid,\
-          uri, title, switch)
+        cmd = ['uzbl-browser', '-n', name, '-s', str(sid),
+               '--connect-socket', self.socket_path, '--uri', uri]
+        subprocess.Popen(cmd) # TODO: do i need close_fds=True ?
 
-        if len(uri):
-            uri = "--uri %r" % uri
-
+        uzbl = UzblInstance(self, tab, name, uri, title, switch)
+        SocketClient.instances_queue[name] = uzbl
         self.tabs[tab] = uzbl
-        cmd = 'uzbl-browser -s %s -n %s_%0.2d %s &' % (sid, self.wid, pid, uri)
-        subprocess.Popen([cmd], shell=True) # TODO: do i need close_fds=True ?
-
-        # Add gobject timer to make sure the config is pushed when fifo socket
-        # has been created.
-        timerid = timeout_add(100, uzbl.flush, "flush-initial-config")
-        uzbl.timers['flush-initial-config'] = timerid
-
-        self.update_tablist()
 
 
     def clean_slate(self):
@@ -1002,56 +1002,29 @@ class UzblTabbed:
         for tab in list(self.notebook)[:-1]:
             if tab not in tabs: continue
             uzbl = self.tabs[tab]
-            uzbl.send("exit")
+            uzbl.exit()
 
 
     def config_uzbl(self, uzbl):
         '''Send bind commands for tab new/close/next/prev to a uzbl
         instance.'''
 
-        binds = []
-        bind_format = r'bind %s = sh "echo \"%s\" > \"%s\""'
-        bind = lambda key, action: binds.append(bind_format % (key, action,\
-          self.fifo_socket))
-
-        sets = []
-        set_format = r'set %s = sh \"echo \\"%s\\" > \\"%s\\""'
-        set = lambda key, action: binds.append(set_format % (key, action,\
-          self.fifo_socket))
-
-        # Bind definitions here
-        # bind(key, command back to fifo)
-        bind(config['bind_new_tab'], 'new')
-        bind(config['bind_tab_from_clip'], 'newfromclip')
-        bind(config['bind_tab_from_uri'], 'new %s')
-        bind(config['bind_close_tab'], 'close')
-        bind(config['bind_next_tab'], 'next')
-        bind(config['bind_prev_tab'], 'prev')
-        bind(config['bind_goto_tab'], 'goto %s')
-        bind(config['bind_goto_first'], 'goto 0')
-        bind(config['bind_goto_last'], 'goto -1')
-        bind(config['bind_clean_slate'], 'clean')
-        bind(config['bind_save_preset'], 'preset save %s')
-        bind(config['bind_load_preset'], 'preset load %s')
-        bind(config['bind_del_preset'], 'preset del %s')
-        bind(config['bind_list_presets'], 'preset list %d' % uzbl.pid)
-        bind(config['bind_exit'], 'exit')
-
         # Set definitions here
         # set(key, command back to fifo)
         if config['capture_new_windows']:
-            set("new_window", r'new $8')
-
-        # Send config to uzbl instance via its socket file.
-        uzbl.send("\n".join(binds+sets))
+            uzbl.set("new_window", r'new $8')
 
 
     def goto_tab(self, index):
         '''Goto tab n (supports negative indexing).'''
 
+        title_format = "%s - Uzbl Browser"
+
         tabs = list(self.notebook)
         if 0 <= index < len(tabs):
             self.notebook.set_current_page(index)
+            uzbl = self.tabs[self.notebook.get_nth_page(index)]
+            self.window.set_title(title_format % uzbl.title)
             self.update_tablist()
             return None
 
@@ -1061,6 +1034,8 @@ class UzblTabbed:
             # negative index.
             index = tabs.index(tab)
             self.notebook.set_current_page(index)
+            uzbl = self.tabs[self.notebook.get_nth_page(index)]
+            self.window.set_title(title_format % uzbl.title)
             self.update_tablist()
 
         except IndexError:
@@ -1076,8 +1051,7 @@ class UzblTabbed:
 
         ntabs = self.notebook.get_n_pages()
         tabn = (self.notebook.get_current_page() + step) % ntabs
-        self.notebook.set_current_page(tabn)
-        self.update_tablist()
+        self.goto_tab(tabn)
 
 
     def prev_tab(self, step=1):
@@ -1090,8 +1064,7 @@ class UzblTabbed:
         ntabs = self.notebook.get_n_pages()
         tabn = self.notebook.get_current_page() - step
         while tabn < 0: tabn += ntabs
-        self.notebook.set_current_page(tabn)
-        self.update_tablist()
+        self.goto_tab(tabn)
 
 
     def close_tab(self, tabn=None):
@@ -1129,18 +1102,8 @@ class UzblTabbed:
 
         if tab in self.tabs.keys():
             uzbl = self.tabs[tab]
-            for (timer, gid) in uzbl.timers.items():
-                error("tab_closed: removing timer %r" % timer)
-                source_remove(gid)
-                del uzbl.timers[timer]
+            uzbl.close()
 
-            if uzbl._socket:
-                uzbl._socket.close()
-                uzbl._socket = None
-
-            uzbl._fifoout = []
-            uzbl._socketout = []
-            uzbl._kill = True
             self._closed.append((uzbl.uri, uzbl.title))
             self._closed = self._closed[-10:]
             del self.tabs[tab]
@@ -1152,6 +1115,8 @@ class UzblTabbed:
 
             self.quit()
 
+        for tab in self.notebook:
+            self.tabs[tab].title_changed(True)
         self.update_tablist()
 
         return True
@@ -1166,105 +1131,85 @@ class UzblTabbed:
         return True
 
 
+    def update_tablist_display(self):
+        '''Called when show_tablist or tablist_top has changed'''
+
+        if self.ebox in self.vbox.get_children():
+            self.vbox.remove(self.ebox)
+
+        if config['show_tablist']:
+            self.vbox.pack_start(self.ebox, False, False, 0)
+            if config['tablist_top']:
+                self.vbox.reorder_child(self.ebox, 0)
+            else:
+                self.vbox.reorder_child(self.ebox, 2)
+
+    def update_gtk_tab_pos(self):
+        ''' Called when gtk_tab_pos has changed '''
+
+        allposes = {'left': gtk.POS_LEFT, 'right':gtk.POS_RIGHT,
+          'top':gtk.POS_TOP, 'bottom':gtk.POS_BOTTOM}
+        if config['gtk_tab_pos'] in allposes.keys():
+            self.notebook.set_tab_pos(allposes[config['gtk_tab_pos']])
+
+
     def update_tablist(self, curpage=None):
         '''Upate tablist status bar.'''
 
-        show_tablist = config['show_tablist']
-        show_gtk_tabs = config['show_gtk_tabs']
+        if not config['show_tablist']:
+            return True
+
         tab_titles = config['tab_titles']
-        show_ellipsis = config['show_ellipsis']
+        tab_indexes = config['tab_indexes']
         multiline_tabs = config['multiline_tabs']
 
         if multiline_tabs:
             multiline = []
 
-        if not show_tablist and not show_gtk_tabs:
-            return True
-
         tabs = self.tabs.keys()
         if curpage is None:
             curpage = self.notebook.get_current_page()
 
-        title_format = "%s - Uzbl Browser"
-        max_title_len = config['max_title_len']
+        pango = ""
+        normal = (config['tab_colours'], config['tab_text_colours'])
+        selected = (config['selected_tab'], config['selected_tab_text'])
 
-        if show_tablist:
-            pango = ""
-            normal = (config['tab_colours'], config['tab_text_colours'])
-            selected = (config['selected_tab'], config['selected_tab_text'])
-
-            if tab_titles:
-                tab_format = "<span %s> [ %d <span %s> %s</span> ] </span>"
-
-            else:
-                tab_format = "<span %s> [ <span %s>%d</span> ] </span>"
-
-        if show_gtk_tabs:
-            gtk_tab_format = "%d %s"
+        if tab_titles and tab_indexes:
+            tab_format = "<span %(tabc)s> [ %(index)d <span %(textc)s> %(title)s</span> ] </span>"
+        elif tab_titles:
+            tab_format = "<span %(tabc)s> [ <span %(textc)s>%(title)s</span> ] </span>"
+        else:
+            tab_format = "<span %(tabc)s> [ <span %(textc)s>%(index)d</span> ] </span>"
 
         for index, tab in enumerate(self.notebook):
             if tab not in tabs: continue
             uzbl = self.tabs[tab]
+            title = escape(uzbl.tabtitle)
 
-            if index == curpage:
-                self.window.set_title(title_format % uzbl.title)
+            style = colour_selector(index, curpage, uzbl)
+            (tabc, textc) = style
 
-            # Unicode heavy strings do not like being truncated/sliced so by
-            # re-encoding the string sliced of limbs are removed.
-            tabtitle = uzbl.title[:max_title_len + int(show_ellipsis)]
-            if type(tabtitle) != types.UnicodeType:
-                tabtitle = unicode(tabtitle, 'utf-8', 'ignore')
-
-            tabtitle = tabtitle.encode('utf-8', 'ignore').strip()
-
-            if show_ellipsis and len(tabtitle) != len(uzbl.title):
-                tabtitle += "\xe2\x80\xa6"
-
-            if show_gtk_tabs:
-                if tab_titles:
-                    self.notebook.set_tab_label_text(tab,
-                      gtk_tab_format % (index, tabtitle))
-
-                else:
-                    self.notebook.set_tab_label_text(tab, str(index))
-
-            if show_tablist:
-                style = colour_selector(index, curpage, uzbl)
-                (tabc, textc) = style
-
-                if multiline_tabs:
-                    opango = pango
-
-                    if tab_titles:
-                        pango += tab_format % (tabc, index, textc,
-                          escape(tabtitle))
-
-                    else:
-                        pango += tab_format % (tabc, textc, index)
-
-                    self.tablist.set_markup(pango)
-                    listwidth = self.tablist.get_layout().get_pixel_size()[0]
-                    winwidth = self.window.get_size()[0]
-
-                    if listwidth > (winwidth - 20):
-                        multiline.append(opango)
-                        pango = tab_format % (tabc, index, textc,
-                          escape(tabtitle))
-
-                elif tab_titles:
-                    pango += tab_format % (tabc, index, textc,
-                      escape(tabtitle))
-
-                else:
-                    pango += tab_format % (tabc, textc, index)
-
-        if show_tablist:
             if multiline_tabs:
-                multiline.append(pango)
-                self.tablist.set_markup('&#10;'.join(multiline))
+                opango = pango
 
-            else:
+                pango += tab_format % locals()
+
                 self.tablist.set_markup(pango)
+                listwidth = self.tablist.get_layout().get_pixel_size()[0]
+                winwidth = self.window.get_size()[0]
+
+                if listwidth > (winwidth - 20):
+                    multiline.append(opango)
+                    pango = tab_format % locals()
+            else:
+                pango += tab_format % locals()
+
+        if multiline_tabs:
+            multiline.append(pango)
+            self.tablist.set_markup('&#10;'.join(multiline))
+
+        else:
+            self.tablist.set_markup(pango)
 
         return True
 
@@ -1398,7 +1343,7 @@ class UzblTabbed:
                     os.remove(config['session_file'])
 
         for (tab, uzbl) in self.tabs.items():
-            uzbl.send("exit")
+            uzbl.exit()
 
         # Add a gobject timer to make sure the application force-quits after a
         # reasonable period. Calling quit when all the tabs haven't had time to
@@ -1413,7 +1358,8 @@ class UzblTabbed:
 
         # Close the fifo socket, remove any gobject io event handlers and
         # delete socket.
-        self.unlink_fifo_socket()
+        self.unlink_fifo()
+        self.close_socket()
 
         # Remove all gobject timers that are still ticking.
         for (timerid, gid) in self._timers.items():
@@ -1428,9 +1374,6 @@ class UzblTabbed:
 
 
 if __name__ == "__main__":
-
-    # Read from the uzbl config into the global config dictionary.
-    readconfig(UZBL_CONFIG, config)
 
     # Build command line parser
     usage = "usage: %prog [OPTIONS] {URIS}..."

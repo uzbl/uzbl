@@ -22,8 +22,8 @@
 #include <fcntl.h>
 #include <signal.h>
 
-#include <uzbl-core.h>
-#include <config.h>
+#include <src/uzbl-core.h>
+#include <src/config.h>
 
 extern UzblCore uzbl;
 
@@ -304,11 +304,6 @@ test_js (void) {
     /* simple javascript can be evaluated and returned */
     parse_cmd_line("js ('x' + 345).toUpperCase()", result);
     g_assert_cmpstr("X345", ==, result->str);
-
-    /* uzbl commands can be run from javascript */
-    uzbl.net.useragent = "Test useragent";
-    parse_cmd_line("js Uzbl.run('print @useragent').toUpperCase();", result);
-    g_assert_cmpstr("TEST USERAGENT", ==, result->str);
 
     g_string_free(result, TRUE);
 }

@@ -1,13 +1,15 @@
 # first entries are for gnu make, 2nd for BSD make.  see http://lists.uzbl.org/pipermail/uzbl-dev-uzbl.org/2009-July/000177.html
 
-CFLAGS:=-std=c99 $(shell pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -lgthread-2.0 -DCOMMIT="\"$(shell git log | head -n1 | sed "s/.* //")\"" $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
-CFLAGS!=echo -std=c99 `pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` -ggdb -Wall -W -DARCH='"\""'`uname -m`'"\""' -lgthread-2.0 -DCOMMIT='"\""'`git log | head -n1 | sed "s/.* //"`'"\""' $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
+CFLAGS:=-std=c99 $(shell pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -lgthread-2.0 -DCOMMIT="\"$(shell ./misc/hash.sh)\"" $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
+CFLAGS!=echo -std=c99 `pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` -ggdb -Wall -W -DARCH='"\""'`uname -m`'"\""' -lgthread-2.0 -DCOMMIT='"\""'`./misc/hash.sh`'"\""' $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
 
 LDFLAGS:=$(shell pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0) -pthread $(LDFLAGS)
 LDFLAGS!=echo `pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` -pthread $(LDFLAGS)
 
-SRC = uzbl-core.c events.c callbacks.c inspector.c
-OBJ = ${SRC:.c=.o}
+SRC = $(wildcard src/*.c)
+HEAD = $(wildcard src/*.h)
+TOBJ = $(SRC:.c=.o)
+OBJ = $(foreach obj, $(TOBJ), $(notdir $(obj)))
 
 all: uzbl-browser options
 
@@ -25,9 +27,9 @@ options:
 	@${CC} -c ${CFLAGS} $<
 	@echo ... done.
 
-${OBJ}: uzbl-core.h events.h callbacks.h inspector.h config.h
+${OBJ}: ${HEAD}
 
-uzbl-core: ${OBJ}
+uzbl-core: ${TOBJ} # why doesn't ${OBJ} work?
 	@echo
 	@echo LINKING object files
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
@@ -41,8 +43,10 @@ uzbl-browser: uzbl-core
 
 # packagers, set DESTDIR to your "package directory" and PREFIX to the prefix you want to have on the end-user system
 # end-users who build from source: don't care about DESTDIR, update PREFIX if you want to
+# RUN_PREFIX : what the prefix is when the software is run. usually the same as PREFIX
 PREFIX?=/usr/local
 INSTALLDIR?=$(DESTDIR)$(PREFIX)
+RUN_PREFIX?=$(PREFIX)
 
 # the 'tests' target can never be up to date
 .PHONY: tests
@@ -53,27 +57,30 @@ tests: ${OBJ} force
 	$(CC) -shared -Wl ${OBJ} -o ./tests/libuzbl-core.so
 	cd ./tests/; $(MAKE)
 
-test: uzbl-core
-	                    ./uzbl-core --uri http://www.uzbl.org --verbose
+test-uzbl-core: uzbl-core
+	./uzbl-core --uri http://www.uzbl.org --verbose
 
-test-browser: uzbl-browser
-	PATH="`pwd`:$$PATH" ./uzbl-browser --uri http://www.uzbl.org --verbose
+test-uzbl-browser: uzbl-browser
+	./src/uzbl-browser --uri http://www.uzbl.org --verbose
 
-test-dev: uzbl-core
-	XDG_DATA_HOME=./examples/data                    XDG_CONFIG_HOME=./examples/config                                        ./uzbl-core --uri http://www.uzbl.org --verbose
+test-uzbl-core-sandbox: uzbl-core
+	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-core
+	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
+	source ./sandbox/env.sh && uzbl-core --uri http://www.uzbl.org --verbose
+	make DESTDIR=./sandbox uninstall
+	rm -rf ./sandbox/usr
 
-test-dev-browser: uzbl-browser
-	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:$$PATH" ./examples/data/uzbl/scripts/uzbl-cookie-daemon restart -nv &
-	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:$$PATH" ./examples/data/uzbl/scripts/uzbl-event-manager restart -nav &
-	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:`pwd`/examples/data/uzbl/scripts/:$$PATH" ./uzbl-browser --uri http://www.uzbl.org --verbose
-	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:$$PATH" ./examples/data/uzbl/scripts/uzbl-cookie-daemon stop -v
-	XDG_DATA_HOME=./examples/data   XDG_CACHE_HOME=./examples/cache   XDG_CONFIG_HOME=./examples/config   PATH="`pwd`:$$PATH" ./examples/data/uzbl/scripts/uzbl-event-manager stop -v
-
-test-share: uzbl-core
-	XDG_DATA_HOME=${INSTALLDIR}/share/uzbl/examples/data XDG_CONFIG_HOME=${INSTALLDIR}/share/uzbl/examples/config                     ./uzbl-core --uri http://www.uzbl.org --verbose
-
-test-share-browser: uzbl-browser
-	XDG_DATA_HOME=${INSTALLDIR}/share/uzbl/examples/data XDG_CONFIG_HOME=${INSTALLDIR}/share/uzbl/examples/config PATH="`pwd`:$$PATH" ./uzbl-browser --uri http://www.uzbl.org --verbose
+test-uzbl-browser-sandbox: uzbl-browser
+	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-core
+	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-browser
+	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
+	source ./sandbox/env.sh && uzbl-cookie-daemon restart -nv &
+	source ./sandbox/env.sh && uzbl-event-manager restart -nav &
+	source ./sandbox/env.sh && uzbl-browser --uri http://www.uzbl.org --verbose
+	source ./sandbox/env.sh && uzbl-cookie-daemon stop -v
+	source ./sandbox/env.sh && uzbl-event-manager stop -v
+	make DESTDIR=./sandbox uninstall
+	rm -rf ./sandbox/usr
 
 clean:
 	rm -f uzbl-core
@@ -83,6 +90,7 @@ clean:
 	rm -f inspector.o
 	find examples/ -name "*.pyc" -delete
 	cd ./tests/; $(MAKE) clean
+	rm -rf ./sandbox/{examples,usr}/
 
 install: install-uzbl-core install-uzbl-browser install-uzbl-tabbed
 
@@ -90,25 +98,33 @@ install-uzbl-core: all
 	install -d $(INSTALLDIR)/bin
 	install -d $(INSTALLDIR)/share/uzbl/docs
 	install -d $(INSTALLDIR)/share/uzbl/examples
-	cp -rp docs     $(INSTALLDIR)/share/uzbl/
-	cp -rp config.h $(INSTALLDIR)/share/uzbl/docs/
-	cp -rp examples $(INSTALLDIR)/share/uzbl/
+	cp -rp docs         $(INSTALLDIR)/share/uzbl/
+	cp -rp src/config.h $(INSTALLDIR)/share/uzbl/docs/
+	cp -rp examples     $(INSTALLDIR)/share/uzbl/
 	install -m755 uzbl-core    $(INSTALLDIR)/bin/uzbl-core
 	install -m644 AUTHORS      $(INSTALLDIR)/share/uzbl/docs
 	install -m644 README       $(INSTALLDIR)/share/uzbl/docs
-	sed -i 's#^set prefix.*=.*#set prefix     = $(PREFIX)#' $(INSTALLDIR)/share/uzbl/examples/config/uzbl/config
+	sed -i 's#^set prefix.*=.*#set prefix     = $(RUN_PREFIX)#' $(INSTALLDIR)/share/uzbl/examples/config/config
 
-install-uzbl-browser: all
+install-uzbl-browser:
 	install -d $(INSTALLDIR)/bin
-	install -m755 uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
-	install -m755 examples/data/uzbl/scripts/uzbl-cookie-daemon $(INSTALLDIR)/bin/uzbl-cookie-daemon
-	install -m755 examples/data/uzbl/scripts/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
-	sed -i 's#^PREFIX=.*#PREFIX=$(PREFIX)#' $(INSTALLDIR)/bin/uzbl-browser
-	sed -i "s#^PREFIX = .*#PREFIX = '$(PREFIX)'#" $(INSTALLDIR)/bin/uzbl-event-manager
+	install -m755 src/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
+	install -m755 examples/data/scripts/uzbl-cookie-daemon $(INSTALLDIR)/bin/uzbl-cookie-daemon
+	install -m755 examples/data/scripts/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
+	sed -i 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' $(INSTALLDIR)/bin/uzbl-browser
+	sed -i "s#^PREFIX = .*#PREFIX = '$(RUN_PREFIX)'#" $(INSTALLDIR)/bin/uzbl-event-manager
 
-install-uzbl-tabbed: all
+install-uzbl-tabbed:
 	install -d $(INSTALLDIR)/bin
-	install -m755 examples/data/uzbl/scripts/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed
+	install -m755 examples/data/scripts/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed
+
+# you probably only want to do this manually when testing and/or to the sandbox. not meant for distributors
+install-example-data:
+	install -d $(INSTALLDIR)/home/.config/uzbl
+	install -d $(INSTALLDIR)/home/.cache/uzbl
+	install -d $(INSTALLDIR)/home/.local/share/uzbl
+	cp -rp examples/config/* $(INSTALLDIR)/home/.config/uzbl/
+	cp -rp examples/data/*   $(INSTALLDIR)/home/.local/share/uzbl/
 
 uninstall:
 	rm -rf $(INSTALLDIR)/bin/uzbl-*
