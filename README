@@ -523,7 +523,7 @@ The script specific arguments are:
 Custom, userdefined scripts (`spawn foo bar`) get first the arguments as
 specified in the config and then the above 7 are added at the end.
 
-### HTTP/BASIC AUTHENTICATION ###
+### HTTP/BASIC AUTHENTICATION
 
 If authentication_handler variable is not set, http authentication is handled
 internally by WebKit. If you want to use custom script for http authentication,
