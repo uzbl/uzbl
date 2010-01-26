@@ -63,4 +63,4 @@ DAEMON_PID=${DAEMON_SOCKET}.pid
 	uzbl-event-manager -va start
 #fi
 
-uzbl-core "$@" --connect-socket $DAEMON_SOCKET
+exec uzbl-core "$@" --connect-socket $DAEMON_SOCKET
