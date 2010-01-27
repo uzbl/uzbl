@@ -169,8 +169,8 @@ send_event(int type, const gchar *details, const gchar *custom_event) {
     }
 
     if(event_message->str) {
-        /* TODO: a means to select the interface to which events are sent */
-        send_event_stdout(event_message);
+        if(uzbl.state.events_stdout)
+            send_event_stdout(event_message);
         send_event_socket(event_message);
 
         g_string_free(event_message, TRUE);

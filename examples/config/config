@@ -32,7 +32,7 @@ set set_status      = set status_message =
 set shell_cmd       = sh -c
 
 # Spawn path shortcuts. In spawn the first dir+path match is used in "dir1:dir2:dir3:executable"
-set scripts_dir     = $XDG_DATA_HOME/uzbl:@prefix/share/uzbl/examples/data/uzbl:scripts
+set scripts_dir     = $XDG_DATA_HOME/uzbl:@prefix/share/uzbl/examples/data:scripts
 
 # Javascipt helpers.
 #set jsh = js var run=Uzbl.run; function get(k){return run("print \\\@"+k)}; function set(k, v) {run("set "+k+" = "+v)};
@@ -292,9 +292,11 @@ set toggle_cmd_ins = @toggle_modes command insert
 @cbind  u  = spawn @scripts_dir/load_url_from_bookmarks.sh
 
 # --- Link following (similar to vimperator and konqueror) ---
-@cbind  fl*  = script @scripts_dir/follow_Numbers.js %s
-# Or number with strings instead of numbers:
-@cbind  fL*  = script @scripts_dir/follow_Numbers_Strings.js %s
+# Set custom keys you wish to use for navigation. Some common examples:
+set follow_hint_keys = qwerty
+#set follow_hint_keys = asdfghjkl;
+#set follow_hint_keys = thsnd-rcgmvwb/;789aefijkopquxyz234
+@cbind  f*  = script @scripts_dir/follow.js '%s @{follow_hint_keys}'
 
 # --- Form filler binds ---
 # this script allows you to configure (per domain) values to fill in form

@@ -24,21 +24,66 @@ tools and scripts, by itself doesn't do many usefull things.  See README.
 The layout of uzbl (and derivatives) only contains what you really need to see.  we only have a statusbar, which even can also be disabled.  There are no buttons, but we do
 have lots of keybinding possibilities.
 
-### Why can uzbl-browser only show one page?
-Among uzbl hackers, there are 2 groups: some people prefer tabs, they use
-uzbl-tabbed.  The others stick to "one page per uzbl-browser instance" because
-it's a very flexible approach.  They believe "multiple instances management" is something that must
-be handled outside of uzbl by a separate/different program.  Here are some solutions:
+### Why can uzbl-core/uzbl-browser only show one page?
+It is nearly unanimously agreed that one page per uzbl-core is best.
+It allows a simple implementation of both uzbl-core and
+uzbl-browser, and it makes things more robust.
+But read the next entry...
 
- * Many window managers can handle this by default.  Xmonads tabbed layout, Wmii's stacked layout, fluxbox or kwin tabs and so on.
- * Uzbl supports acting as a GtkPlug to plug into GtkSockets (Xembed) so you can embed uzbl instances in other Gtk applications.
-   (This is also what uzbl-tabbed does)
- * If you want highest customizablity, you need the 3rd option:
-   You can also write a custom script.  The only thing you need to do is focus/maximize the instance you want,
-   keep the others out of sight and use tools like dmenu and wmctrl to switch instances.
-   This allows you to use application-specific properties (such as uzbl tag, name etc).
-   For more information about this approach, see docs/multiple-instances-management.
-   (If you want to work on such script, let us know and we might include it along with the other sample scripts)
+### How to have multiple pages in one window?
+So, given that uzbl-core and uzbl-browser only deal with one page at a time (see
+above), how can you have a window with multiple pages?
+
+Basically this is involves concerns on two sides:
+
+* window management
+  - can I keep all pages together in 1 X window so that I can move all at once to a different workspace
+  - can I "split off" pages into separate windows (i.e. move only one specific page/window to a different desktop)
+    or merge windows together?
+  - can I integrate uzbl pages/windows into WM features? (alt-tab, tiling layouts, taskbar, ...)
+  - ...
+* application-level
+  - realtime overview of all page titles of all uzbl instances
+  - representation styles which are tightly coupled to the application such as treeviews that show from which you page you opened
+    others, or page state (loading etc)
+  - ...
+
+Uzbl itself can hardly be a limiting factor, as it supports/has:
+
+* Xembed (GtkPlug mode) so you can embed a uzbl-browser or uzbl-core into another window
+* an events system you can have realtime updates of window title, pageload state, etc.
+* command interface to programmatically change it's behavior.
+
+And then there is the style of representation (tabs, tree overviews, visual
+thumbnails etc) which can be handled from the WM side or the application
+side.
+
+There are multiple approaches, each with pros and cons.
+
+* Tabbing in the WM:  Xmonads tabbed layout, Wmii's stacked layout, fluxbox or kwin tabs and so on.
+* Visual overview in the WM: commonly used with dwm or Awesome's tiling layouts with master/slave areas.
+  The [dynamic zoom script](http://www.uzbl.org/wiki/dynamic_zooming) is useful here.
+* A container application whih embeds multiple uzbl-browsers and provide tablists, tree views, and more.
+  Examples:
+  - [uzbl-tabbed](http://www.uzbl.org/wiki/uzbl_tabbed) (officially supported)
+  - [uzbltreetab](http://www.uzbl.org/wiki/uzbltreetab)
+  - [uzbltab](http://www.uzbl.org/wiki/uzbltab)
+  - [suckless tabbed](http://tools.suckless.org/tabbed)
+* An application to mimic tabbing independently of WM support.
+  The only thing you need to do is focus/maximize the instance you want,
+  keep the others out of sight and use tools like dmenu/xbindkeys and wmctrl to switch instances.
+  This allows you to use application-specific properties (such as uzbl tag, name etc).
+  For more ideas on such an approach, see docs/multiple-instances-management.
+  Examples:
+  - [wmctrl-based](http://www.uzbl.org/wiki/metacity-tabs) (works on at least Metacity)
+  - [wmii](http://www.uzbl.org/wiki/wmii)
+
+There are really a lot of options.  You need to think about what you need,
+what you want and what you don't care about.
+On the wiki you'll find a lot of related scripts, some of them providing new
+workflows (do you really need open windows for all pages you intend to read, or is a list enough?
+[articlecue](http://www.uzbl.org/wiki/article_queue.py)), some providing integration with WM's such as
+[awesome](http://www.uzbl.org/wiki/awesome), and more.
 
 ### Okay, what can I actually do?  What commands are there?  How do I get more information?
   * Commands and other features are documented in README.  Read it.
@@ -64,8 +109,10 @@ we prefer being reasonably assured that things work as they are supposed to rath
 That's why we picked the Gtk variant of Webkit.
 Note that we do *not* depend on any Gnome libraries such as gconf.  _That_ would be something worth complaining about :)
 
-### Do you support flash? javascript? Ajax?  Recent html/css/.. standards?
+### Do you support flash? javascript? Ajax?  Recent html/css/.. standards? Java/media plugins?
 Yes, Webkit takes care of all of that.  Not that we like all of these, but you can use them if you want.
+We use the NPAPI plugin architecture (just like mozilla, opera, etc) so just
+install the plugins normally, and things should work.
 
 ### What's the difference between the socket file and the fifo?
 They both have advantages and disadvantages:
@@ -74,6 +121,12 @@ They both have advantages and disadvantages:
  * Sockets are bidirectional but more complex.  You cannot just write a plaintext string into them.  In shellscripts you can use socat to work with sockets, when programming you need to use library functions.
 
 So, when writing scripts, using fifo's is usually the fastest method (because you do not need to fork another process), so fifo is preferred unless you need a response.
+
+### Uzbl uses too much memory! Especially when having multiple windows (i.e. with uzbl-tabbed)
+Don't be fooled with how memory usage is measured and reported on Linux. (or other systems)
+You need to be aware of the difference between RSS and VSS.
+And dynamic libraries (libwebkit, libgtk, etc) that are used by multiple processes are only stored in RAM once.
+See [this page](http://virtualthreads.blogspot.com/2006/02/understanding-memory-usage-on-linux.html) for a good explanation.
 
 ### What the hell is this 'XDG' stuff??
 You'll notice our example/default scripts and configs use variables such as `$XDG_CONFIG_HOME` and `$XDG_DATA_HOME`.

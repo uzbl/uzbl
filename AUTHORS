@@ -29,6 +29,7 @@ In alphabetical order:
     Chris Mason - code snippets such as basic cookie handler
     Chris van Dijk (quigybo) - work on uzbl_tabbed.py
     Damien Leon - misc
+    Daniel M. Hackney - documentation cleanups
     David Keijser - various C and python patches.
     Devon Jones <devon.jones@gmail.com> - uzbl_tabbed: bring_to_front
     Dieter Plaetinck (Dieter@be) <dieter AT plaetinck.be> - several contributions
@@ -39,7 +40,7 @@ In alphabetical order:
     Jake Probst <jake.probst@gmail.com> - uzbl_tabbed: multiline tablist
     James S Wheaton (uranther) - zoom level, test framework
     Jan Kolkmeier (jouz) - scrolling, link following
-    Jason Woofenden (JasonWoof) - geometry=maximized
+    Jason Woofenden (JasonWoof) - geometry=maximized, link following
     Laurence Withers (lwithers) - talk_to_socket
     Mark Nevill - misc patches
     Mason Larobina - uzbl-tabbed.py, cookie-daemon, event-manager&plugins, ...
@@ -54,6 +55,7 @@ In alphabetical order:
     Přemysl Hrubý (anydot) <email is dfenze AT gmail.com> - several C contributions and cleanups
     Robert Manea (robm) <email is rob DOT manea AT gmail DOT com> - C code all over the place
     Sergey Shepelev (temoto) - doc patch
+    Simon Lipp (sloonz) - various patches, EM contributions
     Sylvester Johansson (scj) - form filler script & different take on link follower
     Tassilo Horn (tsdh) - $VISUAL patch
     Thorsten Wilms - logo design

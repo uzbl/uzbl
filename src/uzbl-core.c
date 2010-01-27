@@ -50,11 +50,13 @@ GOptionEntry entries[] =
     { "config",   'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,
         "Path to config file or '-' for stdin", "FILE" },
     { "socket",   's', 0, G_OPTION_ARG_INT, &uzbl.state.socket_id,
-        "Socket ID", "SOCKET" },
+        "Xembed Socket ID", "SOCKET" },
     { "connect-socket",   0, 0, G_OPTION_ARG_STRING_ARRAY, &uzbl.state.connect_socket_names,
-        "Connect to server socket", "CSOCKET" },
+        "Connect to server socket for event managing", "CSOCKET" },
+    { "print-events", 'p', 0, G_OPTION_ARG_NONE, &uzbl.state.events_stdout,
+        "Whether to print events to stdout.", NULL },
     { "geometry", 'g', 0, G_OPTION_ARG_STRING, &uzbl.gui.geometry,
-        "Set window geometry (format: WIDTHxHEIGHT+-X+-Y or maximized)", "GEOMETRY" },
+        "Set window geometry (format: 'WIDTHxHEIGHT+-X+-Y' or 'maximized')", "GEOMETRY" },
     { "version",  'V', 0, G_OPTION_ARG_NONE, &uzbl.behave.print_version,
         "Print the version and exit", NULL },
     { NULL,      0, 0, 0, NULL, NULL, NULL }
@@ -85,6 +87,7 @@ const struct var_name_to_ptr_t {
 /*  ---------------------------------------------------------------------------------------------- */
     { "uri",                    PTR_V_STR(uzbl.state.uri,                       1,   cmd_load_uri)},
     { "verbose",                PTR_V_INT(uzbl.state.verbose,                   1,   NULL)},
+    { "print_events",           PTR_V_INT(uzbl.state.events_stdout,             1,   NULL)},
     { "inject_html",            PTR_V_STR(uzbl.behave.inject_html,              0,   cmd_inject_html)},
     { "geometry",               PTR_V_STR(uzbl.gui.geometry,                    1,   cmd_set_geometry)},
     { "keycmd",                 PTR_V_STR(uzbl.state.keycmd,                    1,   NULL)},
@@ -135,6 +138,7 @@ const struct var_name_to_ptr_t {
     { "default_encoding",       PTR_V_STR(uzbl.behave.default_encoding,         1,   cmd_default_encoding)},
     { "enforce_96_dpi",         PTR_V_INT(uzbl.behave.enforce_96dpi,            1,   cmd_enforce_96dpi)},
     { "caret_browsing",         PTR_V_INT(uzbl.behave.caret_browsing,           1,   cmd_caret_browsing)},
+    { "scrollbars_visible",     PTR_V_INT(uzbl.gui.scrollbars_visible,          1,   cmd_scrollbars_visibility)},
 
     /* constants (not dumpable or writeable) */
     { "WEBKIT_MAJOR",           PTR_C_INT(uzbl.info.webkit_major,                    NULL)},
@@ -1049,6 +1053,7 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
 
     JSStringRef js_script;
     JSValueRef js_result;
+    JSValueRef js_exc = NULL;
     JSStringRef js_result_string;
     size_t js_result_size;
 
@@ -1060,7 +1065,7 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
 
     /* evaluate the script and get return value*/
     js_script = JSStringCreateWithUTF8CString(script);
-    js_result = JSEvaluateScript(context, js_script, globalobject, NULL, 0, NULL);
+    js_result = JSEvaluateScript(context, js_script, globalobject, NULL, 0, &js_exc);
     if (js_result && !JSValueIsUndefined(context, js_result)) {
         js_result_string = JSValueToStringCopy(context, js_result, NULL);
         js_result_size = JSStringGetMaximumUTF8CStringSize(js_result_string);
@@ -1072,6 +1077,35 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
         }
 
         JSStringRelease(js_result_string);
+    }
+    else if (js_exc) {
+        size_t size;
+        JSStringRef prop, val;
+        JSObjectRef exc = JSValueToObject(context, js_exc, NULL);
+        
+        printf("Exception occured while executing script:\n");
+        
+        /* Print line */
+        prop = JSStringCreateWithUTF8CString("line");
+        val = JSValueToStringCopy(context, JSObjectGetProperty(context, exc, prop, NULL), NULL);
+        size = JSStringGetMaximumUTF8CStringSize(val);
+        if(size) {
+            char cstr[size];
+            JSStringGetUTF8CString(val, cstr, size);
+            printf("At line %s: ", cstr);
+        }
+        JSStringRelease(prop);
+        JSStringRelease(val);
+        
+        /* Print message */
+        val = JSValueToStringCopy(context, exc, NULL);
+        size = JSStringGetMaximumUTF8CStringSize(val);
+        if(size) {
+            char cstr[size];
+            JSStringGetUTF8CString(val, cstr, size);
+            printf("%s\n", cstr);
+        }
+        JSStringRelease(val);
     }
 
     /* cleanup */
