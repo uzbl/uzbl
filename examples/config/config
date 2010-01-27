@@ -312,7 +312,7 @@ set toggle_cmd_ins = @toggle_modes command insert
 set follow_hint_keys = qwerty
 #set follow_hint_keys = asdfghjkl;
 #set follow_hint_keys = thsnd-rcgmvwb/;789aefijkopquxyz234
-@cbind  f*  = script @scripts_dir/follow.js '%s @{follow_hint_keys}'
+@cbind  fl*  = script @scripts_dir/follow.js '%s @{follow_hint_keys}'
 
 # --- Form filler binds ---
 # this script allows you to configure (per domain) values to fill in form
