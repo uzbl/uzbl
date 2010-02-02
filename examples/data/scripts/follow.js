@@ -263,8 +263,7 @@ function followLinks(follow) {
     }
 }
 
-//Parse input: first argument is user input, second is defined hint keys.
+//Parse input: first argument is follow keys, second is user input.
 var args = '%s'.split(' ');
-var charset = args[1];
-
-followLinks(args[0]);
+var charset = args[0];
+followLinks(args[1]);
