@@ -1,5 +1,5 @@
 /* This is the basic linkfollowing script.
- * Its pretty stable, only using numbers to navigate.
+ * Its pretty stable, and you configure which keys to use for hinting
  *
  * TODO: Some pages mess around a lot with the zIndex which
  * lets some hints in the background.
