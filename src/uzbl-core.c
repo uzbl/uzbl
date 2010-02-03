@@ -2467,9 +2467,9 @@ initialize(int argc, char *argv[]) {
     }
     event_buffer_timeout(10);
 
-    uzbl.info.webkit_major = WEBKIT_MAJOR_VERSION;
-    uzbl.info.webkit_minor = WEBKIT_MINOR_VERSION;
-    uzbl.info.webkit_micro = WEBKIT_MICRO_VERSION;
+    uzbl.info.webkit_major = webkit_major_version();
+    uzbl.info.webkit_minor = webkit_minor_version();
+    uzbl.info.webkit_micro = webkit_micro_version();
     uzbl.info.arch         = ARCH;
     uzbl.info.commit       = COMMIT;
 
@@ -2483,6 +2483,13 @@ initialize(int argc, char *argv[]) {
 void
 load_uri_imp(gchar *uri) {
     GString* newuri;
+
+    /* Strip leading whitespaces */
+    while (*uri) {
+        if (!isspace(*uri)) break;
+        uri++;
+    }
+
     if (g_strstr_len (uri, 11, "javascript:") != NULL) {
         eval_js(uzbl.gui.web_view, uri, NULL);
         return;

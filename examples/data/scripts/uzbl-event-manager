@@ -217,9 +217,13 @@ def daemonize():
 def make_dirs(path):
     '''Make all basedirs recursively as required.'''
 
-    dirname = os.path.dirname(path)
-    if not os.path.isdir(dirname):
-        os.makedirs(dirname)
+    try:
+        dirname = os.path.dirname(path)
+        if not os.path.isdir(dirname):
+            os.makedirs(dirname)
+
+    except OSError:
+        print_exc()
 
 
 def make_pid_file(pid_file):
@@ -333,12 +337,12 @@ class EventHandler(object):
             "function=%r" % self.function]
 
         if self.args:
-            args.append("args=%r" % self.args)
+            args.append(u"args=%r" % unicode(self.args))
 
         if self.kargs:
-            args.append("kargs=%r" % self.kargs)
+            args.append(u"kargs=%r" % unicode(self.kargs))
 
-        return "<EventHandler(%s)>" % ', '.join(args)
+        return u"<EventHandler(%s)>" % ', '.join(args)
 
 
 class UzblInstance(object):

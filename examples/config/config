@@ -34,8 +34,6 @@ set shell_cmd       = sh -c
 # Spawn path shortcuts. In spawn the first dir+path match is used in "dir1:dir2:dir3:executable"
 set scripts_dir     = $XDG_DATA_HOME/uzbl:@prefix/share/uzbl/examples/data:scripts
 
-# Javascipt helpers.
-#set jsh = js var run=Uzbl.run; function get(k){return run("print \\\@"+k)}; function set(k, v) {run("set "+k+" = "+v)};
 
 # === Handlers ===============================================================
 
@@ -69,10 +67,6 @@ set new_window          = sh 'uzbl-browser -u $8'
 @on_event   LOAD_FINISH    @set_status <span foreground="gold">done</span>
 @on_event   LOAD_FINISH    spawn @scripts_dir/history.sh
 
-# Generate a FORM_ACTIVE event if an editable
-# element on the loaded site has initial focus
-#@on_event   LOAD_FINISH    js if(document.activeElement.type == 'text') {Uzbl.run("event FORM_ACTIVE");}
-
 # Switch to insert mode if a (editable) html form is clicked
 @on_event   FORM_ACTIVE    @set_mode insert
 # Switch to command mode if anything else is clicked
@@ -80,6 +74,7 @@ set new_window          = sh 'uzbl-browser -u $8'
 
 # Example CONFIG_CHANGED event handler
 #@on_event  CONFIG_CHANGED print Config changed: %1 = %2
+
 
 # === Behaviour and appearance ===============================================
 
@@ -190,7 +185,7 @@ set ebind = @mode_bind global,-insert
 # === Mouse bindings =========================================================
 
 # Middle click open in new window
-@bind  <Button2>  = sh 'uzbl-browser -u \@SELECTED_URI'
+@bind  <Button2>  = sh 'if [ "\@SELECTED_URI" ]; then uzbl-browser -u "\@SELECTED_URI"; else echo "uri $(xclip -o)" > $4; fi'
 
 
 # === Keyboard bindings ======================================================
@@ -235,6 +230,27 @@ set ebind = @mode_bind global,-insert
 # Jump to next and previous items
 @cbind  n   = search
 @cbind  N   = search_reverse
+
+# --- Uzbl tabbed binds ---
+# Tab opening
+@cbind  gn              = event NEW_TAB
+@cbind  go<uri:>_       = event NEW_TAB %s
+@cbind  gY              = sh 'echo "event NEW_TAB `xclip -selection primary -o`" > $4'
+# Closing / resting
+@cbind  gC              = exit
+@cbind  gQ              = event CLEAN_TABS
+# Tab navigating
+@cbind  g<              = event FIRST_TAB
+@cbind  g>              = event LAST_TAB
+@cbind  gt              = event NEXT_TAB
+@cbind  gT              = event PREV_TAB
+@cbind  gi<index:>_     = event GOTO_TAB %s
+# Preset loading
+set preset = event PRESET_TABS
+@cbind  gs<preset save:>_   = @preset save %s
+@cbind  glo<preset load:>_  = @preset load %s
+@cbind  gd<preset del:>_    = @preset del %s
+@cbind  gli                 = @preset list
 
 # --- Web searching binds ---
 @cbind  gg<Google:>_         = uri http://www.google.com/search?q=\@<encodeURIComponent(%r)>\@
@@ -293,10 +309,11 @@ set toggle_cmd_ins = @toggle_modes command insert
 
 # --- Link following (similar to vimperator and konqueror) ---
 # Set custom keys you wish to use for navigation. Some common examples:
-set follow_hint_keys = qwerty
+set follow_hint_keys = 0123456789
+#set follow_hint_keys = qwerty
 #set follow_hint_keys = asdfghjkl;
 #set follow_hint_keys = thsnd-rcgmvwb/;789aefijkopquxyz234
-@cbind  f*  = script @scripts_dir/follow.js '%s @{follow_hint_keys}'
+@cbind  fl*  = script @scripts_dir/follow.js '@follow_hint_keys %s'
 
 # --- Form filler binds ---
 # this script allows you to configure (per domain) values to fill in form
@@ -323,10 +340,6 @@ menu_editable_add Open in @external_editor = script @scripts_dir/extedit.js
 # Example showing how to use uzbl's fifo to execute a command.
 #@bind  X1 = sh 'echo "set zoom_level = 1.0" > "$4"'
 #@bind  X2 = sh 'echo "js alert (\\"This is sent by the shell via a fifo\\")" > "$4"'
-
-# Working with the javascript helper variable jsh.
-#@bind  X3 = @jsh alert(get('zoom_level'));
-#@bind  X4 = @jsh if(get('mode') == "insert") { alert("You are in insert mode") } else { alert(get('mode')+" is a silly mode.") };
 
 
 # === Context menu items =====================================================
