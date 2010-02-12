@@ -22,6 +22,7 @@ In alphabetical order:
     Abel Camarillo (00z) - various portability fixes, such as BSD fixes for Makefile and posix shell scripts
     Aldrik Dunbar (n30n) - scroll % script
     Andraž 'ruskie' Levstik - font_family patch
+    Andrea Marchesini <baku@ippolita.net> - resource-request-starting
     Andy Spencer - security fixes
     Barak A. Pearlmutter - typo fix
     Brendan Taylor (bct) - various bugfixes, making misc variables much better using expand(), refactoring some internal var stuff
