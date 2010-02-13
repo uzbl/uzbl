@@ -660,6 +660,18 @@ mime_policy_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequ
     return TRUE;
 }
 
+void
+request_starting_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitWebResource *resource,
+        WebKitNetworkRequest *request, WebKitNetworkResponse *response, gpointer user_data) {
+    (void) web_view;
+    (void) frame;
+    (void) resource;
+    (void) response;
+    (void) user_data;
+
+    send_event(REQUEST_STARTING, webkit_network_request_get_uri(request), NULL);
+}
+
 /*@null@*/ WebKitWebView*
 create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data) {
     (void) web_view;
