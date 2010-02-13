@@ -359,9 +359,9 @@ file).
 
 #### Constants (not dumpable or writeable)
 
-* `WEBKIT_MAJOR`: WebKit major version number, set at compile time.
-* `WEBKIT_MINOR`: WebKit minor version number, set at compile time.
-* `WEBKIT_MICRO`: WebKit micro version number, set at compile time
+* `WEBKIT_MAJOR`: WebKit major version number.
+* `WEBKIT_MINOR`: WebKit minor version number.
+* `WEBKIT_MICRO`: WebKit micro version number.
 * `ARCH_UZBL`: Processor architecture for which Uzbl is compiled, set at compile
   time.
 * `COMMIT`: ID of the current Git commit, set at compile time.
