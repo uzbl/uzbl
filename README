@@ -359,9 +359,9 @@ file).
 
 #### Constants (not dumpable or writeable)
 
-* `WEBKIT_MAJOR`: WebKit major version number, set at compile time.
-* `WEBKIT_MINOR`: WebKit minor version number, set at compile time.
-* `WEBKIT_MICRO`: WebKit micro version number, set at compile time
+* `WEBKIT_MAJOR`: WebKit major version number.
+* `WEBKIT_MINOR`: WebKit minor version number.
+* `WEBKIT_MICRO`: WebKit micro version number.
 * `ARCH_UZBL`: Processor architecture for which Uzbl is compiled, set at compile
   time.
 * `COMMIT`: ID of the current Git commit, set at compile time.
@@ -638,6 +638,8 @@ Events have this format:
   could not be loaded for the reason described in `reason_of_error`.
 * `EVENT [uzbl_instance_name] LOAD_PROGRESS percentage` : While the page is
   loading, gives the `percentage` of the page that has finished loading.
+* `EVENT [uzbl_instance_name] REQUEST_STARTING uri`: http resource gets
+  requested
 * `EVENT [uzbl_instance_name] TITLE_CHANGED title_name`: When the title of the
   page (and hence maybe, the window title) changed. `title_name` is the new
   title.

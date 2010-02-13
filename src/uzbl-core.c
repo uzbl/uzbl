@@ -2056,6 +2056,7 @@ create_browser () {
       "signal::download-requested",                   (GCallback)download_cb,             NULL,
       "signal::create-web-view",                      (GCallback)create_web_view_cb,      NULL,
       "signal::mime-type-policy-decision-requested",  (GCallback)mime_policy_cb,          NULL,
+      "signal::resource-request-starting",            (GCallback)request_starting_cb,     NULL,
       "signal::populate-popup",                       (GCallback)populate_popup_cb,       NULL,
       "signal::focus-in-event",                       (GCallback)focus_cb,                NULL,
       "signal::focus-out-event",                      (GCallback)focus_cb,                NULL,
