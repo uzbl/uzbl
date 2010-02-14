@@ -390,7 +390,7 @@ void
 run_external_js (WebKitWebView * web_view, GArray *argv, GString *result);
 
 void
-eval_js(WebKitWebView * web_view, gchar *script, GString *result);
+eval_js(WebKitWebView * web_view, gchar *script, GString *result, const gchar *script_file);
 
 void
 handle_authentication (SoupSession *session,
