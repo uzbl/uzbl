@@ -328,6 +328,13 @@ set formfiller = spawn @scripts_dir/formfiller
 @cbind  LL  = @{formfiller}.pl load
 @cbind  LN  = @{formfiller}.pl new
 @cbind  LE  = @{formfiller}.pl edit
+# One more implementation, that allows to save multiple profiles for each form
+# (think about multiple accounts on some website).
+set eFormFiller = spawn @scripts_dir/eFormFiller.sh
+@cbind  ZA  = @eFormFiller add
+@cbind  ZE  = @eFormFiller edit
+@cbind  ZN  = @eFormFiller new
+@cbind  ZL  = @eFormFiller load
 
 # --- External edit script configuration & binds ---
 # Edit form input fields in an external editor (gvim, emacs, urxvt -e vim, ..)
