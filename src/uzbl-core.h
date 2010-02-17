@@ -106,6 +106,7 @@ typedef struct {
 /* networking */
 typedef struct {
     SoupSession *soup_session;
+    SoupCookieJar *soup_cookie_jar;
     SoupLogger *soup_logger;
     char *proxy_url;
     char *useragent;

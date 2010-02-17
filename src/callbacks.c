@@ -779,3 +779,20 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
     }
 }
 
+void
+cookie_handler_cb(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie, gpointer user_data) {
+    (void) jar;
+    (void) user_data;
+    (void) old_cookie;
+    char *scheme;
+    GString *s;
+
+    if(new_cookie != NULL) {
+        scheme = (new_cookie->secure == TRUE) ? "https" : "http";
+
+        s = g_string_new("");
+        g_string_printf(s, "PUT '%s' '%s' '%s' '%s=%s'", scheme, new_cookie->domain, new_cookie->path, new_cookie->name, new_cookie->value);
+        run_handler(uzbl.behave.cookie_handler, s->str);
+        g_string_free(s, TRUE);
+    }
+}
