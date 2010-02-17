@@ -1,0 +1,108 @@
+### Users
+
+Just use Uzbl, hang around in our IRC channel, try out different things and report bugs.
+If you're feeling more adventurous, you can use one of the development branches and give bug
+reports and suggestions straight to the developer in charge of that, so the
+same problems don't occur when they get merged into the master branch.
+Play around with the configs and scripts and see if you can improve things.
+The wiki can be a good source of inspiration.
+You may also find mistakes in our documentation.
+
+### Developers
+
+If you don't feel like just sending bug reports, you can dive into the
+code and start hacking.
+Even if you're not good at C, thanks to uzbl's 'ecosystem' of scripts there
+is a lot that can be done.
+However, it's usually a good idea to tell us first
+what you want to do, to avoid unneeded or duplicate work.
+
+Read on for more info...
+
+### Clone/patch/merge workflow
+
+1. clone the code with git.
+   Either you host your git repo yourself, or use something userfriendly
+   like [Github](http://www.github.com)
+   If you want to use github, you basically just need to register and click
+   the fork button on [Dieterbe/uzbl](http://github.com/Dieterbe/uzbl)
+   If you're new to Git/github, have no fear:
+
+   * [Github guides (highly recommended)](http://github.com/guides/home)
+   * [Guides: Fork a project and submit your modifications](http://github.com/guides/fork-a-project-and-submit-your-modifications)
+
+2. Do your work, test it and push to your repo. It may be interesting to ask
+   others for input on your work.  Develop against master for small changes/fixes,
+   experimental or a new topic branch for experimental/intrusive work.
+
+3. If you think your code should be in the main uzbl code and meets all
+   requirements (see below), then ask Dieter to merge it.
+
+   * send a mail to the mailing list with subject "`Pull request: <title>`"
+     with a short description of your stuff and link to your git clone and
+     which branch you're talking about.
+     We prefer you send us links to git clones, and not just patches.  They
+     seem to be easier to merge, especially if the 'base code' has changed in the
+     meanwhile.
+   * If you really don't want to subscribe to the ML and only if it's a
+     small change, you can email Dieter personally.
+   * Please avoid sending private messages on github or asking Dieter to merge on IRC.
+   * If your patch is big, if it will help a lot if you can mention
+     that your code has been tested and is supported by other people.
+
+This is a relatively easy, solid and transparent way to handle all requests in order.
+
+### Patch/branch requirements before merging:
+
+* patches/merges must be about one thing.  If you want to work on multiple things, create new branches.
+  I allow exceptions for trivial typo fixes and such, but that's it.
+  This also implies that you also need to update your tree reguraly.  Don't fall behind too much. (ie merge from Dieter)
+* any change in functionality that you want merged in must also be documented.
+  There is a readme and some files in the 'docs' directory who should correspond to the code base at all times.
+  Update them, not only for end users but also for your fellow hackers.
+* We recommend you finish your stuff first and then let Dieter know you want your stuff to be merged in, but
+  we know for bigger changes this is not always feasible.  Just try to keep the merges about bigger "clean changesets".
+* Your code should not introduce any compile warnings or errors.  And also,
+  no regressions but that's harder to check.  Always run `make tests` to run
+  the test suite.
+* Please try to keep the code clean - we don't like extraneous whitespace.
+  The sample pre-commit hook can check for this - so go ahead and
+  $ cp .git/hooks/pre-commit.sample .git/hooks/pre-commit
+That said, you can always ask us to check on your stuff or ask for advice.
+
+
+### Bugreporting
+
+Bug reports are also welcome, especially the ones that come with a patch ;-)
+Before making a new ticket, check whether the bug is reported already.
+If you want to report a bug and you don't know where the problem in the code
+is, please supply:
+
+* version (commit hash) (see `uzbl --version`)
+* operating system
+* versions of libsoup, webkit, gtk.
+* output of uzbl --verbose (with http_debug set, if relevant)
+
+### Valgrind profiling
+	$ add this to Makefile header: CFLAGS=-g
+	$ recompile
+	$ valgrind --tool=callgrind ./uzbl ....
+	$ kcachegrind callgrind.out.foo
+
+### Memory leak checking
+    valgrind --tool=memcheck --leak-check=full ./uzbl
+
+### Writing unit tests
+
+If you can, write a unit test for a bugfix or new functionality. Add relevant unit
+tests to existing .c files in tests/. Others should be made in new source files with
+corresponding changes to the tests/Makefile.
+Run all tests with `make tests`
+
+### Debugging / backtraces
+
+* compile with -ggdb (enabled by default on experimental tree)
+* run: `gdb ./uzbl`
+* `(gdb) run -c /path/to/config`
+* `bt` if it segfaults to see a backtrace
+* you'll find more info on the interwebs

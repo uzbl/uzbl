@@ -1,0 +1,146 @@
+FAQ
+---
+
+### Uzbl crashes immediately (segfaults). WTF ?
+You are using a libwebkit version (usually 1.1.15.*) that uses enchant which
+is compiled with zemberek support built-in.  Compile enchant with
+--disable-zemberek or ask your package maintainer.
+See also:
+
+ * https://bugs.webkit.org/show_bug.cgi?id=30860
+ * http://bugzilla.abisource.com/show_bug.cgi?id=12413
+ * http://bugzilla.abisource.com/show_bug.cgi?id=12529
+ * http://bugs.archlinux.org/task/17401
+ * http://www.uzbl.org/news.php?id=17
+
+
+### I just installed uzbl but it doesn't do much.  What now?
+"Uzbl" is the name for the umbrella project that has several subprojects.
+You probably want `uzbl-browser` or any of the other projects.
+The main program (uzbl-core) is a program meant for integration with other
+tools and scripts, by itself doesn't do many usefull things.  See README.
+
+### Where are the widgets (forward, back,.. button etc)
+The layout of uzbl (and derivatives) only contains what you really need to see.  we only have a statusbar, which even can also be disabled.  There are no buttons, but we do
+have lots of keybinding possibilities.
+
+### Why can uzbl-core/uzbl-browser only show one page?
+It is nearly unanimously agreed that one page per uzbl-core is best.
+It allows a simple implementation of both uzbl-core and
+uzbl-browser, and it makes things more robust.
+But read the next entry...
+
+### How to have multiple pages in one window?
+So, given that uzbl-core and uzbl-browser only deal with one page at a time (see
+above), how can you have a window with multiple pages?
+
+Basically this is involves concerns on two sides:
+
+* window management
+  - can I keep all pages together in 1 X window so that I can move all at once to a different workspace
+  - can I "split off" pages into separate windows (i.e. move only one specific page/window to a different desktop)
+    or merge windows together?
+  - can I integrate uzbl pages/windows into WM features? (alt-tab, tiling layouts, taskbar, ...)
+  - ...
+* application-level
+  - realtime overview of all page titles of all uzbl instances
+  - representation styles which are tightly coupled to the application such as treeviews that show from which you page you opened
+    others, or page state (loading etc)
+  - ...
+
+Uzbl itself can hardly be a limiting factor, as it supports/has:
+
+* Xembed (GtkPlug mode) so you can embed a uzbl-browser or uzbl-core into another window
+* an events system you can have realtime updates of window title, pageload state, etc.
+* command interface to programmatically change it's behavior.
+
+And then there is the style of representation (tabs, tree overviews, visual
+thumbnails etc) which can be handled from the WM side or the application
+side.
+
+There are multiple approaches, each with pros and cons.
+
+* Tabbing in the WM:  Xmonads tabbed layout, Wmii's stacked layout, fluxbox or kwin tabs and so on.
+* Visual overview in the WM: commonly used with dwm or Awesome's tiling layouts with master/slave areas.
+  The [dynamic zoom script](http://www.uzbl.org/wiki/dynamic_zooming) is useful here.
+* A container application whih embeds multiple uzbl-browsers and provide tablists, tree views, and more.
+  Examples:
+  - [uzbl-tabbed](http://www.uzbl.org/wiki/uzbl_tabbed) (officially supported)
+  - [uzbltreetab](http://www.uzbl.org/wiki/uzbltreetab)
+  - [uzbltab](http://www.uzbl.org/wiki/uzbltab)
+  - [suckless tabbed](http://tools.suckless.org/tabbed)
+* An application to mimic tabbing independently of WM support.
+  The only thing you need to do is focus/maximize the instance you want,
+  keep the others out of sight and use tools like dmenu/xbindkeys and wmctrl to switch instances.
+  This allows you to use application-specific properties (such as uzbl tag, name etc).
+  For more ideas on such an approach, see docs/multiple-instances-management.
+  Examples:
+  - [wmctrl-based](http://www.uzbl.org/wiki/metacity-tabs) (works on at least Metacity)
+  - [wmii](http://www.uzbl.org/wiki/wmii)
+
+There are really a lot of options.  You need to think about what you need,
+what you want and what you don't care about.
+On the wiki you'll find a lot of related scripts, some of them providing new
+workflows (do you really need open windows for all pages you intend to read, or is a list enough?
+[articlecue](http://www.uzbl.org/wiki/article_queue.py)), some providing integration with WM's such as
+[awesome](http://www.uzbl.org/wiki/awesome), and more.
+
+### Okay, what can I actually do?  What commands are there?  How do I get more information?
+  * Commands and other features are documented in README.  Read it.
+  * You should also peek into the sampleconfigs to see how commands are used in practice.
+  * The wiki is also a great resource.
+
+### Why can't I type anything in forms?  How does the keybinding work?
+You are in command mode, not in insert mode.
+
+* command mode: you can trigger actions inside uzbl with minimum amount of keypresses (eg 'b' to go back, 'ZZ' to quit etc)  (see config examples), but not to type actual text into forms, because all your keypresses are interpreted.
+* insert mode: after going into insert mode (by default this is the 'i' binding from inside command mode), your keypresses are not interpreted but passed on, so you can enter text into forms.  Press Esc to go out of insert mode.
+
+The above method is called "modal" as inspired on VI.  If you don't like this you can easily change this.
+
+This method is how many applications work.
+TODO: you can call things from inside insert mode by using modkeys, right?
+
+
+### Why do you depend on gtk?
+Uzbl itself doesn't use much gtk stuff (only the statusbar) so we could do without gtk.  But Webkit needs a widget toolkit to create widgets (think javascript popups, html forms etc).
+Officially, webkit also supportss Qt and wxwigdets.  There are also some unofficial patchsets floating on the interwebs for the EFL and FLTK toolkits.  One could argue we don't need no popups or fancy form widgets and you could have a point, but
+we prefer being reasonably assured that things work as they are supposed to rather then using some obscure patchset which may be incomplete, broken and/or badly designed, or wasting time ourselves in what is not our core objective.
+That's why we picked the Gtk variant of Webkit.
+Note that we do *not* depend on any Gnome libraries such as gconf.  _That_ would be something worth complaining about :)
+
+### Do you support flash? javascript? Ajax?  Recent html/css/.. standards? Java/media plugins?
+Yes, Webkit takes care of all of that.  Not that we like all of these, but you can use them if you want.
+We use the NPAPI plugin architecture (just like mozilla, opera, etc) so just
+install the plugins normally, and things should work.
+
+### What's the difference between the socket file and the fifo?
+They both have advantages and disadvantages:
+
+ * fifo's are _very_ easy to work with. You can write just plaintext commands into them, but they are unidirectional (you can only communicate in one direction)
+ * Sockets are bidirectional but more complex.  You cannot just write a plaintext string into them.  In shellscripts you can use socat to work with sockets, when programming you need to use library functions.
+
+So, when writing scripts, using fifo's is usually the fastest method (because you do not need to fork another process), so fifo is preferred unless you need a response.
+
+### Uzbl uses too much memory! Especially when having multiple windows (i.e. with uzbl-tabbed)
+Don't be fooled with how memory usage is measured and reported on Linux. (or other systems)
+You need to be aware of the difference between RSS and VSS.
+And dynamic libraries (libwebkit, libgtk, etc) that are used by multiple processes are only stored in RAM once.
+See [this page](http://virtualthreads.blogspot.com/2006/02/understanding-memory-usage-on-linux.html) for a good explanation.
+
+### What the hell is this 'XDG' stuff??
+You'll notice our example/default scripts and configs use variables such as `$XDG_CONFIG_HOME` and `$XDG_DATA_HOME`.
+Most of us really like the [xdg basedir spec](http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html).
+Basically it helps you keeping a clean `$HOME` and it separates config, data and cache.
+If these variables are not defined on your system, it could be that you need to install an xdg package.
+If you don't like this, no one is stopping you from changing the scripts and configs to point to a single `$HOME/.uzbl` directory or whatever you want.
+
+
+### Does the world really need another browser?
+We did try a lot of browsers, and we do not suffer [NIH](http://en.wikipedia.org/wiki/Not_Invented_Here).
+We believe that the approach taken by way too many browsers is wrong.  We do not want browsers that try to do everything,
+instead we prefer a system where different applications work together, which gives plenty of advantages.
+We also like open source.  We take a lot of things from other projects and we also try to contribute to other projects.
+
+### What? You call all of this user-friendly?
+Yes.  If you don't agree, don't use it :)

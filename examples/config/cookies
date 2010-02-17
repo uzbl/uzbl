@@ -1,0 +1,22 @@
+# This file demonstrates how one *could* manage his cookies.  this file is used by the example cookie handler script.
+# stick to this format.
+# trusted -> always store what we get, send what we have (TODO: by default, or when requested?)
+# deny -> deny storing + sending
+
+# if you don't like to edit this file manually, you could even write a script that adds/removes entries using sed, and call the script from uzbl with a keybind...
+
+
+TRUSTED
+bbs.archlinux.org
+archlinux.org
+linux.com
+
+
+
+
+DENY
+www.icanhascheezburger.com
+
+
+
+# rest -> ask

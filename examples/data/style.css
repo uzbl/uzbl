@@ -1,0 +1,25 @@
+.uzbl_highlight { background-color: yellow;}
+.uzbl_h_first   { background-color: lightgreen;}
+
+.uzbl_follow    { border-style:     dotted;
+                  border-width:     thin;
+}
+
+#uzbl_hint > div    {
+	display:                        inline;
+	border:                         2px solid #4a6600;
+	background-color:               #b9ff00;
+	color:                          black;
+	font-size:                      9px;
+	font-weight:                    bold;
+	line-height:                    9px;
+	margin:                         0px;
+	padding:                        0px;
+	position:                       absolute;
+	z-index:                        1000;
+	-webkit-border-radius:          6px;
+	text-decoration:                none;
+	-wekit-transform:               scale(1) rotate(0deg) translate(-6px,-5px);
+}
+
+/* vim:set et ts=4: */

@@ -1,0 +1,21 @@
+here: design notes
+readme: end-user instructions
+
+
+Rationale. AKA "why not config files?"
+-> unify code to configure uzbl and to accept incoming commands
+-> no more code needed for config file parsing/handling
+-> runtime changing of configuration
+
+issues
+-> new instances (open link etc) need same config/state
+   solutions?
+   - serialize all state structs -> some libs available, could work. but:
+                                    - binary format not very user friendly
+                                    - not that easy (C has no introspection etc)
+   - iterate over state structs and generate appropriate commands to bring an instance in this state.
+     - plaintext :)
+     - user editable
+     - also useful for saving state if we need to update/shutdown/..
+   -> all of this is overkill. for now we just decided to live with the fact we pass on '--config' flags,
+      it's up to the user to tweak his setup so it works.
