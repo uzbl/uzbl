@@ -53,14 +53,23 @@ if [[ -z ${editor} ]]; then
     fi
 fi
 
-config=$1; shift
-pid=$1;    shift
-xid=$1;    shift
-fifo=$1;   shift
-socket=$1; shift
-url=$1;    shift
-title=$1;  shift
+echo $@
+config=$1;
+shift
+pid=$1;
+shift
+xid=$1;
+shift
+fifo=$1;
+shift
+socket=$1;
+shift
+url=$1;
+shift
+title=$1;
+shift
 action=$1
+
 
 [ -d $keydir ] || mkdir $keydir || exit 1
 
