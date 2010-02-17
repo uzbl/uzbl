@@ -1,27 +1,20 @@
-Copy the eFormFiller.sh to $XDG_DATA_HOME/uzbl/scripts/
-In the Uzbl config file add bindings(for example):
+### eFormFiller
 
+Example config entries for eFormFiller scripts
 
     set eFormFiller = spawn @scripts_dir/eFormFiller.sh
-    @bind    za        = @eFormFiller add
-    @bind    ze        = @eFormFiller edit
-    @bind    zn        = @eFormFiller new
-    @bind    zl        = @eFormFiller load
+    @cbind    ZA        = @eFormFiller add
+    @cbind    ZE        = @eFormFiller edit
+    @cbind    ZN        = @eFormFiller new
+    @cbind    ZL        = @eFormFiller load
     
+NEW action generates new file with formfields for current domain. Note that it
+will overwrite existing file.
 
-scripts_dir is set by default in uzbl config
+EDIT action calls an external editor with curent domain profiles.
 
-If NEW action is taken, then the script will generate 
-new file with formfields for current domain or will
-overrite existing one.
+ADD action adds another profile to current domain. Remember to name the
+profiles, by default the have a name with random numbers.
 
-EDIT action will call an editor (configure it in the script) 
-with curent domain profiles
-
-ADD action add another profile to current domain. Remember to name
-the profiles, by default the have a name with random numbers
-
-LOAD will load formfields or if there is more then one profile, it will
-call dmenu first to choose the profile you want to fill in the form
-
-Enjoy
+LOAD action loads form data. If there is more then one profile, it will call
+dmenu first to choose the profile you want to fill in the form.
