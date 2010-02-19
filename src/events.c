@@ -23,6 +23,8 @@ const char *event_table[LAST_EVENT] = {
      "REQUEST_STARTING" ,
      "KEY_PRESS"        ,
      "KEY_RELEASE"      ,
+     "MOD_PRESS"        ,
+     "MOD_RELEASE"      ,
      "COMMAND_EXECUTED" ,
      "LINK_HOVER"       ,
      "TITLE_CHANGED"    ,
@@ -202,13 +204,12 @@ send_event(int type, const gchar *custom_event, ...) {
 
 /* Transform gdk key events to our own events */
 void
-key_to_event(guint keyval, guint state, gint mode) {
+key_to_event(guint keyval, guint state, guint is_modifier, gint mode) {
     gchar ucs[7];
     gint ulen;
     gchar *keyname;
     guint32 ukval = gdk_keyval_to_unicode(keyval);
     GString *modifiers = g_string_new("");
-    gchar *details;
 
     /* check modifier state*/
     if(state & GDK_MODIFIER_MASK) {
@@ -256,13 +257,15 @@ key_to_event(guint keyval, guint state, gint mode) {
     }
     /* send keysym for non-printable chars */
     else if((keyname = gdk_keyval_name(keyval))){
-        send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE, NULL,
-            TYPE_STR, modifiers->str, TYPE_NAME, keyname , NULL);
+        if(is_modifier)
+            send_event(mode == GDK_KEY_PRESS ? MOD_PRESS : MOD_RELEASE, NULL,
+                TYPE_STR, modifiers->str, TYPE_NAME, keyname , NULL);
+        else
+            send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE, NULL,
+                TYPE_STR, modifiers->str, TYPE_NAME, keyname , NULL);
     }
 
     g_string_free(modifiers, TRUE);
-    g_free(details);
-
 }
 
 /* vi: set et ts=4: */
