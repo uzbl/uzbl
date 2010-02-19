@@ -321,7 +321,7 @@ expand(const char *s, guint recurse) {
                     /* JS from string */
                     else {
                         mycmd = expand(ret, 2);
-                        eval_js(uzbl.gui.web_view, mycmd, js_ret);
+                        eval_js(uzbl.gui.web_view, mycmd, js_ret, "(command)");
                         g_free(mycmd);
                     }
 
@@ -1047,11 +1047,11 @@ js_init() {
 
 
 void
-eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
+eval_js(WebKitWebView * web_view, gchar *script, GString *result, const char *file) {
     WebKitWebFrame *frame;
     JSGlobalContextRef context;
     JSObjectRef globalobject;
-
+    JSStringRef js_file;
     JSStringRef js_script;
     JSValueRef js_result;
     JSValueRef js_exc = NULL;
@@ -1066,7 +1066,8 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
 
     /* evaluate the script and get return value*/
     js_script = JSStringCreateWithUTF8CString(script);
-    js_result = JSEvaluateScript(context, js_script, globalobject, NULL, 0, &js_exc);
+    js_file = JSStringCreateWithUTF8CString(file);
+    js_result = JSEvaluateScript(context, js_script, globalobject, js_file, 0, &js_exc);
     if (js_result && !JSValueIsUndefined(context, js_result)) {
         js_result_string = JSValueToStringCopy(context, js_result, NULL);
         js_result_size = JSStringGetMaximumUTF8CStringSize(js_result_string);
@@ -1086,6 +1087,18 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
         
         printf("Exception occured while executing script:\n");
         
+        /* Print file */
+        prop = JSStringCreateWithUTF8CString("sourceURL");
+        val = JSValueToStringCopy(context, JSObjectGetProperty(context, exc, prop, NULL), NULL);
+        size = JSStringGetMaximumUTF8CStringSize(val);
+        if(size) {
+            char cstr[size];
+            JSStringGetUTF8CString(val, cstr, size);
+            printf("At %s", cstr);
+        }
+        JSStringRelease(prop);
+        JSStringRelease(val);
+
         /* Print line */
         prop = JSStringCreateWithUTF8CString("line");
         val = JSValueToStringCopy(context, JSObjectGetProperty(context, exc, prop, NULL), NULL);
@@ -1093,7 +1106,7 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
         if(size) {
             char cstr[size];
             JSStringGetUTF8CString(val, cstr, size);
-            printf("At line %s: ", cstr);
+            printf(":%s: ", cstr);
         }
         JSStringRelease(prop);
         JSStringRelease(val);
@@ -1111,12 +1124,13 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
 
     /* cleanup */
     JSStringRelease(js_script);
+    JSStringRelease(js_file);
 }
 
 void
 run_js (WebKitWebView * web_view, GArray *argv, GString *result) {
     if (argv_idx(argv, 0))
-        eval_js(web_view, argv_idx(argv, 0), result);
+        eval_js(web_view, argv_idx(argv, 0), result, "(command)");
 }
 
 void
@@ -1149,7 +1163,7 @@ run_external_js (WebKitWebView * web_view, GArray *argv, GString *result) {
         g_free (js);
         js = newjs;
 
-        eval_js (web_view, js, result);
+        eval_js (web_view, js, result, path);
         g_free (js);
         g_array_free (lines, TRUE);
         g_free(path);
@@ -2327,7 +2341,7 @@ void handle_authentication (SoupSession *session, SoupMessage *msg, SoupAuth *au
 
     (void) user_data;
 
-    if(uzbl.behave.authentication_handler && *uzbl.behave.authentication_handler != NULL) {
+    if(uzbl.behave.authentication_handler && *uzbl.behave.authentication_handler != 0) {
         gchar *info, *host, *realm;
         gchar *p;
 
@@ -2551,7 +2565,7 @@ load_uri_imp(gchar *uri) {
     }
 
     if (g_strstr_len (uri, 11, "javascript:") != NULL) {
-        eval_js(uzbl.gui.web_view, uri, NULL);
+        eval_js(uzbl.gui.web_view, uri, NULL, "javascript:");
         return;
     }
     newuri = g_string_new (uri);

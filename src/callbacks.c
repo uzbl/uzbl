@@ -33,7 +33,7 @@ set_authentication_handler() {
     guint feature_is_set = g_slist_length(flist);
     g_slist_free(flist);
 
-    if (uzbl.behave.authentication_handler == NULL || *uzbl.behave.authentication_handler == NULL) {
+    if (uzbl.behave.authentication_handler == NULL || *uzbl.behave.authentication_handler == 0) {
         if (!feature_is_set)
             soup_session_add_feature_by_type
                 (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
