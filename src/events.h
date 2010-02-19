@@ -42,6 +42,6 @@ void
 send_event(int type, const gchar *custom_event, ...) G_GNUC_NULL_TERMINATED;
 
 void
-key_to_event(guint keyval, gint mode);
+key_to_event(guint keyval, guint state, int mode);
 
 #endif
