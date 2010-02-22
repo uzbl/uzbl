@@ -202,16 +202,10 @@ send_event(int type, const gchar *custom_event, ...) {
     va_end (vargs);
 }
 
-/* Transform gdk key events to our own events */
-void
-key_to_event(guint keyval, guint state, guint is_modifier, gint mode) {
-    gchar ucs[7];
-    gint ulen;
-    gchar *keyname;
-    guint32 ukval = gdk_keyval_to_unicode(keyval);
+gchar *
+get_modifier_mask(guint state) {
     GString *modifiers = g_string_new("");
 
-    /* check modifier state*/
     if(state & GDK_MODIFIER_MASK) {
         if(state & GDK_SHIFT_MASK)
             g_string_append(modifiers, "Shift|");
@@ -244,6 +238,21 @@ key_to_event(guint keyval, guint state, guint is_modifier, gint mode) {
             g_string_overwrite(modifiers, modifiers->len-1, " ");
     }
 
+    return g_string_free(modifiers, FALSE);
+}
+
+/* Transform gdk key events to our own events */
+void
+key_to_event(guint keyval, guint state, guint is_modifier, gint mode) {
+    gchar ucs[7];
+    gint ulen;
+    gchar *keyname;
+    guint32 ukval = gdk_keyval_to_unicode(keyval);
+    gchar *modifiers = NULL;
+
+    /* check modifier state*/
+    modifiers = get_modifier_mask(state);
+
     /* check for printable unicode char */
     /* TODO: Pass the keyvals through a GtkIMContext so that
      *       we also get combining chars right
@@ -253,19 +262,19 @@ key_to_event(guint keyval, guint state, guint is_modifier, gint mode) {
         ucs[ulen] = 0;
 
         send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE, NULL,
-            TYPE_STR, modifiers->str, TYPE_FORMATTEDSTR, ucs, NULL);
+            TYPE_STR, modifiers, TYPE_FORMATTEDSTR, ucs, NULL);
     }
     /* send keysym for non-printable chars */
     else if((keyname = gdk_keyval_name(keyval))){
         if(is_modifier)
             send_event(mode == GDK_KEY_PRESS ? MOD_PRESS : MOD_RELEASE, NULL,
-                TYPE_STR, modifiers->str, TYPE_NAME, keyname , NULL);
+                TYPE_STR, modifiers, TYPE_NAME, keyname , NULL);
         else
             send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE, NULL,
-                TYPE_STR, modifiers->str, TYPE_NAME, keyname , NULL);
+                TYPE_STR, modifiers, TYPE_NAME, keyname , NULL);
     }
 
-    g_string_free(modifiers, TRUE);
+    g_free(modifiers);
 }
 
 /* vi: set et ts=4: */
