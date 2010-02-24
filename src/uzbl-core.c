@@ -2341,7 +2341,7 @@ void handle_authentication (SoupSession *session, SoupMessage *msg, SoupAuth *au
 
     (void) user_data;
 
-    if(uzbl.behave.authentication_handler && *uzbl.behave.authentication_handler != NULL) {
+    if(uzbl.behave.authentication_handler && *uzbl.behave.authentication_handler != 0) {
         gchar *info, *host, *realm;
         gchar *p;
 
