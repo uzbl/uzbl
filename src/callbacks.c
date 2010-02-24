@@ -27,6 +27,25 @@ set_proxy_url() {
 }
 
 void
+set_authentication_handler() {
+    /* Check if WEBKIT_TYPE_SOUP_AUTH_DIALOG feature is set */
+    GSList *flist = soup_session_get_features (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
+    guint feature_is_set = g_slist_length(flist);
+    g_slist_free(flist);
+
+    if (uzbl.behave.authentication_handler == NULL || *uzbl.behave.authentication_handler == NULL) {
+        if (!feature_is_set)
+            soup_session_add_feature_by_type
+                (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
+    } else {
+        if (feature_is_set)
+            soup_session_remove_feature_by_type
+                (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
+    }
+    return;
+}
+
+void
 set_icon() {
     if(file_exists(uzbl.gui.icon)) {
         if (uzbl.gui.main_window)
@@ -559,6 +578,19 @@ button_release_cb (GtkWidget* window, GdkEventButton* event) {
 }
 
 gboolean
+motion_notify_cb(GtkWidget* window, GdkEventMotion* event, gpointer user_data) {
+    (void) window;
+    (void) event;
+    (void) user_data;
+
+    gchar *details;
+    details = g_strdup_printf("%.0lf %.0lf %u", event->x, event->y, event->state);
+    send_event(PTR_MOVE, details, NULL);
+
+    return FALSE;
+}
+
+gboolean
 navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
     (void) web_view;
     (void) frame;
@@ -626,6 +658,18 @@ mime_policy_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequ
     /* ...everything we can't display is downloaded */
     webkit_web_policy_decision_download (policy_decision);
     return TRUE;
+}
+
+void
+request_starting_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitWebResource *resource,
+        WebKitNetworkRequest *request, WebKitNetworkResponse *response, gpointer user_data) {
+    (void) web_view;
+    (void) frame;
+    (void) resource;
+    (void) response;
+    (void) user_data;
+
+    send_event(REQUEST_STARTING, webkit_network_request_get_uri(request), NULL);
 }
 
 /*@null@*/ WebKitWebView*
