@@ -371,8 +371,9 @@ class SocketClient:
 class UzblInstance:
     '''Uzbl instance meta-data/meta-action object.'''
 
-    def __init__(self, parent, tab, name, uri, title, switch):
+    def __init__(self, parent, tab, name, uri, title, switch, process):
 
+        self.process = process
         self.parent = parent
         self.tab = tab
         self.name = name
@@ -527,6 +528,7 @@ class UzblInstance:
         if self._client:
             self._client.close()
             self._client = None
+        self.process.wait()
 
 
 class UzblTabbed:
@@ -994,9 +996,9 @@ class UzblTabbed:
 
         cmd = ['uzbl-browser', '-n', name, '-s', str(sid),
                '--connect-socket', self.socket_path, '--uri', uri]
-        subprocess.Popen(cmd) # TODO: do i need close_fds=True ?
+        process = subprocess.Popen(cmd) # TODO: do i need close_fds=True ?
 
-        uzbl = UzblInstance(self, tab, name, uri, title, switch)
+        uzbl = UzblInstance(self, tab, name, uri, title, switch, process)
         SocketClient.instances_queue[name] = uzbl
         self.tabs[tab] = uzbl
 
