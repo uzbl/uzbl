@@ -209,4 +209,7 @@ gboolean
 focus_cb(GtkWidget* window, GdkEventFocus* event, void *ud);
 
 void
-cookie_handler_cb(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie, gpointer user_data);
+save_cookies_js(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie, gpointer user_data);
+
+void
+save_cookies_http(SoupMessage *msg, gpointer user_data);
