@@ -267,7 +267,7 @@ set preset = event PRESET_TABS
 @cbind  !dump              = sh "echo dump_config > $4"
 # Reload config
 @cbind  !reload            = sh "sed '/^# === Post-load misc commands/,$d' $1 > $4"
-# Uzbl Terminal. TODO explain why this is useful
+# If you want to see all events being triggered:
 @cbind  <Ctrl><Alt>t  = sh 'xterm -e "socat unix-connect:$5 -"'
 #@cbind  <Ctrl><Alt>t  = sh 'urxvt -e socat unix-connect:$5 -'
 
