@@ -349,11 +349,6 @@ set external_editor = gvim
 # === Context menu items =====================================================
 
 # Default context menu
-menu_link_add Open in Tab = event NEW_TAB \@SELECTED_URI
-menu_link_add Open in Next Tab = event NEW_TAB_NEXT \@SELECTED_URI
-menu_link_add Open in BG Tab = event NEW_BG_TAB \@SELECTED_URI
-menu_link_add Open in Next BG Tab = event NEW_BG_TAB_NEXT \@SELECTED_URI
-menu_separator separator_1
 menu_add Google = set uri = http://google.com
 menu_add Go Home = set uri = http://uzbl.org
 menu_separator separator_1
