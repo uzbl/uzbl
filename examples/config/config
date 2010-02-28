@@ -57,12 +57,12 @@ set new_window          = sh 'uzbl-browser -u $8'
 
 # Load start handler
 @on_event   LOAD_START     @set_status <span foreground="khaki">wait</span>
+# Reset the keycmd on navigation
+@on_event   LOAD_START     @set_mode
 
 # Load commit handlers
 @on_event   LOAD_COMMIT    @set_status <span foreground="green">recv</span>
 #@on_event   LOAD_COMMIT    script @scripts_dir/scroll-percentage.js
-# Reset the keycmd on navigation
-@on_event   LOAD_COMMIT    @set_mode
 
 # Load finish handlers
 @on_event   LOAD_FINISH    @set_status <span foreground="gold">done</span>
