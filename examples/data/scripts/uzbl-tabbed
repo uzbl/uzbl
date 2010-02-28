@@ -521,7 +521,18 @@ class UzblInstance:
         if self._client:
             self._client.close()
             self._client = None
-        self.process.wait()
+
+        pid = self.process.pid
+        timeout = time.time() + 5
+
+        while self.process.poll() is None and time.time() < timeout:
+            # Sleep between polls.
+            time.sleep(0.1)
+
+        if self.process.poll() is None:
+            # uzbl instance didn't exit in time.
+            error("quit timeout expired, sending SIGTERM to uzbl instance")
+            self.process.terminate()
 
 
 class UzblTabbed:
