@@ -489,6 +489,13 @@ class UzblInstance:
                     self.parent.update_tablist()
             elif type == "NEW_TAB":
                 self.parent.new_tab(args)
+            elif type == "NEW_BG_TAB":
+                self.parent.new_tab(args, '', 0)
+            elif type == "NEW_TAB_NEXT":
+                self.parent.new_tab(args, next=True)
+            elif type == "NEW_BG_TAB_NEXT":
+                self.parent.new_tab(args, '', 0, next=True)
+
             elif type == "NEXT_TAB":
                 if args:
                     self.parent.next_tab(int(args))
@@ -979,7 +986,7 @@ class UzblTabbed:
         return False
 
 
-    def new_tab(self, uri='', title='', switch=None):
+    def new_tab(self, uri='', title='', switch=None, next=False):
         '''Add a new tab to the notebook and start a new instance of uzbl.
         Use the switch option to negate config['switch_to_new_tabs'] option
         when you need to load multiple tabs at a time (I.e. like when
@@ -987,7 +994,7 @@ class UzblTabbed:
 
         tab = gtk.Socket()
         tab.show()
-        self.notebook.append_page(tab)
+        self.notebook.insert_page(tab, position=next and self.notebook.get_current_page() + 1 or -1)
         sid = tab.get_id()
         uri = uri.strip()
         name = "%d-%d" % (os.getpid(), self.next_pid())
