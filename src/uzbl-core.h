@@ -121,7 +121,6 @@ typedef struct {
     gchar*   status_background;
     gchar*   fifo_dir;
     gchar*   socket_dir;
-    gchar*   download_handler;
     gchar*   cookie_handler;
     gchar*   authentication_handler;
     gchar*   new_window;

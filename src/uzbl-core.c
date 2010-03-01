@@ -98,7 +98,6 @@ const struct var_name_to_ptr_t {
     { "title_format_short",     PTR_V_STR(uzbl.behave.title_format_short,       1,   NULL)},
     { "icon",                   PTR_V_STR(uzbl.gui.icon,                        1,   set_icon)},
     { "forward_keys",           PTR_V_INT(uzbl.behave.forward_keys,             1,   NULL)},
-    { "download_handler",       PTR_V_STR(uzbl.behave.download_handler,         1,   NULL)},
     { "cookie_handler",         PTR_V_STR(uzbl.behave.cookie_handler,           1,   NULL)},
     { "authentication_handler", PTR_V_STR(uzbl.behave.authentication_handler,   1,   set_authentication_handler)},
     { "new_window",             PTR_V_STR(uzbl.behave.new_window,               1,   NULL)},
