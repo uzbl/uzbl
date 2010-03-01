@@ -92,7 +92,6 @@ typedef struct {
     gchar    *selected_url;
     gchar    *last_selected_url;
     gchar    *executable_path;
-    gchar*   keycmd;
     gchar*   searchtx;
     gboolean verbose;
     gboolean events_stdout;
@@ -266,9 +265,6 @@ bool
 file_exists (const char * filename);
 
 void
-set_keycmd();
-
-void
 load_uri (WebKitWebView * web_view, GArray *argv, GString *result);
 
 void
@@ -337,9 +333,6 @@ key_press_cb (GtkWidget* window, GdkEventKey* event);
 
 gboolean
 key_release_cb (GtkWidget* window, GdkEventKey* event);
-
-void
-run_keycmd(const gboolean key_ret);
 
 void
 initialize (int argc, char *argv[]);
