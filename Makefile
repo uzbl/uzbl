@@ -8,32 +8,31 @@ LDFLAGS!=echo `pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` -p
 
 SRC = $(wildcard src/*.c)
 HEAD = $(wildcard src/*.h)
-TOBJ = $(SRC:.c=.o)
-OBJ = $(foreach obj, $(TOBJ), $(notdir $(obj)))
+OBJ = $(foreach obj, $(SRC:.c=.o), $(notdir $(obj)))
 
 all: uzbl-browser options
 
 options:
 	@echo
-	@echo BUILD OPTIONS:
+	@echo "BUILD OPTIONS:"
 	@echo "CFLAGS   = ${CFLAGS}"
 	@echo "LDFLAGS  = ${LDFLAGS}"
 	@echo
 	@echo See the README file for usage instructions.
 
+VPATH:=src
 
 .c.o:
-	@echo COMPILING $<
+	@echo -n "COMPILING $<"
 	@${CC} -c ${CFLAGS} $<
-	@echo ... done.
+	@echo " ... done."
 
 ${OBJ}: ${HEAD}
 
-uzbl-core: ${TOBJ} # why doesn't ${OBJ} work?
-	@echo
-	@echo LINKING object files
+uzbl-core: ${OBJ}
+	@echo -n "LINKING object files"
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
-	@echo ... done.
+	@echo " ... done."
 
 
 uzbl-browser: uzbl-core
@@ -50,7 +49,7 @@ RUN_PREFIX?=$(PREFIX)
 force:
 
 # When compiling unit tests, compile uzbl as a library first
-tests: ${TOBJ} force
+tests: ${OBJ} force
 	$(CC) -shared -Wl ${OBJ} -o ./tests/libuzbl-core.so
 	cd ./tests/; $(MAKE)
 
