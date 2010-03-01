@@ -385,21 +385,40 @@ class UzblInstance(object):
             print (u'%s!-- %s' % ('  ' * self.depth, msg)).encode('utf-8')
 
 
-    def export(self, name, function):
-        '''Export `function(uzbl, *args, ..)` inside a plugin to the uzbl
-        object like so `uzbl.function(*args, ..)`. This will allow other
-        plugins to call functions inside the current plugin (which is currently
-        calling this function) via the uzbl object.'''
+    def export(self, attr, object, prepend=True):
+        '''Attach an object to the current class instance. This is the
+        preferred method of sharing functionality, functions and objects
+        between plugins.
 
-        self.__dict__.__setitem__(name, partial(function, self))
+        If the object is callable you may wish to turn the callable object in
+        to an "instance method call" by using the `functools.partial(..)`
+        tool to prepend the `self` object to the callable objects argument
+        list.
+
+        Example session from a plugins POV:
+          >>> config_dict = {'foo': 'data..', 'bar': 'other data..'}
+          >>> uzbl.export('config', config_dict)
+          >>> uzbl.config is config_dict
+          True
+          >>> print uzbl.config['foo']
+          data..
+          >>> uzbl.export('get', lambda uzbl, key: uzbl.config[key])
+          >>> print uzbl.get('bar')
+          other data..
+        '''
+
+        if prepend and callable(object):
+            object = partial(object, self)
+
+        self.__dict__.__setitem__(attr, object)
 
 
     def export_dict(self, export_dict):
-        '''Export multiple (name, function)'s at once inside a dict of the
-        form `{name1: function1, name2: function2, ...}`.'''
+        '''Export multiple (attr, object)'s at once inside a dict of the
+        form `{attr1: object1, attr2: object2, ...}`.'''
 
-        for (name, function) in export_dict.items():
-            self.export(name, function)
+        for (attr, object) in export_dict.items():
+            self.export(attr, object)
 
 
     def connect(self, event, handler, *args, **kargs):
