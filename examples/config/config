@@ -60,7 +60,7 @@ set new_window          = sh 'uzbl-browser -u $8'
 
 # Load commit handlers
 @on_event   LOAD_COMMIT    @set_status <span foreground="green">recv</span>
-@on_event   LOAD_COMMIT    script @scripts_dir/scroll-percentage.js
+#@on_event   LOAD_COMMIT    script @scripts_dir/scroll-percentage.js
 # Reset the keycmd on navigation
 @on_event   LOAD_COMMIT    @set_mode
 
@@ -267,7 +267,7 @@ set preset = event PRESET_TABS
 @cbind  !dump              = sh "echo dump_config > $4"
 # Reload config
 @cbind  !reload            = sh "sed '/^# === Post-load misc commands/,$d' $1 > $4"
-# Uzbl Terminal. TODO explain why this is useful
+# If you want to see all events being triggered:
 @cbind  <Ctrl><Alt>t  = sh 'xterm -e "socat unix-connect:$5 -"'
 #@cbind  <Ctrl><Alt>t  = sh 'urxvt -e socat unix-connect:$5 -'
 
@@ -331,11 +331,12 @@ set formfiller = spawn @scripts_dir/formfiller
 
 # --- External edit script configuration & binds ---
 # Edit form input fields in an external editor (gvim, emacs, urxvt -e vim, ..)
+# disabled since Uzbl object is gone
 set external_editor = gvim
 #set external_editor = xterm -e vim
-@cbind  E  = script @scripts_dir/extedit.js
+#@cbind  E  = script @scripts_dir/extedit.js
 # And add menu option.
-menu_editable_add Open in @external_editor = script @scripts_dir/extedit.js
+#menu_editable_add Open in @external_editor = script @scripts_dir/extedit.js
 
 # --- Examples ---
 # Example showing how to use uzbl's fifo to execute a command.
