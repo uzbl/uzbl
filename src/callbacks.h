@@ -13,6 +13,9 @@ void
 set_proxy_url();
 
 void
+set_authentication_handler();
+
+void
 set_icon();
 
 void
@@ -167,6 +170,9 @@ gboolean
 key_release_cb (GtkWidget* window, GdkEventKey* event);
 
 gboolean
+motion_notify_cb(GtkWidget* window, GdkEventMotion* event, gpointer user_data);
+
+gboolean
 navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
         WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action,
         WebKitWebPolicyDecision *policy_decision, gpointer user_data);
@@ -179,6 +185,10 @@ new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
 gboolean
 mime_policy_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request,
         gchar *mime_type,  WebKitWebPolicyDecision *policy_decision, gpointer user_data);
+
+void
+request_starting_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitWebResource *resource,
+        WebKitNetworkRequest *request, WebKitNetworkResponse *response, gpointer user_data);
 
 /*@null@*/ WebKitWebView*
 create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data);

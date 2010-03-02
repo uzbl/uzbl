@@ -50,7 +50,7 @@ RUN_PREFIX?=$(PREFIX)
 force:
 
 # When compiling unit tests, compile uzbl as a library first
-tests: ${OBJ} force
+tests: ${TOBJ} force
 	$(CC) -shared -Wl ${OBJ} -o ./tests/libuzbl-core.so
 	cd ./tests/; $(MAKE)
 
