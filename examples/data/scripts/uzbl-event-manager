@@ -201,8 +201,12 @@ def daemonize():
         sys.stderr.write("fork #2 failed")
         sys.exit(1)
 
-    sys.stdout.flush()
-    sys.stderr.flush()
+    try:
+        sys.stdout.flush()
+        sys.stderr.flush()
+
+    except:
+        pass
 
     devnull = '/dev/null'
     stdin = file(devnull, 'r')
