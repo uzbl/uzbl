@@ -9,4 +9,3 @@ for line in stdin:
     stdout.write(line[0:-1])
 
 # vim: set noet ff=unix
-
