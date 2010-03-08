@@ -10,30 +10,19 @@ SRC = $(wildcard src/*.c)
 HEAD = $(wildcard src/*.h)
 OBJ = $(foreach obj, $(SRC:.c=.o), $(notdir $(obj)))
 
-all: uzbl-browser options
-
-options:
-	@echo
-	@echo "BUILD OPTIONS:"
-	@echo "CFLAGS   = ${CFLAGS}"
-	@echo "LDFLAGS  = ${LDFLAGS}"
-	@echo
-	@echo See the README file for usage instructions.
+all: uzbl-browser
 
 VPATH:=src
 
 .c.o:
-	@echo -n "COMPILING $<"
+	@echo -e "${CC} -c ${CFLAGS} $<"
 	@${CC} -c ${CFLAGS} $<
-	@echo " ... done."
 
 ${OBJ}: ${HEAD}
 
 uzbl-core: ${OBJ}
-	@echo -n "LINKING object files"
+	@echo -e "\n${CC} -o $@ ${OBJ} ${LDFLAGS}"
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
-	@echo " ... done."
-
 
 uzbl-browser: uzbl-core
 
