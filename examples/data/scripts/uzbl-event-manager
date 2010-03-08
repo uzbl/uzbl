@@ -39,6 +39,7 @@ from signal import signal, SIGTERM
 from optparse import OptionParser
 from traceback import print_exc
 from functools import partial
+from itertools import count
 
 
 def xdghome(key, default):
@@ -105,15 +106,6 @@ def error(msg):
     '''Prints error messages to stderr.'''
 
     sys.stderr.write("%s: error: %s\n" % (SCRIPTNAME, msg))
-
-
-def counter():
-    '''Generate unique object id's.'''
-
-    i = 0
-    while True:
-        i += 1
-        yield i
 
 
 def find_plugins(plugin_dirs):
@@ -322,7 +314,7 @@ def parse_msg(uzbl, msg):
 
 class EventHandler(object):
 
-    nexthid = counter().next
+    nexthid = count().next
 
     def __init__(self, event, handler, *args, **kargs):
         if not callable(handler):
