@@ -45,19 +45,19 @@ if [ -z ${editor} ]; then
     fi
 fi
 
-config=$1;
+config=$1; 
 shift
-pid=$1;
+pid=$1;    
 shift
-xid=$1;
+xid=$1;    
 shift
-fifo=$1;
+fifo=$1;   
 shift
-socket=$1;
+socket=$1; 
 shift
-url=$1;
+url=$1;    
 shift
-title=$1;
+title=$1;  
 shift
 action=$1
 
@@ -86,13 +86,16 @@ then
 
     cat $keydir/$domain | \
         sed -n -e "/^!profile=${option}/,/^!profile=/p" | \
-        sed -n -e 's/\([^(]\+\)([^)]\+):[ ]*\([^[:blank:]]\+\)/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].value="\2" } } } else document.getElementsByName("\1")[0].value="\2"/p' | \
+        sed -n -e 's/\([^(]\+\)([^)]\+):[ ]*\([^[:blank:]]\+\)/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].value="\2" } } }; document.getElementsByName("\1")[0].value="\2"/p' | \
         sed -e 's/@/\\@/g' >> $fifo
 elif [ "$action" = "once" ]
 then
     tmpfile=`mktemp`
-    html=`echo 'js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { window.frames[i].document.documentElement.outerHTML } } else  document.documentElement.outerHTML;' | \
-            socat - unix-connect:$socket | \
+    html=`echo 'js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { window.frames[i].document.documentElement.outerHTML } }' | \
+        socat - unix-connect:$socket`
+    html=${html}" "`echo 'js document.documentElement.outerHTML' | \
+        socat - unix-connect:$socket`
+    html=`echo ${html} | \
             tr -d '\n' | \
             sed 's/>/>\n/g' | \
             sed 's/<input/<input type="text"/g' | \
@@ -108,7 +111,7 @@ then
     [ -e $tmpfile ] || exit 2
 
     cat $tmpfile | \
-        sed -n -e 's/\([^(]\+\)([^)]\+):[ ]*\([^[:blank:]]\+\)/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].value="\2" } } } else document.getElementsByName("\1")[0].value="\2"/p' | \
+        sed -n -e 's/\([^(]\+\)([^)]\+):[ ]*\([^[:blank:]]\+\)/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].value="\2" } } }; document.getElementsByName("\1")[0].value="\2"/p' | \
         sed -e 's/@/\\@/g' >> $fifo
     rm -f $tmpfile
 else
@@ -136,8 +139,11 @@ else
         #       login(text):
         #       passwd(password):
         #
-        echo 'js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { window.frames[i].document.documentElement.outerHTML } } else  document.documentElement.outerHTML;' | \
-            socat - unix-connect:$socket | \
+        html=`echo 'js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { window.frames[i].document.documentElement.outerHTML } }' | \
+            socat - unix-connect:$socket`
+        html=${html}" "`echo 'js document.documentElement.outerHTML' | \
+            socat - unix-connect:$socket`
+        echo ${html} | \
             tr -d '\n' | \
             sed 's/>/>\n/g' | \
             sed 's/<input/<input type="text"/g' | \
