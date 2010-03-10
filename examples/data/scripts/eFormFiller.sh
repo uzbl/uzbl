@@ -45,7 +45,6 @@ if [ -z ${editor} ]; then
     fi
 fi
 
-echo $@
 config=$1;
 shift
 pid=$1;
@@ -62,12 +61,11 @@ title=$1;
 shift
 action=$1
 
-
 [ -d $keydir ] || mkdir $keydir || exit 1
 
 domain=$(echo $url | sed 's/\(http\|https\):\/\/\([^\/]\+\)\/.*/\2/')
 
-if [ "$action" != 'edit' -a  "$action" != 'new' -a "$action" != 'load' -a "$action" != 'add' ]
+if [ "$action" != 'edit' -a  "$action" != 'new' -a "$action" != 'load' -a "$action" != 'add' -a "$action" != 'once' ]
 then
     action="new"
     [ -e "$keydir/$domain" ] && action="load"
@@ -88,8 +86,31 @@ then
 
     cat $keydir/$domain | \
         sed -n -e "/^!profile=${option}/,/^!profile=/p" | \
-        sed -n -e 's/\([^(]\+\)([^)]\+):[ ]*\([^[:blank:]]\+\)/js document.getElementsByName("\1")[0].value="\2";/p' | \
-        sed -e 's/@/\\@/p' >> $fifo
+        sed -n -e 's/\([^(]\+\)([^)]\+):[ ]*\([^[:blank:]]\+\)/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].value="\2" } } } else document.getElementsByName("\1")[0].value="\2"/p' | \
+        sed -e 's/@/\\@/g' >> $fifo
+elif [ "$action" = "once" ]
+then
+    tmpfile=`mktemp`
+    html=`echo 'js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { window.frames[i].document.documentElement.outerHTML } } else  document.documentElement.outerHTML;' | \
+            socat - unix-connect:$socket | \
+            tr -d '\n' | \
+            sed 's/>/>\n/g' | \
+            sed 's/<input/<input type="text"/g' | \
+            sed 's/type="text"\(.*\)type="\([^"]\+\)"/type="\2" \1 /g'`
+    echo "${html}" | \
+        sed -n 's/.*\(<input[^>]\+>\).*/\1/;/type="\(password\|text\)"/Ip' | \
+        sed 's/\(.*\)\(type="[^"]\+"\)\(.*\)\(name="[^"]\+"\)\(.*\)/\1\4\3\2\5/I' | \
+        sed 's/.*name="\([^"]\+\)".*type="\([^"]\+\)".*/\1(\2): /I' >> $tmpfile
+    echo "${html}" | \
+        sed -n 's/.*<textarea.*name="\([^"]\+\)".*/\1(textarea): /Ip' >> $tmpfile
+    ${editor} $tmpfile
+
+    [ -e $tmpfile ] || exit 2
+
+    cat $tmpfile | \
+        sed -n -e 's/\([^(]\+\)([^)]\+):[ ]*\([^[:blank:]]\+\)/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].value="\2" } } } else document.getElementsByName("\1")[0].value="\2"/p' | \
+        sed -e 's/@/\\@/g' >> $fifo
+    rm -f $tmpfile
 else
     if [ "$action" == 'new' -o "$action" == 'add' ]
     then
@@ -115,10 +136,12 @@ else
         #       login(text):
         #       passwd(password):
         #
-        echo 'js document.documentElement.outerHTML' | \
+        echo 'js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { window.frames[i].document.documentElement.outerHTML } } else  document.documentElement.outerHTML;' | \
             socat - unix-connect:$socket | \
             tr -d '\n' | \
             sed 's/>/>\n/g' | \
+            sed 's/<input/<input type="text"/g' | \
+            sed 's/type="text"\(.*\)type="\([^"]\+\)"/type="\2" \1 /g' | \
             sed -n 's/.*\(<input[^>]\+>\).*/\1/;/type="\(password\|text\)"/Ip' | \
             sed 's/\(.*\)\(type="[^"]\+"\)\(.*\)\(name="[^"]\+"\)\(.*\)/\1\4\3\2\5/I' | \
             sed 's/.*name="\([^"]\+\)".*type="\([^"]\+\)".*/\1(\2): /I' >> $keydir/$domain
