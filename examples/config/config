@@ -186,7 +186,7 @@ set ebind = @mode_bind global,-insert
 # === Mouse bindings =========================================================
 
 # Middle click open in new window
-@bind  <Button2>  = sh 'if [ "\@SELECTED_URI" ]; then uzbl-browser -u "\@SELECTED_URI"; else echo "uri $(xclip -o)" > $4; fi'
+@bind  <Button2>  = sh 'if [ "\@SELECTED_URI" ]; then uzbl-browser -u "\@SELECTED_URI"; else echo "uri $(xclip -o | sed s/\\\@/%40/g)" > $4; fi'
 
 
 # === Keyboard bindings ======================================================
@@ -238,7 +238,7 @@ set ebind = @mode_bind global,-insert
 @cbind  gN              = event NEW_TAB_NEXT
 @cbind  go<uri:>_       = event NEW_TAB %s
 @cbind  gO<uri:>_       = event NEW_TAB_NEXT %s
-@cbind  gY              = sh 'echo "event NEW_TAB `xclip -selection primary -o`" > $4'
+@cbind  gY              = sh 'echo "event NEW_TAB `xclip -selection primary -o | sed s/\\\@/%40/g`" > $4'
 # Closing / resting
 @cbind  gC              = exit
 @cbind  gQ              = event CLEAN_TABS
@@ -296,9 +296,9 @@ set toggle_cmd_ins = @toggle_modes command insert
 @cbind  yy  = sh 'echo -n $7 | xclip'
 
 # Go the page from primary selection
-@cbind  p   = sh 'echo "uri `xclip -selection primary -o`" > $4'
+@cbind  p   = sh 'echo "uri `xclip -selection primary -o | sed s/\\\@/%40/g`" > $4'
 # Go to the page in clipboard
-@cbind  P   = sh 'echo "uri `xclip -selection clipboard -o`" > $4'
+@cbind  P   = sh 'echo "uri `xclip -selection clipboard -o | sed s/\\\@/%40/g`" > $4'
 # Start a new uzbl instance from the page in primary selection
 @cbind  'p  = sh 'exec uzbl-browser --uri $(xclip -o)'
 
