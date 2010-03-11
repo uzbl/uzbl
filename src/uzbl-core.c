@@ -500,7 +500,10 @@ clean_up(void) {
     g_free(uzbl.info.pid_str);
 
     g_free(uzbl.state.executable_path);
-    g_hash_table_destroy(uzbl.behave.commands);
+    if (uzbl.behave.commands) {
+        g_hash_table_destroy(uzbl.behave.commands);
+        uzbl.behave.commands = NULL;
+    }
 
     if(uzbl.state.event_buffer)
         g_ptr_array_free(uzbl.state.event_buffer, TRUE);
@@ -1082,9 +1085,9 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result, const char *fi
         size_t size;
         JSStringRef prop, val;
         JSObjectRef exc = JSValueToObject(context, js_exc, NULL);
-        
+
         printf("Exception occured while executing script:\n");
-        
+
         /* Print file */
         prop = JSStringCreateWithUTF8CString("sourceURL");
         val = JSValueToStringCopy(context, JSObjectGetProperty(context, exc, prop, NULL), NULL);
@@ -1108,7 +1111,7 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result, const char *fi
         }
         JSStringRelease(prop);
         JSStringRelease(val);
-        
+
         /* Print message */
         val = JSValueToStringCopy(context, exc, NULL);
         size = JSStringGetMaximumUTF8CStringSize(val);

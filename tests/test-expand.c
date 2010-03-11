@@ -31,12 +31,6 @@ extern gchar* expand(char*, guint);
 extern void make_var_to_name_hash(void);
 
 void
-test_keycmd (void) {
-    uzbl.state.keycmd = "gg winslow";
-    g_assert_cmpstr(expand("@keycmd", 0), ==, "gg winslow");
-}
-
-void
 test_uri (void) {
     g_assert_cmpstr(expand("@uri", 0), ==, "");
 
@@ -184,7 +178,6 @@ main (int argc, char *argv[]) {
     g_type_init();
     g_test_init(&argc, &argv, NULL);
 
-    g_test_add_func("/test-expand/@keycmd", test_keycmd);
     g_test_add_func("/test-expand/@useragent", test_useragent);
     g_test_add_func("/test-expand/@uri", test_uri);
     g_test_add_func("/test-expand/@TITLE", test_TITLE);

@@ -16,7 +16,7 @@
 // be done with:
 //
 // @on_event LOAD_COMMIT script /path/to/follower.js
-// 
+//
 // Then you can bind it to a key:
 //
 // @bind f* = js follower.follow('%s', matchSpec, handler, hintStyler)
@@ -26,7 +26,7 @@
 // set these to follower.genericMatchSpec, follower.genericHandler and
 // follower.genericHintStyler respectively.
 //
-// For example, 
+// For example,
 //
 // @bind f* = js follower.follow('%s', follower.genericMatchSpec, follower.genericHandler, follower.genericHintStyler)
 // @bind F* = js follower.follow('%s', follower.onlyLinksMatchSpec, follower.newPageHandler, follower.newPageHintStyler)
@@ -53,7 +53,7 @@
 //  * What elements are hinted.
 //  * The style of the hints displayed.
 //  * How the hints are handled.
-// 
+//
 // In order to customize behavior, write an alternative, and pass that in to
 // follower.follow invocation. You _will_ have to modify this script, but only
 // locally, it beats having to copy the entire script under a new name and
@@ -75,11 +75,11 @@ String.prototype.lpad = function(padding, length) {
     return padded;
 }
 
-function Follower() { 
+function Follower() {
 
     // Globals
-    var uzblID = 'uzbl-follow'; // ID to apply to each hint. 
-    var uzblContainerID = 'uzbl-follow-container'; // ID to apply to the div containing hints. 
+    var uzblID = 'uzbl-follow'; // ID to apply to each hint.
+    var uzblContainerID = 'uzbl-follow-container'; // ID to apply to the div containing hints.
 
     // Translation table, used to display something other than numbers as hint
     // labels. Typically set to the ten keys of the home row.
@@ -147,7 +147,7 @@ function Follower() {
         }
         Uzbl.run("event SET_KEYCMD");
     }
-    
+
     // Handler to open links in a new page. The rest is the same as before.
     this.newPageHandler = function(node) {
         if (node) {
@@ -387,24 +387,24 @@ function Follower() {
     // The main hinting function. I don't know how to do default values to
     // functions, so all arguments must be specified. Use generics if you must.
     this.follow = function(target, matchSpec, handler, hintStyler) {
-        var container = generateHintContainer(); // Get a container to hold all hints. 
+        var container = generateHintContainer(); // Get a container to hold all hints.
         var allHintables = generateHintables(matchSpec); // Get all items that can be hinted.
-        hintables = filterHintables(allHintables, target); // Filter them based on current input. 
-        
+        hintables = filterHintables(allHintables, target); // Filter them based on current input.
+
         clearHints(); // Clear existing hints, if any.
 
         if (hintables[0].length == 0) {
             // Nothing was hinted, user pressed an unknown key, maybe?
             // Do nothing.
         } else if (hintables[0].length == 1) {
-            handler(hintables[0][0]); // Only one hint remains, handle it. 
+            handler(hintables[0][0]); // Only one hint remains, handle it.
         } else {
-            drawHints(container, hintables, hintStyler); // Draw whatever hints remain. 
+            drawHints(container, hintables, hintStyler); // Draw whatever hints remain.
         }
 
         return;
     };
-} 
+}
 
 // Make on-click links clickable.
 try {
