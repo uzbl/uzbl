@@ -523,6 +523,32 @@ The script specific arguments are:
 Custom, userdefined scripts (`spawn foo bar`) get first the arguments as
 specified in the config and then the above 7 are added at the end.
 
+### eFormFiller
+
+Example config entries for eFormFiller scripts
+
+    set eFormFiller = spawn @scripts_dir/eFormFiller.sh
+    @cbind    za        = @eFormFiller add
+    @cbind    ze        = @eFormFiller edit
+    @cbind    zn        = @eFormFiller new
+    @cbind    zl        = @eFormFiller load
+    @cbind    zo        = @eFormFiller once
+    
+NEW action generates new file with formfields for current domain. Note that it
+will overwrite existing file.
+
+EDIT action calls an external editor with curent domain profiles.
+
+ADD action adds another profile to current domain. Remember to name the
+profiles, by default the have a name with random numbers.
+
+LOAD action loads form data. If there is more then one profile, it will call
+dmenu first to choose the profile you want to fill in the form.
+
+ONCE action generates a temp file with formfields including the textareas and
+after closing the editor, it will load the data into the formfields. The temp
+file is removed
+
 ### HTTP/BASIC AUTHENTICATION
 
 You can use the authentication_handler variable to denote how http
