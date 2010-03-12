@@ -123,7 +123,6 @@ typedef struct {
     gchar*   socket_dir;
     gchar*   cookie_handler;
     gchar*   authentication_handler;
-    gchar*   new_window;
     gchar*   default_font_family;
     gchar*   monospace_font_family;
     gchar*   sans_serif_font_family;
@@ -265,9 +264,6 @@ file_exists (const char * filename);
 
 void
 load_uri (WebKitWebView * web_view, GArray *argv, GString *result);
-
-void
-new_window_load_uri (const gchar * uri);
 
 void
 chain (WebKitWebView *page, GArray *argv, GString *result);
