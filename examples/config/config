@@ -45,12 +45,14 @@ set cookie_handler      = talk_to_socket $XDG_CACHE_HOME/uzbl/cookie_daemon_sock
 set scheme_handler      = sync_spawn @scripts_dir/scheme.py
 set authentication_handler = sync_spawn @scripts_dir/auth.py
 
-# Open in the same window.
-#set new_window         = sh 'echo uri "$8" > $4'
-# Open a link in a new window. equivalent to default behavior
-set new_window          = sh 'uzbl-browser -u $8'
-
 # --- Optional dynamic event handlers ----------------------------------------
+
+# Open link in new window
+@on_event   NEW_WINDOW     sh 'uzbl-browser -u $8' %r
+# Open in current window
+#@on_event   NEW_WINDOW     uri %s
+# Open in new tab
+#@on_event   NEW_WINODW     event NEW_TAB %s
 
 # Download handler
 @on_event   DOWNLOAD_REQUEST    spawn @scripts_dir/download.sh %s \@proxy_url
