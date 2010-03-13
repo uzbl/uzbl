@@ -86,7 +86,7 @@ then
 
     cat $keydir/$domain | \
         sed -n -e "/^!profile=${option}/,/^!profile=/p" | \
-        sed -n -e 's/\([^(]\+\)([^)]\+):[ ]*\([^[:blank:]]\+\)/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].value="\2" } } }; document.getElementsByName("\1")[0].value="\2"/p' | \
+        sed -n -e 's/\([^(]\+\)([^)]\+):[ ]*\(.\+\)$/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].value="\2" } } }; document.getElementsByName("\1")[0].value="\2"/p' | \
         sed -e 's/@/\\@/g' >> $fifo
 elif [ "$action" = "once" ]
 then
@@ -111,7 +111,7 @@ then
     [ -e $tmpfile ] || exit 2
 
     cat $tmpfile | \
-        sed -n -e 's/\([^(]\+\)([^)]\+):[ ]*\([^[:blank:]]\+\)/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].value="\2" } } }; document.getElementsByName("\1")[0].value="\2"/p' | \
+        sed -n -e 's/\([^(]\+\)([^)]\+):[ ]*\(.\+\)/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].value="\2" } } }; document.getElementsByName("\1")[0].value="\2"/p' | \
         sed -e 's/@/\\@/g' >> $fifo
     rm -f $tmpfile
 else
