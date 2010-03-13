@@ -62,7 +62,6 @@ set new_window          = sh 'uzbl-browser -u $8'
 
 # Load commit handlers
 @on_event   LOAD_COMMIT    @set_status <span foreground="green">recv</span>
-#@on_event   LOAD_COMMIT    script @scripts_dir/scroll-percentage.js
 
 # Load finish handlers
 @on_event   LOAD_FINISH    @set_status <span foreground="gold">done</span>
@@ -338,15 +337,6 @@ set eFormFiller = spawn @scripts_dir/eFormFiller.sh
 @cbind  ZE  = @eFormFiller edit
 @cbind  ZN  = @eFormFiller new
 @cbind  ZL  = @eFormFiller load
-
-# --- External edit script configuration & binds ---
-# Edit form input fields in an external editor (gvim, emacs, urxvt -e vim, ..)
-# disabled since Uzbl object is gone
-set external_editor = gvim
-#set external_editor = xterm -e vim
-#@cbind  E  = script @scripts_dir/extedit.js
-# And add menu option.
-#menu_editable_add Open in @external_editor = script @scripts_dir/extedit.js
 
 # --- Examples ---
 # Example showing how to use uzbl's fifo to execute a command.
