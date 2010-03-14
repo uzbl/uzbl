@@ -18,9 +18,9 @@
 
 # config dmenu colors and prompt
 NB="#0f0f0f"
-NF="#4e7093" 
-SB="#003d7c" 
-SF="#3a9bff" 
+NF="#4e7093"
+SB="#003d7c"
+SF="#3a9bff"
 
 if [ "`dmenu --help 2>&1| grep lines`x" != "x" ]
 then
@@ -45,19 +45,19 @@ if [ -z ${editor} ]; then
     fi
 fi
 
-config=$1; 
+config=$1;
 shift
-pid=$1;    
+pid=$1;
 shift
-xid=$1;    
+xid=$1;
 shift
-fifo=$1;   
+fifo=$1;
 shift
-socket=$1; 
+socket=$1;
 shift
-url=$1;    
+url=$1;
 shift
-title=$1;  
+title=$1;
 shift
 action=$1
 
@@ -124,7 +124,7 @@ else
             echo "!profile=NAME_THIS_PROFILE$RANDOM" >> $keydir/$domain
         fi
         #
-        # 2. and 3. line (tr -d and sed) are because, on gmail login for example, 
+        # 2. and 3. line (tr -d and sed) are because, on gmail login for example,
         # <input > tag is splited into lines
         # ex:
         # <input name="Email"
@@ -133,8 +133,8 @@ else
         # So, tr removes all new lines, and sed inserts new line after each >
         # Next sed selects only <input> tags and only with type == "text" or == "password"
         # If type is first and name is second, then another sed will change their order
-        # so the last sed will make output 
-        #       text_from_the_name_attr(text or password): 
+        # so the last sed will make output
+        #       text_from_the_name_attr(text or password):
         #
         #       login(text):
         #       passwd(password):
