@@ -103,9 +103,9 @@ then
     echo "${html}" | \
         sed -n 's/.*\(<input[^>]\+>\).*/\1/;/type="\(password\|text\)"/Ip' | \
         sed 's/\(.*\)\(type="[^"]\+"\)\(.*\)\(name="[^"]\+"\)\(.*\)/\1\4\3\2\5/I' | \
-        sed 's/.*name="\([^"]\+\)".*type="\([^"]\+\)".*/\1(\2): /I' >> $tmpfile
+        sed 's/.*name="\([^"]\+\)".*type="\([^"]\+\)".*/\1(\2):/I' >> $tmpfile
     echo "${html}" | \
-        sed -n 's/.*<textarea.*name="\([^"]\+\)".*/\1(textarea): /Ip' >> $tmpfile
+        sed -n 's/.*<textarea.*name="\([^"]\+\)".*/\1(textarea):/Ip' >> $tmpfile
     ${editor} $tmpfile
 
     [ -e $tmpfile ] || exit 2
@@ -150,7 +150,7 @@ else
             sed 's/type="text"\(.*\)type="\([^"]\+\)"/type="\2" \1 /g' | \
             sed -n 's/.*\(<input[^>]\+>\).*/\1/;/type="\(password\|text\)"/Ip' | \
             sed 's/\(.*\)\(type="[^"]\+"\)\(.*\)\(name="[^"]\+"\)\(.*\)/\1\4\3\2\5/I' | \
-            sed 's/.*name="\([^"]\+\)".*type="\([^"]\+\)".*/\1(\2): /I' >> $keydir/$domain
+            sed 's/.*name="\([^"]\+\)".*type="\([^"]\+\)".*/\1(\2):/I' >> $keydir/$domain
     fi
     [ -e "$keydir/$domain" ] || exit 3 #this should never happen, but you never know.
     $editor "$keydir/$domain" #TODO: if user aborts save in editor, the file is already overwritten
