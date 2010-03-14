@@ -31,6 +31,7 @@ uzbl-browser: uzbl-core
 # RUN_PREFIX : what the prefix is when the software is run. usually the same as PREFIX
 PREFIX?=/usr/local
 INSTALLDIR?=$(DESTDIR)$(PREFIX)
+DOCDIR?=$(INSTALLDIR)/share/uzbl/docs
 RUN_PREFIX?=$(PREFIX)
 
 # the 'tests' target can never be up to date
@@ -88,14 +89,14 @@ install: install-uzbl-core install-uzbl-browser install-uzbl-tabbed
 
 install-uzbl-core: all
 	install -d $(INSTALLDIR)/bin
-	install -d $(INSTALLDIR)/share/uzbl/docs
+	install -d $(DOCDIR)
 	install -d $(INSTALLDIR)/share/uzbl/examples
-	cp -rp docs         $(INSTALLDIR)/share/uzbl/
-	cp -rp src/config.h $(INSTALLDIR)/share/uzbl/docs/
+	cp -rp docs/*       $(DOCDIR)/
+	cp -rp src/config.h $(DOCDIR)/
 	cp -rp examples     $(INSTALLDIR)/share/uzbl/
 	install -m755 uzbl-core    $(INSTALLDIR)/bin/uzbl-core
-	install -m644 AUTHORS      $(INSTALLDIR)/share/uzbl/docs
-	install -m644 README       $(INSTALLDIR)/share/uzbl/docs
+	install -m644 AUTHORS      $(DOCDIR)
+	install -m644 README       $(DOCDIR)
 	sed -i 's#^set prefix.*=.*#set prefix     = $(RUN_PREFIX)#' $(INSTALLDIR)/share/uzbl/examples/config/config
 
 install-uzbl-browser:
