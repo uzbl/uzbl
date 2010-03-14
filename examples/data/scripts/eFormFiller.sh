@@ -86,12 +86,12 @@ then
 
     cat $keydir/$domain | \
         sed -n -e "/^!profile=${option}/,/^!profile=/p" | \
-        sed -n -e 's/\([^(]\+\)([^)]\+):[ ]*\(.\+\)$/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].value="\2" } } }; document.getElementsByName("\1")[0].value="\2"/p' | \
+        sed -n -e 's/\([^(]\+\)([^)]\+):[ ]*\(.\+\)$/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { try { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].value="\2"; } } catch(err) { } } }; document.getElementsByName("\1")[0].value="\2"/p' | \
         sed -e 's/@/\\@/g' >> $fifo
 elif [ "$action" = "once" ]
 then
     tmpfile=`mktemp`
-    html=`echo 'js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { window.frames[i].document.documentElement.outerHTML } }' | \
+    html=`echo 'js if(window.frames.length > 0) { for(j=0;j<window.frames.length;j=j+1) { try { window.frames[j].document.documentElement.outerHTML; } catch(err) { } } }' | \
         socat - unix-connect:$socket`
     html=${html}" "`echo 'js document.documentElement.outerHTML' | \
         socat - unix-connect:$socket`
@@ -111,7 +111,7 @@ then
     [ -e $tmpfile ] || exit 2
 
     cat $tmpfile | \
-        sed -n -e 's/\([^(]\+\)([^)]\+):[ ]*\(.\+\)/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].value="\2" } } }; document.getElementsByName("\1")[0].value="\2"/p' | \
+        sed -n -e 's/\([^(]\+\)([^)]\+):[ ]*\(.\+\)/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { try { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].value="\2" } } catch(err) { } } }; document.getElementsByName("\1")[0].value="\2"/p' | \
         sed -e 's/@/\\@/g' >> $fifo
     rm -f $tmpfile
 else
@@ -139,7 +139,7 @@ else
         #       login(text):
         #       passwd(password):
         #
-        html=`echo 'js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { window.frames[i].document.documentElement.outerHTML } }' | \
+        html=`echo 'js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { try { window.frames[i].document.documentElement.outerHTML; } catch(err) { } } }' | \
             socat - unix-connect:$socket`
         html=${html}" "`echo 'js document.documentElement.outerHTML' | \
             socat - unix-connect:$socket`
