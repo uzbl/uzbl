@@ -1,40 +1,28 @@
 # first entries are for gnu make, 2nd for BSD make.  see http://lists.uzbl.org/pipermail/uzbl-dev-uzbl.org/2009-July/000177.html
 
-CFLAGS:=-std=c99 $(shell pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -lgthread-2.0 -DCOMMIT="\"$(shell ./misc/hash.sh)\"" $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
-CFLAGS!=echo -std=c99 `pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` -ggdb -Wall -W -DARCH='"\""'`uname -m`'"\""' -lgthread-2.0 -DCOMMIT='"\""'`./misc/hash.sh`'"\""' $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
+CFLAGS:=-std=c99 $(shell pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -DCOMMIT="\"$(shell ./misc/hash.sh)\"" $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
+CFLAGS!=echo -std=c99 `pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` -ggdb -Wall -W -DARCH='"\""'`uname -m`'"\""' -DCOMMIT='"\""'`./misc/hash.sh`'"\""' $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
 
-LDFLAGS:=$(shell pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0) -pthread $(LDFLAGS)
-LDFLAGS!=echo `pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` -pthread $(LDFLAGS)
+LDFLAGS:=$(shell pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0) $(LDFLAGS)
+LDFLAGS!=echo `pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` $(LDFLAGS)
 
 SRC = $(wildcard src/*.c)
 HEAD = $(wildcard src/*.h)
-TOBJ = $(SRC:.c=.o)
-OBJ = $(foreach obj, $(TOBJ), $(notdir $(obj)))
+OBJ = $(foreach obj, $(SRC:.c=.o), $(notdir $(obj)))
 
-all: uzbl-browser options
+all: uzbl-browser
 
-options:
-	@echo
-	@echo BUILD OPTIONS:
-	@echo "CFLAGS   = ${CFLAGS}"
-	@echo "LDFLAGS  = ${LDFLAGS}"
-	@echo
-	@echo See the README file for usage instructions.
-
+VPATH:=src
 
 .c.o:
-	@echo COMPILING $<
+	@echo -e "${CC} -c ${CFLAGS} $<"
 	@${CC} -c ${CFLAGS} $<
-	@echo ... done.
 
 ${OBJ}: ${HEAD}
 
-uzbl-core: ${TOBJ} # why doesn't ${OBJ} work?
-	@echo
-	@echo LINKING object files
+uzbl-core: ${OBJ}
+	@echo -e "\n${CC} -o $@ ${OBJ} ${LDFLAGS}"
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
-	@echo ... done.
-
 
 uzbl-browser: uzbl-core
 
@@ -43,6 +31,7 @@ uzbl-browser: uzbl-core
 # RUN_PREFIX : what the prefix is when the software is run. usually the same as PREFIX
 PREFIX?=/usr/local
 INSTALLDIR?=$(DESTDIR)$(PREFIX)
+DOCDIR?=$(INSTALLDIR)/share/uzbl/docs
 RUN_PREFIX?=$(PREFIX)
 
 # the 'tests' target can never be up to date
@@ -50,7 +39,7 @@ RUN_PREFIX?=$(PREFIX)
 force:
 
 # When compiling unit tests, compile uzbl as a library first
-tests: ${TOBJ} force
+tests: ${OBJ} force
 	$(CC) -shared -Wl ${OBJ} -o ./tests/libuzbl-core.so
 	cd ./tests/; $(MAKE)
 
@@ -100,14 +89,14 @@ install: install-uzbl-core install-uzbl-browser install-uzbl-tabbed
 
 install-uzbl-core: all
 	install -d $(INSTALLDIR)/bin
-	install -d $(INSTALLDIR)/share/uzbl/docs
+	install -d $(DOCDIR)
 	install -d $(INSTALLDIR)/share/uzbl/examples
-	cp -rp docs         $(INSTALLDIR)/share/uzbl/
-	cp -rp src/config.h $(INSTALLDIR)/share/uzbl/docs/
+	cp -rp docs/*       $(DOCDIR)/
+	cp -rp src/config.h $(DOCDIR)/
 	cp -rp examples     $(INSTALLDIR)/share/uzbl/
 	install -m755 uzbl-core    $(INSTALLDIR)/bin/uzbl-core
-	install -m644 AUTHORS      $(INSTALLDIR)/share/uzbl/docs
-	install -m644 README       $(INSTALLDIR)/share/uzbl/docs
+	install -m644 AUTHORS      $(DOCDIR)
+	install -m644 README       $(DOCDIR)
 	sed -i 's#^set prefix.*=.*#set prefix     = $(RUN_PREFIX)#' $(INSTALLDIR)/share/uzbl/examples/config/config
 
 install-uzbl-browser:

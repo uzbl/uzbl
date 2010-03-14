@@ -45,24 +45,25 @@ set cookie_handler      = talk_to_socket $XDG_CACHE_HOME/uzbl/cookie_daemon_sock
 set scheme_handler      = sync_spawn @scripts_dir/scheme.py
 set authentication_handler = sync_spawn @scripts_dir/auth.py
 
-# Open in the same window.
-#set new_window         = sh 'echo uri "$8" > $4'
-# Open a link in a new window. equivalent to default behavior
-set new_window          = sh 'uzbl-browser -u $8'
-
 # --- Optional dynamic event handlers ----------------------------------------
+
+# Open link in new window
+@on_event   NEW_WINDOW     sh 'uzbl-browser -u $8' %r
+# Open in current window
+#@on_event   NEW_WINDOW     uri %s
+# Open in new tab
+#@on_event   NEW_WINODW     event NEW_TAB %s
 
 # Download handler
 @on_event   DOWNLOAD_REQUEST    spawn @scripts_dir/download.sh %s \@proxy_url
 
 # Load start handler
 @on_event   LOAD_START     @set_status <span foreground="khaki">wait</span>
+# Reset the keycmd on navigation
+@on_event   LOAD_START     @set_mode
 
 # Load commit handlers
 @on_event   LOAD_COMMIT    @set_status <span foreground="green">recv</span>
-#@on_event   LOAD_COMMIT    script @scripts_dir/scroll-percentage.js
-# Reset the keycmd on navigation
-@on_event   LOAD_COMMIT    @set_mode
 
 # Load finish handlers
 @on_event   LOAD_FINISH    @set_status <span foreground="gold">done</span>
@@ -186,7 +187,7 @@ set ebind = @mode_bind global,-insert
 # === Mouse bindings =========================================================
 
 # Middle click open in new window
-@bind  <Button2>  = sh 'if [ "\@SELECTED_URI" ]; then uzbl-browser -u "\@SELECTED_URI"; else echo "uri $(xclip -o)" > $4; fi'
+@bind  <Button2>  = sh 'if [ "\@SELECTED_URI" ]; then uzbl-browser -u "\@SELECTED_URI"; else echo "uri $(xclip -o | sed s/\\\@/%40/g)" > $4; fi'
 
 
 # === Keyboard bindings ======================================================
@@ -235,8 +236,10 @@ set ebind = @mode_bind global,-insert
 # --- Uzbl tabbed binds ---
 # Tab opening
 @cbind  gn              = event NEW_TAB
+@cbind  gN              = event NEW_TAB_NEXT
 @cbind  go<uri:>_       = event NEW_TAB %s
-@cbind  gY              = sh 'echo "event NEW_TAB `xclip -selection primary -o`" > $4'
+@cbind  gO<uri:>_       = event NEW_TAB_NEXT %s
+@cbind  gY              = sh 'echo "event NEW_TAB `xclip -selection primary -o | sed s/\\\@/%40/g`" > $4'
 # Closing / resting
 @cbind  gC              = exit
 @cbind  gQ              = event CLEAN_TABS
@@ -267,7 +270,8 @@ set preset = event PRESET_TABS
 @cbind  !dump              = sh "echo dump_config > $4"
 # Reload config
 @cbind  !reload            = sh "sed '/^# === Post-load misc commands/,$d' $1 > $4"
-# If you want to see all events being triggered:
+# Use socat to directly inject commands into uzbl-core and view events
+# raised by uzbl-core:
 @cbind  <Ctrl><Alt>t  = sh 'xterm -e "socat unix-connect:$5 -"'
 #@cbind  <Ctrl><Alt>t  = sh 'urxvt -e socat unix-connect:$5 -'
 
@@ -293,9 +297,9 @@ set toggle_cmd_ins = @toggle_modes command insert
 @cbind  yy  = sh 'echo -n $7 | xclip'
 
 # Go the page from primary selection
-@cbind  p   = sh 'echo "uri `xclip -selection primary -o`" > $4'
+@cbind  p   = sh 'echo "uri `xclip -selection primary -o | sed s/\\\@/%40/g`" > $4'
 # Go to the page in clipboard
-@cbind  P   = sh 'echo "uri `xclip -selection clipboard -o`" > $4'
+@cbind  P   = sh 'echo "uri `xclip -selection clipboard -o | sed s/\\\@/%40/g`" > $4'
 # Start a new uzbl instance from the page in primary selection
 @cbind  'p  = sh 'exec uzbl-browser --uri $(xclip -o)'
 
@@ -317,26 +321,15 @@ set follow_hint_keys = 0123456789
 @cbind  fl*  = script @scripts_dir/follow.js '@follow_hint_keys %s'
 
 # --- Form filler binds ---
-# this script allows you to configure (per domain) values to fill in form
-# fields (eg login information) and to fill in these values automatically
-set formfiller = spawn @scripts_dir/formfiller
-@cbind  za  = @{formfiller}.sh
-@cbind  ze  = @{formfiller}.sh edit
-@cbind  zn  = @{formfiller}.sh new
-@cbind  zl  = @{formfiller}.sh load
-# Or the more advanced implementation using perl: (could not get this to run - Dieter)
-@cbind  LL  = @{formfiller}.pl load
-@cbind  LN  = @{formfiller}.pl new
-@cbind  LE  = @{formfiller}.pl edit
-
-# --- External edit script configuration & binds ---
-# Edit form input fields in an external editor (gvim, emacs, urxvt -e vim, ..)
-# disabled since Uzbl object is gone
-set external_editor = gvim
-#set external_editor = xterm -e vim
-#@cbind  E  = script @scripts_dir/extedit.js
-# And add menu option.
-#menu_editable_add Open in @external_editor = script @scripts_dir/extedit.js
+# This script allows you to configure (per domain) values to fill in form
+# fields (eg login information) and to fill in these values automatically.
+# This implementation allows you to save multiple profiles for each form
+# (think about multiple accounts on some website).
+set formfiller = spawn @scripts_dir/formfiller.sh
+@cbind  za  = @formfiller add
+@cbind  ze  = @formfiller edit
+@cbind  zn  = @formfiller new
+@cbind  zl  = @formfiller load
 
 # --- Examples ---
 # Example showing how to use uzbl's fifo to execute a command.
