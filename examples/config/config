@@ -319,24 +319,15 @@ set follow_hint_keys = 0123456789
 @cbind  fl*  = script @scripts_dir/follow.js '@follow_hint_keys %s'
 
 # --- Form filler binds ---
-# this script allows you to configure (per domain) values to fill in form
-# fields (eg login information) and to fill in these values automatically
-set formfiller = spawn @scripts_dir/formfiller
-@cbind  za  = @{formfiller}.sh
-@cbind  ze  = @{formfiller}.sh edit
-@cbind  zn  = @{formfiller}.sh new
-@cbind  zl  = @{formfiller}.sh load
-# Or the more advanced implementation using perl: (could not get this to run - Dieter)
-@cbind  LL  = @{formfiller}.pl load
-@cbind  LN  = @{formfiller}.pl new
-@cbind  LE  = @{formfiller}.pl edit
-# One more implementation, that allows to save multiple profiles for each form
+# This script allows you to configure (per domain) values to fill in form
+# fields (eg login information) and to fill in these values automatically.
+# This implementation allows you to save multiple profiles for each form
 # (think about multiple accounts on some website).
-set eFormFiller = spawn @scripts_dir/eFormFiller.sh
-@cbind  ZA  = @eFormFiller add
-@cbind  ZE  = @eFormFiller edit
-@cbind  ZN  = @eFormFiller new
-@cbind  ZL  = @eFormFiller load
+set formfiller = spawn @scripts_dir/formfiller.sh
+@cbind  za  = @formfiller add
+@cbind  ze  = @formfiller edit
+@cbind  zn  = @formfiller new
+@cbind  zl  = @formfiller load
 
 # --- Examples ---
 # Example showing how to use uzbl's fifo to execute a command.
