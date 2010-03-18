@@ -48,7 +48,7 @@ set authentication_handler = sync_spawn @scripts_dir/auth.py
 # Open in the same window.
 #set new_window         = sh 'echo uri "$8" > $4'
 # Open a link in a new window. equivalent to default behavior
-set new_window          = sh 'uzbl-browser -u $8'
+set new_window          = sh 'uzbl-browser -u "$8"'
 
 # --- Optional dynamic event handlers ----------------------------------------
 
