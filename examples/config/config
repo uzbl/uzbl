@@ -268,8 +268,9 @@ set preset = event PRESET_TABS
 @cbind  ZZ                 = exit
 # Dump config to stdout
 @cbind  !dump              = sh "echo dump_config > $4"
-# Reload config
-@cbind  !reload            = sh "sed '/^# === Post-load misc commands/,$d' $1 > $4"
+# Reload all variables in the config
+@cbind  !reload            = sh "sed '/^# === Post-load misc commands/,$d' $1 | grep '^set ' > $4"
+
 # Use socat to directly inject commands into uzbl-core and view events
 # raised by uzbl-core:
 @cbind  <Ctrl><Alt>t  = sh 'xterm -e "socat unix-connect:$5 -"'
