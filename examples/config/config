@@ -164,7 +164,7 @@ set ebind = @mode_bind global,-insert
 
 # Commands for editing and traversing the keycmd.
 @ebind  <Return>     = event KEYCMD_EXEC_CURRENT
-@ebind  <Home>       = event SET_CURSOR_POS
+@ebind  <Home>       = event SET_CURSOR_POS 0
 @ebind  <End>        = event SET_CURSOR_POS -1
 @ebind  <Left>       = event SET_CURSOR_POS -
 @ebind  <Right>      = event SET_CURSOR_POS +
