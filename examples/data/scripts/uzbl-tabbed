@@ -485,7 +485,7 @@ class UzblInstance:
                     config[var] = val
 
                 if var == "uri":
-                    self.uri = var
+                    self.uri = val
                     self.parent.update_tablist()
             elif type == "NEW_TAB":
                 self.parent.new_tab(args)
