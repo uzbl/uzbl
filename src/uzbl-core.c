@@ -90,7 +90,6 @@ const struct var_name_to_ptr_t {
     { "print_events",           PTR_V_INT(uzbl.state.events_stdout,             1,   NULL)},
     { "inject_html",            PTR_V_STR(uzbl.behave.inject_html,              0,   cmd_inject_html)},
     { "geometry",               PTR_V_STR(uzbl.gui.geometry,                    1,   cmd_set_geometry)},
-    { "keycmd",                 PTR_V_STR(uzbl.state.keycmd,                    1,   NULL)},
     { "show_status",            PTR_V_INT(uzbl.behave.show_status,              1,   cmd_set_status)},
     { "status_top",             PTR_V_INT(uzbl.behave.status_top,               1,   move_statusbar)},
     { "status_format",          PTR_V_STR(uzbl.behave.status_format,            1,   NULL)},
@@ -99,8 +98,8 @@ const struct var_name_to_ptr_t {
     { "title_format_short",     PTR_V_STR(uzbl.behave.title_format_short,       1,   NULL)},
     { "icon",                   PTR_V_STR(uzbl.gui.icon,                        1,   set_icon)},
     { "forward_keys",           PTR_V_INT(uzbl.behave.forward_keys,             1,   NULL)},
-    { "download_handler",       PTR_V_STR(uzbl.behave.download_handler,         1,   NULL)},
     { "cookie_handler",         PTR_V_STR(uzbl.behave.cookie_handler,           1,   NULL)},
+    { "authentication_handler", PTR_V_STR(uzbl.behave.authentication_handler,   1,   set_authentication_handler)},
     { "new_window",             PTR_V_STR(uzbl.behave.new_window,               1,   NULL)},
     { "scheme_handler",         PTR_V_STR(uzbl.behave.scheme_handler,           1,   NULL)},
     { "fifo_dir",               PTR_V_STR(uzbl.behave.fifo_dir,                 1,   cmd_fifo_dir)},
@@ -320,7 +319,7 @@ expand(const char *s, guint recurse) {
                     /* JS from string */
                     else {
                         mycmd = expand(ret, 2);
-                        eval_js(uzbl.gui.web_view, mycmd, js_ret);
+                        eval_js(uzbl.gui.web_view, mycmd, js_ret, "(command)");
                         g_free(mycmd);
                     }
 
@@ -501,7 +500,10 @@ clean_up(void) {
     g_free(uzbl.info.pid_str);
 
     g_free(uzbl.state.executable_path);
-    g_hash_table_destroy(uzbl.behave.commands);
+    if (uzbl.behave.commands) {
+        g_hash_table_destroy(uzbl.behave.commands);
+        uzbl.behave.commands = NULL;
+    }
 
     if(uzbl.state.event_buffer)
         g_ptr_array_free(uzbl.state.event_buffer, TRUE);
@@ -1046,11 +1048,11 @@ js_init() {
 
 
 void
-eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
+eval_js(WebKitWebView * web_view, gchar *script, GString *result, const char *file) {
     WebKitWebFrame *frame;
     JSGlobalContextRef context;
     JSObjectRef globalobject;
-
+    JSStringRef js_file;
     JSStringRef js_script;
     JSValueRef js_result;
     JSValueRef js_exc = NULL;
@@ -1065,7 +1067,8 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
 
     /* evaluate the script and get return value*/
     js_script = JSStringCreateWithUTF8CString(script);
-    js_result = JSEvaluateScript(context, js_script, globalobject, NULL, 0, &js_exc);
+    js_file = JSStringCreateWithUTF8CString(file);
+    js_result = JSEvaluateScript(context, js_script, globalobject, js_file, 0, &js_exc);
     if (js_result && !JSValueIsUndefined(context, js_result)) {
         js_result_string = JSValueToStringCopy(context, js_result, NULL);
         js_result_size = JSStringGetMaximumUTF8CStringSize(js_result_string);
@@ -1082,9 +1085,21 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
         size_t size;
         JSStringRef prop, val;
         JSObjectRef exc = JSValueToObject(context, js_exc, NULL);
-        
+
         printf("Exception occured while executing script:\n");
-        
+
+        /* Print file */
+        prop = JSStringCreateWithUTF8CString("sourceURL");
+        val = JSValueToStringCopy(context, JSObjectGetProperty(context, exc, prop, NULL), NULL);
+        size = JSStringGetMaximumUTF8CStringSize(val);
+        if(size) {
+            char cstr[size];
+            JSStringGetUTF8CString(val, cstr, size);
+            printf("At %s", cstr);
+        }
+        JSStringRelease(prop);
+        JSStringRelease(val);
+
         /* Print line */
         prop = JSStringCreateWithUTF8CString("line");
         val = JSValueToStringCopy(context, JSObjectGetProperty(context, exc, prop, NULL), NULL);
@@ -1092,11 +1107,11 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
         if(size) {
             char cstr[size];
             JSStringGetUTF8CString(val, cstr, size);
-            printf("At line %s: ", cstr);
+            printf(":%s: ", cstr);
         }
         JSStringRelease(prop);
         JSStringRelease(val);
-        
+
         /* Print message */
         val = JSValueToStringCopy(context, exc, NULL);
         size = JSStringGetMaximumUTF8CStringSize(val);
@@ -1110,12 +1125,13 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result) {
 
     /* cleanup */
     JSStringRelease(js_script);
+    JSStringRelease(js_file);
 }
 
 void
 run_js (WebKitWebView * web_view, GArray *argv, GString *result) {
     if (argv_idx(argv, 0))
-        eval_js(web_view, argv_idx(argv, 0), result);
+        eval_js(web_view, argv_idx(argv, 0), result, "(command)");
 }
 
 void
@@ -1148,7 +1164,7 @@ run_external_js (WebKitWebView * web_view, GArray *argv, GString *result) {
         g_free (js);
         js = newjs;
 
-        eval_js (web_view, js, result);
+        eval_js (web_view, js, result, path);
         g_free (js);
         g_array_free (lines, TRUE);
         g_free(path);
@@ -2041,6 +2057,7 @@ create_browser () {
       "signal::key-release-event",                    (GCallback)key_release_cb,          NULL,
       "signal::button-press-event",                   (GCallback)button_press_cb,         NULL,
       "signal::button-release-event",                 (GCallback)button_release_cb,       NULL,
+      "signal::motion-notify-event",                  (GCallback)motion_notify_cb,        NULL,
       "signal::title-changed",                        (GCallback)title_change_cb,         NULL,
       "signal::selection-changed",                    (GCallback)selection_changed_cb,    NULL,
       "signal::load-progress-changed",                (GCallback)progress_change_cb,      NULL,
@@ -2054,6 +2071,7 @@ create_browser () {
       "signal::download-requested",                   (GCallback)download_cb,             NULL,
       "signal::create-web-view",                      (GCallback)create_web_view_cb,      NULL,
       "signal::mime-type-policy-decision-requested",  (GCallback)mime_policy_cb,          NULL,
+      "signal::resource-request-starting",            (GCallback)request_starting_cb,     NULL,
       "signal::populate-popup",                       (GCallback)populate_popup_cb,       NULL,
       "signal::focus-in-event",                       (GCallback)focus_cb,                NULL,
       "signal::focus-out-event",                      (GCallback)focus_cb,                NULL,
@@ -2317,6 +2335,63 @@ settings_init () {
         init_connect_socket();
 
     g_signal_connect_after(n->soup_session, "request-started", G_CALLBACK(handle_cookies), NULL);
+    g_signal_connect(n->soup_session, "authenticate", G_CALLBACK(handle_authentication), NULL);
+}
+
+void handle_authentication (SoupSession *session, SoupMessage *msg, SoupAuth *auth, gboolean retrying, gpointer user_data) {
+
+    (void) user_data;
+
+    if(uzbl.behave.authentication_handler && *uzbl.behave.authentication_handler != 0) {
+        gchar *info, *host, *realm;
+        gchar *p;
+
+        soup_session_pause_message(session, msg);
+
+        /* Sanitize strings */
+            info  = g_strdup(soup_auth_get_info(auth));
+            host  = g_strdup(soup_auth_get_host(auth));
+            realm = g_strdup(soup_auth_get_realm(auth));
+            for (p = info; *p; p++)  if (*p == '\'') *p = '\"';
+            for (p = host; *p; p++)  if (*p == '\'') *p = '\"';
+            for (p = realm; *p; p++) if (*p == '\'') *p = '\"';
+
+        GString *s = g_string_new ("");
+        g_string_printf(s, "'%s' '%s' '%s' '%s'",
+            info, host, realm, retrying?"TRUE":"FALSE");
+
+        run_handler(uzbl.behave.authentication_handler, s->str);
+
+        if (uzbl.comm.sync_stdout && strcmp (uzbl.comm.sync_stdout, "") != 0) {
+            char  *username, *password;
+            int    number_of_endls=0;
+
+            username = uzbl.comm.sync_stdout;
+
+            for (p = uzbl.comm.sync_stdout; *p; p++) {
+                if (*p == '\n') {
+                    *p = '\0';
+                    if (++number_of_endls == 1)
+                        password = p + 1;
+                }
+            }
+
+            /* If stdout was correct (contains exactly two lines of text) do
+             * authenticate. */
+            if (number_of_endls == 2)
+                soup_auth_authenticate(auth, username, password);
+        }
+
+        if (uzbl.comm.sync_stdout)
+            uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
+
+        soup_session_unpause_message(session, msg);
+
+        g_string_free(s, TRUE);
+        g_free(info);
+        g_free(host);
+        g_free(realm);
+    }
 }
 
 void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer user_data){
@@ -2459,7 +2534,6 @@ initialize(int argc, char *argv[]) {
     }
 
     uzbl.net.soup_session = webkit_get_default_session();
-    uzbl.state.keycmd = g_strdup("");
 
     for(i=0; sigs[i]; i++) {
         if(setup_signal(sigs[i], catch_signal) == SIG_ERR)
@@ -2467,9 +2541,9 @@ initialize(int argc, char *argv[]) {
     }
     event_buffer_timeout(10);
 
-    uzbl.info.webkit_major = WEBKIT_MAJOR_VERSION;
-    uzbl.info.webkit_minor = WEBKIT_MINOR_VERSION;
-    uzbl.info.webkit_micro = WEBKIT_MICRO_VERSION;
+    uzbl.info.webkit_major = webkit_major_version();
+    uzbl.info.webkit_minor = webkit_minor_version();
+    uzbl.info.webkit_micro = webkit_micro_version();
     uzbl.info.arch         = ARCH;
     uzbl.info.commit       = COMMIT;
 
@@ -2483,8 +2557,15 @@ initialize(int argc, char *argv[]) {
 void
 load_uri_imp(gchar *uri) {
     GString* newuri;
+
+    /* Strip leading whitespaces */
+    while (*uri) {
+        if (!isspace(*uri)) break;
+        uri++;
+    }
+
     if (g_strstr_len (uri, 11, "javascript:") != NULL) {
-        eval_js(uzbl.gui.web_view, uri, NULL);
+        eval_js(uzbl.gui.web_view, uri, NULL, "javascript:");
         return;
     }
     newuri = g_string_new (uri);

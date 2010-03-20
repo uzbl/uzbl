@@ -1,43 +1,28 @@
 # first entries are for gnu make, 2nd for BSD make.  see http://lists.uzbl.org/pipermail/uzbl-dev-uzbl.org/2009-July/000177.html
 
-CFLAGS:=-std=c99 $(shell pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -lgthread-2.0 -DCOMMIT="\"$(shell ./misc/hash.sh)\"" $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
-CFLAGS!=echo -std=c99 `pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` -ggdb -Wall -W -DARCH='"\""'`uname -m`'"\""' -lgthread-2.0 -DCOMMIT='"\""'`./misc/hash.sh`'"\""' $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
+CFLAGS:=-std=c99 $(shell pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -DCOMMIT="\"$(shell ./misc/hash.sh)\"" $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
+CFLAGS!=echo -std=c99 `pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` -ggdb -Wall -W -DARCH='"\""'`uname -m`'"\""' -DCOMMIT='"\""'`./misc/hash.sh`'"\""' $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
 
-LDFLAGS:=$(shell pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0) -pthread $(LDFLAGS)
-LDFLAGS!=echo `pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` -pthread $(LDFLAGS)
+LDFLAGS:=$(shell pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0) $(LDFLAGS)
+LDFLAGS!=echo `pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` $(LDFLAGS)
 
 SRC = $(wildcard src/*.c)
 HEAD = $(wildcard src/*.h)
-TOBJ = $(SRC:.c=.o)
-OBJ = $(foreach obj, $(TOBJ), $(notdir $(obj)))
+OBJ = $(foreach obj, $(SRC:.c=.o), $(notdir $(obj)))
 
-all: uzbl-browser options
+all: uzbl-browser
 
-options:
-	@echo
-	@echo BUILD OPTIONS:
-	@echo "CFLAGS   = ${CFLAGS}"
-	@echo "LDFLAGS  = ${LDFLAGS}"
-	@echo
-	@echo See the README file for usage instructions.
-
+VPATH:=src
 
 .c.o:
-	@echo COMPILING $<
+	@echo -e "${CC} -c ${CFLAGS} $<"
 	@${CC} -c ${CFLAGS} $<
-	@echo ... done.
 
 ${OBJ}: ${HEAD}
 
-uzbl-core: ${TOBJ} # why doesn't ${OBJ} work?
-	@echo
-	@echo LINKING object files
+uzbl-core: ${OBJ}
+	@echo -e "\n${CC} -o $@ ${OBJ} ${LDFLAGS}"
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
-	@echo ... done.
-	@echo Stripping binary
-	@strip $@
-	@echo ... done.
-
 
 uzbl-browser: uzbl-core
 
@@ -46,6 +31,7 @@ uzbl-browser: uzbl-core
 # RUN_PREFIX : what the prefix is when the software is run. usually the same as PREFIX
 PREFIX?=/usr/local
 INSTALLDIR?=$(DESTDIR)$(PREFIX)
+DOCDIR?=$(INSTALLDIR)/share/uzbl/docs
 RUN_PREFIX?=$(PREFIX)
 
 # the 'tests' target can never be up to date
@@ -66,6 +52,7 @@ test-uzbl-browser: uzbl-browser
 test-uzbl-core-sandbox: uzbl-core
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-core
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
+	cp -np ./misc/env.sh ./sandbox/env.sh
 	source ./sandbox/env.sh && uzbl-core --uri http://www.uzbl.org --verbose
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
@@ -74,6 +61,7 @@ test-uzbl-browser-sandbox: uzbl-browser
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-core
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-browser
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
+	cp -np ./misc/env.sh ./sandbox/env.sh
 	source ./sandbox/env.sh && uzbl-cookie-daemon restart -nv &
 	source ./sandbox/env.sh && uzbl-event-manager restart -nav &
 	source ./sandbox/env.sh && uzbl-browser --uri http://www.uzbl.org --verbose
@@ -88,35 +76,38 @@ clean:
 	rm -f events.o
 	rm -f callbacks.o
 	rm -f inspector.o
-	find examples/ -name "*.pyc" -delete
+	find ./examples/ -name "*.pyc" -delete
 	cd ./tests/; $(MAKE) clean
-	rm -rf ./sandbox/{examples,usr}/
+	rm -rf ./sandbox/
+
+strip:
+	@echo Stripping binary
+	@strip uzbl-core
+	@echo ... done.
 
 install: install-uzbl-core install-uzbl-browser install-uzbl-tabbed
 
 install-uzbl-core: all
-	install -d $(INSTALLDIR)/bin
-	install -d $(INSTALLDIR)/share/uzbl/docs
-	install -d $(INSTALLDIR)/share/uzbl/examples
-	cp -rp docs         $(INSTALLDIR)/share/uzbl/
-	cp -rp src/config.h $(INSTALLDIR)/share/uzbl/docs/
-	cp -rp examples     $(INSTALLDIR)/share/uzbl/
-	install -m755 uzbl-core    $(INSTALLDIR)/bin/uzbl-core
-	install -m644 AUTHORS      $(INSTALLDIR)/share/uzbl/docs
-	install -m644 README       $(INSTALLDIR)/share/uzbl/docs
+	install -d $(INSTALLDIR)/share/uzbl/
+	install -d $(DOCDIR)
+	install -m644 docs/* $(DOCDIR)/
+	install -m644 src/config.h $(DOCDIR)/
+	install -m644 README $(DOCDIR)/
+	install -m644 AUTHORS $(DOCDIR)/
+	cp -r examples $(INSTALLDIR)/share/uzbl/
+	chmod 755 $(INSTALLDIR)/share/uzbl/examples/data/scripts/*
 	sed -i 's#^set prefix.*=.*#set prefix     = $(RUN_PREFIX)#' $(INSTALLDIR)/share/uzbl/examples/config/config
+	install -D -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
 
 install-uzbl-browser:
-	install -d $(INSTALLDIR)/bin
-	install -m755 src/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
-	install -m755 examples/data/scripts/uzbl-cookie-daemon $(INSTALLDIR)/bin/uzbl-cookie-daemon
-	install -m755 examples/data/scripts/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
+	install -D -m755 src/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
+	install -D -m755 examples/data/scripts/uzbl-cookie-daemon $(INSTALLDIR)/bin/uzbl-cookie-daemon
+	install -D -m755 examples/data/scripts/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
 	sed -i 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' $(INSTALLDIR)/bin/uzbl-browser
 	sed -i "s#^PREFIX = .*#PREFIX = '$(RUN_PREFIX)'#" $(INSTALLDIR)/bin/uzbl-event-manager
 
 install-uzbl-tabbed:
-	install -d $(INSTALLDIR)/bin
-	install -m755 examples/data/scripts/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed
+	install -D -m755 examples/data/scripts/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed
 
 # you probably only want to do this manually when testing and/or to the sandbox. not meant for distributors
 install-example-data:

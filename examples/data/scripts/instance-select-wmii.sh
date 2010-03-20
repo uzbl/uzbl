@@ -6,7 +6,7 @@
 # you can select one from a list, or go to the next/previous one
 # It does not change the layout (stacked/tiled/floating) nor does it
 # changes the size or viewing mode of a uzbl window
-# When your current uzbl window is maximized, the one you change to 
+# When your current uzbl window is maximized, the one you change to
 # will be maximized as well.
 # See http://www.uzbl.org/wiki/wmii for more info
 # $1 must be one of 'list', 'next', 'prev'

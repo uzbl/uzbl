@@ -359,9 +359,9 @@ file).
 
 #### Constants (not dumpable or writeable)
 
-* `WEBKIT_MAJOR`: WebKit major version number, set at compile time.
-* `WEBKIT_MINOR`: WebKit minor version number, set at compile time.
-* `WEBKIT_MICRO`: WebKit micro version number, set at compile time
+* `WEBKIT_MAJOR`: WebKit major version number.
+* `WEBKIT_MINOR`: WebKit minor version number.
+* `WEBKIT_MICRO`: WebKit micro version number.
 * `ARCH_UZBL`: Processor architecture for which Uzbl is compiled, set at compile
   time.
 * `COMMIT`: ID of the current Git commit, set at compile time.
@@ -513,8 +513,84 @@ The script specific arguments are:
 
   - `$8 URI` of the page to be navigated to
 
+* authentication handler:
+
+    $8 authentication zone unique identifier
+    $9 domain part of URL that requests authentication
+    $10 authentication realm
+    $11 FALSE if this is the first attempt to authenticate, TRUE otherwise
+
 Custom, userdefined scripts (`spawn foo bar`) get first the arguments as
 specified in the config and then the above 7 are added at the end.
+
+### eFormFiller
+
+Example config entries for eFormFiller scripts
+
+    set eFormFiller = spawn @scripts_dir/eFormFiller.sh
+    @cbind    za        = @eFormFiller add
+    @cbind    ze        = @eFormFiller edit
+    @cbind    zn        = @eFormFiller new
+    @cbind    zl        = @eFormFiller load
+    @cbind    zo        = @eFormFiller once
+    
+NEW action generates new file with formfields for current domain. Note that it
+will overwrite existing file.
+
+EDIT action calls an external editor with curent domain profiles.
+
+ADD action adds another profile to current domain. Remember to name the
+profiles, by default the have a name with random numbers.
+
+LOAD action loads form data. If there is more then one profile, it will call
+dmenu first to choose the profile you want to fill in the form.
+
+ONCE action generates a temp file with formfields including the textareas and
+after closing the editor, it will load the data into the formfields. The temp
+file is removed
+
+### HTTP/BASIC AUTHENTICATION
+
+You can use the authentication_handler variable to denote how http
+authentication should be handled.
+If this variable is:
+
+* not set or empty: use webkit internal auth dialog
+* a valid handler (i.e. {sh,sync}_spawn correct_script), use this handler
+* innvalid handler (spawn, some other command, uses script that does not
+  print anything): skip authentication.
+
+Example:
+
+  set authentication_handler = sync_spawn /patch/to/your/script
+
+Script will be executed on each authentication request.
+It will receive four auth-related parameters:
+
+    $8 authentication zone unique identifier (may be used as 'key')
+    $9 domain part of URL that requests authentication
+    $10 authentication realm
+    $11 FALSE if this is the first attempt to authenticate, TRUE otherwise
+
+Script is expected to print exactly two lines of text on stdout (that means
+its output must contain exactly two '\n' bytes).
+The first line contains username, the second one - password.
+If authentication fails, script will be executed again (with $11 = TRUE).
+Non-interactive scripts should handle this case and do not try to
+authenticate again to avoid loops. If number of '\n' characters in scripts
+output does not equal 2, authentication will fail.
+That means 401 error will be displayed and uzbl won't try to authenticate anymore.
+
+The simplest example of authentication handler script is:
+
+#!/bin/sh
+[ "$11" == "TRUE ] && exit
+echo alice
+echo wonderland
+
+This script tries to authenticate as user alice with password wonderland once
+and never retries authentication.
+See examples for more sofisticated, interactive authentication handler.
 
 ### JAVASCRIPT HELPER OBJECT DISABLED BECAUSE OF SECURITY LEAK
 
@@ -588,6 +664,8 @@ Events have this format:
   could not be loaded for the reason described in `reason_of_error`.
 * `EVENT [uzbl_instance_name] LOAD_PROGRESS percentage` : While the page is
   loading, gives the `percentage` of the page that has finished loading.
+* `EVENT [uzbl_instance_name] REQUEST_STARTING uri`: http resource gets
+  requested
 * `EVENT [uzbl_instance_name] TITLE_CHANGED title_name`: When the title of the
   page (and hence maybe, the window title) changed. `title_name` is the new
   title.

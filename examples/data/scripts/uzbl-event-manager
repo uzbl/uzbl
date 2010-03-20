@@ -39,6 +39,7 @@ from signal import signal, SIGTERM
 from optparse import OptionParser
 from traceback import print_exc
 from functools import partial
+from itertools import count
 
 
 def xdghome(key, default):
@@ -105,15 +106,6 @@ def error(msg):
     '''Prints error messages to stderr.'''
 
     sys.stderr.write("%s: error: %s\n" % (SCRIPTNAME, msg))
-
-
-def counter():
-    '''Generate unique object id's.'''
-
-    i = 0
-    while True:
-        i += 1
-        yield i
 
 
 def find_plugins(plugin_dirs):
@@ -201,8 +193,9 @@ def daemonize():
         sys.stderr.write("fork #2 failed")
         sys.exit(1)
 
-    sys.stdout.flush()
-    sys.stderr.flush()
+    if sys.stdout.isatty():
+        sys.stdout.flush()
+        sys.stderr.flush()
 
     devnull = '/dev/null'
     stdin = file(devnull, 'r')
@@ -217,9 +210,13 @@ def daemonize():
 def make_dirs(path):
     '''Make all basedirs recursively as required.'''
 
-    dirname = os.path.dirname(path)
-    if not os.path.isdir(dirname):
-        os.makedirs(dirname)
+    try:
+        dirname = os.path.dirname(path)
+        if not os.path.isdir(dirname):
+            os.makedirs(dirname)
+
+    except OSError:
+        print_exc()
 
 
 def make_pid_file(pid_file):
@@ -295,7 +292,7 @@ def parse_msg(uzbl, msg):
     cmd = FINDSPACES.split(msg, 3)
     if not cmd or cmd[0] != 'EVENT':
         # Not an event message.
-        print '---', msg
+        print '---', msg.encode('utf-8')
         return
 
     while len(cmd) < 4:
@@ -314,7 +311,7 @@ def parse_msg(uzbl, msg):
 
 class EventHandler(object):
 
-    nexthid = counter().next
+    nexthid = count().next
 
     def __init__(self, event, handler, *args, **kargs):
         if not callable(handler):
@@ -333,18 +330,18 @@ class EventHandler(object):
             "function=%r" % self.function]
 
         if self.args:
-            args.append("args=%r" % self.args)
+            args.append(u"args=%r" % unicode(self.args))
 
         if self.kargs:
-            args.append("kargs=%r" % self.kargs)
+            args.append(u"kargs=%r" % unicode(self.kargs))
 
-        return "<EventHandler(%s)>" % ', '.join(args)
+        return u"<EventHandler(%s)>" % ', '.join(args)
 
 
 class UzblInstance(object):
 
     # Give all plugins access to the main config dict.
-    config = CONFIG
+    global_config = CONFIG
 
     def __init__(self, parent, client_socket):
 
@@ -374,28 +371,47 @@ class UzblInstance(object):
 
         msg = msg.strip()
         if self.client_socket:
-            print '%s<-- %s' % ('  ' * self.depth, msg)
+            print (u'%s<-- %s' % ('  ' * self.depth, msg)).encode('utf-8')
             self.client_socket.send(("%s\n" % msg).encode('utf-8'))
 
         else:
-            print '%s!-- %s' % ('  ' * self.depth, msg)
+            print (u'%s!-- %s' % ('  ' * self.depth, msg)).encode('utf-8')
 
 
-    def export(self, name, function):
-        '''Export `function(uzbl, *args, ..)` inside a plugin to the uzbl
-        object like so `uzbl.function(*args, ..)`. This will allow other
-        plugins to call functions inside the current plugin (which is currently
-        calling this function) via the uzbl object.'''
+    def export(self, attr, object, prepend=True):
+        '''Attach an object to the current class instance. This is the
+        preferred method of sharing functionality, functions and objects
+        between plugins.
 
-        self.__dict__.__setitem__(name, partial(function, self))
+        If the object is callable you may wish to turn the callable object in
+        to an "instance method call" by using the `functools.partial(..)`
+        tool to prepend the `self` object to the callable objects argument
+        list.
+
+        Example session from a plugins POV:
+          >>> config_dict = {'foo': 'data..', 'bar': 'other data..'}
+          >>> uzbl.export('config', config_dict)
+          >>> uzbl.config is config_dict
+          True
+          >>> print uzbl.config['foo']
+          data..
+          >>> uzbl.export('get', lambda uzbl, key: uzbl.config[key])
+          >>> print uzbl.get('bar')
+          other data..
+        '''
+
+        if prepend and callable(object):
+            object = partial(object, self)
+
+        self.__dict__.__setitem__(attr, object)
 
 
     def export_dict(self, export_dict):
-        '''Export multiple (name, function)'s at once inside a dict of the
-        form `{name1: function1, name2: function2, ...}`.'''
+        '''Export multiple (attr, object)'s at once inside a dict of the
+        form `{attr1: object1, attr2: object2, ...}`.'''
 
-        for (name, function) in export_dict.items():
-            self.export(name, function)
+        for (attr, object) in export_dict.items():
+            self.export(attr, object)
 
 
     def connect(self, event, handler, *args, **kargs):
@@ -466,7 +482,7 @@ class UzblInstance(object):
         elems = [event,]
         if args: elems.append(unicode(args))
         if kargs: elems.append(unicode(kargs))
-        print "%s--> %s" % ('  ' * self.depth, ' '.join(elems))
+        print (u'%s--> %s' % ('  ' * self.depth, ' '.join(elems))).encode('utf-8')
 
         if event == "INSTANCE_START" and args:
             self.pid = int(args[0])

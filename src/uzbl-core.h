@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -91,7 +92,6 @@ typedef struct {
     gchar    *selected_url;
     gchar    *last_selected_url;
     gchar    *executable_path;
-    gchar*   keycmd;
     gchar*   searchtx;
     gboolean verbose;
     gboolean events_stdout;
@@ -121,8 +121,8 @@ typedef struct {
     gchar*   status_background;
     gchar*   fifo_dir;
     gchar*   socket_dir;
-    gchar*   download_handler;
     gchar*   cookie_handler;
+    gchar*   authentication_handler;
     gchar*   new_window;
     gchar*   default_font_family;
     gchar*   monospace_font_family;
@@ -264,9 +264,6 @@ bool
 file_exists (const char * filename);
 
 void
-set_keycmd();
-
-void
 load_uri (WebKitWebView * web_view, GArray *argv, GString *result);
 
 void
@@ -337,9 +334,6 @@ gboolean
 key_release_cb (GtkWidget* window, GdkEventKey* event);
 
 void
-run_keycmd(const gboolean key_ret);
-
-void
 initialize (int argc, char *argv[]);
 
 void
@@ -388,7 +382,14 @@ void
 run_external_js (WebKitWebView * web_view, GArray *argv, GString *result);
 
 void
-eval_js(WebKitWebView * web_view, gchar *script, GString *result);
+eval_js(WebKitWebView * web_view, gchar *script, GString *result, const gchar *script_file);
+
+void
+handle_authentication (SoupSession *session,
+                            SoupMessage *msg,
+                            SoupAuth    *auth,
+                            gboolean     retrying,
+                            gpointer     user_data);
 
 void handle_cookies (SoupSession *session,
                             SoupMessage *msg,

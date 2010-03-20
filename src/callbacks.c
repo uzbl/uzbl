@@ -27,6 +27,25 @@ set_proxy_url() {
 }
 
 void
+set_authentication_handler() {
+    /* Check if WEBKIT_TYPE_SOUP_AUTH_DIALOG feature is set */
+    GSList *flist = soup_session_get_features (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
+    guint feature_is_set = g_slist_length(flist);
+    g_slist_free(flist);
+
+    if (uzbl.behave.authentication_handler == NULL || *uzbl.behave.authentication_handler == 0) {
+        if (!feature_is_set)
+            soup_session_add_feature_by_type
+                (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
+    } else {
+        if (feature_is_set)
+            soup_session_remove_feature_by_type
+                (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
+    }
+    return;
+}
+
+void
 set_icon() {
     if(file_exists(uzbl.gui.icon)) {
         if (uzbl.gui.main_window)
@@ -559,6 +578,19 @@ button_release_cb (GtkWidget* window, GdkEventButton* event) {
 }
 
 gboolean
+motion_notify_cb(GtkWidget* window, GdkEventMotion* event, gpointer user_data) {
+    (void) window;
+    (void) event;
+    (void) user_data;
+
+    gchar *details;
+    details = g_strdup_printf("%.0lf %.0lf %u", event->x, event->y, event->state);
+    send_event(PTR_MOVE, details, NULL);
+
+    return FALSE;
+}
+
+gboolean
 navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
     (void) web_view;
     (void) frame;
@@ -628,6 +660,18 @@ mime_policy_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequ
     return TRUE;
 }
 
+void
+request_starting_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitWebResource *resource,
+        WebKitNetworkRequest *request, WebKitNetworkResponse *response, gpointer user_data) {
+    (void) web_view;
+    (void) frame;
+    (void) resource;
+    (void) response;
+    (void) user_data;
+
+    send_event(REQUEST_STARTING, webkit_network_request_get_uri(request), NULL);
+}
+
 /*@null@*/ WebKitWebView*
 create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data) {
     (void) web_view;
@@ -648,23 +692,7 @@ gboolean
 download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
     (void) web_view;
     (void) user_data;
-    if (uzbl.behave.download_handler) {
-        const gchar* uri = webkit_download_get_uri ((WebKitDownload*)download);
-        if (uzbl.state.verbose)
-            printf("Download -> %s\n",uri);
 
-        /* if urls not escaped, we may have to escape and quote uri before this call */
-        GString *args = g_string_new(uri);
-
-        if (uzbl.net.proxy_url) {
-           g_string_append_c(args, ' ');
-           g_string_append(args, uzbl.net.proxy_url);
-        }
-
-        run_handler(uzbl.behave.download_handler, args->str);
-
-        g_string_free(args, TRUE);
-    }
     send_event(DOWNLOAD_REQ, webkit_download_get_uri ((WebKitDownload*)download), NULL);
     return (FALSE);
 }

@@ -404,7 +404,6 @@ def mode_changed(uzbl, mode):
 
 
 def match_and_exec(uzbl, bind, depth, keylet, bindlet):
-
     (on_exec, has_args, mod_cmd, glob, more) = bind[depth]
     cmd = keylet.modcmd if mod_cmd else keylet.keycmd
 
@@ -432,24 +431,28 @@ def match_and_exec(uzbl, bind, depth, keylet, bindlet):
 
     elif more:
         bindlet.stack(bind, args, depth)
+        (on_exec, has_args, mod_cmd, glob, more) = bind[depth+1]
+        if not on_exec and has_args and not glob and not more:
+            exec_bind(uzbl, bind, *(args+['',]))
+
         return False
 
     args = bindlet.args + args
     exec_bind(uzbl, bind, *args)
-    uzbl.set_mode()
-    if not has_args:
+    if not has_args or on_exec:
+        uzbl.set_mode()
         bindlet.reset()
         uzbl.clear_current()
 
     return True
 
 
-def keycmd_update(uzbl, keylet):
+def key_event(uzbl, keylet, mod_cmd=False, on_exec=False):
     bindlet = get_bindlet(uzbl)
     depth = bindlet.depth
     for bind in bindlet.get_binds():
         t = bind[depth]
-        if t[MOD_CMD] or t[ON_EXEC]:
+        if (bool(t[MOD_CMD]) != mod_cmd) or (t[ON_EXEC] != on_exec):
             continue
 
         if match_and_exec(uzbl, bind, depth, keylet, bindlet):
@@ -457,60 +460,28 @@ def keycmd_update(uzbl, keylet):
 
     bindlet.after()
 
-
-def keycmd_exec(uzbl, keylet):
-    bindlet = get_bindlet(uzbl)
-    depth = bindlet.depth
-    for bind in bindlet.get_binds():
-        t = bind[depth]
-        if t[MOD_CMD] or not t[ON_EXEC]:
-            continue
-
-        if match_and_exec(uzbl, bind, depth, keylet, bindlet):
-            return uzbl.clear_keycmd()
-
-    bindlet.after()
-
-
-def modcmd_update(uzbl, keylet):
-    bindlet = get_bindlet(uzbl)
-    depth = bindlet.depth
-    for bind in bindlet.get_binds():
-        t = bind[depth]
-        if not t[MOD_CMD] or t[ON_EXEC]:
-            continue
-
-        if match_and_exec(uzbl, bind, depth, keylet, bindlet):
-            return
-
-    bindlet.after()
-
-
-def modcmd_exec(uzbl, keylet):
-    bindlet = get_bindlet(uzbl)
-    depth = bindlet.depth
-    for bind in bindlet.get_binds():
-        t = bind[depth]
-        if not t[MOD_CMD] or not t[ON_EXEC]:
-            continue
-
-        if match_and_exec(uzbl, bind, depth, keylet, bindlet):
-            return uzbl.clear_modcmd()
-
-    bindlet.after()
+    # Return to the previous mode if the KEYCMD_EXEC keycmd doesn't match any
+    # binds in the stack mode.
+    if on_exec and not mod_cmd and depth and depth == bindlet.depth:
+        uzbl.set_mode()
 
 
 def init(uzbl):
     # Event handling hooks.
     uzbl.connect_dict({
         'BIND':             parse_bind,
-        'KEYCMD_EXEC':      keycmd_exec,
-        'KEYCMD_UPDATE':    keycmd_update,
-        'MODCMD_EXEC':      modcmd_exec,
-        'MODCMD_UPDATE':    modcmd_update,
         'MODE_BIND':        parse_mode_bind,
         'MODE_CHANGED':     mode_changed,
     })
+
+    # Connect key related events to the key_event function.
+    events = [['KEYCMD_UPDATE', 'KEYCMD_EXEC'],
+              ['MODCMD_UPDATE', 'MODCMD_EXEC']]
+
+    for mod_cmd in range(2):
+        for on_exec in range(2):
+            event = events[mod_cmd][on_exec]
+            uzbl.connect(event, key_event, bool(mod_cmd), bool(on_exec))
 
     # Function exports to the uzbl object, `function(uzbl, *args, ..)`
     # becomes `uzbl.function(*args, ..)`.
