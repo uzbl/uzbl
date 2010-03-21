@@ -997,7 +997,7 @@ act_dump_config_as_events() {
 void
 load_uri (WebKitWebView *web_view, GArray *argv, GString *result) {
     (void) web_view; (void) result;
-    load_uri_imp (argv_idx (argv, 0));
+    set_var_value("uri", argv_idx(argv, 0));
 }
 
 /* Javascript*/
