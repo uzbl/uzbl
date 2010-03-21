@@ -195,7 +195,7 @@ gchar *
 expand(const char *s, guint recurse) {
     uzbl_cmdprop *c;
     enum exp_type etype;
-    char *end_simple_var = "^°!\"§$%&/()=?'`'+~*'#-.:,;@<>| \\{}[]¹²³¼½";
+    char *end_simple_var = "\t^°!\"§$%&/()=?'`'+~*'#-.:,;@<>| \\{}[]¹²³¼½";
     char *ret = NULL;
     char *vend = NULL;
     GError *err = NULL;
