@@ -311,7 +311,7 @@ cmd_view_source() {
 
 void
 cmd_set_zoom_type () {
-    if(uzbl.behave.zoom_type) 
+    if(uzbl.behave.zoom_type)
         webkit_web_view_set_full_content_zoom (uzbl.gui.web_view, TRUE);
     else
         webkit_web_view_set_full_content_zoom (uzbl.gui.web_view, FALSE);
@@ -764,4 +764,3 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
         }
     }
 }
-
