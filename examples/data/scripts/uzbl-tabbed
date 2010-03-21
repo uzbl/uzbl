@@ -158,7 +158,7 @@ import atexit
 import types
 
 from gobject import io_add_watch, source_remove, timeout_add, IO_IN, IO_HUP
-from signal import signal, SIGTERM, SIGINT
+from signal import signal, SIGTERM, SIGINT, SIGCHLD
 from optparse import OptionParser, OptionGroup
 from traceback import print_exc
 
@@ -368,9 +368,8 @@ class SocketClient:
 class UzblInstance:
     '''Uzbl instance meta-data/meta-action object.'''
 
-    def __init__(self, parent, tab, name, uri, title, switch, process):
+    def __init__(self, parent, tab, name, uri, title, switch):
 
-        self.process = process
         self.parent = parent
         self.tab = tab
         self.name = name
@@ -527,18 +526,6 @@ class UzblInstance:
             self._client.close()
             self._client = None
 
-        pid = self.process.pid
-        timeout = time.time() + 5
-
-        while self.process.poll() is None and time.time() < timeout:
-            # Sleep between polls.
-            time.sleep(0.1)
-
-        if self.process.poll() is None:
-            # uzbl instance didn't exit in time.
-            error("quit timeout expired, sending SIGTERM to uzbl instance")
-            self.process.terminate()
-
 
 class UzblTabbed:
     '''A tabbed version of uzbl using gtk.Notebook'''
@@ -549,6 +536,7 @@ class UzblTabbed:
         self._timers = {}
         self._buffer = ""
         self._killed = False
+        self._processes = []
 
         # A list of the recently closed tabs
         self._closed = []
@@ -667,6 +655,9 @@ class UzblTabbed:
         # Catch keyboard interrupts
         signal(SIGINT, lambda signum, stack_frame: self.terminate(SIGINT))
 
+        # Catch SIGCHLD
+        signal(SIGCHLD, lambda signum, stack_frame: self.join_children())
+
         try:
             gtk.main()
 
@@ -685,6 +676,14 @@ class UzblTabbed:
             time.sleep(1)
 
             raise
+
+
+    def join_children(self):
+        '''Find and remove zombie children processes.'''
+
+        for p in self._processes:
+            if p.poll() is not None:
+                self._processes.remove(p)
 
 
     def terminate(self, termsig=None):
@@ -1008,9 +1007,9 @@ class UzblTabbed:
 
         cmd = ['uzbl-browser', '-n', name, '-s', str(sid),
                '--connect-socket', self.socket_path, '--uri', uri]
-        process = subprocess.Popen(cmd) # TODO: do i need close_fds=True ?
+        self._processes += [subprocess.Popen(cmd)] # TODO: do i need close_fds=True ?
 
-        uzbl = UzblInstance(self, tab, name, uri, title, switch, process)
+        uzbl = UzblInstance(self, tab, name, uri, title, switch)
         SocketClient.instances_queue[name] = uzbl
         self.tabs[tab] = uzbl
 
