@@ -54,9 +54,6 @@
 #   pango - python bindings needed for text rendering & layout in gtk widgets.
 #   pygobject - GLib's GObject bindings for python.
 #
-# Optional dependencies:
-#   simplejson - save uzbl_tabbed.py sessions & presets in json.
-#
 # Note: I haven't included version numbers with this dependency list because
 # I've only ever tested uzbl_tabbed.py on the latest stable versions of these
 # packages in Gentoo's portage. Package names may vary on different systems.

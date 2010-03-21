@@ -43,7 +43,6 @@ Dependencies which are optional for uzbl-core are marked with an asterisk. (i.e.
 * pango [*]
 * pygtk [*]
 * pygobject [*]
-* python-simplejson [*]
 
 Make dependencies
 -----------------
