@@ -52,7 +52,7 @@ set authentication_handler = sync_spawn @scripts_dir/auth.py
 # Open in current window
 #@on_event   NEW_WINDOW     uri %s
 # Open in new tab
-#@on_event   NEW_WINODW     event NEW_TAB %s
+#@on_event   NEW_WINDOW     event NEW_TAB %s
 
 # Download handler
 @on_event   DOWNLOAD_REQUEST    spawn @scripts_dir/download.sh %s \@proxy_url
