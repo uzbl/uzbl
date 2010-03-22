@@ -648,11 +648,11 @@ new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
         printf("New window requested -> %s \n", webkit_network_request_get_uri (request));
 
     /* This seems to cause trouble and not to be needed anyways
-     * as create_web_view_cb will also be called whenever this 
+     * as create_web_view_cb will also be called whenever this
      * callback is triggered thus resulting in doubled events
-    
+
      send_event(NEW_WINDOW, webkit_network_request_get_uri (request), NULL);
-     
+
     */
 
     webkit_web_policy_decision_ignore(policy_decision);
@@ -860,4 +860,3 @@ save_cookies_http(SoupMessage *msg, gpointer user_data) {
 
     g_slist_free(ck);
 }
-
