@@ -646,7 +646,14 @@ new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
 
     if (uzbl.state.verbose)
         printf("New window requested -> %s \n", webkit_network_request_get_uri (request));
-    send_event(NEW_WINDOW, webkit_network_request_get_uri (request), NULL);
+
+    /* This seems to cause trouble and not to be needed anyways
+     * as create_web_view_cb will also be called whenever this 
+     * callback is triggered thus resulting in doubled events
+    
+     send_event(NEW_WINDOW, webkit_network_request_get_uri (request), NULL);
+     
+    */
 
     webkit_web_policy_decision_ignore(policy_decision);
     return TRUE;
@@ -688,9 +695,7 @@ create_web_view_js2_cb (WebKitWebView* web_view, GParamSpec param_spec) {
 
     const gchar* uri = webkit_web_view_get_uri(web_view);
 
-    printf("uri: %s\n", uri);
     if (strncmp(uri, "javascript:", strlen("javascript:")) == 0) {
-        printf("js!\n");
         eval_js(uzbl.gui.web_view, (gchar*) uri + strlen("javascript:"), NULL, "javascript:");
     }
     else
@@ -721,8 +726,6 @@ create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer us
             printf("\nNew web view -> %s\n", uzbl.state.selected_url);
 
         if (strncmp(uzbl.state.selected_url, "javascript:", strlen("javascript:")) == 0) {
-            printf("js: %s\n", uzbl.state.selected_url+strlen("javascript:"));
-
             WebKitWebView* new_view = WEBKIT_WEB_VIEW(webkit_web_view_new());
 
             g_signal_connect (new_view, "web-view-ready",
