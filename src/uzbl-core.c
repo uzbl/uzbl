@@ -195,7 +195,7 @@ gchar *
 expand(const char *s, guint recurse) {
     uzbl_cmdprop *c;
     enum exp_type etype;
-    char *end_simple_var = "\t^°!\"§$%&/()=?'`'+~*'#-.:,;@<>| \\{}[]¹²³¼½";
+    char *end_simple_var = "\t^°!\"§$%&/()=?'`'+~*'#-:,;@<>| \\{}[]¹²³¼½";
     char *ret = NULL;
     char *vend = NULL;
     GError *err = NULL;
@@ -1620,7 +1620,7 @@ set_var_value(const gchar *name, gchar *val) {
     uzbl_cmdprop *c = NULL;
     char *endp = NULL;
     char *buf = NULL;
-    char *invalid_chars = "\t^°!\"§$%&/()=?'`'+~*'#-.:,;@<>| \\{}[]¹²³¼½";
+    char *invalid_chars = "\t^°!\"§$%&/()=?'`'+~*'#-:,;@<>| \\{}[]¹²³¼½";
     GString *msg;
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
@@ -1653,7 +1653,7 @@ set_var_value(const gchar *name, gchar *val) {
         /* check wether name violates our naming scheme */
         if(strpbrk(name, invalid_chars)) {
             if (uzbl.state.verbose)
-                printf("Invalid variable name\n");
+                printf("Invalid variable name: %s\n", name);
             return FALSE;
         }
 
