@@ -2655,7 +2655,8 @@ main (int argc, char* argv[]) {
     /* generate an event with a list of built in commands */
     builtins();
 
-    gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
+    if (!uzbl.state.plug_mode)
+        gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
 
     if (uzbl.state.verbose) {
         printf("Uzbl start location: %s\n", argv[0]);
