@@ -290,6 +290,12 @@ cmd_useragent() {
 }
 
 void
+cmd_javascript_windows() {
+    g_object_set (G_OBJECT(view_settings()), "javascript-can-open-windows-automatically",
+            uzbl.behave.javascript_windows, NULL);
+}
+
+void
 cmd_scrollbars_visibility() {
     if(uzbl.gui.scrollbars_visible) {
         uzbl.gui.bar_h = gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win));
@@ -640,6 +646,7 @@ new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
 
     if (uzbl.state.verbose)
         printf("New window requested -> %s \n", webkit_network_request_get_uri (request));
+    send_event(NEW_WINDOW, webkit_network_request_get_uri (request), NULL);
 
     webkit_web_policy_decision_ignore(policy_decision);
     return TRUE;
@@ -674,6 +681,36 @@ request_starting_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitWebRes
     send_event(REQUEST_STARTING, webkit_network_request_get_uri(request), NULL);
 }
 
+void
+create_web_view_js2_cb (WebKitWebView* web_view, GParamSpec param_spec) {
+    (void) web_view;
+    (void) param_spec;
+
+    const gchar* uri = webkit_web_view_get_uri(web_view);
+
+    printf("uri: %s\n", uri);
+    if (strncmp(uri, "javascript:", strlen("javascript:")) == 0) {
+        printf("js!\n");
+        eval_js(uzbl.gui.web_view, (gchar*) uri + strlen("javascript:"), NULL, "javascript:");
+    }
+    else
+        send_event(NEW_WINDOW, uri, NULL);
+
+    gtk_widget_destroy(GTK_WIDGET(web_view));
+}
+
+
+gboolean
+create_web_view_js_cb (WebKitWebView* web_view, gpointer user_data) {
+    (void) web_view;
+    (void) user_data;
+
+    g_object_connect (web_view, "signal::notify::uri",
+                            G_CALLBACK(create_web_view_js2_cb), NULL);
+    return TRUE;
+}
+
+
 /*@null@*/ WebKitWebView*
 create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data) {
     (void) web_view;
@@ -682,10 +719,29 @@ create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer us
     if (uzbl.state.selected_url != NULL) {
         if (uzbl.state.verbose)
             printf("\nNew web view -> %s\n", uzbl.state.selected_url);
-        send_event(NEW_WINDOW, uzbl.state.selected_url, NULL);
+
+        if (strncmp(uzbl.state.selected_url, "javascript:", strlen("javascript:")) == 0) {
+            printf("js: %s\n", uzbl.state.selected_url+strlen("javascript:"));
+
+            WebKitWebView* new_view = WEBKIT_WEB_VIEW(webkit_web_view_new());
+
+            g_signal_connect (new_view, "web-view-ready",
+                            G_CALLBACK(create_web_view_js_cb), NULL);
+
+            return new_view;
+        }
+        else
+            send_event(NEW_WINDOW, uzbl.state.selected_url, NULL);
+
     } else {
         if (uzbl.state.verbose)
-            printf("New web view -> %s\n","Nothing to open, exiting");
+            printf("New web view -> javascript link...\n");
+
+        WebKitWebView* new_view = WEBKIT_WEB_VIEW(webkit_web_view_new());
+
+        g_signal_connect (new_view, "web-view-ready",
+                            G_CALLBACK(create_web_view_js_cb), NULL);
+        return new_view;
     }
     return NULL;
 }

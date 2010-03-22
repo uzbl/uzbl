@@ -156,6 +156,7 @@ typedef struct {
     guint    enforce_96dpi;
     gchar    *inject_html;
     guint    caret_browsing;
+    guint    javascript_windows;
     guint    mode;
     gchar*   base_url;
     gboolean print_version;

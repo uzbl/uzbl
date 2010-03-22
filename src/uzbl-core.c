@@ -109,6 +109,7 @@ const struct var_name_to_ptr_t {
     { "max_conns",              PTR_V_INT(uzbl.net.max_conns,                   1,   cmd_max_conns)},
     { "max_conns_host",         PTR_V_INT(uzbl.net.max_conns_host,              1,   cmd_max_conns_host)},
     { "useragent",              PTR_V_STR(uzbl.net.useragent,                   1,   cmd_useragent)},
+    { "javascript_windows",     PTR_V_INT(uzbl.behave.javascript_windows,       1,   cmd_javascript_windows)},
     /* requires webkit >=1.1.14 */
     { "view_source",            PTR_V_INT(uzbl.behave.view_source,              0,   cmd_view_source)},
 

@@ -110,6 +110,9 @@ void
 cmd_caret_browsing();
 
 void
+cmd_javascript_windows();
+
+void
 cmd_set_geometry();
 
 void
