@@ -523,16 +523,16 @@ The script specific arguments are:
 Custom, userdefined scripts (`spawn foo bar`) get first the arguments as
 specified in the config and then the above 7 are added at the end.
 
-### eFormFiller
+### Formfiller.sh
 
-Example config entries for eFormFiller scripts
+Example config entries for formfiller script
 
-    set eFormFiller = spawn @scripts_dir/eFormFiller.sh
-    @cbind    za        = @eFormFiller add
-    @cbind    ze        = @eFormFiller edit
-    @cbind    zn        = @eFormFiller new
-    @cbind    zl        = @eFormFiller load
-    @cbind    zo        = @eFormFiller once
+    set formfiller = spawn @scripts_dir/formfiller.sh
+    @cbind    za        = @formfiller add
+    @cbind    ze        = @formfiller edit
+    @cbind    zn        = @formfiller new
+    @cbind    zl        = @formfiller load
+    @cbind    zo        = @formfiller once
 
 NEW action generates new file with formfields for current domain. Note that it
 will overwrite existing file.
