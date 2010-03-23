@@ -1,4 +1,4 @@
-/* 
+/*
  ** Callbacks
  ** (c) 2009 by Robert Manea et al.
 */
@@ -207,4 +207,3 @@ button_release_cb (GtkWidget* window, GdkEventButton* event);
 
 gboolean
 focus_cb(GtkWidget* window, GdkEventFocus* event, void *ud);
-

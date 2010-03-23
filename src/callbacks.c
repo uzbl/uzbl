@@ -311,7 +311,7 @@ cmd_view_source() {
 
 void
 cmd_set_zoom_type () {
-    if(uzbl.behave.zoom_type) 
+    if(uzbl.behave.zoom_type)
         webkit_web_view_set_full_content_zoom (uzbl.gui.web_view, TRUE);
     else
         webkit_web_view_set_full_content_zoom (uzbl.gui.web_view, FALSE);
@@ -692,23 +692,7 @@ gboolean
 download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
     (void) web_view;
     (void) user_data;
-    if (uzbl.behave.download_handler) {
-        const gchar* uri = webkit_download_get_uri ((WebKitDownload*)download);
-        if (uzbl.state.verbose)
-            printf("Download -> %s\n",uri);
 
-        /* if urls not escaped, we may have to escape and quote uri before this call */
-        GString *args = g_string_new(uri);
-
-        if (uzbl.net.proxy_url) {
-           g_string_append_c(args, ' ');
-           g_string_append(args, uzbl.net.proxy_url);
-        }
-
-        run_handler(uzbl.behave.download_handler, args->str);
-
-        g_string_free(args, TRUE);
-    }
     send_event(DOWNLOAD_REQ, webkit_download_get_uri ((WebKitDownload*)download), NULL);
     return (FALSE);
 }
@@ -778,4 +762,3 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
         }
     }
 }
-

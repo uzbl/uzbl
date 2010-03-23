@@ -8,33 +8,21 @@ LDFLAGS!=echo `pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0` -p
 
 SRC = $(wildcard src/*.c)
 HEAD = $(wildcard src/*.h)
-TOBJ = $(SRC:.c=.o)
-OBJ = $(foreach obj, $(TOBJ), $(notdir $(obj)))
+OBJ = $(foreach obj, $(SRC:.c=.o), $(notdir $(obj)))
 
-all: uzbl-browser options
+all: uzbl-browser
 
-options:
-	@echo
-	@echo BUILD OPTIONS:
-	@echo "CFLAGS   = ${CFLAGS}"
-	@echo "LDFLAGS  = ${LDFLAGS}"
-	@echo
-	@echo See the README file for usage instructions.
-
+VPATH:=src
 
 .c.o:
-	@echo COMPILING $<
+	@echo -e "${CC} -c ${CFLAGS} $<"
 	@${CC} -c ${CFLAGS} $<
-	@echo ... done.
 
 ${OBJ}: ${HEAD}
 
-uzbl-core: ${TOBJ} # why doesn't ${OBJ} work?
-	@echo
-	@echo LINKING object files
+uzbl-core: ${OBJ}
+	@echo -e "\n${CC} -o $@ ${OBJ} ${LDFLAGS}"
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
-	@echo ... done.
-
 
 uzbl-browser: uzbl-core
 
@@ -43,6 +31,7 @@ uzbl-browser: uzbl-core
 # RUN_PREFIX : what the prefix is when the software is run. usually the same as PREFIX
 PREFIX?=/usr/local
 INSTALLDIR?=$(DESTDIR)$(PREFIX)
+DOCDIR?=$(INSTALLDIR)/share/uzbl/docs
 RUN_PREFIX?=$(PREFIX)
 
 # the 'tests' target can never be up to date
@@ -50,7 +39,7 @@ RUN_PREFIX?=$(PREFIX)
 force:
 
 # When compiling unit tests, compile uzbl as a library first
-tests: ${TOBJ} force
+tests: ${OBJ} force
 	$(CC) -shared -Wl ${OBJ} -o ./tests/libuzbl-core.so
 	cd ./tests/; $(MAKE)
 
@@ -99,28 +88,26 @@ strip:
 install: install-uzbl-core install-uzbl-browser install-uzbl-tabbed
 
 install-uzbl-core: all
-	install -d $(INSTALLDIR)/bin
-	install -d $(INSTALLDIR)/share/uzbl/docs
-	install -d $(INSTALLDIR)/share/uzbl/examples
-	cp -rp docs         $(INSTALLDIR)/share/uzbl/
-	cp -rp src/config.h $(INSTALLDIR)/share/uzbl/docs/
-	cp -rp examples     $(INSTALLDIR)/share/uzbl/
-	install -m755 uzbl-core    $(INSTALLDIR)/bin/uzbl-core
-	install -m644 AUTHORS      $(INSTALLDIR)/share/uzbl/docs
-	install -m644 README       $(INSTALLDIR)/share/uzbl/docs
+	install -d $(INSTALLDIR)/share/uzbl/
+	install -d $(DOCDIR)
+	install -m644 docs/* $(DOCDIR)/
+	install -m644 src/config.h $(DOCDIR)/
+	install -m644 README $(DOCDIR)/
+	install -m644 AUTHORS $(DOCDIR)/
+	cp -r examples $(INSTALLDIR)/share/uzbl/
+	chmod 755 $(INSTALLDIR)/share/uzbl/examples/data/scripts/*
 	sed -i 's#^set prefix.*=.*#set prefix     = $(RUN_PREFIX)#' $(INSTALLDIR)/share/uzbl/examples/config/config
+	install -D -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
 
 install-uzbl-browser:
-	install -d $(INSTALLDIR)/bin
-	install -m755 src/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
-	install -m755 examples/data/scripts/uzbl-cookie-daemon $(INSTALLDIR)/bin/uzbl-cookie-daemon
-	install -m755 examples/data/scripts/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
+	install -D -m755 src/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
+	install -D -m755 examples/data/scripts/uzbl-cookie-daemon $(INSTALLDIR)/bin/uzbl-cookie-daemon
+	install -D -m755 examples/data/scripts/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
 	sed -i 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' $(INSTALLDIR)/bin/uzbl-browser
 	sed -i "s#^PREFIX = .*#PREFIX = '$(RUN_PREFIX)'#" $(INSTALLDIR)/bin/uzbl-event-manager
 
 install-uzbl-tabbed:
-	install -d $(INSTALLDIR)/bin
-	install -m755 examples/data/scripts/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed
+	install -D -m755 examples/data/scripts/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed
 
 # you probably only want to do this manually when testing and/or to the sandbox. not meant for distributors
 install-example-data:

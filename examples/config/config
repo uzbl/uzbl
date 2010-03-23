@@ -48,7 +48,7 @@ set authentication_handler = sync_spawn @scripts_dir/auth.py
 # Open in the same window.
 #set new_window         = sh 'echo uri "$8" > $4'
 # Open a link in a new window. equivalent to default behavior
-set new_window          = sh 'uzbl-browser -u $8'
+set new_window          = sh 'uzbl-browser -u "$8"'
 
 # --- Optional dynamic event handlers ----------------------------------------
 
@@ -62,7 +62,6 @@ set new_window          = sh 'uzbl-browser -u $8'
 
 # Load commit handlers
 @on_event   LOAD_COMMIT    @set_status <span foreground="green">recv</span>
-#@on_event   LOAD_COMMIT    script @scripts_dir/scroll-percentage.js
 
 # Load finish handlers
 @on_event   LOAD_FINISH    @set_status <span foreground="gold">done</span>
@@ -120,7 +119,7 @@ set title_format_long = \@keycmd_prompt \@raw_modcmd \@raw_keycmd \@TITLE - Uzbl
 
 # === Core settings ==========================================================
 
-set useragent         = Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@(+uname -o)@ @(+uname -m)@ [@ARCH_UZBL]) (Commit @COMMIT)
+set useragent         = Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@(+uname -s)@ @(+uname -m)@ [@ARCH_UZBL]) (Commit @COMMIT)
 set fifo_dir          = /tmp
 set socket_dir        = /tmp
 
@@ -159,11 +158,13 @@ set ebind = @mode_bind global,-insert
 # === Global & keycmd editing binds ==========================================
 
 # Resets keycmd and returns to default mode.
-@bind   <Escape>     = @set_mode
+@on_event  ESCAPE    @set_mode
+@bind   <Escape>     = event ESCAPE
+@bind   <Ctrl>]      = event ESCAPE
 
 # Commands for editing and traversing the keycmd.
 @ebind  <Return>     = event KEYCMD_EXEC_CURRENT
-@ebind  <Home>       = event SET_CURSOR_POS
+@ebind  <Home>       = event SET_CURSOR_POS 0
 @ebind  <End>        = event SET_CURSOR_POS -1
 @ebind  <Left>       = event SET_CURSOR_POS -
 @ebind  <Right>      = event SET_CURSOR_POS +
@@ -267,8 +268,9 @@ set preset = event PRESET_TABS
 @cbind  ZZ                 = exit
 # Dump config to stdout
 @cbind  !dump              = sh "echo dump_config > $4"
-# Reload config
-@cbind  !reload            = sh "sed '/^# === Post-load misc commands/,$d' $1 > $4"
+# Reload all variables in the config
+@cbind  !reload            = sh "sed '/^# === Post-load misc commands/,$d' $1 | grep '^set ' > $4"
+
 # Use socat to directly inject commands into uzbl-core and view events
 # raised by uzbl-core:
 @cbind  <Ctrl><Alt>t  = sh 'xterm -e "socat unix-connect:$5 -"'
@@ -320,26 +322,15 @@ set follow_hint_keys = 0123456789
 @cbind  fl*  = script @scripts_dir/follow.js '@follow_hint_keys %s'
 
 # --- Form filler binds ---
-# this script allows you to configure (per domain) values to fill in form
-# fields (eg login information) and to fill in these values automatically
-set formfiller = spawn @scripts_dir/formfiller
-@cbind  za  = @{formfiller}.sh
-@cbind  ze  = @{formfiller}.sh edit
-@cbind  zn  = @{formfiller}.sh new
-@cbind  zl  = @{formfiller}.sh load
-# Or the more advanced implementation using perl: (could not get this to run - Dieter)
-@cbind  LL  = @{formfiller}.pl load
-@cbind  LN  = @{formfiller}.pl new
-@cbind  LE  = @{formfiller}.pl edit
-
-# --- External edit script configuration & binds ---
-# Edit form input fields in an external editor (gvim, emacs, urxvt -e vim, ..)
-# disabled since Uzbl object is gone
-set external_editor = gvim
-#set external_editor = xterm -e vim
-#@cbind  E  = script @scripts_dir/extedit.js
-# And add menu option.
-#menu_editable_add Open in @external_editor = script @scripts_dir/extedit.js
+# This script allows you to configure (per domain) values to fill in form
+# fields (eg login information) and to fill in these values automatically.
+# This implementation allows you to save multiple profiles for each form
+# (think about multiple accounts on some website).
+set formfiller = spawn @scripts_dir/formfiller.sh
+@cbind  za  = @formfiller add
+@cbind  ze  = @formfiller edit
+@cbind  zn  = @formfiller new
+@cbind  zl  = @formfiller load
 
 # --- Examples ---
 # Example showing how to use uzbl's fifo to execute a command.

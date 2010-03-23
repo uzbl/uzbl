@@ -90,7 +90,6 @@ const struct var_name_to_ptr_t {
     { "print_events",           PTR_V_INT(uzbl.state.events_stdout,             1,   NULL)},
     { "inject_html",            PTR_V_STR(uzbl.behave.inject_html,              0,   cmd_inject_html)},
     { "geometry",               PTR_V_STR(uzbl.gui.geometry,                    1,   cmd_set_geometry)},
-    { "keycmd",                 PTR_V_STR(uzbl.state.keycmd,                    1,   NULL)},
     { "show_status",            PTR_V_INT(uzbl.behave.show_status,              1,   cmd_set_status)},
     { "status_top",             PTR_V_INT(uzbl.behave.status_top,               1,   move_statusbar)},
     { "status_format",          PTR_V_STR(uzbl.behave.status_format,            1,   NULL)},
@@ -99,7 +98,6 @@ const struct var_name_to_ptr_t {
     { "title_format_short",     PTR_V_STR(uzbl.behave.title_format_short,       1,   NULL)},
     { "icon",                   PTR_V_STR(uzbl.gui.icon,                        1,   set_icon)},
     { "forward_keys",           PTR_V_INT(uzbl.behave.forward_keys,             1,   NULL)},
-    { "download_handler",       PTR_V_STR(uzbl.behave.download_handler,         1,   NULL)},
     { "cookie_handler",         PTR_V_STR(uzbl.behave.cookie_handler,           1,   NULL)},
     { "authentication_handler", PTR_V_STR(uzbl.behave.authentication_handler,   1,   set_authentication_handler)},
     { "new_window",             PTR_V_STR(uzbl.behave.new_window,               1,   NULL)},
@@ -197,7 +195,7 @@ gchar *
 expand(const char *s, guint recurse) {
     uzbl_cmdprop *c;
     enum exp_type etype;
-    char *end_simple_var = "^°!\"§$%&/()=?'`'+~*'#-.:,;@<>| \\{}[]¹²³¼½";
+    char *end_simple_var = "\t^°!\"§$%&/()=?'`'+~*'#-.:,;@<>| \\{}[]¹²³¼½";
     char *ret = NULL;
     char *vend = NULL;
     GError *err = NULL;
@@ -999,7 +997,7 @@ act_dump_config_as_events() {
 void
 load_uri (WebKitWebView *web_view, GArray *argv, GString *result) {
     (void) web_view; (void) result;
-    load_uri_imp (argv_idx (argv, 0));
+    set_var_value("uri", argv_idx(argv, 0));
 }
 
 /* Javascript*/
@@ -1643,7 +1641,7 @@ set_var_value(const gchar *name, gchar *val) {
     uzbl_cmdprop *c = NULL;
     char *endp = NULL;
     char *buf = NULL;
-    char *invalid_chars = "^°!\"§$%&/()=?'`'+~*'#-.:,;@<>| \\{}[]¹²³¼½";
+    char *invalid_chars = "\t^°!\"§$%&/()=?'`'+~*'#-.:,;@<>| \\{}[]¹²³¼½";
     GString *msg;
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
@@ -2536,7 +2534,6 @@ initialize(int argc, char *argv[]) {
     }
 
     uzbl.net.soup_session = webkit_get_default_session();
-    uzbl.state.keycmd = g_strdup("");
 
     for(i=0; sigs[i]; i++) {
         if(setup_signal(sigs[i], catch_signal) == SIG_ERR)
@@ -2658,7 +2655,8 @@ main (int argc, char* argv[]) {
     /* generate an event with a list of built in commands */
     builtins();
 
-    gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
+    if (!uzbl.state.plug_mode)
+        gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
 
     if (uzbl.state.verbose) {
         printf("Uzbl start location: %s\n", argv[0]);
