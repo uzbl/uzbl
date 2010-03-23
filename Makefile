@@ -111,11 +111,11 @@ install-uzbl-tabbed:
 
 # you probably only want to do this manually when testing and/or to the sandbox. not meant for distributors
 install-example-data:
-	install -d $(INSTALLDIR)/home/.config/uzbl
-	install -d $(INSTALLDIR)/home/.cache/uzbl
-	install -d $(INSTALLDIR)/home/.local/share/uzbl
-	cp -rp examples/config/* $(INSTALLDIR)/home/.config/uzbl/
-	cp -rp examples/data/*   $(INSTALLDIR)/home/.local/share/uzbl/
+	install -d $(DESTDIR)/home/.config/uzbl
+	install -d $(DESTDIR)/home/.cache/uzbl
+	install -d $(DESTDIR)/home/.local/share/uzbl
+	cp -rp examples/config/* $(DESTDIR)/home/.config/uzbl/
+	cp -rp examples/data/*   $(DESTDIR)/home/.local/share/uzbl/
 
 uninstall:
 	rm -rf $(INSTALLDIR)/bin/uzbl-*
