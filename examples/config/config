@@ -136,6 +136,7 @@ set socket_dir        = /tmp
 #modkey_addition <Key1>  <Key2>    <Result>
 @modkey_addition <Shift> <Ctrl>    <Meta>
 @modkey_addition <Shift> <Tab>     <Shift-Tab>
+@modkey_addition <Shift> <Insert>  <Shift-Insert>
 
 #ignore_key <glob>
 @ignore_key <ISO_*>
@@ -305,6 +306,8 @@ set toggle_cmd_ins = @toggle_modes command insert
 @cbind  P   = sh 'echo "uri `xclip -selection clipboard -o | sed s/\\\@/%40/g`" > $4'
 # Start a new uzbl instance from the page in primary selection
 @cbind  'p  = sh 'exec uzbl-browser --uri $(xclip -o)'
+# paste primary selection into keycmd
+@bind <Shift-Insert> = sh 'echo "event APPEND_KEYCMD `xclip -o | sed s/\\\@/%40/g`" > $4'
 
 # --- Bookmark inserting binds ---
 @cbind <Ctrl>b<tags:>_  = sh 'echo -e "$6 %s" >> $XDG_DATA_HOME/uzbl/bookmarks'
