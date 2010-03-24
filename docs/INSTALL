@@ -38,7 +38,6 @@ Dependencies which are optional for uzbl-core are marked with an asterisk. (i.e.
 * zenity [*]
 * bash [*]
 * python [*]
-* perl (formfiller.pl) [*]
 * xclip [*]
 * pango [*]
 * pygtk [*]
