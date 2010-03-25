@@ -1,0 +1,11 @@
+#!/usr/bin/env python
+# uzblcat - safely push html to uzbl
+# See http://www.uzbl.org/wiki/html-mode
+
+from sys import stdin, stdout
+
+stdout.write("uri data:text/html,")
+for line in stdin:
+    stdout.write(line[0:-1])
+
+# vim: set noet ff=unix

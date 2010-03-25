@@ -1,0 +1,849 @@
+#!/usr/bin/env python
+
+# Event Manager for Uzbl
+# Copyright (c) 2009, Mason Larobina <mason.larobina@gmail.com>
+# Copyright (c) 2009, Dieter Plaetinck <dieter@plaetinck.be>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+'''
+
+E V E N T _ M A N A G E R . P Y
+===============================
+
+Event manager for uzbl written in python.
+
+'''
+
+import imp
+import os
+import sys
+import re
+import socket
+import pprint
+import time
+import atexit
+from select import select
+from signal import signal, SIGTERM
+from optparse import OptionParser
+from traceback import print_exc
+from functools import partial
+from itertools import count
+
+
+def xdghome(key, default):
+    '''Attempts to use the environ XDG_*_HOME paths if they exist otherwise
+    use $HOME and the default path.'''
+
+    xdgkey = "XDG_%s_HOME" % key
+    if xdgkey in os.environ.keys() and os.environ[xdgkey]:
+        return os.environ[xdgkey]
+
+    return os.path.join(os.environ['HOME'], default)
+
+
+# ============================================================================
+# ::: Default configuration section ::::::::::::::::::::::::::::::::::::::::::
+# ============================================================================
+
+# `make install` will put the correct value here for your system
+PREFIX = '/usr/local/'
+
+# Setup xdg paths.
+DATA_DIR = os.path.join(xdghome('DATA', '.local/share/'), 'uzbl/')
+CACHE_DIR = os.path.join(xdghome('CACHE', '.cache/'), 'uzbl/')
+
+# Event manager config dictionary. This is not to be confused with the config
+# dict that tracks variables in the uzbl instance.
+CONFIG = {
+    'verbose':         False,
+    'daemon_mode':     True,
+    'auto_close':      False,
+
+    'plugins_load':    [],
+    'plugins_ignore':  [],
+
+    'plugin_dirs':     [os.path.join(DATA_DIR, 'plugins/'),
+        os.path.join(PREFIX, 'share/uzbl/examples/data/plugins/')],
+
+    'server_socket':   os.path.join(CACHE_DIR, 'event_daemon'),
+    'pid_file':        os.path.join(CACHE_DIR, 'event_daemon.pid'),
+}
+
+# ============================================================================
+# ::: End of configuration section :::::::::::::::::::::::::::::::::::::::::::
+# ============================================================================
+
+
+# Define some globals.
+SCRIPTNAME = os.path.basename(sys.argv[0])
+FINDSPACES = re.compile("\s+")
+
+
+class ArgumentError(Exception):
+    pass
+
+
+def echo(msg):
+    '''Prints only if the verbose flag has been set.'''
+
+    if CONFIG['verbose']:
+        sys.stdout.write("%s: %s\n" % (SCRIPTNAME, msg))
+
+
+def error(msg):
+    '''Prints error messages to stderr.'''
+
+    sys.stderr.write("%s: error: %s\n" % (SCRIPTNAME, msg))
+
+
+def find_plugins(plugin_dirs):
+    '''Find all event manager plugins in the plugin dirs and return a
+    dictionary of {'plugin-name.py': '/full/path/to/plugin-name.py', ...}'''
+
+    plugins = {}
+
+    for plugin_dir in plugin_dirs:
+        plugin_dir = os.path.realpath(os.path.expandvars(plugin_dir))
+        if not os.path.isdir(plugin_dir):
+            continue
+
+        for filename in os.listdir(plugin_dir):
+            if not filename.lower().endswith('.py'):
+                continue
+
+            path = os.path.join(plugin_dir, filename)
+            if not os.path.isfile(path):
+                continue
+
+            if filename not in plugins:
+                plugins[filename] = plugin_dir
+
+    return plugins
+
+
+def load_plugins(plugin_dirs, load=None, ignore=None):
+    '''Load event manager plugins found in the plugin_dirs.'''
+
+    load = [] if load is None else load
+    ignore = [] if ignore is None else ignore
+
+    # Find the plugins in the plugin_dirs.
+    found = find_plugins(plugin_dirs)
+
+    if load:
+        # Ignore anything not in the load list.
+        for plugin in found.keys():
+            if plugin not in load:
+                del found[plugin]
+
+    if ignore:
+        # Ignore anything in the ignore list.
+        for plugin in found.keys():
+            if plugin in ignore:
+                del found[plugin]
+
+    # Print plugin list to be loaded.
+    pprint.pprint(found)
+
+    loaded = {}
+    # Load all found plugins into the loaded dict.
+    for (filename, plugin_dir) in found.items():
+        name = filename[:-3]
+        info = imp.find_module(name, [plugin_dir])
+        plugin = imp.load_module(name, *info)
+        loaded[(plugin_dir, filename)] = plugin
+
+    return loaded
+
+
+def daemonize():
+    '''Daemonize the process using the Stevens' double-fork magic.'''
+
+    try:
+        if os.fork():
+            os._exit(0)
+
+    except OSError:
+        print_exc()
+        sys.stderr.write("fork #1 failed")
+        sys.exit(1)
+
+    os.chdir('/')
+    os.setsid()
+    os.umask(0)
+
+    try:
+        if os.fork():
+            os._exit(0)
+
+    except OSError:
+        print_exc()
+        sys.stderr.write("fork #2 failed")
+        sys.exit(1)
+
+    if sys.stdout.isatty():
+        sys.stdout.flush()
+        sys.stderr.flush()
+
+    devnull = '/dev/null'
+    stdin = file(devnull, 'r')
+    stdout = file(devnull, 'a+')
+    stderr = file(devnull, 'a+', 0)
+
+    os.dup2(stdin.fileno(), sys.stdin.fileno())
+    os.dup2(stdout.fileno(), sys.stdout.fileno())
+    os.dup2(stderr.fileno(), sys.stderr.fileno())
+
+
+def make_dirs(path):
+    '''Make all basedirs recursively as required.'''
+
+    try:
+        dirname = os.path.dirname(path)
+        if not os.path.isdir(dirname):
+            os.makedirs(dirname)
+
+    except OSError:
+        print_exc()
+
+
+def make_pid_file(pid_file):
+    '''Make pid file at given pid_file location.'''
+
+    make_dirs(pid_file)
+    fileobj = open(pid_file, 'w')
+    fileobj.write('%d' % os.getpid())
+    fileobj.close()
+
+
+def del_pid_file(pid_file):
+    '''Delete pid file at given pid_file location.'''
+
+    if os.path.isfile(pid_file):
+        os.remove(pid_file)
+
+
+def get_pid(pid_file):
+    '''Read pid from pid_file.'''
+
+    try:
+        fileobj = open(pid_file, 'r')
+        pid = int(fileobj.read())
+        fileobj.close()
+        return pid
+
+    except IOError, ValueError:
+        print_exc()
+        return None
+
+
+def pid_running(pid):
+    '''Returns True if a process with the given pid is running.'''
+
+    try:
+        os.kill(pid, 0)
+
+    except OSError:
+        return False
+
+    else:
+        return True
+
+
+def term_process(pid):
+    '''Send a SIGTERM signal to the process with the given pid.'''
+
+    if not pid_running(pid):
+        return False
+
+    os.kill(pid, SIGTERM)
+
+    start = time.time()
+    while True:
+        if not pid_running(pid):
+            return True
+
+        if time.time() - start > 5:
+            raise OSError('failed to stop process with pid: %d' % pid)
+
+        time.sleep(0.25)
+
+
+def parse_msg(uzbl, msg):
+    '''Parse an incoming msg from a uzbl instance. All non-event messages
+    will be printed here and not be passed to the uzbl instance event
+    handler function.'''
+
+    if not msg:
+        return
+
+    cmd = FINDSPACES.split(msg, 3)
+    if not cmd or cmd[0] != 'EVENT':
+        # Not an event message.
+        print '---', msg.encode('utf-8')
+        return
+
+    while len(cmd) < 4:
+        cmd.append('')
+
+    event, args = cmd[2], cmd[3]
+    if not event:
+        return
+
+    try:
+        uzbl.event(event, args)
+
+    except:
+        print_exc()
+
+
+class EventHandler(object):
+
+    nexthid = count().next
+
+    def __init__(self, event, handler, *args, **kargs):
+        if not callable(handler):
+            raise ArgumentError("EventHandler object requires a callable "
+                "object function for the handler argument not: %r" % handler)
+
+        self.function = handler
+        self.args = args
+        self.kargs = kargs
+        self.event = event
+        self.hid = self.nexthid()
+
+
+    def __repr__(self):
+        args = ["event=%s" % self.event, "hid=%d" % self.hid,
+            "function=%r" % self.function]
+
+        if self.args:
+            args.append(u"args=%r" % unicode(self.args))
+
+        if self.kargs:
+            args.append(u"kargs=%r" % unicode(self.kargs))
+
+        return u"<EventHandler(%s)>" % ', '.join(args)
+
+
+class UzblInstance(object):
+
+    # Give all plugins access to the main config dict.
+    global_config = CONFIG
+
+    def __init__(self, parent, client_socket):
+
+        # Internal variables.
+        self.exports = {}
+        self.handlers = {}
+        self.parent = parent
+        self.client_socket = client_socket
+
+        self.depth = 0
+        self.buffer = ''
+        self.pid = None
+
+        # Call the init function in every plugin. The init function in each
+        # plugin is where that plugin connects functions to events and exports
+        # functions to the uzbl object.
+        for plugin in self.parent['plugins'].values():
+            try:
+                plugin.init(self)
+
+            except:
+                raise
+
+
+    def send(self, msg):
+        '''Send a command to the uzbl instance via the socket file.'''
+
+        msg = msg.strip()
+        if self.client_socket:
+            print (u'%s<-- %s' % ('  ' * self.depth, msg)).encode('utf-8')
+            self.client_socket.send(("%s\n" % msg).encode('utf-8'))
+
+        else:
+            print (u'%s!-- %s' % ('  ' * self.depth, msg)).encode('utf-8')
+
+
+    def export(self, attr, object, prepend=True):
+        '''Attach an object to the current class instance. This is the
+        preferred method of sharing functionality, functions and objects
+        between plugins.
+
+        If the object is callable you may wish to turn the callable object in
+        to an "instance method call" by using the `functools.partial(..)`
+        tool to prepend the `self` object to the callable objects argument
+        list.
+
+        Example session from a plugins POV:
+          >>> config_dict = {'foo': 'data..', 'bar': 'other data..'}
+          >>> uzbl.export('config', config_dict)
+          >>> uzbl.config is config_dict
+          True
+          >>> print uzbl.config['foo']
+          data..
+          >>> uzbl.export('get', lambda uzbl, key: uzbl.config[key])
+          >>> print uzbl.get('bar')
+          other data..
+        '''
+
+        if prepend and callable(object):
+            object = partial(object, self)
+
+        self.__dict__.__setitem__(attr, object)
+
+
+    def export_dict(self, export_dict):
+        '''Export multiple (attr, object)'s at once inside a dict of the
+        form `{attr1: object1, attr2: object2, ...}`.'''
+
+        for (attr, object) in export_dict.items():
+            self.export(attr, object)
+
+
+    def connect(self, event, handler, *args, **kargs):
+        '''Connect a uzbl event with a handler. Handlers can either be a
+        function or a uzbl command string.'''
+
+        event = event.upper().strip()
+        assert event and ' ' not in event
+
+        if event not in self.handlers.keys():
+            self.handlers[event] = []
+
+        handlerobj = EventHandler(event, handler, *args, **kargs)
+        self.handlers[event].append(handlerobj)
+        print handlerobj
+
+
+    def connect_dict(self, connect_dict):
+        '''Connect a dictionary comprising of {"EVENT_NAME": handler, ..} to
+        the event handler stack.
+
+        If you need to supply args or kargs to an event use the normal connect
+        function.'''
+
+        for (event, handler) in connect_dict.items():
+            self.connect(event, handler)
+
+
+    def remove_by_id(self, hid):
+        '''Remove connected event handler by unique handler id.'''
+
+        for (event, handlers) in self.handlers.items():
+            for handler in list(handlers):
+                if hid != handler.hid:
+                    continue
+
+                echo("removed %r" % handler)
+                handlers.remove(handler)
+                return
+
+        echo('unable to find & remove handler with id: %d' % hid)
+
+
+    def remove(self, handler):
+        '''Remove connected event handler.'''
+
+        for (event, handlers) in self.handlers.items():
+            if handler in handlers:
+                echo("removed %r" % handler)
+                handlers.remove(handler)
+                return
+
+        echo('unable to find & remove handler: %r' % handler)
+
+
+    def exec_handler(self, handler, *args, **kargs):
+        '''Execute event handler function.'''
+
+        args += handler.args
+        kargs = dict(handler.kargs.items()+kargs.items())
+        handler.function(self, *args, **kargs)
+
+
+    def event(self, event, *args, **kargs):
+        '''Raise an event.'''
+
+        event = event.upper()
+        elems = [event,]
+        if args: elems.append(unicode(args))
+        if kargs: elems.append(unicode(kargs))
+        print (u'%s--> %s' % ('  ' * self.depth, ' '.join(elems))).encode('utf-8')
+
+        if event == "INSTANCE_START" and args:
+            self.pid = int(args[0])
+
+        if event not in self.handlers:
+            return
+
+        for handler in self.handlers[event]:
+            self.depth += 1
+            try:
+                self.exec_handler(handler, *args, **kargs)
+
+            except:
+                print_exc()
+
+            self.depth -= 1
+
+
+    def close(self):
+        '''Close the client socket and clean up.'''
+
+        try:
+            self.client_socket.close()
+
+        except:
+            pass
+
+        for (name, plugin) in self.parent['plugins'].items():
+            if hasattr(plugin, 'cleanup'):
+                plugin.cleanup(self)
+
+
+class UzblEventDaemon(dict):
+    def __init__(self):
+
+        # Init variables and dict keys.
+        dict.__init__(self, {'uzbls': {}})
+        self.running = None
+        self.server_socket = None
+        self.socket_location = None
+
+        # Register that the event daemon server has started by creating the
+        # pid file.
+        make_pid_file(CONFIG['pid_file'])
+
+        # Register a function to clean up the socket and pid file on exit.
+        atexit.register(self.quit)
+
+        # Make SIGTERM act orderly.
+        signal(SIGTERM, lambda signum, stack_frame: sys.exit(1))
+
+        # Load plugins, first-build of the plugins may be a costly operation.
+        self['plugins'] = load_plugins(CONFIG['plugin_dirs'],
+            CONFIG['plugins_load'], CONFIG['plugins_ignore'])
+
+
+    def _create_server_socket(self):
+        '''Create the event manager daemon socket for uzbl instance duplex
+        communication.'''
+
+        server_socket = CONFIG['server_socket']
+        server_socket = os.path.realpath(os.path.expandvars(server_socket))
+        self.socket_location = server_socket
+
+        # Delete socket if it exists.
+        if os.path.exists(server_socket):
+            os.remove(server_socket)
+
+        self.server_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.server_socket.bind(server_socket)
+        self.server_socket.listen(5)
+
+
+    def _close_server_socket(self):
+        '''Close and delete the server socket.'''
+
+        try:
+            self.server_socket.close()
+            self.server_socket = None
+
+            if os.path.exists(self.socket_location):
+                os.remove(self.socket_location)
+
+        except:
+            pass
+
+
+    def run(self):
+        '''Main event daemon loop.'''
+
+        # Create event daemon socket.
+        self._create_server_socket()
+        echo('listening on: %s' % self.socket_location)
+
+        if CONFIG['daemon_mode']:
+            echo('entering daemon mode.')
+            daemonize()
+            # The pid has changed so update the pid file.
+            make_pid_file(CONFIG['pid_file'])
+
+        # Now listen for incoming connections and or data.
+        self.listen()
+
+        # Clean up.
+        self.quit()
+
+
+    def listen(self):
+        '''Accept incoming connections and constantly poll instance sockets
+        for incoming data.'''
+
+        self.running = True
+        while self.running:
+
+            sockets = [self.server_socket] + self['uzbls'].keys()
+
+            reads, _, errors = select(sockets, [], sockets, 1)
+
+            if self.server_socket in reads:
+                self.accept_connection()
+                reads.remove(self.server_socket)
+
+            for client in reads:
+                self.read_socket(client)
+
+            for client in errors:
+                error('Unknown error on socket: %r' % client)
+                self.close_connection(client)
+
+
+    def read_socket(self, client):
+        '''Read data from an instance socket and pass to the uzbl objects
+        event handler function.'''
+
+        uzbl = self['uzbls'][client]
+        try:
+            raw = unicode(client.recv(8192), 'utf-8', 'ignore')
+
+        except:
+            print_exc()
+            raw = None
+
+        if not raw:
+            # Read null byte, close socket.
+            return self.close_connection(client)
+
+        uzbl.buffer += raw
+        msgs = uzbl.buffer.split('\n')
+        uzbl.buffer = msgs.pop()
+
+        for msg in msgs:
+            try:
+                parse_msg(uzbl, msg.strip())
+
+            except:
+                print_exc()
+
+
+    def accept_connection(self):
+        '''Accept incoming connection to the server socket.'''
+
+        client_socket = self.server_socket.accept()[0]
+
+        uzbl = UzblInstance(self, client_socket)
+        self['uzbls'][client_socket] = uzbl
+
+
+    def close_connection(self, client):
+        '''Clean up after instance close.'''
+
+        try:
+            if client in self['uzbls']:
+                uzbl = self['uzbls'][client]
+                uzbl.close()
+                del self['uzbls'][client]
+
+        except:
+            print_exc()
+
+        if not len(self['uzbls']) and CONFIG['auto_close']:
+            echo('auto closing event manager.')
+            self.running = False
+
+
+    def quit(self):
+        '''Close all instance socket objects, server socket and delete the
+        pid file.'''
+
+        echo('shutting down event manager.')
+
+        for client in self['uzbls'].keys():
+            self.close_connection(client)
+
+        echo('unlinking: %r' % self.socket_location)
+        self._close_server_socket()
+
+        echo('deleting pid file: %r' % CONFIG['pid_file'])
+        del_pid_file(CONFIG['pid_file'])
+
+
+def stop_action():
+    '''Stop the event manager daemon.'''
+
+    pid_file = CONFIG['pid_file']
+    if not os.path.isfile(pid_file):
+        return echo('no running daemon found.')
+
+    echo('found pid file: %r' % pid_file)
+    pid = get_pid(pid_file)
+    if not pid_running(pid):
+        echo('no process with pid: %d' % pid)
+        return os.remove(pid_file)
+
+    echo("terminating process with pid: %d" % pid)
+    term_process(pid)
+    if os.path.isfile(pid_file):
+        os.remove(pid_file)
+
+    echo('stopped event daemon.')
+
+
+def start_action():
+    '''Start the event manager daemon.'''
+
+    pid_file = CONFIG['pid_file']
+    if os.path.isfile(pid_file):
+        echo('found pid file: %r' % pid_file)
+        pid = get_pid(pid_file)
+        if pid_running(pid):
+            return echo('event daemon already started with pid: %d' % pid)
+
+        echo('no process with pid: %d' % pid)
+        os.remove(pid_file)
+
+    echo('starting event manager.')
+    UzblEventDaemon().run()
+
+
+def restart_action():
+    '''Restart the event manager daemon.'''
+
+    echo('restarting event manager daemon.')
+    stop_action()
+    start_action()
+
+
+def list_action():
+    '''List all the plugins being loaded by the event daemon.'''
+
+    plugins = find_plugins(CONFIG['plugin_dirs'])
+    dirs = {}
+
+    for (plugin, plugin_dir) in plugins.items():
+        if plugin_dir not in dirs:
+            dirs[plugin_dir] = []
+
+        dirs[plugin_dir].append(plugin)
+
+    for (index, (plugin_dir, plugin_list)) in enumerate(sorted(dirs.items())):
+        if index:
+            print
+
+        print "%s:" % plugin_dir
+        for plugin in sorted(plugin_list):
+            print "    %s" % plugin
+
+
+if __name__ == "__main__":
+    USAGE = "usage: %prog [options] {start|stop|restart|list}"
+    PARSER = OptionParser(usage=USAGE)
+    PARSER.add_option('-v', '--verbose', dest='verbose', action="store_true",
+      help="print verbose output.")
+
+    PARSER.add_option('-d', '--plugin-dirs', dest='plugin_dirs', action="store",
+      metavar="DIRS", help="Specify plugin directories in the form of "\
+      "'dir1:dir2:dir3'.")
+
+    PARSER.add_option('-l', '--load-plugins', dest="load", action="store",
+      metavar="PLUGINS", help="comma separated list of plugins to load")
+
+    PARSER.add_option('-i', '--ignore-plugins', dest="ignore", action="store",
+      metavar="PLUGINS", help="comma separated list of plugins to ignore")
+
+    PARSER.add_option('-p', '--pid-file', dest='pid', action='store',
+      metavar='FILE', help="specify pid file location")
+
+    PARSER.add_option('-s', '--server-socket', dest='socket', action='store',
+      metavar='SOCKET', help="specify the daemon socket location")
+
+    PARSER.add_option('-n', '--no-daemon', dest="daemon",
+      action="store_true", help="don't enter daemon mode.")
+
+    PARSER.add_option('-a', '--auto-close', dest='autoclose',
+      action='store_true', help='auto close after all instances disconnect.')
+
+    (OPTIONS, ARGS) = PARSER.parse_args()
+
+    # init like {start|stop|..} daemon actions dict.
+    DAEMON_ACTIONS = {'start': start_action, 'stop': stop_action,
+        'restart': restart_action, 'list': list_action}
+
+    if not ARGS:
+        ACTION = 'start'
+
+    elif len(ARGS) == 1:
+        ACTION = ARGS[0]
+        if ACTION not in DAEMON_ACTIONS:
+            raise ArgumentError("unknown argument: %r" % ACTION)
+
+    else:
+        raise ArgumentError("too many arguments: %r" % ARGS)
+
+    # parse other flags & options.
+    if OPTIONS.verbose:
+        CONFIG['verbose'] = True
+
+    if OPTIONS.plugin_dirs:
+        PLUGIN_DIRS = []
+        for DIR in OPTIONS.plugin_dirs.split(':'):
+            if not DIR:
+                continue
+
+            PLUGIN_DIRS.append(os.path.realpath(DIR))
+
+        CONFIG['plugin_dirs'] = PLUGIN_DIRS
+        echo("plugin search dirs: %r" % PLUGIN_DIRS)
+
+    if OPTIONS.load and OPTIONS.ignore:
+        error("you can't load and ignore at the same time.")
+        sys.exit(1)
+
+    elif OPTIONS.load:
+        LOAD = CONFIG['plugins_load']
+        for PLUGIN in OPTIONS.load.split(','):
+            if PLUGIN.strip():
+                LOAD.append(PLUGIN.strip())
+
+        echo('only loading plugin(s): %s' % ', '.join(LOAD))
+
+    elif OPTIONS.ignore:
+        IGNORE = CONFIG['plugins_ignore']
+        for PLUGIN in OPTIONS.ignore.split(','):
+            if PLUGIN.strip():
+                IGNORE.append(PLUGIN.strip())
+
+        echo('ignoring plugin(s): %s' % ', '.join(IGNORE))
+
+    if OPTIONS.autoclose:
+        CONFIG['auto_close'] = True
+        echo('will auto close.')
+
+    if OPTIONS.pid:
+        CONFIG['pid_file'] = os.path.realpath(OPTIONS.pid)
+        echo("pid file location: %r" % CONFIG['pid_file'])
+
+    if OPTIONS.socket:
+        CONFIG['server_socket'] = os.path.realpath(OPTIONS.socket)
+        echo("daemon socket location: %s" % CONFIG['server_socket'])
+
+    if OPTIONS.daemon:
+        CONFIG['daemon_mode'] = False
+
+    # Now {start|stop|...}
+    DAEMON_ACTIONS[ACTION]()

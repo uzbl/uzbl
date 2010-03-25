@@ -9,8 +9,8 @@ From source
 You can pull the code from git or get a tagged tarball.
 
 	$ git clone git://github.com/Dieterbe/uzbl.git
-	[ $ git checkout origin/experimental ] # optional. see below
 	$ cd uzbl
+	[ $ git checkout origin/experimental ] # optional. see below
 	$ make
 	$ sudo make install
 If you want to remove uzbl again, you can issue:
@@ -38,12 +38,10 @@ Dependencies which are optional for uzbl-core are marked with an asterisk. (i.e.
 * zenity [*]
 * bash [*]
 * python [*]
-* perl (formfiller.pl) [*]
 * xclip [*]
 * pango [*]
 * pygtk [*]
 * pygobject [*]
-* python-simplejson [*]
 
 Make dependencies
 -----------------
