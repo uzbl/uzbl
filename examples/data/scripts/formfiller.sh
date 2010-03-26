@@ -74,6 +74,8 @@ then
     action="new"
 fi
 
+dumpFunction='function dump() { var output = ""; var allFrames = new Array(window); for(f=0;f<window.frames.length;f=f+1) { allFrames.push(window.frames[f]); };  for(j=0;j<allFrames.length;j=j+1) { try { var myf = allFrames[j].document.forms; if(myf.length > 0) { for(k=0;k<myf.length;k=k+1) { output = output + myf[k].outerHTML; } } } catch(err) { } } return output; }; '
+
 if [ "$action" = 'load' ]
 then
     [ -e $keydir/$domain ] || exit 2
@@ -91,9 +93,7 @@ then
 elif [ "$action" = "once" ]
 then
     tmpfile=`mktemp`
-    html=`echo 'js if(window.frames.length > 0) { for(j=0;j<window.frames.length;j=j+1) { try { window.frames[j].document.documentElement.outerHTML; } catch(err) { } } }' | \
-        socat - unix-connect:$socket`
-    html=${html}" "`echo 'js document.documentElement.outerHTML' | \
+    html=`echo 'js '${dumpFunction}' dump(); ' | \
         socat - unix-connect:$socket`
     html=`echo ${html} | \
             tr -d '\n' | \
@@ -143,9 +143,7 @@ else
         #       login(text):
         #       passwd(password):
         #
-        html=`echo 'js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { try { window.frames[i].document.documentElement.outerHTML; } catch(err) { } } }' | \
-            socat - unix-connect:$socket`
-        html=${html}" "`echo 'js document.documentElement.outerHTML' | \
+        html=`echo 'js '${dumpFunction}' dump(); ' | \
             socat - unix-connect:$socket`
         echo ${html} | \
             tr -d '\n' | \
