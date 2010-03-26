@@ -1,4 +1,4 @@
-/* 
+/*
  ** Callbacks
  ** (c) 2009 by Robert Manea et al.
 */
@@ -110,6 +110,9 @@ void
 cmd_caret_browsing();
 
 void
+cmd_javascript_windows();
+
+void
 cmd_set_geometry();
 
 void
@@ -208,3 +211,8 @@ button_release_cb (GtkWidget* window, GdkEventButton* event);
 gboolean
 focus_cb(GtkWidget* window, GdkEventFocus* event, void *ud);
 
+void
+save_cookies_js(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie, gpointer user_data);
+
+void
+save_cookies_http(SoupMessage *msg, gpointer user_data);

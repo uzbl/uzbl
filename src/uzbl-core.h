@@ -105,6 +105,7 @@ typedef struct {
 /* networking */
 typedef struct {
     SoupSession *soup_session;
+    SoupCookieJar *soup_cookie_jar;
     SoupLogger *soup_logger;
     char *proxy_url;
     char *useragent;
@@ -156,6 +157,7 @@ typedef struct {
     guint    enforce_96dpi;
     gchar    *inject_html;
     guint    caret_browsing;
+    guint    javascript_windows;
     guint    mode;
     gchar*   base_url;
     gboolean print_version;
@@ -390,8 +392,6 @@ handle_authentication (SoupSession *session,
 void handle_cookies (SoupSession *session,
                             SoupMessage *msg,
                             gpointer     user_data);
-void
-save_cookies (SoupMessage *msg, gpointer     user_data);
 
 void
 set_var(WebKitWebView *page, GArray *argv, GString *result);

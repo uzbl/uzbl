@@ -34,12 +34,13 @@ In alphabetical order:
     David Keijser - various C and python patches.
     Devon Jones <devon.jones@gmail.com> - uzbl_tabbed: bring_to_front
     Dieter Plaetinck (Dieter@be) <dieter AT plaetinck.be> - several contributions
+    Dmytro Milinevskyy - uzbl-tabbed useability patches
     Dusan Popovic (dusanx) - many contributions to early uzbl
     Evgeny Grablyk - libsoup settings
     Helmut Grohne (helmut) - move void **ptr to union, various fixes
     Henri Kemppainen (DuClare) <email is akarinotengoku AT THE DOMAIN OF gmail.com> - many contributions, mostly old handler code
     Igor Bogomazov - mouse ptr events
-    Jake Probst <jake.probst@gmail.com> - uzbl_tabbed: multiline tablist
+    Jake Probst <jake.probst@gmail.com> - uzbl_tabbed: multiline tablist, new window opening patches
     James S Wheaton (uranther) - zoom level, test framework
     Jan Kolkmeier (jouz) - scrolling, link following
     Jason Woofenden (JasonWoof) - geometry=maximized, link following
