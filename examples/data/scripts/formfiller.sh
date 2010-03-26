@@ -101,7 +101,7 @@ then
             sed 's/<input/<input type="text"/g' | \
             sed 's/type="text"\(.*\)type="\([^"]\+\)"/type="\2" \1 /g'`
     echo "${html}" | \
-        sed -n 's/.*\(<input[^>]\+>\).*/\1/;/type="\(password\|text\)"/Ip' | \
+        sed -n 's/.*\(<input[^>]\+>\).*/\1/;/type="\(password\|text\|checkbox\)"/Ip' | \
         sed 's/\(.*\)\(type="[^"]\+"\)\(.*\)\(name="[^"]\+"\)\(.*\)/\1\4\3\2\5/I' | \
         sed 's/.*name="\([^"]\+\)".*type="\([^"]\+\)".*/\1(\2):/I' >> $tmpfile
     echo "${html}" | \
@@ -111,7 +111,11 @@ then
     [ -e $tmpfile ] || exit 2
 
     cat $tmpfile | \
-        sed -n -e 's/\([^(]\+\)([^)]\+):[ ]*\(.\+\)/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { try { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].value="\2" } } catch(err) { } } }; document.getElementsByName("\1")[0].value="\2"/p' | \
+        sed -n -e 's/\([^(]\+\)(\(password\|text\|textarea\)\+):[ ]*\(.\+\)/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { try { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].value="\3" } } catch(err) { } } }; document.getElementsByName("\1")[0].value="\3"/p' | \
+        sed -e 's/@/\\@/g' >> $fifo
+    sed 's/\([^(]\+\)(\(checkbox\)):[ ]*\(.\+\)/\1(\2):1/;s/\([^(]\+\)(\(checkbox\)):$/\1(\2):0/' -i $tmpfile
+    cat $tmpfile | \
+        sed -n -e 's/\([^(]\+\)(\(checkbox\)):[ ]*\(.\+\)/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { try { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].checked=\3 } } catch(err) { } } }; document.getElementsByName("\1")[0].checked=\3/p' | \
         sed -e 's/@/\\@/g' >> $fifo
     rm -f $tmpfile
 else
