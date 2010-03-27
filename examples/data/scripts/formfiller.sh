@@ -6,7 +6,8 @@
 # files contain lines like: !profile=<profile_name>
 #                           <fieldname>(fieldtype): <value>
 # profile_name should be replaced with a name that will tell sth about that profile
-# fieldtype can be checkbox, text or password - only for information pupropse (auto-generated) - don't change that
+# fieldtype can be checkbox, text or password, textarea - only for information 
+#                               pupropse (auto-generated) - don't change that
 #
 # user arg 1:
 # edit: force editing the file (falls back to new if not found)
@@ -16,6 +17,9 @@
 # once: edit form using external editor
 #
 # something else (or empty): if file not available: new, otherwise load.
+#
+# TODO: 
+#   - Add multiline support for textarea fields
 
 # config dmenu colors and prompt
 NB="#0f0f0f"
@@ -124,10 +128,10 @@ then
 
     [ -e $tmpfile ] || exit 2
 
+    sed 's/\([^(]\+\)(\(checkbox\)):[ ]*\(.\+\)/\1(\2):1/;s/\([^(]\+\)(\(checkbox\)):$/\1(\2):0/' -i $tmpfile
     cat $tmpfile | \
         sed -n -e 's/\([^(]\+\)(\(password\|text\|textarea\)\+):[ ]*\(.\+\)/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { try { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].value="\3" } } catch(err) { } } }; document.getElementsByName("\1")[0].value="\3"/p' | \
         sed -e 's/@/\\@/g' >> $fifo
-    sed 's/\([^(]\+\)(\(checkbox\)):[ ]*\(.\+\)/\1(\2):1/;s/\([^(]\+\)(\(checkbox\)):$/\1(\2):0/' -i $tmpfile
     cat $tmpfile | \
         sed -n -e 's/\([^(]\+\)(\(checkbox\)):[ ]*\(.\+\)/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { try { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].checked=\3 } } catch(err) { } } }; document.getElementsByName("\1")[0].checked=\3/p' | \
         sed -e 's/@/\\@/g' >> $fifo
