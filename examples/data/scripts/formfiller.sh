@@ -6,13 +6,14 @@
 # files contain lines like: !profile=<profile_name>
 #                           <fieldname>(fieldtype): <value>
 # profile_name should be replaced with a name that will tell sth about that profile
-# fieldtype can be text or password - only for information pupropse (auto-generated) - don't change that
+# fieldtype can be checkbox, text or password - only for information pupropse (auto-generated) - don't change that
 #
 # user arg 1:
 # edit: force editing the file (falls back to new if not found)
 # new:  start with a new file.
 # load: try to load from file into form
 # add: try to add another profile to an existing file
+# once: edit form using external editor
 #
 # something else (or empty): if file not available: new, otherwise load.
 
