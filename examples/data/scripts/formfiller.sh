@@ -75,8 +75,6 @@ then
     action="new"
 fi
 
-dumpFunction='function dump() { var output = ""; var allFrames = new Array(window); for(f=0;f<window.frames.length;f=f+1) { allFrames.push(window.frames[f]); };  for(j=0;j<allFrames.length;j=j+1) { try { var myf = allFrames[j].document.forms; if(myf.length > 0) { for(k=0;k<myf.length;k=k+1) { output = output + myf[k].outerHTML; } } } catch(err) { } } return output; }; '
-
 if [ "$action" = 'load' ]
 then
     [ -e $keydir/$domain ] || exit 2
@@ -94,19 +92,8 @@ then
 elif [ "$action" = "once" ]
 then
     tmpfile=`mktemp`
-    html=`echo 'js '${dumpFunction}' dump(); ' | \
-        socat - unix-connect:$socket`
-    html=`echo ${html} | \
-            tr -d '\n' | \
-            sed 's/>/>\n/g' | \
-            sed 's/<input/<input type="text"/g' | \
-            sed 's/type="text"\(.*\)type="\([^"]\+\)"/type="\2" \1 /g'`
-    echo "${html}" | \
-        sed -n 's/.*\(<input[^>]\+>\).*/\1/;/type="\(password\|text\|checkbox\)"/Ip' | \
-        sed 's/\(.*\)\(type="[^"]\+"\)\(.*\)\(name="[^"]\+"\)\(.*\)/\1\4\3\2\5/I' | \
-        sed 's/.*name="\([^"]\+\)".*type="\([^"]\+\)".*/\1(\2):/I' >> $tmpfile
-    echo "${html}" | \
-        sed -n 's/.*<textarea.*name="\([^"]\+\)".*/\1(textarea):/Ip' >> $tmpfile
+    echo "script @scripts_dir/formfiller-helper.js" | \
+        socat - unix-connect:$socket > $tmpfile
     ${editor} $tmpfile
 
     [ -e $tmpfile ] || exit 2
