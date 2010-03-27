@@ -76,18 +76,27 @@ then
 fi
 
 dumpFunction='function dump() { 
-    var rv=""; 
-    var xp_res=document.evaluate("//input", document.documentElement, null, XPathResult.ANY_TYPE,null); 
-    var input; 
-    while(input=xp_res.iterateNext()) { 
-        var type=(input.type?input.type:text); 
-        if(type == "text" || type == "password" || type == "file") { 
-            rv += input.name + "(" + type + "):" + input.value + "\\n"; 
-        } 
-        else if(type == "checkbox" || type == "radio") { 
-            rv += input.name + "[" + input.value + "]" + "(" + type + "):" + (input.checked?"ON":"") + "\\n"; 
-        } 
+    var rv="";
+    var allFrames = new Array(window); 
+    for(f=0;f<window.frames.length;f=f+1) { 
+        allFrames.push(window.frames[f]); 
     }  
+    for(j=0;j<allFrames.length;j=j+1) { 
+        try { 
+            var xp_res=allFrames[j].document.evaluate("//input", allFrames[j].document.documentElement, null, XPathResult.ANY_TYPE,null); 
+            var input; 
+            while(input=xp_res.iterateNext()) { 
+                var type=(input.type?input.type:text); 
+                if(type == "text" || type == "password" || type == "file") { 
+                    rv += input.name + "(" + type + "):" + input.value + "\\n"; 
+                } 
+                else if(type == "checkbox" || type == "radio") { 
+                    rv += input.name + "(" + type + "):" + (input.checked?"ON":"") + "\\n"; 
+                } 
+            }  
+        }
+        catch(err) { }
+    }
     return rv;
 }; '
 
@@ -109,7 +118,8 @@ elif [ "$action" = "once" ]
 then
     tmpfile=`mktemp`
     echo "js "$dumpFunction" dump(); " | \
-        socat - unix-connect:$socket > $tmpfile
+        socat - unix-connect:$socket | \
+        sed -n '/^[^(]\+([^)]\+):/p' > $tmpfile
     ${editor} $tmpfile
 
     [ -e $tmpfile ] || exit 2
@@ -147,16 +157,9 @@ else
         #       login(text):
         #       passwd(password):
         #
-        html=`echo 'js '${dumpFunction}' dump(); ' | \
-            socat - unix-connect:$socket`
-        echo ${html} | \
-            tr -d '\n' | \
-            sed 's/>/>\n/g' | \
-            sed 's/<input/<input type="text"/g' | \
-            sed 's/type="text"\(.*\)type="\([^"]\+\)"/type="\2" \1 /g' | \
-            sed -n 's/.*\(<input[^>]\+>\).*/\1/;/type="\(password\|text\)"/Ip' | \
-            sed 's/\(.*\)\(type="[^"]\+"\)\(.*\)\(name="[^"]\+"\)\(.*\)/\1\4\3\2\5/I' | \
-            sed 's/.*name="\([^"]\+\)".*type="\([^"]\+\)".*/\1(\2):/I' >> $keydir/$domain
+        echo "js "$dumpFunction" dump(); " | \
+            socat - unix-connect:$socket | \
+            sed -n '/^[^(]\+([^)]\+):/p' > $keydir/$domain
     fi
     [ -e "$keydir/$domain" ] || exit 3 #this should never happen, but you never know.
     $editor "$keydir/$domain" #TODO: if user aborts save in editor, the file is already overwritten
