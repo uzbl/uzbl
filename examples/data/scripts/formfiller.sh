@@ -37,9 +37,9 @@ keydir=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/dforms
 [ -d "`dirname $keydir`" ] || exit 1
 [ -d "$keydir" ] || mkdir "$keydir"
 
-editor=${VISUAL}
-if [ -z ${editor} ]; then
-    if [ -z ${EDITOR} ]; then
+editor="${VISUAL}"
+if [ -z "${editor}" ]; then
+    if [ -z "${EDITOR}" ]; then
         editor='xterm -e vim'
     else
         editor="xterm -e ${EDITOR}"
