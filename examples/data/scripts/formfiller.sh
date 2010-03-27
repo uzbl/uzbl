@@ -75,6 +75,22 @@ then
     action="new"
 fi
 
+dumpFunction='function dump() { 
+    var rv=""; 
+    var xp_res=document.evaluate("//input", document.documentElement, null, XPathResult.ANY_TYPE,null); 
+    var input; 
+    while(input=xp_res.iterateNext()) { 
+        var type=(input.type?input.type:text); 
+        if(type == "text" || type == "password" || type == "file") { 
+            rv += input.name + "(" + type + "):" + input.value + "\\n"; 
+        } 
+        else if(type == "checkbox" || type == "radio") { 
+            rv += input.name + "[" + input.value + "]" + "(" + type + "):" + (input.checked?"ON":"") + "\\n"; 
+        } 
+    }  
+    return rv;
+}; '
+
 if [ "$action" = 'load' ]
 then
     [ -e $keydir/$domain ] || exit 2
@@ -92,7 +108,7 @@ then
 elif [ "$action" = "once" ]
 then
     tmpfile=`mktemp`
-    echo "script @scripts_dir/formfiller-helper.js" | \
+    echo "js "$dumpFunction" dump(); " | \
         socat - unix-connect:$socket > $tmpfile
     ${editor} $tmpfile
 
