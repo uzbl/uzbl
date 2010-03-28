@@ -138,17 +138,18 @@ function clickElem(item) {
 	    } catch(err) {
 	      type = 'TEXT';
 	    }
-            if (type == 'TEXT' || type == 'FILE' || type == 'PASSWORD') {
+            if (type == 'TEXT' || type == 'PASSWORD') {
                 item.focus();
                 item.select();
+                rv="XXXEMIT_FORM_ACTIVEXXX";
             } else {
                 item.click();
+                rv="XXXRESET_MODEXXX";
             }
-            rv="XXXFORMELEMENTCLICKEDXXX";
         } else if (name == 'TEXTAREA' || name == 'SELECT') {
             item.focus();
             item.select();
-            rv="XXXFORMELEMENTCLICKEDXXX";
+            rv="XXXEMIT_FORM_ACTIVEXXX";
         } else {
             item.click();
             window.location = item.href;
