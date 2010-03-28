@@ -95,8 +95,13 @@ dumpFunction='function dump() {
                     rv += input.name + "(" + type + "):" + input.value + "\\n"; 
                 } 
                 else if(type == "checkbox" || type == "radio") { 
-                    rv += input.name + "[" + input.value + "](" + type + "):" + (input.checked?"ON":"") + "\\n"; 
+                    rv += input.name + "[" + input.value + "](" + type + "):" + (input.checked?"ON":"OFF") + "\\n"; 
                 } 
+            }  
+            xp_res=allFrames[j].document.evaluate("//textarea", allFrames[j].document.documentElement, null, XPathResult.ANY_TYPE,null); 
+            var input; 
+            while(input=xp_res.iterateNext()) { 
+                rv += input.name + "(textarea):" + input.value + "\\n"; 
             }  
         }
         catch(err) { }
@@ -140,14 +145,17 @@ then
         option=`echo -e -n "$menu"| dmenu ${LINES} -nb "${NB}" -nf "${NF}" -sb "${SB}" -sf "${SF}" -p "${PROMPT}"`
     fi
 
-    sed 's/\([^\[]\+\)\[\([^\]]*\)](\(radio\|checkbox\)):[ ]*\(.\+\)/\1[\2](\3):1/;s/\([^\[]\+\)\[\([^\]]*\)](\(radio\|checkbox\)):$/\1[\2](\3):0/' -i $keydir/$domain
+    sed 's/\([^[]\+\)\[\([^]]*\)\](\(radio\|checkbox\)):[ ]*\(on\|yes\|1\)$/\1[\2](\3):1/I;s/\([^[]\+\)\[\([^]]*\)\](\(radio\|checkbox\)):[ ]*\(off\|no\|0\)$/\1[\2](\3):0/I' -i $keydir/$domain
     fields=`cat $keydir/$domain | \
-        sed -n -e "/^!profile=${option}/,/^!profile=/p"`
+        sed -n -e "/^!profile=${option}/,/^!profile=/p" | \
+        sed 's/^\([^[]\+\[[^]]*]([^)]\+):\|[^(]\+([^)]\+):\)/<\1>/' | \
+        sed 's/^\(.\+\)$/\1{{br}}/g' | \
+        tr -d '\n'| sed 's/{{br}}<\([^[]\+\[[^]]*]([^)]\+):\|[^(]\+([^)]\+):\)>/\n\1/g'`
     echo "${fields}" | \
         sed -n -e "s/\([^(]\+\)(\(password\|text\|textarea\)\+):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\2', '\3', 0);/p" | \
-        sed -e 's/@/\\@/g' > $fifo
+        sed -e 's/@/\\@/g;s/{{br}}/\\\\n/g' > $fifo
     echo "${fields}" | \
-        sed -n -e "s/\([^[]\+\)\[\([^]]*\)](\(radio\|checkbox\)):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\3', '\2', '\4');/p" | \
+        sed -n -e "s/\([^[]\+\)\[\([^]]*\)\](\(radio\|checkbox\)):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\3', '\2', \4);/p" | \
         sed -e 's/@/\\@/g' > $fifo
 elif [ "$action" = "once" ]
 then
@@ -159,13 +167,16 @@ then
 
     [ -e $tmpfile ] || exit 2
 
-    sed 's/\([^[]\+\)\[\([^]]*\)](\(radio\|checkbox\)):[ ]*\(.\+\)/\1[\2](\3):1/;s/\([^\[]\+\)\[\([^\]]*\)](\(radio\|checkbox\)):$/\1[\2](\3):0/' -i $tmpfile
-    fields=`cat $tmpfile`
+    sed 's/\([^[]\+\)\[\([^]]*\)\](\(radio\|checkbox\)):[ ]*\(on\|yes\|1\)$/\1[\2](\3):1/I;s/\([^[]\+\)\[\([^]]*\)\](\(radio\|checkbox\)):[ ]*\(off\|no\|0\)$/\1[\2](\3):0/I' -i $tmpfile
+    fields=`cat $tmpfile | \
+        sed 's/^\([^[]\+\[[^]]*]([^)]\+):\|[^(]\+([^)]\+):\)/<\1>/' | \
+        sed 's/^\(.\+\)$/\1{{br}}/g' | \
+        tr -d '\n'| sed 's/{{br}}<\([^[]\+\[[^]]*]([^)]\+):\|[^(]\+([^)]\+):\)>/\n\1/g'`
     echo "${fields}" | \
         sed -n -e "s/\([^(]\+\)(\(password\|text\|textarea\)\+):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\2', '\3', 0);/p" | \
-        sed -e 's/@/\\@/g' > $fifo
+        sed -e 's/@/\\@/g;s/{{br}}/\\\\n/g' > $fifo
     echo "${fields}" | \
-        sed -n -e "s/\([^\[]\+\)\[\([^\]]*\)](\(radio\|checkbox\)):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\3', '\2', '\4');/p" | \
+        sed -n -e "s/\([^[]\+\)\[\([^]]*\)\](\(radio\|checkbox\)):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\3', '\2', \4);/p" | \
         sed -e 's/@/\\@/g' > $fifo
     rm -f $tmpfile
 else
