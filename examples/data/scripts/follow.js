@@ -17,6 +17,7 @@ var doc = document;
 var win = window;
 var links = document.links;
 var forms = document.forms;
+var rv = "";
 //Make onlick-links "clickable"
 try {
     HTMLElement.prototype.click = function() {
@@ -131,16 +132,23 @@ function clickElem(item) {
             item.click();
             window.location = item.href;
         } else if (name == 'INPUT') {
-            var type = item.getAttribute('type').toUpperCase();
+	    var type;
+	    try {
+              type = item.getAttribute('type').toUpperCase();
+	    } catch(err) {
+	      type = 'TEXT';
+	    }
             if (type == 'TEXT' || type == 'FILE' || type == 'PASSWORD') {
                 item.focus();
                 item.select();
             } else {
                 item.click();
             }
+            rv="XXXFORMELEMENTCLICKEDXXX";
         } else if (name == 'TEXTAREA' || name == 'SELECT') {
             item.focus();
             item.select();
+            rv="XXXFORMELEMENTCLICKEDXXX";
         } else {
             item.click();
             window.location = item.href;
