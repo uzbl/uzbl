@@ -21,6 +21,6 @@ echo 'script @scripts_dir/follow.js "@{follow_hint_keys} '$1'"' | socat - unix-c
 # FORM_ACTIVE event
 echo 'js rv' \
   | socat - unix-connect:$socket \
-  | grep -q XXXINPUTELEMENTCLICKEDXXX \
+  | grep -q XXXFORMELEMENTCLICKEDXXX \
   && echo 'event FORM_ACTIVE' \
   | socat - unix-connect:$socket
