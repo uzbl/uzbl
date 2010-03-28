@@ -5,9 +5,17 @@
 # uses settings files like: $keydir/<domain>
 # files contain lines like: !profile=<profile_name>
 #                           <fieldname>(fieldtype): <value>
-# profile_name should be replaced with a name that will tell sth about that profile
+# profile_name should be replaced with a name that will tell sth about that 
+#       profile
 # fieldtype can be checkbox, text or password, textarea - only for information 
 #                               pupropse (auto-generated) - don't change that
+#
+# Texteares: for textareas edited text can be now splitted into more lines.
+#       If there will be text, that doesn't match key line:
+#                    <fieldname>(fieldtype):<value>
+#       then it will be considered as a multiline for the first field above it
+#       If that field doesn't support multilines, like all input fields, then
+#       only first line will be inserted
 #
 # user arg 1:
 # edit: force editing the file (falls back to new if not found)
@@ -18,8 +26,6 @@
 #
 # something else (or empty): if file not available: new, otherwise load.
 #
-# TODO: 
-#   - Add multiline support for textarea fields
 
 # config dmenu colors and prompt
 NB="#0f0f0f"
