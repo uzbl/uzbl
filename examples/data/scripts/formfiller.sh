@@ -17,6 +17,16 @@
 #       Keep in mind, that if you make more than one line for fileds like input
 #       text fields, then all lines will be inserted into as one line
 #
+# Checkboxes/radio-buttons: to uncheck it type on of the following after the
+#       colon:
+#           no
+#           off
+#           0
+#           unchecked
+#           false
+#       or leave it blank, even without spaces
+#       otherwise it will be considered as checked
+#
 # user arg 1:
 # edit: force editing the file (falls back to new if not found)
 # new:  start with a new file.
@@ -151,7 +161,7 @@ then
         option=`echo -e -n "$menu"| dmenu ${LINES} -nb "${NB}" -nf "${NF}" -sb "${SB}" -sf "${SF}" -p "${PROMPT}"`
     fi
 
-    sed 's/\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):.\+$/\1{\2}(\3):1/I;s/\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):$/\1{\2}(\3):0/I' -i $keydir/$domain
+    sed 's/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):\(off\|no\|false\|unchecked\|0\|$\)/\1{\2}(\3):0/I;s/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[^0]\+/\1{\2}(\3):1/I' -i $keydir/$domain
     fields=`cat $keydir/$domain | \
         sed -n "/^!profile=${option}/,/^!profile=/p" | \
         sed '/^!profile=/d' | \
@@ -175,7 +185,7 @@ then
 
     [ -e $tmpfile ] || exit 2
 
-    sed 's/\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):.\+$/\1{\2}(\3):1/I;s/\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):$/\1{\2}(\3):0/I' -i $tmpfile
+    sed 's/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):\(off\|no\|false\|unchecked\|0\|$\)/\1{\2}(\3):0/I;s/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[^0]\+/\1{\2}(\3):1/I' -i $tmpfile
     fields=`cat $tmpfile | \
         sed 's/^\([^(]\+(\)\(radio\|checkbox\|text\|textarea\|password\)):/%{>\1\2):<}%/' | \
         sed 's/^\(.\+\)$/<{br}>\1/' | \
