@@ -95,7 +95,7 @@ dumpFunction='function dump() {
                     rv += input.name + "(" + type + "):" + input.value + "\\n"; 
                 } 
                 else if(type == "checkbox" || type == "radio") { 
-                    rv += input.name + "(" + type + "):" + (input.checked?"ON":"") + "\\n"; 
+                    rv += input.name + "[" + input.value + "](" + type + "):" + (input.checked?"ON":"") + "\\n"; 
                 } 
             }  
         }
@@ -103,6 +103,32 @@ dumpFunction='function dump() {
     }
     return rv;
 }; '
+
+insertFunction="function insert(fname, ftype, fvalue, fchecked) { \
+    var allFrames = new Array(window); \
+    for(f=0;f<window.frames.length;f=f+1) { \
+        allFrames.push(window.frames[f]); \
+    }  \
+    for(j=0;j<allFrames.length;j=j+1) { \
+        try { \
+            if(ftype == 'text' || ftype == 'password' || ftype == 'textarea') { \
+                allFrames[j].document.getElementsByName(fname)[0].value = fvalue; \
+            } \
+            else if(ftype == 'checkbox') { \
+                allFrames[j].document.getElementsByName(fname)[0].checked = fchecked;\
+            } \
+            else if(ftype == 'radio') { \
+                var radios = allFrames[j].document.getElementsByName(fname); \
+                for(r=0;r<radios.length;r+=1) { \
+                    if(radios[r].value == fvalue) { \
+                        radios[r].checked = fchecked; \
+                    } \
+                } \
+            } \
+        } \
+        catch(err) { } \
+    } \
+}; "
 
 if [ "$action" = 'load' ]
 then
@@ -114,14 +140,15 @@ then
         option=`echo -e -n "$menu"| dmenu ${LINES} -nb "${NB}" -nf "${NF}" -sb "${SB}" -sf "${SF}" -p "${PROMPT}"`
     fi
 
-    sed 's/\([^(]\+\)(\(checkbox\)):[ ]*\(.\+\)/\1(\2):1/;s/\([^(]\+\)(\(checkbox\)):$/\1(\2):0/' -i $keydir/$domain
-    cat $keydir/$domain | \
-        sed -n -e "/^!profile=${option}/,/^!profile=/p" | \
-        sed -n -e 's/\([^(]\+\)(\(password\|text\|textarea\)\+):[ ]*\(.\+\)/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { try { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].value="\3" } } catch(err) { } } }; document.getElementsByName("\1")[0].value="\3"/p' | \
-        sed -e 's/@/\\@/g' >> $fifo
-    cat $keydir/$domain | \
-        sed -n -e 's/\([^(]\+\)(\(checkbox\)):[ ]*\(.\+\)/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { try { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].checked=\3 } } catch(err) { } } }; document.getElementsByName("\1")[0].checked=\3/p' | \
-        sed -e 's/@/\\@/g' >> $fifo
+    sed 's/\([^\[]\+\)\[\([^\]]*\)](\(radio\|checkbox\)):[ ]*\(.\+\)/\1[\2](\3):1/;s/\([^\[]\+\)\[\([^\]]*\)](\(radio\|checkbox\)):$/\1[\2](\3):0/' -i $keydir/$domain
+    fields=`cat $keydir/$domain | \
+        sed -n -e "/^!profile=${option}/,/^!profile=/p"`
+    echo "${fields}" | \
+        sed -n -e "s/\([^(]\+\)(\(password\|text\|textarea\)\+):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\2', '\3', 0);/p" | \
+        sed -e 's/@/\\@/g' > $fifo
+    echo "${fields}" | \
+        sed -n -e "s/\([^[]\+\)\[\([^]]*\)](\(radio\|checkbox\)):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\3', '\2', '\4');/p" | \
+        sed -e 's/@/\\@/g' > $fifo
 elif [ "$action" = "once" ]
 then
     tmpfile=`mktemp`
@@ -132,13 +159,14 @@ then
 
     [ -e $tmpfile ] || exit 2
 
-    sed 's/\([^(]\+\)(\(checkbox\)):[ ]*\(.\+\)/\1(\2):1/;s/\([^(]\+\)(\(checkbox\)):$/\1(\2):0/' -i $tmpfile
-    cat $tmpfile | \
-        sed -n -e 's/\([^(]\+\)(\(password\|text\|textarea\)\+):[ ]*\(.\+\)/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { try { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].value="\3" } } catch(err) { } } }; document.getElementsByName("\1")[0].value="\3"/p' | \
-        sed -e 's/@/\\@/g' >> $fifo
-    cat $tmpfile | \
-        sed -n -e 's/\([^(]\+\)(\(checkbox\)):[ ]*\(.\+\)/js if(window.frames.length > 0) { for(i=0;i<window.frames.length;i=i+1) { try { var e = window.frames[i].document.getElementsByName("\1"); if(e.length > 0) { e[0].checked=\3 } } catch(err) { } } }; document.getElementsByName("\1")[0].checked=\3/p' | \
-        sed -e 's/@/\\@/g' >> $fifo
+    sed 's/\([^[]\+\)\[\([^]]*\)](\(radio\|checkbox\)):[ ]*\(.\+\)/\1[\2](\3):1/;s/\([^\[]\+\)\[\([^\]]*\)](\(radio\|checkbox\)):$/\1[\2](\3):0/' -i $tmpfile
+    fields=`cat $tmpfile`
+    echo "${fields}" | \
+        sed -n -e "s/\([^(]\+\)(\(password\|text\|textarea\)\+):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\2', '\3', 0);/p" | \
+        sed -e 's/@/\\@/g' > $fifo
+    echo "${fields}" | \
+        sed -n -e "s/\([^\[]\+\)\[\([^\]]*\)](\(radio\|checkbox\)):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\3', '\2', '\4');/p" | \
+        sed -e 's/@/\\@/g' > $fifo
     rm -f $tmpfile
 else
     if [ "$action" == 'new' -o "$action" == 'add' ]
