@@ -14,8 +14,8 @@
 #       If there will be text, that doesn't match key line:
 #                    <fieldname>(fieldtype):<value>
 #       then it will be considered as a multiline for the first field above it
-#       If that field doesn't support multilines, like all input fields, then
-#       only first line will be inserted
+#       Keep in mind, that if you make more than one line for fileds like input
+#       text fields, then all lines will be inserted into as one line
 #
 # user arg 1:
 # edit: force editing the file (falls back to new if not found)
