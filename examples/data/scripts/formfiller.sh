@@ -27,6 +27,8 @@
 #       or leave it blank, even without spaces
 #       otherwise it will be considered as checked
 #
+# All lines starting with '>' are ignored as comments
+#
 # user arg 1:
 # edit: force editing the file (falls back to new if not found)
 # new:  start with a new file.
@@ -51,6 +53,7 @@ else
 fi
 
 PROMPT="Choose profile"
+MODELINE="> vim:ft=formfiller"
 
 keydir=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/dforms
 
@@ -181,10 +184,13 @@ then
     printf 'js %s dump(); \n' "$dumpFunction" | \
         socat - unix-connect:$socket | \
         sed -n '/^[^(]\+([^)]\+):/p' > $tmpfile
+    echo "$MODELINE" >> $tmpfile
     ${editor} $tmpfile
 
     [ -e $tmpfile ] || exit 2
 
+    # Remove comments
+    sed '/^>/d' -i $tmpfile
     sed 's/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):\(off\|no\|false\|unchecked\|0\|$\)/\1{\2}(\3):0/I;s/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[^0]\+/\1{\2}(\3):1/I' -i $tmpfile
     fields=`cat $tmpfile | \
         sed 's/^\([^(]\+(\)\(radio\|checkbox\|text\|textarea\|password\)):/%{>\1\2):<}%/' | \
