@@ -91,7 +91,7 @@ if [ "$action" != 'edit' -a  "$action" != 'new' -a "$action" != 'load' -a "$acti
 then
     action="new"
     [ -e "$keydir/$domain" ] && action="load"
-elif [ "$action" == 'edit' ] && [ ! -e "$keydir/$domain" ]
+elif [ "$action" = 'edit' ] && [ ! -e "$keydir/$domain" ]
 then
     action="new"
 fi
@@ -207,9 +207,9 @@ then
         sed -e 's/@/\\@/g' > $fifo
     rm -f $tmpfile
 else
-    if [ "$action" == 'new' -o "$action" == 'add' ]
+    if [ "$action" = 'new' -o "$action" = 'add' ]
     then
-	[ "$action" == 'new' ] && echo "$MODELINE" > $keydir/$domain
+	[ "$action" = 'new' ] && echo "$MODELINE" > $keydir/$domain
         echo "!profile=NAME_THIS_PROFILE$RANDOM" >> $keydir/$domain
         #
         # 2. and 3. line (tr -d and sed) are because, on gmail login for example,
@@ -219,7 +219,7 @@ else
         #        type="text"
         #        value="">
         # So, tr removes all new lines, and sed inserts new line after each >
-        # Next sed selects only <input> tags and only with type == "text" or == "password"
+        # Next sed selects only <input> tags and only with type = "text" or = "password"
         # If type is first and name is second, then another sed will change their order
         # so the last sed will make output
         #       text_from_the_name_attr(text or password):
