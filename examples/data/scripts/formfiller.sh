@@ -95,35 +95,35 @@ then
     action="new"
 fi
 
-dumpFunction='function dump() { 
-    var rv="";
-    var allFrames = new Array(window); 
-    for(f=0;f<window.frames.length;f=f+1) { 
-        allFrames.push(window.frames[f]); 
-    }  
-    for(j=0;j<allFrames.length;j=j+1) { 
-        try { 
-            var xp_res=allFrames[j].document.evaluate("//input", allFrames[j].document.documentElement, null, XPathResult.ANY_TYPE,null); 
-            var input; 
-            while(input=xp_res.iterateNext()) { 
-                var type=(input.type?input.type:text); 
-                if(type == "text" || type == "password") { 
-                    rv += input.name + "(" + type + "):" + input.value + "\\n"; 
-                } 
-                else if(type == "checkbox" || type == "radio") { 
-                    rv += input.name + "{" + input.value + "}(" + type + "):" + (input.checked?"ON":"OFF") + "\\n"; 
-                } 
-            }  
-            xp_res=allFrames[j].document.evaluate("//textarea", allFrames[j].document.documentElement, null, XPathResult.ANY_TYPE,null); 
-            var input; 
-            while(input=xp_res.iterateNext()) { 
-                rv += input.name + "(textarea):" + input.value + "\\n"; 
-            }  
-        }
-        catch(err) { }
-    }
-    return rv;
-}; '
+dumpFunction="function dump() { \
+    var rv=''; \
+    var allFrames = new Array(window); \
+    for(f=0;f<window.frames.length;f=f+1) { \
+        allFrames.push(window.frames[f]); \
+    } \
+    for(j=0;j<allFrames.length;j=j+1) { \
+        try { \
+            var xp_res=allFrames[j].document.evaluate('//input', allFrames[j].document.documentElement, null, XPathResult.ANY_TYPE,null); \
+            var input; \
+            while(input=xp_res.iterateNext()) { \
+                var type=(input.type?input.type:text); \
+                if(type == 'text' || type == 'password') { \
+                    rv += input.name + '(' + type + '):' + input.value + '\\\\n'; \
+                } \
+                else if(type == 'checkbox' || type == 'radio') { \
+                    rv += input.name + '{' + input.value + '}(' + type + '):' + (input.checked?'ON':'OFF') + '\\\\n'; \
+                } \
+            }  \
+            xp_res=allFrames[j].document.evaluate('//textarea', allFrames[j].document.documentElement, null, XPathResult.ANY_TYPE,null); \
+            var input; \
+            while(input=xp_res.iterateNext()) { \
+                rv += input.name + '(textarea):' + input.value + '\\\\n'; \
+            } \
+        } \
+        catch(err) { } \
+    } \
+    return rv; \
+}; "
 
 insertFunction="function insert(fname, ftype, fvalue, fchecked) { \
     var allFrames = new Array(window); \
@@ -169,16 +169,16 @@ then
         sed 's/^\(.\+\)$/<{br}>\1/' | \
         tr -d '\n' | \
         sed 's/<{br}>%{>\([^(]\+(\)\(radio\|checkbox\|text\|textarea\|password\)):<}%/\\n\1\2):/g'`
-    echo "${fields}" | \
+    printf '%s\n' "${fields}" | \
         sed -n -e "s/\([^(]\+\)(\(password\|text\|textarea\)\+):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\2', '\3', 0);/p" | \
         sed -e 's/@/\\@/g;s/<{br}>/\\\\n/g' > $fifo
-    echo "${fields}" | \
+    printf '%s\n' "${fields}" | \
         sed -n -e "s/\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\3', '\2', \4);/p" | \
         sed -e 's/@/\\@/g' > $fifo
 elif [ "$action" = "once" ]
 then
     tmpfile=`mktemp`
-    echo "js "$dumpFunction" dump(); " | \
+    printf 'js %s dump(); \n' "$dumpFunction" | \
         socat - unix-connect:$socket | \
         sed -n '/^[^(]\+([^)]\+):/p' > $tmpfile
     ${editor} $tmpfile
@@ -191,10 +191,10 @@ then
         sed 's/^\(.\+\)$/<{br}>\1/' | \
         tr -d '\n' | \
         sed 's/<{br}>%{>\([^(]\+(\)\(radio\|checkbox\|text\|textarea\|password\)):<}%/\\n\1\2):/g'`
-    echo "${fields}" | \
+    printf '%s\n' "${fields}" | \
         sed -n -e "s/\([^(]\+\)(\(password\|text\|textarea\)\+):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\2', '\3', 0);/p" | \
         sed -e 's/@/\\@/g;s/<{br}>/\\\\n/g' > $fifo
-    echo "${fields}" | \
+    printf '%s\n' "${fields}" | \
         sed -n -e "s/\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\3', '\2', \4);/p" | \
         sed -e 's/@/\\@/g' > $fifo
     rm -f $tmpfile
@@ -223,7 +223,7 @@ else
         #       login(text):
         #       passwd(password):
         #
-        echo "js "$dumpFunction" dump(); " | \
+        printf 'js %s dump(); \n' "$dumpFunction" | \
             socat - unix-connect:$socket | \
             sed -n '/^[^(]\+([^)]\+):/p' >> $keydir/$domain
     fi
