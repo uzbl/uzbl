@@ -162,6 +162,9 @@ then
         option=`echo -e -n "$menu"| dmenu ${LINES} -nb "${NB}" -nf "${NF}" -sb "${SB}" -sf "${SF}" -p "${PROMPT}"`
     fi
 
+    # Remove comments
+    sed '/^>/d' -i $tmpfile
+
     sed 's/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):\(off\|no\|false\|unchecked\|0\|$\)/\1{\2}(\3):0/I;s/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[^0]\+/\1{\2}(\3):1/I' -i $keydir/$domain
     fields=`cat $keydir/$domain | \
         sed -n "/^!profile=${option}/,/^!profile=/p" | \
@@ -189,6 +192,7 @@ then
 
     # Remove comments
     sed '/^>/d' -i $tmpfile
+
     sed 's/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):\(off\|no\|false\|unchecked\|0\|$\)/\1{\2}(\3):0/I;s/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[^0]\+/\1{\2}(\3):1/I' -i $tmpfile
     fields=`cat $tmpfile | \
         sed 's/^\([^(]\+(\)\(radio\|checkbox\|text\|search\|textarea\|password\)):/%{>\1\2):<}%/' | \
@@ -205,12 +209,8 @@ then
 else
     if [ "$action" == 'new' -o "$action" == 'add' ]
     then
-        if [ "$action" == 'new' ]
-        then
-            echo "!profile=NAME_THIS_PROFILE$RANDOM" > $keydir/$domain
-        else
-            echo "!profile=NAME_THIS_PROFILE$RANDOM" >> $keydir/$domain
-        fi
+	[ "$action" == 'new' ] && echo "$MODELINE" > $keydir/$domain
+        echo "!profile=NAME_THIS_PROFILE$RANDOM" >> $keydir/$domain
         #
         # 2. and 3. line (tr -d and sed) are because, on gmail login for example,
         # <input > tag is splited into lines
