@@ -138,7 +138,7 @@ function clickElem(item) {
 	    } catch(err) {
 	      type = 'TEXT';
 	    }
-            if (type == 'TEXT' || type == 'PASSWORD') {
+            if (type == 'TEXT' || type == 'SEARCH' || type == 'PASSWORD') {
                 item.focus();
                 item.select();
                 rv="XXXEMIT_FORM_ACTIVEXXX";
