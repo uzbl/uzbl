@@ -26,9 +26,9 @@ In alphabetical order:
     Andy Spencer - security fixes
     Barak A. Pearlmutter - typo fix
     Brendan Taylor (bct) - various bugfixes, making misc variables much better using expand(), refactoring some internal var stuff
-    Ciprian Dorin, Craciun - patches
     Chris Mason - code snippets such as basic cookie handler
-    Chris van Dijk (quigybo) - work on uzbl_tabbed.py
+    Chris van Dijk (quigybo) - work on uzbl-tabbed
+    Ciprian Dorin, Craciun - patches
     Damien Leon - misc
     Daniel M. Hackney - documentation cleanups
     David Keijser - various C and python patches.
@@ -37,6 +37,7 @@ In alphabetical order:
     Dmytro Milinevskyy - uzbl-tabbed useability patches
     Dusan Popovic (dusanx) - many contributions to early uzbl
     Evgeny Grablyk - libsoup settings
+    Gregor Uhlenheuer (kongo2002) - uzbl vim syntax
     Helmut Grohne (helmut) - move void **ptr to union, various fixes
     Henri Kemppainen (DuClare) <email is akarinotengoku AT THE DOMAIN OF gmail.com> - many contributions, mostly old handler code
     Igor Bogomazov - mouse ptr events
@@ -46,14 +47,14 @@ In alphabetical order:
     Jason Woofenden (JasonWoof) - geometry=maximized, link following
     Laurence Withers (lwithers) - talk_to_socket
     Mark Nevill - misc patches
-    Mason Larobina - uzbl-tabbed.py, cookie-daemon, event-manager&plugins, ...
+    Mason Larobina (mason-l) <mason.larobina@gmail.com> - uzbl-tabbed, uzbl-cookie-daemon, uzbl-event-manager & plugins, uzbl vim syntax ...
     Maximilian Gaß (mxey) - several small patches
     Michael Fiano (axionix) - added cookie_daemon.py whitelist
-    Michael Walker (Barrucadu) <mike AT barrucadu.co.uk> - contributions to early uzbl 
+    Michael Walker (Barrucadu) <mike AT barrucadu.co.uk> - contributions to early uzbl
     Moritz Lenz - small doc fix
     Nicolas Pouillard - refactored scroll command
     Olivier Schwander - auto file:// prepend
-    Paul Tomak - eFormFiller
+    Paul Tomak - formfiller.sh script, uzbl vim syntax
     Paweł Zuzelski (pawelz) - http auth handler, misc patches
     Peter Suschlik - backwards searching
     Přemysl Hrubý (anydot) <email is dfenze AT gmail.com> - several C contributions and cleanups
