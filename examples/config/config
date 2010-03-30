@@ -121,7 +121,7 @@ set title_format_long = \@keycmd_prompt \@raw_modcmd \@raw_keycmd \@TITLE - Uzbl
 
 # === Core settings ==========================================================
 
-set useragent         = Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@(+uname -s)@ @(+uname -m)@ [@ARCH_UZBL]) (Commit @COMMIT)
+set useragent         = Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}.@{WEBKIT_MICRO}) (@(+uname -s)@ @(+uname -m)@ [@ARCH_UZBL]) (Commit @COMMIT)
 set fifo_dir          = /tmp
 set socket_dir        = /tmp
 
