@@ -25,6 +25,9 @@ elseif exists("b:current_syntax")
     finish
 endif
 
+" Don't match keywords inside strings
+set iskeyword=!-~,192-255
+
 syn keyword uzblKeyword back forward scroll reload reload_ign_cache stop
 syn keyword uzblKeyword zoom_in zoom_out toggle_zoom_type uri script
 syn keyword uzblKeyword toggle_status spawn sync_spawn sync_sh talk_to_socket
@@ -34,10 +37,7 @@ syn keyword uzblKeyword request menu_add menu_link_add menu_image_add
 syn keyword uzblKeyword menu_editable_add menu_separator menu_link_separator
 syn keyword uzblKeyword menu_image_separator menu_editable_separator
 syn keyword uzblKeyword menu_remove menu_link_remove menu_image_remove
-syn keyword uzblKeyword menu_editable_remove hardcopy include
-
-syn match uzblKeyword /\.\@<!sh\s\+/
-syn match uzblKeyword /\.\@<!js\s\+/
+syn keyword uzblKeyword menu_editable_remove hardcopy include js sh
 
 " Comments
 syn match uzblTodo /TODO:/ contained
