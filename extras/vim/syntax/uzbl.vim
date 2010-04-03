@@ -48,9 +48,9 @@ syn region uzblSec matchgroup=uzblSection start=/^# ===.*$/ end=/^# ===/me=e-5 c
 syn region uzblSubSection display start=/^# ---/ end=/$/
 
 " Integer and float matching
-syn match uzblPercent display /\s\(+\|-\|\)\(\d\+.\d\+\|\d\+\)%\(\s\|\n\)/
-syn match uzblInt display /\s\(+\|-\|\)\d\+\(\s\|\n\)/
-syn match uzblFloat display /\s\(+\|-\|\)\d\+.\d\+\(\s\|\n\)/
+syn match uzblPercent display /\s[+-]\=\%(\d\+\.\)\=\d\+%\_s/
+syn match uzblInt display /\s[+-]\=\d\+\_s/
+syn match uzblFloat display /\s[+-]\=\d\+\.\d\+\_s/
 
 " Handler arguments
 syn match uzblArgs display /$\d\+/
@@ -63,7 +63,7 @@ syn match uzblInternalExpand display /@[A-Z_]\+/
 syn match uzblInternalExpand display /@{[A-Z_]\+}/
 
 " Matches $ENVIRON_VAR
-syn match uzblEnvironVariable display /$[A-Za-z0-9_]\+/
+syn match uzblEnvironVariable display /$\a\+\w*/
 
 " Matches @some_var and @{some_var}
 syn match uzblExpand display /@[A-Za-z0-9_\.]\+/
