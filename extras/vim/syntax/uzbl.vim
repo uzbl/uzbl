@@ -44,7 +44,7 @@ syn match uzblTodo /TODO:/ contained
 syn region uzblComment display start=/^#/ end=/$/ contains=uzblTodo
 
 " Comment headings
-syn region uzblSection display start=/^# ===/ end=/$/
+syn region uzblSec matchgroup=uzblSection start=/^# ===.*$/ end=/^# ===/me=e-5 contains=ALL fold
 syn region uzblSubSection display start=/^# ---/ end=/$/
 
 " Integer and float matching
