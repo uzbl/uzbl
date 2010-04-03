@@ -21,11 +21,13 @@ In alphabetical order:
     Aaron Griffin (phrakture) - Makefile patches to build on OSX
     Abel Camarillo (00z) - various portability fixes, such as BSD fixes for Makefile and posix shell scripts
     Aldrik Dunbar (n30n) - scroll % script
+    Alex Alexander - Makefile patches
     Andraž 'ruskie' Levstik - font_family patch
     Andrea Marchesini <baku@ippolita.net> - resource-request-starting
     Andy Spencer - security fixes
     Barak A. Pearlmutter - typo fix
     Brendan Taylor (bct) - various bugfixes, making misc variables much better using expand(), refactoring some internal var stuff
+    Cedric Staub - Javascript cookies
     Chris Mason - code snippets such as basic cookie handler
     Chris van Dijk (quigybo) - work on uzbl-tabbed
     Ciprian Dorin, Craciun - patches
