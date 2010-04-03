@@ -45,7 +45,7 @@ syn region uzblComment display start=/^#/ end=/$/ contains=uzblTodo
 
 " Comment headings
 syn region uzblSec matchgroup=uzblSection start=/^# ===.*$/ end=/^# ===/me=e-5 contains=ALL fold
-syn region uzblSubSection display start=/^# ---/ end=/$/
+syn region uzblSSec matchgroup=uzblSubSection start=/^# ---.*$/ end=/^# [=-]\{3}/me=e-5 contains=ALLBUT,uzblSec,uzblSSec fold
 
 " Integer and float matching
 syn match uzblPercent display /\s[+-]\=\%(\d\+\.\)\=\d\+%\_s/
