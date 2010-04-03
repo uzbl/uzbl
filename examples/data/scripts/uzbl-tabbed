@@ -612,6 +612,7 @@ class UzblTabbed:
         self.notebook.connect("page-removed", self.tab_closed)
         self.notebook.connect("switch-page", self.tab_changed)
         self.notebook.connect("page-added", self.tab_opened)
+        self.notebook.connect("page-reordered", self.tab_reordered)
 
         self.notebook.show()
         vbox.pack_start(self.notebook, True, True, 0)
@@ -995,6 +996,7 @@ class UzblTabbed:
         tab = gtk.Socket()
         tab.show()
         self.notebook.insert_page(tab, position=next and self.notebook.get_current_page() + 1 or -1)
+        self.notebook.set_tab_reorderable(tab, True)
         sid = tab.get_id()
         uri = uri.strip()
         name = "%d-%d" % (os.getpid(), self.next_pid())
@@ -1148,6 +1150,14 @@ class UzblTabbed:
         tab = self.notebook.get_nth_page(index)
         self.notebook.set_focus_child(tab)
         self.update_tablist(index)
+        return True
+
+
+    def tab_reordered(self, notebook, page, index):
+        '''Refresh tab titles. Called by page-reordered signal.'''
+
+        for tab in self.notebook:
+            self.tabs[tab].title_changed(True)
         return True
 
 
