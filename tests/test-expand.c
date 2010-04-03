@@ -95,7 +95,7 @@ test_cmd_useragent_simple (void) {
     g_string_append(expected, itos(WEBKIT_MICRO_VERSION));
     g_string_append(expected, ")");
 
-    g_assert_cmpstr(expand("Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO)", 0), ==, g_string_free(expected, FALSE));
+    g_assert_cmpstr(expand("Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}.@{WEBKIT_MICRO})", 0), ==, g_string_free(expected, FALSE));
 }
 
 void
@@ -127,7 +127,7 @@ test_cmd_useragent_full (void) {
     g_string_append(expected, uzbl.info.commit);
     g_string_append(expected, ")");
 
-    g_assert_cmpstr(expand("Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@(uname -s)@ @(uname -n)@ @(uname -r)@ @(uname -v)@ @(uname -m)@ [@ARCH_UZBL]) (Commit @COMMIT)", 0), ==, g_string_free(expected, FALSE));
+    g_assert_cmpstr(expand("Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}.@{WEBKIT_MICRO}) (@(uname -s)@ @(uname -n)@ @(uname -r)@ @(uname -v)@ @(uname -m)@ [@ARCH_UZBL]) (Commit @COMMIT)", 0), ==, g_string_free(expected, FALSE));
 }
 
 void
@@ -166,11 +166,11 @@ test_escape_expansion (void) {
 void
 test_nested (void) {
     uzbl.net.useragent = "xxx";
-    g_assert_cmpstr(expand("@<\"..@useragent..\">@", 0), ==, "..xxx..");
-    g_assert_cmpstr(expand("@<\"..\\@useragent..\">@", 0), ==, "..@useragent..");
+    g_assert_cmpstr(expand("@<\"..@{useragent}..\">@", 0), ==, "..xxx..");
+    g_assert_cmpstr(expand("@<\"..\\@{useragent}..\">@", 0), ==, "..@{useragent}..");
 
-    g_assert_cmpstr(expand("@(echo ..@useragent..)@", 0), ==, "..xxx..");
-    g_assert_cmpstr(expand("@(echo ..\\@useragent..)@", 0), ==, "..@useragent..");
+    g_assert_cmpstr(expand("@(echo ..@{useragent}..)@", 0), ==, "..xxx..");
+    g_assert_cmpstr(expand("@(echo ..\\@{useragent}..)@", 0), ==, "..@{useragent}..");
 }
 
 int
