@@ -35,8 +35,6 @@ def cmd_expand(uzbl, cmd, args):
 
     return cmd
 
-
+# plugin init hook
 def init(uzbl):
-    # Function exports to the uzbl object, `function(uzbl, *args, ..)`
-    # becomes `uzbl.function(*args, ..)`.
-    uzbl.export('cmd_expand', cmd_expand)
+    export(uzbl, 'cmd_expand', cmd_expand)

@@ -1,39 +1,7 @@
-import sys
+UPDATES = 0
 
-UZBLS = {}
-
-DEFAULTS = {'width': 8,
-  'done': '=',
-  'pending': '.',
-  'format': '[%d%a%p]%c',
-  'spinner': '-\\|/',
-  'sprites': 'loading',
-  'updates': 0,
-  'progress': 100}
-
-
-def error(msg):
-    sys.stderr.write("progress_bar plugin: error: %s\n" % msg)
-
-
-def add_instance(uzbl, *args):
-    UZBLS[uzbl] = dict(DEFAULTS)
-
-
-def del_instance(uzbl, *args):
-    if uzbl in UZBLS:
-        del UZBLS[uzbl]
-
-
-def get_progress_config(uzbl):
-    if uzbl not in UZBLS:
-        add_instance(uzbl)
-
-    return UZBLS[uzbl]
-
-
-def update_progress(uzbl, prog=None):
-    '''Updates the progress_format variable on LOAD_PROGRESS update.
+def update_progress(uzbl, progress=None):
+    '''Updates the progress.output variable on LOAD_PROGRESS update.
 
     The current substitution options are:
         %d = done char * done
@@ -44,116 +12,82 @@ def update_progress(uzbl, prog=None):
         %t = percent pending
         %o = int pending
         %r = sprites
+
+    Default configuration options:
+        progress.format  = [%d>%p]%c
+        progress.width   = 8
+        progress.done    = =
+        progress.pending =
+        progress.spinner = -\|/
+        progress.sprites = loading
     '''
 
-    prog_config = get_progress_config(uzbl)
-    config = uzbl.get_config()
+    global UPDATES
 
-    if prog is None:
-        prog = prog_config['progress']
+    if progress is None:
+        UPDATES = 0
+        progress = 100
 
     else:
-        prog = int(prog)
-        prog_config['progress'] = prog
+        UPDATES += 1
+        progress = int(progress)
 
-    prog_config['updates'] += 1
-    format = prog_config['format']
-    width = prog_config['width']
+    # Get progress config vars.
+    format = uzbl.config.get('progress.format', '[%d>%p]%c')
+    width = int(uzbl.config.get('progress.width', 8))
+    done_symbol = uzbl.config.get('progress.done', '=')
+    pend = uzbl.config.get('progress.pending', None)
+    pending_symbol = pend if pend else ' '
 
     # Inflate the done and pending bars to stop the progress bar
     # jumping around.
     if '%c' in format or '%i' in format:
         count = format.count('%c') + format.count('%i')
-        width += (3-len(str(prog))) * count
+        width += (3-len(str(progress))) * count
 
     if '%t' in format or '%o' in format:
         count = format.count('%t') + format.count('%o')
-        width += (3-len(str(100-prog))) * count
+        width += (3-len(str(100-progress))) * count
 
-    done = int(((prog/100.0)*width)+0.5)
+    done = int(((progress/100.0)*width)+0.5)
     pending = width - done
 
     if '%d' in format:
-        format = format.replace('%d', prog_config['done']*done)
+        format = format.replace('%d', done_symbol * done)
 
     if '%p' in format:
-        format = format.replace('%p', prog_config['pending']*pending)
+        format = format.replace('%p', pending_symbol * pending)
 
     if '%c' in format:
-        format = format.replace('%c', '%d%%' % prog)
+        format = format.replace('%c', '%d%%' % progress)
 
     if '%i' in format:
-        format = format.replace('%i', '%d' % prog)
+        format = format.replace('%i', '%d' % progress)
 
     if '%t' in format:
-        format = format.replace('%t', '%d%%' % (100-prog))
+        format = format.replace('%t', '%d%%' % (100-progress))
 
     if '%o' in format:
-        format = format.replace('%o', '%d' % (100-prog))
+        format = format.replace('%o', '%d' % (100-progress))
 
     if '%s' in format:
-        spinner = prog_config['spinner']
-        spin = '-' if not spinner else spinner
-        index = 0 if prog == 100 else prog_config['updates'] % len(spin)
-        char = '\\\\' if spin[index] == '\\' else spin[index]
-        format = format.replace('%s', char)
+        spinner = uzbl.config.get('progress.spinner', '-\\|/')
+        index = 0 if progress == 100 else UPDATES % len(spinner)
+        spin = '\\\\' if spinner[index] == '\\' else spinner[index]
+        format = format.replace('%s', spin)
 
     if '%r' in format:
-        sprites = prog_config['sprites']
-        sprites = '-' if not sprites else sprites
-        index = int(((prog/100.0)*len(sprites))+0.5)-1
+        sprites = uzbl.config.get('progress.sprites', 'loading')
+        index = int(((progress/100.0)*len(sprites))+0.5)-1
         sprite = '\\\\' if sprites[index] == '\\' else sprites[index]
         format = format.replace('%r', sprite)
 
-    if 'progress_format' not in config or config['progress_format'] != format:
-        config['progress_format'] = format
+    if uzbl.config.get('progress.output', None) != format:
+        uzbl.config['progress.output'] = format
 
-
-def progress_config(uzbl, args):
-    '''Parse PROGRESS_CONFIG events from the uzbl instance.
-
-    Syntax: event PROGRESS_CONFIG <key> = <value>
-    '''
-
-    split = args.split('=', 1)
-    if len(split) != 2:
-        return error("invalid syntax: %r" % args)
-
-    key, value = map(unicode.strip, split)
-    prog_config = get_progress_config(uzbl)
-
-    if key not in prog_config:
-        return error("key error: %r" % args)
-
-    if type(prog_config[key]) == type(1):
-        try:
-            value = int(value)
-
-        except:
-            return error("invalid type: %r" % args)
-
-    elif not value:
-        value = ' '
-
-    prog_config[key] = value
-    update_progress(uzbl)
-
-
-def reset_progress(uzbl, args):
-    '''Reset the spinner counter, reset the progress int and re-draw the
-    progress bar on LOAD_COMMIT.'''
-
-    prog_dict = get_progress_config(uzbl)
-    prog_dict['updates'] = prog_dict['progress'] = 0
-    update_progress(uzbl)
-
-
+# plugin init hook
 def init(uzbl):
-    # Event handling hooks.
-    uzbl.connect_dict({
-        'INSTANCE_EXIT':    del_instance,
-        'INSTANCE_START':   add_instance,
-        'LOAD_COMMIT':      reset_progress,
+    connect_dict(uzbl, {
+        'LOAD_COMMIT':      lambda uzbl, uri: update_progress(uzbl),
         'LOAD_PROGRESS':    update_progress,
-        'PROGRESS_CONFIG':  progress_config,
     })

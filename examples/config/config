@@ -14,8 +14,8 @@ set mode_bind       = request MODE_BIND
 set mode_config     = request MODE_CONFIG
 # request ON_EVENT <EVENT_NAME> <command>
 set on_event        = request ON_EVENT
-# request PROGRESS_CONFIG <key> = <value>
-set progress        = request PROGRESS_CONFIG
+# request ON_SET   <key/glob> <command>
+set on_set          = request ON_SET
 # request MODMAP <From> <To>
 set modmap          = request MODMAP
 # request IGNORE_KEY <glob>
@@ -93,7 +93,7 @@ set hint_style        = weight="bold"
 
 set mode_section      = <span background="khaki" foreground="black">[\@[\@mode_indicator]\@]</span>
 set keycmd_section    = [<span \@prompt_style>\@[\@keycmd_prompt]\@</span><span \@modcmd_style>\@modcmd</span><span \@keycmd_style>\@keycmd</span><span \@completion_style>\@completion_list</span>]
-set progress_section  = <span foreground="#606060">\@[\@progress_format]\@</span>
+set progress_section  = <span foreground="#606060">\@[\@progress.output]\@</span>
 set scroll_section    = <span foreground="#606060">\@[\@scroll_message]\@</span>
 set uri_section       = <span foreground="#99FF66">\@[\@uri]\@</span>
 set name_section      = <span foreground="khaki">\@[\@NAME]\@</span>
@@ -104,19 +104,19 @@ set status_format     = <span font_family="monospace">@mode_section @keycmd_sect
 
 set title_format_long = \@keycmd_prompt \@raw_modcmd \@raw_keycmd \@TITLE - Uzbl browser <\@NAME> \@SELECTED_URI
 
-# Progress bar config
-@progress width    = 8
+# --- Progress bar configuration (progress_bar.py plugin) ---
 # %d = done, %p = pending %c = percent done, %i = int done, %s = spinner,
 # %t = percent pending, %o = int pending, %r = sprite scroll
-@progress format   = [%d>%p]%c
-@progress done     = =
-@progress pending  =
+set progress.width      = 8
+set progress.format     = [%d>%p]%c
+set progress.done       = =
+set progress.pending    =
 
-# Or ride those spinnas'
-#@progress format   = [%d%s%p]
-#@progress spinner  = -\\|/
-#@progress done     = -
-#@progress pending  =
+# Or using a spinner:
+#set progress.format     = [%d%s%p]
+#set progress.spinner    = -\\|/
+#set progress.done       = -
+#set progress.pending    =
 
 
 # === Core settings ==========================================================

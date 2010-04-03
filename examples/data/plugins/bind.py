@@ -11,10 +11,6 @@ And it is also possible to execute a function on activation:
 
 import sys
 import re
-import pprint
-
-# Hold the bind dicts for each uzbl instance.
-UZBLS = {}
 
 # Commonly used regular expressions.
 MOD_START = re.compile('^<([A-Z][A-Za-z0-9-_]*)>').match
@@ -62,9 +58,9 @@ class Bindlet(object):
 
         if self.last_mode:
             mode, self.last_mode = self.last_mode, None
-            self.uzbl.set_mode(mode)
+            self.uzbl.config['mode'] = mode
 
-        self.uzbl.set('keycmd_prompt')
+        del self.uzbl.config['keycmd_prompt']
 
 
     def stack(self, bind, args, depth):
@@ -76,10 +72,10 @@ class Bindlet(object):
 
             return
 
-        current_mode = self.uzbl.get_mode()
-        if current_mode != 'stack':
-            self.last_mode = current_mode
-            self.uzbl.set_mode('stack')
+        mode = self.uzbl.config.get('mode', None)
+        if mode != 'stack':
+            self.last_mode = mode
+            self.uzbl.config['mode'] = 'stack'
 
         self.stack_binds = [bind,]
         self.args += args
@@ -97,7 +93,7 @@ class Bindlet(object):
 
         self.uzbl.clear_keycmd()
         if prompt:
-            self.uzbl.set('keycmd_prompt', prompt)
+            self.uzbl.config['keycmd_prompt'] = prompt
 
         if set and is_cmd:
             self.uzbl.send(set)
@@ -111,7 +107,7 @@ class Bindlet(object):
         the filtered stack list and modkey & non-stack globals.'''
 
         if mode is None:
-            mode = self.uzbl.get_mode()
+            mode = self.uzbl.config.get('mode', None)
 
         if not mode:
             mode = 'global'
@@ -143,24 +139,6 @@ class Bindlet(object):
             for bind in binds.values():
                 if bind is not None and bind.is_global:
                     self.globals.append(bind)
-
-
-def add_instance(uzbl, *args):
-    UZBLS[uzbl] = Bindlet(uzbl)
-
-
-def del_instance(uzbl, *args):
-    if uzbl in UZBLS:
-        del UZBLS[uzbl]
-
-
-def get_bindlet(uzbl):
-    '''Return the bind tracklet for the given uzbl instance.'''
-
-    if uzbl not in UZBLS:
-        add_instance(uzbl)
-
-    return UZBLS[uzbl]
 
 
 def ismodbind(glob):
@@ -324,7 +302,7 @@ def exec_bind(uzbl, bind, *args, **kargs):
 def mode_bind(uzbl, modes, glob, handler=None, *args, **kargs):
     '''Add a mode bind.'''
 
-    bindlet = get_bindlet(uzbl)
+    bindlet = uzbl.bindlet
 
     if not hasattr(modes, '__iter__'):
         modes = unicode(modes).split(',')
@@ -400,7 +378,8 @@ def mode_changed(uzbl, mode):
     '''Clear the stack on all non-stack mode changes.'''
 
     if mode != 'stack':
-        get_bindlet(uzbl).reset()
+        uzbl.bindlet.reset()
+        uzbl.clear_keycmd()
 
 
 def match_and_exec(uzbl, bind, depth, keylet, bindlet):
@@ -440,7 +419,7 @@ def match_and_exec(uzbl, bind, depth, keylet, bindlet):
     args = bindlet.args + args
     exec_bind(uzbl, bind, *args)
     if not has_args or on_exec:
-        uzbl.set_mode()
+        del uzbl.config['mode']
         bindlet.reset()
         uzbl.clear_current()
 
@@ -448,7 +427,7 @@ def match_and_exec(uzbl, bind, depth, keylet, bindlet):
 
 
 def key_event(uzbl, keylet, mod_cmd=False, on_exec=False):
-    bindlet = get_bindlet(uzbl)
+    bindlet = uzbl.bindlet
     depth = bindlet.depth
     for bind in bindlet.get_binds():
         t = bind[depth]
@@ -463,12 +442,14 @@ def key_event(uzbl, keylet, mod_cmd=False, on_exec=False):
     # Return to the previous mode if the KEYCMD_EXEC keycmd doesn't match any
     # binds in the stack mode.
     if on_exec and not mod_cmd and depth and depth == bindlet.depth:
-        uzbl.set_mode()
+        del uzbl.config['mode']
 
 
+# plugin init hook
 def init(uzbl):
-    # Event handling hooks.
-    uzbl.connect_dict({
+    '''Export functions and connect handlers to events.'''
+
+    connect_dict(uzbl, {
         'BIND':             parse_bind,
         'MODE_BIND':        parse_mode_bind,
         'MODE_CHANGED':     mode_changed,
@@ -481,12 +462,10 @@ def init(uzbl):
     for mod_cmd in range(2):
         for on_exec in range(2):
             event = events[mod_cmd][on_exec]
-            uzbl.connect(event, key_event, bool(mod_cmd), bool(on_exec))
+            connect(uzbl, event, key_event, bool(mod_cmd), bool(on_exec))
 
-    # Function exports to the uzbl object, `function(uzbl, *args, ..)`
-    # becomes `uzbl.function(*args, ..)`.
-    uzbl.export_dict({
+    export_dict(uzbl, {
         'bind':         bind,
         'mode_bind':    mode_bind,
-        'get_bindlet':  get_bindlet,
+        'bindlet':      Bindlet(uzbl),
     })
