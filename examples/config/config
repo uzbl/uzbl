@@ -387,3 +387,5 @@ set default_mode = command
 
 # Set the "home" page.
 set uri = uzbl.org/doesitwork/@COMMIT
+
+# vim: set fdm=syntax:
