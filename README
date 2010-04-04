@@ -292,10 +292,6 @@ file).
 * `title_format_short`: titlebar string when statusbar shown (will be expanded).
 * `icon`: path to icon for Gtk.
 * `forward_keys`: Whether `uzbl-core` should send key events to the webkit view.
-* `download_handler`: Handler called when page requests a download. In addition
-  to the standard handler arguments, appends the following extra arguments:
-  - `url`: The URL of the item to be downloaded.
-  - `proxy`: (optional) The URL of an HTTP proxy.
 * `cookie_handler`: Handler called when the page requests a cookie to be
   retrieved or set. Appends the following arguments to the standard handler
   arguments.
@@ -305,7 +301,6 @@ file).
   - `host`: The host requesting the cookie.
   - `path`: The request address path.
   - `data`: The cookie data. Only included for "PUT" requests.
-* `new_window`: handler to execute to invoke new uzbl window (TODO better name)
 * `scheme_handler`: handler to execute for each URI navigated to - the
   navigation request will be ignored if handler prints "USED\n"
 * `fifo_dir`: location to store FIFOs.
@@ -313,6 +308,7 @@ file).
 * `http_debug`: HTTP debug mode (value 0-3).
 * `scrollbars_visible`: set to 1 to have GTK scrollbars if the document
   doesn't fit into the window (defaults to 0)
+* `javascript_windows`: Whether javascript can open windows automatically
 * `shell_cmd`: Alias which will be expanded to use shell commands (eg `sh -c`).
 * `print_events`: show events on stdout
 * `proxy_url`: HTTP traffic SOCKS proxy (eg: `http://<host>:<port>`).
@@ -681,8 +677,8 @@ Events have this format:
   `key_name` is released.
 * `EVENT [uzbl_instance_name] SELECTION_CHANGED selected_text`: When text is
   selected in the `uzbl` window.
-* `EVENT [uzbl_instance_name] NEW_WINDOW uri`: Creation of new `uzbl` window,
-  with URI `uri`.
+* `EVENT [uzbl_instance_name] NEW_WINDOW uri`: Request to creation of new `uzbl` window,
+  with URI `uri` (eg. after clicking a link)
 * `EVENT [uzbl_instance_name] WEBINSPECTOR open`: Upon opening webinspector
   window.
 * `EVENT [uzbl_instance_name] WEBINSPECTOR close`: Upon closing webinspector
