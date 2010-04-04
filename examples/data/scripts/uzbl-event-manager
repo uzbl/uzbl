@@ -189,7 +189,8 @@ class Plugin(object):
         self.handlers = set([])
 
         # Plugins init hook
-        self.init = getattr(plugin, 'init')
+        init = getattr(plugin, 'init', None)
+        self.init = init if callable(init) else None
 
         # Plugins optional after hook
         after = getattr(plugin, 'after', None)
@@ -198,6 +199,8 @@ class Plugin(object):
         # Plugins optional cleanup hook
         cleanup = getattr(plugin, 'cleanup', None)
         self.cleanup = cleanup if callable(cleanup) else None
+
+        assert init or after or cleanup, "missing hooks in plugin"
 
         # Export plugin's instance methods to plugin namespace
         for attr in self.special_functions:
@@ -328,8 +331,9 @@ class Uzbl(object):
 
         # Initialise each plugin with the current uzbl instance.
         for plugin in self.parent.plugins.values():
-            self.logger.debug('calling %r plugin init hook' % plugin.name)
-            plugin.init(self)
+            if plugin.init:
+                self.logger.debug('calling %r plugin init hook' % plugin.name)
+                plugin.init(self)
 
         # Allow plugins to use exported features of other plugins by calling an
         # optional `after` function in the plugins namespace.
@@ -518,8 +522,11 @@ class UzblEventDaemon(object):
 
             info = imp.find_module(name, [dir,])
             module = imp.load_module(name, *info)
-            assert callable(getattr(module, 'init', None)),\
-                "plugin missing init function: %r" % module
+
+            # Check if the plugin has a callable hook.
+            hooks = filter(callable, [getattr(module, attr, None) \
+                for attr in ['init', 'after', 'cleanup']])
+            assert hooks, "no hooks in plugin %r" % module
 
             logger.debug('creating plugin instance for %r plugin' % name)
             plugin = Plugin(self, name, path, module)
