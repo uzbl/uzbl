@@ -26,7 +26,7 @@ elseif exists("b:current_syntax")
 endif
 
 " Don't match keywords inside strings
-set iskeyword=!-~,192-255
+setl iskeyword=!-~,192-255
 
 syn keyword uzblKeyword back forward scroll reload reload_ign_cache stop
 syn keyword uzblKeyword zoom_in zoom_out toggle_zoom_type uri script
