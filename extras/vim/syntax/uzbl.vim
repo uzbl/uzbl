@@ -106,7 +106,7 @@ if version >= 508 || !exists("did_uzbl_syn_inits")
     HiLink uzblComment Comment
     HiLink uzblTodo Todo
 
-    HiLink uzblSection Folded
+    HiLink uzblSection SpecialComment
     HiLink uzblSubSection SpecialComment
 
     HiLink uzblKeyword Keyword
