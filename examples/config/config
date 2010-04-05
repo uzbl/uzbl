@@ -163,7 +163,7 @@ set ebind = @mode_bind global,-insert
 # Resets keycmd and returns to default mode.
 @on_event  ESCAPE    @set_mode
 @bind   <Escape>     = event ESCAPE
-@bind   <Ctrl>]      = event ESCAPE
+@bind   <Ctrl>[      = event ESCAPE
 
 # Commands for editing and traversing the keycmd.
 @ebind  <Return>     = event KEYCMD_EXEC_CURRENT
