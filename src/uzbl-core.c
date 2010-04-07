@@ -2405,8 +2405,12 @@ void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer user_data)
             while(p != NULL) {
                 p = p + 1;
                 soup_cookie = soup_cookie_parse((const char *) p, soup_uri);
-                if(soup_cookie->domain == NULL) soup_cookie->domain = soup_uri->host;
-                soup_cookie_jar_add_cookie(uzbl.net.soup_cookie_jar, soup_cookie);
+                if (soup_cookie)
+                {
+                    if(soup_cookie->domain == NULL)
+                        soup_cookie->domain = soup_uri->host;
+                    soup_cookie_jar_add_cookie(uzbl.net.soup_cookie_jar, soup_cookie);
+                }
                 p = strchr(p, ';');
             }
 
