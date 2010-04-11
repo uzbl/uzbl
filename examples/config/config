@@ -340,10 +340,16 @@ set stack    = @mode_config stack
 @command  keycmd_style        = foreground="red"
 @command  status_background   = #202020
 @command  mode_indicator      = Cmd
+@command  keycmd_events       = 1
+@command  forward_keys        = 0
+@command  modcmd_updates      = 1
 
 # Insert mode config.
 @insert   status_background   = #303030
 @insert   mode_indicator      = Ins
+@insert   forward_keys        = 1
+@insert   keycmd_events       = 0
+@insert   modcmd_updates      = 0
 
 # Multi-stage-binding mode config.
 @stack    keycmd_events       = 1
