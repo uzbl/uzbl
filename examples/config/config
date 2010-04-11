@@ -244,13 +244,8 @@ set ebind     = @mode_bind global,-insert
 @cbind  O<uri:\@uri>_  = uri %s
 
 # Mode setting binds
-# Changing mode via set.
-@cbind  I  = @set_mode insert
-# Or toggle between modes by raising the toggle event.
-set toggle_cmd_ins = @toggle_modes command insert
-@cbind  i          = @toggle_cmd_ins
-# And the global toggle bind.
-@bind   <Ctrl>i    = @toggle_cmd_ins
+@cbind  i        = @set_mode insert
+@bind   <Ctrl>i  = @set_mode insert
 
 # Hard-bound bookmarks
 @cbind  gh  = uri http://www.uzbl.org
