@@ -58,7 +58,7 @@ In alphabetical order:
     Nicolas Pouillard - refactored scroll command
     Olivier Schwander - auto file:// prepend
     Paul Tomak - formfiller.sh script, uzbl vim syntax
-    Paweł Zuzelski (pawelz) - http auth handler, misc patches
+    Paweł Zuzelski (pawelz) <pawelz@pld-linux.org> - http auth handler, misc patches
     Peter Suschlik - backwards searching
     Přemysl Hrubý (anydot) <email is dfenze AT gmail.com> - several C contributions and cleanups
     Robert Manea (robm) <email is rob DOT manea AT gmail DOT com> - C code all over the place
