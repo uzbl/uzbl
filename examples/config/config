@@ -65,9 +65,8 @@ set authentication_handler = sync_spawn @scripts_dir/auth.py
 # Load commit handlers
 @on_event   LOAD_COMMIT    @set_status <span foreground="green">recv</span>
 
-
-@on_event   LOAD_COMMIT    spawn @scripts_dir/userscripts.sh
-
+# Userscript support. Add all scripts to $XDG_DATA_HOME/uzbl/userscripts
+#@on_event   LOAD_COMMIT    spawn @scripts_dir/userscripts.sh
 
 # Load finish handlers
 @on_event   LOAD_FINISH    @set_status <span foreground="gold">done</span>
