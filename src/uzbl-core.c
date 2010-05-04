@@ -100,7 +100,6 @@ const struct var_name_to_ptr_t {
     { "forward_keys",           PTR_V_INT(uzbl.behave.forward_keys,             1,   NULL)},
     { "cookie_handler",         PTR_V_STR(uzbl.behave.cookie_handler,           1,   NULL)},
     { "authentication_handler", PTR_V_STR(uzbl.behave.authentication_handler,   1,   set_authentication_handler)},
-    { "new_window",             PTR_V_STR(uzbl.behave.new_window,               1,   NULL)},
     { "scheme_handler",         PTR_V_STR(uzbl.behave.scheme_handler,           1,   NULL)},
     { "fifo_dir",               PTR_V_STR(uzbl.behave.fifo_dir,                 1,   cmd_fifo_dir)},
     { "socket_dir",             PTR_V_STR(uzbl.behave.socket_dir,               1,   cmd_socket_dir)},
@@ -110,6 +109,7 @@ const struct var_name_to_ptr_t {
     { "max_conns",              PTR_V_INT(uzbl.net.max_conns,                   1,   cmd_max_conns)},
     { "max_conns_host",         PTR_V_INT(uzbl.net.max_conns_host,              1,   cmd_max_conns_host)},
     { "useragent",              PTR_V_STR(uzbl.net.useragent,                   1,   cmd_useragent)},
+    { "javascript_windows",     PTR_V_INT(uzbl.behave.javascript_windows,       1,   cmd_javascript_windows)},
     /* requires webkit >=1.1.14 */
     { "view_source",            PTR_V_INT(uzbl.behave.view_source,              0,   cmd_view_source)},
 
@@ -195,7 +195,7 @@ gchar *
 expand(const char *s, guint recurse) {
     uzbl_cmdprop *c;
     enum exp_type etype;
-    char *end_simple_var = "^°!\"§$%&/()=?'`'+~*'#-.:,;@<>| \\{}[]¹²³¼½";
+    char *end_simple_var = "\t^°!\"§$%&/()=?'`'+~*'#-:,;@<>| \\{}[]¹²³¼½";
     char *ret = NULL;
     char *vend = NULL;
     GError *err = NULL;
@@ -493,25 +493,40 @@ parseenv (gchar* string) {
     return out;
 }
 
-
 void
 clean_up(void) {
-    send_event(INSTANCE_EXIT, uzbl.info.pid_str, NULL);
-    g_free(uzbl.info.pid_str);
+    if(uzbl.info.pid_str) {
+        send_event(INSTANCE_EXIT, uzbl.info.pid_str, NULL);
+        g_free(uzbl.info.pid_str);
+        uzbl.info.pid_str = NULL;
+    }
 
-    g_free(uzbl.state.executable_path);
+    if(uzbl.state.executable_path) {
+        g_free(uzbl.state.executable_path);
+        uzbl.state.executable_path = NULL;
+    }
+
     if (uzbl.behave.commands) {
         g_hash_table_destroy(uzbl.behave.commands);
         uzbl.behave.commands = NULL;
     }
 
-    if(uzbl.state.event_buffer)
+    if(uzbl.state.event_buffer) {
         g_ptr_array_free(uzbl.state.event_buffer, TRUE);
+        uzbl.state.event_buffer = NULL;
+    }
 
-    if (uzbl.behave.fifo_dir)
+    if (uzbl.behave.fifo_dir) {
         unlink (uzbl.comm.fifo_path);
-    if (uzbl.behave.socket_dir)
+        g_free(uzbl.comm.fifo_path);
+        uzbl.comm.fifo_path = NULL;
+    }
+
+    if (uzbl.behave.socket_dir) {
         unlink (uzbl.comm.socket_path);
+        g_free(uzbl.comm.socket_path);
+        uzbl.comm.socket_path = NULL;
+    }
 }
 
 gint
@@ -997,7 +1012,7 @@ act_dump_config_as_events() {
 void
 load_uri (WebKitWebView *web_view, GArray *argv, GString *result) {
     (void) web_view; (void) result;
-    load_uri_imp (argv_idx (argv, 0));
+    set_var_value("uri", argv_idx(argv, 0));
 }
 
 /* Javascript*/
@@ -1218,42 +1233,6 @@ void
 dehilight (WebKitWebView *page, GArray *argv, GString *result) {
     (void) argv; (void) result;
     webkit_web_view_set_highlight_text_matches (page, FALSE);
-}
-
-
-void
-new_window_load_uri (const gchar * uri) {
-    if (uzbl.behave.new_window) {
-        GString *s = g_string_new ("");
-        g_string_printf(s, "'%s'", uri);
-        run_handler(uzbl.behave.new_window, s->str);
-        send_event(NEW_WINDOW, s->str, NULL);
-        return;
-    }
-    GString* to_execute = g_string_new ("");
-    g_string_append_printf (to_execute, "%s --uri '%s'", uzbl.state.executable_path, uri);
-    int i;
-    for (i = 0; entries[i].long_name != NULL; i++) {
-        if ((entries[i].arg == G_OPTION_ARG_STRING) &&
-                !strcmp(entries[i].long_name,"uri") &&
-                !strcmp(entries[i].long_name,"name")) {
-            gchar** str = (gchar**)entries[i].arg_data;
-            if (*str!=NULL)
-                g_string_append_printf (to_execute, " --%s '%s'", entries[i].long_name, *str);
-        }
-        else if(entries[i].arg == G_OPTION_ARG_STRING_ARRAY) {
-            int j;
-            gchar **str = *((gchar ***)entries[i].arg_data);
-            for(j=0; str[j]; j++)
-                g_string_append_printf(to_execute, " --%s '%s'", entries[i].long_name, str[j]);
-        }
-    }
-    if (uzbl.state.verbose)
-        printf("\n%s\n", to_execute->str);
-    g_spawn_command_line_async (to_execute->str, NULL);
-    /* TODO: should we just report the uri as event detail? */
-    send_event(NEW_WINDOW, to_execute->str, NULL);
-    g_string_free (to_execute, TRUE);
 }
 
 void
@@ -1641,7 +1620,7 @@ set_var_value(const gchar *name, gchar *val) {
     uzbl_cmdprop *c = NULL;
     char *endp = NULL;
     char *buf = NULL;
-    char *invalid_chars = "^°!\"§$%&/()=?'`'+~*'#-.:,;@<>| \\{}[]¹²³¼½";
+    char *invalid_chars = "\t^°!\"§$%&/()=?'`'+~*'#-:,;@<>| \\{}[]¹²³¼½";
     GString *msg;
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
@@ -1674,7 +1653,7 @@ set_var_value(const gchar *name, gchar *val) {
         /* check wether name violates our naming scheme */
         if(strpbrk(name, invalid_chars)) {
             if (uzbl.state.verbose)
-                printf("Invalid variable name\n");
+                printf("Invalid variable name: %s\n", name);
             return FALSE;
         }
 
@@ -2394,16 +2373,15 @@ void handle_authentication (SoupSession *session, SoupMessage *msg, SoupAuth *au
     }
 }
 
-void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer user_data){
+void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer user_data) {
     (void) session;
     (void) user_data;
-    //if (!uzbl.behave.cookie_handler)
-    //     return;
 
-    soup_message_add_header_handler(msg, "got-headers", "Set-Cookie", G_CALLBACK(save_cookies), NULL);
+    soup_message_add_header_handler(msg, "got-headers", "Set-Cookie", G_CALLBACK(save_cookies_http), NULL);
     GString *s = g_string_new ("");
     SoupURI * soup_uri = soup_message_get_uri(msg);
     g_string_printf(s, "GET '%s' '%s' '%s'", soup_uri->scheme, soup_uri->host, soup_uri->path);
+
     if(uzbl.behave.cookie_handler)
         run_handler(uzbl.behave.cookie_handler, s->str);
 
@@ -2413,28 +2391,34 @@ void handle_cookies (SoupSession *session, SoupMessage *msg, gpointer user_data)
         if ( p != NULL ) *p = '\0';
         soup_message_headers_replace (msg->request_headers, "Cookie", (const char *) uzbl.comm.sync_stdout);
 
+        int len = strlen(uzbl.comm.sync_stdout);
+
+        if(len > 0) {
+            SoupCookie *soup_cookie;
+            char *cookies = (char *) g_malloc(len+1);
+            strncpy(cookies, uzbl.comm.sync_stdout, len+1);
+
+            /* Disconnect to avoid recusion */
+            g_object_disconnect(G_OBJECT(uzbl.net.soup_cookie_jar), "any_signal", G_CALLBACK(save_cookies_js), NULL, NULL);
+
+            p = cookies - 1;
+            while(p != NULL) {
+                p = p + 1;
+                soup_cookie = soup_cookie_parse((const char *) p, soup_uri);
+                if(soup_cookie->domain == NULL) soup_cookie->domain = soup_uri->host;
+                soup_cookie_jar_add_cookie(uzbl.net.soup_cookie_jar, soup_cookie);
+                p = strchr(p, ';');
+            }
+
+            g_object_connect(G_OBJECT(uzbl.net.soup_cookie_jar), "signal::changed", G_CALLBACK(save_cookies_js), NULL, NULL);
+            g_free(cookies);
+        }
     }
+
     if (uzbl.comm.sync_stdout)
         uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
 
     g_string_free(s, TRUE);
-}
-
-void
-save_cookies (SoupMessage *msg, gpointer user_data){
-    (void) user_data;
-    GSList *ck;
-    char *cookie;
-    for (ck = soup_cookies_from_response(msg); ck; ck = ck->next){
-        cookie = soup_cookie_to_set_cookie_header(ck->data);
-        SoupURI * soup_uri = soup_message_get_uri(msg);
-        GString *s = g_string_new ("");
-        g_string_printf(s, "PUT '%s' '%s' '%s' '%s'", soup_uri->scheme, soup_uri->host, soup_uri->path, cookie);
-        run_handler(uzbl.behave.cookie_handler, s->str);
-        g_free (cookie);
-        g_string_free(s, TRUE);
-    }
-    g_slist_free(ck);
 }
 
 void
@@ -2534,6 +2518,10 @@ initialize(int argc, char *argv[]) {
     }
 
     uzbl.net.soup_session = webkit_get_default_session();
+
+    uzbl.net.soup_cookie_jar = soup_cookie_jar_new();
+    soup_session_add_feature(uzbl.net.soup_session, SOUP_SESSION_FEATURE(uzbl.net.soup_cookie_jar));
+    g_object_connect(G_OBJECT(uzbl.net.soup_cookie_jar), "signal::changed", G_CALLBACK(save_cookies_js), NULL, NULL);
 
     for(i=0; sigs[i]; i++) {
         if(setup_signal(sigs[i], catch_signal) == SIG_ERR)
@@ -2655,7 +2643,8 @@ main (int argc, char* argv[]) {
     /* generate an event with a list of built in commands */
     builtins();
 
-    gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
+    if (!uzbl.state.plug_mode)
+        gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
 
     if (uzbl.state.verbose) {
         printf("Uzbl start location: %s\n", argv[0]);

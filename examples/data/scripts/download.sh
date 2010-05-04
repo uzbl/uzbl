@@ -3,7 +3,7 @@
 # try some pattern matching on the uri to determine what we should do
 
 # Some sites block the default wget --user-agent..
-GET="wget --user-agent=Firefox"
+GET="wget --user-agent=Firefox --content-disposition --load-cookies=$XDG_DATA_HOME/uzbl/cookies.txt"
 
 dest="$HOME"
 url="$8"

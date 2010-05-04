@@ -45,12 +45,14 @@ set cookie_handler      = talk_to_socket $XDG_CACHE_HOME/uzbl/cookie_daemon_sock
 set scheme_handler      = sync_spawn @scripts_dir/scheme.py
 set authentication_handler = sync_spawn @scripts_dir/auth.py
 
-# Open in the same window.
-#set new_window         = sh 'echo uri "$8" > $4'
-# Open a link in a new window. equivalent to default behavior
-set new_window          = sh 'uzbl-browser -u "$8"'
-
 # --- Optional dynamic event handlers ----------------------------------------
+
+# Open link in new window
+@on_event   NEW_WINDOW     sh 'uzbl-browser -u "$8"' %r
+# Open in current window
+#@on_event   NEW_WINDOW     uri %s
+# Open in new tab
+#@on_event   NEW_WINDOW     event NEW_TAB %s
 
 # Download handler
 @on_event   DOWNLOAD_REQUEST    spawn @scripts_dir/download.sh %s \@proxy_url
@@ -119,7 +121,7 @@ set title_format_long = \@keycmd_prompt \@raw_modcmd \@raw_keycmd \@TITLE - Uzbl
 
 # === Core settings ==========================================================
 
-set useragent         = Uzbl (Webkit @WEBKIT_MAJOR.@WEBKIT_MINOR.@WEBKIT_MICRO) (@(+uname -o)@ @(+uname -m)@ [@ARCH_UZBL]) (Commit @COMMIT)
+set useragent         = Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}.@{WEBKIT_MICRO}) (@(+uname -sm)@ [@ARCH_UZBL]) (Commit @COMMIT)
 set fifo_dir          = /tmp
 set socket_dir        = /tmp
 
@@ -134,6 +136,7 @@ set socket_dir        = /tmp
 #modkey_addition <Key1>  <Key2>    <Result>
 @modkey_addition <Shift> <Ctrl>    <Meta>
 @modkey_addition <Shift> <Tab>     <Shift-Tab>
+@modkey_addition <Shift> <Insert>  <Shift-Insert>
 
 #ignore_key <glob>
 @ignore_key <ISO_*>
@@ -160,7 +163,7 @@ set ebind = @mode_bind global,-insert
 # Resets keycmd and returns to default mode.
 @on_event  ESCAPE    @set_mode
 @bind   <Escape>     = event ESCAPE
-@bind   <Ctrl>]      = event ESCAPE
+@bind   <Ctrl>[      = event ESCAPE
 
 # Commands for editing and traversing the keycmd.
 @ebind  <Return>     = event KEYCMD_EXEC_CURRENT
@@ -305,6 +308,8 @@ set toggle_cmd_ins = @toggle_modes command insert
 @cbind  P   = sh 'echo "uri `xclip -selection clipboard -o | sed s/\\\@/%40/g`" > $4'
 # Start a new uzbl instance from the page in primary selection
 @cbind  'p  = sh 'exec uzbl-browser --uri $(xclip -o)'
+# paste primary selection into keycmd at the cursor position
+@bind <Shift-Insert> = sh 'echo "event INJECT_KEYCMD `xclip -o | sed s/\\\@/%40/g`" > $4'
 
 # --- Bookmark inserting binds ---
 @cbind <Ctrl>b<tags:>_  = sh 'echo -e "$6 %s" >> $XDG_DATA_HOME/uzbl/bookmarks'

@@ -290,6 +290,12 @@ cmd_useragent() {
 }
 
 void
+cmd_javascript_windows() {
+    g_object_set (G_OBJECT(view_settings()), "javascript-can-open-windows-automatically",
+            uzbl.behave.javascript_windows, NULL);
+}
+
+void
 cmd_scrollbars_visibility() {
     if(uzbl.gui.scrollbars_visible) {
         uzbl.gui.bar_h = gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win));
@@ -311,7 +317,7 @@ cmd_view_source() {
 
 void
 cmd_set_zoom_type () {
-    if(uzbl.behave.zoom_type) 
+    if(uzbl.behave.zoom_type)
         webkit_web_view_set_full_content_zoom (uzbl.gui.web_view, TRUE);
     else
         webkit_web_view_set_full_content_zoom (uzbl.gui.web_view, FALSE);
@@ -629,17 +635,33 @@ navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNe
 }
 
 gboolean
-new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
+new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
+        WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action,
+        WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
     (void) web_view;
     (void) frame;
     (void) navigation_action;
     (void) policy_decision;
     (void) user_data;
-    const gchar* uri = webkit_network_request_get_uri (request);
+
     if (uzbl.state.verbose)
-        printf("New window requested -> %s \n", uri);
-    webkit_web_policy_decision_use(policy_decision);
-    send_event(NEW_WINDOW, uri, NULL);
+        printf("New window requested -> %s \n", webkit_network_request_get_uri (request));
+
+    /* This event function causes troubles with `target="_blank"` anchors.
+     * Either we:
+     *  1. Comment it out and target blank links are ignored.
+     *  2. Uncomment it and two windows are opened when you click on target
+     *     blank links.
+     *
+     * This problem is caused by create_web_view_cb also being called whenever
+     * this callback is triggered thus resulting in the doubled events.
+     *
+     * We are leaving this uncommented as we would rather links open twice
+     * than not at all.
+     */
+    send_event(NEW_WINDOW, webkit_network_request_get_uri (request), NULL);
+
+    webkit_web_policy_decision_ignore(policy_decision);
     return TRUE;
 }
 
@@ -672,6 +694,34 @@ request_starting_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitWebRes
     send_event(REQUEST_STARTING, webkit_network_request_get_uri(request), NULL);
 }
 
+void
+create_web_view_js2_cb (WebKitWebView* web_view, GParamSpec param_spec) {
+    (void) web_view;
+    (void) param_spec;
+
+    const gchar* uri = webkit_web_view_get_uri(web_view);
+
+    if (strncmp(uri, "javascript:", strlen("javascript:")) == 0) {
+        eval_js(uzbl.gui.web_view, (gchar*) uri + strlen("javascript:"), NULL, "javascript:");
+    }
+    else
+        send_event(NEW_WINDOW, uri, NULL);
+
+    gtk_widget_destroy(GTK_WIDGET(web_view));
+}
+
+
+gboolean
+create_web_view_js_cb (WebKitWebView* web_view, gpointer user_data) {
+    (void) web_view;
+    (void) user_data;
+
+    g_object_connect (web_view, "signal::notify::uri",
+                            G_CALLBACK(create_web_view_js2_cb), NULL);
+    return TRUE;
+}
+
+
 /*@null@*/ WebKitWebView*
 create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data) {
     (void) web_view;
@@ -679,13 +729,30 @@ create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer us
     (void) user_data;
     if (uzbl.state.selected_url != NULL) {
         if (uzbl.state.verbose)
-            printf("\nNew web view -> %s\n",uzbl.state.selected_url);
-        new_window_load_uri(uzbl.state.selected_url);
+            printf("\nNew web view -> %s\n", uzbl.state.selected_url);
+
+        if (strncmp(uzbl.state.selected_url, "javascript:", strlen("javascript:")) == 0) {
+            WebKitWebView* new_view = WEBKIT_WEB_VIEW(webkit_web_view_new());
+
+            g_signal_connect (new_view, "web-view-ready",
+                            G_CALLBACK(create_web_view_js_cb), NULL);
+
+            return new_view;
+        }
+        else
+            send_event(NEW_WINDOW, uzbl.state.selected_url, NULL);
+
     } else {
         if (uzbl.state.verbose)
-            printf("New web view -> %s\n","Nothing to open, exiting");
+            printf("New web view -> javascript link...\n");
+
+        WebKitWebView* new_view = WEBKIT_WEB_VIEW(webkit_web_view_new());
+
+        g_signal_connect (new_view, "web-view-ready",
+                            G_CALLBACK(create_web_view_js_cb), NULL);
+        return new_view;
     }
-    return (NULL);
+    return NULL;
 }
 
 gboolean
@@ -763,3 +830,39 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
     }
 }
 
+void
+save_cookies_js(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie, gpointer user_data) {
+    (void) jar;
+    (void) user_data;
+    (void) old_cookie;
+    char *scheme;
+    GString *s;
+
+    if(new_cookie != NULL) {
+        scheme = (new_cookie->secure == TRUE) ? "https" : "http";
+
+        s = g_string_new("");
+        g_string_printf(s, "PUT '%s' '%s' '%s' '%s=%s'", scheme, new_cookie->domain, new_cookie->path, new_cookie->name, new_cookie->value);
+        run_handler(uzbl.behave.cookie_handler, s->str);
+        g_string_free(s, TRUE);
+    }
+}
+
+void
+save_cookies_http(SoupMessage *msg, gpointer user_data) {
+    (void) user_data;
+    GSList *ck;
+    char *cookie;
+
+    for(ck = soup_cookies_from_response(msg); ck; ck = ck->next){
+        cookie = soup_cookie_to_set_cookie_header(ck->data);
+        SoupURI *soup_uri = soup_message_get_uri(msg);
+        GString *s = g_string_new("");
+        g_string_printf(s, "PUT '%s' '%s' '%s' '%s'", soup_uri->scheme, soup_uri->host, soup_uri->path, cookie);
+        run_handler(uzbl.behave.cookie_handler, s->str);
+        g_free (cookie);
+        g_string_free(s, TRUE);
+    }
+
+    g_slist_free(ck);
+}
