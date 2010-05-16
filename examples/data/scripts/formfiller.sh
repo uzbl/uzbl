@@ -51,6 +51,7 @@ else
 fi
 
 PROMPT="Choose profile"
+RAND=$(dd if=/dev/urandom count=1 2> /dev/null | cksum | cut -c 1-5)
 MODELINE="> vim:ft=formfiller"
 
 keydir=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/dforms
@@ -159,7 +160,7 @@ then
     then
         menu=`cat $keydir/$domain| \
               sed -n 's/^!profile=\([^[:blank:]]\+\)/\1/p'`
-        option=`echo -e -n "$menu"| dmenu ${LINES} -nb "${NB}" -nf "${NF}" -sb "${SB}" -sf "${SF}" -p "${PROMPT}"`
+        option=`printf "$menu"| dmenu ${LINES} -nb "${NB}" -nf "${NF}" -sb "${SB}" -sf "${SF}" -p "${PROMPT}"`
     fi
 
     # Remove comments
@@ -210,7 +211,7 @@ else
     if [ "$action" = 'new' -o "$action" = 'add' ]
     then
 	[ "$action" = 'new' ] && echo "$MODELINE" > $keydir/$domain
-        echo "!profile=NAME_THIS_PROFILE$RANDOM" >> $keydir/$domain
+        echo "!profile=NAME_THIS_PROFILE$RAND" >> $keydir/$domain
         #
         # 2. and 3. line (tr -d and sed) are because, on gmail login for example,
         # <input > tag is splited into lines

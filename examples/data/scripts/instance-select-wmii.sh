@@ -20,7 +20,7 @@ else
         DMENU="dmenu -i"
 fi
 
-if [ "$1" == 'list' ]
+if [ "$1" = 'list' ]
 then
 	list=
 	# get window id's of uzbl clients. we could also get the label in one shot but it's pretty tricky
@@ -29,9 +29,9 @@ then
 		label=$(wmiir read /client/$i/label)
 		list="$list$i : $label\n"
 	done
-	window=$(echo -e "$list" | $DMENU $COLORS | cut -d ' ' -f1)
+	window=$(printf "$list\n" | $DMENU $COLORS | cut -d ' ' -f1)
 	wmiir xwrite /tag/sel/ctl "select client $window"
-elif [ "$1" == 'next' ]
+elif [ "$1" = 'next' ]
 then
 	current=$(wmiir read /client/sel/ctl | head -n 1)
 	# find the next uzbl window and focus it
@@ -40,7 +40,7 @@ then
 	then
 		wmiir xwrite /tag/sel/ctl "select client $next"
 	fi
-elif [ "$1" == 'prev' ]
+elif [ "$1" = 'prev' ]
 then
 	current=$(wmiir read /client/sel/ctl | head -n 1)
 	prev=$(wmiir read /tag/sel/index | grep -B 10000 " $current " | tac | grep -m 1 uzbl | cut -d ' ' -f2)
