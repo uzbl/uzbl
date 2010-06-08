@@ -17,7 +17,6 @@ var doc = document;
 var win = window;
 var links = document.links;
 var forms = document.forms;
-var rv = "";
 //Make onlick-links "clickable"
 try {
     HTMLElement.prototype.click = function() {
@@ -131,6 +130,7 @@ function clickElem(item) {
         if (name == 'A') {
             item.click();
             window.location = item.href;
+			return "XXXRESET_MODEXXX";
         } else if (name == 'INPUT') {
 	    var type;
 	    try {
@@ -141,15 +141,15 @@ function clickElem(item) {
             if (type == 'TEXT' || type == 'SEARCH' || type == 'PASSWORD') {
                 item.focus();
                 item.select();
-                rv="XXXEMIT_FORM_ACTIVEXXX";
+                return "XXXEMIT_FORM_ACTIVEXXX";
             } else {
                 item.click();
-                rv="XXXRESET_MODEXXX";
+                return "XXXRESET_MODEXXX";
             }
         } else if (name == 'TEXTAREA' || name == 'SELECT') {
             item.focus();
             item.select();
-            rv="XXXEMIT_FORM_ACTIVEXXX";
+            return "XXXEMIT_FORM_ACTIVEXXX";
         } else {
             item.click();
             window.location = item.href;
@@ -251,7 +251,7 @@ function followLinks(follow) {
     var oldDiv = doc.getElementById(uzbldivid);
     var leftover = [[], []];
     if (s.length == len && linknr < elems[0].length && linknr >= 0) {
-        clickElem(elems[0][linknr]);
+        return clickElem(elems[0][linknr]);
     } else {
         for (var j = 0; j < elems[0].length; j++) {
             var b = true;
