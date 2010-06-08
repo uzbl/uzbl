@@ -20,36 +20,11 @@ Usage:
 import sys
 import re
 
-__export__ = ['get_on_events', 'on_event']
-
-UZBLS = {}
-
-
-def error(msg):
-    sys.stderr.write('on_event plugin: error: %s\n' % msg)
-
-
-def add_instance(uzbl, *args):
-    UZBLS[uzbl] = {}
-
-
-def del_instance(uzbl, *args):
-    if uzbl in UZBLS:
-        del UZBLS[uzbl]
-
-
-def get_on_events(uzbl):
-    if uzbl not in UZBLS:
-        add_instance(uzbl)
-
-    return UZBLS[uzbl]
-
-
 def event_handler(uzbl, *args, **kargs):
     '''This function handles all the events being watched by various
     on_event definitions and responds accordingly.'''
 
-    events = get_on_events(uzbl)
+    events = uzbl.on_events
     event = kargs['on_event']
     if event not in events:
         return
@@ -65,9 +40,9 @@ def on_event(uzbl, event, cmd):
     '''Add a new event to watch and respond to.'''
 
     event = event.upper()
-    events = get_on_events(uzbl)
+    events = uzbl.on_events
     if event not in events:
-        uzbl.connect(event, event_handler, on_event=event)
+        connect(uzbl, event, event_handler, on_event=event)
         events[event] = []
 
     cmds = events[event]
@@ -80,28 +55,28 @@ def parse_on_event(uzbl, args):
 
     Syntax: "event ON_EVENT <EVENT_NAME> commands".'''
 
-    if not args:
-        return error("missing on_event arguments")
+    args = args.strip()
+    assert args, 'missing on event arguments'
 
-    split = args.split(' ', 1)
-    if len(split) != 2:
-        return error("invalid ON_EVENT syntax: %r" % args)
-
-    event, cmd = split
-    on_event(uzbl, event, cmd)
+    (event, command) = (args.split(' ', 1) + ['',])[:2]
+    assert event and command, 'missing on event command'
+    on_event(uzbl, event, command)
 
 
+# plugin init hook
 def init(uzbl):
-    # Event handling hooks.
-    uzbl.connect_dict({
-        'INSTANCE_EXIT':    del_instance,
-        'INSTANCE_START':   add_instance,
-        'ON_EVENT':         parse_on_event,
+    '''Export functions and connect handlers to events.'''
+
+    connect(uzbl, 'ON_EVENT', parse_on_event)
+
+    export_dict(uzbl, {
+        'on_event':     on_event,
+        'on_events':    {},
     })
 
-    # Function exports to the uzbl object, `function(uzbl, *args, ..)`
-    # becomes `uzbl.function(*args, ..)`.
-    uzbl.export_dict({
-        'get_on_events':    get_on_events,
-        'on_event':         on_event,
-    })
+# plugin cleanup hook
+def cleanup(uzbl):
+    for handlers in uzbl.on_events.values():
+        del handlers[:]
+
+    uzbl.on_events.clear()
