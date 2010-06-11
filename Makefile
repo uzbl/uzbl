@@ -87,7 +87,9 @@ strip:
 
 install: install-uzbl-core install-uzbl-browser install-uzbl-tabbed
 
-install-uzbl-core: all
+install-dirs:
+	[ -d "$(INSTALLDIR)/bin" ] && install -d -m755 $(INSTALLDIR)/bin
+install-uzbl-core: all install-dirs
 	install -d $(INSTALLDIR)/share/uzbl/
 	install -d $(DOCDIR)
 	install -m644 docs/* $(DOCDIR)/
@@ -99,12 +101,12 @@ install-uzbl-core: all
 	mv $(INSTALLDIR)/share/uzbl/examples/config/config{,.bak}
 	sed 's#^set prefix.*=.*#set prefix     = $(RUN_PREFIX)#' < $(INSTALLDIR)/share/uzbl/examples/config/config > $(INSTALLDIR)/share/uzbl/examples/config/config
 	rm $(INSTALLDIR)/share/uzbl/examples/config/config.bak
-	install -D -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
+	install -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
 
-install-uzbl-browser:
-	install -D -m755 src/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
-	install -D -m755 examples/data/scripts/uzbl-cookie-daemon $(INSTALLDIR)/bin/uzbl-cookie-daemon
-	install -D -m755 examples/data/scripts/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
+install-uzbl-browser: install-dirs
+	install -m755 src/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
+	install -m755 examples/data/scripts/uzbl-cookie-daemon $(INSTALLDIR)/bin/uzbl-cookie-daemon
+	install -m755 examples/data/scripts/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
 	mv $(INSTALLDIR)/bin/uzbl-browser{,.bak}
 	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < $(INSTALLDIR)/bin/uzbl-browser > $(INSTALLDIR)/bin/uzbl-browser.bak
 	rm $(INSTALLDIR)/bin/uzbl-browser.bak
@@ -112,11 +114,11 @@ install-uzbl-browser:
 	sed "s#^PREFIX = .*#PREFIX = '$(RUN_PREFIX)'#" < $(INSTALLDIR)/bin/uzbl-event-manager > $(INSTALLDIR)/bin/uzbl-event-manager.bak
 	rm $(INSTALLDIR)/bin/uzbl-event-manager.bak
 
-install-uzbl-tabbed:
-	install -D -m755 examples/data/scripts/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed
+install-uzbl-tabbed: install-dirs
+	install -m755 examples/data/scripts/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed
 
 # you probably only want to do this manually when testing and/or to the sandbox. not meant for distributors
-install-example-data:
+install-example-data: install-dirs
 	install -d $(DESTDIR)/home/.config/uzbl
 	install -d $(DESTDIR)/home/.cache/uzbl
 	install -d $(DESTDIR)/home/.local/share/uzbl
