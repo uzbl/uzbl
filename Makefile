@@ -99,7 +99,7 @@ install-uzbl-core: all install-dirs
 	cp -r examples $(INSTALLDIR)/share/uzbl/
 	chmod 755 $(INSTALLDIR)/share/uzbl/examples/data/scripts/*
 	mv $(INSTALLDIR)/share/uzbl/examples/config/config{,.bak}
-	sed 's#^set prefix.*=.*#set prefix     = $(RUN_PREFIX)#' < $(INSTALLDIR)/share/uzbl/examples/config/config > $(INSTALLDIR)/share/uzbl/examples/config/config
+	sed 's#^set prefix.*=.*#set prefix     = $(RUN_PREFIX)#' < $(INSTALLDIR)/share/uzbl/examples/config/config.bak > $(INSTALLDIR)/share/uzbl/examples/config/config
 	rm $(INSTALLDIR)/share/uzbl/examples/config/config.bak
 	install -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
 
@@ -108,10 +108,10 @@ install-uzbl-browser: install-dirs
 	install -m755 examples/data/scripts/uzbl-cookie-daemon $(INSTALLDIR)/bin/uzbl-cookie-daemon
 	install -m755 examples/data/scripts/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
 	mv $(INSTALLDIR)/bin/uzbl-browser{,.bak}
-	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < $(INSTALLDIR)/bin/uzbl-browser > $(INSTALLDIR)/bin/uzbl-browser.bak
+	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < $(INSTALLDIR)/bin/uzbl-browser.bak > $(INSTALLDIR)/bin/uzbl-browser
 	rm $(INSTALLDIR)/bin/uzbl-browser.bak
 	mv $(INSTALLDIR)/bin/uzbl-event-manager{,.bak}
-	sed "s#^PREFIX = .*#PREFIX = '$(RUN_PREFIX)'#" < $(INSTALLDIR)/bin/uzbl-event-manager > $(INSTALLDIR)/bin/uzbl-event-manager.bak
+	sed "s#^PREFIX = .*#PREFIX = '$(RUN_PREFIX)'#" < $(INSTALLDIR)/bin/uzbl-event-manager.bak > $(INSTALLDIR)/bin/uzbl-event-manager
 	rm $(INSTALLDIR)/bin/uzbl-event-manager.bak
 
 install-uzbl-tabbed: install-dirs
