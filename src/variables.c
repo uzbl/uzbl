@@ -371,6 +371,30 @@ set_http_debug(int debug) {
             SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
 }
 
+void
+set_ca_file(gchar *path) {
+    g_object_set (uzbl.net.soup_session, "ssl-ca-file", path, NULL);
+}
+
+gchar *
+get_ca_file() {
+    gchar *path;
+    g_object_get (uzbl.net.soup_session, "ssl-ca-file", &path, NULL);
+    return path;
+}
+
+void
+set_verify_cert(int strict) {
+    g_object_set (uzbl.net.soup_session, "ssl-strict", strict, NULL);
+}
+
+int
+get_verify_cert() {
+    int strict;
+    g_object_get (uzbl.net.soup_session, "ssl-strict", &strict, NULL);
+    return strict;
+}
+
 #define EXPOSE_WEBKIT_VIEW_SETTINGS(SYM, PROPERTY, TYPE) \
 void set_##SYM(TYPE val) { \
   g_object_set(view_settings(), (PROPERTY), val, NULL); \
@@ -741,6 +765,9 @@ const struct var_name_to_ptr_t {
     { "accept_languages",       PTR_V_STR(uzbl.net.accept_languages,            1,   set_accept_languages)},
 
     { "view_source",            PTR_V_INT(uzbl.behave.view_source,              0,   set_view_source)},
+
+    { "ssl_ca_file",            PTR_V_STR_GETSET(ca_file)},
+    { "ssl_verify",             PTR_V_INT_GETSET(verify_cert)},
 
     /* exported WebKitWebSettings properties */
     { "javascript_windows",     PTR_V_INT_GETSET(javascript_windows)},

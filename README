@@ -373,6 +373,9 @@ file).
   access the contents of other `file://` URIs. (default 0).
 * `follow_hint_keys`: keys for keyboard-based navigation and link
    highlighting
+* `ssl_ca_file`: File that contains CA certificates.
+* `ssl_verify`: If set to 1, uzbl won't connect to "https" url unless it can
+   validate certificate presented by remote server against `ssl_ca_file`.
 
 #### Constants (not dumpable or writeable)
 
