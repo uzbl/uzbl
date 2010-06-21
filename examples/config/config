@@ -151,6 +151,8 @@ set useragent         = Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}) (@(+uname 
 # set ssl_verify = 1
 # Command to toggle ssl_verify value:
 @cbind  !ssl = sh 'echo "set ssl_verify=$((!\@ssl_verify))" > "$4"; echo "set uri = \\\\\\\@uri" > "$4"'
+# Example SSL error handler:
+@on_event   LOAD_ERROR    js var patt=new RegExp(':The SSL certificate is not trusted.'); if (patt.test('%1')) {alert ('%1');}
 
 # === Key binding configuration ==============================================
 # --- Internal modmapping and ignoring ---------------------------------------
