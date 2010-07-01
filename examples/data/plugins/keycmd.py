@@ -429,6 +429,9 @@ def keycmd_backspace(uzbl, *args):
     if not k.keycmd:
         return
 
+    if k.cursor == 0:
+        return
+
     k.keycmd = k.keycmd[:k.cursor-1] + k.keycmd[k.cursor:]
     k.cursor -= 1
     update_event(uzbl, k, False)
