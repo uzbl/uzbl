@@ -2620,7 +2620,7 @@ main (int argc, char* argv[]) {
         uzbl.gui.main_window = create_window ();
         gtk_container_add (GTK_CONTAINER (uzbl.gui.main_window), uzbl.gui.vbox);
         gtk_widget_show_all (uzbl.gui.main_window);
-        uzbl.xwin = GDK_WINDOW_XID (GTK_WIDGET (uzbl.gui.main_window)->window);
+        uzbl.xwin = GDK_WINDOW_XID (gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)));
     }
 
     uzbl.gui.scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);

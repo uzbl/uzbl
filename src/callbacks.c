@@ -798,14 +798,14 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
                 (context & mi->context)) {
             if(mi->issep) {
                 item = gtk_separator_menu_item_new();
-                gtk_menu_append(GTK_MENU(m), item);
+                gtk_menu_shell_append(GTK_MENU_SHELL(m), item);
                 gtk_widget_show(item);
             }
             else {
                 item = gtk_menu_item_new_with_label(mi->name);
                 g_signal_connect(item, "activate",
                         G_CALLBACK(run_menu_command), mi->cmd);
-                gtk_menu_append(GTK_MENU(m), item);
+                gtk_menu_shell_append(GTK_MENU_SHELL(m), item);
                 gtk_widget_show(item);
             }
             hit++;
@@ -816,14 +816,14 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
                 !hit) {
             if(mi->issep) {
                 item = gtk_separator_menu_item_new();
-                gtk_menu_append(GTK_MENU(m), item);
+                gtk_menu_shell_append(GTK_MENU_SHELL(m), item);
                 gtk_widget_show(item);
             }
             else {
                 item = gtk_menu_item_new_with_label(mi->name);
                 g_signal_connect(item, "activate",
                         G_CALLBACK(run_menu_command), mi->cmd);
-                gtk_menu_append(GTK_MENU(m), item);
+                gtk_menu_shell_append(GTK_MENU_SHELL(m), item);
                 gtk_widget_show(item);
             }
         }
