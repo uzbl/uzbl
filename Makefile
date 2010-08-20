@@ -63,10 +63,10 @@ test-uzbl-browser-sandbox: uzbl-browser
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
 	cp -np ./misc/env.sh ./sandbox/env.sh
 	source ./sandbox/env.sh && uzbl-cookie-daemon restart -nv &
-	source ./sandbox/env.sh && uzbl-event-manager restart -nav &
+	source ./sandbox/env.sh && uzbl-event-manager restart -navv &
 	source ./sandbox/env.sh && uzbl-browser --uri http://www.uzbl.org --verbose
 	source ./sandbox/env.sh && uzbl-cookie-daemon stop -v
-	source ./sandbox/env.sh && uzbl-event-manager stop -v
+	source ./sandbox/env.sh && uzbl-event-manager stop -ivv
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 

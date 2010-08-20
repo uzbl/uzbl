@@ -26,7 +26,7 @@ elseif exists("b:current_syntax")
 endif
 
 " Don't match keywords inside strings
-set iskeyword=!-~,192-255
+setl iskeyword=!-~,192-255
 
 syn keyword uzblKeyword back forward scroll reload reload_ign_cache stop
 syn keyword uzblKeyword zoom_in zoom_out toggle_zoom_type uri script
@@ -44,13 +44,13 @@ syn match uzblTodo /TODO:/ contained
 syn region uzblComment display start=/^#/ end=/$/ contains=uzblTodo
 
 " Comment headings
-syn region uzblSection display start=/^# ===/ end=/$/
-syn region uzblSubSection display start=/^# ---/ end=/$/
+syn region uzblSec matchgroup=uzblSection start=/^# ===.*$/ end=/^# ===/me=e-5 contains=ALL fold
+syn region uzblSSec matchgroup=uzblSubSection start=/^# ---.*$/ end=/^# [=-]\{3}/me=e-5 contains=ALLBUT,uzblSec,uzblSSec fold
 
 " Integer and float matching
-syn match uzblPercent display /\s\(+\|-\|\)\(\d\+.\d\+\|\d\+\)%\(\s\|\n\)/
-syn match uzblInt display /\s\(+\|-\|\)\d\+\(\s\|\n\)/
-syn match uzblFloat display /\s\(+\|-\|\)\d\+.\d\+\(\s\|\n\)/
+syn match uzblPercent display /\s[+-]\=\%(\d\+\.\)\=\d\+%\_s/
+syn match uzblInt display /\s[+-]\=\d\+\_s/
+syn match uzblFloat display /\s[+-]\=\d\+\.\d\+\_s/
 
 " Handler arguments
 syn match uzblArgs display /$\d\+/
@@ -63,7 +63,7 @@ syn match uzblInternalExpand display /@[A-Z_]\+/
 syn match uzblInternalExpand display /@{[A-Z_]\+}/
 
 " Matches $ENVIRON_VAR
-syn match uzblEnvironVariable display /$[A-Za-z0-9_]\+/
+syn match uzblEnvironVariable display /$\a\+\w*/
 
 " Matches @some_var and @{some_var}
 syn match uzblExpand display /@[A-Za-z0-9_\.]\+/
@@ -106,7 +106,7 @@ if version >= 508 || !exists("did_uzbl_syn_inits")
     HiLink uzblComment Comment
     HiLink uzblTodo Todo
 
-    HiLink uzblSection Folded
+    HiLink uzblSection SpecialComment
     HiLink uzblSubSection SpecialComment
 
     HiLink uzblKeyword Keyword

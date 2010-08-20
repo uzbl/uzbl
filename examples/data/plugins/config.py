@@ -1,97 +1,90 @@
-import re
-import types
+from re import compile
+from types import BooleanType
+from UserDict import DictMixin
 
-__export__ = ['set', 'get_config']
+valid_key = compile('^[A-Za-z0-9_\.]+$').match
+types = {'int': int, 'float': float, 'str': unicode}
+escape = lambda s: unicode(s).replace('\n', '\\n')
 
-VALIDKEY = re.compile("^[a-zA-Z][a-zA-Z0-9_]*$").match
-TYPECONVERT = {'int': int, 'float': float, 'str': unicode}
-
-UZBLS = {}
-
-
-def escape(value):
-    '''A real escaping function may be required.'''
-
-    return unicode(value)
-
-
-def set(uzbl, key, value='', config=None, force=False):
-    '''Sends a: "set key = value" command to the uzbl instance. If force is
-    False then only send a set command if the values aren't equal.'''
-
-    if type(value) == types.BooleanType:
-        value = int(value)
-
-    else:
-        value = unicode(value)
-
-    if not VALIDKEY(key):
-        raise KeyError("%r" % key)
-
-    value = escape(value)
-    if '\n' in value:
-        value = value.replace("\n", "\\n")
-
-    if not force:
-        if config is None:
-            config = get_config(uzbl)
-
-        if key in config and config[key] == value:
-            return
-
-    uzbl.send('set %s = %s' % (key, value))
-
-
-class ConfigDict(dict):
+class Config(DictMixin):
     def __init__(self, uzbl):
-        self._uzbl = uzbl
+        self.uzbl = uzbl
+
+        # Create the base dict and map allowed methods to `self`.
+        self.data = data = {}
+
+        methods = ['__contains__', '__getitem__', '__iter__',
+            '__len__',  'get', 'has_key', 'items', 'iteritems',
+            'iterkeys', 'itervalues', 'values']
+
+        for method in methods:
+            setattr(self, method, getattr(data, method))
+
 
     def __setitem__(self, key, value):
-        '''Makes "config[key] = value" a wrapper for the set function.'''
+        self.set(key, value)
 
-        set(self._uzbl, key, value, config=self)
+    def __delitem__(self, key):
+        self.set(key)
 
+    def update(self, other=None, **kwargs):
+        if other is None:
+            other = {}
 
-def add_instance(uzbl, *args):
-    UZBLS[uzbl] = ConfigDict(uzbl)
-
-
-def del_instance(uzbl, *args):
-    if uzbl in UZBLS:
-        del uzbl
-
-
-def get_config(uzbl):
-    if uzbl not in UZBLS:
-        add_instance(uzbl)
-
-    return UZBLS[uzbl]
+        for (key, value) in dict(other).items() + kwargs.items():
+            self[key] = value
 
 
-def variable_set(uzbl, args):
-    config = get_config(uzbl)
+    def set(self, key, value='', force=False):
+        '''Generates a `set <key> = <value>` command string to send to the
+        current uzbl instance.
 
-    key, type, value = list(args.split(' ', 2) + ['',])[:3]
-    old = config[key] if key in config else None
-    value = TYPECONVERT[type](value)
+        Note that the config dict isn't updated by this function. The config
+        dict is only updated after a successful `VARIABLE_SET ..` event
+        returns from the uzbl instance.'''
 
-    dict.__setitem__(config, key, value)
+        assert valid_key(key)
 
-    if old != value:
-        uzbl.event("CONFIG_CHANGED", key, value)
+        if type(value) == BooleanType:
+            value = int(value)
+
+        else:
+            value = escape(value)
+
+        if not force and key in self and self[key] == value:
+            return
+
+        self.uzbl.send(u'set %s = %s' % (key, value))
 
 
+def parse_set_event(uzbl, args):
+    '''Parse `VARIABLE_SET <var> <type> <value>` event and load the
+    (key, value) pair into the `uzbl.config` dict.'''
+
+    (key, type, raw_value) = (args.split(' ', 2) + ['',])[:3]
+
+    assert valid_key(key)
+    assert type in types
+
+    new_value = types[type](raw_value)
+    old_value = uzbl.config.get(key, None)
+
+    # Update new value.
+    uzbl.config.data[key] = new_value
+
+    if old_value != new_value:
+        uzbl.event('CONFIG_CHANGED', key, new_value)
+
+    # Cleanup null config values.
+    if type == 'str' and not new_value:
+        del uzbl.config.data[key]
+
+
+# plugin init hook
 def init(uzbl):
-    # Event handling hooks.
-    uzbl.connect_dict({
-        'INSTANCE_EXIT':    del_instance,
-        'INSTANCE_START':   add_instance,
-        'VARIABLE_SET':     variable_set,
-    })
+    export(uzbl, 'config', Config(uzbl))
+    connect(uzbl, 'VARIABLE_SET', parse_set_event)
 
-    # Function exports to the uzbl object, `function(uzbl, *args, ..)`
-    # becomes `uzbl.function(*args, ..)`.
-    uzbl.export_dict({
-        'get_config':   get_config,
-        'set':          set,
-    })
+# plugin cleanup hook
+def cleanup(uzbl):
+    uzbl.config.data.clear()
