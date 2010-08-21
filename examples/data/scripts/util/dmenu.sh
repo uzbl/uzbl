@@ -39,6 +39,8 @@ case "$DMENU_SCHEME" in
         ;;
 esac
 
+DMENU_COLORS="-nb $NB -nf $NF -sb $SB -sf $SF"
+
 # Default arguments
 if [ -z "$DMENU_ARGS" ]; then
     DMENU_ARGS="-i"
@@ -71,4 +73,4 @@ if dmenu --help 2>&1 | grep -q '\[-l <lines>\]'; then
     fi
 fi
 
-DMENU="dmenu $DMENU_ARGS -nb $NB -nf $NF -sb $SB -sf $SF"
+DMENU="dmenu $DMENU_ARGS $DMENU_COLORS"
