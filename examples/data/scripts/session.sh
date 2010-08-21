@@ -19,7 +19,7 @@ UZBL="uzbl-browser -c $UZBL_CONFIG_FILE" # add custom flags and whatever here.
 act="$1"
 
 # Test if we were run alone or from uzbl
-if [ -z "$UZBL_FIFO" ]; then
+if [ -z "$UZBL_SOCKET" ]; then
     # Take the old config
     act="$UZBL_CONFIG"
 fi
@@ -39,24 +39,24 @@ case $act in
         ;;
 
     "endinstance" )
-        if [ -z "$UZBL_FIFO" ]; then
+        if [ -z "$UZBL_SOCKET" ]; then
             echo "session manager: endinstance must be called from uzbl"
             exit 1
         fi
         if [ ! "$UZBL_URL" = "(null)" ]; then
             echo "$UZBL_URL" >> $UZBL_SESSION_FILE
         fi
-        echo "exit" > $UZBL_FIFO
+        echo "exit" | socat - unix-connect:$UZBL_SOCKET
         ;;
 
     "endsession" )
         mv "$UZBL_SESSION_FILE" "$UZBL_SESSION_FILE~"
-        for fifo in $UZBL_FIFO_DIR/uzbl_fifo_*; do
-            if [ "$fifo" != "$UZBL_FIFO" ]; then
-                echo "spawn $scriptfile endinstance" > $fifo
+        for sock in $UZBL_SOCKET_DIR/uzbl_fifo_*; do
+            if [ "$sock" != "$UZBL_SOCKET" ]; then
+                echo "spawn $scriptfile endinstance" | socat - unix-connect:$socket
             fi
         done
-        echo "spawn $scriptfile endinstance" > $UZBL_FIFO
+        echo "spawn $scriptfile endinstance" | socat - unix-connect:$UZBL_SOCKET
         ;;
 
     * )
