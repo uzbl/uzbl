@@ -696,6 +696,8 @@ Events have this format:
   Xembed mode, `plug_id` is the Xembed ID used.
 * `EVENT [uzbl_instance_name] BUILTINS command_list`: Shows a list of all `uzbl`
   commands, whitespace separated, on startup.
+* `EVENT [uzbl_instance_name] EXPOSE`: When displayed page changes. For
+  example on scroll.
 
 Events/requests which the EM and its plugins listens for
 

@@ -45,7 +45,8 @@ const char *event_table[LAST_EVENT] = {
      "PLUG_CREATED"     ,
      "COMMAND_ERROR"    ,
      "BUILTINS"         ,
-     "PTR_MOVE"
+     "PTR_MOVE"         ,
+     "EXPOSE"
 };
 
 void
