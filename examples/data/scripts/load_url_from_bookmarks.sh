@@ -5,8 +5,7 @@
 file=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/bookmarks
 [ -r "$file" ] || exit
 COLORS=" -nb #303030 -nf khaki -sb #CCFFAA -sf #303030"
-if dmenu --help 2>&1 | grep -q '\[-rs\] \[-ni\] \[-nl\] \[-xs\]'
-then
+if dmenu --help 2>&1 | grep -q '\[-rs\] \[-ni\] \[-nl\] \[-xs\]'; then
 	DMENU="dmenu -i -xs -rs -l 10" # vertical patch
 	# show tags as well
 	goto=`$DMENU $COLORS < $file | awk '{print $1}'`

@@ -14,8 +14,7 @@ export http_proxy
 test "x$url" = "x" && { echo "you must supply a url! ($url)"; exit 1; }
 
 # only changes the dir for the $get sub process
-if echo "$url" | grep -E '.*\.torrent' >/dev/null;
-then
+if echo "$url" | grep -E '.*\.torrent' >/dev/null; then
     ( cd "$dest"; $GET "$url")
 else
     ( cd "$dest"; $GET "$url")

@@ -43,8 +43,7 @@ NF="#4e7093"
 SB="#003d7c"
 SF="#3a9bff"
 
-if [ "`dmenu --help 2>&1| grep lines`x" != "x" ]
-then
+if [ "`dmenu --help 2>&1| grep lines`x" != "x" ]; then
     LINES=" -l 3 "
 else
     LINES=""
@@ -87,12 +86,10 @@ action=$1
 
 domain=$(echo $url | sed 's/\(http\|https\):\/\/\([^\/]\+\)\/.*/\2/')
 
-if [ "$action" != 'edit' -a  "$action" != 'new' -a "$action" != 'load' -a "$action" != 'add' -a "$action" != 'once' ]
-then
+if [ "$action" != 'edit' -a  "$action" != 'new' -a "$action" != 'load' -a "$action" != 'add' -a "$action" != 'once' ]; then
     action="new"
     [ -e "$keydir/$domain" ] && action="load"
-elif [ "$action" = 'edit' ] && [ ! -e "$keydir/$domain" ]
-then
+elif [ "$action" = 'edit' ] && [ ! -e "$keydir/$domain" ]; then
     action="new"
 fi
 
@@ -152,11 +149,9 @@ insertFunction="function insert(fname, ftype, fvalue, fchecked) { \
     } \
 }; "
 
-if [ "$action" = 'load' ]
-then
+if [ "$action" = 'load' ]; then
     [ -e $keydir/$domain ] || exit 2
-    if [ `cat $keydir/$domain|grep "!profile"|wc -l` -gt 1 ]
-    then
+    if [ `cat $keydir/$domain|grep "!profile"|wc -l` -gt 1 ]; then
         menu=`cat $keydir/$domain| \
               sed -n 's/^!profile=\([^[:blank:]]\+\)/\1/p'`
         option=`echo -e -n "$menu"| dmenu ${LINES} -nb "${NB}" -nf "${NF}" -sb "${SB}" -sf "${SF}" -p "${PROMPT}"`
@@ -179,8 +174,7 @@ then
     printf '%s\n' "${fields}" | \
         sed -n -e "s/\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\3', '\2', \4);/p" | \
         sed -e 's/@/\\@/g' > $fifo
-elif [ "$action" = "once" ]
-then
+elif [ "$action" = "once" ]; then
     tmpfile=`mktemp`
     printf 'js %s dump(); \n' "$dumpFunction" | \
         socat - unix-connect:$socket | \
@@ -207,8 +201,7 @@ then
         sed -e 's/@/\\@/g' > $fifo
     rm -f $tmpfile
 else
-    if [ "$action" = 'new' -o "$action" = 'add' ]
-    then
+    if [ "$action" = 'new' -o "$action" = 'add' ]; then
 	[ "$action" = 'new' ] && echo "$MODELINE" > $keydir/$domain
         echo "!profile=NAME_THIS_PROFILE$RANDOM" >> $keydir/$domain
         #
