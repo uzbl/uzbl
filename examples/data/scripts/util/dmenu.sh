@@ -46,6 +46,11 @@ if [ -z "$DMENU_ARGS" ]; then
     DMENU_ARGS="-i"
 fi
 
+# Set the font if wanted
+if [ -n "$DMENU_FONT" ]; then
+    DMENU_ARGS="$DMENU_ARGS -fn $DMENU_FONT"
+fi
+
 # Set the prompt if wanted
 if [ -n "$DMENU_PROMPT" ]; then
     DMENU_ARGS="$DMENU_ARGS -p $DMENU_PROMPT"
