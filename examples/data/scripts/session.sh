@@ -62,7 +62,8 @@ case $act in
     * )
         echo "session manager: bad action"
         echo "Usage: $scriptfile [COMMAND] where commands are:"
-        echo " launch 	- Restore a saved session or start a new one"
-        echo " endsession	- Quit the running session. Must be called from uzbl"
+        echo " launch      - Restore a saved session or start a new one"
+        echo " endinstance - Quit the current instance. Must be called from uzbl"
+        echo " endsession  - Quit the running session."
         ;;
 esac
