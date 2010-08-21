@@ -24,40 +24,40 @@ if [ "x$UZBL_FIFO" = "x" ]; then
     act="$UZBL_CONFIG"
 fi
 
-
 case $act in
-  "launch" )
-    urls=$(cat $UZBL_SESSION_FILE)
-    if [ "$urls." = "." ]; then
-      $UZBL
-    else
-      for url in $urls; do
-        $UZBL --uri "$url" &
-      done
-    fi
-    exit 0
-    ;;
+    "launch" )
+        urls=$(cat $UZBL_SESSION_FILE)
+        if [ "$urls." = "." ]; then
+            $UZBL
+        else
+            for url in $urls; do
+                $UZBL --uri "$url" &
+            done
+        fi
+        exit 0
+        ;;
 
-  "endinstance" )
-    if [ "$UZBL_URL" != "(null)" ]; then
-      echo "$UZBL_URL" >> $UZBL_SESSION_FILE
-    fi
-    echo "exit" > "$UZBL_FIFO"
-    ;;
+    "endinstance" )
+        if [ ! "$UZBL_URL" = "(null)" ]; then
+            echo "$UZBL_URL" >> $UZBL_SESSION_FILE
+        fi
+        echo "exit" > "$UZBL_FIFO"
+        ;;
 
-  "endsession" )
-    mv "$UZBL_SESSION_FILE" "$UZBL_SESSION_FILE~"
-    for fifo in $UZBL_FIFO_DIR/uzbl_fifo_*; do
-      if [ "$fifo" != "$UZBL_FIFO" ]; then
-        echo "spawn $scriptfile endinstance" > "$fifo"
-      fi
-    done
-    echo "spawn $scriptfile endinstance" > "$UZBL_FIFO"
-    ;;
+    "endsession" )
+        mv "$UZBL_SESSION_FILE" "$UZBL_SESSION_FILE~"
+        for fifo in $UZBL_FIFO_DIR/uzbl_fifo_*; do
+            if [ "$fifo" != "$UZBL_FIFO" ]; then
+                echo "spawn $scriptfile endinstance" > "$fifo"
+            fi
+        done
+        echo "spawn $scriptfile endinstance" > "$UZBL_FIFO"
+        ;;
 
-  * ) echo "session manager: bad action"
-      echo "Usage: $scriptfile [COMMAND] where commands are:"
-      echo " launch 	- Restore a saved session or start a new one"
-      echo " endsession	- Quit the running session. Must be called from uzbl"
-      ;;
+    * )
+        echo "session manager: bad action"
+        echo "Usage: $scriptfile [COMMAND] where commands are:"
+        echo " launch 	- Restore a saved session or start a new one"
+        echo " endsession	- Quit the running session. Must be called from uzbl"
+        ;;
 esac
