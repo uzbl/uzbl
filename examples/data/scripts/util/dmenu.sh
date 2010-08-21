@@ -40,12 +40,12 @@ case "$DMENU_SCHEME" in
 esac
 
 # Default arguments
-if [ "x$DMENU_ARGS" = "x" ]; then
+if [ -z "$DMENU_ARGS" ]; then
     DMENU_ARGS="-i"
 fi
 
 # Set the prompt if wanted
-if [ ! "x$DMENU_PROMPT" = "x" ]; then
+if [ -n "$DMENU_PROMPT" ]; then
     DMENU_ARGS="$DMENU_ARGS -p $DMENU_PROMPT"
 fi
 
@@ -58,7 +58,7 @@ fi
 # Detect the vertical patch
 if dmenu --help 2>&1 | grep -q '\[-l lines\]'; then
     # Default to 10 lines
-    if [ "x$DMENU_LINES" = "x" ]; then
+    if [ -z "$DMENU_LINES" ]; then
         DMENU_LINES=10
     fi
 

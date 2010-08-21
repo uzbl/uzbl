@@ -26,13 +26,13 @@ elif [ "$1" == 'next' ]; then
 	current=$(wmiir read /client/sel/ctl | head -n 1)
 	# find the next uzbl window and focus it
 	next=$(wmiir read /tag/sel/index | grep -A 10000 " $current " | grep -m 1 uzbl | cut -d ' ' -f2)
-	if [ x"$next" != "x" ]; then
+	if [ -n "$next" ]; then
 		wmiir xwrite /tag/sel/ctl "select client $next"
 	fi
 elif [ "$1" == 'prev' ]; then
 	current=$(wmiir read /client/sel/ctl | head -n 1)
 	prev=$(wmiir read /tag/sel/index | grep -B 10000 " $current " | tac | grep -m 1 uzbl | cut -d ' ' -f2)
-	if [ x"$prev" != "x" ]; then
+	if [ -n "$prev" ]; then
 		wmiir xwrite /tag/sel/ctl "select client $prev"
 	fi
 else

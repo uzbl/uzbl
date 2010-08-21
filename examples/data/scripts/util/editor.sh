@@ -1,7 +1,7 @@
 #!/bin/sh
 # Editor selection
 
-if [ "x$VTERM" = "x" ]; then
+if [ -z "$VTERM" ]; then
     VTERM="xterm"
 fi
 

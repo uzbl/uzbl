@@ -8,7 +8,7 @@ source $UZBL_UTIL_DIR/uzbl-dir.sh
 
 [ -r "$UZBL_BOOKMARKS_FILE" ] || exit 1
 
-if [ "x$DMENU_HAS_VERTICAL" = "x" ]; then
+if [ -z "$DMENU_HAS_VERTICAL" ]; then
     # because they are all after each other, just show the url, not their tags.
     goto=$(awk '{print $1}' $UZBL_BOOKMARKS_FILE | $DMENU)
 else

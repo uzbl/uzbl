@@ -8,7 +8,7 @@ source $UZBL_UTIL_DIR/uzbl-dir.sh
 
 # choose from all entries, sorted and uniqued
 # goto=$(awk '{print $3}' $history_file | sort -u | dmenu -i)
-if [ "x$DMENU_HAS_VERTICAL" = "x" ]; then
+if [ -z "$DMENU_HAS_VERTICAL" ]; then
     current=$(tail -n 1 $UZBL_HISTORY_FILE | awk '{print $3}');
     goto=$((echo $current; awk '{print $3}' $UZBL_HISTORY_FILE | grep -v "^$current\$" \
       | sort -u) | $DMENU)

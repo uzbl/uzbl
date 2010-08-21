@@ -19,7 +19,7 @@ UZBL="uzbl-browser -c $UZBL_CONFIG_FILE" # add custom flags and whatever here.
 act="$1"
 
 # Test if we were run alone or from uzbl
-if [ "x$UZBL_FIFO" = "x" ]; then
+if [ -z "$UZBL_FIFO" ]; then
     # Take the old config
     act="$UZBL_CONFIG"
 fi
@@ -27,7 +27,7 @@ fi
 case $act in
     "launch" )
         urls=$(cat $UZBL_SESSION_FILE)
-        if [ "x$urls" = "x" ]; then
+        if [ -z "$urls" ]; then
             $UZBL
         else
             for url in $urls; do
@@ -39,7 +39,7 @@ case $act in
         ;;
 
     "endinstance" )
-        if [ "x$UZBL_FIFO" = "x" ]; then
+        if [ -z "$UZBL_FIFO" ]; then
             echo "session manager: endinstance must be called from uzbl"
             exit 1
         fi
