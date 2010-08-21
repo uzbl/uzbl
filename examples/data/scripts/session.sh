@@ -26,7 +26,7 @@ fi
 
 case $act in
   "launch" )
-    urls=`cat $sessionfile`
+    urls=$(cat $sessionfile)
     if [ "$urls." = "." ]; then
       $UZBL
     else
