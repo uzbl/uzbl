@@ -5,9 +5,9 @@
 # uses settings files like: $keydir/<domain>
 # files contain lines like: !profile=<profile_name>
 #                           <fieldname>(fieldtype): <value>
-# profile_name should be replaced with a name that will tell sth about that 
+# profile_name should be replaced with a name that will tell sth about that
 #       profile
-# fieldtype can be checkbox, text or password, textarea - only for information 
+# fieldtype can be checkbox, text or password, textarea - only for information
 #                               pupropse (auto-generated) - don't change that
 #
 # Texteares: for textareas edited text can be now splitted into more lines.
