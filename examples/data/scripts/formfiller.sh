@@ -2,7 +2,7 @@
 #
 # Enhanced html form (eg for logins) filler (and manager) for uzbl.
 #
-# uses settings files like: $keydir/<domain>
+# uses settings files like: $UZBL_FORMS_DIR/<domain>
 # files contain lines like: !profile=<profile_name>
 #                           <fieldname>(fieldtype): <value>
 # profile_name should be replaced with a name that will tell sth about that
@@ -49,13 +49,13 @@ else
     LINES=""
 fi
 
+source $UZBL_UTIL_DIR/uzbl-dir.sh
+
 PROMPT="Choose profile"
 MODELINE="> vim:ft=formfiller"
 
-keydir=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/dforms
-
-[ -d "$(dirname $keydir)" ] || exit 1
-[ -d "$keydir" ] || mkdir "$keydir"
+[ -d "$(dirname $UZBL_FORMS_DIR)" ] || exit 1
+[ -d $UZBL_FORMS_DIR ] || mkdir $UZBL_FORMS_DIR || exit 1
 
 editor="${VISUAL}"
 if [ -z "${editor}" ]; then
@@ -82,14 +82,12 @@ title=$1;
 shift
 action=$1
 
-[ -d $keydir ] || mkdir $keydir || exit 1
-
 domain=$(echo $url | sed 's/\(http\|https\):\/\/\([^\/]\+\)\/.*/\2/')
 
 if [ "$action" != 'edit' -a  "$action" != 'new' -a "$action" != 'load' -a "$action" != 'add' -a "$action" != 'once' ]; then
     action="new"
-    [ -e "$keydir/$domain" ] && action="load"
-elif [ "$action" = 'edit' ] && [ ! -e "$keydir/$domain" ]; then
+    [ -e "$UZBL_FORMS_DIR/$domain" ] && action="load"
+elif [ "$action" = 'edit' ] && [ ! -e "$UZBL_FORMS_DIR/$domain" ]; then
     action="new"
 fi
 
@@ -150,9 +148,9 @@ insertFunction="function insert(fname, ftype, fvalue, fchecked) { \
 }; "
 
 if [ "$action" = 'load' ]; then
-    [ -e $keydir/$domain ] || exit 2
-    if [ $(cat $keydir/$domain | grep "!profile" | wc -l) -gt 1 ]; then
-        menu=$(cat $keydir/$domain | \
+    [ -e $UZBL_FORMS_DIR/$domain ] || exit 2
+    if [ $(cat $UZBL_FORMS_DIR/$domain | grep "!profile" | wc -l) -gt 1 ]; then
+        menu=$(cat $UZBL_FORMS_DIR/$domain | \
               sed -n 's/^!profile=\([^[:blank:]]\+\)/\1/p')
         option=$(echo -e -n "$menu" | dmenu ${LINES} -nb "${NB}" -nf "${NF}" -sb "${SB}" -sf "${SF}" -p "${PROMPT}")
     fi
@@ -160,8 +158,8 @@ if [ "$action" = 'load' ]; then
     # Remove comments
     sed '/^>/d' -i $tmpfile
 
-    sed 's/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):\(off\|no\|false\|unchecked\|0\|$\)/\1{\2}(\3):0/I;s/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[^0]\+/\1{\2}(\3):1/I' -i $keydir/$domain
-    fields=$(cat $keydir/$domain | \
+    sed 's/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):\(off\|no\|false\|unchecked\|0\|$\)/\1{\2}(\3):0/I;s/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[^0]\+/\1{\2}(\3):1/I' -i $UZBL_FORMS_DIR/$domain
+    fields=$(cat $UZBL_FORMS_DIR/$domain | \
         sed -n "/^!profile=${option}/,/^!profile=/p" | \
         sed '/^!profile=/d' | \
         sed 's/^\([^(]\+(\)\(radio\|checkbox\|text\|search\|textarea\|password\)):/%{>\1\2):<}%/' | \
@@ -202,8 +200,8 @@ elif [ "$action" = "once" ]; then
     rm -f $tmpfile
 else
     if [ "$action" = 'new' -o "$action" = 'add' ]; then
-	[ "$action" = 'new' ] && echo "$MODELINE" > $keydir/$domain
-        echo "!profile=NAME_THIS_PROFILE$RANDOM" >> $keydir/$domain
+        [ "$action" = 'new' ] && echo "$MODELINE" > $UZBL_FORMS_DIR/$domain
+        echo "!profile=NAME_THIS_PROFILE$RANDOM" >> $UZBL_FORMS_DIR/$domain
         #
         # 2. and 3. line (tr -d and sed) are because, on gmail login for example,
         # <input > tag is splited into lines
@@ -222,10 +220,10 @@ else
         #
         printf 'js %s dump(); \n' "$dumpFunction" | \
             socat - unix-connect:$socket | \
-            sed -n '/^[^(]\+([^)]\+):/p' >> $keydir/$domain
+            sed -n '/^[^(]\+([^)]\+):/p' >> $UZBL_FORMS_DIR/$domain
     fi
-    [ -e "$keydir/$domain" ] || exit 3 #this should never happen, but you never know.
-    $editor "$keydir/$domain" #TODO: if user aborts save in editor, the file is already overwritten
+    [ -e "$UZBL_FORMS_DIR/$domain" ] || exit 3 #this should never happen, but you never know.
+    $editor "$UZBL_FORMS_DIR/$domain" #TODO: if user aborts save in editor, the file is already overwritten
 fi
 
 # vim:fileencoding=utf-8:sw=4

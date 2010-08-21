@@ -8,13 +8,13 @@
 # and doesn't need to be called manually at any point.
 # Add a line like 'bind quit = /path/to/session.sh endsession' to your config
 
-[ -d ${XDG_DATA_HOME:-$HOME/.local/share}/uzbl ] || exit 1
-scriptfile=$0 				# this script
-sessionfile=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/browser-session # the file in which the "session" (i.e. urls) are stored
-configfile=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/config   # uzbl configuration file
-UZBL="uzbl-browser -c $configfile"           # add custom flags and whatever here.
+source $UZBL_UTIL_DIR/uzbl-dir.sh
 
-fifodir=/tmp # remember to change this if you instructed uzbl to put its fifos elsewhere
+[ -d $UZBL_DATA_DIR ] || exit 1
+
+scriptfile=$0                            # this script
+UZBL="uzbl-browser -c $UZBL_CONFIG_FILE" # add custom flags and whatever here.
+
 thisfifo="$4"
 act="$8"
 url="$6"
@@ -26,7 +26,7 @@ fi
 
 case $act in
   "launch" )
-    urls=$(cat $sessionfile)
+    urls=$(cat $UZBL_SESSION_FILE)
     if [ "$urls." = "." ]; then
       $UZBL
     else
@@ -39,14 +39,14 @@ case $act in
 
   "endinstance" )
     if [ "$url" != "(null)" ]; then
-      echo "$url" >> $sessionfile;
+      echo "$url" >> $UZBL_SESSION_FILE
     fi
     echo "exit" > "$thisfifo"
     ;;
 
   "endsession" )
-    mv "$sessionfile" "$sessionfile~"
-    for fifo in $fifodir/uzbl_fifo_*; do
+    mv "$UZBL_SESSION_FILE" "$UZBL_SESSION_FILE~"
+    for fifo in $UZBL_FIFO_DIR/uzbl_fifo_*; do
       if [ "$fifo" != "$thisfifo" ]; then
         echo "spawn $scriptfile endinstance" > "$fifo"
       fi
