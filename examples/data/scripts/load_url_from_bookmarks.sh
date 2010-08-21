@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 #NOTE: it's the job of the script that inserts bookmarks to make sure there are no dupes.
 
