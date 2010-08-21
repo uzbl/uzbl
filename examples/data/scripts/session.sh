@@ -39,6 +39,10 @@ case $act in
         ;;
 
     "endinstance" )
+        if [ "x$UZBL_FIFO" = "x" ]; then
+            echo "session manager: endinstance must be called from uzbl"
+            exit 1
+        fi
         if [ ! "$UZBL_URL" = "(null)" ]; then
             echo "$UZBL_URL" >> $UZBL_SESSION_FILE
         fi
