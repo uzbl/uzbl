@@ -32,6 +32,7 @@ case $act in
         else
             for url in $urls; do
                 $UZBL --uri "$url" &
+                disown
             done
         fi
         exit 0
