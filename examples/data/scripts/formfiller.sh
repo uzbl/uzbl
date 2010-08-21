@@ -49,6 +49,7 @@ else
     LINES=""
 fi
 
+source $UZBL_UTIL_DIR/uzbl-args.sh
 source $UZBL_UTIL_DIR/uzbl-dir.sh
 
 PROMPT="Choose profile"
@@ -66,23 +67,9 @@ if [ -z "${editor}" ]; then
     fi
 fi
 
-config=$1;
-shift
-pid=$1;
-shift
-xid=$1;
-shift
-fifo=$1;
-shift
-socket=$1;
-shift
-url=$1;
-shift
-title=$1;
-shift
 action=$1
 
-domain=$(echo $url | sed 's/\(http\|https\):\/\/\([^\/]\+\)\/.*/\2/')
+domain=$(echo $UZBL_URL | sed 's/\(http\|https\):\/\/\([^\/]\+\)\/.*/\2/')
 
 if [ "$action" != 'edit' -a  "$action" != 'new' -a "$action" != 'load' -a "$action" != 'add' -a "$action" != 'once' ]; then
     action="new"
@@ -168,14 +155,14 @@ if [ "$action" = 'load' ]; then
         sed 's/<{br}>%{>\([^(]\+(\)\(radio\|checkbox\|text\|search\|textarea\|password\)):<}%/\\n\1\2):/g')
     printf '%s\n' "${fields}" | \
         sed -n -e "s/\([^(]\+\)(\(password\|text\|search\|textarea\)\+):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\2', '\3', 0);/p" | \
-        sed -e 's/@/\\@/g;s/<{br}>/\\\\n/g' > $fifo
+        sed -e 's/@/\\@/g;s/<{br}>/\\\\n/g' > $UZBL_FIFO
     printf '%s\n' "${fields}" | \
         sed -n -e "s/\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\3', '\2', \4);/p" | \
-        sed -e 's/@/\\@/g' > $fifo
+        sed -e 's/@/\\@/g' > $UZBL_FIFO
 elif [ "$action" = "once" ]; then
     tmpfile=$(mktemp)
     printf 'js %s dump(); \n' "$dumpFunction" | \
-        socat - unix-connect:$socket | \
+        socat - unix-connect:$UZBL_SOCKET | \
         sed -n '/^[^(]\+([^)]\+):/p' > $tmpfile
     echo "$MODELINE" >> $tmpfile
     ${editor} $tmpfile
@@ -193,10 +180,10 @@ elif [ "$action" = "once" ]; then
         sed 's/<{br}>%{>\([^(]\+(\)\(radio\|checkbox\|text\|search\|textarea\|password\)):<}%/\\n\1\2):/g')
     printf '%s\n' "${fields}" | \
         sed -n -e "s/\([^(]\+\)(\(password\|text\|search\|textarea\)\+):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\2', '\3', 0);/p" | \
-        sed -e 's/@/\\@/g;s/<{br}>/\\\\n/g' > $fifo
+        sed -e 's/@/\\@/g;s/<{br}>/\\\\n/g' > $UZBL_FIFO
     printf '%s\n' "${fields}" | \
         sed -n -e "s/\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\3', '\2', \4);/p" | \
-        sed -e 's/@/\\@/g' > $fifo
+        sed -e 's/@/\\@/g' > $UZBL_FIFO
     rm -f $tmpfile
 else
     if [ "$action" = 'new' -o "$action" = 'add' ]; then
@@ -219,7 +206,7 @@ else
         #       passwd(password):
         #
         printf 'js %s dump(); \n' "$dumpFunction" | \
-            socat - unix-connect:$socket | \
+            socat - unix-connect:$UZBL_SOCKET | \
             sed -n '/^[^(]\+([^)]\+):/p' >> $UZBL_FORMS_DIR/$domain
     fi
     [ -e "$UZBL_FORMS_DIR/$domain" ] || exit 3 #this should never happen, but you never know.

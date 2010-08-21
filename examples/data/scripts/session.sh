@@ -8,6 +8,7 @@
 # and doesn't need to be called manually at any point.
 # Add a line like 'bind quit = /path/to/session.sh endsession' to your config
 
+source $UZBL_UTIL_DIR/uzbl-args.sh
 source $UZBL_UTIL_DIR/uzbl-dir.sh
 
 [ -d $UZBL_DATA_DIR ] || exit 1
@@ -15,12 +16,12 @@ source $UZBL_UTIL_DIR/uzbl-dir.sh
 scriptfile=$0                            # this script
 UZBL="uzbl-browser -c $UZBL_CONFIG_FILE" # add custom flags and whatever here.
 
-thisfifo="$4"
-act="$8"
-url="$6"
+act="$1"
 
-if [ "$act." = "." ]; then
-   act="$1"
+# Test if we were run alone or from uzbl
+if [ "x$UZBL_FIFO" = "x" ]; then
+    # Take the old config
+    act="$UZBL_CONFIG"
 fi
 
 
@@ -38,20 +39,20 @@ case $act in
     ;;
 
   "endinstance" )
-    if [ "$url" != "(null)" ]; then
-      echo "$url" >> $UZBL_SESSION_FILE
+    if [ "$UZBL_URL" != "(null)" ]; then
+      echo "$UZBL_URL" >> $UZBL_SESSION_FILE
     fi
-    echo "exit" > "$thisfifo"
+    echo "exit" > "$UZBL_FIFO"
     ;;
 
   "endsession" )
     mv "$UZBL_SESSION_FILE" "$UZBL_SESSION_FILE~"
     for fifo in $UZBL_FIFO_DIR/uzbl_fifo_*; do
-      if [ "$fifo" != "$thisfifo" ]; then
+      if [ "$fifo" != "$UZBL_FIFO" ]; then
         echo "spawn $scriptfile endinstance" > "$fifo"
       fi
     done
-    echo "spawn $scriptfile endinstance" > "$thisfifo"
+    echo "spawn $scriptfile endinstance" > "$UZBL_FIFO"
     ;;
 
   * ) echo "session manager: bad action"

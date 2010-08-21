@@ -2,6 +2,7 @@
 
 #NOTE: it's the job of the script that inserts bookmarks to make sure there are no dupes.
 
+source $UZBL_UTIL_DIR/uzbl-args.sh
 source $UZBL_UTIL_DIR/uzbl-dir.sh
 
 [ -r "$UZBL_BOOKMARKS_FILE" ] || exit 1
@@ -17,5 +18,5 @@ else
 	goto=$(awk '{print $1}' $UZBL_BOOKMARKS_FILE | $DMENU $COLORS)
 fi
 
-#[ -n "$goto" ] && echo "uri $goto" > $4
-[ -n "$goto" ] && echo "uri $goto" | socat - unix-connect:$5
+#[ -n "$goto" ] && echo "uri $goto" > $UZBL_FIFO
+[ -n "$goto" ] && echo "uri $goto" | socat - unix-connect:$UZBL_SOCKET

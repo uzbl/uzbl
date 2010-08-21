@@ -1,5 +1,6 @@
 #!/bin/sh
 
+source $UZBL_UTIL_DIR/uzbl-args.sh
 source $UZBL_UTIL_DIR/uzbl-dir.sh
 
 [ -r "$UZBL_HISTORY_FILE" ] || exit 1
@@ -20,5 +21,5 @@ else
       | sort -u) | $DMENU $COLORS)
 fi
 
-[ -n "$goto" ] && echo "uri $goto" > $4
-#[ -n "$goto" ] && echo "uri $goto" | socat - unix-connect:$5
+[ -n "$goto" ] && echo "uri $goto" > $UZBL_FIFO
+#[ -n "$goto" ] && echo "uri $goto" | socat - unix-connect:$UZBL_SOCKET
