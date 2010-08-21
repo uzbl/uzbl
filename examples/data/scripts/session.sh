@@ -46,17 +46,17 @@ case $act in
         if [ ! "$UZBL_URL" = "(null)" ]; then
             echo "$UZBL_URL" >> $UZBL_SESSION_FILE
         fi
-        echo "exit" > "$UZBL_FIFO"
+        echo "exit" > $UZBL_FIFO
         ;;
 
     "endsession" )
         mv "$UZBL_SESSION_FILE" "$UZBL_SESSION_FILE~"
         for fifo in $UZBL_FIFO_DIR/uzbl_fifo_*; do
             if [ "$fifo" != "$UZBL_FIFO" ]; then
-                echo "spawn $scriptfile endinstance" > "$fifo"
+                echo "spawn $scriptfile endinstance" > $fifo
             fi
         done
-        echo "spawn $scriptfile endinstance" > "$UZBL_FIFO"
+        echo "spawn $scriptfile endinstance" > $UZBL_FIFO
         ;;
 
     * )
