@@ -43,6 +43,7 @@ DMENU_LINES="3"
 DMENU_PROMPT="Choose profile"
 
 source $UZBL_UTIL_DIR/dmenu.sh
+source $UZBL_UTIL_DIR/editor.sh
 source $UZBL_UTIL_DIR/uzbl-args.sh
 source $UZBL_UTIL_DIR/uzbl-dir.sh
 
@@ -50,15 +51,6 @@ MODELINE="> vim:ft=formfiller"
 
 [ -d "$(dirname $UZBL_FORMS_DIR)" ] || exit 1
 [ -d $UZBL_FORMS_DIR ] || mkdir $UZBL_FORMS_DIR || exit 1
-
-editor="${VISUAL}"
-if [ -z "${editor}" ]; then
-    if [ -z "${EDITOR}" ]; then
-        editor='xterm -e vim'
-    else
-        editor="xterm -e ${EDITOR}"
-    fi
-fi
 
 action=$1
 
@@ -158,7 +150,7 @@ elif [ "$action" = "once" ]; then
         socat - unix-connect:$UZBL_SOCKET | \
         sed -n '/^[^(]\+([^)]\+):/p' > $tmpfile
     echo "$MODELINE" >> $tmpfile
-    ${editor} $tmpfile
+    $UZBL_EDITOR $tmpfile
 
     [ -e $tmpfile ] || exit 2
 
@@ -203,7 +195,7 @@ else
             sed -n '/^[^(]\+([^)]\+):/p' >> $UZBL_FORMS_DIR/$domain
     fi
     [ -e "$UZBL_FORMS_DIR/$domain" ] || exit 3 #this should never happen, but you never know.
-    $editor "$UZBL_FORMS_DIR/$domain" #TODO: if user aborts save in editor, the file is already overwritten
+    $UZBL_EDITOR "$UZBL_FORMS_DIR/$domain" #TODO: if user aborts save in editor, the file is already overwritten
 fi
 
 # vim:fileencoding=utf-8:sw=4
