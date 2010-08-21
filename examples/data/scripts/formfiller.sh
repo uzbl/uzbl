@@ -37,22 +37,15 @@
 # something else (or empty): if file not available: new, otherwise load.
 #
 
-# config dmenu colors and prompt
-NB="#0f0f0f"
-NF="#4e7093"
-SB="#003d7c"
-SF="#3a9bff"
+DMENU_ARGS="-i"
+DMENU_SCHEMA="formfiller"
+DMENU_LINES="3"
+DMENU_PROMPT="Choose profile"
 
-if [ "$(dmenu --help 2>&1 | grep lines)x" != "x" ]; then
-    LINES=" -l 3 "
-else
-    LINES=""
-fi
-
+source $UZBL_UTIL_DIR/dmenu.sh
 source $UZBL_UTIL_DIR/uzbl-args.sh
 source $UZBL_UTIL_DIR/uzbl-dir.sh
 
-PROMPT="Choose profile"
 MODELINE="> vim:ft=formfiller"
 
 [ -d "$(dirname $UZBL_FORMS_DIR)" ] || exit 1
@@ -139,7 +132,7 @@ if [ "$action" = 'load' ]; then
     if [ $(cat $UZBL_FORMS_DIR/$domain | grep "!profile" | wc -l) -gt 1 ]; then
         menu=$(cat $UZBL_FORMS_DIR/$domain | \
               sed -n 's/^!profile=\([^[:blank:]]\+\)/\1/p')
-        option=$(echo -e -n "$menu" | dmenu ${LINES} -nb "${NB}" -nf "${NF}" -sb "${SB}" -sf "${SF}" -p "${PROMPT}")
+        option=$(echo -e -n "$menu" | $DMENU)
     fi
 
     # Remove comments

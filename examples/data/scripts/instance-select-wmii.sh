@@ -11,13 +11,7 @@
 # See http://www.uzbl.org/wiki/wmii for more info
 # $1 must be one of 'list', 'next', 'prev'
 
-COLORS=" -nb #303030 -nf khaki -sb #CCFFAA -sf #303030"
-
-if dmenu --help 2>&1 | grep -q '\[-rs\] \[-ni\] \[-nl\] \[-xs\]'; then
-        DMENU="dmenu -i -xs -rs -l 10" # vertical patch
-else
-        DMENU="dmenu -i"
-fi
+source $UZBL_UTIL_DIR/dmenu.sh
 
 if [ "$1" == 'list' ]; then
 	list=
@@ -26,7 +20,7 @@ if [ "$1" == 'list' ]; then
 		label=$(wmiir read /client/$i/label)
 		list="$list$i : $label\n"
 	done
-	window=$(echo -e "$list" | $DMENU $COLORS | cut -d ' ' -f1)
+	window=$(echo -e "$list" | $DMENU | cut -d ' ' -f1)
 	wmiir xwrite /tag/sel/ctl "select client $window"
 elif [ "$1" == 'next' ]; then
 	current=$(wmiir read /client/sel/ctl | head -n 1)
