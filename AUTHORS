@@ -49,6 +49,7 @@ In alphabetical order:
     Jan Kolkmeier (jouz) - scrolling, link following
     Jason Woofenden (JasonWoof) - geometry=maximized, link following
     Laurence Withers (lwithers) - talk_to_socket
+    Luca Bruno <lucab@debian.org> - bashims fixes
     Mark Nevill - misc patches
     Mason Larobina (mason-l) <mason.larobina@gmail.com> - uzbl-tabbed, uzbl-cookie-daemon, uzbl-event-manager & plugins, uzbl vim syntax ...
     Matthew Bauer <mjbauer95@gmail.com> - userscripts
