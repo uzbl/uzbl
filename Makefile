@@ -119,7 +119,7 @@ install-uzbl-tabbed: install-dirs
 	install -m755 examples/data/scripts/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed
 
 # you probably only want to do this manually when testing and/or to the sandbox. not meant for distributors
-install-example-data: install-dirs
+install-example-data:
 	install -d $(DESTDIR)/home/.config/uzbl
 	install -d $(DESTDIR)/home/.cache/uzbl
 	install -d $(DESTDIR)/home/.local/share/uzbl
