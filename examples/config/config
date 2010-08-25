@@ -282,7 +282,8 @@ set follow_hint_keys = 0123456789
 #set follow_hint_keys = qwerty
 #set follow_hint_keys = asdfghjkl;
 #set follow_hint_keys = thsnd-rcgmvwb/;789aefijkopquxyz234
-@cbind  fl*  = script @scripts_dir/follow.js '@follow_hint_keys %s'
+@cbind  fl*  = spawn @scripts_dir/follow.sh "%s"
+@cbind  gi   = spawn @scripts_dir/go_input.sh
 
 # Form filler binds
 # This script allows you to configure (per domain) values to fill in form

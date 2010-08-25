@@ -130,17 +130,26 @@ function clickElem(item) {
         if (name == 'A') {
             item.click();
             window.location = item.href;
+			return "XXXRESET_MODEXXX";
         } else if (name == 'INPUT') {
-            var type = item.getAttribute('type').toUpperCase();
-            if (type == 'TEXT' || type == 'FILE' || type == 'PASSWORD') {
+	    var type;
+	    try {
+              type = item.getAttribute('type').toUpperCase();
+	    } catch(err) {
+	      type = 'TEXT';
+	    }
+            if (type == 'TEXT' || type == 'SEARCH' || type == 'PASSWORD') {
                 item.focus();
                 item.select();
+                return "XXXEMIT_FORM_ACTIVEXXX";
             } else {
                 item.click();
+                return "XXXRESET_MODEXXX";
             }
         } else if (name == 'TEXTAREA' || name == 'SELECT') {
             item.focus();
             item.select();
+            return "XXXEMIT_FORM_ACTIVEXXX";
         } else {
             item.click();
             window.location = item.href;
@@ -242,7 +251,7 @@ function followLinks(follow) {
     var oldDiv = doc.getElementById(uzbldivid);
     var leftover = [[], []];
     if (s.length == len && linknr < elems[0].length && linknr >= 0) {
-        clickElem(elems[0][linknr]);
+        return clickElem(elems[0][linknr]);
     } else {
         for (var j = 0; j < elems[0].length; j++) {
             var b = true;
