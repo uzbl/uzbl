@@ -255,8 +255,8 @@ set ebind     = @mode_bind global,-insert
 @cbind  gh  = uri http://www.uzbl.org
 
 # Yanking & pasting binds
-@cbind  yu  = sh 'echo -n $6 | xclip'
-@cbind  yy  = sh 'echo -n $7 | xclip'
+@cbind  yu  = sh 'printf $6 | xclip'
+@cbind  yy  = sh 'printf $7 | xclip'
 
 # Go the page from primary selection
 @cbind  p   = sh 'echo "uri `xclip -selection primary -o | sed s/\\\@/%40/g`" > $4'
@@ -268,7 +268,7 @@ set ebind     = @mode_bind global,-insert
 @bind <Shift-Insert> = sh 'echo "event INJECT_KEYCMD `xclip -o | sed s/\\\@/%40/g`" > $4'
 
 # Bookmark inserting binds
-@cbind <Ctrl>b<tags:>_  = sh 'echo -e "$6 %s" >> $XDG_DATA_HOME/uzbl/bookmarks'
+@cbind <Ctrl>b<tags:>_  = sh 'echo `printf "$6 %s"` >> $XDG_DATA_HOME/uzbl/bookmarks'
 # Or use a script to insert a bookmark.
 @cbind  B  = spawn @scripts_dir/insert_bookmark.sh
 
