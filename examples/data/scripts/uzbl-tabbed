@@ -847,6 +847,8 @@ class UzblTabbed:
         # Commands ( [] = optional, {} = required )
         # new [uri]
         #   open new tab and head to optional uri.
+        # newbg [uri]
+        #   open a new tab in the background
         # close [tab-num]
         #   close current tab or close via tab id.
         # next [n-tabs]
@@ -874,6 +876,12 @@ class UzblTabbed:
 
             else:
                 self.new_tab()
+
+        elif cmd[0] == "newbg":
+            if len(cmd) == 2:
+                self.new_tab(cmd[1], switch=False)
+            else:
+                self.new_tab(switch=False)
 
         elif cmd[0] == "newfromclip":
             uri = subprocess.Popen(['xclip','-selection','clipboard','-o'],\

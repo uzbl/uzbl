@@ -39,6 +39,7 @@ In alphabetical order:
     Dmytro Milinevskyy - uzbl-tabbed useability patches
     Dusan Popovic (dusanx) - many contributions to early uzbl
     Evgeny Grablyk - libsoup settings
+    Gustavo Chaín <g@0xff.cl> - newbg command
     Gregor Uhlenheuer (kongo2002) <kongo2002@googlemail.com> - uzbl vim syntax & related files
     Helmut Grohne (helmut) - move void **ptr to union, various fixes
     Henri Kemppainen (DuClare) <email is akarinotengoku AT THE DOMAIN OF gmail.com> - many contributions, mostly old handler code
