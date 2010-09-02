@@ -703,11 +703,10 @@ create_web_view_js2_cb (WebKitWebView* web_view, GParamSpec param_spec) {
 
     if (strncmp(uri, "javascript:", strlen("javascript:")) == 0) {
         eval_js(uzbl.gui.web_view, (gchar*) uri + strlen("javascript:"), NULL, "javascript:");
+        gtk_widget_destroy(GTK_WIDGET(web_view));
     }
     else
         send_event(NEW_WINDOW, uri, NULL);
-
-    gtk_widget_destroy(GTK_WIDGET(web_view));
 }
 
 
@@ -717,7 +716,7 @@ create_web_view_js_cb (WebKitWebView* web_view, gpointer user_data) {
     (void) user_data;
 
     g_object_connect (web_view, "signal::notify::uri",
-                            G_CALLBACK(create_web_view_js2_cb), NULL);
+                            G_CALLBACK(create_web_view_js2_cb), NULL, NULL);
     return TRUE;
 }
 
