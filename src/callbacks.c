@@ -182,6 +182,12 @@ cmd_zoom_level() {
 }
 
 void
+cmd_disable_pagecache() {
+    g_object_set (G_OBJECT(view_settings()), "enable-page-cache",
+            !uzbl.behave.disable_pagecache, NULL);
+}
+
+void
 cmd_disable_plugins() {
     g_object_set (G_OBJECT(view_settings()), "enable-plugins",
             !uzbl.behave.disable_plugins, NULL);
