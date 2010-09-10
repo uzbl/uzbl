@@ -426,7 +426,7 @@ def keycmd_backspace(uzbl, *args):
     '''Removes the character at the cursor position in the keycmd.'''
 
     k = uzbl.keylet
-    if not k.keycmd:
+    if not k.keycmd or not k.cursor:
         return
 
     k.keycmd = k.keycmd[:k.cursor-1] + k.keycmd[k.cursor:]
