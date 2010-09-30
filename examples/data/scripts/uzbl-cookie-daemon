@@ -436,18 +436,26 @@ class CookieMonster:
         daemon_timeout = config['daemon_timeout']
         echo("listening on %r" % config['cookie_socket'])
 
+        connections = []
+
         while self._running:
             # This line tells the socket how many pending incoming connections
             # to enqueue at once. Raising this number may or may not increase
             # performance.
             self.server_socket.listen(1)
 
-            if bool(select.select([self.server_socket], [], [], 1)[0]):
-                client_socket, _ = self.server_socket.accept()
-                self.handle_request(client_socket)
+            r, w, x = select.select([self.server_socket]+connections, [], [], 1)
+
+            for socket in r:
+                if self.server_socket == socket:
+                    client_socket, _ = socket.accept()
+                    connections.append(client_socket)
+                else:
+                    if not self.handle_request(socket):
+                      # connection was closed, forget about the client socket
+                      connections.remove(socket)
+
                 self.last_request = time.time()
-                client_socket.close()
-                continue
 
             if daemon_timeout:
                 # Checks if the daemon has been idling for too long.
@@ -462,7 +470,7 @@ class CookieMonster:
         # Receive cookie request from client.
         data = client_socket.recv(8192)
         if not data:
-            return
+            return False
 
         # Cookie argument list in packet is null separated.
         argv = data.split("\0")
@@ -471,17 +479,17 @@ class CookieMonster:
         # Catch the EXIT command sent to kill running daemons.
         if action == "EXIT":
             self._running = False
-            return
+            return False
 
         # Catch whitelist RELOAD command.
         elif action == "RELOAD":
             self.reload_whitelist()
-            return
+            return True
 
         # Return if command unknown.
         elif action not in ['GET', 'PUT']:
             error("unknown command %r." % argv)
-            return
+            return True
 
         # Determine whether or not to print cookie data to terminal.
         print_cookie = (config['verbose'] and not config['daemon_mode'])
@@ -499,13 +507,14 @@ class CookieMonster:
         req = urllib2.Request(uri)
 
         if action == "GET":
-            self.jar.add_cookie_header(req)
-            if req.has_header('Cookie'):
-                cookie = req.get_header('Cookie')
-                client_socket.send(cookie)
-                if print_cookie:
-                    print cookie
-
+            self.jar._policy._now = self._now = int(time.time())
+            cookies = self.jar._cookies_for_request(req)
+            attrs = self.jar._cookie_attrs(cookies)
+            if attrs:
+              cookie = "; ".join(attrs)
+              client_socket.send(cookie)
+              if print_cookie:
+                  print cookie
             else:
                 client_socket.send("\0")
 
@@ -515,9 +524,12 @@ class CookieMonster:
                 print cookie
 
             self.put_cookie(req, cookie)
+            client_socket.send("\0")
 
         if print_cookie:
             print
+
+        return True
 
 
     def put_cookie(self, req, cookie=None):
