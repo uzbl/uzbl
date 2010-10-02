@@ -1337,6 +1337,9 @@ run_command (const gchar *command, const guint npre, const gchar **args,
             printf("Stdout: %s\n", *output_stdout);
         }
     }
+    if (!environ_set) {
+        g_printerr("failed to set the environment for scripts");
+    }
     if (err) {
         g_printerr("error on run_command: %s\n", err->message);
         g_error_free (err);
