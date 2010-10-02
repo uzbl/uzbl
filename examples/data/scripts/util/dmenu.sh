@@ -58,8 +58,12 @@ fi
 
 # Detect the xmms patch
 if dmenu --help 2>&1 | grep -q '\[-xs\]'; then
-    DMENU_ARGS="$DMENU_ARGS -xs"
+    DMENU_XMMS_ARGS="-xs"
     DMENU_HAS_XMMS=1
+
+    if echo $DMENU_OPTIONS | grep -q -w 'xmms'; then
+        DMENU_ARGS="$DMENU_ARGS $DMENU_XMMS_ARGS"
+    fi
 fi
 
 # Detect the vertical patch
