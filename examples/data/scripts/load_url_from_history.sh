@@ -1,5 +1,7 @@
 #!/bin/sh
 
+DMENU_SCHEME="history"
+
 source $UZBL_UTIL_DIR/dmenu.sh
 source $UZBL_UTIL_DIR/uzbl-args.sh
 source $UZBL_UTIL_DIR/uzbl-dir.sh

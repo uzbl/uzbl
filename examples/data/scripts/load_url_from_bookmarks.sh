@@ -2,6 +2,8 @@
 
 #NOTE: it's the job of the script that inserts bookmarks to make sure there are no dupes.
 
+DMENU_SCHEME="bookmarks"
+
 source $UZBL_UTIL_DIR/dmenu.sh
 source $UZBL_UTIL_DIR/uzbl-args.sh
 source $UZBL_UTIL_DIR/uzbl-dir.sh

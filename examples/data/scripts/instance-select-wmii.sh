@@ -11,6 +11,8 @@
 # See http://www.uzbl.org/wiki/wmii for more info
 # $1 must be one of 'list', 'next', 'prev'
 
+DMENU_SCHEME="wmii"
+
 source $UZBL_UTIL_DIR/dmenu.sh
 
 case "$1" in
