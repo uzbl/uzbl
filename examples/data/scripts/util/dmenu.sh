@@ -73,12 +73,21 @@ if dmenu --help 2>&1 | grep -q '\[-l <lines>\]'; then
         DMENU_LINES=10
     fi
 
-    DMENU_ARGS="$DMENU_ARGS -l $DMENU_LINES"
+    DMENU_VERTICAL_ARGS="-l $DMENU_LINES"
     DMENU_HAS_VERTICAL=1
 
     # Detect the resize patch
     if dmenu --help 2>&1 | grep -q '\[-rs\]'; then
-        DMENU_ARGS="$DMENU_ARGS -rs"
+        DMENU_RESIZE_ARGS="-rs"
+        DMENU_HAS_RESIZE=1
+    fi
+
+    if echo $DMENU_OPTIONS | grep -q -w 'vertical'; then
+        DMENU_ARGS="$DMENU_ARGS $DMENU_VERTICAL_ARGS"
+
+        if echo $DMENU_OPTIONS | grep -q -w 'resize'; then
+            DMENU_ARGS="$DMENU_ARGS $DMENU_RESIZE_ARGS"
+        fi
     fi
 fi
 
