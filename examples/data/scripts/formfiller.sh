@@ -41,6 +41,7 @@ DMENU_ARGS="-i"
 DMENU_SCHEMA="formfiller"
 DMENU_LINES="3"
 DMENU_PROMPT="Choose profile"
+DMENU_OPTIONS="vertical resize"
 
 source $UZBL_UTIL_DIR/dmenu.sh
 source $UZBL_UTIL_DIR/editor.sh
