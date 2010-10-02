@@ -274,6 +274,9 @@ void
 close_uzbl (WebKitWebView *page, GArray *argv, GString *result);
 
 gboolean
+uzbl_setup_environ();
+
+gboolean
 run_command(const gchar *command, const guint npre,
             const gchar **args, const gboolean sync, char **output_stdout);
 
