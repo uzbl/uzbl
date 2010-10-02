@@ -91,4 +91,13 @@ if dmenu --help 2>&1 | grep -q '\[-l <lines>\]'; then
     fi
 fi
 
+# Detect placement patch
+if dmenu --help 2>&1 | grep -q '\[-x <xoffset>\]'; then
+    DMENU_PLACE_X="-x"
+    DMENU_PLACE_Y="-y"
+    DMENU_PLACE_WIDTH="-w"
+    DMENU_PLACE_HEIGHT="-h"
+    DMENU_HAS_PLACEMENT=1
+fi
+
 DMENU="dmenu $DMENU_ARGS $DMENU_COLORS"
