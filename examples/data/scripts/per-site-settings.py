@@ -21,17 +21,19 @@
 import os
 import re
 import socket
+import stat
+import subprocess
+import tempfile
 import urlparse
 import sys
 
-def grep_url(url, path, filepath):
+def grep_url(url, path, fin):
     entries = []
-    with open(filepath, 'r') as f:
-        for line in f:
-            parts = line.split('\t', 2)
-            if (url.endswith(parts[0]) or re.match(parts[0], url)) and \
-               (path.startswith(parts[1]) or re.match(parts[1], path)):
-                entries.append(parts[2])
+    for line in fin:
+        parts = line.split('\t', 2)
+        if (url.endswith(parts[0]) or re.match(parts[0], url)) and \
+           (path.startswith(parts[1]) or re.match(parts[1], path)):
+            entries.append(parts[2])
     return entries
 
 def write_to_socket(commands, sockpath):
@@ -46,8 +48,18 @@ if __name__ == '__main__':
     url = urlparse.urlparse(sys.argv[6])
     filepath = sys.argv[8]
 
+    mode = os.stat(filepath)[stat.ST_MODE]
+
+    if mode & stat.S_IEXEC:
+        fin = tempfile.TemporaryFile()
+        subprocess.Popen([filepath], stdout=fin).wait()
+    else
+        fin = open(filepath, 'r')
+
     host, path = (url.hostname, url.path)
 
-    commands = grep_url(host, path, filepath)
+    commands = grep_url(host, path, fin)
+
+    find.close()
 
     write_to_socket(commands, sockpath)
