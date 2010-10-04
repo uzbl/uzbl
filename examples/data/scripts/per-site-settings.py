@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 # Per-site settings plugin
 
-# Format of the noscript file:
+# Use like:
+#
+#    @on_event LOAD_COMMIT spawn @scripts_dir/per-site-settings.py $XDG_DATA_DIR/per-site-settings
+
+# Format of the settings file:
 #
 #   <url><TAB><path><TAB><command>
 #
@@ -19,14 +23,6 @@ import re
 import socket
 import urlparse
 import sys
-
-def noscript_path():
-    env = os.environ
-    if 'XDG_DATA_HOME' in env:
-        root = env['XDG_DATA_HOME']
-    else:
-        root = os.path.join(env['HOME'], '.local', 'share')
-    return os.path.join(root, 'uzbl', 'per-site-options')
 
 def grep_url(url, path, filepath):
     entries = []
@@ -48,9 +44,10 @@ def write_to_socket(commands, sockpath):
 if __name__ == '__main__':
     sockpath = sys.argv[5]
     url = urlparse.urlparse(sys.argv[6])
+    filepath = sys.argv[8]
 
     host, path = (url.hostname, url.path)
 
-    commands = grep_url(host, path, noscript_path())
+    commands = grep_url(host, path, filepath)
 
     write_to_socket(commands, sockpath)
