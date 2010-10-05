@@ -45,7 +45,7 @@ class Config(DictMixin):
 
         assert valid_key(key)
 
-        if type(value) == BooleanType:
+        if isinstance(value, BooleanType):
             value = int(value)
 
         else:
