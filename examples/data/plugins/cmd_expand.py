@@ -17,7 +17,7 @@ def cmd_expand(uzbl, cmd, args):
     '''
 
     # Ensure (1) all string representable and (2) correct string encoding.
-    args = map(unicode, args)
+    args = list(map(unicode, args))
 
     # Direct string replace.
     if '%s' in cmd:

@@ -208,7 +208,7 @@ class Bind(object):
         self.split = split = FIND_PROMPTS(glob)
         self.prompts = []
         for (prompt, cmd, set) in zip(split[1::4], split[2::4], split[3::4]):
-            prompt, set = map(unquote, [prompt, set])
+            prompt, set = list(map(unquote, [prompt, set]))
             cmd = True if cmd == '!' else False
             if prompt and prompt[-1] != ":":
                 prompt = "%s:" % prompt
@@ -308,7 +308,7 @@ def mode_bind(uzbl, modes, glob, handler=None, *args, **kargs):
         modes = unicode(modes).split(',')
 
     # Sort and filter binds.
-    modes = filter(None, map(unicode.strip, modes))
+    modes = filter(None, list(map(unicode.strip, modes)))
 
     if callable(handler) or (handler is not None and handler.strip()):
         bind = Bind(glob, handler, *args, **kargs)
@@ -348,12 +348,12 @@ def parse_mode_bind(uzbl, args):
     if not args:
         raise ArgumentError('missing bind arguments')
 
-    split = map(unicode.strip, args.split(' ', 1))
+    split = list(map(unicode.strip, args.split(' ', 1)))
     if len(split) != 2:
         raise ArgumentError('missing mode or bind section: %r' % args)
 
     modes, args = split[0].split(','), split[1]
-    split = map(unicode.strip, args.split('=', 1))
+    split = list(map(unicode.strip, args.split('=', 1)))
     if len(split) != 2:
         raise ArgumentError('missing delimiter in bind section: %r' % args)
 

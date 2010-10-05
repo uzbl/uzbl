@@ -8,10 +8,10 @@ def parse_mode_config(uzbl, args):
     args = unicode(args)
 
     assert args.strip(), "missing mode config args"
-    (mode, args) = map(ustrip, (args.strip().split(' ', 1) + ['',])[:2])
+    (mode, args) = list(map(ustrip, (args.strip().split(' ', 1) + ['',])[:2]))
 
     assert args.strip(), "missing mode config set arg"
-    (key, value) = map(ustrip, (args.strip().split('=', 1) + [None,])[:2])
+    (key, value) = list(map(ustrip, (args.strip().split('=', 1) + [None,])[:2]))
     assert key and value is not None, "invalid mode config set syntax"
 
     uzbl.mode_config[mode][key] = value
