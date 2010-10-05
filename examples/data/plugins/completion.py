@@ -3,7 +3,7 @@
 import re
 
 # Completion level
-NONE, ONCE, LIST, COMPLETE = range(4)
+NONE, ONCE, LIST, COMPLETE = list(range(4))
 
 # The reverse keyword finding re.
 FIND_SEGMENT = re.compile("(\@[\w_]+|set[\s]+[\w_]+|[\w_]+)$").findall

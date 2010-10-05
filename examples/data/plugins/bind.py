@@ -20,7 +20,7 @@ FIND_PROMPTS = re.compile(PROMPTS).split
 VALID_MODE = re.compile('^(-|)[A-Za-z0-9][A-Za-z0-9_]*$').match
 
 # For accessing a bind glob stack.
-ON_EXEC, HAS_ARGS, MOD_CMD, GLOB, MORE = range(5)
+ON_EXEC, HAS_ARGS, MOD_CMD, GLOB, MORE = list(range(5))
 
 
 # Custom errors.
