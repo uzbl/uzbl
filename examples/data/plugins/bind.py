@@ -118,10 +118,10 @@ class Bindlet(object):
 
         globals = self.binds['global']
         if mode not in self.binds or mode == 'global':
-            return filter(None, list(globals.values()))
+            return [_f for _f in list(globals.values()) if _f]
 
         binds = dict(list(globals.items()) + list(self.binds[mode].items()))
-        return filter(None, list(binds.values()))
+        return [_f for _f in list(binds.values()) if _f]
 
 
     def add_bind(self, mode, glob, bind=None):
@@ -309,7 +309,7 @@ def mode_bind(uzbl, modes, glob, handler=None, *args, **kargs):
         modes = unicode(modes).split(',')
 
     # Sort and filter binds.
-    modes = filter(None, list(map(unicode.strip, modes)))
+    modes = [_f for _f in list(map(unicode.strip, modes)) if _f]
 
     if isinstance(handler, collections.Callable) or (handler is not None and handler.strip()):
         bind = Bind(glob, handler, *args, **kargs)

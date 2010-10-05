@@ -203,7 +203,7 @@ def add_modkey_addition(uzbl, modkeys, result):
 def modkey_addition_parse(uzbl, modkeys):
     '''Parse modkey addition definition.'''
 
-    keys = filter(None, list(map(unicode.strip, modkeys.split(" "))))
+    keys = [_f for _f in list(map(unicode.strip, modkeys.split(" "))) if _f]
     keys = ['<%s>' % key.strip("<>") for key in keys if key.strip("<>")]
 
     assert len(keys) > 1

@@ -70,7 +70,7 @@ def update_completion_list(uzbl, *args):
     if uzbl.completion.level < LIST:
         return
 
-    hints = filter(lambda h: h.startswith(partial), uzbl.completion)
+    hints = [h for h in uzbl.completion if h.startswith(partial)]
     if not hints:
         del uzbl.config['completion_list']
         return
@@ -93,7 +93,7 @@ def start_completion(uzbl, *args):
     if comp.level < COMPLETE:
         comp.level += 1
 
-    hints = filter(lambda h: h.startswith(partial), comp)
+    hints = [h for h in comp if h.startswith(partial)]
     if not hints:
         return
 
