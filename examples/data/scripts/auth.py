@@ -48,6 +48,6 @@ def getText(authInfo, authHost, authRealm):
 if __name__ == '__main__':
 	rv, output = getText(sys.argv[8], sys.argv[9], sys.argv[10])
 	if (rv == gtk.RESPONSE_OK):
-	        print output;
+	        print(output);
 	else:
 		exit(1)

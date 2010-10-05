@@ -10,7 +10,7 @@ def detach_open(cmd):
         for i in range(3): os.dup2(null,i)
         os.close(null)
         subprocess.Popen(cmd)
-    print 'USED'
+    print('USED')
 
 if __name__ == '__main__':
     uri = sys.argv[8]
