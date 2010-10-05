@@ -1,5 +1,6 @@
 from re import compile
 from functools import partial
+import collections
 
 valid_glob = compile('^[A-Za-z0-9_\*\.]+$').match
 
@@ -14,7 +15,7 @@ def exec_handlers(uzbl, handlers, key, arg):
     '''Execute the on_set handlers that matched the key.'''
 
     for handler in handlers:
-        if callable(handler):
+        if isinstance(handler, collections.Callable):
             handler(key, arg)
 
         else:
@@ -41,7 +42,7 @@ def on_set(uzbl, glob, handler, prepend=True):
     while '**' in glob:
         glob = glob.replace('**', '*')
 
-    if callable(handler):
+    if isinstance(handler, collections.Callable):
         orig_handler = handler
         if prepend:
             handler = partial(handler, uzbl)

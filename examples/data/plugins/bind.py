@@ -11,6 +11,7 @@ And it is also possible to execute a function on activation:
 
 import sys
 import re
+import collections
 
 # Commonly used regular expressions.
 MOD_START = re.compile('^<([A-Z][A-Za-z0-9-_]*)>').match
@@ -179,7 +180,7 @@ class Bind(object):
     counter = [0,]
 
     def __init__(self, glob, handler, *args, **kargs):
-        self.is_callable = callable(handler)
+        self.is_callable = isinstance(handler, collections.Callable)
         self._repr_cache = None
 
         if not glob:
@@ -310,7 +311,7 @@ def mode_bind(uzbl, modes, glob, handler=None, *args, **kargs):
     # Sort and filter binds.
     modes = filter(None, list(map(unicode.strip, modes)))
 
-    if callable(handler) or (handler is not None and handler.strip()):
+    if isinstance(handler, collections.Callable) or (handler is not None and handler.strip()):
         bind = Bind(glob, handler, *args, **kargs)
 
     else:
