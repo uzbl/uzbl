@@ -117,10 +117,10 @@ class Bindlet(object):
 
         globals = self.binds['global']
         if mode not in self.binds or mode == 'global':
-            return filter(None, globals.values())
+            return filter(None, list(globals.values()))
 
-        binds = dict(globals.items() + self.binds[mode].items())
-        return filter(None, binds.values())
+        binds = dict(list(globals.items()) + list(self.binds[mode].items()))
+        return filter(None, list(binds.values()))
 
 
     def add_bind(self, mode, glob, bind=None):
@@ -136,7 +136,7 @@ class Bindlet(object):
         if mode == 'global':
             # Regen the global-globals list.
             self.globals = []
-            for bind in binds.values():
+            for bind in list(binds.values()):
                 if bind is not None and bind.is_global:
                     self.globals.append(bind)
 
@@ -285,7 +285,7 @@ def exec_bind(uzbl, bind, *args, **kargs):
 
     if bind.is_callable:
         args += bind.args
-        kargs = dict(bind.kargs.items()+kargs.items())
+        kargs = dict(list(bind.kargs.items())+list(kargs.items()))
         bind.function(uzbl, *args, **kargs)
         return
 

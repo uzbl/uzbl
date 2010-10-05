@@ -31,7 +31,7 @@ class Config(DictMixin):
         if other is None:
             other = {}
 
-        for (key, value) in dict(other).items() + kwargs.items():
+        for (key, value) in list(dict(other).items()) + list(kwargs.items()):
             self[key] = value
 
 

@@ -24,7 +24,7 @@ def exec_handlers(uzbl, handlers, key, arg):
 def check_for_handlers(uzbl, key, arg):
     '''Check for handlers for the current key.'''
 
-    for (matcher, handlers) in uzbl.on_sets.values():
+    for (matcher, handlers) in list(uzbl.on_sets.values()):
         if matcher(key):
             exec_handlers(uzbl, handlers, key, arg)
 
@@ -86,7 +86,7 @@ def init(uzbl):
 
 # plugins cleanup hook
 def cleanup(uzbl):
-    for (matcher, handlers) in uzbl.on_sets.values():
+    for (matcher, handlers) in list(uzbl.on_sets.values()):
         del handlers[:]
 
     uzbl.on_sets.clear()

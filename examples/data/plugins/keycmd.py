@@ -79,7 +79,7 @@ class Keylet(object):
 
         # Held list + ignored list + modkey.
         modkeys = self.held | self.ignored | set([modkey])
-        for (key, value) in self.additions.items():
+        for (key, value) in list(self.additions.items()):
             if modkeys.issuperset(value):
                 self.held -= value
                 return key
@@ -90,7 +90,7 @@ class Keylet(object):
     def key_ignored(self, key):
         '''Check if the given key is ignored by any ignore rules.'''
 
-        for (glob, match) in self.ignores.items():
+        for (glob, match) in list(self.ignores.items()):
             if match(key):
                 return True
 
@@ -192,7 +192,7 @@ def add_modkey_addition(uzbl, modkeys, result):
 
     assert len(modkeys) and result and result not in modkeys
 
-    for (existing_result, existing_modkeys) in additions.items():
+    for (existing_result, existing_modkeys) in list(additions.items()):
         if existing_result != result:
             assert modkeys != existing_modkeys
 
