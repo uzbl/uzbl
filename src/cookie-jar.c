@@ -161,6 +161,8 @@ changed(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie) {
         /* try it again; older cookie daemons closed the connection after each request */
         if(!result)
             result = do_socket_request(uzbl_jar, s->str, s->len+1);
+
+        g_free(result);
     } else {
         g_string_append_printf(s, " '%s' '%s' '%s' '%s=%s'", scheme, new_cookie->domain, new_cookie->path, new_cookie->name, new_cookie->value);
 
