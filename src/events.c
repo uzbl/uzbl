@@ -83,6 +83,7 @@ send_event_socket(GString *msg) {
                         ret = g_io_channel_write_chars (gio,
                                 tmp->str, tmp->len,
                                 &len, &error);
+                        g_string_free(tmp, TRUE);
 
                         if (ret == G_IO_STATUS_ERROR)
                             g_warning ("Error sending event to socket: %s", error->message);

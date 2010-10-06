@@ -589,9 +589,9 @@ motion_notify_cb(GtkWidget* window, GdkEventMotion* event, gpointer user_data) {
     (void) event;
     (void) user_data;
 
-    gchar *details;
-    details = g_strdup_printf("%.0lf %.0lf %u", event->x, event->y, event->state);
+    gchar *details = g_strdup_printf("%.0lf %.0lf %u", event->x, event->y, event->state);
     send_event(PTR_MOVE, details, NULL);
+    g_free(details);
 
     return FALSE;
 }
