@@ -69,14 +69,16 @@ uzbl_cookie_jar_set_handler(UzblCookieJar *jar, const gchar* handler) {
 }
 
 char *get_cookies(UzblCookieJar *jar, SoupURI *uri) {
-    gchar *result;
+    gchar *result, *path;
     GString *s = g_string_new ("GET");
+
+    path = uri->path[0] ? uri->path : "/";
 
     if(has_socket_handler(jar)) {
         g_string_append_c(s, 0); /* null-terminate the GET */
         g_string_append_len(s, uri->scheme, strlen(uri->scheme)+1);
         g_string_append_len(s, uri->host,   strlen(uri->host)+1  );
-        g_string_append_len(s, uri->path,   strlen(uri->path)+1  );
+        g_string_append_len(s, path,        strlen(path)+1       );
 
         result = do_socket_request(jar, s->str, s->len);
         /* try it again; older cookie daemons closed the connection after each request */
@@ -149,7 +151,8 @@ changed(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie) {
 
     GString *s = g_string_new ("PUT");
 
-    gchar *scheme = (new_cookie->secure == TRUE) ? "https" : "http";
+    gchar *scheme = new_cookie->secure ? "https" : "http";
+
     if(has_socket_handler(uzbl_jar)) {
         g_string_append_c(s, 0); /* null-terminate the PUT */
         g_string_append_len(s,    scheme,                     strlen(scheme)+1);
@@ -228,7 +231,7 @@ static gchar *do_socket_request(UzblCookieJar *jar, gchar *request, int request_
     gchar *result = NULL;
 
     if(jar->connection_fd < 0)
-      connect_cookie_socket(jar); /* connection was lost, reconnect */
+        connect_cookie_socket(jar); /* connection was lost, reconnect */
 
     /* write request */
     ret = write(jar->connection_fd, request, request_length);
@@ -248,7 +251,8 @@ static gchar *do_socket_request(UzblCookieJar *jar, gchar *request, int request_
         if(errno == EINTR) continue;
         g_printerr("talk_to_socket: poll failed while waiting for input (%s)\n",
             strerror(errno));
-        disconnect_cookie_socket(jar);
+        if(errno != ETIMEDOUT)
+            disconnect_cookie_socket(jar);
         return NULL;
     }
 
