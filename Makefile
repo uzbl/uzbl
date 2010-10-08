@@ -76,6 +76,7 @@ clean:
 	rm -f events.o
 	rm -f callbacks.o
 	rm -f inspector.o
+	rm -f cookie-jar.o
 	find ./examples/ -name "*.pyc" -delete
 	cd ./tests/; $(MAKE) clean
 	rm -rf ./sandbox/
