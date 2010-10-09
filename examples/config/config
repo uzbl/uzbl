@@ -124,6 +124,7 @@ set useragent         = Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}.@{WEBKIT_MI
 @modmap <Control>       <Ctrl>
 @modmap <ISO_Left_Tab>  <Shift-Tab>
 @modmap <space>         <Space>
+@modmap <KP_Enter>      <Enter>
 
 #modkey_addition <Key1>  <Key2>    <Result>
 @modkey_addition <Shift> <Ctrl>    <Meta>
