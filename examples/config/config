@@ -261,6 +261,9 @@ set ebind     = @mode_bind global,-insert
 @cbind  yu  = sh 'echo -n $6 | xclip'
 @cbind  yy  = sh 'echo -n $7 | xclip'
 
+# Clone current window
+@cbind  c   = sh 'echo "event NEW_TAB $6" > $4'
+#@cbind  c   = sh 'uzbl-browser -u $6'
 # Go the page from primary selection
 @cbind  p   = sh 'echo "uri `xclip -selection primary -o | sed s/\\\@/%40/g`" > $4'
 # Go to the page in clipboard
