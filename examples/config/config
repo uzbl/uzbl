@@ -305,7 +305,8 @@ set formfiller = spawn @scripts_dir/formfiller.sh
 @cbind  gN              = event NEW_TAB_NEXT
 @cbind  go<uri:>_       = event NEW_TAB %s
 @cbind  gO<uri:>_       = event NEW_TAB_NEXT %s
-@cbind  gY              = sh 'echo "event NEW_TAB `xclip -selection primary -o | sed s/\\\@/%40/g`" > $4'
+@cbind  gy              = sh 'echo "event NEW_TAB `xclip -selection primary -o | sed s/\\\@/%40/g`" > $4'
+@cbind  gY              = sh 'echo "event NEW_TAB_NEXT `xclip -selection primary -o | sed s/\\\@/%40/g`" > $4'
 
 # Closing / resting
 @cbind  gC              = exit
