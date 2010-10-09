@@ -134,6 +134,7 @@ set useragent         = Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}.@{WEBKIT_MI
 #ignore_key <glob>
 @ignore_key <ISO_*>
 @ignore_key <Shift>
+@ignore_key <Multi_key>
 
 # --- Bind aliases -----------------------------------------------------------
 
