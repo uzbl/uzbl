@@ -259,7 +259,9 @@ set ebind     = @mode_bind global,-insert
 
 # Yanking & pasting binds
 @cbind  yu  = sh 'echo -n $6 | xclip'
+@cbind  yU  = sh 'echo -n $8 | xclip' \@SELECTED_URI
 @cbind  yy  = sh 'echo -n $7 | xclip'
+@cbind  yY  = sh 'echo -n $8 | xclip' \@SELECTED_URI
 
 # Clone current window
 @cbind  c   = sh 'uzbl-browser -u $6'
