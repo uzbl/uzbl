@@ -76,6 +76,9 @@ set authentication_handler = sync_spawn @scripts_dir/auth.py
 # Example CONFIG_CHANGED event handler
 #@on_event  CONFIG_CHANGED print Config changed: %1 = %2
 
+# Scroll percentage calculation
+@on_event   EXPOSE         set scroll_message = \@<+@scripts_dir/scroll-percentage.js>\@
+
 # === Behaviour and appearance ===============================================
 
 set show_status       = 1
