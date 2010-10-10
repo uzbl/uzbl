@@ -2054,6 +2054,7 @@ create_browser () {
       "signal::populate-popup",                       (GCallback)populate_popup_cb,       NULL,
       "signal::focus-in-event",                       (GCallback)focus_cb,                NULL,
       "signal::focus-out-event",                      (GCallback)focus_cb,                NULL,
+      "signal::expose-event",                         (GCallback)expose_cb,               NULL,
       NULL);
 }
 

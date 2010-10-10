@@ -211,6 +211,9 @@ button_release_cb (GtkWidget* window, GdkEventButton* event);
 gboolean
 focus_cb(GtkWidget* window, GdkEventFocus* event, void *ud);
 
+gboolean
+expose_cb(GtkWidget *widget, GdkEventExpose *e, void *w);
+
 void
 save_cookies_js(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie, gpointer user_data);
 

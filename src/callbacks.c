@@ -764,6 +764,17 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
     return (FALSE);
 }
 
+gboolean
+expose_cb(GtkWidget *widget, GdkEventExpose *e, void *w)
+{
+    (void) e;
+    (void) widget;
+    (void) w;
+
+    send_event(EXPOSE, "", NULL);
+    return (FALSE);
+}
+
 void
 run_menu_command(GtkWidget *menu, const char *line) {
     (void) menu;
