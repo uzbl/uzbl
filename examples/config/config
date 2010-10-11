@@ -261,9 +261,13 @@ set ebind     = @mode_bind global,-insert
 @cbind  gh  = uri http://www.uzbl.org
 
 # Yanking & pasting binds
-@cbind  yu  = sh 'printf $6 | xclip'
-@cbind  yy  = sh 'printf $7 | xclip'
+@cbind  yu  = sh 'echo -n $6 | xclip'
+@cbind  yU  = sh 'echo -n $8 | xclip' \@SELECTED_URI
+@cbind  yy  = sh 'echo -n $7 | xclip'
+@cbind  yY  = sh 'echo -n $8 | xclip' \@SELECTED_URI
 
+# Clone current window
+@cbind  c   = sh 'uzbl-browser -u $6'
 # Go the page from primary selection
 @cbind  p   = sh 'echo "uri `xclip -selection primary -o | sed s/\\\@/%40/g`" > $4'
 # Go to the page in clipboard
@@ -311,6 +315,10 @@ set formfiller = spawn @scripts_dir/formfiller.sh
 @cbind  gO<uri:>_       = event NEW_TAB_NEXT %s
 @cbind  gy              = sh 'echo "event NEW_TAB `xclip -selection primary -o | sed s/\\\@/%40/g`" > $4'
 @cbind  gY              = sh 'echo "event NEW_TAB_NEXT `xclip -selection primary -o | sed s/\\\@/%40/g`" > $4'
+
+# Clone current tab
+@cbind  gd              = sh 'echo "event NEW_TAB $6" > $4'
+@cbind  gD              = sh 'echo "event NEW_TAB_NEXT $6" > $4'
 
 # Closing / resting
 @cbind  gC              = exit
