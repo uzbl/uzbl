@@ -46,6 +46,9 @@ const char *event_table[LAST_EVENT] = {
      "COMMAND_ERROR"    ,
      "BUILTINS"         ,
      "PTR_MOVE"
+     "PTR_MOVE"         ,
+     "SCROLL_VERT"      ,
+     "SCROLL_HORIZ"
 };
 
 void

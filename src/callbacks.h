@@ -211,6 +211,12 @@ button_release_cb (GtkWidget* window, GdkEventButton* event);
 gboolean
 focus_cb(GtkWidget* window, GdkEventFocus* event, void *ud);
 
+gboolean
+scroll_vert_cb(GtkAdjustment *adjust, void *w);
+
+gboolean
+scroll_horiz_cb(GtkAdjustment *adjust, void *w);
+
 void
 save_cookies_js(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie, gpointer user_data);
 

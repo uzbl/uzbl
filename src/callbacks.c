@@ -764,6 +764,44 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
     return (FALSE);
 }
 
+gboolean
+scroll_vert_cb(GtkAdjustment *adjust, void *w)
+{
+    (void) w;
+
+    gdouble value = gtk_adjustment_get_value(adjust);
+    gdouble min = gtk_adjustment_get_lower(adjust);
+    gdouble max = gtk_adjustment_get_upper(adjust);
+    gdouble page = gtk_adjustment_get_page_size(adjust);
+    gchar* details;
+    details = g_strdup_printf("%g %g %g %g", value, min, max, page);
+
+    send_event(SCROLL_VERT, details, NULL);
+
+    g_free(details);
+
+    return (FALSE);
+}
+
+gboolean
+scroll_horiz_cb(GtkAdjustment *adjust, void *w)
+{
+    (void) w;
+
+    gdouble value = gtk_adjustment_get_value(adjust);
+    gdouble min = gtk_adjustment_get_lower(adjust);
+    gdouble max = gtk_adjustment_get_upper(adjust);
+    gdouble page = gtk_adjustment_get_page_size(adjust);
+    gchar* details;
+    details = g_strdup_printf("%g %g %g %g", value, min, max, page);
+
+    send_event(SCROLL_HORIZ, details, NULL);
+
+    g_free(details);
+
+    return (FALSE);
+}
+
 void
 run_menu_command(GtkWidget *menu, const char *line) {
     (void) menu;
