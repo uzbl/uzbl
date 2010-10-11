@@ -202,38 +202,38 @@ function reDrawHints(elems, chars) {
 // pass: number of keys
 // returns: key length
 function labelLength(n) {
-	var oldn = n;
-	var keylen = 0;
-	if(n < 2) {
-		return 1;
-	}
-	n -= 1; // our highest key will be n-1
-	while(n) {
-		keylen += 1;
-		n = Math.floor(n / charset.length);
-	}
-	return keylen;
+    var oldn = n;
+    var keylen = 0;
+    if(n < 2) {
+        return 1;
+    }
+    n -= 1; // our highest key will be n-1
+    while(n) {
+        keylen += 1;
+        n = Math.floor(n / charset.length);
+    }
+    return keylen;
 }
 // pass: number
 // returns: label
 function intToLabel(n) {
-	var label = '';
-	do {
-		label = charset.charAt(n % charset.length) + label;
-		n = Math.floor(n / charset.length);
-	} while(n);
-	return label;
+    var label = '';
+    do {
+        label = charset.charAt(n % charset.length) + label;
+        n = Math.floor(n / charset.length);
+    } while(n);
+    return label;
 }
 // pass: label
 // returns: number
 function labelToInt(label) {
-	var n = 0;
-	var i;
-	for(i = 0; i < label.length; ++i) {
-		n *= charset.length;
-		n += charset.indexOf(label[i]);
-	}
-	return n;
+    var n = 0;
+    var i;
+    for(i = 0; i < label.length; ++i) {
+        n *= charset.length;
+        n += charset.indexOf(label[i]);
+    }
+    return n;
 }
 //Put it all together
 function followLinks(follow) {

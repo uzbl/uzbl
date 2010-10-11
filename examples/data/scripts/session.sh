@@ -8,55 +8,62 @@
 # and doesn't need to be called manually at any point.
 # Add a line like 'bind quit = /path/to/session.sh endsession' to your config
 
-[ -d ${XDG_DATA_HOME:-$HOME/.local/share}/uzbl ] || exit 1
-scriptfile=$0 				# this script
-sessionfile=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/browser-session # the file in which the "session" (i.e. urls) are stored
-configfile=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/config   # uzbl configuration file
-UZBL="uzbl-browser -c $configfile"           # add custom flags and whatever here.
+source $UZBL_UTIL_DIR/uzbl-args.sh
+source $UZBL_UTIL_DIR/uzbl-dir.sh
 
-fifodir=/tmp # remember to change this if you instructed uzbl to put its fifos elsewhere
-thisfifo="$4"
-act="$8"
-url="$6"
+[ -d $UZBL_DATA_DIR ] || exit 1
 
-if [ "$act." = "." ]; then
-   act="$1"
+scriptfile=$0                            # this script
+UZBL="uzbl-browser -c $UZBL_CONFIG_FILE" # add custom flags and whatever here.
+
+act="$1"
+
+# Test if we were run alone or from uzbl
+if [ -z "$UZBL_SOCKET" ]; then
+    # Take the old config
+    act="$UZBL_CONFIG"
 fi
 
-
 case $act in
-  "launch" )
-    urls=`cat $sessionfile`
-    if [ "$urls." = "." ]; then
-      $UZBL
-    else
-      for url in $urls; do
-        $UZBL --uri "$url" &
-      done
-    fi
-    exit 0
-    ;;
+    "launch" )
+        urls=$(cat $UZBL_SESSION_FILE)
+        if [ -z "$urls" ]; then
+            $UZBL
+        else
+            for url in $urls; do
+                $UZBL --uri "$url" &
+                disown
+            done
+        fi
+        exit 0
+        ;;
 
-  "endinstance" )
-    if [ "$url" != "(null)" ]; then
-      echo "$url" >> $sessionfile;
-    fi
-    echo "exit" > "$thisfifo"
-    ;;
+    "endinstance" )
+        if [ -z "$UZBL_SOCKET" ]; then
+            echo "session manager: endinstance must be called from uzbl"
+            exit 1
+        fi
+        if [ ! "$UZBL_URL" = "(null)" ]; then
+            echo "$UZBL_URL" >> $UZBL_SESSION_FILE
+        fi
+        echo "exit" | socat - unix-connect:$UZBL_SOCKET
+        ;;
 
-  "endsession" )
-    mv "$sessionfile" "$sessionfile~"
-    for fifo in $fifodir/uzbl_fifo_*; do
-      if [ "$fifo" != "$thisfifo" ]; then
-        echo "spawn $scriptfile endinstance" > "$fifo"
-      fi
-    done
-    echo "spawn $scriptfile endinstance" > "$thisfifo"
-    ;;
+    "endsession" )
+        mv "$UZBL_SESSION_FILE" "$UZBL_SESSION_FILE~"
+        for sock in $UZBL_SOCKET_DIR/uzbl_fifo_*; do
+            if [ "$sock" != "$UZBL_SOCKET" ]; then
+                echo "spawn $scriptfile endinstance" | socat - unix-connect:$socket
+            fi
+        done
+        echo "spawn $scriptfile endinstance" | socat - unix-connect:$UZBL_SOCKET
+        ;;
 
-  * ) echo "session manager: bad action"
-      echo "Usage: $scriptfile [COMMAND] where commands are:"
-      echo " launch 	- Restore a saved session or start a new one"
-      echo " endsession	- Quit the running session. Must be called from uzbl"
-      ;;
+    * )
+        echo "session manager: bad action"
+        echo "Usage: $scriptfile [COMMAND] where commands are:"
+        echo " launch      - Restore a saved session or start a new one"
+        echo " endinstance - Quit the current instance. Must be called from uzbl"
+        echo " endsession  - Quit the running session."
+        ;;
 esac

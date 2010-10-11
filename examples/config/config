@@ -34,7 +34,8 @@ set set_mode        = set mode =
 set set_status      = set status_message =
 
 # Spawn path shortcuts. In spawn the first dir+path match is used in "dir1:dir2:dir3:executable"
-set scripts_dir     = $XDG_DATA_HOME/uzbl:@prefix/share/uzbl/examples/data:scripts
+set scripts_dir      = $XDG_DATA_HOME/uzbl:@prefix/share/uzbl/examples/data:scripts
+set scripts_util_dir = @scripts_dir/util
 
 # === Hardcoded handlers =====================================================
 
@@ -372,13 +373,13 @@ set stack    = @mode_config stack
 @insert   modcmd_updates      = 0
 
 # Multi-stage-binding mode config.
+@stack    keycmd_style        = foreground="red"
+@stack    status_background   = #202020
+@stack    mode_indicator      = Bnd
+@stack    prompt_style        = foreground="#888" weight="light"
 @stack    keycmd_events       = 1
 @stack    modcmd_updates      = 1
 @stack    forward_keys        = 0
-@stack    keycmd_style        = foreground="red"
-@stack    prompt_style        = foreground="#888" weight="light"
-@stack    status_background   = #202020
-@stack    mode_indicator      = Bnd
 
 set default_mode = command
 
