@@ -2635,8 +2635,8 @@ main (int argc, char* argv[]) {
       NULL);
 
     g_object_connect((GObject*)uzbl.gui.bar_h,
-      "signal::value-changed",                         (GCallback)scroll_horiz_cb,          NULL,
-      "signal::changed",                              (GCallback)scroll_vert_cb,          NULL,
+      "signal::value-changed",                        (GCallback)scroll_horiz_cb,         NULL,
+      "signal::changed",                              (GCallback)scroll_horiz_cb,         NULL,
       NULL);
 
     if(!uzbl.state.instance_name)
