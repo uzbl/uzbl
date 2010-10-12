@@ -12,7 +12,7 @@ case "$DMENU_SCHEME" in
     # Formfiller
     "formfiller" )
         NB="#0f0f0f"
-        NF="4e7093"
+        NF="#4e7093"
         SB="#003d7c"
         SF="#3a9bff"
         ;;
