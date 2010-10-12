@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Very simple session manager for uzbl-browser.  When called with "endsession" as the
-# argument, it'll backup $sessionfile, look for fifos in $fifodir and
+# argument, it'll backup $sessionfile, look for sockets in $socketdir and
 # instruct each of them to store their current url in $sessionfile and
 # terminate themselves.  Run with "launch" as the argument and an instance of
 # uzbl-browser will be launched for each stored url.  "endinstance" is used internally
@@ -51,7 +51,7 @@ case $act in
 
     "endsession" )
         mv "$UZBL_SESSION_FILE" "$UZBL_SESSION_FILE~"
-        for sock in $UZBL_SOCKET_DIR/uzbl_fifo_*; do
+        for sock in $UZBL_SOCKET_DIR/uzbl_socket_*; do
             if [ "$sock" != "$UZBL_SOCKET" ]; then
                 echo "spawn $scriptfile endinstance" | socat - unix-connect:$socket
             fi
