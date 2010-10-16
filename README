@@ -258,6 +258,8 @@ The following commands are recognized:
   - Open the print dialog.
 * `include <file>`
   - Read contents of `<file>` and interpret as a set of `uzbl` commands.
+* `show_inspector`
+  - Show the WebInspector
 
 ### VARIABLES AND CONSTANTS
 
