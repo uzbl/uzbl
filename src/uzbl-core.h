@@ -474,6 +474,9 @@ void
 include(WebKitWebView *page, GArray *argv, GString *result);
 
 void
+show_inspector(WebKitWebView *page, GArray *argv, GString *result);
+
+void
 builtins();
 
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
