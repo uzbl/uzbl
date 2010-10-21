@@ -93,7 +93,7 @@ const struct var_name_to_ptr_t {
     { "show_status",            PTR_V_INT(uzbl.behave.show_status,              1,   cmd_set_status)},
     { "status_top",             PTR_V_INT(uzbl.behave.status_top,               1,   move_statusbar)},
     { "status_format",          PTR_V_STR(uzbl.behave.status_format,            1,   NULL)},
-    { "status_background",      PTR_V_STR(uzbl.behave.status_background,        1,   NULL)},
+    { "status_background",      PTR_V_STR(uzbl.behave.status_background,        1,   set_status_background)},
     { "title_format_long",      PTR_V_STR(uzbl.behave.title_format_long,        1,   NULL)},
     { "title_format_short",     PTR_V_STR(uzbl.behave.title_format_short,       1,   NULL)},
     { "icon",                   PTR_V_STR(uzbl.gui.icon,                        1,   set_icon)},
@@ -2005,15 +2005,6 @@ update_title (void) {
             parsed = expand(b->status_format, 0);
             gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), parsed);
             g_free(parsed);
-        }
-        if (b->status_background) {
-            GdkColor color;
-            gdk_color_parse (b->status_background, &color);
-            //labels and hboxes do not draw their own background. applying this on the vbox/main_window is ok as the statusbar is the only affected widget. (if not, we could also use GtkEventBox)
-            if (uzbl.gui.main_window)
-                gtk_widget_modify_bg (uzbl.gui.main_window, GTK_STATE_NORMAL, &color);
-            else if (uzbl.gui.plug)
-                gtk_widget_modify_bg (GTK_WIDGET(uzbl.gui.plug), GTK_STATE_NORMAL, &color);
         }
     } else {
         if (b->title_format_long) {

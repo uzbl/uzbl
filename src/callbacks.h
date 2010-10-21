@@ -16,6 +16,9 @@ void
 set_authentication_handler();
 
 void
+set_status_background();
+
+void
 set_icon();
 
 void
