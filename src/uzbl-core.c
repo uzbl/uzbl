@@ -1916,6 +1916,10 @@ void
 update_title (void) {
     Behaviour *b = &uzbl.behave;
     gchar *parsed;
+
+    if(!GTK_IS_WINDOW(uzbl.gui.main_window))
+      return; /* we're just starting up or just shutting down. */
+
     const gchar *current_title = gtk_window_get_title (GTK_WINDOW(uzbl.gui.main_window));
 
     if (b->show_status) {
