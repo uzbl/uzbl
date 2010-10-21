@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 # Per-site settings plugin
 
-# Use like:
+# Example configuration usage:
 #
 #    @on_event LOAD_COMMIT spawn @scripts_dir/per-site-settings.py $XDG_DATA_DIR/per-site-settings
 
 # Format of the settings file:
 #
-#   <url><TAB><path><TAB><command>
+#   <url>
+#       <path>
+#           <command>
 #
 # - url
 #     May either be a regex, or literal. If literal, it will block any
@@ -15,8 +17,16 @@
 # - path
 #     May either be a regex, or literal. If literal, it will block any
 #     decendent paths as well.
-# - options
+# - command
 #     Given to uzbl verbatim.
+#
+# Matches are attempted on a literal match first.
+#
+# Any of the specifications can be repeated and acts as a fall-through to the
+# next level. Make sure indentation lines up locally. Any indentation addition
+# is considered as a fall through to the next level and any decrease is
+# considered a pop back (zero is always urls). This works because it's only 3
+# deep. Four and we'd have to keep track of things.
 
 import os
 import re
