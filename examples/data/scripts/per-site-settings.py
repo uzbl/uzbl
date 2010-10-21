@@ -27,13 +27,54 @@ import tempfile
 import urlparse
 import sys
 
+
+def match_url(url, patt):
+    return url.endswith(patt) or re.match(patt, url)
+
+
+def match_path(path, patt):
+    return path.startswith(patt) or re.match(patt, path)
+
+
 def grep_url(url, path, fin):
     entries = []
+    cur_indent = 0
+    passing = [False, False]
+    # 0 == url
+    # 1 == path
+    # 2 == command
+    state = 0
     for line in fin:
-        parts = line.split('\t', 2)
-        if (url.endswith(parts[0]) or re.match(parts[0], url)) and \
-           (path.startswith(parts[1]) or re.match(parts[1], path)):
-            entries.append(parts[2])
+        raw = line.lstrip()
+        indent = len(line) - len(raw)
+        if not indent:
+            # Reset state
+            passing = [False, False]
+            state = 0
+            cur_indent = 0
+        else:
+            # previous level
+            if indent < cur_indent:
+                if state == 1:
+                    passing[0] = False
+                elif state == 2:
+                    passing[1] = False
+                state -= 1
+            # next level
+            if cur_indent < indent:
+                state += 1
+
+            # parse the line
+            if state == 0:
+                if not passing[0] and match_url(url, raw):
+                    passing[0] = True
+            elif state == 1 and passing[0]:
+                if not passing[1] and match_path(path, raw):
+                    passing[1] = True
+            elif state == 2 and passing[1]:
+                entries.append(raw)
+        cur_indent = indent
+
     return entries
 
 def write_to_socket(commands, sockpath):
