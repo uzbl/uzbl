@@ -1993,11 +1993,12 @@ void
 update_title (void) {
     Behaviour *b = &uzbl.behave;
     gchar *parsed;
+    const gchar *current_title = gtk_window_get_title (GTK_WINDOW(uzbl.gui.main_window));
 
     if (b->show_status) {
-        if (b->title_format_short) {
+        if (b->title_format_short && uzbl.gui.main_window) {
             parsed = expand(b->title_format_short, 0);
-            if (uzbl.gui.main_window)
+            if(current_title && strcmp(current_title, parsed))
                 gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
             g_free(parsed);
         }
@@ -2007,9 +2008,9 @@ update_title (void) {
             g_free(parsed);
         }
     } else {
-        if (b->title_format_long) {
+        if (b->title_format_long && uzbl.gui.main_window) {
             parsed = expand(b->title_format_long, 0);
-            if (uzbl.gui.main_window)
+            if(current_title && strcmp(current_title, parsed))
                 gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
             g_free(parsed);
         }
