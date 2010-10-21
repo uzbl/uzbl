@@ -87,12 +87,14 @@ def grep_url(url, path, fin):
 
     return entries
 
+
 def write_to_socket(commands, sockpath):
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     sock.connect(sockpath)
     for command in commands:
         sock.write(command)
     sock.close()
+
 
 if __name__ == '__main__':
     sockpath = sys.argv[5]
