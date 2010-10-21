@@ -113,6 +113,6 @@ if __name__ == '__main__':
 
     commands = grep_url(host, path, fin)
 
-    find.close()
+    fin.close()
 
     write_to_socket(commands, sockpath)
