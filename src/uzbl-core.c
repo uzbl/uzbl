@@ -1925,7 +1925,7 @@ update_title (void) {
     if (b->show_status) {
         if (b->title_format_short && uzbl.gui.main_window) {
             parsed = expand(b->title_format_short, 0);
-            if(current_title && strcmp(current_title, parsed))
+            if(!current_title || strcmp(current_title, parsed))
                 gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
             g_free(parsed);
         }
@@ -1937,7 +1937,7 @@ update_title (void) {
     } else {
         if (b->title_format_long && uzbl.gui.main_window) {
             parsed = expand(b->title_format_long, 0);
-            if(current_title && strcmp(current_title, parsed))
+            if(!current_title || strcmp(current_title, parsed))
                 gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
             g_free(parsed);
         }
