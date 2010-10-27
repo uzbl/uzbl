@@ -395,14 +395,40 @@ title_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
 }
 
 void
-progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
-    (void) page;
-    (void) data;
-    gchar *prg_str;
-
-    prg_str = itos(progress);
+progress_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
+    (void) param_spec;
+    int progress = webkit_web_view_get_progress(web_view) * 100;
+    gchar *prg_str = itos(progress);
     send_event(LOAD_PROGRESS, prg_str, NULL);
     g_free(prg_str);
+}
+
+void
+load_status_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
+    (void) param_spec;
+
+    WebKitWebFrame *frame = webkit_web_view_get_main_frame(web_view);
+    WebKitLoadStatus status = webkit_web_view_get_load_status(web_view);
+    switch(status) {
+        case WEBKIT_LOAD_PROVISIONAL:
+            send_event(LOAD_START, uzbl.state.uri, NULL);
+            break;
+        case WEBKIT_LOAD_COMMITTED:
+            g_free (uzbl.state.uri);
+            GString* newuri = g_string_new (webkit_web_frame_get_uri (frame));
+            uzbl.state.uri = g_string_free (newuri, FALSE);
+
+            send_event(LOAD_COMMIT, webkit_web_frame_get_uri (frame), NULL);
+            break;
+        case WEBKIT_LOAD_FINISHED:
+            send_event(LOAD_FINISH, webkit_web_frame_get_uri(frame), NULL);
+            break;
+        case WEBKIT_LOAD_FIRST_VISUALLY_NON_EMPTY_LAYOUT:
+            break; /* we don't do anything with this (yet) */
+        case WEBKIT_LOAD_FAILED:
+            break; /* load_error_cb will handle this case */
+    }
+
 }
 
 void
@@ -417,23 +443,6 @@ selection_changed_cb(WebKitWebView *webkitwebview, gpointer ud) {
 }
 
 void
-load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
-    (void) page;
-    (void) data;
-
-    send_event(LOAD_FINISH, webkit_web_frame_get_uri(frame), NULL);
-}
-
-void
-load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
-    (void) page;
-    (void) frame;
-    (void) data;
-
-    send_event(LOAD_START, uzbl.state.uri, NULL);
-}
-
-void
 load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer web_err, gpointer ud) {
     (void) page;
     (void) frame;
@@ -444,17 +453,6 @@ load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer 
     details = g_strdup_printf("%s %d:%s", uri, err->code, err->message);
     send_event(LOAD_ERROR, details, NULL);
     g_free(details);
-}
-
-void
-load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
-    (void) page;
-    (void) data;
-    g_free (uzbl.state.uri);
-    GString* newuri = g_string_new (webkit_web_frame_get_uri (frame));
-    uzbl.state.uri = g_string_free (newuri, FALSE);
-
-    send_event(LOAD_COMMIT, webkit_web_frame_get_uri (frame), NULL);
 }
 
 void
