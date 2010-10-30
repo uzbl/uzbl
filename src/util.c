@@ -6,7 +6,7 @@
 
 #include "util.h"
 
-XDG_Var XDG[] =
+const XDG_Var XDG[] =
 {
     { "XDG_CONFIG_HOME", "~/.config" },
     { "XDG_DATA_HOME",   "~/.local/share" },
