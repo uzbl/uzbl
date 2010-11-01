@@ -832,5 +832,10 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
 
 void
 cmd_set_cookie_handler() {
+  if(uzbl.behave.cookie_handler[0] == 0) {
+      g_free(uzbl.behave.cookie_handler);
+      uzbl.behave.cookie_handler = NULL;
+  }
+
   uzbl_cookie_jar_set_handler(uzbl.net.soup_cookie_jar, uzbl.behave.cookie_handler);
 }
