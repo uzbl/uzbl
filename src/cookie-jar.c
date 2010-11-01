@@ -35,6 +35,7 @@ static bool has_socket_handler(UzblCookieJar *jar) {
 
 static void
 soup_cookie_jar_socket_init(UzblCookieJar *jar) {
+    jar->handler     = NULL;
     jar->socket_path = NULL;
     jar->connection_fd = -1;
 }
@@ -99,33 +100,43 @@ static void
 request_started(SoupSessionFeature *feature, SoupSession *session,
                 SoupMessage *msg, SoupSocket *socket) {
     (void) session; (void) socket;
+    gchar *cookies;
 
     UzblCookieJar *jar = UZBL_COOKIE_JAR (feature);
     SoupURI *uri = soup_message_get_uri(msg);
+    gboolean add_to_internal_jar = false;
 
-    gchar *cookies = get_cookies(jar, uri);
+    if(jar->handler) {
+        cookies = get_cookies(jar, uri);
+    } else {
+        /* no handler is set, fall back to the internal soup cookie jar */
+        cookies = soup_cookie_jar_get_cookies(SOUP_COOKIE_JAR(jar), soup_message_get_uri (msg), TRUE);
+    }
 
-    if (cookies && *cookies != 0) {
+    if (cookies && cookies[0] != 0) {
         const gchar *next_cookie_start = cookies;
 
-        /* add the cookie data that we just obtained from the cookie handler
-           to the cookie jar so that javascript has access to them.
-           we set this flag so that we don't trigger the PUT handler. */
-        jar->in_get_callback = true;
-        do {
-            SoupCookie *soup_cookie = soup_cookie_parse(next_cookie_start, uri);
-            if(soup_cookie)
-                soup_cookie_jar_add_cookie(SOUP_COOKIE_JAR(uzbl.net.soup_cookie_jar), soup_cookie);
-            next_cookie_start = strchr(next_cookie_start, ';');
-        } while(next_cookie_start++ != NULL);
-        jar->in_get_callback = false;
+        if (add_to_internal_jar) {
+          /* add the cookie data that we just obtained from the cookie handler
+             to the cookie jar so that javascript has access to them.
+             we set this flag so that we don't trigger the PUT handler. */
+          jar->in_get_callback = true;
+          do {
+              SoupCookie *soup_cookie = soup_cookie_parse(next_cookie_start, uri);
+              if(soup_cookie)
+                  soup_cookie_jar_add_cookie(SOUP_COOKIE_JAR(uzbl.net.soup_cookie_jar), soup_cookie);
+              next_cookie_start = strchr(next_cookie_start, ';');
+          } while(next_cookie_start++ != NULL);
+          jar->in_get_callback = false;
+        }
 
         soup_message_headers_replace (msg->request_headers, "Cookie", cookies);
-
-        g_free (cookies);
     } else {
         soup_message_headers_remove (msg->request_headers, "Cookie");
     }
+
+    if(cookies)
+        g_free (cookies);
 }
 
 static void
@@ -177,7 +188,7 @@ changed(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie) {
 
 static void
 setup_handler(UzblCookieJar *jar) {
-    if(strncmp(jar->handler, "talk_to_socket", strlen("talk_to_socket")) == 0) {
+    if(jar->handler && strncmp(jar->handler, "talk_to_socket", strlen("talk_to_socket")) == 0) {
         /* extract the socket path from the handler. */
         jar->socket_path = jar->handler + strlen("talk_to_socket");
         while(isspace(*jar->socket_path))
