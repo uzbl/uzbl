@@ -364,26 +364,6 @@ strfree(gchar *str) {
 gchar*
 argv_idx(const GArray *a, const guint idx) { return g_array_index(a, gchar*, idx); }
 
-void
-for_each_line_in_file(gchar *path, void (*callback)(const gchar *l, void *c), void *user_data) { \
-    gchar *line = NULL;
-    gsize len;
-
-    GIOChannel *chan = g_io_channel_new_file(path, "r", NULL);
-
-    if (chan) {
-        while (g_io_channel_read_line(chan, &line, &len, NULL, NULL) == G_IO_STATUS_NORMAL) {
-          callback(line, user_data);
-          g_free(line);
-        }
-        g_io_channel_unref (chan);
-    } else {
-        gchar *tmp = g_strdup_printf("File %s can not be read.", path);
-        send_event(COMMAND_ERROR, tmp, NULL);
-        g_free(tmp);
-    }
-}
-
 /* search a PATH style string for an existing file+path combination */
 gchar*
 find_existing_file(gchar* path_list) {
@@ -953,7 +933,12 @@ include(WebKitWebView *page, GArray *argv, GString *result) {
 
     pe = parseenv(argv_idx(argv, 0));
     if((path = find_existing_file(pe))) {
-        for_each_line_in_file(path, parse_cmd_line_cb, NULL);
+        if(!for_each_line_in_file(path, parse_cmd_line_cb, NULL)) {
+            gchar *tmp = g_strdup_printf("File %s can not be read.", path);
+            send_event(COMMAND_ERROR, tmp, NULL);
+            g_free(tmp);
+        }
+
         send_event(FILE_INCLUDED, path, NULL);
         g_free(path);
     }
@@ -2079,9 +2064,13 @@ settings_init () {
         s->config_file = find_xdg_file (0, "/uzbl/config");
     }
 
-    if (s->config_file)
-        for_each_line_in_file(s->config_file, parse_cmd_line_cb, NULL);
-    else if (uzbl.state.verbose)
+    if (s->config_file) {
+        if(!for_each_line_in_file(s->config_file, parse_cmd_line_cb, NULL)) {
+            gchar *tmp = g_strdup_printf("File %s can not be read.", s->config_file);
+            send_event(COMMAND_ERROR, tmp, NULL);
+            g_free(tmp);
+        }
+    } else if (uzbl.state.verbose)
         printf ("No configuration file loaded.\n");
 
     if(s->connect_socket_names)

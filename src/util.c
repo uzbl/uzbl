@@ -89,3 +89,22 @@ str_replace (const char* search, const char* replace, const char* string) {
     return ret;
 }
 
+gboolean
+for_each_line_in_file(const gchar *path, void (*callback)(const gchar *l, void *c), void *user_data) {
+    gchar *line = NULL;
+    gsize len;
+
+    GIOChannel *chan = g_io_channel_new_file(path, "r", NULL);
+
+    if (chan) {
+        while (g_io_channel_read_line(chan, &line, &len, NULL, NULL) == G_IO_STATUS_NORMAL) {
+          callback(line, user_data);
+          g_free(line);
+        }
+        g_io_channel_unref (chan);
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
