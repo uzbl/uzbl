@@ -227,9 +227,6 @@ itos(int val);
 gchar*
 strfree(gchar *str);
 
-GArray*
-read_file_by_line (const gchar *path);
-
 gchar*
 parseenv (gchar* string);
 
