@@ -1,12 +1,20 @@
+#define _POSIX_SOURCE
+
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+#include <ctype.h>
+#include <signal.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/select.h>
 #include <sys/unistd.h>
+
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdlib.h>
 
 #include <libsoup/soup-cookie.h>
 #include <libsoup/soup-cookie-jar-text.h>
@@ -46,6 +54,82 @@ int setup_socket(const char *cookied_socket_path) {
   }
 
   return socket_fd;
+}
+
+const char *whitelist_path      = NULL;
+GPtrArray *whitelisted_hosts    = NULL;
+time_t    whitelist_update_time = 0;
+
+void whitelist_line_cb(const gchar* line, void *user_data) {
+  (void) user_data;
+
+  gchar *norm_host;
+
+  const gchar *p = line;
+  while(isspace(*p))
+    p++;
+
+  if(p[0] == '#' || !p[0]) /* ignore comments and blank lines */
+    return;
+
+  if(p[0] == '.')
+    norm_host = g_strdup(p);
+  else
+    norm_host = g_strconcat(".", p, NULL);
+
+  g_ptr_array_add(whitelisted_hosts, g_strchomp(norm_host));
+}
+
+gboolean load_whitelist(const char *whitelist_path) {
+  if(!file_exists(whitelist_path))
+    return FALSE;
+
+  /* check if the whitelist file was updated */
+  struct stat f;
+  if(stat(whitelist_path, &f) < 0)
+    return FALSE;
+
+  if(whitelisted_hosts == NULL)
+    whitelisted_hosts = g_ptr_array_new();
+
+  if(f.st_mtime > whitelist_update_time) {
+    /* the file was updated, reload the whitelist */
+    if(verbose) puts("reloading whitelist");
+    while(whitelisted_hosts->len > 0) {
+      g_free(g_ptr_array_index(whitelisted_hosts, 0));
+      g_ptr_array_remove_index_fast(whitelisted_hosts, 0);
+    }
+    for_each_line_in_file(whitelist_path, whitelist_line_cb, NULL);
+    whitelist_update_time = f.st_mtime;
+  }
+
+  return TRUE;
+}
+
+gboolean should_save_cookie(const char *host) {
+  if(!load_whitelist(whitelist_path))
+    return TRUE; /* some error with the file, assume no whitelist */
+
+  /* we normalize the hostname so it has a . in front like the whitelist entries */
+  gchar *test_host = (host[0] == '.') ? g_strdup(host) : g_strconcat(".", host, NULL);
+  int hl = strlen(test_host);
+
+  /* test against each entry in the whitelist */
+  gboolean result = FALSE;
+  guint i;
+  for(i = 0; i < whitelisted_hosts->len; i++) {
+      /* a match means the host ends with (or is equal to) the whitelist entry */
+      const gchar *entry = g_ptr_array_index(whitelisted_hosts, i);
+      int el = strlen(entry);
+      result = (el <= hl) && !strcmp(test_host + (hl - el), entry);
+
+      if(result)
+        break;
+  }
+
+  g_free(test_host);
+
+  return result;
 }
 
 void handle_request(SoupCookieJar *j, const char *buff, int len, int fd) {
@@ -97,15 +181,18 @@ void handle_request(SoupCookieJar *j, const char *buff, int len, int fd) {
 
       if(verbose) puts(name_and_val);
 
-      char *eql = strchr(name_and_val, '=');
-      eql[0] = 0;
+      if(should_save_cookie(host)) {
+        char *eql = strchr(name_and_val, '=');
+        eql[0] = 0;
 
-      const char *name  = name_and_val;
-      const char *value = eql + 1;
+        const char *name  = name_and_val;
+        const char *value = eql + 1;
 
-      SoupCookie *cookie = soup_cookie_new(name, value, host, path, SOUP_COOKIE_MAX_AGE_ONE_YEAR);
+        SoupCookie *cookie = soup_cookie_new(name, value, host, path, SOUP_COOKIE_MAX_AGE_ONE_YEAR);
 
-      soup_cookie_jar_add_cookie(j, cookie);
+        soup_cookie_jar_add_cookie(j, cookie);
+      } else if(verbose)
+        puts("no, blacklisted.");
 
       if(write(fd, "", 1) < 0)
         fprintf(stderr, "write failed (%s)", strerror(errno));
@@ -118,11 +205,20 @@ void usage(const char *progname) {
   printf("%s [-s socket-path] [-f cookies.txt] [-w whitelist-file] [-v]\n", progname);
 }
 
+const char *pid_file_path       = NULL;
+const char *cookied_socket_path = NULL;
+
+void cleanup_after_signal(int signal) {
+  (void) signal;
+  unlink(pid_file_path);
+  unlink(cookied_socket_path);
+  exit(0);
+}
+
 int main(int argc, char *argv[]) {
   int i;
 
   const char *cookies_txt_path    = NULL;
-  const char *cookied_socket_path = NULL;
 
   for(i = 1; i < argc && argv[i][0] == '-'; i++) {
     switch(argv[i][1]) {
@@ -131,6 +227,9 @@ int main(int argc, char *argv[]) {
         break;
       case 'f':
         cookies_txt_path    = argv[++i];
+        break;
+      case 'w':
+        whitelist_path      = argv[++i];
         break;
       case 'v':
         verbose             = 1;
@@ -142,17 +241,40 @@ int main(int argc, char *argv[]) {
   }
 
   if(!cookies_txt_path)
-    cookies_txt_path    = find_xdg_file(1, "/uzbl/cookies.txt");
+    cookies_txt_path    = g_strconcat(get_xdg_var(XDG[1]), "/uzbl/cookies.txt", NULL);
 
   if(!cookied_socket_path)
     cookied_socket_path = g_strconcat(get_xdg_var(XDG[2]), "/uzbl/cookie_daemon_socket", NULL);
+
+  if(!whitelist_path)
+    whitelist_path      = g_strconcat(get_xdg_var(XDG[0]), "/uzbl/cookie_whitelist", NULL);
+
+  pid_file_path = g_strconcat(cookied_socket_path, ".pid", NULL);
+  int fd = open(pid_file_path, O_WRONLY|O_CREAT|O_EXCL, 0600);
+  if(fd < 0) {
+    if(errno == EEXIST)
+      fprintf(stderr, "pid file %s exists, exiting\n", pid_file_path);
+    else
+      fprintf(stderr, "couldn't open pid file %s (%s)\n", pid_file_path, strerror(errno));
+    return 1;
+  }
+
+  //grar grar grar
+  //fprintf(fd, "%d\n", getpid());
+  close(fd);
 
   g_type_init();
 
   SoupCookieJar *j = soup_cookie_jar_text_new(cookies_txt_path, FALSE);
 
   int cookie_socket = setup_socket(cookied_socket_path);
-  if(cookie_socket < 0) {
+  if(cookie_socket < 0)
+    return 1;
+
+  struct sigaction sa;
+  sa.sa_handler = cleanup_after_signal;
+  if(sigaction(SIGINT,  &sa, NULL) || sigaction(SIGTERM, &sa, NULL)) {
+    fprintf(stderr, "sigaction failed (%s)\n", strerror(errno));
     return 1;
   }
 
