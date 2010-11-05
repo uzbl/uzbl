@@ -111,9 +111,11 @@ install-uzbl-browser: install-dirs
 	install -m755 examples/data/scripts/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
 	mv $(INSTALLDIR)/bin/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser.bak
 	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < $(INSTALLDIR)/bin/uzbl-browser.bak > $(INSTALLDIR)/bin/uzbl-browser
+	chmod 755 $(INSTALLDIR)/bin/uzbl-browser
 	rm $(INSTALLDIR)/bin/uzbl-browser.bak
 	mv $(INSTALLDIR)/bin/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager.bak
 	sed "s#^PREFIX = .*#PREFIX = '$(RUN_PREFIX)'#" < $(INSTALLDIR)/bin/uzbl-event-manager.bak > $(INSTALLDIR)/bin/uzbl-event-manager
+	chmod 755 $(INSTALLDIR)/bin/uzbl-event-manager
 	rm $(INSTALLDIR)/bin/uzbl-event-manager.bak
 
 install-uzbl-tabbed: install-dirs
