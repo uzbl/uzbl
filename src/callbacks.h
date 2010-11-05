@@ -146,16 +146,10 @@ void
 title_change_cb (WebKitWebView* web_view, GParamSpec param_spec);
 
 void
-progress_change_cb (WebKitWebView* page, gint progress, gpointer data);
+progress_change_cb (WebKitWebView* web_view, GParamSpec param_spec);
 
 void
-load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
-
-void
-load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
-
-void
-load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
+load_status_change_cb (WebKitWebView* web_view, GParamSpec param_spec);
 
 void
 load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer web_err, gpointer ud);
