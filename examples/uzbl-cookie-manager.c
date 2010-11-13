@@ -202,7 +202,26 @@ void handle_request(SoupCookieJar *j, const char *buff, int len, int fd) {
 }
 
 void usage(const char *progname) {
-  printf("%s [-s socket-path] [-f cookies.txt] [-w whitelist-file] [-v]\n", progname);
+  printf("%s [-s socket-path] [-f cookies.txt] [-w whitelist-file] [-n] [-v]\n", progname);
+  puts("\t-n\tdon't daemonise the process");
+  puts("\t-v\tbe verbose");
+}
+
+void daemonise() {
+  int r = fork();
+
+  if(r < 0) {
+    fprintf(stderr, "fork failed (%s)", strerror(errno));
+    exit(1);
+  } else if (r > 0) {
+    /* this is the parent, which has done its job */
+    exit(0);
+  }
+
+  if(setsid() < 0) {
+    fprintf(stderr, "setsid failed (%s)", strerror(errno));
+    exit(1);
+  }
 }
 
 const char *pid_file_path       = NULL;
@@ -219,6 +238,7 @@ int main(int argc, char *argv[]) {
   int i;
 
   const char *cookies_txt_path    = NULL;
+  gboolean foreground = FALSE;
 
   for(i = 1; i < argc && argv[i][0] == '-'; i++) {
     switch(argv[i][1]) {
@@ -231,6 +251,9 @@ int main(int argc, char *argv[]) {
       case 'w':
         whitelist_path      = argv[++i];
         break;
+      case 'n':
+        foreground          = TRUE;
+        break;
       case 'v':
         verbose             = 1;
         break;
@@ -239,6 +262,12 @@ int main(int argc, char *argv[]) {
         return 1;
     }
   }
+
+  if(verbose)
+    foreground = TRUE;
+
+  if(!foreground)
+    daemonise();
 
   if(!cookies_txt_path)
     cookies_txt_path    = g_strconcat(get_xdg_var(XDG[1]), "/uzbl/cookies.txt", NULL);
@@ -276,6 +305,13 @@ int main(int argc, char *argv[]) {
   if(sigaction(SIGINT,  &sa, NULL) || sigaction(SIGTERM, &sa, NULL)) {
     fprintf(stderr, "sigaction failed (%s)\n", strerror(errno));
     return 1;
+  }
+
+  if(!foreground) {
+    /* close STDIO */
+    close(0);
+    close(1);
+    close(2);
   }
 
   GArray *connections = g_array_new (FALSE, FALSE, sizeof (int));
