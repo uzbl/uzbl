@@ -206,12 +206,6 @@ extern UzblCore uzbl;
 
 typedef void sigfunc(int);
 
-/* XDG Stuff */
-typedef struct {
-    gchar* environmental;
-    gchar* default_value;
-} XDG_Var;
-
 /* uzbl variables */
 enum ptr_type {TYPE_INT, TYPE_STR, TYPE_FLOAT};
 typedef struct {
@@ -230,14 +224,8 @@ typedef struct {
 char *
 itos(int val);
 
-char *
-str_replace (const char* search, const char* replace, const char* string);
-
 gchar*
 strfree(gchar *str);
-
-GArray*
-read_file_by_line (const gchar *path);
 
 gchar*
 parseenv (gchar* string);
@@ -262,9 +250,6 @@ print(WebKitWebView *page, GArray *argv, GString *result);
 
 void
 commands_hash(void);
-
-bool
-file_exists (const char * filename);
 
 void
 load_uri (WebKitWebView * web_view, GArray *argv, GString *result);
@@ -350,12 +335,6 @@ create_plug ();
 
 void
 run_handler (const gchar *act, const gchar *args);
-
-/*@null@*/ gchar*
-get_xdg_var (XDG_Var xdg);
-
-/*@null@*/ gchar*
-find_xdg_file (int xdg_type, const char* filename);
 
 void
 settings_init ();

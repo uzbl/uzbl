@@ -34,6 +34,7 @@
 #include "events.h"
 #include "inspector.h"
 #include "config.h"
+#include "util.h"
 
 UzblCore uzbl;
 
@@ -60,15 +61,6 @@ GOptionEntry entries[] =
     { "version",  'V', 0, G_OPTION_ARG_NONE, &uzbl.behave.print_version,
         "Print the version and exit", NULL },
     { NULL,      0, 0, 0, NULL, NULL, NULL }
-};
-
-XDG_Var XDG[] =
-{
-    { "XDG_CONFIG_HOME", "~/.config" },
-    { "XDG_DATA_HOME",   "~/.local/share" },
-    { "XDG_CACHE_HOME",  "~/.cache" },
-    { "XDG_CONFIG_DIRS", "/etc/xdg" },
-    { "XDG_DATA_DIRS",   "/usr/local/share/:/usr/share/" },
 };
 
 /* abbreviations to help keep the table's width humane */
@@ -371,48 +363,6 @@ strfree(gchar *str) {
 
 gchar*
 argv_idx(const GArray *a, const guint idx) { return g_array_index(a, gchar*, idx); }
-
-char *
-str_replace (const char* search, const char* replace, const char* string) {
-    gchar **buf;
-    char *ret;
-
-    if(!string)
-        return NULL;
-
-    buf = g_strsplit (string, search, -1);
-    ret = g_strjoinv (replace, buf);
-    g_strfreev(buf);
-
-    return ret;
-}
-
-GArray*
-read_file_by_line (const gchar *path) {
-    GIOChannel *chan = NULL;
-    gchar *readbuf = NULL;
-    gsize len;
-    GArray *lines = g_array_new(TRUE, FALSE, sizeof(gchar*));
-    int i = 0;
-
-    chan = g_io_channel_new_file(path, "r", NULL);
-    if (chan) {
-        while (g_io_channel_read_line(chan, &readbuf, &len, NULL, NULL) == G_IO_STATUS_NORMAL) {
-            const gchar* val = g_strdup (readbuf);
-            g_array_append_val (lines, val);
-            g_free (readbuf);
-            i ++;
-        }
-
-        g_io_channel_unref (chan);
-    } else {
-        gchar *tmp = g_strdup_printf("File %s can not be read.", path);
-        send_event(COMMAND_ERROR, tmp, NULL);
-        g_free(tmp);
-    }
-
-    return lines;
-}
 
 /* search a PATH style string for an existing file+path combination */
 gchar*
@@ -735,11 +685,6 @@ builtins() {
 
 /* -- CORE FUNCTIONS -- */
 
-bool
-file_exists (const char * filename) {
-    return (access(filename, F_OK) == 0);
-}
-
 void
 set_var(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
@@ -970,28 +915,30 @@ hardcopy(WebKitWebView *page, GArray *argv, GString *result) {
     webkit_web_frame_print(webkit_web_view_get_main_frame(page));
 }
 
+/* just a wrapper so parse_cmd_line can be used with for_each_line_in_file */
+static void
+parse_cmd_line_cb(const char *line, void *user_data) {
+    (void) user_data;
+    parse_cmd_line(line, NULL);
+}
+
 void
 include(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page;
     (void) result;
     gchar *pe   = NULL,
-          *path = NULL,
-          *line;
-    int i=0;
+          *path = NULL;
 
     if(!argv_idx(argv, 0))
         return;
 
     pe = parseenv(argv_idx(argv, 0));
     if((path = find_existing_file(pe))) {
-        GArray* lines = read_file_by_line(path);
-
-        while ((line = g_array_index(lines, gchar*, i))) {
-            parse_cmd_line (line, NULL);
-            i++;
-            g_free (line);
+        if(!for_each_line_in_file(path, parse_cmd_line_cb, NULL)) {
+            gchar *tmp = g_strdup_printf("File %s can not be read.", path);
+            send_event(COMMAND_ERROR, tmp, NULL);
+            g_free(tmp);
         }
-        g_array_free (lines, TRUE);
 
         send_event(FILE_INCLUDED, path, NULL);
         g_free(path);
@@ -1163,32 +1110,23 @@ run_external_js (WebKitWebView * web_view, GArray *argv, GString *result) {
 
     if (argv_idx(argv, 0) &&
         ((path = find_existing_file(argv_idx(argv, 0)))) ) {
-        GArray* lines = read_file_by_line (path);
-        gchar*  js = NULL;
-        int i = 0;
-        gchar* line;
+        gchar *file_contents = NULL;
 
-        while ((line = g_array_index(lines, gchar*, i))) {
-            if (js == NULL) {
-                js = g_strdup (line);
-            } else {
-                gchar* newjs = g_strconcat (js, line, NULL);
-                js = newjs;
-            }
-            i ++;
-            g_free (line);
+        GIOChannel *chan = g_io_channel_new_file(path, "r", NULL);
+        if (chan) {
+            gsize len;
+            g_io_channel_read_to_end(chan, &file_contents, &len, NULL);
+            g_io_channel_unref (chan);
         }
 
         if (uzbl.state.verbose)
             printf ("External JavaScript file %s loaded\n", argv_idx(argv, 0));
 
-        gchar* newjs = str_replace("%s", argv_idx (argv, 1)?argv_idx (argv, 1):"", js);
-        g_free (js);
-        js = newjs;
+        gchar *js = str_replace("%s", argv_idx (argv, 1) ? argv_idx (argv, 1) : "", file_contents);
+        g_free (file_contents);
 
         eval_js (web_view, js, result, path);
         g_free (js);
-        g_array_free (lines, TRUE);
         g_free(path);
     }
 }
@@ -1638,7 +1576,6 @@ parse_cmd_line(const char *ctl_line, GString *result) {
 
     g_free(ctlstrip);
 }
-
 
 /*@null@*/ gchar*
 build_stream_name(int type, const gchar* dir) {
@@ -2138,59 +2075,6 @@ run_handler (const gchar *act, const gchar *args) {
     g_strfreev(parts);
 }
 
-/*@null@*/ gchar*
-get_xdg_var (XDG_Var xdg) {
-    const gchar* actual_value = getenv (xdg.environmental);
-    const gchar* home         = getenv ("HOME");
-    gchar* return_value;
-
-    if (! actual_value || strcmp (actual_value, "") == 0) {
-        if (xdg.default_value) {
-            return_value = str_replace ("~", home, xdg.default_value);
-        } else {
-            return_value = NULL;
-        }
-    } else {
-        return_value = str_replace("~", home, actual_value);
-    }
-
-    return return_value;
-}
-
-/*@null@*/ gchar*
-find_xdg_file (int xdg_type, const char* filename) {
-    /* xdg_type = 0 => config
-       xdg_type = 1 => data
-       xdg_type = 2 => cache*/
-
-    gchar* xdgv = get_xdg_var (XDG[xdg_type]);
-    gchar* temporary_file = g_strconcat (xdgv, filename, NULL);
-    g_free (xdgv);
-
-    gchar* temporary_string;
-    char*  saveptr;
-    char*  buf;
-
-    if (! file_exists (temporary_file) && xdg_type != 2) {
-        buf = get_xdg_var (XDG[3 + xdg_type]);
-        temporary_string = (char *) strtok_r (buf, ":", &saveptr);
-        g_free(buf);
-
-        while ((temporary_string = (char * ) strtok_r (NULL, ":", &saveptr)) && ! file_exists (temporary_file)) {
-            g_free (temporary_file);
-            temporary_file = g_strconcat (temporary_string, filename, NULL);
-        }
-    }
-
-    //g_free (temporary_string); - segfaults.
-
-    if (file_exists (temporary_file)) {
-        return temporary_file;
-    } else {
-        g_free(temporary_file);
-        return NULL;
-    }
-}
 void
 settings_init () {
     State *s = &uzbl.state;
@@ -2211,20 +2095,13 @@ settings_init () {
     }
 
     if (s->config_file) {
-        GArray* lines = read_file_by_line (s->config_file);
-        int i = 0;
-        gchar* line;
-
-        while ((line = g_array_index(lines, gchar*, i))) {
-            parse_cmd_line (line, NULL);
-            i ++;
-            g_free (line);
+        if(!for_each_line_in_file(s->config_file, parse_cmd_line_cb, NULL)) {
+            gchar *tmp = g_strdup_printf("File %s can not be read.", s->config_file);
+            send_event(COMMAND_ERROR, tmp, NULL);
+            g_free(tmp);
         }
-        g_array_free (lines, TRUE);
-    } else {
-        if (uzbl.state.verbose)
-            printf ("No configuration file loaded.\n");
-    }
+    } else if (uzbl.state.verbose)
+        printf ("No configuration file loaded.\n");
 
     if(s->connect_socket_names)
         init_connect_socket();

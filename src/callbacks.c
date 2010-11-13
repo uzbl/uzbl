@@ -6,7 +6,7 @@
 #include "uzbl-core.h"
 #include "callbacks.h"
 #include "events.h"
-
+#include "util.h"
 
 void
 set_proxy_url() {

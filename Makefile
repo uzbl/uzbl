@@ -3,14 +3,14 @@
 CFLAGS:=-std=c99 $(shell pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0 glib-2.0) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -lgthread-2.0 -DCOMMIT="\"$(shell ./misc/hash.sh)\"" $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
 CFLAGS!=echo -std=c99 `pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0 glib-2.0` -ggdb -Wall -W -DARCH='"\""'`uname -m`'"\""' -lgthread-2.0 -DCOMMIT='"\""'`./misc/hash.sh`'"\""' $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
 
-LDFLAGS:=$(shell pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0 x11) -pthread $(LDFLAGS)
-LDFLAGS!=echo `pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0 x11` -pthread $(LDFLAGS)
+UZBL_LDFLAGS:=$(shell pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0 x11) -pthread $(LDFLAGS)
+UZBL_LDFLAGS!=echo `pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0 x11` -pthread $(LDFLAGS)
 
 SRC = $(wildcard src/*.c)
 HEAD = $(wildcard src/*.h)
 OBJ = $(foreach obj, $(SRC:.c=.o), $(notdir $(obj)))
 
-all: uzbl-browser
+all: uzbl-browser uzbl-cookie-manager
 
 VPATH:=src
 
@@ -21,10 +21,14 @@ VPATH:=src
 ${OBJ}: ${HEAD}
 
 uzbl-core: ${OBJ}
-	@echo -e "\n${CC} -o $@ ${OBJ} ${LDFLAGS}"
-	@${CC} -o $@ ${OBJ} ${LDFLAGS}
+	@echo -e "\n${CC} -o $@ ${OBJ} ${UZBL_LDFLAGS}"
+	@${CC} -o $@ ${OBJ} ${UZBL_LDFLAGS}
 
-uzbl-browser: uzbl-core
+uzbl-cookie-manager: examples/uzbl-cookie-manager.o src/util.o
+	@echo -e "\n${CC} -o $@ uzbl-cookie-manager.o util.o ${LDFLAGS} ${shell pkg-config --libs glib-2.0 libsoup-2.4}"
+	@${CC} -o $@ uzbl-cookie-manager.o util.o ${LDFLAGS} $(shell pkg-config --libs glib-2.0 libsoup-2.4)
+
+uzbl-browser: uzbl-core uzbl-cookie-manager
 
 # packagers, set DESTDIR to your "package directory" and PREFIX to the prefix you want to have on the end-user system
 # end-users who build from source: don't care about DESTDIR, update PREFIX if you want to
@@ -72,11 +76,13 @@ test-uzbl-browser-sandbox: uzbl-browser
 
 clean:
 	rm -f uzbl-core
+	rm -f uzbl-cookie-manager
 	rm -f uzbl-core.o
 	rm -f events.o
 	rm -f callbacks.o
 	rm -f inspector.o
 	rm -f cookie-jar.o
+	rm -f util.o
 	find ./examples/ -name "*.pyc" -delete
 	cd ./tests/; $(MAKE) clean
 	rm -rf ./sandbox/
@@ -105,9 +111,9 @@ install-uzbl-core: all install-dirs
 	rm $(INSTALLDIR)/share/uzbl/examples/config/config.bak
 	install -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
 
-install-uzbl-browser: install-dirs
+install-uzbl-browser: uzbl-cookie-manager install-dirs
 	install -m755 src/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
-	install -m755 examples/data/scripts/uzbl-cookie-daemon $(INSTALLDIR)/bin/uzbl-cookie-daemon
+	install -m755 uzbl-cookie-manager $(INSTALLDIR)/bin/uzbl-cookie-manager
 	install -m755 examples/data/scripts/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
 	mv $(INSTALLDIR)/bin/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser.bak
 	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < $(INSTALLDIR)/bin/uzbl-browser.bak > $(INSTALLDIR)/bin/uzbl-browser
