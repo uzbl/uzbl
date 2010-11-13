@@ -69,6 +69,7 @@ test-uzbl-browser-sandbox: uzbl-browser
 	source ./sandbox/env.sh && uzbl-cookie-manager -v &
 	source ./sandbox/env.sh && uzbl-event-manager restart -navv &
 	source ./sandbox/env.sh && uzbl-browser --uri http://www.uzbl.org --verbose
+	kill `cat ./sandbox/home/.cache/uzbl/cookie_daemon_socket.pid`
 	source ./sandbox/env.sh && uzbl-event-manager stop -ivv
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
