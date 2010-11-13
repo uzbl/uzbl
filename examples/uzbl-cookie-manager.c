@@ -13,6 +13,7 @@
 #include <sys/unistd.h>
 
 #include <sys/stat.h>
+#include <sys/file.h>
 #include <fcntl.h>
 #include <stdlib.h>
 
@@ -32,6 +33,9 @@ int verbose = 0;
 char cookie_buffer[MAX_COOKIE_LENGTH];
 
 int setup_socket(const char *cookied_socket_path) {
+  /* delete the cookie socket if it was left behind on a previous run */
+  unlink(cookied_socket_path);
+
   int socket_fd = socket(AF_UNIX, SOCK_SEQPACKET, 0);
 
   if(socket_fd < 0) {
@@ -201,6 +205,60 @@ void handle_request(SoupCookieJar *j, const char *buff, int len, int fd) {
     soup_uri_free(uri);
 }
 
+void
+wait_for_things_to_happen_and_then_do_things(SoupCookieJar* j, int cookie_socket) {
+  GArray *connections = g_array_new (FALSE, FALSE, sizeof (int));
+
+  while(1) {
+    unsigned int i;
+    int r;
+    fd_set fs;
+
+    int maxfd = cookie_socket;
+    FD_ZERO(&fs);
+    FD_SET(maxfd, &fs);
+
+    for(i = 0; i < connections->len; i++) {
+      int fd = g_array_index(connections, int, i);
+      if(fd > maxfd) maxfd = fd;
+      FD_SET(fd, &fs);
+    }
+
+    r = select(maxfd+1, &fs, NULL, NULL, NULL);
+    if(r < 0) {
+      fprintf(stderr, "select failed (%s)\n", strerror(errno));
+      continue;
+    }
+
+    if(FD_ISSET(cookie_socket, &fs)) {
+      /* handle new connection */
+      int fd = accept(cookie_socket, NULL, NULL);
+      g_array_append_val(connections, fd);
+      if(verbose) puts("got connection.");
+    }
+
+    for(i = 0; i < connections->len; i++) {
+      /* handle activity on a connection */
+      int fd = g_array_index(connections, int, i);
+      if(FD_ISSET(fd, &fs)) {
+        r = read(fd, cookie_buffer, MAX_COOKIE_LENGTH);
+        if(r < 0) {
+          fprintf(stderr, "read failed (%s)\n", strerror(errno));
+          continue;
+        } else if(r == 0) {
+          if(verbose) puts("client hung up.");
+          g_array_remove_index(connections, i);
+          i--; /* other elements in the array are moved down to fill the gap */
+          continue;
+        }
+        cookie_buffer[r] = 0;
+
+        handle_request(j, cookie_buffer, r, fd);
+      }
+    }
+  }
+}
+
 void usage(const char *progname) {
   printf("%s [-s socket-path] [-f cookies.txt] [-w whitelist-file] [-n] [-v]\n", progname);
   puts("\t-n\tdon't daemonise the process");
@@ -278,27 +336,25 @@ int main(int argc, char *argv[]) {
   if(!whitelist_path)
     whitelist_path      = g_strconcat(get_xdg_var(XDG[0]), "/uzbl/cookie_whitelist", NULL);
 
+  /* write out and lock the pid file.
+   * this ensures that only one uzbl-cookie-manager is running per-socket.
+   * (we should probably also lock the cookies.txt to prevent accidents...) */
   pid_file_path = g_strconcat(cookied_socket_path, ".pid", NULL);
-  int fd = open(pid_file_path, O_WRONLY|O_CREAT|O_EXCL, 0600);
-  if(fd < 0) {
-    if(errno == EEXIST)
-      fprintf(stderr, "pid file %s exists, exiting\n", pid_file_path);
-    else
-      fprintf(stderr, "couldn't open pid file %s (%s)\n", pid_file_path, strerror(errno));
+  int lockfd = open(pid_file_path, O_RDWR|O_CREAT, 0600);
+  if(lockfd < 0) {
+    fprintf(stderr, "couldn't open pid file %s (%s)\n", pid_file_path, strerror(errno));
     return 1;
   }
 
-  //grar grar grar
-  //fprintf(fd, "%d\n", getpid());
-  close(fd);
-
-  g_type_init();
-
-  SoupCookieJar *j = soup_cookie_jar_text_new(cookies_txt_path, FALSE);
-
-  int cookie_socket = setup_socket(cookied_socket_path);
-  if(cookie_socket < 0)
+  if(flock(lockfd, LOCK_EX|LOCK_NB) < 0) {
+    fprintf(stderr, "couldn't lock pid file %s (%s)\n", pid_file_path, strerror(errno));
+    fprintf(stderr, "uzbl-cookie-manager is probably already running\n");
     return 1;
+  }
+
+  gchar* pids = g_strdup_printf("%d\n", getpid());
+  write(lockfd, pids, strlen(pids));
+  g_free(pids);
 
   struct sigaction sa;
   sa.sa_handler = cleanup_after_signal;
@@ -314,56 +370,15 @@ int main(int argc, char *argv[]) {
     close(2);
   }
 
-  GArray *connections = g_array_new (FALSE, FALSE, sizeof (int));
+  g_type_init();
 
-  while(1) {
-    unsigned int i;
-    int r;
-    fd_set fs;
+  SoupCookieJar *j = soup_cookie_jar_text_new(cookies_txt_path, FALSE);
 
-    int maxfd = cookie_socket;
-    FD_ZERO(&fs);
-    FD_SET(maxfd, &fs);
+  int cookie_socket = setup_socket(cookied_socket_path);
+  if(cookie_socket < 0)
+    return 1;
 
-    for(i = 0; i < connections->len; i++) {
-      int fd = g_array_index(connections, int, i);
-      if(fd > maxfd) maxfd = fd;
-      FD_SET(fd, &fs);
-    }
-
-    r = select(maxfd+1, &fs, NULL, NULL, NULL);
-    if(r < 0) {
-      fprintf(stderr, "select failed (%s)\n", strerror(errno));
-      continue;
-    }
-
-    if(FD_ISSET(cookie_socket, &fs)) {
-      /* handle new connection */
-      int fd = accept(cookie_socket, NULL, NULL);
-      g_array_append_val(connections, fd);
-      if(verbose) puts("got connection.");
-    }
-
-    for(i = 0; i < connections->len; i++) {
-      /* handle activity on a connection */
-      int fd = g_array_index(connections, int, i);
-      if(FD_ISSET(fd, &fs)) {
-        r = read(fd, cookie_buffer, MAX_COOKIE_LENGTH);
-        if(r < 0) {
-          fprintf(stderr, "read failed (%s)\n", strerror(errno));
-          continue;
-        } else if(r == 0) {
-          if(verbose) puts("client hung up.");
-          g_array_remove_index(connections, i);
-          i--; /* other elements in the array are moved down to fill the gap */
-          continue;
-        }
-        cookie_buffer[r] = 0;
-
-        handle_request(j, cookie_buffer, r, fd);
-      }
-    }
-  }
+  wait_for_things_to_happen_and_then_do_things(j, cookie_socket);
 
   return 0;
 }
