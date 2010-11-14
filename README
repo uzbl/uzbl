@@ -337,6 +337,7 @@ file).
 * `fantasy_font_family`: The default Fantasy font family used to display text.
 * `monospace_size`: The default size of monospaced font (default 1).
 * `minimum_font_size`: The minimum font size used to display text (default 1).
+* `disable_pagecache`: Disable the webkit pagecache (uses less memory but has to rerender pages when you go back or forward in history) (default 0).
 * `disable_plugins`: Disable embedded plugin objects (default 0).
 * `disable_scripts`: Disable embedded scripting languages (default 0).
 * `autoload_images`: Automatically load images (default 1).
