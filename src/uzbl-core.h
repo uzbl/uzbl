@@ -146,6 +146,7 @@ typedef struct {
     guint    minimum_font_size;
     gfloat   zoom_level;
     gboolean zoom_type;
+    guint    disable_pagecache;
     guint    disable_plugins;
     guint    disable_scripts;
     guint    autoload_img;
