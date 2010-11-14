@@ -1854,26 +1854,27 @@ void
 update_title (void) {
     Behaviour *b = &uzbl.behave;
     gchar *parsed;
+    const gchar *current_title;
+    /* this check is here because if we're starting up or shutting down it might not be a window */
+    gboolean have_main_window = !uzbl.state.plug_mode && GTK_IS_WINDOW(uzbl.gui.main_window);
 
-    if(!GTK_IS_WINDOW(uzbl.gui.main_window))
-      return; /* we're just starting up or just shutting down. */
-
-    const gchar *current_title = gtk_window_get_title (GTK_WINDOW(uzbl.gui.main_window));
+    if(have_main_window)
+        current_title = gtk_window_get_title (GTK_WINDOW(uzbl.gui.main_window));
 
     if (b->show_status) {
-        if (b->title_format_short && uzbl.gui.main_window) {
+        if (b->title_format_short && have_main_window) {
             parsed = expand(b->title_format_short, 0);
             if(!current_title || strcmp(current_title, parsed))
                 gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
             g_free(parsed);
         }
-        if (b->status_format) {
+        if (b->status_format && GTK_IS_LABEL(uzbl.gui.mainbar_label)) {
             parsed = expand(b->status_format, 0);
             gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), parsed);
             g_free(parsed);
         }
     } else {
-        if (b->title_format_long && uzbl.gui.main_window) {
+        if (b->title_format_long && have_main_window) {
             parsed = expand(b->title_format_long, 0);
             if(!current_title || strcmp(current_title, parsed))
                 gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
