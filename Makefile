@@ -74,6 +74,19 @@ test-uzbl-browser-sandbox: uzbl-browser
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
+test-uzbl-tabbed-sandbox: uzbl-browser
+	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-core
+	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-browser
+	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
+	cp -np ./misc/env.sh ./sandbox/env.sh
+	source ./sandbox/env.sh && uzbl-cookie-manager -v &
+	source ./sandbox/env.sh && uzbl-event-manager restart -navv &
+	source ./sandbox/env.sh && ./sandbox/home/.local/share/uzbl/scripts/uzbl-tabbed
+	kill `cat ./sandbox/home/.cache/uzbl/cookie_daemon_socket.pid`
+	source ./sandbox/env.sh && uzbl-event-manager stop -ivv
+	make DESTDIR=./sandbox uninstall
+	rm -rf ./sandbox/usr
+
 clean:
 	rm -f uzbl-core
 	rm -f uzbl-cookie-manager
