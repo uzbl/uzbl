@@ -62,7 +62,7 @@ void
 cmd_set_zoom_type();
 
 void
-cmd_disable_pagecache();
+cmd_enable_pagecache();
 
 void
 cmd_disable_plugins();

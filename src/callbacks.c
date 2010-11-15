@@ -195,9 +195,9 @@ cmd_zoom_level() {
 }
 
 void
-cmd_disable_pagecache() {
+cmd_enable_pagecache() {
     g_object_set (G_OBJECT(view_settings()), "enable-page-cache",
-            !uzbl.behave.disable_pagecache, NULL);
+            uzbl.behave.enable_pagecache, NULL);
 }
 
 void
