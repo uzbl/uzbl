@@ -3,9 +3,9 @@
 DMENU_SCHEME="history"
 DMENU_OPTIONS="xmms vertical resize"
 
-source $UZBL_UTIL_DIR/dmenu.sh
-source $UZBL_UTIL_DIR/uzbl-args.sh
-source $UZBL_UTIL_DIR/uzbl-dir.sh
+. $UZBL_UTIL_DIR/dmenu.sh
+. $UZBL_UTIL_DIR/uzbl-args.sh
+. $UZBL_UTIL_DIR/uzbl-dir.sh
 
 [ -r "$UZBL_HISTORY_FILE" ] || exit 1
 

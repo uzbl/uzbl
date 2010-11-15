@@ -2,8 +2,8 @@
 # just an example of how you could handle your downloads
 # try some pattern matching on the uri to determine what we should do
 
-source $UZBL_UTIL_DIR/uzbl-args.sh
-source $UZBL_UTIL_DIR/uzbl-dir.sh
+. $UZBL_UTIL_DIR/uzbl-args.sh
+. $UZBL_UTIL_DIR/uzbl-dir.sh
 
 # Some sites block the default wget --user-agent..
 GET="wget --user-agent=Firefox --content-disposition --load-cookies=$UZBL_COOKIE_JAR"

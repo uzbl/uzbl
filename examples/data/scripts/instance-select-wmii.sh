@@ -13,7 +13,7 @@
 
 DMENU_SCHEME="wmii"
 
-source $UZBL_UTIL_DIR/dmenu.sh
+. $UZBL_UTIL_DIR/dmenu.sh
 
 case "$1" in
     "list" )

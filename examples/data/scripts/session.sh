@@ -8,8 +8,8 @@
 # and doesn't need to be called manually at any point.
 # Add a line like 'bind quit = /path/to/session.sh endsession' to your config
 
-source $UZBL_UTIL_DIR/uzbl-args.sh
-source $UZBL_UTIL_DIR/uzbl-dir.sh
+. $UZBL_UTIL_DIR/uzbl-args.sh
+. $UZBL_UTIL_DIR/uzbl-dir.sh
 
 [ -d $UZBL_DATA_DIR ] || exit 1
 

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-source $UZBL_UTIL_DIR/uzbl-dir.sh
+. $UZBL_UTIL_DIR/uzbl-dir.sh
 
 [ -w "$UZBL_HISTORY_FILE" ] || exit 1
 
