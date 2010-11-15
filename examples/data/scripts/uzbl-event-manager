@@ -825,7 +825,7 @@ if __name__ == "__main__":
 
     add('-n', '--no-daemon',
         dest='daemon_mode', action='store_false', default=True,
-        help='daemonize the process')
+        help='do not daemonize the process')
 
     add('-a', '--auto-close',
         dest='auto_close', action='store_true', default=False,
