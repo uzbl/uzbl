@@ -158,7 +158,7 @@ import atexit
 import types
 
 from gobject import io_add_watch, source_remove, timeout_add, IO_IN, IO_HUP
-from signal import signal, SIGTERM, SIGINT, SIGCHLD
+from signal import signal, SIGTERM, SIGINT
 from optparse import OptionParser, OptionGroup
 from traceback import print_exc
 
@@ -536,7 +536,6 @@ class UzblTabbed:
         self._timers = {}
         self._buffer = ""
         self._killed = False
-        self._processes = []
 
         # A list of the recently closed tabs
         self._closed = []
@@ -656,9 +655,6 @@ class UzblTabbed:
         # Catch keyboard interrupts
         signal(SIGINT, lambda signum, stack_frame: self.terminate(SIGINT))
 
-        # Catch SIGCHLD
-        signal(SIGCHLD, lambda signum, stack_frame: self.join_children())
-
         try:
             gtk.main()
 
@@ -677,15 +673,6 @@ class UzblTabbed:
             time.sleep(1)
 
             raise
-
-
-    def join_children(self):
-        '''Find and remove zombie children processes.'''
-
-        for p in self._processes:
-            if p.poll() is not None:
-                self._processes.remove(p)
-
 
     def terminate(self, termsig=None):
         '''Handle termination signals and exit safely and cleanly.'''
@@ -1017,7 +1004,7 @@ class UzblTabbed:
 
         cmd = ['uzbl-browser', '-n', name, '-s', str(sid),
                '--connect-socket', self.socket_path, '--uri', uri]
-        self._processes += [subprocess.Popen(cmd)] # TODO: do i need close_fds=True ?
+        gobject.spawn_async(cmd, flags=gobject.SPAWN_SEARCH_PATH)
 
         uzbl = UzblInstance(self, tab, name, uri, title, switch)
         SocketClient.instances_queue[name] = uzbl
