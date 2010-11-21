@@ -127,29 +127,19 @@ function clickElem(item) {
     removeAllHints();
     if (item) {
         var name = item.tagName;
-        if (name == 'A') {
+        if (name == 'BUTTON') {
             item.click();
-            window.location = item.href;
-			return "XXXRESET_MODEXXX";
         } else if (name == 'INPUT') {
-	    var type;
-	    try {
-              type = item.getAttribute('type').toUpperCase();
-	    } catch(err) {
-	      type = 'TEXT';
-	    }
+            var type = item.type.toUpperCase();
             if (type == 'TEXT' || type == 'SEARCH' || type == 'PASSWORD') {
                 item.focus();
                 item.select();
-                return "XXXEMIT_FORM_ACTIVEXXX";
             } else {
                 item.click();
-                return "XXXRESET_MODEXXX";
             }
         } else if (name == 'TEXTAREA' || name == 'SELECT') {
             item.focus();
             item.select();
-            return "XXXEMIT_FORM_ACTIVEXXX";
         } else {
             item.click();
             window.location = item.href;
@@ -175,7 +165,7 @@ function addFormElems() {
     for (var f = 0; f < forms.length; f++) {
         for (var e = 0; e < forms[f].elements.length; e++) {
             var el = forms[f].elements[e];
-            if (el && ['INPUT', 'TEXTAREA', 'SELECT'].indexOf(el.tagName) + 1 && isVisible(el) && elementInViewport(el)) {
+            if (el && ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].indexOf(el.tagName) + 1 && isVisible(el) && elementInViewport(el)) {
                 res[0].push(el);
             }
         }
