@@ -10,6 +10,8 @@
 # But this shouldn't cause much problems..
 
 PREFIX=/usr/local
+EXAMPLES=$PREFIX/share/uzbl/examples
+
 if [ -z "$XDG_DATA_HOME" ]
 then
 	export XDG_DATA_HOME=$HOME/.local/share
@@ -40,11 +42,25 @@ done
 # if no config exists yet in the recommended location, put the default (recommended) config there
 if [ ! -f $XDG_CONFIG_HOME/uzbl/config ]
 then
-	if ! cp $PREFIX/share/uzbl/examples/config/config $XDG_CONFIG_HOME/uzbl/config
+	if ! cp "$EXAMPLES"/config/config $XDG_CONFIG_HOME/uzbl/config
 	then
 		echo "Could not copy default config to $XDG_CONFIG_HOME/uzbl/config" >&2
 		exit 3
 	fi
+fi
+
+# this variable is used by the default helper scripts as a location to
+# load shared code from
+if [ -z "$UZBL_UTIL_DIR" ]
+then
+	if [ -d "$XDG_DATA_HOME"/uzbl/scripts/util ]
+	then
+		UZBL_UTIL_DIR=$XDG_DATA_HOME/uzbl/scripts/util
+	elif [ -d $EXAMPLES/data/scripts/util ]
+	then
+		UZBL_UTIL_DIR=$EXAMPLES/data/scripts/util
+	fi
+	export UZBL_UTIL_DIR
 fi
 
 # Uncomment this for a slight speedup at the expense of not having
