@@ -1209,29 +1209,6 @@ sharg_append(GArray *a, const gchar *str) {
     g_array_append_val(a, s);
 }
 
-gboolean
-uzbl_setup_environ() {
-    gchar *util_dirs = expand("@scripts_util_dir", 0);
-    gchar *util_dir = NULL;
-    gboolean succeed = FALSE;
-
-    if(!util_dirs) {
-        g_free(util_dirs);
-        return succeed;
-    }
-
-    if(!(util_dir = find_existing_file(util_dirs))) {
-        g_free(util_dirs);
-        return succeed;
-    }
-
-    succeed = g_setenv("UZBL_UTIL_DIR", util_dir, TRUE);
-
-    g_free(util_dirs);
-    g_free(util_dir);
-    return succeed;
-}
-
 // make sure that the args string you pass can properly be interpreted (eg properly escaped against whitespace, quotes etc)
 gboolean
 run_command (const gchar *command, const guint npre, const gchar **args,
@@ -1243,7 +1220,6 @@ run_command (const gchar *command, const guint npre, const gchar **args,
     gchar *pid = itos(getpid());
     gchar *xwin = itos(uzbl.xwin);
     guint i;
-    gboolean environ_set = uzbl_setup_environ();
 
     sharg_append(a, command);
     for (i = 0; i < npre; i++) /* add n args before the default vars */
@@ -1282,9 +1258,6 @@ run_command (const gchar *command, const guint npre, const gchar **args,
         if(output_stdout) {
             printf("Stdout: %s\n", *output_stdout);
         }
-    }
-    if (!environ_set) {
-        g_printerr("failed to set the environment for scripts");
     }
     if (err) {
         g_printerr("error on run_command: %s\n", err->message);
