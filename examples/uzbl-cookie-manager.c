@@ -321,9 +321,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  if(verbose)
-    foreground = TRUE;
-
   if(!foreground)
     daemonise();
 
