@@ -52,18 +52,19 @@ then
 	fi
 fi
 
-# uzbl-cookie-manager will exit if another instance is already running
-uzbl-cookie-manager
-
-DAEMON_SOCKET=$XDG_CACHE_HOME/uzbl/event_daemon
-DAEMON_PID=${DAEMON_SOCKET}.pid
-
-# uzbl-event-manager will exit if one is already running, but you could
-# check if the pid file exists here to avoid having to spawn it for a
-# slight speedup
-#if [ -f "$DAEMON_PID" ]
+# uzbl-cookie-manager will exit if another instance is already running.
+# we could also check if its pid file exists to avoid having to spawn it.
+#if [ ! -f "$XDG_CACHE_HOME"/uzbl/cookie_daemon_socket.pid ]
 #then
-	uzbl-event-manager -va start
+	${UZBL_COOKIE_DAEMON:-uzbl-cookie-manager}
+#fi
+
+# uzbl-event-manager will exit if one is already running.
+# we could also check if its pid file exists to avoid having to spawn it.
+DAEMON_SOCKET="$XDG_CACHE_HOME"/uzbl/event_daemon
+#if [ ! -f "$DAEMON_SOCKET".pid ]
+#then
+	${UZBL_EVENT_MANAGER:-uzbl-event-manager -va start}
 #fi
 
 exec uzbl-core "$@" $config --connect-socket $DAEMON_SOCKET
