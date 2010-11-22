@@ -3,7 +3,7 @@
 source $UZBL_UTIL_DIR/uzbl-dir.sh
 
 [ -d "$UZBL_DATA_DIR" ] || exit 1
-[ -w "$UZBL_BOOKMARKS_FILE" ] || exit 1
+[ -w "$UZBL_BOOKMARKS_FILE" ] || [ ! -a "$UZBL_BOOKMARKS_FILE" ] || exit 1
 
 which zenity &>/dev/null || exit 2
 # replace tabs, they are pointless in titles and we want to use tabs as delimiter.
