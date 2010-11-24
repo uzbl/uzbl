@@ -26,11 +26,13 @@ In alphabetical order:
     Andrea Marchesini <baku@ippolita.net> - resource-request-starting
     Andy Spencer - security fixes
     Barak A. Pearlmutter - typo fix
+    Ben Boeckel (mathstuf) - added scroll events, refactored the default shell scripts
     Brendan Taylor (bct) - various bugfixes, making misc variables much better using expand(), refactoring some internal var stuff
     Cedric Staub - Javascript cookies
     Chris Mason - code snippets such as basic cookie handler
     Chris van Dijk (quigybo) - work on uzbl-tabbed
     Ciprian Dorin, Craciun - patches
+    Daiki Ueno (ueno)  - fix for crash when opening image in new window
     Damien Leon - misc
     Daniel M. Hackney - documentation cleanups
     David Keijser - various C and python patches.
@@ -49,6 +51,7 @@ In alphabetical order:
     James S Wheaton (uranther) - zoom level, test framework
     Jan Kolkmeier (jouz) - scrolling, link following
     Jason Woofenden (JasonWoof) - geometry=maximized, link following
+    Lars-Dominik Braun (PromyLOPh) - added ability to enable/disable the webkit page cache
     Laurence Withers (lwithers) - talk_to_socket
     Luca Bruno <lucab@debian.org> - bashims fixes
     Mark Nevill - misc patches
@@ -56,6 +59,7 @@ In alphabetical order:
     Matthew Bauer <mjbauer95@gmail.com> - userscripts
     Maximilian Gaß (mxey) - several small patches
     Michael Fiano (axionix) - added cookie_daemon.py whitelist
+    Michael Raskin - added show_inspector command
     Michael Walker (Barrucadu) <mike AT barrucadu.co.uk> - contributions to early uzbl
     Moritz Lenz - small doc fix
     Nicolas Pouillard - refactored scroll command
