@@ -1,32 +1,43 @@
 #!/bin/sh
+#
+# Very simple session manager for uzbl-browser.
+# To use, add a line like 'bind quit = spawn @scripts_dir/session.sh endsession'
+# to your config.
+# To restore the session, run this script with the argument "launch". An
+# instance of uzbl-browser will be launched for each stored url.
+#
+# When called with "endsession" as the argument, it will backup
+# $UZBL_SESSION_FILE, look for fifos in $UZBL_FIFO_DIR and instruct each of them
+# to store its current url in $UZBL_SESSION_FILE and terminate.
+#
+# "endinstance" is used internally and doesn't need to be called manually.
 
-# Very simple session manager for uzbl-browser.  When called with "endsession" as the
-# argument, it'll backup $sessionfile, look for fifos in $fifodir and
-# instruct each of them to store their current url in $sessionfile and
-# terminate themselves.  Run with "launch" as the argument and an instance of
-# uzbl-browser will be launched for each stored url.  "endinstance" is used internally
-# and doesn't need to be called manually at any point.
-# Add a line like 'bind quit = /path/to/session.sh endsession' to your config
+if [ -z "$UZBL_UTIL_DIR" ]; then
+    # we're being run standalone, we have to figure out where $UZBL_UTIL_DIR is
+    # using the same logic as uzbl-browser does.
+    UZBL_UTIL_DIR=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/scripts/util
+    if ! [ -d "$UZBL_UTIL_DIR" ]; then
+        PREFIX=$(grep '^PREFIX' "$(which uzbl-browser)" | sed 's/.*=//')
+        UZBL_UTIL_DIR=$PREFIX/share/uzbl/examples/data/scripts/util
+    fi
+fi
 
-source $UZBL_UTIL_DIR/uzbl-args.sh
-source $UZBL_UTIL_DIR/uzbl-dir.sh
+. "$UZBL_UTIL_DIR"/uzbl-dir.sh
+[ -d "$UZBL_DATA_DIR" ] || exit 1
 
-[ -d $UZBL_DATA_DIR ] || exit 1
-
-scriptfile=$0                            # this script
 UZBL="uzbl-browser -c $UZBL_CONFIG_FILE" # add custom flags and whatever here.
 
-act="$1"
-
-# Test if we were run alone or from uzbl
-if [ -z "$UZBL_SOCKET" ]; then
-    # Take the old config
-    act="$UZBL_CONFIG"
+if [ $# -gt 1 ]; then
+    # this script is being run from uzbl, rather than standalone
+    . "$UZBL_UTIL_DIR"/uzbl-args.sh
 fi
+
+scriptfile=$0                            # this script
+act="$1"
 
 case $act in
     "launch" )
-        urls=$(cat $UZBL_SESSION_FILE)
+        urls=$(cat "$UZBL_SESSION_FILE")
         if [ -z "$urls" ]; then
             $UZBL
         else
@@ -35,28 +46,25 @@ case $act in
                 disown
             done
         fi
-        exit 0
         ;;
 
     "endinstance" )
-        if [ -z "$UZBL_SOCKET" ]; then
+        if [ -z "$UZBL_FIFO" ]; then
             echo "session manager: endinstance must be called from uzbl"
             exit 1
         fi
-        if [ ! "$UZBL_URL" = "(null)" ]; then
-            echo "$UZBL_URL" >> $UZBL_SESSION_FILE
-        fi
-        echo "exit" | socat - unix-connect:$UZBL_SOCKET
+        [ "$UZBL_URL" != "(null)" ] && echo "$UZBL_URL" >> "$UZBL_SESSION_FILE"
+        echo exit > "$UZBL_FIFO"
         ;;
 
     "endsession" )
         mv "$UZBL_SESSION_FILE" "$UZBL_SESSION_FILE~"
-        for sock in $UZBL_SOCKET_DIR/uzbl_fifo_*; do
-            if [ "$sock" != "$UZBL_SOCKET" ]; then
-                echo "spawn $scriptfile endinstance" | socat - unix-connect:$socket
+        for fifo in "$UZBL_FIFO_DIR"/uzbl_fifo_*; do
+            if [ "$fifo" != "$UZBL_FIFO" ]; then
+                echo "spawn $scriptfile endinstance" > "$fifo"
             fi
         done
-        echo "spawn $scriptfile endinstance" | socat - unix-connect:$UZBL_SOCKET
+        echo "spawn $scriptfile endinstance" > "$UZBL_FIFO"
         ;;
 
     * )
