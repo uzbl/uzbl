@@ -6,7 +6,7 @@
 [ -d "$UZBL_DATA_DIR" ] || exit 1
 [ -w "$UZBL_BOOKMARKS_FILE" ] || [ ! -a "$UZBL_BOOKMARKS_FILE" ] || exit 1
 
-which zenity 2>&1 >/dev/null || exit 2
+which zenity >/dev/null 2>&1 || exit 2
 
 tags=$(zenity --entry --text="Enter space-separated tags for bookmark $UZBL_URL:")
 exitstatus=$?
