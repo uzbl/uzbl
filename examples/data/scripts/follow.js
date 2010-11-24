@@ -119,30 +119,37 @@ function generateHint(el, label) {
     // hint.style.webkitTransform = 'scale(1) rotate(0deg) translate(-6px,-5px)';
     return hint;
 }
-//Here we choose what to do with an element if we
-//want to "follow" it. On form elements we "select"
-//or pass the focus, on links we try to perform a click,
-//but at least set the href of the link. (needs some improvements)
+
+// Here we choose what to do with an element that the user has selected.
+// Form elements get selected and/or focussed, and links and buttons are
+// clicked. This function returns "XXXRESET_MODEXXX" to indicate that uzbl
+// should be reset to command mode with an empty keycmd, or
+// "XXX_EMIT_FORM_ACTIVEXXX" to indicate that uzbl should be set to insert mode.
 function clickElem(item) {
     removeAllHints();
     if (item) {
         var name = item.tagName;
         if (name == 'BUTTON') {
             item.click();
+            return "XXXRESET_MODEXXX";
         } else if (name == 'INPUT') {
             var type = item.type.toUpperCase();
             if (type == 'TEXT' || type == 'SEARCH' || type == 'PASSWORD') {
                 item.focus();
                 item.select();
+                return "XXXEMIT_FORM_ACTIVEXXX";
             } else {
                 item.click();
+                return "XXXRESET_MODEXXX";
             }
         } else if (name == 'TEXTAREA' || name == 'SELECT') {
             item.focus();
             item.select();
+            return "XXXEMIT_FORM_ACTIVEXXX";
         } else {
             item.click();
             window.location = item.href;
+            return "XXXRESET_MODEXXX";
         }
     }
 }
