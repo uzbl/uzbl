@@ -47,7 +47,7 @@ set authentication_handler = sync_spawn @scripts_dir/auth.py
 # === Dynamic event handlers =================================================
 
 # Open link in new window
-@on_event   NEW_WINDOW     sh 'uzbl-browser -u "$8"' %r
+@on_event   NEW_WINDOW     sh 'uzbl-browser ${8:+-u "$8"}' %r
 # Open in current window
 #@on_event   NEW_WINDOW     uri %s
 # Open in new tab
@@ -188,6 +188,9 @@ set ebind     = @mode_bind global,-insert
 # With this command you can enter in any command at runtime when prefixed with
 # a colon.
 @cbind    :_        = %s
+
+# open a new window or a new tab (see the on_event NEW_WINDOW settings above)
+@cbind  w            = event NEW_WINDOW
 
 # Page movement binds
 @cbind  j            = scroll vertical 20
