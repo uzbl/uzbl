@@ -3,3 +3,4 @@ uzbl-core
 *.pyc
 *~
 tags
+uzbl-cookie-manager
