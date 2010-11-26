@@ -32,8 +32,12 @@ if [ $# -gt 1 ]; then
     . "$UZBL_UTIL_DIR"/uzbl-args.sh
 fi
 
-scriptfile=$0                            # this script
+scriptfile=$(readlink -f $0)                            # this script
 act="$1"
+
+if [ -z "$act" ]; then
+  [ -f "$UZBL_SESSION_FILE" ] && act="launch" || act="endsession"
+fi
 
 case $act in
     "launch" )
@@ -45,6 +49,7 @@ case $act in
                 $UZBL --uri "$url" &
                 disown
             done
+        mv "$UZBL_SESSION_FILE" "$UZBL_SESSION_FILE~"
         fi
         ;;
 
@@ -58,13 +63,12 @@ case $act in
         ;;
 
     "endsession" )
-        mv "$UZBL_SESSION_FILE" "$UZBL_SESSION_FILE~"
         for fifo in "$UZBL_FIFO_DIR"/uzbl_fifo_*; do
             if [ "$fifo" != "$UZBL_FIFO" ]; then
                 echo "spawn $scriptfile endinstance" > "$fifo"
             fi
         done
-        echo "spawn $scriptfile endinstance" > "$UZBL_FIFO"
+        [ -z "$UZBL_FIFO" ] || echo "spawn $scriptfile endinstance" > "$UZBL_FIFO"
         ;;
 
     * )
