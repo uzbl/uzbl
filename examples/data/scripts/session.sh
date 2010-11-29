@@ -1,14 +1,17 @@
 #!/bin/sh
 #
 # Very simple session manager for uzbl-browser.
-# To use, add a line like 'bind quit = spawn @scripts_dir/session.sh endsession'
-# to your config.
-# To restore the session, run this script with the argument "launch". An
-# instance of uzbl-browser will be launched for each stored url.
+# To use, add a line like 'bind quit = spawn @scripts_dir/session.sh' to your
+# config. This binding will exit every instance of uzbl and store the URLs they
+# had open in $UZBL_SESSION_FILE.
 #
-# When called with "endsession" as the argument, it will backup
-# $UZBL_SESSION_FILE, look for fifos in $UZBL_FIFO_DIR and instruct each of them
-# to store its current url in $UZBL_SESSION_FILE and terminate.
+# When a session file exists this script can be run with no arguments (or the
+# argument "launch") to start an instance of uzbl-browser for every stored url.
+#
+# If no session file exists (or if called with "endsession" as the first
+# argument), this script looks for instances of uzbl that have fifos in
+# $UZBL_FIFO_DIR and instructs each of them to store its current url in
+# $UZBL_SESSION_FILE and terminate.
 #
 # "endinstance" is used internally and doesn't need to be called manually.
 
