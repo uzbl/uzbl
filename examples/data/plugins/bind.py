@@ -421,7 +421,8 @@ def match_and_exec(uzbl, bind, depth, keylet, bindlet):
     if not has_args or on_exec:
         del uzbl.config['mode']
         bindlet.reset()
-        uzbl.clear_current()
+        # cleared by keycmd_exec_current, why is this here? breaks history
+        #uzbl.clear_current()
 
     return True
 
