@@ -267,13 +267,13 @@ set ebind     = @mode_bind global,-insert
 @cbind  gh  = uri http://www.uzbl.org
 
 # Yanking & pasting binds
-@cbind  yu  = sh 'echo -n "$UZBL_URL" | xclip'
+@cbind  yu  = sh 'echo -n "$UZBL_URI" | xclip'
 @cbind  yU  = sh 'echo -n $8 | xclip' \@SELECTED_URI
 @cbind  yy  = sh 'echo -n "$UZBL_TITLE" | xclip'
 @cbind  yY  = sh 'echo -n $8 | xclip' \@SELECTED_URI
 
 # Clone current window
-@cbind  c   = sh 'uzbl-browser -u "$UZBL_URL"'
+@cbind  c   = sh 'uzbl-browser -u "$UZBL_URI"'
 # Go the page from primary selection
 @cbind  p   = sh 'echo "uri `xclip -selection primary -o | sed s/\\\@/%40/g`" > "$UZBL_FIFO"'
 # Go to the page in clipboard
@@ -284,7 +284,7 @@ set ebind     = @mode_bind global,-insert
 @bind <Shift-Insert> = sh 'echo "event INJECT_KEYCMD `xclip -o | sed s/\\\@/%40/g`" > "$UZBL_FIFO"'
 
 # Bookmark inserting binds
-@cbind <Ctrl>b<tags:>_  = sh 'echo `printf "$UZBL_URL %s"` >> "$XDG_DATA_HOME"/uzbl/bookmarks'
+@cbind <Ctrl>b<tags:>_  = sh 'echo `printf "$UZBL_URI %s"` >> "$XDG_DATA_HOME"/uzbl/bookmarks'
 # Or use a script to insert a bookmark.
 @cbind  B  = spawn @scripts_dir/insert_bookmark.sh
 
@@ -323,8 +323,8 @@ set formfiller = spawn @scripts_dir/formfiller.sh
 @cbind  gY              = sh 'echo "event NEW_TAB_NEXT `xclip -selection primary -o | sed s/\\\@/%40/g`" > "$UZBL_FIFO"'
 
 # Clone current tab
-@cbind  gd              = sh 'echo "event NEW_TAB $UZBL_URL" > "$UZBL_FIFO"'
-@cbind  gD              = sh 'echo "event NEW_TAB_NEXT $UZBL_URL" > "$UZBL_FIFO"'
+@cbind  gd              = sh 'echo "event NEW_TAB $UZBL_URI" > "$UZBL_FIFO"'
+@cbind  gD              = sh 'echo "event NEW_TAB_NEXT $UZBL_URI" > "$UZBL_FIFO"'
 
 # Closing / resting
 @cbind  gC              = exit

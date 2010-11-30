@@ -55,7 +55,7 @@ MODELINE="> vim:ft=formfiller"
 
 action=$1
 
-domain=$(echo $UZBL_URL | sed 's/\(http\|https\):\/\/\([^\/]\+\)\/.*/\2/')
+domain=$(echo $UZBL_URI | sed 's/\(http\|https\):\/\/\([^\/]\+\)\/.*/\2/')
 
 if [ "$action" != 'edit' -a  "$action" != 'new' -a "$action" != 'load' -a "$action" != 'add' -a "$action" != 'once' ]; then
     action="new"

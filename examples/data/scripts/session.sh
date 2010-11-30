@@ -54,7 +54,7 @@ case $act in
             echo "session manager: endinstance must be called from uzbl"
             exit 1
         fi
-        [ "$UZBL_URL" != "(null)" ] && echo "$UZBL_URL" >> "$UZBL_SESSION_FILE"
+        [ "$UZBL_URI" != "(null)" ] && echo "$UZBL_URI" >> "$UZBL_SESSION_FILE"
         echo exit > "$UZBL_FIFO"
         ;;
 
