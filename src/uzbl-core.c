@@ -1209,30 +1209,19 @@ sharg_append(GArray *a, const gchar *str) {
     g_array_append_val(a, s);
 }
 
-// make sure that the args string you pass can properly be interpreted (eg properly escaped against whitespace, quotes etc)
+/* make sure that the args string you pass can properly be interpreted (eg
+ * properly escaped against whitespace, quotes etc) */
 gboolean
-run_command (const gchar *command, const guint npre, const gchar **args,
-             const gboolean sync, char **output_stdout) {
-   //command <uzbl conf> <uzbl pid> <uzbl win id> <uzbl fifo file> <uzbl socket file> [args]
+run_command (const gchar *command, const gchar **args, const gboolean sync,
+             char **output_stdout) {
     GError *err = NULL;
 
     GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-    gchar *pid = itos(getpid());
-    gchar *xwin = itos(uzbl.xwin);
     guint i;
 
     sharg_append(a, command);
-    for (i = 0; i < npre; i++) /* add n args before the default vars */
-        sharg_append(a, args[i]);
-    sharg_append(a, uzbl.state.config_file);
-    sharg_append(a, pid);
-    sharg_append(a, xwin);
-    sharg_append(a, uzbl.comm.fifo_path);
-    sharg_append(a, uzbl.comm.socket_path);
-    sharg_append(a, uzbl.state.uri);
-    sharg_append(a, uzbl.gui.main_title);
 
-    for (i = npre; i < g_strv_length((gchar**)args); i++)
+    for (i = 0; i < g_strv_length((gchar**)args); i++)
         sharg_append(a, args[i]);
 
     gboolean result;
@@ -1263,8 +1252,6 @@ run_command (const gchar *command, const guint npre, const gchar **args,
         g_printerr("error on run_command: %s\n", err->message);
         g_error_free (err);
     }
-    g_free (pid);
-    g_free (xwin);
     g_array_free (a, TRUE);
     return result;
 }
@@ -1307,75 +1294,64 @@ split_quoted(const gchar* src, const gboolean unquote) {
 }
 
 void
-spawn(WebKitWebView *web_view, GArray *argv, GString *result) {
-    (void)web_view; (void)result;
+_spawn(GArray *argv, char **output_stdout) {
     gchar *path = NULL;
+    gchar *arg_car = argv_idx(argv, 0);
+    const gchar **arg_cdr = &g_array_index(argv, const gchar *, 1);
 
-    //TODO: allow more control over argument order so that users can have some arguments before the default ones from run_command, and some after
-    if (argv_idx(argv, 0) &&
-            ((path = find_existing_file(argv_idx(argv, 0)))) ) {
-        run_command(path, 0,
-                ((const gchar **) (argv->data + sizeof(gchar*))),
-                FALSE, NULL);
+    if (arg_car && (path = find_existing_file(arg_car))) {
+        run_command(path, arg_cdr, (output_stdout != NULL), output_stdout);
         g_free(path);
     }
+}
+
+void
+spawn(WebKitWebView *web_view, GArray *argv, GString *result) {
+    (void)web_view; (void)result;
+
+    _spawn(argv, NULL);
 }
 
 void
 spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
-    gchar *path = NULL;
 
-    if (argv_idx(argv, 0) &&
-            ((path = find_existing_file(argv_idx(argv, 0)))) ) {
-        run_command(path, 0,
-                ((const gchar **) (argv->data + sizeof(gchar*))),
-                    TRUE, &uzbl.comm.sync_stdout);
-        g_free(path);
+    _spawn(argv, &uzbl.comm.sync_stdout);
+}
+
+void
+_spawn_sh(GArray *argv, char **output_stdout) {
+    if (!uzbl.behave.shell_cmd) {
+        g_printerr ("spawn_sh: shell_cmd is not set!\n");
+        return;
     }
+    guint i;
+
+    gchar **cmd = split_quoted(uzbl.behave.shell_cmd, TRUE);
+    gchar *cmdname = g_strdup(cmd[0]);
+    g_array_insert_val(argv, 1, cmdname);
+
+    for (i = 1; i < g_strv_length(cmd); i++)
+        g_array_prepend_val(argv, cmd[i]);
+
+    if (cmd) run_command(cmd[0], (const gchar **) argv->data,
+                         (output_stdout != NULL), output_stdout);
+    g_free (cmdname);
+    g_strfreev (cmd);
 }
 
 void
 spawn_sh(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
-    if (!uzbl.behave.shell_cmd) {
-        g_printerr ("spawn_sh: shell_cmd is not set!\n");
-        return;
-    }
 
-    guint i;
-    gchar *spacer = g_strdup("");
-    g_array_insert_val(argv, 1, spacer);
-    gchar **cmd = split_quoted(uzbl.behave.shell_cmd, TRUE);
-
-    for (i = 1; i < g_strv_length(cmd); i++)
-        g_array_prepend_val(argv, cmd[i]);
-
-    if (cmd) run_command(cmd[0], g_strv_length(cmd) + 1, (const gchar **) argv->data, FALSE, NULL);
-    g_free (spacer);
-    g_strfreev (cmd);
+    _spawn_sh(argv, NULL);
 }
 
 void
 spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
-    if (!uzbl.behave.shell_cmd) {
-        g_printerr ("spawn_sh_sync: shell_cmd is not set!\n");
-        return;
-    }
 
-    guint i;
-    gchar *spacer = g_strdup("");
-    g_array_insert_val(argv, 1, spacer);
-    gchar **cmd = split_quoted(uzbl.behave.shell_cmd, TRUE);
-
-    for (i = 1; i < g_strv_length(cmd); i++)
-        g_array_prepend_val(argv, cmd[i]);
-
-    if (cmd) run_command(cmd[0], g_strv_length(cmd) + 1, (const gchar **) argv->data,
-                         TRUE, &uzbl.comm.sync_stdout);
-    g_free (spacer);
-    g_strfreev (cmd);
+    _spawn_sh(argv, &uzbl.comm.sync_stdout);
 }
 
 void

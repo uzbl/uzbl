@@ -47,7 +47,7 @@ set authentication_handler = sync_spawn @scripts_dir/auth.py
 # === Dynamic event handlers =================================================
 
 # Open link in new window
-@on_event   NEW_WINDOW     sh 'uzbl-browser ${8:+-u "$8"}' %r
+@on_event   NEW_WINDOW     sh 'uzbl-browser ${1:+-u "$1"}' %r
 # Open in current window
 #@on_event   NEW_WINDOW     uri %s
 # Open in new tab
@@ -181,7 +181,7 @@ set ebind     = @mode_bind global,-insert
 # --- Mouse bindings ---------------------------------------------------------
 
 # Middle click open in new window
-@bind  <Button2>  = sh 'if [ "$8" ]; then uzbl-browser -u "$8"; else echo "uri $(xclip -o | sed s/\\\@/%40/g)" > "$UZBL_FIFO"; fi' \@SELECTED_URI
+@bind  <Button2>  = sh 'if [ "$1" ]; then uzbl-browser -u "$1"; else echo "uri $(xclip -o | sed s/\\\@/%40/g)" > "$UZBL_FIFO"; fi' \@SELECTED_URI
 
 # --- Keyboard bindings ------------------------------------------------------
 
@@ -268,9 +268,9 @@ set ebind     = @mode_bind global,-insert
 
 # Yanking & pasting binds
 @cbind  yu  = sh 'echo -n "$UZBL_URI" | xclip'
-@cbind  yU  = sh 'echo -n $8 | xclip' \@SELECTED_URI
+@cbind  yU  = sh 'echo -n "$1" | xclip' \@SELECTED_URI
 @cbind  yy  = sh 'echo -n "$UZBL_TITLE" | xclip'
-@cbind  yY  = sh 'echo -n $8 | xclip' \@SELECTED_URI
+@cbind  yY  = sh 'echo -n "$1" | xclip' \@SELECTED_URI
 
 # Clone current window
 @cbind  c   = sh 'uzbl-browser -u "$UZBL_URI"'

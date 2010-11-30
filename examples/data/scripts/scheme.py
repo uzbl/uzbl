@@ -13,7 +13,7 @@ def detach_open(cmd):
     print 'USED'
 
 if __name__ == '__main__':
-    uri = sys.argv[8]
+    uri = sys.argv[1]
     u = urlparse.urlparse(uri)
     if u.scheme == 'mailto':
         detach_open(['xterm', '-e', 'mail', u.path])

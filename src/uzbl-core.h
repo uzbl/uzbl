@@ -262,8 +262,8 @@ void
 close_uzbl (WebKitWebView *page, GArray *argv, GString *result);
 
 gboolean
-run_command(const gchar *command, const guint npre,
-            const gchar **args, const gboolean sync, char **output_stdout);
+run_command(const gchar *command, const gchar **args, const gboolean sync,
+            char **output_stdout);
 
 void
 spawn(WebKitWebView *web_view, GArray *argv, GString *result);
