@@ -119,31 +119,37 @@ function generateHint(el, label) {
     // hint.style.webkitTransform = 'scale(1) rotate(0deg) translate(-6px,-5px)';
     return hint;
 }
-//Here we choose what to do with an element if we
-//want to "follow" it. On form elements we "select"
-//or pass the focus, on links we try to perform a click,
-//but at least set the href of the link. (needs some improvements)
+
+// Here we choose what to do with an element that the user has selected.
+// Form elements get selected and/or focussed, and links and buttons are
+// clicked. This function returns "XXXRESET_MODEXXX" to indicate that uzbl
+// should be reset to command mode with an empty keycmd, or
+// "XXX_EMIT_FORM_ACTIVEXXX" to indicate that uzbl should be set to insert mode.
 function clickElem(item) {
     removeAllHints();
     if (item) {
         var name = item.tagName;
-        if (name == 'A') {
+        if (name == 'BUTTON') {
             item.click();
-            window.location = item.href;
+            return "XXXRESET_MODEXXX";
         } else if (name == 'INPUT') {
-            var type = item.getAttribute('type').toUpperCase();
-            if (type == 'TEXT' || type == 'FILE' || type == 'PASSWORD') {
+            var type = item.type.toUpperCase();
+            if (type == 'TEXT' || type == 'SEARCH' || type == 'PASSWORD') {
                 item.focus();
                 item.select();
+                return "XXXEMIT_FORM_ACTIVEXXX";
             } else {
                 item.click();
+                return "XXXRESET_MODEXXX";
             }
         } else if (name == 'TEXTAREA' || name == 'SELECT') {
             item.focus();
             item.select();
+            return "XXXEMIT_FORM_ACTIVEXXX";
         } else {
             item.click();
             window.location = item.href;
+            return "XXXRESET_MODEXXX";
         }
     }
 }
@@ -166,7 +172,7 @@ function addFormElems() {
     for (var f = 0; f < forms.length; f++) {
         for (var e = 0; e < forms[f].elements.length; e++) {
             var el = forms[f].elements[e];
-            if (el && ['INPUT', 'TEXTAREA', 'SELECT'].indexOf(el.tagName) + 1 && isVisible(el) && elementInViewport(el)) {
+            if (el && ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].indexOf(el.tagName) + 1 && isVisible(el) && elementInViewport(el)) {
                 res[0].push(el);
             }
         }
@@ -193,38 +199,38 @@ function reDrawHints(elems, chars) {
 // pass: number of keys
 // returns: key length
 function labelLength(n) {
-	var oldn = n;
-	var keylen = 0;
-	if(n < 2) {
-		return 1;
-	}
-	n -= 1; // our highest key will be n-1
-	while(n) {
-		keylen += 1;
-		n = Math.floor(n / charset.length);
-	}
-	return keylen;
+    var oldn = n;
+    var keylen = 0;
+    if(n < 2) {
+        return 1;
+    }
+    n -= 1; // our highest key will be n-1
+    while(n) {
+        keylen += 1;
+        n = Math.floor(n / charset.length);
+    }
+    return keylen;
 }
 // pass: number
 // returns: label
 function intToLabel(n) {
-	var label = '';
-	do {
-		label = charset.charAt(n % charset.length) + label;
-		n = Math.floor(n / charset.length);
-	} while(n);
-	return label;
+    var label = '';
+    do {
+        label = charset.charAt(n % charset.length) + label;
+        n = Math.floor(n / charset.length);
+    } while(n);
+    return label;
 }
 // pass: label
 // returns: number
 function labelToInt(label) {
-	var n = 0;
-	var i;
-	for(i = 0; i < label.length; ++i) {
-		n *= charset.length;
-		n += charset.indexOf(label[i]);
-	}
-	return n;
+    var n = 0;
+    var i;
+    for(i = 0; i < label.length; ++i) {
+        n *= charset.length;
+        n += charset.indexOf(label[i]);
+    }
+    return n;
 }
 //Put it all together
 function followLinks(follow) {
@@ -242,7 +248,7 @@ function followLinks(follow) {
     var oldDiv = doc.getElementById(uzbldivid);
     var leftover = [[], []];
     if (s.length == len && linknr < elems[0].length && linknr >= 0) {
-        clickElem(elems[0][linknr]);
+        return clickElem(elems[0][linknr]);
     } else {
         for (var j = 0; j < elems[0].length; j++) {
             var b = true;

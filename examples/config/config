@@ -34,7 +34,7 @@ set set_mode        = set mode =
 set set_status      = set status_message =
 
 # Spawn path shortcuts. In spawn the first dir+path match is used in "dir1:dir2:dir3:executable"
-set scripts_dir     = $XDG_DATA_HOME/uzbl:@prefix/share/uzbl/examples/data:scripts
+set scripts_dir      = $XDG_DATA_HOME/uzbl:@prefix/share/uzbl/examples/data:scripts
 
 # === Hardcoded handlers =====================================================
 
@@ -47,7 +47,7 @@ set authentication_handler = sync_spawn @scripts_dir/auth.py
 # === Dynamic event handlers =================================================
 
 # Open link in new window
-@on_event   NEW_WINDOW     sh 'uzbl-browser -u "$8"' %r
+@on_event   NEW_WINDOW     sh 'uzbl-browser ${8:+-u "$8"}' %r
 # Open in current window
 #@on_event   NEW_WINDOW     uri %s
 # Open in new tab
@@ -64,6 +64,9 @@ set authentication_handler = sync_spawn @scripts_dir/auth.py
 # Load commit handlers
 @on_event   LOAD_COMMIT    @set_status <span foreground="green">recv</span>
 
+# Userscript support. Add all scripts to $XDG_DATA_HOME/uzbl/userscripts
+#@on_event   LOAD_COMMIT    spawn @scripts_dir/userscripts.sh
+
 # Load finish handlers
 @on_event   LOAD_FINISH    @set_status <span foreground="gold">done</span>
 @on_event   LOAD_FINISH    spawn @scripts_dir/history.sh
@@ -75,6 +78,9 @@ set authentication_handler = sync_spawn @scripts_dir/auth.py
 
 # Example CONFIG_CHANGED event handler
 #@on_event  CONFIG_CHANGED print Config changed: %1 = %2
+
+# Scroll percentage calculation
+@on_event   SCROLL_VERT    set scroll_message = \@<(function(){var a='%1'.split(' ');var p='--';if(a[2]!=a[1]){p=(a[0]/(a[2]-a[3]));p=Math.round(10000*p)/100;};return p+'%';})()>\@
 
 # === Behaviour and appearance ===============================================
 
@@ -121,6 +127,7 @@ set useragent         = Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}.@{WEBKIT_MI
 @modmap <Control>       <Ctrl>
 @modmap <ISO_Left_Tab>  <Shift-Tab>
 @modmap <space>         <Space>
+@modmap <KP_Enter>      <Enter>
 
 #modkey_addition <Key1>  <Key2>    <Result>
 @modkey_addition <Shift> <Ctrl>    <Meta>
@@ -130,6 +137,7 @@ set useragent         = Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}.@{WEBKIT_MI
 #ignore_key <glob>
 @ignore_key <ISO_*>
 @ignore_key <Shift>
+@ignore_key <Multi_key>
 
 # --- Bind aliases -----------------------------------------------------------
 
@@ -181,6 +189,9 @@ set ebind     = @mode_bind global,-insert
 # a colon.
 @cbind    :_        = %s
 
+# open a new window or a new tab (see the on_event NEW_WINDOW settings above)
+@cbind  w            = event NEW_WINDOW
+
 # Page movement binds
 @cbind  j            = scroll vertical 20
 @cbind  k            = scroll vertical -20
@@ -188,8 +199,12 @@ set ebind     = @mode_bind global,-insert
 @cbind  l            = scroll horizontal 20
 @cbind  <Page_Up>    = scroll vertical -100%
 @cbind  <Page_Down>  = scroll vertical 100%
+@cbind  <Ctrl>f      = scroll vertical 100%
+@cbind  <Ctrl>b      = scroll vertical -100%
 @cbind  <<           = scroll vertical begin
 @cbind  >>           = scroll vertical end
+@cbind  <Home>       = scroll vertical begin
+@cbind  <End>        = scroll vertical end
 @cbind  ^            = scroll horizontal begin
 @cbind  $            = scroll horizontal end
 @cbind  <Space>      = scroll vertical end
@@ -220,6 +235,7 @@ set ebind     = @mode_bind global,-insert
 
 # Web searching binds
 @cbind  gg<Google:>_         = uri http://www.google.com/search?q=\@<encodeURIComponent(%r)>\@
+@cbind  ddg<DuckDuckGo:>_    = uri http://duckduckgo.com/?q=%s
 @cbind  \\awiki<Archwiki:>_  = uri http://wiki.archlinux.org/index.php/Special:Search?search=\@<encodeURIComponent(%r)>\@&go=Go
 @cbind  \\wiki<Wikipedia:>_  = uri http://en.wikipedia.org/w/index.php?title=Special:Search&search=\@<encodeURIComponent(%r)>\@&go=Go
 
@@ -252,8 +268,12 @@ set ebind     = @mode_bind global,-insert
 
 # Yanking & pasting binds
 @cbind  yu  = sh 'echo -n $6 | xclip'
+@cbind  yU  = sh 'echo -n $8 | xclip' \@SELECTED_URI
 @cbind  yy  = sh 'echo -n $7 | xclip'
+@cbind  yY  = sh 'echo -n $8 | xclip' \@SELECTED_URI
 
+# Clone current window
+@cbind  c   = sh 'uzbl-browser -u $6'
 # Go the page from primary selection
 @cbind  p   = sh 'echo "uri `xclip -selection primary -o | sed s/\\\@/%40/g`" > $4'
 # Go to the page in clipboard
@@ -264,7 +284,7 @@ set ebind     = @mode_bind global,-insert
 @bind <Shift-Insert> = sh 'echo "event INJECT_KEYCMD `xclip -o | sed s/\\\@/%40/g`" > $4'
 
 # Bookmark inserting binds
-@cbind <Ctrl>b<tags:>_  = sh 'echo -e "$6 %s" >> $XDG_DATA_HOME/uzbl/bookmarks'
+@cbind <Ctrl>b<tags:>_  = sh 'echo `printf "$6 %s"` >> $XDG_DATA_HOME/uzbl/bookmarks'
 # Or use a script to insert a bookmark.
 @cbind  B  = spawn @scripts_dir/insert_bookmark.sh
 
@@ -278,7 +298,8 @@ set follow_hint_keys = 0123456789
 #set follow_hint_keys = qwerty
 #set follow_hint_keys = asdfghjkl;
 #set follow_hint_keys = thsnd-rcgmvwb/;789aefijkopquxyz234
-@cbind  fl*  = script @scripts_dir/follow.js '@follow_hint_keys %s'
+@cbind  fl*  = spawn @scripts_dir/follow.sh "%s"
+@cbind  gi   = spawn @scripts_dir/go_input.sh
 
 # Form filler binds
 # This script allows you to configure (per domain) values to fill in form
@@ -298,7 +319,12 @@ set formfiller = spawn @scripts_dir/formfiller.sh
 @cbind  gN              = event NEW_TAB_NEXT
 @cbind  go<uri:>_       = event NEW_TAB %s
 @cbind  gO<uri:>_       = event NEW_TAB_NEXT %s
-@cbind  gY              = sh 'echo "event NEW_TAB `xclip -selection primary -o | sed s/\\\@/%40/g`" > $4'
+@cbind  gy              = sh 'echo "event NEW_TAB `xclip -selection primary -o | sed s/\\\@/%40/g`" > $4'
+@cbind  gY              = sh 'echo "event NEW_TAB_NEXT `xclip -selection primary -o | sed s/\\\@/%40/g`" > $4'
+
+# Clone current tab
+@cbind  gd              = sh 'echo "event NEW_TAB $6" > $4'
+@cbind  gD              = sh 'echo "event NEW_TAB_NEXT $6" > $4'
 
 # Closing / resting
 @cbind  gC              = exit
@@ -352,13 +378,13 @@ set stack    = @mode_config stack
 @insert   modcmd_updates      = 0
 
 # Multi-stage-binding mode config.
+@stack    keycmd_style        = foreground="red"
+@stack    status_background   = #202020
+@stack    mode_indicator      = Bnd
+@stack    prompt_style        = foreground="#888" weight="light"
 @stack    keycmd_events       = 1
 @stack    modcmd_updates      = 1
 @stack    forward_keys        = 0
-@stack    keycmd_style        = foreground="red"
-@stack    prompt_style        = foreground="#888" weight="light"
-@stack    status_background   = #202020
-@stack    mode_indicator      = Bnd
 
 set default_mode = command
 

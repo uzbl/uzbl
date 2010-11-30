@@ -258,6 +258,8 @@ The following commands are recognized:
   - Open the print dialog.
 * `include <file>`
   - Read contents of `<file>` and interpret as a set of `uzbl` commands.
+* `show_inspector`
+  - Show the WebInspector
 
 ### VARIABLES AND CONSTANTS
 
@@ -311,7 +313,7 @@ file).
 * `javascript_windows`: Whether javascript can open windows automatically
 * `shell_cmd`: Alias which will be expanded to use shell commands (eg `sh -c`).
 * `print_events`: show events on stdout
-* `proxy_url`: HTTP traffic SOCKS proxy (eg: `http://<host>:<port>`).
+* `proxy_url`: set HTTP proxy (eg: `http://<host>:<port>`).
 * `max_conns`: Max simultaneous connections (default: 100).
 * `max_conns_host`: max simultaneous connections per hostname (default: 6)
 * `view_source`: Set the browser in "view source" mode (default 0). Any URI
@@ -335,6 +337,7 @@ file).
 * `fantasy_font_family`: The default Fantasy font family used to display text.
 * `monospace_size`: The default size of monospaced font (default 1).
 * `minimum_font_size`: The minimum font size used to display text (default 1).
+* `enable_pagecache`: Enable the webkit pagecache (it caches rendered pages for a speedup when you go back or forward in history) (default 0).
 * `disable_plugins`: Disable embedded plugin objects (default 0).
 * `disable_scripts`: Disable embedded scripting languages (default 0).
 * `autoload_images`: Automatically load images (default 1).
