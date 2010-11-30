@@ -613,7 +613,9 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "menu_editable_remove",           {menu_remove_edit, TRUE}        },
     { "hardcopy",                       {hardcopy, TRUE}                },
     { "include",                        {include, TRUE}                 },
-    { "show_inspector",                 {show_inspector, 0}             }
+    { "show_inspector",                 {show_inspector, 0}             },
+    { "add_cookie",                     {add_cookie, 0}                 },
+    { "delete_cookie",                  {delete_cookie, 0}              }
 };
 
 void
@@ -905,6 +907,57 @@ show_inspector(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) argv; (void) result;
 
     webkit_web_inspector_show(uzbl.gui.inspector);
+}
+
+void
+add_cookie(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page; (void) result;
+    gchar *host, *path, *name, *value;
+    gboolean http_only = 0, secure = 0;
+    SoupDate *expires = NULL;
+
+    if(argv->len != 6)
+        return;
+
+    // Parse with same syntax as ADD_COOKIE event
+    host = argv_idx (argv, 0);
+    path = argv_idx (argv, 1);
+    name = argv_idx (argv, 2);
+    value = argv_idx (argv, 3);
+    secure = strcmp (argv_idx (argv, 4), "https") == 0;
+    if (strlen (argv_idx (argv, 5)) != 0)
+        expires = soup_date_new_from_time_t (
+            strtoul (argv_idx (argv, 5), NULL, 10));
+
+    // Create new cookie
+    SoupCookie * cookie = soup_cookie_new (name, value, host, path, -1);
+    soup_cookie_set_secure (cookie, secure);
+    if (expires)
+        soup_cookie_set_expires (cookie, expires);
+
+    // Add cookie to jar
+    uzbl.net.soup_cookie_jar->in_manual_add = 1;
+    soup_cookie_jar_add_cookie (SOUP_COOKIE_JAR (uzbl.net.soup_cookie_jar), cookie);
+    uzbl.net.soup_cookie_jar->in_manual_add = 0;
+}
+
+void
+delete_cookie(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page; (void) result;
+
+    if(argv->len < 4)
+        return;
+
+    SoupCookie * cookie = soup_cookie_new (
+        argv_idx (argv, 2),
+        argv_idx (argv, 3),
+        argv_idx (argv, 0),
+        argv_idx (argv, 1),
+        0);
+
+    uzbl.net.soup_cookie_jar->in_manual_add = 1;
+    soup_cookie_jar_delete_cookie (SOUP_COOKIE_JAR (uzbl.net.soup_cookie_jar), cookie);
+    uzbl.net.soup_cookie_jar->in_manual_add = 0;
 }
 
 void

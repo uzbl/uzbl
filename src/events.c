@@ -49,7 +49,9 @@ const char *event_table[LAST_EVENT] = {
      "SCROLL_HORIZ"     ,
      "DOWNLOAD_STARTED" ,
      "DOWNLOAD_PROGRESS",
-     "DOWNLOAD_COMPLETE"
+     "DOWNLOAD_COMPLETE",
+     "ADD_COOKIE"       ,
+     "DELETE_COOKIE"
 };
 
 void

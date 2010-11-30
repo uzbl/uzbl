@@ -452,6 +452,12 @@ void
 show_inspector(WebKitWebView *page, GArray *argv, GString *result);
 
 void
+add_cookie(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+delete_cookie(WebKitWebView *page, GArray *argv, GString *result);
+
+void
 builtins();
 
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
