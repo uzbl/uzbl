@@ -45,7 +45,6 @@ DMENU_OPTIONS="vertical resize"
 
 . $UZBL_UTIL_DIR/dmenu.sh
 . $UZBL_UTIL_DIR/editor.sh
-. $UZBL_UTIL_DIR/uzbl-args.sh
 . $UZBL_UTIL_DIR/uzbl-dir.sh
 
 RAND=$(dd if=/dev/urandom count=1 2> /dev/null | cksum | cut -c 1-5)
@@ -56,7 +55,7 @@ MODELINE="> vim:ft=formfiller"
 
 action=$1
 
-domain=$(echo $UZBL_URL | sed 's/\(http\|https\):\/\/\([^\/]\+\)\/.*/\2/')
+domain=$(echo $UZBL_URI | sed 's/\(http\|https\):\/\/\([^\/]\+\)\/.*/\2/')
 
 if [ "$action" != 'edit' -a  "$action" != 'new' -a "$action" != 'load' -a "$action" != 'add' -a "$action" != 'once' ]; then
     action="new"

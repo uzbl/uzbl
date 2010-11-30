@@ -181,7 +181,7 @@ set ebind     = @mode_bind global,-insert
 # --- Mouse bindings ---------------------------------------------------------
 
 # Middle click open in new window
-@bind  <Button2>  = sh 'if [ "$8" ]; then uzbl-browser -u "$8"; else echo "uri $(xclip -o | sed s/\\\@/%40/g)" > $4; fi' \@SELECTED_URI
+@bind  <Button2>  = sh 'if [ "$8" ]; then uzbl-browser -u "$8"; else echo "uri $(xclip -o | sed s/\\\@/%40/g)" > "$UZBL_FIFO"; fi' \@SELECTED_URI
 
 # --- Keyboard bindings ------------------------------------------------------
 
@@ -245,14 +245,14 @@ set ebind     = @mode_bind global,-insert
 # Exit binding
 @cbind  ZZ                 = exit
 # Dump config to stdout
-@cbind  !dump              = sh "echo dump_config > $4"
+@cbind  !dump              = sh 'echo dump_config > "$UZBL_FIFO"'
 # Reload all variables in the config
-@cbind  !reload            = sh "sed '/^# === Post-load misc commands/,$d' $1 | grep '^set ' > $4"
+@cbind  !reload            = sh "sed '/^# === Post-load misc commands/,$d' \"$UZBL_CONFIG\" | grep '^set ' > \"$UZBL_FIFO\""
 
 # Use socat to directly inject commands into uzbl-core and view events
 # raised by uzbl-core:
-@cbind  <Ctrl><Alt>t  = sh 'xterm -e "socat unix-connect:$5 -"'
-#@cbind  <Ctrl><Alt>t  = sh 'urxvt -e socat unix-connect:$5 -'
+@cbind  <Ctrl><Alt>t  = sh "xterm -e 'socat unix-connect:\"$UZBL_SOCKET\" -'"
+#@cbind  <Ctrl><Alt>t  = sh "urxvt -e 'socat unix-connect:\"$UZBL_SOCKET\" -'"
 
 # Uri opening prompts
 @cbind  o<uri:>_       = uri %s
@@ -267,24 +267,24 @@ set ebind     = @mode_bind global,-insert
 @cbind  gh  = uri http://www.uzbl.org
 
 # Yanking & pasting binds
-@cbind  yu  = sh 'echo -n $6 | xclip'
+@cbind  yu  = sh 'echo -n "$UZBL_URI" | xclip'
 @cbind  yU  = sh 'echo -n $8 | xclip' \@SELECTED_URI
-@cbind  yy  = sh 'echo -n $7 | xclip'
+@cbind  yy  = sh 'echo -n "$UZBL_TITLE" | xclip'
 @cbind  yY  = sh 'echo -n $8 | xclip' \@SELECTED_URI
 
 # Clone current window
-@cbind  c   = sh 'uzbl-browser -u $6'
+@cbind  c   = sh 'uzbl-browser -u "$UZBL_URI"'
 # Go the page from primary selection
-@cbind  p   = sh 'echo "uri `xclip -selection primary -o | sed s/\\\@/%40/g`" > $4'
+@cbind  p   = sh 'echo "uri `xclip -selection primary -o | sed s/\\\@/%40/g`" > "$UZBL_FIFO"'
 # Go to the page in clipboard
-@cbind  P   = sh 'echo "uri `xclip -selection clipboard -o | sed s/\\\@/%40/g`" > $4'
+@cbind  P   = sh 'echo "uri `xclip -selection clipboard -o | sed s/\\\@/%40/g`" > "$UZBL_FIFO"'
 # Start a new uzbl instance from the page in primary selection
-@cbind  'p  = sh 'exec uzbl-browser --uri $(xclip -o)'
+@cbind  'p  = sh 'exec uzbl-browser --uri "$(xclip -o)"'
 # paste primary selection into keycmd at the cursor position
-@bind <Shift-Insert> = sh 'echo "event INJECT_KEYCMD `xclip -o | sed s/\\\@/%40/g`" > $4'
+@bind <Shift-Insert> = sh 'echo "event INJECT_KEYCMD `xclip -o | sed s/\\\@/%40/g`" > "$UZBL_FIFO"'
 
 # Bookmark inserting binds
-@cbind <Ctrl>b<tags:>_  = sh 'echo `printf "$6 %s"` >> $XDG_DATA_HOME/uzbl/bookmarks'
+@cbind <Ctrl>b<tags:>_  = sh 'echo `printf "$UZBL_URI %s"` >> "$XDG_DATA_HOME"/uzbl/bookmarks'
 # Or use a script to insert a bookmark.
 @cbind  B  = spawn @scripts_dir/insert_bookmark.sh
 
@@ -319,12 +319,12 @@ set formfiller = spawn @scripts_dir/formfiller.sh
 @cbind  gN              = event NEW_TAB_NEXT
 @cbind  go<uri:>_       = event NEW_TAB %s
 @cbind  gO<uri:>_       = event NEW_TAB_NEXT %s
-@cbind  gy              = sh 'echo "event NEW_TAB `xclip -selection primary -o | sed s/\\\@/%40/g`" > $4'
-@cbind  gY              = sh 'echo "event NEW_TAB_NEXT `xclip -selection primary -o | sed s/\\\@/%40/g`" > $4'
+@cbind  gy              = sh 'echo "event NEW_TAB `xclip -selection primary -o | sed s/\\\@/%40/g`" > "$UZBL_FIFO"'
+@cbind  gY              = sh 'echo "event NEW_TAB_NEXT `xclip -selection primary -o | sed s/\\\@/%40/g`" > "$UZBL_FIFO"'
 
 # Clone current tab
-@cbind  gd              = sh 'echo "event NEW_TAB $6" > $4'
-@cbind  gD              = sh 'echo "event NEW_TAB_NEXT $6" > $4'
+@cbind  gd              = sh 'echo "event NEW_TAB $UZBL_URI" > "$UZBL_FIFO"'
+@cbind  gD              = sh 'echo "event NEW_TAB_NEXT $UZBL_URI" > "$UZBL_FIFO"'
 
 # Closing / resting
 @cbind  gC              = exit

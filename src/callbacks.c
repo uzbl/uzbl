@@ -411,6 +411,7 @@ title_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
     uzbl.gui.main_title = title ? g_strdup (title) : g_strdup ("(no title)");
     update_title();
     send_event(TITLE_CHANGED, uzbl.gui.main_title, NULL);
+    g_setenv("UZBL_TITLE", uzbl.gui.main_title, TRUE);
 }
 
 void
@@ -436,6 +437,7 @@ load_status_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
             g_free (uzbl.state.uri);
             GString* newuri = g_string_new (webkit_web_frame_get_uri (frame));
             uzbl.state.uri = g_string_free (newuri, FALSE);
+            g_setenv("UZBL_URI", uzbl.state.uri, TRUE);
 
             send_event(LOAD_COMMIT, webkit_web_frame_get_uri (frame), NULL);
             break;

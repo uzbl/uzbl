@@ -2,13 +2,11 @@
 
 if [ $# = "3" ]
 then
-	fifo="$1"
-	url="$2"
-	SCRIPT="$3"
+	UZBL_FIFO=$1
+	UZBL_URI=$2
+	SCRIPT=$3
 else
-	fifo="$4"
-	url="$6"
-	SCRIPT="$8"
+	SCRIPT=$8
 fi
 
 # Extract metadata chunk
@@ -18,7 +16,7 @@ SHOULD_RUN=false # Assume this script will not be included
 for INCLUDE in `echo "$META" | grep "^\s*\/\/\s*@include"`; do
 	# Munge into grep pattern
 	INCLUDE="`echo "$INCLUDE" | sed -e 's/^\s*\/\/\s*@include\s*//' -e 's/\./\\\\./g' -e 's/\*/.*/g' -e 's/[\r\n]//g'`"
-	if echo "$url" | grep -x "$INCLUDE"; then
+	if echo "$UZBL_URI" | grep -x "$INCLUDE"; then
 		SHOULD_RUN=true
 		break
 	fi
@@ -28,7 +26,7 @@ done
 for EXCLUDE in `echo "$META" | grep "^\s*\/\/\s*@exclude"`; do
 	# Munge into grep pattern
 	EXCLUDE="`echo "$EXCLUDE" | sed -e 's/^\s*\/\/\s*@exclude\s*//' -e 's/\./\\\\./g' -e 's/\*/.*/g' -e 's/[\r\n]//g'`"
-	if echo "$url" | grep -x "$EXCLUDE"; then
+	if echo "$UZBL_URI" | grep -x "$EXCLUDE"; then
 		SHOULD_RUN=false
 		break
 	fi
@@ -36,5 +34,5 @@ done
 
 # Run the script
 if [ $SHOULD_RUN = true ]; then
-	echo "script '$SCRIPT'" > "$fifo"
+	echo "script '$SCRIPT'" > "$UZBL_FIFO"
 fi

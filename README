@@ -480,23 +480,22 @@ You can use external scripts with Uzbl the following ways:
 
 Have a look at the sample configs and scripts!
 
-Handler scripts that are called by `uzbl` are passed the following arguments:
+Scripts called by `uzbl` (with `spawn`, `sync_spawn`, `sh` or `sync_sh`) have
+access to the following environment variables:
 
-* `$1 config`: The configuration file loaded by this `uzbl` instance.
-* `$2 pid`: The process ID of this `uzbl` instance.
-* `$3 x_id`: The X Windows ID of the process.
-* `$4 fifo`: The filename of the FIFO being used, if any.
-* `$5 socket`: The filename of the Unix socket being used, if any.
-* `$6 uri`: The URI of the current page.
-* `$7 title`: The current page title.
-* `.. [ script specific ] (optional)`
+* `$UZBL_CONFIG`: The configuration file loaded by this `uzbl` instance.
+* `$UZBL_PID`: The process ID of this `uzbl` instance.
+* `$UZBL_XID`: The X Windows ID of the process.
+* `$UZBL_FIFO`: The filename of the FIFO being used, if any.
+* `$UZBL_SOCKET`: The filename of the Unix socket being used, if any.
+* `$UZBL_URI`: The URI of the current page.
+* `$UZBL_TITLE`: The current page title.
 
-The script specific arguments are:
+These variables are also available as positional arguments `$1` through `$7`,
+but this is deprecated and will be removed.
 
-* download
-
-  - `$8 url`: The URL of the item to be downloaded.
-  - `$9 proxy`: (optional) The URL of an HTTP proxy.
+Handler scripts (`cookie_handler`, `scheme_handler` and
+`authentication_handler`) are called with special arguments:
 
 * cookie handler
 
@@ -514,13 +513,10 @@ The script specific arguments are:
 
 * authentication handler:
 
-    $8 authentication zone unique identifier
-    $9 domain part of URL that requests authentication
-    $10 authentication realm
-    $11 FALSE if this is the first attempt to authenticate, TRUE otherwise
-
-Custom, userdefined scripts (`spawn foo bar`) get first the arguments as
-specified in the config and then the above 7 are added at the end.
+  - `$8`: authentication zone unique identifier
+  - `$9`: domain part of URL that requests authentication
+  - `$10`: authentication realm
+  - `$11`: FALSE if this is the first attempt to authenticate, TRUE otherwise
 
 ### Formfiller.sh
 

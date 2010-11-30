@@ -32,7 +32,8 @@ UZBL="uzbl-browser -c $UZBL_CONFIG_FILE" # add custom flags and whatever here.
 
 if [ $# -gt 1 ]; then
     # this script is being run from uzbl, rather than standalone
-    . "$UZBL_UTIL_DIR"/uzbl-args.sh
+    # discard the uzbl arguments
+    shift 7
 fi
 
 scriptfile=$(readlink -f $0)                            # this script
@@ -61,7 +62,7 @@ case $act in
             echo "session manager: endinstance must be called from uzbl"
             exit 1
         fi
-        [ "$UZBL_URL" != "(null)" ] && echo "$UZBL_URL" >> "$UZBL_SESSION_FILE"
+        [ "$UZBL_URI" != "(null)" ] && echo "$UZBL_URI" >> "$UZBL_SESSION_FILE"
         echo exit > "$UZBL_FIFO"
         ;;
 

@@ -2,7 +2,6 @@
 # just an example of how you could handle your downloads
 # try some pattern matching on the uri to determine what we should do
 
-. $UZBL_UTIL_DIR/uzbl-args.sh
 . $UZBL_UTIL_DIR/uzbl-dir.sh
 
 # Some sites block the default wget --user-agent..
