@@ -29,7 +29,8 @@ UZBL="uzbl-browser -c $UZBL_CONFIG_FILE" # add custom flags and whatever here.
 
 if [ $# -gt 1 ]; then
     # this script is being run from uzbl, rather than standalone
-    . "$UZBL_UTIL_DIR"/uzbl-args.sh
+    # discard the uzbl arguments
+    shift 7
 fi
 
 scriptfile=$0                            # this script

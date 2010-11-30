@@ -1,6 +1,5 @@
 #!/bin/sh
 
-. "$UZBL_UTIL_DIR"/uzbl-args.sh
 . "$UZBL_UTIL_DIR"/uzbl-dir.sh
 
 [ -d "$UZBL_DATA_DIR" ] || exit 1
