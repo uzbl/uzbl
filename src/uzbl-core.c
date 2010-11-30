@@ -1613,8 +1613,9 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
                 if (g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, NULL)) {
                     if (uzbl.state.verbose)
                         printf ("init_fifo: created successfully as %s\n", path);
-                        send_event(FIFO_SET, path, NULL);
+                    send_event(FIFO_SET, path, NULL);
                     uzbl.comm.fifo_path = path;
+                    g_setenv("UZBL_FIFO", uzbl.comm.fifo_path, TRUE);
                     return dir;
                 } else g_warning ("init_fifo: could not add watch on %s\n", path);
             } else g_warning ("init_fifo: can't open: %s\n", error->message);
@@ -1808,6 +1809,7 @@ init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL *
             g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_socket, chan);
             uzbl.comm.socket_path = path;
             send_event(SOCKET_SET, path, NULL);
+            g_setenv("UZBL_SOCKET", uzbl.comm.socket_path, TRUE);
             return dir;
         }
     } else g_warning ("init_socket: could not open in %s: %s\n", path, strerror(errno));
@@ -2075,6 +2077,7 @@ settings_init () {
             send_event(COMMAND_ERROR, tmp, NULL);
             g_free(tmp);
         }
+        g_setenv("UZBL_CONFIG", s->config_file, TRUE);
     } else if (uzbl.state.verbose)
         printf ("No configuration file loaded.\n");
 
@@ -2357,12 +2360,16 @@ main (int argc, char* argv[]) {
       "signal::changed",                              (GCallback)scroll_horiz_cb,         NULL,
       NULL);
 
-    if(!uzbl.state.instance_name)
-        uzbl.state.instance_name = itos((int)uzbl.xwin);
+    gchar *xwin = g_strdup_printf("%d", (int)uzbl.xwin);
+    g_setenv("UZBL_XID", xwin, TRUE);
 
-    GString *tmp = g_string_new("");
-    g_string_printf(tmp, "%d", getpid());
-    uzbl.info.pid_str = g_string_free(tmp, FALSE);
+    if(!uzbl.state.instance_name)
+        uzbl.state.instance_name = g_strdup(xwin);
+
+    g_free(xwin);
+
+    uzbl.info.pid_str = g_strdup_printf("%d", getpid());
+    g_setenv("UZBL_PID", uzbl.info.pid_str, TRUE);
     send_event(INSTANCE_START, uzbl.info.pid_str, NULL);
 
     if(uzbl.state.plug_mode) {
