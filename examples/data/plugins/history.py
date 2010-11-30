@@ -1,12 +1,10 @@
-__export__ = ['get_history']
-UZBLS = {}
-
 import random
 
 shared_history = {'':[]}
 
 class History(object):
-    def __init__(self):
+    def __init__(self, uzbl):
+        self.uzbl = uzbl
         self._temporary = []
         self.prompt = ''
         self.cursor = None
@@ -86,63 +84,46 @@ class History(object):
         return len(shared_history[self.prompt]) + len(self._temporary)
 
     def __str__(self):
-        return "(History %s)" % (self.cursor)
-
-def get_history(uzbl):
-    if uzbl not in UZBLS:
-        add_instance(uzbl)
-
-    return UZBLS[uzbl]
-
-def add_instance(uzbl, *args):
-    UZBLS[uzbl] = History()
-
-def del_instance(uzbl, *args):
-    if uzbl in UZBLS:
-        del UZBLS[uzbl]
+        return "(History %s, %s)" % (self.cursor, self.prompt)
 
 def keycmd_exec(uzbl, keylet):
-    history = get_history(uzbl)
     cmd = keylet.get_keycmd()
     if cmd:
-        history.add(cmd)
-
-def config_changed(uzbl, key, value):
-    if key == 'keycmd_prompt':
-        history = get_history(uzbl)
-        history.change_prompt(value)
+        uzbl.history.add(cmd)
 
 def history_prev(uzbl, _x):
-    history = get_history(uzbl)
-    cmd = uzbl.get_keylet().get_keycmd()
-    if history.cursor is None and cmd:
-        history.add_temporary(cmd)
+    cmd = uzbl.keylet.get_keycmd()
+    if uzbl.history.cursor is None and cmd:
+        uzbl.history.add_temporary(cmd)
 
-    uzbl.set_keycmd(history.prev())
-    print 'PREV', history
+    uzbl.set_keycmd(uzbl.history.prev())
+    uzbl.logger.debug('PREV %s' % uzbl.history)
 
 def history_next(uzbl, _x):
-    history = get_history(uzbl)
-    cmd = uzbl.get_keylet().get_keycmd()
+    cmd = uzbl.keylet.get_keycmd()
 
-    uzbl.set_keycmd(history.next())
-    print 'NEXT', history
+    uzbl.set_keycmd(uzbl.history.next())
+    uzbl.logger.debug('NEXT %s' % uzbl.history)
 
 def history_search(uzbl, key):
-    history = get_history(uzbl)
     uzbl.set_keycmd(history.search(key))
-    print 'SEARCH', history
+    uzbl.logger.debug('SEARCH %s %s' % (key, uzbl.history))
 
 end_messages = ('Look behind you, A three-headed monkey!', 'error #4: static from nylon underwear.', 'error #5: static from plastic slide rules.', 'error #6: global warming.', 'error #9: doppler effect.', 'error #16: somebody was calculating pi on the server.', 'error #19: floating point processor overflow.', 'error #21: POSIX compliance problem.', 'error #25: Decreasing electron flux.', 'error #26: first Saturday after first full moon in Winter.', 'error #64: CPU needs recalibration.', 'error #116: the real ttys became pseudo ttys and vice-versa.', 'error #229: wrong polarity of neutron flow.', 'error #330: quantum decoherence.', 'error #388: Bad user karma.', 'error #407: Route flapping at the NAP.', 'error #435: Internet shut down due to maintenance.')
 
+# plugin init hook
 def init(uzbl):
-    connects = {'INSTANCE_START': add_instance,
-        'INSTANCE_EXIT': del_instance,
+    connect_dict(uzbl, {
         'KEYCMD_EXEC': keycmd_exec,
-        'CONFIG_CHANGED': config_changed,
         'HISTORY_PREV': history_prev,
         'HISTORY_NEXT': history_next,
         'HISTORY_SEARCH': history_search
-    }
+    })
 
-    uzbl.connect_dict(connects)
+    export_dict(uzbl, {
+        'history' : History(uzbl)
+    })
+
+# plugin after hook
+def after(uzbl):
+    uzbl.on_set('keycmd_prompt', lambda uzbl, k, v: uzbl.history.change_prompt(v))
