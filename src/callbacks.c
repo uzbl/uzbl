@@ -6,7 +6,7 @@
 #include "uzbl-core.h"
 #include "callbacks.h"
 #include "events.h"
-
+#include "util.h"
 
 void
 set_proxy_url() {
@@ -43,6 +43,19 @@ set_authentication_handler() {
                 (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
     }
     return;
+}
+
+void
+set_status_background() {
+    GdkColor color;
+    gdk_color_parse (uzbl.behave.status_background, &color);
+    /* labels and hboxes do not draw their own background. applying this
+     * on the vbox/main_window is ok as the statusbar is the only affected
+     * widget. (if not, we could also use GtkEventBox) */
+    if (uzbl.gui.main_window)
+        gtk_widget_modify_bg (uzbl.gui.main_window, GTK_STATE_NORMAL, &color);
+    else if (uzbl.gui.plug)
+        gtk_widget_modify_bg (GTK_WIDGET(uzbl.gui.plug), GTK_STATE_NORMAL, &color);
 }
 
 void
@@ -179,6 +192,12 @@ cmd_fantasy_font_family() {
 void
 cmd_zoom_level() {
     webkit_web_view_set_zoom_level (uzbl.gui.web_view, uzbl.behave.zoom_level);
+}
+
+void
+cmd_enable_pagecache() {
+    g_object_set (G_OBJECT(view_settings()), "enable-page-cache",
+            uzbl.behave.enable_pagecache, NULL);
 }
 
 void
@@ -395,14 +414,40 @@ title_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
 }
 
 void
-progress_change_cb (WebKitWebView* page, gint progress, gpointer data) {
-    (void) page;
-    (void) data;
-    gchar *prg_str;
-
-    prg_str = itos(progress);
+progress_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
+    (void) param_spec;
+    int progress = webkit_web_view_get_progress(web_view) * 100;
+    gchar *prg_str = itos(progress);
     send_event(LOAD_PROGRESS, prg_str, NULL);
     g_free(prg_str);
+}
+
+void
+load_status_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
+    (void) param_spec;
+
+    WebKitWebFrame *frame = webkit_web_view_get_main_frame(web_view);
+    WebKitLoadStatus status = webkit_web_view_get_load_status(web_view);
+    switch(status) {
+        case WEBKIT_LOAD_PROVISIONAL:
+            send_event(LOAD_START, uzbl.state.uri, NULL);
+            break;
+        case WEBKIT_LOAD_COMMITTED:
+            g_free (uzbl.state.uri);
+            GString* newuri = g_string_new (webkit_web_frame_get_uri (frame));
+            uzbl.state.uri = g_string_free (newuri, FALSE);
+
+            send_event(LOAD_COMMIT, webkit_web_frame_get_uri (frame), NULL);
+            break;
+        case WEBKIT_LOAD_FINISHED:
+            send_event(LOAD_FINISH, webkit_web_frame_get_uri(frame), NULL);
+            break;
+        case WEBKIT_LOAD_FIRST_VISUALLY_NON_EMPTY_LAYOUT:
+            break; /* we don't do anything with this (yet) */
+        case WEBKIT_LOAD_FAILED:
+            break; /* load_error_cb will handle this case */
+    }
+
 }
 
 void
@@ -417,23 +462,6 @@ selection_changed_cb(WebKitWebView *webkitwebview, gpointer ud) {
 }
 
 void
-load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
-    (void) page;
-    (void) data;
-
-    send_event(LOAD_FINISH, webkit_web_frame_get_uri(frame), NULL);
-}
-
-void
-load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
-    (void) page;
-    (void) frame;
-    (void) data;
-
-    send_event(LOAD_START, uzbl.state.uri, NULL);
-}
-
-void
 load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer web_err, gpointer ud) {
     (void) page;
     (void) frame;
@@ -444,17 +472,6 @@ load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer 
     details = g_strdup_printf("%s %d:%s", uri, err->code, err->message);
     send_event(LOAD_ERROR, details, NULL);
     g_free(details);
-}
-
-void
-load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data) {
-    (void) page;
-    (void) data;
-    g_free (uzbl.state.uri);
-    GString* newuri = g_string_new (webkit_web_frame_get_uri (frame));
-    uzbl.state.uri = g_string_free (newuri, FALSE);
-
-    send_event(LOAD_COMMIT, webkit_web_frame_get_uri (frame), NULL);
 }
 
 void
@@ -589,9 +606,9 @@ motion_notify_cb(GtkWidget* window, GdkEventMotion* event, gpointer user_data) {
     (void) event;
     (void) user_data;
 
-    gchar *details;
-    details = g_strdup_printf("%.0lf %.0lf %u", event->x, event->y, event->state);
+    gchar *details = g_strdup_printf("%.0lf %.0lf %u", event->x, event->y, event->state);
     send_event(PTR_MOVE, details, NULL);
+    g_free(details);
 
     return FALSE;
 }
@@ -703,11 +720,10 @@ create_web_view_js2_cb (WebKitWebView* web_view, GParamSpec param_spec) {
 
     if (strncmp(uri, "javascript:", strlen("javascript:")) == 0) {
         eval_js(uzbl.gui.web_view, (gchar*) uri + strlen("javascript:"), NULL, "javascript:");
+        gtk_widget_destroy(GTK_WIDGET(web_view));
     }
     else
         send_event(NEW_WINDOW, uri, NULL);
-
-    gtk_widget_destroy(GTK_WIDGET(web_view));
 }
 
 
@@ -717,7 +733,7 @@ create_web_view_js_cb (WebKitWebView* web_view, gpointer user_data) {
     (void) user_data;
 
     g_object_connect (web_view, "signal::notify::uri",
-                            G_CALLBACK(create_web_view_js2_cb), NULL);
+                            G_CALLBACK(create_web_view_js2_cb), NULL, NULL);
     return TRUE;
 }
 
@@ -761,6 +777,44 @@ download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
     (void) user_data;
 
     send_event(DOWNLOAD_REQ, webkit_download_get_uri ((WebKitDownload*)download), NULL);
+    return (FALSE);
+}
+
+gboolean
+scroll_vert_cb(GtkAdjustment *adjust, void *w)
+{
+    (void) w;
+
+    gdouble value = gtk_adjustment_get_value(adjust);
+    gdouble min = gtk_adjustment_get_lower(adjust);
+    gdouble max = gtk_adjustment_get_upper(adjust);
+    gdouble page = gtk_adjustment_get_page_size(adjust);
+    gchar* details;
+    details = g_strdup_printf("%g %g %g %g", value, min, max, page);
+
+    send_event(SCROLL_VERT, details, NULL);
+
+    g_free(details);
+
+    return (FALSE);
+}
+
+gboolean
+scroll_horiz_cb(GtkAdjustment *adjust, void *w)
+{
+    (void) w;
+
+    gdouble value = gtk_adjustment_get_value(adjust);
+    gdouble min = gtk_adjustment_get_lower(adjust);
+    gdouble max = gtk_adjustment_get_upper(adjust);
+    gdouble page = gtk_adjustment_get_page_size(adjust);
+    gchar* details;
+    details = g_strdup_printf("%g %g %g %g", value, min, max, page);
+
+    send_event(SCROLL_HORIZ, details, NULL);
+
+    g_free(details);
+
     return (FALSE);
 }
 
@@ -831,38 +885,11 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
 }
 
 void
-save_cookies_js(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie, gpointer user_data) {
-    (void) jar;
-    (void) user_data;
-    (void) old_cookie;
-    char *scheme;
-    GString *s;
+cmd_set_cookie_handler() {
+  if(uzbl.behave.cookie_handler[0] == 0) {
+      g_free(uzbl.behave.cookie_handler);
+      uzbl.behave.cookie_handler = NULL;
+  }
 
-    if(new_cookie != NULL) {
-        scheme = (new_cookie->secure == TRUE) ? "https" : "http";
-
-        s = g_string_new("");
-        g_string_printf(s, "PUT '%s' '%s' '%s' '%s=%s'", scheme, new_cookie->domain, new_cookie->path, new_cookie->name, new_cookie->value);
-        run_handler(uzbl.behave.cookie_handler, s->str);
-        g_string_free(s, TRUE);
-    }
-}
-
-void
-save_cookies_http(SoupMessage *msg, gpointer user_data) {
-    (void) user_data;
-    GSList *ck;
-    char *cookie;
-
-    for(ck = soup_cookies_from_response(msg); ck; ck = ck->next){
-        cookie = soup_cookie_to_set_cookie_header(ck->data);
-        SoupURI *soup_uri = soup_message_get_uri(msg);
-        GString *s = g_string_new("");
-        g_string_printf(s, "PUT '%s' '%s' '%s' '%s'", soup_uri->scheme, soup_uri->host, soup_uri->path, cookie);
-        run_handler(uzbl.behave.cookie_handler, s->str);
-        g_free (cookie);
-        g_string_free(s, TRUE);
-    }
-
-    g_slist_free(ck);
+  uzbl_cookie_jar_set_handler(uzbl.net.soup_cookie_jar, uzbl.behave.cookie_handler);
 }
