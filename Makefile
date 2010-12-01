@@ -119,9 +119,6 @@ install-uzbl-core: all install-dirs
 	install -m644 AUTHORS $(DOCDIR)/
 	cp -r examples $(INSTALLDIR)/share/uzbl/
 	chmod 755 $(INSTALLDIR)/share/uzbl/examples/data/scripts/*
-	mv $(INSTALLDIR)/share/uzbl/examples/config/config $(INSTALLDIR)/share/uzbl/examples/config/config.bak
-	sed 's#^set prefix.*=.*#set prefix     = $(RUN_PREFIX)#' < $(INSTALLDIR)/share/uzbl/examples/config/config.bak > $(INSTALLDIR)/share/uzbl/examples/config/config
-	rm $(INSTALLDIR)/share/uzbl/examples/config/config.bak
 	install -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
 
 install-uzbl-browser: uzbl-cookie-manager install-dirs

@@ -228,9 +228,6 @@ itos(int val);
 gchar*
 strfree(gchar *str);
 
-gchar*
-parseenv (gchar* string);
-
 void
 clean_up(void);
 

@@ -414,36 +414,6 @@ find_existing_file(gchar* path_list) {
     return NULL;
 }
 
-
-/* Returns a new string with environment $variables expanded */
-gchar*
-parseenv (gchar* string) {
-    extern char** environ;
-    gchar* tmpstr = NULL, * out;
-    int i = 0;
-
-    if(!string)
-        return NULL;
-
-    out = g_strdup(string);
-    while (environ[i] != NULL) {
-        gchar** env = g_strsplit (environ[i], "=", 2);
-        gchar* envname = g_strconcat ("$", env[0], NULL);
-
-        if (g_strrstr (string, envname) != NULL) {
-            tmpstr = out;
-            out = str_replace(envname, env[1], out);
-            g_free (tmpstr);
-        }
-
-        g_free (envname);
-        g_strfreev (env); // somebody said this breaks uzbl
-        i++;
-    }
-
-    return out;
-}
-
 void
 clean_up(void) {
     if(uzbl.info.pid_str) {
@@ -695,9 +665,8 @@ set_var(WebKitWebView *page, GArray *argv, GString *result) {
 
     gchar **split = g_strsplit(argv_idx(argv, 0), "=", 2);
     if (split[0] != NULL) {
-        gchar *value = parseenv(split[1] ? g_strchug(split[1]) : " ");
+        gchar *value = split[1] ? g_strchug(split[1]) : " ";
         set_var_value(g_strstrip(split[0]), value);
-        g_free(value);
     }
     g_strfreev(split);
 }
@@ -927,14 +896,12 @@ void
 include(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page;
     (void) result;
-    gchar *pe   = NULL,
-          *path = NULL;
+    gchar *path = argv_idx(argv, 0);
 
-    if(!argv_idx(argv, 0))
+    if(!path)
         return;
 
-    pe = parseenv(argv_idx(argv, 0));
-    if((path = find_existing_file(pe))) {
+    if((path = find_existing_file(path))) {
         if(!for_each_line_in_file(path, parse_cmd_line_cb, NULL)) {
             gchar *tmp = g_strdup_printf("File %s can not be read.", path);
             send_event(COMMAND_ERROR, tmp, NULL);
@@ -944,7 +911,6 @@ include(WebKitWebView *page, GArray *argv, GString *result) {
         send_event(FILE_INCLUDED, path, NULL);
         g_free(path);
     }
-    g_free(pe);
 }
 
 void

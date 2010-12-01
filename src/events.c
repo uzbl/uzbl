@@ -136,24 +136,16 @@ send_event_stdout(GString *msg) {
 void
 send_event(int type, const gchar *details, const gchar *custom_event) {
     GString *event_message = g_string_new("");
-    gchar *buf, *p_val = NULL;
-
-    /* expand shell vars */
-    if(details) {
-        buf = g_strdup(details);
-        p_val = parseenv(buf ? g_strchug(buf) : " ");
-        g_free(buf);
-    }
 
     /* check for custom events */
     if(custom_event) {
         g_string_printf(event_message, "EVENT [%s] %s %s\n",
-                uzbl.state.instance_name, custom_event, p_val);
+                uzbl.state.instance_name, custom_event, details);
     }
     /* check wether we support the internal event */
     else if(type < LAST_EVENT) {
         g_string_printf(event_message, "EVENT [%s] %s %s\n",
-                uzbl.state.instance_name, event_table[type], p_val);
+                uzbl.state.instance_name, event_table[type], details);
     }
 
     if(event_message->str) {
@@ -163,7 +155,6 @@ send_event(int type, const gchar *details, const gchar *custom_event) {
 
         g_string_free(event_message, TRUE);
     }
-    g_free(p_val);
 }
 
 /* Transform gdk key events to our own events */

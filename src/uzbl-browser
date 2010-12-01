@@ -8,6 +8,8 @@
 # to your $XDG_DATA_HOME/uzbl/scripts/ and edit them
 
 PREFIX=/usr/local
+export PREFIX
+
 EXAMPLES=$PREFIX/share/uzbl/examples
 
 XDG_DATA_HOME=${XDG_DATA_HOME:-$HOME/.local/share}

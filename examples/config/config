@@ -3,8 +3,10 @@
 
 # === Core settings ==========================================================
 
-# Install location prefix.
-set prefix = /usr/local
+# common directory locations
+set prefix     = @(echo $PREFIX)@
+set data_home  = @(echo $XDG_DATA_HOME)@
+set cache_home = @(echo $XDG_CACHE_HOME)@
 
 # Interface paths.
 set fifo_dir   = /tmp
@@ -34,13 +36,13 @@ set set_mode        = set mode =
 set set_status      = set status_message =
 
 # Spawn path shortcuts. In spawn the first dir+path match is used in "dir1:dir2:dir3:executable"
-set scripts_dir      = $XDG_DATA_HOME/uzbl:@prefix/share/uzbl/examples/data:scripts
+set scripts_dir      = @data_home/uzbl:@prefix/share/uzbl/examples/data:scripts
 
 # === Hardcoded handlers =====================================================
 
 # These handlers can't be moved to the new event system yet as we don't
 # support events that can wait for a response from a script.
-set cookie_handler      = talk_to_socket $XDG_CACHE_HOME/uzbl/cookie_daemon_socket
+set cookie_handler      = talk_to_socket @cache_home/uzbl/cookie_daemon_socket
 set scheme_handler      = sync_spawn @scripts_dir/scheme.py
 set authentication_handler = sync_spawn @scripts_dir/auth.py
 
