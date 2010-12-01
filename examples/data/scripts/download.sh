@@ -5,7 +5,7 @@
 . $UZBL_UTIL_DIR/uzbl-dir.sh
 
 # Some sites block the default wget --user-agent..
-GET="wget --user-agent=Firefox --content-disposition --load-cookies=$UZBL_COOKIE_JAR"
+GET="wget --user-agent=Firefox --content-disposition --load-cookies=$UZBL_COOKIE_FILE"
 
 url="$1"
 

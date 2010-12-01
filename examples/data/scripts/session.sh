@@ -51,7 +51,6 @@ case $act in
         else
             for url in $urls; do
                 $UZBL --uri "$url" &
-                disown
             done
         mv "$UZBL_SESSION_FILE" "$UZBL_SESSION_FILE~"
         fi
