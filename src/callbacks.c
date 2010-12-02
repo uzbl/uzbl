@@ -745,32 +745,15 @@ create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer us
     (void) web_view;
     (void) frame;
     (void) user_data;
-    if (uzbl.state.selected_url != NULL) {
-        if (uzbl.state.verbose)
-            printf("\nNew web view -> %s\n", uzbl.state.selected_url);
 
-        if (strncmp(uzbl.state.selected_url, "javascript:", strlen("javascript:")) == 0) {
-            WebKitWebView* new_view = WEBKIT_WEB_VIEW(webkit_web_view_new());
+    if (uzbl.state.verbose)
+        printf("New web view -> javascript link...\n");
 
-            g_signal_connect (new_view, "web-view-ready",
-                            G_CALLBACK(create_web_view_js_cb), NULL);
+    WebKitWebView* new_view = WEBKIT_WEB_VIEW(webkit_web_view_new());
 
-            return new_view;
-        }
-        else
-            send_event(NEW_WINDOW, uzbl.state.selected_url, NULL);
-
-    } else {
-        if (uzbl.state.verbose)
-            printf("New web view -> javascript link...\n");
-
-        WebKitWebView* new_view = WEBKIT_WEB_VIEW(webkit_web_view_new());
-
-        g_signal_connect (new_view, "web-view-ready",
-                            G_CALLBACK(create_web_view_js_cb), NULL);
-        return new_view;
-    }
-    return NULL;
+    g_signal_connect (new_view, "web-view-ready",
+                        G_CALLBACK(create_web_view_js_cb), NULL);
+    return new_view;
 }
 
 gboolean
