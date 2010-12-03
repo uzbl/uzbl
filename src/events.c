@@ -22,7 +22,6 @@ const char *event_table[LAST_EVENT] = {
      "REQUEST_STARTING" ,
      "KEY_PRESS"        ,
      "KEY_RELEASE"      ,
-     "DOWNLOAD_REQUEST" ,
      "COMMAND_EXECUTED" ,
      "LINK_HOVER"       ,
      "TITLE_CHANGED"    ,
@@ -45,10 +44,12 @@ const char *event_table[LAST_EVENT] = {
      "PLUG_CREATED"     ,
      "COMMAND_ERROR"    ,
      "BUILTINS"         ,
-     "PTR_MOVE"
      "PTR_MOVE"         ,
      "SCROLL_VERT"      ,
-     "SCROLL_HORIZ"
+     "SCROLL_HORIZ"     ,
+     "DOWNLOAD_STARTED" ,
+     "DOWNLOAD_PROGRESS",
+     "DOWNLOAD_COMPLETE"
 };
 
 void

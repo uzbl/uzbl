@@ -43,6 +43,7 @@ set scripts_dir      = $XDG_DATA_HOME/uzbl:@prefix/share/uzbl/examples/data:scri
 set cookie_handler      = talk_to_socket $XDG_CACHE_HOME/uzbl/cookie_daemon_socket
 set scheme_handler      = sync_spawn @scripts_dir/scheme.py
 set authentication_handler = sync_spawn @scripts_dir/auth.py
+set download_handler    = sync_spawn @scripts_dir/download.sh
 
 # === Dynamic event handlers =================================================
 

@@ -668,8 +668,13 @@ Events have this format:
 * `EVENT [uzbl_instance_name] TITLE_CHANGED title_name`: When the title of the
   page (and hence maybe, the window title) changed. `title_name` is the new
   title.
-* `EVENT [uzbl_instance_name] DOWNLOAD_REQUEST download_uri`: When content needs
-  to be downloaded, `download_uri` is the URI to get.
+* `EVENT [uzbl_instance_name] DOWNLOAD_STARTED destination_path`: A download
+  has been started, the file will be saved to `destination_path`.
+* `EVENT [uzbl_instance_name] DOWNLOAD_PROGRESS destination_path progress`:
+  While a download is active this event notifies you of the progress.
+  `progress` is a decimal between 0 and 1.
+* `EVENT [uzbl_instance_name] DOWNLOAD_COMPLETE destination_path`: The
+  download being saved to `destination_path` is now complete.
 * `EVENT [uzbl_instance_name] LINK_HOVER uri`: The mouse hovers over the link
   `uri`.
 * `EVENT [uzbl_instance_name] LINK_UNHOVER uri`: The mouse leaves the link
