@@ -54,9 +54,6 @@ set download_handler    = sync_spawn @scripts_dir/download.sh
 # Open in new tab
 #@on_event   NEW_WINDOW     event NEW_TAB %s
 
-# Download handler
-@on_event   DOWNLOAD_REQUEST    spawn @scripts_dir/download.sh %s \@proxy_url
-
 # Load start handler
 @on_event   LOAD_START     @set_status <span foreground="khaki">wait</span>
 # Reset the keycmd on navigation
