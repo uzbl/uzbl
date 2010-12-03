@@ -23,6 +23,13 @@ class NullStore(object):
     def delete_cookie(self, rkey, key):
         pass
 
+class ListStore(list):
+    def add_cookie(self, rawcookie, cookie):
+        self.append(rawcookie)
+
+    def delete_cookie(self, rkey, key):
+        self[:] = [x for x in self if not match(key, splitquoted(x))]
+
 class TextStore(object):
     def __init__(self, filename):
         self.filename = filename
@@ -53,10 +60,6 @@ class TextStore(object):
     def add_cookie(self, rawcookie, cookie):
         assert len(cookie) == 6
 
-        # Skip cookies limited to this session
-        if len(cookie[-1]) == 0:
-            return
-        
         # delete equal cookies (ignoring expire time, value and secure flag)
         self.delete_cookie(None, cookie[:-3])
 
@@ -83,6 +86,7 @@ class TextStore(object):
 
 xdg_data_home = os.environ.get('XDG_DATA_HOME', os.path.join(os.environ['HOME'], '.local/share'))
 DefaultStore = TextStore(os.path.join(xdg_data_home, 'uzbl/cookies.txt'))
+SessionStore = ListStore()
 
 def expires_with_session(cookie):
     return cookie[5] == ''
@@ -92,7 +96,9 @@ def get_recipents(uzbl):
     # This could be a lot more interesting
     return [u for u in uzbl.parent.uzbls.values() if u is not uzbl]
 
-def get_store(uzbl):
+def get_store(uzbl, session=False):
+    if session:
+        return SessionStore
     return DefaultStore
 
 def add_cookie(uzbl, cookie):
@@ -100,17 +106,24 @@ def add_cookie(uzbl, cookie):
         u.send('add_cookie %s' % cookie)
     
     splitted = splitquoted(cookie)
-    get_store(uzbl).add_cookie(cookie, splitted)
+    get_store(uzbl, expires_with_session(splitted)).add_cookie(cookie, splitted)
 
 def delete_cookie(uzbl, cookie):
     for u in get_recipents(uzbl):
         u.send('delete_cookie %s' % cookie)
 
     splitted = splitquoted(cookie)
-    get_store(uzbl).delete_cookie(cookie, splitted)
+    if len(splitted) == 6:
+        get_store(uzbl, expires_with_session(splitted)).delete_cookie(cookie, splitted)
+    else:
+        for store in set([get_store(uzbl, session) for session in (True, False)]):
+            store.delete_cookie(cookie, splitted)
 
 def init(uzbl):
     connect_dict(uzbl, {
         'ADD_COOKIE':       add_cookie,
         'DELETE_COOKIE':    delete_cookie,
     })
+
+    for cookie in get_store(uzbl, True):
+        uzbl.send('add_cookie %s' % cookie)
