@@ -93,6 +93,7 @@ const struct var_name_to_ptr_t {
     { "cookie_handler",         PTR_V_STR(uzbl.behave.cookie_handler,           1,   cmd_set_cookie_handler)},
     { "authentication_handler", PTR_V_STR(uzbl.behave.authentication_handler,   1,   set_authentication_handler)},
     { "scheme_handler",         PTR_V_STR(uzbl.behave.scheme_handler,           1,   NULL)},
+    { "download_handler",       PTR_V_STR(uzbl.behave.download_handler,         1,   NULL)},
     { "fifo_dir",               PTR_V_STR(uzbl.behave.fifo_dir,                 1,   cmd_fifo_dir)},
     { "socket_dir",             PTR_V_STR(uzbl.behave.socket_dir,               1,   cmd_socket_dir)},
     { "http_debug",             PTR_V_INT(uzbl.behave.http_debug,               1,   cmd_http_debug)},
