@@ -105,7 +105,9 @@ set name_section      = <span foreground="khaki">\@[\@NAME]\@</span>
 set status_section    = <span foreground="orange">\@status_message</span>
 set selected_section  = <span foreground="#606060">\@[\@SELECTED_URI]\@</span>
 
-set status_format     = <span font_family="monospace">@mode_section @keycmd_section @progress_section @uri_section @name_section @status_section @scroll_section @selected_section</span>
+set download_section  = <span foreground="white">\@downloads</span>
+
+set status_format     = <span font_family="monospace">@mode_section @keycmd_section @progress_section @uri_section @name_section @status_section @scroll_section @selected_section @download_section</span>
 
 set title_format_long = \@keycmd_prompt \@raw_modcmd \@raw_keycmd \@TITLE - Uzbl browser <\@NAME> \@SELECTED_URI
 
