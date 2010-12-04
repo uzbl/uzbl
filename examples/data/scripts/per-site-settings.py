@@ -55,8 +55,9 @@ def grep_url(url, path, fin):
     # 2 == command
     state = 0
     for line in fin:
-        raw = line.lstrip()
-        indent = len(line) - len(raw)
+        raw = line.strip()
+
+        indent = len(line) - len(raw) - 1
         if not indent:
             # Reset state
             passing = [False, False]
