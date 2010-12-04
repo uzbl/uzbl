@@ -16,6 +16,9 @@ void
 set_authentication_handler();
 
 void
+set_status_background();
+
+void
 set_icon();
 
 void
@@ -57,6 +60,9 @@ cmd_zoom_level();
 
 void
 cmd_set_zoom_type();
+
+void
+cmd_enable_pagecache();
 
 void
 cmd_disable_plugins();
@@ -127,9 +133,6 @@ cmd_load_start();
 WebKitWebSettings*
 view_settings();
 
-gboolean
-download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data);
-
 void
 toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result);
 
@@ -143,16 +146,10 @@ void
 title_change_cb (WebKitWebView* web_view, GParamSpec param_spec);
 
 void
-progress_change_cb (WebKitWebView* page, gint progress, gpointer data);
+progress_change_cb (WebKitWebView* web_view, GParamSpec param_spec);
 
 void
-load_commit_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
-
-void
-load_start_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
-
-void
-load_finish_cb (WebKitWebView* page, WebKitWebFrame* frame, gpointer data);
+load_status_change_cb (WebKitWebView* web_view, GParamSpec param_spec);
 
 void
 load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer web_err, gpointer ud);
@@ -197,7 +194,7 @@ request_starting_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitWebRes
 create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data);
 
 gboolean
-download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data);
+download_cb (WebKitWebView *web_view, WebKitDownload *download, gpointer user_data);
 
 void
 populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c);
@@ -211,8 +208,11 @@ button_release_cb (GtkWidget* window, GdkEventButton* event);
 gboolean
 focus_cb(GtkWidget* window, GdkEventFocus* event, void *ud);
 
-void
-save_cookies_js(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie, gpointer user_data);
+gboolean
+scroll_vert_cb(GtkAdjustment *adjust, void *w);
+
+gboolean
+scroll_horiz_cb(GtkAdjustment *adjust, void *w);
 
 void
-save_cookies_http(SoupMessage *msg, gpointer user_data);
+cmd_set_cookie_handler();
