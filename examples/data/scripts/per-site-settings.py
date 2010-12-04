@@ -111,9 +111,7 @@ if __name__ == '__main__':
     else:
         fin = open(filepath, 'r')
 
-    host, path = (url.hostname, url.path)
-
-    commands = grep_url(host, path, fin)
+    commands = grep_url(url.hostname, url.path, fin)
 
     fin.close()
 
