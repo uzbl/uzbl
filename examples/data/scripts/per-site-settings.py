@@ -62,7 +62,6 @@ def grep_url(url, path, fin):
             # Reset state
             passing = [False, False]
             state = 0
-            cur_indent = 0
         else:
             # previous level
             if indent < cur_indent:
