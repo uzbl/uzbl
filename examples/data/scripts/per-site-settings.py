@@ -71,7 +71,7 @@ def grep_url(url, path, fin):
                     passing[1] = False
                 state -= 1
             # next level
-            if cur_indent < indent:
+            elif cur_indent < indent:
                 state += 1
 
         # parse the line
