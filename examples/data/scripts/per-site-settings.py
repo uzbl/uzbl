@@ -94,7 +94,7 @@ def write_to_socket(commands, sockpath):
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     sock.connect(sockpath)
     for command in commands:
-        sock.write(command)
+        sock.send(command)
     sock.close()
 
 
