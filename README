@@ -305,6 +305,9 @@ file).
   - `data`: The cookie data. Only included for "PUT" requests.
 * `scheme_handler`: handler to execute for each URI navigated to - the
   navigation request will be ignored if handler prints "USED\n"
+* `download_handler`: executed when a download is started. the handler script
+  should print a path that the download should be saved to, or print nothing
+  to cancel the download.
 * `fifo_dir`: location to store FIFOs.
 * `socket_dir`: location to store sockets.
 * `http_debug`: HTTP debug mode (value 0-3).
@@ -493,10 +496,12 @@ Handler scripts that are called by `uzbl` are passed the following arguments:
 
 The script specific arguments are:
 
-* download
+* download handler
 
   - `$8 url`: The URL of the item to be downloaded.
-  - `$9 proxy`: (optional) The URL of an HTTP proxy.
+  - `$9 suggested_filename`: A filename suggested by the server or based on the URL.
+  - `$10 content_type`: The mimetype of the file to be downloaded.
+  - `$11 total_size`: The size of the file to be downloaded in bytes. This may be inaccurate.
 
 * cookie handler
 
