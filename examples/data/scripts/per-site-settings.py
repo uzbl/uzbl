@@ -108,7 +108,7 @@ if __name__ == '__main__':
     if mode & stat.S_IEXEC:
         fin = tempfile.TemporaryFile()
         subprocess.Popen([filepath], stdout=fin).wait()
-    else
+    else:
         fin = open(filepath, 'r')
 
     host, path = (url.hostname, url.path)
