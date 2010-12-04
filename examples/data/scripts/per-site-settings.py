@@ -75,15 +75,16 @@ def grep_url(url, path, fin):
             if cur_indent < indent:
                 state += 1
 
-            # parse the line
-            if state == 0:
-                if not passing[0] and match_url(url, raw):
-                    passing[0] = True
-            elif state == 1 and passing[0]:
-                if not passing[1] and match_path(path, raw):
-                    passing[1] = True
-            elif state == 2 and passing[1]:
-                entries.append(raw)
+        # parse the line
+        if state == 0:
+            if not passing[0] and match_url(url, raw):
+                passing[0] = True
+        elif state == 1 and passing[0]:
+            if not passing[1] and match_path(path, raw):
+                passing[1] = True
+        elif state == 2 and passing[1]:
+            entries.append(raw)
+
         cur_indent = indent
 
     return entries
