@@ -1224,7 +1224,7 @@ run_command (const gchar *command, const guint npre, const gchar **args,
 
 /*@null@*/ gchar**
 split_quoted(const gchar* src, const gboolean unquote) {
-    /* split on unquoted space, return array of strings;
+    /* split on unquoted space or tab, return array of strings;
        remove a layer of quotes and backslashes if unquote */
     if (!src) return NULL;
 
@@ -1245,7 +1245,7 @@ split_quoted(const gchar* src, const gboolean unquote) {
         else if ((*p == '\'') && unquote && !dq) sq = !sq;
         else if (*p == '\'' && !dq) { g_string_append_c(s, *p);
                                       sq = ! sq; }
-        else if ((*p == ' ') && !dq && !sq) {
+        else if ((*p == ' ' || *p == '\t') && !dq && !sq) {
             dup = g_strdup(s->str);
             g_array_append_val(a, dup);
             g_string_truncate(s, 0);
