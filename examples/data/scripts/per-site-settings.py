@@ -3,7 +3,7 @@
 
 # Example configuration usage:
 #
-#    @on_event LOAD_COMMIT spawn @scripts_dir/per-site-settings.py $XDG_DATA_DIR/per-site-settings
+#    @on_event LOAD_COMMIT spawn @scripts_dir/per-site-settings.py @data_home/uzbl/per-site-settings
 
 # Format of the settings file:
 #
