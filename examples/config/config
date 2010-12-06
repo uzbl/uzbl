@@ -64,8 +64,8 @@ set download_handler    = sync_spawn @scripts_dir/download.sh
 # Load commit handlers
 @on_event   LOAD_COMMIT    @set_status <span foreground="green">recv</span>
 
-# Userscript support. Add all scripts to $XDG_DATA_HOME/uzbl/userscripts
-#@on_event   LOAD_COMMIT    spawn @scripts_dir/userscripts.sh
+# Userscripts/per-site-settings. See the script and the example configuration for details
+#@on_event   LOAD_COMMIT    spawn @scripts_dir/per-site-settings.py @data_home/uzbl/per-site-settings
 
 # Load finish handlers
 @on_event   LOAD_FINISH    @set_status <span foreground="gold">done</span>

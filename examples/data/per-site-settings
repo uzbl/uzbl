@@ -1,0 +1,3 @@
+.*
+  .*/\d+-\w+/(thread|subject|author|date).html
+    script @data_home/uzbl/scripts/pipermail.js
