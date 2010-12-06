@@ -55,13 +55,13 @@ def grep_url(url, path, fin):
     # 2 == command
     state = 0
     for line in fin:
-        raw = line.lstrip()
-        indent = len(line) - len(raw)
+        raw = line.strip()
+
+        indent = len(line) - len(raw) - 1
         if not indent:
             # Reset state
             passing = [False, False]
             state = 0
-            cur_indent = 0
         else:
             # previous level
             if indent < cur_indent:
@@ -71,18 +71,19 @@ def grep_url(url, path, fin):
                     passing[1] = False
                 state -= 1
             # next level
-            if cur_indent < indent:
+            elif cur_indent < indent:
                 state += 1
 
-            # parse the line
-            if state == 0:
-                if not passing[0] and match_url(url, raw):
-                    passing[0] = True
-            elif state == 1 and passing[0]:
-                if not passing[1] and match_path(path, raw):
-                    passing[1] = True
-            elif state == 2 and passing[1]:
-                entries.append(raw)
+        # parse the line
+        if state == 0:
+            if not passing[0] and match_url(url, raw):
+                passing[0] = True
+        elif state == 1 and passing[0]:
+            if not passing[1] and match_path(path, raw):
+                passing[1] = True
+        elif state == 2 and passing[1]:
+            entries.append(raw)
+
         cur_indent = indent
 
     return entries
@@ -92,7 +93,7 @@ def write_to_socket(commands, sockpath):
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     sock.connect(sockpath)
     for command in commands:
-        sock.write(command)
+        sock.send(command)
     sock.close()
 
 
@@ -106,12 +107,10 @@ if __name__ == '__main__':
     if mode & stat.S_IEXEC:
         fin = tempfile.TemporaryFile()
         subprocess.Popen([filepath], stdout=fin).wait()
-    else
+    else:
         fin = open(filepath, 'r')
 
-    host, path = (url.hostname, url.path)
-
-    commands = grep_url(host, path, fin)
+    commands = grep_url(url.hostname, url.path, fin)
 
     fin.close()
 
