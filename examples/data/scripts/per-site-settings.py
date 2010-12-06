@@ -98,8 +98,8 @@ def write_to_socket(commands, sockpath):
 
 
 if __name__ == '__main__':
-    sockpath = sys.argv[5]
-    url = urlparse.urlparse(sys.argv[6])
+    sockpath = os.environ['UZBL_SOCKET']
+    url = urlparse.urlparse(os.environ['UZBL_URI'])
     filepath = sys.argv[8]
 
     mode = os.stat(filepath)[stat.ST_MODE]
