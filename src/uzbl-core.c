@@ -467,8 +467,6 @@ get_click_context() {
 }
 
 /* --- SIGNALS --- */
-int sigs[] = {SIGTERM, SIGINT, SIGSEGV, SIGILL, SIGFPE, SIGQUIT, SIGALRM, 0};
-
 sigfunc*
 setup_signal(int signr, sigfunc *shandler) {
     struct sigaction nh, oh;
@@ -484,21 +482,9 @@ setup_signal(int signr, sigfunc *shandler) {
 }
 
 void
-catch_signal(int s) {
-    if(s == SIGTERM ||
-       s == SIGINT  ||
-       s == SIGILL  ||
-       s == SIGFPE  ||
-       s == SIGQUIT) {
-        clean_up();
-        exit(EXIT_SUCCESS);
-    }
-    else if(s == SIGSEGV) {
-        clean_up();
-        fprintf(stderr, "Program aborted, segmentation fault!\nAttempting to clean up...\n");
-        exit(EXIT_FAILURE);
-    }
-    else if(s == SIGALRM && uzbl.state.event_buffer) {
+empty_event_buffer(int s) {
+    (void) s;
+    if(uzbl.state.event_buffer) {
         g_ptr_array_free(uzbl.state.event_buffer, TRUE);
         uzbl.state.event_buffer = NULL;
     }
@@ -1559,6 +1545,28 @@ control_fifo(GIOChannel *gio, GIOCondition condition) {
     return TRUE;
 }
 
+gboolean
+attach_fifo(gchar *path) {
+    GError *error = NULL;
+    /* we don't really need to write to the file, but if we open the
+     * file as 'r' we will block here, waiting for a writer to open
+     * the file. */
+    GIOChannel *chan = g_io_channel_new_file(path, "r+", &error);
+    if (chan) {
+        if (g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, NULL)) {
+            if (uzbl.state.verbose)
+                printf ("attach_fifo: created successfully as %s\n", path);
+            send_event(FIFO_SET, path, NULL);
+            uzbl.comm.fifo_path = path;
+            g_setenv("UZBL_FIFO", uzbl.comm.fifo_path, TRUE);
+            return TRUE;
+        } else g_warning ("attach_fifo: could not add watch on %s\n", path);
+    } else g_warning ("attach_fifo: can't open: %s\n", error->message);
+
+    if (error) g_error_free (error);
+    return FALSE;
+}
+
 /*@null@*/ gchar*
 init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
     if (uzbl.comm.fifo_path) { /* get rid of the old fifo if one exists */
@@ -1568,29 +1576,31 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
         uzbl.comm.fifo_path = NULL;
     }
 
-    GIOChannel *chan = NULL;
-    GError *error = NULL;
     gchar *path = build_stream_name(FIFO, dir);
 
     if (!file_exists(path)) {
-        if (mkfifo (path, 0666) == 0) {
-            // we don't really need to write to the file, but if we open the file as 'r' we will block here, waiting for a writer to open the file.
-            chan = g_io_channel_new_file(path, "r+", &error);
-            if (chan) {
-                if (g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, NULL)) {
-                    if (uzbl.state.verbose)
-                        printf ("init_fifo: created successfully as %s\n", path);
-                    send_event(FIFO_SET, path, NULL);
-                    uzbl.comm.fifo_path = path;
-                    g_setenv("UZBL_FIFO", uzbl.comm.fifo_path, TRUE);
-                    return dir;
-                } else g_warning ("init_fifo: could not add watch on %s\n", path);
-            } else g_warning ("init_fifo: can't open: %s\n", error->message);
+        if (mkfifo (path, 0666) == 0 && attach_fifo(path)) {
+            return dir;
         } else g_warning ("init_fifo: can't create %s: %s\n", path, strerror(errno));
-    } else g_warning ("init_fifo: can't create %s: file exists\n", path);
+    } else {
+        /* the fifo exists. but is anybody home? */
+        int fd = open(path, O_WRONLY|O_NONBLOCK);
+        if(fd < 0) {
+            /* some error occurred, presumably nobody's on the read end.
+             * we can attach ourselves to it. */
+            if(attach_fifo(path))
+                return dir;
+            else
+                g_warning("init_fifo: can't attach to %s: %s\n", path, strerror(errno));
+        } else {
+            /* somebody's there, we can't use that fifo. */
+            close(fd);
+            /* whatever, this instance can live without a fifo. */
+            g_warning ("init_fifo: can't create %s: file exists and is occupied\n", path);
+        }
+    }
 
     /* if we got this far, there was an error; cleanup */
-    if (error) g_error_free (error);
     g_free(dir);
     g_free(path);
     return NULL;
@@ -1741,6 +1751,32 @@ control_client_socket(GIOChannel *clientchan) {
     return TRUE;
 }
 
+
+gboolean
+attach_socket(gchar *path, struct sockaddr_un *local) {
+    GIOChannel *chan = NULL;
+    int sock = socket (AF_UNIX, SOCK_STREAM, 0);
+
+    if (bind (sock, (struct sockaddr *) local, sizeof(*local)) != -1) {
+        if (uzbl.state.verbose)
+            printf ("init_socket: opened in %s\n", path);
+
+        if(listen (sock, 5) < 0)
+            g_warning ("attach_socket: could not listen on %s: %s\n", path, strerror(errno));
+
+        if( (chan = g_io_channel_unix_new(sock)) ) {
+            g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_socket, chan);
+            uzbl.comm.socket_path = path;
+            send_event(SOCKET_SET, path, NULL);
+            g_setenv("UZBL_SOCKET", uzbl.comm.socket_path, TRUE);
+            return TRUE;
+        }
+    } else g_warning ("attach_socket: could not bind to %s: %s\n", path, strerror(errno));
+
+    return FALSE;
+}
+
+
 /*@null@*/ gchar*
 init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL */
     if (uzbl.comm.socket_path) { /* remove an existing socket should one exist */
@@ -1755,31 +1791,33 @@ init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL *
         return NULL;
     }
 
-    GIOChannel *chan = NULL;
-    int sock, len;
     struct sockaddr_un local;
     gchar *path = build_stream_name(SOCKET, dir);
 
-    sock = socket (AF_UNIX, SOCK_STREAM, 0);
-
     local.sun_family = AF_UNIX;
     strcpy (local.sun_path, path);
-    unlink (local.sun_path);
 
-    len = strlen (local.sun_path) + sizeof (local.sun_family);
-    if (bind (sock, (struct sockaddr *) &local, len) != -1) {
-        if (uzbl.state.verbose)
-            printf ("init_socket: opened in %s\n", path);
-        listen (sock, 5);
-
-        if( (chan = g_io_channel_unix_new(sock)) ) {
-            g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_socket, chan);
-            uzbl.comm.socket_path = path;
-            send_event(SOCKET_SET, path, NULL);
-            g_setenv("UZBL_SOCKET", uzbl.comm.socket_path, TRUE);
-            return dir;
+    if(!file_exists(path) && attach_socket(path, &local)) {
+        /* it's free for the taking. */
+        return dir;
+    } else {
+        /* see if anybody's listening on the socket path we want. */
+        int sock = socket (AF_UNIX, SOCK_STREAM, 0);
+        if(connect(sock, (struct sockaddr *) &local, sizeof(local)) < 0) {
+            /* some error occurred, presumably nobody's listening.
+             * we can attach ourselves to it. */
+            unlink(path);
+            if(attach_socket(path, &local))
+                return dir;
+            else
+                g_warning("init_socket: can't attach to existing socket %s: %s\n", path, strerror(errno));
+        } else {
+            /* somebody's there, we can't use that socket path. */
+            close(sock);
+            /* whatever, this instance can live without a socket. */
+            g_warning ("init_socket: can't create %s: socket exists and is occupied\n", path);
         }
-    } else g_warning ("init_socket: could not open in %s: %s\n", path, strerror(errno));
+    }
 
     /* if we got this far, there was an error; cleanup */
     g_free(path);
@@ -2211,10 +2249,10 @@ initialize(int argc, char *argv[]) {
     uzbl.net.soup_cookie_jar = uzbl_cookie_jar_new();
     soup_session_add_feature(uzbl.net.soup_session, SOUP_SESSION_FEATURE(uzbl.net.soup_cookie_jar));
 
-    for(i=0; sigs[i]; i++) {
-        if(setup_signal(sigs[i], catch_signal) == SIG_ERR)
-            fprintf(stderr, "uzbl: error hooking %d: %s\n", sigs[i], strerror(errno));
-    }
+    /* TODO: move the handler setup to event_buffer_timeout and disarm the
+     * handler in empty_event_buffer? */
+    if(setup_signal(SIGALRM, empty_event_buffer) == SIG_ERR)
+        fprintf(stderr, "uzbl: error hooking %d: %s\n", SIGALRM, strerror(errno));
     event_buffer_timeout(10);
 
     uzbl.info.webkit_major = webkit_major_version();
