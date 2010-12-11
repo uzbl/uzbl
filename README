@@ -260,6 +260,11 @@ The following commands are recognized:
   - Read contents of `<file>` and interpret as a set of `uzbl` commands.
 * `show_inspector`
   - Show the WebInspector
+* `add_cookie <domain> <path> <name> <value> <scheme> <expires>`
+  - Adds a new cookie to the cookie jar
+* 'delete_cookie <domain> <path> <name> <value> [<scheme> <expires>]`
+	- Deletes a matching cookie from the cookie jar. scheme and expire time
+	is currently not considered when matching.
 
 ### VARIABLES AND CONSTANTS
 
@@ -632,11 +637,10 @@ The EM allows:
 * Many fine-grained events (`hover_over_link`, `key_press`, `key_release`,..)
 * See example `uzbl-event-manager`.
 
-**Note**: Cookie events are not sent to an event handler but handled internally
-  through the cookie handler because of their synchronous nature. Cookie events
-  are really something completely different from all other events. Maybe someday
-  we'll use HTTP proxies or synchronous events (which also have other nice use
-  cases), but for now we still use the handler code.
+**Note**: Cookie events are sent in addition to (optionally) being handled by 
+  the cookie handler (set by the cookie_handler var). If using a handler it will
+  take precedence before the internal state configured by (add|delete)_cookie
+  commands.
 
 Events have this format:
 
@@ -710,6 +714,12 @@ Events have this format:
   Xembed mode, `plug_id` is the Xembed ID used.
 * `EVENT [uzbl_instance_name] BUILTINS command_list`: Shows a list of all `uzbl`
   commands, whitespace separated, on startup.
+* `EVENT [uzbl_instance_name] ADD_COOKIE domain path name value scheme expire`:
+  When a cookie was added or replaced. scheme is 'http' or 'https', expire will
+  be a unix-timestamp or empty
+* `EVENT [uzbl_instance_name] DELETE_COOKIE domain path name value scheme expire`:
+  When a cookie was deleted. arguments as ADD_COOKIE
+ 
 
 Events/requests which the EM and its plugins listens for
 
