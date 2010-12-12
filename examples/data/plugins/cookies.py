@@ -4,6 +4,8 @@
 from collections import defaultdict
 import os, re
 
+symbolic = {'domain': 0, 'path':1, 'name':2, 'value':3, 'scheme':4, 'expires':5}
+
 _splitquoted = re.compile("( |\\\".*?\\\"|'.*?')")
 def splitquoted(text):
     return [str(p.strip('\'"')) for p in _splitquoted.split(text) if p.strip()]
@@ -88,7 +90,13 @@ xdg_data_home = os.environ.get('XDG_DATA_HOME', os.path.join(os.environ['HOME'],
 DefaultStore = TextStore(os.path.join(xdg_data_home, 'uzbl/cookies.txt'))
 SessionStore = ListStore()
 
-def expires_with_session(cookie):
+def accept_cookie(uzbl, cookie):
+    for component, match in uzbl.cookie_blacklist:
+        if match(cookie[component]) is not None:
+            return False
+    return True
+
+def expires_with_session(uzbl, cookie):
     return cookie[5] == ''
 
 def get_recipents(uzbl):
@@ -102,11 +110,14 @@ def get_store(uzbl, session=False):
     return DefaultStore
 
 def add_cookie(uzbl, cookie):
-    for u in get_recipents(uzbl):
-        u.send('add_cookie %s' % cookie)
-    
     splitted = splitquoted(cookie)
-    get_store(uzbl, expires_with_session(splitted)).add_cookie(cookie, splitted)
+    if accept_cookie(uzbl, splitted):
+        for u in get_recipents(uzbl):
+            u.send('add_cookie %s' % cookie)
+        
+        get_store(uzbl, expires_with_session(uzbl, splitted)).add_cookie(cookie, splitted)
+    else:
+        uzbl.send('delete_cookie %s' % cookie)
 
 def delete_cookie(uzbl, cookie):
     for u in get_recipents(uzbl):
@@ -114,15 +125,28 @@ def delete_cookie(uzbl, cookie):
 
     splitted = splitquoted(cookie)
     if len(splitted) == 6:
-        get_store(uzbl, expires_with_session(splitted)).delete_cookie(cookie, splitted)
+        get_store(uzbl, expires_with_session(uzbl, splitted)).delete_cookie(cookie, splitted)
     else:
         for store in set([get_store(uzbl, session) for session in (True, False)]):
             store.delete_cookie(cookie, splitted)
+
+def blacklist(uzbl, arg):
+    component, regexp = splitquoted(arg)
+    try:
+        component = symbolic[component]
+    except KeyError:
+        component = int(component)
+    assert component <= 5
+    uzbl.cookie_blacklist.append((component, re.compile(regexp).match))
 
 def init(uzbl):
     connect_dict(uzbl, {
         'ADD_COOKIE':       add_cookie,
         'DELETE_COOKIE':    delete_cookie,
+        'BLACKLIST_COOKIE': blacklist
+    })
+    export_dict(uzbl, {
+        'cookie_blacklist' : []
     })
 
     for cookie in get_store(uzbl, True):

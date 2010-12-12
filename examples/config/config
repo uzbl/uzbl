@@ -122,6 +122,10 @@ set progress.pending    =
 
 set useragent         = Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}.@{WEBKIT_MICRO}) (@(+uname -sm)@ [@ARCH_UZBL]) (Commit @COMMIT)
 
+# === Configure cookie blacklist ========================================================
+# Drop google analytics tracking cookies
+#request BLACKLIST_COOKIE name '^__utm.$'
+
 # === Key binding configuration ==============================================
 # --- Internal modmapping and ignoring ---------------------------------------
 
