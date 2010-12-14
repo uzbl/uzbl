@@ -489,8 +489,9 @@ get_click_context() {
     if(!uzbl.state.last_button)
         return -1;
 
-    ht = webkit_web_view_get_hit_test_result(g->web_view, uzbl.state.last_button);
-    g_object_get(ht, "context", &context, NULL);
+    ht = webkit_web_view_get_hit_test_result (g->web_view, uzbl.state.last_button);
+    g_object_get (ht, "context", &context, NULL);
+	g_object_unref (ht);
 
     return (gint)context;
 }
