@@ -716,7 +716,7 @@ add_to_menu(GArray *argv, guint context) {
         g->menu_items = g_ptr_array_new();
 
     if(split[1])
-        item_cmd = g_strdup(split[1]);
+        item_cmd = split[1];
 
     if(split[0]) {
         m = malloc(sizeof(MenuItem));
@@ -726,8 +726,6 @@ add_to_menu(GArray *argv, guint context) {
         m->issep = FALSE;
         g_ptr_array_add(g->menu_items, m);
     }
-    else
-        g_free(item_cmd);
 
     g_strfreev(split);
 }
