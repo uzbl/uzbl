@@ -65,28 +65,6 @@ class Keylet(object):
             return key
 
 
-    def find_addition(self, modkey):
-        '''Key has just been pressed, check if this key + the held list
-        results in a modkey addition. Return that addition and remove all
-        modkeys that created it.'''
-
-        # Intersection of (held list + modkey) and additions.
-        added = (self.held | set([modkey])) & set(self.additions.keys())
-        for key in added:
-            if key == modkey or modkey in self.additions[key]:
-                self.held -= self.additions[key]
-                return key
-
-        # Held list + ignored list + modkey.
-        modkeys = self.held | self.ignored | set([modkey])
-        for (key, value) in self.additions.items():
-            if modkeys.issuperset(value):
-                self.held -= value
-                return key
-
-        return modkey
-
-
     def key_ignored(self, key):
         '''Check if the given key is ignored by any ignore rules.'''
 
@@ -132,10 +110,7 @@ def add_modmap(uzbl, key, map):
     assert len(key)
     modmaps = uzbl.keylet.modmaps
 
-    if key[0] == "<" and key[-1] == ">":
-        key = key[1:-1]
-
-    modmaps[key] = map
+    modmaps[key.strip('<>')] = map.strip('<>')
     uzbl.event("NEW_MODMAP", key, map)
 
 
@@ -244,23 +219,17 @@ def clear_current(uzbl):
         clear_keycmd(uzbl)
 
 
-def focus_changed(uzbl, *args):
-    '''Focus to the uzbl instance has now been lost which means all currently
-    held keys in the held list will not get a KEY_RELEASE event so clear the
-    entire held list.'''
-
-    clear_modcmd(uzbl, clear_held=True)
-
-
 def update_event(uzbl, k, execute=True):
     '''Raise keycmd & modcmd update events.'''
 
     keycmd, modcmd = k.get_keycmd(), k.get_modcmd()
 
     if k.is_modcmd:
+        logger.debug('modcmd_update, %s' % modcmd)
         uzbl.event('MODCMD_UPDATE', k)
 
     else:
+        logger.debug('keycmd_update, %s' % keycmd)
         uzbl.event('KEYCMD_UPDATE', k)
 
     if uzbl.config.get('modcmd_updates', '1') == '1':
@@ -293,31 +262,19 @@ def inject_str(str, index, inj):
     return "%s%s%s" % (str[:index], inj, str[index:])
 
 
-def get_keylet_and_key(uzbl, key, add=True):
-    '''Return the keylet and apply any transformations to the key as defined
-    by the modmapping or modkey addition rules. Return None if the key is
-    ignored.'''
-
+def parse_key_event(uzbl, key):
+    ''' Build a set from the modstate part of the event, and pass all keys through modmap '''
     keylet = uzbl.keylet
+
+    # Get the modstate part of the event if present
+    if ' ' in key:
+        modstate, key = key.split(' ')
+        modstate = set(['<%s>' % keylet.modmap_key(k) for k in modstate.split('|')])
+    else:
+        modstate = set()
+    
     key = keylet.modmap_key(key)
-    if len(key) == 1:
-        return (keylet, key)
-
-    modkey = "<%s>" % key.strip("<>")
-
-    if keylet.key_ignored(modkey):
-        if add:
-            keylet.ignored.add(modkey)
-
-        elif modkey in keylet.ignored:
-            keylet.ignored.remove(modkey)
-
-    modkey = keylet.find_addition(modkey)
-
-    if keylet.key_ignored(modkey):
-        return (keylet, None)
-
-    return (keylet, modkey)
+    return modstate, key
 
 
 def key_press(uzbl, key):
@@ -330,17 +287,18 @@ def key_press(uzbl, key):
     5. If in modcmd mode the pressed key is added to the held keys list.
     6. Keycmd is updated and events raised if anything is changed.'''
 
-    (k, key) = get_keylet_and_key(uzbl, key.strip())
-    if not key:
-        return
+    k = uzbl.keylet
+    modstate, key = parse_key_event(uzbl, key)
+    modstate = set([m for m in modstate if not k.key_ignored(m)])
 
-    if key.lower() == '<space>' and not k.held and k.keycmd:
+    logger.debug('key press modstate=%s' % str(modstate))
+    if key.lower() == 'space' and not modstate and k.keycmd:
         k.keycmd = inject_str(k.keycmd, k.cursor, ' ')
         k.cursor += 1
 
-    elif not k.held and len(key) == 1:
-
+    elif not modstate and len(key) == 1:
         if uzbl.config.get('keycmd_events', '1') != '1':
+            # TODO, make a note on what's going on here
             k.keycmd = ''
             k.cursor = 0
             del uzbl.config['keycmd']
@@ -349,14 +307,17 @@ def key_press(uzbl, key):
         k.keycmd = inject_str(k.keycmd, k.cursor, key)
         k.cursor += 1
 
-    elif len(key) > 1:
-        k.is_modcmd = True
-        if key not in k.held:
-            k.held.add(key)
+    elif len(key) == 1:
+        k.modcmd += key
 
     else:
+        if not k.key_ignored('<%s>' % key):
+            modstate.add('<%s>' % key)
+
+    if len(modstate) > 0:
         k.is_modcmd = True
-        k.modcmd += key
+
+    k.held = modstate
 
     update_event(uzbl, k)
 
@@ -368,14 +329,16 @@ def key_release(uzbl, key):
     2. If in a mod-command then raise a MODCMD_EXEC.
     3. Check if any modkey is held, if so set modcmd mode.
     4. Update the keycmd uzbl variable if anything changed.'''
+    k = uzbl.keylet
+    modstate, key = parse_key_event(uzbl, key)
+    modstate = set([m for m in modstate if not k.key_ignored(m)])
 
-    (k, key) = get_keylet_and_key(uzbl, key.strip(), add=False)
-
-    if key in k.held:
+    if len(key) > 1:
         if k.is_modcmd:
+            modstate.remove('<%s>' % key)
+            k.held = modstate
             uzbl.event('MODCMD_EXEC', k)
 
-        k.held.remove(key)
         clear_modcmd(uzbl)
 
 
@@ -485,8 +448,6 @@ def init(uzbl):
 
     connect_dict(uzbl, {
         'APPEND_KEYCMD':        append_keycmd,
-        'FOCUS_GAINED':         focus_changed,
-        'FOCUS_LOST':           focus_changed,
         'IGNORE_KEY':           add_key_ignore,
         'INJECT_KEYCMD':        inject_keycmd,
         'KEYCMD_BACKSPACE':     keycmd_backspace,
@@ -496,6 +457,8 @@ def init(uzbl):
         'KEYCMD_CLEAR':         clear_keycmd,
         'KEY_PRESS':            key_press,
         'KEY_RELEASE':          key_release,
+        'MOD_PRESS':            key_press,
+        'MOD_RELEASE':          key_release,
         'MODKEY_ADDITION':      modkey_addition_parse,
         'MODMAP':               modmap_parse,
         'SET_CURSOR_POS':       set_cursor_pos,
