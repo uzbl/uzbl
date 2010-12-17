@@ -583,9 +583,9 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "js",                             {run_js, TRUE}                  },
     { "script",                         {run_external_js, 0}            },
     { "toggle_status",                  {toggle_status_cb, 0}           },
-    { "spawn",                          {spawn, 0}                      },
+    { "spawn",                          {spawn_async, 0}                },
     { "sync_spawn",                     {spawn_sync, 0}                 }, // needed for cookie handler
-    { "sh",                             {spawn_sh, 0}                   },
+    { "sh",                             {spawn_sh_async, 0}             },
     { "sync_sh",                        {spawn_sh_sync, 0}              }, // needed for cookie handler
     { "exit",                           {close_uzbl, 0}                 },
     { "search",                         {search_forward_text, TRUE}     },
@@ -1313,37 +1313,33 @@ split_quoted(const gchar* src, const gboolean unquote) {
 }
 
 void
-spawn(WebKitWebView *web_view, GArray *argv, GString *result) {
-    (void)web_view; (void)result;
+spawn(GArray *argv, gboolean sync) {
     gchar *path = NULL;
 
     //TODO: allow more control over argument order so that users can have some arguments before the default ones from run_command, and some after
     if (argv_idx(argv, 0) &&
             ((path = find_existing_file(argv_idx(argv, 0)))) ) {
         run_command(path, 0,
-                ((const gchar **) (argv->data + sizeof(gchar*))),
-                FALSE, NULL);
+            ((const gchar **) (argv->data + sizeof(gchar*))),
+            sync, sync?&uzbl.comm.sync_stdout:NULL);
         g_free(path);
     }
+}
+
+void
+spawn_async(WebKitWebView *web_view, GArray *argv, GString *result) {
+    (void)web_view; (void)result;
+    spawn(argv, FALSE);
 }
 
 void
 spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
-    gchar *path = NULL;
-
-    if (argv_idx(argv, 0) &&
-            ((path = find_existing_file(argv_idx(argv, 0)))) ) {
-        run_command(path, 0,
-                ((const gchar **) (argv->data + sizeof(gchar*))),
-                    TRUE, &uzbl.comm.sync_stdout);
-        g_free(path);
-    }
+    spawn(argv, TRUE);
 }
 
 void
-spawn_sh(WebKitWebView *web_view, GArray *argv, GString *result) {
-    (void)web_view; (void)result;
+spawn_sh(GArray *argv, gboolean sync) {
     if (!uzbl.behave.shell_cmd) {
         g_printerr ("spawn_sh: shell_cmd is not set!\n");
         return;
@@ -1357,31 +1353,24 @@ spawn_sh(WebKitWebView *web_view, GArray *argv, GString *result) {
     for (i = 1; i < g_strv_length(cmd); i++)
         g_array_prepend_val(argv, cmd[i]);
 
-    if (cmd) run_command(cmd[0], g_strv_length(cmd) + 1, (const gchar **) argv->data, FALSE, NULL);
+    if (cmd)
+        run_command(cmd[0], g_strv_length(cmd) + 1,
+            (const gchar **) argv->data,
+            sync, sync?&uzbl.comm.sync_stdout:NULL);
     g_free (spacer);
     g_strfreev (cmd);
 }
 
 void
+spawn_sh_async(WebKitWebView *web_view, GArray *argv, GString *result) {
+    (void)web_view; (void)result;
+    spawn_sh(argv, FALSE);
+}
+
+void
 spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
-    if (!uzbl.behave.shell_cmd) {
-        g_printerr ("spawn_sh_sync: shell_cmd is not set!\n");
-        return;
-    }
-
-    guint i;
-    gchar *spacer = g_strdup("");
-    g_array_insert_val(argv, 1, spacer);
-    gchar **cmd = split_quoted(uzbl.behave.shell_cmd, TRUE);
-
-    for (i = 1; i < g_strv_length(cmd); i++)
-        g_array_prepend_val(argv, cmd[i]);
-
-    if (cmd) run_command(cmd[0], g_strv_length(cmd) + 1, (const gchar **) argv->data,
-                         TRUE, &uzbl.comm.sync_stdout);
-    g_free (spacer);
-    g_strfreev (cmd);
+    spawn_sh(argv, TRUE);
 }
 
 void

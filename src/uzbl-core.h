@@ -264,10 +264,10 @@ run_command(const gchar *command, const guint npre,
             const gchar **args, const gboolean sync, char **output_stdout);
 
 void
-spawn(WebKitWebView *web_view, GArray *argv, GString *result);
+spawn_async(WebKitWebView *web_view, GArray *argv, GString *result);
 
 void
-spawn_sh(WebKitWebView *web_view, GArray *argv, GString *result);
+spawn_sh_async(WebKitWebView *web_view, GArray *argv, GString *result);
 
 void
 spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result);
