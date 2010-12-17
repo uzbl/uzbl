@@ -66,7 +66,7 @@ class TextStore(object):
         self.delete_cookie(None, cookie[:-3])
 
         first = not os.path.exists(self.filename)
-        with open(self.filename, 'a') as f:
+        with open(self.filename, 'a+') as f:
             if first:
                 print >> f, "# HTTP Cookie File"
             print >> f, '\t'.join(self.as_file(cookie))
