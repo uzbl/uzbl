@@ -395,7 +395,7 @@ set stack    = @mode_config stack
 set default_mode = command
 
 # === Post-load misc commands ================================================
-sync_spawn @scripts_dir/load_cookies.sh
+sync_spawn_exec @scripts_dir/load_cookies.sh
 
 # Set the "home" page.
 set uri = uzbl.org/doesitwork/@COMMIT
