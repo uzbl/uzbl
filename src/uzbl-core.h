@@ -276,6 +276,9 @@ void
 spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result);
 
 void
+spawn_sync_exec(WebKitWebView *web_view, GArray *argv, GString *result);
+
+void
 parse_command(const char *cmd, const char *param, GString *result);
 
 void

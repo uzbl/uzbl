@@ -585,6 +585,7 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "toggle_status",                  {toggle_status_cb, 0}           },
     { "spawn",                          {spawn_async, 0}                },
     { "sync_spawn",                     {spawn_sync, 0}                 }, // needed for cookie handler
+    { "sync_spawn_exec",                {spawn_sync_exec, 0}            }, // needed for load_cookies.sh :(
     { "sh",                             {spawn_sh_async, 0}             },
     { "sync_sh",                        {spawn_sh_sync, 0}              }, // needed for cookie handler
     { "exit",                           {close_uzbl, 0}                 },
@@ -1313,7 +1314,7 @@ split_quoted(const gchar* src, const gboolean unquote) {
 }
 
 void
-spawn(GArray *argv, gboolean sync) {
+spawn(GArray *argv, gboolean sync, gboolean exec) {
     gchar *path = NULL;
 
     //TODO: allow more control over argument order so that users can have some arguments before the default ones from run_command, and some after
@@ -1324,6 +1325,16 @@ spawn(GArray *argv, gboolean sync) {
         run_command(path, 0,
             ((const gchar **) (argv->data + sizeof(gchar*))),
             sync, sync?&uzbl.comm.sync_stdout:NULL);
+        // run each line of output from the program as a command
+        if (sync && exec && uzbl.comm.sync_stdout) {
+            gchar *head = uzbl.comm.sync_stdout;
+            gchar *tail;
+            while (tail = strchr (head, '\n')) {
+                *tail = '\0';
+                parse_cmd_line(head, NULL);
+                head = tail + 1;
+            }
+        }
         g_free(path);
     }
 }
@@ -1331,13 +1342,19 @@ spawn(GArray *argv, gboolean sync) {
 void
 spawn_async(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
-    spawn(argv, FALSE);
+    spawn(argv, FALSE, FALSE);
 }
 
 void
 spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
-    spawn(argv, TRUE);
+    spawn(argv, TRUE, FALSE);
+}
+
+void
+spawn_sync_exec(WebKitWebView *web_view, GArray *argv, GString *result) {
+    (void)web_view; (void)result;
+    spawn(argv, TRUE, TRUE);
 }
 
 void
