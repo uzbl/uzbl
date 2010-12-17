@@ -1319,6 +1319,8 @@ spawn(GArray *argv, gboolean sync) {
     //TODO: allow more control over argument order so that users can have some arguments before the default ones from run_command, and some after
     if (argv_idx(argv, 0) &&
             ((path = find_existing_file(argv_idx(argv, 0)))) ) {
+        if (uzbl.comm.sync_stdout)
+            uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
         run_command(path, 0,
             ((const gchar **) (argv->data + sizeof(gchar*))),
             sync, sync?&uzbl.comm.sync_stdout:NULL);
@@ -1353,10 +1355,14 @@ spawn_sh(GArray *argv, gboolean sync) {
     for (i = 1; i < g_strv_length(cmd); i++)
         g_array_prepend_val(argv, cmd[i]);
 
-    if (cmd)
+    if (cmd) {
+        if (uzbl.comm.sync_stdout)
+            uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
+
         run_command(cmd[0], g_strv_length(cmd) + 1,
             (const gchar **) argv->data,
             sync, sync?&uzbl.comm.sync_stdout:NULL);
+    }
     g_free (spacer);
     g_strfreev (cmd);
 }
