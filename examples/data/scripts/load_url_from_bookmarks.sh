@@ -3,7 +3,7 @@
 #NOTE: it's the job of the script that inserts bookmarks to make sure there are no dupes.
 
 DMENU_SCHEME="bookmarks"
-DMENU_OPTIONS="xmms vertical resize"
+DMENU_OPTIONS="tokenized vertical resize placement"
 
 source $UZBL_UTIL_DIR/dmenu.sh
 source $UZBL_UTIL_DIR/uzbl-args.sh

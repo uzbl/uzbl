@@ -1,7 +1,7 @@
 #!/bin/sh
 
 DMENU_SCHEME="history"
-DMENU_OPTIONS="xmms vertical resize"
+DMENU_OPTIONS="tokenized vertical resize placement"
 
 source $UZBL_UTIL_DIR/dmenu.sh
 source $UZBL_UTIL_DIR/uzbl-args.sh

@@ -56,13 +56,13 @@ if [ -n "$DMENU_PROMPT" ]; then
     DMENU_ARGS="$DMENU_ARGS -p $DMENU_PROMPT"
 fi
 
-# Detect the xmms patch
-if dmenu --help 2>&1 | grep -q '\[-xs\]'; then
-    DMENU_XMMS_ARGS="-xs"
-    DMENU_HAS_XMMS=1
+# Detect the tokenized patch
+if dmenu --help 2>&1 | grep -q '\[-t\]'; then
+    DMENU_TOKENIZED_ARGS="-t"
+    DMENU_HAS_TOKENIZED=1
 
-    if echo $DMENU_OPTIONS | grep -q -w 'xmms'; then
-        DMENU_ARGS="$DMENU_ARGS $DMENU_XMMS_ARGS"
+    if echo $DMENU_OPTIONS | grep -q -w 'tokenized'; then
+        DMENU_ARGS="$DMENU_ARGS $DMENU_TOKENIZED_ARGS"
     fi
 fi
 
