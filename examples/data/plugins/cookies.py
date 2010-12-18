@@ -88,7 +88,7 @@ class TextStore(object):
 
 xdg_data_home = os.environ.get('XDG_DATA_HOME', os.path.join(os.environ['HOME'], '.local/share'))
 DefaultStore = TextStore(os.path.join(xdg_data_home, 'uzbl/cookies.txt'))
-SessionStore = ListStore()
+SessionStore = TextStore(os.path.join(xdg_data_home, 'uzbl/session-cookies.txt'))
 
 def accept_cookie(uzbl, cookie):
     for component, match in uzbl.cookie_blacklist:
@@ -148,6 +148,3 @@ def init(uzbl):
     export_dict(uzbl, {
         'cookie_blacklist' : []
     })
-
-    for cookie in get_store(uzbl, True):
-        uzbl.send('add_cookie %s' % cookie)
