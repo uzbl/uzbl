@@ -4,6 +4,7 @@
 from collections import defaultdict
 import os, re
 
+# these are symbolic names for the components of the cookie tuple
 symbolic = {'domain': 0, 'path':1, 'name':2, 'value':3, 'scheme':4, 'expires':5}
 
 _splitquoted = re.compile("( |\\\".*?\\\"|'.*?')")
@@ -90,11 +91,22 @@ xdg_data_home = os.environ.get('XDG_DATA_HOME', os.path.join(os.environ['HOME'],
 DefaultStore = TextStore(os.path.join(xdg_data_home, 'uzbl/cookies.txt'))
 SessionStore = TextStore(os.path.join(xdg_data_home, 'uzbl/session-cookies.txt'))
 
-def accept_cookie(uzbl, cookie):
-    for component, match in uzbl.cookie_blacklist:
+def match_list(_list, cookie):
+    for component, match in _list:
         if match(cookie[component]) is not None:
-            return False
-    return True
+            return True
+    return False
+
+# accept a cookie only when:
+# a. there is no whitelist and the cookie is in the blacklist
+# b. the cookie is in the whitelist and not in the blacklist
+def accept_cookie(uzbl, cookie):
+    if uzbl.cookie_whitelist:
+        if match_list(uzbl.cookie_whitelist, cookie):
+            return not match_list(uzbl.cookie_blacklist, cookie)
+        return False
+
+    return not match_list(uzbl.cookie_blacklist, cookie)
 
 def expires_with_session(uzbl, cookie):
     return cookie[5] == ''
@@ -114,9 +126,10 @@ def add_cookie(uzbl, cookie):
     if accept_cookie(uzbl, splitted):
         for u in get_recipents(uzbl):
             u.send('add_cookie %s' % cookie)
-        
+
         get_store(uzbl, expires_with_session(uzbl, splitted)).add_cookie(cookie, splitted)
     else:
+        logger.debug('cookie %r is blacklisted' % splitted)
         uzbl.send('delete_cookie %s' % cookie)
 
 def delete_cookie(uzbl, cookie):
@@ -130,21 +143,34 @@ def delete_cookie(uzbl, cookie):
         for store in set([get_store(uzbl, session) for session in (True, False)]):
             store.delete_cookie(cookie, splitted)
 
-def blacklist(uzbl, arg):
+# add a cookie matcher to a whitelist or a blacklist.
+# a matcher is a (component, re) tuple that matches a cookie when the
+# "component" part of the cookie matches the regular expression "re".
+# "component" is one of the keys defined in the variable "symbolic" above,
+# or the index of a component of a cookie tuple.
+def add_cookie_matcher(_list, arg):
     component, regexp = splitquoted(arg)
     try:
         component = symbolic[component]
     except KeyError:
         component = int(component)
     assert component <= 5
-    uzbl.cookie_blacklist.append((component, re.compile(regexp).match))
+    _list.append((component, re.compile(regexp).match))
+
+def blacklist(uzbl, arg):
+    add_cookie_matcher(uzbl.cookie_blacklist, arg)
+
+def whitelist(uzbl, arg):
+    add_cookie_matcher(uzbl.cookie_whitelist, arg)
 
 def init(uzbl):
     connect_dict(uzbl, {
         'ADD_COOKIE':       add_cookie,
         'DELETE_COOKIE':    delete_cookie,
-        'BLACKLIST_COOKIE': blacklist
+        'BLACKLIST_COOKIE': blacklist,
+        'WHITELIST_COOKIE': whitelist
     })
     export_dict(uzbl, {
-        'cookie_blacklist' : []
+        'cookie_blacklist' : [],
+        'cookie_whitelist' : []
     })
