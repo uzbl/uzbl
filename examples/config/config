@@ -42,7 +42,6 @@ set scripts_dir      = @data_home/uzbl:@prefix/share/uzbl/examples/data:scripts
 
 # These handlers can't be moved to the new event system yet as we don't
 # support events that can wait for a response from a script.
-#set cookie_handler      = talk_to_socket @cache_home/uzbl/cookie_daemon_socket
 set scheme_handler      = sync_spawn @scripts_dir/scheme.py
 set authentication_handler = sync_spawn @scripts_dir/auth.py
 set download_handler    = sync_spawn @scripts_dir/download.sh
