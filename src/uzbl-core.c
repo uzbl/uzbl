@@ -914,7 +914,7 @@ void
 add_cookie(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
     gchar *host, *path, *name, *value;
-    gboolean http_only = 0, secure = 0;
+    gboolean secure = 0;
     SoupDate *expires = NULL;
 
     if(argv->len != 6)
@@ -1329,7 +1329,7 @@ spawn(GArray *argv, gboolean sync, gboolean exec) {
         if (sync && exec && uzbl.comm.sync_stdout) {
             gchar *head = uzbl.comm.sync_stdout;
             gchar *tail;
-            while (tail = strchr (head, '\n')) {
+            while ((tail = strchr (head, '\n'))) {
                 *tail = '\0';
                 parse_cmd_line(head, NULL);
                 head = tail + 1;
