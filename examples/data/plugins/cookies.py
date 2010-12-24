@@ -155,7 +155,7 @@ def add_cookie_matcher(_list, arg):
     except KeyError:
         component = int(component)
     assert component <= 5
-    _list.append((component, re.compile(regexp).match))
+    _list.append((component, re.compile(regexp).search))
 
 def blacklist(uzbl, arg):
     add_cookie_matcher(uzbl.cookie_blacklist, arg)
