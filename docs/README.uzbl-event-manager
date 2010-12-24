@@ -66,15 +66,22 @@ EXEC_BIND <bind> <args> <kwargs>
 
 ### cookies.py ###
 - Cookie synchronization and persistence
-- Connects To: ADD_COOKIE, DELETE_COOKIE, (BLACKLIST_COOKIE)
+- Connects To: ADD_COOKIE, DELETE_COOKIE, (BLACKLIST_COOKIE, WHITELIST_COOKIE)
 
 This plugin acts on the (ADD|DELETE)_COOKIE events by issuing add_cookie or
-delete_cookie commands as appropriate to other connected instances. However if
-the cookie is matched by any of the filters configured by BLACKLIST_COOKIE the
-cookie will not be forwarded and instead delete_cookie will be sent to the
-source.
-It will also maintain a mozilla cookies.txt compatible file with all your
-cookies in $XDG_DATA_HOME/uzbl/cookies.txt
+delete_cookie commands as appropriate to other connected uzbl instances.
+However if the cookie is blacklisted (see below) the cookie will not be
+forwarded and instead delete_cookie will be sent to the source so that the
+cookie will not be included in future HTTP requests.
+
+This plugin also maintains a mozilla cookies.txt compatible file with all your
+persistent cookies in $XDG_DATA_HOME/uzbl/cookies.txt and all your session
+cookies in $XDG_DATA_HOME/uzbl/session-cookies.txt.
+
+The blacklist is configured using the BLACKLIST_COOKIE and WHITELIST_COOKIE
+events. If any whitelist is set, then any cookie that is not whitelisted will
+be rejected. Otherwise, only cookies that have been blacklisted will be
+rejected.
 
 BLACKLIST_COOKIE <part> <re>
 	Adds a new blacklist filter. cookies where the component specified by
@@ -85,3 +92,8 @@ BLACKLIST_COOKIE <part> <re>
 	for example to block all cookies which name is "__utm" followed	by a single
 	character (google analytics cookies) do.
 	request BLACKLIST_COOKIE name '^__utm.$'
+
+WHITELIST_COOKIE <part> <re>
+	Adds a new whitelist filter. cookies where the component specified by
+	`part` matches the regular expression `re` will be allowed. part can be any
+  of the parts allowed for the BLACKLIST_COOKIE event
