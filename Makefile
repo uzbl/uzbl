@@ -100,12 +100,7 @@ test-uzbl-tabbed-sandbox: uzbl-browser
 clean:
 	rm -f uzbl-core
 	rm -f uzbl-cookie-manager
-	rm -f uzbl-core.o
-	rm -f events.o
-	rm -f callbacks.o
-	rm -f inspector.o
-	rm -f cookie-jar.o
-	rm -f util.o
+	rm -f *.o
 	find ./examples/ -name "*.pyc" -delete
 	cd ./tests/; $(MAKE) clean
 	rm -rf ./sandbox/
