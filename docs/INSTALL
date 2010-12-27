@@ -13,6 +13,7 @@ You can pull the code from git or get a tagged tarball.
 	[ $ git checkout origin/experimental ] # optional. see below
 	$ make
 	$ sudo make install
+
 If you want to remove uzbl again, you can issue:
 
 	$ make uninstall

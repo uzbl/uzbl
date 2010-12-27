@@ -1,10 +1,20 @@
 # first entries are for gnu make, 2nd for BSD make.  see http://lists.uzbl.org/pipermail/uzbl-dev-uzbl.org/2009-July/000177.html
 
-CFLAGS:=-std=c99 $(shell pkg-config --cflags gtk+-3.0 webkitgtk-3.0 libsoup-2.4 gthread-2.0 glib-2.0) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -lgthread-2.0 -DCOMMIT="\"$(shell ./misc/hash.sh)\"" $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
-CFLAGS!=echo -std=c99 `pkg-config --cflags gtk+-3.0 webkitgtk-3.0 libsoup-2.4 gthread-2.0 glib-2.0` -ggdb -Wall -W -DARCH='"\""'`uname -m`'"\""' -lgthread-2.0 -DCOMMIT='"\""'`./misc/hash.sh`'"\""' $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
+REQ_PKGS  = libsoup-2.4 gthread-2.0 glib-2.0
 
-UZBL_LDFLAGS:=$(shell pkg-config --libs gtk+-3.0 webkitgtk-3.0 libsoup-2.4 gthread-2.0 x11) -pthread $(LDFLAGS)
-UZBL_LDFLAGS!=echo `pkg-config --libs gtk+-3.0 webkitgtk-3.0 libsoup-2.4 gthread-2.0 x11` -pthread $(LDFLAGS)
+# gtk2
+REQ_PKGS += gtk+-2.0 webkit-1.0
+CPPFLAGS  =
+
+# gtk3
+#REQ_PKGS += gtk+-3.0 webkitgtk-3.0
+#CPPFLAGS	 = -DGTK3
+
+CFLAGS:=-std=c99 $(shell pkg-config --cflags $(REQ_PKGS)) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -lgthread-2.0 -DCOMMIT="\"$(shell ./misc/hash.sh)\"" $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
+CFLAGS!=echo -std=c99 `pkg-config --cflags $(REQ_PKGS)` -ggdb -Wall -W -DARCH='"\""'`uname -m`'"\""' -lgthread-2.0 -DCOMMIT='"\""'`./misc/hash.sh`'"\""' $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
+
+UZBL_LDFLAGS:=$(shell pkg-config --libs $(REQ_PKGS) x11) -pthread $(LDFLAGS)
+UZBL_LDFLAGS!=echo `pkg-config --libs $(REQ_PKGS) x11` -pthread $(LDFLAGS)
 
 SRC = $(wildcard src/*.c)
 HEAD = $(wildcard src/*.h)
