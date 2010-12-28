@@ -31,10 +31,10 @@ CPPFLAGS += -DARCH=\"$(ARCH)\" -DCOMMIT=\"$(COMMIT_HASH)\"
 PKG_CFLAGS:=$(shell pkg-config --cflags $(REQ_PKGS))
 PKG_CFLAGS!=echo pkg-config --cflags $(REQ_PKGS)
 
-PKG_LDFLAGS:=$(shell pkg-config --libs $(REQ_PKGS) x11)
-PKG_LDFLAGS!=echo pkg-config --libs $(REQ_PKGS) x11
+LDLIBS:=$(shell pkg-config --libs $(REQ_PKGS) x11)
+LDLIBS!=echo pkg-config --libs $(REQ_PKGS) x11
 
-CFLAGS = -std=c99 $(PKG_CFLAGS) -ggdb $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
+CFLAGS += -std=c99 $(PKG_CFLAGS) -ggdb -W -Wall -Wextra -pedantic -fPIC -pthread
 
 SRC = $(wildcard src/*.c)
 HEAD = $(wildcard src/*.h)
@@ -44,19 +44,13 @@ all: uzbl-browser uzbl-cookie-manager
 
 VPATH:=src
 
-.c.o:
-	@echo -e "${CC} -c ${CFLAGS} $<"
-	@${CC} -c ${CFLAGS} $<
-
 ${OBJ}: ${HEAD}
 
 uzbl-core: ${OBJ}
-	@echo -e "\n${CC} -o $@ ${OBJ} ${PKG_LDFLAGS} -pthread ${LDFLAGS}"
-	@${CC} -o $@ ${OBJ} ${PKG_LDFLAGS} -pthread ${LDFLAGS}
 
-uzbl-cookie-manager: examples/uzbl-cookie-manager.o src/util.o
-	@echo -e "\n${CC} -o $@ uzbl-cookie-manager.o util.o ${LDFLAGS} ${shell pkg-config --libs glib-2.0 libsoup-2.4}"
-	@${CC} -o $@ uzbl-cookie-manager.o util.o ${LDFLAGS} $(shell pkg-config --libs glib-2.0 libsoup-2.4)
+uzbl-cookie-manager: examples/uzbl-cookie-manager.o util.o
+	@echo -e "\n${CC} -o $@ examples/uzbl-cookie-manager.o util.o ${shell pkg-config --libs glib-2.0 libsoup-2.4}"
+	@${CC} -o $@ examples/uzbl-cookie-manager.o util.o $(shell pkg-config --libs glib-2.0 libsoup-2.4)
 
 uzbl-browser: uzbl-core uzbl-cookie-manager
 

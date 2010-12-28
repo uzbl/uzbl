@@ -21,20 +21,20 @@ CPPFLAGS += -DARCH=\"$(ARCH)\" -DCOMMIT=\"$(COMMIT_HASH)\"
 PKG_CFLAGS:=$(shell pkg-config --cflags $(REQ_PKGS))
 PKG_CFLAGS!=echo pkg-config --cflags $(REQ_PKGS)
 
-PKG_LDFLAGS:=$(shell pkg-config --libs $(REQ_PKGS) x11)
-PKG_LDFLAGS!=echo pkg-config --libs $(REQ_PKGS) x11
+LDLIBS:=$(shell pkg-config --libs $(REQ_PKGS) x11)
+LDLIBS!=echo pkg-config --libs $(REQ_PKGS) x11
 
-CFLAGS = -std=c99 $(PKG_CFLAGS) -ggdb -fPIC -W -Wall -Wextra -pedantic
+CFLAGS += -std=c99 $(PKG_CFLAGS) -ggdb -fPIC -W -Wall -Wextra -pedantic -pthread
 
-LDFLAGS = $(PKG_LDFLAGS) -pthread -L . -luzbl-core
+GTESTER = gtester
+GTESTER_REPORT = gtester-report
 
-GTESTER:=gtester
-GTESTER_REPORT:=gtester-report
-
-TEST_PROGS:=test-expand test-command
+TEST_PROGS = test-expand test-command
 
 all: $(TEST_PROGS)
 	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH):." $(GTESTER) --verbose $(TEST_PROGS)
+
+${TEST_PROGS}: libuzbl-core.so
 
 clean:
 	rm -f $(TEST_PROGS)
