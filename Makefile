@@ -10,7 +10,7 @@ SRC = $(wildcard src/*.c)
 HEAD = $(wildcard src/*.h)
 OBJ = $(foreach obj, $(SRC:.c=.o), $(notdir $(obj)))
 
-all: uzbl-browser uzbl-cookie-manager
+all: uzbl-browser
 
 VPATH:=src
 
@@ -24,11 +24,7 @@ uzbl-core: ${OBJ}
 	@echo -e "\n${CC} -o $@ ${OBJ} ${UZBL_LDFLAGS}"
 	@${CC} -o $@ ${OBJ} ${UZBL_LDFLAGS}
 
-uzbl-cookie-manager: examples/uzbl-cookie-manager.o src/util.o
-	@echo -e "\n${CC} -o $@ uzbl-cookie-manager.o util.o ${LDFLAGS} ${shell pkg-config --libs glib-2.0 libsoup-2.4}"
-	@${CC} -o $@ uzbl-cookie-manager.o util.o ${LDFLAGS} $(shell pkg-config --libs glib-2.0 libsoup-2.4)
-
-uzbl-browser: uzbl-core uzbl-cookie-manager
+uzbl-browser: uzbl-core
 
 # packagers, set DESTDIR to your "package directory" and PREFIX to the prefix you want to have on the end-user system
 # end-users who build from source: don't care about DESTDIR, update PREFIX if you want to
@@ -66,10 +62,8 @@ test-uzbl-browser-sandbox: uzbl-browser
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-browser
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
 	cp -np ./misc/env.sh ./sandbox/env.sh
-	-source ./sandbox/env.sh && uzbl-cookie-manager -v
 	-source ./sandbox/env.sh && uzbl-event-manager restart -avv
 	source ./sandbox/env.sh && uzbl-browser --uri http://www.uzbl.org --verbose
-	kill `cat ./sandbox/home/.cache/uzbl/cookie_daemon_socket.pid`
 	source ./sandbox/env.sh && uzbl-event-manager stop -ivv
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
@@ -79,17 +73,14 @@ test-uzbl-tabbed-sandbox: uzbl-browser
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-browser
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
 	cp -np ./misc/env.sh ./sandbox/env.sh
-	-source ./sandbox/env.sh && uzbl-cookie-manager -v
 	-source ./sandbox/env.sh && uzbl-event-manager restart -avv
 	source ./sandbox/env.sh && ./sandbox/home/.local/share/uzbl/scripts/uzbl-tabbed
-	kill `cat ./sandbox/home/.cache/uzbl/cookie_daemon_socket.pid`
 	source ./sandbox/env.sh && uzbl-event-manager stop -ivv
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
 clean:
 	rm -f uzbl-core
-	rm -f uzbl-cookie-manager
 	rm -f uzbl-core.o
 	rm -f events.o
 	rm -f callbacks.o
@@ -121,9 +112,8 @@ install-uzbl-core: all install-dirs
 	chmod 755 $(INSTALLDIR)/share/uzbl/examples/data/scripts/*
 	install -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
 
-install-uzbl-browser: uzbl-cookie-manager install-dirs
+install-uzbl-browser: install-dirs
 	install -m755 src/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
-	install -m755 uzbl-cookie-manager $(INSTALLDIR)/bin/uzbl-cookie-manager
 	install -m755 examples/data/scripts/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
 	mv $(INSTALLDIR)/bin/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser.bak
 	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < $(INSTALLDIR)/bin/uzbl-browser.bak > $(INSTALLDIR)/bin/uzbl-browser
