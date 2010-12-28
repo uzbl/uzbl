@@ -47,9 +47,6 @@ VPATH:=src
 
 ${OBJ}: ${HEAD}
 
-${LOBJ}:
-	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -c src/$(@:.lo=.c) -o $@
-
 uzbl-core: ${OBJ}
 
 uzbl-cookie-manager: examples/uzbl-cookie-manager.o util.o
@@ -61,6 +58,10 @@ uzbl-browser: uzbl-core uzbl-cookie-manager
 # the 'tests' target can never be up to date
 .PHONY: tests
 force:
+
+# this is here because the .so needs to be compiled with -fPIC on x86_64
+${LOBJ}: ${SRC} ${HEAD}
+	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -c src/$(@:.lo=.c) -o $@
 
 # When compiling unit tests, compile uzbl as a library first
 tests: ${LOBJ} force
