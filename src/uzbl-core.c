@@ -460,8 +460,9 @@ get_click_context() {
     if(!uzbl.state.last_button)
         return -1;
 
-    ht = webkit_web_view_get_hit_test_result(g->web_view, uzbl.state.last_button);
-    g_object_get(ht, "context", &context, NULL);
+    ht = webkit_web_view_get_hit_test_result (g->web_view, uzbl.state.last_button);
+    g_object_get (ht, "context", &context, NULL);
+	g_object_unref (ht);
 
     return (gint)context;
 }
@@ -675,7 +676,7 @@ add_to_menu(GArray *argv, guint context) {
         g->menu_items = g_ptr_array_new();
 
     if(split[1])
-        item_cmd = g_strdup(split[1]);
+        item_cmd = split[1];
 
     if(split[0]) {
         m = malloc(sizeof(MenuItem));
@@ -685,8 +686,6 @@ add_to_menu(GArray *argv, guint context) {
         m->issep = FALSE;
         g_ptr_array_add(g->menu_items, m);
     }
-    else
-        g_free(item_cmd);
 
     g_strfreev(split);
 }
@@ -1432,14 +1431,13 @@ parse_command(const char *cmd, const char *param, GString *result) {
                strcmp("request", cmd)) {
                 g_string_printf(tmp, "%s %s", cmd, param?param:"");
                 send_event(COMMAND_EXECUTED, tmp->str, NULL);
-                g_string_free(tmp, TRUE);
             }
     }
     else {
-        gchar *tmp = g_strdup_printf("%s %s", cmd, param?param:"");
-        send_event(COMMAND_ERROR, tmp, NULL);
-        g_free(tmp);
+		g_string_printf (tmp, "%s %s", cmd, param?param:"");
+        send_event(COMMAND_ERROR, tmp->str, NULL);
     }
+    g_string_free(tmp, TRUE);
 }
 
 
