@@ -398,6 +398,9 @@ void
 retrieve_geometry();
 
 void
+set_webview_scroll_adjustments();
+
+void
 event(WebKitWebView *page, GArray *argv, GString *result);
 
 void

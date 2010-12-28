@@ -324,7 +324,8 @@ cmd_scrollbars_visibility() {
         uzbl.gui.bar_v = gtk_range_get_adjustment (GTK_RANGE (uzbl.gui.scbar_v));
         uzbl.gui.bar_h = gtk_range_get_adjustment (GTK_RANGE (uzbl.gui.scbar_h));
     }
-    gtk_widget_set_scroll_adjustments (GTK_WIDGET (uzbl.gui.web_view), uzbl.gui.bar_h, uzbl.gui.bar_v);
+
+    set_webview_scroll_adjustments();
 }
 
 /* requires webkit >=1.1.14 */
@@ -952,14 +953,14 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
                 (context & mi->context)) {
             if(mi->issep) {
                 item = gtk_separator_menu_item_new();
-                gtk_menu_append(GTK_MENU(m), item);
+                gtk_menu_shell_append(GTK_MENU_SHELL(m), item);
                 gtk_widget_show(item);
             }
             else {
                 item = gtk_menu_item_new_with_label(mi->name);
                 g_signal_connect(item, "activate",
                         G_CALLBACK(run_menu_command), mi->cmd);
-                gtk_menu_append(GTK_MENU(m), item);
+                gtk_menu_shell_append(GTK_MENU_SHELL(m), item);
                 gtk_widget_show(item);
             }
             hit++;
@@ -970,14 +971,14 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
                 !hit) {
             if(mi->issep) {
                 item = gtk_separator_menu_item_new();
-                gtk_menu_append(GTK_MENU(m), item);
+                gtk_menu_shell_append(GTK_MENU_SHELL(m), item);
                 gtk_widget_show(item);
             }
             else {
                 item = gtk_menu_item_new_with_label(mi->name);
                 g_signal_connect(item, "activate",
                         G_CALLBACK(run_menu_command), mi->cmd);
-                gtk_menu_append(GTK_MENU(m), item);
+                gtk_menu_shell_append(GTK_MENU_SHELL(m), item);
                 gtk_widget_show(item);
             }
         }
