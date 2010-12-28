@@ -34,7 +34,7 @@ PKG_CFLAGS!=echo pkg-config --cflags $(REQ_PKGS)
 PKG_LDFLAGS:=$(shell pkg-config --libs $(REQ_PKGS) x11)
 PKG_LDFLAGS!=echo pkg-config --libs $(REQ_PKGS) x11
 
-CFLAGS = -std=c99 $(PKG_CFLAGS) -ggdb -Wall -W -lgthread-2.0 $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
+CFLAGS = -std=c99 $(PKG_CFLAGS) -ggdb $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
 
 SRC = $(wildcard src/*.c)
 HEAD = $(wildcard src/*.h)
