@@ -1,20 +1,30 @@
 # first entries are for gnu make, 2nd for BSD make.  see http://lists.uzbl.org/pipermail/uzbl-dev-uzbl.org/2009-July/000177.html
 
-REQ_PKGS  = libsoup-2.4 gthread-2.0 glib-2.0
-
 # gtk2
-REQ_PKGS += gtk+-2.0 webkit-1.0
-CPPFLAGS  =
+REQ_PKGS = gtk+-2.0 webkit-1.0
+CPPFLAGS =
 
 # gtk3
-#REQ_PKGS += gtk+-3.0 webkitgtk-3.0
-#CPPFLAGS	 = -DGTK3
+#REQ_PKGS = gtk+-3.0 webkitgtk-3.0
+#CPPFLAGS	= -DGTK3
 
-CFLAGS:=-std=c99 $(shell pkg-config --cflags $(REQ_PKGS)) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -lgthread-2.0 -DCOMMIT="\"$(shell ./misc/hash.sh)\"" $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
-CFLAGS!=echo -std=c99 `pkg-config --cflags $(REQ_PKGS)` -ggdb -Wall -W -DARCH='"\""'`uname -m`'"\""' -lgthread-2.0 -DCOMMIT='"\""'`./misc/hash.sh`'"\""' $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
+REQ_PKGS += libsoup-2.4 gthread-2.0 glib-2.0
 
-UZBL_LDFLAGS:=$(shell pkg-config --libs $(REQ_PKGS) x11) -pthread $(LDFLAGS)
-UZBL_LDFLAGS!=echo `pkg-config --libs $(REQ_PKGS) x11` -pthread $(LDFLAGS)
+ARCH:=$(shell uname -m)
+ARCH!=echo `uname -m`
+
+COMMIT_HASH:=$(shell ./misc/hash.sh)
+COMMIT_HASH!=echo `./misc/hash.sh`
+
+CPPFLAGS += -DARCH=\"$(ARCH)\" -DCOMMIT=\"$(COMMIT_HASH)\"
+
+PKG_CFLAGS:=$(shell pkg-config --cflags $(REQ_PKGS))
+PKG_CFLAGS!=echo pkg-config --cflags $(REQ_PKGS)
+
+PKG_LDFLAGS:=$(shell pkg-config --libs $(REQ_PKGS) x11)
+PKG_LDFLAGS!=echo pkg-config --libs $(REQ_PKGS) x11
+
+CFLAGS = -std=c99 $(PKG_CFLAGS) -ggdb -Wall -W -lgthread-2.0 $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
 
 SRC = $(wildcard src/*.c)
 HEAD = $(wildcard src/*.h)
@@ -31,8 +41,8 @@ VPATH:=src
 ${OBJ}: ${HEAD}
 
 uzbl-core: ${OBJ}
-	@echo -e "\n${CC} -o $@ ${OBJ} ${UZBL_LDFLAGS}"
-	@${CC} -o $@ ${OBJ} ${UZBL_LDFLAGS}
+	@echo -e "\n${CC} -o $@ ${OBJ} ${PKG_LDFLAGS} -pthread ${LDFLAGS}"
+	@${CC} -o $@ ${OBJ} ${PKG_LDFLAGS} -pthread ${LDFLAGS}
 
 uzbl-cookie-manager: examples/uzbl-cookie-manager.o src/util.o
 	@echo -e "\n${CC} -o $@ uzbl-cookie-manager.o util.o ${LDFLAGS} ${shell pkg-config --libs glib-2.0 libsoup-2.4}"

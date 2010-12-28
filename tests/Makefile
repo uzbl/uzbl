@@ -1,18 +1,30 @@
-REQ_PKGS  = libsoup-2.4 gthread-2.0 glib-2.0
-
 # gtk2
-REQ_PKGS += gtk+-2.0 webkit-1.0
-CPPFLAGS  =
+REQ_PKGS = gtk+-2.0 webkit-1.0
+CPPFLAGS = -DERRORCHECK_MUTEXES -I ../
 
 # gtk3
-#REQ_PKGS += gtk+-3.0 webkitgtk-3.0
-#CPPFLAGS	 = -DGTK3
+#REQ_PKGS = gtk+-3.0 webkitgtk-3.0
+#CPPFLAGS	= -DERRORCHECK_MUTEXES -DGTK3 -I ../
 
-CFLAGS:=-std=c99 -I$(shell pwd)/../ -L$(shell pwd) -luzbl-core $(shell pkg-config --cflags $(REQ_PKGS)) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -lgthread-2.0 -DG_ERRORCHECK_MUTEXES -DCOMMIT="\"$(shell git log | head -n1 | sed "s/.* //")\"" $(CPPFLAGS)
-CFLAGS!=echo -std=c99 `pkg-config --cflags $(REQ_PKGS)` -ggdb -Wall -W -DARCH='"\""'`uname -m`'"\""' -lgthread-2.0 -DG_ERRORCHECK_MUTEXES -DCOMMIT='"\""'`git log | head -n1 | sed "s/.* //"`'"\""' $(CPPFLAGS)
+REQ_PKGS += libsoup-2.4 gthread-2.0 glib-2.0
 
-LDFLAGS:=$(shell pkg-config --libs $(REQ_PKGS)) -pthread $(LDFLAGS)
-LDFLAGS!=echo `pkg-config --libs $(REQ_PKGS)` -pthread $(LDFLAGS)
+ARCH:=$(shell uname -m)
+ARCH!=echo `uname -m`
+
+COMMIT_HASH:=$(shell cd .. && ./misc/hash.sh)
+COMMIT_HASH!=echo `cd .. && ./misc/hash.sh`
+
+CPPFLAGS += -DARCH=\"$(ARCH)\" -DCOMMIT=\"$(COMMIT_HASH)\"
+
+PKG_CFLAGS:=$(shell pkg-config --cflags $(REQ_PKGS))
+PKG_CFLAGS!=echo pkg-config --cflags $(REQ_PKGS)
+
+PKG_LDFLAGS:=$(shell pkg-config --libs $(REQ_PKGS) x11)
+PKG_LDFLAGS!=echo pkg-config --libs $(REQ_PKGS) x11
+
+CFLAGS = -std=c99 $(PKG_CFLAGS) -ggdb -Wall -W -lgthread-2.0 -fPIC -W -Wall -Wextra -pedantic
+
+LDFLAGS = $(PKG_LDFLAGS) -pthread -L . -luzbl-core
 
 GTESTER:=gtester
 GTESTER_REPORT:=gtester-report
