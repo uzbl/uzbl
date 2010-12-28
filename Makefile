@@ -34,17 +34,21 @@ PKG_CFLAGS!=echo pkg-config --cflags $(REQ_PKGS)
 LDLIBS:=$(shell pkg-config --libs $(REQ_PKGS) x11)
 LDLIBS!=echo pkg-config --libs $(REQ_PKGS) x11
 
-CFLAGS += -std=c99 $(PKG_CFLAGS) -ggdb -W -Wall -Wextra -pedantic -fPIC -pthread
+CFLAGS += -std=c99 $(PKG_CFLAGS) -ggdb -W -Wall -Wextra -pedantic -pthread
 
 SRC = $(wildcard src/*.c)
 HEAD = $(wildcard src/*.h)
-OBJ = $(foreach obj, $(SRC:.c=.o), $(notdir $(obj)))
+OBJ  = $(foreach obj, $(SRC:.c=.o),  $(notdir $(obj)))
+LOBJ = $(foreach obj, $(SRC:.c=.lo), $(notdir $(obj)))
 
 all: uzbl-browser uzbl-cookie-manager
 
 VPATH:=src
 
 ${OBJ}: ${HEAD}
+
+${LOBJ}:
+	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -c src/$(@:.lo=.c) -o $@
 
 uzbl-core: ${OBJ}
 
@@ -59,8 +63,8 @@ uzbl-browser: uzbl-core uzbl-cookie-manager
 force:
 
 # When compiling unit tests, compile uzbl as a library first
-tests: ${OBJ} force
-	$(CC) -shared -Wl ${OBJ} -o ./tests/libuzbl-core.so
+tests: ${LOBJ} force
+	$(CC) -shared -Wl ${LOBJ} -o ./tests/libuzbl-core.so
 	cd ./tests/; $(MAKE)
 
 test-uzbl-core: uzbl-core
@@ -106,7 +110,7 @@ test-uzbl-tabbed-sandbox: uzbl-browser
 clean:
 	rm -f uzbl-core
 	rm -f uzbl-cookie-manager
-	rm -f *.o
+	rm -f *.o *.lo
 	find ./examples/ -name "*.pyc" -delete
 	cd ./tests/; $(MAKE) clean
 	rm -rf ./sandbox/
