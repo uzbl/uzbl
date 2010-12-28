@@ -90,7 +90,6 @@ const struct var_name_to_ptr_t {
     { "title_format_short",     PTR_V_STR(uzbl.behave.title_format_short,       1,   NULL)},
     { "icon",                   PTR_V_STR(uzbl.gui.icon,                        1,   set_icon)},
     { "forward_keys",           PTR_V_INT(uzbl.behave.forward_keys,             1,   NULL)},
-    { "cookie_handler",         PTR_V_STR(uzbl.behave.cookie_handler,           1,   cmd_set_cookie_handler)},
     { "authentication_handler", PTR_V_STR(uzbl.behave.authentication_handler,   1,   set_authentication_handler)},
     { "scheme_handler",         PTR_V_STR(uzbl.behave.scheme_handler,           1,   NULL)},
     { "download_handler",       PTR_V_STR(uzbl.behave.download_handler,         1,   NULL)},
@@ -584,10 +583,10 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
     { "script",                         {run_external_js, 0}            },
     { "toggle_status",                  {toggle_status_cb, 0}           },
     { "spawn",                          {spawn_async, 0}                },
-    { "sync_spawn",                     {spawn_sync, 0}                 }, // needed for cookie handler
+    { "sync_spawn",                     {spawn_sync, 0}                 },
     { "sync_spawn_exec",                {spawn_sync_exec, 0}            }, // needed for load_cookies.sh :(
     { "sh",                             {spawn_sh_async, 0}             },
-    { "sync_sh",                        {spawn_sh_sync, 0}              }, // needed for cookie handler
+    { "sync_sh",                        {spawn_sh_sync, 0}              },
     { "exit",                           {close_uzbl, 0}                 },
     { "search",                         {search_forward_text, TRUE}     },
     { "search_reverse",                 {search_reverse_text, TRUE}     },

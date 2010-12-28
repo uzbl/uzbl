@@ -183,11 +183,6 @@ The following commands are recognized:
     the end, so the argument numbers will be higher.
 * `sync_sh <command>`
   - Synchronous version of `sh`, See `sync_spawn`.
-* `talk_to_socket <socketfile> <tokens>`
-  - Send a message to `<socketfile>` and wait for a response. `<tokens>` are
-    concatenated and separated by ASCII NUL bytes.
-  - Expects the socket type to be `SOCK_SEQPACKET` (see `connect(2)`).
-  - Waits for 500ms for a response.
 * `exit`
   - Closes `uzbl`.
 * `search <string>`
