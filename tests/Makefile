@@ -6,6 +6,8 @@ CPPFLAGS = -DERRORCHECK_MUTEXES -I ../
 #REQ_PKGS = gtk+-3.0 webkitgtk-3.0
 #CPPFLAGS	= -DERRORCHECK_MUTEXES -DGTK3 -I ../
 
+# --- configuration ends here ---
+
 REQ_PKGS += libsoup-2.4 gthread-2.0 glib-2.0
 
 ARCH:=$(shell uname -m)

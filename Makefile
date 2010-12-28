@@ -1,5 +1,13 @@
 # first entries are for gnu make, 2nd for BSD make.  see http://lists.uzbl.org/pipermail/uzbl-dev-uzbl.org/2009-July/000177.html
 
+# packagers, set DESTDIR to your "package directory" and PREFIX to the prefix you want to have on the end-user system
+# end-users who build from source: don't care about DESTDIR, update PREFIX if you want to
+# RUN_PREFIX : what the prefix is when the software is run. usually the same as PREFIX
+PREFIX?=/usr/local
+INSTALLDIR?=$(DESTDIR)$(PREFIX)
+DOCDIR?=$(INSTALLDIR)/share/uzbl/docs
+RUN_PREFIX?=$(PREFIX)
+
 # gtk2
 REQ_PKGS = gtk+-2.0 webkit-1.0
 CPPFLAGS =
@@ -7,6 +15,8 @@ CPPFLAGS =
 # gtk3
 #REQ_PKGS = gtk+-3.0 webkitgtk-3.0
 #CPPFLAGS	= -DGTK3
+
+# --- configuration ends here ---
 
 REQ_PKGS += libsoup-2.4 gthread-2.0 glib-2.0
 
@@ -49,14 +59,6 @@ uzbl-cookie-manager: examples/uzbl-cookie-manager.o src/util.o
 	@${CC} -o $@ uzbl-cookie-manager.o util.o ${LDFLAGS} $(shell pkg-config --libs glib-2.0 libsoup-2.4)
 
 uzbl-browser: uzbl-core uzbl-cookie-manager
-
-# packagers, set DESTDIR to your "package directory" and PREFIX to the prefix you want to have on the end-user system
-# end-users who build from source: don't care about DESTDIR, update PREFIX if you want to
-# RUN_PREFIX : what the prefix is when the software is run. usually the same as PREFIX
-PREFIX?=/usr/local
-INSTALLDIR?=$(DESTDIR)$(PREFIX)
-DOCDIR?=$(INSTALLDIR)/share/uzbl/docs
-RUN_PREFIX?=$(PREFIX)
 
 # the 'tests' target can never be up to date
 .PHONY: tests
