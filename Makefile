@@ -4,11 +4,11 @@ REQ_PKGS  = libsoup-2.4 gthread-2.0 glib-2.0
 
 # gtk2
 REQ_PKGS += gtk+-2.0 webkit-1.0
-CPPFLAGS  =
+CPPFLAGS =
 
 # gtk3
 #REQ_PKGS += gtk+-3.0 webkitgtk-3.0
-#CPPFLAG =
+#CPPFLAG = -DG_DISABLE_DEPRECATED -DGTK_DISABLE_DEPRECATED 
 
 CFLAGS:=-std=c99 $(shell pkg-config --cflags $(REQ_PKGS)) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -lgthread-2.0 -DCOMMIT="\"$(shell ./misc/hash.sh)\"" $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
 CFLAGS!=echo -std=c99 `pkg-config --cflags $(REQ_PKGS)` -ggdb -Wall -W -DARCH='"\""'`uname -m`'"\""' -lgthread-2.0 -DCOMMIT='"\""'`./misc/hash.sh`'"\""' $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
