@@ -67,7 +67,7 @@ if dmenu --help 2>&1 | grep -q '\[-xs\]'; then
 fi
 
 # Detect the vertical patch
-if dmenu --help 2>&1 | grep -q '\[-l <lines>\]'; then
+if dmenu --help 2>&1 | grep -q '\[-l <\?lines>\?\]'; then
     # Default to 10 lines
     if [ -z "$DMENU_LINES" ]; then
         DMENU_LINES=10

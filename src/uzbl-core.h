@@ -133,6 +133,7 @@ typedef struct {
     gchar*   fantasy_font_family;
     gchar*   cursive_font_family;
     gchar*   scheme_handler;
+    gchar*   download_handler;
     gboolean show_status;
     gboolean forward_keys;
     gboolean status_top;
@@ -228,9 +229,6 @@ itos(int val);
 gchar*
 strfree(gchar *str);
 
-gchar*
-parseenv (gchar* string);
-
 void
 clean_up(void);
 
@@ -266,16 +264,19 @@ run_command(const gchar *command, const gchar **args, const gboolean sync,
             char **output_stdout);
 
 void
-spawn(WebKitWebView *web_view, GArray *argv, GString *result);
+spawn_async(WebKitWebView *web_view, GArray *argv, GString *result);
 
 void
-spawn_sh(WebKitWebView *web_view, GArray *argv, GString *result);
+spawn_sh_async(WebKitWebView *web_view, GArray *argv, GString *result);
 
 void
 spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result);
 
 void
 spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result);
+
+void
+spawn_sync_exec(WebKitWebView *web_view, GArray *argv, GString *result);
 
 void
 parse_command(const char *cmd, const char *param, GString *result);
@@ -397,6 +398,9 @@ void
 retrieve_geometry();
 
 void
+set_webview_scroll_adjustments();
+
+void
 event(WebKitWebView *page, GArray *argv, GString *result);
 
 void
@@ -452,6 +456,12 @@ include(WebKitWebView *page, GArray *argv, GString *result);
 
 void
 show_inspector(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+add_cookie(WebKitWebView *page, GArray *argv, GString *result);
+
+void
+delete_cookie(WebKitWebView *page, GArray *argv, GString *result);
 
 void
 builtins();

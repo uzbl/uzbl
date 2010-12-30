@@ -1,0 +1,99 @@
+# The uzbl event manager #
+
+## Core ##
+
+## Plugins ##
+
+### mode.py ###
+- Named modes with different settings
+- Connects To: (MODE_CONFIG, MODE_CONFIRM)
+- Watches: mode, default_mode
+- Emits: MODE_CHANGED, MODE_CONFIRM
+
+Changes between modes configured with MODE_CONFIG when the mode variable changes.
+
+MODE_CONFIG <mode> <var> = <value>
+	configures `mode` to have `var` set to `value`
+
+MODE_CONFIRM <mode>
+	Emitted when the mode has changed with a round trip to uzbl-core to allow
+	the settings to take effect.
+	emits MODE_CHANGE if `mode` matches the current mode
+
+MODE_CHANGE <mode>
+	Emitted when the mode has changed
+
+
+### keycmd.py ###
+- Tracks the currently entered command
+- Connects To: FOCUS_GAINED, FOCUS_LOST, KEY_PRESS, KEY_RELEASE, (APPEND_KEYCMD,
+  IGNORE_KEY, INJECT_KEYCMD, KEYCMD_BACKSPACE, KEYCMD_DELETE,
+  KEYCMD_EXEC_CURRENT, KEYCMD_STRIP_WORD, MODKEY_ADDITION, MODMAP,
+  SET_CURSOR_POS, SET_KEYCMD)
+- Emits: KEYCMD_UPDATE, KEYCMD_EXEC, MODCMD_UPDATE, MODCMD_EXEC
+
+Maintains a command line that is manipulated by simple keypresses and a number
+of events.
+
+
+### bind.py ###
+- Provides support for key bindings
+- Connects To: (BIND, MODE_BIND, MODE_CHANGED, KEYCMD_UPDATE, KEYCMD_EXEC,
+  MODCMD_UPDATE, MODCMD_EXEC)
+- Emits: EXEC_BIND
+
+Listens for changes in keycmd and modcmd and executes bindings configured by
+BIND and MODE_BIND.
+
+BIND <bind> = <command>
+	short hand for MODE_BIND global <bind> = <command>
+
+MODE_BIND <mode> <bind> = <command>
+	Makes <bind> execute <command> while the current mode is matched by `mode`.
+	`mode` is a comma separated list of modes in which this binding	should
+	apply. The special mode 'global' will match all modes except any modes
+	excluded by prefixing them with '-'.
+
+	e.g
+	MODE_BIND global,-insert <Up> = scroll vertical -20
+	will make the Up-key scroll up in all modes except insert
+
+EXEC_BIND <bind> <args> <kwargs>
+	Emitted before executing `bind` with `args` as arguments and `kwargs` as
+	keyword arguments. `bind` is a Bind instance, <args> a sequence and <kwargs>
+	a dictionary.
+
+
+### cookies.py ###
+- Cookie synchronization and persistence
+- Connects To: ADD_COOKIE, DELETE_COOKIE, (BLACKLIST_COOKIE, WHITELIST_COOKIE)
+
+This plugin acts on the (ADD|DELETE)_COOKIE events by issuing add_cookie or
+delete_cookie commands as appropriate to other connected uzbl instances.
+However if the cookie is blacklisted (see below) the cookie will not be
+forwarded and instead delete_cookie will be sent to the source so that the
+cookie will not be included in future HTTP requests.
+
+This plugin also maintains a mozilla cookies.txt compatible file with all your
+persistent cookies in $XDG_DATA_HOME/uzbl/cookies.txt and all your session
+cookies in $XDG_DATA_HOME/uzbl/session-cookies.txt.
+
+The blacklist is configured using the BLACKLIST_COOKIE and WHITELIST_COOKIE
+events. If any whitelist is set, then any cookie that is not whitelisted will
+be rejected. Otherwise, only cookies that have been blacklisted will be
+rejected.
+
+BLACKLIST_COOKIE <part> <re>
+	Adds a new blacklist filter. cookies where the component specified by
+	`part` matches the regular expression `re` will be filtered. part can be
+	either 0-5 or any of the symbolic names domain, path, name, value, scheme,
+	expires
+
+	for example to block all cookies which name is "__utm" followed	by a single
+	character (google analytics cookies) do.
+	request BLACKLIST_COOKIE name '^__utm.$'
+
+WHITELIST_COOKIE <part> <re>
+	Adds a new whitelist filter. cookies where the component specified by
+	`part` matches the regular expression `re` will be allowed. part can be any
+  of the parts allowed for the BLACKLIST_COOKIE event

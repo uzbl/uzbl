@@ -471,8 +471,9 @@ class UzblInstance:
                         elif var == "gtk_tab_pos":
                             self.parent.update_gtk_tab_pos()
                         elif var == "status_background":
-                            col = gtk.gdk.color_parse(config['status_background'])
-                            self.parent.ebox.modify_bg(gtk.STATE_NORMAL, col)
+                            if config['status_background'].strip():
+                                col = gtk.gdk.color_parse(config['status_background'])
+                                self.parent.ebox.modify_bg(gtk.STATE_NORMAL, col)
                         elif var == "tab_titles" or var == "tab_indexes":
                             for tab in self.parent.notebook:
                                 self.parent.tabs[tab].title_changed(True)
