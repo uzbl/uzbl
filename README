@@ -499,39 +499,36 @@ access to the following environment variables:
 * `$UZBL_URI`: The URI of the current page.
 * `$UZBL_TITLE`: The current page title.
 
-These variables are also available as positional arguments `$1` through `$7`,
-but this is deprecated and will be removed.
-
 Handler scripts (`download_handler`, `cookie_handler`, `scheme_handler` and
 `authentication_handler`) are called with special arguments:
 
 * download handler
 
-  - `$8 url`: The URL of the item to be downloaded.
-  - `$9 suggested_filename`: A filename suggested by the server or based on the URL.
-  - `$10 content_type`: The mimetype of the file to be downloaded.
-  - `$11 total_size`: The size of the file to be downloaded in bytes. This may be inaccurate.
+  - `$1 url`: The URL of the item to be downloaded.
+  - `$2 suggested_filename`: A filename suggested by the server or based on the URL.
+  - `$3 content_type`: The mimetype of the file to be downloaded.
+  - `$4 total_size`: The size of the file to be downloaded in bytes. This may be inaccurate.
 
 * cookie handler
 
-  - `$8 GET/PUT`: Whether a cookie should be sent to the server (`GET`) or
+  - `$1 GET/PUT`: Whether a cookie should be sent to the server (`GET`) or
     stored by the browser (`PUT`).
-  - `$9 scheme`: Either `http` or `https`.
-  - `$10 host`: If current page URL is `www.example.com/somepage`, this could be
+  - `$2 scheme`: Either `http` or `https`.
+  - `$3 host`: If current page URL is `www.example.com/somepage`, this could be
     something else than `example.com`, eg advertising from another host.
-  - `$11 path`: The request address path.
-  - `$12 data`: The cookie data. Only included for `PUT` requests.
+  - `$4 path`: The request address path.
+  - `$5 data`: The cookie data. Only included for `PUT` requests.
 
 * scheme handler
 
-  - `$8 URI` of the page to be navigated to
+  - `$1 URI` of the page to be navigated to
 
 * authentication handler:
 
-  - `$8`: authentication zone unique identifier
-  - `$9`: domain part of URL that requests authentication
-  - `$10`: authentication realm
-  - `$11`: FALSE if this is the first attempt to authenticate, TRUE otherwise
+  - `$1`: authentication zone unique identifier
+  - `$2`: domain part of URL that requests authentication
+  - `$3`: authentication realm
+  - `$4`: FALSE if this is the first attempt to authenticate, TRUE otherwise
 
 ### Formfiller.sh
 
@@ -577,15 +574,15 @@ Example:
 Script will be executed on each authentication request.
 It will receive four auth-related parameters:
 
-    $8 authentication zone unique identifier (may be used as 'key')
-    $9 domain part of URL that requests authentication
-    $10 authentication realm
-    $11 FALSE if this is the first attempt to authenticate, TRUE otherwise
+    $1 authentication zone unique identifier (may be used as 'key')
+    $2 domain part of URL that requests authentication
+    $3 authentication realm
+    $4 FALSE if this is the first attempt to authenticate, TRUE otherwise
 
 Script is expected to print exactly two lines of text on stdout (that means
 its output must contain exactly two '\n' bytes).
 The first line contains username, the second one - password.
-If authentication fails, script will be executed again (with $11 = TRUE).
+If authentication fails, script will be executed again (with $4 = TRUE).
 Non-interactive scripts should handle this case and do not try to
 authenticate again to avoid loops. If number of '\n' characters in scripts
 output does not equal 2, authentication will fail.
@@ -594,7 +591,7 @@ That means 401 error will be displayed and uzbl won't try to authenticate anymor
 The simplest example of authentication handler script is:
 
 #!/bin/sh
-[ "$11" == "TRUE ] && exit
+[ "$4" == "TRUE ] && exit
 echo alice
 echo wonderland
 
