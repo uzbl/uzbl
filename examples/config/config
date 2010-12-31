@@ -186,7 +186,7 @@ set ebind     = @mode_bind global,-insert
 # --- Mouse bindings ---------------------------------------------------------
 
 # Middle click open in new window
-@bind  <Button2>  = sh 'if [ "$1" ]; then uzbl-browser -u "$1"; else echo "uri $(xclip -o | sed s/\\\@/%40/g)" > "$UZBL_FIFO"; fi' \@SELECTED_URI
+@bind  <Button2>  = sh 'if [ "$1" ]; then uzbl-browser -u "$1"; else echo "uri $(xclip -o | sed s/\\\@/%40/g)" > "$UZBL_FIFO"; fi' '\@SELECTED_URI'
 
 # --- Keyboard bindings ------------------------------------------------------
 
