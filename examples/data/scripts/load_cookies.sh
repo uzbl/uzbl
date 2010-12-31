@@ -1,7 +1,7 @@
 #!/bin/sh
 
-if [ "$8" != "" ]; then
-	cookie_file=$8
+if [ "$1" != "" ]; then
+	cookie_file=$1
 else
 	cookie_file=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/cookies.txt
 fi
