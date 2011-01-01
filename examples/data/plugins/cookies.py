@@ -38,24 +38,38 @@ class TextStore(object):
         self.filename = filename
 
     def as_event(self, cookie):
+        """Convert cookie.txt row to uzbls cookie event format"""
+        scheme = {
+            'TRUE'  : 'https',
+            'FALSE' : 'http'
+        }
         if cookie[0].startswith("#HttpOnly_"):
             domain = cookie[0][len("#HttpOnly_"):]
         elif cookie[0].startswith('#'):
             return None
         else:
             domain = cookie[0]
-        return (domain,
-            cookie[2],
-            cookie[5],
-            cookie[6],
-            'https' if cookie[3] == 'TRUE' else 'http',
-            cookie[4])
+        try:
+            return (domain,
+                cookie[2],
+                cookie[5],
+                cookie[6],
+                scheme[cookie[3]],
+                cookie[4])
+        except (KeyError,IndexError):
+            # Let malformed rows pass through like comments
+            return None
 
     def as_file(self, cookie):
+        """Convert cookie event to cookie.txt row"""
+        secure = {
+            'https' : 'TRUE',
+            'http'  : 'FALSE'
+        }
         return (cookie[0],
             'TRUE' if cookie[0].startswith('.') else 'FALSE',
             cookie[1],
-            'TRUE' if cookie[4] == 'https' else 'FALSE',
+            secure[cookie[4]],
             cookie[5],
             cookie[2],
             cookie[3])
