@@ -60,14 +60,20 @@ fi
 if dmenu --help 2>&1 | grep -q '\[-xs\]'; then
     DMENU_XMMS_ARGS="-xs"
     DMENU_HAS_XMMS=1
+fi
 
-    if echo $DMENU_OPTIONS | grep -q -w 'xmms'; then
-        DMENU_ARGS="$DMENU_ARGS $DMENU_XMMS_ARGS"
-    fi
+# Detect the tok patch
+if dmenu --help 2>&1 | grep -q '\[-t\]'; then
+    DMENU_XMMS_ARGS="-t"
+    DMENU_HAS_XMMS=1
+fi
+
+if echo $DMENU_OPTIONS | grep -q -w 'xmms'; then
+    DMENU_ARGS="$DMENU_ARGS $DMENU_XMMS_ARGS"
 fi
 
 # Detect the vertical patch
-if dmenu --help 2>&1 | grep -q '\[-l <lines>\]'; then
+if dmenu --help 2>&1 | grep -q '\[-l <\?lines>\?\]'; then
     # Default to 10 lines
     if [ -z "$DMENU_LINES" ]; then
         DMENU_LINES=10

@@ -16,6 +16,7 @@ typedef struct {
     int connection_fd;
 
     gboolean in_get_callback;
+    gboolean in_manual_add;
 } UzblCookieJar;
 
 typedef struct {

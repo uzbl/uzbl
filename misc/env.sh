@@ -10,7 +10,7 @@
 # Maybe we should spawn processes from here with an 'exec' at the end?
 
 # Re-define our home location inside the sandbox dir.
-export HOME=./sandbox/home
+export HOME=$(pwd)/sandbox/home
 
 # Export default XDG_{DATA,CACHE,..}_HOME locations inside the sandbox
 # directory according to defaults in the xdg specification.
@@ -20,4 +20,4 @@ export XDG_CACHE_HOME=$HOME/.cache
 export XDG_CONFIG_HOME=$HOME/.config
 
 # Needed to run uzbl-browser etc from here.
-export PATH="./sandbox/usr/local/bin:$PATH"
+export PATH="$(pwd)/sandbox/usr/local/bin:$PATH"
