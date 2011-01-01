@@ -2261,7 +2261,7 @@ retrieve_geometry() {
 
 void
 set_webview_scroll_adjustments() {
-#ifdef GTK3
+#if GTK_CHECK_VERSION(2,91,0)
     gtk_scrollable_set_hadjustment (GTK_SCROLLABLE(uzbl.gui.web_view), uzbl.gui.bar_h);
     gtk_scrollable_set_vadjustment (GTK_SCROLLABLE(uzbl.gui.web_view), uzbl.gui.bar_v);
 #else

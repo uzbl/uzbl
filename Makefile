@@ -9,12 +9,12 @@ DOCDIR?=$(INSTALLDIR)/share/uzbl/docs
 RUN_PREFIX?=$(PREFIX)
 
 # gtk2
-REQ_PKGS = gtk+-2.0 webkit-1.0
+REQ_PKGS += gtk+-2.0 webkit-1.0
 CPPFLAGS =
 
 # gtk3
-#REQ_PKGS = gtk+-3.0 webkitgtk-3.0
-#CPPFLAGS	= -DGTK3
+#REQ_PKGS += gtk+-3.0 webkitgtk-3.0
+#CPPFLAGS = -DG_DISABLE_DEPRECATED -DGTK_DISABLE_DEPRECATED
 
 # --- configuration ends here ---
 
