@@ -111,6 +111,7 @@ typedef struct {
     SoupLogger *soup_logger;
     char *proxy_url;
     char *useragent;
+    char *accept_languages;
     gint max_conns;
     gint max_conns_host;
 } Network;

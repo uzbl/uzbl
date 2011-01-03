@@ -329,6 +329,7 @@ file).
   rendered content.
 * `useragent`: The User-Agent to send to the browser, expands variables in its
   definition.
+* `accept_languages`: The Accept-Language header to send with HTTP requests.
 * `zoom_level`: The factor by which elements in the page are scaled with respect
   to their original size. Setting this will resize the currently displayed page.
 * `zoom_type`: Whether to use "full-content" zoom (defaults to true). With

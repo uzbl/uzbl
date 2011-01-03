@@ -309,6 +309,17 @@ cmd_useragent() {
 }
 
 void
+set_accept_languages() {
+    if (*uzbl.net.accept_languages == ' ') {
+        g_free (uzbl.net.accept_languages);
+        uzbl.net.accept_languages = NULL;
+    } else {
+        g_object_set(G_OBJECT(uzbl.net.soup_session),
+            SOUP_SESSION_ACCEPT_LANGUAGE, uzbl.net.accept_languages, NULL);
+    }
+}
+
+void
 cmd_javascript_windows() {
     g_object_set (G_OBJECT(view_settings()), "javascript-can-open-windows-automatically",
             uzbl.behave.javascript_windows, NULL);
