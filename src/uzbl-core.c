@@ -1771,13 +1771,16 @@ control_client_socket(GIOChannel *clientchan) {
     ret = g_io_channel_read_line(clientchan, &ctl_line, &len, NULL, &error);
     if (ret == G_IO_STATUS_ERROR) {
         g_warning ("Error reading: %s\n", error->message);
+        g_clear_error (&error);
         remove_socket_from_array(clientchan);
         g_io_channel_shutdown(clientchan, TRUE, &error);
+        g_clear_error (&error);
         return FALSE;
     } else if (ret == G_IO_STATUS_EOF) {
         remove_socket_from_array(clientchan);
         /* shutdown and remove channel watch from main loop */
         g_io_channel_shutdown(clientchan, TRUE, &error);
+        g_clear_error (&error);
         return FALSE;
     }
 
@@ -1788,11 +1791,12 @@ control_client_socket(GIOChannel *clientchan) {
                                         &len, &error);
         if (ret == G_IO_STATUS_ERROR) {
             g_warning ("Error writing: %s", error->message);
+            g_clear_error (&error);
         }
         g_io_channel_flush(clientchan, &error);
+        g_clear_error (&error);
     }
 
-    if (error) g_error_free (error);
     g_string_free(result, TRUE);
     g_free(ctl_line);
     return TRUE;
