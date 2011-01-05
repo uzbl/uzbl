@@ -1692,13 +1692,12 @@ gboolean
 remove_socket_from_array(GIOChannel *chan) {
     gboolean ret = 0;
 
-    /* TODO: Do wee need to manually free the IO channel or is this
-     *       happening implicitly on unref?
-     */
     ret = g_ptr_array_remove_fast(uzbl.comm.connect_chan, chan);
     if(!ret)
         ret = g_ptr_array_remove_fast(uzbl.comm.client_chan, chan);
 
+    if(ret)
+        g_io_channel_unref (chan);
     return ret;
 }
 
@@ -1772,17 +1771,17 @@ control_client_socket(GIOChannel *clientchan) {
     if (ret == G_IO_STATUS_ERROR) {
         g_warning ("Error reading: %s", error->message);
         g_clear_error (&error);
-        remove_socket_from_array (clientchan);
         ret = g_io_channel_shutdown (clientchan, TRUE, &error); 
+        remove_socket_from_array (clientchan);
         if (ret == G_IO_STATUS_ERROR) {
             g_warning ("Error closing: %s", error->message);
             g_clear_error (&error);
         }
         return FALSE;
     } else if (ret == G_IO_STATUS_EOF) {
-        remove_socket_from_array (clientchan);
         /* shutdown and remove channel watch from main loop */
         ret = g_io_channel_shutdown (clientchan, TRUE, &error); 
+        remove_socket_from_array (clientchan);
         if (ret == G_IO_STATUS_ERROR) {
             g_warning ("Error closing: %s", error->message);
             g_clear_error (&error);
