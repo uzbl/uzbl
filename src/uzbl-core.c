@@ -85,6 +85,7 @@ const struct var_name_to_ptr_t {
     { "show_status",            PTR_V_INT(uzbl.behave.show_status,              1,   cmd_set_status)},
     { "status_top",             PTR_V_INT(uzbl.behave.status_top,               1,   move_statusbar)},
     { "status_format",          PTR_V_STR(uzbl.behave.status_format,            1,   NULL)},
+    { "status_format_right",    PTR_V_STR(uzbl.behave.status_format_right,      1,   NULL)},
     { "status_background",      PTR_V_STR(uzbl.behave.status_background,        1,   set_status_background)},
     { "title_format_long",      PTR_V_STR(uzbl.behave.title_format_long,        1,   NULL)},
     { "title_format_short",     PTR_V_STR(uzbl.behave.title_format_short,       1,   NULL)},
@@ -1873,41 +1874,42 @@ init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL *
     return NULL;
 }
 
-/*
- NOTE: we want to keep variables like b->title_format_long in their "unprocessed" state
- it will probably improve performance if we would "cache" the processed variant, but for now it works well enough...
-*/
-// this function may be called very early when the templates are not set (yet), hence the checks
 void
 update_title (void) {
     Behaviour *b = &uzbl.behave;
-    gchar *parsed;
-    const gchar *current_title;
-    /* this check is here because if we're starting up or shutting down it might not be a window */
-    gboolean have_main_window = !uzbl.state.plug_mode && GTK_IS_WINDOW(uzbl.gui.main_window);
 
-    if(have_main_window)
-        current_title = gtk_window_get_title (GTK_WINDOW(uzbl.gui.main_window));
+    const gchar *title_format = b->title_format_long;
 
+    /* Update the status bar if shown */
     if (b->show_status) {
-        if (b->title_format_short && have_main_window) {
-            parsed = expand(b->title_format_short, 0);
-            if(!current_title || strcmp(current_title, parsed))
-                gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
+        title_format = b->title_format_short;
+
+        /* Left side */
+        if (b->status_format && GTK_IS_LABEL(uzbl.gui.mainbar_label_left)) {
+            gchar *parsed = expand(b->status_format, 0);
+            gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label_left), parsed);
             g_free(parsed);
         }
-        if (b->status_format && GTK_IS_LABEL(uzbl.gui.mainbar_label)) {
-            parsed = expand(b->status_format, 0);
-            gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), parsed);
+
+        /* Right side */
+        if (b->status_format_right && GTK_IS_LABEL(uzbl.gui.mainbar_label_right)) {
+            gchar *parsed = expand(b->status_format_right, 0);
+            gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label_right), parsed);
             g_free(parsed);
         }
-    } else {
-        if (b->title_format_long && have_main_window) {
-            parsed = expand(b->title_format_long, 0);
-            if(!current_title || strcmp(current_title, parsed))
-                gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
-            g_free(parsed);
-        }
+    }
+
+    /* Update window title */
+    /* If we're starting up or shutting down there might not be a window yet. */
+    gboolean have_main_window = !uzbl.state.plug_mode && GTK_IS_WINDOW(uzbl.gui.main_window);
+    if (title_format && have_main_window) {
+        gchar *parsed = expand(title_format, 0);
+        const gchar *current_title = gtk_window_get_title (GTK_WINDOW(uzbl.gui.main_window));
+        /* xmonad hogs CPU if the window title updates too frequently, so we
+         * don't set it unless we need to. */
+        if(!current_title || strcmp(current_title, parsed))
+            gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
+        g_free(parsed);
     }
 }
 
@@ -1946,12 +1948,23 @@ create_mainbar () {
     GUI *g = &uzbl.gui;
 
     g->mainbar = gtk_hbox_new (FALSE, 0);
-    g->mainbar_label = gtk_label_new ("");
-    gtk_label_set_selectable((GtkLabel *)g->mainbar_label, TRUE);
-    gtk_label_set_ellipsize(GTK_LABEL(g->mainbar_label), PANGO_ELLIPSIZE_END);
-    gtk_misc_set_alignment (GTK_MISC(g->mainbar_label), 0, 0);
-    gtk_misc_set_padding (GTK_MISC(g->mainbar_label), 2, 2);
-    gtk_box_pack_start (GTK_BOX (g->mainbar), g->mainbar_label, TRUE, TRUE, 0);
+
+    /* Left panel */
+    g->mainbar_label_left = gtk_label_new ("");
+    gtk_label_set_selectable(GTK_LABEL(g->mainbar_label_left), TRUE);
+    gtk_misc_set_alignment (GTK_MISC(g->mainbar_label_left), 0, 0);
+    gtk_misc_set_padding (GTK_MISC(g->mainbar_label_left), 2, 2);
+
+    gtk_box_pack_start (GTK_BOX (g->mainbar), g->mainbar_label_left, FALSE, FALSE, 0);
+
+    /* Right panel */
+    g->mainbar_label_right = gtk_label_new ("");
+    gtk_label_set_selectable(GTK_LABEL(g->mainbar_label_right), TRUE);
+    gtk_misc_set_alignment (GTK_MISC(g->mainbar_label_right), 1, 0);
+    gtk_misc_set_padding (GTK_MISC(g->mainbar_label_right), 2, 2);
+    gtk_label_set_ellipsize(GTK_LABEL(g->mainbar_label_right), PANGO_ELLIPSIZE_START);
+
+    gtk_box_pack_start (GTK_BOX (g->mainbar), g->mainbar_label_right, TRUE, TRUE, 0);
 
     g_object_connect((GObject*)g->mainbar,
       "signal::key-press-event",                    (GCallback)key_press_cb,    NULL,

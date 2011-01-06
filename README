@@ -291,8 +291,10 @@ file).
 * `keycmd`: Holds the input buffer (callback: update input buffer).
 * `show_status`: Show statusbar or not.
 * `status_top`: statusbar on top?
-* `status_format`: Marked up, to be expanded string for statusbar (callback:
-  update statusbar).
+* `status_format`: Marked up, to be expanded string for statusbar's left side
+  (callback: update statusbar).
+* `status_format_right`: Marked up, to be expanded string for statusbar's right side
+  (callback: update statusbar).
 * `status_background`: color which can be used to override Gtk theme.
 * `title_format_long`: titlebar string when no statusbar shown (will be
   expanded).
@@ -470,10 +472,10 @@ that should be evaluated on every update need to be escaped:
     set title_format_short = \\\@(date)\\\@
     # the title will stay constant as a literal "@(date)@"
 
-The `status_format` variable can contain
+The `status_format` and `status_format_right` variables can contain
 [Pango](http://library.gnome.org/devel/pango/stable/PangoMarkupFormat.html)
-markup . In the `status_format`, variables that might contain characters like
-`<`, `&` and `>`, should be wrapped in a `@[ ]@` substitution so that they don't
+markup . In these variables, expansions that might produce the characters `<`,
+`&` or `>` should be wrapped in `@[ ]@` substitutions so that they don't
 interfere with the status bar's markup; see the sample config for examples.
 
 ### EXTERNAL SCRIPTS
