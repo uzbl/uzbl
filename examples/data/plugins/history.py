@@ -42,7 +42,6 @@ class History(object):
             self.search_key = None
 
             if self._temporary:
-                print 'popping temporary'
                 return self._temporary.pop()
             return ''
 
@@ -72,8 +71,6 @@ class History(object):
 
         self._temporary.append(cmd)
         self.cursor = len(self) - 1
-
-        print 'adding temporary', self
 
     def __getitem__(self, i):
         if i < len(shared_history[self.prompt]):

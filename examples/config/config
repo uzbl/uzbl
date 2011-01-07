@@ -200,8 +200,7 @@ set ebind     = @mode_bind global,-insert
 #@ebind  <Ctrl>du = event APPEND_KEYCMD \@uri
 #@ebind  <Ctrl>dt = event APPEND_KEYCMD \@title
 
-
-# === Mouse bindings =========================================================
+# --- Mouse bindings ---------------------------------------------------------
 
 # Middle click open in new window
 @bind  <Button2>  = sh 'if [ "$1" ]; then echo "event REQ_NEW_WINDOW $1" > "$UZBL_FIFO"; else echo "uri $(xclip -o | sed s/\\\@/%40/g)" > "$UZBL_FIFO"; fi' '\@SELECTED_URI'
