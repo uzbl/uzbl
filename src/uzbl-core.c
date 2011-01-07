@@ -1694,13 +1694,12 @@ gboolean
 remove_socket_from_array(GIOChannel *chan) {
     gboolean ret = 0;
 
-    /* TODO: Do wee need to manually free the IO channel or is this
-     *       happening implicitly on unref?
-     */
     ret = g_ptr_array_remove_fast(uzbl.comm.connect_chan, chan);
     if(!ret)
         ret = g_ptr_array_remove_fast(uzbl.comm.client_chan, chan);
 
+    if(ret)
+        g_io_channel_unref (chan);
     return ret;
 }
 
@@ -1772,14 +1771,23 @@ control_client_socket(GIOChannel *clientchan) {
 
     ret = g_io_channel_read_line(clientchan, &ctl_line, &len, NULL, &error);
     if (ret == G_IO_STATUS_ERROR) {
-        g_warning ("Error reading: %s\n", error->message);
-        remove_socket_from_array(clientchan);
-        g_io_channel_shutdown(clientchan, TRUE, &error);
+        g_warning ("Error reading: %s", error->message);
+        g_clear_error (&error);
+        ret = g_io_channel_shutdown (clientchan, TRUE, &error); 
+        remove_socket_from_array (clientchan);
+        if (ret == G_IO_STATUS_ERROR) {
+            g_warning ("Error closing: %s", error->message);
+            g_clear_error (&error);
+        }
         return FALSE;
     } else if (ret == G_IO_STATUS_EOF) {
-        remove_socket_from_array(clientchan);
         /* shutdown and remove channel watch from main loop */
-        g_io_channel_shutdown(clientchan, TRUE, &error);
+        ret = g_io_channel_shutdown (clientchan, TRUE, &error); 
+        remove_socket_from_array (clientchan);
+        if (ret == G_IO_STATUS_ERROR) {
+            g_warning ("Error closing: %s", error->message);
+            g_clear_error (&error);
+        }
         return FALSE;
     }
 
@@ -1790,11 +1798,14 @@ control_client_socket(GIOChannel *clientchan) {
                                         &len, &error);
         if (ret == G_IO_STATUS_ERROR) {
             g_warning ("Error writing: %s", error->message);
+            g_clear_error (&error);
         }
-        g_io_channel_flush(clientchan, &error);
+        if (g_io_channel_flush(clientchan, &error) == G_IO_STATUS_ERROR) {
+            g_warning ("Error flushing: %s", error->message);
+            g_clear_error (&error);
+        }
     }
 
-    if (error) g_error_free (error);
     g_string_free(result, TRUE);
     g_free(ctl_line);
     return TRUE;
