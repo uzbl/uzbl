@@ -1146,6 +1146,7 @@ search_text (WebKitWebView *page, GArray *argv, const gboolean forward) {
         if (g_strcmp0 (uzbl.state.searchtx, argv_idx(argv, 0)) != 0) {
             webkit_web_view_unmark_text_matches (page);
             webkit_web_view_mark_text_matches (page, argv_idx(argv, 0), FALSE, 0);
+            g_free (uzbl.state.searchtx);
             uzbl.state.searchtx = g_strdup(argv_idx(argv, 0));
         }
     }
@@ -1165,10 +1166,7 @@ search_clear(WebKitWebView *page, GArray *argv, GString *result) {
     (void) result;
 
     webkit_web_view_unmark_text_matches (page);
-    if(uzbl.state.searchtx) {
-        g_free(uzbl.state.searchtx);
-        uzbl.state.searchtx = NULL;
-    }
+    uzbl.state.searchtx = strfree (uzbl.state.searchtx);
 }
 
 void
