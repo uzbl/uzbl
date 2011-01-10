@@ -193,7 +193,7 @@ set ebind     = @mode_bind global,-insert
 
 @ebind <Up>          = event HISTORY_PREV
 @ebind <Down>        = event HISTORY_NEXT
-@ebind <Ctrl>r<s:>_  = event HISTORY_SEARCH %s
+@ebind <Ctrl>r<search:>_ = event HISTORY_SEARCH %s
 # Keycmd injection/append examples.
 #@ebind  <Ctrl>su = event INJECT_KEYCMD \@uri
 #@ebind  <Ctrl>st = event INJECT_KEYCMD \@title

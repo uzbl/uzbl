@@ -97,3 +97,22 @@ WHITELIST_COOKIE <part> <re>
 	Adds a new whitelist filter. cookies where the component specified by
 	`part` matches the regular expression `re` will be allowed. part can be any
   of the parts allowed for the BLACKLIST_COOKIE event
+
+### history.py ###
+- Status bar command history
+- Connects To: (KEYCMD_EXEC, HISTORY_PREV, HISTORY_NEXT, HISTORY_SEARCH)
+
+Records commands that are typed into the status bar so that they can be
+recalled. The same history is shared by all uzbl instances connected to the
+same event manager.
+
+HISTORY_PREV
+  Iterates backwards through commands that have been issued (filtered by the
+  last HISTORY_SEARCH if applicable).
+
+HISTORY_NEXT
+  Iterates forwards through commands that have been issued (filtered by the
+  last HISTORY_SEARCH if applicable).
+
+HISTORY_SEARCH <string>
+  Searches backwards through command history for an exact string.
