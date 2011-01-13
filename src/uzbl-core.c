@@ -571,55 +571,55 @@ VIEWFUNC(go_forward)
 #undef VIEWFUNC
 
 /* -- command to callback/function map for things we cannot attach to any signals */
-struct {const char *key; CommandInfo value;} cmdlist[] =
+CommandInfo cmdlist[] =
 {   /* key                              function      no_split      */
-    { "back",                           {view_go_back, 0}               },
-    { "forward",                        {view_go_forward, 0}            },
-    { "scroll",                         {scroll_cmd, 0}                 },
-    { "reload",                         {view_reload, 0},               },
-    { "reload_ign_cache",               {view_reload_bypass_cache, 0}   },
-    { "stop",                           {view_stop_loading, 0},         },
-    { "zoom_in",                        {view_zoom_in, 0},              }, //Can crash (when max zoom reached?).
-    { "zoom_out",                       {view_zoom_out, 0},             },
-    { "toggle_zoom_type",               {toggle_zoom_type, 0},          },
-    { "uri",                            {load_uri, TRUE}                },
-    { "js",                             {run_js, TRUE}                  },
-    { "script",                         {run_external_js, 0}            },
-    { "toggle_status",                  {toggle_status_cb, 0}           },
-    { "spawn",                          {spawn_async, 0}                },
-    { "sync_spawn",                     {spawn_sync, 0}                 }, // needed for cookie handler
-    { "sync_spawn_exec",                {spawn_sync_exec, 0}            }, // needed for load_cookies.sh :(
-    { "sh",                             {spawn_sh_async, 0}             },
-    { "sync_sh",                        {spawn_sh_sync, 0}              }, // needed for cookie handler
-    { "exit",                           {close_uzbl, 0}                 },
-    { "search",                         {search_forward_text, TRUE}     },
-    { "search_reverse",                 {search_reverse_text, TRUE}     },
-    { "search_clear",                   {search_clear, TRUE}            },
-    { "dehilight",                      {dehilight, 0}                  },
-    { "set",                            {set_var, TRUE}                 },
-    { "dump_config",                    {act_dump_config, 0}            },
-    { "dump_config_as_events",          {act_dump_config_as_events, 0}  },
-    { "chain",                          {chain, 0}                      },
-    { "print",                          {print, TRUE}                   },
-    { "event",                          {event, TRUE}                   },
-    { "request",                        {event, TRUE}                   },
-    { "menu_add",                       {menu_add, TRUE}                },
-    { "menu_link_add",                  {menu_add_link, TRUE}           },
-    { "menu_image_add",                 {menu_add_image, TRUE}          },
-    { "menu_editable_add",              {menu_add_edit, TRUE}           },
-    { "menu_separator",                 {menu_add_separator, TRUE}      },
-    { "menu_link_separator",            {menu_add_separator_link, TRUE} },
-    { "menu_image_separator",           {menu_add_separator_image, TRUE}},
-    { "menu_editable_separator",        {menu_add_separator_edit, TRUE} },
-    { "menu_remove",                    {menu_remove, TRUE}             },
-    { "menu_link_remove",               {menu_remove_link, TRUE}        },
-    { "menu_image_remove",              {menu_remove_image, TRUE}       },
-    { "menu_editable_remove",           {menu_remove_edit, TRUE}        },
-    { "hardcopy",                       {hardcopy, TRUE}                },
-    { "include",                        {include, TRUE}                 },
-    { "show_inspector",                 {show_inspector, 0}             },
-    { "add_cookie",                     {add_cookie, 0}                 },
-    { "delete_cookie",                  {delete_cookie, 0}              }
+    { "back",                           view_go_back, 0               },
+    { "forward",                        view_go_forward, 0            },
+    { "scroll",                         scroll_cmd, 0                  },
+    { "reload",                         view_reload, 0                 },
+    { "reload_ign_cache",               view_reload_bypass_cache, 0    },
+    { "stop",                           view_stop_loading, 0           },
+    { "zoom_in",                        view_zoom_in, 0                }, //Can crash (when max zoom reached?).
+    { "zoom_out",                       view_zoom_out, 0               },
+    { "toggle_zoom_type",               toggle_zoom_type, 0            },
+    { "uri",                            load_uri, TRUE                 },
+    { "js",                             run_js, TRUE                   },
+    { "script",                         run_external_js, 0             },
+    { "toggle_status",                  toggle_status_cb, 0            },
+    { "spawn",                          spawn_async, 0                 },
+    { "sync_spawn",                     spawn_sync, 0                  }, // needed for cookie handler
+    { "sync_spawn_exec",                spawn_sync_exec, 0             }, // needed for load_cookies.sh :(
+    { "sh",                             spawn_sh_async, 0              },
+    { "sync_sh",                        spawn_sh_sync, 0               }, // needed for cookie handler
+    { "exit",                           close_uzbl, 0                  },
+    { "search",                         search_forward_text, TRUE      },
+    { "search_reverse",                 search_reverse_text, TRUE      },
+    { "search_clear",                   search_clear, TRUE             },
+    { "dehilight",                      dehilight, 0                   },
+    { "set",                            set_var, TRUE                  },
+    { "dump_config",                    act_dump_config, 0             },
+    { "dump_config_as_events",          act_dump_config_as_events, 0   },
+    { "chain",                          chain, 0                       },
+    { "print",                          print, TRUE                    },
+    { "event",                          event, TRUE                    },
+    { "request",                        event, TRUE                    },
+    { "menu_add",                       menu_add, TRUE                 },
+    { "menu_link_add",                  menu_add_link, TRUE            },
+    { "menu_image_add",                 menu_add_image, TRUE           },
+    { "menu_editable_add",              menu_add_edit, TRUE            },
+    { "menu_separator",                 menu_add_separator, TRUE       },
+    { "menu_link_separator",            menu_add_separator_link, TRUE  },
+    { "menu_image_separator",           menu_add_separator_image, TRUE },
+    { "menu_editable_separator",        menu_add_separator_edit, TRUE  },
+    { "menu_remove",                    menu_remove, TRUE              },
+    { "menu_link_remove",               menu_remove_link, TRUE         },
+    { "menu_image_remove",              menu_remove_image, TRUE        },
+    { "menu_editable_remove",           menu_remove_edit, TRUE         },
+    { "hardcopy",                       hardcopy, TRUE                 },
+    { "include",                        include, TRUE                  },
+    { "show_inspector",                 show_inspector, 0              },
+    { "add_cookie",                     add_cookie, 0                  },
+    { "delete_cookie",                  delete_cookie, 0               }
 };
 
 void
@@ -629,7 +629,7 @@ commands_hash(void)
     uzbl.behave.commands = g_hash_table_new(g_str_hash, g_str_equal);
 
     for (i = 0; i < LENGTH(cmdlist); i++)
-        g_hash_table_insert(uzbl.behave.commands, (gpointer) cmdlist[i].key, &cmdlist[i].value);
+        g_hash_table_insert(uzbl.behave.commands, (gpointer) cmdlist[i].key, &cmdlist[i]);
 }
 
 void
@@ -1141,15 +1141,15 @@ dehilight (WebKitWebView *page, GArray *argv, GString *result) {
 
 void
 chain (WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page; (void) result;
-    gchar *a = NULL;
-    gchar **parts = NULL;
+    (void) page;
     guint i = 0;
-    while ((a = argv_idx(argv, i++))) {
-        parts = g_strsplit (a, " ", 2);
-        if (parts[0])
-          parse_command(parts[0], parts[1], result);
-        g_strfreev (parts);
+    const gchar *cmd;
+    while ((cmd = argv_idx(argv, i++))) {
+        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+        CommandInfo *c = parse_command_parts(cmd, a);
+        if (c)
+            run_parsed_command(c, a, result);
+        g_array_free (a, TRUE);
     }
 }
 
@@ -1332,48 +1332,81 @@ spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
 }
 
 void
-parse_command(const char *cmd, const char *param, GString *result) {
-    CommandInfo *c;
-    GString *tmp = g_string_new("");
+run_parsed_command(CommandInfo *c, GArray *a, GString *result) {
+    c->function(uzbl.gui.web_view, a, result);
 
-    if ((c = g_hash_table_lookup(uzbl.behave.commands, cmd))) {
-            guint i;
-            gchar **par = split_quoted(param, TRUE);
-            GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-
-            if (c->no_split) { /* don't split */
-                sharg_append(a, param);
-            } else if (par) {
-                for (i = 0; i < g_strv_length(par); i++)
-                    sharg_append(a, par[i]);
-            }
-
-            if (result == NULL) {
-                GString *result_print = g_string_new("");
-
-                c->function(uzbl.gui.web_view, a, result_print);
-                if (result_print->len)
-                    printf("%*s\n", (int)result_print->len, result_print->str);
-
-                g_string_free(result_print, TRUE);
-            } else {
-                c->function(uzbl.gui.web_view, a, result);
-            }
-            g_strfreev (par);
-            g_array_free (a, TRUE);
-
-            if(strcmp("set", cmd)     &&
-               strcmp("event", cmd)   &&
-               strcmp("request", cmd)) {
-                g_string_printf(tmp, "%s %s", cmd, param?param:"");
-                send_event(COMMAND_EXECUTED, tmp->str, NULL);
-            }
+    /* send the COMMAND_EXECUTED event, except for set and event/request commands */
+    if(strcmp("set", c->key)   &&
+       strcmp("event", c->key) &&
+       strcmp("request", c->key)) {
+        GString *tmp = g_string_new(c->key);
+        const gchar *p;
+        guint i = 0;
+        while ((p = argv_idx(a, i++)))
+            g_string_append_printf(tmp, " '%s'", p);
+        send_event(COMMAND_EXECUTED, tmp->str, NULL);
+        g_string_free(tmp, TRUE);
     }
-    else {
-		g_string_printf (tmp, "%s %s", cmd, param?param:"");
-        send_event(COMMAND_ERROR, tmp->str, NULL);
+}
+
+void
+parse_command_arguments(const gchar *p, GArray *a, gboolean no_split) {
+    if (no_split && p) { /* pass the parameters through in one chunk */
+        sharg_append(a, g_strdup(p));
+        return;
     }
-    g_string_free(tmp, TRUE);
+
+    gchar **par = split_quoted(p, TRUE);
+    if (par) {
+        guint i;
+        for (i = 0; i < g_strv_length(par); i++)
+            sharg_append(a, g_strdup(par[i]));
+        g_strfreev (par);
+    }
+}
+
+CommandInfo *
+parse_command_parts(const gchar *line, GArray *a) {
+    CommandInfo *c = NULL;
+
+    gchar *exp_line = expand(line, 0);
+    if(exp_line[0] == '\0')
+        return NULL;
+
+    /* separate the line into the command and its parameters */
+    gchar **tokens = g_strsplit(exp_line, " ", 2);
+
+    /* look up the command */
+    c = g_hash_table_lookup(uzbl.behave.commands, tokens[0]);
+
+    if(!c) {
+        send_event(COMMAND_ERROR, exp_line, NULL);
+        g_free(exp_line);
+        g_strfreev(tokens);
+        return NULL;
+    }
+
+    gchar *p = g_strdup(tokens[1]);
+    g_free(exp_line);
+    g_strfreev(tokens);
+
+    /* parse the arguments */
+    parse_command_arguments(p, a, c->no_split);
+    g_free(p);
+
+    return c;
+}
+
+void
+parse_command(const char *cmd, const char *params, GString *result) {
+    CommandInfo *c = g_hash_table_lookup(uzbl.behave.commands, cmd);
+
+    GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+
+    parse_command_arguments(params, a, c->no_split);
+    run_parsed_command(c, a, result);
+
+    g_array_free (a, TRUE);
 }
 
 
@@ -1467,28 +1500,18 @@ set_var_value(const gchar *name, gchar *val) {
 
 void
 parse_cmd_line(const char *ctl_line, GString *result) {
-    gchar *exp_line = NULL;
     gchar *work_string = g_strdup(ctl_line);
 
     /* strip trailing newline, and any other whitespace in front */
     g_strstrip(work_string);
 
-    if( strcmp(work_string, "") &&
-        strcmp(exp_line = expand(work_string, 0), "")
-      ) {
-            /* ignore comments */
-            if((exp_line[0] == '#'))
-                ;
-
-            /* parse a command */
-            else {
-                gchar **tokens = NULL;
-
-                tokens = g_strsplit(exp_line, " ", 2);
-                parse_command(tokens[0], tokens[1], result);
-                g_strfreev(tokens);
-            }
-        g_free(exp_line);
+    if( strcmp(work_string, "") ) {
+        if((work_string[0] != '#')) { /* ignore comments */
+            GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+            CommandInfo *c = parse_command_parts(work_string, a);
+            run_parsed_command(c, a, result);
+            g_array_free (a, TRUE);
+        }
     }
 
     g_free(work_string);

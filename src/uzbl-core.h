@@ -479,9 +479,20 @@ builtins();
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
 
 typedef struct {
-    Command function;
-    gboolean no_split;
+    const gchar *key;
+    Command      function;
+    gboolean     no_split;
 } CommandInfo;
+
+CommandInfo *
+parse_command_parts(const gchar *line, GArray *a);
+
+void
+parse_command_arguments(const gchar *p, GArray *a, gboolean no_split);
+
+void
+run_parsed_command(CommandInfo *c, GArray *a, GString *result);
+
 
 typedef struct {
     gchar *name;
