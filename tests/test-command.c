@@ -282,6 +282,21 @@ test_js (void) {
 }
 
 void
+test_last_result (void) {
+    GString *result = g_string_new("");
+
+    /* the last result gets set */
+    parse_cmd_line("js -1", result);
+    g_assert_cmpstr("-1", ==, uzbl.state.last_result);
+
+    /* the last result can be used in a chain */
+    parse_cmd_line("chain 'js 1' 'js \\@_ + 1'", result);
+    g_assert_cmpstr("2", ==, uzbl.state.last_result);
+
+    g_string_free(result, TRUE);
+}
+
+void
 test_run_handler_arg_order (void) {
     run_handler("sync_spawn echo uvw xyz", "abc def");
 
@@ -319,6 +334,8 @@ main (int argc, char *argv[]) {
     g_test_add_func("/test-command/sync-sh",        test_sync_sh);
 
     g_test_add_func("/test-command/js",             test_js);
+
+    g_test_add_func("/test-command/last-result",    test_last_result);
 
     /* the following aren't really "command" tests, but they're not worth
      * splitting into a separate file yet */

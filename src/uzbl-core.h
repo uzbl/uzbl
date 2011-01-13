@@ -98,7 +98,8 @@ typedef struct {
     gchar    *selected_url;
     gchar    *last_selected_url;
     gchar    *executable_path;
-    gchar*   searchtx;
+    gchar   *searchtx;
+    gchar   *last_result;
     gboolean verbose;
     gboolean events_stdout;
     GPtrArray *event_buffer;

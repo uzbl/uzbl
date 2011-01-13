@@ -145,6 +145,7 @@ const struct var_name_to_ptr_t {
     { "SELECTED_URI",           PTR_C_STR(uzbl.state.selected_url,                   NULL)},
     { "NAME",                   PTR_C_STR(uzbl.state.instance_name,                  NULL)},
     { "PID",                    PTR_C_STR(uzbl.info.pid_str,                         NULL)},
+    { "_",                      PTR_C_STR(uzbl.state.last_result,                    NULL)},
 
     { NULL,                     {.ptr.s = NULL, .type = TYPE_INT, .dump = 0, .writeable = 0, .func = NULL}}
 };
@@ -1347,6 +1348,11 @@ run_parsed_command(CommandInfo *c, GArray *a, GString *result) {
         send_event(COMMAND_EXECUTED, tmp->str, NULL);
         g_string_free(tmp, TRUE);
     }
+
+    if(result) {
+      g_free(uzbl.state.last_result);
+      uzbl.state.last_result = g_strdup(result->str);
+    }
 }
 
 void
@@ -2294,7 +2300,8 @@ initialize(int argc, char *argv[]) {
 
     uzbl.state.executable_path = g_strdup(argv[0]);
     uzbl.state.selected_url = NULL;
-    uzbl.state.searchtx = NULL;
+    uzbl.state.searchtx     = NULL;
+    uzbl.state.last_result  = NULL;
 
     GOptionContext* context = g_option_context_new ("[ uri ] - load a uri by default");
     g_option_context_add_main_entries (context, entries, NULL);
