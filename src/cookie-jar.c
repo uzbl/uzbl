@@ -74,11 +74,11 @@ uzbl_cookie_jar_set_handler(UzblCookieJar *jar, const gchar* handler) {
 
 char *get_cookies(UzblCookieJar *jar, SoupURI *uri) {
     gchar *result, *path;
-    GString *s = g_string_new ("GET");
 
     path = uri->path[0] ? uri->path : "/";
 
     if(has_socket_handler(jar)) {
+        GString *s = g_string_new ("GET");
         g_string_append_c(s, 0); /* null-terminate the GET */
         g_string_append_len(s, uri->scheme, strlen(uri->scheme)+1);
         g_string_append_len(s, uri->host,   strlen(uri->host)+1  );
@@ -88,13 +88,30 @@ char *get_cookies(UzblCookieJar *jar, SoupURI *uri) {
         /* try it again; older cookie daemons closed the connection after each request */
         if(result == NULL)
             result = do_socket_request(jar, s->str, s->len);
-    } else {
-        g_string_append_printf(s, " '%s' '%s' '%s'", uri->scheme, uri->host, uri->path);
 
-        run_handler(jar->handler, s->str);
-        result = g_strdup(uzbl.comm.sync_stdout);
+        g_string_free(s, TRUE);
+    } else {
+        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+
+        const CommandInfo *c = parse_command_parts(jar->handler, a);
+        if(!c) {
+            g_array_free(a, TRUE);
+            return NULL;
+        }
+
+        /* add our handler args */
+        g_array_append_val(a, "GET");
+        g_array_append_val(a, uri->scheme);
+        g_array_append_val(a, uri->host);
+        g_array_append_val(a, uri->path);
+
+        GString *r = g_string_new ("");
+        run_parsed_command(c, a, r);
+        result = r->str;
+        g_string_free(r, FALSE);
+        g_array_free(a, TRUE);
     }
-    g_string_free(s, TRUE);
+
     return result;
 }
 
@@ -168,7 +185,7 @@ changed(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie) {
 
         gchar * eventstr = g_strdup_printf ("'%s' '%s' '%s' '%s' '%s' '%s'",
             cookie->domain, cookie->path, cookie->name, cookie->value, scheme, expires?expires:"");
-        if(new_cookie) 
+        if(new_cookie)
             send_event(ADD_COOKIE, eventstr, NULL);
         else
             send_event(DELETE_COOKIE, eventstr, NULL);
@@ -182,9 +199,8 @@ changed(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie) {
     if(!new_cookie)
         return;
 
-    GString *s = g_string_new ("PUT");
-
     if(has_socket_handler(uzbl_jar)) {
+        GString *s = g_string_new ("PUT");
         g_string_append_c(s, 0); /* null-terminate the PUT */
         g_string_append_len(s,    scheme,                     strlen(scheme)+1);
         g_string_append_len(s,    new_cookie->domain,         strlen(new_cookie->domain)+1  );
@@ -197,13 +213,29 @@ changed(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie) {
             result = do_socket_request(uzbl_jar, s->str, s->len+1);
 
         g_free(result);
+        g_string_free(s, TRUE);
     } else {
-        g_string_append_printf(s, " '%s' '%s' '%s' '%s=%s'", scheme, new_cookie->domain, new_cookie->path, new_cookie->name, new_cookie->value);
+        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
 
-        run_handler(uzbl_jar->handler, s->str);
+        const CommandInfo *c = parse_command_parts(uzbl_jar->handler, a);
+        if(!c) {
+            g_array_free(a, TRUE);
+            return;
+        }
+
+        g_array_append_val(a, "PUT");
+        g_array_append_val(a, scheme);
+        g_array_append_val(a, new_cookie->domain);
+        g_array_append_val(a, new_cookie->path);
+
+        gchar *kv = g_strconcat(new_cookie->name, "=", new_cookie->value, NULL);
+        g_array_append_val(a, kv);
+
+        run_parsed_command(c, a, NULL);
+
+        g_free(kv);
+        g_array_free(a, TRUE);
     }
-
-    g_string_free(s, TRUE);
 }
 
 static void

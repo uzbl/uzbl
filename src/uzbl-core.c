@@ -361,12 +361,6 @@ itos(int val) {
 }
 
 gchar*
-strfree(gchar *str) {
-    g_free(str);
-    return NULL;
-}
-
-gchar*
 argv_idx(const GArray *a, const guint idx) { return g_array_index(a, gchar*, idx); }
 
 /* search a PATH style string for an existing file+path combination */
@@ -1119,7 +1113,8 @@ search_clear(WebKitWebView *page, GArray *argv, GString *result) {
     (void) result;
 
     webkit_web_view_unmark_text_matches (page);
-    uzbl.state.searchtx = strfree (uzbl.state.searchtx);
+    g_free(uzbl.state.searchtx);
+    uzbl.state.searchtx = NULL;
 }
 
 void
@@ -1145,13 +1140,18 @@ chain (WebKitWebView *page, GArray *argv, GString *result) {
     (void) page;
     guint i = 0;
     const gchar *cmd;
+    GString *r = g_string_new ("");
     while ((cmd = argv_idx(argv, i++))) {
         GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-        CommandInfo *c = parse_command_parts(cmd, a);
+        const CommandInfo *c = parse_command_parts(cmd, a);
         if (c)
-            run_parsed_command(c, a, result);
+            run_parsed_command(c, a, r);
         g_array_free (a, TRUE);
     }
+    if(result)
+        g_string_assign (result, r->str);
+
+    g_string_free(r, TRUE);
 }
 
 void
@@ -1185,7 +1185,8 @@ run_command (const gchar *command, const gchar **args, const gboolean sync,
 
     gboolean result;
     if (sync) {
-        if (*output_stdout) *output_stdout = strfree(*output_stdout);
+        if (*output_stdout)
+            g_free(*output_stdout);
 
         result = g_spawn_sync(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
                               NULL, NULL, output_stdout, NULL, NULL, &err);
@@ -1253,25 +1254,28 @@ split_quoted(const gchar* src, const gboolean unquote) {
 }
 
 void
-spawn(GArray *argv, gboolean sync, gboolean exec) {
+spawn(GArray *argv, GString *result, gboolean exec) {
     gchar *path = NULL;
     gchar *arg_car = argv_idx(argv, 0);
     const gchar **arg_cdr = &g_array_index(argv, const gchar *, 1);
 
     if (arg_car && (path = find_existing_file(arg_car))) {
-        if (uzbl.comm.sync_stdout)
-            uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
-        run_command(path, arg_cdr, sync, sync?&uzbl.comm.sync_stdout:NULL);
-        // run each line of output from the program as a command
-        if (sync && exec && uzbl.comm.sync_stdout) {
-            gchar *head = uzbl.comm.sync_stdout;
-            gchar *tail;
-            while ((tail = strchr (head, '\n'))) {
-                *tail = '\0';
-                parse_cmd_line(head, NULL);
-                head = tail + 1;
+        gchar *r = NULL;
+        run_command(path, arg_cdr, result != NULL, result ? &r : NULL);
+        if(result) {
+            g_string_assign(result, r);
+            // run each line of output from the program as a command
+            if (exec && r) {
+                gchar *head = r;
+                gchar *tail;
+                while ((tail = strchr (head, '\n'))) {
+                    *tail = '\0';
+                    parse_cmd_line(head, NULL);
+                    head = tail + 1;
+                }
             }
         }
+        g_free(r);
         g_free(path);
     }
 }
@@ -1279,23 +1283,28 @@ spawn(GArray *argv, gboolean sync, gboolean exec) {
 void
 spawn_async(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
-    spawn(argv, FALSE, FALSE);
+    spawn(argv, NULL, FALSE);
 }
 
 void
 spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
-    (void)web_view; (void)result;
-    spawn(argv, TRUE, FALSE);
+    (void)web_view;
+    spawn(argv, result, FALSE);
 }
 
 void
 spawn_sync_exec(WebKitWebView *web_view, GArray *argv, GString *result) {
-    (void)web_view; (void)result;
-    spawn(argv, TRUE, TRUE);
+    (void)web_view;
+    if(!result) {
+        GString *force_result = g_string_new("");
+        spawn(argv, force_result, TRUE);
+        g_string_free (force_result, TRUE);
+    } else
+        spawn(argv, result, TRUE);
 }
 
 void
-spawn_sh(GArray *argv, gboolean sync) {
+spawn_sh(GArray *argv, GString *result) {
     if (!uzbl.behave.shell_cmd) {
         g_printerr ("spawn_sh: shell_cmd is not set!\n");
         return;
@@ -1303,19 +1312,23 @@ spawn_sh(GArray *argv, gboolean sync) {
     guint i;
 
     gchar **cmd = split_quoted(uzbl.behave.shell_cmd, TRUE);
+    if(!cmd)
+        return;
+
     gchar *cmdname = g_strdup(cmd[0]);
     g_array_insert_val(argv, 1, cmdname);
 
     for (i = 1; i < g_strv_length(cmd); i++)
         g_array_prepend_val(argv, cmd[i]);
 
-    if (cmd) {
-        if (uzbl.comm.sync_stdout)
-            uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
+    if (result) {
+        gchar *r = NULL;
+        run_command(cmd[0], (const gchar **) argv->data, TRUE, &r);
+        g_string_assign(result, r);
+        g_free(r);
+    } else
+        run_command(cmd[0], (const gchar **) argv->data, FALSE, NULL);
 
-        run_command(cmd[0], (const gchar **) argv->data,
-                    sync, sync?&uzbl.comm.sync_stdout:NULL);
-    }
     g_free (cmdname);
     g_strfreev (cmd);
 }
@@ -1323,17 +1336,17 @@ spawn_sh(GArray *argv, gboolean sync) {
 void
 spawn_sh_async(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
-    spawn_sh(argv, FALSE);
+    spawn_sh(argv, NULL);
 }
 
 void
 spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
-    spawn_sh(argv, TRUE);
+    spawn_sh(argv, result);
 }
 
 void
-run_parsed_command(CommandInfo *c, GArray *a, GString *result) {
+run_parsed_command(const CommandInfo *c, GArray *a, GString *result) {
     c->function(uzbl.gui.web_view, a, result);
 
     /* send the COMMAND_EXECUTED event, except for set and event/request commands */
@@ -1350,8 +1363,8 @@ run_parsed_command(CommandInfo *c, GArray *a, GString *result) {
     }
 
     if(result) {
-      g_free(uzbl.state.last_result);
-      uzbl.state.last_result = g_strdup(result->str);
+        g_free(uzbl.state.last_result);
+        uzbl.state.last_result = g_strdup(result->str);
     }
 }
 
@@ -1371,7 +1384,7 @@ parse_command_arguments(const gchar *p, GArray *a, gboolean no_split) {
     }
 }
 
-CommandInfo *
+const CommandInfo *
 parse_command_parts(const gchar *line, GArray *a) {
     CommandInfo *c = NULL;
 
@@ -1406,13 +1419,18 @@ parse_command_parts(const gchar *line, GArray *a) {
 void
 parse_command(const char *cmd, const char *params, GString *result) {
     CommandInfo *c = g_hash_table_lookup(uzbl.behave.commands, cmd);
+    if(c) {
+        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
 
-    GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+        parse_command_arguments(params, a, c->no_split);
+        run_parsed_command(c, a, result);
 
-    parse_command_arguments(params, a, c->no_split);
-    run_parsed_command(c, a, result);
-
-    g_array_free (a, TRUE);
+        g_array_free (a, TRUE);
+    } else {
+        gchar *tmp = g_strconcat(cmd, " ", params, NULL);
+        send_event(COMMAND_ERROR, tmp, NULL);
+        g_free(tmp);
+    }
 }
 
 
@@ -1514,7 +1532,7 @@ parse_cmd_line(const char *ctl_line, GString *result) {
     if( strcmp(work_string, "") ) {
         if((work_string[0] != '#')) { /* ignore comments */
             GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-            CommandInfo *c = parse_command_parts(work_string, a);
+            const CommandInfo *c = parse_command_parts(work_string, a);
             run_parsed_command(c, a, result);
             g_array_free (a, TRUE);
         }
@@ -1985,126 +2003,6 @@ create_plug () {
     return plug;
 }
 
-
-gchar**
-inject_handler_args(const gchar *actname, const gchar *origargs, const gchar *newargs) {
-    /*
-      If actname is one that calls an external command, this function will inject
-      newargs in front of the user-provided args in that command line.  They will
-      come become after the body of the script (in sh) or after the name of
-      the command to execute (in spawn).
-      i.e. sh <body> <userargs> becomes sh <body> <ARGS> <userargs> and
-      spawn <command> <userargs> becomes spawn <command> <ARGS> <userargs>.
-
-      The return value consist of two strings: the action (sh, ...) and its args.
-
-      If act is not one that calls an external command, then the given action merely
-      gets duplicated.
-    */
-    GArray *rets = g_array_new(TRUE, FALSE, sizeof(gchar*));
-    /* Arrr! Here be memory leaks */
-    gchar *actdup = g_strdup(actname);
-    g_array_append_val(rets, actdup);
-
-    if ((g_strcmp0(actname, "spawn") == 0) ||
-        (g_strcmp0(actname, "sh") == 0) ||
-        (g_strcmp0(actname, "sync_spawn") == 0) ||
-        (g_strcmp0(actname, "sync_sh") == 0)) {
-        guint i;
-        GString *a = g_string_new("");
-        gchar **spawnparts = split_quoted(origargs, FALSE);
-        g_string_append_printf(a, "%s", spawnparts[0]); /* sh body or script name */
-        if (newargs) g_string_append_printf(a, " %s", newargs); /* handler args */
-
-        for (i = 1; i < g_strv_length(spawnparts); i++) /* user args */
-            if (spawnparts[i]) g_string_append_printf(a, " %s", spawnparts[i]);
-
-        g_array_append_val(rets, a->str);
-        g_string_free(a, FALSE);
-        g_strfreev(spawnparts);
-    } else {
-        gchar *origdup = g_strdup(origargs);
-        g_array_append_val(rets, origdup);
-    }
-    return (gchar**)g_array_free(rets, FALSE);
-}
-
-void
-run_handler (const gchar *act, const gchar *args) {
-    /* Consider this code a temporary hack to make the handlers usable.
-       In practice, all this splicing, injection, and reconstruction is
-       inefficient, annoying and hard to manage.  Potential pitfalls arise
-       when the handler specific args 1) are not quoted  (the handler
-       callbacks should take care of this)  2) are quoted but interfere
-       with the users' own quotation.  A more ideal solution is
-       to refactor parse_command so that it doesn't just take a string
-       and execute it; rather than that, we should have a function which
-       returns the argument vector parsed from the string.  This vector
-       could be modified (e.g. insert additional args into it) before
-       passing it to the next function that actually executes it.  Though
-       it still isn't perfect for chain actions..  will reconsider & re-
-       factor when I have the time. -duc */
-
-    if (!act) return;
-    char **parts = g_strsplit(act, " ", 2);
-    if (!parts || !parts[0]) return;
-    if (g_strcmp0(parts[0], "chain") == 0) {
-        GString *newargs = g_string_new("");
-        gchar **chainparts = split_quoted(parts[1], FALSE);
-
-        /* for every argument in the chain, inject the handler args
-           and make sure the new parts are wrapped in quotes */
-        gchar **cp = chainparts;
-        gchar quot = '\'';
-        gchar *quotless = NULL;
-        gchar **spliced_quotless = NULL; // sigh -_-;
-        gchar **inpart = NULL;
-
-        while (*cp) {
-            if ((**cp == '\'') || (**cp == '\"')) { /* strip old quotes */
-                quot = **cp;
-                quotless = g_strndup(&(*cp)[1], strlen(*cp) - 2);
-            } else quotless = g_strdup(*cp);
-
-            spliced_quotless = g_strsplit(quotless, " ", 2);
-            inpart = inject_handler_args(spliced_quotless[0], spliced_quotless[1], args);
-            g_strfreev(spliced_quotless);
-
-            g_string_append_printf(newargs, " %c%s %s%c", quot, inpart[0], inpart[1], quot);
-            g_free(quotless);
-            g_strfreev(inpart);
-            cp++;
-        }
-
-        parse_command(parts[0], &(newargs->str[1]), NULL);
-        g_string_free(newargs, TRUE);
-        g_strfreev(chainparts);
-
-    } else {
-        gchar **inparts;
-        gchar *inparts_[2];
-        if (parts[1]) {
-            /* expand the user-specified arguments */
-            gchar* expanded = expand(parts[1], 0);
-            inparts = inject_handler_args(parts[0], expanded, args);
-            g_free(expanded);
-        } else {
-            inparts_[0] = parts[0];
-            inparts_[1] = g_strdup(args);
-            inparts = inparts_;
-        }
-
-        parse_command(inparts[0], inparts[1], NULL);
-
-        if (inparts != inparts_) {
-            g_free(inparts[0]);
-            g_free(inparts[1]);
-        } else
-            g_free(inparts[1]);
-    }
-    g_strfreev(parts);
-}
-
 void
 settings_init () {
     State *s = &uzbl.state;
@@ -2145,32 +2043,34 @@ void handle_authentication (SoupSession *session, SoupMessage *msg, SoupAuth *au
     (void) user_data;
 
     if(uzbl.behave.authentication_handler && *uzbl.behave.authentication_handler != 0) {
-        gchar *info, *host, *realm;
-        gchar *p;
-
         soup_session_pause_message(session, msg);
 
-        /* Sanitize strings */
-            info  = g_strdup(soup_auth_get_info(auth));
-            host  = g_strdup(soup_auth_get_host(auth));
-            realm = g_strdup(soup_auth_get_realm(auth));
-            for (p = info; *p; p++)  if (*p == '\'') *p = '\"';
-            for (p = host; *p; p++)  if (*p == '\'') *p = '\"';
-            for (p = realm; *p; p++) if (*p == '\'') *p = '\"';
+        GString *result = g_string_new ("");
 
-        GString *s = g_string_new ("");
-        g_string_printf(s, "'%s' '%s' '%s' '%s'",
-            info, host, realm, retrying?"TRUE":"FALSE");
+        gchar *info  = g_strdup(soup_auth_get_info(auth));
+        gchar *host  = g_strdup(soup_auth_get_host(auth));
+        gchar *realm = g_strdup(soup_auth_get_realm(auth));
 
-        run_handler(uzbl.behave.authentication_handler, s->str);
+        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+        const CommandInfo *c = parse_command_parts(uzbl.behave.authentication_handler, a);
+        if(c) {
+            sharg_append(a, info);
+            sharg_append(a, host);
+            sharg_append(a, realm);
+            sharg_append(a, retrying ? "TRUE" : "FALSE");
 
-        if (uzbl.comm.sync_stdout && strcmp (uzbl.comm.sync_stdout, "") != 0) {
+            run_parsed_command(c, a, result);
+        }
+        g_array_free(a, TRUE);
+
+        if (result->len > 0) {
             char  *username, *password;
             int    number_of_endls=0;
 
-            username = uzbl.comm.sync_stdout;
+            username = result->str;
 
-            for (p = uzbl.comm.sync_stdout; *p; p++) {
+            gchar *p;
+            for (p = result->str; *p; p++) {
                 if (*p == '\n') {
                     *p = '\0';
                     if (++number_of_endls == 1)
@@ -2184,12 +2084,9 @@ void handle_authentication (SoupSession *session, SoupMessage *msg, SoupAuth *au
                 soup_auth_authenticate(auth, username, password);
         }
 
-        if (uzbl.comm.sync_stdout)
-            uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
-
         soup_session_unpause_message(session, msg);
 
-        g_string_free(s, TRUE);
+        g_string_free(result, TRUE);
         g_free(info);
         g_free(host);
         g_free(realm);

@@ -263,11 +263,12 @@ test_toggle_status (void) {
 
 void
 test_sync_sh (void) {
-    parse_cmd_line("sync_sh 'echo Test echo.'", NULL);
-    g_assert_cmpstr("Test echo.\n", ==, uzbl.comm.sync_stdout);
+    GString *result = g_string_new("");
 
-    /* clean up after ourselves */
-    uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
+    parse_cmd_line("sync_sh 'echo Test echo.'", result);
+    g_assert_cmpstr("Test echo.\n", ==, result->str);
+
+    g_string_free(result, TRUE);
 }
 
 void
@@ -296,29 +297,6 @@ test_last_result (void) {
     g_string_free(result, TRUE);
 }
 
-void
-test_run_handler_arg_order (void) {
-    run_handler("sync_spawn echo uvw xyz", "abc def");
-
-    assert(uzbl.comm.sync_stdout);
-
-    /* the rest of the result should be the arguments passed to run_handler. */
-    /* the arguments in the second argument to run_handler should be placed before any
-     * included in the first argument to run handler. */
-    g_assert_cmpstr("abc def uvw xyz\n", ==, uzbl.comm.sync_stdout);
-}
-
-void
-test_run_handler_expand (void) {
-    uzbl.net.useragent = "Test uzbl uzr agent";
-    run_handler("sync_spawn echo @useragent", "result:");
-
-    assert(uzbl.comm.sync_stdout);
-
-    /* the user-specified arguments to the handler should have been expanded */
-    g_assert_cmpstr("result: Test uzbl uzr agent\n", ==, uzbl.comm.sync_stdout);
-}
-
 int
 main (int argc, char *argv[]) {
     /* set up tests */
@@ -336,11 +314,6 @@ main (int argc, char *argv[]) {
     g_test_add_func("/test-command/js",             test_js);
 
     g_test_add_func("/test-command/last-result",    test_last_result);
-
-    /* the following aren't really "command" tests, but they're not worth
-     * splitting into a separate file yet */
-    g_test_add_func("/test-command/run_handler/arg-order",      test_run_handler_arg_order);
-    g_test_add_func("/test-command/run_handler/expand",         test_run_handler_expand);
 
     /* set up uzbl */
     initialize(argc, argv);
