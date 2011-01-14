@@ -45,13 +45,15 @@ changed(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie) {
         if(cookie->expires)
             expires = g_strdup_printf ("%d", soup_date_to_time_t (cookie->expires));
 
-        gchar * eventstr = g_strdup_printf ("'%s' '%s' '%s' '%s' '%s' '%s'",
-            cookie->domain, cookie->path, cookie->name, cookie->value, scheme, expires?expires:"");
-        if(new_cookie)
-            send_event(ADD_COOKIE, eventstr, NULL);
-        else
-            send_event(DELETE_COOKIE, eventstr, NULL);
-        g_free(eventstr);
+		send_event (new_cookie ? ADD_COOKIE : DELETE_COOKIE, NULL,
+			TYPE_STR, cookie->domain,
+			TYPE_STR, cookie->path,
+			TYPE_STR, cookie->name,
+			TYPE_STR, cookie->value,
+			TYPE_STR, scheme,
+			TYPE_STR, expires ? expires : "",
+			NULL);
+
         if(expires)
             g_free(expires);
     }

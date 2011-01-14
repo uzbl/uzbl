@@ -241,7 +241,8 @@ extern UzblCore uzbl; /* Main Uzbl object */
 typedef void sigfunc(int);
 
 /* Uzbl variables */
-enum ptr_type {TYPE_INT, TYPE_STR, TYPE_FLOAT};
+/* uzbl variables */
+enum ptr_type {TYPE_INT = 1, TYPE_STR, TYPE_FLOAT};
 typedef struct {
     enum ptr_type type;
     union {

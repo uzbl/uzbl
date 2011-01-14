@@ -337,7 +337,7 @@ expand(const char* s, guint recurse) {
 void
 clean_up(void) {
     if (uzbl.info.pid_str) {
-        send_event(INSTANCE_EXIT, uzbl.info.pid_str, NULL);
+        send_event (INSTANCE_EXIT, NULL, TYPE_STR, uzbl.info.pid_str, NULL);
         g_free(uzbl.info.pid_str);
         uzbl.info.pid_str = NULL;
     }
@@ -560,7 +560,7 @@ builtins() {
         g_string_append_c(command_list, ' ');
     }
 
-    send_event(BUILTINS, command_list->str, NULL);
+    send_event(BUILTINS, NULL, TYPE_STR, command_list->str, NULL);
     g_string_free(command_list, TRUE);
 }
 
@@ -597,7 +597,7 @@ event(WebKitWebView *page, GArray *argv, GString *result) {
     else
         return;
 
-    send_event(0, split[1]?split[1]:"", event_name->str);
+    send_event(0, event_name->str, TYPE_STR, split[1] ? split[1] : "", NULL);
 
     g_string_free(event_name, TRUE);
     g_strfreev(split);
@@ -640,11 +640,11 @@ include(WebKitWebView *page, GArray *argv, GString *result) {
     if((path = find_existing_file(path))) {
         if(!for_each_line_in_file(path, parse_cmd_line_cb, NULL)) {
             gchar *tmp = g_strdup_printf("File %s can not be read.", path);
-            send_event(COMMAND_ERROR, tmp, NULL);
+            send_event(COMMAND_ERROR, NULL, TYPE_STR, tmp, NULL);
             g_free(tmp);
         }
 
-        send_event(FILE_INCLUDED, path, NULL);
+        send_event(FILE_INCLUDED, NULL, TYPE_STR, path, NULL);
         g_free(path);
     }
 }
@@ -1103,13 +1103,17 @@ run_parsed_command(const CommandInfo *c, GArray *a, GString *result) {
     if(strcmp("set", c->key)   &&
        strcmp("event", c->key) &&
        strcmp("request", c->key)) {
-        GString *tmp = g_string_new(c->key);
+        // FIXME, build string inside send_event
+        GString *param = g_string_new("");
         const gchar *p;
         guint i = 0;
         while ((p = argv_idx(a, i++)))
-            g_string_append_printf(tmp, " '%s'", p);
-        send_event(COMMAND_EXECUTED, tmp->str, NULL);
-        g_string_free(tmp, TRUE);
+            g_string_append_printf(param, " '%s'", p);
+        send_event(COMMAND_EXECUTED, NULL,
+            TYPE_STR, c->key,
+            TYPE_STR, param->str,
+            NULL);
+        g_string_free(param, TRUE);
     }
 
     if(result) {
@@ -1177,9 +1181,10 @@ parse_command(const char *cmd, const char *params, GString *result) {
 
         g_array_free (a, TRUE);
     } else {
-        gchar *tmp = g_strconcat(cmd, " ", params, NULL);
-        send_event(COMMAND_ERROR, tmp, NULL);
-        g_free(tmp);
+        send_event(COMMAND_ERROR, NULL,
+            TYPE_STR, cmd,
+            TYPE_STR, params ? params : "",
+            NULL);
     }
 }
 
@@ -1238,7 +1243,7 @@ set_var_value(const gchar *name, gchar *val) {
             g_string_append_printf(msg, " float %f", *c->ptr.f);
         }
 
-        send_event(VARIABLE_SET, msg->str, NULL);
+        send_event(VARIABLE_SET, NULL, TYPE_STR, msg->str, NULL);
         g_string_free(msg,TRUE);
 
         /* invoke a command specific function */
@@ -1265,7 +1270,7 @@ set_var_value(const gchar *name, gchar *val) {
 
         msg = g_string_new(name);
         g_string_append_printf(msg, " str %s", buf);
-        send_event(VARIABLE_SET, msg->str, NULL);
+        send_event(VARIABLE_SET, NULL, TYPE_STR, msg->str, NULL);
         g_string_free(msg,TRUE);
     }
     update_title();
@@ -1463,7 +1468,7 @@ settings_init () {
     if (s->config_file) {
         if (!for_each_line_in_file(s->config_file, parse_cmd_line_cb, NULL)) {
             gchar *tmp = g_strdup_printf("File %s can not be read.", s->config_file);
-            send_event(COMMAND_ERROR, tmp, NULL);
+            send_event(COMMAND_ERROR, NULL, TYPE_STR, tmp, NULL);
             g_free(tmp);
         }
         g_setenv("UZBL_CONFIG", s->config_file, TRUE);
@@ -1571,7 +1576,7 @@ dump_var_hash_as_event(gpointer k, gpointer v, gpointer ud) {
         g_string_append_printf(msg, " float %f", *c->ptr.f);
     }
 
-    send_event(VARIABLE_SET, msg->str, NULL);
+    send_event(VARIABLE_SET, NULL, TYPE_STR, msg->str, NULL);
     g_string_free(msg, TRUE);
 }
 
@@ -1779,12 +1784,10 @@ main (int argc, char* argv[]) {
 
     uzbl.info.pid_str = g_strdup_printf("%d", getpid());
     g_setenv("UZBL_PID", uzbl.info.pid_str, TRUE);
-    send_event(INSTANCE_START, uzbl.info.pid_str, NULL);
+    send_event(INSTANCE_START, NULL, TYPE_STR, uzbl.info.pid_str, NULL);
 
     if (uzbl.state.plug_mode) {
-        char *t = g_strdup_printf("%d", gtk_plug_get_id(uzbl.gui.plug));
-        send_event(PLUG_CREATED, t, NULL);
-        g_free(t);
+        send_event(PLUG_CREATED, NULL, TYPE_INT, gtk_plug_get_id (uzbl.gui.plug), NULL);
     }
 
     /* Generate an event with a list of built in commands */

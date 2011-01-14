@@ -137,32 +137,53 @@ send_event_stdout(GString *msg) {
     fflush(stdout);
 }
 
+void
+vsend_event(int type, const gchar *custom_event, va_list vargs) {
+    GString *event_message = g_string_sized_new (512);
+    if (type >= LAST_EVENT)
+        return;
+    const gchar *event = custom_event ? custom_event : event_table[type];
+
+    int next;
+    g_string_printf (event_message, "EVENT [%s] %s",
+        uzbl.state.instance_name, event);
+
+    while ((next = va_arg (vargs, int)) != 0) {
+        switch(next) {
+        case TYPE_INT:
+            g_string_append_printf (event_message, " %d", va_arg (vargs, int));
+            break;
+        case TYPE_STR:
+            g_string_append_printf (event_message, " %s", va_arg (vargs, char*));
+            break;
+        case TYPE_FLOAT:
+            // ‘float’ is promoted to ‘double’ when passed through ‘...’
+            g_string_append_printf (event_message, " %.2g", va_arg (vargs, double));
+            break;
+        }
+    }
+
+    g_string_append_c(event_message, '\n');
+
+    if (uzbl.state.events_stdout)
+        send_event_stdout (event_message);
+    send_event_socket (event_message);
+
+    g_string_free (event_message, TRUE);
+}
+
 /*
  * build event string and send over the supported interfaces
  * custom_event == NULL indicates an internal event
 */
 void
-send_event(int type, const gchar *details, const gchar *custom_event) {
-    GString *event_message = g_string_new("");
-
-    /* check for custom events */
-    if(custom_event) {
-        g_string_printf(event_message, "EVENT [%s] %s %s\n",
-                uzbl.state.instance_name, custom_event, details);
-    }
-    /* check wether we support the internal event */
-    else if(type < LAST_EVENT) {
-        g_string_printf(event_message, "EVENT [%s] %s %s\n",
-                uzbl.state.instance_name, event_table[type], details);
-    }
-
-    if(event_message->str) {
-        if(uzbl.state.events_stdout)
-            send_event_stdout(event_message);
-        send_event_socket(event_message);
-
-        g_string_free(event_message, TRUE);
-    }
+send_event(int type, const gchar *custom_event, ...) {
+    va_list vargs, vacopy;
+    va_start (vargs, custom_event);
+    va_copy (vacopy, vargs);
+    vsend_event (type, custom_event, vacopy);
+    va_end (vacopy);
+    va_end (vargs);
 }
 
 /* Transform gdk key events to our own events */
@@ -181,12 +202,14 @@ key_to_event(guint keyval, gint mode) {
         ucs[ulen] = 0;
 
         send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
-                ucs, NULL);
+                NULL, TYPE_STR, ucs, NULL);
     }
     /* send keysym for non-printable chars */
     else {
         send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
-                gdk_keyval_name(keyval), NULL);
+                NULL, TYPE_STR, gdk_keyval_name(keyval), NULL);
     }
 
 }
+
+/* vi: set et ts=4: */

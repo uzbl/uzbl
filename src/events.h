@@ -7,6 +7,7 @@
 #define __EVENTS__
 
 #include <glib.h>
+#include <stdarg.h>
 
 /* Event system */
 enum event_type {
@@ -38,7 +39,10 @@ void
 send_event_stdout(GString *msg);
 
 void
-send_event(int type, const gchar *details, const gchar *custom_event);
+vsend_event(int type, const gchar *custom_event, va_list vargs);
+
+void
+send_event(int type, const gchar *custom_event, ...) G_GNUC_NULL_TERMINATED;
 
 void
 key_to_event(guint keyval, gint mode);
