@@ -17,3 +17,7 @@ gboolean    for_each_line_in_file(const gchar *path, void (*callback)(const gcha
 enum exp_type get_exp_type(const gchar*);
 gchar*      find_existing_file(gchar*);
 gchar*      argv_idx(const GArray*, const guint);
+/**
+ * appends `src' to `dest' with backslash, single-quotes and newlines in
+ * `src' escaped */
+GString *   append_escaped (GString *dest, const gchar *src);
