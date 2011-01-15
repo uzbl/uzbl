@@ -569,9 +569,9 @@ button_press_cb (GtkWidget* window, GdkEventButton* event) {
         /* left click */
         if(event->button == 1) {
             if((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE))
-                send_event(FORM_ACTIVE, NULL, TYPE_STR, "button1", NULL);
+                send_event(FORM_ACTIVE, NULL, TYPE_NAME, "button1", NULL);
             else if((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT))
-                send_event(ROOT_ACTIVE, NULL, TYPE_STR, "button1", NULL);
+                send_event(ROOT_ACTIVE, NULL, TYPE_NAME, "button1", NULL);
         }
         else if(event->button == 2 && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
             sendev    = TRUE;
@@ -584,7 +584,7 @@ button_press_cb (GtkWidget* window, GdkEventButton* event) {
 
         if(sendev) {
             details = g_strdup_printf("Button%d", event->button);
-            send_event(KEY_PRESS, NULL, TYPE_STR, details, NULL);
+            send_event(KEY_PRESS, NULL, TYPE_NAME, details, NULL);
             g_free (details);
         }
     }
@@ -613,7 +613,7 @@ button_release_cb (GtkWidget* window, GdkEventButton* event) {
 
         if(sendev) {
             details = g_strdup_printf("Button%d", event->button);
-            send_event(KEY_RELEASE, NULL, TYPE_STR, details, NULL);
+            send_event(KEY_RELEASE, NULL, TYPE_NAME, details, NULL);
             g_free (details);
         }
     }

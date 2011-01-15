@@ -337,7 +337,7 @@ expand(const char* s, guint recurse) {
 void
 clean_up(void) {
     if (uzbl.info.pid_str) {
-        send_event (INSTANCE_EXIT, NULL, TYPE_STR, uzbl.info.pid_str, NULL);
+        send_event (INSTANCE_EXIT, NULL, TYPE_INT, getpid(), NULL);
         g_free(uzbl.info.pid_str);
         uzbl.info.pid_str = NULL;
     }
@@ -597,7 +597,7 @@ event(WebKitWebView *page, GArray *argv, GString *result) {
     else
         return;
 
-    send_event(0, event_name->str, TYPE_STR, split[1] ? split[1] : "", NULL);
+    send_event(0, event_name->str, TYPE_FORMATTEDSTR, split[1] ? split[1] : "", NULL);
 
     g_string_free(event_name, TRUE);
     g_strfreev(split);
@@ -1110,8 +1110,8 @@ run_parsed_command(const CommandInfo *c, GArray *a, GString *result) {
         while ((p = argv_idx(a, i++)))
             g_string_append_printf(param, " '%s'", p);
         send_event(COMMAND_EXECUTED, NULL,
-            TYPE_STR, c->key,
-            TYPE_STR, param->str,
+            TYPE_NAME, c->key,
+            TYPE_FORMATTEDSTR, param->str,
             NULL);
         g_string_free(param, TRUE);
     }
@@ -1153,7 +1153,9 @@ parse_command_parts(const gchar *line, GArray *a) {
     c = g_hash_table_lookup(uzbl.behave.commands, tokens[0]);
 
     if(!c) {
-        send_event(COMMAND_ERROR, exp_line, NULL);
+        send_event(COMMAND_ERROR, NULL,
+            TYPE_STR, exp_line,
+            NULL);
         g_free(exp_line);
         g_strfreev(tokens);
         return NULL;
@@ -1182,7 +1184,7 @@ parse_command(const char *cmd, const char *params, GString *result) {
         g_array_free (a, TRUE);
     } else {
         send_event(COMMAND_ERROR, NULL,
-            TYPE_STR, cmd,
+            TYPE_NAME, cmd,
             TYPE_STR, params ? params : "",
             NULL);
     }
@@ -1220,31 +1222,40 @@ set_var_value(const gchar *name, gchar *val) {
     char *endp = NULL;
     char *buf = NULL;
     char *invalid_chars = "\t^°!\"§$%&/()=?'`'+~*'#-:,;@<>| \\{}[]¹²³¼½";
-    GString *msg;
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         if(!c->writeable) return FALSE;
 
-        msg = g_string_new(name);
-
-        /* check for the variable type */
-        if (c->type == TYPE_STR) {
+        switch(c->type) {
+        case TYPE_STR:
             buf = g_strdup(val);
             g_free(*c->ptr.s);
             *c->ptr.s = buf;
-            g_string_append_printf(msg, " str %s", buf);
-
-        } else if(c->type == TYPE_INT) {
+            send_event (VARIABLE_SET, NULL,
+                TYPE_NAME, name,
+                TYPE_NAME, "str",
+                TYPE_STR, *c->ptr.s ? *c->ptr.s : " ",
+                NULL);
+            break;
+        case TYPE_INT:
             *c->ptr.i = (int)strtoul(val, &endp, 10);
-            g_string_append_printf(msg, " int %d", *c->ptr.i);
-
-        } else if (c->type == TYPE_FLOAT) {
+            send_event (VARIABLE_SET, NULL,
+                TYPE_NAME, name,
+                TYPE_NAME, "int",
+                TYPE_INT, *c->ptr.i,
+                NULL);
+            break;
+        case TYPE_FLOAT:
             *c->ptr.f = strtod(val, &endp);
-            g_string_append_printf(msg, " float %f", *c->ptr.f);
+            send_event (VARIABLE_SET, NULL,
+                TYPE_NAME, name,
+                TYPE_NAME, "float",
+                TYPE_FLOAT, *c->ptr.f,
+                NULL);
+            break;
+        default:
+            g_assert_not_reached();
         }
-
-        send_event(VARIABLE_SET, NULL, TYPE_STR, msg->str, NULL);
-        g_string_free(msg,TRUE);
 
         /* invoke a command specific function */
         if(c->func) c->func();
@@ -1268,10 +1279,11 @@ set_var_value(const gchar *name, gchar *val) {
         g_hash_table_insert(uzbl.comm.proto_var,
                 g_strdup(name), (gpointer) c);
 
-        msg = g_string_new(name);
-        g_string_append_printf(msg, " str %s", buf);
-        send_event(VARIABLE_SET, NULL, TYPE_STR, msg->str, NULL);
-        g_string_free(msg,TRUE);
+        send_event (VARIABLE_SET, NULL,
+            TYPE_NAME, name,
+            TYPE_NAME, "str",
+            TYPE_STR, buf,
+            NULL);
     }
     update_title();
     return TRUE;
@@ -1561,23 +1573,36 @@ void
 dump_var_hash_as_event(gpointer k, gpointer v, gpointer ud) {
     (void) ud;
     uzbl_cmdprop *c = v;
-    GString *msg;
 
     if(!c->dump)
         return;
 
     /* check for the variable type */
-    msg = g_string_new((char *)k);
-    if (c->type == TYPE_STR) {
-        g_string_append_printf(msg, " str %s", *c->ptr.s ? *c->ptr.s : " ");
-    } else if(c->type == TYPE_INT) {
-        g_string_append_printf(msg, " int %d", *c->ptr.i);
-    } else if (c->type == TYPE_FLOAT) {
-        g_string_append_printf(msg, " float %f", *c->ptr.f);
+    switch(c->type) {
+    case TYPE_STR:
+        send_event (VARIABLE_SET, NULL,
+            TYPE_NAME, (char*)k,
+            TYPE_NAME, "str",
+            TYPE_STR, *c->ptr.s ? *c->ptr.s : " ",
+            NULL);
+        break;
+    case TYPE_INT:
+        send_event (VARIABLE_SET, NULL,
+            TYPE_NAME, (char*)k,
+            TYPE_NAME, "int",
+            TYPE_INT, *c->ptr.i,
+            NULL);
+        break;
+    case TYPE_FLOAT:
+        send_event (VARIABLE_SET, NULL,
+            TYPE_NAME, (char*)k,
+            TYPE_NAME, "float",
+            TYPE_FLOAT, *c->ptr.f,
+            NULL);
+        break;
+    default:
+        g_assert_not_reached();
     }
-
-    send_event(VARIABLE_SET, NULL, TYPE_STR, msg->str, NULL);
-    g_string_free(msg, TRUE);
 }
 
 void
@@ -1784,7 +1809,7 @@ main (int argc, char* argv[]) {
 
     uzbl.info.pid_str = g_strdup_printf("%d", getpid());
     g_setenv("UZBL_PID", uzbl.info.pid_str, TRUE);
-    send_event(INSTANCE_START, NULL, TYPE_STR, uzbl.info.pid_str, NULL);
+    send_event(INSTANCE_START, NULL, TYPE_INT, getpid(), NULL);
 
     if (uzbl.state.plug_mode) {
         send_event(PLUG_CREATED, NULL, TYPE_INT, gtk_plug_get_id (uzbl.gui.plug), NULL);

@@ -5,6 +5,7 @@
 
 #include "uzbl-core.h"
 #include "events.h"
+#include "util.h"
 
 UzblCore uzbl;
 
@@ -140,6 +141,7 @@ send_event_stdout(GString *msg) {
 void
 vsend_event(int type, const gchar *custom_event, va_list vargs) {
     GString *event_message = g_string_sized_new (512);
+
     if (type >= LAST_EVENT)
         return;
     const gchar *event = custom_event ? custom_event : event_table[type];
@@ -149,16 +151,23 @@ vsend_event(int type, const gchar *custom_event, va_list vargs) {
         uzbl.state.instance_name, event);
 
     while ((next = va_arg (vargs, int)) != 0) {
+        g_string_append_c(event_message, ' ');
         switch(next) {
         case TYPE_INT:
-            g_string_append_printf (event_message, " %d", va_arg (vargs, int));
+            g_string_append_printf (event_message, "%d", va_arg (vargs, int));
             break;
         case TYPE_STR:
-            g_string_append_printf (event_message, " %s", va_arg (vargs, char*));
+            g_string_append_c (event_message, '\'');
+            append_escaped (event_message, va_arg (vargs, char*));
+            g_string_append_c (event_message, '\'');
+            break;
+        case TYPE_FORMATTEDSTR:
+        case TYPE_NAME:
+            g_string_append (event_message, va_arg (vargs, char*));
             break;
         case TYPE_FLOAT:
             // ‘float’ is promoted to ‘double’ when passed through ‘...’
-            g_string_append_printf (event_message, " %.2g", va_arg (vargs, double));
+            g_string_append_printf (event_message, "%.2f", va_arg (vargs, double));
             break;
         }
     }
@@ -202,12 +211,12 @@ key_to_event(guint keyval, gint mode) {
         ucs[ulen] = 0;
 
         send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
-                NULL, TYPE_STR, ucs, NULL);
+                NULL, TYPE_FORMATTEDSTR, ucs, NULL);
     }
     /* send keysym for non-printable chars */
     else {
         send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
-                NULL, TYPE_STR, gdk_keyval_name(keyval), NULL);
+                NULL, TYPE_NAME, gdk_keyval_name(keyval), NULL);
     }
 
 }
