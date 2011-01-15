@@ -7,9 +7,16 @@ import os, re
 # these are symbolic names for the components of the cookie tuple
 symbolic = {'domain': 0, 'path':1, 'name':2, 'value':3, 'scheme':4, 'expires':5}
 
-_splitquoted = re.compile("( |\\\".*?\\\"|'.*?')")
+_unquote = re.compile("'(.*?)'|\"(.*?)\"")
+def unquote(s):
+    m = _unquote.match(s)
+    if m is not None:
+        return unicode(m.group(1)).decode('string_escape')
+    return unicode(s).decode('string_escape')
+
+_splitquoted = re.compile("( |\"(?:\\\\.|[^\"])*?\"|'(?:\\\\.|[^'])*?')")
 def splitquoted(text):
-    return [str(p.strip('\'"')) for p in _splitquoted.split(text) if p.strip()]
+    return [unquote(p) for p in _splitquoted.split(text) if p.strip()]
 
 # allows for partial cookies
 # ? allow wildcard in key
