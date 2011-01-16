@@ -452,7 +452,7 @@ load_status_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
     WebKitLoadStatus status = webkit_web_view_get_load_status(web_view);
     switch(status) {
         case WEBKIT_LOAD_PROVISIONAL:
-            send_event(LOAD_START, NULL, TYPE_STR, uzbl.state.uri, NULL);
+            send_event(LOAD_START, NULL, TYPE_STR, uzbl.state.uri ? uzbl.state.uri : "", NULL);
             break;
         case WEBKIT_LOAD_COMMITTED:
             g_free (uzbl.state.uri);
@@ -480,7 +480,7 @@ selection_changed_cb(WebKitWebView *webkitwebview, gpointer ud) {
 
     webkit_web_view_copy_clipboard(webkitwebview);
     tmp = gtk_clipboard_wait_for_text(gtk_clipboard_get (GDK_SELECTION_CLIPBOARD));
-    send_event(SELECTION_CHANGED, NULL, TYPE_STR, tmp, NULL);
+    send_event(SELECTION_CHANGED, NULL, TYPE_STR, tmp ? tmp : "", NULL);
     g_free(tmp);
 }
 
