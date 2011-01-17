@@ -51,8 +51,12 @@ typedef struct {
     GtkPlug*       plug;
     GtkWidget*     scrolled_win;
     GtkWidget*     vbox;
+
+    /* Mainbar */
     GtkWidget*     mainbar;
-    GtkWidget*     mainbar_label;
+    GtkWidget*     mainbar_label_left;
+    GtkWidget*     mainbar_label_right;
+
     GtkScrollbar*  scbar_v;   // Horizontal and Vertical Scrollbar
     GtkScrollbar*  scbar_h;   // (These are still hidden)
     GtkAdjustment* bar_v; // Information about document length
@@ -111,6 +115,7 @@ typedef struct {
     SoupLogger *soup_logger;
     char *proxy_url;
     char *useragent;
+    char *accept_languages;
     gint max_conns;
     gint max_conns_host;
 } Network;
@@ -118,10 +123,15 @@ typedef struct {
 
 /* behaviour */
 typedef struct {
+    /* Status bar */
     gchar*   status_format;
+    gchar*   status_format_right;
+    gchar*   status_background;
+
+    /* Window title */
     gchar*   title_format_short;
     gchar*   title_format_long;
-    gchar*   status_background;
+
     gchar*   fifo_dir;
     gchar*   socket_dir;
     gchar*   authentication_handler;
@@ -259,8 +269,8 @@ void
 close_uzbl (WebKitWebView *page, GArray *argv, GString *result);
 
 gboolean
-run_command(const gchar *command, const guint npre,
-            const gchar **args, const gboolean sync, char **output_stdout);
+run_command(const gchar *command, const gchar **args, const gboolean sync,
+            char **output_stdout);
 
 void
 spawn_async(WebKitWebView *web_view, GArray *argv, GString *result);
@@ -395,6 +405,9 @@ dump_config_as_events();
 
 void
 retrieve_geometry();
+
+void
+set_webview_scroll_adjustments();
 
 void
 event(WebKitWebView *page, GArray *argv, GString *result);

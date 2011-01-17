@@ -30,12 +30,6 @@ fi
 
 UZBL="uzbl-browser -c $UZBL_CONFIG_FILE" # add custom flags and whatever here.
 
-if [ $# -gt 1 ]; then
-    # this script is being run from uzbl, rather than standalone
-    # discard the uzbl arguments
-    shift 7
-fi
-
 scriptfile=$(readlink -f $0)                            # this script
 act="$1"
 

@@ -83,6 +83,9 @@ void
 cmd_useragent() ;
 
 void
+set_accept_languages();
+
+void
 cmd_autoload_img();
 
 void

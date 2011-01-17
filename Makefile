@@ -1,31 +1,5 @@
 # first entries are for gnu make, 2nd for BSD make.  see http://lists.uzbl.org/pipermail/uzbl-dev-uzbl.org/2009-July/000177.html
 
-CFLAGS:=-std=c99 $(shell pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0 glib-2.0) -ggdb -Wall -W -DARCH="\"$(shell uname -m)\"" -lgthread-2.0 -DCOMMIT="\"$(shell ./misc/hash.sh)\"" $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
-CFLAGS!=echo -std=c99 `pkg-config --cflags gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0 glib-2.0` -ggdb -Wall -W -DARCH='"\""'`uname -m`'"\""' -lgthread-2.0 -DCOMMIT='"\""'`./misc/hash.sh`'"\""' $(CPPFLAGS) -fPIC -W -Wall -Wextra -pedantic
-
-UZBL_LDFLAGS:=$(shell pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0 x11) -pthread $(LDFLAGS)
-UZBL_LDFLAGS!=echo `pkg-config --libs gtk+-2.0 webkit-1.0 libsoup-2.4 gthread-2.0 x11` -pthread $(LDFLAGS)
-
-SRC = $(wildcard src/*.c)
-HEAD = $(wildcard src/*.h)
-OBJ = $(foreach obj, $(SRC:.c=.o), $(notdir $(obj)))
-
-all: uzbl-browser
-
-VPATH:=src
-
-.c.o:
-	@echo -e "${CC} -c ${CFLAGS} $<"
-	@${CC} -c ${CFLAGS} $<
-
-${OBJ}: ${HEAD}
-
-uzbl-core: ${OBJ}
-	@echo -e "\n${CC} -o $@ ${OBJ} ${UZBL_LDFLAGS}"
-	@${CC} -o $@ ${OBJ} ${UZBL_LDFLAGS}
-
-uzbl-browser: uzbl-core
-
 # packagers, set DESTDIR to your "package directory" and PREFIX to the prefix you want to have on the end-user system
 # end-users who build from source: don't care about DESTDIR, update PREFIX if you want to
 # RUN_PREFIX : what the prefix is when the software is run. usually the same as PREFIX
@@ -34,13 +8,60 @@ INSTALLDIR?=$(DESTDIR)$(PREFIX)
 DOCDIR?=$(INSTALLDIR)/share/uzbl/docs
 RUN_PREFIX?=$(PREFIX)
 
+# gtk2
+REQ_PKGS += gtk+-2.0 webkit-1.0
+CPPFLAGS =
+
+# gtk3
+#REQ_PKGS += gtk+-3.0 webkitgtk-3.0
+#CPPFLAGS = -DG_DISABLE_DEPRECATED -DGTK_DISABLE_DEPRECATED
+
+# --- configuration ends here ---
+
+REQ_PKGS += libsoup-2.4 gthread-2.0 glib-2.0
+
+ARCH:=$(shell uname -m)
+ARCH!=echo `uname -m`
+
+COMMIT_HASH:=$(shell ./misc/hash.sh)
+COMMIT_HASH!=echo `./misc/hash.sh`
+
+CPPFLAGS += -DARCH=\"$(ARCH)\" -DCOMMIT=\"$(COMMIT_HASH)\"
+
+PKG_CFLAGS:=$(shell pkg-config --cflags $(REQ_PKGS))
+PKG_CFLAGS!=echo pkg-config --cflags $(REQ_PKGS)
+
+LDLIBS:=$(shell pkg-config --libs $(REQ_PKGS) x11)
+LDLIBS!=echo pkg-config --libs $(REQ_PKGS) x11
+
+CFLAGS += -std=c99 $(PKG_CFLAGS) -ggdb -W -Wall -Wextra -pedantic -pthread
+
+SRC = $(wildcard src/*.c)
+HEAD = $(wildcard src/*.h)
+OBJ  = $(foreach obj, $(SRC:.c=.o),  $(notdir $(obj)))
+LOBJ = $(foreach obj, $(SRC:.c=.lo), $(notdir $(obj)))
+
+all: uzbl-browser
+
+VPATH:=src
+
+${OBJ}: ${HEAD}
+
+uzbl-core: ${OBJ}
+
+uzbl-browser: uzbl-core
+
 # the 'tests' target can never be up to date
 .PHONY: tests
 force:
 
+# this is here because the .so needs to be compiled with -fPIC on x86_64
+${LOBJ}: ${SRC} ${HEAD}
+	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -c src/$(@:.lo=.c) -o $@
+
 # When compiling unit tests, compile uzbl as a library first
-tests: ${OBJ} force
-	$(CC) -shared -Wl ${OBJ} -o ./tests/libuzbl-core.so
+tests: ${LOBJ} force
+	$(CC) -shared -Wl ${LOBJ} -o ./tests/libuzbl-core.so
 	cd ./tests/; $(MAKE)
 
 test-uzbl-core: uzbl-core
