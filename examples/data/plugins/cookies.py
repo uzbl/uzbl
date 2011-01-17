@@ -106,8 +106,11 @@ DefaultStore = TextStore(os.path.join(xdg_data_home, 'uzbl/cookies.txt'))
 SessionStore = TextStore(os.path.join(xdg_data_home, 'uzbl/session-cookies.txt'))
 
 def match_list(_list, cookie):
-    for component, match in _list:
-        if match(cookie[component]) is not None:
+    for matcher in _list:
+        for component, match in matcher:
+            if match(cookie[component]) is None:
+                break
+        else:
             return True
     return False
 
@@ -158,18 +161,21 @@ def delete_cookie(uzbl, cookie):
             store.delete_cookie(cookie, splitted)
 
 # add a cookie matcher to a whitelist or a blacklist.
-# a matcher is a (component, re) tuple that matches a cookie when the
+# a matcher is a list of (component, re) tuples that matches a cookie when the
 # "component" part of the cookie matches the regular expression "re".
 # "component" is one of the keys defined in the variable "symbolic" above,
 # or the index of a component of a cookie tuple.
 def add_cookie_matcher(_list, arg):
-    component, regexp = splitquoted(arg)
-    try:
-        component = symbolic[component]
-    except KeyError:
-        component = int(component)
-    assert component <= 5
-    _list.append((component, re.compile(regexp).search))
+    args = splitquoted(arg)
+    mlist = []
+    for (component, regexp) in zip(args[0::2], args[1::2]):
+        try:
+            component = symbolic[component]
+        except KeyError:
+            component = int(component)
+        assert component <= 5
+        mlist.append((component, re.compile(regexp).search))
+    _list.append(mlist)
 
 def blacklist(uzbl, arg):
     add_cookie_matcher(uzbl.cookie_blacklist, arg)
@@ -188,3 +194,5 @@ def init(uzbl):
         'cookie_blacklist' : [],
         'cookie_whitelist' : []
     })
+
+# vi: set et ts=4:

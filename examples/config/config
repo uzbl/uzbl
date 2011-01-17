@@ -129,7 +129,11 @@ set progress.pending    =
 set useragent         = Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}) (@(+uname -sm)@ [@ARCH_UZBL])
 
 # === Configure cookie blacklist ========================================================
-# Drop google analytics tracking cookies
+
+# Accept 'session cookies' from uzbl.org (when you have a whitelist all other cookies are dropped)
+#request WHITELIST_COOKIE domain 'uzbl.org$' expires '^$'
+
+# Drop google analytics tracking cookies (applied after whitelists if any)
 #request BLACKLIST_COOKIE name '^__utm.$'
 
 # === Key binding configuration ==============================================
