@@ -52,6 +52,7 @@ In alphabetical order:
     Jan Kolkmeier (jouz) - scrolling, link following
     Jason Woofenden (JasonWoof) - geometry=maximized, link following
     Jochen Sprickerhof - session.sh enhancements
+    k0ral - split status bar, cleanup and bugfix patches
     Lars-Dominik Braun (PromyLOPh) - added ability to enable/disable the webkit page cache
     Laurence Withers (lwithers) - talk_to_socket
     Luca Bruno <lucab@debian.org> - bashims fixes

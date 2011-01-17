@@ -309,6 +309,17 @@ cmd_useragent() {
 }
 
 void
+set_accept_languages() {
+    if (*uzbl.net.accept_languages == ' ') {
+        g_free (uzbl.net.accept_languages);
+        uzbl.net.accept_languages = NULL;
+    } else {
+        g_object_set(G_OBJECT(uzbl.net.soup_session),
+            SOUP_SESSION_ACCEPT_LANGUAGE, uzbl.net.accept_languages, NULL);
+    }
+}
+
+void
 cmd_javascript_windows() {
     g_object_set (G_OBJECT(view_settings()), "javascript-can-open-windows-automatically",
             uzbl.behave.javascript_windows, NULL);
@@ -814,16 +825,19 @@ download_cb(WebKitWebView *web_view, WebKitDownload *download, gpointer user_dat
     g_object_get(download, "suggested-filename", &suggested_filename, NULL);
 
     /* get the mimetype of the download */
-    const gchar *content_type;
+    const gchar *content_type = NULL;
     WebKitNetworkResponse *r  = webkit_download_get_network_response(download);
     /* downloads can be initiated from the context menu, in that case there is
        no network response yet and trying to get one would crash. */
     if(WEBKIT_IS_NETWORK_RESPONSE(r)) {
-        SoupMessage *m            = webkit_network_response_get_message(r);
-        SoupMessageHeaders *h;
+        SoupMessage        *m = webkit_network_response_get_message(r);
+        SoupMessageHeaders *h = NULL;
         g_object_get(m, "response-headers", &h, NULL);
-        content_type = soup_message_headers_get_one(h, "Content-Type");
-    } else
+        if(h) /* some versions of libsoup don't have "response-headers" here */
+            content_type = soup_message_headers_get_one(h, "Content-Type");
+    }
+
+    if(!content_type)
         content_type = "application/octet-stream";
 
     /* get the filesize of the download, as given by the server.

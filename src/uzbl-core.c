@@ -85,6 +85,7 @@ const struct var_name_to_ptr_t {
     { "show_status",            PTR_V_INT(uzbl.behave.show_status,              1,   cmd_set_status)},
     { "status_top",             PTR_V_INT(uzbl.behave.status_top,               1,   move_statusbar)},
     { "status_format",          PTR_V_STR(uzbl.behave.status_format,            1,   NULL)},
+    { "status_format_right",    PTR_V_STR(uzbl.behave.status_format_right,      1,   NULL)},
     { "status_background",      PTR_V_STR(uzbl.behave.status_background,        1,   set_status_background)},
     { "title_format_long",      PTR_V_STR(uzbl.behave.title_format_long,        1,   NULL)},
     { "title_format_short",     PTR_V_STR(uzbl.behave.title_format_short,       1,   NULL)},
@@ -102,6 +103,7 @@ const struct var_name_to_ptr_t {
     { "max_conns",              PTR_V_INT(uzbl.net.max_conns,                   1,   cmd_max_conns)},
     { "max_conns_host",         PTR_V_INT(uzbl.net.max_conns_host,              1,   cmd_max_conns_host)},
     { "useragent",              PTR_V_STR(uzbl.net.useragent,                   1,   cmd_useragent)},
+    { "accept_languages",       PTR_V_STR(uzbl.net.accept_languages,            1,   set_accept_languages)},
     { "javascript_windows",     PTR_V_INT(uzbl.behave.javascript_windows,       1,   cmd_javascript_windows)},
     /* requires webkit >=1.1.14 */
     { "view_source",            PTR_V_INT(uzbl.behave.view_source,              0,   cmd_view_source)},
@@ -977,52 +979,6 @@ load_uri (WebKitWebView *web_view, GArray *argv, GString *result) {
 }
 
 /* Javascript*/
-
-JSValueRef
-js_run_command (JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject,
-                size_t argumentCount, const JSValueRef arguments[],
-                JSValueRef* exception) {
-    (void) function;
-    (void) thisObject;
-    (void) exception;
-
-    JSStringRef js_result_string;
-    GString *result = g_string_new("");
-
-    if (argumentCount >= 1) {
-        JSStringRef arg = JSValueToStringCopy(ctx, arguments[0], NULL);
-        size_t arg_size = JSStringGetMaximumUTF8CStringSize(arg);
-        char ctl_line[arg_size];
-        JSStringGetUTF8CString(arg, ctl_line, arg_size);
-
-        parse_cmd_line(ctl_line, result);
-
-        JSStringRelease(arg);
-    }
-    js_result_string = JSStringCreateWithUTF8CString(result->str);
-
-    g_string_free(result, TRUE);
-
-    return JSValueMakeString(ctx, js_result_string);
-}
-
-JSStaticFunction js_static_functions[] = {
-    {"run", js_run_command, kJSPropertyAttributeNone},
-};
-
-void
-js_init() {
-    /* This function creates the class and its definition, only once */
-    if (!uzbl.js.initialized) {
-        /* it would be pretty cool to make this dynamic */
-        uzbl.js.classdef = kJSClassDefinitionEmpty;
-        uzbl.js.classdef.staticFunctions = js_static_functions;
-
-        uzbl.js.classref = JSClassCreate(&uzbl.js.classdef);
-    }
-}
-
-
 void
 eval_js(WebKitWebView * web_view, gchar *script, GString *result, const char *file) {
     WebKitWebFrame *frame;
@@ -1034,8 +990,6 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result, const char *fi
     JSValueRef js_exc = NULL;
     JSStringRef js_result_string;
     size_t js_result_size;
-
-    js_init();
 
     frame = webkit_web_view_get_main_frame(WEBKIT_WEB_VIEW(web_view));
     context = webkit_web_frame_get_global_context(frame);
@@ -1144,6 +1098,7 @@ search_text (WebKitWebView *page, GArray *argv, const gboolean forward) {
         if (g_strcmp0 (uzbl.state.searchtx, argv_idx(argv, 0)) != 0) {
             webkit_web_view_unmark_text_matches (page);
             webkit_web_view_mark_text_matches (page, argv_idx(argv, 0), FALSE, 0);
+            g_free (uzbl.state.searchtx);
             uzbl.state.searchtx = g_strdup(argv_idx(argv, 0));
         }
     }
@@ -1163,10 +1118,7 @@ search_clear(WebKitWebView *page, GArray *argv, GString *result) {
     (void) result;
 
     webkit_web_view_unmark_text_matches (page);
-    if(uzbl.state.searchtx) {
-        g_free(uzbl.state.searchtx);
-        uzbl.state.searchtx = NULL;
-    }
+    uzbl.state.searchtx = strfree (uzbl.state.searchtx);
 }
 
 void
@@ -1692,13 +1644,12 @@ gboolean
 remove_socket_from_array(GIOChannel *chan) {
     gboolean ret = 0;
 
-    /* TODO: Do wee need to manually free the IO channel or is this
-     *       happening implicitly on unref?
-     */
     ret = g_ptr_array_remove_fast(uzbl.comm.connect_chan, chan);
     if(!ret)
         ret = g_ptr_array_remove_fast(uzbl.comm.client_chan, chan);
 
+    if(ret)
+        g_io_channel_unref (chan);
     return ret;
 }
 
@@ -1770,14 +1721,23 @@ control_client_socket(GIOChannel *clientchan) {
 
     ret = g_io_channel_read_line(clientchan, &ctl_line, &len, NULL, &error);
     if (ret == G_IO_STATUS_ERROR) {
-        g_warning ("Error reading: %s\n", error->message);
-        remove_socket_from_array(clientchan);
-        g_io_channel_shutdown(clientchan, TRUE, &error);
+        g_warning ("Error reading: %s", error->message);
+        g_clear_error (&error);
+        ret = g_io_channel_shutdown (clientchan, TRUE, &error); 
+        remove_socket_from_array (clientchan);
+        if (ret == G_IO_STATUS_ERROR) {
+            g_warning ("Error closing: %s", error->message);
+            g_clear_error (&error);
+        }
         return FALSE;
     } else if (ret == G_IO_STATUS_EOF) {
-        remove_socket_from_array(clientchan);
         /* shutdown and remove channel watch from main loop */
-        g_io_channel_shutdown(clientchan, TRUE, &error);
+        ret = g_io_channel_shutdown (clientchan, TRUE, &error); 
+        remove_socket_from_array (clientchan);
+        if (ret == G_IO_STATUS_ERROR) {
+            g_warning ("Error closing: %s", error->message);
+            g_clear_error (&error);
+        }
         return FALSE;
     }
 
@@ -1788,11 +1748,14 @@ control_client_socket(GIOChannel *clientchan) {
                                         &len, &error);
         if (ret == G_IO_STATUS_ERROR) {
             g_warning ("Error writing: %s", error->message);
+            g_clear_error (&error);
         }
-        g_io_channel_flush(clientchan, &error);
+        if (g_io_channel_flush(clientchan, &error) == G_IO_STATUS_ERROR) {
+            g_warning ("Error flushing: %s", error->message);
+            g_clear_error (&error);
+        }
     }
 
-    if (error) g_error_free (error);
     g_string_free(result, TRUE);
     g_free(ctl_line);
     return TRUE;
@@ -1872,41 +1835,42 @@ init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL *
     return NULL;
 }
 
-/*
- NOTE: we want to keep variables like b->title_format_long in their "unprocessed" state
- it will probably improve performance if we would "cache" the processed variant, but for now it works well enough...
-*/
-// this function may be called very early when the templates are not set (yet), hence the checks
 void
 update_title (void) {
     Behaviour *b = &uzbl.behave;
-    gchar *parsed;
-    const gchar *current_title;
-    /* this check is here because if we're starting up or shutting down it might not be a window */
-    gboolean have_main_window = !uzbl.state.plug_mode && GTK_IS_WINDOW(uzbl.gui.main_window);
 
-    if(have_main_window)
-        current_title = gtk_window_get_title (GTK_WINDOW(uzbl.gui.main_window));
+    const gchar *title_format = b->title_format_long;
 
+    /* Update the status bar if shown */
     if (b->show_status) {
-        if (b->title_format_short && have_main_window) {
-            parsed = expand(b->title_format_short, 0);
-            if(!current_title || strcmp(current_title, parsed))
-                gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
+        title_format = b->title_format_short;
+
+        /* Left side */
+        if (b->status_format && GTK_IS_LABEL(uzbl.gui.mainbar_label_left)) {
+            gchar *parsed = expand(b->status_format, 0);
+            gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label_left), parsed);
             g_free(parsed);
         }
-        if (b->status_format && GTK_IS_LABEL(uzbl.gui.mainbar_label)) {
-            parsed = expand(b->status_format, 0);
-            gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label), parsed);
+
+        /* Right side */
+        if (b->status_format_right && GTK_IS_LABEL(uzbl.gui.mainbar_label_right)) {
+            gchar *parsed = expand(b->status_format_right, 0);
+            gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label_right), parsed);
             g_free(parsed);
         }
-    } else {
-        if (b->title_format_long && have_main_window) {
-            parsed = expand(b->title_format_long, 0);
-            if(!current_title || strcmp(current_title, parsed))
-                gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
-            g_free(parsed);
-        }
+    }
+
+    /* Update window title */
+    /* If we're starting up or shutting down there might not be a window yet. */
+    gboolean have_main_window = !uzbl.state.plug_mode && GTK_IS_WINDOW(uzbl.gui.main_window);
+    if (title_format && have_main_window) {
+        gchar *parsed = expand(title_format, 0);
+        const gchar *current_title = gtk_window_get_title (GTK_WINDOW(uzbl.gui.main_window));
+        /* xmonad hogs CPU if the window title updates too frequently, so we
+         * don't set it unless we need to. */
+        if(!current_title || strcmp(current_title, parsed))
+            gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
+        g_free(parsed);
     }
 }
 
@@ -1945,12 +1909,23 @@ create_mainbar () {
     GUI *g = &uzbl.gui;
 
     g->mainbar = gtk_hbox_new (FALSE, 0);
-    g->mainbar_label = gtk_label_new ("");
-    gtk_label_set_selectable((GtkLabel *)g->mainbar_label, TRUE);
-    gtk_label_set_ellipsize(GTK_LABEL(g->mainbar_label), PANGO_ELLIPSIZE_END);
-    gtk_misc_set_alignment (GTK_MISC(g->mainbar_label), 0, 0);
-    gtk_misc_set_padding (GTK_MISC(g->mainbar_label), 2, 2);
-    gtk_box_pack_start (GTK_BOX (g->mainbar), g->mainbar_label, TRUE, TRUE, 0);
+
+    /* Left panel */
+    g->mainbar_label_left = gtk_label_new ("");
+    gtk_label_set_selectable(GTK_LABEL(g->mainbar_label_left), TRUE);
+    gtk_misc_set_alignment (GTK_MISC(g->mainbar_label_left), 0, 0);
+    gtk_misc_set_padding (GTK_MISC(g->mainbar_label_left), 2, 2);
+
+    gtk_box_pack_start (GTK_BOX (g->mainbar), g->mainbar_label_left, FALSE, FALSE, 0);
+
+    /* Right panel */
+    g->mainbar_label_right = gtk_label_new ("");
+    gtk_label_set_selectable(GTK_LABEL(g->mainbar_label_right), TRUE);
+    gtk_misc_set_alignment (GTK_MISC(g->mainbar_label_right), 1, 0);
+    gtk_misc_set_padding (GTK_MISC(g->mainbar_label_right), 2, 2);
+    gtk_label_set_ellipsize(GTK_LABEL(g->mainbar_label_right), PANGO_ELLIPSIZE_START);
+
+    gtk_box_pack_start (GTK_BOX (g->mainbar), g->mainbar_label_right, TRUE, TRUE, 0);
 
     g_object_connect((GObject*)g->mainbar,
       "signal::key-press-event",                    (GCallback)key_press_cb,    NULL,
@@ -1967,6 +1942,13 @@ create_window () {
 
     gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
     gtk_widget_set_name (window, "Uzbl browser");
+
+    /* if the window has been made small, it shouldn't try to resize itself due
+     * to a long statusbar. */
+    GdkGeometry hints;
+    hints.min_height = -1;
+    hints.min_width  =  1;
+    gtk_window_set_geometry_hints (GTK_WINDOW (window), window, &hints, GDK_HINT_MIN_SIZE);
 
     g_signal_connect (G_OBJECT (window), "destroy",         G_CALLBACK (destroy_cb),         NULL);
     g_signal_connect (G_OBJECT (window), "configure-event", G_CALLBACK (configure_event_cb), NULL);
@@ -2261,7 +2243,7 @@ retrieve_geometry() {
 
 void
 set_webview_scroll_adjustments() {
-#ifdef GTK3
+#if GTK_CHECK_VERSION(2,91,0)
     gtk_scrollable_set_hadjustment (GTK_SCROLLABLE(uzbl.gui.web_view), uzbl.gui.bar_h);
     gtk_scrollable_set_vadjustment (GTK_SCROLLABLE(uzbl.gui.web_view), uzbl.gui.bar_v);
 #else

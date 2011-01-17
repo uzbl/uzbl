@@ -1,10 +1,10 @@
 # gtk2
-REQ_PKGS = gtk+-2.0 webkit-1.0
-CPPFLAGS = -DERRORCHECK_MUTEXES -I ../
+REQ_PKGS += gtk+-2.0 webkit-1.0
+CPPFLAGS = -I ../ -DERRORCHECK_MUTEXES
 
 # gtk3
-#REQ_PKGS = gtk+-3.0 webkitgtk-3.0
-#CPPFLAGS	= -DERRORCHECK_MUTEXES -DGTK3 -I ../
+#REQ_PKGS += gtk+-3.0 webkitgtk-3.0
+#CPPFLAGS = -I ../ -DERRORCHECK_MUTEXES -DG_DISABLE_DEPRECATED -DGTK_DISABLE_DEPRECATED
 
 # --- configuration ends here ---
 

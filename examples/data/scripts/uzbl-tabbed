@@ -452,7 +452,7 @@ class UzblInstance:
             type, args = args.split(" ", 1)
             if type == "TITLE_CHANGED":
                 self.title = args.strip()
-                self.title_changed()
+                self.title_changed(False)
             elif type == "VARIABLE_SET":
                 var, _, val = args.split(" ", 2)
 
@@ -485,6 +485,8 @@ class UzblInstance:
                 if var == "uri":
                     self.uri = val.strip()
                     self.parent.update_tablist()
+            elif type == "LOAD_COMMIT":
+                self.uri = args
             elif type == "NEW_TAB":
                 self.parent.new_tab(args)
             elif type == "NEW_BG_TAB":
