@@ -47,15 +47,20 @@ set_authentication_handler() {
 
 void
 set_status_background() {
-    GdkColor color;
-    gdk_color_parse (uzbl.behave.status_background, &color);
     /* labels and hboxes do not draw their own background. applying this
      * on the vbox/main_window is ok as the statusbar is the only affected
      * widget. (if not, we could also use GtkEventBox) */
-    if (uzbl.gui.main_window)
-        gtk_widget_modify_bg (uzbl.gui.main_window, GTK_STATE_NORMAL, &color);
-    else if (uzbl.gui.plug)
-        gtk_widget_modify_bg (GTK_WIDGET(uzbl.gui.plug), GTK_STATE_NORMAL, &color);
+    GtkWidget* widget = uzbl.gui.main_window ? uzbl.gui.main_window : GTK_WIDGET (uzbl.gui.plug);
+
+#if GTK_CHECK_VERSION(2,91,0)
+    GdkRGBA color;
+    gdk_rgba_parse (&color, uzbl.behave.status_background);
+    gtk_widget_override_background_color (widget, GTK_STATE_NORMAL, &color);
+#else
+    GdkColor color;
+    gdk_color_parse (uzbl.behave.status_background, &color);
+    gtk_widget_modify_bg (widget, GTK_STATE_NORMAL, &color);
+#endif
 }
 
 void
