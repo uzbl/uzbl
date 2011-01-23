@@ -2,17 +2,7 @@ from re import compile
 from types import BooleanType
 from UserDict import DictMixin
 
-_unquote = compile("'(.*?)'|\"(.*?)\"")
-def unquote(s):
-    m = _unquote.match(s)
-    if m is not None:
-        return unicode(m.group(1)).decode('string_escape')
-    return unicode(s).decode('string_escape')
-
-
 valid_key = compile('^[A-Za-z0-9_\.]+$').match
-types = {'int': int, 'float': float, 'str': unquote}
-escape = lambda s: unicode(s).replace('\n', '\\n')
 
 class Config(DictMixin):
     def __init__(self, uzbl):
@@ -57,7 +47,7 @@ class Config(DictMixin):
             value = int(value)
 
         else:
-            value = escape(value)
+            value = value.encode('unicode_escape')
 
         if not force and key in self and self[key] == value:
             return
@@ -90,6 +80,8 @@ def parse_set_event(uzbl, args):
 
 # plugin init hook
 def init(uzbl):
+    global types
+    types = {'int': int, 'float': float, 'str': unquote}
     export(uzbl, 'config', Config(uzbl))
     connect(uzbl, 'VARIABLE_SET', parse_set_event)
 

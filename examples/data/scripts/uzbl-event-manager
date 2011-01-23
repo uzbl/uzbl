@@ -34,6 +34,7 @@ import socket
 import sys
 import time
 import weakref
+import re
 from collections import defaultdict
 from functools import partial
 from glob import glob
@@ -169,13 +170,16 @@ class EventHandler(object):
         self.callback(uzbl, *args, **kwargs)
 
 
+
+
+
 class Plugin(object):
     '''Plugin module wrapper object.'''
 
     # Special functions exported from the Plugin instance to the
     # plugin namespace.
     special_functions = ['require', 'export', 'export_dict', 'connect',
-            'connect_dict', 'logger']
+            'connect_dict', 'logger', 'unquote', 'splitquoted']
 
 
     def __init__(self, parent, name, path, plugin):
@@ -290,6 +294,20 @@ class Plugin(object):
 
         assert plugin in self.parent.plugins, self.logger.critical(
             'plugin %r required by plugin %r' (plugin, self.name))
+
+    @classmethod
+    def unquote(cls, s):
+        '''Removes quotation marks around strings if any and interprets
+        \\-escape sequences using `unicode_escape`'''
+        if s and s[0] == s[-1] and s[0] in ['"', "'"]:
+            s = s[1:-1]
+        return unicode(s).decode('unicode_escape')
+
+    _splitquoted = re.compile("( |\"(?:\\\\.|[^\"])*?\"|'(?:\\\\.|[^'])*?')")
+    @classmethod
+    def splitquoted(cls, text):
+        '''Splits string on whitespace while respecting quotations'''
+        return [cls.unquote(p) for p in cls._splitquoted.split(text) if p.strip()]
 
 
 class Uzbl(object):

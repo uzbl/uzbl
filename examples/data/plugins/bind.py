@@ -164,15 +164,6 @@ def split_glob(glob):
     return (mods, glob)
 
 
-def unquote(str):
-    '''Remove quotation marks around string.'''
-
-    if str and str[0] == str[-1] and str[0] in ['"', "'"]:
-        str = str[1:-1]
-
-    return str
-
-
 class Bind(object):
 
     # Class attribute to hold the number of Bind classes created.
