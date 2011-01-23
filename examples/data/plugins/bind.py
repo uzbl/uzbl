@@ -379,7 +379,6 @@ def mode_changed(uzbl, mode):
 
     if mode != 'stack':
         uzbl.bindlet.reset()
-        uzbl.clear_keycmd()
 
 
 def match_and_exec(uzbl, bind, depth, keylet, bindlet):
@@ -470,3 +469,5 @@ def init(uzbl):
         'mode_bind':    mode_bind,
         'bindlet':      Bindlet(uzbl),
     })
+
+# vi: set et ts=4:

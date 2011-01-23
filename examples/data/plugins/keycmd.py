@@ -210,7 +210,7 @@ def modkey_addition_parse(uzbl, modkeys):
     add_modkey_addition(uzbl, keys[:-1], keys[-1])
 
 
-def clear_keycmd(uzbl):
+def clear_keycmd(uzbl, *args):
     '''Clear the keycmd for this uzbl instance.'''
 
     k = uzbl.keylet
@@ -493,6 +493,7 @@ def init(uzbl):
         'KEYCMD_DELETE':        keycmd_delete,
         'KEYCMD_EXEC_CURRENT':  keycmd_exec_current,
         'KEYCMD_STRIP_WORD':    keycmd_strip_word,
+        'KEYCMD_CLEAR':         clear_keycmd,
         'KEY_PRESS':            key_press,
         'KEY_RELEASE':          key_release,
         'MODKEY_ADDITION':      modkey_addition_parse,
@@ -514,3 +515,5 @@ def init(uzbl):
         'set_cursor_pos':       set_cursor_pos,
         'set_keycmd':           set_keycmd,
     })
+
+# vi: set et ts=4:

@@ -107,6 +107,7 @@ def history_next(uzbl, _x):
 
 def history_search(uzbl, key):
     uzbl.history.search(key)
+    uzbl.send('event HISTORY_PREV')
     uzbl.logger.debug('SEARCH %s %s' % (key, uzbl.history))
 
 end_messages = ('Look behind you, A three-headed monkey!', 'error #4: static from nylon underwear.', 'error #5: static from plastic slide rules.', 'error #6: global warming.', 'error #9: doppler effect.', 'error #16: somebody was calculating pi on the server.', 'error #19: floating point processor overflow.', 'error #21: POSIX compliance problem.', 'error #25: Decreasing electron flux.', 'error #26: first Saturday after first full moon in Winter.', 'error #64: CPU needs recalibration.', 'error #116: the real ttys became pseudo ttys and vice-versa.', 'error #229: wrong polarity of neutron flow.', 'error #330: quantum decoherence.', 'error #388: Bad user karma.', 'error #407: Route flapping at the NAP.', 'error #435: Internet shut down due to maintenance.')
@@ -127,3 +128,5 @@ def init(uzbl):
 # plugin after hook
 def after(uzbl):
     uzbl.on_set('keycmd_prompt', lambda uzbl, k, v: uzbl.history.change_prompt(v))
+
+# vi: set et ts=4:
