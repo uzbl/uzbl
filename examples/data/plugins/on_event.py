@@ -24,6 +24,10 @@ def event_handler(uzbl, *args, **kargs):
     '''This function handles all the events being watched by various
     on_event definitions and responds accordingly.'''
 
+    # Could be connected to a EM internal event that can use anything as args
+    if len(args) == 1 and isinstance(args[0], basestring):
+        args = splitquoted(args[0])
+
     events = uzbl.on_events
     event = kargs['on_event']
     if event not in events:
@@ -80,3 +84,5 @@ def cleanup(uzbl):
         del handlers[:]
 
     uzbl.on_events.clear()
+
+# vi: set et ts=4:
