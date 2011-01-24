@@ -145,6 +145,7 @@ vsend_event(int type, const gchar *custom_event, va_list vargs) {
     if (type >= LAST_EVENT)
         return;
     const gchar *event = custom_event ? custom_event : event_table[type];
+    char* str;
 
     int next;
     g_string_printf (event_message, "EVENT [%s] %s",
@@ -162,8 +163,12 @@ vsend_event(int type, const gchar *custom_event, va_list vargs) {
             g_string_append_c (event_message, '\'');
             break;
         case TYPE_FORMATTEDSTR:
-        case TYPE_NAME:
             g_string_append (event_message, va_arg (vargs, char*));
+            break;
+        case TYPE_NAME:
+            str = va_arg (vargs, char*);
+            g_assert (valid_name (str));
+            g_string_append (event_message, str);
             break;
         case TYPE_FLOAT:
             // ‘float’ is promoted to ‘double’ when passed through ‘...’

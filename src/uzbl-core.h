@@ -317,6 +317,7 @@ void        handle_authentication (SoupSession *session,
 void        handle_cookies (SoupSession *session,
                             SoupMessage *msg,
                             gpointer     user_data);
+gboolean    valid_name(const gchar* name);
 void        set_var(WebKitWebView *page, GArray *argv, GString *result);
 void        act_dump_config();
 void        act_dump_config_as_events();
