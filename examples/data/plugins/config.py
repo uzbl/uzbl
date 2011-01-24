@@ -47,7 +47,8 @@ class Config(DictMixin):
             value = int(value)
 
         else:
-            value = value.encode('unicode_escape')
+            value = unicode(value)
+            assert '\n' not in value
 
         if not force and key in self and self[key] == value:
             return
