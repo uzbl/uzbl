@@ -108,3 +108,6 @@ for_each_line_in_file(const gchar *path, void (*callback)(const gchar *l, void *
 
     return FALSE;
 }
+
+
+

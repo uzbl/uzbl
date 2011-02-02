@@ -8,11 +8,12 @@
 #include "events.h"
 #include "util.h"
 
+
 void
 set_proxy_url() {
     SoupURI *suri;
 
-    if(uzbl.net.proxy_url == NULL || *uzbl.net.proxy_url == ' ') {
+    if (uzbl.net.proxy_url == NULL || *uzbl.net.proxy_url == ' ') {
         soup_session_remove_feature_by_type(uzbl.net.soup_session,
                 (GType) SOUP_SESSION_PROXY_URI);
     }
@@ -23,8 +24,10 @@ set_proxy_url() {
                 suri, NULL);
         soup_uri_free(suri);
     }
+
     return;
 }
+
 
 void
 set_authentication_handler() {
@@ -45,10 +48,12 @@ set_authentication_handler() {
     return;
 }
 
+
 void
 set_status_background() {
     GdkColor color;
     gdk_color_parse (uzbl.behave.status_background, &color);
+
     /* labels and hboxes do not draw their own background. applying this
      * on the vbox/main_window is ok as the statusbar is the only affected
      * widget. (if not, we could also use GtkEventBox) */
@@ -57,6 +62,7 @@ set_status_background() {
     else if (uzbl.gui.plug)
         gtk_widget_modify_bg (GTK_WIDGET(uzbl.gui.plug), GTK_STATE_NORMAL, &color);
 }
+
 
 void
 set_icon() {
