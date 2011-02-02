@@ -602,25 +602,6 @@ This script tries to authenticate as user alice with password wonderland once
 and never retries authentication.
 See examples for more sofisticated, interactive authentication handler.
 
-### JAVASCRIPT HELPER OBJECT DISABLED BECAUSE OF SECURITY LEAK
-
-JavaScript code run from `uzbl` is given a special object in the global
-namespace which gives special privileges to these scripts. This object is called
-`Uzbl`, and it is added and removed before and after the script execution so
-that it is hidden to web JavaScript code (there is no race condition, since all
-the JavaScript code runs in a single thread).
-
-Currently, the `Uzbl` object provides only one function:
-
-* `Uzbl.run( <command> )`
-  - Command is any `uzbl` command as defined above.
-  - Return value: a string, either empty or containing the output of the
-    command. Very few commands return their output currently, including `js`,
-    `script`, and `print`.
-  - Examples:
-    * `Uzbl.run("spawn insert_bookmark.sh")`
-    * `uri = Uzbl.run("print @uri")` (see variable expansion below)
-
 ### EVENTS
 
 Unlike commands, events are not handled in `uzbl` itself, but are propagated

@@ -979,52 +979,6 @@ load_uri (WebKitWebView *web_view, GArray *argv, GString *result) {
 }
 
 /* Javascript*/
-
-JSValueRef
-js_run_command (JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject,
-                size_t argumentCount, const JSValueRef arguments[],
-                JSValueRef* exception) {
-    (void) function;
-    (void) thisObject;
-    (void) exception;
-
-    JSStringRef js_result_string;
-    GString *result = g_string_new("");
-
-    if (argumentCount >= 1) {
-        JSStringRef arg = JSValueToStringCopy(ctx, arguments[0], NULL);
-        size_t arg_size = JSStringGetMaximumUTF8CStringSize(arg);
-        char ctl_line[arg_size];
-        JSStringGetUTF8CString(arg, ctl_line, arg_size);
-
-        parse_cmd_line(ctl_line, result);
-
-        JSStringRelease(arg);
-    }
-    js_result_string = JSStringCreateWithUTF8CString(result->str);
-
-    g_string_free(result, TRUE);
-
-    return JSValueMakeString(ctx, js_result_string);
-}
-
-JSStaticFunction js_static_functions[] = {
-    {"run", js_run_command, kJSPropertyAttributeNone},
-};
-
-void
-js_init() {
-    /* This function creates the class and its definition, only once */
-    if (!uzbl.js.initialized) {
-        /* it would be pretty cool to make this dynamic */
-        uzbl.js.classdef = kJSClassDefinitionEmpty;
-        uzbl.js.classdef.staticFunctions = js_static_functions;
-
-        uzbl.js.classref = JSClassCreate(&uzbl.js.classdef);
-    }
-}
-
-
 void
 eval_js(WebKitWebView * web_view, gchar *script, GString *result, const char *file) {
     WebKitWebFrame *frame;
@@ -1036,8 +990,6 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result, const char *fi
     JSValueRef js_exc = NULL;
     JSStringRef js_result_string;
     size_t js_result_size;
-
-    js_init();
 
     frame = webkit_web_view_get_main_frame(WEBKIT_WEB_VIEW(web_view));
     context = webkit_web_frame_get_global_context(frame);
@@ -1990,6 +1942,13 @@ create_window () {
 
     gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
     gtk_widget_set_name (window, "Uzbl browser");
+
+    /* if the window has been made small, it shouldn't try to resize itself due
+     * to a long statusbar. */
+    GdkGeometry hints;
+    hints.min_height = -1;
+    hints.min_width  =  1;
+    gtk_window_set_geometry_hints (GTK_WINDOW (window), window, &hints, GDK_HINT_MIN_SIZE);
 
     g_signal_connect (G_OBJECT (window), "destroy",         G_CALLBACK (destroy_cb),         NULL);
     g_signal_connect (G_OBJECT (window), "configure-event", G_CALLBACK (configure_event_cb), NULL);
