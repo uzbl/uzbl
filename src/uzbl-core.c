@@ -186,20 +186,20 @@ return EXP_ERR;
  * recurse == 1: don't expand '@(command)@'
  * recurse == 2: don't expand '@<java script>@'
 */
-gchar *
-expand(const char *s, guint recurse) {
-    uzbl_cmdprop *c;
+gchar*
+expand(const char* s, guint recurse) {
+    uzbl_cmdprop* c;
     enum exp_type etype;
-    char *end_simple_var = "\t^°!\"§$%&/()=?'`'+~*'#-:,;@<>| \\{}[]¹²³¼½";
-    char *ret = NULL;
-    char *vend = NULL;
-    GError *err = NULL;
-    gchar *cmd_stdout = NULL;
-    gchar *mycmd = NULL;
-    GString *buf = g_string_new("");
-    GString *js_ret = g_string_new("");
+    char*         end_simple_var = "\t^°!\"§$%&/()=?'`'+~*'#-:,;@<>| \\{}[]¹²³¼½";
+    char*         ret = NULL;
+    char*         vend = NULL;
+    GError*       err = NULL;
+    gchar*        cmd_stdout = NULL;
+    gchar*        mycmd = NULL;
+    GString*      buf = g_string_new("");
+    GString*      js_ret = g_string_new("");
 
-    while(s && *s) {
+    while (s && *s) {
         switch(*s) {
             case '\\':
                 g_string_append_c(buf, *++s);
@@ -630,11 +630,12 @@ commands_hash(void) {
         g_hash_table_insert(uzbl.behave.commands, (gpointer) cmdlist[i].key, &cmdlist[i].value);
 }
 
+
 void
 builtins() {
-    unsigned int i,
-             len = LENGTH(cmdlist);
-    GString *command_list = g_string_new("");
+    unsigned int i;
+    unsigned int len = LENGTH(cmdlist);
+    GString*     command_list = g_string_new("");
 
     for (i = 0; i < len; i++) {
         g_string_append(command_list, cmdlist[i].key);
@@ -1335,37 +1336,37 @@ parse_command(const char *cmd, const char *param, GString *result) {
     GString *tmp = g_string_new("");
 
     if ((c = g_hash_table_lookup(uzbl.behave.commands, cmd))) {
-            guint i;
-            gchar **par = split_quoted(param, TRUE);
-            GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+        guint i;
+        gchar **par = split_quoted(param, TRUE);
+        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
 
-            if (c->no_split) { /* don't split */
-                sharg_append(a, param);
-            } else if (par) {
-                for (i = 0; i < g_strv_length(par); i++)
-                    sharg_append(a, par[i]);
-            }
+        if (c->no_split) { /* don't split */
+            sharg_append(a, param);
+        } else if (par) {
+            for (i = 0; i < g_strv_length(par); i++)
+                sharg_append(a, par[i]);
+        }
 
-            if (result == NULL) {
-                GString *result_print = g_string_new("");
+        if (result == NULL) {
+            GString *result_print = g_string_new("");
 
-                c->function(uzbl.gui.web_view, a, result_print);
-                if (result_print->len)
-                    printf("%*s\n", (int)result_print->len, result_print->str);
+            c->function(uzbl.gui.web_view, a, result_print);
+            if (result_print->len)
+                printf("%*s\n", (int)result_print->len, result_print->str);
 
-                g_string_free(result_print, TRUE);
-            } else {
-                c->function(uzbl.gui.web_view, a, result);
-            }
-            g_strfreev (par);
-            g_array_free (a, TRUE);
+            g_string_free(result_print, TRUE);
+        } else {
+            c->function(uzbl.gui.web_view, a, result);
+        }
+        g_strfreev (par);
+        g_array_free (a, TRUE);
 
-            if(strcmp("set", cmd)     &&
-               strcmp("event", cmd)   &&
-               strcmp("request", cmd)) {
-                g_string_printf(tmp, "%s %s", cmd, param?param:"");
-                send_event(COMMAND_EXECUTED, tmp->str, NULL);
-            }
+        if(strcmp("set", cmd)     &&
+                strcmp("event", cmd)   &&
+                strcmp("request", cmd)) {
+            g_string_printf(tmp, "%s %s", cmd, param?param:"");
+            send_event(COMMAND_EXECUTED, tmp->str, NULL);
+        }
     }
     else {
 		g_string_printf (tmp, "%s %s", cmd, param?param:"");
@@ -1464,15 +1465,15 @@ set_var_value(const gchar *name, gchar *val) {
 }
 
 void
-parse_cmd_line(const char *ctl_line, GString *result) {
-    size_t len=0;
-    gchar *ctlstrip = NULL;
-    gchar *exp_line = NULL;
-    gchar *work_string = NULL;
+parse_cmd_line(const char* ctl_line, GString* result) {
+    size_t len = 0;
+    gchar* ctlstrip    = NULL;
+    gchar* exp_line    = NULL;
+    gchar* work_string = NULL;
 
     work_string = g_strdup(ctl_line);
 
-    /* strip trailing newline */
+    /* Strip trailing newline */
     len = strlen(ctl_line);
     if (work_string[len - 1] == '\n')
         ctlstrip = g_strndup(work_string, len - 1);
@@ -1833,8 +1834,9 @@ init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL *
     return NULL;
 }
 
+
 void
-update_title (void) {
+update_title(void) {
     Behaviour *b = &uzbl.behave;
 
     const gchar *title_format = b->title_format_long;
@@ -1949,11 +1951,12 @@ create_mainbar() {
 
 
 GtkWidget*
-create_window () {
+create_window() {
     GtkWidget* window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 
     gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
     gtk_widget_set_name (window, "Uzbl browser");
+    gtk_window_set_title(GTK_WINDOW(window), "Uzbl browser");
 
     /* if the window has been made small, it shouldn't try to resize itself due
      * to a long statusbar. */
@@ -1968,8 +1971,9 @@ create_window () {
     return window;
 }
 
+
 GtkPlug*
-create_plug () {
+create_plug() {
     GtkPlug* plug = GTK_PLUG (gtk_plug_new (uzbl.state.socket_id));
     g_signal_connect (G_OBJECT (plug), "destroy", G_CALLBACK (destroy_cb), NULL);
     g_signal_connect (G_OBJECT (plug), "key-press-event", G_CALLBACK (key_press_cb), NULL);
@@ -2100,10 +2104,11 @@ run_handler (const gchar *act, const gchar *args) {
 
 void
 settings_init () {
-    State *s = &uzbl.state;
-    Network *n = &uzbl.net;
-
-    int i;
+    State*   s = &uzbl.state;
+    Network* n = &uzbl.net;
+    int      i;
+    
+    /* Load default config */
     for (i = 0; default_config[i].command != NULL; i++) {
         parse_cmd_line(default_config[i].command, NULL);
     }
@@ -2114,11 +2119,12 @@ settings_init () {
     }
 
     else if (!s->config_file) {
-        s->config_file = find_xdg_file (0, "/uzbl/config");
+        s->config_file = find_xdg_file(0, "/uzbl/config");
     }
 
+    /* Load config file, if any */
     if (s->config_file) {
-        if(!for_each_line_in_file(s->config_file, parse_cmd_line_cb, NULL)) {
+        if (!for_each_line_in_file(s->config_file, parse_cmd_line_cb, NULL)) {
             gchar *tmp = g_strdup_printf("File %s can not be read.", s->config_file);
             send_event(COMMAND_ERROR, tmp, NULL);
             g_free(tmp);
@@ -2127,17 +2133,17 @@ settings_init () {
     } else if (uzbl.state.verbose)
         printf ("No configuration file loaded.\n");
 
-    if(s->connect_socket_names)
+    if (s->connect_socket_names)
         init_connect_socket();
 
     g_signal_connect(n->soup_session, "authenticate", G_CALLBACK(handle_authentication), NULL);
 }
 
-void handle_authentication (SoupSession *session, SoupMessage *msg, SoupAuth *auth, gboolean retrying, gpointer user_data) {
 
+void handle_authentication (SoupSession *session, SoupMessage *msg, SoupAuth *auth, gboolean retrying, gpointer user_data) {
     (void) user_data;
 
-    if(uzbl.behave.authentication_handler && *uzbl.behave.authentication_handler != 0) {
+    if (uzbl.behave.authentication_handler && *uzbl.behave.authentication_handler != 0) {
         gchar *info, *host, *realm;
         gchar *p;
 
@@ -2279,8 +2285,6 @@ set_webview_scroll_adjustments() {
  * external applications need to do anyhow */
 void
 initialize(int argc, char** argv) {
-    int i;
-
     /* Parse commandline arguments */
     GOptionContext* context = g_option_context_new ("[ uri ] - load a uri by default");
     g_option_context_add_main_entries (context, entries, NULL);
@@ -2295,14 +2299,10 @@ initialize(int argc, char** argv) {
     }
 
     /* Embedded mode */
-    for (i=0; i<argc; ++i) {
-        if (!strcmp(argv[i], "-s") || !strcmp(argv[i], "--socket")) {
-            uzbl.state.plug_mode = TRUE;
-            break;
-        }
-    }
+    if (uzbl.state.socket_id)
+        uzbl.state.plug_mode = TRUE;
 
-    if (!g_thread_supported ())
+    if (!g_thread_supported())
         g_thread_init (NULL);
 
 
@@ -2395,9 +2395,9 @@ int
 main (int argc, char* argv[]) {
     initialize(argc, argv);
 
-
+    /* Embedded mode */
     if (uzbl.state.plug_mode) {
-        uzbl.gui.plug = create_plug ();
+        uzbl.gui.plug = create_plug();
         gtk_container_add (GTK_CONTAINER (uzbl.gui.plug), uzbl.gui.vbox);
         gtk_widget_show_all (GTK_WIDGET (uzbl.gui.plug));
         /* in xembed mode the window has no unique id and thus
@@ -2408,13 +2408,20 @@ main (int argc, char* argv[]) {
         gettimeofday(&tv, NULL);
         srand((unsigned int)tv.tv_sec*tv.tv_usec);
         uzbl.xwin = rand();
-    } else {
-        uzbl.gui.main_window = create_window ();
+    }
+    
+    /* Windowed mode */
+    else {
+        uzbl.gui.main_window = create_window();
         gtk_container_add (GTK_CONTAINER (uzbl.gui.main_window), uzbl.gui.vbox);
         gtk_widget_show_all (uzbl.gui.main_window);
+
         uzbl.xwin = GDK_WINDOW_XID (gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)));
+
+        gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
     }
 
+    /* Scrolling */
     uzbl.gui.scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);
     uzbl.gui.bar_v = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_v);
     uzbl.gui.scbar_h = (GtkScrollbar*) gtk_hscrollbar_new (NULL);
@@ -2434,18 +2441,51 @@ main (int argc, char* argv[]) {
     g_setenv("UZBL_PID", uzbl.info.pid_str, TRUE);
     send_event(INSTANCE_START, uzbl.info.pid_str, NULL);
 
-    if(uzbl.state.plug_mode) {
+    if (uzbl.state.plug_mode) {
         char *t = itos(gtk_plug_get_id(uzbl.gui.plug));
         send_event(PLUG_CREATED, t, NULL);
         g_free(t);
     }
 
-    /* generate an event with a list of built in commands */
+    /* Generate an event with a list of built in commands */
     builtins();
 
-    if (!uzbl.state.plug_mode)
-        gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
+    /* Check uzbl is in window mode before getting/setting geometry */
+    if (uzbl.gui.main_window) {
+        if (uzbl.gui.geometry)
+            cmd_set_geometry();
+        else
+            retrieve_geometry();
+    }
 
+    gchar *uri_override = (uzbl.state.uri ? g_strdup(uzbl.state.uri) : NULL);
+    if (argc > 1 && !uzbl.state.uri)
+        uri_override = g_strdup(argv[1]);
+
+    gboolean verbose_override = uzbl.state.verbose;
+
+    /* Read configuration file */
+    settings_init();
+
+    /* Update status bar */
+    if (!uzbl.behave.show_status)
+        gtk_widget_hide(uzbl.gui.mainbar);
+    else
+        update_title();
+
+    /* WebInspector */
+    set_up_inspector();
+
+    /* Options overriding */
+    if (verbose_override > uzbl.state.verbose)
+        uzbl.state.verbose = verbose_override;
+
+    if (uri_override) {
+        set_var_value("uri", uri_override);
+        g_free(uri_override);
+    }
+
+    /* Verbose feedback */
     if (uzbl.state.verbose) {
         printf("Uzbl start location: %s\n", argv[0]);
         if (uzbl.state.socket_id)
@@ -2457,38 +2497,10 @@ main (int argc, char* argv[]) {
         printf("commit: %s\n", uzbl.info.commit);
     }
 
-    /* Check uzbl is in window mode before getting/setting geometry */
-    if (uzbl.gui.main_window) {
-        if(uzbl.gui.geometry)
-            cmd_set_geometry();
-        else
-            retrieve_geometry();
-    }
 
-    gchar *uri_override = (uzbl.state.uri ? g_strdup(uzbl.state.uri) : NULL);
-    if (argc > 1 && !uzbl.state.uri)
-        uri_override = g_strdup(argv[1]);
-    gboolean verbose_override = uzbl.state.verbose;
+    gtk_main();
 
-    settings_init ();
-
-    if (!uzbl.behave.show_status)
-        gtk_widget_hide(uzbl.gui.mainbar);
-    else
-        update_title();
-
-    /* WebInspector */
-    set_up_inspector();
-
-    if (verbose_override > uzbl.state.verbose)
-        uzbl.state.verbose = verbose_override;
-
-    if (uri_override) {
-        set_var_value("uri", uri_override);
-        g_free(uri_override);
-    }
-
-    gtk_main ();
+    /* Cleanup and exit*/
     clean_up();
 
     return EXIT_SUCCESS;
