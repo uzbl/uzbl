@@ -76,7 +76,7 @@ typedef struct {
     WebKitWebInspector* inspector;
 
     /* Custom context menu item */
-    GPtrArray    *menu_items;
+    GPtrArray*     menu_items;
 } GUI;
 
 
@@ -304,7 +304,7 @@ gboolean    key_release_cb(GtkWidget* window, GdkEventKey* event);
 
 /* Initialization functions */
 void        initialize(int argc, char *argv[]);
-void        create_browser();
+void        create_scrolled_win();
 GtkWidget*  create_mainbar();
 GtkWidget*  create_window();
 GtkPlug*    create_plug();

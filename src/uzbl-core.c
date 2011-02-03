@@ -40,8 +40,7 @@ UzblCore uzbl;
 
 /* commandline arguments (set initial values for the state variables) */
 const
-GOptionEntry entries[] =
-{
+GOptionEntry entries[] = {
     { "uri",      'u', 0, G_OPTION_ARG_STRING, &uzbl.state.uri,
         "Uri to load at startup (equivalent to 'uzbl <uri>' or 'set uri = URI' after uzbl has launched)", "URI" },
     { "verbose",  'v', 0, G_OPTION_ARG_NONE,   &uzbl.state.verbose,
@@ -623,8 +622,7 @@ struct {const char *key; CommandInfo value;} cmdlist[] =
 };
 
 void
-commands_hash(void)
-{
+commands_hash(void) {
     unsigned int i;
     uzbl.behave.commands = g_hash_table_new(g_str_hash, g_str_equal);
 
@@ -1874,11 +1872,24 @@ update_title (void) {
     }
 }
 
-void
-create_browser () {
-    GUI *g = &uzbl.gui;
 
-    g->web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
+void
+create_scrolled_win() {
+    GUI* g = &uzbl.gui;
+
+    g->web_view     = WEBKIT_WEB_VIEW(webkit_web_view_new());
+    g->scrolled_win = gtk_scrolled_window_new(NULL, NULL);
+
+    gtk_scrolled_window_set_policy(
+        GTK_SCROLLED_WINDOW(g->scrolled_win),
+        GTK_POLICY_NEVER,
+        GTK_POLICY_NEVER
+    );
+
+    gtk_container_add(
+        GTK_CONTAINER(g->scrolled_win),
+        GTK_WIDGET(g->web_view)
+    );
 
     g_object_connect((GObject*)g->web_view,
       "signal::key-press-event",                      (GCallback)key_press_cb,            NULL,
@@ -1904,8 +1915,9 @@ create_browser () {
       NULL);
 }
 
+
 GtkWidget*
-create_mainbar () {
+create_mainbar() {
     GUI *g = &uzbl.gui;
 
     g->mainbar = gtk_hbox_new (FALSE, 0);
@@ -2262,14 +2274,29 @@ set_webview_scroll_adjustments() {
       NULL);
 }
 
-/* set up gtk, gobject, variable defaults and other things that tests and other
+
+/* Set up gtk, gobject, variable defaults and other things that tests and other
  * external applications need to do anyhow */
 void
-initialize(int argc, char *argv[]) {
+initialize(int argc, char** argv) {
     int i;
 
-    for(i=0; i<argc; ++i) {
-        if(!strcmp(argv[i], "-s") || !strcmp(argv[i], "--socket")) {
+    /* Parse commandline arguments */
+    GOptionContext* context = g_option_context_new ("[ uri ] - load a uri by default");
+    g_option_context_add_main_entries (context, entries, NULL);
+    g_option_context_add_group (context, gtk_get_option_group (TRUE));
+    g_option_context_parse (context, &argc, &argv, NULL);
+    g_option_context_free(context);
+
+    /* Only print version */
+    if (uzbl.behave.print_version) {
+        printf("Commit: %s\n", COMMIT);
+        exit(EXIT_SUCCESS);
+    }
+
+    /* Embedded mode */
+    for (i=0; i<argc; ++i) {
+        if (!strcmp(argv[i], "-s") || !strcmp(argv[i], "--socket")) {
             uzbl.state.plug_mode = TRUE;
             break;
         }
@@ -2277,46 +2304,47 @@ initialize(int argc, char *argv[]) {
 
     if (!g_thread_supported ())
         g_thread_init (NULL);
-    gtk_init (&argc, &argv);
 
-    uzbl.state.executable_path = g_strdup(argv[0]);
-    uzbl.state.selected_url = NULL;
-    uzbl.state.searchtx = NULL;
-
-    GOptionContext* context = g_option_context_new ("[ uri ] - load a uri by default");
-    g_option_context_add_main_entries (context, entries, NULL);
-    g_option_context_add_group (context, gtk_get_option_group (TRUE));
-    g_option_context_parse (context, &argc, &argv, NULL);
-    g_option_context_free(context);
-
-    if (uzbl.behave.print_version) {
-        printf("Commit: %s\n", COMMIT);
-        exit(EXIT_SUCCESS);
-    }
-
-    uzbl.net.soup_session = webkit_get_default_session();
-
-    uzbl.net.soup_cookie_jar = uzbl_cookie_jar_new();
-    soup_session_add_feature(uzbl.net.soup_session, SOUP_SESSION_FEATURE(uzbl.net.soup_cookie_jar));
 
     /* TODO: move the handler setup to event_buffer_timeout and disarm the
      * handler in empty_event_buffer? */
-    if(setup_signal(SIGALRM, empty_event_buffer) == SIG_ERR)
+    if (setup_signal(SIGALRM, empty_event_buffer) == SIG_ERR)
         fprintf(stderr, "uzbl: error hooking %d: %s\n", SIGALRM, strerror(errno));
     event_buffer_timeout(10);
 
-    uzbl.info.webkit_major = webkit_major_version();
-    uzbl.info.webkit_minor = webkit_minor_version();
-    uzbl.info.webkit_micro = webkit_micro_version();
-    uzbl.info.arch         = ARCH;
-    uzbl.info.commit       = COMMIT;
+    /* State information */
+    uzbl.state.executable_path = g_strdup(argv[0]);
+    uzbl.state.selected_url    = NULL;
+    uzbl.state.searchtx        = NULL;
 
-    commands_hash ();
+    /* Static information */
+    uzbl.info.webkit_major     = webkit_major_version();
+    uzbl.info.webkit_minor     = webkit_minor_version();
+    uzbl.info.webkit_micro     = webkit_micro_version();
+    uzbl.info.arch             = ARCH;
+    uzbl.info.commit           = COMMIT;
+    
+    /* HTTP client */
+    uzbl.net.soup_session      = webkit_get_default_session();
+    uzbl.net.soup_cookie_jar   = uzbl_cookie_jar_new();
+
+    soup_session_add_feature(uzbl.net.soup_session, SOUP_SESSION_FEATURE(uzbl.net.soup_cookie_jar));
+
+
+    commands_hash();
     create_var_to_name_hash();
 
+    /* GUI */
+    gtk_init(&argc, &argv);
     create_mainbar();
-    create_browser();
+    create_scrolled_win();
+
+    uzbl.gui.vbox = gtk_vbox_new(FALSE, 0);
+
+    gtk_box_pack_start (GTK_BOX(uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX(uzbl.gui.vbox), uzbl.gui.mainbar, FALSE, TRUE, 0);
 }
+
 
 void
 load_uri_imp(gchar *uri) {
@@ -2367,18 +2395,6 @@ int
 main (int argc, char* argv[]) {
     initialize(argc, argv);
 
-    uzbl.gui.scrolled_win = gtk_scrolled_window_new (NULL, NULL);
-    gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win),
-        GTK_POLICY_NEVER, GTK_POLICY_NEVER);
-
-    gtk_container_add (GTK_CONTAINER (uzbl.gui.scrolled_win),
-        GTK_WIDGET (uzbl.gui.web_view));
-
-    uzbl.gui.vbox = gtk_vbox_new (FALSE, 0);
-
-    /* initial packing */
-    gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
-    gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.mainbar, FALSE, TRUE, 0);
 
     if (uzbl.state.plug_mode) {
         uzbl.gui.plug = create_plug ();
