@@ -298,10 +298,10 @@ class Plugin(object):
     @classmethod
     def unquote(cls, s):
         '''Removes quotation marks around strings if any and interprets
-        \\-escape sequences using `unicode_escape`'''
+        \\-escape sequences using `string_escape`'''
         if s and s[0] == s[-1] and s[0] in ['"', "'"]:
             s = s[1:-1]
-        return unicode(s).decode('unicode_escape')
+        return s.encode('utf-8').decode('string_escape').decode('utf-8')
 
     _splitquoted = re.compile("( |\"(?:\\\\.|[^\"])*?\"|'(?:\\\\.|[^'])*?')")
     @classmethod
@@ -987,3 +987,5 @@ if __name__ == "__main__":
     daemon_actions[action]()
 
     logger.debug('process CPU time: %f' % time.clock())
+
+# vi: set et ts=4:
