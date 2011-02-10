@@ -10,6 +10,9 @@
  *
  */
 
+#ifndef __UZBL_CORE__
+#define __UZBL_CORE__
+
 #define _POSIX_SOURCE
 
 #include <glib/gstdio.h>
@@ -344,20 +347,6 @@ void        event(WebKitWebView *page, GArray *argv, GString *result);
 void        init_connect_socket();
 gboolean    remove_socket_from_array(GIOChannel *chan);
 
-/* Contextual menu functions */
-void        menu_add(WebKitWebView *page, GArray *argv, GString *result);
-void        menu_add_link(WebKitWebView *page, GArray *argv, GString *result);
-void        menu_add_image(WebKitWebView *page, GArray *argv, GString *result);
-void        menu_add_edit(WebKitWebView *page, GArray *argv, GString *result);
-void        menu_add_separator(WebKitWebView *page, GArray *argv, GString *result);
-void        menu_add_separator_link(WebKitWebView *page, GArray *argv, GString *result);
-void        menu_add_separator_image(WebKitWebView *page, GArray *argv, GString *result);
-void        menu_add_separator_edit(WebKitWebView *page, GArray *argv, GString *result);
-void        menu_remove(WebKitWebView *page, GArray *argv, GString *result);
-void        menu_remove_link(WebKitWebView *page, GArray *argv, GString *result);
-void        menu_remove_image(WebKitWebView *page, GArray *argv, GString *result);
-void        menu_remove_edit(WebKitWebView *page, GArray *argv, GString *result);
-
 gint        get_click_context();
 void        hardcopy(WebKitWebView *page, GArray *argv, GString *result);
 void        include(WebKitWebView *page, GArray *argv, GString *result);
@@ -380,5 +369,5 @@ typedef struct {
     guint    context;
 } MenuItem;
 
-
+#endif
 /* vi: set et ts=4: */
