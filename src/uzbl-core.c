@@ -350,22 +350,6 @@ expand(const char* s, guint recurse) {
     return g_string_free(buf, FALSE);
 }
 
-char *
-itos(int val) {
-    char tmp[20];
-
-    snprintf(tmp, sizeof(tmp), "%i", val);
-    return g_strdup(tmp);
-}
-
-gchar*
-strfree(gchar *str) {
-    g_free(str);
-    return NULL;
-}
-
-gchar*
-argv_idx(const GArray *a, const guint idx) { return g_array_index(a, gchar*, idx); }
 
 /* search a PATH style string for an existing file+path combination */
 gchar*
@@ -416,15 +400,16 @@ find_existing_file(gchar* path_list) {
     return NULL;
 }
 
+
 void
 clean_up(void) {
-    if(uzbl.info.pid_str) {
+    if (uzbl.info.pid_str) {
         send_event(INSTANCE_EXIT, uzbl.info.pid_str, NULL);
         g_free(uzbl.info.pid_str);
         uzbl.info.pid_str = NULL;
     }
 
-    if(uzbl.state.executable_path) {
+    if (uzbl.state.executable_path) {
         g_free(uzbl.state.executable_path);
         uzbl.state.executable_path = NULL;
     }
@@ -434,7 +419,7 @@ clean_up(void) {
         uzbl.behave.commands = NULL;
     }
 
-    if(uzbl.state.event_buffer) {
+    if (uzbl.state.event_buffer) {
         g_ptr_array_free(uzbl.state.event_buffer, TRUE);
         uzbl.state.event_buffer = NULL;
     }
@@ -494,7 +479,7 @@ empty_event_buffer(int s) {
 
 /* scroll a bar in a given direction */
 void
-scroll (GtkAdjustment* bar, gchar *amount_str) {
+scroll(GtkAdjustment* bar, gchar *amount_str) {
     gchar *end;
     gdouble max_value;
 
@@ -972,7 +957,7 @@ act_dump_config_as_events() {
 }
 
 void
-load_uri (WebKitWebView *web_view, GArray *argv, GString *result) {
+load_uri(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void) web_view; (void) result;
     set_var_value("uri", argv_idx(argv, 0));
 }
@@ -1127,19 +1112,19 @@ search_forward_text (WebKitWebView *page, GArray *argv, GString *result) {
 }
 
 void
-search_reverse_text (WebKitWebView *page, GArray *argv, GString *result) {
+search_reverse_text(WebKitWebView *page, GArray *argv, GString *result) {
     (void) result;
     search_text(page, argv, FALSE);
 }
 
 void
-dehilight (WebKitWebView *page, GArray *argv, GString *result) {
+dehilight(WebKitWebView *page, GArray *argv, GString *result) {
     (void) argv; (void) result;
     webkit_web_view_set_highlight_text_matches (page, FALSE);
 }
 
 void
-chain (WebKitWebView *page, GArray *argv, GString *result) {
+chain(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
     gchar *a = NULL;
     gchar **parts = NULL;
@@ -2285,11 +2270,26 @@ set_webview_scroll_adjustments() {
  * external applications need to do anyhow */
 void
 initialize(int argc, char** argv) {
+    /* Initialize variables */
+    uzbl.state.socket_id       = 0;
+    uzbl.state.plug_mode       = FALSE;
+
+    uzbl.state.executable_path = g_strdup(argv[0]);
+    uzbl.state.selected_url    = NULL;
+    uzbl.state.searchtx        = NULL;
+
+    uzbl.info.webkit_major     = webkit_major_version();
+    uzbl.info.webkit_minor     = webkit_minor_version();
+    uzbl.info.webkit_micro     = webkit_micro_version();
+    uzbl.info.arch             = ARCH;
+    uzbl.info.commit           = COMMIT;
+
+
     /* Parse commandline arguments */
     GOptionContext* context = g_option_context_new ("[ uri ] - load a uri by default");
-    g_option_context_add_main_entries (context, entries, NULL);
-    g_option_context_add_group (context, gtk_get_option_group (TRUE));
-    g_option_context_parse (context, &argc, &argv, NULL);
+    g_option_context_add_main_entries(context, entries, NULL);
+    g_option_context_add_group(context, gtk_get_option_group (TRUE));
+    g_option_context_parse(context, &argc, &argv, NULL);
     g_option_context_free(context);
 
     /* Only print version */
@@ -2303,7 +2303,7 @@ initialize(int argc, char** argv) {
         uzbl.state.plug_mode = TRUE;
 
     if (!g_thread_supported())
-        g_thread_init (NULL);
+        g_thread_init(NULL);
 
 
     /* TODO: move the handler setup to event_buffer_timeout and disarm the
@@ -2312,17 +2312,6 @@ initialize(int argc, char** argv) {
         fprintf(stderr, "uzbl: error hooking %d: %s\n", SIGALRM, strerror(errno));
     event_buffer_timeout(10);
 
-    /* State information */
-    uzbl.state.executable_path = g_strdup(argv[0]);
-    uzbl.state.selected_url    = NULL;
-    uzbl.state.searchtx        = NULL;
-
-    /* Static information */
-    uzbl.info.webkit_major     = webkit_major_version();
-    uzbl.info.webkit_minor     = webkit_minor_version();
-    uzbl.info.webkit_micro     = webkit_micro_version();
-    uzbl.info.arch             = ARCH;
-    uzbl.info.commit           = COMMIT;
     
     /* HTTP client */
     uzbl.net.soup_session      = webkit_get_default_session();
@@ -2340,9 +2329,8 @@ initialize(int argc, char** argv) {
     create_scrolled_win();
 
     uzbl.gui.vbox = gtk_vbox_new(FALSE, 0);
-
-    gtk_box_pack_start (GTK_BOX(uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
-    gtk_box_pack_start (GTK_BOX(uzbl.gui.vbox), uzbl.gui.mainbar, FALSE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(uzbl.gui.vbox), uzbl.gui.mainbar, FALSE, TRUE, 0);
 }
 
 

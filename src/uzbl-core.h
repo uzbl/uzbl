@@ -250,8 +250,6 @@ typedef struct {
 
 
 /* Functions */
-char*       itos(int val);
-gchar*      strfree(gchar *str);
 void        clean_up(void);
 
 /* Signal management functions */

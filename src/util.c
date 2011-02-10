@@ -110,4 +110,21 @@ for_each_line_in_file(const gchar *path, void (*callback)(const gchar *l, void *
 }
 
 
+char*
+itos(int val) {
+    char tmp[20];
 
+    snprintf(tmp, sizeof(tmp), "%i", val);
+    return g_strdup(tmp);
+}
+
+gchar*
+strfree(gchar *str) {
+    g_free(str);
+    return NULL;
+}
+
+gchar*
+argv_idx(const GArray *a, const guint idx) {
+    return g_array_index(a, gchar*, idx);
+}
