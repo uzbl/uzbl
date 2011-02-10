@@ -278,24 +278,6 @@ void        spawn_sync_exec(WebKitWebView *web_view, GArray *argv, GString *resu
 void        parse_command(const char *cmd, const char *param, GString *result);
 void        parse_cmd_line(const char *ctl_line, GString *result);
 
-/* Communication functions */
-/*@null@*/ gchar*
-build_stream_name(int type, const gchar *dir);
-
-gboolean    control_fifo(GIOChannel *gio, GIOCondition condition);
-
-/*@null@*/ gchar*
-init_fifo(gchar *dir);
-
-gboolean    control_stdin(GIOChannel *gio, GIOCondition condition);
-void        create_stdin();
-
-/*@null@*/ gchar*
-init_socket(gchar *dir);
-
-gboolean    control_socket(GIOChannel *chan);
-gboolean    control_client_socket(GIOChannel *chan);
-
 
 void        update_title(void);
 

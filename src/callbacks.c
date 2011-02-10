@@ -7,6 +7,7 @@
 #include "callbacks.h"
 #include "events.h"
 #include "util.h"
+#include "io.h"
 
 
 void
