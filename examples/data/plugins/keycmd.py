@@ -17,12 +17,10 @@ def uzbl_escape(str):
 
 
 class Keylet(object):
-    '''Small per-instance object that tracks all the keys held and characters
-    typed.'''
+    '''Small per-instance object that tracks characters typed.'''
 
     def __init__(self):
         # Modcmd tracking
-        self.held = set()
         self.modcmd = ''
         self.is_modcmd = False
 
@@ -46,7 +44,7 @@ class Keylet(object):
         if not self.is_modcmd:
             return ''
 
-        return ''.join(self.held) + self.modcmd
+        return self.modcmd
 
 
     def modmap_key(self, key):
@@ -79,9 +77,6 @@ class Keylet(object):
         l = []
         if self.is_modcmd:
             l.append('modcmd=%r' % self.get_modcmd())
-
-        elif self.held:
-            l.append('held=%r' % ''.join(sorted(self.held)))
 
         if self.keycmd:
             l.append('keycmd=%r' % self.get_keycmd())
@@ -154,14 +149,12 @@ def clear_keycmd(uzbl, *args):
     uzbl.event('KEYCMD_CLEARED')
 
 
-def clear_modcmd(uzbl, clear_held=False):
+def clear_modcmd(uzbl):
     '''Clear the modcmd for this uzbl instance.'''
 
     k = uzbl.keylet
     k.modcmd = ''
     k.is_modcmd = False
-    if clear_held:
-        k.held = set()
 
     del uzbl.config['modcmd']
     uzbl.event('MODCMD_CLEARED')
@@ -177,21 +170,21 @@ def clear_current(uzbl):
         clear_keycmd(uzbl)
 
 
-def update_event(uzbl, k, execute=True):
+def update_event(uzbl, modstate, k, execute=True):
     '''Raise keycmd & modcmd update events.'''
 
-    keycmd, modcmd = k.get_keycmd(), k.get_modcmd()
+    keycmd, modcmd = k.get_keycmd(), ''.join(modstate) + k.get_modcmd()
 
     if k.is_modcmd:
         logger.debug('modcmd_update, %s' % modcmd)
-        uzbl.event('MODCMD_UPDATE', k)
+        uzbl.event('MODCMD_UPDATE', modstate, k)
 
     else:
         logger.debug('keycmd_update, %s' % keycmd)
-        uzbl.event('KEYCMD_UPDATE', k)
+        uzbl.event('KEYCMD_UPDATE', modstate, k)
 
     if uzbl.config.get('modcmd_updates', '1') == '1':
-        new_modcmd = k.get_modcmd()
+        new_modcmd = ''.join(modstate) + k.get_modcmd()
         if not new_modcmd:
             del uzbl.config['modcmd']
 
@@ -275,9 +268,7 @@ def key_press(uzbl, key):
     if len(modstate) > 0:
         k.is_modcmd = True
 
-    k.held = modstate
-
-    update_event(uzbl, k)
+    update_event(uzbl, modstate, k)
 
 
 def key_release(uzbl, key):
@@ -294,8 +285,7 @@ def key_release(uzbl, key):
     if len(key) > 1:
         if k.is_modcmd:
             modstate.remove('<%s>' % key)
-            k.held = modstate
-            uzbl.event('MODCMD_EXEC', k)
+            uzbl.event('MODCMD_EXEC', modstate, k)
 
         clear_modcmd(uzbl)
 
@@ -306,7 +296,7 @@ def set_keycmd(uzbl, keycmd):
     k = uzbl.keylet
     k.keycmd = keycmd
     k.cursor = len(keycmd)
-    update_event(uzbl, k, False)
+    update_event(uzbl, set(), k, False)
 
 
 def inject_keycmd(uzbl, keycmd):
@@ -315,7 +305,7 @@ def inject_keycmd(uzbl, keycmd):
     k = uzbl.keylet
     k.keycmd = inject_str(k.keycmd, k.cursor, keycmd)
     k.cursor += len(keycmd)
-    update_event(uzbl, k, False)
+    update_event(uzbl, set(), k, False)
 
 
 def append_keycmd(uzbl, keycmd):
@@ -324,7 +314,7 @@ def append_keycmd(uzbl, keycmd):
     k = uzbl.keylet
     k.keycmd += keycmd
     k.cursor = len(k.keycmd)
-    update_event(uzbl, k, False)
+    update_event(uzbl, set(), k, False)
 
 
 def keycmd_strip_word(uzbl, sep):
@@ -340,7 +330,7 @@ def keycmd_strip_word(uzbl, sep):
     head = head[:rfind] if rfind + 1 else ''
     k.keycmd = head + tail
     k.cursor = len(head)
-    update_event(uzbl, k, False)
+    update_event(uzbl, set(), k, False)
 
 
 def keycmd_backspace(uzbl, *args):
@@ -352,7 +342,7 @@ def keycmd_backspace(uzbl, *args):
 
     k.keycmd = k.keycmd[:k.cursor-1] + k.keycmd[k.cursor:]
     k.cursor -= 1
-    update_event(uzbl, k, False)
+    update_event(uzbl, set(), k, False)
 
 
 def keycmd_delete(uzbl, *args):
@@ -363,7 +353,7 @@ def keycmd_delete(uzbl, *args):
         return
 
     k.keycmd = k.keycmd[:k.cursor] + k.keycmd[k.cursor+1:]
-    update_event(uzbl, k, False)
+    update_event(uzbl, set(), k, False)
 
 
 def keycmd_exec_current(uzbl, *args):
@@ -397,7 +387,7 @@ def set_cursor_pos(uzbl, index):
         cursor = len(k.keycmd)
 
     k.cursor = cursor
-    update_event(uzbl, k, False)
+    update_event(uzbl, set(), k, False)
 
 
 # plugin init hook
