@@ -153,15 +153,11 @@ set useragent         = Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}) (@(+uname 
 @modmap <space>         <Space>
 @modmap <KP_Enter>      <Enter>
 
-#modkey_addition <Key1>  <Key2>    <Result>
-@modkey_addition <Shift> <Ctrl>    <Meta>
-@modkey_addition <Shift> <Tab>     <Shift-Tab>
-@modkey_addition <Shift> <Insert>  <Shift-Insert>
-
 #ignore_key <glob>
 @ignore_key <ISO_*>
 @ignore_key <Shift>
 @ignore_key <Multi_key>
+@ignore_key <Mod2>
 
 # --- Bind aliases -----------------------------------------------------------
 
