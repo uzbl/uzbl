@@ -372,11 +372,11 @@ def mode_changed(uzbl, mode):
         uzbl.bindlet.reset()
 
 
-def match_and_exec(uzbl, bind, depth, keylet, bindlet):
+def match_and_exec(uzbl, bind, depth, modstate, keylet, bindlet):
     (on_exec, has_args, mod_cmd, glob, more) = bind[depth]
     cmd = keylet.modcmd if mod_cmd else keylet.keycmd
 
-    if mod_cmd and keylet.held != mod_cmd:
+    if mod_cmd and modstate != mod_cmd:
         return False
 
     if has_args:
@@ -415,7 +415,7 @@ def match_and_exec(uzbl, bind, depth, keylet, bindlet):
     return True
 
 
-def key_event(uzbl, keylet, mod_cmd=False, on_exec=False):
+def key_event(uzbl, modstate, keylet, mod_cmd=False, on_exec=False):
     bindlet = uzbl.bindlet
     depth = bindlet.depth
     for bind in bindlet.get_binds():
@@ -423,7 +423,7 @@ def key_event(uzbl, keylet, mod_cmd=False, on_exec=False):
         if (bool(t[MOD_CMD]) != mod_cmd) or (t[ON_EXEC] != on_exec):
             continue
 
-        if match_and_exec(uzbl, bind, depth, keylet, bindlet):
+        if match_and_exec(uzbl, bind, depth, modstate, keylet, bindlet):
             return
 
     bindlet.after()
