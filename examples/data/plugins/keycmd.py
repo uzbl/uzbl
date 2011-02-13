@@ -23,7 +23,6 @@ class Keylet(object):
     def __init__(self):
         # Modcmd tracking
         self.held = set()
-        self.ignored = set()
         self.modcmd = ''
         self.is_modcmd = False
 
@@ -33,7 +32,6 @@ class Keylet(object):
 
         self.modmaps = {}
         self.ignores = {}
-        self.additions = {}
 
 
     def get_keycmd(self):
@@ -146,45 +144,6 @@ def add_key_ignore(uzbl, glob):
     uzbl.event('NEW_KEY_IGNORE', glob)
 
 
-def add_modkey_addition(uzbl, modkeys, result):
-    '''Add a modkey addition definition.
-
-    Examples:
-        set mod_addition = request MODKEY_ADDITION
-        @mod_addition <Shift> <Control> <Meta>
-        @mod_addition <Left> <Up> <Left-Up>
-        @mod_addition <Right> <Up> <Right-Up>
-        ...
-
-    Then:
-        @bind <Right-Up> = <command1>
-        @bind <Meta>o = <command2>
-        ...
-    '''
-
-    additions = uzbl.keylet.additions
-    modkeys = set(modkeys)
-
-    assert len(modkeys) and result and result not in modkeys
-
-    for (existing_result, existing_modkeys) in additions.items():
-        if existing_result != result:
-            assert modkeys != existing_modkeys
-
-    additions[result] = modkeys
-    uzbl.event('NEW_MODKEY_ADDITION', modkeys, result)
-
-
-def modkey_addition_parse(uzbl, modkeys):
-    '''Parse modkey addition definition.'''
-
-    keys = filter(None, map(unicode.strip, modkeys.split(" ")))
-    keys = ['<%s>' % key.strip("<>") for key in keys if key.strip("<>")]
-
-    assert len(keys) > 1
-    add_modkey_addition(uzbl, keys[:-1], keys[-1])
-
-
 def clear_keycmd(uzbl, *args):
     '''Clear the keycmd for this uzbl instance.'''
 
@@ -202,7 +161,6 @@ def clear_modcmd(uzbl, clear_held=False):
     k.modcmd = ''
     k.is_modcmd = False
     if clear_held:
-        k.ignored = set()
         k.held = set()
 
     del uzbl.config['modcmd']
@@ -465,7 +423,6 @@ def init(uzbl):
         'KEY_RELEASE':          key_release,
         'MOD_PRESS':            key_press,
         'MOD_RELEASE':          key_release,
-        'MODKEY_ADDITION':      modkey_addition_parse,
         'MODMAP':               modmap_parse,
         'SET_CURSOR_POS':       set_cursor_pos,
         'SET_KEYCMD':           set_keycmd,
@@ -473,7 +430,6 @@ def init(uzbl):
 
     export_dict(uzbl, {
         'add_key_ignore':       add_key_ignore,
-        'add_modkey_addition':  add_modkey_addition,
         'add_modmap':           add_modmap,
         'append_keycmd':        append_keycmd,
         'clear_current':        clear_current,
