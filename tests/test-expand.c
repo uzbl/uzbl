@@ -23,6 +23,7 @@
 #include <signal.h>
 
 #include <src/uzbl-core.h>
+#include <src/util.h>
 #include <src/config.h>
 
 extern UzblCore uzbl;
