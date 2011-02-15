@@ -10,12 +10,6 @@
 typedef struct {
     SoupCookieJar parent;
 
-    const gchar *handler;
-
-    const gchar *socket_path;
-    int connection_fd;
-
-    gboolean in_get_callback;
     gboolean in_manual_add;
 } UzblCookieJar;
 
@@ -24,11 +18,5 @@ typedef struct {
 } UzblCookieJarClass;
 
 UzblCookieJar *uzbl_cookie_jar_new();
-
-void
-uzbl_cookie_jar_set_handler(UzblCookieJar *jar, const gchar *handler);
-
-char
-*get_cookies(UzblCookieJar *jar, SoupURI *uri);
 
 #endif

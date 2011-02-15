@@ -138,7 +138,6 @@ typedef struct {
 
     gchar*   fifo_dir;
     gchar*   socket_dir;
-    gchar*   cookie_handler;
     gchar*   authentication_handler;
     gchar*   default_font_family;
     gchar*   monospace_font_family;
