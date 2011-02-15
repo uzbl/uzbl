@@ -40,6 +40,10 @@
 #include <sys/ioctl.h>
 #include <assert.h>
 
+#if GTK_CHECK_VERSION(2,91,0)
+    #include <gtk/gtkx.h>
+#endif
+
 #include "cookie-jar.h"
 
 #define LENGTH(x) (sizeof x / sizeof x[0])
