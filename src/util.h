@@ -15,5 +15,5 @@ gboolean    file_exists(const char* filename);
 char*       str_replace(const char* search, const char* replace, const char* string);
 gboolean    for_each_line_in_file(const gchar *path, void (*callback)(const gchar *l, void *c), void *user_data);
 enum exp_type get_exp_type(const gchar*);
-gchar*      find_existing_file(gchar*);
+gchar*      find_existing_file(const gchar*);
 gchar*      argv_idx(const GArray*, const guint);

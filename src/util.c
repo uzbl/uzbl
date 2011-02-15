@@ -6,6 +6,8 @@
 
 #include "util.h"
 
+gchar* find_existing_file2(gchar *, const gchar *);
+
 const XDG_Var XDG[] = {
     { "XDG_CONFIG_HOME", "~/.config" },
     { "XDG_DATA_HOME",   "~/.local/share" },
@@ -16,56 +18,44 @@ const XDG_Var XDG[] = {
 
 /*@null@*/ gchar*
 get_xdg_var (XDG_Var xdg) {
-    const gchar* actual_value = getenv (xdg.environmental);
-    const gchar* home         = getenv ("HOME");
-    gchar* return_value;
+    const gchar *actual_value = getenv(xdg.environmental);
+    const gchar *home         = getenv("HOME");
 
-    if (! actual_value || strcmp (actual_value, "") == 0) {
-        if (xdg.default_value) {
-            return_value = str_replace ("~", home, xdg.default_value);
-        } else {
-            return_value = NULL;
-        }
-    } else {
-        return_value = str_replace("~", home, actual_value);
+    if (!actual_value || !actual_value[0]) {
+        if (!xdg.default_value)
+            return NULL;
+
+        return str_replace ("~", home, xdg.default_value);
     }
 
-    return return_value;
+    return str_replace("~", home, actual_value);
 }
 
 /*@null@*/ gchar*
-find_xdg_file (int xdg_type, const char* filename) {
+find_xdg_file (int xdg_type, const char* basename) {
     /* xdg_type = 0 => config
        xdg_type = 1 => data
-       xdg_type = 2 => cache*/
+       xdg_type = 2 => cache  */
 
-    gchar* xdgv = get_xdg_var (XDG[xdg_type]);
-    gchar* temporary_file = g_strconcat (xdgv, filename, NULL);
+    gchar *xdgv = get_xdg_var(XDG[xdg_type]);
+    gchar *path = g_strconcat (xdgv, basename, NULL);
     g_free (xdgv);
 
-    gchar* temporary_string;
-    char*  saveptr;
-    char*  buf;
+    if (file_exists(path))
+        return path;
 
-    if (! file_exists (temporary_file) && xdg_type != 2) {
-        buf = get_xdg_var (XDG[3 + xdg_type]);
-        temporary_string = (char *) strtok_r (buf, ":", &saveptr);
-        g_free(buf);
-
-        while ((temporary_string = (char * ) strtok_r (NULL, ":", &saveptr)) && ! file_exists (temporary_file)) {
-            g_free (temporary_file);
-            temporary_file = g_strconcat (temporary_string, filename, NULL);
-        }
+    /* the file doesn't exist in the expected directory.
+     * check if it exists in one of the system-wide directories. */
+    if (!file_exists(path) && xdg_type != 2) {
+        char *system_dirs = get_xdg_var(XDG[3 + xdg_type]);
+        path = find_existing_file2(system_dirs, basename);
+        g_free(system_dirs);
     }
 
-    //g_free (temporary_string); - segfaults.
+    if(path)
+        return path;
 
-    if (file_exists (temporary_file)) {
-        return temporary_file;
-    } else {
-        g_free(temporary_file);
-        return NULL;
-    }
+    return NULL;
 }
 
 gboolean
@@ -127,54 +117,53 @@ get_exp_type(const gchar *s) {
 return EXP_ERR;
 }
 
-
-/* search a PATH style string for an existing file+path combination */
+/* This function searches the directories in the : separated ($PATH style)
+ * string 'dirs' for a file named 'basename'. It returns the path of the first
+ * file found, or NULL if none could be found.
+ * NOTE: this function modifies the 'dirs' argument. */
 gchar*
-find_existing_file(gchar* path_list) {
-    int i=0;
-    int cnt;
-    gchar **split;
-    gchar *tmp = NULL;
-    gchar *executable;
+find_existing_file2(gchar *dirs, const gchar *basename) {
+    char *saveptr = NULL;
 
+    /* iterate through the : separated elements until we find our file. */
+    char *tok  = strtok_r(dirs, ":", &saveptr);
+    char *path = g_strconcat (tok, "/", basename, NULL);
+
+    while (!file_exists(path)) {
+        g_free(path);
+
+        tok = strtok_r(NULL, ":", &saveptr);
+        if (!tok)
+            return NULL; /* we've hit the end of the string */
+
+        path = g_strconcat (tok, "/", basename, NULL);
+    }
+
+    return path;
+}
+
+/* search a PATH style string for an existing file+path combination.
+ * everything after the last ':' is assumed to be the name of the file.
+ * e.g. "/tmp:/home:a/file" will look for /tmp/a/file and /home/a/file.
+ *
+ * if there are no :s then the entire thing is taken to be the path. */
+gchar*
+find_existing_file(const gchar* path_list) {
     if(!path_list)
         return NULL;
 
-    split = g_strsplit(path_list, ":", 0);
-    while(split[i])
-        i++;
+    char *path_list_dup = g_strdup(path_list);
 
-    if(i<=1) {
-        tmp = g_strdup(split[0]);
-        g_strfreev(split);
-        return tmp;
-    }
-    else
-        cnt = i-1;
+    char *basename = strrchr(path_list_dup, ':');
+    if(!basename)
+      return path_list_dup;
 
-    i=0;
-    tmp = g_strdup(split[cnt]);
-    g_strstrip(tmp);
-    if(tmp[0] == '/')
-        executable = g_strdup_printf("%s", tmp+1);
-    else
-        executable = g_strdup(tmp);
-    g_free(tmp);
+    basename[0] = '\0';
+    basename++;
 
-    while(i<cnt) {
-        tmp = g_strconcat(g_strstrip(split[i]), "/", executable, NULL);
-        if(g_file_test(tmp, G_FILE_TEST_EXISTS)) {
-            g_strfreev(split);
-            return tmp;
-        }
-        else
-            g_free(tmp);
-        i++;
-    }
-
-    g_free(executable);
-    g_strfreev(split);
-    return NULL;
+    char *result = find_existing_file2(path_list_dup, basename);
+    g_free(path_list_dup);
+    return result;
 }
 
 gchar*
