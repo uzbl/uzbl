@@ -12,6 +12,7 @@
 
 #include "cookie-jar.h"
 #include "uzbl-core.h"
+#include "events.h"
 
 static void
 uzbl_cookie_jar_session_feature_init(SoupSessionFeatureInterface *iface, gpointer user_data);
@@ -38,6 +39,8 @@ soup_cookie_jar_socket_init(UzblCookieJar *jar) {
     jar->handler     = NULL;
     jar->socket_path = NULL;
     jar->connection_fd = -1;
+    jar->in_get_callback = 0;
+    jar->in_manual_add = 0;
 }
 
 static void
@@ -141,7 +144,7 @@ request_started(SoupSessionFeature *feature, SoupSession *session,
 
 static void
 changed(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie) {
-    (void) old_cookie;
+    SoupCookie * cookie = new_cookie ? new_cookie : old_cookie;
 
     UzblCookieJar *uzbl_jar = UZBL_COOKIE_JAR(jar);
 
@@ -155,14 +158,31 @@ changed(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie) {
     if(uzbl_jar->in_get_callback)
         return;
 
+    gchar *scheme = cookie->secure ? "https" : "http";
+
+    /* send a ADD or DELETE -_COOKIE event depending on what have changed */
+    if(!uzbl_jar->in_manual_add) {
+        gchar *expires = NULL;
+        if(cookie->expires)
+            expires = g_strdup_printf ("%d", soup_date_to_time_t (cookie->expires));
+
+        gchar * eventstr = g_strdup_printf ("'%s' '%s' '%s' '%s' '%s' '%s'",
+            cookie->domain, cookie->path, cookie->name, cookie->value, scheme, expires?expires:"");
+        if(new_cookie) 
+            send_event(ADD_COOKIE, eventstr, NULL);
+        else
+            send_event(DELETE_COOKIE, eventstr, NULL);
+        g_free(eventstr);
+        if(expires)
+            g_free(expires);
+    }
+
     /* the cookie daemon is only interested in new cookies and changed
        ones, it can take care of deleting expired cookies on its own. */
     if(!new_cookie)
         return;
 
     GString *s = g_string_new ("PUT");
-
-    gchar *scheme = new_cookie->secure ? "https" : "http";
 
     if(has_socket_handler(uzbl_jar)) {
         g_string_append_c(s, 0); /* null-terminate the PUT */

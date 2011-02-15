@@ -1,26 +1,25 @@
 #!/bin/sh
-# just an example of how you could handle your downloads
-# try some pattern matching on the uri to determine what we should do
+#
+# uzbl's example configuration sets this script up as its download_handler.
+# when uzbl starts a download it runs this script.
+# if the script prints a file path to stdout, uzbl will save the download to
+# that path.
+# if nothing is printed to stdout, the download will be cancelled.
 
-shift 7
 . $UZBL_UTIL_DIR/uzbl-dir.sh
 
-# Some sites block the default wget --user-agent..
-GET="wget --user-agent=Firefox --content-disposition --load-cookies=$UZBL_COOKIE_FILE"
+# the URL that is being downloaded
+uri=$1
 
-url="$1"
+# a filename suggested by the server or based on the URL
+suggested_filename=${2:-$(echo "$uri" | sed 's/\W/-/g')}
 
-http_proxy="$2"
-export http_proxy
+# the mimetype of the file being downloaded
+content_type=$3
 
-if [ -z "$url" ]; then
-    echo "you must supply a url! ($url)"
-    exit 1
-fi
+# the size of the downloaded file in bytes. this is not always accurate, since
+# the server might not have sent a size with its response headers.
+total_size=$4
 
-# only changes the dir for the $get sub process
-if echo "$url" | grep -E '.*\.torrent' >/dev/null; then
-    ( cd "$UZBL_DOWNLOAD_DIR"; $GET "$url")
-else
-    ( cd "$UZBL_DOWNLOAD_DIR"; $GET "$url")
-fi
+# just save the file to the default directory with the suggested name
+echo $UZBL_DOWNLOAD_DIR/$suggested_filename

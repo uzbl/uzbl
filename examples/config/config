@@ -3,8 +3,10 @@
 
 # === Core settings ==========================================================
 
-# Install location prefix.
-set prefix = /usr/local
+# common directory locations
+set prefix     = @(echo $PREFIX)@
+set data_home  = @(echo $XDG_DATA_HOME)@
+set cache_home = @(echo $XDG_CACHE_HOME)@
 
 # Interface paths.
 set fifo_dir   = /tmp
@@ -34,27 +36,30 @@ set set_mode        = set mode =
 set set_status      = set status_message =
 
 # Spawn path shortcuts. In spawn the first dir+path match is used in "dir1:dir2:dir3:executable"
-set scripts_dir      = $XDG_DATA_HOME/uzbl:@prefix/share/uzbl/examples/data:scripts
+set scripts_dir      = @data_home/uzbl:@prefix/share/uzbl/examples/data:scripts
 
 # === Hardcoded handlers =====================================================
 
 # These handlers can't be moved to the new event system yet as we don't
 # support events that can wait for a response from a script.
-set cookie_handler      = talk_to_socket $XDG_CACHE_HOME/uzbl/cookie_daemon_socket
 set scheme_handler      = sync_spawn @scripts_dir/scheme.py
 set authentication_handler = sync_spawn @scripts_dir/auth.py
+set download_handler    = sync_spawn @scripts_dir/download.sh
 
 # === Dynamic event handlers =================================================
 
+#   What to do when a website wants to open a new window:
 # Open link in new window
-@on_event   NEW_WINDOW     sh 'uzbl-browser ${8:+-u "$8"}' %r
-# Open in current window
+@on_event   NEW_WINDOW     sh 'uzbl-browser ${1:+-u "$1"}' %r
+# Open in current window (also see the REQ_NEW_WINDOW event handler below)
 #@on_event   NEW_WINDOW     uri %s
-# Open in new tab
+# Open in new tab. Other options are NEW_TAB_NEXT, NEW_BG_TAB and NEW_BG_TAB_NEXT.
 #@on_event   NEW_WINDOW     event NEW_TAB %s
 
-# Download handler
-@on_event   DOWNLOAD_REQUEST    spawn @scripts_dir/download.sh %s \@proxy_url
+#   What to do when the user requests a new window:
+# If your the NEW_WINDOW handler opens the uri in the current window, you'll
+# probably want to change this handler to open a new window or tab.
+@on_event   REQ_NEW_WINDOW event NEW_WINDOW %s
 
 # Load start handler
 @on_event   LOAD_START     @set_status <span foreground="khaki">wait</span>
@@ -64,8 +69,8 @@ set authentication_handler = sync_spawn @scripts_dir/auth.py
 # Load commit handlers
 @on_event   LOAD_COMMIT    @set_status <span foreground="green">recv</span>
 
-# Userscript support. Add all scripts to $XDG_DATA_HOME/uzbl/userscripts
-#@on_event   LOAD_COMMIT    spawn @scripts_dir/userscripts.sh
+# Userscripts/per-site-settings. See the script and the example configuration for details
+#@on_event   LOAD_COMMIT    spawn @scripts_dir/per-site-settings.py @data_home/uzbl/per-site-settings
 
 # Load finish handlers
 @on_event   LOAD_FINISH    @set_status <span foreground="gold">done</span>
@@ -104,7 +109,10 @@ set name_section      = <span foreground="khaki">\@[\@NAME]\@</span>
 set status_section    = <span foreground="orange">\@status_message</span>
 set selected_section  = <span foreground="#606060">\@[\@SELECTED_URI]\@</span>
 
-set status_format     = <span font_family="monospace">@mode_section @keycmd_section @progress_section @uri_section @name_section @status_section @scroll_section @selected_section</span>
+set download_section  = <span foreground="white">\@downloads</span>
+
+set status_format       = <span font_family="monospace">@mode_section @keycmd_section @progress_section @name_section @status_section @scroll_section @selected_section @download_section</span>
+set status_format_right = <span font_family="monospace"><span foreground="#666">uri:</span> @uri_section</span>
 
 set title_format_long = \@keycmd_prompt \@raw_modcmd \@raw_keycmd \@TITLE - Uzbl browser <\@NAME> \@SELECTED_URI
 
@@ -118,7 +126,11 @@ set progress.pending    =
 
 # === Useragent setup ========================================================
 
-set useragent         = Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}.@{WEBKIT_MICRO}) (@(+uname -sm)@ [@ARCH_UZBL]) (Commit @COMMIT)
+set useragent         = Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}) (@(+uname -sm)@ [@ARCH_UZBL])
+
+# === Configure cookie blacklist ========================================================
+# Drop google analytics tracking cookies
+#request BLACKLIST_COOKIE name '^__utm.$'
 
 # === Key binding configuration ==============================================
 # --- Internal modmapping and ignoring ---------------------------------------
@@ -181,7 +193,7 @@ set ebind     = @mode_bind global,-insert
 # --- Mouse bindings ---------------------------------------------------------
 
 # Middle click open in new window
-@bind  <Button2>  = sh 'if [ "$8" ]; then uzbl-browser -u "$8"; else echo "uri $(xclip -o | sed s/\\\@/%40/g)" > "$UZBL_FIFO"; fi' \@SELECTED_URI
+@bind  <Button2>  = sh 'if [ "$1" ]; then echo "event REQ_NEW_WINDOW $1" > "$UZBL_FIFO"; else echo "uri $(xclip -o | sed s/\\\@/%40/g)" > "$UZBL_FIFO"; fi' '\@SELECTED_URI'
 
 # --- Keyboard bindings ------------------------------------------------------
 
@@ -190,7 +202,7 @@ set ebind     = @mode_bind global,-insert
 @cbind    :_        = %s
 
 # open a new window or a new tab (see the on_event NEW_WINDOW settings above)
-@cbind  w            = event NEW_WINDOW
+@cbind  w            = event REQ_NEW_WINDOW
 
 # Page movement binds
 @cbind  j            = scroll vertical 20
@@ -251,8 +263,8 @@ set ebind     = @mode_bind global,-insert
 
 # Use socat to directly inject commands into uzbl-core and view events
 # raised by uzbl-core:
-@cbind  <Ctrl><Alt>t  = sh "xterm -e 'socat unix-connect:\"$UZBL_SOCKET\" -'"
-#@cbind  <Ctrl><Alt>t  = sh "urxvt -e 'socat unix-connect:\"$UZBL_SOCKET\" -'"
+@cbind  <Ctrl><Alt>t  = sh 'xterm -e "socat unix-connect:\"$UZBL_SOCKET\" -"'
+#@cbind  <Ctrl><Alt>t  = sh 'urxvt -e socat unix-connect:"$UZBL_SOCKET" -'
 
 # Uri opening prompts
 @cbind  o<uri:>_       = uri %s
@@ -268,20 +280,19 @@ set ebind     = @mode_bind global,-insert
 
 # Yanking & pasting binds
 @cbind  yu  = sh 'echo -n "$UZBL_URI" | xclip'
-@cbind  yU  = sh 'echo -n $8 | xclip' \@SELECTED_URI
+@cbind  yU  = sh 'echo -n "$1" | xclip' \@SELECTED_URI
 @cbind  yy  = sh 'echo -n "$UZBL_TITLE" | xclip'
-@cbind  yY  = sh 'echo -n $8 | xclip' \@SELECTED_URI
 
 # Clone current window
-@cbind  c   = sh 'uzbl-browser -u "$UZBL_URI"'
+@cbind  c   = event REQ_NEW_WINDOW \@uri
 # Go the page from primary selection
-@cbind  p   = sh 'echo "uri `xclip -selection primary -o | sed s/\\\@/%40/g`" > "$UZBL_FIFO"'
+@cbind  p   = sh 'echo "uri $(xclip -o | sed s/\\\@/%40/g)" > "$UZBL_FIFO"'
 # Go to the page in clipboard
-@cbind  P   = sh 'echo "uri `xclip -selection clipboard -o | sed s/\\\@/%40/g`" > "$UZBL_FIFO"'
+@cbind  P   = sh 'echo "uri $(xclip -selection clipboard -o | sed s/\\\@/%40/g)" > "$UZBL_FIFO"'
 # Start a new uzbl instance from the page in primary selection
-@cbind  'p  = sh 'exec uzbl-browser --uri "$(xclip -o)"'
+@cbind  'p  = sh 'echo "event REQ_NEW_WINDOW $(xclip -o)" > "$UZBL_FIFO"'
 # paste primary selection into keycmd at the cursor position
-@bind <Shift-Insert> = sh 'echo "event INJECT_KEYCMD `xclip -o | sed s/\\\@/%40/g`" > "$UZBL_FIFO"'
+@bind <Shift-Insert> = sh 'echo "event INJECT_KEYCMD $(xclip -o | sed s/\\\@/%40/g)" > "$UZBL_FIFO"'
 
 # Bookmark inserting binds
 @cbind <Ctrl>b<tags:>_  = sh 'echo `printf "$UZBL_URI %s"` >> "$XDG_DATA_HOME"/uzbl/bookmarks'
@@ -319,12 +330,6 @@ set formfiller = spawn @scripts_dir/formfiller.sh
 @cbind  gN              = event NEW_TAB_NEXT
 @cbind  go<uri:>_       = event NEW_TAB %s
 @cbind  gO<uri:>_       = event NEW_TAB_NEXT %s
-@cbind  gy              = sh 'echo "event NEW_TAB `xclip -selection primary -o | sed s/\\\@/%40/g`" > "$UZBL_FIFO"'
-@cbind  gY              = sh 'echo "event NEW_TAB_NEXT `xclip -selection primary -o | sed s/\\\@/%40/g`" > "$UZBL_FIFO"'
-
-# Clone current tab
-@cbind  gd              = sh 'echo "event NEW_TAB $UZBL_URI" > "$UZBL_FIFO"'
-@cbind  gD              = sh 'echo "event NEW_TAB_NEXT $UZBL_URI" > "$UZBL_FIFO"'
 
 # Closing / resting
 @cbind  gC              = exit
@@ -389,6 +394,8 @@ set stack    = @mode_config stack
 set default_mode = command
 
 # === Post-load misc commands ================================================
+sync_spawn_exec @scripts_dir/load_cookies.sh
+sync_spawn_exec @scripts_dir/load_cookies.sh @data_home/uzbl/session-cookies.txt
 
 # Set the "home" page.
 set uri = uzbl.org/doesitwork/@COMMIT

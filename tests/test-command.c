@@ -29,33 +29,6 @@ extern UzblCore uzbl;
 
 #define INSTANCE_NAME "testing"
 
-gchar*
-assert_str_beginswith(GString *expected, gchar *actual) {
-    gchar *actual_beginning = g_strndup(actual, expected->len);
-    g_assert_cmpstr(expected->str, ==, actual_beginning);
-    g_free(actual_beginning);
-
-    /* return the part of the actual string that hasn't been compared yet */
-    return &actual[expected->len];
-}
-
-/* compare the contents of uzbl.comm.sync_stdout to the standard arguments that
- * should have been passed. This is meant to be called after something like "sync echo". */
-gchar*
-assert_sync_beginswith_stdarg() {
-    GString *stdargs = g_string_new("");
-
-    g_string_append_printf(stdargs, "%s %d %d ", uzbl.state.config_file, getpid(), (int)uzbl.xwin);
-    g_string_append_printf(stdargs, "%s %s ", uzbl.comm.fifo_path, uzbl.comm.socket_path);
-    g_string_append_printf(stdargs, "%s %s ", uzbl.state.uri, uzbl.gui.main_title);
-
-    gchar *rest = assert_str_beginswith(stdargs, uzbl.comm.sync_stdout);
-
-    g_string_free(stdargs, TRUE);
-
-    return rest;
-}
-
 #define ASSERT_EVENT(EF, STR) { read_event(ef); \
     g_assert_cmpstr("EVENT [" INSTANCE_NAME "] " STR "\n", ==, ef->event_buffer); }
 
@@ -314,13 +287,10 @@ test_run_handler_arg_order (void) {
 
     assert(uzbl.comm.sync_stdout);
 
-    /* the result should begin with the standard handler arguments */
-    gchar *rest = assert_sync_beginswith_stdarg();
-
     /* the rest of the result should be the arguments passed to run_handler. */
     /* the arguments in the second argument to run_handler should be placed before any
      * included in the first argument to run handler. */
-    g_assert_cmpstr("abc def uvw xyz\n", ==, rest);
+    g_assert_cmpstr("abc def uvw xyz\n", ==, uzbl.comm.sync_stdout);
 }
 
 void
@@ -330,12 +300,8 @@ test_run_handler_expand (void) {
 
     assert(uzbl.comm.sync_stdout);
 
-    /* the result should begin with the standard handler arguments */
-    gchar *rest = assert_sync_beginswith_stdarg();
-
-    /* the rest of the result should be the arguments passed to run_handler. */
     /* the user-specified arguments to the handler should have been expanded */
-    g_assert_cmpstr("result: Test uzbl uzr agent\n", ==, rest);
+    g_assert_cmpstr("result: Test uzbl uzr agent\n", ==, uzbl.comm.sync_stdout);
 }
 
 int

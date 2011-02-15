@@ -83,6 +83,9 @@ void
 cmd_useragent() ;
 
 void
+set_accept_languages();
+
+void
 cmd_autoload_img();
 
 void
@@ -132,9 +135,6 @@ cmd_load_start();
 
 WebKitWebSettings*
 view_settings();
-
-gboolean
-download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data);
 
 void
 toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result);
@@ -197,7 +197,7 @@ request_starting_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitWebRes
 create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data);
 
 gboolean
-download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data);
+download_cb (WebKitWebView *web_view, WebKitDownload *download, gpointer user_data);
 
 void
 populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c);

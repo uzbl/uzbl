@@ -309,6 +309,17 @@ cmd_useragent() {
 }
 
 void
+set_accept_languages() {
+    if (*uzbl.net.accept_languages == ' ') {
+        g_free (uzbl.net.accept_languages);
+        uzbl.net.accept_languages = NULL;
+    } else {
+        g_object_set(G_OBJECT(uzbl.net.soup_session),
+            SOUP_SESSION_ACCEPT_LANGUAGE, uzbl.net.accept_languages, NULL);
+    }
+}
+
+void
 cmd_javascript_windows() {
     g_object_set (G_OBJECT(view_settings()), "javascript-can-open-windows-automatically",
             uzbl.behave.javascript_windows, NULL);
@@ -324,7 +335,8 @@ cmd_scrollbars_visibility() {
         uzbl.gui.bar_v = gtk_range_get_adjustment (GTK_RANGE (uzbl.gui.scbar_v));
         uzbl.gui.bar_h = gtk_range_get_adjustment (GTK_RANGE (uzbl.gui.scbar_h));
     }
-    gtk_widget_set_scroll_adjustments (GTK_WIDGET (uzbl.gui.web_view), uzbl.gui.bar_h, uzbl.gui.bar_v);
+
+    set_webview_scroll_adjustments();
 }
 
 /* requires webkit >=1.1.14 */
@@ -745,41 +757,142 @@ create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer us
     (void) web_view;
     (void) frame;
     (void) user_data;
-    if (uzbl.state.selected_url != NULL) {
-        if (uzbl.state.verbose)
-            printf("\nNew web view -> %s\n", uzbl.state.selected_url);
 
-        if (strncmp(uzbl.state.selected_url, "javascript:", strlen("javascript:")) == 0) {
-            WebKitWebView* new_view = WEBKIT_WEB_VIEW(webkit_web_view_new());
+    if (uzbl.state.verbose)
+        printf("New web view -> javascript link...\n");
 
-            g_signal_connect (new_view, "web-view-ready",
-                            G_CALLBACK(create_web_view_js_cb), NULL);
+    WebKitWebView* new_view = WEBKIT_WEB_VIEW(webkit_web_view_new());
 
-            return new_view;
+    g_signal_connect (new_view, "web-view-ready",
+                        G_CALLBACK(create_web_view_js_cb), NULL);
+    return new_view;
+}
+
+void
+download_progress_cb(WebKitDownload *download, GParamSpec *pspec, gpointer user_data) {
+    (void) pspec; (void) user_data;
+
+    gdouble progress;
+    g_object_get(download, "progress", &progress, NULL);
+
+    const gchar *dest_uri = webkit_download_get_destination_uri(download);
+    const gchar *dest_path = dest_uri + strlen("file://");
+
+    gchar *details = g_strdup_printf("%s %.2lf", dest_path, progress);
+    send_event(DOWNLOAD_PROGRESS, details, NULL);
+    g_free(details);
+}
+
+void
+download_status_cb(WebKitDownload *download, GParamSpec *pspec, gpointer user_data) {
+    (void) pspec; (void) user_data;
+
+    WebKitDownloadStatus status;
+    g_object_get(download, "status", &status, NULL);
+
+    switch(status) {
+        case WEBKIT_DOWNLOAD_STATUS_CREATED:
+        case WEBKIT_DOWNLOAD_STATUS_STARTED:
+        case WEBKIT_DOWNLOAD_STATUS_ERROR:
+        case WEBKIT_DOWNLOAD_STATUS_CANCELLED:
+            return; /* these are irrelevant */
+        case WEBKIT_DOWNLOAD_STATUS_FINISHED:
+        {
+            const gchar *dest_uri = webkit_download_get_destination_uri(download);
+            const gchar *dest_path = dest_uri + strlen("file://");
+            send_event(DOWNLOAD_COMPLETE, dest_path, NULL);
         }
-        else
-            send_event(NEW_WINDOW, uzbl.state.selected_url, NULL);
-
-    } else {
-        if (uzbl.state.verbose)
-            printf("New web view -> javascript link...\n");
-
-        WebKitWebView* new_view = WEBKIT_WEB_VIEW(webkit_web_view_new());
-
-        g_signal_connect (new_view, "web-view-ready",
-                            G_CALLBACK(create_web_view_js_cb), NULL);
-        return new_view;
     }
-    return NULL;
 }
 
 gboolean
-download_cb (WebKitWebView *web_view, GObject *download, gpointer user_data) {
-    (void) web_view;
-    (void) user_data;
+download_cb(WebKitWebView *web_view, WebKitDownload *download, gpointer user_data) {
+    (void) web_view; (void) user_data;
 
-    send_event(DOWNLOAD_REQ, webkit_download_get_uri ((WebKitDownload*)download), NULL);
-    return (FALSE);
+    /* get the URI being downloaded */
+    const gchar *uri = webkit_download_get_uri(download);
+
+    if (uzbl.state.verbose)
+        printf("Download requested -> %s\n", uri);
+
+    if (!uzbl.behave.download_handler) {
+        webkit_download_cancel(download);
+        return FALSE; /* reject downloads when there's no download handler */
+    }
+
+    /* get a reasonable suggestion for a filename */
+    const gchar *suggested_filename;
+    g_object_get(download, "suggested-filename", &suggested_filename, NULL);
+
+    /* get the mimetype of the download */
+    const gchar *content_type = NULL;
+    WebKitNetworkResponse *r  = webkit_download_get_network_response(download);
+    /* downloads can be initiated from the context menu, in that case there is
+       no network response yet and trying to get one would crash. */
+    if(WEBKIT_IS_NETWORK_RESPONSE(r)) {
+        SoupMessage        *m = webkit_network_response_get_message(r);
+        SoupMessageHeaders *h = NULL;
+        g_object_get(m, "response-headers", &h, NULL);
+        if(h) /* some versions of libsoup don't have "response-headers" here */
+            content_type = soup_message_headers_get_one(h, "Content-Type");
+    }
+
+    if(!content_type)
+        content_type = "application/octet-stream";
+
+    /* get the filesize of the download, as given by the server.
+       (this may be inaccurate, there's nothing we can do about that.)  */
+    unsigned int total_size = webkit_download_get_total_size(download);
+
+    gchar *ev = g_strdup_printf("'%s' '%s' '%s' %d", uri, suggested_filename,
+                                                     content_type, total_size);
+    run_handler(uzbl.behave.download_handler, ev);
+    g_free(ev);
+
+    /* no response, cancel the download */
+    if(!uzbl.comm.sync_stdout) {
+        webkit_download_cancel(download);
+        return FALSE;
+    }
+
+    /* no response, cancel the download */
+    if(uzbl.comm.sync_stdout[0] == 0) {
+        webkit_download_cancel(download);
+        uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
+        return FALSE;
+    }
+
+    /* we got a response, it's the path we should download the file to */
+    gchar *destination_path = uzbl.comm.sync_stdout;
+    uzbl.comm.sync_stdout = NULL;
+
+    /* presumably people don't need newlines in their filenames. */
+    char *p = strchr(destination_path, '\n');
+    if ( p != NULL ) *p = '\0';
+
+    /* set up progress callbacks */
+    g_signal_connect(download, "notify::status",   G_CALLBACK(download_status_cb),   NULL);
+    g_signal_connect(download, "notify::progress", G_CALLBACK(download_progress_cb), NULL);
+
+    /* convert relative path to absolute path */
+    if(destination_path[0] != '/') {
+        gchar *rel_path = destination_path;
+        gchar *cwd = g_get_current_dir();
+        destination_path = g_strconcat(cwd, "/", destination_path, NULL);
+        g_free(cwd);
+        g_free(rel_path);
+    }
+
+    send_event(DOWNLOAD_STARTED, destination_path, NULL);
+
+    /* convert absolute path to file:// URI */
+    gchar *destination_uri = g_strconcat("file://", destination_path, NULL);
+    g_free(destination_path);
+
+    webkit_download_set_destination_uri(download, destination_uri);
+    g_free(destination_uri);
+
+    return TRUE;
 }
 
 gboolean
@@ -854,14 +967,14 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
                 (context & mi->context)) {
             if(mi->issep) {
                 item = gtk_separator_menu_item_new();
-                gtk_menu_append(GTK_MENU(m), item);
+                gtk_menu_shell_append(GTK_MENU_SHELL(m), item);
                 gtk_widget_show(item);
             }
             else {
                 item = gtk_menu_item_new_with_label(mi->name);
                 g_signal_connect(item, "activate",
                         G_CALLBACK(run_menu_command), mi->cmd);
-                gtk_menu_append(GTK_MENU(m), item);
+                gtk_menu_shell_append(GTK_MENU_SHELL(m), item);
                 gtk_widget_show(item);
             }
             hit++;
@@ -872,14 +985,14 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
                 !hit) {
             if(mi->issep) {
                 item = gtk_separator_menu_item_new();
-                gtk_menu_append(GTK_MENU(m), item);
+                gtk_menu_shell_append(GTK_MENU_SHELL(m), item);
                 gtk_widget_show(item);
             }
             else {
                 item = gtk_menu_item_new_with_label(mi->name);
                 g_signal_connect(item, "activate",
                         G_CALLBACK(run_menu_command), mi->cmd);
-                gtk_menu_append(GTK_MENU(m), item);
+                gtk_menu_shell_append(GTK_MENU_SHELL(m), item);
                 gtk_widget_show(item);
             }
         }

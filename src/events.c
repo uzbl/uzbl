@@ -22,7 +22,6 @@ const char *event_table[LAST_EVENT] = {
      "REQUEST_STARTING" ,
      "KEY_PRESS"        ,
      "KEY_RELEASE"      ,
-     "DOWNLOAD_REQUEST" ,
      "COMMAND_EXECUTED" ,
      "LINK_HOVER"       ,
      "TITLE_CHANGED"    ,
@@ -45,10 +44,14 @@ const char *event_table[LAST_EVENT] = {
      "PLUG_CREATED"     ,
      "COMMAND_ERROR"    ,
      "BUILTINS"         ,
-     "PTR_MOVE"
      "PTR_MOVE"         ,
      "SCROLL_VERT"      ,
-     "SCROLL_HORIZ"
+     "SCROLL_HORIZ"     ,
+     "DOWNLOAD_STARTED" ,
+     "DOWNLOAD_PROGRESS",
+     "DOWNLOAD_COMPLETE",
+     "ADD_COOKIE"       ,
+     "DELETE_COOKIE"
 };
 
 void
@@ -75,10 +78,15 @@ send_event_sockets(GPtrArray *sockets, GString *msg) {
                     msg->str, msg->len,
                     &len, &error);
 
-            if (ret == G_IO_STATUS_ERROR)
+            if (ret == G_IO_STATUS_ERROR) {
                 g_warning ("Error sending event to socket: %s", error->message);
-            else
-                g_io_channel_flush(gio, &error);
+                g_clear_error (&error);
+            } else {
+                if (g_io_channel_flush(gio, &error) == G_IO_STATUS_ERROR) {
+                    g_warning ("Error flushing: %s", error->message);
+                    g_clear_error (&error);
+                }
+            }
         }
     }
 }
@@ -136,24 +144,16 @@ send_event_stdout(GString *msg) {
 void
 send_event(int type, const gchar *details, const gchar *custom_event) {
     GString *event_message = g_string_new("");
-    gchar *buf, *p_val = NULL;
-
-    /* expand shell vars */
-    if(details) {
-        buf = g_strdup(details);
-        p_val = parseenv(buf ? g_strchug(buf) : " ");
-        g_free(buf);
-    }
 
     /* check for custom events */
     if(custom_event) {
         g_string_printf(event_message, "EVENT [%s] %s %s\n",
-                uzbl.state.instance_name, custom_event, p_val);
+                uzbl.state.instance_name, custom_event, details);
     }
     /* check wether we support the internal event */
     else if(type < LAST_EVENT) {
         g_string_printf(event_message, "EVENT [%s] %s %s\n",
-                uzbl.state.instance_name, event_table[type], p_val);
+                uzbl.state.instance_name, event_table[type], details);
     }
 
     if(event_message->str) {
@@ -163,7 +163,6 @@ send_event(int type, const gchar *details, const gchar *custom_event) {
 
         g_string_free(event_message, TRUE);
     }
-    g_free(p_val);
 }
 
 /* Transform gdk key events to our own events */

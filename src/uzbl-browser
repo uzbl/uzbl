@@ -8,6 +8,8 @@
 # to your $XDG_DATA_HOME/uzbl/scripts/ and edit them
 
 PREFIX=/usr/local
+export PREFIX
+
 EXAMPLES=$PREFIX/share/uzbl/examples
 
 XDG_DATA_HOME=${XDG_DATA_HOME:-$HOME/.local/share}
@@ -66,7 +68,7 @@ fi
 # we could also check if its pid file exists to avoid having to spawn it.
 #if [ ! -f "$XDG_CACHE_HOME"/uzbl/cookie_daemon_socket.pid ]
 #then
-	${UZBL_COOKIE_DAEMON:-uzbl-cookie-manager}
+#	${UZBL_COOKIE_DAEMON:-uzbl-cookie-manager}
 #fi
 
 # uzbl-event-manager will exit if one is already running.

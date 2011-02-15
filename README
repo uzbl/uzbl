@@ -260,6 +260,11 @@ The following commands are recognized:
   - Read contents of `<file>` and interpret as a set of `uzbl` commands.
 * `show_inspector`
   - Show the WebInspector
+* `add_cookie <domain> <path> <name> <value> <scheme> <expires>`
+  - Adds a new cookie to the cookie jar
+* 'delete_cookie <domain> <path> <name> <value> [<scheme> <expires>]`
+	- Deletes a matching cookie from the cookie jar. scheme and expire time
+	is currently not considered when matching.
 
 ### VARIABLES AND CONSTANTS
 
@@ -286,8 +291,10 @@ file).
 * `keycmd`: Holds the input buffer (callback: update input buffer).
 * `show_status`: Show statusbar or not.
 * `status_top`: statusbar on top?
-* `status_format`: Marked up, to be expanded string for statusbar (callback:
-  update statusbar).
+* `status_format`: Marked up, to be expanded string for statusbar's left side
+  (callback: update statusbar).
+* `status_format_right`: Marked up, to be expanded string for statusbar's right side
+  (callback: update statusbar).
 * `status_background`: color which can be used to override Gtk theme.
 * `title_format_long`: titlebar string when no statusbar shown (will be
   expanded).
@@ -305,6 +312,9 @@ file).
   - `data`: The cookie data. Only included for "PUT" requests.
 * `scheme_handler`: handler to execute for each URI navigated to - the
   navigation request will be ignored if handler prints "USED\n"
+* `download_handler`: executed when a download is started. the handler script
+  should print a path that the download should be saved to, or print nothing
+  to cancel the download.
 * `fifo_dir`: location to store FIFOs.
 * `socket_dir`: location to store sockets.
 * `http_debug`: HTTP debug mode (value 0-3).
@@ -321,6 +331,7 @@ file).
   rendered content.
 * `useragent`: The User-Agent to send to the browser, expands variables in its
   definition.
+* `accept_languages`: The Accept-Language header to send with HTTP requests.
 * `zoom_level`: The factor by which elements in the page are scaled with respect
   to their original size. Setting this will resize the currently displayed page.
 * `zoom_type`: Whether to use "full-content" zoom (defaults to true). With
@@ -461,10 +472,10 @@ that should be evaluated on every update need to be escaped:
     set title_format_short = \\\@(date)\\\@
     # the title will stay constant as a literal "@(date)@"
 
-The `status_format` variable can contain
+The `status_format` and `status_format_right` variables can contain
 [Pango](http://library.gnome.org/devel/pango/stable/PangoMarkupFormat.html)
-markup . In the `status_format`, variables that might contain characters like
-`<`, `&` and `>`, should be wrapped in a `@[ ]@` substitution so that they don't
+markup . In these variables, expansions that might produce the characters `<`,
+`&` or `>` should be wrapped in `@[ ]@` substitutions so that they don't
 interfere with the status bar's markup; see the sample config for examples.
 
 ### EXTERNAL SCRIPTS
@@ -491,32 +502,36 @@ access to the following environment variables:
 * `$UZBL_URI`: The URI of the current page.
 * `$UZBL_TITLE`: The current page title.
 
-These variables are also available as positional arguments `$1` through `$7`,
-but this is deprecated and will be removed.
-
-Handler scripts (`cookie_handler`, `scheme_handler` and
+Handler scripts (`download_handler`, `cookie_handler`, `scheme_handler` and
 `authentication_handler`) are called with special arguments:
+
+* download handler
+
+  - `$1 url`: The URL of the item to be downloaded.
+  - `$2 suggested_filename`: A filename suggested by the server or based on the URL.
+  - `$3 content_type`: The mimetype of the file to be downloaded.
+  - `$4 total_size`: The size of the file to be downloaded in bytes. This may be inaccurate.
 
 * cookie handler
 
-  - `$8 GET/PUT`: Whether a cookie should be sent to the server (`GET`) or
+  - `$1 GET/PUT`: Whether a cookie should be sent to the server (`GET`) or
     stored by the browser (`PUT`).
-  - `$9 scheme`: Either `http` or `https`.
-  - `$10 host`: If current page URL is `www.example.com/somepage`, this could be
+  - `$2 scheme`: Either `http` or `https`.
+  - `$3 host`: If current page URL is `www.example.com/somepage`, this could be
     something else than `example.com`, eg advertising from another host.
-  - `$11 path`: The request address path.
-  - `$12 data`: The cookie data. Only included for `PUT` requests.
+  - `$4 path`: The request address path.
+  - `$5 data`: The cookie data. Only included for `PUT` requests.
 
 * scheme handler
 
-  - `$8 URI` of the page to be navigated to
+  - `$1 URI` of the page to be navigated to
 
 * authentication handler:
 
-  - `$8`: authentication zone unique identifier
-  - `$9`: domain part of URL that requests authentication
-  - `$10`: authentication realm
-  - `$11`: FALSE if this is the first attempt to authenticate, TRUE otherwise
+  - `$1`: authentication zone unique identifier
+  - `$2`: domain part of URL that requests authentication
+  - `$3`: authentication realm
+  - `$4`: FALSE if this is the first attempt to authenticate, TRUE otherwise
 
 ### Formfiller.sh
 
@@ -562,15 +577,15 @@ Example:
 Script will be executed on each authentication request.
 It will receive four auth-related parameters:
 
-    $8 authentication zone unique identifier (may be used as 'key')
-    $9 domain part of URL that requests authentication
-    $10 authentication realm
-    $11 FALSE if this is the first attempt to authenticate, TRUE otherwise
+    $1 authentication zone unique identifier (may be used as 'key')
+    $2 domain part of URL that requests authentication
+    $3 authentication realm
+    $4 FALSE if this is the first attempt to authenticate, TRUE otherwise
 
 Script is expected to print exactly two lines of text on stdout (that means
 its output must contain exactly two '\n' bytes).
 The first line contains username, the second one - password.
-If authentication fails, script will be executed again (with $11 = TRUE).
+If authentication fails, script will be executed again (with $4 = TRUE).
 Non-interactive scripts should handle this case and do not try to
 authenticate again to avoid loops. If number of '\n' characters in scripts
 output does not equal 2, authentication will fail.
@@ -579,32 +594,13 @@ That means 401 error will be displayed and uzbl won't try to authenticate anymor
 The simplest example of authentication handler script is:
 
 #!/bin/sh
-[ "$11" == "TRUE ] && exit
+[ "$4" == "TRUE ] && exit
 echo alice
 echo wonderland
 
 This script tries to authenticate as user alice with password wonderland once
 and never retries authentication.
 See examples for more sofisticated, interactive authentication handler.
-
-### JAVASCRIPT HELPER OBJECT DISABLED BECAUSE OF SECURITY LEAK
-
-JavaScript code run from `uzbl` is given a special object in the global
-namespace which gives special privileges to these scripts. This object is called
-`Uzbl`, and it is added and removed before and after the script execution so
-that it is hidden to web JavaScript code (there is no race condition, since all
-the JavaScript code runs in a single thread).
-
-Currently, the `Uzbl` object provides only one function:
-
-* `Uzbl.run( <command> )`
-  - Command is any `uzbl` command as defined above.
-  - Return value: a string, either empty or containing the output of the
-    command. Very few commands return their output currently, including `js`,
-    `script`, and `print`.
-  - Examples:
-    * `Uzbl.run("spawn insert_bookmark.sh")`
-    * `uri = Uzbl.run("print @uri")` (see variable expansion below)
 
 ### EVENTS
 
@@ -622,11 +618,10 @@ The EM allows:
 * Many fine-grained events (`hover_over_link`, `key_press`, `key_release`,..)
 * See example `uzbl-event-manager`.
 
-**Note**: Cookie events are not sent to an event handler but handled internally
-  through the cookie handler because of their synchronous nature. Cookie events
-  are really something completely different from all other events. Maybe someday
-  we'll use HTTP proxies or synchronous events (which also have other nice use
-  cases), but for now we still use the handler code.
+**Note**: Cookie events are sent in addition to (optionally) being handled by 
+  the cookie handler (set by the cookie_handler var). If using a handler it will
+  take precedence before the internal state configured by (add|delete)_cookie
+  commands.
 
 Events have this format:
 
@@ -664,8 +659,13 @@ Events have this format:
 * `EVENT [uzbl_instance_name] TITLE_CHANGED title_name`: When the title of the
   page (and hence maybe, the window title) changed. `title_name` is the new
   title.
-* `EVENT [uzbl_instance_name] DOWNLOAD_REQUEST download_uri`: When content needs
-  to be downloaded, `download_uri` is the URI to get.
+* `EVENT [uzbl_instance_name] DOWNLOAD_STARTED destination_path`: A download
+  has been started, the file will be saved to `destination_path`.
+* `EVENT [uzbl_instance_name] DOWNLOAD_PROGRESS destination_path progress`:
+  While a download is active this event notifies you of the progress.
+  `progress` is a decimal between 0 and 1.
+* `EVENT [uzbl_instance_name] DOWNLOAD_COMPLETE destination_path`: The
+  download being saved to `destination_path` is now complete.
 * `EVENT [uzbl_instance_name] LINK_HOVER uri`: The mouse hovers over the link
   `uri`.
 * `EVENT [uzbl_instance_name] LINK_UNHOVER uri`: The mouse leaves the link
@@ -695,6 +695,11 @@ Events have this format:
   Xembed mode, `plug_id` is the Xembed ID used.
 * `EVENT [uzbl_instance_name] BUILTINS command_list`: Shows a list of all `uzbl`
   commands, whitespace separated, on startup.
+* `EVENT [uzbl_instance_name] ADD_COOKIE domain path name value scheme expire`:
+  When a cookie was added or replaced. scheme is 'http' or 'https', expire will
+  be a unix-timestamp or empty
+* `EVENT [uzbl_instance_name] DELETE_COOKIE domain path name value scheme expire`:
+  When a cookie was deleted. arguments as ADD_COOKIE
 
 Events/requests which the EM and its plugins listens for
 
@@ -769,6 +774,15 @@ Events/requests which the EM and its plugins listens for
     `<index>` is `+`, advance the cursor by one character, and if it is `-`,
     move the cursor back by one character.
 * `START_COMPLETION`: TODO explain completion
+* `BLACKLIST_COOKIE`: add a rule for blacklisting cookies
+  - `request BLACKLIST_COOKIE <component> <regexp>`: Blacklist cookies where
+    `<component>` matches `<regexp>`. `<component>` is one of `domain`,
+    `path`, `name`, `value`, `scheme` or `expires`.
+* `WHITELIST_COOKIE`: add a rule for whitelisting cookies (if any whitelist is
+  set then only cookies that are whitelisted cookies will be used)
+  - `request WHITELIST_COOKIE <component> <regexp>`: Whitelist cookies where
+    `<component>` matches `<regexp>`. `<component>` is one of `domain`,
+    `path`, `name`, `value`, `scheme` or `expires`.
 
 ### COMMAND LINE ARGUMENTS
 

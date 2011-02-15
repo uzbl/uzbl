@@ -35,7 +35,7 @@ In alphabetical order:
     Daiki Ueno (ueno)  - fix for crash when opening image in new window
     Damien Leon - misc
     Daniel M. Hackney - documentation cleanups
-    David Keijser - various C and python patches.
+    David Keijser (keis) - the add_cookie/delete_cookie + distributor system, various C and python patches.
     Devon Jones <devon.jones@gmail.com> - uzbl_tabbed: bring_to_front
     Dieter Plaetinck (Dieter@be) <dieter AT plaetinck.be> - several contributions
     Dmytro Milinevskyy - uzbl-tabbed useability patches
@@ -52,6 +52,7 @@ In alphabetical order:
     Jan Kolkmeier (jouz) - scrolling, link following
     Jason Woofenden (JasonWoof) - geometry=maximized, link following
     Jochen Sprickerhof - session.sh enhancements
+    k0ral - split status bar, cleanup and bugfix patches
     Lars-Dominik Braun (PromyLOPh) - added ability to enable/disable the webkit page cache
     Laurence Withers (lwithers) - talk_to_socket
     Luca Bruno <lucab@debian.org> - bashims fixes
