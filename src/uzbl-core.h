@@ -87,7 +87,6 @@ typedef struct {
     /* stores (key)"variable name" -> (value)"pointer to var*/
     GHashTable     *proto_var;
 
-    gchar          *sync_stdout;
     GPtrArray      *connect_chan;
     GPtrArray      *client_chan;
 } Communication;
@@ -102,7 +101,8 @@ typedef struct {
     gchar    *selected_url;
     gchar    *last_selected_url;
     gchar    *executable_path;
-    gchar*   searchtx;
+    gchar   *searchtx;
+    gchar   *last_result;
     gboolean verbose;
     gboolean events_stdout;
     GPtrArray *event_buffer;
@@ -239,9 +239,6 @@ typedef struct {
 char *
 itos(int val);
 
-gchar*
-strfree(gchar *str);
-
 void
 clean_up(void);
 
@@ -344,9 +341,6 @@ create_window ();
 
 GtkPlug*
 create_plug ();
-
-void
-run_handler (const gchar *act, const gchar *args);
 
 void
 settings_init ();
@@ -482,9 +476,19 @@ builtins();
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
 
 typedef struct {
-    Command function;
-    gboolean no_split;
+    const gchar *key;
+    Command      function;
+    gboolean     no_split;
 } CommandInfo;
+
+const CommandInfo *
+parse_command_parts(const gchar *line, GArray *a);
+
+void
+parse_command_arguments(const gchar *p, GArray *a, gboolean no_split);
+
+void
+run_parsed_command(const CommandInfo *c, GArray *a, GString *result);
 
 typedef struct {
     gchar *name;

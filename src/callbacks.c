@@ -646,23 +646,26 @@ navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNe
         printf("Navigation requested -> %s\n", uri);
 
     if (uzbl.behave.scheme_handler) {
-        GString *s = g_string_new ("");
-        g_string_printf(s, "'%s'", uri);
+        GString *result = g_string_new ("");
+        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+        const CommandInfo *c = parse_command_parts(uzbl.behave.scheme_handler, a);
 
-        run_handler(uzbl.behave.scheme_handler, s->str);
+        if(c) {
+            g_array_append_val(a, uri);
+            run_parsed_command(c, a, result);
+        }
+        g_array_free(a, TRUE);
 
-        if(uzbl.comm.sync_stdout && strcmp (uzbl.comm.sync_stdout, "") != 0) {
-            char *p = strchr(uzbl.comm.sync_stdout, '\n' );
+        if(result->len > 0) {
+            char *p = strchr(result->str, '\n' );
             if ( p != NULL ) *p = '\0';
-            if (!strcmp(uzbl.comm.sync_stdout, "USED")) {
+            if (!strcmp(result->str, "USED")) {
                 webkit_web_policy_decision_ignore(policy_decision);
                 decision_made = TRUE;
             }
         }
-        if (uzbl.comm.sync_stdout)
-            uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
 
-        g_string_free(s, TRUE);
+        g_string_free(result, TRUE);
     }
     if (!decision_made)
         webkit_web_policy_decision_use(policy_decision);
@@ -849,27 +852,35 @@ download_cb(WebKitWebView *web_view, WebKitDownload *download, gpointer user_dat
        (this may be inaccurate, there's nothing we can do about that.)  */
     unsigned int total_size = webkit_download_get_total_size(download);
 
-    gchar *ev = g_strdup_printf("'%s' '%s' '%s' %d", uri, suggested_filename,
-                                                     content_type, total_size);
-    run_handler(uzbl.behave.download_handler, ev);
-    g_free(ev);
-
-    /* no response, cancel the download */
-    if(!uzbl.comm.sync_stdout) {
+    GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+    const CommandInfo *c = parse_command_parts(uzbl.behave.download_handler, a);
+    if(!c) {
         webkit_download_cancel(download);
+        g_array_free(a, TRUE);
         return FALSE;
     }
 
+    g_array_append_val(a, uri);
+    g_array_append_val(a, suggested_filename);
+    g_array_append_val(a, content_type);
+    gchar *total_size_s = g_strdup_printf("%d", total_size);
+    g_array_append_val(a, total_size_s);
+
+    GString *result = g_string_new ("");
+    run_parsed_command(c, a, result);
+
+    g_free(total_size_s);
+    g_array_free(a, TRUE);
+
     /* no response, cancel the download */
-    if(uzbl.comm.sync_stdout[0] == 0) {
+    if(result->len == 0) {
         webkit_download_cancel(download);
-        uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
         return FALSE;
     }
 
     /* we got a response, it's the path we should download the file to */
-    gchar *destination_path = uzbl.comm.sync_stdout;
-    uzbl.comm.sync_stdout = NULL;
+    gchar *destination_path = result->str;
+    g_string_free(result, FALSE);
 
     /* presumably people don't need newlines in their filenames. */
     char *p = strchr(destination_path, '\n');
