@@ -297,6 +297,12 @@ test_last_result (void) {
     g_string_free(result, TRUE);
 }
 
+void
+test_no_such_command (void) {
+    parse_cmd_line("no-such-command", NULL);
+    /* if we didn't crash then we're ok! */
+}
+
 int
 main (int argc, char *argv[]) {
     /* set up tests */
@@ -314,6 +320,8 @@ main (int argc, char *argv[]) {
     g_test_add_func("/test-command/js",             test_js);
 
     g_test_add_func("/test-command/last-result",    test_last_result);
+
+    g_test_add_func("/test-command/no-such-command", test_no_such_command);
 
     /* set up uzbl */
     initialize(argc, argv);

@@ -1283,7 +1283,8 @@ parse_cmd_line(const char *ctl_line, GString *result) {
         if((work_string[0] != '#')) { /* ignore comments */
             GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
             const CommandInfo *c = parse_command_parts(work_string, a);
-            run_parsed_command(c, a, result);
+            if(c)
+                run_parsed_command(c, a, result);
             g_array_free (a, TRUE);
         }
     }
