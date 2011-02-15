@@ -64,13 +64,6 @@ then
 	export UZBL_UTIL_DIR
 fi
 
-# uzbl-cookie-manager will exit if another instance is already running.
-# we could also check if its pid file exists to avoid having to spawn it.
-#if [ ! -f "$XDG_CACHE_HOME"/uzbl/cookie_daemon_socket.pid ]
-#then
-#	${UZBL_COOKIE_DAEMON:-uzbl-cookie-manager}
-#fi
-
 # uzbl-event-manager will exit if one is already running.
 # we could also check if its pid file exists to avoid having to spawn it.
 DAEMON_SOCKET="$XDG_CACHE_HOME"/uzbl/event_daemon

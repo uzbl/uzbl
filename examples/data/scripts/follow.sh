@@ -17,5 +17,5 @@ case $result in
     echo 'event FORM_ACTIVE' > "$UZBL_FIFO" ;;
   *XXXRESET_MODEXXX*)
     # a link was selected, reset uzbl's input mode
-    echo 'set mode=' > "$UZBL_FIFO" ;;
+    printf 'set mode=\nevent KEYCMD_CLEAR\n' > "$UZBL_FIFO" ;;
 esac

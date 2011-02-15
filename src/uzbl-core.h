@@ -43,6 +43,10 @@
 #include <sys/ioctl.h>
 #include <assert.h>
 
+#if GTK_CHECK_VERSION(2,91,0)
+    #include <gtk/gtkx.h>
+#endif
+
 #include "cookie-jar.h"
 
 #define LENGTH(x) (sizeof x / sizeof x[0])
@@ -90,7 +94,6 @@ typedef struct {
     gchar          *socket_path;
     GHashTable     *proto_var;  /* stores (key)"variable name" -> (value)"pointer to var */
 
-    gchar          *sync_stdout;
     GPtrArray      *connect_chan;
     GPtrArray      *client_chan;
 } Communication;
@@ -107,6 +110,7 @@ typedef struct {
     gchar*          searchtx;
     gboolean        verbose;
     GdkEventButton* last_button;
+    gchar*          last_result;
     gboolean        plug_mode;
 
     /* Events */
@@ -148,7 +152,6 @@ typedef struct {
     gchar*   socket_dir;
 
     /* Handlers */
-    gchar*   cookie_handler;
     gchar*   authentication_handler;
     gchar*   scheme_handler;
     gchar*   download_handler;
@@ -251,9 +254,9 @@ typedef struct {
     /*@null@*/ void (*func)(void);
 } uzbl_cmdprop;
 
-
 /* Functions */
 void        clean_up(void);
+void        update_title(void);
 
 /* Signal management functions */
 void        catch_sigterm(int s);
@@ -277,9 +280,6 @@ void        spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result
 void        spawn_sync_exec(WebKitWebView *web_view, GArray *argv, GString *result);
 void        parse_command(const char *cmd, const char *param, GString *result);
 void        parse_cmd_line(const char *ctl_line, GString *result);
-
-
-void        update_title(void);
 
 /* Keyboard events functions */
 gboolean    key_press_cb(GtkWidget* window, GdkEventKey* event);
@@ -340,9 +340,19 @@ void        builtins();
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
 
 typedef struct {
-    Command  function;
-    gboolean no_split;
+    const gchar *key;
+    Command      function;
+    gboolean     no_split;
 } CommandInfo;
+
+const CommandInfo *
+parse_command_parts(const gchar *line, GArray *a);
+
+void
+parse_command_arguments(const gchar *p, GArray *a, gboolean no_split);
+
+void
+run_parsed_command(const CommandInfo *c, GArray *a, GString *result);
 
 typedef struct {
     gchar*   name;

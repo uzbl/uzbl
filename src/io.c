@@ -129,26 +129,19 @@ control_stdin(GIOChannel *gio, GIOCondition condition) {
     return TRUE;
 }
 
-
 void
-create_stdin () {
-    GIOChannel *chan = NULL;
-    GError *error = NULL;
-
-    chan = g_io_channel_unix_new(fileno(stdin));
+create_stdin() {
+    GIOChannel *chan = g_io_channel_unix_new(fileno(stdin));
     if (chan) {
         if (!g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_stdin, NULL)) {
-            g_error ("Stdin: could not add watch\n");
-        } else {
-            if (uzbl.state.verbose)
-                printf ("Stdin: watch added successfully\n");
+            g_error ("create_stdin: could not add watch\n");
+        } else if (uzbl.state.verbose) {
+            printf ("create_stdin: watch added successfully\n");
         }
     } else {
-        g_error ("Stdin: Error while opening: %s\n", error->message);
+        g_error ("create_stdin: error while opening stdin\n");
     }
-    if (error) g_error_free (error);
 }
-
 
 gboolean
 remove_socket_from_array(GIOChannel *chan) {
@@ -162,7 +155,6 @@ remove_socket_from_array(GIOChannel *chan) {
         g_io_channel_unref (chan);
     return ret;
 }
-
 
 gboolean
 control_socket(GIOChannel *chan) {

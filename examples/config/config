@@ -129,7 +129,11 @@ set progress.pending    =
 set useragent         = Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}) (@(+uname -sm)@ [@ARCH_UZBL])
 
 # === Configure cookie blacklist ========================================================
-# Drop google analytics tracking cookies
+
+# Accept 'session cookies' from uzbl.org (when you have a whitelist all other cookies are dropped)
+#request WHITELIST_COOKIE domain 'uzbl.org$' expires '^$'
+
+# Drop google analytics tracking cookies (applied after whitelists if any)
 #request BLACKLIST_COOKIE name '^__utm.$'
 
 # === Key binding configuration ==============================================
@@ -172,6 +176,7 @@ set ebind     = @mode_bind global,-insert
 
 # Resets keycmd and returns to default mode.
 @on_event  ESCAPE    @set_mode
+@on_event  ESCAPE    event KEYCMD_CLEAR
 @bind   <Escape>     = event ESCAPE
 @bind   <Ctrl>[      = event ESCAPE
 
@@ -189,6 +194,15 @@ set ebind     = @mode_bind global,-insert
 @ebind  <Ctrl>u      = event SET_KEYCMD
 @ebind  <Ctrl>a      = event SET_CURSOR_POS 0
 @ebind  <Ctrl>e      = event SET_CURSOR_POS -1
+
+@ebind <Up>          = event HISTORY_PREV
+@ebind <Down>        = event HISTORY_NEXT
+@ebind <Ctrl>r<search:>_ = event HISTORY_SEARCH %s
+# Keycmd injection/append examples.
+#@ebind  <Ctrl>su = event INJECT_KEYCMD \@uri
+#@ebind  <Ctrl>st = event INJECT_KEYCMD \@title
+#@ebind  <Ctrl>du = event APPEND_KEYCMD \@uri
+#@ebind  <Ctrl>dt = event APPEND_KEYCMD \@title
 
 # --- Mouse bindings ---------------------------------------------------------
 

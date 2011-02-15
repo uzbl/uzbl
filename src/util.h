@@ -17,5 +17,4 @@ gboolean    for_each_line_in_file(const gchar *path, void (*callback)(const gcha
 enum exp_type get_exp_type(const gchar*);
 gchar*      find_existing_file(gchar*);
 char*       itos(int val);
-gchar*      strfree(gchar *str);
 gchar*      argv_idx(const GArray*, const guint);

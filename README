@@ -183,11 +183,6 @@ The following commands are recognized:
     the end, so the argument numbers will be higher.
 * `sync_sh <command>`
   - Synchronous version of `sh`, See `sync_spawn`.
-* `talk_to_socket <socketfile> <tokens>`
-  - Send a message to `<socketfile>` and wait for a response. `<tokens>` are
-    concatenated and separated by ASCII NUL bytes.
-  - Expects the socket type to be `SOCK_SEQPACKET` (see `connect(2)`).
-  - Waits for 500ms for a response.
 * `exit`
   - Closes `uzbl`.
 * `search <string>`
@@ -775,12 +770,12 @@ Events/requests which the EM and its plugins listens for
     move the cursor back by one character.
 * `START_COMPLETION`: TODO explain completion
 * `BLACKLIST_COOKIE`: add a rule for blacklisting cookies
-  - `request BLACKLIST_COOKIE <component> <regexp>`: Blacklist cookies where
+  - `request BLACKLIST_COOKIE [<component> <regexp>]*`: Blacklist cookies where
     `<component>` matches `<regexp>`. `<component>` is one of `domain`,
     `path`, `name`, `value`, `scheme` or `expires`.
 * `WHITELIST_COOKIE`: add a rule for whitelisting cookies (if any whitelist is
   set then only cookies that are whitelisted cookies will be used)
-  - `request WHITELIST_COOKIE <component> <regexp>`: Whitelist cookies where
+  - `request WHITELIST_COOKIE [<component> <regexp>]*`: Whitelist cookies where
     `<component>` matches `<regexp>`. `<component>` is one of `domain`,
     `path`, `name`, `value`, `scheme` or `expires`.
 

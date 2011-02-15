@@ -172,7 +172,7 @@ find_existing_file(gchar* path_list) {
         i++;
     }
 
-g_free(executable);
+    g_free(executable);
     g_strfreev(split);
     return NULL;
 }
@@ -184,12 +184,6 @@ itos(int val) {
 
     snprintf(tmp, sizeof(tmp), "%i", val);
     return g_strdup(tmp);
-}
-
-gchar*
-strfree(gchar *str) {
-    g_free(str);
-    return NULL;
 }
 
 gchar*
