@@ -165,6 +165,20 @@ create_var_to_name_hash() {
 
 
 /* --- UTILITY FUNCTIONS --- */
+enum exp_type {
+  EXP_ERR, EXP_SIMPLE_VAR, EXP_BRACED_VAR, EXP_EXPR, EXP_JS, EXP_ESCAPE
+};
+
+enum exp_type
+get_exp_type(const gchar *s) {
+  switch(*(s+1)) {
+    case '(': return EXP_EXPR;
+    case '{': return EXP_BRACED_VAR;
+    case '<': return EXP_JS;
+    case '[': return EXP_ESCAPE;
+    default:  return EXP_SIMPLE_VAR;
+  }
+}
 
 /*
  * recurse == 1: don't expand '@(command)@'

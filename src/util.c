@@ -21,12 +21,11 @@ get_xdg_var (XDG_Var xdg) {
     const gchar *actual_value = getenv(xdg.environmental);
     const gchar *home         = getenv("HOME");
 
-    if (!actual_value || !actual_value[0]) {
-        if (!xdg.default_value)
-            return NULL;
+    if (!actual_value || !actual_value[0])
+        actual_value = xdg.default_value;
 
-        return str_replace ("~", home, xdg.default_value);
-    }
+    if (!actual_value)
+        return NULL;
 
     return str_replace("~", home, actual_value);
 }
@@ -44,18 +43,16 @@ find_xdg_file (int xdg_type, const char* basename) {
     if (file_exists(path))
         return path;
 
+    if (xdg_type == 2)
+        return NULL;
+
     /* the file doesn't exist in the expected directory.
      * check if it exists in one of the system-wide directories. */
-    if (!file_exists(path) && xdg_type != 2) {
-        char *system_dirs = get_xdg_var(XDG[3 + xdg_type]);
-        path = find_existing_file2(system_dirs, basename);
-        g_free(system_dirs);
-    }
+    char *system_dirs = get_xdg_var(XDG[3 + xdg_type]);
+    path = find_existing_file2(system_dirs, basename);
+    g_free(system_dirs);
 
-    if(path)
-        return path;
-
-    return NULL;
+    return path;
 }
 
 gboolean
@@ -85,36 +82,17 @@ for_each_line_in_file(const gchar *path, void (*callback)(const gchar *l, void *
 
     GIOChannel *chan = g_io_channel_new_file(path, "r", NULL);
 
-    if (chan) {
-        while (g_io_channel_read_line(chan, &line, &len, NULL, NULL) == G_IO_STATUS_NORMAL) {
-          callback(line, user_data);
-          g_free(line);
-        }
-        g_io_channel_unref (chan);
+    if (!chan)
+        return FALSE;
 
-        return TRUE;
+    while (g_io_channel_read_line(chan, &line, &len, NULL, NULL) == G_IO_STATUS_NORMAL) {
+        callback(line, user_data);
+        g_free(line);
     }
 
-    return FALSE;
-}
+    g_io_channel_unref (chan);
 
-
-enum exp_type
-get_exp_type(const gchar *s) {
-    /* variables */
-    if(*(s+1) == '(')
-        return EXP_EXPR;
-    else if(*(s+1) == '{')
-        return EXP_BRACED_VAR;
-    else if(*(s+1) == '<')
-        return EXP_JS;
-    else if(*(s+1) == '[')
-        return EXP_ESCAPE;
-    else
-        return EXP_SIMPLE_VAR;
-
-    /*@notreached@*/
-return EXP_ERR;
+    return TRUE;
 }
 
 /* This function searches the directories in the : separated ($PATH style)
