@@ -1782,7 +1782,7 @@ main (int argc, char* argv[]) {
     send_event(INSTANCE_START, uzbl.info.pid_str, NULL);
 
     if (uzbl.state.plug_mode) {
-        char *t = itos(gtk_plug_get_id(uzbl.gui.plug));
+        char *t = g_strdup_printf("%d", gtk_plug_get_id(uzbl.gui.plug));
         send_event(PLUG_CREATED, t, NULL);
         g_free(t);
     }

@@ -66,14 +66,12 @@ test_useragent (void) {
 
 void
 test_WEBKIT_VERSION (void) {
-    GString* expected = g_string_new("");
-    g_string_append(expected, itos(webkit_major_version()));
-    g_string_append(expected, " ");
-    g_string_append(expected, itos(webkit_minor_version()));
-    g_string_append(expected, " ");
-    g_string_append(expected, itos(webkit_micro_version()));
+    gchar *expected = g_strdup_printf("%d %d %d", webkit_major_version(),
+                                                  webkit_minor_version(),
+                                                  webkit_micro_version());
 
-    g_assert_cmpstr(expand("@WEBKIT_MAJOR @WEBKIT_MINOR @WEBKIT_MICRO", 0), ==, g_string_free(expected, FALSE));
+    g_assert_cmpstr(expand("@WEBKIT_MAJOR @WEBKIT_MINOR @WEBKIT_MICRO", 0), ==, expected);
+    g_free(expected);
 }
 
 void
@@ -89,11 +87,11 @@ test_COMMIT (void) {
 void
 test_cmd_useragent_full (void) {
     GString* expected = g_string_new("Uzbl (Webkit ");
-    g_string_append(expected, itos(WEBKIT_MAJOR_VERSION));
+    g_string_append(expected, g_strdup_printf("%d", WEBKIT_MAJOR_VERSION));
     g_string_append(expected, ".");
-    g_string_append(expected, itos(WEBKIT_MINOR_VERSION));
+    g_string_append(expected, g_strdup_printf("%d", WEBKIT_MINOR_VERSION));
     g_string_append(expected, ".");
-    g_string_append(expected, itos(WEBKIT_MICRO_VERSION));
+    g_string_append(expected, g_strdup_printf("%d", WEBKIT_MICRO_VERSION));
     g_string_append(expected, ") (");
 
     struct utsname unameinfo;

@@ -441,7 +441,7 @@ void
 progress_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
     (void) param_spec;
     int progress = webkit_web_view_get_progress(web_view) * 100;
-    gchar *prg_str = itos(progress);
+    gchar *prg_str = g_strdup_printf("%d", progress);
     send_event(LOAD_PROGRESS, prg_str, NULL);
     g_free(prg_str);
 }

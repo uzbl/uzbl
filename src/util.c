@@ -177,15 +177,6 @@ find_existing_file(gchar* path_list) {
     return NULL;
 }
 
-
-char*
-itos(int val) {
-    char tmp[20];
-
-    snprintf(tmp, sizeof(tmp), "%i", val);
-    return g_strdup(tmp);
-}
-
 gchar*
 argv_idx(const GArray *a, const guint idx) {
     return g_array_index(a, gchar*, idx);
