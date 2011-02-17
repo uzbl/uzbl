@@ -123,8 +123,13 @@ control_stdin(GIOChannel *gio, GIOCondition condition) {
     if ( (ret == G_IO_STATUS_ERROR) || (ret == G_IO_STATUS_EOF) )
         return FALSE;
 
-    parse_cmd_line(ctl_line, NULL);
+    GString *result = g_string_new("");
+
+    parse_cmd_line(ctl_line, result);
     g_free(ctl_line);
+
+    puts(result->str);
+    g_string_free(result, TRUE);
 
     return TRUE;
 }
