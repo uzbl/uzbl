@@ -241,7 +241,9 @@ extern UzblCore uzbl; /* Main Uzbl object */
 typedef void sigfunc(int);
 
 /* Uzbl variables */
-enum ptr_type {TYPE_INT, TYPE_STR, TYPE_FLOAT};
+enum ptr_type {TYPE_INT = 1, TYPE_STR, TYPE_FLOAT,
+    TYPE_NAME, TYPE_FORMATTEDSTR // used by send_event
+};
 typedef struct {
     enum ptr_type type;
     union {
@@ -315,6 +317,7 @@ void        handle_authentication (SoupSession *session,
 void        handle_cookies (SoupSession *session,
                             SoupMessage *msg,
                             gpointer     user_data);
+gboolean    valid_name(const gchar* name);
 void        set_var(WebKitWebView *page, GArray *argv, GString *result);
 void        act_dump_config();
 void        act_dump_config_as_events();

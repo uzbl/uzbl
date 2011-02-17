@@ -116,7 +116,7 @@ cmd_set_status() {
 
 void
 cmd_load_uri() {
-	load_uri_imp (uzbl.state.uri);
+    load_uri_imp (uzbl.state.uri);
 }
 
 void
@@ -413,12 +413,12 @@ link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpoin
 
         if(s->last_selected_url &&
            g_strcmp0(s->selected_url, s->last_selected_url))
-            send_event(LINK_UNHOVER, s->last_selected_url, NULL);
+            send_event(LINK_UNHOVER, NULL, TYPE_STR, s->last_selected_url, NULL);
 
-        send_event(LINK_HOVER, s->selected_url, NULL);
+        send_event(LINK_HOVER, NULL, TYPE_STR, s->selected_url, NULL);
     }
     else if(s->last_selected_url) {
-            send_event(LINK_UNHOVER, s->last_selected_url, NULL);
+            send_event(LINK_UNHOVER, NULL, TYPE_STR, s->last_selected_url, NULL);
     }
 
     update_title();
@@ -433,7 +433,7 @@ title_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
         g_free (uzbl.gui.main_title);
     uzbl.gui.main_title = title ? g_strdup (title) : g_strdup ("(no title)");
     update_title();
-    send_event(TITLE_CHANGED, uzbl.gui.main_title, NULL);
+    send_event(TITLE_CHANGED, NULL, TYPE_STR, uzbl.gui.main_title, NULL);
     g_setenv("UZBL_TITLE", uzbl.gui.main_title, TRUE);
 }
 
@@ -441,9 +441,7 @@ void
 progress_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
     (void) param_spec;
     int progress = webkit_web_view_get_progress(web_view) * 100;
-    gchar *prg_str = g_strdup_printf("%d", progress);
-    send_event(LOAD_PROGRESS, prg_str, NULL);
-    g_free(prg_str);
+    send_event(LOAD_PROGRESS, NULL, TYPE_INT, progress, NULL);
 }
 
 void
@@ -454,7 +452,7 @@ load_status_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
     WebKitLoadStatus status = webkit_web_view_get_load_status(web_view);
     switch(status) {
         case WEBKIT_LOAD_PROVISIONAL:
-            send_event(LOAD_START, uzbl.state.uri, NULL);
+            send_event(LOAD_START, NULL, TYPE_STR, uzbl.state.uri ? uzbl.state.uri : "", NULL);
             break;
         case WEBKIT_LOAD_COMMITTED:
             g_free (uzbl.state.uri);
@@ -462,10 +460,10 @@ load_status_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
             uzbl.state.uri = g_string_free (newuri, FALSE);
             g_setenv("UZBL_URI", uzbl.state.uri, TRUE);
 
-            send_event(LOAD_COMMIT, webkit_web_frame_get_uri (frame), NULL);
+            send_event(LOAD_COMMIT, NULL, TYPE_STR, webkit_web_frame_get_uri (frame), NULL);
             break;
         case WEBKIT_LOAD_FINISHED:
-            send_event(LOAD_FINISH, webkit_web_frame_get_uri(frame), NULL);
+            send_event(LOAD_FINISH, NULL, TYPE_STR, webkit_web_frame_get_uri(frame), NULL);
             break;
         case WEBKIT_LOAD_FIRST_VISUALLY_NON_EMPTY_LAYOUT:
             break; /* we don't do anything with this (yet) */
@@ -482,7 +480,7 @@ selection_changed_cb(WebKitWebView *webkitwebview, gpointer ud) {
 
     webkit_web_view_copy_clipboard(webkitwebview);
     tmp = gtk_clipboard_wait_for_text(gtk_clipboard_get (GDK_SELECTION_CLIPBOARD));
-    send_event(SELECTION_CHANGED, tmp, NULL);
+    send_event(SELECTION_CHANGED, NULL, TYPE_STR, tmp ? tmp : "", NULL);
     g_free(tmp);
 }
 
@@ -492,11 +490,12 @@ load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer 
     (void) frame;
     (void) ud;
     GError *err = web_err;
-    gchar *details;
 
-    details = g_strdup_printf("%s %d:%s", uri, err->code, err->message);
-    send_event(LOAD_ERROR, details, NULL);
-    g_free(details);
+    send_event (LOAD_ERROR, NULL,
+        TYPE_STR, uri,
+        TYPE_INT, err->code,
+        TYPE_STR, err->message,
+        NULL);
 }
 
 void
@@ -516,7 +515,7 @@ configure_event_cb(GtkWidget* window, GdkEventConfigure* event) {
     retrieve_geometry();
 
     if(strcmp(lastgeo, uzbl.gui.geometry))
-        send_event(GEOMETRY_CHANGED, uzbl.gui.geometry, NULL);
+        send_event(GEOMETRY_CHANGED, NULL, TYPE_STR, uzbl.gui.geometry, NULL);
     g_free(lastgeo);
 
     return FALSE;
@@ -528,10 +527,7 @@ focus_cb(GtkWidget* window, GdkEventFocus* event, void *ud) {
     (void) event;
     (void) ud;
 
-    if(event->in)
-        send_event(FOCUS_GAINED, "", NULL);
-    else
-        send_event(FOCUS_LOST, "", NULL);
+    send_event (event->in?FOCUS_GAINED:FOCUS_LOST, NULL, NULL);
 
     return FALSE;
 }
@@ -573,9 +569,9 @@ button_press_cb (GtkWidget* window, GdkEventButton* event) {
         /* left click */
         if(event->button == 1) {
             if((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE))
-                send_event(FORM_ACTIVE, "button1", NULL);
+                send_event(FORM_ACTIVE, NULL, TYPE_NAME, "button1", NULL);
             else if((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT))
-                send_event(ROOT_ACTIVE, "button1", NULL);
+                send_event(ROOT_ACTIVE, NULL, TYPE_NAME, "button1", NULL);
         }
         else if(event->button == 2 && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
             sendev    = TRUE;
@@ -588,8 +584,8 @@ button_press_cb (GtkWidget* window, GdkEventButton* event) {
 
         if(sendev) {
             details = g_strdup_printf("Button%d", event->button);
-            send_event(KEY_PRESS, details, NULL);
-            g_free(details);
+            send_event(KEY_PRESS, NULL, TYPE_NAME, details, NULL);
+            g_free (details);
         }
     }
 
@@ -617,8 +613,8 @@ button_release_cb (GtkWidget* window, GdkEventButton* event) {
 
         if(sendev) {
             details = g_strdup_printf("Button%d", event->button);
-            send_event(KEY_RELEASE, details, NULL);
-            g_free(details);
+            send_event(KEY_RELEASE, NULL, TYPE_NAME, details, NULL);
+            g_free (details);
         }
     }
 
@@ -631,9 +627,11 @@ motion_notify_cb(GtkWidget* window, GdkEventMotion* event, gpointer user_data) {
     (void) event;
     (void) user_data;
 
-    gchar *details = g_strdup_printf("%.0lf %.0lf %u", event->x, event->y, event->state);
-    send_event(PTR_MOVE, details, NULL);
-    g_free(details);
+    send_event (PTR_MOVE, NULL,
+        TYPE_FLOAT, event->x,
+        TYPE_FLOAT, event->y,
+        TYPE_INT, event->state,
+        NULL);
 
     return FALSE;
 }
@@ -690,7 +688,7 @@ new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
     (void) user_data;
 
     if (uzbl.state.verbose)
-        printf("New window requested -> %s \n", webkit_network_request_get_uri (request));
+        printf ("New window requested -> %s \n", webkit_network_request_get_uri (request));
 
     /* This event function causes troubles with `target="_blank"` anchors.
      * Either we:
@@ -704,9 +702,9 @@ new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
      * We are leaving this uncommented as we would rather links open twice
      * than not at all.
      */
-    send_event(NEW_WINDOW, webkit_network_request_get_uri (request), NULL);
+    send_event (NEW_WINDOW, NULL, TYPE_STR, webkit_network_request_get_uri (request), NULL);
 
-    webkit_web_policy_decision_ignore(policy_decision);
+    webkit_web_policy_decision_ignore (policy_decision);
     return TRUE;
 }
 
@@ -736,7 +734,7 @@ request_starting_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitWebRes
     (void) response;
     (void) user_data;
 
-    send_event(REQUEST_STARTING, webkit_network_request_get_uri(request), NULL);
+    send_event (REQUEST_STARTING, NULL, TYPE_STR, webkit_network_request_get_uri(request), NULL);
 }
 
 void
@@ -751,7 +749,7 @@ create_web_view_js2_cb (WebKitWebView* web_view, GParamSpec param_spec) {
         gtk_widget_destroy(GTK_WIDGET(web_view));
     }
     else
-        send_event(NEW_WINDOW, uri, NULL);
+        send_event(NEW_WINDOW, NULL, TYPE_STR, uri, NULL);
 }
 
 
@@ -792,9 +790,10 @@ download_progress_cb(WebKitDownload *download, GParamSpec *pspec, gpointer user_
     const gchar *dest_uri = webkit_download_get_destination_uri(download);
     const gchar *dest_path = dest_uri + strlen("file://");
 
-    gchar *details = g_strdup_printf("%s %.2lf", dest_path, progress);
-    send_event(DOWNLOAD_PROGRESS, details, NULL);
-    g_free(details);
+    send_event(DOWNLOAD_PROGRESS, NULL,
+        TYPE_STR, dest_path,
+        TYPE_FLOAT, progress,
+        NULL);
 }
 
 void
@@ -814,7 +813,7 @@ download_status_cb(WebKitDownload *download, GParamSpec *pspec, gpointer user_da
         {
             const gchar *dest_uri = webkit_download_get_destination_uri(download);
             const gchar *dest_path = dest_uri + strlen("file://");
-            send_event(DOWNLOAD_COMPLETE, dest_path, NULL);
+            send_event(DOWNLOAD_COMPLETE, NULL, TYPE_STR, dest_path, NULL);
         }
     }
 }
@@ -905,7 +904,7 @@ download_cb(WebKitWebView *web_view, WebKitDownload *download, gpointer user_dat
         g_free(rel_path);
     }
 
-    send_event(DOWNLOAD_STARTED, destination_path, NULL);
+    send_event(DOWNLOAD_STARTED, NULL, TYPE_STR, destination_path, NULL);
 
     /* convert absolute path to file:// URI */
     gchar *destination_uri = g_strconcat("file://", destination_path, NULL);
@@ -926,12 +925,13 @@ scroll_vert_cb(GtkAdjustment *adjust, void *w)
     gdouble min = gtk_adjustment_get_lower(adjust);
     gdouble max = gtk_adjustment_get_upper(adjust);
     gdouble page = gtk_adjustment_get_page_size(adjust);
-    gchar* details;
-    details = g_strdup_printf("%g %g %g %g", value, min, max, page);
 
-    send_event(SCROLL_VERT, details, NULL);
-
-    g_free(details);
+    send_event (SCROLL_VERT, NULL,
+        TYPE_FLOAT, value,
+        TYPE_FLOAT, min,
+        TYPE_FLOAT, max,
+        TYPE_FLOAT, page,
+        NULL);
 
     return (FALSE);
 }
@@ -945,12 +945,13 @@ scroll_horiz_cb(GtkAdjustment *adjust, void *w)
     gdouble min = gtk_adjustment_get_lower(adjust);
     gdouble max = gtk_adjustment_get_upper(adjust);
     gdouble page = gtk_adjustment_get_page_size(adjust);
-    gchar* details;
-    details = g_strdup_printf("%g %g %g %g", value, min, max, page);
 
-    send_event(SCROLL_HORIZ, details, NULL);
-
-    g_free(details);
+    send_event (SCROLL_HORIZ, NULL,
+        TYPE_FLOAT, value,
+        TYPE_FLOAT, min,
+        TYPE_FLOAT, max,
+        TYPE_FLOAT, page,
+        NULL);
 
     return (FALSE);
 }
@@ -1020,3 +1021,5 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
         }
     }
 }
+
+/* vi: set et ts=4: */
