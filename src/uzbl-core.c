@@ -1222,6 +1222,36 @@ valid_name(const gchar* name) {
     return strpbrk(name, invalid_chars) == NULL;
 }
 
+void
+send_set_var_event(const char *name, const uzbl_cmdprop *c) {
+    /* check for the variable type */
+    switch(c->type) {
+    case TYPE_STR:
+        send_event (VARIABLE_SET, NULL,
+            TYPE_NAME, name,
+            TYPE_NAME, "str",
+            TYPE_STR, *c->ptr.s ? *c->ptr.s : " ",
+            NULL);
+        break;
+    case TYPE_INT:
+        send_event (VARIABLE_SET, NULL,
+            TYPE_NAME, name,
+            TYPE_NAME, "int",
+            TYPE_INT, *c->ptr.i,
+            NULL);
+        break;
+    case TYPE_FLOAT:
+        send_event (VARIABLE_SET, NULL,
+            TYPE_NAME, name,
+            TYPE_NAME, "float",
+            TYPE_FLOAT, *c->ptr.f,
+            NULL);
+        break;
+    default:
+        g_assert_not_reached();
+    }
+}
+
 gboolean
 set_var_value(const gchar *name, gchar *val) {
     uzbl_cmdprop *c = NULL;
@@ -1236,31 +1266,18 @@ set_var_value(const gchar *name, gchar *val) {
             buf = g_strdup(val);
             g_free(*c->ptr.s);
             *c->ptr.s = buf;
-            send_event (VARIABLE_SET, NULL,
-                TYPE_NAME, name,
-                TYPE_NAME, "str",
-                TYPE_STR, *c->ptr.s ? *c->ptr.s : " ",
-                NULL);
             break;
         case TYPE_INT:
             *c->ptr.i = (int)strtoul(val, &endp, 10);
-            send_event (VARIABLE_SET, NULL,
-                TYPE_NAME, name,
-                TYPE_NAME, "int",
-                TYPE_INT, *c->ptr.i,
-                NULL);
             break;
         case TYPE_FLOAT:
             *c->ptr.f = strtod(val, &endp);
-            send_event (VARIABLE_SET, NULL,
-                TYPE_NAME, name,
-                TYPE_NAME, "float",
-                TYPE_FLOAT, *c->ptr.f,
-                NULL);
             break;
         default:
             g_assert_not_reached();
         }
+
+        send_set_var_event(name, c);
 
         /* invoke a command specific function */
         if(c->func) c->func();
@@ -1579,35 +1596,8 @@ dump_var_hash_as_event(gpointer k, gpointer v, gpointer ud) {
     (void) ud;
     uzbl_cmdprop *c = v;
 
-    if(!c->dump)
-        return;
-
-    /* check for the variable type */
-    switch(c->type) {
-    case TYPE_STR:
-        send_event (VARIABLE_SET, NULL,
-            TYPE_NAME, (char*)k,
-            TYPE_NAME, "str",
-            TYPE_STR, *c->ptr.s ? *c->ptr.s : " ",
-            NULL);
-        break;
-    case TYPE_INT:
-        send_event (VARIABLE_SET, NULL,
-            TYPE_NAME, (char*)k,
-            TYPE_NAME, "int",
-            TYPE_INT, *c->ptr.i,
-            NULL);
-        break;
-    case TYPE_FLOAT:
-        send_event (VARIABLE_SET, NULL,
-            TYPE_NAME, (char*)k,
-            TYPE_NAME, "float",
-            TYPE_FLOAT, *c->ptr.f,
-            NULL);
-        break;
-    default:
-        g_assert_not_reached();
-    }
+    if(c->dump)
+        send_set_var_event(k, c);
 }
 
 void
