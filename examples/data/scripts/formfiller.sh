@@ -9,29 +9,18 @@
 #
 
 action=$1
-shift $#
 
-keydir=$HOME/etc/uzbl/dforms
+. "$UZBL_UTIL_DIR/uzbl-dir.sh"
+. "$UZBL_UTIL_DIR/editor.sh"
 
-mkdir -p "$keydir" || exit
-
-Ed () { "${VTERM:-xterm}" -e "${VISUAL:-${EDITOR:-vi}}" "$@"; }
-
-Dmenu ()
-{
-    dmenu -p "choose profile" \
-        ${DMENU_FONT+-fn "$DMENU_FONT"} \
-        -nb "#0f0f0f" -nf "#4e7093" -sb "#003d7c" -sf "#3a9bff" \
-        -l 4 \
-        "$@"
-}
+mkdir -p "$UZBL_FORMS_DIR" || exit
 
 domain=${UZBL_URI#*://}
 domain=${domain%%/*}
 
 test "$domain" || exit
 
-file=$keydir/$domain
+file=$UZBL_FORMS_DIR/$domain
 
 GenForm ()
 {
@@ -48,10 +37,18 @@ GenForm ()
 }
 
 GetOption ()
+{
+    DMENU_SCHEME=formfiller
+    DMENU_PROMPT="choose profile"
+    DMENU_LINES=4
+
+    . "$UZBL_UTIL_DIR/dmenu.sh"
+
     if [ $(grep -c '^!profile' "$1") -gt 1 ]
-    then sed -n 's/^!profile=//p' "$1" | Dmenu
+    then sed -n 's/^!profile=//p' "$1" | $DMENU
     else sed -n 's/^!profile=//p' "$1"
     fi
+}
 
 ParseProfile ()
 {
@@ -100,12 +97,12 @@ New ()
       echo '!'
     } >> "$file"
     chmod 600 "$file"
-    Ed "$file"
+    $UZBL_EDITOR "$file"
 }
 
 Edit ()
     if [ -e "$file" ]
-    then Ed "$file"
+    then $UZBL_EDITOR "$file"
     else New
     fi
 
@@ -131,7 +128,7 @@ Once ()
     GenForm > "$tmpfile"
     chmod 600 "$tmpfile"
 
-    Ed "$tmpfile"
+    $UZBL_EDITOR "$tmpfile"
 
     test -e "$tmpfile" &&
     ParseFields < "$tmpfile" \
