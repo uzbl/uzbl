@@ -737,7 +737,8 @@ act_dump_config_as_events() {
 void
 load_uri(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void) web_view; (void) result;
-    set_var_value("uri", argv_idx(argv, 0));
+    gchar * uri = argv_idx(argv, 0);
+    set_var_value("uri", uri ? uri : "");
 }
 
 /* Javascript*/
@@ -1274,6 +1275,8 @@ set_var_value(const gchar *name, gchar *val) {
     uzbl_cmdprop *c = NULL;
     char *endp = NULL;
     char *buf = NULL;
+
+    g_assert(val != NULL);
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         if(!c->writeable) return FALSE;

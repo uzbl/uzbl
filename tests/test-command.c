@@ -282,6 +282,11 @@ test_js (void) {
     g_string_free(result, TRUE);
 }
 
+void test_uri(void) {
+    /* Testing for a crash, not crashing is a pass */
+    parse_cmd_line("uri", NULL);
+}
+
 void
 test_last_result (void) {
     GString *result = g_string_new("");
@@ -313,6 +318,7 @@ main (int argc, char *argv[]) {
     g_test_add("/test-command/event",          struct EventFixture, NULL, event_fixture_setup, test_event,        event_fixture_teardown);
 
     g_test_add_func("/test-command/print",          test_print);
+    g_test_add_func("/test-command/uri",            test_uri);
     g_test_add_func("/test-command/scroll",         test_scroll);
     g_test_add_func("/test-command/toggle-status",  test_toggle_status);
     g_test_add_func("/test-command/sync-sh",        test_sync_sh);
@@ -329,7 +335,7 @@ main (int argc, char *argv[]) {
     uzbl.state.config_file = "/tmp/uzbl-config";
     uzbl.comm.fifo_path = "/tmp/some-nonexistant-fifo";
     uzbl.comm.socket_path = "/tmp/some-nonexistant-socket";
-    uzbl.state.uri = "http://example.org/";
+    uzbl.state.uri = g_strdup("http://example.org/");
     uzbl.gui.main_title = "Example.Org";
 
     uzbl.state.instance_name = INSTANCE_NAME;
