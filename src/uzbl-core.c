@@ -1161,8 +1161,10 @@ parse_command_parts(const gchar *line, GArray *a) {
     CommandInfo *c = NULL;
 
     gchar *exp_line = expand(line, 0);
-    if(exp_line[0] == '\0')
+    if(exp_line[0] == '\0') {
+        g_free(exp_line);
         return NULL;
+    }
 
     /* separate the line into the command and its parameters */
     gchar **tokens = g_strsplit(exp_line, " ", 2);
