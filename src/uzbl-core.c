@@ -1230,7 +1230,8 @@ move_statusbar() {
     }
     g_object_unref(uzbl.gui.scrolled_win);
     g_object_unref(uzbl.gui.mainbar);
-    gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
+    if (!uzbl.state.plug_mode)
+        gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
     return;
 }
 

@@ -957,16 +957,28 @@ scroll_horiz_cb(GtkAdjustment *adjust, void *w)
 }
 
 void
-run_menu_command(GtkWidget *menu, const char *line) {
+run_menu_command(GtkWidget *menu, MenuItem *mi) {
     (void) menu;
 
-    parse_cmd_line(line, NULL);
+    if (mi->context & WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE) {
+        gchar* uri;
+        g_object_get(mi->hittest, "image-uri", &uri, NULL);
+        gchar* cmd = g_strdup_printf("%s %s", mi->cmd, uri);
+
+        parse_cmd_line(cmd, NULL);
+
+        g_free(cmd);
+        g_free(uri);
+        g_object_unref(mi->hittest);
+    }
+    else {
+        parse_cmd_line(mi->cmd, NULL);
+    }
 }
 
 
 void
 populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
-    (void) v;
     (void) c;
     GUI *g = &uzbl.gui;
     GtkWidget *item;
@@ -981,10 +993,18 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
     if((context = get_click_context(NULL)) == -1)
         return;
 
-
     for(i=0; i < uzbl.gui.menu_items->len; i++) {
         hit = 0;
         mi = g_ptr_array_index(uzbl.gui.menu_items, i);
+
+        if (mi->context & WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE) {
+            GdkEventButton ev;
+            gint x, y;
+            gdk_window_get_pointer(gtk_widget_get_window(v), &x, &y, NULL);
+            ev.x = x;
+            ev.y = y;
+            mi->hittest = webkit_web_view_get_hit_test_result(v, &ev);
+        }
 
         if((mi->context > WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT) &&
                 (context & mi->context)) {
@@ -996,7 +1016,7 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
             else {
                 item = gtk_menu_item_new_with_label(mi->name);
                 g_signal_connect(item, "activate",
-                        G_CALLBACK(run_menu_command), mi->cmd);
+                        G_CALLBACK(run_menu_command), mi);
                 gtk_menu_shell_append(GTK_MENU_SHELL(m), item);
                 gtk_widget_show(item);
             }
@@ -1014,7 +1034,7 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
             else {
                 item = gtk_menu_item_new_with_label(mi->name);
                 g_signal_connect(item, "activate",
-                        G_CALLBACK(run_menu_command), mi->cmd);
+                        G_CALLBACK(run_menu_command), mi);
                 gtk_menu_shell_append(GTK_MENU_SHELL(m), item);
                 gtk_widget_show(item);
             }

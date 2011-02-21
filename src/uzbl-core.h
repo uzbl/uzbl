@@ -362,6 +362,7 @@ typedef struct {
     gchar*   cmd;
     gboolean issep;
     guint    context;
+    WebKitHitTestResult* hittest;
 } MenuItem;
 
 #endif
