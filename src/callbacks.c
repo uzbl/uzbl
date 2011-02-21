@@ -940,14 +940,13 @@ run_menu_command(GtkWidget *menu, MenuItem *mi) {
     if (mi->context & WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE) {
         gchar* uri;
         g_object_get(mi->hittest, "image-uri", &uri, NULL);
-        
-        gchar* cmd = g_malloc(strlen(uri) + strlen(mi->cmd) + 5);
-        g_sprintf(cmd, "%s %s", mi->cmd, uri);
+        gchar* cmd = g_strdup_printf("%s %s", mi->cmd, uri);
 
         parse_cmd_line(cmd, NULL);
 
         g_free(cmd);
         g_free(uri);
+        g_object_unref(mi->hittest);
     }
     else {
         parse_cmd_line(mi->cmd, NULL);
