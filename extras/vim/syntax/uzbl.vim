@@ -1,7 +1,7 @@
 " Vim syntax file
 " Language:     Uzbl config syntax
-" Maintainer:   Mason Larobina <mason.larobina@gmail.com>
-" Contributors: Gregor Uhlenheuer (kongo2002)
+" Maintainer:   Gregor Uhlenheuer (kongo2002) <kongo2002@gmail.com>
+" Contributors: Mason Larobina <mason.larobina@gmail.com>
 "               Pawel Tomak (grodzik) <pawel.tomak@gmail.com>
 " Version:      0.1
 "
