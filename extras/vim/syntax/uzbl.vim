@@ -37,8 +37,8 @@ syn keyword uzblKeyword menu_remove menu_link_remove menu_image_remove
 syn keyword uzblKeyword menu_editable_remove hardcopy include
 
 " Match 'js' and 'sh' only without a dot in front
-syn match uzblKeyword /\.\@<!sh/
-syn match uzblKeyword /\.\@<!js/
+syn match uzblKeyword /\.\@<!sh\s\+/
+syn match uzblKeyword /\.\@<!js\s\+/
 
 " Comments
 syn match uzblTodo /TODO:/ contained
