@@ -34,7 +34,11 @@ syn keyword uzblKeyword request menu_add menu_link_add menu_image_add
 syn keyword uzblKeyword menu_editable_add menu_separator menu_link_separator
 syn keyword uzblKeyword menu_image_separator menu_editable_separator
 syn keyword uzblKeyword menu_remove menu_link_remove menu_image_remove
-syn keyword uzblKeyword menu_editable_remove hardcopy include js sh
+syn keyword uzblKeyword menu_editable_remove hardcopy include
+
+" Match 'js' and 'sh' only without a dot in front
+syn match uzblKeyword /\.\@<!sh/
+syn match uzblKeyword /\.\@<!js/
 
 " Comments
 syn match uzblTodo /TODO:/ contained
