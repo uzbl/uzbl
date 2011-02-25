@@ -67,8 +67,6 @@ typedef struct {
     GtkWidget*     mainbar_label_right;
 
     /* Scrolling */
-    GtkScrollbar*  scbar_v;   /* Horizontal and Vertical Scrollbar */
-    GtkScrollbar*  scbar_h;   /* (These are still hidden) */
     GtkAdjustment* bar_v;     /* Information about document length */
     GtkAdjustment* bar_h;     /* and scrolling position */
     int            scrollbars_visible;

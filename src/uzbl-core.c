@@ -1391,13 +1391,13 @@ update_title(void) {
     }
 }
 
-
 void
 create_scrolled_win() {
     GUI* g = &uzbl.gui;
 
     g->web_view     = WEBKIT_WEB_VIEW(webkit_web_view_new());
     g->scrolled_win = gtk_scrolled_window_new(NULL, NULL);
+    WebKitWebFrame *wf = webkit_web_view_get_main_frame (g->web_view);
 
     gtk_scrolled_window_set_policy(
         GTK_SCROLLED_WINDOW(g->scrolled_win),
@@ -1431,6 +1431,10 @@ create_scrolled_win() {
       "signal::populate-popup",                       (GCallback)populate_popup_cb,       NULL,
       "signal::focus-in-event",                       (GCallback)focus_cb,                NULL,
       "signal::focus-out-event",                      (GCallback)focus_cb,                NULL,
+      NULL);
+
+    g_object_connect (G_OBJECT (wf),
+      "signal::scrollbars-policy-changed",            (GCallback)scrollbars_policy_cb,    NULL,
       NULL);
 }
 
@@ -1651,12 +1655,12 @@ set_webview_scroll_adjustments() {
       uzbl.gui.bar_h, uzbl.gui.bar_v);
 #endif
 
-    g_object_connect((GObject*)uzbl.gui.bar_v,
+    g_object_connect(G_OBJECT (uzbl.gui.bar_v),
       "signal::value-changed",  (GCallback)scroll_vert_cb,  NULL,
       "signal::changed",        (GCallback)scroll_vert_cb,  NULL,
       NULL);
 
-    g_object_connect((GObject*)uzbl.gui.bar_h,
+    g_object_connect(G_OBJECT (uzbl.gui.bar_h),
       "signal::value-changed",  (GCallback)scroll_horiz_cb, NULL,
       "signal::changed",        (GCallback)scroll_horiz_cb, NULL,
       NULL);
@@ -1808,10 +1812,8 @@ main (int argc, char* argv[]) {
     }
 
     /* Scrolling */
-    uzbl.gui.scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);
-    uzbl.gui.bar_v = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_v);
-    uzbl.gui.scbar_h = (GtkScrollbar*) gtk_hscrollbar_new (NULL);
-    uzbl.gui.bar_h = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_h);
+    uzbl.gui.bar_h = gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win));
+    uzbl.gui.bar_v = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win));
 
     set_webview_scroll_adjustments();
 

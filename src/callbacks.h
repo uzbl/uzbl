@@ -216,3 +216,6 @@ scroll_vert_cb(GtkAdjustment *adjust, void *w);
 
 gboolean
 scroll_horiz_cb(GtkAdjustment *adjust, void *w);
+
+gboolean
+scrollbars_policy_cb(WebKitWebView *view);

@@ -339,15 +339,19 @@ cmd_javascript_windows() {
 void
 cmd_scrollbars_visibility() {
     if(uzbl.gui.scrollbars_visible) {
-        uzbl.gui.bar_h = gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win));
-        uzbl.gui.bar_v = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win));
+        gtk_scrolled_window_set_policy (
+            uzbl.gui.scrolled_win,
+            GTK_POLICY_AUTOMATIC,
+            GTK_POLICY_AUTOMATIC
+        );
     }
     else {
-        uzbl.gui.bar_v = gtk_range_get_adjustment (GTK_RANGE (uzbl.gui.scbar_v));
-        uzbl.gui.bar_h = gtk_range_get_adjustment (GTK_RANGE (uzbl.gui.scbar_h));
+        gtk_scrolled_window_set_policy (
+            uzbl.gui.scrolled_win,
+            GTK_POLICY_NEVER,
+            GTK_POLICY_NEVER
+        );
     }
-
-    set_webview_scroll_adjustments();
 }
 
 /* requires webkit >=1.1.14 */
@@ -1040,6 +1044,12 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
             }
         }
     }
+}
+
+gboolean
+scrollbars_policy_cb(WebKitWebView *view) {
+    (void) view;
+    return TRUE;
 }
 
 /* vi: set et ts=4: */
