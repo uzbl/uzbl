@@ -110,6 +110,9 @@ void
 cmd_default_encoding();
 
 void
+set_current_encoding();
+
+void
 cmd_enforce_96dpi();
 
 void

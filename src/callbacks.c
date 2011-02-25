@@ -291,6 +291,13 @@ cmd_caret_browsing() {
 }
 
 void
+set_current_encoding() {
+    webkit_web_view_set_custom_encoding(uzbl.gui.web_view,
+        uzbl.behave.current_encoding);
+}
+
+
+void
 cmd_fifo_dir() {
     uzbl.behave.fifo_dir = init_fifo(uzbl.behave.fifo_dir);
 }
