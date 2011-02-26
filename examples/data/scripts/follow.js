@@ -35,8 +35,7 @@ uzbl.follow = function() {
         }
     } catch(e) {}
 
-    arguments.callee.followLinks(keypress);
-
+    return arguments.callee.followLinks(keypress);
 }
 
 // Calculate element position to draw the hint
@@ -120,26 +119,34 @@ uzbl.follow.generateHint = function(el, label) {
 uzbl.follow.clickElem = function(item) {
     this.removeAllHints();
     if (item) {
-        if (newwindow && item.tagName == 'A') window.open(item.href);
+        if (newwindow && item.tagName == 'A') {
+            window.open(item.href);
+            return "XXXRESET_MODEXXX"
+        }
         else {
             var name = item.tagName;
             if (name == 'A') {
                 item.click();
                 window.location = item.href;
+                return "XXXRESET_MODEXXX";
             } else if (name == 'INPUT') {
                 var type = item.getAttribute('type').toUpperCase();
                 if (type == 'TEXT' || type == 'FILE' || type == 'PASSWORD') {
                     item.focus();
                     item.select();
+                    return "XXXEMIT_FORM_ACTIVEXXX";
                 } else {
                     item.click();
+                    return "XXXRESET_MODEXXX";
                 }
             } else if (name == 'TEXTAREA' || name == 'SELECT') {
                 item.focus();
                 item.select();
+                return "XXXEMIT_FORM_ACTIVEXXX";
             } else {
                 item.click();
                 window.location = item.href;
+                return "XXXRESET_MODEXXX";
             }
         }
     }
@@ -237,19 +244,19 @@ uzbl.follow.followLinks = function(follow) {
     var len = this.labelLength(elems[0].length);
     var oldDiv = doc.getElementById(uzbldivid);
     var leftover = [[], []];
-    if (s.length == len && linknr < elems[0].length && linknr >= 0) this.clickElem(elems[0][linknr]);
-    else {
-        for (var j = 0; j < elems[0].length; j++) {
-            var b = true;
-            var label = this.intToLabel(j);
-            var n = label.length;
-            for (n; n < len; n++) label = charset.charAt(0) + label;
-            for (var k = 0; k < s.length; k++) b = b && label.charAt(k) == s[k];
-            if (b) {
-                leftover[0].push(elems[0][j]);
-                leftover[1].push(label);
-            }
+    if (s.length == len && linknr < elems[0].length && linknr >= 0)
+        return this.clickElem(elems[0][linknr]);
+
+    for (var j = 0; j < elems[0].length; j++) {
+        var b = true;
+        var label = this.intToLabel(j);
+        var n = label.length;
+        for (n; n < len; n++) label = charset.charAt(0) + label;
+        for (var k = 0; k < s.length; k++) b = b && label.charAt(k) == s[k];
+        if (b) {
+            leftover[0].push(elems[0][j]);
+            leftover[1].push(label);
         }
-        this.reDrawHints(leftover, s.length);
     }
+    this.reDrawHints(leftover, s.length);
 }
