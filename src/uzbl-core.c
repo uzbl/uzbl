@@ -763,7 +763,7 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result, const char *fi
     js_script = JSStringCreateWithUTF8CString(script);
     js_file = JSStringCreateWithUTF8CString(file);
     js_result = JSEvaluateScript(context, js_script, globalobject, js_file, 0, &js_exc);
-    if (js_result && !JSValueIsUndefined(context, js_result)) {
+    if (result && js_result && !JSValueIsUndefined(context, js_result)) {
         js_result_string = JSValueToStringCopy(context, js_result, NULL);
         js_result_size = JSStringGetMaximumUTF8CStringSize(js_result_string);
 
