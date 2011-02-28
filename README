@@ -260,6 +260,8 @@ The following commands are recognized:
 * 'delete_cookie <domain> <path> <name> <value> [<scheme> <expires>]`
 	- Deletes a matching cookie from the cookie jar. scheme and expire time
 	is currently not considered when matching.
+* 'clear_cookies`
+    - Clears all cookies from the cookie jar
 
 ### VARIABLES AND CONSTANTS
 
