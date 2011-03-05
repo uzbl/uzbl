@@ -1394,7 +1394,6 @@ update_title(void) {
     }
 }
 
-
 void
 create_scrolled_win() {
     GUI* g = &uzbl.gui;
@@ -1423,6 +1422,7 @@ create_scrolled_win() {
       "signal::selection-changed",                    (GCallback)selection_changed_cb,    NULL,
       "signal::notify::progress",                     (GCallback)progress_change_cb,      NULL,
       "signal::notify::load-status",                  (GCallback)load_status_change_cb,   NULL,
+      "signal::notify::uri",                          (GCallback)uri_change_cb,           NULL,
       "signal::load-error",                           (GCallback)load_error_cb,           NULL,
       "signal::hovering-over-link",                   (GCallback)link_hover_cb,           NULL,
       "signal::navigation-policy-decision-requested", (GCallback)navigation_decision_cb,  NULL,
