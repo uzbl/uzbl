@@ -1007,7 +1007,7 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
         if (mi->context & WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE) {
             GdkEventButton ev;
             gint x, y;
-            gdk_window_get_pointer(gtk_widget_get_window(v), &x, &y, NULL);
+            gdk_window_get_pointer(gtk_widget_get_window(GTK_WIDGET(v)), &x, &y, NULL);
             ev.x = x;
             ev.y = y;
             mi->hittest = webkit_web_view_get_hit_test_result(v, &ev);
