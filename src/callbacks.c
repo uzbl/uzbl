@@ -455,6 +455,7 @@ void
 load_status_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
     (void) param_spec;
 
+    WebKitWebFrame  *frame;
     WebKitLoadStatus status = webkit_web_view_get_load_status(web_view);
     switch(status) {
         case WEBKIT_LOAD_PROVISIONAL:
