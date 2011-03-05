@@ -356,6 +356,7 @@ file).
   stylesheet.
 * `resizable_text_areas`: Whether text areas can be resized (default 0).
 * `default_encoding`: The default text encoding (default "iso-8859-1").
+* `current_encoding`: This can be set to force a text encoding.
 * `enforce_96_dpi`: Enforce a resolution of 96 DPI (default 1).
 * `caret_browsing`: Whether the caret is enabled in the text portion of pages
   (default 0).

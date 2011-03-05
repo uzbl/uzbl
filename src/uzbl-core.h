@@ -185,6 +185,7 @@ typedef struct {
     gchar*   style_uri;
     guint    resizable_txt;
     gchar*   default_encoding;
+    gchar*   current_encoding;
     guint    enforce_96dpi;
     gchar    *inject_html;
     guint    caret_browsing;

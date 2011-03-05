@@ -291,6 +291,13 @@ cmd_caret_browsing() {
 }
 
 void
+set_current_encoding() {
+    webkit_web_view_set_custom_encoding(uzbl.gui.web_view,
+        uzbl.behave.current_encoding);
+}
+
+
+void
 cmd_fifo_dir() {
     uzbl.behave.fifo_dir = init_fifo(uzbl.behave.fifo_dir);
 }
@@ -452,29 +459,45 @@ void
 load_status_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
     (void) param_spec;
 
-    WebKitWebFrame *frame = webkit_web_view_get_main_frame(web_view);
+    WebKitWebFrame  *frame;
     WebKitLoadStatus status = webkit_web_view_get_load_status(web_view);
     switch(status) {
         case WEBKIT_LOAD_PROVISIONAL:
-            send_event(LOAD_START, NULL, TYPE_STR, uzbl.state.uri ? uzbl.state.uri : "", NULL);
+            send_event(LOAD_START,  NULL, TYPE_STR, uzbl.state.uri ? uzbl.state.uri : "", NULL);
             break;
         case WEBKIT_LOAD_COMMITTED:
-            g_free (uzbl.state.uri);
-            GString* newuri = g_string_new (webkit_web_frame_get_uri (frame));
-            uzbl.state.uri = g_string_free (newuri, FALSE);
-            g_setenv("UZBL_URI", uzbl.state.uri, TRUE);
-
+            frame = webkit_web_view_get_main_frame(web_view);
             send_event(LOAD_COMMIT, NULL, TYPE_STR, webkit_web_frame_get_uri (frame), NULL);
             break;
         case WEBKIT_LOAD_FINISHED:
-            send_event(LOAD_FINISH, NULL, TYPE_STR, webkit_web_frame_get_uri(frame), NULL);
+            send_event(LOAD_FINISH, NULL, TYPE_STR, uzbl.state.uri, NULL);
             break;
         case WEBKIT_LOAD_FIRST_VISUALLY_NON_EMPTY_LAYOUT:
             break; /* we don't do anything with this (yet) */
         case WEBKIT_LOAD_FAILED:
             break; /* load_error_cb will handle this case */
     }
+}
 
+void
+load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer web_err, gpointer ud) {
+    (void) page; (void) frame; (void) ud;
+    GError *err = web_err;
+
+    send_event (LOAD_ERROR, NULL,
+        TYPE_STR, uri,
+        TYPE_INT, err->code,
+        TYPE_STR, err->message,
+        NULL);
+}
+
+void
+uri_change_cb (WebKitWebView *web_view, GParamSpec param_spec) {
+  (void) param_spec;
+
+  g_free (uzbl.state.uri);
+  g_object_get (web_view, "uri", &uzbl.state.uri, NULL);
+  g_setenv("UZBL_URI", uzbl.state.uri, TRUE);
 }
 
 void
@@ -486,20 +509,6 @@ selection_changed_cb(WebKitWebView *webkitwebview, gpointer ud) {
     tmp = gtk_clipboard_wait_for_text(gtk_clipboard_get (GDK_SELECTION_CLIPBOARD));
     send_event(SELECTION_CHANGED, NULL, TYPE_STR, tmp ? tmp : "", NULL);
     g_free(tmp);
-}
-
-void
-load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer web_err, gpointer ud) {
-    (void) page;
-    (void) frame;
-    (void) ud;
-    GError *err = web_err;
-
-    send_event (LOAD_ERROR, NULL,
-        TYPE_STR, uri,
-        TYPE_INT, err->code,
-        TYPE_STR, err->message,
-        NULL);
 }
 
 void
@@ -1004,7 +1013,7 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
         if (mi->context & WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE) {
             GdkEventButton ev;
             gint x, y;
-            gdk_window_get_pointer(gtk_widget_get_window(v), &x, &y, NULL);
+            gdk_window_get_pointer(gtk_widget_get_window(GTK_WIDGET(v)), &x, &y, NULL);
             ev.x = x;
             ev.y = y;
             mi->hittest = webkit_web_view_get_hit_test_result(v, &ev);

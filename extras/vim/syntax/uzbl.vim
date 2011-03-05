@@ -1,7 +1,7 @@
 " Vim syntax file
 " Language:     Uzbl config syntax
-" Maintainer:   Mason Larobina <mason.larobina@gmail.com>
-" Contributors: Gregor Uhlenheuer (kongo2002)
+" Maintainer:   Gregor Uhlenheuer (kongo2002) <kongo2002@gmail.com>
+" Contributors: Mason Larobina <mason.larobina@gmail.com>
 "               Pawel Tomak (grodzik) <pawel.tomak@gmail.com>
 " Version:      0.1
 "
@@ -25,9 +25,6 @@ elseif exists("b:current_syntax")
     finish
 endif
 
-" Don't match keywords inside strings
-setl iskeyword=!-~,192-255
-
 syn keyword uzblKeyword back forward scroll reload reload_ign_cache stop
 syn keyword uzblKeyword zoom_in zoom_out toggle_zoom_type uri script
 syn keyword uzblKeyword toggle_status spawn sync_spawn sync_sh sync_spawn_exec
@@ -37,7 +34,11 @@ syn keyword uzblKeyword request menu_add menu_link_add menu_image_add
 syn keyword uzblKeyword menu_editable_add menu_separator menu_link_separator
 syn keyword uzblKeyword menu_image_separator menu_editable_separator
 syn keyword uzblKeyword menu_remove menu_link_remove menu_image_remove
-syn keyword uzblKeyword menu_editable_remove hardcopy include js sh
+syn keyword uzblKeyword menu_editable_remove hardcopy include
+
+" Match 'js' and 'sh' only without a dot in front
+syn match uzblKeyword /\.\@<!sh\s\+/
+syn match uzblKeyword /\.\@<!js\s\+/
 
 " Comments
 syn match uzblTodo /TODO:/ contained

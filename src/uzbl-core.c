@@ -131,6 +131,7 @@ const struct var_name_to_ptr_t {
     { "stylesheet_uri",         PTR_V_STR(uzbl.behave.style_uri,                1,   cmd_style_uri)},
     { "resizable_text_areas",   PTR_V_INT(uzbl.behave.resizable_txt,            1,   cmd_resizable_txt)},
     { "default_encoding",       PTR_V_STR(uzbl.behave.default_encoding,         1,   cmd_default_encoding)},
+    { "current_encoding",       PTR_V_STR(uzbl.behave.current_encoding,         1,   set_current_encoding)},
     { "enforce_96_dpi",         PTR_V_INT(uzbl.behave.enforce_96dpi,            1,   cmd_enforce_96dpi)},
     { "caret_browsing",         PTR_V_INT(uzbl.behave.caret_browsing,           1,   cmd_caret_browsing)},
     { "scrollbars_visible",     PTR_V_INT(uzbl.gui.scrollbars_visible,          1,   cmd_scrollbars_visibility)},
@@ -762,7 +763,7 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result, const char *fi
     js_script = JSStringCreateWithUTF8CString(script);
     js_file = JSStringCreateWithUTF8CString(file);
     js_result = JSEvaluateScript(context, js_script, globalobject, js_file, 0, &js_exc);
-    if (js_result && !JSValueIsUndefined(context, js_result)) {
+    if (result && js_result && !JSValueIsUndefined(context, js_result)) {
         js_result_string = JSValueToStringCopy(context, js_result, NULL);
         js_result_size = JSStringGetMaximumUTF8CStringSize(js_result_string);
 
@@ -1161,8 +1162,10 @@ parse_command_parts(const gchar *line, GArray *a) {
     CommandInfo *c = NULL;
 
     gchar *exp_line = expand(line, 0);
-    if(exp_line[0] == '\0')
+    if(exp_line[0] == '\0') {
+        g_free(exp_line);
         return NULL;
+    }
 
     /* separate the line into the command and its parameters */
     gchar **tokens = g_strsplit(exp_line, " ", 2);
@@ -1420,6 +1423,7 @@ create_scrolled_win() {
       "signal::selection-changed",                    (GCallback)selection_changed_cb,    NULL,
       "signal::notify::progress",                     (GCallback)progress_change_cb,      NULL,
       "signal::notify::load-status",                  (GCallback)load_status_change_cb,   NULL,
+      "signal::notify::uri",                          (GCallback)uri_change_cb,           NULL,
       "signal::load-error",                           (GCallback)load_error_cb,           NULL,
       "signal::hovering-over-link",                   (GCallback)link_hover_cb,           NULL,
       "signal::navigation-policy-decision-requested", (GCallback)navigation_decision_cb,  NULL,
