@@ -67,19 +67,21 @@ uzbl.follow.query = function(selector) {
 
 // Calculate element position to draw the hint
 uzbl.follow.elementPosition = function(el) {
-    var rect = el.getBoundingClientRect();
+    // el.getBoundingClientRect is another way to do this, but when a link is
+    // line-wrapped we want our hint at the left end of the link, not its
+    // bounding rectangle
+    var up     = el.offsetTop;
+    var left   = el.offsetLeft;
+    var width  = el.offsetWidth;
+    var height = el.offsetHeight;
 
-    var left, up;
-
-    if (uzbl.follow.isFrame(el)) {
-        left = document.defaultView.scrollX;
-        up   = document.defaultView.scrollY;
-    } else {
-        left = Math.max((rect.left + document.defaultView.scrollX), document.defaultView.scrollX);
-        up   = Math.max((rect.top  + document.defaultView.scrollY), document.defaultView.scrollY);
+    while (el.offsetParent) {
+        el = el.offsetParent;
+        up += el.offsetTop;
+        left += el.offsetLeft;
     }
 
-    return [up, left, rect.width, rect.height];
+    return [up, left, width, height];
 }
 
 // Calculate if an element is on the viewport.
