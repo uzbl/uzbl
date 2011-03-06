@@ -1,5 +1,4 @@
 /* This is the basic linkfollowing script.
- * Its pretty stable, and you configure which keys to use for hinting
  *
  * TODO:
  * Some pages mess around a lot with the zIndex which
@@ -11,14 +10,13 @@
  *  happen. Blame some freaky webdesigners ;)
  */
 
+// Globals
+uzbldivid = 'uzbl_link_hints';
+
 uzbl.follow = function() {
     // Export
     charset   = arguments[0];
     newwindow = arguments[2];
-
-    // Some shortcuts and globals
-    uzblid = 'uzbl_link_hint';
-    uzbldivid = uzblid + '_div_container';
 
     var keypress = arguments[1];
     return arguments.callee.followLinks(keypress);
@@ -107,26 +105,9 @@ uzbl.follow.removeAllHints = function(doc) {
 // Generate a hint for an element with the given label
 // Here you can play around with the style of the hints!
 uzbl.follow.generateHint = function(doc, el, label, top, left) {
-    var hint = doc.createElement('div');
-    hint.setAttribute('name', uzblid);
+    var hint = doc.createElement('span');
     hint.innerText = label;
-    hint.style.display = 'inline';
-    if (newwindow) hint.style.backgroundColor = '#ffff00';
-    else hint.style.backgroundColor = '#aaff00';
-    hint.style.border = '2px solid #556600';
-    hint.style.color = 'black';
-    hint.style.fontFamily = 'Verdana';
-    hint.style.fontSize = '9px';
-    hint.style.fontWeight = 'bold';
-    hint.style.fontVariant = 'normal';
-    hint.style.lineHeight = '9px';
-    hint.style.margin = '0px';
-    hint.style.width = 'auto'; // fix broken rendering on w3schools.com
-    hint.style.padding = '1px';
     hint.style.position = 'absolute';
-    hint.style.zIndex = '1000';
-    hint.style.textDecoration = 'none';
-    hint.style.webkitTransform = 'translate(-5px,-5px)';
     hint.style.top  = top  + 'px';
     hint.style.left = left + 'px';
     return hint;
@@ -173,7 +154,8 @@ uzbl.follow.reDrawHints = function(elems, chars) {
         uzbl.follow.removeAllHints(doc);
         if (!doc.body) return;
         doc.hintdiv = doc.createElement('div');
-        doc.hintdiv.setAttribute('id', uzbldivid);
+        doc.hintdiv.id = uzbldivid;
+        if(newwindow) doc.hintdiv.className = "new-window";
         doc.body.appendChild(doc.hintdiv);
     });
 

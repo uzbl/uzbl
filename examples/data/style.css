@@ -1,25 +1,23 @@
-.uzbl_highlight { background-color: yellow;}
-.uzbl_h_first   { background-color: lightgreen;}
-
-.uzbl_follow    { border-style:     dotted;
-                  border-width:     thin;
+#uzbl_link_hints > span {
+    background-color:   #aaff00;
+    color:              black;
+    border:             2px solid #556600;
+    font-family:        Verdana;
+    font-size:          9px;
+    font-weight:        bold;
+    font-variant:       normal;
+    line-height:        9px;
+    margin:             0px;
+    width:              auto; /* fix broken rendering on w3schools.com */
+    padding:            1px;
+    z-index:            1000;
+    text-decoration:    none;
+    -webkit-transform:  translate(-5px,-5px);
 }
 
-#uzbl_hint > div    {
-	display:                        inline;
-	border:                         2px solid #4a6600;
-	background-color:               #b9ff00;
-	color:                          black;
-	font-size:                      9px;
-	font-weight:                    bold;
-	line-height:                    9px;
-	margin:                         0px;
-	padding:                        0px;
-	position:                       absolute;
-	z-index:                        1000;
-	-webkit-border-radius:          6px;
-	text-decoration:                none;
-	-wekit-transform:               scale(1) rotate(0deg) translate(-6px,-5px);
+/* we can have different colours for different types of hints! */
+#uzbl_link_hints.new-window > span {
+    background-color: #ffff00;
 }
 
 /* vim:set et ts=4: */

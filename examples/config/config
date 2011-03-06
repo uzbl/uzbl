@@ -94,6 +94,9 @@ set download_handler    = sync_spawn @scripts_dir/download.sh
 
 # === Behaviour and appearance ===============================================
 
+# Custom CSS can be defined here, including link follower hint styles
+set stylesheet_uri = file://@data_home/uzbl/style.css
+
 set show_status       = 1
 set status_top        = 0
 set status_background = #303030
