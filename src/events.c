@@ -205,6 +205,7 @@ void
 key_to_event(guint keyval, gint mode) {
     gchar ucs[7];
     gint ulen;
+    gchar *keyname;
     guint32 ukval = gdk_keyval_to_unicode(keyval);
 
     /* check for printable unicode char */
@@ -219,9 +220,9 @@ key_to_event(guint keyval, gint mode) {
                 NULL, TYPE_FORMATTEDSTR, ucs, NULL);
     }
     /* send keysym for non-printable chars */
-    else {
+    else if((keyname = gdk_keyval_name(keyval))){
         send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
-                NULL, TYPE_NAME, gdk_keyval_name(keyval), NULL);
+                NULL, TYPE_NAME, keyname , NULL);
     }
 
 }
