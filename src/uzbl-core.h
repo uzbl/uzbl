@@ -165,7 +165,6 @@ typedef struct {
     gchar*   cursive_font_family;
 
     gboolean forward_keys;
-    guint    modmask;
     guint    http_debug;
     gchar*   shell_cmd;
     guint    view_source;
@@ -192,8 +191,6 @@ typedef struct {
     gchar    *inject_html;
     guint    caret_browsing;
     guint    javascript_windows;
-    guint    mode;
-    gchar*   base_url;
     gboolean print_version;
 
     /* command list: (key)name -> (value)Command  */
@@ -202,14 +199,6 @@ typedef struct {
     /* event lookup: (key)event_id -> (value)event_name */
     GHashTable *event_lookup;
 } Behaviour;
-
-
-/* Javascript */
-typedef struct {
-    gboolean            initialized;
-    JSClassDefinition   classdef;
-    JSClassRef          classref;
-} Javascript;
 
 
 /* Static information */
@@ -230,7 +219,6 @@ typedef struct {
     Network       net;
     Behaviour     behave;
     Communication comm;
-    Javascript    js;
     Info          info;
 
     Window        xwin;
