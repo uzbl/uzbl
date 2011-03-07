@@ -30,6 +30,13 @@ case "$DMENU_SCHEME" in
         SB="#ccffaa"
         SF="#303030"
         ;;
+    # Temps
+    "temps" )
+        NB="#303030"
+        NF="khaki"
+        SB="#ccffaa"
+        SF="#303030"
+        ;;
     # Default
     * )
         NB="#303030"

@@ -337,6 +337,10 @@ set ebind     = @mode_bind global,-insert
 @cbind  U  = spawn @scripts_dir/load_url_from_history.sh
 @cbind  u  = spawn @scripts_dir/load_url_from_bookmarks.sh
 
+# Temporary bookmarks
+@cbind  <Ctrl>d  = spawn @scripts_dir/insert_temp.sh
+@cbind  D        = spawn @scripts_dir/load_url_from_temps.sh
+
 # Link following (similar to vimperator and konqueror)
 # Set custom keys you wish to use for navigation. Some common examples:
 set follow_hint_keys = 0123456789
