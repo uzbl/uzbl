@@ -1,5 +1,4 @@
 #!/bin/sh
-#
 # uzbl's example configuration sets this script up as its download_handler.
 # when uzbl starts a download it runs this script.
 # if the script prints a file path to stdout, uzbl will save the download to
@@ -11,18 +10,43 @@
 
 # the URL that is being downloaded
 uri="$1"
+shift
 
 safe_uri="$( print "$uri" | sed -e 's/\W/-/g' )"
 
 # a filename suggested by the server or based on the URL
-suggested_filename="${2:-$safe_uri}"
+suggested_filename="${1:-$safe_uri}"
+shift
 
 # the mimetype of the file being downloaded
-content_type="$3"
+content_type="$1"
+shift
 
 # the size of the downloaded file in bytes. this is not always accurate, since
 # the server might not have sent a size with its response headers.
-total_size="$4"
+total_size="$1"
+shift
 
-# just save the file to the default directory with the suggested name
-print "$UZBL_DOWNLOAD_DIR/$suggested_filename\n"
+case "$suggested_filename" in
+    # Default case
+    *)
+        path="$UZBL_DOWNLOAD_DIR/$suggested_filename"
+        ;;
+esac
+
+# Do nothing if we don't want to save the file
+[ -z "$path" ] && exit 0
+
+# Check if the file exists
+if [ ! -e "$path" ]; then
+    print "$path\n"
+    exit 0
+fi
+
+# Try to make a unique filename
+count=1
+while [ -e "$path.$count" ]; do
+    count=$(( $count + 1 ))
+done
+
+print "$path.$count\n"
