@@ -235,7 +235,7 @@ get_modifier_mask(guint state) {
             g_string_append(modifiers,"Button5|");
 
         if(modifiers->str[modifiers->len-1] == '|')
-            g_string_overwrite(modifiers, modifiers->len-1, " ");
+            g_string_truncate(modifiers, modifiers->len-1);
     }
 
     return g_string_free(modifiers, FALSE);
