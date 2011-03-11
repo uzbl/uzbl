@@ -41,7 +41,7 @@ case "$1" in
         fi
         ;;
     * )
-        echo "$1 not valid" >&2
+        printf "$1 not valid\n" >&2
         exit 2
         ;;
 esac

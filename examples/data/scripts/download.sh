@@ -11,7 +11,7 @@
 # the URL that is being downloaded
 uri="$1"
 
-safe_uri="$( echo "$uri" | sed -e 's/\W/-/g' )"
+safe_uri="$( printf "$uri" | sed -e 's/\W/-/g' )"
 
 # a filename suggested by the server or based on the URL
 suggested_filename="${2:-$safe_uri}"
@@ -24,4 +24,4 @@ content_type="$3"
 total_size="$4"
 
 # just save the file to the default directory with the suggested name
-echo "$UZBL_DOWNLOAD_DIR/$suggested_filename"
+printf "$UZBL_DOWNLOAD_DIR/$suggested_filename\n"

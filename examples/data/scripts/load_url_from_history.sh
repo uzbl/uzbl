@@ -18,5 +18,5 @@ else
     goto="$( tac "$UZBL_HISTORY_FILE" | $DMENU | cut -d ' ' -f -3  | awk '{ print $NF }' )"
 fi
 
-[ -n "$goto" ] && echo "uri $goto" > "$UZBL_FIFO"
-#[ -n "$goto" ] && echo "uri $goto" | socat - "unix-connect:$UZBL_SOCKET"
+[ -n "$goto" ] && printf "uri $goto\n" > "$UZBL_FIFO"
+#[ -n "$goto" ] && printf "uri $goto\n" | socat - "unix-connect:$UZBL_SOCKET"

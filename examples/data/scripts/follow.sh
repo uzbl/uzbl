@@ -9,18 +9,18 @@ shift
 # if socat is installed then we can change Uzbl's input mode once a link is
 # selected; otherwise we just select a link.
 if ! which socat >/dev/null 2>&1; then
-  echo "script @scripts_dir/follow.js \"@{follow_hint_keys} $keys\"" > "$UZBL_FIFO"
+  printf "script @scripts_dir/follow.js \"@{follow_hint_keys} $keys\"\n" > "$UZBL_FIFO"
   exit
 fi
 
-result="$( echo "script @scripts_dir/follow.js \"@{follow_hint_keys} $keys\"" | socat - "unix-connect:$UZBL_SOCKET" )"
+result="$( printf "script @scripts_dir/follow.js \"@{follow_hint_keys} $keys\"\n" | socat - "unix-connect:$UZBL_SOCKET" )"
 case $result in
     *XXXEMIT_FORM_ACTIVEXXX*)
         # a form element was selected
-        echo 'event FORM_ACTIVE' > "$UZBL_FIFO"
+        printf "event FORM_ACTIVE\n" > "$UZBL_FIFO"
         ;;
     *XXXRESET_MODEXXX*)
         # a link was selected, reset uzbl's input mode
-        echo 'set mode=' > "$UZBL_FIFO"
+        printf "set mode=\n" > "$UZBL_FIFO"
         ;;
 esac

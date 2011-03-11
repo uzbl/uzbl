@@ -18,5 +18,5 @@ else
     goto="$( $DMENU < "$UZBL_BOOKMARKS_FILE" | cut -d ' ' -f 1 )"
 fi
 
-[ -n "$goto" ] && echo "uri $goto" > "$UZBL_FIFO"
-#[ -n "$goto" ] && echo "uri $goto" | socat - "unix-connect:$UZBL_SOCKET"
+[ -n "$goto" ] && printf "uri $goto\n" > "$UZBL_FIFO"
+#[ -n "$goto" ] && printf "uri $goto\n" | socat - "unix-connect:$UZBL_SOCKET"

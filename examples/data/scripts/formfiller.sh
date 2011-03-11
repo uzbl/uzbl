@@ -56,7 +56,7 @@ MODELINE="> vim:ft=formfiller"
 action="$1"
 shift
 
-domain="$( echo "$UZBL_URI" | sed -e 's/\(http\|https\):\/\/\([^\/]\+\)\/.*/\2/' )"
+domain="$( printf "$UZBL_URI\n" | sed -e 's/\(http\|https\):\/\/\([^\/]\+\)\/.*/\2/' )"
 form_file="$UZBL_FORMS_DIR/$domain"
 
 if [ "$action" != 'edit' ] && [ "$action" != 'new' ] && [ "$action" != 'load' ] && [ "$action" != 'add' ] && [ "$action" != 'once' ]; then
@@ -147,7 +147,7 @@ elif [ "$action" = "once" ]; then
     printf "js %s dump();\n" "$dumpFunction" | \
         socat - "unix-connect:$UZBL_SOCKET" | \
         sed -n -e '/^[^(]\+([^)]\+):/p' > "$tmpfile"
-    echo "$MODELINE" >> "$tmpfile"
+    printf "$MODELINE\n" >> "$tmpfile"
     $UZBL_EDITOR "$tmpfile"
 
     [ -e "$tmpfile" ] || exit 2
@@ -170,7 +170,7 @@ elif [ "$action" = "once" ]; then
 else
     if [ "$action" = 'new' -o "$action" = 'add' ]; then
         [ "$action" = 'new' ] && echo "$MODELINE" > "$form_file"
-        echo "!profile=NAME_THIS_PROFILE$RAND" >> "$form_file"
+        printf "!profile=NAME_THIS_PROFILE$RAND\n" >> "$form_file"
         #
         # 2. and 3. line (tr -d and sed) are because, on gmail login for example,
         # <input > tag is splited into lines

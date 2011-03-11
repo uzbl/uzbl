@@ -12,4 +12,4 @@ exitstatus="$?"
 [ "$exitstatus" -eq 0 ] || exit "$exitstatus"
 
 # TODO: check if already exists, if so, and tags are different: ask if you want to replace tags
-echo "$UZBL_URI $tags" >> "$UZBL_BOOKMARKS_FILE"
+printf "$UZBL_URI $tags\n" >> "$UZBL_BOOKMARKS_FILE"
