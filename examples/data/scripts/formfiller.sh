@@ -54,6 +54,7 @@ MODELINE="> vim:ft=formfiller"
 [ -d "$UZBL_FORMS_DIR" ] || mkdir "$UZBL_FORMS_DIR" || exit 1
 
 action="$1"
+shift
 
 domain="$(echo "$UZBL_URI" | sed -e 's/\(http\|https\):\/\/\([^\/]\+\)\/.*/\2/')"
 

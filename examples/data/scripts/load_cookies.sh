@@ -2,6 +2,7 @@
 
 if [ -n "$1" ]; then
 	cookie_file="$1"
+	shift
 else
 	cookie_file="${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/cookies.txt"
 fi
