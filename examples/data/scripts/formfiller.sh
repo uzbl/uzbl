@@ -57,11 +57,12 @@ action="$1"
 shift
 
 domain="$( echo "$UZBL_URI" | sed -e 's/\(http\|https\):\/\/\([^\/]\+\)\/.*/\2/' )"
+form_file="$UZBL_FORMS_DIR/$domain"
 
 if [ "$action" != 'edit' ] && [ "$action" != 'new' ] && [ "$action" != 'load' ] && [ "$action" != 'add' ] && [ "$action" != 'once' ]; then
     action="new"
-    [ -e "$UZBL_FORMS_DIR/$domain" ] && action="load"
-elif [ "$action" = 'edit' ] && [ ! -e "$UZBL_FORMS_DIR/$domain" ]; then
+    [ -e "$form_file" ] && action="load"
+elif [ "$action" = 'edit' ] && [ ! -e "$form_file" ]; then
     action="new"
 fi
 
@@ -122,17 +123,17 @@ insertFunction="function insert(fname, ftype, fvalue, fchecked) { \
 };"
 
 if [ "$action" = 'load' ]; then
-    [ -e "$UZBL_FORMS_DIR/$domain" ] || exit 2
-    if [ "$( grep "!profile" "$UZBL_FORMS_DIR/$domain" | wc -l )" -gt 1 ]; then
-        menu="$( sed -n -e 's/^!profile=\([^[:blank:]]\+\)/\1/p' "$UZBL_FORMS_DIR/$domain" )"
+    [ -e "$form_file" ] || exit 2
+    if [ "$( grep "!profile" "$form_file" | wc -l )" -gt 1 ]; then
+        menu="$( sed -n -e 's/^!profile=\([^[:blank:]]\+\)/\1/p' "$form_file" )"
         option="$( printf "$menu" | $DMENU )"
     fi
 
     # Remove comments
     sed -i -e '/^>/d' "$tmpfile"
 
-    sed -i -e 's/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):\(off\|no\|false\|unchecked\|0\|$\)/\1{\2}(\3):0/I;s/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[^0]\+/\1{\2}(\3):1/I' "$UZBL_FORMS_DIR/$domain"
-    fields="$( sed -n -e "/^!profile=${option}/,/^!profile=/p" "$UZBL_FORMS_DIR/$domain" | \
+    sed -i -e 's/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):\(off\|no\|false\|unchecked\|0\|$\)/\1{\2}(\3):0/I;s/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[^0]\+/\1{\2}(\3):1/I' "$form_file"
+    fields="$( sed -n -e "/^!profile=${option}/,/^!profile=/p" "$form_file" | \
                sed -e '/^!profile=/d' | \
                sed -e 's/^\([^(]\+(\)\(radio\|checkbox\|text\|search\|textarea\|password\)):/%{>\1\2):<}%/' | \
                sed -e 's/^\(.\+\)$/<{br}>\1/' | \
@@ -171,8 +172,8 @@ elif [ "$action" = "once" ]; then
     rm -f "$tmpfile"
 else
     if [ "$action" = 'new' -o "$action" = 'add' ]; then
-        [ "$action" = 'new' ] && echo "$MODELINE" > "$UZBL_FORMS_DIR/$domain"
-        echo "!profile=NAME_THIS_PROFILE$RAND" >> "$UZBL_FORMS_DIR/$domain"
+        [ "$action" = 'new' ] && echo "$MODELINE" > "$form_file"
+        echo "!profile=NAME_THIS_PROFILE$RAND" >> "$form_file"
         #
         # 2. and 3. line (tr -d and sed) are because, on gmail login for example,
         # <input > tag is splited into lines
@@ -191,10 +192,10 @@ else
         #
         printf 'js %s dump(); \n' "$dumpFunction" | \
             socat - "unix-connect:$UZBL_SOCKET" | \
-            sed -n -e '/^[^(]\+([^)]\+):/p' >> "$UZBL_FORMS_DIR/$domain"
+            sed -n -e '/^[^(]\+([^)]\+):/p' >> "$form_file"
     fi
-    [ -e "$UZBL_FORMS_DIR/$domain" ] || exit 3 #this should never happen, but you never know.
-    $UZBL_EDITOR "$UZBL_FORMS_DIR/$domain" #TODO: if user aborts save in editor, the file is already overwritten
+    [ -e "$form_file" ] || exit 3 #this should never happen, but you never know.
+    $UZBL_EDITOR "$form_file" #TODO: if user aborts save in editor, the file is already overwritten
 fi
 
 # vim:fileencoding=utf-8:sw=4
