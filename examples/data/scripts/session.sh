@@ -20,7 +20,7 @@ if [ -z "$UZBL_UTIL_DIR" ]; then
     # using the same logic as uzbl-browser does.
     UZBL_UTIL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/scripts/util"
     if ! [ -d "$UZBL_UTIL_DIR" ]; then
-        PREFIX="$(grep '^PREFIX' "$(which uzbl-browser)" | sed -e 's/.*=//')"
+        PREFIX="$( grep '^PREFIX' "$( which uzbl-browser )" | sed -e 's/.*=//' )"
         UZBL_UTIL_DIR="$PREFIX/share/uzbl/examples/data/scripts/util"
     fi
 fi
@@ -30,7 +30,7 @@ fi
 
 UZBL="uzbl-browser -c \"$UZBL_CONFIG_FILE\"" # add custom flags and whatever here.
 
-scriptfile="$(readlink -f "$0")"                            # this script
+scriptfile="$( readlink -f "$0" )"                            # this script
 act="$1"
 shift
 
@@ -40,7 +40,7 @@ fi
 
 case $act in
     "launch" )
-        urls="$(cat "$UZBL_SESSION_FILE")"
+        urls="$( cat "$UZBL_SESSION_FILE" )"
         if [ -z "$urls" ]; then
             $UZBL
         else

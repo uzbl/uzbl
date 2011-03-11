@@ -13,7 +13,7 @@ if ! which socat >/dev/null 2>&1; then
   exit
 fi
 
-result="$(echo "script @scripts_dir/follow.js \"@{follow_hint_keys} $keys\"" | socat - "unix-connect:$UZBL_SOCKET")"
+result="$( echo "script @scripts_dir/follow.js \"@{follow_hint_keys} $keys\"" | socat - "unix-connect:$UZBL_SOCKET" )"
 case $result in
   *XXXEMIT_FORM_ACTIVEXXX*)
     # a form element was selected

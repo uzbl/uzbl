@@ -7,7 +7,7 @@
 
 which zenity >/dev/null 2>&1 || exit 2
 
-tags="$(zenity --entry --text="Enter space-separated tags for bookmark $UZBL_URI:")"
+tags="$( zenity --entry --text="Enter space-separated tags for bookmark $UZBL_URI:" )"
 exitstatus="$?"
 [ "$exitstatus" -eq 0 ] || exit "$exitstatus"
 

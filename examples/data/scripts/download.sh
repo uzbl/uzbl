@@ -11,7 +11,7 @@
 # the URL that is being downloaded
 uri="$1"
 
-safe_uri="$(echo "$uri" | sed -e 's/\W/-/g')"
+safe_uri="$( echo "$uri" | sed -e 's/\W/-/g' )"
 
 # a filename suggested by the server or based on the URL
 suggested_filename="${2:-$safe_uri}"
