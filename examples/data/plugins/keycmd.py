@@ -217,12 +217,8 @@ def parse_key_event(uzbl, key):
     ''' Build a set from the modstate part of the event, and pass all keys through modmap '''
     keylet = uzbl.keylet
 
-    # Get the modstate part of the event if present
-    if ' ' in key:
-        modstate, key = key.split(' ')
-        modstate = set(['<%s>' % keylet.modmap_key(k) for k in modstate.split('|')])
-    else:
-        modstate = set()
+    modstate, key = splitquoted(key)
+    modstate = set(['<%s>' % keylet.modmap_key(k) for k in modstate.split('|')])
     
     key = keylet.modmap_key(key)
     return modstate, key
