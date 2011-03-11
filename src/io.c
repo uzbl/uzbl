@@ -61,7 +61,7 @@ attach_fifo(gchar *path) {
         if (g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, NULL)) {
             if (uzbl.state.verbose)
                 printf ("attach_fifo: created successfully as %s\n", path);
-            send_event(FIFO_SET, path, NULL);
+            send_event(FIFO_SET, NULL, TYPE_STR, path, NULL);
             uzbl.comm.fifo_path = path;
             g_setenv("UZBL_FIFO", uzbl.comm.fifo_path, TRUE);
             return TRUE;
@@ -282,7 +282,7 @@ attach_socket(gchar *path, struct sockaddr_un *local) {
         if( (chan = g_io_channel_unix_new(sock)) ) {
             g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_socket, chan);
             uzbl.comm.socket_path = path;
-            send_event(SOCKET_SET, path, NULL);
+            send_event(SOCKET_SET, NULL, TYPE_STR, path, NULL);
             g_setenv("UZBL_SOCKET", uzbl.comm.socket_path, TRUE);
             return TRUE;
         }
