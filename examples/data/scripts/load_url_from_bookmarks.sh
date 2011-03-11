@@ -15,7 +15,7 @@ if [ -z "$DMENU_HAS_VERTICAL" ]; then
     goto="$( awk '{ print $1 }' "$UZBL_BOOKMARKS_FILE" | $DMENU )"
 else
     # show tags as well
-    goto="$( $DMENU < "$UZBL_BOOKMARKS_FILE" | awk '{ print $1 }' )"
+    goto="$( $DMENU < "$UZBL_BOOKMARKS_FILE" | cut -d ' ' -f 1 )"
 fi
 
 [ -n "$goto" ] && echo "uri $goto" > "$UZBL_FIFO"

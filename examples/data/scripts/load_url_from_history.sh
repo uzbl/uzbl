@@ -10,7 +10,7 @@ DMENU_OPTIONS="xmms vertical resize"
 
 # choose from all entries, sorted and uniqued
 if [ -z "$DMENU_HAS_VERTICAL" ]; then
-    current="$( tail -n 1 "$UZBL_HISTORY_FILE" | awk '{ print $3 }' )"
+    current="$( tail -n 1 "$UZBL_HISTORY_FILE" | cut -d ' ' -f 3 )"
     goto="$( ( echo "$current"; awk '{ print $3 }' "$UZBL_HISTORY_FILE" | grep -v "^$current\$" | sort -u ) | $DMENU )"
 else
     # choose an item in reverse order, showing also the date and page titles
