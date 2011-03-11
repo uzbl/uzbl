@@ -347,14 +347,14 @@ void
 cmd_scrollbars_visibility() {
     if(uzbl.gui.scrollbars_visible) {
         gtk_scrolled_window_set_policy (
-            uzbl.gui.scrolled_win,
+            GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win),
             GTK_POLICY_AUTOMATIC,
             GTK_POLICY_AUTOMATIC
         );
     }
     else {
         gtk_scrolled_window_set_policy (
-            uzbl.gui.scrolled_win,
+            GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win),
             GTK_POLICY_NEVER,
             GTK_POLICY_NEVER
         );
