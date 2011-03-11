@@ -6,7 +6,7 @@
 # that path.
 # if nothing is printed to stdout, the download will be cancelled.
 
-. $UZBL_UTIL_DIR/uzbl-dir.sh
+. "$UZBL_UTIL_DIR/uzbl-dir.sh"
 
 # the URL that is being downloaded
 uri=$1

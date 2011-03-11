@@ -1,6 +1,5 @@
 #!/bin/sh
 
-
 # This script allows you to focus another uzbl window
 # It considers all uzbl windows in the current tag
 # you can select one from a list, or go to the next/previous one
@@ -13,7 +12,7 @@
 
 DMENU_SCHEME="wmii"
 
-. $UZBL_UTIL_DIR/dmenu.sh
+. "$UZBL_UTIL_DIR/dmenu.sh"
 
 case "$1" in
     "list" )

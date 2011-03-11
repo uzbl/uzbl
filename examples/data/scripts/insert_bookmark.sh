@@ -1,6 +1,6 @@
 #!/bin/sh
 
-. "$UZBL_UTIL_DIR"/uzbl-dir.sh
+. "$UZBL_UTIL_DIR/uzbl-dir.sh"
 
 [ -d "$UZBL_DATA_DIR" ] || exit 1
 [ -w "$UZBL_BOOKMARKS_FILE" ] || [ ! -a "$UZBL_BOOKMARKS_FILE" ] || exit 1

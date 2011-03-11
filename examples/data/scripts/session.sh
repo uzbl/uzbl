@@ -25,7 +25,7 @@ if [ -z "$UZBL_UTIL_DIR" ]; then
     fi
 fi
 
-. "$UZBL_UTIL_DIR"/uzbl-dir.sh
+. "$UZBL_UTIL_DIR/uzbl-dir.sh"
 [ -d "$UZBL_DATA_DIR" ] || exit 1
 
 UZBL="uzbl-browser -c $UZBL_CONFIG_FILE" # add custom flags and whatever here.

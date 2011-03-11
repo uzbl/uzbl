@@ -5,8 +5,8 @@
 DMENU_SCHEME="bookmarks"
 DMENU_OPTIONS="xmms vertical resize"
 
-. "$UZBL_UTIL_DIR"/dmenu.sh
-. "$UZBL_UTIL_DIR"/uzbl-dir.sh
+. "$UZBL_UTIL_DIR/dmenu.sh"
+. "$UZBL_UTIL_DIR/uzbl-dir.sh"
 
 [ -r "$UZBL_BOOKMARKS_FILE" ] || exit 1
 
