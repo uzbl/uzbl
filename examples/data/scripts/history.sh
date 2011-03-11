@@ -4,4 +4,4 @@
 
 [ -w "$UZBL_HISTORY_FILE" ] || [ ! -a "$UZBL_HISTORY_FILE" ] || exit 1
 
-echo $(date +'%Y-%m-%d %H:%M:%S')" $UZBL_URI $UZBL_TITLE" >> $UZBL_HISTORY_FILE
+echo "$( date +'%Y-%m-%d %H:%M:%S' ) $UZBL_URI $UZBL_TITLE" >> "$UZBL_HISTORY_FILE"

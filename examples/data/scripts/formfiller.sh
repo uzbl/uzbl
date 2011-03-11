@@ -47,15 +47,15 @@ DMENU_OPTIONS="vertical resize"
 . "$UZBL_UTIL_DIR/editor.sh"
 . "$UZBL_UTIL_DIR/uzbl-dir.sh"
 
-RAND=$(dd if=/dev/urandom count=1 2> /dev/null | cksum | cut -c 1-5)
+RAND="$(dd if=/dev/urandom count=1 2> /dev/null | cksum | cut -c 1-5)"
 MODELINE="> vim:ft=formfiller"
 
-[ -d "$(dirname $UZBL_FORMS_DIR)" ] || exit 1
-[ -d $UZBL_FORMS_DIR ] || mkdir $UZBL_FORMS_DIR || exit 1
+[ -d "$(dirname "$UZBL_FORMS_DIR")" ] || exit 1
+[ -d "$UZBL_FORMS_DIR" ] || mkdir "$UZBL_FORMS_DIR" || exit 1
 
-action=$1
+action="$1"
 
-domain=$(echo $UZBL_URI | sed -e 's/\(http\|https\):\/\/\([^\/]\+\)\/.*/\2/')
+domain="$(echo "$UZBL_URI" | sed -e 's/\(http\|https\):\/\/\([^\/]\+\)\/.*/\2/')"
 
 if [ "$action" != 'edit' -a  "$action" != 'new' -a "$action" != 'load' -a "$action" != 'add' -a "$action" != 'once' ]; then
     action="new"
@@ -92,7 +92,7 @@ dumpFunction="function dump() { \
         catch(err) { } \
     } \
     return rv; \
-}; "
+};"
 
 insertFunction="function insert(fname, ftype, fvalue, fchecked) { \
     var allFrames = new Array(window); \
@@ -118,63 +118,63 @@ insertFunction="function insert(fname, ftype, fvalue, fchecked) { \
         } \
         catch(err) { } \
     } \
-}; "
+};"
 
 if [ "$action" = 'load' ]; then
-    [ -e $UZBL_FORMS_DIR/$domain ] || exit 2
-    if [ $(cat $UZBL_FORMS_DIR/$domain | grep "!profile" | wc -l) -gt 1 ]; then
-        menu=$(cat $UZBL_FORMS_DIR/$domain | \
-              sed -n -e 's/^!profile=\([^[:blank:]]\+\)/\1/p')
-        option=$(printf "$menu" | $DMENU)
+    [ -e "$UZBL_FORMS_DIR/$domain" ] || exit 2
+    if [ "$(cat "$UZBL_FORMS_DIR/$domain" | grep "!profile" | wc -l)" -gt 1 ]; then
+        menu="$(cat "$UZBL_FORMS_DIR/$domain" | \
+              sed -n -e 's/^!profile=\([^[:blank:]]\+\)/\1/p')"
+        option="$(printf "$menu" | $DMENU)"
     fi
 
     # Remove comments
-    sed -i -e '/^>/d' $tmpfile
+    sed -i -e '/^>/d' "$tmpfile"
 
-    sed -i -e 's/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):\(off\|no\|false\|unchecked\|0\|$\)/\1{\2}(\3):0/I;s/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[^0]\+/\1{\2}(\3):1/I' $UZBL_FORMS_DIR/$domain
-    fields=$(cat $UZBL_FORMS_DIR/$domain | \
+    sed -i -e 's/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):\(off\|no\|false\|unchecked\|0\|$\)/\1{\2}(\3):0/I;s/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[^0]\+/\1{\2}(\3):1/I' "$UZBL_FORMS_DIR/$domain"
+    fields="$(cat "$UZBL_FORMS_DIR/$domain" | \
         sed -n -e "/^!profile=${option}/,/^!profile=/p" | \
         sed -e '/^!profile=/d' | \
         sed -e 's/^\([^(]\+(\)\(radio\|checkbox\|text\|search\|textarea\|password\)):/%{>\1\2):<}%/' | \
         sed -e 's/^\(.\+\)$/<{br}>\1/' | \
         tr -d '\n' | \
-        sed -e 's/<{br}>%{>\([^(]\+(\)\(radio\|checkbox\|text\|search\|textarea\|password\)):<}%/\\n\1\2):/g')
+        sed -e 's/<{br}>%{>\([^(]\+(\)\(radio\|checkbox\|text\|search\|textarea\|password\)):<}%/\\n\1\2):/g')"
     printf '%s\n' "${fields}" | \
         sed -n -e "s/\([^(]\+\)(\(password\|text\|search\|textarea\)\+):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\2', '\3', 0);/p" | \
-        sed -e 's/@/\\@/g;s/<{br}>/\\\\n/g' | socat - unix-connect:$UZBL_SOCKET
+        sed -e 's/@/\\@/g;s/<{br}>/\\\\n/g' | socat - "unix-connect:$UZBL_SOCKET"
     printf '%s\n' "${fields}" | \
         sed -n -e "s/\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\3', '\2', \4);/p" | \
-        sed -e 's/@/\\@/g' | socat - unix-connect:$UZBL_SOCKET
+        sed -e 's/@/\\@/g' | socat - "unix-connect:$UZBL_SOCKET"
 elif [ "$action" = "once" ]; then
-    tmpfile=$(mktemp)
+    tmpfile="$(mktemp)"
     printf 'js %s dump(); \n' "$dumpFunction" | \
-        socat - unix-connect:$UZBL_SOCKET | \
-        sed -n -e '/^[^(]\+([^)]\+):/p' > $tmpfile
-    echo "$MODELINE" >> $tmpfile
-    $UZBL_EDITOR $tmpfile
+        socat - "unix-connect:$UZBL_SOCKET" | \
+        sed -n -e '/^[^(]\+([^)]\+):/p' > "$tmpfile"
+    echo "$MODELINE" >> "$tmpfile"
+    $UZBL_EDITOR "$tmpfile"
 
-    [ -e $tmpfile ] || exit 2
+    [ -e "$tmpfile" ] || exit 2
 
     # Remove comments
-    sed -i -e '/^>/d' $tmpfile
+    sed -i -e '/^>/d' "$tmpfile"
 
-    sed -i -e 's/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):\(off\|no\|false\|unchecked\|0\|$\)/\1{\2}(\3):0/I;s/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[^0]\+/\1{\2}(\3):1/I' $tmpfile
-    fields=$(cat $tmpfile | \
+    sed -i -e 's/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):\(off\|no\|false\|unchecked\|0\|$\)/\1{\2}(\3):0/I;s/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[^0]\+/\1{\2}(\3):1/I' "$tmpfile"
+    fields="$(cat "$tmpfile" | \
         sed -e 's/^\([^(]\+(\)\(radio\|checkbox\|text\|search\|textarea\|password\)):/%{>\1\2):<}%/' | \
         sed -e 's/^\(.\+\)$/<{br}>\1/' | \
         tr -d '\n' | \
-        sed -e 's/<{br}>%{>\([^(]\+(\)\(radio\|checkbox\|text\|search\|textarea\|password\)):<}%/\\n\1\2):/g')
+        sed -e 's/<{br}>%{>\([^(]\+(\)\(radio\|checkbox\|text\|search\|textarea\|password\)):<}%/\\n\1\2):/g')"
     printf '%s\n' "${fields}" | \
         sed -n -e "s/\([^(]\+\)(\(password\|text\|search\|textarea\)\+):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\2', '\3', 0);/p" | \
-        sed -e 's/@/\\@/g;s/<{br}>/\\\\n/g' | socat - unix-connect:$UZBL_SOCKET
+        sed -e 's/@/\\@/g;s/<{br}>/\\\\n/g' | socat - "unix-connect:$UZBL_SOCKET"
     printf '%s\n' "${fields}" | \
         sed -n -e "s/\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\3', '\2', \4);/p" | \
-        sed -e 's/@/\\@/g' | socat - unix-connect:$UZBL_SOCKET
-    rm -f $tmpfile
+        sed -e 's/@/\\@/g' | socat - "unix-connect:$UZBL_SOCKET"
+    rm -f "$tmpfile"
 else
     if [ "$action" = 'new' -o "$action" = 'add' ]; then
-        [ "$action" = 'new' ] && echo "$MODELINE" > $UZBL_FORMS_DIR/$domain
-        echo "!profile=NAME_THIS_PROFILE$RAND" >> $UZBL_FORMS_DIR/$domain
+        [ "$action" = 'new' ] && echo "$MODELINE" > "$UZBL_FORMS_DIR/$domain"
+        echo "!profile=NAME_THIS_PROFILE$RAND" >> "$UZBL_FORMS_DIR/$domain"
         #
         # 2. and 3. line (tr -d and sed) are because, on gmail login for example,
         # <input > tag is splited into lines
@@ -192,8 +192,8 @@ else
         #       passwd(password):
         #
         printf 'js %s dump(); \n' "$dumpFunction" | \
-            socat - unix-connect:$UZBL_SOCKET | \
-            sed -n -e '/^[^(]\+([^)]\+):/p' >> $UZBL_FORMS_DIR/$domain
+            socat - "unix-connect:$UZBL_SOCKET" | \
+            sed -n -e '/^[^(]\+([^)]\+):/p' >> "$UZBL_FORMS_DIR/$domain"
     fi
     [ -e "$UZBL_FORMS_DIR/$domain" ] || exit 3 #this should never happen, but you never know.
     $UZBL_EDITOR "$UZBL_FORMS_DIR/$domain" #TODO: if user aborts save in editor, the file is already overwritten

@@ -16,26 +16,26 @@ DMENU_SCHEME="wmii"
 
 case "$1" in
     "list" )
-        list=
+        list=""
         # get window id's of uzbl clients. we could also get the label in one shot but it's pretty tricky
         for i in $(wmiir read /tag/sel/index | grep uzbl |cut -d ' ' -f2); do
-            label=$(wmiir read /client/$i/label)
+            label="$(wmiir read /client/$i/label)"
             list="$list$i : $label\n"
         done
-        window=$(printf "$list\n" | $DMENU | cut -d ' ' -f1)
+        window="$(printf "$list\n" | $DMENU | cut -d ' ' -f1)"
         wmiir xwrite /tag/sel/ctl "select client $window"
         ;;
     "next" )
-        current=$(wmiir read /client/sel/ctl | head -n 1)
+        current="$(wmiir read /client/sel/ctl | head -n 1)"
         # find the next uzbl window and focus it
-        next=$(wmiir read /tag/sel/index | grep -A 10000 " $current " | grep -m 1 uzbl | cut -d ' ' -f2)
+        next="$(wmiir read /tag/sel/index | grep -A 10000 " $current " | grep -m 1 uzbl | cut -d ' ' -f2)"
         if [ -n "$next" ]; then
             wmiir xwrite /tag/sel/ctl "select client $next"
         fi
         ;;
     "prev" )
-        current=$(wmiir read /client/sel/ctl | head -n 1)
-        prev=$(wmiir read /tag/sel/index | grep -B 10000 " $current " | tac | grep -m 1 uzbl | cut -d ' ' -f2)
+        current="$(wmiir read /client/sel/ctl | head -n 1)"
+        prev="$(wmiir read /tag/sel/index | grep -B 10000 " $current " | tac | grep -m 1 uzbl | cut -d ' ' -f2)"
         if [ -n "$prev" ]; then
             wmiir xwrite /tag/sel/ctl "select client $prev"
         fi

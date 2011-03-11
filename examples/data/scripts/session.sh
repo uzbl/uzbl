@@ -18,19 +18,19 @@
 if [ -z "$UZBL_UTIL_DIR" ]; then
     # we're being run standalone, we have to figure out where $UZBL_UTIL_DIR is
     # using the same logic as uzbl-browser does.
-    UZBL_UTIL_DIR=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/scripts/util
+    UZBL_UTIL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/scripts/util"
     if ! [ -d "$UZBL_UTIL_DIR" ]; then
-        PREFIX=$(grep '^PREFIX' "$(which uzbl-browser)" | sed -e 's/.*=//')
-        UZBL_UTIL_DIR=$PREFIX/share/uzbl/examples/data/scripts/util
+        PREFIX="$(grep '^PREFIX' "$(which uzbl-browser)" | sed -e 's/.*=//')"
+        UZBL_UTIL_DIR="$PREFIX/share/uzbl/examples/data/scripts/util"
     fi
 fi
 
 . "$UZBL_UTIL_DIR/uzbl-dir.sh"
 [ -d "$UZBL_DATA_DIR" ] || exit 1
 
-UZBL="uzbl-browser -c $UZBL_CONFIG_FILE" # add custom flags and whatever here.
+UZBL="uzbl-browser -c \"$UZBL_CONFIG_FILE\"" # add custom flags and whatever here.
 
-scriptfile=$(readlink -f $0)                            # this script
+scriptfile="$(readlink -f "$0")"                            # this script
 act="$1"
 
 if [ -z "$act" ]; then
@@ -39,7 +39,7 @@ fi
 
 case $act in
     "launch" )
-        urls=$(cat "$UZBL_SESSION_FILE")
+        urls="$(cat "$UZBL_SESSION_FILE")"
         if [ -z "$urls" ]; then
             $UZBL
         else
@@ -60,7 +60,7 @@ case $act in
         ;;
 
     "endsession" )
-        for fifo in "$UZBL_FIFO_DIR"/uzbl_fifo_*; do
+        for fifo in "$UZBL_FIFO_DIR/uzbl_fifo_*"; do
             if [ "$fifo" != "$UZBL_FIFO" ]; then
                 echo "spawn $scriptfile endinstance" > "$fifo"
             fi

@@ -9,17 +9,17 @@
 . "$UZBL_UTIL_DIR/uzbl-dir.sh"
 
 # the URL that is being downloaded
-uri=$1
+uri="$1"
 
 # a filename suggested by the server or based on the URL
-suggested_filename=${2:-$(echo "$uri" | sed -e 's/\W/-/g')}
+suggested_filename="${2:-$(echo "$uri" | sed -e 's/\W/-/g')}"
 
 # the mimetype of the file being downloaded
-content_type=$3
+content_type="$3"
 
 # the size of the downloaded file in bytes. this is not always accurate, since
 # the server might not have sent a size with its response headers.
-total_size=$4
+total_size="$4"
 
 # just save the file to the default directory with the suggested name
-echo $UZBL_DOWNLOAD_DIR/$suggested_filename
+echo "$UZBL_DOWNLOAD_DIR/$suggested_filename"
