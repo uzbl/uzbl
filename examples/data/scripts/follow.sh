@@ -15,10 +15,12 @@ fi
 
 result="$( echo "script @scripts_dir/follow.js \"@{follow_hint_keys} $keys\"" | socat - "unix-connect:$UZBL_SOCKET" )"
 case $result in
-  *XXXEMIT_FORM_ACTIVEXXX*)
-    # a form element was selected
-    echo 'event FORM_ACTIVE' > "$UZBL_FIFO" ;;
-  *XXXRESET_MODEXXX*)
-    # a link was selected, reset uzbl's input mode
-    echo 'set mode=' > "$UZBL_FIFO" ;;
+    *XXXEMIT_FORM_ACTIVEXXX*)
+        # a form element was selected
+        echo 'event FORM_ACTIVE' > "$UZBL_FIFO"
+        ;;
+    *XXXRESET_MODEXXX*)
+        # a link was selected, reset uzbl's input mode
+        echo 'set mode=' > "$UZBL_FIFO"
+        ;;
 esac
