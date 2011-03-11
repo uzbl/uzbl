@@ -129,9 +129,6 @@ if [ "$action" = 'load' ]; then
         option="$( printf "$menu" | $DMENU )"
     fi
 
-    # Remove comments
-    sed -i -e '/^>/d' "$tmpfile"
-
     sed -i -e 's/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):\(off\|no\|false\|unchecked\|0\|$\)/\1{\2}(\3):0/I;s/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[^0]\+/\1{\2}(\3):1/I' "$form_file"
     fields="$( sed -n -e "/^!profile=${option}/,/^!profile=/p" "$form_file" | \
                sed -e '/^!profile=/d' | \
