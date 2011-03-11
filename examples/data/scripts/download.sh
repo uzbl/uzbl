@@ -12,7 +12,7 @@
 uri=$1
 
 # a filename suggested by the server or based on the URL
-suggested_filename=${2:-$(echo "$uri" | sed 's/\W/-/g')}
+suggested_filename=${2:-$(echo "$uri" | sed -e 's/\W/-/g')}
 
 # the mimetype of the file being downloaded
 content_type=$3

@@ -55,7 +55,7 @@ MODELINE="> vim:ft=formfiller"
 
 action=$1
 
-domain=$(echo $UZBL_URI | sed 's/\(http\|https\):\/\/\([^\/]\+\)\/.*/\2/')
+domain=$(echo $UZBL_URI | sed -e 's/\(http\|https\):\/\/\([^\/]\+\)\/.*/\2/')
 
 if [ "$action" != 'edit' -a  "$action" != 'new' -a "$action" != 'load' -a "$action" != 'add' -a "$action" != 'once' ]; then
     action="new"
@@ -124,21 +124,21 @@ if [ "$action" = 'load' ]; then
     [ -e $UZBL_FORMS_DIR/$domain ] || exit 2
     if [ $(cat $UZBL_FORMS_DIR/$domain | grep "!profile" | wc -l) -gt 1 ]; then
         menu=$(cat $UZBL_FORMS_DIR/$domain | \
-              sed -n 's/^!profile=\([^[:blank:]]\+\)/\1/p')
+              sed -n -e 's/^!profile=\([^[:blank:]]\+\)/\1/p')
         option=$(printf "$menu" | $DMENU)
     fi
 
     # Remove comments
-    sed '/^>/d' -i $tmpfile
+    sed -i -e '/^>/d' $tmpfile
 
-    sed 's/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):\(off\|no\|false\|unchecked\|0\|$\)/\1{\2}(\3):0/I;s/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[^0]\+/\1{\2}(\3):1/I' -i $UZBL_FORMS_DIR/$domain
+    sed -i -e 's/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):\(off\|no\|false\|unchecked\|0\|$\)/\1{\2}(\3):0/I;s/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[^0]\+/\1{\2}(\3):1/I' $UZBL_FORMS_DIR/$domain
     fields=$(cat $UZBL_FORMS_DIR/$domain | \
-        sed -n "/^!profile=${option}/,/^!profile=/p" | \
-        sed '/^!profile=/d' | \
-        sed 's/^\([^(]\+(\)\(radio\|checkbox\|text\|search\|textarea\|password\)):/%{>\1\2):<}%/' | \
-        sed 's/^\(.\+\)$/<{br}>\1/' | \
+        sed -n -e "/^!profile=${option}/,/^!profile=/p" | \
+        sed -e '/^!profile=/d' | \
+        sed -e 's/^\([^(]\+(\)\(radio\|checkbox\|text\|search\|textarea\|password\)):/%{>\1\2):<}%/' | \
+        sed -e 's/^\(.\+\)$/<{br}>\1/' | \
         tr -d '\n' | \
-        sed 's/<{br}>%{>\([^(]\+(\)\(radio\|checkbox\|text\|search\|textarea\|password\)):<}%/\\n\1\2):/g')
+        sed -e 's/<{br}>%{>\([^(]\+(\)\(radio\|checkbox\|text\|search\|textarea\|password\)):<}%/\\n\1\2):/g')
     printf '%s\n' "${fields}" | \
         sed -n -e "s/\([^(]\+\)(\(password\|text\|search\|textarea\)\+):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\2', '\3', 0);/p" | \
         sed -e 's/@/\\@/g;s/<{br}>/\\\\n/g' | socat - unix-connect:$UZBL_SOCKET
@@ -149,21 +149,21 @@ elif [ "$action" = "once" ]; then
     tmpfile=$(mktemp)
     printf 'js %s dump(); \n' "$dumpFunction" | \
         socat - unix-connect:$UZBL_SOCKET | \
-        sed -n '/^[^(]\+([^)]\+):/p' > $tmpfile
+        sed -n -e '/^[^(]\+([^)]\+):/p' > $tmpfile
     echo "$MODELINE" >> $tmpfile
     $UZBL_EDITOR $tmpfile
 
     [ -e $tmpfile ] || exit 2
 
     # Remove comments
-    sed '/^>/d' -i $tmpfile
+    sed -i -e '/^>/d' $tmpfile
 
-    sed 's/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):\(off\|no\|false\|unchecked\|0\|$\)/\1{\2}(\3):0/I;s/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[^0]\+/\1{\2}(\3):1/I' -i $tmpfile
+    sed -i -e 's/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):\(off\|no\|false\|unchecked\|0\|$\)/\1{\2}(\3):0/I;s/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[^0]\+/\1{\2}(\3):1/I' $tmpfile
     fields=$(cat $tmpfile | \
-        sed 's/^\([^(]\+(\)\(radio\|checkbox\|text\|search\|textarea\|password\)):/%{>\1\2):<}%/' | \
-        sed 's/^\(.\+\)$/<{br}>\1/' | \
+        sed -e 's/^\([^(]\+(\)\(radio\|checkbox\|text\|search\|textarea\|password\)):/%{>\1\2):<}%/' | \
+        sed -e 's/^\(.\+\)$/<{br}>\1/' | \
         tr -d '\n' | \
-        sed 's/<{br}>%{>\([^(]\+(\)\(radio\|checkbox\|text\|search\|textarea\|password\)):<}%/\\n\1\2):/g')
+        sed -e 's/<{br}>%{>\([^(]\+(\)\(radio\|checkbox\|text\|search\|textarea\|password\)):<}%/\\n\1\2):/g')
     printf '%s\n' "${fields}" | \
         sed -n -e "s/\([^(]\+\)(\(password\|text\|search\|textarea\)\+):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\2', '\3', 0);/p" | \
         sed -e 's/@/\\@/g;s/<{br}>/\\\\n/g' | socat - unix-connect:$UZBL_SOCKET
@@ -193,7 +193,7 @@ else
         #
         printf 'js %s dump(); \n' "$dumpFunction" | \
             socat - unix-connect:$UZBL_SOCKET | \
-            sed -n '/^[^(]\+([^)]\+):/p' >> $UZBL_FORMS_DIR/$domain
+            sed -n -e '/^[^(]\+([^)]\+):/p' >> $UZBL_FORMS_DIR/$domain
     fi
     [ -e "$UZBL_FORMS_DIR/$domain" ] || exit 3 #this should never happen, but you never know.
     $UZBL_EDITOR "$UZBL_FORMS_DIR/$domain" #TODO: if user aborts save in editor, the file is already overwritten
