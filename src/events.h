@@ -33,10 +33,7 @@ void
 event_buffer_timeout(guint sec);
 
 void
-send_event_socket(GString *msg);
-
-void
-send_event_stdout(GString *msg);
+replay_buffered_events();
 
 void
 vsend_event(int type, const gchar *custom_event, va_list vargs);

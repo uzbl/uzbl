@@ -49,7 +49,7 @@ inspector_show_window_cb (WebKitWebInspector* inspector){
     (void) inspector;
     gtk_widget_show(uzbl.gui.inspector_window);
 
-    send_event(WEBINSPECTOR, "open", NULL);
+    send_event(WEBINSPECTOR, NULL, TYPE_NAME, "open", NULL);
     return TRUE;
 }
 
@@ -57,7 +57,7 @@ inspector_show_window_cb (WebKitWebInspector* inspector){
 gboolean
 inspector_close_window_cb (WebKitWebInspector* inspector){
     (void) inspector;
-    send_event(WEBINSPECTOR, "close", NULL);
+    send_event(WEBINSPECTOR, NULL, TYPE_NAME, "close", NULL);
     return TRUE;
 }
 
