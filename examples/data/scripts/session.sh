@@ -39,7 +39,7 @@ if [ -z "$act" ]; then
 fi
 
 case $act in
-    "launch" )
+    "launch")
         urls="$( cat "$UZBL_SESSION_FILE" )"
         if [ -z "$urls" ]; then
             $UZBL
@@ -51,7 +51,7 @@ case $act in
         fi
         ;;
 
-    "endinstance" )
+    "endinstance")
         if [ -z "$UZBL_FIFO" ]; then
             echo "session manager: endinstance must be called from uzbl"
             exit 1
@@ -60,7 +60,7 @@ case $act in
         echo exit > "$UZBL_FIFO"
         ;;
 
-    "endsession" )
+    "endsession")
         for fifo in "$UZBL_FIFO_DIR/uzbl_fifo_*"; do
             if [ "$fifo" != "$UZBL_FIFO" ]; then
                 echo "spawn $scriptfile endinstance" > "$fifo"
@@ -69,7 +69,7 @@ case $act in
         [ -z "$UZBL_FIFO" ] || echo "spawn $scriptfile endinstance" > "$UZBL_FIFO"
         ;;
 
-    * )
+    *)
         echo "session manager: bad action"
         echo "Usage: $scriptfile [COMMAND] where commands are:"
         echo " launch      - Restore a saved session or start a new one"
