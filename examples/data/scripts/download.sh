@@ -11,8 +11,10 @@
 # the URL that is being downloaded
 uri="$1"
 
+safe_uri="$(echo "$uri" | sed -e 's/\W/-/g')"
+
 # a filename suggested by the server or based on the URL
-suggested_filename="${2:-$(echo "$uri" | sed -e 's/\W/-/g')}"
+suggested_filename="${2:-$safe_uri}"
 
 # the mimetype of the file being downloaded
 content_type="$3"
