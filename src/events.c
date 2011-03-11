@@ -92,7 +92,7 @@ send_event_sockets(GPtrArray *sockets, GString *msg) {
     }
 }
 
-static void
+void
 replay_buffered_events() {
     guint i = 0;
 

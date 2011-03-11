@@ -216,8 +216,8 @@ init_connect_socket() {
     }
 
     /* replay buffered events */
-    if(replay)
-        send_event_socket(NULL);
+    if(replay && uzbl.state.event_buffer)
+        replay_buffered_events();
 }
 
 
