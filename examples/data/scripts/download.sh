@@ -7,11 +7,12 @@
 # if nothing is printed to stdout, the download will be cancelled.
 
 . "$UZBL_UTIL_DIR/uzbl-dir.sh"
+. "$UZBL_UTIL_DIR/uzbl-util.sh"
 
 # the URL that is being downloaded
 uri="$1"
 
-safe_uri="$( printf "$uri" | sed -e 's/\W/-/g' )"
+safe_uri="$( print "$uri" | sed -e 's/\W/-/g' )"
 
 # a filename suggested by the server or based on the URL
 suggested_filename="${2:-$safe_uri}"
@@ -24,4 +25,4 @@ content_type="$3"
 total_size="$4"
 
 # just save the file to the default directory with the suggested name
-printf "$UZBL_DOWNLOAD_DIR/$suggested_filename\n"
+print "$UZBL_DOWNLOAD_DIR/$suggested_filename\n"

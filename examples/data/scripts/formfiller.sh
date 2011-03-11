@@ -56,7 +56,7 @@ MODELINE="> vim:ft=formfiller"
 action="$1"
 shift
 
-domain="$( printf "$UZBL_URI\n" | sed -e 's/\(http\|https\):\/\/\([^\/]\+\)\/.*/\2/' )"
+domain="$( print "$UZBL_URI\n" | sed -e 's/\(http\|https\):\/\/\([^\/]\+\)\/.*/\2/' )"
 form_file="$UZBL_FORMS_DIR/$domain"
 
 if [ "$action" != 'edit' ] && [ "$action" != 'new' ] && [ "$action" != 'load' ] && [ "$action" != 'add' ] && [ "$action" != 'once' ]; then
@@ -126,7 +126,7 @@ if [ "$action" = 'load' ]; then
     [ -e "$form_file" ] || exit 2
     if [ "$( grep "!profile" "$form_file" | wc -l )" -gt 1 ]; then
         menu="$( sed -n -e 's/^!profile=\([^[:blank:]]\+\)/\1/p' "$form_file" )"
-        option="$( printf "$menu" | $DMENU )"
+        option="$( print "$menu" | $DMENU )"
     fi
 
     sed -i -e 's/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):\(off\|no\|false\|unchecked\|0\|$\)/\1{\2}(\3):0/I;s/^\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[^0]\+/\1{\2}(\3):1/I' "$form_file"
@@ -170,7 +170,7 @@ elif [ "$action" = "once" ]; then
 else
     if [ "$action" = 'new' -o "$action" = 'add' ]; then
         [ "$action" = 'new' ] && echo "$MODELINE" > "$form_file"
-        printf "!profile=NAME_THIS_PROFILE$RAND\n" >> "$form_file"
+        print "!profile=NAME_THIS_PROFILE$RAND\n" >> "$form_file"
         #
         # 2. and 3. line (tr -d and sed) are because, on gmail login for example,
         # <input > tag is splited into lines

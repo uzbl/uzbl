@@ -26,6 +26,8 @@ if [ -z "$UZBL_UTIL_DIR" ]; then
 fi
 
 . "$UZBL_UTIL_DIR/uzbl-dir.sh"
+. "$UZBL_UTIL_DIR/uzbl-util.sh"
+
 [ -d "$UZBL_DATA_DIR" ] || exit 1
 
 UZBL="uzbl-browser -c \"$UZBL_CONFIG_FILE\"" # add custom flags and whatever here.
@@ -53,27 +55,27 @@ case $act in
 
     "endinstance")
         if [ -z "$UZBL_FIFO" ]; then
-            printf "session manager: endinstance must be called from uzbl\n"
+            print "session manager: endinstance must be called from uzbl\n"
             exit 1
         fi
-        [ "$UZBL_URI" != "(null)" ] && printf "$UZBL_URI\n" >> "$UZBL_SESSION_FILE"
-        printf "exit\n" > "$UZBL_FIFO"
+        [ "$UZBL_URI" != "(null)" ] && print "$UZBL_URI\n" >> "$UZBL_SESSION_FILE"
+        print "exit\n" > "$UZBL_FIFO"
         ;;
 
     "endsession")
         for fifo in "$UZBL_FIFO_DIR/uzbl_fifo_*"; do
             if [ "$fifo" != "$UZBL_FIFO" ]; then
-                printf "spawn $scriptfile endinstance\n" > "$fifo"
+                print "spawn $scriptfile endinstance\n" > "$fifo"
             fi
         done
-        [ -z "$UZBL_FIFO" ] || printf "spawn $scriptfile endinstance\n" > "$UZBL_FIFO"
+        [ -z "$UZBL_FIFO" ] || print "spawn $scriptfile endinstance\n" > "$UZBL_FIFO"
         ;;
 
     *)
-        printf "session manager: bad action\n"
-        printf "Usage: $scriptfile [COMMAND] where commands are:\n"
-        printf " launch      - Restore a saved session or start a new one\n"
-        printf " endinstance - Quit the current instance. Must be called from uzbl\n"
-        printf " endsession  - Quit the running session.\n"
+        print "session manager: bad action\n"
+        print "Usage: $scriptfile [COMMAND] where commands are:\n"
+        print " launch      - Restore a saved session or start a new one\n"
+        print " endinstance - Quit the current instance. Must be called from uzbl\n"
+        print " endsession  - Quit the running session.\n"
         ;;
 esac

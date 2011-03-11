@@ -5,6 +5,7 @@ DMENU_OPTIONS="xmms vertical resize"
 
 . "$UZBL_UTIL_DIR/dmenu.sh"
 . "$UZBL_UTIL_DIR/uzbl-dir.sh"
+. "$UZBL_UTIL_DIR/uzbl-util.sh"
 
 [ -r "$UZBL_HISTORY_FILE" ] || exit 1
 
@@ -18,5 +19,5 @@ else
     goto="$( tac "$UZBL_HISTORY_FILE" | $DMENU | cut -d ' ' -f -3  | awk '{ print $NF }' )"
 fi
 
-[ -n "$goto" ] && printf "uri $goto\n" > "$UZBL_FIFO"
-#[ -n "$goto" ] && printf "uri $goto\n" | socat - "unix-connect:$UZBL_SOCKET"
+[ -n "$goto" ] && print "uri $goto\n" > "$UZBL_FIFO"
+#[ -n "$goto" ] && print "uri $goto\n" | socat - "unix-connect:$UZBL_SOCKET"
