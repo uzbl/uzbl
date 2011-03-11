@@ -139,15 +139,15 @@ if [ "$action" = 'load' ]; then
                sed -e 's/^\(.\+\)$/<{br}>\1/' | \
                tr -d '\n' | \
                sed -e 's/<{br}>%{>\([^(]\+(\)\(radio\|checkbox\|text\|search\|textarea\|password\)):<}%/\\n\1\2):/g' )"
-    printf '%s\n' "${fields}" | \
+    printf "%s\n" "${fields}" | \
         sed -n -e "s/\([^(]\+\)(\(password\|text\|search\|textarea\)\+):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\2', '\3', 0);/p" | \
         sed -e 's/@/\\@/g;s/<{br}>/\\\\n/g' | socat - "unix-connect:$UZBL_SOCKET"
-    printf '%s\n' "${fields}" | \
+    printf "%s\n" "${fields}" | \
         sed -n -e "s/\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\3', '\2', \4);/p" | \
         sed -e 's/@/\\@/g' | socat - "unix-connect:$UZBL_SOCKET"
 elif [ "$action" = "once" ]; then
     tmpfile="$( mktemp )"
-    printf 'js %s dump(); \n' "$dumpFunction" | \
+    printf "js %s dump();\n" "$dumpFunction" | \
         socat - "unix-connect:$UZBL_SOCKET" | \
         sed -n -e '/^[^(]\+([^)]\+):/p' > "$tmpfile"
     echo "$MODELINE" >> "$tmpfile"
@@ -163,10 +163,10 @@ elif [ "$action" = "once" ]; then
                sed -e 's/^\(.\+\)$/<{br}>\1/' | \
                tr -d '\n' | \
                sed -e 's/<{br}>%{>\([^(]\+(\)\(radio\|checkbox\|text\|search\|textarea\|password\)):<}%/\\n\1\2):/g' )"
-    printf '%s\n' "${fields}" | \
+    printf "%s\n" "${fields}" | \
         sed -n -e "s/\([^(]\+\)(\(password\|text\|search\|textarea\)\+):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\2', '\3', 0);/p" | \
         sed -e 's/@/\\@/g;s/<{br}>/\\\\n/g' | socat - "unix-connect:$UZBL_SOCKET"
-    printf '%s\n' "${fields}" | \
+    printf "%s\n" "${fields}" | \
         sed -n -e "s/\([^{]\+\){\([^}]*\)}(\(radio\|checkbox\)):[ ]*\(.\+\)/js $insertFunction; insert('\1', '\3', '\2', \4);/p" | \
         sed -e 's/@/\\@/g' | socat - "unix-connect:$UZBL_SOCKET"
     rm -f "$tmpfile"
@@ -190,7 +190,7 @@ else
         #       login(text):
         #       passwd(password):
         #
-        printf 'js %s dump(); \n' "$dumpFunction" | \
+        printf "js %s dump();\n" "$dumpFunction" | \
             socat - "unix-connect:$UZBL_SOCKET" | \
             sed -n -e '/^[^(]\+([^)]\+):/p' >> "$form_file"
     fi
