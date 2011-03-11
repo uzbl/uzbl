@@ -58,7 +58,7 @@ shift
 
 domain="$( echo "$UZBL_URI" | sed -e 's/\(http\|https\):\/\/\([^\/]\+\)\/.*/\2/' )"
 
-if [ "$action" != 'edit' -a  "$action" != 'new' -a "$action" != 'load' -a "$action" != 'add' -a "$action" != 'once' ]; then
+if [ "$action" != 'edit' ] && [ "$action" != 'new' ] && [ "$action" != 'load' ] && [ "$action" != 'add' ] && [ "$action" != 'once' ]; then
     action="new"
     [ -e "$UZBL_FORMS_DIR/$domain" ] && action="load"
 elif [ "$action" = 'edit' ] && [ ! -e "$UZBL_FORMS_DIR/$domain" ]; then
