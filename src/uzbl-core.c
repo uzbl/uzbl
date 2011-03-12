@@ -1478,6 +1478,10 @@ create_window() {
     gtk_widget_set_name (window, "Uzbl browser");
     gtk_window_set_title(GTK_WINDOW(window), "Uzbl browser");
 
+#if GTK_CHECK_VERSION(3,0,0)
+    gtk_window_set_has_resize_grip (window, FALSE);
+#endif
+
     /* if the window has been made small, it shouldn't try to resize itself due
      * to a long statusbar. */
     GdkGeometry hints;
