@@ -5,17 +5,20 @@
 
 . "$UZBL_UTIL_DIR/uzbl-util.sh"
 
+key_variable="$1"
+shift
+
 keys="$1"
 shift
 
 # if socat is installed then we can change Uzbl's input mode once a link is
 # selected; otherwise we just select a link.
 if ! which socat >/dev/null 2>&1; then
-    print "script @scripts_dir/follow.js \"@{follow_hint_keys} $keys\"\n" > "$UZBL_FIFO"
+    print "script @scripts_dir/follow.js \"@{$key_variable} $keys\"\n" > "$UZBL_FIFO"
     exit 0
 fi
 
-result="$( print "script @scripts_dir/follow.js \"@{follow_hint_keys} $keys\"\n" | socat - "unix-connect:$UZBL_SOCKET" )"
+result="$( print "script @scripts_dir/follow.js \"@{$key_variable} $keys\"\n" | socat - "unix-connect:$UZBL_SOCKET" )"
 case $result in
     *XXXEMIT_FORM_ACTIVEXXX*)
         # a form element was selected
