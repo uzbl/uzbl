@@ -1644,28 +1644,6 @@ retrieve_geometry() {
     uzbl.gui.geometry = g_string_free(buf, FALSE);
 }
 
-void
-set_webview_scroll_adjustments() {
-#if GTK_CHECK_VERSION(2,91,0)
-    gtk_scrollable_set_hadjustment (GTK_SCROLLABLE(uzbl.gui.web_view), uzbl.gui.bar_h);
-    gtk_scrollable_set_vadjustment (GTK_SCROLLABLE(uzbl.gui.web_view), uzbl.gui.bar_v);
-#else
-    gtk_widget_set_scroll_adjustments (GTK_WIDGET (uzbl.gui.web_view),
-      uzbl.gui.bar_h, uzbl.gui.bar_v);
-#endif
-
-    g_object_connect(G_OBJECT (uzbl.gui.bar_v),
-      "signal::value-changed",  (GCallback)scroll_vert_cb,  NULL,
-      "signal::changed",        (GCallback)scroll_vert_cb,  NULL,
-      NULL);
-
-    g_object_connect(G_OBJECT (uzbl.gui.bar_h),
-      "signal::value-changed",  (GCallback)scroll_horiz_cb, NULL,
-      "signal::changed",        (GCallback)scroll_horiz_cb, NULL,
-      NULL);
-}
-
-
 /* Set up gtk, gobject, variable defaults and other things that tests and other
  * external applications need to do anyhow */
 void
@@ -1814,7 +1792,15 @@ main (int argc, char* argv[]) {
     uzbl.gui.bar_h = gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win));
     uzbl.gui.bar_v = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win));
 
-    set_webview_scroll_adjustments();
+    g_object_connect(G_OBJECT (uzbl.gui.bar_v),
+      "signal::value-changed",  (GCallback)scroll_vert_cb,  NULL,
+      "signal::changed",        (GCallback)scroll_vert_cb,  NULL,
+      NULL);
+
+    g_object_connect(G_OBJECT (uzbl.gui.bar_h),
+      "signal::value-changed",  (GCallback)scroll_horiz_cb, NULL,
+      "signal::changed",        (GCallback)scroll_horiz_cb, NULL,
+      NULL);
 
     gchar *xwin = g_strdup_printf("%d", (int)uzbl.xwin);
     g_setenv("UZBL_XID", xwin, TRUE);

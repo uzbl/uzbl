@@ -314,7 +314,6 @@ void        dump_config();
 void        dump_config_as_events();
 
 void        retrieve_geometry();
-void        set_webview_scroll_adjustments();
 void        event(WebKitWebView *page, GArray *argv, GString *result);
 void        init_connect_socket();
 gboolean    remove_socket_from_array(GIOChannel *chan);
