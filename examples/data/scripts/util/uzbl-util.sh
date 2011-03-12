@@ -1,3 +1,3 @@
 #!/bin/sh
 
-alias print="printf %s"
+alias print="printf %b"
