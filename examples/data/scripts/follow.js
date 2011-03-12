@@ -272,4 +272,7 @@ function followLinks(follow) {
 //Parse input: first argument is follow keys, second is user input.
 var args = '%s'.split(' ')
 var charset = args[0]
-followLinks(args[1])
+
+if (charset != '') {
+    followLinks(args[1])
+}
