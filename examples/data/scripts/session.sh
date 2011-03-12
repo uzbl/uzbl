@@ -18,28 +18,31 @@
 if [ -z "$UZBL_UTIL_DIR" ]; then
     # we're being run standalone, we have to figure out where $UZBL_UTIL_DIR is
     # using the same logic as uzbl-browser does.
-    UZBL_UTIL_DIR=${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/scripts/util
+    UZBL_UTIL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/scripts/util"
     if ! [ -d "$UZBL_UTIL_DIR" ]; then
-        PREFIX=$(grep '^PREFIX' "$(which uzbl-browser)" | sed 's/.*=//')
-        UZBL_UTIL_DIR=$PREFIX/share/uzbl/examples/data/scripts/util
+        PREFIX="$( grep '^PREFIX' "$( which uzbl-browser )" | sed -e 's/.*=//' )"
+        UZBL_UTIL_DIR="$PREFIX/share/uzbl/examples/data/scripts/util"
     fi
 fi
 
-. "$UZBL_UTIL_DIR"/uzbl-dir.sh
+. "$UZBL_UTIL_DIR/uzbl-dir.sh"
+. "$UZBL_UTIL_DIR/uzbl-util.sh"
+
 [ -d "$UZBL_DATA_DIR" ] || exit 1
 
-UZBL="uzbl-browser -c $UZBL_CONFIG_FILE" # add custom flags and whatever here.
+UZBL="uzbl-browser -c \"$UZBL_CONFIG_FILE\"" # add custom flags and whatever here.
 
-scriptfile=$(readlink -f $0)                            # this script
+scriptfile="$( readlink -f "$0" )"                            # this script
 act="$1"
+shift
 
 if [ -z "$act" ]; then
   [ -f "$UZBL_SESSION_FILE" ] && act="launch" || act="endsession"
 fi
 
 case $act in
-    "launch" )
-        urls=$(cat "$UZBL_SESSION_FILE")
+    "launch")
+        urls="$( cat "$UZBL_SESSION_FILE" )"
         if [ -z "$urls" ]; then
             $UZBL
         else
@@ -50,29 +53,29 @@ case $act in
         fi
         ;;
 
-    "endinstance" )
+    "endinstance")
         if [ -z "$UZBL_FIFO" ]; then
-            echo "session manager: endinstance must be called from uzbl"
+            print "session manager: endinstance must be called from uzbl\n"
             exit 1
         fi
-        [ "$UZBL_URI" != "(null)" ] && echo "$UZBL_URI" >> "$UZBL_SESSION_FILE"
-        echo exit > "$UZBL_FIFO"
+        [ "$UZBL_URI" != "(null)" ] && print "$UZBL_URI\n" >> "$UZBL_SESSION_FILE"
+        print "exit\n" > "$UZBL_FIFO"
         ;;
 
-    "endsession" )
-        for fifo in "$UZBL_FIFO_DIR"/uzbl_fifo_*; do
+    "endsession")
+        for fifo in "$UZBL_FIFO_DIR/uzbl_fifo_*"; do
             if [ "$fifo" != "$UZBL_FIFO" ]; then
-                echo "spawn $scriptfile endinstance" > "$fifo"
+                print "spawn $scriptfile endinstance\n" > "$fifo"
             fi
         done
-        [ -z "$UZBL_FIFO" ] || echo "spawn $scriptfile endinstance" > "$UZBL_FIFO"
+        [ -z "$UZBL_FIFO" ] || print "spawn $scriptfile endinstance\n" > "$UZBL_FIFO"
         ;;
 
-    * )
-        echo "session manager: bad action"
-        echo "Usage: $scriptfile [COMMAND] where commands are:"
-        echo " launch      - Restore a saved session or start a new one"
-        echo " endinstance - Quit the current instance. Must be called from uzbl"
-        echo " endsession  - Quit the running session."
+    *)
+        print "session manager: bad action\n"
+        print "Usage: $scriptfile [COMMAND] where commands are:\n"
+        print " launch      - Restore a saved session or start a new one\n"
+        print " endinstance - Quit the current instance. Must be called from uzbl\n"
+        print " endsession  - Quit the running session.\n"
         ;;
 esac

@@ -309,7 +309,7 @@ set follow_hint_keys = 0123456789
 #set follow_hint_keys = qwerty
 #set follow_hint_keys = asdfghjkl;
 #set follow_hint_keys = thsnd-rcgmvwb/;789aefijkopquxyz234
-@cbind  fl*  = spawn @scripts_dir/follow.sh "%s"
+@cbind  fl*  = spawn @scripts_dir/follow.sh follow_hint_keys "%s"
 @cbind  gi   = spawn @scripts_dir/go_input.sh
 
 # Form filler binds

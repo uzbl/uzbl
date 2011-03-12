@@ -11,113 +11,113 @@
  */
 
 //Just some shortcuts and globals
-var uzblid = 'uzbl_link_hint';
-var uzbldivid = uzblid + '_div_container';
-var doc = document;
-var win = window;
-var links = document.links;
-var forms = document.forms;
+var uzblid = 'uzbl_link_hint'
+var uzbldivid = uzblid + '_div_container'
+var doc = document
+var win = window
+var links = document.links
+var forms = document.forms
 //Make onlick-links "clickable"
 try {
     HTMLElement.prototype.click = function() {
         if (typeof this.onclick == 'function') {
             this.onclick({
                 type: 'click'
-            });
+            })
         }
-    };
+    }
 } catch(e) {}
 //Catch the ESC keypress to stop linkfollowing
 function keyPressHandler(e) {
-    var kC = window.event ? event.keyCode: e.keyCode;
-    var Esc = window.event ? 27 : e.DOM_VK_ESCAPE;
+    var kC = window.event ? event.keyCode: e.keyCode
+    var Esc = window.event ? 27 : e.DOM_VK_ESCAPE
     if (kC == Esc) {
-        removeAllHints();
+        removeAllHints()
     }
 }
 //Calculate element position to draw the hint
 //Pretty accurate but on fails in some very fancy cases
 function elementPosition(el) {
-    var up = el.offsetTop;
-    var left = el.offsetLeft;
-    var width = el.offsetWidth;
-    var height = el.offsetHeight;
+    var up = el.offsetTop
+    var left = el.offsetLeft
+    var width = el.offsetWidth
+    var height = el.offsetHeight
     while (el.offsetParent) {
-        el = el.offsetParent;
-        up += el.offsetTop;
-        left += el.offsetLeft;
+        el = el.offsetParent
+        up += el.offsetTop
+        left += el.offsetLeft
     }
-    return [up, left, width, height];
+    return [up, left, width, height]
 }
 //Calculate if an element is visible
 function isVisible(el) {
     if (el == doc) {
-        return true;
+        return true
     }
     if (!el) {
-        return false;
+        return false
     }
     if (!el.parentNode) {
-        return false;
+        return false
     }
     if (el.style) {
         if (el.style.display == 'none') {
-            return false;
+            return false
         }
         if (el.style.visibility == 'hidden') {
-            return false;
+            return false
         }
     }
-    return isVisible(el.parentNode);
+    return isVisible(el.parentNode)
 }
 //Calculate if an element is on the viewport.
 function elementInViewport(el) {
-    offset = elementPosition(el);
-    var up = offset[0];
-    var left = offset[1];
-    var width = offset[2];
-    var height = offset[3];
-    return up < window.pageYOffset + window.innerHeight && left < window.pageXOffset + window.innerWidth && (up + height) > window.pageYOffset && (left + width) > window.pageXOffset;
+    offset = elementPosition(el)
+    var up = offset[0]
+    var left = offset[1]
+    var width = offset[2]
+    var height = offset[3]
+    return up < window.pageYOffset + window.innerHeight && left < window.pageXOffset + window.innerWidth && (up + height) > window.pageYOffset && (left + width) > window.pageXOffset
 }
 //Removes all hints/leftovers that might be generated
 //by this script.
 function removeAllHints() {
-    var elements = doc.getElementById(uzbldivid);
+    var elements = doc.getElementById(uzbldivid)
     if (elements) {
-        elements.parentNode.removeChild(elements);
+        elements.parentNode.removeChild(elements)
     }
 }
 //Generate a hint for an element with the given label
 //Here you can play around with the style of the hints!
 function generateHint(el, label) {
-    var pos = elementPosition(el);
-    var hint = doc.createElement('div');
-    hint.setAttribute('name', uzblid);
-    hint.innerText = label;
-    hint.style.display = 'inline';
-    hint.style.backgroundColor = '#B9FF00';
-    hint.style.border = '2px solid #4A6600';
-    hint.style.color = 'black';
-    hint.style.fontSize = '9px';
-    hint.style.fontWeight = 'bold';
-    hint.style.lineHeight = '9px';
-    hint.style.margin = '0px';
-    hint.style.width = 'auto'; // fix broken rendering on w3schools.com
-    hint.style.padding = '1px';
-    hint.style.position = 'absolute';
-    hint.style.zIndex = '1000';
-    // hint.style.textTransform = 'uppercase';
-    hint.style.left = pos[1] + 'px';
-    hint.style.top = pos[0] + 'px';
-    // var img = el.getElementsByTagName('img');
+    var pos = elementPosition(el)
+    var hint = doc.createElement('div')
+    hint.setAttribute('name', uzblid)
+    hint.innerText = label
+    hint.style.display = 'inline'
+    hint.style.backgroundColor = '#B9FF00'
+    hint.style.border = '2px solid #4A6600'
+    hint.style.color = 'black'
+    hint.style.fontSize = '9px'
+    hint.style.fontWeight = 'bold'
+    hint.style.lineHeight = '9px'
+    hint.style.margin = '0px'
+    hint.style.width = 'auto' // fix broken rendering on w3schools.com
+    hint.style.padding = '1px'
+    hint.style.position = 'absolute'
+    hint.style.zIndex = '1000'
+    // hint.style.textTransform = 'uppercase'
+    hint.style.left = pos[1] + 'px'
+    hint.style.top = pos[0] + 'px'
+    // var img = el.getElementsByTagName('img')
     // if (img.length > 0) {
-    //     hint.style.top = pos[1] + img[0].height / 2 - 6 + 'px';
+    //     hint.style.top = pos[1] + img[0].height / 2 - 6 + 'px'
     // }
-    hint.style.textDecoration = 'none';
-    // hint.style.webkitBorderRadius = '6px'; // slow
+    hint.style.textDecoration = 'none'
+    // hint.style.webkitBorderRadius = '6px' // slow
     // Play around with this, pretty funny things to do :)
-    // hint.style.webkitTransform = 'scale(1) rotate(0deg) translate(-6px,-5px)';
-    return hint;
+    // hint.style.webkitTransform = 'scale(1) rotate(0deg) translate(-6px,-5px)'
+    return hint
 }
 
 // Here we choose what to do with an element that the user has selected.
@@ -126,30 +126,30 @@ function generateHint(el, label) {
 // should be reset to command mode with an empty keycmd, or
 // "XXX_EMIT_FORM_ACTIVEXXX" to indicate that uzbl should be set to insert mode.
 function clickElem(item) {
-    removeAllHints();
+    removeAllHints()
     if (item) {
-        var name = item.tagName;
+        var name = item.tagName
         if (name == 'BUTTON') {
-            item.click();
-            return "XXXRESET_MODEXXX";
+            item.click()
+            return "XXXRESET_MODEXXX"
         } else if (name == 'INPUT') {
-            var type = item.type.toUpperCase();
+            var type = item.type.toUpperCase()
             if (type == 'TEXT' || type == 'SEARCH' || type == 'PASSWORD') {
-                item.focus();
-                item.select();
-                return "XXXEMIT_FORM_ACTIVEXXX";
+                item.focus()
+                item.select()
+                return "XXXEMIT_FORM_ACTIVEXXX"
             } else {
-                item.click();
-                return "XXXRESET_MODEXXX";
+                item.click()
+                return "XXXRESET_MODEXXX"
             }
         } else if (name == 'TEXTAREA' || name == 'SELECT') {
-            item.focus();
-            item.select();
-            return "XXXEMIT_FORM_ACTIVEXXX";
+            item.focus()
+            item.select()
+            return "XXXEMIT_FORM_ACTIVEXXX"
         } else {
-            item.click();
-            window.location = item.href;
-            return "XXXRESET_MODEXXX";
+            item.click()
+            window.location = item.href
+            return "XXXRESET_MODEXXX"
         }
     }
 }
@@ -157,119 +157,122 @@ function clickElem(item) {
 //just the elements itself, but in other versions, we
 //add the label here.
 function addLinks() {
-    res = [[], []];
+    res = [[], []]
     for (var l = 0; l < links.length; l++) {
-        var li = links[l];
+        var li = links[l]
         if (isVisible(li) && elementInViewport(li)) {
-            res[0].push(li);
+            res[0].push(li)
         }
     }
-    return res;
+    return res
 }
 //Same as above, just for the form elements
 function addFormElems() {
-    res = [[], []];
+    res = [[], []]
     for (var f = 0; f < forms.length; f++) {
         for (var e = 0; e < forms[f].elements.length; e++) {
-            var el = forms[f].elements[e];
+            var el = forms[f].elements[e]
             if (el && ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].indexOf(el.tagName) + 1 && isVisible(el) && elementInViewport(el)) {
-                res[0].push(el);
+                res[0].push(el)
             }
         }
     }
-    return res;
+    return res
 }
 //Draw all hints for all elements passed. "len" is for
 //the number of chars we should use to avoid collisions
 function reDrawHints(elems, chars) {
-    removeAllHints();
-    var hintdiv = doc.createElement('div');
-    hintdiv.setAttribute('id', uzbldivid);
+    removeAllHints()
+    var hintdiv = doc.createElement('div')
+    hintdiv.setAttribute('id', uzbldivid)
     for (var i = 0; i < elems[0].length; i++) {
         if (elems[0][i]) {
-            var label = elems[1][i].substring(chars);
-            var h = generateHint(elems[0][i], label);
-            hintdiv.appendChild(h);
+            var label = elems[1][i].substring(chars)
+            var h = generateHint(elems[0][i], label)
+            hintdiv.appendChild(h)
         }
     }
     if (document.body) {
-        document.body.appendChild(hintdiv);
+        document.body.appendChild(hintdiv)
     }
 }
 // pass: number of keys
 // returns: key length
 function labelLength(n) {
-    var oldn = n;
-    var keylen = 0;
+    var oldn = n
+    var keylen = 0
     if(n < 2) {
-        return 1;
+        return 1
     }
-    n -= 1; // our highest key will be n-1
+    n -= 1 // our highest key will be n-1
     while(n) {
-        keylen += 1;
-        n = Math.floor(n / charset.length);
+        keylen += 1
+        n = Math.floor(n / charset.length)
     }
-    return keylen;
+    return keylen
 }
 // pass: number
 // returns: label
 function intToLabel(n) {
-    var label = '';
+    var label = ''
     do {
-        label = charset.charAt(n % charset.length) + label;
-        n = Math.floor(n / charset.length);
-    } while(n);
-    return label;
+        label = charset.charAt(n % charset.length) + label
+        n = Math.floor(n / charset.length)
+    } while(n)
+    return label
 }
 // pass: label
 // returns: number
 function labelToInt(label) {
-    var n = 0;
-    var i;
+    var n = 0
+    var i
     for(i = 0; i < label.length; ++i) {
-        n *= charset.length;
-        n += charset.indexOf(label[i]);
+        n *= charset.length
+        n += charset.indexOf(label[i])
     }
-    return n;
+    return n
 }
 //Put it all together
 function followLinks(follow) {
     // if(follow.charAt(0) == 'l') {
-    //     follow = follow.substr(1);
-    //     charset = 'thsnlrcgfdbmwvz-/';
+    //     follow = follow.substr(1)
+    //     charset = 'thsnlrcgfdbmwvz-/'
     // }
-    var s = follow.split('');
-    var linknr = labelToInt(follow);
-    if (document.body) document.body.setAttribute('onkeyup', 'keyPressHandler(event)');
-    var linkelems = addLinks();
-    var formelems = addFormElems();
-    var elems = [linkelems[0].concat(formelems[0]), linkelems[1].concat(formelems[1])];
-    var len = labelLength(elems[0].length);
-    var oldDiv = doc.getElementById(uzbldivid);
-    var leftover = [[], []];
+    var s = follow.split('')
+    var linknr = labelToInt(follow)
+    if (document.body) document.body.setAttribute('onkeyup', 'keyPressHandler(event)')
+    var linkelems = addLinks()
+    var formelems = addFormElems()
+    var elems = [linkelems[0].concat(formelems[0]), linkelems[1].concat(formelems[1])]
+    var len = labelLength(elems[0].length)
+    var oldDiv = doc.getElementById(uzbldivid)
+    var leftover = [[], []]
     if (s.length == len && linknr < elems[0].length && linknr >= 0) {
-        return clickElem(elems[0][linknr]);
+        return clickElem(elems[0][linknr])
     } else {
         for (var j = 0; j < elems[0].length; j++) {
-            var b = true;
-            var label = intToLabel(j);
-            var n = label.length;
+            var b = true
+            var label = intToLabel(j)
+            var n = label.length
             for (n; n < len; n++) {
-                label = charset.charAt(0) + label;
+                label = charset.charAt(0) + label
             }
             for (var k = 0; k < s.length; k++) {
-                b = b && label.charAt(k) == s[k];
+                b = b && label.charAt(k) == s[k]
             }
             if (b) {
-                leftover[0].push(elems[0][j]);
-                leftover[1].push(label);
+                leftover[0].push(elems[0][j])
+                leftover[1].push(label)
             }
         }
-        reDrawHints(leftover, s.length);
+        reDrawHints(leftover, s.length)
     }
 }
 
 //Parse input: first argument is follow keys, second is user input.
-var args = '%s'.split(' ');
-var charset = args[0];
-followLinks(args[1]);
+var args = '%s'.split(' ')
+var charset = args[0]
+
+if (charset != '') {
+    followLinks(args[1])
+}
