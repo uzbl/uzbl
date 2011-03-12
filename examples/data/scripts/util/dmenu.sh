@@ -98,7 +98,7 @@ if dmenu --help 2>&1 | grep -q '\[-l <\?lines>\?\]'; then
 fi
 
 # Detect placement patch
-if dmenu --help 2>&1 | grep -q '\[-x <xoffset>\]'; then
+if dmenu --help 2>&1 | grep -q '\[-x <\?xoffset>\?\]'; then
     DMENU_PLACE_X="-x"
     DMENU_PLACE_Y="-y"
     DMENU_PLACE_WIDTH="-w"
