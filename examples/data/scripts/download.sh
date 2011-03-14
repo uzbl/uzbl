@@ -27,6 +27,10 @@ total_size="$1"
 shift
 
 case "$suggested_filename" in
+    # example: save torrents to a separate directory
+    #*.torrent)
+    #    path="$UZBL_DOWNLOAD_DIR/torrents/$suggested_filename"
+    #    ;;
     # Default case
     *)
         path="$UZBL_DOWNLOAD_DIR/$suggested_filename"
