@@ -218,7 +218,7 @@ def parse_key_event(uzbl, key):
     keylet = uzbl.keylet
 
     modstate, key = splitquoted(key)
-    modstate = set(['<%s>' % keylet.modmap_key(k) for k in modstate.split('|')])
+    modstate = set(['<%s>' % keylet.modmap_key(k) for k in modstate.split('|') if k])
     
     key = keylet.modmap_key(key)
     return modstate, key
