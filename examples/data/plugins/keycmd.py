@@ -228,11 +228,10 @@ def key_press(uzbl, key):
     '''Handle KEY_PRESS events. Things done by this function include:
 
     1. Ignore all shift key presses (shift can be detected by capital chars)
-    3. In non-modcmd mode:
+    2. In non-modcmd mode:
          a. append char to keycmd
-    4. If not in modcmd mode and a modkey was pressed set modcmd mode.
-    5. If in modcmd mode the pressed key is added to the held keys list.
-    6. Keycmd is updated and events raised if anything is changed.'''
+    3. If not in modcmd mode and a modkey was pressed set modcmd mode.
+    4. Keycmd is updated and events raised if anything is changed.'''
 
     k = uzbl.keylet
     modstate, key = parse_key_event(uzbl, key)
@@ -270,10 +269,8 @@ def key_press(uzbl, key):
 def key_release(uzbl, key):
     '''Respond to KEY_RELEASE event. Things done by this function include:
 
-    1. Remove the key from the keylet held list.
-    2. If in a mod-command then raise a MODCMD_EXEC.
-    3. Check if any modkey is held, if so set modcmd mode.
-    4. Update the keycmd uzbl variable if anything changed.'''
+    1. If in a mod-command then raise a MODCMD_EXEC.
+    2. Update the keycmd uzbl variable if anything changed.'''
     k = uzbl.keylet
     modstate, key = parse_key_event(uzbl, key)
     modstate = set([m for m in modstate if not k.key_ignored(m)])
