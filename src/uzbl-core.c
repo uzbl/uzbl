@@ -551,7 +551,8 @@ CommandInfo cmdlist[] =
     { "include",                        include, TRUE                  },
     { "show_inspector",                 show_inspector, 0              },
     { "add_cookie",                     add_cookie, 0                  },
-    { "delete_cookie",                  delete_cookie, 0               }
+    { "delete_cookie",                  delete_cookie, 0               },
+    { "clear_cookies",                  clear_cookies, 0               }
 };
 
 void
@@ -723,6 +724,18 @@ delete_cookie(WebKitWebView *page, GArray *argv, GString *result) {
     uzbl.net.soup_cookie_jar->in_manual_add = 1;
     soup_cookie_jar_delete_cookie (SOUP_COOKIE_JAR (uzbl.net.soup_cookie_jar), cookie);
     uzbl.net.soup_cookie_jar->in_manual_add = 0;
+}
+
+
+void
+clear_cookies(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page; (void) argv; (void) result;
+
+    // Replace the current cookie jar with a new empty jar
+    soup_session_remove_feature (uzbl.net.soup_session, uzbl.net.soup_cookie_jar);
+    g_object_unref (G_OBJECT (uzbl.net.soup_cookie_jar));
+    uzbl.net.soup_cookie_jar = uzbl_cookie_jar_new ();
+    soup_session_add_feature(uzbl.net.soup_session, uzbl.net.soup_cookie_jar);
 }
 
 void
