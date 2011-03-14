@@ -666,10 +666,14 @@ Events have this format:
   `uri`.
 * `EVENT [uzbl_instance_name] LINK_UNHOVER uri`: The mouse leaves the link
   `uri`.
-* `EVENT [uzbl_instance_name] KEY_PRESS key_name`: The key (or mouse button)
+* `EVENT [uzbl_instance_name] KEY_PRESS 'mod_state' key_name`: The key (or mouse button)
   `key_name` is pressed.
-* `EVENT [uzbl_instance_name] KEY_RELEASE key_name`: The key (or mouse button)
+* `EVENT [uzbl_instance_name] KEY_RELEASE 'mod_state' key_name`: The key (or mouse button)
   `key_name` is released.
+* `EVENT [uzbl_instance_name] MOD_PRESS 'mod_state' mod_name`: A key mapped to
+  `mod_name` is pressed.
+* `EVENT [uzbl_instance_name] MOD_RELEASE 'mod_state' mod_name`: A key mapped to
+  `mod_name` is released.
 * `EVENT [uzbl_instance_name] SELECTION_CHANGED selected_text`: When text is
   selected in the `uzbl` window.
 * `EVENT [uzbl_instance_name] NEW_WINDOW uri`: Request to creation of new `uzbl` window,
@@ -747,10 +751,6 @@ Events/requests which the EM and its plugins listens for
     when the `<from>` key or button is pressed.
 * `IGNORE_KEY`: Ignore a key pattern, specified by `<glob>`.
   - `request IGNORE_KEY <glob>`
-* `MODKEY_ADDITION`: Create a compound modkey from multiple individual keys.
-  - `request MODKEY_ADDITION <key1> <key2> <keyn> <result>`: The modkey
-    `<result>` is considered pressed when all of `<key1>`, `<key2>`, and
-    `<keyn>` are pressed.
 * `TOGGLE_MODES`
   - `request TOGGLE_MODES <mode1> <mode2> ... <moden>`
 * `APPEND_KEYCMD`: Append a string to the current keycmd.
