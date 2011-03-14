@@ -131,6 +131,7 @@ const struct var_name_to_ptr_t {
     { "stylesheet_uri",         PTR_V_STR(uzbl.behave.style_uri,                1,   cmd_style_uri)},
     { "resizable_text_areas",   PTR_V_INT(uzbl.behave.resizable_txt,            1,   cmd_resizable_txt)},
     { "default_encoding",       PTR_V_STR(uzbl.behave.default_encoding,         1,   cmd_default_encoding)},
+    { "current_encoding",       PTR_V_STR(uzbl.behave.current_encoding,         1,   set_current_encoding)},
     { "enforce_96_dpi",         PTR_V_INT(uzbl.behave.enforce_96dpi,            1,   cmd_enforce_96dpi)},
     { "caret_browsing",         PTR_V_INT(uzbl.behave.caret_browsing,           1,   cmd_caret_browsing)},
     { "scrollbars_visible",     PTR_V_INT(uzbl.gui.scrollbars_visible,          1,   cmd_scrollbars_visibility)},
@@ -351,7 +352,7 @@ expand(const char* s, guint recurse) {
 void
 clean_up(void) {
     if (uzbl.info.pid_str) {
-        send_event(INSTANCE_EXIT, uzbl.info.pid_str, NULL);
+        send_event (INSTANCE_EXIT, NULL, TYPE_INT, getpid(), NULL);
         g_free(uzbl.info.pid_str);
         uzbl.info.pid_str = NULL;
     }
@@ -574,7 +575,7 @@ builtins() {
         g_string_append_c(command_list, ' ');
     }
 
-    send_event(BUILTINS, command_list->str, NULL);
+    send_event(BUILTINS, NULL, TYPE_STR, command_list->str, NULL);
     g_string_free(command_list, TRUE);
 }
 
@@ -611,7 +612,7 @@ event(WebKitWebView *page, GArray *argv, GString *result) {
     else
         return;
 
-    send_event(0, split[1]?split[1]:"", event_name->str);
+    send_event(0, event_name->str, TYPE_FORMATTEDSTR, split[1] ? split[1] : "", NULL);
 
     g_string_free(event_name, TRUE);
     g_strfreev(split);
@@ -657,11 +658,11 @@ include(WebKitWebView *page, GArray *argv, GString *result) {
     if((path = find_existing_file(path))) {
         if(!for_each_line_in_file(path, parse_cmd_line_cb, NULL)) {
             gchar *tmp = g_strdup_printf("File %s can not be read.", path);
-            send_event(COMMAND_ERROR, tmp, NULL);
+            send_event(COMMAND_ERROR, NULL, TYPE_STR, tmp, NULL);
             g_free(tmp);
         }
 
-        send_event(FILE_INCLUDED, path, NULL);
+        send_event(FILE_INCLUDED, NULL, TYPE_STR, path, NULL);
         g_free(path);
     }
 }
@@ -737,7 +738,8 @@ act_dump_config_as_events() {
 void
 load_uri(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void) web_view; (void) result;
-    set_var_value("uri", argv_idx(argv, 0));
+    gchar * uri = argv_idx(argv, 0);
+    set_var_value("uri", uri ? uri : "");
 }
 
 /* Javascript*/
@@ -761,7 +763,7 @@ eval_js(WebKitWebView * web_view, gchar *script, GString *result, const char *fi
     js_script = JSStringCreateWithUTF8CString(script);
     js_file = JSStringCreateWithUTF8CString(file);
     js_result = JSEvaluateScript(context, js_script, globalobject, js_file, 0, &js_exc);
-    if (js_result && !JSValueIsUndefined(context, js_result)) {
+    if (result && js_result && !JSValueIsUndefined(context, js_result)) {
         js_result_string = JSValueToStringCopy(context, js_result, NULL);
         js_result_size = JSStringGetMaximumUTF8CStringSize(js_result_string);
 
@@ -1120,13 +1122,17 @@ run_parsed_command(const CommandInfo *c, GArray *a, GString *result) {
     if(strcmp("set", c->key)   &&
        strcmp("event", c->key) &&
        strcmp("request", c->key)) {
-        GString *tmp = g_string_new(c->key);
+        // FIXME, build string inside send_event
+        GString *param = g_string_new("");
         const gchar *p;
         guint i = 0;
         while ((p = argv_idx(a, i++)))
-            g_string_append_printf(tmp, " '%s'", p);
-        send_event(COMMAND_EXECUTED, tmp->str, NULL);
-        g_string_free(tmp, TRUE);
+            g_string_append_printf(param, " '%s'", p);
+        send_event(COMMAND_EXECUTED, NULL,
+            TYPE_NAME, c->key,
+            TYPE_FORMATTEDSTR, param->str,
+            NULL);
+        g_string_free(param, TRUE);
     }
 
     if(result) {
@@ -1156,8 +1162,10 @@ parse_command_parts(const gchar *line, GArray *a) {
     CommandInfo *c = NULL;
 
     gchar *exp_line = expand(line, 0);
-    if(exp_line[0] == '\0')
+    if(exp_line[0] == '\0') {
+        g_free(exp_line);
         return NULL;
+    }
 
     /* separate the line into the command and its parameters */
     gchar **tokens = g_strsplit(exp_line, " ", 2);
@@ -1166,7 +1174,9 @@ parse_command_parts(const gchar *line, GArray *a) {
     c = g_hash_table_lookup(uzbl.behave.commands, tokens[0]);
 
     if(!c) {
-        send_event(COMMAND_ERROR, exp_line, NULL);
+        send_event(COMMAND_ERROR, NULL,
+            TYPE_STR, exp_line,
+            NULL);
         g_free(exp_line);
         g_strfreev(tokens);
         return NULL;
@@ -1194,9 +1204,10 @@ parse_command(const char *cmd, const char *params, GString *result) {
 
         g_array_free (a, TRUE);
     } else {
-        gchar *tmp = g_strconcat(cmd, " ", params, NULL);
-        send_event(COMMAND_ERROR, tmp, NULL);
-        g_free(tmp);
+        send_event(COMMAND_ERROR, NULL,
+            TYPE_NAME, cmd,
+            TYPE_STR, params ? params : "",
+            NULL);
     }
 }
 
@@ -1222,8 +1233,45 @@ move_statusbar() {
     }
     g_object_unref(uzbl.gui.scrolled_win);
     g_object_unref(uzbl.gui.mainbar);
-    gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
+    if (!uzbl.state.plug_mode)
+        gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
     return;
+}
+
+gboolean
+valid_name(const gchar* name) {
+    char *invalid_chars = "\t^°!\"§$%&/()=?'`'+~*'#-:,;@<>| \\{}[]¹²³¼½";
+    return strpbrk(name, invalid_chars) == NULL;
+}
+
+void
+send_set_var_event(const char *name, const uzbl_cmdprop *c) {
+    /* check for the variable type */
+    switch(c->type) {
+    case TYPE_STR:
+        send_event (VARIABLE_SET, NULL,
+            TYPE_NAME, name,
+            TYPE_NAME, "str",
+            TYPE_STR, *c->ptr.s ? *c->ptr.s : " ",
+            NULL);
+        break;
+    case TYPE_INT:
+        send_event (VARIABLE_SET, NULL,
+            TYPE_NAME, name,
+            TYPE_NAME, "int",
+            TYPE_INT, *c->ptr.i,
+            NULL);
+        break;
+    case TYPE_FLOAT:
+        send_event (VARIABLE_SET, NULL,
+            TYPE_NAME, name,
+            TYPE_NAME, "float",
+            TYPE_FLOAT, *c->ptr.f,
+            NULL);
+        break;
+    default:
+        g_assert_not_reached();
+    }
 }
 
 gboolean
@@ -1231,38 +1279,35 @@ set_var_value(const gchar *name, gchar *val) {
     uzbl_cmdprop *c = NULL;
     char *endp = NULL;
     char *buf = NULL;
-    char *invalid_chars = "\t^°!\"§$%&/()=?'`'+~*'#-:,;@<>| \\{}[]¹²³¼½";
-    GString *msg;
+
+    g_assert(val != NULL);
 
     if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
         if(!c->writeable) return FALSE;
 
-        msg = g_string_new(name);
-
-        /* check for the variable type */
-        if (c->type == TYPE_STR) {
+        switch(c->type) {
+        case TYPE_STR:
             buf = g_strdup(val);
             g_free(*c->ptr.s);
             *c->ptr.s = buf;
-            g_string_append_printf(msg, " str %s", buf);
-
-        } else if(c->type == TYPE_INT) {
+            break;
+        case TYPE_INT:
             *c->ptr.i = (int)strtoul(val, &endp, 10);
-            g_string_append_printf(msg, " int %d", *c->ptr.i);
-
-        } else if (c->type == TYPE_FLOAT) {
+            break;
+        case TYPE_FLOAT:
             *c->ptr.f = strtod(val, &endp);
-            g_string_append_printf(msg, " float %f", *c->ptr.f);
+            break;
+        default:
+            g_assert_not_reached();
         }
 
-        send_event(VARIABLE_SET, msg->str, NULL);
-        g_string_free(msg,TRUE);
+        send_set_var_event(name, c);
 
         /* invoke a command specific function */
         if(c->func) c->func();
     } else {
         /* check wether name violates our naming scheme */
-        if(strpbrk(name, invalid_chars)) {
+        if(!valid_name(name)) {
             if (uzbl.state.verbose)
                 printf("Invalid variable name: %s\n", name);
             return FALSE;
@@ -1280,10 +1325,11 @@ set_var_value(const gchar *name, gchar *val) {
         g_hash_table_insert(uzbl.comm.proto_var,
                 g_strdup(name), (gpointer) c);
 
-        msg = g_string_new(name);
-        g_string_append_printf(msg, " str %s", buf);
-        send_event(VARIABLE_SET, msg->str, NULL);
-        g_string_free(msg,TRUE);
+        send_event (VARIABLE_SET, NULL,
+            TYPE_NAME, name,
+            TYPE_NAME, "str",
+            TYPE_STR, buf,
+            NULL);
     }
     update_title();
     return TRUE;
@@ -1348,7 +1394,6 @@ update_title(void) {
     }
 }
 
-
 void
 create_scrolled_win() {
     GUI* g = &uzbl.gui;
@@ -1377,6 +1422,7 @@ create_scrolled_win() {
       "signal::selection-changed",                    (GCallback)selection_changed_cb,    NULL,
       "signal::notify::progress",                     (GCallback)progress_change_cb,      NULL,
       "signal::notify::load-status",                  (GCallback)load_status_change_cb,   NULL,
+      "signal::notify::uri",                          (GCallback)uri_change_cb,           NULL,
       "signal::load-error",                           (GCallback)load_error_cb,           NULL,
       "signal::hovering-over-link",                   (GCallback)link_hover_cb,           NULL,
       "signal::navigation-policy-decision-requested", (GCallback)navigation_decision_cb,  NULL,
@@ -1480,7 +1526,7 @@ settings_init () {
     if (s->config_file) {
         if (!for_each_line_in_file(s->config_file, parse_cmd_line_cb, NULL)) {
             gchar *tmp = g_strdup_printf("File %s can not be read.", s->config_file);
-            send_event(COMMAND_ERROR, tmp, NULL);
+            send_event(COMMAND_ERROR, NULL, TYPE_STR, tmp, NULL);
             g_free(tmp);
         }
         g_setenv("UZBL_CONFIG", s->config_file, TRUE);
@@ -1573,23 +1619,9 @@ void
 dump_var_hash_as_event(gpointer k, gpointer v, gpointer ud) {
     (void) ud;
     uzbl_cmdprop *c = v;
-    GString *msg;
 
-    if(!c->dump)
-        return;
-
-    /* check for the variable type */
-    msg = g_string_new((char *)k);
-    if (c->type == TYPE_STR) {
-        g_string_append_printf(msg, " str %s", *c->ptr.s ? *c->ptr.s : " ");
-    } else if(c->type == TYPE_INT) {
-        g_string_append_printf(msg, " int %d", *c->ptr.i);
-    } else if (c->type == TYPE_FLOAT) {
-        g_string_append_printf(msg, " float %f", *c->ptr.f);
-    }
-
-    send_event(VARIABLE_SET, msg->str, NULL);
-    g_string_free(msg, TRUE);
+    if(c->dump)
+        send_set_var_event(k, c);
 }
 
 void
@@ -1796,12 +1828,10 @@ main (int argc, char* argv[]) {
 
     uzbl.info.pid_str = g_strdup_printf("%d", getpid());
     g_setenv("UZBL_PID", uzbl.info.pid_str, TRUE);
-    send_event(INSTANCE_START, uzbl.info.pid_str, NULL);
+    send_event(INSTANCE_START, NULL, TYPE_INT, getpid(), NULL);
 
     if (uzbl.state.plug_mode) {
-        char *t = g_strdup_printf("%d", gtk_plug_get_id(uzbl.gui.plug));
-        send_event(PLUG_CREATED, t, NULL);
-        g_free(t);
+        send_event(PLUG_CREATED, NULL, TYPE_INT, gtk_plug_get_id (uzbl.gui.plug), NULL);
     }
 
     /* Generate an event with a list of built in commands */

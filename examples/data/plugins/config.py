@@ -3,8 +3,6 @@ from types import BooleanType
 from UserDict import DictMixin
 
 valid_key = compile('^[A-Za-z0-9_\.]+$').match
-types = {'int': int, 'float': float, 'str': unicode}
-escape = lambda s: unicode(s).replace('\n', '\\n')
 
 class Config(DictMixin):
     def __init__(self, uzbl):
@@ -49,7 +47,8 @@ class Config(DictMixin):
             value = int(value)
 
         else:
-            value = escape(value)
+            value = unicode(value)
+            assert '\n' not in value
 
         if not force and key in self and self[key] == value:
             return
@@ -82,6 +81,8 @@ def parse_set_event(uzbl, args):
 
 # plugin init hook
 def init(uzbl):
+    global types
+    types = {'int': int, 'float': float, 'str': unquote}
     export(uzbl, 'config', Config(uzbl))
     connect(uzbl, 'VARIABLE_SET', parse_set_event)
 
