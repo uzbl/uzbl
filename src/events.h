@@ -3,6 +3,11 @@
  ** (c) 2009 by Robert Manea
 */
 
+#ifndef __EVENTS__
+#define __EVENTS__
+
+#include <glib.h>
+
 /* Event system */
 enum event_type {
     LOAD_START, LOAD_COMMIT, LOAD_FINISH, LOAD_ERROR,
@@ -37,3 +42,5 @@ send_event(int type, const gchar *details, const gchar *custom_event);
 
 void
 key_to_event(guint keyval, gint mode);
+
+#endif

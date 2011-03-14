@@ -83,17 +83,36 @@ events. If any whitelist is set, then any cookie that is not whitelisted will
 be rejected. Otherwise, only cookies that have been blacklisted will be
 rejected.
 
-BLACKLIST_COOKIE <part> <re>
-	Adds a new blacklist filter. cookies where the component specified by
-	`part` matches the regular expression `re` will be filtered. part can be
-	either 0-5 or any of the symbolic names domain, path, name, value, scheme,
-	expires
+BLACKLIST_COOKIE [<component> <re>]*
+	Adds a new blacklist filter. cookies where the components specified by
+	`component` matches the regular expression `re` will be filtered. component
+	may be either 0-5 or any of the symbolic names domain, path, name, value,
+	scheme, expires
 
-	for example to block all cookies which name is "__utm" followed	by a single
+	for example to block all cookies which name is "__utm" followed by a single
 	character (google analytics cookies) do.
 	request BLACKLIST_COOKIE name '^__utm.$'
 
-WHITELIST_COOKIE <part> <re>
-	Adds a new whitelist filter. cookies where the component specified by
-	`part` matches the regular expression `re` will be allowed. part can be any
-  of the parts allowed for the BLACKLIST_COOKIE event
+WHITELIST_COOKIE [<component> <re>]*
+	Adds a new whitelist filter. cookies where the components specified by
+	`component` matches the regular expression `re` will be allowed. component
+	may be any of the components allowed for the BLACKLIST_COOKIE event
+
+### history.py ###
+- Status bar command history
+- Connects To: (KEYCMD_EXEC, HISTORY_PREV, HISTORY_NEXT, HISTORY_SEARCH)
+
+Records commands that are typed into the status bar so that they can be
+recalled. The same history is shared by all uzbl instances connected to the
+same event manager.
+
+HISTORY_PREV
+  Iterates backwards through commands that have been issued (filtered by the
+  last HISTORY_SEARCH if applicable).
+
+HISTORY_NEXT
+  Iterates forwards through commands that have been issued (filtered by the
+  last HISTORY_SEARCH if applicable).
+
+HISTORY_SEARCH <string>
+  Searches backwards through command history for an exact string.

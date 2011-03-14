@@ -1,0 +1,35 @@
+FORMFILLER FILE FORMAT
+
+lines starting with '>' are ignored
+
+a file consists of profile definitions
+lines between profile definitions are ignored
+
+a line starting with '!profile=' introduces a profile definition
+the rest of that line is taken as the profile name
+profile names must match the RE /^[a-zA-Z0-9_-]*$/
+a line starting with '!' terminates the profile definition
+the rest of that line is ignored
+
+a profile definition consists of field definitions
+lines between field definitions are ignored
+
+a line starting with '%' introduces a field definition
+(details depend on the field type)
+the rest of that line shall be in the format ...
+  'name(type){value}:checked' for checkbox/radio
+  'name(type):value'          for text/password/search
+  'name(type):'               for textarea
+where name/type/value/checked are the input field's HTML attribute values,
+ 'name' always being percent encoded, 'checked' being a JS boolean,
+ and 'value' being percent encoded if type is checkbox/radio
+for all types but textarea, the field definition ends with that single line
+for textarea, all lines up to (but excluding) one starting with '%' make up the 'value'
+the rest of that line starting with '%' is ignored
+
+for all lines, a leading '\', if present, is removed
+
+--
+
+a once-edit temporary file consists only of field definitions,
+ and lines starting with '!' or '>' are not special

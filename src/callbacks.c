@@ -7,12 +7,14 @@
 #include "callbacks.h"
 #include "events.h"
 #include "util.h"
+#include "io.h"
+
 
 void
 set_proxy_url() {
     SoupURI *suri;
 
-    if(uzbl.net.proxy_url == NULL || *uzbl.net.proxy_url == ' ') {
+    if (uzbl.net.proxy_url == NULL || *uzbl.net.proxy_url == ' ') {
         soup_session_remove_feature_by_type(uzbl.net.soup_session,
                 (GType) SOUP_SESSION_PROXY_URI);
     }
@@ -23,8 +25,10 @@ set_proxy_url() {
                 suri, NULL);
         soup_uri_free(suri);
     }
+
     return;
 }
+
 
 void
 set_authentication_handler() {
@@ -45,18 +49,25 @@ set_authentication_handler() {
     return;
 }
 
+
 void
 set_status_background() {
-    GdkColor color;
-    gdk_color_parse (uzbl.behave.status_background, &color);
     /* labels and hboxes do not draw their own background. applying this
      * on the vbox/main_window is ok as the statusbar is the only affected
      * widget. (if not, we could also use GtkEventBox) */
-    if (uzbl.gui.main_window)
-        gtk_widget_modify_bg (uzbl.gui.main_window, GTK_STATE_NORMAL, &color);
-    else if (uzbl.gui.plug)
-        gtk_widget_modify_bg (GTK_WIDGET(uzbl.gui.plug), GTK_STATE_NORMAL, &color);
+    GtkWidget* widget = uzbl.gui.main_window ? uzbl.gui.main_window : GTK_WIDGET (uzbl.gui.plug);
+
+#if GTK_CHECK_VERSION(2,91,0)
+    GdkRGBA color;
+    gdk_rgba_parse (&color, uzbl.behave.status_background);
+    gtk_widget_override_background_color (widget, GTK_STATE_NORMAL, &color);
+#else
+    GdkColor color;
+    gdk_color_parse (uzbl.behave.status_background, &color);
+    gtk_widget_modify_bg (widget, GTK_STATE_NORMAL, &color);
+#endif
 }
+
 
 void
 set_icon() {
@@ -430,7 +441,7 @@ void
 progress_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
     (void) param_spec;
     int progress = webkit_web_view_get_progress(web_view) * 100;
-    gchar *prg_str = itos(progress);
+    gchar *prg_str = g_strdup_printf("%d", progress);
     send_event(LOAD_PROGRESS, prg_str, NULL);
     g_free(prg_str);
 }
@@ -641,23 +652,26 @@ navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNe
         printf("Navigation requested -> %s\n", uri);
 
     if (uzbl.behave.scheme_handler) {
-        GString *s = g_string_new ("");
-        g_string_printf(s, "'%s'", uri);
+        GString *result = g_string_new ("");
+        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+        const CommandInfo *c = parse_command_parts(uzbl.behave.scheme_handler, a);
 
-        run_handler(uzbl.behave.scheme_handler, s->str);
+        if(c) {
+            g_array_append_val(a, uri);
+            run_parsed_command(c, a, result);
+        }
+        g_array_free(a, TRUE);
 
-        if(uzbl.comm.sync_stdout && strcmp (uzbl.comm.sync_stdout, "") != 0) {
-            char *p = strchr(uzbl.comm.sync_stdout, '\n' );
+        if(result->len > 0) {
+            char *p = strchr(result->str, '\n' );
             if ( p != NULL ) *p = '\0';
-            if (!strcmp(uzbl.comm.sync_stdout, "USED")) {
+            if (!strcmp(result->str, "USED")) {
                 webkit_web_policy_decision_ignore(policy_decision);
                 decision_made = TRUE;
             }
         }
-        if (uzbl.comm.sync_stdout)
-            uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
 
-        g_string_free(s, TRUE);
+        g_string_free(result, TRUE);
     }
     if (!decision_made)
         webkit_web_policy_decision_use(policy_decision);
@@ -844,27 +858,35 @@ download_cb(WebKitWebView *web_view, WebKitDownload *download, gpointer user_dat
        (this may be inaccurate, there's nothing we can do about that.)  */
     unsigned int total_size = webkit_download_get_total_size(download);
 
-    gchar *ev = g_strdup_printf("'%s' '%s' '%s' %d", uri, suggested_filename,
-                                                     content_type, total_size);
-    run_handler(uzbl.behave.download_handler, ev);
-    g_free(ev);
-
-    /* no response, cancel the download */
-    if(!uzbl.comm.sync_stdout) {
+    GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+    const CommandInfo *c = parse_command_parts(uzbl.behave.download_handler, a);
+    if(!c) {
         webkit_download_cancel(download);
+        g_array_free(a, TRUE);
         return FALSE;
     }
 
+    g_array_append_val(a, uri);
+    g_array_append_val(a, suggested_filename);
+    g_array_append_val(a, content_type);
+    gchar *total_size_s = g_strdup_printf("%d", total_size);
+    g_array_append_val(a, total_size_s);
+
+    GString *result = g_string_new ("");
+    run_parsed_command(c, a, result);
+
+    g_free(total_size_s);
+    g_array_free(a, TRUE);
+
     /* no response, cancel the download */
-    if(uzbl.comm.sync_stdout[0] == 0) {
+    if(result->len == 0) {
         webkit_download_cancel(download);
-        uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
         return FALSE;
     }
 
     /* we got a response, it's the path we should download the file to */
-    gchar *destination_path = uzbl.comm.sync_stdout;
-    uzbl.comm.sync_stdout = NULL;
+    gchar *destination_path = result->str;
+    g_string_free(result, FALSE);
 
     /* presumably people don't need newlines in their filenames. */
     char *p = strchr(destination_path, '\n');
@@ -997,14 +1019,4 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
             }
         }
     }
-}
-
-void
-cmd_set_cookie_handler() {
-  if(uzbl.behave.cookie_handler[0] == 0) {
-      g_free(uzbl.behave.cookie_handler);
-      uzbl.behave.cookie_handler = NULL;
-  }
-
-  uzbl_cookie_jar_set_handler(uzbl.net.soup_cookie_jar, uzbl.behave.cookie_handler);
 }

@@ -23,6 +23,7 @@
 #include <signal.h>
 
 #include <src/uzbl-core.h>
+#include <src/util.h>
 #include <src/config.h>
 
 extern UzblCore uzbl;
@@ -65,14 +66,12 @@ test_useragent (void) {
 
 void
 test_WEBKIT_VERSION (void) {
-    GString* expected = g_string_new("");
-    g_string_append(expected, itos(webkit_major_version()));
-    g_string_append(expected, " ");
-    g_string_append(expected, itos(webkit_minor_version()));
-    g_string_append(expected, " ");
-    g_string_append(expected, itos(webkit_micro_version()));
+    gchar *expected = g_strdup_printf("%d %d %d", webkit_major_version(),
+                                                  webkit_minor_version(),
+                                                  webkit_micro_version());
 
-    g_assert_cmpstr(expand("@WEBKIT_MAJOR @WEBKIT_MINOR @WEBKIT_MICRO", 0), ==, g_string_free(expected, FALSE));
+    g_assert_cmpstr(expand("@WEBKIT_MAJOR @WEBKIT_MINOR @WEBKIT_MICRO", 0), ==, expected);
+    g_free(expected);
 }
 
 void
@@ -86,26 +85,13 @@ test_COMMIT (void) {
 }
 
 void
-test_cmd_useragent_simple (void) {
-    GString* expected = g_string_new("Uzbl (Webkit ");
-    g_string_append(expected, itos(WEBKIT_MAJOR_VERSION));
-    g_string_append(expected, ".");
-    g_string_append(expected, itos(WEBKIT_MINOR_VERSION));
-    g_string_append(expected, ".");
-    g_string_append(expected, itos(WEBKIT_MICRO_VERSION));
-    g_string_append(expected, ")");
-
-    g_assert_cmpstr(expand("Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}.@{WEBKIT_MICRO})", 0), ==, g_string_free(expected, FALSE));
-}
-
-void
 test_cmd_useragent_full (void) {
     GString* expected = g_string_new("Uzbl (Webkit ");
-    g_string_append(expected, itos(WEBKIT_MAJOR_VERSION));
+    g_string_append(expected, g_strdup_printf("%d", WEBKIT_MAJOR_VERSION));
     g_string_append(expected, ".");
-    g_string_append(expected, itos(WEBKIT_MINOR_VERSION));
+    g_string_append(expected, g_strdup_printf("%d", WEBKIT_MINOR_VERSION));
     g_string_append(expected, ".");
-    g_string_append(expected, itos(WEBKIT_MICRO_VERSION));
+    g_string_append(expected, g_strdup_printf("%d", WEBKIT_MICRO_VERSION));
     g_string_append(expected, ") (");
 
     struct utsname unameinfo;
@@ -187,7 +173,6 @@ main (int argc, char *argv[]) {
     g_test_add_func("/test-expand/@ARCH_UZBL", test_ARCH_UZBL);
     g_test_add_func("/test-expand/@COMMIT", test_COMMIT);
 
-    g_test_add_func("/test-expand/cmd_useragent_simple", test_cmd_useragent_simple);
     g_test_add_func("/test-expand/cmd_useragent_full", test_cmd_useragent_full);
 
     g_test_add_func("/test-expand/escape_markup", test_escape_markup);

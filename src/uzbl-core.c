@@ -35,13 +35,14 @@
 #include "inspector.h"
 #include "config.h"
 #include "util.h"
+#include "menu.h"
+#include "io.h"
 
 UzblCore uzbl;
 
 /* commandline arguments (set initial values for the state variables) */
 const
-GOptionEntry entries[] =
-{
+GOptionEntry entries[] = {
     { "uri",      'u', 0, G_OPTION_ARG_STRING, &uzbl.state.uri,
         "Uri to load at startup (equivalent to 'uzbl <uri>' or 'set uri = URI' after uzbl has launched)", "URI" },
     { "verbose",  'v', 0, G_OPTION_ARG_NONE,   &uzbl.state.verbose,
@@ -91,7 +92,6 @@ const struct var_name_to_ptr_t {
     { "title_format_short",     PTR_V_STR(uzbl.behave.title_format_short,       1,   NULL)},
     { "icon",                   PTR_V_STR(uzbl.gui.icon,                        1,   set_icon)},
     { "forward_keys",           PTR_V_INT(uzbl.behave.forward_keys,             1,   NULL)},
-    { "cookie_handler",         PTR_V_STR(uzbl.behave.cookie_handler,           1,   cmd_set_cookie_handler)},
     { "authentication_handler", PTR_V_STR(uzbl.behave.authentication_handler,   1,   set_authentication_handler)},
     { "scheme_handler",         PTR_V_STR(uzbl.behave.scheme_handler,           1,   NULL)},
     { "download_handler",       PTR_V_STR(uzbl.behave.download_handler,         1,   NULL)},
@@ -145,6 +145,7 @@ const struct var_name_to_ptr_t {
     { "SELECTED_URI",           PTR_C_STR(uzbl.state.selected_url,                   NULL)},
     { "NAME",                   PTR_C_STR(uzbl.state.instance_name,                  NULL)},
     { "PID",                    PTR_C_STR(uzbl.info.pid_str,                         NULL)},
+    { "_",                      PTR_C_STR(uzbl.state.last_result,                    NULL)},
 
     { NULL,                     {.ptr.s = NULL, .type = TYPE_INT, .dump = 0, .writeable = 0, .func = NULL}}
 };
@@ -164,43 +165,39 @@ create_var_to_name_hash() {
 
 
 /* --- UTILITY FUNCTIONS --- */
-enum exp_type {EXP_ERR, EXP_SIMPLE_VAR, EXP_BRACED_VAR, EXP_EXPR, EXP_JS, EXP_ESCAPE};
+enum exp_type {
+  EXP_ERR, EXP_SIMPLE_VAR, EXP_BRACED_VAR, EXP_EXPR, EXP_JS, EXP_ESCAPE
+};
+
 enum exp_type
 get_exp_type(const gchar *s) {
-    /* variables */
-    if(*(s+1) == '(')
-        return EXP_EXPR;
-    else if(*(s+1) == '{')
-        return EXP_BRACED_VAR;
-    else if(*(s+1) == '<')
-        return EXP_JS;
-    else if(*(s+1) == '[')
-        return EXP_ESCAPE;
-    else
-        return EXP_SIMPLE_VAR;
-
-    /*@notreached@*/
-return EXP_ERR;
+  switch(*(s+1)) {
+    case '(': return EXP_EXPR;
+    case '{': return EXP_BRACED_VAR;
+    case '<': return EXP_JS;
+    case '[': return EXP_ESCAPE;
+    default:  return EXP_SIMPLE_VAR;
+  }
 }
 
 /*
  * recurse == 1: don't expand '@(command)@'
  * recurse == 2: don't expand '@<java script>@'
 */
-gchar *
-expand(const char *s, guint recurse) {
-    uzbl_cmdprop *c;
+gchar*
+expand(const char* s, guint recurse) {
+    uzbl_cmdprop* c;
     enum exp_type etype;
-    char *end_simple_var = "\t^°!\"§$%&/()=?'`'+~*'#-:,;@<>| \\{}[]¹²³¼½";
-    char *ret = NULL;
-    char *vend = NULL;
-    GError *err = NULL;
-    gchar *cmd_stdout = NULL;
-    gchar *mycmd = NULL;
-    GString *buf = g_string_new("");
-    GString *js_ret = g_string_new("");
+    char*         end_simple_var = "\t^°!\"§$%&/()=?'`'+~*'#-:,;@<>| \\{}[]¹²³¼½";
+    char*         ret = NULL;
+    char*         vend = NULL;
+    GError*       err = NULL;
+    gchar*        cmd_stdout = NULL;
+    gchar*        mycmd = NULL;
+    GString*      buf = g_string_new("");
+    GString*      js_ret = g_string_new("");
 
-    while(s && *s) {
+    while (s && *s) {
         switch(*s) {
             case '\\':
                 g_string_append_c(buf, *++s);
@@ -351,81 +348,15 @@ expand(const char *s, guint recurse) {
     return g_string_free(buf, FALSE);
 }
 
-char *
-itos(int val) {
-    char tmp[20];
-
-    snprintf(tmp, sizeof(tmp), "%i", val);
-    return g_strdup(tmp);
-}
-
-gchar*
-strfree(gchar *str) {
-    g_free(str);
-    return NULL;
-}
-
-gchar*
-argv_idx(const GArray *a, const guint idx) { return g_array_index(a, gchar*, idx); }
-
-/* search a PATH style string for an existing file+path combination */
-gchar*
-find_existing_file(gchar* path_list) {
-    int i=0;
-    int cnt;
-    gchar **split;
-    gchar *tmp = NULL;
-    gchar *executable;
-
-    if(!path_list)
-        return NULL;
-
-    split = g_strsplit(path_list, ":", 0);
-    while(split[i])
-        i++;
-
-    if(i<=1) {
-        tmp = g_strdup(split[0]);
-        g_strfreev(split);
-        return tmp;
-    }
-    else
-        cnt = i-1;
-
-    i=0;
-    tmp = g_strdup(split[cnt]);
-    g_strstrip(tmp);
-    if(tmp[0] == '/')
-        executable = g_strdup_printf("%s", tmp+1);
-    else
-        executable = g_strdup(tmp);
-    g_free(tmp);
-
-    while(i<cnt) {
-        tmp = g_strconcat(g_strstrip(split[i]), "/", executable, NULL);
-        if(g_file_test(tmp, G_FILE_TEST_EXISTS)) {
-            g_strfreev(split);
-            return tmp;
-        }
-        else
-            g_free(tmp);
-        i++;
-    }
-
-    g_free(executable);
-    g_strfreev(split);
-    return NULL;
-}
-
 void
 clean_up(void) {
-    if(uzbl.info.pid_str) {
+    if (uzbl.info.pid_str) {
         send_event(INSTANCE_EXIT, uzbl.info.pid_str, NULL);
         g_free(uzbl.info.pid_str);
         uzbl.info.pid_str = NULL;
     }
 
-    if(uzbl.state.executable_path) {
+    if (uzbl.state.executable_path) {
         g_free(uzbl.state.executable_path);
         uzbl.state.executable_path = NULL;
     }
@@ -435,7 +366,7 @@ clean_up(void) {
         uzbl.behave.commands = NULL;
     }
 
-    if(uzbl.state.event_buffer) {
+    if (uzbl.state.event_buffer) {
         g_ptr_array_free(uzbl.state.event_buffer, TRUE);
         uzbl.state.event_buffer = NULL;
     }
@@ -495,7 +426,7 @@ empty_event_buffer(int s) {
 
 /* scroll a bar in a given direction */
 void
-scroll (GtkAdjustment* bar, gchar *amount_str) {
+scroll(GtkAdjustment* bar, gchar *amount_str) {
     gchar *end;
     gdouble max_value;
 
@@ -571,72 +502,72 @@ VIEWFUNC(go_forward)
 #undef VIEWFUNC
 
 /* -- command to callback/function map for things we cannot attach to any signals */
-struct {const char *key; CommandInfo value;} cmdlist[] =
+CommandInfo cmdlist[] =
 {   /* key                              function      no_split      */
-    { "back",                           {view_go_back, 0}               },
-    { "forward",                        {view_go_forward, 0}            },
-    { "scroll",                         {scroll_cmd, 0}                 },
-    { "reload",                         {view_reload, 0},               },
-    { "reload_ign_cache",               {view_reload_bypass_cache, 0}   },
-    { "stop",                           {view_stop_loading, 0},         },
-    { "zoom_in",                        {view_zoom_in, 0},              }, //Can crash (when max zoom reached?).
-    { "zoom_out",                       {view_zoom_out, 0},             },
-    { "toggle_zoom_type",               {toggle_zoom_type, 0},          },
-    { "uri",                            {load_uri, TRUE}                },
-    { "js",                             {run_js, TRUE}                  },
-    { "script",                         {run_external_js, 0}            },
-    { "toggle_status",                  {toggle_status_cb, 0}           },
-    { "spawn",                          {spawn_async, 0}                },
-    { "sync_spawn",                     {spawn_sync, 0}                 }, // needed for cookie handler
-    { "sync_spawn_exec",                {spawn_sync_exec, 0}            }, // needed for load_cookies.sh :(
-    { "sh",                             {spawn_sh_async, 0}             },
-    { "sync_sh",                        {spawn_sh_sync, 0}              }, // needed for cookie handler
-    { "exit",                           {close_uzbl, 0}                 },
-    { "search",                         {search_forward_text, TRUE}     },
-    { "search_reverse",                 {search_reverse_text, TRUE}     },
-    { "search_clear",                   {search_clear, TRUE}            },
-    { "dehilight",                      {dehilight, 0}                  },
-    { "set",                            {set_var, TRUE}                 },
-    { "dump_config",                    {act_dump_config, 0}            },
-    { "dump_config_as_events",          {act_dump_config_as_events, 0}  },
-    { "chain",                          {chain, 0}                      },
-    { "print",                          {print, TRUE}                   },
-    { "event",                          {event, TRUE}                   },
-    { "request",                        {event, TRUE}                   },
-    { "menu_add",                       {menu_add, TRUE}                },
-    { "menu_link_add",                  {menu_add_link, TRUE}           },
-    { "menu_image_add",                 {menu_add_image, TRUE}          },
-    { "menu_editable_add",              {menu_add_edit, TRUE}           },
-    { "menu_separator",                 {menu_add_separator, TRUE}      },
-    { "menu_link_separator",            {menu_add_separator_link, TRUE} },
-    { "menu_image_separator",           {menu_add_separator_image, TRUE}},
-    { "menu_editable_separator",        {menu_add_separator_edit, TRUE} },
-    { "menu_remove",                    {menu_remove, TRUE}             },
-    { "menu_link_remove",               {menu_remove_link, TRUE}        },
-    { "menu_image_remove",              {menu_remove_image, TRUE}       },
-    { "menu_editable_remove",           {menu_remove_edit, TRUE}        },
-    { "hardcopy",                       {hardcopy, TRUE}                },
-    { "include",                        {include, TRUE}                 },
-    { "show_inspector",                 {show_inspector, 0}             },
-    { "add_cookie",                     {add_cookie, 0}                 },
-    { "delete_cookie",                  {delete_cookie, 0}              }
+    { "back",                           view_go_back, 0                },
+    { "forward",                        view_go_forward, 0             },
+    { "scroll",                         scroll_cmd, 0                  },
+    { "reload",                         view_reload, 0                 },
+    { "reload_ign_cache",               view_reload_bypass_cache, 0    },
+    { "stop",                           view_stop_loading, 0           },
+    { "zoom_in",                        view_zoom_in, 0                }, //Can crash (when max zoom reached?).
+    { "zoom_out",                       view_zoom_out, 0               },
+    { "toggle_zoom_type",               toggle_zoom_type, 0            },
+    { "uri",                            load_uri, TRUE                 },
+    { "js",                             run_js, TRUE                   },
+    { "script",                         run_external_js, 0             },
+    { "toggle_status",                  toggle_status_cb, 0            },
+    { "spawn",                          spawn_async, 0                 },
+    { "sync_spawn",                     spawn_sync, 0                  },
+    { "sync_spawn_exec",                spawn_sync_exec, 0             }, // needed for load_cookies.sh :(
+    { "sh",                             spawn_sh_async, 0              },
+    { "sync_sh",                        spawn_sh_sync, 0               },
+    { "exit",                           close_uzbl, 0                  },
+    { "search",                         search_forward_text, TRUE      },
+    { "search_reverse",                 search_reverse_text, TRUE      },
+    { "search_clear",                   search_clear, TRUE             },
+    { "dehilight",                      dehilight, 0                   },
+    { "set",                            set_var, TRUE                  },
+    { "dump_config",                    act_dump_config, 0             },
+    { "dump_config_as_events",          act_dump_config_as_events, 0   },
+    { "chain",                          chain, 0                       },
+    { "print",                          print, TRUE                    },
+    { "event",                          event, TRUE                    },
+    { "request",                        event, TRUE                    },
+    { "menu_add",                       menu_add, TRUE                 },
+    { "menu_link_add",                  menu_add_link, TRUE            },
+    { "menu_image_add",                 menu_add_image, TRUE           },
+    { "menu_editable_add",              menu_add_edit, TRUE            },
+    { "menu_separator",                 menu_add_separator, TRUE       },
+    { "menu_link_separator",            menu_add_separator_link, TRUE  },
+    { "menu_image_separator",           menu_add_separator_image, TRUE },
+    { "menu_editable_separator",        menu_add_separator_edit, TRUE  },
+    { "menu_remove",                    menu_remove, TRUE              },
+    { "menu_link_remove",               menu_remove_link, TRUE         },
+    { "menu_image_remove",              menu_remove_image, TRUE        },
+    { "menu_editable_remove",           menu_remove_edit, TRUE         },
+    { "hardcopy",                       hardcopy, TRUE                 },
+    { "include",                        include, TRUE                  },
+    { "show_inspector",                 show_inspector, 0              },
+    { "add_cookie",                     add_cookie, 0                  },
+    { "delete_cookie",                  delete_cookie, 0               }
 };
 
 void
-commands_hash(void)
-{
+commands_hash(void) {
     unsigned int i;
     uzbl.behave.commands = g_hash_table_new(g_str_hash, g_str_equal);
 
     for (i = 0; i < LENGTH(cmdlist); i++)
-        g_hash_table_insert(uzbl.behave.commands, (gpointer) cmdlist[i].key, &cmdlist[i].value);
+        g_hash_table_insert(uzbl.behave.commands, (gpointer) cmdlist[i].key, &cmdlist[i]);
 }
+
 
 void
 builtins() {
-    unsigned int i,
-             len = LENGTH(cmdlist);
-    GString *command_list = g_string_new("");
+    unsigned int i;
+    unsigned int len = LENGTH(cmdlist);
+    GString*     command_list = g_string_new("");
 
     for (i = 0; i < len; i++) {
         g_string_append(command_list, cmdlist[i].key);
@@ -664,178 +595,6 @@ set_var(WebKitWebView *page, GArray *argv, GString *result) {
     g_strfreev(split);
 }
 
-void
-add_to_menu(GArray *argv, guint context) {
-    GUI *g = &uzbl.gui;
-    MenuItem *m;
-    gchar *item_cmd = NULL;
-
-    if(!argv_idx(argv, 0))
-        return;
-
-    gchar **split = g_strsplit(argv_idx(argv, 0), "=", 2);
-    if(!g->menu_items)
-        g->menu_items = g_ptr_array_new();
-
-    if(split[1])
-        item_cmd = split[1];
-
-    if(split[0]) {
-        m = malloc(sizeof(MenuItem));
-        m->name = g_strdup(split[0]);
-        m->cmd  = g_strdup(item_cmd?item_cmd:"");
-        m->context = context;
-        m->issep = FALSE;
-        g_ptr_array_add(g->menu_items, m);
-    }
-
-    g_strfreev(split);
-}
-
-void
-menu_add(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page;
-    (void) result;
-
-    add_to_menu(argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT);
-
-}
-
-void
-menu_add_link(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page;
-    (void) result;
-
-    add_to_menu(argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_LINK);
-}
-
-void
-menu_add_image(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page;
-    (void) result;
-
-    add_to_menu(argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE);
-}
-
-void
-menu_add_edit(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page;
-    (void) result;
-
-    add_to_menu(argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE);
-}
-
-void
-add_separator_to_menu(GArray *argv, guint context) {
-    GUI *g = &uzbl.gui;
-    MenuItem *m;
-    gchar *sep_name;
-
-    if(!g->menu_items)
-        g->menu_items = g_ptr_array_new();
-
-    if(!argv_idx(argv, 0))
-        return;
-    else
-        sep_name = argv_idx(argv, 0);
-
-    m = malloc(sizeof(MenuItem));
-    m->name    = g_strdup(sep_name);
-    m->cmd     = NULL;
-    m->context = context;
-    m->issep   = TRUE;
-    g_ptr_array_add(g->menu_items, m);
-}
-
-void
-menu_add_separator(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page;
-    (void) result;
-
-    add_separator_to_menu(argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT);
-}
-
-void
-menu_add_separator_link(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page;
-    (void) result;
-
-    add_separator_to_menu(argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_LINK);
-}
-void
-menu_add_separator_image(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page;
-    (void) result;
-
-    add_separator_to_menu(argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE);
-}
-
-void
-menu_add_separator_edit(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page;
-    (void) result;
-
-    add_separator_to_menu(argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE);
-}
-
-void
-remove_from_menu(GArray *argv, guint context) {
-    GUI *g = &uzbl.gui;
-    MenuItem *mi;
-    gchar *name = NULL;
-    guint i=0;
-
-    if(!g->menu_items)
-        return;
-
-    if(!argv_idx(argv, 0))
-        return;
-    else
-        name = argv_idx(argv, 0);
-
-    for(i=0; i < g->menu_items->len; i++) {
-        mi = g_ptr_array_index(g->menu_items, i);
-
-        if((context == mi->context) && !strcmp(name, mi->name)) {
-            g_free(mi->name);
-            g_free(mi->cmd);
-            g_free(mi);
-            g_ptr_array_remove_index(g->menu_items, i);
-        }
-    }
-}
-
-void
-menu_remove(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page;
-    (void) result;
-
-    remove_from_menu(argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT);
-}
-
-void
-menu_remove_link(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page;
-    (void) result;
-
-    remove_from_menu(argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_LINK);
-}
-
-void
-menu_remove_image(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page;
-    (void) result;
-
-    remove_from_menu(argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE);
-}
-
-void
-menu_remove_edit(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page;
-    (void) result;
-
-    remove_from_menu(argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE);
-}
 
 void
 event(WebKitWebView *page, GArray *argv, GString *result) {
@@ -862,6 +621,9 @@ void
 print(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
     gchar* buf;
+
+    if(!result)
+        return;
 
     buf = expand(argv_idx(argv, 0), 0);
     g_string_assign(result, buf);
@@ -973,7 +735,7 @@ act_dump_config_as_events() {
 }
 
 void
-load_uri (WebKitWebView *web_view, GArray *argv, GString *result) {
+load_uri(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void) web_view; (void) result;
     set_var_value("uri", argv_idx(argv, 0));
 }
@@ -1118,7 +880,8 @@ search_clear(WebKitWebView *page, GArray *argv, GString *result) {
     (void) result;
 
     webkit_web_view_unmark_text_matches (page);
-    uzbl.state.searchtx = strfree (uzbl.state.searchtx);
+    g_free(uzbl.state.searchtx);
+    uzbl.state.searchtx = NULL;
 }
 
 void
@@ -1128,29 +891,34 @@ search_forward_text (WebKitWebView *page, GArray *argv, GString *result) {
 }
 
 void
-search_reverse_text (WebKitWebView *page, GArray *argv, GString *result) {
+search_reverse_text(WebKitWebView *page, GArray *argv, GString *result) {
     (void) result;
     search_text(page, argv, FALSE);
 }
 
 void
-dehilight (WebKitWebView *page, GArray *argv, GString *result) {
+dehilight(WebKitWebView *page, GArray *argv, GString *result) {
     (void) argv; (void) result;
     webkit_web_view_set_highlight_text_matches (page, FALSE);
 }
 
 void
-chain (WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page; (void) result;
-    gchar *a = NULL;
-    gchar **parts = NULL;
+chain(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page;
     guint i = 0;
-    while ((a = argv_idx(argv, i++))) {
-        parts = g_strsplit (a, " ", 2);
-        if (parts[0])
-          parse_command(parts[0], parts[1], result);
-        g_strfreev (parts);
+    const gchar *cmd;
+    GString *r = g_string_new ("");
+    while ((cmd = argv_idx(argv, i++))) {
+        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+        const CommandInfo *c = parse_command_parts(cmd, a);
+        if (c)
+            run_parsed_command(c, a, r);
+        g_array_free (a, TRUE);
     }
+    if(result)
+        g_string_assign (result, r->str);
+
+    g_string_free(r, TRUE);
 }
 
 void
@@ -1184,7 +952,8 @@ run_command (const gchar *command, const gchar **args, const gboolean sync,
 
     gboolean result;
     if (sync) {
-        if (*output_stdout) *output_stdout = strfree(*output_stdout);
+        if (*output_stdout)
+            g_free(*output_stdout);
 
         result = g_spawn_sync(NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
                               NULL, NULL, output_stdout, NULL, NULL, &err);
@@ -1252,25 +1021,28 @@ split_quoted(const gchar* src, const gboolean unquote) {
 }
 
 void
-spawn(GArray *argv, gboolean sync, gboolean exec) {
+spawn(GArray *argv, GString *result, gboolean exec) {
     gchar *path = NULL;
     gchar *arg_car = argv_idx(argv, 0);
     const gchar **arg_cdr = &g_array_index(argv, const gchar *, 1);
 
     if (arg_car && (path = find_existing_file(arg_car))) {
-        if (uzbl.comm.sync_stdout)
-            uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
-        run_command(path, arg_cdr, sync, sync?&uzbl.comm.sync_stdout:NULL);
-        // run each line of output from the program as a command
-        if (sync && exec && uzbl.comm.sync_stdout) {
-            gchar *head = uzbl.comm.sync_stdout;
-            gchar *tail;
-            while ((tail = strchr (head, '\n'))) {
-                *tail = '\0';
-                parse_cmd_line(head, NULL);
-                head = tail + 1;
+        gchar *r = NULL;
+        run_command(path, arg_cdr, result != NULL, result ? &r : NULL);
+        if(result) {
+            g_string_assign(result, r);
+            // run each line of output from the program as a command
+            if (exec && r) {
+                gchar *head = r;
+                gchar *tail;
+                while ((tail = strchr (head, '\n'))) {
+                    *tail = '\0';
+                    parse_cmd_line(head, NULL);
+                    head = tail + 1;
+                }
             }
         }
+        g_free(r);
         g_free(path);
     }
 }
@@ -1278,23 +1050,28 @@ spawn(GArray *argv, gboolean sync, gboolean exec) {
 void
 spawn_async(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
-    spawn(argv, FALSE, FALSE);
+    spawn(argv, NULL, FALSE);
 }
 
 void
 spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
-    (void)web_view; (void)result;
-    spawn(argv, TRUE, FALSE);
+    (void)web_view;
+    spawn(argv, result, FALSE);
 }
 
 void
 spawn_sync_exec(WebKitWebView *web_view, GArray *argv, GString *result) {
-    (void)web_view; (void)result;
-    spawn(argv, TRUE, TRUE);
+    (void)web_view;
+    if(!result) {
+        GString *force_result = g_string_new("");
+        spawn(argv, force_result, TRUE);
+        g_string_free (force_result, TRUE);
+    } else
+        spawn(argv, result, TRUE);
 }
 
 void
-spawn_sh(GArray *argv, gboolean sync) {
+spawn_sh(GArray *argv, GString *result) {
     if (!uzbl.behave.shell_cmd) {
         g_printerr ("spawn_sh: shell_cmd is not set!\n");
         return;
@@ -1302,19 +1079,23 @@ spawn_sh(GArray *argv, gboolean sync) {
     guint i;
 
     gchar **cmd = split_quoted(uzbl.behave.shell_cmd, TRUE);
+    if(!cmd)
+        return;
+
     gchar *cmdname = g_strdup(cmd[0]);
     g_array_insert_val(argv, 1, cmdname);
 
     for (i = 1; i < g_strv_length(cmd); i++)
         g_array_prepend_val(argv, cmd[i]);
 
-    if (cmd) {
-        if (uzbl.comm.sync_stdout)
-            uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
+    if (result) {
+        gchar *r = NULL;
+        run_command(cmd[0], (const gchar **) argv->data, TRUE, &r);
+        g_string_assign(result, r);
+        g_free(r);
+    } else
+        run_command(cmd[0], (const gchar **) argv->data, FALSE, NULL);
 
-        run_command(cmd[0], (const gchar **) argv->data,
-                    sync, sync?&uzbl.comm.sync_stdout:NULL);
-    }
     g_free (cmdname);
     g_strfreev (cmd);
 }
@@ -1322,58 +1103,101 @@ spawn_sh(GArray *argv, gboolean sync) {
 void
 spawn_sh_async(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
-    spawn_sh(argv, FALSE);
+    spawn_sh(argv, NULL);
 }
 
 void
 spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
-    spawn_sh(argv, TRUE);
+    spawn_sh(argv, result);
 }
 
 void
-parse_command(const char *cmd, const char *param, GString *result) {
-    CommandInfo *c;
-    GString *tmp = g_string_new("");
+run_parsed_command(const CommandInfo *c, GArray *a, GString *result) {
+    c->function(uzbl.gui.web_view, a, result);
 
-    if ((c = g_hash_table_lookup(uzbl.behave.commands, cmd))) {
-            guint i;
-            gchar **par = split_quoted(param, TRUE);
-            GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-
-            if (c->no_split) { /* don't split */
-                sharg_append(a, param);
-            } else if (par) {
-                for (i = 0; i < g_strv_length(par); i++)
-                    sharg_append(a, par[i]);
-            }
-
-            if (result == NULL) {
-                GString *result_print = g_string_new("");
-
-                c->function(uzbl.gui.web_view, a, result_print);
-                if (result_print->len)
-                    printf("%*s\n", (int)result_print->len, result_print->str);
-
-                g_string_free(result_print, TRUE);
-            } else {
-                c->function(uzbl.gui.web_view, a, result);
-            }
-            g_strfreev (par);
-            g_array_free (a, TRUE);
-
-            if(strcmp("set", cmd)     &&
-               strcmp("event", cmd)   &&
-               strcmp("request", cmd)) {
-                g_string_printf(tmp, "%s %s", cmd, param?param:"");
-                send_event(COMMAND_EXECUTED, tmp->str, NULL);
-            }
+    /* send the COMMAND_EXECUTED event, except for set and event/request commands */
+    if(strcmp("set", c->key)   &&
+       strcmp("event", c->key) &&
+       strcmp("request", c->key)) {
+        GString *tmp = g_string_new(c->key);
+        const gchar *p;
+        guint i = 0;
+        while ((p = argv_idx(a, i++)))
+            g_string_append_printf(tmp, " '%s'", p);
+        send_event(COMMAND_EXECUTED, tmp->str, NULL);
+        g_string_free(tmp, TRUE);
     }
-    else {
-		g_string_printf (tmp, "%s %s", cmd, param?param:"");
-        send_event(COMMAND_ERROR, tmp->str, NULL);
+
+    if(result) {
+        g_free(uzbl.state.last_result);
+        uzbl.state.last_result = g_strdup(result->str);
     }
-    g_string_free(tmp, TRUE);
+}
+
+void
+parse_command_arguments(const gchar *p, GArray *a, gboolean no_split) {
+    if (no_split && p) { /* pass the parameters through in one chunk */
+        sharg_append(a, g_strdup(p));
+        return;
+    }
+
+    gchar **par = split_quoted(p, TRUE);
+    if (par) {
+        guint i;
+        for (i = 0; i < g_strv_length(par); i++)
+            sharg_append(a, g_strdup(par[i]));
+        g_strfreev (par);
+    }
+}
+
+const CommandInfo *
+parse_command_parts(const gchar *line, GArray *a) {
+    CommandInfo *c = NULL;
+
+    gchar *exp_line = expand(line, 0);
+    if(exp_line[0] == '\0')
+        return NULL;
+
+    /* separate the line into the command and its parameters */
+    gchar **tokens = g_strsplit(exp_line, " ", 2);
+
+    /* look up the command */
+    c = g_hash_table_lookup(uzbl.behave.commands, tokens[0]);
+
+    if(!c) {
+        send_event(COMMAND_ERROR, exp_line, NULL);
+        g_free(exp_line);
+        g_strfreev(tokens);
+        return NULL;
+    }
+
+    gchar *p = g_strdup(tokens[1]);
+    g_free(exp_line);
+    g_strfreev(tokens);
+
+    /* parse the arguments */
+    parse_command_arguments(p, a, c->no_split);
+    g_free(p);
+
+    return c;
+}
+
+void
+parse_command(const char *cmd, const char *params, GString *result) {
+    CommandInfo *c = g_hash_table_lookup(uzbl.behave.commands, cmd);
+    if(c) {
+        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+
+        parse_command_arguments(params, a, c->no_split);
+        run_parsed_command(c, a, result);
+
+        g_array_free (a, TRUE);
+    } else {
+        gchar *tmp = g_strconcat(cmd, " ", params, NULL);
+        send_event(COMMAND_ERROR, tmp, NULL);
+        g_free(tmp);
+    }
 }
 
 
@@ -1467,376 +1291,26 @@ set_var_value(const gchar *name, gchar *val) {
 
 void
 parse_cmd_line(const char *ctl_line, GString *result) {
-    size_t len=0;
-    gchar *ctlstrip = NULL;
-    gchar *exp_line = NULL;
-    gchar *work_string = NULL;
+    gchar *work_string = g_strdup(ctl_line);
 
-    work_string = g_strdup(ctl_line);
+    /* strip trailing newline, and any other whitespace in front */
+    g_strstrip(work_string);
 
-    /* strip trailing newline */
-    len = strlen(ctl_line);
-    if (work_string[len - 1] == '\n')
-        ctlstrip = g_strndup(work_string, len - 1);
-    else
-        ctlstrip = g_strdup(work_string);
+    if( strcmp(work_string, "") ) {
+        if((work_string[0] != '#')) { /* ignore comments */
+            GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+            const CommandInfo *c = parse_command_parts(work_string, a);
+            if(c)
+                run_parsed_command(c, a, result);
+            g_array_free (a, TRUE);
+        }
+    }
+
     g_free(work_string);
-
-    if( strcmp(g_strchug(ctlstrip), "") &&
-        strcmp(exp_line = expand(ctlstrip, 0), "")
-      ) {
-            /* ignore comments */
-            if((exp_line[0] == '#'))
-                ;
-
-            /* parse a command */
-            else {
-                gchar **tokens = NULL;
-
-                tokens = g_strsplit(exp_line, " ", 2);
-                parse_command(tokens[0], tokens[1], result);
-                g_strfreev(tokens);
-            }
-        g_free(exp_line);
-    }
-
-    g_free(ctlstrip);
-}
-
-/*@null@*/ gchar*
-build_stream_name(int type, const gchar* dir) {
-    State *s = &uzbl.state;
-    gchar *str = NULL;
-
-    if (type == FIFO) {
-        str = g_strdup_printf
-            ("%s/uzbl_fifo_%s", dir, s->instance_name);
-    } else if (type == SOCKET) {
-        str = g_strdup_printf
-            ("%s/uzbl_socket_%s", dir, s->instance_name);
-    }
-    return str;
-}
-
-gboolean
-control_fifo(GIOChannel *gio, GIOCondition condition) {
-    if (uzbl.state.verbose)
-        printf("triggered\n");
-    gchar *ctl_line;
-    GIOStatus ret;
-    GError *err = NULL;
-
-    if (condition & G_IO_HUP)
-        g_error ("Fifo: Read end of pipe died!\n");
-
-    if(!gio)
-       g_error ("Fifo: GIOChannel broke\n");
-
-    ret = g_io_channel_read_line(gio, &ctl_line, NULL, NULL, &err);
-    if (ret == G_IO_STATUS_ERROR) {
-        g_error ("Fifo: Error reading: %s\n", err->message);
-        g_error_free (err);
-    }
-
-    parse_cmd_line(ctl_line, NULL);
-    g_free(ctl_line);
-
-    return TRUE;
-}
-
-gboolean
-attach_fifo(gchar *path) {
-    GError *error = NULL;
-    /* we don't really need to write to the file, but if we open the
-     * file as 'r' we will block here, waiting for a writer to open
-     * the file. */
-    GIOChannel *chan = g_io_channel_new_file(path, "r+", &error);
-    if (chan) {
-        if (g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_fifo, NULL)) {
-            if (uzbl.state.verbose)
-                printf ("attach_fifo: created successfully as %s\n", path);
-            send_event(FIFO_SET, path, NULL);
-            uzbl.comm.fifo_path = path;
-            g_setenv("UZBL_FIFO", uzbl.comm.fifo_path, TRUE);
-            return TRUE;
-        } else g_warning ("attach_fifo: could not add watch on %s\n", path);
-    } else g_warning ("attach_fifo: can't open: %s\n", error->message);
-
-    if (error) g_error_free (error);
-    return FALSE;
-}
-
-/*@null@*/ gchar*
-init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
-    if (uzbl.comm.fifo_path) { /* get rid of the old fifo if one exists */
-        if (unlink(uzbl.comm.fifo_path) == -1)
-            g_warning ("Fifo: Can't unlink old fifo at %s\n", uzbl.comm.fifo_path);
-        g_free(uzbl.comm.fifo_path);
-        uzbl.comm.fifo_path = NULL;
-    }
-
-    gchar *path = build_stream_name(FIFO, dir);
-
-    if (!file_exists(path)) {
-        if (mkfifo (path, 0666) == 0 && attach_fifo(path)) {
-            return dir;
-        } else g_warning ("init_fifo: can't create %s: %s\n", path, strerror(errno));
-    } else {
-        /* the fifo exists. but is anybody home? */
-        int fd = open(path, O_WRONLY|O_NONBLOCK);
-        if(fd < 0) {
-            /* some error occurred, presumably nobody's on the read end.
-             * we can attach ourselves to it. */
-            if(attach_fifo(path))
-                return dir;
-            else
-                g_warning("init_fifo: can't attach to %s: %s\n", path, strerror(errno));
-        } else {
-            /* somebody's there, we can't use that fifo. */
-            close(fd);
-            /* whatever, this instance can live without a fifo. */
-            g_warning ("init_fifo: can't create %s: file exists and is occupied\n", path);
-        }
-    }
-
-    /* if we got this far, there was an error; cleanup */
-    g_free(dir);
-    g_free(path);
-    return NULL;
-}
-
-gboolean
-control_stdin(GIOChannel *gio, GIOCondition condition) {
-    (void) condition;
-    gchar *ctl_line = NULL;
-    GIOStatus ret;
-
-    ret = g_io_channel_read_line(gio, &ctl_line, NULL, NULL, NULL);
-    if ( (ret == G_IO_STATUS_ERROR) || (ret == G_IO_STATUS_EOF) )
-        return FALSE;
-
-    parse_cmd_line(ctl_line, NULL);
-    g_free(ctl_line);
-
-    return TRUE;
 }
 
 void
-create_stdin () {
-    GIOChannel *chan = NULL;
-    GError *error = NULL;
-
-    chan = g_io_channel_unix_new(fileno(stdin));
-    if (chan) {
-        if (!g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_stdin, NULL)) {
-            g_error ("Stdin: could not add watch\n");
-        } else {
-            if (uzbl.state.verbose)
-                printf ("Stdin: watch added successfully\n");
-        }
-    } else {
-        g_error ("Stdin: Error while opening: %s\n", error->message);
-    }
-    if (error) g_error_free (error);
-}
-
-gboolean
-remove_socket_from_array(GIOChannel *chan) {
-    gboolean ret = 0;
-
-    ret = g_ptr_array_remove_fast(uzbl.comm.connect_chan, chan);
-    if(!ret)
-        ret = g_ptr_array_remove_fast(uzbl.comm.client_chan, chan);
-
-    if(ret)
-        g_io_channel_unref (chan);
-    return ret;
-}
-
-gboolean
-control_socket(GIOChannel *chan) {
-    struct sockaddr_un remote;
-    unsigned int t = sizeof(remote);
-    GIOChannel *iochan;
-    int clientsock;
-
-    clientsock = accept (g_io_channel_unix_get_fd(chan),
-                         (struct sockaddr *) &remote, &t);
-
-    if(!uzbl.comm.client_chan)
-        uzbl.comm.client_chan = g_ptr_array_new();
-
-    if ((iochan = g_io_channel_unix_new(clientsock))) {
-        g_io_channel_set_encoding(iochan, NULL, NULL);
-        g_io_add_watch(iochan, G_IO_IN|G_IO_HUP,
-                       (GIOFunc) control_client_socket, iochan);
-        g_ptr_array_add(uzbl.comm.client_chan, (gpointer)iochan);
-    }
-    return TRUE;
-}
-
-void
-init_connect_socket() {
-    int sockfd, replay = 0;
-    struct sockaddr_un local;
-    GIOChannel *chan;
-    gchar **name = NULL;
-
-    if(!uzbl.comm.connect_chan)
-        uzbl.comm.connect_chan = g_ptr_array_new();
-
-    name = uzbl.state.connect_socket_names;
-
-    while(name && *name) {
-        sockfd = socket (AF_UNIX, SOCK_STREAM, 0);
-        local.sun_family = AF_UNIX;
-        strcpy (local.sun_path, *name);
-
-        if(!connect(sockfd, (struct sockaddr *) &local, sizeof(local))) {
-            if ((chan = g_io_channel_unix_new(sockfd))) {
-                g_io_channel_set_encoding(chan, NULL, NULL);
-                g_io_add_watch(chan, G_IO_IN|G_IO_HUP,
-                        (GIOFunc) control_client_socket, chan);
-                g_ptr_array_add(uzbl.comm.connect_chan, (gpointer)chan);
-                replay++;
-            }
-        }
-        else
-            g_warning("Error connecting to socket: %s\n", *name);
-        name++;
-    }
-
-    /* replay buffered events */
-    if(replay)
-        send_event_socket(NULL);
-}
-
-gboolean
-control_client_socket(GIOChannel *clientchan) {
-    char *ctl_line;
-    GString *result = g_string_new("");
-    GError *error = NULL;
-    GIOStatus ret;
-    gsize len;
-
-    ret = g_io_channel_read_line(clientchan, &ctl_line, &len, NULL, &error);
-    if (ret == G_IO_STATUS_ERROR) {
-        g_warning ("Error reading: %s", error->message);
-        g_clear_error (&error);
-        ret = g_io_channel_shutdown (clientchan, TRUE, &error); 
-        remove_socket_from_array (clientchan);
-        if (ret == G_IO_STATUS_ERROR) {
-            g_warning ("Error closing: %s", error->message);
-            g_clear_error (&error);
-        }
-        return FALSE;
-    } else if (ret == G_IO_STATUS_EOF) {
-        /* shutdown and remove channel watch from main loop */
-        ret = g_io_channel_shutdown (clientchan, TRUE, &error); 
-        remove_socket_from_array (clientchan);
-        if (ret == G_IO_STATUS_ERROR) {
-            g_warning ("Error closing: %s", error->message);
-            g_clear_error (&error);
-        }
-        return FALSE;
-    }
-
-    if (ctl_line) {
-        parse_cmd_line (ctl_line, result);
-        g_string_append_c(result, '\n');
-        ret = g_io_channel_write_chars (clientchan, result->str, result->len,
-                                        &len, &error);
-        if (ret == G_IO_STATUS_ERROR) {
-            g_warning ("Error writing: %s", error->message);
-            g_clear_error (&error);
-        }
-        if (g_io_channel_flush(clientchan, &error) == G_IO_STATUS_ERROR) {
-            g_warning ("Error flushing: %s", error->message);
-            g_clear_error (&error);
-        }
-    }
-
-    g_string_free(result, TRUE);
-    g_free(ctl_line);
-    return TRUE;
-}
-
-
-gboolean
-attach_socket(gchar *path, struct sockaddr_un *local) {
-    GIOChannel *chan = NULL;
-    int sock = socket (AF_UNIX, SOCK_STREAM, 0);
-
-    if (bind (sock, (struct sockaddr *) local, sizeof(*local)) != -1) {
-        if (uzbl.state.verbose)
-            printf ("init_socket: opened in %s\n", path);
-
-        if(listen (sock, 5) < 0)
-            g_warning ("attach_socket: could not listen on %s: %s\n", path, strerror(errno));
-
-        if( (chan = g_io_channel_unix_new(sock)) ) {
-            g_io_add_watch(chan, G_IO_IN|G_IO_HUP, (GIOFunc) control_socket, chan);
-            uzbl.comm.socket_path = path;
-            send_event(SOCKET_SET, path, NULL);
-            g_setenv("UZBL_SOCKET", uzbl.comm.socket_path, TRUE);
-            return TRUE;
-        }
-    } else g_warning ("attach_socket: could not bind to %s: %s\n", path, strerror(errno));
-
-    return FALSE;
-}
-
-
-/*@null@*/ gchar*
-init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL */
-    if (uzbl.comm.socket_path) { /* remove an existing socket should one exist */
-        if (unlink(uzbl.comm.socket_path) == -1)
-            g_warning ("init_socket: couldn't unlink socket at %s\n", uzbl.comm.socket_path);
-        g_free(uzbl.comm.socket_path);
-        uzbl.comm.socket_path = NULL;
-    }
-
-    if (*dir == ' ') {
-        g_free(dir);
-        return NULL;
-    }
-
-    struct sockaddr_un local;
-    gchar *path = build_stream_name(SOCKET, dir);
-
-    local.sun_family = AF_UNIX;
-    strcpy (local.sun_path, path);
-
-    if(!file_exists(path) && attach_socket(path, &local)) {
-        /* it's free for the taking. */
-        return dir;
-    } else {
-        /* see if anybody's listening on the socket path we want. */
-        int sock = socket (AF_UNIX, SOCK_STREAM, 0);
-        if(connect(sock, (struct sockaddr *) &local, sizeof(local)) < 0) {
-            /* some error occurred, presumably nobody's listening.
-             * we can attach ourselves to it. */
-            unlink(path);
-            if(attach_socket(path, &local))
-                return dir;
-            else
-                g_warning("init_socket: can't attach to existing socket %s: %s\n", path, strerror(errno));
-        } else {
-            /* somebody's there, we can't use that socket path. */
-            close(sock);
-            /* whatever, this instance can live without a socket. */
-            g_warning ("init_socket: can't create %s: socket exists and is occupied\n", path);
-        }
-    }
-
-    /* if we got this far, there was an error; cleanup */
-    g_free(path);
-    g_free(dir);
-    return NULL;
-}
-
-void
-update_title (void) {
+update_title(void) {
     Behaviour *b = &uzbl.behave;
 
     const gchar *title_format = b->title_format_long;
@@ -1874,11 +1348,24 @@ update_title (void) {
     }
 }
 
-void
-create_browser () {
-    GUI *g = &uzbl.gui;
 
-    g->web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
+void
+create_scrolled_win() {
+    GUI* g = &uzbl.gui;
+
+    g->web_view     = WEBKIT_WEB_VIEW(webkit_web_view_new());
+    g->scrolled_win = gtk_scrolled_window_new(NULL, NULL);
+
+    gtk_scrolled_window_set_policy(
+        GTK_SCROLLED_WINDOW(g->scrolled_win),
+        GTK_POLICY_NEVER,
+        GTK_POLICY_NEVER
+    );
+
+    gtk_container_add(
+        GTK_CONTAINER(g->scrolled_win),
+        GTK_WIDGET(g->web_view)
+    );
 
     g_object_connect((GObject*)g->web_view,
       "signal::key-press-event",                      (GCallback)key_press_cb,            NULL,
@@ -1904,8 +1391,9 @@ create_browser () {
       NULL);
 }
 
+
 GtkWidget*
-create_mainbar () {
+create_mainbar() {
     GUI *g = &uzbl.gui;
 
     g->mainbar = gtk_hbox_new (FALSE, 0);
@@ -1937,11 +1425,12 @@ create_mainbar () {
 
 
 GtkWidget*
-create_window () {
+create_window() {
     GtkWidget* window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 
     gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
     gtk_widget_set_name (window, "Uzbl browser");
+    gtk_window_set_title(GTK_WINDOW(window), "Uzbl browser");
 
     /* if the window has been made small, it shouldn't try to resize itself due
      * to a long statusbar. */
@@ -1956,8 +1445,9 @@ create_window () {
     return window;
 }
 
+
 GtkPlug*
-create_plug () {
+create_plug() {
     GtkPlug* plug = GTK_PLUG (gtk_plug_new (uzbl.state.socket_id));
     g_signal_connect (G_OBJECT (plug), "destroy", G_CALLBACK (destroy_cb), NULL);
     g_signal_connect (G_OBJECT (plug), "key-press-event", G_CALLBACK (key_press_cb), NULL);
@@ -1966,132 +1456,13 @@ create_plug () {
     return plug;
 }
 
-
-gchar**
-inject_handler_args(const gchar *actname, const gchar *origargs, const gchar *newargs) {
-    /*
-      If actname is one that calls an external command, this function will inject
-      newargs in front of the user-provided args in that command line.  They will
-      come become after the body of the script (in sh) or after the name of
-      the command to execute (in spawn).
-      i.e. sh <body> <userargs> becomes sh <body> <ARGS> <userargs> and
-      spawn <command> <userargs> becomes spawn <command> <ARGS> <userargs>.
-
-      The return value consist of two strings: the action (sh, ...) and its args.
-
-      If act is not one that calls an external command, then the given action merely
-      gets duplicated.
-    */
-    GArray *rets = g_array_new(TRUE, FALSE, sizeof(gchar*));
-    /* Arrr! Here be memory leaks */
-    gchar *actdup = g_strdup(actname);
-    g_array_append_val(rets, actdup);
-
-    if ((g_strcmp0(actname, "spawn") == 0) ||
-        (g_strcmp0(actname, "sh") == 0) ||
-        (g_strcmp0(actname, "sync_spawn") == 0) ||
-        (g_strcmp0(actname, "sync_sh") == 0)) {
-        guint i;
-        GString *a = g_string_new("");
-        gchar **spawnparts = split_quoted(origargs, FALSE);
-        g_string_append_printf(a, "%s", spawnparts[0]); /* sh body or script name */
-        if (newargs) g_string_append_printf(a, " %s", newargs); /* handler args */
-
-        for (i = 1; i < g_strv_length(spawnparts); i++) /* user args */
-            if (spawnparts[i]) g_string_append_printf(a, " %s", spawnparts[i]);
-
-        g_array_append_val(rets, a->str);
-        g_string_free(a, FALSE);
-        g_strfreev(spawnparts);
-    } else {
-        gchar *origdup = g_strdup(origargs);
-        g_array_append_val(rets, origdup);
-    }
-    return (gchar**)g_array_free(rets, FALSE);
-}
-
-void
-run_handler (const gchar *act, const gchar *args) {
-    /* Consider this code a temporary hack to make the handlers usable.
-       In practice, all this splicing, injection, and reconstruction is
-       inefficient, annoying and hard to manage.  Potential pitfalls arise
-       when the handler specific args 1) are not quoted  (the handler
-       callbacks should take care of this)  2) are quoted but interfere
-       with the users' own quotation.  A more ideal solution is
-       to refactor parse_command so that it doesn't just take a string
-       and execute it; rather than that, we should have a function which
-       returns the argument vector parsed from the string.  This vector
-       could be modified (e.g. insert additional args into it) before
-       passing it to the next function that actually executes it.  Though
-       it still isn't perfect for chain actions..  will reconsider & re-
-       factor when I have the time. -duc */
-
-    if (!act) return;
-    char **parts = g_strsplit(act, " ", 2);
-    if (!parts || !parts[0]) return;
-    if (g_strcmp0(parts[0], "chain") == 0) {
-        GString *newargs = g_string_new("");
-        gchar **chainparts = split_quoted(parts[1], FALSE);
-
-        /* for every argument in the chain, inject the handler args
-           and make sure the new parts are wrapped in quotes */
-        gchar **cp = chainparts;
-        gchar quot = '\'';
-        gchar *quotless = NULL;
-        gchar **spliced_quotless = NULL; // sigh -_-;
-        gchar **inpart = NULL;
-
-        while (*cp) {
-            if ((**cp == '\'') || (**cp == '\"')) { /* strip old quotes */
-                quot = **cp;
-                quotless = g_strndup(&(*cp)[1], strlen(*cp) - 2);
-            } else quotless = g_strdup(*cp);
-
-            spliced_quotless = g_strsplit(quotless, " ", 2);
-            inpart = inject_handler_args(spliced_quotless[0], spliced_quotless[1], args);
-            g_strfreev(spliced_quotless);
-
-            g_string_append_printf(newargs, " %c%s %s%c", quot, inpart[0], inpart[1], quot);
-            g_free(quotless);
-            g_strfreev(inpart);
-            cp++;
-        }
-
-        parse_command(parts[0], &(newargs->str[1]), NULL);
-        g_string_free(newargs, TRUE);
-        g_strfreev(chainparts);
-
-    } else {
-        gchar **inparts;
-        gchar *inparts_[2];
-        if (parts[1]) {
-            /* expand the user-specified arguments */
-            gchar* expanded = expand(parts[1], 0);
-            inparts = inject_handler_args(parts[0], expanded, args);
-            g_free(expanded);
-        } else {
-            inparts_[0] = parts[0];
-            inparts_[1] = g_strdup(args);
-            inparts = inparts_;
-        }
-
-        parse_command(inparts[0], inparts[1], NULL);
-
-        if (inparts != inparts_) {
-            g_free(inparts[0]);
-            g_free(inparts[1]);
-        } else
-            g_free(inparts[1]);
-    }
-    g_strfreev(parts);
-}
-
 void
 settings_init () {
-    State *s = &uzbl.state;
-    Network *n = &uzbl.net;
-
-    int i;
+    State*   s = &uzbl.state;
+    Network* n = &uzbl.net;
+    int      i;
+    
+    /* Load default config */
     for (i = 0; default_config[i].command != NULL; i++) {
         parse_cmd_line(default_config[i].command, NULL);
     }
@@ -2102,11 +1473,12 @@ settings_init () {
     }
 
     else if (!s->config_file) {
-        s->config_file = find_xdg_file (0, "/uzbl/config");
+        s->config_file = find_xdg_file(0, "/uzbl/config");
     }
 
+    /* Load config file, if any */
     if (s->config_file) {
-        if(!for_each_line_in_file(s->config_file, parse_cmd_line_cb, NULL)) {
+        if (!for_each_line_in_file(s->config_file, parse_cmd_line_cb, NULL)) {
             gchar *tmp = g_strdup_printf("File %s can not be read.", s->config_file);
             send_event(COMMAND_ERROR, tmp, NULL);
             g_free(tmp);
@@ -2115,43 +1487,45 @@ settings_init () {
     } else if (uzbl.state.verbose)
         printf ("No configuration file loaded.\n");
 
-    if(s->connect_socket_names)
+    if (s->connect_socket_names)
         init_connect_socket();
 
     g_signal_connect(n->soup_session, "authenticate", G_CALLBACK(handle_authentication), NULL);
 }
 
-void handle_authentication (SoupSession *session, SoupMessage *msg, SoupAuth *auth, gboolean retrying, gpointer user_data) {
 
+void handle_authentication (SoupSession *session, SoupMessage *msg, SoupAuth *auth, gboolean retrying, gpointer user_data) {
     (void) user_data;
 
-    if(uzbl.behave.authentication_handler && *uzbl.behave.authentication_handler != 0) {
-        gchar *info, *host, *realm;
-        gchar *p;
-
+    if (uzbl.behave.authentication_handler && *uzbl.behave.authentication_handler != 0) {
         soup_session_pause_message(session, msg);
 
-        /* Sanitize strings */
-            info  = g_strdup(soup_auth_get_info(auth));
-            host  = g_strdup(soup_auth_get_host(auth));
-            realm = g_strdup(soup_auth_get_realm(auth));
-            for (p = info; *p; p++)  if (*p == '\'') *p = '\"';
-            for (p = host; *p; p++)  if (*p == '\'') *p = '\"';
-            for (p = realm; *p; p++) if (*p == '\'') *p = '\"';
+        GString *result = g_string_new ("");
 
-        GString *s = g_string_new ("");
-        g_string_printf(s, "'%s' '%s' '%s' '%s'",
-            info, host, realm, retrying?"TRUE":"FALSE");
+        gchar *info  = g_strdup(soup_auth_get_info(auth));
+        gchar *host  = g_strdup(soup_auth_get_host(auth));
+        gchar *realm = g_strdup(soup_auth_get_realm(auth));
 
-        run_handler(uzbl.behave.authentication_handler, s->str);
+        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+        const CommandInfo *c = parse_command_parts(uzbl.behave.authentication_handler, a);
+        if(c) {
+            sharg_append(a, info);
+            sharg_append(a, host);
+            sharg_append(a, realm);
+            sharg_append(a, retrying ? "TRUE" : "FALSE");
 
-        if (uzbl.comm.sync_stdout && strcmp (uzbl.comm.sync_stdout, "") != 0) {
+            run_parsed_command(c, a, result);
+        }
+        g_array_free(a, TRUE);
+
+        if (result->len > 0) {
             char  *username, *password;
             int    number_of_endls=0;
 
-            username = uzbl.comm.sync_stdout;
+            username = result->str;
 
-            for (p = uzbl.comm.sync_stdout; *p; p++) {
+            gchar *p;
+            for (p = result->str; *p; p++) {
                 if (*p == '\n') {
                     *p = '\0';
                     if (++number_of_endls == 1)
@@ -2165,12 +1539,9 @@ void handle_authentication (SoupSession *session, SoupMessage *msg, SoupAuth *au
                 soup_auth_authenticate(auth, username, password);
         }
 
-        if (uzbl.comm.sync_stdout)
-            uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
-
         soup_session_unpause_message(session, msg);
 
-        g_string_free(s, TRUE);
+        g_string_free(result, TRUE);
         g_free(info);
         g_free(host);
         g_free(realm);
@@ -2262,61 +1633,75 @@ set_webview_scroll_adjustments() {
       NULL);
 }
 
-/* set up gtk, gobject, variable defaults and other things that tests and other
+
+/* Set up gtk, gobject, variable defaults and other things that tests and other
  * external applications need to do anyhow */
 void
-initialize(int argc, char *argv[]) {
-    int i;
-
-    for(i=0; i<argc; ++i) {
-        if(!strcmp(argv[i], "-s") || !strcmp(argv[i], "--socket")) {
-            uzbl.state.plug_mode = TRUE;
-            break;
-        }
-    }
-
-    if (!g_thread_supported ())
-        g_thread_init (NULL);
-    gtk_init (&argc, &argv);
+initialize(int argc, char** argv) {
+    /* Initialize variables */
+    uzbl.state.socket_id       = 0;
+    uzbl.state.plug_mode       = FALSE;
 
     uzbl.state.executable_path = g_strdup(argv[0]);
-    uzbl.state.selected_url = NULL;
-    uzbl.state.searchtx = NULL;
+    uzbl.state.selected_url    = NULL;
+    uzbl.state.searchtx        = NULL;
 
+    uzbl.info.webkit_major     = webkit_major_version();
+    uzbl.info.webkit_minor     = webkit_minor_version();
+    uzbl.info.webkit_micro     = webkit_micro_version();
+    uzbl.info.arch             = ARCH;
+    uzbl.info.commit           = COMMIT;
+
+    uzbl.state.last_result  = NULL;
+
+    /* Parse commandline arguments */
     GOptionContext* context = g_option_context_new ("[ uri ] - load a uri by default");
-    g_option_context_add_main_entries (context, entries, NULL);
-    g_option_context_add_group (context, gtk_get_option_group (TRUE));
-    g_option_context_parse (context, &argc, &argv, NULL);
+    g_option_context_add_main_entries(context, entries, NULL);
+    g_option_context_add_group(context, gtk_get_option_group (TRUE));
+    g_option_context_parse(context, &argc, &argv, NULL);
     g_option_context_free(context);
 
+    /* Only print version */
     if (uzbl.behave.print_version) {
         printf("Commit: %s\n", COMMIT);
         exit(EXIT_SUCCESS);
     }
 
-    uzbl.net.soup_session = webkit_get_default_session();
+    /* Embedded mode */
+    if (uzbl.state.socket_id)
+        uzbl.state.plug_mode = TRUE;
 
-    uzbl.net.soup_cookie_jar = uzbl_cookie_jar_new();
-    soup_session_add_feature(uzbl.net.soup_session, SOUP_SESSION_FEATURE(uzbl.net.soup_cookie_jar));
+    if (!g_thread_supported())
+        g_thread_init(NULL);
+
 
     /* TODO: move the handler setup to event_buffer_timeout and disarm the
      * handler in empty_event_buffer? */
-    if(setup_signal(SIGALRM, empty_event_buffer) == SIG_ERR)
+    if (setup_signal(SIGALRM, empty_event_buffer) == SIG_ERR)
         fprintf(stderr, "uzbl: error hooking %d: %s\n", SIGALRM, strerror(errno));
     event_buffer_timeout(10);
 
-    uzbl.info.webkit_major = webkit_major_version();
-    uzbl.info.webkit_minor = webkit_minor_version();
-    uzbl.info.webkit_micro = webkit_micro_version();
-    uzbl.info.arch         = ARCH;
-    uzbl.info.commit       = COMMIT;
+    
+    /* HTTP client */
+    uzbl.net.soup_session      = webkit_get_default_session();
+    uzbl.net.soup_cookie_jar   = uzbl_cookie_jar_new();
 
-    commands_hash ();
+    soup_session_add_feature(uzbl.net.soup_session, SOUP_SESSION_FEATURE(uzbl.net.soup_cookie_jar));
+
+
+    commands_hash();
     create_var_to_name_hash();
 
+    /* GUI */
+    gtk_init(&argc, &argv);
     create_mainbar();
-    create_browser();
+    create_scrolled_win();
+
+    uzbl.gui.vbox = gtk_vbox_new(FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(uzbl.gui.vbox), uzbl.gui.mainbar, FALSE, TRUE, 0);
 }
+
 
 void
 load_uri_imp(gchar *uri) {
@@ -2367,21 +1752,9 @@ int
 main (int argc, char* argv[]) {
     initialize(argc, argv);
 
-    uzbl.gui.scrolled_win = gtk_scrolled_window_new (NULL, NULL);
-    gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win),
-        GTK_POLICY_NEVER, GTK_POLICY_NEVER);
-
-    gtk_container_add (GTK_CONTAINER (uzbl.gui.scrolled_win),
-        GTK_WIDGET (uzbl.gui.web_view));
-
-    uzbl.gui.vbox = gtk_vbox_new (FALSE, 0);
-
-    /* initial packing */
-    gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
-    gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.mainbar, FALSE, TRUE, 0);
-
+    /* Embedded mode */
     if (uzbl.state.plug_mode) {
-        uzbl.gui.plug = create_plug ();
+        uzbl.gui.plug = create_plug();
         gtk_container_add (GTK_CONTAINER (uzbl.gui.plug), uzbl.gui.vbox);
         gtk_widget_show_all (GTK_WIDGET (uzbl.gui.plug));
         /* in xembed mode the window has no unique id and thus
@@ -2392,13 +1765,20 @@ main (int argc, char* argv[]) {
         gettimeofday(&tv, NULL);
         srand((unsigned int)tv.tv_sec*tv.tv_usec);
         uzbl.xwin = rand();
-    } else {
-        uzbl.gui.main_window = create_window ();
+    }
+    
+    /* Windowed mode */
+    else {
+        uzbl.gui.main_window = create_window();
         gtk_container_add (GTK_CONTAINER (uzbl.gui.main_window), uzbl.gui.vbox);
         gtk_widget_show_all (uzbl.gui.main_window);
+
         uzbl.xwin = GDK_WINDOW_XID (gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)));
+
+        gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
     }
 
+    /* Scrolling */
     uzbl.gui.scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);
     uzbl.gui.bar_v = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_v);
     uzbl.gui.scbar_h = (GtkScrollbar*) gtk_hscrollbar_new (NULL);
@@ -2418,18 +1798,51 @@ main (int argc, char* argv[]) {
     g_setenv("UZBL_PID", uzbl.info.pid_str, TRUE);
     send_event(INSTANCE_START, uzbl.info.pid_str, NULL);
 
-    if(uzbl.state.plug_mode) {
-        char *t = itos(gtk_plug_get_id(uzbl.gui.plug));
+    if (uzbl.state.plug_mode) {
+        char *t = g_strdup_printf("%d", gtk_plug_get_id(uzbl.gui.plug));
         send_event(PLUG_CREATED, t, NULL);
         g_free(t);
     }
 
-    /* generate an event with a list of built in commands */
+    /* Generate an event with a list of built in commands */
     builtins();
 
-    if (!uzbl.state.plug_mode)
-        gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
+    /* Check uzbl is in window mode before getting/setting geometry */
+    if (uzbl.gui.main_window) {
+        if (uzbl.gui.geometry)
+            cmd_set_geometry();
+        else
+            retrieve_geometry();
+    }
 
+    gchar *uri_override = (uzbl.state.uri ? g_strdup(uzbl.state.uri) : NULL);
+    if (argc > 1 && !uzbl.state.uri)
+        uri_override = g_strdup(argv[1]);
+
+    gboolean verbose_override = uzbl.state.verbose;
+
+    /* Read configuration file */
+    settings_init();
+
+    /* Update status bar */
+    if (!uzbl.behave.show_status)
+        gtk_widget_hide(uzbl.gui.mainbar);
+    else
+        update_title();
+
+    /* WebInspector */
+    set_up_inspector();
+
+    /* Options overriding */
+    if (verbose_override > uzbl.state.verbose)
+        uzbl.state.verbose = verbose_override;
+
+    if (uri_override) {
+        set_var_value("uri", uri_override);
+        g_free(uri_override);
+    }
+
+    /* Verbose feedback */
     if (uzbl.state.verbose) {
         printf("Uzbl start location: %s\n", argv[0]);
         if (uzbl.state.socket_id)
@@ -2441,38 +1854,10 @@ main (int argc, char* argv[]) {
         printf("commit: %s\n", uzbl.info.commit);
     }
 
-    /* Check uzbl is in window mode before getting/setting geometry */
-    if (uzbl.gui.main_window) {
-        if(uzbl.gui.geometry)
-            cmd_set_geometry();
-        else
-            retrieve_geometry();
-    }
 
-    gchar *uri_override = (uzbl.state.uri ? g_strdup(uzbl.state.uri) : NULL);
-    if (argc > 1 && !uzbl.state.uri)
-        uri_override = g_strdup(argv[1]);
-    gboolean verbose_override = uzbl.state.verbose;
+    gtk_main();
 
-    settings_init ();
-
-    if (!uzbl.behave.show_status)
-        gtk_widget_hide(uzbl.gui.mainbar);
-    else
-        update_title();
-
-    /* WebInspector */
-    set_up_inspector();
-
-    if (verbose_override > uzbl.state.verbose)
-        uzbl.state.verbose = verbose_override;
-
-    if (uri_override) {
-        set_var_value("uri", uri_override);
-        g_free(uri_override);
-    }
-
-    gtk_main ();
+    /* Cleanup and exit*/
     clean_up();
 
     return EXIT_SUCCESS;
