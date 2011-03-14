@@ -31,7 +31,11 @@ def update_download_section(uzbl):
     if uzbl.config.get('downloads', '') != result:
           uzbl.config['downloads'] = result
 
-def download_started(uzbl, destination_path):
+def download_started(uzbl, args):
+    # parse the arguments
+    args = splitquoted(args)
+    destination_path = args[0]
+
     # add to the list of active downloads
     global ACTIVE_DOWNLOADS
     ACTIVE_DOWNLOADS[destination_path] = (0.0,)
@@ -41,9 +45,9 @@ def download_started(uzbl, destination_path):
 
 def download_progress(uzbl, args):
     # parse the arguments
-    s = args.rindex(' ')
-    destination_path = args[:s]
-    progress = float(args[s+1:])
+    args = splitquoted(args)
+    destination_path = args[0]
+    progress = float(args[1])
 
     # update the progress
     global ACTIVE_DOWNLOADS
@@ -52,7 +56,11 @@ def download_progress(uzbl, args):
     # update the status bar variable
     update_download_section(uzbl)
 
-def download_complete(uzbl, destination_path):
+def download_complete(uzbl, args):
+    # parse the arguments
+    args = splitquoted(args)
+    destination_path = args[0]
+
     # remove from the list of active downloads
     global ACTIVE_DOWNLOADS
     del ACTIVE_DOWNLOADS[destination_path]

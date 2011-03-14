@@ -152,7 +152,7 @@ test_set_variable (struct EventFixture *ef, const void *data) {
 
     /* set a string */
     parse_cmd_line("set useragent = Uzbl browser kthxbye!", NULL);
-    ASSERT_EVENT(ef, "VARIABLE_SET useragent str Uzbl browser kthxbye!");
+    ASSERT_EVENT(ef, "VARIABLE_SET useragent str 'Uzbl browser kthxbye!'");
     g_assert_cmpstr("Uzbl browser kthxbye!", ==, uzbl.net.useragent);
 
     /* set an int */
@@ -168,7 +168,7 @@ test_set_variable (struct EventFixture *ef, const void *data) {
     parse_cmd_line(g_string_free(cmd, FALSE), NULL);
 
     ev = g_string_new("EVENT [" INSTANCE_NAME "] VARIABLE_SET zoom_level float ");
-    g_string_append_printf(ev, "%f\n", 0.25);
+    g_string_append_printf(ev, "%.2f\n", 0.25);
     read_event(ef);
     g_assert_cmpstr(g_string_free(ev, FALSE), ==, ef->event_buffer);
 
@@ -188,13 +188,13 @@ test_set_variable (struct EventFixture *ef, const void *data) {
 
     /* set a custom variable */
     parse_cmd_line("set nonexistant_variable = Some Value", NULL);
-    ASSERT_EVENT(ef, "VARIABLE_SET nonexistant_variable str Some Value");
+    ASSERT_EVENT(ef, "VARIABLE_SET nonexistant_variable str 'Some Value'");
     uzbl_cmdprop *c = g_hash_table_lookup(uzbl.comm.proto_var, "nonexistant_variable");
     g_assert_cmpstr("Some Value", ==, *c->ptr.s);
 
     /* set a custom variable with expansion */
     parse_cmd_line("set an_expanded_variable = Test @(echo expansion)@", NULL);
-    ASSERT_EVENT(ef, "VARIABLE_SET an_expanded_variable str Test expansion");
+    ASSERT_EVENT(ef, "VARIABLE_SET an_expanded_variable str 'Test expansion'");
     c = g_hash_table_lookup(uzbl.comm.proto_var, "an_expanded_variable");
     g_assert_cmpstr("Test expansion", ==, *c->ptr.s);
 }
@@ -263,11 +263,12 @@ test_toggle_status (void) {
 
 void
 test_sync_sh (void) {
-    parse_cmd_line("sync_sh 'echo Test echo.'", NULL);
-    g_assert_cmpstr("Test echo.\n", ==, uzbl.comm.sync_stdout);
+    GString *result = g_string_new("");
 
-    /* clean up after ourselves */
-    uzbl.comm.sync_stdout = strfree(uzbl.comm.sync_stdout);
+    parse_cmd_line("sync_sh 'echo Test echo.'", result);
+    g_assert_cmpstr("Test echo.\n", ==, result->str);
+
+    g_string_free(result, TRUE);
 }
 
 void
@@ -281,27 +282,30 @@ test_js (void) {
     g_string_free(result, TRUE);
 }
 
-void
-test_run_handler_arg_order (void) {
-    run_handler("sync_spawn echo uvw xyz", "abc def");
-
-    assert(uzbl.comm.sync_stdout);
-
-    /* the rest of the result should be the arguments passed to run_handler. */
-    /* the arguments in the second argument to run_handler should be placed before any
-     * included in the first argument to run handler. */
-    g_assert_cmpstr("abc def uvw xyz\n", ==, uzbl.comm.sync_stdout);
+void test_uri(void) {
+    /* Testing for a crash, not crashing is a pass */
+    parse_cmd_line("uri", NULL);
 }
 
 void
-test_run_handler_expand (void) {
-    uzbl.net.useragent = "Test uzbl uzr agent";
-    run_handler("sync_spawn echo @useragent", "result:");
+test_last_result (void) {
+    GString *result = g_string_new("");
 
-    assert(uzbl.comm.sync_stdout);
+    /* the last result gets set */
+    parse_cmd_line("js -1", result);
+    g_assert_cmpstr("-1", ==, uzbl.state.last_result);
 
-    /* the user-specified arguments to the handler should have been expanded */
-    g_assert_cmpstr("result: Test uzbl uzr agent\n", ==, uzbl.comm.sync_stdout);
+    /* the last result can be used in a chain */
+    parse_cmd_line("chain 'js 1' 'js \\@_ + 1'", result);
+    g_assert_cmpstr("2", ==, uzbl.state.last_result);
+
+    g_string_free(result, TRUE);
+}
+
+void
+test_no_such_command (void) {
+    parse_cmd_line("no-such-command", NULL);
+    /* if we didn't crash then we're ok! */
 }
 
 int
@@ -314,16 +318,16 @@ main (int argc, char *argv[]) {
     g_test_add("/test-command/event",          struct EventFixture, NULL, event_fixture_setup, test_event,        event_fixture_teardown);
 
     g_test_add_func("/test-command/print",          test_print);
+    g_test_add_func("/test-command/uri",            test_uri);
     g_test_add_func("/test-command/scroll",         test_scroll);
     g_test_add_func("/test-command/toggle-status",  test_toggle_status);
     g_test_add_func("/test-command/sync-sh",        test_sync_sh);
 
     g_test_add_func("/test-command/js",             test_js);
 
-    /* the following aren't really "command" tests, but they're not worth
-     * splitting into a separate file yet */
-    g_test_add_func("/test-command/run_handler/arg-order",      test_run_handler_arg_order);
-    g_test_add_func("/test-command/run_handler/expand",         test_run_handler_expand);
+    g_test_add_func("/test-command/last-result",    test_last_result);
+
+    g_test_add_func("/test-command/no-such-command", test_no_such_command);
 
     /* set up uzbl */
     initialize(argc, argv);
@@ -331,7 +335,7 @@ main (int argc, char *argv[]) {
     uzbl.state.config_file = "/tmp/uzbl-config";
     uzbl.comm.fifo_path = "/tmp/some-nonexistant-fifo";
     uzbl.comm.socket_path = "/tmp/some-nonexistant-socket";
-    uzbl.state.uri = "http://example.org/";
+    uzbl.state.uri = g_strdup("http://example.org/");
     uzbl.gui.main_title = "Example.Org";
 
     uzbl.state.instance_name = INSTANCE_NAME;

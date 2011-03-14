@@ -35,7 +35,7 @@ In alphabetical order:
     Daiki Ueno (ueno)  - fix for crash when opening image in new window
     Damien Leon - misc
     Daniel M. Hackney - documentation cleanups
-    David Keijser (keis) - the add_cookie/delete_cookie + distributor system, various C and python patches.
+    David Keijser (keis) - the add_cookie/delete_cookie + distributor system, consistent event syntax, various C and python patches.
     Devon Jones <devon.jones@gmail.com> - uzbl_tabbed: bring_to_front
     Dieter Plaetinck (Dieter@be) <dieter AT plaetinck.be> - several contributions
     Dmytro Milinevskyy - uzbl-tabbed useability patches
@@ -75,6 +75,7 @@ In alphabetical order:
     Simon Lipp (sloonz) - various patches, EM contributions
     Sylvester Johansson (scj) - form filler script & different take on link follower
     Tassilo Horn (tsdh) - $VISUAL patch
+    Taylan Ulrich Bayırlı (taylanub) - updated form filler
     Thorsten Wilms - logo design
     Tom Adams (holizz) - few patches, cookies.py, gtkplug/socket & proof of concept uzbl_tabbed.py, scheme_handler
     Uli Schlachter (psychon) - basic mime_policy_cb & Makefile patch

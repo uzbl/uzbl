@@ -3,6 +3,12 @@
  ** (c) 2009 by Robert Manea
 */
 
+#ifndef __EVENTS__
+#define __EVENTS__
+
+#include <glib.h>
+#include <stdarg.h>
+
 /* Event system */
 enum event_type {
     LOAD_START, LOAD_COMMIT, LOAD_FINISH, LOAD_ERROR,
@@ -27,13 +33,15 @@ void
 event_buffer_timeout(guint sec);
 
 void
-send_event_socket(GString *msg);
+replay_buffered_events();
 
 void
-send_event_stdout(GString *msg);
+vsend_event(int type, const gchar *custom_event, va_list vargs);
 
 void
-send_event(int type, const gchar *details, const gchar *custom_event);
+send_event(int type, const gchar *custom_event, ...) G_GNUC_NULL_TERMINATED;
 
 void
 key_to_event(guint keyval, gint mode);
+
+#endif

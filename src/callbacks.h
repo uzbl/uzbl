@@ -110,6 +110,9 @@ void
 cmd_default_encoding();
 
 void
+set_current_encoding();
+
+void
 cmd_enforce_96dpi();
 
 void
@@ -156,6 +159,9 @@ load_status_change_cb (WebKitWebView* web_view, GParamSpec param_spec);
 
 void
 load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer web_err, gpointer ud);
+
+void
+uri_change_cb (WebKitWebView *web_view, GParamSpec param_spec);
 
 void
 selection_changed_cb(WebKitWebView *webkitwebview, gpointer ud);
@@ -216,6 +222,3 @@ scroll_vert_cb(GtkAdjustment *adjust, void *w);
 
 gboolean
 scroll_horiz_cb(GtkAdjustment *adjust, void *w);
-
-void
-cmd_set_cookie_handler();

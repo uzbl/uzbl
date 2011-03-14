@@ -7,10 +7,6 @@ import os, re
 # these are symbolic names for the components of the cookie tuple
 symbolic = {'domain': 0, 'path':1, 'name':2, 'value':3, 'scheme':4, 'expires':5}
 
-_splitquoted = re.compile("( |\\\".*?\\\"|'.*?')")
-def splitquoted(text):
-    return [str(p.strip('\'"')) for p in _splitquoted.split(text) if p.strip()]
-
 # allows for partial cookies
 # ? allow wildcard in key
 def match(key, cookie):
@@ -38,24 +34,38 @@ class TextStore(object):
         self.filename = filename
 
     def as_event(self, cookie):
+        """Convert cookie.txt row to uzbls cookie event format"""
+        scheme = {
+            'TRUE'  : 'https',
+            'FALSE' : 'http'
+        }
         if cookie[0].startswith("#HttpOnly_"):
             domain = cookie[0][len("#HttpOnly_"):]
         elif cookie[0].startswith('#'):
             return None
         else:
             domain = cookie[0]
-        return (domain,
-            cookie[2],
-            cookie[5],
-            cookie[6],
-            'https' if cookie[3] == 'TRUE' else 'http',
-            cookie[4])
+        try:
+            return (domain,
+                cookie[2],
+                cookie[5],
+                cookie[6],
+                scheme[cookie[3]],
+                cookie[4])
+        except (KeyError,IndexError):
+            # Let malformed rows pass through like comments
+            return None
 
     def as_file(self, cookie):
+        """Convert cookie event to cookie.txt row"""
+        secure = {
+            'https' : 'TRUE',
+            'http'  : 'FALSE'
+        }
         return (cookie[0],
             'TRUE' if cookie[0].startswith('.') else 'FALSE',
             cookie[1],
-            'TRUE' if cookie[4] == 'https' else 'FALSE',
+            secure[cookie[4]],
             cookie[5],
             cookie[2],
             cookie[3])
@@ -92,8 +102,11 @@ DefaultStore = TextStore(os.path.join(xdg_data_home, 'uzbl/cookies.txt'))
 SessionStore = TextStore(os.path.join(xdg_data_home, 'uzbl/session-cookies.txt'))
 
 def match_list(_list, cookie):
-    for component, match in _list:
-        if match(cookie[component]) is not None:
+    for matcher in _list:
+        for component, match in matcher:
+            if match(cookie[component]) is None:
+                break
+        else:
             return True
     return False
 
@@ -144,18 +157,21 @@ def delete_cookie(uzbl, cookie):
             store.delete_cookie(cookie, splitted)
 
 # add a cookie matcher to a whitelist or a blacklist.
-# a matcher is a (component, re) tuple that matches a cookie when the
+# a matcher is a list of (component, re) tuples that matches a cookie when the
 # "component" part of the cookie matches the regular expression "re".
 # "component" is one of the keys defined in the variable "symbolic" above,
 # or the index of a component of a cookie tuple.
 def add_cookie_matcher(_list, arg):
-    component, regexp = splitquoted(arg)
-    try:
-        component = symbolic[component]
-    except KeyError:
-        component = int(component)
-    assert component <= 5
-    _list.append((component, re.compile(regexp).search))
+    args = splitquoted(arg)
+    mlist = []
+    for (component, regexp) in zip(args[0::2], args[1::2]):
+        try:
+            component = symbolic[component]
+        except KeyError:
+            component = int(component)
+        assert component <= 5
+        mlist.append((component, re.compile(regexp).search))
+    _list.append(mlist)
 
 def blacklist(uzbl, arg):
     add_cookie_matcher(uzbl.cookie_blacklist, arg)
@@ -174,3 +190,5 @@ def init(uzbl):
         'cookie_blacklist' : [],
         'cookie_whitelist' : []
     })
+
+# vi: set et ts=4:

@@ -69,6 +69,11 @@ set download_handler    = sync_spawn @scripts_dir/download.sh
 # Load commit handlers
 @on_event   LOAD_COMMIT    @set_status <span foreground="green">recv</span>
 
+  # add some javascript to the page for other 'js' and 'script' commands to access later.
+@on_event   LOAD_COMMIT    js uzbl = {};
+@on_event   LOAD_COMMIT    script @scripts_dir/formfiller.js
+@on_event   LOAD_COMMIT    script @scripts_dir/follow.js
+
 # Userscripts/per-site-settings. See the script and the example configuration for details
 #@on_event   LOAD_COMMIT    spawn @scripts_dir/per-site-settings.py @data_home/uzbl/per-site-settings
 
@@ -85,9 +90,12 @@ set download_handler    = sync_spawn @scripts_dir/download.sh
 #@on_event  CONFIG_CHANGED print Config changed: %1 = %2
 
 # Scroll percentage calculation
-@on_event   SCROLL_VERT    set scroll_message = \@<(function(){var a='%1'.split(' ');var p='--';if(a[2]!=a[1]){p=(a[0]/(a[2]-a[3]));p=Math.round(10000*p)/100;};return p+'%';})()>\@
+@on_event   SCROLL_VERT    set scroll_message = \@<(function(){var p='--';if(%3!=%2){p=(%1/(%3-%4));p=Math.round(10000*p)/100;};return p+'%';})()>\@
 
 # === Behaviour and appearance ===============================================
+
+# Custom CSS can be defined here, including link follower hint styles
+set stylesheet_uri = file://@data_home/uzbl/style.css
 
 set show_status       = 1
 set status_top        = 0
@@ -129,7 +137,11 @@ set progress.pending    =
 set useragent         = Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}) (@(+uname -sm)@ [@ARCH_UZBL])
 
 # === Configure cookie blacklist ========================================================
-# Drop google analytics tracking cookies
+
+# Accept 'session cookies' from uzbl.org (when you have a whitelist all other cookies are dropped)
+#request WHITELIST_COOKIE domain 'uzbl.org$' expires '^$'
+
+# Drop google analytics tracking cookies (applied after whitelists if any)
 #request BLACKLIST_COOKIE name '^__utm.$'
 
 # === Key binding configuration ==============================================
@@ -172,6 +184,7 @@ set ebind     = @mode_bind global,-insert
 
 # Resets keycmd and returns to default mode.
 @on_event  ESCAPE    @set_mode
+@on_event  ESCAPE    event KEYCMD_CLEAR
 @bind   <Escape>     = event ESCAPE
 @bind   <Ctrl>[      = event ESCAPE
 
@@ -189,6 +202,15 @@ set ebind     = @mode_bind global,-insert
 @ebind  <Ctrl>u      = event SET_KEYCMD
 @ebind  <Ctrl>a      = event SET_CURSOR_POS 0
 @ebind  <Ctrl>e      = event SET_CURSOR_POS -1
+
+@ebind <Up>          = event HISTORY_PREV
+@ebind <Down>        = event HISTORY_NEXT
+@ebind <Ctrl>r<search:>_ = event HISTORY_SEARCH %s
+# Keycmd injection/append examples.
+#@ebind  <Ctrl>su = event INJECT_KEYCMD \@uri
+#@ebind  <Ctrl>st = event INJECT_KEYCMD \@title
+#@ebind  <Ctrl>du = event APPEND_KEYCMD \@uri
+#@ebind  <Ctrl>dt = event APPEND_KEYCMD \@title
 
 # --- Mouse bindings ---------------------------------------------------------
 
@@ -309,7 +331,8 @@ set follow_hint_keys = 0123456789
 #set follow_hint_keys = qwerty
 #set follow_hint_keys = asdfghjkl;
 #set follow_hint_keys = thsnd-rcgmvwb/;789aefijkopquxyz234
-@cbind  fl*  = spawn @scripts_dir/follow.sh follow_hint_keys "%s"
+@cbind  fl*  = spawn @scripts_dir/follow.sh \@< uzbl.follow("\@follow_hint_keys", "%s", 0) >\@
+@cbind  Fl*  = spawn @scripts_dir/follow.sh \@< uzbl.follow("\@follow_hint_keys", "%s", 1) >\@
 @cbind  gi   = spawn @scripts_dir/go_input.sh
 
 # Form filler binds
