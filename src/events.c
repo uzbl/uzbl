@@ -241,6 +241,30 @@ get_modifier_mask(guint state) {
     return g_string_free(modifiers, FALSE);
 }
 
+guint key_to_modifier(guint keyval) {
+    /* FIXME
+     * Should really use XGetModifierMapping and/or Xkb to get actual mod keys
+     */
+    switch(keyval) {
+    case GDK_KEY_Shift_L:
+    case GDK_KEY_Shift_R:
+        return GDK_SHIFT_MASK;
+    case GDK_KEY_Control_L:
+    case GDK_KEY_Control_R:
+        return GDK_CONTROL_MASK;
+    case GDK_KEY_Alt_L:
+    case GDK_KEY_Alt_R:
+        return GDK_MOD1_MASK;
+    case GDK_KEY_Super_L:
+    case GDK_KEY_Super_R:
+        return GDK_MOD4_MASK;
+    case GDK_KEY_ISO_Level3_Shift:
+        return GDK_MOD5_MASK;
+    default:
+        return 0;
+    }
+}
+
 /* Transform gdk key events to our own events */
 void
 key_to_event(guint keyval, guint state, guint is_modifier, gint mode) {
@@ -249,15 +273,22 @@ key_to_event(guint keyval, guint state, guint is_modifier, gint mode) {
     gchar *keyname;
     guint32 ukval = gdk_keyval_to_unicode(keyval);
     gchar *modifiers = NULL;
+    guint mod;
 
     /* check modifier state*/
     modifiers = get_modifier_mask(state);
 
+    if(is_modifier && (mod = key_to_modifier (keyval))) {
+        send_event(mode == GDK_KEY_PRESS ? MOD_PRESS : MOD_RELEASE, NULL,
+            TYPE_STR, modifiers,
+            TYPE_NAME, get_modifier_mask (mod),
+            NULL);
+    }
     /* check for printable unicode char */
     /* TODO: Pass the keyvals through a GtkIMContext so that
      *       we also get combining chars right
     */
-    if(g_unichar_isgraph(ukval)) {
+    else if(g_unichar_isgraph(ukval)) {
         ulen = g_unichar_to_utf8(ukval, ucs);
         ucs[ulen] = 0;
 
@@ -266,12 +297,8 @@ key_to_event(guint keyval, guint state, guint is_modifier, gint mode) {
     }
     /* send keysym for non-printable chars */
     else if((keyname = gdk_keyval_name(keyval))){
-        if(is_modifier)
-            send_event(mode == GDK_KEY_PRESS ? MOD_PRESS : MOD_RELEASE, NULL,
-                TYPE_STR, modifiers, TYPE_NAME, keyname , NULL);
-        else
-            send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE, NULL,
-                TYPE_STR, modifiers, TYPE_NAME, keyname , NULL);
+        send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE, NULL,
+            TYPE_STR, modifiers, TYPE_NAME, keyname, NULL);
     }
 
     g_free(modifiers);
