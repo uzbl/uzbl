@@ -273,12 +273,12 @@ key_to_event(guint keyval, guint state, guint is_modifier, gint mode) {
     gchar *keyname;
     guint32 ukval = gdk_keyval_to_unicode(keyval);
     gchar *modifiers = NULL;
-    guint mod;
+    guint mod = key_to_modifier (keyval);
 
-    /* check modifier state*/
-    modifiers = get_modifier_mask(state);
+    /* Get modifier state including this key press/release */
+    modifiers = get_modifier_mask(mode == GDK_KEY_PRESS ? state | mod : state & ~mod);
 
-    if(is_modifier && (mod = key_to_modifier (keyval))) {
+    if(is_modifier && mod) {
         send_event(mode == GDK_KEY_PRESS ? MOD_PRESS : MOD_RELEASE, NULL,
             TYPE_STR, modifiers,
             TYPE_NAME, get_modifier_mask (mod),
