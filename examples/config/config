@@ -281,8 +281,8 @@ set ebind     = @mode_bind global,-insert
 
 # Use socat to directly inject commands into uzbl-core and view events
 # raised by uzbl-core:
-@cbind  <Ctrl><Alt>t  = sh 'xterm -e "socat unix-connect:\"$UZBL_SOCKET\" -"'
-#@cbind  <Ctrl><Alt>t  = sh 'urxvt -e socat unix-connect:"$UZBL_SOCKET" -'
+@cbind  <Ctrl><Mod1>t  = sh 'xterm -e "socat unix-connect:\"$UZBL_SOCKET\" -"'
+#@cbind  <Ctrl><Mod1>t  = sh 'urxvt -e socat unix-connect:"$UZBL_SOCKET" -'
 
 # Uri opening prompts
 @cbind  o<uri:>_       = uri %s
