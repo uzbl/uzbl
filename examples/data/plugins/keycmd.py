@@ -273,11 +273,9 @@ def key_release(uzbl, key):
     2. Update the keycmd uzbl variable if anything changed.'''
     k = uzbl.keylet
     modstate, key = parse_key_event(uzbl, key)
-    modstate = set([m for m in modstate if not k.key_ignored(m)])
 
     if len(key) > 1:
         if k.is_modcmd:
-            modstate.remove('<%s>' % key)
             uzbl.event('MODCMD_EXEC', modstate, k)
 
         clear_modcmd(uzbl)
