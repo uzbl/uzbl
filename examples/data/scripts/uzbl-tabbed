@@ -297,7 +297,6 @@ def escape(s):
         s = s.replace(split, glue)
     return s
 
-
 class SocketClient:
     '''Represents a Uzbl instance, which is not necessarly linked with a UzblInstance'''
 
@@ -443,18 +442,29 @@ class UzblInstance:
         if self._client:
             self._client.send('exit')
 
+    def unquote(self, s):
+        '''Removes quotation marks around strings if any and interprets
+        \\-escape sequences using `string_escape`'''
+        if s and s[0] == s[-1] and s[0] in ['"', "'"]:
+            s = s[1:-1]
+        return s.encode('utf-8').decode('string_escape').decode('utf-8')
+
+    _splitquoted = re.compile("( |\"(?:\\\\.|[^\"])*?\"|'(?:\\\\.|[^'])*?')")
+    def parse_event(self, text):
+        '''Splits string on whitespace while respecting quotations'''
+        return [self.unquote(p) for p in self._splitquoted.split(text) if p.strip()]
 
     def parse_command(self, cmd):
         ''' Parse event givent by the Uzbl instance '''
 
-        type, _, args = cmd.split(" ", 2)
-        if type == "EVENT":
-            type, args = args.split(" ", 1)
+        cmd = self.parse_event(cmd)
+        message, type, args = cmd[0], cmd[2], cmd[3:]
+        if message == "EVENT":
             if type == "TITLE_CHANGED":
-                self.title = args.strip()
+                self.title = args[0].strip()
                 self.title_changed(False)
             elif type == "VARIABLE_SET":
-                var, _, val = args.split(" ", 2)
+                var, val = args[0], args[2]
 
                 try:
                     val = int(val)
@@ -486,34 +496,34 @@ class UzblInstance:
                     self.uri = val.strip()
                     self.parent.update_tablist()
             elif type == "LOAD_COMMIT":
-                self.uri = args
+                self.uri = args[0]
             elif type == "NEW_TAB":
-                self.parent.new_tab(args)
+                self.parent.new_tab(args[0])
             elif type == "NEW_BG_TAB":
-                self.parent.new_tab(args, '', 0)
+                self.parent.new_tab(args[0], '', 0)
             elif type == "NEW_TAB_NEXT":
-                self.parent.new_tab(args, next=True)
+                self.parent.new_tab(args[0], next=True)
             elif type == "NEW_BG_TAB_NEXT":
-                self.parent.new_tab(args, '', 0, next=True)
+                self.parent.new_tab(args[0], '', 0, next=True)
 
             elif type == "NEXT_TAB":
-                if args:
-                    self.parent.next_tab(int(args))
+                if args[0]:
+                    self.parent.next_tab(int(args[0]))
                 else:
                     self.parent.next_tab()
             elif type == "PREV_TAB":
-                if args:
-                    self.parent.prev_tab(int(args))
+                if args[0]:
+                    self.parent.prev_tab(int(args[0]))
                 else:
                     self.parent.prev_tab()
             elif type == "GOTO_TAB":
-                self.parent.goto_tab(int(args))
+                self.parent.goto_tab(int(args[0]))
             elif type == "FIRST_TAB":
                 self.parent.goto_tab(0)
             elif type == "LAST_TAB":
                 self.parent.goto_tab(-1)
             elif type == "PRESET_TABS":
-                self.parent.parse_command(["preset"] + args.split())
+                self.parent.parse_command(["preset"] + args)
             elif type == "BRING_TO_FRONT":
                 self.parent.window.present()
             elif type == "CLEAN_TABS":
