@@ -53,6 +53,7 @@ In alphabetical order:
     Jason Woofenden (JasonWoof) - geometry=maximized, link following
     Jochen Sprickerhof - session.sh enhancements
     k0ral - split status bar, cleanup and bugfix patches
+    Klaus T. Aehlig - various patches
     Lars-Dominik Braun (PromyLOPh) - added ability to enable/disable the webkit page cache
     Laurence Withers (lwithers) - talk_to_socket
     Luca Bruno <lucab@debian.org> - bashims fixes
@@ -84,7 +85,7 @@ In alphabetical order:
 Also, thanks to all people who've posted useful things to the mailing list and/or wiki.
 
 
-Originaly based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
+Originally based on http://trac.webkit.org/browser/trunk/WebKitTools/GtkLauncher/main.c
 Which is  copyrighted:
 2006, 2007 Apple Inc
 2007 Alp Toker <alp@atoker.com>
