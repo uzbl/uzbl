@@ -1389,6 +1389,10 @@ if __name__ == "__main__":
       action='store_true', help="ignore session saving a loading.")
     parser.add_option('-v', '--verbose', dest='verbose',
       action='store_true', help='print verbose output.')
+    parser.add_option('-s', '--socketdir', dest='socketdir',
+      help="directory to create socket")
+    parser.add_option('-f', '--fifodir', dest='fifodir',
+      help="directory to create fifo")
 
     # Parse command line options
     (options, uris) = parser.parse_args()
@@ -1402,6 +1406,12 @@ if __name__ == "__main__":
     if config['verbose']:
         import pprint
         sys.stderr.write("%s\n" % pprint.pformat(config))
+
+    if options.socketdir:
+        config['socket_dir'] = options.socketdir
+
+    if options.fifodir:
+        config['fifo_dir'] = options.fifodir
 
     uzbl = UzblTabbed()
 
