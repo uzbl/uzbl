@@ -98,10 +98,15 @@ uzbl.follow.elementInViewport = function(el) {
 }
 
 // Removes all hints/leftovers that might be generated
-// by this script.
-uzbl.follow.removeAllHints = function(doc) {
+// by this script in the given document.
+uzbl.follow.removeHints = function(doc) {
     var elements = doc.getElementById(uzbldivid);
     if (elements) elements.parentNode.removeChild(elements);
+}
+
+// Clears all hints in every document
+uzbl.follow.clearHints = function() {
+    this.documents().forEach(uzbl.follow.removeHints);
 }
 
 // Generate a hint for an element with the given label
@@ -153,7 +158,7 @@ uzbl.follow.reDrawHints = function(elems, chars) {
     var positions = elements.map(uzbl.follow.elementPosition);
 
     this.documents().forEach(function(doc) {
-        uzbl.follow.removeAllHints(doc);
+        uzbl.follow.removeHints(doc);
         if (!doc.body) return;
         doc.hintdiv = doc.createElement('div');
         doc.hintdiv.id = uzbldivid;
@@ -230,7 +235,7 @@ uzbl.follow.followLinks = function(follow) {
         var el = elems[linknr];
 
         // clear all of our hints
-        this.documents().forEach(uzbl.follow.removeAllHints);
+        this.clearHints();
 
         if (newwindow) {
             // we're opening a new window using the URL attached to this element
