@@ -211,7 +211,7 @@ uzbl.follow.followLinks = function(follow) {
     var s = follow.split('');
     var linknr = this.labelToInt(follow);
 
-    var followable  = 'a, area, textarea, select, input:not([type=hidden]), button';
+    var followable  = 'a, area, textarea, select, input:not([type=hidden]), button, *[onclick]';
     var uri         = 'a, area, frame, iframe';
     //var focusable   = 'a, area, textarea, select, input:not([type=hidden]), button, frame, iframe, applet, object';
     //var desc        = '*[title], img[alt], applet[alt], area[alt], input[alt]';
