@@ -185,7 +185,7 @@ def update_event(uzbl, modstate, k, execute=True):
 
     if uzbl.config.get('modcmd_updates', '1') == '1':
         new_modcmd = ''.join(modstate) + k.get_modcmd()
-        if not new_modcmd:
+        if not new_modcmd or not k.is_modcmd:
             del uzbl.config['modcmd']
 
         elif new_modcmd == modcmd:
@@ -235,14 +235,14 @@ def key_press(uzbl, key):
 
     k = uzbl.keylet
     modstate, key = parse_key_event(uzbl, key)
-    modstate = set([m for m in modstate if not k.key_ignored(m)])
+    k.is_modcmd = any(not k.key_ignored(m) for m in modstate)
 
     logger.debug('key press modstate=%s' % str(modstate))
-    if key.lower() == 'space' and not modstate and k.keycmd:
+    if key.lower() == 'space' and not k.is_modcmd and k.keycmd:
         k.keycmd = inject_str(k.keycmd, k.cursor, ' ')
         k.cursor += 1
 
-    elif not modstate and len(key) == 1:
+    elif not k.is_modcmd and len(key) == 1:
         if uzbl.config.get('keycmd_events', '1') != '1':
             # TODO, make a note on what's going on here
             k.keycmd = ''
@@ -259,9 +259,7 @@ def key_press(uzbl, key):
     else:
         if not k.key_ignored('<%s>' % key):
             modstate.add('<%s>' % key)
-
-    if len(modstate) > 0:
-        k.is_modcmd = True
+            k.is_modcmd = True
 
     update_event(uzbl, modstate, k)
 
