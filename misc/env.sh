@@ -10,14 +10,21 @@
 # Maybe we should spawn processes from here with an 'exec' at the end?
 
 # Re-define our home location inside the sandbox dir.
-export HOME=$(pwd)/sandbox/home
+HOME=$(pwd)/sandbox/home
+export HOME
 
 # Export default XDG_{DATA,CACHE,..}_HOME locations inside the sandbox
 # directory according to defaults in the xdg specification.
 # <http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html>
-export XDG_DATA_HOME=$HOME/.local/share
-export XDG_CACHE_HOME=$HOME/.cache
-export XDG_CONFIG_HOME=$HOME/.config
+XDG_DATA_HOME=$HOME/.local/share
+export XDG_DATA_HOME
+
+XDG_CACHE_HOME=$HOME/.cache
+export XDG_CACHE_HOME
+
+XDG_CONFIG_HOME=$HOME/.config
+export XDG_CONFIG_HOME
 
 # Needed to run uzbl-browser etc from here.
-export PATH="$(pwd)/sandbox/usr/local/bin:$PATH"
+PATH="$(pwd)/sandbox/usr/local/bin:$PATH"
+export PATH
