@@ -1016,7 +1016,7 @@ class UzblTabbed:
             title = config['new_tab_title']
 
         cmd = ['uzbl-browser', '-n', name, '-s', str(sid),
-               '--connect-socket', self.socket_path, '--uri', uri]
+               '--connect-socket', self.socket_path, '--uri', str(uri)]
         gobject.spawn_async(cmd, flags=gobject.SPAWN_SEARCH_PATH)
 
         uzbl = UzblInstance(self, tab, name, uri, title, switch)
