@@ -507,12 +507,12 @@ class UzblInstance:
                 self.parent.new_tab(args[0], '', 0, next=True)
 
             elif type == "NEXT_TAB":
-                if args[0]:
+                if args:
                     self.parent.next_tab(int(args[0]))
                 else:
                     self.parent.next_tab()
             elif type == "PREV_TAB":
-                if args[0]:
+                if args:
                     self.parent.prev_tab(int(args[0]))
                 else:
                     self.parent.prev_tab()
