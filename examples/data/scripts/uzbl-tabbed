@@ -501,7 +501,10 @@ class UzblInstance:
             elif type == "LOAD_COMMIT":
                 self.uri = args[0]
             elif type == "NEW_TAB":
-                self.parent.new_tab(args[0])
+                if args:
+                    self.parent.new_tab(args[0])
+                else:
+                    self.parent.new_tab()
             elif type == "NEW_BG_TAB":
                 self.parent.new_tab(args[0], '', 0)
             elif type == "NEW_TAB_NEXT":
