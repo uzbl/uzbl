@@ -1129,8 +1129,6 @@ spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
 
 void
 run_parsed_command(const CommandInfo *c, GArray *a, GString *result) {
-    c->function(uzbl.gui.web_view, a, result);
-
     /* send the COMMAND_EXECUTED event, except for set and event/request commands */
     if(strcmp("set", c->key)   &&
        strcmp("event", c->key) &&
@@ -1141,12 +1139,18 @@ run_parsed_command(const CommandInfo *c, GArray *a, GString *result) {
         guint i = 0;
         while ((p = argv_idx(a, i++)))
             g_string_append_printf(param, " '%s'", p);
+
+	/* might be destructive on array a */
+        c->function(uzbl.gui.web_view, a, result);
+
         send_event(COMMAND_EXECUTED, NULL,
             TYPE_NAME, c->key,
             TYPE_FORMATTEDSTR, param->str,
             NULL);
         g_string_free(param, TRUE);
     }
+    else
+        c->function(uzbl.gui.web_view, a, result);
 
     if(result) {
         g_free(uzbl.state.last_result);
