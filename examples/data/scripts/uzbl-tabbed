@@ -501,7 +501,10 @@ class UzblInstance:
             elif type == "LOAD_COMMIT":
                 self.uri = args[0]
             elif type == "NEW_TAB":
-                self.parent.new_tab(args[0])
+                if args:
+                    self.parent.new_tab(args[0])
+                else:
+                    self.parent.new_tab()
             elif type == "NEW_BG_TAB":
                 self.parent.new_tab(args[0], '', 0)
             elif type == "NEW_TAB_NEXT":
@@ -510,12 +513,12 @@ class UzblInstance:
                 self.parent.new_tab(args[0], '', 0, next=True)
 
             elif type == "NEXT_TAB":
-                if args[0]:
+                if args:
                     self.parent.next_tab(int(args[0]))
                 else:
                     self.parent.next_tab()
             elif type == "PREV_TAB":
-                if args[0]:
+                if args:
                     self.parent.prev_tab(int(args[0]))
                 else:
                     self.parent.prev_tab()
@@ -1024,7 +1027,7 @@ class UzblTabbed:
             title = config['new_tab_title']
 
         cmd = ['uzbl-browser', '-n', name, '-s', str(sid),
-               '--connect-socket', self.socket_path, '--uri', uri]
+               '--connect-socket', self.socket_path, '--uri', str(uri)]
         gobject.spawn_async(cmd, flags=gobject.SPAWN_SEARCH_PATH)
 
         uzbl = UzblInstance(self, tab, name, uri, title, switch)
