@@ -732,10 +732,12 @@ clear_cookies(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) argv; (void) result;
 
     // Replace the current cookie jar with a new empty jar
-    soup_session_remove_feature (uzbl.net.soup_session, uzbl.net.soup_cookie_jar);
+    soup_session_remove_feature (uzbl.net.soup_session,
+        SOUP_SESSION_FEATURE (uzbl.net.soup_cookie_jar));
     g_object_unref (G_OBJECT (uzbl.net.soup_cookie_jar));
     uzbl.net.soup_cookie_jar = uzbl_cookie_jar_new ();
-    soup_session_add_feature(uzbl.net.soup_session, uzbl.net.soup_cookie_jar);
+    soup_session_add_feature(uzbl.net.soup_session,
+        SOUP_SESSION_FEATURE (uzbl.net.soup_cookie_jar));
 }
 
 void
