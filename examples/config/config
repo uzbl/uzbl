@@ -296,6 +296,9 @@ set ebind     = @mode_bind global,-insert
 # Hard-bound bookmarks
 @cbind  gh  = uri http://www.uzbl.org
 
+# New window binds
+@cbind  gw  = event REQ_NEW_WINDOW
+
 # Yanking & pasting binds
 @cbind  yu  = sh 'echo -n "$UZBL_URI" | xclip'
 @cbind  yU  = sh 'echo -n "$1" | xclip' \@SELECTED_URI
