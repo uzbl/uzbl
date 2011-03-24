@@ -299,6 +299,10 @@ set ebind     = @mode_bind global,-insert
 # New window binds
 @cbind  gw  = event REQ_NEW_WINDOW
 
+# SSL-ify bindings
+@cbind  zs  = uri \@(echo "$UZBL_URI" | sed -e 's/^http:/https:/')\@
+@cbind  zS  = event REQ_NEW_WINDOW \@(echo "$UZBL_URI" | sed -e 's/^http:/https:/')\@
+
 # Yanking & pasting binds
 @cbind  yu  = sh 'echo -n "$UZBL_URI" | xclip'
 @cbind  yU  = sh 'echo -n "$1" | xclip' \@SELECTED_URI
