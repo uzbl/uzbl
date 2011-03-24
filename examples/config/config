@@ -194,7 +194,7 @@ set ebind     = @mode_bind global,-insert
 @ebind  <Delete>     = event KEYCMD_DELETE
 @ebind  <Tab>        = event START_COMPLETION
 # Readline-ish bindings.
-@ebind  <Ctrl>w      = event KEYCMD_STRIP_WORD
+@ebind  <Ctrl>w      = event KEYCMD_STRIP_WORD \ -./&?=
 @ebind  <Ctrl>u      = event SET_KEYCMD
 @ebind  <Ctrl>a      = event SET_CURSOR_POS 0
 @ebind  <Ctrl>e      = event SET_CURSOR_POS -1
