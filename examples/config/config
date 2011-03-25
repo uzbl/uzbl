@@ -112,10 +112,11 @@ set uri_section       = <span foreground="#99FF66">\@[\@uri]\@</span>
 set name_section      = <span foreground="khaki">\@[\@NAME]\@</span>
 set status_section    = <span foreground="orange">\@status_message</span>
 set selected_section  = <span foreground="#606060">\@[\@SELECTED_URI]\@</span>
+set reload_section    = <span foreground="#909090">\@[\@reload.interval]\@</span>
 
 set download_section  = <span foreground="white">\@downloads</span>
 
-set status_format       = <span font_family="monospace">@mode_section @keycmd_section @progress_section @name_section @status_section @scroll_section @selected_section @download_section</span>
+set status_format       = <span font_family="monospace">@mode_section @keycmd_section @progress_section @reload_section @name_section @status_section @scroll_section @selected_section @download_section</span>
 set status_format_right = <span font_family="monospace"><span foreground="#666">uri:</span> @uri_section</span>
 
 set title_format_long = \@keycmd_prompt \@raw_modcmd \@raw_keycmd \@TITLE - Uzbl browser <\@NAME> \@SELECTED_URI
@@ -245,6 +246,8 @@ set ebind     = @mode_bind global,-insert
 @cbind  S   = stop
 @cbind  r   = reload
 @cbind  R   = reload_ign_cache
+@cbind  <Ctrl>R<Interval:>_ = event RELOAD_WATCH %s
+@cbind  <Ctrl>r             = event RELOAD_UNWATCH
 
 # Zoom binds
 @cbind  +   = zoom_in
