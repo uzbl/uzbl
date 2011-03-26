@@ -762,6 +762,8 @@ Events/requests which the EM and its plugins listens for
   keycmd.
 * `KEYCMD_STRIP_WORD`: Removes the last word from the keycmd, similar to
   readline `^W`.
+  - `request KEYCMD_STRIP_WORD <seps>`: The `<seps>` argument is a list of
+    characters that are considered to separate words.
 * `KEYCMD_EXEC_CURRENT`: (tries to) execute whatever is in the keycmd.
 * `SET_KEYCMD`: Allow setting of the keycmd externally.
   - `request SET_KEYCMD <string>`: Set the keycmd to `<string>`.
