@@ -1002,6 +1002,8 @@ class UzblTabbed:
                     error("parse_command: preset %r does not exist." % path)
 
             elif cmd[1] == "list":
+                # FIXME: what argument is this supposed to be passed,
+                # and why?
                 uzbl = self.get_tab_by_name(int(cmd[2]))
                 if uzbl:
                     if not os.path.isdir(config['saved_sessions_dir']):
