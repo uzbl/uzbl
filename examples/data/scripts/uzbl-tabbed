@@ -363,6 +363,116 @@ class SocketClient:
             map(source_remove, self._watchers)
             self._watchers = []
 
+class EventDispatcher:
+    def __init__(self, uzbl):
+        self.uzbl   = uzbl
+        self.parent = self.uzbl.parent
+
+    def dispatch(self, message_type, args):
+        method = getattr(self, message_type.lower(), None)
+
+        if method is None:
+            return
+
+        return method(*args)
+
+    def title_changed(self, title):
+        self.uzbl.title = title.strip()
+        self.uzbl.title_changed(False)
+
+    def variable_set(self, var, _type, val):
+        try:
+            val = int(val)
+        except:
+            pass
+
+        if var in UZBL_TABBED_VARS:
+            if config[var] != val:
+                config[var] = val
+                if var == "show_gtk_tabs":
+                    self.parent.notebook.set_show_tabs(bool(val))
+                elif var == "show_tablist" or var == "tablist_top":
+                    self.parent.update_tablist_display()
+                elif var == "gtk_tab_pos":
+                    self.parent.update_gtk_tab_pos()
+                elif var == "status_background":
+                    if config['status_background'].strip():
+                        try:
+                          col = gtk.gdk.color_parse(config['status_background'])
+                          self.parent.ebox.modify_bg(gtk.STATE_NORMAL, col)
+                        except ValueError:
+                          pass # got an invalid colour, just ignore it
+                elif var == "tab_titles" or var == "tab_indexes":
+                    for tab in self.parent.notebook:
+                        self.parent.tabs[tab].title_changed(True)
+
+                self.parent.update_tablist()
+        else:
+            config[var] = val
+
+        if var == "uri":
+            self.uzbl.uri = val.strip()
+            self.parent.update_tablist()
+
+    def load_commit(self, uri):
+        self.uzbl.uri = uri
+
+    def new_tab(self, uri = None):
+        if uri:
+            self.parent.new_tab(uri)
+        else:
+            self.parent.new_tab()
+
+    def new_tab_bg(self, uri = None):
+        if uri:
+            self.parent.new_tab(uri, switch = False)
+        else:
+            self.parent.new_tab(switch = False)
+
+    def new_tab_next(self, uri = None):
+        if uri:
+            self.parent.new_tab(uri, next=True)
+        else:
+            self.parent.new_tab(next=True)
+
+    def new_bg_tab_next(self, uri = None):
+        if uri:
+            self.parent.new_tab(uri, switch = False, next = True)
+        else:
+            self.parent.new_tab(switch = False, next = True)
+
+    def next_tab(self, step = None):
+        if step:
+            self.parent.next_tab(int(step))
+        else:
+            self.parent.next_tab()
+
+    def prev_tab(self, step = None):
+        if step:
+            self.parent.prev_tab(int(step))
+        else:
+            self.parent.prev_tab()
+
+    def goto_tab(self, index):
+        self.parent.goto_tab(int(index))
+
+    def first_tab(self):
+        self.parent.goto_tab(0)
+
+    def last_tab(self):
+        self.parent.goto_tab(-1)
+
+    def preset_tabs(self, *args):
+        self.parent.parse_command(["preset"] + [ a for a in args ])
+
+    def bring_to_front(self):
+        self.parent.window.present()
+
+    def clean_tabs(self):
+        self.parent.clean_slate()
+
+    def exit_all_tabs(self):
+        self.parent.quitrequest()
 
 class UzblInstance:
     '''Uzbl instance meta-data/meta-action object.'''
@@ -371,10 +481,13 @@ class UzblInstance:
 
         self.parent = parent
         self.tab = tab
+        self.dispatcher = EventDispatcher(self)
+
         self.name = name
         self.title = title
         self.tabtitle = ""
         self.uri = uri
+
         self._client = None
         self._switch = switch # Switch to tab after loading ?
         self.title_changed()
@@ -458,85 +571,10 @@ class UzblInstance:
         ''' Parse event givent by the Uzbl instance '''
 
         cmd = self.parse_event(cmd)
-        message, type, args = cmd[0], cmd[2], cmd[3:]
+        message, message_type, args = cmd[0], cmd[2], cmd[3:]
+
         if message == "EVENT":
-            if type == "TITLE_CHANGED":
-                self.title = args[0].strip()
-                self.title_changed(False)
-            elif type == "VARIABLE_SET":
-                var, val = args[0], args[2]
-
-                try:
-                    val = int(val)
-                except:
-                    pass
-
-                if var in UZBL_TABBED_VARS:
-                    if config[var] != val:
-                        config[var] = val
-                        if var == "show_gtk_tabs":
-                            self.parent.notebook.set_show_tabs(bool(val))
-                        elif var == "show_tablist" or var == "tablist_top":
-                            self.parent.update_tablist_display()
-                        elif var == "gtk_tab_pos":
-                            self.parent.update_gtk_tab_pos()
-                        elif var == "status_background":
-                            if config['status_background'].strip():
-                                try:
-                                  col = gtk.gdk.color_parse(config['status_background'])
-                                  self.parent.ebox.modify_bg(gtk.STATE_NORMAL, col)
-                                except ValueError:
-                                  pass # got an invalid colour, just ignore it
-                        elif var == "tab_titles" or var == "tab_indexes":
-                            for tab in self.parent.notebook:
-                                self.parent.tabs[tab].title_changed(True)
-
-                        self.parent.update_tablist()
-                else:
-                    config[var] = val
-
-                if var == "uri":
-                    self.uri = val.strip()
-                    self.parent.update_tablist()
-            elif type == "LOAD_COMMIT":
-                self.uri = args[0]
-            elif type == "NEW_TAB":
-                if args:
-                    self.parent.new_tab(args[0])
-                else:
-                    self.parent.new_tab()
-            elif type == "NEW_BG_TAB":
-                self.parent.new_tab(args[0], '', 0)
-            elif type == "NEW_TAB_NEXT":
-                self.parent.new_tab(args[0], next=True)
-            elif type == "NEW_BG_TAB_NEXT":
-                self.parent.new_tab(args[0], '', 0, next=True)
-
-            elif type == "NEXT_TAB":
-                if args:
-                    self.parent.next_tab(int(args[0]))
-                else:
-                    self.parent.next_tab()
-            elif type == "PREV_TAB":
-                if args:
-                    self.parent.prev_tab(int(args[0]))
-                else:
-                    self.parent.prev_tab()
-            elif type == "GOTO_TAB":
-                self.parent.goto_tab(int(args[0]))
-            elif type == "FIRST_TAB":
-                self.parent.goto_tab(0)
-            elif type == "LAST_TAB":
-                self.parent.goto_tab(-1)
-            elif type == "PRESET_TABS":
-                self.parent.parse_command(["preset"] + args)
-            elif type == "BRING_TO_FRONT":
-                self.parent.window.present()
-            elif type == "CLEAN_TABS":
-                self.parent.clean_slate()
-            elif type == "EXIT_ALL_TABS":
-                self.parent.quitrequest()
-
+            self.dispatcher.dispatch(message_type, args)
 
     def close(self):
         '''The remote instance exited'''
