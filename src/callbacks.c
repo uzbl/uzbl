@@ -292,8 +292,11 @@ cmd_caret_browsing() {
 
 void
 set_current_encoding() {
-    webkit_web_view_set_custom_encoding(uzbl.gui.web_view,
-        uzbl.behave.current_encoding);
+    gchar *encoding = uzbl.behave.current_encoding;
+    if(strlen(encoding) == 0)
+        encoding = NULL;
+
+    webkit_web_view_set_custom_encoding(uzbl.gui.web_view, encoding);
 }
 
 
