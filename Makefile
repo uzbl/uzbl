@@ -92,10 +92,11 @@ test-uzbl-browser-sandbox: uzbl-browser
 test-uzbl-tabbed-sandbox: uzbl-browser
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-core
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-browser
+	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-tabbed
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
 	cp -np ./misc/env.sh ./sandbox/env.sh
 	-. ./sandbox/env.sh && uzbl-event-manager restart -avv
-	. ./sandbox/env.sh && ./sandbox/home/.local/share/uzbl/scripts/uzbl-tabbed
+	. ./sandbox/env.sh && uzbl-tabbed
 	. ./sandbox/env.sh && uzbl-event-manager stop -ivv
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
@@ -146,7 +147,7 @@ install-uzbl-browser: install-dirs
 	rm $(INSTALLDIR)/bin/uzbl-event-manager.bak
 
 install-uzbl-tabbed: install-dirs
-	install -m755 examples/data/scripts/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed
+	install -m755 bin/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed
 
 # you probably only want to do this manually when testing and/or to the sandbox. not meant for distributors
 install-example-data:
