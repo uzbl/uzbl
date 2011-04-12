@@ -68,7 +68,7 @@ test-uzbl-core: uzbl-core
 	./uzbl-core --uri http://www.uzbl.org --verbose
 
 test-uzbl-browser: uzbl-browser
-	./src/uzbl-browser --uri http://www.uzbl.org --verbose
+	./bin/uzbl-browser --uri http://www.uzbl.org --verbose
 
 test-uzbl-core-sandbox: uzbl-core
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-core
@@ -134,7 +134,7 @@ install-uzbl-core: all install-dirs
 	install -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
 
 install-uzbl-browser: install-dirs
-	install -m755 src/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
+	install -m755 bin/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
 	install -m755 examples/data/scripts/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
 	mv $(INSTALLDIR)/bin/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser.bak
 	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < $(INSTALLDIR)/bin/uzbl-browser.bak > $(INSTALLDIR)/bin/uzbl-browser
