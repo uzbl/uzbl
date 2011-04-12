@@ -42,7 +42,7 @@ then
 		echo "Error: Global config not found; please check if your distribution ships them separately"
 		exit 3
 	fi
-	if ! cp "$EXAMPLES"/config/config "$XDG_CONFIG_HOME"/uzbl/config
+	if ! cp "$EXAMPLES"/config/* "$XDG_CONFIG_HOME"/uzbl/
 	then
 		echo "Could not copy default config to $XDG_CONFIG_HOME/uzbl/config" >&2
 		# Run with the global config as a last resort
