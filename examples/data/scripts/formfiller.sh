@@ -116,7 +116,7 @@ Load ()
 
     ParseProfile $option < "$file" \
     | ParseFields \
-    | sed 's/@/\\@/' \
+    | sed 's/@/\\@/g' \
     > "$UZBL_FIFO"
 }
 
@@ -132,7 +132,7 @@ Once ()
 
     test -e "$tmpfile" &&
     ParseFields < "$tmpfile" \
-    | sed 's/@/\\@/' \
+    | sed 's/@/\\@/g' \
     > "$UZBL_FIFO"
 }
 
