@@ -1,9 +1,17 @@
 #!/bin/sh
 # uzbl's example configuration sets this script up as its download_handler.
-# when uzbl starts a download it runs this script.
+# this script is run when uzbl encounters a URL that it can't display, and when
+# a download is requested using the 'download' command.
+#
 # if the script prints a file path to stdout, uzbl will save the download to
-# that path.
-# if nothing is printed to stdout, the download will be cancelled.
+# that path using it's internal downloader.
+#
+# if nothing is printed to stdout, the internal download will be cancelled.
+# you could do your own download handling in your script that way.
+
+# if $5 is set, it is the path that was passed to uzbl's "download" command.
+# we want to use that if it's available.
+[ -n "$5" ] && echo "$5" && exit
 
 . "$UZBL_UTIL_DIR/uzbl-dir.sh"
 

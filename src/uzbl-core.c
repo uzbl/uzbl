@@ -745,15 +745,21 @@ void
 download(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void) result;
 
-    const gchar *uri = NULL;
-
-    if(argv->len > 0)
-        uri = argv_idx(argv, 0);
-    else
-        uri = uzbl.state.uri;
+    const gchar *uri         = argv_idx(argv, 0);
+    const gchar *destination = NULL;
+    if(argv->len > 1)
+        destination = argv_idx(argv, 1);
 
     WebKitNetworkRequest *req = webkit_network_request_new(uri);
-    webkit_web_view_request_download(web_view, req);
+    WebKitDownload *download = webkit_download_new(req);
+
+    download_cb(web_view, download, destination);
+
+    if(webkit_download_get_destination_uri(download))
+        webkit_download_start(download);
+    else
+        g_object_unref(download);
+
     g_object_unref(req);
 }
 

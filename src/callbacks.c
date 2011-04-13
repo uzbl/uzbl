@@ -837,6 +837,11 @@ download_cb(WebKitWebView *web_view, WebKitDownload *download, gpointer user_dat
     /* get the URI being downloaded */
     const gchar *uri = webkit_download_get_uri(download);
 
+    /* get the destination path, if specified.
+     * this is only intended to be set when this function is trigger by an
+     * explicit download using uzbl's 'download' action. */
+    const gchar *destination = user_data;
+
     if (uzbl.state.verbose)
         printf("Download requested -> %s\n", uri);
 
@@ -882,6 +887,9 @@ download_cb(WebKitWebView *web_view, WebKitDownload *download, gpointer user_dat
     g_array_append_val(a, content_type);
     gchar *total_size_s = g_strdup_printf("%d", total_size);
     g_array_append_val(a, total_size_s);
+
+    if(destination)
+        g_array_append_val(a, destination);
 
     GString *result = g_string_new ("");
     run_parsed_command(c, a, result);
