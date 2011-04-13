@@ -406,16 +406,22 @@ def append_keycmd(uzbl, keycmd):
     update_event(uzbl, k, False)
 
 
-def keycmd_strip_word(uzbl, sep):
+def keycmd_strip_word(uzbl, seps):
     ''' Removes the last word from the keycmd, similar to readline ^W '''
 
-    sep = sep or ' '
+    seps = seps or ' '
     k = uzbl.keylet
     if not k.keycmd:
         return
 
-    head, tail = k.keycmd[:k.cursor].rstrip(sep), k.keycmd[k.cursor:]
-    rfind = head.rfind(sep)
+    head, tail = k.keycmd[:k.cursor].rstrip(seps), k.keycmd[k.cursor:]
+    rfind = -1
+    for sep in seps:
+        p = head.rfind(sep)
+        if p >= 0 and rfind < p + 1:
+            rfind = p + 1
+    if rfind == len(head) and head[-1] in seps:
+        rfind -= 1
     head = head[:rfind] if rfind + 1 else ''
     k.keycmd = head + tail
     k.cursor = len(head)
