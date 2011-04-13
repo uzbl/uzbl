@@ -552,7 +552,8 @@ CommandInfo cmdlist[] =
     { "show_inspector",                 show_inspector, 0              },
     { "add_cookie",                     add_cookie, 0                  },
     { "delete_cookie",                  delete_cookie, 0               },
-    { "clear_cookies",                  clear_cookies, 0               }
+    { "clear_cookies",                  clear_cookies, 0               },
+    { "download",                       download, 0                    }
 };
 
 void
@@ -738,6 +739,22 @@ clear_cookies(WebKitWebView *page, GArray *argv, GString *result) {
     uzbl.net.soup_cookie_jar = uzbl_cookie_jar_new ();
     soup_session_add_feature(uzbl.net.soup_session,
         SOUP_SESSION_FEATURE (uzbl.net.soup_cookie_jar));
+}
+
+void
+download(WebKitWebView *web_view, GArray *argv, GString *result) {
+    (void) result;
+
+    const gchar *uri = NULL;
+
+    if(argv->len > 0)
+        uri = argv_idx(argv, 0);
+    else
+        uri = uzbl.state.uri;
+
+    WebKitNetworkRequest *req = webkit_network_request_new(uri);
+    webkit_web_view_request_download(web_view, req);
+    g_object_unref(req);
 }
 
 void
