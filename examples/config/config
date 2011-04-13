@@ -353,10 +353,10 @@ set follow_hint_keys = 0123456789
 # This implementation allows you to save multiple profiles for each form
 # (think about multiple accounts on some website).
 set formfiller = spawn @scripts_dir/formfiller.sh
-@cbind  za  = @formfiller add
 @cbind  ze  = @formfiller edit
 @cbind  zn  = @formfiller new
 @cbind  zl  = @formfiller load
+@cbind  zo  = @formfiller once
 
 # --- Uzbl tabbed binds ------------------------------------------------------
 
