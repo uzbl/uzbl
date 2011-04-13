@@ -132,7 +132,7 @@ Once ()
 
     test -e "$tmpfile" &&
     ParseFields < "$tmpfile" \
-    | sed 's/@/\\@' \
+    | sed 's/@/\\@/' \
     > "$UZBL_FIFO"
 }
 
