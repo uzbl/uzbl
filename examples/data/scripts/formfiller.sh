@@ -81,7 +81,7 @@ ParseFields ()
                 sub ( /^\\/, "" )
                 gsub ( /"/, "\\\"" )
                 gsub ( /\\/, "\\\\" )
-                field = field $0 "\\n"
+                field = field $0 "\\\\n"
             }
             printf( "js uzbl.formfiller.insert(\"%s\",\"%s\",\"%s\",0);\n",
                 parts[1], parts[2], field )
