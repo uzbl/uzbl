@@ -257,11 +257,14 @@ The following commands are recognized:
   - Show the WebInspector
 * `add_cookie <domain> <path> <name> <value> <scheme> <expires>`
   - Adds a new cookie to the cookie jar
-* 'delete_cookie <domain> <path> <name> <value> [<scheme> <expires>]`
-	- Deletes a matching cookie from the cookie jar. scheme and expire time
-	is currently not considered when matching.
-* 'clear_cookies`
-    - Clears all cookies from the cookie jar
+* `delete_cookie <domain> <path> <name> <value> [<scheme> <expires>]`
+  - Deletes a matching cookie from the cookie jar. scheme and expire time
+	  is currently not considered when matching.
+* `clear_cookies`
+  - Clears all cookies from the cookie jar
+* `download <uri> [<destination path>]`
+  - Starts a download using the given uri. A destination file path can be given
+    to specify where the download should be written to.
 
 ### VARIABLES AND CONSTANTS
 
@@ -506,9 +509,15 @@ Handler scripts (`download_handler`, `cookie_handler`, `scheme_handler` and
 * download handler
 
   - `$1 url`: The URL of the item to be downloaded.
-  - `$2 suggested_filename`: A filename suggested by the server or based on the URL.
+  - `$2 suggested_filename`: A filename suggested by the server or based on the
+    URL.
   - `$3 content_type`: The mimetype of the file to be downloaded.
-  - `$4 total_size`: The size of the file to be downloaded in bytes. This may be inaccurate.
+  - `$4 total_size`: The size of the file to be downloaded in bytes. This may be
+    inaccurate.
+  - `$5 destination_path`: This is only present if the download was started
+    explicitly using the `download` command. If it is present, this is the path
+    that the file should be saved to. A download handler using WebKit's internal
+    downloader can just echo this path and exit when this argument is present.
 
 * cookie handler
 
