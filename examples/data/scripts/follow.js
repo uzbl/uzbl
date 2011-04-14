@@ -16,7 +16,16 @@ uzbldivid = 'uzbl_link_hints';
 uzbl.follow = function() {
     // Export
     charset   = arguments[0];
-    newwindow = arguments[2];
+    if (arguments[2] == 'click') {
+        newwindow = false;
+        returnuri = false;
+    } else if (arguments[2] == 'newwindow') {
+        newwindow = true;
+        returnuri = false;
+    } else if (arguments[2] == 'returnuri') {
+        newwindow = false;
+        returnuri = true;
+    }
 
     var keypress = arguments[1];
     return arguments.callee.followLinks(keypress);
