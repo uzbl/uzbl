@@ -222,7 +222,7 @@ uzbl.follow.followLinks = function(follow) {
     //var desc        = '*[title], img[alt], applet[alt], area[alt], input[alt]';
     //var image       = 'img, input[type=image]';
 
-    if(newwindow)
+    if(newwindow || returnuri)
         var res = this.query(uri);
     else
         var res = this.query(followable);
@@ -236,6 +236,11 @@ uzbl.follow.followLinks = function(follow) {
 
         // clear all of our hints
         this.clearHints();
+
+        if (returnuri) {
+            var uri = el.src || el.href;
+            return "XXXRETURNED_URIXXX" + uri
+        }
 
         if (newwindow) {
             // we're opening a new window using the URL attached to this element
