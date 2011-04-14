@@ -1,7 +1,13 @@
 #!/bin/sh
 # This scripts acts on the return value of followLinks in follow.js 
 
-case "$1" in
+result=$1
+shift
+
+uriaction=$1
+shift
+
+case "$result" in
     XXXEMIT_FORM_ACTIVEXXX)
         # a form element was selected
         printf 'event FORM_ACTIVE\nevent KEYCMD_CLEAR\n' > "$UZBL_FIFO"
@@ -10,4 +16,12 @@ case "$1" in
         # a link was selected, reset uzbl's input mode
         printf 'set mode=\nevent KEYCMD_CLEAR\n' > "$UZBL_FIFO"
         ;;
+    XXXRETURNED_URIXXX*)
+        uri=${result#XXXRETURNED_URIXXX}
+
+        case "$uriaction" in
+            set)
+                printf 'uri '"$uri"'\nset mode=\nevent KEYCMD_CLEAR\n' > "$UZBL_FIFO"
+                ;;
+        esac
 esac
