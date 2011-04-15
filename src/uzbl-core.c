@@ -47,7 +47,7 @@ GOptionEntry entries[] = {
         "Uri to load at startup (equivalent to 'uzbl <uri>' or 'set uri = URI' after uzbl has launched)", "URI" },
     { "verbose",  'v', 0, G_OPTION_ARG_NONE,   &uzbl.state.verbose,
         "Whether to print all messages or just errors.", NULL },
-    { "name",     'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name,
+    { "named",    'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name,
         "Name of the current instance (defaults to Xorg window id or random for GtkSocket mode)", "NAME" },
     { "config",   'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,
         "Path to config file or '-' for stdin", "FILE" },

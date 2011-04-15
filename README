@@ -104,7 +104,7 @@ There are several interfaces to interact with Uzbl:
 
 When `uzbl` forks a new instance (eg "open in new window") it will use the same
 command line arguments (eg the same `--config <file>`), except `--uri` and
-`--name`. If you made changes to the configuration at runtime, these are not
+`--named`. If you made changes to the configuration at runtime, these are not
 passed on to the child.
 
 #### Uzbl-browser
@@ -804,7 +804,7 @@ where `arguments` and `uri` are both optional. `arguments` can be:
 * `-u`, `--uri=URI`: URI to load at startup. Equivalent to `uzbl <uri>` or `set
   uri = URI` after `uzbl` has launched.
 * `-v`, `--verbose`: Whether to print all messages or just errors.
-* `-n`, `--name=NAME`: Name of the current instance (defaults to Xorg window
+* `-n`, `--named=NAME`: Name of the current instance (defaults to Xorg window
   id or random for GtkSocket mode).
 * `-c`, `--config=FILE`: Path to config file or `-` for stdin.
 * `-s`, `--socket=SOCKET`: Xembed socket ID.
