@@ -178,9 +178,13 @@ uzbl.follow.reDrawHints = function(elems, chars) {
     elements.forEach(function(el, i) {
         var label = labels[i];
         var pos   = positions[i];
-        var doc   = uzbl.follow.getDocument(el);
-        var h = uzbl.follow.generateHint(doc, el, label, pos[0], pos[1]);
-        doc.hintdiv.appendChild(h);
+        try {
+            var doc   = uzbl.follow.getDocument(el);
+            var h = uzbl.follow.generateHint(doc, el, label, pos[0], pos[1]);
+            doc.hintdiv.appendChild(h);
+        } catch (err) {
+            // Unable to attach label -> shrug it off and continue
+        }
     });
 }
 
