@@ -160,11 +160,13 @@ vsend_event(int type, const gchar *custom_event, va_list vargs) {
             g_string_append_printf (event_message, "%d", va_arg (vargs, int));
             break;
         case TYPE_STR:
+            /* a string that needs to be escaped */
             g_string_append_c (event_message, '\'');
             append_escaped (event_message, va_arg (vargs, char*));
             g_string_append_c (event_message, '\'');
             break;
         case TYPE_FORMATTEDSTR:
+            /* a string has already been escaped */
             g_string_append (event_message, va_arg (vargs, char*));
             break;
         case TYPE_NAME:
@@ -293,7 +295,7 @@ key_to_event(guint keyval, guint state, guint is_modifier, gint mode) {
         ucs[ulen] = 0;
 
         send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE, NULL,
-            TYPE_STR, modifiers, TYPE_FORMATTEDSTR, ucs, NULL);
+            TYPE_STR, modifiers, TYPE_STR, ucs, NULL);
     }
     /* send keysym for non-printable chars */
     else if((keyname = gdk_keyval_name(keyval))){
