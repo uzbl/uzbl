@@ -355,7 +355,7 @@ def keycmd_exec_current(uzbl, *args):
     '''Raise a KEYCMD_EXEC with the current keylet and then clear the
     keycmd.'''
 
-    uzbl.event('KEYCMD_EXEC', uzbl.keylet)
+    uzbl.event('KEYCMD_EXEC', set(), uzbl.keylet)
     clear_keycmd(uzbl)
 
 
