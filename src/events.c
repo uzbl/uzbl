@@ -306,4 +306,22 @@ key_to_event(guint keyval, guint state, guint is_modifier, gint mode) {
     g_free(modifiers);
 }
 
+/* Transform gdk button events to our own events */
+void
+button_to_event(guint buttonval, guint state, gint mode) {
+    gchar *details;
+    gchar *modifiers = NULL;
+
+    /* Get modifier state */
+    modifiers = get_modifier_mask(state);
+
+    details = g_strdup_printf("Button%d", buttonval);
+
+    send_event(mode == GDK_BUTTON_PRESS ? KEY_PRESS : KEY_RELEASE, NULL,
+        TYPE_STR, modifiers, TYPE_FORMATTEDSTR, details, NULL);
+
+    g_free(details);
+    g_free(modifiers);
+}
+
 /* vi: set et ts=4: */
