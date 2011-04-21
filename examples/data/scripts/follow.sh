@@ -23,5 +23,8 @@ case "$result" in
             set)
                 printf 'uri '"$uri"'\nset mode=\nevent KEYCMD_CLEAR\n' > "$UZBL_FIFO"
                 ;;
+            clipboard)
+                printf "$uri" | xclip
+                ;;
         esac
 esac
