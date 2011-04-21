@@ -565,7 +565,6 @@ gboolean
 button_press_cb (GtkWidget* window, GdkEventButton* event) {
     (void) window;
     gint context;
-    gchar *details;
     gboolean propagate = FALSE,
              sendev    = FALSE;
 
@@ -592,9 +591,7 @@ button_press_cb (GtkWidget* window, GdkEventButton* event) {
         }
 
         if(sendev) {
-            details = g_strdup_printf("Button%d", event->button);
-            send_event(KEY_PRESS, NULL, TYPE_NAME, details, NULL);
-            g_free (details);
+            button_to_event(event->button, event->state, GDK_BUTTON_PRESS);
         }
     }
 
@@ -605,7 +602,6 @@ gboolean
 button_release_cb (GtkWidget* window, GdkEventButton* event) {
     (void) window;
     gint context;
-    gchar *details;
     gboolean propagate = FALSE,
              sendev    = FALSE;
 
@@ -621,9 +617,7 @@ button_release_cb (GtkWidget* window, GdkEventButton* event) {
         }
 
         if(sendev) {
-            details = g_strdup_printf("Button%d", event->button);
-            send_event(KEY_RELEASE, NULL, TYPE_NAME, details, NULL);
-            g_free (details);
+            button_to_event(event->button, event->state, GDK_BUTTON_RELEASE);
         }
     }
 
