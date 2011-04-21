@@ -217,9 +217,16 @@ def parse_key_event(uzbl, key):
     ''' Build a set from the modstate part of the event, and pass all keys through modmap '''
     keylet = uzbl.keylet
 
-    modstate, key = splitquoted(key)
+    splits = splitquoted(key)
+
+    if len(splits) != 2:
+        logger.error('malformed key event')
+        return set(), ''
+
+    modstate = splits[0]
+    key = splits[1]
     modstate = set(['<%s>' % keylet.modmap_key(k) for k in modstate.split('|') if k])
-    
+
     key = keylet.modmap_key(key)
     return modstate, key
 
