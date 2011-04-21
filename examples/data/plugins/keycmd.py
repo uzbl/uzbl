@@ -242,7 +242,8 @@ def key_press(uzbl, key):
 
     k = uzbl.keylet
     modstate, key = parse_key_event(uzbl, key)
-    k.is_modcmd = any(not k.key_ignored(m) for m in modstate)
+    modstate = set(filter(lambda m: not k.key_ignored(m), modstate))
+    k.is_modcmd = len(modstate) > 0
 
     logger.debug('key press modstate=%s' % str(modstate))
     if key.lower() == 'space' and not k.is_modcmd and k.keycmd:
