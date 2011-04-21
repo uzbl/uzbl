@@ -583,6 +583,10 @@ button_press_cb (GtkWidget* window, GdkEventButton* event) {
                 send_event(FORM_ACTIVE, NULL, TYPE_NAME, "button1", NULL);
             else if((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT))
                 send_event(ROOT_ACTIVE, NULL, TYPE_NAME, "button1", NULL);
+            else {
+                sendev    = TRUE;
+                propagate = TRUE;
+            }
         }
         else if(event->button == 2 && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
             sendev    = TRUE;
