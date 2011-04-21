@@ -308,12 +308,25 @@ key_to_event(guint keyval, guint state, guint is_modifier, gint mode) {
 void
 button_to_event(guint buttonval, guint state, gint mode) {
     gchar *details;
+    const char *reps;
     gchar *modifiers = NULL;
 
     /* Get modifier state */
     modifiers = get_modifier_mask(state);
 
-    details = g_strdup_printf("Button%d", buttonval);
+    switch (mode) {
+        case GDK_2BUTTON_PRESS:
+            reps = "2";
+            break;
+        case GDK_3BUTTON_PRESS:
+            reps = "3";
+            break;
+        default:
+            reps = "";
+            break;
+    }
+
+    details = g_strdup_printf("%sButton%d", reps, buttonval);
 
     send_event(mode == GDK_BUTTON_PRESS ? KEY_PRESS : KEY_RELEASE, NULL,
         TYPE_STR, modifiers, TYPE_FORMATTEDSTR, details, NULL);
