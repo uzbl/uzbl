@@ -267,6 +267,12 @@ guint key_to_modifier(guint keyval) {
     }
 }
 
+guint button_to_modifier(guint buttonval) {
+	if(buttonval <= 5)
+		return 1 << (7 + buttonval);
+	return 0;
+}
+
 /* Transform gdk key events to our own events */
 void
 key_to_event(guint keyval, guint state, guint is_modifier, gint mode) {
@@ -312,9 +318,10 @@ button_to_event(guint buttonval, guint state, gint mode) {
     gchar *details;
     const char *reps;
     gchar *modifiers = NULL;
+    guint mod = button_to_modifier (buttonval);
 
-    /* Get modifier state */
-    modifiers = get_modifier_mask(state);
+    /* Get modifier state including this button press/release */
+    modifiers = get_modifier_mask(mode != GDK_BUTTON_RELEASE ? state | mod : state & ~mod);
 
     switch (mode) {
         case GDK_2BUTTON_PRESS:
