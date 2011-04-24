@@ -51,8 +51,11 @@ GOptionEntry entries[] = {
         "Name of the current instance (defaults to Xorg window id or random for GtkSocket mode)", "NAME" },
     { "config",   'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,
         "Path to config file or '-' for stdin", "FILE" },
+    /* TODO: explain the difference between these two options */
     { "socket",   's', 0, G_OPTION_ARG_INT, &uzbl.state.socket_id,
-        "Xembed Socket ID", "SOCKET" },
+        "Xembed socket ID, this window should embed itself", "SOCKET" },
+    { "embed",    'e', 0, G_OPTION_ARG_NONE, &uzbl.state.embed,
+        "Whether this window should expect to be embedded", NULL },
     { "connect-socket",   0, 0, G_OPTION_ARG_STRING_ARRAY, &uzbl.state.connect_socket_names,
         "Connect to server socket for event managing", "CSOCKET" },
     { "print-events", 'p', 0, G_OPTION_ARG_NONE, &uzbl.state.events_stdout,
@@ -1540,6 +1543,7 @@ create_window() {
 
 GtkPlug*
 create_plug() {
+    if(uzbl.state.embed) uzbl.state.socket_id = 0;
     GtkPlug* plug = GTK_PLUG (gtk_plug_new (uzbl.state.socket_id));
     g_signal_connect (G_OBJECT (plug), "destroy", G_CALLBACK (destroy_cb), NULL);
     g_signal_connect (G_OBJECT (plug), "key-press-event", G_CALLBACK (key_press_cb), NULL);
@@ -1746,7 +1750,7 @@ initialize(int argc, char** argv) {
     }
 
     /* Embedded mode */
-    if (uzbl.state.socket_id)
+    if (uzbl.state.socket_id || uzbl.state.embed)
         uzbl.state.plug_mode = TRUE;
 
     if (!g_thread_supported())

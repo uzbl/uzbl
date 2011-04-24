@@ -303,12 +303,13 @@ class SocketClient:
     # List of UzblInstance objects not already linked with a SocketClient
     instances_queue = {}
 
-    def __init__(self, socket):
+    def __init__(self, socket, uzbl_tabbed):
         self._buffer = ""
         self._socket = socket
         self._watchers = [io_add_watch(socket, IO_IN, self._socket_recv),\
           io_add_watch(socket, IO_HUP, self._socket_closed)]
         self.uzbl = None
+        self.uzbl_tabbed = uzbl_tabbed
 
 
     def _socket_recv(self, fd, condition):
@@ -341,13 +342,17 @@ class SocketClient:
                     if cmd:
                         self.uzbl.parse_command(cmd)
         else:
-            name = re.findall('^EVENT \[(\d+-\d+)\] INSTANCE_START \d+$', self._buffer, re.M)
+            name = re.findall('^EVENT \[([^]]+)\] INSTANCE_START \d+$', self._buffer, re.M)
             uzbl = self.instances_queue.get(name[0])
             if uzbl:
+                # we've found the uzbl we were waiting for
                 del self.instances_queue[name[0]]
-                self.uzbl = uzbl
-                self.uzbl.got_socket(self)
-                self._feed("")
+            else:
+                # an unsolicited uzbl has connected, how exciting!
+                uzbl = UzblInstance(self.uzbl_tabbed, None, '', '', False)
+            self.uzbl = uzbl
+            self.uzbl.got_socket(self)
+            self._feed("")
 
     def send(self, data):
         '''Child socket send function.'''
@@ -375,6 +380,12 @@ class EventDispatcher:
             return
 
         return method(*args)
+
+    def plug_created(self, plug_id):
+        if not self.uzbl.tab:
+            tab = self.parent.create_tab()
+            tab.add_id(int(plug_id))
+            self.uzbl.set_tab(tab)
 
     def title_changed(self, title):
         self.uzbl.title = title.strip()
@@ -477,10 +488,10 @@ class EventDispatcher:
 class UzblInstance:
     '''Uzbl instance meta-data/meta-action object.'''
 
-    def __init__(self, parent, tab, name, uri, title, switch):
+    def __init__(self, parent, name, uri, title, switch):
 
         self.parent = parent
-        self.tab = tab
+        self.tab    = None
         self.dispatcher = EventDispatcher(self)
 
         self.name = name
@@ -490,8 +501,11 @@ class UzblInstance:
 
         self._client = None
         self._switch = switch # Switch to tab after loading ?
-        self.title_changed()
 
+    def set_tab(self, tab):
+        self.tab = tab
+        self.title_changed()
+        self.parent.tabs[self.tab] = self
 
     def got_socket(self, client):
         '''Uzbl instance is now connected'''
@@ -763,7 +777,7 @@ class UzblTabbed:
             '''A new uzbl instance was created'''
 
             client, _ = sock.accept()
-            self.clients[client] = SocketClient(client)
+            self.clients[client] = SocketClient(client, self)
 
             return True
 
@@ -1045,6 +1059,12 @@ class UzblTabbed:
 
         return False
 
+    def create_tab(self, next = False):
+        tab = gtk.Socket()
+        tab.show()
+        self.notebook.insert_page(tab, position=next and self.notebook.get_current_page() + 1 or -1)
+        self.notebook.set_tab_reorderable(tab, True)
+        return tab
 
     def new_tab(self, uri='', title='', switch=None, next=False):
         '''Add a new tab to the notebook and start a new instance of uzbl.
@@ -1052,10 +1072,7 @@ class UzblTabbed:
         when you need to load multiple tabs at a time (I.e. like when
         restoring a session from a file).'''
 
-        tab = gtk.Socket()
-        tab.show()
-        self.notebook.insert_page(tab, position=next and self.notebook.get_current_page() + 1 or -1)
-        self.notebook.set_tab_reorderable(tab, True)
+        tab = self.create_tab(next)
         sid = tab.get_id()
         uri = uri.strip()
         name = "%d-%d" % (os.getpid(), self.next_pid())
@@ -1070,9 +1087,9 @@ class UzblTabbed:
                '--connect-socket', self.socket_path, '--uri', str(uri)]
         gobject.spawn_async(cmd, flags=gobject.SPAWN_SEARCH_PATH)
 
-        uzbl = UzblInstance(self, tab, name, uri, title, switch)
+        uzbl = UzblInstance(self, name, uri, title, switch)
+        uzbl.set_tab(tab)
         SocketClient.instances_queue[name] = uzbl
-        self.tabs[tab] = uzbl
 
 
     def clean_slate(self):

@@ -109,6 +109,7 @@ typedef struct {
     gchar*          executable_path;
     gchar*          searchtx;
     gboolean        verbose;
+    gboolean        embed;
     GdkEventButton* last_button;
     gchar*          last_result;
     gboolean        plug_mode;
