@@ -298,7 +298,7 @@ def escape(s):
     return s
 
 class SocketClient:
-    '''Represents a Uzbl instance, which is not necessarly linked with a UzblInstance'''
+    '''Represents a connection to the uzbl-tabbed socket.'''
 
     # List of UzblInstance objects not already linked with a SocketClient
     instances_queue = {}
@@ -308,8 +308,10 @@ class SocketClient:
         self._socket = socket
         self._watchers = [io_add_watch(socket, IO_IN, self._socket_recv),\
           io_add_watch(socket, IO_HUP, self._socket_closed)]
+
         self.uzbl = None
         self.uzbl_tabbed = uzbl_tabbed
+        self.dispatcher = GlobalEventDispatcher(uzbl_tabbed)
 
 
     def _socket_recv(self, fd, condition):
@@ -329,24 +331,38 @@ class SocketClient:
         '''An Uzbl instance sent some data, parse it'''
 
         self._buffer += data
+
+        if "\n" in self._buffer:
+            cmds = self._buffer.split("\n")
+
+            if cmds[-1]: # Last command has been received incomplete, don't process it
+                self._buffer, cmds = cmds[-1], cmds[:-1]
+            else:
+                self._buffer = ""
+
+            for cmd in cmds:
+                if cmd:
+                    self.handle_event(cmd)
+
+    def handle_event(self, cmd):
+        cmd = parse_event(cmd)
+        message, instance_name, message_type = cmd[0:3]
+        args = cmd[3:]
+
+        if not message == "EVENT":
+            next
+
+        # strip the surrounding []
+        instance_name = instance_name[1:-1]
+
         if self.uzbl:
-            if "\n" in self._buffer:
-                cmds = self._buffer.split("\n")
-
-                if cmds[-1]: # Last command has been received incomplete, don't process it
-                    self._buffer, cmds = cmds[-1], cmds[:-1]
-                else:
-                    self._buffer = ""
-
-                for cmd in cmds:
-                    if cmd:
-                        self.uzbl.parse_command(cmd)
-        else:
-            name = re.findall('^EVENT \[([^]]+)\] INSTANCE_START \d+$', self._buffer, re.M)
-            uzbl = self.instances_queue.get(name[0])
+            if not self.dispatcher.dispatch(message_type, args):
+                self.uzbl.dispatcher.dispatch(message_type, args)
+        elif message_type == 'INSTANCE_START':
+            uzbl = self.instances_queue.get(instance_name)
             if uzbl:
                 # we've found the uzbl we were waiting for
-                del self.instances_queue[name[0]]
+                del self.instances_queue[instance_name]
             else:
                 # an unsolicited uzbl has connected, how exciting!
                 uzbl = UzblInstance(self.uzbl_tabbed, None, '', '', False)
@@ -368,18 +384,78 @@ class SocketClient:
             map(source_remove, self._watchers)
             self._watchers = []
 
-class EventDispatcher:
-    def __init__(self, uzbl):
-        self.uzbl   = uzbl
-        self.parent = self.uzbl.parent
 
+def unquote(s):
+    '''Removes quotation marks around strings if any and interprets
+    \\-escape sequences using `string_escape`'''
+    if s and s[0] == s[-1] and s[0] in ['"', "'"]:
+        s = s[1:-1]
+    return s.encode('utf-8').decode('string_escape').decode('utf-8')
+
+_splitquoted = re.compile("( |\"(?:\\\\.|[^\"])*?\"|'(?:\\\\.|[^'])*?')")
+def parse_event(text):
+    '''Splits string on whitespace while respecting quotations'''
+    return [unquote(p) for p in _splitquoted.split(text) if p.strip()]
+
+class EventDispatcher:
     def dispatch(self, message_type, args):
+        '''Returns True if the message was handled, False otherwise.'''
+
         method = getattr(self, message_type.lower(), None)
 
         if method is None:
-            return
+            return False
 
-        return method(*args)
+        method(*args)
+        return True
+
+class GlobalEventDispatcher(EventDispatcher):
+    def __init__(self, uzbl_tabbed):
+        self.uzbl_tabbed = uzbl_tabbed
+
+    def new_tab(self, uri = ''):
+        self.uzbl_tabbed.new_tab(uri)
+
+    def new_tab_bg(self, uri = ''):
+        self.uzbl_tabbed.new_tab(uri, switch = False)
+
+    def new_tab_next(self, uri = ''):
+        self.uzbl_tabbed.new_tab(uri, next=True)
+
+    def new_bg_tab_next(self, uri = ''):
+        self.uzbl_tabbed.new_tab(uri, switch = False, next = True)
+
+    def next_tab(self, step = 1):
+        self.uzbl_tabbed.next_tab(int(step))
+
+    def prev_tab(self, step = 1):
+        self.uzbl_tabbed.prev_tab(int(step))
+
+    def goto_tab(self, index):
+        self.uzbl_tabbed.goto_tab(int(index))
+
+    def first_tab(self):
+        self.uzbl_tabbed.goto_tab(0)
+
+    def last_tab(self):
+        self.uzbl_tabbed.goto_tab(-1)
+
+    def preset_tabs(self, *args):
+        self.uzbl_tabbed.parse_command(["preset"] + [ a for a in args ])
+
+    def bring_to_front(self):
+        self.uzbl_tabbed.window.present()
+
+    def clean_tabs(self):
+        self.uzbl_tabbed.clean_slate()
+
+    def exit_all_tabs(self):
+        self.uzbl_tabbed.quitrequest()
+
+class InstanceEventDispatcher(EventDispatcher):
+    def __init__(self, uzbl):
+        self.uzbl   = uzbl
+        self.parent = self.uzbl.parent
 
     def plug_created(self, plug_id):
         if not self.uzbl.tab:
@@ -428,63 +504,6 @@ class EventDispatcher:
     def load_commit(self, uri):
         self.uzbl.uri = uri
 
-    def new_tab(self, uri = None):
-        if uri:
-            self.parent.new_tab(uri)
-        else:
-            self.parent.new_tab()
-
-    def new_tab_bg(self, uri = None):
-        if uri:
-            self.parent.new_tab(uri, switch = False)
-        else:
-            self.parent.new_tab(switch = False)
-
-    def new_tab_next(self, uri = None):
-        if uri:
-            self.parent.new_tab(uri, next=True)
-        else:
-            self.parent.new_tab(next=True)
-
-    def new_bg_tab_next(self, uri = None):
-        if uri:
-            self.parent.new_tab(uri, switch = False, next = True)
-        else:
-            self.parent.new_tab(switch = False, next = True)
-
-    def next_tab(self, step = None):
-        if step:
-            self.parent.next_tab(int(step))
-        else:
-            self.parent.next_tab()
-
-    def prev_tab(self, step = None):
-        if step:
-            self.parent.prev_tab(int(step))
-        else:
-            self.parent.prev_tab()
-
-    def goto_tab(self, index):
-        self.parent.goto_tab(int(index))
-
-    def first_tab(self):
-        self.parent.goto_tab(0)
-
-    def last_tab(self):
-        self.parent.goto_tab(-1)
-
-    def preset_tabs(self, *args):
-        self.parent.parse_command(["preset"] + [ a for a in args ])
-
-    def bring_to_front(self):
-        self.parent.window.present()
-
-    def clean_tabs(self):
-        self.parent.clean_slate()
-
-    def exit_all_tabs(self):
-        self.parent.quitrequest()
-
 class UzblInstance:
     '''Uzbl instance meta-data/meta-action object.'''
 
@@ -492,7 +511,7 @@ class UzblInstance:
 
         self.parent = parent
         self.tab    = None
-        self.dispatcher = EventDispatcher(self)
+        self.dispatcher = InstanceEventDispatcher(self)
 
         self.name = name
         self.title = title
@@ -568,27 +587,6 @@ class UzblInstance:
 
         if self._client:
             self._client.send('exit')
-
-    def unquote(self, s):
-        '''Removes quotation marks around strings if any and interprets
-        \\-escape sequences using `string_escape`'''
-        if s and s[0] == s[-1] and s[0] in ['"', "'"]:
-            s = s[1:-1]
-        return s.encode('utf-8').decode('string_escape').decode('utf-8')
-
-    _splitquoted = re.compile("( |\"(?:\\\\.|[^\"])*?\"|'(?:\\\\.|[^'])*?')")
-    def parse_event(self, text):
-        '''Splits string on whitespace while respecting quotations'''
-        return [self.unquote(p) for p in self._splitquoted.split(text) if p.strip()]
-
-    def parse_command(self, cmd):
-        ''' Parse event givent by the Uzbl instance '''
-
-        cmd = self.parse_event(cmd)
-        message, message_type, args = cmd[0], cmd[2], cmd[3:]
-
-        if message == "EVENT":
-            self.dispatcher.dispatch(message_type, args)
 
     def close(self):
         '''The remote instance exited'''
@@ -1059,10 +1057,16 @@ class UzblTabbed:
 
         return False
 
-    def create_tab(self, next = False):
+    def create_tab(self, beside = False):
         tab = gtk.Socket()
         tab.show()
-        self.notebook.insert_page(tab, position=next and self.notebook.get_current_page() + 1 or -1)
+
+        if beside:
+            pos = self.notebook.get_current_page() + 1
+            self.notebook.insert_page(tab, position=pos)
+        else:
+            self.notebook.append_page(tab)
+
         self.notebook.set_tab_reorderable(tab, True)
         return tab
 
@@ -1089,6 +1093,7 @@ class UzblTabbed:
 
         uzbl = UzblInstance(self, name, uri, title, switch)
         uzbl.set_tab(tab)
+
         SocketClient.instances_queue[name] = uzbl
 
 
