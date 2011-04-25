@@ -435,7 +435,7 @@ class GlobalEventDispatcher(EventDispatcher):
         self.uzbl_tabbed.goto_tab(-1)
 
     def preset_tabs(self, *args):
-        self.uzbl_tabbed.parse_command(["preset"] + [ a for a in args ])
+        self.uzbl_tabbed.run_preset_cmd(*args)
 
     def bring_to_front(self):
         self.uzbl_tabbed.window.present()
@@ -698,16 +698,13 @@ class UzblTabbed:
         self.window.show()
         self.wid = self.notebook.window.xid
 
-        # Store information about the applications fifo and socket.
-        fifo_filename = 'uzbltabbed_%d.fifo' % os.getpid()
+        # Store information about the application's socket.
         socket_filename = 'uzbltabbed_%d.socket' % os.getpid()
-        self._fifo   = None
         self._socket = None
         self.fifo_path   = os.path.join(self.fifo_dir,   fifo_filename)
         self.socket_path = os.path.join(self.socket_dir, socket_filename)
 
-        # Now initialise the fifo and the socket
-        self.init_fifo()
+        # Now initialise the the socket
         self.init_socket()
 
         # If we are using sessions then load the last one if it exists.
@@ -738,8 +735,7 @@ class UzblTabbed:
             print_exc()
             error("encounted error %r" % sys.exc_info()[1])
 
-            # Unlink fifo socket
-            self.unlink_fifo()
+            # Unlink socket
             self.close_socket()
 
             # Attempt to close all uzbl instances nicely.
@@ -805,249 +801,45 @@ class UzblTabbed:
             self._socket = None
 
 
-    def init_fifo(self):
-        '''Create interprocess communication fifo.'''
+    def run_preset_command(self, cmd, *args):
+        if len(args) < 1:
+            error("parse_command: invalid preset command")
 
-        if os.path.exists(self.fifo_path):
-            if not os.access(self.fifo_path, os.F_OK | os.R_OK | os.W_OK):
-                os.mkfifo(self.fifo_path)
+        elif cmd == "save":
+            path = os.path.join(config['saved_sessions_dir'], args[0])
+            self.save_session(path)
+
+        elif cmd == "load":
+            path = os.path.join(config['saved_sessions_dir'], args[0])
+            self.load_session(path)
+
+        elif cmd == "del":
+            path = os.path.join(config['saved_sessions_dir'], args[0])
+            if os.path.isfile(path):
+                os.remove(path)
+            else:
+                error("parse_command: preset %r does not exist." % path)
+
+        elif cmd == "list":
+            # FIXME: what argument is this supposed to be passed,
+            # and why?
+            uzbl = self.get_tab_by_name(int(args[0]))
+            if uzbl:
+                if not os.path.isdir(config['saved_sessions_dir']):
+                    js = "js alert('No saved presets.');"
+                    uzbl._client.send(js)
+
+                else:
+                    listdir = os.listdir(config['saved_sessions_dir'])
+                    listdir = "\\n".join(listdir)
+                    js = "js alert('Session presets:\\n\\n%s');" % listdir
+                    uzbl._client.send(js)
+
+            else:
+                error("parse_command: unknown tab name.")
 
         else:
-            basedir = os.path.dirname(self.fifo_path)
-            if not os.path.exists(basedir):
-                os.makedirs(basedir)
-
-            os.mkfifo(self.fifo_path)
-
-        # Add event handlers for IO_IN & IO_HUP events.
-        self.setup_fifo_watchers()
-
-        echo("[fifo] listening at %r" % self.fifo_path)
-
-        # Add atexit register to destroy the fifo on program termination.
-        atexit.register(self.unlink_fifo)
-
-
-    def unlink_fifo(self):
-        '''Unlink the fifo socket. Note: This function is called automatically
-        on exit by an atexit register.'''
-
-        # Make sure the fifo fd is closed.
-        self.close_fifo()
-
-        # And unlink if the real fifo exists.
-        if os.path.exists(self.fifo_path):
-            os.unlink(self.fifo_path)
-            echo("unlinked %r" % self.fifo_path)
-
-
-    def close_fifo(self):
-        '''Remove all event handlers watching the fifo and close the fd.'''
-
-        # Already closed
-        if self._fifo is None: return
-
-        (fd, watchers) = self._fifo
-        os.close(fd)
-
-        # Stop all gobject io watchers watching the fifo.
-        for gid in watchers:
-            source_remove(gid)
-
-        self._fifo = None
-
-
-    def setup_fifo_watchers(self):
-        '''Open fifo socket fd and setup gobject IO_IN & IO_HUP event
-        handlers.'''
-
-        # Close currently open fifo fd and kill all watchers
-        self.close_fifo()
-
-        fd = os.open(self.fifo_path, os.O_RDONLY | os.O_NONBLOCK)
-
-        # Add gobject io event handlers to the fifo socket.
-        watchers = [io_add_watch(fd, IO_IN, self.main_fifo_read),\
-          io_add_watch(fd, IO_HUP, self.main_fifo_hangup)]
-
-        self._fifo = (fd, watchers)
-
-
-    def main_fifo_hangup(self, fd, cb_condition):
-        '''Handle main fifo socket hangups.'''
-
-        # Close old fd, open new fifo socket and add io event handlers.
-        self.setup_fifo_watchers()
-
-        # Kill the gobject event handler calling this handler function.
-        return False
-
-
-    def main_fifo_read(self, fd, cb_condition):
-        '''Read from main fifo socket.'''
-
-        self._buffer = os.read(fd, 1024)
-        temp = self._buffer.split("\n")
-        self._buffer = temp.pop()
-        cmds = [s.strip().split() for s in temp if len(s.strip())]
-
-        for cmd in cmds:
-            try:
-                #print cmd
-                self.parse_command(cmd)
-
-            except:
-                print_exc()
-                error("parse_command: invalid command %s" % ' '.join(cmd))
-                raise
-
-        return True
-
-
-    def parse_command(self, cmd):
-        '''Parse instructions from uzbl child processes.'''
-
-        # Commands ( [] = optional, {} = required )
-        # new [uri]
-        #   open new tab and head to optional uri.
-        # newbg [uri]
-        #   open a new tab in the background
-        # close [tab-num]
-        #   close current tab or close via tab id.
-        # next [n-tabs]
-        #   open next tab or n tabs down. Supports negative indexing.
-        # prev [n-tabs]
-        #   open prev tab or n tabs down. Supports negative indexing.
-        # goto {tab-n}
-        #   goto tab n.
-        # first
-        #   goto first tab.
-        # last
-        #   goto last tab.
-        # title {pid} {document-title}
-        #   updates tablist title.
-        # uri {pid} {document-location}
-        #   updates tablist uri
-        # bring_to_front
-        #   brings the gtk window to focus.
-        # exit
-        #   exits uzbl_tabbed.py
-
-        if cmd[0] == "new":
-            if len(cmd) == 2:
-                self.new_tab(cmd[1])
-
-            else:
-                self.new_tab()
-
-        elif cmd[0] == "newbg":
-            if len(cmd) == 2:
-                self.new_tab(cmd[1], switch=False)
-            else:
-                self.new_tab(switch=False)
-
-        elif cmd[0] == "newfromclip":
-            uri = subprocess.Popen(['xclip','-selection','clipboard','-o'],\
-              stdout=subprocess.PIPE).communicate()[0]
-            if uri:
-                self.new_tab(uri)
-
-        elif cmd[0] == "close":
-            if len(cmd) == 2:
-                self.close_tab(int(cmd[1]))
-
-            else:
-                self.close_tab()
-
-        elif cmd[0] == "next":
-            if len(cmd) == 2:
-                self.next_tab(int(cmd[1]))
-
-            else:
-                self.next_tab()
-
-        elif cmd[0] == "prev":
-            if len(cmd) == 2:
-                self.prev_tab(int(cmd[1]))
-
-            else:
-                self.prev_tab()
-
-        elif cmd[0] == "goto":
-            self.goto_tab(int(cmd[1]))
-
-        elif cmd[0] == "first":
-            self.goto_tab(0)
-
-        elif cmd[0] == "last":
-            self.goto_tab(-1)
-
-        elif cmd[0] in ["title", "uri"]:
-            if len(cmd) > 2:
-                uzbl = self.get_tab_by_name(int(cmd[1]))
-                if uzbl:
-                    old = getattr(uzbl, cmd[0])
-                    new = ' '.join(cmd[2:])
-                    setattr(uzbl, cmd[0], new)
-                    if old != new:
-                        self.update_tablist()
-
-                else:
-                    error("parse_command: no uzbl with name %r" % int(cmd[1]))
-
-        elif cmd[0] == "preset":
-            if len(cmd) < 3:
-                error("parse_command: invalid preset command")
-
-            elif cmd[1] == "save":
-                path = os.path.join(config['saved_sessions_dir'], cmd[2])
-                self.save_session(path)
-
-            elif cmd[1] == "load":
-                path = os.path.join(config['saved_sessions_dir'], cmd[2])
-                self.load_session(path)
-
-            elif cmd[1] == "del":
-                path = os.path.join(config['saved_sessions_dir'], cmd[2])
-                if os.path.isfile(path):
-                    os.remove(path)
-
-                else:
-                    error("parse_command: preset %r does not exist." % path)
-
-            elif cmd[1] == "list":
-                # FIXME: what argument is this supposed to be passed,
-                # and why?
-                uzbl = self.get_tab_by_name(int(cmd[2]))
-                if uzbl:
-                    if not os.path.isdir(config['saved_sessions_dir']):
-                        js = "js alert('No saved presets.');"
-                        uzbl._client.send(js)
-
-                    else:
-                        listdir = os.listdir(config['saved_sessions_dir'])
-                        listdir = "\\n".join(listdir)
-                        js = "js alert('Session presets:\\n\\n%s');" % listdir
-                        uzbl._client.send(js)
-
-                else:
-                    error("parse_command: unknown tab name.")
-
-            else:
-                error("parse_command: unknown parse command %r"\
-                  % ' '.join(cmd))
-
-        elif cmd[0] == "bring_to_front":
-            self.window.present()
-
-        elif cmd[0] == "clean":
-            self.clean_slate()
-
-        elif cmd[0] == "exit":
-            self.quitrequest()
-
-        else:
-            error("parse_command: unknown command %r" % ' '.join(cmd))
+            error("parse_command: unknown parse command %r" % cmd)
 
 
     def get_tab_by_name(self, name):
@@ -1434,9 +1226,8 @@ class UzblTabbed:
     def quit(self, *args):
         '''Cleanup and quit. Called by delete-event signal.'''
 
-        # Close the fifo socket, remove any gobject io event handlers and
+        # Close the socket, remove any gobject io event handlers and
         # delete socket.
-        self.unlink_fifo()
         self.close_socket()
 
         # Remove all gobject timers that are still ticking.
