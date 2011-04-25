@@ -435,7 +435,7 @@ class GlobalEventDispatcher(EventDispatcher):
         self.uzbl_tabbed.goto_tab(-1)
 
     def preset_tabs(self, *args):
-        self.uzbl_tabbed.run_preset_cmd(*args)
+        self.uzbl_tabbed.run_preset_command(*args)
 
     def bring_to_front(self):
         self.uzbl_tabbed.window.present()
