@@ -704,7 +704,6 @@ class UzblTabbed:
         # Store information about the application's socket.
         socket_filename = 'uzbltabbed_%d.socket' % os.getpid()
         self._socket = None
-        self.fifo_path   = os.path.join(self.fifo_dir,   fifo_filename)
         self.socket_path = os.path.join(self.socket_dir, socket_filename)
 
         # Now initialise the the socket
