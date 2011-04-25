@@ -344,7 +344,7 @@ class SocketClient:
         args = cmd[3:]
 
         if not message == "EVENT":
-            next
+            return
 
         # strip the surrounding []
         instance_name = instance_name[1:-1]
@@ -532,6 +532,9 @@ class UzblInstance:
 
     def title_changed(self, gtk_only = True): # GTK-only is for indexes
         '''self.title has changed, update the tabs list'''
+
+        if not self.tab:
+            return
 
         tab_titles = config['tab_titles']
         tab_indexes = config['tab_indexes']
