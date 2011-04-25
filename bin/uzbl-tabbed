@@ -72,7 +72,6 @@
 #   gtk_tab_pos             = (top|left|bottom|right)
 #   gtk_refresh             = 1000
 #   switch_to_new_tabs      = 1
-#   capture_new_windows     = 1
 #   multiline_tabs          = 1
 #
 # Tab title options:
@@ -197,7 +196,6 @@ config = {
   'gtk_tab_pos':            'top',  # Gtk tab position (top|left|bottom|right)
   'gtk_refresh':            1000,   # Tablist refresh millisecond interval
   'switch_to_new_tabs':     True,   # Upon opening a new tab switch to it
-  'capture_new_windows':    True,   # Use uzbl_tabbed to catch new windows
   'multiline_tabs':         True,   # Tabs overflow onto new tablist lines.
 
   # Tab title options
@@ -1111,15 +1109,9 @@ class UzblTabbed:
             uzbl = self.tabs[tab]
             uzbl.exit()
 
-
     def config_uzbl(self, uzbl):
         '''Send bind commands for tab new/close/next/prev to a uzbl
         instance.'''
-
-        # Set definitions here
-        # set(key, command back to fifo)
-        if config['capture_new_windows']:
-            uzbl.set("new_window", r'new $8')
 
         if self.force_socket_dir:
             uzbl.set("socket_dir", self.socket_dir)
