@@ -88,8 +88,6 @@
 #   session_file            = $HOME/.local/share/uzbl/session
 #
 # Inherited uzbl options:
-#   fifo_dir                = /tmp
-#   socket_dir              = /tmp
 #   icon_path               = $HOME/.local/share/uzbl/uzbl.png
 #   status_background       = #303030
 #
@@ -215,8 +213,6 @@ config = {
   'session_file':           os.path.join(DATA_DIR, 'session'),
 
   # Inherited uzbl options
-  'fifo_dir':               '/tmp', # Path to look for uzbl fifo.
-  'socket_dir':             '/tmp', # Path to look for uzbl socket.
   'icon_path':              os.path.join(DATA_DIR, 'uzbl.png'),
   'status_background':      "#303030", # Default background for all panels.
 
@@ -579,7 +575,8 @@ class UzblInstance:
         ''' Send the SET command to Uzbl '''
 
         if self._client:
-            self._client.send('set %s = %s') #TODO: escape chars ?
+            line = 'set %s = %s' % (key, val) #TODO: escape chars ?
+            self._client.send(line)
 
 
     def exit(self):
@@ -617,6 +614,13 @@ class UzblTabbed:
 
         # Generates a unique id for uzbl socket filenames.
         self.next_pid = counter().next
+
+        # Whether to reconfigure new uzbl instances
+        self.force_socket_dir = False
+        self.force_fifo_dir   = False
+
+        self.fifo_dir   = '/tmp' # Path to look for uzbl fifo.
+        self.socket_dir = '/tmp' # Path to look for uzbl socket.
 
         # Create main window
         self.window = gtk.Window()
@@ -699,10 +703,10 @@ class UzblTabbed:
         # Store information about the applications fifo and socket.
         fifo_filename = 'uzbltabbed_%d.fifo' % os.getpid()
         socket_filename = 'uzbltabbed_%d.socket' % os.getpid()
-        self._fifo = None
+        self._fifo   = None
         self._socket = None
-        self.fifo_path = os.path.join(config['fifo_dir'], fifo_filename)
-        self.socket_path = os.path.join(config['socket_dir'], socket_filename)
+        self.fifo_path   = os.path.join(self.fifo_dir,   fifo_filename)
+        self.socket_path = os.path.join(self.socket_dir, socket_filename)
 
         # Now initialise the fifo and the socket
         self.init_fifo()
@@ -1117,6 +1121,11 @@ class UzblTabbed:
         if config['capture_new_windows']:
             uzbl.set("new_window", r'new $8')
 
+        if self.force_socket_dir:
+            uzbl.set("socket_dir", self.socket_dir)
+
+        if self.force_fifo_dir:
+            uzbl.set("fifo_dir",   self.fifo_dir)
 
     def goto_tab(self, index):
         '''Goto tab n (supports negative indexing).'''
@@ -1477,13 +1486,15 @@ if __name__ == "__main__":
         import pprint
         sys.stderr.write("%s\n" % pprint.pformat(config))
 
+    uzbl = UzblTabbed()
+
     if options.socketdir:
-        config['socket_dir'] = options.socketdir
+        uzbl.socket_dir = options.socketdir
+        uzbl.force_socket_dir = True
 
     if options.fifodir:
-        config['fifo_dir'] = options.fifodir
-
-    uzbl = UzblTabbed()
+        uzbl.fifo_dir = options.fifodir
+        uzbl.force_fifo_dir = True
 
     # All extra arguments given to uzbl_tabbed.py are interpreted as
     # web-locations to opened in new tabs.
