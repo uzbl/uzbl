@@ -222,3 +222,13 @@ scroll_vert_cb(GtkAdjustment *adjust, void *w);
 
 gboolean
 scroll_horiz_cb(GtkAdjustment *adjust, void *w);
+
+void
+window_object_cleared_cb(WebKitWebView *webview, WebKitWebFrame *frame,
+	JSGlobalContextRef *context, JSObjectRef *object);
+
+void
+dom_focus_cb(WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer user_data);
+
+void
+dom_blur_cb(WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer user_data);

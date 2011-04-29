@@ -1479,6 +1479,7 @@ create_scrolled_win() {
       "signal::populate-popup",                       (GCallback)populate_popup_cb,       NULL,
       "signal::focus-in-event",                       (GCallback)focus_cb,                NULL,
       "signal::focus-out-event",                      (GCallback)focus_cb,                NULL,
+      "signal::window-object-cleared",                (GCallback)window_object_cleared_cb,NULL,
       NULL);
 }
 

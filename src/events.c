@@ -54,7 +54,9 @@ const char *event_table[LAST_EVENT] = {
      "DOWNLOAD_PROGRESS",
      "DOWNLOAD_COMPLETE",
      "ADD_COOKIE"       ,
-     "DELETE_COOKIE"
+     "DELETE_COOKIE"    ,
+     "FOCUS_ELEMENT"    ,
+     "BLUR_ELEMENT"
 };
 
 void
