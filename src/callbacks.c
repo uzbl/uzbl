@@ -1065,6 +1065,7 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
 void
 window_object_cleared_cb(WebKitWebView *webview, WebKitWebFrame *frame,
     JSGlobalContextRef *context, JSObjectRef *object) {
+    (void) frame; (void) context; (void) object;
     // Take this opportunity to set some callbacks on the DOM
     WebKitDOMDocument *document = webkit_web_view_get_dom_document (webview);
     webkit_dom_event_target_add_event_listener (WEBKIT_DOM_EVENT_TARGET (document),
@@ -1075,6 +1076,7 @@ window_object_cleared_cb(WebKitWebView *webview, WebKitWebFrame *frame,
 
 void
 dom_focus_cb(WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer user_data) {
+    (void) target; (void) user_data;
     WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
     gchar* name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
     send_event (FOCUS_ELEMENT, NULL, TYPE_STR, name, NULL);
@@ -1082,6 +1084,7 @@ dom_focus_cb(WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer user_
 
 void
 dom_blur_cb(WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer user_data) {
+    (void) target; (void) user_data;
     WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
     gchar* name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
     send_event (BLUR_ELEMENT, NULL, TYPE_STR, name, NULL);
