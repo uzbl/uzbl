@@ -83,7 +83,7 @@ set download_handler    = sync_spawn @scripts_dir/download.sh
 @on_event   LOAD_FINISH    spawn @scripts_dir/history.sh
 
 # Switch to insert mode if a (editable) html form is clicked
-@on_event   FORM_ACTIVE    @set_mode insert
+@on_event   FOCUS_ELEMENT  sh 'if [ "$1" == INPUT ]; then echo "@set_mode insert" > $UZBL_FIFO; fi' %s
 # Switch to command mode if anything else is clicked
 @on_event   ROOT_ACTIVE    @set_mode command
 
