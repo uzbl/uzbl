@@ -348,20 +348,9 @@ cmd_javascript_windows() {
 
 void
 cmd_scrollbars_visibility() {
-    if(uzbl.gui.scrollbars_visible) {
-        gtk_scrolled_window_set_policy (
-            GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win),
-            GTK_POLICY_AUTOMATIC,
-            GTK_POLICY_AUTOMATIC
-        );
-    }
-    else {
-        gtk_scrolled_window_set_policy (
-            GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win),
-            GTK_POLICY_NEVER,
-            GTK_POLICY_NEVER
-        );
-    }
+    GtkPolicyType policy = uzbl.gui.scrollbars_visible ? GTK_POLICY_AUTOMATIC : GTK_POLICY_NEVER;
+
+    gtk_scrolled_window_set_policy ( GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win), policy, policy );
 }
 
 /* requires webkit >=1.1.14 */
