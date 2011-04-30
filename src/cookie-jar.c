@@ -43,7 +43,7 @@ changed(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie) {
 
         gchar *expires = NULL;
         if(cookie->expires)
-            expires = g_strdup_printf ("%d", soup_date_to_time_t (cookie->expires));
+            expires = g_strdup_printf ("%ld", (long)soup_date_to_time_t (cookie->expires));
 
 		send_event (new_cookie ? ADD_COOKIE : DELETE_COOKIE, NULL,
 			TYPE_STR, cookie->domain,

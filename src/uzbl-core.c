@@ -754,7 +754,7 @@ download(WebKitWebView *web_view, GArray *argv, GString *result) {
     WebKitNetworkRequest *req = webkit_network_request_new(uri);
     WebKitDownload *download = webkit_download_new(req);
 
-    download_cb(web_view, download, destination);
+    download_cb(web_view, download, (gpointer)destination);
 
     if(webkit_download_get_destination_uri(download))
         webkit_download_start(download);
@@ -1526,7 +1526,7 @@ create_window() {
     gtk_window_set_title(GTK_WINDOW(window), "Uzbl browser");
 
 #if GTK_CHECK_VERSION(3,0,0)
-    gtk_window_set_has_resize_grip (window, FALSE);
+    gtk_window_set_has_resize_grip (GTK_WINDOW (window), FALSE);
 #endif
 
     /* if the window has been made small, it shouldn't try to resize itself due
@@ -1912,7 +1912,7 @@ main (int argc, char* argv[]) {
     if (uzbl.state.verbose) {
         printf("Uzbl start location: %s\n", argv[0]);
         if (uzbl.state.socket_id)
-            printf("plug_id %i\n", gtk_plug_get_id(uzbl.gui.plug));
+            printf("plug_id %i\n", (int)gtk_plug_get_id(uzbl.gui.plug));
         else
             printf("window_id %i\n",(int) uzbl.xwin);
         printf("pid %i\n", getpid ());
