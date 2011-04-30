@@ -319,7 +319,8 @@ file).
 * `socket_dir`: location to store sockets.
 * `http_debug`: HTTP debug mode (value 0-3).
 * `scrollbars_visible`: set to 1 to have GTK scrollbars if the document
-  doesn't fit into the window (defaults to 0)
+  doesn't fit into the window (defaults to 0). (Note: This option does nothing
+  on GTK3 due to <https://bugs.webkit.org/show_bug.cgi?id=59197>)
 * `javascript_windows`: Whether javascript can open windows automatically
 * `shell_cmd`: Alias which will be expanded to use shell commands (eg `sh -c`).
 * `print_events`: show events on stdout
