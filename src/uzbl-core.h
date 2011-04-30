@@ -107,6 +107,7 @@ typedef struct {
     gchar*          executable_path;
     gchar*          searchtx;
     gboolean        verbose;
+    gboolean        embed;
     GdkEventButton* last_button;
     gchar*          last_result;
     gboolean        plug_mode;
@@ -301,9 +302,6 @@ void        handle_authentication (SoupSession *session,
                             SoupAuth    *auth,
                             gboolean     retrying,
                             gpointer     user_data);
-void        handle_cookies (SoupSession *session,
-                            SoupMessage *msg,
-                            gpointer     user_data);
 gboolean    valid_name(const gchar* name);
 void        set_var(WebKitWebView *page, GArray *argv, GString *result);
 void        act_dump_config();
@@ -324,6 +322,8 @@ void        include(WebKitWebView *page, GArray *argv, GString *result);
 void        show_inspector(WebKitWebView *page, GArray *argv, GString *result);
 void        add_cookie(WebKitWebView *page, GArray *argv, GString *result);
 void        delete_cookie(WebKitWebView *page, GArray *argv, GString *result);
+void        clear_cookies(WebKitWebView *pag, GArray *argv, GString *result);
+void        download(WebKitWebView *pag, GArray *argv, GString *result);
 void        builtins();
 
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);

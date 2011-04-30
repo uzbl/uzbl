@@ -4,9 +4,10 @@
 # === Core settings ==========================================================
 
 # common directory locations
-set prefix     = @(echo $PREFIX)@
-set data_home  = @(echo $XDG_DATA_HOME)@
-set cache_home = @(echo $XDG_CACHE_HOME)@
+set prefix      = @(echo $PREFIX)@
+set data_home   = @(echo $XDG_DATA_HOME)@
+set cache_home  = @(echo $XDG_CACHE_HOME)@
+set config_home = @(echo $XDG_CONFIG_HOME)@
 
 # Interface paths.
 set fifo_dir   = /tmp
@@ -90,12 +91,12 @@ set download_handler    = sync_spawn @scripts_dir/download.sh
 #@on_event  CONFIG_CHANGED print Config changed: %1 = %2
 
 # Scroll percentage calculation
-@on_event   SCROLL_VERT    set scroll_message = \@<(function(){var p='--';if(%3!=%2){p=(%1/(%3-%4));p=Math.round(10000*p)/100;};return p+'%';})()>\@
+@on_event   SCROLL_VERT    set scroll_message = \@<(function(){var p='--';if(%3<=%4){p=(%1/(%3-%4));p=Math.round(10000*p)/100;};return p+'%';})()>\@
 
 # === Behaviour and appearance ===============================================
 
 # Custom CSS can be defined here, including link follower hint styles
-set stylesheet_uri = file://@data_home/uzbl/style.css
+set stylesheet_uri = file://@config_home/uzbl/style.css
 
 set show_status       = 1
 set status_top        = 0
@@ -153,15 +154,11 @@ set useragent         = Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}) (@(+uname 
 @modmap <space>         <Space>
 @modmap <KP_Enter>      <Enter>
 
-#modkey_addition <Key1>  <Key2>    <Result>
-@modkey_addition <Shift> <Ctrl>    <Meta>
-@modkey_addition <Shift> <Tab>     <Shift-Tab>
-@modkey_addition <Shift> <Insert>  <Shift-Insert>
-
 #ignore_key <glob>
 @ignore_key <ISO_*>
 @ignore_key <Shift>
 @ignore_key <Multi_key>
+@ignore_key <Mod2>
 
 # --- Bind aliases -----------------------------------------------------------
 
@@ -185,6 +182,7 @@ set ebind     = @mode_bind global,-insert
 # Resets keycmd and returns to default mode.
 @on_event  ESCAPE    @set_mode
 @on_event  ESCAPE    event KEYCMD_CLEAR
+@on_event  ESCAPE    js uzbl.follow.clearHints()
 @bind   <Escape>     = event ESCAPE
 @bind   <Ctrl>[      = event ESCAPE
 
@@ -198,7 +196,7 @@ set ebind     = @mode_bind global,-insert
 @ebind  <Delete>     = event KEYCMD_DELETE
 @ebind  <Tab>        = event START_COMPLETION
 # Readline-ish bindings.
-@ebind  <Ctrl>w      = event KEYCMD_STRIP_WORD
+@ebind  <Ctrl>w      = event KEYCMD_STRIP_WORD \ -./&?=
 @ebind  <Ctrl>u      = event SET_KEYCMD
 @ebind  <Ctrl>a      = event SET_CURSOR_POS 0
 @ebind  <Ctrl>e      = event SET_CURSOR_POS -1
@@ -267,6 +265,9 @@ set ebind     = @mode_bind global,-insert
 @cbind  n   = search
 @cbind  N   = search_reverse
 
+# Print pages to a printer
+@cbind  <Ctrl>p = hardcopy
+
 # Web searching binds
 @cbind  gg<Google:>_         = uri http://www.google.com/search?q=\@<encodeURIComponent(%r)>\@
 @cbind  ddg<DuckDuckGo:>_    = uri http://duckduckgo.com/?q=%s
@@ -285,8 +286,8 @@ set ebind     = @mode_bind global,-insert
 
 # Use socat to directly inject commands into uzbl-core and view events
 # raised by uzbl-core:
-@cbind  <Ctrl><Alt>t  = sh 'xterm -e "socat unix-connect:\"$UZBL_SOCKET\" -"'
-#@cbind  <Ctrl><Alt>t  = sh 'urxvt -e socat unix-connect:"$UZBL_SOCKET" -'
+@cbind  <Ctrl><Mod1>t  = sh 'xterm -e "socat unix-connect:\"$UZBL_SOCKET\" -"'
+#@cbind  <Ctrl><Mod1>t  = sh 'urxvt -e socat unix-connect:"$UZBL_SOCKET" -'
 
 # Uri opening prompts
 @cbind  o<uri:>_       = uri %s
@@ -299,6 +300,13 @@ set ebind     = @mode_bind global,-insert
 
 # Hard-bound bookmarks
 @cbind  gh  = uri http://www.uzbl.org
+
+# New window binds
+@cbind  gw  = event REQ_NEW_WINDOW
+
+# SSL-ify bindings
+@cbind  zs  = uri \@(echo "$UZBL_URI" | sed -e 's/^http:/https:/')\@
+@cbind  zS  = event REQ_NEW_WINDOW \@(echo "$UZBL_URI" | sed -e 's/^http:/https:/')\@
 
 # Yanking & pasting binds
 @cbind  yu  = sh 'echo -n "$UZBL_URI" | xclip'
@@ -314,7 +322,7 @@ set ebind     = @mode_bind global,-insert
 # Start a new uzbl instance from the page in primary selection
 @cbind  'p  = sh 'echo "event REQ_NEW_WINDOW $(xclip -o)" > "$UZBL_FIFO"'
 # paste primary selection into keycmd at the cursor position
-@bind <Shift-Insert> = sh 'echo "event INJECT_KEYCMD $(xclip -o | sed s/\\\@/%40/g)" > "$UZBL_FIFO"'
+@bind <Shift><Insert> = sh 'echo "event INJECT_KEYCMD $(xclip -o | sed s/\\\@/%40/g)" > "$UZBL_FIFO"'
 
 # Bookmark inserting binds
 @cbind <Ctrl>b<tags:>_  = sh 'echo `printf "$UZBL_URI %s"` >> "$XDG_DATA_HOME"/uzbl/bookmarks'
@@ -325,6 +333,10 @@ set ebind     = @mode_bind global,-insert
 @cbind  U  = spawn @scripts_dir/load_url_from_history.sh
 @cbind  u  = spawn @scripts_dir/load_url_from_bookmarks.sh
 
+# Temporary bookmarks
+@cbind  <Ctrl>d  = spawn @scripts_dir/insert_temp.sh
+@cbind  D        = spawn @scripts_dir/load_url_from_temps.sh
+
 # Link following (similar to vimperator and konqueror)
 # Set custom keys you wish to use for navigation. Some common examples:
 set follow_hint_keys = 0123456789
@@ -333,7 +345,7 @@ set follow_hint_keys = 0123456789
 #set follow_hint_keys = thsnd-rcgmvwb/;789aefijkopquxyz234
 @cbind  fl*  = spawn @scripts_dir/follow.sh \@< uzbl.follow("\@follow_hint_keys", "%s", 0) >\@
 @cbind  Fl*  = spawn @scripts_dir/follow.sh \@< uzbl.follow("\@follow_hint_keys", "%s", 1) >\@
-@cbind  gi   = spawn @scripts_dir/go_input.sh
+@cbind  fi   = spawn @scripts_dir/go_input.sh
 
 # Form filler binds
 # This script allows you to configure (per domain) values to fill in form
@@ -341,10 +353,10 @@ set follow_hint_keys = 0123456789
 # This implementation allows you to save multiple profiles for each form
 # (think about multiple accounts on some website).
 set formfiller = spawn @scripts_dir/formfiller.sh
-@cbind  za  = @formfiller add
 @cbind  ze  = @formfiller edit
 @cbind  zn  = @formfiller new
 @cbind  zl  = @formfiller load
+@cbind  zo  = @formfiller once
 
 # --- Uzbl tabbed binds ------------------------------------------------------
 
@@ -370,7 +382,8 @@ set preset = event PRESET_TABS
 @cbind  gs<preset save:>_   = @preset save %s
 @cbind  glo<preset load:>_  = @preset load %s
 @cbind  gd<preset del:>_    = @preset del %s
-@cbind  gli                 = @preset list
+# This doesn't work right now.
+#@cbind  gli                 = @preset list
 
 # === Context menu items =====================================================
 

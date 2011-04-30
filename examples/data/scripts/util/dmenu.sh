@@ -30,6 +30,13 @@ case "$DMENU_SCHEME" in
         SB="#ccffaa"
         SF="#303030"
         ;;
+    # Temps
+    "temps" )
+        NB="#303030"
+        NF="khaki"
+        SB="#ccffaa"
+        SF="#303030"
+        ;;
     # Default
     * )
         NB="#303030"
@@ -98,7 +105,7 @@ if dmenu --help 2>&1 | grep -q '\[-l <\?lines>\?\]'; then
 fi
 
 # Detect placement patch
-if dmenu --help 2>&1 | grep -q '\[-x <xoffset>\]'; then
+if dmenu --help 2>&1 | grep -q '\[-x <\?xoffset>\?\]'; then
     DMENU_PLACE_X="-x"
     DMENU_PLACE_Y="-y"
     DMENU_PLACE_WIDTH="-w"

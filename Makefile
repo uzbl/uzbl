@@ -68,13 +68,13 @@ test-uzbl-core: uzbl-core
 	./uzbl-core --uri http://www.uzbl.org --verbose
 
 test-uzbl-browser: uzbl-browser
-	./src/uzbl-browser --uri http://www.uzbl.org --verbose
+	./bin/uzbl-browser --uri http://www.uzbl.org --verbose
 
 test-uzbl-core-sandbox: uzbl-core
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-core
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
 	cp -np ./misc/env.sh ./sandbox/env.sh
-	source ./sandbox/env.sh && uzbl-core --uri http://www.uzbl.org --verbose
+	. ./sandbox/env.sh && uzbl-core --uri http://www.uzbl.org --verbose
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
@@ -83,20 +83,21 @@ test-uzbl-browser-sandbox: uzbl-browser
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-browser
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
 	cp -np ./misc/env.sh ./sandbox/env.sh
-	-source ./sandbox/env.sh && uzbl-event-manager restart -avv
-	source ./sandbox/env.sh && uzbl-browser --uri http://www.uzbl.org --verbose
-	source ./sandbox/env.sh && uzbl-event-manager stop -ivv
+	-. ./sandbox/env.sh && uzbl-event-manager restart -avv
+	. ./sandbox/env.sh && uzbl-browser --uri http://www.uzbl.org --verbose
+	. ./sandbox/env.sh && uzbl-event-manager stop -ivv
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
 test-uzbl-tabbed-sandbox: uzbl-browser
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-core
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-browser
+	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-tabbed
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
 	cp -np ./misc/env.sh ./sandbox/env.sh
-	-source ./sandbox/env.sh && uzbl-event-manager restart -avv
-	source ./sandbox/env.sh && ./sandbox/home/.local/share/uzbl/scripts/uzbl-tabbed
-	source ./sandbox/env.sh && uzbl-event-manager stop -ivv
+	-. ./sandbox/env.sh && uzbl-event-manager restart -avv
+	. ./sandbox/env.sh && uzbl-tabbed
+	. ./sandbox/env.sh && uzbl-event-manager stop -ivv
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
@@ -134,8 +135,8 @@ install-uzbl-core: all install-dirs
 	install -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
 
 install-uzbl-browser: install-dirs
-	install -m755 src/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
-	install -m755 examples/data/scripts/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
+	install -m755 bin/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
+	install -m755 bin/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
 	mv $(INSTALLDIR)/bin/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser.bak
 	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < $(INSTALLDIR)/bin/uzbl-browser.bak > $(INSTALLDIR)/bin/uzbl-browser
 	chmod 755 $(INSTALLDIR)/bin/uzbl-browser
@@ -146,7 +147,7 @@ install-uzbl-browser: install-dirs
 	rm $(INSTALLDIR)/bin/uzbl-event-manager.bak
 
 install-uzbl-tabbed: install-dirs
-	install -m755 examples/data/scripts/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed
+	install -m755 bin/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed
 
 # you probably only want to do this manually when testing and/or to the sandbox. not meant for distributors
 install-example-data:

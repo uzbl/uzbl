@@ -83,7 +83,7 @@ class History(object):
     def __str__(self):
         return "(History %s, %s)" % (self.cursor, self.prompt)
 
-def keycmd_exec(uzbl, keylet):
+def keycmd_exec(uzbl, modstate, keylet):
     cmd = keylet.get_keycmd()
     if cmd:
         uzbl.history.add(cmd)

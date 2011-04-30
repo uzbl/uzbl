@@ -13,7 +13,8 @@
 enum event_type {
     LOAD_START, LOAD_COMMIT, LOAD_FINISH, LOAD_ERROR,
     REQUEST_STARTING,
-    KEY_PRESS, KEY_RELEASE, COMMAND_EXECUTED,
+    KEY_PRESS, KEY_RELEASE, MOD_PRESS, MOD_RELEASE,
+    COMMAND_EXECUTED,
     LINK_HOVER, TITLE_CHANGED, GEOMETRY_CHANGED,
     WEBINSPECTOR, NEW_WINDOW, SELECTION_CHANGED,
     VARIABLE_SET, FIFO_SET, SOCKET_SET,
@@ -41,7 +42,10 @@ vsend_event(int type, const gchar *custom_event, va_list vargs);
 void
 send_event(int type, const gchar *custom_event, ...) G_GNUC_NULL_TERMINATED;
 
+gchar *
+get_modifier_mask(guint state);
+
 void
-key_to_event(guint keyval, gint mode);
+key_to_event(guint keyval, guint state, guint is_modifier, int mode);
 
 #endif

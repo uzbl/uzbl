@@ -292,8 +292,11 @@ cmd_caret_browsing() {
 
 void
 set_current_encoding() {
-    webkit_web_view_set_custom_encoding(uzbl.gui.web_view,
-        uzbl.behave.current_encoding);
+    gchar *encoding = uzbl.behave.current_encoding;
+    if(strlen(encoding) == 0)
+        encoding = NULL;
+
+    webkit_web_view_set_custom_encoding(uzbl.gui.web_view, encoding);
 }
 
 
@@ -550,7 +553,7 @@ key_press_cb (GtkWidget* window, GdkEventKey* event) {
     (void) window;
 
     if(event->type == GDK_KEY_PRESS)
-        key_to_event(event->keyval, GDK_KEY_PRESS);
+        key_to_event(event->keyval, event->state, event->is_modifier, GDK_KEY_PRESS);
 
     return uzbl.behave.forward_keys ? FALSE : TRUE;
 }
@@ -560,7 +563,7 @@ key_release_cb (GtkWidget* window, GdkEventKey* event) {
     (void) window;
 
     if(event->type == GDK_KEY_RELEASE)
-        key_to_event(event->keyval, GDK_KEY_RELEASE);
+        key_to_event(event->keyval, event->state, event->is_modifier, GDK_KEY_RELEASE);
 
     return uzbl.behave.forward_keys ? FALSE : TRUE;
 }
@@ -838,6 +841,11 @@ download_cb(WebKitWebView *web_view, WebKitDownload *download, gpointer user_dat
     /* get the URI being downloaded */
     const gchar *uri = webkit_download_get_uri(download);
 
+    /* get the destination path, if specified.
+     * this is only intended to be set when this function is trigger by an
+     * explicit download using uzbl's 'download' action. */
+    const gchar *destination = user_data;
+
     if (uzbl.state.verbose)
         printf("Download requested -> %s\n", uri);
 
@@ -883,6 +891,9 @@ download_cb(WebKitWebView *web_view, WebKitDownload *download, gpointer user_dat
     g_array_append_val(a, content_type);
     gchar *total_size_s = g_strdup_printf("%d", total_size);
     g_array_append_val(a, total_size_s);
+
+    if(destination)
+        g_array_append_val(a, destination);
 
     GString *result = g_string_new ("");
     run_parsed_command(c, a, result);

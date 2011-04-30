@@ -104,7 +104,7 @@ There are several interfaces to interact with Uzbl:
 
 When `uzbl` forks a new instance (eg "open in new window") it will use the same
 command line arguments (eg the same `--config <file>`), except `--uri` and
-`--name`. If you made changes to the configuration at runtime, these are not
+`--named`. If you made changes to the configuration at runtime, these are not
 passed on to the child.
 
 #### Uzbl-browser
@@ -257,9 +257,14 @@ The following commands are recognized:
   - Show the WebInspector
 * `add_cookie <domain> <path> <name> <value> <scheme> <expires>`
   - Adds a new cookie to the cookie jar
-* 'delete_cookie <domain> <path> <name> <value> [<scheme> <expires>]`
-	- Deletes a matching cookie from the cookie jar. scheme and expire time
-	is currently not considered when matching.
+* `delete_cookie <domain> <path> <name> <value> [<scheme> <expires>]`
+  - Deletes a matching cookie from the cookie jar. scheme and expire time
+	  is currently not considered when matching.
+* `clear_cookies`
+  - Clears all cookies from the cookie jar
+* `download <uri> [<destination path>]`
+  - Starts a download using the given uri. A destination file path can be given
+    to specify where the download should be written to.
 
 ### VARIABLES AND CONSTANTS
 
@@ -504,9 +509,15 @@ Handler scripts (`download_handler`, `cookie_handler`, `scheme_handler` and
 * download handler
 
   - `$1 url`: The URL of the item to be downloaded.
-  - `$2 suggested_filename`: A filename suggested by the server or based on the URL.
+  - `$2 suggested_filename`: A filename suggested by the server or based on the
+    URL.
   - `$3 content_type`: The mimetype of the file to be downloaded.
-  - `$4 total_size`: The size of the file to be downloaded in bytes. This may be inaccurate.
+  - `$4 total_size`: The size of the file to be downloaded in bytes. This may be
+    inaccurate.
+  - `$5 destination_path`: This is only present if the download was started
+    explicitly using the `download` command. If it is present, this is the path
+    that the file should be saved to. A download handler using WebKit's internal
+    downloader can just echo this path and exit when this argument is present.
 
 * cookie handler
 
@@ -666,10 +677,14 @@ Events have this format:
   `uri`.
 * `EVENT [uzbl_instance_name] LINK_UNHOVER uri`: The mouse leaves the link
   `uri`.
-* `EVENT [uzbl_instance_name] KEY_PRESS key_name`: The key (or mouse button)
+* `EVENT [uzbl_instance_name] KEY_PRESS 'mod_state' key_name`: The key (or mouse button)
   `key_name` is pressed.
-* `EVENT [uzbl_instance_name] KEY_RELEASE key_name`: The key (or mouse button)
+* `EVENT [uzbl_instance_name] KEY_RELEASE 'mod_state' key_name`: The key (or mouse button)
   `key_name` is released.
+* `EVENT [uzbl_instance_name] MOD_PRESS 'mod_state' mod_name`: A key mapped to
+  `mod_name` is pressed.
+* `EVENT [uzbl_instance_name] MOD_RELEASE 'mod_state' mod_name`: A key mapped to
+  `mod_name` is released.
 * `EVENT [uzbl_instance_name] SELECTION_CHANGED selected_text`: When text is
   selected in the `uzbl` window.
 * `EVENT [uzbl_instance_name] NEW_WINDOW uri`: Request to creation of new `uzbl` window,
@@ -747,10 +762,6 @@ Events/requests which the EM and its plugins listens for
     when the `<from>` key or button is pressed.
 * `IGNORE_KEY`: Ignore a key pattern, specified by `<glob>`.
   - `request IGNORE_KEY <glob>`
-* `MODKEY_ADDITION`: Create a compound modkey from multiple individual keys.
-  - `request MODKEY_ADDITION <key1> <key2> <keyn> <result>`: The modkey
-    `<result>` is considered pressed when all of `<key1>`, `<key2>`, and
-    `<keyn>` are pressed.
 * `TOGGLE_MODES`
   - `request TOGGLE_MODES <mode1> <mode2> ... <moden>`
 * `APPEND_KEYCMD`: Append a string to the current keycmd.
@@ -762,6 +773,8 @@ Events/requests which the EM and its plugins listens for
   keycmd.
 * `KEYCMD_STRIP_WORD`: Removes the last word from the keycmd, similar to
   readline `^W`.
+  - `request KEYCMD_STRIP_WORD <seps>`: The `<seps>` argument is a list of
+    characters that are considered to separate words.
 * `KEYCMD_EXEC_CURRENT`: (tries to) execute whatever is in the keycmd.
 * `SET_KEYCMD`: Allow setting of the keycmd externally.
   - `request SET_KEYCMD <string>`: Set the keycmd to `<string>`.
@@ -791,7 +804,7 @@ where `arguments` and `uri` are both optional. `arguments` can be:
 * `-u`, `--uri=URI`: URI to load at startup. Equivalent to `uzbl <uri>` or `set
   uri = URI` after `uzbl` has launched.
 * `-v`, `--verbose`: Whether to print all messages or just errors.
-* `-n`, `--name=NAME`: Name of the current instance (defaults to Xorg window
+* `-n`, `--named=NAME`: Name of the current instance (defaults to Xorg window
   id or random for GtkSocket mode).
 * `-c`, `--config=FILE`: Path to config file or `-` for stdin.
 * `-s`, `--socket=SOCKET`: Xembed socket ID.

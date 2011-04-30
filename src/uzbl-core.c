@@ -47,12 +47,15 @@ GOptionEntry entries[] = {
         "Uri to load at startup (equivalent to 'uzbl <uri>' or 'set uri = URI' after uzbl has launched)", "URI" },
     { "verbose",  'v', 0, G_OPTION_ARG_NONE,   &uzbl.state.verbose,
         "Whether to print all messages or just errors.", NULL },
-    { "name",     'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name,
+    { "named",    'n', 0, G_OPTION_ARG_STRING, &uzbl.state.instance_name,
         "Name of the current instance (defaults to Xorg window id or random for GtkSocket mode)", "NAME" },
     { "config",   'c', 0, G_OPTION_ARG_STRING, &uzbl.state.config_file,
         "Path to config file or '-' for stdin", "FILE" },
+    /* TODO: explain the difference between these two options */
     { "socket",   's', 0, G_OPTION_ARG_INT, &uzbl.state.socket_id,
-        "Xembed Socket ID", "SOCKET" },
+        "Xembed socket ID, this window should embed itself", "SOCKET" },
+    { "embed",    'e', 0, G_OPTION_ARG_NONE, &uzbl.state.embed,
+        "Whether this window should expect to be embedded", NULL },
     { "connect-socket",   0, 0, G_OPTION_ARG_STRING_ARRAY, &uzbl.state.connect_socket_names,
         "Connect to server socket for event managing", "CSOCKET" },
     { "print-events", 'p', 0, G_OPTION_ARG_NONE, &uzbl.state.events_stdout,
@@ -546,7 +549,9 @@ CommandInfo cmdlist[] =
     { "include",                        include, TRUE                  },
     { "show_inspector",                 show_inspector, 0              },
     { "add_cookie",                     add_cookie, 0                  },
-    { "delete_cookie",                  delete_cookie, 0               }
+    { "delete_cookie",                  delete_cookie, 0               },
+    { "clear_cookies",                  clear_cookies, 0               },
+    { "download",                       download, 0                    }
 };
 
 void
@@ -718,6 +723,42 @@ delete_cookie(WebKitWebView *page, GArray *argv, GString *result) {
     uzbl.net.soup_cookie_jar->in_manual_add = 1;
     soup_cookie_jar_delete_cookie (SOUP_COOKIE_JAR (uzbl.net.soup_cookie_jar), cookie);
     uzbl.net.soup_cookie_jar->in_manual_add = 0;
+}
+
+
+void
+clear_cookies(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page; (void) argv; (void) result;
+
+    // Replace the current cookie jar with a new empty jar
+    soup_session_remove_feature (uzbl.net.soup_session,
+        SOUP_SESSION_FEATURE (uzbl.net.soup_cookie_jar));
+    g_object_unref (G_OBJECT (uzbl.net.soup_cookie_jar));
+    uzbl.net.soup_cookie_jar = uzbl_cookie_jar_new ();
+    soup_session_add_feature(uzbl.net.soup_session,
+        SOUP_SESSION_FEATURE (uzbl.net.soup_cookie_jar));
+}
+
+void
+download(WebKitWebView *web_view, GArray *argv, GString *result) {
+    (void) result;
+
+    const gchar *uri         = argv_idx(argv, 0);
+    const gchar *destination = NULL;
+    if(argv->len > 1)
+        destination = argv_idx(argv, 1);
+
+    WebKitNetworkRequest *req = webkit_network_request_new(uri);
+    WebKitDownload *download = webkit_download_new(req);
+
+    download_cb(web_view, download, destination);
+
+    if(webkit_download_get_destination_uri(download))
+        webkit_download_start(download);
+    else
+        g_object_unref(download);
+
+    g_object_unref(req);
 }
 
 void
@@ -1111,8 +1152,6 @@ spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
 
 void
 run_parsed_command(const CommandInfo *c, GArray *a, GString *result) {
-    c->function(uzbl.gui.web_view, a, result);
-
     /* send the COMMAND_EXECUTED event, except for set and event/request commands */
     if(strcmp("set", c->key)   &&
        strcmp("event", c->key) &&
@@ -1123,12 +1162,18 @@ run_parsed_command(const CommandInfo *c, GArray *a, GString *result) {
         guint i = 0;
         while ((p = argv_idx(a, i++)))
             g_string_append_printf(param, " '%s'", p);
+
+	/* might be destructive on array a */
+        c->function(uzbl.gui.web_view, a, result);
+
         send_event(COMMAND_EXECUTED, NULL,
             TYPE_NAME, c->key,
             TYPE_FORMATTEDSTR, param->str,
             NULL);
         g_string_free(param, TRUE);
     }
+    else
+        c->function(uzbl.gui.web_view, a, result);
 
     if(result) {
         g_free(uzbl.state.last_result);
@@ -1498,6 +1543,7 @@ create_window() {
 
 GtkPlug*
 create_plug() {
+    if(uzbl.state.embed) uzbl.state.socket_id = 0;
     GtkPlug* plug = GTK_PLUG (gtk_plug_new (uzbl.state.socket_id));
     g_signal_connect (G_OBJECT (plug), "destroy", G_CALLBACK (destroy_cb), NULL);
     g_signal_connect (G_OBJECT (plug), "key-press-event", G_CALLBACK (key_press_cb), NULL);
@@ -1682,7 +1728,7 @@ initialize(int argc, char** argv) {
     }
 
     /* Embedded mode */
-    if (uzbl.state.socket_id)
+    if (uzbl.state.socket_id || uzbl.state.embed)
         uzbl.state.plug_mode = TRUE;
 
     if (!g_thread_supported())

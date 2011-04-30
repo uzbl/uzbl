@@ -66,22 +66,22 @@ ParseFields ()
         field = $0
         sub ( /[^:]*:/, "", field )
 
-        if ( parts[2] ~ /(text|password|search)/ )
+        if ( parts[2] ~ /^(text|password|search)$/ )
             printf( "js uzbl.formfiller.insert(\"%s\",\"%s\",\"%s\",0);\n",
                     parts[1], parts[2], field )
 
-        else if ( parts[2] ~ /(checkbox|radio)/ )
+        else if ( parts[2] ~ /^(checkbox|radio)$/ )
             printf( "js uzbl.formfiller.insert(\"%s\",\"%s\",\"%s\",%s);\n",
                     parts[1], parts[2], parts[3], field )
 
-        else if ( parts[2] == "textarea" ) {
+        else if ( parts[2] ~ /^textarea$/ ) {
             field = ""
             while (getline) {
                 if ( /^%/ ) break
                 sub ( /^\\/, "" )
                 gsub ( /"/, "\\\"" )
                 gsub ( /\\/, "\\\\" )
-                field = field $0 "\\n"
+                field = field $0 "\\\\n"
             }
             printf( "js uzbl.formfiller.insert(\"%s\",\"%s\",\"%s\",0);\n",
                 parts[1], parts[2], field )
@@ -116,7 +116,7 @@ Load ()
 
     ParseProfile $option < "$file" \
     | ParseFields \
-    | sed 's/@/\\@/' \
+    | sed 's/@/\\@/g' \
     > "$UZBL_FIFO"
 }
 
@@ -132,7 +132,7 @@ Once ()
 
     test -e "$tmpfile" &&
     ParseFields < "$tmpfile" \
-    | sed 's/@/\\@' \
+    | sed 's/@/\\@/g' \
     > "$UZBL_FIFO"
 }
 

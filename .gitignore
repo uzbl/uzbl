@@ -1,6 +1,8 @@
 uzbl-core
 *.o
+*.lo
 *.pyc
+*.sw[a-z]
 *~
 tags
-uzbl-cookie-manager
+sandbox
