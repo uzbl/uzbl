@@ -471,7 +471,7 @@ load_status_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
     }
 }
 
-void
+gboolean
 load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer web_err, gpointer ud) {
     (void) page; (void) frame; (void) ud;
     GError *err = web_err;
@@ -481,6 +481,8 @@ load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer 
         TYPE_INT, err->code,
         TYPE_STR, err->message,
         NULL);
+
+    return FALSE;
 }
 
 void
