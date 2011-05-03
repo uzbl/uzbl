@@ -633,6 +633,7 @@ class UzblEventDaemon(object):
 
                 # Accept connection and create uzbl instance.
                 child_socket = self.server_socket.accept()[0]
+                child_socket.setblocking(False)
                 self.uzbls[child_socket] = Uzbl(self, child_socket)
                 connections += 1
 
