@@ -315,6 +315,7 @@ class Uzbl(object):
         self.opts = opts
         self.parent = parent
         self.child_socket = child_socket
+        self.child_buffer = []
         self.time = time.time()
         self.pid = None
         self.name = None
@@ -371,7 +372,24 @@ class Uzbl(object):
         if opts.print_events:
             print ascii(u'%s<-- %s' % ('  ' * self._depth, msg))
 
-        self.child_socket.send(ascii("%s\n" % msg))
+        self.child_buffer.append(ascii("%s\n" % msg))
+
+    def do_send(self):
+        data = ''.join(self.child_buffer)
+        try:
+            bsend = self.child_socket.send(data)
+        except socket.error as e:
+            if e.errno in (errno.EAGAIN, errno.EINTR):
+                self.child_buffer = [data]
+                return
+            else:
+                self.close()
+                return
+        else:
+            if bsend < len(data):
+                self.child_buffer = [ data[bsend:] ]
+            else:
+                del self.child_buffer[:]
 
 
     def read(self):
@@ -607,7 +625,8 @@ class UzblEventDaemon(object):
 
         while (self.uzbls or not connections) or (not opts.auto_close):
             socks = [self.server_socket] + self.uzbls.keys()
-            reads, _, errors = select(socks, [], socks, 1)
+            wsocks = [k for k, v in self.uzbls.items() if v.child_buffer]
+            reads, writes, errors = select(socks, wsocks, socks, 1)
 
             if self.server_socket in reads:
                 reads.remove(self.server_socket)
@@ -616,6 +635,9 @@ class UzblEventDaemon(object):
                 child_socket = self.server_socket.accept()[0]
                 self.uzbls[child_socket] = Uzbl(self, child_socket)
                 connections += 1
+
+            for uzbl in [self.uzbls[s] for s in writes]:
+                uzbl.do_send()
 
             for uzbl in [self.uzbls[s] for s in reads]:
                 uzbl.read()
