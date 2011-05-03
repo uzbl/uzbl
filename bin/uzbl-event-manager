@@ -377,17 +377,20 @@ class Uzbl(object):
     def do_send(self):
         data = ''.join(self.child_buffer)
         try:
-            bsend = self.child_socket.send(data)
+            bsent = self.child_socket.send(data)
         except socket.error as e:
             if e.errno in (errno.EAGAIN, errno.EINTR):
                 self.child_buffer = [data]
                 return
             else:
-                self.close()
-                return
+                self.logger.error(get_exc())
+                return self.close()
         else:
-            if bsend < len(data):
-                self.child_buffer = [ data[bsend:] ]
+            if bsent == 0:
+                self.logger.debug('write end of connection closed')
+                self.close()
+            elif bsent < len(data):
+                self.child_buffer = [ data[bsent:] ]
             else:
                 del self.child_buffer[:]
 
