@@ -750,10 +750,11 @@ request_starting_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitWebRes
 }
 
 void
-create_web_view_js2_cb (WebKitWebView* web_view, GParamSpec param_spec) {
+create_web_view_js_cb (WebKitWebView* web_view, GParamSpec param_spec) {
     (void) web_view;
     (void) param_spec;
 
+    webkit_web_view_stop_loading(web_view);
     const gchar* uri = webkit_web_view_get_uri(web_view);
 
     if (strncmp(uri, "javascript:", strlen("javascript:")) == 0) {
@@ -763,18 +764,6 @@ create_web_view_js2_cb (WebKitWebView* web_view, GParamSpec param_spec) {
     else
         send_event(NEW_WINDOW, NULL, TYPE_STR, uri, NULL);
 }
-
-
-gboolean
-create_web_view_js_cb (WebKitWebView* web_view, gpointer user_data) {
-    (void) web_view;
-    (void) user_data;
-
-    g_object_connect (web_view, "signal::notify::uri",
-                            G_CALLBACK(create_web_view_js2_cb), NULL, NULL);
-    return TRUE;
-}
-
 
 /*@null@*/ WebKitWebView*
 create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data) {
@@ -787,8 +776,8 @@ create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer us
 
     WebKitWebView* new_view = WEBKIT_WEB_VIEW(webkit_web_view_new());
 
-    g_signal_connect (new_view, "web-view-ready",
-                        G_CALLBACK(create_web_view_js_cb), NULL);
+    g_object_connect (new_view, "signal::notify::uri",
+                           G_CALLBACK(create_web_view_js_cb), NULL, NULL);
     return new_view;
 }
 
