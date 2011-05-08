@@ -6,13 +6,16 @@ INSTALLDIR?=$(DESTDIR)$(PREFIX)
 DOCDIR?=$(INSTALLDIR)/share/uzbl/docs
 RUN_PREFIX?=$(PREFIX)
 
-# gtk2
-REQ_PKGS += gtk+-2.0 webkit-1.0
-CPPFLAGS =
+# use GTK3-based webkit when it is available
+USE_GTK3 = $(shell pkg-config --exists gtk+-3.0 webkitgtk-3.0 && echo 1)
 
-# gtk3
-#REQ_PKGS += gtk+-3.0 webkitgtk-3.0
-#CPPFLAGS = -DG_DISABLE_DEPRECATED -DGTK_DISABLE_DEPRECATED
+ifeq ($(USE_GTK3),1)
+	REQ_PKGS += gtk+-3.0 webkitgtk-3.0
+	CPPFLAGS = -DG_DISABLE_DEPRECATED -DGTK_DISABLE_DEPRECATED
+else
+	REQ_PKGS += gtk+-2.0 webkit-1.0
+	CPPFLAGS =
+endif
 
 # --- configuration ends here ---
 
