@@ -16,10 +16,10 @@ uzbldivid = 'uzbl_link_hints';
 uzbl.follow = function() {
     // Export
     charset   = arguments[0];
-    if (arguments[2] == 'click') {
+    if (arguments[2] == 0 || arguments[2] == 'click') {
         newwindow = false;
         returnuri = false;
-    } else if (arguments[2] == 'newwindow') {
+    } else if (arguments[2] == 1 || arguments[2] == 'newwindow') {
         newwindow = true;
         returnuri = false;
     } else if (arguments[2] == 'returnuri') {
