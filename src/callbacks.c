@@ -1066,14 +1066,19 @@ void
 window_object_cleared_cb(WebKitWebView *webview, WebKitWebFrame *frame,
     JSGlobalContextRef *context, JSObjectRef *object) {
     (void) frame; (void) context; (void) object;
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
     // Take this opportunity to set some callbacks on the DOM
     WebKitDOMDocument *document = webkit_web_view_get_dom_document (webview);
     webkit_dom_event_target_add_event_listener (WEBKIT_DOM_EVENT_TARGET (document),
         "focus", G_CALLBACK(dom_focus_cb), TRUE, NULL);
     webkit_dom_event_target_add_event_listener (WEBKIT_DOM_EVENT_TARGET (document),
         "blur", G_CALLBACK(dom_focus_cb), TRUE, NULL);
+#else
+	(void) webview;
+#endif
 }
 
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
 void
 dom_focus_cb(WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer user_data) {
     (void) target; (void) user_data;
@@ -1089,6 +1094,6 @@ dom_blur_cb(WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer user_d
     gchar* name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
     send_event (BLUR_ELEMENT, NULL, TYPE_STR, name, NULL);
 }
-
+#endif
 
 /* vi: set et ts=4: */
