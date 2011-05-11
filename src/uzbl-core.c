@@ -1531,10 +1531,10 @@ create_window() {
 #endif
 
     /* the window should never make itself bigger. */
-    GdkGeometry hints;
+    GdkGeometry hints = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     hints.min_height = 1;
     hints.min_width  = 1;
-    gtk_window_set_geometry_hints (GTK_WINDOW (window), window, &hints, GDK_HINT_MIN_SIZE);
+    gtk_window_set_geometry_hints (GTK_WINDOW (window), NULL, &hints, GDK_HINT_MIN_SIZE);
 
     g_signal_connect (G_OBJECT (window), "destroy",         G_CALLBACK (destroy_cb),         NULL);
     g_signal_connect (G_OBJECT (window), "configure-event", G_CALLBACK (configure_event_cb), NULL);
