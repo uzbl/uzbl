@@ -138,8 +138,8 @@ uzbl.follow.clickElem = function(item) {
     var name = item.tagName;
 
     if (name == 'INPUT') {
-        var type = item.getAttribute('type').toUpperCase();
-        if (type == 'TEXT' || type == 'FILE' || type == 'PASSWORD') {
+        var type = item.type;
+        if (type == 'text' || type == 'file' || type == 'password') {
             item.focus();
             item.select();
             return "XXXEMIT_FORM_ACTIVEXXX";
