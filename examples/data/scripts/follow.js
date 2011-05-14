@@ -146,7 +146,8 @@ uzbl.follow.clickElem = function(item) {
         // otherwise fall through to a simulated mouseclick.
     } else if (item instanceof HTMLTextAreaElement || item instanceof HTMLSelectElement) {
         item.focus();
-        item.select();
+        if(typeof item.select != 'undefined')
+            item.select();
         return "XXXEMIT_FORM_ACTIVEXXX";
     }
 
