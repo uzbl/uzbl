@@ -1492,24 +1492,35 @@ create_mainbar() {
 
     g->mainbar = gtk_hbox_new (FALSE, 0);
 
-    /* Left panel */
+    /* create left panel */
     g->mainbar_label_left = gtk_label_new ("");
     gtk_label_set_selectable(GTK_LABEL(g->mainbar_label_left), TRUE);
     gtk_misc_set_alignment (GTK_MISC(g->mainbar_label_left), 0, 0);
     gtk_misc_set_padding (GTK_MISC(g->mainbar_label_left), 2, 2);
 
-    gtk_box_pack_start (GTK_BOX (g->mainbar), g->mainbar_label_left, FALSE, FALSE, 0);
-
-    /* Right panel */
+    /* create right panel */
     g->mainbar_label_right = gtk_label_new ("");
     gtk_label_set_selectable(GTK_LABEL(g->mainbar_label_right), TRUE);
     gtk_misc_set_alignment (GTK_MISC(g->mainbar_label_right), 1, 0);
     gtk_misc_set_padding (GTK_MISC(g->mainbar_label_right), 2, 2);
     gtk_label_set_ellipsize(GTK_LABEL(g->mainbar_label_right), PANGO_ELLIPSIZE_START);
 
-    gtk_box_pack_start (GTK_BOX (g->mainbar), g->mainbar_label_right, TRUE, TRUE, 0);
+    /* add the labels to the mainbar */
+    gtk_box_pack_start (GTK_BOX (g->mainbar), g->mainbar_label_left,  FALSE, FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (g->mainbar), g->mainbar_label_right, TRUE,  TRUE,  0);
 
+    /* set up signal handlers */
     g_object_connect((GObject*)g->mainbar,
+      "signal::key-press-event",                    (GCallback)key_press_cb,    NULL,
+      "signal::key-release-event",                  (GCallback)key_release_cb,  NULL,
+      NULL);
+
+    g_object_connect((GObject*)g->mainbar_label_left,
+      "signal::key-press-event",                    (GCallback)key_press_cb,    NULL,
+      "signal::key-release-event",                  (GCallback)key_release_cb,  NULL,
+      NULL);
+
+    g_object_connect((GObject*)g->mainbar_label_right,
       "signal::key-press-event",                    (GCallback)key_press_cb,    NULL,
       "signal::key-release-event",                  (GCallback)key_release_cb,  NULL,
       NULL);
