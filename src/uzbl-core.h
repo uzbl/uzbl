@@ -253,7 +253,6 @@ void        catch_sigterm(int s);
 sigfunc*    setup_signal(int signe, sigfunc *shandler);
 
 gboolean    set_var_value(const gchar *name, gchar *val);
-void        load_uri_imp(gchar *uri);
 void        print(WebKitWebView *page, GArray *argv, GString *result);
 void        commands_hash(void);
 void        load_uri(WebKitWebView * web_view, GArray *argv, GString *result);
