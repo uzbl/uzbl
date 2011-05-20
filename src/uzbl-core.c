@@ -783,7 +783,7 @@ load_uri(WebKitWebView *web_view, GArray *argv, GString *result) {
 
 /* Javascript*/
 void
-eval_js(WebKitWebView * web_view, gchar *script, GString *result, const char *file) {
+eval_js(WebKitWebView * web_view, const gchar *script, GString *result, const char *file) {
     WebKitWebFrame *frame;
     JSGlobalContextRef context;
     JSObjectRef globalobject;

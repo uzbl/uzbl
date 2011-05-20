@@ -293,7 +293,7 @@ void        dehilight (WebKitWebView *page, GArray *argv, GString *result);
 /* Javascript functions */
 void        run_js (WebKitWebView * web_view, GArray *argv, GString *result);
 void        run_external_js (WebKitWebView * web_view, GArray *argv, GString *result);
-void        eval_js(WebKitWebView * web_view, gchar *script, GString *result, const gchar *script_file);
+void        eval_js(WebKitWebView *web_view, const gchar *script, GString *result, const gchar *script_file);
 
 /* Network functions */
 void        handle_authentication (SoupSession *session,
