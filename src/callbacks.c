@@ -114,7 +114,7 @@ void
 cmd_load_uri() {
     const gchar *uri = uzbl.state.uri;
 
-    GString* newuri;
+    gchar *newuri;
     SoupURI* soup_uri;
 
     /* Strip leading whitespaces */
@@ -128,30 +128,32 @@ cmd_load_uri() {
         return;
     }
 
-    newuri = g_string_new (uri);
     soup_uri = soup_uri_new(uri);
 
     if (!soup_uri) {
-        gchar* fullpath;
-        if (g_path_is_absolute (newuri->str))
-            fullpath = newuri->str;
+        /* maybe this is a path on the filesystem, check. */
+        const gchar *fullpath;
+        if (g_path_is_absolute (uri))
+            fullpath = uri;
         else {
             gchar* wd = g_get_current_dir ();
-            fullpath = g_build_filename (wd, newuri->str, NULL);
+            fullpath = g_build_filename (wd, uri, NULL);
             g_free(wd);
         }
+
         struct stat stat_result;
         if (! g_stat(fullpath, &stat_result))
-            g_string_printf (newuri, "file://%s", fullpath);
+            newuri = g_strconcat("file://", fullpath, NULL);
         else
-            g_string_prepend (newuri, "http://");
+            newuri = g_strconcat("http://", uri, NULL);
     } else {
+        newuri = g_strdup(uri);
         soup_uri_free(soup_uri);
     }
 
     /* if we do handle cookies, ask our handler for them */
-    webkit_web_view_load_uri (uzbl.gui.web_view, newuri->str);
-    g_string_free (newuri, TRUE);
+    webkit_web_view_load_uri (uzbl.gui.web_view, newuri);
+    g_free (newuri);
 }
 
 void
