@@ -2,22 +2,22 @@ FAQ
 ---
 
 ### I just installed uzbl but it doesn't do much.  What now?
-"Uzbl" is the name for the umbrella project that has several subprojects.
-You probably want `uzbl-browser` or `uzbl-tabbed`.
-The main program (`uzbl-core`) is a program meant for integration with other
-tools and scripts, by itself doesn't do many useful things.  See README.
+There's no "uzbl" command, that's just the name for the whole collection of
+tools. The command you're looking for is `uzbl-browser` or `uzbl-tabbed`.
 
-### Where are the widgets (forward, back,.. button etc)
-The layout of uzbl (and derivatives) only contains what you really need to see.
-We only have a statusbar, which even can also be disabled.  There are no
-buttons, but we do have lots of keybinding possibilities.
+The central program `uzbl-core` doesn't do many useful things by itself,
+it's meant for integration with other tools and scripts. See README.
 
-### Why can each uzbl-core/uzbl-browser process only show one page?
-This allows a simple implementation of both uzbl-core and uzbl-browser, and it
+### Where are the widgets (forward button, back button, search bar, etc)?
+There are none. What we do have is a powerful statusbar and lots of keybinding
+possibilities.
+
+### Why can each `uzbl-core`/`uzbl-browser` process only show one page?
+This allows a simple implementation of both `uzbl-core` and `uzbl-browser`, and it
 makes things more robust. But read the next entry...
 
 ### How can I have multiple pages in one window?
-So, given that uzbl-core and uzbl-browser only deal with one page at a time (see
+So, given that `uzbl-core` and `uzbl-browser` only deal with one page at a time (see
 above), how can you have a window with multiple pages?
 
 Basically this involves concerns on two sides:
@@ -29,13 +29,11 @@ Basically this involves concerns on two sides:
     page/window to a different desktop) or merge windows together?
   - can I integrate uzbl pages/windows into WM features? (alt-tab, tiling
     layouts, taskbar, ...)
-  - ...
 * application-level
   - realtime overview of all page titles of all uzbl instances
   - representation styles which are tightly coupled to the application such as
     treeviews that show from which you page you opened others, or page state
     (loading etc)
-  - ...
 
 Uzbl itself can hardly be a limiting factor, as it supports/has:
 
@@ -109,7 +107,7 @@ install the plugins normally, and things should work.
 ### How can I send commands to uzbl from an external script?
 Every uzbl-core process creates a fifo and a socket on the filesystem that you
 can use to communicate with it. By default these are located at
-`/tmp/uzbl_fifo_[name]` and `/tmp/uzbl_socket[name]`.
+`/tmp/uzbl_fifo_[name]` and `/tmp/uzbl_socket_[name]`.
 
 The example scripts and keybindings have many examples of this.
 
