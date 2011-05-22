@@ -120,8 +120,8 @@ void
 cmd_load_uri() {
     const gchar *uri = uzbl.state.uri;
 
-    gchar *newuri;
-    SoupURI* soup_uri;
+    gchar   *newuri;
+    SoupURI *soup_uri;
 
     /* Strip leading whitespaces */
     while (*uri && isspace(*uri))
@@ -142,7 +142,7 @@ cmd_load_uri() {
         if (g_path_is_absolute (uri))
             fullpath = uri;
         else {
-            gchar* wd = g_get_current_dir ();
+            gchar *wd = g_get_current_dir ();
             fullpath = g_build_filename (wd, uri, NULL);
             g_free(wd);
         }
@@ -162,7 +162,6 @@ cmd_load_uri() {
         soup_uri_free(soup_uri);
     }
 
-    /* if we do handle cookies, ask our handler for them */
     webkit_web_view_load_uri (uzbl.gui.web_view, newuri);
     g_free (newuri);
 }
