@@ -1,6 +1,18 @@
 FAQ
 ---
 
+### Help, Uzbl isn't responding to any of my keyboard commands!
+If the left side of the status bar says `[]` instead of `[Cmd]` when you start
+`uzbl-browser`, then the event manager isn't starting or its plugins aren't
+loading.
+
+If you're an Arch user, you should edit `/usr/bin/uzbl-{event-manager,tabbed}`
+and change the first line of each to `#!/usr/bin/env python2`.
+
+If you're trying to run uzbl without installing it, you should launch
+`uzbl-event-manager` yourself with the `--plugin-dir=DIR` option pointing to the
+location of the event manager plugins (they're in examples/data/plugins/)
+
 ### I just installed uzbl but it doesn't do much.  What now?
 There's no "uzbl" command, that's just the name for the whole collection of
 tools. The command you're looking for is `uzbl-browser` or `uzbl-tabbed`.
