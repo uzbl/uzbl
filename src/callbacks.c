@@ -110,6 +110,12 @@ cmd_set_status() {
     update_title();
 }
 
+/* is the given string made up entirely of decimal digits? */
+gboolean
+string_is_integer(const char *s) {
+    return (strspn(s, "0123456789") == strlen(s));
+}
+
 void
 cmd_load_uri() {
     const gchar *uri = uzbl.state.uri;
@@ -118,20 +124,20 @@ cmd_load_uri() {
     SoupURI* soup_uri;
 
     /* Strip leading whitespaces */
-    while (*uri) {
-        if (!isspace(*uri)) break;
+    while (*uri && isspace(*uri))
         uri++;
-    }
 
-    if (g_strstr_len (uri, 11, "javascript:") != NULL) {
+    /* evaluate javascript: URIs */
+    if (!strncmp (uri, "javascript:", 11)) {
         eval_js(uzbl.gui.web_view, uri, NULL, "javascript:");
         return;
     }
 
+    /* attempt to parse the URI */
     soup_uri = soup_uri_new(uri);
 
     if (!soup_uri) {
-        /* maybe this is a path on the filesystem, check. */
+        /* it's not a valid URI, maybe it's a path on the filesystem. */
         const gchar *fullpath;
         if (g_path_is_absolute (uri))
             fullpath = uri;
@@ -147,7 +153,12 @@ cmd_load_uri() {
         else
             newuri = g_strconcat("http://", uri, NULL);
     } else {
-        newuri = g_strdup(uri);
+        if(soup_uri->host == NULL && string_is_integer(soup_uri->path))
+            /* the user probably typed in a host:port without a scheme */
+            newuri = g_strconcat("http://", uri, NULL);
+        else
+            newuri = g_strdup(uri);
+
         soup_uri_free(soup_uri);
     }
 
