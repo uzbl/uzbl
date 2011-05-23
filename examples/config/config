@@ -310,7 +310,7 @@ set ebind     = @mode_bind global,-insert
 
 # Yanking & pasting binds
 @cbind  yu  = sh 'echo -n "$UZBL_URI" | xclip'
-@cbind  yU  = sh 'echo -n "$1" | xclip' \@SELECTED_URI
+@cbind  yU  = sh 'echo -n "$1" | xclip' '\@SELECTED_URI'
 @cbind  yy  = sh 'echo -n "$UZBL_TITLE" | xclip'
 
 # Clone current window
