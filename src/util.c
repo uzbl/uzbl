@@ -134,7 +134,7 @@ find_existing_file(const gchar* path_list) {
 
     char *basename = strrchr(path_list_dup, ':');
     if(!basename)
-      return path_list_dup;
+      return file_exists(path_list_dup) ? path_list_dup : NULL;
 
     basename[0] = '\0';
     basename++;
