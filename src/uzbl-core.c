@@ -847,27 +847,36 @@ void
 run_external_js (WebKitWebView * web_view, GArray *argv, GString *result) {
     (void) result;
     gchar *path = NULL;
+    GError *error = NULL;
 
-    if (argv_idx(argv, 0) &&
-        ((path = find_existing_file(argv_idx(argv, 0)))) ) {
+    if (!argv_idx(argv, 0))
+        return;
+
+    path = find_existing_file(argv_idx(argv, 0));
+    if(path) {
         gchar *file_contents = NULL;
 
-        GIOChannel *chan = g_io_channel_new_file(path, "r", NULL);
+        GIOChannel *chan = g_io_channel_new_file(path, "r", &error);
         if (chan) {
             gsize len;
             g_io_channel_read_to_end(chan, &file_contents, &len, NULL);
             g_io_channel_unref (chan);
+
+            if (uzbl.state.verbose)
+                printf ("External JavaScript file %s loaded\n", argv_idx(argv, 0));
+
+            gchar *js = str_replace("%s", argv_idx (argv, 1) ? argv_idx (argv, 1) : "", file_contents);
+            g_free (file_contents);
+
+            eval_js (web_view, js, result, path);
+            g_free (js);
+        } else {
+            g_printerr ("Failed to open External Javascript file %s: %s\n", path, error->message);
+            g_error_free (error);
         }
-
-        if (uzbl.state.verbose)
-            printf ("External JavaScript file %s loaded\n", argv_idx(argv, 0));
-
-        gchar *js = str_replace("%s", argv_idx (argv, 1) ? argv_idx (argv, 1) : "", file_contents);
-        g_free (file_contents);
-
-        eval_js (web_view, js, result, path);
-        g_free (js);
         g_free(path);
+    } else {
+        g_printerr ("External JavaScript file %s not found\n", argv_idx(argv, 0));
     }
 }
 
@@ -1040,12 +1049,16 @@ split_quoted(const gchar* src, const gboolean unquote) {
 void
 spawn(GArray *argv, GString *result, gboolean exec) {
     gchar *path = NULL;
-    gchar *arg_car = argv_idx(argv, 0);
-    const gchar **arg_cdr = &g_array_index(argv, const gchar *, 1);
 
-    if (arg_car && (path = find_existing_file(arg_car))) {
+    if (!argv_idx(argv, 0))
+        return;
+
+    const gchar **args = &g_array_index(argv, const gchar *, 1);
+
+    path = find_existing_file(argv_idx(argv, 0));
+    if(path) {
         gchar *r = NULL;
-        run_command(path, arg_cdr, result != NULL, result ? &r : NULL);
+        run_command(path, args, result != NULL, result ? &r : NULL);
         if(result) {
             g_string_assign(result, r);
             // run each line of output from the program as a command
@@ -1061,6 +1074,8 @@ spawn(GArray *argv, GString *result, gboolean exec) {
         }
         g_free(r);
         g_free(path);
+    } else {
+        g_printerr ("Failed to spawn child process: %s not found\n", argv_idx(argv, 0));
     }
 }
 
