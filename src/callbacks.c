@@ -346,36 +346,26 @@ toggle_status_cb (WebKitWebView* page, GArray *argv, GString *result) {
 }
 
 void
-link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data) {
-    (void) page;
-    (void) title;
-    (void) data;
+link_hover_cb (WebKitWebView *page, const gchar *title, const gchar *link, gpointer data) {
+    (void) page; (void) title; (void) data;
     State *s = &uzbl.state;
 
-    if(s->selected_url) {
-        if(s->last_selected_url)
-            g_free(s->last_selected_url);
-        s->last_selected_url = g_strdup(s->selected_url);
-    }
-    else {
-        if(s->last_selected_url) g_free(s->last_selected_url);
-        s->last_selected_url = NULL;
-    }
+    if(s->last_selected_url)
+        g_free(s->last_selected_url);
 
-    g_free(s->selected_url);
-    s->selected_url = NULL;
+    if(s->selected_url) {
+        s->last_selected_url = g_strdup(s->selected_url);
+        g_free(s->selected_url);
+        s->selected_url = NULL;
+    } else
+        s->last_selected_url = NULL;
+
+    if(s->last_selected_url && g_strcmp0(link, s->last_selected_url))
+        send_event(LINK_UNHOVER, NULL, TYPE_STR, s->last_selected_url, NULL);
 
     if (link) {
         s->selected_url = g_strdup(link);
-
-        if(s->last_selected_url &&
-           g_strcmp0(s->selected_url, s->last_selected_url))
-            send_event(LINK_UNHOVER, NULL, TYPE_STR, s->last_selected_url, NULL);
-
-        send_event(LINK_HOVER, NULL, TYPE_STR, s->selected_url, NULL);
-    }
-    else if(s->last_selected_url) {
-            send_event(LINK_UNHOVER, NULL, TYPE_STR, s->last_selected_url, NULL);
+        send_event(LINK_HOVER,   NULL, TYPE_STR, s->selected_url, NULL);
     }
 
     update_title();
