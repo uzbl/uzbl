@@ -1,20 +1,18 @@
 #!/bin/sh
-# script to determine git hash of current source tree
+# script to determine git hash and latest tag of current source tree
 
-# set a variable when running `git --archive <hash/tag>` (this is what github does)
+# set a variable when running `git archive <hash/tag>` (this is what github does)
 # alternatively, you could also git get-tar-commit-id < tarball (but that's a bit dirtier)
-FROM_ARCHIVE=$Format:%H$
+
+# the `%` expansions possible here are described in `man git-log`
+FROM_ARCHIVE=$Format:%h$
 
 # ... but try to use whatever git tells us if there is a .git folder
 if [ -d .git -a -r .git ]
 then
-	hash=$(git log 2>/dev/null | head -n1 2>/dev/null | sed "s/.* //" 2>/dev/null)
-fi
-
-if [ x"$hash" != x ]
-then
-	echo $hash
-elif [ "$FROM_ARCHIVE" != ':%H$' ]
+	hash=$(git describe --tags)
+  echo $hash
+elif [ "$FROM_ARCHIVE" != ':%h$' ]
 then
 	echo $FROM_ARCHIVE
 else
