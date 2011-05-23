@@ -135,19 +135,19 @@ uzbl.follow.generateHint = function(doc, el, label, top, left) {
 // but at least set the href of the link. (needs some improvements)
 uzbl.follow.clickElem = function(item) {
     if(!item) return;
-    var name = item.tagName;
 
-    if (name == 'INPUT') {
-        var type = item.getAttribute('type').toUpperCase();
-        if (type == 'TEXT' || type == 'FILE' || type == 'PASSWORD') {
+    if (item instanceof HTMLInputElement) {
+        var type = item.type;
+        if (type == 'text' || type == 'file' || type == 'password') {
             item.focus();
             item.select();
             return "XXXEMIT_FORM_ACTIVEXXX";
         }
         // otherwise fall through to a simulated mouseclick.
-    } else if (name == 'TEXTAREA' || name == 'SELECT') {
+    } else if (item instanceof HTMLTextAreaElement || item instanceof HTMLSelectElement) {
         item.focus();
-        item.select();
+        if(typeof item.select != 'undefined')
+            item.select();
         return "XXXEMIT_FORM_ACTIVEXXX";
     }
 
