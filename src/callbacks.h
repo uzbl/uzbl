@@ -136,9 +136,6 @@ cmd_scrollbars_visibility();
 void
 cmd_load_start();
 
-WebKitWebSettings*
-view_settings();
-
 void
 toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result);
 

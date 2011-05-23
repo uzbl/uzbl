@@ -190,61 +190,25 @@ cmd_http_debug() {
             SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
 }
 
-WebKitWebSettings*
+GObject*
 view_settings() {
-    return webkit_web_view_get_settings(uzbl.gui.web_view);
+    return G_OBJECT(webkit_web_view_get_settings(uzbl.gui.web_view));
 }
 
 void
 cmd_font_size() {
-    WebKitWebSettings *ws = view_settings();
+    GObject *ws = view_settings();
     if (uzbl.behave.font_size > 0) {
-        g_object_set (G_OBJECT(ws), "default-font-size", uzbl.behave.font_size, NULL);
+        g_object_set (ws, "default-font-size", uzbl.behave.font_size, NULL);
     }
 
     if (uzbl.behave.monospace_size > 0) {
-        g_object_set (G_OBJECT(ws), "default-monospace-font-size",
+        g_object_set (ws, "default-monospace-font-size",
                       uzbl.behave.monospace_size, NULL);
     } else {
-        g_object_set (G_OBJECT(ws), "default-monospace-font-size",
+        g_object_set (ws, "default-monospace-font-size",
                       uzbl.behave.font_size, NULL);
     }
-}
-
-void
-cmd_default_font_family() {
-    g_object_set (G_OBJECT(view_settings()), "default-font-family",
-            uzbl.behave.default_font_family, NULL);
-}
-
-void
-cmd_monospace_font_family() {
-    g_object_set (G_OBJECT(view_settings()), "monospace-font-family",
-            uzbl.behave.monospace_font_family, NULL);
-}
-
-void
-cmd_sans_serif_font_family() {
-    g_object_set (G_OBJECT(view_settings()), "sans_serif-font-family",
-            uzbl.behave.sans_serif_font_family, NULL);
-}
-
-void
-cmd_serif_font_family() {
-    g_object_set (G_OBJECT(view_settings()), "serif-font-family",
-            uzbl.behave.serif_font_family, NULL);
-}
-
-void
-cmd_cursive_font_family() {
-    g_object_set (G_OBJECT(view_settings()), "cursive-font-family",
-            uzbl.behave.cursive_font_family, NULL);
-}
-
-void
-cmd_fantasy_font_family() {
-    g_object_set (G_OBJECT(view_settings()), "fantasy-font-family",
-            uzbl.behave.fantasy_font_family, NULL);
 }
 
 void
@@ -252,90 +216,40 @@ cmd_zoom_level() {
     webkit_web_view_set_zoom_level (uzbl.gui.web_view, uzbl.behave.zoom_level);
 }
 
-void
-cmd_enable_pagecache() {
-    g_object_set (G_OBJECT(view_settings()), "enable-page-cache",
-            uzbl.behave.enable_pagecache, NULL);
+#define EXPOSE_WEBKIT_VIEW_SETTINGS(SYM, STORAGE, PROPERTY) void cmd_##SYM() { \
+  g_object_set(view_settings(), (PROPERTY), (STORAGE), NULL); \
 }
 
-void
-cmd_disable_plugins() {
-    g_object_set (G_OBJECT(view_settings()), "enable-plugins",
-            !uzbl.behave.disable_plugins, NULL);
-}
+EXPOSE_WEBKIT_VIEW_SETTINGS(default_font_family,    uzbl.behave.default_font_family,    "default-font-family")
+EXPOSE_WEBKIT_VIEW_SETTINGS(monospace_font_family,  uzbl.behave.monospace_font_family,  "monospace-font-family")
+EXPOSE_WEBKIT_VIEW_SETTINGS(sans_serif_font_family, uzbl.behave.sans_serif_font_family, "sans_serif-font-family")
+EXPOSE_WEBKIT_VIEW_SETTINGS(serif_font_family,      uzbl.behave.serif_font_family,      "serif-font-family")
+EXPOSE_WEBKIT_VIEW_SETTINGS(cursive_font_family,    uzbl.behave.cursive_font_family,    "cursive-font-family")
+EXPOSE_WEBKIT_VIEW_SETTINGS(fantasy_font_family,    uzbl.behave.fantasy_font_family,    "fantasy-font-family")
 
-void
-cmd_disable_scripts() {
-    g_object_set (G_OBJECT(view_settings()), "enable-scripts",
-            !uzbl.behave.disable_scripts, NULL);
-}
+EXPOSE_WEBKIT_VIEW_SETTINGS(minimum_font_size,      uzbl.behave.minimum_font_size,      "minimum_font_size")
 
-void
-cmd_minimum_font_size() {
-    g_object_set (G_OBJECT(view_settings()), "minimum-font-size",
-            uzbl.behave.minimum_font_size, NULL);
-}
-void
-cmd_autoload_img() {
-    g_object_set (G_OBJECT(view_settings()), "auto-load-images",
-            uzbl.behave.autoload_img, NULL);
-}
+EXPOSE_WEBKIT_VIEW_SETTINGS(disable_plugins, !uzbl.behave.disable_plugins, "enable-plugins")
+EXPOSE_WEBKIT_VIEW_SETTINGS(disable_scripts, !uzbl.behave.disable_scripts, "enable-scripts")
 
+EXPOSE_WEBKIT_VIEW_SETTINGS(javascript_windows, uzbl.behave.javascript_windows, "javascript-can-open-windows-automatically")
 
-void
-cmd_autoshrink_img() {
-    g_object_set (G_OBJECT(view_settings()), "auto-shrink-images",
-            uzbl.behave.autoshrink_img, NULL);
-}
+EXPOSE_WEBKIT_VIEW_SETTINGS(autoload_img,       uzbl.behave.autoload_img,       "auto-load-images")
+EXPOSE_WEBKIT_VIEW_SETTINGS(autoshrink_img,     uzbl.behave.autoshrink_img,     "auto-shrink-images")
 
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_pagecache,   uzbl.behave.enable_pagecache,   "enable-page-cache")
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_private,     uzbl.behave.enable_private,     "enable-private-browsing")
 
-void
-cmd_enable_spellcheck() {
-    g_object_set (G_OBJECT(view_settings()), "enable-spell-checking",
-            uzbl.behave.enable_spellcheck, NULL);
-}
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_spellcheck,  uzbl.behave.enable_spellcheck,  "enable-spell-checking")
+EXPOSE_WEBKIT_VIEW_SETTINGS(resizable_txt,      uzbl.behave.resizable_txt,      "resizable-text-areas")
 
-void
-cmd_enable_private() {
-    g_object_set (G_OBJECT(view_settings()), "enable-private-browsing",
-            uzbl.behave.enable_private, NULL);
-}
+EXPOSE_WEBKIT_VIEW_SETTINGS(style_uri,        uzbl.behave.style_uri,         "user-stylesheet-uri")
+EXPOSE_WEBKIT_VIEW_SETTINGS(print_bg,         uzbl.behave.print_bg,          "print-backgrounds")
+EXPOSE_WEBKIT_VIEW_SETTINGS(enforce_96dpi,    uzbl.behave.enforce_96dpi,     "enforce-96-dpi")
 
-void
-cmd_print_bg() {
-    g_object_set (G_OBJECT(view_settings()), "print-backgrounds",
-            uzbl.behave.print_bg, NULL);
-}
+EXPOSE_WEBKIT_VIEW_SETTINGS(caret_browsing,   uzbl.behave.caret_browsing,    "enable-caret-browsing")
 
-void
-cmd_style_uri() {
-    g_object_set (G_OBJECT(view_settings()), "user-stylesheet-uri",
-            uzbl.behave.style_uri, NULL);
-}
-
-void
-cmd_resizable_txt() {
-    g_object_set (G_OBJECT(view_settings()), "resizable-text-areas",
-            uzbl.behave.resizable_txt, NULL);
-}
-
-void
-cmd_default_encoding() {
-    g_object_set (G_OBJECT(view_settings()), "default-encoding",
-            uzbl.behave.default_encoding, NULL);
-}
-
-void
-cmd_enforce_96dpi() {
-    g_object_set (G_OBJECT(view_settings()), "enforce-96-dpi",
-            uzbl.behave.enforce_96dpi, NULL);
-}
-
-void
-cmd_caret_browsing() {
-    g_object_set (G_OBJECT(view_settings()), "enable-caret-browsing",
-            uzbl.behave.caret_browsing, NULL);
-}
+EXPOSE_WEBKIT_VIEW_SETTINGS(default_encoding, uzbl.behave.default_encoding,  "default-encoding")
 
 void
 set_current_encoding() {
@@ -345,7 +259,6 @@ set_current_encoding() {
 
     webkit_web_view_set_custom_encoding(uzbl.gui.web_view, encoding);
 }
-
 
 void
 cmd_fifo_dir() {
@@ -385,12 +298,6 @@ set_accept_languages() {
         g_object_set(G_OBJECT(uzbl.net.soup_session),
             SOUP_SESSION_ACCEPT_LANGUAGE, uzbl.net.accept_languages, NULL);
     }
-}
-
-void
-cmd_javascript_windows() {
-    g_object_set (G_OBJECT(view_settings()), "javascript-can-open-windows-automatically",
-            uzbl.behave.javascript_windows, NULL);
 }
 
 void
