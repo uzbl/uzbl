@@ -3,6 +3,14 @@
 
 #include <webkit/webkit.h>
 
+typedef struct {
+    gchar*   name;
+    gchar*   cmd;
+    gboolean issep;
+    guint    context;
+    WebKitHitTestResult* hittest;
+} MenuItem;
+
 void    menu_add(WebKitWebView *page, GArray *argv, GString *result);
 void    menu_add_link(WebKitWebView *page, GArray *argv, GString *result);
 void    menu_add_image(WebKitWebView *page, GArray *argv, GString *result);

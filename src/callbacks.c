@@ -8,7 +8,7 @@
 #include "events.h"
 #include "util.h"
 #include "io.h"
-
+#include "menu.h"
 
 void
 set_proxy_url() {

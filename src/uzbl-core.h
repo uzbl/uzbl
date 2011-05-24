@@ -253,18 +253,31 @@ void        update_title(void);
 void        catch_sigterm(int s);
 sigfunc*    setup_signal(int signe, sigfunc *shandler);
 
-gboolean    set_var_value(const gchar *name, gchar *val);
-
 /* Subprocess spawning */
 void        spawn(GArray *argv, GString *result, gboolean exec);
 void        spawn_sh(GArray *argv, GString *result);
 
+/* Configuration variables */
+gboolean    set_var_value(const gchar *name, gchar *val);
+gboolean    valid_name(const gchar* name);
+void        act_dump_config();
+void        act_dump_config_as_events();
+void        dump_var_hash(gpointer k, gpointer v, gpointer ud);
+void        dump_key_hash(gpointer k, gpointer v, gpointer ud);
+void        dump_config();
+void        dump_config_as_events();
+
 /* Running commands */
+gchar*      expand(const char* s, guint recurse);
 gboolean    run_command(const gchar *command, const gchar **args, const gboolean sync,
                 char **output_stdout);
 void        run_command_file(const gchar *path);
 void        parse_command(const char *cmd, const char *param, GString *result);
 void        parse_cmd_line(const char *ctl_line, GString *result);
+const CommandInfo *
+            parse_command_parts(const gchar *line, GArray *a);
+void        parse_command_arguments(const gchar *p, GArray *a, gboolean no_split);
+void        run_parsed_command(const CommandInfo *c, GArray *a, GString *result);
 
 /* Keyboard events functions */
 gboolean    key_press_cb(GtkWidget* window, GdkEventKey* event);
@@ -276,7 +289,6 @@ void        create_scrolled_win();
 GtkWidget*  create_mainbar();
 GtkWidget*  create_window();
 GtkPlug*    create_plug();
-void        run_handler(const gchar *act, const gchar *args);
 void        settings_init();
 
 /* Search functions */
@@ -291,38 +303,15 @@ void        handle_authentication (SoupSession *session,
                             SoupAuth    *auth,
                             gboolean     retrying,
                             gpointer     user_data);
-gboolean    valid_name(const gchar* name);
-void        act_dump_config();
-void        act_dump_config_as_events();
-void        dump_var_hash(gpointer k, gpointer v, gpointer ud);
-void        dump_key_hash(gpointer k, gpointer v, gpointer ud);
-void        dump_config();
-void        dump_config_as_events();
 
-void        retrieve_geometry();
 void        init_connect_socket();
 gboolean    remove_socket_from_array(GIOChannel *chan);
+
+/* Window */
+void        retrieve_geometry();
 void        scroll(GtkAdjustment* bar, gchar *amount_str);
-
 gint        get_click_context();
-gchar*      expand(const char* s, guint recurse);
 
-const CommandInfo *
-parse_command_parts(const gchar *line, GArray *a);
-
-void
-parse_command_arguments(const gchar *p, GArray *a, gboolean no_split);
-
-void
-run_parsed_command(const CommandInfo *c, GArray *a, GString *result);
-
-typedef struct {
-    gchar*   name;
-    gchar*   cmd;
-    gboolean issep;
-    guint    context;
-    WebKitHitTestResult* hittest;
-} MenuItem;
 
 #endif
 /* vi: set et ts=4: */
