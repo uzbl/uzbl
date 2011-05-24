@@ -137,12 +137,6 @@ void
 cmd_load_start();
 
 void
-toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result);
-
-void
-toggle_status_cb (WebKitWebView* page, GArray *argv, GString *result);
-
-void
 link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data);
 
 void

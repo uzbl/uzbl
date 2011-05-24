@@ -48,6 +48,7 @@
 #endif
 
 #include "cookie-jar.h"
+#include "commands.h"
 
 #define LENGTH(x) (sizeof x / sizeof x[0])
 
@@ -253,20 +254,15 @@ void        catch_sigterm(int s);
 sigfunc*    setup_signal(int signe, sigfunc *shandler);
 
 gboolean    set_var_value(const gchar *name, gchar *val);
-void        print(WebKitWebView *page, GArray *argv, GString *result);
-void        commands_hash(void);
-void        load_uri(WebKitWebView * web_view, GArray *argv, GString *result);
-void        chain(WebKitWebView *page, GArray *argv, GString *result);
-void        close_uzbl(WebKitWebView *page, GArray *argv, GString *result);
+
+/* Subprocess spawning */
+void        spawn(GArray *argv, GString *result, gboolean exec);
+void        spawn_sh(GArray *argv, GString *result);
 
 /* Running commands */
 gboolean    run_command(const gchar *command, const gchar **args, const gboolean sync,
                 char **output_stdout);
-void        spawn_async(WebKitWebView *web_view, GArray *argv, GString *result);
-void        spawn_sh_async(WebKitWebView *web_view, GArray *argv, GString *result);
-void        spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result);
-void        spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result);
-void        spawn_sync_exec(WebKitWebView *web_view, GArray *argv, GString *result);
+void        run_command_file(const gchar *path);
 void        parse_command(const char *cmd, const char *param, GString *result);
 void        parse_cmd_line(const char *ctl_line, GString *result);
 
@@ -285,14 +281,8 @@ void        settings_init();
 
 /* Search functions */
 void        search_text (WebKitWebView *page, GArray *argv, const gboolean forward);
-void        search_forward_text (WebKitWebView *page, GArray *argv, GString *result);
-void        search_reverse_text (WebKitWebView *page, GArray *argv, GString *result);
-void        search_clear(WebKitWebView *page, GArray *argv, GString *result);
-void        dehilight (WebKitWebView *page, GArray *argv, GString *result);
 
 /* Javascript functions */
-void        run_js (WebKitWebView * web_view, GArray *argv, GString *result);
-void        run_external_js (WebKitWebView * web_view, GArray *argv, GString *result);
 void        eval_js(WebKitWebView *web_view, const gchar *script, GString *result, const gchar *script_file);
 
 /* Network functions */
@@ -302,7 +292,6 @@ void        handle_authentication (SoupSession *session,
                             gboolean     retrying,
                             gpointer     user_data);
 gboolean    valid_name(const gchar* name);
-void        set_var(WebKitWebView *page, GArray *argv, GString *result);
 void        act_dump_config();
 void        act_dump_config_as_events();
 void        dump_var_hash(gpointer k, gpointer v, gpointer ud);
@@ -311,27 +300,12 @@ void        dump_config();
 void        dump_config_as_events();
 
 void        retrieve_geometry();
-void        event(WebKitWebView *page, GArray *argv, GString *result);
 void        init_connect_socket();
 gboolean    remove_socket_from_array(GIOChannel *chan);
+void        scroll(GtkAdjustment* bar, gchar *amount_str);
 
 gint        get_click_context();
-void        hardcopy(WebKitWebView *page, GArray *argv, GString *result);
-void        include(WebKitWebView *page, GArray *argv, GString *result);
-void        show_inspector(WebKitWebView *page, GArray *argv, GString *result);
-void        add_cookie(WebKitWebView *page, GArray *argv, GString *result);
-void        delete_cookie(WebKitWebView *page, GArray *argv, GString *result);
-void        clear_cookies(WebKitWebView *pag, GArray *argv, GString *result);
-void        download(WebKitWebView *pag, GArray *argv, GString *result);
-void        builtins();
-
-typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
-
-typedef struct {
-    const gchar *key;
-    Command      function;
-    gboolean     no_split;
-} CommandInfo;
+gchar*      expand(const char* s, guint recurse);
 
 const CommandInfo *
 parse_command_parts(const gchar *line, GArray *a);

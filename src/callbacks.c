@@ -323,29 +323,6 @@ cmd_set_zoom_type () {
 }
 
 void
-toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result) {
-    (void)argv;
-    (void)result;
-
-    webkit_web_view_set_full_content_zoom (page, !webkit_web_view_get_full_content_zoom (page));
-}
-
-void
-toggle_status_cb (WebKitWebView* page, GArray *argv, GString *result) {
-    (void)page;
-    (void)argv;
-    (void)result;
-
-    if (uzbl.behave.show_status) {
-        gtk_widget_hide(uzbl.gui.mainbar);
-    } else {
-        gtk_widget_show(uzbl.gui.mainbar);
-    }
-    uzbl.behave.show_status = !uzbl.behave.show_status;
-    update_title();
-}
-
-void
 link_hover_cb (WebKitWebView *page, const gchar *title, const gchar *link, gpointer data) {
     (void) page; (void) title; (void) data;
     State *s = &uzbl.state;
