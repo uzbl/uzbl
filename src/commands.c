@@ -366,13 +366,13 @@ search_clear(WebKitWebView *page, GArray *argv, GString *result) {
 void
 search_forward_text (WebKitWebView *page, GArray *argv, GString *result) {
     (void) result;
-    search_text(page, argv, TRUE);
+    search_text(page, argv_idx(argv, 0), TRUE);
 }
 
 void
 search_reverse_text(WebKitWebView *page, GArray *argv, GString *result) {
     (void) result;
-    search_text(page, argv, FALSE);
+    search_text(page, argv_idx(argv, 0), FALSE);
 }
 
 void

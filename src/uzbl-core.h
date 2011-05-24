@@ -280,7 +280,7 @@ void        run_handler(const gchar *act, const gchar *args);
 void        settings_init();
 
 /* Search functions */
-void        search_text (WebKitWebView *page, GArray *argv, const gboolean forward);
+void        search_text (WebKitWebView *page, const gchar *key, const gboolean forward);
 
 /* Javascript functions */
 void        eval_js(WebKitWebView *web_view, const gchar *script, GString *result, const gchar *script_file);

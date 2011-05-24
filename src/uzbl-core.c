@@ -563,16 +563,15 @@ eval_js(WebKitWebView * web_view, const gchar *script, GString *result, const ch
 }
 
 void
-search_text (WebKitWebView *page, GArray *argv, const gboolean forward) {
-    if (argv_idx(argv, 0) && (*argv_idx(argv, 0) != '\0')) {
-        if (g_strcmp0 (uzbl.state.searchtx, argv_idx(argv, 0)) != 0) {
+search_text (WebKitWebView *page, const gchar *key, const gboolean forward) {
+    if (key && (*key != '\0')) {
+        if (g_strcmp0 (uzbl.state.searchtx, key) != 0) {
             webkit_web_view_unmark_text_matches (page);
-            webkit_web_view_mark_text_matches (page, argv_idx(argv, 0), FALSE, 0);
+            webkit_web_view_mark_text_matches (page, key, FALSE, 0);
             g_free (uzbl.state.searchtx);
-            uzbl.state.searchtx = g_strdup(argv_idx(argv, 0));
+            uzbl.state.searchtx = g_strdup (key);
         }
     }
-
 
     if (uzbl.state.searchtx) {
         if (uzbl.state.verbose)
