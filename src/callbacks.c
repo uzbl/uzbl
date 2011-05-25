@@ -9,6 +9,7 @@
 #include "util.h"
 #include "io.h"
 #include "menu.h"
+#include "type.h"
 
 void
 set_proxy_url() {

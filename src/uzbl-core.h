@@ -229,22 +229,6 @@ extern UzblCore uzbl; /* Main Uzbl object */
 
 typedef void sigfunc(int);
 
-/* Uzbl variables */
-enum ptr_type {TYPE_INT = 1, TYPE_STR, TYPE_FLOAT,
-    TYPE_NAME, TYPE_FORMATTEDSTR // used by send_event
-};
-typedef struct {
-    enum ptr_type type;
-    union {
-        int *i;
-        float *f;
-        gchar **s;
-    } ptr;
-    int dump;
-    int writeable;
-    /*@null@*/ void (*func)(void);
-} uzbl_cmdprop;
-
 /* Functions */
 void        clean_up(void);
 void        update_title(void);
@@ -258,12 +242,7 @@ void        spawn(GArray *argv, GString *result, gboolean exec);
 void        spawn_sh(GArray *argv, GString *result);
 
 /* Configuration variables */
-gboolean    set_var_value(const gchar *name, gchar *val);
 gboolean    valid_name(const gchar* name);
-void        dump_var_hash(gpointer k, gpointer v, gpointer ud);
-void        dump_key_hash(gpointer k, gpointer v, gpointer ud);
-void        dump_config();
-void        dump_config_as_events();
 
 /* Running commands */
 gchar*      expand(const char* s, guint recurse);
