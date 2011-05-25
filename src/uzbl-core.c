@@ -472,16 +472,6 @@ run_command_file(const gchar *path) {
 	}
 }
 
-void
-act_dump_config() {
-    dump_config();
-}
-
-void
-act_dump_config_as_events() {
-    dump_config_as_events();
-}
-
 /* Javascript*/
 void
 eval_js(WebKitWebView * web_view, const gchar *script, GString *result, const char *file) {

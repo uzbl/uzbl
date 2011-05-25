@@ -260,8 +260,6 @@ void        spawn_sh(GArray *argv, GString *result);
 /* Configuration variables */
 gboolean    set_var_value(const gchar *name, gchar *val);
 gboolean    valid_name(const gchar* name);
-void        act_dump_config();
-void        act_dump_config_as_events();
 void        dump_var_hash(gpointer k, gpointer v, gpointer ud);
 void        dump_key_hash(gpointer k, gpointer v, gpointer ud);
 void        dump_config();

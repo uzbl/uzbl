@@ -440,3 +440,15 @@ spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void)result;
     spawn_sh(argv, result);
 }
+
+void
+act_dump_config(WebKitWebView *web_view, GArray *argv, GString *result) {
+    (void)web_view; (void) argv; (void)result;
+    dump_config();
+}
+
+void
+act_dump_config_as_events(WebKitWebView *web_view, GArray *argv, GString *result) {
+    (void)web_view; (void) argv; (void)result;
+    dump_config_as_events();
+}
