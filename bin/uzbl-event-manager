@@ -815,8 +815,7 @@ def list_action():
     for plugin in sorted(names.values()):
         print plugin
 
-
-if __name__ == "__main__":
+def make_parser():
     parser = OptionParser('usage: %prog [options] {start|stop|restart|list}')
     add = parser.add_option
 
@@ -862,6 +861,29 @@ if __name__ == "__main__":
         dest='print_events', action="store_false", default=True,
         help="silence the printing of events to stdout")
 
+    return parser
+
+def get_logger(name):
+    handlers = [ch, fh]
+    level = [max(log_level, 10),]
+    logger = logging.getLogger(name)
+    logger.setLevel(level[0])
+    for handler in handlers:
+        logger.addHandler(handler)
+
+    return logger
+
+
+def main():
+    global opts
+    global args
+    global logger
+    global ch
+    global fh
+    global log_level
+
+    parser = make_parser()
+
     (opts, args) = parser.parse_args()
 
     opts.server_socket = expandpath(opts.server_socket)
@@ -897,16 +919,6 @@ if __name__ == "__main__":
 
     # logging.getLogger wrapper which sets the levels and adds the
     # file and console handlers automagically
-    def get_logger(name):
-        handlers = [ch, fh]
-        level = [max(log_level, 10),]
-        logger = logging.getLogger(name)
-        logger.setLevel(level[0])
-        for handler in handlers:
-            logger.addHandler(handler)
-
-        return logger
-
     # Get main logger
     logger = get_logger(SCRIPTNAME)
     logger.info('logging to %r' % opts.log_file)
@@ -987,5 +999,10 @@ if __name__ == "__main__":
     daemon_actions[action]()
 
     logger.debug('process CPU time: %f' % time.clock())
+
+
+if __name__ == "__main__":
+    main()
+
 
 # vi: set et ts=4:
