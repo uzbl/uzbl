@@ -874,6 +874,8 @@ def get_logger(name):
     return logger
 
 
+logger = get_logger(SCRIPTNAME)
+
 
 def main():
     global opts
@@ -920,7 +922,6 @@ def main():
     # logging.getLogger wrapper which sets the levels and adds the
     # file and console handlers automagically
     # Get main logger
-    logger = get_logger(SCRIPTNAME)
     logger.info('logging to %r' % opts.log_file)
 
     plugins = {}
