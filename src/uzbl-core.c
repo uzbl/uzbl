@@ -1537,8 +1537,8 @@ create_window() {
     GtkWidget* window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 
     gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
-    gtk_widget_set_name (window, "Uzbl browser");
-    gtk_window_set_title(GTK_WINDOW(window), "Uzbl browser");
+    gtk_widget_set_name (window, "Uzbl");
+    gtk_window_set_title(GTK_WINDOW(window), "Uzbl");
 
 #if GTK_CHECK_VERSION(3,0,0)
     gtk_window_set_has_resize_grip (GTK_WINDOW (window), FALSE);
