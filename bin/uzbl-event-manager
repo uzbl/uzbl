@@ -874,9 +874,9 @@ def get_logger(name):
     return logger
 
 
+
 def main():
     global opts
-    global args
     global logger
     global ch
     global fh
