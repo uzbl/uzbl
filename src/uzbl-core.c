@@ -1485,7 +1485,6 @@ create_scrolled_win() {
       NULL);
 }
 
-
 GtkWidget*
 create_mainbar() {
     GUI *g = &uzbl.gui;
@@ -1497,6 +1496,10 @@ create_mainbar() {
     gtk_label_set_selectable(GTK_LABEL(g->mainbar_label_left), TRUE);
     gtk_misc_set_alignment (GTK_MISC(g->mainbar_label_left), 0, 0);
     gtk_misc_set_padding (GTK_MISC(g->mainbar_label_left), 2, 2);
+
+    /* wrap the label when it gets too long */
+    /* (otherwise it expands the window, which is not what we want) */
+    gtk_label_set_line_wrap(GTK_LABEL(g->mainbar_label_left), TRUE);
 
     /* create right panel */
     g->mainbar_label_right = gtk_label_new ("");
