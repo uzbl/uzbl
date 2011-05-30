@@ -94,15 +94,6 @@ load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer 
 }
 
 void
-uri_change_cb (WebKitWebView *web_view, GParamSpec param_spec) {
-  (void) param_spec;
-
-  g_free (uzbl.state.uri);
-  g_object_get (web_view, "uri", &uzbl.state.uri, NULL);
-  g_setenv("UZBL_URI", uzbl.state.uri, TRUE);
-}
-
-void
 selection_changed_cb(WebKitWebView *webkitwebview, gpointer ud) {
     (void)ud;
     gchar *tmp;

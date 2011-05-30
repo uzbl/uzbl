@@ -6,6 +6,7 @@
 #define __VARIABLES__
 
 #include <glib.h>
+#include <webkit/webkit.h>
 #include "type.h"
 
 /* Uzbl variables */
@@ -27,6 +28,7 @@ void        variables_hash();
 void        dump_config();
 void        dump_config_as_events();
 
+void        uri_change_cb (WebKitWebView *web_view, GParamSpec param_spec);
 
 void        cmd_load_uri();
 void        cmd_set_status();

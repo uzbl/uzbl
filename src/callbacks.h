@@ -19,9 +19,6 @@ gboolean
 load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer web_err, gpointer ud);
 
 void
-uri_change_cb (WebKitWebView *web_view, GParamSpec param_spec);
-
-void
 selection_changed_cb(WebKitWebView *webkitwebview, gpointer ud);
 
 void
