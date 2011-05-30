@@ -91,7 +91,6 @@ enum { FIFO, SOCKET};
 typedef struct {
     gchar          *fifo_path;
     gchar          *socket_path;
-    GHashTable     *proto_var;  /* stores (key)"variable name" -> (value)"pointer to var */
 
     GPtrArray      *connect_chan;
     GPtrArray      *client_chan;
@@ -195,9 +194,8 @@ typedef struct {
 
     /* command list: (key)name -> (value)Command  */
     GHashTable* commands;
-
-    /* event lookup: (key)event_id -> (value)event_name */
-    GHashTable *event_lookup;
+    /* variables: (key)name -> (value)uzbl_cmdprop */
+    GHashTable     *proto_var;
 } Behaviour;
 
 

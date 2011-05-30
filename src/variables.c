@@ -99,9 +99,9 @@ const struct var_name_to_ptr_t {
 void
 variables_hash() {
     const struct var_name_to_ptr_t *n2v_p = var_name_to_ptr;
-    uzbl.comm.proto_var = g_hash_table_new(g_str_hash, g_str_equal);
+    uzbl.behave.proto_var = g_hash_table_new(g_str_hash, g_str_equal);
     while(n2v_p->name) {
-        g_hash_table_insert(uzbl.comm.proto_var,
+        g_hash_table_insert(uzbl.behave.proto_var,
                 (gpointer) n2v_p->name,
                 (gpointer) &n2v_p->cp);
         n2v_p++;
@@ -146,7 +146,7 @@ set_var_value(const gchar *name, gchar *val) {
 
     g_assert(val != NULL);
 
-    if( (c = g_hash_table_lookup(uzbl.comm.proto_var, name)) ) {
+    if( (c = g_hash_table_lookup(uzbl.behave.proto_var, name)) ) {
         if(!c->writeable) return FALSE;
 
         switch(c->type) {
@@ -186,7 +186,7 @@ set_var_value(const gchar *name, gchar *val) {
         buf = g_strdup(val);
         c->ptr.s = g_malloc(sizeof(char *));
         *c->ptr.s = buf;
-        g_hash_table_insert(uzbl.comm.proto_var,
+        g_hash_table_insert(uzbl.behave.proto_var,
                 g_strdup(name), (gpointer) c);
 
         send_event (VARIABLE_SET, NULL,
@@ -217,7 +217,7 @@ dump_var_hash(gpointer k, gpointer v, gpointer ud) {
 
 void
 dump_config() {
-    g_hash_table_foreach(uzbl.comm.proto_var, dump_var_hash, NULL);
+    g_hash_table_foreach(uzbl.behave.proto_var, dump_var_hash, NULL);
 }
 
 void
@@ -231,7 +231,7 @@ dump_var_hash_as_event(gpointer k, gpointer v, gpointer ud) {
 
 void
 dump_config_as_events() {
-    g_hash_table_foreach(uzbl.comm.proto_var, dump_var_hash_as_event, NULL);
+    g_hash_table_foreach(uzbl.behave.proto_var, dump_var_hash_as_event, NULL);
 }
 
 /* is the given string made up entirely of decimal digits? */

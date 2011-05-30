@@ -147,7 +147,7 @@ expand(const char* s, guint recurse) {
 
                 if(etype == EXP_SIMPLE_VAR ||
                    etype == EXP_BRACED_VAR) {
-                    if( (c = g_hash_table_lookup(uzbl.comm.proto_var, ret)) ) {
+                    if( (c = g_hash_table_lookup(uzbl.behave.proto_var, ret)) ) {
                         if(c->type == TYPE_STR && *c->ptr.s != NULL) {
                             g_string_append(buf, (gchar *)*c->ptr.s);
                         }
