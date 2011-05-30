@@ -310,10 +310,11 @@ cmd_max_conns_host() {
 
 void
 cmd_http_debug() {
-    soup_session_remove_feature
-        (uzbl.net.soup_session, SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
-    /* do we leak if this doesn't get freed? why does it occasionally crash if freed? */
-    /*g_free(uzbl.net.soup_logger);*/
+    if(uzbl.net.soup_logger) {
+        soup_session_remove_feature
+            (uzbl.net.soup_session, SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
+        g_object_unref (uzbl.net.soup_logger);
+    }
 
     uzbl.net.soup_logger = soup_logger_new(uzbl.behave.http_debug, -1);
     soup_session_add_feature(uzbl.net.soup_session,
