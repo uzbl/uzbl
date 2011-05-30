@@ -38,6 +38,7 @@
 #include "menu.h"
 #include "io.h"
 #include "variables.h"
+#include "type.h"
 
 UzblCore uzbl;
 
@@ -90,7 +91,6 @@ get_exp_type(const gchar *s) {
 */
 gchar*
 expand(const char* s, guint recurse) {
-    uzbl_cmdprop* c;
     enum exp_type etype;
     char*         end_simple_var = "\t^°!\"§$%&/()=?'`'+~*'#-:,;@<>| \\{}[]¹²³¼½";
     char*         ret = NULL;
@@ -147,17 +147,8 @@ expand(const char* s, guint recurse) {
 
                 if(etype == EXP_SIMPLE_VAR ||
                    etype == EXP_BRACED_VAR) {
-                    if( (c = g_hash_table_lookup(uzbl.behave.proto_var, ret)) ) {
-                        if(c->type == TYPE_STR && *c->ptr.s != NULL) {
-                            g_string_append(buf, (gchar *)*c->ptr.s);
-                        }
-                        else if(c->type == TYPE_INT) {
-                            g_string_append_printf(buf, "%d", *c->ptr.i);
-                        }
-                        else if(c->type == TYPE_FLOAT) {
-                            g_string_append_printf(buf, "%f", *c->ptr.f);
-                        }
-                    }
+
+                    expand_variable(buf, ret);
 
                     if(etype == EXP_SIMPLE_VAR)
                         s = vend;

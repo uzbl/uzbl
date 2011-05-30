@@ -4,6 +4,7 @@
 #include "events.h"
 #include "io.h"
 #include "util.h"
+#include "type.h"
 
 /* abbreviations to help keep the table's width humane */
 #define PTR_V_STR(var, d, fun) { .ptr.s = &(var), .type = TYPE_STR, .dump = d, .writeable = 1, .func = fun }
@@ -12,6 +13,18 @@
 #define PTR_C_STR(var,    fun) { .ptr.s = &(var), .type = TYPE_STR, .dump = 0, .writeable = 0, .func = fun }
 #define PTR_C_INT(var,    fun) { .ptr.i = (int*)&(var), .type = TYPE_INT, .dump = 0, .writeable = 0, .func = fun }
 #define PTR_C_FLOAT(var,  fun) { .ptr.f = &(var), .type = TYPE_FLOAT, .dump = 0, .writeable = 0, .func = fun }
+
+typedef struct {
+    enum ptr_type type;
+    union {
+        int *i;
+        float *f;
+        gchar **s;
+    } ptr;
+    int dump;
+    int writeable;
+    /*@null@*/ void (*func)(void);
+} uzbl_cmdprop;
 
 const struct var_name_to_ptr_t {
     const char *name;
@@ -135,6 +148,22 @@ send_set_var_event(const char *name, const uzbl_cmdprop *c) {
         break;
     default:
         g_assert_not_reached();
+    }
+}
+
+void
+expand_variable(GString *buf, const gchar *name) {
+    uzbl_cmdprop* c;
+    if((c = g_hash_table_lookup(uzbl.behave.proto_var, name))) {
+        if(c->type == TYPE_STR && *c->ptr.s != NULL) {
+            g_string_append(buf, (gchar *)*c->ptr.s);
+        }
+        else if(c->type == TYPE_INT) {
+            g_string_append_printf(buf, "%d", *c->ptr.i);
+        }
+        else if(c->type == TYPE_FLOAT) {
+            g_string_append_printf(buf, "%f", *c->ptr.f);
+        }
     }
 }
 

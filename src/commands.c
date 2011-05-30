@@ -5,6 +5,7 @@
 #include "menu.h"
 #include "callbacks.h"
 #include "variables.h"
+#include "type.h"
 
 /* -- command to callback/function map for things we cannot attach to any signals */
 CommandInfo cmdlist[] =
