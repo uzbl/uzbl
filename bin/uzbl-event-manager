@@ -65,6 +65,8 @@ CACHE_DIR = os.path.join(xdghome('CACHE', '.cache/'), 'uzbl/')
 # Define some globals.
 SCRIPTNAME = os.path.basename(sys.argv[0])
 
+logger = logging.getLogger(SCRIPTNAME)
+
 def get_exc():
     '''Format `format_exc` for logging.'''
     return "\n%s" % format_exc().rstrip()
@@ -815,6 +817,7 @@ def list_action():
     for plugin in sorted(names.values()):
         print plugin
 
+
 def make_parser():
     parser = OptionParser('usage: %prog [options] {start|stop|restart|list}')
     add = parser.add_option
@@ -832,6 +835,7 @@ def make_parser():
         help='load plugin, loads before plugins in search dirs')
 
     socket_location = os.path.join(CACHE_DIR, 'event_daemon')
+
     add('-s', '--server-socket',
         dest='server_socket', metavar="SOCKET", default=socket_location,
         help='server AF_UNIX socket location')
@@ -863,24 +867,29 @@ def make_parser():
 
     return parser
 
-def get_logger(name):
-    handlers = [ch, fh]
-    level = [max(log_level, 10),]
-    logger = logging.getLogger(name)
-    logger.setLevel(level[0])
-    for handler in handlers:
-        logger.addHandler(handler)
 
-    return logger
+def init_logger():
+    log_level = logging.CRITICAL - opts.verbose*10
+    logger = logging.getLogger()
+    logger.setLevel(max(log_level, 10))
 
+    # Console
+    handler = logging.StreamHandler()
+    handler.setLevel(max(log_level+10, 10))
+    handler.setFormatter(logging.Formatter(
+        '%(name)s: %(levelname)s: %(message)s'))
+    logger.addHandler(handler)
+
+    # Logfile
+    handler = logging.FileHandler(opts.log_file, 'w', 'utf-8', 1)
+    handler.setLevel(max(log_level, 10))
+    handler.setFormatter(logging.Formatter(
+        '[%(created)f] %(name)s: %(levelname)s: %(message)s'))
+    logger.addHandler(handler)
 
 
 def main():
     global opts
-    global logger
-    global ch
-    global fh
-    global log_level
 
     parser = make_parser()
 
@@ -903,24 +912,7 @@ def main():
         opts.log_file = expandpath(opts.log_file)
 
     # Logging setup
-    log_level = logging.CRITICAL - opts.verbose*10
-
-    # Console logging handler
-    ch = logging.StreamHandler()
-    ch.setLevel(max(log_level+10, 10))
-    ch.setFormatter(logging.Formatter(
-        '%(name)s: %(levelname)s: %(message)s'))
-
-    # File logging handler
-    fh = logging.FileHandler(opts.log_file, 'w', 'utf-8', 1)
-    fh.setLevel(max(log_level, 10))
-    fh.setFormatter(logging.Formatter(
-        '[%(created)f] %(name)s: %(levelname)s: %(message)s'))
-
-    # logging.getLogger wrapper which sets the levels and adds the
-    # file and console handlers automagically
-    # Get main logger
-    logger = get_logger(SCRIPTNAME)
+    init_logger()
     logger.info('logging to %r' % opts.log_file)
 
     plugins = {}
