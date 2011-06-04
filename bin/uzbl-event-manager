@@ -30,18 +30,18 @@ import atexit
 import imp
 import logging
 import os
-import socket
 import sys
 import time
 import weakref
 import re
+import errno
 from collections import defaultdict
 from functools import partial
 from glob import glob
 from itertools import count
 from optparse import OptionParser
 from select import select
-from signal import signal, SIGTERM, SIGINT
+from signal import signal, SIGTERM, SIGINT, SIGKILL
 from socket import socket, AF_UNIX, SOCK_STREAM
 from traceback import format_exc
 
