@@ -189,7 +189,7 @@ class Plugin(object):
         self.name = name
         self.path = path
         self.plugin = plugin
-        self.logger = get_logger('plugin.%s' % name)
+        self.logger = logging.getLogger('plugin.%s' % name)
 
         # Weakrefs to all handlers created by this plugin
         self.handlers = set([])
@@ -326,7 +326,7 @@ class Uzbl(object):
         self.instance_start = False
 
         # Use name "unknown" until name is discovered.
-        self.logger = get_logger('uzbl-instance[]')
+        self.logger = logging.getLogger('uzbl-instance[]')
 
         # Track plugin event handlers and exported functions.
         self.exports = {}
@@ -442,7 +442,7 @@ class Uzbl(object):
         assert name and event, 'event string missing elements'
         if not self.name:
             self.name = name
-            self.logger = get_logger('uzbl-instance%s' % name)
+            self.logger = logging.getLogger('uzbl-instance%s' % name)
             self.logger.info('found instance name %r' % name)
 
         assert self.name == name, 'instance name mismatch'
