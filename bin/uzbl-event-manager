@@ -315,6 +315,7 @@ class Uzbl(object):
         self.opts = opts
         self.parent = parent
         self.child_socket = child_socket
+        self.child_buffer = []
         self.time = time.time()
         self.pid = None
         self.name = None
@@ -371,7 +372,27 @@ class Uzbl(object):
         if opts.print_events:
             print ascii(u'%s<-- %s' % ('  ' * self._depth, msg))
 
-        self.child_socket.send(ascii("%s\n" % msg))
+        self.child_buffer.append(ascii("%s\n" % msg))
+
+    def do_send(self):
+        data = ''.join(self.child_buffer)
+        try:
+            bsent = self.child_socket.send(data)
+        except socket.error as e:
+            if e.errno in (errno.EAGAIN, errno.EINTR):
+                self.child_buffer = [data]
+                return
+            else:
+                self.logger.error(get_exc())
+                return self.close()
+        else:
+            if bsent == 0:
+                self.logger.debug('write end of connection closed')
+                self.close()
+            elif bsent < len(data):
+                self.child_buffer = [ data[bsent:] ]
+            else:
+                del self.child_buffer[:]
 
 
     def read(self):
@@ -607,15 +628,20 @@ class UzblEventDaemon(object):
 
         while (self.uzbls or not connections) or (not opts.auto_close):
             socks = [self.server_socket] + self.uzbls.keys()
-            reads, _, errors = select(socks, [], socks, 1)
+            wsocks = [k for k, v in self.uzbls.items() if v.child_buffer]
+            reads, writes, errors = select(socks, wsocks, socks, 1)
 
             if self.server_socket in reads:
                 reads.remove(self.server_socket)
 
                 # Accept connection and create uzbl instance.
                 child_socket = self.server_socket.accept()[0]
+                child_socket.setblocking(False)
                 self.uzbls[child_socket] = Uzbl(self, child_socket)
                 connections += 1
+
+            for uzbl in [self.uzbls[s] for s in writes]:
+                uzbl.do_send()
 
             for uzbl in [self.uzbls[s] for s in reads]:
                 uzbl.read()
@@ -815,8 +841,7 @@ def list_action():
     for plugin in sorted(names.values()):
         print plugin
 
-
-if __name__ == "__main__":
+def make_parser():
     parser = OptionParser('usage: %prog [options] {start|stop|restart|list}')
     add = parser.add_option
 
@@ -862,6 +887,29 @@ if __name__ == "__main__":
         dest='print_events', action="store_false", default=True,
         help="silence the printing of events to stdout")
 
+    return parser
+
+def get_logger(name):
+    handlers = [ch, fh]
+    level = [max(log_level, 10),]
+    logger = logging.getLogger(name)
+    logger.setLevel(level[0])
+    for handler in handlers:
+        logger.addHandler(handler)
+
+    return logger
+
+
+
+def main():
+    global opts
+    global logger
+    global ch
+    global fh
+    global log_level
+
+    parser = make_parser()
+
     (opts, args) = parser.parse_args()
 
     opts.server_socket = expandpath(opts.server_socket)
@@ -897,16 +945,6 @@ if __name__ == "__main__":
 
     # logging.getLogger wrapper which sets the levels and adds the
     # file and console handlers automagically
-    def get_logger(name):
-        handlers = [ch, fh]
-        level = [max(log_level, 10),]
-        logger = logging.getLogger(name)
-        logger.setLevel(level[0])
-        for handler in handlers:
-            logger.addHandler(handler)
-
-        return logger
-
     # Get main logger
     logger = get_logger(SCRIPTNAME)
     logger.info('logging to %r' % opts.log_file)
@@ -987,5 +1025,10 @@ if __name__ == "__main__":
     daemon_actions[action]()
 
     logger.debug('process CPU time: %f' % time.clock())
+
+
+if __name__ == "__main__":
+    main()
+
 
 # vi: set et ts=4:
