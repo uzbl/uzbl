@@ -6,6 +6,7 @@
 #include "io.h"
 #include "util.h"
 #include "uzbl-core.h"
+#include "type.h"
 
 /*@null@*/ gchar*
 build_stream_name(int type, const gchar* dir) {

@@ -6,8 +6,7 @@
 #include "uzbl-core.h"
 #include "events.h"
 #include "util.h"
-
-UzblCore uzbl;
+#include "type.h"
 
 /* Event id to name mapping
  * Event names must be in the same
