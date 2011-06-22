@@ -6,14 +6,17 @@
 
 which zenity >/dev/null 2>&1 || exit 2
 
-# Escape all special characters in sed
-uri_sanitized="$( echo "$UZBL_URI" | sed 's/\(\/\|\\\|&\)/\\&/g' )"
-oldtags="$( grep "^$UZBL_URI" "$UZBL_BOOKMARKS_FILE" | sed -n 's/^'$uri_sanitized' //p' )"
+# Check if URL exists in Bookmarks
+if grep "^$UZBL_URI" "$UZBL_BOOKMARKS_FILE"; then
 
-if [ "${PIPESTATUS[0]}" == 0 ]; then
+    # Escape all special characters in sed and then filter tags
+    oldtags="$( echo "$UZBL_URI" | sed -e 's/\(\/\|\\\|&\)/\\&/g' -n -e 's/^'$uri_sanitized' //p' )"
+
     zenity --title "Replace Bookmark" --question --text="A bookmark for this website already exists with tags: $oldtags. \
 \nWould you like to replace existing bookmark with this one\?"
+
     [ "$?" -eq 0 ] || exit 1
+
     grep -v "^$UZBL_URI" "$UZBL_BOOKMARKS_FILE" > bookmarks.tmp
     mv bookmarks.tmp "$UZBL_BOOKMARKS_FILE" 
     rm bookmarks.tmp
