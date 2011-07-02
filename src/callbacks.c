@@ -80,6 +80,12 @@ set_icon() {
 }
 
 void
+set_window_role() {
+    if (uzbl.gui.main_window)
+        gtk_window_set_role(GTK_WINDOW (uzbl.gui.main_window), uzbl.gui.window_role);
+}
+
+void
 cmd_set_geometry() {
     int ret=0, x=0, y=0;
     unsigned int w=0, h=0;
