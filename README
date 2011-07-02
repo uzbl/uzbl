@@ -297,6 +297,8 @@ file).
   expanded).
 * `title_format_short`: titlebar string when statusbar shown (will be expanded).
 * `icon`: path to icon for Gtk.
+* `window_role`: Window role string. By default there is no role. This string
+  is only used by some advanced window managers.
 * `forward_keys`: Whether `uzbl-core` should send key events to the webkit view.
 * `cookie_handler`: Handler called when the page requests a cookie to be
   retrieved or set. Appends the following arguments to the standard handler
@@ -616,7 +618,7 @@ The EM allows:
 * Many fine-grained events (`hover_over_link`, `key_press`, `key_release`,..)
 * See example `uzbl-event-manager`.
 
-**Note**: Cookie events are sent in addition to (optionally) being handled by 
+**Note**: Cookie events are sent in addition to (optionally) being handled by
   the cookie handler (set by the cookie_handler var). If using a handler it will
   take precedence before the internal state configured by (add|delete)_cookie
   commands.
