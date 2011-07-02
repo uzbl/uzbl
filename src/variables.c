@@ -505,11 +505,11 @@ cmd_set_geometry() {
 
 void
 cmd_set_status() {
-    if (!uzbl.behave.show_status) {
-        gtk_widget_hide(uzbl.gui.mainbar);
-    } else {
-        gtk_widget_show(uzbl.gui.mainbar);
-    }
+    if (!uzbl.behave.show_status)
+        gtk_widget_hide(uzbl.gui.status_bar);
+    else
+        gtk_widget_show(uzbl.gui.status_bar);
+
     update_title();
 }
 

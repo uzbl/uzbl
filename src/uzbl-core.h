@@ -49,6 +49,7 @@
 
 #include "cookie-jar.h"
 #include "commands.h"
+#include "status-bar.h"
 
 #define LENGTH(x) (sizeof x / sizeof x[0])
 
@@ -63,9 +64,7 @@ typedef struct {
     GtkWidget*     vbox;
 
     /* Mainbar */
-    GtkWidget*     mainbar;
-    GtkWidget*     mainbar_label_left;
-    GtkWidget*     mainbar_label_right;
+    GtkWidget*     status_bar;
 
     /* Scrolling */
     GtkAdjustment* bar_v;     /* Information about document length */

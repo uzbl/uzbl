@@ -710,27 +710,27 @@ parse_command(const char *cmd, const char *params, GString *result) {
 
 void
 move_statusbar() {
-    if (!uzbl.gui.scrolled_win && !uzbl.gui.mainbar)
+    if (!uzbl.gui.scrolled_win && !uzbl.gui.status_bar)
         return;
 
     g_object_ref(uzbl.gui.scrolled_win);
-    g_object_ref(uzbl.gui.mainbar);
+    g_object_ref(uzbl.gui.status_bar);
     gtk_container_remove(GTK_CONTAINER(uzbl.gui.vbox), uzbl.gui.scrolled_win);
-    gtk_container_remove(GTK_CONTAINER(uzbl.gui.vbox), uzbl.gui.mainbar);
+    gtk_container_remove(GTK_CONTAINER(uzbl.gui.vbox), uzbl.gui.status_bar);
 
     if(uzbl.behave.status_top) {
-        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.mainbar, FALSE, TRUE, 0);
-        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
+        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.status_bar,   FALSE, TRUE, 0);
+        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE,  TRUE, 0);
+    } else {
+        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE,  TRUE, 0);
+        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.status_bar,   FALSE, TRUE, 0);
     }
-    else {
-        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
-        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.mainbar, FALSE, TRUE, 0);
-    }
+
     g_object_unref(uzbl.gui.scrolled_win);
-    g_object_unref(uzbl.gui.mainbar);
+    g_object_unref(uzbl.gui.status_bar);
+
     if (!uzbl.state.plug_mode)
         gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
-    return;
 }
 
 gboolean
@@ -769,19 +769,13 @@ update_title(void) {
     if (b->show_status) {
         title_format = b->title_format_short;
 
-        /* Left side */
-        if (b->status_format && GTK_IS_LABEL(uzbl.gui.mainbar_label_left)) {
-            gchar *parsed = expand(b->status_format, 0);
-            gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label_left), parsed);
-            g_free(parsed);
-        }
+        gchar *parsed = expand(b->status_format, 0);
+        uzbl_status_bar_update_left(uzbl.gui.status_bar, parsed);
+        g_free(parsed);
 
-        /* Right side */
-        if (b->status_format_right && GTK_IS_LABEL(uzbl.gui.mainbar_label_right)) {
-            gchar *parsed = expand(b->status_format_right, 0);
-            gtk_label_set_markup(GTK_LABEL(uzbl.gui.mainbar_label_right), parsed);
-            g_free(parsed);
-        }
+        parsed = expand(b->status_format_right, 0);
+        uzbl_status_bar_update_right(uzbl.gui.status_bar, parsed);
+        g_free(parsed);
     }
 
     /* Update window title */
@@ -845,49 +839,6 @@ create_scrolled_win() {
     g_object_connect (G_OBJECT (wf),
       "signal::scrollbars-policy-changed",            (GCallback)scrollbars_policy_cb,    NULL,
       NULL);
-}
-
-
-GtkWidget*
-create_mainbar() {
-    GUI *g = &uzbl.gui;
-
-    g->mainbar = gtk_hbox_new (FALSE, 0);
-
-    /* create left panel */
-    g->mainbar_label_left = gtk_label_new ("");
-    gtk_label_set_selectable(GTK_LABEL(g->mainbar_label_left), TRUE);
-    gtk_misc_set_alignment (GTK_MISC(g->mainbar_label_left), 0, 0);
-    gtk_misc_set_padding (GTK_MISC(g->mainbar_label_left), 2, 2);
-
-    /* create right panel */
-    g->mainbar_label_right = gtk_label_new ("");
-    gtk_label_set_selectable(GTK_LABEL(g->mainbar_label_right), TRUE);
-    gtk_misc_set_alignment (GTK_MISC(g->mainbar_label_right), 1, 0);
-    gtk_misc_set_padding (GTK_MISC(g->mainbar_label_right), 2, 2);
-    gtk_label_set_ellipsize(GTK_LABEL(g->mainbar_label_right), PANGO_ELLIPSIZE_START);
-
-    /* add the labels to the mainbar */
-    gtk_box_pack_start (GTK_BOX (g->mainbar), g->mainbar_label_left,  FALSE, FALSE, 0);
-    gtk_box_pack_start (GTK_BOX (g->mainbar), g->mainbar_label_right, TRUE,  TRUE,  0);
-
-    /* set up signal handlers */
-    g_object_connect((GObject*)g->mainbar,
-      "signal::key-press-event",                    (GCallback)key_press_cb,    NULL,
-      "signal::key-release-event",                  (GCallback)key_release_cb,  NULL,
-      NULL);
-
-    g_object_connect((GObject*)g->mainbar_label_left,
-      "signal::key-press-event",                    (GCallback)key_press_cb,    NULL,
-      "signal::key-release-event",                  (GCallback)key_release_cb,  NULL,
-      NULL);
-
-    g_object_connect((GObject*)g->mainbar_label_right,
-      "signal::key-press-event",                    (GCallback)key_press_cb,    NULL,
-      "signal::key-release-event",                  (GCallback)key_release_cb,  NULL,
-      NULL);
-
-    return g->mainbar;
 }
 
 
@@ -1071,25 +1022,47 @@ initialize(int argc, char** argv) {
         fprintf(stderr, "uzbl: error hooking %d: %s\n", SIGALRM, strerror(errno));
     event_buffer_timeout(10);
 
-    
     /* HTTP client */
     uzbl.net.soup_session      = webkit_get_default_session();
     uzbl.net.soup_cookie_jar   = uzbl_cookie_jar_new();
 
     soup_session_add_feature(uzbl.net.soup_session, SOUP_SESSION_FEATURE(uzbl.net.soup_cookie_jar));
 
-
     commands_hash();
     variables_hash();
 
     /* GUI */
     gtk_init(&argc, &argv);
-    create_mainbar();
+
+    /* set up the status bar */
+    uzbl.gui.status_bar = uzbl_status_bar_new();
+
+    /* set up signal handlers (it's not great to have this here...) */
+    g_object_connect((GObject*)uzbl.gui.status_bar,
+      "signal::key-press-event",                    (GCallback)key_press_cb,    NULL,
+      "signal::key-release-event",                  (GCallback)key_release_cb,  NULL,
+      NULL);
+
+    /*
+    g_object_connect((GObject*)UZBL_STATUS_BAR(uzbl.gui.status_bar)->label_left,
+      "signal::key-press-event",                    (GCallback)key_press_cb,    NULL,
+      "signal::key-release-event",                  (GCallback)key_release_cb,  NULL,
+      NULL);
+
+    g_object_connect((GObject*)(UZBL_STATUS_BAR(uzbl.gui.status_bar)->label_right),
+      "signal::key-press-event",                    (GCallback)key_press_cb,    NULL,
+      "signal::key-release-event",                  (GCallback)key_release_cb,  NULL,
+      NULL);
+      */
+
+    /* create the main window itself */
     create_scrolled_win();
 
+    /* pack the window and the status bar */
     uzbl.gui.vbox = gtk_vbox_new(FALSE, 0);
+
     gtk_box_pack_start(GTK_BOX(uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(uzbl.gui.vbox), uzbl.gui.mainbar, FALSE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(uzbl.gui.vbox), uzbl.gui.status_bar, FALSE, TRUE, 0);
 }
 
 
@@ -1177,7 +1150,7 @@ main (int argc, char* argv[]) {
 
     /* Update status bar */
     if (!uzbl.behave.show_status)
-        gtk_widget_hide(uzbl.gui.mainbar);
+        gtk_widget_hide(uzbl.gui.status_bar);
     else
         update_title();
 

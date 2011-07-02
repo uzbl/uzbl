@@ -106,13 +106,9 @@ void
 toggle_status (WebKitWebView* page, GArray *argv, GString *result) {
     (void)page; (void)argv; (void)result;
 
-    if (uzbl.behave.show_status) {
-        gtk_widget_hide(uzbl.gui.mainbar);
-    } else {
-        gtk_widget_show(uzbl.gui.mainbar);
-    }
     uzbl.behave.show_status = !uzbl.behave.show_status;
-    update_title();
+
+    cmd_set_status();
 }
 
 /*
