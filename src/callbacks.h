@@ -22,6 +22,9 @@ void
 set_icon();
 
 void
+set_window_role();
+
+void
 move_statusbar();
 
 void

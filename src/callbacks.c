@@ -80,6 +80,12 @@ set_icon() {
 }
 
 void
+set_window_role() {
+    if (uzbl.gui.main_window)
+        gtk_window_set_role(GTK_WINDOW (uzbl.gui.main_window), uzbl.gui.window_role);
+}
+
+void
 cmd_set_geometry() {
     int ret=0, x=0, y=0;
     unsigned int w=0, h=0;
@@ -492,11 +498,20 @@ load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer 
 
 void
 uri_change_cb (WebKitWebView *web_view, GParamSpec param_spec) {
-  (void) param_spec;
+    (void) param_spec;
 
-  g_free (uzbl.state.uri);
-  g_object_get (web_view, "uri", &uzbl.state.uri, NULL);
-  g_setenv("UZBL_URI", uzbl.state.uri, TRUE);
+    g_free (uzbl.state.uri);
+    g_object_get (web_view, "uri", &uzbl.state.uri, NULL);
+    g_setenv("UZBL_URI", uzbl.state.uri, TRUE);
+
+    gdk_property_change(
+        gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)),
+        gdk_atom_intern_static_string("UZBL_URI"),
+        gdk_atom_intern_static_string("STRING"),
+        8,
+        GDK_PROP_MODE_REPLACE,
+        (unsigned char *)uzbl.state.uri,
+        strlen(uzbl.state.uri));
 }
 
 void
