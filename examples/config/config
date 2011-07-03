@@ -265,8 +265,8 @@ set ebind     = @mode_bind global,-insert
 @cbind  n   = search
 @cbind  N   = search_reverse
 
-# Print pages to a printer
-@cbind  <Ctrl>p = hardcopy
+# Print pages to a printer
+@cbind  <Ctrl>p = hardcopy
 
 # Web searching binds
 @cbind  gg<Google:>_         = uri http://www.google.com/search?q=\@<encodeURIComponent(%r)>\@
