@@ -104,6 +104,11 @@ clean:
 	rm -f inspector.o
 	rm -f cookie-jar.o
 	rm -f util.o
+	rm -f commands.o
+	rm -f io.o
+	rm -f menu.o
+	rm -f status-bar.o
+	rm -f variables.o
 	find ./examples/ -name "*.pyc" -delete
 	cd ./tests/; $(MAKE) clean
 	rm -rf ./sandbox/
