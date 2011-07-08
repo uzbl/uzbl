@@ -28,6 +28,7 @@
 # considered a pop back (zero is always urls). This works because it's only 3
 # deep. Four and we'd have to keep track of things.
 
+import glob
 import os
 import re
 import socket
@@ -107,7 +108,20 @@ if __name__ == '__main__':
 
         os.exit(1)
 
-    if os.path.isfile(filepath):
+    if os.path.isdir(filepath):
+        fin = tempfile.TemporaryFile()
+
+        try:
+            fileglob = sys.argv[2]
+        except IndexError:
+            fileglob = '*.pss'
+
+        for sett in glob.glob(os.path.join(filepath, fileglob)):
+            with open(sett, 'r') as sfin:
+                fin.write(sfin.read())
+
+        fin.seek(0)
+    elif os.path.isfile(filepath):
         mode = os.stat(filepath)[stat.ST_MODE]
 
         if mode & stat.S_IEXEC:
