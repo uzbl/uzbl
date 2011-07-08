@@ -107,13 +107,18 @@ if __name__ == '__main__':
 
         os.exit(1)
 
-    mode = os.stat(filepath)[stat.ST_MODE]
+    if os.path.isfile(filepath):
+        mode = os.stat(filepath)[stat.ST_MODE]
 
-    if mode & stat.S_IEXEC:
-        fin = tempfile.TemporaryFile()
-        subprocess.Popen([filepath], stdout=fin).wait()
+        if mode & stat.S_IEXEC:
+            fin = tempfile.TemporaryFile()
+            subprocess.Popen([filepath], stdout=fin).wait()
+        else:
+            fin = open(filepath, 'r')
     else:
-        fin = open(filepath, 'r')
+        print('Error: The given path (%s) is neither a directory nor a file' % filepath)
+
+        os.exit(1)
 
     commands = grep_url(url.hostname, url.path, fin)
 
