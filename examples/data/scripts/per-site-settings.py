@@ -100,7 +100,12 @@ def write_to_socket(commands, sockpath):
 if __name__ == '__main__':
     sockpath = os.environ['UZBL_SOCKET']
     url = urlparse.urlparse(os.environ['UZBL_URI'])
-    filepath = sys.argv[1]
+    try:
+        fileglob = sys.argv[1]
+    except IndexError:
+        print('Error: No file given to read.')
+
+        os.exit(1)
 
     mode = os.stat(filepath)[stat.ST_MODE]
 
