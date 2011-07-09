@@ -59,7 +59,7 @@ def grep_url(url, path, fin):
         raw = line.strip()
 
         indent = len(line) - len(raw) - 1
-        if not indent:
+        if not indent and state:
             # Reset state
             passing = [False, False]
             state = 0
