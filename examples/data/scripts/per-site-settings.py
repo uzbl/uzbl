@@ -102,7 +102,7 @@ if __name__ == '__main__':
     sockpath = os.environ['UZBL_SOCKET']
     url = urlparse.urlparse(os.environ['UZBL_URI'])
     try:
-        fileglob = sys.argv[1]
+        filepath = sys.argv[1]
     except IndexError:
         print('Error: No file given to read.')
 
