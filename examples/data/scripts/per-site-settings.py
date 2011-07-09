@@ -116,7 +116,7 @@ if __name__ == '__main__':
         except IndexError:
             fileglob = '*.pss'
 
-        for sett in glob.glob(os.path.join(filepath, fileglob)):
+        for sett in sorted(glob.glob(os.path.join(filepath, fileglob))):
             with open(sett, 'r') as sfin:
                 fin.write(sfin.read())
 
