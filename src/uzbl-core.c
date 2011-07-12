@@ -714,31 +714,6 @@ parse_command(const char *cmd, const char *params, GString *result) {
     }
 }
 
-void
-move_statusbar() {
-    if (!uzbl.gui.scrolled_win && !uzbl.gui.status_bar)
-        return;
-
-    g_object_ref(uzbl.gui.scrolled_win);
-    g_object_ref(uzbl.gui.status_bar);
-    gtk_container_remove(GTK_CONTAINER(uzbl.gui.vbox), uzbl.gui.scrolled_win);
-    gtk_container_remove(GTK_CONTAINER(uzbl.gui.vbox), uzbl.gui.status_bar);
-
-    if(uzbl.behave.status_top) {
-        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.status_bar,   FALSE, TRUE, 0);
-        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE,  TRUE, 0);
-    } else {
-        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE,  TRUE, 0);
-        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.status_bar,   FALSE, TRUE, 0);
-    }
-
-    g_object_unref(uzbl.gui.scrolled_win);
-    g_object_unref(uzbl.gui.status_bar);
-
-    if (!uzbl.state.plug_mode)
-        gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
-}
-
 gboolean
 valid_name(const gchar* name) {
     char *invalid_chars = "\t^°!\"§$%&/()=?'`'+~*'#-:,;@<>| \\{}[]¹²³¼½";
@@ -1140,7 +1115,7 @@ main (int argc, char* argv[]) {
     /* Check uzbl is in window mode before getting/setting geometry */
     if (uzbl.gui.main_window) {
         if (uzbl.gui.geometry)
-            cmd_set_geometry();
+            set_geometry();
         else
             retrieve_geometry();
     }
