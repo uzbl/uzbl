@@ -6,18 +6,6 @@
 #include "util.h"
 #include "type.h"
 
-typedef struct {
-    enum ptr_type type;
-    union {
-        int *i;
-        float *f;
-        gchar **s;
-    } ptr;
-    int dump;
-    int writeable;
-    /*@null@*/ void (*func)(void);
-} uzbl_cmdprop;
-
 void
 send_set_var_event(const char *name, const uzbl_cmdprop *c) {
     /* check for the variable type */
@@ -180,14 +168,16 @@ uri_change_cb (WebKitWebView *web_view, GParamSpec param_spec) {
     g_object_get (web_view, "uri", &uzbl.state.uri, NULL);
     g_setenv("UZBL_URI", uzbl.state.uri, TRUE);
 
-    gdk_property_change(
-        gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)),
-        gdk_atom_intern_static_string("UZBL_URI"),
-        gdk_atom_intern_static_string("STRING"),
-        8,
-        GDK_PROP_MODE_REPLACE,
-        (unsigned char *)uzbl.state.uri,
-        strlen(uzbl.state.uri));
+    if(GTK_IS_WIDGET(uzbl.gui.main_window)) {
+        gdk_property_change(
+            gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)),
+            gdk_atom_intern_static_string("UZBL_URI"),
+            gdk_atom_intern_static_string("STRING"),
+            8,
+            GDK_PROP_MODE_REPLACE,
+            (unsigned char *)uzbl.state.uri,
+            strlen(uzbl.state.uri));
+    }
 }
 
 void
@@ -236,14 +226,16 @@ cmd_load_uri() {
         soup_uri_free(soup_uri);
     }
 
-    gdk_property_change(
-        gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)),
-        gdk_atom_intern_static_string("UZBL_URI"),
-        gdk_atom_intern_static_string("STRING"),
-        8,
-        GDK_PROP_MODE_REPLACE,
-        (unsigned char *)newuri,
-        strlen(newuri));
+    if(GTK_IS_WIDGET(uzbl.gui.main_window)) {
+        gdk_property_change(
+            gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)),
+            gdk_atom_intern_static_string("UZBL_URI"),
+            gdk_atom_intern_static_string("STRING"),
+            8,
+            GDK_PROP_MODE_REPLACE,
+            (unsigned char *)newuri,
+            strlen(newuri));
+    }
 
     webkit_web_view_load_uri (uzbl.gui.web_view, newuri);
     g_free (newuri);
