@@ -553,12 +553,16 @@ split_quoted(const gchar* src, const gboolean unquote) {
 void
 spawn(GArray *argv, GString *result, gboolean exec) {
     gchar *path = NULL;
-    gchar *arg_car = argv_idx(argv, 0);
-    const gchar **arg_cdr = &g_array_index(argv, const gchar *, 1);
 
-    if (arg_car && (path = find_existing_file(arg_car))) {
+    if (!argv_idx(argv, 0))
+        return;
+
+    const gchar **args = &g_array_index(argv, const gchar *, 1);
+
+    path = find_existing_file(argv_idx(argv, 0));
+    if(path) {
         gchar *r = NULL;
-        run_command(path, arg_cdr, result != NULL, result ? &r : NULL);
+        run_command(path, args, result != NULL, result ? &r : NULL);
         if(result) {
             g_string_assign(result, r);
             // run each line of output from the program as a command
@@ -574,6 +578,8 @@ spawn(GArray *argv, GString *result, gboolean exec) {
         }
         g_free(r);
         g_free(path);
+    } else {
+        g_printerr ("Failed to spawn child process: %s not found\n", argv_idx(argv, 0));
     }
 }
 
