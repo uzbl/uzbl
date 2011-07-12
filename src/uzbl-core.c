@@ -883,7 +883,7 @@ settings_init () {
     State*   s = &uzbl.state;
     Network* n = &uzbl.net;
     int      i;
-    
+
     /* Load default config */
     for (i = 0; default_config[i].command != NULL; i++) {
         parse_cmd_line(default_config[i].command, NULL);
@@ -1082,7 +1082,6 @@ main (int argc, char* argv[]) {
     if (uzbl.state.plug_mode) {
         uzbl.gui.plug = create_plug();
         gtk_container_add (GTK_CONTAINER (uzbl.gui.plug), uzbl.gui.vbox);
-        gtk_widget_show_all (GTK_WIDGET (uzbl.gui.plug));
         /* in xembed mode the window has no unique id and thus
          * socket/fifo names aren't unique either.
          * we use a custom randomizer to create a random id
@@ -1092,12 +1091,13 @@ main (int argc, char* argv[]) {
         srand((unsigned int)tv.tv_sec*tv.tv_usec);
         uzbl.xwin = rand();
     }
-    
+
     /* Windowed mode */
     else {
         uzbl.gui.main_window = create_window();
         gtk_container_add (GTK_CONTAINER (uzbl.gui.main_window), uzbl.gui.vbox);
-        gtk_widget_show_all (uzbl.gui.main_window);
+        /* We need to ensure there is a window, before we can get XID */
+        gtk_widget_realize (GTK_WIDGET (uzbl.gui.main_window));
 
         uzbl.xwin = GDK_WINDOW_XID (gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)));
 
@@ -1170,6 +1170,13 @@ main (int argc, char* argv[]) {
     if (uri_override) {
         set_var_value("uri", uri_override);
         g_free(uri_override);
+    }
+
+    /* Finally show the window */
+    if (uzbl.gui.main_window) {
+        gtk_widget_show_all (uzbl.gui.main_window);
+    } else {
+        gtk_widget_show_all (GTK_WIDGET (uzbl.gui.plug));
     }
 
     /* Verbose feedback */

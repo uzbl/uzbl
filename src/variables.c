@@ -45,6 +45,7 @@ const struct var_name_to_ptr_t {
     { "title_format_long",      PTR_V_STR(uzbl.behave.title_format_long,        1,   NULL)},
     { "title_format_short",     PTR_V_STR(uzbl.behave.title_format_short,       1,   NULL)},
     { "icon",                   PTR_V_STR(uzbl.gui.icon,                        1,   set_icon)},
+    { "window_role",            PTR_V_STR(uzbl.gui.window_role,                 1,   set_window_role)},
     { "forward_keys",           PTR_V_INT(uzbl.behave.forward_keys,             1,   NULL)},
     { "authentication_handler", PTR_V_STR(uzbl.behave.authentication_handler,   1,   set_authentication_handler)},
     { "scheme_handler",         PTR_V_STR(uzbl.behave.scheme_handler,           1,   NULL)},
@@ -277,11 +278,20 @@ view_settings() {
 
 void
 uri_change_cb (WebKitWebView *web_view, GParamSpec param_spec) {
-  (void) param_spec;
+    (void) param_spec;
 
-  g_free (uzbl.state.uri);
-  g_object_get (web_view, "uri", &uzbl.state.uri, NULL);
-  g_setenv("UZBL_URI", uzbl.state.uri, TRUE);
+    g_free (uzbl.state.uri);
+    g_object_get (web_view, "uri", &uzbl.state.uri, NULL);
+    g_setenv("UZBL_URI", uzbl.state.uri, TRUE);
+
+    gdk_property_change(
+        gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)),
+        gdk_atom_intern_static_string("UZBL_URI"),
+        gdk_atom_intern_static_string("STRING"),
+        8,
+        GDK_PROP_MODE_REPLACE,
+        (unsigned char *)uzbl.state.uri,
+        strlen(uzbl.state.uri));
 }
 
 void
@@ -329,6 +339,15 @@ cmd_load_uri() {
 
         soup_uri_free(soup_uri);
     }
+
+    gdk_property_change(
+        gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)),
+        gdk_atom_intern_static_string("UZBL_URI"),
+        gdk_atom_intern_static_string("STRING"),
+        8,
+        GDK_PROP_MODE_REPLACE,
+        (unsigned char *)newuri,
+        strlen(newuri));
 
     webkit_web_view_load_uri (uzbl.gui.web_view, newuri);
     g_free (newuri);
@@ -476,6 +495,12 @@ set_icon() {
     } else {
         g_printerr ("Icon \"%s\" not found. ignoring.\n", uzbl.gui.icon);
     }
+}
+
+void
+set_window_role() {
+    if (uzbl.gui.main_window)
+        gtk_window_set_role(GTK_WINDOW (uzbl.gui.main_window), uzbl.gui.window_role);
 }
 
 void

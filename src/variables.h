@@ -58,6 +58,7 @@ void        cmd_enforce_96dpi();
 void        cmd_inject_html();
 void        cmd_caret_browsing();
 void        cmd_javascript_windows();
+void        set_window_role();
 void        cmd_set_geometry();
 void        cmd_view_source();
 void        cmd_scrollbars_visibility();

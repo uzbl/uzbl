@@ -300,6 +300,7 @@ file).
   expanded).
 * `title_format_short`: titlebar string when statusbar shown (will be expanded).
 * `icon`: path to icon for Gtk.
+* `window_role`: Window role string. By default there is no role.
 * `forward_keys`: Whether `uzbl-core` should send key events to the webkit view.
 * `cookie_handler`: Handler called when the page requests a cookie to be
   retrieved or set. Appends the following arguments to the standard handler
@@ -610,6 +611,21 @@ This script tries to authenticate as user alice with password wonderland once
 and never retries authentication.
 See examples for more sofisticated, interactive authentication handler.
 
+### WINDOW MANAGER INTEGRATION
+
+As mentined before, the contents of the window title can be customized by
+setting the `title_format_short` variable and the `title_format_long` variable
+(see above to figure out when each of them is used). You can also set `icon`
+variable to path of the icon file. Some advanced window managers can also take
+`WM_WINDOW_ROLE` in account, which can be set by modifying `window_role`
+variable.
+
+There is currently no support of updating window icon automatically to site's
+favicon, but there are some scripts for that at wiki pages.
+
+Uzbl sets special X window property UZBL_URI which is always the uri of the
+page loaded into uzbl, except for web inspector windows which has no UZBL_URI.
+
 ### EVENTS
 
 Unlike commands, events are not handled in `uzbl` itself, but are propagated
@@ -626,7 +642,7 @@ The EM allows:
 * Many fine-grained events (`hover_over_link`, `key_press`, `key_release`,..)
 * See example `uzbl-event-manager`.
 
-**Note**: Cookie events are sent in addition to (optionally) being handled by 
+**Note**: Cookie events are sent in addition to (optionally) being handled by
   the cookie handler (set by the cookie_handler var). If using a handler it will
   take precedence before the internal state configured by (add|delete)_cookie
   commands.
