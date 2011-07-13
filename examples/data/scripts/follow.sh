@@ -21,7 +21,7 @@ case "$result" in
 
         case "$uriaction" in
             set)
-                printf 'uri '"$uri"'\n' > "$UZBL_FIFO"
+                printf 'uri '"$uri"'\n' | sed -e 's/@/\\@/' > "$UZBL_FIFO"
                 ;;
             clipboard)
                 printf "$uri" | xclip
