@@ -39,7 +39,10 @@ GenForm ()
 GetOption ()
 {
     DMENU_SCHEME=formfiller
-    DMENU_PROMPT="choose profile"
+
+    # util/dmenu.sh doesn't handle spaces in DMENU_PROMPT. a proper fix will be
+    # tricky.
+    DMENU_PROMPT="choose_profile"
     DMENU_LINES=4
 
     . "$UZBL_UTIL_DIR/dmenu.sh"
