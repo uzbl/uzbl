@@ -17,8 +17,17 @@ Usage:
     <-- print Config changed: selected_uri = http://uzbl.org/
 '''
 
-import sys
 import re
+import fnmatch
+
+def match_args(pattern, args):
+    if len(pattern) > len(args):
+        return False
+    for p, a in zip(pattern, args):
+        if not fnmatch.fnmatch(a, p):
+            return False
+    return True
+
 
 def event_handler(uzbl, *args, **kargs):
     '''This function handles all the events being watched by various
@@ -35,23 +44,24 @@ def event_handler(uzbl, *args, **kargs):
 
     commands = events[event]
     cmd_expand = uzbl.cmd_expand
-    for cmd in commands:
-        cmd = cmd_expand(cmd, args)
-        uzbl.send(cmd)
+    for cmd, pattern in commands.items():
+        if not pattern or match_args(pattern, args):
+            cmd = cmd_expand(cmd, args)
+            uzbl.send(cmd)
 
 
-def on_event(uzbl, event, cmd):
+def on_event(uzbl, event, pattern, cmd):
     '''Add a new event to watch and respond to.'''
 
     event = event.upper()
     events = uzbl.on_events
     if event not in events:
         connect(uzbl, event, event_handler, on_event=event)
-        events[event] = []
+        events[event] = {}
 
     cmds = events[event]
     if cmd not in cmds:
-        cmds.append(cmd)
+        cmds[cmd] = pattern
 
 
 def parse_on_event(uzbl, args):
@@ -62,9 +72,16 @@ def parse_on_event(uzbl, args):
     args = args.strip()
     assert args, 'missing on event arguments'
 
-    (event, command) = (args.split(' ', 1) + ['',])[:2]
+    # split arguments into event name, optional argument pattern and command
+    r = re.match(r'([A-Z_]+)(?:\[(.*)\])? (.*)$', args)
+    event = r.group(1)
+    pattern = r.group(2)
+    command = r.group(3)
+    if pattern:
+        pattern = pattern.split(' ')
+
     assert event and command, 'missing on event command'
-    on_event(uzbl, event, command)
+    on_event(uzbl, event, pattern, command)
 
 
 # plugin init hook
