@@ -1,24 +1,37 @@
 uzbl.formfiller = {
 
+    inputTypeIsText: function(type) {
+        var types = [ 'text', 'password', 'search', 'email', 'url',
+                      'number', 'range', 'color', 'date', 'month',
+                      'week', 'time', 'datetime', 'datetime-local' ];
+
+        for(var i = 0; i < types.length; ++i)
+          if(types[i] == type) return true;
+
+        return false;
+    }
+
+    ,
+
     dump: function() {
         var rv = '';
         var allFrames = new Array(window);
-        for ( f=0; f<window.frames.length; ++f ) {
+
+        for ( var f = 0; f < window.frames.length; ++f ) {
             allFrames.push(window.frames[f]);
         }
-        for ( j=0; j<allFrames.length; ++j ) {
+
+        for ( var j = 0; j < allFrames.length; ++j ) {
             try {
                 var xp_res = allFrames[j].document.evaluate(
                     '//input', allFrames[j].document.documentElement, null, XPathResult.ANY_TYPE,null
                 );
                 var input;
                 while ( input = xp_res.iterateNext() ) {
-                    var type = (input.type?input.type:text);
-                    if ( type == 'text' || type == 'password' || type == 'search' ) {
-                        rv += '%' + escape(input.name) + '(' + type + '):' + input.value + '\n';
-                    }
-                    else if ( type == 'checkbox' || type == 'radio' ) {
-                        rv += '%' + escape(input.name) + '(' + type + '){' + escape(input.value) + '}:' + (input.checked?'1':'0') + '\n';
+                    if ( inputTypeIsText(input.type) ) {
+                        rv += '%' + escape(input.name) + '(' + input.type + '):' + input.value + '\n';
+                    } else if ( input.type == 'checkbox' || input.type == 'radio' ) {
+                        rv += '%' + escape(input.name) + '(' + input.type + '){' + escape(input.value) + '}:' + (input.checked?'1':'0') + '\n';
                     }
                 }
                 xp_res = allFrames[j].document.evaluate(
@@ -39,12 +52,12 @@ uzbl.formfiller = {
     insert: function(fname, ftype, fvalue, fchecked) {
         fname = unescape(fname);
         var allFrames = new Array(window);
-        for ( f=0; f<window.frames.length; ++f ) {
+        for ( var f = 0; f < window.frames.length; ++f ) {
             allFrames.push(window.frames[f]);
         }
-        for ( j=0; j<allFrames.length; ++j ) {
+        for ( var j = 0; j < allFrames.length; ++j ) {
             try {
-                if ( ftype == 'text' || ftype == 'password' || ftype == 'search' || ftype == 'textarea' ) {
+                if ( uzbl.formfiller.inputTypeIsText(ftype) || ftype == 'textarea' ) {
                     allFrames[j].document.getElementsByName(fname)[0].value = fvalue;
                 }
                 else if ( ftype == 'checkbox' ) {
