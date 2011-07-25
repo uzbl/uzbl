@@ -779,13 +779,6 @@ create_scrolled_win() {
 
     g->web_view     = WEBKIT_WEB_VIEW(webkit_web_view_new());
     g->scrolled_win = gtk_scrolled_window_new(NULL, NULL);
-    WebKitWebFrame *wf = webkit_web_view_get_main_frame (g->web_view);
-
-#if !GTK_CHECK_VERSION(3,0,0)
-    /* hide the scrollbars by default */
-    uzbl.gui.scrollbars_visible = 0;
-    cmd_scrollbars_visibility();
-#endif
 
     gtk_container_add(
         GTK_CONTAINER(g->scrolled_win),
@@ -815,10 +808,6 @@ create_scrolled_win() {
       "signal::focus-in-event",                       (GCallback)focus_cb,                NULL,
       "signal::focus-out-event",                      (GCallback)focus_cb,                NULL,
       "signal::window-object-cleared",                (GCallback)window_object_cleared_cb,NULL,
-      NULL);
-
-    g_object_connect (G_OBJECT (wf),
-      "signal::scrollbars-policy-changed",            (GCallback)scrollbars_policy_cb,    NULL,
       NULL);
 }
 

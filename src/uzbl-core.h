@@ -69,7 +69,6 @@ typedef struct {
     /* Scrolling */
     GtkAdjustment* bar_v;     /* Information about document length */
     GtkAdjustment* bar_h;     /* and scrolling position */
-    int            scrollbars_visible;
 
     /* Web page */
     WebKitWebView* web_view;

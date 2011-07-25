@@ -634,12 +634,6 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
     }
 }
 
-gboolean
-scrollbars_policy_cb(WebKitWebView *view) {
-    (void) view;
-    return TRUE;
-}
-
 void
 window_object_cleared_cb(WebKitWebView *webview, WebKitWebFrame *frame,
     JSGlobalContextRef *context, JSObjectRef *object) {

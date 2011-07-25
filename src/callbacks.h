@@ -78,9 +78,6 @@ scroll_vert_cb(GtkAdjustment *adjust, void *w);
 gboolean
 scroll_horiz_cb(GtkAdjustment *adjust, void *w);
 
-gboolean
-scrollbars_policy_cb(WebKitWebView *view);
-
 void
 window_object_cleared_cb(WebKitWebView *webview, WebKitWebFrame *frame,
 	JSGlobalContextRef *context, JSObjectRef *object);

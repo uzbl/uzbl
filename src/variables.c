@@ -500,13 +500,6 @@ set_accept_languages() {
     }
 }
 
-void
-cmd_scrollbars_visibility() {
-    GtkPolicyType policy = uzbl.gui.scrollbars_visible ? GTK_POLICY_AUTOMATIC : GTK_POLICY_NEVER;
-
-    gtk_scrolled_window_set_policy ( GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win), policy, policy );
-}
-
 /* requires webkit >=1.1.14 */
 void
 cmd_view_source() {
@@ -593,10 +586,6 @@ const struct var_name_to_ptr_t {
     { "current_encoding",       PTR_V_STR(uzbl.behave.current_encoding,         1,   set_current_encoding)},
     { "enforce_96_dpi",         PTR_V_INT(uzbl.behave.enforce_96dpi,            1,   cmd_enforce_96dpi)},
     { "caret_browsing",         PTR_V_INT(uzbl.behave.caret_browsing,           1,   cmd_caret_browsing)},
-
-#if !GTK_CHECK_VERSION(3,0,0)
-    { "scrollbars_visible",     PTR_V_INT(uzbl.gui.scrollbars_visible,          1,   cmd_scrollbars_visibility)},
-#endif
 
     /* constants (not dumpable or writeable) */
     { "WEBKIT_MAJOR",           PTR_C_INT(uzbl.info.webkit_major,                    NULL)},
