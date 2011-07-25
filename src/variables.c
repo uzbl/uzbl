@@ -311,8 +311,9 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(autoshrink_img,     uzbl.behave.autoshrink_img,     
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_pagecache,   uzbl.behave.enable_pagecache,   "enable-page-cache")
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_private,     uzbl.behave.enable_private,     "enable-private-browsing")
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_spellcheck,  uzbl.behave.enable_spellcheck,  "enable-spell-checking")
-EXPOSE_WEBKIT_VIEW_SETTINGS(resizable_txt,      uzbl.behave.resizable_txt,      "resizable-text-areas")
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_spellcheck,     uzbl.behave.enable_spellcheck,    "enable-spell-checking")
+EXPOSE_WEBKIT_VIEW_SETTINGS(spellcheck_languages,  uzbl.behave.spellcheck_languages, "spell-checking-languages")
+EXPOSE_WEBKIT_VIEW_SETTINGS(resizable_txt,         uzbl.behave.resizable_txt,        "resizable-text-areas")
 
 EXPOSE_WEBKIT_VIEW_SETTINGS(style_uri,        uzbl.behave.style_uri,         "user-stylesheet-uri")
 EXPOSE_WEBKIT_VIEW_SETTINGS(print_bg,         uzbl.behave.print_bg,          "print-backgrounds")
@@ -578,6 +579,7 @@ const struct var_name_to_ptr_t {
     { "autoload_images",        PTR_V_INT(uzbl.behave.autoload_img,             1,   cmd_autoload_img)},
     { "autoshrink_images",      PTR_V_INT(uzbl.behave.autoshrink_img,           1,   cmd_autoshrink_img)},
     { "enable_spellcheck",      PTR_V_INT(uzbl.behave.enable_spellcheck,        1,   cmd_enable_spellcheck)},
+    { "spellcheck_languages",   PTR_V_STR(uzbl.behave.spellcheck_languages,     1,   cmd_spellcheck_languages)},
     { "enable_private",         PTR_V_INT(uzbl.behave.enable_private,           1,   cmd_enable_private)},
     { "print_backgrounds",      PTR_V_INT(uzbl.behave.print_bg,                 1,   cmd_print_bg)},
     { "stylesheet_uri",         PTR_V_STR(uzbl.behave.style_uri,                1,   cmd_style_uri)},

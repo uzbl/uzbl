@@ -179,6 +179,7 @@ typedef struct {
     guint    autoload_img;
     guint    autoshrink_img;
     guint    enable_spellcheck;
+    gchar*   spellcheck_languages;
     guint    enable_private;
     guint    print_bg;
     gchar*   style_uri;
