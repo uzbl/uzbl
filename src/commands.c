@@ -98,17 +98,18 @@ VIEWFUNC(go_forward)
 
 void
 toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result) {
-    (void)argv; (void)result;
-    webkit_web_view_set_full_content_zoom (page, !webkit_web_view_get_full_content_zoom (page));
+    (void)page; (void)argv; (void)result;
+
+    int current_type = get_zoom_type();
+    set_zoom_type(!current_type);
 }
 
 void
 toggle_status (WebKitWebView* page, GArray *argv, GString *result) {
     (void)page; (void)argv; (void)result;
 
-    uzbl.behave.show_status = !uzbl.behave.show_status;
-
-    set_show_status();
+    int current_status = uzbl.behave.show_status;
+    set_show_status(!current_status);
 }
 
 /*

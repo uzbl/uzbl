@@ -8,6 +8,7 @@
 #include "events.h"
 #include "menu.h"
 #include "type.h"
+#include "variables.h"
 
 void
 link_hover_cb (WebKitWebView *page, const gchar *title, const gchar *link, gpointer data) {
@@ -113,16 +114,15 @@ destroy_cb (GtkWidget* widget, gpointer data) {
 
 gboolean
 configure_event_cb(GtkWidget* window, GdkEventConfigure* event) {
-    (void) window;
-    (void) event;
-    gchar *lastgeo = NULL;
+    (void) window; (void) event;
 
-    lastgeo = g_strdup(uzbl.gui.geometry);
-    retrieve_geometry();
+    gchar *last_geo    = uzbl.gui.geometry;
+    gchar *current_geo = get_geometry();
 
-    if(strcmp(lastgeo, uzbl.gui.geometry))
-        send_event(GEOMETRY_CHANGED, NULL, TYPE_STR, uzbl.gui.geometry, NULL);
-    g_free(lastgeo);
+    if(!last_geo || strcmp(last_geo, current_geo))
+        send_event(GEOMETRY_CHANGED, NULL, TYPE_STR, current_geo, NULL);
+
+    g_free(current_geo);
 
     return FALSE;
 }

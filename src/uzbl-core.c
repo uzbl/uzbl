@@ -926,21 +926,6 @@ void handle_authentication (SoupSession *session, SoupMessage *msg, SoupAuth *au
     }
 }
 
-void
-retrieve_geometry() {
-    int w, h, x, y;
-    GString *buf = g_string_new("");
-
-    gtk_window_get_size(GTK_WINDOW(uzbl.gui.main_window), &w, &h);
-    gtk_window_get_position(GTK_WINDOW(uzbl.gui.main_window), &x, &y);
-
-    g_string_printf(buf, "%dx%d+%d+%d", w, h, x, y);
-
-    if(uzbl.gui.geometry)
-        g_free(uzbl.gui.geometry);
-    uzbl.gui.geometry = g_string_free(buf, FALSE);
-}
-
 /* Set up gtk, gobject, variable defaults and other things that tests and other
  * external applications need to do anyhow */
 void
@@ -1097,11 +1082,10 @@ main (int argc, char* argv[]) {
     builtins();
 
     /* Check uzbl is in window mode before getting/setting geometry */
-    if (uzbl.gui.main_window) {
-        if (uzbl.gui.geometry)
-            set_geometry();
-        else
-            retrieve_geometry();
+    if (uzbl.gui.main_window && uzbl.gui.geometry) {
+        gchar *geometry = g_strdup(uzbl.gui.geometry);
+        set_geometry(geometry);
+        g_free(geometry);
     }
 
     gchar *uri_override = (uzbl.state.uri ? g_strdup(uzbl.state.uri) : NULL);
