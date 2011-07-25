@@ -69,11 +69,7 @@ ParseFields ()
         field = $0
         sub ( /[^:]*:/, "", field )
 
-        if ( parts[2] ~ /^(text|password|search)$/ )
-            printf( "js uzbl.formfiller.insert(\"%s\",\"%s\",\"%s\",0);\n",
-                    parts[1], parts[2], field )
-
-        else if ( parts[2] ~ /^(checkbox|radio)$/ )
+        if ( parts[2] ~ /^(checkbox|radio)$/ )
             printf( "js uzbl.formfiller.insert(\"%s\",\"%s\",\"%s\",%s);\n",
                     parts[1], parts[2], parts[3], field )
 
@@ -89,6 +85,11 @@ ParseFields ()
             printf( "js uzbl.formfiller.insert(\"%s\",\"%s\",\"%s\",0);\n",
                 parts[1], parts[2], field )
         }
+
+        else
+            printf( "js uzbl.formfiller.insert(\"%s\",\"%s\",\"%s\",0);\n",
+                    parts[1], parts[2], field )
+
 
     }'
 }
