@@ -83,7 +83,7 @@ set download_handler    = sync_spawn @scripts_dir/download.sh
 @on_event   LOAD_FINISH    spawn @scripts_dir/history.sh
 
 # Switch to insert mode if a (editable) html form is clicked
-@on_event   FORM_ACTIVE    @set_mode insert
+@on_event   FOCUS_ELEMENT  sh 'if [ "$1" = INPUT -o "$1" = TEXTAREA -o "$1" = SELECT ]; then echo "@set_mode insert" > $UZBL_FIFO; fi' %s
 # Switch to command mode if anything else is clicked
 @on_event   ROOT_ACTIVE    @set_mode command
 
@@ -91,7 +91,7 @@ set download_handler    = sync_spawn @scripts_dir/download.sh
 #@on_event  CONFIG_CHANGED print Config changed: %1 = %2
 
 # Scroll percentage calculation
-@on_event   SCROLL_VERT    set scroll_message = \@<(function(){var p='--';if(%3<=%4){p=(%1/(%3-%4));p=Math.round(10000*p)/100;};return p+'%';})()>\@
+@on_event   SCROLL_VERT    set scroll_message = \@<(function(curr, min, max, size){if(max == size) return '--'; var p=(curr/(max - size)); return Math.round(10000*p)/100;})(%1,%2,%3,%4)>\@%
 
 # === Behaviour and appearance ===============================================
 
@@ -265,8 +265,8 @@ set ebind     = @mode_bind global,-insert
 @cbind  n   = search
 @cbind  N   = search_reverse
 
-# Print pages to a printer
-@cbind  <Ctrl>p = hardcopy
+# Print pages to a printer
+@cbind  <Ctrl>p = hardcopy
 
 # Web searching binds
 @cbind  gg<Google:>_         = uri http://www.google.com/search?q=\@<encodeURIComponent(%r)>\@
@@ -310,7 +310,7 @@ set ebind     = @mode_bind global,-insert
 
 # Yanking & pasting binds
 @cbind  yu  = sh 'echo -n "$UZBL_URI" | xclip'
-@cbind  yU  = sh 'echo -n "$1" | xclip' \@SELECTED_URI
+@cbind  yU  = sh 'echo -n "$1" | xclip' '\@SELECTED_URI'
 @cbind  yy  = sh 'echo -n "$UZBL_TITLE" | xclip'
 
 # Clone current window
@@ -325,9 +325,9 @@ set ebind     = @mode_bind global,-insert
 @bind <Shift><Insert> = sh 'echo "event INJECT_KEYCMD $(xclip -o | sed s/\\\@/%40/g)" > "$UZBL_FIFO"'
 
 # Bookmark inserting binds
-@cbind <Ctrl>b<tags:>_  = sh 'echo `printf "$UZBL_URI %s"` >> "$XDG_DATA_HOME"/uzbl/bookmarks'
+@cbind <Ctrl>m<tags:>_  = sh 'echo "$UZBL_URI $1" >> "$XDG_DATA_HOME"/uzbl/bookmarks' '%s'
 # Or use a script to insert a bookmark.
-@cbind  B  = spawn @scripts_dir/insert_bookmark.sh
+@cbind  M  = spawn @scripts_dir/insert_bookmark.sh
 
 # Bookmark/history loading
 @cbind  U  = spawn @scripts_dir/load_url_from_history.sh
@@ -343,8 +343,10 @@ set follow_hint_keys = 0123456789
 #set follow_hint_keys = qwerty
 #set follow_hint_keys = asdfghjkl;
 #set follow_hint_keys = thsnd-rcgmvwb/;789aefijkopquxyz234
-@cbind  fl*  = spawn @scripts_dir/follow.sh \@< uzbl.follow("\@follow_hint_keys", "%s", 0) >\@
-@cbind  Fl*  = spawn @scripts_dir/follow.sh \@< uzbl.follow("\@follow_hint_keys", "%s", 1) >\@
+@cbind  fl*  = spawn @scripts_dir/follow.sh \@< uzbl.follow("\@follow_hint_keys", "%s", 'click') >\@
+@cbind  Fl*  = spawn @scripts_dir/follow.sh \@< uzbl.follow("\@follow_hint_keys", "%s", 'newwindow') >\@
+@cbind  fL*  = spawn @scripts_dir/follow.sh \@< uzbl.follow("\@follow_hint_keys", "%s", 'returnuri') >\@ set
+@cbind  FL*  = spawn @scripts_dir/follow.sh \@< uzbl.follow("\@follow_hint_keys", "%s", 'returnuri') >\@ clipboard
 @cbind  fi   = spawn @scripts_dir/go_input.sh
 
 # Form filler binds

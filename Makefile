@@ -1,5 +1,3 @@
-# first entries are for gnu make, 2nd for BSD make.  see http://lists.uzbl.org/pipermail/uzbl-dev-uzbl.org/2009-July/000177.html
-
 # packagers, set DESTDIR to your "package directory" and PREFIX to the prefix you want to have on the end-user system
 # end-users who build from source: don't care about DESTDIR, update PREFIX if you want to
 # RUN_PREFIX : what the prefix is when the software is run. usually the same as PREFIX
@@ -8,31 +6,30 @@ INSTALLDIR?=$(DESTDIR)$(PREFIX)
 DOCDIR?=$(INSTALLDIR)/share/uzbl/docs
 RUN_PREFIX?=$(PREFIX)
 
-# gtk2
-REQ_PKGS += gtk+-2.0 webkit-1.0
-CPPFLAGS =
+# use GTK3-based webkit when it is available
+USE_GTK3 = $(shell pkg-config --exists gtk+-3.0 webkitgtk-3.0 && echo 1)
 
-# gtk3
-#REQ_PKGS += gtk+-3.0 webkitgtk-3.0
-#CPPFLAGS = -DG_DISABLE_DEPRECATED -DGTK_DISABLE_DEPRECATED
+ifeq ($(USE_GTK3),1)
+	REQ_PKGS += gtk+-3.0 webkitgtk-3.0
+	CPPFLAGS = -DG_DISABLE_DEPRECATED -DGTK_DISABLE_DEPRECATED
+else
+	REQ_PKGS += gtk+-2.0 webkit-1.0
+	CPPFLAGS =
+endif
 
 # --- configuration ends here ---
 
 REQ_PKGS += libsoup-2.4 gthread-2.0 glib-2.0
 
 ARCH:=$(shell uname -m)
-ARCH!=echo `uname -m`
 
 COMMIT_HASH:=$(shell ./misc/hash.sh)
-COMMIT_HASH!=echo `./misc/hash.sh`
 
 CPPFLAGS += -DARCH=\"$(ARCH)\" -DCOMMIT=\"$(COMMIT_HASH)\"
 
 PKG_CFLAGS:=$(shell pkg-config --cflags $(REQ_PKGS))
-PKG_CFLAGS!=echo pkg-config --cflags $(REQ_PKGS)
 
 LDLIBS:=$(shell pkg-config --libs $(REQ_PKGS) x11)
-LDLIBS!=echo pkg-config --libs $(REQ_PKGS) x11
 
 CFLAGS += -std=c99 $(PKG_CFLAGS) -ggdb -W -Wall -Wextra -pedantic -pthread
 
@@ -79,7 +76,6 @@ test-uzbl-core-sandbox: uzbl-core
 	rm -rf ./sandbox/usr
 
 test-uzbl-browser-sandbox: uzbl-browser
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-core
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-browser
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
 	cp -np ./misc/env.sh ./sandbox/env.sh
@@ -90,7 +86,6 @@ test-uzbl-browser-sandbox: uzbl-browser
 	rm -rf ./sandbox/usr
 
 test-uzbl-tabbed-sandbox: uzbl-browser
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-core
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-browser
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-tabbed
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
@@ -109,6 +104,11 @@ clean:
 	rm -f inspector.o
 	rm -f cookie-jar.o
 	rm -f util.o
+	rm -f commands.o
+	rm -f io.o
+	rm -f menu.o
+	rm -f status-bar.o
+	rm -f variables.o
 	find ./examples/ -name "*.pyc" -delete
 	cd ./tests/; $(MAKE) clean
 	rm -rf ./sandbox/
@@ -130,21 +130,23 @@ install-uzbl-core: all install-dirs
 	install -m644 src/config.h $(DOCDIR)/
 	install -m644 README $(DOCDIR)/
 	install -m644 AUTHORS $(DOCDIR)/
-	cp -r examples $(INSTALLDIR)/share/uzbl/
-	chmod 755 $(INSTALLDIR)/share/uzbl/examples/data/scripts/*
 	install -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
 
-install-uzbl-browser: install-dirs
-	install -m755 bin/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
+install-event-manager: install-dirs
 	install -m755 bin/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
-	mv $(INSTALLDIR)/bin/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser.bak
-	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < $(INSTALLDIR)/bin/uzbl-browser.bak > $(INSTALLDIR)/bin/uzbl-browser
-	chmod 755 $(INSTALLDIR)/bin/uzbl-browser
-	rm $(INSTALLDIR)/bin/uzbl-browser.bak
 	mv $(INSTALLDIR)/bin/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager.bak
 	sed "s#^PREFIX = .*#PREFIX = '$(RUN_PREFIX)'#" < $(INSTALLDIR)/bin/uzbl-event-manager.bak > $(INSTALLDIR)/bin/uzbl-event-manager
 	chmod 755 $(INSTALLDIR)/bin/uzbl-event-manager
 	rm $(INSTALLDIR)/bin/uzbl-event-manager.bak
+
+install-uzbl-browser: install-dirs install-uzbl-core install-event-manager
+	install -m755 bin/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
+	mv $(INSTALLDIR)/bin/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser.bak
+	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < $(INSTALLDIR)/bin/uzbl-browser.bak > $(INSTALLDIR)/bin/uzbl-browser
+	chmod 755 $(INSTALLDIR)/bin/uzbl-browser
+	rm $(INSTALLDIR)/bin/uzbl-browser.bak
+	cp -r examples $(INSTALLDIR)/share/uzbl/
+	chmod 755 $(INSTALLDIR)/share/uzbl/examples/data/scripts/*
 
 install-uzbl-tabbed: install-dirs
 	install -m755 bin/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed

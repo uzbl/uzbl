@@ -30,20 +30,21 @@ import atexit
 import imp
 import logging
 import os
-import socket
 import sys
 import time
 import weakref
 import re
+import errno
 from collections import defaultdict
 from functools import partial
 from glob import glob
 from itertools import count
 from optparse import OptionParser
 from select import select
-from signal import signal, SIGTERM, SIGINT
+from signal import signal, SIGTERM, SIGINT, SIGKILL
 from socket import socket, AF_UNIX, SOCK_STREAM
 from traceback import format_exc
+
 
 def xdghome(key, default):
     '''Attempts to use the environ XDG_*_HOME paths if they exist otherwise
@@ -65,13 +66,18 @@ CACHE_DIR = os.path.join(xdghome('CACHE', '.cache/'), 'uzbl/')
 # Define some globals.
 SCRIPTNAME = os.path.basename(sys.argv[0])
 
+logger = logging.getLogger(SCRIPTNAME)
+
+
 def get_exc():
     '''Format `format_exc` for logging.'''
     return "\n%s" % format_exc().rstrip()
 
+
 def expandpath(path):
     '''Expand and realpath paths.'''
     return os.path.realpath(os.path.expandvars(path))
+
 
 def ascii(u):
     '''Convert unicode strings into ascii for transmission over
@@ -89,7 +95,7 @@ def daemonize():
             os._exit(0)
 
     except OSError:
-        logger.critical(get_exc())
+        logger.critical('failed to daemonize', exc_info=True)
         sys.exit(1)
 
     os.chdir('/')
@@ -101,7 +107,7 @@ def daemonize():
             os._exit(0)
 
     except OSError:
-        logger.critical(get_exc())
+        logger.critical('failed to daemonize', exc_info=True)
         sys.exit(1)
 
     if sys.stdout.isatty():
@@ -126,11 +132,11 @@ def make_dirs(path):
     try:
         dirname = os.path.dirname(path)
         if not os.path.isdir(dirname):
-            logger.debug('creating directories %r' % dirname)
+            logger.debug('creating directories %r', dirname)
             os.makedirs(dirname)
 
     except OSError:
-        logger.error(get_exc())
+        logger.error('failed to create directories', exc_info=True)
 
 
 class EventHandler(object):
@@ -147,7 +153,6 @@ class EventHandler(object):
         self.args = args
         self.kwargs = kwargs
 
-
     def __repr__(self):
         elems = ['id=%d' % self.id, 'event=%s' % self.event,
             'callback=%r' % self.callback]
@@ -161,16 +166,12 @@ class EventHandler(object):
         elems.append('plugin=%s' % self.plugin.name)
         return u'<handler(%s)>' % ', '.join(elems)
 
-
     def call(self, uzbl, *args, **kwargs):
         '''Execute the handler function and merge argument lists.'''
 
         args = args + self.args
         kwargs = dict(self.kwargs.items() + kwargs.items())
         self.callback(uzbl, *args, **kwargs)
-
-
-
 
 
 class Plugin(object):
@@ -181,13 +182,12 @@ class Plugin(object):
     special_functions = ['require', 'export', 'export_dict', 'connect',
             'connect_dict', 'logger', 'unquote', 'splitquoted']
 
-
     def __init__(self, parent, name, path, plugin):
         self.parent = parent
         self.name = name
         self.path = path
         self.plugin = plugin
-        self.logger = get_logger('plugin.%s' % name)
+        self.logger = logging.getLogger('plugin.%s' % name)
 
         # Weakrefs to all handlers created by this plugin
         self.handlers = set([])
@@ -210,13 +210,11 @@ class Plugin(object):
         for attr in self.special_functions:
             plugin.__dict__[attr] = getattr(self, attr)
 
-
     def __repr__(self):
         return u'<plugin(%r)>' % self.plugin
 
-
-    def export(self, uzbl, attr, object, prepend=True):
-        '''Attach `object` to `uzbl` instance. This is the preferred method
+    def export(self, uzbl, attr, obj, prepend=True):
+        '''Attach `obj` to `uzbl` instance. This is the preferred method
         of sharing functionality, functions, data and objects between
         plugins.
 
@@ -228,17 +226,15 @@ class Plugin(object):
         assert attr not in uzbl.exports, "attr %r already exported by %r" %\
             (attr, uzbl.exports[attr][0])
 
-        prepend = True if prepend and callable(object) else False
-        uzbl.__dict__[attr] = partial(object, uzbl) if prepend else object
-        uzbl.exports[attr] = (self, object, prepend)
-        uzbl.logger.info('exported %r to %r by plugin %r, prepended %r'
-            % (object, 'uzbl.%s' % attr, self.name, prepend))
-
+        prepend = True if prepend and callable(obj) else False
+        uzbl.__dict__[attr] = partial(obj, uzbl) if prepend else obj
+        uzbl.exports[attr] = (self, obj, prepend)
+        uzbl.logger.info('exported %r to %r by plugin %r, prepended %r',
+            obj, 'uzbl.%s' % attr, self.name, prepend)
 
     def export_dict(self, uzbl, exports):
         for (attr, object) in exports.items():
             self.export(uzbl, attr, object)
-
 
     def find_handler(self, event, callback, args, kwargs):
         '''Check if a handler with the identical callback and arguments
@@ -252,7 +248,6 @@ class Plugin(object):
             if handler.event == event and handler.callback == callback \
               and handler.args == args and handler.kwargs == kwargs:
                 return handler
-
 
     def connect(self, uzbl, event, callback, *args, **kwargs):
         '''Create an event handler object which handles `event` events.
@@ -276,24 +271,22 @@ class Plugin(object):
             # Create a new handler
             handler = EventHandler(self, event, callback, args, kwargs)
             self.handlers.add(weakref.ref(handler))
-            self.logger.info('new %r' % handler)
+            self.logger.info('new %r', handler)
 
         uzbl.handlers[event].append(handler)
-        uzbl.logger.info('connected %r' % handler)
+        uzbl.logger.info('connected %r', handler)
         return handler
-
 
     def connect_dict(self, uzbl, connects):
         for (event, callback) in connects.items():
             self.connect(uzbl, event, callback)
-
 
     def require(self, plugin):
         '''Check that plugin with name `plugin` has been loaded. Use this to
         ensure that your plugins dependencies have been met.'''
 
         assert plugin in self.parent.plugins, self.logger.critical(
-            'plugin %r required by plugin %r' (plugin, self.name))
+            'plugin %r required by plugin %r', plugin, self.name)
 
     @classmethod
     def unquote(cls, s):
@@ -304,10 +297,12 @@ class Plugin(object):
         return s.encode('utf-8').decode('string_escape').decode('utf-8')
 
     _splitquoted = re.compile("( |\"(?:\\\\.|[^\"])*?\"|'(?:\\\\.|[^'])*?')")
+
     @classmethod
     def splitquoted(cls, text):
         '''Splits string on whitespace while respecting quotations'''
-        return [cls.unquote(p) for p in cls._splitquoted.split(text) if p.strip()]
+        parts = cls._splitquoted.split(text)
+        return [cls.unquote(p) for p in parts if p.strip()]
 
 
 class Uzbl(object):
@@ -315,6 +310,7 @@ class Uzbl(object):
         self.opts = opts
         self.parent = parent
         self.child_socket = child_socket
+        self.child_buffer = []
         self.time = time.time()
         self.pid = None
         self.name = None
@@ -323,7 +319,7 @@ class Uzbl(object):
         self.instance_start = False
 
         # Use name "unknown" until name is discovered.
-        self.logger = get_logger('uzbl-instance[]')
+        self.logger = logging.getLogger('uzbl-instance[]')
 
         # Track plugin event handlers and exported functions.
         self.exports = {}
@@ -333,15 +329,13 @@ class Uzbl(object):
         self._depth = 0
         self._buffer = ''
 
-
     def __repr__(self):
         return '<uzbl(%s)>' % ', '.join([
             'pid=%s' % (self.pid if self.pid else "Unknown"),
             'name=%s' % ('%r' % self.name if self.name else "Unknown"),
-            'uptime=%f' % (time.time()-self.time),
+            'uptime=%f' % (time.time() - self.time),
             '%d exports' % len(self.exports.keys()),
             '%d handlers' % sum([len(l) for l in self.handlers.values()])])
-
 
     def init_plugins(self):
         '''Call the init and after hooks in all loaded plugins for this
@@ -350,16 +344,15 @@ class Uzbl(object):
         # Initialise each plugin with the current uzbl instance.
         for plugin in self.parent.plugins.values():
             if plugin.init:
-                self.logger.debug('calling %r plugin init hook' % plugin.name)
+                self.logger.debug('calling %r plugin init hook', plugin.name)
                 plugin.init(self)
 
         # Allow plugins to use exported features of other plugins by calling an
         # optional `after` function in the plugins namespace.
         for plugin in self.parent.plugins.values():
             if plugin.after:
-                self.logger.debug('calling %r plugin after hook'%plugin.name)
+                self.logger.debug('calling %r plugin after hook', plugin.name)
                 plugin.after(self)
-
 
     def send(self, msg):
         '''Send a command to the uzbl instance via the child socket
@@ -371,8 +364,27 @@ class Uzbl(object):
         if opts.print_events:
             print ascii(u'%s<-- %s' % ('  ' * self._depth, msg))
 
-        self.child_socket.send(ascii("%s\n" % msg))
+        self.child_buffer.append(ascii("%s\n" % msg))
 
+    def do_send(self):
+        data = ''.join(self.child_buffer)
+        try:
+            bsent = self.child_socket.send(data)
+        except socket.error as e:
+            if e.errno in (errno.EAGAIN, errno.EINTR):
+                self.child_buffer = [data]
+                return
+            else:
+                self.logger.error('failed to send', exc_info=True)
+                return self.close()
+        else:
+            if bsent == 0:
+                self.logger.debug('write end of connection closed')
+                self.close()
+            elif bsent < len(data):
+                self.child_buffer = [data[bsent:]]
+            else:
+                del self.child_buffer[:]
 
     def read(self):
         '''Read data from the child socket and pass lines to the parse_msg
@@ -385,7 +397,7 @@ class Uzbl(object):
                 return self.close()
 
         except:
-            self.logger.error(get_exc())
+            self.logger.error('failed to read', exc_info=True)
             return self.close()
 
         lines = (self._buffer + raw).split('\n')
@@ -399,17 +411,16 @@ class Uzbl(object):
                 self.logger.error(get_exc())
                 self.logger.error('erroneous event: %r' % line)
 
-
     def parse_msg(self, line):
         '''Parse an incoming message from a uzbl instance. Event strings
         will be parsed into `self.event(event, args)`.'''
 
         # Split by spaces (and fill missing with nulls)
-        elems = (line.split(' ', 3) + ['',]*3)[:4]
+        elems = (line.split(' ', 3) + [''] * 3)[:4]
 
         # Ignore non-event messages.
         if elems[0] != 'EVENT':
-            logger.info('non-event message: %r' % line)
+            logger.info('non-event message: %r', line)
             if opts.print_events:
                 print '--- %s' % ascii(line)
             return
@@ -419,14 +430,13 @@ class Uzbl(object):
         assert name and event, 'event string missing elements'
         if not self.name:
             self.name = name
-            self.logger = get_logger('uzbl-instance%s' % name)
-            self.logger.info('found instance name %r' % name)
+            self.logger = logging.getLogger('uzbl-instance%s' % name)
+            self.logger.info('found instance name %r', name)
 
         assert self.name == name, 'instance name mismatch'
 
         # Handle the event with the event handlers through the event method
         self.event(event, args)
-
 
     def event(self, event, *args, **kargs):
         '''Raise an event.'''
@@ -434,16 +444,18 @@ class Uzbl(object):
         event = event.upper()
 
         if not opts.daemon_mode and opts.print_events:
-            elems = [event,]
-            if args: elems.append(unicode(args))
-            if kargs: elems.append(unicode(kargs))
+            elems = [event]
+            if args:
+                elems.append(unicode(args))
+            if kargs:
+                elems.append(unicode(kargs))
             print ascii(u'%s--> %s' % ('  ' * self._depth, ' '.join(elems)))
 
         if event == "INSTANCE_START" and args:
             assert not self.instance_start, 'instance already started'
 
             self.pid = int(args[0])
-            self.logger.info('found instance pid %r' % self.pid)
+            self.logger.info('found instance pid %r', self.pid)
 
             self.init_plugins()
 
@@ -460,15 +472,13 @@ class Uzbl(object):
                 handler.call(self, *args, **kargs)
 
             except:
-                self.logger.error(get_exc())
+                self.logger.error('error in handler', exc_info=True)
 
             self._depth -= 1
-
 
     def close_connection(self, child_socket):
         '''Close child socket and delete the uzbl instance created for that
         child socket connection.'''
-
 
     def close(self):
         '''Close the client socket and call the plugin cleanup hooks.'''
@@ -486,7 +496,7 @@ class Uzbl(object):
                 self.child_socket.close()
 
         except:
-            self.logger.error(get_exc())
+            self.logger.error('failed to close socket', exc_info=True)
 
         finally:
             self.child_socket = None
@@ -494,11 +504,11 @@ class Uzbl(object):
         # Call plugins cleanup hooks.
         for plugin in self.parent.plugins.values():
             if plugin.cleanup:
-                self.logger.debug('calling %r plugin cleanup hook'
-                    % plugin.name)
+                self.logger.debug('calling %r plugin cleanup hook',
+                    plugin.name)
                 plugin.cleanup(self)
 
-        logger.info('removed %r' % self)
+        logger.info('removed %r', self)
 
 
 class UzblEventDaemon(object):
@@ -529,16 +539,15 @@ class UzblEventDaemon(object):
         # Load plugins into self.plugins
         self.load_plugins(opts.plugins)
 
-
     def load_plugins(self, plugins):
         '''Load event manager plugins.'''
 
         for path in plugins:
-            logger.debug('loading plugin %r' % path)
+            logger.debug('loading plugin %r', path)
             (dir, file) = os.path.split(path)
             name = file[:-3] if file.lower().endswith('.py') else file
 
-            info = imp.find_module(name, [dir,])
+            info = imp.find_module(name, [dir])
             module = imp.load_module(name, *info)
 
             # Check if the plugin has a callable hook.
@@ -546,11 +555,10 @@ class UzblEventDaemon(object):
                 for attr in ['init', 'after', 'cleanup']])
             assert hooks, "no hooks in plugin %r" % module
 
-            logger.debug('creating plugin instance for %r plugin' % name)
+            logger.debug('creating plugin instance for %r plugin', name)
             plugin = Plugin(self, name, path, module)
             self.plugins[name] = plugin
-            logger.info('new %r' % plugin)
-
+            logger.info('new %r', plugin)
 
     def create_server_socket(self):
         '''Create the event manager daemon socket for uzbl instance duplex
@@ -564,8 +572,7 @@ class UzblEventDaemon(object):
         sock.listen(5)
 
         self.server_socket = sock
-        logger.debug('bound server socket to %r' % opts.server_socket)
-
+        logger.debug('bound server socket to %r', opts.server_socket)
 
     def run(self):
         '''Main event daemon loop.'''
@@ -588,34 +595,38 @@ class UzblEventDaemon(object):
 
         except:
             if not self._quit:
-                logger.critical(get_exc())
+                logger.critical('failed to listen', exc_info=True)
 
         # Clean up and exit
         self.quit()
 
         logger.debug('exiting main loop')
 
-
     def listen(self):
         '''Accept incoming connections and constantly poll instance sockets
         for incoming data.'''
 
-        logger.info('listening on %r' % opts.server_socket)
+        logger.info('listening on %r', opts.server_socket)
 
         # Count accepted connections
         connections = 0
 
         while (self.uzbls or not connections) or (not opts.auto_close):
             socks = [self.server_socket] + self.uzbls.keys()
-            reads, _, errors = select(socks, [], socks, 1)
+            wsocks = [k for k, v in self.uzbls.items() if v.child_buffer]
+            reads, writes, errors = select(socks, wsocks, socks, 1)
 
             if self.server_socket in reads:
                 reads.remove(self.server_socket)
 
                 # Accept connection and create uzbl instance.
                 child_socket = self.server_socket.accept()[0]
+                child_socket.setblocking(False)
                 self.uzbls[child_socket] = Uzbl(self, child_socket)
                 connections += 1
+
+            for uzbl in [self.uzbls[s] for s in writes]:
+                uzbl.do_send()
 
             for uzbl in [self.uzbls[s] for s in reads]:
                 uzbl.read()
@@ -625,7 +636,6 @@ class UzblEventDaemon(object):
                 uzbl.close()
 
         logger.info('auto closing')
-
 
     def close_server_socket(self):
         '''Close and delete the server socket.'''
@@ -637,12 +647,11 @@ class UzblEventDaemon(object):
                 self.server_socket = None
 
             if os.path.exists(opts.server_socket):
-                logger.info('unlinking %r' % opts.server_socket)
+                logger.info('unlinking %r', opts.server_socket)
                 os.unlink(opts.server_socket)
 
         except:
-            logger.error(get_exc())
-
+            logger.error('failed to close server socket', exc_info=True)
 
     def quit(self, sigint=None, *args):
         '''Close all instance socket objects, server socket and delete the
@@ -673,16 +682,16 @@ def make_pid_file(pid_file):
     '''Creates a pid file at `pid_file`, fails silently.'''
 
     try:
-        logger.debug('creating pid file %r' % pid_file)
+        logger.debug('creating pid file %r', pid_file)
         make_dirs(pid_file)
         pid = os.getpid()
         fileobj = open(pid_file, 'w')
         fileobj.write('%d' % pid)
         fileobj.close()
-        logger.info('created pid file %r with pid %d' % (pid_file, pid))
+        logger.info('created pid file %r with pid %d', pid_file, pid)
 
     except:
-        logger.error(get_exc())
+        logger.error('failed to create pid file', exc_info=True)
 
 
 def del_pid_file(pid_file):
@@ -690,27 +699,27 @@ def del_pid_file(pid_file):
 
     if os.path.isfile(pid_file):
         try:
-            logger.debug('deleting pid file %r' % pid_file)
+            logger.debug('deleting pid file %r', pid_file)
             os.remove(pid_file)
-            logger.info('deleted pid file %r' % pid_file)
+            logger.info('deleted pid file %r', pid_file)
 
         except:
-            logger.error(get_exc())
+            logger.error('failed to delete pid file', exc_info=True)
 
 
 def get_pid(pid_file):
     '''Reads a pid from pid file `pid_file`, fails None.'''
 
     try:
-        logger.debug('reading pid file %r' % pid_file)
+        logger.debug('reading pid file %r', pid_file)
         fileobj = open(pid_file, 'r')
         pid = int(fileobj.read())
         fileobj.close()
-        logger.info('read pid %d from pid file %r' % (pid, pid_file))
+        logger.info('read pid %d from pid file %r', pid, pid_file)
         return pid
 
     except (IOError, ValueError):
-        logger.error(get_exc())
+        logger.error('failed to read pid', exc_info=True)
         return None
 
 
@@ -729,30 +738,30 @@ def term_process(pid):
     '''Asks nicely then forces process with pid `pid` to exit.'''
 
     try:
-        logger.info('sending SIGTERM to process with pid %r' % pid)
+        logger.info('sending SIGTERM to process with pid %r', pid)
         os.kill(pid, SIGTERM)
 
     except OSError:
         logger.error(get_exc())
 
-    logger.debug('waiting for process with pid %r to exit' % pid)
+    logger.debug('waiting for process with pid %r to exit', pid)
     start = time.time()
     while True:
         if not pid_running(pid):
-            logger.debug('process with pid %d exit' % pid)
+            logger.debug('process with pid %d exit', pid)
             return True
 
-        if (time.time()-start) > 5:
-            logger.warning('process with pid %d failed to exit' % pid)
-            logger.info('sending SIGKILL to process with pid %d' % pid)
+        if (time.time() - start) > 5:
+            logger.warning('process with pid %d failed to exit', pid)
+            logger.info('sending SIGKILL to process with pid %d', pid)
             try:
                 os.kill(pid, SIGKILL)
             except:
-                logger.critical(get_exc())
+                logger.critical('failed to kill %d', pid, exc_info=True)
                 raise
 
-        if (time.time()-start) > 10:
-            logger.critical('unable to kill process with pid %d' % pid)
+        if (time.time() - start) > 10:
+            logger.critical('unable to kill process with pid %d', pid)
             raise OSError
 
         time.sleep(0.25)
@@ -763,20 +772,20 @@ def stop_action():
 
     pid_file = opts.pid_file
     if not os.path.isfile(pid_file):
-        logger.error('could not find running event manager with pid file %r'
-            % opts.pid_file)
+        logger.error('could not find running event manager with pid file %r',
+            pid_file)
         return
 
     pid = get_pid(pid_file)
     if not pid_running(pid):
-        logger.debug('no process with pid %r' % pid)
+        logger.debug('no process with pid %r', pid)
         del_pid_file(pid_file)
         return
 
-    logger.debug('terminating process with pid %r' % pid)
+    logger.debug('terminating process with pid %r', pid)
     term_process(pid)
     del_pid_file(pid_file)
-    logger.info('stopped event manager process with pid %d' % pid)
+    logger.info('stopped event manager process with pid %d', pid)
 
 
 def start_action():
@@ -786,10 +795,10 @@ def start_action():
     if os.path.isfile(pid_file):
         pid = get_pid(pid_file)
         if pid_running(pid):
-            logger.error('event manager already started with pid %d' % pid)
+            logger.error('event manager already started with pid %d', pid)
             return
 
-        logger.info('no process with pid %d' % pid)
+        logger.info('no process with pid %d', pid)
         del_pid_file(pid_file)
 
     UzblEventDaemon().run()
@@ -816,7 +825,7 @@ def list_action():
         print plugin
 
 
-if __name__ == "__main__":
+def make_parser():
     parser = OptionParser('usage: %prog [options] {start|stop|restart|list}')
     add = parser.add_option
 
@@ -833,6 +842,7 @@ if __name__ == "__main__":
         help='load plugin, loads before plugins in search dirs')
 
     socket_location = os.path.join(CACHE_DIR, 'event_daemon')
+
     add('-s', '--server-socket',
         dest='server_socket', metavar="SOCKET", default=socket_location,
         help='server AF_UNIX socket location')
@@ -862,6 +872,34 @@ if __name__ == "__main__":
         dest='print_events', action="store_false", default=True,
         help="silence the printing of events to stdout")
 
+    return parser
+
+
+def init_logger():
+    log_level = logging.CRITICAL - opts.verbose * 10
+    logger = logging.getLogger()
+    logger.setLevel(max(log_level, 10))
+
+    # Console
+    handler = logging.StreamHandler()
+    handler.setLevel(max(log_level + 10, 10))
+    handler.setFormatter(logging.Formatter(
+        '%(name)s: %(levelname)s: %(message)s'))
+    logger.addHandler(handler)
+
+    # Logfile
+    handler = logging.FileHandler(opts.log_file, 'w', 'utf-8', 1)
+    handler.setLevel(max(log_level, 10))
+    handler.setFormatter(logging.Formatter(
+        '[%(created)f] %(name)s: %(levelname)s: %(message)s'))
+    logger.addHandler(handler)
+
+
+def main():
+    global opts
+
+    parser = make_parser()
+
     (opts, args) = parser.parse_args()
 
     opts.server_socket = expandpath(opts.server_socket)
@@ -881,35 +919,8 @@ if __name__ == "__main__":
         opts.log_file = expandpath(opts.log_file)
 
     # Logging setup
-    log_level = logging.CRITICAL - opts.verbose*10
-
-    # Console logging handler
-    ch = logging.StreamHandler()
-    ch.setLevel(max(log_level+10, 10))
-    ch.setFormatter(logging.Formatter(
-        '%(name)s: %(levelname)s: %(message)s'))
-
-    # File logging handler
-    fh = logging.FileHandler(opts.log_file, 'w', 'utf-8', 1)
-    fh.setLevel(max(log_level, 10))
-    fh.setFormatter(logging.Formatter(
-        '[%(created)f] %(name)s: %(levelname)s: %(message)s'))
-
-    # logging.getLogger wrapper which sets the levels and adds the
-    # file and console handlers automagically
-    def get_logger(name):
-        handlers = [ch, fh]
-        level = [max(log_level, 10),]
-        logger = logging.getLogger(name)
-        logger.setLevel(level[0])
-        for handler in handlers:
-            logger.addHandler(handler)
-
-        return logger
-
-    # Get main logger
-    logger = get_logger(SCRIPTNAME)
-    logger.info('logging to %r' % opts.log_file)
+    init_logger()
+    logger.info('logging to %r', opts.log_file)
 
     plugins = {}
 
@@ -923,11 +934,11 @@ if __name__ == "__main__":
         for plugin in matches:
             (head, tail) = os.path.split(plugin)
             if tail not in plugins:
-                logger.debug('found plugin: %r' % plugin)
+                logger.debug('found plugin: %r', plugin)
                 plugins[tail] = plugin
 
             else:
-                logger.debug('ignoring plugin: %r' % plugin)
+                logger.debug('ignoring plugin: %r', plugin)
 
     # Add default plugin locations
     if opts.default_dirs:
@@ -941,15 +952,15 @@ if __name__ == "__main__":
     # Load all plugins in `opts.plugin_dirs` into the plugins list
     for dir in opts.plugin_dirs:
         dir = expandpath(dir)
-        logger.debug('searching plugin dir: %r' % dir)
+        logger.debug('searching plugin dir: %r', dir)
         for plugin in glob(os.path.join(dir, '*.py')):
             (head, tail) = os.path.split(plugin)
             if tail not in plugins:
-                logger.debug('found plugin: %r' % plugin)
+                logger.debug('found plugin: %r', plugin)
                 plugins[tail] = plugin
 
             else:
-                logger.debug('ignoring plugin: %r' % plugin)
+                logger.debug('ignoring plugin: %r', plugin)
 
     plugins = plugins.values()
 
@@ -958,11 +969,15 @@ if __name__ == "__main__":
         if not os.path.isfile(plugin):
             parser.error('plugin not a file: %r' % plugin)
 
-    if opts.auto_close: logger.debug('will auto close')
-    else: logger.debug('will not auto close')
+    if opts.auto_close:
+        logger.debug('will auto close')
+    else:
+        logger.debug('will not auto close')
 
-    if opts.daemon_mode: logger.debug('will daemonize')
-    else: logger.debug('will not daemonize')
+    if opts.daemon_mode:
+        logger.debug('will daemonize')
+    else:
+        logger.debug('will not daemonize')
 
     opts.plugins = plugins
 
@@ -976,16 +991,21 @@ if __name__ == "__main__":
             parser.error('invalid action: %r' % action)
 
     elif not args:
-        logger.warning('no daemon action given, assuming %r' % 'start')
         action = 'start'
+        logger.warning('no daemon action given, assuming %r', action)
 
     else:
         parser.error('invalid action argument: %r' % args)
 
-    logger.info('daemon action %r' % action)
+    logger.info('daemon action %r', action)
     # Do action
     daemon_actions[action]()
 
-    logger.debug('process CPU time: %f' % time.clock())
+    logger.debug('process CPU time: %f', time.clock())
+
+
+if __name__ == "__main__":
+    main()
+
 
 # vi: set et ts=4:

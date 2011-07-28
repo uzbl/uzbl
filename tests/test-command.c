@@ -24,6 +24,7 @@
 
 #include <src/uzbl-core.h>
 #include <src/config.h>
+#include <src/type.h>
 
 extern UzblCore uzbl;
 
@@ -189,13 +190,13 @@ test_set_variable (struct EventFixture *ef, const void *data) {
     /* set a custom variable */
     parse_cmd_line("set nonexistant_variable = Some Value", NULL);
     ASSERT_EVENT(ef, "VARIABLE_SET nonexistant_variable str 'Some Value'");
-    uzbl_cmdprop *c = g_hash_table_lookup(uzbl.comm.proto_var, "nonexistant_variable");
+    uzbl_cmdprop *c = g_hash_table_lookup(uzbl.behave.proto_var, "nonexistant_variable");
     g_assert_cmpstr("Some Value", ==, *c->ptr.s);
 
     /* set a custom variable with expansion */
     parse_cmd_line("set an_expanded_variable = Test @(echo expansion)@", NULL);
     ASSERT_EVENT(ef, "VARIABLE_SET an_expanded_variable str 'Test expansion'");
-    c = g_hash_table_lookup(uzbl.comm.proto_var, "an_expanded_variable");
+    c = g_hash_table_lookup(uzbl.behave.proto_var, "an_expanded_variable");
     g_assert_cmpstr("Test expansion", ==, *c->ptr.s);
 }
 
@@ -216,8 +217,8 @@ test_print (void) {
 
 void
 test_scroll (void) {
-    uzbl.gui.scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);
-    uzbl.gui.bar_v = gtk_range_get_adjustment((GtkRange*) uzbl.gui.scbar_v);
+    GtkScrollbar *scbar_v = (GtkScrollbar*) gtk_vscrollbar_new (NULL);
+    uzbl.gui.bar_v = gtk_range_get_adjustment((GtkRange*) scbar_v);
 
     gtk_adjustment_set_lower(uzbl.gui.bar_v, 0);
     gtk_adjustment_set_upper(uzbl.gui.bar_v, 100);

@@ -16,7 +16,16 @@ uzbldivid = 'uzbl_link_hints';
 uzbl.follow = function() {
     // Export
     charset   = arguments[0];
-    newwindow = arguments[2];
+    if (arguments[2] == 0 || arguments[2] == 'click') {
+        newwindow = false;
+        returnuri = false;
+    } else if (arguments[2] == 1 || arguments[2] == 'newwindow') {
+        newwindow = true;
+        returnuri = false;
+    } else if (arguments[2] == 'returnuri') {
+        newwindow = false;
+        returnuri = true;
+    }
 
     var keypress = arguments[1];
     return arguments.callee.followLinks(keypress);
@@ -126,19 +135,19 @@ uzbl.follow.generateHint = function(doc, el, label, top, left) {
 // but at least set the href of the link. (needs some improvements)
 uzbl.follow.clickElem = function(item) {
     if(!item) return;
-    var name = item.tagName;
 
-    if (name == 'INPUT') {
-        var type = item.getAttribute('type').toUpperCase();
-        if (type == 'TEXT' || type == 'FILE' || type == 'PASSWORD') {
+    if (item instanceof HTMLInputElement) {
+        var type = item.type;
+        if (type == 'text' || type == 'file' || type == 'password') {
             item.focus();
             item.select();
             return "XXXEMIT_FORM_ACTIVEXXX";
         }
         // otherwise fall through to a simulated mouseclick.
-    } else if (name == 'TEXTAREA' || name == 'SELECT') {
+    } else if (item instanceof HTMLTextAreaElement || item instanceof HTMLSelectElement) {
         item.focus();
-        item.select();
+        if(typeof item.select != 'undefined')
+            item.select();
         return "XXXEMIT_FORM_ACTIVEXXX";
     }
 
@@ -169,9 +178,13 @@ uzbl.follow.reDrawHints = function(elems, chars) {
     elements.forEach(function(el, i) {
         var label = labels[i];
         var pos   = positions[i];
-        var doc   = uzbl.follow.getDocument(el);
-        var h = uzbl.follow.generateHint(doc, el, label, pos[0], pos[1]);
-        doc.hintdiv.appendChild(h);
+        try {
+            var doc   = uzbl.follow.getDocument(el);
+            var h = uzbl.follow.generateHint(doc, el, label, pos[0], pos[1]);
+            doc.hintdiv.appendChild(h);
+        } catch (err) {
+            // Unable to attach label -> shrug it off and continue
+        }
     });
 }
 
@@ -222,7 +235,7 @@ uzbl.follow.followLinks = function(follow) {
     //var desc        = '*[title], img[alt], applet[alt], area[alt], input[alt]';
     //var image       = 'img, input[type=image]';
 
-    if(newwindow)
+    if(newwindow || returnuri)
         var res = this.query(uri);
     else
         var res = this.query(followable);
@@ -236,6 +249,11 @@ uzbl.follow.followLinks = function(follow) {
 
         // clear all of our hints
         this.clearHints();
+
+        if (returnuri) {
+            var uri = el.src || el.href;
+            return "XXXRETURNED_URIXXX" + uri
+        }
 
         if (newwindow) {
             // we're opening a new window using the URL attached to this element

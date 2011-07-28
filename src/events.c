@@ -6,8 +6,7 @@
 #include "uzbl-core.h"
 #include "events.h"
 #include "util.h"
-
-UzblCore uzbl;
+#include "type.h"
 
 /* Event id to name mapping
  * Event names must be in the same
@@ -54,7 +53,9 @@ const char *event_table[LAST_EVENT] = {
      "DOWNLOAD_PROGRESS",
      "DOWNLOAD_COMPLETE",
      "ADD_COOKIE"       ,
-     "DELETE_COOKIE"
+     "DELETE_COOKIE"    ,
+     "FOCUS_ELEMENT"    ,
+     "BLUR_ELEMENT"
 };
 
 void
@@ -217,8 +218,10 @@ get_modifier_mask(guint state) {
             g_string_append(modifiers, "Ctrl|");
         if(state & GDK_MOD1_MASK)
             g_string_append(modifiers,"Mod1|");
+		/* Mod2 is usually Num_Luck. Ignore it as it messes up keybindings.
         if(state & GDK_MOD2_MASK)
             g_string_append(modifiers,"Mod2|");
+		*/
         if(state & GDK_MOD3_MASK)
             g_string_append(modifiers,"Mod3|");
         if(state & GDK_MOD4_MASK)
