@@ -81,7 +81,7 @@ test-uzbl-browser-sandbox: uzbl-browser
 	cp -np ./misc/env.sh ./sandbox/env.sh
 	-. ./sandbox/env.sh && uzbl-event-manager restart -avv
 	. ./sandbox/env.sh && uzbl-browser --uri http://www.uzbl.org --verbose
-	. ./sandbox/env.sh && uzbl-event-manager stop -ivv
+	. ./sandbox/env.sh && uzbl-event-manager stop -ivv -o /dev/null
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
