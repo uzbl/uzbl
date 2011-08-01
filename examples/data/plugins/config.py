@@ -60,7 +60,13 @@ def parse_set_event(uzbl, args):
     '''Parse `VARIABLE_SET <var> <type> <value>` event and load the
     (key, value) pair into the `uzbl.config` dict.'''
 
-    (key, type, raw_value) = (args.split(' ', 2) + ['',])[:3]
+    args = splitquoted(args)
+    if len(args) == 2:
+        key, type, raw_value = args[0], args[1], ''
+    elif len(args) == 3:
+        key, type, raw_value = args
+    else:
+        raise Exception('Invalid number of arguments')
 
     assert valid_key(key)
     assert type in types
@@ -82,7 +88,7 @@ def parse_set_event(uzbl, args):
 # plugin init hook
 def init(uzbl):
     global types
-    types = {'int': int, 'float': float, 'str': unquote}
+    types = {'int': int, 'float': float, 'str': unicode}
     export(uzbl, 'config', Config(uzbl))
     connect(uzbl, 'VARIABLE_SET', parse_set_event)
 

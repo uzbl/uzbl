@@ -4,15 +4,12 @@ def parse_mode_config(uzbl, args):
     '''Parse `MODE_CONFIG <mode> <var> = <value>` event and update config if
     the `<mode>` is the current mode.'''
 
-    ustrip = unicode.strip
-    args = unicode(args)
-
-    assert args.strip(), "missing mode config args"
-    (mode, args) = map(ustrip, (args.strip().split(' ', 1) + ['',])[:2])
-
-    assert args.strip(), "missing mode config set arg"
-    (key, value) = map(ustrip, (args.strip().split('=', 1) + [None,])[:2])
-    assert key and value is not None, "invalid mode config set syntax"
+    args = splitquoted(args)
+    assert len(args) >= 3, 'missing mode config args'
+    mode = args[0]
+    key = args[1]
+    assert args[2] == '=', 'invalid mode config set syntax'
+    value = args.raw(3).strip()
 
     uzbl.mode_config[mode][key] = value
     if uzbl.config.get('mode', None) == mode:

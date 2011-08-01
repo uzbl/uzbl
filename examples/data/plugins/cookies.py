@@ -135,26 +135,26 @@ def get_store(uzbl, session=False):
     return DefaultStore
 
 def add_cookie(uzbl, cookie):
-    splitted = splitquoted(cookie)
-    if accept_cookie(uzbl, splitted):
+    cookie = splitquoted(cookie)
+    if accept_cookie(uzbl, cookie):
         for u in get_recipents(uzbl):
-            u.send('add_cookie %s' % cookie)
+            u.send('add_cookie %s' % cookie.raw())
 
-        get_store(uzbl, expires_with_session(uzbl, splitted)).add_cookie(cookie, splitted)
+        get_store(uzbl, expires_with_session(uzbl, cookie)).add_cookie(cookie.raw(), cookie)
     else:
-        logger.debug('cookie %r is blacklisted' % splitted)
-        uzbl.send('delete_cookie %s' % cookie)
+        logger.debug('cookie %r is blacklisted' % cookie)
+        uzbl.send('delete_cookie %s' % cookie.raw())
 
 def delete_cookie(uzbl, cookie):
+    cookie = splitquoted(cookie)
     for u in get_recipents(uzbl):
-        u.send('delete_cookie %s' % cookie)
+        u.send('delete_cookie %s' % cookie.raw())
 
-    splitted = splitquoted(cookie)
-    if len(splitted) == 6:
-        get_store(uzbl, expires_with_session(uzbl, splitted)).delete_cookie(cookie, splitted)
+    if len(cookie) == 6:
+        get_store(uzbl, expires_with_session(uzbl, cookie)).delete_cookie(cookie.raw(), cookie)
     else:
         for store in set([get_store(uzbl, session) for session in (True, False)]):
-            store.delete_cookie(cookie, splitted)
+            store.delete_cookie(cookie.raw(), cookie)
 
 # add a cookie matcher to a whitelist or a blacklist.
 # a matcher is a list of (component, re) tuples that matches a cookie when the

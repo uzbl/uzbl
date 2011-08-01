@@ -336,19 +336,19 @@ def parse_mode_bind(uzbl, args):
         MODE_BIND global,-insert ...           = ...
     '''
 
-    if not args:
-        raise ArgumentError('missing bind arguments')
+    args = splitquoted(args)
+    if len(args) < 2:
+        raise ArgumentError('missing mode or bind section: %r' % args.raw())
 
-    split = map(unicode.strip, args.split(' ', 1))
-    if len(split) != 2:
-        raise ArgumentError('missing mode or bind section: %r' % args)
-
-    modes, args = split[0].split(','), split[1]
-    split = map(unicode.strip, args.split('=', 1))
-    if len(split) != 2:
+    modes = args[0].split(',')
+    for i, g in enumerate(args[1:]):
+        if g == '=':
+            glob = args.raw(1, i)
+            command = args.raw(i+2)
+            break
+    else:
         raise ArgumentError('missing delimiter in bind section: %r' % args)
 
-    glob, command = split
     mode_bind(uzbl, modes, glob, command)
 
 

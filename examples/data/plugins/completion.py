@@ -135,7 +135,8 @@ def add_builtins(uzbl, builtins):
     '''Pump the space delimited list of builtin commands into the
     builtin list.'''
 
-    uzbl.completion.update(builtins.split())
+    builtins = splitquoted(builtins)
+    uzbl.completion.update(builtins)
 
 
 def add_config_key(uzbl, key, value):

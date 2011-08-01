@@ -64,7 +64,11 @@ def parse_on_set(uzbl, args):
     '''Parse `ON_SET <glob> <command>` event then pass arguments to the
     `on_set(..)` function.'''
 
-    (glob, command) = (args.split(' ', 1) + [None,])[:2]
+    args = splitquoted(args)
+    assert len(args) >= 2
+    glob = args[0]
+    command = args.raw(1)
+
     assert glob and command and valid_glob(glob)
     on_set(uzbl, glob, command)
 

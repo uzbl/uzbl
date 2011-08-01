@@ -110,7 +110,7 @@ def add_modmap(uzbl, key, map):
 def modmap_parse(uzbl, map):
     '''Parse a modmap definiton.'''
 
-    split = [s.strip() for s in map.split(' ') if s.split()]
+    split = splitquoted(map)
 
     if not split or len(split) > 2:
         raise Exception('Invalid modmap arugments: %r' % map)

@@ -55,6 +55,7 @@ def on_event(uzbl, event, pattern, cmd):
 
     event = event.upper()
     events = uzbl.on_events
+    logger.debug('new event handler %r %r %r', event, pattern, cmd)
     if event not in events:
         connect(uzbl, event, event_handler, on_event=event)
         events[event] = {}
@@ -69,16 +70,20 @@ def parse_on_event(uzbl, args):
 
     Syntax: "event ON_EVENT <EVENT_NAME> commands".'''
 
-    args = args.strip()
+    args = splitquoted(args)
     assert args, 'missing on event arguments'
 
     # split arguments into event name, optional argument pattern and command
-    r = re.match(r'([A-Z_]+)(?:\[(.*)\])? (.*)$', args)
-    event = r.group(1)
-    pattern = r.group(2)
-    command = r.group(3)
-    if pattern:
-        pattern = pattern.split(' ')
+    event = args[0]
+    pattern = []
+    if args[1] == '[':
+        for i, arg in enumerate(args[2:]):
+            if arg == ']':
+                break
+            pattern.append(arg)
+        command = args.raw(3+i)
+    else:
+        command = args.raw(1)
 
     assert event and command, 'missing on event command'
     on_event(uzbl, event, pattern, command)
