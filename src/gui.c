@@ -357,7 +357,7 @@ plug_init ()
 /* Status bar callbacks */
 
 static void
-send_keypress_event (guint keyval, guint state, guint is_modifier, gint mode);
+send_keypress_event (GdkEventKey *event);
 
 gboolean
 key_press_cb (GtkWidget *widget, GdkEventKey *event, gpointer data)
@@ -366,7 +366,7 @@ key_press_cb (GtkWidget *widget, GdkEventKey *event, gpointer data)
     UZBL_UNUSED (data);
 
     if (event->type == GDK_KEY_PRESS) {
-        send_keypress_event (event->keyval, event->state, event->is_modifier, GDK_KEY_PRESS);
+        send_keypress_event (event);
     }
 
     return (uzbl.behave.forward_keys ? FALSE : TRUE);
@@ -379,7 +379,7 @@ key_release_cb (GtkWidget *widget, GdkEventKey *event, gpointer data)
     UZBL_UNUSED (data);
 
     if (event->type == GDK_KEY_RELEASE) {
-        send_keypress_event (event->keyval, event->state, event->is_modifier, GDK_KEY_RELEASE);
+        send_keypress_event (event);
     }
 
     return (uzbl.behave.forward_keys ? FALSE : TRUE);
@@ -1033,22 +1033,30 @@ static gchar *
 get_modifier_mask (guint state);
 
 void
-send_keypress_event (guint keyval, guint state, guint is_modifier, gint mode)
+send_keypress_event (GdkEventKey *event)
 {
     gchar ucs[7];
     gint ulen;
     gchar *keyname;
-    guint32 ukval = gdk_keyval_to_unicode (keyval);
+    guint32 ukval = gdk_keyval_to_unicode(event->keyval);
     gchar *modifiers = NULL;
-    guint mod = key_to_modifier (keyval);
+    guint mod = key_to_modifier (event->keyval);
+    guint state;
+    GdkModifierType consumed;
+    GdkKeymap *keymap = gdk_keymap_get_default ();
+
+    gdk_keymap_translate_keyboard_state (keymap, event->hardware_keycode,
+        event->state, event->group,
+        NULL, NULL, NULL, &consumed);
+    state = event->state & ~consumed;
 
     /* Get modifier state including this key press/release. */
-    modifiers = get_modifier_mask ((mode == GDK_KEY_PRESS) ? (state | mod) : (state & ~mod));
+    modifiers = get_modifier_mask ((event->type == GDK_KEY_PRESS) ? (state | mod) : (state & ~mod));
 
-    if (is_modifier && mod) {
+    if (event->is_modifier && mod) {
         gchar *newmods = get_modifier_mask (mod);
 
-        uzbl_events_send ((mode == GDK_KEY_PRESS) ? MOD_PRESS : MOD_RELEASE, NULL,
+        uzbl_events_send ((event->type == GDK_KEY_PRESS) ? MOD_PRESS : MOD_RELEASE, NULL,
             TYPE_STR, modifiers,
             TYPE_NAME, newmods,
             NULL);
@@ -1061,13 +1069,13 @@ send_keypress_event (guint keyval, guint state, guint is_modifier, gint mode)
         ulen = g_unichar_to_utf8 (ukval, ucs);
         ucs[ulen] = 0;
 
-        uzbl_events_send ((mode == GDK_KEY_PRESS) ? KEY_PRESS : KEY_RELEASE, NULL,
+        uzbl_events_send ((event->type == GDK_KEY_PRESS) ? KEY_PRESS : KEY_RELEASE, NULL,
             TYPE_STR, modifiers,
             TYPE_STR, ucs,
             NULL);
-    } else if ((keyname = gdk_keyval_name (keyval))) {
+    } else if ((keyname = gdk_keyval_name (event->keyval))) {
         /* Send keysym for non-printable chars. */
-        uzbl_events_send ((mode == GDK_KEY_PRESS) ? KEY_PRESS : KEY_RELEASE, NULL,
+        uzbl_events_send ((event->type == GDK_KEY_PRESS) ? KEY_PRESS : KEY_RELEASE, NULL,
             TYPE_STR, modifiers,
             TYPE_NAME, keyname,
             NULL);
