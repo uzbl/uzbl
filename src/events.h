@@ -47,6 +47,9 @@ gchar *
 get_modifier_mask(guint state);
 
 void
-key_to_event(guint keyval, guint state, guint is_modifier, int mode);
+key_to_event(guint keyval, guint state, guint is_modifier, gint mode);
+
+void
+button_to_event(guint buttonval, guint state, gint mode);
 
 #endif
