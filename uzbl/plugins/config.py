@@ -1,6 +1,7 @@
 from re import compile
 from types import BooleanType
 from UserDict import DictMixin
+from uzbl.arguments import splitquoted
 
 valid_key = compile('^[A-Za-z0-9_\.]+$').match
 

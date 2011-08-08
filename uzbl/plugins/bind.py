@@ -11,6 +11,7 @@ And it is also possible to execute a function on activation:
 
 import sys
 import re
+from uzbl.arguments import unquote, splitquoted
 
 # Commonly used regular expressions.
 MOD_START = re.compile('^<([A-Z][A-Za-z0-9-_]*)>').match

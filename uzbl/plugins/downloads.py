@@ -2,6 +2,9 @@
 # @downloads to your status_format.
 
 import os
+
+from uzbl.arguments import splitquoted
+
 ACTIVE_DOWNLOADS = {}
 
 # after a download's status has changed this is called to update the status bar

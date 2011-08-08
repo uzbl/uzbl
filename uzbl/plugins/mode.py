@@ -1,6 +1,8 @@
 from collections import defaultdict
+
 import uzbl.plugins.config
 import uzbl.plugins.on_set
+from uzbl.arguments import splitquoted
 
 def parse_mode_config(uzbl, args):
     '''Parse `MODE_CONFIG <mode> <var> = <value>` event and update config if

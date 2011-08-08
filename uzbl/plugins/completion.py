@@ -2,6 +2,8 @@
 
 import re
 
+from uzbl.arguments import splitquoted
+
 # Completion level
 NONE, ONCE, LIST, COMPLETE = range(4)
 

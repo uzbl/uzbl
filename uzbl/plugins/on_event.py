@@ -20,6 +20,8 @@ Usage:
 import re
 import fnmatch
 
+from uzbl.arguments import splitquoted
+
 def match_args(pattern, args):
     if len(pattern) > len(args):
         return False

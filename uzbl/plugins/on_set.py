@@ -1,7 +1,9 @@
 from re import compile
 from functools import partial
+
 import uzbl.plugins.config
 import uzbl.plugins.cmd_expand
+from uzbl.arguments import splitquoted
 
 valid_glob = compile('^[A-Za-z0-9_\*\.]+$').match
 

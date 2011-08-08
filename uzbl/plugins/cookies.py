@@ -4,6 +4,8 @@
 from collections import defaultdict
 import os, re
 
+from uzbl.arguments import splitquoted
+
 # these are symbolic names for the components of the cookie tuple
 symbolic = {'domain': 0, 'path':1, 'name':2, 'value':3, 'scheme':4, 'expires':5}
 

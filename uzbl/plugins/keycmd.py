@@ -1,5 +1,7 @@
 import re
 
+from uzbl.arguments import splitquoted
+
 # Keycmd format which includes the markup for the cursor.
 KEYCMD_FORMAT = "%s<span @cursor_style>%s</span>%s"
 MODCMD_FORMAT = "<span> %s </span>"
@@ -219,7 +221,7 @@ def parse_key_event(uzbl, key):
 
     modstate, key = splitquoted(key)
     modstate = set(['<%s>' % keylet.modmap_key(k) for k in modstate.split('|') if k])
-    
+
     key = keylet.modmap_key(key)
     return modstate, key
 
