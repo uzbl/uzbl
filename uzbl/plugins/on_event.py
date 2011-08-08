@@ -103,7 +103,7 @@ def init(uzbl):
 # plugin cleanup hook
 def cleanup(uzbl):
     for handlers in uzbl.on_events.values():
-        del handlers[:]
+        handlers.clear()
 
     uzbl.on_events.clear()
 

@@ -1,4 +1,6 @@
 from collections import defaultdict
+import uzbl.plugins.config
+import uzbl.plugins.on_set
 
 def parse_mode_config(uzbl, args):
     '''Parse `MODE_CONFIG <mode> <var> = <value>` event and update config if
@@ -44,8 +46,6 @@ def confirm_change(uzbl, mode):
 
 # plugin init hook
 def init(uzbl):
-    require('config')
-    require('on_set')
 
     # Usage `uzbl.mode_config[mode][key] = value`
     export(uzbl, 'mode_config', defaultdict(dict))

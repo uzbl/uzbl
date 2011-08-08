@@ -1,5 +1,7 @@
 from re import compile
 from functools import partial
+import uzbl.plugins.config
+import uzbl.plugins.cmd_expand
 
 valid_glob = compile('^[A-Za-z0-9_\*\.]+$').match
 
@@ -75,8 +77,6 @@ def parse_on_set(uzbl, args):
 
 # plugins init hook
 def init(uzbl):
-    require('config')
-    require('cmd_expand')
 
     export_dict(uzbl, {
         'on_sets':  {},
