@@ -202,7 +202,8 @@ class Plugin(object):
         cleanup = getattr(plugin, 'cleanup', None)
         self.cleanup = cleanup if callable(cleanup) else None
 
-        assert init or after or cleanup, "missing hooks in plugin"
+        # temporary allow plugins without hooks
+        # assert init or after or cleanup, "missing hooks in plugin"
 
         # Export plugin's instance methods to plugin namespace
         for attr in self.special_functions:
@@ -527,7 +528,8 @@ class UzblEventDaemon(object):
             # Check if the plugin has a callable hook.
             hooks = filter(callable, [getattr(module, attr, None) \
                 for attr in ['init', 'after', 'cleanup']])
-            assert hooks, "no hooks in plugin %r" % module
+            # temporarily allow plugin without hooks
+            # assert hooks, "no hooks in plugin %r" % module
 
             logger.debug('creating plugin instance for %r plugin', name)
             plugin = Plugin(self, name, path, module)

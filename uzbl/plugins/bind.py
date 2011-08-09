@@ -11,7 +11,9 @@ And it is also possible to execute a function on activation:
 
 import sys
 import re
+
 from uzbl.arguments import unquote, splitquoted
+from .cmd_expand import cmd_expand
 
 # Commonly used regular expressions.
 MOD_START = re.compile('^<([A-Z][A-Za-z0-9-_]*)>').match
@@ -285,7 +287,6 @@ def exec_bind(uzbl, bind, *args, **kargs):
         raise ArgumentError('cannot supply kargs for uzbl commands')
 
     commands = []
-    cmd_expand = uzbl.cmd_expand
     for cmd in bind.commands:
         cmd = cmd_expand(cmd, args)
         uzbl.send(cmd)

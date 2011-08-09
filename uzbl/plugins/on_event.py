@@ -21,6 +21,7 @@ import re
 import fnmatch
 
 from uzbl.arguments import splitquoted
+from .cmd_expand import cmd_expand
 
 def match_args(pattern, args):
     if len(pattern) > len(args):
@@ -45,7 +46,6 @@ def event_handler(uzbl, *args, **kargs):
         return
 
     commands = events[event]
-    cmd_expand = uzbl.cmd_expand
     for cmd, pattern in commands.items():
         if not pattern or match_args(pattern, args):
             cmd = cmd_expand(cmd, args)
