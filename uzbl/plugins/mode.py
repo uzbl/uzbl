@@ -1,7 +1,7 @@
 from collections import defaultdict
 
 import uzbl.plugins.config
-import uzbl.plugins.on_set
+from .on_set import OnSetPlugin
 from uzbl.arguments import splitquoted
 
 def parse_mode_config(uzbl, args):
@@ -59,8 +59,8 @@ def init(uzbl):
 
 # plugin after hook
 def after(uzbl):
-    uzbl.on_set('mode', mode_updated)
-    uzbl.on_set('default_mode', default_mode_updated)
+    OnSetPlugin.get(uzbl).on_set('mode', mode_updated)
+    OnSetPlugin.get(uzbl).on_set('default_mode', default_mode_updated)
 
 # plugin cleanup hook
 def cleanup(uzbl):

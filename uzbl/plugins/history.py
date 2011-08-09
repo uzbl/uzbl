@@ -1,5 +1,7 @@
 import random
 
+from .on_set import OnSetPlugin
+
 shared_history = {'':[]}
 
 class History(object):
@@ -124,6 +126,6 @@ def init(uzbl):
 
 # plugin after hook
 def after(uzbl):
-    uzbl.on_set('keycmd_prompt', lambda uzbl, k, v: uzbl.history.change_prompt(v))
+    OnSetPlugin.get(uzbl).on_set('keycmd_prompt', lambda uzbl, k, v: uzbl.history.change_prompt(v))
 
 # vi: set et ts=4:
