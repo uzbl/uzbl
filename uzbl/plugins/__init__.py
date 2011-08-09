@@ -1,3 +1,9 @@
+'''
+Plugins collection
+
+plugins for use with uzbl-event-manager
+'''
+
 import os.path
 
 plugin_path = os.environ.get("UZBL_PLUGIN_PATH",

@@ -1,3 +1,9 @@
+'''
+Arguments paser
+
+provides argument parsing for event handlers
+'''
+
 import re
 
 class Arguments(list):
