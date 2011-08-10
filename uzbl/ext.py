@@ -3,6 +3,7 @@ from .event_manager import Uzbl
 per_instance_registry = []
 global_registry = []
 
+
 class PluginMeta(type):
     """Registers plugin in registry so that it instantiates when needed"""
 
@@ -17,12 +18,7 @@ class PluginMeta(type):
         elif issubclass(self, GlobalPlugin):
             global_registry.append(self)
 
-class BasePlugin(object):
-    """Base class for all uzbl plugins"""
-    __metaclass__ = PluginMeta
-
-    @classmethod
-    def get(cls, owner):
+    def __getitem__(self, owner):
         """This method returns instance of plugin corresponding to owner
 
         :param owner: can be uzbl or event manager
@@ -32,7 +28,13 @@ class BasePlugin(object):
         find instance of a :class:`PerInstancePlugin` it will raise
         :class:`ValueError`
         """
-        raise NotImplementedError("Can't get instance of base plugin")
+        return self._get_instance(owner)
+
+
+class BasePlugin(object):
+    """Base class for all uzbl plugins"""
+    __metaclass__ = PluginMeta
+
 
 class PerInstancePlugin(BasePlugin):
     """Base class for plugins which instantiate once per uzbl instance"""
@@ -50,7 +52,11 @@ class PerInstancePlugin(BasePlugin):
         del self.uzbl
 
     @classmethod
-    def get(cls, owner):
+    def _get_instance(cls, owner):
+        """Returns instance of the plugin
+
+        This method should be private to not violate TOOWTDI
+        """
         if not isinstance(owner, Uzbl):
             raise ValueError("Can only get {0} instance for uzbl"
                 .format(self.__class__.__name__))
@@ -62,7 +68,11 @@ class GlobalPlugin(BasePlugin):
     """Base class for plugins which instantiate once per daemon"""
 
     @classmethod
-    def get(cls, owner):
+    def _get_instance(cls, owner):
+        """Returns instance of the plugin
+
+        This method should be private to not violate TOOWTDI
+        """
         if isinstance(owner, Uzbl):
             owner = owner.parent
         # TODO(tailhook) probably subclasses can be returned as well

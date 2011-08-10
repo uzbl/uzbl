@@ -2,6 +2,7 @@ from collections import defaultdict
 
 import uzbl.plugins.config
 from .on_set import OnSetPlugin
+from .config import Config
 from uzbl.arguments import splitquoted
 
 def parse_mode_config(uzbl, args):
@@ -16,33 +17,37 @@ def parse_mode_config(uzbl, args):
     value = args.raw(3).strip()
 
     uzbl.mode_config[mode][key] = value
-    if uzbl.config.get('mode', None) == mode:
-        uzbl.config[key] = value
+    config = Config[uzbl]
+    if config.get('mode', None) == mode:
+        config[key] = value
 
 
 def default_mode_updated(uzbl, var, mode):
-    if mode and not uzbl.config.get('mode', None):
+    config = Config[uzbl]
+    if mode and not config.get('mode', None):
         logger.debug('setting mode to default %r' % mode)
-        uzbl.config['mode'] = mode
+        config['mode'] = mode
 
 
 def mode_updated(uzbl, var, mode):
+    config = Config[uzbl]
     if not mode:
-        mode = uzbl.config.get('default_mode', 'command')
+        mode = config.get('default_mode', 'command')
         logger.debug('setting mode to default %r' % mode)
-        uzbl.config['mode'] = mode
+        config['mode'] = mode
         return
 
     # Load mode config
     mode_config = uzbl.mode_config.get(mode, None)
     if mode_config:
-        uzbl.config.update(mode_config)
+        config.update(mode_config)
 
     uzbl.send('event MODE_CONFIRM %s' % mode)
 
 
 def confirm_change(uzbl, mode):
-    if mode and uzbl.config.get('mode', None) == mode:
+    config = Config[uzbl]
+    if mode and config.get('mode', None) == mode:
         uzbl.event('MODE_CHANGED', mode)
 
 
@@ -59,8 +64,8 @@ def init(uzbl):
 
 # plugin after hook
 def after(uzbl):
-    OnSetPlugin.get(uzbl).on_set('mode', mode_updated)
-    OnSetPlugin.get(uzbl).on_set('default_mode', default_mode_updated)
+    OnSetPlugin[uzbl].on_set('mode', mode_updated)
+    OnSetPlugin[uzbl].on_set('default_mode', default_mode_updated)
 
 # plugin cleanup hook
 def cleanup(uzbl):

@@ -1,6 +1,7 @@
 import re
 
 from uzbl.arguments import splitquoted
+from .config import Config
 
 # Keycmd format which includes the markup for the cursor.
 KEYCMD_FORMAT = "%s<span @cursor_style>%s</span>%s"
@@ -147,7 +148,8 @@ def clear_keycmd(uzbl, *args):
     k = uzbl.keylet
     k.keycmd = ''
     k.cursor = 0
-    del uzbl.config['keycmd']
+    config = Config[uzbl]
+    del config['keycmd']
     uzbl.event('KEYCMD_CLEARED')
 
 
@@ -158,7 +160,8 @@ def clear_modcmd(uzbl):
     k.modcmd = ''
     k.is_modcmd = False
 
-    del uzbl.config['modcmd']
+    config = Config[uzbl]
+    del config['modcmd']
     uzbl.event('MODCMD_CLEARED')
 
 
@@ -185,20 +188,21 @@ def update_event(uzbl, modstate, k, execute=True):
         logger.debug('keycmd_update, %s' % keycmd)
         uzbl.event('KEYCMD_UPDATE', modstate, k)
 
-    if uzbl.config.get('modcmd_updates', '1') == '1':
+    config = Config[uzbl]
+    if config.get('modcmd_updates', '1') == '1':
         new_modcmd = ''.join(modstate) + k.get_modcmd()
         if not new_modcmd or not k.is_modcmd:
-            del uzbl.config['modcmd']
+            del config['modcmd']
 
         elif new_modcmd == modcmd:
-            uzbl.config['modcmd'] = MODCMD_FORMAT % uzbl_escape(modcmd)
+            config['modcmd'] = MODCMD_FORMAT % uzbl_escape(modcmd)
 
-    if uzbl.config.get('keycmd_events', '1') != '1':
+    if config.get('keycmd_events', '1') != '1':
         return
 
     new_keycmd = k.get_keycmd()
     if not new_keycmd:
-        del uzbl.config['keycmd']
+        del config['keycmd']
 
     elif new_keycmd == keycmd:
         # Generate the pango markup for the cursor in the keycmd.
@@ -206,7 +210,7 @@ def update_event(uzbl, modstate, k, execute=True):
         chunks = [keycmd[:k.cursor], curchar, keycmd[k.cursor+1:]]
         value = KEYCMD_FORMAT % tuple(map(uzbl_escape, chunks))
 
-        uzbl.config['keycmd'] = value
+        config['keycmd'] = value
 
 
 def inject_str(str, index, inj):
@@ -236,6 +240,7 @@ def key_press(uzbl, key):
     4. Keycmd is updated and events raised if anything is changed.'''
 
     k = uzbl.keylet
+    config = Config[uzbl]
     modstate, key = parse_key_event(uzbl, key)
     k.is_modcmd = any(not k.key_ignored(m) for m in modstate)
 
@@ -245,11 +250,11 @@ def key_press(uzbl, key):
         k.cursor += 1
 
     elif not k.is_modcmd and len(key) == 1:
-        if uzbl.config.get('keycmd_events', '1') != '1':
+        if config.get('keycmd_events', '1') != '1':
             # TODO, make a note on what's going on here
             k.keycmd = ''
             k.cursor = 0
-            del uzbl.config['keycmd']
+            del config['keycmd']
             return
 
         k.keycmd = inject_str(k.keycmd, k.cursor, key)

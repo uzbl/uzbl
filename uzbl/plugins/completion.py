@@ -3,6 +3,7 @@
 import re
 
 from uzbl.arguments import splitquoted
+from .config import Config
 
 # Completion level
 NONE, ONCE, LIST, COMPLETE = range(4)
@@ -37,7 +38,7 @@ def stop_completion(uzbl, *args):
     '''Stop command completion and return the level to NONE.'''
 
     uzbl.completion.level = NONE
-    del uzbl.config['completion_list']
+    del Config[uzbl]['completion_list']
 
 
 def complete_completion(uzbl, partial, hint, set_completion=False):
@@ -72,14 +73,16 @@ def update_completion_list(uzbl, *args):
     if uzbl.completion.level < LIST:
         return
 
+    config = Config[uzbl]
+
     hints = filter(lambda h: h.startswith(partial), uzbl.completion)
     if not hints:
-        del uzbl.config['completion_list']
+        del config['completion_list']
         return
 
     j = len(partial)
     l = [ITEM_FORMAT % (escape(h[:j]), h[j:]) for h in sorted(hints)]
-    uzbl.config['completion_list'] = LIST_FORMAT % ' '.join(l)
+    config['completion_list'] = LIST_FORMAT % ' '.join(l)
 
 
 def start_completion(uzbl, *args):

@@ -14,6 +14,7 @@ import re
 
 from uzbl.arguments import unquote, splitquoted
 from .cmd_expand import cmd_expand
+from .config import Config
 
 # Commonly used regular expressions.
 MOD_START = re.compile('^<([A-Z][A-Za-z0-9-_]*)>').match
@@ -36,6 +37,7 @@ class Bindlet(object):
     def __init__(self, uzbl):
         self.binds = {'global': {}}
         self.uzbl = uzbl
+        self.uzbl_config = Config[uzbl]
         self.depth = 0
         self.args = []
         self.last_mode = None
@@ -61,9 +63,9 @@ class Bindlet(object):
 
         if self.last_mode:
             mode, self.last_mode = self.last_mode, None
-            self.uzbl.config['mode'] = mode
+            self.uzbl_config['mode'] = mode
 
-        del self.uzbl.config['keycmd_prompt']
+        del self.uzbl_config['keycmd_prompt']
 
 
     def stack(self, bind, args, depth):
@@ -75,10 +77,10 @@ class Bindlet(object):
 
             return
 
-        mode = self.uzbl.config.get('mode', None)
+        mode = self.uzbl_config.get('mode', None)
         if mode != 'stack':
             self.last_mode = mode
-            self.uzbl.config['mode'] = 'stack'
+            self.uzbl_config['mode'] = 'stack'
 
         self.stack_binds = [bind,]
         self.args += args
@@ -96,7 +98,7 @@ class Bindlet(object):
 
         self.uzbl.clear_keycmd()
         if prompt:
-            self.uzbl.config['keycmd_prompt'] = prompt
+            self.uzbl_config['keycmd_prompt'] = prompt
 
         if set and is_cmd:
             self.uzbl.send(set)
@@ -110,7 +112,7 @@ class Bindlet(object):
         the filtered stack list and modkey & non-stack globals.'''
 
         if mode is None:
-            mode = self.uzbl.config.get('mode', None)
+            mode = self.uzbl_config.get('mode', None)
 
         if not mode:
             mode = 'global'
@@ -411,7 +413,8 @@ def match_and_exec(uzbl, bind, depth, modstate, keylet, bindlet):
     args = bindlet.args + args
     exec_bind(uzbl, bind, *args)
     if not has_args or on_exec:
-        del uzbl.config['mode']
+        config = Config[uzbl]
+        del config['mode']
         bindlet.reset()
 
     return True
@@ -433,7 +436,8 @@ def key_event(uzbl, modstate, keylet, mod_cmd=False, on_exec=False):
     # Return to the previous mode if the KEYCMD_EXEC keycmd doesn't match any
     # binds in the stack mode.
     if on_exec and not mod_cmd and depth and depth == bindlet.depth:
-        del uzbl.config['mode']
+        config = Config[uzbl]
+        del config['mode']
 
 
 # plugin init hook

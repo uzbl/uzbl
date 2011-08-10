@@ -4,6 +4,7 @@
 import os
 
 from uzbl.arguments import splitquoted
+from .config import Config
 
 ACTIVE_DOWNLOADS = {}
 
@@ -31,8 +32,9 @@ def update_download_section(uzbl):
 
     # and the result gets saved to an uzbl variable that can be used in
     # status_format
-    if uzbl.config.get('downloads', '') != result:
-          uzbl.config['downloads'] = result
+    config = Config[uzbl]
+    if config.get('downloads', '') != result:
+          config['downloads'] = result
 
 def download_started(uzbl, args):
     # parse the arguments

@@ -1,30 +1,47 @@
 from re import compile
-from types import BooleanType
-from UserDict import DictMixin
+
 from uzbl.arguments import splitquoted
+from uzbl.ext import PerInstancePlugin
+
+types = {'int': int, 'float': float, 'str': unicode}
 
 valid_key = compile('^[A-Za-z0-9_\.]+$').match
 
-class Config(DictMixin):
+class Config(PerInstancePlugin):
+    """Configuration plugin, has dictionary interface for config access
+
+    This class is currenty not inherited from either UserDict or abc.Mapping
+    because not sure what version of python we want to support. It's not
+    hard to implement all needed methods either.
+    """
+
     def __init__(self, uzbl):
-        self.uzbl = uzbl
+        super(Config, self).__init__(uzbl)
 
-        # Create the base dict and map allowed methods to `self`.
-        self.data = data = {}
+        self.data = {}
+        uzbl.connect('VARIABLE_SET', self.parse_set_event)
+        assert not 'a' in self.data
 
-        methods = ['__contains__', '__getitem__', '__iter__',
-            '__len__',  'get', 'has_key', 'items', 'iteritems',
-            'iterkeys', 'itervalues', 'values']
-
-        for method in methods:
-            setattr(self, method, getattr(data, method))
-
+    def __getitem__(self, key):
+        return self.data[key]
 
     def __setitem__(self, key, value):
         self.set(key, value)
 
     def __delitem__(self, key):
         self.set(key)
+
+    def get(self, key, default=None):
+        return self.data.get(key, default)
+
+    def __contains__(self, key):
+        return key in self.data
+
+    def keys(self):
+        return self.data.iterkeys()
+
+    def items(self):
+        return self.data.iteritems()
 
     def update(self, other=None, **kwargs):
         if other is None:
@@ -44,7 +61,7 @@ class Config(DictMixin):
 
         assert valid_key(key)
 
-        if type(value) == BooleanType:
+        if isinstance(value, bool):
             value = int(value)
 
         else:
@@ -57,42 +74,36 @@ class Config(DictMixin):
         self.uzbl.send(u'set %s = %s' % (key, value))
 
 
-def parse_set_event(uzbl, args):
-    '''Parse `VARIABLE_SET <var> <type> <value>` event and load the
-    (key, value) pair into the `uzbl.config` dict.'''
+    def parse_set_event(self, args):
+        '''Parse `VARIABLE_SET <var> <type> <value>` event and load the
+        (key, value) pair into the `uzbl.config` dict.'''
 
-    args = splitquoted(args)
-    if len(args) == 2:
-        key, type, raw_value = args[0], args[1], ''
-    elif len(args) == 3:
-        key, type, raw_value = args
-    else:
-        raise Exception('Invalid number of arguments')
+        args = splitquoted(args)
+        if len(args) == 2:
+            key, type, raw_value = args[0], args[1], ''
+        elif len(args) == 3:
+            key, type, raw_value = args
+        else:
+            raise Exception('Invalid number of arguments')
 
-    assert valid_key(key)
-    assert type in types
+        assert valid_key(key)
+        assert type in types
 
-    new_value = types[type](raw_value)
-    old_value = uzbl.config.get(key, None)
+        new_value = types[type](raw_value)
+        old_value = self.data.get(key, None)
 
-    # Update new value.
-    uzbl.config.data[key] = new_value
+        # Update new value.
+        self.data[key] = new_value
 
-    if old_value != new_value:
-        uzbl.event('CONFIG_CHANGED', key, new_value)
+        if old_value != new_value:
+            self.uzbl.event('CONFIG_CHANGED', key, new_value)
 
-    # Cleanup null config values.
-    if type == 'str' and not new_value:
-        del uzbl.config.data[key]
+        # Cleanup null config values.
+        if type == 'str' and not new_value:
+            del self.data[key]
 
+    def cleanup(self):
+        # not sure it's needed, but safer for cyclic links
+        self.data.clear()
+        super(Config, self).cleanup()
 
-# plugin init hook
-def init(uzbl):
-    global types
-    types = {'int': int, 'float': float, 'str': unicode}
-    export(uzbl, 'config', Config(uzbl))
-    connect(uzbl, 'VARIABLE_SET', parse_set_event)
-
-# plugin cleanup hook
-def cleanup(uzbl):
-    uzbl.config.data.clear()

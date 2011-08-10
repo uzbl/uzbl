@@ -48,8 +48,11 @@ class Uzbl(object):
         from uzbl.ext import per_instance_registry
 
         self._plugin_instances = []
+        self.plugins = {}
         for plugin in per_instance_registry:
-            self._plugin_instances.append(plugin(self))
+            pinst = plugin(self)
+            self._plugin_instances.append(pinst)
+            self.plugins[plugin] = pinst
 
         # Initialise each plugin with the current uzbl instance.
         for plugin in self.parent.plugins.values():
@@ -113,9 +116,9 @@ class Uzbl(object):
         lines = (self._buffer + raw).split('\n')
         self._buffer = lines.pop()
 
-        for line in filter(None, map(unicode.strip, lines)):
+        for line in filter(bool, map(unicode.strip, lines)):
             try:
-                self.parse_msg(line.strip())
+                self.parse_msg(line)
 
             except Exception:
                 self.logger.exception('erroneous event: %r' % line)
@@ -129,7 +132,7 @@ class Uzbl(object):
 
         # Ignore non-event messages.
         if elems[0] != 'EVENT':
-            logger.info('non-event message: %r', line)
+            self.logger.info('non-event message: %r', line)
             if self.opts.print_events:
                 print('--- %s' % ascii(line))
             return
@@ -223,9 +226,10 @@ class Uzbl(object):
 
         for plugin in self._plugin_instances:
             plugin.cleanup()
-        del self._plugin_instances # to avoid cyclic links
+        del self.plugins  # to avoid cyclic links
+        del self._plugin_instances
 
-        logger.info('removed %r', self)
+        self.logger.info('removed %r', self)
 
     def connect(self, name, handler):
         """Attach event handler

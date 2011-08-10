@@ -126,6 +126,6 @@ def init(uzbl):
 
 # plugin after hook
 def after(uzbl):
-    OnSetPlugin.get(uzbl).on_set('keycmd_prompt', lambda uzbl, k, v: uzbl.history.change_prompt(v))
+    OnSetPlugin[uzbl].on_set('keycmd_prompt', lambda uzbl, k, v: uzbl.history.change_prompt(v))
 
 # vi: set et ts=4:

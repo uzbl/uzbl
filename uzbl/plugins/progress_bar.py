@@ -1,3 +1,5 @@
+from .config import Config
+
 UPDATES = 0
 
 def update_progress(uzbl, progress=None):
@@ -33,10 +35,11 @@ def update_progress(uzbl, progress=None):
         progress = int(progress)
 
     # Get progress config vars.
-    format = uzbl.config.get('progress.format', '[%d>%p]%c')
-    width = int(uzbl.config.get('progress.width', 8))
-    done_symbol = uzbl.config.get('progress.done', '=')
-    pend = uzbl.config.get('progress.pending', None)
+    config = Config[uzbl]
+    format = config.get('progress.format', '[%d>%p]%c')
+    width = int(config.get('progress.width', 8))
+    done_symbol = config.get('progress.done', '=')
+    pend = config.get('progress.pending', None)
     pending_symbol = pend if pend else ' '
 
     # Inflate the done and pending bars to stop the progress bar
@@ -71,19 +74,19 @@ def update_progress(uzbl, progress=None):
         format = format.replace('%o', '%d' % (100-progress))
 
     if '%s' in format:
-        spinner = uzbl.config.get('progress.spinner', '-\\|/')
+        spinner = config.get('progress.spinner', '-\\|/')
         index = 0 if progress == 100 else UPDATES % len(spinner)
         spin = '\\\\' if spinner[index] == '\\' else spinner[index]
         format = format.replace('%s', spin)
 
     if '%r' in format:
-        sprites = uzbl.config.get('progress.sprites', 'loading')
+        sprites = config.get('progress.sprites', 'loading')
         index = int(((progress/100.0)*len(sprites))+0.5)-1
         sprite = '\\\\' if sprites[index] == '\\' else sprites[index]
         format = format.replace('%r', sprite)
 
-    if uzbl.config.get('progress.output', None) != format:
-        uzbl.config['progress.output'] = format
+    if config.get('progress.output', None) != format:
+        config['progress.output'] = format
 
 # plugin init hook
 def init(uzbl):
