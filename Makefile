@@ -37,6 +37,7 @@ SRC = $(wildcard src/*.c)
 HEAD = $(wildcard src/*.h)
 OBJ  = $(foreach obj, $(SRC:.c=.o),  $(notdir $(obj)))
 LOBJ = $(foreach obj, $(SRC:.c=.lo), $(notdir $(obj)))
+PY = $(wildcard uzbl/*.py uzbl/plugins/*.py)
 
 all: uzbl-browser
 
@@ -46,7 +47,13 @@ ${OBJ}: ${HEAD}
 
 uzbl-core: ${OBJ}
 
-uzbl-browser: uzbl-core
+uzbl-browser: uzbl-core uzbl-event-manager
+
+build: ${PY}
+	python setup.py build
+
+.PHONY: uzbl-event-manager
+uzbl-event-manager: build
 
 # the 'tests' target can never be up to date
 .PHONY: tests
@@ -67,17 +74,13 @@ test-uzbl-core: uzbl-core
 test-uzbl-browser: uzbl-browser
 	./bin/uzbl-browser --uri http://www.uzbl.org --verbose
 
-test-uzbl-core-sandbox: uzbl-core
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-core
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
+test-uzbl-core-sandbox: uzbl-core sandbox-install-uzbl-core sandbox-install-example-data
 	cp -np ./misc/env.sh ./sandbox/env.sh
 	. ./sandbox/env.sh && uzbl-core --uri http://www.uzbl.org --verbose
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
-test-uzbl-browser-sandbox: uzbl-browser
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-browser
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
+test-uzbl-browser-sandbox: uzbl-browser sandbox-install-uzbl-browser sandbox-install-example-data
 	cp -np ./misc/env.sh ./sandbox/env.sh
 	-. ./sandbox/env.sh && uzbl-event-manager restart -avv
 	. ./sandbox/env.sh && uzbl-browser --uri http://www.uzbl.org --verbose
@@ -85,10 +88,7 @@ test-uzbl-browser-sandbox: uzbl-browser
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
-test-uzbl-tabbed-sandbox: uzbl-browser
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-browser
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-tabbed
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
+test-uzbl-tabbed-sandbox: uzbl-browser sandbox-install-uzbl-browser sandbox-install-uzbl-tabbed sandbox-install-example-data
 	cp -np ./misc/env.sh ./sandbox/env.sh
 	-. ./sandbox/env.sh && uzbl-event-manager restart -avv
 	. ./sandbox/env.sh && uzbl-tabbed
@@ -112,11 +112,24 @@ clean:
 	find ./examples/ -name "*.pyc" -delete
 	cd ./tests/; $(MAKE) clean
 	rm -rf ./sandbox/
+	python setup.py clean
 
 strip:
 	@echo Stripping binary
 	@strip uzbl-core
 	@echo ... done.
+
+sandbox-install-uzbl-browser:
+	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-browser
+
+sandbox-install-uzbl-core:
+	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-core
+
+sandbox-install-event-manager:
+	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-event-manager
+
+sandbox-install-example-data:
+	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
 
 install: install-uzbl-core install-uzbl-browser install-uzbl-tabbed
 
@@ -133,11 +146,12 @@ install-uzbl-core: all install-dirs
 	install -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
 
 install-event-manager: install-dirs
-	install -m755 bin/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
-	mv $(INSTALLDIR)/bin/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager.bak
-	sed "s#^PREFIX = .*#PREFIX = '$(RUN_PREFIX)'#" < $(INSTALLDIR)/bin/uzbl-event-manager.bak > $(INSTALLDIR)/bin/uzbl-event-manager
-	chmod 755 $(INSTALLDIR)/bin/uzbl-event-manager
-	rm $(INSTALLDIR)/bin/uzbl-event-manager.bak
+	python setup.py install --prefix=$(INSTALLDIR)
+	#install -m755 bin/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
+	#mv $(INSTALLDIR)/bin/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager.bak
+	#sed "s#^PREFIX = .*#PREFIX = '$(RUN_PREFIX)'#" < $(INSTALLDIR)/bin/uzbl-event-manager.bak > $(INSTALLDIR)/bin/uzbl-event-manager
+	#chmod 755 $(INSTALLDIR)/bin/uzbl-event-manager
+	#rm $(INSTALLDIR)/bin/uzbl-event-manager.bak
 
 install-uzbl-browser: install-dirs install-uzbl-core install-event-manager
 	install -m755 bin/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
