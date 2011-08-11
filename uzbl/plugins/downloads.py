@@ -2,81 +2,82 @@
 # @downloads to your status_format.
 
 import os
+from cgi import escape as htmlescape
 
 from uzbl.arguments import splitquoted
 from .config import Config
+from uzbl.ext import PerInstancePlugin
 
-ACTIVE_DOWNLOADS = {}
+class Downloads(PerInstancePlugin):
 
-# after a download's status has changed this is called to update the status bar
-def update_download_section(uzbl):
-    global ACTIVE_DOWNLOADS
+    def __init__(self, uzbl):
+        super(Downloads, self).__init__(uzbl)
+        uzbl.connect('DOWNLOAD_STARTED', self.download_started)
+        uzbl.connect('DOWNLOAD_PROGRESS', self.download_progress)
+        uzbl.connect('DOWNLOAD_COMPLETE', self.download_complete)
+        self.active_downloads = {}
 
-    if len(ACTIVE_DOWNLOADS):
-        # add a newline before we list downloads
-        result = '&#10;downloads:'
-        for path in ACTIVE_DOWNLOADS:
-            # add each download
-            fn = os.path.basename(path)
-            progress, = ACTIVE_DOWNLOADS[path]
+    def update_download_section(self):
+        """after a download's status has changed this
+           is called to update the status bar
+        """
 
-            dl = " %s (%d%%)" % (fn, progress * 100)
+        if self.active_downloads:
+            # add a newline before we list downloads
+            result = '&#10;downloads:'
+            for path, progress in self.active_downloads.items():
+                # add each download
+                fn = os.path.basename(path)
 
-            # replace entities to make sure we don't break our markup
-            # (this could be done with an @[]@ expansion in uzbl, but then we
-            # can't use the &#10; above to make a new line)
-            dl = dl.replace("&", "&amp;").replace("<", "&lt;")
-            result += dl
-    else:
-        result = ''
+                dl = " %s (%d%%)" % (fn, progress * 100)
 
-    # and the result gets saved to an uzbl variable that can be used in
-    # status_format
-    config = Config[uzbl]
-    if config.get('downloads', '') != result:
-          config['downloads'] = result
+                # replace entities to make sure we don't break our markup
+                # (this could be done with an @[]@ expansion in uzbl, but then we
+                # can't use the &#10; above to make a new line)
+                dl = htmlescape(dl)
+                result += dl
+        else:
+            result = ''
 
-def download_started(uzbl, args):
-    # parse the arguments
-    args = splitquoted(args)
-    destination_path = args[0]
+        # and the result gets saved to an uzbl variable that can be used in
+        # status_format
+        config = Config[self.uzbl]
+        if config.get('downloads', '') != result:
+              config['downloads'] = result
 
-    # add to the list of active downloads
-    global ACTIVE_DOWNLOADS
-    ACTIVE_DOWNLOADS[destination_path] = (0.0,)
+    def download_started(self, args):
+        # parse the arguments
+        args = splitquoted(args)
+        destination_path = args[0]
 
-    # update the progress
-    update_download_section(uzbl)
+        # add to the list of active downloads
+        self.active_downloads[destination_path] = 0.0
 
-def download_progress(uzbl, args):
-    # parse the arguments
-    args = splitquoted(args)
-    destination_path = args[0]
-    progress = float(args[1])
+        # update the progress
+        self.update_download_section()
 
-    # update the progress
-    global ACTIVE_DOWNLOADS
-    ACTIVE_DOWNLOADS[destination_path] = (progress,)
+    def download_progress(self, args):
+        # parse the arguments
+        args = splitquoted(args)
+        destination_path = args[0]
+        progress = float(args[1])
 
-    # update the status bar variable
-    update_download_section(uzbl)
+        # update the progress
+        self.active_downloads[destination_path] = progress
 
-def download_complete(uzbl, args):
-    # parse the arguments
-    args = splitquoted(args)
-    destination_path = args[0]
+        # update the status bar variable
+        self.update_download_section()
 
-    # remove from the list of active downloads
-    global ACTIVE_DOWNLOADS
-    del ACTIVE_DOWNLOADS[destination_path]
+    def download_complete(self, args):
+        # TODO(tailhook) be more userfriendly: show download for some time!
 
-    # update the status bar variable
-    update_download_section(uzbl)
+        # parse the arguments
+        args = splitquoted(args)
+        destination_path = args[0]
 
-# plugin init hook
-def init(uzbl):
-    connect_dict(uzbl, {
-        'DOWNLOAD_STARTED':     download_started,
-        'DOWNLOAD_PROGRESS':    download_progress,
-        'DOWNLOAD_COMPLETE':    download_complete,
-    })
+        # remove from the list of active downloads
+        del self.active_downloads[destination_path]
+
+        # update the status bar variable
+        self.update_download_section()
+
