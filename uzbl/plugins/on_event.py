@@ -19,9 +19,11 @@ Usage:
 
 import re
 import fnmatch
+from functools import partial
 
 from uzbl.arguments import splitquoted
 from .cmd_expand import cmd_expand
+from uzbl.ext import PerInstancePlugin
 
 def match_args(pattern, args):
     if len(pattern) > len(args):
@@ -32,81 +34,73 @@ def match_args(pattern, args):
     return True
 
 
-def event_handler(uzbl, *args, **kargs):
-    '''This function handles all the events being watched by various
-    on_event definitions and responds accordingly.'''
+class OnEventPlugin(PerInstancePlugin):
 
-    # Could be connected to a EM internal event that can use anything as args
-    if len(args) == 1 and isinstance(args[0], basestring):
-        args = splitquoted(args[0])
+    def __init__(self, uzbl):
+        '''Export functions and connect handlers to events.'''
+        super(OnEventPlugin, self).__init__(uzbl)
 
-    events = uzbl.on_events
-    event = kargs['on_event']
-    if event not in events:
-        return
+        self.events = {}
 
-    commands = events[event]
-    for cmd, pattern in commands.items():
-        if not pattern or match_args(pattern, args):
-            cmd = cmd_expand(cmd, args)
-            uzbl.send(cmd)
+        uzbl.connect('ON_EVENT', self.parse_on_event)
 
+    def event_handler(self, *args, **kargs):
+        '''This function handles all the events being watched by various
+        on_event definitions and responds accordingly.'''
 
-def on_event(uzbl, event, pattern, cmd):
-    '''Add a new event to watch and respond to.'''
+        # Could be connected to a EM internal event that can use anything as args
+        if len(args) == 1 and isinstance(args[0], basestring):
+            args = splitquoted(args[0])
 
-    event = event.upper()
-    events = uzbl.on_events
-    logger.debug('new event handler %r %r %r', event, pattern, cmd)
-    if event not in events:
-        connect(uzbl, event, event_handler, on_event=event)
-        events[event] = {}
+        event = kargs['on_event']
+        if event not in self.events:
+            return
 
-    cmds = events[event]
-    if cmd not in cmds:
-        cmds[cmd] = pattern
+        commands = self.events[event]
+        for cmd, pattern in commands.items():
+            if not pattern or match_args(pattern, args):
+                cmd = cmd_expand(cmd, args)
+                self.uzbl.send(cmd)
 
+    def on_event(self, event, pattern, cmd):
+        '''Add a new event to watch and respond to.'''
 
-def parse_on_event(uzbl, args):
-    '''Parse ON_EVENT events and pass them to the on_event function.
+        event = event.upper()
+        logger.debug('new event handler %r %r %r', event, pattern, cmd)
+        if event not in self.events:
+            self.uzbl.connect(event,
+                partial(self.event_handler, on_event=event))
+            self.events[event] = {}
 
-    Syntax: "event ON_EVENT <EVENT_NAME> commands".'''
+        cmds = self.events[event]
+        if cmd not in cmds:
+            cmds[cmd] = pattern
 
-    args = splitquoted(args)
-    assert args, 'missing on event arguments'
+    def parse_on_event(self, args):
+        '''Parse ON_EVENT events and pass them to the on_event function.
 
-    # split arguments into event name, optional argument pattern and command
-    event = args[0]
-    pattern = []
-    if args[1] == '[':
-        for i, arg in enumerate(args[2:]):
-            if arg == ']':
-                break
-            pattern.append(arg)
-        command = args.raw(3+i)
-    else:
-        command = args.raw(1)
+        Syntax: "event ON_EVENT <EVENT_NAME> commands".'''
 
-    assert event and command, 'missing on event command'
-    on_event(uzbl, event, pattern, command)
+        args = splitquoted(args)
+        assert args, 'missing on event arguments'
 
+        # split arguments into event name, optional argument pattern and command
+        event = args[0]
+        pattern = []
+        if args[1] == '[':
+            for i, arg in enumerate(args[2:]):
+                if arg == ']':
+                    break
+                pattern.append(arg)
+            command = args.raw(3+i)
+        else:
+            command = args.raw(1)
 
-# plugin init hook
-def init(uzbl):
-    '''Export functions and connect handlers to events.'''
+        assert event and command, 'missing on event command'
+        self.on_event(event, pattern, command)
 
-    connect(uzbl, 'ON_EVENT', parse_on_event)
-
-    export_dict(uzbl, {
-        'on_event':     on_event,
-        'on_events':    {},
-    })
-
-# plugin cleanup hook
-def cleanup(uzbl):
-    for handlers in uzbl.on_events.values():
-        handlers.clear()
-
-    uzbl.on_events.clear()
+    def cleanup(self):
+        self.events.clear()
+        super(OnEventPlugin, self).cleanup()
 
 # vi: set et ts=4:
