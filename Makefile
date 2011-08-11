@@ -17,6 +17,8 @@ else
 	CPPFLAGS =
 endif
 
+PYTHON=python2.7
+
 # --- configuration ends here ---
 
 REQ_PKGS += libsoup-2.4 gthread-2.0 glib-2.0
@@ -50,7 +52,7 @@ uzbl-core: ${OBJ}
 uzbl-browser: uzbl-core uzbl-event-manager
 
 build: ${PY}
-	python setup.py build
+	$(PYTHON) setup.py build
 
 .PHONY: uzbl-event-manager
 uzbl-event-manager: build
@@ -84,7 +86,7 @@ test-uzbl-browser-sandbox: uzbl-browser sandbox-install-uzbl-browser sandbox-ins
 	cp -np ./misc/env.sh ./sandbox/env.sh
 	-. ./sandbox/env.sh && uzbl-event-manager restart -avv
 	. ./sandbox/env.sh && uzbl-browser --uri http://www.uzbl.org --verbose
-	. ./sandbox/env.sh && uzbl-event-manager stop -ivv -o /dev/null
+	. ./sandbox/env.sh && uzbl-event-manager stop -vv -o /dev/null
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
@@ -112,7 +114,7 @@ clean:
 	find ./examples/ -name "*.pyc" -delete
 	cd ./tests/; $(MAKE) clean
 	rm -rf ./sandbox/
-	python setup.py clean
+	$(PYTHON) setup.py clean
 
 strip:
 	@echo Stripping binary
@@ -146,7 +148,7 @@ install-uzbl-core: all install-dirs
 	install -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
 
 install-event-manager: install-dirs
-	python setup.py install --prefix=$(INSTALLDIR)
+	$(PYTHON) setup.py install --prefix=$(INSTALLDIR)
 	#install -m755 bin/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
 	#mv $(INSTALLDIR)/bin/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager.bak
 	#sed "s#^PREFIX = .*#PREFIX = '$(RUN_PREFIX)'#" < $(INSTALLDIR)/bin/uzbl-event-manager.bak > $(INSTALLDIR)/bin/uzbl-event-manager

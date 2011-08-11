@@ -28,3 +28,9 @@ export XDG_CONFIG_HOME
 # Needed to run uzbl-browser etc from here.
 PATH="$(pwd)/sandbox/usr/local/bin:$PATH"
 export PATH
+
+UZBL_PLUGIN_PATH="$(pwd)/sandbox/usr/local/lib/python2.7/site-packages/uzbl/"
+export UZBL_PLUGIN_PATH
+
+PYTHONPATH="$(pwd)/sandbox/usr/local/lib/python2.7/site-packages/"
+export PYTHONPATH
