@@ -1,3 +1,4 @@
+import re
 from .config import Config
 
 from uzbl.ext import PerInstancePlugin
@@ -8,6 +9,7 @@ class ProgressBar(PerInstancePlugin):
         uzbl.connect('LOAD_COMMIT', lambda uri: self.update_progess())
         uzbl.connect('LOAD_PROGRESS', self.update_progress)
         self.updates = 0
+        self.splitfrmt = re.compile(r'(%[A-Z][^%]|%[^%])').split
 
     def update_progress(self, progress=None):
         '''Updates the progress.output variable on LOAD_PROGRESS update.
@@ -41,54 +43,49 @@ class ProgressBar(PerInstancePlugin):
 
         # Get progress config vars.
         config = Config[self.uzbl]
-        format = config.get('progress.format', '[%d>%p]%c')
+        frmt = config.get('progress.format', '[%d>%p]%c')
         width = int(config.get('progress.width', 8))
         done_symbol = config.get('progress.done', '=')
         pend = config.get('progress.pending', None)
         pending_symbol = pend if pend else ' '
 
+        # Get spinner character
+        spinner = config.get('progress.spinner', '-\\|/')
+        index = 0 if progress == 100 else self.updates % len(spinner)
+        spinner = '\\\\' if spinner[index] == '\\' else spinner[index]
+
+        # get sprite character
+        sprites = config.get('progress.sprites', 'loading')
+        index = int(((progress/100.0)*len(sprites))+0.5)-1
+        sprite = '%r' % ('\\\\' if sprites[index] == '\\' else sprites[index])
+
         # Inflate the done and pending bars to stop the progress bar
         # jumping around.
-        if '%c' in format or '%i' in format:
-            count = format.count('%c') + format.count('%i')
+        if '%c' in frmt or '%i' in frmt:
+            count = frmt.count('%c') + frmt.count('%i')
             width += (3-len(str(progress))) * count
 
-        if '%t' in format or '%o' in format:
-            count = format.count('%t') + format.count('%o')
+        if '%t' in frmt or '%o' in frmt:
+            count = frmt.count('%t') + frmt.count('%o')
             width += (3-len(str(100-progress))) * count
 
         done = int(((progress/100.0)*width)+0.5)
         pending = width - done
 
-        if '%d' in format:
-            format = format.replace('%d', done_symbol * done)
+        # values to replace with
+        values = {
+            'd': done_symbol * done,
+            'p': pending_symbol * pending,
+            'c': '%d%%' % progress,
+            'i': '%d' % progress,
+            't': '%d%%' % (100 - progress),
+            'o': '%d' % (100 - progress),
+            's': spinner,
+            'r': sprite
+        }
 
-        if '%p' in format:
-            format = format.replace('%p', pending_symbol * pending)
+        frmt = ''.join([str(values[k[1:]]) if k.startswith('%') else k for
+                k in self.splitfrmt(frmt)])
 
-        if '%c' in format:
-            format = format.replace('%c', '%d%%' % progress)
-
-        if '%i' in format:
-            format = format.replace('%i', '%d' % progress)
-
-        if '%t' in format:
-            format = format.replace('%t', '%d%%' % (100-progress))
-
-        if '%o' in format:
-            format = format.replace('%o', '%d' % (100-progress))
-
-        if '%s' in format:
-            spinner = config.get('progress.spinner', '-\\|/')
-            index = 0 if progress == 100 else self.updates % len(spinner)
-            spin = '\\\\' if spinner[index] == '\\' else spinner[index]
-            format = format.replace('%s', spin)
-
-        if '%r' in format:
-            sprites = config.get('progress.sprites', 'loading')
-            index = int(((progress/100.0)*len(sprites))+0.5)-1
-            sprite = '\\\\' if sprites[index] == '\\' else sprites[index]
-            format = format.replace('%r', sprite)
-
-        if config.get('progress.output', None) != format:
-            config['progress.output'] = format
+        if config.get('progress.output', None) != frmt:
+            config['progress.output'] = frmt
