@@ -1,5 +1,5 @@
 '''
-Arguments paser
+Arguments parser
 
 provides argument parsing for event handlers
 '''
@@ -7,9 +7,23 @@ provides argument parsing for event handlers
 import re
 
 class Arguments(list):
+    '''
+    Given a argument line gives access to the split parts
+    honoring common quotation and escaping rules
+
+    >>> Arguments(r"simple 'quoted string'")
+    [u'simple', u'quoted string']
+    '''
+
     _splitquoted = re.compile("( +|\"(?:\\\\.|[^\"])*?\"|'(?:\\\\.|[^'])*?')")
 
     def __init__(self, s):
+        '''
+        >>> Arguments(r"one two three")
+        [u'one', u'two', u'three']
+        >>> Arguments(r"spam 'escaping \\'works\\''")
+        [u'spam', u"escaping 'works'"]
+        '''
         self._raw = self._splitquoted.split(s)
         self._ref = []
         self[:] = self.parse()
@@ -32,6 +46,16 @@ class Arguments(list):
         yield c
 
     def raw(self, frm=0, to=None):
+        '''
+        Returs the portion of the raw input that yielded arguments
+        from 'frm' to 'to'
+
+        >>> args = Arguments(r"'spam, spam' egg sausage   and 'spam'")
+        >>> args
+        [u'spam, spam', u'egg', u'sausage', u'and', u'spam']
+        >>> args.raw(1)
+        "egg sausage   and 'spam'"
+        '''
         rfrm = self._ref[frm]
         if to is None or len(self._ref) <= to+1:
             rto = len(self._raw)
