@@ -6,31 +6,35 @@ provides argument parsing for event handlers
 
 import re
 
-class Arguments(list):
+class Arguments(tuple):
     '''
     Given a argument line gives access to the split parts
     honoring common quotation and escaping rules
 
     >>> Arguments(r"simple 'quoted string'")
-    [u'simple', u'quoted string']
+    (u'simple', u'quoted string')
     '''
 
     _splitquoted = re.compile("( +|\"(?:\\\\.|[^\"])*?\"|'(?:\\\\.|[^'])*?')")
 
-    def __init__(self, s):
+    def __new__(cls, s):
         '''
         >>> Arguments(r"one two three")
-        [u'one', u'two', u'three']
+        (u'one', u'two', u'three')
         >>> Arguments(r"spam 'escaping \\'works\\''")
-        [u'spam', u"escaping 'works'"]
+        (u'spam', u"escaping 'works'")
         '''
-        self._raw = self._splitquoted.split(s)
-        self._ref = []
-        self[:] = self.parse()
 
-    def parse(self):
+        raw = cls._splitquoted.split(s)
+        ref = []
+        self = tuple.__new__(cls, cls.parse(raw, ref))
+        self._raw, self._ref = raw, ref
+        return self
+
+    @classmethod
+    def parse(cls, raw, ref):
         c = None
-        for i, part in enumerate(self._raw):
+        for i, part in enumerate(raw):
             if re.match(' +', part):
                 if c is not None:
                     yield c
@@ -39,7 +43,7 @@ class Arguments(list):
                 f = unquote(part)
                 if c == None:
                     if part != '':
-                        self._ref.append(i)
+                        ref.append(i)
                         c = f
                 else:
                     c += f
@@ -52,7 +56,7 @@ class Arguments(list):
 
         >>> args = Arguments(r"'spam, spam' egg sausage   and 'spam'")
         >>> args
-        [u'spam, spam', u'egg', u'sausage', u'and', u'spam']
+        (u'spam, spam', u'egg', u'sausage', u'and', u'spam')
         >>> args.raw(1)
         "egg sausage   and 'spam'"
         '''
