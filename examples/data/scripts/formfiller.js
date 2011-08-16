@@ -38,6 +38,7 @@ uzbl.formfiller = {
                 for( var k = 0; k < textareas.length; ++k ) {
                     var textarea = textareas[k];
                     rv += '%' + escape(textarea.name) + '(textarea):\n' + textarea.value.replace(/\n%/g,"\n\\%") + '\n%\n';
+                    rv += '%' + escape(textarea.name) + '(textarea):\n' + textarea.value.replace(/\n\\/g,"\n\\\\").replace(/\n%/g,"\n\\%") + '%\n';
                 }
             }
             catch (err) { }
