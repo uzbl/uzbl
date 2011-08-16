@@ -39,7 +39,7 @@ uzbl.formfiller = {
                 );
                 var input;
                 while ( input = xp_res.iterateNext() ) {
-                    rv += '%' + escape(input.name) + '(textarea):\n' + input.value.replace(/\n%/g,"\n\\%") + '\n%\n';
+                    rv += '%' + escape(input.name) + '(textarea):\n' + input.value.replace(/\n\\/g,"\n\\\\").replace(/\n%/g,"\n\\%") + '%\n';
                 }
             }
             catch (err) { }
