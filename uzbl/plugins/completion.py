@@ -4,6 +4,7 @@ import re
 
 from uzbl.arguments import splitquoted
 from .config import Config
+from .keycmd import KeyCmd
 
 # Completion level
 NONE, ONCE, LIST, COMPLETE = range(4)
@@ -25,7 +26,7 @@ def get_incomplete_keyword(uzbl):
     keywords or @variables. Returns a null string if the correct completion
     conditions aren't met.'''
 
-    keylet = uzbl.keylet
+    keylet = KeyCmd[uzbl].keylet
     left_segment = keylet.keycmd[:keylet.cursor]
     partial = (FIND_SEGMENT(left_segment) + ['',])[0].lstrip()
     if partial.startswith('set '):
@@ -59,7 +60,7 @@ def partial_completion(uzbl, partial, hint):
     '''Inject a common portion of the hints into the keycmd.'''
 
     remainder = hint[len(partial):]
-    uzbl.inject_keycmd(remainder)
+    KeyCmd[uzbl].inject_keycmd(remainder)
 
 
 def update_completion_list(uzbl, *args):

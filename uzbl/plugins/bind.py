@@ -15,6 +15,7 @@ import re
 from uzbl.arguments import unquote, splitquoted
 from .cmd_expand import cmd_expand
 from .config import Config
+from .keycmd import KeyCmd
 
 # Commonly used regular expressions.
 MOD_START = re.compile('^<([A-Z][A-Za-z0-9-_]*)>').match
@@ -96,7 +97,7 @@ class Bindlet(object):
 
         (prompt, is_cmd, set), self.after_cmds = self.after_cmds, None
 
-        self.uzbl.clear_keycmd()
+        KeyCmd[self.uzbl].clear_keycmd()
         if prompt:
             self.uzbl_config['keycmd_prompt'] = prompt
 
@@ -351,7 +352,7 @@ def parse_mode_bind(uzbl, args):
             command = args.raw(i+2)
             break
     else:
-        raise ArgumentError('missing delimiter in bind section: %r' % args)
+        raise ArgumentError('missing delimiter in bind section: %r' % args.raw())
 
     mode_bind(uzbl, modes, glob, command)
 
@@ -398,7 +399,7 @@ def match_and_exec(uzbl, bind, depth, modstate, keylet, bindlet):
     if bind.is_global or (not more and depth == 0):
         exec_bind(uzbl, bind, *args)
         if not has_args:
-            uzbl.clear_current()
+            KeyCmd[uzbl].clear_current()
 
         return True
 
