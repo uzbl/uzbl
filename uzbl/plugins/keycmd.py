@@ -28,7 +28,18 @@ def inject_str(str, index, inj):
 
 
 class Keylet(object):
-    '''Small per-instance object that tracks characters typed.'''
+    '''Small per-instance object that tracks characters typed.
+
+        >>> k = Keylet()
+        >>> k.set_keycmd('spam')
+        >>> print k
+        <keylet(keycmd='spam')>
+        >>> k.append_keycmd(' and egg')
+        >>> print k
+        <keylet(keycmd='spam and egg')>
+        >>> print k.cursor
+        12
+    '''
 
     def __init__(self):
         # Modcmd tracking
@@ -39,25 +50,202 @@ class Keylet(object):
         self.keycmd = ''
         self.cursor = 0
 
-        # Move these to plugin instance ?
-        self.modmaps = {}
-        self.ignores = {}
-
-
     def get_keycmd(self):
-        '''Get the keycmd-part of the keylet.'''
+        ''' Get the keycmd-part of the keylet. '''
 
         return self.keycmd
 
+    def clear_keycmd(self):
+        ''' Clears the keycmd part of the keylet '''
+
+        self.keycmd = ''
+        self.cursor = 0
 
     def get_modcmd(self):
-        '''Get the modcmd-part of the keylet.'''
+        ''' Get the modcmd-part of the keylet. '''
 
         if not self.is_modcmd:
             return ''
 
         return self.modcmd
 
+    def clear_modcmd(self):
+        self.modcmd = ''
+        self.is_modcmd = False
+
+    def set_keycmd(self, keycmd):
+        self.keycmd = keycmd
+        self.cursor = len(keycmd)
+
+    def insert_keycmd(self, s):
+        ''' Inserts string at the current position
+
+            >>> k = Keylet()
+            >>> k.set_keycmd('spam')
+            >>> k.cursor = 1
+            >>> k.insert_keycmd('egg')
+            >>> print k
+            <keylet(keycmd='seggpam')>
+            >>> print k.cursor
+            4
+        '''
+
+        self.keycmd = inject_str(self.keycmd, self.cursor, s)
+        self.cursor += len(s)
+
+    def append_keycmd(self, s):
+        ''' Appends string to to end of keycmd and moves the cursor
+
+            >>> k = Keylet()
+            >>> k.set_keycmd('spam')
+            >>> k.cursor = 1
+            >>> k.append_keycmd('egg')
+            >>> print k
+            <keylet(keycmd='spamegg')>
+            >>> print k.cursor
+            7
+        '''
+
+        self.keycmd += s
+        self.cursor = len(self.keycmd)
+
+    def backspace(self):
+        ''' Removes the character at the cursor position. '''
+        if not self.keycmd or not self.cursor:
+            return False
+
+        self.keycmd = self.keycmd[:self.cursor-1] + self.keycmd[self.cursor:]
+        self.cursor -= 1
+        return True
+
+    def delete(self):
+        ''' Removes the character after the cursor position. '''
+        if not self.keycmd:
+            return False
+
+        self.keycmd = self.keycmd[:self.cursor] + self.keycmd[self.cursor+1:]
+        return True
+
+    def strip_word(self, seps=' '):
+        ''' Removes the last word from the keycmd, similar to readline ^W
+            returns the part removed or None
+
+            >>> k = Keylet()
+            >>> k.set_keycmd('spam and egg')
+            >>> k.strip_word()
+            'egg'
+            >>> print k
+            <keylet(keycmd='spam and ')>
+            >>> k.strip_word()
+            'and'
+            >>> print k
+            <keylet(keycmd='spam ')>
+        '''
+        if not self.keycmd:
+            return None
+
+        head, tail = self.keycmd[:self.cursor].rstrip(seps), self.keycmd[self.cursor:]
+        rfind = -1
+        for sep in seps:
+            p = head.rfind(sep)
+            if p >= 0 and rfind < p + 1:
+                rfind = p + 1
+        if rfind == len(head) and head[-1] in seps:
+            rfind -= 1
+        self.keycmd = head[:rfind] if rfind + 1 else '' + tail
+        self.cursor = len(head)
+        return head[rfind:]
+
+    def set_cursor_pos(self, index):
+        ''' Sets the cursor position, Supports negative indexing and relative
+            stepping with '+' and '-'.
+            Returns the new cursor position
+
+            >>> k = Keylet()
+            >>> k.set_keycmd('spam and egg')
+            >>> k.set_cursor_pos(2)
+            2
+            >>> k.set_cursor_pos(-3)
+            10
+            >>> k.set_cursor_pos('+')
+            11
+        '''
+
+        if index == '-':
+            cursor = self.cursor - 1
+
+        elif index == '+':
+            cursor = self.cursor + 1
+
+        else:
+            cursor = int(index)
+            if cursor < 0:
+                cursor = len(self.keycmd) + cursor + 1
+
+        if cursor < 0:
+            cursor = 0
+
+        if cursor > len(self.keycmd):
+            cursor = len(self.keycmd)
+
+        self.cursor = cursor
+        return self.cursor
+
+    def markup(self):
+        ''' Returns the keycmd with the cursor in pango markup spliced in
+
+        >>> k = Keylet()
+        >>> k.set_keycmd('spam and egg')
+        >>> k.set_cursor_pos(4)
+        4
+        >>> k.markup()
+        '@[spam]@<span @cursor_style>@[ ]@</span>@[and egg]@'
+    '''
+
+        if self.cursor < len(self.keycmd):
+            curchar = self.keycmd[self.cursor]
+        else:
+            curchar = ' '
+        chunks = [self.keycmd[:self.cursor], curchar, self.keycmd[self.cursor+1:]]
+        return KEYCMD_FORMAT % tuple(map(uzbl_escape, chunks))
+
+    def __repr__(self):
+        ''' Return a string representation of the keylet. '''
+
+        l = []
+        if self.is_modcmd:
+            l.append('modcmd=%r' % self.get_modcmd())
+
+        if self.keycmd:
+            l.append('keycmd=%r' % self.get_keycmd())
+
+        return '<keylet(%s)>' % ', '.join(l)
+
+
+class KeyCmd(PerInstancePlugin):
+    def __init__(self, uzbl):
+        '''Export functions and connect handlers to events.'''
+        super(KeyCmd, self).__init__(uzbl)
+
+        self.keylet = Keylet()
+        self.modmaps = {}
+        self.ignores = {}
+
+        uzbl.connect('APPEND_KEYCMD', self.append_keycmd)
+        uzbl.connect('IGNORE_KEY', self.add_key_ignore)
+        uzbl.connect('INJECT_KEYCMD', self.inject_keycmd)
+        uzbl.connect('KEYCMD_BACKSPACE', self.keycmd_backspace)
+        uzbl.connect('KEYCMD_DELETE', self.keycmd_delete)
+        uzbl.connect('KEYCMD_EXEC_CURRENT', self.keycmd_exec_current)
+        uzbl.connect('KEYCMD_STRIP_WORD', self.keycmd_strip_word)
+        uzbl.connect('KEYCMD_CLEAR', self.clear_keycmd)
+        uzbl.connect('KEY_PRESS', self.key_press)
+        uzbl.connect('KEY_RELEASE', self.key_release)
+        uzbl.connect('MOD_PRESS', self.key_press)
+        uzbl.connect('MOD_RELEASE', self.key_release)
+        uzbl.connect('MODMAP', self.modmap_parse)
+        uzbl.connect('SET_CURSOR_POS', self.set_cursor_pos)
+        uzbl.connect('SET_KEYCMD', self.set_keycmd)
 
     def modmap_key(self, key):
         '''Make some obscure names for some keys friendlier.'''
@@ -82,43 +270,6 @@ class Keylet(object):
 
         return False
 
-
-    def __repr__(self):
-        '''Return a string representation of the keylet.'''
-
-        l = []
-        if self.is_modcmd:
-            l.append('modcmd=%r' % self.get_modcmd())
-
-        if self.keycmd:
-            l.append('keycmd=%r' % self.get_keycmd())
-
-        return '<keylet(%s)>' % ', '.join(l)
-
-
-class KeyCmd(PerInstancePlugin):
-    def __init__(self, uzbl):
-        '''Export functions and connect handlers to events.'''
-        super(KeyCmd, self).__init__(uzbl)
-
-        self.keylet = Keylet()
-
-        uzbl.connect('APPEND_KEYCMD', self.append_keycmd)
-        uzbl.connect('IGNORE_KEY', self.add_key_ignore)
-        uzbl.connect('INJECT_KEYCMD', self.inject_keycmd)
-        uzbl.connect('KEYCMD_BACKSPACE', self.keycmd_backspace)
-        uzbl.connect('KEYCMD_DELETE', self.keycmd_delete)
-        uzbl.connect('KEYCMD_EXEC_CURRENT', self.keycmd_exec_current)
-        uzbl.connect('KEYCMD_STRIP_WORD', self.keycmd_strip_word)
-        uzbl.connect('KEYCMD_CLEAR', self.clear_keycmd)
-        uzbl.connect('KEY_PRESS', self.key_press)
-        uzbl.connect('KEY_RELEASE', self.key_release)
-        uzbl.connect('MOD_PRESS', self.key_press)
-        uzbl.connect('MOD_RELEASE', self.key_release)
-        uzbl.connect('MODMAP', self.modmap_parse)
-        uzbl.connect('SET_CURSOR_POS', self.set_cursor_pos)
-        uzbl.connect('SET_KEYCMD', self.set_keycmd)
-
     def add_modmap(self, key, map):
         '''Add modmaps.
 
@@ -136,7 +287,7 @@ class KeyCmd(PerInstancePlugin):
         '''
 
         assert len(key)
-        modmaps = self.keylet.modmaps
+        modmaps = self.modmaps
 
         modmaps[key.strip('<>')] = map.strip('<>')
         self.uzbl.event("NEW_MODMAP", key, map)
@@ -162,7 +313,7 @@ class KeyCmd(PerInstancePlugin):
         '''
 
         assert len(glob) > 1
-        ignores = self.keylet.ignores
+        ignores = self.ignores
 
         glob = "<%s>" % glob.strip("<> ")
         restr = glob.replace('*', '[^\s]*')
@@ -174,9 +325,7 @@ class KeyCmd(PerInstancePlugin):
     def clear_keycmd(self, *args):
         '''Clear the keycmd for this uzbl instance.'''
 
-        k = self.keylet
-        k.keycmd = ''
-        k.cursor = 0
+        self.keylet.clear_keycmd()
         config = Config[self.uzbl]
         del config['keycmd']
         self.uzbl.event('KEYCMD_CLEARED')
@@ -184,9 +333,7 @@ class KeyCmd(PerInstancePlugin):
     def clear_modcmd(self):
         '''Clear the modcmd for this uzbl instance.'''
 
-        k = self.keylet
-        k.modcmd = ''
-        k.is_modcmd = False
+        self.keylet.clear_modcmd()
 
         config = Config[self.uzbl]
         del config['modcmd']
@@ -232,20 +379,15 @@ class KeyCmd(PerInstancePlugin):
 
         elif new_keycmd == keycmd:
             # Generate the pango markup for the cursor in the keycmd.
-            curchar = keycmd[k.cursor] if k.cursor < len(keycmd) else ' '
-            chunks = [keycmd[:k.cursor], curchar, keycmd[k.cursor+1:]]
-            value = KEYCMD_FORMAT % tuple(map(uzbl_escape, chunks))
-
-            config['keycmd'] = value
+            config['keycmd'] = str(k.markup())
 
     def parse_key_event(self, key):
         ''' Build a set from the modstate part of the event, and pass all keys through modmap '''
-        keylet = self.keylet
 
         modstate, key = splitquoted(key)
-        modstate = set(['<%s>' % keylet.modmap_key(k) for k in modstate.split('|') if k])
+        modstate = set(['<%s>' % self.modmap_key(k) for k in modstate.split('|') if k])
 
-        key = keylet.modmap_key(key)
+        key = self.modmap_key(key)
         return modstate, key
 
     def key_press(self, key):
@@ -260,12 +402,11 @@ class KeyCmd(PerInstancePlugin):
         k = self.keylet
         config = Config[self.uzbl]
         modstate, key = self.parse_key_event(key)
-        k.is_modcmd = any(not k.key_ignored(m) for m in modstate)
+        k.is_modcmd = any(not self.key_ignored(m) for m in modstate)
 
         logger.debug('key press modstate=%s' % str(modstate))
         if key.lower() == 'space' and not k.is_modcmd and k.keycmd:
-            k.keycmd = inject_str(k.keycmd, k.cursor, ' ')
-            k.cursor += 1
+            k.insert_keycmd(' ')
 
         elif not k.is_modcmd and len(key) == 1:
             if config.get('keycmd_events', '1') != '1':
@@ -275,14 +416,13 @@ class KeyCmd(PerInstancePlugin):
                 del config['keycmd']
                 return
 
-            k.keycmd = inject_str(k.keycmd, k.cursor, key)
-            k.cursor += 1
+            k.insert_keycmd(key)
 
         elif len(key) == 1:
             k.modcmd += key
 
         else:
-            if not k.key_ignored('<%s>' % key):
+            if not self.key_ignored('<%s>' % key):
                 modstate.add('<%s>' % key)
                 k.is_modcmd = True
 
@@ -305,68 +445,41 @@ class KeyCmd(PerInstancePlugin):
     def set_keycmd(self, keycmd):
         '''Allow setting of the keycmd externally.'''
 
-        k = self.keylet
-        k.keycmd = keycmd
-        k.cursor = len(keycmd)
-        self.update_event(set(), k, False)
+        self.keylet.set_keycmd(keycmd)
+        self.update_event(set(), self.keylet, False)
 
     def inject_keycmd(self, keycmd):
         '''Allow injecting of a string into the keycmd at the cursor position.'''
 
-        k = self.keylet
-        k.keycmd = inject_str(k.keycmd, k.cursor, keycmd)
-        k.cursor += len(keycmd)
-        self.update_event(set(), k, False)
+        self.keylet.insert_keycmd(keycmd)
+        self.update_event(set(), self.keylet, False)
 
     def append_keycmd(self, keycmd):
         '''Allow appening of a string to the keycmd.'''
 
-        k = self.keylet
-        k.keycmd += keycmd
-        k.cursor = len(k.keycmd)
-        self.update_event(set(), k, False)
+        self.keylet.append_keycmd(keycmd)
+        self.update_event(set(), self.keylet, False)
 
-    def keycmd_strip_word(self, seps):
+    def keycmd_strip_word(self, args):
         ''' Removes the last word from the keycmd, similar to readline ^W '''
 
-        seps = seps or ' '
-        k = self.keylet
-        if not k.keycmd:
-            return
-
-        head, tail = k.keycmd[:k.cursor].rstrip(seps), k.keycmd[k.cursor:]
-        rfind = -1
-        for sep in seps:
-            p = head.rfind(sep)
-            if p >= 0 and rfind < p + 1:
-                rfind = p + 1
-        if rfind == len(head) and head[-1] in seps:
-            rfind -= 1
-        head = head[:rfind] if rfind + 1 else ''
-        k.keycmd = head + tail
-        k.cursor = len(head)
-        self.update_event(set(), k, False)
+        args = splitquoted(args)
+        assert len(args) <= 1
+        self.logger.debug('STRIPWORD %r %r' % (args, self.keylet))
+        if self.keylet.strip_word(*args):
+            self.update_event(set(), self.keylet, False)
 
     def keycmd_backspace(self, *args):
         '''Removes the character at the cursor position in the keycmd.'''
 
-        k = self.keylet
-        if not k.keycmd or not k.cursor:
-            return
-
-        k.keycmd = k.keycmd[:k.cursor-1] + k.keycmd[k.cursor:]
-        k.cursor -= 1
-        self.update_event(set(), k, False)
+        if self.keylet.backspace():
+            self.update_event(set(), self.keylet, False)
 
     def keycmd_delete(self, *args):
         '''Removes the character after the cursor position in the keycmd.'''
 
-        k = self.keylet
-        if not k.keycmd:
-            return
-
-        k.keycmd = k.keycmd[:k.cursor] + k.keycmd[k.cursor+1:]
-        self.update_event(set(), k, False)
+        if self.keylet.delete():
+            self.update_event(set(), self.keylet, False)
 
     def keycmd_exec_current(self, *args):
         '''Raise a KEYCMD_EXEC with the current keylet and then clear the
@@ -375,29 +488,14 @@ class KeyCmd(PerInstancePlugin):
         self.uzbl.event('KEYCMD_EXEC', set(), self.keylet)
         self.clear_keycmd()
 
-    def set_cursor_pos(self, index):
+    def set_cursor_pos(self, args):
         '''Allow setting of the cursor position externally. Supports negative
         indexing and relative stepping with '+' and '-'.'''
 
-        k = self.keylet
-        if index == '-':
-            cursor = k.cursor - 1
+        args = splitquoted(args)
+        assert len(args) == 1
 
-        elif index == '+':
-            cursor = k.cursor + 1
-
-        else:
-            cursor = int(index.strip())
-            if cursor < 0:
-                cursor = len(k.keycmd) + cursor + 1
-
-        if cursor < 0:
-            cursor = 0
-
-        if cursor > len(k.keycmd):
-            cursor = len(k.keycmd)
-
-        k.cursor = cursor
-        self.update_event(set(), k, False)
+        self.keylet.set_cursor_pos(args[0])
+        self.update_event(set(), self.keylet, False)
 
 # vi: set et ts=4:
