@@ -15,16 +15,14 @@ uzbldivid = 'uzbl_link_hints';
 
 uzbl.follow = function() {
     // Export
-    charset   = arguments[0];
+    uzbl.follow.charset = arguments[0];
+
     if (arguments[2] == 0 || arguments[2] == 'click') {
-        newwindow = false;
-        returnuri = false;
+        uzbl.follow.mode = 'click';
     } else if (arguments[2] == 1 || arguments[2] == 'newwindow') {
-        newwindow = true;
-        returnuri = false;
+        uzbl.follow.mode = 'newwindow';
     } else if (arguments[2] == 'returnuri') {
-        newwindow = false;
-        returnuri = true;
+        uzbl.follow.mode = 'returnuri';
     }
 
     var keypress = arguments[1];
@@ -110,7 +108,18 @@ uzbl.follow.elementInViewport = function(el) {
 // by this script in the given document.
 uzbl.follow.removeHints = function(doc) {
     var elements = doc.getElementById(uzbldivid);
-    if (elements) elements.parentNode.removeChild(elements);
+    if (elements)
+        elements.parentNode.removeChild(elements);
+
+    // this returns a live NodeList, which is super-annoying when we to try
+    // to remove the class.
+    var followTextMatches = doc.getElementsByClassName('uzbl-follow-text-match');
+    var matches = [];
+    for(var i = 0; i < followTextMatches.length; ++i)
+        matches.push(followTextMatches[i]);
+
+    for(var i = 0; i < matches.length; ++i)
+        matches[i].classList.remove('uzbl-follow-text-match');
 }
 
 // Clears all hints in every document
@@ -159,9 +168,7 @@ uzbl.follow.clickElem = function(item) {
 }
 
 // Draw all hints for all elements passed.
-uzbl.follow.reDrawHints = function(elems, chars) {
-    var elements  = elems.map(function(pair) { return pair[0] });
-    var labels    = elems.map(function(pair) { return pair[1].substring(chars) });
+uzbl.follow.reDrawHints = function(elements, chars) {
     // we have to calculate element positions before we modify the DOM
     // otherwise the elementPosition call slows way down.
     var positions = elements.map(uzbl.follow.elementPosition);
@@ -171,13 +178,20 @@ uzbl.follow.reDrawHints = function(elems, chars) {
         if (!doc.body) return;
         doc.hintdiv = doc.createElement('div');
         doc.hintdiv.id = uzbldivid;
-        if(newwindow) doc.hintdiv.className = "new-window";
+        if(uzbl.follow.mode == 'newwindow')
+          doc.hintdiv.className = "new-window";
         doc.body.appendChild(doc.hintdiv);
     });
 
+    var len = this.labelLength(elements.length);
+
     elements.forEach(function(el, i) {
-        var label = labels[i];
+        var label = uzbl.follow.intToLabel(i);
+        for (var n = label.length; n < len; n++)
+            label = uzbl.follow.charset.charAt(0) + label;
+
         var pos   = positions[i];
+
         try {
             var doc   = uzbl.follow.getDocument(el);
             var h = uzbl.follow.generateHint(doc, el, label, pos[0], pos[1]);
@@ -197,7 +211,7 @@ uzbl.follow.labelLength = function(n) {
     n -= 1; // Our highest key will be n-1
     while(n) {
         keylen += 1;
-        n = Math.floor(n / charset.length);
+        n = Math.floor(n / uzbl.follow.charset.length);
     }
     return keylen;
 }
@@ -207,8 +221,8 @@ uzbl.follow.labelLength = function(n) {
 uzbl.follow.intToLabel = function(n) {
     var label = '';
     do {
-        label = charset.charAt(n % charset.length) + label;
-        n = Math.floor(n / charset.length);
+        label = uzbl.follow.charset.charAt(n % uzbl.follow.charset.length) + label;
+        n = Math.floor(n / uzbl.follow.charset.length);
     } while(n);
     return label;
 }
@@ -218,17 +232,16 @@ uzbl.follow.intToLabel = function(n) {
 uzbl.follow.labelToInt = function(label) {
     var n = 0;
     for(var i = 0; i < label.length; ++i) {
-        n *= charset.length;
-        n += charset.indexOf(label[i]);
+        n *= uzbl.follow.charset.length;
+        n += uzbl.follow.charset.indexOf(label[i]);
     }
     return n;
 }
 
-uzbl.follow.findMatchingLabelId = function(res, str) {
+uzbl.follow.findMatchingHintId = function(elems, str) {
     str = str.split('');
     var linknr = this.labelToInt(str);
 
-    var elems = res.filter(uzbl.follow.elementInViewport);
     var len = this.labelLength(elems.length);
 
     if (str.length == len && linknr < elems.length && linknr >= 0) {
@@ -237,58 +250,75 @@ uzbl.follow.findMatchingLabelId = function(res, str) {
         return [el];
     }
 
-    var leftover = [];
-
-    for (var j = 0; j < elems.length; j++) {
-        var label = this.intToLabel(j);
+    return elems.filter(function(el, i) {
+        var label = uzbl.follow.intToLabel(i);
         for (var n = label.length; n < len; n++)
-            label = charset.charAt(0) + label;
+            label = uzbl.follow.charset.charAt(0) + label;
 
-        if (label.slice(0, str.length) == str)
-            leftover.push([elems[j], label]);
-    }
-
-    return leftover;
+        return label.slice(0, str.length) == str;
+    });
 }
 
-// Put it all together
-uzbl.follow.followLinks = function(str) {
+uzbl.follow.getInterestingElements = function() {
     var followable  = 'a, area, textarea, select, input:not([type=hidden]), button, *[onclick]';
     var uri         = 'a, area, frame, iframe';
     //var focusable   = 'a, area, textarea, select, input:not([type=hidden]), button, frame, iframe, applet, object';
     //var desc        = '*[title], img[alt], applet[alt], area[alt], input[alt]';
     //var image       = 'img, input[type=image]';
 
-    if(newwindow || returnuri)
-        var res = this.query(uri);
+    if(uzbl.follow.mode == 'newwindow' || uzbl.follow.mode == 'returnuri')
+        var elems = this.query(uri);
     else
-        var res = this.query(followable);
+        var elems = this.query(followable);
 
-    var leftover = uzbl.follow.findMatchingLabelId(res, str);
+    return elems.filter(uzbl.follow.elementInViewport);
+}
 
-    if(leftover.length == 1) {
-        // we've selected a link!
-        var el = leftover[0];
+uzbl.follow.elementSelected = function(el) {
+    // clear all of our hints
+    this.clearHints();
 
-        // clear all of our hints
-        this.clearHints();
-
-        if (returnuri) {
-            var uri = el.src || el.href;
-            return "XXXRETURNED_URIXXX" + uri
-        }
-
-        if (newwindow) {
-            // we're opening a new window using the URL attached to this element
-            var uri = el.src || el.href;
-            if(uri.match(/javascript:/)) return;
-            window.open(uri);
-            return "XXXRESET_MODEXXX"
-        }
-
-        // we're just going to click the element
-        return this.clickElem(el);
+    if (uzbl.follow.mode == 'returnuri') {
+        var uri = el.src || el.href;
+        return "XXXRETURNED_URIXXX" + uri
+    } else if (uzbl.follow.mode == 'newwindow') {
+        // we're opening a new window using the URL attached to this element
+        var uri = el.src || el.href;
+        if(uri.match(/javascript:/)) return;
+        window.open(uri);
+        return "XXXRESET_MODEXXX"
+    } else {
+      // we're just going to click the element
+      return this.clickElem(el);
     }
+}
 
-    this.reDrawHints(leftover, str.length);
+uzbl.follow.followTextContent = function(str) {
+    str = str.toUpperCase();
+
+    var matching = [];
+
+    var elems = uzbl.follow.getInterestingElements();
+    elems.forEach(function(el) {
+      // do a case-insensitive match on element content
+      if(el.textContent.toUpperCase().match(str)) {
+        el.classList.add('uzbl-follow-text-match');
+        matching.push(el);
+      } else {
+        el.classList.remove('uzbl-follow-text-match');
+      }
+    });
+
+    if(matching.length == 1)
+        return uzbl.follow.elementSelected(matching[0]);
+}
+
+uzbl.follow.followLinks = function(str) {
+    var elems    = uzbl.follow.getInterestingElements();
+    var leftover = uzbl.follow.findMatchingHintId(elems, str);
+
+    if(leftover.length == 1)
+        return uzbl.follow.elementSelected(leftover[0]);
+    else
+        this.reDrawHints(leftover, str.length);
 }

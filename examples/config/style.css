@@ -25,4 +25,10 @@
     color:            black   !important;
 }
 
+.uzbl-follow-text-match {
+  outline: 2px solid invert;
+  background: #333 !important;
+  color: white !important;
+}
+
 /* vim:set et ts=4: */

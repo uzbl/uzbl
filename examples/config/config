@@ -349,6 +349,8 @@ set follow_hint_keys = 0123456789
 @cbind  FL*  = spawn @scripts_dir/follow.sh \@< uzbl.follow("\@follow_hint_keys", "%s", 'returnuri') >\@ clipboard
 @cbind  fi   = spawn @scripts_dir/go_input.sh
 
+@cbind  '*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followTextContent("%s", 'click') >\@
+
 # Form filler binds
 # This script allows you to configure (per domain) values to fill in form
 # fields (eg login information) and to fill in these values automatically.
