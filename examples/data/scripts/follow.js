@@ -224,11 +224,35 @@ uzbl.follow.labelToInt = function(label) {
     return n;
 }
 
-// Put it all together
-uzbl.follow.followLinks = function(follow) {
-    var s = follow.split('');
-    var linknr = this.labelToInt(follow);
+uzbl.follow.findMatchingLabelId = function(res, str) {
+    str = str.split('');
+    var linknr = this.labelToInt(str);
 
+    var elems = res.filter(uzbl.follow.elementInViewport);
+    var len = this.labelLength(elems.length);
+
+    if (str.length == len && linknr < elems.length && linknr >= 0) {
+        // an element has been selected!
+        var el = elems[linknr];
+        return [el];
+    }
+
+    var leftover = [];
+
+    for (var j = 0; j < elems.length; j++) {
+        var label = this.intToLabel(j);
+        for (var n = label.length; n < len; n++)
+            label = charset.charAt(0) + label;
+
+        if (label.slice(0, str.length) == str)
+            leftover.push([elems[j], label]);
+    }
+
+    return leftover;
+}
+
+// Put it all together
+uzbl.follow.followLinks = function(str) {
     var followable  = 'a, area, textarea, select, input:not([type=hidden]), button, *[onclick]';
     var uri         = 'a, area, frame, iframe';
     //var focusable   = 'a, area, textarea, select, input:not([type=hidden]), button, frame, iframe, applet, object';
@@ -240,12 +264,11 @@ uzbl.follow.followLinks = function(follow) {
     else
         var res = this.query(followable);
 
-    var elems = res.filter(uzbl.follow.elementInViewport);
-    var len = this.labelLength(elems.length);
+    var leftover = uzbl.follow.findMatchingLabelId(res, str);
 
-    if (s.length == len && linknr < elems.length && linknr >= 0) {
-        // an element has been selected!
-        var el = elems[linknr];
+    if(leftover.length == 1) {
+        // we've selected a link!
+        var el = leftover[0];
 
         // clear all of our hints
         this.clearHints();
@@ -267,18 +290,5 @@ uzbl.follow.followLinks = function(follow) {
         return this.clickElem(el);
     }
 
-    var leftover = [];
-    for (var j = 0; j < elems.length; j++) {
-        var b = true;
-        var label = this.intToLabel(j);
-        var n = label.length;
-        for (n; n < len; n++)
-            label = charset.charAt(0) + label;
-        for (var k = 0; k < s.length; k++)
-            b = b && label.charAt(k) == s[k];
-        if (b)
-            leftover.push([elems[j], label]);
-    }
-
-    this.reDrawHints(leftover, s.length);
+    this.reDrawHints(leftover, str.length);
 }
