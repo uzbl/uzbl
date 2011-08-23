@@ -290,6 +290,7 @@ class UzblEventDaemon(object):
 
         # Hold plugins
         # {plugin name: Plugin instance, ..}
+        self.old_plugins = {}
         self.plugins = {}
 
         # Register that the event daemon server has started by creating the
@@ -309,6 +310,9 @@ class UzblEventDaemon(object):
     def load_plugins(self):
         '''Load event manager plugins.'''
         import uzbl.plugins
+
+        # INITIALISING OLD PLUGINS
+
         import pkgutil
 
         path = uzbl.plugins.__path__
@@ -323,8 +327,19 @@ class UzblEventDaemon(object):
 
             logger.debug('creating plugin instance for %r plugin', name)
             plugin = Plugin(self, name, path, module)
-            self.plugins[name] = plugin
+            self.old_plugins[name] = plugin
             logger.info('new %r', plugin)
+
+        # NEW GLOBAL PLUGINS
+
+        from uzbl.ext import global_registry
+
+        self._plugin_instances = []
+        self.plugins = {}
+        for plugin in global_registry:
+            pinst = plugin(self)
+            self._plugin_instances.append(pinst)
+            self.plugins[plugin] = pinst
 
     def create_server_socket(self):
         '''Create the event manager daemon socket for uzbl instance duplex
@@ -436,6 +451,12 @@ class UzblEventDaemon(object):
 
         for uzbl in self.uzbls.values():
             uzbl.close()
+
+        if not self._quit:
+            for plugin in self._plugin_instances:
+                plugin.cleanup()
+            del self.plugins  # to avoid cyclic links
+            del self._plugin_instances
 
         del_pid_file(opts.pid_file)
 

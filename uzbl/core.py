@@ -55,14 +55,14 @@ class Uzbl(object):
             self.plugins[plugin] = pinst
 
         # Initialise each plugin with the current uzbl instance.
-        for plugin in self.parent.plugins.values():
+        for plugin in self.parent.old_plugins.values():
             if plugin.init:
                 self.logger.debug('calling %r plugin init hook', plugin.name)
                 plugin.init(self)
 
         # Allow plugins to use exported features of other plugins by calling an
         # optional `after` function in the plugins namespace.
-        for plugin in self.parent.plugins.values():
+        for plugin in self.parent.old_plugins.values():
             if plugin.after:
                 self.logger.debug('calling %r plugin after hook', plugin.name)
                 plugin.after(self)
@@ -218,7 +218,7 @@ class Uzbl(object):
             self.child_socket = None
 
         # Call plugins cleanup hooks.
-        for plugin in self.parent.plugins.values():
+        for plugin in self.parent.old_plugins.values():
             if plugin.cleanup:
                 self.logger.debug('calling %r plugin cleanup hook',
                     plugin.name)

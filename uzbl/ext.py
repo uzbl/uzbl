@@ -1,4 +1,6 @@
 from .event_manager import Uzbl
+import logging
+
 
 per_instance_registry = []
 global_registry = []
@@ -67,6 +69,10 @@ class PerInstancePlugin(BasePlugin):
 class GlobalPlugin(BasePlugin):
     """Base class for plugins which instantiate once per daemon"""
 
+    def __init__(self, event_manager):
+        self.event_manager = event_manager
+        self.logger = logging.getLogger(self.__module__)
+
     @classmethod
     def _get_instance(cls, owner):
         """Returns instance of the plugin
@@ -77,3 +83,11 @@ class GlobalPlugin(BasePlugin):
             owner = owner.parent
         # TODO(tailhook) probably subclasses can be returned as well
         return owner.plugins[cls]
+
+    def cleanup(self):
+        """Cleanup state after instance is gone
+
+        Default function avoids cyclic refrences, so don't forget to call
+        super() if overriding
+        """
+        del self.event_manager
