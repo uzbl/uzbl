@@ -63,6 +63,9 @@ ParseFields ()
     awk '/^%/ {
 
         sub ( /%/, "" )
+        gsub ( /\\/, "\\\\\\\\" )
+        gsub ( /@/, "\\@" )
+        gsub ( /"/, "\\\"" )
 
         split( $0, parts, /\(|\)|\{|\}/ )
 
@@ -73,15 +76,24 @@ ParseFields ()
             printf( "js uzbl.formfiller.insert(\"%s\",\"%s\",\"%s\",%s);\n",
                     parts[1], parts[2], parts[3], field )
 
-        else if ( parts[2] ~ /^textarea$/ ) {
+        else if ( parts[2] == "textarea" ) {
             field = ""
             while (getline) {
                 if ( /^%/ ) break
                 sub ( /^\\/, "" )
+                # JavaScript escape
+                gsub ( /\\/, "\\\\\\\\" )
                 gsub ( /"/, "\\\"" )
-                gsub ( /\\/, "\\\\" )
-                field = field $0 "\\\\n"
+                # To support the possibility of the last line of the textarea
+                # not being terminated by a newline, we add the newline here.
+                # The "if (field)" is so that this does not happen in the first
+                # iteration.
+                if (field) field = field "\\n"
+                field = field $0
             }
+            # Uzbl escape
+            gsub ( /\\/, "\\\\\\\\", field )
+            gsub ( /@/, "\\@", field )
             printf( "js uzbl.formfiller.insert(\"%s\",\"%s\",\"%s\",0);\n",
                 parts[1], parts[2], field )
         }
@@ -120,7 +132,6 @@ Load ()
 
     ParseProfile $option < "$file" \
     | ParseFields \
-    | sed 's/@/\\@/g' \
     > "$UZBL_FIFO"
 }
 
@@ -136,7 +147,6 @@ Once ()
 
     test -e "$tmpfile" &&
     ParseFields < "$tmpfile" \
-    | sed 's/@/\\@/g' \
     > "$UZBL_FIFO"
 }
 
