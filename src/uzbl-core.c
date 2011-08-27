@@ -595,10 +595,9 @@ spawn_sh(GArray *argv, GString *result) {
     if(!cmd)
         return;
 
-    gchar *cmdname = g_strdup(cmd[0]);
-    g_array_insert_val(argv, 1, cmdname);
+    g_array_insert_val(argv, 1, cmd[0]);
 
-    for (i = 1; i < g_strv_length(cmd); i++)
+    for (i = g_strv_length(cmd)-1; i > 0; i--)
         g_array_prepend_val(argv, cmd[i]);
 
     if (result) {
@@ -609,7 +608,6 @@ spawn_sh(GArray *argv, GString *result) {
     } else
         run_command(cmd[0], (const gchar **) argv->data, FALSE, NULL);
 
-    g_free (cmdname);
     g_strfreev (cmd);
 }
 
