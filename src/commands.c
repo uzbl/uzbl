@@ -92,9 +92,21 @@ VIEWFUNC(reload_bypass_cache)
 VIEWFUNC(stop_loading)
 VIEWFUNC(zoom_in)
 VIEWFUNC(zoom_out)
-VIEWFUNC(go_back)
-VIEWFUNC(go_forward)
 #undef VIEWFUNC
+
+void
+view_go_back(WebKitWebView *page, GArray *argv, GString *result) {
+    (void)result;
+    int n = argv_idx(argv, 0) ? atoi(argv_idx(argv, 0)) : 1;
+    webkit_web_view_go_back_or_forward(page, -n);
+}
+
+void
+view_go_forward(WebKitWebView *page, GArray *argv, GString *result) {
+    (void)result;
+    int n = argv_idx(argv, 0) ? atoi(argv_idx(argv, 0)) : 1;
+    webkit_web_view_go_back_or_forward(page, n);
+}
 
 void
 toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result) {
