@@ -66,7 +66,7 @@ class OnEventPlugin(PerInstancePlugin):
         '''Add a new event to watch and respond to.'''
 
         event = event.upper()
-        logger.debug('new event handler %r %r %r', event, pattern, cmd)
+        self.logger.debug('new event handler %r %r %r', event, pattern, cmd)
         if event not in self.events:
             self.uzbl.connect(event,
                 partial(self.event_handler, on_event=event))

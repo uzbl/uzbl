@@ -11,6 +11,7 @@ def ascii(u):
 
 
 class Uzbl(object):
+
     def __init__(self, parent, child_socket, options):
         self.opts = options
         self.parent = parent
@@ -26,8 +27,7 @@ class Uzbl(object):
         # Use name "unknown" until name is discovered.
         self.logger = logging.getLogger('uzbl-instance[]')
 
-        # Track plugin event handlers and exported functions.
-        self.exports = {}
+        # Track plugin event handlers
         self.handlers = defaultdict(list)
 
         # Internal vars
@@ -43,8 +43,7 @@ class Uzbl(object):
             '%d handlers' % sum([len(l) for l in self.handlers.values()])])
 
     def init_plugins(self):
-        '''Call the init and after hooks in all loaded plugins for this
-        instance.'''
+        '''Creates instances of per-instance plugins'''
         from uzbl.ext import per_instance_registry
 
         self._plugin_instances = []
@@ -53,19 +52,6 @@ class Uzbl(object):
             pinst = plugin(self)
             self._plugin_instances.append(pinst)
             self.plugins[plugin] = pinst
-
-        # Initialise each plugin with the current uzbl instance.
-        for plugin in self.parent.old_plugins.values():
-            if plugin.init:
-                self.logger.debug('calling %r plugin init hook', plugin.name)
-                plugin.init(self)
-
-        # Allow plugins to use exported features of other plugins by calling an
-        # optional `after` function in the plugins namespace.
-        for plugin in self.parent.old_plugins.values():
-            if plugin.after:
-                self.logger.debug('calling %r plugin after hook', plugin.name)
-                plugin.after(self)
 
     def send(self, msg):
         '''Send a command to the uzbl instance via the child socket
@@ -216,13 +202,6 @@ class Uzbl(object):
 
         finally:
             self.child_socket = None
-
-        # Call plugins cleanup hooks.
-        for plugin in self.parent.old_plugins.values():
-            if plugin.cleanup:
-                self.logger.debug('calling %r plugin cleanup hook',
-                    plugin.name)
-                plugin.cleanup(self)
 
         for plugin in self._plugin_instances:
             plugin.cleanup()

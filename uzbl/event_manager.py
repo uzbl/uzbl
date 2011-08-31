@@ -168,116 +168,6 @@ class EventHandler(object):
         self.callback(uzbl, *args, **kwargs)
 
 
-class Plugin(object):
-    '''Plugin module wrapper object.'''
-
-    # Special functions exported from the Plugin instance to the
-    # plugin namespace.
-    special_functions = ['export', 'export_dict', 'connect',
-            'connect_dict', 'logger']
-
-    def __init__(self, parent, name, path, plugin):
-        self.parent = parent
-        self.name = name
-        self.path = path
-        self.plugin = plugin
-        self.logger = logging.getLogger('plugin.%s' % name)
-
-        # Weakrefs to all handlers created by this plugin
-        self.handlers = set([])
-
-        # Plugins init hook
-        init = getattr(plugin, 'init', None)
-        self.init = init if callable(init) else None
-
-        # Plugins optional after hook
-        after = getattr(plugin, 'after', None)
-        self.after = after if callable(after) else None
-
-        # Plugins optional cleanup hook
-        cleanup = getattr(plugin, 'cleanup', None)
-        self.cleanup = cleanup if callable(cleanup) else None
-
-        # temporary allow plugins without hooks
-        # assert init or after or cleanup, "missing hooks in plugin"
-
-        # Export plugin's instance methods to plugin namespace
-        for attr in self.special_functions:
-            plugin.__dict__[attr] = getattr(self, attr)
-
-    def __repr__(self):
-        return u'<plugin(%r)>' % self.plugin
-
-    def export(self, uzbl, attr, obj, prepend=True):
-        '''Attach `obj` to `uzbl` instance. This is the preferred method
-        of sharing functionality, functions, data and objects between
-        plugins.
-
-        If the object is callable you may wish to turn the callable object
-        in to a meta-instance-method by prepending `uzbl` to the call stack.
-        You can change this behaviour with the `prepend` argument.
-        '''
-
-        assert attr not in uzbl.exports, "attr %r already exported by %r" %\
-            (attr, uzbl.exports[attr][0])
-
-        prepend = True if prepend and callable(obj) else False
-        uzbl.__dict__[attr] = partial(obj, uzbl) if prepend else obj
-        uzbl.exports[attr] = (self, obj, prepend)
-        uzbl.logger.info('exported %r to %r by plugin %r, prepended %r',
-            obj, 'uzbl.%s' % attr, self.name, prepend)
-
-    def export_dict(self, uzbl, exports):
-        for (attr, object) in exports.items():
-            self.export(uzbl, attr, object)
-
-    def find_handler(self, event, callback, args, kwargs):
-        '''Check if a handler with the identical callback and arguments
-        exists and return it.'''
-
-        # Remove dead refs
-        self.handlers -= set(filter(lambda ref: not ref(), self.handlers))
-
-        # Find existing identical handler
-        for handler in [ref() for ref in self.handlers]:
-            if handler.event == event and handler.callback == callback \
-              and handler.args == args and handler.kwargs == kwargs:
-                return handler
-
-    def connect(self, uzbl, event, callback, *args, **kwargs):
-        '''Create an event handler object which handles `event` events.
-
-        Arguments passed to the connect function (`args` and `kwargs`) are
-        stored in the handler object and merged with the event arguments
-        come handler execution.
-
-        All handler functions must behave like a `uzbl` instance-method (that
-        means `uzbl` is prepended to the callback call arguments).'''
-
-        # Sanitise and check event name
-        event = event.upper().strip()
-        assert event and ' ' not in event
-
-        assert callable(callback), 'callback must be callable'
-
-        # Check if an identical handler already exists
-        handler = self.find_handler(event, callback, args, kwargs)
-        if not handler:
-            # Create a new handler
-            handler = EventHandler(self, event, callback, args, kwargs)
-            self.handlers.add(weakref.ref(handler))
-            self.logger.info('new %r', handler)
-
-        uzbl.handlers[event].append(handler)
-        uzbl.logger.info('connected %r', handler)
-        return handler
-
-    def connect_dict(self, uzbl, connects):
-        for (event, callback) in connects.items():
-            self.connect(uzbl, event, callback)
-
-
-
 class UzblEventDaemon(object):
     def __init__(self):
         self.opts = opts
@@ -288,9 +178,6 @@ class UzblEventDaemon(object):
         # {child socket: Uzbl instance, ..}
         self.uzbls = {}
 
-        # Hold plugins
-        # {plugin name: Plugin instance, ..}
-        self.old_plugins = {}
         self.plugins = {}
 
         # Register that the event daemon server has started by creating the
@@ -310,25 +197,11 @@ class UzblEventDaemon(object):
     def load_plugins(self):
         '''Load event manager plugins.'''
         import uzbl.plugins
-
-        # INITIALISING OLD PLUGINS
-
         import pkgutil
 
         path = uzbl.plugins.__path__
         for impr, name, ispkg in pkgutil.iter_modules(path, 'uzbl.plugins.'):
-            module = __import__(name, globals(), locals(), ['*'])
-
-            # Check if the plugin has a callable hook.
-            hooks = filter(callable, [getattr(module, attr, None) \
-                for attr in ['init', 'after', 'cleanup']])
-            # temporarily allow plugin without hooks
-            # assert hooks, "no hooks in plugin %r" % module
-
-            logger.debug('creating plugin instance for %r plugin', name)
-            plugin = Plugin(self, name, path, module)
-            self.old_plugins[name] = plugin
-            logger.info('new %r', plugin)
+            __import__(name, globals(), locals())
 
         # NEW GLOBAL PLUGINS
 

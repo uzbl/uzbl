@@ -176,7 +176,7 @@ class Cookies(PerInstancePlugin):
 
             self.get_store(self.expires_with_session(cookie)).add_cookie(cookie.raw(), cookie)
         else:
-            logger.debug('cookie %r is blacklisted' % cookie)
+            self.logger.debug('cookie %r is blacklisted' % cookie)
             self.uzbl.send('delete_cookie %s' % cookie.raw())
 
     def delete_cookie(self, cookie):

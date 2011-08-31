@@ -38,14 +38,14 @@ class ModePlugin(PerInstancePlugin):
     def default_mode_updated(self, var, mode):
         config = Config[self.uzbl]
         if mode and not config.get('mode', None):
-            logger.debug('setting mode to default %r' % mode)
+            self.logger.debug('setting mode to default %r' % mode)
             config['mode'] = mode
 
     def mode_updated(self, var, mode):
         config = Config[self.uzbl]
         if not mode:
             mode = config.get('default_mode', 'command')
-            logger.debug('setting mode to default %r' % mode)
+            self.logger.debug('setting mode to default %r' % mode)
             config['mode'] = mode
             return
 
