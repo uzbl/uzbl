@@ -6,7 +6,7 @@ from uzbl.ext import PerInstancePlugin
 class ProgressBar(PerInstancePlugin):
     def __init__(self, uzbl):
         super(ProgressBar, self).__init__(uzbl)
-        uzbl.connect('LOAD_COMMIT', lambda uri: self.update_progess())
+        uzbl.connect('LOAD_COMMIT', lambda uri: self.update_progress())
         uzbl.connect('LOAD_PROGRESS', self.update_progress)
         self.updates = 0
         self.splitfrmt = re.compile(r'(%[A-Z][^%]|%[^%])').split
