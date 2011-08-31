@@ -3,6 +3,7 @@
 import re
 
 from uzbl.arguments import splitquoted
+from uzbl.ext import PerInstancePlugin
 from .config import Config
 from .keycmd import KeyCmd
 
@@ -19,139 +20,6 @@ ITEM_FORMAT = "<span @hint_style>%s</span>%s"
 def escape(str):
     return str.replace("@", "\@")
 
-
-def get_incomplete_keyword(uzbl):
-    '''Gets the segment of the keycmd leading up to the cursor position and
-    uses a regular expression to search backwards finding parially completed
-    keywords or @variables. Returns a null string if the correct completion
-    conditions aren't met.'''
-
-    keylet = KeyCmd[uzbl].keylet
-    left_segment = keylet.keycmd[:keylet.cursor]
-    partial = (FIND_SEGMENT(left_segment) + ['',])[0].lstrip()
-    if partial.startswith('set '):
-        return ('@%s' % partial[4:].lstrip(), True)
-
-    return (partial, False)
-
-
-def stop_completion(uzbl, *args):
-    '''Stop command completion and return the level to NONE.'''
-
-    uzbl.completion.level = NONE
-    del Config[uzbl]['completion_list']
-
-
-def complete_completion(uzbl, partial, hint, set_completion=False):
-    '''Inject the remaining porition of the keyword into the keycmd then stop
-    the completioning.'''
-
-    if set_completion:
-        remainder = "%s = " % hint[len(partial):]
-
-    else:
-        remainder = "%s " % hint[len(partial):]
-
-    uzbl.inject_keycmd(remainder)
-    stop_completion(uzbl)
-
-
-def partial_completion(uzbl, partial, hint):
-    '''Inject a common portion of the hints into the keycmd.'''
-
-    remainder = hint[len(partial):]
-    KeyCmd[uzbl].inject_keycmd(remainder)
-
-
-def update_completion_list(uzbl, *args):
-    '''Checks if the user still has a partially completed keyword under his
-    cursor then update the completion hints list.'''
-
-    partial = get_incomplete_keyword(uzbl)[0]
-    if not partial:
-        return stop_completion(uzbl)
-
-    if uzbl.completion.level < LIST:
-        return
-
-    config = Config[uzbl]
-
-    hints = filter(lambda h: h.startswith(partial), uzbl.completion)
-    if not hints:
-        del config['completion_list']
-        return
-
-    j = len(partial)
-    l = [ITEM_FORMAT % (escape(h[:j]), h[j:]) for h in sorted(hints)]
-    config['completion_list'] = LIST_FORMAT % ' '.join(l)
-
-
-def start_completion(uzbl, *args):
-
-    comp = uzbl.completion
-    if comp.locked:
-        return
-
-    (partial, set_completion) = get_incomplete_keyword(uzbl)
-    if not partial:
-        return stop_completion(uzbl)
-
-    if comp.level < COMPLETE:
-        comp.level += 1
-
-    hints = filter(lambda h: h.startswith(partial), comp)
-    if not hints:
-        return
-
-    elif len(hints) == 1:
-        comp.lock()
-        complete_completion(uzbl, partial, hints[0], set_completion)
-        comp.unlock()
-        return
-
-    elif partial in hints and comp.level == COMPLETE:
-        comp.lock()
-        complete_completion(uzbl, partial, partial, set_completion)
-        comp.unlock()
-        return
-
-    smalllen, smallest = sorted([(len(h), h) for h in hints])[0]
-    common = ''
-    for i in range(len(partial), smalllen):
-        char, same = smallest[i], True
-        for hint in hints:
-            if hint[i] != char:
-                same = False
-                break
-
-        if not same:
-            break
-
-        common += char
-
-    if common:
-        comp.lock()
-        partial_completion(uzbl, partial, partial+common)
-        comp.unlock()
-
-    update_completion_list(uzbl)
-
-
-def add_builtins(uzbl, builtins):
-    '''Pump the space delimited list of builtin commands into the
-    builtin list.'''
-
-    builtins = splitquoted(builtins)
-    uzbl.completion.update(builtins)
-
-
-def add_config_key(uzbl, key, value):
-    '''Listen on the CONFIG_CHANGED event and add config keys to the variable
-    list for @var<Tab> like expansion support.'''
-
-    uzbl.completion.add("@%s" % key)
-
-
 class Completions(set):
     def __init__(self):
         set.__init__(self)
@@ -164,23 +32,144 @@ class Completions(set):
     def unlock(self):
         self.locked = False
 
+    def add_var(self, var):
+        self.add('@' + var)
 
-def init(uzbl):
-    '''Export functions and connect handlers to events.'''
+class CompletionPlugin(PerInstancePlugin):
+    def __init__(self, uzbl):
+        '''Export functions and connect handlers to events.'''
+        super(CompletionPlugin, self).__init__(uzbl)
 
-    export_dict(uzbl, {
-        'completion':       Completions(),
-        'start_completion': start_completion,
-    })
+        self.completion = Completions()
+        
+        uzbl.connect('BUILTINS', self.add_builtins)
+        uzbl.connect('CONFIG_CHANGED', self.add_config_key)
+        uzbl.connect('KEYCMD_CLEARED', self.stop_completion)
+        uzbl.connect('KEYCMD_EXEC', self.stop_completion)
+        uzbl.connect('KEYCMD_UPDATE', self.update_completion_list)
+        uzbl.connect('START_COMPLETION', self.start_completion)
+        uzbl.connect('STOP_COMPLETION', self.stop_completion)
 
-    connect_dict(uzbl, {
-        'BUILTINS':         add_builtins,
-        'CONFIG_CHANGED':   add_config_key,
-        'KEYCMD_CLEARED':   stop_completion,
-        'KEYCMD_EXEC':      stop_completion,
-        'KEYCMD_UPDATE':    update_completion_list,
-        'START_COMPLETION': start_completion,
-        'STOP_COMPLETION':  stop_completion,
-    })
+        uzbl.send('dump_config_as_events')
 
-    uzbl.send('dump_config_as_events')
+    def get_incomplete_keyword(self):
+        '''Gets the segment of the keycmd leading up to the cursor position and
+        uses a regular expression to search backwards finding parially completed
+        keywords or @variables. Returns a null string if the correct completion
+        conditions aren't met.'''
+
+        keylet = KeyCmd[self.uzbl].keylet
+        left_segment = keylet.keycmd[:keylet.cursor]
+        partial = (FIND_SEGMENT(left_segment) + ['',])[0].lstrip()
+        if partial.startswith('set '):
+            return ('@' + partial[4:].lstrip(), True)
+
+        return (partial, False)
+
+    def stop_completion(self, *args):
+        '''Stop command completion and return the level to NONE.'''
+
+        self.completion.level = NONE
+        del Config[self.uzbl]['completion_list']
+
+    def complete_completion(self, partial, hint, set_completion=False):
+        '''Inject the remaining porition of the keyword into the keycmd then stop
+        the completioning.'''
+
+        if set_completion:
+            remainder = "%s = " % hint[len(partial):]
+
+        else:
+            remainder = "%s " % hint[len(partial):]
+
+        KeyCmd[self.uzbl].inject_keycmd(remainder)
+        self.stop_completion()
+
+    def partial_completion(self, partial, hint):
+        '''Inject a common portion of the hints into the keycmd.'''
+
+        remainder = hint[len(partial):]
+        KeyCmd[self.uzbl].inject_keycmd(remainder)
+
+    def update_completion_list(self, *args):
+        '''Checks if the user still has a partially completed keyword under his
+        cursor then update the completion hints list.'''
+
+        partial = self.get_incomplete_keyword()[0]
+        if not partial:
+            return self.stop_completion()
+
+        if self.completion.level < LIST:
+            return
+
+        config = Config[self.uzbl]
+
+        hints = filter(lambda h: h.startswith(partial), self.completion)
+        if not hints:
+            del config['completion_list']
+            return
+
+        j = len(partial)
+        l = [ITEM_FORMAT % (escape(h[:j]), h[j:]) for h in sorted(hints)]
+        config['completion_list'] = LIST_FORMAT % ' '.join(l)
+
+    def start_completion(self, *args):
+        if self.completion.locked:
+            return
+
+        (partial, set_completion) = self.get_incomplete_keyword()
+        if not partial:
+            return self.stop_completion()
+
+        if self.completion.level < COMPLETE:
+            self.completion.level += 1
+
+        hints = filter(lambda h: h.startswith(partial), self.completion)
+        if not hints:
+            return
+
+        elif len(hints) == 1:
+            self.completion.lock()
+            self.complete_completion(partial, hints[0], set_completion)
+            self.completion.unlock()
+            return
+
+        elif partial in hints and completion.level == COMPLETE:
+            self.completion.lock()
+            self.complete_completion(partial, partial, set_completion)
+            self.completion.unlock()
+            return
+
+        smalllen, smallest = sorted([(len(h), h) for h in hints])[0]
+        common = ''
+        for i in range(len(partial), smalllen):
+            char, same = smallest[i], True
+            for hint in hints:
+                if hint[i] != char:
+                    same = False
+                    break
+
+            if not same:
+                break
+
+            common += char
+
+        if common:
+            self.completion.lock()
+            self.partial_completion(partial, partial+common)
+            self.completion.unlock()
+
+        self.update_completion_list()
+
+    def add_builtins(self, builtins):
+        '''Pump the space delimited list of builtin commands into the
+        builtin list.'''
+
+        builtins = splitquoted(builtins)
+        self.completion.update(builtins)
+
+    def add_config_key(self, key, value):
+        '''Listen on the CONFIG_CHANGED event and add config keys to the variable
+        list for @var<Tab> like expansion support.'''
+
+        self.completion.add_var(key)
