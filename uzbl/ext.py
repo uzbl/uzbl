@@ -60,8 +60,8 @@ class PerInstancePlugin(BasePlugin):
         This method should be private to not violate TOOWTDI
         """
         if not isinstance(owner, Uzbl):
-            raise ValueError("Can only get {0} instance for uzbl"
-                .format(self.__class__.__name__))
+            raise ValueError("Can only get {0} instance for uzbl, not {1}"
+                .format(cls.__name__, type(owner).__name__))
         # TODO(tailhook) probably subclasses can be returned as well
         return owner.plugins[cls]
 
