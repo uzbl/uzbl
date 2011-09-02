@@ -9,12 +9,20 @@ RUN_PREFIX?=$(PREFIX)
 # use GTK3-based webkit when it is available
 USE_GTK3 = $(shell pkg-config --exists gtk+-3.0 webkitgtk-3.0 && echo 1)
 
+# uncomment this to add Lua support
+#USE_LUA = 1
+
 ifeq ($(USE_GTK3),1)
 	REQ_PKGS += gtk+-3.0 webkitgtk-3.0
 	CPPFLAGS = -DG_DISABLE_DEPRECATED -DGTK_DISABLE_DEPRECATED
 else
 	REQ_PKGS += gtk+-2.0 webkit-1.0
 	CPPFLAGS =
+endif
+
+ifeq ($(USE_LUA),1)
+	CPPFLAGS += -DHAVE_LUA
+	REQ_PKGS += lua
 endif
 
 # --- configuration ends here ---

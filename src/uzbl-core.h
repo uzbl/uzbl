@@ -47,6 +47,14 @@
     #include <gtk/gtkx.h>
 #endif
 
+#ifdef HAVE_LUA
+    #include "lua.h"
+    #include "lualib.h"
+    #include "lauxlib.h"
+
+    lua_State* L;
+#endif
+
 #include "cookie-jar.h"
 #include "commands.h"
 #include "status-bar.h"

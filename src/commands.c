@@ -58,6 +58,11 @@ CommandInfo cmdlist[] =
     { "add_cookie",                     add_cookie, 0                  },
     { "delete_cookie",                  delete_cookie, 0               },
     { "clear_cookies",                  clear_cookies, 0               },
+#ifdef HAVE_LUA
+    { "lua",                            run_lua, TRUE                  },
+    { "lua_init",                       lua_init, TRUE                 },
+    { "lua_script",                     run_external_lua, TRUE         },
+#endif
     { "download",                       download, 0                    }
 };
 
@@ -318,6 +323,39 @@ load_uri(WebKitWebView *web_view, GArray *argv, GString *result) {
     gchar * uri = argv_idx(argv, 0);
     set_var_value("uri", uri ? uri : "");
 }
+
+#ifdef HAVE_LUA
+void
+lua_init (WebKitWebView * web_view, GArray *argv, GString *result) {
+    L = lua_open();
+    luaL_openlibs(L);
+}
+
+void
+run_external_lua (WebKitWebView * web_view, GArray *argv, GString *result) {
+    (void) result;
+    gchar *path = NULL;
+
+    if (argv_idx(argv, 0) && ((path = find_existing_file(argv_idx(argv, 0)))) ) {
+        if (luaL_dofile(L, path)) {
+            fprintf(stderr, "External Lua file %s failed - %s\n", argv_idx(argv, 0), lua_tostring(L, -1));
+        } else {
+            if (uzbl.state.verbose) {
+                printf("External Lua file %s loaded\n", argv_idx(argv, 0));
+            }
+        }
+    }
+}
+
+void
+run_lua (WebKitWebView * web_view, GArray *argv, GString *result) {
+    if (argv_idx(argv, 0)) {
+        if (luaL_dostring(L, argv_idx(argv, 0)) {
+            fprintf(stderr, "Lua command failed - %s\n", lua_tostring(L, -1));
+        }
+    }
+}
+#endif
 
 void
 run_js (WebKitWebView * web_view, GArray *argv, GString *result) {
