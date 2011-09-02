@@ -350,7 +350,7 @@ run_external_lua (WebKitWebView * web_view, GArray *argv, GString *result) {
 void
 run_lua (WebKitWebView * web_view, GArray *argv, GString *result) {
     if (argv_idx(argv, 0)) {
-        if (luaL_dostring(L, argv_idx(argv, 0)) {
+        if (luaL_dostring(L, argv_idx(argv, 0))) {
             fprintf(stderr, "Lua command failed - %s\n", lua_tostring(L, -1));
         }
     }
