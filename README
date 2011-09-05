@@ -364,6 +364,8 @@ file).
 * `enforce_96_dpi`: Enforce a resolution of 96 DPI (default 1).
 * `caret_browsing`: Whether the caret is enabled in the text portion of pages
   (default 0).
+* `enable_cross_file_access`: Whether a page loaded from a `file://` URI can
+  access the contents of other `file://` URIs. (default 0).
 * `follow_hint_keys`: keys for keyboard-based navigation and link
    highlighting
 
