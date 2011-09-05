@@ -36,6 +36,8 @@ import time
 import weakref
 import re
 import errno
+import asyncore
+import socket
 from collections import defaultdict
 from functools import partial
 from glob import glob
@@ -43,7 +45,6 @@ from itertools import count
 from optparse import OptionParser
 from select import select
 from signal import signal, SIGTERM, SIGINT, SIGKILL
-from socket import socket, AF_UNIX, SOCK_STREAM
 from traceback import format_exc
 
 from uzbl.core import Uzbl
@@ -167,6 +168,27 @@ class EventHandler(object):
         kwargs = dict(self.kwargs.items() + kwargs.items())
         self.callback(uzbl, *args, **kwargs)
 
+class Listener(asyncore.dispatcher):
+
+    def __init__(self, addr, event_daemon):
+        asyncore.dispatcher.__init__(self)
+        self.create_socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.set_reuse_addr()
+        self.bind(addr)
+        self.listen(5)
+        self.event_daemon = event_daemon
+
+    def writable(self):
+        return False
+
+    def handle_accept(self):
+        try:
+            sock, addr = self.accept()
+        except socket.error:
+            return
+        else:
+            self.event_daemon.add_instance(sock)
+
 
 class UzblEventDaemon(object):
     def __init__(self):
@@ -217,15 +239,7 @@ class UzblEventDaemon(object):
     def create_server_socket(self):
         '''Create the event manager daemon socket for uzbl instance duplex
         communication.'''
-
-        # Close old socket.
-        self.close_server_socket()
-
-        sock = socket(AF_UNIX, SOCK_STREAM)
-        sock.bind(opts.server_socket)
-        sock.listen(5)
-
-        self.server_socket = sock
+        Listener(opts.server_socket, self)
         logger.debug('bound server socket to %r', opts.server_socket)
 
     def run(self):
@@ -243,53 +257,22 @@ class UzblEventDaemon(object):
             # Update the pid file
             make_pid_file(opts.pid_file)
 
-        try:
-            # Accept incoming connections and listen for incoming data
-            self.listen()
-
-        except:
-            if not self._quit:
-                logger.critical('failed to listen', exc_info=True)
+        asyncore.loop()
 
         # Clean up and exit
         self.quit()
 
         logger.debug('exiting main loop')
 
-    def listen(self):
-        '''Accept incoming connections and constantly poll instance sockets
-        for incoming data.'''
+    def add_instance(self, sock):
+        uzbl = Uzbl(self, sock, opts)
+        self.uzbls[sock] = uzbl
 
-        logger.info('listening on %r', opts.server_socket)
-
-        # Count accepted connections
-        connections = 0
-
-        while (self.uzbls or not connections) or (not opts.auto_close):
-            socks = [self.server_socket] + self.uzbls.keys()
-            wsocks = [k for k, v in self.uzbls.items() if v.child_buffer]
-            reads, writes, errors = select(socks, wsocks, socks, 1)
-
-            if self.server_socket in reads:
-                reads.remove(self.server_socket)
-
-                # Accept connection and create uzbl instance.
-                child_socket = self.server_socket.accept()[0]
-                child_socket.setblocking(False)
-                self.uzbls[child_socket] = Uzbl(self, child_socket, opts)
-                connections += 1
-
-            for uzbl in [self.uzbls[s] for s in writes]:
-                uzbl.do_send()
-
-            for uzbl in [self.uzbls[s] for s in reads]:
-                uzbl.read()
-
-            for uzbl in [self.uzbls[s] for s in errors]:
-                uzbl.logger.error('socket read error')
-                uzbl.close()
-
-        logger.info('auto closing')
+    def remove_instance(self, sock):
+        if sock in self.uzbls:
+            del self.uzbls[sock]
+        if not self.uzbls and opts.auto_close:
+            self.quit()
 
     def close_server_socket(self):
         '''Close and delete the server socket.'''
@@ -336,6 +319,7 @@ class UzblEventDaemon(object):
         if not self._quit:
             logger.info('event manager shut down')
             self._quit = True
+            raise SystemExit()
 
 
 def make_pid_file(pid_file):
