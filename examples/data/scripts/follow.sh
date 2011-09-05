@@ -4,9 +4,6 @@
 result=$1
 shift
 
-uriaction=$1
-shift
-
 case "$result" in
     XXXEMIT_FORM_ACTIVEXXX)
         # a form element was selected
@@ -17,6 +14,7 @@ case "$result" in
         printf 'set mode=\nevent KEYCMD_CLEAR\n' > "$UZBL_FIFO"
         ;;
     XXXRETURNED_URIXXX*)
+        uriaction=$1
         uri=${result#XXXRETURNED_URIXXX}
 
         case "$uriaction" in
