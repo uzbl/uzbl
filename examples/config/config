@@ -28,8 +28,6 @@ set on_set          = request ON_SET
 set modmap          = request MODMAP
 # request IGNORE_KEY <glob>
 set ignore_key      = request IGNORE_KEY
-# request MODKEY_ADDITION <key1> <key2> <keyn> <result>
-set modkey_addition = request MODKEY_ADDITION
 # request TOGGLE_MODES <mode1> <mode2> ... <moden>
 set toggle_modes    = request TOGGLE_MODES
 
