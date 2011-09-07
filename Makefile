@@ -70,6 +70,16 @@ tests: ${LOBJ} force
 	$(CC) -shared -Wl ${LOBJ} -o ./tests/libuzbl-core.so
 	cd ./tests/; $(MAKE)
 
+test-event-manager: force
+	${PYTHON} -m unittest discover tests/event-manager -v
+
+coverage-event-manager: force
+	coverage erase
+	coverage run -m unittest discover tests/event-manager
+	coverage html ${PY}
+	# Hmm, I wonder what a good default browser would be
+	uzbl-browser htmlcov/index.html
+
 test-uzbl-core: uzbl-core
 	./uzbl-core --uri http://www.uzbl.org --verbose
 
