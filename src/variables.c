@@ -321,6 +321,8 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enforce_96dpi,    uzbl.behave.enforce_96dpi,     "en
 
 EXPOSE_WEBKIT_VIEW_SETTINGS(caret_browsing,   uzbl.behave.caret_browsing,    "enable-caret-browsing")
 
+EXPOSE_WEBKIT_VIEW_SETTINGS(cross_file_access, uzbl.behave.cross_file_access, "enable-file-access-from-file-uris")
+
 EXPOSE_WEBKIT_VIEW_SETTINGS(default_encoding, uzbl.behave.default_encoding,  "default-encoding")
 
 void
@@ -588,6 +590,7 @@ const struct var_name_to_ptr_t {
     { "current_encoding",       PTR_V_STR(uzbl.behave.current_encoding,         1,   set_current_encoding)},
     { "enforce_96_dpi",         PTR_V_INT(uzbl.behave.enforce_96dpi,            1,   cmd_enforce_96dpi)},
     { "caret_browsing",         PTR_V_INT(uzbl.behave.caret_browsing,           1,   cmd_caret_browsing)},
+    { "enable_cross_file_access", PTR_V_INT(uzbl.behave.cross_file_access, 1, cmd_cross_file_access)},
 
     /* constants (not dumpable or writeable) */
     { "WEBKIT_MAJOR",           PTR_C_INT(uzbl.info.webkit_major,                    NULL)},

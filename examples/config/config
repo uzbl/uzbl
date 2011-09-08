@@ -28,8 +28,6 @@ set on_set          = request ON_SET
 set modmap          = request MODMAP
 # request IGNORE_KEY <glob>
 set ignore_key      = request IGNORE_KEY
-# request MODKEY_ADDITION <key1> <key2> <keyn> <result>
-set modkey_addition = request MODKEY_ADDITION
 # request TOGGLE_MODES <mode1> <mode2> ... <moden>
 set toggle_modes    = request TOGGLE_MODES
 
@@ -348,6 +346,8 @@ set follow_hint_keys = 0123456789
 @cbind  fL*  = spawn @scripts_dir/follow.sh \@< uzbl.follow("\@follow_hint_keys", "%s", 'returnuri') >\@ set
 @cbind  FL*  = spawn @scripts_dir/follow.sh \@< uzbl.follow("\@follow_hint_keys", "%s", 'returnuri') >\@ clipboard
 @cbind  fi   = spawn @scripts_dir/go_input.sh
+
+@cbind  '*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followTextContent("%s", 'click') >\@
 
 # Form filler binds
 # This script allows you to configure (per domain) values to fill in form

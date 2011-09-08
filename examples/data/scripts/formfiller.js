@@ -23,23 +23,22 @@ uzbl.formfiller = {
 
         for ( var j = 0; j < allFrames.length; ++j ) {
             try {
-                var xp_res = allFrames[j].document.evaluate(
-                    '//input', allFrames[j].document.documentElement, null, XPathResult.ANY_TYPE,null
-                );
-                var input;
-                while ( input = xp_res.iterateNext() ) {
-                    if ( inputTypeIsText(input.type) ) {
+                var inputs = allFrames[j].document.getElementsByTagName("input");
+
+                for( var k = 0; k < inputs.length; ++k ) {
+                    var input = inputs[k];
+                    if ( uzbl.formfiller.inputTypeIsText(input.type) ) {
                         rv += '%' + escape(input.name) + '(' + input.type + '):' + input.value + '\n';
                     } else if ( input.type == 'checkbox' || input.type == 'radio' ) {
                         rv += '%' + escape(input.name) + '(' + input.type + '){' + escape(input.value) + '}:' + (input.checked?'1':'0') + '\n';
                     }
                 }
-                xp_res = allFrames[j].document.evaluate(
-                    '//textarea', allFrames[j].document.documentElement, null, XPathResult.ANY_TYPE,null
-                );
-                var input;
-                while ( input = xp_res.iterateNext() ) {
-                    rv += '%' + escape(input.name) + '(textarea):\n' + input.value.replace(/\n%/g,"\n\\%") + '\n%\n';
+
+                var textareas = allFrames[j].document.getElementsByTagName("textarea");
+                for( var k = 0; k < textareas.length; ++k ) {
+                    var textarea = textareas[k];
+                    rv += '%' + escape(textarea.name) + '(textarea):\n' + textarea.value.replace(/\n%/g,"\n\\%") + '\n%\n';
+                    rv += '%' + escape(textarea.name) + '(textarea):\n' + textarea.value.replace(/\n\\/g,"\n\\\\").replace(/\n%/g,"\n\\%") + '%\n';
                 }
             }
             catch (err) { }

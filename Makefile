@@ -110,17 +110,7 @@ test-uzbl-tabbed-sandbox: uzbl-browser sandbox-install-uzbl-browser sandbox-inst
 
 clean:
 	rm -f uzbl-core
-	rm -f uzbl-core.o
-	rm -f events.o
-	rm -f callbacks.o
-	rm -f inspector.o
-	rm -f cookie-jar.o
-	rm -f util.o
-	rm -f commands.o
-	rm -f io.o
-	rm -f menu.o
-	rm -f status-bar.o
-	rm -f variables.o
+	rm -f *.o
 	find ./examples/ -name "*.pyc" -delete
 	cd ./tests/; $(MAKE) clean
 	rm -rf ./sandbox/
@@ -159,18 +149,12 @@ install-uzbl-core: all install-dirs
 
 install-event-manager: install-dirs
 	$(PYTHON) setup.py install --prefix=$(INSTALLDIR)
-	#install -m755 bin/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager
-	#mv $(INSTALLDIR)/bin/uzbl-event-manager $(INSTALLDIR)/bin/uzbl-event-manager.bak
-	#sed "s#^PREFIX = .*#PREFIX = '$(RUN_PREFIX)'#" < $(INSTALLDIR)/bin/uzbl-event-manager.bak > $(INSTALLDIR)/bin/uzbl-event-manager
+	#sed "s#^PREFIX = .*#PREFIX = '$(RUN_PREFIX)'#" < bin/uzbl-event-manager > $(INSTALLDIR)/bin/uzbl-event-manager
 	#chmod 755 $(INSTALLDIR)/bin/uzbl-event-manager
-	#rm $(INSTALLDIR)/bin/uzbl-event-manager.bak
 
 install-uzbl-browser: install-dirs install-uzbl-core install-event-manager
-	install -m755 bin/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
-	mv $(INSTALLDIR)/bin/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser.bak
-	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < $(INSTALLDIR)/bin/uzbl-browser.bak > $(INSTALLDIR)/bin/uzbl-browser
+	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < bin/uzbl-browser > $(INSTALLDIR)/bin/uzbl-browser
 	chmod 755 $(INSTALLDIR)/bin/uzbl-browser
-	rm $(INSTALLDIR)/bin/uzbl-browser.bak
 	cp -r examples $(INSTALLDIR)/share/uzbl/
 	chmod 755 $(INSTALLDIR)/share/uzbl/examples/data/scripts/*
 

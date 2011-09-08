@@ -189,6 +189,7 @@ typedef struct {
     guint    enforce_96dpi;
     gchar    *inject_html;
     guint    caret_browsing;
+    guint    cross_file_access;
     guint    javascript_windows;
     gboolean print_version;
 
