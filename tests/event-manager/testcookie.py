@@ -6,23 +6,9 @@ if '' not in sys.path:
 	sys.path.insert(0, '')
 
 import unittest
-import logging
-import mock
+from emtest import EventManagerMock
 
-from uzbl.event_manager import Uzbl
 from uzbl.plugins.cookies import Cookies
-
-class EventManagerMock(object):
-	def __init__(self):
-		self.uzbls = {}
-
-	def add(self):
-		u = mock.Mock(spec=Uzbl)
-		u.parent = self
-		u.logger = logging.getLogger('debug')
-		u.plugins = {}
-		self.uzbls[mock.Mock()] = u
-		return u
 
 cookies = (
 	r'".nyan.cat" "/" "__utmb" "183192761.1.10.1313990640" "http" "1313992440"',
@@ -31,11 +17,9 @@ cookies = (
 
 class CookieFilterTest(unittest.TestCase):
 	def setUp(self):
-		self.event_manager = EventManagerMock()
+		self.event_manager = EventManagerMock((), (Cookies,))
 		self.uzbl = self.event_manager.add()
 		self.other = self.event_manager.add()
-		for u in self.event_manager.uzbls.values():
-			u.plugins[Cookies] = Cookies(u)
 
 	def test_add_cookie(self):
 		c = Cookies[self.uzbl]
