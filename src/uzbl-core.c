@@ -1029,7 +1029,13 @@ initialize(int argc, char** argv) {
     create_scrolled_win();
 
     /* pack the window and the status bar */
+
+#if GTK_CHECK_VERSION(3,0,0)
+    uzbl.gui.vbox = gtk_box_new(FALSE, 0);
+    gtk_orientable_set_orientation(GTK_ORIENTABLE(uzbl.gui.vbox), GTK_ORIENTATION_VERTICAL);
+#else
     uzbl.gui.vbox = gtk_vbox_new(FALSE, 0);
+#endif
 
     gtk_box_pack_start(GTK_BOX(uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(uzbl.gui.vbox), uzbl.gui.status_bar, FALSE, TRUE, 0);

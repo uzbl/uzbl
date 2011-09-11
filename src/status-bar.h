@@ -14,14 +14,14 @@ typedef struct _UzblStatusBar	      UzblStatusBar;
 typedef struct _UzblStatusBarClass  UzblStatusBarClass;
 
 struct _UzblStatusBar {
-    GtkHBox  hbox;
+    GtkBox  box;
 
     GtkWidget *left_label;
     GtkWidget *right_label;
 };
 
 struct _UzblStatusBarClass {
-    GtkHBoxClass parent_class;
+    GtkBoxClass parent_class;
 };
 
 GType       uzbl_status_bar_get_type (void) G_GNUC_CONST;
