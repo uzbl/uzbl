@@ -246,6 +246,19 @@ get_modifier_mask(guint state) {
     return g_string_free(modifiers, FALSE);
 }
 
+/* backwards compatibility. */
+#if ! GTK_CHECK_VERSION (2, 22, 0)
+#define GDK_KEY_Shift_L GDK_Shift_L
+#define GDK_KEY_Shift_R GDK_Shift_R
+#define GDK_KEY_Control_L GDK_Control_L
+#define GDK_KEY_Control_R GDK_Control_R
+#define GDK_KEY_Alt_L GDK_Alt_L
+#define GDK_KEY_Alt_R GDK_Alt_R
+#define GDK_KEY_Super_L GDK_Super_L
+#define GDK_KEY_Super_R GDK_Super_R
+#define GDK_KEY_ISO_Level3_Shift GTK_ISO_Level3_Shift
+#endif
+
 guint key_to_modifier(guint keyval) {
     /* FIXME
      * Should really use XGetModifierMapping and/or Xkb to get actual mod keys
