@@ -168,7 +168,7 @@ uzbl.follow.clickElem = function(item) {
 }
 
 // Draw all hints for all elements passed.
-uzbl.follow.reDrawHints = function(elements, chars) {
+uzbl.follow.reDrawHints = function(elements, len) {
     // we have to calculate element positions before we modify the DOM
     // otherwise the elementPosition call slows way down.
     var positions = elements.map(uzbl.follow.elementPosition);
@@ -183,13 +183,8 @@ uzbl.follow.reDrawHints = function(elements, chars) {
         doc.body.appendChild(doc.hintdiv);
     });
 
-    var len = this.labelLength(elements.length);
-
     elements.forEach(function(el, i) {
-        var label = uzbl.follow.intToLabel(i);
-        for (var n = label.length; n < len; n++)
-            label = uzbl.follow.charset.charAt(0) + label;
-
+        var label = uzbl.follow.intToLabel(i, len);
         var pos   = positions[i];
 
         try {
@@ -216,14 +211,24 @@ uzbl.follow.labelLength = function(n) {
     return keylen;
 }
 
-// pass: number
-// returns: label
-uzbl.follow.intToLabel = function(n) {
+// converts an integer 'n' to a string of length 'len' composed of
+// characters selected from uzbl.follow.charset.
+uzbl.follow.intToLabel = function(n, len) {
     var label = '';
     do {
         label = uzbl.follow.charset.charAt(n % uzbl.follow.charset.length) + label;
         n = Math.floor(n / uzbl.follow.charset.length);
     } while(n);
+
+    console.log(len);
+
+    for (var x = label.length; x < len; x++) {
+      console.log(label);
+      console.log(x)
+        label = uzbl.follow.charset.charAt(0) + label;
+    }
+      console.log(label);
+
     return label;
 }
 
@@ -239,7 +244,6 @@ uzbl.follow.labelToInt = function(label) {
 }
 
 uzbl.follow.findMatchingHintId = function(elems, str) {
-    str = str.split('');
     var linknr = this.labelToInt(str);
 
     var len = this.labelLength(elems.length);
@@ -251,10 +255,8 @@ uzbl.follow.findMatchingHintId = function(elems, str) {
     }
 
     return elems.filter(function(el, i) {
-        var label = uzbl.follow.intToLabel(i);
-        for (var n = label.length; n < len; n++)
-            label = uzbl.follow.charset.charAt(0) + label;
-
+        // return elements whose labels begin with the given str
+        var label = uzbl.follow.intToLabel(i, len);
         return label.slice(0, str.length) == str;
     });
 }
@@ -319,6 +321,8 @@ uzbl.follow.followLinks = function(str) {
 
     if(leftover.length == 1)
         return uzbl.follow.elementSelected(leftover[0]);
-    else
-        this.reDrawHints(leftover, str.length);
+    else {
+        var len = this.labelLength(elems.length) - str.length;
+        this.reDrawHints(leftover, len);
+    }
 }
