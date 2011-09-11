@@ -177,7 +177,17 @@ vsend_event(int type, const gchar *custom_event, va_list vargs) {
             break;
         case TYPE_FLOAT:
             // ‘float’ is promoted to ‘double’ when passed through ‘...’
-            g_string_append_printf (event_message, "%.2f", va_arg (vargs, double));
+
+            // Make sure the formatted double fits in the buffer
+            if (event_message->allocated_len - event_message->len < G_ASCII_DTOSTR_BUF_SIZE)
+                g_string_set_size (event_message, event_message->len + G_ASCII_DTOSTR_BUF_SIZE);
+
+            // format in C locale
+            char *tmp = g_ascii_formatd (
+                event_message->str + event_message->len,
+                event_message->allocated_len - event_message->len,
+                "%.2f", va_arg (vargs, double));
+            event_message->len += strlen(tmp);
             break;
         }
     }
