@@ -256,7 +256,7 @@ get_modifier_mask(guint state) {
 #define GDK_KEY_Alt_R GDK_Alt_R
 #define GDK_KEY_Super_L GDK_Super_L
 #define GDK_KEY_Super_R GDK_Super_R
-#define GDK_KEY_ISO_Level3_Shift GTK_ISO_Level3_Shift
+#define GDK_KEY_ISO_Level3_Shift GDK_ISO_Level3_Shift
 #endif
 
 guint key_to_modifier(guint keyval) {
