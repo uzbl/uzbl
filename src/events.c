@@ -192,11 +192,15 @@ vsend_event(int type, const gchar *custom_event, va_list vargs) {
         }
     }
 
-    g_string_append_c(event_message, '\n');
+    // A event string is not supposed to contain newlines as it will be
+    // interpreted as two events
+    if (!strchr(event_message->str, '\n')) {
+        g_string_append_c(event_message, '\n');
 
-    if (uzbl.state.events_stdout)
-        send_event_stdout (event_message);
-    send_event_socket (event_message);
+        if (uzbl.state.events_stdout)
+            send_event_stdout (event_message);
+        send_event_socket (event_message);
+    }
 
     g_string_free (event_message, TRUE);
 }
