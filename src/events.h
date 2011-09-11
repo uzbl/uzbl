@@ -31,17 +31,46 @@ enum event_type {
     LAST_EVENT
 };
 
+typedef struct _Event Event;
+struct _Event;
+
 void
 event_buffer_timeout(guint sec);
 
 void
 replay_buffered_events();
 
-void
-vsend_event(int type, const gchar *custom_event, va_list vargs);
+/*
+ * build event string
+ */
+Event *
+format_event(int type, const gchar *custom_event, ...) G_GNUC_NULL_TERMINATED;
 
+Event *
+vformat_event(int type, const gchar *custom_event, va_list vargs);
+
+/*
+ * send a already formatted event string over the supported interfaces.
+ * returned event string should be freed by `event_free`
+ */
+void
+send_formatted_event(const Event *event);
+
+/*
+ * frees a event string
+ */
+void
+event_free(Event *event);
+
+/*
+ * build event string and send over the supported interfaces
+ * this is the same as calling `format_event` and then `send_formatted_event`
+ */
 void
 send_event(int type, const gchar *custom_event, ...) G_GNUC_NULL_TERMINATED;
+
+void
+vsend_event(int type, const gchar *custom_event, va_list vargs);
 
 gchar *
 get_modifier_mask(guint state);

@@ -7,7 +7,9 @@ enum ptr_type {
     TYPE_STR,
     TYPE_FLOAT,
     TYPE_NAME,
-    TYPE_FORMATTEDSTR // used by send_event
+    // used by send_event
+    TYPE_FORMATTEDSTR,
+    TYPE_STR_ARRAY
 };
 
 typedef struct {

@@ -3,6 +3,8 @@
  ** (c) 2009 by Robert Manea
 */
 
+#include <glib.h>
+
 #include "uzbl-core.h"
 #include "events.h"
 #include "util.h"
@@ -56,6 +58,11 @@ const char *event_table[LAST_EVENT] = {
      "DELETE_COOKIE"    ,
      "FOCUS_ELEMENT"    ,
      "BLUR_ELEMENT"
+};
+
+/* for now this is just a alias for GString */
+struct _Event {
+    GString message;
 };
 
 void
@@ -141,12 +148,12 @@ send_event_stdout(GString *msg) {
     fflush(stdout);
 }
 
-void
-vsend_event(int type, const gchar *custom_event, va_list vargs) {
-    GString *event_message = g_string_sized_new (512);
-
+Event *
+vformat_event(int type, const gchar *custom_event, va_list vargs) {
     if (type >= LAST_EVENT)
-        return;
+        return NULL;
+
+    GString *event_message = g_string_sized_new (512);
     const gchar *event = custom_event ? custom_event : event_table[type];
     char* str;
 
@@ -160,21 +167,39 @@ vsend_event(int type, const gchar *custom_event, va_list vargs) {
         case TYPE_INT:
             g_string_append_printf (event_message, "%d", va_arg (vargs, int));
             break;
+
         case TYPE_STR:
             /* a string that needs to be escaped */
             g_string_append_c (event_message, '\'');
             append_escaped (event_message, va_arg (vargs, char*));
             g_string_append_c (event_message, '\'');
             break;
+
         case TYPE_FORMATTEDSTR:
             /* a string has already been escaped */
             g_string_append (event_message, va_arg (vargs, char*));
             break;
+
+        case TYPE_STR_ARRAY:
+            ; /* gcc is acting up and requires a expression before the variables */
+            GArray *a = va_arg (vargs, GArray*);
+            const char *p;
+            int i = 0;
+            while ((p = argv_idx(a, i++))) {
+                if (i != 0)
+                    g_string_append_c(event_message, ' ');
+                g_string_append_c (event_message, '\'');
+                append_escaped (event_message, p);
+                g_string_append_c (event_message, '\'');
+            }
+            break;
+
         case TYPE_NAME:
             str = va_arg (vargs, char*);
             g_assert (valid_name (str));
             g_string_append (event_message, str);
             break;
+
         case TYPE_FLOAT:
             // ‘float’ is promoted to ‘double’ when passed through ‘...’
 
@@ -192,8 +217,26 @@ vsend_event(int type, const gchar *custom_event, va_list vargs) {
         }
     }
 
+    return (Event*) event_message;
+}
+
+Event *
+format_event(int type, const gchar *custom_event, ...) {
+    va_list vargs, vacopy;
+    va_start (vargs, custom_event);
+    va_copy (vacopy, vargs);
+    Event *event = vformat_event (type, custom_event, vacopy);
+    va_end (vacopy);
+    va_end (vargs);
+    return event;
+}
+
+void
+send_formatted_event(const Event *event) {
     // A event string is not supposed to contain newlines as it will be
     // interpreted as two events
+    GString *event_message = (GString*)event;
+
     if (!strchr(event_message->str, '\n')) {
         g_string_append_c(event_message, '\n');
 
@@ -201,14 +244,23 @@ vsend_event(int type, const gchar *custom_event, va_list vargs) {
             send_event_stdout (event_message);
         send_event_socket (event_message);
     }
-
-    g_string_free (event_message, TRUE);
 }
 
-/*
- * build event string and send over the supported interfaces
- * custom_event == NULL indicates an internal event
-*/
+void
+event_free(Event *event) {
+    g_string_free ((GString*)event, TRUE);
+}
+
+void
+vsend_event(int type, const gchar *custom_event, va_list vargs) {
+    if (type >= LAST_EVENT)
+        return;
+
+    Event *event = vformat_event(type, custom_event, vargs);
+    send_formatted_event (event);
+    event_free (event);
+}
+
 void
 send_event(int type, const gchar *custom_event, ...) {
     va_list vargs, vacopy;

@@ -619,21 +619,17 @@ run_parsed_command(const CommandInfo *c, GArray *a, GString *result) {
     if(strcmp("set", c->key)   &&
        strcmp("event", c->key) &&
        strcmp("request", c->key)) {
-        // FIXME, build string inside send_event
-        GString *param = g_string_new("");
-        const gchar *p;
-        guint i = 0;
-        while ((p = argv_idx(a, i++)))
-            g_string_append_printf(param, " '%s'", p);
 
-	/* might be destructive on array a */
+        Event *event = format_event (COMMAND_EXECUTED, NULL,
+            TYPE_NAME, c->key,
+            TYPE_STR_ARRAY, a,
+            NULL);
+
+        /* might be destructive on array a */
         c->function(uzbl.gui.web_view, a, result);
 
-        send_event(COMMAND_EXECUTED, NULL,
-            TYPE_NAME, c->key,
-            TYPE_FORMATTEDSTR, param->str,
-            NULL);
-        g_string_free(param, TRUE);
+        send_formatted_event (event);
+        event_free (event);
     }
     else
         c->function(uzbl.gui.web_view, a, result);
