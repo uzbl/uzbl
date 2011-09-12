@@ -527,8 +527,8 @@ split_quoted(const gchar* src, const gboolean unquote) {
     gchar **ret;
     gchar *dup;
     for (p = src; *p != '\0'; p++) {
-        if ((*p == '\\') && unquote) g_string_append_c(s, *++p);
-        else if (*p == '\\') { g_string_append_c(s, *p++);
+        if ((*p == '\\') && unquote && p[1]) g_string_append_c(s, *++p);
+        else if (*p == '\\' && p[1]) { g_string_append_c(s, *p++);
                                g_string_append_c(s, *p); }
         else if ((*p == '"') && unquote && !sq) dq = !dq;
         else if (*p == '"' && !sq) { g_string_append_c(s, *p);
@@ -617,12 +617,14 @@ run_parsed_command(const CommandInfo *c, GArray *a, GString *result) {
     if(strcmp("set", c->key)   &&
        strcmp("event", c->key) &&
        strcmp("request", c->key)) {
-        // FIXME, build string inside send_event
         GString *param = g_string_new("");
         const gchar *p;
         guint i = 0;
-        while ((p = argv_idx(a, i++)))
-            g_string_append_printf(param, " '%s'", p);
+        while ((p = argv_idx(a, i++))) {
+            g_string_append (param, " '");
+            append_escaped (param, p);
+            g_string_append_c (param, '\'');
+        }
 
 	/* might be destructive on array a */
         c->function(uzbl.gui.web_view, a, result);
@@ -692,24 +694,6 @@ parse_command_parts(const gchar *line, GArray *a) {
     g_free(p);
 
     return c;
-}
-
-void
-parse_command(const char *cmd, const char *params, GString *result) {
-    CommandInfo *c = g_hash_table_lookup(uzbl.behave.commands, cmd);
-    if(c) {
-        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-
-        parse_command_arguments(params, a, c->no_split);
-        run_parsed_command(c, a, result);
-
-        g_array_free (a, TRUE);
-    } else {
-        send_event(COMMAND_ERROR, NULL,
-            TYPE_NAME, cmd,
-            TYPE_STR, params ? params : "",
-            NULL);
-    }
 }
 
 gboolean
