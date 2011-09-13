@@ -207,6 +207,8 @@ typedef struct {
     int     webkit_micro;
     gchar*  arch;
     gchar*  commit;
+
+    pid_t   pid;
     gchar*  pid_str;
 } Info;
 
@@ -219,8 +221,6 @@ typedef struct {
     Behaviour     behave;
     Communication comm;
     Info          info;
-
-    Window        xwin;
 } UzblCore;
 
 extern UzblCore uzbl; /* Main Uzbl object */
