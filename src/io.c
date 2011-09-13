@@ -72,8 +72,8 @@ attach_fifo(gchar *path) {
 }
 
 
-/*@null@*/ gchar*
-init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
+gboolean
+init_fifo(const gchar *dir) {
     if (uzbl.comm.fifo_path) {
         /* we're changing the fifo path, get rid of the old fifo if one exists */
         if (unlink(uzbl.comm.fifo_path) == -1)
@@ -90,15 +90,14 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
 
     if (mkfifo (path, 0666) == 0) {
       if(attach_fifo(path))
-         return dir;
+         return TRUE;
       else
          g_warning("init_fifo: can't attach to %s: %s\n", path, strerror(errno));
     } else g_warning ("init_fifo: can't create %s: %s\n", path, strerror(errno));
 
     /* if we got this far, there was an error; clean up */
-    g_free(dir);
     g_free(path);
-    return NULL;
+    return FALSE;
 }
 
 
@@ -286,8 +285,8 @@ attach_socket(gchar *path, struct sockaddr_un *local) {
 }
 
 
-/*@null@*/ gchar*
-init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL */
+gboolean
+init_socket(const gchar *dir) {
     if (uzbl.comm.socket_path) { /* remove an existing socket should one exist */
         if (unlink(uzbl.comm.socket_path) == -1)
             g_warning ("init_socket: couldn't unlink socket at %s\n", uzbl.comm.socket_path);
@@ -296,8 +295,7 @@ init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL *
     }
 
     if (*dir == ' ') {
-        g_free(dir);
-        return NULL;
+        return FALSE;
     }
 
     gchar *path = build_stream_name(SOCKET, dir);
@@ -311,11 +309,10 @@ init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL *
     strcpy (local.sun_path, path);
 
     if(attach_socket(path, &local)) {
-        return dir;
+        return TRUE;
     } else g_warning("init_socket: can't attach to %s: %s\n", path, strerror(errno));
 
     /* if we got this far, there was an error; cleanup */
     g_free(path);
-    g_free(dir);
-    return NULL;
+    return FALSE;
 }

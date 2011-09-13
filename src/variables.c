@@ -465,12 +465,18 @@ set_current_encoding() {
 
 void
 cmd_fifo_dir() {
-    uzbl.behave.fifo_dir = init_fifo(uzbl.behave.fifo_dir);
+    if(!init_fifo(uzbl.behave.fifo_dir)) {
+      g_free(uzbl.behave.fifo_dir);
+      uzbl.behave.fifo_dir = NULL;
+    }
 }
 
 void
 cmd_socket_dir() {
-    uzbl.behave.socket_dir = init_socket(uzbl.behave.socket_dir);
+    if(!init_socket(uzbl.behave.socket_dir)) {
+      g_free(uzbl.behave.socket_dir);
+      uzbl.behave.socket_dir = NULL;
+    }
 }
 
 void
