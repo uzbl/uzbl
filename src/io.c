@@ -26,8 +26,6 @@ build_stream_name(int type, const gchar* dir) {
 
 gboolean
 control_fifo(GIOChannel *gio, GIOCondition condition) {
-    if (uzbl.state.verbose)
-        printf("triggered\n");
     gchar *ctl_line;
     GIOStatus ret;
     GError *err = NULL;
@@ -36,7 +34,7 @@ control_fifo(GIOChannel *gio, GIOCondition condition) {
         g_error ("Fifo: Read end of pipe died!\n");
 
     if(!gio)
-       g_error ("Fifo: GIOChannel broke\n");
+        g_error ("Fifo: GIOChannel broke\n");
 
     ret = g_io_channel_read_line(gio, &ctl_line, NULL, NULL, &err);
     if (ret == G_IO_STATUS_ERROR) {
