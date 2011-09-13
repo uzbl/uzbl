@@ -74,7 +74,8 @@ attach_fifo(gchar *path) {
 
 /*@null@*/ gchar*
 init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
-    if (uzbl.comm.fifo_path) { /* get rid of the old fifo if one exists */
+    if (uzbl.comm.fifo_path) {
+        /* we're changing the fifo path, get rid of the old fifo if one exists */
         if (unlink(uzbl.comm.fifo_path) == -1)
             g_warning ("Fifo: Can't unlink old fifo at %s\n", uzbl.comm.fifo_path);
         g_free(uzbl.comm.fifo_path);
@@ -83,29 +84,20 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
 
     gchar *path = build_stream_name(FIFO, dir);
 
-    if (!file_exists(path)) {
-        if (mkfifo (path, 0666) == 0 && attach_fifo(path)) {
-            return dir;
-        } else g_warning ("init_fifo: can't create %s: %s\n", path, strerror(errno));
-    } else {
-        /* the fifo exists. but is anybody home? */
-        int fd = open(path, O_WRONLY|O_NONBLOCK);
-        if(fd < 0) {
-            /* some error occurred, presumably nobody's on the read end.
-             * we can attach ourselves to it. */
-            if(attach_fifo(path))
-                return dir;
-            else
-                g_warning("init_fifo: can't attach to %s: %s\n", path, strerror(errno));
-        } else {
-            /* somebody's there, we can't use that fifo. */
-            close(fd);
-            /* whatever, this instance can live without a fifo. */
-            g_warning ("init_fifo: can't create %s: file exists and is occupied\n", path);
-        }
+    if (file_exists(path)) {
+        /* something exists at that path. try to delete it. */
+        if (unlink(path) == -1)
+            g_warning ("Fifo: Can't unlink old fifo at %s\n", path);
     }
 
-    /* if we got this far, there was an error; cleanup */
+    if (mkfifo (path, 0666) == 0) {
+      if(attach_fifo(path))
+         return dir;
+      else
+         g_warning("init_fifo: can't attach to %s: %s\n", path, strerror(errno));
+    } else g_warning ("init_fifo: can't create %s: %s\n", path, strerror(errno));
+
+    /* if we got this far, there was an error; clean up */
     g_free(dir);
     g_free(path);
     return NULL;
