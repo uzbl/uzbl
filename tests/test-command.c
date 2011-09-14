@@ -163,15 +163,12 @@ test_set_variable (struct EventFixture *ef, const void *data) {
 
     /* set a float */
     /* we have to be careful about locales here */
-    GString *cmd, *ev;
+    GString *cmd;
     cmd = g_string_new("set zoom_level = ");
     g_string_append_printf(cmd, "%f", 0.25);
     parse_cmd_line(g_string_free(cmd, FALSE), NULL);
 
-    ev = g_string_new("EVENT [" INSTANCE_NAME "] VARIABLE_SET zoom_level float ");
-    g_string_append_printf(ev, "%.2f\n", 0.25);
-    read_event(ef);
-    g_assert_cmpstr(g_string_free(ev, FALSE), ==, ef->event_buffer);
+    ASSERT_EVENT(ef, "VARIABLE_SET zoom_level float 0.25");
 
     g_assert_cmpfloat(0.25, ==, uzbl.behave.zoom_level);
 
