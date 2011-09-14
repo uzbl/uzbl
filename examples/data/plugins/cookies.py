@@ -39,7 +39,9 @@ class TextStore(object):
             'TRUE'  : 'https',
             'FALSE' : 'http'
         }
+        extra = ''
         if cookie[0].startswith("#HttpOnly_"):
+            extra = 'Only'
             domain = cookie[0][len("#HttpOnly_"):]
         elif cookie[0].startswith('#'):
             return None
@@ -50,7 +52,7 @@ class TextStore(object):
                 cookie[2],
                 cookie[5],
                 cookie[6],
-                scheme[cookie[3]],
+                scheme[cookie[3]] + extra,
                 cookie[4])
         except (KeyError,IndexError):
             # Let malformed rows pass through like comments
@@ -60,9 +62,17 @@ class TextStore(object):
         """Convert cookie event to cookie.txt row"""
         secure = {
             'https' : 'TRUE',
-            'http'  : 'FALSE'
+            'http'  : 'FALSE',
+            'httpsOnly' : 'TRUE',
+            'httpOnly'  : 'FALSE'
         }
-        return (cookie[0],
+        http_only = {
+            'https' : '',
+            'http'  : '',
+            'httpsOnly' : '#HttpOnly_',
+            'httpOnly'  : '#HttpOnly_'
+        }
+        return (http_only[cookie[4]] + cookie[0],
             'TRUE' if cookie[0].startswith('.') else 'FALSE',
             cookie[1],
             secure[cookie[4]],
