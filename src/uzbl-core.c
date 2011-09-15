@@ -743,7 +743,7 @@ update_title(void) {
     const gchar *title_format = b->title_format_long;
 
     /* Update the status bar if shown */
-    if (b->show_status) {
+    if (get_show_status()) {
         title_format = b->title_format_short;
 
         gchar *parsed = expand(b->status_format, 0);
@@ -1098,10 +1098,7 @@ main (int argc, char* argv[]) {
     settings_init();
 
     /* Update status bar */
-    if (!uzbl.behave.show_status)
-        gtk_widget_hide(uzbl.gui.status_bar);
-    else
-        update_title();
+    update_title();
 
     /* WebInspector */
     set_up_inspector();

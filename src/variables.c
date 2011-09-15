@@ -526,15 +526,13 @@ set_geometry(const gchar *geometry) {
 
 void
 set_show_status(int show_status) {
-    /* todo: use gtk_widget_set_visible */
-    uzbl.behave.show_status = show_status;
-
-    if (!uzbl.behave.show_status)
-        gtk_widget_hide(uzbl.gui.status_bar);
-    else
-        gtk_widget_show(uzbl.gui.status_bar);
-
+    gtk_widget_set_visible(uzbl.gui.status_bar, show_status);
     update_title();
+}
+
+int
+get_show_status() {
+  return gtk_widget_get_visible(uzbl.gui.status_bar);
 }
 
 void
@@ -687,7 +685,7 @@ const struct var_name_to_ptr_t {
     { "verbose",                PTR_V_INT(uzbl.state.verbose,                   1,   NULL)},
     { "print_events",           PTR_V_INT(uzbl.state.events_stdout,             1,   NULL)},
 
-    { "show_status",            PTR_V_INT(uzbl.behave.show_status,              1,   set_show_status)},
+    { "show_status",            PTR_V_INT_GETSET(show_status)},
     { "status_top",             PTR_V_INT(uzbl.behave.status_top,               1,   set_status_top)},
     { "status_format",          PTR_V_STR(uzbl.behave.status_format,            1,   NULL)},
     { "status_format_right",    PTR_V_STR(uzbl.behave.status_format_right,      1,   NULL)},

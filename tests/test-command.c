@@ -25,6 +25,7 @@
 #include <src/uzbl-core.h>
 #include <src/config.h>
 #include <src/type.h>
+#include <src/variables.h>
 
 extern UzblCore uzbl;
 
@@ -170,7 +171,7 @@ test_set_variable (struct EventFixture *ef, const void *data) {
 
     ASSERT_EVENT(ef, "VARIABLE_SET zoom_level float 0.25");
 
-    g_assert_cmpfloat(0.25, ==, uzbl.behave.zoom_level);
+    g_assert_cmpfloat(0.25, ==, get_var_value_float("zoom_level"));
 
     /* set a constant int (nothing should happen) */
     int old_major = uzbl.info.webkit_major;
@@ -248,15 +249,16 @@ test_scroll (void) {
 
 void
 test_toggle_status (void) {
-    g_assert(!uzbl.behave.show_status);
+    /* status bar is not shown (for whatever reason) */
+    g_assert(!get_show_status());
 
     /* status bar can be toggled on */
     parse_cmd_line("toggle_status", NULL);
-    g_assert(uzbl.behave.show_status);
+    g_assert(get_show_status());
 
     /* status bar can be toggled back off */
     parse_cmd_line("toggle_status", NULL);
-    g_assert(!uzbl.behave.show_status);
+    g_assert(!get_show_status());
 }
 
 void

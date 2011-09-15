@@ -108,7 +108,7 @@ void
 toggle_status (WebKitWebView* page, GArray *argv, GString *result) {
     (void)page; (void)argv; (void)result;
 
-    int current_status = uzbl.behave.show_status;
+    int current_status = get_show_status();
     set_show_status(!current_status);
 }
 
