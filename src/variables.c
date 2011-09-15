@@ -161,23 +161,28 @@ view_settings() {
 }
 
 void
+set_window_property(const gchar* prop, const gchar* value) {
+    if(GTK_IS_WIDGET(uzbl.gui.main_window)) {
+        gdk_property_change(
+            gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)),
+            gdk_atom_intern_static_string(prop),
+            gdk_atom_intern_static_string("STRING"),
+            8,
+            GDK_PROP_MODE_REPLACE,
+            (const guchar*)value,
+            strlen(value));
+    }
+}
+
+void
 uri_change_cb (WebKitWebView *web_view, GParamSpec param_spec) {
     (void) param_spec;
 
     g_free (uzbl.state.uri);
     g_object_get (web_view, "uri", &uzbl.state.uri, NULL);
-    g_setenv("UZBL_URI", uzbl.state.uri, TRUE);
 
-    if(GTK_IS_WIDGET(uzbl.gui.main_window)) {
-        gdk_property_change(
-            gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)),
-            gdk_atom_intern_static_string("UZBL_URI"),
-            gdk_atom_intern_static_string("STRING"),
-            8,
-            GDK_PROP_MODE_REPLACE,
-            (unsigned char *)uzbl.state.uri,
-            strlen(uzbl.state.uri));
-    }
+    g_setenv("UZBL_URI", uzbl.state.uri, TRUE);
+    set_window_property("UZBL_URI", uzbl.state.uri);
 }
 
 void
@@ -226,16 +231,7 @@ cmd_load_uri() {
         soup_uri_free(soup_uri);
     }
 
-    if(GTK_IS_WIDGET(uzbl.gui.main_window)) {
-        gdk_property_change(
-            gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)),
-            gdk_atom_intern_static_string("UZBL_URI"),
-            gdk_atom_intern_static_string("STRING"),
-            8,
-            GDK_PROP_MODE_REPLACE,
-            (unsigned char *)newuri,
-            strlen(newuri));
-    }
+    set_window_property("UZBL_URI", newuri);
 
     webkit_web_view_load_uri (uzbl.gui.web_view, newuri);
     g_free (newuri);
