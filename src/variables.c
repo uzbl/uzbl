@@ -262,6 +262,42 @@ uri_change_cb (WebKitWebView *web_view, GParamSpec param_spec) {
     set_window_property("UZBL_URI", uzbl.state.uri);
 }
 
+gchar *
+make_uri_from_user_input(const gchar *uri) {
+    gchar *result = NULL;
+
+    SoupURI *soup_uri = soup_uri_new(uri);
+    if (soup_uri) {
+        /* this looks like a valid URI. */
+        if(soup_uri->host == NULL && string_is_integer(soup_uri->path))
+            /* the user probably typed in a host:port without a scheme. */
+            result = g_strconcat("http://", uri, NULL);
+        else
+            result = g_strdup(uri);
+
+        soup_uri_free(soup_uri);
+
+        return result;
+    }
+
+    /* it's not a valid URI, maybe it's a path on the filesystem?
+     * check to see if such a path exists. */
+    if (file_exists(uri)) {
+        if (g_path_is_absolute (uri))
+            return g_strconcat("file://", uri, NULL);
+
+        /* make it into an absolute path */
+        gchar *wd = g_get_current_dir ();
+        result = g_strconcat("file://", wd, "/", uri, NULL);
+        g_free(wd);
+
+        return result;
+    }
+
+    /* not a path on the filesystem, just assume it's an HTTP URL. */
+    return g_strconcat("http://", uri, NULL);
+}
+
 void
 set_uri(const gchar *uri) {
     /* Strip leading whitespace */
@@ -282,34 +318,7 @@ set_uri(const gchar *uri) {
     }
 
     /* attempt to parse the URI */
-    gchar   *newuri;
-    SoupURI *soup_uri = soup_uri_new(uri);
-
-    if (!soup_uri) {
-        /* it's not a valid URI, maybe it's a path on the filesystem. */
-        const gchar *fullpath;
-        if (g_path_is_absolute (uri))
-            fullpath = uri;
-        else {
-            gchar *wd = g_get_current_dir ();
-            fullpath = g_build_filename (wd, uri, NULL);
-            g_free(wd);
-        }
-
-        struct stat stat_result;
-        if (! g_stat(fullpath, &stat_result))
-            newuri = g_strconcat("file://", fullpath, NULL);
-        else
-            newuri = g_strconcat("http://", uri, NULL);
-    } else {
-        if(soup_uri->host == NULL && string_is_integer(soup_uri->path))
-            /* the user probably typed in a host:port without a scheme */
-            newuri = g_strconcat("http://", uri, NULL);
-        else
-            newuri = g_strdup(uri);
-
-        soup_uri_free(soup_uri);
-    }
+    gchar *newuri = make_uri_from_user_input(uri);
 
     set_window_property("UZBL_URI", newuri);
     webkit_web_view_load_uri (uzbl.gui.web_view, newuri);
