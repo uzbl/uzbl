@@ -263,17 +263,17 @@ uri_change_cb (WebKitWebView *web_view, GParamSpec param_spec) {
 }
 
 void
-set_uri(const gchar *val) {
-    g_free(uzbl.state.uri);
-    uzbl.state.uri = g_strdup(val);
-    const gchar *uri = uzbl.state.uri;
-
-    gchar   *newuri;
-    SoupURI *soup_uri;
-
-    /* Strip leading whitespaces */
+set_uri(const gchar *uri) {
+    /* Strip leading whitespace */
     while (*uri && isspace(*uri))
         uri++;
+
+    /* don't do anything when given a blank URL */
+    if(uri[0] == 0)
+        return;
+
+    g_free(uzbl.state.uri);
+    uzbl.state.uri = g_strdup(uri);
 
     /* evaluate javascript: URIs */
     if (!strncmp (uri, "javascript:", 11)) {
@@ -282,7 +282,8 @@ set_uri(const gchar *val) {
     }
 
     /* attempt to parse the URI */
-    soup_uri = soup_uri_new(uri);
+    gchar   *newuri;
+    SoupURI *soup_uri = soup_uri_new(uri);
 
     if (!soup_uri) {
         /* it's not a valid URI, maybe it's a path on the filesystem. */
@@ -311,8 +312,8 @@ set_uri(const gchar *val) {
     }
 
     set_window_property("UZBL_URI", newuri);
-
     webkit_web_view_load_uri (uzbl.gui.web_view, newuri);
+
     g_free (newuri);
 }
 
