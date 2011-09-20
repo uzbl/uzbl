@@ -407,7 +407,7 @@ close_uzbl (WebKitWebView *page, GArray *argv, GString *result) {
     if (uzbl.gui.main_window)
         gtk_widget_destroy(uzbl.gui.main_window);
     else if (uzbl.gui.plug)
-        gtk_widget_destroy(uzbl.gui.plug);
+        gtk_widget_destroy(GTK_WIDGET(uzbl.gui.plug));
 
     gtk_main_quit ();
 }
