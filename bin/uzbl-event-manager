@@ -42,7 +42,7 @@ from itertools import count
 from optparse import OptionParser
 from select import select
 from signal import signal, SIGTERM, SIGINT, SIGKILL
-from socket import socket, AF_UNIX, SOCK_STREAM
+from socket import socket, AF_UNIX, SOCK_STREAM, error as socket_error
 from traceback import format_exc
 
 
@@ -370,7 +370,7 @@ class Uzbl(object):
         data = ''.join(self.child_buffer)
         try:
             bsent = self.child_socket.send(data)
-        except socket.error as e:
+        except socket_error as e:
             if e.errno in (errno.EAGAIN, errno.EINTR):
                 self.child_buffer = [data]
                 return
@@ -625,13 +625,13 @@ class UzblEventDaemon(object):
                 self.uzbls[child_socket] = Uzbl(self, child_socket)
                 connections += 1
 
-            for uzbl in [self.uzbls[s] for s in writes]:
+            for uzbl in [self.uzbls[s] for s in writes if s in self.uzbls ]:
                 uzbl.do_send()
 
-            for uzbl in [self.uzbls[s] for s in reads]:
+            for uzbl in [self.uzbls[s] for s in reads if s in self.uzbls]:
                 uzbl.read()
 
-            for uzbl in [self.uzbls[s] for s in errors]:
+            for uzbl in [self.uzbls[s] for s in errors if s in self.uzbls]:
                 uzbl.logger.error('socket read error')
                 uzbl.close()
 
