@@ -176,11 +176,15 @@ uzbl.follow.reDrawHints = function(elements, len) {
     this.documents().forEach(function(doc) {
         uzbl.follow.removeHints(doc);
         if (!doc.body) return;
-        doc.hintdiv = doc.createElement('div');
-        doc.hintdiv.id = uzbldivid;
-        if(uzbl.follow.mode == 'newwindow')
-          doc.hintdiv.className = "new-window";
-        doc.body.appendChild(doc.hintdiv);
+        try {
+            doc.hintdiv = doc.createElement('div');
+            doc.hintdiv.id = uzbldivid;
+            if(uzbl.follow.mode == 'newwindow')
+                doc.hintdiv.className = "new-window";
+            doc.body.appendChild(doc.hintdiv);
+        } catch (err) {
+            // Unable to attach label -> shrug it off and continue
+        }
     });
 
     elements.forEach(function(el, i) {
