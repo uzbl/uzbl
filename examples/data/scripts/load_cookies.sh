@@ -6,7 +6,7 @@ if [ -n "$1" ]; then
     cookie_file="$1"
     shift
 else
-    cookie_file="$UZBL_COOKIE_FIRE"
+    cookie_file="$UZBL_COOKIE_FILE"
 fi
 
 awk -F \\t '
