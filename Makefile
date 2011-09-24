@@ -17,7 +17,8 @@ else
 	CPPFLAGS =
 endif
 
-PYTHON=python2.7
+PYTHON=$(shell if which python2 > /dev/null; then echo python2; else echo python; fi)
+PYTHONV=$(shell $PYTHON --version | sed -n /[0-9].[0-9]/p)
 
 # --- configuration ends here ---
 
@@ -80,28 +81,30 @@ coverage-event-manager: force
 	# Hmm, I wonder what a good default browser would be
 	uzbl-browser htmlcov/index.html
 
+sandbox: misc/env.sh
+	mkdir -p sandbox/${PREFIX}/lib64
+	cp -p misc/env.sh sandbox/env.sh
+	ln -s lib64 sandbox/${PREFIX}/lib
+
 test-uzbl-core: uzbl-core
 	./uzbl-core --uri http://www.uzbl.org --verbose
 
 test-uzbl-browser: uzbl-browser
 	./bin/uzbl-browser --uri http://www.uzbl.org --verbose
 
-test-uzbl-core-sandbox: uzbl-core sandbox-install-uzbl-core sandbox-install-example-data
-	cp -np ./misc/env.sh ./sandbox/env.sh
+test-uzbl-core-sandbox: sandbox uzbl-core sandbox-install-uzbl-core sandbox-install-example-data
 	. ./sandbox/env.sh && uzbl-core --uri http://www.uzbl.org --verbose
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
-test-uzbl-browser-sandbox: uzbl-browser sandbox-install-uzbl-browser sandbox-install-example-data
-	cp -np ./misc/env.sh ./sandbox/env.sh
+test-uzbl-browser-sandbox: sandbox uzbl-browser sandbox-install-uzbl-browser sandbox-install-example-data
 	-. ./sandbox/env.sh && uzbl-event-manager restart -avv
 	. ./sandbox/env.sh && uzbl-browser --uri http://www.uzbl.org --verbose
 	. ./sandbox/env.sh && uzbl-event-manager stop -vv -o /dev/null
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
-test-uzbl-tabbed-sandbox: uzbl-browser sandbox-install-uzbl-browser sandbox-install-uzbl-tabbed sandbox-install-example-data
-	cp -np ./misc/env.sh ./sandbox/env.sh
+test-uzbl-tabbed-sandbox: sandbox uzbl-browser sandbox-install-uzbl-browser sandbox-install-uzbl-tabbed sandbox-install-example-data
 	-. ./sandbox/env.sh && uzbl-event-manager restart -avv
 	. ./sandbox/env.sh && uzbl-tabbed
 	. ./sandbox/env.sh && uzbl-event-manager stop -ivv
