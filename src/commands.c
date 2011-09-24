@@ -98,17 +98,18 @@ VIEWFUNC(go_forward)
 
 void
 toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result) {
-    (void)argv; (void)result;
-    webkit_web_view_set_full_content_zoom (page, !webkit_web_view_get_full_content_zoom (page));
+    (void)page; (void)argv; (void)result;
+
+    int current_type = get_zoom_type();
+    set_zoom_type(!current_type);
 }
 
 void
 toggle_status (WebKitWebView* page, GArray *argv, GString *result) {
     (void)page; (void)argv; (void)result;
 
-    uzbl.behave.show_status = !uzbl.behave.show_status;
-
-    set_show_status();
+    int current_status = get_show_status();
+    set_show_status(!current_status);
 }
 
 /*
@@ -401,10 +402,13 @@ chain(WebKitWebView *page, GArray *argv, GString *result) {
 void
 close_uzbl (WebKitWebView *page, GArray *argv, GString *result) {
     (void)page; (void)argv; (void)result;
-	// hide window a soon as possible to avoid getting stuck with a
-	// non-response window in the cleanup steps
-	if (uzbl.gui.main_window)
-		gtk_widget_destroy(uzbl.gui.main_window);
+    // hide window a soon as possible to avoid getting stuck with a
+    // non-response window in the cleanup steps
+    if (uzbl.gui.main_window)
+        gtk_widget_destroy(uzbl.gui.main_window);
+    else if (uzbl.gui.plug)
+        gtk_widget_destroy(GTK_WIDGET(uzbl.gui.plug));
+
     gtk_main_quit ();
 }
 

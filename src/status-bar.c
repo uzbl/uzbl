@@ -1,6 +1,6 @@
 #include "status-bar.h"
 
-G_DEFINE_TYPE (UzblStatusBar, uzbl_status_bar, GTK_TYPE_HBOX)
+G_DEFINE_TYPE (UzblStatusBar, uzbl_status_bar, GTK_TYPE_BOX)
 
 static void uzbl_status_bar_size_allocate      (GtkWidget         *widget,
                                                 GtkAllocation     *allocation);

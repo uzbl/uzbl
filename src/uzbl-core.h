@@ -74,7 +74,6 @@ typedef struct {
     WebKitWebView* web_view;
     gchar*         main_title;
     gchar*         icon;
-    gchar*         window_role;
 
     /* WebInspector */
     GtkWidget*          inspector_window;
@@ -138,7 +137,6 @@ typedef struct {
     gchar*   status_format;
     gchar*   status_format_right;
     gchar*   status_background;
-    gboolean show_status;
     gboolean status_top;
 
     /* Window title */
@@ -154,49 +152,17 @@ typedef struct {
     gchar*   scheme_handler;
     gchar*   download_handler;
 
-    /* Fonts */
-    gchar*   default_font_family;
-    gchar*   monospace_font_family;
-    gchar*   sans_serif_font_family;
-    gchar*   serif_font_family;
-    gchar*   fantasy_font_family;
-    gchar*   cursive_font_family;
-
     gboolean forward_keys;
     guint    http_debug;
     gchar*   shell_cmd;
     guint    view_source;
 
-    /* WebKitWebSettings exports */
-    guint    font_size;
-    guint    monospace_size;
-    guint    minimum_font_size;
-    gfloat   zoom_level;
-    gboolean zoom_type;
-    guint    enable_pagecache;
-    guint    disable_plugins;
-    guint    disable_scripts;
-    guint    autoload_img;
-    guint    autoshrink_img;
-    guint    enable_spellcheck;
-    gchar*   spellcheck_languages;
-    guint    enable_private;
-    guint    print_bg;
-    gchar*   style_uri;
-    guint    resizable_txt;
-    gchar*   default_encoding;
-    gchar*   current_encoding;
-    guint    enforce_96dpi;
-    gchar    *inject_html;
-    guint    caret_browsing;
-    guint    cross_file_access;
-    guint    javascript_windows;
     gboolean print_version;
 
     /* command list: (key)name -> (value)Command  */
     GHashTable* commands;
     /* variables: (key)name -> (value)uzbl_cmdprop */
-    GHashTable     *proto_var;
+    GHashTable* proto_var;
 } Behaviour;
 
 
@@ -207,6 +173,8 @@ typedef struct {
     int     webkit_micro;
     gchar*  arch;
     gchar*  commit;
+
+    pid_t   pid;
     gchar*  pid_str;
 } Info;
 
@@ -219,8 +187,6 @@ typedef struct {
     Behaviour     behave;
     Communication comm;
     Info          info;
-
-    Window        xwin;
 } UzblCore;
 
 extern UzblCore uzbl; /* Main Uzbl object */

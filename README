@@ -348,8 +348,8 @@ file).
 * `monospace_size`: The default size of monospaced font (default 1).
 * `minimum_font_size`: The minimum font size used to display text (default 1).
 * `enable_pagecache`: Enable the webkit pagecache (it caches rendered pages for a speedup when you go back or forward in history) (default 0).
-* `disable_plugins`: Disable embedded plugin objects (default 0).
-* `disable_scripts`: Disable embedded scripting languages (default 0).
+* `enable_plugins`: Disable embedded plugin objects (default 0).
+* `enable_scripts`: Disable embedded scripting languages (default 0).
 * `autoload_images`: Automatically load images (default 1).
 * `autoshrink_images`: Shrink images to window size (default 0).
 * `enable_spellcheck`: Whether to enable spell checking while typing (default

@@ -246,7 +246,7 @@ expand(const char* s, guint recurse) {
 void
 clean_up(void) {
     if (uzbl.info.pid_str) {
-        send_event (INSTANCE_EXIT, NULL, TYPE_INT, getpid(), NULL);
+        send_event (INSTANCE_EXIT, NULL, TYPE_INT, uzbl.info.pid, NULL);
         g_free(uzbl.info.pid_str);
         uzbl.info.pid_str = NULL;
     }
@@ -619,21 +619,17 @@ run_parsed_command(const CommandInfo *c, GArray *a, GString *result) {
     if(strcmp("set", c->key)   &&
        strcmp("event", c->key) &&
        strcmp("request", c->key)) {
-        // FIXME, build string inside send_event
-        GString *param = g_string_new("");
-        const gchar *p;
-        guint i = 0;
-        while ((p = argv_idx(a, i++)))
-            g_string_append_printf(param, " '%s'", p);
 
-	/* might be destructive on array a */
+        Event *event = format_event (COMMAND_EXECUTED, NULL,
+            TYPE_NAME, c->key,
+            TYPE_STR_ARRAY, a,
+            NULL);
+
+        /* might be destructive on array a */
         c->function(uzbl.gui.web_view, a, result);
 
-        send_event(COMMAND_EXECUTED, NULL,
-            TYPE_NAME, c->key,
-            TYPE_FORMATTEDSTR, param->str,
-            NULL);
-        g_string_free(param, TRUE);
+        send_formatted_event (event);
+        event_free (event);
     }
     else
         c->function(uzbl.gui.web_view, a, result);
@@ -747,7 +743,7 @@ update_title(void) {
     const gchar *title_format = b->title_format_long;
 
     /* Update the status bar if shown */
-    if (b->show_status) {
+    if (get_show_status()) {
         title_format = b->title_format_short;
 
         gchar *parsed = expand(b->status_format, 0);
@@ -930,21 +926,6 @@ void handle_authentication (SoupSession *session, SoupMessage *msg, SoupAuth *au
     }
 }
 
-void
-retrieve_geometry() {
-    int w, h, x, y;
-    GString *buf = g_string_new("");
-
-    gtk_window_get_size(GTK_WINDOW(uzbl.gui.main_window), &w, &h);
-    gtk_window_get_position(GTK_WINDOW(uzbl.gui.main_window), &x, &y);
-
-    g_string_printf(buf, "%dx%d+%d+%d", w, h, x, y);
-
-    if(uzbl.gui.geometry)
-        g_free(uzbl.gui.geometry);
-    uzbl.gui.geometry = g_string_free(buf, FALSE);
-}
-
 /* Set up gtk, gobject, variable defaults and other things that tests and other
  * external applications need to do anyhow */
 void
@@ -1029,7 +1010,13 @@ initialize(int argc, char** argv) {
     create_scrolled_win();
 
     /* pack the window and the status bar */
+
+#if GTK_CHECK_VERSION(3,0,0)
+    uzbl.gui.vbox = gtk_box_new(FALSE, 0);
+    gtk_orientable_set_orientation(GTK_ORIENTABLE(uzbl.gui.vbox), GTK_ORIENTATION_VERTICAL);
+#else
     uzbl.gui.vbox = gtk_vbox_new(FALSE, 0);
+#endif
 
     gtk_box_pack_start(GTK_BOX(uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(uzbl.gui.vbox), uzbl.gui.status_bar, FALSE, TRUE, 0);
@@ -1040,30 +1027,26 @@ initialize(int argc, char** argv) {
 /** -- MAIN -- **/
 int
 main (int argc, char* argv[]) {
+    Window xwin;
+
     initialize(argc, argv);
 
-    /* Embedded mode */
     if (uzbl.state.plug_mode) {
+        /* Embedded mode */
         uzbl.gui.plug = create_plug();
         gtk_container_add (GTK_CONTAINER (uzbl.gui.plug), uzbl.gui.vbox);
-        /* in xembed mode the window has no unique id and thus
-         * socket/fifo names aren't unique either.
-         * we use a custom randomizer to create a random id
-        */
-        struct timeval tv;
-        gettimeofday(&tv, NULL);
-        srand((unsigned int)tv.tv_sec*tv.tv_usec);
-        uzbl.xwin = rand();
-    }
-
-    /* Windowed mode */
-    else {
+    } else {
+        /* Windowed mode */
         uzbl.gui.main_window = create_window();
         gtk_container_add (GTK_CONTAINER (uzbl.gui.main_window), uzbl.gui.vbox);
+
         /* We need to ensure there is a window, before we can get XID */
         gtk_widget_realize (GTK_WIDGET (uzbl.gui.main_window));
+        xwin = GDK_WINDOW_XID (gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)));
 
-        uzbl.xwin = GDK_WINDOW_XID (gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)));
+        gchar *xwin_str = g_strdup_printf("%d", (int)xwin);
+        g_setenv("UZBL_XID", xwin_str, TRUE);
+        g_free(xwin_str);
 
         gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
     }
@@ -1082,17 +1065,14 @@ main (int argc, char* argv[]) {
       "signal::changed",        (GCallback)scroll_horiz_cb, NULL,
       NULL);
 
-    gchar *xwin = g_strdup_printf("%d", (int)uzbl.xwin);
-    g_setenv("UZBL_XID", xwin, TRUE);
+    uzbl.info.pid     = getpid();
+    uzbl.info.pid_str = g_strdup_printf("%d", uzbl.info.pid);
+    g_setenv("UZBL_PID", uzbl.info.pid_str, TRUE);
 
     if(!uzbl.state.instance_name)
-        uzbl.state.instance_name = g_strdup(xwin);
+        uzbl.state.instance_name = uzbl.info.pid_str;
 
-    g_free(xwin);
-
-    uzbl.info.pid_str = g_strdup_printf("%d", getpid());
-    g_setenv("UZBL_PID", uzbl.info.pid_str, TRUE);
-    send_event(INSTANCE_START, NULL, TYPE_INT, getpid(), NULL);
+    send_event(INSTANCE_START, NULL, TYPE_INT, uzbl.info.pid, NULL);
 
     if (uzbl.state.plug_mode) {
         send_event(PLUG_CREATED, NULL, TYPE_INT, gtk_plug_get_id (uzbl.gui.plug), NULL);
@@ -1102,11 +1082,10 @@ main (int argc, char* argv[]) {
     builtins();
 
     /* Check uzbl is in window mode before getting/setting geometry */
-    if (uzbl.gui.main_window) {
-        if (uzbl.gui.geometry)
-            set_geometry();
-        else
-            retrieve_geometry();
+    if (uzbl.gui.main_window && uzbl.gui.geometry) {
+        gchar *geometry = g_strdup(uzbl.gui.geometry);
+        set_geometry(geometry);
+        g_free(geometry);
     }
 
     gchar *uri_override = (uzbl.state.uri ? g_strdup(uzbl.state.uri) : NULL);
@@ -1119,10 +1098,7 @@ main (int argc, char* argv[]) {
     settings_init();
 
     /* Update status bar */
-    if (!uzbl.behave.show_status)
-        gtk_widget_hide(uzbl.gui.status_bar);
-    else
-        update_title();
+    update_title();
 
     /* WebInspector */
     set_up_inspector();
@@ -1149,12 +1125,11 @@ main (int argc, char* argv[]) {
         if (uzbl.state.socket_id)
             printf("plug_id %i\n", (int)gtk_plug_get_id(uzbl.gui.plug));
         else
-            printf("window_id %i\n",(int) uzbl.xwin);
+            printf("window_id %i\n",(int) xwin);
         printf("pid %i\n", getpid ());
         printf("name: %s\n", uzbl.state.instance_name);
         printf("commit: %s\n", uzbl.info.commit);
     }
-
 
     gtk_main();
 
