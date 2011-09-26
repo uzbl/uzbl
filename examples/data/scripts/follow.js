@@ -220,14 +220,9 @@ uzbl.follow.intToLabel = function(n, len) {
         n = Math.floor(n / uzbl.follow.charset.length);
     } while(n);
 
-    console.log(len);
-
     for (var x = label.length; x < len; x++) {
-      console.log(label);
-      console.log(x)
         label = uzbl.follow.charset.charAt(0) + label;
     }
-      console.log(label);
 
     return label;
 }
