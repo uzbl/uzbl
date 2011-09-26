@@ -138,26 +138,32 @@ uzbl.follow.generateHint = function(doc, el, label, top, left) {
     return hint;
 }
 
-// Here we choose what to do with an element if we
-// want to "follow" it. On form elements we "select"
-// or pass the focus, on links we try to perform a click,
-// but at least set the href of the link. (needs some improvements)
+// this is pointlessly duplicated in uzbl.formfiller
+uzbl.follow.textInputTypes = [
+  'text', 'password', 'search', 'email', 'url', 'number', 'range', 'color',
+  'date', 'month', 'week', 'time', 'datetime', 'datetime-local'
+];
+
+// this is pointlessly duplicated in uzbl.formfiller
+uzbl.follow.inputTypeIsText = function(type) {
+    return uzbl.follow.textInputTypes.indexOf(type) >= 0;
+}
+
+// Here we choose what to do with an element that's been selected.
+// On text form elements we focus and select the content. On other
+// elements we simulate a mouse click.
 uzbl.follow.clickElem = function(item) {
     if(!item) return;
 
-    if (item instanceof HTMLInputElement) {
-        var type = item.type;
-        if (type == 'text' || type == 'file' || type == 'password') {
-            item.focus();
-            item.select();
-            return "XXXEMIT_FORM_ACTIVEXXX";
-        }
-        // otherwise fall through to a simulated mouseclick.
+    if (item instanceof HTMLInputElement && uzbl.follow.inputTypeIsText(item.type)) {
+        item.focus();
+        item.select();
+        return "XXXFORM_ACTIVEXXX";
     } else if (item instanceof HTMLTextAreaElement || item instanceof HTMLSelectElement) {
         item.focus();
         if(typeof item.select != 'undefined')
             item.select();
-        return "XXXEMIT_FORM_ACTIVEXXX";
+        return "XXXFORM_ACTIVEXXX";
     }
 
     // simulate a mouseclick to activate the element

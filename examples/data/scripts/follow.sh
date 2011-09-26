@@ -1,13 +1,13 @@
 #!/bin/sh
-# This scripts acts on the return value of followLinks in follow.js 
+# This scripts acts on the return value of followLinks in follow.js
 
 result=$1
 shift
 
 case "$result" in
-    XXXEMIT_FORM_ACTIVEXXX)
+    XXXFORM_ACTIVEXXX)
         # a form element was selected
-        printf 'event KEYCMD_CLEAR\n' > "$UZBL_FIFO"
+        echo 'event KEYCMD_CLEAR' > "$UZBL_FIFO"
         ;;
     XXXRESET_MODEXXX)
         # a link was selected, reset uzbl's input mode

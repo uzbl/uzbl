@@ -1,14 +1,16 @@
 uzbl.formfiller = {
 
+    // this is pointlessly duplicated in uzbl.follow
+    textInputTypes: [
+      'text', 'password', 'search', 'email', 'url', 'number', 'range', 'color',
+      'date', 'month', 'week', 'time', 'datetime', 'datetime-local'
+    ]
+
+    ,
+
+    // this is pointlessly duplicated in uzbl.follow
     inputTypeIsText: function(type) {
-        var types = [ 'text', 'password', 'search', 'email', 'url',
-                      'number', 'range', 'color', 'date', 'month',
-                      'week', 'time', 'datetime', 'datetime-local' ];
-
-        for(var i = 0; i < types.length; ++i)
-          if(types[i] == type) return true;
-
-        return false;
+        return uzbl.formfiller.textInputTypes.indexOf(type) >= 0;
     }
 
     ,
