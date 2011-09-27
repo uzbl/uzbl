@@ -465,7 +465,7 @@ set_status_background(const gchar *background) {
 
 void
 set_icon(const gchar *icon) {
-    if(file_exists(uzbl.gui.icon) && uzbl.gui.main_window) {
+    if(file_exists(icon) && uzbl.gui.main_window) {
         g_free(uzbl.gui.icon);
         uzbl.gui.icon = g_strdup(icon);
 
