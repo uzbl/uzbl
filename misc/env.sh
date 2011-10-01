@@ -28,3 +28,11 @@ export XDG_CONFIG_HOME
 # Needed to run uzbl-browser etc from here.
 PATH="$(pwd)/sandbox/usr/local/bin:$PATH"
 export PATH
+
+PYTHONLIB=$(python -c 'from distutils.sysconfig import get_python_lib; print get_python_lib(prefix="/usr/local")')
+
+UZBL_PLUGIN_PATH="$(pwd)/sandbox/$PYTHONLIB/uzbl/plugins"
+export UZBL_PLUGIN_PATH
+
+PYTHONPATH="$(pwd)/sandbox/$PYTHONLIB/"
+export PYTHONPATH

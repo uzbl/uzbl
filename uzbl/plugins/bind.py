@@ -11,6 +11,13 @@ And it is also possible to execute a function on activation:
 
 import sys
 import re
+from functools import partial
+
+from uzbl.arguments import unquote, splitquoted
+from uzbl.ext import PerInstancePlugin
+from .cmd_expand import cmd_expand
+from .config import Config
+from .keycmd import KeyCmd
 
 # Commonly used regular expressions.
 MOD_START = re.compile('^<([A-Z][A-Za-z0-9-_]*)>').match
@@ -33,6 +40,7 @@ class Bindlet(object):
     def __init__(self, uzbl):
         self.binds = {'global': {}}
         self.uzbl = uzbl
+        self.uzbl_config = Config[uzbl]
         self.depth = 0
         self.args = []
         self.last_mode = None
@@ -58,9 +66,9 @@ class Bindlet(object):
 
         if self.last_mode:
             mode, self.last_mode = self.last_mode, None
-            self.uzbl.config['mode'] = mode
+            self.uzbl_config['mode'] = mode
 
-        del self.uzbl.config['keycmd_prompt']
+        del self.uzbl_config['keycmd_prompt']
 
 
     def stack(self, bind, args, depth):
@@ -72,10 +80,10 @@ class Bindlet(object):
 
             return
 
-        mode = self.uzbl.config.get('mode', None)
+        mode = self.uzbl_config.get('mode', None)
         if mode != 'stack':
             self.last_mode = mode
-            self.uzbl.config['mode'] = 'stack'
+            self.uzbl_config['mode'] = 'stack'
 
         self.stack_binds = [bind,]
         self.args += args
@@ -91,9 +99,9 @@ class Bindlet(object):
 
         (prompt, is_cmd, set), self.after_cmds = self.after_cmds, None
 
-        self.uzbl.clear_keycmd()
+        KeyCmd[self.uzbl].clear_keycmd()
         if prompt:
-            self.uzbl.config['keycmd_prompt'] = prompt
+            self.uzbl_config['keycmd_prompt'] = prompt
 
         if set and is_cmd:
             self.uzbl.send(set)
@@ -107,7 +115,7 @@ class Bindlet(object):
         the filtered stack list and modkey & non-stack globals.'''
 
         if mode is None:
-            mode = self.uzbl.config.get('mode', None)
+            mode = self.uzbl_config.get('mode', None)
 
         if not mode:
             mode = 'global'
@@ -269,194 +277,186 @@ class Bind(object):
         return self._repr_cache
 
 
-def exec_bind(uzbl, bind, *args, **kargs):
-    '''Execute bind objects.'''
+class BindPlugin(PerInstancePlugin):
+    def __init__(self, uzbl):
+        '''Export functions and connect handlers to events.'''
+        super(BindPlugin, self).__init__(uzbl)
 
-    uzbl.event("EXEC_BIND", bind, args, kargs)
+        self.bindlet = Bindlet(uzbl)
 
-    if bind.is_callable:
-        args += bind.args
-        kargs = dict(bind.kargs.items()+kargs.items())
-        bind.function(uzbl, *args, **kargs)
-        return
+        uzbl.connect('BIND', self.parse_bind)
+        uzbl.connect('MODE_BIND', self.parse_mode_bind)
+        uzbl.connect('MODE_CHANGED', self.mode_changed)
 
-    if kargs:
-        raise ArgumentError('cannot supply kargs for uzbl commands')
+        # Connect key related events to the key_event function.
+        events = [['KEYCMD_UPDATE', 'KEYCMD_EXEC'],
+                  ['MODCMD_UPDATE', 'MODCMD_EXEC']]
 
-    commands = []
-    cmd_expand = uzbl.cmd_expand
-    for cmd in bind.commands:
-        cmd = cmd_expand(cmd, args)
-        uzbl.send(cmd)
+        for mod_cmd in range(2):
+            for on_exec in range(2):
+                event = events[mod_cmd][on_exec]
+                handler = partial(self.key_event,
+                    mod_cmd=bool(mod_cmd),
+                    on_exec=bool(on_exec))
+                uzbl.connect(event, handler)
 
+    def exec_bind(self, bind, *args, **kargs):
+        '''Execute bind objects.'''
 
-def mode_bind(uzbl, modes, glob, handler=None, *args, **kargs):
-    '''Add a mode bind.'''
+        self.uzbl.event("EXEC_BIND", bind, args, kargs)
 
-    bindlet = uzbl.bindlet
+        if bind.is_callable:
+            args += bind.args
+            kargs = dict(bind.kargs.items()+kargs.items())
+            bind.function(self.uzbl, *args, **kargs)
+            return
 
-    if not hasattr(modes, '__iter__'):
-        modes = unicode(modes).split(',')
+        if kargs:
+            raise ArgumentError('cannot supply kargs for uzbl commands')
 
-    # Sort and filter binds.
-    modes = filter(None, map(unicode.strip, modes))
+        commands = []
+        for cmd in bind.commands:
+            cmd = cmd_expand(cmd, args)
+            self.uzbl.send(cmd)
 
-    if callable(handler) or (handler is not None and handler.strip()):
-        bind = Bind(glob, handler, *args, **kargs)
+    def mode_bind(self, modes, glob, handler=None, *args, **kargs):
+        '''Add a mode bind.'''
 
-    else:
-        bind = None
+        bindlet = self.bindlet
 
-    for mode in modes:
-        if not VALID_MODE(mode):
-            raise NameError('invalid mode name: %r' % mode)
+        if not hasattr(modes, '__iter__'):
+            modes = unicode(modes).split(',')
 
-    for mode in modes:
-        if mode[0] == '-':
-            mode, bind = mode[1:], None
+        # Sort and filter binds.
+        modes = filter(None, map(unicode.strip, modes))
 
-        bindlet.add_bind(mode, glob, bind)
-        uzbl.event('ADDED_MODE_BIND', mode, glob, bind)
+        if callable(handler) or (handler is not None and handler.strip()):
+            bind = Bind(glob, handler, *args, **kargs)
 
+        else:
+            bind = None
 
-def bind(uzbl, glob, handler, *args, **kargs):
-    '''Legacy bind function.'''
+        for mode in modes:
+            if not VALID_MODE(mode):
+                raise NameError('invalid mode name: %r' % mode)
 
-    mode_bind(uzbl, 'global', glob, handler, *args, **kargs)
+        for mode in modes:
+            if mode[0] == '-':
+                mode, bind = mode[1:], None
 
+            bindlet.add_bind(mode, glob, bind)
+            self.uzbl.event('ADDED_MODE_BIND', mode, glob, bind)
+        self.logger.info('added bind %s %s %s', mode, glob, bind)
 
-def parse_mode_bind(uzbl, args):
-    '''Parser for the MODE_BIND event.
+    def bind(self, glob, handler, *args, **kargs):
+        '''Legacy bind function.'''
 
-    Example events:
-        MODE_BIND <mode>         <bind>        = <command>
-        MODE_BIND command        o<location:>_ = uri %s
-        MODE_BIND insert,command <BackSpace>   = ...
-        MODE_BIND global         ...           = ...
-        MODE_BIND global,-insert ...           = ...
-    '''
+        self.mode_bind('global', glob, handler, *args, **kargs)
 
-    if not args:
-        raise ArgumentError('missing bind arguments')
+    def parse_mode_bind(self, args):
+        '''Parser for the MODE_BIND event.
 
-    split = map(unicode.strip, args.split(' ', 1))
-    if len(split) != 2:
-        raise ArgumentError('missing mode or bind section: %r' % args)
+        Example events:
+            MODE_BIND <mode>         <bind>        = <command>
+            MODE_BIND command        o<location:>_ = uri %s
+            MODE_BIND insert,command <BackSpace>   = ...
+            MODE_BIND global         ...           = ...
+            MODE_BIND global,-insert ...           = ...
+        '''
 
-    modes, args = split[0].split(','), split[1]
-    split = map(unicode.strip, args.split('=', 1))
-    if len(split) != 2:
-        raise ArgumentError('missing delimiter in bind section: %r' % args)
+        args = splitquoted(args)
+        if len(args) < 2:
+            raise ArgumentError('missing mode or bind section: %r' % args.raw())
 
-    glob, command = split
-    mode_bind(uzbl, modes, glob, command)
+        modes = args[0].split(',')
+        for i, g in enumerate(args[1:]):
+            if g == '=':
+                glob = args.raw(1, i)
+                command = args.raw(i+2)
+                break
+        else:
+            raise ArgumentError('missing delimiter in bind section: %r' % args.raw())
 
+        self.mode_bind(modes, glob, command)
 
-def parse_bind(uzbl, args):
-    '''Legacy parsing of the BIND event and conversion to the new format.
+    def parse_bind(self, args):
+        '''Legacy parsing of the BIND event and conversion to the new format.
 
-    Example events:
-        request BIND <bind>        = <command>
-        request BIND o<location:>_ = uri %s
-        request BIND <BackSpace>   = ...
-        request BIND ...           = ...
-    '''
+        Example events:
+            request BIND <bind>        = <command>
+            request BIND o<location:>_ = uri %s
+            request BIND <BackSpace>   = ...
+            request BIND ...           = ...
+        '''
 
-    parse_mode_bind(uzbl, "global %s" % args)
+        self.parse_mode_bind("global %s" % args)
 
+    def mode_changed(self, mode):
+        '''Clear the stack on all non-stack mode changes.'''
 
-def mode_changed(uzbl, mode):
-    '''Clear the stack on all non-stack mode changes.'''
+        if mode != 'stack':
+            self.bindlet.reset()
 
-    if mode != 'stack':
-        uzbl.bindlet.reset()
+    def match_and_exec(self, bind, depth, modstate, keylet, bindlet):
+        (on_exec, has_args, mod_cmd, glob, more) = bind[depth]
+        cmd = keylet.modcmd if mod_cmd else keylet.keycmd
 
-
-def match_and_exec(uzbl, bind, depth, modstate, keylet, bindlet):
-    (on_exec, has_args, mod_cmd, glob, more) = bind[depth]
-    cmd = keylet.modcmd if mod_cmd else keylet.keycmd
-
-    if mod_cmd and modstate != mod_cmd:
-        return False
-
-    if has_args:
-        if not cmd.startswith(glob):
+        if mod_cmd and modstate != mod_cmd:
             return False
 
-        args = [cmd[len(glob):],]
+        if has_args:
+            if not cmd.startswith(glob):
+                return False
 
-    elif cmd != glob:
-        return False
+            args = [cmd[len(glob):],]
 
-    else:
-        args = []
+        elif cmd != glob:
+            return False
 
-    if bind.is_global or (not more and depth == 0):
-        exec_bind(uzbl, bind, *args)
-        if not has_args:
-            uzbl.clear_current()
+        else:
+            args = []
+
+        if bind.is_global or (not more and depth == 0):
+            self.exec_bind(bind, *args)
+            if not has_args:
+                KeyCmd[self.uzbl].clear_current()
+
+            return True
+
+        elif more:
+            bindlet.stack(bind, args, depth)
+            (on_exec, has_args, mod_cmd, glob, more) = bind[depth+1]
+            if not on_exec and has_args and not glob and not more:
+                self.exec_bind(uzbl, bind, *(args+['',]))
+
+            return False
+
+        args = bindlet.args + args
+        self.exec_bind(bind, *args)
+        if not has_args or on_exec:
+            config = Config[self.uzbl]
+            del config['mode']
+            bindlet.reset()
 
         return True
 
-    elif more:
-        bindlet.stack(bind, args, depth)
-        (on_exec, has_args, mod_cmd, glob, more) = bind[depth+1]
-        if not on_exec and has_args and not glob and not more:
-            exec_bind(uzbl, bind, *(args+['',]))
+    def key_event(self, modstate, keylet, mod_cmd=False, on_exec=False):
+        bindlet = self.bindlet
+        depth = bindlet.depth
+        for bind in bindlet.get_binds():
+            t = bind[depth]
+            if (bool(t[MOD_CMD]) != mod_cmd) or (t[ON_EXEC] != on_exec):
+                continue
 
-        return False
+            if self.match_and_exec(bind, depth, modstate, keylet, bindlet):
+                return
 
-    args = bindlet.args + args
-    exec_bind(uzbl, bind, *args)
-    if not has_args or on_exec:
-        del uzbl.config['mode']
-        bindlet.reset()
+        bindlet.after()
 
-    return True
-
-
-def key_event(uzbl, modstate, keylet, mod_cmd=False, on_exec=False):
-    bindlet = uzbl.bindlet
-    depth = bindlet.depth
-    for bind in bindlet.get_binds():
-        t = bind[depth]
-        if (bool(t[MOD_CMD]) != mod_cmd) or (t[ON_EXEC] != on_exec):
-            continue
-
-        if match_and_exec(uzbl, bind, depth, modstate, keylet, bindlet):
-            return
-
-    bindlet.after()
-
-    # Return to the previous mode if the KEYCMD_EXEC keycmd doesn't match any
-    # binds in the stack mode.
-    if on_exec and not mod_cmd and depth and depth == bindlet.depth:
-        del uzbl.config['mode']
-
-
-# plugin init hook
-def init(uzbl):
-    '''Export functions and connect handlers to events.'''
-
-    connect_dict(uzbl, {
-        'BIND':             parse_bind,
-        'MODE_BIND':        parse_mode_bind,
-        'MODE_CHANGED':     mode_changed,
-    })
-
-    # Connect key related events to the key_event function.
-    events = [['KEYCMD_UPDATE', 'KEYCMD_EXEC'],
-              ['MODCMD_UPDATE', 'MODCMD_EXEC']]
-
-    for mod_cmd in range(2):
-        for on_exec in range(2):
-            event = events[mod_cmd][on_exec]
-            connect(uzbl, event, key_event, bool(mod_cmd), bool(on_exec))
-
-    export_dict(uzbl, {
-        'bind':         bind,
-        'mode_bind':    mode_bind,
-        'bindlet':      Bindlet(uzbl),
-    })
+        # Return to the previous mode if the KEYCMD_EXEC keycmd doesn't match any
+        # binds in the stack mode.
+        if on_exec and not mod_cmd and depth and depth == bindlet.depth:
+            config = Config[uzbl]
+            del config['mode']
 
 # vi: set et ts=4:

@@ -5,7 +5,7 @@ def escape(str):
     return str
 
 
-def cmd_expand(uzbl, cmd, args):
+def cmd_expand(cmd, args):
     '''Exports a function that provides the following
     expansions in any uzbl command string:
 
@@ -34,7 +34,3 @@ def cmd_expand(uzbl, cmd, args):
             cmd = cmd.replace('%%%d' % index, unicode(arg))
 
     return cmd
-
-# plugin init hook
-def init(uzbl):
-    export(uzbl, 'cmd_expand', cmd_expand)
