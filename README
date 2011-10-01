@@ -354,6 +354,9 @@ file).
 * `autoshrink_images`: Shrink images to window size (default 0).
 * `enable_spellcheck`: Whether to enable spell checking while typing (default
   0).
+* `spellcheck_languages`: The languages (in locale `lang_COUNTRY` form, e.g.
+  `en_CA` or `pt_BR`) to be used for spell checking, separated by commas.
+  Defaults to the value returned by `gtk_get_default_language`.
 * `enable_private`: Whether to enable private browsing mode (default 0).
 * `print_backgrounds`: Print background images? (default 0).
 * `stylesheet_uri`: Use this to override the pagelayout with a custom
