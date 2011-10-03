@@ -338,6 +338,8 @@ scroll(GtkAdjustment* bar, gchar *amount_str) {
 
     max_value = gtk_adjustment_get_upper(bar) - page_size;
 
+    if (value < 0)
+        value = 0; /* don't scroll past the beginning of the page */
     if (value > max_value)
         value = max_value; /* don't scroll past the end of the page */
 
