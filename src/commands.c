@@ -116,6 +116,7 @@ toggle_status (WebKitWebView* page, GArray *argv, GString *result) {
  * scroll vertical 20
  * scroll vertical 20%
  * scroll vertical -40
+ * scroll vertical 20!
  * scroll vertical begin
  * scroll vertical end
  * scroll horizontal 10

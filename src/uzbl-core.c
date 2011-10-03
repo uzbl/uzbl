@@ -331,6 +331,8 @@ scroll(GtkAdjustment* bar, gchar *amount_str) {
 
     if (*end == '%')
         value += page_size * amount * 0.01;
+    else if (*end == '!')
+        value = amount;
     else
         value += amount;
 
