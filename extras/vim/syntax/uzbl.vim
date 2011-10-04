@@ -26,8 +26,8 @@ elseif exists("b:current_syntax")
 endif
 
 syn keyword uzblKeyword back forward scroll reload reload_ign_cache stop
-syn keyword uzblKeyword zoom_in zoom_out toggle_zoom_type uri script
-syn keyword uzblKeyword toggle_status spawn sync_spawn sync_sh sync_spawn_exec
+syn keyword uzblKeyword zoom_in zoom_out toggle uri script
+syn keyword uzblKeyword spawn sync_spawn sync_sh sync_spawn_exec
 syn keyword uzblKeyword exit search search_reverse search_clear dehilight set
 syn keyword uzblKeyword dump_config dump_config_as_events chain print event
 syn keyword uzblKeyword request menu_add menu_link_add menu_image_add

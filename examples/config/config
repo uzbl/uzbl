@@ -249,12 +249,12 @@ set ebind     = @mode_bind global,-insert
 # Zoom binds
 @cbind  +   = zoom_in
 @cbind  -   = zoom_out
-@cbind  T   = toggle_zoom_type
+@cbind  T   = toggle zoom_type
 @cbind  1   = set zoom_level = 1.0
 @cbind  2   = set zoom_level = 2.0
 
 # Appearance binds
-@cbind  t   = toggle_status
+@cbind  t   = toggle show_status
 
 # Page searching binds
 @cbind  /*  = search %s
