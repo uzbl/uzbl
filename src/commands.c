@@ -18,11 +18,9 @@ CommandInfo cmdlist[] =
     { "stop",                           view_stop_loading, 0           },
     { "zoom_in",                        view_zoom_in, 0                }, //Can crash (when max zoom reached?).
     { "zoom_out",                       view_zoom_out, 0               },
-    { "toggle_zoom_type",               toggle_zoom_type, 0            },
     { "uri",                            load_uri, TRUE                 },
     { "js",                             run_js, TRUE                   },
     { "script",                         run_external_js, 0             },
-    { "toggle_status",                  toggle_status, 0               },
     { "spawn",                          spawn_async, 0                 },
     { "sync_spawn",                     spawn_sync, 0                  },
     { "sync_spawn_exec",                spawn_sync_exec, 0             }, // needed for load_cookies.sh :(
@@ -96,22 +94,6 @@ VIEWFUNC(zoom_out)
 VIEWFUNC(go_back)
 VIEWFUNC(go_forward)
 #undef VIEWFUNC
-
-void
-toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result) {
-    (void)page; (void)argv; (void)result;
-
-    int current_type = get_zoom_type();
-    set_zoom_type(!current_type);
-}
-
-void
-toggle_status (WebKitWebView* page, GArray *argv, GString *result) {
-    (void)page; (void)argv; (void)result;
-
-    int current_status = get_show_status();
-    set_show_status(!current_status);
-}
 
 /*
  * scroll vertical 20

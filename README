@@ -152,11 +152,6 @@ The following commands are recognized:
   - Increase the zoom level.
 * `zoom_out`
   - Decrease the zoom level.
-* `toggle_zoom_type`
-  - Toggles the variable `zoom_type` between "full-content" and "text-only"
-    zoom. In "text-only" zoom, only the text of the page is zoomed, while in
-    "full-content" zoom, images and other page elements are zoomed along with
-    the text.
 * `uri <address>`
   - Attempt to load `<address>`. This is equivalent to `set uri = <address>`.
 * `js <body>`
@@ -164,8 +159,6 @@ The following commands are recognized:
   - Remember that the commands must not contain line breaks.
 * `script <file>`
   - Execute the JavaScript in `<file>`.
-* `toggle_status`
-  - Toggle the display of the status bar.
 * `spawn <executable> <additional args>` TODO explain path-alike expansion
   - Runs a command; see EXTERNAL SCRIPTS for details.
   - `$PATH` is searched, so giving the full path to commands is not necessary.
