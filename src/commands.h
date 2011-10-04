@@ -58,6 +58,7 @@ void        delete_cookie(WebKitWebView *page, GArray *argv, GString *result);
 void        clear_cookies(WebKitWebView *pag, GArray *argv, GString *result);
 void        download(WebKitWebView *pag, GArray *argv, GString *result);
 void        set_var(WebKitWebView *page, GArray *argv, GString *result);
+void        toggle_var(WebKitWebView *page, GArray *argv, GString *result);
 void        run_js (WebKitWebView * web_view, GArray *argv, GString *result);
 void        run_external_js (WebKitWebView * web_view, GArray *argv, GString *result);
 void        toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result);

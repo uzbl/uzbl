@@ -308,6 +308,51 @@ test_no_such_command (void) {
     /* if we didn't crash then we're ok! */
 }
 
+// TODO: test toggling emits an event
+void
+test_toggle_int (void) {
+    g_assert_cmpint(0, ==, uzbl.behave.forward_keys);
+
+    parse_cmd_line("toggle forward_keys", NULL);
+    g_assert_cmpint(1, ==, uzbl.behave.forward_keys);
+
+    parse_cmd_line("toggle forward_keys", NULL);
+    g_assert_cmpint(0, ==, uzbl.behave.forward_keys);
+
+    // if cycle values are specified it should use those
+    parse_cmd_line("toggle forward_keys 1 2", NULL);
+    g_assert_cmpint(1, ==, uzbl.behave.forward_keys);
+
+    parse_cmd_line("toggle forward_keys 1 2", NULL);
+    g_assert_cmpint(2, ==, uzbl.behave.forward_keys);
+
+    // and wrap to the first value when it reaches the end.
+    parse_cmd_line("toggle forward_keys 1 2", NULL);
+    g_assert_cmpint(1, ==, uzbl.behave.forward_keys);
+}
+
+void
+test_toggle_string (void) {
+    parse_cmd_line("set useragent = something interesting", NULL);
+    g_assert_cmpstr("something interesting", ==, uzbl.net.useragent);
+
+    // when something was set, it gets reset
+    parse_cmd_line("toggle useragent", NULL);
+    g_assert_cmpstr("", ==, uzbl.net.useragent);
+
+    // if cycle values are specified it should use those
+    parse_cmd_line("set useragent = something interesting", NULL);
+    parse_cmd_line("toggle useragent 'x' 'y'", NULL);
+    g_assert_cmpstr("x", ==, uzbl.net.useragent);
+
+    parse_cmd_line("toggle useragent 'x' 'y'", NULL);
+    g_assert_cmpstr("y", ==, uzbl.net.useragent);
+
+    // and wrap to the first value when it reaches the end.
+    parse_cmd_line("toggle useragent 'x' 'y'", NULL);
+    g_assert_cmpstr("x", ==, uzbl.net.useragent);
+}
+
 int
 main (int argc, char *argv[]) {
     /* set up tests */
@@ -328,6 +373,10 @@ main (int argc, char *argv[]) {
     g_test_add_func("/test-command/last-result",    test_last_result);
 
     g_test_add_func("/test-command/no-such-command", test_no_such_command);
+
+    g_test_add_func("/test-command/toggle-int",      test_toggle_int);
+    // we should probably test toggle float, but meh.
+    g_test_add_func("/test-command/toggle-string",   test_toggle_string);
 
     /* set up uzbl */
     initialize(argc, argv);

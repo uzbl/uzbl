@@ -34,6 +34,7 @@ CommandInfo cmdlist[] =
     { "search_clear",                   search_clear, TRUE             },
     { "dehilight",                      dehilight, 0                   },
     { "set",                            set_var, TRUE                  },
+    { "toggle",                         toggle_var, 0                  },
     { "dump_config",                    act_dump_config, 0             },
     { "dump_config_as_events",          act_dump_config_as_events, 0   },
     { "chain",                          chain, 0                       },
@@ -164,6 +165,107 @@ set_var(WebKitWebView *page, GArray *argv, GString *result) {
     g_strfreev(split);
 }
 
+void
+toggle_var(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page; (void) result;
+
+    if(!argv_idx(argv, 0))
+        return;
+
+    const gchar *var_name = argv_idx(argv, 0);
+
+    uzbl_cmdprop *c = get_var_c(var_name);
+
+    switch(c->type) {
+    case TYPE_STR:
+    {
+        const gchar *next;
+
+        if(argv->len >= 3) {
+            gchar *current = get_var_value_string_c(c);
+
+            guint i = 2;
+            const gchar *first   = argv_idx(argv, 1);
+            const gchar *this    = first;
+                         next    = argv_idx(argv, 2);
+
+            while(next && strcmp(current, this)) {
+                this = next;
+                next = argv_idx(argv, ++i);
+            }
+
+            if(!next)
+                next = first;
+
+            g_free(current);
+        } else
+            next = "";
+
+        set_var_value_string_c(c, next);
+        break;
+    }
+    case TYPE_INT:
+    {
+        int current = get_var_value_int_c(c);
+        int next;
+
+        if(argv->len >= 3) {
+            guint i = 2;
+
+            int first = strtoul(argv_idx(argv, 1), NULL, 10);
+            int  this = first;
+
+            const gchar *next_s = argv_idx(argv, 2);
+
+            while(next_s && this != current) {
+                this   = strtoul(next_s, NULL, 10);
+                next_s = argv_idx(argv, ++i);
+            }
+
+            if(next_s)
+                next = strtoul(next_s, NULL, 10);
+            else
+                next = first;
+        } else
+            next = !current;
+
+        set_var_value_int_c(c, next);
+        break;
+    }
+    case TYPE_FLOAT:
+    {
+        float current = get_var_value_float_c(c);
+        float next;
+
+        if(argv->len >= 3) {
+            guint i = 2;
+
+            float first = strtod(argv_idx(argv, 1), NULL);
+            float  this = first;
+
+            const gchar *next_s = argv_idx(argv, 2);
+
+            while(next_s && this != current) {
+                this   = strtod(next_s, NULL);
+                next_s = argv_idx(argv, ++i);
+            }
+
+            if(next_s)
+                next = strtod(next_s, NULL);
+            else
+                next = first;
+        } else
+            next = !current;
+
+        set_var_value_float_c(c, next);
+        break;
+    }
+    default:
+        g_assert_not_reached();
+    }
+
+    send_set_var_event(var_name, c);
+}
 
 void
 event(WebKitWebView *page, GArray *argv, GString *result) {
