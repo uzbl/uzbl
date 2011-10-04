@@ -194,6 +194,11 @@ The following commands are recognized:
     the status bar react immediately.
   - If you want to unset a string, use `set` with one space after the equals
     sign.
+* `toggle <var> [possibilities]`
+  - Cycles the variable `var` through the list of options given in
+    `possibilities`.
+  - If `possibilities` are not given and the variable is an int or a float,
+    toggles between 0 and 1.
 * `dump_config`
   - Dumps the current config (which may have been changed at runtime) to stdout.
   - Uses a format which can be piped into `uzbl` again or saved as a config
