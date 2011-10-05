@@ -813,7 +813,6 @@ create_window() {
     GtkWidget* window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 
     gtk_window_set_default_size (GTK_WINDOW (window), 800, 600);
-    gtk_widget_set_name (window, "Uzbl");
     gtk_window_set_title(GTK_WINDOW(window), "Uzbl");
 
 #if GTK_CHECK_VERSION(3,0,0)
@@ -1034,10 +1033,12 @@ main (int argc, char* argv[]) {
     if (uzbl.state.plug_mode) {
         /* Embedded mode */
         uzbl.gui.plug = create_plug();
+        gtk_widget_set_name (GTK_WIDGET(uzbl.gui.plug), "Uzbl");
         gtk_container_add (GTK_CONTAINER (uzbl.gui.plug), uzbl.gui.vbox);
     } else {
         /* Windowed mode */
         uzbl.gui.main_window = create_window();
+        gtk_widget_set_name (uzbl.gui.main_window, "Uzbl");
         gtk_container_add (GTK_CONTAINER (uzbl.gui.main_window), uzbl.gui.vbox);
 
         /* We need to ensure there is a window, before we can get XID */
