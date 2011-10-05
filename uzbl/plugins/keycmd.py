@@ -354,11 +354,11 @@ class KeyCmd(PerInstancePlugin):
         keycmd, modcmd = k.get_keycmd(), ''.join(modstate) + k.get_modcmd()
 
         if k.is_modcmd:
-            self.logger.debug('modcmd_update, %s' % modcmd)
+            self.logger.debug('modcmd_update, %s', modcmd)
             self.uzbl.event('MODCMD_UPDATE', modstate, k)
 
         else:
-            self.logger.debug('keycmd_update, %s' % keycmd)
+            self.logger.debug('keycmd_update, %s', keycmd)
             self.uzbl.event('KEYCMD_UPDATE', modstate, k)
 
         config = Config[self.uzbl]
@@ -404,7 +404,7 @@ class KeyCmd(PerInstancePlugin):
         modstate, key = self.parse_key_event(key)
         k.is_modcmd = any(not self.key_ignored(m) for m in modstate)
 
-        self.logger.debug('key press modstate=%s' % str(modstate))
+        self.logger.debug('key press modstate=%s', modstate)
         if key.lower() == 'space' and not k.is_modcmd and k.keycmd:
             k.insert_keycmd(' ')
 
@@ -465,7 +465,7 @@ class KeyCmd(PerInstancePlugin):
 
         args = splitquoted(args)
         assert len(args) <= 1
-        self.logger.debug('STRIPWORD %r %r' % (args, self.keylet))
+        self.logger.debug('STRIPWORD %r %r', args, self.keylet)
         if self.keylet.strip_word(*args):
             self.update_event(set(), self.keylet, False)
 
