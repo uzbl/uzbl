@@ -15,7 +15,7 @@ class Arguments(tuple):
     (u'simple', u'quoted string')
     '''
 
-    _splitquoted = re.compile("( +|\"(?:\\\\.|[^\"])*?\"|'(?:\\\\.|[^'])*?')")
+    _splitquoted = re.compile("(\s+|\"(?:\\\\.|[^\"])*?\"|'(?:\\\\.|[^'])*?')")
 
     def __new__(cls, s):
         '''
@@ -33,21 +33,29 @@ class Arguments(tuple):
 
     @classmethod
     def parse(cls, raw, ref):
+        '''
+        Generator used to initialise the arguments tuple
+
+        Indexes to where in source list the arguments start will be put in 'ref'
+        '''
         c = None
         for i, part in enumerate(raw):
-            if re.match(' +', part):
+            if re.match('\s+', part):
+                # Whitespace ends the current argument, leading ws is ignored
                 if c is not None:
                     yield c
                     c = None
             else:
                 f = unquote(part)
-                if c == None:
+                if c is None:
+                    # Mark the start of the argument in the raw input
                     if part != '':
                         ref.append(i)
                         c = f
                 else:
                     c += f
-        yield c
+        if c is not None:
+            yield c
 
     def raw(self, frm=0, to=None):
         '''
@@ -60,6 +68,8 @@ class Arguments(tuple):
         >>> args.raw(1)
         "egg sausage   and 'spam'"
         '''
+        if len(self._ref) < 1:
+            return ''
         rfrm = self._ref[frm]
         if to is None or len(self._ref) <= to+1:
             rto = len(self._raw)
