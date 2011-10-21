@@ -643,7 +643,7 @@ void
 set_accept_languages(const gchar *accept_languages) {
     g_free(uzbl.net.accept_languages);
 
-    if (*uzbl.net.accept_languages == ' ') {
+    if (*accept_languages == ' ') {
         uzbl.net.accept_languages = NULL;
     } else {
         uzbl.net.accept_languages = g_strdup(accept_languages);
