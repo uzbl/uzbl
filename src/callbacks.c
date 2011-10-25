@@ -165,12 +165,13 @@ button_press_cb (GtkWidget* window, GdkEventButton* event) {
     gboolean propagate = FALSE,
              sendev    = FALSE;
 
+    context = get_click_context(NULL);
+
     if(event->type == GDK_BUTTON_PRESS) {
         if(uzbl.state.last_button)
             gdk_event_free((GdkEvent *)uzbl.state.last_button);
         uzbl.state.last_button = (GdkEventButton *)gdk_event_copy((GdkEvent *)event);
 
-        context = get_click_context(NULL);
         /* left click */
         if(event->button == 1) {
             if((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE))
