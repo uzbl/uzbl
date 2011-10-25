@@ -21,6 +21,11 @@ endif
 
 REQ_PKGS += libsoup-2.4 gthread-2.0 glib-2.0
 
+# Check for a new glib version
+ifeq ($(shell pkg-config --exists "glib-2.0 >= 2.31.0" && echo 1),1)
+	CPPFLAGS += -DUZBL_GTHREAD_NO_INIT
+endif
+
 ARCH:=$(shell uname -m)
 
 COMMIT_HASH:=$(shell ./misc/hash.sh)
