@@ -40,6 +40,8 @@
 #include "variables.h"
 #include "type.h"
 
+#include <glib.h>
+
 UzblCore uzbl;
 
 /* commandline arguments (set initial values for the state variables) */
