@@ -711,6 +711,7 @@ const struct var_name_to_ptr_t {
 
     { "authentication_handler", PTR_V_STR(uzbl.behave.authentication_handler,   1,   set_authentication_handler)},
     { "scheme_handler",         PTR_V_STR(uzbl.behave.scheme_handler,           1,   NULL)},
+    { "request_handler",        PTR_V_STR(uzbl.behave.request_handler,          1,   NULL)},
     { "download_handler",       PTR_V_STR(uzbl.behave.download_handler,         1,   NULL)},
 
     { "fifo_dir",               PTR_V_STR(uzbl.behave.fifo_dir,                 1,   set_fifo_dir)},

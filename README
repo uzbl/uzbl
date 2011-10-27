@@ -313,6 +313,9 @@ file).
   - `data`: The cookie data. Only included for "PUT" requests.
 * `scheme_handler`: handler to execute for each URI navigated to - the
   navigation request will be ignored if handler prints "USED\n"
+* `request_handler`: Executed whenever any request is made.  The handler can
+  print a URI to redirect the request (or `about:blank` to effectively cancel it).
+  If the handler does nothing, the request will continue unchanged.
 * `download_handler`: executed when a download is started. the handler script
   should print a path that the download should be saved to, or print nothing
   to cancel the download.
@@ -507,8 +510,9 @@ access to the following environment variables:
 * `$UZBL_URI`: The URI of the current page.
 * `$UZBL_TITLE`: The current page title.
 
-Handler scripts (`download_handler`, `cookie_handler`, `scheme_handler` and
-`authentication_handler`) are called with special arguments:
+Handler scripts (`download_handler`, `cookie_handler`, `scheme_handler`,
+`request_handler`, and `authentication_handler`) are called with special
+arguments:
 
 * download handler
 
@@ -536,6 +540,10 @@ Handler scripts (`download_handler`, `cookie_handler`, `scheme_handler` and
 * scheme handler
 
   - `$1 URI` of the page to be navigated to
+
+* request handler
+
+  - `$1 URI` of the resource which is being requested
 
 * authentication handler:
 

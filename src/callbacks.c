@@ -358,7 +358,31 @@ request_starting_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitWebRes
     (void) response;
     (void) user_data;
 
+    const gchar* uri = webkit_network_request_get_uri (request);
+
+    if (uzbl.state.verbose)
+        printf("Request starting -> %s\n", uri);
     send_event (REQUEST_STARTING, NULL, TYPE_STR, webkit_network_request_get_uri(request), NULL);
+
+    if (uzbl.behave.request_handler) {
+        GString *result = g_string_new ("");
+        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+        const CommandInfo *c = parse_command_parts(uzbl.behave.request_handler, a);
+
+        if(c) {
+            g_array_append_val(a, uri);
+            run_parsed_command(c, a, result);
+        }
+        g_array_free(a, TRUE);
+
+        if(result->len > 0) {
+            char *p = strchr(result->str, '\n' );
+            if ( p != NULL ) *p = '\0';
+            webkit_network_request_set_uri(request, result->str);
+        }
+
+        g_string_free(result, TRUE);
+    }
 }
 
 void
