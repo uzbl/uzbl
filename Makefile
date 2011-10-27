@@ -10,7 +10,7 @@ RUN_PREFIX?=$(PREFIX)
 USE_GTK3 = $(shell pkg-config --exists gtk+-3.0 webkitgtk-3.0 && echo 1)
 
 ifeq ($(USE_GTK3),1)
-	REQ_PKGS += gtk+-3.0 webkitgtk-3.0
+	REQ_PKGS += gtk+-3.0 webkitgtk-3.0 javascriptcoregtk-3.0
 	CPPFLAGS = -DG_DISABLE_DEPRECATED -DGTK_DISABLE_DEPRECATED
 else
 	REQ_PKGS += gtk+-2.0 webkit-1.0
@@ -20,6 +20,11 @@ endif
 # --- configuration ends here ---
 
 REQ_PKGS += libsoup-2.4 gthread-2.0 glib-2.0
+
+# Check for a new glib version
+ifeq ($(shell pkg-config --exists "glib-2.0 >= 2.31.0" && echo 1),1)
+	CPPFLAGS += -DUZBL_GTHREAD_NO_INIT
+endif
 
 ARCH:=$(shell uname -m)
 

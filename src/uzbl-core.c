@@ -962,9 +962,10 @@ initialize(int argc, char** argv) {
     if (uzbl.state.socket_id || uzbl.state.embed)
         uzbl.state.plug_mode = TRUE;
 
+#ifndef UZBL_GTHREAD_NO_INIT
     if (!g_thread_supported())
         g_thread_init(NULL);
-
+#endif
 
     /* TODO: move the handler setup to event_buffer_timeout and disarm the
      * handler in empty_event_buffer? */
