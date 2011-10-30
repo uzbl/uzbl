@@ -29,6 +29,9 @@ uzbl.formfiller = {
 
                 for( var k = 0; k < inputs.length; ++k ) {
                     var input = inputs[k];
+                    if ( ! input.name ) {
+                        continue
+                    }
                     if ( uzbl.formfiller.inputTypeIsText(input.type) ) {
                         rv += '%' + escape(input.name) + '(' + input.type + '):' + input.value + '\n';
                     } else if ( input.type == 'checkbox' || input.type == 'radio' ) {
@@ -39,8 +42,10 @@ uzbl.formfiller = {
                 var textareas = allFrames[j].document.getElementsByTagName("textarea");
                 for( var k = 0; k < textareas.length; ++k ) {
                     var textarea = textareas[k];
-                    rv += '%' + escape(textarea.name) + '(textarea):\n' + textarea.value.replace(/\n%/g,"\n\\%") + '\n%\n';
-                    rv += '%' + escape(textarea.name) + '(textarea):\n' + textarea.value.replace(/\n\\/g,"\n\\\\").replace(/\n%/g,"\n\\%") + '%\n';
+                    if ( ! textarea.name ) {
+                        continue
+                    }
+                    rv += '%' + escape(textarea.name) + '(textarea):\n' + textarea.value.replace(/(^|\n)\\/g,"$1\\\\").replace(/(^|\n)%/g,"$1\\%") + '\n%\n';
                 }
             }
             catch (err) { }
