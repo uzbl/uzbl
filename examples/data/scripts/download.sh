@@ -49,7 +49,7 @@ esac
 [ -z "$path" ] && exit 0
 
 # Check if the file exists
-if [ ! -e "$path" ]; then
+if ! [ -e "$path" ]; then
     echo "$path"
     exit 0
 fi
