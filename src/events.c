@@ -3,11 +3,12 @@
  ** (c) 2009 by Robert Manea
 */
 
+#include <glib.h>
+
 #include "uzbl-core.h"
 #include "events.h"
 #include "util.h"
-
-UzblCore uzbl;
+#include "type.h"
 
 /* Event id to name mapping
  * Event names must be in the same
@@ -23,6 +24,8 @@ const char *event_table[LAST_EVENT] = {
      "REQUEST_STARTING" ,
      "KEY_PRESS"        ,
      "KEY_RELEASE"      ,
+     "MOD_PRESS"        ,
+     "MOD_RELEASE"      ,
      "COMMAND_EXECUTED" ,
      "LINK_HOVER"       ,
      "TITLE_CHANGED"    ,
@@ -52,7 +55,14 @@ const char *event_table[LAST_EVENT] = {
      "DOWNLOAD_PROGRESS",
      "DOWNLOAD_COMPLETE",
      "ADD_COOKIE"       ,
-     "DELETE_COOKIE"
+     "DELETE_COOKIE"    ,
+     "FOCUS_ELEMENT"    ,
+     "BLUR_ELEMENT"
+};
+
+/* for now this is just a alias for GString */
+struct _Event {
+    GString message;
 };
 
 void
@@ -138,12 +148,12 @@ send_event_stdout(GString *msg) {
     fflush(stdout);
 }
 
-void
-vsend_event(int type, const gchar *custom_event, va_list vargs) {
-    GString *event_message = g_string_sized_new (512);
-
+Event *
+vformat_event(int type, const gchar *custom_event, va_list vargs) {
     if (type >= LAST_EVENT)
-        return;
+        return NULL;
+
+    GString *event_message = g_string_sized_new (512);
     const gchar *event = custom_event ? custom_event : event_table[type];
     char* str;
 
@@ -157,39 +167,100 @@ vsend_event(int type, const gchar *custom_event, va_list vargs) {
         case TYPE_INT:
             g_string_append_printf (event_message, "%d", va_arg (vargs, int));
             break;
+
         case TYPE_STR:
+            /* a string that needs to be escaped */
             g_string_append_c (event_message, '\'');
             append_escaped (event_message, va_arg (vargs, char*));
             g_string_append_c (event_message, '\'');
             break;
+
         case TYPE_FORMATTEDSTR:
+            /* a string has already been escaped */
             g_string_append (event_message, va_arg (vargs, char*));
             break;
+
+        case TYPE_STR_ARRAY:
+            ; /* gcc is acting up and requires a expression before the variables */
+            GArray *a = va_arg (vargs, GArray*);
+            const char *p;
+            int i = 0;
+            while ((p = argv_idx(a, i++))) {
+                if (i != 0)
+                    g_string_append_c(event_message, ' ');
+                g_string_append_c (event_message, '\'');
+                append_escaped (event_message, p);
+                g_string_append_c (event_message, '\'');
+            }
+            break;
+
         case TYPE_NAME:
             str = va_arg (vargs, char*);
             g_assert (valid_name (str));
             g_string_append (event_message, str);
             break;
+
         case TYPE_FLOAT:
             // ‘float’ is promoted to ‘double’ when passed through ‘...’
-            g_string_append_printf (event_message, "%.2f", va_arg (vargs, double));
+
+            // Make sure the formatted double fits in the buffer
+            if (event_message->allocated_len - event_message->len < G_ASCII_DTOSTR_BUF_SIZE)
+                g_string_set_size (event_message, event_message->len + G_ASCII_DTOSTR_BUF_SIZE);
+
+            // format in C locale
+            char *tmp = g_ascii_formatd (
+                event_message->str + event_message->len,
+                event_message->allocated_len - event_message->len,
+                "%.2f", va_arg (vargs, double));
+            event_message->len += strlen(tmp);
             break;
         }
     }
 
-    g_string_append_c(event_message, '\n');
-
-    if (uzbl.state.events_stdout)
-        send_event_stdout (event_message);
-    send_event_socket (event_message);
-
-    g_string_free (event_message, TRUE);
+    return (Event*) event_message;
 }
 
-/*
- * build event string and send over the supported interfaces
- * custom_event == NULL indicates an internal event
-*/
+Event *
+format_event(int type, const gchar *custom_event, ...) {
+    va_list vargs, vacopy;
+    va_start (vargs, custom_event);
+    va_copy (vacopy, vargs);
+    Event *event = vformat_event (type, custom_event, vacopy);
+    va_end (vacopy);
+    va_end (vargs);
+    return event;
+}
+
+void
+send_formatted_event(const Event *event) {
+    // A event string is not supposed to contain newlines as it will be
+    // interpreted as two events
+    GString *event_message = (GString*)event;
+
+    if (!strchr(event_message->str, '\n')) {
+        g_string_append_c(event_message, '\n');
+
+        if (uzbl.state.events_stdout)
+            send_event_stdout (event_message);
+        send_event_socket (event_message);
+    }
+}
+
+void
+event_free(Event *event) {
+    g_string_free ((GString*)event, TRUE);
+}
+
+void
+vsend_event(int type, const gchar *custom_event, va_list vargs) {
+    if (type >= LAST_EVENT)
+        return;
+
+    Event *event = vformat_event(type, custom_event, vargs);
+    send_formatted_event (event);
+    event_free (event);
+}
+
 void
 send_event(int type, const gchar *custom_event, ...) {
     va_list vargs, vacopy;
@@ -200,31 +271,159 @@ send_event(int type, const gchar *custom_event, ...) {
     va_end (vargs);
 }
 
+gchar *
+get_modifier_mask(guint state) {
+    GString *modifiers = g_string_new("");
+
+    if(state & GDK_MODIFIER_MASK) {
+        if(state & GDK_SHIFT_MASK)
+            g_string_append(modifiers, "Shift|");
+        if(state & GDK_LOCK_MASK)
+            g_string_append(modifiers, "ScrollLock|");
+        if(state & GDK_CONTROL_MASK)
+            g_string_append(modifiers, "Ctrl|");
+        if(state & GDK_MOD1_MASK)
+            g_string_append(modifiers,"Mod1|");
+		/* Mod2 is usually Num_Luck. Ignore it as it messes up keybindings.
+        if(state & GDK_MOD2_MASK)
+            g_string_append(modifiers,"Mod2|");
+		*/
+        if(state & GDK_MOD3_MASK)
+            g_string_append(modifiers,"Mod3|");
+        if(state & GDK_MOD4_MASK)
+            g_string_append(modifiers,"Mod4|");
+        if(state & GDK_MOD5_MASK)
+            g_string_append(modifiers,"Mod5|");
+        if(state & GDK_BUTTON1_MASK)
+            g_string_append(modifiers,"Button1|");
+        if(state & GDK_BUTTON2_MASK)
+            g_string_append(modifiers,"Button2|");
+        if(state & GDK_BUTTON3_MASK)
+            g_string_append(modifiers,"Button3|");
+        if(state & GDK_BUTTON4_MASK)
+            g_string_append(modifiers,"Button4|");
+        if(state & GDK_BUTTON5_MASK)
+            g_string_append(modifiers,"Button5|");
+
+        if(modifiers->str[modifiers->len-1] == '|')
+            g_string_truncate(modifiers, modifiers->len-1);
+    }
+
+    return g_string_free(modifiers, FALSE);
+}
+
+/* backwards compatibility. */
+#if ! GTK_CHECK_VERSION (2, 22, 0)
+#define GDK_KEY_Shift_L GDK_Shift_L
+#define GDK_KEY_Shift_R GDK_Shift_R
+#define GDK_KEY_Control_L GDK_Control_L
+#define GDK_KEY_Control_R GDK_Control_R
+#define GDK_KEY_Alt_L GDK_Alt_L
+#define GDK_KEY_Alt_R GDK_Alt_R
+#define GDK_KEY_Super_L GDK_Super_L
+#define GDK_KEY_Super_R GDK_Super_R
+#define GDK_KEY_ISO_Level3_Shift GDK_ISO_Level3_Shift
+#endif
+
+guint key_to_modifier(guint keyval) {
+    /* FIXME
+     * Should really use XGetModifierMapping and/or Xkb to get actual mod keys
+     */
+    switch(keyval) {
+    case GDK_KEY_Shift_L:
+    case GDK_KEY_Shift_R:
+        return GDK_SHIFT_MASK;
+    case GDK_KEY_Control_L:
+    case GDK_KEY_Control_R:
+        return GDK_CONTROL_MASK;
+    case GDK_KEY_Alt_L:
+    case GDK_KEY_Alt_R:
+        return GDK_MOD1_MASK;
+    case GDK_KEY_Super_L:
+    case GDK_KEY_Super_R:
+        return GDK_MOD4_MASK;
+    case GDK_KEY_ISO_Level3_Shift:
+        return GDK_MOD5_MASK;
+    default:
+        return 0;
+    }
+}
+
+guint button_to_modifier(guint buttonval) {
+	if(buttonval <= 5)
+		return 1 << (7 + buttonval);
+	return 0;
+}
+
 /* Transform gdk key events to our own events */
 void
-key_to_event(guint keyval, gint mode) {
+key_to_event(guint keyval, guint state, guint is_modifier, gint mode) {
     gchar ucs[7];
     gint ulen;
     gchar *keyname;
     guint32 ukval = gdk_keyval_to_unicode(keyval);
+    gchar *modifiers = NULL;
+    guint mod = key_to_modifier (keyval);
 
+    /* Get modifier state including this key press/release */
+    modifiers = get_modifier_mask(mode == GDK_KEY_PRESS ? state | mod : state & ~mod);
+
+    if(is_modifier && mod) {
+        send_event(mode == GDK_KEY_PRESS ? MOD_PRESS : MOD_RELEASE, NULL,
+            TYPE_STR, modifiers,
+            TYPE_NAME, get_modifier_mask (mod),
+            NULL);
+    }
     /* check for printable unicode char */
     /* TODO: Pass the keyvals through a GtkIMContext so that
      *       we also get combining chars right
     */
-    if(g_unichar_isgraph(ukval)) {
+    else if(g_unichar_isgraph(ukval)) {
         ulen = g_unichar_to_utf8(ukval, ucs);
         ucs[ulen] = 0;
 
-        send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
-                NULL, TYPE_FORMATTEDSTR, ucs, NULL);
+        send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE, NULL,
+            TYPE_STR, modifiers, TYPE_STR, ucs, NULL);
     }
     /* send keysym for non-printable chars */
     else if((keyname = gdk_keyval_name(keyval))){
-        send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE,
-                NULL, TYPE_NAME, keyname , NULL);
+        send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE, NULL,
+            TYPE_STR, modifiers, TYPE_NAME, keyname, NULL);
     }
 
+    g_free(modifiers);
+}
+
+/* Transform gdk button events to our own events */
+void
+button_to_event(guint buttonval, guint state, gint mode) {
+    gchar *details;
+    const char *reps;
+    gchar *modifiers = NULL;
+    guint mod = button_to_modifier (buttonval);
+
+    /* Get modifier state including this button press/release */
+    modifiers = get_modifier_mask(mode != GDK_BUTTON_RELEASE ? state | mod : state & ~mod);
+
+    switch (mode) {
+        case GDK_2BUTTON_PRESS:
+            reps = "2";
+            break;
+        case GDK_3BUTTON_PRESS:
+            reps = "3";
+            break;
+        default:
+            reps = "";
+            break;
+    }
+
+    details = g_strdup_printf("%sButton%d", reps, buttonval);
+
+    send_event(mode == GDK_BUTTON_PRESS ? KEY_PRESS : KEY_RELEASE, NULL,
+        TYPE_STR, modifiers, TYPE_FORMATTEDSTR, details, NULL);
+
+    g_free(details);
+    g_free(modifiers);
 }
 
 /* vi: set et ts=4: */

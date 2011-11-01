@@ -72,7 +72,6 @@
 #   gtk_tab_pos             = (top|left|bottom|right)
 #   gtk_refresh             = 1000
 #   switch_to_new_tabs      = 1
-#   capture_new_windows     = 1
 #   multiline_tabs          = 1
 #
 # Tab title options:
@@ -88,8 +87,6 @@
 #   session_file            = $HOME/.local/share/uzbl/session
 #
 # Inherited uzbl options:
-#   fifo_dir                = /tmp
-#   socket_dir              = /tmp
 #   icon_path               = $HOME/.local/share/uzbl/uzbl.png
 #   status_background       = #303030
 #
@@ -199,7 +196,6 @@ config = {
   'gtk_tab_pos':            'top',  # Gtk tab position (top|left|bottom|right)
   'gtk_refresh':            1000,   # Tablist refresh millisecond interval
   'switch_to_new_tabs':     True,   # Upon opening a new tab switch to it
-  'capture_new_windows':    True,   # Use uzbl_tabbed to catch new windows
   'multiline_tabs':         True,   # Tabs overflow onto new tablist lines.
 
   # Tab title options
@@ -215,8 +211,6 @@ config = {
   'session_file':           os.path.join(DATA_DIR, 'session'),
 
   # Inherited uzbl options
-  'fifo_dir':               '/tmp', # Path to look for uzbl fifo.
-  'socket_dir':             '/tmp', # Path to look for uzbl socket.
   'icon_path':              os.path.join(DATA_DIR, 'uzbl.png'),
   'status_background':      "#303030", # Default background for all panels.
 
@@ -298,17 +292,20 @@ def escape(s):
     return s
 
 class SocketClient:
-    '''Represents a Uzbl instance, which is not necessarly linked with a UzblInstance'''
+    '''Represents a connection to the uzbl-tabbed socket.'''
 
     # List of UzblInstance objects not already linked with a SocketClient
     instances_queue = {}
 
-    def __init__(self, socket):
+    def __init__(self, socket, uzbl_tabbed):
         self._buffer = ""
         self._socket = socket
         self._watchers = [io_add_watch(socket, IO_IN, self._socket_recv),\
           io_add_watch(socket, IO_HUP, self._socket_closed)]
+
         self.uzbl = None
+        self.uzbl_tabbed = uzbl_tabbed
+        self.dispatcher = GlobalEventDispatcher(uzbl_tabbed)
 
 
     def _socket_recv(self, fd, condition):
@@ -328,26 +325,44 @@ class SocketClient:
         '''An Uzbl instance sent some data, parse it'''
 
         self._buffer += data
+
+        if "\n" in self._buffer:
+            cmds = self._buffer.split("\n")
+
+            if cmds[-1]: # Last command has been received incomplete, don't process it
+                self._buffer, cmds = cmds[-1], cmds[:-1]
+            else:
+                self._buffer = ""
+
+            for cmd in cmds:
+                if cmd:
+                    self.handle_event(cmd)
+
+    def handle_event(self, cmd):
+        cmd = parse_event(cmd)
+        message, instance_name, message_type = cmd[0:3]
+        args = cmd[3:]
+
+        if not message == "EVENT":
+            return
+
+        # strip the surrounding []
+        instance_name = instance_name[1:-1]
+
         if self.uzbl:
-            if "\n" in self._buffer:
-                cmds = self._buffer.split("\n")
-
-                if cmds[-1]: # Last command has been received incomplete, don't process it
-                    self._buffer, cmds = cmds[-1], cmds[:-1]
-                else:
-                    self._buffer = ""
-
-                for cmd in cmds:
-                    if cmd:
-                        self.uzbl.parse_command(cmd)
-        else:
-            name = re.findall('^EVENT \[(\d+-\d+)\] INSTANCE_START \d+$', self._buffer, re.M)
-            uzbl = self.instances_queue.get(name[0])
+            if not self.dispatcher.dispatch(message_type, args):
+                self.uzbl.dispatcher.dispatch(message_type, args)
+        elif message_type == 'INSTANCE_START':
+            uzbl = self.instances_queue.get(instance_name)
             if uzbl:
-                del self.instances_queue[name[0]]
-                self.uzbl = uzbl
-                self.uzbl.got_socket(self)
-                self._feed("")
+                # we've found the uzbl we were waiting for
+                del self.instances_queue[instance_name]
+            else:
+                # an unsolicited uzbl has connected, how exciting!
+                uzbl = UzblInstance(self.uzbl_tabbed, None, '', '', False)
+            self.uzbl = uzbl
+            self.uzbl.got_socket(self)
+            self._feed("")
 
     def send(self, data):
         '''Child socket send function.'''
@@ -363,18 +378,84 @@ class SocketClient:
             map(source_remove, self._watchers)
             self._watchers = []
 
+
+def unquote(s):
+    '''Removes quotation marks around strings if any and interprets
+    \\-escape sequences using `string_escape`'''
+    if s and s[0] == s[-1] and s[0] in ['"', "'"]:
+        s = s[1:-1]
+    return s.encode('utf-8').decode('string_escape').decode('utf-8')
+
+_splitquoted = re.compile("( |\"(?:\\\\.|[^\"])*?\"|'(?:\\\\.|[^'])*?')")
+def parse_event(text):
+    '''Splits string on whitespace while respecting quotations'''
+    return [unquote(p) for p in _splitquoted.split(text) if p.strip()]
+
 class EventDispatcher:
+    def dispatch(self, message_type, args):
+        '''Returns True if the message was handled, False otherwise.'''
+
+        method = getattr(self, message_type.lower(), None)
+
+        if method is None:
+            return False
+
+        method(*args)
+        return True
+
+class GlobalEventDispatcher(EventDispatcher):
+    def __init__(self, uzbl_tabbed):
+        self.uzbl_tabbed = uzbl_tabbed
+
+    def new_tab(self, uri = ''):
+        self.uzbl_tabbed.new_tab(uri)
+
+    def new_tab_bg(self, uri = ''):
+        self.uzbl_tabbed.new_tab(uri, switch = False)
+
+    def new_tab_next(self, uri = ''):
+        self.uzbl_tabbed.new_tab(uri, next=True)
+
+    def new_bg_tab_next(self, uri = ''):
+        self.uzbl_tabbed.new_tab(uri, switch = False, next = True)
+
+    def next_tab(self, step = 1):
+        self.uzbl_tabbed.next_tab(int(step))
+
+    def prev_tab(self, step = 1):
+        self.uzbl_tabbed.prev_tab(int(step))
+
+    def goto_tab(self, index):
+        self.uzbl_tabbed.goto_tab(int(index))
+
+    def first_tab(self):
+        self.uzbl_tabbed.goto_tab(0)
+
+    def last_tab(self):
+        self.uzbl_tabbed.goto_tab(-1)
+
+    def preset_tabs(self, *args):
+        self.uzbl_tabbed.run_preset_command(*args)
+
+    def bring_to_front(self):
+        self.uzbl_tabbed.window.present()
+
+    def clean_tabs(self):
+        self.uzbl_tabbed.clean_slate()
+
+    def exit_all_tabs(self):
+        self.uzbl_tabbed.quitrequest()
+
+class InstanceEventDispatcher(EventDispatcher):
     def __init__(self, uzbl):
         self.uzbl   = uzbl
         self.parent = self.uzbl.parent
 
-    def dispatch(self, message_type, args):
-        method = getattr(self, message_type.lower(), None)
-
-        if method is None:
-            return
-
-        return method(*args)
+    def plug_created(self, plug_id):
+        if not self.uzbl.tab:
+            tab = self.parent.create_tab()
+            tab.add_id(int(plug_id))
+            self.uzbl.set_tab(tab)
 
     def title_changed(self, title):
         self.uzbl.title = title.strip()
@@ -417,71 +498,14 @@ class EventDispatcher:
     def load_commit(self, uri):
         self.uzbl.uri = uri
 
-    def new_tab(self, uri = None):
-        if uri:
-            self.parent.new_tab(uri)
-        else:
-            self.parent.new_tab()
-
-    def new_tab_bg(self, uri = None):
-        if uri:
-            self.parent.new_tab(uri, switch = False)
-        else:
-            self.parent.new_tab(switch = False)
-
-    def new_tab_next(self, uri = None):
-        if uri:
-            self.parent.new_tab(uri, next=True)
-        else:
-            self.parent.new_tab(next=True)
-
-    def new_bg_tab_next(self, uri = None):
-        if uri:
-            self.parent.new_tab(uri, switch = False, next = True)
-        else:
-            self.parent.new_tab(switch = False, next = True)
-
-    def next_tab(self, step = None):
-        if step:
-            self.parent.next_tab(int(step))
-        else:
-            self.parent.next_tab()
-
-    def prev_tab(self, step = None):
-        if step:
-            self.parent.prev_tab(int(step))
-        else:
-            self.parent.prev_tab()
-
-    def goto_tab(self, index):
-        self.parent.goto_tab(int(index))
-
-    def first_tab(self):
-        self.parent.goto_tab(0)
-
-    def last_tab(self):
-        self.parent.goto_tab(-1)
-
-    def preset_tabs(self, *args):
-        self.parent.parse_command(["preset"] + [ a for a in args ])
-
-    def bring_to_front(self):
-        self.parent.window.present()
-
-    def clean_tabs(self):
-        self.parent.clean_slate()
-
-    def exit_all_tabs(self):
-        self.parent.quitrequest()
-
 class UzblInstance:
     '''Uzbl instance meta-data/meta-action object.'''
 
-    def __init__(self, parent, tab, name, uri, title, switch):
+    def __init__(self, parent, name, uri, title, switch):
 
         self.parent = parent
-        self.tab = tab
-        self.dispatcher = EventDispatcher(self)
+        self.tab    = None
+        self.dispatcher = InstanceEventDispatcher(self)
 
         self.name = name
         self.title = title
@@ -490,8 +514,11 @@ class UzblInstance:
 
         self._client = None
         self._switch = switch # Switch to tab after loading ?
-        self.title_changed()
 
+    def set_tab(self, tab):
+        self.tab = tab
+        self.title_changed()
+        self.parent.tabs[self.tab] = self
 
     def got_socket(self, client):
         '''Uzbl instance is now connected'''
@@ -505,6 +532,9 @@ class UzblInstance:
 
     def title_changed(self, gtk_only = True): # GTK-only is for indexes
         '''self.title has changed, update the tabs list'''
+
+        if not self.tab:
+            return
 
         tab_titles = config['tab_titles']
         tab_indexes = config['tab_indexes']
@@ -546,7 +576,8 @@ class UzblInstance:
         ''' Send the SET command to Uzbl '''
 
         if self._client:
-            self._client.send('set %s = %s') #TODO: escape chars ?
+            line = 'set %s = %s' % (key, val) #TODO: escape chars ?
+            self._client.send(line)
 
 
     def exit(self):
@@ -554,27 +585,6 @@ class UzblInstance:
 
         if self._client:
             self._client.send('exit')
-
-    def unquote(self, s):
-        '''Removes quotation marks around strings if any and interprets
-        \\-escape sequences using `string_escape`'''
-        if s and s[0] == s[-1] and s[0] in ['"', "'"]:
-            s = s[1:-1]
-        return s.encode('utf-8').decode('string_escape').decode('utf-8')
-
-    _splitquoted = re.compile("( |\"(?:\\\\.|[^\"])*?\"|'(?:\\\\.|[^'])*?')")
-    def parse_event(self, text):
-        '''Splits string on whitespace while respecting quotations'''
-        return [self.unquote(p) for p in self._splitquoted.split(text) if p.strip()]
-
-    def parse_command(self, cmd):
-        ''' Parse event givent by the Uzbl instance '''
-
-        cmd = self.parse_event(cmd)
-        message, message_type, args = cmd[0], cmd[2], cmd[3:]
-
-        if message == "EVENT":
-            self.dispatcher.dispatch(message_type, args)
 
     def close(self):
         '''The remote instance exited'''
@@ -605,6 +615,13 @@ class UzblTabbed:
 
         # Generates a unique id for uzbl socket filenames.
         self.next_pid = counter().next
+
+        # Whether to reconfigure new uzbl instances
+        self.force_socket_dir = False
+        self.force_fifo_dir   = False
+
+        self.fifo_dir   = '/tmp' # Path to look for uzbl fifo.
+        self.socket_dir = '/tmp' # Path to look for uzbl socket.
 
         # Create main window
         self.window = gtk.Window()
@@ -684,16 +701,12 @@ class UzblTabbed:
         self.window.show()
         self.wid = self.notebook.window.xid
 
-        # Store information about the applications fifo and socket.
-        fifo_filename = 'uzbltabbed_%d.fifo' % os.getpid()
+        # Store information about the application's socket.
         socket_filename = 'uzbltabbed_%d.socket' % os.getpid()
-        self._fifo = None
         self._socket = None
-        self.fifo_path = os.path.join(config['fifo_dir'], fifo_filename)
-        self.socket_path = os.path.join(config['socket_dir'], socket_filename)
+        self.socket_path = os.path.join(self.socket_dir, socket_filename)
 
-        # Now initialise the fifo and the socket
-        self.init_fifo()
+        # Now initialise the the socket
         self.init_socket()
 
         # If we are using sessions then load the last one if it exists.
@@ -724,8 +737,7 @@ class UzblTabbed:
             print_exc()
             error("encounted error %r" % sys.exc_info()[1])
 
-            # Unlink fifo socket
-            self.unlink_fifo()
+            # Unlink socket
             self.close_socket()
 
             # Attempt to close all uzbl instances nicely.
@@ -763,7 +775,7 @@ class UzblTabbed:
             '''A new uzbl instance was created'''
 
             client, _ = sock.accept()
-            self.clients[client] = SocketClient(client)
+            self.clients[client] = SocketClient(client, self)
 
             return True
 
@@ -791,249 +803,45 @@ class UzblTabbed:
             self._socket = None
 
 
-    def init_fifo(self):
-        '''Create interprocess communication fifo.'''
+    def run_preset_command(self, cmd, *args):
+        if len(args) < 1:
+            error("parse_command: invalid preset command")
 
-        if os.path.exists(self.fifo_path):
-            if not os.access(self.fifo_path, os.F_OK | os.R_OK | os.W_OK):
-                os.mkfifo(self.fifo_path)
+        elif cmd == "save":
+            path = os.path.join(config['saved_sessions_dir'], args[0])
+            self.save_session(path)
+
+        elif cmd == "load":
+            path = os.path.join(config['saved_sessions_dir'], args[0])
+            self.load_session(path)
+
+        elif cmd == "del":
+            path = os.path.join(config['saved_sessions_dir'], args[0])
+            if os.path.isfile(path):
+                os.remove(path)
+            else:
+                error("parse_command: preset %r does not exist." % path)
+
+        elif cmd == "list":
+            # FIXME: what argument is this supposed to be passed,
+            # and why?
+            uzbl = self.get_tab_by_name(int(args[0]))
+            if uzbl:
+                if not os.path.isdir(config['saved_sessions_dir']):
+                    js = "js alert('No saved presets.');"
+                    uzbl._client.send(js)
+
+                else:
+                    listdir = os.listdir(config['saved_sessions_dir'])
+                    listdir = "\\n".join(listdir)
+                    js = "js alert('Session presets:\\n\\n%s');" % listdir
+                    uzbl._client.send(js)
+
+            else:
+                error("parse_command: unknown tab name.")
 
         else:
-            basedir = os.path.dirname(self.fifo_path)
-            if not os.path.exists(basedir):
-                os.makedirs(basedir)
-
-            os.mkfifo(self.fifo_path)
-
-        # Add event handlers for IO_IN & IO_HUP events.
-        self.setup_fifo_watchers()
-
-        echo("[fifo] listening at %r" % self.fifo_path)
-
-        # Add atexit register to destroy the fifo on program termination.
-        atexit.register(self.unlink_fifo)
-
-
-    def unlink_fifo(self):
-        '''Unlink the fifo socket. Note: This function is called automatically
-        on exit by an atexit register.'''
-
-        # Make sure the fifo fd is closed.
-        self.close_fifo()
-
-        # And unlink if the real fifo exists.
-        if os.path.exists(self.fifo_path):
-            os.unlink(self.fifo_path)
-            echo("unlinked %r" % self.fifo_path)
-
-
-    def close_fifo(self):
-        '''Remove all event handlers watching the fifo and close the fd.'''
-
-        # Already closed
-        if self._fifo is None: return
-
-        (fd, watchers) = self._fifo
-        os.close(fd)
-
-        # Stop all gobject io watchers watching the fifo.
-        for gid in watchers:
-            source_remove(gid)
-
-        self._fifo = None
-
-
-    def setup_fifo_watchers(self):
-        '''Open fifo socket fd and setup gobject IO_IN & IO_HUP event
-        handlers.'''
-
-        # Close currently open fifo fd and kill all watchers
-        self.close_fifo()
-
-        fd = os.open(self.fifo_path, os.O_RDONLY | os.O_NONBLOCK)
-
-        # Add gobject io event handlers to the fifo socket.
-        watchers = [io_add_watch(fd, IO_IN, self.main_fifo_read),\
-          io_add_watch(fd, IO_HUP, self.main_fifo_hangup)]
-
-        self._fifo = (fd, watchers)
-
-
-    def main_fifo_hangup(self, fd, cb_condition):
-        '''Handle main fifo socket hangups.'''
-
-        # Close old fd, open new fifo socket and add io event handlers.
-        self.setup_fifo_watchers()
-
-        # Kill the gobject event handler calling this handler function.
-        return False
-
-
-    def main_fifo_read(self, fd, cb_condition):
-        '''Read from main fifo socket.'''
-
-        self._buffer = os.read(fd, 1024)
-        temp = self._buffer.split("\n")
-        self._buffer = temp.pop()
-        cmds = [s.strip().split() for s in temp if len(s.strip())]
-
-        for cmd in cmds:
-            try:
-                #print cmd
-                self.parse_command(cmd)
-
-            except:
-                print_exc()
-                error("parse_command: invalid command %s" % ' '.join(cmd))
-                raise
-
-        return True
-
-
-    def parse_command(self, cmd):
-        '''Parse instructions from uzbl child processes.'''
-
-        # Commands ( [] = optional, {} = required )
-        # new [uri]
-        #   open new tab and head to optional uri.
-        # newbg [uri]
-        #   open a new tab in the background
-        # close [tab-num]
-        #   close current tab or close via tab id.
-        # next [n-tabs]
-        #   open next tab or n tabs down. Supports negative indexing.
-        # prev [n-tabs]
-        #   open prev tab or n tabs down. Supports negative indexing.
-        # goto {tab-n}
-        #   goto tab n.
-        # first
-        #   goto first tab.
-        # last
-        #   goto last tab.
-        # title {pid} {document-title}
-        #   updates tablist title.
-        # uri {pid} {document-location}
-        #   updates tablist uri
-        # bring_to_front
-        #   brings the gtk window to focus.
-        # exit
-        #   exits uzbl_tabbed.py
-
-        if cmd[0] == "new":
-            if len(cmd) == 2:
-                self.new_tab(cmd[1])
-
-            else:
-                self.new_tab()
-
-        elif cmd[0] == "newbg":
-            if len(cmd) == 2:
-                self.new_tab(cmd[1], switch=False)
-            else:
-                self.new_tab(switch=False)
-
-        elif cmd[0] == "newfromclip":
-            uri = subprocess.Popen(['xclip','-selection','clipboard','-o'],\
-              stdout=subprocess.PIPE).communicate()[0]
-            if uri:
-                self.new_tab(uri)
-
-        elif cmd[0] == "close":
-            if len(cmd) == 2:
-                self.close_tab(int(cmd[1]))
-
-            else:
-                self.close_tab()
-
-        elif cmd[0] == "next":
-            if len(cmd) == 2:
-                self.next_tab(int(cmd[1]))
-
-            else:
-                self.next_tab()
-
-        elif cmd[0] == "prev":
-            if len(cmd) == 2:
-                self.prev_tab(int(cmd[1]))
-
-            else:
-                self.prev_tab()
-
-        elif cmd[0] == "goto":
-            self.goto_tab(int(cmd[1]))
-
-        elif cmd[0] == "first":
-            self.goto_tab(0)
-
-        elif cmd[0] == "last":
-            self.goto_tab(-1)
-
-        elif cmd[0] in ["title", "uri"]:
-            if len(cmd) > 2:
-                uzbl = self.get_tab_by_name(int(cmd[1]))
-                if uzbl:
-                    old = getattr(uzbl, cmd[0])
-                    new = ' '.join(cmd[2:])
-                    setattr(uzbl, cmd[0], new)
-                    if old != new:
-                        self.update_tablist()
-
-                else:
-                    error("parse_command: no uzbl with name %r" % int(cmd[1]))
-
-        elif cmd[0] == "preset":
-            if len(cmd) < 3:
-                error("parse_command: invalid preset command")
-
-            elif cmd[1] == "save":
-                path = os.path.join(config['saved_sessions_dir'], cmd[2])
-                self.save_session(path)
-
-            elif cmd[1] == "load":
-                path = os.path.join(config['saved_sessions_dir'], cmd[2])
-                self.load_session(path)
-
-            elif cmd[1] == "del":
-                path = os.path.join(config['saved_sessions_dir'], cmd[2])
-                if os.path.isfile(path):
-                    os.remove(path)
-
-                else:
-                    error("parse_command: preset %r does not exist." % path)
-
-            elif cmd[1] == "list":
-                # FIXME: what argument is this supposed to be passed,
-                # and why?
-                uzbl = self.get_tab_by_name(int(cmd[2]))
-                if uzbl:
-                    if not os.path.isdir(config['saved_sessions_dir']):
-                        js = "js alert('No saved presets.');"
-                        uzbl._client.send(js)
-
-                    else:
-                        listdir = os.listdir(config['saved_sessions_dir'])
-                        listdir = "\\n".join(listdir)
-                        js = "js alert('Session presets:\\n\\n%s');" % listdir
-                        uzbl._client.send(js)
-
-                else:
-                    error("parse_command: unknown tab name.")
-
-            else:
-                error("parse_command: unknown parse command %r"\
-                  % ' '.join(cmd))
-
-        elif cmd[0] == "bring_to_front":
-            self.window.present()
-
-        elif cmd[0] == "clean":
-            self.clean_slate()
-
-        elif cmd[0] == "exit":
-            self.quitrequest()
-
-        else:
-            error("parse_command: unknown command %r" % ' '.join(cmd))
+            error("parse_command: unknown parse command %r" % cmd)
 
 
     def get_tab_by_name(self, name):
@@ -1045,6 +853,18 @@ class UzblTabbed:
 
         return False
 
+    def create_tab(self, beside = False):
+        tab = gtk.Socket()
+        tab.show()
+
+        if beside:
+            pos = self.notebook.get_current_page() + 1
+            self.notebook.insert_page(tab, position=pos)
+        else:
+            self.notebook.append_page(tab)
+
+        self.notebook.set_tab_reorderable(tab, True)
+        return tab
 
     def new_tab(self, uri='', title='', switch=None, next=False):
         '''Add a new tab to the notebook and start a new instance of uzbl.
@@ -1052,10 +872,7 @@ class UzblTabbed:
         when you need to load multiple tabs at a time (I.e. like when
         restoring a session from a file).'''
 
-        tab = gtk.Socket()
-        tab.show()
-        self.notebook.insert_page(tab, position=next and self.notebook.get_current_page() + 1 or -1)
-        self.notebook.set_tab_reorderable(tab, True)
+        tab = self.create_tab(next)
         sid = tab.get_id()
         uri = uri.strip()
         name = "%d-%d" % (os.getpid(), self.next_pid())
@@ -1067,12 +884,17 @@ class UzblTabbed:
             title = config['new_tab_title']
 
         cmd = ['uzbl-browser', '-n', name, '-s', str(sid),
-               '--connect-socket', self.socket_path, '--uri', str(uri)]
+               '--connect-socket', self.socket_path]
+
+        if(uri):
+          cmd = cmd + ['--uri', str(uri)]
+
         gobject.spawn_async(cmd, flags=gobject.SPAWN_SEARCH_PATH)
 
-        uzbl = UzblInstance(self, tab, name, uri, title, switch)
+        uzbl = UzblInstance(self, name, uri, title, switch)
+        uzbl.set_tab(tab)
+
         SocketClient.instances_queue[name] = uzbl
-        self.tabs[tab] = uzbl
 
 
     def clean_slate(self):
@@ -1085,16 +907,15 @@ class UzblTabbed:
             uzbl = self.tabs[tab]
             uzbl.exit()
 
-
     def config_uzbl(self, uzbl):
         '''Send bind commands for tab new/close/next/prev to a uzbl
         instance.'''
 
-        # Set definitions here
-        # set(key, command back to fifo)
-        if config['capture_new_windows']:
-            uzbl.set("new_window", r'new $8')
+        if self.force_socket_dir:
+            uzbl.set("socket_dir", self.socket_dir)
 
+        if self.force_fifo_dir:
+            uzbl.set("fifo_dir",   self.fifo_dir)
 
     def goto_tab(self, index):
         '''Goto tab n (supports negative indexing).'''
@@ -1411,9 +1232,8 @@ class UzblTabbed:
     def quit(self, *args):
         '''Cleanup and quit. Called by delete-event signal.'''
 
-        # Close the fifo socket, remove any gobject io event handlers and
+        # Close the socket, remove any gobject io event handlers and
         # delete socket.
-        self.unlink_fifo()
         self.close_socket()
 
         # Remove all gobject timers that are still ticking.
@@ -1455,13 +1275,15 @@ if __name__ == "__main__":
         import pprint
         sys.stderr.write("%s\n" % pprint.pformat(config))
 
+    uzbl = UzblTabbed()
+
     if options.socketdir:
-        config['socket_dir'] = options.socketdir
+        uzbl.socket_dir = options.socketdir
+        uzbl.force_socket_dir = True
 
     if options.fifodir:
-        config['fifo_dir'] = options.fifodir
-
-    uzbl = UzblTabbed()
+        uzbl.fifo_dir = options.fifodir
+        uzbl.force_fifo_dir = True
 
     # All extra arguments given to uzbl_tabbed.py are interpreted as
     # web-locations to opened in new tabs.

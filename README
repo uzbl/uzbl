@@ -104,7 +104,7 @@ There are several interfaces to interact with Uzbl:
 
 When `uzbl` forks a new instance (eg "open in new window") it will use the same
 command line arguments (eg the same `--config <file>`), except `--uri` and
-`--name`. If you made changes to the configuration at runtime, these are not
+`--named`. If you made changes to the configuration at runtime, these are not
 passed on to the child.
 
 #### Uzbl-browser
@@ -257,11 +257,14 @@ The following commands are recognized:
   - Show the WebInspector
 * `add_cookie <domain> <path> <name> <value> <scheme> <expires>`
   - Adds a new cookie to the cookie jar
-* 'delete_cookie <domain> <path> <name> <value> [<scheme> <expires>]`
-	- Deletes a matching cookie from the cookie jar. scheme and expire time
-	is currently not considered when matching.
-* 'clear_cookies`
-    - Clears all cookies from the cookie jar
+* `delete_cookie <domain> <path> <name> <value> [<scheme> <expires>]`
+  - Deletes a matching cookie from the cookie jar. scheme and expire time
+	  is currently not considered when matching.
+* `clear_cookies`
+  - Clears all cookies from the cookie jar
+* `download <uri> [<destination path>]`
+  - Starts a download using the given uri. A destination file path can be given
+    to specify where the download should be written to.
 
 ### VARIABLES AND CONSTANTS
 
@@ -297,6 +300,7 @@ file).
   expanded).
 * `title_format_short`: titlebar string when statusbar shown (will be expanded).
 * `icon`: path to icon for Gtk.
+* `window_role`: Window role string. By default there is no role.
 * `forward_keys`: Whether `uzbl-core` should send key events to the webkit view.
 * `cookie_handler`: Handler called when the page requests a cookie to be
   retrieved or set. Appends the following arguments to the standard handler
@@ -315,8 +319,6 @@ file).
 * `fifo_dir`: location to store FIFOs.
 * `socket_dir`: location to store sockets.
 * `http_debug`: HTTP debug mode (value 0-3).
-* `scrollbars_visible`: set to 1 to have GTK scrollbars if the document
-  doesn't fit into the window (defaults to 0)
 * `javascript_windows`: Whether javascript can open windows automatically
 * `shell_cmd`: Alias which will be expanded to use shell commands (eg `sh -c`).
 * `print_events`: show events on stdout
@@ -346,12 +348,15 @@ file).
 * `monospace_size`: The default size of monospaced font (default 1).
 * `minimum_font_size`: The minimum font size used to display text (default 1).
 * `enable_pagecache`: Enable the webkit pagecache (it caches rendered pages for a speedup when you go back or forward in history) (default 0).
-* `disable_plugins`: Disable embedded plugin objects (default 0).
-* `disable_scripts`: Disable embedded scripting languages (default 0).
+* `enable_plugins`: Disable embedded plugin objects (default 0).
+* `enable_scripts`: Disable embedded scripting languages (default 0).
 * `autoload_images`: Automatically load images (default 1).
 * `autoshrink_images`: Shrink images to window size (default 0).
 * `enable_spellcheck`: Whether to enable spell checking while typing (default
   0).
+* `spellcheck_languages`: The languages (in locale `lang_COUNTRY` form, e.g.
+  `en_CA` or `pt_BR`) to be used for spell checking, separated by commas.
+  Defaults to the value returned by `gtk_get_default_language`.
 * `enable_private`: Whether to enable private browsing mode (default 0).
 * `print_backgrounds`: Print background images? (default 0).
 * `stylesheet_uri`: Use this to override the pagelayout with a custom
@@ -362,6 +367,8 @@ file).
 * `enforce_96_dpi`: Enforce a resolution of 96 DPI (default 1).
 * `caret_browsing`: Whether the caret is enabled in the text portion of pages
   (default 0).
+* `enable_cross_file_access`: Whether a page loaded from a `file://` URI can
+  access the contents of other `file://` URIs. (default 0).
 * `follow_hint_keys`: keys for keyboard-based navigation and link
    highlighting
 
@@ -506,9 +513,15 @@ Handler scripts (`download_handler`, `cookie_handler`, `scheme_handler` and
 * download handler
 
   - `$1 url`: The URL of the item to be downloaded.
-  - `$2 suggested_filename`: A filename suggested by the server or based on the URL.
+  - `$2 suggested_filename`: A filename suggested by the server or based on the
+    URL.
   - `$3 content_type`: The mimetype of the file to be downloaded.
-  - `$4 total_size`: The size of the file to be downloaded in bytes. This may be inaccurate.
+  - `$4 total_size`: The size of the file to be downloaded in bytes. This may be
+    inaccurate.
+  - `$5 destination_path`: This is only present if the download was started
+    explicitly using the `download` command. If it is present, this is the path
+    that the file should be saved to. A download handler using WebKit's internal
+    downloader can just echo this path and exit when this argument is present.
 
 * cookie handler
 
@@ -600,6 +613,21 @@ This script tries to authenticate as user alice with password wonderland once
 and never retries authentication.
 See examples for more sofisticated, interactive authentication handler.
 
+### WINDOW MANAGER INTEGRATION
+
+As mentined before, the contents of the window title can be customized by
+setting the `title_format_short` variable and the `title_format_long` variable
+(see above to figure out when each of them is used). You can also set `icon`
+variable to path of the icon file. Some advanced window managers can also take
+`WM_WINDOW_ROLE` in account, which can be set by modifying `window_role`
+variable.
+
+There is currently no support of updating window icon automatically to site's
+favicon, but there are some scripts for that at wiki pages.
+
+Uzbl sets special X window property UZBL_URI which is always the uri of the
+page loaded into uzbl, except for web inspector windows which has no UZBL_URI.
+
 ### EVENTS
 
 Unlike commands, events are not handled in `uzbl` itself, but are propagated
@@ -616,7 +644,7 @@ The EM allows:
 * Many fine-grained events (`hover_over_link`, `key_press`, `key_release`,..)
 * See example `uzbl-event-manager`.
 
-**Note**: Cookie events are sent in addition to (optionally) being handled by 
+**Note**: Cookie events are sent in addition to (optionally) being handled by
   the cookie handler (set by the cookie_handler var). If using a handler it will
   take precedence before the internal state configured by (add|delete)_cookie
   commands.
@@ -668,10 +696,14 @@ Events have this format:
   `uri`.
 * `EVENT [uzbl_instance_name] LINK_UNHOVER uri`: The mouse leaves the link
   `uri`.
-* `EVENT [uzbl_instance_name] KEY_PRESS key_name`: The key (or mouse button)
+* `EVENT [uzbl_instance_name] KEY_PRESS 'mod_state' key_name`: The key (or mouse button)
   `key_name` is pressed.
-* `EVENT [uzbl_instance_name] KEY_RELEASE key_name`: The key (or mouse button)
+* `EVENT [uzbl_instance_name] KEY_RELEASE 'mod_state' key_name`: The key (or mouse button)
   `key_name` is released.
+* `EVENT [uzbl_instance_name] MOD_PRESS 'mod_state' mod_name`: A key mapped to
+  `mod_name` is pressed.
+* `EVENT [uzbl_instance_name] MOD_RELEASE 'mod_state' mod_name`: A key mapped to
+  `mod_name` is released.
 * `EVENT [uzbl_instance_name] SELECTION_CHANGED selected_text`: When text is
   selected in the `uzbl` window.
 * `EVENT [uzbl_instance_name] NEW_WINDOW uri`: Request to creation of new `uzbl` window,
@@ -749,10 +781,6 @@ Events/requests which the EM and its plugins listens for
     when the `<from>` key or button is pressed.
 * `IGNORE_KEY`: Ignore a key pattern, specified by `<glob>`.
   - `request IGNORE_KEY <glob>`
-* `MODKEY_ADDITION`: Create a compound modkey from multiple individual keys.
-  - `request MODKEY_ADDITION <key1> <key2> <keyn> <result>`: The modkey
-    `<result>` is considered pressed when all of `<key1>`, `<key2>`, and
-    `<keyn>` are pressed.
 * `TOGGLE_MODES`
   - `request TOGGLE_MODES <mode1> <mode2> ... <moden>`
 * `APPEND_KEYCMD`: Append a string to the current keycmd.
@@ -764,6 +792,8 @@ Events/requests which the EM and its plugins listens for
   keycmd.
 * `KEYCMD_STRIP_WORD`: Removes the last word from the keycmd, similar to
   readline `^W`.
+  - `request KEYCMD_STRIP_WORD <seps>`: The `<seps>` argument is a list of
+    characters that are considered to separate words.
 * `KEYCMD_EXEC_CURRENT`: (tries to) execute whatever is in the keycmd.
 * `SET_KEYCMD`: Allow setting of the keycmd externally.
   - `request SET_KEYCMD <string>`: Set the keycmd to `<string>`.
@@ -793,7 +823,7 @@ where `arguments` and `uri` are both optional. `arguments` can be:
 * `-u`, `--uri=URI`: URI to load at startup. Equivalent to `uzbl <uri>` or `set
   uri = URI` after `uzbl` has launched.
 * `-v`, `--verbose`: Whether to print all messages or just errors.
-* `-n`, `--name=NAME`: Name of the current instance (defaults to Xorg window
+* `-n`, `--named=NAME`: Name of the current instance (defaults to Xorg window
   id or random for GtkSocket mode).
 * `-c`, `--config=FILE`: Path to config file or `-` for stdin.
 * `-s`, `--socket=SOCKET`: Xembed socket ID.

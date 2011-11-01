@@ -26,15 +26,36 @@ MODE_CHANGE <mode>
 
 ### keycmd.py ###
 - Tracks the currently entered command
-- Connects To: FOCUS_GAINED, FOCUS_LOST, KEY_PRESS, KEY_RELEASE, (APPEND_KEYCMD,
+- Connects To: KEY_PRESS, KEY_RELEASE, MOD_PRESS, MOD_RELEASE, (APPEND_KEYCMD,
   IGNORE_KEY, INJECT_KEYCMD, KEYCMD_BACKSPACE, KEYCMD_DELETE,
-  KEYCMD_EXEC_CURRENT, KEYCMD_STRIP_WORD, MODKEY_ADDITION, MODMAP,
+  KEYCMD_EXEC_CURRENT, KEYCMD_STRIP_WORD, KEYCMD_CLEAR, MODMAP,
   SET_CURSOR_POS, SET_KEYCMD)
-- Emits: KEYCMD_UPDATE, KEYCMD_EXEC, MODCMD_UPDATE, MODCMD_EXEC
+- Emits: KEYCMD_UPDATE, KEYCMD_EXEC, MODCMD_UPDATE, MODCMD_EXEC, KEYCMD_CLEARED
+  MODCMD_CLEARED
 
 Maintains a command line that is manipulated by simple keypresses and a number
 of events.
 
+APPEND_KEYCMD <str>
+    Appends `str` to the end of the keycmd
+
+INJECT_KEYCMD <str>
+    Inserts `str` at the cursor position
+
+KEYCMD_BACKSPACE
+    Removes the character at the cursor position in the keycmd
+
+KEYCMD_DELETE
+    Removes the character after the cursor position in the keycmd
+
+KEYCMD_EXEC_CURRENT
+    Raise a KEYCMD_EXEC with the current keylet and then clear the keycmd
+
+KEYCMD_STRIP_WORD [<separator>]
+    Removes the last word from the keycmd, similar to readline ^W
+
+KEYCMD_CLEAR
+    Clears the keycmd and raises KEYCMD_CLEARED
 
 ### bind.py ###
 - Provides support for key bindings

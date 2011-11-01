@@ -6,7 +6,7 @@
 #include "uzbl-core.h"
 #include "events.h"
 #include "callbacks.h"
-
+#include "type.h"
 
 void
 hide_window_cb(GtkWidget *widget, gpointer data) {
@@ -88,7 +88,7 @@ inspector_inspector_destroyed_cb (WebKitWebInspector* inspector){
 void
 set_up_inspector() {
     GUI *g = &uzbl.gui;
-    WebKitWebSettings *settings = view_settings();
+    WebKitWebSettings *settings = webkit_web_view_get_settings(g->web_view);
     g_object_set(G_OBJECT(settings), "enable-developer-extras", TRUE, NULL);
 
     uzbl.gui.inspector = webkit_web_view_get_inspector(uzbl.gui.web_view);

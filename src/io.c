@@ -6,6 +6,7 @@
 #include "io.h"
 #include "util.h"
 #include "uzbl-core.h"
+#include "type.h"
 
 /*@null@*/ gchar*
 build_stream_name(int type, const gchar* dir) {
@@ -25,8 +26,6 @@ build_stream_name(int type, const gchar* dir) {
 
 gboolean
 control_fifo(GIOChannel *gio, GIOCondition condition) {
-    if (uzbl.state.verbose)
-        printf("triggered\n");
     gchar *ctl_line;
     GIOStatus ret;
     GError *err = NULL;
@@ -35,7 +34,7 @@ control_fifo(GIOChannel *gio, GIOCondition condition) {
         g_error ("Fifo: Read end of pipe died!\n");
 
     if(!gio)
-       g_error ("Fifo: GIOChannel broke\n");
+        g_error ("Fifo: GIOChannel broke\n");
 
     ret = g_io_channel_read_line(gio, &ctl_line, NULL, NULL, &err);
     if (ret == G_IO_STATUS_ERROR) {
@@ -73,9 +72,10 @@ attach_fifo(gchar *path) {
 }
 
 
-/*@null@*/ gchar*
-init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
-    if (uzbl.comm.fifo_path) { /* get rid of the old fifo if one exists */
+gboolean
+init_fifo(const gchar *dir) {
+    if (uzbl.comm.fifo_path) {
+        /* we're changing the fifo path, get rid of the old fifo if one exists */
         if (unlink(uzbl.comm.fifo_path) == -1)
             g_warning ("Fifo: Can't unlink old fifo at %s\n", uzbl.comm.fifo_path);
         g_free(uzbl.comm.fifo_path);
@@ -84,32 +84,20 @@ init_fifo(gchar *dir) { /* return dir or, on error, free dir and return NULL */
 
     gchar *path = build_stream_name(FIFO, dir);
 
-    if (!file_exists(path)) {
-        if (mkfifo (path, 0666) == 0 && attach_fifo(path)) {
-            return dir;
-        } else g_warning ("init_fifo: can't create %s: %s\n", path, strerror(errno));
-    } else {
-        /* the fifo exists. but is anybody home? */
-        int fd = open(path, O_WRONLY|O_NONBLOCK);
-        if(fd < 0) {
-            /* some error occurred, presumably nobody's on the read end.
-             * we can attach ourselves to it. */
-            if(attach_fifo(path))
-                return dir;
-            else
-                g_warning("init_fifo: can't attach to %s: %s\n", path, strerror(errno));
-        } else {
-            /* somebody's there, we can't use that fifo. */
-            close(fd);
-            /* whatever, this instance can live without a fifo. */
-            g_warning ("init_fifo: can't create %s: file exists and is occupied\n", path);
-        }
-    }
+    /* if something exists at that path, try to delete it. */
+    if (file_exists(path) && unlink(path) == -1)
+        g_warning ("Fifo: Can't unlink old fifo at %s\n", path);
 
-    /* if we got this far, there was an error; cleanup */
-    g_free(dir);
+    if (mkfifo (path, 0666) == 0) {
+      if(attach_fifo(path))
+         return TRUE;
+      else
+         g_warning("init_fifo: can't attach to %s: %s\n", path, strerror(errno));
+    } else g_warning ("init_fifo: can't create %s: %s\n", path, strerror(errno));
+
+    /* if we got this far, there was an error; clean up */
     g_free(path);
-    return NULL;
+    return FALSE;
 }
 
 
@@ -297,8 +285,8 @@ attach_socket(gchar *path, struct sockaddr_un *local) {
 }
 
 
-/*@null@*/ gchar*
-init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL */
+gboolean
+init_socket(const gchar *dir) {
     if (uzbl.comm.socket_path) { /* remove an existing socket should one exist */
         if (unlink(uzbl.comm.socket_path) == -1)
             g_warning ("init_socket: couldn't unlink socket at %s\n", uzbl.comm.socket_path);
@@ -307,40 +295,24 @@ init_socket(gchar *dir) { /* return dir or, on error, free dir and return NULL *
     }
 
     if (*dir == ' ') {
-        g_free(dir);
-        return NULL;
+        return FALSE;
     }
 
-    struct sockaddr_un local;
     gchar *path = build_stream_name(SOCKET, dir);
 
+    /* if something exists at that path, try to delete it. */
+    if(file_exists(path) && unlink(path) == -1)
+        g_warning ("Fifo: Can't unlink old fifo at %s\n", path);
+
+    struct sockaddr_un local;
     local.sun_family = AF_UNIX;
     strcpy (local.sun_path, path);
 
-    if(!file_exists(path) && attach_socket(path, &local)) {
-        /* it's free for the taking. */
-        return dir;
-    } else {
-        /* see if anybody's listening on the socket path we want. */
-        int sock = socket (AF_UNIX, SOCK_STREAM, 0);
-        if(connect(sock, (struct sockaddr *) &local, sizeof(local)) < 0) {
-            /* some error occurred, presumably nobody's listening.
-             * we can attach ourselves to it. */
-            unlink(path);
-            if(attach_socket(path, &local))
-                return dir;
-            else
-                g_warning("init_socket: can't attach to existing socket %s: %s\n", path, strerror(errno));
-        } else {
-            /* somebody's there, we can't use that socket path. */
-            close(sock);
-            /* whatever, this instance can live without a socket. */
-            g_warning ("init_socket: can't create %s: socket exists and is occupied\n", path);
-        }
-    }
+    if(attach_socket(path, &local)) {
+        return TRUE;
+    } else g_warning("init_socket: can't attach to %s: %s\n", path, strerror(errno));
 
     /* if we got this far, there was an error; cleanup */
     g_free(path);
-    g_free(dir);
-    return NULL;
+    return FALSE;
 }

@@ -6,429 +6,31 @@
 #include "uzbl-core.h"
 #include "callbacks.h"
 #include "events.h"
-#include "util.h"
-#include "io.h"
-
-
-void
-set_proxy_url() {
-    SoupURI *suri;
-
-    if (uzbl.net.proxy_url == NULL || *uzbl.net.proxy_url == ' ') {
-        soup_session_remove_feature_by_type(uzbl.net.soup_session,
-                (GType) SOUP_SESSION_PROXY_URI);
-    }
-    else {
-        suri = soup_uri_new(uzbl.net.proxy_url);
-        g_object_set(G_OBJECT(uzbl.net.soup_session),
-                SOUP_SESSION_PROXY_URI,
-                suri, NULL);
-        soup_uri_free(suri);
-    }
-
-    return;
-}
-
+#include "menu.h"
+#include "type.h"
+#include "variables.h"
 
 void
-set_authentication_handler() {
-    /* Check if WEBKIT_TYPE_SOUP_AUTH_DIALOG feature is set */
-    GSList *flist = soup_session_get_features (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
-    guint feature_is_set = g_slist_length(flist);
-    g_slist_free(flist);
-
-    if (uzbl.behave.authentication_handler == NULL || *uzbl.behave.authentication_handler == 0) {
-        if (!feature_is_set)
-            soup_session_add_feature_by_type
-                (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
-    } else {
-        if (feature_is_set)
-            soup_session_remove_feature_by_type
-                (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
-    }
-    return;
-}
-
-
-void
-set_status_background() {
-    /* labels and hboxes do not draw their own background. applying this
-     * on the vbox/main_window is ok as the statusbar is the only affected
-     * widget. (if not, we could also use GtkEventBox) */
-    GtkWidget* widget = uzbl.gui.main_window ? uzbl.gui.main_window : GTK_WIDGET (uzbl.gui.plug);
-
-#if GTK_CHECK_VERSION(2,91,0)
-    GdkRGBA color;
-    gdk_rgba_parse (&color, uzbl.behave.status_background);
-    gtk_widget_override_background_color (widget, GTK_STATE_NORMAL, &color);
-#else
-    GdkColor color;
-    gdk_color_parse (uzbl.behave.status_background, &color);
-    gtk_widget_modify_bg (widget, GTK_STATE_NORMAL, &color);
-#endif
-}
-
-
-void
-set_icon() {
-    if(file_exists(uzbl.gui.icon)) {
-        if (uzbl.gui.main_window)
-            gtk_window_set_icon_from_file (GTK_WINDOW (uzbl.gui.main_window), uzbl.gui.icon, NULL);
-    } else {
-        g_printerr ("Icon \"%s\" not found. ignoring.\n", uzbl.gui.icon);
-    }
-}
-
-void
-cmd_set_geometry() {
-    int ret=0, x=0, y=0;
-    unsigned int w=0, h=0;
-    if(uzbl.gui.geometry) {
-        if(uzbl.gui.geometry[0] == 'm') { /* m/maximize/maximized */
-            gtk_window_maximize((GtkWindow *)(uzbl.gui.main_window));
-        } else {
-            /* we used to use gtk_window_parse_geometry() but that didn't work how it was supposed to */
-            ret = XParseGeometry(uzbl.gui.geometry, &x, &y, &w, &h);
-            if(ret & XValue)
-                gtk_window_move((GtkWindow *)uzbl.gui.main_window, x, y);
-            if(ret & WidthValue)
-                gtk_window_resize((GtkWindow *)uzbl.gui.main_window, w, h);
-        }
-    }
-
-    /* update geometry var with the actual geometry
-       this is necessary as some WMs don't seem to honour
-       the above setting and we don't want to end up with
-       wrong geometry information
-    */
-    retrieve_geometry();
-}
-
-void
-cmd_set_status() {
-    if (!uzbl.behave.show_status) {
-        gtk_widget_hide(uzbl.gui.mainbar);
-    } else {
-        gtk_widget_show(uzbl.gui.mainbar);
-    }
-    update_title();
-}
-
-void
-cmd_load_uri() {
-    load_uri_imp (uzbl.state.uri);
-}
-
-void
-cmd_max_conns() {
-    g_object_set(G_OBJECT(uzbl.net.soup_session),
-            SOUP_SESSION_MAX_CONNS, uzbl.net.max_conns, NULL);
-}
-
-void
-cmd_max_conns_host() {
-    g_object_set(G_OBJECT(uzbl.net.soup_session),
-            SOUP_SESSION_MAX_CONNS_PER_HOST, uzbl.net.max_conns_host, NULL);
-}
-
-void
-cmd_http_debug() {
-    soup_session_remove_feature
-        (uzbl.net.soup_session, SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
-    /* do we leak if this doesn't get freed? why does it occasionally crash if freed? */
-    /*g_free(uzbl.net.soup_logger);*/
-
-    uzbl.net.soup_logger = soup_logger_new(uzbl.behave.http_debug, -1);
-    soup_session_add_feature(uzbl.net.soup_session,
-            SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
-}
-
-WebKitWebSettings*
-view_settings() {
-    return webkit_web_view_get_settings(uzbl.gui.web_view);
-}
-
-void
-cmd_font_size() {
-    WebKitWebSettings *ws = view_settings();
-    if (uzbl.behave.font_size > 0) {
-        g_object_set (G_OBJECT(ws), "default-font-size", uzbl.behave.font_size, NULL);
-    }
-
-    if (uzbl.behave.monospace_size > 0) {
-        g_object_set (G_OBJECT(ws), "default-monospace-font-size",
-                      uzbl.behave.monospace_size, NULL);
-    } else {
-        g_object_set (G_OBJECT(ws), "default-monospace-font-size",
-                      uzbl.behave.font_size, NULL);
-    }
-}
-
-void
-cmd_default_font_family() {
-    g_object_set (G_OBJECT(view_settings()), "default-font-family",
-            uzbl.behave.default_font_family, NULL);
-}
-
-void
-cmd_monospace_font_family() {
-    g_object_set (G_OBJECT(view_settings()), "monospace-font-family",
-            uzbl.behave.monospace_font_family, NULL);
-}
-
-void
-cmd_sans_serif_font_family() {
-    g_object_set (G_OBJECT(view_settings()), "sans_serif-font-family",
-            uzbl.behave.sans_serif_font_family, NULL);
-}
-
-void
-cmd_serif_font_family() {
-    g_object_set (G_OBJECT(view_settings()), "serif-font-family",
-            uzbl.behave.serif_font_family, NULL);
-}
-
-void
-cmd_cursive_font_family() {
-    g_object_set (G_OBJECT(view_settings()), "cursive-font-family",
-            uzbl.behave.cursive_font_family, NULL);
-}
-
-void
-cmd_fantasy_font_family() {
-    g_object_set (G_OBJECT(view_settings()), "fantasy-font-family",
-            uzbl.behave.fantasy_font_family, NULL);
-}
-
-void
-cmd_zoom_level() {
-    webkit_web_view_set_zoom_level (uzbl.gui.web_view, uzbl.behave.zoom_level);
-}
-
-void
-cmd_enable_pagecache() {
-    g_object_set (G_OBJECT(view_settings()), "enable-page-cache",
-            uzbl.behave.enable_pagecache, NULL);
-}
-
-void
-cmd_disable_plugins() {
-    g_object_set (G_OBJECT(view_settings()), "enable-plugins",
-            !uzbl.behave.disable_plugins, NULL);
-}
-
-void
-cmd_disable_scripts() {
-    g_object_set (G_OBJECT(view_settings()), "enable-scripts",
-            !uzbl.behave.disable_scripts, NULL);
-}
-
-void
-cmd_minimum_font_size() {
-    g_object_set (G_OBJECT(view_settings()), "minimum-font-size",
-            uzbl.behave.minimum_font_size, NULL);
-}
-void
-cmd_autoload_img() {
-    g_object_set (G_OBJECT(view_settings()), "auto-load-images",
-            uzbl.behave.autoload_img, NULL);
-}
-
-
-void
-cmd_autoshrink_img() {
-    g_object_set (G_OBJECT(view_settings()), "auto-shrink-images",
-            uzbl.behave.autoshrink_img, NULL);
-}
-
-
-void
-cmd_enable_spellcheck() {
-    g_object_set (G_OBJECT(view_settings()), "enable-spell-checking",
-            uzbl.behave.enable_spellcheck, NULL);
-}
-
-void
-cmd_enable_private() {
-    g_object_set (G_OBJECT(view_settings()), "enable-private-browsing",
-            uzbl.behave.enable_private, NULL);
-}
-
-void
-cmd_print_bg() {
-    g_object_set (G_OBJECT(view_settings()), "print-backgrounds",
-            uzbl.behave.print_bg, NULL);
-}
-
-void
-cmd_style_uri() {
-    g_object_set (G_OBJECT(view_settings()), "user-stylesheet-uri",
-            uzbl.behave.style_uri, NULL);
-}
-
-void
-cmd_resizable_txt() {
-    g_object_set (G_OBJECT(view_settings()), "resizable-text-areas",
-            uzbl.behave.resizable_txt, NULL);
-}
-
-void
-cmd_default_encoding() {
-    g_object_set (G_OBJECT(view_settings()), "default-encoding",
-            uzbl.behave.default_encoding, NULL);
-}
-
-void
-cmd_enforce_96dpi() {
-    g_object_set (G_OBJECT(view_settings()), "enforce-96-dpi",
-            uzbl.behave.enforce_96dpi, NULL);
-}
-
-void
-cmd_caret_browsing() {
-    g_object_set (G_OBJECT(view_settings()), "enable-caret-browsing",
-            uzbl.behave.caret_browsing, NULL);
-}
-
-void
-set_current_encoding() {
-    gchar *encoding = uzbl.behave.current_encoding;
-    if(strlen(encoding) == 0)
-        encoding = NULL;
-
-    webkit_web_view_set_custom_encoding(uzbl.gui.web_view, encoding);
-}
-
-
-void
-cmd_fifo_dir() {
-    uzbl.behave.fifo_dir = init_fifo(uzbl.behave.fifo_dir);
-}
-
-void
-cmd_socket_dir() {
-    uzbl.behave.socket_dir = init_socket(uzbl.behave.socket_dir);
-}
-
-void
-cmd_inject_html() {
-    if(uzbl.behave.inject_html) {
-        webkit_web_view_load_html_string (uzbl.gui.web_view,
-                uzbl.behave.inject_html, NULL);
-    }
-}
-
-void
-cmd_useragent() {
-    if (*uzbl.net.useragent == ' ') {
-        g_free (uzbl.net.useragent);
-        uzbl.net.useragent = NULL;
-    } else {
-        g_object_set(G_OBJECT(uzbl.net.soup_session), SOUP_SESSION_USER_AGENT,
-            uzbl.net.useragent, NULL);
-    }
-}
-
-void
-set_accept_languages() {
-    if (*uzbl.net.accept_languages == ' ') {
-        g_free (uzbl.net.accept_languages);
-        uzbl.net.accept_languages = NULL;
-    } else {
-        g_object_set(G_OBJECT(uzbl.net.soup_session),
-            SOUP_SESSION_ACCEPT_LANGUAGE, uzbl.net.accept_languages, NULL);
-    }
-}
-
-void
-cmd_javascript_windows() {
-    g_object_set (G_OBJECT(view_settings()), "javascript-can-open-windows-automatically",
-            uzbl.behave.javascript_windows, NULL);
-}
-
-void
-cmd_scrollbars_visibility() {
-    if(uzbl.gui.scrollbars_visible) {
-        uzbl.gui.bar_h = gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win));
-        uzbl.gui.bar_v = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win));
-    }
-    else {
-        uzbl.gui.bar_v = gtk_range_get_adjustment (GTK_RANGE (uzbl.gui.scbar_v));
-        uzbl.gui.bar_h = gtk_range_get_adjustment (GTK_RANGE (uzbl.gui.scbar_h));
-    }
-
-    set_webview_scroll_adjustments();
-}
-
-/* requires webkit >=1.1.14 */
-void
-cmd_view_source() {
-    webkit_web_view_set_view_source_mode(uzbl.gui.web_view,
-            (gboolean) uzbl.behave.view_source);
-}
-
-void
-cmd_set_zoom_type () {
-    if(uzbl.behave.zoom_type)
-        webkit_web_view_set_full_content_zoom (uzbl.gui.web_view, TRUE);
-    else
-        webkit_web_view_set_full_content_zoom (uzbl.gui.web_view, FALSE);
-}
-
-void
-toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result) {
-    (void)argv;
-    (void)result;
-
-    webkit_web_view_set_full_content_zoom (page, !webkit_web_view_get_full_content_zoom (page));
-}
-
-void
-toggle_status_cb (WebKitWebView* page, GArray *argv, GString *result) {
-    (void)page;
-    (void)argv;
-    (void)result;
-
-    if (uzbl.behave.show_status) {
-        gtk_widget_hide(uzbl.gui.mainbar);
-    } else {
-        gtk_widget_show(uzbl.gui.mainbar);
-    }
-    uzbl.behave.show_status = !uzbl.behave.show_status;
-    update_title();
-}
-
-void
-link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data) {
-    (void) page;
-    (void) title;
-    (void) data;
+link_hover_cb (WebKitWebView *page, const gchar *title, const gchar *link, gpointer data) {
+    (void) page; (void) title; (void) data;
     State *s = &uzbl.state;
 
-    if(s->selected_url) {
-        if(s->last_selected_url)
-            g_free(s->last_selected_url);
-        s->last_selected_url = g_strdup(s->selected_url);
-    }
-    else {
-        if(s->last_selected_url) g_free(s->last_selected_url);
-        s->last_selected_url = NULL;
-    }
+    if(s->last_selected_url)
+        g_free(s->last_selected_url);
 
-    g_free(s->selected_url);
-    s->selected_url = NULL;
+    if(s->selected_url) {
+        s->last_selected_url = g_strdup(s->selected_url);
+        g_free(s->selected_url);
+        s->selected_url = NULL;
+    } else
+        s->last_selected_url = NULL;
+
+    if(s->last_selected_url && g_strcmp0(link, s->last_selected_url))
+        send_event(LINK_UNHOVER, NULL, TYPE_STR, s->last_selected_url, NULL);
 
     if (link) {
         s->selected_url = g_strdup(link);
-
-        if(s->last_selected_url &&
-           g_strcmp0(s->selected_url, s->last_selected_url))
-            send_event(LINK_UNHOVER, NULL, TYPE_STR, s->last_selected_url, NULL);
-
-        send_event(LINK_HOVER, NULL, TYPE_STR, s->selected_url, NULL);
-    }
-    else if(s->last_selected_url) {
-            send_event(LINK_UNHOVER, NULL, TYPE_STR, s->last_selected_url, NULL);
+        send_event(LINK_HOVER,   NULL, TYPE_STR, s->selected_url, NULL);
     }
 
     update_title();
@@ -478,7 +80,7 @@ load_status_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
     }
 }
 
-void
+gboolean
 load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer web_err, gpointer ud) {
     (void) page; (void) frame; (void) ud;
     GError *err = web_err;
@@ -488,15 +90,8 @@ load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer 
         TYPE_INT, err->code,
         TYPE_STR, err->message,
         NULL);
-}
 
-void
-uri_change_cb (WebKitWebView *web_view, GParamSpec param_spec) {
-  (void) param_spec;
-
-  g_free (uzbl.state.uri);
-  g_object_get (web_view, "uri", &uzbl.state.uri, NULL);
-  g_setenv("UZBL_URI", uzbl.state.uri, TRUE);
+    return FALSE;
 }
 
 void
@@ -519,16 +114,15 @@ destroy_cb (GtkWidget* widget, gpointer data) {
 
 gboolean
 configure_event_cb(GtkWidget* window, GdkEventConfigure* event) {
-    (void) window;
-    (void) event;
-    gchar *lastgeo = NULL;
+    (void) window; (void) event;
 
-    lastgeo = g_strdup(uzbl.gui.geometry);
-    retrieve_geometry();
+    gchar *last_geo    = uzbl.gui.geometry;
+    gchar *current_geo = get_geometry();
 
-    if(strcmp(lastgeo, uzbl.gui.geometry))
-        send_event(GEOMETRY_CHANGED, NULL, TYPE_STR, uzbl.gui.geometry, NULL);
-    g_free(lastgeo);
+    if(!last_geo || strcmp(last_geo, current_geo))
+        send_event(GEOMETRY_CHANGED, NULL, TYPE_STR, current_geo, NULL);
+
+    g_free(current_geo);
 
     return FALSE;
 }
@@ -549,7 +143,7 @@ key_press_cb (GtkWidget* window, GdkEventKey* event) {
     (void) window;
 
     if(event->type == GDK_KEY_PRESS)
-        key_to_event(event->keyval, GDK_KEY_PRESS);
+        key_to_event(event->keyval, event->state, event->is_modifier, GDK_KEY_PRESS);
 
     return uzbl.behave.forward_keys ? FALSE : TRUE;
 }
@@ -559,7 +153,7 @@ key_release_cb (GtkWidget* window, GdkEventKey* event) {
     (void) window;
 
     if(event->type == GDK_KEY_RELEASE)
-        key_to_event(event->keyval, GDK_KEY_RELEASE);
+        key_to_event(event->keyval, event->state, event->is_modifier, GDK_KEY_RELEASE);
 
     return uzbl.behave.forward_keys ? FALSE : TRUE;
 }
@@ -568,22 +162,26 @@ gboolean
 button_press_cb (GtkWidget* window, GdkEventButton* event) {
     (void) window;
     gint context;
-    gchar *details;
     gboolean propagate = FALSE,
              sendev    = FALSE;
+
+    context = get_click_context(NULL);
 
     if(event->type == GDK_BUTTON_PRESS) {
         if(uzbl.state.last_button)
             gdk_event_free((GdkEvent *)uzbl.state.last_button);
         uzbl.state.last_button = (GdkEventButton *)gdk_event_copy((GdkEvent *)event);
 
-        context = get_click_context(NULL);
         /* left click */
         if(event->button == 1) {
             if((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE))
                 send_event(FORM_ACTIVE, NULL, TYPE_NAME, "button1", NULL);
             else if((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT))
                 send_event(ROOT_ACTIVE, NULL, TYPE_NAME, "button1", NULL);
+            else {
+                sendev    = TRUE;
+                propagate = TRUE;
+            }
         }
         else if(event->button == 2 && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
             sendev    = TRUE;
@@ -595,9 +193,26 @@ button_press_cb (GtkWidget* window, GdkEventButton* event) {
         }
 
         if(sendev) {
-            details = g_strdup_printf("Button%d", event->button);
-            send_event(KEY_PRESS, NULL, TYPE_NAME, details, NULL);
-            g_free (details);
+            button_to_event(event->button, event->state, GDK_BUTTON_PRESS);
+        }
+    }
+
+    if(event->type == GDK_2BUTTON_PRESS || event->type == GDK_3BUTTON_PRESS) {
+        if(event->button == 1 && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE) && (context & WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT)) {
+            sendev    = TRUE;
+            propagate = TRUE;
+        }
+        else if(event->button == 2 && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
+            sendev    = TRUE;
+            propagate = TRUE;
+        }
+        else if(event->button > 3) {
+            sendev    = TRUE;
+            propagate = TRUE;
+        }
+
+        if(sendev) {
+            button_to_event(event->button, event->state, event->type);
         }
     }
 
@@ -608,7 +223,6 @@ gboolean
 button_release_cb (GtkWidget* window, GdkEventButton* event) {
     (void) window;
     gint context;
-    gchar *details;
     gboolean propagate = FALSE,
              sendev    = FALSE;
 
@@ -624,9 +238,7 @@ button_release_cb (GtkWidget* window, GdkEventButton* event) {
         }
 
         if(sendev) {
-            details = g_strdup_printf("Button%d", event->button);
-            send_event(KEY_RELEASE, NULL, TYPE_NAME, details, NULL);
-            g_free (details);
+            button_to_event(event->button, event->state, GDK_BUTTON_RELEASE);
         }
     }
 
@@ -750,10 +362,11 @@ request_starting_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitWebRes
 }
 
 void
-create_web_view_js2_cb (WebKitWebView* web_view, GParamSpec param_spec) {
+create_web_view_js_cb (WebKitWebView* web_view, GParamSpec param_spec) {
     (void) web_view;
     (void) param_spec;
 
+    webkit_web_view_stop_loading(web_view);
     const gchar* uri = webkit_web_view_get_uri(web_view);
 
     if (strncmp(uri, "javascript:", strlen("javascript:")) == 0) {
@@ -763,18 +376,6 @@ create_web_view_js2_cb (WebKitWebView* web_view, GParamSpec param_spec) {
     else
         send_event(NEW_WINDOW, NULL, TYPE_STR, uri, NULL);
 }
-
-
-gboolean
-create_web_view_js_cb (WebKitWebView* web_view, gpointer user_data) {
-    (void) web_view;
-    (void) user_data;
-
-    g_object_connect (web_view, "signal::notify::uri",
-                            G_CALLBACK(create_web_view_js2_cb), NULL, NULL);
-    return TRUE;
-}
-
 
 /*@null@*/ WebKitWebView*
 create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data) {
@@ -787,8 +388,8 @@ create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer us
 
     WebKitWebView* new_view = WEBKIT_WEB_VIEW(webkit_web_view_new());
 
-    g_signal_connect (new_view, "web-view-ready",
-                        G_CALLBACK(create_web_view_js_cb), NULL);
+    g_object_connect (new_view, "signal::notify::uri",
+                           G_CALLBACK(create_web_view_js_cb), NULL, NULL);
     return new_view;
 }
 
@@ -837,6 +438,11 @@ download_cb(WebKitWebView *web_view, WebKitDownload *download, gpointer user_dat
     /* get the URI being downloaded */
     const gchar *uri = webkit_download_get_uri(download);
 
+    /* get the destination path, if specified.
+     * this is only intended to be set when this function is trigger by an
+     * explicit download using uzbl's 'download' action. */
+    const gchar *destination = user_data;
+
     if (uzbl.state.verbose)
         printf("Download requested -> %s\n", uri);
 
@@ -883,6 +489,9 @@ download_cb(WebKitWebView *web_view, WebKitDownload *download, gpointer user_dat
     gchar *total_size_s = g_strdup_printf("%d", total_size);
     g_array_append_val(a, total_size_s);
 
+    if(destination)
+        g_array_append_val(a, destination);
+
     GString *result = g_string_new ("");
     run_parsed_command(c, a, result);
 
@@ -928,43 +537,32 @@ download_cb(WebKitWebView *web_view, WebKitDownload *download, gpointer user_dat
     return TRUE;
 }
 
-gboolean
-scroll_vert_cb(GtkAdjustment *adjust, void *w)
-{
-    (void) w;
-
+void
+send_scroll_event(int type, GtkAdjustment *adjust) {
     gdouble value = gtk_adjustment_get_value(adjust);
     gdouble min = gtk_adjustment_get_lower(adjust);
     gdouble max = gtk_adjustment_get_upper(adjust);
     gdouble page = gtk_adjustment_get_page_size(adjust);
 
-    send_event (SCROLL_VERT, NULL,
+    send_event (type, NULL,
         TYPE_FLOAT, value,
         TYPE_FLOAT, min,
         TYPE_FLOAT, max,
         TYPE_FLOAT, page,
         NULL);
+}
 
+gboolean
+scroll_vert_cb(GtkAdjustment *adjust, void *w) {
+    (void) w;
+    send_scroll_event(SCROLL_VERT, adjust);
     return (FALSE);
 }
 
 gboolean
-scroll_horiz_cb(GtkAdjustment *adjust, void *w)
-{
+scroll_horiz_cb(GtkAdjustment *adjust, void *w) {
     (void) w;
-
-    gdouble value = gtk_adjustment_get_value(adjust);
-    gdouble min = gtk_adjustment_get_lower(adjust);
-    gdouble max = gtk_adjustment_get_upper(adjust);
-    gdouble page = gtk_adjustment_get_page_size(adjust);
-
-    send_event (SCROLL_HORIZ, NULL,
-        TYPE_FLOAT, value,
-        TYPE_FLOAT, min,
-        TYPE_FLOAT, max,
-        TYPE_FLOAT, page,
-        NULL);
-
+    send_scroll_event(SCROLL_HORIZ, adjust);
     return (FALSE);
 }
 
@@ -1053,5 +651,39 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
         }
     }
 }
+
+void
+window_object_cleared_cb(WebKitWebView *webview, WebKitWebFrame *frame,
+    JSGlobalContextRef *context, JSObjectRef *object) {
+    (void) frame; (void) context; (void) object;
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+    // Take this opportunity to set some callbacks on the DOM
+    WebKitDOMDocument *document = webkit_web_view_get_dom_document (webview);
+    webkit_dom_event_target_add_event_listener (WEBKIT_DOM_EVENT_TARGET (document),
+        "focus", G_CALLBACK(dom_focus_cb), TRUE, NULL);
+    webkit_dom_event_target_add_event_listener (WEBKIT_DOM_EVENT_TARGET (document),
+        "blur", G_CALLBACK(dom_focus_cb), TRUE, NULL);
+#else
+	(void) webview;
+#endif
+}
+
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+void
+dom_focus_cb(WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer user_data) {
+    (void) target; (void) user_data;
+    WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
+    gchar* name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
+    send_event (FOCUS_ELEMENT, NULL, TYPE_STR, name, NULL);
+}
+
+void
+dom_blur_cb(WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer user_data) {
+    (void) target; (void) user_data;
+    WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
+    gchar* name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
+    send_event (BLUR_ELEMENT, NULL, TYPE_STR, name, NULL);
+}
+#endif
 
 /* vi: set et ts=4: */

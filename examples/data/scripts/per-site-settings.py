@@ -93,13 +93,18 @@ def write_to_socket(commands, sockpath):
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     sock.connect(sockpath)
     for command in commands:
-        sock.send(command)
+        sock.send('%s\n' % command)
     sock.close()
 
 
 if __name__ == '__main__':
     sockpath = os.environ['UZBL_SOCKET']
     url = urlparse.urlparse(os.environ['UZBL_URI'])
+
+    if not url.hostname:
+        # this is e.g. a file:// URL
+        exit()
+
     filepath = sys.argv[1]
 
     mode = os.stat(filepath)[stat.ST_MODE]

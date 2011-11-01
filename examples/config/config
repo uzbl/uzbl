@@ -28,8 +28,6 @@ set on_set          = request ON_SET
 set modmap          = request MODMAP
 # request IGNORE_KEY <glob>
 set ignore_key      = request IGNORE_KEY
-# request MODKEY_ADDITION <key1> <key2> <keyn> <result>
-set modkey_addition = request MODKEY_ADDITION
 # request TOGGLE_MODES <mode1> <mode2> ... <moden>
 set toggle_modes    = request TOGGLE_MODES
 
@@ -83,7 +81,7 @@ set download_handler    = sync_spawn @scripts_dir/download.sh
 @on_event   LOAD_FINISH    spawn @scripts_dir/history.sh
 
 # Switch to insert mode if a (editable) html form is clicked
-@on_event   FORM_ACTIVE    @set_mode insert
+@on_event   FOCUS_ELEMENT  sh 'if [ "$1" = INPUT -o "$1" = TEXTAREA -o "$1" = SELECT ]; then echo "@set_mode insert" > $UZBL_FIFO; fi' %s
 # Switch to command mode if anything else is clicked
 @on_event   ROOT_ACTIVE    @set_mode command
 
@@ -91,7 +89,7 @@ set download_handler    = sync_spawn @scripts_dir/download.sh
 #@on_event  CONFIG_CHANGED print Config changed: %1 = %2
 
 # Scroll percentage calculation
-@on_event   SCROLL_VERT    set scroll_message = \@<(function(){var p='--';if(%3!=%2){p=(%1/(%3-%4));p=Math.round(10000*p)/100;};return p+'%';})()>\@
+@on_event   SCROLL_VERT    set scroll_message = \@<(function(curr, min, max, size){if(max == size) return '--'; var p=(curr/(max - size)); return Math.round(10000*p)/100;})(%1,%2,%3,%4)>\@%
 
 # === Behaviour and appearance ===============================================
 
@@ -154,15 +152,11 @@ set useragent         = Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}) (@(+uname 
 @modmap <space>         <Space>
 @modmap <KP_Enter>      <Enter>
 
-#modkey_addition <Key1>  <Key2>    <Result>
-@modkey_addition <Shift> <Ctrl>    <Meta>
-@modkey_addition <Shift> <Tab>     <Shift-Tab>
-@modkey_addition <Shift> <Insert>  <Shift-Insert>
-
 #ignore_key <glob>
 @ignore_key <ISO_*>
 @ignore_key <Shift>
 @ignore_key <Multi_key>
+@ignore_key <Mod2>
 
 # --- Bind aliases -----------------------------------------------------------
 
@@ -200,7 +194,7 @@ set ebind     = @mode_bind global,-insert
 @ebind  <Delete>     = event KEYCMD_DELETE
 @ebind  <Tab>        = event START_COMPLETION
 # Readline-ish bindings.
-@ebind  <Ctrl>w      = event KEYCMD_STRIP_WORD
+@ebind  <Ctrl>w      = event KEYCMD_STRIP_WORD \ -./&?=
 @ebind  <Ctrl>u      = event SET_KEYCMD
 @ebind  <Ctrl>a      = event SET_CURSOR_POS 0
 @ebind  <Ctrl>e      = event SET_CURSOR_POS -1
@@ -269,8 +263,8 @@ set ebind     = @mode_bind global,-insert
 @cbind  n   = search
 @cbind  N   = search_reverse
 
-# Print pages to a printer
-@cbind  <Ctrl>p = hardcopy
+# Print pages to a printer
+@cbind  <Ctrl>p = hardcopy
 
 # Web searching binds
 @cbind  gg<Google:>_         = uri http://www.google.com/search?q=\@<encodeURIComponent(%r)>\@
@@ -290,8 +284,8 @@ set ebind     = @mode_bind global,-insert
 
 # Use socat to directly inject commands into uzbl-core and view events
 # raised by uzbl-core:
-@cbind  <Ctrl><Alt>t  = sh 'xterm -e "socat unix-connect:\"$UZBL_SOCKET\" -"'
-#@cbind  <Ctrl><Alt>t  = sh 'urxvt -e socat unix-connect:"$UZBL_SOCKET" -'
+@cbind  <Ctrl><Mod1>t  = sh 'xterm -e "socat unix-connect:\"$UZBL_SOCKET\" -"'
+#@cbind  <Ctrl><Mod1>t  = sh 'urxvt -e socat unix-connect:"$UZBL_SOCKET" -'
 
 # Uri opening prompts
 @cbind  o<uri:>_       = uri %s
@@ -314,7 +308,7 @@ set ebind     = @mode_bind global,-insert
 
 # Yanking & pasting binds
 @cbind  yu  = sh 'echo -n "$UZBL_URI" | xclip'
-@cbind  yU  = sh 'echo -n "$1" | xclip' \@SELECTED_URI
+@cbind  yU  = sh 'echo -n "$1" | xclip' '\@SELECTED_URI'
 @cbind  yy  = sh 'echo -n "$UZBL_TITLE" | xclip'
 
 # Clone current window
@@ -326,16 +320,20 @@ set ebind     = @mode_bind global,-insert
 # Start a new uzbl instance from the page in primary selection
 @cbind  'p  = sh 'echo "event REQ_NEW_WINDOW $(xclip -o)" > "$UZBL_FIFO"'
 # paste primary selection into keycmd at the cursor position
-@bind <Shift-Insert> = sh 'echo "event INJECT_KEYCMD $(xclip -o | sed s/\\\@/%40/g)" > "$UZBL_FIFO"'
+@bind <Shift><Insert> = sh 'echo "event INJECT_KEYCMD $(xclip -o | sed s/\\\@/%40/g)" > "$UZBL_FIFO"'
 
 # Bookmark inserting binds
-@cbind <Ctrl>b<tags:>_  = sh 'echo `printf "$UZBL_URI %s"` >> "$XDG_DATA_HOME"/uzbl/bookmarks'
+@cbind <Ctrl>m<tags:>_  = sh 'echo "$UZBL_URI $1" >> "$XDG_DATA_HOME"/uzbl/bookmarks' '%s'
 # Or use a script to insert a bookmark.
-@cbind  B  = spawn @scripts_dir/insert_bookmark.sh
+@cbind  M  = spawn @scripts_dir/insert_bookmark.sh
 
 # Bookmark/history loading
 @cbind  U  = spawn @scripts_dir/load_url_from_history.sh
 @cbind  u  = spawn @scripts_dir/load_url_from_bookmarks.sh
+
+# Temporary bookmarks
+@cbind  <Ctrl>d  = spawn @scripts_dir/insert_temp.sh
+@cbind  D        = spawn @scripts_dir/load_url_from_temps.sh
 
 # Link following (similar to vimperator and konqueror)
 # Set custom keys you wish to use for navigation. Some common examples:
@@ -343,9 +341,13 @@ set follow_hint_keys = 0123456789
 #set follow_hint_keys = qwerty
 #set follow_hint_keys = asdfghjkl;
 #set follow_hint_keys = thsnd-rcgmvwb/;789aefijkopquxyz234
-@cbind  fl*  = spawn @scripts_dir/follow.sh \@< uzbl.follow("\@follow_hint_keys", "%s", 0) >\@
-@cbind  Fl*  = spawn @scripts_dir/follow.sh \@< uzbl.follow("\@follow_hint_keys", "%s", 1) >\@
+@cbind  fl*  = spawn @scripts_dir/follow.sh \@< uzbl.follow("\@follow_hint_keys", "%s", 'click') >\@
+@cbind  Fl*  = spawn @scripts_dir/follow.sh \@< uzbl.follow("\@follow_hint_keys", "%s", 'newwindow') >\@
+@cbind  fL*  = spawn @scripts_dir/follow.sh \@< uzbl.follow("\@follow_hint_keys", "%s", 'returnuri') >\@ set
+@cbind  FL*  = spawn @scripts_dir/follow.sh \@< uzbl.follow("\@follow_hint_keys", "%s", 'returnuri') >\@ clipboard
 @cbind  fi   = spawn @scripts_dir/go_input.sh
+
+@cbind  '*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followTextContent("%s", 'click') >\@
 
 # Form filler binds
 # This script allows you to configure (per domain) values to fill in form
@@ -353,10 +355,10 @@ set follow_hint_keys = 0123456789
 # This implementation allows you to save multiple profiles for each form
 # (think about multiple accounts on some website).
 set formfiller = spawn @scripts_dir/formfiller.sh
-@cbind  za  = @formfiller add
 @cbind  ze  = @formfiller edit
 @cbind  zn  = @formfiller new
 @cbind  zl  = @formfiller load
+@cbind  zo  = @formfiller once
 
 # --- Uzbl tabbed binds ------------------------------------------------------
 

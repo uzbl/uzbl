@@ -151,8 +151,8 @@ argv_idx(const GArray *a, const guint idx) {
 
 GString *
 append_escaped (GString *dest, const gchar *src) {
-	g_assert(dest);
-	g_assert(src);
+    g_assert(dest);
+    g_assert(src);
 
     // Hint that we are going to append another string.
     int oldlen = dest->len;

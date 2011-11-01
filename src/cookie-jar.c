@@ -3,6 +3,7 @@
 #include "cookie-jar.h"
 #include "uzbl-core.h"
 #include "events.h"
+#include "type.h"
 
 G_DEFINE_TYPE (UzblCookieJar, soup_cookie_jar_socket, SOUP_TYPE_COOKIE_JAR)
 
@@ -43,7 +44,7 @@ changed(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie) {
 
         gchar *expires = NULL;
         if(cookie->expires)
-            expires = g_strdup_printf ("%d", soup_date_to_time_t (cookie->expires));
+            expires = g_strdup_printf ("%ld", (long)soup_date_to_time_t (cookie->expires));
 
 		send_event (new_cookie ? ADD_COOKIE : DELETE_COOKIE, NULL,
 			TYPE_STR, cookie->domain,

@@ -48,6 +48,8 @@
 #endif
 
 #include "cookie-jar.h"
+#include "commands.h"
+#include "status-bar.h"
 
 #define LENGTH(x) (sizeof x / sizeof x[0])
 
@@ -62,16 +64,11 @@ typedef struct {
     GtkWidget*     vbox;
 
     /* Mainbar */
-    GtkWidget*     mainbar;
-    GtkWidget*     mainbar_label_left;
-    GtkWidget*     mainbar_label_right;
+    GtkWidget*     status_bar;
 
     /* Scrolling */
-    GtkScrollbar*  scbar_v;   /* Horizontal and Vertical Scrollbar */
-    GtkScrollbar*  scbar_h;   /* (These are still hidden) */
     GtkAdjustment* bar_v;     /* Information about document length */
     GtkAdjustment* bar_h;     /* and scrolling position */
-    int            scrollbars_visible;
 
     /* Web page */
     WebKitWebView* web_view;
@@ -92,7 +89,6 @@ enum { FIFO, SOCKET};
 typedef struct {
     gchar          *fifo_path;
     gchar          *socket_path;
-    GHashTable     *proto_var;  /* stores (key)"variable name" -> (value)"pointer to var */
 
     GPtrArray      *connect_chan;
     GPtrArray      *client_chan;
@@ -109,6 +105,7 @@ typedef struct {
     gchar*          executable_path;
     gchar*          searchtx;
     gboolean        verbose;
+    gboolean        embed;
     GdkEventButton* last_button;
     gchar*          last_result;
     gboolean        plug_mode;
@@ -140,7 +137,6 @@ typedef struct {
     gchar*   status_format;
     gchar*   status_format_right;
     gchar*   status_background;
-    gboolean show_status;
     gboolean status_top;
 
     /* Window title */
@@ -156,48 +152,17 @@ typedef struct {
     gchar*   scheme_handler;
     gchar*   download_handler;
 
-    /* Fonts */
-    gchar*   default_font_family;
-    gchar*   monospace_font_family;
-    gchar*   sans_serif_font_family;
-    gchar*   serif_font_family;
-    gchar*   fantasy_font_family;
-    gchar*   cursive_font_family;
-
     gboolean forward_keys;
     guint    http_debug;
     gchar*   shell_cmd;
     guint    view_source;
 
-    /* WebKitWebSettings exports */
-    guint    font_size;
-    guint    monospace_size;
-    guint    minimum_font_size;
-    gfloat   zoom_level;
-    gboolean zoom_type;
-    guint    enable_pagecache;
-    guint    disable_plugins;
-    guint    disable_scripts;
-    guint    autoload_img;
-    guint    autoshrink_img;
-    guint    enable_spellcheck;
-    guint    enable_private;
-    guint    print_bg;
-    gchar*   style_uri;
-    guint    resizable_txt;
-    gchar*   default_encoding;
-    gchar*   current_encoding;
-    guint    enforce_96dpi;
-    gchar    *inject_html;
-    guint    caret_browsing;
-    guint    javascript_windows;
     gboolean print_version;
 
     /* command list: (key)name -> (value)Command  */
     GHashTable* commands;
-
-    /* event lookup: (key)event_id -> (value)event_name */
-    GHashTable *event_lookup;
+    /* variables: (key)name -> (value)uzbl_cmdprop */
+    GHashTable* proto_var;
 } Behaviour;
 
 
@@ -208,6 +173,8 @@ typedef struct {
     int     webkit_micro;
     gchar*  arch;
     gchar*  commit;
+
+    pid_t   pid;
     gchar*  pid_str;
 } Info;
 
@@ -220,30 +187,12 @@ typedef struct {
     Behaviour     behave;
     Communication comm;
     Info          info;
-
-    Window        xwin;
 } UzblCore;
 
 extern UzblCore uzbl; /* Main Uzbl object */
 
 
 typedef void sigfunc(int);
-
-/* Uzbl variables */
-enum ptr_type {TYPE_INT = 1, TYPE_STR, TYPE_FLOAT,
-    TYPE_NAME, TYPE_FORMATTEDSTR // used by send_event
-};
-typedef struct {
-    enum ptr_type type;
-    union {
-        int *i;
-        float *f;
-        gchar **s;
-    } ptr;
-    int dump;
-    int writeable;
-    /*@null@*/ void (*func)(void);
-} uzbl_cmdprop;
 
 /* Functions */
 void        clean_up(void);
@@ -253,24 +202,24 @@ void        update_title(void);
 void        catch_sigterm(int s);
 sigfunc*    setup_signal(int signe, sigfunc *shandler);
 
-gboolean    set_var_value(const gchar *name, gchar *val);
-void        load_uri_imp(gchar *uri);
-void        print(WebKitWebView *page, GArray *argv, GString *result);
-void        commands_hash(void);
-void        load_uri(WebKitWebView * web_view, GArray *argv, GString *result);
-void        chain(WebKitWebView *page, GArray *argv, GString *result);
-void        close_uzbl(WebKitWebView *page, GArray *argv, GString *result);
+/* Subprocess spawning */
+void        spawn(GArray *argv, GString *result, gboolean exec);
+void        spawn_sh(GArray *argv, GString *result);
+
+/* Configuration variables */
+gboolean    valid_name(const gchar* name);
 
 /* Running commands */
+gchar*      expand(const char* s, guint recurse);
 gboolean    run_command(const gchar *command, const gchar **args, const gboolean sync,
                 char **output_stdout);
-void        spawn_async(WebKitWebView *web_view, GArray *argv, GString *result);
-void        spawn_sh_async(WebKitWebView *web_view, GArray *argv, GString *result);
-void        spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result);
-void        spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result);
-void        spawn_sync_exec(WebKitWebView *web_view, GArray *argv, GString *result);
+void        run_command_file(const gchar *path);
 void        parse_command(const char *cmd, const char *param, GString *result);
 void        parse_cmd_line(const char *ctl_line, GString *result);
+const CommandInfo *
+            parse_command_parts(const gchar *line, GArray *a);
+void        parse_command_arguments(const gchar *p, GArray *a, gboolean no_split);
+void        run_parsed_command(const CommandInfo *c, GArray *a, GString *result);
 
 /* Keyboard events functions */
 gboolean    key_press_cb(GtkWidget* window, GdkEventKey* event);
@@ -282,20 +231,13 @@ void        create_scrolled_win();
 GtkWidget*  create_mainbar();
 GtkWidget*  create_window();
 GtkPlug*    create_plug();
-void        run_handler(const gchar *act, const gchar *args);
 void        settings_init();
 
 /* Search functions */
-void        search_text (WebKitWebView *page, GArray *argv, const gboolean forward);
-void        search_forward_text (WebKitWebView *page, GArray *argv, GString *result);
-void        search_reverse_text (WebKitWebView *page, GArray *argv, GString *result);
-void        search_clear(WebKitWebView *page, GArray *argv, GString *result);
-void        dehilight (WebKitWebView *page, GArray *argv, GString *result);
+void        search_text (WebKitWebView *page, const gchar *key, const gboolean forward);
 
 /* Javascript functions */
-void        run_js (WebKitWebView * web_view, GArray *argv, GString *result);
-void        run_external_js (WebKitWebView * web_view, GArray *argv, GString *result);
-void        eval_js(WebKitWebView * web_view, gchar *script, GString *result, const gchar *script_file);
+void        eval_js(WebKitWebView *web_view, const gchar *script, GString *result, const gchar *script_file);
 
 /* Network functions */
 void        handle_authentication (SoupSession *session,
@@ -303,54 +245,15 @@ void        handle_authentication (SoupSession *session,
                             SoupAuth    *auth,
                             gboolean     retrying,
                             gpointer     user_data);
-gboolean    valid_name(const gchar* name);
-void        set_var(WebKitWebView *page, GArray *argv, GString *result);
-void        act_dump_config();
-void        act_dump_config_as_events();
-void        dump_var_hash(gpointer k, gpointer v, gpointer ud);
-void        dump_key_hash(gpointer k, gpointer v, gpointer ud);
-void        dump_config();
-void        dump_config_as_events();
 
-void        retrieve_geometry();
-void        set_webview_scroll_adjustments();
-void        event(WebKitWebView *page, GArray *argv, GString *result);
 void        init_connect_socket();
 gboolean    remove_socket_from_array(GIOChannel *chan);
 
+/* Window */
+void        retrieve_geometry();
+void        scroll(GtkAdjustment* bar, gchar *amount_str);
 gint        get_click_context();
-void        hardcopy(WebKitWebView *page, GArray *argv, GString *result);
-void        include(WebKitWebView *page, GArray *argv, GString *result);
-void        show_inspector(WebKitWebView *page, GArray *argv, GString *result);
-void        add_cookie(WebKitWebView *page, GArray *argv, GString *result);
-void        delete_cookie(WebKitWebView *page, GArray *argv, GString *result);
-void        clear_cookies(WebKitWebView *pag, GArray *argv, GString *result);
-void        builtins();
 
-typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
-
-typedef struct {
-    const gchar *key;
-    Command      function;
-    gboolean     no_split;
-} CommandInfo;
-
-const CommandInfo *
-parse_command_parts(const gchar *line, GArray *a);
-
-void
-parse_command_arguments(const gchar *p, GArray *a, gboolean no_split);
-
-void
-run_parsed_command(const CommandInfo *c, GArray *a, GString *result);
-
-typedef struct {
-    gchar*   name;
-    gchar*   cmd;
-    gboolean issep;
-    guint    context;
-    WebKitHitTestResult* hittest;
-} MenuItem;
 
 #endif
 /* vi: set et ts=4: */

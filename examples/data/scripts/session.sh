@@ -33,7 +33,6 @@ UZBL="uzbl-browser -c \"$UZBL_CONFIG_FILE\"" # add custom flags and whatever her
 
 scriptfile="$( readlink -f "$0" )"                            # this script
 act="$1"
-shift
 
 if [ -z "$act" ]; then
   [ -f "$UZBL_SESSION_FILE" ] && act="launch" || act="endsession"

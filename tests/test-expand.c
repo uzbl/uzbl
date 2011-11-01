@@ -28,7 +28,6 @@
 
 extern UzblCore uzbl;
 
-extern gchar* expand(char*, guint);
 extern void make_var_to_name_hash(void);
 
 void

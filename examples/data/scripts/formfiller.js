@@ -1,32 +1,46 @@
 uzbl.formfiller = {
 
+    // this is pointlessly duplicated in uzbl.follow
+    textInputTypes: [
+      'text', 'password', 'search', 'email', 'url', 'number', 'range', 'color',
+      'date', 'month', 'week', 'time', 'datetime', 'datetime-local'
+    ]
+
+    ,
+
+    // this is pointlessly duplicated in uzbl.follow
+    inputTypeIsText: function(type) {
+        return uzbl.formfiller.textInputTypes.indexOf(type) >= 0;
+    }
+
+    ,
+
     dump: function() {
         var rv = '';
         var allFrames = new Array(window);
-        for ( f=0; f<window.frames.length; ++f ) {
+
+        for ( var f = 0; f < window.frames.length; ++f ) {
             allFrames.push(window.frames[f]);
         }
-        for ( j=0; j<allFrames.length; ++j ) {
+
+        for ( var j = 0; j < allFrames.length; ++j ) {
             try {
-                var xp_res = allFrames[j].document.evaluate(
-                    '//input', allFrames[j].document.documentElement, null, XPathResult.ANY_TYPE,null
-                );
-                var input;
-                while ( input = xp_res.iterateNext() ) {
-                    var type = (input.type?input.type:text);
-                    if ( type == 'text' || type == 'password' || type == 'search' ) {
-                        rv += '%' + escape(input.name) + '(' + type + '):' + input.value + '\n';
-                    }
-                    else if ( type == 'checkbox' || type == 'radio' ) {
-                        rv += '%' + escape(input.name) + '(' + type + '){' + escape(input.value) + '}:' + (input.checked?'1':'0') + '\n';
+                var inputs = allFrames[j].document.getElementsByTagName("input");
+
+                for( var k = 0; k < inputs.length; ++k ) {
+                    var input = inputs[k];
+                    if ( uzbl.formfiller.inputTypeIsText(input.type) ) {
+                        rv += '%' + escape(input.name) + '(' + input.type + '):' + input.value + '\n';
+                    } else if ( input.type == 'checkbox' || input.type == 'radio' ) {
+                        rv += '%' + escape(input.name) + '(' + input.type + '){' + escape(input.value) + '}:' + (input.checked?'1':'0') + '\n';
                     }
                 }
-                xp_res = allFrames[j].document.evaluate(
-                    '//textarea', allFrames[j].document.documentElement, null, XPathResult.ANY_TYPE,null
-                );
-                var input;
-                while ( input = xp_res.iterateNext() ) {
-                    rv += '%' + escape(input.name) + '(textarea):\n' + input.value.replace(/\n%/g,"\n\\%") + '\n%\n';
+
+                var textareas = allFrames[j].document.getElementsByTagName("textarea");
+                for( var k = 0; k < textareas.length; ++k ) {
+                    var textarea = textareas[k];
+                    rv += '%' + escape(textarea.name) + '(textarea):\n' + textarea.value.replace(/\n%/g,"\n\\%") + '\n%\n';
+                    rv += '%' + escape(textarea.name) + '(textarea):\n' + textarea.value.replace(/\n\\/g,"\n\\\\").replace(/\n%/g,"\n\\%") + '%\n';
                 }
             }
             catch (err) { }
@@ -39,12 +53,12 @@ uzbl.formfiller = {
     insert: function(fname, ftype, fvalue, fchecked) {
         fname = unescape(fname);
         var allFrames = new Array(window);
-        for ( f=0; f<window.frames.length; ++f ) {
+        for ( var f = 0; f < window.frames.length; ++f ) {
             allFrames.push(window.frames[f]);
         }
-        for ( j=0; j<allFrames.length; ++j ) {
+        for ( var j = 0; j < allFrames.length; ++j ) {
             try {
-                if ( ftype == 'text' || ftype == 'password' || ftype == 'search' || ftype == 'textarea' ) {
+                if ( uzbl.formfiller.inputTypeIsText(ftype) || ftype == 'textarea' ) {
                     allFrames[j].document.getElementsByName(fname)[0].value = fvalue;
                 }
                 else if ( ftype == 'checkbox' ) {

@@ -18,7 +18,7 @@ function gi() {
 				else {
 					el.focus();
 				}
-				return "XXXEMIT_FORM_ACTIVEXXX";
+				return "XXXFORM_ACTIVEXXX";
 			}
 		}
 	}
