@@ -253,11 +253,11 @@ test_toggle_status (void) {
     g_assert(!get_show_status());
 
     /* status bar can be toggled on */
-    parse_cmd_line("toggle_status", NULL);
+    parse_cmd_line("toggle show_status", NULL);
     g_assert(get_show_status());
 
     /* status bar can be toggled back off */
-    parse_cmd_line("toggle_status", NULL);
+    parse_cmd_line("toggle show_status", NULL);
     g_assert(!get_show_status());
 }
 

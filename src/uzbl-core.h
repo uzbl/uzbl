@@ -130,6 +130,11 @@ typedef struct {
     gint            max_conns_host;
 } Network;
 
+/* ssl */
+typedef struct {
+    gchar *ca_file;
+    gchar *verify_cert;
+} Ssl;
 
 /* Behaviour */
 typedef struct {
@@ -150,6 +155,7 @@ typedef struct {
     /* Handlers */
     gchar*   authentication_handler;
     gchar*   scheme_handler;
+    gchar*   request_handler;
     gchar*   download_handler;
 
     gboolean forward_keys;
@@ -184,6 +190,7 @@ typedef struct {
     GUI           gui;
     State         state;
     Network       net;
+    Ssl           ssl;
     Behaviour     behave;
     Communication comm;
     Info          info;
