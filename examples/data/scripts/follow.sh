@@ -13,6 +13,9 @@ case "$result" in
         # a link was selected, reset uzbl's input mode
         printf 'set mode=\nevent KEYCMD_CLEAR\n' > "$UZBL_FIFO"
         ;;
+    XXXNEW_WINDOWXXX*)
+        printf "set mode=\nevent KEYCMD_CLEAR\nevent NEW_WINDOW $@\n" > "$UZBL_FIFO"
+        ;;
     XXXRETURNED_URIXXX*)
         uriaction=$1
         uri=${result#XXXRETURNED_URIXXX}

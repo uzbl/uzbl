@@ -288,11 +288,10 @@ uzbl.follow.elementSelected = function(el) {
         // we're opening a new window using the URL attached to this element
         var uri = el.src || el.href;
         if(uri.match(/javascript:/)) return;
-        window.open(uri);
-        return "XXXRESET_MODEXXX"
+        return "XXXNEW_WINDOWXXX " + uri;
     } else {
-      // we're just going to click the element
-      return this.clickElem(el);
+        // we're just going to click the element
+        return this.clickElem(el);
     }
 }
 
