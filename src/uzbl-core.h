@@ -150,6 +150,7 @@ typedef struct {
     /* Handlers */
     gchar*   authentication_handler;
     gchar*   scheme_handler;
+    gchar*   request_handler;
     gchar*   download_handler;
 
     gboolean forward_keys;
