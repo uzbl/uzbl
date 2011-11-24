@@ -147,12 +147,12 @@ set useragent         = Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}) (@(+uname 
 # === SSL related configuration ==============================================
 
 # Set it to certificates store of your distribution, or your own CAfile.
-# set ssl_ca_file = /etc/certs/ca-certificates.crt
+# set ssl_ca_file = /etc/ssl/certs/ca-certificates.crt
 # set ssl_verify = 1
 # Command to toggle ssl_verify value:
-@cbind  !ssl = sh 'echo "set ssl_verify=$((!\@ssl_verify))" > "$4"; echo "set uri = \\\\\\\@uri" > "$4"'
+@cbind  !ssl = chain 'toggle ssl_verify' 'reload'
 # Example SSL error handler:
-@on_event   LOAD_ERROR    js var patt=new RegExp(':The SSL certificate is not trusted.'); if (patt.test('%1')) {alert ('%1');}
+@on_event   LOAD_ERROR    js var patt=new RegExp('SSL handshake failed'); if (patt.test('%3')) {alert ('%3');}
 
 # === Key binding configuration ==============================================
 # --- Internal modmapping and ignoring ---------------------------------------
