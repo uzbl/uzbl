@@ -147,7 +147,7 @@ set useragent         = Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}) (@(+uname 
 # === SSL related configuration ==============================================
 
 # Set it to certificates store of your distribution, or your own CAfile.
-# set ssl_ca_file = /etc/ssl/certs/ca-certificates.crt
+set ssl_ca_file = /etc/ssl/certs/ca-certificates.crt
 set ssl_verify = 1
 # Command to toggle ssl_verify value:
 @cbind  !ssl = chain 'toggle ssl_verify' 'reload'
