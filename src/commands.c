@@ -177,6 +177,11 @@ toggle_var(WebKitWebView *page, GArray *argv, GString *result) {
 
     uzbl_cmdprop *c = get_var_c(var_name);
 
+    if(!c) {
+        set_var_value(var_name, argv_idx(argv, 1));
+        return;
+    }
+
     switch(c->type) {
     case TYPE_STR:
     {

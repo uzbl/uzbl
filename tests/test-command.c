@@ -351,6 +351,12 @@ test_toggle_string (void) {
     // and wrap to the first value when it reaches the end.
     parse_cmd_line("toggle useragent 'x' 'y'", NULL);
     g_assert_cmpstr("x", ==, uzbl.net.useragent);
+
+    // user-defined variables can be toggled too.
+    parse_cmd_line("toggle new_variable 'x' 'y'", NULL);
+    gchar *value = get_var_value_string("new_variable");
+    g_assert_cmpstr("x", ==, value);
+    g_free(value);
 }
 
 int
