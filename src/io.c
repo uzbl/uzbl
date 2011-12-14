@@ -116,6 +116,7 @@ control_stdin(GIOChannel *gio, GIOCondition condition) {
     parse_cmd_line(ctl_line, result);
     g_free(ctl_line);
 
+    if (*result->str)
     puts(result->str);
     g_string_free(result, TRUE);
 

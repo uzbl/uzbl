@@ -531,8 +531,8 @@ split_quoted(const gchar* src, const gboolean unquote) {
     gchar **ret;
     gchar *dup;
     for (p = src; *p != '\0'; p++) {
-        if ((*p == '\\') && unquote) g_string_append_c(s, *++p);
-        else if (*p == '\\') { g_string_append_c(s, *p++);
+        if ((*p == '\\') && unquote && p[1]) g_string_append_c(s, *++p);
+        else if (*p == '\\' && p[1]) { g_string_append_c(s, *p++);
                                g_string_append_c(s, *p); }
         else if ((*p == '"') && unquote && !sq) dq = !dq;
         else if (*p == '"' && !sq) { g_string_append_c(s, *p);
@@ -599,10 +599,9 @@ spawn_sh(GArray *argv, GString *result) {
     if(!cmd)
         return;
 
-    gchar *cmdname = g_strdup(cmd[0]);
-    g_array_insert_val(argv, 1, cmdname);
+    g_array_insert_val(argv, 1, cmd[0]);
 
-    for (i = 1; i < g_strv_length(cmd); i++)
+    for (i = g_strv_length(cmd)-1; i > 0; i--)
         g_array_prepend_val(argv, cmd[i]);
 
     if (result) {
@@ -613,7 +612,6 @@ spawn_sh(GArray *argv, GString *result) {
     } else
         run_command(cmd[0], (const gchar **) argv->data, FALSE, NULL);
 
-    g_free (cmdname);
     g_strfreev (cmd);
 }
 
@@ -623,7 +621,6 @@ run_parsed_command(const CommandInfo *c, GArray *a, GString *result) {
     if(strcmp("set", c->key)   &&
        strcmp("event", c->key) &&
        strcmp("request", c->key)) {
-
         Event *event = format_event (COMMAND_EXECUTED, NULL,
             TYPE_NAME, c->key,
             TYPE_STR_ARRAY, a,
@@ -694,24 +691,6 @@ parse_command_parts(const gchar *line, GArray *a) {
     g_free(p);
 
     return c;
-}
-
-void
-parse_command(const char *cmd, const char *params, GString *result) {
-    CommandInfo *c = g_hash_table_lookup(uzbl.behave.commands, cmd);
-    if(c) {
-        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-
-        parse_command_arguments(params, a, c->no_split);
-        run_parsed_command(c, a, result);
-
-        g_array_free (a, TRUE);
-    } else {
-        send_event(COMMAND_ERROR, NULL,
-            TYPE_NAME, cmd,
-            TYPE_STR, params ? params : "",
-            NULL);
-    }
 }
 
 gboolean

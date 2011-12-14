@@ -40,7 +40,9 @@ changed(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie) {
      * command because otherwise a loop would occur when a cookie change is
      * propagated to other uzbl instances using add/delete_cookie. */
     if(!uzbl_jar->in_manual_add) {
-        gchar *scheme = cookie->secure ? "https" : "http";
+        gchar *scheme = cookie->secure
+		? cookie->http_only ? "httpsOnly" : "https"
+		: cookie->http_only ? "httpOnly"  : "http";
 
         gchar *expires = NULL;
         if(cookie->expires)
