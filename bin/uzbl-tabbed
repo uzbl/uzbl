@@ -159,6 +159,9 @@ import hashlib
 import atexit
 import types
 
+import urllib
+import urlparse
+
 from gobject import io_add_watch, source_remove, timeout_add, IO_IN, IO_HUP
 from signal import signal, SIGTERM, SIGINT
 from optparse import OptionParser, OptionGroup
@@ -507,6 +510,18 @@ class InstanceEventDispatcher(EventDispatcher):
                 elif var == "tab_titles" or var == "tab_indexes":
                     for tab in self.parent.notebook:
                         self.parent.tabs[tab].title_changed(True)
+                elif var == "window_size":
+                    if config['window_size'] == "m":
+                        uzbl.window.maximize()
+                    else:
+                        try:
+                            window_size = map(int, config['window_size'].split(','))
+                            uzbl.window.resize(*window_size)
+
+                        except:
+                            print_exc()
+                            error("Invalid value for window_size in config file.")
+
 
                 self.parent.update_tablist()
         else:
@@ -652,7 +667,7 @@ class UzblTabbed:
 
         except:
             print_exc()
-            error("Invalid value for default_size in config file.")
+            error("Invalid value for window_size in config file.")
 
         self.window.set_title("Uzbl Browser")
         self.window.set_border_width(0)
@@ -895,7 +910,12 @@ class UzblTabbed:
 
         tab = self.create_tab(next)
         sid = tab.get_id()
-        uri = uri.strip()
+
+        uri_parsed = urlparse.urlsplit(uri.strip().encode('utf-8'))
+        query_quoted = urllib.urlencode(urlparse.parse_qsl(uri_parsed.query, True), True)
+        path_quoted = urllib.quote(uri_parsed.path)
+        uri = urlparse.urlunsplit((uri_parsed.scheme, uri_parsed.netloc, path_quoted, query_quoted, uri_parsed.fragment))
+
         name = "%d-%d" % (os.getpid(), self.next_pid())
 
         if switch is None:
