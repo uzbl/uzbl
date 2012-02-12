@@ -2,7 +2,7 @@
     forwards cookies to all other instances connected to the event manager"""
 
 from collections import defaultdict
-import os, re
+import os, re, stat
 
 # these are symbolic names for the components of the cookie tuple
 symbolic = {'domain': 0, 'path':1, 'name':2, 'value':3, 'scheme':4, 'expires':5}
@@ -32,6 +32,14 @@ class ListStore(list):
 class TextStore(object):
     def __init__(self, filename):
         self.filename = filename
+        try:
+          # make sure existing cookie jar is not world-open
+          perm_mode = os.stat(self.filename).st_mode
+          if (perm_mode & (stat.S_IRWXO | stat.S_IRWXG)) > 0:
+              safe_perm = stat.S_IMODE(perm_mode) & ~(stat.S_IRWXO | stat.S_IRWXG)
+              os.chmod(self.filename, safe_perm)
+        except OSError:
+            pass
 
     def as_event(self, cookie):
         """Convert cookie.txt row to uzbls cookie event format"""
@@ -86,15 +94,24 @@ class TextStore(object):
         # delete equal cookies (ignoring expire time, value and secure flag)
         self.delete_cookie(None, cookie[:-3])
 
+        # restrict umask before creating the cookie jar
+        curmask=os.umask(0)
+        os.umask(curmask| stat.S_IRWXO | stat.S_IRWXG)
+
         first = not os.path.exists(self.filename)
         with open(self.filename, 'a') as f:
             if first:
                 print >> f, "# HTTP Cookie File"
             print >> f, '\t'.join(self.as_file(cookie))
+        os.umask(curmask)
 
     def delete_cookie(self, rkey, key):
         if not os.path.exists(self.filename):
             return
+
+        # restrict umask before creating the cookie jar
+        curmask=os.umask(0)
+        os.umask(curmask | stat.S_IRWXO | stat.S_IRWXG)
 
         # read all cookies
         with open(self.filename, 'r') as f:
@@ -106,6 +123,7 @@ class TextStore(object):
                 c = self.as_event(l.split('\t'))
                 if c is None or not match(key, c):
                     print >> f, l,
+        os.umask(curmask)
 
 xdg_data_home = os.environ.get('XDG_DATA_HOME', os.path.join(os.environ['HOME'], '.local/share'))
 DefaultStore = TextStore(os.path.join(xdg_data_home, 'uzbl/cookies.txt'))
