@@ -6,6 +6,7 @@ provides argument parsing for event handlers
 
 import re
 
+
 class Arguments(tuple):
     '''
     Given a argument line gives access to the split parts
@@ -23,8 +24,14 @@ class Arguments(tuple):
         (u'one', u'two', u'three')
         >>> Arguments(r"spam 'escaping \\'works\\''")
         (u'spam', u"escaping 'works'")
+        >>> # For testing purposes we can pass a preparsed tuple
+        >>> Arguments((u'foo', u'bar', u'baz az'))
+        (u'foo', u'bar', u'baz az')
         '''
-
+        if isinstance(s, tuple):
+            self = tuple.__new__(cls, s)
+            self._raw, self._ref = s, range(len(s))
+            return self
         raw = cls._splitquoted.split(s)
         ref = []
         self = tuple.__new__(cls, cls.parse(raw, ref))
