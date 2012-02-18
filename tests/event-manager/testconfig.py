@@ -5,6 +5,7 @@ from emtest import EventManagerMock
 
 from uzbl.plugins.config import Config
 
+
 class ConfigTest(unittest.TestCase):
     def setUp(self):
         self.event_manager = EventManagerMock((), (Config,))
@@ -56,7 +57,7 @@ class ConfigTest(unittest.TestCase):
         )
         c = Config[self.uzbl]
         for input, ekey in cases:
-            c.update({'foo' : '-'})
+            c.update({'foo': '-'})
             c.parse_set_event(input)
             self.assertNotIn(ekey, c)
             self.uzbl.event.assert_called_once_with(
@@ -74,4 +75,3 @@ class ConfigTest(unittest.TestCase):
         for input, exception in cases:
             self.assertRaises(exception, c.parse_set_event, input)
             self.assertEquals(len(list(c.keys())), 0)
-

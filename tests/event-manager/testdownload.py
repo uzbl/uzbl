@@ -1,3 +1,5 @@
+# vi: set et ts=4:
+
 from __future__ import print_function
 
 import unittest
@@ -5,6 +7,7 @@ from emtest import EventManagerMock
 
 from uzbl.plugins.config import Config
 from uzbl.plugins.downloads import Downloads
+
 
 class DownloadsTest(unittest.TestCase):
     def setUp(self):

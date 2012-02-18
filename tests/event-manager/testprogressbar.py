@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# vi: set et ts=4:
+
 from __future__ import print_function
 
 import sys

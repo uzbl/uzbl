@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# vi: set et ts=4:
+
 from __future__ import print_function
 
 import sys
@@ -12,6 +14,7 @@ from uzbl.plugins.history import History, SharedHistory
 from uzbl.plugins.keycmd import Keylet, KeyCmd
 from uzbl.plugins.on_set import OnSetPlugin
 from uzbl.plugins.config import Config
+
 
 class SharedHistoryTest(unittest.TestCase):
     def setUp(self):
@@ -47,9 +50,13 @@ class SharedHistoryTest(unittest.TestCase):
         s.addline('foo', 'bar')
         self.assertRaises(IndexError, s.getline, 'bar', 0)
 
+
 class HistoryTest(unittest.TestCase):
     def setUp(self):
-        self.event_manager = EventManagerMock((SharedHistory,), (OnSetPlugin, KeyCmd, Config, History))
+        self.event_manager = EventManagerMock(
+            (SharedHistory,),
+            (OnSetPlugin, KeyCmd, Config, History)
+        )
         self.uzbl = self.event_manager.add()
         self.other = self.event_manager.add()
         s = SharedHistory[self.uzbl]
@@ -118,7 +125,8 @@ class HistoryTest(unittest.TestCase):
         self.assertEquals('doop', h.prev())
         self.assertEquals('foo', h.prev())
         self.assertEquals('bar', h.prev())
-        self.assertEquals('doop', h.prev())  # do we really want this one here ?
+        # do we really want this one here ?
+        self.assertEquals('doop', h.prev())
         self.assertEquals('woop', h.prev())
 
     def test_search(self):
@@ -129,7 +137,8 @@ class HistoryTest(unittest.TestCase):
         self.assertTrue(len(h.prev()) > 0)
         self.assertEquals('woop', h.next())
         self.assertEquals('doop', h.next())
-        self.assertEquals('', h.next())  # this reset the search
+        # this reset the search
+        self.assertEquals('', h.next())
         self.assertEquals('foo', h.prev())
 
     def test_temp(self):
@@ -137,7 +146,8 @@ class HistoryTest(unittest.TestCase):
         kl.set_keycmd('uzbl')
         h = History[self.uzbl]
         h.change_prompt('foo')
-        h.history_prev(None)  # Why is the preserve current logic in this method?
+        # Why is the preserve current logic in this method?
+        h.history_prev(None)
         self.assertTrue(len(h.prev()) > 0)
         self.assertEquals('foo', h.next())
         self.assertEquals('uzbl', h.next())
