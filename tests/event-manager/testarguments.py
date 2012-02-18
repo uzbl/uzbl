@@ -18,7 +18,6 @@ class ArgumentsTest(unittest.TestCase):
 
 	def test_tab(self):
 		a = Arguments('\tfoo\t\tbar')
-		print 'heej', a.raw()
 		self.assertEquals(len(a), 2)
 		self.assertEquals(a.raw(), 'foo\t\tbar')
 		self.assertEquals(a.raw(0, 0), 'foo')
