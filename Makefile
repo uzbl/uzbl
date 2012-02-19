@@ -113,6 +113,11 @@ test-uzbl-tabbed-sandbox: sandbox uzbl-browser sandbox-install-uzbl-browser sand
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
+test-uzbl-event-manager-sandbox: sandbox uzbl-browser sandbox-install-uzbl-browser sandbox-install-example-data
+	. ./sandbox/env.sh && ${PYTHON} -S `which uzbl-event-manager` restart -navv
+	make DESTDIR=./sandbox uninstall
+	rm -rf ./sandbox/usr
+
 clean:
 	rm -f uzbl-core
 	rm -f *.o

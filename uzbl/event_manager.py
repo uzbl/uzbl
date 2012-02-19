@@ -168,18 +168,35 @@ class EventHandler(object):
         kwargs = dict(list(self.kwargs.items()) + list(kwargs.items()))
         self.callback(uzbl, *args, **kwargs)
 
+
+class NoTargetSet(Exception):
+    pass
+
+
+class TargetAlreadySet(Exception):
+    pass
+
+
 class Listener(asyncore.dispatcher):
 
-    def __init__(self, addr, event_daemon):
+    def __init__(self, addr, target=None):
         asyncore.dispatcher.__init__(self)
+        self.addr = addr
+        self.target = target
         self.create_socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.set_reuse_addr()
         self.bind(addr)
         self.listen(5)
-        self.event_daemon = event_daemon
 
     def writable(self):
         return False
+
+    def set_target(self, target):
+        if self.target is not None:
+            raise TargetAlreadySet(
+                "target of listener already set (%r)" % self.target
+            )
+        self.target = target
 
     def handle_accept(self):
         try:
@@ -187,13 +204,25 @@ class Listener(asyncore.dispatcher):
         except socket.error:
             return
         else:
-            self.event_daemon.add_instance(sock)
+            if self.target is None:
+                raise NoTargetSet("No target for %r" % self)
+            self.target.add_instance(sock)
+
+    def close(self):
+        super(Listener, self).close()
+        if os.path.exists(self.addr):
+            logger.info('unlinking %r', self.addr)
+            os.unlink(self.addr)
+
+    def handle_error(self):
+        raise
 
 
 class UzblEventDaemon(object):
-    def __init__(self):
+    def __init__(self, listener):
+        listener.set_target(self)
         self.opts = opts
-        self.server_socket = None
+        self.listener = listener
         self._quit = False
 
         # Hold uzbl instances
@@ -236,19 +265,10 @@ class UzblEventDaemon(object):
             self._plugin_instances.append(pinst)
             self.plugins[plugin] = pinst
 
-    def create_server_socket(self):
-        '''Create the event manager daemon socket for uzbl instance duplex
-        communication.'''
-        Listener(opts.server_socket, self)
-        logger.debug('bound server socket to %r', opts.server_socket)
-
     def run(self):
         '''Main event daemon loop.'''
 
         logger.debug('entering main loop')
-
-        # Create and listen on the server socket
-        self.create_server_socket()
 
         if opts.daemon_mode:
             # Daemonize the process
@@ -278,14 +298,7 @@ class UzblEventDaemon(object):
         '''Close and delete the server socket.'''
 
         try:
-            if self.server_socket:
-                logger.debug('closing server socket')
-                self.server_socket.close()
-                self.server_socket = None
-
-            if os.path.exists(opts.server_socket):
-                logger.info('unlinking %r', opts.server_socket)
-                os.unlink(opts.server_socket)
+            self.listener.close()
 
         except:
             logger.error('failed to close server socket', exc_info=True)
@@ -445,7 +458,9 @@ def start_action():
         logger.info('no process with pid %d', pid)
         del_pid_file(pid_file)
 
-    UzblEventDaemon().run()
+    listener = Listener(opts.server_socket)
+    daemon = UzblEventDaemon(listener)
+    daemon.run()
 
 
 def restart_action():
