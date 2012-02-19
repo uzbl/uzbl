@@ -135,11 +135,7 @@ class Uzbl(object):
         for handler in self.handlers[event]:
             self._depth += 1
             try:
-                if hasattr(handler, 'call'):
-                    # temporary solution, will migrate all events later
-                    handler.call(self, *args, **kargs)
-                else:
-                    handler(*args, **kargs)
+                handler(*args, **kargs)
 
             except Exception:
                 self.logger.error('error in handler', exc_info=True)

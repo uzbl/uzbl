@@ -22,4 +22,4 @@ class TestUzbl(unittest.TestCase):
         arg = 'test'
         self.uzbl.connect('FOO', handler)
         self.uzbl.event('FOO', arg)
-        handler.call.assert_called_once_with(self.uzbl, arg)
+        handler.assert_called_once_with(arg)

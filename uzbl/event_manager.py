@@ -134,41 +134,6 @@ def make_dirs(path):
         logger.error('failed to create directories', exc_info=True)
 
 
-class EventHandler(object):
-    '''Event handler class. Used to store args and kwargs which are merged
-    come time to call the callback with the event args and kwargs.'''
-
-    nextid = count().__next__
-
-    def __init__(self, plugin, event, callback, args, kwargs):
-        self.id = self.nextid()
-        self.plugin = plugin
-        self.event = event
-        self.callback = callback
-        self.args = args
-        self.kwargs = kwargs
-
-    def __repr__(self):
-        elems = ['id=%d' % self.id, 'event=%s' % self.event,
-            'callback=%r' % self.callback]
-
-        if self.args:
-            elems.append('args=%s' % repr(self.args))
-
-        if self.kwargs:
-            elems.append('kwargs=%s' % repr(self.kwargs))
-
-        elems.append('plugin=%s' % self.plugin.name)
-        return '<handler(%s)>' % ', '.join(elems)
-
-    def call(self, uzbl, *args, **kwargs):
-        '''Execute the handler function and merge argument lists.'''
-
-        args = args + self.args
-        kwargs = dict(list(self.kwargs.items()) + list(kwargs.items()))
-        self.callback(uzbl, *args, **kwargs)
-
-
 class NoTargetSet(Exception):
     pass
 
