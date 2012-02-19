@@ -58,7 +58,6 @@ class Uzbl(object):
             'pid=%s' % (self.pid if self.pid else "Unknown"),
             'name=%s' % ('%r' % self.name if self.name else "Unknown"),
             'uptime=%f' % (time.time() - self.time),
-            '%d exports' % len(self.exports.keys()),
             '%d handlers' % sum([len(l) for l in self.handlers.values()])])
 
     def init_plugins(self):
