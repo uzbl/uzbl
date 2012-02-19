@@ -37,7 +37,6 @@ import weakref
 import re
 import errno
 import asyncore
-import socket
 from collections import defaultdict
 from functools import partial
 from glob import glob
@@ -47,6 +46,7 @@ from select import select
 from signal import signal, SIGTERM, SIGINT, SIGKILL
 from traceback import format_exc
 
+from uzbl.net import Listener, Protocol
 from uzbl.core import Uzbl
 
 def xdghome(key, default):
@@ -134,58 +134,9 @@ def make_dirs(path):
         logger.error('failed to create directories', exc_info=True)
 
 
-class NoTargetSet(Exception):
-    pass
-
-
-class TargetAlreadySet(Exception):
-    pass
-
-
-class Listener(asyncore.dispatcher):
-
-    def __init__(self, addr, target=None):
-        asyncore.dispatcher.__init__(self)
-        self.addr = addr
-        self.target = target
-        self.create_socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        self.set_reuse_addr()
-        self.bind(addr)
-        self.listen(5)
-
-    def writable(self):
-        return False
-
-    def set_target(self, target):
-        if self.target is not None:
-            raise TargetAlreadySet(
-                "target of listener already set (%r)" % self.target
-            )
-        self.target = target
-
-    def handle_accept(self):
-        try:
-            sock, addr = self.accept()
-        except socket.error:
-            return
-        else:
-            if self.target is None:
-                raise NoTargetSet("No target for %r" % self)
-            self.target.add_instance(sock)
-
-    def close(self):
-        super(Listener, self).close()
-        if os.path.exists(self.addr):
-            logger.info('unlinking %r', self.addr)
-            os.unlink(self.addr)
-
-    def handle_error(self):
-        raise
-
-
 class UzblEventDaemon(object):
     def __init__(self, listener):
-        listener.set_target(self)
+        listener.target = self
         self.opts = opts
         self.listener = listener
         self._quit = False
@@ -250,7 +201,8 @@ class UzblEventDaemon(object):
         logger.debug('exiting main loop')
 
     def add_instance(self, sock):
-        uzbl = Uzbl(self, sock, opts)
+        proto = Protocol(sock)
+        uzbl = Uzbl(self, proto, opts)
         self.uzbls[sock] = uzbl
 
     def remove_instance(self, sock):

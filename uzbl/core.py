@@ -1,36 +1,15 @@
 import time
 import logging
-import asynchat
 from collections import defaultdict
-
-
-class Protocol(asynchat.async_chat):
-
-    def __init__(self, socket, uzbl):
-        asynchat.async_chat.__init__(self, socket)
-        self.uzbl = uzbl
-        self.buffer = bytearray()
-        self.set_terminator(b'\n')
-
-    def collect_incoming_data(self, data):
-        self.buffer += data
-
-    def found_terminator(self):
-        val = self.buffer.decode('utf-8')
-        del self.buffer[:]
-        self.uzbl.parse_msg(val)
-
-    def handle_error(self):
-        raise
 
 
 class Uzbl(object):
 
-    def __init__(self, parent, child_socket, options):
+    def __init__(self, parent, proto, options):
+        proto.target = self
         self.opts = options
         self.parent = parent
-        self.proto = Protocol(child_socket, self)
-        self._child_socket = child_socket
+        self.proto = proto
         self.time = time.time()
         self.pid = None
         self.name = None
@@ -154,7 +133,7 @@ class Uzbl(object):
 
         # Remove self from parent uzbls dict.
         self.logger.debug('removing self from uzbls list')
-        self.parent.remove_instance(self._child_socket)
+        self.parent.remove_instance(self.proto.socket)
 
         for plugin in self._plugin_instances:
             plugin.cleanup()
