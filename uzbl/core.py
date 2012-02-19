@@ -20,6 +20,10 @@ class Uzbl(object):
         # Use name "unknown" until name is discovered.
         self.logger = logging.getLogger('uzbl-instance[]')
 
+        # Plugin instances
+        self._plugin_instances = []
+        self.plugins = {}
+
         # Track plugin event handlers
         self.handlers = defaultdict(list)
 
@@ -38,8 +42,6 @@ class Uzbl(object):
         '''Creates instances of per-instance plugins'''
         from uzbl.ext import per_instance_registry
 
-        self._plugin_instances = []
-        self.plugins = {}
         for plugin in per_instance_registry:
             pinst = plugin(self)
             self._plugin_instances.append(pinst)
