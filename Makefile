@@ -20,6 +20,7 @@ endif
 #PYTHON=$(shell if which python2 > /dev/null; then echo python2; else echo python; fi)
 PYTHON=python3
 PYTHONV=$(shell $PYTHON --version | sed -n /[0-9].[0-9]/p)
+COVERAGE=$(shell which coverage)
 
 # --- configuration ends here ---
 
@@ -76,9 +77,9 @@ test-event-manager: force
 	${PYTHON} -m unittest discover tests/event-manager -v
 
 coverage-event-manager: force
-	coverage erase
-	coverage run -m unittest discover tests/event-manager
-	coverage html ${PY}
+	${PYTHON} ${COVERAGE} erase
+	${PYTHON} ${COVERAGE} run -m unittest discover tests/event-manager
+	${PYTHON} ${COVERAGE} html ${PY}
 	# Hmm, I wonder what a good default browser would be
 	uzbl-browser htmlcov/index.html
 
