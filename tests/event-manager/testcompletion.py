@@ -10,6 +10,10 @@ from uzbl.plugins.keycmd import KeyCmd
 from uzbl.plugins.completion import CompletionPlugin
 
 
+class DummyFormatter(object):
+    def format(self, partial, completions):
+        return '[%s] %s' % (partial, ', '.join(completions))
+
 class TestAdd(unittest.TestCase):
     def setUp(self):
         self.event_manager = EventManagerMock(
@@ -39,6 +43,7 @@ class TestCompletion(unittest.TestCase):
         self.uzbl = self.event_manager.add()
 
         c = CompletionPlugin[self.uzbl]
+        c.listformatter = DummyFormatter()
         c.add_builtins(('spam', 'egg', 'bar', 'baz'))
         c.add_config_key('spam', 'SPAM')
         c.add_config_key('Something', 'Else')
