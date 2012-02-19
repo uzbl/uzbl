@@ -4,14 +4,6 @@ import asynchat
 from collections import defaultdict
 
 
-def ascii(u):
-    '''Convert unicode strings into ascii for transmission over
-    ascii-only streams/sockets/devices.'''
-    # TODO(tailhook) docstring is misleading
-    # TODO(tailhook) name clashes with python3's builtin
-    return u.encode('utf-8')
-
-
 class Protocol(asynchat.async_chat):
 
     def __init__(self, socket, uzbl):
@@ -78,7 +70,7 @@ class Uzbl(object):
         msg = msg.strip()
 
         if self.opts.print_events:
-            print(ascii(u'%s<-- %s' % ('  ' * self._depth, msg)))
+            print(u'%s<-- %s' % ('  ' * self._depth, msg))
 
         self.proto.push((msg+'\n').encode('utf-8'))
 
@@ -93,7 +85,7 @@ class Uzbl(object):
         if elems[0] != 'EVENT':
             self.logger.info('non-event message: %r', line)
             if self.opts.print_events:
-                print('--- %s' % ascii(line))
+                print('--- %s' % line)
             return
 
         # Check event string elements
@@ -120,7 +112,7 @@ class Uzbl(object):
                 elems.append(unicode(args))
             if kargs:
                 elems.append(unicode(kargs))
-            print(ascii(u'%s--> %s' % ('  ' * self._depth, ' '.join(elems))))
+            print(u'%s--> %s' % ('  ' * self._depth, ' '.join(elems)))
 
         if event == "INSTANCE_START" and args:
             assert not self.instance_start, 'instance already started'
