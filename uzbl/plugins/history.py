@@ -66,7 +66,7 @@ class History(PerInstancePlugin):
         self.cursor = -1
         return random.choice(end_messages)
 
-    def next(self):
+    def __next__(self):
         if self.cursor is None:
             return ''
         shared = SharedHistory[self.uzbl]
@@ -118,7 +118,7 @@ class History(PerInstancePlugin):
         KeyCmd[self.uzbl].set_keycmd(val)
 
     def history_next(self, _x):
-        KeyCmd[self.uzbl].set_keycmd(self.next())
+        KeyCmd[self.uzbl].set_keycmd(next(self))
 
     def history_search(self, key):
         self.search(key)

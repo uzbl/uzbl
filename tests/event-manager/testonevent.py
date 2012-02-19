@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # vi: set et ts=4:
 
-from __future__ import print_function
+
 
 import unittest
 from emtest import EventManagerMock
@@ -56,4 +56,4 @@ class OnEventTest(unittest.TestCase):
         self.assertIn(event, oe.events)
         commands = oe.events[event]
         self.assertIn(command, commands)
-        self.assertEquals(commands[command], [pattern])
+        self.assertEqual(commands[command], [pattern])

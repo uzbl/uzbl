@@ -49,7 +49,7 @@ class OnEventPlugin(PerInstancePlugin):
         on_event definitions and responds accordingly.'''
 
         # Could be connected to a EM internal event that can use anything as args
-        if len(args) == 1 and isinstance(args[0], basestring):
+        if len(args) == 1 and isinstance(args[0], str):
             args = splitquoted(args[0])
 
         event = kargs['on_event']
@@ -57,7 +57,7 @@ class OnEventPlugin(PerInstancePlugin):
             return
 
         commands = self.events[event]
-        for cmd, pattern in commands.items():
+        for cmd, pattern in list(commands.items()):
             if not pattern or match_args(pattern, args):
                 cmd = cmd_expand(cmd, args)
                 self.uzbl.send(cmd)

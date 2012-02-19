@@ -2,7 +2,7 @@
 # @downloads to your status_format.
 
 import os
-from cgi import escape as htmlescape
+import html
 
 from uzbl.arguments import splitquoted
 from .config import Config
@@ -25,7 +25,7 @@ class Downloads(PerInstancePlugin):
         if self.active_downloads:
             # add a newline before we list downloads
             result = '&#10;downloads:'
-            for path, progress in self.active_downloads.items():
+            for path, progress in list(self.active_downloads.items()):
                 # add each download
                 fn = os.path.basename(path)
 
@@ -34,7 +34,7 @@ class Downloads(PerInstancePlugin):
                 # replace entities to make sure we don't break our markup
                 # (this could be done with an @[]@ expansion in uzbl, but then we
                 # can't use the &#10; above to make a new line)
-                dl = htmlescape(dl)
+                dl = html.escape(dl)
                 result += dl
         else:
             result = ''

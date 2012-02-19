@@ -8,7 +8,7 @@ from .config import Config
 from .keycmd import KeyCmd
 
 # Completion level
-NONE, ONCE, LIST, COMPLETE = range(4)
+NONE, ONCE, LIST, COMPLETE = list(range(4))
 
 # The reverse keyword finding re.
 FIND_SEGMENT = re.compile("(\@[\w_]+|set[\s]+[\w_]+|[\w_]+)$").findall
@@ -117,7 +117,7 @@ class CompletionPlugin(PerInstancePlugin):
 
         config = Config[self.uzbl]
 
-        hints = filter(lambda h: h.startswith(partial), self.completion)
+        hints = [h for h in self.completion if h.startswith(partial)]
         if not hints:
             del config['completion_list']
             return
@@ -135,7 +135,7 @@ class CompletionPlugin(PerInstancePlugin):
         if self.completion.level < COMPLETE:
             self.completion.level += 1
 
-        hints = filter(lambda h: h.startswith(partial), self.completion)
+        hints = [h for h in self.completion if h.startswith(partial)]
         if not hints:
             return
 

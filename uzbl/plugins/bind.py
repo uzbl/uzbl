@@ -18,6 +18,7 @@ from uzbl.ext import PerInstancePlugin
 from .cmd_expand import cmd_expand
 from .config import Config
 from .keycmd import KeyCmd
+import collections
 
 # Commonly used regular expressions.
 MOD_START = re.compile('^<([A-Z][A-Za-z0-9-_]*)>').match
@@ -27,7 +28,7 @@ FIND_PROMPTS = re.compile(PROMPTS).split
 VALID_MODE = re.compile('^(-|)[A-Za-z0-9][A-Za-z0-9_]*$').match
 
 # For accessing a bind glob stack.
-ON_EXEC, HAS_ARGS, MOD_CMD, GLOB, MORE = range(5)
+ON_EXEC, HAS_ARGS, MOD_CMD, GLOB, MORE = list(range(5))
 
 
 # Custom errors.
@@ -125,10 +126,10 @@ class Bindlet(object):
 
         globals = self.binds['global']
         if mode not in self.binds or mode == 'global':
-            return filter(None, globals.values())
+            return [_f for _f in list(globals.values()) if _f]
 
-        binds = dict(globals.items() + self.binds[mode].items())
-        return filter(None, binds.values())
+        binds = dict(list(globals.items()) + list(self.binds[mode].items()))
+        return [_f for _f in list(binds.values()) if _f]
 
 
     def add_bind(self, mode, glob, bind=None):
@@ -144,7 +145,7 @@ class Bindlet(object):
         if mode == 'global':
             # Regen the global-globals list.
             self.globals = []
-            for bind in binds.values():
+            for bind in list(binds.values()):
                 if bind is not None and bind.is_global:
                     self.globals.append(bind)
 
@@ -178,7 +179,7 @@ class Bind(object):
     counter = [0,]
 
     def __init__(self, glob, handler, *args, **kargs):
-        self.is_callable = callable(handler)
+        self.is_callable = isinstance(handler, collections.Callable)
         self._repr_cache = None
 
         if not glob:
@@ -192,7 +193,7 @@ class Bind(object):
         elif kargs:
             raise ArgumentError('cannot supply kargs for uzbl commands')
 
-        elif hasattr(handler, '__iter__'):
+        elif not isinstance(handler, str):
             self.commands = handler
 
         else:
@@ -207,7 +208,7 @@ class Bind(object):
         self.split = split = FIND_PROMPTS(glob)
         self.prompts = []
         for (prompt, cmd, set) in zip(split[1::4], split[2::4], split[3::4]):
-            prompt, set = map(unquote, [prompt, set])
+            prompt, set = list(map(unquote, [prompt, set]))
             cmd = True if cmd == '!' else False
             if prompt and prompt[-1] != ":":
                 prompt = "%s:" % prompt
@@ -307,7 +308,7 @@ class BindPlugin(PerInstancePlugin):
 
         if bind.is_callable:
             args += bind.args
-            kargs = dict(bind.kargs.items()+kargs.items())
+            kargs = dict(list(bind.kargs.items())+list(kargs.items()))
             bind.function(self.uzbl, *args, **kargs)
             return
 
@@ -324,13 +325,13 @@ class BindPlugin(PerInstancePlugin):
 
         bindlet = self.bindlet
 
-        if not hasattr(modes, '__iter__'):
-            modes = unicode(modes).split(',')
+        if isinstance(modes, str):
+            modes = modes.split(',')
 
         # Sort and filter binds.
-        modes = filter(None, map(unicode.strip, modes))
+        modes = [_f for _f in map(str.strip, modes) if _f]
 
-        if callable(handler) or (handler is not None and handler.strip()):
+        if isinstance(handler, collections.Callable) or (handler is not None and handler.strip()):
             bind = Bind(glob, handler, *args, **kargs)
 
         else:

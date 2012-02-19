@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # vi: set et ts=4:
 
-from __future__ import print_function
+
 
 import sys
 if '' not in sys.path:
@@ -36,7 +36,7 @@ class ProgressBarTest(unittest.TestCase):
 
         for i, o in inout:
             p.update_progress(i)
-            self.assertEquals(c['progress.output'], o)
+            self.assertEqual(c['progress.output'], o)
 
     def test_done_char(self):
         uzbl = self.uzbl
@@ -54,7 +54,7 @@ class ProgressBarTest(unittest.TestCase):
 
         for i, o in inout:
             p.update_progress(i)
-            self.assertEquals(c['progress.output'], o)
+            self.assertEqual(c['progress.output'], o)
 
     def test_pending_char(self):
         uzbl = self.uzbl
@@ -73,7 +73,7 @@ class ProgressBarTest(unittest.TestCase):
 
         for i, o in inout:
             p.update_progress(i)
-            self.assertEquals(c['progress.output'], o)
+            self.assertEqual(c['progress.output'], o)
 
     def test_percent_pending(self):
         uzbl = self.uzbl
@@ -91,4 +91,4 @@ class ProgressBarTest(unittest.TestCase):
 
         for i, o in inout:
             p.update_progress(i)
-            self.assertEquals(c['progress.output'], o)
+            self.assertEqual(c['progress.output'], o)

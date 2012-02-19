@@ -17,7 +17,7 @@ def cmd_expand(cmd, args):
     '''
 
     # Ensure (1) all string representable and (2) correct string encoding.
-    args = map(unicode, args)
+    args = list(map(str, args))
 
     # Direct string replace.
     if '%s' in cmd:
@@ -31,6 +31,6 @@ def cmd_expand(cmd, args):
     for (index, arg) in enumerate(args):
         index += 1
         if '%%%d' % index in cmd:
-            cmd = cmd.replace('%%%d' % index, unicode(arg))
+            cmd = cmd.replace('%%%d' % index, str(arg))
 
     return cmd

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from __future__ import print_function
+
 
 # Event Manager for Uzbl
 # Copyright (c) 2009-2010, Mason Larobina <mason.larobina@gmail.com>
@@ -54,7 +54,7 @@ def xdghome(key, default):
     use $HOME and the default path.'''
 
     xdgkey = "XDG_%s_HOME" % key
-    if xdgkey in os.environ.keys() and os.environ[xdgkey]:
+    if xdgkey in list(os.environ.keys()) and os.environ[xdgkey]:
         return os.environ[xdgkey]
 
     return os.path.join(os.environ['HOME'], default)
@@ -110,9 +110,9 @@ def daemonize():
         sys.stderr.flush()
 
     devnull = '/dev/null'
-    stdin = file(devnull, 'r')
-    stdout = file(devnull, 'a+')
-    stderr = file(devnull, 'a+', 0)
+    stdin = open(devnull, 'r')
+    stdout = open(devnull, 'a+')
+    stderr = open(devnull, 'a+')
 
     os.dup2(stdin.fileno(), sys.stdin.fileno())
     os.dup2(stdout.fileno(), sys.stdout.fileno())
@@ -138,7 +138,7 @@ class EventHandler(object):
     '''Event handler class. Used to store args and kwargs which are merged
     come time to call the callback with the event args and kwargs.'''
 
-    nextid = count().next
+    nextid = count().__next__
 
     def __init__(self, plugin, event, callback, args, kwargs):
         self.id = self.nextid()
@@ -159,13 +159,13 @@ class EventHandler(object):
             elems.append('kwargs=%s' % repr(self.kwargs))
 
         elems.append('plugin=%s' % self.plugin.name)
-        return u'<handler(%s)>' % ', '.join(elems)
+        return '<handler(%s)>' % ', '.join(elems)
 
     def call(self, uzbl, *args, **kwargs):
         '''Execute the handler function and merge argument lists.'''
 
         args = args + self.args
-        kwargs = dict(self.kwargs.items() + kwargs.items())
+        kwargs = dict(list(self.kwargs.items()) + list(kwargs.items()))
         self.callback(uzbl, *args, **kwargs)
 
 class Listener(asyncore.dispatcher):
@@ -305,7 +305,7 @@ class UzblEventDaemon(object):
 
         self.close_server_socket()
 
-        for uzbl in self.uzbls.values():
+        for uzbl in list(self.uzbls.values()):
             uzbl.close()
 
         if not self._quit:

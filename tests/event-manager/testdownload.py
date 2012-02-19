@@ -1,6 +1,6 @@
 # vi: set et ts=4:
 
-from __future__ import print_function
+
 
 import unittest
 from emtest import EventManagerMock
@@ -23,7 +23,7 @@ class DownloadsTest(unittest.TestCase):
         for input, key, section in cases:
             d.download_started(input)
             self.assertIn(key, d.active_downloads)
-            self.assertEquals(d.active_downloads[key], 0)
+            self.assertEqual(d.active_downloads[key], 0)
             self.uzbl.send.assert_called_once()
             self.assertIn(section, self.uzbl.send.call_args[0][0])
             self.uzbl.reset_mock()

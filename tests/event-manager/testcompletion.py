@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # vi: set et ts=4:
 
-from __future__ import print_function
+
 
 import unittest
 from emtest import EventManagerMock
@@ -54,7 +54,7 @@ class TestCompletion(unittest.TestCase):
         k.keylet.cursor = len(k.keylet.keycmd)
 
         r = c.get_incomplete_keyword()
-        self.assertEquals(r, ('sp', False))
+        self.assertEqual(r, ('sp', False))
 
     def test_incomplete_keyword_var(self):
         k, c = KeyCmd[self.uzbl], CompletionPlugin[self.uzbl]
@@ -62,7 +62,7 @@ class TestCompletion(unittest.TestCase):
         k.keylet.cursor = len(k.keylet.keycmd)
 
         r = c.get_incomplete_keyword()
-        self.assertEquals(r, ('@sp', False))
+        self.assertEqual(r, ('@sp', False))
 
     def test_incomplete_keyword_var_noat(self):
         k, c = KeyCmd[self.uzbl], CompletionPlugin[self.uzbl]
@@ -70,7 +70,7 @@ class TestCompletion(unittest.TestCase):
         k.keylet.cursor = len(k.keylet.keycmd)
 
         r = c.get_incomplete_keyword()
-        self.assertEquals(r, ('@Some', True))
+        self.assertEqual(r, ('@Some', True))
 
     def test_stop_completion(self):
         config, c = Config[self.uzbl], CompletionPlugin[self.uzbl]
@@ -79,7 +79,7 @@ class TestCompletion(unittest.TestCase):
 
         c.stop_completion()
         self.assertNotIn('completion_list', config)
-        self.assertEquals(c.completion.level, 0)
+        self.assertEqual(c.completion.level, 0)
 
     def test_completion(self):
         k, c = KeyCmd[self.uzbl], CompletionPlugin[self.uzbl]
@@ -96,7 +96,7 @@ class TestCompletion(unittest.TestCase):
             k.keylet.cursor = len(k.keylet.keycmd)
 
             c.start_completion()
-            self.assertEquals(k.keylet.keycmd, o)
+            self.assertEqual(k.keylet.keycmd, o)
             c.start_completion()
             self.assertNotIn('completion_list', config)
 
@@ -113,6 +113,6 @@ class TestCompletion(unittest.TestCase):
             k.keylet.cursor = len(k.keylet.keycmd)
 
             c.start_completion()
-            self.assertEquals(k.keylet.keycmd, o)
+            self.assertEqual(k.keylet.keycmd, o)
             c.start_completion()
-            self.assertEquals(config['completion_list'], l)
+            self.assertEqual(config['completion_list'], l)

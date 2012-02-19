@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # vi: set et ts=4:
 
-from __future__ import print_function
+
 
 import unittest
 from emtest import EventManagerMock
@@ -58,9 +58,9 @@ class ModeTest(unittest.TestCase):
         self.assertIn('foo', config)
         self.assertIn('bar', config)
         self.assertIn('baz', config)
-        self.assertEquals(config['foo'], 'xxx')
-        self.assertEquals(config['bar'], 'yyy')
-        self.assertEquals(config['baz'], 'zzz')
+        self.assertEqual(config['foo'], 'xxx')
+        self.assertEqual(config['bar'], 'yyy')
+        self.assertEqual(config['baz'], 'zzz')
 
     def test_mode_overwrite_vars(self):
         mode, config = ModePlugin[self.uzbl], Config[self.uzbl]
@@ -73,10 +73,10 @@ class ModeTest(unittest.TestCase):
         self.assertIn('bar', config)
         self.assertIn('baz', config)
         self.assertIn('spam', config)
-        self.assertEquals(config['foo'], 'XXX')
-        self.assertEquals(config['bar'], 'yyy')
-        self.assertEquals(config['baz'], 'zzz')
-        self.assertEquals(config['spam'], 'spam')
+        self.assertEqual(config['foo'], 'XXX')
+        self.assertEqual(config['bar'], 'yyy')
+        self.assertEqual(config['baz'], 'zzz')
+        self.assertEqual(config['spam'], 'spam')
 
     def test_default_mode(self):
         ''' Setting to mode to nothing should enter the default mode'''
@@ -85,7 +85,7 @@ class ModeTest(unittest.TestCase):
         config['foo'] = 'nthth'
         config['mode'] = ''
         mode.mode_updated(None, '')
-        self.assertEquals(config['mode'], 'mode0')
+        self.assertEqual(config['mode'], 'mode0')
         mode.mode_updated(None, config['mode'])
-        self.assertEquals(config['mode'], 'mode0')
-        self.assertEquals(config['foo'], 'default')
+        self.assertEqual(config['mode'], 'mode0')
+        self.assertEqual(config['foo'], 'default')

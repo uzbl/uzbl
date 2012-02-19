@@ -5,6 +5,7 @@ import uzbl.plugins.config
 from .cmd_expand import cmd_expand
 from uzbl.arguments import splitquoted
 from uzbl.ext import PerInstancePlugin
+import collections
 
 valid_glob = compile('^[A-Za-z0-9_\*\.]+$').match
 
@@ -27,7 +28,7 @@ class OnSetPlugin(PerInstancePlugin):
         '''Execute the on_set handlers that matched the key.'''
 
         for handler in handlers:
-            if callable(handler):
+            if isinstance(handler, collections.Callable):
                 handler(key, arg)
             else:
                 self.uzbl.send(cmd_expand(handler, [key, arg]))
@@ -35,7 +36,7 @@ class OnSetPlugin(PerInstancePlugin):
     def check_for_handlers(self, key, arg):
         '''Check for handlers for the current key.'''
 
-        for (matcher, handlers) in self.on_sets.values():
+        for (matcher, handlers) in list(self.on_sets.values()):
             if matcher(key):
                 self._exec_handlers(handlers, key, arg)
 
@@ -51,13 +52,13 @@ class OnSetPlugin(PerInstancePlugin):
         while '**' in glob:
             glob = glob.replace('**', '*')
 
-        if callable(handler):
+        if isinstance(handler, collections.Callable):
             orig_handler = handler
             if prepend:
                 handler = partial(handler, self.uzbl)
 
         else:
-            orig_handler = handler = unicode(handler)
+            orig_handler = handler = str(handler)
 
         if glob in self.on_sets:
             (matcher, handlers) = self.on_sets[glob]

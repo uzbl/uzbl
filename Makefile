@@ -17,7 +17,8 @@ else
 	CPPFLAGS =
 endif
 
-PYTHON=$(shell if which python2 > /dev/null; then echo python2; else echo python; fi)
+#PYTHON=$(shell if which python2 > /dev/null; then echo python2; else echo python; fi)
+PYTHON=python3
 PYTHONV=$(shell $PYTHON --version | sed -n /[0-9].[0-9]/p)
 
 # --- configuration ends here ---
@@ -98,16 +99,16 @@ test-uzbl-core-sandbox: sandbox uzbl-core sandbox-install-uzbl-core sandbox-inst
 	rm -rf ./sandbox/usr
 
 test-uzbl-browser-sandbox: sandbox uzbl-browser sandbox-install-uzbl-browser sandbox-install-example-data
-	. ./sandbox/env.sh && python -S `which uzbl-event-manager` restart -avv
+	. ./sandbox/env.sh && ${PYTHON} -S `which uzbl-event-manager` restart -navv &
 	. ./sandbox/env.sh && uzbl-browser --uri http://www.uzbl.org --verbose
-	. ./sandbox/env.sh && python -S `which uzbl-event-manager` stop -vv -o /dev/null
+	. ./sandbox/env.sh && ${PYTHON} -S `which uzbl-event-manager` stop -vv -o /dev/null
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
 test-uzbl-tabbed-sandbox: sandbox uzbl-browser sandbox-install-uzbl-browser sandbox-install-uzbl-tabbed sandbox-install-example-data
-	. ./sandbox/env.sh && python -S `which uzbl-event-manager` restart -avv
+	. ./sandbox/env.sh && ${PYTHON} -S `which uzbl-event-manager` restart -avv
 	. ./sandbox/env.sh && uzbl-tabbed
-	. ./sandbox/env.sh && python -S `which uzbl-event-manager` stop -ivv
+	. ./sandbox/env.sh && ${PYTHON} -S `which uzbl-event-manager` stop -ivv
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 

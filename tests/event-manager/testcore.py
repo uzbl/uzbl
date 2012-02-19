@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # vi: set et ts=4:
 
-from __future__ import print_function
+
 
 import unittest
 from mock import Mock
@@ -15,7 +15,7 @@ class TestUzbl(unittest.TestCase):
 
     def test_repr(self):
         r = '%r' % self.uzbl
-        self.assertRegexpMatches(r, r'<uzbl\(.*\)>')
+        self.assertRegex(r, r'<uzbl\(.*\)>')
 
     def test_event_handler(self):
         handler = Mock()

@@ -32,12 +32,12 @@ class Keylet(object):
 
         >>> k = Keylet()
         >>> k.set_keycmd('spam')
-        >>> print k
+        >>> print(k)
         <keylet(keycmd='spam')>
         >>> k.append_keycmd(' and egg')
-        >>> print k
+        >>> print(k)
         <keylet(keycmd='spam and egg')>
-        >>> print k.cursor
+        >>> print(k.cursor)
         12
     '''
 
@@ -84,9 +84,9 @@ class Keylet(object):
             >>> k.set_keycmd('spam')
             >>> k.cursor = 1
             >>> k.insert_keycmd('egg')
-            >>> print k
+            >>> print(k)
             <keylet(keycmd='seggpam')>
-            >>> print k.cursor
+            >>> print(k.cursor)
             4
         '''
 
@@ -100,9 +100,9 @@ class Keylet(object):
             >>> k.set_keycmd('spam')
             >>> k.cursor = 1
             >>> k.append_keycmd('egg')
-            >>> print k
+            >>> print(k)
             <keylet(keycmd='spamegg')>
-            >>> print k.cursor
+            >>> print(k.cursor)
             7
         '''
 
@@ -134,11 +134,11 @@ class Keylet(object):
             >>> k.set_keycmd('spam and egg')
             >>> k.strip_word()
             'egg'
-            >>> print k
+            >>> print(k)
             <keylet(keycmd='spam and ')>
             >>> k.strip_word()
             'and'
-            >>> print k
+            >>> print(k)
             <keylet(keycmd='spam ')>
         '''
         if not self.keycmd:
@@ -264,7 +264,7 @@ class KeyCmd(PerInstancePlugin):
     def key_ignored(self, key):
         '''Check if the given key is ignored by any ignore rules.'''
 
-        for (glob, match) in self.ignores.items():
+        for (glob, match) in list(self.ignores.items()):
             if match(key):
                 return True
 
@@ -379,7 +379,7 @@ class KeyCmd(PerInstancePlugin):
 
         elif new_keycmd == keycmd:
             # Generate the pango markup for the cursor in the keycmd.
-            config['keycmd'] = unicode(k.markup())
+            config['keycmd'] = str(k.markup())
 
     def parse_key_event(self, key):
         ''' Build a set from the modstate part of the event, and pass all keys through modmap '''
@@ -499,3 +499,4 @@ class KeyCmd(PerInstancePlugin):
         self.update_event(set(), self.keylet, False)
 
 # vi: set et ts=4:
+
