@@ -12,6 +12,7 @@ And it is also possible to execute a function on activation:
 import sys
 import re
 from functools import partial
+from itertools import count
 
 from uzbl.arguments import unquote, splitquoted
 from uzbl.ext import PerInstancePlugin
@@ -175,8 +176,8 @@ def split_glob(glob):
 
 class Bind(object):
 
-    # Class attribute to hold the number of Bind classes created.
-    counter = [0,]
+    # unique id generator
+    nextid = count().__next__
 
     def __init__(self, glob, handler, *args, **kargs):
         self.is_callable = isinstance(handler, collections.Callable)
@@ -202,8 +203,7 @@ class Bind(object):
         self.glob = glob
 
         # Assign unique id.
-        self.counter[0] += 1
-        self.bid = self.counter[0]
+        self.bid = self.nextid()
 
         self.split = split = FIND_PROMPTS(glob)
         self.prompts = []

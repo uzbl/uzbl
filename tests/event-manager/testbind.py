@@ -8,7 +8,7 @@ if '' not in sys.path:
 import mock
 import unittest
 from emtest import EventManagerMock
-from uzbl.plugins.bind import BindPlugin
+from uzbl.plugins.bind import Bind, BindPlugin
 from uzbl.plugins.config import Config
 
 
@@ -17,17 +17,35 @@ def justafunction():
 
 
 class BindTest(unittest.TestCase):
+    def test_unique_id(self):
+        a = Bind('spam', 'spam')
+        b = Bind('spam', 'spam')
+        self.assertNotEqual(a.bid, b.bid)
+
+
+class BindPluginTest(unittest.TestCase):
     def setUp(self):
         self.event_manager = EventManagerMock((), (Config, BindPlugin))
         self.uzbl = self.event_manager.add()
 
     def test_add_bind(self):
+        b = BindPlugin[self.uzbl]
         modes = 'global'
         glob = 'test'
         handler = justafunction
-        BindPlugin[self.uzbl].mode_bind(modes, glob, handler)
+        b.mode_bind(modes, glob, handler)
 
-        b = BindPlugin[self.uzbl].bindlet
-        binds = b.get_binds()
+        binds = b.bindlet.get_binds()
         self.assertEqual(len(binds), 1)
         self.assertIs(binds[0].function, justafunction)
+
+    def test_parse_bind(self):
+        b = BindPlugin[self.uzbl]
+        modes = 'global'
+        glob = 'test'
+        handler = 'handler'
+
+        b.parse_mode_bind('%s %s = %s' % (modes, glob, handler))
+        binds = b.bindlet.get_binds()
+        self.assertEqual(len(binds), 1)
+        self.assertEqual(binds[0].commands, [handler])
