@@ -364,8 +364,9 @@ class KeyCmd(PerInstancePlugin):
         config = Config[self.uzbl]
         if config.get('modcmd_updates', '1') == '1':
             new_modcmd = ''.join(modstate) + k.get_modcmd()
-            if (not new_modcmd or not k.is_modcmd) and 'modcmd' in config:
-                del config['modcmd']
+            if not new_modcmd or not k.is_modcmd:
+                if 'modcmd' in config:
+                    del config['modcmd']
 
             elif new_modcmd == modcmd:
                 config['modcmd'] = MODCMD_FORMAT % uzbl_escape(modcmd)
