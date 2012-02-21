@@ -17,10 +17,10 @@ else
 	CPPFLAGS =
 endif
 
-#PYTHON=$(shell if which python2 > /dev/null; then echo python2; else echo python; fi)
 PYTHON=python3
-PYTHONV=$(shell $PYTHON --version | sed -n /[0-9].[0-9]/p)
+PYTHONV=$(shell $(PYTHON) --version | sed -n /[0-9].[0-9]/p)
 COVERAGE=$(shell which coverage)
+PYDIR?=$(shell $(PYTHON) -c 'import sys; print(sys.prefix)')
 
 # --- configuration ends here ---
 
@@ -83,11 +83,6 @@ coverage-event-manager: force
 	# Hmm, I wonder what a good default browser would be
 	uzbl-browser htmlcov/index.html
 
-sandbox: misc/env.sh
-	mkdir -p sandbox/${PREFIX}/lib64
-	cp -p misc/env.sh sandbox/env.sh
-	test -e sandbox/${PREFIX}/lib || ln -s lib64 sandbox/${PREFIX}/lib
-
 test-uzbl-core: uzbl-core
 	./uzbl-core --uri http://www.uzbl.org --verbose
 
@@ -131,17 +126,27 @@ strip:
 	@strip uzbl-core
 	@echo ... done.
 
+SANDBOXOPTS=\
+	DESTDIR=./sandbox\
+	RUN_PREFIX=`pwd`/sandbox/usr/local\
+	PYDIR=./sandbox/usr/local
+
+sandbox: misc/env.sh
+	mkdir -p sandbox/${PREFIX}/lib64
+	cp -p misc/env.sh sandbox/env.sh
+	test -e sandbox/${PREFIX}/lib || ln -s lib64 sandbox/${PREFIX}/lib
+
 sandbox-install-uzbl-browser:
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-browser
+	make ${SANDBOXOPTS} install-uzbl-browser
 
 sandbox-install-uzbl-core:
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-core
+	make ${SANDBOXOPTS} install-uzbl-core
 
 sandbox-install-event-manager:
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-event-manager
+	make ${SANDBOXOPTS} install-event-manager
 
 sandbox-install-example-data:
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
+	make ${SANDBOXOPTS} install-example-data
 
 install: install-uzbl-core install-uzbl-browser install-uzbl-tabbed
 
@@ -158,9 +163,7 @@ install-uzbl-core: all install-dirs
 	install -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
 
 install-event-manager: install-dirs
-	$(PYTHON) setup.py install --prefix=$(INSTALLDIR)
-	#sed "s#^PREFIX = .*#PREFIX = '$(RUN_PREFIX)'#" < bin/uzbl-event-manager > $(INSTALLDIR)/bin/uzbl-event-manager
-	#chmod 755 $(INSTALLDIR)/bin/uzbl-event-manager
+	$(PYTHON) setup.py install --prefix=$(PYDIR) --install-scripts=$(INSTALLDIR)
 
 install-uzbl-browser: install-dirs install-uzbl-core install-event-manager
 	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < bin/uzbl-browser > $(INSTALLDIR)/bin/uzbl-browser
