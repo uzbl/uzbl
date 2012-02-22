@@ -134,11 +134,32 @@ def make_dirs(path):
         logger.error('failed to create directories', exc_info=True)
 
 
+class PluginDirectory(object):
+    def __init__(self):
+        self.global_plugins = []
+        self.per_instance_plugins = []
+
+    def load(self):
+        ''' Import plugin files '''
+
+        import uzbl.plugins
+        import pkgutil
+
+        path = uzbl.plugins.__path__
+        for impr, name, ispkg in pkgutil.iter_modules(path, 'uzbl.plugins.'):
+            __import__(name, globals(), locals())
+
+        from uzbl.ext import global_registry, per_instance_registry
+        self.global_plugins.extend(global_registry)
+        self.per_instance_plugins.extend(per_instance_registry)
+
+
 class UzblEventDaemon(object):
-    def __init__(self, listener):
+    def __init__(self, listener, plugind):
         listener.target = self
         self.opts = opts
         self.listener = listener
+        self.plugind = plugind
         self._quit = False
 
         # Hold uzbl instances
@@ -158,25 +179,18 @@ class UzblEventDaemon(object):
         for sigint in [SIGTERM, SIGINT]:
             signal(sigint, self.quit)
 
-        # Load plugins into self.plugins
-        self.load_plugins()
+        # Scan plugin directory for plugins
+        self.plugind.load()
 
-    def load_plugins(self):
-        '''Load event manager plugins.'''
-        import uzbl.plugins
-        import pkgutil
+        # Initialise global plugins with instances in self.plugins
+        self.init_plugins()
 
-        path = uzbl.plugins.__path__
-        for impr, name, ispkg in pkgutil.iter_modules(path, 'uzbl.plugins.'):
-            __import__(name, globals(), locals())
-
-        # NEW GLOBAL PLUGINS
-
-        from uzbl.ext import global_registry
-
+    def init_plugins(self):
+        '''Initialise event manager plugins.'''
         self._plugin_instances = []
         self.plugins = {}
-        for plugin in global_registry:
+
+        for plugin in self.plugind.global_plugins:
             pinst = plugin(self)
             self._plugin_instances.append(pinst)
             self.plugins[plugin] = pinst
@@ -376,7 +390,8 @@ def start_action():
         del_pid_file(pid_file)
 
     listener = Listener(opts.server_socket)
-    daemon = UzblEventDaemon(listener)
+    plugind = PluginDirectory()
+    daemon = UzblEventDaemon(listener, plugind)
     daemon.run()
 
 

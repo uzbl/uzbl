@@ -40,9 +40,8 @@ class Uzbl(object):
 
     def init_plugins(self):
         '''Creates instances of per-instance plugins'''
-        from uzbl.ext import per_instance_registry
 
-        for plugin in per_instance_registry:
+        for plugin in self.parent.plugind.per_instance_plugins:
             pinst = plugin(self)
             self._plugin_instances.append(pinst)
             self.plugins[plugin] = pinst
