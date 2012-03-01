@@ -10,10 +10,10 @@ RUN_PREFIX?=$(PREFIX)
 USE_GTK3 = $(shell pkg-config --exists gtk+-3.0 webkitgtk-3.0 && echo 1)
 
 ifeq ($(USE_GTK3),1)
-	REQ_PKGS += gtk+-3.0 webkitgtk-3.0 javascriptcoregtk-3.0
+	REQ_PKGS += gtk+-3.0 'webkitgtk-3.0 >= 1.2.4' javascriptcoregtk-3.0
 	CPPFLAGS = -DG_DISABLE_DEPRECATED -DGTK_DISABLE_DEPRECATED
 else
-	REQ_PKGS += gtk+-2.0 webkit-1.0 javascriptcoregtk-1.0
+	REQ_PKGS += gtk+-2.0 'webkit-1.0 >= 1.2.4' javascriptcoregtk-1.0
 	CPPFLAGS =
 endif
 
