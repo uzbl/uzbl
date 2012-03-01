@@ -666,7 +666,7 @@ static void
 set_useragent(const gchar *useragent) {
     g_free(uzbl.net.useragent);
 
-    if (*useragent == ' ') {
+    if (!useragent || !*useragent) {
         uzbl.net.useragent = NULL;
     } else {
         uzbl.net.useragent = g_strdup(useragent);
