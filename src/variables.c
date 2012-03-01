@@ -405,41 +405,52 @@ static TYPE get_##SYM() { \
   return val; \
 }
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(default_font_family,    "default-font-family",    gchar *)
-EXPOSE_WEBKIT_VIEW_SETTINGS(monospace_font_family,  "monospace-font-family",  gchar *)
-EXPOSE_WEBKIT_VIEW_SETTINGS(sans_serif_font_family, "sans_serif-font-family", gchar *)
-EXPOSE_WEBKIT_VIEW_SETTINGS(serif_font_family,      "serif-font-family",      gchar *)
-EXPOSE_WEBKIT_VIEW_SETTINGS(cursive_font_family,    "cursive-font-family",    gchar *)
-EXPOSE_WEBKIT_VIEW_SETTINGS(fantasy_font_family,    "fantasy-font-family",    gchar *)
+/* Font settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(default_font_family,          "default-font-family",                       gchar *)
+EXPOSE_WEBKIT_VIEW_SETTINGS(monospace_font_family,        "monospace-font-family",                     gchar *)
+EXPOSE_WEBKIT_VIEW_SETTINGS(sans_serif_font_family,       "sans_serif-font-family",                    gchar *)
+EXPOSE_WEBKIT_VIEW_SETTINGS(serif_font_family,            "serif-font-family",                         gchar *)
+EXPOSE_WEBKIT_VIEW_SETTINGS(cursive_font_family,          "cursive-font-family",                       gchar *)
+EXPOSE_WEBKIT_VIEW_SETTINGS(fantasy_font_family,          "fantasy-font-family",                       gchar *)
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(minimum_font_size,      "minimum-font-size",            int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(font_size,              "default-font-size",            int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(monospace_size,         "default-monospace-font-size",  int)
+/* Font size settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(minimum_font_size,            "minimum-font-size",                         int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(font_size,                    "default-font-size",                         int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(monospace_size,               "default-monospace-font-size",               int)
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_plugins, "enable-plugins", int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_scripts, "enable-scripts", int)
+/* Text settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(default_encoding,             "default-encoding",                          gchar *)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enforce_96_dpi,               "enforce-96-dpi",                            int)
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(javascript_windows, "javascript-can-open-windows-automatically", int)
+/* Feature settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_plugins,               "enable-plugins",                            int)
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(autoload_images,       "auto-load-images",   int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(autoshrink_images,     "auto-shrink-images", int)
+/* Security settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_cross_file_access,     "enable-file-access-from-file-uris",         int)
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_pagecache,   "enable-page-cache",       int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_private,     "enable-private-browsing", int)
+/* Display settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(caret_browsing,               "enable-caret-browsing",                     int)
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_spellcheck,     "enable-spell-checking",    int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(spellcheck_languages,  "spell-checking-languages", gchar *)
-EXPOSE_WEBKIT_VIEW_SETTINGS(resizable_text_areas,  "resizable-text-areas",     int)
+/* Javascript settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_scripts,               "enable-scripts",                            int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(javascript_windows,           "javascript-can-open-windows-automatically", int)
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(stylesheet_uri,   "user-stylesheet-uri", gchar *)
-EXPOSE_WEBKIT_VIEW_SETTINGS(print_bg,         "print-backgrounds",   int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enforce_96_dpi,   "enforce-96-dpi",      int)
+/* Image settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(autoload_images,              "auto-load-images",                          int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(autoshrink_images,            "auto-shrink-images",                        int)
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(caret_browsing,   "enable-caret-browsing", int)
+/* Spell checking settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_spellcheck,            "enable-spell-checking",                     int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(spellcheck_languages,         "spell-checking-languages",                  gchar *)
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_cross_file_access, "enable-file-access-from-file-uris", int)
+/* Form settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(resizable_text_areas,         "resizable-text-areas",                      int)
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(default_encoding, "default-encoding", gchar *)
+/* Customization */
+EXPOSE_WEBKIT_VIEW_SETTINGS(stylesheet_uri,               "user-stylesheet-uri",                       gchar *)
+
+/* Printing settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(print_bg,                     "print-backgrounds",                         int)
 
 static void
 set_proxy_url(const gchar *proxy_url) {
@@ -774,37 +785,45 @@ const struct var_name_to_ptr_t {
     { "ssl_verify",             PTR_V_INT_GETSET(verify_cert)},
 
     /* exported WebKitWebSettings properties */
-    { "javascript_windows",     PTR_V_INT_GETSET(javascript_windows)},
-    { "zoom_level",             PTR_V_FLOAT_GETSET(zoom_level)},
-    { "zoom_type",              PTR_V_INT_GETSET(zoom_type)},
-
+    /* Font settings */
     { "default_font_family",    PTR_V_STR_GETSET(default_font_family)},
     { "monospace_font_family",  PTR_V_STR_GETSET(monospace_font_family)},
-    { "cursive_font_family",    PTR_V_STR_GETSET(cursive_font_family)},
     { "sans_serif_font_family", PTR_V_STR_GETSET(sans_serif_font_family)},
     { "serif_font_family",      PTR_V_STR_GETSET(serif_font_family)},
+    { "cursive_font_family",    PTR_V_STR_GETSET(cursive_font_family)},
     { "fantasy_font_family",    PTR_V_STR_GETSET(fantasy_font_family)},
-
-    { "monospace_size",         PTR_V_INT_GETSET(monospace_size)},
-    { "font_size",              PTR_V_INT_GETSET(font_size)},
+    /* Font size settings */
     { "minimum_font_size",      PTR_V_INT_GETSET(minimum_font_size)},
-
-    { "enable_pagecache",       PTR_V_INT_GETSET(enable_pagecache)},
-    { "enable_plugins",         PTR_V_INT_GETSET(enable_plugins)},
-    { "enable_scripts",         PTR_V_INT_GETSET(enable_scripts)},
-    { "autoload_images",        PTR_V_INT_GETSET(autoload_images)},
-    { "autoshrink_images",      PTR_V_INT_GETSET(autoshrink_images)},
-    { "enable_spellcheck",      PTR_V_INT_GETSET(enable_spellcheck)},
-    { "spellcheck_languages",   PTR_V_STR_GETSET(spellcheck_languages)},
-    { "enable_private",         PTR_V_INT_GETSET(enable_private)},
-    { "print_backgrounds",      PTR_V_INT_GETSET(print_bg)},
-    { "stylesheet_uri",         PTR_V_STR_GETSET(stylesheet_uri)},
-    { "resizable_text_areas",   PTR_V_INT_GETSET(resizable_text_areas)},
+    { "font_size",              PTR_V_INT_GETSET(font_size)},
+    { "monospace_size",         PTR_V_INT_GETSET(monospace_size)},
+    /* Text settings */
     { "default_encoding",       PTR_V_STR_GETSET(default_encoding)},
     { "current_encoding",       PTR_V_STR_GETSET(current_encoding)},
     { "enforce_96_dpi",         PTR_V_INT_GETSET(enforce_96_dpi)},
-    { "caret_browsing",         PTR_V_INT_GETSET(caret_browsing)},
+    /* Feature settings */
+    { "enable_plugins",         PTR_V_INT_GETSET(enable_plugins)},
+    /* Security settings */
+    { "enable_private",         PTR_V_INT_GETSET(enable_private)},
     { "enable_cross_file_access", PTR_V_INT_GETSET(enable_cross_file_access)},
+    /* Display settings */
+    { "zoom_level",             PTR_V_FLOAT_GETSET(zoom_level)},
+    { "zoom_type",              PTR_V_INT_GETSET(zoom_type)},
+    { "caret_browsing",         PTR_V_INT_GETSET(caret_browsing)},
+    /* Javascript settings */
+    { "enable_scripts",         PTR_V_INT_GETSET(enable_scripts)},
+    { "javascript_windows",     PTR_V_INT_GETSET(javascript_windows)},
+    /* Image settings */
+    { "autoload_images",        PTR_V_INT_GETSET(autoload_images)},
+    { "autoshrink_images",      PTR_V_INT_GETSET(autoshrink_images)},
+    /* Spell checking settings */
+    { "enable_spellcheck",      PTR_V_INT_GETSET(enable_spellcheck)},
+    { "spellcheck_languages",   PTR_V_STR_GETSET(spellcheck_languages)},
+    /* Form settings */
+    { "resizable_text_areas",   PTR_V_INT_GETSET(resizable_text_areas)},
+    /* Customization */
+    { "stylesheet_uri",         PTR_V_STR_GETSET(stylesheet_uri)},
+    /* Printing settings */
+    { "print_backgrounds",      PTR_V_INT_GETSET(print_bg)},
 
     { "inject_html",            { .type = TYPE_STR, .dump = 0, .writeable = 1, .getter = NULL, .setter = (uzbl_fp) set_inject_html }},
 
