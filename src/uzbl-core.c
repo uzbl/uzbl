@@ -310,7 +310,7 @@ setup_signal(int signr, sigfunc *shandler) {
     return NULL;
 }
 
-void
+static void
 empty_event_buffer(int s) {
     (void) s;
     if(uzbl.state.event_buffer) {
@@ -463,7 +463,7 @@ search_text (WebKitWebView *page, const gchar *key, const gboolean forward) {
     }
 }
 
-void
+static void
 sharg_append(GArray *a, const gchar *str) {
     const gchar *s = (str ? str : "");
     g_array_append_val(a, s);
@@ -517,7 +517,7 @@ run_command (const gchar *command, const gchar **args, const gboolean sync,
     return result;
 }
 
-/*@null@*/ gchar**
+/*@null@*/ static gchar**
 split_quoted(const gchar* src, const gboolean unquote) {
     /* split on unquoted space or tab, return array of strings;
        remove a layer of quotes and backslashes if unquote */
