@@ -424,16 +424,50 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enforce_96_dpi,               "enforce-96-dpi",     
 
 /* Feature settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_plugins,               "enable-plugins",                            int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_java_applet,           "enable-java-applet",                        int)
+#if WEBKIT_CHECK_VERSION (1, 3, 14)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_webgl,                 "enable-webgl",                              int)
+#endif
+#if WEBKIT_CHECK_VERSION (1, 7, 5)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_3d_acceleration,       "enable-accelerated-compositing",            int)
+#endif
+
+/* HTML5 Database settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_database,              "enable-html5-database",                     int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_local_storage,         "enable-html5-local-storage",                int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_pagecache,             "enable-page-cache",                         int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_offline_app_cache,     "enable-offline-web-application-cache",      int)
+#if WEBKIT_CHECK_VERSION (1, 5, 2)
+EXPOSE_WEBKIT_VIEW_SETTINGS(local_storage_path,           "html5-local-storage-database-path",         gchar *)
+#endif
 
 /* Security settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_private,               "enable-private-browsing",                   int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_universal_file_access, "enable-universal-access-from-file-uris",    int)
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_cross_file_access,     "enable-file-access-from-file-uris",         int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_hyperlink_auditing,    "enable-hyperlink-auditing",                 int)
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_dns_prefetch,          "enable-dns-prefetching",                    int)
+#endif
 
 /* Display settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(zoom_step,                    "zoom-step",                                 float)
 EXPOSE_WEBKIT_VIEW_SETTINGS(caret_browsing,               "enable-caret-browsing",                     int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(auto_resize_window,           "auto-resize-window",                        int)
+#if WEBKIT_CHECK_VERSION (1, 3, 5)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_frame_flattenting,     "enable-frame-flattening",                   int)
+#endif
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_fullscreen,            "enable-fullscreen",                         int)
+#endif
 
 /* Javascript settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_scripts,               "enable-scripts",                            int)
 EXPOSE_WEBKIT_VIEW_SETTINGS(javascript_windows,           "javascript-can-open-windows-automatically", int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(javascript_dom_paste,         "enable-dom-paste",                          int)
+#if WEBKIT_CHECK_VERSION (1, 3, 0)
+EXPOSE_WEBKIT_VIEW_SETTINGS(javascript_clipboard,         "javascript-can-access-clipboard",           int)
+#endif
 
 /* Image settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(autoload_images,              "auto-load-images",                          int)
@@ -445,9 +479,16 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(spellcheck_languages,         "spell-checking-langua
 
 /* Form settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(resizable_text_areas,         "resizable-text-areas",                      int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_spatial_navigation,    "enable-spatial-navigation",                 int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(editing_behavior,             "editing-behavior",                          int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_tab_cycle,             "tab-key-cycles-through-elements",           int)
 
 /* Customization */
 EXPOSE_WEBKIT_VIEW_SETTINGS(stylesheet_uri,               "user-stylesheet-uri",                       gchar *)
+EXPOSE_WEBKIT_VIEW_SETTINGS(default_context_menu,         "enable-default-context-menu",               int)
+
+/* Hacks */
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_site_workarounds,      "enable-site-specific-quirks",               int)
 
 /* Printing settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(print_bg,                     "print-backgrounds",                         int)
@@ -803,16 +844,48 @@ const struct var_name_to_ptr_t {
     { "enforce_96_dpi",         PTR_V_INT_GETSET(enforce_96_dpi)},
     /* Feature settings */
     { "enable_plugins",         PTR_V_INT_GETSET(enable_plugins)},
+    { "enable_java_applet",     PTR_V_INT_GETSET(enable_java_applet)},
+#if WEBKIT_CHECK_VERSION (1, 3, 14)
+    { "enable_webgl",           PTR_V_INT_GETSET(enable_webgl)},
+#endif
+#if WEBKIT_CHECK_VERSION (1, 7, 5)
+    { "enable_3d_acceleration", PTR_V_INT_GETSET(enable_3d_acceleration)},
+#endif
+    /* HTML5 Database settings */
+    { "enable_database",        PTR_V_INT_GETSET(enable_database)},
+    { "enable_local_storage",   PTR_V_INT_GETSET(enable_local_storage)},
+    { "enable_pagecache",       PTR_V_INT_GETSET(enable_pagecache)},
+    { "enable_offline_app_cache", PTR_V_INT_GETSET(enable_offline_app_cache)},
+#if WEBKIT_CHECK_VERSION (1, 5, 2)
+    { "local_storage_path",     PTR_V_STR_GETSET(local_storage_path)},
+#endif
     /* Security settings */
     { "enable_private",         PTR_V_INT_GETSET(enable_private)},
+    { "enable_universal_file_access", PTR_V_INT_GETSET(enable_universal_file_access)},
     { "enable_cross_file_access", PTR_V_INT_GETSET(enable_cross_file_access)},
+    { "enable_hyperlink_auditing", PTR_V_INT_GETSET(enable_hyperlink_auditing)},
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+    { "enable_dns_prefetch",    PTR_V_INT_GETSET(enable_dns_prefetch)},
+#endif
     /* Display settings */
     { "zoom_level",             PTR_V_FLOAT_GETSET(zoom_level)},
+    { "zoom_step",              PTR_V_FLOAT_GETSET(zoom_step)},
     { "zoom_type",              PTR_V_INT_GETSET(zoom_type)},
     { "caret_browsing",         PTR_V_INT_GETSET(caret_browsing)},
+    { "auto_resize_window",     PTR_V_INT_GETSET(auto_resize_window)},
+#if WEBKIT_CHECK_VERSION (1, 3, 5)
+    { "enable_frame_flattenting", PTR_V_INT_GETSET(enable_frame_flattenting)},
+#endif
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+    { "enable_fullscreen",      PTR_V_INT_GETSET(enable_fullscreen)},
+#endif
     /* Javascript settings */
     { "enable_scripts",         PTR_V_INT_GETSET(enable_scripts)},
     { "javascript_windows",     PTR_V_INT_GETSET(javascript_windows)},
+    { "javascript_dom_paste",   PTR_V_INT_GETSET(javascript_dom_paste)},
+#if WEBKIT_CHECK_VERSION (1, 3, 0)
+    { "javascript_clipboard",   PTR_V_INT_GETSET(javascript_clipboard)},
+#endif
     /* Image settings */
     { "autoload_images",        PTR_V_INT_GETSET(autoload_images)},
     { "autoshrink_images",      PTR_V_INT_GETSET(autoshrink_images)},
@@ -821,8 +894,14 @@ const struct var_name_to_ptr_t {
     { "spellcheck_languages",   PTR_V_STR_GETSET(spellcheck_languages)},
     /* Form settings */
     { "resizable_text_areas",   PTR_V_INT_GETSET(resizable_text_areas)},
+    { "enable_spatial_navigation", PTR_V_INT_GETSET(enable_spatial_navigation)},
+    { "editing_behavior",       PTR_V_INT_GETSET(editing_behavior)},
+    { "enable_tab_cycle",       PTR_V_INT_GETSET(enable_tab_cycle)},
     /* Customization */
     { "stylesheet_uri",         PTR_V_STR_GETSET(stylesheet_uri)},
+    { "default_context_menu",   PTR_V_INT_GETSET(default_context_menu)},
+    /* Hacks */
+    { "enable_site_workarounds", PTR_V_INT_GETSET(enable_site_workarounds)},
     /* Printing settings */
     { "print_backgrounds",      PTR_V_INT_GETSET(print_bg)},
 
