@@ -248,7 +248,9 @@ motion_notify_cb(GtkWidget* window, GdkEventMotion* event, gpointer user_data) {
 }
 
 gboolean
-navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
+navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
+        WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action,
+        WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
     (void) web_view;
     (void) frame;
     (void) navigation_action;
@@ -320,7 +322,9 @@ new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
 }
 
 gboolean
-mime_policy_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, gchar *mime_type,  WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
+mime_policy_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
+        WebKitNetworkRequest *request, gchar *mime_type,
+        WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
     (void) frame;
     (void) request;
     (void) user_data;
@@ -665,7 +669,7 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
 
 void
 window_object_cleared_cb(WebKitWebView *webview, WebKitWebFrame *frame,
-    JSGlobalContextRef *context, JSObjectRef *object) {
+        JSGlobalContextRef *context, JSObjectRef *object) {
     (void) frame; (void) context; (void) object;
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
     // Take this opportunity to set some callbacks on the DOM

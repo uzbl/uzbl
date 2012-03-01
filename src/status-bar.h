@@ -10,7 +10,7 @@
 #define UZBL_IS_STATUS_BAR_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), UZBL_TYPE_STATUS_BAR))
 #define UZBL_STATUS_BAR_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), UZBL_TYPE_STATUS_BAR, UzblStatusBarClass))
 
-typedef struct _UzblStatusBar	      UzblStatusBar;
+typedef struct _UzblStatusBar       UzblStatusBar;
 typedef struct _UzblStatusBarClass  UzblStatusBarClass;
 
 struct _UzblStatusBar {

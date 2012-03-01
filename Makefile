@@ -33,7 +33,7 @@ LDLIBS:=$(shell pkg-config --libs $(REQ_PKGS) x11)
 
 CFLAGS += -std=c99 $(PKG_CFLAGS) -ggdb -W -Wall -Wextra -pedantic -pthread
 
-SRC = $(wildcard src/*.c)
+SRC  = $(wildcard src/*.c)
 HEAD = $(wildcard src/*.h)
 OBJ  = $(foreach obj, $(SRC:.c=.o),  $(notdir $(obj)))
 LOBJ = $(foreach obj, $(SRC:.c=.lo), $(notdir $(obj)))

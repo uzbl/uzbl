@@ -290,7 +290,7 @@ get_click_context() {
 
     ht = webkit_web_view_get_hit_test_result (g->web_view, uzbl.state.last_button);
     g_object_get (ht, "context", &context, NULL);
-	g_object_unref (ht);
+    g_object_unref (ht);
 
     return (gint)context;
 }
@@ -356,12 +356,12 @@ parse_cmd_line_cb(const char *line, void *user_data) {
 }
 
 void
-run_command_file(const gchar *path) {
-	if(!for_each_line_in_file(path, parse_cmd_line_cb, NULL)) {
-		gchar *tmp = g_strdup_printf("File %s can not be read.", path);
-		send_event(COMMAND_ERROR, NULL, TYPE_STR, tmp, NULL);
-		g_free(tmp);
-	}
+run_command_file (const gchar *path) {
+    if(!for_each_line_in_file(path, parse_cmd_line_cb, NULL)) {
+        gchar *tmp = g_strdup_printf("File %s can not be read.", path);
+        send_event(COMMAND_ERROR, NULL, TYPE_STR, tmp, NULL);
+        g_free(tmp);
+    }
 }
 
 /* Javascript*/
@@ -841,7 +841,7 @@ settings_init () {
 
     /* Load config file, if any */
     if (s->config_file) {
-		run_command_file(s->config_file);
+        run_command_file(s->config_file);
         g_setenv("UZBL_CONFIG", s->config_file, TRUE);
     } else if (uzbl.state.verbose)
         printf ("No configuration file loaded.\n");
