@@ -673,6 +673,7 @@ set_useragent(const gchar *useragent) {
 
         g_object_set(G_OBJECT(uzbl.net.soup_session), SOUP_SESSION_USER_AGENT,
             uzbl.net.useragent, NULL);
+        g_object_set(view_settings(), "user-agent", uzbl.net.useragent, NULL);
     }
 }
 
