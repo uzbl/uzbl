@@ -732,7 +732,6 @@ set_accept_languages(const gchar *accept_languages) {
     }
 }
 
-/* requires webkit >=1.1.14 */
 static void
 set_view_source(int view_source) {
     uzbl.behave.view_source = view_source;
