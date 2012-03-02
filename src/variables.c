@@ -428,7 +428,7 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_java_applet,           "enable-java-applet", 
 #if WEBKIT_CHECK_VERSION (1, 3, 14)
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_webgl,                 "enable-webgl",                              int)
 #endif
-#if WEBKIT_CHECK_VERSION (1, 7, 5)
+#if WEBKIT_CHECK_VERSION (1, 7, 90) // Documentation says 1.7.5, but it's not there.
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_3d_acceleration,       "enable-accelerated-compositing",            int)
 #endif
 
@@ -847,7 +847,7 @@ const struct var_name_to_ptr_t {
 #if WEBKIT_CHECK_VERSION (1, 3, 14)
     { "enable_webgl",           PTR_V_INT_GETSET(enable_webgl)},
 #endif
-#if WEBKIT_CHECK_VERSION (1, 7, 5)
+#if WEBKIT_CHECK_VERSION (1, 7, 90) // Documentation says 1.7.5, but it's not there.
     { "enable_3d_acceleration", PTR_V_INT_GETSET(enable_3d_acceleration)},
 #endif
     /* HTML5 Database settings */
