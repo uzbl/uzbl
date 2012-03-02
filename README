@@ -258,7 +258,7 @@ The following commands are recognized:
   - Adds a new cookie to the cookie jar
 * `delete_cookie <domain> <path> <name> <value> [<scheme> <expires>]`
   - Deletes a matching cookie from the cookie jar. scheme and expire time
-	  is currently not considered when matching.
+    is currently not considered when matching.
 * `clear_cookies`
   - Clears all cookies from the cookie jar
 * `download <uri> [<destination path>]`
@@ -379,6 +379,52 @@ file).
 * `ssl_ca_file`: File that contains CA certificates.
 * `ssl_verify`: If set to 1, uzbl won't connect to "https" url unless it can
    validate certificate presented by remote server against `ssl_ca_file`.
+* `enable_java_applet`: If set to 1, support for Java <applet> tags will be
+   enabled (default 1).
+* `enable_database`: If set to 1, support for HTML5 client-side SQL databases
+   will be enabled (default 1).
+* `enable_local_storage`: If set to 1, websites will be able to store data
+   locally (default 1).
+* `enable_pagecache`: If set to 1, uzbl will store previously visited pages for
+    faster access (the cache is local to each uzbl instance) (default 0).
+* `enable_offline_app_cache`: If set to 1, web applications may be cached locally
+    for offline use (default 1).
+* `enable_universal_file_access`: If set to 1, allow `file://` URIs to access
+    all pages (default 0).
+* `enable_hyperlink_auditing`: If set to 1, the `ping` attribute on anchors will
+    be supported (default 0).
+* `zoom_step`: The change in the zoon level when zooming (default 0.1).
+* `auto_resize_window`: If set to 1, allow web pages to change window dimensions
+    (default 0).
+* `javascript_dom_paste`: If set to 1, JavaScript will be able to access the
+    contents of the clipboard (default 0).
+* `enable_spatial_navigation`: If set to 1, the arrow keys in `Ins` mode will
+    navigate between form elements (default 0).
+* `editing_behavior`: When set to 0, emulate Mac behavior in text fields, 1
+    for Windows behavior, and 2 for *nix behavior (the default).
+* `enable_tab_cycle`: If set to 1, the `Tab` key cycles between elements on
+    the page (default 1).
+* `default_context_menu`: If set to 0, do not cause context menus to appear when
+    right clicking (default 1).
+* `enable_site_workarounds`: If set to 1, enable filters to help unbreak
+    certain websites (default 0).
+* `javascript_clipboard`: If set to 1, JavaScript may access the clipboard
+    (default 0). Requires webkitgtk >= 1.3.0.
+* `enable_frame_flattenting`: If set to 1, flatten all frames into a single
+    page (default 0). Requires webkitgtk >= 1.3.5.
+* `enable_fullscreen`: If set to 1, Mozilla-style fullscreening will be
+    available (default 0). Requires webkitgtk >= 1.3.8
++#if WEBKIT_CHECK_VERSION (1, 3, 13)
+* `enable_dns_prefetch`: If set to 1, domain names will be prefetched
+    (default 1). Private browsing does *not* affect this value. Requires
+    webkitgtk >= 1.3.13.
+* `enable_webgl`: If set to 1, WebGL support will be enabled (default 0).
+    Requires webkitgtk >= 1.3.14.
+* `local_storage_path`: Where to store local databases (default
+    $XDG_DATA_HOME/webkit/databases/). Requires 1.5.2.
+* `enable_3d_acceleration`: If set to 1, the GPU will be used to render
+    animations and 3D CSS transformations. Requires webkitgtk >= 1.7.90.
+
 
 #### Constants (not dumpable or writeable)
 
