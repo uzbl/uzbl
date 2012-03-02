@@ -428,6 +428,9 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_java_applet,           "enable-java-applet", 
 #if WEBKIT_CHECK_VERSION (1, 3, 14)
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_webgl,                 "enable-webgl",                              int)
 #endif
+#if WEBKIT_CHECK_VERSION (1, 7, 5)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_webaudio,             "enable-webaudio",                           int)
+#endif
 #if WEBKIT_CHECK_VERSION (1, 7, 90) // Documentation says 1.7.5, but it's not there.
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_3d_acceleration,       "enable-accelerated-compositing",            int)
 #endif
@@ -846,6 +849,9 @@ const struct var_name_to_ptr_t {
     { "enable_java_applet",     PTR_V_INT_GETSET(enable_java_applet)},
 #if WEBKIT_CHECK_VERSION (1, 3, 14)
     { "enable_webgl",           PTR_V_INT_GETSET(enable_webgl)},
+#endif
+#if WEBKIT_CHECK_VERSION (1, 7, 5)
+    { "enable_webaudio",           PTR_V_INT_GETSET(enable_webaudio)},
 #endif
 #if WEBKIT_CHECK_VERSION (1, 7, 90) // Documentation says 1.7.5, but it's not there.
     { "enable_3d_acceleration", PTR_V_INT_GETSET(enable_3d_acceleration)},

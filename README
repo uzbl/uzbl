@@ -421,7 +421,9 @@ file).
 * `enable_webgl`: If set to 1, WebGL support will be enabled (default 0).
     Requires webkitgtk >= 1.3.14.
 * `local_storage_path`: Where to store local databases (default
-    $XDG_DATA_HOME/webkit/databases/). Requires 1.5.2.
+    $XDG_DATA_HOME/webkit/databases/). Requires webkit >= 1.5.2.
+* `enable_webaudio`: If set to 1, allows JavaScript to generate audio
+    directly (default 0). Requires webkit >= 1.7.5.
 * `enable_3d_acceleration`: If set to 1, the GPU will be used to render
     animations and 3D CSS transformations. Requires webkitgtk >= 1.7.90.
 
