@@ -208,7 +208,11 @@ class Cookies(PerInstancePlugin):
             for u in self.get_recipents():
                 u.send('add_cookie %s' % cookie.raw())
 
-            self.get_store(self.expires_with_session(cookie)).add_cookie(cookie.raw(), cookie)
+            session = self.expires_with_session(cookie)
+
+            self.get_store(session).add_cookie(cookie.raw(), cookie)
+            if session and not self.uzbl_config['per_instance_session_cookies']:
+                return self.per_instance_store.add_cookie(cookie.raw(), cookie)
         else:
             self.logger.debug('cookie %r is blacklisted', cookie)
             self.uzbl.send('delete_cookie %s' % cookie.raw())
