@@ -5,6 +5,8 @@
 #include "io.h"
 #include "util.h"
 
+#include <stdlib.h>
+
 uzbl_cmdprop *
 get_var_c(const gchar *name) {
     return g_hash_table_lookup(uzbl.behave.proto_var, name);
@@ -465,7 +467,7 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(local_storage_path,           "html5-local-storage-d
 #endif
 
 /* Security settings */
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_private,               "enable-private-browsing",                   int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_private_webkit,        "enable-private-browsing",                   int)
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_universal_file_access, "enable-universal-access-from-file-uris",    int)
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_cross_file_access,     "enable-file-access-from-file-uris",         int)
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_hyperlink_auditing,    "enable-hyperlink-auditing",                 int)
@@ -517,6 +519,23 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_site_workarounds,      "enable-site-specific-
 EXPOSE_WEBKIT_VIEW_SETTINGS(print_bg,                     "print-backgrounds",                         int)
 
 #undef EXPOSE_WEBKIT_VIEW_SETTINGS
+
+static void
+set_enable_private (int private) {
+    const char *priv_envvar = "UZBL_PRIVATE";
+
+    if (private)
+        setenv (priv_envvar, "true", 1);
+    else
+        unsetenv (priv_envvar);
+
+    set_enable_private_webkit (private);
+}
+
+static int
+get_enable_private () {
+    return get_enable_private_webkit ();
+}
 
 static void
 set_proxy_url(const gchar *proxy_url) {

@@ -564,6 +564,7 @@ access to the following environment variables:
 * `$UZBL_SOCKET`: The filename of the Unix socket being used, if any.
 * `$UZBL_URI`: The URI of the current page.
 * `$UZBL_TITLE`: The current page title.
+* `$UZBL_PRIVATE`: Set if uzbl is in "private browsing mode", unset otherwise.
 
 Handler scripts (`download_handler`, `cookie_handler`, `scheme_handler`,
 `request_handler`, and `authentication_handler`) are called with special
