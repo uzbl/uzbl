@@ -235,7 +235,6 @@ class Cookies(PerInstancePlugin):
             return
 
         if self.uzbl_config['per_instance_session_cookies']:
-            SessionStore.delete_cookie(cookie.raw(), cookie)
             return
 
         for u in self.get_recipents():
