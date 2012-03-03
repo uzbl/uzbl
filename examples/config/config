@@ -99,6 +99,10 @@ set download_handler    = sync_spawn @scripts_dir/download.sh
 # Custom CSS can be defined here, including link follower hint styles
 set stylesheet_uri = file://@config_home/uzbl/style.css
 
+# If WebKits builtin authentication dialog should be used, if enabling remember
+# to disable external authentication handlers
+set enable_builtin_auth = 0
+
 set show_status       = 1
 set status_top        = 0
 set status_background = #303030
