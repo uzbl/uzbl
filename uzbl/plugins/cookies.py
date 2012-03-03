@@ -222,8 +222,13 @@ class Cookies(PerInstancePlugin):
         for u in self.get_recipents():
             u.send('delete_cookie %s' % cookie.raw())
 
+        session = self.expires_with_session(cookie)
+
+        if session:
+            self.per_instance_session_cookies.delete_cookie(cookie.raw(), cookie)
+
         if len(cookie) == 6:
-            self.get_store(self.expires_with_session(cookie)).delete_cookie(cookie.raw(), cookie)
+            self.get_store(session).delete_cookie(cookie.raw(), cookie)
         else:
             for store in set([self.get_store(session) for session in (True, False)]):
                 store.delete_cookie(cookie.raw(), cookie)
