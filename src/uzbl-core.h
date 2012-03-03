@@ -122,6 +122,7 @@ typedef struct {
 typedef struct {
     SoupSession*    soup_session;
     UzblCookieJar*  soup_cookie_jar;
+    GHashTable*     pending_auths;
     SoupLogger*     soup_logger;
     char*           proxy_url;
     char*           useragent;

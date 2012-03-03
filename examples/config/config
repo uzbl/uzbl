@@ -86,6 +86,8 @@ set download_handler    = sync_spawn @scripts_dir/download.sh
 # Switch to command mode if anything else is clicked
 @on_event   ROOT_ACTIVE    @set_mode command
 
+@on_event   AUTHENTICATE   spawn @scripts_dir/auth.py "%1" "%2" "%3"
+
 # Example CONFIG_CHANGED event handler
 #@on_event  CONFIG_CHANGED print Config changed: %1 = %2
 
