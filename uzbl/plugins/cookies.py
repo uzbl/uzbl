@@ -205,8 +205,9 @@ class Cookies(PerInstancePlugin):
     def add_cookie(self, cookie):
         cookie = splitquoted(cookie)
         if self.accept_cookie(cookie):
-            for u in self.get_recipents():
-                u.send('add_cookie %s' % cookie.raw())
+            if not self.uzbl_config['per_instance_session_cookies']:
+                for u in self.get_recipents():
+                    u.send('add_cookie %s' % cookie.raw())
 
             self.get_store(self.expires_with_session(cookie)).add_cookie(cookie.raw(), cookie)
         else:
@@ -215,8 +216,9 @@ class Cookies(PerInstancePlugin):
 
     def delete_cookie(self, cookie):
         cookie = splitquoted(cookie)
-        for u in self.get_recipents():
-            u.send('delete_cookie %s' % cookie.raw())
+        if not self.uzbl_config['per_instance_session_cookies']:
+            for u in self.get_recipents():
+                u.send('delete_cookie %s' % cookie.raw())
 
         if len(cookie) == 6:
             self.get_store(self.expires_with_session(cookie)).delete_cookie(cookie.raw(), cookie)
