@@ -1,11 +1,25 @@
 #include "uzbl-core.h"
 #include "util.h"
+#include "events.h"
+#include "type.h"
 
-static void handle_authentication (SoupSession *session,
-                                   SoupMessage *msg,
-                                   SoupAuth    *auth,
-                                   gboolean     retrying,
-                                   gpointer     user_data);
+static void handle_authentication    (SoupSession *session,
+                                      SoupMessage *msg,
+                                      SoupAuth    *auth,
+                                      gboolean     retrying,
+                                      gpointer     user_data);
+
+static void handle_request_queued    (SoupSession *session,
+                                      SoupMessage *msg,
+                                      gpointer user_data);
+
+static void handle_request_started   (SoupSession *session,
+                                      SoupMessage *msg,
+                                      gpointer user_data);
+
+static void handle_request_finished (SoupMessage *msg,
+                                     gpointer user_data);
+
 void
 uzbl_soup_init (SoupSession *session)
 {
@@ -17,10 +31,66 @@ uzbl_soup_init (SoupSession *session)
     );
 
     g_signal_connect (
+        session, "request-queued",
+        G_CALLBACK (handle_request_queued), NULL
+    );
+
+    g_signal_connect (
+        session, "request-started",
+        G_CALLBACK (handle_request_started), NULL
+    );
+
+    g_signal_connect (
        session, "authenticate",
         G_CALLBACK (handle_authentication), NULL
     );
 }
+
+static void
+handle_request_queued (SoupSession *session,
+                       SoupMessage *msg,
+                       gpointer     user_data)
+{
+    (void) session; (void) user_data;
+
+    send_event (
+        REQUEST_QUEUED, NULL,
+        TYPE_STR, soup_uri_to_string (soup_message_get_uri (msg), FALSE),
+        NULL
+    );
+}
+
+static void
+handle_request_started (SoupSession *session,
+                        SoupMessage *msg,
+                        gpointer     user_data)
+{
+    (void) session; (void) user_data;
+
+    send_event (
+        REQUEST_STARTING, NULL,
+        TYPE_STR, soup_uri_to_string (soup_message_get_uri (msg), FALSE),
+        NULL
+    );
+
+    g_signal_connect (
+        G_OBJECT (msg), "finished",
+        G_CALLBACK (handle_request_finished), NULL
+    );
+}
+
+static void
+handle_request_finished (SoupMessage *msg, gpointer user_data)
+{
+    (void) user_data;
+
+    send_event (
+        REQUEST_FINISHED, NULL,
+        TYPE_STR, soup_uri_to_string (soup_message_get_uri (msg), FALSE),
+        NULL
+    );
+}
+
 
 static void
 handle_authentication (SoupSession *session,
