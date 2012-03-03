@@ -310,6 +310,8 @@ file).
   - `host`: The host requesting the cookie.
   - `path`: The request address path.
   - `data`: The cookie data. Only included for "PUT" requests.
+* `per_instance_session_cookies`: Store session cookies per-instance instead of
+  sharing between all instances (default 0).
 * `scheme_handler`: handler to execute for each URI navigated to - the
   navigation request will be ignored if handler prints "USED\n"
 * `request_handler`: Executed whenever any request is made.  The handler can

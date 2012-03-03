@@ -166,6 +166,8 @@ typedef struct {
     gchar*   shell_cmd;
     guint    view_source;
 
+    gboolean instance_session_cookies;
+
     gboolean print_version;
 
     /* command list: (key)name -> (value)Command  */

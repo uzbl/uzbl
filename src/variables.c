@@ -871,6 +871,8 @@ const struct var_name_to_ptr_t {
     { "useragent",              PTR_V_STR(uzbl.net.useragent,                   1,   set_useragent)},
     { "accept_languages",       PTR_V_STR(uzbl.net.accept_languages,            1,   set_accept_languages)},
 
+    { "per_instance_session_coolies", PTR_V_INT(uzbl.behave.instance_session_cookies, 1, NULL)},
+
     { "view_source",            PTR_V_INT(uzbl.behave.view_source,              0,   set_view_source)},
 
     { "ssl_ca_file",            PTR_V_STR_GETSET(ca_file)},

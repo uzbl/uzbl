@@ -5,7 +5,8 @@ from collections import defaultdict
 import os, re, stat
 
 from uzbl.arguments import splitquoted
-from uzbl.ext import GlobalPlugin, PerInstancePlugin
+from uzbl.ext import PerInstancePlugin
+from .config import Config
 
 # these are symbolic names for the components of the cookie tuple
 symbolic = {'domain': 0, 'path':1, 'name':2, 'value':3, 'scheme':4, 'expires':5}
@@ -158,13 +159,17 @@ class TextStore(object):
 xdg_data_home = os.environ.get('XDG_DATA_HOME', os.path.join(os.environ['HOME'], '.local/share'))
 DefaultStore = TextStore(os.path.join(xdg_data_home, 'uzbl/cookies.txt'))
 SessionStore = TextStore(os.path.join(xdg_data_home, 'uzbl/session-cookies.txt'))
+PerInstanceSessionStore = lambda uzbl: ListStore
 
 class Cookies(PerInstancePlugin):
     def __init__(self, uzbl):
         super(Cookies, self).__init__(uzbl)
 
+        self.uzbl_config = Config[uzbl]
+
         self.whitelist = []
         self.blacklist = []
+        self.per_instance_store = PerInstanceSessionStore(uzbl)
 
         uzbl.connect('ADD_COOKIE', self.add_cookie)
         uzbl.connect('DELETE_COOKIE', self.delete_cookie)
@@ -192,6 +197,8 @@ class Cookies(PerInstancePlugin):
 
     def get_store(self, session=False):
         if session:
+            if self.uzbl_config['per_instance_session_cookies']:
+                return self.per_instance_store
             return SessionStore
         return DefaultStore
 
