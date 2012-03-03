@@ -68,7 +68,7 @@ ${LOBJ}: ${SRC} ${HEAD}
 
 # When compiling unit tests, compile uzbl as a library first
 tests: ${LOBJ} force
-	$(CC) -shared -Wl ${LOBJ} -o ./tests/libuzbl-core.so
+	$(CC) -shared ${LOBJ} -o ./tests/libuzbl-core.so
 	cd ./tests/; $(MAKE)
 
 test-event-manager: force
@@ -114,6 +114,7 @@ test-uzbl-tabbed-sandbox: sandbox uzbl-browser sandbox-install-uzbl-browser sand
 clean:
 	rm -f uzbl-core
 	rm -f *.o
+	rm -f *.lo
 	find ./examples/ -name "*.pyc" -delete
 	cd ./tests/; $(MAKE) clean
 	rm -rf ./sandbox/
