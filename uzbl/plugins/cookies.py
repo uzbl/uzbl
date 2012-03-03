@@ -170,6 +170,7 @@ class Cookies(PerInstancePlugin):
         self.whitelist = []
         self.blacklist = []
         self.per_instance_store = PerInstanceSessionStore(uzbl)
+        self.private_store = ListStore()
 
         uzbl.connect('ADD_COOKIE', self.add_cookie)
         uzbl.connect('DELETE_COOKIE', self.delete_cookie)
@@ -208,11 +209,13 @@ class Cookies(PerInstancePlugin):
             for u in self.get_recipents():
                 u.send('add_cookie %s' % cookie.raw())
 
-            session = self.expires_with_session(cookie)
+            if not self.uzbl_config['enable_private']:
+                session = self.expires_with_session(cookie)
 
-            self.get_store(session).add_cookie(cookie.raw(), cookie)
-            if session and not self.uzbl_config['per_instance_session_cookies']:
-                return self.per_instance_store.add_cookie(cookie.raw(), cookie)
+                self.get_store(session).add_cookie(cookie.raw(), cookie)
+                if session and not self.uzbl_config['per_instance_session_cookies']:
+                    return self.per_instance_store.add_cookie(cookie.raw(), cookie)
+            self.private_store.add_cookie(cookie.raw(), cookie)
         else:
             self.logger.debug('cookie %r is blacklisted', cookie)
             self.uzbl.send('delete_cookie %s' % cookie.raw())
@@ -226,6 +229,7 @@ class Cookies(PerInstancePlugin):
 
         if session:
             self.per_instance_session_cookies.delete_cookie(cookie.raw(), cookie)
+        self.private_store.delete_cookie(cookie.raw(), cookie)
 
         if len(cookie) == 6:
             self.get_store(session).delete_cookie(cookie.raw(), cookie)
