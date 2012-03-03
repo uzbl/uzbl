@@ -203,28 +203,41 @@ class Cookies(PerInstancePlugin):
         return DefaultStore
 
     def add_cookie(self, cookie):
+
         cookie = splitquoted(cookie)
         if self.accept_cookie(cookie):
-            if not self.uzbl_config['per_instance_session_cookies']:
-                for u in self.get_recipents():
-                    u.send('add_cookie %s' % cookie.raw())
+            if self.uzbl_config['enable_private']:
+                return
 
             self.get_store(self.expires_with_session(cookie)).add_cookie(cookie.raw(), cookie)
+
+            if self.uzbl_config['per_instance_session_cookies']:
+                return
+
+            for u in self.get_recipents():
+                u.send('add_cookie %s' % cookie.raw())
         else:
             self.logger.debug('cookie %r is blacklisted', cookie)
             self.uzbl.send('delete_cookie %s' % cookie.raw())
 
     def delete_cookie(self, cookie):
         cookie = splitquoted(cookie)
-        if not self.uzbl_config['per_instance_session_cookies']:
-            for u in self.get_recipents():
-                u.send('delete_cookie %s' % cookie.raw())
 
         if len(cookie) == 6:
             self.get_store(self.expires_with_session(cookie)).delete_cookie(cookie.raw(), cookie)
         else:
             for store in set([self.get_store(session) for session in (True, False)]):
                 store.delete_cookie(cookie.raw(), cookie)
+
+        if self.uzbl_config['enable_private']:
+            return
+
+        if self.uzbl_config['per_instance_session_cookies']:
+            SessionStore.delete_cookie(cookie.raw(), cookie)
+            return
+
+        for u in self.get_recipents():
+            u.send('delete_cookie %s' % cookie.raw())
 
     def blacklist_cookie(self, arg):
         add_cookie_matcher(self.blacklist, arg)
