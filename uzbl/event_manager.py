@@ -218,8 +218,12 @@ class UzblEventDaemon(object):
         proto = Protocol(sock)
         uzbl = Uzbl(self, proto, opts)
         self.uzbls[sock] = uzbl
+        for plugin in self.plugins.values():
+            plugin.new_uzbl(uzbl)
 
     def remove_instance(self, sock):
+        for plugin in self.plugins.values():
+            plugin.free_uzbl(uzbl)
         if sock in self.uzbls:
             del self.uzbls[sock]
         if not self.uzbls and opts.auto_close:
