@@ -73,6 +73,12 @@ class GlobalPlugin(BasePlugin):
         self.event_manager = event_manager
         self.logger = logging.getLogger(self.__module__)
 
+    def new_uzbl(self, uzbl):
+        pass
+
+    def free_uzbl(self, uzbl):
+        pass
+
     @classmethod
     def _get_instance(cls, owner):
         """Returns instance of the plugin
