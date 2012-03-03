@@ -248,7 +248,7 @@ string_is_integer(const char *s) {
 
 static GObject *
 cookie_jar() {
-    return G_OBJECT(uzbl.network.soup_cookie_jar);
+    return G_OBJECT(uzbl.net.soup_cookie_jar);
 }
 
 static GObject *
