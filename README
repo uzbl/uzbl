@@ -398,8 +398,8 @@ file).
 * `zoom_step`: The change in the zoon level when zooming (default 0.1).
 * `auto_resize_window`: If set to 1, allow web pages to change window dimensions
     (default 0).
-* `javascript_dom_paste`: If set to 1, JavaScript will be able to access the
-    contents of the clipboard (default 0).
+* `javascript_dom_paste`: If set to 1, JavaScript will be cause clipboard content
+    to be pasted (default 0).
 * `enable_spatial_navigation`: If set to 1, the arrow keys in `Ins` mode will
     navigate between form elements (default 0).
 * `editing_behavior`: When set to 0, emulate Mac behavior in text fields, 1
@@ -416,7 +416,6 @@ file).
     page (default 0). Requires webkitgtk >= 1.3.5.
 * `enable_fullscreen`: If set to 1, Mozilla-style fullscreening will be
     available (default 0). Requires webkitgtk >= 1.3.8
-+#if WEBKIT_CHECK_VERSION (1, 3, 13)
 * `enable_dns_prefetch`: If set to 1, domain names will be prefetched
     (default 1). Private browsing does *not* affect this value. Requires
     webkitgtk >= 1.3.13.
