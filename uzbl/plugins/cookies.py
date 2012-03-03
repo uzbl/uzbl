@@ -193,7 +193,9 @@ class Cookies(PerInstancePlugin):
     def get_recipents(self):
         """ get a list of Uzbl instances to send the cookie too. """
         # This could be a lot more interesting
-        return [u for u in list(self.uzbl.parent.uzbls.values()) if u is not self.uzbl]
+        us = [u for u list(in self.uzbl.parent.uzbls.values()) if u is not self.uzbl]
+        us = filter(lambda u: not Config[u]['enable_private'], us)
+        return us
 
     def get_store(self, session=False):
         if session:
