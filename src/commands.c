@@ -383,8 +383,7 @@ add_cookie(WebKitWebView *page, GArray *argv, GString *result) {
         soup_cookie_set_expires (cookie, expires);
 
     // Add cookie to jar
-    if (get_enable_private ())
-        uzbl.net.soup_cookie_jar->in_manual_add = 1;
+    uzbl.net.soup_cookie_jar->in_manual_add = 1;
     soup_cookie_jar_add_cookie (SOUP_COOKIE_JAR (uzbl.net.soup_cookie_jar), cookie);
     uzbl.net.soup_cookie_jar->in_manual_add = 0;
 }
