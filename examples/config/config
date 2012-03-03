@@ -139,6 +139,8 @@ set useragent         = Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}) (@(+uname 
 
 # === Configure cookie blacklist ========================================================
 
+set cookie_policy = 0
+
 # Accept 'session cookies' from uzbl.org (when you have a whitelist all other cookies are dropped)
 #request WHITELIST_COOKIE domain 'uzbl.org$' expires '^$'
 

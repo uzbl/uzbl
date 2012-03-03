@@ -360,6 +360,8 @@ file).
   `en_CA` or `pt_BR`) to be used for spell checking, separated by commas.
   Defaults to the value returned by `gtk_get_default_language`.
 * `enable_private`: Whether to enable private browsing mode (default 0).
+* `cookie_policy`: If set to 0, all cookies are accepted, if set to 1, all
+  cookies are rejected, and 2 rejects third party cookies (default 0).
 * `print_backgrounds`: Print background images? (default 0).
 * `stylesheet_uri`: Use this to override the pagelayout with a custom
   stylesheet.

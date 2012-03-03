@@ -247,6 +247,11 @@ string_is_integer(const char *s) {
 
 
 static GObject *
+cookie_jar() {
+    return G_OBJECT(uzbl.network.soup_cookie_jar);
+}
+
+static GObject *
 view_settings() {
     return G_OBJECT(webkit_web_view_get_settings(uzbl.gui.web_view));
 }
@@ -395,6 +400,21 @@ get_verify_cert() {
     return strict;
 }
 
+#define EXPOSE_SOUP_COOKIE_JAR_SETTINGS(SYM, PROPERTY, TYPE) \
+void set_##SYM(TYPE val) { \
+  g_object_set(cookie_jar(), (PROPERTY), val, NULL); \
+} \
+TYPE get_##SYM() { \
+  TYPE val; \
+  g_object_get(cookie_jar(), (PROPERTY), &val, NULL); \
+  return val; \
+}
+
+EXPOSE_SOUP_COOKIE_JAR_SETTINGS(cookie_policy,    "accept-policy",    int)
+
+#undef EXPOSE_SOUP_COOKIE_JAR_SETTINGS
+
+
 #define EXPOSE_WEBKIT_VIEW_SETTINGS(SYM, PROPERTY, TYPE) \
 static void set_##SYM(TYPE val) { \
   g_object_set(view_settings(), (PROPERTY), val, NULL); \
@@ -495,6 +515,8 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_site_workarounds,      "enable-site-specific-
 
 /* Printing settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(print_bg,                     "print-backgrounds",                         int)
+
+#undef EXPOSE_WEBKIT_VIEW_SETTINGS
 
 static void
 set_proxy_url(const gchar *proxy_url) {
@@ -869,6 +891,7 @@ const struct var_name_to_ptr_t {
     { "enable_universal_file_access", PTR_V_INT_GETSET(enable_universal_file_access)},
     { "enable_cross_file_access", PTR_V_INT_GETSET(enable_cross_file_access)},
     { "enable_hyperlink_auditing", PTR_V_INT_GETSET(enable_hyperlink_auditing)},
+    { "cookie_policy",          PTR_V_INT_GETSET(cookie_policy)},
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
     { "enable_dns_prefetch",    PTR_V_INT_GETSET(enable_dns_prefetch)},
 #endif
