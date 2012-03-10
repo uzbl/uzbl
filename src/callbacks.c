@@ -191,10 +191,6 @@ button_press_cb (GtkWidget* window, GdkEventButton* event) {
             sendev    = TRUE;
             propagate = TRUE;
         }
-
-        if(sendev) {
-            button_to_event(event->button, event->state, GDK_BUTTON_PRESS);
-        }
     }
 
     if(event->type == GDK_2BUTTON_PRESS || event->type == GDK_3BUTTON_PRESS) {
@@ -210,10 +206,10 @@ button_press_cb (GtkWidget* window, GdkEventButton* event) {
             sendev    = TRUE;
             propagate = TRUE;
         }
+    }
 
-        if(sendev) {
-            button_to_event(event->button, event->state, event->type);
-        }
+    if(sendev) {
+        button_to_event(event->button, event->state, event->type);
     }
 
     return propagate;
