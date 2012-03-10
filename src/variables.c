@@ -735,6 +735,8 @@ const struct var_name_to_ptr_t {
     { "verbose",                PTR_V_INT(uzbl.state.verbose,                   1,   NULL)},
     { "print_events",           PTR_V_INT(uzbl.state.events_stdout,             1,   NULL)},
 
+    { "handle_multi_button",    PTR_V_INT(uzbl.state.handle_multi_button,        1,   NULL)},
+
     { "show_status",            PTR_V_INT_GETSET(show_status)},
     { "status_top",             PTR_V_INT(uzbl.behave.status_top,               1,   set_status_top)},
     { "status_format",          PTR_V_STR(uzbl.behave.status_format,            1,   NULL)},

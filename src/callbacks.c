@@ -196,15 +196,15 @@ button_press_cb (GtkWidget* window, GdkEventButton* event) {
     if(event->type == GDK_2BUTTON_PRESS || event->type == GDK_3BUTTON_PRESS) {
         if(event->button == 1 && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE) && (context & WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT)) {
             sendev    = TRUE;
-            propagate = TRUE;
+            propagate = uzbl.state.handle_multi_button;
         }
         else if(event->button == 2 && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
             sendev    = TRUE;
-            propagate = TRUE;
+            propagate = uzbl.state.handle_multi_button;
         }
-        else if(event->button > 3) {
+        else if(event->button >= 3) {
             sendev    = TRUE;
-            propagate = TRUE;
+            propagate = uzbl.state.handle_multi_button;
         }
     }
 

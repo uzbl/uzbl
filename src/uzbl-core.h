@@ -113,6 +113,7 @@ typedef struct {
     /* Events */
     int             socket_id;
     gboolean        events_stdout;
+    gboolean        handle_multi_button;
     GPtrArray*      event_buffer;
     gchar**         connect_socket_names;
 } State;
