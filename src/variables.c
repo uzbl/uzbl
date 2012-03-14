@@ -485,6 +485,11 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_frame_flattenting,     "enable-frame-flatteni
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_fullscreen,            "enable-fullscreen",                         int)
 #endif
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 7, 91)
+EXPOSE_WEBKIT_VIEW_SETTINGS(zoom_text_only,               "zoom-text-only",                            int)
+#endif
+#endif
 
 /* Javascript settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_scripts,               "enable-scripts",                            int)
@@ -925,6 +930,11 @@ const struct var_name_to_ptr_t {
 #endif
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
     { "enable_fullscreen",      PTR_V_INT_GETSET(enable_fullscreen)},
+#endif
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 7, 91)
+    { "zoom_text_only",         PTR_V_INT_GETSET(zoom_text_only)},
+#endif
 #endif
     /* Javascript settings */
     { "enable_scripts",         PTR_V_INT_GETSET(enable_scripts)},

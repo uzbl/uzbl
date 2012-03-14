@@ -427,6 +427,8 @@ file).
     directly (default 0). Requires webkit >= 1.7.5.
 * `enable_3d_acceleration`: If set to 1, the GPU will be used to render
     animations and 3D CSS transformations. Requires webkitgtk >= 1.7.90.
+* `zoom_text_only`: If set to 1, only text will be zoomed. Requires webkit2gtk
+    >= 1.7.91.
 
 
 #### Constants (not dumpable or writeable)
