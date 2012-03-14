@@ -789,6 +789,7 @@ set_view_source(int view_source) {
             (gboolean) uzbl.behave.view_source);
 }
 
+#ifndef USE_WEBKIT2
 void
 set_zoom_type (int type) {
     webkit_web_view_set_full_content_zoom (uzbl.gui.web_view, type);
@@ -798,6 +799,7 @@ int
 get_zoom_type () {
     return webkit_web_view_get_full_content_zoom (uzbl.gui.web_view);
 }
+#endif
 
 static void
 set_zoom_level(float zoom_level) {
@@ -922,7 +924,9 @@ const struct var_name_to_ptr_t {
     /* Display settings */
     { "zoom_level",             PTR_V_FLOAT_GETSET(zoom_level)},
     { "zoom_step",              PTR_V_FLOAT_GETSET(zoom_step)},
+#ifndef USE_WEBKIT2
     { "zoom_type",              PTR_V_INT_GETSET(zoom_type)},
+#endif
     { "caret_browsing",         PTR_V_INT_GETSET(caret_browsing)},
     { "auto_resize_window",     PTR_V_INT_GETSET(auto_resize_window)},
 #if WEBKIT_CHECK_VERSION (1, 3, 5)

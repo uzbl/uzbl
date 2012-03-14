@@ -337,7 +337,8 @@ file).
   to their original size. Setting this will resize the currently displayed page.
 * `zoom_type`: Whether to use "full-content" zoom (defaults to true). With
   full-content zoom on, all page content, not just text, is zoomed. When
-  full-content zoom is off, only the text of a page is zoomed.
+  full-content zoom is off, only the text of a page is zoomed. This is
+  unavailable with webkit2gtk. Use `zoom_text_only` instead.
 * `font_size`: The default font size.
 * `default_font_family`: The default font family used to display text.
 * `monospace_font_family`: The default font family used to display monospace
