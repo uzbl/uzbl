@@ -6,7 +6,11 @@
 #define __VARIABLES__
 
 #include <glib.h>
+#ifdef USE_WEBKIT2
+#include <webkit2/webkit2.h>
+#else
 #include <webkit/webkit.h>
+#endif
 
 #include "type.h"
 

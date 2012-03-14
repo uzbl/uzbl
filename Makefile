@@ -6,15 +6,36 @@ INSTALLDIR?=$(DESTDIR)$(PREFIX)
 DOCDIR?=$(INSTALLDIR)/share/uzbl/docs
 RUN_PREFIX?=$(PREFIX)
 
-# use GTK3-based webkit when it is available
-USE_GTK3 = $(shell pkg-config --exists gtk+-3.0 webkitgtk-3.0 && echo 1)
+# use webkit2 when it is available
+USE_WEBKIT2 = $(shell pkg-config --exists webkit2gtk-3.0 && echo 1)
+
+ifeq ($(USE_WEBKIT2),1)
+	# webkit2 requires gtk3
+	USE_GTK3 = 1
+else
+	# use GTK3-based webkit when it is available
+	USE_GTK3 = $(shell pkg-config --exists gtk+-3.0 webkitgtk-3.0 && echo 1)
+endif
+
+REQ_PKGS =
+CPPFLAGS =
 
 ifeq ($(USE_GTK3),1)
-	REQ_PKGS += gtk+-3.0 'webkitgtk-3.0 >= 1.2.4' javascriptcoregtk-3.0
-	CPPFLAGS = -DG_DISABLE_DEPRECATED -DGTK_DISABLE_DEPRECATED
+	REQ_PKGS += gtk+-3.0
+	CPPFLAGS += -DG_DISABLE_DEPRECATED -DGTK_DISABLE_DEPRECATED
 else
-	REQ_PKGS += gtk+-2.0 'webkit-1.0 >= 1.2.4' javascriptcoregtk-1.0
-	CPPFLAGS =
+	REQ_PKGS += gtk+-2.0
+endif
+
+ifeq ($(USE_WEBKIT2),1)
+	REQ_PKGS += 'webkit2gtk-3.0 >= 1.2.4' javascriptcoregtk-3.0
+	CPPFLAGS += -DUSE_WEBKIT2
+else
+ifeq ($(USE_GTK3),1)
+	REQ_PKGS += 'webkitgtk-3.0 >= 1.2.4' javascriptcoregtk-3.0
+else
+	REQ_PKGS += 'webkit-1.0 >= 1.2.4' javascriptcoregtk-1.0
+endif
 endif
 
 # --- configuration ends here ---
