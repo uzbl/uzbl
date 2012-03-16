@@ -922,6 +922,11 @@ initialize(int argc, char** argv) {
     uzbl.info.webkit_major     = webkit_major_version();
     uzbl.info.webkit_minor     = webkit_minor_version();
     uzbl.info.webkit_micro     = webkit_micro_version();
+#ifdef USE_WEBKIT2
+    uzbl.info.webkit2          = 1;
+#else
+    uzbl.info.webkit2          = 0;
+#endif
     uzbl.info.arch             = ARCH;
     uzbl.info.commit           = COMMIT;
 

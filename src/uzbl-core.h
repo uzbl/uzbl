@@ -180,6 +180,7 @@ typedef struct {
     int     webkit_major;
     int     webkit_minor;
     int     webkit_micro;
+    int     webkit2;
     gchar*  arch;
     gchar*  commit;
 

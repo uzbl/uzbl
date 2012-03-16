@@ -972,6 +972,7 @@ const struct var_name_to_ptr_t {
     { "WEBKIT_MAJOR",           PTR_C_INT(uzbl.info.webkit_major)},
     { "WEBKIT_MINOR",           PTR_C_INT(uzbl.info.webkit_minor)},
     { "WEBKIT_MICRO",           PTR_C_INT(uzbl.info.webkit_micro)},
+    { "HAS_WEBKIT2",            PTR_C_INT(uzbl.info.webkit2)},
     { "ARCH_UZBL",              PTR_C_STR(uzbl.info.arch)},
     { "COMMIT",                 PTR_C_STR(uzbl.info.commit)},
     { "TITLE",                  PTR_C_STR(uzbl.gui.main_title)},
