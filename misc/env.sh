@@ -10,7 +10,7 @@
 # Maybe we should spawn processes from here with an 'exec' at the end?
 
 # Re-define our home location inside the sandbox dir.
-HOME=$(pwd)/sandbox/home
+HOME=$(pwd)/sandbox/home/sandbox
 export HOME
 
 # Export default XDG_{DATA,CACHE,..}_HOME locations inside the sandbox
