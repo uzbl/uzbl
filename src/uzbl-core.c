@@ -357,11 +357,11 @@ parse_cmd_line_cb(const char *line, void *user_data) {
 
 void
 run_command_file(const gchar *path) {
-	if(!for_each_line_in_file(path, parse_cmd_line_cb, NULL)) {
-		gchar *tmp = g_strdup_printf("File %s can not be read.", path);
-		send_event(COMMAND_ERROR, NULL, TYPE_STR, tmp, NULL);
-		g_free(tmp);
-	}
+    if(!for_each_line_in_file(path, parse_cmd_line_cb, NULL)) {
+        gchar *tmp = g_strdup_printf("File %s can not be read.", path);
+        send_event(COMMAND_ERROR, NULL, TYPE_STR, tmp, NULL);
+        g_free(tmp);
+    }
 }
 
 /* Javascript*/
