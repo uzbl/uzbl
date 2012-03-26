@@ -16,6 +16,9 @@ case "$result" in
     XXXNEW_WINDOWXXX*)
         printf "set mode=\nevent KEYCMD_CLEAR\nevent NEW_WINDOW $@\n" > "$UZBL_FIFO"
         ;;
+    XXXNEW_TABXXX*)
+        printf "set mode=\nevent KEYCMD_CLEAR\nevent NEW_TAB $@\n" > "$UZBL_FIFO"
+        ;;
     XXXRETURNED_URIXXX*)
         uriaction=$1
         uri=${result#XXXRETURNED_URIXXX}

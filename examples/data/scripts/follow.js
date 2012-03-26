@@ -21,6 +21,8 @@ uzbl.follow = function() {
         uzbl.follow.mode = 'click';
     } else if (arguments[2] == 1 || arguments[2] == 'newwindow') {
         uzbl.follow.mode = 'newwindow';
+    } else if (arguments[2] == 2 || arguments[2] == 'newtab') {
+        uzbl.follow.mode = 'newtab';
     } else if (arguments[2] == 'returnuri') {
         uzbl.follow.mode = 'returnuri';
     }
@@ -289,6 +291,10 @@ uzbl.follow.elementSelected = function(el) {
         var uri = el.src || el.href;
         if(uri.match(/javascript:/)) return;
         return "XXXNEW_WINDOWXXX " + uri;
+    } else if (uzbl.follow.mode == 'newtab') {
+        var uri = el.src || el.href;
+        if(uri.match(/javascript:/)) return;
+        return "XXXNEW_TABXXX " + uri;
     } else {
         // we're just going to click the element
         return this.clickElem(el);
