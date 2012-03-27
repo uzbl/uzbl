@@ -28,7 +28,7 @@ case "$result" in
                 printf 'uri '"$uri"'\n' | sed -e 's/@/\\@/' > "$UZBL_FIFO"
                 ;;
             clipboard)
-                printf "$uri" | xclip
+                printf "$uri" | copy
                 ;;
         esac
         printf 'set mode=\nevent KEYCMD_CLEAR\n' > "$UZBL_FIFO"
