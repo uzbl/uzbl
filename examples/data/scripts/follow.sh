@@ -20,6 +20,8 @@ case "$result" in
         uriaction=$1
         uri=${result#XXXRETURNED_URIXXX}
 
+        printf 'set mode=\nevent KEYCMD_CLEAR\n' > "$UZBL_FIFO"
+
         case "$uriaction" in
             set)
                 printf 'uri '"$uri"'\n' | sed -e 's/@/\\@/' > "$UZBL_FIFO"
@@ -28,5 +30,4 @@ case "$result" in
                 printf "$uri" | xclip
                 ;;
         esac
-        printf 'set mode=\nevent KEYCMD_CLEAR\n' > "$UZBL_FIFO"
 esac
