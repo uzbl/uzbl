@@ -22,6 +22,8 @@ case "$result" in
 
         printf 'set mode=\nevent KEYCMD_CLEAR\n' > "$UZBL_FIFO"
 
+        [ -z "$uri" ] && exit
+
         case "$uriaction" in
             set)
                 printf 'uri '"$uri"'\n' | sed -e 's/@/\\@/' > "$UZBL_FIFO"
