@@ -165,13 +165,15 @@ button_press_cb (GtkWidget* window, GdkEventButton* event) {
     gboolean propagate = FALSE,
              sendev    = FALSE;
 
-    context = get_click_context(NULL);
+    // Save last button click for use in menu
+    if(uzbl.state.last_button)
+        gdk_event_free((GdkEvent *)uzbl.state.last_button);
+    uzbl.state.last_button = (GdkEventButton *)gdk_event_copy((GdkEvent *)event);
+
+    // Grab context from last click
+    context = get_click_context();
 
     if(event->type == GDK_BUTTON_PRESS) {
-        if(uzbl.state.last_button)
-            gdk_event_free((GdkEvent *)uzbl.state.last_button);
-        uzbl.state.last_button = (GdkEventButton *)gdk_event_copy((GdkEvent *)event);
-
         /* left click */
         if(event->button == 1) {
             if((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE))
@@ -222,7 +224,7 @@ button_release_cb (GtkWidget* window, GdkEventButton* event) {
     gboolean propagate = FALSE,
              sendev    = FALSE;
 
-    context = get_click_context(NULL);
+    context = get_click_context();
     if(event->type == GDK_BUTTON_RELEASE) {
         if(event->button == 2 && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
             sendev    = TRUE;
@@ -620,7 +622,7 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
         return;
 
     /* check context */
-    if((context = get_click_context(NULL)) == -1)
+    if((context = get_click_context()) == -1)
         return;
 
     for(i=0; i < uzbl.gui.menu_items->len; i++) {
