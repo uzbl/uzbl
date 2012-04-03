@@ -126,7 +126,7 @@ class TextStore(object):
             for l in cookies:
                 c = self.as_event(l.split('\t'))
                 if c is None or not match(key, c):
-                    print(l, end=' ', file=f)
+                    print(l, end='', file=f)
 
 xdg_data_home = os.environ.get('XDG_DATA_HOME', os.path.join(os.environ['HOME'], '.local/share'))
 DefaultStore = TextStore(os.path.join(xdg_data_home, 'uzbl/cookies.txt'))
