@@ -373,6 +373,9 @@ file).
   access the contents of other `file://` URIs. (default 0).
 * `follow_hint_keys`: keys for keyboard-based navigation and link
    highlighting
+* `handle_multi_click`: If set to 1, event handlers attached to `2Button*`
+   and `3Button*` bindings will only be used instead of the default actions in
+   WebKit (default 0).
 * `ssl_ca_file`: File that contains CA certificates.
 * `ssl_verify`: If set to 1, uzbl won't connect to "https" url unless it can
    validate certificate presented by remote server against `ssl_ca_file`.
