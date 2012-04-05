@@ -354,8 +354,10 @@ request_starting_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitWebRes
     const gchar *uri = webkit_network_request_get_uri (request);
     SoupMessage *message = webkit_network_request_get_message (request);
 
-    if (message)
-        soup_message_set_first_party (message, uri);
+    if (message) {
+        SoupURI *soup_uri = soup_uri_new (uri);
+        soup_message_set_first_party (message, soup_uri);
+    }
 
     if (uzbl.state.verbose)
         printf("Request starting -> %s\n", uri);
