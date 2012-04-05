@@ -222,7 +222,7 @@ set ebind     = @mode_bind global,-insert
 # --- Mouse bindings ---------------------------------------------------------
 
 # Middle click open in new window
-@bind  <Button2>  = sh 'if [ "$1" ]; then echo "event REQ_NEW_WINDOW $1" > "$UZBL_FIFO"; else echo "uri $(xclip -o | sed s/\\\@/%40/g)" > "$UZBL_FIFO"; fi' '\@SELECTED_URI'
+@bind  <Button2>  = sh 'if [ "$1" ]; then echo "event REQ_NEW_WINDOW $1" > "$UZBL_FIFO"; else echo "uri $(xclip -o | sed s/\\\@/%40/g)" > "$UZBL_FIFO"; fi' '\@<encodeURIComponent(\@SELECTED_URI)>\@'
 
 # --- Keyboard bindings ------------------------------------------------------
 
@@ -321,7 +321,7 @@ set ebind     = @mode_bind global,-insert
 
 # Yanking & pasting binds
 @cbind  yu  = sh 'echo -n "$UZBL_URI" | xclip'
-@cbind  yU  = sh 'echo -n "$1" | xclip' '\@SELECTED_URI'
+@cbind  yU  = sh 'echo -n "$1" | xclip' '\@<encodeURIComponent(\@SELECTED_URI)>\@'
 @cbind  yy  = sh 'echo -n "$UZBL_TITLE" | xclip'
 
 # Clone current window
@@ -409,7 +409,7 @@ menu_separator separator_1
 menu_add Quit uzbl = exit
 
 # Link context menu
-menu_link_add Print Link = print \@SELECTED_URI
+menu_link_add Print Link = print '\@<encodeURIComponent(\@SELECTED_URI)>\@'
 
 # === Mode configuration =====================================================
 

@@ -61,17 +61,27 @@ load_status_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
     (void) param_spec;
 
     WebKitWebFrame  *frame;
+    char* uri_enc;
     WebKitLoadStatus status = webkit_web_view_get_load_status(web_view);
     switch(status) {
         case WEBKIT_LOAD_PROVISIONAL:
-            send_event(LOAD_START,  NULL, TYPE_STR, uzbl.state.uri ? uzbl.state.uri : "", NULL);
+            uri_enc = uzbl.state.uri ? soup_uri_encode(uzbl.state.uri, NULL) : NULL;
+            send_event(LOAD_START, NULL, TYPE_STR, uri_enc ? uri_enc : "", NULL);
+            g_free(uri_enc);
             break;
         case WEBKIT_LOAD_COMMITTED:
             frame = webkit_web_view_get_main_frame(web_view);
-            send_event(LOAD_COMMIT, NULL, TYPE_STR, webkit_web_frame_get_uri (frame), NULL);
+
+            uri_enc = soup_uri_encode (webkit_web_frame_get_uri (frame), NULL);
+            send_event(LOAD_COMMIT, NULL, TYPE_STR, uri_enc, NULL);
+            g_free(uri_enc);
             break;
         case WEBKIT_LOAD_FINISHED:
-            send_event(LOAD_FINISH, NULL, TYPE_STR, uzbl.state.uri, NULL);
+            frame = webkit_web_view_get_main_frame(web_view);
+
+            uri_enc = soup_uri_encode (webkit_web_frame_get_uri (frame), NULL);
+            send_event(LOAD_FINISH, NULL, TYPE_STR, uri_enc, NULL);
+            g_free(uri_enc);
             break;
         case WEBKIT_LOAD_FIRST_VISUALLY_NON_EMPTY_LAYOUT:
             break; /* we don't do anything with this (yet) */
@@ -85,11 +95,13 @@ load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer 
     (void) page; (void) frame; (void) ud;
     GError *err = web_err;
 
+    gchar* uri_enc = soup_uri_encode(uri, NULL);
     send_event (LOAD_ERROR, NULL,
-        TYPE_STR, uri,
+        TYPE_STR, uri_enc,
         TYPE_INT, err->code,
         TYPE_STR, err->message,
         NULL);
+    g_free(uri_enc);
 
     return FALSE;
 }
@@ -505,7 +517,8 @@ download_cb(WebKitWebView *web_view, WebKitDownload *download, gpointer user_dat
         return FALSE;
     }
 
-    g_array_append_val(a, uri);
+    gchar* uri_enc = soup_uri_encode(uri, NULL);
+    g_array_append_val(a, uri_enc);
     g_array_append_val(a, suggested_filename);
     g_array_append_val(a, content_type);
     gchar *total_size_s = g_strdup_printf("%d", total_size);
@@ -516,6 +529,7 @@ download_cb(WebKitWebView *web_view, WebKitDownload *download, gpointer user_dat
 
     GString *result = g_string_new ("");
     run_parsed_command(c, a, result);
+    g_free(uri_enc);
 
     g_free(total_size_s);
     g_array_free(a, TRUE);
