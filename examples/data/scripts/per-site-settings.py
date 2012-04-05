@@ -28,6 +28,7 @@
 # considered a pop back (zero is always urls). This works because it's only 3
 # deep. Four and we'd have to keep track of things.
 
+import glob
 import os
 import re
 import socket
@@ -97,20 +98,33 @@ def write_to_socket(commands, sockpath):
     sock.close()
 
 
-def main(filepath):
+def main(filepath, fileglob):
     sockpath = os.environ['UZBL_SOCKET']
     url = urlparse.urlparse(os.environ['UZBL_URI'])
 
     if not url.hostname:
         return
 
-    mode = os.stat(filepath)[stat.ST_MODE]
-
-    if mode & stat.S_IEXEC:
+    if os.path.isdir(filepath):
         fin = tempfile.TemporaryFile()
-        subprocess.Popen([filepath], stdout=fin).wait()
+
+        for sett in sorted(glob.glob(os.path.join(filepath, fileglob))):
+            with open(sett, 'r') as sfin:
+                fin.write(sfin.read())
+
+        fin.seek(0)
+    elif os.path.isfile(filepath):
+        mode = os.stat(filepath)[stat.ST_MODE]
+
+        if mode & stat.S_IEXEC:
+            fin = tempfile.TemporaryFile()
+            subprocess.Popen([filepath], stdout=fin).wait()
+        else:
+            fin = open(filepath, 'r')
     else:
-        fin = open(filepath, 'r')
+        print('Error: The given path (%s) is neither a directory nor a file' % filepath)
+
+        os.exit(1)
 
     commands = grep_url(url.hostname, url.path, fin)
 
@@ -127,4 +141,9 @@ if __name__ == '__main__':
 
         os.exit(1)
 
-    main(filepath)
+    try:
+        fileglob = sys.argv[2]
+    except IndexError:
+        fileglob = '*.pss'
+
+    main(filepath, fileglob)
