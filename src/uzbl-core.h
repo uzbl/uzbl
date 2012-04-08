@@ -113,6 +113,7 @@ typedef struct {
     /* Events */
     int             socket_id;
     gboolean        events_stdout;
+    gboolean        handle_multi_button;
     GPtrArray*      event_buffer;
     gchar**         connect_socket_names;
 } State;
@@ -221,7 +222,6 @@ gchar*      expand(const char* s, guint recurse);
 gboolean    run_command(const gchar *command, const gchar **args, const gboolean sync,
                 char **output_stdout);
 void        run_command_file(const gchar *path);
-void        parse_command(const char *cmd, const char *param, GString *result);
 void        parse_cmd_line(const char *ctl_line, GString *result);
 const CommandInfo *
             parse_command_parts(const gchar *line, GArray *a);

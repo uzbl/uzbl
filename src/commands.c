@@ -18,9 +18,11 @@ CommandInfo cmdlist[] =
     { "stop",                           view_stop_loading, 0           },
     { "zoom_in",                        view_zoom_in, 0                }, //Can crash (when max zoom reached?).
     { "zoom_out",                       view_zoom_out, 0               },
+    { "toggle_zoom_type",               toggle_zoom_type, 0            },
     { "uri",                            load_uri, TRUE                 },
     { "js",                             run_js, TRUE                   },
     { "script",                         run_external_js, 0             },
+    { "toggle_status",                  toggle_status, 0               },
     { "spawn",                          spawn_async, 0                 },
     { "sync_spawn",                     spawn_sync, 0                  },
     { "sync_spawn_exec",                spawn_sync_exec, 0             }, // needed for load_cookies.sh :(
@@ -91,9 +93,37 @@ VIEWFUNC(reload_bypass_cache)
 VIEWFUNC(stop_loading)
 VIEWFUNC(zoom_in)
 VIEWFUNC(zoom_out)
-VIEWFUNC(go_back)
-VIEWFUNC(go_forward)
 #undef VIEWFUNC
+
+void
+view_go_back(WebKitWebView *page, GArray *argv, GString *result) {
+    (void)result;
+    int n = argv_idx(argv, 0) ? atoi(argv_idx(argv, 0)) : 1;
+    webkit_web_view_go_back_or_forward(page, -n);
+}
+
+void
+view_go_forward(WebKitWebView *page, GArray *argv, GString *result) {
+    (void)result;
+    int n = argv_idx(argv, 0) ? atoi(argv_idx(argv, 0)) : 1;
+    webkit_web_view_go_back_or_forward(page, n);
+}
+
+void
+toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result) {
+    (void)page; (void)argv; (void)result;
+
+    int current_type = get_zoom_type();
+    set_zoom_type(!current_type);
+}
+
+void
+toggle_status (WebKitWebView* page, GArray *argv, GString *result) {
+    (void)page; (void)argv; (void)result;
+
+    int current_status = get_show_status();
+    set_show_status(!current_status);
+}
 
 /*
  * scroll vertical 20
@@ -158,6 +188,11 @@ toggle_var(WebKitWebView *page, GArray *argv, GString *result) {
     const gchar *var_name = argv_idx(argv, 0);
 
     uzbl_cmdprop *c = get_var_c(var_name);
+
+    if(!c) {
+        set_var_value(var_name, argv_idx(argv, 1));
+        return;
+    }
 
     switch(c->type) {
     case TYPE_STR:
@@ -315,8 +350,8 @@ show_inspector(WebKitWebView *page, GArray *argv, GString *result) {
 void
 add_cookie(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
-    gchar *host, *path, *name, *value;
-    gboolean secure = 0;
+    gchar *host, *path, *name, *value, *scheme;
+    gboolean secure = 0, httponly = 0;
     SoupDate *expires = NULL;
 
     if(argv->len != 6)
@@ -327,14 +362,19 @@ add_cookie(WebKitWebView *page, GArray *argv, GString *result) {
     path = argv_idx (argv, 1);
     name = argv_idx (argv, 2);
     value = argv_idx (argv, 3);
-    secure = strcmp (argv_idx (argv, 4), "https") == 0;
-    if (strlen (argv_idx (argv, 5)) != 0)
+    scheme = argv_idx (argv, 4);
+    if (strncmp (scheme, "http", 4) == 0) {
+        secure = scheme[4] == 's';
+        httponly = strncmp (&scheme[4+secure], "Only", 4) == 0;
+    }
+    if (argv->len >= 6 && *argv_idx (argv, 5))
         expires = soup_date_new_from_time_t (
             strtoul (argv_idx (argv, 5), NULL, 10));
 
     // Create new cookie
     SoupCookie * cookie = soup_cookie_new (name, value, host, path, -1);
     soup_cookie_set_secure (cookie, secure);
+    soup_cookie_set_http_only (cookie, httponly);
     if (expires)
         soup_cookie_set_expires (cookie, expires);
 

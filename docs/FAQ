@@ -1,7 +1,20 @@
 FAQ
 ---
 
+### I just installed uzbl but it doesn't do much.  What now?
+
+There's no "uzbl" command, that's just the name for the whole collection of
+tools. The command you're looking for is `uzbl-browser` or `uzbl-tabbed`.
+
+The central program `uzbl-core` doesn't do many useful things by itself,
+it's meant for integration with other tools and scripts. See README.
+
+Once you've got `uzbl-browser` or `uzbl-tabbed` running,
+the first thing to do is look at the [keybindings](http://uzbl.org/keybindings.php).
+The second thing to do is explore the default configuration (`~/.config/uzbl/config`).
+
 ### Help, Uzbl isn't responding to any of my keyboard commands!
+
 If the left side of the status bar says `[]` instead of `[Cmd]` when you start
 `uzbl-browser`, then the event manager isn't starting or its plugins aren't
 loading.
@@ -12,13 +25,6 @@ and change the first line of each to `#!/usr/bin/env python2`.
 If you're trying to run uzbl without installing it, you should launch
 `uzbl-event-manager` yourself with the `--plugin-dir=DIR` option pointing to the
 location of the event manager plugins (they're in examples/data/plugins/)
-
-### I just installed uzbl but it doesn't do much.  What now?
-There's no "uzbl" command, that's just the name for the whole collection of
-tools. The command you're looking for is `uzbl-browser` or `uzbl-tabbed`.
-
-The central program `uzbl-core` doesn't do many useful things by itself,
-it's meant for integration with other tools and scripts. See README.
 
 ### Where are the widgets (forward button, back button, search bar, etc)?
 There are none. What we do have is a powerful statusbar and lots of keybinding

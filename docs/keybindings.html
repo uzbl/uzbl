@@ -1,0 +1,222 @@
+<title>Uzbl Keybindings</title>
+
+<style type="text/css">
+  body {
+    max-width: 40em;
+    margin:    0 auto;
+  }
+
+  body > h1 {
+    text-align: center;
+  }
+
+  body > section > h1 {
+    padding-left: 2em;
+  }
+
+  dl {
+    padding-left: 5em;
+  }
+
+  dt {
+    float:       left;
+    clear:       left;
+
+    padding:     0 0.5em;
+
+    font-family: monospace;
+    font-weight: bold;
+    color:       #444;
+
+    background:  #ccc;
+    border:      1px solid #999;
+  }
+
+  dt.long {
+    display: inline-block;
+    float: none;
+  }
+
+  dt + dt {
+    display: inline-block;
+    float: none;
+    margin-left: 0.2em;
+  }
+
+  dt, dd {
+    margin-bottom: 1ex;
+  }
+</style>
+
+<h1>Uzbl Keybindings</h1>
+
+<p>These keybindings are totally customizable. You can edit
+<code>$XDG_CONFIG_HOME/uzbl/config</code> to modify them or add more.</p>
+
+<section>
+  <h1>Navigating the Web</h1>
+
+  <dl>
+    <dt>o</dt>
+    <dd>Open a URL</dd>
+
+    <dt>O</dt>
+    <dd>Edit the current URL</dd>
+
+    <dt>S</dt>
+    <dd>Stop loading</dd>
+
+    <dt>b</dt>
+    <dd>Go back</dd>
+
+    <dt>m</dt>
+    <dd>Go forward</dd>
+
+    <dt>U</dt>
+    <dd>Search the history</dd>
+
+    <dt>r</dt>
+    <dd>Reload the current page</dd>
+
+    <dt>fl</dt>
+    <dd>Select a link or form element using the keyboard</dd>
+
+    <dt>Fl</dt>
+    <dd>Select a link to open in a new window using the keyboard</dd>
+
+    <dt>w</dt>
+    <dd>Open a new window</dd>
+
+    <dt>c</dt>
+    <dd>Clone the current window</dd>
+  </dl>
+</section>
+
+<section>
+  <h1>Navigating the Page</h1>
+
+  <dl>
+    <dt>j</dt>
+    <dd>Scroll down</dd>
+
+    <dt>k</dt>
+    <dd>Scroll up</dd>
+
+    <dt>h</dt>
+    <dd>Scroll left</dd>
+
+    <dt>l</dt>
+    <dd>Scroll right</dd>
+
+    <dt>&lt;Page_Up></dt>
+    <dt>&lt;Ctrl>f</dt>
+    <dd>Page up</dd>
+
+    <dt>&lt;Page_Down></dt>
+    <dt>&lt;Ctrl>b</dt>
+    <dd>Page down</dd>
+
+    <dt>&lt;&lt;</dt>
+    <dt>&lt;Home></dt>
+    <dd>Scroll to top</dd>
+
+    <dt>&gt;&gt;</dt>
+    <dt>&lt;End></dt>
+    <dd>Scroll to bottom</dd>
+
+    <dt>/</dt>
+    <dd>Search the current page</dd>
+
+    <dt>?</dt>
+    <dd>Search the current page in reverse</dd>
+
+    <dt>n</dt>
+    <dd>Next search result</dd>
+
+    <dt>n</dt>
+    <dd>Previous search result</dd>
+  </dl>
+</section>
+
+<section>
+  <h1>Modes</h1>
+
+  <p>Uzbl's default configuration is modal (although a completely modeless
+  configuration should be possible).</p>
+
+  <p>In "command" mode, everything you type is interpreted by uzbl as a
+  command.</p>
+
+  <p>In "insert" mode, everything you type is passed to the web page, for
+  form input or the web page's keybindings.</p>
+
+  <dl>
+    <dt>&lt;Ctrl>i</dt>
+    <dt>i</dt>
+    <dd>Switch to insert mode</dd>
+
+    <dt>&lt;Escape></dt>
+    <dt>&lt;Ctrl>[</dt>
+    <dd>Return to command mode</dd>
+    <dd>Clear the current command</dd>
+  </dl>
+</section>
+
+<section>
+  <h1>uzbl-tabbed</h1>
+
+  <p>TODO: Write me.</p>
+</section>
+
+<section>
+  <h1>Clipboard</h1>
+
+  <p>The terminology here is a bit confusing, please look at
+  <a href="http://en.wikipedia.org/wiki/X_Window_selection">this article</a>
+  if you're not familiar with X selections.</p>
+
+  <p>For these commands to work, <code>xclip</code> must be installed.</p>
+
+  <dl>
+    <dt>yu</dt>
+    <dd>Copy the current URL to the primary selection</dd>
+
+    <dt>yU</dt>
+    <dd>Copy the URL of the hovered link to the primary selection</dd>
+
+    <dt>yy</dt>
+    <dd>Copy the page title to the primary selection</dd>
+
+    <dt>p</dt>
+    <dd>Go to the URL in the primary selection</dd>
+
+    <dt>P</dt>
+    <dd>Go to the URL in the clipboard selection</dd>
+
+    <dt>'p</dt>
+    <dd>Open the URL in the primary selection in a new window</dd>
+
+    <dt class="long">&lt;Shift>&lt;Insert></dt>
+    <dd>Command mode: Paste the primary selection into the status bar</dd>
+    <dd>Insert mode:  Paste the primary selection into the active form
+    element.</dd>
+  </dl>
+</section>
+
+<section>
+  <h1>Advanced Commands</h1>
+
+  <dl>
+    <dt>s</dt>
+    <dd>Set a variable</dd>
+
+    <dt>:</dt>
+    <dd>Issue an uzbl command</dd>
+
+    <dt class="long">!reload</dt>
+    <dd>Reload configuration file</dd>
+
+    <dt class="long">&lt;Ctrl>&lt;Mod1>t</dt>
+    <dd>Open a terminal that prints events and can issue commands to uzbl</dd>
+  </dl>
+</section>

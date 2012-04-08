@@ -2,7 +2,7 @@
     forwards cookies to all other instances connected to the event manager"""
 
 from collections import defaultdict
-import os, re
+import os, re, stat
 
 from uzbl.arguments import splitquoted
 from uzbl.ext import GlobalPlugin, PerInstancePlugin
@@ -63,6 +63,14 @@ class ListStore(list):
 class TextStore(object):
     def __init__(self, filename):
         self.filename = filename
+        try:
+          # make sure existing cookie jar is not world-open
+          perm_mode = os.stat(self.filename).st_mode
+          if (perm_mode & (stat.S_IRWXO | stat.S_IRWXG)) > 0:
+              safe_perm = stat.S_IMODE(perm_mode) & ~(stat.S_IRWXO | stat.S_IRWXG)
+              os.chmod(self.filename, safe_perm)
+        except OSError:
+            pass
 
     def as_event(self, cookie):
         """Convert cookie.txt row to uzbls cookie event format"""
@@ -70,7 +78,9 @@ class TextStore(object):
             'TRUE'  : 'https',
             'FALSE' : 'http'
         }
+        extra = ''
         if cookie[0].startswith("#HttpOnly_"):
+            extra = 'Only'
             domain = cookie[0][len("#HttpOnly_"):]
         elif cookie[0].startswith('#'):
             return None
@@ -81,7 +91,7 @@ class TextStore(object):
                 cookie[2],
                 cookie[5],
                 cookie[6],
-                scheme[cookie[3]],
+                scheme[cookie[3]] + extra,
                 cookie[4])
         except (KeyError,IndexError):
             # Let malformed rows pass through like comments
@@ -91,9 +101,17 @@ class TextStore(object):
         """Convert cookie event to cookie.txt row"""
         secure = {
             'https' : 'TRUE',
-            'http'  : 'FALSE'
+            'http'  : 'FALSE',
+            'httpsOnly' : 'TRUE',
+            'httpOnly'  : 'FALSE'
         }
-        return (cookie[0],
+        http_only = {
+            'https' : '',
+            'http'  : '',
+            'httpsOnly' : '#HttpOnly_',
+            'httpOnly'  : '#HttpOnly_'
+        }
+        return (http_only[cookie[4]] + cookie[0],
             'TRUE' if cookie[0].startswith('.') else 'FALSE',
             cookie[1],
             secure[cookie[4]],
@@ -107,6 +125,10 @@ class TextStore(object):
         # delete equal cookies (ignoring expire time, value and secure flag)
         self.delete_cookie(None, cookie[:-3])
 
+        # restrict umask before creating the cookie jar
+        curmask=os.umask(0)
+        os.umask(curmask| stat.S_IRWXO | stat.S_IRWXG)
+
         first = not os.path.exists(self.filename)
         with open(self.filename, 'a') as f:
             if first:
@@ -116,6 +138,10 @@ class TextStore(object):
     def delete_cookie(self, rkey, key):
         if not os.path.exists(self.filename):
             return
+
+        # restrict umask before creating the cookie jar
+        curmask=os.umask(0)
+        os.umask(curmask | stat.S_IRWXO | stat.S_IRWXG)
 
         # read all cookies
         with open(self.filename, 'r') as f:
@@ -127,6 +153,7 @@ class TextStore(object):
                 c = self.as_event(l.split('\t'))
                 if c is None or not match(key, c):
                     print(l, end='', file=f)
+        os.umask(curmask)
 
 xdg_data_home = os.environ.get('XDG_DATA_HOME', os.path.join(os.environ['HOME'], '.local/share'))
 DefaultStore = TextStore(os.path.join(xdg_data_home, 'uzbl/cookies.txt'))
