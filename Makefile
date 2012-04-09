@@ -20,7 +20,6 @@ endif
 PYTHON=python3
 PYTHONV=$(shell $(PYTHON) --version | sed -n /[0-9].[0-9]/p)
 COVERAGE=$(shell which coverage)
-PYDIR?=$(shell $(PYTHON) -c 'import sys; print(sys.prefix)')
 
 # --- configuration ends here ---
 
@@ -129,7 +128,6 @@ strip:
 SANDBOXOPTS=\
 	DESTDIR=./sandbox\
 	RUN_PREFIX=`pwd`/sandbox/usr/local\
-	PYDIR=./sandbox/usr/local
 
 sandbox: misc/env.sh
 	mkdir -p sandbox/${PREFIX}/lib64
@@ -163,7 +161,7 @@ install-uzbl-core: all install-dirs
 	install -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
 
 install-event-manager: install-dirs
-	$(PYTHON) setup.py install --prefix=$(PYDIR) --install-scripts=$(INSTALLDIR)
+	$(PYTHON) setup.py install --install-scripts=$(INSTALLDIR)/bin
 
 install-uzbl-browser: install-dirs install-uzbl-core install-event-manager
 	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < bin/uzbl-browser > $(INSTALLDIR)/bin/uzbl-browser
