@@ -110,38 +110,38 @@ strip:
 install: install-uzbl-core install-uzbl-browser install-uzbl-tabbed
 
 install-dirs:
-	[ -d "$(DESTDIR)/$(PREFIX)/bin" ] || install -d -m755 $(DESTDIR)/$(PREFIX)/bin
+	[ -d "$(DESTDIR)$(PREFIX)/bin" ] || install -d -m755 $(DESTDIR)$(PREFIX)/bin
 
 install-uzbl-core: all install-dirs
-	install -d $(DESTDIR)/$(PREFIX)/share/uzbl/
-	install -d $(DESTDIR)/$(DOCDIR)
-	install -m644 docs/* $(DESTDIR)/$(DOCDIR)/
-	install -m644 src/config.h $(DESTDIR)/$(DOCDIR)/
-	install -m644 README $(DESTDIR)/$(DOCDIR)/
-	install -m644 AUTHORS $(DESTDIR)/$(DOCDIR)/
-	install -m755 uzbl-core $(DESTDIR)/$(PREFIX)/bin/uzbl-core
+	install -d $(DESTDIR)$(PREFIX)/share/uzbl/
+	install -d $(DESTDIR)$(DOCDIR)
+	install -m644 docs/* $(DESTDIR)$(DOCDIR)/
+	install -m644 src/config.h $(DESTDIR)$(DOCDIR)/
+	install -m644 README $(DESTDIR)$(DOCDIR)/
+	install -m644 AUTHORS $(DESTDIR)$(DOCDIR)/
+	install -m755 uzbl-core $(DESTDIR)$(PREFIX)/bin/uzbl-core
 
 install-event-manager: install-dirs
-	sed "s#^PREFIX = .*#PREFIX = '$(RUN_PREFIX)'#" < bin/uzbl-event-manager > $(DESTDIR)/$(PREFIX)/bin/uzbl-event-manager
-	chmod 755 $(DESTDIR)/$(PREFIX)/bin/uzbl-event-manager
+	sed "s#^PREFIX = .*#PREFIX = '$(RUN_PREFIX)'#" < bin/uzbl-event-manager > $(DESTDIR)$(PREFIX)/bin/uzbl-event-manager
+	chmod 755 $(DESTDIR)$(PREFIX)/bin/uzbl-event-manager
 
 install-uzbl-browser: install-dirs install-uzbl-core install-event-manager
-	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < bin/uzbl-browser > $(DESTDIR)/$(PREFIX)/bin/uzbl-browser
-	chmod 755 $(DESTDIR)/$(PREFIX)/bin/uzbl-browser
-	cp -r examples $(DESTDIR)/$(PREFIX)/share/uzbl/
-	chmod 755 $(DESTDIR)/$(PREFIX)/share/uzbl/examples/data/scripts/*
+	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < bin/uzbl-browser > $(DESTDIR)$(PREFIX)/bin/uzbl-browser
+	chmod 755 $(DESTDIR)$(PREFIX)/bin/uzbl-browser
+	cp -r examples $(DESTDIR)$(PREFIX)/share/uzbl/
+	chmod 755 $(DESTDIR)$(PREFIX)/share/uzbl/examples/data/scripts/*
 
 install-uzbl-tabbed: install-dirs
-	install -m755 bin/uzbl-tabbed $(DESTDIR)/$(PREFIX)/bin/uzbl-tabbed
+	install -m755 bin/uzbl-tabbed $(DESTDIR)$(PREFIX)/bin/uzbl-tabbed
 
 # you probably only want to do this manually when testing and/or to the sandbox. not meant for distributors
 install-example-data:
-	install -d $(DESTDIR)/$(HOME)/.config/uzbl
-	install -d $(DESTDIR)/$(HOME)/.cache/uzbl
-	install -d $(DESTDIR)/$(HOME)/.local/share/uzbl
-	cp -rp examples/config/* $(DESTDIR)/$(HOME)/.config/uzbl/
-	cp -rp examples/data/*   $(DESTDIR)/$(HOME)/.local/share/uzbl/
+	install -d $(DESTDIR)$(HOME)/.config/uzbl
+	install -d $(DESTDIR)$(HOME)/.cache/uzbl
+	install -d $(DESTDIR)$(HOME)/.local/share/uzbl
+	cp -rp examples/config/* $(DESTDIR)$(HOME)/.config/uzbl/
+	cp -rp examples/data/*   $(DESTDIR)$(HOME)/.local/share/uzbl/
 
 uninstall:
-	rm -rf $(DESTDIR)/$(PREFIX)/bin/uzbl-*
-	rm -rf $(DESTDIR)/$(PREFIX)/share/uzbl
+	rm -rf $(DESTDIR)$(PREFIX)/bin/uzbl-*
+	rm -rf $(DESTDIR)$(PREFIX)/share/uzbl
