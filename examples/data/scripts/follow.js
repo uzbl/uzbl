@@ -1,345 +1,426 @@
-/* This is the basic linkfollowing script.
- *
- * TODO:
- * Some pages mess around a lot with the zIndex which
- *  lets some hints in the background.
- * Some positions are not calculated correctly (mostly
- *  because of uber-fancy-designed-webpages. Basic HTML and CSS
- *  works good
- * Still some links can't be followed/unexpected things
- *  happen. Blame some freaky webdesigners ;)
- */
+/*jslint browser: true, vars: true, maxerr: 50, indent: 4 */
+/*global uzbl, HTMLInputElement, HTMLTextAreaElement, HTMLSelectElement */
+// This is the basic linkfollowing script.
+//
+// TODO:
+// Some pages mess around a lot with the zIndex which
+//  lets some hints in the background.
+// Some positions are not calculated correctly (mostly
+//  because of uber-fancy-designed-webpages. Basic HTML and CSS
+//  works good
+// Still some links can't be followed/unexpected things
+//  happen. Blame some freaky webdesigners ;)
 
-// Globals
-uzbldivid = 'uzbl_link_hints';
-var uzbl = uzbl || {};
+uzbl = uzbl || {};
 
-uzbl.follow = function() {
-    // Export
-    uzbl.follow.charset = arguments[0];
+uzbl.follow = (function () {
+    'use strict';
 
-    if (arguments[2] == 0 || arguments[2] == 'click') {
-        uzbl.follow.mode = 'click';
-    } else if (arguments[2] == 1 || arguments[2] == 'newwindow') {
-        uzbl.follow.mode = 'newwindow';
-    } else if (arguments[2] == 'returnuri') {
-        uzbl.follow.mode = 'returnuri';
-    }
+    // Constants
+    var uzblDivId = 'uzbl_link_hints';
+    var uzblMatchClass = 'uzbl-follow-text-match';
+    var uzblNewWindowClass = 'new-window';
+    // This is duplicated in uzbl.formfiller.
+    var textInputTypes = [
+            'color',
+            'date',
+            'datetime',
+            'datetime-local',
+            'email',
+            'month',
+            'number',
+            'password',
+            'range',
+            'search',
+            'text',
+            'time',
+            'url',
+            'week'
+        ];
 
-    var keypress = arguments[1];
-    return arguments.callee.followLinks(keypress);
-}
+    // Variables
+    var gMode;
+    var gCharset;
 
-uzbl.follow.isFrame = function(el) {
-    return (el.tagName == "FRAME" || el.tagName == "IFRAME");
-}
+    // Helpers
+    var slice = Array.prototype.slice;
 
-// find the document that the given element belongs to
-uzbl.follow.getDocument = function(el) {
-    if (this.isFrame(el))
-        return el.contentDocument;
+    // Functions
+    // Return true if the given element is a frame.
+    var isFrame = function (el) {
+        return (el.tagName === 'FRAME' || el.tagName === 'IFRAME');
+    };
 
-    var doc = el;
-    while (doc.parentNode !== null)
-        doc = doc.parentNode;
-    return doc;
-}
-
-// find all documents in the display, searching frames recursively
-uzbl.follow.documents = function() {
-    return this.windows().map(function(w) { return w.document; }).filter(function(d) { return d != null; });
-}
-
-// find all windows in the display, searching for frames recursively
-uzbl.follow.windows = function(w) {
-    w = (typeof w == 'undefined') ? window.top : w;
-
-    var wins = [w];
-    var frames = w.frames;
-    for(var i = 0; i < frames.length; i++)
-        wins = wins.concat(uzbl.follow.windows(frames[i]));
-    return wins;
-}
-
-// search all frames for elements matching the given CSS selector
-uzbl.follow.query = function(selector) {
-    var res = [];
-    this.documents().forEach(function (doc) {
-        var set = doc.body.querySelectorAll(selector);
-        // convert the NodeList to an Array
-        set = Array.prototype.slice.call(set);
-        res = res.concat(set);
-    });
-    return res;
-}
-
-// Calculate element position to draw the hint
-uzbl.follow.elementPosition = function(el) {
-    // el.getBoundingClientRect is another way to do this, but when a link is
-    // line-wrapped we want our hint at the left end of the link, not its
-    // bounding rectangle
-    var up     = el.offsetTop;
-    var left   = el.offsetLeft;
-    var width  = el.offsetWidth;
-    var height = el.offsetHeight;
-
-    while (el.offsetParent) {
-        el = el.offsetParent;
-        up += el.offsetTop;
-        left += el.offsetLeft;
-    }
-
-    return [up, left, width, height];
-}
-
-// Calculate if an element is on the viewport.
-uzbl.follow.elementInViewport = function(el) {
-    offset = uzbl.follow.elementPosition(el);
-    var up     = offset[0];
-    var left   = offset[1];
-    var width  = offset[2];
-    var height = offset[3];
-    return  up   < window.pageYOffset + window.innerHeight &&
-            left < window.pageXOffset + window.innerWidth &&
-            (up + height)  > window.pageYOffset &&
-            (left + width) > window.pageXOffset;
-}
-
-// Removes all hints/leftovers that might be generated
-// by this script in the given document.
-uzbl.follow.removeHints = function(doc) {
-    var elements = doc.getElementById(uzbldivid);
-    if (elements)
-        elements.parentNode.removeChild(elements);
-
-    // this returns a live NodeList, which is super-annoying when we to try
-    // to remove the class.
-    var followTextMatches = doc.getElementsByClassName('uzbl-follow-text-match');
-    var matches = [];
-    for(var i = 0; i < followTextMatches.length; ++i)
-        matches.push(followTextMatches[i]);
-
-    for(var i = 0; i < matches.length; ++i)
-        matches[i].classList.remove('uzbl-follow-text-match');
-}
-
-// Clears all hints in every document
-uzbl.follow.clearHints = function() {
-    this.documents().forEach(uzbl.follow.removeHints);
-}
-
-// Generate a hint for an element with the given label
-// Here you can play around with the style of the hints!
-uzbl.follow.generateHint = function(doc, el, label, top, left) {
-    var hint = doc.createElement('span');
-    hint.innerText = label;
-    hint.style.position = 'absolute';
-    hint.style.top  = top  + 'px';
-    hint.style.left = left + 'px';
-    return hint;
-}
-
-// this is pointlessly duplicated in uzbl.formfiller
-uzbl.follow.textInputTypes = [
-  'text', 'password', 'search', 'email', 'url', 'number', 'range', 'color',
-  'date', 'month', 'week', 'time', 'datetime', 'datetime-local'
-];
-
-// this is pointlessly duplicated in uzbl.formfiller
-uzbl.follow.inputTypeIsText = function(type) {
-    return uzbl.follow.textInputTypes.indexOf(type) >= 0;
-}
-
-// Here we choose what to do with an element that's been selected.
-// On text form elements we focus and select the content. On other
-// elements we simulate a mouse click.
-uzbl.follow.clickElem = function(item) {
-    if(!item) return;
-
-    if (item instanceof HTMLInputElement && uzbl.follow.inputTypeIsText(item.type)) {
-        item.focus();
-        item.select();
-        return "XXXFORM_ACTIVEXXX";
-    } else if (item instanceof HTMLTextAreaElement || item instanceof HTMLSelectElement) {
-        item.focus();
-        if(typeof item.select != 'undefined')
-            item.select();
-        return "XXXFORM_ACTIVEXXX";
-    }
-
-    // simulate a mouseclick to activate the element
-    var mouseEvent = document.createEvent("MouseEvent");
-    mouseEvent.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
-    item.dispatchEvent(mouseEvent);
-    return "XXXRESET_MODEXXX";
-}
-
-// Draw all hints for all elements passed.
-uzbl.follow.reDrawHints = function(elements, len) {
-    // we have to calculate element positions before we modify the DOM
-    // otherwise the elementPosition call slows way down.
-    var positions = elements.map(uzbl.follow.elementPosition);
-
-    this.documents().forEach(function(doc) {
-        uzbl.follow.removeHints(doc);
-        if (!doc.body) return;
-        doc.hintdiv = doc.createElement('div');
-        doc.hintdiv.id = uzbldivid;
-        if(uzbl.follow.mode == 'newwindow')
-          doc.hintdiv.className = "new-window";
-        doc.body.appendChild(doc.hintdiv);
-    });
-
-    elements.forEach(function(el, i) {
-        var label = uzbl.follow.intToLabel(i, len);
-        var pos   = positions[i];
-
-        try {
-            var doc   = uzbl.follow.getDocument(el);
-            var h = uzbl.follow.generateHint(doc, el, label, pos[0], pos[1]);
-            doc.hintdiv.appendChild(h);
-        } catch (err) {
-            // Unable to attach label -> shrug it off and continue
+    // Find the document that the given element belongs to.
+    var getDocument = function (el) {
+        if (isFrame(el)) {
+            return el.contentDocument;
+>>>>>>> 4b6c254... Clean up JS scripts
         }
-    });
-}
 
-// pass: number of keys
-// returns: key length
-uzbl.follow.labelLength = function(n) {
-    var oldn = n;
-    var keylen = 0;
-    if(n < 2) return 1;
-    n -= 1; // Our highest key will be n-1
-    while(n) {
-        keylen += 1;
-        n = Math.floor(n / uzbl.follow.charset.length);
-    }
-    return keylen;
-}
+        var doc = el;
+        while (doc.parentNode !== null) {
+            doc = doc.parentNode;
+        }
+        return doc;
+    };
 
-// converts an integer 'n' to a string of length 'len' composed of
-// characters selected from uzbl.follow.charset.
-uzbl.follow.intToLabel = function(n, len) {
-    var label = '';
-    do {
-        label = uzbl.follow.charset.charAt(n % uzbl.follow.charset.length) + label;
-        n = Math.floor(n / uzbl.follow.charset.length);
-    } while(n);
+    // Find all windows in the display, searching for frames recursively.
+    var windows = function (w) {
+        var win = (w === undefined) ? window.top : w;
 
-    for (var x = label.length; x < len; x++) {
-        label = uzbl.follow.charset.charAt(0) + label;
-    }
+        var wins = [win];
+        var frames = slice.apply(win.frames);
 
-    return label;
-}
+        frames.forEach(function (frame) {
+            wins = wins.concat(windows(frame));
+        });
 
-// pass: label
-// returns: number
-uzbl.follow.labelToInt = function(label) {
-    var n = 0;
-    for(var i = 0; i < label.length; ++i) {
-        n *= uzbl.follow.charset.length;
-        n += uzbl.follow.charset.indexOf(label[i]);
-    }
-    return n;
-}
+        return wins;
+    };
 
-uzbl.follow.findMatchingHintId = function(elems, str) {
-    var linknr = this.labelToInt(str);
+    // Find all documents in the display, searching frames recursively.
+    var documents = function () {
+        return windows().map(function (w) {
+            return w.document;
+        }).filter(function (d) {
+            return d !== undefined;
+        });
+    };
 
-    var len = this.labelLength(elems.length);
+    // Search all frames for elements matching the given CSS selector.
+    var query = function (selector) {
+        var elems = [];
 
-    if (str.length == len && linknr < elems.length && linknr >= 0) {
-        // an element has been selected!
-        var el = elems[linknr];
-        return [el];
-    }
+        documents().forEach(function (doc) {
+            var set = doc.body.querySelectorAll(selector);
 
-    return elems.filter(function(el, i) {
-        // return elements whose labels begin with the given str
-        var label = uzbl.follow.intToLabel(i, len);
-        return label.slice(0, str.length) == str;
-    });
-}
+            set = slice.apply(set);
+            elems = elems.concat(set);
+        });
 
-uzbl.follow.getInterestingElements = function() {
-    var followable  = 'a, area, textarea, select, input:not([type=hidden]), button, *[onclick]';
-    var uri         = 'a, area, frame, iframe';
-    //var focusable   = 'a, area, textarea, select, input:not([type=hidden]), button, frame, iframe, applet, object';
-    //var desc        = '*[title], img[alt], applet[alt], area[alt], input[alt]';
-    //var image       = 'img, input[type=image]';
+        return elems;
+    };
 
-    if(uzbl.follow.mode == 'newwindow' || uzbl.follow.mode == 'returnuri')
-        var elems = this.query(uri);
-    else
-        var elems = this.query(followable);
+    // Calculate element position to draw the hint.
+    var elementPosition = function (el) {
+        // el.getBoundingClientRect is another way to do this, but when a link is
+        // line-wrapped we want our hint at the left end of the link, not its
+        // bounding rectangle
+        var up     = el.offsetTop;
+        var left   = el.offsetLeft;
+        var width  = el.offsetWidth;
+        var height = el.offsetHeight;
 
-    return elems.filter(uzbl.follow.elementInViewport);
-}
+        while (el.offsetParent) {
+            el = el.offsetParent;
+            up += el.offsetTop;
+            left += el.offsetLeft;
+        }
 
-uzbl.follow.elementSelected = function(el) {
-    // clear all of our hints
-    this.clearHints();
+        return [up, left, width, height];
+    };
 
-    if (uzbl.follow.mode == 'returnuri') {
-        var uri = el.src || el.href;
-        return "XXXRETURNED_URIXXX" + uri
-    } else if (uzbl.follow.mode == 'newwindow') {
-        // we're opening a new window using the URL attached to this element
-        var uri = el.src || el.href;
-        if(uri.match(/javascript:/)) return;
-        return "XXXNEW_WINDOWXXX " + uri;
-    } else {
-        // we're just going to click the element
-        return this.clickElem(el);
-    }
-}
+    // Calculate if an element is on the viewport.
+    var elementInViewport = function (el) {
+        var offset = elementPosition(el);
+        var up     = offset[0];
+        var left   = offset[1];
+        var width  = offset[2];
+        var height = offset[3];
+        return up   < window.pageYOffset + window.innerHeight &&
+               left < window.pageXOffset + window.innerWidth &&
+               (up + height)  > window.pageYOffset &&
+               (left + width) > window.pageXOffset;
+    };
 
-uzbl.follow.followTextContent = function(str) {
-    str = str.toUpperCase();
+    // Removes all hints/leftovers that might be generated
+    // by this script in the given document.
+    var removeHints = function (doc) {
+        var elements = doc.getElementById(uzblDivId);
+        if (elements) {
+            elements.parentNode.removeChild(elements);
+        }
 
-    var matching = [];
+        // This returns a live NodeList, which is super-annoying when we to try
+        // to remove the class.
+        var matches = doc.getElementsByClassName(uzblMatchClass);
+        matches = slice.apply(matches);
 
-    var elems = uzbl.follow.getInterestingElements();
-    elems.forEach(function(el) {
-      // do a case-insensitive match on element content
-      if(el.textContent.toUpperCase().match(str)) {
-        el.classList.add('uzbl-follow-text-match');
-        matching.push(el);
-      } else {
-        el.classList.remove('uzbl-follow-text-match');
-      }
-    });
+        matches.forEach(function (match) {
+            match.classList.remove(uzblMatchClass);
+        });
+    };
 
-    if(matching.length == 1)
-        return uzbl.follow.elementSelected(matching[0]);
-}
+    // Generate a hint for an element with the given label.
+    // Here you can play around with the style of the hints!
+    var generateHint = function (doc, el, label, top, left) {
+        var hint = doc.createElement('span');
+        hint.innerText = label;
+        hint.style.position = 'absolute';
+        hint.style.top  = top  + 'px';
+        hint.style.left = left + 'px';
+        return hint;
+    };
 
-uzbl.follow.followLinks = function(str) {
-    var elems    = uzbl.follow.getInterestingElements();
-    var leftover = uzbl.follow.findMatchingHintId(elems, str);
+    // This is duplicated in uzbl.formfiller.
+    var inputTypeIsText = function (type) {
+        return (textInputTypes.indexOf(type) >= 0);
+    };
 
-    if(leftover.length == 1)
-        return uzbl.follow.elementSelected(leftover[0]);
-    else {
-        var len = this.labelLength(elems.length) - str.length;
-        this.reDrawHints(leftover, len);
-    }
-}
+    // pass: number of keys
+    // returns: key length
+    var labelLength = function (n) {
+        var keylen = 0;
+        if (n < 2) {
+            return 1;
+        }
+        n -= 1; // Our highest key will be n-1
+        while (n) {
+            keylen += 1;
+            n = Math.floor(n / gCharset.length);
+        }
+        return keylen;
+    };
 
-uzbl.follow.followSelection = function(mode) {
-    var selection = window.getSelection()
-    if (!selection)
-        return
+    // Converts an integer 'n' to a string of length 'len' composed of
+    // characters selected from gCharset.
+    var intToLabel = function (n, len) {
+        var label = '';
+        var setLength = gCharset.length;
+        var x;
+        do {
+            label = gCharset.charAt(n % setLength) + label;
+            n = Math.floor(n / setLength);
+        } while (n);
 
-    var node = selection.anchorNode
-    if (!node)
-        return
+        for (x = label.length; x < len; x += 1) {
+            label = gCharset.charAt(0) + label;
+        }
 
-    var el = node.parentElement
-    if (!el)
-        return
+        return label;
+    };
 
-    this.elementSelected(el)
-}
+    // pass: label
+    // returns: number
+    var labelToInt = function (label) {
+        var n = 0;
+        var i;
+        for (i = 0; i < label.length; i += 1) {
+            n *= gCharset.length;
+            n += gCharset.indexOf(label[i]);
+        }
+        return n;
+    };
+
+    var findMatchingHintId = function (elems, str) {
+        var linknr = labelToInt(str);
+
+        var len = labelLength(elems.length);
+
+        if ((str.length === len) && (linknr < elems.length) && (linknr >= 0)) {
+            // An element has been selected!
+            var el = elems[linknr];
+            return [el];
+        }
+
+        return elems.filter(function (el, i) {
+            // Return elements whose labels begin with the given str.
+            var label = intToLabel(i, len);
+            return label.slice(0, str.length) === str;
+        });
+    };
+
+    var getInterestingElements = function () {
+        var followable  = 'a, area, textarea, select, input:not([type=hidden]), button, *[onclick]';
+        var uri         = 'a, area, frame, iframe';
+        //var focusable   = 'a, area, textarea, select, input:not([type=hidden]), button, frame, iframe, applet, object';
+        //var desc        = '*[title], img[alt], applet[alt], area[alt], input[alt]';
+        //var image       = 'img, input[type=image]';
+
+        var elems;
+
+        if (gMode === 'newwindow' || gMode === 'returnuri') {
+            elems = query(uri);
+        } else {
+            elems = query(followable);
+        }
+
+        return elems.filter(elementInViewport);
+    };
+
+    // Draw all hints for all elements passed.
+    var reDrawHints = function (elems, len) {
+        // We have to calculate element positions before we modify the DOM
+        // otherwise the elementPosition call slows way down.
+        var positions = elems.map(elementPosition);
+
+        documents().forEach(function (doc) {
+            removeHints(doc);
+            if (!doc.body) {
+                return;
+            }
+
+            try {
+                doc.hintdiv = doc.createElement('div');
+                doc.hintdiv.id = uzblDivId;
+                if (gMode === 'newwindow') {
+                    doc.hintdiv.className = uzblNewWindowClass;
+                }
+                doc.body.appendChild(doc.hintdiv);
+            } catch (err) {
+                // Unable to attach label -> shrug it off and continue.
+            }
+        });
+
+        elems.forEach(function (el, i) {
+            var label = intToLabel(i, len);
+            var pos   = positions[i];
+
+            try {
+                var doc = getDocument(el);
+                var h = generateHint(doc, el, label, pos[0], pos[1]);
+                doc.hintdiv.appendChild(h);
+            } catch (err) {
+                // Unable to attach label -> shrug it off and continue.
+            }
+        });
+    };
+
+    var clearHints = function () {
+        documents().forEach(removeHints);
+    };
+
+    // Here we choose what to do with an element that's been selected.
+    // On text form elements we focus and select the content. On other
+    // elements we simulate a mouse click.
+    var clickElem = function (el) {
+        if (!el) {
+            return;
+        }
+
+        if ((el instanceof HTMLInputElement) && (inputTypeIsText(el.type))) {
+            el.focus();
+            el.select();
+            return 'XXXFORM_ACTIVEXXX';
+        } else if ((el instanceof HTMLTextAreaElement) || (el instanceof HTMLSelectElement)) {
+            el.focus();
+            if (typeof el.select !== 'undefined') {
+                el.select();
+            }
+            return 'XXXFORM_ACTIVEXXX';
+        }
+
+        // Simulate a mouseclick to activate the element.
+        var mouseEvent = document.createEvent('MouseEvent');
+        mouseEvent.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+        el.dispatchEvent(mouseEvent);
+        return 'XXXRESET_MODEXXX';
+    };
+
+    var followElement = function (el) {
+        var uri;
+
+        // clear all of our hints
+        clearHints();
+
+        switch (gMode) {
+        case 'returnuri':
+            uri = el.src || el.href;
+            return 'XXXRETURNED_URIXXX' + uri;
+        case 'newwindow':
+            // We're opening a new window using the URL attached to this element.
+            uri = el.src || el.href;
+            if (uri.match(/javascript:/)) {
+                return;
+            }
+            return 'XXXNEW_WINDOWXXX' + uri;
+        case 'click':
+        default:
+            return clickElem(el);
+        }
+    };
+
+    var setMode = function (action) {
+        switch (action) {
+        case 'newwindow':
+            gMode = 'newwindow';
+            break;
+        case 'returnuri':
+            gMode = 'returnuri';
+            break;
+        case 'click':
+        default:
+            gMode = 'click';
+            break;
+        }
+    };
+
+    var setCharset = function (charset) {
+        gCharset = charset;
+    };
+
+    // Return the follow object.
+    return {
+        followLinks: function (charset, str, action) {
+            setMode(action);
+            setCharset(charset);
+
+            var elems   = getInterestingElements();
+            var matches = findMatchingHintId(elems, str);
+
+            if (matches.length === 1) {
+                return followElement(matches[0]);
+            } else {
+                var len = labelLength(elems.length) - str.length;
+                reDrawHints(matches, len);
+            }
+        },
+
+        followTextContent: function (str, action) {
+            setMode(action);
+
+            str = str.toUpperCase();
+
+            var matching = [];
+
+            var elems = getInterestingElements();
+            elems.forEach(function (el) {
+                // Do a case-insensitive match on element content.
+                if (el.textContent.toUpperCase().match(str)) {
+                    el.classList.add(uzblMatchClass);
+                    matching.push(el);
+                } else {
+                    el.classList.remove(uzblMatchClass);
+                }
+            });
+
+            if (matching.length === 1) {
+                return followElement(matching[0]);
+            }
+        },
+
+        followSelection: function (action) {
+            var selection = window.getSelection();
+            if (!selection) {
+                return;
+            }
+
+            var node = selection.anchorNode;
+            if (!node) {
+                return;
+            }
+
+            var el = node.parentElement;
+            if (!el) {
+                return;
+            }
+
+            setMode(action);
+
+            followElement(el);
+        },
+
+        clearHints: clearHints
+    };
+}());
