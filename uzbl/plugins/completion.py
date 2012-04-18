@@ -8,17 +8,15 @@ from .config import Config
 from .keycmd import KeyCmd
 
 # Completion level
-NONE, ONCE, LIST, COMPLETE = range(4)
+NONE, ONCE, LIST, COMPLETE = list(range(4))
 
 # The reverse keyword finding re.
 FIND_SEGMENT = re.compile("(\@[\w_]+|set[\s]+[\w_]+|[\w_]+)$").findall
 
-# Formats
-LIST_FORMAT = "<span> %s </span>"
-ITEM_FORMAT = "<span @hint_style>%s</span>%s"
 
 def escape(str):
     return str.replace("@", "\@")
+
 
 class Completions(set):
     def __init__(self):
@@ -35,13 +33,27 @@ class Completions(set):
     def add_var(self, var):
         self.add('@' + var)
 
+
+class CompletionListFormatter(object):
+    LIST_FORMAT = "<span> %s </span>"
+    ITEM_FORMAT = "<span @hint_style>%s</span>%s"
+
+    def format(self, partial, completions):
+        p = len(partial)
+        completions.sort()
+        return self.LIST_FORMAT % ' '.join(
+            [self.ITEM_FORMAT % (escape(h[:p]), h[p:]) for h in completions]
+        )
+
+
 class CompletionPlugin(PerInstancePlugin):
     def __init__(self, uzbl):
         '''Export functions and connect handlers to events.'''
         super(CompletionPlugin, self).__init__(uzbl)
 
         self.completion = Completions()
-        
+        self.listformatter = CompletionListFormatter()
+
         uzbl.connect('BUILTINS', self.add_builtins)
         uzbl.connect('CONFIG_CHANGED', self.add_config_key)
         uzbl.connect('KEYCMD_CLEARED', self.stop_completion)
@@ -60,7 +72,7 @@ class CompletionPlugin(PerInstancePlugin):
 
         keylet = KeyCmd[self.uzbl].keylet
         left_segment = keylet.keycmd[:keylet.cursor]
-        partial = (FIND_SEGMENT(left_segment) + ['',])[0].lstrip()
+        partial = (FIND_SEGMENT(left_segment) + ['', ])[0].lstrip()
         if partial.startswith('set '):
             return ('@' + partial[4:].lstrip(), True)
 
@@ -70,7 +82,8 @@ class CompletionPlugin(PerInstancePlugin):
         '''Stop command completion and return the level to NONE.'''
 
         self.completion.level = NONE
-        del Config[self.uzbl]['completion_list']
+        if 'completion_list' in Config[self.uzbl]:
+            del Config[self.uzbl]['completion_list']
 
     def complete_completion(self, partial, hint, set_completion=False):
         '''Inject the remaining porition of the keyword into the keycmd then stop
@@ -104,14 +117,12 @@ class CompletionPlugin(PerInstancePlugin):
 
         config = Config[self.uzbl]
 
-        hints = filter(lambda h: h.startswith(partial), self.completion)
+        hints = [h for h in self.completion if h.startswith(partial)]
         if not hints:
             del config['completion_list']
             return
 
-        j = len(partial)
-        l = [ITEM_FORMAT % (escape(h[:j]), h[j:]) for h in sorted(hints)]
-        config['completion_list'] = LIST_FORMAT % ' '.join(l)
+        config['completion_list'] = self.listformatter.format(partial, hints)
 
     def start_completion(self, *args):
         if self.completion.locked:
@@ -124,7 +135,7 @@ class CompletionPlugin(PerInstancePlugin):
         if self.completion.level < COMPLETE:
             self.completion.level += 1
 
-        hints = filter(lambda h: h.startswith(partial), self.completion)
+        hints = [h for h in self.completion if h.startswith(partial)]
         if not hints:
             return
 
@@ -156,7 +167,7 @@ class CompletionPlugin(PerInstancePlugin):
 
         if common:
             self.completion.lock()
-            self.partial_completion(partial, partial+common)
+            self.partial_completion(partial, partial + common)
             self.completion.unlock()
 
         self.update_completion_list()

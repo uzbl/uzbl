@@ -1,41 +1,15 @@
 import time
 import logging
-import asynchat
 from collections import defaultdict
-
-
-def ascii(u):
-    '''Convert unicode strings into ascii for transmission over
-    ascii-only streams/sockets/devices.'''
-    # TODO(tailhook) docstring is misleading
-    # TODO(tailhook) name clashes with python3's builtin
-    return u.encode('utf-8')
-
-
-class Protocol(asynchat.async_chat):
-
-    def __init__(self, socket, uzbl):
-        asynchat.async_chat.__init__(self, socket)
-        self.uzbl = uzbl
-        self.buffer = bytearray()
-        self.set_terminator('\n')
-
-    def collect_incoming_data(self, data):
-        self.buffer += data
-
-    def found_terminator(self):
-        val = self.buffer.decode('utf-8')
-        del self.buffer[:]
-        self.uzbl.parse_msg(val)
 
 
 class Uzbl(object):
 
-    def __init__(self, parent, child_socket, options):
+    def __init__(self, parent, proto, options):
+        proto.target = self
         self.opts = options
         self.parent = parent
-        self.proto = Protocol(child_socket, self)
-        self._child_socket = child_socket
+        self.proto = proto
         self.time = time.time()
         self.pid = None
         self.name = None
@@ -45,6 +19,10 @@ class Uzbl(object):
 
         # Use name "unknown" until name is discovered.
         self.logger = logging.getLogger('uzbl-instance[]')
+
+        # Plugin instances
+        self._plugin_instances = []
+        self.plugins = {}
 
         # Track plugin event handlers
         self.handlers = defaultdict(list)
@@ -58,16 +36,12 @@ class Uzbl(object):
             'pid=%s' % (self.pid if self.pid else "Unknown"),
             'name=%s' % ('%r' % self.name if self.name else "Unknown"),
             'uptime=%f' % (time.time() - self.time),
-            '%d exports' % len(self.exports.keys()),
-            '%d handlers' % sum([len(l) for l in self.handlers.values()])])
+            '%d handlers' % sum([len(l) for l in list(self.handlers.values())])])
 
     def init_plugins(self):
         '''Creates instances of per-instance plugins'''
-        from uzbl.ext import per_instance_registry
 
-        self._plugin_instances = []
-        self.plugins = {}
-        for plugin in per_instance_registry:
+        for plugin in self.parent.plugind.per_instance_plugins:
             pinst = plugin(self)
             self._plugin_instances.append(pinst)
             self.plugins[plugin] = pinst
@@ -79,7 +53,7 @@ class Uzbl(object):
         msg = msg.strip()
 
         if self.opts.print_events:
-            print(ascii(u'%s<-- %s' % ('  ' * self._depth, msg)))
+            print(('%s<-- %s' % ('  ' * self._depth, msg)))
 
         self.proto.push((msg+'\n').encode('utf-8'))
 
@@ -94,7 +68,7 @@ class Uzbl(object):
         if elems[0] != 'EVENT':
             self.logger.info('non-event message: %r', line)
             if self.opts.print_events:
-                print('--- %s' % ascii(line))
+                print(('--- %s' % line))
             return
 
         # Check event string elements
@@ -118,10 +92,10 @@ class Uzbl(object):
         if not self.opts.daemon_mode and self.opts.print_events:
             elems = [event]
             if args:
-                elems.append(unicode(args))
+                elems.append(str(args))
             if kargs:
-                elems.append(unicode(kargs))
-            print(ascii(u'%s--> %s' % ('  ' * self._depth, ' '.join(elems))))
+                elems.append(str(kargs))
+            print(('%s--> %s' % ('  ' * self._depth, ' '.join(elems))))
 
         if event == "INSTANCE_START" and args:
             assert not self.instance_start, 'instance already started'
@@ -141,11 +115,7 @@ class Uzbl(object):
         for handler in self.handlers[event]:
             self._depth += 1
             try:
-                if hasattr(handler, 'call'):
-                    # temporary solution, will migrate all events later
-                    handler.call(self, *args, **kargs)
-                else:
-                    handler(*args, **kargs)
+                handler(*args, **kargs)
 
             except Exception:
                 self.logger.error('error in handler', exc_info=True)
@@ -164,7 +134,7 @@ class Uzbl(object):
 
         # Remove self from parent uzbls dict.
         self.logger.debug('removing self from uzbls list')
-        self.parent.remove_instance(self._child_socket)
+        self.parent.remove_instance(self.proto.socket)
 
         for plugin in self._plugin_instances:
             plugin.cleanup()

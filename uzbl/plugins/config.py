@@ -3,7 +3,7 @@ from re import compile
 from uzbl.arguments import splitquoted
 from uzbl.ext import PerInstancePlugin
 
-types = {'int': int, 'float': float, 'str': unicode}
+types = {'int': int, 'float': float, 'str': str}
 
 valid_key = compile('^[A-Za-z0-9_\.]+$').match
 
@@ -38,16 +38,16 @@ class Config(PerInstancePlugin):
         return key in self.data
 
     def keys(self):
-        return self.data.iterkeys()
+        return iter(self.data.keys())
 
     def items(self):
-        return self.data.iteritems()
+        return iter(self.data.items())
 
     def update(self, other=None, **kwargs):
         if other is None:
             other = {}
 
-        for (key, value) in dict(other).items() + kwargs.items():
+        for (key, value) in list(dict(other).items()) + list(kwargs.items()):
             self[key] = value
 
 
@@ -65,13 +65,13 @@ class Config(PerInstancePlugin):
             value = int(value)
 
         else:
-            value = unicode(value)
+            value = str(value)
             assert '\n' not in value
 
         if not force and key in self and self[key] == value:
             return
 
-        self.uzbl.send(u'set %s = %s' % (key, value))
+        self.uzbl.send('set %s = %s' % (key, value))
 
 
     def parse_set_event(self, args):

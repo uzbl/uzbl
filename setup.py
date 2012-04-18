@@ -9,7 +9,3 @@ setup(name='uzbl',
         'bin/uzbl-event-manager',
         ],
     )
-
-
-
-

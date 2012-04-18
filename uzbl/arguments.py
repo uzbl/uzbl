@@ -5,6 +5,8 @@ provides argument parsing for event handlers
 '''
 
 import re
+import ast
+
 
 class Arguments(tuple):
     '''
@@ -12,7 +14,7 @@ class Arguments(tuple):
     honoring common quotation and escaping rules
 
     >>> Arguments(r"simple 'quoted string'")
-    (u'simple', u'quoted string')
+    ('simple', 'quoted string')
     '''
 
     _splitquoted = re.compile("(\s+|\"(?:\\\\.|[^\"])*?\"|'(?:\\\\.|[^'])*?')")
@@ -20,11 +22,17 @@ class Arguments(tuple):
     def __new__(cls, s):
         '''
         >>> Arguments(r"one two three")
-        (u'one', u'two', u'three')
+        ('one', 'two', 'three')
         >>> Arguments(r"spam 'escaping \\'works\\''")
-        (u'spam', u"escaping 'works'")
+        ('spam', "escaping 'works'")
+        >>> # For testing purposes we can pass a preparsed tuple
+        >>> Arguments(('foo', 'bar', 'baz az'))
+        ('foo', 'bar', 'baz az')
         '''
-
+        if isinstance(s, tuple):
+            self = tuple.__new__(cls, s)
+            self._raw, self._ref = s, list(range(len(s)))
+            return self
         raw = cls._splitquoted.split(s)
         ref = []
         self = tuple.__new__(cls, cls.parse(raw, ref))
@@ -64,7 +72,7 @@ class Arguments(tuple):
 
         >>> args = Arguments(r"'spam, spam' egg sausage   and 'spam'")
         >>> args
-        (u'spam, spam', u'egg', u'sausage', u'and', u'spam')
+        ('spam, spam', 'egg', 'sausage', 'and', 'spam')
         >>> args.raw(1)
         "egg sausage   and 'spam'"
         '''
@@ -80,8 +88,12 @@ class Arguments(tuple):
 splitquoted = Arguments  # or define a function?
 
 def unquote(s):
-    '''Removes quotation marks around strings if any and interprets
-    \\-escape sequences using `string_escape`'''
+    '''
+        Returns the input string without quotations and with
+        escape sequences interpreted
+    '''
+
     if s and s[0] == s[-1] and s[0] in ['"', "'"]:
-        s = s[1:-1]
-    return s.encode('utf-8').decode('string_escape').decode('utf-8')
+        return ast.literal_eval(s)
+    return ast.literal_eval('"' + s + '"')
+

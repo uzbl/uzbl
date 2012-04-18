@@ -110,8 +110,8 @@ class TextStore(object):
         first = not os.path.exists(self.filename)
         with open(self.filename, 'a') as f:
             if first:
-                print >> f, "# HTTP Cookie File"
-            print >> f, '\t'.join(self.as_file(cookie))
+                print("# HTTP Cookie File", file=f)
+            print('\t'.join(self.as_file(cookie)), file=f)
 
     def delete_cookie(self, rkey, key):
         if not os.path.exists(self.filename):
@@ -126,7 +126,7 @@ class TextStore(object):
             for l in cookies:
                 c = self.as_event(l.split('\t'))
                 if c is None or not match(key, c):
-                    print >> f, l,
+                    print(l, end=' ', file=f)
 
 xdg_data_home = os.environ.get('XDG_DATA_HOME', os.path.join(os.environ['HOME'], '.local/share'))
 DefaultStore = TextStore(os.path.join(xdg_data_home, 'uzbl/cookies.txt'))
@@ -161,7 +161,7 @@ class Cookies(PerInstancePlugin):
     def get_recipents(self):
         """ get a list of Uzbl instances to send the cookie too. """
         # This could be a lot more interesting
-        return [u for u in self.uzbl.parent.uzbls.values() if u is not self.uzbl]
+        return [u for u in list(self.uzbl.parent.uzbls.values()) if u is not self.uzbl]
 
     def get_store(self, session=False):
         if session:

@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-from __future__ import print_function
+#!/usr/bin/env python3
+
 
 # Event Manager for Uzbl
 # Copyright (c) 2009-2010, Mason Larobina <mason.larobina@gmail.com>
@@ -37,7 +37,6 @@ import weakref
 import re
 import errno
 import asyncore
-import socket
 from collections import defaultdict
 from functools import partial
 from glob import glob
@@ -47,6 +46,7 @@ from select import select
 from signal import signal, SIGTERM, SIGINT, SIGKILL
 from traceback import format_exc
 
+from uzbl.net import Listener, Protocol
 from uzbl.core import Uzbl
 
 def xdghome(key, default):
@@ -54,7 +54,7 @@ def xdghome(key, default):
     use $HOME and the default path.'''
 
     xdgkey = "XDG_%s_HOME" % key
-    if xdgkey in os.environ.keys() and os.environ[xdgkey]:
+    if xdgkey in list(os.environ.keys()) and os.environ[xdgkey]:
         return os.environ[xdgkey]
 
     return os.path.join(os.environ['HOME'], default)
@@ -110,9 +110,9 @@ def daemonize():
         sys.stderr.flush()
 
     devnull = '/dev/null'
-    stdin = file(devnull, 'r')
-    stdout = file(devnull, 'a+')
-    stderr = file(devnull, 'a+', 0)
+    stdin = open(devnull, 'r')
+    stdout = open(devnull, 'a+')
+    stderr = open(devnull, 'a+')
 
     os.dup2(stdin.fileno(), sys.stdin.fileno())
     os.dup2(stdout.fileno(), sys.stdout.fileno())
@@ -134,66 +134,32 @@ def make_dirs(path):
         logger.error('failed to create directories', exc_info=True)
 
 
-class EventHandler(object):
-    '''Event handler class. Used to store args and kwargs which are merged
-    come time to call the callback with the event args and kwargs.'''
+class PluginDirectory(object):
+    def __init__(self):
+        self.global_plugins = []
+        self.per_instance_plugins = []
 
-    nextid = count().next
+    def load(self):
+        ''' Import plugin files '''
 
-    def __init__(self, plugin, event, callback, args, kwargs):
-        self.id = self.nextid()
-        self.plugin = plugin
-        self.event = event
-        self.callback = callback
-        self.args = args
-        self.kwargs = kwargs
+        import uzbl.plugins
+        import pkgutil
 
-    def __repr__(self):
-        elems = ['id=%d' % self.id, 'event=%s' % self.event,
-            'callback=%r' % self.callback]
+        path = uzbl.plugins.__path__
+        for impr, name, ispkg in pkgutil.iter_modules(path, 'uzbl.plugins.'):
+            __import__(name, globals(), locals())
 
-        if self.args:
-            elems.append('args=%s' % repr(self.args))
-
-        if self.kwargs:
-            elems.append('kwargs=%s' % repr(self.kwargs))
-
-        elems.append('plugin=%s' % self.plugin.name)
-        return u'<handler(%s)>' % ', '.join(elems)
-
-    def call(self, uzbl, *args, **kwargs):
-        '''Execute the handler function and merge argument lists.'''
-
-        args = args + self.args
-        kwargs = dict(self.kwargs.items() + kwargs.items())
-        self.callback(uzbl, *args, **kwargs)
-
-class Listener(asyncore.dispatcher):
-
-    def __init__(self, addr, event_daemon):
-        asyncore.dispatcher.__init__(self)
-        self.create_socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        self.set_reuse_addr()
-        self.bind(addr)
-        self.listen(5)
-        self.event_daemon = event_daemon
-
-    def writable(self):
-        return False
-
-    def handle_accept(self):
-        try:
-            sock, addr = self.accept()
-        except socket.error:
-            return
-        else:
-            self.event_daemon.add_instance(sock)
+        from uzbl.ext import global_registry, per_instance_registry
+        self.global_plugins.extend(global_registry)
+        self.per_instance_plugins.extend(per_instance_registry)
 
 
 class UzblEventDaemon(object):
-    def __init__(self):
+    def __init__(self, listener, plugind):
+        listener.target = self
         self.opts = opts
-        self.server_socket = None
+        self.listener = listener
+        self.plugind = plugind
         self._quit = False
 
         # Hold uzbl instances
@@ -213,42 +179,26 @@ class UzblEventDaemon(object):
         for sigint in [SIGTERM, SIGINT]:
             signal(sigint, self.quit)
 
-        # Load plugins into self.plugins
-        self.load_plugins()
+        # Scan plugin directory for plugins
+        self.plugind.load()
 
-    def load_plugins(self):
-        '''Load event manager plugins.'''
-        import uzbl.plugins
-        import pkgutil
+        # Initialise global plugins with instances in self.plugins
+        self.init_plugins()
 
-        path = uzbl.plugins.__path__
-        for impr, name, ispkg in pkgutil.iter_modules(path, 'uzbl.plugins.'):
-            __import__(name, globals(), locals())
-
-        # NEW GLOBAL PLUGINS
-
-        from uzbl.ext import global_registry
-
+    def init_plugins(self):
+        '''Initialise event manager plugins.'''
         self._plugin_instances = []
         self.plugins = {}
-        for plugin in global_registry:
+
+        for plugin in self.plugind.global_plugins:
             pinst = plugin(self)
             self._plugin_instances.append(pinst)
             self.plugins[plugin] = pinst
-
-    def create_server_socket(self):
-        '''Create the event manager daemon socket for uzbl instance duplex
-        communication.'''
-        Listener(opts.server_socket, self)
-        logger.debug('bound server socket to %r', opts.server_socket)
 
     def run(self):
         '''Main event daemon loop.'''
 
         logger.debug('entering main loop')
-
-        # Create and listen on the server socket
-        self.create_server_socket()
 
         if opts.daemon_mode:
             # Daemonize the process
@@ -265,7 +215,8 @@ class UzblEventDaemon(object):
         logger.debug('exiting main loop')
 
     def add_instance(self, sock):
-        uzbl = Uzbl(self, sock, opts)
+        proto = Protocol(sock)
+        uzbl = Uzbl(self, proto, opts)
         self.uzbls[sock] = uzbl
 
     def remove_instance(self, sock):
@@ -278,14 +229,7 @@ class UzblEventDaemon(object):
         '''Close and delete the server socket.'''
 
         try:
-            if self.server_socket:
-                logger.debug('closing server socket')
-                self.server_socket.close()
-                self.server_socket = None
-
-            if os.path.exists(opts.server_socket):
-                logger.info('unlinking %r', opts.server_socket)
-                os.unlink(opts.server_socket)
+            self.listener.close()
 
         except:
             logger.error('failed to close server socket', exc_info=True)
@@ -305,7 +249,7 @@ class UzblEventDaemon(object):
 
         self.close_server_socket()
 
-        for uzbl in self.uzbls.values():
+        for uzbl in list(self.uzbls.values()):
             uzbl.close()
 
         if not self._quit:
@@ -445,7 +389,10 @@ def start_action():
         logger.info('no process with pid %d', pid)
         del_pid_file(pid_file)
 
-    UzblEventDaemon().run()
+    listener = Listener(opts.server_socket)
+    plugind = PluginDirectory()
+    daemon = UzblEventDaemon(listener, plugind)
+    daemon.run()
 
 
 def restart_action():

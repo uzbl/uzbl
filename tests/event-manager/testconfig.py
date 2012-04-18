@@ -1,9 +1,10 @@
-from __future__ import print_function
+
 
 import unittest
 from emtest import EventManagerMock
 
 from uzbl.plugins.config import Config
+
 
 class ConfigTest(unittest.TestCase):
     def setUp(self):
@@ -43,7 +44,7 @@ class ConfigTest(unittest.TestCase):
         for input, ekey, evalue in cases:
             c.parse_set_event(input)
             self.assertIn(ekey, c)
-            self.assertEquals(c[ekey], evalue)
+            self.assertEqual(c[ekey], evalue)
             self.uzbl.event.assert_called_once_with(
                 'CONFIG_CHANGED', ekey, evalue)
             self.uzbl.event.reset_mock()
@@ -56,7 +57,7 @@ class ConfigTest(unittest.TestCase):
         )
         c = Config[self.uzbl]
         for input, ekey in cases:
-            c.update({'foo' : '-'})
+            c.update({'foo': '-'})
             c.parse_set_event(input)
             self.assertNotIn(ekey, c)
             self.uzbl.event.assert_called_once_with(
@@ -73,5 +74,4 @@ class ConfigTest(unittest.TestCase):
         c = Config[self.uzbl]
         for input, exception in cases:
             self.assertRaises(exception, c.parse_set_event, input)
-            self.assertEquals(len(list(c.keys())), 0)
-
+            self.assertEqual(len(list(c.keys())), 0)
