@@ -13,8 +13,6 @@
 #ifndef __UZBL_CORE__
 #define __UZBL_CORE__
 
-#define _POSIX_SOURCE
-
 #include <glib/gstdio.h>
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>

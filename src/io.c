@@ -1,5 +1,3 @@
-#define _POSIX_SOURCE
-
 #include <stdio.h>
 
 #include "events.h"

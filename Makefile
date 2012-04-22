@@ -25,7 +25,7 @@ ARCH:=$(shell uname -m)
 
 COMMIT_HASH:=$(shell ./misc/hash.sh)
 
-CPPFLAGS += -D_BSD_SOURCE -DARCH=\"$(ARCH)\" -DCOMMIT=\"$(COMMIT_HASH)\"
+CPPFLAGS += -D_BSD_SOURCE -D_POSIX_SOURCE -DARCH=\"$(ARCH)\" -DCOMMIT=\"$(COMMIT_HASH)\"
 
 PKG_CFLAGS:=$(shell pkg-config --cflags $(REQ_PKGS))
 
