@@ -95,17 +95,6 @@ load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer 
 }
 
 void
-selection_changed_cb(WebKitWebView *webkitwebview, gpointer ud) {
-    (void)ud;
-    gchar *tmp;
-
-    webkit_web_view_copy_clipboard(webkitwebview);
-    tmp = gtk_clipboard_wait_for_text(gtk_clipboard_get (GDK_SELECTION_CLIPBOARD));
-    send_event(SELECTION_CHANGED, NULL, TYPE_STR, tmp ? tmp : "", NULL);
-    g_free(tmp);
-}
-
-void
 destroy_cb (GtkWidget* widget, gpointer data) {
     (void) widget;
     (void) data;

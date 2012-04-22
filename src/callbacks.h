@@ -19,9 +19,6 @@ gboolean
 load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer web_err, gpointer ud);
 
 void
-selection_changed_cb(WebKitWebView *webkitwebview, gpointer ud);
-
-void
 destroy_cb (GtkWidget* widget, gpointer data);
 
 gboolean
