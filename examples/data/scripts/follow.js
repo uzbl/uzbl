@@ -326,3 +326,19 @@ uzbl.follow.followLinks = function(str) {
         this.reDrawHints(leftover, len);
     }
 }
+
+uzbl.follow.followSelection = function(mode) {
+    var selection = window.getSelection()
+    if (!selection)
+        return
+
+    var node = selection.anchorNode
+    if (!node)
+        return
+
+    var el = node.parentElement
+    if (!el)
+        return
+
+    this.elementSelected(el)
+}
