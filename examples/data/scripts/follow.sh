@@ -22,6 +22,10 @@ event NEW_WINDOW $@" > "$UZBL_FIFO"
         uriaction=$1
         uri=${result#XXXRETURNED_URIXXX}
 
+        printf 'set mode=\nevent KEYCMD_CLEAR\n' > "$UZBL_FIFO"
+
+        [ -z "$uri" ] && exit
+
         case "$uriaction" in
             set)
                 printf 'uri '"$uri"'\n' | sed -e 's/@/\\@/' > "$UZBL_FIFO"
@@ -30,5 +34,4 @@ event NEW_WINDOW $@" > "$UZBL_FIFO"
                 printf "$uri" | xclip
                 ;;
         esac
-        printf 'set mode=\nevent KEYCMD_CLEAR\n' > "$UZBL_FIFO"
 esac
