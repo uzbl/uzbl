@@ -128,6 +128,7 @@ strip:
 SANDBOXOPTS=\
 	DESTDIR=./sandbox\
 	RUN_PREFIX=`pwd`/sandbox/usr/local\
+	PYINSTALL_EXTRA='--prefix=./sandbox/usr/local --install-scripts=./sandbox/usr/local/bin'
 
 sandbox: misc/env.sh
 	mkdir -p sandbox/${PREFIX}/lib64
@@ -161,7 +162,7 @@ install-uzbl-core: all install-dirs
 	install -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
 
 install-event-manager: install-dirs
-	$(PYTHON) setup.py install --install-scripts=$(INSTALLDIR)/bin
+	$(PYTHON) setup.py install --install-scripts=$(INSTALLDIR)/bin $(PYINSTALL_EXTRA)
 
 install-uzbl-browser: install-dirs install-uzbl-core install-event-manager
 	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < bin/uzbl-browser > $(INSTALLDIR)/bin/uzbl-browser
