@@ -13,7 +13,7 @@ ifeq ($(USE_GTK3),1)
 	REQ_PKGS += gtk+-3.0 webkitgtk-3.0 javascriptcoregtk-3.0
 	CPPFLAGS = -DG_DISABLE_DEPRECATED -DGTK_DISABLE_DEPRECATED
 else
-	REQ_PKGS += gtk+-2.0 webkit-1.0
+	REQ_PKGS += gtk+-2.0 webkit-1.0 javascriptcoregtk-1.0
 	CPPFLAGS =
 endif
 
