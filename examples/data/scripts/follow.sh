@@ -16,10 +16,16 @@ case "$result" in
         uzbl_control 'set mode=\nevent KEYCMD_CLEAR\n'
         ;;
     XXXNEW_WINDOWXXX*)
-        uzbl_control "set mode=\nevent KEYCMD_CLEAR\nevent NEW_WINDOW $@\n"
+        uri="${result#XXXNEW_WINDOWXXX}"
+        shift
+
+        # a link was selected, reset uzbl's input mode
+        uzbl_control 'set mode=\nevent KEYCMD_CLEAR\nevent NEW_WINDOW '"$uri"'\n'
         ;;
     XXXRETURNED_URIXXX*)
         uriaction="$1"
+        shift
+
         uri="${result#XXXRETURNED_URIXXX}"
 
         uzbl_control 'set mode=\nevent KEYCMD_CLEAR\n'
@@ -34,4 +40,5 @@ case "$result" in
                 print "$uri" | xclip
                 ;;
         esac
+        ;;
 esac
