@@ -11,6 +11,7 @@
 action=$1
 
 . "$UZBL_UTIL_DIR/uzbl-dir.sh"
+. "$UZBL_UTIL_DIR/uzbl-util.sh"
 . "$UZBL_UTIL_DIR/editor.sh"
 
 mkdir -p "$UZBL_FORMS_DIR" || exit
@@ -24,8 +25,7 @@ file=$UZBL_FORMS_DIR/$domain
 
 GenForm ()
 {
-    echo 'js uzbl.formfiller.dump();' \
-    | socat - unix-connect:"$UZBL_SOCKET" \
+    uzbl_control 'js uzbl.formfiller.dump();\n' \
     | awk '
         /^formfillerstart$/ {
             while (getline) {
@@ -132,7 +132,7 @@ Load ()
 
     ParseProfile $option < "$file" \
     | ParseFields \
-    > "$UZBL_FIFO"
+    | uzbl_send
 }
 
 Once ()
@@ -147,7 +147,7 @@ Once ()
 
     test -e "$tmpfile" &&
     ParseFields < "$tmpfile" \
-    > "$UZBL_FIFO"
+    | uzbl_send
 }
 
 case $action in
