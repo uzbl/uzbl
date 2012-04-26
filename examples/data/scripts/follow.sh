@@ -3,7 +3,7 @@
 
 . "$UZBL_UTIL_DIR/uzbl-util.sh"
 
-result=$1
+result="$1"
 shift
 
 case "$result" in
@@ -19,8 +19,8 @@ case "$result" in
         uzbl_control "set mode=\nevent KEYCMD_CLEAR\nevent NEW_WINDOW $@\n"
         ;;
     XXXRETURNED_URIXXX*)
-        uriaction=$1
-        uri=${result#XXXRETURNED_URIXXX}
+        uriaction="$1"
+        uri="${result#XXXRETURNED_URIXXX}"
 
         uzbl_control 'set mode=\nevent KEYCMD_CLEAR\n'
 

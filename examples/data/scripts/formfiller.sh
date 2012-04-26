@@ -16,12 +16,12 @@ action=$1
 
 mkdir -p "$UZBL_FORMS_DIR" || exit
 
-domain=${UZBL_URI#*://}
-domain=${domain%%/*}
+domain="${UZBL_URI#*://}"
+domain="${domain%%/*}"
 
 test "$domain" || exit
 
-file=$UZBL_FORMS_DIR/$domain
+file="$UZBL_FORMS_DIR/$domain"
 
 GenForm ()
 {
