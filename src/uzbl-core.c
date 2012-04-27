@@ -964,6 +964,9 @@ initialize(int argc, char** argv) {
     commands_hash();
     variables_hash();
 
+    /* XDG */
+    ensure_xdg_vars();
+
     /* GUI */
     gtk_init(&argc, &argv);
 

@@ -28,6 +28,15 @@ get_xdg_var (XDG_Var xdg) {
     return str_replace("~", home, actual_value);
 }
 
+void
+ensure_xdg_vars (void) {
+    int i;
+
+    for (i = 0; i <= 2; ++i) {
+        setenv(XDG[i].environmental, get_xdg_var(XDG[i]), 0);
+    }
+}
+
 /*@null@*/ gchar*
 find_xdg_file (int xdg_type, const char* basename) {
     /* xdg_type = 0 => config
