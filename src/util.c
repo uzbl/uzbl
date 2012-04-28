@@ -32,8 +32,15 @@ void
 ensure_xdg_vars (void) {
     int i;
 
-    for (i = 0; i <= 2; ++i) {
-        setenv(XDG[i].environmental, get_xdg_var(XDG[i]), 0);
+    for (i = 0; i <= 3; ++i) {
+        gchar* xdg = get_xdg_var(XDG[i]);
+
+        if (!xdg)
+            continue;
+
+        setenv(XDG[i].environmental, xdg, 0);
+
+        g_free(xdg);
     }
 }
 
