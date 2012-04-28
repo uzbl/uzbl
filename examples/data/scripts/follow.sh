@@ -18,6 +18,9 @@ case "$result" in
 event KEYCMD_CLEAR
 event NEW_WINDOW $@" > "$UZBL_FIFO"
         ;;
+    XXXNEW_TABXXX*)
+        printf "set mode=\nevent KEYCMD_CLEAR\nevent NEW_TAB $@\n" > "$UZBL_FIFO"
+        ;;
     XXXRETURNED_URIXXX*)
         uriaction=$1
         uri=${result#XXXRETURNED_URIXXX}
@@ -31,7 +34,7 @@ event NEW_WINDOW $@" > "$UZBL_FIFO"
                 printf 'uri '"$uri"'\n' | sed -e 's/@/\\@/' > "$UZBL_FIFO"
                 ;;
             clipboard)
-                printf "$uri" | xclip
+                printf "$uri" | copy
                 ;;
         esac
 esac

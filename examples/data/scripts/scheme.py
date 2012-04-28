@@ -2,9 +2,11 @@
 
 import os, subprocess, sys, urlparse
 
-def detach_open(cmd):
+def detach_open(cmd, cwd=None):
     # Thanks to the vast knowledge of Laurence Withers (lwithers) and this message:
     # http://mail.python.org/pipermail/python-list/2006-November/587523.html
+    if cwd is not None:
+        os.chdir(cwd)
     if not os.fork():
         null = os.open(os.devnull,os.O_WRONLY)
         for i in range(3): os.dup2(null,i)
@@ -21,4 +23,4 @@ if __name__ == '__main__':
         # Someone check for safe arguments to gajim-remote
         detach_open(['gajim-remote', 'open_chat', uri])
     elif u.scheme == 'git':
-        detach_open(['git', 'clone', '--', uri], cwd=os.path.expanduser('~/src'))
+        detach_open(['git', 'clone', '--', uri], cwd=os.path.expanduser('/dev/shm'))

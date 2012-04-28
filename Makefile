@@ -2,8 +2,7 @@
 # end-users who build from source: don't care about DESTDIR, update PREFIX if you want to
 # RUN_PREFIX : what the prefix is when the software is run. usually the same as PREFIX
 PREFIX?=/usr/local
-INSTALLDIR?=$(DESTDIR)$(PREFIX)
-DOCDIR?=$(INSTALLDIR)/share/uzbl/docs
+DOCDIR?=$(PREFIX)/share/uzbl/docs
 RUN_PREFIX?=$(PREFIX)
 
 # use GTK3-based webkit when it is available
@@ -68,7 +67,7 @@ test-uzbl-browser: uzbl-browser
 	./bin/uzbl-browser --uri http://www.uzbl.org --verbose
 
 test-uzbl-core-sandbox: uzbl-core
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-core
+	make HOME=/home/sandbox DESTDIR=`pwd`/sandbox install-uzbl-core
 	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
 	cp -np ./misc/env.sh ./sandbox/env.sh
 	. ./sandbox/env.sh && uzbl-core --uri http://www.uzbl.org --verbose
@@ -76,8 +75,8 @@ test-uzbl-core-sandbox: uzbl-core
 	rm -rf ./sandbox/usr
 
 test-uzbl-browser-sandbox: uzbl-browser
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-browser
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
+	make HOME=/home/sandbox DESTDIR=`pwd`/sandbox install-uzbl-browser
+	make HOME=/home/sandbox DESTDIR=`pwd`/sandbox install-example-data
 	cp -np ./misc/env.sh ./sandbox/env.sh
 	-. ./sandbox/env.sh && uzbl-event-manager restart -avv
 	. ./sandbox/env.sh && uzbl-browser --uri http://www.uzbl.org --verbose
@@ -86,9 +85,9 @@ test-uzbl-browser-sandbox: uzbl-browser
 	rm -rf ./sandbox/usr
 
 test-uzbl-tabbed-sandbox: uzbl-browser
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-browser
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-tabbed
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
+	make HOME=/home/sandbox DESTDIR=`pwd`/sandbox install-example-data
+	make HOME=/home/sandbox DESTDIR=`pwd`/sandbox install-uzbl-browser
+	make HOME=/home/sandbox DESTDIR=`pwd`/sandbox install-uzbl-tabbed
 	cp -np ./misc/env.sh ./sandbox/env.sh
 	-. ./sandbox/env.sh && uzbl-event-manager restart -avv
 	. ./sandbox/env.sh && uzbl-tabbed
@@ -111,38 +110,38 @@ strip:
 install: install-uzbl-core install-uzbl-browser install-uzbl-tabbed
 
 install-dirs:
-	[ -d "$(INSTALLDIR)/bin" ] || install -d -m755 $(INSTALLDIR)/bin
+	[ -d "$(DESTDIR)$(PREFIX)/bin" ] || install -d -m755 $(DESTDIR)$(PREFIX)/bin
 
 install-uzbl-core: all install-dirs
-	install -d $(INSTALLDIR)/share/uzbl/
-	install -d $(DOCDIR)
-	install -m644 docs/* $(DOCDIR)/
-	install -m644 src/config.h $(DOCDIR)/
-	install -m644 README $(DOCDIR)/
-	install -m644 AUTHORS $(DOCDIR)/
-	install -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
+	install -d $(DESTDIR)$(PREFIX)/share/uzbl/
+	install -d $(DESTDIR)$(DOCDIR)
+	install -m644 docs/* $(DESTDIR)$(DOCDIR)/
+	install -m644 src/config.h $(DESTDIR)$(DOCDIR)/
+	install -m644 README $(DESTDIR)$(DOCDIR)/
+	install -m644 AUTHORS $(DESTDIR)$(DOCDIR)/
+	install -m755 uzbl-core $(DESTDIR)$(PREFIX)/bin/uzbl-core
 
 install-event-manager: install-dirs
-	sed "s#^PREFIX = .*#PREFIX = '$(RUN_PREFIX)'#" < bin/uzbl-event-manager > $(INSTALLDIR)/bin/uzbl-event-manager
-	chmod 755 $(INSTALLDIR)/bin/uzbl-event-manager
+	sed "s#^PREFIX = .*#PREFIX = '$(RUN_PREFIX)'#" < bin/uzbl-event-manager > $(DESTDIR)$(PREFIX)/bin/uzbl-event-manager
+	chmod 755 $(DESTDIR)$(PREFIX)/bin/uzbl-event-manager
 
 install-uzbl-browser: install-dirs install-uzbl-core install-event-manager
-	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < bin/uzbl-browser > $(INSTALLDIR)/bin/uzbl-browser
-	chmod 755 $(INSTALLDIR)/bin/uzbl-browser
-	cp -r examples $(INSTALLDIR)/share/uzbl/
-	chmod 755 $(INSTALLDIR)/share/uzbl/examples/data/scripts/*
+	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < bin/uzbl-browser > $(DESTDIR)$(PREFIX)/bin/uzbl-browser
+	chmod 755 $(DESTDIR)$(PREFIX)/bin/uzbl-browser
+	cp -r examples $(DESTDIR)$(PREFIX)/share/uzbl/
+	chmod 755 $(DESTDIR)$(PREFIX)/share/uzbl/examples/data/scripts/*
 
 install-uzbl-tabbed: install-dirs
-	install -m755 bin/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed
+	install -m755 bin/uzbl-tabbed $(DESTDIR)$(PREFIX)/bin/uzbl-tabbed
 
 # you probably only want to do this manually when testing and/or to the sandbox. not meant for distributors
 install-example-data:
-	install -d $(DESTDIR)/home/.config/uzbl
-	install -d $(DESTDIR)/home/.cache/uzbl
-	install -d $(DESTDIR)/home/.local/share/uzbl
-	cp -rp examples/config/* $(DESTDIR)/home/.config/uzbl/
-	cp -rp examples/data/*   $(DESTDIR)/home/.local/share/uzbl/
+	install -d $(DESTDIR)$(HOME)/.config/uzbl
+	install -d $(DESTDIR)$(HOME)/.cache/uzbl
+	install -d $(DESTDIR)$(HOME)/.local/share/uzbl
+	cp -rp examples/config/* $(DESTDIR)$(HOME)/.config/uzbl/
+	cp -rp examples/data/*   $(DESTDIR)$(HOME)/.local/share/uzbl/
 
 uninstall:
-	rm -rf $(INSTALLDIR)/bin/uzbl-*
-	rm -rf $(INSTALLDIR)/share/uzbl
+	rm -rf $(DESTDIR)$(PREFIX)/bin/uzbl-*
+	rm -rf $(DESTDIR)$(PREFIX)/share/uzbl
