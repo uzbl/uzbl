@@ -6,6 +6,11 @@
 
 gchar* find_existing_file2(gchar *, const gchar *);
 
+typedef struct {
+    const gchar* environmental;
+    const gchar* default_value;
+} XDG_Var;
+
 const XDG_Var XDG[] = {
     { "XDG_CONFIG_HOME", "~/.config" },
     { "XDG_DATA_HOME",   "~/.local/share" },
@@ -15,7 +20,9 @@ const XDG_Var XDG[] = {
 };
 
 /*@null@*/ gchar*
-get_xdg_var (XDG_Var xdg) {
+get_xdg_var (enum xdg_type type) {
+    XDG_Var xdg = XDG[type];
+
     const gchar *actual_value = getenv(xdg.environmental);
     const gchar *home         = getenv("HOME");
 
@@ -32,8 +39,8 @@ void
 ensure_xdg_vars (void) {
     int i;
 
-    for (i = 0; i <= 3; ++i) {
-        gchar* xdg = get_xdg_var(XDG[i]);
+    for (i = 0; i <= 2; ++i) {
+        gchar* xdg = get_xdg_var(i);
 
         if (!xdg)
             continue;
@@ -45,24 +52,20 @@ ensure_xdg_vars (void) {
 }
 
 /*@null@*/ gchar*
-find_xdg_file (int xdg_type, const char* basename) {
-    /* xdg_type = 0 => config
-       xdg_type = 1 => data
-       xdg_type = 2 => cache  */
-
-    gchar *xdgv = get_xdg_var(XDG[xdg_type]);
-    gchar *path = g_strconcat (xdgv, basename, NULL);
-    g_free (xdgv);
+find_xdg_file (enum xdg_type type, const char* basename) {
+    gchar *dirs = get_xdg_var(type);
+    gchar *path = g_strconcat (dirs, basename, NULL);
+    g_free (dirs);
 
     if (file_exists(path))
-        return path;
+        return path; /* we found the file */
 
-    if (xdg_type == 2)
-        return NULL;
+    if (type == XDG_CACHE)
+        return NULL; /* there's no system cache directory */
 
     /* the file doesn't exist in the expected directory.
      * check if it exists in one of the system-wide directories. */
-    char *system_dirs = get_xdg_var(XDG[3 + xdg_type]);
+    char *system_dirs = get_xdg_var(3 + type);
     path = find_existing_file2(system_dirs, basename);
     g_free(system_dirs);
 
