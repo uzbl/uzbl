@@ -319,6 +319,12 @@ new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
     return TRUE;
 }
 
+void
+close_web_view_cb(WebKitWebView *webview, gpointer user_data) {
+    (void) webview; (void) user_data;
+    send_event (CLOSE_WINDOW, NULL, NULL);
+}
+
 gboolean
 mime_policy_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, gchar *mime_type,  WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
     (void) frame;

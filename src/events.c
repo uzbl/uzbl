@@ -32,6 +32,7 @@ const char *event_table[LAST_EVENT] = {
      "GEOMETRY_CHANGED" ,
      "WEBINSPECTOR"     ,
      "NEW_WINDOW"       ,
+     "CLOSE_WINDOW"     ,
      "SELECTION_CHANGED",
      "VARIABLE_SET"     ,
      "FIFO_SET"         ,

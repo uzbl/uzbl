@@ -778,6 +778,7 @@ create_scrolled_win() {
       "signal::hovering-over-link",                   (GCallback)link_hover_cb,           NULL,
       "signal::navigation-policy-decision-requested", (GCallback)navigation_decision_cb,  NULL,
       "signal::new-window-policy-decision-requested", (GCallback)new_window_cb,           NULL,
+      "signal::close-web-view",                       (GCallback)close_web_view_cb,       NULL,
       "signal::download-requested",                   (GCallback)download_cb,             NULL,
       "signal::create-web-view",                      (GCallback)create_web_view_cb,      NULL,
       "signal::mime-type-policy-decision-requested",  (GCallback)mime_policy_cb,          NULL,

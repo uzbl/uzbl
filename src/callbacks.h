@@ -76,6 +76,9 @@ gboolean
 scroll_horiz_cb(GtkAdjustment *adjust, void *w);
 
 void
+close_web_view_cb(WebKitWebView *webview, gpointer user_data);
+
+void
 window_object_cleared_cb(WebKitWebView *webview, WebKitWebFrame *frame,
 	JSGlobalContextRef *context, JSObjectRef *object);
 
