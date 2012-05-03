@@ -17,16 +17,17 @@ case "$result" in
         ;;
     XXXNEW_WINDOWXXX*)
         uri="${result#XXXNEW_WINDOWXXX}"
-        shift
+        safe_uri=$( echo "$uri" | uzbl_escape )
 
         # a link was selected, reset uzbl's input mode
-        uzbl_control 'set mode=\nevent KEYCMD_CLEAR\nevent NEW_WINDOW '"$uri"'\n'
+        uzbl_control 'set mode=\nevent KEYCMD_CLEAR\nevent NEW_WINDOW '"$safe_uri"'\n'
         ;;
     XXXRETURNED_URIXXX*)
         uriaction="$1"
         shift
 
         uri="${result#XXXRETURNED_URIXXX}"
+        safe_uri=$( echo "$uri" | uzbl_escape )
 
         uzbl_control 'set mode=\nevent KEYCMD_CLEAR\n'
 
@@ -34,7 +35,7 @@ case "$result" in
 
         case "$uriaction" in
             set)
-                print 'uri '"$uri"'\n' | sed -e 's/@/\\@/' | uzbl_send
+                uzbl_control 'uri '"$safe_uri"'\n'
                 ;;
             clipboard)
                 print "$uri" | xclip
