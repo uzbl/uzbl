@@ -13,3 +13,7 @@ uzbl_send () {
 uzbl_control () {
     print "$@" | uzbl_send
 }
+
+uzbl_escape () {
+    sed -e 's/@/\\@/g'
+}
