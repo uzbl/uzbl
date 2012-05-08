@@ -451,4 +451,7 @@ sync_spawn_exec @scripts_dir/load_cookies.sh @data_home/uzbl/session-cookies.txt
 # Set the "home" page.
 set uri = uzbl.org/doesitwork/@COMMIT
 
+# Print pages to a printer
+@cbind  <Ctrl>p  = uri javascript:window.print()
+
 # vim: set fdm=syntax:
