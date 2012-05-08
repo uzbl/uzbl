@@ -459,25 +459,42 @@ set_proxy_url(const gchar *proxy_url) {
         soup_uri_free(soup_uri);
 }
 
+/**
+ * Check if the webkit auth dialog is enabled for the soup session
+ */
+int
+get_enable_builtin_auth () {
+    SoupSessionFeature *auth = soup_session_get_feature (
+        uzbl.net.soup_session,
+        (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG
+    );
+
+    return auth != NULL;
+}
+
+/**
+ * Enable/Disable the webkit auth dialog for the soup session
+ */
 void
-set_authentication_handler(const gchar *handler) {
-    /* Check if WEBKIT_TYPE_SOUP_AUTH_DIALOG feature is set */
-    GSList *flist = soup_session_get_features (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
-    guint feature_is_set = g_slist_length(flist);
-    g_slist_free(flist);
+set_enable_builtin_auth (int enabled) {
+    SoupSessionFeature *auth = soup_session_get_feature (
+        uzbl.net.soup_session,
+        (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG
+    );
 
-    g_free(uzbl.behave.authentication_handler);
-    uzbl.behave.authentication_handler = g_strdup(handler);
-
-    if (uzbl.behave.authentication_handler == NULL || *uzbl.behave.authentication_handler == 0) {
-        if (!feature_is_set)
-            soup_session_add_feature_by_type
-                (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
+    if (enabled > 0) {
+        if (auth == NULL) {
+            soup_session_add_feature_by_type (
+                uzbl.net.soup_session,
+                (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG
+            );
+        }
     } else {
-        if (feature_is_set)
-            soup_session_remove_feature_by_type
-                (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
+        if (auth != NULL) {
+            soup_session_remove_feature (uzbl.net.soup_session, auth);
+        }
     }
+
 }
 
 void
@@ -751,7 +768,6 @@ const struct var_name_to_ptr_t {
 
     { "forward_keys",           PTR_V_INT(uzbl.behave.forward_keys,             1,   NULL)},
 
-    { "authentication_handler", PTR_V_STR(uzbl.behave.authentication_handler,   1,   set_authentication_handler)},
     { "scheme_handler",         PTR_V_STR(uzbl.behave.scheme_handler,           1,   NULL)},
     { "request_handler",        PTR_V_STR(uzbl.behave.request_handler,          1,   NULL)},
     { "download_handler",       PTR_V_STR(uzbl.behave.download_handler,         1,   NULL)},
@@ -772,6 +788,8 @@ const struct var_name_to_ptr_t {
 
     { "ssl_ca_file",            PTR_V_STR_GETSET(ca_file)},
     { "ssl_verify",             PTR_V_INT_GETSET(verify_cert)},
+
+    { "enable_builtin_auth",    PTR_V_INT_GETSET(enable_builtin_auth)},
 
     /* exported WebKitWebSettings properties */
     { "javascript_windows",     PTR_V_INT_GETSET(javascript_windows)},

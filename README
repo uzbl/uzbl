@@ -264,6 +264,10 @@ The following commands are recognized:
 * `download <uri> [<destination path>]`
   - Starts a download using the given uri. A destination file path can be given
     to specify where the download should be written to.
+* `auth <uniqueid> <username> <password>`
+  - Authenticate as `<username>` with `<password>` for the previously issued
+    challenge with the id `<uniqueid>`. authenticating for a invalid id or one
+    expired one has no effect.
 
 ### VARIABLES AND CONSTANTS
 
@@ -379,6 +383,7 @@ file).
 * `ssl_ca_file`: File that contains CA certificates.
 * `ssl_verify`: If set to 1, uzbl won't connect to "https" url unless it can
    validate certificate presented by remote server against `ssl_ca_file`.
+* `enable_builtin_auth`: Enable WebKits builtin authentication handler
 
 #### Constants (not dumpable or writeable)
 
@@ -515,9 +520,8 @@ access to the following environment variables:
 * `$UZBL_URI`: The URI of the current page.
 * `$UZBL_TITLE`: The current page title.
 
-Handler scripts (`download_handler`, `cookie_handler`, `scheme_handler`,
-`request_handler`, and `authentication_handler`) are called with special
-arguments:
+Handler scripts (`download_handler`, `scheme_handler`, and `request_handler`)
+are called with special arguments:
 
 * download handler
 
@@ -532,16 +536,6 @@ arguments:
     that the file should be saved to. A download handler using WebKit's internal
     downloader can just echo this path and exit when this argument is present.
 
-* cookie handler
-
-  - `$1 GET/PUT`: Whether a cookie should be sent to the server (`GET`) or
-    stored by the browser (`PUT`).
-  - `$2 scheme`: Either `http` or `https`.
-  - `$3 host`: If current page URL is `www.example.com/somepage`, this could be
-    something else than `example.com`, eg advertising from another host.
-  - `$4 path`: The request address path.
-  - `$5 data`: The cookie data. Only included for `PUT` requests.
-
 * scheme handler
 
   - `$1 URI` of the page to be navigated to
@@ -549,13 +543,6 @@ arguments:
 * request handler
 
   - `$1 URI` of the resource which is being requested
-
-* authentication handler:
-
-  - `$1`: authentication zone unique identifier
-  - `$2`: domain part of URL that requests authentication
-  - `$3`: authentication realm
-  - `$4`: FALSE if this is the first attempt to authenticate, TRUE otherwise
 
 ### Formfiller.sh
 
@@ -584,47 +571,33 @@ after closing the editor, it will load the data into the formfields. The temp
 file is removed
 
 ### HTTP/BASIC AUTHENTICATION
+HTTP auth can be handled in two different ways. Using the builtin auth dialog
+in WebKit or by dispatching the work to a external script.
 
-You can use the authentication_handler variable to denote how http
-authentication should be handled.
-If this variable is:
+To use the builtin auth dialog set `enable_builtin_auth` to 1. With this set
+you'll get a basic GTK+ prompt for username/password when trying to access a
+protected site.
 
-* not set or empty: use webkit internal auth dialog
-* a valid handler (i.e. {sh,sync}_spawn correct_script), use this handler
-* innvalid handler (spawn, some other command, uses script that does not
-  print anything): skip authentication.
+Whenever authentication is needed the `AUTHENTICATE` event will be sent, this
+is what you would use to hook up a custom authentication system. This event
+will be sent even when using the bultin dialog so remember to disable that if
+adding a dialog of your own.
 
-Example:
+The `AUTHENTICATE` event has four arguments
+ * a unique identifier to be used in the exchange
+ * domain part of URL that requests authentication
+ * authentication realm
+ * the empty string for the first attempt and "retrying" for further attempts
 
-  set authentication_handler = sync_spawn /patch/to/your/script
+After this event has been sent the request is paused until credentials are
+provided. This is done using the `auth` command e.g:
 
-Script will be executed on each authentication request.
-It will receive four auth-related parameters:
+    `auth "uniqueid" "alice" "wonderland"`
 
-    $1 authentication zone unique identifier (may be used as 'key')
-    $2 domain part of URL that requests authentication
-    $3 authentication realm
-    $4 FALSE if this is the first attempt to authenticate, TRUE otherwise
+A super simple setup that will always try to authenticate with the same password
+could look like this. (assuming aliases from the example configuration)
 
-Script is expected to print exactly two lines of text on stdout (that means
-its output must contain exactly two '\n' bytes).
-The first line contains username, the second one - password.
-If authentication fails, script will be executed again (with $4 = TRUE).
-Non-interactive scripts should handle this case and do not try to
-authenticate again to avoid loops. If number of '\n' characters in scripts
-output does not equal 2, authentication will fail.
-That means 401 error will be displayed and uzbl won't try to authenticate anymore.
-
-The simplest example of authentication handler script is:
-
-#!/bin/sh
-[ "$4" == "TRUE ] && exit
-echo alice
-echo wonderland
-
-This script tries to authenticate as user alice with password wonderland once
-and never retries authentication.
-See examples for more sofisticated, interactive authentication handler.
+@on_event AUTHENTICATE auth "%1" "alice" "wonderland"
 
 ### WINDOW MANAGER INTEGRATION
 
@@ -657,11 +630,6 @@ The EM allows:
 * Many fine-grained events (`hover_over_link`, `key_press`, `key_release`,..)
 * See example `uzbl-event-manager`.
 
-**Note**: Cookie events are sent in addition to (optionally) being handled by
-  the cookie handler (set by the cookie_handler var). If using a handler it will
-  take precedence before the internal state configured by (add|delete)_cookie
-  commands.
-
 Events have this format:
 
      EVENT [uzbl_instance_name] EVENT_NAME event_details
@@ -693,8 +661,12 @@ Events have this format:
   could not be loaded for the reason described in `reason_of_error`.
 * `EVENT [uzbl_instance_name] LOAD_PROGRESS percentage` : While the page is
   loading, gives the `percentage` of the page that has finished loading.
+* `EVENT [uzbl_instance_name] REQUEST_QUEUED uri`: http resource gets
+  enqueued
 * `EVENT [uzbl_instance_name] REQUEST_STARTING uri`: http resource gets
   requested
+* `EVENT [uzbl_instance_name] REQUEST_FINISHED uri`: http resource has finished
+  loading
 * `EVENT [uzbl_instance_name] TITLE_CHANGED title_name`: When the title of the
   page (and hence maybe, the window title) changed. `title_name` is the new
   title.
@@ -743,6 +715,8 @@ Events have this format:
   be a unix-timestamp or empty
 * `EVENT [uzbl_instance_name] DELETE_COOKIE domain path name value scheme expire`:
   When a cookie was deleted. arguments as ADD_COOKIE
+* `EVENT [uzbl_instance_name] AUTHENTICATE uniqueid host realm retry`: When a
+  request requires authentication. authentication is done by calling `auth`
 
 Events/requests which the EM and its plugins listens for
 

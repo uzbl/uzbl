@@ -65,5 +65,6 @@ void        toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result
 void        toggle_status (WebKitWebView* page, GArray *argv, GString *result);
 void        act_dump_config(WebKitWebView* page, GArray *argv, GString *result);
 void        act_dump_config_as_events(WebKitWebView* page, GArray *argv, GString *result);
+void        auth(WebKitWebView* page, GArray *argv, GString *result);
 
 #endif

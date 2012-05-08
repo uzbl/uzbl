@@ -13,7 +13,11 @@ char*       str_replace(const char* search, const char* replace, const char* str
 gboolean    for_each_line_in_file(const gchar *path, void (*callback)(const gchar *l, void *c), void *user_data);
 gchar*      find_existing_file(const gchar*);
 gchar*      argv_idx(const GArray*, const guint);
+
 /**
  * appends `src' to `dest' with backslash, single-quotes and newlines in
- * `src' escaped */
+ * `src' escaped
+ */
 GString *   append_escaped (GString *dest, const gchar *src);
+
+void        sharg_append (GArray *array, const gchar *str);

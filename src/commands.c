@@ -6,6 +6,7 @@
 #include "callbacks.h"
 #include "variables.h"
 #include "type.h"
+#include "soup.h"
 
 /* -- command to callback/function map for things we cannot attach to any signals */
 CommandInfo cmdlist[] =
@@ -59,7 +60,8 @@ CommandInfo cmdlist[] =
     { "add_cookie",                     add_cookie, 0                  },
     { "delete_cookie",                  delete_cookie, 0               },
     { "clear_cookies",                  clear_cookies, 0               },
-    { "download",                       download, 0                    }
+    { "download",                       download, 0                    },
+    { "auth",                           auth, 0                        }
 };
 
 void
@@ -582,4 +584,19 @@ void
 act_dump_config_as_events(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void) argv; (void)result;
     dump_config_as_events();
+}
+
+void
+auth(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page; (void) result;
+    gchar *info, *username, *password;
+
+    if(argv->len != 3)
+        return;
+
+    info = argv_idx (argv, 0);
+    username = argv_idx (argv, 1);
+    password = argv_idx (argv, 2);
+
+    authenticate (info, username, password);
 }
