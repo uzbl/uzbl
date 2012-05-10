@@ -614,6 +614,98 @@ run_menu_command(GtkWidget *menu, MenuItem *mi) {
 void
 context_menu_cb(WebKitWebView *v, GtkWidget *m, WebKitHitTestResult *ht, gboolean keyboard, void *c) {
     // TODO
+    /*
+     * static gboolean context_menu_cb (WebKitWebView       *webView,
+     *                                  GtkWidget           *default_menu,
+     *                                  WebKitHitTestResult *hit_test_result,
+     *                                  gboolean             triggered_with_keyboard,
+     *                                  gpointer             user_data)
+     * {
+     *     GList *items = gtk_container_get_children (GTK_CONTAINER (default_menu));
+     *     GList *l;
+     *     GtkAction *action;
+     *     GtkWidget *sub_menu;
+     *
+     *     for (l = items; l; l = g_list_next (l)) {
+     *         GtkMenuItem *item = (GtkMenuItem *)l->data;
+     *
+     *         if (GTK_IS_SEPARATOR_MENU_ITEM (item)) {
+     *             /&ast; It's  separator, do nothing &ast;/
+     *             continue;
+     *         }
+     *
+     *         switch (webkit_context_menu_item_get_action (item)) {
+     *         case WEBKIT_CONTEXT_MENU_ACTION_NO_ACTION:
+     *             /&ast; No action for this item &ast;/
+     *             break;
+     *         /&ast; Don't allow to ope links from context menu &ast;/
+     *         case WEBKIT_CONTEXT_MENU_ACTION_OPEN_LINK:
+     *         case WEBKIT_CONTEXT_MENU_ACTION_OPEN_LINK_IN_NEW_WINDOW:
+     *             action = gtk_activatable_get_related_action (GTK_ACTIVATABLE (item));
+     *             gtk_action_set_sensitive (action, FALSE);
+     *             break;
+     *         default:
+     *             break;
+     *         }
+     *
+     *         sub_menu = gtk_menu_item_get_submenu (item);
+     *         if (sub_menu) {
+     *             GtkWidget *menu_item;
+     *
+     *             /&ast; Add custom action to submenu &ast;/
+     *             action = gtk_action_new ("CustomItemName", "Custom Action", NULL, NULL);
+     *             g_signal_connect (action, "activate", G_CALLBACK (custom_menu_item_activated), NULL);
+     *
+     *             menu_item = gtk_action_create_menu_item (action);
+     *             g_object_unref (action);
+     *             gtk_menu_shell_append (GTK_MENU_SHELL (sub_menu), menu_item);
+     *             gtk_widget_show (menu_item);
+     *         }
+     *     }
+     *
+     *     g_list_free(items);
+     * }
+     */
+    /*
+     * WEBKIT_CONTEXT_MENU_ACTION_NO_ACTION;
+     * WEBKIT_CONTEXT_MENU_ACTION_OPEN_LINK;
+     * WEBKIT_CONTEXT_MENU_ACTION_OPEN_LINK_IN_NEW_WINDOW;
+     * WEBKIT_CONTEXT_MENU_ACTION_DOWNLOAD_LINK_TO_DISK;
+     * WEBKIT_CONTEXT_MENU_ACTION_COPY_LINK_TO_CLIPBOARD;
+     * WEBKIT_CONTEXT_MENU_ACTION_OPEN_IMAGE_IN_NEW_WINDOW;
+     * WEBKIT_CONTEXT_MENU_ACTION_DOWNLOAD_IMAGE_TO_DISK;
+     * WEBKIT_CONTEXT_MENU_ACTION_COPY_IMAGE_TO_CLIPBOARD;
+     * WEBKIT_CONTEXT_MENU_ACTION_COPY_IMAGE_URL_TO_CLIPBOARD;
+     * WEBKIT_CONTEXT_MENU_ACTION_OPEN_FRAME_IN_NEW_WINDOW;
+     * WEBKIT_CONTEXT_MENU_ACTION_GO_BACK;
+     * WEBKIT_CONTEXT_MENU_ACTION_GO_FORWARD;
+     * WEBKIT_CONTEXT_MENU_ACTION_STOP;
+     * WEBKIT_CONTEXT_MENU_ACTION_RELOAD;
+     * WEBKIT_CONTEXT_MENU_ACTION_COPY;
+     * WEBKIT_CONTEXT_MENU_ACTION_CUT;
+     * WEBKIT_CONTEXT_MENU_ACTION_PASTE;
+     * WEBKIT_CONTEXT_MENU_ACTION_DELETE;
+     * WEBKIT_CONTEXT_MENU_ACTION_SELECT_ALL;
+     * WEBKIT_CONTEXT_MENU_ACTION_INPUT_METHODS;
+     * WEBKIT_CONTEXT_MENU_ACTION_UNICODE;
+     * WEBKIT_CONTEXT_MENU_ACTION_SPELLING_GUESS;
+     * WEBKIT_CONTEXT_MENU_ACTION_IGNORE_SPELLING;
+     * WEBKIT_CONTEXT_MENU_ACTION_LEARN_SPELLING;
+     * WEBKIT_CONTEXT_MENU_ACTION_IGNORE_GRAMMAR;
+     * WEBKIT_CONTEXT_MENU_ACTION_FONT_MENU;
+     * WEBKIT_CONTEXT_MENU_ACTION_BOLD;
+     * WEBKIT_CONTEXT_MENU_ACTION_ITALIC;
+     * WEBKIT_CONTEXT_MENU_ACTION_UNDERLINE;
+     * WEBKIT_CONTEXT_MENU_ACTION_OUTLINE;
+     * WEBKIT_CONTEXT_MENU_ACTION_INSPECT_ELEMENT;
+     * WEBKIT_CONTEXT_MENU_ACTION_OPEN_MEDIA_IN_NEW_WINDOW;
+     * WEBKIT_CONTEXT_MENU_ACTION_COPY_MEDIA_LINK_TO_CLIPBOARD;
+     * WEBKIT_CONTEXT_MENU_ACTION_TOGGLE_MEDIA_CONTROLS;
+     * WEBKIT_CONTEXT_MENU_ACTION_TOGGLE_MEDIA_LOOP;
+     * WEBKIT_CONTEXT_MENU_ACTION_ENTER_VIDEO_FULLSCREEN;
+     * WEBKIT_CONTEXT_MENU_ACTION_MEDIA_PLAY_PAUSE;
+     * WEBKIT_CONTEXT_MENU_ACTION_MEDIA_MUTE;
+     */
 }
 #else
 void
