@@ -518,7 +518,9 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_tab_cycle,             "tab-key-cycles-throug
 
 /* Customization */
 EXPOSE_WEBKIT_VIEW_SETTINGS(stylesheet_uri,               "user-stylesheet-uri",                       gchar *)
+#if !WEBKIT_CHECK_VERSION (1, 9, 0)
 EXPOSE_WEBKIT_VIEW_SETTINGS(default_context_menu,         "enable-default-context-menu",               int)
+#endif
 
 /* Hacks */
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_site_workarounds,      "enable-site-specific-quirks",               int)
@@ -966,7 +968,11 @@ const struct var_name_to_ptr_t {
     { "enable_tab_cycle",       PTR_V_INT_GETSET(enable_tab_cycle)},
     /* Customization */
     { "stylesheet_uri",         PTR_V_STR_GETSET(stylesheet_uri)},
+#if WEBKIT_CHECK_VERSION (1, 9, 0)
+    { "default_context_menu",   PTR_V_INT(uzbl.gui.custom_context_menu,         1,   NULL)},
+#else
     { "default_context_menu",   PTR_V_INT_GETSET(default_context_menu)},
+#endif
     /* Hacks */
     { "enable_site_workarounds", PTR_V_INT_GETSET(enable_site_workarounds)},
     /* Printing settings */

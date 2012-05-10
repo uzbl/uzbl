@@ -82,6 +82,7 @@ typedef struct {
     WebKitWebInspector* inspector;
 
     /* Custom context menu item */
+    gboolean       custom_context_menu;
     GPtrArray*     menu_items;
 } GUI;
 

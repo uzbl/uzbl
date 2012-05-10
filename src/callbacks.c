@@ -610,6 +610,12 @@ run_menu_command(GtkWidget *menu, MenuItem *mi) {
 }
 
 
+#if WEBKIT_CHECK_VERSION (1, 9, 0)
+void
+context_menu_cb(WebKitWebView *v, GtkWidget *m, WebKitHitTestResult *ht, gboolean keyboard, void *c) {
+    // TODO
+}
+#else
 void
 populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
     (void) c;
@@ -682,6 +688,7 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
         }
     }
 }
+#endif
 
 void
 window_object_cleared_cb(WebKitWebView *webview, WebKitWebFrame *frame,
