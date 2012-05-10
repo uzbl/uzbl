@@ -490,6 +490,9 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_fullscreen,            "enable-fullscreen",  
 EXPOSE_WEBKIT_VIEW_SETTINGS(zoom_text_only,               "zoom-text-only",                            int)
 #endif
 #endif
+#if WEBKIT_CHECK_VERSION (1, 9, 0)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_smooth_scrolling,      "enable-smooth-scrolling",                   int)
+#endif
 
 /* Javascript settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_scripts,               "enable-scripts",                            int)
@@ -939,6 +942,9 @@ const struct var_name_to_ptr_t {
 #if WEBKIT_CHECK_VERSION (1, 7, 91)
     { "zoom_text_only",         PTR_V_INT_GETSET(zoom_text_only)},
 #endif
+#endif
+#if WEBKIT_CHECK_VERSION (1, 9, 0)
+    { "enable_smooth_scrolling",PTR_V_INT_GETSET(enable_smooth_scrolling)},
 #endif
     /* Javascript settings */
     { "enable_scripts",         PTR_V_INT_GETSET(enable_scripts)},
