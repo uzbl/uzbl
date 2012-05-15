@@ -8,6 +8,7 @@ set prefix      = @(echo $PREFIX)@
 set data_home   = @(echo $XDG_DATA_HOME)@
 set cache_home  = @(echo $XDG_CACHE_HOME)@
 set config_home = @(echo $XDG_CONFIG_HOME)@
+set local_storage_path = @data_home/uzbl/databases/
 
 # Interface paths.
 set fifo_dir   = /tmp
@@ -137,6 +138,8 @@ set progress.pending    =
 set useragent         = Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}) (@(+uname -sm)@ [@ARCH_UZBL])
 
 # === Configure cookie blacklist ========================================================
+
+set cookie_policy = 0
 
 # Accept 'session cookies' from uzbl.org (when you have a whitelist all other cookies are dropped)
 #request WHITELIST_COOKIE domain 'uzbl.org$' expires '^$'

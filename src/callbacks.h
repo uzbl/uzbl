@@ -77,7 +77,7 @@ scroll_horiz_cb(GtkAdjustment *adjust, void *w);
 
 void
 window_object_cleared_cb(WebKitWebView *webview, WebKitWebFrame *frame,
-	JSGlobalContextRef *context, JSObjectRef *object);
+        JSGlobalContextRef *context, JSObjectRef *object);
 
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
 void

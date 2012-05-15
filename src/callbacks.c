@@ -10,6 +10,8 @@
 #include "type.h"
 #include "variables.h"
 
+#include <gdk/gdk.h>
+
 void
 link_hover_cb (WebKitWebView *page, const gchar *title, const gchar *link, gpointer data) {
     (void) page; (void) title; (void) data;
@@ -248,7 +250,9 @@ motion_notify_cb(GtkWidget* window, GdkEventMotion* event, gpointer user_data) {
 }
 
 gboolean
-navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action, WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
+navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
+        WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action,
+        WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
     (void) web_view;
     (void) frame;
     (void) navigation_action;
@@ -320,7 +324,9 @@ new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
 }
 
 gboolean
-mime_policy_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request, gchar *mime_type,  WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
+mime_policy_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
+        WebKitNetworkRequest *request, gchar *mime_type,
+        WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
     (void) frame;
     (void) request;
     (void) user_data;
@@ -345,11 +351,17 @@ request_starting_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitWebRes
     (void) response;
     (void) user_data;
 
-    const gchar* uri = webkit_network_request_get_uri (request);
+    const gchar *uri = webkit_network_request_get_uri (request);
+    SoupMessage *message = webkit_network_request_get_message (request);
+
+    if (message) {
+        SoupURI *soup_uri = soup_uri_new (uri);
+        soup_message_set_first_party (message, soup_uri);
+    }
 
     if (uzbl.state.verbose)
         printf("Request starting -> %s\n", uri);
-    send_event (REQUEST_STARTING, NULL, TYPE_STR, webkit_network_request_get_uri(request), NULL);
+    send_event (REQUEST_STARTING, NULL, TYPE_STR, uri, NULL);
 
     if (uzbl.behave.request_handler) {
         GString *result = g_string_new ("");
@@ -621,7 +633,15 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
         if (mi->context & WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE) {
             GdkEventButton ev;
             gint x, y;
+#if GTK_CHECK_VERSION (3, 0, 0)
+            gdk_window_get_device_position (gtk_widget_get_window(GTK_WIDGET(v)),
+                gdk_device_manager_get_client_pointer (
+                    gdk_display_get_device_manager (
+                        gtk_widget_get_display (GTK_WIDGET (v)))),
+                &x, &y, NULL);
+#else
             gdk_window_get_pointer(gtk_widget_get_window(GTK_WIDGET(v)), &x, &y, NULL);
+#endif
             ev.x = x;
             ev.y = y;
             mi->hittest = webkit_web_view_get_hit_test_result(v, &ev);
@@ -665,7 +685,7 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
 
 void
 window_object_cleared_cb(WebKitWebView *webview, WebKitWebFrame *frame,
-    JSGlobalContextRef *context, JSObjectRef *object) {
+        JSGlobalContextRef *context, JSObjectRef *object) {
     (void) frame; (void) context; (void) object;
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
     // Take this opportunity to set some callbacks on the DOM

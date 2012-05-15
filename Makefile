@@ -1,25 +1,45 @@
 # packagers, set DESTDIR to your "package directory" and PREFIX to the prefix you want to have on the end-user system
 # end-users who build from source: don't care about DESTDIR, update PREFIX if you want to
 # RUN_PREFIX : what the prefix is when the software is run. usually the same as PREFIX
-PREFIX?=/usr/local
-INSTALLDIR?=$(DESTDIR)$(PREFIX)
-DOCDIR?=$(INSTALLDIR)/share/uzbl/docs
-RUN_PREFIX?=$(PREFIX)
+PREFIX     ?= /usr/local
+INSTALLDIR ?= $(DESTDIR)$(PREFIX)
+DOCDIR     ?= $(INSTALLDIR)/share/uzbl/docs
+RUN_PREFIX ?= $(PREFIX)
 
-# use GTK3-based webkit when it is available
-USE_GTK3 = $(shell pkg-config --exists gtk+-3.0 webkitgtk-3.0 && echo 1)
-
-ifeq ($(USE_GTK3),1)
-	REQ_PKGS += gtk+-3.0 webkitgtk-3.0 javascriptcoregtk-3.0
-	CPPFLAGS = -DG_DISABLE_DEPRECATED -DGTK_DISABLE_DEPRECATED
-else
-	REQ_PKGS += gtk+-2.0 webkit-1.0 javascriptcoregtk-1.0
-	CPPFLAGS =
-endif
+ENABLE_WEBKIT2 ?= auto
+ENABLE_GTK3    ?= auto
 
 # --- configuration ends here ---
 
-REQ_PKGS += libsoup-2.4 gthread-2.0 glib-2.0
+ifeq ($(ENABLE_WEBKIT2),auto)
+ENABLE_WEBKIT2 := $(shell pkg-config --exists webkit2gtk-3.0 && echo yes)
+# WebKit2 requires GTK3
+ENABLE_GTK3    := yes
+endif
+
+ifeq ($(ENABLE_GTK3),auto)
+ENABLE_GTK3 := $(shell pkg-config --exists gtk+-3.0 && echo yes)
+endif
+
+ifeq ($(ENABLE_WEBKIT2),yes)
+REQ_PKGS += 'webkit2gtk-3.0 >= 1.2.4' javascriptcoregtk-3.0
+CPPFLAGS += -DUSE_WEBKIT2
+else
+ifeq ($(ENABLE_GTK3),yes)
+REQ_PKGS += 'webkitgtk-3.0 >= 1.2.4' javascriptcoregtk-3.0
+else
+REQ_PKGS += 'webkit-1.0 >= 1.2.4' javascriptcoregtk-1.0
+endif
+endif
+
+ifeq ($(ENABLE_GTK3),yes)
+REQ_PKGS += gtk+-3.0
+CPPFLAGS += -DG_DISABLE_DEPRECATED -DGTK_DISABLE_DEPRECATED
+else
+REQ_PKGS += gtk+-2.0
+endif
+
+REQ_PKGS += 'libsoup-2.4 >= 2.30' gthread-2.0 glib-2.0
 
 ARCH:=$(shell uname -m)
 
@@ -33,7 +53,7 @@ LDLIBS:=$(shell pkg-config --libs $(REQ_PKGS) x11)
 
 CFLAGS += -std=c99 $(PKG_CFLAGS) -ggdb -W -Wall -Wextra -pedantic -pthread
 
-SRC = $(wildcard src/*.c)
+SRC  = $(wildcard src/*.c)
 HEAD = $(wildcard src/*.h)
 OBJ  = $(foreach obj, $(SRC:.c=.o),  $(notdir $(obj)))
 LOBJ = $(foreach obj, $(SRC:.c=.lo), $(notdir $(obj)))

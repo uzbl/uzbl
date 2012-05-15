@@ -258,7 +258,7 @@ The following commands are recognized:
   - Adds a new cookie to the cookie jar
 * `delete_cookie <domain> <path> <name> <value> [<scheme> <expires>]`
   - Deletes a matching cookie from the cookie jar. scheme and expire time
-	  is currently not considered when matching.
+    is currently not considered when matching.
 * `clear_cookies`
   - Clears all cookies from the cookie jar
 * `download <uri> [<destination path>]`
@@ -337,7 +337,8 @@ file).
   to their original size. Setting this will resize the currently displayed page.
 * `zoom_type`: Whether to use "full-content" zoom (defaults to true). With
   full-content zoom on, all page content, not just text, is zoomed. When
-  full-content zoom is off, only the text of a page is zoomed.
+  full-content zoom is off, only the text of a page is zoomed. This is
+  unavailable with webkit2gtk. Use `zoom_text_only` instead.
 * `font_size`: The default font size.
 * `default_font_family`: The default font family used to display text.
 * `monospace_font_family`: The default font family used to display monospace
@@ -349,7 +350,6 @@ file).
 * `fantasy_font_family`: The default Fantasy font family used to display text.
 * `monospace_size`: The default size of monospaced font (default 1).
 * `minimum_font_size`: The minimum font size used to display text (default 1).
-* `enable_pagecache`: Enable the webkit pagecache (it caches rendered pages for a speedup when you go back or forward in history) (default 0).
 * `enable_plugins`: Disable embedded plugin objects (default 0).
 * `enable_scripts`: Disable embedded scripting languages (default 0).
 * `autoload_images`: Automatically load images (default 1).
@@ -360,6 +360,8 @@ file).
   `en_CA` or `pt_BR`) to be used for spell checking, separated by commas.
   Defaults to the value returned by `gtk_get_default_language`.
 * `enable_private`: Whether to enable private browsing mode (default 0).
+* `cookie_policy`: If set to 0, all cookies are accepted, if set to 1, all
+  cookies are rejected, and 2 rejects third party cookies (default 0).
 * `print_backgrounds`: Print background images? (default 0).
 * `stylesheet_uri`: Use this to override the pagelayout with a custom
   stylesheet.
@@ -372,13 +374,62 @@ file).
 * `enable_cross_file_access`: Whether a page loaded from a `file://` URI can
   access the contents of other `file://` URIs. (default 0).
 * `follow_hint_keys`: keys for keyboard-based navigation and link
-   highlighting
+  highlighting
 * `handle_multi_click`: If set to 1, event handlers attached to `2Button*`
-   and `3Button*` bindings will only be used instead of the default actions in
-   WebKit (default 0).
+  and `3Button*` bindings will only be used instead of the default actions in
+  WebKit (default 0).
 * `ssl_ca_file`: File that contains CA certificates.
 * `ssl_verify`: If set to 1, uzbl won't connect to "https" url unless it can
-   validate certificate presented by remote server against `ssl_ca_file`.
+  validate certificate presented by remote server against `ssl_ca_file`.
+* `enable_java_applet`: If set to 1, support for Java <applet> tags will be
+  enabled (default 1).
+* `enable_database`: If set to 1, support for HTML5 client-side SQL databases
+  will be enabled (default 1).
+* `enable_local_storage`: If set to 1, websites will be able to store data
+  locally (default 1).
+* `enable_pagecache`: If set to 1, uzbl will store previously visited pages for
+  faster access (the cache is local to each uzbl instance) (default 0).
+* `enable_offline_app_cache`: If set to 1, web applications may be cached locally
+  for offline use (default 1).
+* `enable_universal_file_access`: If set to 1, allow `file://` URIs to access
+  all pages (default 0).
+* `enable_hyperlink_auditing`: If set to 1, the `ping` attribute on anchors will
+  be supported (default 0).
+* `zoom_step`: The change in the zoon level when zooming (default 0.1).
+* `auto_resize_window`: If set to 1, allow web pages to change window dimensions
+  (default 0).
+* `javascript_dom_paste`: If set to 1, JavaScript will be cause clipboard content
+  to be pasted (default 0).
+* `enable_spatial_navigation`: If set to 1, the arrow keys in `Ins` mode will
+  navigate between form elements (default 0).
+* `editing_behavior`: When set to 0, emulate Mac behavior in text fields, 1
+  for Windows behavior, and 2 for *nix behavior (the default).
+* `enable_tab_cycle`: If set to 1, the `Tab` key cycles between elements on
+  the page (default 1).
+* `default_context_menu`: If set to 0, do not cause context menus to appear when
+  right clicking (default 1).
+* `enable_site_workarounds`: If set to 1, enable filters to help unbreak
+  certain websites (default 0).
+* `javascript_clipboard`: If set to 1, JavaScript may access the clipboard
+  (default 0). Requires webkitgtk >= 1.3.0.
+* `enable_frame_flattenting`: If set to 1, flatten all frames into a single
+  page (default 0). Requires webkitgtk >= 1.3.5.
+* `enable_fullscreen`: If set to 1, Mozilla-style fullscreening will be
+  available (default 0). Requires webkitgtk >= 1.3.8
+* `enable_dns_prefetch`: If set to 1, domain names will be prefetched
+  (default 1). Private browsing does *not* affect this value. Requires
+  webkitgtk >= 1.3.13.
+* `enable_webgl`: If set to 1, WebGL support will be enabled (default 0).
+  Requires webkitgtk >= 1.3.14.
+* `local_storage_path`: Where to store local databases (default
+  $XDG_DATA_HOME/webkit/databases/). Requires webkit >= 1.5.2.
+* `enable_webaudio`: If set to 1, allows JavaScript to generate audio
+  directly (default 0). Requires webkit >= 1.7.5.
+* `enable_3d_acceleration`: If set to 1, the GPU will be used to render
+  animations and 3D CSS transformations. Requires webkitgtk >= 1.7.90.
+* `zoom_text_only`: If set to 1, only text will be zoomed. Requires webkit2gtk
+  >= 1.7.91.
+
 
 #### Constants (not dumpable or writeable)
 
@@ -514,6 +565,7 @@ access to the following environment variables:
 * `$UZBL_SOCKET`: The filename of the Unix socket being used, if any.
 * `$UZBL_URI`: The URI of the current page.
 * `$UZBL_TITLE`: The current page title.
+* `$UZBL_PRIVATE`: Set if uzbl is in "private browsing mode", unset otherwise.
 
 Handler scripts (`download_handler`, `cookie_handler`, `scheme_handler`,
 `request_handler`, and `authentication_handler`) are called with special
