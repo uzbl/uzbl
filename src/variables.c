@@ -403,10 +403,10 @@ get_verify_cert() {
 }
 
 #define EXPOSE_SOUP_COOKIE_JAR_SETTINGS(SYM, PROPERTY, TYPE) \
-void set_##SYM(TYPE val) { \
+static void set_##SYM(TYPE val) { \
   g_object_set(cookie_jar(), (PROPERTY), val, NULL); \
 } \
-TYPE get_##SYM() { \
+static TYPE get_##SYM() { \
   TYPE val; \
   g_object_get(cookie_jar(), (PROPERTY), &val, NULL); \
   return val; \
@@ -480,7 +480,7 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(zoom_step,                    "zoom-step",          
 EXPOSE_WEBKIT_VIEW_SETTINGS(caret_browsing,               "enable-caret-browsing",                     int)
 EXPOSE_WEBKIT_VIEW_SETTINGS(auto_resize_window,           "auto-resize-window",                        int)
 #if WEBKIT_CHECK_VERSION (1, 3, 5)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_frame_flattenting,     "enable-frame-flattening",                   int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_frame_flattening,     "enable-frame-flattening",                   int)
 #endif
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_fullscreen,            "enable-fullscreen",                         int)
@@ -930,7 +930,7 @@ const struct var_name_to_ptr_t {
     { "caret_browsing",         PTR_V_INT_GETSET(caret_browsing)},
     { "auto_resize_window",     PTR_V_INT_GETSET(auto_resize_window)},
 #if WEBKIT_CHECK_VERSION (1, 3, 5)
-    { "enable_frame_flattenting", PTR_V_INT_GETSET(enable_frame_flattenting)},
+    { "enable_frame_flattening", PTR_V_INT_GETSET(enable_frame_flattening)},
 #endif
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
     { "enable_fullscreen",      PTR_V_INT_GETSET(enable_fullscreen)},
