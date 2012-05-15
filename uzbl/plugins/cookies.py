@@ -4,6 +4,9 @@
 from collections import defaultdict
 import os, re, stat
 
+from uzbl.arguments import splitquoted
+from uzbl.ext import GlobalPlugin, PerInstancePlugin
+
 # these are symbolic names for the components of the cookie tuple
 symbolic = {'domain': 0, 'path':1, 'name':2, 'value':3, 'scheme':4, 'expires':5}
 
@@ -14,6 +17,34 @@ def match(key, cookie):
         if k != c:
             return False
     return True
+
+def match_list(_list, cookie):
+    for matcher in _list:
+        for component, match in matcher:
+            if match(cookie[component]) is None:
+                break
+        else:
+            return True
+    return False
+
+def add_cookie_matcher(_list, arg):
+    ''' add a cookie matcher to a whitelist or a blacklist.
+        a matcher is a list of (component, re) tuples that matches a cookie when the
+        "component" part of the cookie matches the regular expression "re".
+        "component" is one of the keys defined in the variable "symbolic" above,
+        or the index of a component of a cookie tuple.
+    '''
+
+    args = splitquoted(arg)
+    mlist = []
+    for (component, regexp) in zip(args[0::2], args[1::2]):
+        try:
+            component = symbolic[component]
+        except KeyError:
+            component = int(component)
+        assert component <= 5
+        mlist.append((component, re.compile(regexp).search))
+    _list.append(mlist)
 
 class NullStore(object):
     def add_cookie(self, rawcookie, cookie):
@@ -101,9 +132,8 @@ class TextStore(object):
         first = not os.path.exists(self.filename)
         with open(self.filename, 'a') as f:
             if first:
-                print >> f, "# HTTP Cookie File"
-            print >> f, '\t'.join(self.as_file(cookie))
-        os.umask(curmask)
+                print("# HTTP Cookie File", file=f)
+            print('\t'.join(self.as_file(cookie)), file=f)
 
     def delete_cookie(self, rkey, key):
         if not os.path.exists(self.filename):
@@ -122,101 +152,75 @@ class TextStore(object):
             for l in cookies:
                 c = self.as_event(l.split('\t'))
                 if c is None or not match(key, c):
-                    print >> f, l,
+                    print(l, end='', file=f)
         os.umask(curmask)
 
 xdg_data_home = os.environ.get('XDG_DATA_HOME', os.path.join(os.environ['HOME'], '.local/share'))
 DefaultStore = TextStore(os.path.join(xdg_data_home, 'uzbl/cookies.txt'))
 SessionStore = TextStore(os.path.join(xdg_data_home, 'uzbl/session-cookies.txt'))
 
-def match_list(_list, cookie):
-    for matcher in _list:
-        for component, match in matcher:
-            if match(cookie[component]) is None:
-                break
+class Cookies(PerInstancePlugin):
+    def __init__(self, uzbl):
+        super(Cookies, self).__init__(uzbl)
+
+        self.whitelist = []
+        self.blacklist = []
+
+        uzbl.connect('ADD_COOKIE', self.add_cookie)
+        uzbl.connect('DELETE_COOKIE', self.delete_cookie)
+        uzbl.connect('BLACKLIST_COOKIE', self.blacklist_cookie)
+        uzbl.connect('WHITELIST_COOKIE', self.whitelist_cookie)
+
+    # accept a cookie only when:
+    # a. there is no whitelist and the cookie is in the blacklist
+    # b. the cookie is in the whitelist and not in the blacklist
+    def accept_cookie(self, cookie):
+        if self.whitelist:
+            if match_list(self.whitelist, cookie):
+                return not match_list(self.blacklist, cookie)
+            return False
+
+        return not match_list(self.blacklist, cookie)
+
+    def expires_with_session(self, cookie):
+        return cookie[5] == ''
+
+    def get_recipents(self):
+        """ get a list of Uzbl instances to send the cookie too. """
+        # This could be a lot more interesting
+        return [u for u in list(self.uzbl.parent.uzbls.values()) if u is not self.uzbl]
+
+    def get_store(self, session=False):
+        if session:
+            return SessionStore
+        return DefaultStore
+
+    def add_cookie(self, cookie):
+        cookie = splitquoted(cookie)
+        if self.accept_cookie(cookie):
+            for u in self.get_recipents():
+                u.send('add_cookie %s' % cookie.raw())
+
+            self.get_store(self.expires_with_session(cookie)).add_cookie(cookie.raw(), cookie)
         else:
-            return True
-    return False
+            self.logger.debug('cookie %r is blacklisted', cookie)
+            self.uzbl.send('delete_cookie %s' % cookie.raw())
 
-# accept a cookie only when:
-# a. there is no whitelist and the cookie is in the blacklist
-# b. the cookie is in the whitelist and not in the blacklist
-def accept_cookie(uzbl, cookie):
-    if uzbl.cookie_whitelist:
-        if match_list(uzbl.cookie_whitelist, cookie):
-            return not match_list(uzbl.cookie_blacklist, cookie)
-        return False
+    def delete_cookie(self, cookie):
+        cookie = splitquoted(cookie)
+        for u in self.get_recipents():
+            u.send('delete_cookie %s' % cookie.raw())
 
-    return not match_list(uzbl.cookie_blacklist, cookie)
+        if len(cookie) == 6:
+            self.get_store(self.expires_with_session(cookie)).delete_cookie(cookie.raw(), cookie)
+        else:
+            for store in set([self.get_store(session) for session in (True, False)]):
+                store.delete_cookie(cookie.raw(), cookie)
 
-def expires_with_session(uzbl, cookie):
-    return cookie[5] == ''
+    def blacklist_cookie(self, arg):
+        add_cookie_matcher(self.blacklist, arg)
 
-def get_recipents(uzbl):
-    """ get a list of Uzbl instances to send the cookie too. """
-    # This could be a lot more interesting
-    return [u for u in uzbl.parent.uzbls.values() if u is not uzbl]
-
-def get_store(uzbl, session=False):
-    if session:
-        return SessionStore
-    return DefaultStore
-
-def add_cookie(uzbl, cookie):
-    splitted = splitquoted(cookie)
-    if accept_cookie(uzbl, splitted):
-        for u in get_recipents(uzbl):
-            u.send('add_cookie %s' % cookie)
-
-        get_store(uzbl, expires_with_session(uzbl, splitted)).add_cookie(cookie, splitted)
-    else:
-        logger.debug('cookie %r is blacklisted' % splitted)
-        uzbl.send('delete_cookie %s' % cookie)
-
-def delete_cookie(uzbl, cookie):
-    for u in get_recipents(uzbl):
-        u.send('delete_cookie %s' % cookie)
-
-    splitted = splitquoted(cookie)
-    if len(splitted) == 6:
-        get_store(uzbl, expires_with_session(uzbl, splitted)).delete_cookie(cookie, splitted)
-    else:
-        for store in set([get_store(uzbl, session) for session in (True, False)]):
-            store.delete_cookie(cookie, splitted)
-
-# add a cookie matcher to a whitelist or a blacklist.
-# a matcher is a list of (component, re) tuples that matches a cookie when the
-# "component" part of the cookie matches the regular expression "re".
-# "component" is one of the keys defined in the variable "symbolic" above,
-# or the index of a component of a cookie tuple.
-def add_cookie_matcher(_list, arg):
-    args = splitquoted(arg)
-    mlist = []
-    for (component, regexp) in zip(args[0::2], args[1::2]):
-        try:
-            component = symbolic[component]
-        except KeyError:
-            component = int(component)
-        assert component <= 5
-        mlist.append((component, re.compile(regexp).search))
-    _list.append(mlist)
-
-def blacklist(uzbl, arg):
-    add_cookie_matcher(uzbl.cookie_blacklist, arg)
-
-def whitelist(uzbl, arg):
-    add_cookie_matcher(uzbl.cookie_whitelist, arg)
-
-def init(uzbl):
-    connect_dict(uzbl, {
-        'ADD_COOKIE':       add_cookie,
-        'DELETE_COOKIE':    delete_cookie,
-        'BLACKLIST_COOKIE': blacklist,
-        'WHITELIST_COOKIE': whitelist
-    })
-    export_dict(uzbl, {
-        'cookie_blacklist' : [],
-        'cookie_whitelist' : []
-    })
+    def whitelist_cookie(self, arg):
+        add_cookie_matcher(self.whitelist, arg)
 
 # vi: set et ts=4:

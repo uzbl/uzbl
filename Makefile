@@ -17,6 +17,10 @@ else
 	CPPFLAGS =
 endif
 
+PYTHON=python3
+PYTHONV=$(shell $(PYTHON) --version | sed -n /[0-9].[0-9]/p)
+COVERAGE=$(shell which coverage)
+
 # --- configuration ends here ---
 
 REQ_PKGS += libsoup-2.4 gthread-2.0 glib-2.0
@@ -37,6 +41,7 @@ SRC = $(wildcard src/*.c)
 HEAD = $(wildcard src/*.h)
 OBJ  = $(foreach obj, $(SRC:.c=.o),  $(notdir $(obj)))
 LOBJ = $(foreach obj, $(SRC:.c=.lo), $(notdir $(obj)))
+PY = $(wildcard uzbl/*.py uzbl/plugins/*.py)
 
 all: uzbl-browser
 
@@ -46,7 +51,13 @@ ${OBJ}: ${HEAD}
 
 uzbl-core: ${OBJ}
 
-uzbl-browser: uzbl-core
+uzbl-browser: uzbl-core uzbl-event-manager
+
+build: ${PY}
+	$(PYTHON) setup.py build
+
+.PHONY: uzbl-event-manager
+uzbl-event-manager: build
 
 # the 'tests' target can never be up to date
 .PHONY: tests
@@ -61,38 +72,43 @@ tests: ${LOBJ} force
 	$(CC) -shared -Wl ${LOBJ} -o ./tests/libuzbl-core.so
 	cd ./tests/; $(MAKE)
 
+test-event-manager: force
+	${PYTHON} -m unittest discover tests/event-manager -v
+
+coverage-event-manager: force
+	${PYTHON} ${COVERAGE} erase
+	${PYTHON} ${COVERAGE} run -m unittest discover tests/event-manager
+	${PYTHON} ${COVERAGE} html ${PY}
+	# Hmm, I wonder what a good default browser would be
+	uzbl-browser htmlcov/index.html
+
 test-uzbl-core: uzbl-core
 	./uzbl-core --uri http://www.uzbl.org --verbose
 
 test-uzbl-browser: uzbl-browser
 	./bin/uzbl-browser --uri http://www.uzbl.org --verbose
 
-test-uzbl-core-sandbox: uzbl-core
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-core
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
-	cp -np ./misc/env.sh ./sandbox/env.sh
+test-uzbl-core-sandbox: sandbox uzbl-core sandbox-install-uzbl-core sandbox-install-example-data
 	. ./sandbox/env.sh && uzbl-core --uri http://www.uzbl.org --verbose
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
-test-uzbl-browser-sandbox: uzbl-browser
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-browser
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
-	cp -np ./misc/env.sh ./sandbox/env.sh
-	-. ./sandbox/env.sh && uzbl-event-manager restart -avv
+test-uzbl-browser-sandbox: sandbox uzbl-browser sandbox-install-uzbl-browser sandbox-install-example-data
+	. ./sandbox/env.sh && ${PYTHON} -S `which uzbl-event-manager` restart -navv &
 	. ./sandbox/env.sh && uzbl-browser --uri http://www.uzbl.org --verbose
-	. ./sandbox/env.sh && uzbl-event-manager stop -ivv
+	. ./sandbox/env.sh && ${PYTHON} -S `which uzbl-event-manager` stop -vv -o /dev/null
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
-test-uzbl-tabbed-sandbox: uzbl-browser
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-browser
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-uzbl-tabbed
-	make DESTDIR=./sandbox RUN_PREFIX=`pwd`/sandbox/usr/local install-example-data
-	cp -np ./misc/env.sh ./sandbox/env.sh
-	-. ./sandbox/env.sh && uzbl-event-manager restart -avv
+test-uzbl-tabbed-sandbox: sandbox uzbl-browser sandbox-install-uzbl-browser sandbox-install-uzbl-tabbed sandbox-install-example-data
+	. ./sandbox/env.sh && ${PYTHON} -S `which uzbl-event-manager` restart -avv
 	. ./sandbox/env.sh && uzbl-tabbed
-	. ./sandbox/env.sh && uzbl-event-manager stop -ivv
+	. ./sandbox/env.sh && ${PYTHON} -S `which uzbl-event-manager` stop -ivv
+	make DESTDIR=./sandbox uninstall
+	rm -rf ./sandbox/usr
+
+test-uzbl-event-manager-sandbox: sandbox uzbl-browser sandbox-install-uzbl-browser sandbox-install-example-data
+	. ./sandbox/env.sh && ${PYTHON} -S `which uzbl-event-manager` restart -navv
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
@@ -102,11 +118,34 @@ clean:
 	find ./examples/ -name "*.pyc" -delete
 	cd ./tests/; $(MAKE) clean
 	rm -rf ./sandbox/
+	$(PYTHON) setup.py clean
 
 strip:
 	@echo Stripping binary
 	@strip uzbl-core
 	@echo ... done.
+
+SANDBOXOPTS=\
+	DESTDIR=./sandbox\
+	RUN_PREFIX=`pwd`/sandbox/usr/local\
+	PYINSTALL_EXTRA='--prefix=./sandbox/usr/local --install-scripts=./sandbox/usr/local/bin'
+
+sandbox: misc/env.sh
+	mkdir -p sandbox/${PREFIX}/lib64
+	cp -p misc/env.sh sandbox/env.sh
+	test -e sandbox/${PREFIX}/lib || ln -s lib64 sandbox/${PREFIX}/lib
+
+sandbox-install-uzbl-browser:
+	make ${SANDBOXOPTS} install-uzbl-browser
+
+sandbox-install-uzbl-core:
+	make ${SANDBOXOPTS} install-uzbl-core
+
+sandbox-install-event-manager:
+	make ${SANDBOXOPTS} install-event-manager
+
+sandbox-install-example-data:
+	make ${SANDBOXOPTS} install-example-data
 
 install: install-uzbl-core install-uzbl-browser install-uzbl-tabbed
 
@@ -123,8 +162,7 @@ install-uzbl-core: all install-dirs
 	install -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
 
 install-event-manager: install-dirs
-	sed "s#^PREFIX = .*#PREFIX = '$(RUN_PREFIX)'#" < bin/uzbl-event-manager > $(INSTALLDIR)/bin/uzbl-event-manager
-	chmod 755 $(INSTALLDIR)/bin/uzbl-event-manager
+	$(PYTHON) setup.py install --install-scripts=$(INSTALLDIR)/bin $(PYINSTALL_EXTRA)
 
 install-uzbl-browser: install-dirs install-uzbl-core install-event-manager
 	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < bin/uzbl-browser > $(INSTALLDIR)/bin/uzbl-browser
