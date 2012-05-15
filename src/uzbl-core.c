@@ -290,7 +290,7 @@ get_click_context() {
 
     ht = webkit_web_view_get_hit_test_result (g->web_view, uzbl.state.last_button);
     g_object_get (ht, "context", &context, NULL);
-	g_object_unref (ht);
+    g_object_unref (ht);
 
     return (gint)context;
 }
@@ -310,7 +310,7 @@ setup_signal(int signr, sigfunc *shandler) {
     return NULL;
 }
 
-void
+static void
 empty_event_buffer(int s) {
     (void) s;
     if(uzbl.state.event_buffer) {
@@ -356,12 +356,12 @@ parse_cmd_line_cb(const char *line, void *user_data) {
 }
 
 void
-run_command_file(const gchar *path) {
-	if(!for_each_line_in_file(path, parse_cmd_line_cb, NULL)) {
-		gchar *tmp = g_strdup_printf("File %s can not be read.", path);
-		send_event(COMMAND_ERROR, NULL, TYPE_STR, tmp, NULL);
-		g_free(tmp);
-	}
+run_command_file (const gchar *path) {
+    if(!for_each_line_in_file(path, parse_cmd_line_cb, NULL)) {
+        gchar *tmp = g_strdup_printf("File %s can not be read.", path);
+        send_event(COMMAND_ERROR, NULL, TYPE_STR, tmp, NULL);
+        g_free(tmp);
+    }
 }
 
 /* Javascript*/
@@ -463,7 +463,7 @@ search_text (WebKitWebView *page, const gchar *key, const gboolean forward) {
     }
 }
 
-void
+static void
 sharg_append(GArray *a, const gchar *str) {
     const gchar *s = (str ? str : "");
     g_array_append_val(a, s);
@@ -517,7 +517,7 @@ run_command (const gchar *command, const gchar **args, const gboolean sync,
     return result;
 }
 
-/*@null@*/ gchar**
+/*@null@*/ static gchar**
 split_quoted(const gchar* src, const gboolean unquote) {
     /* split on unquoted space or tab, return array of strings;
        remove a layer of quotes and backslashes if unquote */
@@ -841,7 +841,7 @@ settings_init () {
 
     /* Load config file, if any */
     if (s->config_file) {
-		run_command_file(s->config_file);
+        run_command_file(s->config_file);
         g_setenv("UZBL_CONFIG", s->config_file, TRUE);
     } else if (uzbl.state.verbose)
         printf ("No configuration file loaded.\n");
@@ -922,6 +922,11 @@ initialize(int argc, char** argv) {
     uzbl.info.webkit_major     = webkit_major_version();
     uzbl.info.webkit_minor     = webkit_minor_version();
     uzbl.info.webkit_micro     = webkit_micro_version();
+#ifdef USE_WEBKIT2
+    uzbl.info.webkit2          = 1;
+#else
+    uzbl.info.webkit2          = 0;
+#endif
     uzbl.info.arch             = ARCH;
     uzbl.info.commit           = COMMIT;
 
@@ -963,6 +968,9 @@ initialize(int argc, char** argv) {
 
     commands_hash();
     variables_hash();
+
+    /* XDG */
+    ensure_xdg_vars();
 
     /* GUI */
     gtk_init(&argc, &argv);

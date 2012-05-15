@@ -14,11 +14,17 @@ case "$result" in
         printf 'set mode=\nevent KEYCMD_CLEAR\n' > "$UZBL_FIFO"
         ;;
     XXXNEW_WINDOWXXX*)
-        printf "set mode=\nevent KEYCMD_CLEAR\nevent NEW_WINDOW $@\n" > "$UZBL_FIFO"
+        echo "set mode=
+event KEYCMD_CLEAR
+event NEW_WINDOW $@" > "$UZBL_FIFO"
         ;;
     XXXRETURNED_URIXXX*)
         uriaction=$1
         uri=${result#XXXRETURNED_URIXXX}
+
+        printf 'set mode=\nevent KEYCMD_CLEAR\n' > "$UZBL_FIFO"
+
+        [ -z "$uri" ] && exit
 
         case "$uriaction" in
             set)
@@ -28,5 +34,4 @@ case "$result" in
                 printf "$uri" | xclip
                 ;;
         esac
-        printf 'set mode=\nevent KEYCMD_CLEAR\n' > "$UZBL_FIFO"
 esac

@@ -41,21 +41,21 @@ changed(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie) {
      * propagated to other uzbl instances using add/delete_cookie. */
     if(!uzbl_jar->in_manual_add) {
         gchar *scheme = cookie->secure
-		? cookie->http_only ? "httpsOnly" : "https"
-		: cookie->http_only ? "httpOnly"  : "http";
+                ? cookie->http_only ? "httpsOnly" : "https"
+                : cookie->http_only ? "httpOnly"  : "http";
 
         gchar *expires = NULL;
         if(cookie->expires)
             expires = g_strdup_printf ("%ld", (long)soup_date_to_time_t (cookie->expires));
 
-		send_event (new_cookie ? ADD_COOKIE : DELETE_COOKIE, NULL,
-			TYPE_STR, cookie->domain,
-			TYPE_STR, cookie->path,
-			TYPE_STR, cookie->name,
-			TYPE_STR, cookie->value,
-			TYPE_STR, scheme,
-			TYPE_STR, expires ? expires : "",
-			NULL);
+            send_event (new_cookie ? ADD_COOKIE : DELETE_COOKIE, NULL,
+                    TYPE_STR, cookie->domain,
+                    TYPE_STR, cookie->path,
+                    TYPE_STR, cookie->name,
+                    TYPE_STR, cookie->value,
+                    TYPE_STR, scheme,
+                    TYPE_STR, expires ? expires : "",
+                    NULL);
 
         if(expires)
             g_free(expires);

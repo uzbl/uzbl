@@ -1,5 +1,3 @@
-#define _POSIX_SOURCE
-
 #include <stdio.h>
 
 #include "events.h"
@@ -49,7 +47,7 @@ control_fifo(GIOChannel *gio, GIOCondition condition) {
 }
 
 
-gboolean
+static gboolean
 attach_fifo(gchar *path) {
     GError *error = NULL;
     /* we don't really need to write to the file, but if we open the
@@ -261,7 +259,7 @@ control_client_socket(GIOChannel *clientchan) {
 }
 
 
-gboolean
+static gboolean
 attach_socket(gchar *path, struct sockaddr_un *local) {
     GIOChannel *chan = NULL;
     int sock = socket (AF_UNIX, SOCK_STREAM, 0);

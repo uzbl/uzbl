@@ -4,7 +4,11 @@
 #ifndef __COMMANDS__
 #define __COMMANDS__
 
+#ifdef USE_WEBKIT2
+#include <webkit2/webkit2.h>
+#else
 #include <webkit/webkit.h>
+#endif
 
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
 

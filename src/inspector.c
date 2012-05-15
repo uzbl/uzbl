@@ -8,14 +8,14 @@
 #include "callbacks.h"
 #include "type.h"
 
-void
+static void
 hide_window_cb(GtkWidget *widget, gpointer data) {
     (void) data;
 
     gtk_widget_hide(widget);
 }
 
-WebKitWebView*
+static WebKitWebView *
 create_inspector_cb (WebKitWebInspector* web_inspector, WebKitWebView* page, gpointer data){
     (void) data;
     (void) page;
@@ -44,7 +44,7 @@ create_inspector_cb (WebKitWebInspector* web_inspector, WebKitWebView* page, gpo
     return WEBKIT_WEB_VIEW(new_web_view);
 }
 
-gboolean
+static gboolean
 inspector_show_window_cb (WebKitWebInspector* inspector){
     (void) inspector;
     gtk_widget_show(uzbl.gui.inspector_window);
@@ -54,32 +54,32 @@ inspector_show_window_cb (WebKitWebInspector* inspector){
 }
 
 /* TODO: Add variables and code to make use of these functions */
-gboolean
+static gboolean
 inspector_close_window_cb (WebKitWebInspector* inspector){
     (void) inspector;
     send_event(WEBINSPECTOR, NULL, TYPE_NAME, "close", NULL);
     return TRUE;
 }
 
-gboolean
+static gboolean
 inspector_attach_window_cb (WebKitWebInspector* inspector){
     (void) inspector;
     return FALSE;
 }
 
-gboolean
+static gboolean
 inspector_detach_window_cb (WebKitWebInspector* inspector){
     (void) inspector;
     return FALSE;
 }
 
-gboolean
+static gboolean
 inspector_uri_changed_cb (WebKitWebInspector* inspector){
     (void) inspector;
     return FALSE;
 }
 
-gboolean
+static gboolean
 inspector_inspector_destroyed_cb (WebKitWebInspector* inspector){
     (void) inspector;
     return FALSE;

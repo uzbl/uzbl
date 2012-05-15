@@ -2,7 +2,7 @@
 #include "util.h"
 #include "uzbl-core.h"
 
-void
+static void
 add_to_menu(GArray *argv, guint context) {
     GUI *g = &uzbl.gui;
     MenuItem *m;
@@ -68,7 +68,7 @@ menu_add_edit(WebKitWebView *page, GArray *argv, GString *result) {
 }
 
 
-void
+static void
 add_separator_to_menu(GArray *argv, guint context) {
     GUI *g = &uzbl.gui;
     MenuItem *m;
@@ -127,7 +127,7 @@ menu_add_separator_edit(WebKitWebView *page, GArray *argv, GString *result) {
 }
 
 
-void
+static void
 remove_from_menu(GArray *argv, guint context) {
     GUI *g = &uzbl.gui;
     MenuItem *mi;
