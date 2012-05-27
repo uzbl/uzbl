@@ -172,7 +172,7 @@ install: install-uzbl-core install-uzbl-browser install-uzbl-tabbed
 install-dirs:
 	[ -d "$(INSTALLDIR)/bin" ] || install -d -m755 $(INSTALLDIR)/bin
 
-install-uzbl-core: all install-dirs
+install-uzbl-core: uzbl-core install-dirs
 	install -d $(INSTALLDIR)/share/uzbl/
 	install -d $(DOCDIR)
 	install -m644 docs/* $(DOCDIR)/
