@@ -431,6 +431,12 @@ file).
   webkit2gtk >= 1.7.91.
 * `enable_smooth_scrolling`: If set to 1, scrolling the page will be smoothed
   (default 0). Requires webkitgtk >= 1.9.0.
+* `enable_inline_media`: If set to 1, inline playback of media is allowed,
+  otherwise, only full-screen playback is allowed (default 1). Requires
+  webkitgtk >= 1.9.3.
+* `require_click_to_play`: If set to 1, playback of media requires user
+  interaction before playing, otherwise, media will be allowed to autoplay
+  (default 0). Requires webkitgtk >= 1.9.3.
 
 
 #### Constants (not dumpable or writeable)

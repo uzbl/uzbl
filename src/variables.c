@@ -502,6 +502,12 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(javascript_dom_paste,         "enable-dom-paste",   
 EXPOSE_WEBKIT_VIEW_SETTINGS(javascript_clipboard,         "javascript-can-access-clipboard",           int)
 #endif
 
+/* Media settings */
+#if WEBKIT_CHECK_VERSION (1, 9, 3)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_inline_media,          "media-playback-allows-inline",              int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(require_click_to_play,        "media-playback-requires-user-gesture",      int)
+#endif
+
 /* Image settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(autoload_images,              "auto-load-images",                          int)
 EXPOSE_WEBKIT_VIEW_SETTINGS(autoshrink_images,            "auto-shrink-images",                        int)
@@ -954,6 +960,11 @@ const struct var_name_to_ptr_t {
     { "javascript_dom_paste",   PTR_V_INT_GETSET(javascript_dom_paste)},
 #if WEBKIT_CHECK_VERSION (1, 3, 0)
     { "javascript_clipboard",   PTR_V_INT_GETSET(javascript_clipboard)},
+#endif
+    /* Media settings */
+#if WEBKIT_CHECK_VERSION (1, 9, 3)
+    { "enable_inline_media",    PTR_V_INT_GETSET(enable_inline_media)},
+    { "require_click_to_play",  PTR_V_INT_GETSET(require_click_to_play)},
 #endif
     /* Image settings */
     { "autoload_images",        PTR_V_INT_GETSET(autoload_images)},
