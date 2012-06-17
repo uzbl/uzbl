@@ -190,7 +190,11 @@ toggle_var(WebKitWebView *page, GArray *argv, GString *result) {
     uzbl_cmdprop *c = get_var_c(var_name);
 
     if(!c) {
-        set_var_value(var_name, argv_idx(argv, 1));
+        if (argv->len > 1) {
+            set_var_value(var_name, argv_idx(argv, 1));
+        } else {
+            set_var_value(var_name, "1");
+        }
         return;
     }
 
