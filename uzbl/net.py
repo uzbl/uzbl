@@ -46,10 +46,25 @@ class Listener(asyncore.dispatcher, WithTarget):
         asyncore.dispatcher.__init__(self)
         self.addr = addr
         self.target = target
+
+    def start(self):
         self.create_socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.knock()
         self.set_reuse_addr()
-        self.bind(addr)
+        self.bind(self.addr)
         self.listen(5)
+
+    def knock(self):
+        '''Unlink existing socket if it's stale'''
+
+        if os.path.exists(self.addr):
+            logger.info('socket already exists, checking if active')
+            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            try:
+                s.connect(self.addr)
+            except socket.error as e:
+                logger.info('unlinking %r', self.addr)
+                os.unlink(self.addr)
 
     def writable(self):
         return False
