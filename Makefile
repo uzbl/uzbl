@@ -17,8 +17,6 @@ COVERAGE=$(shell which coverage)
 
 ifeq ($(ENABLE_WEBKIT2),auto)
 ENABLE_WEBKIT2 := $(shell pkg-config --exists webkit2gtk-3.0 && echo yes)
-# WebKit2 requires GTK3
-ENABLE_GTK3    := yes
 endif
 
 ifeq ($(ENABLE_GTK3),auto)
@@ -28,6 +26,8 @@ endif
 ifeq ($(ENABLE_WEBKIT2),yes)
 REQ_PKGS += 'webkit2gtk-3.0 >= 1.2.4' javascriptcoregtk-3.0
 CPPFLAGS += -DUSE_WEBKIT2
+# WebKit2 requires GTK3
+ENABLE_GTK3    := yes
 else
 ifeq ($(ENABLE_GTK3),yes)
 REQ_PKGS += 'webkitgtk-3.0 >= 1.2.4' javascriptcoregtk-3.0
@@ -172,7 +172,7 @@ install: install-uzbl-core install-uzbl-browser install-uzbl-tabbed
 install-dirs:
 	[ -d "$(INSTALLDIR)/bin" ] || install -d -m755 $(INSTALLDIR)/bin
 
-install-uzbl-core: all install-dirs
+install-uzbl-core: uzbl-core install-dirs
 	install -d $(INSTALLDIR)/share/uzbl/
 	install -d $(DOCDIR)
 	install -m644 docs/* $(DOCDIR)/
