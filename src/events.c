@@ -21,7 +21,9 @@ const char *event_table[LAST_EVENT] = {
      "LOAD_COMMIT"      ,
      "LOAD_FINISH"      ,
      "LOAD_ERROR"       ,
+     "REQUEST_QUEUED"   ,
      "REQUEST_STARTING" ,
+     "REQUEST_FINISHED" ,
      "KEY_PRESS"        ,
      "KEY_RELEASE"      ,
      "MOD_PRESS"        ,
@@ -58,7 +60,8 @@ const char *event_table[LAST_EVENT] = {
      "ADD_COOKIE"       ,
      "DELETE_COOKIE"    ,
      "FOCUS_ELEMENT"    ,
-     "BLUR_ELEMENT"
+     "BLUR_ELEMENT"     ,
+     "AUTHENTICATE"
 };
 
 /* for now this is just a alias for GString */

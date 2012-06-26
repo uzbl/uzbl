@@ -125,6 +125,7 @@ typedef struct {
 typedef struct {
     SoupSession*    soup_session;
     UzblCookieJar*  soup_cookie_jar;
+    GHashTable*     pending_auths;
     SoupLogger*     soup_logger;
     char*           proxy_url;
     char*           useragent;
@@ -250,12 +251,6 @@ void        search_text (WebKitWebView *page, const gchar *key, const gboolean f
 void        eval_js(WebKitWebView *web_view, const gchar *script, GString *result, const gchar *script_file);
 
 /* Network functions */
-void        handle_authentication (SoupSession *session,
-                            SoupMessage *msg,
-                            SoupAuth    *auth,
-                            gboolean     retrying,
-                            gpointer     user_data);
-
 void        init_connect_socket();
 gboolean    remove_socket_from_array(GIOChannel *chan);
 

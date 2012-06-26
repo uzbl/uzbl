@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import gtk
 import sys
 
@@ -41,13 +42,20 @@ def getText(authInfo, authHost, authRealm):
     dialog.show_all()
     rv = dialog.run()
 
-    output = login.get_text() + "\n" + password.get_text()
+    output = {
+        'username': login.get_text(),
+        'password': password.get_text()
+    }
     dialog.destroy()
     return rv, output
 
 if __name__ == '__main__':
-    rv, output = getText(sys.argv[1], sys.argv[2], sys.argv[3])
+    fifo = open(os.environ.get('UZBL_FIFO'), 'w')
+    me, info, host, realm = sys.argv
+    rv, output = getText(info, host, realm)
     if (rv == gtk.RESPONSE_OK):
-        print output;
+        print >> fifo, 'auth "%s" "%s" "%s"' % (
+            info, output['username'], output['password']
+        )
     else:
         exit(1)
