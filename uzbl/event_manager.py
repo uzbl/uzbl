@@ -390,6 +390,7 @@ def start_action():
         del_pid_file(pid_file)
 
     listener = Listener(opts.server_socket)
+    listener.start()
     plugind = PluginDirectory()
     daemon = UzblEventDaemon(listener, plugind)
     daemon.run()
