@@ -284,10 +284,10 @@ get_modifier_mask(guint state) {
             g_string_append(modifiers, "Ctrl|");
         if(state & GDK_MOD1_MASK)
             g_string_append(modifiers,"Mod1|");
-		/* Mod2 is usually Num_Luck. Ignore it as it messes up keybindings.
+        /* Mod2 is usually Num_Luck. Ignore it as it messes up keybindings.
         if(state & GDK_MOD2_MASK)
             g_string_append(modifiers,"Mod2|");
-		*/
+        */
         if(state & GDK_MOD3_MASK)
             g_string_append(modifiers,"Mod3|");
         if(state & GDK_MOD4_MASK)
@@ -349,10 +349,10 @@ guint key_to_modifier(guint keyval) {
     }
 }
 
-guint button_to_modifier(guint buttonval) {
-	if(buttonval <= 5)
-		return 1 << (7 + buttonval);
-	return 0;
+guint button_to_modifier (guint buttonval) {
+    if(buttonval <= 5)
+        return 1 << (7 + buttonval);
+    return 0;
 }
 
 /* Transform gdk key events to our own events */

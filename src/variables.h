@@ -6,7 +6,11 @@
 #define __VARIABLES__
 
 #include <glib.h>
+#ifdef USE_WEBKIT2
+#include <webkit2/webkit2.h>
+#else
 #include <webkit/webkit.h>
+#endif
 
 #include "type.h"
 
@@ -33,8 +37,6 @@ void        dump_config();
 void        dump_config_as_events();
 
 void        uri_change_cb (WebKitWebView *web_view, GParamSpec param_spec);
-
-void        set_show_status(int);
 
 void        set_zoom_type(int);
 int         get_zoom_type();

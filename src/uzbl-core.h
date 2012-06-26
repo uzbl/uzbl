@@ -23,7 +23,11 @@
 #include <sys/un.h>
 #include <sys/utsname.h>
 #include <sys/time.h>
+#ifdef USE_WEBKIT2
+#include <webkit2/webkit2.h>
+#else
 #include <webkit/webkit.h>
+#endif
 #include <libsoup/soup.h>
 #include <JavaScriptCore/JavaScript.h>
 
@@ -176,6 +180,7 @@ typedef struct {
     int     webkit_major;
     int     webkit_minor;
     int     webkit_micro;
+    int     webkit2;
     gchar*  arch;
     gchar*  commit;
 

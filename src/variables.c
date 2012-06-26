@@ -5,6 +5,8 @@
 #include "io.h"
 #include "util.h"
 
+#include <stdlib.h>
+
 uzbl_cmdprop *
 get_var_c(const gchar *name) {
     return g_hash_table_lookup(uzbl.behave.proto_var, name);
@@ -202,7 +204,7 @@ get_var_value_float(const gchar *name) {
     return get_var_value_float_c(c);
 }
 
-void
+static void
 dump_var_hash(gpointer k, gpointer v, gpointer ud) {
     (void) ud;
     uzbl_cmdprop *c = v;
@@ -225,7 +227,7 @@ dump_config() {
     g_hash_table_foreach(uzbl.behave.proto_var, dump_var_hash, NULL);
 }
 
-void
+static void
 dump_var_hash_as_event(gpointer k, gpointer v, gpointer ud) {
     (void) ud;
     uzbl_cmdprop *c = v;
@@ -240,18 +242,23 @@ dump_config_as_events() {
 }
 
 /* is the given string made up entirely of decimal digits? */
-gboolean
+static gboolean
 string_is_integer(const char *s) {
     return (strspn(s, "0123456789") == strlen(s));
 }
 
 
-GObject*
+static GObject *
+cookie_jar() {
+    return G_OBJECT(uzbl.net.soup_cookie_jar);
+}
+
+static GObject *
 view_settings() {
     return G_OBJECT(webkit_web_view_get_settings(uzbl.gui.web_view));
 }
 
-void
+static void
 set_window_property(const gchar* prop, const gchar* value) {
     if(GTK_IS_WIDGET(uzbl.gui.main_window)) {
         gdk_property_change(
@@ -276,7 +283,7 @@ uri_change_cb (WebKitWebView *web_view, GParamSpec param_spec) {
     set_window_property("UZBL_URI", uzbl.state.uri);
 }
 
-gchar *
+static gchar *
 make_uri_from_user_input(const gchar *uri) {
     gchar *result = NULL;
 
@@ -312,7 +319,7 @@ make_uri_from_user_input(const gchar *uri) {
     return g_strconcat("http://", uri, NULL);
 }
 
-void
+static void
 set_uri(const gchar *uri) {
     /* Strip leading whitespace */
     while (*uri && isspace(*uri))
@@ -340,7 +347,7 @@ set_uri(const gchar *uri) {
     g_free (newuri);
 }
 
-void
+static void
 set_max_conns(int max_conns) {
     uzbl.net.max_conns = max_conns;
 
@@ -348,7 +355,7 @@ set_max_conns(int max_conns) {
             SOUP_SESSION_MAX_CONNS, uzbl.net.max_conns, NULL);
 }
 
-void
+static void
 set_max_conns_host(int max_conns_host) {
     uzbl.net.max_conns_host = max_conns_host;
 
@@ -356,7 +363,7 @@ set_max_conns_host(int max_conns_host) {
             SOUP_SESSION_MAX_CONNS_PER_HOST, uzbl.net.max_conns_host, NULL);
 }
 
-void
+static void
 set_http_debug(int debug) {
     uzbl.behave.http_debug = debug;
 
@@ -371,77 +378,171 @@ set_http_debug(int debug) {
             SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
 }
 
-void
+static void
 set_ca_file(gchar *path) {
     g_object_set (uzbl.net.soup_session, "ssl-ca-file", path, NULL);
 }
 
-gchar *
+static gchar *
 get_ca_file() {
     gchar *path;
     g_object_get (uzbl.net.soup_session, "ssl-ca-file", &path, NULL);
     return path;
 }
 
-void
+static void
 set_verify_cert(int strict) {
     g_object_set (uzbl.net.soup_session, "ssl-strict", strict, NULL);
 }
 
-int
+static int
 get_verify_cert() {
     int strict;
     g_object_get (uzbl.net.soup_session, "ssl-strict", &strict, NULL);
     return strict;
 }
 
+#define EXPOSE_SOUP_COOKIE_JAR_SETTINGS(SYM, PROPERTY, TYPE) \
+static void set_##SYM(TYPE val) { \
+  g_object_set(cookie_jar(), (PROPERTY), val, NULL); \
+} \
+static TYPE get_##SYM() { \
+  TYPE val; \
+  g_object_get(cookie_jar(), (PROPERTY), &val, NULL); \
+  return val; \
+}
+
+EXPOSE_SOUP_COOKIE_JAR_SETTINGS(cookie_policy,    "accept-policy",    int)
+
+#undef EXPOSE_SOUP_COOKIE_JAR_SETTINGS
+
+
 #define EXPOSE_WEBKIT_VIEW_SETTINGS(SYM, PROPERTY, TYPE) \
-void set_##SYM(TYPE val) { \
+static void set_##SYM(TYPE val) { \
   g_object_set(view_settings(), (PROPERTY), val, NULL); \
 } \
-TYPE get_##SYM() { \
+static TYPE get_##SYM() { \
   TYPE val; \
   g_object_get(view_settings(), (PROPERTY), &val, NULL); \
   return val; \
 }
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(default_font_family,    "default-font-family",    gchar *)
-EXPOSE_WEBKIT_VIEW_SETTINGS(monospace_font_family,  "monospace-font-family",  gchar *)
-EXPOSE_WEBKIT_VIEW_SETTINGS(sans_serif_font_family, "sans_serif-font-family", gchar *)
-EXPOSE_WEBKIT_VIEW_SETTINGS(serif_font_family,      "serif-font-family",      gchar *)
-EXPOSE_WEBKIT_VIEW_SETTINGS(cursive_font_family,    "cursive-font-family",    gchar *)
-EXPOSE_WEBKIT_VIEW_SETTINGS(fantasy_font_family,    "fantasy-font-family",    gchar *)
+/* Font settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(default_font_family,          "default-font-family",                       gchar *)
+EXPOSE_WEBKIT_VIEW_SETTINGS(monospace_font_family,        "monospace-font-family",                     gchar *)
+EXPOSE_WEBKIT_VIEW_SETTINGS(sans_serif_font_family,       "sans_serif-font-family",                    gchar *)
+EXPOSE_WEBKIT_VIEW_SETTINGS(serif_font_family,            "serif-font-family",                         gchar *)
+EXPOSE_WEBKIT_VIEW_SETTINGS(cursive_font_family,          "cursive-font-family",                       gchar *)
+EXPOSE_WEBKIT_VIEW_SETTINGS(fantasy_font_family,          "fantasy-font-family",                       gchar *)
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(minimum_font_size,      "minimum-font-size",            int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(font_size,              "default-font-size",            int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(monospace_size,         "default-monospace-font-size",  int)
+/* Font size settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(minimum_font_size,            "minimum-font-size",                         int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(font_size,                    "default-font-size",                         int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(monospace_size,               "default-monospace-font-size",               int)
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_plugins, "enable-plugins", int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_scripts, "enable-scripts", int)
+/* Text settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(default_encoding,             "default-encoding",                          gchar *)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enforce_96_dpi,               "enforce-96-dpi",                            int)
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(javascript_windows, "javascript-can-open-windows-automatically", int)
+/* Feature settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_plugins,               "enable-plugins",                            int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_java_applet,           "enable-java-applet",                        int)
+#if WEBKIT_CHECK_VERSION (1, 3, 14)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_webgl,                 "enable-webgl",                              int)
+#endif
+#if WEBKIT_CHECK_VERSION (1, 7, 5)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_webaudio,             "enable-webaudio",                           int)
+#endif
+#if WEBKIT_CHECK_VERSION (1, 7, 90) // Documentation says 1.7.5, but it's not there.
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_3d_acceleration,       "enable-accelerated-compositing",            int)
+#endif
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(autoload_images,       "auto-load-images",   int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(autoshrink_images,     "auto-shrink-images", int)
+/* HTML5 Database settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_database,              "enable-html5-database",                     int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_local_storage,         "enable-html5-local-storage",                int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_pagecache,             "enable-page-cache",                         int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_offline_app_cache,     "enable-offline-web-application-cache",      int)
+#if WEBKIT_CHECK_VERSION (1, 5, 2)
+EXPOSE_WEBKIT_VIEW_SETTINGS(local_storage_path,           "html5-local-storage-database-path",         gchar *)
+#endif
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_pagecache,   "enable-page-cache",       int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_private,     "enable-private-browsing", int)
+/* Security settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_private_webkit,        "enable-private-browsing",                   int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_universal_file_access, "enable-universal-access-from-file-uris",    int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_cross_file_access,     "enable-file-access-from-file-uris",         int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_hyperlink_auditing,    "enable-hyperlink-auditing",                 int)
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_dns_prefetch,          "enable-dns-prefetching",                    int)
+#endif
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_spellcheck,     "enable-spell-checking",    int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(spellcheck_languages,  "spell-checking-languages", gchar *)
-EXPOSE_WEBKIT_VIEW_SETTINGS(resizable_text_areas,  "resizable-text-areas",     int)
+/* Display settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(zoom_step,                    "zoom-step",                                 float)
+EXPOSE_WEBKIT_VIEW_SETTINGS(caret_browsing,               "enable-caret-browsing",                     int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(auto_resize_window,           "auto-resize-window",                        int)
+#if WEBKIT_CHECK_VERSION (1, 3, 5)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_frame_flattening,     "enable-frame-flattening",                   int)
+#endif
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_fullscreen,            "enable-fullscreen",                         int)
+#endif
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 7, 91)
+EXPOSE_WEBKIT_VIEW_SETTINGS(zoom_text_only,               "zoom-text-only",                            int)
+#endif
+#endif
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(stylesheet_uri,   "user-stylesheet-uri", gchar *)
-EXPOSE_WEBKIT_VIEW_SETTINGS(print_bg,         "print-backgrounds",   int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enforce_96_dpi,   "enforce-96-dpi",      int)
+/* Javascript settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_scripts,               "enable-scripts",                            int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(javascript_windows,           "javascript-can-open-windows-automatically", int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(javascript_dom_paste,         "enable-dom-paste",                          int)
+#if WEBKIT_CHECK_VERSION (1, 3, 0)
+EXPOSE_WEBKIT_VIEW_SETTINGS(javascript_clipboard,         "javascript-can-access-clipboard",           int)
+#endif
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(caret_browsing,   "enable-caret-browsing", int)
+/* Image settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(autoload_images,              "auto-load-images",                          int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(autoshrink_images,            "auto-shrink-images",                        int)
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_cross_file_access, "enable-file-access-from-file-uris", int)
+/* Spell checking settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_spellcheck,            "enable-spell-checking",                     int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(spellcheck_languages,         "spell-checking-languages",                  gchar *)
 
-EXPOSE_WEBKIT_VIEW_SETTINGS(default_encoding, "default-encoding", gchar *)
+/* Form settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(resizable_text_areas,         "resizable-text-areas",                      int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_spatial_navigation,    "enable-spatial-navigation",                 int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(editing_behavior,             "editing-behavior",                          int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_tab_cycle,             "tab-key-cycles-through-elements",           int)
 
-void
+/* Customization */
+EXPOSE_WEBKIT_VIEW_SETTINGS(stylesheet_uri,               "user-stylesheet-uri",                       gchar *)
+EXPOSE_WEBKIT_VIEW_SETTINGS(default_context_menu,         "enable-default-context-menu",               int)
+
+/* Hacks */
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_site_workarounds,      "enable-site-specific-quirks",               int)
+
+/* Printing settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(print_bg,                     "print-backgrounds",                         int)
+
+#undef EXPOSE_WEBKIT_VIEW_SETTINGS
+
+static void
+set_enable_private (int private) {
+    const char *priv_envvar = "UZBL_PRIVATE";
+
+    if (private)
+        setenv (priv_envvar, "true", 1);
+    else
+        unsetenv (priv_envvar);
+
+    set_enable_private_webkit (private);
+}
+
+static int
+get_enable_private () {
+    return get_enable_private_webkit ();
+}
+
+static void
 set_proxy_url(const gchar *proxy_url) {
     g_free(uzbl.net.proxy_url);
     uzbl.net.proxy_url = g_strdup(proxy_url);
@@ -459,7 +560,7 @@ set_proxy_url(const gchar *proxy_url) {
         soup_uri_free(soup_uri);
 }
 
-void
+static void
 set_authentication_handler(const gchar *handler) {
     /* Check if WEBKIT_TYPE_SOUP_AUTH_DIALOG feature is set */
     GSList *flist = soup_session_get_features (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
@@ -480,7 +581,7 @@ set_authentication_handler(const gchar *handler) {
     }
 }
 
-void
+static void
 set_status_background(const gchar *background) {
     /* labels and hboxes do not draw their own background. applying this
      * on the vbox/main_window is ok as the statusbar is the only affected
@@ -501,7 +602,7 @@ set_status_background(const gchar *background) {
 #endif
 }
 
-void
+static void
 set_icon(const gchar *icon) {
     if(file_exists(icon) && uzbl.gui.main_window) {
         g_free(uzbl.gui.icon);
@@ -513,7 +614,7 @@ set_icon(const gchar *icon) {
     }
 }
 
-void
+static void
 set_window_role(const gchar *role) {
     if (!uzbl.gui.main_window)
         return;
@@ -521,7 +622,7 @@ set_window_role(const gchar *role) {
     gtk_window_set_role(GTK_WINDOW (uzbl.gui.main_window), role);
 }
 
-gchar *
+static gchar *
 get_window_role() {
     if (!uzbl.gui.main_window)
         return NULL;
@@ -585,7 +686,7 @@ get_show_status() {
   return gtk_widget_get_visible(uzbl.gui.status_bar);
 }
 
-void
+static void
 set_status_top(int status_top) {
     if (!uzbl.gui.scrolled_win && !uzbl.gui.status_bar)
         return;
@@ -612,7 +713,7 @@ set_status_top(int status_top) {
         gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
 }
 
-void
+static void
 set_current_encoding(const gchar *encoding) {
     if(strlen(encoding) == 0)
         encoding = NULL;
@@ -620,13 +721,13 @@ set_current_encoding(const gchar *encoding) {
     webkit_web_view_set_custom_encoding(uzbl.gui.web_view, encoding);
 }
 
-gchar *
+static gchar *
 get_current_encoding() {
     const gchar *encoding = webkit_web_view_get_custom_encoding(uzbl.gui.web_view);
     return g_strdup(encoding);
 }
 
-void
+static void
 set_fifo_dir(const gchar *fifo_dir) {
     g_free(uzbl.behave.fifo_dir);
 
@@ -636,7 +737,7 @@ set_fifo_dir(const gchar *fifo_dir) {
       uzbl.behave.fifo_dir = NULL;
 }
 
-void
+static void
 set_socket_dir(const gchar *socket_dir) {
     g_free(uzbl.behave.socket_dir);
 
@@ -646,26 +747,27 @@ set_socket_dir(const gchar *socket_dir) {
       uzbl.behave.socket_dir = NULL;
 }
 
-void
+static void
 set_inject_html(const gchar *html) {
     webkit_web_view_load_html_string (uzbl.gui.web_view, html, NULL);
 }
 
-void
+static void
 set_useragent(const gchar *useragent) {
     g_free(uzbl.net.useragent);
 
-    if (*useragent == ' ') {
+    if (!useragent || !*useragent) {
         uzbl.net.useragent = NULL;
     } else {
         uzbl.net.useragent = g_strdup(useragent);
 
         g_object_set(G_OBJECT(uzbl.net.soup_session), SOUP_SESSION_USER_AGENT,
             uzbl.net.useragent, NULL);
+        g_object_set(view_settings(), "user-agent", uzbl.net.useragent, NULL);
     }
 }
 
-void
+static void
 set_accept_languages(const gchar *accept_languages) {
     g_free(uzbl.net.accept_languages);
 
@@ -679,8 +781,7 @@ set_accept_languages(const gchar *accept_languages) {
     }
 }
 
-/* requires webkit >=1.1.14 */
-void
+static void
 set_view_source(int view_source) {
     uzbl.behave.view_source = view_source;
 
@@ -688,6 +789,7 @@ set_view_source(int view_source) {
             (gboolean) uzbl.behave.view_source);
 }
 
+#ifndef USE_WEBKIT2
 void
 set_zoom_type (int type) {
     webkit_web_view_set_full_content_zoom (uzbl.gui.web_view, type);
@@ -697,13 +799,14 @@ int
 get_zoom_type () {
     return webkit_web_view_get_full_content_zoom (uzbl.gui.web_view);
 }
+#endif
 
-void
+static void
 set_zoom_level(float zoom_level) {
     webkit_web_view_set_zoom_level (uzbl.gui.web_view, zoom_level);
 }
 
-float
+static float
 get_zoom_level() {
     return webkit_web_view_get_zoom_level (uzbl.gui.web_view);
 }
@@ -774,37 +877,94 @@ const struct var_name_to_ptr_t {
     { "ssl_verify",             PTR_V_INT_GETSET(verify_cert)},
 
     /* exported WebKitWebSettings properties */
-    { "javascript_windows",     PTR_V_INT_GETSET(javascript_windows)},
-    { "zoom_level",             PTR_V_FLOAT_GETSET(zoom_level)},
-    { "zoom_type",              PTR_V_INT_GETSET(zoom_type)},
-
+    /* Font settings */
     { "default_font_family",    PTR_V_STR_GETSET(default_font_family)},
     { "monospace_font_family",  PTR_V_STR_GETSET(monospace_font_family)},
-    { "cursive_font_family",    PTR_V_STR_GETSET(cursive_font_family)},
     { "sans_serif_font_family", PTR_V_STR_GETSET(sans_serif_font_family)},
     { "serif_font_family",      PTR_V_STR_GETSET(serif_font_family)},
+    { "cursive_font_family",    PTR_V_STR_GETSET(cursive_font_family)},
     { "fantasy_font_family",    PTR_V_STR_GETSET(fantasy_font_family)},
-
-    { "monospace_size",         PTR_V_INT_GETSET(monospace_size)},
-    { "font_size",              PTR_V_INT_GETSET(font_size)},
+    /* Font size settings */
     { "minimum_font_size",      PTR_V_INT_GETSET(minimum_font_size)},
-
-    { "enable_pagecache",       PTR_V_INT_GETSET(enable_pagecache)},
-    { "enable_plugins",         PTR_V_INT_GETSET(enable_plugins)},
-    { "enable_scripts",         PTR_V_INT_GETSET(enable_scripts)},
-    { "autoload_images",        PTR_V_INT_GETSET(autoload_images)},
-    { "autoshrink_images",      PTR_V_INT_GETSET(autoshrink_images)},
-    { "enable_spellcheck",      PTR_V_INT_GETSET(enable_spellcheck)},
-    { "spellcheck_languages",   PTR_V_STR_GETSET(spellcheck_languages)},
-    { "enable_private",         PTR_V_INT_GETSET(enable_private)},
-    { "print_backgrounds",      PTR_V_INT_GETSET(print_bg)},
-    { "stylesheet_uri",         PTR_V_STR_GETSET(stylesheet_uri)},
-    { "resizable_text_areas",   PTR_V_INT_GETSET(resizable_text_areas)},
+    { "font_size",              PTR_V_INT_GETSET(font_size)},
+    { "monospace_size",         PTR_V_INT_GETSET(monospace_size)},
+    /* Text settings */
     { "default_encoding",       PTR_V_STR_GETSET(default_encoding)},
     { "current_encoding",       PTR_V_STR_GETSET(current_encoding)},
     { "enforce_96_dpi",         PTR_V_INT_GETSET(enforce_96_dpi)},
-    { "caret_browsing",         PTR_V_INT_GETSET(caret_browsing)},
+    /* Feature settings */
+    { "enable_plugins",         PTR_V_INT_GETSET(enable_plugins)},
+    { "enable_java_applet",     PTR_V_INT_GETSET(enable_java_applet)},
+#if WEBKIT_CHECK_VERSION (1, 3, 14)
+    { "enable_webgl",           PTR_V_INT_GETSET(enable_webgl)},
+#endif
+#if WEBKIT_CHECK_VERSION (1, 7, 5)
+    { "enable_webaudio",           PTR_V_INT_GETSET(enable_webaudio)},
+#endif
+#if WEBKIT_CHECK_VERSION (1, 7, 90) // Documentation says 1.7.5, but it's not there.
+    { "enable_3d_acceleration", PTR_V_INT_GETSET(enable_3d_acceleration)},
+#endif
+    /* HTML5 Database settings */
+    { "enable_database",        PTR_V_INT_GETSET(enable_database)},
+    { "enable_local_storage",   PTR_V_INT_GETSET(enable_local_storage)},
+    { "enable_pagecache",       PTR_V_INT_GETSET(enable_pagecache)},
+    { "enable_offline_app_cache", PTR_V_INT_GETSET(enable_offline_app_cache)},
+#if WEBKIT_CHECK_VERSION (1, 5, 2)
+    { "local_storage_path",     PTR_V_STR_GETSET(local_storage_path)},
+#endif
+    /* Security settings */
+    { "enable_private",         PTR_V_INT_GETSET(enable_private)},
+    { "enable_universal_file_access", PTR_V_INT_GETSET(enable_universal_file_access)},
     { "enable_cross_file_access", PTR_V_INT_GETSET(enable_cross_file_access)},
+    { "enable_hyperlink_auditing", PTR_V_INT_GETSET(enable_hyperlink_auditing)},
+    { "cookie_policy",          PTR_V_INT_GETSET(cookie_policy)},
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+    { "enable_dns_prefetch",    PTR_V_INT_GETSET(enable_dns_prefetch)},
+#endif
+    /* Display settings */
+    { "zoom_level",             PTR_V_FLOAT_GETSET(zoom_level)},
+    { "zoom_step",              PTR_V_FLOAT_GETSET(zoom_step)},
+#ifndef USE_WEBKIT2
+    { "zoom_type",              PTR_V_INT_GETSET(zoom_type)},
+#endif
+    { "caret_browsing",         PTR_V_INT_GETSET(caret_browsing)},
+    { "auto_resize_window",     PTR_V_INT_GETSET(auto_resize_window)},
+#if WEBKIT_CHECK_VERSION (1, 3, 5)
+    { "enable_frame_flattening", PTR_V_INT_GETSET(enable_frame_flattening)},
+#endif
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+    { "enable_fullscreen",      PTR_V_INT_GETSET(enable_fullscreen)},
+#endif
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 7, 91)
+    { "zoom_text_only",         PTR_V_INT_GETSET(zoom_text_only)},
+#endif
+#endif
+    /* Javascript settings */
+    { "enable_scripts",         PTR_V_INT_GETSET(enable_scripts)},
+    { "javascript_windows",     PTR_V_INT_GETSET(javascript_windows)},
+    { "javascript_dom_paste",   PTR_V_INT_GETSET(javascript_dom_paste)},
+#if WEBKIT_CHECK_VERSION (1, 3, 0)
+    { "javascript_clipboard",   PTR_V_INT_GETSET(javascript_clipboard)},
+#endif
+    /* Image settings */
+    { "autoload_images",        PTR_V_INT_GETSET(autoload_images)},
+    { "autoshrink_images",      PTR_V_INT_GETSET(autoshrink_images)},
+    /* Spell checking settings */
+    { "enable_spellcheck",      PTR_V_INT_GETSET(enable_spellcheck)},
+    { "spellcheck_languages",   PTR_V_STR_GETSET(spellcheck_languages)},
+    /* Form settings */
+    { "resizable_text_areas",   PTR_V_INT_GETSET(resizable_text_areas)},
+    { "enable_spatial_navigation", PTR_V_INT_GETSET(enable_spatial_navigation)},
+    { "editing_behavior",       PTR_V_INT_GETSET(editing_behavior)},
+    { "enable_tab_cycle",       PTR_V_INT_GETSET(enable_tab_cycle)},
+    /* Customization */
+    { "stylesheet_uri",         PTR_V_STR_GETSET(stylesheet_uri)},
+    { "default_context_menu",   PTR_V_INT_GETSET(default_context_menu)},
+    /* Hacks */
+    { "enable_site_workarounds", PTR_V_INT_GETSET(enable_site_workarounds)},
+    /* Printing settings */
+    { "print_backgrounds",      PTR_V_INT_GETSET(print_bg)},
 
     { "inject_html",            { .type = TYPE_STR, .dump = 0, .writeable = 1, .getter = NULL, .setter = (uzbl_fp) set_inject_html }},
 
@@ -812,6 +972,7 @@ const struct var_name_to_ptr_t {
     { "WEBKIT_MAJOR",           PTR_C_INT(uzbl.info.webkit_major)},
     { "WEBKIT_MINOR",           PTR_C_INT(uzbl.info.webkit_minor)},
     { "WEBKIT_MICRO",           PTR_C_INT(uzbl.info.webkit_micro)},
+    { "HAS_WEBKIT2",            PTR_C_INT(uzbl.info.webkit2)},
     { "ARCH_UZBL",              PTR_C_STR(uzbl.info.arch)},
     { "COMMIT",                 PTR_C_STR(uzbl.info.commit)},
     { "TITLE",                  PTR_C_STR(uzbl.gui.main_title)},
