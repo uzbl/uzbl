@@ -1,6 +1,6 @@
 #!/bin/sh
 
-[ -n "${UZBL_PRIVATE-1}" ] && exit 0
+[ -n "$UZBL_PRIVATE" ] && exit 0
 
 . "$UZBL_UTIL_DIR/uzbl-dir.sh"
 
