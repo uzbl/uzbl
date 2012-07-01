@@ -1,9 +1,8 @@
 from collections import defaultdict
 
-import uzbl.plugins.config
 from .on_set import OnSetPlugin
 from .config import Config
-from uzbl.arguments import splitquoted
+from uzbl.arguments import splitquoted, is_quoted
 from uzbl.ext import PerInstancePlugin
 
 
@@ -28,7 +27,15 @@ class ModePlugin(PerInstancePlugin):
         mode = args[0]
         key = args[1]
         assert args[2] == '=', 'invalid mode config set syntax'
-        value = args.raw(3).strip()
+
+        # Use the rest of the line verbatim as the value unless it's a
+        # single properly quoted string
+        if len(args) == 4 and is_quoted(args.raw(3)):
+            value = args[3]
+        else:
+            value = args.raw(3).strip()
+
+        self.logger.debug('value %r', value)
 
         self.mode_config[mode][key] = value
         config = Config[self.uzbl]
@@ -60,4 +67,3 @@ class ModePlugin(PerInstancePlugin):
         config = Config[self.uzbl]
         if mode and config.get('mode', None) == mode:
             self.uzbl.event('MODE_CHANGED', mode)
-

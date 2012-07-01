@@ -42,8 +42,8 @@ class ModeTest(unittest.TestCase):
         mode.parse_mode_config(('mode0', 'foo', '=', 'default'))
 
         mode.parse_mode_config(('mode1', 'foo', '=', 'xxx'))
-        mode.parse_mode_config(('mode1', 'bar', '=', 'yyy'))
-        mode.parse_mode_config(('mode1', 'baz', '=', 'zzz'))
+        mode.parse_mode_config('mode1 bar = "spam spam"')
+        mode.parse_mode_config('mode1 baz = foo="baz"')
 
         mode.parse_mode_config(('mode2', 'foo', '=', 'XXX'))
         mode.parse_mode_config(('mode2', 'spam', '=', 'spam'))
@@ -59,8 +59,8 @@ class ModeTest(unittest.TestCase):
         self.assertIn('bar', config)
         self.assertIn('baz', config)
         self.assertEqual(config['foo'], 'xxx')
-        self.assertEqual(config['bar'], 'yyy')
-        self.assertEqual(config['baz'], 'zzz')
+        self.assertEqual(config['bar'], 'spam spam')
+        self.assertEqual(config['baz'], 'foo="baz"')
 
     def test_mode_overwrite_vars(self):
         mode, config = ModePlugin[self.uzbl], Config[self.uzbl]
@@ -74,8 +74,8 @@ class ModeTest(unittest.TestCase):
         self.assertIn('baz', config)
         self.assertIn('spam', config)
         self.assertEqual(config['foo'], 'XXX')
-        self.assertEqual(config['bar'], 'yyy')
-        self.assertEqual(config['baz'], 'zzz')
+        self.assertEqual(config['bar'], 'spam spam')
+        self.assertEqual(config['baz'], 'foo="baz"')
         self.assertEqual(config['spam'], 'spam')
 
     def test_default_mode(self):

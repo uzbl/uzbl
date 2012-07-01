@@ -79,13 +79,18 @@ class Arguments(tuple):
         if len(self._ref) < 1:
             return ''
         rfrm = self._ref[frm]
-        if to is None or len(self._ref) <= to+1:
+        if to is None or len(self._ref) <= to + 1:
             rto = len(self._raw)
         else:
-            rto = self._ref[to+1]-1
+            rto = self._ref[to + 1] - 1
         return ''.join(self._raw[rfrm:rto])
 
 splitquoted = Arguments  # or define a function?
+
+
+def is_quoted(s):
+    return s and s[0] == s[-1] and s[0] in "'\""
+
 
 def unquote(s):
     '''
@@ -93,7 +98,6 @@ def unquote(s):
         escape sequences interpreted
     '''
 
-    if s and s[0] == s[-1] and s[0] in ['"', "'"]:
+    if is_quoted(s):
         return ast.literal_eval(s)
     return ast.literal_eval('"' + s + '"')
-
