@@ -337,7 +337,7 @@ set ebind     = @mode_bind global,-insert
 
 # Selection bindings
 @cbind <Ctrl>a = js (function () { var r = document.createRange(), s = window.getSelection(); r.selectNodeContents(document); s.removeAllRanges(); s.addRange(r); })();
-@cbind <Ctrl>c = sh 'echo "\@< window.getSelection().toString() >\@" | xclip -selection clipboard -i'
+@cbind <Ctrl>c = sh 'echo '\@< window.getSelection().toString().replace(/'/g, "\\'"); >\@' | xclip -selection clipboard -i'
 
 # Clone current window
 @cbind  c   = event REQ_NEW_WINDOW \@uri
