@@ -137,7 +137,7 @@ set progress.pending    =
 
 set useragent         = Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}) (@(+uname -sm)@ [@ARCH_UZBL])
 
-# === Configure cookie blacklist ========================================================
+# === Configure cookie blacklist =============================================
 
 set cookie_policy = 0
 
