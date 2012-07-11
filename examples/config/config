@@ -330,6 +330,10 @@ set ebind     = @mode_bind global,-insert
 @cbind  yy  = sh 'echo -n "$UZBL_TITLE" | xclip'
 @cbind  ys  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followSelection('returnuri') >\@ clipboard
 
+# Selection bindings
+@cbind <Ctrl>a = js (function () { var r = document.createRange(), s = window.getSelection(); r.selectNodeContents(document); s.removeAllRanges(); s.addRange(r); })();
+@cbind <Ctrl>c = sh 'echo "\@< window.getSelection().toString() >\@" | xclip -selection clipboard -i'
+
 # Clone current window
 @cbind  c   = event REQ_NEW_WINDOW \@uri
 # Go the page from primary selection
