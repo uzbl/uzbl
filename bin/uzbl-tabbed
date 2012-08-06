@@ -410,7 +410,7 @@ class GlobalEventDispatcher(EventDispatcher):
     def new_tab(self, uri = ''):
         self.uzbl_tabbed.new_tab(uri)
 
-    def new_tab_bg(self, uri = ''):
+    def new_bg_tab(self, uri = ''):
         self.uzbl_tabbed.new_tab(uri, switch = False)
 
     def new_tab_next(self, uri = ''):
