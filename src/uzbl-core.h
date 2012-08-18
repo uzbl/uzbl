@@ -82,6 +82,7 @@ typedef struct {
     WebKitWebInspector* inspector;
 
     /* Custom context menu item */
+    gboolean       custom_context_menu;
     GPtrArray*     menu_items;
 } GUI;
 
@@ -132,12 +133,6 @@ typedef struct {
     gint            max_conns;
     gint            max_conns_host;
 } Network;
-
-/* ssl */
-typedef struct {
-    gchar *ca_file;
-    gchar *verify_cert;
-} Ssl;
 
 /* Behaviour */
 typedef struct {
@@ -194,7 +189,6 @@ typedef struct {
     GUI           gui;
     State         state;
     Network       net;
-    Ssl           ssl;
     Behaviour     behave;
     Communication comm;
     Info          info;
