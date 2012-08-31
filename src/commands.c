@@ -59,6 +59,12 @@ CommandInfo cmdlist[] =
     { "snapshot",                       snapshot, TRUE                 },
 #endif
 #endif
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 90)
+    { "load",                           load, TRUE                     },
+    { "save",                           save, TRUE                     },
+#endif
+#endif
     { "include",                        include, TRUE                  },
     { "show_inspector",                 show_inspector, 0              },
     { "add_cookie",                     add_cookie, 0                  },
@@ -346,6 +352,52 @@ snapshot(WebKitWebView *page, GArray *argv, GString *result) {
     cairo_surface_write_to_png(surface, argv_idx(argv, 0));
 
     cairo_surface_destroy(surface);
+}
+#endif
+#endif
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 90)
+void
+load(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) result;
+
+    guint sz = argv->len;
+
+    const gchar *content = sz > 0 ? argv_idx(argv, 0) : NULL;
+    const gchar *content_uri = sz > 2 ? argv_idx(argv, 1) : NULL;
+    const gchar *base_uri = sz > 2 ? argv_idx(argv, 2) : NULL;
+
+    webkit_web_view_load_alternate_html(page, content, content_uri, base_uri);
+}
+
+void
+save(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) result;
+    guint sz = argv->len;
+
+    const gchar *mode_str = sz > 0 ? argv_idx(argv, 0) : NULL;
+
+    WebKitSaveMode mode = WEBKIT_SAVE_MODE_MHTML;
+
+    if (!mode) {
+        mode = WEBKIT_SAVE_MODE_MHTML;
+    } else if (!strcmp("mhtml", mode_str)) {
+        mode = WEBKIT_SAVE_MODE_MHTML;
+    }
+
+    if (sz > 1) {
+        const gchar *path = argv_idx(argv, 1);
+        GFile *gfile = g_file_new_for_path(path);
+
+        webkit_web_view_save_to_file(page, gfile, mode, NULL, NULL, NULL);
+        /* TODO: Don't ignore the error */
+        webkit_web_view_save_to_file_finish(page, NULL, NULL);
+    } else {
+        webkit_web_view_save(page, mode, NULL, NULL, NULL);
+        /* TODO: Don't ignore the error */
+        webkit_web_view_save_finish(page, NULL, NULL);
+    }
 }
 #endif
 #endif

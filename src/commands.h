@@ -60,6 +60,12 @@ void        hardcopy(WebKitWebView *page, GArray *argv, GString *result);
 void        snapshot(WebKitWebView *page, GArray *argv, GString *result);
 #endif
 #endif
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 90)
+void        load(WebKitWebView *page, GArray *argv, GString *result);
+void        save(WebKitWebView *page, GArray *argv, GString *result);
+#endif
+#endif
 void        include(WebKitWebView *page, GArray *argv, GString *result);
 void        show_inspector(WebKitWebView *page, GArray *argv, GString *result);
 void        add_cookie(WebKitWebView *page, GArray *argv, GString *result);

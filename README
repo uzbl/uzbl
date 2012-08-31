@@ -267,6 +267,12 @@ The following commands are recognized:
 * `snapshot <path>`
   - Saves an image of the visible page as a PNG to the given path. Only available
     with webkitgtk >= 1.9.6. This is not in webkit2gtk.
+* `load <string> <uri> [<baseuri>]`
+  - Load a string as text/html with the given uri. If given, all links will be
+    assumed relative to baseuri. Requires webkit2gtk >= 1.9.90.
+* `save [<format> [<path>]]`
+  - Saves the current page to a file in a given format (currently only "mhtml"
+    is supported). Requires webkit2gtk >= 1.9.90.
 
 ### VARIABLES AND CONSTANTS
 
