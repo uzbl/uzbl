@@ -758,6 +758,13 @@ set_socket_dir(const gchar *socket_dir) {
       uzbl.behave.socket_dir = NULL;
 }
 
+#ifdef USE_WEBKIT2
+static void
+set_inject_text(const gchar *text) {
+    webkit_web_view_load_plain_text (uzbl.gui.web_view, html, NULL);
+}
+#endif
+
 static void
 set_inject_html(const gchar *html) {
     webkit_web_view_load_html_string (uzbl.gui.web_view, html, NULL);
@@ -989,6 +996,9 @@ const struct var_name_to_ptr_t {
     /* Printing settings */
     { "print_backgrounds",      PTR_V_INT_GETSET(print_bg)},
 
+#ifdef USE_WEBKIT2
+    { "inject_text",            { .type = TYPE_STR, .dump = 0, .writeable = 1, .getter = NULL, .setter = (uzbl_fp) set_inject_text }},
+#endif
     { "inject_html",            { .type = TYPE_STR, .dump = 0, .writeable = 1, .getter = NULL, .setter = (uzbl_fp) set_inject_html }},
 
     /* constants (not dumpable or writeable) */

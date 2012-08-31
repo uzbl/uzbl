@@ -292,8 +292,10 @@ file).
 
 * `uri`: The URI of the current page. (callback: load the uri)
 * `verbose`: Controls the verbosity printed to `stdout`.
+* `inject_text`: Inject an text string, navigating to the URI "about:blank" and
+  rendering the text string given. Only available in webkit2gtk.
 * `inject_html`: Inject an HTML string, navigating to the URI "about:blank" and
-  rendering the HTML sting given.
+  rendering the HTML string given.
 * `geometry`: Geometry and position of the Uzbl window. Format is
   "<width>x<height>+<x-offset>+<y-offset>".
 * `keycmd`: Holds the input buffer (callback: update input buffer).
