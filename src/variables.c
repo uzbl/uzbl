@@ -767,7 +767,11 @@ set_inject_text(const gchar *text) {
 
 static void
 set_inject_html(const gchar *html) {
+#ifdef USE_WEBKIT2
+    webkit_web_view_load_html (uzbl.gui.web_view, html, NULL);
+#else
     webkit_web_view_load_html_string (uzbl.gui.web_view, html, NULL);
+#endif
 }
 
 static void
