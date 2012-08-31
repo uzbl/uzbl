@@ -55,6 +55,11 @@ void        search_reverse_text (WebKitWebView *page, GArray *argv, GString *res
 void        search_clear(WebKitWebView *page, GArray *argv, GString *result);
 void        dehilight (WebKitWebView *page, GArray *argv, GString *result);
 void        hardcopy(WebKitWebView *page, GArray *argv, GString *result);
+#ifndef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 6)
+void        snapshot(WebKitWebView *page, GArray *argv, GString *result);
+#endif
+#endif
 void        include(WebKitWebView *page, GArray *argv, GString *result);
 void        show_inspector(WebKitWebView *page, GArray *argv, GString *result);
 void        add_cookie(WebKitWebView *page, GArray *argv, GString *result);

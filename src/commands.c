@@ -54,6 +54,11 @@ CommandInfo cmdlist[] =
     { "menu_image_remove",              menu_remove_image, TRUE        },
     { "menu_editable_remove",           menu_remove_edit, TRUE         },
     { "hardcopy",                       hardcopy, TRUE                 },
+#ifndef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 6)
+    { "snapshot",                       snapshot, TRUE                 },
+#endif
+#endif
     { "include",                        include, TRUE                  },
     { "show_inspector",                 show_inspector, 0              },
     { "add_cookie",                     add_cookie, 0                  },
@@ -328,6 +333,22 @@ hardcopy(WebKitWebView *page, GArray *argv, GString *result) {
     (void) argv; (void) result;
     webkit_web_frame_print(webkit_web_view_get_main_frame(page));
 }
+
+#ifndef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 6)
+void
+snapshot(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) result;
+    cairo_surface_t* surface;
+
+    surface = webkit_web_view_get_snapshot(page);
+
+    cairo_surface_write_to_png(surface, argv_idx(argv, 0));
+
+    cairo_surface_destroy(surface);
+}
+#endif
+#endif
 
 void
 include(WebKitWebView *page, GArray *argv, GString *result) {

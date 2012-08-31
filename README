@@ -264,6 +264,9 @@ The following commands are recognized:
 * `download <uri> [<destination path>]`
   - Starts a download using the given uri. A destination file path can be given
     to specify where the download should be written to.
+* `snapshot <path>`
+  - Saves an image of the visible page as a PNG to the given path. Only available
+    with webkitgtk >= 1.9.6. This is not in webkit2gtk.
 
 ### VARIABLES AND CONSTANTS
 
