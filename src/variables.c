@@ -490,6 +490,9 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_fullscreen,            "enable-fullscreen",  
 EXPOSE_WEBKIT_VIEW_SETTINGS(zoom_text_only,               "zoom-text-only",                            int)
 #endif
 #endif
+#if WEBKIT_CHECK_VERSION (1, 9, 0)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_smooth_scrolling,      "enable-smooth-scrolling",                   int)
+#endif
 
 /* Javascript settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_scripts,               "enable-scripts",                            int)
@@ -497,6 +500,12 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(javascript_windows,           "javascript-can-open-w
 EXPOSE_WEBKIT_VIEW_SETTINGS(javascript_dom_paste,         "enable-dom-paste",                          int)
 #if WEBKIT_CHECK_VERSION (1, 3, 0)
 EXPOSE_WEBKIT_VIEW_SETTINGS(javascript_clipboard,         "javascript-can-access-clipboard",           int)
+#endif
+
+/* Media settings */
+#if WEBKIT_CHECK_VERSION (1, 9, 3)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_inline_media,          "media-playback-allows-inline",              int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(require_click_to_play,        "media-playback-requires-user-gesture",      int)
 #endif
 
 /* Image settings */
@@ -515,7 +524,9 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_tab_cycle,             "tab-key-cycles-throug
 
 /* Customization */
 EXPOSE_WEBKIT_VIEW_SETTINGS(stylesheet_uri,               "user-stylesheet-uri",                       gchar *)
+#if !WEBKIT_CHECK_VERSION (1, 9, 0)
 EXPOSE_WEBKIT_VIEW_SETTINGS(default_context_menu,         "enable-default-context-menu",               int)
+#endif
 
 /* Hacks */
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_site_workarounds,      "enable-site-specific-quirks",               int)
@@ -940,12 +951,20 @@ const struct var_name_to_ptr_t {
     { "zoom_text_only",         PTR_V_INT_GETSET(zoom_text_only)},
 #endif
 #endif
+#if WEBKIT_CHECK_VERSION (1, 9, 0)
+    { "enable_smooth_scrolling",PTR_V_INT_GETSET(enable_smooth_scrolling)},
+#endif
     /* Javascript settings */
     { "enable_scripts",         PTR_V_INT_GETSET(enable_scripts)},
     { "javascript_windows",     PTR_V_INT_GETSET(javascript_windows)},
     { "javascript_dom_paste",   PTR_V_INT_GETSET(javascript_dom_paste)},
 #if WEBKIT_CHECK_VERSION (1, 3, 0)
     { "javascript_clipboard",   PTR_V_INT_GETSET(javascript_clipboard)},
+#endif
+    /* Media settings */
+#if WEBKIT_CHECK_VERSION (1, 9, 3)
+    { "enable_inline_media",    PTR_V_INT_GETSET(enable_inline_media)},
+    { "require_click_to_play",  PTR_V_INT_GETSET(require_click_to_play)},
 #endif
     /* Image settings */
     { "autoload_images",        PTR_V_INT_GETSET(autoload_images)},
@@ -960,7 +979,11 @@ const struct var_name_to_ptr_t {
     { "enable_tab_cycle",       PTR_V_INT_GETSET(enable_tab_cycle)},
     /* Customization */
     { "stylesheet_uri",         PTR_V_STR_GETSET(stylesheet_uri)},
+#if WEBKIT_CHECK_VERSION (1, 9, 0)
+    { "default_context_menu",   PTR_V_INT(uzbl.gui.custom_context_menu,         1,   NULL)},
+#else
     { "default_context_menu",   PTR_V_INT_GETSET(default_context_menu)},
+#endif
     /* Hacks */
     { "enable_site_workarounds", PTR_V_INT_GETSET(enable_site_workarounds)},
     /* Printing settings */

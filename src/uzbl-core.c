@@ -782,7 +782,11 @@ create_scrolled_win() {
       "signal::create-web-view",                      (GCallback)create_web_view_cb,      NULL,
       "signal::mime-type-policy-decision-requested",  (GCallback)mime_policy_cb,          NULL,
       "signal::resource-request-starting",            (GCallback)request_starting_cb,     NULL,
+#if WEBKIT_CHECK_VERSION (1, 9, 0)
+      "signal::context-menu",                         (GCallback)context_menu_cb,         NULL,
+#else
       "signal::populate-popup",                       (GCallback)populate_popup_cb,       NULL,
+#endif
       "signal::focus-in-event",                       (GCallback)focus_cb,                NULL,
       "signal::focus-out-event",                      (GCallback)focus_cb,                NULL,
       "signal::window-object-cleared",                (GCallback)window_object_cleared_cb,NULL,
