@@ -57,8 +57,13 @@ create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer us
 gboolean
 download_cb (WebKitWebView *web_view, WebKitDownload *download, gpointer user_data);
 
+#if WEBKIT_CHECK_VERSION (1, 9, 0)
+void
+context_menu_cb(WebKitWebView *v, GtkWidget *m, WebKitHitTestResult *ht, gboolean keyboard, void *c);
+#else
 void
 populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c);
+#endif
 
 gboolean
 button_press_cb (GtkWidget* window, GdkEventButton* event);
