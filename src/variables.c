@@ -451,7 +451,7 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_java_applet,           "enable-java-applet", 
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_webgl,                 "enable-webgl",                              int)
 #endif
 #if WEBKIT_CHECK_VERSION (1, 7, 5)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_webaudio,             "enable-webaudio",                           int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_webaudio,              "enable-webaudio",                           int)
 #endif
 #if WEBKIT_CHECK_VERSION (1, 7, 90) // Documentation says 1.7.5, but it's not there.
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_3d_acceleration,       "enable-accelerated-compositing",            int)
@@ -483,7 +483,7 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(zoom_step,                    "zoom-step",          
 EXPOSE_WEBKIT_VIEW_SETTINGS(caret_browsing,               "enable-caret-browsing",                     int)
 EXPOSE_WEBKIT_VIEW_SETTINGS(auto_resize_window,           "auto-resize-window",                        int)
 #if WEBKIT_CHECK_VERSION (1, 3, 5)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_frame_flattening,     "enable-frame-flattening",                   int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_frame_flattening,      "enable-frame-flattening",                   int)
 #endif
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_fullscreen,            "enable-fullscreen",                         int)
@@ -927,9 +927,9 @@ const struct var_name_to_ptr_t {
     { "enable_webgl",           PTR_V_INT_GETSET(enable_webgl)},
 #endif
 #if WEBKIT_CHECK_VERSION (1, 7, 5)
-    { "enable_webaudio",           PTR_V_INT_GETSET(enable_webaudio)},
+    { "enable_webaudio",        PTR_V_INT_GETSET(enable_webaudio)},
 #endif
-#if WEBKIT_CHECK_VERSION (1, 7, 90) // Documentation says 1.7.5, but it's not there.
+#if WEBKIT_CHECK_VERSION (1, 7, 90) /* Documentation says 1.7.5, but it's not there. */
     { "enable_3d_acceleration", PTR_V_INT_GETSET(enable_3d_acceleration)},
 #endif
 #if WEBKIT_CHECK_VERSION (1, 11, 1)
