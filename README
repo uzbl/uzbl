@@ -448,6 +448,10 @@ file).
 * `require_click_to_play`: If set to 1, playback of media requires user
   interaction before playing, otherwise, media will be allowed to autoplay
   (default 0). Requires webkitgtk >= 1.9.3.
+* `enable_css_shaders`: If set to 1, CSS shaders will be enabled (default 0).
+  Requires webkitgtk >= 1.11.1.
+* `enable_media_stream`: If set to 1, web pages will be able to access the
+  local video and audio input devices (default 0). Requires webkitgtk >= 1.11.1.
 
 
 #### Constants (not dumpable or writeable)

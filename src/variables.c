@@ -456,6 +456,9 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_webaudio,             "enable-webaudio",     
 #if WEBKIT_CHECK_VERSION (1, 7, 90) // Documentation says 1.7.5, but it's not there.
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_3d_acceleration,       "enable-accelerated-compositing",            int)
 #endif
+#if WEBKIT_CHECK_VERSION (1, 11, 1)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_css_shaders,           "enable-css-shaders",                        int)
+#endif
 
 /* HTML5 Database settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_database,              "enable-html5-database",                     int)
@@ -506,6 +509,9 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(javascript_clipboard,         "javascript-can-access
 #if WEBKIT_CHECK_VERSION (1, 9, 3)
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_inline_media,          "media-playback-allows-inline",              int)
 EXPOSE_WEBKIT_VIEW_SETTINGS(require_click_to_play,        "media-playback-requires-user-gesture",      int)
+#endif
+#if WEBKIT_CHECK_VERSION (1, 11, 1)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_media_stream,          "enable-media-stream",                       int)
 #endif
 
 /* Image settings */
@@ -926,6 +932,9 @@ const struct var_name_to_ptr_t {
 #if WEBKIT_CHECK_VERSION (1, 7, 90) // Documentation says 1.7.5, but it's not there.
     { "enable_3d_acceleration", PTR_V_INT_GETSET(enable_3d_acceleration)},
 #endif
+#if WEBKIT_CHECK_VERSION (1, 11, 1)
+    { "enable_css_shaders",     PTR_V_INT_GETSET(enable_css_shaders)},
+#endif
     /* HTML5 Database settings */
     { "enable_database",        PTR_V_INT_GETSET(enable_database)},
     { "enable_local_storage",   PTR_V_INT_GETSET(enable_local_storage)},
@@ -976,6 +985,9 @@ const struct var_name_to_ptr_t {
 #if WEBKIT_CHECK_VERSION (1, 9, 3)
     { "enable_inline_media",    PTR_V_INT_GETSET(enable_inline_media)},
     { "require_click_to_play",  PTR_V_INT_GETSET(require_click_to_play)},
+#endif
+#if WEBKIT_CHECK_VERSION (1, 11, 1)
+    { "enable_media_stream",    PTR_V_INT_GETSET(enable_media_stream)},
 #endif
     /* Image settings */
     { "autoload_images",        PTR_V_INT_GETSET(autoload_images)},
