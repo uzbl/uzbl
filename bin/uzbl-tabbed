@@ -125,8 +125,7 @@
 
 
 # Todo:
-#   - add command line options to use a different session file, not use a
-#     session file and or open a uri on starup.
+#   - add command line options to open a uri on startup.
 #   - ellipsize individual tab titles when the tab-list becomes over-crowded
 #   - add "<" & ">" arrows to tablist to indicate that only a subset of the
 #     currently open tabs are being displayed on the tablist.
@@ -208,7 +207,7 @@ config = {
   # Session options
   'save_session':           True,   # Save session in file when quit
   'saved_sessions_dir':     os.path.join(DATA_DIR, 'sessions/'),
-  'session_file':           os.path.join(DATA_DIR, 'session'),
+  'session_file':           os.path.join(DATA_DIR, 'sessions/session'),
 
   # Inherited uzbl options
   'icon_path':              os.path.join(DATA_DIR, 'uzbl.png'),
@@ -410,7 +409,7 @@ class GlobalEventDispatcher(EventDispatcher):
     def new_tab(self, uri = ''):
         self.uzbl_tabbed.new_tab(uri)
 
-    def new_tab_bg(self, uri = ''):
+    def new_bg_tab(self, uri = ''):
         self.uzbl_tabbed.new_tab(uri, switch = False)
 
     def new_tab_next(self, uri = ''):
@@ -804,16 +803,22 @@ class UzblTabbed:
 
 
     def run_preset_command(self, cmd, *args):
-        if len(args) < 1:
+        if len(args) < 1 and cmd != "list":
             error("parse_command: invalid preset command")
 
         elif cmd == "save":
+            #TODO this should probably change config['session_file'] as well,
+            #otherwise both files will have the same content at this point
             path = os.path.join(config['saved_sessions_dir'], args[0])
             self.save_session(path)
 
         elif cmd == "load":
             path = os.path.join(config['saved_sessions_dir'], args[0])
             self.load_session(path)
+
+        elif cmd == "open":
+            cmd = ['uzbl-tabbed', '-l', str(args[0])]
+            gobject.spawn_async(cmd, flags=gobject.SPAWN_SEARCH_PATH)
 
         elif cmd == "del":
             path = os.path.join(config['saved_sessions_dir'], args[0])
@@ -825,7 +830,9 @@ class UzblTabbed:
         elif cmd == "list":
             # FIXME: what argument is this supposed to be passed,
             # and why?
-            uzbl = self.get_tab_by_name(int(args[0]))
+            uzbl = self.tabs[self.notebook.get_nth_page(
+                self.notebook.get_current_page()
+            )]
             if uzbl:
                 if not os.path.isdir(config['saved_sessions_dir']):
                     js = "js alert('No saved presets.');"
@@ -833,8 +840,8 @@ class UzblTabbed:
 
                 else:
                     listdir = os.listdir(config['saved_sessions_dir'])
-                    listdir = "\\n".join(listdir)
-                    js = "js alert('Session presets:\\n\\n%s');" % listdir
+                    listdir = r"\\n".join(listdir)
+                    js = r"js alert('Session presets:\\n\\n%s');" % listdir
                     uzbl._client.send(js)
 
             else:
@@ -1253,6 +1260,8 @@ if __name__ == "__main__":
     # Build command line parser
     usage = "usage: %prog [OPTIONS] {URIS}..."
     parser = OptionParser(usage=usage)
+    parser.add_option('-l', '--load-session', dest='sessionname',
+      type='string', help="load a named session")
     parser.add_option('-n', '--no-session', dest='nosession',
       action='store_true', help="ignore session saving a loading.")
     parser.add_option('-v', '--verbose', dest='verbose',
@@ -1264,6 +1273,25 @@ if __name__ == "__main__":
 
     # Parse command line options
     (options, uris) = parser.parse_args()
+
+    #Fail if user wants session support and has an old session file
+    #(used to be DATA_DIR/session)
+    if not options.nosession:
+        old_session_file = os.path.join(DATA_DIR, 'session')
+        if os.path.exists(old_session_file):
+            s = ('*** Error: Found old session file in\n\t{}\n'
+                'I will not run until you have either deleted it or moved it '
+                'to\n\t{}\n'
+                'Watch out for the existing files there!\n').format(
+                    old_session_file, config['saved_sessions_dir']
+                )
+            sys.stderr.write(s)
+            sys.exit(-1)
+
+    if options.sessionname is not None:
+        session_basename = options.sessionname
+        config['session_file'] = os.path.join(
+            config['saved_sessions_dir'], session_basename)
 
     if options.nosession:
         config['save_session'] = False

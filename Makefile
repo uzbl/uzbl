@@ -122,8 +122,8 @@ test-uzbl-browser-sandbox: sandbox uzbl-browser sandbox-install-uzbl-browser san
 
 test-uzbl-tabbed-sandbox: sandbox uzbl-browser sandbox-install-uzbl-browser sandbox-install-uzbl-tabbed sandbox-install-example-data
 	. ./sandbox/env.sh && ${PYTHON} -S `which uzbl-event-manager` restart -avv
-	. ./sandbox/env.sh && uzbl-tabbed
-	. ./sandbox/env.sh && ${PYTHON} -S `which uzbl-event-manager` stop -ivv
+	. ./sandbox/env.sh && uzbl-tabbed $(TABBED_EXTRA_ARGS)
+	. ./sandbox/env.sh && ${PYTHON} -S `which uzbl-event-manager` stop -avv
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
@@ -157,6 +157,9 @@ sandbox: misc/env.sh
 
 sandbox-install-uzbl-browser:
 	make ${SANDBOXOPTS} install-uzbl-browser
+
+sandbox-install-uzbl-tabbed:
+	make ${SANDBOXOPTS} install-uzbl-tabbed
 
 sandbox-install-uzbl-core:
 	make ${SANDBOXOPTS} install-uzbl-core
