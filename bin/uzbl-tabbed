@@ -1317,6 +1317,20 @@ if __name__ == "__main__":
     # Parse command line options
     (options, uris) = parser.parse_args()
 
+    #Fail if user wants session support and has an old session file
+    #(used to be DATA_DIR/session)
+    if not options.nosession:
+        old_session_file = os.path.join(DATA_DIR, 'session')
+        if os.path.exists(old_session_file):
+            s = ('*** Error: Found old session file in\n\t{}\n'
+                'I will not run until you have either deleted it or moved it '
+                'to\n\t{}\n'
+                'Watch out for the existing files there!\n').format(
+                    old_session_file, config['saved_sessions_dir']
+                )
+            sys.stderr.write(s)
+            sys.exit(-1)
+
     if options.sessionname is not None:
         session_basename = options.sessionname
         config['session_file'] = os.path.join(
