@@ -257,6 +257,9 @@ set ebind     = @mode_bind global,-insert
 @cbind  G<Go To:>_   = scroll vertical %r!
 @cbind  _G<Go To:>_  = scroll horizontal %r!
 
+# Frozen binding
+@cbind  <Shift><Ctrl>F  = toggle frozen
+
 # Navigation binds
 @cbind  b   = back
 @cbind  m   = forward
