@@ -341,6 +341,7 @@ builtin_variable_table[] = {
     /* name                           entry                                                type/callback */
     /* Uzbl variables */
     { "verbose",                      UZBL_V_INT (uzbl.state.verbose,                      NULL)},
+    { "frozen",                       UZBL_V_INT (uzbl.state.frozen,                       NULL)},
     { "print_events",                 UZBL_V_INT (uzbl.state.events_stdout,                NULL)},
     { "handle_multi_button",          UZBL_V_INT (uzbl.state.handle_multi_button,          NULL)},
 
@@ -2233,6 +2234,10 @@ make_uri_from_user_input (const gchar *uri);
 
 IMPLEMENT_SETTER (gchar *, uri)
 {
+    if (uzbl.state.frozen) {
+        return FALSE;
+    }
+
     /* Strip leading whitespace. */
     while (*uri && isspace (*uri)) {
         ++uri;

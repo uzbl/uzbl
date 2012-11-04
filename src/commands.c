@@ -830,6 +830,10 @@ IMPLEMENT_COMMAND (load)
 {
     UZBL_UNUSED (result);
 
+    if (uzbl.state.frozen) {
+        return;
+    }
+
     guint sz = argv->len;
 
     const gchar *content = (sz > 0) ? argv_idx (argv, 0) : NULL;

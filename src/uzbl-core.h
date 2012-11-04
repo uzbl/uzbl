@@ -66,6 +66,7 @@ typedef struct {
     GdkEventButton *last_button;
     gchar          *last_result;
     gboolean        plug_mode;
+    gboolean        frozen;
     gboolean        load_failed;
     gchar          *disk_cache_directory;
     gchar          *web_extensions_directory;
