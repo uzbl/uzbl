@@ -445,6 +445,11 @@ download(WebKitWebView *web_view, GArray *argv, GString *result) {
 void
 load_uri(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void) web_view; (void) result;
+
+    if (uzbl.state.frozen) {
+        return;
+    }
+
     gchar * uri = argv_idx(argv, 0);
     set_var_value("uri", uri ? uri : "");
 }

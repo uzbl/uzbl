@@ -324,6 +324,7 @@ file).
 * `javascript_windows`: Whether javascript can open windows automatically
 * `shell_cmd`: Alias which will be expanded to use shell commands (eg `sh -c`).
 * `print_events`: show events on stdout
+* `frozen`: prevent the page from being redirected, resources from being loaded, etc.
 * `proxy_url`: set HTTP proxy (eg: `http://<host>:<port>`).
 * `max_conns`: Max simultaneous connections (default: 100).
 * `max_conns_host`: max simultaneous connections per hostname (default: 6)

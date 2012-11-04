@@ -258,6 +258,12 @@ navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
     (void) navigation_action;
     (void) user_data;
 
+    if (uzbl.state.frozen) {
+        /* Reject redirection of a frozen instance. */
+        webkit_web_policy_decision_ignore(policy_decision);
+        return FALSE;
+    }
+
     const gchar* uri = webkit_network_request_get_uri (request);
     gboolean decision_made = FALSE;
 
@@ -301,6 +307,11 @@ new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
     (void) navigation_action;
     (void) policy_decision;
     (void) user_data;
+
+    if (uzbl.state.frozen) {
+        webkit_web_policy_decision_ignore (policy_decision);
+        return FALSE;
+    }
 
     if (uzbl.state.verbose)
         printf ("New window requested -> %s \n", webkit_network_request_get_uri (request));
@@ -350,6 +361,12 @@ request_starting_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitWebRes
     (void) resource;
     (void) response;
     (void) user_data;
+
+    if (uzbl.state.frozen) {
+        /* Ignore any new requests when frozen. */
+        webkit_network_request_set_uri(request, "about:blank");
+        return;
+    }
 
     const gchar *uri = webkit_network_request_get_uri (request);
     SoupMessage *message = webkit_network_request_get_message (request);

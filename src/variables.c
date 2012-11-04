@@ -333,6 +333,10 @@ make_uri_from_user_input(const gchar *uri) {
 
 static gboolean
 set_uri(const gchar *uri) {
+    if (uzbl.state.frozen) {
+        return FALSE;
+    }
+
     /* Strip leading whitespace */
     while (*uri && isspace(*uri))
         uri++;
@@ -913,6 +917,7 @@ const struct var_name_to_ptr_t {
 
     { "verbose",                PTR_V_INT(uzbl.state.verbose,                   1,   NULL)},
     { "print_events",           PTR_V_INT(uzbl.state.events_stdout,             1,   NULL)},
+    { "frozen",                 PTR_V_INT(uzbl.state.frozen,                    1,   NULL)},
 
     { "handle_multi_button",    PTR_V_INT(uzbl.state.handle_multi_button,        1,   NULL)},
 
