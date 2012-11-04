@@ -112,6 +112,7 @@ typedef struct {
     GdkEventButton* last_button;
     gchar*          last_result;
     gboolean        plug_mode;
+    gboolean        frozen;
 
     /* Events */
     int             socket_id;
