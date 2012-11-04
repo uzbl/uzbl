@@ -61,30 +61,36 @@ expand_variable(GString *buf, const gchar *name) {
     }
 }
 
-void
+gboolean
 set_var_value_string_c(uzbl_cmdprop *c, const gchar *val) {
     if(c->setter)
-        ((void (*)(const gchar *))c->setter)(val);
+        return ((gboolean (*)(const gchar *))c->setter)(val);
     else {
         g_free(*(c->ptr.s));
         *(c->ptr.s) = g_strdup(val);
     }
+
+    return TRUE;
 }
 
-void
+gboolean
 set_var_value_int_c(uzbl_cmdprop *c, int i) {
     if(c->setter)
-        ((void (*)(int))c->setter)(i);
+        return ((gboolean (*)(int))c->setter)(i);
     else
         *(c->ptr.i) = i;
+
+    return TRUE;
 }
 
-void
+gboolean
 set_var_value_float_c(uzbl_cmdprop *c, float f) {
     if(c->setter)
-        ((void (*)(float))c->setter)(f);
+        return ((gboolean (*)(float))c->setter)(f);
     else
         *(c->ptr.f) = f;
+
+    return TRUE;
 }
 
 gboolean
@@ -94,29 +100,33 @@ set_var_value(const gchar *name, gchar *val) {
     uzbl_cmdprop *c = get_var_c(name);
 
     if(c) {
+        gboolean sendev;
+
         if(!c->writeable) return FALSE;
 
         switch(c->type) {
         case TYPE_STR:
-            set_var_value_string_c(c, val);
+            sendev = set_var_value_string_c(c, val);
             break;
         case TYPE_INT:
         {
             int i = (int)strtoul(val, NULL, 10);
-            set_var_value_int_c(c, i);
+            sendev = set_var_value_int_c(c, i);
             break;
         }
         case TYPE_FLOAT:
         {
             float f = strtod(val, NULL);
-            set_var_value_float_c(c, f);
+            sendev = set_var_value_float_c(c, f);
             break;
         }
         default:
             g_assert_not_reached();
         }
 
-        send_set_var_event(name, c);
+        if (sendev) {
+            send_set_var_event(name, c);
+        }
     } else {
         /* a custom var that has not been set. */
         /* check whether name violates our naming scheme */
@@ -258,7 +268,7 @@ view_settings() {
     return G_OBJECT(webkit_web_view_get_settings(uzbl.gui.web_view));
 }
 
-static void
+static gboolean
 set_window_property(const gchar* prop, const gchar* value) {
     if(GTK_IS_WIDGET(uzbl.gui.main_window)) {
         gdk_property_change(
@@ -270,6 +280,8 @@ set_window_property(const gchar* prop, const gchar* value) {
             (const guchar*)value,
             strlen(value));
     }
+
+    return TRUE;
 }
 
 void
@@ -319,7 +331,7 @@ make_uri_from_user_input(const gchar *uri) {
     return g_strconcat("http://", uri, NULL);
 }
 
-static void
+static gboolean
 set_uri(const gchar *uri) {
     /* Strip leading whitespace */
     while (*uri && isspace(*uri))
@@ -327,7 +339,7 @@ set_uri(const gchar *uri) {
 
     /* don't do anything when given a blank URL */
     if(uri[0] == 0)
-        return;
+        return TRUE;
 
     g_free(uzbl.state.uri);
     uzbl.state.uri = g_strdup(uri);
@@ -335,7 +347,7 @@ set_uri(const gchar *uri) {
     /* evaluate javascript: URIs */
     if (!strncmp (uri, "javascript:", 11)) {
         eval_js(uzbl.gui.web_view, uri, NULL, "javascript:");
-        return;
+        return TRUE;
     }
 
     /* attempt to parse the URI */
@@ -345,25 +357,31 @@ set_uri(const gchar *uri) {
     webkit_web_view_load_uri (uzbl.gui.web_view, newuri);
 
     g_free (newuri);
+
+    return TRUE;
 }
 
-static void
+static gboolean
 set_max_conns(int max_conns) {
     uzbl.net.max_conns = max_conns;
 
     g_object_set(G_OBJECT(uzbl.net.soup_session),
             SOUP_SESSION_MAX_CONNS, uzbl.net.max_conns, NULL);
+
+    return TRUE;
 }
 
-static void
+static gboolean
 set_max_conns_host(int max_conns_host) {
     uzbl.net.max_conns_host = max_conns_host;
 
     g_object_set(G_OBJECT(uzbl.net.soup_session),
             SOUP_SESSION_MAX_CONNS_PER_HOST, uzbl.net.max_conns_host, NULL);
+
+    return TRUE;
 }
 
-static void
+static gboolean
 set_http_debug(int debug) {
     uzbl.behave.http_debug = debug;
 
@@ -376,11 +394,15 @@ set_http_debug(int debug) {
     uzbl.net.soup_logger = soup_logger_new(uzbl.behave.http_debug, -1);
     soup_session_add_feature(uzbl.net.soup_session,
             SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
+
+    return TRUE;
 }
 
-static void
+static gboolean
 set_ca_file(gchar *path) {
     g_object_set (uzbl.net.soup_session, "ssl-ca-file", path, NULL);
+
+    return TRUE;
 }
 
 static gchar *
@@ -390,9 +412,11 @@ get_ca_file() {
     return path;
 }
 
-static void
+static gboolean
 set_verify_cert(int strict) {
     g_object_set (uzbl.net.soup_session, "ssl-strict", strict, NULL);
+
+    return TRUE;
 }
 
 static int
@@ -418,8 +442,10 @@ EXPOSE_SOUP_COOKIE_JAR_SETTINGS(cookie_policy,    "accept-policy",    int)
 
 
 #define EXPOSE_WEBKIT_VIEW_SETTINGS(SYM, PROPERTY, TYPE) \
-static void set_##SYM(TYPE val) { \
+static gboolean set_##SYM(TYPE val) { \
   g_object_set(view_settings(), (PROPERTY), val, NULL); \
+ \
+  return TRUE; \
 } \
 static TYPE get_##SYM() { \
   TYPE val; \
@@ -536,7 +562,7 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(print_bg,                     "print-backgrounds",  
 
 #undef EXPOSE_WEBKIT_VIEW_SETTINGS
 
-static void
+static gboolean
 set_enable_private (int private) {
     const char *priv_envvar = "UZBL_PRIVATE";
 
@@ -546,6 +572,8 @@ set_enable_private (int private) {
         unsetenv (priv_envvar);
 
     set_enable_private_webkit (private);
+
+    return TRUE;
 }
 
 static int
@@ -553,7 +581,7 @@ get_enable_private () {
     return get_enable_private_webkit ();
 }
 
-static void
+static gboolean
 set_proxy_url(const gchar *proxy_url) {
     g_free(uzbl.net.proxy_url);
     uzbl.net.proxy_url = g_strdup(proxy_url);
@@ -569,9 +597,11 @@ set_proxy_url(const gchar *proxy_url) {
 
     if(soup_uri)
         soup_uri_free(soup_uri);
+
+    return TRUE;
 }
 
-static void
+static gboolean
 set_authentication_handler(const gchar *handler) {
     /* Check if WEBKIT_TYPE_SOUP_AUTH_DIALOG feature is set */
     GSList *flist = soup_session_get_features (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
@@ -590,9 +620,11 @@ set_authentication_handler(const gchar *handler) {
             soup_session_remove_feature_by_type
                 (uzbl.net.soup_session, (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG);
     }
+
+    return TRUE;
 }
 
-static void
+static gboolean
 set_status_background(const gchar *background) {
     /* labels and hboxes do not draw their own background. applying this
      * on the vbox/main_window is ok as the statusbar is the only affected
@@ -611,9 +643,11 @@ set_status_background(const gchar *background) {
     gdk_color_parse (uzbl.behave.status_background, &color);
     gtk_widget_modify_bg (widget, GTK_STATE_NORMAL, &color);
 #endif
+
+    return TRUE;
 }
 
-static void
+static gboolean
 set_icon(const gchar *icon) {
     if(file_exists(icon) && uzbl.gui.main_window) {
         g_free(uzbl.gui.icon);
@@ -622,15 +656,21 @@ set_icon(const gchar *icon) {
         gtk_window_set_icon_from_file (GTK_WINDOW (uzbl.gui.main_window), uzbl.gui.icon, NULL);
     } else {
         g_printerr ("Icon \"%s\" not found. ignoring.\n", icon);
+
+        return FALSE;
     }
+
+    return TRUE;
 }
 
-static void
+static gboolean
 set_window_role(const gchar *role) {
     if (!uzbl.gui.main_window)
-        return;
+        return FALSE;
 
     gtk_window_set_role(GTK_WINDOW (uzbl.gui.main_window), role);
+
+    return TRUE;
 }
 
 static gchar *
@@ -657,10 +697,10 @@ get_geometry() {
     return g_string_free(buf, FALSE);
 }
 
-void
+gboolean
 set_geometry(const gchar *geometry) {
     if(!geometry)
-        return;
+        return FALSE;
 
     if(geometry[0] == 'm') { /* m/maximize/maximized */
         gtk_window_maximize((GtkWindow *)(uzbl.gui.main_window));
@@ -684,12 +724,16 @@ set_geometry(const gchar *geometry) {
      * know what it changed from) */
     g_free(uzbl.gui.geometry);
     uzbl.gui.geometry = get_geometry();
+
+    return TRUE;
 }
 
-void
+gboolean
 set_show_status(int show_status) {
     gtk_widget_set_visible(uzbl.gui.status_bar, show_status);
     update_title();
+
+    return TRUE;
 }
 
 int
@@ -697,10 +741,10 @@ get_show_status() {
   return gtk_widget_get_visible(uzbl.gui.status_bar);
 }
 
-static void
+static gboolean
 set_status_top(int status_top) {
     if (!uzbl.gui.scrolled_win && !uzbl.gui.status_bar)
-        return;
+        return FALSE;
 
     uzbl.behave.status_top = status_top;
 
@@ -722,14 +766,18 @@ set_status_top(int status_top) {
 
     if (!uzbl.state.plug_mode)
         gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
+
+    return TRUE;
 }
 
-static void
+static gboolean
 set_current_encoding(const gchar *encoding) {
     if(strlen(encoding) == 0)
         encoding = NULL;
 
     webkit_web_view_set_custom_encoding(uzbl.gui.web_view, encoding);
+
+    return TRUE;
 }
 
 static gchar *
@@ -738,7 +786,7 @@ get_current_encoding() {
     return g_strdup(encoding);
 }
 
-static void
+static gboolean
 set_fifo_dir(const gchar *fifo_dir) {
     g_free(uzbl.behave.fifo_dir);
 
@@ -746,9 +794,11 @@ set_fifo_dir(const gchar *fifo_dir) {
       uzbl.behave.fifo_dir = g_strdup(fifo_dir);
     else
       uzbl.behave.fifo_dir = NULL;
+
+    return TRUE;
 }
 
-static void
+static gboolean
 set_socket_dir(const gchar *socket_dir) {
     g_free(uzbl.behave.socket_dir);
 
@@ -756,14 +806,18 @@ set_socket_dir(const gchar *socket_dir) {
       uzbl.behave.socket_dir = g_strdup(socket_dir);
     else
       uzbl.behave.socket_dir = NULL;
+
+    return TRUE;
 }
 
-static void
+static gboolean
 set_inject_html(const gchar *html) {
     webkit_web_view_load_html_string (uzbl.gui.web_view, html, NULL);
+
+    return TRUE;
 }
 
-static void
+static gboolean
 set_useragent(const gchar *useragent) {
     g_free(uzbl.net.useragent);
 
@@ -776,9 +830,11 @@ set_useragent(const gchar *useragent) {
             uzbl.net.useragent, NULL);
         g_object_set(view_settings(), "user-agent", uzbl.net.useragent, NULL);
     }
+
+    return TRUE;
 }
 
-static void
+static gboolean
 set_accept_languages(const gchar *accept_languages) {
     g_free(uzbl.net.accept_languages);
 
@@ -790,20 +846,27 @@ set_accept_languages(const gchar *accept_languages) {
         g_object_set(G_OBJECT(uzbl.net.soup_session),
             SOUP_SESSION_ACCEPT_LANGUAGE, uzbl.net.accept_languages, NULL);
     }
+
+    return TRUE;
 }
 
-static void
+/* requires webkit >=1.1.14 */
+static gboolean
 set_view_source(int view_source) {
     uzbl.behave.view_source = view_source;
 
     webkit_web_view_set_view_source_mode(uzbl.gui.web_view,
             (gboolean) uzbl.behave.view_source);
+
+    return TRUE;
 }
 
 #ifndef USE_WEBKIT2
-void
+gboolean
 set_zoom_type (int type) {
     webkit_web_view_set_full_content_zoom (uzbl.gui.web_view, type);
+
+    return TRUE;
 }
 
 int
@@ -812,9 +875,11 @@ get_zoom_type () {
 }
 #endif
 
-static void
+static gboolean
 set_zoom_level(float zoom_level) {
     webkit_web_view_set_zoom_level (uzbl.gui.web_view, zoom_level);
+
+    return TRUE;
 }
 
 static float
