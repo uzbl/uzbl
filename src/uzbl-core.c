@@ -936,6 +936,9 @@ initialize(int argc, char** argv) {
 
     uzbl.state.last_result  = NULL;
 
+    /* BUG There isn't a getter for this; need to maintain separately. */
+    uzbl.behave.maintain_history = TRUE;
+
     /* Parse commandline arguments */
     GOptionContext* context = g_option_context_new ("[ uri ] - load a uri by default");
     g_option_context_add_main_entries(context, entries, NULL);

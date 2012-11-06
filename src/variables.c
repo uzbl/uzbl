@@ -601,6 +601,18 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(print_bg,                     "print-backgrounds",  
 #undef EXPOSE_WEBKIT_VIEW_SETTINGS
 
 static void
+set_maintain_history (int maintain) {
+    uzbl.behave.maintain_history = maintain;
+
+    webkit_web_view_set_maintains_back_forward_list (uzbl.gui.web_view, maintain);
+}
+
+static int
+get_maintain_history () {
+    return uzbl.behave.maintain_history;
+}
+
+static void
 set_spellcheck_languages(const gchar *languages) {
   GObject *obj = webkit_get_text_checker ();
 
@@ -1243,6 +1255,7 @@ const struct var_name_to_ptr_t {
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
     { "enable_dns_prefetch",    PTR_V_INT_GETSET(enable_dns_prefetch)},
 #endif
+    { "maintain_history",       PTR_V_INT_GETSET(maintain_history)},
     /* Display settings */
 #if WEBKIT_CHECK_VERSION (1, 3, 4)
     { "view_mode",              PTR_V_STR_GETSET(view_mode)},
