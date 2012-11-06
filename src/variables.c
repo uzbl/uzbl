@@ -445,7 +445,7 @@ static TYPE get_##SYM() { \
 EXPOSE_WEB_INSPECTOR_SETTINGS(profile_js,         "javascript-profiling-enabled",       int)
 EXPOSE_WEB_INSPECTOR_SETTINGS(profile_timeline,   "timeline-profiling-enabled",         gchar *)
 
-#undef EXPOSE_SOUP_SESSION_SETTINGS
+#undef EXPOSE_WEB_INSPECTOR_SETTINGS
 
 #define EXPOSE_SOUP_SESSION_SETTINGS(SYM, PROPERTY, TYPE) \
 static void set_##SYM(TYPE val) { \
@@ -475,6 +475,21 @@ EXPOSE_SOUP_COOKIE_JAR_SETTINGS(cookie_policy,    "accept-policy",    int)
 
 #undef EXPOSE_SOUP_COOKIE_JAR_SETTINGS
 
+#define EXPOSE_WEBKIT_VIEW_VIEW_SETTINGS(SYM, PROPERTY, TYPE) \
+static void set_##SYM(TYPE val) { \
+  g_object_set(uzbl.gui.web_view, (PROPERTY), val, NULL); \
+} \
+static TYPE get_##SYM() { \
+  TYPE val; \
+  g_object_get(uzbl.gui.web_view, (PROPERTY), &val, NULL); \
+  return val; \
+}
+
+EXPOSE_WEBKIT_VIEW_VIEW_SETTINGS(editable,                "editable",                                  int)
+EXPOSE_WEBKIT_VIEW_VIEW_SETTINGS(transparent,             "transparent",                               int)
+
+#undef EXPOSE_WEBKIT_VIEW_SETTINGS
+
 #define EXPOSE_WEBKIT_VIEW_SETTINGS(SYM, PROPERTY, TYPE) \
 static void set_##SYM(TYPE val) { \
   g_object_set(view_settings(), (PROPERTY), val, NULL); \
@@ -501,7 +516,6 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(monospace_size,               "default-monospace-fon
 /* Text settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(default_encoding,             "default-encoding",                          gchar *)
 EXPOSE_WEBKIT_VIEW_SETTINGS(enforce_96_dpi,               "enforce-96-dpi",                            int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(editable,                     "editable",                                  int)
 
 /* Feature settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_plugins,               "enable-plugins",                            int)
@@ -538,7 +552,6 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_dns_prefetch,          "enable-dns-prefetchin
 #endif
 
 /* Display settings */
-EXPOSE_WEBKIT_VIEW_SETTINGS(transparent,                  "transparent",                               int)
 EXPOSE_WEBKIT_VIEW_SETTINGS(zoom_step,                    "zoom-step",                                 float)
 EXPOSE_WEBKIT_VIEW_SETTINGS(caret_browsing,               "enable-caret-browsing",                     int)
 EXPOSE_WEBKIT_VIEW_SETTINGS(auto_resize_window,           "auto-resize-window",                        int)
