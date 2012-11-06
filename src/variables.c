@@ -390,17 +390,19 @@ get_ca_file() {
     return path;
 }
 
-static void
-set_verify_cert(int strict) {
-    g_object_set (uzbl.net.soup_session, "ssl-strict", strict, NULL);
+#define EXPOSE_SOUP_SESSION_SETTINGS(SYM, PROPERTY, TYPE) \
+static void set_##SYM(TYPE val) { \
+  g_object_set(uzbl.net.soup_session, (PROPERTY), val, NULL); \
+} \
+static TYPE get_##SYM() { \
+  TYPE val; \
+  g_object_get(uzbl.net.soup_session, (PROPERTY), &val, NULL); \
+  return val; \
 }
 
-static int
-get_verify_cert() {
-    int strict;
-    g_object_get (uzbl.net.soup_session, "ssl-strict", &strict, NULL);
-    return strict;
-}
+EXPOSE_SOUP_SESSION_SETTINGS(verify_cert,      "ssl-strict",       int)
+
+#undef EXPOSE_SOUP_SESSION_SETTINGS
 
 #define EXPOSE_SOUP_COOKIE_JAR_SETTINGS(SYM, PROPERTY, TYPE) \
 static void set_##SYM(TYPE val) { \
