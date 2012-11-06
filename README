@@ -387,6 +387,7 @@ file).
 * `default_encoding`: The default text encoding (default "iso-8859-1").
 * `current_encoding`: This can be set to force a text encoding.
 * `enforce_96_dpi`: Enforce a resolution of 96 DPI (default 1).
+* `editable`: Whether the page can be edited or not (default 0).
 * `caret_browsing`: Whether the caret is enabled in the text portion of pages
   (default 0).
 * `enable_cross_file_access`: Whether a page loaded from a `file://` URI can

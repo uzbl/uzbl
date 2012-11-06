@@ -487,6 +487,7 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(monospace_size,               "default-monospace-fon
 /* Text settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(default_encoding,             "default-encoding",                          gchar *)
 EXPOSE_WEBKIT_VIEW_SETTINGS(enforce_96_dpi,               "enforce-96-dpi",                            int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(editable,                     "editable",                                  int)
 
 /* Feature settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_plugins,               "enable-plugins",                            int)
@@ -1122,6 +1123,7 @@ const struct var_name_to_ptr_t {
     { "default_encoding",       PTR_V_STR_GETSET(default_encoding)},
     { "current_encoding",       PTR_V_STR_GETSET(current_encoding)},
     { "enforce_96_dpi",         PTR_V_INT_GETSET(enforce_96_dpi)},
+    { "editable",               PTR_V_INT_GETSET(editable)},
     /* Feature settings */
     { "enable_plugins",         PTR_V_INT_GETSET(enable_plugins)},
     { "enable_java_applet",     PTR_V_INT_GETSET(enable_java_applet)},
