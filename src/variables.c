@@ -579,7 +579,6 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(autoshrink_images,            "auto-shrink-images", 
 
 /* Spell checking settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_spellcheck,            "enable-spell-checking",                     int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(spellcheck_languages,         "spell-checking-languages",                  gchar *)
 
 /* Form settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(resizable_text_areas,         "resizable-text-areas",                      int)
@@ -600,6 +599,30 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_site_workarounds,      "enable-site-specific-
 EXPOSE_WEBKIT_VIEW_SETTINGS(print_bg,                     "print-backgrounds",                         int)
 
 #undef EXPOSE_WEBKIT_VIEW_SETTINGS
+
+static void
+set_spellcheck_languages(const gchar *languages) {
+  GObject *obj = webkit_get_text_checker ();
+
+  if (!obj) {
+      return;
+  }
+  if (!WEBKIT_IS_SPELL_CHECKER (obj)) {
+      return;
+  }
+
+  WebKitSpellChecker *checker = WEBKIT_SPELL_CHECKER (obj);
+
+  webkit_spell_checker_update_spell_checking_languages (checker, languages);
+  g_object_set(view_settings(), "spell-checking-languages", languages, NULL);
+}
+
+static gchar *
+get_spellcheck_languages() {
+  gchar *val;
+  g_object_get(view_settings(), "spell-checking-languages", &val, NULL);
+  return val;
+}
 
 static void
 set_enable_private (int private) {

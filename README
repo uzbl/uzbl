@@ -256,6 +256,8 @@ The following commands are recognized:
   - Control the inspector. The `coord` command coordinates are relative to the
     viewport, not the page. The `node` subcommand requires webkitgtk >=
     1.3.17.
+* `spell_checker <ignore <word>... | learn <word>... | autocorrect <word> | guesses <word>>`
+  - Control the spell checker. Requires webkitgtk >= 1.5.1.
 * `add_cookie <domain> <path> <name> <value> <scheme> <expires>`
   - Adds a new cookie to the cookie jar
 * `delete_cookie <domain> <path> <name> <value> [<scheme> <expires>]`

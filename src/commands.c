@@ -73,7 +73,10 @@ CommandInfo cmdlist[] =
     { "include",                        include, TRUE                  },
     /* Deprecated */
     { "show_inspector",                 show_inspector, 0              },
-    { "inspector",                      inspector, 0                   },
+    { "inspector",                      inspector, TRUE                },
+#if WEBKIT_CHECK_VERSION (1, 5, 1)
+    { "spell_checker",                  spell_checker, TRUE            },
+#endif
     { "add_cookie",                     add_cookie, 0                  },
     { "delete_cookie",                  delete_cookie, 0               },
     { "clear_cookies",                  clear_cookies, 0               },
@@ -542,6 +545,68 @@ inspector(WebKitWebView *page, GArray *argv, GString *result) {
 #endif
     }
 }
+
+#if WEBKIT_CHECK_VERSION (1, 5, 1)
+void
+spell_checker(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page;
+
+    if (argv->len < 1) {
+        return;
+    }
+
+    GObject *obj = webkit_get_text_checker ();
+
+    if (!obj) {
+        return;
+    }
+    if (!WEBKIT_IS_SPELL_CHECKER (obj)) {
+        return;
+    }
+
+    WebKitSpellChecker *checker = WEBKIT_SPELL_CHECKER (obj);
+
+    const gchar* command = argv_idx (argv, 0);
+
+    if (!g_strcmp0 (command, "ignore")) {
+        if (argv->len < 2) {
+            return;
+        }
+
+        guint i;
+        for (i = 1; i < argv->len; ++i) {
+            const gchar *word = argv_idx (argv, i);
+
+            webkit_spell_checker_ignore_word (checker, word);
+        }
+    } else if (!g_strcmp0 (command, "learn")) {
+        if (argv->len < 2) {
+            return;
+        }
+
+        guint i;
+        for (i = 1; i < argv->len; ++i) {
+            const gchar *word = argv_idx (argv, i);
+
+            webkit_spell_checker_learn_word (checker, word);
+        }
+    } else if (!g_strcmp0 (command, "autocorrect")) {
+        if (argv->len != 2) {
+            return;
+        }
+
+        gchar *word = argv_idx (argv, 1);
+
+        char *new_word = webkit_spell_checker_get_autocorrect_suggestions_for_misspelled_word (checker, word);
+
+        g_string_assign (result, new_word);
+
+        free (new_word);
+    } else if (!g_strcmp0 (command, "guesses")) {
+        /* TODO Implement */
+    }
+}
+#endif
 
 void
 add_cookie(WebKitWebView *page, GArray *argv, GString *result) {

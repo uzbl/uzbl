@@ -75,6 +75,9 @@ void        include(WebKitWebView *page, GArray *argv, GString *result);
 /* Deprecated (use inspector instead) */
 void        show_inspector(WebKitWebView *page, GArray *argv, GString *result);
 void        inspector(WebKitWebView *page, GArray *argv, GString *result);
+#if WEBKIT_CHECK_VERSION (1, 5, 1)
+void        spell_checker(WebKitWebView *page, GArray *argv, GString *result);
+#endif
 void        add_cookie(WebKitWebView *page, GArray *argv, GString *result);
 void        delete_cookie(WebKitWebView *page, GArray *argv, GString *result);
 void        clear_cookies(WebKitWebView *pag, GArray *argv, GString *result);
