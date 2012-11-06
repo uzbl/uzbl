@@ -66,6 +66,7 @@ void        load(WebKitWebView *page, GArray *argv, GString *result);
 void        save(WebKitWebView *page, GArray *argv, GString *result);
 #endif
 #endif
+void        remove_all_db(WebKitWebView *page, GArray *argv, GString *result);
 void        include(WebKitWebView *page, GArray *argv, GString *result);
 void        show_inspector(WebKitWebView *page, GArray *argv, GString *result);
 void        add_cookie(WebKitWebView *page, GArray *argv, GString *result);

@@ -273,6 +273,8 @@ The following commands are recognized:
 * `save [<format> [<path>]]`
   - Saves the current page to a file in a given format (currently only "mhtml"
     is supported). Requires webkit2gtk >= 1.9.90.
+* `remove_all_db`
+  - Removes all of the web databases from the current database directory path.
 
 ### VARIABLES AND CONSTANTS
 

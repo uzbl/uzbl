@@ -65,6 +65,7 @@ CommandInfo cmdlist[] =
     { "save",                           save, TRUE                     },
 #endif
 #endif
+    { "remove_all_db",                  remove_all_db, 0               },
     { "include",                        include, TRUE                  },
     { "show_inspector",                 show_inspector, 0              },
     { "add_cookie",                     add_cookie, 0                  },
@@ -429,6 +430,13 @@ save(WebKitWebView *page, GArray *argv, GString *result) {
 }
 #endif
 #endif
+
+void
+remove_all_db(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page; (void) argv; (void) result;
+
+    webkit_remove_all_web_databases ();
+}
 
 void
 include(WebKitWebView *page, GArray *argv, GString *result) {
