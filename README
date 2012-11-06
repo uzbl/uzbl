@@ -353,6 +353,8 @@ file).
 * `useragent`: The User-Agent to send to the browser, expands variables in its
   definition.
 * `accept_languages`: The Accept-Language header to send with HTTP requests.
+* `view_mode`: The view mode for webkit. One of: "windowed", "floating",
+  "fullscreen", "maximized", or "minimized". Requires webkitgtk >= 1.3.4.
 * `zoom_level`: The factor by which elements in the page are scaled with respect
   to their original size. Setting this will resize the currently displayed page.
 * `zoom_type`: Whether to use "full-content" zoom (defaults to true). With

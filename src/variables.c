@@ -953,6 +953,43 @@ set_web_database_directory(const gchar *path) {
     webkit_set_web_database_directory_path (path);
 }
 
+#if WEBKIT_CHECK_VERSION (1, 3, 4)
+static gchar *
+get_view_mode() {
+    WebKitWebViewViewMode mode = webkit_web_view_get_view_mode (uzbl.gui.web_view);
+
+    switch (mode) {
+    case WEBKIT_WEB_VIEW_VIEW_MODE_WINDOWED:
+        return g_strdup("windowed");
+    case WEBKIT_WEB_VIEW_VIEW_MODE_FLOATING:
+        return g_strdup("floating");
+    case WEBKIT_WEB_VIEW_VIEW_MODE_FULLSCREEN:
+        return g_strdup("fullscreen");
+    case WEBKIT_WEB_VIEW_VIEW_MODE_MAXIMIZED:
+        return g_strdup("maximized");
+    case WEBKIT_WEB_VIEW_VIEW_MODE_MINIMIZED:
+        return g_strdup("minimized");
+    default:
+        return g_strdup("unknown");
+    }
+}
+
+static void
+set_view_mode(const gchar *mode) {
+    if (!g_strcmp0 (mode, "windowed")) {
+        webkit_web_view_set_view_mode (uzbl.gui.web_view, WEBKIT_WEB_VIEW_VIEW_MODE_WINDOWED);
+    } else if (!g_strcmp0 (mode, "floating")) {
+        webkit_web_view_set_view_mode (uzbl.gui.web_view, WEBKIT_WEB_VIEW_VIEW_MODE_FLOATING);
+    } else if (!g_strcmp0 (mode, "fullscreen")) {
+        webkit_web_view_set_view_mode (uzbl.gui.web_view, WEBKIT_WEB_VIEW_VIEW_MODE_FULLSCREEN);
+    } else if (!g_strcmp0 (mode, "maximized")) {
+        webkit_web_view_set_view_mode (uzbl.gui.web_view, WEBKIT_WEB_VIEW_VIEW_MODE_MAXIMIZED);
+    } else if (!g_strcmp0 (mode, "minimized")) {
+        webkit_web_view_set_view_mode (uzbl.gui.web_view, WEBKIT_WEB_VIEW_VIEW_MODE_MINIMIZED);
+    }
+}
+#endif
+
 #if WEBKIT_CHECK_VERSION (1, 3, 17)
 static gchar *
 get_inspected_uri() {
@@ -1184,6 +1221,9 @@ const struct var_name_to_ptr_t {
     { "enable_dns_prefetch",    PTR_V_INT_GETSET(enable_dns_prefetch)},
 #endif
     /* Display settings */
+#if WEBKIT_CHECK_VERSION (1, 3, 4)
+    { "view_mode",              PTR_V_STR_GETSET(view_mode)},
+#endif
     { "zoom_level",             PTR_V_FLOAT_GETSET(zoom_level)},
     { "zoom_step",              PTR_V_FLOAT_GETSET(zoom_step)},
 #ifndef USE_WEBKIT2
