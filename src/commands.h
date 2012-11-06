@@ -72,7 +72,9 @@ void        plugin_refresh(WebKitWebView *page, GArray *argv, GString *result);
 void        plugin_toggle(WebKitWebView *page, GArray *argv, GString *result);
 #endif
 void        include(WebKitWebView *page, GArray *argv, GString *result);
+/* Deprecated (use inspector instead) */
 void        show_inspector(WebKitWebView *page, GArray *argv, GString *result);
+void        inspector(WebKitWebView *page, GArray *argv, GString *result);
 void        add_cookie(WebKitWebView *page, GArray *argv, GString *result);
 void        delete_cookie(WebKitWebView *page, GArray *argv, GString *result);
 void        clear_cookies(WebKitWebView *pag, GArray *argv, GString *result);

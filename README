@@ -252,8 +252,10 @@ The following commands are recognized:
   - Open the print dialog.
 * `include <file>`
   - Read contents of `<file>` and interpret as a set of `uzbl` commands.
-* `show_inspector`
-  - Show the WebInspector
+* `inspector <show | hide | coord <x> <y> | node <node-spec>>`
+  - Control the inspector. The `coord` command coordinates are relative to the
+    viewport, not the page. The `node` subcommand requires webkitgtk >=
+    1.3.17.
 * `add_cookie <domain> <path> <name> <value> <scheme> <expires>`
   - Adds a new cookie to the cookie jar
 * `delete_cookie <domain> <path> <name> <value> [<scheme> <expires>]`
@@ -471,6 +473,8 @@ file).
 * `web_database_directory`: The directory where web databases are stored.
   (default is under $XDG_DATA_HOME).
 * `web_database_quota`: The default quota for web databases. (default 5MB).
+* `profile_js`: Sets whether to profile JavaScript code.
+* `profile_timeline`: Sets whether to profile the timeline.
 
 
 #### Constants (not dumpable or writeable)
@@ -489,6 +493,8 @@ file).
   - overridable with cmdline arg
   - in GtkSocket mode, this is a random number to prevent name clashes
 * `PID`: The process ID of this Uzbl instance.
+* `inspected_uri`: The URI that is being inspected. Requires webkitgtk >=
+  1.3.17.
 * `app_cache_directory`: The directory webkit uses to store its cache.
   Requires webkitgtk >= 1.3.13.
 * `plugin_list`: A JSON list of objects describing the available plugins.

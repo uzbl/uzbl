@@ -71,7 +71,9 @@ CommandInfo cmdlist[] =
     { "plugin_toggle",                  plugin_toggle, TRUE            },
 #endif
     { "include",                        include, TRUE                  },
+    /* Deprecated */
     { "show_inspector",                 show_inspector, 0              },
+    { "inspector",                      inspector, 0                   },
     { "add_cookie",                     add_cookie, 0                  },
     { "delete_cookie",                  delete_cookie, 0               },
     { "clear_cookies",                  clear_cookies, 0               },
@@ -504,6 +506,41 @@ show_inspector(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) argv; (void) result;
 
     webkit_web_inspector_show(uzbl.gui.inspector);
+}
+
+void
+inspector(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page; (void) result;
+
+    if (argv->len < 1) {
+        return;
+    }
+
+    const gchar* command = argv_idx (argv, 0);
+
+    if (!g_strcmp0 (command, "show")) {
+        webkit_web_inspector_show (uzbl.gui.inspector);
+    } else if (!g_strcmp0 (command, "close")) {
+        webkit_web_inspector_close (uzbl.gui.inspector);
+    } else if (!g_strcmp0 (command, "coord")) {
+        if (argv->len < 3) {
+            return;
+        }
+
+        gdouble x = strtod (argv_idx (argv, 1), NULL);
+        gdouble y = strtod (argv_idx (argv, 2), NULL);
+
+        /* Let's not tempt the dragons. */
+        if (errno == ERANGE) {
+            return;
+        }
+
+        webkit_web_inspector_inspect_coordinates (uzbl.gui.inspector, x, y);
+#if WEBKIT_CHECK_VERSION (1, 3, 17)
+    } else if (!g_strcmp0 (command, "node")) {
+        /* TODO: Implement */
+#endif
+    }
 }
 
 void

@@ -432,6 +432,21 @@ get_ca_file() {
     return path;
 }
 
+#define EXPOSE_WEB_INSPECTOR_SETTINGS(SYM, PROPERTY, TYPE) \
+static void set_##SYM(TYPE val) { \
+  g_object_set(uzbl.gui.inspector, (PROPERTY), val, NULL); \
+} \
+static TYPE get_##SYM() { \
+  TYPE val; \
+  g_object_get(uzbl.gui.inspector, (PROPERTY), &val, NULL); \
+  return val; \
+}
+
+EXPOSE_WEB_INSPECTOR_SETTINGS(profile_js,         "javascript-profiling-enabled",       int)
+EXPOSE_WEB_INSPECTOR_SETTINGS(profile_timeline,   "timeline-profiling-enabled",         gchar *)
+
+#undef EXPOSE_SOUP_SESSION_SETTINGS
+
 #define EXPOSE_SOUP_SESSION_SETTINGS(SYM, PROPERTY, TYPE) \
 static void set_##SYM(TYPE val) { \
   g_object_set(uzbl.net.soup_session, (PROPERTY), val, NULL); \
@@ -459,7 +474,6 @@ static TYPE get_##SYM() { \
 EXPOSE_SOUP_COOKIE_JAR_SETTINGS(cookie_policy,    "accept-policy",    int)
 
 #undef EXPOSE_SOUP_COOKIE_JAR_SETTINGS
-
 
 #define EXPOSE_WEBKIT_VIEW_SETTINGS(SYM, PROPERTY, TYPE) \
 static void set_##SYM(TYPE val) { \
@@ -933,6 +947,13 @@ set_web_database_directory(const gchar *path) {
     webkit_set_web_database_directory_path (path);
 }
 
+#if WEBKIT_CHECK_VERSION (1, 3, 17)
+static gchar *
+get_inspected_uri() {
+    return g_strdup (webkit_web_inspector_get_inspected_uri (uzbl.gui.inspector));
+}
+#endif
+
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
 static gchar *
 get_app_cache_directory() {
@@ -1215,6 +1236,9 @@ const struct var_name_to_ptr_t {
     { "enable_site_workarounds", PTR_V_INT_GETSET(enable_site_workarounds)},
     /* Printing settings */
     { "print_backgrounds",      PTR_V_INT_GETSET(print_bg)},
+    /* Inspector settings */
+    { "profile_js",             PTR_V_INT_GETSET(profile_js)},
+    { "profile_timeline",       PTR_V_INT_GETSET(profile_timeline)},
 
 #ifdef USE_WEBKIT2
     { "inject_text",            { .type = TYPE_STR, .dump = 0, .writeable = 1, .getter = NULL, .setter = (uzbl_fp) set_inject_text }},
@@ -1235,6 +1259,9 @@ const struct var_name_to_ptr_t {
     { "_",                      PTR_C_STR(uzbl.state.last_result)},
 
     /* runtime settings */
+#if WEBKIT_CHECK_VERSION (1, 3, 17)
+    { "inspected_uri",          PTR_C_STR_F(get_inspected_uri)},
+#endif
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
     { "app_cache_directory",    PTR_C_STR_F(get_app_cache_directory)},
 #endif
