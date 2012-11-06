@@ -949,6 +949,85 @@ set_app_cache_size(unsigned long long size) {
 }
 #endif
 
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+static void
+mimetype_list_append(WebKitWebPluginMIMEType *mimetype, GString *list) {
+    if (*list->str != '[') {
+        g_string_append_c (list, ',');
+    }
+
+    /* Write out a JSON representation of the information */
+    g_string_append_printf (list,
+            "{\"name\": \"%s\","
+            "\"description\": \"%s\","
+            "\"extensions\": [", /* Open array for the extensions */
+            mimetype->name,
+            mimetype->description);
+
+    char **extension = mimetype->extensions;
+    gboolean first = TRUE;
+
+    while (extension) {
+        if (first) {
+            first = FALSE;
+        } else {
+            g_string_append_c (list, ',');
+        }
+        g_string_append (list, *extension);
+
+        ++extension;
+    }
+
+    g_string_append_c (list, '}');
+}
+
+static void
+plugin_list_append(WebKitWebPlugin *plugin, GString *list) {
+    if (*list->str != '[') {
+        g_string_append_c (list, ',');
+    }
+
+    const gchar *desc = webkit_web_plugin_get_description (plugin);
+    gboolean enabled = webkit_web_plugin_get_enabled (plugin);
+    GSList *mimetypes = webkit_web_plugin_get_mimetypes (plugin);
+    const gchar *name = webkit_web_plugin_get_name (plugin);
+    const gchar *path = webkit_web_plugin_get_path (plugin);
+
+    /* Write out a JSON representation of the information */
+    g_string_append_printf (list,
+            "{\"name\": \"%s\","
+            "\"description\": \"%s\","
+            "\"enabled\": %s,"
+            "\"path\": \"%s\","
+            "\"mimetypes\": [", /* Open array for the mimetypes */
+            name,
+            desc,
+            enabled ? "true" : "false",
+            path);
+
+    g_slist_foreach (mimetypes, (GFunc)mimetype_list_append, list);
+
+    /* Close the array and the object */
+    g_string_append (list, "]}");
+}
+
+static gchar *
+get_plugin_list() {
+    WebKitWebPluginDatabase *db = webkit_get_web_plugin_database ();
+    GSList *plugins = webkit_web_plugin_database_get_plugins (db);
+
+    GString *list = g_string_new ("[");
+
+    g_slist_foreach (plugins, (GFunc)plugin_list_append, list);
+
+    g_string_append_c (list, ']');
+
+    webkit_web_plugin_database_plugins_list_free (plugins);
+
+    return g_string_free (list, FALSE);
+}
+#endif
+
 /* abbreviations to help keep the table's width humane */
 
 /* variables */
@@ -1156,6 +1235,9 @@ const struct var_name_to_ptr_t {
     /* runtime settings */
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
     { "app_cache_directory",    PTR_C_STR_F(get_app_cache_directory)},
+#endif
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+    { "plugin_list",            PTR_C_STR_F(get_plugin_list)},
 #endif
 
     /* and we terminate the whole thing with the closest thing we have to NULL.

@@ -66,6 +66,10 @@ CommandInfo cmdlist[] =
 #endif
 #endif
     { "remove_all_db",                  remove_all_db, 0               },
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+    { "plugin_refresh",                 plugin_refresh, TRUE           },
+    { "plugin_toggle",                  plugin_toggle, TRUE            },
+#endif
     { "include",                        include, TRUE                  },
     { "show_inspector",                 show_inspector, 0              },
     { "add_cookie",                     add_cookie, 0                  },
@@ -437,6 +441,48 @@ remove_all_db(WebKitWebView *page, GArray *argv, GString *result) {
 
     webkit_remove_all_web_databases ();
 }
+
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+void
+plugin_refresh(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page; (void) argv; (void) result;
+
+    WebKitWebPluginDatabase *db = webkit_get_web_plugin_database ();
+    webkit_web_plugin_database_refresh (db);
+}
+
+static void
+plugin_toggle_one(WebKitWebPlugin *plugin, const gchar *name) {
+    const gchar *plugin_name = webkit_web_plugin_get_name (plugin);
+
+    if (!name || !g_strcmp0 (name, plugin_name)) {
+        gboolean enabled = webkit_web_plugin_get_enabled (plugin);
+
+        webkit_web_plugin_set_enabled (plugin, !enabled);
+    }
+}
+
+void
+plugin_toggle(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page; (void) result;
+
+    WebKitWebPluginDatabase *db = webkit_get_web_plugin_database ();
+    GSList *plugins = webkit_web_plugin_database_get_plugins (db);
+
+    if (argv->len == 0) {
+        g_slist_foreach (plugins, (GFunc)plugin_toggle_one, NULL);
+    } else {
+        guint i;
+        for (i = 0; i < argv->len; ++i) {
+            const gchar *plugin_name = argv_idx (argv, i);
+
+            g_slist_foreach (plugins, (GFunc)plugin_toggle_one, &plugin_name);
+        }
+    }
+
+    webkit_web_plugin_database_plugins_list_free (plugins);
+}
+#endif
 
 void
 include(WebKitWebView *page, GArray *argv, GString *result) {

@@ -67,6 +67,10 @@ void        save(WebKitWebView *page, GArray *argv, GString *result);
 #endif
 #endif
 void        remove_all_db(WebKitWebView *page, GArray *argv, GString *result);
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+void        plugin_refresh(WebKitWebView *page, GArray *argv, GString *result);
+void        plugin_toggle(WebKitWebView *page, GArray *argv, GString *result);
+#endif
 void        include(WebKitWebView *page, GArray *argv, GString *result);
 void        show_inspector(WebKitWebView *page, GArray *argv, GString *result);
 void        add_cookie(WebKitWebView *page, GArray *argv, GString *result);

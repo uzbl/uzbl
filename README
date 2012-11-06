@@ -275,6 +275,11 @@ The following commands are recognized:
     is supported). Requires webkit2gtk >= 1.9.90.
 * `remove_all_db`
   - Removes all of the web databases from the current database directory path.
+* `plugin_refresh`
+  - Refreshes the plugin database. Requires webkitgtk >= 1.3.8.
+* `plugin_toggle [<plugin name> [<plugin name>...]]`
+  - Toggles whether the plugins named as arguments are enabled. No arguments is
+    interpreted as "all plugins". Requires webkitgtk >= 1.3.8.
 
 ### VARIABLES AND CONSTANTS
 
@@ -485,6 +490,8 @@ file).
 * `PID`: The process ID of this Uzbl instance.
 * `app_cache_directory`: The directory webkit uses to store its cache.
   Requires webkitgtk >= 1.3.13.
+* `plugin_list`: A JSON list of objects describing the available plugins.
+  Requires webkitgtk >= 1.3.8.
 
 ### VARIABLE EXPANSION AND COMMAND / JAVASCRIPT SUBSTITUTION
 
