@@ -538,6 +538,7 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_dns_prefetch,          "enable-dns-prefetchin
 #endif
 
 /* Display settings */
+EXPOSE_WEBKIT_VIEW_SETTINGS(transparent,                  "transparent",                               int)
 EXPOSE_WEBKIT_VIEW_SETTINGS(zoom_step,                    "zoom-step",                                 float)
 EXPOSE_WEBKIT_VIEW_SETTINGS(caret_browsing,               "enable-caret-browsing",                     int)
 EXPOSE_WEBKIT_VIEW_SETTINGS(auto_resize_window,           "auto-resize-window",                        int)
@@ -1257,6 +1258,7 @@ const struct var_name_to_ptr_t {
 #endif
     { "maintain_history",       PTR_V_INT_GETSET(maintain_history)},
     /* Display settings */
+    { "transparent",            PTR_V_STR_GETSET(transparent)},
 #if WEBKIT_CHECK_VERSION (1, 3, 4)
     { "view_mode",              PTR_V_STR_GETSET(view_mode)},
 #endif
