@@ -452,6 +452,17 @@ file).
   Requires webkitgtk >= 1.11.1.
 * `enable_media_stream`: If set to 1, web pages will be able to access the
   local video and audio input devices (default 0). Requires webkitgtk >= 1.11.1.
+* `cache_model`: The cache model of webkit. Valid values:
+  "document_viewer" (no caching; low memory; usage: single local file),
+  "web_browser" (heavy caching; faster; usage: general browsing),
+  "document_browser" (moderate caching; usage: series of local files)
+  (default "web_browser").
+* `app_cache_size`: The maximum size of the application cache (in bytes)
+  (default UINT_MAX (no quota)). Changing the variable clears the cache.
+  Requires webkitgtk >= 1.3.13.
+* `web_database_directory`: The directory where web databases are stored.
+  (default is under $XDG_DATA_HOME).
+* `web_database_quota`: The default quota for web databases. (default 5MB).
 
 
 #### Constants (not dumpable or writeable)
@@ -470,6 +481,8 @@ file).
   - overridable with cmdline arg
   - in GtkSocket mode, this is a random number to prevent name clashes
 * `PID`: The process ID of this Uzbl instance.
+* `app_cache_directory`: The directory webkit uses to store its cache.
+  Requires webkitgtk >= 1.3.13.
 
 ### VARIABLE EXPANSION AND COMMAND / JAVASCRIPT SUBSTITUTION
 

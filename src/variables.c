@@ -883,6 +883,72 @@ get_zoom_level() {
     return webkit_web_view_get_zoom_level (uzbl.gui.web_view);
 }
 
+static gchar *
+get_cache_model() {
+    WebKitCacheModel model = webkit_get_cache_model ();
+
+    switch (model) {
+    case WEBKIT_CACHE_MODEL_DOCUMENT_VIEWER:
+        return g_strdup("document_viewer");
+    case WEBKIT_CACHE_MODEL_WEB_BROWSER:
+        return g_strdup("web_browser");
+    case WEBKIT_CACHE_MODEL_DOCUMENT_BROWSER:
+        return g_strdup("document_browser");
+    default:
+        return g_strdup("unknown");
+    }
+}
+
+static void
+set_cache_model(const gchar *model) {
+    if (!g_strcmp0 (model, "default")) {
+        webkit_set_cache_model (WEBKIT_CACHE_MODEL_DEFAULT);
+    } else if (!g_strcmp0 (model, "document_viewer")) {
+        webkit_set_cache_model (WEBKIT_CACHE_MODEL_DOCUMENT_VIEWER);
+    } else if (!g_strcmp0 (model, "web_browser")) {
+        webkit_set_cache_model (WEBKIT_CACHE_MODEL_WEB_BROWSER);
+    } else if (!g_strcmp0 (model, "document_browser")) {
+        webkit_set_cache_model (WEBKIT_CACHE_MODEL_DOCUMENT_BROWSER);
+    }
+}
+
+static gchar *
+get_web_database_directory() {
+    return g_strdup (webkit_get_web_database_directory_path ());
+}
+
+static unsigned long long
+get_web_database_quota () {
+    return webkit_get_default_web_database_quota ();
+}
+
+static void
+set_web_database_quota (unsigned long long quota) {
+    webkit_set_default_web_database_quota (quota);
+}
+
+static void
+set_web_database_directory(const gchar *path) {
+    webkit_set_web_database_directory_path (path);
+}
+
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+static gchar *
+get_app_cache_directory() {
+    return g_strdup (webkit_application_cache_get_database_directory_path ());
+}
+
+static unsigned long long
+get_app_cache_size() {
+    return webkit_application_cache_get_maximum_size ();
+}
+
+static void
+set_app_cache_size(unsigned long long size) {
+    webkit_application_cache_set_maximum_size (size);
+}
+#endif
+
 /* abbreviations to help keep the table's width humane */
 
 /* variables */
@@ -899,6 +965,11 @@ get_zoom_level() {
 #define PTR_C_STR(var)           { .ptr = { .s = &(var) },       .type = TYPE_STR,   .dump = 0, .writeable = 0, .getter = NULL, .setter = NULL }
 #define PTR_C_INT(var)           { .ptr = { .i = (int*)&(var) }, .type = TYPE_INT,   .dump = 0, .writeable = 0, .getter = NULL, .setter = NULL }
 #define PTR_C_FLOAT(var)         { .ptr = { .f = &(var) },       .type = TYPE_FLOAT, .dump = 0, .writeable = 0, .getter = NULL, .setter = NULL }
+
+/* programmatic constants */
+#define PTR_C_STR_F(get)    { .type = TYPE_STR,   .dump = 0, .writeable = 0, .getter = (uzbl_fp)get, .setter = NULL }
+#define PTR_C_INT_F(get)    { .type = TYPE_INT,   .dump = 0, .writeable = 0, .getter = (uzbl_fp)get, .setter = NULL }
+#define PTR_C_FLOAT_F(get)  { .type = TYPE_FLOAT, .dump = 0, .writeable = 0, .getter = (uzbl_fp)get, .setter = NULL }
 
 const struct var_name_to_ptr_t {
     const char *name;
@@ -948,6 +1019,13 @@ const struct var_name_to_ptr_t {
 
     { "ssl_ca_file",            PTR_V_STR_GETSET(ca_file)},
     { "ssl_verify",             PTR_V_INT_GETSET(verify_cert)},
+
+    { "cache_model",            PTR_V_STR_GETSET(cache_model)},
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+    { "app_cache_size",         PTR_V_ULL_GETSET(app_cache_size)},
+#endif
+    { "web_database_directory", PTR_V_STR_GETSET(web_database_directory)},
+    { "web_database_quota",     PTR_V_ULL_GETSET(web_database_quota)},
 
     /* exported WebKitWebSettings properties */
     /* Font settings */
@@ -1074,6 +1152,11 @@ const struct var_name_to_ptr_t {
     { "NAME",                   PTR_C_STR(uzbl.state.instance_name)},
     { "PID",                    PTR_C_STR(uzbl.info.pid_str)},
     { "_",                      PTR_C_STR(uzbl.state.last_result)},
+
+    /* runtime settings */
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+    { "app_cache_directory",    PTR_C_STR_F(get_app_cache_directory)},
+#endif
 
     /* and we terminate the whole thing with the closest thing we have to NULL.
      * it's important that dump = 0. */
