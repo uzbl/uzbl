@@ -387,7 +387,8 @@ file).
   stylesheet.
 * `resizable_text_areas`: Whether text areas can be resized (default 0).
 * `default_encoding`: The default text encoding (default "iso-8859-1").
-* `current_encoding`: This can be set to force a text encoding.
+* `custom_encoding`: This can be set to force a text encoding. (Used to be
+  `current_encoding` which is now read-only).
 * `enforce_96_dpi`: Enforce a resolution of 96 DPI (default 1).
 * `editable`: Whether the page can be edited or not (default 0).
 * `caret_browsing`: Whether the caret is enabled in the text portion of pages
@@ -493,6 +494,7 @@ file).
   - overridable with cmdline arg
   - in GtkSocket mode, this is a random number to prevent name clashes
 * `PID`: The process ID of this Uzbl instance.
+* `current_encoding`: The current encoding of the web page.
 * `inspected_uri`: The URI that is being inspected. Requires webkitgtk >=
   1.3.17.
 * `app_cache_directory`: The directory webkit uses to store its cache.

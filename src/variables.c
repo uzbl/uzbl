@@ -790,7 +790,7 @@ set_status_top(int status_top) {
 }
 
 static void
-set_current_encoding(const gchar *encoding) {
+set_custom_encoding(const gchar *encoding) {
     if(strlen(encoding) == 0)
         encoding = NULL;
 
@@ -798,8 +798,14 @@ set_current_encoding(const gchar *encoding) {
 }
 
 static gchar *
-get_current_encoding() {
+get_custom_encoding() {
     const gchar *encoding = webkit_web_view_get_custom_encoding(uzbl.gui.web_view);
+    return g_strdup(encoding);
+}
+
+static gchar *
+get_current_encoding() {
+    const gchar *encoding = webkit_web_view_get_encoding (uzbl.gui.web_view);
     return g_strdup(encoding);
 }
 
@@ -1142,7 +1148,7 @@ const struct var_name_to_ptr_t {
     { "monospace_size",         PTR_V_INT_GETSET(monospace_size)},
     /* Text settings */
     { "default_encoding",       PTR_V_STR_GETSET(default_encoding)},
-    { "current_encoding",       PTR_V_STR_GETSET(current_encoding)},
+    { "custom_encoding",        PTR_V_STR_GETSET(custom_encoding)},
     { "enforce_96_dpi",         PTR_V_INT_GETSET(enforce_96_dpi)},
     { "editable",               PTR_V_INT_GETSET(editable)},
     /* Feature settings */
@@ -1259,6 +1265,7 @@ const struct var_name_to_ptr_t {
     { "_",                      PTR_C_STR(uzbl.state.last_result)},
 
     /* runtime settings */
+    { "current_encoding",       PTR_C_STR_F(get_current_encoding)},
 #if WEBKIT_CHECK_VERSION (1, 3, 17)
     { "inspected_uri",          PTR_C_STR_F(get_inspected_uri)},
 #endif
