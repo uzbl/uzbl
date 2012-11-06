@@ -34,6 +34,13 @@ send_set_var_event(const char *name, const uzbl_cmdprop *c) {
             TYPE_INT, get_var_value_int_c(c),
             NULL);
         break;
+    case TYPE_ULL:
+        send_event (VARIABLE_SET, NULL,
+            TYPE_NAME, name,
+            TYPE_NAME, "ull",
+            TYPE_ULL, get_var_value_ull_c(c),
+            NULL);
+        break;
     case TYPE_FLOAT:
         send_event (VARIABLE_SET, NULL,
             TYPE_NAME, name,
@@ -80,6 +87,14 @@ set_var_value_int_c(uzbl_cmdprop *c, int i) {
 }
 
 void
+set_var_value_ull_c(uzbl_cmdprop *c, unsigned long long ull) {
+    if(c->setter)
+        ((void (*)(unsigned long long))c->setter)(ull);
+    else
+        *(c->ptr.ull) = ull;
+}
+
+void
 set_var_value_float_c(uzbl_cmdprop *c, float f) {
     if(c->setter)
         ((void (*)(float))c->setter)(f);
@@ -104,6 +119,12 @@ set_var_value(const gchar *name, gchar *val) {
         {
             int i = (int)strtoul(val, NULL, 10);
             set_var_value_int_c(c, i);
+            break;
+        }
+        case TYPE_ULL:
+        {
+            unsigned long long ull = strtoull(val, NULL, 10);
+            set_var_value_ull_c(c, ull);
             break;
         }
         case TYPE_FLOAT:
@@ -186,6 +207,24 @@ get_var_value_int(const gchar *name) {
     return get_var_value_int_c(c);
 }
 
+unsigned long long
+get_var_value_ull_c(const uzbl_cmdprop *c) {
+    if(!c) return 0;
+
+    if(c->getter) {
+        return ((unsigned long long (*)())c->getter)();
+    } else if(c->ptr.ull)
+        return *(c->ptr.ull);
+
+    return 0;
+}
+
+unsigned long long
+get_var_value_ull(const gchar *name) {
+    uzbl_cmdprop *c = get_var_c(name);
+    return get_var_value_ull_c(c);
+}
+
 float
 get_var_value_float_c(const uzbl_cmdprop *c) {
     if(!c) return 0;
@@ -216,10 +255,13 @@ dump_var_hash(gpointer k, gpointer v, gpointer ud) {
         gchar *v = get_var_value_string_c(c);
         printf("set %s = %s\n", (char *)k, v);
         g_free(v);
-    } else if(c->type == TYPE_INT)
+    } else if(c->type == TYPE_INT) {
         printf("set %s = %d\n", (char *)k, get_var_value_int_c(c));
-    else if(c->type == TYPE_FLOAT)
+    } else if(c->type == TYPE_ULL) {
+        printf("set %s = %llu\n", (char *)k, get_var_value_ull_c(c));
+    } else if(c->type == TYPE_FLOAT) {
         printf("set %s = %f\n", (char *)k, get_var_value_float_c(c));
+    }
 }
 
 void
@@ -850,6 +892,7 @@ get_zoom_level() {
 
 #define PTR_V_STR_GETSET(var)    { .type = TYPE_STR,   .dump = 1, .writeable = 1, .getter = (uzbl_fp) get_##var, .setter = (uzbl_fp)set_##var }
 #define PTR_V_INT_GETSET(var)    { .type = TYPE_INT,   .dump = 1, .writeable = 1, .getter = (uzbl_fp) get_##var, .setter = (uzbl_fp)set_##var }
+#define PTR_V_ULL_GETSET(var)    { .type = TYPE_ULL,   .dump = 1, .writeable = 1, .getter = (uzbl_fp) get_##var, .setter = (uzbl_fp)set_##var }
 #define PTR_V_FLOAT_GETSET(var)  { .type = TYPE_FLOAT, .dump = 1, .writeable = 1, .getter = (uzbl_fp) get_##var, .setter = (uzbl_fp)set_##var }
 
 /* constants */

@@ -24,11 +24,14 @@ gchar *get_var_value_string_c(const uzbl_cmdprop *c);
 gchar *get_var_value_string(const char *name);
 int get_var_value_int_c(const uzbl_cmdprop *c);
 int get_var_value_int(const char *name);
+unsigned long long get_var_value_ull_c(const uzbl_cmdprop *c);
+unsigned long long get_var_value_ull(const char *name);
 float get_var_value_float_c(const uzbl_cmdprop *c);
 float get_var_value_float(const char *name);
 
 void set_var_value_string_c(uzbl_cmdprop *c, const gchar *val);
-void set_var_value_int_c(uzbl_cmdprop *c, int f);
+void set_var_value_int_c(uzbl_cmdprop *c, int i);
+void set_var_value_ull_c(uzbl_cmdprop *c, unsigned long long ull);
 void set_var_value_float_c(uzbl_cmdprop *c, float f);
 
 void send_set_var_event(const char *name, const uzbl_cmdprop *c);

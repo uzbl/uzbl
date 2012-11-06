@@ -265,6 +265,34 @@ toggle_var(WebKitWebView *page, GArray *argv, GString *result) {
         set_var_value_int_c(c, next);
         break;
     }
+    case TYPE_ULL:
+    {
+        unsigned long long current = get_var_value_int_c(c);
+        unsigned long long next;
+
+        if(argv->len >= 3) {
+            guint i = 2;
+
+            unsigned long long first = strtoull(argv_idx(argv, 1), NULL, 10);
+            unsigned long long  this = first;
+
+            const gchar *next_s = argv_idx(argv, 2);
+
+            while(next_s && this != current) {
+                this   = strtoull(next_s, NULL, 10);
+                next_s = argv_idx(argv, ++i);
+            }
+
+            if(next_s)
+                next = strtoull(next_s, NULL, 10);
+            else
+                next = first;
+        } else
+            next = !current;
+
+        set_var_value_ull_c(c, next);
+        break;
+    }
     case TYPE_FLOAT:
     {
         float current = get_var_value_float_c(c);

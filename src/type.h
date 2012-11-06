@@ -9,6 +9,7 @@ enum ptr_type {
     TYPE_INT = 1,
     TYPE_STR,
     TYPE_FLOAT,
+    TYPE_ULL,
     TYPE_NAME,
     // used by send_event
     TYPE_FORMATTEDSTR,
@@ -24,6 +25,7 @@ enum ptr_type {
 typedef union uzbl_value_ptr_t {
     int   *i;
     float *f;
+    unsigned long long *ull;
     gchar **s;
 } uzbl_value_ptr;
 
