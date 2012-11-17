@@ -262,12 +262,12 @@ uzbl.follow = (function () {
             }
 
             try {
-                doc.hintdiv = doc.createElement('div');
-                doc.hintdiv.id = uzblDivId;
+                doc.uzbl_hintdiv = doc.createElement('div');
+                doc.uzbl_hintdiv.id = uzblDivId;
                 if (gMode === 'newwindow') {
-                    doc.hintdiv.className = uzblNewWindowClass;
+                    doc.uzbl_hintdiv.className = uzblNewWindowClass;
                 }
-                doc.body.appendChild(doc.hintdiv);
+                doc.body.appendChild(doc.uzbl_hintdiv);
             } catch (err) {
                 // Unable to attach label -> log it and continue.
                 console.log('Error occurred when creating hint div: ' + err);
@@ -281,7 +281,7 @@ uzbl.follow = (function () {
             try {
                 var doc = getDocument(el);
                 var h = generateHint(doc, el, label, pos[0], pos[1]);
-                doc.hintdiv.appendChild(h);
+                doc.uzbl_hintdiv.appendChild(h);
             } catch (err) {
                 // Unable to attach label -> log it and continue.
                 console.log('Error occurred when drawing hints: ' + err);
