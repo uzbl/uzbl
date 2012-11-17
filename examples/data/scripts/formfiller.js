@@ -61,6 +61,7 @@ uzbl.formfiller = (function () {
                         rv += '%' + escape(textarea.name) + '(textarea):\n' + escaped + '\n%\n';
                     });
                 } catch (err) {
+                    console.log('Error occurred when generating formfiller text: ' + err);
                 }
             });
 
@@ -87,6 +88,7 @@ uzbl.formfiller = (function () {
                         });
                     }
                 } catch (err) {
+                    console.log('Error occurred when applying formfiller text: ' + err);
                 }
             });
         }

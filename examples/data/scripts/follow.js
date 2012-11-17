@@ -269,7 +269,8 @@ uzbl.follow = (function () {
                 }
                 doc.body.appendChild(doc.hintdiv);
             } catch (err) {
-                // Unable to attach label -> shrug it off and continue.
+                // Unable to attach label -> log it and continue.
+                console.log('Error occurred when creating hint div: ' + err);
             }
         });
 
@@ -282,7 +283,8 @@ uzbl.follow = (function () {
                 var h = generateHint(doc, el, label, pos[0], pos[1]);
                 doc.hintdiv.appendChild(h);
             } catch (err) {
-                // Unable to attach label -> shrug it off and continue.
+                // Unable to attach label -> log it and continue.
+                console.log('Error occurred when drawing hints: ' + err);
             }
         });
     };
