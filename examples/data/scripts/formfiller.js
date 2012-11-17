@@ -68,7 +68,8 @@ uzbl.formfiller = (function () {
 
             documents().forEach(function (doc) {
                 try {
-                    var inputs = doc.getElementsByTagName('input');
+                    var elems = doc.getElementsByTagName('input');
+                    var inputs = slice.apply(elems);
 
                     inputs.filter(hasName).forEach(function (input) {
                         if (inputTypeIsText(input.type)) {
@@ -78,7 +79,8 @@ uzbl.formfiller = (function () {
                         }
                     });
 
-                    var textareas = doc.getElementsByTagName('textarea');
+                    elems = doc.getElementsByTagName('textarea');
+                    var textareas = slice.apply(elems);
 
                     textareas.filter(hasName).forEach(function (textarea) {
                         var escaped = textarea.value.replace(/(^|\n)\\/g, '$1\\\\').replace(/(^|\n)%/g, '$1\\%');
@@ -103,7 +105,8 @@ uzbl.formfiller = (function () {
                         doc.getElementsByName(fname)[0].checked = fchecked;
                     } else if (ftype === 'radio') {
                         fvalue = unescape(fvalue);
-                        var radios = doc.getElementsByName(fname);
+                        var elems = doc.getElementsByName(fname);
+                        var radios = slice.apply(elems);
                         radios.forEach(function (radio) {
                             if (radio.value === fvalue) {
                                 radio.checked = fchecked;
