@@ -413,6 +413,9 @@ set formfiller = spawn @scripts_dir/formfiller.sh
 @cbind  gt              = event NEXT_TAB
 @cbind  gT              = event PREV_TAB
 @cbind  gi<index:>_     = event GOTO_TAB %s
+@cbind  <Ctrl><Left>    = event MOVE_CURRENT_TAB_LEFT
+@cbind  <Ctrl><Right>   = event MOVE_CURRENT_TAB_RIGHT
+@cbind  gm<index:>_     = event MOVE_CURRENT_TAB %s
 
 # Preset loading
 set preset = event PRESET_TABS
