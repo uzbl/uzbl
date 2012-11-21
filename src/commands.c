@@ -236,18 +236,18 @@ toggle_var(WebKitWebView *page, GArray *argv, GString *result) {
         if(argv->len >= 3) {
             guint i = 2;
 
-            int first = strtoul(argv_idx(argv, 1), NULL, 10);
+            int first = strtol(argv_idx(argv, 1), NULL, 10);
             int  this = first;
 
             const gchar *next_s = argv_idx(argv, 2);
 
             while(next_s && this != current) {
-                this   = strtoul(next_s, NULL, 10);
+                this   = strtol(next_s, NULL, 10);
                 next_s = argv_idx(argv, ++i);
             }
 
             if(next_s)
-                next = strtoul(next_s, NULL, 10);
+                next = strtol(next_s, NULL, 10);
             else
                 next = first;
         } else

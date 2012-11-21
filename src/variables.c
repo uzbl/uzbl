@@ -102,7 +102,7 @@ set_var_value(const gchar *name, gchar *val) {
             break;
         case TYPE_INT:
         {
-            int i = (int)strtoul(val, NULL, 10);
+            int i = (int)strtol(val, NULL, 10);
             set_var_value_int_c(c, i);
             break;
         }
