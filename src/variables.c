@@ -705,13 +705,8 @@ set_geometry(const gchar *geometry) {
 
 void
 set_show_status(int show_status) {
-    gtk_widget_set_visible(uzbl.gui.status_bar, show_status);
+    uzbl.behave.show_status = show_status;
     update_title();
-}
-
-int
-get_show_status() {
-  return gtk_widget_get_visible(uzbl.gui.status_bar);
 }
 
 static void
@@ -868,7 +863,7 @@ const struct var_name_to_ptr_t {
 
     { "handle_multi_button",    PTR_V_INT(uzbl.state.handle_multi_button,        1,   NULL)},
 
-    { "show_status",            PTR_V_INT_GETSET(show_status)},
+    { "show_status",            PTR_V_INT(uzbl.behave.show_status,              1,   set_show_status)},
     { "status_top",             PTR_V_INT(uzbl.behave.status_top,               1,   set_status_top)},
     { "status_format",          PTR_V_STR(uzbl.behave.status_format,            1,   NULL)},
     { "status_format_right",    PTR_V_STR(uzbl.behave.status_format_right,      1,   NULL)},

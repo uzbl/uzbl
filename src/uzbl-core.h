@@ -142,6 +142,7 @@ typedef struct {
     gchar*   status_format_right;
     gchar*   status_background;
     gboolean status_top;
+    gboolean show_status;
 
     /* Window title */
     gchar*   title_format_short;

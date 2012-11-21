@@ -720,8 +720,9 @@ update_title(void) {
 
     const gchar *title_format = b->title_format_long;
 
+    gtk_widget_set_visible(uzbl.gui.status_bar, b->show_status);
     /* Update the status bar if shown */
-    if (get_show_status()) {
+    if (b->show_status) {
         title_format = b->title_format_short;
 
         gchar *parsed = expand(b->status_format, 0);
