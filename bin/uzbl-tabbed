@@ -434,6 +434,15 @@ class GlobalEventDispatcher(EventDispatcher):
     def last_tab(self):
         self.uzbl_tabbed.goto_tab(-1)
 
+    def move_current_tab(self, index=0):
+        self.uzbl_tabbed.move_current_tab(absolute=int(index))
+
+    def move_current_tab_left(self):
+        self.uzbl_tabbed.move_current_tab(relative=-1)
+
+    def move_current_tab_right(self):
+        self.uzbl_tabbed.move_current_tab(relative=1)
+
     def preset_tabs(self, *args):
         self.uzbl_tabbed.run_preset_command(*args)
 
@@ -968,6 +977,18 @@ class UzblTabbed:
         while tabn < 0: tabn += ntabs
         self.goto_tab(tabn)
 
+    def move_tab(self, tab, index):
+        '''Move tab to position.'''
+        self.notebook.reorder_child(tab, index)
+        self.update_tablist()
+
+    def move_current_tab(self, absolute=None, relative=None):
+        '''Move current tab to position.'''
+        current = self.notebook.get_current_page()
+        index = absolute if absolute is not None else current + relative \
+                if current + relative < len(self.notebook) else 0
+        tab = self.notebook.get_nth_page(current)
+        self.move_tab(tab, index)
 
     def close_tab(self, tabn=None):
         '''Closes current tab. Supports negative indexing.'''
@@ -1038,6 +1059,7 @@ class UzblTabbed:
 
         for tab in self.notebook:
             self.tabs[tab].title_changed(True)
+        self.update_tablist()
         return True
 
 
