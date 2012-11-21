@@ -1,3 +1,5 @@
+var uzbl = uzbl || {};
+
 uzbl.formfiller = {
 
     // this is pointlessly duplicated in uzbl.follow

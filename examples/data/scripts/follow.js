@@ -12,6 +12,7 @@
 
 // Globals
 uzbldivid = 'uzbl_link_hints';
+var uzbl = uzbl || {};
 
 uzbl.follow = function() {
     // Export
