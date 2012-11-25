@@ -1010,6 +1010,13 @@ main (int argc, char* argv[]) {
 
     gboolean verbose_override = uzbl.state.verbose;
 
+    /* Finally show the window */
+    if (uzbl.gui.main_window) {
+        gtk_widget_show_all (uzbl.gui.main_window);
+    } else {
+        gtk_widget_show_all (GTK_WIDGET (uzbl.gui.plug));
+    }
+
     /* Read configuration file */
     settings_init();
 
@@ -1026,13 +1033,6 @@ main (int argc, char* argv[]) {
     if (uri_override) {
         set_var_value("uri", uri_override);
         g_free(uri_override);
-    }
-
-    /* Finally show the window */
-    if (uzbl.gui.main_window) {
-        gtk_widget_show_all (uzbl.gui.main_window);
-    } else {
-        gtk_widget_show_all (GTK_WIDGET (uzbl.gui.plug));
     }
 
     /* Verbose feedback */
