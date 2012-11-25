@@ -149,6 +149,21 @@ key_release_cb (GtkWidget* window, GdkEventKey* event) {
     return uzbl.behave.forward_keys ? FALSE : TRUE;
 }
 
+gint
+get_click_context() {
+    WebKitHitTestResult *ht;
+    guint context;
+
+    if(!uzbl.state.last_button)
+        return -1;
+
+    ht = webkit_web_view_get_hit_test_result (uzbl.gui.web_view, uzbl.state.last_button);
+    g_object_get (ht, "context", &context, NULL);
+    g_object_unref (ht);
+
+    return (gint)context;
+}
+
 gboolean
 button_press_cb (GtkWidget* window, GdkEventButton* event) {
     (void) window;
@@ -600,128 +615,74 @@ run_menu_command(GtkWidget *menu, MenuItem *mi) {
     (void) menu;
 
     if (mi->context & WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE) {
-        gchar* uri;
-        g_object_get(mi->hittest, "image-uri", &uri, NULL);
-        gchar* cmd = g_strdup_printf("%s %s", mi->cmd, uri);
+        gchar* cmd = g_strdup_printf("%s %s", mi->cmd, mi->argument);
 
         parse_cmd_line(cmd, NULL);
 
         g_free(cmd);
-        g_free(uri);
-        g_object_unref(mi->hittest);
+        g_free(mi->argument);
     }
     else {
         parse_cmd_line(mi->cmd, NULL);
     }
 }
 
+gboolean
+populate_context_menu (GtkWidget *default_menu, WebKitHitTestResult *hit_test_result, gint context) {
+    guint i;
+
+    /* find the user-defined menu items that are approprate for whatever was
+     * clicked and append them to the default context menu. */
+    for(i = 0; i < uzbl.gui.menu_items->len; i++) {
+        MenuItem *mi = g_ptr_array_index(uzbl.gui.menu_items, i);
+        GtkWidget *item;
+
+        gboolean contexts_match = (context & mi->context);
+
+        if(!contexts_match) {
+          continue;
+        }
+
+        if (mi->context & WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE) {
+            g_object_get(hit_test_result, "image-uri", &(mi->argument), NULL);
+        }
+
+        if(mi->issep) {
+            item = gtk_separator_menu_item_new();
+        } else {
+            item = gtk_menu_item_new_with_label(mi->name);
+            g_signal_connect(item, "activate",
+                    G_CALLBACK(run_menu_command), mi);
+        }
+
+        gtk_menu_shell_append(GTK_MENU_SHELL(default_menu), item);
+        gtk_widget_show(item);
+    }
+
+    return FALSE;
+}
 
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
-void
-context_menu_cb(WebKitWebView *v, GtkWidget *m, WebKitHitTestResult *ht, gboolean keyboard, void *c) {
-    // TODO
-    /*
-     * static gboolean context_menu_cb (WebKitWebView       *webView,
-     *                                  GtkWidget           *default_menu,
-     *                                  WebKitHitTestResult *hit_test_result,
-     *                                  gboolean             triggered_with_keyboard,
-     *                                  gpointer             user_data)
-     * {
-     *     GList *items = gtk_container_get_children (GTK_CONTAINER (default_menu));
-     *     GList *l;
-     *     GtkAction *action;
-     *     GtkWidget *sub_menu;
-     *
-     *     for (l = items; l; l = g_list_next (l)) {
-     *         GtkMenuItem *item = (GtkMenuItem *)l->data;
-     *
-     *         if (GTK_IS_SEPARATOR_MENU_ITEM (item)) {
-     *             /&ast; It's  separator, do nothing &ast;/
-     *             continue;
-     *         }
-     *
-     *         switch (webkit_context_menu_item_get_action (item)) {
-     *         case WEBKIT_CONTEXT_MENU_ACTION_NO_ACTION:
-     *             /&ast; No action for this item &ast;/
-     *             break;
-     *         /&ast; Don't allow to ope links from context menu &ast;/
-     *         case WEBKIT_CONTEXT_MENU_ACTION_OPEN_LINK:
-     *         case WEBKIT_CONTEXT_MENU_ACTION_OPEN_LINK_IN_NEW_WINDOW:
-     *             action = gtk_activatable_get_related_action (GTK_ACTIVATABLE (item));
-     *             gtk_action_set_sensitive (action, FALSE);
-     *             break;
-     *         default:
-     *             break;
-     *         }
-     *
-     *         sub_menu = gtk_menu_item_get_submenu (item);
-     *         if (sub_menu) {
-     *             GtkWidget *menu_item;
-     *
-     *             /&ast; Add custom action to submenu &ast;/
-     *             action = gtk_action_new ("CustomItemName", "Custom Action", NULL, NULL);
-     *             g_signal_connect (action, "activate", G_CALLBACK (custom_menu_item_activated), NULL);
-     *
-     *             menu_item = gtk_action_create_menu_item (action);
-     *             g_object_unref (action);
-     *             gtk_menu_shell_append (GTK_MENU_SHELL (sub_menu), menu_item);
-     *             gtk_widget_show (menu_item);
-     *         }
-     *     }
-     *
-     *     g_list_free(items);
-     * }
-     */
-    /*
-     * WEBKIT_CONTEXT_MENU_ACTION_NO_ACTION;
-     * WEBKIT_CONTEXT_MENU_ACTION_OPEN_LINK;
-     * WEBKIT_CONTEXT_MENU_ACTION_OPEN_LINK_IN_NEW_WINDOW;
-     * WEBKIT_CONTEXT_MENU_ACTION_DOWNLOAD_LINK_TO_DISK;
-     * WEBKIT_CONTEXT_MENU_ACTION_COPY_LINK_TO_CLIPBOARD;
-     * WEBKIT_CONTEXT_MENU_ACTION_OPEN_IMAGE_IN_NEW_WINDOW;
-     * WEBKIT_CONTEXT_MENU_ACTION_DOWNLOAD_IMAGE_TO_DISK;
-     * WEBKIT_CONTEXT_MENU_ACTION_COPY_IMAGE_TO_CLIPBOARD;
-     * WEBKIT_CONTEXT_MENU_ACTION_COPY_IMAGE_URL_TO_CLIPBOARD;
-     * WEBKIT_CONTEXT_MENU_ACTION_OPEN_FRAME_IN_NEW_WINDOW;
-     * WEBKIT_CONTEXT_MENU_ACTION_GO_BACK;
-     * WEBKIT_CONTEXT_MENU_ACTION_GO_FORWARD;
-     * WEBKIT_CONTEXT_MENU_ACTION_STOP;
-     * WEBKIT_CONTEXT_MENU_ACTION_RELOAD;
-     * WEBKIT_CONTEXT_MENU_ACTION_COPY;
-     * WEBKIT_CONTEXT_MENU_ACTION_CUT;
-     * WEBKIT_CONTEXT_MENU_ACTION_PASTE;
-     * WEBKIT_CONTEXT_MENU_ACTION_DELETE;
-     * WEBKIT_CONTEXT_MENU_ACTION_SELECT_ALL;
-     * WEBKIT_CONTEXT_MENU_ACTION_INPUT_METHODS;
-     * WEBKIT_CONTEXT_MENU_ACTION_UNICODE;
-     * WEBKIT_CONTEXT_MENU_ACTION_SPELLING_GUESS;
-     * WEBKIT_CONTEXT_MENU_ACTION_IGNORE_SPELLING;
-     * WEBKIT_CONTEXT_MENU_ACTION_LEARN_SPELLING;
-     * WEBKIT_CONTEXT_MENU_ACTION_IGNORE_GRAMMAR;
-     * WEBKIT_CONTEXT_MENU_ACTION_FONT_MENU;
-     * WEBKIT_CONTEXT_MENU_ACTION_BOLD;
-     * WEBKIT_CONTEXT_MENU_ACTION_ITALIC;
-     * WEBKIT_CONTEXT_MENU_ACTION_UNDERLINE;
-     * WEBKIT_CONTEXT_MENU_ACTION_OUTLINE;
-     * WEBKIT_CONTEXT_MENU_ACTION_INSPECT_ELEMENT;
-     * WEBKIT_CONTEXT_MENU_ACTION_OPEN_MEDIA_IN_NEW_WINDOW;
-     * WEBKIT_CONTEXT_MENU_ACTION_COPY_MEDIA_LINK_TO_CLIPBOARD;
-     * WEBKIT_CONTEXT_MENU_ACTION_TOGGLE_MEDIA_CONTROLS;
-     * WEBKIT_CONTEXT_MENU_ACTION_TOGGLE_MEDIA_LOOP;
-     * WEBKIT_CONTEXT_MENU_ACTION_ENTER_VIDEO_FULLSCREEN;
-     * WEBKIT_CONTEXT_MENU_ACTION_MEDIA_PLAY_PAUSE;
-     * WEBKIT_CONTEXT_MENU_ACTION_MEDIA_MUTE;
-     */
+gboolean
+context_menu_cb (WebKitWebView *v, GtkWidget *default_menu, WebKitHitTestResult *hit_test_result, gboolean triggered_with_keyboard, gpointer user_data) {
+    (void) v; (void) triggered_with_keyboard; (void) user_data;
+    gint context;
+
+    if(!uzbl.gui.menu_items)
+        return FALSE;
+
+    /* check context */
+    if((context = get_click_context()) == -1)
+        return FALSE;
+
+    /* display the default menu with our modifications. */
+    return populate_context_menu(default_menu, hit_test_result, context);
 }
 #else
 void
 populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
     (void) c;
-    GUI *g = &uzbl.gui;
-    GtkWidget *item;
-    MenuItem *mi;
-    guint i=0;
-    gint context, hit=0;
+    gint context;
 
     if(!g->menu_items)
         return;
@@ -730,61 +691,25 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
     if((context = get_click_context()) == -1)
         return;
 
-    for(i=0; i < uzbl.gui.menu_items->len; i++) {
-        hit = 0;
-        mi = g_ptr_array_index(uzbl.gui.menu_items, i);
-
-        if (mi->context & WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE) {
-            GdkEventButton ev;
-            gint x, y;
+    WebKitHitTestResult *hit_test_result;
+    GdkEventButton ev;
+    gint x, y;
 #if GTK_CHECK_VERSION (3, 0, 0)
-            gdk_window_get_device_position (gtk_widget_get_window(GTK_WIDGET(v)),
-                gdk_device_manager_get_client_pointer (
-                    gdk_display_get_device_manager (
-                        gtk_widget_get_display (GTK_WIDGET (v)))),
-                &x, &y, NULL);
+    gdk_window_get_device_position (gtk_widget_get_window(GTK_WIDGET(v)),
+        gdk_device_manager_get_client_pointer (
+            gdk_display_get_device_manager (
+                gtk_widget_get_display (GTK_WIDGET (v)))),
+        &x, &y, NULL);
 #else
-            gdk_window_get_pointer(gtk_widget_get_window(GTK_WIDGET(v)), &x, &y, NULL);
+    gdk_window_get_pointer(gtk_widget_get_window(GTK_WIDGET(v)), &x, &y, NULL);
 #endif
-            ev.x = x;
-            ev.y = y;
-            mi->hittest = webkit_web_view_get_hit_test_result(v, &ev);
-        }
+    ev.x = x;
+    ev.y = y;
+    hit_test_result = webkit_web_view_get_hit_test_result(v, &ev);
 
-        if((mi->context > WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT) &&
-                (context & mi->context)) {
-            if(mi->issep) {
-                item = gtk_separator_menu_item_new();
-                gtk_menu_shell_append(GTK_MENU_SHELL(m), item);
-                gtk_widget_show(item);
-            }
-            else {
-                item = gtk_menu_item_new_with_label(mi->name);
-                g_signal_connect(item, "activate",
-                        G_CALLBACK(run_menu_command), mi);
-                gtk_menu_shell_append(GTK_MENU_SHELL(m), item);
-                gtk_widget_show(item);
-            }
-            hit++;
-        }
+    populate_context_menu(m, hit_test_result, context);
 
-        if((mi->context == WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT)  &&
-                (context <= WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT) &&
-                !hit) {
-            if(mi->issep) {
-                item = gtk_separator_menu_item_new();
-                gtk_menu_shell_append(GTK_MENU_SHELL(m), item);
-                gtk_widget_show(item);
-            }
-            else {
-                item = gtk_menu_item_new_with_label(mi->name);
-                g_signal_connect(item, "activate",
-                        G_CALLBACK(run_menu_command), mi);
-                gtk_menu_shell_append(GTK_MENU_SHELL(m), item);
-                gtk_widget_show(item);
-            }
-        }
-    }
+    g_object_unref(mi->hittest);
 }
 #endif
 

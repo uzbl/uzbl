@@ -12,7 +12,7 @@ typedef struct {
     gchar*   cmd;
     gboolean issep;
     guint    context;
-    WebKitHitTestResult* hittest;
+    gchar*   argument;
 } MenuItem;
 
 void    menu_add(WebKitWebView *page, GArray *argv, GString *result);

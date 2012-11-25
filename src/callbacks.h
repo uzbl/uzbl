@@ -58,8 +58,8 @@ gboolean
 download_cb (WebKitWebView *web_view, WebKitDownload *download, gpointer user_data);
 
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
-void
-context_menu_cb(WebKitWebView *v, GtkWidget *m, WebKitHitTestResult *ht, gboolean keyboard, void *c);
+gboolean
+context_menu_cb (WebKitWebView *web_view, GtkWidget *default_menu, WebKitHitTestResult *hit_test_result, gboolean triggered_with_keyboard, gpointer user_data);
 #else
 void
 populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c);
