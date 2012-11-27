@@ -447,6 +447,10 @@ file).
 * `enable_dns_prefetch`: If set to 1, domain names will be prefetched
   (default 1). Private browsing does *not* affect this value. Requires
   webkitgtk >= 1.3.13.
+* `display_insecure_content`: If set to 1, non-HTTPS content will be displayed
+  on HTTPS pages (default 1). Requires webkitgtk >= 1.11.13.
+* `run_insecure_content`: If set to 1, non-HTTPS content will be allowed to run
+  on HTTPS pages (default 1). Requires webkitgtk >= 1.11.13.
 * `maintain_history`: If set to 1, the back/forward list will be kept. (default
   1).
 * `enable_webgl`: If set to 1, WebGL support will be enabled (default 0).

@@ -550,6 +550,10 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_hyperlink_auditing,    "enable-hyperlink-audi
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_dns_prefetch,          "enable-dns-prefetching",                    int)
 #endif
+#if WEBKIT_CHECK_VERSION (1, 11, 2)
+EXPOSE_WEBKIT_VIEW_SETTINGS(display_insecure_content,     "enable-display-of-insecure-content",        int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(run_insecure_content,         "enable-running-of-insecure-content",        int)
+#endif
 
 /* Display settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(zoom_step,                    "zoom-step",                                 float)
@@ -1268,6 +1272,10 @@ const struct var_name_to_ptr_t {
     { "cookie_policy",          PTR_V_INT_GETSET(cookie_policy)},
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
     { "enable_dns_prefetch",    PTR_V_INT_GETSET(enable_dns_prefetch)},
+#endif
+#if WEBKIT_CHECK_VERSION (1, 11, 2)
+    { "display_insecure_content",PTR_V_INT_GETSET(display_insecure_content)},
+    { "run_insecure_content",   PTR_V_INT_GETSET(run_insecure_content)},
 #endif
     { "maintain_history",       PTR_V_INT_GETSET(maintain_history)},
     /* Display settings */
