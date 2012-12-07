@@ -250,21 +250,6 @@ button_release_cb (GtkWidget* window, GdkEventButton* event) {
 }
 
 gboolean
-motion_notify_cb(GtkWidget* window, GdkEventMotion* event, gpointer user_data) {
-    (void) window;
-    (void) event;
-    (void) user_data;
-
-    send_event (PTR_MOVE, NULL,
-        TYPE_FLOAT, event->x,
-        TYPE_FLOAT, event->y,
-        TYPE_INT, event->state,
-        NULL);
-
-    return FALSE;
-}
-
-gboolean
 navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
         WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action,
         WebKitWebPolicyDecision *policy_decision, gpointer user_data) {

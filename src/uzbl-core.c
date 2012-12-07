@@ -748,7 +748,6 @@ create_scrolled_win() {
       "signal::key-release-event",                    (GCallback)key_release_cb,          NULL,
       "signal::button-press-event",                   (GCallback)button_press_cb,         NULL,
       "signal::button-release-event",                 (GCallback)button_release_cb,       NULL,
-      "signal::motion-notify-event",                  (GCallback)motion_notify_cb,        NULL,
       "signal::notify::title",                        (GCallback)title_change_cb,         NULL,
       "signal::notify::progress",                     (GCallback)progress_change_cb,      NULL,
       "signal::notify::load-status",                  (GCallback)load_status_change_cb,   NULL,
