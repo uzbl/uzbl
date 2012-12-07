@@ -34,6 +34,13 @@ send_set_var_event(const char *name, const uzbl_cmdprop *c) {
             TYPE_INT, get_var_value_int_c(c),
             NULL);
         break;
+    case TYPE_ULL:
+        send_event (VARIABLE_SET, NULL,
+            TYPE_NAME, name,
+            TYPE_NAME, "ull",
+            TYPE_ULL, get_var_value_ull_c(c),
+            NULL);
+        break;
     case TYPE_FLOAT:
         send_event (VARIABLE_SET, NULL,
             TYPE_NAME, name,
@@ -80,6 +87,14 @@ set_var_value_int_c(uzbl_cmdprop *c, int i) {
 }
 
 void
+set_var_value_ull_c(uzbl_cmdprop *c, unsigned long long ull) {
+    if(c->setter)
+        ((void (*)(unsigned long long))c->setter)(ull);
+    else
+        *(c->ptr.ull) = ull;
+}
+
+void
 set_var_value_float_c(uzbl_cmdprop *c, float f) {
     if(c->setter)
         ((void (*)(float))c->setter)(f);
@@ -104,6 +119,12 @@ set_var_value(const gchar *name, gchar *val) {
         {
             int i = (int)strtol(val, NULL, 10);
             set_var_value_int_c(c, i);
+            break;
+        }
+        case TYPE_ULL:
+        {
+            unsigned long long ull = strtoull(val, NULL, 10);
+            set_var_value_ull_c(c, ull);
             break;
         }
         case TYPE_FLOAT:
@@ -186,6 +207,24 @@ get_var_value_int(const gchar *name) {
     return get_var_value_int_c(c);
 }
 
+unsigned long long
+get_var_value_ull_c(const uzbl_cmdprop *c) {
+    if(!c) return 0;
+
+    if(c->getter) {
+        return ((unsigned long long (*)())c->getter)();
+    } else if(c->ptr.ull)
+        return *(c->ptr.ull);
+
+    return 0;
+}
+
+unsigned long long
+get_var_value_ull(const gchar *name) {
+    uzbl_cmdprop *c = get_var_c(name);
+    return get_var_value_ull_c(c);
+}
+
 float
 get_var_value_float_c(const uzbl_cmdprop *c) {
     if(!c) return 0;
@@ -216,10 +255,13 @@ dump_var_hash(gpointer k, gpointer v, gpointer ud) {
         gchar *v = get_var_value_string_c(c);
         printf("set %s = %s\n", (char *)k, v);
         g_free(v);
-    } else if(c->type == TYPE_INT)
+    } else if(c->type == TYPE_INT) {
         printf("set %s = %d\n", (char *)k, get_var_value_int_c(c));
-    else if(c->type == TYPE_FLOAT)
+    } else if(c->type == TYPE_ULL) {
+        printf("set %s = %llu\n", (char *)k, get_var_value_ull_c(c));
+    } else if(c->type == TYPE_FLOAT) {
         printf("set %s = %f\n", (char *)k, get_var_value_float_c(c));
+    }
 }
 
 void
@@ -390,17 +432,34 @@ get_ca_file() {
     return path;
 }
 
-static void
-set_verify_cert(int strict) {
-    g_object_set (uzbl.net.soup_session, "ssl-strict", strict, NULL);
+#define EXPOSE_WEB_INSPECTOR_SETTINGS(SYM, PROPERTY, TYPE) \
+static void set_##SYM(TYPE val) { \
+  g_object_set(uzbl.gui.inspector, (PROPERTY), val, NULL); \
+} \
+static TYPE get_##SYM() { \
+  TYPE val; \
+  g_object_get(uzbl.gui.inspector, (PROPERTY), &val, NULL); \
+  return val; \
 }
 
-static int
-get_verify_cert() {
-    int strict;
-    g_object_get (uzbl.net.soup_session, "ssl-strict", &strict, NULL);
-    return strict;
+EXPOSE_WEB_INSPECTOR_SETTINGS(profile_js,         "javascript-profiling-enabled",       int)
+EXPOSE_WEB_INSPECTOR_SETTINGS(profile_timeline,   "timeline-profiling-enabled",         gchar *)
+
+#undef EXPOSE_WEB_INSPECTOR_SETTINGS
+
+#define EXPOSE_SOUP_SESSION_SETTINGS(SYM, PROPERTY, TYPE) \
+static void set_##SYM(TYPE val) { \
+  g_object_set(uzbl.net.soup_session, (PROPERTY), val, NULL); \
+} \
+static TYPE get_##SYM() { \
+  TYPE val; \
+  g_object_get(uzbl.net.soup_session, (PROPERTY), &val, NULL); \
+  return val; \
 }
+
+EXPOSE_SOUP_SESSION_SETTINGS(verify_cert,      "ssl-strict",       int)
+
+#undef EXPOSE_SOUP_SESSION_SETTINGS
 
 #define EXPOSE_SOUP_COOKIE_JAR_SETTINGS(SYM, PROPERTY, TYPE) \
 static void set_##SYM(TYPE val) { \
@@ -416,6 +475,20 @@ EXPOSE_SOUP_COOKIE_JAR_SETTINGS(cookie_policy,    "accept-policy",    int)
 
 #undef EXPOSE_SOUP_COOKIE_JAR_SETTINGS
 
+#define EXPOSE_WEBKIT_VIEW_VIEW_SETTINGS(SYM, PROPERTY, TYPE) \
+static void set_##SYM(TYPE val) { \
+  g_object_set(uzbl.gui.web_view, (PROPERTY), val, NULL); \
+} \
+static TYPE get_##SYM() { \
+  TYPE val; \
+  g_object_get(uzbl.gui.web_view, (PROPERTY), &val, NULL); \
+  return val; \
+}
+
+EXPOSE_WEBKIT_VIEW_VIEW_SETTINGS(editable,                "editable",                                  int)
+EXPOSE_WEBKIT_VIEW_VIEW_SETTINGS(transparent,             "transparent",                               int)
+
+#undef EXPOSE_WEBKIT_VIEW_SETTINGS
 
 #define EXPOSE_WEBKIT_VIEW_SETTINGS(SYM, PROPERTY, TYPE) \
 static void set_##SYM(TYPE val) { \
@@ -451,10 +524,13 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_java_applet,           "enable-java-applet", 
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_webgl,                 "enable-webgl",                              int)
 #endif
 #if WEBKIT_CHECK_VERSION (1, 7, 5)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_webaudio,             "enable-webaudio",                           int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_webaudio,              "enable-webaudio",                           int)
 #endif
 #if WEBKIT_CHECK_VERSION (1, 7, 90) // Documentation says 1.7.5, but it's not there.
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_3d_acceleration,       "enable-accelerated-compositing",            int)
+#endif
+#if WEBKIT_CHECK_VERSION (1, 11, 1)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_css_shaders,           "enable-css-shaders",                        int)
 #endif
 
 /* HTML5 Database settings */
@@ -474,13 +550,17 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_hyperlink_auditing,    "enable-hyperlink-audi
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_dns_prefetch,          "enable-dns-prefetching",                    int)
 #endif
+#if WEBKIT_CHECK_VERSION (1, 11, 2)
+EXPOSE_WEBKIT_VIEW_SETTINGS(display_insecure_content,     "enable-display-of-insecure-content",        int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(run_insecure_content,         "enable-running-of-insecure-content",        int)
+#endif
 
 /* Display settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(zoom_step,                    "zoom-step",                                 float)
 EXPOSE_WEBKIT_VIEW_SETTINGS(caret_browsing,               "enable-caret-browsing",                     int)
 EXPOSE_WEBKIT_VIEW_SETTINGS(auto_resize_window,           "auto-resize-window",                        int)
 #if WEBKIT_CHECK_VERSION (1, 3, 5)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_frame_flattening,     "enable-frame-flattening",                   int)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_frame_flattening,      "enable-frame-flattening",                   int)
 #endif
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_fullscreen,            "enable-fullscreen",                         int)
@@ -507,6 +587,9 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(javascript_clipboard,         "javascript-can-access
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_inline_media,          "media-playback-allows-inline",              int)
 EXPOSE_WEBKIT_VIEW_SETTINGS(require_click_to_play,        "media-playback-requires-user-gesture",      int)
 #endif
+#if WEBKIT_CHECK_VERSION (1, 11, 1)
+EXPOSE_WEBKIT_VIEW_SETTINGS(enable_media_stream,          "enable-media-stream",                       int)
+#endif
 
 /* Image settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(autoload_images,              "auto-load-images",                          int)
@@ -514,7 +597,6 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(autoshrink_images,            "auto-shrink-images", 
 
 /* Spell checking settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_spellcheck,            "enable-spell-checking",                     int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(spellcheck_languages,         "spell-checking-languages",                  gchar *)
 
 /* Form settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(resizable_text_areas,         "resizable-text-areas",                      int)
@@ -535,6 +617,42 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_site_workarounds,      "enable-site-specific-
 EXPOSE_WEBKIT_VIEW_SETTINGS(print_bg,                     "print-backgrounds",                         int)
 
 #undef EXPOSE_WEBKIT_VIEW_SETTINGS
+
+static void
+set_maintain_history (int maintain) {
+    uzbl.behave.maintain_history = maintain;
+
+    webkit_web_view_set_maintains_back_forward_list (uzbl.gui.web_view, maintain);
+}
+
+static int
+get_maintain_history () {
+    return uzbl.behave.maintain_history;
+}
+
+static void
+set_spellcheck_languages(const gchar *languages) {
+  GObject *obj = webkit_get_text_checker ();
+
+  if (!obj) {
+      return;
+  }
+  if (!WEBKIT_IS_SPELL_CHECKER (obj)) {
+      return;
+  }
+
+  WebKitSpellChecker *checker = WEBKIT_SPELL_CHECKER (obj);
+
+  webkit_spell_checker_update_spell_checking_languages (checker, languages);
+  g_object_set(view_settings(), "spell-checking-languages", languages, NULL);
+}
+
+static gchar *
+get_spellcheck_languages() {
+  gchar *val;
+  g_object_get(view_settings(), "spell-checking-languages", &val, NULL);
+  return val;
+}
 
 static void
 set_enable_private (int private) {
@@ -742,7 +860,7 @@ set_status_top(int status_top) {
 }
 
 static void
-set_current_encoding(const gchar *encoding) {
+set_custom_encoding(const gchar *encoding) {
     if(strlen(encoding) == 0)
         encoding = NULL;
 
@@ -750,8 +868,14 @@ set_current_encoding(const gchar *encoding) {
 }
 
 static gchar *
-get_current_encoding() {
+get_custom_encoding() {
     const gchar *encoding = webkit_web_view_get_custom_encoding(uzbl.gui.web_view);
+    return g_strdup(encoding);
+}
+
+static gchar *
+get_current_encoding() {
+    const gchar *encoding = webkit_web_view_get_encoding (uzbl.gui.web_view);
     return g_strdup(encoding);
 }
 
@@ -775,9 +899,20 @@ set_socket_dir(const gchar *socket_dir) {
       uzbl.behave.socket_dir = NULL;
 }
 
+#ifdef USE_WEBKIT2
+static void
+set_inject_text(const gchar *text) {
+    webkit_web_view_load_plain_text (uzbl.gui.web_view, html, NULL);
+}
+#endif
+
 static void
 set_inject_html(const gchar *html) {
+#ifdef USE_WEBKIT2
+    webkit_web_view_load_html (uzbl.gui.web_view, html, NULL);
+#else
     webkit_web_view_load_html_string (uzbl.gui.web_view, html, NULL);
+#endif
 }
 
 static void
@@ -839,6 +974,195 @@ get_zoom_level() {
     return webkit_web_view_get_zoom_level (uzbl.gui.web_view);
 }
 
+static gchar *
+get_cache_model() {
+    WebKitCacheModel model = webkit_get_cache_model ();
+
+    switch (model) {
+    case WEBKIT_CACHE_MODEL_DOCUMENT_VIEWER:
+        return g_strdup("document_viewer");
+    case WEBKIT_CACHE_MODEL_WEB_BROWSER:
+        return g_strdup("web_browser");
+    case WEBKIT_CACHE_MODEL_DOCUMENT_BROWSER:
+        return g_strdup("document_browser");
+    default:
+        return g_strdup("unknown");
+    }
+}
+
+static void
+set_cache_model(const gchar *model) {
+    if (!g_strcmp0 (model, "default")) {
+        webkit_set_cache_model (WEBKIT_CACHE_MODEL_DEFAULT);
+    } else if (!g_strcmp0 (model, "document_viewer")) {
+        webkit_set_cache_model (WEBKIT_CACHE_MODEL_DOCUMENT_VIEWER);
+    } else if (!g_strcmp0 (model, "web_browser")) {
+        webkit_set_cache_model (WEBKIT_CACHE_MODEL_WEB_BROWSER);
+    } else if (!g_strcmp0 (model, "document_browser")) {
+        webkit_set_cache_model (WEBKIT_CACHE_MODEL_DOCUMENT_BROWSER);
+    }
+}
+
+static gchar *
+get_web_database_directory() {
+    return g_strdup (webkit_get_web_database_directory_path ());
+}
+
+static unsigned long long
+get_web_database_quota () {
+    return webkit_get_default_web_database_quota ();
+}
+
+static void
+set_web_database_quota (unsigned long long quota) {
+    webkit_set_default_web_database_quota (quota);
+}
+
+static void
+set_web_database_directory(const gchar *path) {
+    webkit_set_web_database_directory_path (path);
+}
+
+#if WEBKIT_CHECK_VERSION (1, 3, 4)
+static gchar *
+get_view_mode() {
+    WebKitWebViewViewMode mode = webkit_web_view_get_view_mode (uzbl.gui.web_view);
+
+    switch (mode) {
+    case WEBKIT_WEB_VIEW_VIEW_MODE_WINDOWED:
+        return g_strdup("windowed");
+    case WEBKIT_WEB_VIEW_VIEW_MODE_FLOATING:
+        return g_strdup("floating");
+    case WEBKIT_WEB_VIEW_VIEW_MODE_FULLSCREEN:
+        return g_strdup("fullscreen");
+    case WEBKIT_WEB_VIEW_VIEW_MODE_MAXIMIZED:
+        return g_strdup("maximized");
+    case WEBKIT_WEB_VIEW_VIEW_MODE_MINIMIZED:
+        return g_strdup("minimized");
+    default:
+        return g_strdup("unknown");
+    }
+}
+
+static void
+set_view_mode(const gchar *mode) {
+    if (!g_strcmp0 (mode, "windowed")) {
+        webkit_web_view_set_view_mode (uzbl.gui.web_view, WEBKIT_WEB_VIEW_VIEW_MODE_WINDOWED);
+    } else if (!g_strcmp0 (mode, "floating")) {
+        webkit_web_view_set_view_mode (uzbl.gui.web_view, WEBKIT_WEB_VIEW_VIEW_MODE_FLOATING);
+    } else if (!g_strcmp0 (mode, "fullscreen")) {
+        webkit_web_view_set_view_mode (uzbl.gui.web_view, WEBKIT_WEB_VIEW_VIEW_MODE_FULLSCREEN);
+    } else if (!g_strcmp0 (mode, "maximized")) {
+        webkit_web_view_set_view_mode (uzbl.gui.web_view, WEBKIT_WEB_VIEW_VIEW_MODE_MAXIMIZED);
+    } else if (!g_strcmp0 (mode, "minimized")) {
+        webkit_web_view_set_view_mode (uzbl.gui.web_view, WEBKIT_WEB_VIEW_VIEW_MODE_MINIMIZED);
+    }
+}
+#endif
+
+#if WEBKIT_CHECK_VERSION (1, 3, 17)
+static gchar *
+get_inspected_uri() {
+    return g_strdup (webkit_web_inspector_get_inspected_uri (uzbl.gui.inspector));
+}
+#endif
+
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+static gchar *
+get_app_cache_directory() {
+    return g_strdup (webkit_application_cache_get_database_directory_path ());
+}
+
+static unsigned long long
+get_app_cache_size() {
+    return webkit_application_cache_get_maximum_size ();
+}
+
+static void
+set_app_cache_size(unsigned long long size) {
+    webkit_application_cache_set_maximum_size (size);
+}
+#endif
+
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+static void
+mimetype_list_append(WebKitWebPluginMIMEType *mimetype, GString *list) {
+    if (*list->str != '[') {
+        g_string_append_c (list, ',');
+    }
+
+    /* Write out a JSON representation of the information */
+    g_string_append_printf (list,
+            "{\"name\": \"%s\","
+            "\"description\": \"%s\","
+            "\"extensions\": [", /* Open array for the extensions */
+            mimetype->name,
+            mimetype->description);
+
+    char **extension = mimetype->extensions;
+    gboolean first = TRUE;
+
+    while (extension) {
+        if (first) {
+            first = FALSE;
+        } else {
+            g_string_append_c (list, ',');
+        }
+        g_string_append (list, *extension);
+
+        ++extension;
+    }
+
+    g_string_append_c (list, '}');
+}
+
+static void
+plugin_list_append(WebKitWebPlugin *plugin, GString *list) {
+    if (*list->str != '[') {
+        g_string_append_c (list, ',');
+    }
+
+    const gchar *desc = webkit_web_plugin_get_description (plugin);
+    gboolean enabled = webkit_web_plugin_get_enabled (plugin);
+    GSList *mimetypes = webkit_web_plugin_get_mimetypes (plugin);
+    const gchar *name = webkit_web_plugin_get_name (plugin);
+    const gchar *path = webkit_web_plugin_get_path (plugin);
+
+    /* Write out a JSON representation of the information */
+    g_string_append_printf (list,
+            "{\"name\": \"%s\","
+            "\"description\": \"%s\","
+            "\"enabled\": %s,"
+            "\"path\": \"%s\","
+            "\"mimetypes\": [", /* Open array for the mimetypes */
+            name,
+            desc,
+            enabled ? "true" : "false",
+            path);
+
+    g_slist_foreach (mimetypes, (GFunc)mimetype_list_append, list);
+
+    /* Close the array and the object */
+    g_string_append (list, "]}");
+}
+
+static gchar *
+get_plugin_list() {
+    WebKitWebPluginDatabase *db = webkit_get_web_plugin_database ();
+    GSList *plugins = webkit_web_plugin_database_get_plugins (db);
+
+    GString *list = g_string_new ("[");
+
+    g_slist_foreach (plugins, (GFunc)plugin_list_append, list);
+
+    g_string_append_c (list, ']');
+
+    webkit_web_plugin_database_plugins_list_free (plugins);
+
+    return g_string_free (list, FALSE);
+}
+#endif
+
 /* abbreviations to help keep the table's width humane */
 
 /* variables */
@@ -848,12 +1172,18 @@ get_zoom_level() {
 
 #define PTR_V_STR_GETSET(var)    { .type = TYPE_STR,   .dump = 1, .writeable = 1, .getter = (uzbl_fp) get_##var, .setter = (uzbl_fp)set_##var }
 #define PTR_V_INT_GETSET(var)    { .type = TYPE_INT,   .dump = 1, .writeable = 1, .getter = (uzbl_fp) get_##var, .setter = (uzbl_fp)set_##var }
+#define PTR_V_ULL_GETSET(var)    { .type = TYPE_ULL,   .dump = 1, .writeable = 1, .getter = (uzbl_fp) get_##var, .setter = (uzbl_fp)set_##var }
 #define PTR_V_FLOAT_GETSET(var)  { .type = TYPE_FLOAT, .dump = 1, .writeable = 1, .getter = (uzbl_fp) get_##var, .setter = (uzbl_fp)set_##var }
 
 /* constants */
 #define PTR_C_STR(var)           { .ptr = { .s = &(var) },       .type = TYPE_STR,   .dump = 0, .writeable = 0, .getter = NULL, .setter = NULL }
 #define PTR_C_INT(var)           { .ptr = { .i = (int*)&(var) }, .type = TYPE_INT,   .dump = 0, .writeable = 0, .getter = NULL, .setter = NULL }
 #define PTR_C_FLOAT(var)         { .ptr = { .f = &(var) },       .type = TYPE_FLOAT, .dump = 0, .writeable = 0, .getter = NULL, .setter = NULL }
+
+/* programmatic constants */
+#define PTR_C_STR_F(get)    { .type = TYPE_STR,   .dump = 0, .writeable = 0, .getter = (uzbl_fp)get, .setter = NULL }
+#define PTR_C_INT_F(get)    { .type = TYPE_INT,   .dump = 0, .writeable = 0, .getter = (uzbl_fp)get, .setter = NULL }
+#define PTR_C_FLOAT_F(get)  { .type = TYPE_FLOAT, .dump = 0, .writeable = 0, .getter = (uzbl_fp)get, .setter = NULL }
 
 const struct var_name_to_ptr_t {
     const char *name;
@@ -904,6 +1234,12 @@ const struct var_name_to_ptr_t {
     { "ssl_verify",             PTR_V_INT_GETSET(verify_cert)},
 
     { "enable_builtin_auth",    PTR_V_INT_GETSET(enable_builtin_auth)},
+    { "cache_model",            PTR_V_STR_GETSET(cache_model)},
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+    { "app_cache_size",         PTR_V_ULL_GETSET(app_cache_size)},
+#endif
+    { "web_database_directory", PTR_V_STR_GETSET(web_database_directory)},
+    { "web_database_quota",     PTR_V_ULL_GETSET(web_database_quota)},
 
     /* exported WebKitWebSettings properties */
     /* Font settings */
@@ -919,8 +1255,9 @@ const struct var_name_to_ptr_t {
     { "monospace_size",         PTR_V_INT_GETSET(monospace_size)},
     /* Text settings */
     { "default_encoding",       PTR_V_STR_GETSET(default_encoding)},
-    { "current_encoding",       PTR_V_STR_GETSET(current_encoding)},
+    { "custom_encoding",        PTR_V_STR_GETSET(custom_encoding)},
     { "enforce_96_dpi",         PTR_V_INT_GETSET(enforce_96_dpi)},
+    { "editable",               PTR_V_INT_GETSET(editable)},
     /* Feature settings */
     { "enable_plugins",         PTR_V_INT_GETSET(enable_plugins)},
     { "enable_java_applet",     PTR_V_INT_GETSET(enable_java_applet)},
@@ -928,10 +1265,13 @@ const struct var_name_to_ptr_t {
     { "enable_webgl",           PTR_V_INT_GETSET(enable_webgl)},
 #endif
 #if WEBKIT_CHECK_VERSION (1, 7, 5)
-    { "enable_webaudio",           PTR_V_INT_GETSET(enable_webaudio)},
+    { "enable_webaudio",        PTR_V_INT_GETSET(enable_webaudio)},
 #endif
-#if WEBKIT_CHECK_VERSION (1, 7, 90) // Documentation says 1.7.5, but it's not there.
+#if WEBKIT_CHECK_VERSION (1, 7, 90) /* Documentation says 1.7.5, but it's not there. */
     { "enable_3d_acceleration", PTR_V_INT_GETSET(enable_3d_acceleration)},
+#endif
+#if WEBKIT_CHECK_VERSION (1, 11, 1)
+    { "enable_css_shaders",     PTR_V_INT_GETSET(enable_css_shaders)},
 #endif
     /* HTML5 Database settings */
     { "enable_database",        PTR_V_INT_GETSET(enable_database)},
@@ -950,7 +1290,16 @@ const struct var_name_to_ptr_t {
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
     { "enable_dns_prefetch",    PTR_V_INT_GETSET(enable_dns_prefetch)},
 #endif
+#if WEBKIT_CHECK_VERSION (1, 11, 2)
+    { "display_insecure_content",PTR_V_INT_GETSET(display_insecure_content)},
+    { "run_insecure_content",   PTR_V_INT_GETSET(run_insecure_content)},
+#endif
+    { "maintain_history",       PTR_V_INT_GETSET(maintain_history)},
     /* Display settings */
+    { "transparent",            PTR_V_STR_GETSET(transparent)},
+#if WEBKIT_CHECK_VERSION (1, 3, 4)
+    { "view_mode",              PTR_V_STR_GETSET(view_mode)},
+#endif
     { "zoom_level",             PTR_V_FLOAT_GETSET(zoom_level)},
     { "zoom_step",              PTR_V_FLOAT_GETSET(zoom_step)},
 #ifndef USE_WEBKIT2
@@ -984,6 +1333,9 @@ const struct var_name_to_ptr_t {
     { "enable_inline_media",    PTR_V_INT_GETSET(enable_inline_media)},
     { "require_click_to_play",  PTR_V_INT_GETSET(require_click_to_play)},
 #endif
+#if WEBKIT_CHECK_VERSION (1, 11, 1)
+    { "enable_media_stream",    PTR_V_INT_GETSET(enable_media_stream)},
+#endif
     /* Image settings */
     { "autoload_images",        PTR_V_INT_GETSET(autoload_images)},
     { "autoshrink_images",      PTR_V_INT_GETSET(autoshrink_images)},
@@ -1006,7 +1358,13 @@ const struct var_name_to_ptr_t {
     { "enable_site_workarounds", PTR_V_INT_GETSET(enable_site_workarounds)},
     /* Printing settings */
     { "print_backgrounds",      PTR_V_INT_GETSET(print_bg)},
+    /* Inspector settings */
+    { "profile_js",             PTR_V_INT_GETSET(profile_js)},
+    { "profile_timeline",       PTR_V_INT_GETSET(profile_timeline)},
 
+#ifdef USE_WEBKIT2
+    { "inject_text",            { .type = TYPE_STR, .dump = 0, .writeable = 1, .getter = NULL, .setter = (uzbl_fp) set_inject_text }},
+#endif
     { "inject_html",            { .type = TYPE_STR, .dump = 0, .writeable = 1, .getter = NULL, .setter = (uzbl_fp) set_inject_html }},
 
     /* constants (not dumpable or writeable) */
@@ -1021,6 +1379,18 @@ const struct var_name_to_ptr_t {
     { "NAME",                   PTR_C_STR(uzbl.state.instance_name)},
     { "PID",                    PTR_C_STR(uzbl.info.pid_str)},
     { "_",                      PTR_C_STR(uzbl.state.last_result)},
+
+    /* runtime settings */
+    { "current_encoding",       PTR_C_STR_F(get_current_encoding)},
+#if WEBKIT_CHECK_VERSION (1, 3, 17)
+    { "inspected_uri",          PTR_C_STR_F(get_inspected_uri)},
+#endif
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+    { "app_cache_directory",    PTR_C_STR_F(get_app_cache_directory)},
+#endif
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+    { "plugin_list",            PTR_C_STR_F(get_plugin_list)},
+#endif
 
     /* and we terminate the whole thing with the closest thing we have to NULL.
      * it's important that dump = 0. */

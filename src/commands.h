@@ -55,8 +55,29 @@ void        search_reverse_text (WebKitWebView *page, GArray *argv, GString *res
 void        search_clear(WebKitWebView *page, GArray *argv, GString *result);
 void        dehilight (WebKitWebView *page, GArray *argv, GString *result);
 void        hardcopy(WebKitWebView *page, GArray *argv, GString *result);
+#ifndef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 6)
+void        snapshot(WebKitWebView *page, GArray *argv, GString *result);
+#endif
+#endif
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 90)
+void        load(WebKitWebView *page, GArray *argv, GString *result);
+void        save(WebKitWebView *page, GArray *argv, GString *result);
+#endif
+#endif
+void        remove_all_db(WebKitWebView *page, GArray *argv, GString *result);
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+void        plugin_refresh(WebKitWebView *page, GArray *argv, GString *result);
+void        plugin_toggle(WebKitWebView *page, GArray *argv, GString *result);
+#endif
 void        include(WebKitWebView *page, GArray *argv, GString *result);
+/* Deprecated (use inspector instead) */
 void        show_inspector(WebKitWebView *page, GArray *argv, GString *result);
+void        inspector(WebKitWebView *page, GArray *argv, GString *result);
+#if WEBKIT_CHECK_VERSION (1, 5, 1)
+void        spell_checker(WebKitWebView *page, GArray *argv, GString *result);
+#endif
 void        add_cookie(WebKitWebView *page, GArray *argv, GString *result);
 void        delete_cookie(WebKitWebView *page, GArray *argv, GString *result);
 void        clear_cookies(WebKitWebView *pag, GArray *argv, GString *result);

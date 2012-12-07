@@ -161,6 +161,7 @@ typedef struct {
     guint    http_debug;
     gchar*   shell_cmd;
     guint    view_source;
+    gboolean maintain_history;
 
     gboolean print_version;
 

@@ -171,6 +171,10 @@ vformat_event(int type, const gchar *custom_event, va_list vargs) {
             g_string_append_printf (event_message, "%d", va_arg (vargs, int));
             break;
 
+        case TYPE_ULL:
+            g_string_append_printf (event_message, "%llu", va_arg (vargs, unsigned long long));
+            break;
+
         case TYPE_STR:
             /* a string that needs to be escaped */
             g_string_append_c (event_message, '\'');

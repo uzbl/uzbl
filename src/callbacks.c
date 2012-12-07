@@ -482,7 +482,21 @@ download_cb(WebKitWebView *web_view, WebKitDownload *download, gpointer user_dat
 
     /* get a reasonable suggestion for a filename */
     const gchar *suggested_filename;
+#ifdef USE_WEBKIT2
+    WebKitURIResponse *response;
+    g_object_get(download, "network-response", &response, NULL);
+#if WEBKIT_CHECK_VERSION (1, 9, 90)
+    g_object_get(response, "suggested-filename", &suggested_filename, NULL);
+#else
+    suggested_filename = webkit_uri_response_get_suggested_filename(respose);
+#endif
+#elif WEBKIT_CHECK_VERSION (1, 9, 6)
+    WebKitNetworkResponse *response;
+    g_object_get(download, "network-response", &response, NULL);
+    g_object_get(response, "suggested-filename", &suggested_filename, NULL);
+#else
     g_object_get(download, "suggested-filename", &suggested_filename, NULL);
+#endif
 
     /* get the mimetype of the download */
     const gchar *content_type = NULL;

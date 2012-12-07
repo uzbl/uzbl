@@ -55,8 +55,29 @@ CommandInfo cmdlist[] =
     { "menu_image_remove",              menu_remove_image, TRUE        },
     { "menu_editable_remove",           menu_remove_edit, TRUE         },
     { "hardcopy",                       hardcopy, TRUE                 },
+#ifndef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 6)
+    { "snapshot",                       snapshot, TRUE                 },
+#endif
+#endif
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 90)
+    { "load",                           load, TRUE                     },
+    { "save",                           save, TRUE                     },
+#endif
+#endif
+    { "remove_all_db",                  remove_all_db, 0               },
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+    { "plugin_refresh",                 plugin_refresh, TRUE           },
+    { "plugin_toggle",                  plugin_toggle, TRUE            },
+#endif
     { "include",                        include, TRUE                  },
+    /* Deprecated */
     { "show_inspector",                 show_inspector, 0              },
+    { "inspector",                      inspector, TRUE                },
+#if WEBKIT_CHECK_VERSION (1, 5, 1)
+    { "spell_checker",                  spell_checker, TRUE            },
+#endif
     { "add_cookie",                     add_cookie, 0                  },
     { "delete_cookie",                  delete_cookie, 0               },
     { "clear_cookies",                  clear_cookies, 0               },
@@ -256,6 +277,34 @@ toggle_var(WebKitWebView *page, GArray *argv, GString *result) {
         set_var_value_int_c(c, next);
         break;
     }
+    case TYPE_ULL:
+    {
+        unsigned long long current = get_var_value_int_c(c);
+        unsigned long long next;
+
+        if(argv->len >= 3) {
+            guint i = 2;
+
+            unsigned long long first = strtoull(argv_idx(argv, 1), NULL, 10);
+            unsigned long long  this = first;
+
+            const gchar *next_s = argv_idx(argv, 2);
+
+            while(next_s && this != current) {
+                this   = strtoull(next_s, NULL, 10);
+                next_s = argv_idx(argv, ++i);
+            }
+
+            if(next_s)
+                next = strtoull(next_s, NULL, 10);
+            else
+                next = first;
+        } else
+            next = !current;
+
+        set_var_value_ull_c(c, next);
+        break;
+    }
     case TYPE_FLOAT:
     {
         float current = get_var_value_float_c(c);
@@ -331,6 +380,117 @@ hardcopy(WebKitWebView *page, GArray *argv, GString *result) {
     webkit_web_frame_print(webkit_web_view_get_main_frame(page));
 }
 
+#ifndef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 6)
+void
+snapshot(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) result;
+    cairo_surface_t* surface;
+
+    surface = webkit_web_view_get_snapshot(page);
+
+    cairo_surface_write_to_png(surface, argv_idx(argv, 0));
+
+    cairo_surface_destroy(surface);
+}
+#endif
+#endif
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 90)
+void
+load(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) result;
+
+    guint sz = argv->len;
+
+    const gchar *content = sz > 0 ? argv_idx(argv, 0) : NULL;
+    const gchar *content_uri = sz > 2 ? argv_idx(argv, 1) : NULL;
+    const gchar *base_uri = sz > 2 ? argv_idx(argv, 2) : NULL;
+
+    webkit_web_view_load_alternate_html(page, content, content_uri, base_uri);
+}
+
+void
+save(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) result;
+    guint sz = argv->len;
+
+    const gchar *mode_str = sz > 0 ? argv_idx(argv, 0) : NULL;
+
+    WebKitSaveMode mode = WEBKIT_SAVE_MODE_MHTML;
+
+    if (!mode) {
+        mode = WEBKIT_SAVE_MODE_MHTML;
+    } else if (!strcmp("mhtml", mode_str)) {
+        mode = WEBKIT_SAVE_MODE_MHTML;
+    }
+
+    if (sz > 1) {
+        const gchar *path = argv_idx(argv, 1);
+        GFile *gfile = g_file_new_for_path(path);
+
+        webkit_web_view_save_to_file(page, gfile, mode, NULL, NULL, NULL);
+        /* TODO: Don't ignore the error */
+        webkit_web_view_save_to_file_finish(page, NULL, NULL);
+    } else {
+        webkit_web_view_save(page, mode, NULL, NULL, NULL);
+        /* TODO: Don't ignore the error */
+        webkit_web_view_save_finish(page, NULL, NULL);
+    }
+}
+#endif
+#endif
+
+void
+remove_all_db(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page; (void) argv; (void) result;
+
+    webkit_remove_all_web_databases ();
+}
+
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+void
+plugin_refresh(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page; (void) argv; (void) result;
+
+    WebKitWebPluginDatabase *db = webkit_get_web_plugin_database ();
+    webkit_web_plugin_database_refresh (db);
+}
+
+static void
+plugin_toggle_one(WebKitWebPlugin *plugin, const gchar *name) {
+    const gchar *plugin_name = webkit_web_plugin_get_name (plugin);
+
+    if (!name || !g_strcmp0 (name, plugin_name)) {
+        gboolean enabled = webkit_web_plugin_get_enabled (plugin);
+
+        webkit_web_plugin_set_enabled (plugin, !enabled);
+    }
+}
+
+void
+plugin_toggle(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page; (void) result;
+
+    WebKitWebPluginDatabase *db = webkit_get_web_plugin_database ();
+    GSList *plugins = webkit_web_plugin_database_get_plugins (db);
+
+    if (argv->len == 0) {
+        g_slist_foreach (plugins, (GFunc)plugin_toggle_one, NULL);
+    } else {
+        guint i;
+        for (i = 0; i < argv->len; ++i) {
+            const gchar *plugin_name = argv_idx (argv, i);
+
+            g_slist_foreach (plugins, (GFunc)plugin_toggle_one, &plugin_name);
+        }
+    }
+
+    webkit_web_plugin_database_plugins_list_free (plugins);
+}
+#endif
+
 void
 include(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
@@ -352,6 +512,103 @@ show_inspector(WebKitWebView *page, GArray *argv, GString *result) {
 
     webkit_web_inspector_show(uzbl.gui.inspector);
 }
+
+void
+inspector(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page; (void) result;
+
+    if (argv->len < 1) {
+        return;
+    }
+
+    const gchar* command = argv_idx (argv, 0);
+
+    if (!g_strcmp0 (command, "show")) {
+        webkit_web_inspector_show (uzbl.gui.inspector);
+    } else if (!g_strcmp0 (command, "close")) {
+        webkit_web_inspector_close (uzbl.gui.inspector);
+    } else if (!g_strcmp0 (command, "coord")) {
+        if (argv->len < 3) {
+            return;
+        }
+
+        gdouble x = strtod (argv_idx (argv, 1), NULL);
+        gdouble y = strtod (argv_idx (argv, 2), NULL);
+
+        /* Let's not tempt the dragons. */
+        if (errno == ERANGE) {
+            return;
+        }
+
+        webkit_web_inspector_inspect_coordinates (uzbl.gui.inspector, x, y);
+#if WEBKIT_CHECK_VERSION (1, 3, 17)
+    } else if (!g_strcmp0 (command, "node")) {
+        /* TODO: Implement */
+#endif
+    }
+}
+
+#if WEBKIT_CHECK_VERSION (1, 5, 1)
+void
+spell_checker(WebKitWebView *page, GArray *argv, GString *result) {
+    (void) page;
+
+    if (argv->len < 1) {
+        return;
+    }
+
+    GObject *obj = webkit_get_text_checker ();
+
+    if (!obj) {
+        return;
+    }
+    if (!WEBKIT_IS_SPELL_CHECKER (obj)) {
+        return;
+    }
+
+    WebKitSpellChecker *checker = WEBKIT_SPELL_CHECKER (obj);
+
+    const gchar* command = argv_idx (argv, 0);
+
+    if (!g_strcmp0 (command, "ignore")) {
+        if (argv->len < 2) {
+            return;
+        }
+
+        guint i;
+        for (i = 1; i < argv->len; ++i) {
+            const gchar *word = argv_idx (argv, i);
+
+            webkit_spell_checker_ignore_word (checker, word);
+        }
+    } else if (!g_strcmp0 (command, "learn")) {
+        if (argv->len < 2) {
+            return;
+        }
+
+        guint i;
+        for (i = 1; i < argv->len; ++i) {
+            const gchar *word = argv_idx (argv, i);
+
+            webkit_spell_checker_learn_word (checker, word);
+        }
+    } else if (!g_strcmp0 (command, "autocorrect")) {
+        if (argv->len != 2) {
+            return;
+        }
+
+        gchar *word = argv_idx (argv, 1);
+
+        char *new_word = webkit_spell_checker_get_autocorrect_suggestions_for_misspelled_word (checker, word);
+
+        g_string_assign (result, new_word);
+
+        free (new_word);
+    } else if (!g_strcmp0 (command, "guesses")) {
+        /* TODO Implement */
+    }
+}
+#endif
 
 void
 add_cookie(WebKitWebView *page, GArray *argv, GString *result) {
