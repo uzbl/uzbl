@@ -1,3 +1,7 @@
+# Create a local.mk file to store default local settings to override the
+# defaults below.
+include $(wildcard local.mk)
+
 # packagers, set DESTDIR to your "package directory" and PREFIX to the prefix you want to have on the end-user system
 # end-users who build from source: don't care about DESTDIR, update PREFIX if you want to
 # RUN_PREFIX : what the prefix is when the software is run. usually the same as PREFIX
