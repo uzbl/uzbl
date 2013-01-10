@@ -232,6 +232,11 @@ config = {
   'selected_https':         'foreground = "#fff"',
   'selected_https_text':    'foreground = "gold"',
 
+  #Explicit config file. Unlike the other configs, this one cannot be inherited
+  #from the uzbl config file, as stated above. I've only put it here because
+  #load_session() is already called in UzblTabbed.__init__.
+  'explicit_config_file':   None,
+
 } # End of config dict.
 
 UZBL_TABBED_VARS = config.keys()
@@ -898,6 +903,9 @@ class UzblTabbed:
         if(uri):
           cmd = cmd + ['--uri', str(uri)]
 
+        if config['explicit_config_file'] is not None:
+            cmd = cmd + ['-c', config['explicit_config_file']]
+
         gobject.spawn_async(cmd, flags=gobject.SPAWN_SEARCH_PATH)
 
         uzbl = UzblInstance(self, name, uri, title, switch)
@@ -1283,6 +1291,8 @@ if __name__ == "__main__":
       help="directory to create socket")
     parser.add_option('-f', '--fifodir', dest='fifodir',
       help="directory to create fifo")
+    parser.add_option('--config-file', dest='config_file',
+      help="configuration file for all uzbl-browser instances")
 
     # Parse command line options
     (options, uris) = parser.parse_args()
@@ -1296,6 +1306,15 @@ if __name__ == "__main__":
     if config['verbose']:
         import pprint
         sys.stderr.write("%s\n" % pprint.pformat(config))
+
+    if options.config_file is not None:
+        if not os.path.exists(options.config_file):
+            errorstr = "Explicit config file {} does not exist" % (
+                options.config_file)
+            error(errorstr)
+            sys.exit(-1)
+
+        config['explicit_config_file'] = options.config_file
 
     uzbl = UzblTabbed()
 
