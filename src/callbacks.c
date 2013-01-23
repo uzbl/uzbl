@@ -683,7 +683,7 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
     (void) c;
     gint context;
 
-    if(!g->menu_items)
+    if(!uzbl.gui.menu_items)
         return;
 
     /* check context */
@@ -708,7 +708,7 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
 
     populate_context_menu(m, hit_test_result, context);
 
-    g_object_unref(mi->hittest);
+    g_object_unref(hit_test_result);
 }
 #endif
 
