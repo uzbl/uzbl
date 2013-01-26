@@ -208,7 +208,7 @@ DECLARE_GETSET (int, enable_smooth_scrolling);
 #ifndef USE_WEBKIT2
 DECLARE_GETSET (int, transparent);
 #if WEBKIT_CHECK_VERSION (1, 3, 4)
-DECLARE_GETSET (gchar *, view_mode);
+DECLARE_GETSET (gchar *, window_view_mode);
 #endif
 #endif
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
@@ -454,7 +454,7 @@ builtin_variable_table[] = {
 #ifndef USE_WEBKIT2
     { "transparent",                  UZBL_V_FUNC (transparent,                            INT)},
 #if WEBKIT_CHECK_VERSION (1, 3, 4)
-    { "view_mode",                    UZBL_V_FUNC (view_mode,                              STR)},
+    { "window_view_mode",             UZBL_V_FUNC (window_view_mode,                       STR)},
 #endif
 #endif
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
@@ -2313,25 +2313,25 @@ GOBJECT_GETSET (int, transparent,
                 webkit_view (), "transparent")
 
 #if WEBKIT_CHECK_VERSION (1, 3, 4)
-#define view_mode_choices(call)                               \
+#define window_view_mode_choices(call)                        \
     call (WEBKIT_WEB_VIEW_VIEW_MODE_WINDOWED, "windowed")     \
     call (WEBKIT_WEB_VIEW_VIEW_MODE_FLOATING, "floating")     \
     call (WEBKIT_WEB_VIEW_VIEW_MODE_FULLSCREEN, "fullscreen") \
     call (WEBKIT_WEB_VIEW_VIEW_MODE_MAXIMIZED, "maximized")   \
     call (WEBKIT_WEB_VIEW_VIEW_MODE_MINIMIZED, "minimized")
 
-#define _webkit_web_view_get_view_mode() \
+#define _webkit_web_view_get_window_view_mode() \
     webkit_web_view_get_view_mode (uzbl.gui.web_view)
-#define _webkit_web_view_set_view_mode(val) \
+#define _webkit_web_view_set_window_view_mode(val) \
     webkit_web_view_set_view_mode (uzbl.gui.web_view, val)
 
-CHOICE_GETSET (WebKitWebViewViewMode, view_mode,
-               _webkit_web_view_get_view_mode, _webkit_web_view_set_view_mode)
+CHOICE_GETSET (WebKitWebViewViewMode, window_view_mode,
+               _webkit_web_view_get_window_view_mode, _webkit_web_view_set_window_view_mode)
 
-#undef _webkit_web_view_get_view_mode
-#undef _webkit_web_view_set_view_mode
+#undef _webkit_web_view_get_window_view_mode
+#undef _webkit_web_view_set_window_view_mode
 
-#undef view_mode_choices
+#undef window_view_mode_choices
 #endif
 #endif
 
