@@ -493,6 +493,9 @@ file).
 * `web_database_quota`: The default quota for web databases. (default 5MB).
 * `profile_js`: Sets whether to profile JavaScript code.
 * `profile_timeline`: Sets whether to profile the timeline.
+* `page_view_mode`: The view mode for webkit. One of: "web" or "source".
+  This is also modified when `view_source` is set. Requires webkit2gtk >=
+  1.11.4.
 
 #### Constants (not dumpable or writeable)
 
