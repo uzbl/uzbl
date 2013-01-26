@@ -837,6 +837,9 @@ Events have this format:
   When a cookie was deleted. arguments as ADD_COOKIE
 * `EVENT [uzbl_instance_name] AUTHENTICATE uniqueid host realm retry`: When a
   request requires authentication. authentication is done by calling `auth`
+* `EVENT [uzbl_instance_name] INSECURE_CONTENT why`: When insecure content is
+  detected, this event is generated. Currently known values for `why` include:
+  "run" and "displayed".
 
 Events/requests which the EM and its plugins listens for
 
