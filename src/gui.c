@@ -270,6 +270,8 @@ button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
         } else if ((event->button == 2) && !is_editable) {
             sendev    = TRUE;
             propagate = TRUE;
+        } else if (event->button == 3) {
+            /* Ignore middle click */
         } else if (event->button > 3) {
             sendev    = TRUE;
             propagate = TRUE;
@@ -315,6 +317,8 @@ button_release_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
         if ((event->button == 2) && !is_editable) {
             sendev    = TRUE;
             propagate = TRUE;
+        } else if (event->button == 3) {
+            /* Ignore middle click */
         } else if (event->button > 3) {
             sendev    = TRUE;
             propagate = TRUE;
