@@ -1059,7 +1059,11 @@ populate_popup_cb (WebKitWebView *view, GtkMenu *menu, gpointer data)
     event.y = y;
     hit_test_result = webkit_web_view_get_hit_test_result (view, &event);
 
-    return populate_context_menu (menu, hit_test_result, context);
+    gboolean ret = populate_context_menu (menu, hit_test_result, context);
+
+    g_object_unref (hit_test_result);
+
+    return ret;
 }
 #endif
 
