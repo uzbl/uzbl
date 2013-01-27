@@ -847,7 +847,7 @@ main (int argc, char* argv[]) {
 
         gchar *xwin_str = g_strdup_printf("%d", (int)xwin);
         g_setenv("UZBL_XID", xwin_str, TRUE);
-        g_free(xwin_str);
+        g_free (xwin_str);
 
         gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
     }
@@ -883,7 +883,7 @@ main (int argc, char* argv[]) {
 
     /* Finally show the window */
     if (uzbl.gui.main_window) {
-        gtk_widget_show_all (uzbl.gui.main_window);
+        gtk_widget_show_all (GTK_WIDGET (uzbl.gui.main_window));
     } else {
         gtk_widget_show_all (GTK_WIDGET (uzbl.gui.plug));
     }
