@@ -297,6 +297,7 @@ key_release_cb (GtkWidget *widget, GdkEventKey *event, gpointer data)
 
 /* Mouse events */
 
+#define NO_CLICK_CONTEXT -1
 static gint
 get_click_context (void);
 
@@ -411,7 +412,7 @@ get_click_context ()
     guint context;
 
     if (!uzbl.state.last_button) {
-        return -1;
+        return NO_CLICK_CONTEXT;
     }
 
     ht = webkit_web_view_get_hit_test_result (uzbl.gui.web_view, uzbl.state.last_button);
@@ -1029,7 +1030,7 @@ context_menu_cb (WebKitWebView *view, GtkMenu *menu, WebKitHitTestResult *hit_te
     context = get_click_context ();
 
     /* check context */
-    if (context == -1) {
+    if (context == NO_CLICK_CONTEXT) {
         return FALSE;
     }
 
@@ -1051,7 +1052,7 @@ populate_popup_cb (WebKitWebView *view, GtkMenu *menu, gpointer data)
     context = get_click_context ();
 
     /* check context */
-    if (context == -1) {
+    if (context == NO_CLICK_CONTEXT) {
         return FALSE;
     }
 
