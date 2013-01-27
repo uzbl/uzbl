@@ -625,6 +625,10 @@ dom_blur_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data)
 
 /* Navigation events */
 
+/* TODO: Put into utils.h */
+static void
+remove_trailing_newline (const char *line);
+
 gboolean
 navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
         WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action,
@@ -652,10 +656,7 @@ navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
         g_array_free (args, TRUE);
 
         if (result->len > 0) {
-            char *p = strchr (result->str, '\n' );
-            if (p != NULL) {
-                *p = '\0';
-            }
+            remove_trailing_newline (result->str);
 
             if (!g_strcmp0 (result->str, "USED")) {
                 webkit_web_policy_decision_ignore (policy_decision);
@@ -825,10 +826,7 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
     g_string_free (result, FALSE);
 
     /* presumably people don't need newlines in their filenames. */
-    char *p = strchr (destination_path, '\n');
-    if (p != NULL) {
-        *p = '\0';
-    }
+    remove_trailing_newline (destination_path);
 
     /* set up progress callbacks */
     g_object_connect (G_OBJECT (download),
@@ -945,10 +943,7 @@ request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResour
         g_array_free (args, TRUE);
 
         if (result->len > 0) {
-            char *p = strchr (result->str, '\n' );
-            if (p != NULL) {
-                *p = '\0';
-            }
+            remove_trailing_newline (result->str);
 
             webkit_network_request_set_uri (request, result->str);
         }
@@ -1229,4 +1224,13 @@ configure_event_cb (GtkWidget *widget, GdkEventConfigure *event, gpointer data)
     g_free (current_geo);
 
     return FALSE;
+}
+
+void
+remove_trailing_newline (const char *line)
+{
+    char *p = strchr (line, '\n' );
+    if (p != NULL) {
+        *p = '\0';
+    }
 }
