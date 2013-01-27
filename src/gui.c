@@ -73,7 +73,7 @@ uzbl_status_bar_init (void)
         "signal::key-release-event", G_CALLBACK (key_press_cb), NULL,
         NULL);
 
-    /*
+    /* TODO: What should be done with these?
     g_object_connect (G_OBJECT (UZBL_STATUS_BAR (uzbl.gui.status_bar)->label_left),
         "signal::key-press-event",   G_CALLBACK (key_press_cb),   NULL,
         "signal::key-release-event", G_CALLBACK (key_release_cb), NULL,
@@ -234,6 +234,7 @@ uzbl_window_init (void)
     gtk_widget_set_name (GTK_WIDGET (uzbl.gui.main_window), "Uzbl");
 
 #if GTK_CHECK_VERSION (3, 0, 0)
+    /* TODO: Make into an option? */
     gtk_window_set_has_resize_grip (GTK_WINDOW (uzbl.gui.main_window), FALSE);
 #endif
 
@@ -256,6 +257,7 @@ uzbl_plug_init (void)
     gtk_container_add (GTK_CONTAINER (uzbl.gui.plug), uzbl.gui.vbox);
 
     g_object_connect (G_OBJECT (uzbl.gui.plug),
+        /* FIXME: Should we really quit GTK if the plug is destroyed? */
         "signal::destroy",           G_CALLBACK (destroy_cb),   NULL,
         "signal::key-press-event",   G_CALLBACK (key_press_cb), NULL,
         "signal::key-release-event", G_CALLBACK (key_press_cb), NULL,
@@ -473,6 +475,7 @@ title_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
     send_event (TITLE_CHANGED, NULL,
         TYPE_STR, uzbl.gui.main_title,
         NULL);
+    /* TODO: Collect all environment settings into one place. */
     g_setenv ("UZBL_TITLE", uzbl.gui.main_title, TRUE);
 }
 
@@ -706,6 +709,8 @@ mime_policy_cb (WebKitWebView *view, WebKitWebFrame *frame,
     UZBL_UNUSED (request);
     UZBL_UNUSED (data);
 
+    /* TODO: Ignore based on external filter program? */
+
     /* If we can display it, let's display it... */
     if (webkit_web_view_can_show_mime_type (view, mime_type)) {
         webkit_web_policy_decision_use (policy_decision);
@@ -834,6 +839,7 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
 
     /* convert relative path to absolute path */
     if (destination_path[0] != '/') {
+        /* TODO: Detect file:// URI from the handler */
         gchar *rel_path = destination_path;
         gchar *cwd = g_get_current_dir ();
         destination_path = g_strconcat (cwd, "/", destination_path, NULL);
@@ -885,9 +891,11 @@ download_status_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer d
     switch (status) {
         case WEBKIT_DOWNLOAD_STATUS_CREATED:
         case WEBKIT_DOWNLOAD_STATUS_STARTED:
+            break; /* these are irrelevant */
         case WEBKIT_DOWNLOAD_STATUS_ERROR:
         case WEBKIT_DOWNLOAD_STATUS_CANCELLED:
-            return; /* these are irrelevant */
+            /* TODO: Implement events for these. */
+            break;
         case WEBKIT_DOWNLOAD_STATUS_FINISHED:
         {
             const gchar *dest_uri = webkit_download_get_destination_uri (download);
@@ -895,6 +903,7 @@ download_status_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer d
             send_event (DOWNLOAD_COMPLETE, NULL,
                 TYPE_STR, dest_path,
                 NULL);
+            break;
         }
     }
 }
