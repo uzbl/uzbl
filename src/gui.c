@@ -72,11 +72,11 @@ uzbl_status_bar_init (void)
 
 /* Mouse events */
 static gboolean
-button_press_cb (GtkWidget* window, GdkEventButton* event);
+button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer data);
 static gboolean
-button_release_cb (GtkWidget* window, GdkEventButton* event);
+button_release_cb (GtkWidget *widget, GdkEventButton *event, gpointer data);
 static void
-link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data);
+link_hover_cb (WebKitWebView *view, const gchar *title, const gchar *link, gpointer data);
 
 void
 uzbl_web_view_init (void)
@@ -228,84 +228,91 @@ static gint
 get_click_context (void);
 
 gboolean
-button_press_cb (GtkWidget* window, GdkEventButton* event) {
-    (void) window;
+button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
+{
+    UZBL_UNUSED (widget);
+    UZBL_UNUSED (data);
+
     gint context;
-    gboolean propagate = FALSE,
-             sendev    = FALSE;
+    gboolean propagate = FALSE;
+    gboolean sendev    = FALSE;
 
-    // Save last button click for use in menu
-    if(uzbl.state.last_button)
-        gdk_event_free((GdkEvent *)uzbl.state.last_button);
-    uzbl.state.last_button = (GdkEventButton *)gdk_event_copy((GdkEvent *)event);
+    /* Save last button click for use in menu */
+    if (uzbl.state.last_button) {
+        gdk_event_free ((GdkEvent *)uzbl.state.last_button);
+    }
+    uzbl.state.last_button = (GdkEventButton *)gdk_event_copy ((GdkEvent *)event);
 
-    // Grab context from last click
-    context = get_click_context();
+    /* Grab context from last click */
+    context = get_click_context ();
 
     if(event->type == GDK_BUTTON_PRESS) {
         /* left click */
-        if(event->button == 1) {
-            if((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE))
-                send_event(FORM_ACTIVE, NULL, TYPE_NAME, "button1", NULL);
-            else if((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT))
-                send_event(ROOT_ACTIVE, NULL, TYPE_NAME, "button1", NULL);
-            else {
+        if (event->button == 1) {
+            if ((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
+                send_event (FORM_ACTIVE, NULL,
+                    TYPE_NAME, "button1",
+                    NULL);
+            } else if ((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT)) {
+                send_event (ROOT_ACTIVE, NULL,
+                    TYPE_NAME, "button1",
+                    NULL);
+            } else {
                 sendev    = TRUE;
                 propagate = TRUE;
             }
-        }
-        else if(event->button == 2 && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
+        } else if ((event->button == 2) && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
             sendev    = TRUE;
             propagate = TRUE;
-        }
-        else if(event->button > 3) {
+        } else if (event->button > 3) {
             sendev    = TRUE;
             propagate = TRUE;
         }
     }
 
-    if(event->type == GDK_2BUTTON_PRESS || event->type == GDK_3BUTTON_PRESS) {
-        if(event->button == 1 && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE) && (context & WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT)) {
+    if ((event->type == GDK_2BUTTON_PRESS) || (event->type == GDK_3BUTTON_PRESS)) {
+        if ((event->button == 1) && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE) && (context & WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT)) {
             sendev    = TRUE;
             propagate = uzbl.state.handle_multi_button;
-        }
-        else if(event->button == 2 && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
+        } else if ((event->button == 2) && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
             sendev    = TRUE;
             propagate = uzbl.state.handle_multi_button;
-        }
-        else if(event->button >= 3) {
+        } else if (event->button >= 3) {
             sendev    = TRUE;
             propagate = uzbl.state.handle_multi_button;
         }
     }
 
-    if(sendev) {
-        button_to_event(event->button, event->state, event->type);
+    if (sendev) {
+        button_to_event (event->button, event->state, event->type);
     }
 
     return propagate;
 }
 
 gboolean
-button_release_cb (GtkWidget* window, GdkEventButton* event) {
-    (void) window;
+button_release_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
+{
+    UZBL_UNUSED (widget);
+    UZBL_UNUSED (data);
+
     gint context;
-    gboolean propagate = FALSE,
-             sendev    = FALSE;
+    gboolean propagate = FALSE;
+    gboolean sendev    = FALSE;
 
-    context = get_click_context();
-    if(event->type == GDK_BUTTON_RELEASE) {
-        if(event->button == 2 && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
+    context = get_click_context ();
+
+    if (event->type == GDK_BUTTON_RELEASE) {
+        if ((event->button == 2) && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
+            sendev    = TRUE;
+            propagate = TRUE;
+        } else if (event->button > 3) {
             sendev    = TRUE;
             propagate = TRUE;
         }
-        else if(event->button > 3) {
-            sendev    = TRUE;
-            propagate = TRUE;
-        }
 
-        if(sendev) {
-            button_to_event(event->button, event->state, GDK_BUTTON_RELEASE);
+        if (sendev) {
+            button_to_event (event->button, event->state, GDK_BUTTON_RELEASE);
         }
     }
 
@@ -313,12 +320,14 @@ button_release_cb (GtkWidget* window, GdkEventButton* event) {
 }
 
 gint
-get_click_context() {
+get_click_context ()
+{
     WebKitHitTestResult *ht;
     guint context;
 
-    if(!uzbl.state.last_button)
+    if (!uzbl.state.last_button) {
         return -1;
+    }
 
     ht = webkit_web_view_get_hit_test_result (uzbl.gui.web_view, uzbl.state.last_button);
     g_object_get (ht, "context", &context, NULL);
@@ -328,29 +337,38 @@ get_click_context() {
 }
 
 void
-link_hover_cb (WebKitWebView *page, const gchar *title, const gchar *link, gpointer data) {
-    (void) page; (void) title; (void) data;
-    State *s = &uzbl.state;
+link_hover_cb (WebKitWebView *view, const gchar *title, const gchar *link, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (title);
+    UZBL_UNUSED (data);
 
-    if(s->last_selected_url)
-        g_free(s->last_selected_url);
-
-    if(s->selected_url) {
-        s->last_selected_url = g_strdup(s->selected_url);
-        g_free(s->selected_url);
-        s->selected_url = NULL;
-    } else
-        s->last_selected_url = NULL;
-
-    if(s->last_selected_url && g_strcmp0(link, s->last_selected_url))
-        send_event(LINK_UNHOVER, NULL, TYPE_STR, s->last_selected_url, NULL);
-
-    if (link) {
-        s->selected_url = g_strdup(link);
-        send_event(LINK_HOVER,   NULL, TYPE_STR, s->selected_url, NULL);
+    if (uzbl.state.last_selected_url) {
+        g_free (uzbl.state.last_selected_url);
     }
 
-    update_title();
+    if (uzbl.state.selected_url) {
+        uzbl.state.last_selected_url = g_strdup (uzbl.state.selected_url);
+        g_free (uzbl.state.selected_url);
+        uzbl.state.selected_url = NULL;
+    } else {
+        uzbl.state.last_selected_url = NULL;
+    }
+
+    if (uzbl.state.last_selected_url && g_strcmp0 (link, uzbl.state.last_selected_url)) {
+        send_event (LINK_UNHOVER, NULL,
+            TYPE_STR, uzbl.state.last_selected_url,
+            NULL);
+    }
+
+    if (link) {
+        uzbl.state.selected_url = g_strdup (link);
+        send_event (LINK_HOVER, NULL,
+            TYPE_STR, uzbl.state.selected_url,
+            NULL);
+    }
+
+    update_title ();
 }
 
 /* Window callbacks */
