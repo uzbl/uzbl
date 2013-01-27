@@ -314,17 +314,6 @@ set_window_property(const gchar* prop, const gchar* value) {
     }
 }
 
-void
-uri_change_cb (WebKitWebView *web_view, GParamSpec param_spec) {
-    (void) param_spec;
-
-    g_free (uzbl.state.uri);
-    g_object_get (web_view, "uri", &uzbl.state.uri, NULL);
-
-    g_setenv("UZBL_URI", uzbl.state.uri, TRUE);
-    set_window_property("UZBL_URI", uzbl.state.uri);
-}
-
 static gchar *
 make_uri_from_user_input(const gchar *uri) {
     gchar *result = NULL;
