@@ -12,5 +12,7 @@ void
 uzbl_gui_init (gboolean plugmode);
 void
 set_window_property (const gchar *prop, const gchar *value);
+gboolean /* FIXME: This should not be public here. */
+download_cb (WebKitWebView *web_view, WebKitDownload *download, gpointer user_data);
 
 #endif
