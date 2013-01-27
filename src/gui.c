@@ -109,21 +109,24 @@ window_object_cleared_cb (WebKitWebView *view, WebKitWebFrame *frame,
         JSGlobalContextRef *context, JSObjectRef *object, gpointer data);
 /* Navigation events */
 static gboolean
-navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
+navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
         WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action,
-        WebKitWebPolicyDecision *policy_decision, gpointer user_data);
+        WebKitWebPolicyDecision *policy_decision, gpointer data);
 static gboolean
-new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
+new_window_cb (WebKitWebView *view, WebKitWebFrame *frame,
         WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action,
-        WebKitWebPolicyDecision *policy_decision, gpointer user_data);
+        WebKitWebPolicyDecision *policy_decision, gpointer data);
 static gboolean
-mime_policy_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitNetworkRequest *request,
-        gchar *mime_type,  WebKitWebPolicyDecision *policy_decision, gpointer user_data);
+mime_policy_cb (WebKitWebView *view, WebKitWebFrame *frame,
+        WebKitNetworkRequest *request, gchar *mime_type,
+        WebKitWebPolicyDecision *policy_decision, gpointer data);
+/* FIXME: Make private again.
 static gboolean
-download_cb (WebKitWebView *web_view, WebKitDownload *download, gpointer user_data);
+download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data);
+*/
 static void
-request_starting_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitWebResource *resource,
-        WebKitNetworkRequest *request, WebKitNetworkResponse *response, gpointer user_data);
+request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResource *resource,
+        WebKitNetworkRequest *request, WebKitNetworkResponse *response, gpointer data);
 
 void
 uzbl_web_view_init (void)
@@ -473,7 +476,6 @@ load_status_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data
     UZBL_UNUSED (param_spec);
     UZBL_UNUSED (data);
 
-    WebKitWebFrame *frame;
     WebKitLoadStatus status;
 
     status = webkit_web_view_get_load_status (view);
@@ -485,11 +487,13 @@ load_status_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data
                 NULL);
             break;
         case WEBKIT_LOAD_COMMITTED:
-            frame = webkit_web_view_get_main_frame (view);
+        {
+            WebKitWebFrame *frame = webkit_web_view_get_main_frame (view);
             send_event (LOAD_COMMIT, NULL,
                 TYPE_STR, webkit_web_frame_get_uri (frame),
                 NULL);
             break;
+        }
         case WEBKIT_LOAD_FINISHED:
             send_event (LOAD_FINISH, NULL,
                 TYPE_STR, uzbl.state.uri,
@@ -599,60 +603,65 @@ dom_blur_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data)
 /* Navigation events */
 
 gboolean
-navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
+navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
         WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action,
-        WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
-    (void) web_view;
-    (void) frame;
-    (void) navigation_action;
-    (void) user_data;
+        WebKitWebPolicyDecision *policy_decision, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (frame);
+    UZBL_UNUSED (navigation_action);
+    UZBL_UNUSED (data);
 
-    const gchar* uri = webkit_network_request_get_uri (request);
+    const gchar *uri = webkit_network_request_get_uri (request);
     gboolean decision_made = FALSE;
 
-    if (uzbl.state.verbose)
-        printf("Navigation requested -> %s\n", uri);
+    uzbl_debug ("Navigation requested -> %s", uri);
 
     if (uzbl.behave.scheme_handler) {
         GString *result = g_string_new ("");
-        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-        const CommandInfo *c = parse_command_parts(uzbl.behave.scheme_handler, a);
+        GArray *args = g_array_new (TRUE, FALSE, sizeof (gchar *));
+        const CommandInfo *scheme_command = parse_command_parts (uzbl.behave.scheme_handler, args);
 
-        if(c) {
-            g_array_append_val(a, uri);
-            run_parsed_command(c, a, result);
+        if (scheme_command) {
+            g_array_append_val (args, uri);
+            run_parsed_command (scheme_command, args, result);
         }
-        g_array_free(a, TRUE);
+        g_array_free (args, TRUE);
 
-        if(result->len > 0) {
-            char *p = strchr(result->str, '\n' );
-            if ( p != NULL ) *p = '\0';
-            if (!strcmp(result->str, "USED")) {
-                webkit_web_policy_decision_ignore(policy_decision);
+        if (result->len > 0) {
+            char *p = strchr (result->str, '\n' );
+            if (p != NULL) {
+                *p = '\0';
+            }
+
+            if (!g_strcmp0 (result->str, "USED")) {
+                webkit_web_policy_decision_ignore (policy_decision);
                 decision_made = TRUE;
             }
         }
 
-        g_string_free(result, TRUE);
+        g_string_free (result, TRUE);
     }
-    if (!decision_made)
-        webkit_web_policy_decision_use(policy_decision);
+
+    if (!decision_made) {
+        webkit_web_policy_decision_use (policy_decision);
+    }
 
     return TRUE;
 }
 
 gboolean
-new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
+new_window_cb (WebKitWebView *view, WebKitWebFrame *frame,
         WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action,
-        WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
-    (void) web_view;
-    (void) frame;
-    (void) navigation_action;
-    (void) policy_decision;
-    (void) user_data;
+        WebKitWebPolicyDecision *policy_decision, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (frame);
+    UZBL_UNUSED (data);
 
-    if (uzbl.state.verbose)
-        printf ("New window requested -> %s \n", webkit_network_request_get_uri (request));
+    const gchar *uri = webkit_network_request_get_uri (request);
+
+    uzbl_debug ("New window requested -> %s", uri);
 
     /* This event function causes troubles with `target="_blank"` anchors.
      * Either we:
@@ -666,166 +675,187 @@ new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
      * We are leaving this uncommented as we would rather links open twice
      * than not at all.
      */
-    send_event (NEW_WINDOW, NULL, TYPE_STR, webkit_network_request_get_uri (request), NULL);
+    send_event (NEW_WINDOW, NULL,
+        TYPE_STR, uri,
+        NULL);
 
     webkit_web_policy_decision_ignore (policy_decision);
+
     return TRUE;
 }
 
 gboolean
-mime_policy_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
+mime_policy_cb (WebKitWebView *view, WebKitWebFrame *frame,
         WebKitNetworkRequest *request, gchar *mime_type,
-        WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
-    (void) frame;
-    (void) request;
-    (void) user_data;
+        WebKitWebPolicyDecision *policy_decision, gpointer data)
+{
+    UZBL_UNUSED (frame);
+    UZBL_UNUSED (request);
+    UZBL_UNUSED (data);
 
     /* If we can display it, let's display it... */
-    if (webkit_web_view_can_show_mime_type (web_view, mime_type)) {
+    if (webkit_web_view_can_show_mime_type (view, mime_type)) {
         webkit_web_policy_decision_use (policy_decision);
-        return TRUE;
+    } else {
+        /* ...everything we can't display is downloaded */
+        webkit_web_policy_decision_download (policy_decision);
     }
 
-    /* ...everything we can't display is downloaded */
-    webkit_web_policy_decision_download (policy_decision);
     return TRUE;
 }
 
 static void
-download_progress_cb(WebKitDownload *download, GParamSpec *pspec, gpointer user_data);
+download_progress_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data);
 static void
-download_status_cb(WebKitDownload *download, GParamSpec *pspec, gpointer user_data);
+download_status_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data);
 
 gboolean
-download_cb(WebKitWebView *web_view, WebKitDownload *download, gpointer user_data) {
-    (void) web_view; (void) user_data;
+download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
+{
+    UZBL_UNUSED (view);
 
     /* get the URI being downloaded */
-    const gchar *uri = webkit_download_get_uri(download);
+    const gchar *uri = webkit_download_get_uri (download);
 
     /* get the destination path, if specified.
      * this is only intended to be set when this function is trigger by an
      * explicit download using uzbl's 'download' action. */
-    const gchar *destination = user_data;
+    const gchar *destination = (const gchar *)data;
 
-    if (uzbl.state.verbose)
-        printf("Download requested -> %s\n", uri);
+    uzbl_debug ("Download requested -> %s", uri);
 
     if (!uzbl.behave.download_handler) {
-        webkit_download_cancel(download);
-        return FALSE; /* reject downloads when there's no download handler */
+        /* reject downloads when there's no download handler */
+        webkit_download_cancel (download);
+        return FALSE;
     }
 
     /* get a reasonable suggestion for a filename */
     const gchar *suggested_filename;
-    g_object_get(download, "suggested-filename", &suggested_filename, NULL);
+    g_object_get (download, "suggested-filename", &suggested_filename, NULL);
 
     /* get the mimetype of the download */
     const gchar *content_type = NULL;
-    WebKitNetworkResponse *r  = webkit_download_get_network_response(download);
+    WebKitNetworkResponse *response = webkit_download_get_network_response (download);
     /* downloads can be initiated from the context menu, in that case there is
        no network response yet and trying to get one would crash. */
-    if(WEBKIT_IS_NETWORK_RESPONSE(r)) {
-        SoupMessage        *m = webkit_network_response_get_message(r);
-        SoupMessageHeaders *h = NULL;
-        g_object_get(m, "response-headers", &h, NULL);
-        if(h) /* some versions of libsoup don't have "response-headers" here */
-            content_type = soup_message_headers_get_one(h, "Content-Type");
+    if (WEBKIT_IS_NETWORK_RESPONSE (response)) {
+        SoupMessage        *message = webkit_network_response_get_message (response);
+        SoupMessageHeaders *headers = NULL;
+        g_object_get (message, "response-headers", &headers, NULL);
+        /* some versions of libsoup don't have "response-headers" here */
+        if (headers) {
+            content_type = soup_message_headers_get_one (headers, "Content-Type");
+        }
     }
 
-    if(!content_type)
+    if (!content_type) {
         content_type = "application/octet-stream";
+    }
 
     /* get the filesize of the download, as given by the server.
-       (this may be inaccurate, there's nothing we can do about that.)  */
-    unsigned int total_size = webkit_download_get_total_size(download);
+       (this may be inaccurate, there's nothing we can do about that.) */
+    unsigned int total_size = webkit_download_get_total_size (download);
 
-    GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-    const CommandInfo *c = parse_command_parts(uzbl.behave.download_handler, a);
-    if(!c) {
-        webkit_download_cancel(download);
-        g_array_free(a, TRUE);
+    GArray *args = g_array_new (TRUE, FALSE, sizeof (gchar *));
+    const CommandInfo *download_command = parse_command_parts (uzbl.behave.download_handler, args);
+    if (!download_command) {
+        webkit_download_cancel (download);
+        g_array_free (args, TRUE);
         return FALSE;
     }
 
-    g_array_append_val(a, uri);
-    g_array_append_val(a, suggested_filename);
-    g_array_append_val(a, content_type);
-    gchar *total_size_s = g_strdup_printf("%d", total_size);
-    g_array_append_val(a, total_size_s);
+    g_array_append_val (args, uri);
+    g_array_append_val (args, suggested_filename);
+    g_array_append_val (args, content_type);
+    gchar *total_size_s = g_strdup_printf ("%d", total_size);
+    g_array_append_val (args, total_size_s);
 
-    if(destination)
-        g_array_append_val(a, destination);
+    if (destination) {
+        g_array_append_val (args, destination);
+    }
 
     GString *result = g_string_new ("");
-    run_parsed_command(c, a, result);
+    run_parsed_command (download_command, args, result);
 
-    g_free(total_size_s);
-    g_array_free(a, TRUE);
+    g_free (total_size_s);
+    g_array_free (args, TRUE);
 
     /* no response, cancel the download */
-    if(result->len == 0) {
-        webkit_download_cancel(download);
+    if (result->len == 0) {
+        webkit_download_cancel (download);
         return FALSE;
     }
 
     /* we got a response, it's the path we should download the file to */
     gchar *destination_path = result->str;
-    g_string_free(result, FALSE);
+    g_string_free (result, FALSE);
 
     /* presumably people don't need newlines in their filenames. */
-    char *p = strchr(destination_path, '\n');
-    if ( p != NULL ) *p = '\0';
-
-    /* set up progress callbacks */
-    g_signal_connect(download, "notify::status",   G_CALLBACK(download_status_cb),   NULL);
-    g_signal_connect(download, "notify::progress", G_CALLBACK(download_progress_cb), NULL);
-
-    /* convert relative path to absolute path */
-    if(destination_path[0] != '/') {
-        gchar *rel_path = destination_path;
-        gchar *cwd = g_get_current_dir();
-        destination_path = g_strconcat(cwd, "/", destination_path, NULL);
-        g_free(cwd);
-        g_free(rel_path);
+    char *p = strchr (destination_path, '\n');
+    if (p != NULL) {
+        *p = '\0';
     }
 
-    send_event(DOWNLOAD_STARTED, NULL, TYPE_STR, destination_path, NULL);
+    /* set up progress callbacks */
+    g_object_connect (G_OBJECT (download),
+        "signal::notify::status",   G_CALLBACK (download_status_cb),   NULL,
+        NULL);
+    g_object_connect (G_OBJECT (download),
+        "signal::notify::progress", G_CALLBACK (download_progress_cb), NULL,
+        NULL);
+
+    /* convert relative path to absolute path */
+    if (destination_path[0] != '/') {
+        gchar *rel_path = destination_path;
+        gchar *cwd = g_get_current_dir ();
+        destination_path = g_strconcat (cwd, "/", destination_path, NULL);
+        g_free (cwd);
+        g_free (rel_path);
+    }
+
+    send_event (DOWNLOAD_STARTED, NULL,
+        TYPE_STR, destination_path,
+        NULL);
 
     /* convert absolute path to file:// URI */
-    gchar *destination_uri = g_strconcat("file://", destination_path, NULL);
-    g_free(destination_path);
+    gchar *destination_uri = g_strconcat ("file://", destination_path, NULL);
+    g_free (destination_path);
 
-    webkit_download_set_destination_uri(download, destination_uri);
-    g_free(destination_uri);
+    webkit_download_set_destination_uri (download, destination_uri);
+    g_free (destination_uri);
 
     return TRUE;
 }
 
 void
-download_progress_cb(WebKitDownload *download, GParamSpec *pspec, gpointer user_data) {
-    (void) pspec; (void) user_data;
+download_progress_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data)
+{
+    UZBL_UNUSED (param_spec);
+    UZBL_UNUSED (data);
 
     gdouble progress;
-    g_object_get(download, "progress", &progress, NULL);
+    g_object_get (download, "progress", &progress, NULL);
 
-    const gchar *dest_uri = webkit_download_get_destination_uri(download);
-    const gchar *dest_path = dest_uri + strlen("file://");
+    const gchar *dest_uri = webkit_download_get_destination_uri (download);
+    const gchar *dest_path = dest_uri + strlen ("file://");
 
-    send_event(DOWNLOAD_PROGRESS, NULL,
+    send_event (DOWNLOAD_PROGRESS, NULL,
         TYPE_STR, dest_path,
         TYPE_FLOAT, progress,
         NULL);
 }
 
 void
-download_status_cb(WebKitDownload *download, GParamSpec *pspec, gpointer user_data) {
-    (void) pspec; (void) user_data;
+download_status_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data)
+{
+    UZBL_UNUSED (param_spec);
+    UZBL_UNUSED (data);
 
     WebKitDownloadStatus status;
-    g_object_get(download, "status", &status, NULL);
+    g_object_get (download, "status", &status, NULL);
 
-    switch(status) {
+    switch (status) {
         case WEBKIT_DOWNLOAD_STATUS_CREATED:
         case WEBKIT_DOWNLOAD_STATUS_STARTED:
         case WEBKIT_DOWNLOAD_STATUS_ERROR:
@@ -833,52 +863,60 @@ download_status_cb(WebKitDownload *download, GParamSpec *pspec, gpointer user_da
             return; /* these are irrelevant */
         case WEBKIT_DOWNLOAD_STATUS_FINISHED:
         {
-            const gchar *dest_uri = webkit_download_get_destination_uri(download);
-            const gchar *dest_path = dest_uri + strlen("file://");
-            send_event(DOWNLOAD_COMPLETE, NULL, TYPE_STR, dest_path, NULL);
+            const gchar *dest_uri = webkit_download_get_destination_uri (download);
+            const gchar *dest_path = dest_uri + strlen ("file://");
+            send_event (DOWNLOAD_COMPLETE, NULL,
+                TYPE_STR, dest_path,
+                NULL);
         }
     }
 }
 
 void
-request_starting_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitWebResource *resource,
-        WebKitNetworkRequest *request, WebKitNetworkResponse *response, gpointer user_data) {
-    (void) web_view;
-    (void) frame;
-    (void) resource;
-    (void) response;
-    (void) user_data;
+request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResource *resource,
+        WebKitNetworkRequest *request, WebKitNetworkResponse *response, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (frame);
+    UZBL_UNUSED (resource);
+    UZBL_UNUSED (response);
+    UZBL_UNUSED (data);
 
     const gchar *uri = webkit_network_request_get_uri (request);
     SoupMessage *message = webkit_network_request_get_message (request);
+
+    uzbl_debug ("Request starting -> %s", uri);
 
     if (message) {
         SoupURI *soup_uri = soup_uri_new (uri);
         soup_message_set_first_party (message, soup_uri);
     }
 
-    if (uzbl.state.verbose)
-        printf("Request starting -> %s\n", uri);
-    send_event (REQUEST_STARTING, NULL, TYPE_STR, uri, NULL);
+    send_event (REQUEST_STARTING, NULL,
+        TYPE_STR, uri,
+        NULL);
 
     if (uzbl.behave.request_handler) {
         GString *result = g_string_new ("");
-        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-        const CommandInfo *c = parse_command_parts(uzbl.behave.request_handler, a);
+        GArray *args = g_array_new (TRUE, FALSE, sizeof (gchar *));
+        const CommandInfo *request_command = parse_command_parts (uzbl.behave.request_handler, args);
 
-        if(c) {
-            g_array_append_val(a, uri);
-            run_parsed_command(c, a, result);
+        if (request_command) {
+            g_array_append_val (args, uri);
+            run_parsed_command (request_command, args, result);
         }
-        g_array_free(a, TRUE);
+        g_array_free (args, TRUE);
 
-        if(result->len > 0) {
-            char *p = strchr(result->str, '\n' );
-            if ( p != NULL ) *p = '\0';
-            webkit_network_request_set_uri(request, result->str);
+        if (result->len > 0) {
+            char *p = strchr (result->str, '\n' );
+            if (p != NULL) {
+                *p = '\0';
+            }
+
+            webkit_network_request_set_uri (request, result->str);
         }
 
-        g_string_free(result, TRUE);
+        g_string_free (result, TRUE);
     }
 }
 
