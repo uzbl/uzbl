@@ -660,24 +660,18 @@ new_window_cb (WebKitWebView *view, WebKitWebFrame *frame,
     UZBL_UNUSED (data);
 
     const gchar *uri = webkit_network_request_get_uri (request);
+    const gchar *target_frame = webkit_web_navigation_action_get_target_frame (navigation_action);
 
     uzbl_debug ("New window requested -> %s", uri);
 
-    /* This event function causes troubles with `target="_blank"` anchors.
-     * Either we:
-     *  1. Comment it out and target blank links are ignored.
-     *  2. Uncomment it and two windows are opened when you click on target
-     *     blank links.
-     *
-     * This problem is caused by create_web_view_cb also being called whenever
-     * this callback is triggered thus resulting in the doubled events.
-     *
-     * We are leaving this uncommented as we would rather links open twice
-     * than not at all.
-     */
-    send_event (NEW_WINDOW, NULL,
-        TYPE_STR, uri,
-        NULL);
+    /* The create_web_view_cb is also called for _blank targets. */
+    if (!g_strcmp0 (target_frame, "_blank")) {
+        send_event (NEW_WINDOW, NULL,
+            TYPE_STR, uri,
+            NULL);
+    } else {
+        uzbl_debug ("Ignoring new window request; target == _blank");
+    }
 
     webkit_web_policy_decision_ignore (policy_decision);
 
