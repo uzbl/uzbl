@@ -962,6 +962,9 @@ create_web_view_cb (WebKitWebView *view, WebKitWebFrame *frame, gpointer data)
     return new_view;
 }
 
+#define strprefix(str, prefix) \
+    strncmp ((str), (prefix), strlen ((prefix)))
+
 void
 create_web_view_js_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
 {
@@ -971,8 +974,10 @@ create_web_view_js_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data
     webkit_web_view_stop_loading (view);
     const gchar *uri = webkit_web_view_get_uri (view);
 
-    if (strncmp (uri, "javascript:", strlen ("javascript:")) == 0) {
-        eval_js (uzbl.gui.web_view, (gchar *)uri + strlen ("javascript:"), NULL, "javascript:");
+    static const char *js_protocol = "javascript:";
+
+    if (strprefix (uri, js_protocol) == 0) {
+        eval_js (uzbl.gui.web_view, (gchar *)uri + strlen (js_protocol), NULL, js_protocol);
         gtk_widget_destroy (GTK_WIDGET (view));
     } else {
         send_event (NEW_WINDOW, NULL,
