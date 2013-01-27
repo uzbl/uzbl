@@ -8,7 +8,9 @@
 #include "uzbl-core.h"
 #include "callbacks.h"
 #include "events.h"
-#include "variables.h"
+#include "type.h"
+#include "variables.h" /* FIXME: This is for get_geometry which   *
+                        *        should probably be in this file. */
 
 #include <gtk/gtk.h>
 #include <gdk/gdk.h>
@@ -139,6 +141,11 @@ uzbl_vbox_init (void)
     gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.status_bar, FALSE, TRUE, 0);
 }
 
+static void
+destroy_cb (GtkWidget* widget, gpointer data);
+static gboolean
+configure_event_cb(GtkWidget* window, GdkEventConfigure* event);
+
 void
 uzbl_window_init (void)
 {
@@ -203,4 +210,28 @@ key_release_cb (GtkWidget *widget, GdkEventKey *event, gpointer data)
     }
 
     return (uzbl.behave.forward_keys ? FALSE : TRUE);
+}
+
+/* Window callbacks */
+
+void
+destroy_cb (GtkWidget* widget, gpointer data) {
+    (void) widget;
+    (void) data;
+    gtk_main_quit ();
+}
+
+gboolean
+configure_event_cb(GtkWidget* window, GdkEventConfigure* event) {
+    (void) window; (void) event;
+
+    gchar *last_geo    = uzbl.gui.geometry;
+    gchar *current_geo = get_geometry();
+
+    if(!last_geo || strcmp(last_geo, current_geo))
+        send_event(GEOMETRY_CHANGED, NULL, TYPE_STR, current_geo, NULL);
+
+    g_free(current_geo);
+
+    return FALSE;
 }

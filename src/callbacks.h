@@ -18,12 +18,6 @@ load_status_change_cb (WebKitWebView* web_view, GParamSpec param_spec);
 gboolean
 load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer web_err, gpointer ud);
 
-void
-destroy_cb (GtkWidget* widget, gpointer data);
-
-gboolean
-configure_event_cb(GtkWidget* window, GdkEventConfigure* event);
-
 gboolean
 navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
         WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action,

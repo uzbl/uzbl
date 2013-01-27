@@ -96,28 +96,6 @@ load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer 
     return FALSE;
 }
 
-void
-destroy_cb (GtkWidget* widget, gpointer data) {
-    (void) widget;
-    (void) data;
-    gtk_main_quit ();
-}
-
-gboolean
-configure_event_cb(GtkWidget* window, GdkEventConfigure* event) {
-    (void) window; (void) event;
-
-    gchar *last_geo    = uzbl.gui.geometry;
-    gchar *current_geo = get_geometry();
-
-    if(!last_geo || strcmp(last_geo, current_geo))
-        send_event(GEOMETRY_CHANGED, NULL, TYPE_STR, current_geo, NULL);
-
-    g_free(current_geo);
-
-    return FALSE;
-}
-
 gboolean
 focus_cb(GtkWidget* window, GdkEventFocus* event, void *ud) {
     (void) window;
