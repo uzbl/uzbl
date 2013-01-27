@@ -12,64 +12,6 @@
 
 #include <gdk/gdk.h>
 
-void
-title_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
-    (void) web_view;
-    (void) param_spec;
-    const gchar *title = webkit_web_view_get_title(web_view);
-    if (uzbl.gui.main_title)
-        g_free (uzbl.gui.main_title);
-    uzbl.gui.main_title = title ? g_strdup (title) : g_strdup ("(no title)");
-    update_title();
-    send_event(TITLE_CHANGED, NULL, TYPE_STR, uzbl.gui.main_title, NULL);
-    g_setenv("UZBL_TITLE", uzbl.gui.main_title, TRUE);
-}
-
-void
-progress_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
-    (void) param_spec;
-    int progress = webkit_web_view_get_progress(web_view) * 100;
-    send_event(LOAD_PROGRESS, NULL, TYPE_INT, progress, NULL);
-}
-
-void
-load_status_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
-    (void) param_spec;
-
-    WebKitWebFrame  *frame;
-    WebKitLoadStatus status = webkit_web_view_get_load_status(web_view);
-    switch(status) {
-        case WEBKIT_LOAD_PROVISIONAL:
-            send_event(LOAD_START,  NULL, TYPE_STR, uzbl.state.uri ? uzbl.state.uri : "", NULL);
-            break;
-        case WEBKIT_LOAD_COMMITTED:
-            frame = webkit_web_view_get_main_frame(web_view);
-            send_event(LOAD_COMMIT, NULL, TYPE_STR, webkit_web_frame_get_uri (frame), NULL);
-            break;
-        case WEBKIT_LOAD_FINISHED:
-            send_event(LOAD_FINISH, NULL, TYPE_STR, uzbl.state.uri, NULL);
-            break;
-        case WEBKIT_LOAD_FIRST_VISUALLY_NON_EMPTY_LAYOUT:
-            break; /* we don't do anything with this (yet) */
-        case WEBKIT_LOAD_FAILED:
-            break; /* load_error_cb will handle this case */
-    }
-}
-
-gboolean
-load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer web_err, gpointer ud) {
-    (void) page; (void) frame; (void) ud;
-    GError *err = web_err;
-
-    send_event (LOAD_ERROR, NULL,
-        TYPE_STR, uri,
-        TYPE_INT, err->code,
-        TYPE_STR, err->message,
-        NULL);
-
-    return FALSE;
-}
-
 gboolean
 focus_cb(GtkWidget* window, GdkEventFocus* event, void *ud) {
     (void) window;
@@ -527,40 +469,6 @@ populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
     populate_context_menu(m, hit_test_result, context);
 
     g_object_unref(hit_test_result);
-}
-#endif
-
-void
-window_object_cleared_cb(WebKitWebView *webview, WebKitWebFrame *frame,
-        JSGlobalContextRef *context, JSObjectRef *object) {
-    (void) frame; (void) context; (void) object;
-#if WEBKIT_CHECK_VERSION (1, 3, 13)
-    // Take this opportunity to set some callbacks on the DOM
-    WebKitDOMDocument *document = webkit_web_view_get_dom_document (webview);
-    webkit_dom_event_target_add_event_listener (WEBKIT_DOM_EVENT_TARGET (document),
-        "focus", G_CALLBACK(dom_focus_cb), TRUE, NULL);
-    webkit_dom_event_target_add_event_listener (WEBKIT_DOM_EVENT_TARGET (document),
-        "blur", G_CALLBACK(dom_focus_cb), TRUE, NULL);
-#else
-	(void) webview;
-#endif
-}
-
-#if WEBKIT_CHECK_VERSION (1, 3, 13)
-void
-dom_focus_cb(WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer user_data) {
-    (void) target; (void) user_data;
-    WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
-    gchar* name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
-    send_event (FOCUS_ELEMENT, NULL, TYPE_STR, name, NULL);
-}
-
-void
-dom_blur_cb(WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer user_data) {
-    (void) target; (void) user_data;
-    WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
-    gchar* name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
-    send_event (BLUR_ELEMENT, NULL, TYPE_STR, name, NULL);
 }
 #endif
 

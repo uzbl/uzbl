@@ -3,18 +3,6 @@
  ** (c) 2009 by Robert Manea et al.
 */
 
-void
-title_change_cb (WebKitWebView* web_view, GParamSpec param_spec);
-
-void
-progress_change_cb (WebKitWebView* web_view, GParamSpec param_spec);
-
-void
-load_status_change_cb (WebKitWebView* web_view, GParamSpec param_spec);
-
-gboolean
-load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer web_err, gpointer ud);
-
 gboolean
 navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
         WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action,
@@ -58,15 +46,3 @@ scroll_horiz_cb(GtkAdjustment *adjust, void *w);
 
 void
 close_web_view_cb(WebKitWebView *webview, gpointer user_data);
-
-void
-window_object_cleared_cb(WebKitWebView *webview, WebKitWebFrame *frame,
-        JSGlobalContextRef *context, JSObjectRef *object);
-
-#if WEBKIT_CHECK_VERSION (1, 3, 13)
-void
-dom_focus_cb(WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer user_data);
-
-void
-dom_blur_cb(WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer user_data);
-#endif

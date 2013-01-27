@@ -36,8 +36,6 @@ void send_set_var_event(const char *name, const uzbl_cmdprop *c);
 void        dump_config();
 void        dump_config_as_events();
 
-void        uri_change_cb (WebKitWebView *web_view, GParamSpec param_spec);
-
 void        set_zoom_type(int);
 int         get_zoom_type();
 
