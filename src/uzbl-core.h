@@ -229,16 +229,8 @@ const CommandInfo *
 void        parse_command_arguments(const gchar *p, GArray *a, gboolean no_split);
 void        run_parsed_command(const CommandInfo *c, GArray *a, GString *result);
 
-/* Keyboard events functions */
-gboolean    key_press_cb(GtkWidget* window, GdkEventKey* event);
-gboolean    key_release_cb(GtkWidget* window, GdkEventKey* event);
-
 /* Initialization functions */
 void        initialize(int argc, char *argv[]);
-void        create_scrolled_win();
-GtkWidget*  create_mainbar();
-GtkWidget*  create_window();
-GtkPlug*    create_plug();
 void        settings_init();
 
 /* Search functions */
