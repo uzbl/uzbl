@@ -41,9 +41,9 @@ uzbl_gui_init (gboolean plugmode)
 }
 
 static gboolean
-key_press_cb (GtkWidget* window, GdkEventKey* event);
+key_press_cb (GtkWidget *widget, GdkEventKey *event, gpointer data);
 static gboolean
-key_release_cb (GtkWidget* window, GdkEventKey* event);
+key_release_cb (GtkWidget *widget, GdkEventKey *event, gpointer data);
 
 void
 uzbl_status_bar_init (void)
@@ -181,21 +181,27 @@ uzbl_plug_init (void)
 /* Status bar callbacks */
 
 gboolean
-key_press_cb (GtkWidget* window, GdkEventKey* event) {
-    (void) window;
+key_press_cb (GtkWidget *widget, GdkEventKey *event, gpointer data)
+{
+    UZBL_UNUSED (widget);
+    UZBL_UNUSED (data);
 
-    if(event->type == GDK_KEY_PRESS)
-        key_to_event(event->keyval, event->state, event->is_modifier, GDK_KEY_PRESS);
+    if (event->type == GDK_KEY_PRESS) {
+        key_to_event (event->keyval, event->state, event->is_modifier, GDK_KEY_PRESS);
+    }
 
-    return uzbl.behave.forward_keys ? FALSE : TRUE;
+    return (uzbl.behave.forward_keys ? FALSE : TRUE);
 }
 
 gboolean
-key_release_cb (GtkWidget* window, GdkEventKey* event) {
-    (void) window;
+key_release_cb (GtkWidget *widget, GdkEventKey *event, gpointer data)
+{
+    UZBL_UNUSED (widget);
+    UZBL_UNUSED (data);
 
-    if(event->type == GDK_KEY_RELEASE)
-        key_to_event(event->keyval, event->state, event->is_modifier, GDK_KEY_RELEASE);
+    if (event->type == GDK_KEY_RELEASE) {
+        key_to_event (event->keyval, event->state, event->is_modifier, GDK_KEY_RELEASE);
+    }
 
-    return uzbl.behave.forward_keys ? FALSE : TRUE;
+    return (uzbl.behave.forward_keys ? FALSE : TRUE);
 }
