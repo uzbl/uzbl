@@ -236,6 +236,8 @@ button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
     gint context;
     gboolean propagate = FALSE;
     gboolean sendev    = FALSE;
+    gboolean is_editable = FALSE;
+    gboolean is_document = FALSE;
 
     /* Save last button click for use in menu */
     if (uzbl.state.last_button) {
@@ -246,14 +248,17 @@ button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
     /* Grab context from last click */
     context = get_click_context ();
 
-    if(event->type == GDK_BUTTON_PRESS) {
+    is_editable = (context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE);
+    is_document = (context & WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT);
+
+    if (event->type == GDK_BUTTON_PRESS) {
         /* left click */
         if (event->button == 1) {
-            if ((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
+            if (is_editable) {
                 send_event (FORM_ACTIVE, NULL,
                     TYPE_NAME, "button1",
                     NULL);
-            } else if ((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT)) {
+            } else if (is_document) {
                 send_event (ROOT_ACTIVE, NULL,
                     TYPE_NAME, "button1",
                     NULL);
@@ -261,7 +266,7 @@ button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
                 sendev    = TRUE;
                 propagate = TRUE;
             }
-        } else if ((event->button == 2) && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
+        } else if ((event->button == 2) && !is_editable) {
             sendev    = TRUE;
             propagate = TRUE;
         } else if (event->button > 3) {
@@ -271,10 +276,10 @@ button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
     }
 
     if ((event->type == GDK_2BUTTON_PRESS) || (event->type == GDK_3BUTTON_PRESS)) {
-        if ((event->button == 1) && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE) && (context & WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT)) {
+        if ((event->button == 1) && !is_editable && is_document) {
             sendev    = TRUE;
             propagate = uzbl.state.handle_multi_button;
-        } else if ((event->button == 2) && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
+        } else if ((event->button == 2) && !is_editable) {
             sendev    = TRUE;
             propagate = uzbl.state.handle_multi_button;
         } else if (event->button >= 3) {
@@ -299,11 +304,14 @@ button_release_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
     gint context;
     gboolean propagate = FALSE;
     gboolean sendev    = FALSE;
+    gboolean is_editable = FALSE;
 
     context = get_click_context ();
 
+    is_editable = (context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE);
+
     if (event->type == GDK_BUTTON_RELEASE) {
-        if ((event->button == 2) && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
+        if ((event->button == 2) && !is_editable) {
             sendev    = TRUE;
             propagate = TRUE;
         } else if (event->button > 3) {
