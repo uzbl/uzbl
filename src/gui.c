@@ -746,6 +746,7 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
 
     if (!uzbl.behave.download_handler) {
         /* reject downloads when there's no download handler */
+        uzbl_debug ("No download handler set; ignoring download");
         webkit_download_cancel (download);
         return FALSE;
     }
