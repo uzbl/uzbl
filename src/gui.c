@@ -74,30 +74,35 @@ uzbl_web_view_init (void)
     );
 
     g_object_connect (G_OBJECT (uzbl.gui.web_view),
+        /* Keyboard events */
         "signal::key-press-event",                      G_CALLBACK (key_press_cb),             NULL,
         "signal::key-release-event",                    G_CALLBACK (key_release_cb),           NULL,
+        /* Mouse events */
         "signal::button-press-event",                   G_CALLBACK (button_press_cb),          NULL,
         "signal::button-release-event",                 G_CALLBACK (button_release_cb),        NULL,
+        "signal::hovering-over-link",                   G_CALLBACK (link_hover_cb),            NULL,
+        /* Page metadata events */
         "signal::notify::title",                        G_CALLBACK (title_change_cb),          NULL,
         "signal::notify::progress",                     G_CALLBACK (progress_change_cb),       NULL,
         "signal::notify::load-status",                  G_CALLBACK (load_status_change_cb),    NULL,
         "signal::notify::uri",                          G_CALLBACK (uri_change_cb),            NULL,
         "signal::load-error",                           G_CALLBACK (load_error_cb),            NULL,
-        "signal::hovering-over-link",                   G_CALLBACK (link_hover_cb),            NULL,
+        "signal::window-object-cleared",                G_CALLBACK (window_object_cleared_cb), NULL,
+        /* Navigation events */
         "signal::navigation-policy-decision-requested", G_CALLBACK (navigation_decision_cb),   NULL,
-        "signal::close-web-view",                       G_CALLBACK (close_web_view_cb),        NULL,
-        "signal::download-requested",                   G_CALLBACK (download_cb),              NULL,
-        "signal::create-web-view",                      G_CALLBACK (create_web_view_cb),       NULL,
         "signal::mime-type-policy-decision-requested",  G_CALLBACK (mime_policy_cb),           NULL,
+        "signal::download-requested",                   G_CALLBACK (download_cb),              NULL,
         "signal::resource-request-starting",            G_CALLBACK (request_starting_cb),      NULL,
+        /* UI events */
+        "signal::create-web-view",                      G_CALLBACK (create_web_view_cb),       NULL,
+        "signal::close-web-view",                       G_CALLBACK (close_web_view_cb),        NULL,
+        "signal::focus-in-event",                       G_CALLBACK (focus_cb),                 NULL,
+        "signal::focus-out-event",                      G_CALLBACK (focus_cb),                 NULL,
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
         "signal::context-menu",                         G_CALLBACK (context_menu_cb),          NULL,
 #else
         "signal::populate-popup",                       G_CALLBACK (populate_popup_cb),        NULL,
 #endif
-        "signal::focus-in-event",                       G_CALLBACK (focus_cb),                 NULL,
-        "signal::focus-out-event",                      G_CALLBACK (focus_cb),                 NULL,
-        "signal::window-object-cleared",                G_CALLBACK (window_object_cleared_cb), NULL,
         NULL);
 
     uzbl.gui.bar_h = gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win));
