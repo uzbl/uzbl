@@ -144,9 +144,9 @@ populate_popup_cb (WebKitWebView *view, GtkMenu *menu, gpointer data);
 #endif
 /* Scrollbar events */
 static gboolean
-scroll_vert_cb(GtkAdjustment *adjust, void *w);
+scroll_vert_cb (GtkAdjustment *adjust, gpointer data);
 static gboolean
-scroll_horiz_cb(GtkAdjustment *adjust, void *w);
+scroll_horiz_cb (GtkAdjustment *adjust, gpointer data);
 
 void
 uzbl_web_view_init (void)
@@ -1137,28 +1137,35 @@ run_menu_command (GtkMenuItem *menu_item, gpointer data)
 /* Scrollbar events */
 
 static void
-send_scroll_event(int type, GtkAdjustment *adjust);
+send_scroll_event (int type, GtkAdjustment *adjust);
 
 gboolean
-scroll_vert_cb(GtkAdjustment *adjust, void *w) {
-    (void) w;
-    send_scroll_event(SCROLL_VERT, adjust);
-    return (FALSE);
+scroll_vert_cb (GtkAdjustment *adjust, gpointer data)
+{
+    UZBL_UNUSED (data);
+
+    send_scroll_event (SCROLL_VERT, adjust);
+
+    return FALSE;
 }
 
 gboolean
-scroll_horiz_cb(GtkAdjustment *adjust, void *w) {
-    (void) w;
-    send_scroll_event(SCROLL_HORIZ, adjust);
-    return (FALSE);
+scroll_horiz_cb (GtkAdjustment *adjust, gpointer data)
+{
+    UZBL_UNUSED (data);
+
+    send_scroll_event (SCROLL_HORIZ, adjust);
+
+    return FALSE;
 }
 
-static void
-send_scroll_event(int type, GtkAdjustment *adjust) {
-    gdouble value = gtk_adjustment_get_value(adjust);
-    gdouble min = gtk_adjustment_get_lower(adjust);
-    gdouble max = gtk_adjustment_get_upper(adjust);
-    gdouble page = gtk_adjustment_get_page_size(adjust);
+void
+send_scroll_event (int type, GtkAdjustment *adjust)
+{
+    gdouble value = gtk_adjustment_get_value (adjust);
+    gdouble min = gtk_adjustment_get_lower (adjust);
+    gdouble max = gtk_adjustment_get_upper (adjust);
+    gdouble page = gtk_adjustment_get_page_size (adjust);
 
     send_event (type, NULL,
         TYPE_FLOAT, value,
