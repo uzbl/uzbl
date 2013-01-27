@@ -45,20 +45,20 @@ uzbl_status_bar_init (void)
     uzbl.gui.status_bar = uzbl_status_bar_new ();
 
     g_object_connect (G_OBJECT (uzbl.gui.status_bar),
-        "signal::key-press-event",   (GCallback)key_press_cb, NULL,
-        "signal::key-release-event", (GCallback)key_press_cb, NULL,
+        "signal::key-press-event",   G_CALLBACK (key_press_cb), NULL,
+        "signal::key-release-event", G_CALLBACK (key_press_cb), NULL,
         NULL);
 
     /*
     g_object_connect (G_OBJECT (UZBL_STATUS_BAR (uzbl.gui.status_bar)->label_left),
-      "signal::key-press-event",   (GCallback)key_press_cb,   NULL,
-      "signal::key-release-event", (GCallback)key_release_cb, NULL,
-      NULL);
+        "signal::key-press-event",   G_CALLBACK (key_press_cb),   NULL,
+        "signal::key-release-event", G_CALLBACK (key_release_cb), NULL,
+        NULL);
 
     g_object_connect (G_OBJECT (UZBL_STATUS_BAR (uzbl.gui.status_bar)->label_right),
-      "signal::key-press-event",   (GCallback)key_press_cb,   NULL,
-      "signal::key-release-event", (GCallback)key_release_cb, NULL,
-      NULL);
+        "signal::key-press-event",   G_CALLBACK (key_press_cb),   NULL,
+        "signal::key-release-event", G_CALLBACK (key_release_cb), NULL,
+        NULL);
       */
 }
 
@@ -73,43 +73,43 @@ uzbl_web_view_init (void)
         GTK_WIDGET(uzbl.gui.web_view)
     );
 
-    g_object_connect((GObject*)uzbl.gui.web_view,
-      "signal::key-press-event",                      (GCallback)key_press_cb,             NULL,
-      "signal::key-release-event",                    (GCallback)key_release_cb,           NULL,
-      "signal::button-press-event",                   (GCallback)button_press_cb,          NULL,
-      "signal::button-release-event",                 (GCallback)button_release_cb,        NULL,
-      "signal::notify::title",                        (GCallback)title_change_cb,          NULL,
-      "signal::notify::progress",                     (GCallback)progress_change_cb,       NULL,
-      "signal::notify::load-status",                  (GCallback)load_status_change_cb,    NULL,
-      "signal::notify::uri",                          (GCallback)uri_change_cb,            NULL,
-      "signal::load-error",                           (GCallback)load_error_cb,            NULL,
-      "signal::hovering-over-link",                   (GCallback)link_hover_cb,            NULL,
-      "signal::navigation-policy-decision-requested", (GCallback)navigation_decision_cb,   NULL,
-      "signal::close-web-view",                       (GCallback)close_web_view_cb,        NULL,
-      "signal::download-requested",                   (GCallback)download_cb,              NULL,
-      "signal::create-web-view",                      (GCallback)create_web_view_cb,       NULL,
-      "signal::mime-type-policy-decision-requested",  (GCallback)mime_policy_cb,           NULL,
-      "signal::resource-request-starting",            (GCallback)request_starting_cb,      NULL,
+    g_object_connect(G_OBJECT (uzbl.gui.web_view),
+        "signal::key-press-event",                      G_CALLBACK (key_press_cb),             NULL,
+        "signal::key-release-event",                    G_CALLBACK (key_release_cb),           NULL,
+        "signal::button-press-event",                   G_CALLBACK (button_press_cb),          NULL,
+        "signal::button-release-event",                 G_CALLBACK (button_release_cb),        NULL,
+        "signal::notify::title",                        G_CALLBACK (title_change_cb),          NULL,
+        "signal::notify::progress",                     G_CALLBACK (progress_change_cb),       NULL,
+        "signal::notify::load-status",                  G_CALLBACK (load_status_change_cb),    NULL,
+        "signal::notify::uri",                          G_CALLBACK (uri_change_cb),            NULL,
+        "signal::load-error",                           G_CALLBACK (load_error_cb),            NULL,
+        "signal::hovering-over-link",                   G_CALLBACK (link_hover_cb),            NULL,
+        "signal::navigation-policy-decision-requested", G_CALLBACK (navigation_decision_cb),   NULL,
+        "signal::close-web-view",                       G_CALLBACK (close_web_view_cb),        NULL,
+        "signal::download-requested",                   G_CALLBACK (download_cb),              NULL,
+        "signal::create-web-view",                      G_CALLBACK (create_web_view_cb),       NULL,
+        "signal::mime-type-policy-decision-requested",  G_CALLBACK (mime_policy_cb),           NULL,
+        "signal::resource-request-starting",            G_CALLBACK (request_starting_cb),      NULL,
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
-      "signal::context-menu",                         (GCallback)context_menu_cb,          NULL,
+        "signal::context-menu",                         G_CALLBACK (context_menu_cb),          NULL,
 #else
-      "signal::populate-popup",                       (GCallback)populate_popup_cb,        NULL,
+        "signal::populate-popup",                       G_CALLBACK (populate_popup_cb),        NULL,
 #endif
-      "signal::focus-in-event",                       (GCallback)focus_cb,                 NULL,
-      "signal::focus-out-event",                      (GCallback)focus_cb,                 NULL,
-      "signal::window-object-cleared",                (GCallback)window_object_cleared_cb, NULL,
-      NULL);
+        "signal::focus-in-event",                       G_CALLBACK (focus_cb),                 NULL,
+        "signal::focus-out-event",                      G_CALLBACK (focus_cb),                 NULL,
+        "signal::window-object-cleared",                G_CALLBACK (window_object_cleared_cb), NULL,
+        NULL);
 
     uzbl.gui.bar_h = gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win));
     uzbl.gui.bar_v = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win));
 
-    g_object_connect(G_OBJECT (uzbl.gui.bar_v),
-        "signal::value-changed", (GCallback)scroll_vert_cb, NULL,
-        "signal::changed",       (GCallback)scroll_vert_cb, NULL,
+    g_object_connect (G_OBJECT (uzbl.gui.bar_v),
+        "signal::value-changed", G_CALLBACK (scroll_vert_cb), NULL,
+        "signal::changed",       G_CALLBACK (scroll_vert_cb), NULL,
         NULL);
-    g_object_connect(G_OBJECT (uzbl.gui.bar_h),
-        "signal::value-changed", (GCallback)scroll_horiz_cb, NULL,
-        "signal::changed",       (GCallback)scroll_horiz_cb, NULL,
+    g_object_connect (G_OBJECT (uzbl.gui.bar_h),
+        "signal::value-changed", G_CALLBACK (scroll_horiz_cb), NULL,
+        "signal::changed",       G_CALLBACK (scroll_horiz_cb), NULL,
         NULL);
 
 }
@@ -144,8 +144,10 @@ uzbl_window_init (void)
     /* Fill in the main window */
     gtk_container_add (GTK_CONTAINER (uzbl.gui.main_window), uzbl.gui.vbox);
 
-    g_signal_connect (G_OBJECT (uzbl.gui.main_window), "destroy",         G_CALLBACK (destroy_cb),         NULL);
-    g_signal_connect (G_OBJECT (uzbl.gui.main_window), "configure-event", G_CALLBACK (configure_event_cb), NULL);
+    g_object_connect (G_OBJECT (uzbl.gui.main_window),
+        "signal::destroy",         G_CALLBACK (destroy_cb),         NULL,
+        "signal::configure-event", G_CALLBACK (configure_event_cb), NULL,
+        NULL);
 }
 
 void
@@ -157,7 +159,9 @@ uzbl_plug_init (void)
 
     gtk_container_add (GTK_CONTAINER (uzbl.gui.plug), uzbl.gui.vbox);
 
-    g_signal_connect (G_OBJECT (uzbl.gui.plug), "destroy",           G_CALLBACK (destroy_cb),   NULL);
-    g_signal_connect (G_OBJECT (uzbl.gui.plug), "key-press-event",   G_CALLBACK (key_press_cb), NULL);
-    g_signal_connect (G_OBJECT (uzbl.gui.plug), "key-release-event", G_CALLBACK (key_press_cb), NULL);
+    g_object_connect (G_OBJECT (uzbl.gui.plug),
+        "signal::destroy",           G_CALLBACK (destroy_cb),   NULL,
+        "signal::key-press-event",   G_CALLBACK (key_press_cb), NULL,
+        "signal::key-release-event", G_CALLBACK (key_press_cb), NULL,
+        NULL);
 }
