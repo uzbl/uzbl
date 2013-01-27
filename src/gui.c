@@ -42,10 +42,8 @@ uzbl_gui_init (gboolean plugmode)
 void
 uzbl_status_bar_init (void)
 {
-    /* set up the status bar */
     uzbl.gui.status_bar = uzbl_status_bar_new ();
 
-    /* set up signal handlers */
     g_object_connect (G_OBJECT (uzbl.gui.status_bar),
         "signal::key-press-event",   (GCallback)key_press_cb, NULL,
         "signal::key-release-event", (GCallback)key_press_cb, NULL,
@@ -120,7 +118,6 @@ uzbl_web_view_init (void)
 void
 uzbl_vbox_init (void)
 {
-    /* pack the window and the status bar */
 #if GTK_CHECK_VERSION(3,0,0)
     uzbl.gui.vbox = gtk_box_new(FALSE, 0);
     gtk_orientable_set_orientation(GTK_ORIENTABLE(uzbl.gui.vbox), GTK_ORIENTATION_VERTICAL);
