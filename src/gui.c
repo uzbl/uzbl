@@ -42,6 +42,20 @@ uzbl_gui_init (gboolean plugmode)
     }
 }
 
+void
+set_window_property(const gchar* prop, const gchar* value) {
+    if(GTK_IS_WIDGET(uzbl.gui.main_window)) {
+        gdk_property_change(
+            gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)),
+            gdk_atom_intern_static_string(prop),
+            gdk_atom_intern_static_string("STRING"),
+            8,
+            GDK_PROP_MODE_REPLACE,
+            (const guchar*)value,
+            strlen(value));
+    }
+}
+
 static gboolean
 key_press_cb (GtkWidget *widget, GdkEventKey *event, gpointer data);
 static gboolean
