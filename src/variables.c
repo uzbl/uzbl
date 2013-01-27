@@ -1,7 +1,7 @@
 #include "variables.h"
 #include "uzbl-core.h"
-#include "callbacks.h"
 #include "events.h"
+#include "gui.h"
 #include "io.h"
 #include "util.h"
 
@@ -256,20 +256,6 @@ cookie_jar() {
 static GObject *
 view_settings() {
     return G_OBJECT(webkit_web_view_get_settings(uzbl.gui.web_view));
-}
-
-static void
-set_window_property(const gchar* prop, const gchar* value) {
-    if(GTK_IS_WIDGET(uzbl.gui.main_window)) {
-        gdk_property_change(
-            gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)),
-            gdk_atom_intern_static_string(prop),
-            gdk_atom_intern_static_string("STRING"),
-            8,
-            GDK_PROP_MODE_REPLACE,
-            (const guchar*)value,
-            strlen(value));
-    }
 }
 
 static gchar *
