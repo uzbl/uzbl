@@ -129,18 +129,19 @@ static void
 request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResource *resource,
         WebKitNetworkRequest *request, WebKitNetworkResponse *response, gpointer data);
 /* UI events */
-static WebKitWebView*
-create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data);
+static WebKitWebView *
+create_web_view_cb (WebKitWebView *view, WebKitWebFrame *frame, gpointer data);
 static void
-close_web_view_cb(WebKitWebView *webview, gpointer user_data);
+close_web_view_cb (WebKitWebView *view, gpointer data);
 static gboolean
-focus_cb(GtkWidget* window, GdkEventFocus* event, void *ud);
+focus_cb (GtkWidget *widget, GdkEventFocus *event, gpointer data);
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
 static gboolean
-context_menu_cb (WebKitWebView *web_view, GtkWidget *default_menu, WebKitHitTestResult *hit_test_result, gboolean triggered_with_keyboard, gpointer user_data);
+context_menu_cb (WebKitWebView *view, GtkMenu *menu, WebKitHitTestResult *hit_test_result,
+        gboolean triggered_with_keyboard, gpointer data);
 #else
 static void
-populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c);
+populate_popup_cb (WebKitWebView *view, GtkMenu *menu, gpointer data);
 #endif
 
 void
@@ -945,163 +946,195 @@ request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResour
 /* UI events */
 
 static void
-create_web_view_js_cb (WebKitWebView* web_view, GParamSpec param_spec);
+create_web_view_js_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
 
-WebKitWebView*
-create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer user_data) {
-    (void) web_view;
-    (void) frame;
-    (void) user_data;
+WebKitWebView *
+create_web_view_cb (WebKitWebView *view, WebKitWebFrame *frame, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (frame);
+    UZBL_UNUSED (data);
 
-    if (uzbl.state.verbose)
-        printf("New web view -> javascript link...\n");
+    WebKitWebView *new_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
 
-    WebKitWebView* new_view = WEBKIT_WEB_VIEW(webkit_web_view_new());
+    uzbl_debug ("New web view -> javascript link...");
 
-    g_object_connect (new_view, "signal::notify::uri",
-                           G_CALLBACK(create_web_view_js_cb), NULL, NULL);
+    g_object_connect (G_OBJECT (new_view),
+        "signal::notify::uri", G_CALLBACK (create_web_view_js_cb), NULL,
+        NULL);
+
     return new_view;
 }
 
 void
-create_web_view_js_cb (WebKitWebView* web_view, GParamSpec param_spec) {
-    (void) web_view;
-    (void) param_spec;
+create_web_view_js_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
+{
+    UZBL_UNUSED (param_spec);
+    UZBL_UNUSED (data);
 
-    webkit_web_view_stop_loading(web_view);
-    const gchar* uri = webkit_web_view_get_uri(web_view);
+    webkit_web_view_stop_loading (view);
+    const gchar *uri = webkit_web_view_get_uri (view);
 
-    if (strncmp(uri, "javascript:", strlen("javascript:")) == 0)
-        eval_js(uzbl.gui.web_view, (gchar*) uri + strlen("javascript:"), NULL, "javascript:");
-    else
-        send_event(NEW_WINDOW, NULL, TYPE_STR, uri, NULL);
+    if (strncmp (uri, "javascript:", strlen ("javascript:")) == 0) {
+        eval_js (uzbl.gui.web_view, (gchar *)uri + strlen ("javascript:"), NULL, "javascript:");
+    } else {
+        send_event (NEW_WINDOW, NULL,
+            TYPE_STR, uri,
+            NULL);
+    }
 
-    gtk_widget_destroy(GTK_WIDGET(web_view));
+    gtk_widget_destroy (GTK_WIDGET (view));
 }
 
 void
-close_web_view_cb(WebKitWebView *webview, gpointer user_data) {
-    (void) webview; (void) user_data;
-    send_event (CLOSE_WINDOW, NULL, NULL);
+close_web_view_cb (WebKitWebView *view, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (data);
+
+    send_event (CLOSE_WINDOW, NULL,
+        NULL);
 }
 
 gboolean
-focus_cb(GtkWidget* window, GdkEventFocus* event, void *ud) {
-    (void) window;
-    (void) event;
-    (void) ud;
+focus_cb (GtkWidget *widget, GdkEventFocus *event, gpointer data)
+{
+    UZBL_UNUSED (widget);
+    UZBL_UNUSED (event);
+    UZBL_UNUSED (data);
 
-    send_event (event->in?FOCUS_GAINED:FOCUS_LOST, NULL, NULL);
+    send_event (event->in ? FOCUS_GAINED : FOCUS_LOST, NULL,
+        NULL);
 
     return FALSE;
 }
 
 static gboolean
-populate_context_menu (GtkWidget *default_menu, WebKitHitTestResult *hit_test_result, gint context);
+populate_context_menu (GtkMenu *menu, WebKitHitTestResult *hit_test_result, gint context);
 
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
 gboolean
-context_menu_cb (WebKitWebView *v, GtkWidget *default_menu, WebKitHitTestResult *hit_test_result, gboolean triggered_with_keyboard, gpointer user_data) {
-    (void) v; (void) triggered_with_keyboard; (void) user_data;
+context_menu_cb (WebKitWebView *view, GtkMenu *menu, WebKitHitTestResult *hit_test_result,
+        gboolean triggered_with_keyboard, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (triggered_with_keyboard);
+    UZBL_UNUSED (data);
+
     gint context;
 
-    if(!uzbl.gui.menu_items)
+    if (!uzbl.gui.menu_items) {
         return FALSE;
+    }
+
+    context = get_click_context ();
 
     /* check context */
-    if((context = get_click_context()) == -1)
+    if (context == -1) {
         return FALSE;
+    }
 
     /* display the default menu with our modifications. */
-    return populate_context_menu(default_menu, hit_test_result, context);
+    return populate_context_menu (menu, hit_test_result, context);
 }
 #else
 void
-populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c) {
-    (void) c;
+populate_popup_cb (WebKitWebView *view, GtkMenu *menu, gpointer data)
+{
+    UZBL_UNUSED (data);
+
     gint context;
 
-    if(!uzbl.gui.menu_items)
+    if (!uzbl.gui.menu_items) {
         return;
+    }
+
+    context = get_click_context ();
 
     /* check context */
-    if((context = get_click_context()) == -1)
+    if (context == -1) {
         return;
+    }
 
     WebKitHitTestResult *hit_test_result;
-    GdkEventButton ev;
-    gint x, y;
+    GdkEventButton event;
+    gint x;
+    gint y;
 #if GTK_CHECK_VERSION (3, 0, 0)
-    gdk_window_get_device_position (gtk_widget_get_window(GTK_WIDGET(v)),
+    gdk_window_get_device_position (gtk_widget_get_window (GTK_WIDGET (view)),
         gdk_device_manager_get_client_pointer (
             gdk_display_get_device_manager (
-                gtk_widget_get_display (GTK_WIDGET (v)))),
+                gtk_widget_get_display (GTK_WIDGET (view)))),
         &x, &y, NULL);
 #else
-    gdk_window_get_pointer(gtk_widget_get_window(GTK_WIDGET(v)), &x, &y, NULL);
+    gdk_window_get_pointer (gtk_widget_get_window (GTK_WIDGET (view)), &x, &y, NULL);
 #endif
-    ev.x = x;
-    ev.y = y;
-    hit_test_result = webkit_web_view_get_hit_test_result(v, &ev);
+    event.x = x;
+    event.y = y;
+    hit_test_result = webkit_web_view_get_hit_test_result (view, &event);
 
-    populate_context_menu(m, hit_test_result, context);
-
-    g_object_unref(hit_test_result);
+    populate_context_menu (menu, hit_test_result, context);
 }
 #endif
 
 static void
-run_menu_command(GtkWidget *menu, MenuItem *mi);
+run_menu_command (GtkMenuItem *menu_item, gpointer data);
 
 gboolean
-populate_context_menu (GtkWidget *default_menu, WebKitHitTestResult *hit_test_result, gint context) {
+populate_context_menu (GtkMenu *menu, WebKitHitTestResult *hit_test_result, gint context)
+{
     guint i;
 
     /* find the user-defined menu items that are approprate for whatever was
      * clicked and append them to the default context menu. */
-    for(i = 0; i < uzbl.gui.menu_items->len; i++) {
-        MenuItem *mi = g_ptr_array_index(uzbl.gui.menu_items, i);
+    for (i = 0; i < uzbl.gui.menu_items->len; ++i) {
+        MenuItem *menu_item = g_ptr_array_index (uzbl.gui.menu_items, i);
         GtkWidget *item;
 
-        gboolean contexts_match = (context & mi->context);
+        gboolean contexts_match = (context & menu_item->context);
 
-        if(!contexts_match) {
-          continue;
+        if (!contexts_match) {
+            continue;
         }
 
-        if (mi->context & WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE) {
-            g_object_get(hit_test_result, "image-uri", &(mi->argument), NULL);
+        gboolean is_image = (menu_item->context & WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE);
+
+        if (is_image) {
+            g_object_get (hit_test_result, "image-uri", &menu_item->argument, NULL);
         }
 
-        if(mi->issep) {
-            item = gtk_separator_menu_item_new();
+        if (menu_item->issep) {
+            item = gtk_separator_menu_item_new ();
         } else {
-            item = gtk_menu_item_new_with_label(mi->name);
-            g_signal_connect(item, "activate",
-                    G_CALLBACK(run_menu_command), mi);
+            item = gtk_menu_item_new_with_label (menu_item->name);
+            g_object_connect (G_OBJECT (item),
+                "signal::activate", G_CALLBACK (run_menu_command), menu_item,
+                NULL);
         }
 
-        gtk_menu_shell_append(GTK_MENU_SHELL(default_menu), item);
-        gtk_widget_show(item);
+        gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
+        gtk_widget_show (item);
     }
 
     return FALSE;
 }
 
 void
-run_menu_command(GtkWidget *menu, MenuItem *mi) {
-    (void) menu;
+run_menu_command (GtkMenuItem *menu_item, gpointer data)
+{
+    UZBL_UNUSED (menu_item);
 
-    if (mi->context & WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE) {
-        gchar* cmd = g_strdup_printf("%s %s", mi->cmd, mi->argument);
+    MenuItem *item = (MenuItem *)data;
 
-        parse_cmd_line(cmd, NULL);
+    if (item->context & WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE) {
+        gchar *cmd = g_strdup_printf ("%s %s", item->cmd, item->argument);
 
-        g_free(cmd);
-        g_free(mi->argument);
-    }
-    else {
-        parse_cmd_line(mi->cmd, NULL);
+        parse_cmd_line (cmd, NULL);
+
+        g_free (cmd);
+        g_free (item->argument);
+    } else {
+        parse_cmd_line (item->cmd, NULL);
     }
 }
 
