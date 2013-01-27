@@ -54,6 +54,7 @@
 #include "status-bar.h"
 
 #define LENGTH(x) (sizeof x / sizeof x[0])
+#define UZBL_UNUSED(var) (void)var
 
 
 /* GUI elements */
