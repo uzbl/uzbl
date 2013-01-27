@@ -142,9 +142,9 @@ uzbl_vbox_init (void)
 }
 
 static void
-destroy_cb (GtkWidget* widget, gpointer data);
+destroy_cb (GtkWidget *widget, gpointer data);
 static gboolean
-configure_event_cb(GtkWidget* window, GdkEventConfigure* event);
+configure_event_cb (GtkWidget *widget, GdkEventConfigure *event, gpointer data);
 
 void
 uzbl_window_init (void)
@@ -215,23 +215,31 @@ key_release_cb (GtkWidget *widget, GdkEventKey *event, gpointer data)
 /* Window callbacks */
 
 void
-destroy_cb (GtkWidget* widget, gpointer data) {
-    (void) widget;
-    (void) data;
+destroy_cb (GtkWidget *widget, gpointer data)
+{
+    UZBL_UNUSED (widget);
+    UZBL_UNUSED (data);
+
     gtk_main_quit ();
 }
 
 gboolean
-configure_event_cb(GtkWidget* window, GdkEventConfigure* event) {
-    (void) window; (void) event;
+configure_event_cb (GtkWidget *widget, GdkEventConfigure *event, gpointer data)
+{
+    UZBL_UNUSED (widget);
+    UZBL_UNUSED (event);
+    UZBL_UNUSED (data);
 
     gchar *last_geo    = uzbl.gui.geometry;
-    gchar *current_geo = get_geometry();
+    gchar *current_geo = get_geometry ();
 
-    if(!last_geo || strcmp(last_geo, current_geo))
-        send_event(GEOMETRY_CHANGED, NULL, TYPE_STR, current_geo, NULL);
+    if (!last_geo || g_strcmp0 (last_geo, current_geo)) {
+        send_event (GEOMETRY_CHANGED, NULL,
+            TYPE_STR, current_geo,
+            NULL);
+    }
 
-    g_free(current_geo);
+    g_free (current_geo);
 
     return FALSE;
 }
