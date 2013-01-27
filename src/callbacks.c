@@ -13,32 +13,6 @@
 #include <gdk/gdk.h>
 
 void
-link_hover_cb (WebKitWebView *page, const gchar *title, const gchar *link, gpointer data) {
-    (void) page; (void) title; (void) data;
-    State *s = &uzbl.state;
-
-    if(s->last_selected_url)
-        g_free(s->last_selected_url);
-
-    if(s->selected_url) {
-        s->last_selected_url = g_strdup(s->selected_url);
-        g_free(s->selected_url);
-        s->selected_url = NULL;
-    } else
-        s->last_selected_url = NULL;
-
-    if(s->last_selected_url && g_strcmp0(link, s->last_selected_url))
-        send_event(LINK_UNHOVER, NULL, TYPE_STR, s->last_selected_url, NULL);
-
-    if (link) {
-        s->selected_url = g_strdup(link);
-        send_event(LINK_HOVER,   NULL, TYPE_STR, s->selected_url, NULL);
-    }
-
-    update_title();
-}
-
-void
 title_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
     (void) web_view;
     (void) param_spec;
@@ -105,106 +79,6 @@ focus_cb(GtkWidget* window, GdkEventFocus* event, void *ud) {
     send_event (event->in?FOCUS_GAINED:FOCUS_LOST, NULL, NULL);
 
     return FALSE;
-}
-
-gint
-get_click_context() {
-    WebKitHitTestResult *ht;
-    guint context;
-
-    if(!uzbl.state.last_button)
-        return -1;
-
-    ht = webkit_web_view_get_hit_test_result (uzbl.gui.web_view, uzbl.state.last_button);
-    g_object_get (ht, "context", &context, NULL);
-    g_object_unref (ht);
-
-    return (gint)context;
-}
-
-gboolean
-button_press_cb (GtkWidget* window, GdkEventButton* event) {
-    (void) window;
-    gint context;
-    gboolean propagate = FALSE,
-             sendev    = FALSE;
-
-    // Save last button click for use in menu
-    if(uzbl.state.last_button)
-        gdk_event_free((GdkEvent *)uzbl.state.last_button);
-    uzbl.state.last_button = (GdkEventButton *)gdk_event_copy((GdkEvent *)event);
-
-    // Grab context from last click
-    context = get_click_context();
-
-    if(event->type == GDK_BUTTON_PRESS) {
-        /* left click */
-        if(event->button == 1) {
-            if((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE))
-                send_event(FORM_ACTIVE, NULL, TYPE_NAME, "button1", NULL);
-            else if((context & WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT))
-                send_event(ROOT_ACTIVE, NULL, TYPE_NAME, "button1", NULL);
-            else {
-                sendev    = TRUE;
-                propagate = TRUE;
-            }
-        }
-        else if(event->button == 2 && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
-            sendev    = TRUE;
-            propagate = TRUE;
-        }
-        else if(event->button > 3) {
-            sendev    = TRUE;
-            propagate = TRUE;
-        }
-    }
-
-    if(event->type == GDK_2BUTTON_PRESS || event->type == GDK_3BUTTON_PRESS) {
-        if(event->button == 1 && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE) && (context & WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT)) {
-            sendev    = TRUE;
-            propagate = uzbl.state.handle_multi_button;
-        }
-        else if(event->button == 2 && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
-            sendev    = TRUE;
-            propagate = uzbl.state.handle_multi_button;
-        }
-        else if(event->button >= 3) {
-            sendev    = TRUE;
-            propagate = uzbl.state.handle_multi_button;
-        }
-    }
-
-    if(sendev) {
-        button_to_event(event->button, event->state, event->type);
-    }
-
-    return propagate;
-}
-
-gboolean
-button_release_cb (GtkWidget* window, GdkEventButton* event) {
-    (void) window;
-    gint context;
-    gboolean propagate = FALSE,
-             sendev    = FALSE;
-
-    context = get_click_context();
-    if(event->type == GDK_BUTTON_RELEASE) {
-        if(event->button == 2 && !(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE)) {
-            sendev    = TRUE;
-            propagate = TRUE;
-        }
-        else if(event->button > 3) {
-            sendev    = TRUE;
-            propagate = TRUE;
-        }
-
-        if(sendev) {
-            button_to_event(event->button, event->state, GDK_BUTTON_RELEASE);
-        }
-    }
-
-    return propagate;
 }
 
 gboolean

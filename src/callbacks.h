@@ -4,9 +4,6 @@
 */
 
 void
-link_hover_cb (WebKitWebView* page, const gchar* title, const gchar* link, gpointer data);
-
-void
 title_change_cb (WebKitWebView* web_view, GParamSpec param_spec);
 
 void
@@ -44,12 +41,6 @@ context_menu_cb (WebKitWebView *web_view, GtkWidget *default_menu, WebKitHitTest
 void
 populate_popup_cb(WebKitWebView *v, GtkMenu *m, void *c);
 #endif
-
-gboolean
-button_press_cb (GtkWidget* window, GdkEventButton* event);
-
-gboolean
-button_release_cb (GtkWidget* window, GdkEventButton* event);
 
 gboolean
 focus_cb(GtkWidget* window, GdkEventFocus* event, void *ud);
