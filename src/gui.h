@@ -11,6 +11,6 @@
 void
 uzbl_gui_init (gboolean plugmode);
 void
-set_window_property(const gchar* prop, const gchar* value);
+set_window_property (const gchar *prop, const gchar *value);
 
 #endif
