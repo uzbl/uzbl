@@ -45,7 +45,7 @@ uzbl_gui_init (gboolean plugmode)
 void
 set_window_property (const gchar *prop, const gchar *value)
 {
-    if (GTK_IS_WIDGET (uzbl.gui.main_window))
+    if (uzbl.gui.main_window && GTK_IS_WIDGET (uzbl.gui.main_window))
     {
         gdk_property_change (
             gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)),
