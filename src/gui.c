@@ -7,6 +7,7 @@
 
 #include "uzbl-core.h"
 #include "callbacks.h"
+#include "events.h"
 #include "variables.h"
 
 #include <gtk/gtk.h>
@@ -38,6 +39,11 @@ uzbl_gui_init (gboolean plugmode)
         uzbl_window_init ();
     }
 }
+
+static gboolean
+key_press_cb (GtkWidget* window, GdkEventKey* event);
+static gboolean
+key_release_cb (GtkWidget* window, GdkEventKey* event);
 
 void
 uzbl_status_bar_init (void)
@@ -170,4 +176,26 @@ uzbl_plug_init (void)
         "signal::key-press-event",   G_CALLBACK (key_press_cb), NULL,
         "signal::key-release-event", G_CALLBACK (key_press_cb), NULL,
         NULL);
+}
+
+/* Status bar callbacks */
+
+gboolean
+key_press_cb (GtkWidget* window, GdkEventKey* event) {
+    (void) window;
+
+    if(event->type == GDK_KEY_PRESS)
+        key_to_event(event->keyval, event->state, event->is_modifier, GDK_KEY_PRESS);
+
+    return uzbl.behave.forward_keys ? FALSE : TRUE;
+}
+
+gboolean
+key_release_cb (GtkWidget* window, GdkEventKey* event) {
+    (void) window;
+
+    if(event->type == GDK_KEY_RELEASE)
+        key_to_event(event->keyval, event->state, event->is_modifier, GDK_KEY_RELEASE);
+
+    return uzbl.behave.forward_keys ? FALSE : TRUE;
 }

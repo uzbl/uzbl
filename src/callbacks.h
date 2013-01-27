@@ -25,12 +25,6 @@ gboolean
 configure_event_cb(GtkWidget* window, GdkEventConfigure* event);
 
 gboolean
-key_press_cb (GtkWidget* window, GdkEventKey* event);
-
-gboolean
-key_release_cb (GtkWidget* window, GdkEventKey* event);
-
-gboolean
 navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
         WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action,
         WebKitWebPolicyDecision *policy_decision, gpointer user_data);

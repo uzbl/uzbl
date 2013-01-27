@@ -129,26 +129,6 @@ focus_cb(GtkWidget* window, GdkEventFocus* event, void *ud) {
     return FALSE;
 }
 
-gboolean
-key_press_cb (GtkWidget* window, GdkEventKey* event) {
-    (void) window;
-
-    if(event->type == GDK_KEY_PRESS)
-        key_to_event(event->keyval, event->state, event->is_modifier, GDK_KEY_PRESS);
-
-    return uzbl.behave.forward_keys ? FALSE : TRUE;
-}
-
-gboolean
-key_release_cb (GtkWidget* window, GdkEventKey* event) {
-    (void) window;
-
-    if(event->type == GDK_KEY_RELEASE)
-        key_to_event(event->keyval, event->state, event->is_modifier, GDK_KEY_RELEASE);
-
-    return uzbl.behave.forward_keys ? FALSE : TRUE;
-}
-
 gint
 get_click_context() {
     WebKitHitTestResult *ht;
