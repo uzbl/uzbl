@@ -426,7 +426,6 @@ void
 link_hover_cb (WebKitWebView *view, const gchar *title, const gchar *link, gpointer data)
 {
     UZBL_UNUSED (view);
-    UZBL_UNUSED (title);
     UZBL_UNUSED (data);
 
     if (uzbl.state.last_selected_url) {
@@ -451,6 +450,7 @@ link_hover_cb (WebKitWebView *view, const gchar *title, const gchar *link, gpoin
         uzbl.state.selected_url = g_strdup (link);
         send_event (LINK_HOVER, NULL,
             TYPE_STR, uzbl.state.selected_url,
+            TYPE_STR, title,
             NULL);
     }
 
