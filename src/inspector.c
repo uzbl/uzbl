@@ -5,7 +5,6 @@
 
 #include "uzbl-core.h"
 #include "events.h"
-#include "callbacks.h"
 #include "type.h"
 
 static void

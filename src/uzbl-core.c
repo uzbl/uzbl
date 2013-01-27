@@ -30,7 +30,6 @@
  */
 
 #include "uzbl-core.h"
-#include "callbacks.h"
 #include "events.h"
 #include "gui.h"
 #include "inspector.h"

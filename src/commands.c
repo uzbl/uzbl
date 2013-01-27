@@ -3,7 +3,6 @@
 #include "events.h"
 #include "util.h"
 #include "menu.h"
-#include "callbacks.h"
 #include "variables.h"
 #include "type.h"
 #include "soup.h"
