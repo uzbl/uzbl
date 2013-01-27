@@ -140,7 +140,7 @@ static gboolean
 context_menu_cb (WebKitWebView *view, GtkMenu *menu, WebKitHitTestResult *hit_test_result,
         gboolean triggered_with_keyboard, gpointer data);
 #else
-static void
+static gboolean
 populate_popup_cb (WebKitWebView *view, GtkMenu *menu, gpointer data);
 #endif
 
@@ -1024,7 +1024,7 @@ context_menu_cb (WebKitWebView *view, GtkMenu *menu, WebKitHitTestResult *hit_te
     return populate_context_menu (menu, hit_test_result, context);
 }
 #else
-void
+gboolean
 populate_popup_cb (WebKitWebView *view, GtkMenu *menu, gpointer data)
 {
     UZBL_UNUSED (data);
@@ -1032,14 +1032,14 @@ populate_popup_cb (WebKitWebView *view, GtkMenu *menu, gpointer data)
     gint context;
 
     if (!uzbl.gui.menu_items) {
-        return;
+        return FALSE;
     }
 
     context = get_click_context ();
 
     /* check context */
     if (context == -1) {
-        return;
+        return FALSE;
     }
 
     WebKitHitTestResult *hit_test_result;
@@ -1059,7 +1059,7 @@ populate_popup_cb (WebKitWebView *view, GtkMenu *menu, gpointer data)
     event.y = y;
     hit_test_result = webkit_web_view_get_hit_test_result (view, &event);
 
-    populate_context_menu (menu, hit_test_result, context);
+    return populate_context_menu (menu, hit_test_result, context);
 }
 #endif
 
