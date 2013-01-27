@@ -65,15 +65,15 @@ uzbl_status_bar_init (void)
 void
 uzbl_web_view_init (void)
 {
-    uzbl.gui.web_view = WEBKIT_WEB_VIEW(webkit_web_view_new());
-    uzbl.gui.scrolled_win = gtk_scrolled_window_new(NULL, NULL);
+    uzbl.gui.web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
+    uzbl.gui.scrolled_win = gtk_scrolled_window_new (NULL, NULL);
 
-    gtk_container_add(
-        GTK_CONTAINER(uzbl.gui.scrolled_win),
-        GTK_WIDGET(uzbl.gui.web_view)
+    gtk_container_add (
+        GTK_CONTAINER (uzbl.gui.scrolled_win),
+        GTK_WIDGET (uzbl.gui.web_view)
     );
 
-    g_object_connect(G_OBJECT (uzbl.gui.web_view),
+    g_object_connect (G_OBJECT (uzbl.gui.web_view),
         "signal::key-press-event",                      G_CALLBACK (key_press_cb),             NULL,
         "signal::key-release-event",                    G_CALLBACK (key_release_cb),           NULL,
         "signal::button-press-event",                   G_CALLBACK (button_press_cb),          NULL,
@@ -117,15 +117,15 @@ uzbl_web_view_init (void)
 void
 uzbl_vbox_init (void)
 {
-#if GTK_CHECK_VERSION(3,0,0)
-    uzbl.gui.vbox = gtk_box_new(FALSE, 0);
-    gtk_orientable_set_orientation(GTK_ORIENTABLE(uzbl.gui.vbox), GTK_ORIENTATION_VERTICAL);
+#if GTK_CHECK_VERSION (3, 0, 0)
+    uzbl.gui.vbox = gtk_box_new (FALSE, 0);
+    gtk_orientable_set_orientation (GTK_ORIENTABLE (uzbl.gui.vbox), GTK_ORIENTATION_VERTICAL);
 #else
-    uzbl.gui.vbox = gtk_vbox_new(FALSE, 0);
+    uzbl.gui.vbox = gtk_vbox_new (FALSE, 0);
 #endif
 
-    gtk_box_pack_start(GTK_BOX(uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(uzbl.gui.vbox), uzbl.gui.status_bar, FALSE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
+    gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.status_bar, FALSE, TRUE, 0);
 }
 
 void
@@ -134,7 +134,7 @@ uzbl_window_init (void)
     uzbl.gui.main_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 
     gtk_window_set_default_size (GTK_WINDOW (uzbl.gui.main_window), 800, 600);
-    gtk_window_set_title(GTK_WINDOW(uzbl.gui.main_window), "Uzbl");
+    gtk_window_set_title (GTK_WINDOW (uzbl.gui.main_window), "Uzbl");
     gtk_widget_set_name (GTK_WIDGET (uzbl.gui.main_window), "Uzbl");
 
 #if GTK_CHECK_VERSION (3, 0, 0)
@@ -155,7 +155,7 @@ uzbl_plug_init (void)
 {
     uzbl.gui.plug = GTK_PLUG (gtk_plug_new (uzbl.state.socket_id));
 
-    gtk_widget_set_name (GTK_WIDGET(uzbl.gui.plug), "Uzbl");
+    gtk_widget_set_name (GTK_WIDGET (uzbl.gui.plug), "Uzbl");
 
     gtk_container_add (GTK_CONTAINER (uzbl.gui.plug), uzbl.gui.vbox);
 
