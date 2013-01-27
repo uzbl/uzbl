@@ -1112,7 +1112,9 @@ run_menu_command (GtkMenuItem *menu_item, gpointer data)
 
     MenuItem *item = (MenuItem *)data;
 
-    if (item->context & WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE) {
+    gboolean is_image = (item->context & WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE);
+
+    if (is_image) {
         gchar *cmd = g_strdup_printf ("%s %s", item->cmd, item->argument);
 
         parse_cmd_line (cmd, NULL);
