@@ -79,18 +79,18 @@ static void
 link_hover_cb (WebKitWebView *view, const gchar *title, const gchar *link, gpointer data);
 /* Page metadata events */
 static void
-title_change_cb (WebKitWebView* web_view, GParamSpec param_spec);
+title_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
 static void
-progress_change_cb (WebKitWebView* web_view, GParamSpec param_spec);
+progress_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
 static void
-load_status_change_cb (WebKitWebView* web_view, GParamSpec param_spec);
+load_status_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
 static void
-uri_change_cb (WebKitWebView *web_view, GParamSpec param_spec);
+uri_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
 static gboolean
-load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer web_err, gpointer ud);
+load_error_cb (WebKitWebView *view, WebKitWebFrame *frame, gchar *uri, gpointer web_err, gpointer data);
 static void
-window_object_cleared_cb(WebKitWebView *webview, WebKitWebFrame *frame,
-        JSGlobalContextRef *context, JSObjectRef *object);
+window_object_cleared_cb (WebKitWebView *view, WebKitWebFrame *frame,
+        JSGlobalContextRef *context, JSObjectRef *object, gpointer data);
 
 void
 uzbl_web_view_init (void)
@@ -400,63 +400,99 @@ link_hover_cb (WebKitWebView *view, const gchar *title, const gchar *link, gpoin
 /* Page metadata events */
 
 void
-title_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
-    (void) web_view;
-    (void) param_spec;
-    const gchar *title = webkit_web_view_get_title(web_view);
-    if (uzbl.gui.main_title)
+title_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
+{
+    UZBL_UNUSED (param_spec);
+    UZBL_UNUSED (data);
+
+    const gchar *title = webkit_web_view_get_title (view);
+
+    if (uzbl.gui.main_title) {
         g_free (uzbl.gui.main_title);
+    }
     uzbl.gui.main_title = title ? g_strdup (title) : g_strdup ("(no title)");
-    update_title();
-    send_event(TITLE_CHANGED, NULL, TYPE_STR, uzbl.gui.main_title, NULL);
-    g_setenv("UZBL_TITLE", uzbl.gui.main_title, TRUE);
+
+    update_title ();
+
+    send_event (TITLE_CHANGED, NULL,
+        TYPE_STR, uzbl.gui.main_title,
+        NULL);
+    g_setenv ("UZBL_TITLE", uzbl.gui.main_title, TRUE);
 }
 
 void
-progress_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
-    (void) param_spec;
-    int progress = webkit_web_view_get_progress(web_view) * 100;
-    send_event(LOAD_PROGRESS, NULL, TYPE_INT, progress, NULL);
+progress_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
+{
+    UZBL_UNUSED (param_spec);
+    UZBL_UNUSED (data);
+
+    int progress = 100 * webkit_web_view_get_progress (view);
+
+    send_event (LOAD_PROGRESS, NULL,
+        TYPE_INT, progress,
+        NULL);
 }
 
 void
-load_status_change_cb (WebKitWebView* web_view, GParamSpec param_spec) {
-    (void) param_spec;
+load_status_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
+{
+    UZBL_UNUSED (param_spec);
+    UZBL_UNUSED (data);
 
-    WebKitWebFrame  *frame;
-    WebKitLoadStatus status = webkit_web_view_get_load_status(web_view);
-    switch(status) {
+    WebKitWebFrame *frame;
+    WebKitLoadStatus status;
+
+    status = webkit_web_view_get_load_status (view);
+
+    switch (status) {
         case WEBKIT_LOAD_PROVISIONAL:
-            send_event(LOAD_START,  NULL, TYPE_STR, uzbl.state.uri ? uzbl.state.uri : "", NULL);
+            send_event (LOAD_START, NULL,
+                TYPE_STR, uzbl.state.uri ? uzbl.state.uri : "",
+                NULL);
             break;
         case WEBKIT_LOAD_COMMITTED:
-            frame = webkit_web_view_get_main_frame(web_view);
-            send_event(LOAD_COMMIT, NULL, TYPE_STR, webkit_web_frame_get_uri (frame), NULL);
+            frame = webkit_web_view_get_main_frame (view);
+            send_event (LOAD_COMMIT, NULL,
+                TYPE_STR, webkit_web_frame_get_uri (frame),
+                NULL);
             break;
         case WEBKIT_LOAD_FINISHED:
-            send_event(LOAD_FINISH, NULL, TYPE_STR, uzbl.state.uri, NULL);
+            send_event (LOAD_FINISH, NULL,
+                TYPE_STR, uzbl.state.uri,
+                NULL);
             break;
         case WEBKIT_LOAD_FIRST_VISUALLY_NON_EMPTY_LAYOUT:
-            break; /* we don't do anything with this (yet) */
+            /* TODO: Implement */
+            break;
         case WEBKIT_LOAD_FAILED:
-            break; /* load_error_cb will handle this case */
+            /* Handled by load_error_cb */
+            break;
+        default:
+            uzbl_debug ("Unrecognized load status: %d", status);
+            break;
     }
 }
 
 void
-uri_change_cb (WebKitWebView *web_view, GParamSpec param_spec) {
-    (void) param_spec;
+uri_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
+{
+    UZBL_UNUSED (param_spec);
+    UZBL_UNUSED (data);
 
     g_free (uzbl.state.uri);
-    g_object_get (web_view, "uri", &uzbl.state.uri, NULL);
+    g_object_get (view, "uri", &uzbl.state.uri, NULL);
 
-    g_setenv("UZBL_URI", uzbl.state.uri, TRUE);
-    set_window_property("UZBL_URI", uzbl.state.uri);
+    g_setenv ("UZBL_URI", uzbl.state.uri, TRUE);
+    set_window_property ("UZBL_URI", uzbl.state.uri);
 }
 
 gboolean
-load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer web_err, gpointer ud) {
-    (void) page; (void) frame; (void) ud;
+load_error_cb (WebKitWebView *view, WebKitWebFrame *frame, gchar *uri, gpointer web_err, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (frame);
+    UZBL_UNUSED (data);
+
     GError *err = web_err;
 
     send_event (LOAD_ERROR, NULL,
@@ -470,43 +506,59 @@ load_error_cb (WebKitWebView* page, WebKitWebFrame* frame, gchar *uri, gpointer 
 
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
 static void
-dom_focus_cb(WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer user_data);
+dom_focus_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data);
 static void
-dom_blur_cb(WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer user_data);
+dom_blur_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data);
 #endif
 
 void
-window_object_cleared_cb(WebKitWebView *webview, WebKitWebFrame *frame,
-        JSGlobalContextRef *context, JSObjectRef *object) {
-    (void) frame; (void) context; (void) object;
+window_object_cleared_cb (WebKitWebView *view, WebKitWebFrame *frame,
+        JSGlobalContextRef *context, JSObjectRef *object, gpointer data)
+{
+    UZBL_UNUSED (frame);
+    UZBL_UNUSED (context);
+    UZBL_UNUSED (object);
+    UZBL_UNUSED (data);
+
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
-    // Take this opportunity to set some callbacks on the DOM
-    WebKitDOMDocument *document = webkit_web_view_get_dom_document (webview);
+    /* Take this opportunity to set some callbacks on the DOM */
+    WebKitDOMDocument *document = webkit_web_view_get_dom_document (view);
     webkit_dom_event_target_add_event_listener (WEBKIT_DOM_EVENT_TARGET (document),
-        "focus", G_CALLBACK(dom_focus_cb), TRUE, NULL);
+        "focus", G_CALLBACK (dom_focus_cb), TRUE, NULL);
     webkit_dom_event_target_add_event_listener (WEBKIT_DOM_EVENT_TARGET (document),
-        "blur", G_CALLBACK(dom_focus_cb), TRUE, NULL);
+        "blur",  G_CALLBACK (dom_blur_cb), TRUE, NULL);
 #else
-	(void) webview;
+    UZBL_UNUSED (view);
 #endif
 }
 
 
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
 void
-dom_focus_cb(WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer user_data) {
-    (void) target; (void) user_data;
+dom_focus_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data)
+{
+    UZBL_UNUSED (target);
+    UZBL_UNUSED (data);
+
     WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
-    gchar* name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
-    send_event (FOCUS_ELEMENT, NULL, TYPE_STR, name, NULL);
+    gchar *name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
+    send_event (FOCUS_ELEMENT, NULL,
+        TYPE_STR, name,
+        NULL);
 }
 
 void
-dom_blur_cb(WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer user_data) {
-    (void) target; (void) user_data;
+dom_blur_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data)
+{
+    UZBL_UNUSED (target);
+    UZBL_UNUSED (data);
+
     WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
-    gchar* name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
-    send_event (BLUR_ELEMENT, NULL, TYPE_STR, name, NULL);
+    gchar *name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
+
+    send_event (BLUR_ELEMENT, NULL,
+        TYPE_STR, name,
+        NULL);
 }
 #endif
 
