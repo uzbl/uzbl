@@ -1303,6 +1303,8 @@ if __name__ == "__main__":
     parser = OptionParser(usage=usage)
     parser.add_option('-l', '--load-session', dest='sessionname',
       type='string', help="load a named session")
+    parser.add_option('-L', '--list-sessions', dest='listsessions',
+      action='store_true', help="list the named sessions")
     parser.add_option('-n', '--no-session', dest='nosession',
       action='store_true', help="ignore session saving a loading.")
     parser.add_option('-v', '--verbose', dest='verbose',
@@ -1335,6 +1337,12 @@ if __name__ == "__main__":
         session_basename = options.sessionname
         config['session_file'] = os.path.join(
             config['saved_sessions_dir'], session_basename)
+
+    if options.listsessions:
+        children = os.listdir(config['saved_sessions_dir'])
+        for i in children:
+            print i
+        sys.exit(0)
 
     if options.nosession:
         config['save_session'] = False
