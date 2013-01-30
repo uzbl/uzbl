@@ -47,6 +47,10 @@
 #
 #   Simon Lipp (sloonz)
 #       Various
+#
+#   Hakan Jerning
+#       Wrote autosave_session patch to have a saved session even if
+#       uzbl-tabbed is closed unexpectedly.
 
 
 # Dependencies:
@@ -85,6 +89,7 @@
 #   save_session            = 1
 #   json_session            = 0
 #   session_file            = $HOME/.local/share/uzbl/session
+#   autosave_session        = 0
 #
 # Inherited uzbl options:
 #   icon_path               = $HOME/.local/share/uzbl/uzbl.png
@@ -209,6 +214,7 @@ config = {
   'save_session':           True,   # Save session in file when quit
   'saved_sessions_dir':     os.path.join(DATA_DIR, 'sessions/'),
   'session_file':           os.path.join(DATA_DIR, 'session'),
+  'autosave_session':       False,  # Save session for every tab change
 
   # Inherited uzbl options
   'icon_path':              os.path.join(DATA_DIR, 'uzbl.png'),
@@ -1059,6 +1065,11 @@ class UzblTabbed:
         tab = self.notebook.get_nth_page(index)
         self.notebook.set_focus_child(tab)
         self.update_tablist(index)
+
+        if config['save_session'] and config['autosave_session']:
+            if len(list(self.notebook)) > 1:
+                self.save_session()
+
         return True
 
 

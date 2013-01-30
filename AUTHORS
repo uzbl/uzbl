@@ -46,6 +46,7 @@ In alphabetical order:
     Gregor Uhlenheuer (kongo2002) <kongo2002@googlemail.com> - uzbl vim syntax & related files
     Helmut Grohne (helmut) - move void **ptr to union, various fixes
     Henri Kemppainen (DuClare) <email is akarinotengoku AT THE DOMAIN OF gmail.com> - many contributions, mostly old handler code
+    Håkan Jerning - uzbl-tabbed: autosave_session patch
     Igor Bogomazov - mouse ptr events
     Jake Probst <jake.probst@gmail.com> - uzbl_tabbed: multiline tablist, new window opening patches
     James Campos (aeosynth) <james.r.campos@gmail.com> - Re-orderable gtk notebook tabs in uzbl-tabbed
