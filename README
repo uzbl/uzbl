@@ -714,7 +714,7 @@ Events have this format:
   loaded. `uri` is the URI of the page being loaded.
 * `EVENT [uzbl_instance_name] LOAD_START uri`: A change of the page has been
   requested. `uri` is the current URI; the one being departed.
-* `EVENT [uzbl_instance_name] LOAD_FINISHED uri`: Loading has finished for the
+* `EVENT [uzbl_instance_name] LOAD_FINISH uri`: Loading has finished for the
   page at `uri`.
 * `EVENT [uzbl_instance_name] LOAD_ERROR uri reason_of_error`: The URI `uri`
   could not be loaded for the reason described in `reason_of_error`.
