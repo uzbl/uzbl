@@ -292,37 +292,6 @@ navigation_decision_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
     return TRUE;
 }
 
-gboolean
-new_window_cb (WebKitWebView *web_view, WebKitWebFrame *frame,
-        WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action,
-        WebKitWebPolicyDecision *policy_decision, gpointer user_data) {
-    (void) web_view;
-    (void) frame;
-    (void) navigation_action;
-    (void) policy_decision;
-    (void) user_data;
-
-    if (uzbl.state.verbose)
-        printf ("New window requested -> %s \n", webkit_network_request_get_uri (request));
-
-    /* This event function causes troubles with `target="_blank"` anchors.
-     * Either we:
-     *  1. Comment it out and target blank links are ignored.
-     *  2. Uncomment it and two windows are opened when you click on target
-     *     blank links.
-     *
-     * This problem is caused by create_web_view_cb also being called whenever
-     * this callback is triggered thus resulting in the doubled events.
-     *
-     * We are leaving this uncommented as we would rather links open twice
-     * than not at all.
-     */
-    send_event (NEW_WINDOW, NULL, TYPE_STR, webkit_network_request_get_uri (request), NULL);
-
-    webkit_web_policy_decision_ignore (policy_decision);
-    return TRUE;
-}
-
 void
 close_web_view_cb(WebKitWebView *webview, gpointer user_data) {
     (void) webview; (void) user_data;
