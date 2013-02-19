@@ -367,12 +367,12 @@ create_web_view_js_cb (WebKitWebView* web_view, GParamSpec param_spec) {
     webkit_web_view_stop_loading(web_view);
     const gchar* uri = webkit_web_view_get_uri(web_view);
 
-    if (strncmp(uri, "javascript:", strlen("javascript:")) == 0) {
+    if (strncmp(uri, "javascript:", strlen("javascript:")) == 0)
         eval_js(uzbl.gui.web_view, (gchar*) uri + strlen("javascript:"), NULL, "javascript:");
-        gtk_widget_destroy(GTK_WIDGET(web_view));
-    }
     else
         send_event(NEW_WINDOW, NULL, TYPE_STR, uri, NULL);
+
+    gtk_widget_destroy(GTK_WIDGET(web_view));
 }
 
 /*@null@*/ WebKitWebView*
