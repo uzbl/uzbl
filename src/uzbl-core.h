@@ -106,7 +106,6 @@ typedef struct {
     gchar*          config_file;
     char*           instance_name;
     gchar*          selected_url;
-    gchar*          last_selected_url;
     gchar*          executable_path;
     gchar*          searchtx;
     gboolean        verbose;

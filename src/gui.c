@@ -423,25 +423,14 @@ link_hover_cb (WebKitWebView *view, const gchar *title, const gchar *link, gpoin
     UZBL_UNUSED (view);
     UZBL_UNUSED (data);
 
-    if (uzbl.state.last_selected_url) {
-        g_free (uzbl.state.last_selected_url);
-    }
-
-    if (uzbl.state.selected_url) {
-        uzbl.state.last_selected_url = g_strdup (uzbl.state.selected_url);
-        g_free (uzbl.state.selected_url);
-        uzbl.state.selected_url = NULL;
-    } else {
-        uzbl.state.last_selected_url = NULL;
-    }
-
-    if (uzbl.state.last_selected_url && g_strcmp0 (link, uzbl.state.last_selected_url)) {
+    if (uzbl.state.selected_url && g_strcmp0 (link, uzbl.state.selected_url)) {
         send_event (LINK_UNHOVER, NULL,
-            TYPE_STR, uzbl.state.last_selected_url,
+            TYPE_STR, uzbl.state.selected_url,
             NULL);
     }
 
     if (link) {
+        g_free (uzbl.state.selected_url);
         uzbl.state.selected_url = g_strdup (link);
         send_event (LINK_HOVER, NULL,
             TYPE_STR, uzbl.state.selected_url,
