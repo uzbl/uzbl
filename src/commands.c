@@ -122,6 +122,14 @@ cmd_spawn_sh (WebKitWebView *view, GArray *argv, GString *result);
 static void
 cmd_spawn_sh_sync (WebKitWebView *view, GArray *argv, GString *result);
 
+/* Uzbl commands */
+static void
+cmd_chain (WebKitWebView *view, GArray *argv, GString *result);
+static void
+cmd_include (WebKitWebView *view, GArray *argv, GString *result);
+static void
+cmd_exit (WebKitWebView *view, GArray *argv, GString *result);
+
 /* Variable commands */
 static void
 set_var (WebKitWebView *view, GArray *argv, GString *result);
@@ -133,14 +141,6 @@ static void
 act_dump_config_as_events (WebKitWebView *view, GArray *argv, GString *result);
 static void
 print (WebKitWebView *view, GArray *argv, GString *result);
-
-/* Uzbl commands */
-static void
-chain (WebKitWebView *view, GArray *argv, GString *result);
-static void
-include (WebKitWebView *view, GArray *argv, GString *result);
-static void
-close_uzbl (WebKitWebView *view, GArray *argv, GString *result);
 
 /* Event commands */
 static void
@@ -229,9 +229,9 @@ builtin_command_table[] =
     { "sync_sh",                        cmd_spawn_sh_sync,            TRUE  }, /* TODO: Rename to "spawn_sh_sync". */
 
     /* Uzbl commands */
-    { "chain",                          chain,                        TRUE  },
-    { "include",                        include,                      FALSE },
-    { "exit",                           close_uzbl,                   TRUE  },
+    { "chain",                          cmd_chain,                    TRUE  },
+    { "include",                        cmd_include,                  FALSE },
+    { "exit",                           cmd_exit,                     TRUE  },
 
     /* Variable commands */
     { "set",                            set_var,                      FALSE },
@@ -1369,6 +1369,72 @@ run_command (const gchar *command, const gchar **args, const gboolean sync,
     return result;
 }
 
+/* Uzbl commands */
+
+void
+cmd_chain (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+
+    ARG_CHECK (argv, 1);
+
+    guint i = 0;
+    const gchar *cmd;
+    GString *r = g_string_new ("");
+
+    while ((cmd = argv_idx (argv, i++))) {
+        GArray *a = g_array_new (TRUE, FALSE, sizeof (gchar*));
+        const UzblCommandInfo *c = parse_command_parts (cmd, a);
+        if (c) {
+            run_parsed_command (c, a, r);
+        }
+        g_array_free (a, TRUE);
+    }
+    if (result) {
+        g_string_assign (result, r->str);
+    }
+
+    g_string_free (r, TRUE);
+}
+
+void
+cmd_include (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (result);
+
+    ARG_CHECK (argv, 1);
+
+    gchar *req_path = argv_idx (argv, 0);
+    gchar *path = NULL;
+
+    if ((path = find_existing_file (req_path))) {
+        run_command_file (path);
+        send_event (FILE_INCLUDED, NULL,
+            TYPE_STR, path,
+            NULL);
+        g_free (path);
+    }
+}
+
+void
+cmd_exit (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (argv);
+    UZBL_UNUSED (result);
+
+    /* hide window a soon as possible to avoid getting stuck with a
+     * non-response window in the cleanup steps. */
+    if (uzbl.gui.main_window) {
+        gtk_widget_destroy (uzbl.gui.main_window);
+    } else if (uzbl.gui.plug) {
+        gtk_widget_destroy (GTK_WIDGET (uzbl.gui.plug));
+    }
+
+    gtk_main_quit ();
+}
+
 void
 set_var(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
@@ -1558,52 +1624,6 @@ print(WebKitWebView *page, GArray *argv, GString *result) {
 }
 
 void
-include(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page; (void) result;
-    gchar *path = argv_idx(argv, 0);
-
-    if(!path)
-        return;
-
-    if((path = find_existing_file(path))) {
-		run_command_file(path);
-        send_event(FILE_INCLUDED, NULL, TYPE_STR, path, NULL);
-        g_free(path);
-    }
-}
-
-void
-chain(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page;
-    guint i = 0;
-    const gchar *cmd;
-    GString *r = g_string_new ("");
-    while ((cmd = argv_idx(argv, i++))) {
-        GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-        const UzblCommandInfo *c = parse_command_parts(cmd, a);
-        if (c)
-            run_parsed_command(c, a, r);
-        g_array_free (a, TRUE);
-    }
-    if(result)
-        g_string_assign (result, r->str);
-
-    g_string_free(r, TRUE);
-}
-
-void
-close_uzbl (WebKitWebView *page, GArray *argv, GString *result) {
-    (void)page; (void)argv; (void)result;
-    // hide window a soon as possible to avoid getting stuck with a
-    // non-response window in the cleanup steps
-    if (uzbl.gui.main_window)
-        gtk_widget_destroy(uzbl.gui.main_window);
-    else if (uzbl.gui.plug)
-        gtk_widget_destroy(GTK_WIDGET(uzbl.gui.plug));
-
-    gtk_main_quit ();
-}
-
 void
 act_dump_config(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void) argv; (void)result;
