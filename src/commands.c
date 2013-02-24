@@ -104,13 +104,13 @@ spawn_sh_sync (WebKitWebView *view, GArray *argv, GString *result);
 
 /* Search commands */
 static void
-search_forward_text (WebKitWebView *view, GArray *argv, GString *result);
+cmd_search_forward (WebKitWebView *view, GArray *argv, GString *result);
 static void
-search_reverse_text (WebKitWebView *view, GArray *argv, GString *result);
+cmd_search_reverse (WebKitWebView *view, GArray *argv, GString *result);
 static void
-search_clear (WebKitWebView *view, GArray *argv, GString *result);
+cmd_search_clear (WebKitWebView *view, GArray *argv, GString *result);
 static void
-dehilight (WebKitWebView *view, GArray *argv, GString *result);
+cmd_search_reset (WebKitWebView *view, GArray *argv, GString *result);
 
 /* Variable commands */
 static void
@@ -205,10 +205,10 @@ builtin_command_table[] =
     { "menu_editable_remove",           cmd_menu_remove_edit,         FALSE }, /* TODO: Rework to be "menu remove edit". */
 
     /* Search commands */
-    { "search",                         search_forward_text,          FALSE },
-    { "search_reverse",                 search_reverse_text,          FALSE },
-    { "search_clear",                   search_clear,                 FALSE },
-    { "dehilight",                      dehilight,                    TRUE  },
+    { "search",                         cmd_search_forward,           FALSE }, /* TODO: Rework to be "search forward". */
+    { "search_reverse",                 cmd_search_reverse,           FALSE }, /* TODO: Rework to be "search reverse". */
+    { "search_clear",                   cmd_search_clear,             FALSE }, /* TODO: Rework to be "search clear". */
+    { "dehilight",                      cmd_search_reset,             TRUE  }, /* TODO: Rework to be "search reset". */
 
     /* Inspector commands */
     /* Deprecated */
@@ -933,6 +933,73 @@ cmd_spell_checker (WebKitWebView *view, GArray *argv, GString *result)
 }
 #endif
 
+/* Search commands */
+
+static void
+search_text (WebKitWebView *view, const gchar *key, const gboolean forward);
+
+void
+cmd_search_forward (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (result);
+
+    ARG_CHECK (argv, 1);
+
+    search_text (view, argv_idx (argv, 0), TRUE);
+}
+
+void
+cmd_search_reverse (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (result);
+
+    ARG_CHECK (argv, 1);
+
+    search_text (view, argv_idx (argv, 0), FALSE);
+}
+
+void
+cmd_search_clear (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (argv);
+    UZBL_UNUSED (result);
+
+    webkit_web_view_unmark_text_matches (view);
+
+    g_free (uzbl.state.searchtx);
+    uzbl.state.searchtx = NULL;
+}
+
+void
+cmd_search_reset (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (argv);
+    UZBL_UNUSED (result);
+
+    webkit_web_view_set_highlight_text_matches (view, FALSE);
+}
+
+void
+search_text (WebKitWebView *view, const gchar *key, const gboolean forward)
+{
+    if (*key) {
+        if (g_strcmp0 (uzbl.state.searchtx, key)) {
+            webkit_web_view_unmark_text_matches (view);
+            webkit_web_view_mark_text_matches (view, key, FALSE, 0);
+
+            g_free (uzbl.state.searchtx);
+            uzbl.state.searchtx = g_strdup (key);
+        }
+    }
+
+    if (uzbl.state.searchtx) {
+        uzbl_debug ("Searching: %s\n", uzbl.state.searchtx);
+
+        webkit_web_view_set_highlight_text_matches (view, TRUE);
+        webkit_web_view_search_text (view, uzbl.state.searchtx, FALSE, forward, TRUE);
+    }
+}
+
 void
 set_var(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
@@ -1210,32 +1277,6 @@ run_external_js (WebKitWebView * web_view, GArray *argv, GString *result) {
         g_free (js);
         g_free(path);
     }
-}
-
-void
-search_clear(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) argv; (void) result;
-    webkit_web_view_unmark_text_matches (page);
-    g_free(uzbl.state.searchtx);
-    uzbl.state.searchtx = NULL;
-}
-
-void
-search_forward_text (WebKitWebView *page, GArray *argv, GString *result) {
-    (void) result;
-    search_text(page, argv_idx(argv, 0), TRUE);
-}
-
-void
-search_reverse_text(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) result;
-    search_text(page, argv_idx(argv, 0), FALSE);
-}
-
-void
-dehilight(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) argv; (void) result;
-    webkit_web_view_set_highlight_text_matches (page, FALSE);
 }
 
 void

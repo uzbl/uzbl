@@ -228,9 +228,6 @@ void        run_command_file(const gchar *path);
 void        initialize(int argc, char *argv[]);
 void        settings_init();
 
-/* Search functions */
-void        search_text (WebKitWebView *page, const gchar *key, const gboolean forward);
-
 /* Javascript functions */
 void        eval_js(WebKitWebView *web_view, const gchar *script, GString *result, const gchar *script_file);
 
