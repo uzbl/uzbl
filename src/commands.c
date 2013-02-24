@@ -76,7 +76,8 @@ static void        act_dump_config(WebKitWebView* page, GArray *argv, GString *r
 static void        act_dump_config_as_events(WebKitWebView* page, GArray *argv, GString *result);
 static void        auth(WebKitWebView* page, GArray *argv, GString *result);
 
-UzblCommandInfo cmdlist[] =
+static UzblCommandInfo
+builtin_command_table[] =
 {   /* name                             function                   split */
     { "back",                           view_go_back,              TRUE  },
     { "forward",                        view_go_forward,           TRUE  },
@@ -156,12 +157,12 @@ void
 uzbl_command_init ()
 {
     unsigned i;
-    unsigned len = LENGTH (cmdlist);
+    unsigned len = LENGTH (builtin_command_table);
 
     uzbl.behave.commands = g_hash_table_new (g_str_hash, g_str_equal);
 
     for (i = 0; i < len; ++i) {
-        g_hash_table_insert (uzbl.behave.commands, (gpointer)cmdlist[i].name, &cmdlist[i]);
+        g_hash_table_insert (uzbl.behave.commands, (gpointer)builtin_command_table[i].name, &builtin_command_table[i]);
     }
 }
 
@@ -169,11 +170,11 @@ void
 uzbl_command_send_builtin_event ()
 {
     unsigned i;
-    unsigned len = LENGTH(cmdlist);
+    unsigned len = LENGTH(builtin_command_table);
     GString *command_list = g_string_new ("");
 
     for (i = 0; i < len; ++i) {
-        g_string_append (command_list, cmdlist[i].name);
+        g_string_append (command_list, builtin_command_table[i].name);
         g_string_append_c (command_list, ' ');
     }
 
