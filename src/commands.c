@@ -88,20 +88,6 @@ static void
 cmd_spell_checker (WebKitWebView *view, GArray *argv, GString *result);
 #endif
 
-/* Execution commands */
-static void
-run_js (WebKitWebView *view, GArray *argv, GString *result);
-static void
-spawn_async (WebKitWebView *view, GArray *argv, GString *result);
-static void
-spawn_sync (WebKitWebView *view, GArray *argv, GString *result);
-static void
-spawn_sync_exec (WebKitWebView *view, GArray *argv, GString *result);
-static void
-spawn_sh_async (WebKitWebView *view, GArray *argv, GString *result);
-static void
-spawn_sh_sync (WebKitWebView *view, GArray *argv, GString *result);
-
 /* Search commands */
 static void
 cmd_search_forward (WebKitWebView *view, GArray *argv, GString *result);
@@ -117,6 +103,24 @@ static void
 cmd_inspector_show (WebKitWebView *view, GArray *argv, GString *result);
 static void
 cmd_inspector (WebKitWebView *view, GArray *argv, GString *result);
+
+/* Execution commands */
+/* FIXME: Make private again.
+void
+cmd_js (WebKitWebView *view, GArray *argv, GString *result);
+void
+cmd_js_file (WebKitWebView *view, GArray *argv, GString *result);
+*/
+static void
+cmd_spawn (WebKitWebView *view, GArray *argv, GString *result);
+static void
+cmd_spawn_sync (WebKitWebView *view, GArray *argv, GString *result);
+static void
+cmd_spawn_sync_exec (WebKitWebView *view, GArray *argv, GString *result);
+static void
+cmd_spawn_sh (WebKitWebView *view, GArray *argv, GString *result);
+static void
+cmd_spawn_sh_sync (WebKitWebView *view, GArray *argv, GString *result);
 
 /* Variable commands */
 static void
@@ -215,13 +219,14 @@ builtin_command_table[] =
     { "inspector",                      cmd_inspector,                FALSE },
 
     /* Execution commands */
-    { "js",                             run_js,                       FALSE },
-    { "script",                         run_external_js,              TRUE  },
-    { "spawn",                          spawn_async,                  TRUE  },
-    { "sync_spawn",                     spawn_sync,                   TRUE  },
-    { "sync_spawn_exec",                spawn_sync_exec,              TRUE  }, // needed for load_cookies.sh :(
-    { "sh",                             spawn_sh_async,               TRUE  },
-    { "sync_sh",                        spawn_sh_sync,                TRUE  },
+    { "js",                             cmd_js,                       FALSE },
+    { "script",                         cmd_js_file,                  TRUE  }, /* TODO: Rename to "js_file". */
+    { "spawn",                          cmd_spawn,                    TRUE  },
+    { "sync_spawn",                     cmd_spawn_sync,               TRUE  }, /* TODO: Rename to "spawn_sync". */
+    /* XXX: Should this command be removed? */
+    { "sync_spawn_exec",                cmd_spawn_sync_exec,          TRUE  }, /* TODO: Rename to "spawn_sync_exec". */
+    { "sh",                             cmd_spawn_sh,                 TRUE  }, /* TODO: Rename to "spawn_sh". */
+    { "sync_sh",                        cmd_spawn_sh_sync,            TRUE  }, /* TODO: Rename to "spawn_sh_sync". */
 
     /* Uzbl commands */
     { "chain",                          chain,                        TRUE  },
@@ -1046,6 +1051,324 @@ cmd_inspector (WebKitWebView *view, GArray *argv, GString *result)
     }
 }
 
+/* Execution commands */
+
+/* FIXME: Make private again.
+void
+eval_js (WebKitWebView *view, const gchar *script, GString *result, const gchar *path);
+*/
+
+void
+cmd_js (WebKitWebView *view, GArray *argv, GString *result)
+{
+    ARG_CHECK (argv, 1);
+
+    eval_js (view, argv_idx (argv, 0), result, "(uzbl command)");
+}
+
+void
+cmd_js_file (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (result);
+
+    ARG_CHECK (argv, 1);
+
+    gchar *req_path = argv_idx (argv, 0);
+    gchar *path = NULL;
+
+    if ((path = find_existing_file (req_path))) {
+        gchar *file_contents = NULL;
+
+        GIOChannel *chan = g_io_channel_new_file (path, "r", NULL);
+        if (chan) {
+            gsize len;
+            g_io_channel_read_to_end (chan, &file_contents, &len, NULL);
+            g_io_channel_unref (chan);
+        }
+
+        uzbl_debug ("External JavaScript file loaded: %s\n", req_path);
+
+        gchar *arg = argv_idx (argv, 1);
+
+        /* TODO: Make more generic? */
+        gchar *js = str_replace ("%s", arg ? arg : "", file_contents);
+        g_free (file_contents);
+
+        eval_js (view, js, result, path);
+
+        g_free (js);
+        g_free (path);
+    }
+}
+
+static char *
+extract_js_prop (JSGlobalContextRef ctx, JSObjectRef obj, const gchar *prop);
+static char *
+js_value_to_string (JSGlobalContextRef ctx, JSValueRef obj);
+
+void
+eval_js (WebKitWebView *view, const gchar *script, GString *result, const gchar *path)
+{
+    WebKitWebFrame *frame;
+    JSGlobalContextRef context;
+    JSObjectRef globalobject;
+    JSStringRef js_file;
+    JSStringRef js_script;
+    JSValueRef js_result;
+    JSValueRef js_exc = NULL;
+
+    frame = webkit_web_view_get_main_frame (view);
+    context = webkit_web_frame_get_global_context (frame);
+    globalobject = JSContextGetGlobalObject (context);
+
+    /* evaluate the script and get return value*/
+    js_script = JSStringCreateWithUTF8CString (script);
+    js_file = JSStringCreateWithUTF8CString (path);
+    js_result = JSEvaluateScript (context, js_script, globalobject, js_file, 0, &js_exc);
+    if (result && js_result && !JSValueIsUndefined (context, js_result)) {
+        char *result_utf8;
+
+        result_utf8 = js_value_to_string (context, js_result);
+
+        g_string_assign (result, result_utf8);
+
+        free (result_utf8);
+    } else if (js_exc) {
+        JSObjectRef exc = JSValueToObject (context, js_exc, NULL);
+
+        char *file;
+        char *line;
+        char *msg;
+
+        file = extract_js_prop (context, exc, "sourceURL");
+        line = extract_js_prop (context, exc, "line");
+        msg = js_value_to_string (context, exc);
+
+        uzbl_debug ("Exception occured while executing script:\n %s:%s: %s\n", file, line, msg);
+
+        free (file);
+        free (line);
+        free (msg);
+    }
+
+    /* cleanup */
+    JSStringRelease (js_script);
+    JSStringRelease (js_file);
+}
+
+char *
+extract_js_prop (JSGlobalContextRef ctx, JSObjectRef obj, const gchar *prop)
+{
+    JSStringRef js_prop;
+    JSObjectRef js_prop_val;
+
+    js_prop = JSStringCreateWithUTF8CString (prop);
+    js_prop_val = JSObjectGetProperty (ctx, obj, js_prop, NULL);
+
+    JSStringRelease (js_prop);
+
+    return js_value_to_string (ctx, js_prop_val);
+}
+
+char *
+js_value_to_string (JSGlobalContextRef ctx, JSValueRef val)
+{
+    JSStringRef str = JSValueToStringCopy (ctx, val, NULL);
+    size_t size = JSStringGetMaximumUTF8CStringSize (str);
+
+    char *result = NULL;
+
+    if (size) {
+        result = (gchar *)malloc (size * sizeof (char));
+        JSStringGetUTF8CString (str, result, size);
+    }
+
+    JSStringRelease (str);
+
+    return result;
+}
+
+static void
+spawn (GArray *argv, GString *result, gboolean exec);
+static void
+spawn_sh (GArray *argv, GString *result);
+
+void
+cmd_spawn (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (result);
+
+    spawn (argv, NULL, FALSE);
+}
+
+void
+cmd_spawn_sync (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+
+    spawn (argv, result, FALSE);
+}
+
+void
+cmd_spawn_sync_exec (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+
+    if (!result) {
+        GString *force_result = g_string_new ("");
+        spawn (argv, force_result, TRUE);
+        g_string_free (force_result, TRUE);
+    } else {
+        spawn (argv, result, TRUE);
+    }
+}
+
+void
+cmd_spawn_sh (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (result);
+
+    spawn_sh (argv, NULL);
+}
+
+void
+cmd_spawn_sh_sync (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+
+    spawn_sh (argv, result);
+}
+
+/* make sure that the args string you pass can properly be interpreted (eg
+ * properly escaped against whitespace, quotes etc) */
+static gboolean
+run_command (const gchar *command, const gchar **args, const gboolean sync,
+             char **output_stdout);
+
+void
+spawn (GArray *argv, GString *result, gboolean exec)
+{
+    gchar *path = NULL;
+
+    ARG_CHECK (argv, 1);
+
+    const gchar **args = &g_array_index (argv, const gchar *, 1);
+    const gchar *req_path = argv_idx (argv, 0);
+
+    path = find_existing_file (req_path);
+
+    if (!path) {
+        uzbl_debug ("Failed to spawn child process: %s not found\n", req_path);
+        return;
+    }
+
+    gchar *r = NULL;
+    run_command (path, args, result != NULL, result ? &r : NULL);
+    if (result) {
+        g_string_assign (result, r);
+        /* run each line of output from the program as a command */
+        if (exec && r) {
+            gchar *head = r;
+            gchar *tail;
+            while ((tail = strchr (head, '\n'))) {
+                *tail = '\0';
+                parse_cmd_line (head, NULL);
+                head = tail + 1;
+            }
+        }
+    }
+
+    g_free (r);
+    g_free (path);
+}
+
+void
+spawn_sh (GArray *argv, GString *result)
+{
+    if (!uzbl.behave.shell_cmd) {
+        uzbl_debug ("spawn_sh: shell_cmd is not set!\n");
+        return;
+    }
+    guint i;
+
+    gchar **cmd = split_quoted (uzbl.behave.shell_cmd, TRUE);
+    if (!cmd) {
+        return;
+    }
+
+    g_array_insert_val (argv, 1, cmd[0]);
+
+    for (i = g_strv_length (cmd)-1; i; --i) {
+        g_array_prepend_val (argv, cmd[i]);
+    }
+
+    const gchar *arg_start = argv_idx (argv, 0);
+
+    if (result) {
+        gchar *r = NULL;
+        run_command (cmd[0], &arg_start, TRUE, &r);
+        g_string_assign (result, r);
+        g_free (r);
+    } else {
+        run_command (cmd[0], &arg_start, FALSE, NULL);
+    }
+
+    g_strfreev (cmd);
+}
+
+gboolean
+run_command (const gchar *command, const gchar **args, const gboolean sync,
+             char **output_stdout)
+{
+    GError *err = NULL;
+
+    GArray *a = g_array_new (TRUE, FALSE, sizeof (gchar*));
+    guint i;
+    guint len = g_strv_length ((gchar **)args);
+
+    sharg_append (a, command);
+
+    for (i = 0; i < len; ++i) {
+        sharg_append (a, args[i]);
+    }
+
+    gboolean result;
+    if (sync) {
+        if (*output_stdout) {
+            g_free (*output_stdout);
+        }
+
+        result = g_spawn_sync (NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
+                               NULL, NULL, output_stdout, NULL, NULL, &err);
+    } else {
+        result = g_spawn_async (NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
+                                NULL, NULL, NULL, &err);
+    }
+
+    if (uzbl.state.verbose) {
+        GString *s = g_string_new ("spawned:");
+        for (i = 0; i < a->len; ++i) {
+            gchar *qarg = g_shell_quote (g_array_index (a, gchar*, i));
+            g_string_append_printf (s, " %s", qarg);
+            g_free (qarg);
+        }
+        g_string_append_printf (s, " -- result: %s", (result ? "true" : "false"));
+        printf ("%s\n", s->str);
+        g_string_free (s, TRUE);
+        if (output_stdout) {
+            printf ("Stdout: %s\n", *output_stdout);
+        }
+    }
+    if (err) {
+        g_printerr ("error on run_command: %s\n", err->message);
+        g_error_free (err);
+    }
+    g_array_free (a, TRUE);
+    return result;
+}
+
 void
 set_var(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
@@ -1250,40 +1573,6 @@ include(WebKitWebView *page, GArray *argv, GString *result) {
 }
 
 void
-run_js (WebKitWebView * web_view, GArray *argv, GString *result) {
-    if (argv_idx(argv, 0))
-        eval_js(web_view, argv_idx(argv, 0), result, "(command)");
-}
-
-void
-run_external_js (WebKitWebView * web_view, GArray *argv, GString *result) {
-    (void) result;
-    gchar *path = NULL;
-
-    if (argv_idx(argv, 0) &&
-        ((path = find_existing_file(argv_idx(argv, 0)))) ) {
-        gchar *file_contents = NULL;
-
-        GIOChannel *chan = g_io_channel_new_file(path, "r", NULL);
-        if (chan) {
-            gsize len;
-            g_io_channel_read_to_end(chan, &file_contents, &len, NULL);
-            g_io_channel_unref (chan);
-        }
-
-        if (uzbl.state.verbose)
-            printf ("External JavaScript file %s loaded\n", argv_idx(argv, 0));
-
-        gchar *js = str_replace("%s", argv_idx (argv, 1) ? argv_idx (argv, 1) : "", file_contents);
-        g_free (file_contents);
-
-        eval_js (web_view, js, result, path);
-        g_free (js);
-        g_free(path);
-    }
-}
-
-void
 chain(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page;
     guint i = 0;
@@ -1313,41 +1602,6 @@ close_uzbl (WebKitWebView *page, GArray *argv, GString *result) {
         gtk_widget_destroy(GTK_WIDGET(uzbl.gui.plug));
 
     gtk_main_quit ();
-}
-
-void
-spawn_async(WebKitWebView *web_view, GArray *argv, GString *result) {
-    (void)web_view; (void)result;
-    spawn(argv, NULL, FALSE);
-}
-
-void
-spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
-    (void)web_view;
-    spawn(argv, result, FALSE);
-}
-
-void
-spawn_sync_exec(WebKitWebView *web_view, GArray *argv, GString *result) {
-    (void)web_view;
-    if(!result) {
-        GString *force_result = g_string_new("");
-        spawn(argv, force_result, TRUE);
-        g_string_free (force_result, TRUE);
-    } else
-        spawn(argv, result, TRUE);
-}
-
-void
-spawn_sh_async(WebKitWebView *web_view, GArray *argv, GString *result) {
-    (void)web_view; (void)result;
-    spawn_sh(argv, NULL);
-}
-
-void
-spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result) {
-    (void)web_view; (void)result;
-    spawn_sh(argv, result);
 }
 
 void

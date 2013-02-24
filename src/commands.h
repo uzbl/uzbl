@@ -15,7 +15,12 @@ uzbl_command_init ();
 void
 uzbl_command_send_builtin_event ();
 
-void        run_external_js (WebKitWebView * web_view, GArray *argv, GString *result);
+void /* FIXME: This should not be public here. */
+eval_js (WebKitWebView *view, const gchar *script, GString *result, const gchar *path);
+void /* FIXME: This should not be public here. */
+cmd_js (WebKitWebView *view, GArray *argv, GString *result);
+void /* FIXME: This should not be public here. */
+cmd_js_file (WebKitWebView *view, GArray *argv, GString *result);
 
 gchar**     split_quoted(const gchar* src, const gboolean unquote);
 void        parse_cmd_line(const char *ctl_line, GString *result);

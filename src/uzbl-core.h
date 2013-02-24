@@ -211,25 +211,16 @@ void        update_title(void);
 void        catch_sigterm(int s);
 sigfunc*    setup_signal(int signe, sigfunc *shandler);
 
-/* Subprocess spawning */
-void        spawn(GArray *argv, GString *result, gboolean exec);
-void        spawn_sh(GArray *argv, GString *result);
-
 /* Configuration variables */
 gboolean    valid_name(const gchar* name);
 
 /* Running commands */
 gchar*      expand(const char* s, guint recurse);
-gboolean    run_command(const gchar *command, const gchar **args, const gboolean sync,
-                char **output_stdout);
 void        run_command_file(const gchar *path);
 
 /* Initialization functions */
 void        initialize(int argc, char *argv[]);
 void        settings_init();
-
-/* Javascript functions */
-void        eval_js(WebKitWebView *web_view, const gchar *script, GString *result, const gchar *script_file);
 
 /* Network functions */
 void        init_connect_socket();
