@@ -13,7 +13,7 @@
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
 
 typedef struct {
-    const gchar *key;
+    const gchar *name;
     Command      function;
     gboolean     split;
 } CommandInfo;

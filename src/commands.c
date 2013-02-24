@@ -8,7 +8,7 @@
 #include "soup.h"
 
 CommandInfo cmdlist[] =
-{   /* key                              function                   split */
+{   /* name                             function                   split */
     { "back",                           view_go_back,              TRUE  },
     { "forward",                        view_go_forward,           TRUE  },
     { "scroll",                         scroll_cmd,                TRUE  },
@@ -89,7 +89,7 @@ commands_hash() {
     uzbl.behave.commands = g_hash_table_new(g_str_hash, g_str_equal);
 
     for (i = 0; i < LENGTH(cmdlist); i++)
-        g_hash_table_insert(uzbl.behave.commands, (gpointer) cmdlist[i].key, &cmdlist[i]);
+        g_hash_table_insert(uzbl.behave.commands, (gpointer) cmdlist[i].name, &cmdlist[i]);
 }
 
 void
@@ -99,7 +99,7 @@ builtins() {
     GString*     command_list = g_string_new("");
 
     for (i = 0; i < len; i++) {
-        g_string_append(command_list, cmdlist[i].key);
+        g_string_append(command_list, cmdlist[i].name);
         g_string_append_c(command_list, ' ');
     }
 
@@ -162,11 +162,11 @@ parse_command_parts(const gchar *line, GArray *a) {
 void
 run_parsed_command(const CommandInfo *c, GArray *a, GString *result) {
     /* send the COMMAND_EXECUTED event, except for set and event/request commands */
-    if(strcmp("set", c->key)   &&
-       strcmp("event", c->key) &&
-       strcmp("request", c->key)) {
+    if(strcmp("set", c->name)   &&
+       strcmp("event", c->name) &&
+       strcmp("request", c->name)) {
         Event *event = format_event (COMMAND_EXECUTED, NULL,
-            TYPE_NAME, c->key,
+            TYPE_NAME, c->name,
             TYPE_STR_ARRAY, a,
             NULL);
 
