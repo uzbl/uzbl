@@ -22,27 +22,27 @@ struct _UzblCommandInfo {
 
 /* Navigation commands */
 static void
-view_go_back (WebKitWebView *view, GArray *argv, GString *result);
+cmd_back (WebKitWebView *view, GArray *argv, GString *result);
 static void
-view_go_forward (WebKitWebView *view, GArray *argv, GString *result);
+cmd_forward (WebKitWebView *view, GArray *argv, GString *result);
 static void
-view_reload (WebKitWebView *view, GArray *argv, GString *result);
+cmd_reload (WebKitWebView *view, GArray *argv, GString *result);
 static void
-view_reload_bypass_cache (WebKitWebView *view, GArray *argv, GString *result);
+cmd_reload_force (WebKitWebView *view, GArray *argv, GString *result);
 static void
-view_stop_loading (WebKitWebView *view, GArray *argv, GString *result);
+cmd_stop (WebKitWebView *view, GArray *argv, GString *result);
 static void
-load_uri (WebKitWebView *view, GArray *argv, GString *result);
+cmd_uri (WebKitWebView *view, GArray *argv, GString *result);
 static void
-auth (WebKitWebView *view, GArray *argv, GString *result);
+cmd_auth (WebKitWebView *view, GArray *argv, GString *result);
 static void
-download (WebKitWebView *view, GArray *argv, GString *result);
+cmd_download (WebKitWebView *view, GArray *argv, GString *result);
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 9, 90)
 static void
-load (WebKitWebView *view, GArray *argv, GString *result);
+cmd_load (WebKitWebView *view, GArray *argv, GString *result);
 static void
-save (WebKitWebView *view, GArray *argv, GString *result);
+cmd_save (WebKitWebView *view, GArray *argv, GString *result);
 #endif
 #endif
 
@@ -148,18 +148,18 @@ static UzblCommandInfo
 builtin_command_table[] =
 {   /* name                             function                   split */
     /* Navigation commands */
-    { "back",                           view_go_back,              TRUE  },
-    { "forward",                        view_go_forward,           TRUE  },
-    { "reload",                         view_reload,               TRUE  },
-    { "reload_ign_cache",               view_reload_bypass_cache,  TRUE  },
-    { "stop",                           view_stop_loading,         TRUE  },
-    { "uri",                            load_uri,                  FALSE },
-    { "auth",                           auth,                      TRUE  },
-    { "download",                       download,                  TRUE  },
+    { "back",                           cmd_back,                  TRUE  },
+    { "forward",                        cmd_forward,               TRUE  },
+    { "reload",                         cmd_reload,                TRUE  },
+    { "reload_ign_cache",               cmd_reload_force,          TRUE  }, /* TODO: Rename to "reload_force". */
+    { "stop",                           cmd_stop,                  TRUE  },
+    { "uri",                            cmd_uri,                   FALSE },
+    { "auth",                           cmd_auth,                  TRUE  },
+    { "download",                       cmd_download,              TRUE  },
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 9, 90)
-    { "load",                           load,                      FALSE },
-    { "save",                           save,                      FALSE },
+    { "load",                           cmd_load,                  FALSE },
+    { "save",                           cmd_save,                  FALSE },
 #endif
 #endif
 
@@ -409,28 +409,183 @@ parse_cmd_line(const char *ctl_line, GString *result) {
     g_free(work_string);
 }
 
+#define ARG_CHECK(argv, count)   \
+    do                           \
+    {                            \
+        if (argv->len < count) { \
+            return;              \
+        }                        \
+    } while (false)
+
+/* Navigation commands */
+
+void
+cmd_back (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (result);
+
+    const gchar *count = argv_idx (argv, 0);
+
+    int n = count ? atoi (count) : 1;
+
+    webkit_web_view_go_back_or_forward (view, -n);
+}
+
+void
+cmd_forward (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (result);
+
+    const gchar *count = argv_idx (argv, 0);
+
+    int n = count ? atoi (count) : 1;
+
+    webkit_web_view_go_back_or_forward (view, n);
+}
+
+void
+cmd_reload (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (argv);
+    UZBL_UNUSED (result);
+
+    webkit_web_view_reload (view);
+}
+
+void
+cmd_reload_force (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (argv);
+    UZBL_UNUSED (result);
+
+    webkit_web_view_reload_bypass_cache (view);
+}
+
+void
+cmd_stop (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (argv);
+    UZBL_UNUSED (result);
+
+    webkit_web_view_stop_loading (view);
+}
+
+void
+cmd_uri (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (result);
+
+    ARG_CHECK (argv, 1);
+
+    gchar *uri = argv_idx (argv, 0);
+
+    set_var_value ("uri", uri);
+}
+
+void
+cmd_auth (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (result);
+
+
+    gchar *info;
+    gchar *username;
+    gchar *password;
+
+    ARG_CHECK (argv, 3);
+
+    info = argv_idx (argv, 0);
+    username = argv_idx (argv, 1);
+    password = argv_idx (argv, 2);
+
+    authenticate (info, username, password);
+}
+
+void
+cmd_download (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (result);
+
+    ARG_CHECK (argv, 1);
+
+    const gchar *uri         = argv_idx (argv, 0);
+    const gchar *destination = NULL;
+
+    if (argv->len > 1) {
+        destination = argv_idx (argv, 1);
+    }
+
+    WebKitNetworkRequest *req = webkit_network_request_new (uri);
+    WebKitDownload *download = webkit_download_new (req);
+
+    /* TODO: Make a download function. */
+    download_cb (view, download, (gpointer)destination);
+
+    if (webkit_download_get_destination_uri (download)) {
+        webkit_download_start (download);
+    } else {
+        g_object_unref (download);
+    }
+
+    g_object_unref (req);
+}
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 90)
+void
+cmd_load (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (result);
+
+    guint sz = argv->len;
+
+    const gchar *content = sz > 0 ? argv_idx (argv, 0) : NULL;
+    const gchar *content_uri = sz > 1 ? argv_idx (argv, 1) : NULL;
+    const gchar *base_uri = sz > 2 ? argv_idx (argv, 2) : NULL;
+
+    webkit_web_view_load_alternate_html (view, content, content_uri, base_uri);
+}
+
+void
+cmd_save (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (result);
+
+    guint sz = argv->len;
+
+    const gchar *mode_str = sz > 0 ? argv_idx (argv, 0) : NULL;
+
+    WebKitSaveMode mode = WEBKIT_SAVE_MODE_MHTML;
+
+    if (!mode) {
+        mode = WEBKIT_SAVE_MODE_MHTML;
+    } else if (!strcmp ("mhtml", mode_str)) {
+        mode = WEBKIT_SAVE_MODE_MHTML;
+    }
+
+    if (sz > 1) {
+        const gchar *path = argv_idx (argv, 1);
+        GFile *gfile = g_file_new_for_path (path);
+
+        webkit_web_view_save_to_file (page, gfile, mode, NULL, NULL, NULL);
+        /* TODO: Don't ignore the error */
+        webkit_web_view_save_to_file_finish (page, NULL, NULL);
+    } else {
+        webkit_web_view_save (page, mode, NULL, NULL, NULL);
+        /* TODO: Don't ignore the error */
+        webkit_web_view_save_finish (page, NULL, NULL);
+    }
+}
+#endif
+#endif
+
 /* VIEW funcs (little webkit wrappers) */
 #define VIEWFUNC(name) void view_##name(WebKitWebView *page, GArray *argv, GString *result){(void)argv; (void)result; webkit_web_view_##name(page);}
-VIEWFUNC(reload)
-VIEWFUNC(reload_bypass_cache)
-VIEWFUNC(stop_loading)
 VIEWFUNC(zoom_in)
 VIEWFUNC(zoom_out)
 #undef VIEWFUNC
-
-void
-view_go_back(WebKitWebView *page, GArray *argv, GString *result) {
-    (void)result;
-    int n = argv_idx(argv, 0) ? atoi(argv_idx(argv, 0)) : 1;
-    webkit_web_view_go_back_or_forward(page, -n);
-}
-
-void
-view_go_forward(WebKitWebView *page, GArray *argv, GString *result) {
-    (void)result;
-    int n = argv_idx(argv, 0) ? atoi(argv_idx(argv, 0)) : 1;
-    webkit_web_view_go_back_or_forward(page, n);
-}
 
 void
 toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result) {
@@ -696,52 +851,6 @@ snapshot(WebKitWebView *page, GArray *argv, GString *result) {
 #endif
 #endif
 
-#ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 9, 90)
-void
-load(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) result;
-
-    guint sz = argv->len;
-
-    const gchar *content = sz > 0 ? argv_idx(argv, 0) : NULL;
-    const gchar *content_uri = sz > 2 ? argv_idx(argv, 1) : NULL;
-    const gchar *base_uri = sz > 2 ? argv_idx(argv, 2) : NULL;
-
-    webkit_web_view_load_alternate_html(page, content, content_uri, base_uri);
-}
-
-void
-save(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) result;
-    guint sz = argv->len;
-
-    const gchar *mode_str = sz > 0 ? argv_idx(argv, 0) : NULL;
-
-    WebKitSaveMode mode = WEBKIT_SAVE_MODE_MHTML;
-
-    if (!mode) {
-        mode = WEBKIT_SAVE_MODE_MHTML;
-    } else if (!strcmp("mhtml", mode_str)) {
-        mode = WEBKIT_SAVE_MODE_MHTML;
-    }
-
-    if (sz > 1) {
-        const gchar *path = argv_idx(argv, 1);
-        GFile *gfile = g_file_new_for_path(path);
-
-        webkit_web_view_save_to_file(page, gfile, mode, NULL, NULL, NULL);
-        /* TODO: Don't ignore the error */
-        webkit_web_view_save_to_file_finish(page, NULL, NULL);
-    } else {
-        webkit_web_view_save(page, mode, NULL, NULL, NULL);
-        /* TODO: Don't ignore the error */
-        webkit_web_view_save_finish(page, NULL, NULL);
-    }
-}
-#endif
-#endif
-
 void
 remove_all_db(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) argv; (void) result;
@@ -980,35 +1089,6 @@ clear_cookies(WebKitWebView *page, GArray *argv, GString *result) {
 }
 
 void
-download(WebKitWebView *web_view, GArray *argv, GString *result) {
-    (void) result;
-
-    const gchar *uri         = argv_idx(argv, 0);
-    const gchar *destination = NULL;
-    if(argv->len > 1)
-        destination = argv_idx(argv, 1);
-
-    WebKitNetworkRequest *req = webkit_network_request_new(uri);
-    WebKitDownload *download = webkit_download_new(req);
-
-    download_cb(web_view, download, (gpointer)destination);
-
-    if(webkit_download_get_destination_uri(download))
-        webkit_download_start(download);
-    else
-        g_object_unref(download);
-
-    g_object_unref(req);
-}
-
-void
-load_uri(WebKitWebView *web_view, GArray *argv, GString *result) {
-    (void) web_view; (void) result;
-    gchar * uri = argv_idx(argv, 0);
-    set_var_value("uri", uri ? uri : "");
-}
-
-void
 run_js (WebKitWebView * web_view, GArray *argv, GString *result) {
     if (argv_idx(argv, 0))
         eval_js(web_view, argv_idx(argv, 0), result, "(command)");
@@ -1145,19 +1225,4 @@ void
 act_dump_config_as_events(WebKitWebView *web_view, GArray *argv, GString *result) {
     (void)web_view; (void) argv; (void)result;
     dump_config_as_events();
-}
-
-void
-auth(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page; (void) result;
-    gchar *info, *username, *password;
-
-    if(argv->len != 3)
-        return;
-
-    info = argv_idx (argv, 0);
-    username = argv_idx (argv, 1);
-    password = argv_idx (argv, 2);
-
-    authenticate (info, username, password);
 }
