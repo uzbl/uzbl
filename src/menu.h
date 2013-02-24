@@ -15,16 +15,29 @@ typedef struct {
     gchar*   argument;
 } MenuItem;
 
-void    menu_add(WebKitWebView *page, GArray *argv, GString *result);
-void    menu_add_link(WebKitWebView *page, GArray *argv, GString *result);
-void    menu_add_image(WebKitWebView *page, GArray *argv, GString *result);
-void    menu_add_edit(WebKitWebView *page, GArray *argv, GString *result);
-void    menu_add_separator(WebKitWebView *page, GArray *argv, GString *result);
-void    menu_add_separator_link(WebKitWebView *page, GArray *argv, GString *result);
-void    menu_add_separator_image(WebKitWebView *page, GArray *argv, GString *result);
-void    menu_add_separator_edit(WebKitWebView *page, GArray *argv, GString *result);
-void    menu_remove(WebKitWebView *page, GArray *argv, GString *result);
-void    menu_remove_link(WebKitWebView *page, GArray *argv, GString *result);
-void    menu_remove_image(WebKitWebView *page, GArray *argv, GString *result);
-void    menu_remove_edit(WebKitWebView *page, GArray *argv, GString *result);
+void
+cmd_menu_add(WebKitWebView *view, GArray *argv, GString *result);
+void
+cmd_menu_add_link(WebKitWebView *view, GArray *argv, GString *result);
+void
+cmd_menu_add_image(WebKitWebView *view, GArray *argv, GString *result);
+void
+cmd_menu_add_edit(WebKitWebView *view, GArray *argv, GString *result);
+void
+cmd_menu_add_separator(WebKitWebView *view, GArray *argv, GString *result);
+void
+cmd_menu_add_separator_link(WebKitWebView *view, GArray *argv, GString *result);
+void
+cmd_menu_add_separator_image(WebKitWebView *view, GArray *argv, GString *result);
+void
+cmd_menu_add_separator_edit(WebKitWebView *view, GArray *argv, GString *result);
+void
+cmd_menu_remove(WebKitWebView *view, GArray *argv, GString *result);
+void
+cmd_menu_remove_link(WebKitWebView *view, GArray *argv, GString *result);
+void
+cmd_menu_remove_image(WebKitWebView *view, GArray *argv, GString *result);
+void
+cmd_menu_remove_edit(WebKitWebView *view, GArray *argv, GString *result);
+
 #endif
