@@ -259,7 +259,7 @@ void
 uzbl_command_send_builtin_event ()
 {
     unsigned i;
-    unsigned len = LENGTH(builtin_command_table);
+    unsigned len = LENGTH (builtin_command_table);
     GString *command_list = g_string_new ("");
 
     for (i = 0; i < len; ++i) {
@@ -271,7 +271,7 @@ uzbl_command_send_builtin_event ()
         TYPE_STR, command_list->str,
         NULL);
 
-    g_string_free(command_list, TRUE);
+    g_string_free (command_list, TRUE);
 }
 
 gchar**
