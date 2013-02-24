@@ -132,15 +132,15 @@ cmd_exit (WebKitWebView *view, GArray *argv, GString *result);
 
 /* Variable commands */
 static void
-set_var (WebKitWebView *view, GArray *argv, GString *result);
+cmd_set (WebKitWebView *view, GArray *argv, GString *result);
 static void
-toggle_var (WebKitWebView *view, GArray *argv, GString *result);
+cmd_toggle (WebKitWebView *view, GArray *argv, GString *result);
 static void
-act_dump_config (WebKitWebView *view, GArray *argv, GString *result);
+cmd_dump_config (WebKitWebView *view, GArray *argv, GString *result);
 static void
-act_dump_config_as_events (WebKitWebView *view, GArray *argv, GString *result);
+cmd_dump_config_as_events (WebKitWebView *view, GArray *argv, GString *result);
 static void
-print (WebKitWebView *view, GArray *argv, GString *result);
+cmd_print (WebKitWebView *view, GArray *argv, GString *result);
 
 /* Event commands */
 static void
@@ -234,11 +234,11 @@ builtin_command_table[] =
     { "exit",                           cmd_exit,                     TRUE  },
 
     /* Variable commands */
-    { "set",                            set_var,                      FALSE },
-    { "toggle",                         toggle_var,                   TRUE  },
-    { "dump_config",                    act_dump_config,              TRUE  },
-    { "dump_config_as_events",          act_dump_config_as_events,    TRUE  },
-    { "print",                          print,                        FALSE },
+    { "set",                            cmd_set,                      FALSE },
+    { "toggle",                         cmd_toggle,                   TRUE  },
+    { "dump_config",                    cmd_dump_config,              TRUE  },
+    { "dump_config_as_events",          cmd_dump_config_as_events,    TRUE  },
+    { "print",                          cmd_print,                    FALSE },
 
     /* Event commands */
     { "event",                          event,                        FALSE },
@@ -1435,158 +1435,209 @@ cmd_exit (WebKitWebView *view, GArray *argv, GString *result)
     gtk_main_quit ();
 }
 
+/* Variable commands */
+
 void
-set_var(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page; (void) result;
+cmd_set (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (result);
 
-    if(!argv_idx(argv, 0))
-        return;
+    ARG_CHECK (argv, 1);
 
-    gchar **split = g_strsplit(argv_idx(argv, 0), "=", 2);
+    gchar **split = g_strsplit (argv_idx (argv, 0), "=", 2);
     if (split[0] != NULL) {
-        gchar *value = split[1] ? g_strchug(split[1]) : " ";
-        set_var_value(g_strstrip(split[0]), value);
+        gchar *value = split[1] ? g_strchug (split[1]) : " ";
+        set_var_value (g_strstrip (split[0]), value);
     }
-    g_strfreev(split);
+    g_strfreev (split);
 }
 
 void
-toggle_var(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page; (void) result;
+cmd_toggle (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (result);
 
-    if(!argv_idx(argv, 0))
-        return;
+    ARG_CHECK (argv, 1);
 
-    const gchar *var_name = argv_idx(argv, 0);
+    const gchar *var_name = argv_idx (argv, 0);
 
-    uzbl_cmdprop *c = get_var_c(var_name);
+    uzbl_cmdprop *c = get_var_c (var_name);
 
-    if(!c) {
+    if (!c) {
         if (argv->len > 1) {
-            set_var_value(var_name, argv_idx(argv, 1));
+            set_var_value (var_name, argv_idx (argv, 1));
         } else {
-            set_var_value(var_name, "1");
+            set_var_value (var_name, "1");
         }
+
         return;
     }
 
-    switch(c->type) {
-    case TYPE_STR:
-    {
-        const gchar *next;
+    switch (c->type) {
+        case TYPE_STR:
+        {
+            const gchar *next;
 
-        if(argv->len >= 3) {
-            gchar *current = get_var_value_string_c(c);
+            if (argv->len >= 3) {
+                gchar *current = get_var_value_string_c (c);
 
-            guint i = 2;
-            const gchar *first   = argv_idx(argv, 1);
-            const gchar *this    = first;
-                         next    = argv_idx(argv, 2);
+                guint i = 2;
+                const gchar *first   = argv_idx (argv, 1);
+                const gchar *this    = first;
+                             next    = argv_idx (argv, 2);
 
-            while(next && strcmp(current, this)) {
-                this = next;
-                next = argv_idx(argv, ++i);
+                while (next && strcmp (current, this)) {
+                    this = next;
+                    next = argv_idx (argv, ++i);
+                }
+
+                if (!next) {
+                    next = first;
+                }
+
+                g_free (current);
+            } else {
+                next = "";
             }
 
-            if(!next)
-                next = first;
+            set_var_value_string_c (c, next);
+            break;
+        }
+        case TYPE_INT:
+        {
+            int current = get_var_value_int_c (c);
+            int next;
 
-            g_free(current);
-        } else
-            next = "";
+            if (argv->len >= 3) {
+                guint i = 2;
 
-        set_var_value_string_c(c, next);
-        break;
-    }
-    case TYPE_INT:
-    {
-        int current = get_var_value_int_c(c);
-        int next;
+                int first = strtol (argv_idx (argv, 1), NULL, 10);
+                int  this = first;
 
-        if(argv->len >= 3) {
-            guint i = 2;
+                const gchar *next_s = argv_idx (argv, 2);
 
-            int first = strtol(argv_idx(argv, 1), NULL, 10);
-            int  this = first;
+                while (next_s && (this != current)) {
+                    this   = strtol (next_s, NULL, 10);
+                    next_s = argv_idx (argv, ++i);
+                }
 
-            const gchar *next_s = argv_idx(argv, 2);
-
-            while(next_s && this != current) {
-                this   = strtol(next_s, NULL, 10);
-                next_s = argv_idx(argv, ++i);
+                if (next_s) {
+                    next = strtol (next_s, NULL, 10);
+                } else {
+                    next = first;
+                }
+            } else {
+                next = !current;
             }
 
-            if(next_s)
-                next = strtol(next_s, NULL, 10);
-            else
-                next = first;
-        } else
-            next = !current;
+            set_var_value_int_c (c, next);
+            break;
+        }
+        case TYPE_ULL:
+        {
+            unsigned long long current = get_var_value_int_c (c);
+            unsigned long long next;
 
-        set_var_value_int_c(c, next);
-        break;
-    }
-    case TYPE_ULL:
-    {
-        unsigned long long current = get_var_value_int_c(c);
-        unsigned long long next;
+            if (argv->len >= 3) {
+                guint i = 2;
 
-        if(argv->len >= 3) {
-            guint i = 2;
+                unsigned long long first = strtoull (argv_idx (argv, 1), NULL, 10);
+                unsigned long long  this = first;
 
-            unsigned long long first = strtoull(argv_idx(argv, 1), NULL, 10);
-            unsigned long long  this = first;
+                const gchar *next_s = argv_idx (argv, 2);
 
-            const gchar *next_s = argv_idx(argv, 2);
+                while (next_s && this != current) {
+                    this   = strtoull (next_s, NULL, 10);
+                    next_s = argv_idx (argv, ++i);
+                }
 
-            while(next_s && this != current) {
-                this   = strtoull(next_s, NULL, 10);
-                next_s = argv_idx(argv, ++i);
+                if (next_s) {
+                    next = strtoull (next_s, NULL, 10);
+                } else {
+                    next = first;
+                }
+            } else {
+                next = !current;
             }
 
-            if(next_s)
-                next = strtoull(next_s, NULL, 10);
-            else
-                next = first;
-        } else
-            next = !current;
+            set_var_value_ull_c (c, next);
+            break;
+        }
+        case TYPE_FLOAT:
+        {
+            float current = get_var_value_float_c (c);
+            float next;
 
-        set_var_value_ull_c(c, next);
-        break;
-    }
-    case TYPE_FLOAT:
-    {
-        float current = get_var_value_float_c(c);
-        float next;
+            if (argv->len >= 3) {
+                guint i = 2;
 
-        if(argv->len >= 3) {
-            guint i = 2;
+                float first = strtod (argv_idx (argv, 1), NULL);
+                float  this = first;
 
-            float first = strtod(argv_idx(argv, 1), NULL);
-            float  this = first;
+                const gchar *next_s = argv_idx (argv, 2);
 
-            const gchar *next_s = argv_idx(argv, 2);
+                while (next_s && (this != current)) {
+                    this   = strtod (next_s, NULL);
+                    next_s = argv_idx (argv, ++i);
+                }
 
-            while(next_s && this != current) {
-                this   = strtod(next_s, NULL);
-                next_s = argv_idx(argv, ++i);
+                if (next_s) {
+                    next = strtod (next_s, NULL);
+                } else {
+                    next = first;
+                }
+            } else {
+                next = !current;
             }
 
-            if(next_s)
-                next = strtod(next_s, NULL);
-            else
-                next = first;
-        } else
-            next = !current;
-
-        set_var_value_float_c(c, next);
-        break;
-    }
-    default:
-        g_assert_not_reached();
+            set_var_value_float_c (c, next);
+            break;
+        }
+        default:
+            g_assert_not_reached ();
     }
 
-    send_set_var_event(var_name, c);
+    send_set_var_event (var_name, c);
+}
+
+void
+cmd_print (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+
+    ARG_CHECK (argv, 1);
+
+    gchar* buf;
+
+    if (!result) {
+        return;
+    }
+
+    buf = expand (argv_idx (argv, 0), 0);
+    g_string_assign (result, buf);
+    g_free (buf);
+}
+
+void
+cmd_dump_config (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (argv);
+    UZBL_UNUSED (result);
+
+    dump_config ();
+}
+
+void
+cmd_dump_config_as_events (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (argv);
+    UZBL_UNUSED (result);
+
+    dump_config_as_events ();
 }
 
 void
@@ -1608,30 +1659,4 @@ event(WebKitWebView *page, GArray *argv, GString *result) {
 
     g_string_free(event_name, TRUE);
     g_strfreev(split);
-}
-
-void
-print(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page; (void) result;
-    gchar* buf;
-
-    if(!result)
-        return;
-
-    buf = expand(argv_idx(argv, 0), 0);
-    g_string_assign(result, buf);
-    g_free(buf);
-}
-
-void
-void
-act_dump_config(WebKitWebView *web_view, GArray *argv, GString *result) {
-    (void)web_view; (void) argv; (void)result;
-    dump_config();
-}
-
-void
-act_dump_config_as_events(WebKitWebView *web_view, GArray *argv, GString *result) {
-    (void)web_view; (void) argv; (void)result;
-    dump_config_as_events();
 }
