@@ -16,100 +16,178 @@ struct _UzblCommandInfo {
     gboolean     split;
 };
 
-static void        view_reload(WebKitWebView *page, GArray *argv, GString *result);
-static void        view_reload_bypass_cache(WebKitWebView *page, GArray *argv, GString *result);
-static void        view_stop_loading(WebKitWebView *page, GArray *argv, GString *result);
-static void        view_zoom_in(WebKitWebView *page, GArray *argv, GString *result);
-static void        view_zoom_out(WebKitWebView *page, GArray *argv, GString *result);
-static void        view_go_back(WebKitWebView *page, GArray *argv, GString *result);
-static void        view_go_forward(WebKitWebView *page, GArray *argv, GString *result);
-static void        toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result);
-static void        scroll_cmd(WebKitWebView* page, GArray *argv, GString *result);
-static void        print(WebKitWebView *page, GArray *argv, GString *result);
-static void        event(WebKitWebView *page, GArray *argv, GString *result);
-static void        load_uri(WebKitWebView * web_view, GArray *argv, GString *result);
-static void        chain(WebKitWebView *page, GArray *argv, GString *result);
-static void        close_uzbl(WebKitWebView *page, GArray *argv, GString *result);
-static void        spawn_async(WebKitWebView *web_view, GArray *argv, GString *result);
-static void        spawn_sh_async(WebKitWebView *web_view, GArray *argv, GString *result);
-static void        spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result);
-static void        spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result);
-static void        spawn_sync_exec(WebKitWebView *web_view, GArray *argv, GString *result);
-static void        search_forward_text (WebKitWebView *page, GArray *argv, GString *result);
-static void        search_reverse_text (WebKitWebView *page, GArray *argv, GString *result);
-static void        search_clear(WebKitWebView *page, GArray *argv, GString *result);
-static void        dehilight (WebKitWebView *page, GArray *argv, GString *result);
-static void        hardcopy(WebKitWebView *page, GArray *argv, GString *result);
-#ifndef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 9, 6)
-static void        snapshot(WebKitWebView *page, GArray *argv, GString *result);
-#endif
-#endif
+/* Navigation commands */
+static void
+view_go_back (WebKitWebView *view, GArray *argv, GString *result);
+static void
+view_go_forward (WebKitWebView *view, GArray *argv, GString *result);
+static void
+view_reload (WebKitWebView *view, GArray *argv, GString *result);
+static void
+view_reload_bypass_cache (WebKitWebView *view, GArray *argv, GString *result);
+static void
+view_stop_loading (WebKitWebView *view, GArray *argv, GString *result);
+static void
+load_uri (WebKitWebView *view, GArray *argv, GString *result);
+static void
+auth (WebKitWebView *view, GArray *argv, GString *result);
+static void
+download (WebKitWebView *view, GArray *argv, GString *result);
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 9, 90)
-static void        load(WebKitWebView *page, GArray *argv, GString *result);
-static void        save(WebKitWebView *page, GArray *argv, GString *result);
+static void
+load (WebKitWebView *view, GArray *argv, GString *result);
+static void
+save (WebKitWebView *view, GArray *argv, GString *result);
 #endif
 #endif
-static void        remove_all_db(WebKitWebView *page, GArray *argv, GString *result);
+
+/* Display commands */
+static void
+scroll_cmd (WebKitWebView *view, GArray *argv, GString *result);
+static void
+view_zoom_in (WebKitWebView *view, GArray *argv, GString *result);
+static void
+view_zoom_out (WebKitWebView *view, GArray *argv, GString *result);
+static void
+toggle_zoom_type (WebKitWebView *view, GArray *argv, GString *result);
+static void
+toggle_status (WebKitWebView *view, GArray *argv, GString *result);
+static void
+hardcopy (WebKitWebView *view, GArray *argv, GString *result);
+#ifndef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 6)
+static void
+snapshot (WebKitWebView *view, GArray *argv, GString *result);
+#endif
+#endif
+
+/* Execution commands. */
+static void
+run_js (WebKitWebView *view, GArray *argv, GString *result);
+static void
+spawn_async (WebKitWebView *view, GArray *argv, GString *result);
+static void
+spawn_sync (WebKitWebView *view, GArray *argv, GString *result);
+static void
+spawn_sync_exec (WebKitWebView *view, GArray *argv, GString *result);
+static void
+spawn_sh_async (WebKitWebView *view, GArray *argv, GString *result);
+static void
+spawn_sh_sync (WebKitWebView *view, GArray *argv, GString *result);
+
+/* Content commands. */
+static void
+remove_all_db (WebKitWebView *view, GArray *argv, GString *result);
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
-static void        plugin_refresh(WebKitWebView *page, GArray *argv, GString *result);
-static void        plugin_toggle(WebKitWebView *page, GArray *argv, GString *result);
+static void
+plugin_refresh (WebKitWebView *view, GArray *argv, GString *result);
+static void
+plugin_toggle (WebKitWebView *view, GArray *argv, GString *result);
 #endif
-static void        include(WebKitWebView *page, GArray *argv, GString *result);
-/* Deprecated (use inspector instead) */
-static void        show_inspector(WebKitWebView *page, GArray *argv, GString *result);
-static void        inspector(WebKitWebView *page, GArray *argv, GString *result);
 #if WEBKIT_CHECK_VERSION (1, 5, 1)
-static void        spell_checker(WebKitWebView *page, GArray *argv, GString *result);
+static void
+spell_checker (WebKitWebView *view, GArray *argv, GString *result);
 #endif
-static void        add_cookie(WebKitWebView *page, GArray *argv, GString *result);
-static void        delete_cookie(WebKitWebView *page, GArray *argv, GString *result);
-static void        clear_cookies(WebKitWebView *pag, GArray *argv, GString *result);
-static void        download(WebKitWebView *pag, GArray *argv, GString *result);
-static void        set_var(WebKitWebView *page, GArray *argv, GString *result);
-static void        toggle_var(WebKitWebView *page, GArray *argv, GString *result);
-static void        run_js (WebKitWebView * web_view, GArray *argv, GString *result);
-static void        toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result);
-static void        toggle_status (WebKitWebView* page, GArray *argv, GString *result);
-static void        act_dump_config(WebKitWebView* page, GArray *argv, GString *result);
-static void        act_dump_config_as_events(WebKitWebView* page, GArray *argv, GString *result);
-static void        auth(WebKitWebView* page, GArray *argv, GString *result);
+
+/* Search commands */
+static void
+search_forward_text (WebKitWebView *view, GArray *argv, GString *result);
+static void
+search_reverse_text (WebKitWebView *view, GArray *argv, GString *result);
+static void
+search_clear (WebKitWebView *view, GArray *argv, GString *result);
+static void
+dehilight (WebKitWebView *view, GArray *argv, GString *result);
+
+/* Variable commands. */
+static void
+set_var (WebKitWebView *view, GArray *argv, GString *result);
+static void
+toggle_var (WebKitWebView *view, GArray *argv, GString *result);
+static void
+act_dump_config (WebKitWebView *view, GArray *argv, GString *result);
+static void
+act_dump_config_as_events (WebKitWebView *view, GArray *argv, GString *result);
+static void
+print (WebKitWebView *view, GArray *argv, GString *result);
+
+/* Uzbl commands. */
+static void
+chain (WebKitWebView *view, GArray *argv, GString *result);
+static void
+include (WebKitWebView *view, GArray *argv, GString *result);
+static void
+close_uzbl (WebKitWebView *view, GArray *argv, GString *result);
+
+/* Event commands. */
+static void
+event (WebKitWebView *view, GArray *argv, GString *result);
+static void
+event (WebKitWebView *view, GArray *argv, GString *result);
+
+/* Inspector commands. */
+static void
+show_inspector (WebKitWebView *view, GArray *argv, GString *result);
+static void
+inspector (WebKitWebView *view, GArray *argv, GString *result);
+
+/* Cookie commands. */
+static void
+add_cookie (WebKitWebView *view, GArray *argv, GString *result);
+static void
+delete_cookie (WebKitWebView *view, GArray *argv, GString *result);
+static void
+clear_cookies (WebKitWebView *view, GArray *argv, GString *result);
 
 static UzblCommandInfo
 builtin_command_table[] =
 {   /* name                             function                   split */
+    /* Navigation commands */
     { "back",                           view_go_back,              TRUE  },
     { "forward",                        view_go_forward,           TRUE  },
-    { "scroll",                         scroll_cmd,                TRUE  },
     { "reload",                         view_reload,               TRUE  },
     { "reload_ign_cache",               view_reload_bypass_cache,  TRUE  },
     { "stop",                           view_stop_loading,         TRUE  },
+    { "uri",                            load_uri,                  FALSE },
+    { "auth",                           auth,                      TRUE  },
+    { "download",                       download,                  TRUE  },
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 90)
+    { "load",                           load,                      FALSE },
+    { "save",                           save,                      FALSE },
+#endif
+#endif
+
+    /* Cookie commands. */
+    { "add_cookie",                     add_cookie,                TRUE  },
+    { "delete_cookie",                  delete_cookie,             TRUE  },
+    { "clear_cookies",                  clear_cookies,             TRUE  },
+
+    /* Display commands */
+    { "scroll",                         scroll_cmd,                TRUE  },
     { "zoom_in",                        view_zoom_in,              TRUE  }, //Can crash (when max zoom reached?).
     { "zoom_out",                       view_zoom_out,             TRUE  },
     { "toggle_zoom_type",               toggle_zoom_type,          TRUE  },
-    { "uri",                            load_uri,                  FALSE },
-    { "js",                             run_js,                    FALSE },
-    { "script",                         run_external_js,           TRUE  },
     { "toggle_status",                  toggle_status,             TRUE  },
-    { "spawn",                          spawn_async,               TRUE  },
-    { "sync_spawn",                     spawn_sync,                TRUE  },
-    { "sync_spawn_exec",                spawn_sync_exec,           TRUE  }, // needed for load_cookies.sh :(
-    { "sh",                             spawn_sh_async,            TRUE  },
-    { "sync_sh",                        spawn_sh_sync,             TRUE  },
-    { "exit",                           close_uzbl,                TRUE  },
-    { "search",                         search_forward_text,       FALSE },
-    { "search_reverse",                 search_reverse_text,       FALSE },
-    { "search_clear",                   search_clear,              FALSE },
-    { "dehilight",                      dehilight,                 TRUE  },
-    { "set",                            set_var,                   FALSE },
-    { "toggle",                         toggle_var,                TRUE  },
-    { "dump_config",                    act_dump_config,           TRUE  },
-    { "dump_config_as_events",          act_dump_config_as_events, TRUE  },
-    { "chain",                          chain,                     TRUE  },
-    { "print",                          print,                     FALSE },
-    { "event",                          event,                     FALSE },
-    { "request",                        event,                     FALSE },
+    { "hardcopy",                       hardcopy,                  FALSE },
+#ifndef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 6)
+    { "snapshot",                       snapshot,                  FALSE },
+#endif
+#endif
+
+    /* Content commands. */
+    { "remove_all_db",                  remove_all_db,             TRUE  },
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+    { "plugin_refresh",                 plugin_refresh,            FALSE },
+    { "plugin_toggle",                  plugin_toggle,             FALSE },
+#endif
+#if WEBKIT_CHECK_VERSION (1, 5, 1)
+    { "spell_checker",                  spell_checker,             FALSE },
+#endif
+
+    /* Menu commands. */
     { "menu_add",                       menu_add,                  FALSE },
     { "menu_link_add",                  menu_add_link,             FALSE },
     { "menu_image_add",                 menu_add_image,            FALSE },
@@ -122,35 +200,42 @@ builtin_command_table[] =
     { "menu_link_remove",               menu_remove_link,          FALSE },
     { "menu_image_remove",              menu_remove_image,         FALSE },
     { "menu_editable_remove",           menu_remove_edit,          FALSE },
-    { "hardcopy",                       hardcopy,                  FALSE },
-#ifndef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 9, 6)
-    { "snapshot",                       snapshot,                  FALSE },
-#endif
-#endif
-#ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 9, 90)
-    { "load",                           load,                      FALSE },
-    { "save",                           save,                      FALSE },
-#endif
-#endif
-    { "remove_all_db",                  remove_all_db,             TRUE  },
-#if WEBKIT_CHECK_VERSION (1, 3, 8)
-    { "plugin_refresh",                 plugin_refresh,            FALSE },
-    { "plugin_toggle",                  plugin_toggle,             FALSE },
-#endif
-    { "include",                        include,                   FALSE },
+
+    /* Search commands */
+    { "search",                         search_forward_text,       FALSE },
+    { "search_reverse",                 search_reverse_text,       FALSE },
+    { "search_clear",                   search_clear,              FALSE },
+    { "dehilight",                      dehilight,                 TRUE  },
+
+    /* Inspector commands. */
     /* Deprecated */
     { "show_inspector",                 show_inspector,            TRUE  },
     { "inspector",                      inspector,                 FALSE },
-#if WEBKIT_CHECK_VERSION (1, 5, 1)
-    { "spell_checker",                  spell_checker,             FALSE },
-#endif
-    { "add_cookie",                     add_cookie,                TRUE  },
-    { "delete_cookie",                  delete_cookie,             TRUE  },
-    { "clear_cookies",                  clear_cookies,             TRUE  },
-    { "download",                       download,                  TRUE  },
-    { "auth",                           auth,                      TRUE  }
+
+    /* Execution commands. */
+    { "js",                             run_js,                    FALSE },
+    { "script",                         run_external_js,           TRUE  },
+    { "spawn",                          spawn_async,               TRUE  },
+    { "sync_spawn",                     spawn_sync,                TRUE  },
+    { "sync_spawn_exec",                spawn_sync_exec,           TRUE  }, // needed for load_cookies.sh :(
+    { "sh",                             spawn_sh_async,            TRUE  },
+    { "sync_sh",                        spawn_sh_sync,             TRUE  },
+
+    /* Uzbl commands. */
+    { "chain",                          chain,                     TRUE  },
+    { "include",                        include,                   FALSE },
+    { "exit",                           close_uzbl,                TRUE  },
+
+    /* Variable commands. */
+    { "set",                            set_var,                   FALSE },
+    { "toggle",                         toggle_var,                TRUE  },
+    { "dump_config",                    act_dump_config,           TRUE  },
+    { "dump_config_as_events",          act_dump_config_as_events, TRUE  },
+    { "print",                          print,                     FALSE },
+
+    /* Event commands. */
+    { "event",                          event,                     FALSE },
+    { "request",                        event,                     FALSE }
 };
 
 void
