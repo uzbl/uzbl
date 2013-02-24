@@ -144,9 +144,7 @@ cmd_print (WebKitWebView *view, GArray *argv, GString *result);
 
 /* Event commands */
 static void
-event (WebKitWebView *view, GArray *argv, GString *result);
-static void
-event (WebKitWebView *view, GArray *argv, GString *result);
+cmd_event (WebKitWebView *view, GArray *argv, GString *result);
 
 static UzblCommandInfo
 builtin_command_table[] =
@@ -241,8 +239,8 @@ builtin_command_table[] =
     { "print",                          cmd_print,                    FALSE },
 
     /* Event commands */
-    { "event",                          event,                        FALSE },
-    { "request",                        event,                        FALSE }
+    { "event",                          cmd_event,                    FALSE },
+    { "request",                        cmd_event,                    FALSE }  /* XXX: Deprecated (event). */
 };
 
 void
@@ -1641,22 +1639,27 @@ cmd_dump_config_as_events (WebKitWebView *view, GArray *argv, GString *result)
 }
 
 void
-event(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page; (void) result;
+cmd_event (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (result);
+
     GString *event_name;
     gchar **split = NULL;
 
-    if(!argv_idx(argv, 0))
-       return;
+    ARG_CHECK (argv, 1);
 
-    split = g_strsplit(argv_idx(argv, 0), " ", 2);
-    if(split[0])
-        event_name = g_string_ascii_up(g_string_new(split[0]));
-    else
+    split = g_strsplit (argv_idx (argv, 0), " ", 2);
+    if (!split[0]) {
         return;
+    }
 
-    send_event(0, event_name->str, TYPE_FORMATTEDSTR, split[1] ? split[1] : "", NULL);
+    event_name = g_string_ascii_up (g_string_new (split[0]));
 
-    g_string_free(event_name, TRUE);
-    g_strfreev(split);
+    send_event (0, event_name->str,
+        TYPE_FORMATTEDSTR, split[1] ? split[1] : "",
+        NULL);
+
+    g_string_free (event_name, TRUE);
+    g_strfreev (split);
 }
