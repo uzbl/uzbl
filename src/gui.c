@@ -231,6 +231,7 @@ uzbl_window_init (void)
 {
     uzbl.gui.main_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 
+    /* TODO: Plumb through from command line. */
     gtk_window_set_default_size (GTK_WINDOW (uzbl.gui.main_window), 800, 600);
     gtk_window_set_title (GTK_WINDOW (uzbl.gui.main_window), "Uzbl");
     gtk_widget_set_name (GTK_WIDGET (uzbl.gui.main_window), "Uzbl");
@@ -545,6 +546,7 @@ uri_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
     g_free (uzbl.state.uri);
     g_object_get (view, "uri", &uzbl.state.uri, NULL);
 
+    /* TODO: Collect all environment settings into one place. */
     g_setenv ("UZBL_URI", uzbl.state.uri, TRUE);
     set_window_property ("UZBL_URI", uzbl.state.uri);
 }
@@ -605,6 +607,7 @@ dom_focus_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data
 
     WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
     gchar *name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
+
     send_event (FOCUS_ELEMENT, NULL,
         TYPE_STR, name,
         NULL);
@@ -739,6 +742,7 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
     /* get the URI being downloaded */
     const gchar *uri = webkit_download_get_uri (download);
 
+    /* TODO: Split this logic into a separate function. */
     /* get the destination path, if specified.
      * this is only intended to be set when this function is trigger by an
      * explicit download using uzbl's 'download' action. */
@@ -1221,6 +1225,7 @@ configure_event_cb (GtkWidget *widget, GdkEventConfigure *event, gpointer data)
     UZBL_UNUSED (data);
 
     gchar *last_geo    = uzbl.gui.geometry;
+    /* TODO: We should set the geometry instead. */
     gchar *current_geo = get_geometry ();
 
     if (!last_geo || g_strcmp0 (last_geo, current_geo)) {
