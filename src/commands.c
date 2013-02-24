@@ -3,14 +3,14 @@
 */
 
 #include "commands.h"
-#include "uzbl-core.h"
+
 #include "events.h"
 #include "gui.h"
-#include "util.h"
 #include "menu.h"
-#include "variables.h"
-#include "type.h"
 #include "soup.h"
+#include "type.h"
+#include "util.h"
+#include "variables.h"
 
 typedef void (*UzblCommand)(WebKitWebView *view, GArray *argv, GString *result);
 
