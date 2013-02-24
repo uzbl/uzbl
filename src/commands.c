@@ -1,3 +1,7 @@
+/*
+ * Command code
+*/
+
 #include "commands.h"
 #include "uzbl-core.h"
 #include "events.h"
