@@ -594,108 +594,10 @@ spawn_sh(GArray *argv, GString *result) {
     g_strfreev (cmd);
 }
 
-void
-run_parsed_command(const CommandInfo *c, GArray *a, GString *result) {
-    /* send the COMMAND_EXECUTED event, except for set and event/request commands */
-    if(strcmp("set", c->key)   &&
-       strcmp("event", c->key) &&
-       strcmp("request", c->key)) {
-        Event *event = format_event (COMMAND_EXECUTED, NULL,
-            TYPE_NAME, c->key,
-            TYPE_STR_ARRAY, a,
-            NULL);
-
-        /* might be destructive on array a */
-        c->function(uzbl.gui.web_view, a, result);
-
-        send_formatted_event (event);
-        event_free (event);
-    }
-    else
-        c->function(uzbl.gui.web_view, a, result);
-
-    if(result) {
-        g_free(uzbl.state.last_result);
-        uzbl.state.last_result = g_strdup(result->str);
-    }
-}
-
-void
-parse_command_arguments(const gchar *p, GArray *a, gboolean split) {
-    if (!split && p) { /* pass the parameters through in one chunk */
-        sharg_append(a, g_strdup(p));
-        return;
-    }
-
-    gchar **par = split_quoted(p, TRUE);
-    if (par) {
-        guint i;
-        for (i = 0; i < g_strv_length(par); i++)
-            sharg_append(a, g_strdup(par[i]));
-        g_strfreev (par);
-    }
-}
-
-const CommandInfo *
-parse_command_parts(const gchar *line, GArray *a) {
-    CommandInfo *c = NULL;
-
-    gchar *exp_line = expand(line, 0);
-    if(exp_line[0] == '\0') {
-        g_free(exp_line);
-        return NULL;
-    }
-
-    /* separate the line into the command and its parameters */
-    gchar **tokens = g_strsplit(exp_line, " ", 2);
-
-    /* look up the command */
-    c = g_hash_table_lookup(uzbl.behave.commands, tokens[0]);
-
-    if(!c) {
-        send_event(COMMAND_ERROR, NULL,
-            TYPE_STR, exp_line,
-            NULL);
-        g_free(exp_line);
-        g_strfreev(tokens);
-        return NULL;
-    }
-
-    gchar *p = g_strdup(tokens[1]);
-    g_free(exp_line);
-    g_strfreev(tokens);
-
-    /* parse the arguments */
-    parse_command_arguments(p, a, c->split);
-    g_free(p);
-
-    return c;
-}
-
 gboolean
 valid_name(const gchar* name) {
     char *invalid_chars = "\t^°!\"§$%&/()=?'`'+~*'#-:,;@<>| \\{}[]¹²³¼½";
     return strpbrk(name, invalid_chars) == NULL;
-}
-
-void
-parse_cmd_line(const char *ctl_line, GString *result) {
-    gchar *work_string = g_strdup(ctl_line);
-
-    /* strip trailing newline, and any other whitespace in front */
-    g_strstrip(work_string);
-
-    if( strcmp(work_string, "") ) {
-        if((work_string[0] != '#')) { /* ignore comments */
-            GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-            const CommandInfo *c = parse_command_parts(work_string, a);
-            if(c)
-                run_parsed_command(c, a, result);
-            g_array_free (a, TRUE);
-        }
-    }
-
-    g_free(work_string);
 }
 
 void

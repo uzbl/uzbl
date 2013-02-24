@@ -92,4 +92,10 @@ void        act_dump_config(WebKitWebView* page, GArray *argv, GString *result);
 void        act_dump_config_as_events(WebKitWebView* page, GArray *argv, GString *result);
 void        auth(WebKitWebView* page, GArray *argv, GString *result);
 
+void        parse_cmd_line(const char *ctl_line, GString *result);
+const CommandInfo *
+            parse_command_parts(const gchar *line, GArray *a);
+void        parse_command_arguments(const gchar *p, GArray *a, gboolean no_split);
+void        run_parsed_command(const CommandInfo *c, GArray *a, GString *result);
+
 #endif

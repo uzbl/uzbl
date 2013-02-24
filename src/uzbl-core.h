@@ -223,11 +223,6 @@ gchar*      expand(const char* s, guint recurse);
 gboolean    run_command(const gchar *command, const gchar **args, const gboolean sync,
                 char **output_stdout);
 void        run_command_file(const gchar *path);
-void        parse_cmd_line(const char *ctl_line, GString *result);
-const CommandInfo *
-            parse_command_parts(const gchar *line, GArray *a);
-void        parse_command_arguments(const gchar *p, GArray *a, gboolean no_split);
-void        run_parsed_command(const CommandInfo *c, GArray *a, GString *result);
 
 /* Initialization functions */
 void        initialize(int argc, char *argv[]);
