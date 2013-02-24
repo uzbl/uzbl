@@ -8,79 +8,79 @@
 #include "soup.h"
 
 CommandInfo cmdlist[] =
-{   /* key                              function      split      */
-    { "back",                           view_go_back, TRUE              },
-    { "forward",                        view_go_forward, TRUE           },
-    { "scroll",                         scroll_cmd, TRUE                },
-    { "reload",                         view_reload, TRUE               },
-    { "reload_ign_cache",               view_reload_bypass_cache, TRUE  },
-    { "stop",                           view_stop_loading, TRUE         },
-    { "zoom_in",                        view_zoom_in, TRUE              }, //Can crash (when max zoom reached?).
-    { "zoom_out",                       view_zoom_out, TRUE             },
-    { "toggle_zoom_type",               toggle_zoom_type, TRUE          },
-    { "uri",                            load_uri, FALSE                 },
-    { "js",                             run_js, FALSE                   },
-    { "script",                         run_external_js, TRUE           },
-    { "toggle_status",                  toggle_status, TRUE             },
-    { "spawn",                          spawn_async, TRUE               },
-    { "sync_spawn",                     spawn_sync, TRUE                },
-    { "sync_spawn_exec",                spawn_sync_exec, TRUE           }, // needed for load_cookies.sh :(
-    { "sh",                             spawn_sh_async, TRUE            },
-    { "sync_sh",                        spawn_sh_sync, TRUE             },
-    { "exit",                           close_uzbl, TRUE                },
-    { "search",                         search_forward_text, FALSE      },
-    { "search_reverse",                 search_reverse_text, FALSE      },
-    { "search_clear",                   search_clear, FALSE             },
-    { "dehilight",                      dehilight, TRUE                 },
-    { "set",                            set_var, FALSE                  },
-    { "toggle",                         toggle_var, TRUE                },
-    { "dump_config",                    act_dump_config, TRUE           },
-    { "dump_config_as_events",          act_dump_config_as_events, TRUE },
-    { "chain",                          chain, TRUE                     },
-    { "print",                          print, FALSE                    },
-    { "event",                          event, FALSE                    },
-    { "request",                        event, FALSE                    },
-    { "menu_add",                       menu_add, FALSE                 },
-    { "menu_link_add",                  menu_add_link, FALSE            },
-    { "menu_image_add",                 menu_add_image, FALSE           },
-    { "menu_editable_add",              menu_add_edit, FALSE            },
-    { "menu_separator",                 menu_add_separator, FALSE       },
-    { "menu_link_separator",            menu_add_separator_link, FALSE  },
-    { "menu_image_separator",           menu_add_separator_image, FALSE },
-    { "menu_editable_separator",        menu_add_separator_edit, FALSE  },
-    { "menu_remove",                    menu_remove, FALSE              },
-    { "menu_link_remove",               menu_remove_link, FALSE         },
-    { "menu_image_remove",              menu_remove_image, FALSE        },
-    { "menu_editable_remove",           menu_remove_edit, FALSE         },
-    { "hardcopy",                       hardcopy, FALSE                 },
+{   /* key                              function                   split */
+    { "back",                           view_go_back,              TRUE  },
+    { "forward",                        view_go_forward,           TRUE  },
+    { "scroll",                         scroll_cmd,                TRUE  },
+    { "reload",                         view_reload,               TRUE  },
+    { "reload_ign_cache",               view_reload_bypass_cache,  TRUE  },
+    { "stop",                           view_stop_loading,         TRUE  },
+    { "zoom_in",                        view_zoom_in,              TRUE  }, //Can crash (when max zoom reached?).
+    { "zoom_out",                       view_zoom_out,             TRUE  },
+    { "toggle_zoom_type",               toggle_zoom_type,          TRUE  },
+    { "uri",                            load_uri,                  FALSE },
+    { "js",                             run_js,                    FALSE },
+    { "script",                         run_external_js,           TRUE  },
+    { "toggle_status",                  toggle_status,             TRUE  },
+    { "spawn",                          spawn_async,               TRUE  },
+    { "sync_spawn",                     spawn_sync,                TRUE  },
+    { "sync_spawn_exec",                spawn_sync_exec,           TRUE  }, // needed for load_cookies.sh :(
+    { "sh",                             spawn_sh_async,            TRUE  },
+    { "sync_sh",                        spawn_sh_sync,             TRUE  },
+    { "exit",                           close_uzbl,                TRUE  },
+    { "search",                         search_forward_text,       FALSE },
+    { "search_reverse",                 search_reverse_text,       FALSE },
+    { "search_clear",                   search_clear,              FALSE },
+    { "dehilight",                      dehilight,                 TRUE  },
+    { "set",                            set_var,                   FALSE },
+    { "toggle",                         toggle_var,                TRUE  },
+    { "dump_config",                    act_dump_config,           TRUE  },
+    { "dump_config_as_events",          act_dump_config_as_events, TRUE  },
+    { "chain",                          chain,                     TRUE  },
+    { "print",                          print,                     FALSE },
+    { "event",                          event,                     FALSE },
+    { "request",                        event,                     FALSE },
+    { "menu_add",                       menu_add,                  FALSE },
+    { "menu_link_add",                  menu_add_link,             FALSE },
+    { "menu_image_add",                 menu_add_image,            FALSE },
+    { "menu_editable_add",              menu_add_edit,             FALSE },
+    { "menu_separator",                 menu_add_separator,        FALSE },
+    { "menu_link_separator",            menu_add_separator_link,   FALSE },
+    { "menu_image_separator",           menu_add_separator_image,  FALSE },
+    { "menu_editable_separator",        menu_add_separator_edit,   FALSE },
+    { "menu_remove",                    menu_remove,               FALSE },
+    { "menu_link_remove",               menu_remove_link,          FALSE },
+    { "menu_image_remove",              menu_remove_image,         FALSE },
+    { "menu_editable_remove",           menu_remove_edit,          FALSE },
+    { "hardcopy",                       hardcopy,                  FALSE },
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 9, 6)
-    { "snapshot",                       snapshot, FALSE                 },
+    { "snapshot",                       snapshot,                  FALSE },
 #endif
 #endif
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 9, 90)
-    { "load",                           load, FALSE                     },
-    { "save",                           save, FALSE                     },
+    { "load",                           load,                      FALSE },
+    { "save",                           save,                      FALSE },
 #endif
 #endif
-    { "remove_all_db",                  remove_all_db, TRUE             },
+    { "remove_all_db",                  remove_all_db,             TRUE  },
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
-    { "plugin_refresh",                 plugin_refresh, FALSE           },
-    { "plugin_toggle",                  plugin_toggle, FALSE            },
+    { "plugin_refresh",                 plugin_refresh,            FALSE },
+    { "plugin_toggle",                  plugin_toggle,             FALSE },
 #endif
-    { "include",                        include, FALSE                  },
+    { "include",                        include,                   FALSE },
     /* Deprecated */
-    { "show_inspector",                 show_inspector, TRUE            },
-    { "inspector",                      inspector, FALSE                },
+    { "show_inspector",                 show_inspector,            TRUE  },
+    { "inspector",                      inspector,                 FALSE },
 #if WEBKIT_CHECK_VERSION (1, 5, 1)
-    { "spell_checker",                  spell_checker, FALSE            },
+    { "spell_checker",                  spell_checker,             FALSE },
 #endif
-    { "add_cookie",                     add_cookie, TRUE                },
-    { "delete_cookie",                  delete_cookie, TRUE             },
-    { "clear_cookies",                  clear_cookies, TRUE             },
-    { "download",                       download, TRUE                  },
-    { "auth",                           auth, TRUE                      }
+    { "add_cookie",                     add_cookie,                TRUE  },
+    { "delete_cookie",                  delete_cookie,             TRUE  },
+    { "clear_cookies",                  clear_cookies,             TRUE  },
+    { "download",                       download,                  TRUE  },
+    { "auth",                           auth,                      TRUE  }
 };
 
 void
