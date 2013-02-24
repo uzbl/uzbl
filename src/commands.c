@@ -8,7 +8,7 @@
 #include "type.h"
 #include "soup.h"
 
-typedef void (*UzblCommand)(WebKitWebView*, GArray *argv, GString *result);
+typedef void (*UzblCommand)(WebKitWebView *view, GArray *argv, GString *result);
 
 struct _UzblCommandInfo {
     const gchar *name;
