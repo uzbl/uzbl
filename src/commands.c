@@ -7,6 +7,66 @@
 #include "type.h"
 #include "soup.h"
 
+static void        view_reload(WebKitWebView *page, GArray *argv, GString *result);
+static void        view_reload_bypass_cache(WebKitWebView *page, GArray *argv, GString *result);
+static void        view_stop_loading(WebKitWebView *page, GArray *argv, GString *result);
+static void        view_zoom_in(WebKitWebView *page, GArray *argv, GString *result);
+static void        view_zoom_out(WebKitWebView *page, GArray *argv, GString *result);
+static void        view_go_back(WebKitWebView *page, GArray *argv, GString *result);
+static void        view_go_forward(WebKitWebView *page, GArray *argv, GString *result);
+static void        toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result);
+static void        scroll_cmd(WebKitWebView* page, GArray *argv, GString *result);
+static void        print(WebKitWebView *page, GArray *argv, GString *result);
+static void        event(WebKitWebView *page, GArray *argv, GString *result);
+static void        load_uri(WebKitWebView * web_view, GArray *argv, GString *result);
+static void        chain(WebKitWebView *page, GArray *argv, GString *result);
+static void        close_uzbl(WebKitWebView *page, GArray *argv, GString *result);
+static void        spawn_async(WebKitWebView *web_view, GArray *argv, GString *result);
+static void        spawn_sh_async(WebKitWebView *web_view, GArray *argv, GString *result);
+static void        spawn_sync(WebKitWebView *web_view, GArray *argv, GString *result);
+static void        spawn_sh_sync(WebKitWebView *web_view, GArray *argv, GString *result);
+static void        spawn_sync_exec(WebKitWebView *web_view, GArray *argv, GString *result);
+static void        search_forward_text (WebKitWebView *page, GArray *argv, GString *result);
+static void        search_reverse_text (WebKitWebView *page, GArray *argv, GString *result);
+static void        search_clear(WebKitWebView *page, GArray *argv, GString *result);
+static void        dehilight (WebKitWebView *page, GArray *argv, GString *result);
+static void        hardcopy(WebKitWebView *page, GArray *argv, GString *result);
+#ifndef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 6)
+static void        snapshot(WebKitWebView *page, GArray *argv, GString *result);
+#endif
+#endif
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 90)
+static void        load(WebKitWebView *page, GArray *argv, GString *result);
+static void        save(WebKitWebView *page, GArray *argv, GString *result);
+#endif
+#endif
+static void        remove_all_db(WebKitWebView *page, GArray *argv, GString *result);
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+static void        plugin_refresh(WebKitWebView *page, GArray *argv, GString *result);
+static void        plugin_toggle(WebKitWebView *page, GArray *argv, GString *result);
+#endif
+static void        include(WebKitWebView *page, GArray *argv, GString *result);
+/* Deprecated (use inspector instead) */
+static void        show_inspector(WebKitWebView *page, GArray *argv, GString *result);
+static void        inspector(WebKitWebView *page, GArray *argv, GString *result);
+#if WEBKIT_CHECK_VERSION (1, 5, 1)
+static void        spell_checker(WebKitWebView *page, GArray *argv, GString *result);
+#endif
+static void        add_cookie(WebKitWebView *page, GArray *argv, GString *result);
+static void        delete_cookie(WebKitWebView *page, GArray *argv, GString *result);
+static void        clear_cookies(WebKitWebView *pag, GArray *argv, GString *result);
+static void        download(WebKitWebView *pag, GArray *argv, GString *result);
+static void        set_var(WebKitWebView *page, GArray *argv, GString *result);
+static void        toggle_var(WebKitWebView *page, GArray *argv, GString *result);
+static void        run_js (WebKitWebView * web_view, GArray *argv, GString *result);
+static void        toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result);
+static void        toggle_status (WebKitWebView* page, GArray *argv, GString *result);
+static void        act_dump_config(WebKitWebView* page, GArray *argv, GString *result);
+static void        act_dump_config_as_events(WebKitWebView* page, GArray *argv, GString *result);
+static void        auth(WebKitWebView* page, GArray *argv, GString *result);
+
 CommandInfo cmdlist[] =
 {   /* name                             function                   split */
     { "back",                           view_go_back,              TRUE  },
@@ -105,6 +165,43 @@ builtins() {
 
     send_event(BUILTINS, NULL, TYPE_STR, command_list->str, NULL);
     g_string_free(command_list, TRUE);
+}
+
+gchar**
+split_quoted(const gchar* src, const gboolean unquote) {
+    /* split on unquoted space or tab, return array of strings;
+       remove a layer of quotes and backslashes if unquote */
+    if (!src) return NULL;
+
+    gboolean dq = FALSE;
+    gboolean sq = FALSE;
+    GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+    GString *s = g_string_new ("");
+    const gchar *p;
+    gchar **ret;
+    gchar *dup;
+    for (p = src; *p != '\0'; p++) {
+        if ((*p == '\\') && unquote && p[1]) g_string_append_c(s, *++p);
+        else if (*p == '\\' && p[1]) { g_string_append_c(s, *p++);
+                               g_string_append_c(s, *p); }
+        else if ((*p == '"') && unquote && !sq) dq = !dq;
+        else if (*p == '"' && !sq) { g_string_append_c(s, *p);
+                                     dq = !dq; }
+        else if ((*p == '\'') && unquote && !dq) sq = !sq;
+        else if (*p == '\'' && !dq) { g_string_append_c(s, *p);
+                                      sq = ! sq; }
+        else if ((*p == ' ' || *p == '\t') && !dq && !sq) {
+            dup = g_strdup(s->str);
+            g_array_append_val(a, dup);
+            g_string_truncate(s, 0);
+        } else g_string_append_c(s, *p);
+    }
+    dup = g_strdup(s->str);
+    g_array_append_val(a, dup);
+    ret = (gchar**)a->data;
+    g_array_free (a, FALSE);
+    g_string_free (s, TRUE);
+    return ret;
 }
 
 void
