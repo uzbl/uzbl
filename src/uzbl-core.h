@@ -240,7 +240,6 @@ gboolean    remove_socket_from_array(GIOChannel *chan);
 
 /* Window */
 void        retrieve_geometry();
-void        scroll(GtkAdjustment* bar, gchar *amount_str);
 
 
 #endif

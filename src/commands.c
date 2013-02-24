@@ -56,21 +56,21 @@ cmd_cookie_clear (WebKitWebView *view, GArray *argv, GString *result);
 
 /* Display commands */
 static void
-scroll_cmd (WebKitWebView *view, GArray *argv, GString *result);
+cmd_scroll (WebKitWebView *view, GArray *argv, GString *result);
 static void
-view_zoom_in (WebKitWebView *view, GArray *argv, GString *result);
+cmd_zoom_in (WebKitWebView *view, GArray *argv, GString *result);
 static void
-view_zoom_out (WebKitWebView *view, GArray *argv, GString *result);
+cmd_zoom_out (WebKitWebView *view, GArray *argv, GString *result);
 static void
-toggle_zoom_type (WebKitWebView *view, GArray *argv, GString *result);
+cmd_zoom_toggle_type (WebKitWebView *view, GArray *argv, GString *result);
 static void
-toggle_status (WebKitWebView *view, GArray *argv, GString *result);
+cmd_status_toggle (WebKitWebView *view, GArray *argv, GString *result);
 static void
-hardcopy (WebKitWebView *view, GArray *argv, GString *result);
+cmd_hardcopy (WebKitWebView *view, GArray *argv, GString *result);
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 9, 6)
 static void
-snapshot (WebKitWebView *view, GArray *argv, GString *result);
+cmd_snapshot (WebKitWebView *view, GArray *argv, GString *result);
 #endif
 #endif
 
@@ -169,15 +169,15 @@ builtin_command_table[] =
     { "clear_cookies",                  cmd_cookie_clear,          TRUE  }, /* TODO: Rework to be "cookie clear". */
 
     /* Display commands */
-    { "scroll",                         scroll_cmd,                TRUE  },
-    { "zoom_in",                        view_zoom_in,              TRUE  }, //Can crash (when max zoom reached?).
-    { "zoom_out",                       view_zoom_out,             TRUE  },
-    { "toggle_zoom_type",               toggle_zoom_type,          TRUE  },
-    { "toggle_status",                  toggle_status,             TRUE  },
-    { "hardcopy",                       hardcopy,                  FALSE },
+    { "scroll",                         cmd_scroll,                TRUE  },
+    { "zoom_in",                        cmd_zoom_in,               TRUE  }, /* TODO: Rework to be "zoom in". */
+    { "zoom_out",                       cmd_zoom_out,              TRUE  }, /* TODO: Rework to be "zoom out". */
+    { "toggle_zoom_type",               cmd_zoom_toggle_type,      TRUE  }, /* XXX: Deprecated (toggle). */
+    { "toggle_status",                  cmd_status_toggle,         TRUE  }, /* XXX: Deprecated (toggle). */
+    { "hardcopy",                       cmd_hardcopy,              FALSE },
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 9, 6)
-    { "snapshot",                       snapshot,                  FALSE },
+    { "snapshot",                       cmd_snapshot,              FALSE },
 #endif
 #endif
 
@@ -672,27 +672,7 @@ cmd_cookie_clear (WebKitWebView *view, GArray *argv, GString *result)
         SOUP_SESSION_FEATURE (uzbl.net.soup_cookie_jar));
 }
 
-/* VIEW funcs (little webkit wrappers) */
-#define VIEWFUNC(name) void view_##name(WebKitWebView *page, GArray *argv, GString *result){(void)argv; (void)result; webkit_web_view_##name(page);}
-VIEWFUNC(zoom_in)
-VIEWFUNC(zoom_out)
-#undef VIEWFUNC
-
-void
-toggle_zoom_type (WebKitWebView* page, GArray *argv, GString *result) {
-    (void)page; (void)argv; (void)result;
-
-    int current_type = get_zoom_type();
-    set_zoom_type(!current_type);
-}
-
-void
-toggle_status (WebKitWebView* page, GArray *argv, GString *result) {
-    (void)page; (void)argv; (void)result;
-
-    int current_status = get_show_status();
-    set_show_status(!current_status);
-}
+/* Display commands */
 
 /*
  * scroll vertical 20
@@ -707,30 +687,133 @@ toggle_status (WebKitWebView* page, GArray *argv, GString *result) {
  * scroll horizontal end
  */
 void
-scroll_cmd(WebKitWebView* page, GArray *argv, GString *result) {
-    (void) page; (void) result;
-    gchar *direction = g_array_index(argv, gchar*, 0);
-    gchar *argv1     = g_array_index(argv, gchar*, 1);
+cmd_scroll (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (result);
+
+    ARG_CHECK (argv, 2);
+
+    gchar *direction = argv_idx (argv, 0);
+    gchar *amount_str = argv_idx (argv, 1);
     GtkAdjustment *bar = NULL;
 
-    if (g_strcmp0(direction, "horizontal") == 0)
+    if (!g_strcmp0 (direction, "horizontal")) {
         bar = uzbl.gui.bar_h;
-    else if (g_strcmp0(direction, "vertical") == 0)
+    } else if (!g_strcmp0 (direction, "vertical")) {
         bar = uzbl.gui.bar_v;
-    else {
-        if(uzbl.state.verbose)
-            puts("Unrecognized scroll format");
+    } else {
+        uzbl_debug ("Unrecognized scroll direction: %s\n", direction);
         return;
     }
 
-    if (g_strcmp0(argv1, "begin") == 0)
-        gtk_adjustment_set_value(bar, gtk_adjustment_get_lower(bar));
-    else if (g_strcmp0(argv1, "end") == 0)
-        gtk_adjustment_set_value (bar, gtk_adjustment_get_upper(bar) -
-                                gtk_adjustment_get_page_size(bar));
-    else
-        scroll(bar, argv1);
+    gdouble lower = gtk_adjustment_get_lower (bar);
+    gdouble upper = gtk_adjustment_get_upper (bar);
+    gdouble page = gtk_adjustment_get_page_size (bar);
+
+    if (!g_strcmp0 (amount_str, "begin")) {
+        gtk_adjustment_set_value (bar, lower);
+    } else if (!g_strcmp0 (amount_str, "end")) {
+        gtk_adjustment_set_value (bar, upper - page);
+    } else {
+        gchar *end;
+
+        gdouble value = gtk_adjustment_get_value (bar);
+        gdouble amount = g_ascii_strtod (amount_str, &end);
+        gdouble max_value = upper - page;
+
+        if (*end == '%') {
+            value += page * amount * 0.01;
+        } else if (*end == '!') {
+            value = amount;
+        } else {
+            value += amount;
+        }
+
+        if (value < 0) {
+            value = 0; /* don't scroll past the beginning of the page */
+        }
+        if (value > max_value) {
+            value = max_value; /* don't scroll past the end of the page */
+        }
+
+        gtk_adjustment_set_value (bar, value);
+    }
 }
+
+void
+cmd_zoom_in (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (argv);
+    UZBL_UNUSED (result);
+
+    webkit_web_view_zoom_in (view);
+}
+
+void
+cmd_zoom_out (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (argv);
+    UZBL_UNUSED (result);
+
+    webkit_web_view_zoom_out (view);
+}
+
+void
+cmd_zoom_toggle_type (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (argv);
+    UZBL_UNUSED (result);
+
+    uzbl_debug ("toggle_zoom_type is deprecated; use \'toggle zoom_type\' instead\n");
+
+    int current_type = get_zoom_type ();
+    set_zoom_type (!current_type);
+}
+
+void
+cmd_status_toggle (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (argv);
+    UZBL_UNUSED (result);
+
+    uzbl_debug ("toggle_status is deprecated; use \'toggle show_status\' instead\n");
+
+    int current_status = get_show_status ();
+    set_show_status (!current_status);
+}
+
+void
+cmd_hardcopy (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (argv);
+    UZBL_UNUSED (result);
+
+    webkit_web_frame_print (webkit_web_view_get_main_frame (view));
+}
+
+#ifndef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 6)
+void
+cmd_snapshot (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (result);
+
+    ARG_CHECK (argv, 1);
+
+    cairo_surface_t *surface;
+
+    surface = webkit_web_view_get_snapshot (page);
+
+    /* TODO: Support other formats? */
+    cairo_surface_write_to_png (surface, argv_idx (argv, 0));
+
+    cairo_surface_destroy (surface);
+}
+#endif
+#endif
 
 void
 set_var(WebKitWebView *page, GArray *argv, GString *result) {
@@ -919,28 +1002,6 @@ print(WebKitWebView *page, GArray *argv, GString *result) {
     g_string_assign(result, buf);
     g_free(buf);
 }
-
-void
-hardcopy(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) argv; (void) result;
-    webkit_web_frame_print(webkit_web_view_get_main_frame(page));
-}
-
-#ifndef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 9, 6)
-void
-snapshot(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) result;
-    cairo_surface_t* surface;
-
-    surface = webkit_web_view_get_snapshot(page);
-
-    cairo_surface_write_to_png(surface, argv_idx(argv, 0));
-
-    cairo_surface_destroy(surface);
-}
-#endif
-#endif
 
 void
 remove_all_db(WebKitWebView *page, GArray *argv, GString *result) {
