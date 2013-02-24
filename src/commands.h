@@ -7,13 +7,7 @@
 
 #include "uzbl-core.h"
 
-typedef void (*UzblCommand)(WebKitWebView*, GArray *argv, GString *result);
-
-typedef struct {
-    const gchar *name;
-    UzblCommand  function;
-    gboolean     split;
-} UzblCommandInfo;
+typedef struct _UzblCommandInfo UzblCommandInfo;
 
 /**
  * Initialises the hash table uzbl.behave.commands with the available commands.

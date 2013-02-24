@@ -8,6 +8,14 @@
 #include "type.h"
 #include "soup.h"
 
+typedef void (*UzblCommand)(WebKitWebView*, GArray *argv, GString *result);
+
+struct _UzblCommandInfo {
+    const gchar *name;
+    UzblCommand  function;
+    gboolean     split;
+};
+
 static void        view_reload(WebKitWebView *page, GArray *argv, GString *result);
 static void        view_reload_bypass_cache(WebKitWebView *page, GArray *argv, GString *result);
 static void        view_stop_loading(WebKitWebView *page, GArray *argv, GString *result);
