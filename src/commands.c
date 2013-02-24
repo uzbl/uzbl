@@ -68,7 +68,7 @@ static void        act_dump_config(WebKitWebView* page, GArray *argv, GString *r
 static void        act_dump_config_as_events(WebKitWebView* page, GArray *argv, GString *result);
 static void        auth(WebKitWebView* page, GArray *argv, GString *result);
 
-CommandInfo cmdlist[] =
+UzblCommandInfo cmdlist[] =
 {   /* name                             function                   split */
     { "back",                           view_go_back,              TRUE  },
     { "forward",                        view_go_forward,           TRUE  },
@@ -221,9 +221,9 @@ parse_command_arguments(const gchar *p, GArray *a, gboolean split) {
     }
 }
 
-const CommandInfo *
+const UzblCommandInfo *
 parse_command_parts(const gchar *line, GArray *a) {
-    CommandInfo *c = NULL;
+    UzblCommandInfo *c = NULL;
 
     gchar *exp_line = expand(line, 0);
     if(exp_line[0] == '\0') {
@@ -258,7 +258,7 @@ parse_command_parts(const gchar *line, GArray *a) {
 }
 
 void
-run_parsed_command(const CommandInfo *c, GArray *a, GString *result) {
+run_parsed_command(const UzblCommandInfo *c, GArray *a, GString *result) {
     /* send the COMMAND_EXECUTED event, except for set and event/request commands */
     if(strcmp("set", c->name)   &&
        strcmp("event", c->name) &&
@@ -293,7 +293,7 @@ parse_cmd_line(const char *ctl_line, GString *result) {
     if( strcmp(work_string, "") ) {
         if((work_string[0] != '#')) { /* ignore comments */
             GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-            const CommandInfo *c = parse_command_parts(work_string, a);
+            const UzblCommandInfo *c = parse_command_parts(work_string, a);
             if(c)
                 run_parsed_command(c, a, result);
             g_array_free (a, TRUE);
@@ -970,7 +970,7 @@ chain(WebKitWebView *page, GArray *argv, GString *result) {
     GString *r = g_string_new ("");
     while ((cmd = argv_idx(argv, i++))) {
         GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
-        const CommandInfo *c = parse_command_parts(cmd, a);
+        const UzblCommandInfo *c = parse_command_parts(cmd, a);
         if (c)
             run_parsed_command(c, a, r);
         g_array_free (a, TRUE);
