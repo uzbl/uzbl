@@ -9,17 +9,11 @@
 
 typedef struct _UzblCommandInfo UzblCommandInfo;
 
-/**
- * Initialises the hash table uzbl.behave.commands with the available commands.
- */
 void
-commands_hash();
+uzbl_command_init ();
 
-/**
- * Sends the BUILTINS events with the available commands.
- */
 void
-builtins();
+uzbl_command_send_builtin_event ();
 
 void        run_external_js (WebKitWebView * web_view, GArray *argv, GString *result);
 

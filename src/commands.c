@@ -153,26 +153,34 @@ UzblCommandInfo cmdlist[] =
 };
 
 void
-commands_hash() {
-    unsigned int i;
-    uzbl.behave.commands = g_hash_table_new(g_str_hash, g_str_equal);
+uzbl_command_init ()
+{
+    unsigned i;
+    unsigned len = LENGTH (cmdlist);
 
-    for (i = 0; i < LENGTH(cmdlist); i++)
-        g_hash_table_insert(uzbl.behave.commands, (gpointer) cmdlist[i].name, &cmdlist[i]);
+    uzbl.behave.commands = g_hash_table_new (g_str_hash, g_str_equal);
+
+    for (i = 0; i < len; ++i) {
+        g_hash_table_insert (uzbl.behave.commands, (gpointer)cmdlist[i].name, &cmdlist[i]);
+    }
 }
 
 void
-builtins() {
-    unsigned int i;
-    unsigned int len = LENGTH(cmdlist);
-    GString*     command_list = g_string_new("");
+uzbl_command_send_builtin_event ()
+{
+    unsigned i;
+    unsigned len = LENGTH(cmdlist);
+    GString *command_list = g_string_new ("");
 
-    for (i = 0; i < len; i++) {
-        g_string_append(command_list, cmdlist[i].name);
-        g_string_append_c(command_list, ' ');
+    for (i = 0; i < len; ++i) {
+        g_string_append (command_list, cmdlist[i].name);
+        g_string_append_c (command_list, ' ');
     }
 
-    send_event(BUILTINS, NULL, TYPE_STR, command_list->str, NULL);
+    send_event (BUILTINS, NULL,
+        TYPE_STR, command_list->str,
+        NULL);
+
     g_string_free(command_list, TRUE);
 }
 
