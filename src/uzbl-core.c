@@ -621,8 +621,8 @@ run_parsed_command(const CommandInfo *c, GArray *a, GString *result) {
 }
 
 void
-parse_command_arguments(const gchar *p, GArray *a, gboolean no_split) {
-    if (no_split && p) { /* pass the parameters through in one chunk */
+parse_command_arguments(const gchar *p, GArray *a, gboolean split) {
+    if (!split && p) { /* pass the parameters through in one chunk */
         sharg_append(a, g_strdup(p));
         return;
     }
@@ -666,7 +666,7 @@ parse_command_parts(const gchar *line, GArray *a) {
     g_strfreev(tokens);
 
     /* parse the arguments */
-    parse_command_arguments(p, a, c->no_split);
+    parse_command_arguments(p, a, c->split);
     g_free(p);
 
     return c;
