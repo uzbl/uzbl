@@ -532,7 +532,7 @@ load_status_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data
             /* Handled by load_error_cb */
             break;
         default:
-            uzbl_debug ("Unrecognized load status: %d", status);
+            uzbl_debug ("Unrecognized load status: %d\n", status);
             break;
     }
 }
@@ -647,7 +647,7 @@ navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
     const gchar *uri = webkit_network_request_get_uri (request);
     gboolean decision_made = FALSE;
 
-    uzbl_debug ("Navigation requested -> %s", uri);
+    uzbl_debug ("Navigation requested -> %s\n", uri);
 
     if (uzbl.behave.scheme_handler) {
         GString *result = g_string_new ("");
@@ -691,7 +691,7 @@ new_window_cb (WebKitWebView *view, WebKitWebFrame *frame,
     const gchar *uri = webkit_network_request_get_uri (request);
     const gchar *target_frame = webkit_web_navigation_action_get_target_frame (navigation_action);
 
-    uzbl_debug ("New window requested -> %s", uri);
+    uzbl_debug ("New window requested -> %s\n", uri);
 
     /* The create_web_view_cb is also called for _blank targets. */
     if (!g_strcmp0 (target_frame, "_blank")) {
@@ -699,7 +699,7 @@ new_window_cb (WebKitWebView *view, WebKitWebFrame *frame,
             TYPE_STR, uri,
             NULL);
     } else {
-        uzbl_debug ("Ignoring new window request; target == _blank");
+        uzbl_debug ("Ignoring new window request; target == _blank\n");
     }
 
     webkit_web_policy_decision_ignore (policy_decision);
@@ -748,11 +748,11 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
      * explicit download using uzbl's 'download' action. */
     const gchar *destination = (const gchar *)data;
 
-    uzbl_debug ("Download requested -> %s", uri);
+    uzbl_debug ("Download requested -> %s\n", uri);
 
     if (!uzbl.behave.download_handler) {
         /* reject downloads when there's no download handler */
-        uzbl_debug ("No download handler set; ignoring download");
+        uzbl_debug ("No download handler set; ignoring download\n");
         webkit_download_cancel (download);
         return FALSE;
     }
@@ -927,7 +927,7 @@ request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResour
     const gchar *uri = webkit_network_request_get_uri (request);
     SoupMessage *message = webkit_network_request_get_message (request);
 
-    uzbl_debug ("Request starting -> %s", uri);
+    uzbl_debug ("Request starting -> %s\n", uri);
 
     if (message) {
         SoupURI *soup_uri = soup_uri_new (uri);
@@ -973,7 +973,7 @@ create_web_view_cb (WebKitWebView *view, WebKitWebFrame *frame, gpointer data)
 
     WebKitWebView *new_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
 
-    uzbl_debug ("New web view -> javascript link...");
+    uzbl_debug ("New web view -> javascript link...\n");
 
     g_object_connect (G_OBJECT (new_view),
         "signal::notify::uri", G_CALLBACK (create_web_view_js_cb), NULL,
