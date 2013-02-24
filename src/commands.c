@@ -112,6 +112,12 @@ cmd_search_clear (WebKitWebView *view, GArray *argv, GString *result);
 static void
 cmd_search_reset (WebKitWebView *view, GArray *argv, GString *result);
 
+/* Inspector commands */
+static void
+cmd_inspector_show (WebKitWebView *view, GArray *argv, GString *result);
+static void
+cmd_inspector (WebKitWebView *view, GArray *argv, GString *result);
+
 /* Variable commands */
 static void
 set_var (WebKitWebView *view, GArray *argv, GString *result);
@@ -137,12 +143,6 @@ static void
 event (WebKitWebView *view, GArray *argv, GString *result);
 static void
 event (WebKitWebView *view, GArray *argv, GString *result);
-
-/* Inspector commands */
-static void
-show_inspector (WebKitWebView *view, GArray *argv, GString *result);
-static void
-inspector (WebKitWebView *view, GArray *argv, GString *result);
 
 static UzblCommandInfo
 builtin_command_table[] =
@@ -211,9 +211,8 @@ builtin_command_table[] =
     { "dehilight",                      cmd_search_reset,             TRUE  }, /* TODO: Rework to be "search reset". */
 
     /* Inspector commands */
-    /* Deprecated */
-    { "show_inspector",                 show_inspector,               TRUE  },
-    { "inspector",                      inspector,                    FALSE },
+    { "show_inspector",                 cmd_inspector_show,           TRUE  }, /* Deprecated. */
+    { "inspector",                      cmd_inspector,                FALSE },
 
     /* Execution commands */
     { "js",                             run_js,                       FALSE },
@@ -1000,6 +999,53 @@ search_text (WebKitWebView *view, const gchar *key, const gboolean forward)
     }
 }
 
+/* Inspector commands */
+
+void
+cmd_inspector_show (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (argv);
+    UZBL_UNUSED (result);
+
+    webkit_web_inspector_show (uzbl.gui.inspector);
+}
+
+void
+cmd_inspector (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (result);
+
+    ARG_CHECK (argv, 1);
+
+    const gchar* command = argv_idx (argv, 0);
+
+    if (!g_strcmp0 (command, "show")) {
+        webkit_web_inspector_show (uzbl.gui.inspector);
+    } else if (!g_strcmp0 (command, "close")) {
+        webkit_web_inspector_close (uzbl.gui.inspector);
+    } else if (!g_strcmp0 (command, "coord")) {
+        if (argv->len < 3) {
+            return;
+        }
+
+        gdouble x = strtod (argv_idx (argv, 1), NULL);
+        gdouble y = strtod (argv_idx (argv, 2), NULL);
+
+        /* Let's not tempt the dragons. */
+        if (errno == ERANGE) {
+            return;
+        }
+
+        webkit_web_inspector_inspect_coordinates (uzbl.gui.inspector, x, y);
+#if WEBKIT_CHECK_VERSION (1, 3, 17)
+    } else if (!g_strcmp0 (command, "node")) {
+        /* TODO: Implement */
+#endif
+    }
+}
+
 void
 set_var(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
@@ -1200,48 +1246,6 @@ include(WebKitWebView *page, GArray *argv, GString *result) {
 		run_command_file(path);
         send_event(FILE_INCLUDED, NULL, TYPE_STR, path, NULL);
         g_free(path);
-    }
-}
-
-void
-show_inspector(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page; (void) argv; (void) result;
-
-    webkit_web_inspector_show(uzbl.gui.inspector);
-}
-
-void
-inspector(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page; (void) result;
-
-    if (argv->len < 1) {
-        return;
-    }
-
-    const gchar* command = argv_idx (argv, 0);
-
-    if (!g_strcmp0 (command, "show")) {
-        webkit_web_inspector_show (uzbl.gui.inspector);
-    } else if (!g_strcmp0 (command, "close")) {
-        webkit_web_inspector_close (uzbl.gui.inspector);
-    } else if (!g_strcmp0 (command, "coord")) {
-        if (argv->len < 3) {
-            return;
-        }
-
-        gdouble x = strtod (argv_idx (argv, 1), NULL);
-        gdouble y = strtod (argv_idx (argv, 2), NULL);
-
-        /* Let's not tempt the dragons. */
-        if (errno == ERANGE) {
-            return;
-        }
-
-        webkit_web_inspector_inspect_coordinates (uzbl.gui.inspector, x, y);
-#if WEBKIT_CHECK_VERSION (1, 3, 17)
-    } else if (!g_strcmp0 (command, "node")) {
-        /* TODO: Implement */
-#endif
     }
 }
 
