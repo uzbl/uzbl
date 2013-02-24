@@ -46,6 +46,14 @@ cmd_save (WebKitWebView *view, GArray *argv, GString *result);
 #endif
 #endif
 
+/* Cookie commands */
+static void
+cmd_cookie_add (WebKitWebView *view, GArray *argv, GString *result);
+static void
+cmd_cookie_delete (WebKitWebView *view, GArray *argv, GString *result);
+static void
+cmd_cookie_clear (WebKitWebView *view, GArray *argv, GString *result);
+
 /* Display commands */
 static void
 scroll_cmd (WebKitWebView *view, GArray *argv, GString *result);
@@ -136,14 +144,6 @@ show_inspector (WebKitWebView *view, GArray *argv, GString *result);
 static void
 inspector (WebKitWebView *view, GArray *argv, GString *result);
 
-/* Cookie commands. */
-static void
-add_cookie (WebKitWebView *view, GArray *argv, GString *result);
-static void
-delete_cookie (WebKitWebView *view, GArray *argv, GString *result);
-static void
-clear_cookies (WebKitWebView *view, GArray *argv, GString *result);
-
 static UzblCommandInfo
 builtin_command_table[] =
 {   /* name                             function                   split */
@@ -163,10 +163,10 @@ builtin_command_table[] =
 #endif
 #endif
 
-    /* Cookie commands. */
-    { "add_cookie",                     add_cookie,                TRUE  },
-    { "delete_cookie",                  delete_cookie,             TRUE  },
-    { "clear_cookies",                  clear_cookies,             TRUE  },
+    /* Cookie commands */
+    { "add_cookie",                     cmd_cookie_add,            TRUE  }, /* TODO: Rework to be "cookie add". */
+    { "delete_cookie",                  cmd_cookie_delete,         TRUE  }, /* TODO: Rework to be "cookie delete". */
+    { "clear_cookies",                  cmd_cookie_clear,          TRUE  }, /* TODO: Rework to be "cookie clear". */
 
     /* Display commands */
     { "scroll",                         scroll_cmd,                TRUE  },
@@ -580,6 +580,97 @@ cmd_save (WebKitWebView *view, GArray *argv, GString *result)
 }
 #endif
 #endif
+
+/* Cookie commands */
+
+#define strprefix(str, prefix) \
+    strncmp ((str), (prefix), strlen ((prefix)))
+
+void
+cmd_cookie_add (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (result);
+
+    gchar *host;
+    gchar *path;
+    gchar *name;
+    gchar *value;
+    gchar *scheme;
+    gboolean secure = 0;
+    gboolean httponly = 0;
+    gchar *expires_arg;
+    SoupDate *expires = NULL;
+
+    ARG_CHECK (argv, 6);
+
+    /* Parse with same syntax as ADD_COOKIE event */
+    host = argv_idx (argv, 0);
+    path = argv_idx (argv, 1);
+    name = argv_idx (argv, 2);
+    value = argv_idx (argv, 3);
+    scheme = argv_idx (argv, 4);
+    if (!strprefix (scheme, "http")) {
+        secure = (scheme[4] == 's');
+        httponly = !strprefix (scheme + 4 + secure, "Only");
+    }
+    expires_arg = argv_idx (argv, 5);
+    if (*expires_arg) {
+        expires = soup_date_new_from_time_t (strtoul (expires_arg, NULL, 10));
+    }
+
+    /* Create new cookie */
+    /* TODO: Add support for adding non-session cookies. */
+    static const int session_cookie = -1;
+    SoupCookie *cookie = soup_cookie_new (name, value, host, path, session_cookie);
+    soup_cookie_set_secure (cookie, secure);
+    soup_cookie_set_http_only (cookie, httponly);
+    if (expires) {
+        soup_cookie_set_expires (cookie, expires);
+    }
+
+    /* Add cookie to jar */
+    uzbl.net.soup_cookie_jar->in_manual_add = 1;
+    soup_cookie_jar_add_cookie (SOUP_COOKIE_JAR (uzbl.net.soup_cookie_jar), cookie);
+    uzbl.net.soup_cookie_jar->in_manual_add = 0;
+}
+
+void
+cmd_cookie_delete (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (result);
+
+    ARG_CHECK (argv, 4);
+
+    static const int expired_cookie = 0;
+    SoupCookie *cookie = soup_cookie_new (
+        argv_idx (argv, 2),
+        argv_idx (argv, 3),
+        argv_idx (argv, 0),
+        argv_idx (argv, 1),
+        expired_cookie);
+
+    uzbl.net.soup_cookie_jar->in_manual_add = 1;
+    soup_cookie_jar_delete_cookie (SOUP_COOKIE_JAR (uzbl.net.soup_cookie_jar), cookie);
+    uzbl.net.soup_cookie_jar->in_manual_add = 0;
+}
+
+void
+cmd_cookie_clear (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (argv);
+    UZBL_UNUSED (result);
+
+    /* Replace the current cookie jar with a new empty jar */
+    soup_session_remove_feature (uzbl.net.soup_session,
+        SOUP_SESSION_FEATURE (uzbl.net.soup_cookie_jar));
+    g_object_unref (G_OBJECT (uzbl.net.soup_cookie_jar));
+    uzbl.net.soup_cookie_jar = uzbl_cookie_jar_new ();
+    soup_session_add_feature (uzbl.net.soup_session,
+        SOUP_SESSION_FEATURE (uzbl.net.soup_cookie_jar));
+}
 
 /* VIEW funcs (little webkit wrappers) */
 #define VIEWFUNC(name) void view_##name(WebKitWebView *page, GArray *argv, GString *result){(void)argv; (void)result; webkit_web_view_##name(page);}
@@ -1018,75 +1109,6 @@ spell_checker(WebKitWebView *page, GArray *argv, GString *result) {
     }
 }
 #endif
-
-void
-add_cookie(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page; (void) result;
-    gchar *host, *path, *name, *value, *scheme;
-    gboolean secure = 0, httponly = 0;
-    SoupDate *expires = NULL;
-
-    if(argv->len != 6)
-        return;
-
-    // Parse with same syntax as ADD_COOKIE event
-    host = argv_idx (argv, 0);
-    path = argv_idx (argv, 1);
-    name = argv_idx (argv, 2);
-    value = argv_idx (argv, 3);
-    scheme = argv_idx (argv, 4);
-    if (strncmp (scheme, "http", 4) == 0) {
-        secure = scheme[4] == 's';
-        httponly = strncmp (&scheme[4+secure], "Only", 4) == 0;
-    }
-    if (argv->len >= 6 && *argv_idx (argv, 5))
-        expires = soup_date_new_from_time_t (
-            strtoul (argv_idx (argv, 5), NULL, 10));
-
-    // Create new cookie
-    SoupCookie * cookie = soup_cookie_new (name, value, host, path, -1);
-    soup_cookie_set_secure (cookie, secure);
-    soup_cookie_set_http_only (cookie, httponly);
-    if (expires)
-        soup_cookie_set_expires (cookie, expires);
-
-    // Add cookie to jar
-    uzbl.net.soup_cookie_jar->in_manual_add = 1;
-    soup_cookie_jar_add_cookie (SOUP_COOKIE_JAR (uzbl.net.soup_cookie_jar), cookie);
-    uzbl.net.soup_cookie_jar->in_manual_add = 0;
-}
-
-void
-delete_cookie(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page; (void) result;
-
-    if(argv->len < 4)
-        return;
-
-    SoupCookie * cookie = soup_cookie_new (
-        argv_idx (argv, 2),
-        argv_idx (argv, 3),
-        argv_idx (argv, 0),
-        argv_idx (argv, 1),
-        0);
-
-    uzbl.net.soup_cookie_jar->in_manual_add = 1;
-    soup_cookie_jar_delete_cookie (SOUP_COOKIE_JAR (uzbl.net.soup_cookie_jar), cookie);
-    uzbl.net.soup_cookie_jar->in_manual_add = 0;
-}
-
-void
-clear_cookies(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page; (void) argv; (void) result;
-
-    // Replace the current cookie jar with a new empty jar
-    soup_session_remove_feature (uzbl.net.soup_session,
-        SOUP_SESSION_FEATURE (uzbl.net.soup_cookie_jar));
-    g_object_unref (G_OBJECT (uzbl.net.soup_cookie_jar));
-    uzbl.net.soup_cookie_jar = uzbl_cookie_jar_new ();
-    soup_session_add_feature(uzbl.net.soup_session,
-        SOUP_SESSION_FEATURE (uzbl.net.soup_cookie_jar));
-}
 
 void
 run_js (WebKitWebView * web_view, GArray *argv, GString *result) {
