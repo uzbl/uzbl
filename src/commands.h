@@ -1,8 +1,8 @@
 /*
  * Uzbl Commands
  */
-#ifndef __COMMANDS__
-#define __COMMANDS__
+#ifndef UZBL_COMMANDS_H
+#define UZBL_COMMANDS_H
 
 #ifdef USE_WEBKIT2
 #include <webkit2/webkit2.h>
