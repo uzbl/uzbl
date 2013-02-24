@@ -4,11 +4,7 @@
 #ifndef UZBL_COMMANDS_H
 #define UZBL_COMMANDS_H
 
-#ifdef USE_WEBKIT2
-#include <webkit2/webkit2.h>
-#else
-#include <webkit/webkit.h>
-#endif
+#include "uzbl-core.h"
 
 typedef void (*Command)(WebKitWebView*, GArray *argv, GString *result);
 
