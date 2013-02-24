@@ -130,7 +130,7 @@ cmd_menu_remove_edit (WebKitWebView *view, GArray *argv, GString *result)
 void
 add_to_menu (GArray *argv, guint context)
 {
-    MenuItem *m = NULL;
+    UzblMenuItem *m = NULL;
     gchar *item_cmd = NULL;
 
     ARG_CHECK (argv, 1);
@@ -145,7 +145,7 @@ add_to_menu (GArray *argv, guint context)
     }
 
     if (split[0]) {
-        m = (MenuItem *)malloc (sizeof (MenuItem));
+        m = (UzblMenuItem *)malloc (sizeof (UzblMenuItem));
         m->name    = g_strdup (split[0]);
         m->cmd     = g_strdup (item_cmd ? item_cmd : "");
         m->context = context;
@@ -160,7 +160,7 @@ add_to_menu (GArray *argv, guint context)
 void
 add_separator_to_menu (GArray *argv, guint context)
 {
-    MenuItem *m;
+    UzblMenuItem *m;
     gchar *sep_name;
 
     ARG_CHECK (argv, 1);
@@ -171,7 +171,7 @@ add_separator_to_menu (GArray *argv, guint context)
 
     sep_name = argv_idx (argv, 0);
 
-    m = (MenuItem *)malloc (sizeof (MenuItem));
+    m = (UzblMenuItem *)malloc (sizeof (UzblMenuItem));
     m->name    = g_strdup (sep_name);
     m->cmd     = NULL;
     m->context = context;
@@ -183,7 +183,7 @@ add_separator_to_menu (GArray *argv, guint context)
 void
 remove_from_menu (GArray *argv, guint context)
 {
-    MenuItem *mi = NULL;
+    UzblMenuItem *mi = NULL;
     gchar *name = NULL;
     guint i = 0;
 

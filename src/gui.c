@@ -1113,7 +1113,7 @@ populate_context_menu (GtkMenu *menu, WebKitHitTestResult *hit_test_result, gint
     /* find the user-defined menu items that are approprate for whatever was
      * clicked and append them to the default context menu. */
     for (i = 0; i < uzbl.gui.menu_items->len; ++i) {
-        MenuItem *menu_item = g_ptr_array_index (uzbl.gui.menu_items, i);
+        UzblMenuItem *menu_item = g_ptr_array_index (uzbl.gui.menu_items, i);
         GtkWidget *item;
 
         gboolean contexts_match = (context & menu_item->context);
@@ -1149,7 +1149,7 @@ run_menu_command (GtkMenuItem *menu_item, gpointer data)
 {
     UZBL_UNUSED (menu_item);
 
-    MenuItem *item = (MenuItem *)data;
+    UzblMenuItem *item = (UzblMenuItem *)data;
 
     gboolean is_image = (item->context & WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE);
 
