@@ -422,8 +422,7 @@ set preset = event PRESET_TABS
 @cbind  glo<preset load:>_  = @preset load %s
 @cbind  gd<preset del:>_    = @preset del %s
 @cbind  gb                  = @preset backup
-# This doesn't work right now.
-#@cbind  gli                 = @preset list
+@cbind  gli                 = @preset list
 
 # === Context menu items =====================================================
 

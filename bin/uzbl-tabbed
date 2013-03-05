@@ -853,8 +853,6 @@ class UzblTabbed:
                 error("parse_command: preset %r does not exist." % path)
 
         elif cmd == "list":
-            # FIXME: what argument is this supposed to be passed,
-            # and why?
             uzbl = self.tabs[self.notebook.get_nth_page(
                 self.notebook.get_current_page()
             )]
