@@ -1022,7 +1022,7 @@ populate_popup_cb (WebKitWebView *view, GtkMenu *menu, gpointer data)
     gdk_window_get_device_position (gtk_widget_get_window (GTK_WIDGET (view)),
         gdk_device_manager_get_client_pointer (
             gdk_display_get_device_manager (
-                gtk_widget_get_display (GTK_WIDGET (v)))),
+                gtk_widget_get_display (GTK_WIDGET (view)))),
         &x, &y, NULL);
 #else
     gdk_window_get_pointer (gtk_widget_get_window (GTK_WIDGET (view)), &x, &y, NULL);
