@@ -88,7 +88,7 @@
 # Session options:
 #   save_session            = 1
 #   json_session            = 0
-#   session_file            = $HOME/.local/share/uzbl/session
+#   session_file            = $HOME/.local/share/uzbl/sessions/session
 #   autosave_session        = 0
 #
 # Inherited uzbl options:
@@ -214,6 +214,7 @@ config = {
   'saved_sessions_dir':     os.path.join(DATA_DIR, 'sessions/'),
   'session_file':           os.path.join(DATA_DIR, 'sessions/session'),
   'autosave_session':       False,  # Save session for every tab change
+  'backup_session':         True,   # Keep a backup of session file when loading
 
   # Inherited uzbl options
   'icon_path':              os.path.join(DATA_DIR, 'uzbl.png'),
@@ -1200,6 +1201,20 @@ class UzblTabbed:
         fh.close()
 
 
+    def session_backup_filename(self, session_file):
+        '''Get the backup naming scheme for session files'''
+
+        return session_file + '.bkp.' + str(time.time())
+
+    def backup_session(self, session_file=None):
+        '''Make a backup of the session file'''
+
+        if session_file is None:
+            session_file = config['session_file']
+
+        new_name = self.session_backup_filename(session_file)
+        self.save_session(new_name)
+
     def load_session(self, session_file=None):
         '''Load a saved session from file.'''
 
@@ -1247,9 +1262,14 @@ class UzblTabbed:
         for (index, (uri, title)) in enumerate(tabs):
             self.new_tab(uri=uri, title=title, switch=(curtab==index))
 
-        # A saved session has been loaded now delete it.
+        # A saved session has been loaded, now figure out what to do with the
+        # original session file.
         if delete_loaded and os.path.exists(session_file):
-            os.remove(session_file)
+            if config['backup_session']: #No need to call backup_session() here
+                new_name = self.session_backup_filename(session_file)
+                os.rename(session_file, new_name)
+            else:
+                os.remove(session_file)
 
 
     def quitrequest(self, *args):
