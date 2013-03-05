@@ -824,7 +824,8 @@ class UzblTabbed:
 
 
     def run_preset_command(self, cmd, *args):
-        if len(args) < 1 and cmd != "list":
+        commands_without_args = ['list', 'backup']
+        if len(args) < 1 and cmd not in commands_without_args:
             error("parse_command: invalid preset command")
 
         elif cmd == "save":
@@ -832,6 +833,9 @@ class UzblTabbed:
             #otherwise both files will have the same content at this point
             path = os.path.join(config['saved_sessions_dir'], args[0])
             self.save_session(path)
+
+        elif cmd == "backup":
+            self.backup_session()
 
         elif cmd == "load":
             path = os.path.join(config['saved_sessions_dir'], args[0])
