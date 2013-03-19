@@ -1656,7 +1656,7 @@ cmd_event (WebKitWebView *view, GArray *argv, GString *result)
 
     event_name = g_string_ascii_up (g_string_new (split[0]));
 
-    uzbl_events_send (0, event_name->str,
+    uzbl_events_send (USER_EVENT, event_name->str,
         TYPE_FORMATTEDSTR, split[1] ? split[1] : "",
         NULL);
 
