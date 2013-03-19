@@ -78,6 +78,11 @@ DECLARE_SETTER (gchar *, icon);
 DECLARE_GETSET (gchar *, window_role);
 DECLARE_GETSET (int, auto_resize_window);
 
+/* UI variables */
+DECLARE_GETSET (int, show_status);
+DECLARE_SETTER (int, status_top);
+DECLARE_SETTER (gchar *, status_background);
+
 static const UzblVariableEntry
 builtin_variable_table[] = {
     /* name                           entry                                                type/callback */
@@ -485,6 +490,68 @@ IMPLEMENT_SETTER (gchar *, window_role)
 
 GOBJECT_GETSET (int, auto_resize_window,
                 webkit_settings (), "auto-resize-window")
+
+/* UI variables */
+IMPLEMENT_GETTER (int, show_status)
+{
+    return gtk_widget_get_visible (uzbl.gui.status_bar);
+}
+
+IMPLEMENT_SETTER (int, show_status)
+{
+    gtk_widget_set_visible (uzbl.gui.status_bar, show_status);
+    update_title ();
+}
+
+IMPLEMENT_SETTER (int, status_top)
+{
+    if (!uzbl.gui.scrolled_win || !uzbl.gui.status_bar) {
+        return;
+    }
+
+    uzbl.behave.status_top = status_top;
+
+    g_object_ref (uzbl.gui.scrolled_win);
+    g_object_ref (uzbl.gui.status_bar);
+    gtk_container_remove (GTK_CONTAINER (uzbl.gui.vbox), uzbl.gui.scrolled_win);
+    gtk_container_remove (GTK_CONTAINER (uzbl.gui.vbox), uzbl.gui.status_bar);
+
+    if (uzbl.behave.status_top) {
+        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.status_bar,   FALSE, TRUE, 0);
+        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE,  TRUE, 0);
+    } else {
+        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE,  TRUE, 0);
+        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.status_bar,   FALSE, TRUE, 0);
+    }
+
+    g_object_unref (uzbl.gui.scrolled_win);
+    g_object_unref (uzbl.gui.status_bar);
+
+    if (!uzbl.state.plug_mode) {
+        gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
+    }
+}
+
+IMPLEMENT_SETTER (char *, status_background)
+{
+    /* Labels and hboxes do not draw their own background. Applying this on the
+     * vbox/main_window is ok as the statusbar is the only affected widget. If
+     * not, we could also use GtkEventBox. */
+    GtkWidget *widget = uzbl.gui.main_window ? uzbl.gui.main_window : GTK_WIDGET (uzbl.gui.plug);
+
+    g_free (uzbl.behave.status_background);
+    uzbl.behave.status_background = g_strdup (status_background);
+
+#if GTK_CHECK_VERSION (2, 91, 0)
+    GdkRGBA color;
+    gdk_rgba_parse (&color, uzbl.behave.status_background);
+    gtk_widget_override_background_color (widget, GTK_STATE_NORMAL, &color);
+#else
+    GdkColor color;
+    gdk_color_parse (uzbl.behave.status_background, &color);
+    gtk_widget_modify_bg (widget, GTK_STATE_NORMAL, &color);
+#endif
+}
 
 GObject *
 webkit_settings ()
@@ -1141,65 +1208,6 @@ set_proxy_url(const gchar *proxy_url) {
 
     if(soup_uri)
         soup_uri_free(soup_uri);
-}
-
-static void
-set_status_background(const gchar *background) {
-    /* labels and hboxes do not draw their own background. applying this
-     * on the vbox/main_window is ok as the statusbar is the only affected
-     * widget. (if not, we could also use GtkEventBox) */
-    GtkWidget* widget = uzbl.gui.main_window ? uzbl.gui.main_window : GTK_WIDGET (uzbl.gui.plug);
-
-    g_free(uzbl.behave.status_background);
-    uzbl.behave.status_background = g_strdup(background);
-
-#if GTK_CHECK_VERSION(2,91,0)
-    GdkRGBA color;
-    gdk_rgba_parse (&color, uzbl.behave.status_background);
-    gtk_widget_override_background_color (widget, GTK_STATE_NORMAL, &color);
-#else
-    GdkColor color;
-    gdk_color_parse (uzbl.behave.status_background, &color);
-    gtk_widget_modify_bg (widget, GTK_STATE_NORMAL, &color);
-#endif
-}
-
-void
-set_show_status(int show_status) {
-    gtk_widget_set_visible(uzbl.gui.status_bar, show_status);
-    update_title();
-}
-
-int
-get_show_status() {
-  return gtk_widget_get_visible(uzbl.gui.status_bar);
-}
-
-static void
-set_status_top(int status_top) {
-    if (!uzbl.gui.scrolled_win && !uzbl.gui.status_bar)
-        return;
-
-    uzbl.behave.status_top = status_top;
-
-    g_object_ref(uzbl.gui.scrolled_win);
-    g_object_ref(uzbl.gui.status_bar);
-    gtk_container_remove(GTK_CONTAINER(uzbl.gui.vbox), uzbl.gui.scrolled_win);
-    gtk_container_remove(GTK_CONTAINER(uzbl.gui.vbox), uzbl.gui.status_bar);
-
-    if(uzbl.behave.status_top) {
-        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.status_bar,   FALSE, TRUE, 0);
-        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE,  TRUE, 0);
-    } else {
-        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE,  TRUE, 0);
-        gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.status_bar,   FALSE, TRUE, 0);
-    }
-
-    g_object_unref(uzbl.gui.scrolled_win);
-    g_object_unref(uzbl.gui.status_bar);
-
-    if (!uzbl.state.plug_mode)
-        gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
 }
 
 static void
