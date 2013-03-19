@@ -9,7 +9,7 @@
 #include "uzbl-core.h"
 
 void
-uzbl_gui_init (gboolean plugmode);
+uzbl_gui_init ();
 void
 set_window_property (const gchar *prop, const gchar *value);
 gboolean /* FIXME: This should not be public here. */

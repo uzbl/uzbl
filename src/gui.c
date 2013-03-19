@@ -31,13 +31,13 @@ static void
 uzbl_plug_init (void);
 
 void
-uzbl_gui_init (gboolean plugmode)
+uzbl_gui_init ()
 {
     uzbl_status_bar_init ();
     uzbl_web_view_init ();
     uzbl_vbox_init ();
 
-    if (plugmode) {
+    if (uzbl.state.plug_mode) {
         uzbl_plug_init ();
     } else {
         uzbl_window_init ();

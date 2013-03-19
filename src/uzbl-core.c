@@ -460,7 +460,7 @@ initialize(int argc, char** argv) {
     /* GUI */
     gtk_init(&argc, &argv);
 
-    uzbl_gui_init (uzbl.state.plug_mode);
+    uzbl_gui_init ();
 }
 
 
