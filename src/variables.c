@@ -89,6 +89,9 @@ DECLARE_GETSET (gchar *, stylesheet_uri);
 DECLARE_GETSET (int, default_context_menu);
 #endif
 
+/* Printing variables */
+DECLARE_GETSET (int, print_backgrounds);
+
 static const UzblVariableEntry
 builtin_variable_table[] = {
     /* name                           entry                                                type/callback */
@@ -134,7 +137,7 @@ builtin_variable_table[] = {
                                       },
 
     /* Printing variables */
-    { "print_backgrounds",            UZBL_V_FUNC (print_bg,                               INT)},
+    { "print_backgrounds",            UZBL_V_FUNC (print_backgrounds,                      INT)},
 
     /* Network variables */
     { "proxy_url",                    UZBL_V_STRING (uzbl.net.proxy_url,                   set_proxy_url)},
@@ -567,6 +570,10 @@ GOBJECT_GETSET (gchar *, stylesheet_uri,
 GOBJECT_GETSET (int, default_context_menu,
                 webkit_settings (), "enable-default-context-menu")
 #endif
+
+/* Printing variables */
+GOBJECT_GETSET (int, print_backgrounds,
+                webkit_settings (), "print-backgrounds")
 
 GObject *
 webkit_settings ()
@@ -1142,9 +1149,6 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_tab_cycle,             "tab-key-cycles-throug
 
 /* Hacks */
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_site_workarounds,      "enable-site-specific-quirks",               int)
-
-/* Printing settings */
-EXPOSE_WEBKIT_VIEW_SETTINGS(print_bg,                     "print-backgrounds",                         int)
 
 #undef EXPOSE_WEBKIT_VIEW_SETTINGS
 
