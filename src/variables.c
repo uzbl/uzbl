@@ -1,5 +1,6 @@
 #include "variables.h"
 
+#include "io.h"
 #include "type.h"
 #include "uzbl-core.h"
 
@@ -49,6 +50,21 @@ typedef struct {
     const char *name;
     UzblVariable var;
 } UzblVariableEntry;
+
+#define DECLARE_GETTER(type, name) \
+    static type                    \
+    get_##name ()
+#define DECLARE_SETTER(type, name) \
+    static void                    \
+    set_##name (const type name)
+
+#define DECLARE_GETSET(type, name) \
+    DECLARE_GETTER (type, name);   \
+    DECLARE_SETTER (type, name)
+
+/* Communication variables */
+DECLARE_SETTER (gchar *, fifo_dir);
+DECLARE_SETTER (gchar *, socket_dir);
 
 static const UzblVariableEntry
 builtin_variable_table[] = {
@@ -280,6 +296,37 @@ uzbl_variables_init ()
             (gpointer)entry->name,
             (gpointer)&entry->var);
         ++entry;
+    }
+}
+
+#define IMPLEMENT_GETTER(type, name) \
+    type                             \
+    get_##name ()
+
+#define IMPLEMENT_SETTER(type, name) \
+    void                             \
+    set_##name (const type name)
+
+/* Communication variables */
+IMPLEMENT_SETTER (gchar *, fifo_dir)
+{
+    g_free (uzbl.behave.fifo_dir);
+
+    if (uzbl_io_init_fifo (fifo_dir)) {
+        uzbl.behave.fifo_dir = g_strdup (fifo_dir);
+    } else {
+        uzbl.behave.fifo_dir = NULL;
+    }
+}
+
+IMPLEMENT_SETTER (gchar *, socket_dir)
+{
+    g_free (uzbl.behave.socket_dir);
+
+    if (uzbl_io_init_socket (socket_dir)) {
+        uzbl.behave.socket_dir = g_strdup (socket_dir);
+    } else {
+        uzbl.behave.socket_dir = NULL;
     }
 }
 
@@ -1129,33 +1176,6 @@ get_current_encoding() {
     const gchar *encoding = webkit_web_view_get_encoding (uzbl.gui.web_view);
     return g_strdup(encoding);
 }
-
-static void
-set_fifo_dir(const gchar *fifo_dir) {
-    g_free(uzbl.behave.fifo_dir);
-
-    if (uzbl_io_init_fifo (fifo_dir))
-      uzbl.behave.fifo_dir = g_strdup(fifo_dir);
-    else
-      uzbl.behave.fifo_dir = NULL;
-}
-
-static void
-set_socket_dir(const gchar *socket_dir) {
-    g_free(uzbl.behave.socket_dir);
-
-    if (uzbl_io_init_socket (socket_dir))
-      uzbl.behave.socket_dir = g_strdup(socket_dir);
-    else
-      uzbl.behave.socket_dir = NULL;
-}
-
-#ifdef USE_WEBKIT2
-static void
-set_inject_text(const gchar *text) {
-    webkit_web_view_load_plain_text (uzbl.gui.web_view, html, NULL);
-}
-#endif
 
 static void
 set_inject_html(const gchar *html) {
