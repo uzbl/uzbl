@@ -5,7 +5,24 @@
 #include "io.h"
 #include "util.h"
 
-#include <stdlib.h>
+/* A really generic function pointer. */
+typedef void (*UzblFunction)(void);
+
+typedef union {
+    int                *i;
+    float              *f;
+    gchar             **s;
+    unsigned long long *ull;
+} UzblValue;
+
+typedef struct {
+    UzblType type;
+    UzblValue value;
+    int writeable;
+
+    UzblFunction get;
+    UzblFunction set;
+} UzblVariable;
 
 uzbl_cmdprop *
 get_var_c(const gchar *name) {
