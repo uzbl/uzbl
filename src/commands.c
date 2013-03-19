@@ -146,7 +146,7 @@ cmd_print (WebKitWebView *view, GArray *argv, GString *result);
 static void
 cmd_event (WebKitWebView *view, GArray *argv, GString *result);
 
-static const UzblCommandInfo
+static UzblCommandInfo
 builtin_command_table[] =
 {   /* name                             function                      split */
     /* Navigation commands */
