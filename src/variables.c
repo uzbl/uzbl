@@ -66,6 +66,9 @@ typedef struct {
 DECLARE_SETTER (gchar *, fifo_dir);
 DECLARE_SETTER (gchar *, socket_dir);
 
+/* Handler variables */
+DECLARE_GETSET (int, enable_builtin_auth);
+
 static const UzblVariableEntry
 builtin_variable_table[] = {
     /* name                           entry                                                type/callback */
@@ -327,6 +330,32 @@ IMPLEMENT_SETTER (gchar *, socket_dir)
         uzbl.behave.socket_dir = g_strdup (socket_dir);
     } else {
         uzbl.behave.socket_dir = NULL;
+    }
+}
+
+/* Handler variables */
+IMPLEMENT_GETTER (int, enable_builtin_auth)
+{
+    SoupSessionFeature *auth = soup_session_get_feature (
+        uzbl.net.soup_session, (GType)WEBKIT_TYPE_SOUP_AUTH_DIALOG);
+
+    return (auth != NULL);
+}
+
+IMPLEMENT_SETTER (int, enable_builtin_auth)
+{
+    SoupSessionFeature *auth = soup_session_get_feature (
+        uzbl.net.soup_session, (GType)WEBKIT_TYPE_SOUP_AUTH_DIALOG);
+
+    if (enable_builtin_auth > 0) {
+        if (!auth) {
+            soup_session_add_feature_by_type (
+                uzbl.net.soup_session, (GType)WEBKIT_TYPE_SOUP_AUTH_DIALOG);
+        }
+    } else {
+        if (auth) {
+            soup_session_remove_feature (uzbl.net.soup_session, auth);
+        }
     }
 }
 
@@ -985,44 +1014,6 @@ set_proxy_url(const gchar *proxy_url) {
 
     if(soup_uri)
         soup_uri_free(soup_uri);
-}
-
-/**
- * Check if the webkit auth dialog is enabled for the soup session
- */
-int
-get_enable_builtin_auth () {
-    SoupSessionFeature *auth = soup_session_get_feature (
-        uzbl.net.soup_session,
-        (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG
-    );
-
-    return auth != NULL;
-}
-
-/**
- * Enable/Disable the webkit auth dialog for the soup session
- */
-static void
-set_enable_builtin_auth (int enabled) {
-    SoupSessionFeature *auth = soup_session_get_feature (
-        uzbl.net.soup_session,
-        (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG
-    );
-
-    if (enabled > 0) {
-        if (auth == NULL) {
-            soup_session_add_feature_by_type (
-                uzbl.net.soup_session,
-                (GType) WEBKIT_TYPE_SOUP_AUTH_DIALOG
-            );
-        }
-    } else {
-        if (auth != NULL) {
-            soup_session_remove_feature (uzbl.net.soup_session, auth);
-        }
-    }
-
 }
 
 static void
