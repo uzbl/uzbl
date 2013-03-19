@@ -858,7 +858,7 @@ static void
 set_fifo_dir(const gchar *fifo_dir) {
     g_free(uzbl.behave.fifo_dir);
 
-    if(init_fifo(fifo_dir))
+    if (uzbl_io_init_fifo (fifo_dir))
       uzbl.behave.fifo_dir = g_strdup(fifo_dir);
     else
       uzbl.behave.fifo_dir = NULL;
@@ -868,7 +868,7 @@ static void
 set_socket_dir(const gchar *socket_dir) {
     g_free(uzbl.behave.socket_dir);
 
-    if(init_socket(socket_dir))
+    if (uzbl_io_init_socket (socket_dir))
       uzbl.behave.socket_dir = g_strdup(socket_dir);
     else
       uzbl.behave.socket_dir = NULL;

@@ -351,7 +351,7 @@ settings_init () {
 
     if (g_strcmp0(s->config_file, "-") == 0) {
         s->config_file = NULL;
-        create_stdin();
+        uzbl_io_init_stdin ();
     }
 
     else if (!s->config_file) {
@@ -366,7 +366,7 @@ settings_init () {
         printf ("No configuration file loaded.\n");
 
     if (s->connect_socket_names)
-        init_connect_socket();
+        uzbl_io_init_connect_socket ();
 }
 
 /* Set up gtk, gobject, variable defaults and other things that tests and other

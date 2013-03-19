@@ -216,10 +216,6 @@ void        run_command_file(const gchar *path);
 void        initialize(int argc, char *argv[]);
 void        settings_init();
 
-/* Network functions */
-void        init_connect_socket();
-gboolean    remove_socket_from_array(GIOChannel *chan);
-
 /* Window */
 void        retrieve_geometry();
 
