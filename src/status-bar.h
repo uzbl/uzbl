@@ -1,5 +1,5 @@
-#ifndef __UZBL_STATUS_BAR_H__
-#define __UZBL_STATUS_BAR_H__
+#ifndef UZBL_STATUS_BAR_H
+#define UZBL_STATUS_BAR_H
 
 #include <gtk/gtk.h>
 
@@ -24,13 +24,14 @@ struct _UzblStatusBarClass {
     GtkBoxClass parent_class;
 };
 
-GType       uzbl_status_bar_get_type (void) G_GNUC_CONST;
-GtkWidget * uzbl_status_bar_new      ();
+GType
+uzbl_status_bar_get_type (void) G_GNUC_CONST;
+GtkWidget *
+uzbl_status_bar_new ();
 
 void
-uzbl_status_bar_update_left(GtkWidget *widget, const gchar *format);
-
+uzbl_status_bar_update_left (GtkWidget *widget, const gchar *format);
 void
-uzbl_status_bar_update_right(GtkWidget *widget, const gchar *format);
+uzbl_status_bar_update_right (GtkWidget *widget, const gchar *format);
 
 #endif
