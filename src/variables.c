@@ -2,6 +2,7 @@
 
 #include "io.h"
 #include "type.h"
+#include "util.h"
 #include "uzbl-core.h"
 
 /* A really generic function pointer. */
@@ -68,6 +69,14 @@ DECLARE_SETTER (gchar *, socket_dir);
 
 /* Handler variables */
 DECLARE_GETSET (int, enable_builtin_auth);
+
+/* Window variables */
+/* TODO: This should not be public.
+DECLARE_SETTER (gchar *, geometry);
+*/
+DECLARE_SETTER (gchar *, icon);
+DECLARE_GETSET (gchar *, window_role);
+DECLARE_GETSET (int, auto_resize_window);
 
 static const UzblVariableEntry
 builtin_variable_table[] = {
@@ -310,6 +319,28 @@ uzbl_variables_init ()
     void                             \
     set_##name (const type name)
 
+#define GOBJECT_GETSET(type, name, obj, prop) \
+    IMPLEMENT_GETTER (type, name)             \
+    {                                         \
+        type name;                            \
+                                              \
+        g_object_get (G_OBJECT (obj),         \
+            prop, &name,                      \
+            NULL);                            \
+                                              \
+        return name;                          \
+    }                                         \
+                                              \
+    IMPLEMENT_SETTER (type, name)             \
+    {                                         \
+        g_object_set (G_OBJECT (obj),         \
+            prop, name,                       \
+            NULL);                            \
+    }
+
+static GObject *
+webkit_settings ();
+
 /* Communication variables */
 IMPLEMENT_SETTER (gchar *, fifo_dir)
 {
@@ -357,6 +388,108 @@ IMPLEMENT_SETTER (int, enable_builtin_auth)
             soup_session_remove_feature (uzbl.net.soup_session, auth);
         }
     }
+}
+
+/* Window variables */
+IMPLEMENT_GETTER (gchar *, geometry)
+{
+    int w;
+    int h;
+    int x;
+    int y;
+    GString *buf = g_string_new ("");
+
+    if (uzbl.gui.main_window) {
+        gtk_window_get_size (GTK_WINDOW (uzbl.gui.main_window), &w, &h);
+        gtk_window_get_position (GTK_WINDOW (uzbl.gui.main_window), &x, &y);
+
+        g_string_printf (buf, "%dx%d+%d+%d", w, h, x, y);
+    }
+
+    return g_string_free (buf, FALSE);
+}
+
+IMPLEMENT_SETTER (gchar *, geometry)
+{
+    if (!geometry) {
+        return;
+    }
+
+    if (geometry[0] == 'm') { /* m/maximize/maximized */
+        gtk_window_maximize (GTK_WINDOW (uzbl.gui.main_window));
+    } else {
+        int x = 0;
+        int y = 0;
+        unsigned w = 0;
+        unsigned h=0;
+
+        /* We used to use gtk_window_parse_geometry() but that didn't work how
+         * it was supposed to. */
+        int ret = XParseGeometry (uzbl.gui.geometry, &x, &y, &w, &h);
+
+        if (ret & XValue) {
+            gtk_window_move (GTK_WINDOW (uzbl.gui.main_window), x, y);
+        }
+
+        if (ret & WidthValue) {
+            gtk_window_resize (GTK_WINDOW (uzbl.gui.main_window), w, h);
+        }
+    }
+
+    /* Get the actual geometry (which might be different from what was
+     * specified) and store it (since the GEOMETRY_CHANGED event needs to know
+     * what it changed from) */
+    g_free (uzbl.gui.geometry);
+    uzbl.gui.geometry = get_geometry ();
+}
+
+IMPLEMENT_SETTER (gchar *, icon)
+{
+    if (!uzbl.gui.main_window) {
+        return;
+    }
+
+    /* Clear icon_name. */
+    g_free (uzbl.gui.icon_name);
+    uzbl.gui.icon_name = NULL;
+
+    if (file_exists (icon)) {
+        g_free (uzbl.gui.icon);
+        uzbl.gui.icon = g_strdup (icon);
+
+        gtk_window_set_icon_from_file (GTK_WINDOW (uzbl.gui.main_window), uzbl.gui.icon, NULL);
+    } else {
+        g_printerr ("Icon \"%s\" not found. ignoring.\n", icon);
+    }
+}
+
+IMPLEMENT_GETTER (gchar *, window_role)
+{
+    if (!uzbl.gui.main_window) {
+        return NULL;
+    }
+
+    const gchar* role = gtk_window_get_role (GTK_WINDOW (uzbl.gui.main_window));
+
+    return g_strdup (role);
+}
+
+IMPLEMENT_SETTER (gchar *, window_role)
+{
+    if (!uzbl.gui.main_window) {
+        return;
+    }
+
+    gtk_window_set_role (GTK_WINDOW (uzbl.gui.main_window), window_role);
+}
+
+GOBJECT_GETSET (int, auto_resize_window,
+                webkit_settings (), "auto-resize-window")
+
+GObject *
+webkit_settings ()
+{
+    return G_OBJECT (webkit_web_view_get_settings (uzbl.gui.web_view));
 }
 
 uzbl_cmdprop *
@@ -647,11 +780,6 @@ cookie_jar() {
     return G_OBJECT(uzbl.net.soup_cookie_jar);
 }
 
-static GObject *
-view_settings() {
-    return G_OBJECT(webkit_web_view_get_settings(uzbl.gui.web_view));
-}
-
 static gchar *
 make_uri_from_user_input(const gchar *uri) {
     gchar *result = NULL;
@@ -885,7 +1013,6 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(run_insecure_content,         "enable-running-of-ins
 /* Display settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(zoom_step,                    "zoom-step",                                 float)
 EXPOSE_WEBKIT_VIEW_SETTINGS(caret_browsing,               "enable-caret-browsing",                     int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(auto_resize_window,           "auto-resize-window",                        int)
 #if WEBKIT_CHECK_VERSION (1, 3, 5)
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_frame_flattening,      "enable-frame-flattening",                   int)
 #endif
@@ -1035,79 +1162,6 @@ set_status_background(const gchar *background) {
     gdk_color_parse (uzbl.behave.status_background, &color);
     gtk_widget_modify_bg (widget, GTK_STATE_NORMAL, &color);
 #endif
-}
-
-static void
-set_icon(const gchar *icon) {
-    if(file_exists(icon) && uzbl.gui.main_window) {
-        g_free(uzbl.gui.icon);
-        uzbl.gui.icon = g_strdup(icon);
-
-        gtk_window_set_icon_from_file (GTK_WINDOW (uzbl.gui.main_window), uzbl.gui.icon, NULL);
-    } else {
-        g_printerr ("Icon \"%s\" not found. ignoring.\n", icon);
-    }
-}
-
-static void
-set_window_role(const gchar *role) {
-    if (!uzbl.gui.main_window)
-        return;
-
-    gtk_window_set_role(GTK_WINDOW (uzbl.gui.main_window), role);
-}
-
-static gchar *
-get_window_role() {
-    if (!uzbl.gui.main_window)
-        return NULL;
-
-    const gchar* role = gtk_window_get_role(GTK_WINDOW (uzbl.gui.main_window));
-    return g_strdup(role);
-}
-
-gchar *
-get_geometry() {
-    int w, h, x, y;
-    GString *buf = g_string_new("");
-
-    if(uzbl.gui.main_window) {
-      gtk_window_get_size(GTK_WINDOW(uzbl.gui.main_window), &w, &h);
-      gtk_window_get_position(GTK_WINDOW(uzbl.gui.main_window), &x, &y);
-
-      g_string_printf(buf, "%dx%d+%d+%d", w, h, x, y);
-    }
-
-    return g_string_free(buf, FALSE);
-}
-
-void
-set_geometry(const gchar *geometry) {
-    if(!geometry)
-        return;
-
-    if(geometry[0] == 'm') { /* m/maximize/maximized */
-        gtk_window_maximize((GtkWindow *)(uzbl.gui.main_window));
-    } else {
-        int x=0, y=0;
-        unsigned int w=0, h=0;
-
-        /* we used to use gtk_window_parse_geometry() but that didn't work
-         * how it was supposed to. */
-        int ret = XParseGeometry(uzbl.gui.geometry, &x, &y, &w, &h);
-
-        if(ret & XValue)
-            gtk_window_move((GtkWindow *)uzbl.gui.main_window, x, y);
-
-        if(ret & WidthValue)
-            gtk_window_resize((GtkWindow *)uzbl.gui.main_window, w, h);
-    }
-
-    /* get the actual geometry (which might be different from what was
-     * specified) and store it (since the GEOMETRY_CHANGED event needs to
-     * know what it changed from) */
-    g_free(uzbl.gui.geometry);
-    uzbl.gui.geometry = get_geometry();
 }
 
 void
