@@ -83,6 +83,12 @@ DECLARE_GETSET (int, show_status);
 DECLARE_SETTER (int, status_top);
 DECLARE_SETTER (gchar *, status_background);
 
+/* Customization */
+DECLARE_GETSET (gchar *, stylesheet_uri);
+#if !WEBKIT_CHECK_VERSION (1, 9, 0)
+DECLARE_GETSET (int, default_context_menu);
+#endif
+
 static const UzblVariableEntry
 builtin_variable_table[] = {
     /* name                           entry                                                type/callback */
@@ -552,6 +558,15 @@ IMPLEMENT_SETTER (char *, status_background)
     gtk_widget_modify_bg (widget, GTK_STATE_NORMAL, &color);
 #endif
 }
+
+/* Customization */
+GOBJECT_GETSET (gchar *, stylesheet_uri,
+                webkit_settings (), "user-stylesheet-uri")
+
+#if !WEBKIT_CHECK_VERSION (1, 9, 0)
+GOBJECT_GETSET (int, default_context_menu,
+                webkit_settings (), "enable-default-context-menu")
+#endif
 
 GObject *
 webkit_settings ()
@@ -1124,12 +1139,6 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(resizable_text_areas,         "resizable-text-areas"
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_spatial_navigation,    "enable-spatial-navigation",                 int)
 EXPOSE_WEBKIT_VIEW_SETTINGS(editing_behavior,             "editing-behavior",                          int)
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_tab_cycle,             "tab-key-cycles-through-elements",           int)
-
-/* Customization */
-EXPOSE_WEBKIT_VIEW_SETTINGS(stylesheet_uri,               "user-stylesheet-uri",                       gchar *)
-#if !WEBKIT_CHECK_VERSION (1, 9, 0)
-EXPOSE_WEBKIT_VIEW_SETTINGS(default_context_menu,         "enable-default-context-menu",               int)
-#endif
 
 /* Hacks */
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_site_workarounds,      "enable-site-specific-quirks",               int)
