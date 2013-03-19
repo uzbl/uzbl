@@ -268,7 +268,7 @@ uzbl_command_send_builtin_event ()
         g_string_append_c (command_list, ' ');
     }
 
-    send_event (BUILTINS, NULL,
+    uzbl_events_send (BUILTINS, NULL,
         TYPE_STR, command_list->str,
         NULL);
 
@@ -345,7 +345,7 @@ parse_command_parts(const gchar *line, GArray *a) {
     c = g_hash_table_lookup(uzbl.behave.commands, tokens[0]);
 
     if(!c) {
-        send_event(COMMAND_ERROR, NULL,
+        uzbl_events_send (COMMAND_ERROR, NULL,
             TYPE_STR, exp_line,
             NULL);
         g_free(exp_line);
@@ -370,7 +370,7 @@ run_parsed_command(const UzblCommandInfo *c, GArray *a, GString *result) {
     if(strcmp("set", c->name)   &&
        strcmp("event", c->name) &&
        strcmp("request", c->name)) {
-        Event *event = format_event (COMMAND_EXECUTED, NULL,
+        UzblEvent *event = uzbl_events_format (COMMAND_EXECUTED, NULL,
             TYPE_NAME, c->name,
             TYPE_STR_ARRAY, a,
             NULL);
@@ -378,8 +378,8 @@ run_parsed_command(const UzblCommandInfo *c, GArray *a, GString *result) {
         /* might be destructive on array a */
         c->function(uzbl.gui.web_view, a, result);
 
-        send_formatted_event (event);
-        event_free (event);
+        uzbl_events_send_formatted (event);
+        uzbl_events_free (event);
     }
     else
         c->function(uzbl.gui.web_view, a, result);
@@ -1408,7 +1408,7 @@ cmd_include (WebKitWebView *view, GArray *argv, GString *result)
 
     if ((path = find_existing_file (req_path))) {
         run_command_file (path);
-        send_event (FILE_INCLUDED, NULL,
+        uzbl_events_send (FILE_INCLUDED, NULL,
             TYPE_STR, path,
             NULL);
         g_free (path);
@@ -1656,7 +1656,7 @@ cmd_event (WebKitWebView *view, GArray *argv, GString *result)
 
     event_name = g_string_ascii_up (g_string_new (split[0]));
 
-    send_event (0, event_name->str,
+    uzbl_events_send (0, event_name->str,
         TYPE_FORMATTEDSTR, split[1] ? split[1] : "",
         NULL);
 

@@ -247,7 +247,9 @@ expand(const char* s, guint recurse) {
 void
 clean_up(void) {
     if (uzbl.info.pid_str) {
-        send_event (INSTANCE_EXIT, NULL, TYPE_INT, uzbl.info.pid, NULL);
+        uzbl_events_send (INSTANCE_EXIT, NULL,
+            TYPE_INT, uzbl.info.pid,
+            NULL);
         g_free(uzbl.info.pid_str);
         uzbl.info.pid_str = NULL;
     }
@@ -280,30 +282,6 @@ clean_up(void) {
     }
 }
 
-/* --- SIGNALS --- */
-sigfunc*
-setup_signal(int signr, sigfunc *shandler) {
-    struct sigaction nh, oh;
-
-    nh.sa_handler = shandler;
-    sigemptyset(&nh.sa_mask);
-    nh.sa_flags = 0;
-
-    if(sigaction(signr, &nh, &oh) < 0)
-        return SIG_ERR;
-
-    return NULL;
-}
-
-static void
-empty_event_buffer(int s) {
-    (void) s;
-    if(uzbl.state.event_buffer) {
-        g_ptr_array_free(uzbl.state.event_buffer, TRUE);
-        uzbl.state.event_buffer = NULL;
-    }
-}
-
 /* -- CORE FUNCTIONS -- */
 
 /* just a wrapper so parse_cmd_line can be used with for_each_line_in_file */
@@ -317,7 +295,7 @@ void
 run_command_file (const gchar *path) {
     if(!for_each_line_in_file(path, parse_cmd_line_cb, NULL)) {
         gchar *tmp = g_strdup_printf("File %s can not be read.", path);
-        send_event(COMMAND_ERROR, NULL, TYPE_STR, tmp, NULL);
+        uzbl_events_send (COMMAND_ERROR, NULL, TYPE_STR, tmp, NULL);
         g_free(tmp);
     }
 }
@@ -441,11 +419,7 @@ initialize(int argc, char** argv) {
         g_thread_init(NULL);
 #endif
 
-    /* TODO: move the handler setup to event_buffer_timeout and disarm the
-     * handler in empty_event_buffer? */
-    if (setup_signal(SIGALRM, empty_event_buffer) == SIG_ERR)
-        fprintf(stderr, "uzbl: error hooking %d: %s\n", SIGALRM, strerror(errno));
-    event_buffer_timeout(10);
+    uzbl_events_init ();
 
     /* HTTP client */
     uzbl.net.soup_session = webkit_get_default_session();
@@ -491,10 +465,10 @@ main (int argc, char* argv[]) {
     if(!uzbl.state.instance_name)
         uzbl.state.instance_name = uzbl.info.pid_str;
 
-    send_event(INSTANCE_START, NULL, TYPE_INT, uzbl.info.pid, NULL);
+    uzbl_events_send (INSTANCE_START, NULL, TYPE_INT, uzbl.info.pid, NULL);
 
     if (uzbl.state.plug_mode) {
-        send_event(PLUG_CREATED, NULL, TYPE_INT, gtk_plug_get_id (uzbl.gui.plug), NULL);
+        uzbl_events_send (PLUG_CREATED, NULL, TYPE_INT, gtk_plug_get_id (uzbl.gui.plug), NULL);
     }
 
     /* Generate an event with a list of built in commands */

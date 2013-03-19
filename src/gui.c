@@ -276,7 +276,7 @@ key_press_cb (GtkWidget *widget, GdkEventKey *event, gpointer data)
     UZBL_UNUSED (data);
 
     if (event->type == GDK_KEY_PRESS) {
-        key_to_event (event->keyval, event->state, event->is_modifier, GDK_KEY_PRESS);
+        uzbl_events_keypress (event->keyval, event->state, event->is_modifier, GDK_KEY_PRESS);
     }
 
     return (uzbl.behave.forward_keys ? FALSE : TRUE);
@@ -289,7 +289,7 @@ key_release_cb (GtkWidget *widget, GdkEventKey *event, gpointer data)
     UZBL_UNUSED (data);
 
     if (event->type == GDK_KEY_RELEASE) {
-        key_to_event (event->keyval, event->state, event->is_modifier, GDK_KEY_RELEASE);
+        uzbl_events_keypress (event->keyval, event->state, event->is_modifier, GDK_KEY_RELEASE);
     }
 
     return (uzbl.behave.forward_keys ? FALSE : TRUE);
@@ -331,11 +331,11 @@ button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
         /* left click */
         if (event->button == 1) {
             if (is_editable) {
-                send_event (FORM_ACTIVE, NULL,
+                uzbl_events_send (FORM_ACTIVE, NULL,
                     TYPE_NAME, "button1",
                     NULL);
             } else if (is_document) {
-                send_event (ROOT_ACTIVE, NULL,
+                uzbl_events_send (ROOT_ACTIVE, NULL,
                     TYPE_NAME, "button1",
                     NULL);
             } else {
@@ -367,7 +367,7 @@ button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
     }
 
     if (sendev) {
-        button_to_event (event->button, event->state, event->type);
+        uzbl_events_button (event->button, event->state, event->type);
     }
 
     return propagate;
@@ -400,7 +400,7 @@ button_release_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
         }
 
         if (sendev) {
-            button_to_event (event->button, event->state, GDK_BUTTON_RELEASE);
+            uzbl_events_button (event->button, event->state, GDK_BUTTON_RELEASE);
         }
     }
 
@@ -443,14 +443,14 @@ link_hover_cb (WebKitWebView *view, const gchar *title, const gchar *link, gpoin
     }
 
     if (uzbl.state.last_selected_url && g_strcmp0 (link, uzbl.state.last_selected_url)) {
-        send_event (LINK_UNHOVER, NULL,
+        uzbl_events_send (LINK_UNHOVER, NULL,
             TYPE_STR, uzbl.state.last_selected_url,
             NULL);
     }
 
     if (link) {
         uzbl.state.selected_url = g_strdup (link);
-        send_event (LINK_HOVER, NULL,
+        uzbl_events_send (LINK_HOVER, NULL,
             TYPE_STR, uzbl.state.selected_url,
             TYPE_STR, title,
             NULL);
@@ -476,7 +476,7 @@ title_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
 
     update_title ();
 
-    send_event (TITLE_CHANGED, NULL,
+    uzbl_events_send (TITLE_CHANGED, NULL,
         TYPE_STR, uzbl.gui.main_title,
         NULL);
     /* TODO: Collect all environment settings into one place. */
@@ -491,7 +491,7 @@ progress_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
 
     int progress = 100 * webkit_web_view_get_progress (view);
 
-    send_event (LOAD_PROGRESS, NULL,
+    uzbl_events_send (LOAD_PROGRESS, NULL,
         TYPE_INT, progress,
         NULL);
 }
@@ -508,20 +508,20 @@ load_status_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data
 
     switch (status) {
         case WEBKIT_LOAD_PROVISIONAL:
-            send_event (LOAD_START, NULL,
+            uzbl_events_send (LOAD_START, NULL,
                 TYPE_STR, uzbl.state.uri ? uzbl.state.uri : "",
                 NULL);
             break;
         case WEBKIT_LOAD_COMMITTED:
         {
             WebKitWebFrame *frame = webkit_web_view_get_main_frame (view);
-            send_event (LOAD_COMMIT, NULL,
+            uzbl_events_send (LOAD_COMMIT, NULL,
                 TYPE_STR, webkit_web_frame_get_uri (frame),
                 NULL);
             break;
         }
         case WEBKIT_LOAD_FINISHED:
-            send_event (LOAD_FINISH, NULL,
+            uzbl_events_send (LOAD_FINISH, NULL,
                 TYPE_STR, uzbl.state.uri,
                 NULL);
             break;
@@ -560,7 +560,7 @@ load_error_cb (WebKitWebView *view, WebKitWebFrame *frame, gchar *uri, gpointer 
 
     GError *err = web_err;
 
-    send_event (LOAD_ERROR, NULL,
+    uzbl_events_send (LOAD_ERROR, NULL,
         TYPE_STR, uri,
         TYPE_INT, err->code,
         TYPE_STR, err->message,
@@ -608,7 +608,7 @@ dom_focus_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data
     WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
     gchar *name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
 
-    send_event (FOCUS_ELEMENT, NULL,
+    uzbl_events_send (FOCUS_ELEMENT, NULL,
         TYPE_STR, name,
         NULL);
 }
@@ -622,7 +622,7 @@ dom_blur_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data)
     WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
     gchar *name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
 
-    send_event (BLUR_ELEMENT, NULL,
+    uzbl_events_send (BLUR_ELEMENT, NULL,
         TYPE_STR, name,
         NULL);
 }
@@ -695,7 +695,7 @@ new_window_cb (WebKitWebView *view, WebKitWebFrame *frame,
 
     /* The create_web_view_cb is also called for _blank targets. */
     if (!g_strcmp0 (target_frame, "_blank")) {
-        send_event (NEW_WINDOW, NULL,
+        uzbl_events_send (NEW_WINDOW, NULL,
             TYPE_STR, uri,
             NULL);
     } else {
@@ -853,7 +853,7 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
         g_free (rel_path);
     }
 
-    send_event (DOWNLOAD_STARTED, NULL,
+    uzbl_events_send (DOWNLOAD_STARTED, NULL,
         TYPE_STR, destination_path,
         NULL);
 
@@ -879,7 +879,7 @@ download_progress_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer
     const gchar *dest_uri = webkit_download_get_destination_uri (download);
     const gchar *dest_path = dest_uri + strlen ("file://");
 
-    send_event (DOWNLOAD_PROGRESS, NULL,
+    uzbl_events_send (DOWNLOAD_PROGRESS, NULL,
         TYPE_STR, dest_path,
         TYPE_FLOAT, progress,
         NULL);
@@ -906,7 +906,7 @@ download_status_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer d
         {
             const gchar *dest_uri = webkit_download_get_destination_uri (download);
             const gchar *dest_path = dest_uri + strlen ("file://");
-            send_event (DOWNLOAD_COMPLETE, NULL,
+            uzbl_events_send (DOWNLOAD_COMPLETE, NULL,
                 TYPE_STR, dest_path,
                 NULL);
             break;
@@ -934,7 +934,7 @@ request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResour
         soup_message_set_first_party (message, soup_uri);
     }
 
-    send_event (REQUEST_STARTING, NULL,
+    uzbl_events_send (REQUEST_STARTING, NULL,
         TYPE_STR, uri,
         NULL);
 
@@ -999,7 +999,7 @@ create_web_view_js_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data
     if (strprefix (uri, js_protocol) == 0) {
         eval_js (uzbl.gui.web_view, (gchar *)uri + strlen (js_protocol), NULL, js_protocol);
     } else {
-        send_event (NEW_WINDOW, NULL,
+        uzbl_events_send (NEW_WINDOW, NULL,
             TYPE_STR, uri,
             NULL);
     }
@@ -1013,7 +1013,7 @@ close_web_view_cb (WebKitWebView *view, gpointer data)
     UZBL_UNUSED (view);
     UZBL_UNUSED (data);
 
-    send_event (CLOSE_WINDOW, NULL,
+    uzbl_events_send (CLOSE_WINDOW, NULL,
         NULL);
 }
 
@@ -1024,7 +1024,7 @@ focus_cb (GtkWidget *widget, GdkEventFocus *event, gpointer data)
     UZBL_UNUSED (event);
     UZBL_UNUSED (data);
 
-    send_event (event->in ? FOCUS_GAINED : FOCUS_LOST, NULL,
+    uzbl_events_send (event->in ? FOCUS_GAINED : FOCUS_LOST, NULL,
         NULL);
 
     return FALSE;
@@ -1198,7 +1198,7 @@ send_scroll_event (int type, GtkAdjustment *adjust)
     gdouble max = gtk_adjustment_get_upper (adjust);
     gdouble page = gtk_adjustment_get_page_size (adjust);
 
-    send_event (type, NULL,
+    uzbl_events_send (type, NULL,
         TYPE_FLOAT, value,
         TYPE_FLOAT, min,
         TYPE_FLOAT, max,
@@ -1229,7 +1229,7 @@ configure_event_cb (GtkWidget *widget, GdkEventConfigure *event, gpointer data)
     gchar *current_geo = get_geometry ();
 
     if (!last_geo || g_strcmp0 (last_geo, current_geo)) {
-        send_event (GEOMETRY_CHANGED, NULL,
+        uzbl_events_send (GEOMETRY_CHANGED, NULL,
             TYPE_STR, current_geo,
             NULL);
     }

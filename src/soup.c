@@ -93,7 +93,7 @@ handle_request_queued (SoupSession *session,
 {
     (void) session; (void) user_data;
 
-    send_event (
+    uzbl_events_send (
         REQUEST_QUEUED, NULL,
         TYPE_STR, soup_uri_to_string (soup_message_get_uri (msg), FALSE),
         NULL
@@ -107,7 +107,7 @@ handle_request_started (SoupSession *session,
 {
     (void) session; (void) user_data;
 
-    send_event (
+    uzbl_events_send (
         REQUEST_STARTING, NULL,
         TYPE_STR, soup_uri_to_string (soup_message_get_uri (msg), FALSE),
         NULL
@@ -124,7 +124,7 @@ handle_request_finished (SoupMessage *msg, gpointer user_data)
 {
     (void) user_data;
 
-    send_event (
+    uzbl_events_send (
         REQUEST_FINISHED, NULL,
         TYPE_STR, soup_uri_to_string (soup_message_get_uri (msg), FALSE),
         NULL
@@ -151,7 +151,7 @@ handle_authentication (SoupSession *session,
     pending_auth_add_message (pending, msg);
     soup_session_pause_message (session, msg);
 
-    send_event (
+    uzbl_events_send (
         AUTHENTICATE, NULL,
         TYPE_STR, authinfo,
         TYPE_STR, soup_auth_get_host (auth),

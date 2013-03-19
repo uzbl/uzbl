@@ -201,15 +201,9 @@ typedef struct {
 extern UzblCore uzbl; /* Main Uzbl object */
 
 
-typedef void sigfunc(int);
-
 /* Functions */
 void        clean_up(void);
 void        update_title(void);
-
-/* Signal management functions */
-void        catch_sigterm(int s);
-sigfunc*    setup_signal(int signe, sigfunc *shandler);
 
 /* Configuration variables */
 gboolean    valid_name(const gchar* name);

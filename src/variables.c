@@ -19,7 +19,7 @@ send_set_var_event(const char *name, const uzbl_cmdprop *c) {
     case TYPE_STR:
     {
         gchar *v = get_var_value_string_c(c);
-        send_event (VARIABLE_SET, NULL,
+        uzbl_events_send (VARIABLE_SET, NULL,
             TYPE_NAME, name,
             TYPE_NAME, "str",
             TYPE_STR, v,
@@ -28,7 +28,7 @@ send_set_var_event(const char *name, const uzbl_cmdprop *c) {
         break;
     }
     case TYPE_INT:
-        send_event (VARIABLE_SET, NULL,
+        uzbl_events_send (VARIABLE_SET, NULL,
             TYPE_NAME, name,
             TYPE_NAME, "int",
             TYPE_INT, get_var_value_int_c(c),
@@ -42,7 +42,7 @@ send_set_var_event(const char *name, const uzbl_cmdprop *c) {
             NULL);
         break;
     case TYPE_FLOAT:
-        send_event (VARIABLE_SET, NULL,
+        uzbl_events_send (VARIABLE_SET, NULL,
             TYPE_NAME, name,
             TYPE_NAME, "float",
             TYPE_FLOAT, get_var_value_float_c(c),
