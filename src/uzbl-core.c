@@ -501,7 +501,7 @@ main (int argc, char* argv[]) {
     update_title();
 
     /* WebInspector */
-    set_up_inspector();
+    uzbl_inspector_init ();
 
     /* Options overriding */
     if (verbose_override > uzbl.state.verbose)
