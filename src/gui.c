@@ -53,7 +53,7 @@ set_window_property (const gchar *prop, const gchar *value)
             gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)),
             gdk_atom_intern_static_string (prop),
             gdk_atom_intern_static_string ("STRING"),
-            CHAR_BIT * sizeof(value[0]),
+            CHAR_BIT * sizeof (value[0]),
             GDK_PROP_MODE_REPLACE,
             (const guchar *)value,
             strlen (value));

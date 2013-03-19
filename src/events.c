@@ -80,7 +80,7 @@ int
 set_event_timeout (guint sec)
 {
     struct itimerval t;
-    memset (&t, 0, sizeof t);
+    memset (&t, 0, sizeof (t));
 
     t.it_value.tv_sec = sec;
     t.it_value.tv_usec = 0;

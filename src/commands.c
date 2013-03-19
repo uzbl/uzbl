@@ -283,7 +283,7 @@ split_quoted(const gchar* src, const gboolean unquote) {
 
     gboolean dq = FALSE;
     gboolean sq = FALSE;
-    GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+    GArray *a = g_array_new (TRUE, FALSE, sizeof (gchar*));
     GString *s = g_string_new ("");
     const gchar *p;
     gchar **ret;
@@ -399,7 +399,7 @@ parse_cmd_line(const char *ctl_line, GString *result) {
 
     if( strcmp(work_string, "") ) {
         if((work_string[0] != '#')) { /* ignore comments */
-            GArray *a = g_array_new (TRUE, FALSE, sizeof(gchar*));
+            GArray *a = g_array_new (TRUE, FALSE, sizeof (gchar*));
             const UzblCommandInfo *c = parse_command_parts(work_string, a);
             if(c)
                 run_parsed_command(c, a, result);

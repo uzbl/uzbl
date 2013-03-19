@@ -198,7 +198,7 @@ expand(const char* s, guint recurse) {
 
                     /* read JS from file */
                     if(ret[0] == '+') {
-                        GArray *tmp = g_array_new(TRUE, FALSE, sizeof(gchar *));
+                        GArray *tmp = g_array_new(TRUE, FALSE, sizeof (gchar *));
                         mycmd = expand(ret+1, 2);
                         g_array_append_val(tmp, mycmd);
 

@@ -53,7 +53,7 @@
 #include "commands.h"
 #include "status-bar.h"
 
-#define LENGTH(x) (sizeof x / sizeof x[0])
+#define LENGTH(x) (sizeof (x) / sizeof (x[0]))
 #define UZBL_UNUSED(var) (void)var
 #define uzbl_debug(...) if (uzbl.state.verbose) printf(__VA_ARGS__)
 

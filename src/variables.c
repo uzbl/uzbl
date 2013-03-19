@@ -148,14 +148,14 @@ set_var_value(const gchar *name, gchar *val) {
         }
 
         /* create the cmdprop */
-        c = g_malloc(sizeof(uzbl_cmdprop));
+        c = g_malloc(sizeof (uzbl_cmdprop));
         c->type       = TYPE_STR;
         c->dump       = 0;
         c->getter     = NULL;
         c->setter     = NULL;
         c->writeable  = 1;
 
-        c->ptr.s    = g_malloc(sizeof(gchar*));
+        c->ptr.s    = g_malloc(sizeof (gchar*));
 
         g_hash_table_insert(uzbl.behave.proto_var,
                 g_strdup(name), (gpointer) c);
