@@ -501,7 +501,7 @@ cmd_auth (WebKitWebView *view, GArray *argv, GString *result)
     username = argv_idx (argv, 1);
     password = argv_idx (argv, 2);
 
-    authenticate (info, username, password);
+    uzbl_soup_authenticate (info, username, password);
 }
 
 void
