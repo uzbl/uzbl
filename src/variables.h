@@ -15,7 +15,7 @@ uzbl_variables_init ();
 gboolean
 uzbl_variables_set (const gchar *name, gchar *val);
 void
-uzbl_variables_toggle (const gchar *name);
+uzbl_variables_toggle (const gchar *name, GArray *values);
 
 void
 uzbl_variables_expand (const gchar *name, GString *buf);

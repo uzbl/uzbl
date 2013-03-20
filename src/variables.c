@@ -1,5 +1,6 @@
 #include "variables.h"
 
+#include "events.h"
 #include "gui.h"
 #include "io.h"
 #include "type.h"
@@ -1466,278 +1467,454 @@ webkit_view ()
     return G_OBJECT (uzbl.gui.web_view);
 }
 
-uzbl_cmdprop *
-get_var_c(const gchar *name) {
-    return g_hash_table_lookup(uzbl.behave.proto_var, name);
-}
-
-void
-send_set_var_event(const char *name, const uzbl_cmdprop *c) {
-    /* check for the variable type */
-    switch(c->type) {
-    case TYPE_STR:
-    {
-        gchar *v = get_var_value_string_c(c);
-        uzbl_events_send (VARIABLE_SET, NULL,
-            TYPE_NAME, name,
-            TYPE_NAME, "str",
-            TYPE_STR, v,
-            NULL);
-        g_free(v);
-        break;
-    }
-    case TYPE_INT:
-        uzbl_events_send (VARIABLE_SET, NULL,
-            TYPE_NAME, name,
-            TYPE_NAME, "int",
-            TYPE_INT, get_var_value_int_c(c),
-            NULL);
-        break;
-    case TYPE_ULL:
-        send_event (VARIABLE_SET, NULL,
-            TYPE_NAME, name,
-            TYPE_NAME, "ull",
-            TYPE_ULL, get_var_value_ull_c(c),
-            NULL);
-        break;
-    case TYPE_FLOAT:
-        uzbl_events_send (VARIABLE_SET, NULL,
-            TYPE_NAME, name,
-            TYPE_NAME, "float",
-            TYPE_FLOAT, get_var_value_float_c(c),
-            NULL);
-        break;
-    default:
-        g_assert_not_reached();
-    }
-}
-
-void
-expand_variable(GString *buf, const gchar *name) {
-    uzbl_cmdprop* c = get_var_c(name);
-    if(c) {
-        if(c->type == TYPE_STR) {
-            gchar *v = get_var_value_string_c(c);
-            g_string_append(buf, v);
-            g_free(v);
-        } else if(c->type == TYPE_INT)
-            g_string_append_printf(buf, "%d", get_var_value_int_c(c));
-        else if(c->type == TYPE_FLOAT)
-            g_string_append_printf(buf, "%f", get_var_value_float_c(c));
-    }
-}
-
-void
-set_var_value_string_c(uzbl_cmdprop *c, const gchar *val) {
-    if(c->setter)
-        ((void (*)(const gchar *))c->setter)(val);
-    else {
-        g_free(*(c->ptr.s));
-        *(c->ptr.s) = g_strdup(val);
-    }
-}
-
-void
-set_var_value_int_c(uzbl_cmdprop *c, int i) {
-    if(c->setter)
-        ((void (*)(int))c->setter)(i);
-    else
-        *(c->ptr.i) = i;
-}
-
-void
-set_var_value_ull_c(uzbl_cmdprop *c, unsigned long long ull) {
-    if(c->setter)
-        ((void (*)(unsigned long long))c->setter)(ull);
-    else
-        *(c->ptr.ull) = ull;
-}
-
-void
-set_var_value_float_c(uzbl_cmdprop *c, float f) {
-    if(c->setter)
-        ((void (*)(float))c->setter)(f);
-    else
-        *(c->ptr.f) = f;
-}
+static UzblVariable *
+get_variable (const gchar *name);
+static void
+set_variable_string (UzblVariable *var, const gchar *val);
+static void
+set_variable_int (UzblVariable *var, int i);
+static void
+set_variable_ull (UzblVariable *var, unsigned long long ull);
+static void
+set_variable_float (UzblVariable *var, float f);
+static void
+send_variable_event (const gchar *name, const UzblVariable *var);
 
 gboolean
-set_var_value(const gchar *name, gchar *val) {
-    g_assert(val != NULL);
+uzbl_variables_set (const gchar *name, gchar *val)
+{
+    if (!val) {
+        return FALSE;
+    }
 
-    uzbl_cmdprop *c = get_var_c(name);
+    UzblVariable *var = get_variable (name);
 
-    if(c) {
-        if(!c->writeable) return FALSE;
+    if (var) {
+        if(!var->writeable) {
+            return FALSE;
+        }
 
-        switch(c->type) {
+        switch (var->type) {
+            case TYPE_STR:
+                set_variable_string (var, val);
+                break;
+            case TYPE_INT:
+            {
+                int i = (int)strtol (val, NULL, 10);
+                set_variable_int (var, i);
+                break;
+            }
+            case TYPE_ULL:
+            {
+                unsigned long long ull = strtoull (val, NULL, 10);
+                set_variable_ull (var, ull);
+                break;
+            }
+            case TYPE_FLOAT:
+            {
+                float f = strtod (val, NULL);
+                set_variable_float (var, f);
+                break;
+            }
+            default:
+                g_assert_not_reached ();
+        }
+    } else {
+        /* A custom var that has not been set. Check whether name violates our
+         * naming scheme. */
+        if (!valid_name (name)) {
+            uzbl_debug ("Invalid variable name: %s\n", name);
+            return FALSE;
+        }
+
+        /* Create the variable. */
+        var = g_malloc (sizeof (UzblVariable));
+        var->type      = TYPE_STR;
+        var->get       = NULL;
+        var->set       = NULL;
+        var->writeable = 1;
+
+        var->value.s = g_malloc (sizeof (gchar *));
+
+        g_hash_table_insert (uzbl.behave.proto_var,
+            g_strdup (name), (gpointer)var);
+
+        /* Set the value. */
+        *(var->value.s) = g_strdup (val);
+    }
+
+    send_variable_event (name, var);
+
+    update_title ();
+    return TRUE;
+}
+
+UzblVariable *
+get_variable (const gchar *name)
+{
+    return g_hash_table_lookup (uzbl.behave.proto_var, name);
+}
+
+void
+set_variable_string (UzblVariable *var, const gchar *val)
+{
+    typedef void (*setter_t)(const gchar *);
+
+    if (var->set) {
+        ((setter_t)var->set)(val);
+    } else {
+        g_free (*(var->value.s));
+        *(var->value.s) = g_strdup(val);
+    }
+}
+
+#define TYPE_SETTER(type, name, member)               \
+    void                                              \
+    set_variable_##name (UzblVariable *var, type val) \
+    {                                                 \
+        typedef void (*setter_t)(type);               \
+                                                      \
+        if (var->set) {                               \
+            ((setter_t)var->set)(val);                \
+        } else {                                      \
+            *var->value.member = val;                 \
+        }                                             \
+    }
+
+TYPE_SETTER (int, int, i)
+TYPE_SETTER (unsigned long long, ull, ull)
+TYPE_SETTER (float, float, f)
+
+static gchar *
+get_variable_string (const UzblVariable *var);
+static int
+get_variable_int (const UzblVariable *var);
+static unsigned long long
+get_variable_ull (const UzblVariable *var);
+static float
+get_variable_float (const UzblVariable *var);
+
+void
+send_variable_event (const gchar *name, const UzblVariable *var)
+{
+    /* Check for the variable type. */
+    switch (var->type) {
         case TYPE_STR:
-            set_var_value_string_c(c, val);
+        {
+            gchar *v = get_variable_string (var);
+            uzbl_events_send (VARIABLE_SET, NULL,
+                TYPE_NAME, name,
+                TYPE_NAME, "str",
+                TYPE_STR, v,
+                NULL);
+            g_free (v);
             break;
+        }
+        case TYPE_INT:
+            uzbl_events_send (VARIABLE_SET, NULL,
+                TYPE_NAME, name,
+                TYPE_NAME, "int",
+                TYPE_INT, get_variable_int (var),
+                NULL);
+            break;
+        case TYPE_ULL:
+            uzbl_events_send (VARIABLE_SET, NULL,
+                TYPE_NAME, name,
+                TYPE_NAME, "ull",
+                TYPE_ULL, get_variable_ull (var),
+                NULL);
+            break;
+        case TYPE_FLOAT:
+            uzbl_events_send (VARIABLE_SET, NULL,
+                TYPE_NAME, name,
+                TYPE_NAME, "float",
+                TYPE_FLOAT, get_variable_float(var),
+                NULL);
+            break;
+        default:
+            g_assert_not_reached();
+    }
+}
+
+gchar *
+get_variable_string (const UzblVariable *var)
+{
+    gchar *result = NULL;
+
+    typedef gchar *(*getter_t)(void);
+
+    if (var->get) {
+        result = ((getter_t)var->get)();
+    } else if (var->value.s) {
+        result = g_strdup(*(var->value.s));
+    }
+
+    return result ? result : g_strdup ("");
+}
+
+#define TYPE_GETTER(type, name, member)           \
+    type                                          \
+    get_variable_##name (const UzblVariable *var) \
+    {                                             \
+        if (!var) {                               \
+            return (type)0;                       \
+        }                                         \
+                                                  \
+        typedef type (*getter_t)(void);           \
+                                                  \
+        if (var->get) {                           \
+            return ((getter_t)var->get)();        \
+        } else {                                  \
+            return *var->value.member;            \
+        }                                         \
+    }
+
+TYPE_GETTER (int, int, i)
+TYPE_GETTER (unsigned long long, ull, ull)
+TYPE_GETTER (float, float, f)
+
+void
+uzbl_variables_toggle (const gchar *name, GArray *values)
+{
+    UzblVariable *var = get_variable (name);
+
+    if (!var) {
+        if (values && values->len) {
+            uzbl_variables_set (name, argv_idx (values, 1));
+        } else {
+            uzbl_variables_set (name, "1");
+        }
+
+        return;
+    }
+
+    switch (var->type) {
+        case TYPE_STR:
+        {
+            const gchar *next;
+
+            if (values && values->len) {
+                gchar *current = get_variable_string (var);
+
+                guint i = 0;
+                const gchar *first   = argv_idx (values, 0);
+                const gchar *this    = first;
+                             next    = argv_idx (values, 1);
+
+                while (next && strcmp (current, this)) {
+                    this = next;
+                    next = argv_idx (values, ++i);
+                }
+
+                if (!next) {
+                    next = first;
+                }
+
+                g_free (current);
+            } else {
+                next = "";
+            }
+
+            set_variable_string (var, next);
+            break;
+        }
         case TYPE_INT:
         {
-            int i = (int)strtol(val, NULL, 10);
-            set_var_value_int_c(c, i);
+            int current = get_variable_int (var);
+            int next;
+
+            if (values && values->len) {
+                guint i = 0;
+
+                int first = strtol (argv_idx (values, 0), NULL, 0);
+                int  this = first;
+
+                const gchar *next_s = argv_idx (values, 1);
+
+                while (next_s && (this != current)) {
+                    this   = strtol (next_s, NULL, 0);
+                    next_s = argv_idx (values, ++i);
+                }
+
+                if (next_s) {
+                    next = strtol (next_s, NULL, 0);
+                } else {
+                    next = first;
+                }
+            } else {
+                next = !current;
+            }
+
+            set_variable_int (var, next);
             break;
         }
         case TYPE_ULL:
         {
-            unsigned long long ull = strtoull(val, NULL, 10);
-            set_var_value_ull_c(c, ull);
+            unsigned long long current = get_variable_ull (var);
+            unsigned long long next;
+
+            if (values && values->len) {
+                guint i = 0;
+
+                unsigned long long first = strtoull (argv_idx (values, 0), NULL, 0);
+                unsigned long long  this = first;
+
+                const gchar *next_s = argv_idx (values, 1);
+
+                while (next_s && this != current) {
+                    this   = strtoull (next_s, NULL, 0);
+                    next_s = argv_idx (values, ++i);
+                }
+
+                if (next_s) {
+                    next = strtoull (next_s, NULL, 0);
+                } else {
+                    next = first;
+                }
+            } else {
+                next = !current;
+            }
+
+            set_variable_ull (var, next);
             break;
         }
         case TYPE_FLOAT:
         {
-            float f = strtod(val, NULL);
-            set_var_value_float_c(c, f);
+            float current = get_variable_float (var);
+            float next;
+
+            if (values && values->len) {
+                guint i = 0;
+
+                float first = strtod (argv_idx (values, 0), NULL);
+                float  this = first;
+
+                const gchar *next_s = argv_idx (values, 1);
+
+                while (next_s && (this != current)) {
+                    this   = strtod (next_s, NULL);
+                    next_s = argv_idx (values, ++i);
+                }
+
+                if (next_s) {
+                    next = strtod (next_s, NULL);
+                } else {
+                    next = first;
+                }
+            } else {
+                next = !current;
+            }
+
+            set_variable_float (var, next);
             break;
         }
         default:
-            g_assert_not_reached();
-        }
-
-        send_set_var_event(name, c);
-    } else {
-        /* a custom var that has not been set. */
-        /* check whether name violates our naming scheme */
-        if(!valid_name(name)) {
-            if (uzbl.state.verbose)
-                printf("Invalid variable name: %s\n", name);
-            return FALSE;
-        }
-
-        /* create the cmdprop */
-        c = g_malloc(sizeof (uzbl_cmdprop));
-        c->type       = TYPE_STR;
-        c->dump       = 0;
-        c->getter     = NULL;
-        c->setter     = NULL;
-        c->writeable  = 1;
-
-        c->ptr.s    = g_malloc(sizeof (gchar*));
-
-        g_hash_table_insert(uzbl.behave.proto_var,
-                g_strdup(name), (gpointer) c);
-
-        /* set the value. */
-        *(c->ptr.s) = g_strdup(val);
-
-        send_set_var_event(name, c);
+            g_assert_not_reached ();
     }
-    update_title();
-    return TRUE;
-}
 
-gchar*
-get_var_value_string_c(const uzbl_cmdprop *c) {
-    if(!c) return NULL;
-
-    gchar *result = NULL;
-
-    if(c->getter) {
-        result = ((gchar *(*)())c->getter)();
-    } else if(c->ptr.s)
-        result = g_strdup(*(c->ptr.s));
-
-    return result ? result : g_strdup("");
-}
-
-gchar*
-get_var_value_string(const gchar *name) {
-    uzbl_cmdprop *c = get_var_c(name);
-    return get_var_value_string_c(c);
-}
-
-int
-get_var_value_int_c(const uzbl_cmdprop *c) {
-    if(!c) return 0;
-
-    if(c->getter) {
-        return ((int (*)())c->getter)();
-    } else if(c->ptr.i)
-        return *(c->ptr.i);
-
-    return 0;
-}
-
-int
-get_var_value_int(const gchar *name) {
-    uzbl_cmdprop *c = get_var_c(name);
-    return get_var_value_int_c(c);
-}
-
-unsigned long long
-get_var_value_ull_c(const uzbl_cmdprop *c) {
-    if(!c) return 0;
-
-    if(c->getter) {
-        return ((unsigned long long (*)())c->getter)();
-    } else if(c->ptr.ull)
-        return *(c->ptr.ull);
-
-    return 0;
-}
-
-unsigned long long
-get_var_value_ull(const gchar *name) {
-    uzbl_cmdprop *c = get_var_c(name);
-    return get_var_value_ull_c(c);
-}
-
-float
-get_var_value_float_c(const uzbl_cmdprop *c) {
-    if(!c) return 0;
-
-    if(c->getter) {
-        return ((float (*)())c->getter)();
-    } else if(c->ptr.f)
-        return *(c->ptr.f);
-
-    return 0;
-}
-
-float
-get_var_value_float(const gchar *name) {
-    uzbl_cmdprop *c = get_var_c(name);
-    return get_var_value_float_c(c);
+    send_variable_event (name, var);
 }
 
 static void
-dump_var_hash(gpointer k, gpointer v, gpointer ud) {
-    (void) ud;
-    uzbl_cmdprop *c = v;
+variable_expand (const UzblVariable *var, GString *buf);
 
-    if(!c->dump)
+void
+uzbl_variables_expand (const gchar *name, GString *buf)
+{
+    UzblVariable *var = get_variable (name);
+
+    variable_expand (var, buf);
+}
+
+void
+variable_expand (const UzblVariable *var, GString *buf)
+{
+    if (!var) {
         return;
+    }
 
-    if(c->type == TYPE_STR) {
-        gchar *v = get_var_value_string_c(c);
-        printf("set %s = %s\n", (char *)k, v);
-        g_free(v);
-    } else if(c->type == TYPE_INT) {
-        printf("set %s = %d\n", (char *)k, get_var_value_int_c(c));
-    } else if(c->type == TYPE_ULL) {
-        printf("set %s = %llu\n", (char *)k, get_var_value_ull_c(c));
-    } else if(c->type == TYPE_FLOAT) {
-        printf("set %s = %f\n", (char *)k, get_var_value_float_c(c));
+    switch (var->type) {
+        case TYPE_STR:
+        {
+            gchar *v = get_variable_string (var);
+            g_string_append (buf, v);
+            g_free (v);
+            break;
+        }
+        case TYPE_INT:
+            g_string_append_printf (buf, "%d", get_variable_int (var));
+            break;
+        case TYPE_ULL:
+            g_string_append_printf (buf, "%llu", get_variable_ull (var));
+            break;
+        case TYPE_FLOAT:
+            g_string_append_printf (buf, "%f", get_variable_float (var));
+            break;
+        default:
+            break;
     }
 }
 
+#define VAR_GETTER(type, name)                     \
+    type                                           \
+    uzbl_variables_get_##name (const gchar *name_) \
+    {                                              \
+        UzblVariable *var = get_variable (name_);  \
+                                                   \
+        return get_variable_##name (var);          \
+    }
+
+VAR_GETTER (gchar *, string)
+VAR_GETTER (int, int)
+VAR_GETTER (unsigned long long, ull)
+VAR_GETTER (float, float)
+
+static void
+dump_variable (gpointer key, gpointer value, gpointer data);
+
 void
-dump_config() {
-    g_hash_table_foreach(uzbl.behave.proto_var, dump_var_hash, NULL);
+uzbl_variables_dump ()
+{
+    g_hash_table_foreach (uzbl.behave.proto_var, dump_variable, NULL);
+}
+
+void
+dump_variable (gpointer key, gpointer value, gpointer data)
+{
+    UZBL_UNUSED (data);
+
+    const gchar *name = (const gchar *)key;
+    UzblVariable *var = (UzblVariable *)value;
+
+    if (!var->writeable) {
+        printf ("# ");
+    }
+
+    GString *buf = g_string_new ("");
+
+    variable_expand (var, buf);
+
+    printf ("set %s = %s\n", name, buf->str);
+
+    g_string_free (buf, TRUE);
 }
 
 static void
-dump_var_hash_as_event(gpointer k, gpointer v, gpointer ud) {
-    (void) ud;
-    uzbl_cmdprop *c = v;
+dump_variable_event (gpointer key, gpointer value, gpointer data);
 
-    if(c->dump)
-        send_set_var_event(k, c);
+void
+uzbl_variables_dump_events ()
+{
+    g_hash_table_foreach (uzbl.behave.proto_var, dump_variable_event, NULL);
 }
 
 void
-dump_config_as_events() {
-    g_hash_table_foreach(uzbl.behave.proto_var, dump_var_hash_as_event, NULL);
+dump_variable_event (gpointer key, gpointer value, gpointer data)
+{
+    UZBL_UNUSED (data);
+
+    const gchar *name = (const gchar *)key;
+    UzblVariable *var = (UzblVariable *)value;
+
+    send_variable_event (name, var);
 }
