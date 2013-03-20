@@ -171,6 +171,12 @@ DECLARE_GETSET (int, autoshrink_images);
 DECLARE_GETSET (int, enable_spellcheck);
 DECLARE_GETSET (gchar *, spellcheck_languages);
 
+/* Form variables */
+DECLARE_GETSET (int, resizable_text_areas);
+DECLARE_GETSET (int, enable_spatial_navigation);
+DECLARE_GETSET (int, editing_behavior);
+DECLARE_GETSET (int, enable_tab_cycle);
+
 static const UzblVariableEntry
 builtin_variable_table[] = {
     /* name                           entry                                                type/callback */
@@ -1094,6 +1100,19 @@ IMPLEMENT_SETTER (gchar *, spellcheck_languages)
     NULL);
 }
 
+/* Form variables */
+GOBJECT_GETSET (int, resizable_text_areas,
+                webkit_settings (), "resizable-text-areas")
+
+GOBJECT_GETSET (int, enable_spatial_navigation,
+                webkit_settings (), "enable-spatial-navigation")
+
+GOBJECT_GETSET (int, editing_behavior,
+                webkit_settings (), "editing-behavior")
+
+GOBJECT_GETSET (int, enable_tab_cycle,
+                webkit_settings (), "tab-key-cycles-through-elements")
+
 GObject *
 webkit_settings ()
 {
@@ -1460,12 +1479,6 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(require_click_to_play,        "media-playback-requir
 #if WEBKIT_CHECK_VERSION (1, 11, 1)
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_media_stream,          "enable-media-stream",                       int)
 #endif
-
-/* Form settings */
-EXPOSE_WEBKIT_VIEW_SETTINGS(resizable_text_areas,         "resizable-text-areas",                      int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_spatial_navigation,    "enable-spatial-navigation",                 int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(editing_behavior,             "editing-behavior",                          int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_tab_cycle,             "tab-key-cycles-through-elements",           int)
 
 /* Hacks */
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_site_workarounds,      "enable-site-specific-quirks",               int)
