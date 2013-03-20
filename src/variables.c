@@ -177,6 +177,12 @@ DECLARE_GETSET (int, enable_spatial_navigation);
 DECLARE_GETSET (int, editing_behavior);
 DECLARE_GETSET (int, enable_tab_cycle);
 
+/* Text variables */
+DECLARE_GETSET (gchar *, default_encoding);
+DECLARE_GETSET (gchar *, custom_encoding);
+DECLARE_GETSET (int, enforce_96_dpi);
+DECLARE_GETTER (gchar *, current_encoding);
+
 static const UzblVariableEntry
 builtin_variable_table[] = {
     /* name                           entry                                                type/callback */
@@ -1113,6 +1119,34 @@ GOBJECT_GETSET (int, editing_behavior,
 GOBJECT_GETSET (int, enable_tab_cycle,
                 webkit_settings (), "tab-key-cycles-through-elements")
 
+/* Text variables */
+GOBJECT_GETSET (gchar *, default_encoding,
+                webkit_settings (), "default_encoding")
+
+IMPLEMENT_GETTER (gchar *, custom_encoding)
+{
+    const gchar *encoding = webkit_web_view_get_custom_encoding (uzbl.gui.web_view);
+    return g_strdup (encoding);
+}
+
+IMPLEMENT_SETTER (gchar *, custom_encoding)
+{
+    if (!*custom_encoding) {
+        custom_encoding = NULL;
+    }
+
+    webkit_web_view_set_custom_encoding (uzbl.gui.web_view, custom_encoding);
+}
+
+GOBJECT_GETSET (int, enforce_96_dpi,
+                webkit_settings (), "enforce-96-dpi")
+
+IMPLEMENT_GETTER (gchar *, current_encoding)
+{
+    const gchar *encoding = webkit_web_view_get_encoding (uzbl.gui.web_view);
+    return g_strdup (encoding);
+}
+
 GObject *
 webkit_settings ()
 {
@@ -1442,10 +1476,6 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(minimum_font_size,            "minimum-font-size",  
 EXPOSE_WEBKIT_VIEW_SETTINGS(font_size,                    "default-font-size",                         int)
 EXPOSE_WEBKIT_VIEW_SETTINGS(monospace_size,               "default-monospace-font-size",               int)
 
-/* Text settings */
-EXPOSE_WEBKIT_VIEW_SETTINGS(default_encoding,             "default-encoding",                          gchar *)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enforce_96_dpi,               "enforce-96-dpi",                            int)
-
 /* Feature settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_plugins,               "enable-plugins",                            int)
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_java_applet,           "enable-java-applet",                        int)
@@ -1484,26 +1514,6 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_media_stream,          "enable-media-stream",
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_site_workarounds,      "enable-site-specific-quirks",               int)
 
 #undef EXPOSE_WEBKIT_VIEW_SETTINGS
-
-static void
-set_custom_encoding(const gchar *encoding) {
-    if(strlen(encoding) == 0)
-        encoding = NULL;
-
-    webkit_web_view_set_custom_encoding(uzbl.gui.web_view, encoding);
-}
-
-static gchar *
-get_custom_encoding() {
-    const gchar *encoding = webkit_web_view_get_custom_encoding(uzbl.gui.web_view);
-    return g_strdup(encoding);
-}
-
-static gchar *
-get_current_encoding() {
-    const gchar *encoding = webkit_web_view_get_encoding (uzbl.gui.web_view);
-    return g_strdup(encoding);
-}
 
 static void
 set_inject_html(const gchar *html) {
