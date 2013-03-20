@@ -183,6 +183,14 @@ DECLARE_GETSET (gchar *, custom_encoding);
 DECLARE_GETSET (int, enforce_96_dpi);
 DECLARE_GETTER (gchar *, current_encoding);
 
+/* Font variables */
+DECLARE_GETSET (gchar *, default_font_family);
+DECLARE_GETSET (gchar *, monospace_font_family);
+DECLARE_GETSET (gchar *, sans_serif_font_family);
+DECLARE_GETSET (gchar *, serif_font_family);
+DECLARE_GETSET (gchar *, cursive_font_family);
+DECLARE_GETSET (gchar *, fantasy_font_family);
+
 static const UzblVariableEntry
 builtin_variable_table[] = {
     /* name                           entry                                                type/callback */
@@ -1147,6 +1155,25 @@ IMPLEMENT_GETTER (gchar *, current_encoding)
     return g_strdup (encoding);
 }
 
+/* Font variables */
+GOBJECT_GETSET (gchar *, default_font_family,
+                webkit_settings (), "default-font-family")
+
+GOBJECT_GETSET (gchar *, monospace_font_family,
+                webkit_settings (), "monospace-font-family")
+
+GOBJECT_GETSET (gchar *, sans_serif_font_family,
+                webkit_settings (), "sans_serif-font-family")
+
+GOBJECT_GETSET (gchar *, serif_font_family,
+                webkit_settings (), "serif-font-family")
+
+GOBJECT_GETSET (gchar *, cursive_font_family,
+                webkit_settings (), "cursive-font-family")
+
+GOBJECT_GETSET (gchar *, fantasy_font_family,
+                webkit_settings (), "fantasy-font-family")
+
 GObject *
 webkit_settings ()
 {
@@ -1462,14 +1489,6 @@ static TYPE get_##SYM() { \
   g_object_get(view_settings(), (PROPERTY), &val, NULL); \
   return val; \
 }
-
-/* Font settings */
-EXPOSE_WEBKIT_VIEW_SETTINGS(default_font_family,          "default-font-family",                       gchar *)
-EXPOSE_WEBKIT_VIEW_SETTINGS(monospace_font_family,        "monospace-font-family",                     gchar *)
-EXPOSE_WEBKIT_VIEW_SETTINGS(sans_serif_font_family,       "sans_serif-font-family",                    gchar *)
-EXPOSE_WEBKIT_VIEW_SETTINGS(serif_font_family,            "serif-font-family",                         gchar *)
-EXPOSE_WEBKIT_VIEW_SETTINGS(cursive_font_family,          "cursive-font-family",                       gchar *)
-EXPOSE_WEBKIT_VIEW_SETTINGS(fantasy_font_family,          "fantasy-font-family",                       gchar *)
 
 /* Font size settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(minimum_font_size,            "minimum-font-size",                         int)
