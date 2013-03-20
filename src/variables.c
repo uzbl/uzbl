@@ -903,7 +903,7 @@ GOBJECT_GETSET (int, enable_universal_file_access,
                 webkit_settings (), "enable-universal-access-from-file-urls")
 
 GOBJECT_GETSET (int, enable_cross_file_access,
-                webkit_settings (), "enable-file-access-from-file-urls")
+                webkit_settings (), "enable-file-access-from-file-uris")
 
 GOBJECT_GETSET (int, enable_hyperlink_auditing,
                 webkit_settings (), "enable-hyperlink-auditing")
@@ -1283,7 +1283,7 @@ GOBJECT_GETSET (int, font_size,
                 webkit_settings (), "default-font-size")
 
 GOBJECT_GETSET (int, monospace_size,
-                webkit_settings (), "monospace-font-size")
+                webkit_settings (), "default-monospace-font-size")
 
 /* Feature variables */
 GOBJECT_GETSET (int, enable_plugins,
