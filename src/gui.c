@@ -316,9 +316,7 @@ button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
     gboolean is_document = FALSE;
 
     /* Save last button click for use in menu */
-    if (uzbl.state.last_button) {
-        gdk_event_free ((GdkEvent *)uzbl.state.last_button);
-    }
+    gdk_event_free ((GdkEvent *)uzbl.state.last_button);
     uzbl.state.last_button = (GdkEventButton *)gdk_event_copy ((GdkEvent *)event);
 
     /* Grab context from last click */
@@ -430,9 +428,7 @@ link_hover_cb (WebKitWebView *view, const gchar *title, const gchar *link, gpoin
     UZBL_UNUSED (view);
     UZBL_UNUSED (data);
 
-    if (uzbl.state.last_selected_url) {
-        g_free (uzbl.state.last_selected_url);
-    }
+    g_free (uzbl.state.last_selected_url);
 
     if (uzbl.state.selected_url) {
         uzbl.state.last_selected_url = g_strdup (uzbl.state.selected_url);
@@ -469,9 +465,7 @@ title_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
 
     const gchar *title = webkit_web_view_get_title (view);
 
-    if (uzbl.gui.main_title) {
-        g_free (uzbl.gui.main_title);
-    }
+    g_free (uzbl.gui.main_title);
     uzbl.gui.main_title = title ? g_strdup (title) : g_strdup ("(no title)");
 
     update_title ();
