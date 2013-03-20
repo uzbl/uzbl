@@ -220,6 +220,21 @@ DECLARE_GETSET (int, enable_css_shaders);
 DECLARE_GETSET (int, enable_media_stream);
 #endif
 
+/* HTML5 Database variables */
+DECLARE_GETSET (int, enable_database);
+DECLARE_GETSET (int, enable_local_storage);
+DECLARE_GETSET (int, enable_pagecache);
+DECLARE_GETSET (int, enable_offline_app_cache);
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+DECLARE_GETSET (unsigned long long, app_cache_size);
+DECLARE_GETTER (gchar *, app_cache_directory);
+#endif
+DECLARE_GETSET (gchar *, web_database_directory);
+DECLARE_GETSET (unsigned long long, web_database_quota);
+#if WEBKIT_CHECK_VERSION (1, 5, 2)
+DECLARE_GETSET (gchar *, local_storage_path);
+#endif
+
 static const UzblVariableEntry
 builtin_variable_table[] = {
     /* name                           entry                                                type/callback */
@@ -402,14 +417,12 @@ builtin_variable_table[] = {
     { "enable_offline_app_cache",     UZBL_V_FUNC (enable_offline_app_cache,               INT)},
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
     { "app_cache_size",               UZBL_V_FUNC (app_cache_size,                         ULL)},
+    { "app_cache_directory",          UZBL_C_FUNC (app_cache_directory,                    STR)},
 #endif
     { "web_database_directory",       UZBL_V_FUNC (web_database_directory,                 STR)},
     { "web_database_quota",           UZBL_V_FUNC (web_database_quota,                     ULL)},
 #if WEBKIT_CHECK_VERSION (1, 5, 2)
     { "local_storage_path",           UZBL_V_FUNC (local_storage_path,                     STR)},
-#endif
-#if WEBKIT_CHECK_VERSION (1, 3, 13)
-    { "app_cache_directory",          UZBL_V_FUNC (app_cache_directory,                    STR)},
 #endif
 
     /* Hacks */
@@ -1338,6 +1351,61 @@ GOBJECT_GETSET (int, enable_media_stream,
                 webkit_settings (), "enable-media-stream")
 #endif
 
+/* HTML5 Database variables */
+GOBJECT_GETSET (int, enable_database,
+                webkit_settings (), "enable-html5-database")
+
+GOBJECT_GETSET (int, enable_local_storage,
+                webkit_settings (), "enable-html5-local-storage")
+
+GOBJECT_GETSET (int, enable_pagecache,
+                webkit_settings (), "enable-page-cache")
+
+GOBJECT_GETSET (int, enable_offline_app_cache,
+                webkit_settings (), "enable-offline-web-application-cache")
+
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+IMPLEMENT_GETTER (unsigned long long, app_cache_size)
+{
+    return webkit_application_cache_get_maximum_size ();
+}
+
+IMPLEMENT_SETTER (unsigned long long, app_cache_size)
+{
+    webkit_application_cache_set_maximum_size (app_cache_size);
+}
+
+IMPLEMENT_GETTER (gchar *, app_cache_directory)
+{
+    return g_strdup (webkit_application_cache_get_database_directory_path ());
+}
+#endif
+
+IMPLEMENT_GETTER (gchar *, web_database_directory)
+{
+    return g_strdup (webkit_get_web_database_directory_path ());
+}
+
+IMPLEMENT_SETTER (gchar *, web_database_directory)
+{
+    webkit_set_web_database_directory_path (web_database_directory);
+}
+
+IMPLEMENT_GETTER (unsigned long long, web_database_quota)
+{
+    return webkit_get_default_web_database_quota ();
+}
+
+IMPLEMENT_SETTER (unsigned long long, web_database_quota)
+{
+    webkit_set_default_web_database_quota (web_database_quota);
+}
+
+#if WEBKIT_CHECK_VERSION (1, 5, 2)
+GOBJECT_GETSET (gchar *, local_storage_path,
+                webkit_settings (), "html5-local-storage-database-path")
+#endif
+
 GObject *
 webkit_settings ()
 {
@@ -1654,15 +1722,6 @@ static TYPE get_##SYM() { \
   return val; \
 }
 
-/* HTML5 Database settings */
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_database,              "enable-html5-database",                     int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_local_storage,         "enable-html5-local-storage",                int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_pagecache,             "enable-page-cache",                         int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_offline_app_cache,     "enable-offline-web-application-cache",      int)
-#if WEBKIT_CHECK_VERSION (1, 5, 2)
-EXPOSE_WEBKIT_VIEW_SETTINGS(local_storage_path,           "html5-local-storage-database-path",         gchar *)
-#endif
-
 /* Hacks */
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_site_workarounds,      "enable-site-specific-quirks",               int)
 
@@ -1676,40 +1735,3 @@ set_inject_html(const gchar *html) {
     webkit_web_view_load_html_string (uzbl.gui.web_view, html, NULL);
 #endif
 }
-
-static gchar *
-get_web_database_directory() {
-    return g_strdup (webkit_get_web_database_directory_path ());
-}
-
-static unsigned long long
-get_web_database_quota () {
-    return webkit_get_default_web_database_quota ();
-}
-
-static void
-set_web_database_quota (unsigned long long quota) {
-    webkit_set_default_web_database_quota (quota);
-}
-
-static void
-set_web_database_directory(const gchar *path) {
-    webkit_set_web_database_directory_path (path);
-}
-
-#if WEBKIT_CHECK_VERSION (1, 3, 13)
-static gchar *
-get_app_cache_directory() {
-    return g_strdup (webkit_application_cache_get_database_directory_path ());
-}
-
-static unsigned long long
-get_app_cache_size() {
-    return webkit_application_cache_get_maximum_size ();
-}
-
-static void
-set_app_cache_size(unsigned long long size) {
-    webkit_application_cache_set_maximum_size (size);
-}
-#endif
