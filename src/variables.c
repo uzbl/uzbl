@@ -196,6 +196,30 @@ DECLARE_GETSET (int, minimum_font_size);
 DECLARE_GETSET (int, font_size);
 DECLARE_GETSET (int, monospace_size);
 
+/* Feature variables */
+DECLARE_GETSET (int, enable_plugins);
+DECLARE_GETSET (int, enable_java_applet);
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+DECLARE_GETTER (gchar *, plugin_list);
+#endif
+#if WEBKIT_CHECK_VERSION (1, 3, 14)
+DECLARE_GETSET (int, enable_webgl);
+#endif
+#if WEBKIT_CHECK_VERSION (1, 7, 5)
+DECLARE_GETSET (int, enable_webaudio);
+#endif
+#if WEBKIT_CHECK_VERSION (1, 7, 90) /* Documentation says 1.7.5, but it's not there. */
+DECLARE_GETSET (int, enable_3d_acceleration);
+#endif
+#if WEBKIT_CHECK_VERSION (1, 9, 3)
+DECLARE_GETSET (int, enable_inline_media);
+DECLARE_GETSET (int, require_click_to_play);
+#endif
+#if WEBKIT_CHECK_VERSION (1, 11, 1)
+DECLARE_GETSET (int, enable_css_shaders);
+DECLARE_GETSET (int, enable_media_stream);
+#endif
+
 static const UzblVariableEntry
 builtin_variable_table[] = {
     /* name                           entry                                                type/callback */
@@ -1189,6 +1213,131 @@ GOBJECT_GETSET (int, font_size,
 GOBJECT_GETSET (int, monospace_size,
                 webkit_settings (), "monospace-font-size")
 
+/* Feature variables */
+GOBJECT_GETSET (int, enable_plugins,
+                webkit_settings (), "enable-plugins")
+
+GOBJECT_GETSET (int, enable_java_applet,
+                webkit_settings (), "enable-java-applet")
+
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+static void
+plugin_list_append (WebKitWebPlugin *plugin, GString *list);
+
+IMPLEMENT_GETTER (gchar *, plugin_list)
+{
+    WebKitWebPluginDatabase *db = webkit_get_web_plugin_database ();
+    GSList *plugins = webkit_web_plugin_database_get_plugins (db);
+
+    GString *list = g_string_new ("[");
+
+    g_slist_foreach (plugins, (GFunc)plugin_list_append, list);
+
+    g_string_append_c (list, ']');
+
+    webkit_web_plugin_database_plugins_list_free (plugins);
+
+    return g_string_free (list, FALSE);
+}
+
+static void
+mimetype_list_append (WebKitWebPluginMIMEType *mimetype, GString *list);
+
+void
+plugin_list_append (WebKitWebPlugin *plugin, GString *list)
+{
+    if (*list->str != '[') {
+        g_string_append_c (list, ',');
+    }
+
+    const gchar *desc = webkit_web_plugin_get_description (plugin);
+    gboolean enabled = webkit_web_plugin_get_enabled (plugin);
+    GSList *mimetypes = webkit_web_plugin_get_mimetypes (plugin);
+    const gchar *name = webkit_web_plugin_get_name (plugin);
+    const gchar *path = webkit_web_plugin_get_path (plugin);
+
+    /* Write out a JSON representation of the information */
+    g_string_append_printf (list,
+            "{\"name\": \"%s\","
+            "\"description\": \"%s\","
+            "\"enabled\": %s,"
+            "\"path\": \"%s\","
+            "\"mimetypes\": [", /* Open array for the mimetypes */
+            name,
+            desc,
+            enabled ? "true" : "false",
+            path);
+
+    g_slist_foreach (mimetypes, (GFunc)mimetype_list_append, list);
+
+    /* Close the array and the object */
+    g_string_append (list, "]}");
+}
+
+void
+mimetype_list_append (WebKitWebPluginMIMEType *mimetype, GString *list)
+{
+    if (*list->str != '[') {
+        g_string_append_c (list, ',');
+    }
+
+    /* Write out a JSON representation of the information. */
+    g_string_append_printf (list,
+            "{\"name\": \"%s\","
+            "\"description\": \"%s\","
+            "\"extensions\": [", /* Open array for the extensions. */
+            mimetype->name,
+            mimetype->description);
+
+    char **extension = mimetype->extensions;
+    gboolean first = TRUE;
+
+    while (extension) {
+        if (first) {
+            first = FALSE;
+        } else {
+            g_string_append_c (list, ',');
+        }
+        g_string_append (list, *extension);
+
+        ++extension;
+    }
+
+    g_string_append_c (list, '}');
+}
+#endif
+
+#if WEBKIT_CHECK_VERSION (1, 3, 14)
+GOBJECT_GETSET (int, enable_webgl,
+                webkit_settings (), "enable-webgl")
+#endif
+
+#if WEBKIT_CHECK_VERSION (1, 7, 5)
+GOBJECT_GETSET (int, enable_webaudio,
+                webkit_settings (), "enable-webaudio")
+#endif
+
+#if WEBKIT_CHECK_VERSION (1, 7, 90) /* Documentation says 1.7.5, but it's not there. */
+GOBJECT_GETSET (int, enable_3d_acceleration,
+                webkit_settings (), "enable-accelerated-compositing")
+#endif
+
+#if WEBKIT_CHECK_VERSION (1, 9, 3)
+GOBJECT_GETSET (int, enable_inline_media,
+                webkit_settings (), "media-playback-allows-inline")
+
+GOBJECT_GETSET (int, require_click_to_play,
+                webkit_settings (), "media-playback-requires-user-gesture")
+#endif
+
+#if WEBKIT_CHECK_VERSION (1, 11, 1)
+GOBJECT_GETSET (int, enable_css_shaders,
+                webkit_settings (), "enable-css-shaders")
+
+GOBJECT_GETSET (int, enable_media_stream,
+                webkit_settings (), "enable-media-stream")
+#endif
+
 GObject *
 webkit_settings ()
 {
@@ -1505,22 +1654,6 @@ static TYPE get_##SYM() { \
   return val; \
 }
 
-/* Feature settings */
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_plugins,               "enable-plugins",                            int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_java_applet,           "enable-java-applet",                        int)
-#if WEBKIT_CHECK_VERSION (1, 3, 14)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_webgl,                 "enable-webgl",                              int)
-#endif
-#if WEBKIT_CHECK_VERSION (1, 7, 5)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_webaudio,              "enable-webaudio",                           int)
-#endif
-#if WEBKIT_CHECK_VERSION (1, 7, 90) // Documentation says 1.7.5, but it's not there.
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_3d_acceleration,       "enable-accelerated-compositing",            int)
-#endif
-#if WEBKIT_CHECK_VERSION (1, 11, 1)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_css_shaders,           "enable-css-shaders",                        int)
-#endif
-
 /* HTML5 Database settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_database,              "enable-html5-database",                     int)
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_local_storage,         "enable-html5-local-storage",                int)
@@ -1528,15 +1661,6 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_pagecache,             "enable-page-cache",  
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_offline_app_cache,     "enable-offline-web-application-cache",      int)
 #if WEBKIT_CHECK_VERSION (1, 5, 2)
 EXPOSE_WEBKIT_VIEW_SETTINGS(local_storage_path,           "html5-local-storage-database-path",         gchar *)
-#endif
-
-/* Media settings */
-#if WEBKIT_CHECK_VERSION (1, 9, 3)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_inline_media,          "media-playback-allows-inline",              int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(require_click_to_play,        "media-playback-requires-user-gesture",      int)
-#endif
-#if WEBKIT_CHECK_VERSION (1, 11, 1)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_media_stream,          "enable-media-stream",                       int)
 #endif
 
 /* Hacks */
@@ -1587,84 +1711,5 @@ get_app_cache_size() {
 static void
 set_app_cache_size(unsigned long long size) {
     webkit_application_cache_set_maximum_size (size);
-}
-#endif
-
-#if WEBKIT_CHECK_VERSION (1, 3, 8)
-static void
-mimetype_list_append(WebKitWebPluginMIMEType *mimetype, GString *list) {
-    if (*list->str != '[') {
-        g_string_append_c (list, ',');
-    }
-
-    /* Write out a JSON representation of the information */
-    g_string_append_printf (list,
-            "{\"name\": \"%s\","
-            "\"description\": \"%s\","
-            "\"extensions\": [", /* Open array for the extensions */
-            mimetype->name,
-            mimetype->description);
-
-    char **extension = mimetype->extensions;
-    gboolean first = TRUE;
-
-    while (extension) {
-        if (first) {
-            first = FALSE;
-        } else {
-            g_string_append_c (list, ',');
-        }
-        g_string_append (list, *extension);
-
-        ++extension;
-    }
-
-    g_string_append_c (list, '}');
-}
-
-static void
-plugin_list_append(WebKitWebPlugin *plugin, GString *list) {
-    if (*list->str != '[') {
-        g_string_append_c (list, ',');
-    }
-
-    const gchar *desc = webkit_web_plugin_get_description (plugin);
-    gboolean enabled = webkit_web_plugin_get_enabled (plugin);
-    GSList *mimetypes = webkit_web_plugin_get_mimetypes (plugin);
-    const gchar *name = webkit_web_plugin_get_name (plugin);
-    const gchar *path = webkit_web_plugin_get_path (plugin);
-
-    /* Write out a JSON representation of the information */
-    g_string_append_printf (list,
-            "{\"name\": \"%s\","
-            "\"description\": \"%s\","
-            "\"enabled\": %s,"
-            "\"path\": \"%s\","
-            "\"mimetypes\": [", /* Open array for the mimetypes */
-            name,
-            desc,
-            enabled ? "true" : "false",
-            path);
-
-    g_slist_foreach (mimetypes, (GFunc)mimetype_list_append, list);
-
-    /* Close the array and the object */
-    g_string_append (list, "]}");
-}
-
-static gchar *
-get_plugin_list() {
-    WebKitWebPluginDatabase *db = webkit_get_web_plugin_database ();
-    GSList *plugins = webkit_web_plugin_database_get_plugins (db);
-
-    GString *list = g_string_new ("[");
-
-    g_slist_foreach (plugins, (GFunc)plugin_list_append, list);
-
-    g_string_append_c (list, ']');
-
-    webkit_web_plugin_database_plugins_list_free (plugins);
-
-    return g_string_free (list, FALSE);
 }
 #endif
