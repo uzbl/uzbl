@@ -167,6 +167,10 @@ DECLARE_GETSET (int, javascript_clipboard);
 DECLARE_GETSET (int, autoload_images);
 DECLARE_GETSET (int, autoshrink_images);
 
+/* Spell checking variables */
+DECLARE_GETSET (int, enable_spellcheck);
+DECLARE_GETSET (gchar *, spellcheck_languages);
+
 static const UzblVariableEntry
 builtin_variable_table[] = {
     /* name                           entry                                                type/callback */
@@ -408,7 +412,7 @@ uzbl_variables_init ()
     void                             \
     set_##name (const type name)
 
-#define GOBJECT_GETSET(type, name, obj, prop) \
+#define GOBJECT_GETTER(type, name, obj, prop) \
     IMPLEMENT_GETTER (type, name)             \
     {                                         \
         type name;                            \
@@ -418,14 +422,19 @@ uzbl_variables_init ()
             NULL);                            \
                                               \
         return name;                          \
-    }                                         \
-                                              \
+    }
+
+#define GOBJECT_SETTER(type, name, obj, prop) \
     IMPLEMENT_SETTER (type, name)             \
     {                                         \
         g_object_set (G_OBJECT (obj),         \
             prop, name,                       \
             NULL);                            \
     }
+
+#define GOBJECT_GETSET(type, name, obj, prop) \
+    GOBJECT_GETTER (type, name, obj, prop)    \
+    GOBJECT_SETTER (type, name, obj, prop)
 
 #define ENUM_TO_STRING(val, str) \
     case val:                    \
@@ -1059,6 +1068,32 @@ GOBJECT_GETSET (int, autoload_images,
 GOBJECT_GETSET (int, autoshrink_images,
                 webkit_settings (), "auto-shrink-images")
 
+/* Spell checking variables */
+GOBJECT_GETSET (int, enable_spellcheck,
+                webkit_settings (), "enable-spell-checking")
+
+GOBJECT_GETTER (gchar *, spellcheck_languages,
+                webkit_settings (), "spell-checking-languages")
+
+IMPLEMENT_SETTER (gchar *, spellcheck_languages)
+{
+  GObject *obj = webkit_get_text_checker ();
+
+  if (!obj) {
+      return;
+  }
+  if (!WEBKIT_IS_SPELL_CHECKER (obj)) {
+      return;
+  }
+
+  WebKitSpellChecker *checker = WEBKIT_SPELL_CHECKER (obj);
+
+  webkit_spell_checker_update_spell_checking_languages (checker, spellcheck_languages);
+  g_object_set (webkit_settings (),
+    "spell-checking-languages", spellcheck_languages,
+    NULL);
+}
+
 GObject *
 webkit_settings ()
 {
@@ -1426,9 +1461,6 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(require_click_to_play,        "media-playback-requir
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_media_stream,          "enable-media-stream",                       int)
 #endif
 
-/* Spell checking settings */
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_spellcheck,            "enable-spell-checking",                     int)
-
 /* Form settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(resizable_text_areas,         "resizable-text-areas",                      int)
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_spatial_navigation,    "enable-spatial-navigation",                 int)
@@ -1439,30 +1471,6 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_tab_cycle,             "tab-key-cycles-throug
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_site_workarounds,      "enable-site-specific-quirks",               int)
 
 #undef EXPOSE_WEBKIT_VIEW_SETTINGS
-
-static void
-set_spellcheck_languages(const gchar *languages) {
-  GObject *obj = webkit_get_text_checker ();
-
-  if (!obj) {
-      return;
-  }
-  if (!WEBKIT_IS_SPELL_CHECKER (obj)) {
-      return;
-  }
-
-  WebKitSpellChecker *checker = WEBKIT_SPELL_CHECKER (obj);
-
-  webkit_spell_checker_update_spell_checking_languages (checker, languages);
-  g_object_set(view_settings(), "spell-checking-languages", languages, NULL);
-}
-
-static gchar *
-get_spellcheck_languages() {
-  gchar *val;
-  g_object_get(view_settings(), "spell-checking-languages", &val, NULL);
-  return val;
-}
 
 static void
 set_custom_encoding(const gchar *encoding) {
