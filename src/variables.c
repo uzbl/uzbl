@@ -116,6 +116,13 @@ DECLARE_GETSET (int, run_insecure_content);
 #endif
 DECLARE_SETTER (int, maintain_history);
 
+/* Inspector variables */
+DECLARE_GETSET (int, profile_js);
+DECLARE_GETSET (int, profile_timeline);
+#if WEBKIT_CHECK_VERSION (1, 3, 17)
+DECLARE_GETTER (gchar *, inspected_uri);
+#endif
+
 static const UzblVariableEntry
 builtin_variable_table[] = {
     /* name                           entry                                                type/callback */
@@ -419,6 +426,8 @@ static GObject *
 soup_session ();
 static GObject *
 cookie_jar ();
+static GObject *
+inspector ();
 
 /* Communication variables */
 IMPLEMENT_SETTER (gchar *, fifo_dir)
@@ -766,6 +775,20 @@ IMPLEMENT_SETTER (int, maintain_history)
     webkit_web_view_set_maintains_back_forward_list (uzbl.gui.web_view, maintain_history);
 }
 
+/* Inspector variables */
+GOBJECT_GETSET (int, profile_js,
+                inspector (), "javascript-profiling-enabled")
+
+GOBJECT_GETSET (int, profile_timeline,
+                inspector (), "timeline-profiling-enabled")
+
+#if WEBKIT_CHECK_VERSION (1, 3, 17)
+IMPLEMENT_GETTER (gchar *, inspected_uri)
+{
+    return g_strdup (webkit_web_inspector_get_inspected_uri (uzbl.gui.inspector));
+}
+#endif
+
 GObject *
 webkit_settings ()
 {
@@ -782,6 +805,12 @@ GObject *
 cookie_jar ()
 {
     return G_OBJECT (uzbl.net.soup_cookie_jar);
+}
+
+GObject *
+inspector ()
+{
+    return G_OBJECT (uzbl.gui.inspector);
 }
 
 uzbl_cmdprop *
@@ -1131,21 +1160,6 @@ set_uri(const gchar *uri) {
     g_free (newuri);
 }
 
-#define EXPOSE_WEB_INSPECTOR_SETTINGS(SYM, PROPERTY, TYPE) \
-static void set_##SYM(TYPE val) { \
-  g_object_set(uzbl.gui.inspector, (PROPERTY), val, NULL); \
-} \
-static TYPE get_##SYM() { \
-  TYPE val; \
-  g_object_get(uzbl.gui.inspector, (PROPERTY), &val, NULL); \
-  return val; \
-}
-
-EXPOSE_WEB_INSPECTOR_SETTINGS(profile_js,         "javascript-profiling-enabled",       int)
-EXPOSE_WEB_INSPECTOR_SETTINGS(profile_timeline,   "timeline-profiling-enabled",         gchar *)
-
-#undef EXPOSE_WEB_INSPECTOR_SETTINGS
-
 #define EXPOSE_WEBKIT_VIEW_VIEW_SETTINGS(SYM, PROPERTY, TYPE) \
 static void set_##SYM(TYPE val) { \
   g_object_set(uzbl.gui.web_view, (PROPERTY), val, NULL); \
@@ -1432,13 +1446,6 @@ set_view_mode(const gchar *mode) {
     } else if (!g_strcmp0 (mode, "minimized")) {
         webkit_web_view_set_view_mode (uzbl.gui.web_view, WEBKIT_WEB_VIEW_VIEW_MODE_MINIMIZED);
     }
-}
-#endif
-
-#if WEBKIT_CHECK_VERSION (1, 3, 17)
-static gchar *
-get_inspected_uri() {
-    return g_strdup (webkit_web_inspector_get_inspected_uri (uzbl.gui.inspector));
 }
 #endif
 
