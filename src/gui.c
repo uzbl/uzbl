@@ -115,10 +115,6 @@ navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
         WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action,
         WebKitWebPolicyDecision *policy_decision, gpointer data);
 static gboolean
-new_window_cb (WebKitWebView *view, WebKitWebFrame *frame,
-        WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action,
-        WebKitWebPolicyDecision *policy_decision, gpointer data);
-static gboolean
 mime_policy_cb (WebKitWebView *view, WebKitWebFrame *frame,
         WebKitNetworkRequest *request, gchar *mime_type,
         WebKitWebPolicyDecision *policy_decision, gpointer data);
@@ -669,34 +665,6 @@ navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
     if (!decision_made) {
         webkit_web_policy_decision_use (policy_decision);
     }
-
-    return TRUE;
-}
-
-gboolean
-new_window_cb (WebKitWebView *view, WebKitWebFrame *frame,
-        WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action,
-        WebKitWebPolicyDecision *policy_decision, gpointer data)
-{
-    UZBL_UNUSED (view);
-    UZBL_UNUSED (frame);
-    UZBL_UNUSED (data);
-
-    const gchar *uri = webkit_network_request_get_uri (request);
-    const gchar *target_frame = webkit_web_navigation_action_get_target_frame (navigation_action);
-
-    uzbl_debug ("New window requested -> %s\n", uri);
-
-    /* The create_web_view_cb is also called for _blank targets. */
-    if (!g_strcmp0 (target_frame, "_blank")) {
-        uzbl_events_send (NEW_WINDOW, NULL,
-            TYPE_STR, uri,
-            NULL);
-    } else {
-        uzbl_debug ("Ignoring new window request; target == _blank\n");
-    }
-
-    webkit_web_policy_decision_ignore (policy_decision);
 
     return TRUE;
 }
