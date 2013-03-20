@@ -195,6 +195,7 @@ DECLARE_GETSET (gchar *, fantasy_font_family);
 
 /* Font size variables */
 DECLARE_GETSET (int, minimum_font_size);
+DECLARE_GETSET (int, minimum_logical_font_size);
 DECLARE_GETSET (int, font_size);
 DECLARE_GETSET (int, monospace_size);
 
@@ -395,6 +396,7 @@ builtin_variable_table[] = {
 
     /* Font size variables */
     { "minimum_font_size",            UZBL_V_FUNC (minimum_font_size,                      INT)},
+    { "minimum_logical_font_size",    UZBL_V_FUNC (minimum_logical_font_size,              INT)},
     { "font_size",                    UZBL_V_FUNC (font_size,                              INT)},
     { "monospace_size",               UZBL_V_FUNC (monospace_size,                         INT)},
 
@@ -1273,6 +1275,9 @@ GOBJECT_GETSET (gchar *, fantasy_font_family,
 /* Font size variables */
 GOBJECT_GETSET (int, minimum_font_size,
                 webkit_settings (), "minimum-font-size")
+
+GOBJECT_GETSET (int, minimum_logical_font_size,
+                webkit_settings (), "minimum-logical-font-size")
 
 GOBJECT_GETSET (int, font_size,
                 webkit_settings (), "default-font-size")
