@@ -155,6 +155,14 @@ DECLARE_GETSET (int, enable_fullscreen);
 #endif
 DECLARE_GETSET (int, editable);
 
+/* Javascript variables */
+DECLARE_GETSET (int, enable_scripts);
+DECLARE_GETSET (int, javascript_windows);
+DECLARE_GETSET (int, javascript_dom_paste);
+#if WEBKIT_CHECK_VERSION (1, 3, 0)
+DECLARE_GETSET (int, javascript_clipboard);
+#endif
+
 static const UzblVariableEntry
 builtin_variable_table[] = {
     /* name                           entry                                                type/callback */
@@ -1025,6 +1033,21 @@ GOBJECT_GETSET (int, enable_fullscreen,
 GOBJECT_GETSET (int, editable,
                 webkit_view (), "editable")
 
+/* Javascript variables */
+GOBJECT_GETSET (int, enable_scripts,
+                webkit_settings (), "enable-scripts")
+
+GOBJECT_GETSET (int, javascript_windows,
+                webkit_settings (), "javascript-can-open-windows-automatically")
+
+GOBJECT_GETSET (int, javascript_dom_paste,
+                webkit_settings (), "enable-dom-paste")
+
+#if WEBKIT_CHECK_VERSION (1, 3, 0)
+GOBJECT_GETSET (int, javascript_clipboard,
+                webkit_settings (), "javascript-can-access-clipboard")
+#endif
+
 GObject *
 webkit_settings ()
 {
@@ -1381,14 +1404,6 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_pagecache,             "enable-page-cache",  
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_offline_app_cache,     "enable-offline-web-application-cache",      int)
 #if WEBKIT_CHECK_VERSION (1, 5, 2)
 EXPOSE_WEBKIT_VIEW_SETTINGS(local_storage_path,           "html5-local-storage-database-path",         gchar *)
-#endif
-
-/* Javascript settings */
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_scripts,               "enable-scripts",                            int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(javascript_windows,           "javascript-can-open-windows-automatically", int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(javascript_dom_paste,         "enable-dom-paste",                          int)
-#if WEBKIT_CHECK_VERSION (1, 3, 0)
-EXPOSE_WEBKIT_VIEW_SETTINGS(javascript_clipboard,         "javascript-can-access-clipboard",           int)
 #endif
 
 /* Media settings */
