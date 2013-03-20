@@ -774,7 +774,7 @@ cmd_snapshot (WebKitWebView *view, GArray *argv, GString *result)
 
     cairo_surface_t *surface;
 
-    surface = webkit_web_view_get_snapshot (page);
+    surface = webkit_web_view_get_snapshot (view);
 
     /* TODO: Support other formats? */
     cairo_surface_write_to_png (surface, argv_idx (argv, 0));
