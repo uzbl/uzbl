@@ -149,7 +149,7 @@ expand(const char* s, guint recurse) {
                 if(etype == EXP_SIMPLE_VAR ||
                    etype == EXP_BRACED_VAR) {
 
-                    expand_variable(buf, ret);
+                    uzbl_variables_expand (ret, buf);
 
                     if(etype == EXP_SIMPLE_VAR)
                         s = vend;
@@ -313,7 +313,7 @@ update_title(void) {
     const gchar *title_format = b->title_format_long;
 
     /* Update the status bar if shown */
-    if (get_show_status()) {
+    if (uzbl_variables_get_int ("show_status")) {
         title_format = b->title_format_short;
 
         gchar *parsed = expand(b->status_format, 0);
@@ -426,7 +426,7 @@ initialize(int argc, char** argv) {
     uzbl_soup_init (uzbl.net.soup_session);
 
     uzbl_command_init ();
-    variables_hash();
+    uzbl_variables_init ();
 
     /* XDG */
     ensure_xdg_vars();
@@ -508,7 +508,7 @@ main (int argc, char* argv[]) {
         uzbl.state.verbose = verbose_override;
 
     if (uri_override) {
-        set_var_value("uri", uri_override);
+        uzbl_variables_set ("uri", uri_override);
         g_free(uri_override);
     }
 

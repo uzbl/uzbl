@@ -475,7 +475,7 @@ cmd_uri (WebKitWebView *view, GArray *argv, GString *result)
 
     gchar *uri = argv_idx (argv, 0);
 
-    set_var_value ("uri", uri);
+    uzbl_variables_set ("uri", uri);
 }
 
 void
@@ -1412,7 +1412,7 @@ cmd_set (WebKitWebView *view, GArray *argv, GString *result)
     gchar **split = g_strsplit (argv_idx (argv, 0), "=", 2);
     if (split[0] != NULL) {
         gchar *value = split[1] ? g_strchug (split[1]) : " ";
-        set_var_value (g_strstrip (split[0]), value);
+        uzbl_variables_set (g_strstrip (split[0]), value);
     }
     g_strfreev (split);
 }
@@ -1457,7 +1457,7 @@ cmd_dump_config (WebKitWebView *view, GArray *argv, GString *result)
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
-    dump_config ();
+    uzbl_variables_dump ();
 }
 
 void
@@ -1467,7 +1467,7 @@ cmd_dump_config_as_events (WebKitWebView *view, GArray *argv, GString *result)
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
-    dump_config_as_events ();
+    uzbl_variables_dump_events ();
 }
 
 void
