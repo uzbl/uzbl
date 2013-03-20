@@ -719,7 +719,7 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
         return FALSE;
     }
 
-    /* get a reasonable suggestion for a filename */
+    /* Get a reasonable suggestion for a filename. */
     const gchar *suggested_filename;
 #ifdef USE_WEBKIT2
     WebKitURIResponse *response;
@@ -737,16 +737,16 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
     g_object_get (download, "suggested-filename", &suggested_filename, NULL);
 #endif
 
-    /* get the mimetype of the download */
+    /* Get the mimetype of the download. */
     const gchar *content_type = NULL;
-    WebKitNetworkResponse *response = webkit_download_get_network_response (download);
-    /* downloads can be initiated from the context menu, in that case there is
-       no network response yet and trying to get one would crash. */
-    if (WEBKIT_IS_NETWORK_RESPONSE (response)) {
-        SoupMessage        *message = webkit_network_response_get_message (response);
+    WebKitNetworkResponse *net_response = webkit_download_get_network_response (download);
+    /* Downloads can be initiated from the context menu, in that case there is
+     * no network response yet and trying to get one would crash. */
+    if (WEBKIT_IS_NETWORK_RESPONSE (net_response)) {
+        SoupMessage        *message = webkit_network_response_get_message (net_response);
         SoupMessageHeaders *headers = NULL;
         g_object_get (message, "response-headers", &headers, NULL);
-        /* some versions of libsoup don't have "response-headers" here */
+        /* Some versions of libsoup don't have "response-headers" here. */
         if (headers) {
             content_type = soup_message_headers_get_one (headers, "Content-Type");
         }
@@ -756,8 +756,8 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
         content_type = "application/octet-stream";
     }
 
-    /* get the filesize of the download, as given by the server.
-       (this may be inaccurate, there's nothing we can do about that.) */
+    /* Get the filesize of the download, as given by the server. It may be
+     * inaccurate, but there's nothing we can do about that. */
     unsigned int total_size = webkit_download_get_total_size (download);
 
     GArray *args = g_array_new (TRUE, FALSE, sizeof (gchar *));
