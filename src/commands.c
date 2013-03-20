@@ -1035,8 +1035,6 @@ cmd_js (WebKitWebView *view, GArray *argv, GString *result)
 void
 cmd_js_file (WebKitWebView *view, GArray *argv, GString *result)
 {
-    UZBL_UNUSED (result);
-
     ARG_CHECK (argv, 1);
 
     gchar *req_path = argv_idx (argv, 0);
