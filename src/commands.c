@@ -177,13 +177,13 @@ builtin_command_table[] =
 #endif
 
     /* Content command. */
-    { "remove_all_db",                  remove_all_db,                TRUE  },
+    { "remove_all_db",                  cmd_remove_all_db,            TRUE  },
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
-    { "plugin_refresh",                 plugin_refresh,               FALSE },
-    { "plugin_toggle",                  plugin_toggle,                FALSE },
+    { "plugin_refresh",                 cmd_plugin_refresh,           FALSE },
+    { "plugin_toggle",                  cmd_plugin_toggle,            FALSE },
 #endif
 #if WEBKIT_CHECK_VERSION (1, 5, 1)
-    { "spell_checker",                  spell_checker,                FALSE },
+    { "spell_checker",                  cmd_spell_checker,            FALSE },
 #endif
 
     /* Menu commands */
