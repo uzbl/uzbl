@@ -101,6 +101,21 @@ DECLARE_GETSET (gchar *, ssl_ca_file);
 DECLARE_GETSET (int, ssl_verify);
 DECLARE_GETSET (gchar *, cache_model);
 
+/* Security variables */
+DECLARE_GETSET (int, enable_private);
+DECLARE_GETSET (int, enable_universal_file_access);
+DECLARE_GETSET (int, enable_cross_file_access);
+DECLARE_GETSET (int, enable_hyperlink_auditing);
+DECLARE_GETSET (int, cookie_policy);
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+DECLARE_GETSET (int, enable_dns_prefetch);
+#endif
+#if WEBKIT_CHECK_VERSION (1, 11, 2)
+DECLARE_GETSET (int, display_insecure_content);
+DECLARE_GETSET (int, run_insecure_content);
+#endif
+DECLARE_SETTER (int, maintain_history);
+
 static const UzblVariableEntry
 builtin_variable_table[] = {
     /* name                           entry                                                type/callback */
@@ -170,7 +185,7 @@ builtin_variable_table[] = {
     { "display_insecure_content",     UZBL_V_FUNC (display_insecure_content,               INT)},
     { "run_insecure_content",         UZBL_V_FUNC (run_insecure_content,                   INT)},
 #endif
-    { "maintain_history",             UZBL_V_FUNC (maintain_history,                       INT)},
+    { "maintain_history",             UZBL_V_INT (uzbl.behave.maintain_history,            set_maintain_history)},
 
     /* Inspector variables */
     { "profile_js",                   UZBL_V_FUNC (profile_js,                             INT)},
@@ -402,6 +417,8 @@ static GObject *
 webkit_settings ();
 static GObject *
 soup_session ();
+static GObject *
+cookie_jar ();
 
 /* Communication variables */
 IMPLEMENT_SETTER (gchar *, fifo_dir)
@@ -693,6 +710,62 @@ CHOICE_GETSET (WebKitCacheModel, cache_model,
 
 #undef cache_model_choices
 
+/* Security variables */
+DECLARE_GETSET (int, enable_private_webkit);
+
+IMPLEMENT_GETTER (int, enable_private)
+{
+    return get_enable_private_webkit ();
+}
+
+IMPLEMENT_SETTER (int, enable_private)
+{
+    static const char *priv_envvar = "UZBL_PRIVATE";
+
+    if (enable_private) {
+        setenv (priv_envvar, "true", 1);
+    } else {
+        unsetenv (priv_envvar);
+    }
+
+    set_enable_private_webkit (enable_private);
+}
+
+GOBJECT_GETSET (int, enable_private_webkit,
+                webkit_settings (), "enable-private-browsing")
+
+GOBJECT_GETSET (int, enable_universal_file_access,
+                webkit_settings (), "enable-universal-access-from-file-urls")
+
+GOBJECT_GETSET (int, enable_cross_file_access,
+                webkit_settings (), "enable-file-access-from-file-urls")
+
+GOBJECT_GETSET (int, enable_hyperlink_auditing,
+                webkit_settings (), "enable-hyperlink-auditing")
+
+GOBJECT_GETSET (int, cookie_policy,
+                cookie_jar (), "accept-policy")
+
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+GOBJECT_GETSET (int, enable_dns_prefetch,
+                webkit_settings (), "enable-dns-prefetching")
+#endif
+
+#if WEBKIT_CHECK_VERSION (1, 11, 2)
+GOBJECT_GETSET (int, display_insecure_content,
+                webkit_settings (), "enable-display-of-insecure-content")
+
+GOBJECT_GETSET (int, run_insecure_content,
+                webkit_settings (), "enable-running-of-insecure-content")
+#endif
+
+IMPLEMENT_SETTER (int, maintain_history)
+{
+    uzbl.behave.maintain_history = maintain_history;
+
+    webkit_web_view_set_maintains_back_forward_list (uzbl.gui.web_view, maintain_history);
+}
+
 GObject *
 webkit_settings ()
 {
@@ -703,6 +776,12 @@ GObject *
 soup_session ()
 {
     return G_OBJECT (uzbl.net.soup_session);
+}
+
+GObject *
+cookie_jar ()
+{
+    return G_OBJECT (uzbl.net.soup_cookie_jar);
 }
 
 uzbl_cmdprop *
@@ -988,11 +1067,6 @@ string_is_integer(const char *s) {
 }
 
 
-static GObject *
-cookie_jar() {
-    return G_OBJECT(uzbl.net.soup_cookie_jar);
-}
-
 static gchar *
 make_uri_from_user_input(const gchar *uri) {
     gchar *result = NULL;
@@ -1072,20 +1146,6 @@ EXPOSE_WEB_INSPECTOR_SETTINGS(profile_timeline,   "timeline-profiling-enabled", 
 
 #undef EXPOSE_WEB_INSPECTOR_SETTINGS
 
-#define EXPOSE_SOUP_COOKIE_JAR_SETTINGS(SYM, PROPERTY, TYPE) \
-static void set_##SYM(TYPE val) { \
-  g_object_set(cookie_jar(), (PROPERTY), val, NULL); \
-} \
-static TYPE get_##SYM() { \
-  TYPE val; \
-  g_object_get(cookie_jar(), (PROPERTY), &val, NULL); \
-  return val; \
-}
-
-EXPOSE_SOUP_COOKIE_JAR_SETTINGS(cookie_policy,    "accept-policy",    int)
-
-#undef EXPOSE_SOUP_COOKIE_JAR_SETTINGS
-
 #define EXPOSE_WEBKIT_VIEW_VIEW_SETTINGS(SYM, PROPERTY, TYPE) \
 static void set_##SYM(TYPE val) { \
   g_object_set(uzbl.gui.web_view, (PROPERTY), val, NULL); \
@@ -1153,19 +1213,6 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_offline_app_cache,     "enable-offline-web-ap
 EXPOSE_WEBKIT_VIEW_SETTINGS(local_storage_path,           "html5-local-storage-database-path",         gchar *)
 #endif
 
-/* Security settings */
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_private_webkit,        "enable-private-browsing",                   int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_universal_file_access, "enable-universal-access-from-file-uris",    int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_cross_file_access,     "enable-file-access-from-file-uris",         int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_hyperlink_auditing,    "enable-hyperlink-auditing",                 int)
-#if WEBKIT_CHECK_VERSION (1, 3, 13)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_dns_prefetch,          "enable-dns-prefetching",                    int)
-#endif
-#if WEBKIT_CHECK_VERSION (1, 11, 2)
-EXPOSE_WEBKIT_VIEW_SETTINGS(display_insecure_content,     "enable-display-of-insecure-content",        int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(run_insecure_content,         "enable-running-of-insecure-content",        int)
-#endif
-
 /* Display settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(zoom_step,                    "zoom-step",                                 float)
 EXPOSE_WEBKIT_VIEW_SETTINGS(caret_browsing,               "enable-caret-browsing",                     int)
@@ -1220,18 +1267,6 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_site_workarounds,      "enable-site-specific-
 #undef EXPOSE_WEBKIT_VIEW_SETTINGS
 
 static void
-set_maintain_history (int maintain) {
-    uzbl.behave.maintain_history = maintain;
-
-    webkit_web_view_set_maintains_back_forward_list (uzbl.gui.web_view, maintain);
-}
-
-static int
-get_maintain_history () {
-    return uzbl.behave.maintain_history;
-}
-
-static void
 set_spellcheck_languages(const gchar *languages) {
   GObject *obj = webkit_get_text_checker ();
 
@@ -1253,23 +1288,6 @@ get_spellcheck_languages() {
   gchar *val;
   g_object_get(view_settings(), "spell-checking-languages", &val, NULL);
   return val;
-}
-
-static void
-set_enable_private (int private) {
-    const char *priv_envvar = "UZBL_PRIVATE";
-
-    if (private)
-        setenv (priv_envvar, "true", 1);
-    else
-        unsetenv (priv_envvar);
-
-    set_enable_private_webkit (private);
-}
-
-static int
-get_enable_private () {
-    return get_enable_private_webkit ();
 }
 
 static void
