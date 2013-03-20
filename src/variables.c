@@ -235,6 +235,9 @@ DECLARE_GETSET (unsigned long long, web_database_quota);
 DECLARE_GETSET (gchar *, local_storage_path);
 #endif
 
+/* Hacks */
+DECLARE_GETSET (int, enable_site_workarounds);
+
 static const UzblVariableEntry
 builtin_variable_table[] = {
     /* name                           entry                                                type/callback */
@@ -1406,6 +1409,10 @@ GOBJECT_GETSET (gchar *, local_storage_path,
                 webkit_settings (), "html5-local-storage-database-path")
 #endif
 
+/* Hacks */
+GOBJECT_GETSET (int, enable_site_workarounds,
+                webkit_settings (), "enable-site-specific-quirks")
+
 GObject *
 webkit_settings ()
 {
@@ -1711,21 +1718,6 @@ void
 dump_config_as_events() {
     g_hash_table_foreach(uzbl.behave.proto_var, dump_var_hash_as_event, NULL);
 }
-
-#define EXPOSE_WEBKIT_VIEW_SETTINGS(SYM, PROPERTY, TYPE) \
-static void set_##SYM(TYPE val) { \
-  g_object_set(view_settings(), (PROPERTY), val, NULL); \
-} \
-static TYPE get_##SYM() { \
-  TYPE val; \
-  g_object_get(view_settings(), (PROPERTY), &val, NULL); \
-  return val; \
-}
-
-/* Hacks */
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_site_workarounds,      "enable-site-specific-quirks",               int)
-
-#undef EXPOSE_WEBKIT_VIEW_SETTINGS
 
 static void
 set_inject_html(const gchar *html) {
