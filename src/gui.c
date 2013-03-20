@@ -412,7 +412,9 @@ get_click_context ()
     }
 
     ht = webkit_web_view_get_hit_test_result (uzbl.gui.web_view, uzbl.state.last_button);
-    g_object_get (ht, "context", &context, NULL);
+    g_object_get (ht,
+        "context", &context,
+        NULL);
     g_object_unref (ht);
 
     return (gint)context;
@@ -534,7 +536,9 @@ uri_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
     UZBL_UNUSED (data);
 
     g_free (uzbl.state.uri);
-    g_object_get (view, "uri", &uzbl.state.uri, NULL);
+    g_object_get (view,
+        "uri", &uzbl.state.uri,
+        NULL);
 
     /* TODO: Collect all environment settings into one place. */
     g_setenv ("UZBL_URI", uzbl.state.uri, TRUE);
@@ -723,18 +727,28 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
     const gchar *suggested_filename;
 #ifdef USE_WEBKIT2
     WebKitURIResponse *response;
-    g_object_get (download, "network-response", &response, NULL);
+    g_object_get (download,
+        "network-response", &response,
+        NULL);
 #if WEBKIT_CHECK_VERSION (1, 9, 90)
-    g_object_get (response, "suggested-filename", &suggested_filename, NULL);
+    g_object_get (response,
+        "suggested-filename", &suggested_filename,
+        NULL);
 #else
     suggested_filename = webkit_uri_response_get_suggested_filename (respose);
 #endif
 #elif WEBKIT_CHECK_VERSION (1, 9, 6)
     WebKitNetworkResponse *response;
-    g_object_get (download, "network-response", &response, NULL);
-    g_object_get (response, "suggested-filename", &suggested_filename, NULL);
+    g_object_get (download,
+        "network-response", &response,
+        NULL);
+    g_object_get (response,
+        "suggested-filename", &suggested_filename,
+        NULL);
 #else
-    g_object_get (download, "suggested-filename", &suggested_filename, NULL);
+    g_object_get (download,
+        "suggested-filename", &suggested_filename,
+        NULL);
 #endif
 
     /* Get the mimetype of the download. */
@@ -745,7 +759,9 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
     if (WEBKIT_IS_NETWORK_RESPONSE (net_response)) {
         SoupMessage        *message = webkit_network_response_get_message (net_response);
         SoupMessageHeaders *headers = NULL;
-        g_object_get (message, "response-headers", &headers, NULL);
+        g_object_get (message,
+            "response-headers", &headers,
+            NULL);
         /* Some versions of libsoup don't have "response-headers" here. */
         if (headers) {
             content_type = soup_message_headers_get_one (headers, "Content-Type");
@@ -836,7 +852,9 @@ download_progress_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer
     UZBL_UNUSED (data);
 
     gdouble progress;
-    g_object_get (download, "progress", &progress, NULL);
+    g_object_get (download,
+        "progress", &progress,
+        NULL);
 
     const gchar *dest_uri = webkit_download_get_destination_uri (download);
     const gchar *dest_path = dest_uri + strlen ("file://");
@@ -854,7 +872,9 @@ download_status_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer d
     UZBL_UNUSED (data);
 
     WebKitDownloadStatus status;
-    g_object_get (download, "status", &status, NULL);
+    g_object_get (download,
+        "status", &status,
+        NULL);
 
     switch (status) {
         case WEBKIT_DOWNLOAD_STATUS_CREATED:
@@ -1087,7 +1107,9 @@ populate_context_menu (GtkMenu *menu, WebKitHitTestResult *hit_test_result, gint
         gboolean is_image = (menu_item->context & WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE);
 
         if (is_image) {
-            g_object_get (hit_test_result, "image-uri", &menu_item->argument, NULL);
+            g_object_get (hit_test_result,
+                "image-uri", &menu_item->argument,
+                NULL);
         }
 
         if (menu_item->issep) {
