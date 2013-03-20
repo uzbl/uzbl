@@ -1,5 +1,6 @@
 #include "variables.h"
 
+#include "gui.h"
 #include "io.h"
 #include "type.h"
 #include "util.h"
@@ -122,6 +123,37 @@ DECLARE_GETSET (int, profile_timeline);
 #if WEBKIT_CHECK_VERSION (1, 3, 17)
 DECLARE_GETTER (gchar *, inspected_uri);
 #endif
+
+/* Page variables */
+DECLARE_SETTER (gchar *, uri);
+DECLARE_SETTER (gchar *, useragent);
+DECLARE_SETTER (gchar *, accept_languages);
+DECLARE_SETTER (int, view_source);
+DECLARE_GETSET (float, zoom_level);
+DECLARE_GETSET (float, zoom_step);
+#ifndef USE_WEBKIT2
+DECLARE_GETSET (int, zoom_type);
+#endif
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 7, 91)
+DECLARE_GETSET (int, zoom_text_only);
+#endif
+#endif
+DECLARE_GETSET (int, caret_browsing);
+#if WEBKIT_CHECK_VERSION (1, 3, 5)
+DECLARE_GETSET (int, enable_frame_flattening);
+#endif
+#if WEBKIT_CHECK_VERSION (1, 9, 0)
+DECLARE_GETSET (int, enable_smooth_scrolling);
+#endif
+DECLARE_GETSET (int, transparent);
+#if WEBKIT_CHECK_VERSION (1, 3, 4)
+DECLARE_GETSET (gchar *, view_mode);
+#endif
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+DECLARE_GETSET (int, enable_fullscreen);
+#endif
+DECLARE_GETSET (int, editable);
 
 static const UzblVariableEntry
 builtin_variable_table[] = {
@@ -428,6 +460,8 @@ static GObject *
 cookie_jar ();
 static GObject *
 inspector ();
+static GObject *
+webkit_view ();
 
 /* Communication variables */
 IMPLEMENT_SETTER (gchar *, fifo_dir)
@@ -789,6 +823,208 @@ IMPLEMENT_GETTER (gchar *, inspected_uri)
 }
 #endif
 
+/* Page variables */
+static gchar *
+make_uri_from_user_input (const gchar *uri);
+
+IMPLEMENT_SETTER (gchar *, uri)
+{
+    /* Strip leading whitespace. */
+    while (*uri && isspace (*uri)) {
+        ++uri;
+    }
+
+    /* Don't do anything when given a blank URL. */
+    if (!uri[0]) {
+        return;
+    }
+
+    g_free (uzbl.state.uri);
+    uzbl.state.uri = g_strdup (uri);
+
+    /* Evaluate javascript: URIs. */
+    /* TODO: Use strprefix. */
+    if (!strncmp (uri, "javascript:", 11)) {
+        eval_js (uzbl.gui.web_view, uri, NULL, "javascript:");
+        return;
+    }
+
+    /* Attempt to parse the URI. */
+    gchar *newuri = make_uri_from_user_input (uri);
+
+    /* TODO: Collect all environment settings into one place. */
+    set_window_property ("UZBL_URI", newuri);
+    webkit_web_view_load_uri (uzbl.gui.web_view, newuri);
+
+    g_free (newuri);
+}
+
+static gboolean
+string_is_integer (const char *s);
+
+gchar *
+make_uri_from_user_input (const gchar *uri)
+{
+    gchar *result = NULL;
+
+    SoupURI *soup_uri = soup_uri_new (uri);
+    if (soup_uri) {
+        /* This looks like a valid URI. */
+        if (!soup_uri->host && string_is_integer (soup_uri->path)) {
+            /* The user probably typed in a host:port without a scheme. */
+            /* TODO: Add an option to default to https? */
+            result = g_strconcat("http://", uri, NULL);
+        } else {
+            result = g_strdup (uri);
+        }
+
+        soup_uri_free (soup_uri);
+
+        return result;
+    }
+
+    /* It's not a valid URI, maybe it's a path on the filesystem? Check to see
+     * if such a path exists. */
+    if (file_exists (uri)) {
+        if (g_path_is_absolute (uri)) {
+            return g_strconcat ("file://", uri, NULL);
+        }
+
+        /* Make it into an absolute path */
+        gchar *wd = g_get_current_dir ();
+        result = g_strconcat ("file://", wd, "/", uri, NULL);
+        g_free (wd);
+
+        return result;
+    }
+
+    /* Not a path on the filesystem, just assume it's an HTTP URL. */
+    return g_strconcat ("http://", uri, NULL);
+}
+
+gboolean
+string_is_integer (const char *s)
+{
+    /* Is the given string made up entirely of decimal digits? */
+    return (strspn (s, "0123456789") == strlen (s));
+}
+
+IMPLEMENT_SETTER (gchar *, useragent)
+{
+    g_free (uzbl.net.useragent);
+
+    if (!useragent || !*useragent) {
+        uzbl.net.useragent = NULL;
+    } else {
+        uzbl.net.useragent = g_strdup (useragent);
+
+        g_object_set (G_OBJECT (uzbl.net.soup_session),
+            SOUP_SESSION_USER_AGENT, uzbl.net.useragent,
+            NULL);
+        g_object_set (webkit_settings (),
+            "user-agent", uzbl.net.useragent,
+            NULL);
+    }
+}
+
+IMPLEMENT_SETTER (gchar *, accept_languages)
+{
+    g_free (uzbl.net.accept_languages);
+
+    if (!*accept_languages || *accept_languages == ' ') {
+        uzbl.net.accept_languages = NULL;
+    } else {
+        uzbl.net.accept_languages = g_strdup (accept_languages);
+
+        g_object_set (G_OBJECT (uzbl.net.soup_session),
+            SOUP_SESSION_ACCEPT_LANGUAGE, uzbl.net.accept_languages,
+            NULL);
+    }
+}
+
+IMPLEMENT_SETTER (int, view_source)
+{
+    uzbl.behave.view_source = view_source;
+
+    webkit_web_view_set_view_source_mode (uzbl.gui.web_view, uzbl.behave.view_source);
+}
+
+IMPLEMENT_GETTER (float, zoom_level)
+{
+    return webkit_web_view_get_zoom_level (uzbl.gui.web_view);
+}
+
+IMPLEMENT_SETTER (float, zoom_level)
+{
+    webkit_web_view_set_zoom_level (uzbl.gui.web_view, zoom_level);
+}
+
+GOBJECT_GETSET (float, zoom_step,
+                webkit_settings (), "zoom-step")
+
+#ifndef USE_WEBKIT2
+IMPLEMENT_GETTER (int, zoom_type)
+{
+    return webkit_web_view_get_full_content_zoom (uzbl.gui.web_view);
+}
+
+IMPLEMENT_SETTER (int, zoom_type)
+{
+    webkit_web_view_set_full_content_zoom (uzbl.gui.web_view, zoom_type);
+}
+#endif
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 7, 91)
+GOBJECT_GETSET (int, zoom_text_only,
+                webkit_settings (), "zoom-text-only")
+#endif
+#endif
+
+GOBJECT_GETSET (int, caret_browsing,
+                webkit_settings (), "enable-caret-browsing")
+
+#if WEBKIT_CHECK_VERSION (1, 3, 5)
+GOBJECT_GETSET (int, enable_frame_flattening,
+                webkit_settings (), "enable-frame-flattening")
+#endif
+
+#if WEBKIT_CHECK_VERSION (1, 9, 0)
+GOBJECT_GETSET (int, enable_smooth_scrolling,
+                webkit_settings (), "enable-smooth-scrolling")
+#endif
+
+GOBJECT_GETSET (int, transparent,
+                webkit_view (), "transparent")
+
+#if WEBKIT_CHECK_VERSION (1, 3, 4)
+#define view_mode_choices(call)                             \
+    call (WEBKIT_WEB_VIEW_VIEW_MODE_WINDOWED, "windowed")   \
+    call (WEBKIT_WEB_VIEW_VIEW_MODE_FLOATING, "floating")   \
+    call (WEBKIT_WEB_VIEW_VIEW_MODE_MAXIMIZED, "maximized") \
+    call (WEBKIT_WEB_VIEW_VIEW_MODE_MINIMIZED, "minimized")
+
+#define _webkit_web_view_get_view_mode() \
+    webkit_web_view_get_view_mode (uzbl.gui.web_view)
+#define _webkit_web_view_set_view_mode(val) \
+    webkit_web_view_set_view_mode (uzbl.gui.web_view, val)
+
+CHOICE_GETSET (WebKitWebViewViewMode, view_mode,
+               _webkit_web_view_get_view_mode, _webkit_web_view_set_view_mode)
+
+#undef _webkit_web_view_get_view_mode
+#undef _webkit_web_view_set_view_mode
+#undef view_mode_choices
+#endif
+
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+GOBJECT_GETSET (int, enable_fullscreen,
+                webkit_settings (), "enable-fullscreen")
+#endif
+
+GOBJECT_GETSET (int, editable,
+                webkit_view (), "editable")
+
 GObject *
 webkit_settings ()
 {
@@ -811,6 +1047,12 @@ GObject *
 inspector ()
 {
     return G_OBJECT (uzbl.gui.inspector);
+}
+
+GObject *
+webkit_view ()
+{
+    return G_OBJECT (uzbl.gui.web_view);
 }
 
 uzbl_cmdprop *
@@ -1089,92 +1331,6 @@ dump_config_as_events() {
     g_hash_table_foreach(uzbl.behave.proto_var, dump_var_hash_as_event, NULL);
 }
 
-/* is the given string made up entirely of decimal digits? */
-static gboolean
-string_is_integer(const char *s) {
-    return (strspn(s, "0123456789") == strlen(s));
-}
-
-
-static gchar *
-make_uri_from_user_input(const gchar *uri) {
-    gchar *result = NULL;
-
-    SoupURI *soup_uri = soup_uri_new(uri);
-    if (soup_uri) {
-        /* this looks like a valid URI. */
-        if(soup_uri->host == NULL && string_is_integer(soup_uri->path))
-            /* the user probably typed in a host:port without a scheme. */
-            result = g_strconcat("http://", uri, NULL);
-        else
-            result = g_strdup(uri);
-
-        soup_uri_free(soup_uri);
-
-        return result;
-    }
-
-    /* it's not a valid URI, maybe it's a path on the filesystem?
-     * check to see if such a path exists. */
-    if (file_exists(uri)) {
-        if (g_path_is_absolute (uri))
-            return g_strconcat("file://", uri, NULL);
-
-        /* make it into an absolute path */
-        gchar *wd = g_get_current_dir ();
-        result = g_strconcat("file://", wd, "/", uri, NULL);
-        g_free(wd);
-
-        return result;
-    }
-
-    /* not a path on the filesystem, just assume it's an HTTP URL. */
-    return g_strconcat("http://", uri, NULL);
-}
-
-static void
-set_uri(const gchar *uri) {
-    /* Strip leading whitespace */
-    while (*uri && isspace(*uri))
-        uri++;
-
-    /* don't do anything when given a blank URL */
-    if(uri[0] == 0)
-        return;
-
-    g_free(uzbl.state.uri);
-    uzbl.state.uri = g_strdup(uri);
-
-    /* evaluate javascript: URIs */
-    if (!strncmp (uri, "javascript:", 11)) {
-        eval_js(uzbl.gui.web_view, uri, NULL, "javascript:");
-        return;
-    }
-
-    /* attempt to parse the URI */
-    gchar *newuri = make_uri_from_user_input(uri);
-
-    set_window_property("UZBL_URI", newuri);
-    webkit_web_view_load_uri (uzbl.gui.web_view, newuri);
-
-    g_free (newuri);
-}
-
-#define EXPOSE_WEBKIT_VIEW_VIEW_SETTINGS(SYM, PROPERTY, TYPE) \
-static void set_##SYM(TYPE val) { \
-  g_object_set(uzbl.gui.web_view, (PROPERTY), val, NULL); \
-} \
-static TYPE get_##SYM() { \
-  TYPE val; \
-  g_object_get(uzbl.gui.web_view, (PROPERTY), &val, NULL); \
-  return val; \
-}
-
-EXPOSE_WEBKIT_VIEW_VIEW_SETTINGS(editable,                "editable",                                  int)
-EXPOSE_WEBKIT_VIEW_VIEW_SETTINGS(transparent,             "transparent",                               int)
-
-#undef EXPOSE_WEBKIT_VIEW_SETTINGS
-
 #define EXPOSE_WEBKIT_VIEW_SETTINGS(SYM, PROPERTY, TYPE) \
 static void set_##SYM(TYPE val) { \
   g_object_set(view_settings(), (PROPERTY), val, NULL); \
@@ -1225,24 +1381,6 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(enable_pagecache,             "enable-page-cache",  
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_offline_app_cache,     "enable-offline-web-application-cache",      int)
 #if WEBKIT_CHECK_VERSION (1, 5, 2)
 EXPOSE_WEBKIT_VIEW_SETTINGS(local_storage_path,           "html5-local-storage-database-path",         gchar *)
-#endif
-
-/* Display settings */
-EXPOSE_WEBKIT_VIEW_SETTINGS(zoom_step,                    "zoom-step",                                 float)
-EXPOSE_WEBKIT_VIEW_SETTINGS(caret_browsing,               "enable-caret-browsing",                     int)
-#if WEBKIT_CHECK_VERSION (1, 3, 5)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_frame_flattening,      "enable-frame-flattening",                   int)
-#endif
-#if WEBKIT_CHECK_VERSION (1, 3, 8)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_fullscreen,            "enable-fullscreen",                         int)
-#endif
-#ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 7, 91)
-EXPOSE_WEBKIT_VIEW_SETTINGS(zoom_text_only,               "zoom-text-only",                            int)
-#endif
-#endif
-#if WEBKIT_CHECK_VERSION (1, 9, 0)
-EXPOSE_WEBKIT_VIEW_SETTINGS(enable_smooth_scrolling,      "enable-smooth-scrolling",                   int)
 #endif
 
 /* Javascript settings */
@@ -1333,65 +1471,6 @@ set_inject_html(const gchar *html) {
 #endif
 }
 
-static void
-set_useragent(const gchar *useragent) {
-    g_free(uzbl.net.useragent);
-
-    if (!useragent || !*useragent) {
-        uzbl.net.useragent = NULL;
-    } else {
-        uzbl.net.useragent = g_strdup(useragent);
-
-        g_object_set(G_OBJECT(uzbl.net.soup_session), SOUP_SESSION_USER_AGENT,
-            uzbl.net.useragent, NULL);
-        g_object_set(view_settings(), "user-agent", uzbl.net.useragent, NULL);
-    }
-}
-
-static void
-set_accept_languages(const gchar *accept_languages) {
-    g_free(uzbl.net.accept_languages);
-
-    if (*accept_languages == ' ') {
-        uzbl.net.accept_languages = NULL;
-    } else {
-        uzbl.net.accept_languages = g_strdup(accept_languages);
-
-        g_object_set(G_OBJECT(uzbl.net.soup_session),
-            SOUP_SESSION_ACCEPT_LANGUAGE, uzbl.net.accept_languages, NULL);
-    }
-}
-
-static void
-set_view_source(int view_source) {
-    uzbl.behave.view_source = view_source;
-
-    webkit_web_view_set_view_source_mode(uzbl.gui.web_view,
-            (gboolean) uzbl.behave.view_source);
-}
-
-#ifndef USE_WEBKIT2
-void
-set_zoom_type (int type) {
-    webkit_web_view_set_full_content_zoom (uzbl.gui.web_view, type);
-}
-
-int
-get_zoom_type () {
-    return webkit_web_view_get_full_content_zoom (uzbl.gui.web_view);
-}
-#endif
-
-static void
-set_zoom_level(float zoom_level) {
-    webkit_web_view_set_zoom_level (uzbl.gui.web_view, zoom_level);
-}
-
-static float
-get_zoom_level() {
-    return webkit_web_view_get_zoom_level (uzbl.gui.web_view);
-}
-
 static gchar *
 get_web_database_directory() {
     return g_strdup (webkit_get_web_database_directory_path ());
@@ -1411,43 +1490,6 @@ static void
 set_web_database_directory(const gchar *path) {
     webkit_set_web_database_directory_path (path);
 }
-
-#if WEBKIT_CHECK_VERSION (1, 3, 4)
-static gchar *
-get_view_mode() {
-    WebKitWebViewViewMode mode = webkit_web_view_get_view_mode (uzbl.gui.web_view);
-
-    switch (mode) {
-    case WEBKIT_WEB_VIEW_VIEW_MODE_WINDOWED:
-        return g_strdup("windowed");
-    case WEBKIT_WEB_VIEW_VIEW_MODE_FLOATING:
-        return g_strdup("floating");
-    case WEBKIT_WEB_VIEW_VIEW_MODE_FULLSCREEN:
-        return g_strdup("fullscreen");
-    case WEBKIT_WEB_VIEW_VIEW_MODE_MAXIMIZED:
-        return g_strdup("maximized");
-    case WEBKIT_WEB_VIEW_VIEW_MODE_MINIMIZED:
-        return g_strdup("minimized");
-    default:
-        return g_strdup("unknown");
-    }
-}
-
-static void
-set_view_mode(const gchar *mode) {
-    if (!g_strcmp0 (mode, "windowed")) {
-        webkit_web_view_set_view_mode (uzbl.gui.web_view, WEBKIT_WEB_VIEW_VIEW_MODE_WINDOWED);
-    } else if (!g_strcmp0 (mode, "floating")) {
-        webkit_web_view_set_view_mode (uzbl.gui.web_view, WEBKIT_WEB_VIEW_VIEW_MODE_FLOATING);
-    } else if (!g_strcmp0 (mode, "fullscreen")) {
-        webkit_web_view_set_view_mode (uzbl.gui.web_view, WEBKIT_WEB_VIEW_VIEW_MODE_FULLSCREEN);
-    } else if (!g_strcmp0 (mode, "maximized")) {
-        webkit_web_view_set_view_mode (uzbl.gui.web_view, WEBKIT_WEB_VIEW_VIEW_MODE_MAXIMIZED);
-    } else if (!g_strcmp0 (mode, "minimized")) {
-        webkit_web_view_set_view_mode (uzbl.gui.web_view, WEBKIT_WEB_VIEW_VIEW_MODE_MINIMIZED);
-    }
-}
-#endif
 
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
 static gchar *
