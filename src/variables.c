@@ -191,6 +191,11 @@ DECLARE_GETSET (gchar *, serif_font_family);
 DECLARE_GETSET (gchar *, cursive_font_family);
 DECLARE_GETSET (gchar *, fantasy_font_family);
 
+/* Font size variables */
+DECLARE_GETSET (int, minimum_font_size);
+DECLARE_GETSET (int, font_size);
+DECLARE_GETSET (int, monospace_size);
+
 static const UzblVariableEntry
 builtin_variable_table[] = {
     /* name                           entry                                                type/callback */
@@ -1174,6 +1179,16 @@ GOBJECT_GETSET (gchar *, cursive_font_family,
 GOBJECT_GETSET (gchar *, fantasy_font_family,
                 webkit_settings (), "fantasy-font-family")
 
+/* Font size variables */
+GOBJECT_GETSET (int, minimum_font_size,
+                webkit_settings (), "minimum-font-size")
+
+GOBJECT_GETSET (int, font_size,
+                webkit_settings (), "default-font-size")
+
+GOBJECT_GETSET (int, monospace_size,
+                webkit_settings (), "monospace-font-size")
+
 GObject *
 webkit_settings ()
 {
@@ -1489,11 +1504,6 @@ static TYPE get_##SYM() { \
   g_object_get(view_settings(), (PROPERTY), &val, NULL); \
   return val; \
 }
-
-/* Font size settings */
-EXPOSE_WEBKIT_VIEW_SETTINGS(minimum_font_size,            "minimum-font-size",                         int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(font_size,                    "default-font-size",                         int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(monospace_size,               "default-monospace-font-size",               int)
 
 /* Feature settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_plugins,               "enable-plugins",                            int)
