@@ -163,6 +163,10 @@ DECLARE_GETSET (int, javascript_dom_paste);
 DECLARE_GETSET (int, javascript_clipboard);
 #endif
 
+/* Image variables */
+DECLARE_GETSET (int, autoload_images);
+DECLARE_GETSET (int, autoshrink_images);
+
 static const UzblVariableEntry
 builtin_variable_table[] = {
     /* name                           entry                                                type/callback */
@@ -1048,6 +1052,13 @@ GOBJECT_GETSET (int, javascript_clipboard,
                 webkit_settings (), "javascript-can-access-clipboard")
 #endif
 
+/* Image variables */
+GOBJECT_GETSET (int, autoload_images,
+                webkit_settings (), "auto-load-images")
+
+GOBJECT_GETSET (int, autoshrink_images,
+                webkit_settings (), "auto-shrink-images")
+
 GObject *
 webkit_settings ()
 {
@@ -1414,10 +1425,6 @@ EXPOSE_WEBKIT_VIEW_SETTINGS(require_click_to_play,        "media-playback-requir
 #if WEBKIT_CHECK_VERSION (1, 11, 1)
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_media_stream,          "enable-media-stream",                       int)
 #endif
-
-/* Image settings */
-EXPOSE_WEBKIT_VIEW_SETTINGS(autoload_images,              "auto-load-images",                          int)
-EXPOSE_WEBKIT_VIEW_SETTINGS(autoshrink_images,            "auto-shrink-images",                        int)
 
 /* Spell checking settings */
 EXPOSE_WEBKIT_VIEW_SETTINGS(enable_spellcheck,            "enable-spell-checking",                     int)
