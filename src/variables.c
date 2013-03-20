@@ -92,6 +92,15 @@ DECLARE_GETSET (int, default_context_menu);
 /* Printing variables */
 DECLARE_GETSET (int, print_backgrounds);
 
+/* Network variables */
+DECLARE_SETTER (gchar *, proxy_url);
+DECLARE_SETTER (int, max_conns);
+DECLARE_SETTER (int, max_conns_host);
+DECLARE_SETTER (int, http_debug);
+DECLARE_GETSET (gchar *, ssl_ca_file);
+DECLARE_GETSET (int, ssl_verify);
+DECLARE_GETSET (gchar *, cache_model);
+
 static const UzblVariableEntry
 builtin_variable_table[] = {
     /* name                           entry                                                type/callback */
@@ -144,8 +153,8 @@ builtin_variable_table[] = {
     { "max_conns",                    UZBL_V_INT (uzbl.net.max_conns,                      set_max_conns)},
     { "max_conns_host",               UZBL_V_INT (uzbl.net.max_conns_host,                 set_max_conns_host)},
     { "http_debug",                   UZBL_V_INT (uzbl.behave.http_debug,                  set_http_debug)},
-    { "ssl_ca_file",                  UZBL_V_FUNC (ca_file,                                STR)},
-    { "ssl_verify",                   UZBL_V_FUNC (verify_cert,                            INT)},
+    { "ssl_ca_file",                  UZBL_V_FUNC (ssl_ca_file,                            STR)},
+    { "ssl_verify",                   UZBL_V_FUNC (ssl_verify,                             INT)},
     { "cache_model",                  UZBL_V_FUNC (cache_model,                            STR)},
 
     /* Security variables */
@@ -352,8 +361,47 @@ uzbl_variables_init ()
             NULL);                            \
     }
 
+#define ENUM_TO_STRING(val, str) \
+    case val:                    \
+        out = str;               \
+        break;
+#define STRING_TO_ENUM(val, str) \
+    if (!g_strcmp0 (in, str)) {  \
+        out = val;               \
+    } else
+
+#define CHOICE_GETSET(type, name, get, set) \
+    IMPLEMENT_GETTER (gchar *, name)        \
+    {                                       \
+        type val = get ();                  \
+        gchar *out = "unknown";             \
+                                            \
+        switch (val) {                      \
+            name##_choices (ENUM_TO_STRING) \
+            default:                        \
+                break;                      \
+        }                                   \
+                                            \
+        return g_strdup (out);              \
+    }                                       \
+                                            \
+    IMPLEMENT_SETTER (gchar *, name)        \
+    {                                       \
+        type out;                           \
+        const gchar *in = name;             \
+                                            \
+        name##_choices (STRING_TO_ENUM)     \
+        {                                   \
+            return;                         \
+        }                                   \
+                                            \
+        set (out);                          \
+    }
+
 static GObject *
 webkit_settings ();
+static GObject *
+soup_session ();
 
 /* Communication variables */
 IMPLEMENT_SETTER (gchar *, fifo_dir)
@@ -575,10 +623,86 @@ GOBJECT_GETSET (int, default_context_menu,
 GOBJECT_GETSET (int, print_backgrounds,
                 webkit_settings (), "print-backgrounds")
 
+/* Network variables */
+IMPLEMENT_SETTER (gchar *, proxy_url)
+{
+    g_free (uzbl.net.proxy_url);
+    uzbl.net.proxy_url = g_strdup (proxy_url);
+
+    const gchar *url = uzbl.net.proxy_url;
+    SoupSession *session  = uzbl.net.soup_session;
+    SoupURI     *soup_uri = NULL;
+
+    if (url && *url && *url != ' ') {
+        soup_uri = soup_uri_new (url);
+    }
+
+    g_object_set (G_OBJECT (session),
+        SOUP_SESSION_PROXY_URI, soup_uri,
+        NULL);
+
+    soup_uri_free (soup_uri);
+}
+
+IMPLEMENT_SETTER (int, max_conns)
+{
+    uzbl.net.max_conns = max_conns;
+
+    g_object_set (G_OBJECT (uzbl.net.soup_session),
+        SOUP_SESSION_MAX_CONNS, uzbl.net.max_conns,
+        NULL);
+}
+
+IMPLEMENT_SETTER (int, max_conns_host)
+{
+    uzbl.net.max_conns_host = max_conns_host;
+
+    g_object_set (G_OBJECT (uzbl.net.soup_session),
+        SOUP_SESSION_MAX_CONNS_PER_HOST, uzbl.net.max_conns_host,
+        NULL);
+}
+
+IMPLEMENT_SETTER (int, http_debug)
+{
+    uzbl.behave.http_debug = http_debug;
+
+    if (uzbl.net.soup_logger) {
+        soup_session_remove_feature (
+            uzbl.net.soup_session, SOUP_SESSION_FEATURE (uzbl.net.soup_logger));
+        g_object_unref (uzbl.net.soup_logger);
+    }
+
+    uzbl.net.soup_logger = soup_logger_new (uzbl.behave.http_debug, -1);
+    soup_session_add_feature (
+        uzbl.net.soup_session, SOUP_SESSION_FEATURE (uzbl.net.soup_logger));
+}
+
+GOBJECT_GETSET (gchar *, ssl_ca_file,
+                soup_session (), "ssl-ca-file")
+
+GOBJECT_GETSET (int, ssl_verify,
+                soup_session (), "ssl-strict")
+
+#define cache_model_choices(call)                                 \
+    call (WEBKIT_CACHE_MODEL_DOCUMENT_VIEWER , "document_viewer") \
+    call (WEBKIT_CACHE_MODEL_WEB_BROWSER,      "web_browser")     \
+    call (WEBKIT_CACHE_MODEL_DOCUMENT_BROWSER, "document_browser")
+
+CHOICE_GETSET (WebKitCacheModel, cache_model,
+               webkit_get_cache_model, webkit_set_cache_model)
+
+#undef cache_model_choices
+
 GObject *
 webkit_settings ()
 {
     return G_OBJECT (webkit_web_view_get_settings (uzbl.gui.web_view));
+}
+
+GObject *
+soup_session ()
+{
+    return G_OBJECT (uzbl.net.soup_session);
 }
 
 uzbl_cmdprop *
@@ -933,49 +1057,6 @@ set_uri(const gchar *uri) {
     g_free (newuri);
 }
 
-static void
-set_max_conns(int max_conns) {
-    uzbl.net.max_conns = max_conns;
-
-    g_object_set(G_OBJECT(uzbl.net.soup_session),
-            SOUP_SESSION_MAX_CONNS, uzbl.net.max_conns, NULL);
-}
-
-static void
-set_max_conns_host(int max_conns_host) {
-    uzbl.net.max_conns_host = max_conns_host;
-
-    g_object_set(G_OBJECT(uzbl.net.soup_session),
-            SOUP_SESSION_MAX_CONNS_PER_HOST, uzbl.net.max_conns_host, NULL);
-}
-
-static void
-set_http_debug(int debug) {
-    uzbl.behave.http_debug = debug;
-
-    if(uzbl.net.soup_logger) {
-        soup_session_remove_feature
-            (uzbl.net.soup_session, SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
-        g_object_unref (uzbl.net.soup_logger);
-    }
-
-    uzbl.net.soup_logger = soup_logger_new(uzbl.behave.http_debug, -1);
-    soup_session_add_feature(uzbl.net.soup_session,
-            SOUP_SESSION_FEATURE(uzbl.net.soup_logger));
-}
-
-static void
-set_ca_file(gchar *path) {
-    g_object_set (uzbl.net.soup_session, "ssl-ca-file", path, NULL);
-}
-
-static gchar *
-get_ca_file() {
-    gchar *path;
-    g_object_get (uzbl.net.soup_session, "ssl-ca-file", &path, NULL);
-    return path;
-}
-
 #define EXPOSE_WEB_INSPECTOR_SETTINGS(SYM, PROPERTY, TYPE) \
 static void set_##SYM(TYPE val) { \
   g_object_set(uzbl.gui.inspector, (PROPERTY), val, NULL); \
@@ -990,20 +1071,6 @@ EXPOSE_WEB_INSPECTOR_SETTINGS(profile_js,         "javascript-profiling-enabled"
 EXPOSE_WEB_INSPECTOR_SETTINGS(profile_timeline,   "timeline-profiling-enabled",         gchar *)
 
 #undef EXPOSE_WEB_INSPECTOR_SETTINGS
-
-#define EXPOSE_SOUP_SESSION_SETTINGS(SYM, PROPERTY, TYPE) \
-static void set_##SYM(TYPE val) { \
-  g_object_set(uzbl.net.soup_session, (PROPERTY), val, NULL); \
-} \
-static TYPE get_##SYM() { \
-  TYPE val; \
-  g_object_get(uzbl.net.soup_session, (PROPERTY), &val, NULL); \
-  return val; \
-}
-
-EXPOSE_SOUP_SESSION_SETTINGS(verify_cert,      "ssl-strict",       int)
-
-#undef EXPOSE_SOUP_SESSION_SETTINGS
 
 #define EXPOSE_SOUP_COOKIE_JAR_SETTINGS(SYM, PROPERTY, TYPE) \
 static void set_##SYM(TYPE val) { \
@@ -1206,24 +1273,6 @@ get_enable_private () {
 }
 
 static void
-set_proxy_url(const gchar *proxy_url) {
-    g_free(uzbl.net.proxy_url);
-    uzbl.net.proxy_url = g_strdup(proxy_url);
-
-    const gchar *url = uzbl.net.proxy_url;
-    SoupSession *session  = uzbl.net.soup_session;
-    SoupURI     *soup_uri = NULL;
-
-    if (url != NULL || *url != 0 || *url != ' ')
-        soup_uri = soup_uri_new(url);
-
-    g_object_set(G_OBJECT(session), SOUP_SESSION_PROXY_URI, soup_uri, NULL);
-
-    if(soup_uri)
-        soup_uri_free(soup_uri);
-}
-
-static void
 set_custom_encoding(const gchar *encoding) {
     if(strlen(encoding) == 0)
         encoding = NULL;
@@ -1309,35 +1358,6 @@ set_zoom_level(float zoom_level) {
 static float
 get_zoom_level() {
     return webkit_web_view_get_zoom_level (uzbl.gui.web_view);
-}
-
-static gchar *
-get_cache_model() {
-    WebKitCacheModel model = webkit_get_cache_model ();
-
-    switch (model) {
-    case WEBKIT_CACHE_MODEL_DOCUMENT_VIEWER:
-        return g_strdup("document_viewer");
-    case WEBKIT_CACHE_MODEL_WEB_BROWSER:
-        return g_strdup("web_browser");
-    case WEBKIT_CACHE_MODEL_DOCUMENT_BROWSER:
-        return g_strdup("document_browser");
-    default:
-        return g_strdup("unknown");
-    }
-}
-
-static void
-set_cache_model(const gchar *model) {
-    if (!g_strcmp0 (model, "default")) {
-        webkit_set_cache_model (WEBKIT_CACHE_MODEL_DEFAULT);
-    } else if (!g_strcmp0 (model, "document_viewer")) {
-        webkit_set_cache_model (WEBKIT_CACHE_MODEL_DOCUMENT_VIEWER);
-    } else if (!g_strcmp0 (model, "web_browser")) {
-        webkit_set_cache_model (WEBKIT_CACHE_MODEL_WEB_BROWSER);
-    } else if (!g_strcmp0 (model, "document_browser")) {
-        webkit_set_cache_model (WEBKIT_CACHE_MODEL_DOCUMENT_BROWSER);
-    }
 }
 
 static gchar *
