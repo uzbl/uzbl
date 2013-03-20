@@ -78,6 +78,7 @@ typedef struct {
     WebKitWebView* web_view;
     gchar*         main_title;
     gchar*         icon;
+    gchar*         icon_name;
 
     /* WebInspector */
     GtkWidget*          inspector_window;

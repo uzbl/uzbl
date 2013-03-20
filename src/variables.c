@@ -77,6 +77,7 @@ DECLARE_GETSET (int, enable_builtin_auth);
 DECLARE_SETTER (gchar *, geometry);
 */
 DECLARE_SETTER (gchar *, icon);
+DECLARE_SETTER (gchar *, icon_name);
 DECLARE_GETSET (gchar *, window_role);
 DECLARE_GETSET (int, auto_resize_window);
 
@@ -267,6 +268,7 @@ builtin_variable_table[] = {
     /* Window variables */
     { "geometry",                     UZBL_V_FUNC (geometry,                               STR)},
     { "icon",                         UZBL_V_STRING (uzbl.gui.icon,                        set_icon)},
+    { "icon_name",                    UZBL_V_STRING (uzbl.gui.icon_name,                   set_icon_name)},
     { "window_role",                  UZBL_V_FUNC (window_role,                            STR)},
     { "auto_resize_window",           UZBL_V_FUNC (auto_resize_window,                     INT)},
 
@@ -676,6 +678,22 @@ IMPLEMENT_SETTER (gchar *, icon)
     } else {
         g_printerr ("Icon \"%s\" not found. ignoring.\n", icon);
     }
+}
+
+IMPLEMENT_SETTER (gchar *, icon_name)
+{
+    if (!uzbl.gui.main_window) {
+        return;
+    }
+
+    /* Clear icon path. */
+    g_free (uzbl.gui.icon);
+    uzbl.gui.icon = NULL;
+
+    g_free (uzbl.gui.icon_name);
+    uzbl.gui.icon_name = g_strdup (icon_name);
+
+    gtk_window_set_icon_name (GTK_WINDOW (uzbl.gui.main_window), uzbl.gui.icon_name);
 }
 
 IMPLEMENT_GETTER (gchar *, window_role)
