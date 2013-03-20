@@ -62,10 +62,6 @@ cmd_zoom_in (WebKitWebView *view, GArray *argv, GString *result);
 static void
 cmd_zoom_out (WebKitWebView *view, GArray *argv, GString *result);
 static void
-cmd_zoom_toggle_type (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_status_toggle (WebKitWebView *view, GArray *argv, GString *result);
-static void
 cmd_hardcopy (WebKitWebView *view, GArray *argv, GString *result);
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 9, 6)
@@ -173,8 +169,6 @@ builtin_command_table[] =
     { "scroll",                         cmd_scroll,                   TRUE  },
     { "zoom_in",                        cmd_zoom_in,                  TRUE  }, /* TODO: Rework to be "zoom in". */
     { "zoom_out",                       cmd_zoom_out,                 TRUE  }, /* TODO: Rework to be "zoom out". */
-    { "toggle_zoom_type",               cmd_zoom_toggle_type,         TRUE  }, /* XXX: Deprecated (toggle). */
-    { "toggle_status",                  cmd_status_toggle,            TRUE  }, /* XXX: Deprecated (toggle). */
     { "hardcopy",                       cmd_hardcopy,                 FALSE },
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 9, 6)
@@ -758,32 +752,6 @@ cmd_zoom_out (WebKitWebView *view, GArray *argv, GString *result)
     UZBL_UNUSED (result);
 
     webkit_web_view_zoom_out (view);
-}
-
-void
-cmd_zoom_toggle_type (WebKitWebView *view, GArray *argv, GString *result)
-{
-    UZBL_UNUSED (view);
-    UZBL_UNUSED (argv);
-    UZBL_UNUSED (result);
-
-    uzbl_debug ("toggle_zoom_type is deprecated; use \'toggle zoom_type\' instead\n");
-
-    int current_type = get_zoom_type ();
-    set_zoom_type (!current_type);
-}
-
-void
-cmd_status_toggle (WebKitWebView *view, GArray *argv, GString *result)
-{
-    UZBL_UNUSED (view);
-    UZBL_UNUSED (argv);
-    UZBL_UNUSED (result);
-
-    uzbl_debug ("toggle_status is deprecated; use \'toggle show_status\' instead\n");
-
-    int current_status = get_show_status ();
-    set_show_status (!current_status);
 }
 
 void
