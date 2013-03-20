@@ -74,6 +74,20 @@ cmd_snapshot (WebKitWebView *view, GArray *argv, GString *result);
 #endif
 #endif
 
+/* Content commands. */
+static void
+cmd_remove_all_db (WebKitWebView *view, GArray *argv, GString *result);
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+static void
+cmd_plugin_refresh (WebKitWebView *view, GArray *argv, GString *result);
+static void
+cmd_plugin_toggle (WebKitWebView *view, GArray *argv, GString *result);
+#endif
+#if WEBKIT_CHECK_VERSION (1, 5, 1)
+static void
+cmd_spell_checker (WebKitWebView *view, GArray *argv, GString *result);
+#endif
+
 /* Execution commands. */
 static void
 run_js (WebKitWebView *view, GArray *argv, GString *result);
@@ -87,20 +101,6 @@ static void
 spawn_sh_async (WebKitWebView *view, GArray *argv, GString *result);
 static void
 spawn_sh_sync (WebKitWebView *view, GArray *argv, GString *result);
-
-/* Content commands. */
-static void
-remove_all_db (WebKitWebView *view, GArray *argv, GString *result);
-#if WEBKIT_CHECK_VERSION (1, 3, 8)
-static void
-plugin_refresh (WebKitWebView *view, GArray *argv, GString *result);
-static void
-plugin_toggle (WebKitWebView *view, GArray *argv, GString *result);
-#endif
-#if WEBKIT_CHECK_VERSION (1, 5, 1)
-static void
-spell_checker (WebKitWebView *view, GArray *argv, GString *result);
-#endif
 
 /* Search commands */
 static void
@@ -815,6 +815,125 @@ cmd_snapshot (WebKitWebView *view, GArray *argv, GString *result)
 #endif
 #endif
 
+/* Content commands. */
+
+void
+cmd_remove_all_db (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (argv);
+    UZBL_UNUSED (result);
+
+    webkit_remove_all_web_databases ();
+}
+
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+void
+cmd_plugin_refresh (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (argv);
+    UZBL_UNUSED (result);
+
+    WebKitWebPluginDatabase *db = webkit_get_web_plugin_database ();
+    webkit_web_plugin_database_refresh (db);
+}
+
+static void
+plugin_toggle_one (WebKitWebPlugin *plugin, const gchar *name);
+
+void
+cmd_plugin_toggle (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (result);
+
+    WebKitWebPluginDatabase *db = webkit_get_web_plugin_database ();
+    GSList *plugins = webkit_web_plugin_database_get_plugins (db);
+
+    if (argv->len == 0) {
+        g_slist_foreach (plugins, (GFunc)plugin_toggle_one, NULL);
+    } else {
+        guint i;
+        for (i = 0; i < argv->len; ++i) {
+            const gchar *plugin_name = argv_idx (argv, i);
+
+            g_slist_foreach (plugins, (GFunc)plugin_toggle_one, &plugin_name);
+        }
+    }
+
+    webkit_web_plugin_database_plugins_list_free (plugins);
+}
+
+void
+plugin_toggle_one (WebKitWebPlugin *plugin, const gchar *name)
+{
+    const gchar *plugin_name = webkit_web_plugin_get_name (plugin);
+
+    if (!name || !g_strcmp0 (name, plugin_name)) {
+        gboolean enabled = webkit_web_plugin_get_enabled (plugin);
+
+        webkit_web_plugin_set_enabled (plugin, !enabled);
+    }
+}
+
+#endif
+
+#if WEBKIT_CHECK_VERSION (1, 5, 1)
+void
+cmd_spell_checker (WebKitWebView *view, GArray *argv, GString *result)
+{
+    UZBL_UNUSED (view);
+
+    ARG_CHECK (argv, 1);
+
+    GObject *obj = webkit_get_text_checker ();
+
+    if (!obj) {
+        return;
+    }
+    if (!WEBKIT_IS_SPELL_CHECKER (obj)) {
+        return;
+    }
+
+    WebKitSpellChecker *checker = WEBKIT_SPELL_CHECKER (obj);
+
+    const gchar* command = argv_idx (argv, 0);
+
+    if (!g_strcmp0 (command, "ignore")) {
+        ARG_CHECK (argv, 2);
+
+        guint i;
+        for (i = 1; i < argv->len; ++i) {
+            const gchar *word = argv_idx (argv, i);
+
+            webkit_spell_checker_ignore_word (checker, word);
+        }
+    } else if (!g_strcmp0 (command, "learn")) {
+        ARG_CHECK (argv, 2);
+
+        guint i;
+        for (i = 1; i < argv->len; ++i) {
+            const gchar *word = argv_idx (argv, i);
+
+            webkit_spell_checker_learn_word (checker, word);
+        }
+    } else if (!g_strcmp0 (command, "autocorrect")) {
+        ARG_CHECK (argv, 2);
+
+        gchar *word = argv_idx (argv, 1);
+
+        char *new_word = webkit_spell_checker_get_autocorrect_suggestions_for_misspelled_word (checker, word);
+
+        g_string_assign (result, new_word);
+
+        free (new_word);
+    } else if (!g_strcmp0 (command, "guesses")) {
+        /* TODO Implement */
+    }
+}
+#endif
+
 void
 set_var(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
@@ -1004,55 +1123,6 @@ print(WebKitWebView *page, GArray *argv, GString *result) {
 }
 
 void
-remove_all_db(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page; (void) argv; (void) result;
-
-    webkit_remove_all_web_databases ();
-}
-
-#if WEBKIT_CHECK_VERSION (1, 3, 8)
-void
-plugin_refresh(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page; (void) argv; (void) result;
-
-    WebKitWebPluginDatabase *db = webkit_get_web_plugin_database ();
-    webkit_web_plugin_database_refresh (db);
-}
-
-static void
-plugin_toggle_one(WebKitWebPlugin *plugin, const gchar *name) {
-    const gchar *plugin_name = webkit_web_plugin_get_name (plugin);
-
-    if (!name || !g_strcmp0 (name, plugin_name)) {
-        gboolean enabled = webkit_web_plugin_get_enabled (plugin);
-
-        webkit_web_plugin_set_enabled (plugin, !enabled);
-    }
-}
-
-void
-plugin_toggle(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page; (void) result;
-
-    WebKitWebPluginDatabase *db = webkit_get_web_plugin_database ();
-    GSList *plugins = webkit_web_plugin_database_get_plugins (db);
-
-    if (argv->len == 0) {
-        g_slist_foreach (plugins, (GFunc)plugin_toggle_one, NULL);
-    } else {
-        guint i;
-        for (i = 0; i < argv->len; ++i) {
-            const gchar *plugin_name = argv_idx (argv, i);
-
-            g_slist_foreach (plugins, (GFunc)plugin_toggle_one, &plugin_name);
-        }
-    }
-
-    webkit_web_plugin_database_plugins_list_free (plugins);
-}
-#endif
-
-void
 include(WebKitWebView *page, GArray *argv, GString *result) {
     (void) page; (void) result;
     gchar *path = argv_idx(argv, 0);
@@ -1108,68 +1178,6 @@ inspector(WebKitWebView *page, GArray *argv, GString *result) {
 #endif
     }
 }
-
-#if WEBKIT_CHECK_VERSION (1, 5, 1)
-void
-spell_checker(WebKitWebView *page, GArray *argv, GString *result) {
-    (void) page;
-
-    if (argv->len < 1) {
-        return;
-    }
-
-    GObject *obj = webkit_get_text_checker ();
-
-    if (!obj) {
-        return;
-    }
-    if (!WEBKIT_IS_SPELL_CHECKER (obj)) {
-        return;
-    }
-
-    WebKitSpellChecker *checker = WEBKIT_SPELL_CHECKER (obj);
-
-    const gchar* command = argv_idx (argv, 0);
-
-    if (!g_strcmp0 (command, "ignore")) {
-        if (argv->len < 2) {
-            return;
-        }
-
-        guint i;
-        for (i = 1; i < argv->len; ++i) {
-            const gchar *word = argv_idx (argv, i);
-
-            webkit_spell_checker_ignore_word (checker, word);
-        }
-    } else if (!g_strcmp0 (command, "learn")) {
-        if (argv->len < 2) {
-            return;
-        }
-
-        guint i;
-        for (i = 1; i < argv->len; ++i) {
-            const gchar *word = argv_idx (argv, i);
-
-            webkit_spell_checker_learn_word (checker, word);
-        }
-    } else if (!g_strcmp0 (command, "autocorrect")) {
-        if (argv->len != 2) {
-            return;
-        }
-
-        gchar *word = argv_idx (argv, 1);
-
-        char *new_word = webkit_spell_checker_get_autocorrect_suggestions_for_misspelled_word (checker, word);
-
-        g_string_assign (result, new_word);
-
-        free (new_word);
-    } else if (!g_strcmp0 (command, "guesses")) {
-        /* TODO Implement */
-    }
-}
-#endif
 
 void
 run_js (WebKitWebView * web_view, GArray *argv, GString *result) {
