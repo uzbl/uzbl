@@ -837,6 +837,15 @@ IMPLEMENT_SETTER (int, http_debug)
 {
     uzbl.behave.http_debug = http_debug;
 
+/* TODO: Use choice macros. */
+#define http_debug_choices(call)              \
+    call (SOUP_LOGGER_LOG_NONE, "none")       \
+    call (SOUP_LOGGER_LOG_MINIMAL, "minimal") \
+    call (SOUP_LOGGER_LOG_HEADERS, "headers") \
+    call (SOUP_LOGGER_LOG_BODY, "body")
+
+#undef http_debug_choices
+
     if (uzbl.net.soup_logger) {
         soup_session_remove_feature (
             uzbl.net.soup_session, SOUP_SESSION_FEATURE (uzbl.net.soup_logger));
@@ -897,8 +906,16 @@ GOBJECT_GETSET (int, enable_cross_file_access,
 GOBJECT_GETSET (int, enable_hyperlink_auditing,
                 webkit_settings (), "enable-hyperlink-auditing")
 
+#define cookie_policy_choices(call)                \
+    call (SOUP_COOKIE_JAR_ACCEPT_ALWAYS, "always") \
+    call (SOUP_COOKIE_JAR_ACCEPT_NEVER, "never")   \
+    call (SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY, "first_party")
+
+/* TODO: Use choice macros. */
 GOBJECT_GETSET (int, cookie_policy,
                 cookie_jar (), "accept-policy")
+
+#undef cookie_policy_choices
 
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
 GOBJECT_GETSET (int, enable_dns_prefetch,
@@ -1109,10 +1126,11 @@ GOBJECT_GETSET (int, transparent,
                 webkit_view (), "transparent")
 
 #if WEBKIT_CHECK_VERSION (1, 3, 4)
-#define view_mode_choices(call)                             \
-    call (WEBKIT_WEB_VIEW_VIEW_MODE_WINDOWED, "windowed")   \
-    call (WEBKIT_WEB_VIEW_VIEW_MODE_FLOATING, "floating")   \
-    call (WEBKIT_WEB_VIEW_VIEW_MODE_MAXIMIZED, "maximized") \
+#define view_mode_choices(call)                               \
+    call (WEBKIT_WEB_VIEW_VIEW_MODE_WINDOWED, "windowed")     \
+    call (WEBKIT_WEB_VIEW_VIEW_MODE_FLOATING, "floating")     \
+    call (WEBKIT_WEB_VIEW_VIEW_MODE_FULLSCREEN, "fullscreen") \
+    call (WEBKIT_WEB_VIEW_VIEW_MODE_MAXIMIZED, "maximized")   \
     call (WEBKIT_WEB_VIEW_VIEW_MODE_MINIMIZED, "minimized")
 
 #define _webkit_web_view_get_view_mode() \
@@ -1191,8 +1209,16 @@ GOBJECT_GETSET (int, resizable_text_areas,
 GOBJECT_GETSET (int, enable_spatial_navigation,
                 webkit_settings (), "enable-spatial-navigation")
 
+#define editing_behavior_choices(call)                \
+    call (WEBKIT_EDITING_BEHAVIOR_MAC, "mac")         \
+    call (WEBKIT_EDITING_BEHAVIOR_WINDOWS, "windows") \
+    call (WEBKIT_EDITING_BEHAVIOR_UNIX, "unix")
+
+/* TODO: Use choice macros. */
 GOBJECT_GETSET (int, editing_behavior,
                 webkit_settings (), "editing-behavior")
+
+#undef editing_behavior_choices
 
 GOBJECT_GETSET (int, enable_tab_cycle,
                 webkit_settings (), "tab-key-cycles-through-elements")
