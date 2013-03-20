@@ -238,6 +238,12 @@ DECLARE_GETSET (gchar *, local_storage_path);
 /* Hacks */
 DECLARE_GETSET (int, enable_site_workarounds);
 
+/* Magic/special variables */
+#ifdef USE_WEBKIT2
+DECLARE_SETTER (gchar *, inject_text);
+#endif
+DECLARE_SETTER (gchar *, inject_html);
+
 static const UzblVariableEntry
 builtin_variable_table[] = {
     /* name                           entry                                                type/callback */
@@ -1413,6 +1419,23 @@ GOBJECT_GETSET (gchar *, local_storage_path,
 GOBJECT_GETSET (int, enable_site_workarounds,
                 webkit_settings (), "enable-site-specific-quirks")
 
+/* Magic/special variables */
+#ifdef USE_WEBKIT2
+IMPLEMENT_SETTER (gchar *, inject_text)
+{
+    webkit_web_view_load_plain_text (uzbl.gui.web_view, inject_text, NULL);
+}
+#endif
+
+IMPLEMENT_SETTER (gchar *, inject_html)
+{
+#ifdef USE_WEBKIT2
+    webkit_web_view_load_html (uzbl.gui.web_view, inject_html, NULL);
+#else
+    webkit_web_view_load_html_string (uzbl.gui.web_view, inject_html, NULL);
+#endif
+}
+
 GObject *
 webkit_settings ()
 {
@@ -1717,13 +1740,4 @@ dump_var_hash_as_event(gpointer k, gpointer v, gpointer ud) {
 void
 dump_config_as_events() {
     g_hash_table_foreach(uzbl.behave.proto_var, dump_var_hash_as_event, NULL);
-}
-
-static void
-set_inject_html(const gchar *html) {
-#ifdef USE_WEBKIT2
-    webkit_web_view_load_html (uzbl.gui.web_view, html, NULL);
-#else
-    webkit_web_view_load_html_string (uzbl.gui.web_view, html, NULL);
-#endif
 }
