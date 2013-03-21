@@ -1,7 +1,3 @@
-/*
- * Command code
-*/
-
 #include "commands.h"
 
 #include "config.h"
@@ -13,13 +9,15 @@
 #include "util.h"
 #include "variables.h"
 
-typedef void (*UzblCommand) (WebKitWebView *view, GArray *argv, GString *result);
+/* ========================= COMMAND TABLE ========================== */
 
-struct _UzblCommandInfo {
-    const gchar *name;
-    UzblCommand  function;
-    gboolean     split;
-    gboolean     send_event;
+typedef void (*UzblCommandCallback) (WebKitWebView *view, GArray *argv, GString *result);
+
+struct _UzblCommand {
+    const gchar         *name;
+    UzblCommandCallback  function;
+    gboolean             split;
+    gboolean             send_event;
 };
 
 #define DECLARE_COMMAND(cmd) \
@@ -104,7 +102,7 @@ DECLARE_COMMAND (print);
 /* Event commands */
 DECLARE_COMMAND (event);
 
-static UzblCommandInfo
+static UzblCommand
 builtin_command_table[] =
 {   /* name                             function                      split  send_event */
     /* Navigation commands */
@@ -138,7 +136,7 @@ builtin_command_table[] =
 #endif
 #endif
 
-    /* Content command. */
+    /* Content commands */
     { "remove_all_db",                  cmd_remove_all_db,            TRUE,  TRUE  },
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
     { "plugin_refresh",                 cmd_plugin_refresh,           FALSE, TRUE  },
@@ -199,6 +197,8 @@ builtin_command_table[] =
     { "request",                        cmd_event,                    FALSE, FALSE }  /* XXX: Deprecated (event). */
 };
 
+/* =========================== PUBLIC API =========================== */
+
 static void
 parse_command_from_file (const char *cmd, GString *result);
 
@@ -242,10 +242,10 @@ uzbl_commands_send_builtin_event ()
 static void
 parse_command_arguments (const gchar *args, GArray *argv, gboolean split);
 
-const UzblCommandInfo *
+const UzblCommand *
 uzbl_commands_parse (const gchar *cmd, GArray *argv)
 {
-    UzblCommandInfo *info = NULL;
+    UzblCommand *info = NULL;
 
     gchar *exp_line = expand (cmd, 0);
     if (!exp_line[0]) {
@@ -256,7 +256,7 @@ uzbl_commands_parse (const gchar *cmd, GArray *argv)
     /* Separate the line into the command and its parameters. */
     gchar **tokens = g_strsplit (exp_line, " ", 2);
 
-    /* look up the command */
+    /* Look up the command. */
     info = g_hash_table_lookup (uzbl.behave.commands, tokens[0]);
 
     if (!info) {
@@ -280,6 +280,61 @@ uzbl_commands_parse (const gchar *cmd, GArray *argv)
 
     return info;
 }
+
+void
+uzbl_commands_run_parsed (const UzblCommand *info, GArray *argv, GString *result)
+{
+    if (!info) {
+        return;
+    }
+
+    if (info->send_event) {
+        uzbl_events_send (COMMAND_EXECUTED, NULL,
+            TYPE_NAME, info->name,
+            TYPE_STR_ARRAY, argv,
+            NULL);
+    }
+
+    /* Might change argv. */
+    info->function (uzbl.gui.web_view, argv, result);
+
+    uzbl_events_send_formatted (event);
+    uzbl_events_free (event);
+
+    if (result) {
+        g_free (uzbl.state.last_result);
+        uzbl.state.last_result = g_strdup (result->str);
+    }
+}
+
+void
+uzbl_commands_run (const gchar *cmd, GString *result)
+{
+    GArray *argv = g_array_new (TRUE, FALSE, sizeof (gchar *));
+    const UzblCommand *info = uzbl_commands_parse (cmd, argv);
+
+    uzbl_commands_run_parsed (info, argv, result);
+
+    g_array_free (argv, TRUE);
+}
+
+static void
+parse_command_from_file_cb (const gchar *line, gpointer data);
+
+void
+uzbl_commands_load_file (const gchar *path)
+{
+    if (!for_each_line_in_file (path, parse_command_from_file_cb, NULL)) {
+        gchar *tmp = g_strdup_printf ("File %s can not be read.", path);
+        uzbl_events_send (COMMAND_ERROR, NULL,
+            TYPE_STR, tmp,
+            NULL);
+
+        g_free (tmp);
+    }
+}
+
+/* ===================== HELPER IMPLEMENTATIONS ===================== */
 
 static void
 sharg_append (GArray *argv, const gchar *str);
@@ -352,12 +407,12 @@ split_quoted (const gchar *src, const gboolean unquote)
             if (unquote) {
                 ctx_single_quote = !ctx_single_quote;
             } else {
-                g_string_append_c(str, *p);
+                g_string_append_c (str, *p);
                 ctx_single_quote = ! ctx_single_quote;
             }
         } else if (isspace (*p) && !ctx_double_quote && !ctx_single_quote) {
             /* Argument separator. */
-            /* TODO: Is "a  b" three arguments? */
+            /* FIXME: Is "a  b" three arguments? */
             gchar *dup = g_strdup (str->str);
             g_array_append_val (argv, dup);
             g_string_truncate (str, 0);
@@ -377,61 +432,6 @@ split_quoted (const gchar *src, const gboolean unquote)
     g_string_free (str, TRUE);
 
     return ret;
-}
-
-void
-uzbl_commands_run_parsed (const UzblCommandInfo *info, GArray *argv, GString *result)
-{
-    if (!info) {
-        return;
-    }
-
-    UzblEvent *event = NULL;
-
-    if (info->send_event) {
-        event = uzbl_events_format (COMMAND_EXECUTED, NULL,
-            TYPE_NAME, info->name,
-            TYPE_STR_ARRAY, argv,
-            NULL);
-    }
-
-    /* Might change argv. */
-    info->function (uzbl.gui.web_view, argv, result);
-
-    uzbl_events_send_formatted (event);
-    uzbl_events_free (event);
-
-    if (result) {
-        g_free (uzbl.state.last_result);
-        uzbl.state.last_result = g_strdup (result->str);
-    }
-}
-
-void
-uzbl_commands_run (const gchar *cmd, GString *result)
-{
-    GArray *argv = g_array_new (TRUE, FALSE, sizeof (gchar *));
-    const UzblCommandInfo *info = uzbl_commands_parse (cmd, argv);
-
-    uzbl_commands_run_parsed (info, argv, result);
-
-    g_array_free (argv, TRUE);
-}
-
-static void
-parse_command_from_file_cb (const gchar *line, gpointer data);
-
-void
-uzbl_commands_load_file (const gchar *path)
-{
-    if (!for_each_line_in_file (path, parse_command_from_file_cb, NULL)) {
-        gchar *tmp = g_strdup_printf ("File %s can not be read.", path);
-        uzbl_events_send (COMMAND_ERROR, NULL,
-            TYPE_STR, tmp,
-            NULL);
-
-        g_free (tmp);
-    }
 }
 
 void
@@ -461,6 +461,8 @@ parse_command_from_file (const char *cmd, GString *result)
 
     g_free (work_string);
 }
+
+/* ==================== COMMAND  IMPLEMENTATIONS ==================== */
 
 #define ARG_CHECK(argv, count)   \
     do                           \
@@ -589,9 +591,9 @@ IMPLEMENT_COMMAND (load)
 
     guint sz = argv->len;
 
-    const gchar *content = sz > 0 ? argv_idx (argv, 0) : NULL;
-    const gchar *content_uri = sz > 1 ? argv_idx (argv, 1) : NULL;
-    const gchar *base_uri = sz > 2 ? argv_idx (argv, 2) : NULL;
+    const gchar *content = (sz > 0) ? argv_idx (argv, 0) : NULL;
+    const gchar *content_uri = (sz > 1) ? argv_idx (argv, 1) : NULL;
+    const gchar *base_uri = (sz > 2) ? argv_idx (argv, 2) : NULL;
 
     webkit_web_view_load_alternate_html (view, content, content_uri, base_uri);
 }
@@ -602,7 +604,7 @@ IMPLEMENT_COMMAND (save)
 
     guint sz = argv->len;
 
-    const gchar *mode_str = sz > 0 ? argv_idx (argv, 0) : NULL;
+    const gchar *mode_str = (sz > 0) ? argv_idx (argv, 0) : NULL;
 
     WebKitSaveMode mode = WEBKIT_SAVE_MODE_MHTML;
 
@@ -617,11 +619,11 @@ IMPLEMENT_COMMAND (save)
         GFile *gfile = g_file_new_for_path (path);
 
         webkit_web_view_save_to_file (page, gfile, mode, NULL, NULL, NULL);
-        /* TODO: Don't ignore the error */
+        /* TODO: Don't ignore the error. */
         webkit_web_view_save_to_file_finish (page, NULL, NULL);
     } else {
         webkit_web_view_save (page, mode, NULL, NULL, NULL);
-        /* TODO: Don't ignore the error */
+        /* TODO: Don't ignore the error. */
         webkit_web_view_save_finish (page, NULL, NULL);
     }
 }
@@ -650,7 +652,7 @@ IMPLEMENT_COMMAND (cookie_add)
 
     ARG_CHECK (argv, 6);
 
-    /* Parse with same syntax as ADD_COOKIE event */
+    /* Parse with same syntax as ADD_COOKIE event. */
     host = argv_idx (argv, 0);
     path = argv_idx (argv, 1);
     name = argv_idx (argv, 2);
@@ -665,7 +667,7 @@ IMPLEMENT_COMMAND (cookie_add)
         expires = soup_date_new_from_time_t (strtoul (expires_arg, NULL, 10));
     }
 
-    /* Create new cookie */
+    /* Create new cookie. */
     /* TODO: Add support for adding non-session cookies. */
     static const int session_cookie = -1;
     SoupCookie *cookie = soup_cookie_new (name, value, host, path, session_cookie);
@@ -675,7 +677,7 @@ IMPLEMENT_COMMAND (cookie_add)
         soup_cookie_set_expires (cookie, expires);
     }
 
-    /* Add cookie to jar */
+    /* Add cookie to jar. */
     uzbl.net.soup_cookie_jar->in_manual_add = 1;
     soup_cookie_jar_add_cookie (SOUP_COOKIE_JAR (uzbl.net.soup_cookie_jar), cookie);
     uzbl.net.soup_cookie_jar->in_manual_add = 0;
@@ -707,7 +709,7 @@ IMPLEMENT_COMMAND (cookie_clear)
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
-    /* Replace the current cookie jar with a new empty jar */
+    /* Replace the current cookie jar with a new empty jar. */
     soup_session_remove_feature (uzbl.net.soup_session,
         SOUP_SESSION_FEATURE (uzbl.net.soup_cookie_jar));
     g_object_unref (G_OBJECT (uzbl.net.soup_cookie_jar));
@@ -774,10 +776,10 @@ IMPLEMENT_COMMAND (scroll)
         }
 
         if (value < 0) {
-            value = 0; /* don't scroll past the beginning of the page */
+            value = 0; /* Don't scroll past the beginning of the page. */
         }
         if (value > max_value) {
-            value = max_value; /* don't scroll past the end of the page */
+            value = max_value; /* Don't scroll past the end of the page. */
         }
 
         gtk_adjustment_set_value (bar, value);
@@ -874,19 +876,6 @@ IMPLEMENT_COMMAND (plugin_toggle)
 
     webkit_web_plugin_database_plugins_list_free (plugins);
 }
-
-void
-plugin_toggle_one (WebKitWebPlugin *plugin, const gchar *name)
-{
-    const gchar *plugin_name = webkit_web_plugin_get_name (plugin);
-
-    if (!name || !g_strcmp0 (name, plugin_name)) {
-        gboolean enabled = webkit_web_plugin_get_enabled (plugin);
-
-        webkit_web_plugin_set_enabled (plugin, !enabled);
-    }
-}
-
 #endif
 
 #if WEBKIT_CHECK_VERSION (1, 5, 1)
@@ -907,7 +896,7 @@ IMPLEMENT_COMMAND (spell_checker)
 
     WebKitSpellChecker *checker = WEBKIT_SPELL_CHECKER (obj);
 
-    const gchar* command = argv_idx (argv, 0);
+    const gchar *command = argv_idx (argv, 0);
 
     if (!g_strcmp0 (command, "ignore")) {
         ARG_CHECK (argv, 2);
@@ -938,7 +927,7 @@ IMPLEMENT_COMMAND (spell_checker)
 
         free (new_word);
     } else if (!g_strcmp0 (command, "guesses")) {
-        /* TODO Implement */
+        /* TODO Implement. */
     }
 }
 #endif
@@ -985,27 +974,6 @@ IMPLEMENT_COMMAND (search_reset)
     webkit_web_view_set_highlight_text_matches (view, FALSE);
 }
 
-void
-search_text (WebKitWebView *view, const gchar *key, const gboolean forward)
-{
-    if (*key) {
-        if (g_strcmp0 (uzbl.state.searchtx, key)) {
-            webkit_web_view_unmark_text_matches (view);
-            webkit_web_view_mark_text_matches (view, key, FALSE, 0);
-
-            g_free (uzbl.state.searchtx);
-            uzbl.state.searchtx = g_strdup (key);
-        }
-    }
-
-    if (uzbl.state.searchtx) {
-        uzbl_debug ("Searching: %s\n", uzbl.state.searchtx);
-
-        webkit_web_view_set_highlight_text_matches (view, TRUE);
-        webkit_web_view_search_text (view, uzbl.state.searchtx, FALSE, forward, TRUE);
-    }
-}
-
 /* Inspector commands */
 
 IMPLEMENT_COMMAND (inspector_show)
@@ -1024,7 +992,7 @@ IMPLEMENT_COMMAND (inspector)
 
     ARG_CHECK (argv, 1);
 
-    const gchar* command = argv_idx (argv, 0);
+    const gchar *command = argv_idx (argv, 0);
 
     if (!g_strcmp0 (command, "show")) {
         webkit_web_inspector_show (uzbl.gui.inspector);
@@ -1046,7 +1014,7 @@ IMPLEMENT_COMMAND (inspector)
         webkit_web_inspector_inspect_coordinates (uzbl.gui.inspector, x, y);
 #if WEBKIT_CHECK_VERSION (1, 3, 17)
     } else if (!g_strcmp0 (command, "node")) {
-        /* TODO: Implement */
+        /* TODO: Implement. */
 #endif
     }
 }
@@ -1054,7 +1022,7 @@ IMPLEMENT_COMMAND (inspector)
 /* Execution commands */
 
 /* FIXME: Make private again.
-void
+static void
 eval_js (WebKitWebView *view, const gchar *script, GString *result, const gchar *path);
 */
 
@@ -1095,93 +1063,6 @@ IMPLEMENT_COMMAND (js_file)
         g_free (js);
         g_free (path);
     }
-}
-
-static char *
-extract_js_prop (JSGlobalContextRef ctx, JSObjectRef obj, const gchar *prop);
-static char *
-js_value_to_string (JSGlobalContextRef ctx, JSValueRef obj);
-
-void
-eval_js (WebKitWebView *view, const gchar *script, GString *result, const gchar *path)
-{
-    WebKitWebFrame *frame;
-    JSGlobalContextRef context;
-    JSObjectRef globalobject;
-    JSStringRef js_file;
-    JSStringRef js_script;
-    JSValueRef js_result;
-    JSValueRef js_exc = NULL;
-
-    frame = webkit_web_view_get_main_frame (view);
-    context = webkit_web_frame_get_global_context (frame);
-    globalobject = JSContextGetGlobalObject (context);
-
-    /* evaluate the script and get return value*/
-    js_script = JSStringCreateWithUTF8CString (script);
-    js_file = JSStringCreateWithUTF8CString (path);
-    js_result = JSEvaluateScript (context, js_script, globalobject, js_file, 0, &js_exc);
-    if (result && js_result && !JSValueIsUndefined (context, js_result)) {
-        char *result_utf8;
-
-        result_utf8 = js_value_to_string (context, js_result);
-
-        g_string_assign (result, result_utf8);
-
-        free (result_utf8);
-    } else if (js_exc) {
-        JSObjectRef exc = JSValueToObject (context, js_exc, NULL);
-
-        char *file;
-        char *line;
-        char *msg;
-
-        file = extract_js_prop (context, exc, "sourceURL");
-        line = extract_js_prop (context, exc, "line");
-        msg = js_value_to_string (context, exc);
-
-        uzbl_debug ("Exception occured while executing script:\n %s:%s: %s\n", file, line, msg);
-
-        free (file);
-        free (line);
-        free (msg);
-    }
-
-    /* cleanup */
-    JSStringRelease (js_script);
-    JSStringRelease (js_file);
-}
-
-char *
-extract_js_prop (JSGlobalContextRef ctx, JSObjectRef obj, const gchar *prop)
-{
-    JSStringRef js_prop;
-    JSObjectRef js_prop_val;
-
-    js_prop = JSStringCreateWithUTF8CString (prop);
-    js_prop_val = JSObjectGetProperty (ctx, obj, js_prop, NULL);
-
-    JSStringRelease (js_prop);
-
-    return js_value_to_string (ctx, js_prop_val);
-}
-
-char *
-js_value_to_string (JSGlobalContextRef ctx, JSValueRef val)
-{
-    JSStringRef str = JSValueToStringCopy (ctx, val, NULL);
-    size_t size = JSStringGetMaximumUTF8CStringSize (str);
-
-    char *result = NULL;
-
-    if (size) {
-        result = (gchar *)malloc (size * sizeof (char));
-        JSStringGetUTF8CString (str, result, size);
-    }
-
-    JSStringRelease (str);
-
-    return result;
 }
 
 static void
@@ -1230,6 +1111,245 @@ IMPLEMENT_COMMAND (spawn_sh_sync)
     UZBL_UNUSED (view);
 
     spawn_sh (argv, result);
+}
+
+/* Uzbl commands */
+
+IMPLEMENT_COMMAND (chain)
+{
+    UZBL_UNUSED (view);
+
+    ARG_CHECK (argv, 1);
+
+    guint i = 0;
+    const gchar *cmd;
+    GString *res = g_string_new ("");
+
+    while ((cmd = argv_idx (argv, i++))) {
+        uzbl_commands_run (cmd, res);
+    }
+
+    if (result) {
+        g_string_assign (result, res->str);
+    }
+
+    g_string_free (res, TRUE);
+}
+
+IMPLEMENT_COMMAND (include)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (result);
+
+    ARG_CHECK (argv, 1);
+
+    gchar *req_path = argv_idx (argv, 0);
+    gchar *path = NULL;
+
+    if ((path = find_existing_file (req_path))) {
+        uzbl_commands_load_file (path);
+        uzbl_events_send (FILE_INCLUDED, NULL,
+            TYPE_STR, path,
+            NULL);
+        g_free (path);
+    }
+}
+
+IMPLEMENT_COMMAND (exit)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (argv);
+    UZBL_UNUSED (result);
+
+    /* Hide window a soon as possible to avoid getting stuck with a
+     * non-response window in the cleanup steps. */
+    if (uzbl.gui.main_window) {
+        gtk_widget_destroy (uzbl.gui.main_window);
+    } else if (uzbl.gui.plug) {
+        gtk_widget_destroy (GTK_WIDGET (uzbl.gui.plug));
+    }
+
+    gtk_main_quit ();
+}
+
+/* Variable commands */
+
+IMPLEMENT_COMMAND (set)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (result);
+
+    ARG_CHECK (argv, 1);
+
+    gchar **split = g_strsplit (argv_idx (argv, 0), "=", 2);
+    if (split[0] != NULL) {
+        gchar *value = split[1] ? g_strchug (split[1]) : " ";
+        uzbl_variables_set (g_strstrip (split[0]), value);
+    }
+    g_strfreev (split);
+}
+
+IMPLEMENT_COMMAND (toggle)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (result);
+
+    ARG_CHECK (argv, 1);
+
+    const gchar *var_name = argv_idx (argv, 0);
+
+    g_array_remove_range (argv, 0, 2);
+
+    uzbl_variables_toggle (var_name, argv);
+}
+
+IMPLEMENT_COMMAND (print)
+{
+    UZBL_UNUSED (view);
+
+    ARG_CHECK (argv, 1);
+
+    gchar *buf;
+
+    if (!result) {
+        return;
+    }
+
+    buf = expand (argv_idx (argv, 0), 0);
+    g_string_assign (result, buf);
+    g_free (buf);
+}
+
+IMPLEMENT_COMMAND (dump_config)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (argv);
+    UZBL_UNUSED (result);
+
+    uzbl_variables_dump ();
+}
+
+IMPLEMENT_COMMAND (dump_config_as_events)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (argv);
+    UZBL_UNUSED (result);
+
+    uzbl_variables_dump_events ();
+}
+
+IMPLEMENT_COMMAND (event)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (result);
+
+    GString *event_name;
+    gchar **split = NULL;
+
+    ARG_CHECK (argv, 1);
+
+    split = g_strsplit (argv_idx (argv, 0), " ", 2);
+    if (!split[0]) {
+        return;
+    }
+
+    event_name = g_string_ascii_up (g_string_new (split[0]));
+
+    uzbl_events_send (USER_EVENT, event_name->str,
+        TYPE_FORMATTEDSTR, split[1] ? split[1] : "",
+        NULL);
+
+    g_string_free (event_name, TRUE);
+    g_strfreev (split);
+}
+
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+void
+plugin_toggle_one (WebKitWebPlugin *plugin, const gchar *name)
+{
+    const gchar *plugin_name = webkit_web_plugin_get_name (plugin);
+
+    if (!name || !g_strcmp0 (name, plugin_name)) {
+        gboolean enabled = webkit_web_plugin_get_enabled (plugin);
+
+        webkit_web_plugin_set_enabled (plugin, !enabled);
+    }
+}
+#endif
+
+void
+search_text (WebKitWebView *view, const gchar *key, const gboolean forward)
+{
+    if (*key) {
+        if (g_strcmp0 (uzbl.state.searchtx, key)) {
+            webkit_web_view_unmark_text_matches (view);
+            webkit_web_view_mark_text_matches (view, key, FALSE, 0);
+
+            g_free (uzbl.state.searchtx);
+            uzbl.state.searchtx = g_strdup (key);
+        }
+    }
+
+    if (uzbl.state.searchtx) {
+        uzbl_debug ("Searching: %s\n", uzbl.state.searchtx);
+
+        webkit_web_view_set_highlight_text_matches (view, TRUE);
+        webkit_web_view_search_text (view, uzbl.state.searchtx, FALSE, forward, TRUE);
+    }
+}
+
+static char *
+extract_js_prop (JSGlobalContextRef ctx, JSObjectRef obj, const gchar *prop);
+static char *
+js_value_to_string (JSGlobalContextRef ctx, JSValueRef obj);
+
+void
+eval_js (WebKitWebView *view, const gchar *script, GString *result, const gchar *path)
+{
+    WebKitWebFrame *frame;
+    JSGlobalContextRef context;
+    JSObjectRef globalobject;
+    JSStringRef js_file;
+    JSStringRef js_script;
+    JSValueRef js_result;
+    JSValueRef js_exc = NULL;
+
+    frame = webkit_web_view_get_main_frame (view);
+    context = webkit_web_frame_get_global_context (frame);
+    globalobject = JSContextGetGlobalObject (context);
+
+    /* Evaluate the script and get return value. */
+    js_script = JSStringCreateWithUTF8CString (script);
+    js_file = JSStringCreateWithUTF8CString (path);
+    js_result = JSEvaluateScript (context, js_script, globalobject, js_file, 0, &js_exc);
+    if (result && js_result && !JSValueIsUndefined (context, js_result)) {
+        char *result_utf8;
+
+        result_utf8 = js_value_to_string (context, js_result);
+
+        g_string_assign (result, result_utf8);
+
+        free (result_utf8);
+    } else if (js_exc) {
+        JSObjectRef exc = JSValueToObject (context, js_exc, NULL);
+
+        char *file;
+        char *line;
+        char *msg;
+
+        file = extract_js_prop (context, exc, "sourceURL");
+        line = extract_js_prop (context, exc, "line");
+        msg = js_value_to_string (context, exc);
+
+        uzbl_debug ("Exception occured while executing script:\n %s:%s: %s\n", file, line, msg);
+
+        free (file);
+        free (line);
+        free (msg);
+    }
+
+    JSStringRelease (js_script);
+    JSStringRelease (js_file);
 }
 
 /* Make sure that the args string you pass can properly be interpreted (e.g.,
@@ -1309,6 +1429,38 @@ spawn_sh (GArray *argv, GString *result)
     g_strfreev (cmd);
 }
 
+char *
+extract_js_prop (JSGlobalContextRef ctx, JSObjectRef obj, const gchar *prop)
+{
+    JSStringRef js_prop;
+    JSValueRef js_prop_val;
+
+    js_prop = JSStringCreateWithUTF8CString (prop);
+    js_prop_val = JSObjectGetProperty (ctx, obj, js_prop, NULL);
+
+    JSStringRelease (js_prop);
+
+    return js_value_to_string (ctx, js_prop_val);
+}
+
+char *
+js_value_to_string (JSGlobalContextRef ctx, JSValueRef val)
+{
+    JSStringRef str = JSValueToStringCopy (ctx, val, NULL);
+    size_t size = JSStringGetMaximumUTF8CStringSize (str);
+
+    char *result = NULL;
+
+    if (size) {
+        result = (gchar *)malloc (size * sizeof (char));
+        JSStringGetUTF8CString (str, result, size);
+    }
+
+    JSStringRelease (str);
+
+    return result;
+}
+
 gboolean
 run_system_command (const gchar *command, const gchar **args, const gboolean sync,
              char **output_stdout)
@@ -1358,154 +1510,4 @@ run_system_command (const gchar *command, const gchar **args, const gboolean syn
     }
     g_array_free (a, TRUE);
     return result;
-}
-
-/* Uzbl commands */
-
-IMPLEMENT_COMMAND (chain)
-{
-    UZBL_UNUSED (view);
-
-    ARG_CHECK (argv, 1);
-
-    guint i = 0;
-    const gchar *cmd;
-    GString *res = g_string_new ("");
-
-    while ((cmd = argv_idx (argv, i++))) {
-        uzbl_commands_run (cmd, res);
-    }
-
-    if (result) {
-        g_string_assign (result, res->str);
-    }
-
-    g_string_free (res, TRUE);
-}
-
-IMPLEMENT_COMMAND (include)
-{
-    UZBL_UNUSED (view);
-    UZBL_UNUSED (result);
-
-    ARG_CHECK (argv, 1);
-
-    gchar *req_path = argv_idx (argv, 0);
-    gchar *path = NULL;
-
-    if ((path = find_existing_file (req_path))) {
-        uzbl_commands_load_file (path);
-        uzbl_events_send (FILE_INCLUDED, NULL,
-            TYPE_STR, path,
-            NULL);
-        g_free (path);
-    }
-}
-
-IMPLEMENT_COMMAND (exit)
-{
-    UZBL_UNUSED (view);
-    UZBL_UNUSED (argv);
-    UZBL_UNUSED (result);
-
-    /* hide window a soon as possible to avoid getting stuck with a
-     * non-response window in the cleanup steps. */
-    if (uzbl.gui.main_window) {
-        gtk_widget_destroy (uzbl.gui.main_window);
-    } else if (uzbl.gui.plug) {
-        gtk_widget_destroy (GTK_WIDGET (uzbl.gui.plug));
-    }
-
-    gtk_main_quit ();
-}
-
-/* Variable commands */
-
-IMPLEMENT_COMMAND (set)
-{
-    UZBL_UNUSED (view);
-    UZBL_UNUSED (result);
-
-    ARG_CHECK (argv, 1);
-
-    gchar **split = g_strsplit (argv_idx (argv, 0), "=", 2);
-    if (split[0] != NULL) {
-        gchar *value = split[1] ? g_strchug (split[1]) : " ";
-        uzbl_variables_set (g_strstrip (split[0]), value);
-    }
-    g_strfreev (split);
-}
-
-IMPLEMENT_COMMAND (toggle)
-{
-    UZBL_UNUSED (view);
-    UZBL_UNUSED (result);
-
-    ARG_CHECK (argv, 1);
-
-    const gchar *var_name = argv_idx (argv, 0);
-
-    g_array_remove_range (argv, 0, 2);
-
-    uzbl_variables_toggle (var_name, argv);
-}
-
-IMPLEMENT_COMMAND (print)
-{
-    UZBL_UNUSED (view);
-
-    ARG_CHECK (argv, 1);
-
-    gchar* buf;
-
-    if (!result) {
-        return;
-    }
-
-    buf = expand (argv_idx (argv, 0), 0);
-    g_string_assign (result, buf);
-    g_free (buf);
-}
-
-IMPLEMENT_COMMAND (dump_config)
-{
-    UZBL_UNUSED (view);
-    UZBL_UNUSED (argv);
-    UZBL_UNUSED (result);
-
-    uzbl_variables_dump ();
-}
-
-IMPLEMENT_COMMAND (dump_config_as_events)
-{
-    UZBL_UNUSED (view);
-    UZBL_UNUSED (argv);
-    UZBL_UNUSED (result);
-
-    uzbl_variables_dump_events ();
-}
-
-IMPLEMENT_COMMAND (event)
-{
-    UZBL_UNUSED (view);
-    UZBL_UNUSED (result);
-
-    GString *event_name;
-    gchar **split = NULL;
-
-    ARG_CHECK (argv, 1);
-
-    split = g_strsplit (argv_idx (argv, 0), " ", 2);
-    if (!split[0]) {
-        return;
-    }
-
-    event_name = g_string_ascii_up (g_string_new (split[0]));
-
-    uzbl_events_send (USER_EVENT, event_name->str,
-        TYPE_FORMATTEDSTR, split[1] ? split[1] : "",
-        NULL);
-
-    g_string_free (event_name, TRUE);
-    g_strfreev (split);
 }
