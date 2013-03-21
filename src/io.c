@@ -7,6 +7,8 @@
 
 #include <unistd.h>
 
+/* =========================== PUBLIC API =========================== */
+
 static gboolean
 control_stdin (GIOChannel *gio, GIOCondition condition);
 
@@ -57,7 +59,7 @@ uzbl_io_init_connect_socket ()
                 ++replay;
             }
         } else {
-            g_warning("Error connecting to socket: %s\n", *name);
+            g_warning ("Error connecting to socket: %s\n", *name);
         }
         ++name;
     }
@@ -68,11 +70,126 @@ uzbl_io_init_connect_socket ()
     }
 }
 
+typedef enum {
+    UZBL_COMM_FIFO,
+    UZBL_COMM_SOCKET
+} UzblCommType;
+
+static gchar *
+build_stream_name (UzblCommType type, const gchar *dir);
+
+static gboolean
+attach_fifo (gchar *path);
+
+gboolean
+uzbl_io_init_fifo (const gchar *dir)
+{
+    if (uzbl.comm.fifo_path) {
+        /* We're changing the fifo path, get rid of the old fifo if one exists. */
+        if (unlink (uzbl.comm.fifo_path)) {
+            g_warning ("Fifo: Can't unlink old fifo at %s\n", uzbl.comm.fifo_path);
+        }
+        g_free (uzbl.comm.fifo_path);
+        uzbl.comm.fifo_path = NULL;
+    }
+
+    gchar *path = build_stream_name (UZBL_COMM_FIFO, dir);
+
+    /* If something exists at that path, try to delete it. */
+    if (file_exists (path) && unlink (path)) {
+        g_warning ("Fifo: Can't unlink old fifo at %s\n", path);
+    }
+
+    if (!mkfifo (path, 0666)) {
+      if (attach_fifo (path)) {
+         return TRUE;
+      } else {
+         g_warning ("init_fifo: can't attach to %s: %s\n", path, strerror (errno));
+      }
+    } else {
+        g_warning ("init_fifo: can't create %s: %s\n", path, strerror (errno));
+    }
+
+    /* If we got this far, there was an error; clean up. */
+    g_free (path);
+    return FALSE;
+}
+
+static gboolean
+attach_socket (gchar *path, struct sockaddr_un *local);
+
+gboolean
+uzbl_io_init_socket (const gchar *dir)
+{
+    if (uzbl.comm.socket_path) {
+        /* Remove an existing socket should one exist. */
+        if (unlink (uzbl.comm.socket_path)) {
+            g_warning ("init_socket: couldn't unlink socket at %s\n", uzbl.comm.socket_path);
+        }
+        g_free (uzbl.comm.socket_path);
+        uzbl.comm.socket_path = NULL;
+    }
+
+    if (*dir == ' ') {
+        return FALSE;
+    }
+
+    gchar *path = build_stream_name (UZBL_COMM_SOCKET, dir);
+
+    /* If something exists at that path, try to delete it. */
+    if (file_exists (path) && unlink (path)) {
+        g_warning ("Fifo: Can't unlink old fifo at %s\n", path);
+    }
+
+    struct sockaddr_un local;
+    local.sun_family = AF_UNIX;
+    strcpy (local.sun_path, path);
+
+    if (attach_socket (path, &local)) {
+        return TRUE;
+    } else {
+        g_warning ("init_socket: can't attach to %s: %s\n", path, strerror (errno));
+    }
+
+    /* If we got this far, there was an error; clean up. */
+    g_free (path);
+    return FALSE;
+}
+
+/* ===================== HELPER IMPLEMENTATIONS ===================== */
+
+gboolean
+control_stdin (GIOChannel *gio, GIOCondition condition)
+{
+    UZBL_UNUSED (condition);
+
+    gchar *ctl_line = NULL;
+    GIOStatus ret;
+
+    ret = g_io_channel_read_line (gio, &ctl_line, NULL, NULL, NULL);
+    if ((ret == G_IO_STATUS_ERROR) || (ret == G_IO_STATUS_EOF)) {
+        return FALSE;
+    }
+
+    GString *result = g_string_new ("");
+
+    uzbl_commands_run (ctl_line, result);
+    g_free (ctl_line);
+
+    if (*result->str) {
+        puts (result->str);
+    }
+    g_string_free (result, TRUE);
+
+    return TRUE;
+}
+
 static gboolean
 remove_socket_from_array (GIOChannel *chan);
 
 gboolean
-control_client_socket (GIOChannel *clientchan) {
+control_client_socket (GIOChannel *clientchan)
+{
     char *ctl_line;
     GString *result = g_string_new ("");
     GError *error = NULL;
@@ -92,7 +209,7 @@ control_client_socket (GIOChannel *clientchan) {
         return FALSE;
     } else if (ret == G_IO_STATUS_EOF) {
         /* Shutdown and remove channel watch from main loop. */
-        ret = g_io_channel_shutdown (clientchan, TRUE, &error); 
+        ret = g_io_channel_shutdown (clientchan, TRUE, &error);
         remove_socket_from_array (clientchan);
         if (ret == G_IO_STATUS_ERROR) {
             g_warning ("Error closing: %s", error->message);
@@ -121,95 +238,9 @@ control_client_socket (GIOChannel *clientchan) {
     return TRUE;
 }
 
-gboolean
-remove_socket_from_array (GIOChannel *chan)
+gchar *
+build_stream_name (UzblCommType type, const gchar *dir)
 {
-    gboolean ret = 0;
-
-    ret = g_ptr_array_remove_fast (uzbl.comm.connect_chan, chan);
-    if (!ret) {
-        ret = g_ptr_array_remove_fast (uzbl.comm.client_chan, chan);
-    }
-
-    if(ret) {
-        g_io_channel_unref (chan);
-    }
-
-    return ret;
-}
-
-gboolean
-control_stdin (GIOChannel *gio, GIOCondition condition)
-{
-    UZBL_UNUSED (condition);
-
-    gchar *ctl_line = NULL;
-    GIOStatus ret;
-
-    ret = g_io_channel_read_line (gio, &ctl_line, NULL, NULL, NULL);
-    if ((ret == G_IO_STATUS_ERROR) || (ret == G_IO_STATUS_EOF)) {
-        return FALSE;
-    }
-
-    GString *result = g_string_new ("");
-
-    uzbl_commands_run (ctl_line, result);
-    g_free (ctl_line);
-
-    if (*result->str) {
-        puts (result->str);
-    }
-    g_string_free (result, TRUE);
-
-    return TRUE;
-}
-
-typedef enum {
-    UZBL_COMM_FIFO,
-    UZBL_COMM_SOCKET
-} UzblCommType;
-
-static gchar*
-build_stream_name (UzblCommType type, const gchar* dir);
-static gboolean
-attach_fifo (gchar *path);
-
-gboolean
-uzbl_io_init_fifo (const gchar *dir)
-{
-    if (uzbl.comm.fifo_path) {
-        /* We're changing the fifo path, get rid of the old fifo if one exists. */
-        if (unlink (uzbl.comm.fifo_path)) {
-            g_warning ("Fifo: Can't unlink old fifo at %s\n", uzbl.comm.fifo_path);
-        }
-        g_free (uzbl.comm.fifo_path);
-        uzbl.comm.fifo_path = NULL;
-    }
-
-    gchar *path = build_stream_name (UZBL_COMM_FIFO, dir);
-
-    /* if something exists at that path, try to delete it. */
-    if (file_exists (path) && unlink (path)) {
-        g_warning ("Fifo: Can't unlink old fifo at %s\n", path);
-    }
-
-    if (!mkfifo (path, 0666)) {
-      if (attach_fifo (path)) {
-         return TRUE;
-      } else {
-         g_warning ("init_fifo: can't attach to %s: %s\n", path, strerror (errno));
-      }
-    } else {
-        g_warning ("init_fifo: can't create %s: %s\n", path, strerror (errno));
-    }
-
-    /* If we got this far, there was an error; clean up. */
-    g_free (path);
-    return FALSE;
-}
-
-gchar*
-build_stream_name (UzblCommType type, const gchar* dir) {
     gchar *str = NULL;
     gchar *type_str;
 
@@ -231,7 +262,7 @@ build_stream_name (UzblCommType type, const gchar* dir) {
 }
 
 static gboolean
-control_fifo(GIOChannel *gio, GIOCondition condition);
+control_fifo (GIOChannel *gio, GIOCondition condition);
 
 gboolean
 attach_fifo (gchar *path)
@@ -262,8 +293,59 @@ attach_fifo (gchar *path)
     return FALSE;
 }
 
+static gboolean
+control_socket (GIOChannel *chan);
+
+static gboolean
+attach_socket (gchar *path, struct sockaddr_un *local)
+{
+    GIOChannel *chan = NULL;
+    int sock = socket (AF_UNIX, SOCK_STREAM, 0);
+
+    if (!bind (sock, (struct sockaddr *)local, sizeof (*local))) {
+        uzbl_debug ("init_socket: opened in %s\n", path);
+
+        if (listen (sock, 5)) {
+            g_warning ("attach_socket: could not listen on %s: %s\n", path, strerror (errno));
+        }
+
+        if ((chan = g_io_channel_unix_new (sock))) {
+            g_io_add_watch (chan, G_IO_IN | G_IO_HUP, (GIOFunc)control_socket, chan);
+
+            uzbl.comm.socket_path = path;
+            uzbl_events_send (SOCKET_SET, NULL,
+                TYPE_STR, path,
+                NULL);
+            /* TODO: Collect all environment settings into one place. */
+            g_setenv ("UZBL_SOCKET", uzbl.comm.socket_path, TRUE);
+            return TRUE;
+        }
+    } else {
+        g_warning ("attach_socket: could not bind to %s: %s\n", path, strerror (errno));
+    }
+
+    return FALSE;
+}
+
 gboolean
-control_fifo(GIOChannel *gio, GIOCondition condition)
+remove_socket_from_array (GIOChannel *chan)
+{
+    gboolean ret = 0;
+
+    ret = g_ptr_array_remove_fast (uzbl.comm.connect_chan, chan);
+    if (!ret) {
+        ret = g_ptr_array_remove_fast (uzbl.comm.client_chan, chan);
+    }
+
+    if (ret) {
+        g_io_channel_unref (chan);
+    }
+
+    return ret;
+}
+
+gboolean
+control_fifo (GIOChannel *gio, GIOCondition condition)
 {
     gchar *ctl_line;
     GIOStatus ret;
@@ -287,81 +369,6 @@ control_fifo(GIOChannel *gio, GIOCondition condition)
     g_free (ctl_line);
 
     return TRUE;
-}
-
-static gboolean
-attach_socket (gchar *path, struct sockaddr_un *local);
-
-gboolean
-uzbl_io_init_socket (const gchar *dir)
-{
-    if (uzbl.comm.socket_path) {
-        /* remove an existing socket should one exist */
-        if (unlink (uzbl.comm.socket_path)) {
-            g_warning ("init_socket: couldn't unlink socket at %s\n", uzbl.comm.socket_path);
-        }
-        g_free (uzbl.comm.socket_path);
-        uzbl.comm.socket_path = NULL;
-    }
-
-    if (*dir == ' ') {
-        return FALSE;
-    }
-
-    gchar *path = build_stream_name (UZBL_COMM_SOCKET, dir);
-
-    /* If something exists at that path, try to delete it. */
-    if (file_exists (path) && unlink (path)) {
-        g_warning ("Fifo: Can't unlink old fifo at %s\n", path);
-    }
-
-    struct sockaddr_un local;
-    local.sun_family = AF_UNIX;
-    strcpy (local.sun_path, path);
-
-    if (attach_socket (path, &local)) {
-        return TRUE;
-    } else {
-        g_warning("init_socket: can't attach to %s: %s\n", path, strerror (errno));
-    }
-
-    /* If we got this far, there was an error; clean up. */
-    g_free (path);
-    return FALSE;
-}
-
-static gboolean
-control_socket (GIOChannel *chan);
-
-static gboolean
-attach_socket(gchar *path, struct sockaddr_un *local)
-{
-    GIOChannel *chan = NULL;
-    int sock = socket (AF_UNIX, SOCK_STREAM, 0);
-
-    if (!bind (sock, (struct sockaddr *)local, sizeof (*local))) {
-        uzbl_debug ("init_socket: opened in %s\n", path);
-
-        if (listen (sock, 5)) {
-            g_warning ("attach_socket: could not listen on %s: %s\n", path, strerror (errno));
-        }
-
-        if ((chan = g_io_channel_unix_new (sock))) {
-            g_io_add_watch (chan, G_IO_IN | G_IO_HUP, (GIOFunc)control_socket, chan);
-
-            uzbl.comm.socket_path = path;
-            uzbl_events_send (SOCKET_SET, NULL,
-                TYPE_STR, path,
-                NULL);
-            /* TODO: Collect all environment settings into one place. */
-            g_setenv("UZBL_SOCKET", uzbl.comm.socket_path, TRUE);
-            return TRUE;
-        }
-    } else {
-        g_warning ("attach_socket: could not bind to %s: %s\n", path, strerror (errno));
-    }
-
-    return FALSE;
 }
 
 gboolean
