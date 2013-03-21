@@ -433,10 +433,12 @@ get_modifier_mask (guint state) {
 
 #undef CHECK_MODIFIER
 
-        gsize end = modifiers->len - 1;
+        if (modifiers->len) {
+            gsize end = modifiers->len - 1;
 
-        if (modifiers->str[end] == '|') {
-            g_string_truncate (modifiers, end);
+            if (modifiers->str[end] == '|') {
+                g_string_truncate (modifiers, end);
+            }
         }
     }
 
