@@ -1688,6 +1688,10 @@ send_variable_event (const gchar *name, const UzblVariable *var)
 gchar *
 get_variable_string (const UzblVariable *var)
 {
+    if (!var) {
+        return g_strdup ("");
+    }
+
     gchar *result = NULL;
 
     typedef gchar *(*getter_t)(void);
