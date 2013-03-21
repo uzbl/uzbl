@@ -117,7 +117,7 @@ DECLARE_GETSET (int, enable_private);
 DECLARE_GETSET (int, enable_universal_file_access);
 DECLARE_GETSET (int, enable_cross_file_access);
 DECLARE_GETSET (int, enable_hyperlink_auditing);
-DECLARE_GETSET (int, cookie_policy);
+DECLARE_GETSET (gchar *, cookie_policy);
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
 DECLARE_GETSET (int, enable_dns_prefetch);
 #endif
@@ -317,7 +317,7 @@ builtin_variable_table[] = {
     { "enable_universal_file_access", UZBL_V_FUNC (enable_universal_file_access,           INT)},
     { "enable_cross_file_access",     UZBL_V_FUNC (enable_cross_file_access,               INT)},
     { "enable_hyperlink_auditing",    UZBL_V_FUNC (enable_hyperlink_auditing,              INT)},
-    { "cookie_policy",                UZBL_V_FUNC (cookie_policy,                          INT)},
+    { "cookie_policy",                UZBL_V_FUNC (cookie_policy,                          STR)},
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
     { "enable_dns_prefetch",          UZBL_V_FUNC (enable_dns_prefetch,                    INT)},
 #endif
@@ -1252,8 +1252,6 @@ webkit_settings ();
 static GObject *
 soup_session ();
 static GObject *
-cookie_jar ();
-static GObject *
 inspector ();
 static GObject *
 webkit_view ();
@@ -1611,10 +1609,16 @@ GOBJECT_GETSET (int, enable_hyperlink_auditing,
     call (SOUP_COOKIE_JAR_ACCEPT_NEVER, "never")   \
     call (SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY, "first_party")
 
-/* TODO: Use choice macros. */
-GOBJECT_GETSET (int, cookie_policy,
-                cookie_jar (), "accept-policy")
+#define _soup_cookie_jar_get_accept_policy() \
+    soup_cookie_jar_get_accept_policy (SOUP_COOKIE_JAR (uzbl.net.soup_cookie_jar))
+#define _soup_cookie_jar_set_accept_policy(val) \
+    soup_cookie_jar_set_accept_policy (SOUP_COOKIE_JAR (uzbl.net.soup_cookie_jar), val)
 
+CHOICE_GETSET (SoupCookieJarAcceptPolicy, cookie_policy,
+               _soup_cookie_jar_get_accept_policy, _soup_cookie_jar_set_accept_policy)
+
+#undef _soup_cookie_jar_get_accept_policy
+#undef _soup_cookie_jar_set_accept_policy
 #undef cookie_policy_choices
 
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
@@ -2142,12 +2146,6 @@ GObject *
 soup_session ()
 {
     return G_OBJECT (uzbl.net.soup_session);
-}
-
-GObject *
-cookie_jar ()
-{
-    return G_OBJECT (uzbl.net.soup_cookie_jar);
 }
 
 GObject *
