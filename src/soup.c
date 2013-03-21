@@ -172,7 +172,7 @@ uzbl_soup_authenticate (const char *authinfo,
     }
 
     soup_auth_authenticate (pending->auth, username, password);
-    for(GList *l = pending->messages; l; l = l->next) {
+    for (GList *l = pending->messages; l; l = l->next) {
         soup_session_unpause_message (
             uzbl.net.soup_session,
             SOUP_MESSAGE (l->data));
