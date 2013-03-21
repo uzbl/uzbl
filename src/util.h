@@ -1,6 +1,8 @@
 #include <glib.h>
 #include <stdio.h>
 
+#define UZBL_UNUSED(var) (void)var
+
 enum xdg_type {
   XDG_CONFIG, XDG_DATA, XDG_CACHE
 };

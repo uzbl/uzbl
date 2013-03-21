@@ -19,7 +19,6 @@
 
 #include <sys/types.h>
 
-#define UZBL_UNUSED(var) (void)var
 #define uzbl_debug(...) if (uzbl.state.verbose) printf(__VA_ARGS__)
 
 
