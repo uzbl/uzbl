@@ -401,6 +401,7 @@ get_xdg_var (gboolean user, XdgDir dir)
     return str_replace("~", home, actual_value);
 }
 
+#ifndef UZBL_LIBRARY
 gchar *
 find_xdg_file (XdgDir dir, const char* basename)
 {
@@ -426,3 +427,4 @@ find_xdg_file (XdgDir dir, const char* basename)
 
     return path;
 }
+#endif
