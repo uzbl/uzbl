@@ -1,8 +1,3 @@
-/*
- ** Uzbl event routines
- ** (c) 2009 by Robert Manea
-*/
-
 #ifndef UZBL_EVENTS_H
 #define UZBL_EVENTS_H
 
@@ -54,10 +49,10 @@
     call (BLUR_ELEMENT),      \
     call (AUTHENTICATE),      \
     call (USER_EVENT),        \
-    /* must be last entry */  \
+    /* Must be last entry. */ \
     call (LAST_EVENT)
 
-/* Event system */
+/* Event table. */
 typedef enum {
 /* TODO: Namespace event enum values. */
 #define event_enum(evt) evt
@@ -67,24 +62,13 @@ typedef enum {
 #undef event_enum
 } UzblEventType;
 
-struct _UzblEvent;
-typedef struct _UzblEvent UzblEvent;
-
 int
 uzbl_events_init ();
-void
-uzbl_events_free (UzblEvent *event);
+
 void
 uzbl_events_replay_buffer ();
-UzblEvent *
-uzbl_events_format (UzblEventType type, const gchar *custom_event, ...) G_GNUC_NULL_TERMINATED;
+
 void
 uzbl_events_send (UzblEventType type, const gchar *custom_event, ...) G_GNUC_NULL_TERMINATED;
-void
-uzbl_events_send_formatted (const UzblEvent *event);
-void
-uzbl_events_keypress (guint keyval, guint state, guint is_modifer, gint mode);
-void
-uzbl_events_button (guint buttonval, guint state, gint mode);
 
 #endif

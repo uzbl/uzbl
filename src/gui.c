@@ -264,6 +264,9 @@ uzbl_plug_init (void)
 
 /* Status bar callbacks */
 
+static void
+send_keypress_event (guint keyval, guint state, guint is_modifier, gint mode);
+
 gboolean
 key_press_cb (GtkWidget *widget, GdkEventKey *event, gpointer data)
 {
@@ -271,7 +274,7 @@ key_press_cb (GtkWidget *widget, GdkEventKey *event, gpointer data)
     UZBL_UNUSED (data);
 
     if (event->type == GDK_KEY_PRESS) {
-        uzbl_events_keypress (event->keyval, event->state, event->is_modifier, GDK_KEY_PRESS);
+        send_keypress_event (event->keyval, event->state, event->is_modifier, GDK_KEY_PRESS);
     }
 
     return (uzbl.behave.forward_keys ? FALSE : TRUE);
@@ -284,10 +287,137 @@ key_release_cb (GtkWidget *widget, GdkEventKey *event, gpointer data)
     UZBL_UNUSED (data);
 
     if (event->type == GDK_KEY_RELEASE) {
-        uzbl_events_keypress (event->keyval, event->state, event->is_modifier, GDK_KEY_RELEASE);
+        send_keypress_event (event->keyval, event->state, event->is_modifier, GDK_KEY_RELEASE);
     }
 
     return (uzbl.behave.forward_keys ? FALSE : TRUE);
+}
+
+static guint
+key_to_modifier (guint keyval);
+static gchar *
+get_modifier_mask (guint state);
+
+void
+send_keypress_event (guint keyval, guint state, guint is_modifier, gint mode)
+{
+    gchar ucs[7];
+    gint ulen;
+    gchar *keyname;
+    guint32 ukval = gdk_keyval_to_unicode (keyval);
+    gchar *modifiers = NULL;
+    guint mod = key_to_modifier (keyval);
+
+    /* Get modifier state including this key press/release. */
+    modifiers = get_modifier_mask ((mode == GDK_KEY_PRESS) ? (state | mod) : (state & ~mod));
+
+    if (is_modifier && mod) {
+        uzbl_events_send ((mode == GDK_KEY_PRESS) ? MOD_PRESS : MOD_RELEASE, NULL,
+            TYPE_STR, modifiers,
+            TYPE_NAME, get_modifier_mask (mod),
+            NULL);
+    } else if (g_unichar_isgraph (ukval)) {
+        /* Check for printable unicode char. */
+        /* TODO: Pass the keyvals through a GtkIMContext so that we also get
+         * combining chars right. */
+        ulen = g_unichar_to_utf8 (ukval, ucs);
+        ucs[ulen] = 0;
+
+        uzbl_events_send ((mode == GDK_KEY_PRESS) ? KEY_PRESS : KEY_RELEASE, NULL,
+            TYPE_STR, modifiers,
+            TYPE_STR, ucs,
+            NULL);
+    } else if ((keyname = gdk_keyval_name (keyval))) {
+        /* Send keysym for non-printable chars. */
+        uzbl_events_send ((mode == GDK_KEY_PRESS) ? KEY_PRESS : KEY_RELEASE, NULL,
+            TYPE_STR, modifiers,
+            TYPE_NAME, keyname,
+            NULL);
+    }
+
+    g_free (modifiers);
+}
+
+guint
+key_to_modifier (guint keyval)
+{
+/* backwards compatibility. */
+#if !GTK_CHECK_VERSION (2, 22, 0)
+#define GDK_KEY_Shift_L GDK_Shift_L
+#define GDK_KEY_Shift_R GDK_Shift_R
+#define GDK_KEY_Control_L GDK_Control_L
+#define GDK_KEY_Control_R GDK_Control_R
+#define GDK_KEY_Alt_L GDK_Alt_L
+#define GDK_KEY_Alt_R GDK_Alt_R
+#define GDK_KEY_Super_L GDK_Super_L
+#define GDK_KEY_Super_R GDK_Super_R
+#define GDK_KEY_ISO_Level3_Shift GDK_ISO_Level3_Shift
+#endif
+
+    /* FIXME: Should really use XGetModifierMapping and/or Xkb to get actual
+     * modifier keys. */
+    switch (keyval) {
+        case GDK_KEY_Shift_L:
+        case GDK_KEY_Shift_R:
+            return GDK_SHIFT_MASK;
+        case GDK_KEY_Control_L:
+        case GDK_KEY_Control_R:
+            return GDK_CONTROL_MASK;
+        case GDK_KEY_Alt_L:
+        case GDK_KEY_Alt_R:
+            return GDK_MOD1_MASK;
+        case GDK_KEY_Super_L:
+        case GDK_KEY_Super_R:
+            return GDK_MOD4_MASK;
+        case GDK_KEY_ISO_Level3_Shift:
+            return GDK_MOD5_MASK;
+        default:
+            return 0;
+    }
+}
+
+gchar *
+get_modifier_mask (guint state) {
+    GString *modifiers = g_string_new ("");
+
+    if (state & GDK_MODIFIER_MASK) {
+        /* FIXME: Valgrind says there's a memory leak here... */
+#define CHECK_MODIFIER(mask, modifier)                 \
+    do {                                               \
+        if (state & GDK_##mask##_MASK) {               \
+            g_string_append (modifiers, modifier "|"); \
+        }                                              \
+    } while (0)
+
+        CHECK_MODIFIER (SHIFT,   "Shift");
+        CHECK_MODIFIER (LOCK,    "ScrollLock");
+        CHECK_MODIFIER (CONTROL, "Ctrl");
+        CHECK_MODIFIER (MOD1,    "Mod1");
+        /* Mod2 is usually NumLock. Ignore it since NumLock shouldn't be used
+         * in bindings.
+        CHECK_MODIFIER (MOD2,    "Mod2");
+         */
+        CHECK_MODIFIER (MOD3,    "Mod3");
+        CHECK_MODIFIER (MOD4,    "Mod4");
+        CHECK_MODIFIER (MOD5,    "Mod5");
+        CHECK_MODIFIER (BUTTON1, "Button1");
+        CHECK_MODIFIER (BUTTON2, "Button2");
+        CHECK_MODIFIER (BUTTON3, "Button3");
+        CHECK_MODIFIER (BUTTON4, "Button4");
+        CHECK_MODIFIER (BUTTON5, "Button5");
+
+#undef CHECK_MODIFIER
+
+        if (modifiers->len) {
+            gsize end = modifiers->len - 1;
+
+            if (modifiers->str[end] == '|') {
+                g_string_truncate (modifiers, end);
+            }
+        }
+    }
+
+    return g_string_free (modifiers, FALSE);
 }
 
 /* Web view callbacks */
@@ -297,6 +427,8 @@ key_release_cb (GtkWidget *widget, GdkEventKey *event, gpointer data)
 #define NO_CLICK_CONTEXT -1
 static gint
 get_click_context (void);
+static void
+send_button_event (guint buttonval, guint state, gint mode);
 
 gboolean
 button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
@@ -360,7 +492,7 @@ button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
     }
 
     if (sendev) {
-        uzbl_events_button (event->button, event->state, event->type);
+        send_button_event (event->button, event->state, event->type);
     }
 
     return propagate;
@@ -393,7 +525,7 @@ button_release_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
         }
 
         if (sendev) {
-            uzbl_events_button (event->button, event->state, GDK_BUTTON_RELEASE);
+            send_button_event (event->button, event->state, GDK_BUTTON_RELEASE);
         }
     }
 
@@ -417,6 +549,53 @@ get_click_context ()
     g_object_unref (ht);
 
     return (gint)context;
+}
+
+static guint
+button_to_modifier (guint buttonval);
+
+void
+send_button_event (guint buttonval, guint state, gint mode)
+{
+    gchar *details;
+    const char *reps;
+    gchar *modifiers = NULL;
+    guint mod = button_to_modifier (buttonval);
+
+    /* Get modifier state including this button press/release. */
+    modifiers = get_modifier_mask ((mode != GDK_BUTTON_RELEASE) ? (state | mod) : (state & ~mod));
+
+    switch (mode) {
+        case GDK_2BUTTON_PRESS:
+            reps = "2";
+            break;
+        case GDK_3BUTTON_PRESS:
+            reps = "3";
+            break;
+        default:
+            reps = "";
+            break;
+    }
+
+    details = g_strdup_printf ("%sButton%d", reps, buttonval);
+
+    uzbl_events_send ((mode == GDK_BUTTON_PRESS) ? KEY_PRESS : KEY_RELEASE, NULL,
+        TYPE_STR, modifiers,
+        TYPE_FORMATTEDSTR, details,
+        NULL);
+
+    g_free (details);
+    g_free (modifiers);
+}
+
+guint
+button_to_modifier (guint buttonval)
+{
+    if (buttonval <= 5) {
+        /* TODO: Where does this come from? */
+        return (1 << (7 + buttonval));
+    }
+    return 0;
 }
 
 void
