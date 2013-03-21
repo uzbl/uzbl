@@ -176,6 +176,7 @@ DECLARE_GETSET (int, javascript_clipboard);
 /* Image variables */
 DECLARE_GETSET (int, autoload_images);
 DECLARE_GETSET (int, autoshrink_images);
+DECLARE_GETSET (int, use_image_orientation);
 
 /* Spell checking variables */
 DECLARE_GETSET (int, enable_spellcheck);
@@ -244,6 +245,11 @@ DECLARE_GETSET (gchar *, web_database_directory);
 DECLARE_GETSET (unsigned long long, web_database_quota);
 #if WEBKIT_CHECK_VERSION (1, 5, 2)
 DECLARE_GETSET (gchar *, local_storage_path);
+#endif
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 11, 92)
+DECLARE_GETSET (gchar *, disk_cache_directory);
+#endif
 #endif
 
 /* Hacks */
@@ -377,6 +383,7 @@ builtin_variable_table[] = {
     /* Image variables */
     { "autoload_images",              UZBL_V_FUNC (autoload_images,                        INT)},
     { "autoshrink_images",            UZBL_V_FUNC (autoshrink_images,                      INT)},
+    { "use_image_orientation",        UZBL_V_FUNC (use_image_orientation,                      INT)},
 
     /* Spell checking variables */
     { "enable_spellcheck",            UZBL_V_FUNC (enable_spellcheck,                      INT)},
@@ -445,6 +452,11 @@ builtin_variable_table[] = {
     { "web_database_quota",           UZBL_V_FUNC (web_database_quota,                     ULL)},
 #if WEBKIT_CHECK_VERSION (1, 5, 2)
     { "local_storage_path",           UZBL_V_FUNC (local_storage_path,                     STR)},
+#endif
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 11, 92)
+    { "disk_cache_directory",         UZBL_V_FUNC (disk_cache_directory,                     STR)},
+#endif
 #endif
 
     /* Hacks */
@@ -1828,6 +1840,9 @@ GOBJECT_GETSET (int, autoload_images,
 GOBJECT_GETSET (int, autoshrink_images,
                 webkit_settings (), "auto-shrink-images")
 
+GOBJECT_GETSET (int, use_image_orientation,
+                webkit_settings (), "respect-image-orientation")
+
 /* Spell checking variables */
 GOBJECT_GETSET (int, enable_spellcheck,
                 webkit_settings (), "enable-spell-checking")
@@ -2113,6 +2128,17 @@ IMPLEMENT_SETTER (unsigned long long, web_database_quota)
 #if WEBKIT_CHECK_VERSION (1, 5, 2)
 GOBJECT_GETSET (gchar *, local_storage_path,
                 webkit_settings (), "html5-local-storage-database-path")
+#endif
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 11, 92)
+IMPLEMENT_SETTER (gchar *, disk_cache_directory)
+{
+    WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
+
+    webkit_web_context_set_disk_cache_directory (context, disk_cache_directory);
+}
+#endif
 #endif
 
 /* Hacks */
