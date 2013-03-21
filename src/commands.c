@@ -217,7 +217,7 @@ builtin_command_table[] =
 /* =========================== PUBLIC API =========================== */
 
 static void
-parse_command_from_file (const char *cmd, GString *result);
+parse_command_from_file (const char *cmd);
 
 void
 uzbl_commands_init ()
@@ -236,7 +236,7 @@ uzbl_commands_init ()
 
     /* Load default config. */
     for (i = 0; default_config[i].command; ++i) {
-        parse_command_from_file (default_config[i].command, NULL);
+        parse_command_from_file (default_config[i].command);
     }
 }
 
@@ -397,6 +397,56 @@ parse_command_arguments (const gchar *args, GArray *argv, gboolean split)
     }
 }
 
+gboolean
+for_each_line_in_file (const gchar *path, UzblLineCallback callback, gpointer data)
+{
+    gchar *line = NULL;
+    gsize len;
+
+    GIOChannel *chan = g_io_channel_new_file (path, "r", NULL);
+
+    if (!chan) {
+        return FALSE;
+    }
+
+    while (g_io_channel_read_line (chan, &line, &len, NULL, NULL) == G_IO_STATUS_NORMAL) {
+        callback (line, data);
+        g_free (line);
+    }
+
+    g_io_channel_unref (chan);
+
+    return TRUE;
+}
+
+void
+parse_command_from_file_cb (const gchar *line, gpointer data)
+{
+    UZBL_UNUSED (data);
+
+    parse_command_from_file (line);
+}
+
+void
+parse_command_from_file (const char *cmd)
+{
+    if (!*cmd) {
+        return;
+    }
+
+    gchar *work_string = g_strdup (cmd);
+
+    /* Strip trailing newline, and any other whitespace in front. */
+    g_strstrip (work_string);
+
+    /* Skip comments. */
+    if (*work_string != '#') {
+        uzbl_commands_run (work_string, NULL);
+    }
+
+    g_free (work_string);
+}
+
 void
 sharg_append (GArray *argv, const gchar *str)
 {
@@ -467,56 +517,6 @@ split_quoted (const gchar *src, const gboolean unquote)
     g_string_free (str, TRUE);
 
     return ret;
-}
-
-gboolean
-for_each_line_in_file (const gchar *path, UzblLineCallback callback, gpointer data)
-{
-    gchar *line = NULL;
-    gsize len;
-
-    GIOChannel *chan = g_io_channel_new_file (path, "r", NULL);
-
-    if (!chan) {
-        return FALSE;
-    }
-
-    while (g_io_channel_read_line (chan, &line, &len, NULL, NULL) == G_IO_STATUS_NORMAL) {
-        callback (line, data);
-        g_free (line);
-    }
-
-    g_io_channel_unref (chan);
-
-    return TRUE;
-}
-
-void
-parse_command_from_file_cb (const gchar *line, gpointer data)
-{
-    UZBL_UNUSED (data);
-
-    parse_command_from_file (line, NULL);
-}
-
-void
-parse_command_from_file (const char *cmd, GString *result)
-{
-    if (!*cmd) {
-        return;
-    }
-
-    gchar *work_string = g_strdup (cmd);
-
-    /* Strip trailing newline, and any other whitespace in front. */
-    g_strstrip (work_string);
-
-    /* Skip comments. */
-    if (*work_string != '#') {
-        uzbl_commands_run (work_string, result);
-    }
-
-    g_free (work_string);
 }
 
 /* ==================== COMMAND  IMPLEMENTATIONS ==================== */
@@ -1471,7 +1471,7 @@ spawn (GArray *argv, GString *result, gboolean exec)
             gchar *tail;
             while ((tail = strchr (head, '\n'))) {
                 *tail = '\0';
-                parse_command_from_file (head, NULL);
+                parse_command_from_file (head);
                 head = tail + 1;
             }
         }
