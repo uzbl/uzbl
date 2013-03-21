@@ -194,7 +194,10 @@ builtin_command_table[] =
 
     /* Event commands */
     { "event",                          cmd_event,                    FALSE, FALSE },
-    { "request",                        cmd_event,                    FALSE, FALSE }  /* XXX: Deprecated (event). */
+    { "request",                        cmd_event,                    FALSE, FALSE }, /* XXX: Deprecated (event). */
+
+    /* Terminator */
+    { NULL,                             NULL,                         FALSE, FALSE }
 };
 
 /* =========================== PUBLIC API =========================== */
@@ -205,14 +208,17 @@ parse_command_from_file (const char *cmd, GString *result);
 void
 uzbl_commands_init ()
 {
-    unsigned i;
-    unsigned len = LENGTH (builtin_command_table);
+    UzblCommand *cmd = &builtin_command_table[0];
 
     uzbl.behave.commands = g_hash_table_new (g_str_hash, g_str_equal);
 
-    for (i = 0; i < len; ++i) {
-        g_hash_table_insert (uzbl.behave.commands, (gpointer)builtin_command_table[i].name, &builtin_command_table[i]);
+    while (cmd->name) {
+        g_hash_table_insert (uzbl.behave.commands, (gpointer)cmd->name, cmd);
+
+        ++cmd;
     }
+
+    guint i;
 
     /* Load default config. */
     for (i = 0; default_config[i].command; ++i) {
@@ -223,13 +229,17 @@ uzbl_commands_init ()
 void
 uzbl_commands_send_builtin_event ()
 {
-    unsigned i;
-    unsigned len = LENGTH (builtin_command_table);
+    UzblCommand *cmd = &builtin_command_table[0];
+
     GString *command_list = g_string_new ("");
 
-    for (i = 0; i < len; ++i) {
-        g_string_append (command_list, builtin_command_table[i].name);
-        g_string_append_c (command_list, ' ');
+    while (cmd->name) {
+        if (command_list->len) {
+            g_string_append_c (command_list, ' ');
+        }
+        g_string_append (command_list, cmd->name);
+
+        ++cmd;
     }
 
     uzbl_events_send (BUILTINS, NULL,
