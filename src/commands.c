@@ -288,23 +288,30 @@ uzbl_commands_run_parsed (const UzblCommand *info, GArray *argv, GString *result
         return;
     }
 
+    GArray *argv_copy = NULL;
+
     if (info->send_event) {
-        uzbl_events_send (COMMAND_EXECUTED, NULL,
-            TYPE_NAME, info->name,
-            TYPE_STR_ARRAY, argv,
-            NULL);
+        argv_copy = g_array_new (TRUE, FALSE, sizeof (gchar *));
+
+        /* Store the arguments for the event. */
+        g_array_append_vals (argv_copy, argv->data, argv->len);
     }
 
-    /* Might change argv. */
     info->function (uzbl.gui.web_view, argv, result);
-
-    uzbl_events_send_formatted (event);
-    uzbl_events_free (event);
 
     if (result) {
         g_free (uzbl.state.last_result);
         uzbl.state.last_result = g_strdup (result->str);
     }
+
+    if (info->send_event) {
+        uzbl_events_send (COMMAND_EXECUTED, NULL,
+            TYPE_NAME, info->name,
+            TYPE_STR_ARRAY, argv_copy,
+            NULL);
+    }
+
+    g_array_free (argv_copy, FALSE);
 }
 
 void
