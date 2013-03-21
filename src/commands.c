@@ -53,15 +53,23 @@ DECLARE_COMMAND (cookie_add);
 DECLARE_COMMAND (cookie_delete);
 DECLARE_COMMAND (cookie_clear);
 
+#ifndef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 11, 92)
+#define HAVE_SNAPSHOT
+#endif
+#else
+#if WEBKIT_CHECK_VERSION (1, 9, 6)
+#define HAVE_SNAPSHOT
+#endif
+#endif
+
 /* Display commands */
 DECLARE_COMMAND (scroll);
 DECLARE_COMMAND (zoom_in);
 DECLARE_COMMAND (zoom_out);
 DECLARE_COMMAND (hardcopy);
-#ifndef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 9, 6)
+#ifdef HAVE_SNAPSHOT
 DECLARE_COMMAND (snapshot);
-#endif
 #endif
 
 /* Content commands */
@@ -138,10 +146,8 @@ builtin_command_table[] =
     { "zoom_in",                        cmd_zoom_in,                  TRUE,  TRUE  }, /* TODO: Rework to be "zoom in". */
     { "zoom_out",                       cmd_zoom_out,                 TRUE,  TRUE  }, /* TODO: Rework to be "zoom out". */
     { "hardcopy",                       cmd_hardcopy,                 FALSE, TRUE  },
-#ifndef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 9, 6)
+#ifdef HAVE_SNAPSHOT
     { "snapshot",                       cmd_snapshot,                 FALSE, TRUE  },
-#endif
 #endif
 
     /* Content commands */
@@ -850,8 +856,7 @@ IMPLEMENT_COMMAND (hardcopy)
     webkit_web_frame_print (webkit_web_view_get_main_frame (view));
 }
 
-#ifndef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 9, 6)
+#if HAVE_SNAPSHOT
 IMPLEMENT_COMMAND (snapshot)
 {
     UZBL_UNUSED (result);
@@ -860,14 +865,55 @@ IMPLEMENT_COMMAND (snapshot)
 
     cairo_surface_t *surface;
 
+#ifdef USE_WEBKIT2
+    ARG_CHECK (argv, 3);
+
+    guint sz = argv->len;
+    guint i;
+
+    const gchar *path = argv_idx (argv, 0);
+    const gchar *format = argv_idx (argv, 1);
+    const gchar *region_str = argv_idx (argv, 2);
+
+    WebKitSnapshotRegion region = WEBKIT_SNAPSHOT_REGION_VISIBLE;
+
+    if (!g_strcmp0 (region_str, "visible")) {
+        region = WEBKIT_SNAPSHOT_REGION_VISIBLE;
+    } else if (!g_strcmp0 (region_str, "document")) {
+        region = WEBKIT_SNAPSHOT_REGION_FULL_DOCUMENT;
+    } else {
+        uzbl_debug ("Unrecognized snapshot region: %s\n", region_str);
+    }
+
+    WebKitSnapshotOptions options = WEBKIT_SNAPSHOT_OPTIONS_NONE;
+
+    for (i = 3; i < sz; ++i) {
+        const gchar *option = argv_idx (argv, i);
+
+        if (!g_strcmp0 (option, "selection")) {
+            options |= WEBKIT_SNAPSHOT_OPTIONS_INCLUDE_SELECTION_HIGHLIGHTING;
+        } else {
+            uzbl_debug ("Unrecognized snapshot option: %s\n", option);
+        }
+    }
+
+    webkit_web_view_get_snapshot (view, region, options,
+                                  NULL, NULL, NULL);
+    surface = webkit_web_view_get_snapshot_finish (view, NULL, NULL);
+
+    if (!g_strcmp0 (format, "png")) {
+        cairo_surface_write_to_png (surface, argv_idx (argv, 0));
+    } else {
+        uzbl_debug ("Unrecognized snapshot format: %s\n", format);
+    }
+#else
     surface = webkit_web_view_get_snapshot (view);
 
-    /* TODO: Support other formats? */
     cairo_surface_write_to_png (surface, argv_idx (argv, 0));
+#endif
 
     cairo_surface_destroy (surface);
 }
-#endif
 #endif
 
 /* Content commands */
