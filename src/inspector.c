@@ -1,13 +1,10 @@
-/*
- ** WebInspector
- ** (c) 2009 by Robert Manea
-*/
-
 #include "inspector.h"
 
-#include "uzbl-core.h"
 #include "events.h"
 #include "type.h"
+#include "uzbl-core.h"
+
+/* =========================== PUBLIC API =========================== */
 
 static WebKitWebView *
 inspector_create_cb (WebKitWebInspector *inspector, WebKitWebView *view, gpointer data);
@@ -44,6 +41,8 @@ uzbl_inspector_init ()
         "signal::notify::inspected-uri", G_CALLBACK (inspector_uri_changed_cb),         NULL,
         NULL);
 }
+
+/* ==================== CALLBACK IMPLEMENTATIONS ==================== */
 
 static void
 inspector_hide_window_cb (GtkWidget *widget, gpointer data);
