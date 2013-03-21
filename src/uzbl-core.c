@@ -295,39 +295,6 @@ valid_name(const gchar* name) {
 }
 
 void
-update_title(void) {
-    Behaviour *b = &uzbl.behave;
-
-    const gchar *title_format = b->title_format_long;
-
-    /* Update the status bar if shown */
-    if (uzbl_variables_get_int ("show_status")) {
-        title_format = b->title_format_short;
-
-        gchar *parsed = expand(b->status_format, 0);
-        uzbl_status_bar_update_left(uzbl.gui.status_bar, parsed);
-        g_free(parsed);
-
-        parsed = expand(b->status_format_right, 0);
-        uzbl_status_bar_update_right(uzbl.gui.status_bar, parsed);
-        g_free(parsed);
-    }
-
-    /* Update window title */
-    /* If we're starting up or shutting down there might not be a window yet. */
-    gboolean have_main_window = !uzbl.state.plug_mode && GTK_IS_WINDOW(uzbl.gui.main_window);
-    if (title_format && have_main_window) {
-        gchar *parsed = expand(title_format, 0);
-        const gchar *current_title = gtk_window_get_title (GTK_WINDOW(uzbl.gui.main_window));
-        /* xmonad hogs CPU if the window title updates too frequently, so we
-         * don't set it unless we need to. */
-        if(!current_title || strcmp(current_title, parsed))
-            gtk_window_set_title (GTK_WINDOW(uzbl.gui.main_window), parsed);
-        g_free(parsed);
-    }
-}
-
-void
 settings_init () {
     State*   s = &uzbl.state;
 
@@ -478,7 +445,7 @@ main (int argc, char* argv[]) {
     settings_init();
 
     /* Update status bar */
-    update_title();
+    uzbl_gui_update_title ();
 
     /* WebInspector */
     uzbl_inspector_init ();

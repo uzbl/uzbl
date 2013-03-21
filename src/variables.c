@@ -565,7 +565,7 @@ uzbl_variables_set (const gchar *name, gchar *val)
 
     send_variable_event (name, var);
 
-    update_title ();
+    uzbl_gui_update_title ();
     return TRUE;
 }
 
@@ -1197,7 +1197,7 @@ IMPLEMENT_GETTER (int, show_status)
 IMPLEMENT_SETTER (int, show_status)
 {
     gtk_widget_set_visible (uzbl.gui.status_bar, show_status);
-    update_title ();
+    uzbl_gui_update_title ();
 }
 
 IMPLEMENT_SETTER (int, status_top)

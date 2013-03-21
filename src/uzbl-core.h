@@ -169,7 +169,6 @@ extern UzblCore uzbl; /* Main Uzbl object */
 
 /* Functions */
 void        clean_up(void);
-void        update_title(void);
 
 /* Configuration variables */
 gboolean    valid_name(const gchar* name);

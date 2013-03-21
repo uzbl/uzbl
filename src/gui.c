@@ -38,6 +38,38 @@ uzbl_gui_init ()
     }
 }
 
+void
+uzbl_gui_update_title ()
+{
+    const gchar *title_format = uzbl.behave.title_format_long;
+
+    /* Update the status bar if shown. */
+    if (uzbl_variables_get_int ("show_status")) {
+        title_format = uzbl.behave.title_format_short;
+
+        gchar *parsed = expand (uzbl.behave.status_format, 0);
+        uzbl_status_bar_update_left (uzbl.gui.status_bar, parsed);
+        g_free(parsed);
+
+        parsed = expand (uzbl.behave.status_format_right, 0);
+        uzbl_status_bar_update_right (uzbl.gui.status_bar, parsed);
+        g_free (parsed);
+    }
+
+    /* Update window title. */
+    /* If we're starting up or shutting down there might not be a window yet. */
+    gboolean have_main_window = !uzbl.state.plug_mode && GTK_IS_WINDOW (uzbl.gui.main_window);
+    if (title_format && have_main_window) {
+        gchar *parsed = expand (title_format, 0);
+        const gchar *current_title = gtk_window_get_title (GTK_WINDOW (uzbl.gui.main_window));
+        /* XMonad hogs CPU if the window title updates too frequently, so we
+         * don't set it unless we need to. */
+        if (!current_title || strcmp (current_title, parsed))
+            gtk_window_set_title (GTK_WINDOW (uzbl.gui.main_window), parsed);
+        g_free (parsed);
+    }
+}
+
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
 
 static gboolean
@@ -610,7 +642,7 @@ link_hover_cb (WebKitWebView *view, const gchar *title, const gchar *link, gpoin
             NULL);
     }
 
-    update_title ();
+    uzbl_gui_update_title ();
 }
 
 /* Page metadata events */
@@ -626,7 +658,7 @@ title_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
     g_free (uzbl.gui.main_title);
     uzbl.gui.main_title = title ? g_strdup (title) : g_strdup ("(no title)");
 
-    update_title ();
+    uzbl_gui_update_title ();
 
     uzbl_events_send (TITLE_CHANGED, NULL,
         TYPE_STR, uzbl.gui.main_title,

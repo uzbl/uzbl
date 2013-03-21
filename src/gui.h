@@ -6,6 +6,9 @@
 void
 uzbl_gui_init ();
 
+void
+uzbl_gui_update_title ();
+
 gboolean /* FIXME: This should not be public here. */
 download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data);
 
