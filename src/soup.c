@@ -70,9 +70,13 @@ request_queued_cb (SoupSession *session,
     UZBL_UNUSED (session);
     UZBL_UNUSED (data);
 
+    gchar *str = soup_uri_to_string (soup_message_get_uri (msg), FALSE);
+
     uzbl_events_send (REQUEST_QUEUED, NULL,
-        TYPE_STR, soup_uri_to_string (soup_message_get_uri (msg), FALSE),
+        TYPE_STR, str,
         NULL);
+
+    g_free (str);
 }
 
 static void

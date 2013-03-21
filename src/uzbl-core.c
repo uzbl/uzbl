@@ -366,6 +366,11 @@ clean_up ()
         g_free (uzbl.comm.socket_path);
         uzbl.comm.socket_path = NULL;
     }
+
+    uzbl_variables_free ();
+
+    g_object_unref (uzbl.net.soup_cookie_jar);
+    uzbl.net.soup_cookie_jar = NULL;
 }
 #endif
 
@@ -407,6 +412,8 @@ find_xdg_file (XdgDir dir, const char* basename)
     if (file_exists (path)) {
         return path; /* We found the file. */
     }
+
+    g_free (path);
 
     if (dir == XDG_CACHE) {
         return NULL; /* There's no system cache directory. */

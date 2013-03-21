@@ -407,7 +407,6 @@ parse_command_arguments (const gchar *args, GArray *argv, gboolean split)
     if (par) {
         guint i;
         for (i = 0; i < g_strv_length (par); ++i) {
-            /* FIXME: Valgrind says there's a memory leak here... */
             sharg_append (argv, g_strdup (par[i]));
         }
         g_strfreev (par);

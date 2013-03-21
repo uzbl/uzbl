@@ -30,7 +30,8 @@ typedef union {
 typedef struct {
     UzblType type;
     UzblValue value;
-    int writeable;
+    gboolean writeable;
+    gboolean builtin;
 
     UzblFunction get;
     UzblFunction set;
@@ -38,12 +39,12 @@ typedef struct {
 
 /* Abbreviations to help keep the table's width humane. */
 #define UZBL_SETTING(typ, val, w, getter, setter) \
-    { .type = TYPE_##typ, .value = val, .writeable = w, .get = (UzblFunction)getter, .set = (UzblFunction)setter }
+    { .type = TYPE_##typ, .value = val, .writeable = w, .builtin = TRUE, .get = (UzblFunction)getter, .set = (UzblFunction)setter }
 
 #define UZBL_VARIABLE(typ, val, getter, setter) \
-    UZBL_SETTING (typ, val, 1, getter, setter)
+    UZBL_SETTING (typ, val, TRUE, getter, setter)
 #define UZBL_CONSTANT(typ, val, getter) \
-    UZBL_SETTING (typ, val, 0, getter, NULL)
+    UZBL_SETTING (typ, val, FALSE, getter, NULL)
 
 /* Variables */
 #define UZBL_V_STRING(val, set) UZBL_VARIABLE (STR,   { .s = &(val) },         NULL,      set)
@@ -502,6 +503,18 @@ uzbl_variables_init ()
     }
 }
 
+static void
+variable_free (gpointer key, gpointer value, gpointer data);
+
+void
+uzbl_variables_free ()
+{
+    g_hash_table_foreach (uzbl.behave.proto_var, variable_free, NULL);
+
+    g_hash_table_destroy (uzbl.behave.proto_var);
+    uzbl.behave.proto_var = NULL;
+}
+
 static char *valid_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
 
 gboolean
@@ -585,7 +598,8 @@ uzbl_variables_set (const gchar *name, gchar *val)
         var->type      = TYPE_STR;
         var->get       = NULL;
         var->set       = NULL;
-        var->writeable = 1;
+        var->writeable = TRUE;
+        var->builtin   = FALSE;
 
         var->value.s = g_malloc (sizeof (gchar *));
 
@@ -801,6 +815,23 @@ uzbl_variables_dump_events ()
 }
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
+
+void
+variable_free (gpointer key, gpointer value, gpointer data)
+{
+    UZBL_UNUSED (data);
+
+    UzblVariable *var = (UzblVariable *)value;
+
+    if (var->builtin) {
+        return;
+    }
+
+    gchar *name = (gchar *)key;
+
+    g_free (name);
+    g_free (var);
+}
 
 UzblVariable *
 get_variable (const gchar *name)

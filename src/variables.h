@@ -7,6 +7,8 @@
 
 void
 uzbl_variables_init ();
+void
+uzbl_variables_free ();
 
 gboolean
 uzbl_variables_is_valid (const gchar *name);
