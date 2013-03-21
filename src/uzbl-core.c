@@ -130,14 +130,13 @@ uzbl_initialize (int argc, char **argv)
     }
 #endif
 
-    uzbl_events_init ();
-
     /* HTTP client. */
     uzbl.net.soup_session = webkit_get_default_session ();
     uzbl_soup_init (uzbl.net.soup_session);
 
-    uzbl_commands_init ();
     uzbl_variables_init ();
+    uzbl_commands_init ();
+    uzbl_events_init ();
 
     /* XDG */
     ensure_xdg_vars ();

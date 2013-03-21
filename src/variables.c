@@ -1466,11 +1466,19 @@ GOBJECT_GETSET (int, auto_resize_window,
 /* UI variables */
 IMPLEMENT_GETTER (int, show_status)
 {
-    return gtk_widget_get_visible (uzbl.gui.status_bar);
+    if (!uzbl.gui.status_bar) {
+        return FALSE;
+    }
+
+    return gtk_widget_get_visible (GTK_WIDGET (uzbl.gui.status_bar));
 }
 
 IMPLEMENT_SETTER (int, show_status)
 {
+    if (!uzbl.gui.status_bar) {
+        return;
+    }
+
     gtk_widget_set_visible (uzbl.gui.status_bar, show_status);
     uzbl_gui_update_title ();
 }
