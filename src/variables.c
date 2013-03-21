@@ -1056,20 +1056,23 @@ expand_impl (const gchar *str, UzblExpandStage stage)
 
                         GString *js_ret = g_string_new ("");
 
+                        GArray *tmp = g_array_new (TRUE, FALSE, sizeof (gchar *));
+
                         if (*ret == '+') {
                             /* Read JS from file. */
-                            GArray *tmp = g_array_new (TRUE, FALSE, sizeof (gchar *));
                             gchar *mycmd = expand_impl (ret + 1, EXPAND_IGNORE_JS);
                             g_array_append_val (tmp, mycmd);
 
-                            cmd_js_file (uzbl.gui.web_view, tmp, js_ret);
-                            g_array_free (tmp, TRUE);
+                            uzbl_commands_run_argv ("js_file", tmp, js_ret);
                         } else {
                             /* JS from string. */
                             gchar *mycmd = expand_impl (ret, EXPAND_IGNORE_JS);
-                            eval_js (uzbl.gui.web_view, mycmd, js_ret, " (command)");
-                            g_free (mycmd);
+                            g_array_append_val (tmp, mycmd);
+
+                            uzbl_commands_run_argv ("js", tmp, js_ret);
                         }
+
+                        g_array_free (tmp, TRUE);
 
                         if (js_ret->str) {
                             g_string_append (buf, js_ret->str);
@@ -1689,7 +1692,10 @@ IMPLEMENT_SETTER (gchar *, uri)
     /* Evaluate javascript: URIs. */
     /* TODO: Use strprefix. */
     if (!strncmp (uri, "javascript:", 11)) {
-        eval_js (uzbl.gui.web_view, uri, NULL, "javascript:");
+        GArray *argv = g_array_new (TRUE, FALSE, sizeof (gchar *));
+        g_array_append_val (argv, uri);
+        uzbl_commands_run_argv ("js", argv, NULL);
+        g_array_free (argv, FALSE);
         return;
     }
 

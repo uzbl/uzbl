@@ -1191,7 +1191,11 @@ create_web_view_js_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data
     static const char *js_protocol = "javascript:";
 
     if (strprefix (uri, js_protocol) == 0) {
-        eval_js (uzbl.gui.web_view, (gchar *)uri + strlen (js_protocol), NULL, js_protocol);
+        GArray *args = g_array_new (TRUE, FALSE, sizeof (gchar *));
+        const gchar *js_code = uri + strlen (js_protocol);
+        g_array_append_val (args, js_code);
+        uzbl_commands_run_argv ("js", args, NULL);
+        g_array_free (args, FALSE);
     } else {
         uzbl_events_send (NEW_WINDOW, NULL,
             TYPE_STR, uri,

@@ -93,10 +93,8 @@ DECLARE_COMMAND (inspector_show);
 DECLARE_COMMAND (inspector);
 
 /* Execution commands */
-/* FIXME: Make private again.
 DECLARE_COMMAND (js);
 DECLARE_COMMAND (js_file);
-*/
 DECLARE_COMMAND (spawn);
 DECLARE_COMMAND (spawn_sync);
 DECLARE_COMMAND (spawn_sync_exec);
