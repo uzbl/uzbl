@@ -211,7 +211,6 @@ gboolean    valid_name(const gchar* name);
 
 /* Running commands */
 gchar*      expand(const char* s, guint recurse);
-void        run_command_file(const gchar *path);
 
 /* Initialization functions */
 void        initialize(int argc, char *argv[]);

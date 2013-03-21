@@ -18,5 +18,3 @@ gchar*      argv_idx(const GArray*, const guint);
  * `src' escaped
  */
 GString *   append_escaped (GString *dest, const gchar *src);
-
-void        sharg_append (GArray *array, const gchar *str);

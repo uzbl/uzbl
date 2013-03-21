@@ -33,7 +33,6 @@
 #include "events.h"
 #include "gui.h"
 #include "inspector.h"
-#include "config.h"
 #include "util.h"
 #include "menu.h"
 #include "io.h"
@@ -284,22 +283,6 @@ clean_up(void) {
 
 /* -- CORE FUNCTIONS -- */
 
-/* just a wrapper so parse_cmd_line can be used with for_each_line_in_file */
-static void
-parse_cmd_line_cb(const char *line, void *user_data) {
-    (void) user_data;
-    parse_cmd_line(line, NULL);
-}
-
-void
-run_command_file (const gchar *path) {
-    if(!for_each_line_in_file(path, parse_cmd_line_cb, NULL)) {
-        gchar *tmp = g_strdup_printf("File %s can not be read.", path);
-        uzbl_events_send (COMMAND_ERROR, NULL, TYPE_STR, tmp, NULL);
-        g_free(tmp);
-    }
-}
-
 gboolean
 valid_name(const gchar* name) {
     char *invalid_chars = "\t^°!\"§$%&/()=?'`'+~*'#-:,;@<>| \\{}[]¹²³¼½";
@@ -342,12 +325,6 @@ update_title(void) {
 void
 settings_init () {
     State*   s = &uzbl.state;
-    int      i;
-
-    /* Load default config */
-    for (i = 0; default_config[i].command != NULL; i++) {
-        parse_cmd_line(default_config[i].command, NULL);
-    }
 
     if (g_strcmp0(s->config_file, "-") == 0) {
         s->config_file = NULL;

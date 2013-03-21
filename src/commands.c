@@ -4,6 +4,7 @@
 
 #include "commands.h"
 
+#include "config.h"
 #include "events.h"
 #include "gui.h"
 #include "menu.h"
@@ -12,7 +13,7 @@
 #include "util.h"
 #include "variables.h"
 
-typedef void (*UzblCommand)(WebKitWebView *view, GArray *argv, GString *result);
+typedef void (*UzblCommand) (WebKitWebView *view, GArray *argv, GString *result);
 
 struct _UzblCommandInfo {
     const gchar *name;
@@ -198,6 +199,9 @@ builtin_command_table[] =
     { "request",                        cmd_event,                    FALSE, FALSE }  /* XXX: Deprecated (event). */
 };
 
+static void
+parse_command_from_file (const char *cmd, GString *result);
+
 void
 uzbl_commands_init ()
 {
@@ -208,6 +212,11 @@ uzbl_commands_init ()
 
     for (i = 0; i < len; ++i) {
         g_hash_table_insert (uzbl.behave.commands, (gpointer)builtin_command_table[i].name, &builtin_command_table[i]);
+    }
+
+    /* Load default config. */
+    for (i = 0; default_config[i].command; ++i) {
+        parse_command_from_file (default_config[i].command, NULL);
     }
 }
 
@@ -230,139 +239,227 @@ uzbl_commands_send_builtin_event ()
     g_string_free (command_list, TRUE);
 }
 
-gchar**
-split_quoted(const gchar* src, const gboolean unquote) {
-    /* split on unquoted space or tab, return array of strings;
-       remove a layer of quotes and backslashes if unquote */
-    if (!src) return NULL;
+static void
+parse_command_arguments (const gchar *args, GArray *argv, gboolean split);
 
-    gboolean dq = FALSE;
-    gboolean sq = FALSE;
-    GArray *a = g_array_new (TRUE, FALSE, sizeof (gchar*));
-    GString *s = g_string_new ("");
-    const gchar *p;
-    gchar **ret;
-    gchar *dup;
-    for (p = src; *p != '\0'; p++) {
-        if ((*p == '\\') && unquote && p[1]) g_string_append_c(s, *++p);
-        else if (*p == '\\' && p[1]) { g_string_append_c(s, *p++);
-                               g_string_append_c(s, *p); }
-        else if ((*p == '"') && unquote && !sq) dq = !dq;
-        else if (*p == '"' && !sq) { g_string_append_c(s, *p);
-                                     dq = !dq; }
-        else if ((*p == '\'') && unquote && !dq) sq = !sq;
-        else if (*p == '\'' && !dq) { g_string_append_c(s, *p);
-                                      sq = ! sq; }
-        else if ((*p == ' ' || *p == '\t') && !dq && !sq) {
-            dup = g_strdup(s->str);
-            g_array_append_val(a, dup);
-            g_string_truncate(s, 0);
-        } else g_string_append_c(s, *p);
+const UzblCommandInfo *
+uzbl_commands_parse (const gchar *cmd, GArray *argv)
+{
+    UzblCommandInfo *info = NULL;
+
+    gchar *exp_line = expand (cmd, 0);
+    if (!exp_line[0]) {
+        g_free (exp_line);
+        return NULL;
     }
-    dup = g_strdup(s->str);
-    g_array_append_val(a, dup);
-    ret = (gchar**)a->data;
-    g_array_free (a, FALSE);
-    g_string_free (s, TRUE);
-    return ret;
+
+    /* Separate the line into the command and its parameters. */
+    gchar **tokens = g_strsplit (exp_line, " ", 2);
+
+    /* look up the command */
+    info = g_hash_table_lookup (uzbl.behave.commands, tokens[0]);
+
+    if (!info) {
+        uzbl_events_send (COMMAND_ERROR, NULL,
+            TYPE_STR, exp_line,
+            NULL);
+
+        g_free (exp_line);
+        g_strfreev (tokens);
+
+        return NULL;
+    }
+
+    gchar *args = g_strdup (tokens[1]);
+    g_free (exp_line);
+    g_strfreev (tokens);
+
+    /* Parse the arguments. */
+    parse_command_arguments (args, argv, info->split);
+    g_free (args);
+
+    return info;
 }
 
+static void
+sharg_append (GArray *argv, const gchar *str);
+static gchar **
+split_quoted (const gchar *src, const gboolean unquote);
+
 void
-parse_command_arguments(const gchar *p, GArray *a, gboolean split) {
-    if (!split && p) { /* pass the parameters through in one chunk */
-        sharg_append(a, g_strdup(p));
+parse_command_arguments (const gchar *args, GArray *argv, gboolean split)
+{
+    if (!split && args) {
+        /* Pass the parameters through in one chunk. */
+        /* FIXME: Valgrind says there's a memory leak here... */
+        sharg_append (argv, g_strdup (args));
         return;
     }
 
-    gchar **par = split_quoted(p, TRUE);
+    gchar **par = split_quoted (args, TRUE);
     if (par) {
         guint i;
-        for (i = 0; i < g_strv_length(par); i++)
-            sharg_append(a, g_strdup(par[i]));
+        for (i = 0; i < g_strv_length (par); ++i) {
+            /* FIXME: Valgrind says there's a memory leak here... */
+            sharg_append (argv, g_strdup (par[i]));
+        }
         g_strfreev (par);
     }
 }
 
-const UzblCommandInfo *
-parse_command_parts(const gchar *line, GArray *a) {
-    UzblCommandInfo *c = NULL;
+void
+sharg_append (GArray *argv, const gchar *str)
+{
+    const gchar *s = (str ? str : "");
+    g_array_append_val (argv, s);
+}
 
-    gchar *exp_line = expand(line, 0);
-    if(exp_line[0] == '\0') {
-        g_free(exp_line);
+gchar **
+split_quoted (const gchar *src, const gboolean unquote)
+{
+    /* Split on unquoted space or tab, return array of strings; remove a layer
+     * of quotes and backslashes if unquote. */
+    if (!src) {
         return NULL;
     }
 
-    /* separate the line into the command and its parameters */
-    gchar **tokens = g_strsplit(exp_line, " ", 2);
+    GArray *argv = g_array_new (TRUE, FALSE, sizeof (gchar *));
+    GString *str = g_string_new ("");
+    const gchar *p;
 
-    /* look up the command */
-    c = g_hash_table_lookup(uzbl.behave.commands, tokens[0]);
+    gboolean ctx_double_quote = FALSE;
+    gboolean ctx_single_quote = FALSE;
 
-    if(!c) {
-        uzbl_events_send (COMMAND_ERROR, NULL,
-            TYPE_STR, exp_line,
-            NULL);
-        g_free(exp_line);
-        g_strfreev(tokens);
-        return NULL;
-    }
-
-    gchar *p = g_strdup(tokens[1]);
-    g_free(exp_line);
-    g_strfreev(tokens);
-
-    /* parse the arguments */
-    parse_command_arguments(p, a, c->split);
-    g_free(p);
-
-    return c;
-}
-
-void
-run_parsed_command(const UzblCommandInfo *c, GArray *a, GString *result) {
-    /* send the COMMAND_EXECUTED event, except for set and event/request commands */
-    if(strcmp("set", c->name)   &&
-       strcmp("event", c->name) &&
-       strcmp("request", c->name)) {
-        UzblEvent *event = uzbl_events_format (COMMAND_EXECUTED, NULL,
-            TYPE_NAME, c->name,
-            TYPE_STR_ARRAY, a,
-            NULL);
-
-        /* might be destructive on array a */
-        c->function(uzbl.gui.web_view, a, result);
-
-        uzbl_events_send_formatted (event);
-        uzbl_events_free (event);
-    }
-    else
-        c->function(uzbl.gui.web_view, a, result);
-
-    if(result) {
-        g_free(uzbl.state.last_result);
-        uzbl.state.last_result = g_strdup(result->str);
-    }
-}
-
-void
-parse_cmd_line(const char *ctl_line, GString *result) {
-    gchar *work_string = g_strdup(ctl_line);
-
-    /* strip trailing newline, and any other whitespace in front */
-    g_strstrip(work_string);
-
-    if( strcmp(work_string, "") ) {
-        if((work_string[0] != '#')) { /* ignore comments */
-            GArray *a = g_array_new (TRUE, FALSE, sizeof (gchar*));
-            const UzblCommandInfo *c = parse_command_parts(work_string, a);
-            if(c)
-                run_parsed_command(c, a, result);
-            g_array_free (a, TRUE);
+    for (p = src; *p; ++p) {
+        if ((*p == '\\') && p[1]) {
+            /* Escaped character. */
+            if (unquote) {
+                g_string_append_c (str, *++p);
+            } else {
+                g_string_append_c (str, *p++);
+                g_string_append_c (str, *p);
+            }
+        } else if ((*p == '"') && !ctx_single_quote) {
+            /* Double quoted argument. */
+            if (unquote) {
+                ctx_double_quote = !ctx_double_quote;
+            } else {
+                g_string_append_c (str, *p);
+                ctx_double_quote = !ctx_double_quote;
+            }
+        } else if ((*p == '\'') && !ctx_double_quote) {
+            /* Single quoted argument. */
+            if (unquote) {
+                ctx_single_quote = !ctx_single_quote;
+            } else {
+                g_string_append_c(str, *p);
+                ctx_single_quote = ! ctx_single_quote;
+            }
+        } else if (isspace (*p) && !ctx_double_quote && !ctx_single_quote) {
+            /* Argument separator. */
+            /* TODO: Is "a  b" three arguments? */
+            gchar *dup = g_strdup (str->str);
+            g_array_append_val (argv, dup);
+            g_string_truncate (str, 0);
+        } else {
+            /* Regular character. */
+            g_string_append_c (str, *p);
         }
     }
 
-    g_free(work_string);
+    /* Append last argument. */
+    gchar *dup = g_strdup (str->str);
+    g_array_append_val (argv, dup);
+
+    gchar **ret = (gchar **)argv->data;
+
+    g_array_free (argv, FALSE);
+    g_string_free (str, TRUE);
+
+    return ret;
+}
+
+void
+uzbl_commands_run_parsed (const UzblCommandInfo *info, GArray *argv, GString *result)
+{
+    if (!info) {
+        return;
+    }
+
+    UzblEvent *event = NULL;
+
+    if (info->send_event) {
+        event = uzbl_events_format (COMMAND_EXECUTED, NULL,
+            TYPE_NAME, info->name,
+            TYPE_STR_ARRAY, argv,
+            NULL);
+    }
+
+    /* Might change argv. */
+    info->function (uzbl.gui.web_view, argv, result);
+
+    uzbl_events_send_formatted (event);
+    uzbl_events_free (event);
+
+    if (result) {
+        g_free (uzbl.state.last_result);
+        uzbl.state.last_result = g_strdup (result->str);
+    }
+}
+
+void
+uzbl_commands_run (const gchar *cmd, GString *result)
+{
+    GArray *argv = g_array_new (TRUE, FALSE, sizeof (gchar *));
+    const UzblCommandInfo *info = uzbl_commands_parse (cmd, argv);
+
+    uzbl_commands_run_parsed (info, argv, result);
+
+    g_array_free (argv, TRUE);
+}
+
+static void
+parse_command_from_file_cb (const gchar *line, gpointer data);
+
+void
+uzbl_commands_load_file (const gchar *path)
+{
+    if (!for_each_line_in_file (path, parse_command_from_file_cb, NULL)) {
+        gchar *tmp = g_strdup_printf ("File %s can not be read.", path);
+        uzbl_events_send (COMMAND_ERROR, NULL,
+            TYPE_STR, tmp,
+            NULL);
+
+        g_free (tmp);
+    }
+}
+
+void
+parse_command_from_file_cb (const gchar *line, gpointer data)
+{
+    UZBL_UNUSED (data);
+
+    parse_command_from_file (line, NULL);
+}
+
+void
+parse_command_from_file (const char *cmd, GString *result)
+{
+    if (!*cmd) {
+        return;
+    }
+
+    gchar *work_string = g_strdup (cmd);
+
+    /* Strip trailing newline, and any other whitespace in front. */
+    g_strstrip (work_string);
+
+    /* Skip comments. */
+    if (*work_string != '#') {
+        uzbl_commands_run (work_string, result);
+    }
+
+    g_free (work_string);
 }
 
 #define ARG_CHECK(argv, count)   \
