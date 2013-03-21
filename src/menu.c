@@ -127,14 +127,6 @@ cmd_menu_remove_edit (WebKitWebView *view, GArray *argv, GString *result)
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
 
-#define ARG_CHECK(argv, count)   \
-    do                           \
-    {                            \
-        if (argv->len < count) { \
-            return;              \
-        }                        \
-    } while (false)
-
 void
 add_to_menu (GArray *argv, guint context)
 {

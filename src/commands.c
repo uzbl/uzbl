@@ -343,6 +343,10 @@ uzbl_commands_run (const gchar *cmd, GString *result)
     g_array_free (argv, TRUE);
 }
 
+typedef void (*UzblLineCallback) (const gchar *line, gpointer data);
+
+static gboolean
+for_each_line_in_file (const gchar *path, UzblLineCallback callback, gpointer data);
 static void
 parse_command_from_file_cb (const gchar *line, gpointer data);
 
@@ -459,6 +463,28 @@ split_quoted (const gchar *src, const gboolean unquote)
     return ret;
 }
 
+gboolean
+for_each_line_in_file (const gchar *path, UzblLineCallback callback, gpointer data)
+{
+    gchar *line = NULL;
+    gsize len;
+
+    GIOChannel *chan = g_io_channel_new_file (path, "r", NULL);
+
+    if (!chan) {
+        return FALSE;
+    }
+
+    while (g_io_channel_read_line (chan, &line, &len, NULL, NULL) == G_IO_STATUS_NORMAL) {
+        callback (line, data);
+        g_free (line);
+    }
+
+    g_io_channel_unref (chan);
+
+    return TRUE;
+}
+
 void
 parse_command_from_file_cb (const gchar *line, gpointer data)
 {
@@ -488,14 +514,6 @@ parse_command_from_file (const char *cmd, GString *result)
 }
 
 /* ==================== COMMAND  IMPLEMENTATIONS ==================== */
-
-#define ARG_CHECK(argv, count)   \
-    do                           \
-    {                            \
-        if (argv->len < count) { \
-            return;              \
-        }                        \
-    } while (false)
 
 #define IMPLEMENT_COMMAND(cmd) \
     void                       \
@@ -656,9 +674,6 @@ IMPLEMENT_COMMAND (save)
 #endif
 
 /* Cookie commands */
-
-#define strprefix(str, prefix) \
-    strncmp ((str), (prefix), strlen ((prefix)))
 
 IMPLEMENT_COMMAND (cookie_add)
 {

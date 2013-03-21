@@ -72,6 +72,9 @@ options[] = {
     { NULL,      0, 0, 0, NULL, NULL, NULL }
 };
 
+static void
+ensure_xdg_vars ();
+
 /* Set up gtk, gobject, variable defaults and other things that tests and other
  * external applications need to do anyhow. */
 void
@@ -252,8 +255,56 @@ main (int argc, char *argv[])
 
     return EXIT_SUCCESS;
 }
+#endif
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
+
+typedef enum {
+    XDG_BEGIN,
+
+    XDG_DATA = XDG_BEGIN,
+    XDG_CONFIG,
+    XDG_CACHE,
+
+    XDG_END
+} XdgDir;
+
+static gchar *
+get_xdg_var (gboolean user, XdgDir type);
+
+typedef struct {
+    const gchar *environment;
+    const gchar *default_value;
+} XdgVar;
+
+static const XdgVar
+xdg_user[] = {
+    { "XDG_CONFIG_HOME", "~/.config" },
+    { "XDG_DATA_HOME",   "~/.local/share" },
+    { "XDG_CACHE_HOME",  "~/.cache" }
+};
+
+void
+ensure_xdg_vars ()
+{
+    XdgDir i;
+
+    for (i = XDG_DATA; i < XDG_END; ++i) {
+        gchar *xdg = get_xdg_var (TRUE, i);
+
+        if (!xdg) {
+            continue;
+        }
+
+        g_setenv (xdg_user[i].environment, xdg, FALSE);
+
+        g_free (xdg);
+    }
+}
+
+#ifndef UZBL_LIBRARY
+static gchar *
+find_xdg_file (XdgDir dir, const char* basename);
 
 void
 read_config_file ()
@@ -262,7 +313,7 @@ read_config_file ()
         uzbl.state.config_file = NULL;
         uzbl_io_init_stdin ();
     } else if (!uzbl.state.config_file) {
-        uzbl.state.config_file = find_xdg_file (0, "/uzbl/config");
+        uzbl.state.config_file = find_xdg_file (XDG_CONFIG, "/uzbl/config");
     }
 
     /* Load config file, if any. */
@@ -317,3 +368,55 @@ clean_up ()
     }
 }
 #endif
+
+static const XdgVar
+xdg_system[] = {
+    { "XDG_CONFIG_DIRS", "/etc/xdg" },
+    { "XDG_DATA_DIRS",   "/usr/local/share/:/usr/share/" }
+};
+
+gchar *
+get_xdg_var (gboolean user, XdgDir dir)
+{
+    XdgVar const *vars = user ? xdg_user : xdg_system;
+    XdgVar xdg = vars[dir];
+
+    const gchar *actual_value = getenv (xdg.environment);
+
+    if (!actual_value || !actual_value[0]) {
+        actual_value = xdg.default_value;
+    }
+
+    if (!actual_value) {
+        return NULL;
+    }
+
+    /* TODO: Handle home == NULL. */
+    const gchar *home = getenv ("HOME");
+
+    return str_replace("~", home, actual_value);
+}
+
+gchar *
+find_xdg_file (XdgDir dir, const char* basename)
+{
+    gchar *dirs = get_xdg_var (TRUE, dir);
+    gchar *path = g_strconcat (dirs, basename, NULL);
+    g_free (dirs);
+
+    if (file_exists (path)) {
+        return path; /* We found the file. */
+    }
+
+    if (dir == XDG_CACHE) {
+        return NULL; /* There's no system cache directory. */
+    }
+
+    /* The file doesn't exist in the expected directory, check if it exists in
+     * one of the system-wide directories. */
+    char *system_dirs = get_xdg_var (FALSE, dir);
+    path = find_existing_file_options (system_dirs, basename);
+    g_free (system_dirs);
+
+    return path;
+}

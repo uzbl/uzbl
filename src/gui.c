@@ -835,10 +835,6 @@ dom_blur_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data)
 
 /* Navigation events */
 
-/* TODO: Put into utils.h */
-static void
-remove_trailing_newline (const char *line);
-
 gboolean
 navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
         WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action,
@@ -1176,9 +1172,6 @@ create_web_view_cb (WebKitWebView *view, WebKitWebFrame *frame, gpointer data)
     return new_view;
 }
 
-#define strprefix(str, prefix) \
-    strncmp ((str), (prefix), strlen ((prefix)))
-
 void
 create_web_view_js_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
 {
@@ -1433,13 +1426,4 @@ configure_event_cb (GtkWidget *widget, GdkEventConfigure *event, gpointer data)
     g_free (current_geo);
 
     return FALSE;
-}
-
-void
-remove_trailing_newline (const char *line)
-{
-    char *p = strchr (line, '\n' );
-    if (p != NULL) {
-        *p = '\0';
-    }
 }

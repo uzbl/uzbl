@@ -1027,12 +1027,7 @@ expand_impl (const gchar *str, UzblExpandStage stage)
                             g_printerr ("error on running command: %s\n", err->message);
                             g_error_free (err);
                         } else if (*cmd_stdout) {
-                            size_t len = strlen (cmd_stdout);
-
-                            /* TODO: Replace with util function. */
-                            if (len > 0 && cmd_stdout[len-1] == '\n') {
-                                cmd_stdout[--len] = '\0'; /* strip trailing newline */
-                            }
+                            remove_trailing_newline (cmd_stdout);
 
                             g_string_append (buf, cmd_stdout);
                             g_free (cmd_stdout);
