@@ -6,8 +6,10 @@
 #include "util.h"
 #include "uzbl-core.h"
 
+/* ======================== VARIABLES TABLE ========================= */
+
 /* A really generic function pointer. */
-typedef void (*UzblFunction)(void);
+typedef void (*UzblFunction) (void);
 
 typedef union {
     int                *i;
@@ -72,9 +74,7 @@ DECLARE_SETTER (gchar *, socket_dir);
 DECLARE_GETSET (int, enable_builtin_auth);
 
 /* Window variables */
-/* TODO: This should not be public.
-DECLARE_SETTER (gchar *, geometry);
-*/
+DECLARE_GETSET (gchar *, geometry);
 DECLARE_SETTER (gchar *, icon);
 DECLARE_SETTER (gchar *, icon_name);
 DECLARE_GETSET (gchar *, window_role);
@@ -465,6 +465,8 @@ builtin_variable_table[] = {
     { NULL,                           UZBL_SETTING (INT, { .i = NULL }, 0, NULL, NULL)}
 };
 
+/* =========================== PUBLIC API =========================== */
+
 /* Construct a hash table from the var_name_to_ptr array for quick access. */
 void
 uzbl_variables_init ()
@@ -502,7 +504,7 @@ uzbl_variables_set (const gchar *name, gchar *val)
     UzblVariable *var = get_variable (name);
 
     if (var) {
-        if(!var->writeable) {
+        if (!var->writeable) {
             return FALSE;
         }
 
@@ -561,42 +563,6 @@ uzbl_variables_set (const gchar *name, gchar *val)
     return TRUE;
 }
 
-UzblVariable *
-get_variable (const gchar *name)
-{
-    return g_hash_table_lookup (uzbl.behave.proto_var, name);
-}
-
-void
-set_variable_string (UzblVariable *var, const gchar *val)
-{
-    typedef void (*setter_t)(const gchar *);
-
-    if (var->set) {
-        ((setter_t)var->set)(val);
-    } else {
-        g_free (*(var->value.s));
-        *(var->value.s) = g_strdup(val);
-    }
-}
-
-#define TYPE_SETTER(type, name, member)               \
-    void                                              \
-    set_variable_##name (UzblVariable *var, type val) \
-    {                                                 \
-        typedef void (*setter_t)(type);               \
-                                                      \
-        if (var->set) {                               \
-            ((setter_t)var->set)(val);                \
-        } else {                                      \
-            *var->value.member = val;                 \
-        }                                             \
-    }
-
-TYPE_SETTER (int, int, i)
-TYPE_SETTER (unsigned long long, ull, ull)
-TYPE_SETTER (float, float, f)
-
 static gchar *
 get_variable_string (const UzblVariable *var);
 static int
@@ -605,89 +571,6 @@ static unsigned long long
 get_variable_ull (const UzblVariable *var);
 static float
 get_variable_float (const UzblVariable *var);
-
-void
-send_variable_event (const gchar *name, const UzblVariable *var)
-{
-    /* Check for the variable type. */
-    switch (var->type) {
-        case TYPE_STR:
-        {
-            gchar *v = get_variable_string (var);
-            uzbl_events_send (VARIABLE_SET, NULL,
-                TYPE_NAME, name,
-                TYPE_NAME, "str",
-                TYPE_STR, v,
-                NULL);
-            g_free (v);
-            break;
-        }
-        case TYPE_INT:
-            uzbl_events_send (VARIABLE_SET, NULL,
-                TYPE_NAME, name,
-                TYPE_NAME, "int",
-                TYPE_INT, get_variable_int (var),
-                NULL);
-            break;
-        case TYPE_ULL:
-            uzbl_events_send (VARIABLE_SET, NULL,
-                TYPE_NAME, name,
-                TYPE_NAME, "ull",
-                TYPE_ULL, get_variable_ull (var),
-                NULL);
-            break;
-        case TYPE_FLOAT:
-            uzbl_events_send (VARIABLE_SET, NULL,
-                TYPE_NAME, name,
-                TYPE_NAME, "float",
-                TYPE_FLOAT, get_variable_float(var),
-                NULL);
-            break;
-        default:
-            g_assert_not_reached();
-    }
-}
-
-gchar *
-get_variable_string (const UzblVariable *var)
-{
-    if (!var) {
-        return g_strdup ("");
-    }
-
-    gchar *result = NULL;
-
-    typedef gchar *(*getter_t)(void);
-
-    if (var->get) {
-        result = ((getter_t)var->get)();
-    } else if (var->value.s) {
-        result = g_strdup(*(var->value.s));
-    }
-
-    return result ? result : g_strdup ("");
-}
-
-#define TYPE_GETTER(type, name, member)           \
-    type                                          \
-    get_variable_##name (const UzblVariable *var) \
-    {                                             \
-        if (!var) {                               \
-            return (type)0;                       \
-        }                                         \
-                                                  \
-        typedef type (*getter_t)(void);           \
-                                                  \
-        if (var->get) {                           \
-            return ((getter_t)var->get)();        \
-        } else {                                  \
-            return *var->value.member;            \
-        }                                         \
-    }
-
-TYPE_GETTER (int, int, i)
-TYPE_GETTER (unsigned long long, ull, ull)
-TYPE_GETTER (float, float, f)
 
 void
 uzbl_variables_toggle (const gchar *name, GArray *values)
@@ -842,6 +725,159 @@ uzbl_variables_expand (const gchar *name, GString *buf)
     variable_expand (var, buf);
 }
 
+#define VAR_GETTER(type, name)                     \
+    type                                           \
+    uzbl_variables_get_##name (const gchar *name_) \
+    {                                              \
+        UzblVariable *var = get_variable (name_);  \
+                                                   \
+        return get_variable_##name (var);          \
+    }
+
+VAR_GETTER (gchar *, string)
+VAR_GETTER (int, int)
+VAR_GETTER (unsigned long long, ull)
+VAR_GETTER (float, float)
+
+static void
+dump_variable (gpointer key, gpointer value, gpointer data);
+
+void
+uzbl_variables_dump ()
+{
+    g_hash_table_foreach (uzbl.behave.proto_var, dump_variable, NULL);
+}
+
+static void
+dump_variable_event (gpointer key, gpointer value, gpointer data);
+
+void
+uzbl_variables_dump_events ()
+{
+    g_hash_table_foreach (uzbl.behave.proto_var, dump_variable_event, NULL);
+}
+
+/* ===================== HELPER IMPLEMENTATIONS ===================== */
+
+UzblVariable *
+get_variable (const gchar *name)
+{
+    return g_hash_table_lookup (uzbl.behave.proto_var, name);
+}
+
+void
+set_variable_string (UzblVariable *var, const gchar *val)
+{
+    typedef void (*setter_t) (const gchar *);
+
+    if (var->set) {
+        ((setter_t)var->set) (val);
+    } else {
+        g_free (*(var->value.s));
+        *(var->value.s) = g_strdup (val);
+    }
+}
+
+#define TYPE_SETTER(type, name, member)               \
+    void                                              \
+    set_variable_##name (UzblVariable *var, type val) \
+    {                                                 \
+        typedef void (*setter_t) (type);              \
+                                                      \
+        if (var->set) {                               \
+            ((setter_t)var->set) (val);               \
+        } else {                                      \
+            *var->value.member = val;                 \
+        }                                             \
+    }
+
+TYPE_SETTER (int, int, i)
+TYPE_SETTER (unsigned long long, ull, ull)
+TYPE_SETTER (float, float, f)
+
+void
+send_variable_event (const gchar *name, const UzblVariable *var)
+{
+    /* Check for the variable type. */
+    switch (var->type) {
+        case TYPE_STR:
+        {
+            gchar *v = get_variable_string (var);
+            uzbl_events_send (VARIABLE_SET, NULL,
+                TYPE_NAME, name,
+                TYPE_NAME, "str",
+                TYPE_STR, v,
+                NULL);
+            g_free (v);
+            break;
+        }
+        case TYPE_INT:
+            uzbl_events_send (VARIABLE_SET, NULL,
+                TYPE_NAME, name,
+                TYPE_NAME, "int",
+                TYPE_INT, get_variable_int (var),
+                NULL);
+            break;
+        case TYPE_ULL:
+            uzbl_events_send (VARIABLE_SET, NULL,
+                TYPE_NAME, name,
+                TYPE_NAME, "ull",
+                TYPE_ULL, get_variable_ull (var),
+                NULL);
+            break;
+        case TYPE_FLOAT:
+            uzbl_events_send (VARIABLE_SET, NULL,
+                TYPE_NAME, name,
+                TYPE_NAME, "float",
+                TYPE_FLOAT, get_variable_float (var),
+                NULL);
+            break;
+        default:
+            g_assert_not_reached ();
+    }
+}
+
+gchar *
+get_variable_string (const UzblVariable *var)
+{
+    if (!var) {
+        return g_strdup ("");
+    }
+
+    gchar *result = NULL;
+
+    typedef gchar *(*getter_t) (void);
+
+    if (var->get) {
+        result = ((getter_t)var->get) ();
+    } else if (var->value.s) {
+        result = g_strdup (*(var->value.s));
+    }
+
+    return result ? result : g_strdup ("");
+}
+
+#define TYPE_GETTER(type, name, member)           \
+    type                                          \
+    get_variable_##name (const UzblVariable *var) \
+    {                                             \
+        if (!var) {                               \
+            return (type)0;                       \
+        }                                         \
+                                                  \
+        typedef type (*getter_t) (void);          \
+                                                  \
+        if (var->get) {                           \
+            return ((getter_t)var->get) ();       \
+        } else {                                  \
+            return *var->value.member;            \
+        }                                         \
+    }
+
+TYPE_GETTER (int, int, i)
+TYPE_GETTER (unsigned long long, ull, ull)
+TYPE_GETTER (float, float, f)
+
 void
 variable_expand (const UzblVariable *var, GString *buf)
 {
@@ -871,29 +907,6 @@ variable_expand (const UzblVariable *var, GString *buf)
     }
 }
 
-#define VAR_GETTER(type, name)                     \
-    type                                           \
-    uzbl_variables_get_##name (const gchar *name_) \
-    {                                              \
-        UzblVariable *var = get_variable (name_);  \
-                                                   \
-        return get_variable_##name (var);          \
-    }
-
-VAR_GETTER (gchar *, string)
-VAR_GETTER (int, int)
-VAR_GETTER (unsigned long long, ull)
-VAR_GETTER (float, float)
-
-static void
-dump_variable (gpointer key, gpointer value, gpointer data);
-
-void
-uzbl_variables_dump ()
-{
-    g_hash_table_foreach (uzbl.behave.proto_var, dump_variable, NULL);
-}
-
 void
 dump_variable (gpointer key, gpointer value, gpointer data)
 {
@@ -915,15 +928,6 @@ dump_variable (gpointer key, gpointer value, gpointer data)
     g_string_free (buf, TRUE);
 }
 
-static void
-dump_variable_event (gpointer key, gpointer value, gpointer data);
-
-void
-uzbl_variables_dump_events ()
-{
-    g_hash_table_foreach (uzbl.behave.proto_var, dump_variable_event, NULL);
-}
-
 void
 dump_variable_event (gpointer key, gpointer value, gpointer data)
 {
@@ -934,6 +938,8 @@ dump_variable_event (gpointer key, gpointer value, gpointer data)
 
     send_variable_event (name, var);
 }
+
+/* =================== VARIABLES IMPLEMENTATIONS ==================== */
 
 #define IMPLEMENT_GETTER(type, name) \
     type                             \
@@ -1097,7 +1103,7 @@ IMPLEMENT_SETTER (gchar *, geometry)
         unsigned w = 0;
         unsigned h=0;
 
-        /* We used to use gtk_window_parse_geometry() but that didn't work how
+        /* We used to use gtk_window_parse_geometry () but that didn't work how
          * it was supposed to. */
         int ret = XParseGeometry (uzbl.gui.geometry, &x, &y, &w, &h);
 
@@ -1440,56 +1446,6 @@ IMPLEMENT_SETTER (gchar *, uri)
     webkit_web_view_load_uri (uzbl.gui.web_view, newuri);
 
     g_free (newuri);
-}
-
-static gboolean
-string_is_integer (const char *s);
-
-gchar *
-make_uri_from_user_input (const gchar *uri)
-{
-    gchar *result = NULL;
-
-    SoupURI *soup_uri = soup_uri_new (uri);
-    if (soup_uri) {
-        /* This looks like a valid URI. */
-        if (!soup_uri->host && string_is_integer (soup_uri->path)) {
-            /* The user probably typed in a host:port without a scheme. */
-            /* TODO: Add an option to default to https? */
-            result = g_strconcat("http://", uri, NULL);
-        } else {
-            result = g_strdup (uri);
-        }
-
-        soup_uri_free (soup_uri);
-
-        return result;
-    }
-
-    /* It's not a valid URI, maybe it's a path on the filesystem? Check to see
-     * if such a path exists. */
-    if (file_exists (uri)) {
-        if (g_path_is_absolute (uri)) {
-            return g_strconcat ("file://", uri, NULL);
-        }
-
-        /* Make it into an absolute path */
-        gchar *wd = g_get_current_dir ();
-        result = g_strconcat ("file://", wd, "/", uri, NULL);
-        g_free (wd);
-
-        return result;
-    }
-
-    /* Not a path on the filesystem, just assume it's an HTTP URL. */
-    return g_strconcat ("http://", uri, NULL);
-}
-
-gboolean
-string_is_integer (const char *s)
-{
-    /* Is the given string made up entirely of decimal digits? */
-    return (strspn (s, "0123456789") == strlen (s));
 }
 
 IMPLEMENT_SETTER (gchar *, useragent)
@@ -1967,4 +1923,54 @@ GObject *
 webkit_view ()
 {
     return G_OBJECT (uzbl.gui.web_view);
+}
+
+static gboolean
+string_is_integer (const char *s);
+
+gchar *
+make_uri_from_user_input (const gchar *uri)
+{
+    gchar *result = NULL;
+
+    SoupURI *soup_uri = soup_uri_new (uri);
+    if (soup_uri) {
+        /* This looks like a valid URI. */
+        if (!soup_uri->host && string_is_integer (soup_uri->path)) {
+            /* The user probably typed in a host:port without a scheme. */
+            /* TODO: Add an option to default to https? */
+            result = g_strconcat ("http://", uri, NULL);
+        } else {
+            result = g_strdup (uri);
+        }
+
+        soup_uri_free (soup_uri);
+
+        return result;
+    }
+
+    /* It's not a valid URI, maybe it's a path on the filesystem? Check to see
+     * if such a path exists. */
+    if (file_exists (uri)) {
+        if (g_path_is_absolute (uri)) {
+            return g_strconcat ("file://", uri, NULL);
+        }
+
+        /* Make it into an absolute path */
+        gchar *wd = g_get_current_dir ();
+        result = g_strconcat ("file://", wd, "/", uri, NULL);
+        g_free (wd);
+
+        return result;
+    }
+
+    /* Not a path on the filesystem, just assume it's an HTTP URL. */
+    return g_strconcat ("http://", uri, NULL);
+}
+
+gboolean
+string_is_integer (const char *s)
+{
+    /* Is the given string made up entirely of decimal digits? */
+    return (strspn (s, "0123456789") == strlen (s));
 }

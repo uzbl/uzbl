@@ -1,7 +1,3 @@
-/*
- * Uzbl Variables
- */
-
 #ifndef UZBL_VARIABLES_H
 #define UZBL_VARIABLES_H
 
@@ -33,10 +29,5 @@ void
 uzbl_variables_dump ();
 void
 uzbl_variables_dump_events ();
-
-gchar * /* FIXME: This should not be public here. */
-get_geometry();
-void /* FIXME: This should not be public here. */
-set_geometry (const gchar *geo);
 
 #endif

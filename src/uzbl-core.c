@@ -453,9 +453,7 @@ main (int argc, char* argv[]) {
 
     /* Check uzbl is in window mode before getting/setting geometry */
     if (uzbl.gui.main_window && uzbl.gui.geometry) {
-        gchar *geometry = g_strdup(uzbl.gui.geometry);
-        set_geometry(geometry);
-        g_free(geometry);
+        uzbl_variables_set ("geometry", uzbl.gui.geometry);
     }
 
     gchar *uri_override = (uzbl.state.uri ? g_strdup(uzbl.state.uri) : NULL);
