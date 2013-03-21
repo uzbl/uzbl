@@ -8,6 +8,9 @@
 #include "util.h"
 #include "uzbl-core.h"
 
+#include <JavaScriptCore/JavaScript.h>
+
+#include <assert.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
@@ -487,11 +490,11 @@ uzbl_variables_init ()
     }
 }
 
+static char *valid_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
+
 gboolean
 uzbl_variables_is_valid (const gchar *name)
 {
-    static char *valid_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
-
     if (!name || !*name) {
         return FALSE;
     }
@@ -738,15 +741,19 @@ uzbl_variables_toggle (const gchar *name, GArray *values)
     send_variable_event (name, var);
 }
 
-static void
-variable_expand (const UzblVariable *var, GString *buf);
+typedef enum {
+    EXPAND_INITIAL,
+    EXPAND_IGNORE_SHELL,
+    EXPAND_IGNORE_JS
+} UzblExpandStage;
 
-void
-uzbl_variables_expand (const gchar *name, GString *buf)
+static gchar *
+expand_impl (const gchar *str, UzblExpandStage stage);
+
+gchar *
+uzbl_variables_expand (const gchar *str)
 {
-    UzblVariable *var = get_variable (name);
-
-    variable_expand (var, buf);
+    return expand_impl (str, EXPAND_INITIAL);
 }
 
 #define VAR_GETTER(type, name)                     \
@@ -902,33 +909,196 @@ TYPE_GETTER (int, int, i)
 TYPE_GETTER (unsigned long long, ull, ull)
 TYPE_GETTER (float, float, f)
 
-void
-variable_expand (const UzblVariable *var, GString *buf)
+typedef enum {
+    EXPAND_SHELL,
+    EXPAND_JS,
+    EXPAND_ESCAPE,
+    EXPAND_VAR,
+    EXPAND_VAR_BRACE,
+    EXPAND_IGNORE
+} UzblExpandType;
+
+static void
+variable_expand (const UzblVariable *var, GString *buf);
+static UzblExpandType
+expand_type (const gchar *str);
+
+gchar *
+expand_impl (const gchar *str, UzblExpandStage stage)
 {
-    if (!var) {
-        return;
+    GString        *buf = g_string_new ("");
+    const gchar    *p = str;
+
+    while (p && *p) {
+        switch (*p) {
+            case '\\':
+                g_string_append_c (buf, *++p);
+                ++p;
+                break;
+
+            case '@':
+            {
+                UzblExpandType etype = expand_type (p);
+                const gchar *vend = NULL;
+                gchar *ret = NULL;
+                ++p;
+
+                switch (etype) {
+                    case EXPAND_VAR:
+                    {
+                        size_t sz = strspn (p, valid_chars);
+                        vend = p + sz;
+                        break;
+                    }
+                    case EXPAND_VAR_BRACE:
+                        ++p;
+                        vend = strchr (p, '}');
+                        if (!vend) {
+                            vend = strchr (p, '\0');
+                        }
+                        break;
+                    case EXPAND_SHELL:
+                        ++p;
+                        vend = strstr (p, ")@");
+                        if (!vend) {
+                            vend = strchr (p, '\0');
+                        }
+                        break;
+                    case EXPAND_JS:
+                        ++p;
+                        vend = strstr (p, ">@");
+                        if (!vend) {
+                            vend = strchr (p, '\0');
+                        }
+                        break;
+                    case EXPAND_ESCAPE:
+                        ++p;
+                        vend = strstr (p, "]@");
+                        if (!vend) {
+                            vend = strchr (p, '\0');
+                        }
+                        break;
+                    case EXPAND_IGNORE:
+                        vend = p;
+                        break;
+                }
+                assert (vend);
+
+                ret = g_strndup (p, vend - p);
+
+                switch (etype) {
+                    case EXPAND_VAR_BRACE:
+                        /* Skip the end brace. */
+                        ++vend;
+                        /* FALLTHROUGH */
+                    case EXPAND_VAR:
+                        variable_expand (get_variable (ret), buf);
+
+                        p = vend;
+                        break;
+                    case EXPAND_SHELL:
+                    {
+                        GError *err = NULL;
+                        gchar *cmd_stdout = NULL;
+
+                        if (stage == EXPAND_IGNORE_SHELL) {
+                            break;
+                        }
+
+                        if (*ret == '+') {
+                            /* Execute program directly. */
+                            gchar *mycmd = expand_impl (ret + 1, EXPAND_IGNORE_SHELL);
+                            g_spawn_command_line_sync (mycmd, &cmd_stdout, NULL, NULL, &err);
+                            g_free (mycmd);
+                        } else {
+                            /* Execute program through shell, quote it first. */
+                            gchar *mycmd = expand_impl (ret, EXPAND_IGNORE_SHELL);
+                            gchar *quoted = g_shell_quote (mycmd);
+                            gchar *tmp = g_strdup_printf ("%s %s",
+                                uzbl.behave.shell_cmd ? uzbl.behave.shell_cmd : "/bin/sh -c",
+                                quoted);
+                            g_spawn_command_line_sync (tmp, &cmd_stdout, NULL, NULL, &err);
+                            g_free (mycmd);
+                            g_free (quoted);
+                            g_free (tmp);
+                        }
+
+                        if (err) {
+                            g_printerr ("error on running command: %s\n", err->message);
+                            g_error_free (err);
+                        } else if (*cmd_stdout) {
+                            size_t len = strlen (cmd_stdout);
+
+                            /* TODO: Replace with util function. */
+                            if (len > 0 && cmd_stdout[len-1] == '\n') {
+                                cmd_stdout[--len] = '\0'; /* strip trailing newline */
+                            }
+
+                            g_string_append (buf, cmd_stdout);
+                            g_free (cmd_stdout);
+                        }
+                        p = vend + 2;
+
+                        break;
+                    }
+                    case EXPAND_JS:
+                    {
+                        if (stage == EXPAND_IGNORE_JS) {
+                            break;
+                        }
+
+                        GString *js_ret = g_string_new ("");
+
+                        if (*ret == '+') {
+                            /* Read JS from file. */
+                            GArray *tmp = g_array_new (TRUE, FALSE, sizeof (gchar *));
+                            gchar *mycmd = expand_impl (ret + 1, EXPAND_IGNORE_JS);
+                            g_array_append_val (tmp, mycmd);
+
+                            cmd_js_file (uzbl.gui.web_view, tmp, js_ret);
+                            g_array_free (tmp, TRUE);
+                        } else {
+                            /* JS from string. */
+                            gchar *mycmd = expand_impl (ret, EXPAND_IGNORE_JS);
+                            eval_js (uzbl.gui.web_view, mycmd, js_ret, " (command)");
+                            g_free (mycmd);
+                        }
+
+                        if (js_ret->str) {
+                            g_string_append (buf, js_ret->str);
+                            g_string_free (js_ret, TRUE);
+                        }
+                        p = vend + 2;
+
+                        break;
+                    }
+                    case EXPAND_ESCAPE:
+                    {
+                        gchar *mycmd = expand_impl (ret, EXPAND_INITIAL);
+                        gchar *escaped = g_markup_escape_text (mycmd, strlen (mycmd));
+
+                        g_string_append (buf, escaped);
+
+                        g_free (escaped);
+                        g_free (mycmd);
+                        p = vend + 2;
+                    }
+                    case EXPAND_IGNORE:
+                        g_string_append_c (buf, *p);
+                        break;
+                }
+
+                g_free (ret);
+                break;
+            }
+            default:
+                g_string_append_c (buf, *p);
+                ++p;
+                break;
+        }
     }
 
-    switch (var->type) {
-        case TYPE_STR:
-        {
-            gchar *v = get_variable_string (var);
-            g_string_append (buf, v);
-            g_free (v);
-            break;
-        }
-        case TYPE_INT:
-            g_string_append_printf (buf, "%d", get_variable_int (var));
-            break;
-        case TYPE_ULL:
-            g_string_append_printf (buf, "%llu", get_variable_ull (var));
-            break;
-        case TYPE_FLOAT:
-            g_string_append_printf (buf, "%f", get_variable_float (var));
-            break;
-        default:
-            break;
-    }
+    return g_string_free (buf, FALSE);
 }
 
 void
@@ -961,6 +1131,54 @@ dump_variable_event (gpointer key, gpointer value, gpointer data)
     UzblVariable *var = (UzblVariable *)value;
 
     send_variable_event (name, var);
+}
+
+void
+variable_expand (const UzblVariable *var, GString *buf)
+{
+    if (!var) {
+        return;
+    }
+
+    switch (var->type) {
+        case TYPE_STR:
+        {
+            gchar *v = get_variable_string (var);
+            g_string_append (buf, v);
+            g_free (v);
+            break;
+        }
+        case TYPE_INT:
+            g_string_append_printf (buf, "%d", get_variable_int (var));
+            break;
+        case TYPE_ULL:
+            g_string_append_printf (buf, "%llu", get_variable_ull (var));
+            break;
+        case TYPE_FLOAT:
+            g_string_append_printf (buf, "%f", get_variable_float (var));
+            break;
+        default:
+            break;
+    }
+}
+
+UzblExpandType
+expand_type (const gchar *str)
+{
+    switch (*(str + 1)) {
+        case '(':
+            return EXPAND_SHELL;
+        case '{':
+            return EXPAND_VAR_BRACE;
+        case '<':
+            return EXPAND_JS;
+        case '[':
+            return EXPAND_ESCAPE;
+        case '\0':
+            return EXPAND_IGNORE;
+        default:
+            return EXPAND_VAR;
+  }
 }
 
 /* =================== VARIABLES IMPLEMENTATIONS ==================== */

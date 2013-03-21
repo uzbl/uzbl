@@ -16,8 +16,8 @@ uzbl_variables_set (const gchar *name, gchar *val);
 void
 uzbl_variables_toggle (const gchar *name, GArray *values);
 
-void
-uzbl_variables_expand (const gchar *name, GString *buf);
+gchar *
+uzbl_variables_expand (const gchar *str);
 
 gchar *
 uzbl_variables_get_string (const gchar *name);

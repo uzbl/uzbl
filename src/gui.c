@@ -47,11 +47,11 @@ uzbl_gui_update_title ()
     if (uzbl_variables_get_int ("show_status")) {
         title_format = uzbl.behave.title_format_short;
 
-        gchar *parsed = expand (uzbl.behave.status_format, 0);
+        gchar *parsed = uzbl_variables_expand (uzbl.behave.status_format);
         uzbl_status_bar_update_left (uzbl.gui.status_bar, parsed);
         g_free(parsed);
 
-        parsed = expand (uzbl.behave.status_format_right, 0);
+        parsed = uzbl_variables_expand (uzbl.behave.status_format_right);
         uzbl_status_bar_update_right (uzbl.gui.status_bar, parsed);
         g_free (parsed);
     }
@@ -60,7 +60,7 @@ uzbl_gui_update_title ()
     /* If we're starting up or shutting down there might not be a window yet. */
     gboolean have_main_window = !uzbl.state.plug_mode && GTK_IS_WINDOW (uzbl.gui.main_window);
     if (title_format && have_main_window) {
-        gchar *parsed = expand (title_format, 0);
+        gchar *parsed = uzbl_variables_expand (title_format);
         const gchar *current_title = gtk_window_get_title (GTK_WINDOW (uzbl.gui.main_window));
         /* XMonad hogs CPU if the window title updates too frequently, so we
          * don't set it unless we need to. */

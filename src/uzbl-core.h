@@ -169,9 +169,6 @@ extern UzblCore uzbl; /* Main Uzbl object */
 /* Functions */
 void        clean_up(void);
 
-/* Running commands */
-gchar*      expand(const char* s, guint recurse);
-
 /* Initialization functions */
 void        initialize(int argc, char *argv[]);
 void        settings_init();

@@ -265,7 +265,7 @@ uzbl_commands_parse (const gchar *cmd, GArray *argv)
 {
     UzblCommand *info = NULL;
 
-    gchar *exp_line = expand (cmd, 0);
+    gchar *exp_line = uzbl_variables_expand (cmd);
     if (!exp_line[0]) {
         g_free (exp_line);
         return NULL;
@@ -1240,7 +1240,7 @@ IMPLEMENT_COMMAND (print)
         return;
     }
 
-    buf = expand (argv_idx (argv, 0), 0);
+    buf = uzbl_variables_expand (argv_idx (argv, 0));
     g_string_assign (result, buf);
     g_free (buf);
 }
