@@ -404,9 +404,9 @@ key_to_modifier (guint keyval)
 
 gchar *
 get_modifier_mask (guint state) {
-    GString *modifiers = g_string_new("");
+    GString *modifiers = g_string_new ("");
 
-    if(state & GDK_MODIFIER_MASK) {
+    if (state & GDK_MODIFIER_MASK) {
 #define CHECK_MODIFIER(mask, modifier)                 \
     do {                                               \
         if (state & GDK_##mask##_MASK) {               \

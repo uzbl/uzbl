@@ -154,8 +154,7 @@ uzbl_web_view_init (void)
 
     gtk_container_add (
         GTK_CONTAINER (uzbl.gui.scrolled_win),
-        GTK_WIDGET (uzbl.gui.web_view)
-    );
+        GTK_WIDGET (uzbl.gui.web_view));
 
     g_object_connect (G_OBJECT (uzbl.gui.web_view),
         /* Keyboard events */
