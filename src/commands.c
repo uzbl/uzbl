@@ -294,13 +294,15 @@ uzbl_commands_parse (const gchar *cmd, GArray *argv)
         return NULL;
     }
 
-    gchar *args = g_strdup (tokens[1]);
+    /* Parse the arguments. */
+    if (argv) {
+        gchar *args = g_strdup (tokens[1]);
+        parse_command_arguments (args, argv, info->split);
+        g_free (args);
+    }
+
     g_free (exp_line);
     g_strfreev (tokens);
-
-    /* Parse the arguments. */
-    parse_command_arguments (args, argv, info->split);
-    g_free (args);
 
     return info;
 }
@@ -333,9 +335,26 @@ uzbl_commands_run_parsed (const UzblCommand *info, GArray *argv, GString *result
             TYPE_NAME, info->name,
             TYPE_STR_ARRAY, argv_copy,
             NULL);
+
+        g_array_free (argv_copy, FALSE);
+    }
+}
+
+void
+uzbl_commands_run_argv (const gchar *cmd, GArray *argv, GString *result)
+{
+    /* Look up the command. */
+    const UzblCommand *info = g_hash_table_lookup (uzbl.behave.commands, cmd);
+
+    if (!info) {
+        uzbl_events_send (COMMAND_ERROR, NULL,
+            TYPE_STR, cmd,
+            NULL);
+
+        return;
     }
 
-    g_array_free (argv_copy, FALSE);
+    uzbl_commands_run_parsed (info, argv, result);
 }
 
 void
@@ -1107,10 +1126,8 @@ IMPLEMENT_COMMAND (inspector)
 
 /* Execution commands */
 
-/* FIXME: Make private again.
 static void
 eval_js (WebKitWebView *view, const gchar *script, GString *result, const gchar *path);
-*/
 
 IMPLEMENT_COMMAND (js)
 {

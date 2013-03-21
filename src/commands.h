@@ -19,6 +19,8 @@ uzbl_commands_parse (const gchar *cmd, GArray *argv);
 void
 uzbl_commands_run_parsed (const UzblCommand *info, GArray *argv, GString *result);
 void
+uzbl_commands_run_argv (const gchar *cmd, GArray *argv, GString *result);
+void
 uzbl_commands_run (const gchar *cmd, GString *result);
 
 void
