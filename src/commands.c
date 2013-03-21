@@ -467,7 +467,7 @@ parse_command_from_file (const char *cmd)
 void
 sharg_append (GArray *argv, const gchar *str)
 {
-    const gchar *s = (str ? str : "");
+    const gchar *s = (str ? str : g_strdup (""));
     g_array_append_val (argv, s);
 }
 
@@ -1572,10 +1572,10 @@ run_system_command (const gchar *command, const gchar **args, const gboolean syn
     guint i;
     guint len = g_strv_length ((gchar **)args);
 
-    sharg_append (a, command);
+    sharg_append (a, g_strdup (command));
 
     for (i = 0; i < len; ++i) {
-        sharg_append (a, args[i]);
+        sharg_append (a, g_strdup (args[i]));
     }
 
     gboolean result;
