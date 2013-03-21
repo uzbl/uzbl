@@ -1,5 +1,7 @@
 #include "status-bar.h"
 
+/* =========================== PUBLIC API =========================== */
+
 static void
 uzbl_status_bar_init (UzblStatusBar *status_bar);
 
@@ -35,6 +37,8 @@ uzbl_status_bar_update_right (GtkWidget *widget, const gchar *format)
     gtk_label_set_markup (GTK_LABEL (status_bar->right_label), format);
 }
 
+/* ===================== HELPER IMPLEMENTATIONS ===================== */
+
 void
 uzbl_status_bar_init (UzblStatusBar *status_bar)
 {
@@ -67,9 +71,7 @@ uzbl_status_bar_size_allocate (GtkWidget *widget,
 void
 uzbl_status_bar_class_init (UzblStatusBarClass *class)
 {
-    GtkWidgetClass *widget_class;
-
-    widget_class = (GtkWidgetClass*)class;
+    GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (class);
 
     /* Override the size_allocate method. */
     widget_class->size_allocate = uzbl_status_bar_size_allocate;
