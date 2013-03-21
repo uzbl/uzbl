@@ -169,9 +169,6 @@ extern UzblCore uzbl; /* Main Uzbl object */
 /* Functions */
 void        clean_up(void);
 
-/* Configuration variables */
-gboolean    valid_name(const gchar* name);
-
 /* Running commands */
 gchar*      expand(const char* s, guint recurse);
 

@@ -487,6 +487,24 @@ uzbl_variables_init ()
     }
 }
 
+gboolean
+uzbl_variables_is_valid (const gchar *name)
+{
+    static char *valid_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
+
+    if (!name || !*name) {
+        return FALSE;
+    }
+
+    if (isdigit (*name)) {
+        return FALSE;
+    }
+
+    size_t loc = strspn (name, valid_chars);
+
+    return (name[loc] == '\0');
+}
+
 static UzblVariable *
 get_variable (const gchar *name);
 static void
@@ -542,7 +560,7 @@ uzbl_variables_set (const gchar *name, gchar *val)
     } else {
         /* A custom var that has not been set. Check whether name violates our
          * naming scheme. */
-        if (!valid_name (name)) {
+        if (!uzbl_variables_is_valid (name)) {
             uzbl_debug ("Invalid variable name: %s\n", name);
             return FALSE;
         }

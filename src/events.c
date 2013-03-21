@@ -3,6 +3,7 @@
 #include "type.h"
 #include "util.h"
 #include "uzbl-core.h"
+#include "variables.h"
 
 #include <sys/time.h>
 #include <errno.h>
@@ -218,7 +219,7 @@ vformat_event (UzblEventType type, const gchar *custom_event, va_list vargs)
             }
             case TYPE_NAME:
                 str = va_arg (vargs, char *);
-                g_assert (valid_name (str));
+                g_assert (uzbl_variables_is_valid (str));
                 g_string_append (event_message, str);
                 break;
             case TYPE_FLOAT:

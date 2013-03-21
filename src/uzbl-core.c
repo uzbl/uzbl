@@ -288,12 +288,6 @@ clean_up(void) {
 
 /* -- CORE FUNCTIONS -- */
 
-gboolean
-valid_name(const gchar* name) {
-    char *invalid_chars = "\t^°!\"§$%&/()=?'`'+~*'#-:,;@<>| \\{}[]¹²³¼½";
-    return strpbrk(name, invalid_chars) == NULL;
-}
-
 void
 settings_init () {
     State*   s = &uzbl.state;
