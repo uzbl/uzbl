@@ -165,33 +165,3 @@ gchar*
 argv_idx(const GArray *a, const guint idx) {
     return g_array_index(a, gchar*, idx);
 }
-
-GString *
-append_escaped (GString *dest, const gchar *src) {
-    g_assert(dest);
-    g_assert(src);
-
-    // Hint that we are going to append another string.
-    int oldlen = dest->len;
-    g_string_set_size (dest, dest->len + strlen(src) * 2);
-    g_string_truncate (dest, oldlen);
-
-    // Append src char by char with baddies escaped
-    for (const gchar *p = src; *p; p++) {
-        switch (*p) {
-        case '\\':
-            g_string_append (dest, "\\\\");
-            break;
-        case '\'':
-            g_string_append (dest, "\\'");
-            break;
-        case '\n':
-            g_string_append (dest, "\\n");
-            break;
-        default:
-            g_string_append_c (dest, *p);
-            break;
-        }
-    }
-    return dest;
-}

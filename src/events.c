@@ -164,6 +164,9 @@ uzbl_events_format (UzblEventType type, const gchar *custom_event, ...)
     return event;
 }
 
+static GString *
+append_escaped (GString *dest, const gchar *src);
+
 UzblEvent *
 vformat_event(UzblEventType type, const gchar *custom_event, va_list vargs)
 {
@@ -235,6 +238,38 @@ vformat_event(UzblEventType type, const gchar *custom_event, va_list vargs)
     }
 
     return (UzblEvent *)event_message;
+}
+
+GString *
+append_escaped (GString *dest, const gchar *src)
+{
+    g_assert (dest);
+    g_assert (src);
+
+    /* Hint that we are going to append another string. */
+    int oldlen = dest->len;
+    g_string_set_size (dest, dest->len + strlen (src) * 2);
+    g_string_truncate (dest, oldlen);
+
+    /* Append src char by char with baddies escaped. */
+    for (const gchar *p = src; *p; ++p) {
+        switch (*p) {
+            case '\\':
+                g_string_append (dest, "\\\\");
+                break;
+            case '\'':
+                g_string_append (dest, "\\'");
+                break;
+            case '\n':
+                g_string_append (dest, "\\n");
+                break;
+            default:
+                g_string_append_c (dest, *p);
+                break;
+        }
+    }
+
+    return dest;
 }
 
 static void
