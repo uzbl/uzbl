@@ -1,3 +1,8 @@
+#ifndef UZBL_CONFIG_H
+#define UZBL_CONFIG_H
+
+#include <glib.h>
+
 const struct {
     gchar *command;
 } default_config[] = {
@@ -9,3 +14,5 @@ const struct {
 { "set max_conns_host = 6" }, /* WebKitGTK default: 2 */
 { NULL }
 };
+
+#endif

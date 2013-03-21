@@ -1,10 +1,16 @@
 #include "variables.h"
 
+#include "commands.h"
 #include "events.h"
+#include "gui.h"
 #include "io.h"
 #include "type.h"
 #include "util.h"
 #include "uzbl-core.h"
+
+#include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* ======================== VARIABLES TABLE ========================= */
 

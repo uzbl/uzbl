@@ -4,7 +4,10 @@
 #include "util.h"
 #include "uzbl-core.h"
 
+#include <sys/time.h>
+#include <errno.h>
 #include <signal.h>
+#include <string.h>
 
 const char *event_table[] = {
 /* TODO: Add UZBL_ prefix to built-in events? */

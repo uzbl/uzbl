@@ -1,7 +1,7 @@
 #ifndef UZBL_MENU_H
 #define UZBL_MENU_H
 
-#include "uzbl-core.h"
+#include "webkit.h"
 
 typedef struct {
     gchar*   name;

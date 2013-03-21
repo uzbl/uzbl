@@ -1,7 +1,9 @@
 #ifndef UZBL_COMMANDS_H
 #define UZBL_COMMANDS_H
 
-#include "uzbl-core.h"
+#include "webkit.h" /* FIXME */
+
+#include <glib.h>
 
 struct _UzblCommand;
 typedef struct _UzblCommand UzblCommand;

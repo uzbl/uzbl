@@ -3,6 +3,7 @@
 #include "cookie-jar.h"
 #include "events.h"
 #include "type.h"
+#include "util.h"
 #include "uzbl-core.h"
 
 struct _UzblPendingAuth;

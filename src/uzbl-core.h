@@ -13,45 +13,11 @@
 #ifndef __UZBL_CORE__
 #define __UZBL_CORE__
 
-#include <glib/gstdio.h>
-#include <gtk/gtk.h>
-#include <gdk/gdkx.h>
-#include <gdk/gdkkeysyms.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/un.h>
-#include <sys/utsname.h>
-#include <sys/time.h>
-#ifdef USE_WEBKIT2
-#include <webkit2/webkit2.h>
-#else
-#include <webkit/webkit.h>
-#endif
-#include <libsoup/soup.h>
-#include <JavaScriptCore/JavaScript.h>
-
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <assert.h>
-#include <poll.h>
-#include <sys/uio.h>
-#include <sys/ioctl.h>
-#include <assert.h>
-
-#if GTK_CHECK_VERSION(2,91,0)
-    #include <gtk/gtkx.h>
-#endif
+#include "webkit.h"
 
 #include "cookie-jar.h"
-#include "commands.h"
-#include "status-bar.h"
+
+#include <sys/types.h>
 
 #define UZBL_UNUSED(var) (void)var
 #define uzbl_debug(...) if (uzbl.state.verbose) printf(__VA_ARGS__)

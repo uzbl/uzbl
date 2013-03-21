@@ -1,11 +1,15 @@
 #include "io.h"
 
+#include "commands.h"
 #include "events.h"
 #include "type.h"
 #include "util.h"
 #include "uzbl-core.h"
 
-#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <errno.h>
 
 /* =========================== PUBLIC API =========================== */
 

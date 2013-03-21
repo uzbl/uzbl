@@ -1,12 +1,15 @@
 #include "gui.h"
 
-#include "uzbl-core.h"
+#include "commands.h"
 #include "events.h"
 #include "menu.h"
+#include "status-bar.h"
 #include "type.h"
+#include "util.h"
+#include "uzbl-core.h"
 #include "variables.h"
 
-#include <limits.h>
+#include <string.h>
 
 /* =========================== PUBLIC API =========================== */
 

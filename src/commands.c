@@ -7,7 +7,15 @@
 #include "soup.h"
 #include "type.h"
 #include "util.h"
+#include "uzbl-core.h"
 #include "variables.h"
+
+#include <JavaScriptCore/JavaScript.h>
+
+#include <ctype.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* ========================= COMMAND TABLE ========================== */
 

@@ -2,6 +2,7 @@
 
 #include "events.h"
 #include "type.h"
+#include "util.h"
 #include "uzbl-core.h"
 
 /* =========================== PUBLIC API =========================== */

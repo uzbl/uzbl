@@ -1,6 +1,10 @@
 #include "menu.h"
 
 #include "util.h"
+#include "uzbl-core.h"
+
+#include <stdlib.h>
+#include <string.h>
 
 /* =========================== PUBLIC API =========================== */
 

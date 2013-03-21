@@ -30,15 +30,20 @@
  */
 
 #include "uzbl-core.h"
+
+#include "commands.h"
 #include "events.h"
 #include "gui.h"
 #include "inspector.h"
-#include "util.h"
-#include "menu.h"
 #include "io.h"
-#include "variables.h"
-#include "type.h"
 #include "soup.h"
+#include "status-bar.h"
+#include "util.h"
+#include "variables.h"
+
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
 
 UzblCore uzbl;
 
