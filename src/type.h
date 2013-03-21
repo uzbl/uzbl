@@ -1,7 +1,3 @@
-/*
- * Uzbl Types
- */
-
 #ifndef UZBL_TYPE_H
 #define UZBL_TYPE_H
 
