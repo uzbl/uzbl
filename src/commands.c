@@ -20,127 +20,87 @@ struct _UzblCommandInfo {
     gboolean     split;
 };
 
+#define DECLARE_COMMAND(cmd) \
+    static void              \
+    cmd_##cmd (WebKitWebView *view, GArray *argv, GString *result)
+
 /* Navigation commands */
-static void
-cmd_back (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_forward (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_reload (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_reload_force (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_stop (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_uri (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_auth (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_download (WebKitWebView *view, GArray *argv, GString *result);
+DECLARE_COMMAND (back);
+DECLARE_COMMAND (forward);
+DECLARE_COMMAND (reload);
+DECLARE_COMMAND (reload_force);
+DECLARE_COMMAND (stop);
+DECLARE_COMMAND (uri);
+DECLARE_COMMAND (auth);
+DECLARE_COMMAND (download);
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 9, 90)
-static void
-cmd_load (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_save (WebKitWebView *view, GArray *argv, GString *result);
+DECLARE_COMMAND (load);
+DECLARE_COMMAND (save);
 #endif
 #endif
 
 /* Cookie commands */
-static void
-cmd_cookie_add (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_cookie_delete (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_cookie_clear (WebKitWebView *view, GArray *argv, GString *result);
+DECLARE_COMMAND (cookie_add);
+DECLARE_COMMAND (cookie_delete);
+DECLARE_COMMAND (cookie_clear);
 
 /* Display commands */
-static void
-cmd_scroll (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_zoom_in (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_zoom_out (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_hardcopy (WebKitWebView *view, GArray *argv, GString *result);
+DECLARE_COMMAND (scroll);
+DECLARE_COMMAND (zoom_in);
+DECLARE_COMMAND (zoom_out);
+DECLARE_COMMAND (hardcopy);
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 9, 6)
-static void
-cmd_snapshot (WebKitWebView *view, GArray *argv, GString *result);
+DECLARE_COMMAND (snapshot);
 #endif
 #endif
 
 /* Content commands */
-static void
-cmd_remove_all_db (WebKitWebView *view, GArray *argv, GString *result);
+DECLARE_COMMAND (remove_all_db);
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
-static void
-cmd_plugin_refresh (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_plugin_toggle (WebKitWebView *view, GArray *argv, GString *result);
+DECLARE_COMMAND (plugin_refresh);
+DECLARE_COMMAND (plugin_toggle);
 #endif
 #if WEBKIT_CHECK_VERSION (1, 5, 1)
-static void
-cmd_spell_checker (WebKitWebView *view, GArray *argv, GString *result);
+DECLARE_COMMAND (spell_checker);
 #endif
 
 /* Search commands */
-static void
-cmd_search_forward (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_search_reverse (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_search_clear (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_search_reset (WebKitWebView *view, GArray *argv, GString *result);
+DECLARE_COMMAND (search_forward);
+DECLARE_COMMAND (search_reverse);
+DECLARE_COMMAND (search_clear);
+DECLARE_COMMAND (search_reset);
 
 /* Inspector commands */
-static void
-cmd_inspector_show (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_inspector (WebKitWebView *view, GArray *argv, GString *result);
+DECLARE_COMMAND (inspector_show);
+DECLARE_COMMAND (inspector);
 
 /* Execution commands */
 /* FIXME: Make private again.
-void
-cmd_js (WebKitWebView *view, GArray *argv, GString *result);
-void
-cmd_js_file (WebKitWebView *view, GArray *argv, GString *result);
+DECLARE_COMMAND (js);
+DECLARE_COMMAND (js_file);
 */
-static void
-cmd_spawn (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_spawn_sync (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_spawn_sync_exec (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_spawn_sh (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_spawn_sh_sync (WebKitWebView *view, GArray *argv, GString *result);
+DECLARE_COMMAND (spawn);
+DECLARE_COMMAND (spawn_sync);
+DECLARE_COMMAND (spawn_sync_exec);
+DECLARE_COMMAND (spawn_sh);
+DECLARE_COMMAND (spawn_sh_sync);
 
 /* Uzbl commands */
-static void
-cmd_chain (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_include (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_exit (WebKitWebView *view, GArray *argv, GString *result);
+DECLARE_COMMAND (chain);
+DECLARE_COMMAND (include);
+DECLARE_COMMAND (exit);
 
 /* Variable commands */
-static void
-cmd_set (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_toggle (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_dump_config (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_dump_config_as_events (WebKitWebView *view, GArray *argv, GString *result);
-static void
-cmd_print (WebKitWebView *view, GArray *argv, GString *result);
+DECLARE_COMMAND (set);
+DECLARE_COMMAND (toggle);
+DECLARE_COMMAND (dump_config);
+DECLARE_COMMAND (dump_config_as_events);
+DECLARE_COMMAND (print);
 
 /* Event commands */
-static void
-cmd_event (WebKitWebView *view, GArray *argv, GString *result);
+DECLARE_COMMAND (event);
 
 static UzblCommandInfo
 builtin_command_table[] =
@@ -412,10 +372,13 @@ parse_cmd_line(const char *ctl_line, GString *result) {
         }                        \
     } while (false)
 
+#define IMPLEMENT_COMMAND(cmd) \
+    void                       \
+    cmd_##cmd (WebKitWebView *view, GArray *argv, GString *result)
+
 /* Navigation commands */
 
-void
-cmd_back (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (back)
 {
     UZBL_UNUSED (result);
 
@@ -426,8 +389,7 @@ cmd_back (WebKitWebView *view, GArray *argv, GString *result)
     webkit_web_view_go_back_or_forward (view, -n);
 }
 
-void
-cmd_forward (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (forward)
 {
     UZBL_UNUSED (result);
 
@@ -438,8 +400,7 @@ cmd_forward (WebKitWebView *view, GArray *argv, GString *result)
     webkit_web_view_go_back_or_forward (view, n);
 }
 
-void
-cmd_reload (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (reload)
 {
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
@@ -447,8 +408,7 @@ cmd_reload (WebKitWebView *view, GArray *argv, GString *result)
     webkit_web_view_reload (view);
 }
 
-void
-cmd_reload_force (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (reload_force)
 {
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
@@ -456,8 +416,7 @@ cmd_reload_force (WebKitWebView *view, GArray *argv, GString *result)
     webkit_web_view_reload_bypass_cache (view);
 }
 
-void
-cmd_stop (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (stop)
 {
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
@@ -465,8 +424,7 @@ cmd_stop (WebKitWebView *view, GArray *argv, GString *result)
     webkit_web_view_stop_loading (view);
 }
 
-void
-cmd_uri (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (uri)
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (result);
@@ -478,8 +436,7 @@ cmd_uri (WebKitWebView *view, GArray *argv, GString *result)
     uzbl_variables_set ("uri", uri);
 }
 
-void
-cmd_auth (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (auth)
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (result);
@@ -498,8 +455,7 @@ cmd_auth (WebKitWebView *view, GArray *argv, GString *result)
     uzbl_soup_authenticate (info, username, password);
 }
 
-void
-cmd_download (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (download)
 {
     UZBL_UNUSED (result);
 
@@ -529,8 +485,7 @@ cmd_download (WebKitWebView *view, GArray *argv, GString *result)
 
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 9, 90)
-void
-cmd_load (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (load)
 {
     UZBL_UNUSED (result);
 
@@ -543,8 +498,7 @@ cmd_load (WebKitWebView *view, GArray *argv, GString *result)
     webkit_web_view_load_alternate_html (view, content, content_uri, base_uri);
 }
 
-void
-cmd_save (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (save)
 {
     UZBL_UNUSED (result);
 
@@ -581,8 +535,7 @@ cmd_save (WebKitWebView *view, GArray *argv, GString *result)
 #define strprefix(str, prefix) \
     strncmp ((str), (prefix), strlen ((prefix)))
 
-void
-cmd_cookie_add (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (cookie_add)
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (result);
@@ -630,8 +583,7 @@ cmd_cookie_add (WebKitWebView *view, GArray *argv, GString *result)
     uzbl.net.soup_cookie_jar->in_manual_add = 0;
 }
 
-void
-cmd_cookie_delete (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (cookie_delete)
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (result);
@@ -651,8 +603,7 @@ cmd_cookie_delete (WebKitWebView *view, GArray *argv, GString *result)
     uzbl.net.soup_cookie_jar->in_manual_add = 0;
 }
 
-void
-cmd_cookie_clear (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (cookie_clear)
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (argv);
@@ -681,8 +632,7 @@ cmd_cookie_clear (WebKitWebView *view, GArray *argv, GString *result)
  * scroll horizontal begin
  * scroll horizontal end
  */
-void
-cmd_scroll (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (scroll)
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (result);
@@ -736,8 +686,7 @@ cmd_scroll (WebKitWebView *view, GArray *argv, GString *result)
     }
 }
 
-void
-cmd_zoom_in (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (zoom_in)
 {
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
@@ -745,8 +694,7 @@ cmd_zoom_in (WebKitWebView *view, GArray *argv, GString *result)
     webkit_web_view_zoom_in (view);
 }
 
-void
-cmd_zoom_out (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (zoom_out)
 {
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
@@ -754,8 +702,7 @@ cmd_zoom_out (WebKitWebView *view, GArray *argv, GString *result)
     webkit_web_view_zoom_out (view);
 }
 
-void
-cmd_hardcopy (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (hardcopy)
 {
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
@@ -765,8 +712,7 @@ cmd_hardcopy (WebKitWebView *view, GArray *argv, GString *result)
 
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 9, 6)
-void
-cmd_snapshot (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (snapshot)
 {
     UZBL_UNUSED (result);
 
@@ -786,8 +732,7 @@ cmd_snapshot (WebKitWebView *view, GArray *argv, GString *result)
 
 /* Content commands */
 
-void
-cmd_remove_all_db (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (remove_all_db)
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (argv);
@@ -797,8 +742,7 @@ cmd_remove_all_db (WebKitWebView *view, GArray *argv, GString *result)
 }
 
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
-void
-cmd_plugin_refresh (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (plugin_refresh)
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (argv);
@@ -811,8 +755,7 @@ cmd_plugin_refresh (WebKitWebView *view, GArray *argv, GString *result)
 static void
 plugin_toggle_one (WebKitWebPlugin *plugin, const gchar *name);
 
-void
-cmd_plugin_toggle (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (plugin_toggle)
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (result);
@@ -849,8 +792,7 @@ plugin_toggle_one (WebKitWebPlugin *plugin, const gchar *name)
 #endif
 
 #if WEBKIT_CHECK_VERSION (1, 5, 1)
-void
-cmd_spell_checker (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (spell_checker)
 {
     UZBL_UNUSED (view);
 
@@ -908,8 +850,7 @@ cmd_spell_checker (WebKitWebView *view, GArray *argv, GString *result)
 static void
 search_text (WebKitWebView *view, const gchar *key, const gboolean forward);
 
-void
-cmd_search_forward (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (search_forward)
 {
     UZBL_UNUSED (result);
 
@@ -918,8 +859,7 @@ cmd_search_forward (WebKitWebView *view, GArray *argv, GString *result)
     search_text (view, argv_idx (argv, 0), TRUE);
 }
 
-void
-cmd_search_reverse (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (search_reverse)
 {
     UZBL_UNUSED (result);
 
@@ -928,8 +868,7 @@ cmd_search_reverse (WebKitWebView *view, GArray *argv, GString *result)
     search_text (view, argv_idx (argv, 0), FALSE);
 }
 
-void
-cmd_search_clear (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (search_clear)
 {
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
@@ -940,8 +879,7 @@ cmd_search_clear (WebKitWebView *view, GArray *argv, GString *result)
     uzbl.state.searchtx = NULL;
 }
 
-void
-cmd_search_reset (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (search_reset)
 {
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
@@ -972,8 +910,7 @@ search_text (WebKitWebView *view, const gchar *key, const gboolean forward)
 
 /* Inspector commands */
 
-void
-cmd_inspector_show (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (inspector_show)
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (argv);
@@ -982,8 +919,7 @@ cmd_inspector_show (WebKitWebView *view, GArray *argv, GString *result)
     webkit_web_inspector_show (uzbl.gui.inspector);
 }
 
-void
-cmd_inspector (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (inspector)
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (result);
@@ -1024,16 +960,14 @@ void
 eval_js (WebKitWebView *view, const gchar *script, GString *result, const gchar *path);
 */
 
-void
-cmd_js (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (js)
 {
     ARG_CHECK (argv, 1);
 
     eval_js (view, argv_idx (argv, 0), result, "(uzbl command)");
 }
 
-void
-cmd_js_file (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (js_file)
 {
     ARG_CHECK (argv, 1);
 
@@ -1157,8 +1091,7 @@ spawn (GArray *argv, GString *result, gboolean exec);
 static void
 spawn_sh (GArray *argv, GString *result);
 
-void
-cmd_spawn (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (spawn)
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (result);
@@ -1166,16 +1099,14 @@ cmd_spawn (WebKitWebView *view, GArray *argv, GString *result)
     spawn (argv, NULL, FALSE);
 }
 
-void
-cmd_spawn_sync (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (spawn_sync)
 {
     UZBL_UNUSED (view);
 
     spawn (argv, result, FALSE);
 }
 
-void
-cmd_spawn_sync_exec (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (spawn_sync_exec)
 {
     UZBL_UNUSED (view);
 
@@ -1188,8 +1119,7 @@ cmd_spawn_sync_exec (WebKitWebView *view, GArray *argv, GString *result)
     }
 }
 
-void
-cmd_spawn_sh (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (spawn_sh)
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (result);
@@ -1197,8 +1127,7 @@ cmd_spawn_sh (WebKitWebView *view, GArray *argv, GString *result)
     spawn_sh (argv, NULL);
 }
 
-void
-cmd_spawn_sh_sync (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (spawn_sh_sync)
 {
     UZBL_UNUSED (view);
 
@@ -1335,8 +1264,7 @@ run_command (const gchar *command, const gchar **args, const gboolean sync,
 
 /* Uzbl commands */
 
-void
-cmd_chain (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (chain)
 {
     UZBL_UNUSED (view);
 
@@ -1361,8 +1289,7 @@ cmd_chain (WebKitWebView *view, GArray *argv, GString *result)
     g_string_free (r, TRUE);
 }
 
-void
-cmd_include (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (include)
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (result);
@@ -1381,8 +1308,7 @@ cmd_include (WebKitWebView *view, GArray *argv, GString *result)
     }
 }
 
-void
-cmd_exit (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (exit)
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (argv);
@@ -1401,8 +1327,7 @@ cmd_exit (WebKitWebView *view, GArray *argv, GString *result)
 
 /* Variable commands */
 
-void
-cmd_set (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (set)
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (result);
@@ -1417,8 +1342,7 @@ cmd_set (WebKitWebView *view, GArray *argv, GString *result)
     g_strfreev (split);
 }
 
-void
-cmd_toggle (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (toggle)
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (result);
@@ -1432,8 +1356,7 @@ cmd_toggle (WebKitWebView *view, GArray *argv, GString *result)
     uzbl_variables_toggle (var_name, argv);
 }
 
-void
-cmd_print (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (print)
 {
     UZBL_UNUSED (view);
 
@@ -1450,8 +1373,7 @@ cmd_print (WebKitWebView *view, GArray *argv, GString *result)
     g_free (buf);
 }
 
-void
-cmd_dump_config (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (dump_config)
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (argv);
@@ -1460,8 +1382,7 @@ cmd_dump_config (WebKitWebView *view, GArray *argv, GString *result)
     uzbl_variables_dump ();
 }
 
-void
-cmd_dump_config_as_events (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (dump_config_as_events)
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (argv);
@@ -1470,8 +1391,7 @@ cmd_dump_config_as_events (WebKitWebView *view, GArray *argv, GString *result)
     uzbl_variables_dump_events ();
 }
 
-void
-cmd_event (WebKitWebView *view, GArray *argv, GString *result)
+IMPLEMENT_COMMAND (event)
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (result);
