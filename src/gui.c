@@ -1,23 +1,14 @@
-/*
- ** GUI code
- ** (c) 2009-2013 by Robert Manea et al.
-*/
-
 #include "gui.h"
 
 #include "uzbl-core.h"
 #include "events.h"
 #include "menu.h"
 #include "type.h"
-#include "variables.h" /* FIXME: This is for get_geometry which   *
-                        *        should probably be in this file. */
-
-#include <gtk/gtk.h>
-#include <gdk/gdk.h>
-
-#include <glib.h>
+#include "variables.h"
 
 #include <limits.h>
+
+/* =========================== PUBLIC API =========================== */
 
 static void
 uzbl_status_bar_init (void);
@@ -44,21 +35,7 @@ uzbl_gui_init ()
     }
 }
 
-void
-set_window_property (const gchar *prop, const gchar *value)
-{
-    if (uzbl.gui.main_window && GTK_IS_WIDGET (uzbl.gui.main_window))
-    {
-        gdk_property_change (
-            gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)),
-            gdk_atom_intern_static_string (prop),
-            gdk_atom_intern_static_string ("STRING"),
-            CHAR_BIT * sizeof (value[0]),
-            GDK_PROP_MODE_REPLACE,
-            (const guchar *)value,
-            strlen (value));
-    }
-}
+/* ===================== HELPER IMPLEMENTATIONS ===================== */
 
 static gboolean
 key_press_cb (GtkWidget *widget, GdkEventKey *event, gpointer data);
@@ -262,6 +239,8 @@ uzbl_plug_init (void)
         NULL);
 }
 
+/* ==================== CALLBACK IMPLEMENTATIONS ==================== */
+
 /* Status bar callbacks */
 
 static void
@@ -341,7 +320,7 @@ send_keypress_event (guint keyval, guint state, guint is_modifier, gint mode)
 guint
 key_to_modifier (guint keyval)
 {
-/* backwards compatibility. */
+/* Backwards compatibility. */
 #if !GTK_CHECK_VERSION (2, 22, 0)
 #define GDK_KEY_Shift_L GDK_Shift_L
 #define GDK_KEY_Shift_R GDK_Shift_R
@@ -442,19 +421,19 @@ button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
     gboolean is_editable = FALSE;
     gboolean is_document = FALSE;
 
-    /* Save last button click for use in menu */
+    /* Save last button click for use in menu. */
     gdk_event_free ((GdkEvent *)uzbl.state.last_button);
     uzbl.state.last_button = (GdkEventButton *)gdk_event_copy ((GdkEvent *)event);
 
-    /* Grab context from last click */
+    /* Grab context from last click. */
     context = get_click_context ();
 
     is_editable = (context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE);
     is_document = (context & WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT);
 
     if (event->type == GDK_BUTTON_PRESS) {
-        /* left click */
         if (event->button == 1) {
+            /* Left click. */
             if (is_editable) {
                 uzbl_events_send (FORM_ACTIVE, NULL,
                     TYPE_NAME, "button1",
@@ -471,7 +450,7 @@ button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
             sendev    = TRUE;
             propagate = TRUE;
         } else if (event->button == 3) {
-            /* Ignore middle click */
+            /* Ignore middle click. */
         } else if (event->button > 3) {
             sendev    = TRUE;
             propagate = TRUE;
@@ -518,7 +497,7 @@ button_release_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
             sendev    = TRUE;
             propagate = TRUE;
         } else if (event->button == 3) {
-            /* Ignore middle click */
+            /* Ignore middle click. */
         } else if (event->button > 3) {
             sendev    = TRUE;
             propagate = TRUE;
@@ -696,16 +675,19 @@ load_status_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data
                 NULL);
             break;
         case WEBKIT_LOAD_FIRST_VISUALLY_NON_EMPTY_LAYOUT:
-            /* TODO: Implement */
+            /* TODO: Implement. */
             break;
         case WEBKIT_LOAD_FAILED:
-            /* Handled by load_error_cb */
+            /* Handled by load_error_cb. */
             break;
         default:
             uzbl_debug ("Unrecognized load status: %d\n", status);
             break;
     }
 }
+
+static void
+set_window_property (const gchar *prop, const gchar *value);
 
 void
 uri_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
@@ -721,6 +703,22 @@ uri_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
     /* TODO: Collect all environment settings into one place. */
     g_setenv ("UZBL_URI", uzbl.state.uri, TRUE);
     set_window_property ("UZBL_URI", uzbl.state.uri);
+}
+
+void
+set_window_property (const gchar *prop, const gchar *value)
+{
+    if (uzbl.gui.main_window && GTK_IS_WIDGET (uzbl.gui.main_window))
+    {
+        gdk_property_change (
+            gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)),
+            gdk_atom_intern_static_string (prop),
+            gdk_atom_intern_static_string ("STRING"),
+            CHAR_BIT * sizeof (value[0]),
+            GDK_PROP_MODE_REPLACE,
+            (const guchar *)value,
+            strlen (value));
+    }
 }
 
 gboolean
@@ -758,7 +756,7 @@ window_object_cleared_cb (WebKitWebView *view, WebKitWebFrame *frame,
     UZBL_UNUSED (data);
 
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
-    /* Take this opportunity to set some callbacks on the DOM */
+    /* Take this opportunity to set some callbacks on the DOM. */
     WebKitDOMDocument *document = webkit_web_view_get_dom_document (view);
     webkit_dom_event_target_add_event_listener (WEBKIT_DOM_EVENT_TARGET (document),
         "focus", G_CALLBACK (dom_focus_cb), TRUE, NULL);
@@ -867,7 +865,7 @@ mime_policy_cb (WebKitWebView *view, WebKitWebFrame *frame,
     if (webkit_web_view_can_show_mime_type (view, mime_type)) {
         webkit_web_policy_decision_use (policy_decision);
     } else {
-        /* ...everything we can't display is downloaded */
+        /* ...everything we can't display is downloaded. */
         webkit_web_policy_decision_download (policy_decision);
     }
 
@@ -884,19 +882,19 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
 {
     UZBL_UNUSED (view);
 
-    /* get the URI being downloaded */
+    /* Get the URI being downloaded. */
     const gchar *uri = webkit_download_get_uri (download);
 
     /* TODO: Split this logic into a separate function. */
-    /* get the destination path, if specified.
-     * this is only intended to be set when this function is trigger by an
-     * explicit download using uzbl's 'download' action. */
+    /* Get the destination path, if specified. This is only intended to be set
+     * when this function is trigger by an explicit download using uzbl's
+     * 'download' action. */
     const gchar *destination = (const gchar *)data;
 
     uzbl_debug ("Download requested -> %s\n", uri);
 
     if (!uzbl.behave.download_handler) {
-        /* reject downloads when there's no download handler */
+        /* Reject downloads when there's no download handler. */
         uzbl_debug ("No download handler set; ignoring download\n");
         webkit_download_cancel (download);
         return FALSE;
@@ -979,20 +977,20 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
     g_free (total_size_s);
     g_array_free (args, TRUE);
 
-    /* no response, cancel the download */
+    /* No response, cancel the download. */
     if (result->len == 0) {
         webkit_download_cancel (download);
         return FALSE;
     }
 
-    /* we got a response, it's the path we should download the file to */
+    /* We got a response, it's the path we should download the file to. */
     gchar *destination_path = result->str;
     g_string_free (result, FALSE);
 
-    /* presumably people don't need newlines in their filenames. */
+    /* Presumably people don't need newlines in their filenames. */
     remove_trailing_newline (destination_path);
 
-    /* set up progress callbacks */
+    /* Set up progress callbacks. */
     g_object_connect (G_OBJECT (download),
         "signal::notify::status",   G_CALLBACK (download_status_cb),   NULL,
         NULL);
@@ -1000,9 +998,9 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
         "signal::notify::progress", G_CALLBACK (download_progress_cb), NULL,
         NULL);
 
-    /* convert relative path to absolute path */
+    /* Convert relative path to absolute path. */
     if (destination_path[0] != '/') {
-        /* TODO: Detect file:// URI from the handler */
+        /* TODO: Detect file:// URI from the handler. */
         gchar *rel_path = destination_path;
         gchar *cwd = g_get_current_dir ();
         destination_path = g_strconcat (cwd, "/", destination_path, NULL);
@@ -1014,7 +1012,7 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
         TYPE_STR, destination_path,
         NULL);
 
-    /* convert absolute path to file:// URI */
+    /* Convert absolute path to file:// URI. */
     gchar *destination_uri = g_strconcat ("file://", destination_path, NULL);
     g_free (destination_path);
 
@@ -1058,7 +1056,7 @@ download_status_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer d
     switch (status) {
         case WEBKIT_DOWNLOAD_STATUS_CREATED:
         case WEBKIT_DOWNLOAD_STATUS_STARTED:
-            break; /* these are irrelevant */
+            break; /* These are irrelevant. */
         case WEBKIT_DOWNLOAD_STATUS_ERROR:
         case WEBKIT_DOWNLOAD_STATUS_CANCELLED:
             /* TODO: Implement events for these. */
@@ -1211,12 +1209,12 @@ context_menu_cb (WebKitWebView *view, GtkMenu *menu, WebKitHitTestResult *hit_te
 
     context = get_click_context ();
 
-    /* check context */
+    /* Check context. */
     if (context == NO_CLICK_CONTEXT) {
         return FALSE;
     }
 
-    /* display the default menu with our modifications. */
+    /* Display the default menu with our modifications. */
     return populate_context_menu (menu, hit_test_result, context);
 }
 #else
@@ -1233,7 +1231,7 @@ populate_popup_cb (WebKitWebView *view, GtkMenu *menu, gpointer data)
 
     context = get_click_context ();
 
-    /* check context */
+    /* Check context. */
     if (context == NO_CLICK_CONTEXT) {
         return FALSE;
     }
@@ -1271,7 +1269,7 @@ populate_context_menu (GtkMenu *menu, WebKitHitTestResult *hit_test_result, gint
 {
     guint i;
 
-    /* find the user-defined menu items that are approprate for whatever was
+    /* Find the user-defined menu items that are approprate for whatever was
      * clicked and append them to the default context menu. */
     for (i = 0; i < uzbl.gui.menu_items->len; ++i) {
         UzblMenuItem *menu_item = g_ptr_array_index (uzbl.gui.menu_items, i);
@@ -1389,7 +1387,7 @@ configure_event_cb (GtkWidget *widget, GdkEventConfigure *event, gpointer data)
 
     gchar *last_geo    = uzbl.gui.geometry;
     /* TODO: We should set the geometry instead. */
-    gchar *current_geo = get_geometry ();
+    gchar *current_geo = uzbl_variables_get_string ("geometry");
 
     if (!last_geo || g_strcmp0 (last_geo, current_geo)) {
         uzbl_events_send (GEOMETRY_CHANGED, NULL,

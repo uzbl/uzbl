@@ -1,7 +1,6 @@
 #include "variables.h"
 
 #include "events.h"
-#include "gui.h"
 #include "io.h"
 #include "type.h"
 #include "util.h"
@@ -1438,8 +1437,6 @@ IMPLEMENT_SETTER (gchar *, uri)
     /* Attempt to parse the URI. */
     gchar *newuri = make_uri_from_user_input (uri);
 
-    /* TODO: Collect all environment settings into one place. */
-    set_window_property ("UZBL_URI", newuri);
     webkit_web_view_load_uri (uzbl.gui.web_view, newuri);
 
     g_free (newuri);
