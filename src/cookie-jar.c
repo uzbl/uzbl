@@ -5,11 +5,12 @@
 
 #include <libsoup/soup.h>
 
+/* =========================== PUBLIC API =========================== */
+
 static void
 soup_cookie_jar_socket_init (UzblCookieJar *jar);
 static void
 soup_cookie_jar_socket_class_init (UzblCookieJarClass *socket_class);
-
 
 G_DEFINE_TYPE (UzblCookieJar, soup_cookie_jar_socket, SOUP_TYPE_COOKIE_JAR)
 
@@ -18,6 +19,8 @@ uzbl_cookie_jar_new ()
 {
     return g_object_new (UZBL_TYPE_COOKIE_JAR, NULL);
 }
+
+/* ===================== HELPER IMPLEMENTATIONS ===================== */
 
 void
 soup_cookie_jar_socket_init (UzblCookieJar *jar)
@@ -28,7 +31,7 @@ soup_cookie_jar_socket_init (UzblCookieJar *jar)
 static void
 changed (SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie);
 static void
-finalize(GObject *object);
+finalize (GObject *object);
 
 void
 soup_cookie_jar_socket_class_init (UzblCookieJarClass *socket_class)
@@ -38,11 +41,11 @@ soup_cookie_jar_socket_class_init (UzblCookieJarClass *socket_class)
 }
 
 void
-changed(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie)
+changed (SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie)
 {
     SoupCookie *cookie = new_cookie ? new_cookie : old_cookie;
 
-    UzblCookieJar *uzbl_jar = UZBL_COOKIE_JAR(jar);
+    UzblCookieJar *uzbl_jar = UZBL_COOKIE_JAR (jar);
 
     /* Send a ADD_COOKIE or DELETE_COOKIE event depending on what has changed.
      * These events aren't sent when a cookie changes due to an add_cookie or
@@ -72,8 +75,8 @@ changed(SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie)
             TYPE_STR, expires ? expires : "",
             NULL);
 
-        g_free(expires);
-        g_free(scheme);
+        g_free (expires);
+        g_free (scheme);
     }
 }
 
