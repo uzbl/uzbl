@@ -152,6 +152,10 @@ context_menu_cb (WebKitWebView *view, GtkMenu *menu, WebKitHitTestResult *hit_te
 static gboolean
 populate_popup_cb (WebKitWebView *view, GtkMenu *menu, gpointer data);
 #endif
+#ifdef USE_WEBKIT2
+static gboolean
+web_process_crashed_cb (WebKitWebView *view, gpointer data);
+#endif
 /* Scrollbar events */
 static gboolean
 scroll_vert_cb (GtkAdjustment *adjust, gpointer data);
@@ -197,6 +201,9 @@ uzbl_web_view_init (void)
         "signal::context-menu",                         G_CALLBACK (context_menu_cb),          NULL,
 #else
         "signal::populate-popup",                       G_CALLBACK (populate_popup_cb),        NULL,
+#endif
+#ifdef USE_WEBKIT2
+        "signal::web-process-crashed",                  G_CALLBACK (web_process_crashed_cb),   NULL,
 #endif
         NULL);
 
@@ -1286,6 +1293,18 @@ populate_popup_cb (WebKitWebView *view, GtkMenu *menu, gpointer data)
     g_object_unref (hit_test_result);
 
     return ret;
+}
+#endif
+
+#ifdef USE_WEBKIT2
+gboolean
+web_process_crashed_cb (WebKitWebView *view, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (data);
+
+    uzbl_events_send (WEB_PROCESS_CRASHED, NULL,
+        NULL);
 }
 #endif
 
