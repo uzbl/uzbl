@@ -102,7 +102,7 @@ control_client_socket (GIOChannel *clientchan) {
     }
 
     if (ctl_line) {
-        parse_cmd_line (ctl_line, result);
+        uzbl_commands_run (ctl_line, result);
         g_string_append_c (result, '\n');
         ret = g_io_channel_write_chars (clientchan, result->str, result->len,
                                         &len, &error);
@@ -153,7 +153,7 @@ control_stdin (GIOChannel *gio, GIOCondition condition)
 
     GString *result = g_string_new ("");
 
-    parse_cmd_line (ctl_line, result);
+    uzbl_commands_run (ctl_line, result);
     g_free (ctl_line);
 
     if (*result->str) {
@@ -283,7 +283,7 @@ control_fifo(GIOChannel *gio, GIOCondition condition)
         g_error_free (err);
     }
 
-    parse_cmd_line (ctl_line, NULL);
+    uzbl_commands_run (ctl_line, NULL);
     g_free (ctl_line);
 
     return TRUE;

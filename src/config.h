@@ -1,5 +1,5 @@
 const struct {
-    /*@null@*/ char *command;
+    gchar *command;
 } default_config[] = {
 { "set status_format = <b>\\@[\\@TITLE]\\@</b> - \\@[\\@uri]\\@ - <span foreground=\"#bbb\">\\@NAME</span>" },
 { "set show_status = 1" },

@@ -645,12 +645,13 @@ navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
     if (uzbl.behave.scheme_handler) {
         GString *result = g_string_new ("");
         GArray *args = g_array_new (TRUE, FALSE, sizeof (gchar *));
-        const UzblCommandInfo *scheme_command = parse_command_parts (uzbl.behave.scheme_handler, args);
+        const UzblCommandInfo *scheme_command = uzbl_commands_parse (uzbl.behave.scheme_handler, args);
 
         if (scheme_command) {
             g_array_append_val (args, uri);
-            run_parsed_command (scheme_command, args, result);
+            uzbl_commands_run_parsed (scheme_command, args, result);
         }
+
         g_array_free (args, TRUE);
 
         if (result->len > 0) {
@@ -776,7 +777,7 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
     unsigned int total_size = webkit_download_get_total_size (download);
 
     GArray *args = g_array_new (TRUE, FALSE, sizeof (gchar *));
-    const UzblCommandInfo *download_command = parse_command_parts (uzbl.behave.download_handler, args);
+    const UzblCommandInfo *download_command = uzbl_commands_parse (uzbl.behave.download_handler, args);
     if (!download_command) {
         webkit_download_cancel (download);
         g_array_free (args, TRUE);
@@ -794,7 +795,7 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
     }
 
     GString *result = g_string_new ("");
-    run_parsed_command (download_command, args, result);
+    uzbl_commands_run_parsed (download_command, args, result);
 
     g_free (total_size_s);
     g_array_free (args, TRUE);
@@ -922,11 +923,11 @@ request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResour
     if (uzbl.behave.request_handler) {
         GString *result = g_string_new ("");
         GArray *args = g_array_new (TRUE, FALSE, sizeof (gchar *));
-        const UzblCommandInfo *request_command = parse_command_parts (uzbl.behave.request_handler, args);
+        const UzblCommandInfo *request_command = uzbl_commands_parse (uzbl.behave.request_handler, args);
 
         if (request_command) {
             g_array_append_val (args, uri);
-            run_parsed_command (request_command, args, result);
+            uzbl_commands_run_parsed (request_command, args, result);
         }
         g_array_free (args, TRUE);
 
@@ -1139,12 +1140,12 @@ run_menu_command (GtkMenuItem *menu_item, gpointer data)
     if (is_image) {
         gchar *cmd = g_strdup_printf ("%s %s", item->cmd, item->argument);
 
-        parse_cmd_line (cmd, NULL);
+        uzbl_commands_run (cmd, NULL);
 
         g_free (cmd);
         g_free (item->argument);
     } else {
-        parse_cmd_line (item->cmd, NULL);
+        uzbl_commands_run (item->cmd, NULL);
     }
 }
 

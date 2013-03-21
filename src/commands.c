@@ -1259,13 +1259,13 @@ spawn (GArray *argv, GString *result, gboolean exec)
     run_system_command (path, args, result != NULL, result ? &r : NULL);
     if (result) {
         g_string_assign (result, r);
-        /* run each line of output from the program as a command */
+        /* Run each line of output from the program as a command. */
         if (exec && r) {
             gchar *head = r;
             gchar *tail;
             while ((tail = strchr (head, '\n'))) {
                 *tail = '\0';
-                parse_cmd_line (head, NULL);
+                parse_command_from_file (head, NULL);
                 head = tail + 1;
             }
         }
@@ -1370,21 +1370,17 @@ IMPLEMENT_COMMAND (chain)
 
     guint i = 0;
     const gchar *cmd;
-    GString *r = g_string_new ("");
+    GString *res = g_string_new ("");
 
     while ((cmd = argv_idx (argv, i++))) {
-        GArray *a = g_array_new (TRUE, FALSE, sizeof (gchar*));
-        const UzblCommandInfo *c = parse_command_parts (cmd, a);
-        if (c) {
-            run_parsed_command (c, a, r);
-        }
-        g_array_free (a, TRUE);
-    }
-    if (result) {
-        g_string_assign (result, r->str);
+        uzbl_commands_run (cmd, res);
     }
 
-    g_string_free (r, TRUE);
+    if (result) {
+        g_string_assign (result, res->str);
+    }
+
+    g_string_free (res, TRUE);
 }
 
 IMPLEMENT_COMMAND (include)
@@ -1398,7 +1394,7 @@ IMPLEMENT_COMMAND (include)
     gchar *path = NULL;
 
     if ((path = find_existing_file (req_path))) {
-        run_command_file (path);
+        uzbl_commands_load_file (path);
         uzbl_events_send (FILE_INCLUDED, NULL,
             TYPE_STR, path,
             NULL);

@@ -337,7 +337,7 @@ settings_init () {
 
     /* Load config file, if any */
     if (s->config_file) {
-        run_command_file(s->config_file);
+        uzbl_commands_load_file (s->config_file);
         g_setenv("UZBL_CONFIG", s->config_file, TRUE);
     } else if (uzbl.state.verbose)
         printf ("No configuration file loaded.\n");
