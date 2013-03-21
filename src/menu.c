@@ -2,6 +2,8 @@
 
 #include "util.h"
 
+/* =========================== PUBLIC API =========================== */
+
 static void
 add_to_menu (GArray *argv, guint context);
 
@@ -118,6 +120,8 @@ cmd_menu_remove_edit (WebKitWebView *view, GArray *argv, GString *result)
 
     remove_from_menu (argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE);
 }
+
+/* ===================== HELPER IMPLEMENTATIONS ===================== */
 
 #define ARG_CHECK(argv, count)   \
     do                           \
