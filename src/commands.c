@@ -1232,11 +1232,11 @@ IMPLEMENT_COMMAND (spawn_sh_sync)
     spawn_sh (argv, result);
 }
 
-/* make sure that the args string you pass can properly be interpreted (eg
- * properly escaped against whitespace, quotes etc) */
+/* Make sure that the args string you pass can properly be interpreted (e.g.,
+ * properly escaped against whitespace, quotes etc). */
 static gboolean
-run_command (const gchar *command, const gchar **args, const gboolean sync,
-             char **output_stdout);
+run_system_command (const gchar *command, const gchar **args, const gboolean sync,
+                    char **output_stdout);
 
 void
 spawn (GArray *argv, GString *result, gboolean exec)
@@ -1256,7 +1256,7 @@ spawn (GArray *argv, GString *result, gboolean exec)
     }
 
     gchar *r = NULL;
-    run_command (path, args, result != NULL, result ? &r : NULL);
+    run_system_command (path, args, result != NULL, result ? &r : NULL);
     if (result) {
         g_string_assign (result, r);
         /* run each line of output from the program as a command */
@@ -1299,18 +1299,18 @@ spawn_sh (GArray *argv, GString *result)
 
     if (result) {
         gchar *r = NULL;
-        run_command (cmd[0], &arg_start, TRUE, &r);
+        run_system_command (cmd[0], &arg_start, TRUE, &r);
         g_string_assign (result, r);
         g_free (r);
     } else {
-        run_command (cmd[0], &arg_start, FALSE, NULL);
+        run_system_command (cmd[0], &arg_start, FALSE, NULL);
     }
 
     g_strfreev (cmd);
 }
 
 gboolean
-run_command (const gchar *command, const gchar **args, const gboolean sync,
+run_system_command (const gchar *command, const gchar **args, const gboolean sync,
              char **output_stdout)
 {
     GError *err = NULL;
@@ -1353,7 +1353,7 @@ run_command (const gchar *command, const gchar **args, const gboolean sync,
         }
     }
     if (err) {
-        g_printerr ("error on run_command: %s\n", err->message);
+        g_printerr ("error on run_system_command: %s\n", err->message);
         g_error_free (err);
     }
     g_array_free (a, TRUE);
