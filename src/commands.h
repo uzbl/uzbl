@@ -10,10 +10,10 @@
 typedef struct _UzblCommandInfo UzblCommandInfo;
 
 void
-uzbl_command_init ();
+uzbl_commands_init ();
 
 void
-uzbl_command_send_builtin_event ();
+uzbl_commands_send_builtin_event ();
 
 void /* FIXME: This should not be public here. */
 eval_js (WebKitWebView *view, const gchar *script, GString *result, const gchar *path);

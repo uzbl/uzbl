@@ -425,7 +425,7 @@ initialize(int argc, char** argv) {
     uzbl.net.soup_session = webkit_get_default_session();
     uzbl_soup_init (uzbl.net.soup_session);
 
-    uzbl_command_init ();
+    uzbl_commands_init ();
     uzbl_variables_init ();
 
     /* XDG */
@@ -472,7 +472,7 @@ main (int argc, char* argv[]) {
     }
 
     /* Generate an event with a list of built in commands */
-    uzbl_command_send_builtin_event ();
+    uzbl_commands_send_builtin_event ();
 
     /* Check uzbl is in window mode before getting/setting geometry */
     if (uzbl.gui.main_window && uzbl.gui.geometry) {

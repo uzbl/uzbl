@@ -238,7 +238,7 @@ builtin_command_table[] =
 };
 
 void
-uzbl_command_init ()
+uzbl_commands_init ()
 {
     unsigned i;
     unsigned len = LENGTH (builtin_command_table);
@@ -251,7 +251,7 @@ uzbl_command_init ()
 }
 
 void
-uzbl_command_send_builtin_event ()
+uzbl_commands_send_builtin_event ()
 {
     unsigned i;
     unsigned len = LENGTH (builtin_command_table);
