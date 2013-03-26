@@ -30,6 +30,9 @@
 #include "uzbl-core.h"
 
 #include "commands.h"
+#ifndef UZBL_LIBRARY
+#include "config.h"
+#endif
 #include "events.h"
 #include "gui.h"
 #include "inspector.h"
@@ -212,6 +215,13 @@ main (int argc, char *argv[])
         gtk_widget_show_all (GTK_WIDGET (uzbl.gui.main_window));
     } else {
         gtk_widget_show_all (GTK_WIDGET (uzbl.gui.plug));
+    }
+
+    guint i;
+
+    /* Load default config. */
+    for (i = 0; default_config[i].command; ++i) {
+        uzbl_commands_run (default_config[i].command, NULL);
     }
 
     /* Read configuration file */

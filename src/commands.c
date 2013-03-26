@@ -1,6 +1,5 @@
 #include "commands.h"
 
-#include "config.h"
 #include "events.h"
 #include "gui.h"
 #include "menu.h"
@@ -228,13 +227,6 @@ uzbl_commands_init ()
         g_hash_table_insert (uzbl.behave.commands, (gpointer)cmd->name, cmd);
 
         ++cmd;
-    }
-
-    guint i;
-
-    /* Load default config. */
-    for (i = 0; default_config[i].command; ++i) {
-        parse_command_from_file (default_config[i].command);
     }
 }
 
