@@ -515,7 +515,7 @@ uzbl_variables_free ()
     uzbl.behave.proto_var = NULL;
 }
 
-static char *valid_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
+static const char *valid_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.";
 
 gboolean
 uzbl_variables_is_valid (const gchar *name)
