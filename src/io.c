@@ -175,6 +175,8 @@ control_stdin (GIOChannel *gio, GIOCondition condition)
         return FALSE;
     }
 
+    remove_trailing_newline (ctl_line);
+
     GString *result = g_string_new ("");
 
     uzbl_commands_run (ctl_line, result);
@@ -223,6 +225,8 @@ control_client_socket (GIOChannel *clientchan)
     }
 
     if (ctl_line) {
+        remove_trailing_newline (ctl_line);
+
         uzbl_commands_run (ctl_line, result);
         g_string_append_c (result, '\n');
         ret = g_io_channel_write_chars (clientchan, result->str, result->len,
@@ -368,6 +372,8 @@ control_fifo (GIOChannel *gio, GIOCondition condition)
         g_error ("Fifo: Error reading: %s\n", err->message);
         g_error_free (err);
     }
+
+    remove_trailing_newline (ctl_line);
 
     uzbl_commands_run (ctl_line, NULL);
     g_free (ctl_line);
