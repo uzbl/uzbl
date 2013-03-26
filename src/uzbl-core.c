@@ -278,8 +278,8 @@ typedef struct {
 
 static const XdgVar
 xdg_user[] = {
-    { "XDG_CONFIG_HOME", "~/.config" },
     { "XDG_DATA_HOME",   "~/.local/share" },
+    { "XDG_CONFIG_HOME", "~/.config" },
     { "XDG_CACHE_HOME",  "~/.cache" }
 };
 
