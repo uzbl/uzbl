@@ -1652,7 +1652,7 @@ GOBJECT_GETSET (int, enable_private_webkit,
                 webkit_settings (), "enable-private-browsing")
 
 GOBJECT_GETSET (int, enable_universal_file_access,
-                webkit_settings (), "enable-universal-access-from-file-urls")
+                webkit_settings (), "enable-universal-access-from-file-uris")
 
 GOBJECT_GETSET (int, enable_cross_file_access,
                 webkit_settings (), "enable-file-access-from-file-uris")
