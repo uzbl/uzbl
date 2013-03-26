@@ -827,6 +827,11 @@ variable_free (gpointer key, gpointer value, gpointer data)
         return;
     }
 
+    if (var->type == TYPE_STR) {
+        g_free (*var->value.s);
+        g_free (var->value.s);
+    }
+
     gchar *name = (gchar *)key;
 
     g_free (name);
