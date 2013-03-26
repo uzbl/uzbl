@@ -14,27 +14,27 @@
 /* =========================== PUBLIC API =========================== */
 
 static void
-uzbl_status_bar_init (void);
+status_bar_init (void);
 static void
-uzbl_web_view_init (void);
+web_view_init (void);
 static void
-uzbl_vbox_init (void);
+vbox_init (void);
 static void
-uzbl_window_init (void);
+window_init (void);
 static void
-uzbl_plug_init (void);
+plug_init (void);
 
 void
 uzbl_gui_init ()
 {
-    uzbl_status_bar_init ();
-    uzbl_web_view_init ();
-    uzbl_vbox_init ();
+    status_bar_init ();
+    web_view_init ();
+    vbox_init ();
 
     if (uzbl.state.plug_mode) {
-        uzbl_plug_init ();
+        plug_init ();
     } else {
-        uzbl_window_init ();
+        window_init ();
     }
 }
 
@@ -78,7 +78,7 @@ static gboolean
 key_release_cb (GtkWidget *widget, GdkEventKey *event, gpointer data);
 
 void
-uzbl_status_bar_init (void)
+status_bar_init (void)
 {
     uzbl.gui.status_bar = uzbl_status_bar_new ();
 
@@ -163,7 +163,7 @@ static gboolean
 scroll_horiz_cb (GtkAdjustment *adjust, gpointer data);
 
 void
-uzbl_web_view_init (void)
+web_view_init (void)
 {
     uzbl.gui.web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
     uzbl.gui.scrolled_win = gtk_scrolled_window_new (NULL, NULL);
@@ -222,7 +222,7 @@ uzbl_web_view_init (void)
 }
 
 void
-uzbl_vbox_init (void)
+vbox_init (void)
 {
 #if GTK_CHECK_VERSION (3, 0, 0)
     uzbl.gui.vbox = gtk_box_new (FALSE, 0);
@@ -241,7 +241,7 @@ static gboolean
 configure_event_cb (GtkWidget *widget, GdkEventConfigure *event, gpointer data);
 
 void
-uzbl_window_init (void)
+window_init (void)
 {
     uzbl.gui.main_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 
@@ -265,7 +265,7 @@ uzbl_window_init (void)
 }
 
 void
-uzbl_plug_init (void)
+plug_init (void)
 {
     uzbl.gui.plug = GTK_PLUG (gtk_plug_new (uzbl.state.socket_id));
 
