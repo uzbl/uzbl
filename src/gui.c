@@ -314,133 +314,6 @@ key_release_cb (GtkWidget *widget, GdkEventKey *event, gpointer data)
     return (uzbl.behave.forward_keys ? FALSE : TRUE);
 }
 
-static guint
-key_to_modifier (guint keyval);
-static gchar *
-get_modifier_mask (guint state);
-
-void
-send_keypress_event (guint keyval, guint state, guint is_modifier, gint mode)
-{
-    gchar ucs[7];
-    gint ulen;
-    gchar *keyname;
-    guint32 ukval = gdk_keyval_to_unicode (keyval);
-    gchar *modifiers = NULL;
-    guint mod = key_to_modifier (keyval);
-
-    /* Get modifier state including this key press/release. */
-    modifiers = get_modifier_mask ((mode == GDK_KEY_PRESS) ? (state | mod) : (state & ~mod));
-
-    if (is_modifier && mod) {
-        uzbl_events_send ((mode == GDK_KEY_PRESS) ? MOD_PRESS : MOD_RELEASE, NULL,
-            TYPE_STR, modifiers,
-            TYPE_NAME, get_modifier_mask (mod),
-            NULL);
-    } else if (g_unichar_isgraph (ukval)) {
-        /* Check for printable unicode char. */
-        /* TODO: Pass the keyvals through a GtkIMContext so that we also get
-         * combining chars right. */
-        ulen = g_unichar_to_utf8 (ukval, ucs);
-        ucs[ulen] = 0;
-
-        uzbl_events_send ((mode == GDK_KEY_PRESS) ? KEY_PRESS : KEY_RELEASE, NULL,
-            TYPE_STR, modifiers,
-            TYPE_STR, ucs,
-            NULL);
-    } else if ((keyname = gdk_keyval_name (keyval))) {
-        /* Send keysym for non-printable chars. */
-        uzbl_events_send ((mode == GDK_KEY_PRESS) ? KEY_PRESS : KEY_RELEASE, NULL,
-            TYPE_STR, modifiers,
-            TYPE_NAME, keyname,
-            NULL);
-    }
-
-    g_free (modifiers);
-}
-
-guint
-key_to_modifier (guint keyval)
-{
-/* Backwards compatibility. */
-#if !GTK_CHECK_VERSION (2, 22, 0)
-#define GDK_KEY_Shift_L GDK_Shift_L
-#define GDK_KEY_Shift_R GDK_Shift_R
-#define GDK_KEY_Control_L GDK_Control_L
-#define GDK_KEY_Control_R GDK_Control_R
-#define GDK_KEY_Alt_L GDK_Alt_L
-#define GDK_KEY_Alt_R GDK_Alt_R
-#define GDK_KEY_Super_L GDK_Super_L
-#define GDK_KEY_Super_R GDK_Super_R
-#define GDK_KEY_ISO_Level3_Shift GDK_ISO_Level3_Shift
-#endif
-
-    /* FIXME: Should really use XGetModifierMapping and/or Xkb to get actual
-     * modifier keys. */
-    switch (keyval) {
-        case GDK_KEY_Shift_L:
-        case GDK_KEY_Shift_R:
-            return GDK_SHIFT_MASK;
-        case GDK_KEY_Control_L:
-        case GDK_KEY_Control_R:
-            return GDK_CONTROL_MASK;
-        case GDK_KEY_Alt_L:
-        case GDK_KEY_Alt_R:
-            return GDK_MOD1_MASK;
-        case GDK_KEY_Super_L:
-        case GDK_KEY_Super_R:
-            return GDK_MOD4_MASK;
-        case GDK_KEY_ISO_Level3_Shift:
-            return GDK_MOD5_MASK;
-        default:
-            return 0;
-    }
-}
-
-gchar *
-get_modifier_mask (guint state) {
-    GString *modifiers = g_string_new ("");
-
-    if (state & GDK_MODIFIER_MASK) {
-        /* FIXME: Valgrind says there's a memory leak here... */
-#define CHECK_MODIFIER(mask, modifier)                 \
-    do {                                               \
-        if (state & GDK_##mask##_MASK) {               \
-            g_string_append (modifiers, modifier "|"); \
-        }                                              \
-    } while (0)
-
-        CHECK_MODIFIER (SHIFT,   "Shift");
-        CHECK_MODIFIER (LOCK,    "ScrollLock");
-        CHECK_MODIFIER (CONTROL, "Ctrl");
-        CHECK_MODIFIER (MOD1,    "Mod1");
-        /* Mod2 is usually NumLock. Ignore it since NumLock shouldn't be used
-         * in bindings.
-        CHECK_MODIFIER (MOD2,    "Mod2");
-         */
-        CHECK_MODIFIER (MOD3,    "Mod3");
-        CHECK_MODIFIER (MOD4,    "Mod4");
-        CHECK_MODIFIER (MOD5,    "Mod5");
-        CHECK_MODIFIER (BUTTON1, "Button1");
-        CHECK_MODIFIER (BUTTON2, "Button2");
-        CHECK_MODIFIER (BUTTON3, "Button3");
-        CHECK_MODIFIER (BUTTON4, "Button4");
-        CHECK_MODIFIER (BUTTON5, "Button5");
-
-#undef CHECK_MODIFIER
-
-        if (modifiers->len) {
-            gsize end = modifiers->len - 1;
-
-            if (modifiers->str[end] == '|') {
-                g_string_truncate (modifiers, end);
-            }
-        }
-    }
-
-    return g_string_free (modifiers, FALSE);
-}
-
 /* Web view callbacks */
 
 /* Mouse events */
@@ -551,72 +424,6 @@ button_release_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
     }
 
     return propagate;
-}
-
-gint
-get_click_context ()
-{
-    WebKitHitTestResult *ht;
-    guint context;
-
-    if (!uzbl.state.last_button) {
-        return NO_CLICK_CONTEXT;
-    }
-
-    ht = webkit_web_view_get_hit_test_result (uzbl.gui.web_view, uzbl.state.last_button);
-    g_object_get (ht,
-        "context", &context,
-        NULL);
-    g_object_unref (ht);
-
-    return (gint)context;
-}
-
-static guint
-button_to_modifier (guint buttonval);
-
-void
-send_button_event (guint buttonval, guint state, gint mode)
-{
-    gchar *details;
-    const char *reps;
-    gchar *modifiers = NULL;
-    guint mod = button_to_modifier (buttonval);
-
-    /* Get modifier state including this button press/release. */
-    modifiers = get_modifier_mask ((mode != GDK_BUTTON_RELEASE) ? (state | mod) : (state & ~mod));
-
-    switch (mode) {
-        case GDK_2BUTTON_PRESS:
-            reps = "2";
-            break;
-        case GDK_3BUTTON_PRESS:
-            reps = "3";
-            break;
-        default:
-            reps = "";
-            break;
-    }
-
-    details = g_strdup_printf ("%sButton%d", reps, buttonval);
-
-    uzbl_events_send ((mode == GDK_BUTTON_PRESS) ? KEY_PRESS : KEY_RELEASE, NULL,
-        TYPE_STR, modifiers,
-        TYPE_FORMATTEDSTR, details,
-        NULL);
-
-    g_free (details);
-    g_free (modifiers);
-}
-
-guint
-button_to_modifier (guint buttonval)
-{
-    if (buttonval <= 5) {
-        /* TODO: Where does this come from? */
-        return (1 << (7 + buttonval));
-    }
-    return 0;
 }
 
 void
@@ -747,22 +554,6 @@ uri_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
     set_window_property ("UZBL_URI", uzbl.state.uri);
 }
 
-void
-set_window_property (const gchar *prop, const gchar *value)
-{
-    if (uzbl.gui.main_window && GTK_IS_WIDGET (uzbl.gui.main_window))
-    {
-        gdk_property_change (
-            gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)),
-            gdk_atom_intern_static_string (prop),
-            gdk_atom_intern_static_string ("STRING"),
-            CHAR_BIT * sizeof (value[0]),
-            GDK_PROP_MODE_REPLACE,
-            (const guchar *)value,
-            strlen (value));
-    }
-}
-
 gboolean
 load_error_cb (WebKitWebView *view, WebKitWebFrame *frame, gchar *uri, gpointer web_err, gpointer data)
 {
@@ -809,36 +600,6 @@ window_object_cleared_cb (WebKitWebView *view, WebKitWebFrame *frame,
 #endif
 }
 
-
-#if WEBKIT_CHECK_VERSION (1, 3, 13)
-void
-dom_focus_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data)
-{
-    UZBL_UNUSED (target);
-    UZBL_UNUSED (data);
-
-    WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
-    gchar *name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
-
-    uzbl_events_send (FOCUS_ELEMENT, NULL,
-        TYPE_STR, name,
-        NULL);
-}
-
-void
-dom_blur_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data)
-{
-    UZBL_UNUSED (target);
-    UZBL_UNUSED (data);
-
-    WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
-    gchar *name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
-
-    uzbl_events_send (BLUR_ELEMENT, NULL,
-        TYPE_STR, name,
-        NULL);
-}
-#endif
 
 /* Navigation events */
 
@@ -1061,57 +822,6 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
 }
 
 void
-download_progress_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data)
-{
-    UZBL_UNUSED (param_spec);
-    UZBL_UNUSED (data);
-
-    gdouble progress;
-    g_object_get (download,
-        "progress", &progress,
-        NULL);
-
-    const gchar *dest_uri = webkit_download_get_destination_uri (download);
-    const gchar *dest_path = dest_uri + strlen ("file://");
-
-    uzbl_events_send (DOWNLOAD_PROGRESS, NULL,
-        TYPE_STR, dest_path,
-        TYPE_FLOAT, progress,
-        NULL);
-}
-
-void
-download_status_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data)
-{
-    UZBL_UNUSED (param_spec);
-    UZBL_UNUSED (data);
-
-    WebKitDownloadStatus status;
-    g_object_get (download,
-        "status", &status,
-        NULL);
-
-    switch (status) {
-        case WEBKIT_DOWNLOAD_STATUS_CREATED:
-        case WEBKIT_DOWNLOAD_STATUS_STARTED:
-            break; /* These are irrelevant. */
-        case WEBKIT_DOWNLOAD_STATUS_ERROR:
-        case WEBKIT_DOWNLOAD_STATUS_CANCELLED:
-            /* TODO: Implement events for these. */
-            break;
-        case WEBKIT_DOWNLOAD_STATUS_FINISHED:
-        {
-            const gchar *dest_uri = webkit_download_get_destination_uri (download);
-            const gchar *dest_path = dest_uri + strlen ("file://");
-            uzbl_events_send (DOWNLOAD_COMPLETE, NULL,
-                TYPE_STR, dest_path,
-                NULL);
-            break;
-        }
-    }
-}
-
-void
 request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResource *resource,
         WebKitNetworkRequest *request, WebKitNetworkResponse *response, gpointer data)
 {
@@ -1177,32 +887,6 @@ create_web_view_cb (WebKitWebView *view, WebKitWebFrame *frame, gpointer data)
         NULL);
 
     return new_view;
-}
-
-void
-create_web_view_js_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
-{
-    UZBL_UNUSED (param_spec);
-    UZBL_UNUSED (data);
-
-    webkit_web_view_stop_loading (view);
-    const gchar *uri = webkit_web_view_get_uri (view);
-
-    static const char *js_protocol = "javascript:";
-
-    if (strprefix (uri, js_protocol) == 0) {
-        GArray *args = g_array_new (TRUE, FALSE, sizeof (gchar *));
-        const gchar *js_code = uri + strlen (js_protocol);
-        g_array_append_val (args, js_code);
-        uzbl_commands_run_argv ("js", args, NULL);
-        g_array_free (args, FALSE);
-    } else {
-        uzbl_events_send (NEW_WINDOW, NULL,
-            TYPE_STR, uri,
-            NULL);
-    }
-
-    gtk_widget_destroy (GTK_WIDGET (view));
 }
 
 void
@@ -1312,6 +996,292 @@ web_process_crashed_cb (WebKitWebView *view, gpointer data)
 }
 #endif
 
+/* Scrollbar events */
+
+static void
+send_scroll_event (int type, GtkAdjustment *adjust);
+
+gboolean
+scroll_vert_cb (GtkAdjustment *adjust, gpointer data)
+{
+    UZBL_UNUSED (data);
+
+    send_scroll_event (SCROLL_VERT, adjust);
+
+    return FALSE;
+}
+
+gboolean
+scroll_horiz_cb (GtkAdjustment *adjust, gpointer data)
+{
+    UZBL_UNUSED (data);
+
+    send_scroll_event (SCROLL_HORIZ, adjust);
+
+    return FALSE;
+}
+
+/* Window callbacks */
+
+void
+destroy_cb (GtkWidget *widget, gpointer data)
+{
+    UZBL_UNUSED (widget);
+    UZBL_UNUSED (data);
+
+    gtk_main_quit ();
+}
+
+gboolean
+configure_event_cb (GtkWidget *widget, GdkEventConfigure *event, gpointer data)
+{
+    UZBL_UNUSED (widget);
+    UZBL_UNUSED (event);
+    UZBL_UNUSED (data);
+
+    gchar *last_geo    = uzbl.gui.geometry;
+    /* TODO: We should set the geometry instead. */
+    gchar *current_geo = uzbl_variables_get_string ("geometry");
+
+    if (!last_geo || g_strcmp0 (last_geo, current_geo)) {
+        uzbl_events_send (GEOMETRY_CHANGED, NULL,
+            TYPE_STR, current_geo,
+            NULL);
+    }
+
+    g_free (current_geo);
+
+    return FALSE;
+}
+
+static guint
+key_to_modifier (guint keyval);
+static gchar *
+get_modifier_mask (guint state);
+
+void
+send_keypress_event (guint keyval, guint state, guint is_modifier, gint mode)
+{
+    gchar ucs[7];
+    gint ulen;
+    gchar *keyname;
+    guint32 ukval = gdk_keyval_to_unicode (keyval);
+    gchar *modifiers = NULL;
+    guint mod = key_to_modifier (keyval);
+
+    /* Get modifier state including this key press/release. */
+    modifiers = get_modifier_mask ((mode == GDK_KEY_PRESS) ? (state | mod) : (state & ~mod));
+
+    if (is_modifier && mod) {
+        gchar *newmods = get_modifier_mask (mod);
+
+        uzbl_events_send ((mode == GDK_KEY_PRESS) ? MOD_PRESS : MOD_RELEASE, NULL,
+            TYPE_STR, modifiers,
+            TYPE_NAME, newmods,
+            NULL);
+
+        g_free (newmods);
+    } else if (g_unichar_isgraph (ukval)) {
+        /* Check for printable unicode char. */
+        /* TODO: Pass the keyvals through a GtkIMContext so that we also get
+         * combining chars right. */
+        ulen = g_unichar_to_utf8 (ukval, ucs);
+        ucs[ulen] = 0;
+
+        uzbl_events_send ((mode == GDK_KEY_PRESS) ? KEY_PRESS : KEY_RELEASE, NULL,
+            TYPE_STR, modifiers,
+            TYPE_STR, ucs,
+            NULL);
+    } else if ((keyname = gdk_keyval_name (keyval))) {
+        /* Send keysym for non-printable chars. */
+        uzbl_events_send ((mode == GDK_KEY_PRESS) ? KEY_PRESS : KEY_RELEASE, NULL,
+            TYPE_STR, modifiers,
+            TYPE_NAME, keyname,
+            NULL);
+    }
+
+    g_free (modifiers);
+}
+
+gint
+get_click_context ()
+{
+    WebKitHitTestResult *ht;
+    guint context;
+
+    if (!uzbl.state.last_button) {
+        return NO_CLICK_CONTEXT;
+    }
+
+    ht = webkit_web_view_get_hit_test_result (uzbl.gui.web_view, uzbl.state.last_button);
+    g_object_get (ht,
+        "context", &context,
+        NULL);
+    g_object_unref (ht);
+
+    return (gint)context;
+}
+
+static guint
+button_to_modifier (guint buttonval);
+
+void
+send_button_event (guint buttonval, guint state, gint mode)
+{
+    gchar *details;
+    const char *reps;
+    gchar *modifiers = NULL;
+    guint mod = button_to_modifier (buttonval);
+
+    /* Get modifier state including this button press/release. */
+    modifiers = get_modifier_mask ((mode != GDK_BUTTON_RELEASE) ? (state | mod) : (state & ~mod));
+
+    switch (mode) {
+        case GDK_2BUTTON_PRESS:
+            reps = "2";
+            break;
+        case GDK_3BUTTON_PRESS:
+            reps = "3";
+            break;
+        default:
+            reps = "";
+            break;
+    }
+
+    details = g_strdup_printf ("%sButton%d", reps, buttonval);
+
+    uzbl_events_send ((mode == GDK_BUTTON_PRESS) ? KEY_PRESS : KEY_RELEASE, NULL,
+        TYPE_STR, modifiers,
+        TYPE_FORMATTEDSTR, details,
+        NULL);
+
+    g_free (details);
+    g_free (modifiers);
+}
+
+void
+set_window_property (const gchar *prop, const gchar *value)
+{
+    if (uzbl.gui.main_window && GTK_IS_WIDGET (uzbl.gui.main_window))
+    {
+        gdk_property_change (
+            gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)),
+            gdk_atom_intern_static_string (prop),
+            gdk_atom_intern_static_string ("STRING"),
+            CHAR_BIT * sizeof (value[0]),
+            GDK_PROP_MODE_REPLACE,
+            (const guchar *)value,
+            strlen (value));
+    }
+}
+
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+void
+dom_focus_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data)
+{
+    UZBL_UNUSED (target);
+    UZBL_UNUSED (data);
+
+    WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
+    gchar *name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
+
+    uzbl_events_send (FOCUS_ELEMENT, NULL,
+        TYPE_STR, name,
+        NULL);
+}
+
+void
+dom_blur_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data)
+{
+    UZBL_UNUSED (target);
+    UZBL_UNUSED (data);
+
+    WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
+    gchar *name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
+
+    uzbl_events_send (BLUR_ELEMENT, NULL,
+        TYPE_STR, name,
+        NULL);
+}
+#endif
+
+void
+download_progress_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data)
+{
+    UZBL_UNUSED (param_spec);
+    UZBL_UNUSED (data);
+
+    gdouble progress;
+    g_object_get (download,
+        "progress", &progress,
+        NULL);
+
+    const gchar *dest_uri = webkit_download_get_destination_uri (download);
+    const gchar *dest_path = dest_uri + strlen ("file://");
+
+    uzbl_events_send (DOWNLOAD_PROGRESS, NULL,
+        TYPE_STR, dest_path,
+        TYPE_FLOAT, progress,
+        NULL);
+}
+
+void
+download_status_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data)
+{
+    UZBL_UNUSED (param_spec);
+    UZBL_UNUSED (data);
+
+    WebKitDownloadStatus status;
+    g_object_get (download,
+        "status", &status,
+        NULL);
+
+    switch (status) {
+        case WEBKIT_DOWNLOAD_STATUS_CREATED:
+        case WEBKIT_DOWNLOAD_STATUS_STARTED:
+            break; /* These are irrelevant. */
+        case WEBKIT_DOWNLOAD_STATUS_ERROR:
+        case WEBKIT_DOWNLOAD_STATUS_CANCELLED:
+            /* TODO: Implement events for these. */
+            break;
+        case WEBKIT_DOWNLOAD_STATUS_FINISHED:
+        {
+            const gchar *dest_uri = webkit_download_get_destination_uri (download);
+            const gchar *dest_path = dest_uri + strlen ("file://");
+            uzbl_events_send (DOWNLOAD_COMPLETE, NULL,
+                TYPE_STR, dest_path,
+                NULL);
+            break;
+        }
+    }
+}
+
+void
+create_web_view_js_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
+{
+    UZBL_UNUSED (param_spec);
+    UZBL_UNUSED (data);
+
+    webkit_web_view_stop_loading (view);
+    const gchar *uri = webkit_web_view_get_uri (view);
+
+    static const char *js_protocol = "javascript:";
+
+    if (strprefix (uri, js_protocol) == 0) {
+        GArray *args = g_array_new (TRUE, FALSE, sizeof (gchar *));
+        const gchar *js_code = uri + strlen (js_protocol);
+        g_array_append_val (args, js_code);
+        uzbl_commands_run_argv ("js", args, NULL);
+        g_array_free (args, FALSE);
+    } else {
+        uzbl_events_send (NEW_WINDOW, NULL,
+            TYPE_STR, uri,
+            NULL);
+    }
+
+    gtk_widget_destroy (GTK_WIDGET (view));
+}
+
 static void
 run_menu_command (GtkMenuItem *menu_item, gpointer data);
 
@@ -1357,6 +1327,115 @@ populate_context_menu (GtkMenu *menu, WebKitHitTestResult *hit_test_result, gint
 }
 
 void
+send_scroll_event (int type, GtkAdjustment *adjust)
+{
+    gdouble value = gtk_adjustment_get_value (adjust);
+    gdouble min = gtk_adjustment_get_lower (adjust);
+    gdouble max = gtk_adjustment_get_upper (adjust);
+    gdouble page = gtk_adjustment_get_page_size (adjust);
+
+    uzbl_events_send (type, NULL,
+        TYPE_FLOAT, value,
+        TYPE_FLOAT, min,
+        TYPE_FLOAT, max,
+        TYPE_FLOAT, page,
+        NULL);
+}
+
+guint
+key_to_modifier (guint keyval)
+{
+/* Backwards compatibility. */
+#if !GTK_CHECK_VERSION (2, 22, 0)
+#define GDK_KEY_Shift_L GDK_Shift_L
+#define GDK_KEY_Shift_R GDK_Shift_R
+#define GDK_KEY_Control_L GDK_Control_L
+#define GDK_KEY_Control_R GDK_Control_R
+#define GDK_KEY_Alt_L GDK_Alt_L
+#define GDK_KEY_Alt_R GDK_Alt_R
+#define GDK_KEY_Super_L GDK_Super_L
+#define GDK_KEY_Super_R GDK_Super_R
+#define GDK_KEY_ISO_Level3_Shift GDK_ISO_Level3_Shift
+#endif
+
+    /* FIXME: Should really use XGetModifierMapping and/or Xkb to get actual
+     * modifier keys. */
+    switch (keyval) {
+        case GDK_KEY_Shift_L:
+        case GDK_KEY_Shift_R:
+            return GDK_SHIFT_MASK;
+        case GDK_KEY_Control_L:
+        case GDK_KEY_Control_R:
+            return GDK_CONTROL_MASK;
+        case GDK_KEY_Alt_L:
+        case GDK_KEY_Alt_R:
+            return GDK_MOD1_MASK;
+        case GDK_KEY_Super_L:
+        case GDK_KEY_Super_R:
+            return GDK_MOD4_MASK;
+        case GDK_KEY_ISO_Level3_Shift:
+            return GDK_MOD5_MASK;
+        default:
+            return 0;
+    }
+}
+
+gchar *
+get_modifier_mask (guint state)
+{
+    GString *modifiers = g_string_new ("");
+
+    if (state & GDK_MODIFIER_MASK) {
+        /* FIXME: Valgrind says there's a memory leak here... */
+#define CHECK_MODIFIER(mask, modifier)                 \
+    do {                                               \
+        if (state & GDK_##mask##_MASK) {               \
+            g_string_append (modifiers, modifier "|"); \
+        }                                              \
+    } while (0)
+
+        CHECK_MODIFIER (SHIFT,   "Shift");
+        CHECK_MODIFIER (LOCK,    "ScrollLock");
+        CHECK_MODIFIER (CONTROL, "Ctrl");
+        CHECK_MODIFIER (MOD1,    "Mod1");
+        /* Mod2 is usually NumLock. Ignore it since NumLock shouldn't be used
+         * in bindings.
+        CHECK_MODIFIER (MOD2,    "Mod2");
+         */
+        CHECK_MODIFIER (MOD3,    "Mod3");
+        CHECK_MODIFIER (MOD4,    "Mod4");
+        CHECK_MODIFIER (MOD5,    "Mod5");
+        CHECK_MODIFIER (BUTTON1, "Button1");
+        CHECK_MODIFIER (BUTTON2, "Button2");
+        CHECK_MODIFIER (BUTTON3, "Button3");
+        CHECK_MODIFIER (BUTTON4, "Button4");
+        CHECK_MODIFIER (BUTTON5, "Button5");
+
+#undef CHECK_MODIFIER
+
+        if (modifiers->len) {
+            gsize end = modifiers->len - 1;
+
+            if (modifiers->str[end] == '|') {
+                g_string_truncate (modifiers, end);
+            }
+        }
+    }
+
+    return g_string_free (modifiers, FALSE);
+}
+
+guint
+button_to_modifier (guint buttonval)
+{
+    if (buttonval <= 5) {
+        /* TODO: Where does this come from? */
+        return (1 << (7 + buttonval));
+    }
+    return 0;
+}
+
+void
 run_menu_command (GtkMenuItem *menu_item, gpointer data)
 {
     UZBL_UNUSED (menu_item);
@@ -1375,78 +1454,4 @@ run_menu_command (GtkMenuItem *menu_item, gpointer data)
     } else {
         uzbl_commands_run (item->cmd, NULL);
     }
-}
-
-/* Scrollbar events */
-
-static void
-send_scroll_event (int type, GtkAdjustment *adjust);
-
-gboolean
-scroll_vert_cb (GtkAdjustment *adjust, gpointer data)
-{
-    UZBL_UNUSED (data);
-
-    send_scroll_event (SCROLL_VERT, adjust);
-
-    return FALSE;
-}
-
-gboolean
-scroll_horiz_cb (GtkAdjustment *adjust, gpointer data)
-{
-    UZBL_UNUSED (data);
-
-    send_scroll_event (SCROLL_HORIZ, adjust);
-
-    return FALSE;
-}
-
-void
-send_scroll_event (int type, GtkAdjustment *adjust)
-{
-    gdouble value = gtk_adjustment_get_value (adjust);
-    gdouble min = gtk_adjustment_get_lower (adjust);
-    gdouble max = gtk_adjustment_get_upper (adjust);
-    gdouble page = gtk_adjustment_get_page_size (adjust);
-
-    uzbl_events_send (type, NULL,
-        TYPE_FLOAT, value,
-        TYPE_FLOAT, min,
-        TYPE_FLOAT, max,
-        TYPE_FLOAT, page,
-        NULL);
-}
-
-/* Window callbacks */
-
-void
-destroy_cb (GtkWidget *widget, gpointer data)
-{
-    UZBL_UNUSED (widget);
-    UZBL_UNUSED (data);
-
-    gtk_main_quit ();
-}
-
-gboolean
-configure_event_cb (GtkWidget *widget, GdkEventConfigure *event, gpointer data)
-{
-    UZBL_UNUSED (widget);
-    UZBL_UNUSED (event);
-    UZBL_UNUSED (data);
-
-    gchar *last_geo    = uzbl.gui.geometry;
-    /* TODO: We should set the geometry instead. */
-    gchar *current_geo = uzbl_variables_get_string ("geometry");
-
-    if (!last_geo || g_strcmp0 (last_geo, current_geo)) {
-        uzbl_events_send (GEOMETRY_CHANGED, NULL,
-            TYPE_STR, current_geo,
-            NULL);
-    }
-
-    g_free (current_geo);
-
-    return FALSE;
 }
