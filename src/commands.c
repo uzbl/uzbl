@@ -861,7 +861,7 @@ IMPLEMENT_COMMAND (hardcopy)
     webkit_web_frame_print (webkit_web_view_get_main_frame (uzbl.gui.web_view));
 }
 
-#if HAVE_SNAPSHOT
+#ifdef HAVE_SNAPSHOT
 IMPLEMENT_COMMAND (snapshot)
 {
     UZBL_UNUSED (result);
