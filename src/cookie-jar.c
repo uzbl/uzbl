@@ -57,8 +57,9 @@ changed (SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie)
         gchar *scheme = g_strdup (base_scheme);
 
         if (cookie->http_only) {
-            g_free (scheme);
+            gchar *old_scheme = scheme;
             scheme = g_strconcat (scheme, "Only", NULL);
+            g_free (old_scheme);
         }
 
         gchar *expires = NULL;
