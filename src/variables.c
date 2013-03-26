@@ -974,16 +974,16 @@ expand_type (const gchar *str);
 gchar *
 expand_impl (const gchar *str, UzblExpandStage stage)
 {
-    GString        *buf = g_string_new ("");
-    const gchar    *p = str;
+    GString *buf = g_string_new ("");
 
-    while (p && *p) {
+    if (!str) {
+        return g_string_free (buf, FALSE);
+    }
+
+    const gchar *p = str;
+
+    while (*p) {
         switch (*p) {
-            case '\\':
-                g_string_append_c (buf, *++p);
-                ++p;
-                break;
-
             case '@':
             {
                 UzblExpandType etype = expand_type (p);
@@ -1137,6 +1137,12 @@ expand_impl (const gchar *str, UzblExpandStage stage)
                 g_free (ret);
                 break;
             }
+            case '\\':
+                ++p;
+                if (!*p) {
+                    break;
+                }
+                /* FALLTHROUGH */
             default:
                 g_string_append_c (buf, *p);
                 ++p;
