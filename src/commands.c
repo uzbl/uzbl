@@ -334,7 +334,7 @@ uzbl_commands_run_parsed (const UzblCommand *info, GArray *argv, GString *result
             TYPE_STR_ARRAY, argv_copy,
             NULL);
 
-        g_array_free (argv_copy, FALSE);
+        g_array_free (argv_copy, TRUE);
     }
 }
 
@@ -396,7 +396,11 @@ split_quoted (const gchar *src, const gboolean unquote);
 void
 parse_command_arguments (const gchar *args, GArray *argv, gboolean split)
 {
-    if (!split && args) {
+    if (!args) {
+        return;
+    }
+
+    if (!split) {
         /* Pass the parameters through in one chunk. */
         /* FIXME: Valgrind says there's a memory leak here... */
         sharg_append (argv, g_strdup (args));
@@ -446,7 +450,7 @@ parse_command_from_file_cb (const gchar *line, gpointer data)
 void
 parse_command_from_file (const char *cmd)
 {
-    if (!*cmd) {
+    if (!cmd || !*cmd) {
         return;
     }
 
@@ -1268,11 +1272,13 @@ IMPLEMENT_COMMAND (toggle)
 
     ARG_CHECK (argv, 1);
 
-    const gchar *var_name = argv_idx (argv, 0);
+    gchar *var_name = argv_idx (argv, 0);
 
-    g_array_remove_range (argv, 0, 2);
+    g_array_remove_range (argv, 0, 1);
 
     uzbl_variables_toggle (var_name, argv);
+
+    g_free (var_name);
 }
 
 IMPLEMENT_COMMAND (print)
@@ -1478,7 +1484,7 @@ spawn_sh (GArray *argv, GString *result)
 
     g_array_insert_val (argv, 1, cmd[0]);
 
-    for (i = g_strv_length (cmd)-1; i; --i) {
+    for (i = g_strv_length (cmd) - 1; i; --i) {
         g_array_prepend_val (argv, cmd[i]);
     }
 
@@ -1492,8 +1498,6 @@ spawn_sh (GArray *argv, GString *result)
     } else {
         run_system_command (cmd[0], &arg_start, FALSE, NULL);
     }
-
-    g_strfreev (cmd);
 }
 
 char *
@@ -1534,14 +1538,14 @@ run_system_command (const gchar *command, const gchar **args, const gboolean syn
 {
     GError *err = NULL;
 
-    GArray *a = g_array_new (TRUE, FALSE, sizeof (gchar*));
+    GArray *cmd_args = g_array_new (TRUE, FALSE, sizeof (gchar*));
     guint i;
     guint len = g_strv_length ((gchar **)args);
 
-    sharg_append (a, g_strdup (command));
+    sharg_append (cmd_args, g_strdup (command));
 
     for (i = 0; i < len; ++i) {
-        sharg_append (a, g_strdup (args[i]));
+        sharg_append (cmd_args, g_strdup (args[i]));
     }
 
     gboolean result;
@@ -1550,17 +1554,17 @@ run_system_command (const gchar *command, const gchar **args, const gboolean syn
             g_free (*output_stdout);
         }
 
-        result = g_spawn_sync (NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
+        result = g_spawn_sync (NULL, (gchar **)cmd_args->data, NULL, G_SPAWN_SEARCH_PATH,
                                NULL, NULL, output_stdout, NULL, NULL, &err);
     } else {
-        result = g_spawn_async (NULL, (gchar **)a->data, NULL, G_SPAWN_SEARCH_PATH,
+        result = g_spawn_async (NULL, (gchar **)cmd_args->data, NULL, G_SPAWN_SEARCH_PATH,
                                 NULL, NULL, NULL, &err);
     }
 
     if (uzbl.state.verbose) {
         GString *s = g_string_new ("spawned:");
-        for (i = 0; i < a->len; ++i) {
-            gchar *qarg = g_shell_quote (g_array_index (a, gchar*, i));
+        for (i = 0; i < cmd_args->len; ++i) {
+            gchar *qarg = g_shell_quote (g_array_index (cmd_args, gchar*, i));
             g_string_append_printf (s, " %s", qarg);
             g_free (qarg);
         }
@@ -1575,6 +1579,10 @@ run_system_command (const gchar *command, const gchar **args, const gboolean syn
         g_printerr ("error on run_system_command: %s\n", err->message);
         g_error_free (err);
     }
-    g_array_free (a, TRUE);
+    while (cmd_args->len) {
+        g_free (argv_idx (cmd_args, cmd_args->len - 1));
+        g_array_remove_index (cmd_args, cmd_args->len - 1);
+    }
+    g_array_free (cmd_args, TRUE);
     return result;
 }

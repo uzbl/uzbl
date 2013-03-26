@@ -366,6 +366,11 @@ clean_up ()
         uzbl.comm.socket_path = NULL;
     }
 
+    if (uzbl.behave.status_background) {
+        g_free (uzbl.behave.status_background);
+        uzbl.behave.status_background = NULL;
+    }
+
     uzbl_variables_free ();
 
     g_object_unref (uzbl.net.soup_cookie_jar);

@@ -623,11 +623,18 @@ navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
         GArray *args = g_array_new (TRUE, FALSE, sizeof (gchar *));
         const UzblCommand *scheme_command = uzbl_commands_parse (uzbl.behave.scheme_handler, args);
 
+        gchar *uridup = NULL;
+
         if (scheme_command) {
-            g_array_append_val (args, uri);
+            uridup = g_strdup (uri);
+            g_array_append_val (args, uridup);
             uzbl_commands_run_parsed (scheme_command, args, result);
         }
 
+        while (args->len) {
+            g_free (argv_idx (args, args->len - 1));
+            g_array_remove_index (args, args->len - 1);
+        }
         g_array_free (args, TRUE);
 
         if (result->len > 0) {
@@ -773,6 +780,10 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
     GString *result = g_string_new ("");
     uzbl_commands_run_parsed (download_command, args, result);
 
+    while (args->len) {
+        g_free (argv_idx (args, args->len - 1));
+        g_array_remove_index (args, args->len - 1);
+    }
     g_free (total_size_s);
     g_array_free (args, TRUE);
 
@@ -850,9 +861,15 @@ request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResour
         GArray *args = g_array_new (TRUE, FALSE, sizeof (gchar *));
         const UzblCommand *request_command = uzbl_commands_parse (uzbl.behave.request_handler, args);
 
+        gchar *uridup = NULL;
         if (request_command) {
-            g_array_append_val (args, uri);
+            uridup = g_strdup (uri);
+            g_array_append_val (args, uridup);
             uzbl_commands_run_parsed (request_command, args, result);
+        }
+        while (args->len) {
+            g_free (argv_idx (args, args->len - 1));
+            g_array_remove_index (args, args->len - 1);
         }
         g_array_free (args, TRUE);
 
