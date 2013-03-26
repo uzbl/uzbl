@@ -65,8 +65,7 @@ uzbl_status_bar_init (UzblStatusBar *status_bar)
 }
 
 static void
-uzbl_status_bar_size_allocate (GtkWidget *widget,
-                               GtkAllocation *allocation);
+allocate (GtkWidget *widget, GtkAllocation *allocation);
 
 void
 uzbl_status_bar_class_init (UzblStatusBarClass *class)
@@ -74,12 +73,11 @@ uzbl_status_bar_class_init (UzblStatusBarClass *class)
     GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (class);
 
     /* Override the size_allocate method. */
-    widget_class->size_allocate = uzbl_status_bar_size_allocate;
+    widget_class->size_allocate = allocate;
 }
 
 void
-uzbl_status_bar_size_allocate (GtkWidget *widget,
-                               GtkAllocation *allocation)
+allocate (GtkWidget *widget, GtkAllocation *allocation)
 {
     GtkRequisition left_requisition;
     GtkRequisition right_requisition;
