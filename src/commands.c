@@ -19,7 +19,7 @@
 
 /* ========================= COMMAND TABLE ========================== */
 
-typedef void (*UzblCommandCallback) (WebKitWebView *view, GArray *argv, GString *result);
+typedef void (*UzblCommandCallback) (GArray *argv, GString *result);
 
 struct _UzblCommand {
     const gchar         *name;
@@ -30,7 +30,7 @@ struct _UzblCommand {
 
 #define DECLARE_COMMAND(cmd) \
     static void              \
-    cmd_##cmd (WebKitWebView *view, GArray *argv, GString *result)
+    cmd_##cmd (GArray *argv, GString *result)
 
 /* Navigation commands */
 DECLARE_COMMAND (back);
@@ -321,7 +321,7 @@ uzbl_commands_run_parsed (const UzblCommand *info, GArray *argv, GString *result
         g_array_append_vals (argv_copy, argv->data, argv->len);
     }
 
-    info->function (uzbl.gui.web_view, argv, result);
+    info->function (argv, result);
 
     if (result) {
         g_free (uzbl.state.last_result);
@@ -539,7 +539,7 @@ split_quoted (const gchar *src, const gboolean unquote)
 
 #define IMPLEMENT_COMMAND(cmd) \
     void                       \
-    cmd_##cmd (WebKitWebView *view, GArray *argv, GString *result)
+    cmd_##cmd (GArray *argv, GString *result)
 
 /* Navigation commands */
 
@@ -551,7 +551,7 @@ IMPLEMENT_COMMAND (back)
 
     int n = count ? atoi (count) : 1;
 
-    webkit_web_view_go_back_or_forward (view, -n);
+    webkit_web_view_go_back_or_forward (uzbl.gui.web_view, -n);
 }
 
 IMPLEMENT_COMMAND (forward)
@@ -562,7 +562,7 @@ IMPLEMENT_COMMAND (forward)
 
     int n = count ? atoi (count) : 1;
 
-    webkit_web_view_go_back_or_forward (view, n);
+    webkit_web_view_go_back_or_forward (uzbl.gui.web_view, n);
 }
 
 IMPLEMENT_COMMAND (reload)
@@ -570,7 +570,7 @@ IMPLEMENT_COMMAND (reload)
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
-    webkit_web_view_reload (view);
+    webkit_web_view_reload (uzbl.gui.web_view);
 }
 
 IMPLEMENT_COMMAND (reload_force)
@@ -578,7 +578,7 @@ IMPLEMENT_COMMAND (reload_force)
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
-    webkit_web_view_reload_bypass_cache (view);
+    webkit_web_view_reload_bypass_cache (uzbl.gui.web_view);
 }
 
 IMPLEMENT_COMMAND (stop)
@@ -586,12 +586,11 @@ IMPLEMENT_COMMAND (stop)
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
-    webkit_web_view_stop_loading (view);
+    webkit_web_view_stop_loading (uzbl.gui.web_view);
 }
 
 IMPLEMENT_COMMAND (uri)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     ARG_CHECK (argv, 1);
@@ -603,9 +602,7 @@ IMPLEMENT_COMMAND (uri)
 
 IMPLEMENT_COMMAND (auth)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
-
 
     gchar *info;
     gchar *username;
@@ -637,7 +634,7 @@ IMPLEMENT_COMMAND (download)
     WebKitDownload *download = webkit_download_new (req);
 
     /* TODO: Make a download function. */
-    download_cb (view, download, (gpointer)destination);
+    download_cb (uzbl.gui.web_view, download, (gpointer)destination);
 
     if (webkit_download_get_destination_uri (download)) {
         webkit_download_start (download);
@@ -660,7 +657,7 @@ IMPLEMENT_COMMAND (load)
     const gchar *content_uri = (sz > 1) ? argv_idx (argv, 1) : NULL;
     const gchar *base_uri = (sz > 2) ? argv_idx (argv, 2) : NULL;
 
-    webkit_web_view_load_alternate_html (view, content, content_uri, base_uri);
+    webkit_web_view_load_alternate_html (uzbl.gui.web_view, content, content_uri, base_uri);
 }
 
 IMPLEMENT_COMMAND (save)
@@ -699,7 +696,6 @@ IMPLEMENT_COMMAND (save)
 
 IMPLEMENT_COMMAND (cookie_add)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     gchar *host;
@@ -747,7 +743,6 @@ IMPLEMENT_COMMAND (cookie_add)
 
 IMPLEMENT_COMMAND (cookie_delete)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     ARG_CHECK (argv, 4);
@@ -767,7 +762,6 @@ IMPLEMENT_COMMAND (cookie_delete)
 
 IMPLEMENT_COMMAND (cookie_clear)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
@@ -796,7 +790,6 @@ IMPLEMENT_COMMAND (cookie_clear)
  */
 IMPLEMENT_COMMAND (scroll)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     ARG_CHECK (argv, 2);
@@ -853,7 +846,7 @@ IMPLEMENT_COMMAND (zoom_in)
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
-    webkit_web_view_zoom_in (view);
+    webkit_web_view_zoom_in (uzbl.gui.web_view);
 }
 
 IMPLEMENT_COMMAND (zoom_out)
@@ -861,7 +854,7 @@ IMPLEMENT_COMMAND (zoom_out)
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
-    webkit_web_view_zoom_out (view);
+    webkit_web_view_zoom_out (uzbl.gui.web_view);
 }
 
 IMPLEMENT_COMMAND (hardcopy)
@@ -869,7 +862,7 @@ IMPLEMENT_COMMAND (hardcopy)
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
-    webkit_web_frame_print (webkit_web_view_get_main_frame (view));
+    webkit_web_frame_print (webkit_web_view_get_main_frame (uzbl.gui.web_view));
 }
 
 #if HAVE_SNAPSHOT
@@ -913,9 +906,9 @@ IMPLEMENT_COMMAND (snapshot)
         }
     }
 
-    webkit_web_view_get_snapshot (view, region, options,
+    webkit_web_view_get_snapshot (uzbl.gui.web_view, region, options,
                                   NULL, NULL, NULL);
-    surface = webkit_web_view_get_snapshot_finish (view, NULL, NULL);
+    surface = webkit_web_view_get_snapshot_finish (uzbl.gui.web_view, NULL, NULL);
 
     if (!g_strcmp0 (format, "png")) {
         cairo_surface_write_to_png (surface, argv_idx (argv, 0));
@@ -923,7 +916,7 @@ IMPLEMENT_COMMAND (snapshot)
         uzbl_debug ("Unrecognized snapshot format: %s\n", format);
     }
 #else
-    surface = webkit_web_view_get_snapshot (view);
+    surface = webkit_web_view_get_snapshot (uzbl.gui.web_view);
 
     cairo_surface_write_to_png (surface, argv_idx (argv, 0));
 #endif
@@ -936,7 +929,6 @@ IMPLEMENT_COMMAND (snapshot)
 
 IMPLEMENT_COMMAND (remove_all_db)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
@@ -946,7 +938,6 @@ IMPLEMENT_COMMAND (remove_all_db)
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
 IMPLEMENT_COMMAND (plugin_refresh)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
@@ -959,7 +950,6 @@ plugin_toggle_one (WebKitWebPlugin *plugin, const gchar *name);
 
 IMPLEMENT_COMMAND (plugin_toggle)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     WebKitWebPluginDatabase *db = webkit_get_web_plugin_database ();
@@ -983,8 +973,6 @@ IMPLEMENT_COMMAND (plugin_toggle)
 #if WEBKIT_CHECK_VERSION (1, 5, 1)
 IMPLEMENT_COMMAND (spell_checker)
 {
-    UZBL_UNUSED (view);
-
     ARG_CHECK (argv, 1);
 
     GObject *obj = webkit_get_text_checker ();
@@ -1045,7 +1033,7 @@ IMPLEMENT_COMMAND (search_forward)
 
     ARG_CHECK (argv, 1);
 
-    search_text (view, argv_idx (argv, 0), TRUE);
+    search_text (uzbl.gui.web_view, argv_idx (argv, 0), TRUE);
 }
 
 IMPLEMENT_COMMAND (search_reverse)
@@ -1054,7 +1042,7 @@ IMPLEMENT_COMMAND (search_reverse)
 
     ARG_CHECK (argv, 1);
 
-    search_text (view, argv_idx (argv, 0), FALSE);
+    search_text (uzbl.gui.web_view, argv_idx (argv, 0), FALSE);
 }
 
 IMPLEMENT_COMMAND (search_clear)
@@ -1062,7 +1050,7 @@ IMPLEMENT_COMMAND (search_clear)
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
-    webkit_web_view_unmark_text_matches (view);
+    webkit_web_view_unmark_text_matches (uzbl.gui.web_view);
 
     g_free (uzbl.state.searchtx);
     uzbl.state.searchtx = NULL;
@@ -1073,14 +1061,13 @@ IMPLEMENT_COMMAND (search_reset)
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
-    webkit_web_view_set_highlight_text_matches (view, FALSE);
+    webkit_web_view_set_highlight_text_matches (uzbl.gui.web_view, FALSE);
 }
 
 /* Inspector commands */
 
 IMPLEMENT_COMMAND (inspector_show)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
@@ -1089,7 +1076,6 @@ IMPLEMENT_COMMAND (inspector_show)
 
 IMPLEMENT_COMMAND (inspector)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     ARG_CHECK (argv, 1);
@@ -1130,7 +1116,7 @@ IMPLEMENT_COMMAND (js)
 {
     ARG_CHECK (argv, 1);
 
-    eval_js (view, argv_idx (argv, 0), result, "(uzbl command)");
+    eval_js (uzbl.gui.web_view, argv_idx (argv, 0), result, "(uzbl command)");
 }
 
 IMPLEMENT_COMMAND (js_file)
@@ -1158,7 +1144,7 @@ IMPLEMENT_COMMAND (js_file)
         gchar *js = str_replace ("%s", arg ? arg : "", file_contents);
         g_free (file_contents);
 
-        eval_js (view, js, result, path);
+        eval_js (uzbl.gui.web_view, js, result, path);
 
         g_free (js);
         g_free (path);
@@ -1172,7 +1158,6 @@ spawn_sh (GArray *argv, GString *result);
 
 IMPLEMENT_COMMAND (spawn)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     spawn (argv, NULL, FALSE);
@@ -1180,15 +1165,11 @@ IMPLEMENT_COMMAND (spawn)
 
 IMPLEMENT_COMMAND (spawn_sync)
 {
-    UZBL_UNUSED (view);
-
     spawn (argv, result, FALSE);
 }
 
 IMPLEMENT_COMMAND (spawn_sync_exec)
 {
-    UZBL_UNUSED (view);
-
     if (!result) {
         GString *force_result = g_string_new ("");
         spawn (argv, force_result, TRUE);
@@ -1200,7 +1181,6 @@ IMPLEMENT_COMMAND (spawn_sync_exec)
 
 IMPLEMENT_COMMAND (spawn_sh)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     spawn_sh (argv, NULL);
@@ -1208,8 +1188,6 @@ IMPLEMENT_COMMAND (spawn_sh)
 
 IMPLEMENT_COMMAND (spawn_sh_sync)
 {
-    UZBL_UNUSED (view);
-
     spawn_sh (argv, result);
 }
 
@@ -1217,8 +1195,6 @@ IMPLEMENT_COMMAND (spawn_sh_sync)
 
 IMPLEMENT_COMMAND (chain)
 {
-    UZBL_UNUSED (view);
-
     ARG_CHECK (argv, 1);
 
     guint i = 0;
@@ -1238,7 +1214,6 @@ IMPLEMENT_COMMAND (chain)
 
 IMPLEMENT_COMMAND (include)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     ARG_CHECK (argv, 1);
@@ -1257,7 +1232,6 @@ IMPLEMENT_COMMAND (include)
 
 IMPLEMENT_COMMAND (exit)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
@@ -1276,7 +1250,6 @@ IMPLEMENT_COMMAND (exit)
 
 IMPLEMENT_COMMAND (set)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     ARG_CHECK (argv, 1);
@@ -1291,7 +1264,6 @@ IMPLEMENT_COMMAND (set)
 
 IMPLEMENT_COMMAND (toggle)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     ARG_CHECK (argv, 1);
@@ -1305,8 +1277,6 @@ IMPLEMENT_COMMAND (toggle)
 
 IMPLEMENT_COMMAND (print)
 {
-    UZBL_UNUSED (view);
-
     ARG_CHECK (argv, 1);
 
     gchar *buf;
@@ -1322,7 +1292,6 @@ IMPLEMENT_COMMAND (print)
 
 IMPLEMENT_COMMAND (dump_config)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
@@ -1331,7 +1300,6 @@ IMPLEMENT_COMMAND (dump_config)
 
 IMPLEMENT_COMMAND (dump_config_as_events)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
@@ -1340,7 +1308,6 @@ IMPLEMENT_COMMAND (dump_config_as_events)
 
 IMPLEMENT_COMMAND (event)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     GString *event_name;

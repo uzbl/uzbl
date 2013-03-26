@@ -12,36 +12,32 @@ static void
 add_to_menu (GArray *argv, guint context);
 
 void
-cmd_menu_add (WebKitWebView *view, GArray *argv, GString *result)
+cmd_menu_add (GArray *argv, GString *result)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     add_to_menu (argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT);
 }
 
 void
-cmd_menu_add_link (WebKitWebView *view, GArray *argv, GString *result)
+cmd_menu_add_link (GArray *argv, GString *result)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     add_to_menu (argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_LINK);
 }
 
 void
-cmd_menu_add_image (WebKitWebView *view, GArray *argv, GString *result)
+cmd_menu_add_image (GArray *argv, GString *result)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     add_to_menu (argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE);
 }
 
 void
-cmd_menu_add_edit (WebKitWebView *view, GArray *argv, GString *result)
+cmd_menu_add_edit (GArray *argv, GString *result)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     add_to_menu (argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE);
@@ -51,36 +47,32 @@ static void
 add_separator_to_menu (GArray *argv, guint context);
 
 void
-cmd_menu_add_separator (WebKitWebView *view, GArray *argv, GString *result)
+cmd_menu_add_separator (GArray *argv, GString *result)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     add_separator_to_menu (argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT);
 }
 
 void
-cmd_menu_add_separator_link (WebKitWebView *view, GArray *argv, GString *result)
+cmd_menu_add_separator_link (GArray *argv, GString *result)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     add_separator_to_menu (argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_LINK);
 }
 
 void
-cmd_menu_add_separator_image (WebKitWebView *view, GArray *argv, GString *result)
+cmd_menu_add_separator_image (GArray *argv, GString *result)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     add_separator_to_menu (argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE);
 }
 
 void
-cmd_menu_add_separator_edit (WebKitWebView *view, GArray *argv, GString *result)
+cmd_menu_add_separator_edit (GArray *argv, GString *result)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     add_separator_to_menu (argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE);
@@ -90,36 +82,32 @@ static void
 remove_from_menu (GArray *argv, guint context);
 
 void
-cmd_menu_remove (WebKitWebView *view, GArray *argv, GString *result)
+cmd_menu_remove (GArray *argv, GString *result)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     remove_from_menu (argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT);
 }
 
 void
-cmd_menu_remove_link (WebKitWebView *view, GArray *argv, GString *result)
+cmd_menu_remove_link (GArray *argv, GString *result)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     remove_from_menu (argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_LINK);
 }
 
 void
-cmd_menu_remove_image (WebKitWebView *view, GArray *argv, GString *result)
+cmd_menu_remove_image (GArray *argv, GString *result)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     remove_from_menu (argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE);
 }
 
 void
-cmd_menu_remove_edit (WebKitWebView *view, GArray *argv, GString *result)
+cmd_menu_remove_edit (GArray *argv, GString *result)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (result);
 
     remove_from_menu (argv, WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE);
