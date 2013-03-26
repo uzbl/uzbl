@@ -262,7 +262,7 @@ uzbl_commands_parse (const gchar *cmd, GArray *argv)
     UzblCommand *info = NULL;
 
     gchar *exp_line = uzbl_variables_expand (cmd);
-    if (!exp_line[0]) {
+    if (!exp_line || !*exp_line) {
         g_free (exp_line);
         return NULL;
     }
@@ -286,9 +286,7 @@ uzbl_commands_parse (const gchar *cmd, GArray *argv)
 
     /* Parse the arguments. */
     if (argv) {
-        gchar *args = g_strdup (tokens[1]);
-        parse_command_arguments (args, argv, info->split);
-        g_free (args);
+        parse_command_arguments (tokens[1], argv, info->split);
     }
 
     g_free (exp_line);
@@ -350,11 +348,15 @@ uzbl_commands_run_argv (const gchar *cmd, GArray *argv, GString *result)
 void
 uzbl_commands_run (const gchar *cmd, GString *result)
 {
-    GArray *argv = g_array_new (TRUE, FALSE, sizeof (gchar *));
+    GArray *argv = g_array_new (TRUE, TRUE, sizeof (gchar *));
     const UzblCommand *info = uzbl_commands_parse (cmd, argv);
 
     uzbl_commands_run_parsed (info, argv, result);
 
+    while (argv->len) {
+        g_free (argv_idx (argv, argv->len - 1));
+        g_array_remove_index (argv, argv->len - 1);
+    }
     g_array_free (argv, TRUE);
 }
 
