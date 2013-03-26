@@ -1482,15 +1482,13 @@ spawn_sh (GArray *argv, GString *result)
         g_array_prepend_val (argv, cmd[i]);
     }
 
-    const gchar *arg_start = argv_idx (argv, 0);
-
     if (result) {
         gchar *r = NULL;
-        run_system_command (cmd[0], &arg_start, TRUE, &r);
+        run_system_command (cmd[0], (const gchar **)argv->data, TRUE, &r);
         g_string_assign (result, r);
         g_free (r);
     } else {
-        run_system_command (cmd[0], &arg_start, FALSE, NULL);
+        run_system_command (cmd[0], (const gchar **)argv->data, FALSE, NULL);
     }
 }
 
@@ -1532,7 +1530,7 @@ run_system_command (const gchar *command, const gchar **args, const gboolean syn
 {
     GError *err = NULL;
 
-    GArray *cmd_args = g_array_new (TRUE, FALSE, sizeof (gchar*));
+    GArray *cmd_args = g_array_new (TRUE, FALSE, sizeof (gchar *));
     guint i;
     guint len = g_strv_length ((gchar **)args);
 
