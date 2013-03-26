@@ -962,8 +962,7 @@ typedef enum {
     EXPAND_JS,
     EXPAND_ESCAPE,
     EXPAND_VAR,
-    EXPAND_VAR_BRACE,
-    EXPAND_IGNORE
+    EXPAND_VAR_BRACE
 } UzblExpandType;
 
 static void
@@ -1025,9 +1024,6 @@ expand_impl (const gchar *str, UzblExpandStage stage)
                         if (!vend) {
                             vend = strchr (p, '\0');
                         }
-                        break;
-                    case EXPAND_IGNORE:
-                        vend = p;
                         break;
                 }
                 assert (vend);
@@ -1129,9 +1125,6 @@ expand_impl (const gchar *str, UzblExpandStage stage)
                         g_free (mycmd);
                         p = vend + 2;
                     }
-                    case EXPAND_IGNORE:
-                        g_string_append_c (buf, *p);
-                        break;
                 }
 
                 g_free (ret);
@@ -1226,8 +1219,6 @@ expand_type (const gchar *str)
             return EXPAND_JS;
         case '[':
             return EXPAND_ESCAPE;
-        case '\0':
-            return EXPAND_IGNORE;
         default:
             return EXPAND_VAR;
   }
