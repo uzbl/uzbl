@@ -131,7 +131,11 @@ DECLARE_SETTER (int, max_conns);
 DECLARE_SETTER (int, max_conns_host);
 DECLARE_SETTER (int, http_debug);
 DECLARE_GETSET (gchar *, ssl_ca_file);
-DECLARE_GETSET (int, ssl_verify);
+#endif
+#ifdef USE_WEBKIT2
+DECLARE_GETSET (gchar *, ssl_policy);
+#else
+DECLARE_GETSET (int, ssl_policy);
 #endif
 DECLARE_GETSET (gchar *, cache_model);
 
@@ -388,8 +392,14 @@ builtin_variable_table[] = {
     { "max_conns_host",               UZBL_V_INT (uzbl.net.max_conns_host,                 set_max_conns_host)},
     { "http_debug",                   UZBL_V_INT (uzbl.behave.http_debug,                  set_http_debug)},
     { "ssl_ca_file",                  UZBL_V_FUNC (ssl_ca_file,                            STR)},
-    { "ssl_verify",                   UZBL_V_FUNC (ssl_verify,                             INT)},
 #endif
+    { "ssl_policy",
+#ifdef USE_WEBKIT2
+                                      UZBL_V_FUNC (ssl_policy,                             STR)
+#else
+                                      UZBL_V_FUNC (ssl_policy,                             INT)
+#endif
+                                                                                               },
     { "cache_model",                  UZBL_V_FUNC (cache_model,                            STR)},
 
     /* Security variables */
@@ -1744,8 +1754,27 @@ IMPLEMENT_SETTER (int, http_debug)
 
 GOBJECT_GETSET (gchar *, ssl_ca_file,
                 soup_session (), "ssl-ca-file")
+#endif
 
-GOBJECT_GETSET (int, ssl_verify,
+#ifdef USE_WEBKIT2
+#define ssl_policy_choices(call)                     \
+    call (WEBKIT_TLS_ERRORS_POLICY_IGNORE, "ignore") \
+    call (WEBKIT_TLS_ERRORS_POLICY_FAIL, "fail")
+
+#define _webkit_web_context_get_tls_errors_policy() \
+    webkit_web_context_get_tls_errors_policy (webkit_web_view_get_context (uzbl.gui.web_view))
+#define _webkit_web_context_set_tls_errors_policy(val) \
+    webkit_web_context_set_tls_errors_policy (webkit_web_view_get_context (uzbl.gui.web_view), val)
+
+CHOICE_GETSET (WebKitTLSErrorsPolicy, ssl_policy,
+               _webkit_web_context_get_tls_errors_policy, _webkit_web_context_set_tls_errors_policy)
+
+#undef _webkit_web_context_get_tls_errors_policy
+#undef _webkit_web_context_set_tls_errors_policy
+
+#undef ssl_policy_choices
+#else
+GOBJECT_GETSET (int, ssl_policy,
                 soup_session (), "ssl-strict")
 #endif
 
@@ -1754,8 +1783,21 @@ GOBJECT_GETSET (int, ssl_verify,
     call (WEBKIT_CACHE_MODEL_WEB_BROWSER, "web_browser")          \
     call (WEBKIT_CACHE_MODEL_DOCUMENT_BROWSER, "document_browser")
 
+#ifdef USE_WEBKIT2
+#define _webkit_web_context_get_cache_model() \
+    webkit_web_context_get_cache_model (webkit_web_view_get_context (uzbl.gui.web_view))
+#define _webkit_web_context_set_cache_model(val) \
+    webkit_web_context_set_cache_model (webkit_web_view_get_context (uzbl.gui.web_view), val)
+
+CHOICE_GETSET (WebKitCacheModel, cache_model,
+               _webkit_web_context_get_cache_model, _webkit_web_context_set_cache_model)
+
+#undef _webkit_web_context_get_cache_model
+#undef _webkit_web_context_set_cache_model
+#else
 CHOICE_GETSET (WebKitCacheModel, cache_model,
                webkit_get_cache_model, webkit_set_cache_model)
+#endif
 
 #undef cache_model_choices
 
@@ -1921,7 +1963,15 @@ IMPLEMENT_SETTER (gchar *, accept_languages)
     } else {
         uzbl.net.accept_languages = g_strdup (accept_languages);
 
-#ifndef USE_WEBKIT2
+#ifdef USE_WEBKIT2
+        WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
+
+        gchar **languages = g_strsplit (uzbl.net.accept_languages, ",", 0);
+
+        webkit_web_context_set_preferred_languages (context, (const gchar * const *)languages);
+
+        g_strfreev (languages);
+#else
         g_object_set (G_OBJECT (uzbl.net.soup_session),
             SOUP_SESSION_ACCEPT_LANGUAGE, uzbl.net.accept_languages,
             NULL);
@@ -1933,7 +1983,12 @@ IMPLEMENT_SETTER (int, view_source)
 {
     uzbl.behave.view_source = view_source;
 
+#ifdef USE_WEBKIT2
+    WebKitViewMode mode = uzbl.behave.view_source ? WEBKIT_VIEW_MODE_SOURCE : WEBKIT_VIEW_MODE_WEB;
+    webkit_web_view_set_view_mode (uzbl.gui.web_view, mode);
+#else
     webkit_web_view_set_view_source_mode (uzbl.gui.web_view, uzbl.behave.view_source);
+#endif
 }
 
 IMPLEMENT_GETTER (float, zoom_level)
@@ -2057,9 +2112,40 @@ GOBJECT_GETSET (int, use_image_orientation,
 #endif
 
 /* Spell checking variables */
+#ifdef USE_WEBKIT2
+IMPLEMENT_GETTER (int, enable_spellcheck)
+{
+    return webkit_web_context_get_spell_checking_enabled (webkit_web_view_get_context (uzbl.gui.web_view));
+}
+
+IMPLEMENT_SETTER (int, enable_spellcheck)
+{
+    webkit_web_context_set_spell_checking_enabled (webkit_web_view_get_context (uzbl.gui.web_view), enable_spellcheck);
+}
+#else
 GOBJECT_GETSET (int, enable_spellcheck,
                 webkit_settings (), "enable-spell-checking")
+#endif
 
+#ifdef USE_WEBKIT2
+IMPLEMENT_GETTER (gchar *, spellcheck_languages)
+{
+    WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
+    const gchar * const * langs = webkit_web_context_get_spell_checking_languages (context);
+
+    return g_strjoinv (",", (gchar **)langs);
+}
+
+IMPLEMENT_SETTER (gchar *, spellcheck_languages)
+{
+    WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
+    gchar **langs = g_strsplit (spellcheck_languages, ",", 0);
+
+    webkit_web_context_set_spell_checking_languages (context, (const gchar * const *)langs);
+
+    g_strfreev (langs);
+}
+#else
 GOBJECT_GETTER (gchar *, spellcheck_languages,
                 webkit_settings (), "spell-checking-languages")
 
@@ -2084,8 +2170,13 @@ IMPLEMENT_SETTER (gchar *, spellcheck_languages)
 #endif
 
 /* Form variables */
+#ifdef USE_WEBKIT2
+GOBJECT_GETSET (int, resizable_text_areas,
+                webkit_settings (), "enable-resizable-text-areas")
+#else
 GOBJECT_GETSET (int, resizable_text_areas,
                 webkit_settings (), "resizable-text-areas")
+#endif
 
 #ifndef USE_WEBKIT2
 GOBJECT_GETSET (int, enable_spatial_navigation,
@@ -2103,16 +2194,31 @@ GOBJECT_GETSET (int, editing_behavior,
 #undef editing_behavior_choices
 #endif
 
+#ifdef USE_WEBKIT2
+GOBJECT_GETSET (int, enable_tab_cycle,
+                webkit_settings (), "enable-tabs-to-links")
+#else
 GOBJECT_GETSET (int, enable_tab_cycle,
                 webkit_settings (), "tab-key-cycles-through-elements")
+#endif
 
 /* Text variables */
+#ifdef USE_WEBKIT2
+GOBJECT_GETSET (gchar *, default_encoding,
+                webkit_settings (), "default-charset")
+#else
 GOBJECT_GETSET (gchar *, default_encoding,
                 webkit_settings (), "default-encoding")
+#endif
 
 IMPLEMENT_GETTER (gchar *, custom_encoding)
 {
-    const gchar *encoding = webkit_web_view_get_custom_encoding (uzbl.gui.web_view);
+    const gchar *encoding =
+#ifdef USE_WEBKIT2
+        webkit_web_view_get_custom_charset (uzbl.gui.web_view);
+#else
+        webkit_web_view_get_custom_encoding (uzbl.gui.web_view);
+#endif
     return g_strdup (encoding);
 }
 
@@ -2122,7 +2228,11 @@ IMPLEMENT_SETTER (gchar *, custom_encoding)
         custom_encoding = NULL;
     }
 
+#ifdef USE_WEBKIT2
+    webkit_web_view_set_custom_charset (uzbl.gui.web_view, custom_encoding);
+#else
     webkit_web_view_set_custom_encoding (uzbl.gui.web_view, custom_encoding);
+#endif
 }
 
 #ifndef USE_WEBKIT2
@@ -2179,8 +2289,13 @@ GOBJECT_GETSET (int, monospace_size,
 GOBJECT_GETSET (int, enable_plugins,
                 webkit_settings (), "enable-plugins")
 
+#ifdef USE_WEBKIT2
+GOBJECT_GETSET (int, enable_java_applet,
+                webkit_settings (), "enable-java")
+#else
 GOBJECT_GETSET (int, enable_java_applet,
                 webkit_settings (), "enable-java-applet")
+#endif
 
 #ifdef HAVE_PLUGIN_API
 #ifdef USE_WEBKIT2
