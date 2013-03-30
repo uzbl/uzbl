@@ -60,9 +60,7 @@ DECLARE_COMMAND (save);
 #endif
 
 /* Cookie commands */
-DECLARE_COMMAND (cookie_add);
-DECLARE_COMMAND (cookie_delete);
-DECLARE_COMMAND (cookie_clear);
+DECLARE_COMMAND (cookie);
 
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 11, 92)
@@ -148,9 +146,7 @@ builtin_command_table[] =
 #endif
 
     /* Cookie commands */
-    { "add_cookie",                     cmd_cookie_add,               TRUE,  TRUE  }, /* TODO: Rework to be "cookie add". */
-    { "delete_cookie",                  cmd_cookie_delete,            TRUE,  TRUE  }, /* TODO: Rework to be "cookie delete". */
-    { "clear_cookies",                  cmd_cookie_clear,             TRUE,  TRUE  }, /* TODO: Rework to be "cookie clear". */
+    { "cookie",                         cmd_cookie,                   TRUE,  TRUE  },
 
     { "scroll",                         cmd_scroll,                   TRUE,  TRUE  },
     { "zoom_in",                        cmd_zoom_in,                  TRUE,  TRUE  }, /* TODO: Rework to be "zoom in". */
@@ -706,84 +702,115 @@ IMPLEMENT_COMMAND (save)
 
 /* Cookie commands */
 
-IMPLEMENT_COMMAND (cookie_add)
+IMPLEMENT_COMMAND (cookie)
 {
     UZBL_UNUSED (result);
 
-    gchar *host;
-    gchar *path;
-    gchar *name;
-    gchar *value;
-    gchar *scheme;
-    gboolean secure = 0;
-    gboolean httponly = 0;
-    gchar *expires_arg;
-    SoupDate *expires = NULL;
+    ARG_CHECK (argv, 1);
 
-    ARG_CHECK (argv, 6);
+    const gchar *command = argv_idx (argv, 0);
 
-    /* Parse with same syntax as ADD_COOKIE event. */
-    host = argv_idx (argv, 0);
-    path = argv_idx (argv, 1);
-    name = argv_idx (argv, 2);
-    value = argv_idx (argv, 3);
-    scheme = argv_idx (argv, 4);
-    if (!strprefix (scheme, "http")) {
-        secure = (scheme[4] == 's');
-        httponly = !strprefix (scheme + 4 + secure, "Only");
+#ifdef USE_WEBKIT2
+    WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
+    WebKitCookieManager *manager = webkit_web_context_get_cookie_manager (context);
+#endif
+
+    if (!g_strcmp0 (command, "add")) {
+#ifdef USE_WEBKIT2
+        uzbl_debug ("Manual cookie additions are unsupported in WebKit2.\n");
+#else
+        gchar *host;
+        gchar *path;
+        gchar *name;
+        gchar *value;
+        gchar *scheme;
+        gboolean secure = 0;
+        gboolean httponly = 0;
+        gchar *expires_arg;
+        SoupDate *expires = NULL;
+
+        ARG_CHECK (argv, 7);
+
+        /* Parse with same syntax as ADD_COOKIE event. */
+        host = argv_idx (argv, 1);
+        path = argv_idx (argv, 2);
+        name = argv_idx (argv, 3);
+        value = argv_idx (argv, 4);
+        scheme = argv_idx (argv, 5);
+        if (!strprefix (scheme, "http")) {
+            secure = (scheme[4] == 's');
+            httponly = !strprefix (scheme + 4 + secure, "Only");
+        }
+        expires_arg = argv_idx (argv, 6);
+        if (*expires_arg) {
+            expires = soup_date_new_from_time_t (strtoul (expires_arg, NULL, 10));
+        }
+
+        /* Create new cookie. */
+        /* TODO: Add support for adding non-session cookies. */
+        static const int session_cookie = -1;
+        SoupCookie *cookie = soup_cookie_new (name, value, host, path, session_cookie);
+        soup_cookie_set_secure (cookie, secure);
+        soup_cookie_set_http_only (cookie, httponly);
+        if (expires) {
+            soup_cookie_set_expires (cookie, expires);
+        }
+
+        /* Add cookie to jar. */
+        uzbl.net.soup_cookie_jar->in_manual_add = 1;
+        soup_cookie_jar_add_cookie (SOUP_COOKIE_JAR (uzbl.net.soup_cookie_jar), cookie);
+        uzbl.net.soup_cookie_jar->in_manual_add = 0;
+#endif
+    } else if (!g_strcmp0 (command, "delete")) {
+#ifdef USE_WEBKIT2
+        uzbl_debug ("Manual cookie deletions are unsupported in WebKit2.\n");
+#else
+        ARG_CHECK (argv, 5);
+
+        static const int expired_cookie = 0;
+        SoupCookie *cookie = soup_cookie_new (
+            argv_idx (argv, 3),
+            argv_idx (argv, 4),
+            argv_idx (argv, 1),
+            argv_idx (argv, 2),
+            expired_cookie);
+
+        uzbl.net.soup_cookie_jar->in_manual_add = 1;
+        soup_cookie_jar_delete_cookie (SOUP_COOKIE_JAR (uzbl.net.soup_cookie_jar), cookie);
+        uzbl.net.soup_cookie_jar->in_manual_add = 0;
+#endif
+    } else if (!g_strcmp0 (command, "clear")) {
+        ARG_CHECK (argv, 2);
+
+        const gchar *type = argv_idx (argv, 1);
+
+        if (!g_strcmp0 (type, "all")) {
+#ifdef USE_WEBKIT2
+            webkit_cookie_manager_delete_all_cookies (manager);
+#else
+            /* Replace the current cookie jar with a new empty jar. */
+            soup_session_remove_feature (uzbl.net.soup_session,
+                SOUP_SESSION_FEATURE (uzbl.net.soup_cookie_jar));
+            g_object_unref (G_OBJECT (uzbl.net.soup_cookie_jar));
+            uzbl.net.soup_cookie_jar = uzbl_cookie_jar_new ();
+            soup_session_add_feature (uzbl.net.soup_session,
+                SOUP_SESSION_FEATURE (uzbl.net.soup_cookie_jar));
+#endif
+#ifdef USE_WEBKIT2
+        } else if (!g_strcmp0 (type, "domain")) {
+            guint i;
+            for (i = 2; i < argv->len; ++i) {
+                const gchar *domain = argv_idx (argv, i);
+
+                webkit_cookie_manager_delete_cookies_for_domain (manager, domain);
+            }
+#endif
+        } else {
+            uzbl_debug ("Unrecognized cookie clear type: %s\n", type);
+        }
+    } else {
+        uzbl_debug ("Unrecognized cookie command: %s\n", command);
     }
-    expires_arg = argv_idx (argv, 5);
-    if (*expires_arg) {
-        expires = soup_date_new_from_time_t (strtoul (expires_arg, NULL, 10));
-    }
-
-    /* Create new cookie. */
-    /* TODO: Add support for adding non-session cookies. */
-    static const int session_cookie = -1;
-    SoupCookie *cookie = soup_cookie_new (name, value, host, path, session_cookie);
-    soup_cookie_set_secure (cookie, secure);
-    soup_cookie_set_http_only (cookie, httponly);
-    if (expires) {
-        soup_cookie_set_expires (cookie, expires);
-    }
-
-    /* Add cookie to jar. */
-    uzbl.net.soup_cookie_jar->in_manual_add = 1;
-    soup_cookie_jar_add_cookie (SOUP_COOKIE_JAR (uzbl.net.soup_cookie_jar), cookie);
-    uzbl.net.soup_cookie_jar->in_manual_add = 0;
-}
-
-IMPLEMENT_COMMAND (cookie_delete)
-{
-    UZBL_UNUSED (result);
-
-    ARG_CHECK (argv, 4);
-
-    static const int expired_cookie = 0;
-    SoupCookie *cookie = soup_cookie_new (
-        argv_idx (argv, 2),
-        argv_idx (argv, 3),
-        argv_idx (argv, 0),
-        argv_idx (argv, 1),
-        expired_cookie);
-
-    uzbl.net.soup_cookie_jar->in_manual_add = 1;
-    soup_cookie_jar_delete_cookie (SOUP_COOKIE_JAR (uzbl.net.soup_cookie_jar), cookie);
-    uzbl.net.soup_cookie_jar->in_manual_add = 0;
-}
-
-IMPLEMENT_COMMAND (cookie_clear)
-{
-    UZBL_UNUSED (argv);
-    UZBL_UNUSED (result);
-
-    /* Replace the current cookie jar with a new empty jar. */
-    soup_session_remove_feature (uzbl.net.soup_session,
-        SOUP_SESSION_FEATURE (uzbl.net.soup_cookie_jar));
-    g_object_unref (G_OBJECT (uzbl.net.soup_cookie_jar));
-    uzbl.net.soup_cookie_jar = uzbl_cookie_jar_new ();
-    soup_session_add_feature (uzbl.net.soup_session,
-        SOUP_SESSION_FEATURE (uzbl.net.soup_cookie_jar));
 }
 
 /* Display commands */
