@@ -119,6 +119,8 @@ typedef struct {
 
     gboolean print_version;
 
+    gfloat zoom_step;
+
     /* command list: (key)name -> (value)Command  */
     GHashTable *commands;
     /* variables: (key)name -> (value)uzbl_cmdprop */

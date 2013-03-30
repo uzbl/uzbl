@@ -74,8 +74,7 @@ DECLARE_COMMAND (cookie);
 
 /* Display commands */
 DECLARE_COMMAND (scroll);
-DECLARE_COMMAND (zoom_in);
-DECLARE_COMMAND (zoom_out);
+DECLARE_COMMAND (zoom);
 DECLARE_COMMAND (hardcopy);
 #ifdef HAVE_SNAPSHOT
 DECLARE_COMMAND (snapshot);
@@ -157,8 +156,7 @@ builtin_command_table[] =
     { "cookie",                         cmd_cookie,                   TRUE,  TRUE  },
 
     { "scroll",                         cmd_scroll,                   TRUE,  TRUE  },
-    { "zoom_in",                        cmd_zoom_in,                  TRUE,  TRUE  }, /* TODO: Rework to be "zoom in". */
-    { "zoom_out",                       cmd_zoom_out,                 TRUE,  TRUE  }, /* TODO: Rework to be "zoom out". */
+    { "zoom",                           cmd_zoom,                     TRUE,  TRUE  },
     { "hardcopy",                       cmd_hardcopy,                 FALSE, TRUE  },
 #ifdef HAVE_SNAPSHOT
     { "snapshot",                       cmd_snapshot,                 FALSE, TRUE  },
@@ -917,20 +915,51 @@ IMPLEMENT_COMMAND (scroll)
     }
 }
 
-IMPLEMENT_COMMAND (zoom_in)
+IMPLEMENT_COMMAND (zoom)
 {
-    UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
-    webkit_web_view_zoom_in (uzbl.gui.web_view);
-}
+    ARG_CHECK (argv, 1);
 
-IMPLEMENT_COMMAND (zoom_out)
-{
-    UZBL_UNUSED (argv);
-    UZBL_UNUSED (result);
+    const gchar *command = argv_idx (argv, 0);
 
-    webkit_web_view_zoom_out (uzbl.gui.web_view);
+    gfloat new_zoom = 0.f;
+
+    if (!g_strcmp0 (command, "in")) {
+        gfloat step;
+
+        if (argv->len < 2) {
+            step = uzbl.behave.zoom_step;
+        } else {
+            const gchar *value_str = argv_idx (argv, 1);
+
+            step = strtod (value_str, NULL);
+        }
+
+        new_zoom += step;
+    } else if (!g_strcmp0 (command, "out")) {
+        gfloat step;
+
+        if (argv->len < 2) {
+            step = uzbl.behave.zoom_step;
+        } else {
+            const gchar *value_str = argv_idx (argv, 1);
+
+            step = strtod (value_str, NULL);
+        }
+
+        new_zoom -= step;
+    } else if (!g_strcmp0 (command, "set")) {
+        ARG_CHECK (argv, 2);
+
+        const gchar *value_str = argv_idx (argv, 1);
+
+        new_zoom = strtod (value_str, NULL);
+    }
+
+    if (new_zoom) {
+        webkit_web_view_set_zoom_level (uzbl.gui.web_view, new_zoom);
+    }
 }
 
 IMPLEMENT_COMMAND (hardcopy)
