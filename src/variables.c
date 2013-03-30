@@ -1416,6 +1416,9 @@ expand_type (const gchar *str)
                                             \
         name##_choices (STRING_TO_ENUM)     \
         {                                   \
+            uzbl_debug ("Unrecognized "     \
+                        "value for " #name  \
+                        ": %s\n", name);    \
             return;                         \
         }                                   \
                                             \
@@ -1431,6 +1434,8 @@ static GObject *
 inspector ();
 static GObject *
 webkit_view ();
+static int
+object_get (GObject *obj, const gchar *prop);
 #endif
 
 /* Communication variables */
@@ -2641,6 +2646,18 @@ GObject *
 webkit_view ()
 {
     return G_OBJECT (uzbl.gui.web_view);
+}
+
+int
+object_get (GObject *obj, const gchar *prop)
+{
+    int val;
+
+    g_object_get (obj,
+        prop, &val,
+        NULL);
+
+    return val;
 }
 #endif
 
