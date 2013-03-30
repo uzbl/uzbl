@@ -998,46 +998,43 @@ TYPE_SETTER (int, int, i)
 TYPE_SETTER (unsigned long long, ull, ull)
 TYPE_SETTER (float, float, f)
 
+static void
+variable_expand (const UzblVariable *var, GString *buf);
+
 void
 send_variable_event (const gchar *name, const UzblVariable *var)
 {
+    GString *str = g_string_new ("");
+
+    variable_expand (var, str);
+
+    const gchar *type = NULL;
+
     /* Check for the variable type. */
     switch (var->type) {
         case TYPE_STR:
-        {
-            gchar *v = get_variable_string (var);
-            uzbl_events_send (VARIABLE_SET, NULL,
-                TYPE_NAME, name,
-                TYPE_NAME, "str",
-                TYPE_STR, v,
-                NULL);
-            g_free (v);
+            type = "str";
             break;
-        }
         case TYPE_INT:
-            uzbl_events_send (VARIABLE_SET, NULL,
-                TYPE_NAME, name,
-                TYPE_NAME, "int",
-                TYPE_INT, get_variable_int (var),
-                NULL);
+            type = "int";
             break;
         case TYPE_ULL:
-            uzbl_events_send (VARIABLE_SET, NULL,
-                TYPE_NAME, name,
-                TYPE_NAME, "ull",
-                TYPE_ULL, get_variable_ull (var),
-                NULL);
+            type = "ull";
             break;
         case TYPE_FLOAT:
-            uzbl_events_send (VARIABLE_SET, NULL,
-                TYPE_NAME, name,
-                TYPE_NAME, "float",
-                TYPE_FLOAT, get_variable_float (var),
-                NULL);
+            type = "float";
             break;
         default:
             g_assert_not_reached ();
     }
+
+    uzbl_events_send (VARIABLE_SET, NULL,
+        TYPE_NAME, name,
+        TYPE_NAME, type,
+        var->type, str->str,
+        NULL);
+
+    g_string_free (str, TRUE);
 }
 
 gchar *
@@ -1089,8 +1086,6 @@ typedef enum {
     EXPAND_VAR_BRACE
 } UzblExpandType;
 
-static void
-variable_expand (const UzblVariable *var, GString *buf);
 static UzblExpandType
 expand_type (const gchar *str);
 
