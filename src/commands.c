@@ -1094,8 +1094,9 @@ IMPLEMENT_COMMAND (plugin)
 
     const gchar *command = argv_idx (argv, 0);
 
+    if (FALSE) {
 #ifdef USE_WEBKIT2
-    if (!g_strcmp0 (command, "search")) {
+    } else if (!g_strcmp0 (command, "search")) {
         ARG_CHECK (argv, 2);
 
         const gchar *directory = argv_idx (argv, 1);
@@ -1103,7 +1104,7 @@ IMPLEMENT_COMMAND (plugin)
 
         webkit_web_context_set_additional_plugins_directory (context, directory);
 #else
-    if (!g_strcmp0 (command, "refresh")) {
+    } else if (!g_strcmp0 (command, "refresh")) {
         WebKitWebPluginDatabase *db = webkit_get_web_plugin_database ();
         webkit_web_plugin_database_refresh (db);
     } else if (!g_strcmp0 (command, "toggle")) {
