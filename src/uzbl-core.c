@@ -177,6 +177,9 @@ main (int argc, char *argv[])
 
     uzbl_initialize (argc, argv);
 
+    /* Initialize the inspector. */
+    uzbl_inspector_init ();
+
     if (uzbl.gui.main_window) {
         /* We need to ensure there is a window, before we can get XID. */
         gtk_widget_realize (GTK_WIDGET (uzbl.gui.main_window));
@@ -241,9 +244,6 @@ main (int argc, char *argv[])
 
     /* Update status bar. */
     uzbl_gui_update_title ();
-
-    /* Initialize the inspector. */
-    uzbl_inspector_init ();
 
     /* Options overriding. */
     if (verbose_override > uzbl.state.verbose) {
