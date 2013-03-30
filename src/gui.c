@@ -155,8 +155,13 @@ static gboolean
 download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data);
 #endif
 /* UI events */
+#ifdef USE_WEBKIT2
+static GtkWidget *
+create_cb (WebKitWebView *view, gpointer data);
+#else
 static WebKitWebView *
 create_web_view_cb (WebKitWebView *view, WebKitWebFrame *frame, gpointer data);
+#endif
 static void
 close_web_view_cb (WebKitWebView *view, gpointer data);
 static gboolean
@@ -226,8 +231,17 @@ web_view_init (void)
         "signal::download-requested",                   G_CALLBACK (download_cb),              NULL,
 #endif
         /* UI events */
+#ifdef USE_WEBKIT2
+        "signal::create",                               G_CALLBACK (create_cb),                NULL,
+#else
         "signal::create-web-view",                      G_CALLBACK (create_web_view_cb),       NULL,
-        "signal::close-web-view",                       G_CALLBACK (close_web_view_cb),        NULL,
+#endif
+#ifdef USE_WEBKIT2
+        "signal::close",
+#else
+        "signal::close-web-view",
+#endif
+                                                        G_CALLBACK (close_web_view_cb),        NULL,
         "signal::focus-in-event",                       G_CALLBACK (focus_cb),                 NULL,
         "signal::focus-out-event",                      G_CALLBACK (focus_cb),                 NULL,
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
@@ -781,9 +795,19 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
 
 /* UI events */
 
-static void
-create_web_view_js_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
+static WebKitWebView *
+create_view ();
 
+#ifdef USE_WEBKIT2
+GtkWidget *
+create_cb (WebKitWebView *view, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (data);
+
+    return GTK_WIDGET (create_view ());
+}
+#else
 WebKitWebView *
 create_web_view_cb (WebKitWebView *view, WebKitWebFrame *frame, gpointer data)
 {
@@ -791,16 +815,9 @@ create_web_view_cb (WebKitWebView *view, WebKitWebFrame *frame, gpointer data)
     UZBL_UNUSED (frame);
     UZBL_UNUSED (data);
 
-    WebKitWebView *new_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
-
-    uzbl_debug ("New web view -> javascript link...\n");
-
-    g_object_connect (G_OBJECT (new_view),
-        "signal::notify::uri", G_CALLBACK (create_web_view_js_cb), NULL,
-        NULL);
-
-    return new_view;
+    return create_view ();
 }
+#endif
 
 void
 close_web_view_cb (WebKitWebView *view, gpointer data)
@@ -1329,30 +1346,21 @@ handle_download (WebKitDownload *download, const gchar *suggested_destination)
 #endif
 }
 
-void
-create_web_view_js_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
+static void
+create_web_view_js_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
+
+WebKitWebView *
+create_view ()
 {
-    UZBL_UNUSED (param_spec);
-    UZBL_UNUSED (data);
+    WebKitWebView *new_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
 
-    webkit_web_view_stop_loading (view);
-    const gchar *uri = webkit_web_view_get_uri (view);
+    uzbl_debug ("New web view -> javascript link...\n");
 
-    static const char *js_protocol = "javascript:";
+    g_object_connect (G_OBJECT (new_view),
+        "signal::notify::uri", G_CALLBACK (create_web_view_js_cb), NULL,
+        NULL);
 
-    if (strprefix (uri, js_protocol) == 0) {
-        GArray *args = uzbl_commands_args_new ();
-        const gchar *js_code = uri + strlen (js_protocol);
-        uzbl_commands_args_append (args, g_strdup (js_code));
-        uzbl_commands_run_argv ("js", args, NULL);
-        uzbl_commands_args_free (args);
-    } else {
-        uzbl_events_send (NEW_WINDOW, NULL,
-            TYPE_STR, uri,
-            NULL);
-    }
-
-    gtk_widget_destroy (GTK_WIDGET (view));
+    return new_view;
 }
 
 static void
