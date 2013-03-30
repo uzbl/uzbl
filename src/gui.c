@@ -384,7 +384,9 @@ button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
     gboolean is_document = FALSE;
 
     /* Save last button click for use in menu. */
-    gdk_event_free ((GdkEvent *)uzbl.state.last_button);
+    if (uzbl.state.last_button) {
+        gdk_event_free ((GdkEvent *)uzbl.state.last_button);
+    }
     uzbl.state.last_button = (GdkEventButton *)gdk_event_copy ((GdkEvent *)event);
 
     /* Grab context from last click. */
