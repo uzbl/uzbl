@@ -4,6 +4,7 @@
 #include "events.h"
 #include "gui.h"
 #include "io.h"
+#include "sync.h"
 #include "type.h"
 #include "util.h"
 #include "uzbl-core.h"
@@ -16,6 +17,16 @@
 #include <string.h>
 
 /* ======================== VARIABLES TABLE ========================= */
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 11, 4)
+#define HAVE_PLUGIN_API
+#endif
+#else
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+#define HAVE_PLUGIN_API
+#endif
+#endif
 
 /* A really generic function pointer. */
 typedef void (*UzblFunction) (void);
@@ -211,7 +222,7 @@ DECLARE_GETSET (int, monospace_size);
 /* Feature variables */
 DECLARE_GETSET (int, enable_plugins);
 DECLARE_GETSET (int, enable_java_applet);
-#if WEBKIT_CHECK_VERSION (1, 3, 8)
+#ifdef HAVE_PLUGIN_API
 DECLARE_GETTER (gchar *, plugin_list);
 #endif
 #if WEBKIT_CHECK_VERSION (1, 3, 14)
@@ -418,7 +429,7 @@ builtin_variable_table[] = {
     /* Feature variables */
     { "enable_plugins",               UZBL_V_FUNC (enable_plugins,                         INT)},
     { "enable_java_applet",           UZBL_V_FUNC (enable_java_applet,                     INT)},
-#if WEBKIT_CHECK_VERSION (1, 3, 8)
+#ifdef HAVE_PLUGIN_API
     { "plugin_list",                  UZBL_C_FUNC (plugin_list,                            STR)},
 #endif
 #if WEBKIT_CHECK_VERSION (1, 3, 14)
@@ -2003,22 +2014,62 @@ GOBJECT_GETSET (int, enable_plugins,
 GOBJECT_GETSET (int, enable_java_applet,
                 webkit_settings (), "enable-java-applet")
 
-#if WEBKIT_CHECK_VERSION (1, 3, 8)
+#ifdef HAVE_PLUGIN_API
+#ifdef USE_WEBKIT2
+typedef WebKitPlugin WebKitWebPlugin;
+typedef WebKitMimeInfo WebKitWebPluginMIMEType;
+#endif
+
 static void
-plugin_list_append (WebKitWebPlugin *plugin, GString *list);
+plugin_list_append (WebKitWebPlugin *plugin, gpointer data);
 
 IMPLEMENT_GETTER (gchar *, plugin_list)
 {
+#ifdef USE_WEBKIT2
+    WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
+    GList *plugins = NULL;
+
+    {
+        UzblSyncData *data = uzbl_sync_data_new ();
+        GError *err = NULL;
+
+        uzbl_sync_call (data, plugins, context, err,
+                        webkit_web_context_get_plugins);
+
+        uzbl_sync_data_free (data);
+
+        if (err) {
+            /* TODO: Output message. */
+            g_error_free (err);
+        }
+    }
+
+    if (!plugins) {
+        /* TODO: Don't ignore the error. */
+        return "[]";
+    }
+
+#define plugin_foreach g_list_foreach
+#else
     WebKitWebPluginDatabase *db = webkit_get_web_plugin_database ();
     GSList *plugins = webkit_web_plugin_database_get_plugins (db);
 
+#define plugin_foreach g_slist_foreach
+#endif
+
     GString *list = g_string_new ("[");
 
-    g_slist_foreach (plugins, (GFunc)plugin_list_append, list);
+    plugin_foreach (plugins, (GFunc)plugin_list_append, list);
 
     g_string_append_c (list, ']');
 
+#ifdef USE_WEBKIT2
+    g_list_free (plugins);
+#else
     webkit_web_plugin_database_plugins_list_free (plugins);
+#endif
+
+#undef plugin_foreach
 
     return g_string_free (list, FALSE);
 }
@@ -2027,31 +2078,68 @@ static void
 mimetype_list_append (WebKitWebPluginMIMEType *mimetype, GString *list);
 
 void
-plugin_list_append (WebKitWebPlugin *plugin, GString *list)
+plugin_list_append (WebKitWebPlugin *plugin, gpointer data)
 {
-    if (*list->str != '[') {
-        g_string_append_c (list, ',');
+    GString *list = (GString *)data;
+
+    if (list->str[list->len - 1] != '[') {
+        g_string_append (list, ", ");
     }
 
-    const gchar *desc = webkit_web_plugin_get_description (plugin);
-    gboolean enabled = webkit_web_plugin_get_enabled (plugin);
-    GSList *mimetypes = webkit_web_plugin_get_mimetypes (plugin);
-    const gchar *name = webkit_web_plugin_get_name (plugin);
-    const gchar *path = webkit_web_plugin_get_path (plugin);
+#ifdef USE_WEBKIT2
+    typedef GList MIMETypeList;
+
+#define mimetype_foreach g_list_foreach
+#else
+    typedef GSList MIMETypeList;
+
+#define mimetype_foreach g_slist_foreach
+#endif
+
+    const gchar *desc = NULL;
+#ifndef USE_WEBKIT2
+    gboolean enabled = FALSE;
+#endif
+    MIMETypeList *mimetypes = NULL;
+    const gchar *name = NULL;
+    const gchar *path = NULL;
+
+#ifdef USE_WEBKIT2
+    desc = webkit_plugin_get_description (plugin);
+    mimetypes = webkit_plugin_get_mime_info_list (plugin);
+    name = webkit_plugin_get_name (plugin);
+    path = webkit_plugin_get_path (plugin);
+#else
+    desc = webkit_web_plugin_get_description (plugin);
+    enabled = webkit_web_plugin_get_enabled (plugin);
+    mimetypes = webkit_web_plugin_get_mimetypes (plugin);
+    name = webkit_web_plugin_get_name (plugin);
+    path = webkit_web_plugin_get_path (plugin);
+#endif
 
     /* Write out a JSON representation of the information */
     g_string_append_printf (list,
-            "{\"name\": \"%s\","
-            "\"description\": \"%s\","
-            "\"enabled\": %s,"
-            "\"path\": \"%s\","
+            "{\"name\": \"%s\", "
+            "\"description\": \"%s\", "
+#ifndef USE_WEBKIT2
+            "\"enabled\": %s, "
+#endif
+            "\"path\": \"%s\", "
             "\"mimetypes\": [", /* Open array for the mimetypes */
             name,
             desc,
+#ifndef USE_WEBKIT2
             enabled ? "true" : "false",
+#endif
             path);
 
-    g_slist_foreach (mimetypes, (GFunc)mimetype_list_append, list);
+    mimetype_foreach (mimetypes, (GFunc)mimetype_list_append, list);
+
+#undef plugin_foreach
+
+#ifdef USE_WEBKIT2
+    g_object_unref (plugin);
+#endif
 
     /* Close the array and the object */
     g_string_append (list, "]}");
@@ -2060,33 +2148,48 @@ plugin_list_append (WebKitWebPlugin *plugin, GString *list)
 void
 mimetype_list_append (WebKitWebPluginMIMEType *mimetype, GString *list)
 {
-    if (*list->str != '[') {
-        g_string_append_c (list, ',');
+    if (list->str[list->len - 1] != '[') {
+        g_string_append (list, ", ");
     }
+
+    const gchar *name = NULL;
+    const gchar *desc = NULL;
+    const gchar * const *extensions = NULL;
+
+#ifdef USE_WEBKIT2
+    name = webkit_mime_info_get_mime_type (mimetype);
+    desc = webkit_mime_info_get_description (mimetype);
+    extensions = webkit_mime_info_get_extensions (mimetype);
+#else
+    name = mimetype->name;
+    desc = mimetype->description;
+    extensions = (const gchar * const*)mimetype->extensions;
+#endif
 
     /* Write out a JSON representation of the information. */
     g_string_append_printf (list,
-            "{\"name\": \"%s\","
-            "\"description\": \"%s\","
+            "{\"name\": \"%s\", "
+            "\"description\": \"%s\", "
             "\"extensions\": [", /* Open array for the extensions. */
-            mimetype->name,
-            mimetype->description);
+            name,
+            desc);
 
-    char **extension = mimetype->extensions;
     gboolean first = TRUE;
 
-    while (extension) {
+    while (*extensions) {
         if (first) {
             first = FALSE;
         } else {
-            g_string_append_c (list, ',');
+            g_string_append (list, ", ");
         }
-        g_string_append (list, *extension);
+        g_string_append_c (list, '"');
+        g_string_append (list, *extensions);
+        g_string_append_c (list, '"');
 
-        ++extension;
+        ++extensions;
     }
 
-    g_string_append_c (list, '}');
+    g_string_append (list, "]}");
 }
 #endif
 
