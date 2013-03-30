@@ -1089,15 +1089,18 @@ expand_impl (const gchar *str, UzblExpandStage stage)
                         GString *js_ret = g_string_new ("");
 
                         GArray *tmp = uzbl_commands_args_new ();
+                        uzbl_commands_args_append (tmp, g_strdup ("page"));
 
                         if (*ret == '+') {
                             /* Read JS from file. */
+                            uzbl_commands_args_append (tmp, g_strdup ("file"));
                             gchar *mycmd = expand_impl (ret + 1, EXPAND_IGNORE_JS);
                             g_array_append_val (tmp, mycmd);
 
-                            uzbl_commands_run_argv ("js_file", tmp, js_ret);
+                            uzbl_commands_run_argv ("js", tmp, js_ret);
                         } else {
                             /* JS from string. */
+                            uzbl_commands_args_append (tmp, g_strdup ("string"));
                             gchar *mycmd = expand_impl (ret, EXPAND_IGNORE_JS);
                             g_array_append_val (tmp, mycmd);
 

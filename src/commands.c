@@ -111,7 +111,6 @@ DECLARE_COMMAND (inspector);
 
 /* Execution commands */
 DECLARE_COMMAND (js);
-DECLARE_COMMAND (js_file);
 DECLARE_COMMAND (spawn);
 DECLARE_COMMAND (spawn_sync);
 DECLARE_COMMAND (spawn_sync_exec);
@@ -208,8 +207,7 @@ builtin_command_table[] =
     { "inspector",                      cmd_inspector,                FALSE, TRUE  },
 
     /* Execution commands */
-    { "js",                             cmd_js,                       FALSE, TRUE  },
-    { "script",                         cmd_js_file,                  TRUE,  TRUE  }, /* TODO: Rename to "js_file". */
+    { "js",                             cmd_js,                       TRUE,  TRUE  },
     { "spawn",                          cmd_spawn,                    TRUE,  TRUE  },
     { "sync_spawn",                     cmd_spawn_sync,               TRUE,  TRUE  }, /* TODO: Rename to "spawn_sync". */
     /* XXX: Should this command be removed? */
@@ -1525,46 +1523,128 @@ IMPLEMENT_COMMAND (inspector)
 
 /* Execution commands */
 
-static void
-eval_js (WebKitWebView *view, const gchar *script, GString *result, const gchar *path);
+static gchar *
+extract_js_prop (JSGlobalContextRef ctx, JSObjectRef obj, const gchar *prop);
+static gchar *
+js_value_to_string (JSGlobalContextRef ctx, JSValueRef obj);
 
 IMPLEMENT_COMMAND (js)
 {
-    ARG_CHECK (argv, 1);
+    ARG_CHECK (argv, 3);
 
-    eval_js (uzbl.gui.web_view, argv_idx (argv, 0), result, "(uzbl command)");
-}
+    const gchar *context = argv_idx (argv, 0);
+    const gchar *where = argv_idx (argv, 1);
+    const gchar *value = argv_idx (argv, 2);
 
-IMPLEMENT_COMMAND (js_file)
-{
-    ARG_CHECK (argv, 1);
+    JSGlobalContextRef jsctx;
 
-    gchar *req_path = argv_idx (argv, 0);
+    if (!g_strcmp0 (context, "uzbl")) {
+        jsctx = uzbl.state.jscontext;
+
+        JSGlobalContextRetain (jsctx);
+    } else if (!g_strcmp0 (context, "clean")) {
+        jsctx = JSGlobalContextCreate (NULL);
+    } else if (!g_strcmp0 (context, "page")) {
+#ifdef USE_WEBKIT2
+        /* TODO: This doesn't seem to be the right thing... */
+        jsctx = webkit_web_view_get_javascript_global_context (uzbl.gui.web_view);
+#else
+        WebKitWebFrame *frame = webkit_web_view_get_main_frame (uzbl.gui.web_view);
+        jsctx = webkit_web_frame_get_global_context (frame);
+#endif
+
+        JSGlobalContextRetain (jsctx);
+    } else {
+        uzbl_debug ("Unrecognized js context: %s\n", context);
+        return;
+    }
+
+    gchar *script = NULL;
     gchar *path = NULL;
 
-    if ((path = find_existing_file (req_path))) {
-        gchar *file_contents = NULL;
+    if (!g_strcmp0 (where, "string")) {
+        script = g_strdup (value);
+        path = g_strdup ("(uzbl command)");
+    } else if (!g_strcmp0 (where, "file")) {
+        const gchar *req_path = value;
 
-        GIOChannel *chan = g_io_channel_new_file (path, "r", NULL);
-        if (chan) {
-            gsize len;
-            g_io_channel_read_to_end (chan, &file_contents, &len, NULL);
-            g_io_channel_unref (chan);
+        if ((path = find_existing_file (req_path))) {
+            gchar *file_contents = NULL;
+
+            GIOChannel *chan = g_io_channel_new_file (path, "r", NULL);
+            if (chan) {
+                gsize len;
+                g_io_channel_read_to_end (chan, &file_contents, &len, NULL);
+                g_io_channel_unref (chan);
+            }
+
+            uzbl_debug ("External JavaScript file loaded: %s\n", req_path);
+
+            guint i;
+            for (i = argv->len; 3 < i; --i) {
+                const gchar *arg = argv_idx (argv, i - 1);
+
+                gchar *needle = g_strdup_printf ("%%%d", i);
+
+                gchar *new_file_contents = str_replace (needle, arg ? arg : "", file_contents);
+
+                g_free (needle);
+
+                g_free (file_contents);
+                file_contents = new_file_contents;
+            }
+
+            g_free (file_contents);
         }
-
-        uzbl_debug ("External JavaScript file loaded: %s\n", req_path);
-
-        gchar *arg = argv_idx (argv, 1);
-
-        /* TODO: Make more generic? */
-        gchar *js = str_replace ("%s", arg ? arg : "", file_contents);
-        g_free (file_contents);
-
-        eval_js (uzbl.gui.web_view, js, result, path);
-
-        g_free (js);
-        g_free (path);
+    } else {
+        uzbl_debug ("Unrecognized code source: %s\n", where);
+        goto js_exit;
     }
+
+    JSObjectRef globalobject = JSContextGetGlobalObject (jsctx);
+    JSStringRef js_file;
+    JSStringRef js_script;
+    JSValueRef js_result;
+    JSValueRef js_exc = NULL;
+
+    js_script = JSStringCreateWithUTF8CString (script);
+    js_file = JSStringCreateWithUTF8CString (path);
+    js_result = JSEvaluateScript (jsctx, js_script, globalobject, js_file, 0, &js_exc);
+
+    if (result && js_result && !JSValueIsUndefined (jsctx, js_result)) {
+        char *result_utf8;
+
+        result_utf8 = js_value_to_string (jsctx, js_result);
+
+        g_string_assign (result, result_utf8);
+
+        free (result_utf8);
+    } else if (js_exc) {
+        JSObjectRef exc = JSValueToObject (jsctx, js_exc, NULL);
+
+        gchar *file;
+        gchar *line;
+        gchar *msg;
+
+        file = extract_js_prop (jsctx, exc, "sourceURL");
+        line = extract_js_prop (jsctx, exc, "line");
+        msg = js_value_to_string (jsctx, exc);
+
+        uzbl_debug ("Exception occured while executing script:\n %s:%s: %s\n", file, line, msg);
+
+        g_free (file);
+        g_free (line);
+        g_free (msg);
+    }
+
+    JSStringRelease (js_file);
+    JSStringRelease (js_script);
+
+    g_free (script);
+    g_free (path);
+
+js_exit:
+    JSGlobalContextRelease (jsctx);
 }
 
 static void
@@ -1766,58 +1846,36 @@ plugin_toggle_one (WebKitWebPlugin *plugin, gpointer data)
 #endif
 #endif
 
-static char *
-extract_js_prop (JSGlobalContextRef ctx, JSObjectRef obj, const gchar *prop);
-static char *
-js_value_to_string (JSGlobalContextRef ctx, JSValueRef obj);
-
-void
-eval_js (WebKitWebView *view, const gchar *script, GString *result, const gchar *path)
+char *
+extract_js_prop (JSGlobalContextRef ctx, JSObjectRef obj, const gchar *prop)
 {
-    WebKitWebFrame *frame;
-    JSGlobalContextRef context;
-    JSObjectRef globalobject;
-    JSStringRef js_file;
-    JSStringRef js_script;
-    JSValueRef js_result;
-    JSValueRef js_exc = NULL;
+    JSStringRef js_prop;
+    JSValueRef js_prop_val;
 
-    frame = webkit_web_view_get_main_frame (view);
-    context = webkit_web_frame_get_global_context (frame);
-    globalobject = JSContextGetGlobalObject (context);
+    js_prop = JSStringCreateWithUTF8CString (prop);
+    js_prop_val = JSObjectGetProperty (ctx, obj, js_prop, NULL);
 
-    /* Evaluate the script and get return value. */
-    js_script = JSStringCreateWithUTF8CString (script);
-    js_file = JSStringCreateWithUTF8CString (path);
-    js_result = JSEvaluateScript (context, js_script, globalobject, js_file, 0, &js_exc);
-    if (result && js_result && !JSValueIsUndefined (context, js_result)) {
-        char *result_utf8;
+    JSStringRelease (js_prop);
 
-        result_utf8 = js_value_to_string (context, js_result);
+    return js_value_to_string (ctx, js_prop_val);
+}
 
-        g_string_assign (result, result_utf8);
+char *
+js_value_to_string (JSGlobalContextRef ctx, JSValueRef val)
+{
+    JSStringRef str = JSValueToStringCopy (ctx, val, NULL);
+    size_t size = JSStringGetMaximumUTF8CStringSize (str);
 
-        free (result_utf8);
-    } else if (js_exc) {
-        JSObjectRef exc = JSValueToObject (context, js_exc, NULL);
+    char *result = NULL;
 
-        char *file;
-        char *line;
-        char *msg;
-
-        file = extract_js_prop (context, exc, "sourceURL");
-        line = extract_js_prop (context, exc, "line");
-        msg = js_value_to_string (context, exc);
-
-        uzbl_debug ("Exception occured while executing script:\n %s:%s: %s\n", file, line, msg);
-
-        free (file);
-        free (line);
-        free (msg);
+    if (size) {
+        result = (gchar *)malloc (size * sizeof (char));
+        JSStringGetUTF8CString (str, result, size);
     }
 
-    JSStringRelease (js_script);
-    JSStringRelease (js_file);
+    JSStringRelease (str);
+
+    return result;
 }
 
 /* Make sure that the args string you pass can properly be interpreted (e.g.,

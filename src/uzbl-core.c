@@ -42,6 +42,8 @@
 #include "util.h"
 #include "variables.h"
 
+#include <JavaScriptCore/JavaScript.h>
+
 #include <stdlib.h>
 
 /* =========================== PUBLIC API =========================== */
@@ -105,6 +107,8 @@ uzbl_initialize (int argc, char **argv)
     uzbl.info.commit           = COMMIT;
 
     uzbl.state.last_result     = NULL;
+
+    uzbl.state.jscontext       = JSGlobalContextCreate (NULL);
 
     /* FIXME: There isn't a getter for this; need to maintain separately. */
     uzbl.behave.maintain_history = TRUE;
@@ -347,6 +351,10 @@ clean_up ()
             NULL);
         g_free (uzbl.info.pid_str);
         uzbl.info.pid_str = NULL;
+    }
+
+    if (uzbl.state.jscontext) {
+        JSGlobalContextRelease (uzbl.state.jscontext);
     }
 
     if (uzbl.state.executable_path) {

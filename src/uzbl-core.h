@@ -66,6 +66,7 @@ typedef struct {
     GdkEventButton *last_button;
     gchar          *last_result;
     gboolean        plug_mode;
+    JSGlobalContextRef jscontext;
 
     /* Events */
     int             socket_id;
