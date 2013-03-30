@@ -99,6 +99,12 @@ DECLARE_COMMAND (favicon);
 /* Search commands */
 DECLARE_COMMAND (search);
 
+/* Security commands */
+#ifdef USE_WEBKIT2
+DECLARE_COMMAND (security);
+DECLARE_COMMAND (dns);
+#endif
+
 /* Inspector commands */
 DECLARE_COMMAND (inspector_show);
 DECLARE_COMMAND (inspector);
@@ -190,6 +196,12 @@ builtin_command_table[] =
 
     /* Search commands */
     { "search",                         cmd_search,                   FALSE, TRUE  },
+
+    /* Security commands */
+#ifdef USE_WEBKIT2
+    { "secuity",                        cmd_security,                 TRUE,  TRUE  },
+    { "dns",                            cmd_dns,                      TRUE,  TRUE  },
+#endif
 
     /* Inspector commands */
     { "show_inspector",                 cmd_inspector_show,           TRUE,  TRUE  }, /* Deprecated. */
@@ -1377,6 +1389,90 @@ search_exit:
 #endif
     }
 }
+
+/* Security commands */
+
+#ifdef USE_WEBKIT2
+IMPLEMENT_COMMAND (security)
+{
+    ARG_CHECK (argv, 3);
+
+    const gchar *option = argv_idx (argv, 0);
+    const gchar *command = argv_idx (argv, 1);
+    const gchar *scheme = argv_idx (argv, 2);
+
+    typedef gboolean (*UzblGetSecurityOption) (WebKitSecurityManager *manager, const gchar *scheme);
+    typedef void     (*UzblSetSecurityOption) (WebKitSecurityManager *manager, const gchar *scheme);
+
+    typedef struct {
+        const gchar           *name;
+        UzblGetSecurityOption  get;
+        UzblSetSecurityOption  set;
+    } UzblSecurityField;
+
+#define SECURITY_FIELD(name) \
+    { #name, webkit_security_manager_uri_scheme_is_##name, webkit_security_manager_register_uri_scheme_as_##name }
+
+    static const UzblSecurityField
+    fields[] = {
+        SECURITY_FIELD (local),
+        SECURITY_FIELD (no_access),
+        SECURITY_FIELD (display_isolated),
+        SECURITY_FIELD (secure),
+        SECURITY_FIELD (cors_enabled),
+        SECURITY_FIELD (empty_document),
+        { NULL, NULL, NULL }
+    };
+
+#undef SECURITY_FIELD
+
+    const UzblSecurityField *field = &fields[0];
+
+    while (field->name) {
+        if (!g_strcmp0 (field->name, option)) {
+            break;
+        }
+
+        ++field;
+    }
+
+    if (!field->name) {
+        uzbl_debug ("Unrecognized option: %s\n", option);
+    }
+
+    WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
+    WebKitSecurityManager *manager = webkit_web_context_get_security_manager (context);
+
+    if (!g_strcmp0 (command, "get")) {
+        gboolean set = field->get (manager, scheme);
+
+        g_string_assign (result, set ? "true" : "false");
+    } else if (!g_strcmp0 (command, "set")) {
+        field->set (manager, scheme);
+    }
+}
+
+IMPLEMENT_COMMAND (dns)
+{
+    UZBL_UNUSED (result);
+
+    ARG_CHECK (argv, 1);
+
+    const gchar *command = argv_idx (argv, 0);
+
+    if (!g_strcmp0 (command, "fetch")) {
+        ARG_CHECK (argv, 2);
+
+        const gchar *hostname = argv_idx (argv, 1);
+
+        WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
+
+        webkit_web_context_prefetch_dns (context, hostname);
+    } else {
+        uzbl_debug ("Unrecognized dns command: %s\n", command);
+    }
+}
+#endif
 
 /* Inspector commands */
 
