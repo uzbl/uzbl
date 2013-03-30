@@ -214,11 +214,11 @@ builtin_command_table[] =
     /* Execution commands */
     { "js",                             cmd_js,                       TRUE,  TRUE  },
     { "spawn",                          cmd_spawn,                    TRUE,  TRUE  },
-    { "sync_spawn",                     cmd_spawn_sync,               TRUE,  TRUE  }, /* TODO: Rename to "spawn_sync". */
+    { "spawn_sync",                     cmd_spawn_sync,               TRUE,  TRUE  },
     /* XXX: Should this command be removed? */
-    { "sync_spawn_exec",                cmd_spawn_sync_exec,          TRUE,  TRUE  }, /* TODO: Rename to "spawn_sync_exec". */
-    { "sh",                             cmd_spawn_sh,                 TRUE,  TRUE  }, /* TODO: Rename to "spawn_sh". */
-    { "sync_sh",                        cmd_spawn_sh_sync,            TRUE,  TRUE  }, /* TODO: Rename to "spawn_sh_sync". */
+    { "spawn_sync_exec",                cmd_spawn_sync_exec,          TRUE,  TRUE  },
+    { "spawn_sh",                       cmd_spawn_sh,                 TRUE,  TRUE  },
+    { "spawn_sh_sync",                  cmd_spawn_sh_sync,            TRUE,  TRUE  },
 
     /* Uzbl commands */
     { "chain",                          cmd_chain,                    TRUE,  TRUE  },
