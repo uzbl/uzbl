@@ -931,6 +931,8 @@ web_process_crashed_cb (WebKitWebView *view, gpointer data)
 
     uzbl_events_send (WEB_PROCESS_CRASHED, NULL,
         NULL);
+
+    return FALSE;
 }
 #endif
 
