@@ -112,7 +112,6 @@ DECLARE_COMMAND (dns);
 #endif
 
 /* Inspector commands */
-DECLARE_COMMAND (inspector_show);
 DECLARE_COMMAND (inspector);
 
 /* Execution commands */
@@ -208,14 +207,13 @@ builtin_command_table[] =
 #endif
 
     /* Inspector commands */
-    { "show_inspector",                 cmd_inspector_show,           TRUE,  TRUE  }, /* Deprecated. */
     { "inspector",                      cmd_inspector,                FALSE, TRUE  },
 
     /* Execution commands */
     { "js",                             cmd_js,                       TRUE,  TRUE  },
+    /* TODO: Consolidate into one command. */
     { "spawn",                          cmd_spawn,                    TRUE,  TRUE  },
     { "spawn_sync",                     cmd_spawn_sync,               TRUE,  TRUE  },
-    /* XXX: Should this command be removed? */
     { "spawn_sync_exec",                cmd_spawn_sync_exec,          TRUE,  TRUE  },
     { "spawn_sh",                       cmd_spawn_sh,                 TRUE,  TRUE  },
     { "spawn_sh_sync",                  cmd_spawn_sh_sync,            TRUE,  TRUE  },
@@ -234,7 +232,6 @@ builtin_command_table[] =
 
     /* Event commands */
     { "event",                          cmd_event,                    FALSE, FALSE },
-    { "request",                        cmd_event,                    FALSE, FALSE }, /* XXX: Deprecated (event). */
 
     /* Terminator */
     { NULL,                             NULL,                         FALSE, FALSE }
@@ -1572,14 +1569,6 @@ IMPLEMENT_COMMAND (dns)
 #endif
 
 /* Inspector commands */
-
-IMPLEMENT_COMMAND (inspector_show)
-{
-    UZBL_UNUSED (argv);
-    UZBL_UNUSED (result);
-
-    webkit_web_inspector_show (uzbl.gui.inspector);
-}
 
 IMPLEMENT_COMMAND (inspector)
 {
