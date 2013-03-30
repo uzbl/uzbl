@@ -59,7 +59,7 @@ PKG_CFLAGS:=$(shell pkg-config --cflags $(REQ_PKGS))
 
 LDLIBS:=$(shell pkg-config --libs $(REQ_PKGS) x11)
 
-CFLAGS += -std=c99 $(PKG_CFLAGS) -ggdb -W -Wall -Wextra -pedantic -pthread
+CFLAGS += -std=c99 $(PKG_CFLAGS) -ggdb -W -Wall -Wextra -pthread
 
 SRC  = $(wildcard src/*.c)
 HEAD = $(wildcard src/*.h)
