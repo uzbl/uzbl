@@ -42,6 +42,7 @@
     call (SCROLL_HORIZ),        \
     call (DOWNLOAD_STARTED),    \
     call (DOWNLOAD_PROGRESS),   \
+    call (DOWNLOAD_ERROR),      \
     call (DOWNLOAD_COMPLETE),   \
     call (ADD_COOKIE),          \
     call (DELETE_COOKIE),       \

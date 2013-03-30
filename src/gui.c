@@ -130,13 +130,16 @@ static gboolean
 mime_policy_cb (WebKitWebView *view, WebKitWebFrame *frame,
         WebKitNetworkRequest *request, gchar *mime_type,
         WebKitWebPolicyDecision *policy_decision, gpointer data);
-/* FIXME: Make private again.
-static gboolean
-download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data);
-*/
 static void
 request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResource *resource,
         WebKitNetworkRequest *request, WebKitNetworkResponse *response, gpointer data);
+#ifdef USE_WEBKIT2
+static void
+download_cb (WebKitWebContext *context, WebKitDownload *download, gpointer data);
+#else
+static gboolean
+download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data);
+#endif
 /* UI events */
 static WebKitWebView *
 create_web_view_cb (WebKitWebView *view, WebKitWebFrame *frame, gpointer data);
@@ -172,6 +175,12 @@ web_view_init (void)
         GTK_CONTAINER (uzbl.gui.scrolled_win),
         GTK_WIDGET (uzbl.gui.web_view));
 
+#ifdef USE_WEBKIT2
+    g_object_connect (G_OBJECT (webkit_web_view_get_context (uzbl.gui.web_view)),
+        "signal::download-started",                     G_CALLBACK (download_cb),              NULL,
+        NULL);
+#endif
+
     g_object_connect (G_OBJECT (uzbl.gui.web_view),
         /* Keyboard events */
         "signal::key-press-event",                      G_CALLBACK (key_press_cb),             NULL,
@@ -190,8 +199,10 @@ web_view_init (void)
         /* Navigation events */
         "signal::navigation-policy-decision-requested", G_CALLBACK (navigation_decision_cb),   NULL,
         "signal::mime-type-policy-decision-requested",  G_CALLBACK (mime_policy_cb),           NULL,
-        "signal::download-requested",                   G_CALLBACK (download_cb),              NULL,
         "signal::resource-request-starting",            G_CALLBACK (request_starting_cb),      NULL,
+#ifndef USE_WEBKIT2
+        "signal::download-requested",                   G_CALLBACK (download_cb),              NULL,
+#endif
         /* UI events */
         "signal::create-web-view",                      G_CALLBACK (create_web_view_cb),       NULL,
         "signal::close-web-view",                       G_CALLBACK (close_web_view_cb),        NULL,
@@ -671,154 +682,6 @@ mime_policy_cb (WebKitWebView *view, WebKitWebFrame *frame,
     return TRUE;
 }
 
-static void
-download_progress_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data);
-static void
-download_status_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data);
-
-gboolean
-download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
-{
-    UZBL_UNUSED (view);
-
-    /* Get the URI being downloaded. */
-    const gchar *uri = webkit_download_get_uri (download);
-
-    /* TODO: Split this logic into a separate function. */
-    /* Get the destination path, if specified. This is only intended to be set
-     * when this function is trigger by an explicit download using uzbl's
-     * 'download' action. */
-    const gchar *destination = (const gchar *)data;
-
-    uzbl_debug ("Download requested -> %s\n", uri);
-
-    if (!uzbl.behave.download_handler) {
-        /* Reject downloads when there's no download handler. */
-        uzbl_debug ("No download handler set; ignoring download\n");
-        webkit_download_cancel (download);
-        return FALSE;
-    }
-
-    /* Get a reasonable suggestion for a filename. */
-    const gchar *suggested_filename;
-#ifdef USE_WEBKIT2
-    WebKitURIResponse *response;
-    g_object_get (download,
-        "network-response", &response,
-        NULL);
-#if WEBKIT_CHECK_VERSION (1, 9, 90)
-    g_object_get (response,
-        "suggested-filename", &suggested_filename,
-        NULL);
-#else
-    suggested_filename = webkit_uri_response_get_suggested_filename (respose);
-#endif
-#elif WEBKIT_CHECK_VERSION (1, 9, 6)
-    WebKitNetworkResponse *response;
-    g_object_get (download,
-        "network-response", &response,
-        NULL);
-    g_object_get (response,
-        "suggested-filename", &suggested_filename,
-        NULL);
-#else
-    g_object_get (download,
-        "suggested-filename", &suggested_filename,
-        NULL);
-#endif
-
-    /* Get the mimetype of the download. */
-    const gchar *content_type = NULL;
-    WebKitNetworkResponse *net_response = webkit_download_get_network_response (download);
-    /* Downloads can be initiated from the context menu, in that case there is
-     * no network response yet and trying to get one would crash. */
-    if (WEBKIT_IS_NETWORK_RESPONSE (net_response)) {
-        SoupMessage        *message = webkit_network_response_get_message (net_response);
-        SoupMessageHeaders *headers = NULL;
-        g_object_get (message,
-            "response-headers", &headers,
-            NULL);
-        /* Some versions of libsoup don't have "response-headers" here. */
-        if (headers) {
-            content_type = soup_message_headers_get_one (headers, "Content-Type");
-        }
-    }
-
-    if (!content_type) {
-        content_type = "application/octet-stream";
-    }
-
-    /* Get the filesize of the download, as given by the server. It may be
-     * inaccurate, but there's nothing we can do about that. */
-    unsigned int total_size = webkit_download_get_total_size (download);
-
-    GArray *args = uzbl_commands_args_new ();
-    const UzblCommand *download_command = uzbl_commands_parse (uzbl.behave.download_handler, args);
-    if (!download_command) {
-        webkit_download_cancel (download);
-        uzbl_commands_args_free (args);
-        return FALSE;
-    }
-
-    uzbl_commands_args_append (args, g_strdup (uri));
-    uzbl_commands_args_append (args, g_strdup (suggested_filename));
-    uzbl_commands_args_append (args, g_strdup (content_type));
-    gchar *total_size_s = g_strdup_printf ("%d", total_size);
-    uzbl_commands_args_append (args, total_size_s);
-
-    if (destination) {
-        uzbl_commands_args_append (args, g_strdup (destination));
-    }
-
-    GString *result = g_string_new ("");
-    uzbl_commands_run_parsed (download_command, args, result);
-
-    uzbl_commands_args_free (args);
-
-    /* No response, cancel the download. */
-    if (result->len == 0) {
-        webkit_download_cancel (download);
-        return FALSE;
-    }
-
-    /* We got a response, it's the path we should download the file to. */
-    gchar *destination_path = result->str;
-    g_string_free (result, FALSE);
-
-    /* Presumably people don't need newlines in their filenames. */
-    remove_trailing_newline (destination_path);
-
-    /* Set up progress callbacks. */
-    g_object_connect (G_OBJECT (download),
-        "signal::notify::status",   G_CALLBACK (download_status_cb),   NULL,
-        NULL);
-    g_object_connect (G_OBJECT (download),
-        "signal::notify::progress", G_CALLBACK (download_progress_cb), NULL,
-        NULL);
-
-    /* Convert relative path to absolute path. */
-    if (destination_path[0] != '/') {
-        /* TODO: Detect file:// URI from the handler. */
-        gchar *rel_path = destination_path;
-        gchar *cwd = g_get_current_dir ();
-        destination_path = g_strconcat (cwd, "/", destination_path, NULL);
-        g_free (cwd);
-        g_free (rel_path);
-    }
-
-    uzbl_events_send (DOWNLOAD_STARTED, NULL,
-        TYPE_STR, destination_path,
-        NULL);
-
-    /* Convert absolute path to file:// URI. */
-    gchar *destination_uri = g_strconcat ("file://", destination_path, NULL);
-    g_free (destination_path);
-
-    webkit_download_set_destination_uri (download, destination_uri);
-    g_free (destination_uri);
-
-    return TRUE;
-}
 
 void
 request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResource *resource,
@@ -864,6 +727,34 @@ request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResour
         g_string_free (result, TRUE);
     }
 }
+
+#ifdef USE_WEBKIT2
+static void
+handle_download (WebKitDownload *download, const gchar *suggested_destination);
+#endif
+
+#ifdef USE_WEBKIT2
+void
+download_cb (WebKitWebContext *context, WebKitDownload *download, gpointer data)
+{
+    UZBL_UNUSED (context);
+    UZBL_UNUSED (download);
+    UZBL_UNUSED (data);
+
+    handle_download (download, NULL);
+}
+#else
+gboolean
+download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (data);
+
+    handle_download (download, NULL);
+
+    return TRUE;
+}
+#endif
 
 /* UI events */
 
@@ -1204,55 +1095,51 @@ dom_blur_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data)
 }
 #endif
 
-void
-download_progress_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data)
-{
-    UZBL_UNUSED (param_spec);
-    UZBL_UNUSED (data);
-
-    gdouble progress;
-    g_object_get (download,
-        "progress", &progress,
-        NULL);
-
-    const gchar *dest_uri = webkit_download_get_destination_uri (download);
-    const gchar *dest_path = dest_uri + strlen ("file://");
-
-    uzbl_events_send (DOWNLOAD_PROGRESS, NULL,
-        TYPE_STR, dest_path,
-        TYPE_FLOAT, progress,
-        NULL);
-}
+static gboolean
+decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename, gpointer data);
+static void
+download_finished_cb (WebKitDownload *download, gpointer data);
+#ifdef USE_WEBKIT2
+static void
+download_receive_cb (WebKitDownload *download, guint64 length, gpointer data);
+static void
+download_failed_cb (WebKitDownload *download, gpointer error, gpointer data);
+#else
+static void
+download_size_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data);
+static void
+download_status_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data);
+static void
+download_error_cb (WebKitDownload *download, gint error_code, gint error_detail, gchar *reason, gpointer data);
+#endif
 
 void
-download_status_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data)
+handle_download (WebKitDownload *download, const gchar *suggested_destination)
 {
-    UZBL_UNUSED (param_spec);
-    UZBL_UNUSED (data);
-
-    WebKitDownloadStatus status;
-    g_object_get (download,
-        "status", &status,
+#ifdef USE_WEBKIT2
+    g_object_connect (G_OBJECT (download),
+        "signal::decide-destination", G_CALLBACK (decide_destination_cb), suggested_destination,
+        "signal::finished",           G_CALLBACK (download_finished_cb),  NULL,
+        "signal::received-data",      G_CALLBACK (download_receive_cb),   NULL,
+        "signal::failed",             G_CALLBACK (download_failed_cb),    NULL,
         NULL);
+#else
+    const gchar *download_suggestion = webkit_download_get_suggested_filename (download);
 
-    switch (status) {
-        case WEBKIT_DOWNLOAD_STATUS_CREATED:
-        case WEBKIT_DOWNLOAD_STATUS_STARTED:
-            break; /* These are irrelevant. */
-        case WEBKIT_DOWNLOAD_STATUS_ERROR:
-        case WEBKIT_DOWNLOAD_STATUS_CANCELLED:
-            /* TODO: Implement events for these. */
-            break;
-        case WEBKIT_DOWNLOAD_STATUS_FINISHED:
-        {
-            const gchar *dest_uri = webkit_download_get_destination_uri (download);
-            const gchar *dest_path = dest_uri + strlen ("file://");
-            uzbl_events_send (DOWNLOAD_COMPLETE, NULL,
-                TYPE_STR, dest_path,
-                NULL);
-            break;
-        }
+    if (!decide_destination_cb (download, download_suggestion, (gpointer)suggested_destination)) {
+        return;
     }
+
+    g_object_connect (G_OBJECT (download),
+        "signal::notify::current-size", G_CALLBACK (download_size_cb),      NULL,
+        "signal::notify::status",       G_CALLBACK (download_status_cb),    NULL,
+        "signal::error",                G_CALLBACK (download_error_cb),     NULL,
+        NULL);
+
+    if (webkit_download_get_destination_uri (download)) {
+        webkit_download_start (download);
+    }
+#endif
 }
 
 void
@@ -1433,6 +1320,245 @@ button_to_modifier (guint buttonval)
     return 0;
 }
 
+gboolean
+decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename, gpointer data)
+{
+    /* Get the URI being downloaded. */
+    const gchar *uri =
+#ifdef USE_WEBKIT2
+        webkit_download_get_destination (download)
+#else
+        webkit_download_get_uri (download)
+#endif
+        ;
+    const gchar *user_destination = (const gchar *)data;
+    const gchar *destination = suggested_filename;
+
+    if (user_destination) {
+        destination = user_destination;
+    }
+
+    uzbl_debug ("Download requested -> %s\n", uri);
+
+    if (!uzbl.behave.download_handler) {
+        /* Reject downloads when there's no download handler. */
+        uzbl_debug ("No download handler set; ignoring download\n");
+        webkit_download_cancel (download);
+        return FALSE;
+    }
+
+    /* Get the mimetype of the download. */
+    const gchar *content_type = NULL;
+    guint64 total_size = 0;
+#ifdef USE_WEBKIT2
+    WebKitURIResponse *response = webkit_download_get_response (download);
+    content_type = webkit_uri_response_get_mime_type (response);
+    total_size = webkit_uri_response_get_content_length (response);
+#else
+    WebKitNetworkResponse *response = webkit_download_get_network_response (download);
+    /* Downloads can be initiated from the context menu, in that case there is
+     * no network response yet and trying to get one would crash. */
+    if (WEBKIT_IS_NETWORK_RESPONSE (response)) {
+        SoupMessage        *message = webkit_network_response_get_message (response);
+        SoupMessageHeaders *headers = NULL;
+        g_object_get (G_OBJECT (message),
+            "response-headers", &headers,
+            NULL);
+        /* Some versions of libsoup don't have "response-headers" here. */
+        if (headers) {
+            content_type = soup_message_headers_get_one (headers, "Content-Type");
+        }
+    }
+
+    /* Get the filesize of the download, as given by the server. It may be
+     * inaccurate, but there's nothing we can do about that. */
+    total_size = webkit_download_get_total_size (download);
+#endif
+
+    if (!content_type) {
+        content_type = "application/octet-stream";
+    }
+
+    GArray *args = uzbl_commands_args_new ();
+    const UzblCommand *download_command = uzbl_commands_parse (uzbl.behave.download_handler, args);
+    if (!download_command) {
+        webkit_download_cancel (download);
+        uzbl_commands_args_free (args);
+        return FALSE;
+    }
+
+    uzbl_commands_args_append (args, g_strdup (uri));
+    uzbl_commands_args_append (args, g_strdup (suggested_filename));
+    uzbl_commands_args_append (args, g_strdup (content_type));
+    gchar *total_size_s = g_strdup_printf ("%" G_GUINT64_FORMAT, total_size);
+    uzbl_commands_args_append (args, total_size_s);
+
+    if (destination) {
+        uzbl_commands_args_append (args, g_strdup (destination));
+    }
+
+    GString *result = g_string_new ("");
+    uzbl_commands_run_parsed (download_command, args, result);
+
+    uzbl_commands_args_free (args);
+
+    /* No response, cancel the download. */
+    if (result->len == 0) {
+        webkit_download_cancel (download);
+        return FALSE;
+    }
+
+    /* We got a response, it's the path we should download the file to. */
+    gchar *destination_path = result->str;
+    g_string_free (result, FALSE);
+
+    /* Presumably people don't need newlines in their filenames. */
+    remove_trailing_newline (destination_path);
+
+    /* Convert relative path to absolute path. */
+    if (destination_path[0] != '/') {
+        /* TODO: Detect file:// URI from the handler. */
+        gchar *rel_path = destination_path;
+        gchar *cwd = g_get_current_dir ();
+        destination_path = g_strconcat (cwd, "/", destination_path, NULL);
+        g_free (cwd);
+        g_free (rel_path);
+    }
+
+    uzbl_events_send (DOWNLOAD_STARTED, NULL,
+        TYPE_STR, destination_path,
+        NULL);
+
+    /* Convert absolute path to file:// URI. */
+    gchar *destination_uri = g_strconcat ("file://", destination_path, NULL);
+    g_free (destination_path);
+
+#ifdef USE_WEBKIT2
+    webkit_download_set_destination (download, destination_uri);
+#else
+    webkit_download_set_destination_uri (download, destination_uri);
+#endif
+    g_free (destination_uri);
+
+    return TRUE;
+}
+
+void
+download_finished_cb (WebKitDownload *download, gpointer data)
+{
+    UZBL_UNUSED (data);
+
+    const gchar *dest_uri =
+#ifdef USE_WEBKIT2
+        webkit_download_get_destination (download)
+#else
+        webkit_download_get_destination_uri (download)
+#endif
+        ;
+    const gchar *dest_path = dest_uri + strlen ("file://");
+
+    uzbl_events_send (DOWNLOAD_COMPLETE, NULL,
+        TYPE_STR, dest_path,
+        NULL);
+}
+
+static void
+download_update (WebKitDownload *download);
+static void
+send_download_error (WebKitDownloadError err, const gchar *message);
+
+#ifdef USE_WEBKIT2
+void
+download_receive_cb (WebKitDownload *download, guint64 length, gpointer data)
+{
+    UZBL_UNUSED (length);
+    UZBL_UNUSED (data);
+
+    download_update (download);
+}
+
+void
+download_failed_cb (WebKitDownload *download, gpointer error, gpointer data)
+{
+    UZBL_UNUSED (download);
+    UZBL_UNUSED (data);
+
+    GError *err = (GError *)error;
+
+    send_download_error (err->code, err->message);
+}
+
+#else
+
+void
+download_size_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data)
+{
+    UZBL_UNUSED (param_spec);
+    UZBL_UNUSED (data);
+
+    download_update (download);
+}
+
+void
+download_status_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data)
+{
+    UZBL_UNUSED (param_spec);
+
+    WebKitDownloadStatus status = webkit_download_get_status (download);
+
+    switch (status) {
+        case WEBKIT_DOWNLOAD_STATUS_CREATED:
+        case WEBKIT_DOWNLOAD_STATUS_STARTED:
+        case WEBKIT_DOWNLOAD_STATUS_CANCELLED:
+        case WEBKIT_DOWNLOAD_STATUS_ERROR:
+            /* Handled elsewhere. */
+            break;
+        case WEBKIT_DOWNLOAD_STATUS_FINISHED:
+            download_finished_cb (download, data);
+            break;
+        default:
+            uzbl_debug ("Unknown download status: %d\n", status);
+            break;
+    }
+}
+
+void
+download_error_cb (WebKitDownload *download, gint error_code, gint error_detail, gchar *reason, gpointer data)
+{
+    UZBL_UNUSED (download);
+    UZBL_UNUSED (error_code);
+    UZBL_UNUSED (data);
+
+    send_download_error (error_detail, reason);
+}
+#endif
+
+void
+create_web_view_js_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
+{
+    UZBL_UNUSED (param_spec);
+    UZBL_UNUSED (data);
+
+    webkit_web_view_stop_loading (view);
+    const gchar *uri = webkit_web_view_get_uri (view);
+
+    static const char *js_protocol = "javascript:";
+
+    if (strprefix (uri, js_protocol) == 0) {
+        GArray *args = uzbl_commands_args_new ();
+        const gchar *js_code = uri + strlen (js_protocol);
+        uzbl_commands_args_append (args, g_strdup (js_code));
+        uzbl_commands_run_argv ("js", args, NULL);
+        uzbl_commands_args_free (args);
+    } else {
+        uzbl_events_send (NEW_WINDOW, NULL,
+            TYPE_STR, uri,
+            NULL);
+    }
+
+    gtk_widget_destroy (GTK_WIDGET (view));
+}
+
 void
 run_menu_command (GtkMenuItem *menu_item, gpointer data)
 {
@@ -1452,4 +1578,55 @@ run_menu_command (GtkMenuItem *menu_item, gpointer data)
     } else {
         uzbl_commands_run (item->cmd, NULL);
     }
+}
+
+void
+download_update (WebKitDownload *download)
+{
+    gdouble progress;
+    g_object_get (download,
+        "progress", &progress,
+        NULL);
+
+    const gchar *dest_uri =
+#ifdef USE_WEBKIT2
+        webkit_download_get_destination (download)
+#else
+        webkit_download_get_destination_uri (download)
+#endif
+        ;
+    const gchar *dest_path = dest_uri + strlen ("file://");
+
+    uzbl_events_send (DOWNLOAD_PROGRESS, NULL,
+        TYPE_STR, dest_path,
+        TYPE_FLOAT, progress,
+        NULL);
+}
+
+void
+send_download_error (WebKitDownloadError err, const gchar *message)
+{
+    const gchar *str = NULL;
+
+    switch (err) {
+        case WEBKIT_DOWNLOAD_ERROR_CANCELLED_BY_USER:
+            str = "cancelled";
+            break;
+        case WEBKIT_DOWNLOAD_ERROR_DESTINATION:
+            str = "destination";
+            break;
+        case WEBKIT_DOWNLOAD_ERROR_NETWORK:
+            str = "network";
+            break;
+        default:
+            str = "unknown";
+            break;
+    }
+
+    uzbl_events_send (DOWNLOAD_ERROR, NULL,
+        TYPE_INT, err,
+        TYPE_STR, str ? str : "",
+        TYPE_STR, message,
+        NULL);
+
 }

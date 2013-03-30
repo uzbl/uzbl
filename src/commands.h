@@ -1,8 +1,6 @@
 #ifndef UZBL_COMMANDS_H
 #define UZBL_COMMANDS_H
 
-#include "webkit.h" /* FIXME */
-
 #include <glib.h>
 
 struct _UzblCommand;

@@ -669,7 +669,11 @@ IMPLEMENT_COMMAND (download)
 
     ARG_CHECK (argv, 1);
 
-    const gchar *uri         = argv_idx (argv, 0);
+    const gchar *uri = argv_idx (argv, 0);
+
+#ifdef USE_WEBKIT2
+    WebKitDownload *download = webkit_web_view_download_uri (uzbl.gui.web_view, uri);
+#else
     const gchar *destination = NULL;
 
     if (argv->len > 1) {
@@ -678,17 +682,12 @@ IMPLEMENT_COMMAND (download)
 
     WebKitNetworkRequest *req = webkit_network_request_new (uri);
     WebKitDownload *download = webkit_download_new (req);
-
-    /* TODO: Make a download function. */
-    download_cb (uzbl.gui.web_view, download, (gpointer)destination);
-
-    if (webkit_download_get_destination_uri (download)) {
-        webkit_download_start (download);
-    } else {
-        g_object_unref (download);
-    }
-
     g_object_unref (req);
+
+    handle_download (download, destination);
+#endif
+
+    g_object_unref (download);
 }
 
 #ifdef USE_WEBKIT2

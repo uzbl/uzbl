@@ -9,7 +9,9 @@ uzbl_gui_init ();
 void
 uzbl_gui_update_title ();
 
-gboolean /* FIXME: This should not be public here. */
-download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data);
+#ifndef USE_WEBKIT2
+void /* TODO: This should not be public. */
+handle_download (WebKitDownload *download, const gchar *suggested_destination);
+#endif
 
 #endif
