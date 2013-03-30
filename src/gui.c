@@ -1758,6 +1758,8 @@ create_web_view_js_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data
     if (!strprefix (uri, js_protocol)) {
         GArray *args = uzbl_commands_args_new ();
         const gchar *js_code = uri + strlen (js_protocol);
+        uzbl_commands_args_append (args, g_strdup ("page"));
+        uzbl_commands_args_append (args, g_strdup ("string"));
         uzbl_commands_args_append (args, g_strdup (js_code));
         uzbl_commands_run_argv ("js", args, NULL);
         uzbl_commands_args_free (args);
