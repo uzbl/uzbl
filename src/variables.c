@@ -16,6 +16,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* TODO: (WebKit2)
+ *
+ *   - Add variables for cookies.
+ *   - Add variables for back/forward lists.
+ *   - Add variables for favicons.
+ *
+ */
+
 /* ======================== VARIABLES TABLE ========================= */
 
 #ifdef USE_WEBKIT2
@@ -148,6 +156,8 @@ DECLARE_GETSET (int, enable_cross_file_access);
 DECLARE_GETSET (int, enable_hyperlink_auditing);
 #ifdef USE_WEBKIT2
 DECLARE_GETSET (int, enable_xss_auditing);
+/*DECLARE_GETSET (gchar *, cookie_location);*/
+/*DECLARE_GETSET (gchar *, cookie_store);*/
 #endif
 DECLARE_GETSET (gchar *, cookie_policy);
 #if WEBKIT_CHECK_VERSION (1, 3, 13)

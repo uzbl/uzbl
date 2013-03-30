@@ -17,6 +17,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* TODO: (WebKit2)
+ *
+ *   - Add commands for registering custom schemes.
+ *
+ */
+
 /* ========================= COMMAND TABLE ========================== */
 
 #ifdef USE_WEBKIT2
