@@ -1110,7 +1110,7 @@ IMPLEMENT_COMMAND (plugin)
         WebKitWebPluginDatabase *db = webkit_get_web_plugin_database ();
         GSList *plugins = webkit_web_plugin_database_get_plugins (db);
 
-        if (argv->len == 0) {
+        if (!argv->len) {
             g_slist_foreach (plugins, (GFunc)plugin_toggle_one, NULL);
         } else {
             guint i;

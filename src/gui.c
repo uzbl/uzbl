@@ -1609,7 +1609,7 @@ decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename
     uzbl_commands_args_free (args);
 
     /* No response, cancel the download. */
-    if (result->len == 0) {
+    if (!result->len) {
         webkit_download_cancel (download);
         return FALSE;
     }
@@ -1750,7 +1750,7 @@ create_web_view_js_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data
 
     static const char *js_protocol = "javascript:";
 
-    if (strprefix (uri, js_protocol) == 0) {
+    if (!strprefix (uri, js_protocol)) {
         GArray *args = uzbl_commands_args_new ();
         const gchar *js_code = uri + strlen (js_protocol);
         uzbl_commands_args_append (args, g_strdup (js_code));

@@ -182,7 +182,7 @@ vformat_event (UzblEventType type, const gchar *custom_event, va_list vargs)
     int next;
     g_string_printf (event_message, "EVENT [%s] %s", uzbl.state.instance_name, event);
 
-    while ((next = va_arg (vargs, int)) != 0) {
+    while ((next = va_arg (vargs, int))) {
         g_string_append_c (event_message, ' ');
         switch (next) {
             case TYPE_INT:

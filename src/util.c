@@ -44,7 +44,7 @@ gboolean
 file_exists (const char *filename)
 {
     struct stat st;
-    return (lstat (filename, &st) == 0);
+    return !lstat (filename, &st);
 }
 
 gchar *
