@@ -1573,6 +1573,12 @@ IMPLEMENT_COMMAND (inspector)
         webkit_web_inspector_show (uzbl.gui.inspector);
     } else if (!g_strcmp0 (command, "close")) {
         webkit_web_inspector_close (uzbl.gui.inspector);
+#ifdef USE_WEBKIT2
+    } else if (!g_strcmp0 (command, "attach")) {
+        webkit_web_inspector_attach (uzbl.gui.inspector);
+    } else if (!g_strcmp0 (command, "detach")) {
+        webkit_web_inspector_detach (uzbl.gui.inspector);
+#else
     } else if (!g_strcmp0 (command, "coord")) {
         if (argv->len < 3) {
             return;
@@ -1591,6 +1597,9 @@ IMPLEMENT_COMMAND (inspector)
     } else if (!g_strcmp0 (command, "node")) {
         /* TODO: Implement. */
 #endif
+#endif
+    } else {
+        uzbl_debug ("Unrecognized inspector command: %s\n", command);
     }
 }
 
