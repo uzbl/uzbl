@@ -537,7 +537,13 @@ progress_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
     UZBL_UNUSED (param_spec);
     UZBL_UNUSED (data);
 
-    int progress = 100 * webkit_web_view_get_progress (view);
+    int progress = 100 *
+#ifdef USE_WEBKIT2
+        webkit_web_view_get_estimated_load_progress (view)
+#else
+        webkit_web_view_get_progress (view)
+#endif
+        ;
 
     uzbl_events_send (LOAD_PROGRESS, NULL,
         TYPE_INT, progress,
