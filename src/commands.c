@@ -18,6 +18,16 @@
 
 /* ========================= COMMAND TABLE ========================== */
 
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 11, 4)
+#define HAVE_PLUGIN_API
+#endif
+#else
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+#define HAVE_PLUGIN_API
+#endif
+#endif
+
 typedef void (*UzblCommandCallback) (GArray *argv, GString *result);
 
 struct _UzblCommand {
@@ -72,11 +82,10 @@ DECLARE_COMMAND (snapshot);
 #endif
 
 /* Content commands */
-DECLARE_COMMAND (remove_all_db);
-#if WEBKIT_CHECK_VERSION (1, 3, 8)
-DECLARE_COMMAND (plugin_refresh);
-DECLARE_COMMAND (plugin_toggle);
+#ifdef HAVE_PLUGIN_API
+DECLARE_COMMAND (plugin);
 #endif
+DECLARE_COMMAND (remove_all_db);
 #if WEBKIT_CHECK_VERSION (1, 5, 1)
 DECLARE_COMMAND (spell_checker);
 #endif
@@ -148,11 +157,10 @@ builtin_command_table[] =
 #endif
 
     /* Content commands */
-    { "remove_all_db",                  cmd_remove_all_db,            TRUE,  TRUE  },
-#if WEBKIT_CHECK_VERSION (1, 3, 8)
-    { "plugin_refresh",                 cmd_plugin_refresh,           FALSE, TRUE  },
-    { "plugin_toggle",                  cmd_plugin_toggle,            FALSE, TRUE  },
+#ifdef HAVE_PLUGIN_API
+    { "plugin",                         cmd_plugin,                   TRUE,  TRUE  },
 #endif
+    { "remove_all_db",                  cmd_remove_all_db,            TRUE,  TRUE  },
 #if WEBKIT_CHECK_VERSION (1, 5, 1)
     { "spell_checker",                  cmd_spell_checker,            FALSE, TRUE  },
 #endif
@@ -925,6 +933,55 @@ IMPLEMENT_COMMAND (snapshot)
 
 /* Content commands */
 
+#ifdef HAVE_PLUGIN_API
+#ifndef USE_WEBKIT2
+static void
+plugin_toggle_one (WebKitWebPlugin *plugin, gpointer data);
+#endif
+
+IMPLEMENT_COMMAND (plugin)
+{
+    UZBL_UNUSED (result);
+
+    ARG_CHECK (argv, 1);
+
+    const gchar *command = argv_idx (argv, 0);
+
+#ifdef USE_WEBKIT2
+    if (!g_strcmp0 (command, "search")) {
+        ARG_CHECK (argv, 2);
+
+        const gchar *directory = argv_idx (argv, 1);
+        WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
+
+        webkit_web_context_set_additional_plugins_directory (context, directory);
+#else
+    if (!g_strcmp0 (command, "refresh")) {
+        WebKitWebPluginDatabase *db = webkit_get_web_plugin_database ();
+        webkit_web_plugin_database_refresh (db);
+    } else if (!g_strcmp0 (command, "toggle")) {
+        WebKitWebPluginDatabase *db = webkit_get_web_plugin_database ();
+        GSList *plugins = webkit_web_plugin_database_get_plugins (db);
+
+        if (argv->len == 0) {
+            g_slist_foreach (plugins, (GFunc)plugin_toggle_one, NULL);
+        } else {
+            guint i;
+            for (i = 1; i < argv->len; ++i) {
+                const gchar *plugin_name = argv_idx (argv, i);
+
+                g_slist_foreach (plugins, (GFunc)plugin_toggle_one, (gpointer)plugin_name);
+            }
+        }
+
+        webkit_web_plugin_database_plugins_list_free (plugins);
+#endif
+    } else {
+        uzbl_debug ("Unrecognized plugin command: %s\n", command);
+    }
+}
+#endif
+
 IMPLEMENT_COMMAND (remove_all_db)
 {
     UZBL_UNUSED (argv);
@@ -932,41 +989,6 @@ IMPLEMENT_COMMAND (remove_all_db)
 
     webkit_remove_all_web_databases ();
 }
-
-#if WEBKIT_CHECK_VERSION (1, 3, 8)
-IMPLEMENT_COMMAND (plugin_refresh)
-{
-    UZBL_UNUSED (argv);
-    UZBL_UNUSED (result);
-
-    WebKitWebPluginDatabase *db = webkit_get_web_plugin_database ();
-    webkit_web_plugin_database_refresh (db);
-}
-
-static void
-plugin_toggle_one (WebKitWebPlugin *plugin, const gchar *name);
-
-IMPLEMENT_COMMAND (plugin_toggle)
-{
-    UZBL_UNUSED (result);
-
-    WebKitWebPluginDatabase *db = webkit_get_web_plugin_database ();
-    GSList *plugins = webkit_web_plugin_database_get_plugins (db);
-
-    if (argv->len == 0) {
-        g_slist_foreach (plugins, (GFunc)plugin_toggle_one, NULL);
-    } else {
-        guint i;
-        for (i = 0; i < argv->len; ++i) {
-            const gchar *plugin_name = argv_idx (argv, i);
-
-            g_slist_foreach (plugins, (GFunc)plugin_toggle_one, &plugin_name);
-        }
-    }
-
-    webkit_web_plugin_database_plugins_list_free (plugins);
-}
-#endif
 
 #if WEBKIT_CHECK_VERSION (1, 5, 1)
 IMPLEMENT_COMMAND (spell_checker)
@@ -1330,10 +1352,13 @@ IMPLEMENT_COMMAND (event)
     g_strfreev (split);
 }
 
-#if WEBKIT_CHECK_VERSION (1, 3, 8)
+#ifndef USE_WEBKIT2
+#ifdef HAVE_PLUGIN_API
 void
-plugin_toggle_one (WebKitWebPlugin *plugin, const gchar *name)
+plugin_toggle_one (WebKitWebPlugin *plugin, gpointer data)
 {
+    const gchar *name = (const gchar *)data;
+
     const gchar *plugin_name = webkit_web_plugin_get_name (plugin);
 
     if (!name || !g_strcmp0 (name, plugin_name)) {
@@ -1342,6 +1367,7 @@ plugin_toggle_one (WebKitWebPlugin *plugin, const gchar *name)
         webkit_web_plugin_set_enabled (plugin, !enabled);
     }
 }
+#endif
 #endif
 
 void
