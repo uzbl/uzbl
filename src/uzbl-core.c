@@ -144,8 +144,10 @@ uzbl_initialize (int argc, char **argv)
 #endif
 
     /* HTTP client. */
+#ifndef USE_WEBKIT2 /* FIXME: This seems important... */
     uzbl.net.soup_session = webkit_get_default_session ();
     uzbl_soup_init (uzbl.net.soup_session);
+#endif
 
     uzbl_variables_init ();
     uzbl_commands_init ();
@@ -397,8 +399,10 @@ clean_up ()
 
     uzbl_variables_free ();
 
-    g_object_unref (uzbl.net.soup_cookie_jar);
-    uzbl.net.soup_cookie_jar = NULL;
+    if (uzbl.net.soup_cookie_jar) {
+        g_object_unref (uzbl.net.soup_cookie_jar);
+        uzbl.net.soup_cookie_jar = NULL;
+    }
 }
 #endif
 
