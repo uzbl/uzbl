@@ -48,7 +48,9 @@ DECLARE_COMMAND (reload);
 DECLARE_COMMAND (reload_force);
 DECLARE_COMMAND (stop);
 DECLARE_COMMAND (uri);
+#ifndef USE_WEBKIT2
 DECLARE_COMMAND (auth);
+#endif
 DECLARE_COMMAND (download);
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 9, 90)
@@ -134,7 +136,9 @@ builtin_command_table[] =
     { "reload_ign_cache",               cmd_reload_force,             TRUE,  TRUE  }, /* TODO: Rename to "reload_force". */
     { "stop",                           cmd_stop,                     TRUE,  TRUE  },
     { "uri",                            cmd_uri,                      FALSE, TRUE  },
+#ifndef USE_WEBKIT2
     { "auth",                           cmd_auth,                     TRUE,  TRUE  },
+#endif
     { "download",                       cmd_download,                 TRUE,  TRUE  },
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 9, 90)
@@ -606,6 +610,7 @@ IMPLEMENT_COMMAND (uri)
     uzbl_variables_set ("uri", uri);
 }
 
+#ifndef USE_WEBKIT2 /* FIXME: Implement. */
 IMPLEMENT_COMMAND (auth)
 {
     UZBL_UNUSED (result);
@@ -622,6 +627,7 @@ IMPLEMENT_COMMAND (auth)
 
     uzbl_soup_authenticate (info, username, password);
 }
+#endif
 
 IMPLEMENT_COMMAND (download)
 {
