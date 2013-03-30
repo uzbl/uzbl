@@ -93,9 +93,15 @@ uzbl_initialize (int argc, char **argv)
     uzbl.state.selected_url    = NULL;
     uzbl.state.searchtx        = NULL;
 
+#ifdef USE_WEBKIT2
+    uzbl.info.webkit_major     = webkit_get_major_version ();
+    uzbl.info.webkit_minor     = webkit_get_minor_version ();
+    uzbl.info.webkit_micro     = webkit_get_micro_version ();
+#else
     uzbl.info.webkit_major     = webkit_major_version ();
     uzbl.info.webkit_minor     = webkit_minor_version ();
     uzbl.info.webkit_micro     = webkit_micro_version ();
+#endif
     uzbl.info.webkit2          =
 #ifdef USE_WEBKIT2
         TRUE
