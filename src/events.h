@@ -5,6 +5,7 @@
 
 #define UZBL_EVENTS(call)       \
     call (LOAD_START),          \
+    call (LOAD_REDIRECTED),     \
     call (LOAD_COMMIT),         \
     call (LOAD_FINISH),         \
     call (LOAD_ERROR),          \

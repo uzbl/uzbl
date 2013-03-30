@@ -118,15 +118,16 @@ title_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
 static void
 progress_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
 static void
-load_status_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
-static void
 uri_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
-static gboolean
-load_error_cb (WebKitWebView *view, WebKitWebFrame *frame, gchar *uri, gpointer web_err, gpointer data);
-static void
-window_object_cleared_cb (WebKitWebView *view, WebKitWebFrame *frame,
-        JSGlobalContextRef *context, JSObjectRef *object, gpointer data);
 /* Navigation events */
+#ifdef USE_WEBKIT2
+static gboolean
+decide_policy_cb (WebKitWebView *view, WebKitPolicyDecision *decision, WebKitPolicyDecisionType type, gpointer data);
+static void
+load_changed_cb (WebKitWebView *view, WebKitLoadEvent event, gpointer data);
+static gboolean
+load_failed_cb (WebKitWebView *view, WebKitLoadEvent event, gchar *uri, gpointer web_err, gpointer data);
+#else
 static gboolean
 navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
         WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action,
@@ -138,6 +139,14 @@ mime_policy_cb (WebKitWebView *view, WebKitWebFrame *frame,
 static void
 request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResource *resource,
         WebKitNetworkRequest *request, WebKitNetworkResponse *response, gpointer data);
+static void
+load_status_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
+static gboolean
+load_error_cb (WebKitWebView *view, WebKitWebFrame *frame, gchar *uri, gpointer web_err, gpointer data);
+static void
+window_object_cleared_cb (WebKitWebView *view, WebKitWebFrame *frame,
+        JSGlobalContextRef *context, JSObjectRef *object, gpointer data);
+#endif
 #ifdef USE_WEBKIT2
 static void
 download_cb (WebKitWebContext *context, WebKitDownload *download, gpointer data);
@@ -201,15 +210,19 @@ web_view_init (void)
         /* Page metadata events */
         "signal::notify::title",                        G_CALLBACK (title_change_cb),          NULL,
         "signal::notify::progress",                     G_CALLBACK (progress_change_cb),       NULL,
-        "signal::notify::load-status",                  G_CALLBACK (load_status_change_cb),    NULL,
         "signal::notify::uri",                          G_CALLBACK (uri_change_cb),            NULL,
-        "signal::load-error",                           G_CALLBACK (load_error_cb),            NULL,
-        "signal::window-object-cleared",                G_CALLBACK (window_object_cleared_cb), NULL,
         /* Navigation events */
+#ifdef USE_WEBKIT2
+        "signal::decide-policy",                        G_CALLBACK (decide_policy_cb),         NULL,
+        "signal::load-changed",                         G_CALLBACK (load_changed_cb),          NULL,
+        "signal::load-failed",                          G_CALLBACK (load_failed_cb),           NULL,
+#else
         "signal::navigation-policy-decision-requested", G_CALLBACK (navigation_decision_cb),   NULL,
         "signal::mime-type-policy-decision-requested",  G_CALLBACK (mime_policy_cb),           NULL,
         "signal::resource-request-starting",            G_CALLBACK (request_starting_cb),      NULL,
-#ifndef USE_WEBKIT2
+        "signal::notify::load-status",                  G_CALLBACK (load_status_change_cb),    NULL,
+        "signal::load-error",                           G_CALLBACK (load_error_cb),            NULL,
+        "signal::window-object-cleared",                G_CALLBACK (window_object_cleared_cb), NULL,
         "signal::download-requested",                   G_CALLBACK (download_cb),              NULL,
 #endif
         /* UI events */
@@ -515,47 +528,6 @@ progress_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
         NULL);
 }
 
-void
-load_status_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
-{
-    UZBL_UNUSED (param_spec);
-    UZBL_UNUSED (data);
-
-    WebKitLoadStatus status;
-
-    status = webkit_web_view_get_load_status (view);
-
-    switch (status) {
-        case WEBKIT_LOAD_PROVISIONAL:
-            uzbl_events_send (LOAD_START, NULL,
-                TYPE_STR, uzbl.state.uri ? uzbl.state.uri : "",
-                NULL);
-            break;
-        case WEBKIT_LOAD_COMMITTED:
-        {
-            WebKitWebFrame *frame = webkit_web_view_get_main_frame (view);
-            uzbl_events_send (LOAD_COMMIT, NULL,
-                TYPE_STR, webkit_web_frame_get_uri (frame),
-                NULL);
-            break;
-        }
-        case WEBKIT_LOAD_FINISHED:
-            uzbl_events_send (LOAD_FINISH, NULL,
-                TYPE_STR, uzbl.state.uri,
-                NULL);
-            break;
-        case WEBKIT_LOAD_FIRST_VISUALLY_NON_EMPTY_LAYOUT:
-            /* TODO: Implement. */
-            break;
-        case WEBKIT_LOAD_FAILED:
-            /* Handled by load_error_cb. */
-            break;
-        default:
-            uzbl_debug ("Unrecognized load status: %d\n", status);
-            break;
-    }
-}
-
 static void
 set_window_property (const gchar *prop, const gchar *value);
 
@@ -575,54 +547,84 @@ uri_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
     set_window_property ("UZBL_URI", uzbl.state.uri);
 }
 
+/* Navigation events */
+
+#ifdef USE_WEBKIT2
+typedef WebKitPolicyDecision WebKitWebPolicyDecision;
+typedef WebKitLoadEvent WebKitLoadStatus;
+#endif
+
+static gboolean
+navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri);
+static gboolean
+mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type);
+static void
+send_load_status (WebKitLoadStatus status, const gchar *uri);
+static gboolean
+send_load_error (const gchar *uri, GError *error);
+
+#ifdef USE_WEBKIT2
 gboolean
-load_error_cb (WebKitWebView *view, WebKitWebFrame *frame, gchar *uri, gpointer web_err, gpointer data)
+decide_policy_cb (WebKitWebView *view, WebKitPolicyDecision *decision, WebKitPolicyDecisionType type, gpointer data)
 {
     UZBL_UNUSED (view);
-    UZBL_UNUSED (frame);
     UZBL_UNUSED (data);
 
-    GError *err = web_err;
+    switch (type) {
+        case WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION:
+        {
+            WebKitNavigationPolicyDecision *nav_decision = WEBKIT_NAVIGATION_POLICY_DECISION (decision);
+            WebKitURIRequest *request = webkit_navigation_policy_decision_get_request (nav_decision);
+            const gchar *uri = webkit_uri_request_get_uri (request);
 
-    uzbl_events_send (LOAD_ERROR, NULL,
-        TYPE_STR, uri,
-        TYPE_INT, err->code,
-        TYPE_STR, err->message,
-        NULL);
+            return navigation_decision (decision, uri);
+        }
+        case WEBKIT_POLICY_DECISION_TYPE_NEW_WINDOW_ACTION:
+            /* TODO: What to do here? */
+            break;
+        case WEBKIT_POLICY_DECISION_TYPE_RESPONSE:
+        {
+            WebKitResponsePolicyDecision *response_decision = WEBKIT_RESPONSE_POLICY_DECISION (decision);
+            WebKitURIResponse *response = webkit_response_policy_decision_get_response (response_decision);
+            const gchar *mime_type = webkit_uri_response_get_mime_type (response);
+
+            return mime_decision (decision, mime_type);
+        }
+        default:
+            uzbl_debug ("Unrecognized policy decision: %d\n", type);
+            break;
+    }
 
     return FALSE;
 }
 
-#if WEBKIT_CHECK_VERSION (1, 3, 13)
-static void
-dom_focus_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data);
-static void
-dom_blur_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data);
-#endif
-
 void
-window_object_cleared_cb (WebKitWebView *view, WebKitWebFrame *frame,
-        JSGlobalContextRef *context, JSObjectRef *object, gpointer data)
+load_changed_cb (WebKitWebView *view, WebKitLoadEvent event, gpointer data)
 {
-    UZBL_UNUSED (frame);
-    UZBL_UNUSED (context);
-    UZBL_UNUSED (object);
     UZBL_UNUSED (data);
 
-#if WEBKIT_CHECK_VERSION (1, 3, 13)
-    /* Take this opportunity to set some callbacks on the DOM. */
-    WebKitDOMDocument *document = webkit_web_view_get_dom_document (view);
-    webkit_dom_event_target_add_event_listener (WEBKIT_DOM_EVENT_TARGET (document),
-        "focus", G_CALLBACK (dom_focus_cb), TRUE, NULL);
-    webkit_dom_event_target_add_event_listener (WEBKIT_DOM_EVENT_TARGET (document),
-        "blur",  G_CALLBACK (dom_blur_cb), TRUE, NULL);
-#else
-    UZBL_UNUSED (view);
-#endif
+    const gchar *uri = webkit_web_view_get_uri (view);
+
+    send_load_status (event, uri);
 }
 
+gboolean
+load_failed_cb (WebKitWebView *view, WebKitLoadEvent event, gchar *uri, gpointer web_err, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (event);
+    UZBL_UNUSED (data);
 
-/* Navigation events */
+    uzbl.state.load_failed = TRUE;
+
+    /* TODO: Use event for a better message? */
+
+    GError *err = (GError *)web_err;
+
+    return send_load_error (uri, err);
+}
+
+#else
 
 gboolean
 navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
@@ -635,39 +637,8 @@ navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
     UZBL_UNUSED (data);
 
     const gchar *uri = webkit_network_request_get_uri (request);
-    gboolean decision_made = FALSE;
 
-    uzbl_debug ("Navigation requested -> %s\n", uri);
-
-    if (uzbl.behave.scheme_handler) {
-        GString *result = g_string_new ("");
-        GArray *args = uzbl_commands_args_new ();
-        const UzblCommand *scheme_command = uzbl_commands_parse (uzbl.behave.scheme_handler, args);
-
-        if (scheme_command) {
-            uzbl_commands_args_append (args, g_strdup (uri));
-            uzbl_commands_run_parsed (scheme_command, args, result);
-        }
-
-        uzbl_commands_args_free (args);
-
-        if (result->len > 0) {
-            remove_trailing_newline (result->str);
-
-            if (!g_strcmp0 (result->str, "USED")) {
-                webkit_web_policy_decision_ignore (policy_decision);
-                decision_made = TRUE;
-            }
-        }
-
-        g_string_free (result, TRUE);
-    }
-
-    if (!decision_made) {
-        webkit_web_policy_decision_use (policy_decision);
-    }
-
-    return TRUE;
+    return navigation_decision (policy_decision, uri);
 }
 
 gboolean
@@ -675,23 +646,13 @@ mime_policy_cb (WebKitWebView *view, WebKitWebFrame *frame,
         WebKitNetworkRequest *request, gchar *mime_type,
         WebKitWebPolicyDecision *policy_decision, gpointer data)
 {
+    UZBL_UNUSED (view);
     UZBL_UNUSED (frame);
     UZBL_UNUSED (request);
     UZBL_UNUSED (data);
 
-    /* TODO: Ignore based on external filter program? */
-
-    /* If we can display it, let's display it... */
-    if (webkit_web_view_can_show_mime_type (view, mime_type)) {
-        webkit_web_policy_decision_use (policy_decision);
-    } else {
-        /* ...everything we can't display is downloaded. */
-        webkit_web_policy_decision_download (policy_decision);
-    }
-
-    return TRUE;
+    return mime_decision (WEBKIT_WEB_POLICY_DECISION (policy_decision), mime_type);
 }
-
 
 void
 request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResource *resource,
@@ -737,6 +698,58 @@ request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResour
         g_string_free (result, TRUE);
     }
 }
+
+void
+load_status_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
+{
+    UZBL_UNUSED (param_spec);
+    UZBL_UNUSED (data);
+
+    WebKitLoadStatus status = webkit_web_view_get_load_status (view);
+
+    send_load_status (status, uzbl.state.uri);
+}
+
+gboolean
+load_error_cb (WebKitWebView *view, WebKitWebFrame *frame, gchar *uri, gpointer web_err, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (frame);
+    UZBL_UNUSED (data);
+
+    GError *err = (GError *)web_err;
+
+    return send_load_error (uri, err);
+}
+
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+static void
+dom_focus_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data);
+static void
+dom_blur_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data);
+#endif
+
+void
+window_object_cleared_cb (WebKitWebView *view, WebKitWebFrame *frame,
+        JSGlobalContextRef *context, JSObjectRef *object, gpointer data)
+{
+    UZBL_UNUSED (frame);
+    UZBL_UNUSED (context);
+    UZBL_UNUSED (object);
+    UZBL_UNUSED (data);
+
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+    /* Take this opportunity to set some callbacks on the DOM. */
+    WebKitDOMDocument *document = webkit_web_view_get_dom_document (view);
+    webkit_dom_event_target_add_event_listener (WEBKIT_DOM_EVENT_TARGET (document),
+        "focus", G_CALLBACK (dom_focus_cb), TRUE, NULL);
+    webkit_dom_event_target_add_event_listener (WEBKIT_DOM_EVENT_TARGET (document),
+        "blur",  G_CALLBACK (dom_blur_cb), TRUE, NULL);
+#else
+    UZBL_UNUSED (view);
+#endif
+}
+#endif
 
 #ifdef USE_WEBKIT2
 static void
@@ -1105,6 +1118,139 @@ set_window_property (const gchar *prop, const gchar *value)
     }
 }
 
+gboolean
+navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri)
+{
+    gboolean decision_made = FALSE;
+
+    uzbl_debug ("Navigation requested -> %s\n", uri);
+
+    if (uzbl.behave.scheme_handler) {
+        GString *result = g_string_new ("");
+        GArray *args = uzbl_commands_args_new ();
+        const UzblCommand *scheme_command = uzbl_commands_parse (uzbl.behave.scheme_handler, args);
+
+        if (scheme_command) {
+            uzbl_commands_args_append (args, g_strdup (uri));
+            uzbl_commands_run_parsed (scheme_command, args, result);
+        }
+
+        uzbl_commands_args_free (args);
+
+        if (result->len > 0) {
+            remove_trailing_newline (result->str);
+
+            if (!g_strcmp0 (result->str, "USED")) {
+#ifdef USE_WEBKIT2
+                webkit_policy_decision_ignore (decision);
+#else
+                webkit_web_policy_decision_ignore (decision);
+#endif
+                decision_made = TRUE;
+            }
+        }
+
+        g_string_free (result, TRUE);
+    }
+
+    if (!decision_made) {
+#ifdef USE_WEBKIT2
+        webkit_policy_decision_use (decision);
+#else
+        webkit_web_policy_decision_use (decision);
+#endif
+    }
+
+    return TRUE;
+}
+
+gboolean
+mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type)
+{
+    /* TODO: Ignore based on external filter program? */
+
+    /* If we can display it, let's display it... */
+    if (webkit_web_view_can_show_mime_type (uzbl.gui.web_view, mime_type)) {
+#ifdef USE_WEBKIT2
+        webkit_policy_decision_use (decision);
+#else
+        webkit_web_policy_decision_use (decision);
+#endif
+    } else {
+        /* ...everything we can't display is downloaded. */
+#ifdef USE_WEBKIT2
+        /* TODO: Ignore the request and use our download logic. */
+        webkit_policy_decision_download (decision);
+#else
+        webkit_web_policy_decision_download (decision);
+#endif
+    }
+
+    return TRUE;
+}
+
+void
+send_load_status (WebKitLoadStatus status, const gchar *uri)
+{
+    switch (status) {
+#ifdef USE_WEBKIT2
+        case WEBKIT_LOAD_STARTED:
+#else
+        case WEBKIT_LOAD_PROVISIONAL:
+#endif
+            uzbl_events_send (LOAD_START, NULL,
+                TYPE_STR, uri ? uri : "",
+                NULL);
+            break;
+#ifdef USE_WEBKIT2
+        case WEBKIT_LOAD_REDIRECTED:
+            uzbl_events_send (LOAD_REDIRECTED, NULL,
+                TYPE_STR, uri,
+                NULL);
+            break;
+#else
+        case WEBKIT_LOAD_FIRST_VISUALLY_NON_EMPTY_LAYOUT:
+            /* TODO: Implement. */
+            break;
+        case WEBKIT_LOAD_FAILED:
+            /* Handled by load_error_cb. */
+            break;
+#endif
+        case WEBKIT_LOAD_COMMITTED:
+            uzbl_events_send (LOAD_COMMIT, NULL,
+                TYPE_STR, uri,
+                NULL);
+            break;
+        case WEBKIT_LOAD_FINISHED:
+#ifdef USE_WEBKIT2
+            if (uzbl.state.load_failed) {
+                uzbl.state.load_failed = FALSE;
+                break;
+            }
+#endif
+            uzbl_events_send (LOAD_FINISH, NULL,
+                TYPE_STR, uri,
+                NULL);
+            break;
+        default:
+            uzbl_debug ("Unrecognized load status: %d\n", status);
+            break;
+    }
+}
+
+gboolean
+send_load_error (const gchar *uri, GError *error)
+{
+    uzbl_events_send (LOAD_ERROR, NULL,
+        TYPE_STR, uri,
+        TYPE_INT, error->code,
+        TYPE_STR, error->message,
+        NULL);
+
+    return FALSE;
+}
+
+#ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
 void
 dom_focus_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data)
@@ -1133,6 +1279,7 @@ dom_blur_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data)
         TYPE_STR, name,
         NULL);
 }
+#endif
 #endif
 
 static gboolean
