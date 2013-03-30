@@ -92,14 +92,18 @@ DECLARE_SETTER (gchar *, fifo_dir);
 DECLARE_SETTER (gchar *, socket_dir);
 
 /* Handler variables */
+#ifndef USE_WEBKIT2
 DECLARE_GETSET (int, enable_builtin_auth);
+#endif
 
 /* Window variables */
 DECLARE_GETSET (gchar *, geometry);
 DECLARE_SETTER (gchar *, icon);
 DECLARE_SETTER (gchar *, icon_name);
 DECLARE_GETSET (gchar *, window_role);
+#ifndef USE_WEBKIT2
 DECLARE_GETSET (int, auto_resize_window);
+#endif
 
 /* UI variables */
 DECLARE_GETSET (int, show_status);
@@ -107,7 +111,9 @@ DECLARE_SETTER (int, status_top);
 DECLARE_SETTER (gchar *, status_background);
 
 /* Customization */
+#ifndef USE_WEBKIT2
 DECLARE_GETSET (gchar *, stylesheet_uri);
+#endif
 #if !WEBKIT_CHECK_VERSION (1, 9, 0)
 DECLARE_GETSET (int, default_context_menu);
 #endif
@@ -116,32 +122,40 @@ DECLARE_GETSET (int, default_context_menu);
 DECLARE_GETSET (int, print_backgrounds);
 
 /* Network variables */
+#ifndef USE_WEBKIT2
 DECLARE_SETTER (gchar *, proxy_url);
 DECLARE_SETTER (int, max_conns);
 DECLARE_SETTER (int, max_conns_host);
 DECLARE_SETTER (int, http_debug);
 DECLARE_GETSET (gchar *, ssl_ca_file);
 DECLARE_GETSET (int, ssl_verify);
+#endif
 DECLARE_GETSET (gchar *, cache_model);
 
 /* Security variables */
 DECLARE_GETSET (int, enable_private);
+#ifndef USE_WEBKIT2
 DECLARE_GETSET (int, enable_universal_file_access);
 DECLARE_GETSET (int, enable_cross_file_access);
+#endif
 DECLARE_GETSET (int, enable_hyperlink_auditing);
 DECLARE_GETSET (gchar *, cookie_policy);
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
 DECLARE_GETSET (int, enable_dns_prefetch);
 #endif
+#ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 11, 2)
 DECLARE_GETSET (int, display_insecure_content);
 DECLARE_GETSET (int, run_insecure_content);
 #endif
 DECLARE_SETTER (int, maintain_history);
+#endif
 
 /* Inspector variables */
+#ifndef USE_WEBKIT2
 DECLARE_GETSET (int, profile_js);
 DECLARE_GETSET (int, profile_timeline);
+#endif
 #if WEBKIT_CHECK_VERSION (1, 3, 17)
 DECLARE_GETTER (gchar *, inspected_uri);
 #endif
@@ -167,27 +181,37 @@ DECLARE_GETSET (int, enable_frame_flattening);
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
 DECLARE_GETSET (int, enable_smooth_scrolling);
 #endif
+#ifndef USE_WEBKIT2
 DECLARE_GETSET (int, transparent);
 #if WEBKIT_CHECK_VERSION (1, 3, 4)
 DECLARE_GETSET (gchar *, view_mode);
 #endif
+#endif
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
 DECLARE_GETSET (int, enable_fullscreen);
 #endif
+#ifndef USE_WEBKIT2
 DECLARE_GETSET (int, editable);
+#endif
 
 /* Javascript variables */
+#ifndef USE_WEBKIT2
 DECLARE_GETSET (int, enable_scripts);
+#endif
 DECLARE_GETSET (int, javascript_windows);
+#ifndef USE_WEBKIT2
 DECLARE_GETSET (int, javascript_dom_paste);
+#endif
 #if WEBKIT_CHECK_VERSION (1, 3, 0)
 DECLARE_GETSET (int, javascript_clipboard);
 #endif
 
 /* Image variables */
 DECLARE_GETSET (int, autoload_images);
+#ifndef USE_WEBKIT2
 DECLARE_GETSET (int, autoshrink_images);
 DECLARE_GETSET (int, use_image_orientation);
+#endif
 
 /* Spell checking variables */
 DECLARE_GETSET (int, enable_spellcheck);
@@ -195,15 +219,19 @@ DECLARE_GETSET (gchar *, spellcheck_languages);
 
 /* Form variables */
 DECLARE_GETSET (int, resizable_text_areas);
+#ifndef USE_WEBKIT2
 DECLARE_GETSET (int, enable_spatial_navigation);
 DECLARE_GETSET (int, editing_behavior);
+#endif
 DECLARE_GETSET (int, enable_tab_cycle);
 
 /* Text variables */
 DECLARE_GETSET (gchar *, default_encoding);
 DECLARE_GETSET (gchar *, custom_encoding);
-DECLARE_GETSET (int, enforce_96_dpi);
+#ifndef USE_WEBKIT2
 DECLARE_GETTER (gchar *, current_encoding);
+DECLARE_GETSET (int, enforce_96_dpi);
+#endif
 
 /* Font variables */
 DECLARE_GETSET (gchar *, default_font_family);
@@ -214,8 +242,10 @@ DECLARE_GETSET (gchar *, cursive_font_family);
 DECLARE_GETSET (gchar *, fantasy_font_family);
 
 /* Font size variables */
+#ifndef USE_WEBKIT2
 DECLARE_GETSET (int, minimum_font_size);
 DECLARE_GETSET (int, minimum_logical_font_size);
+#endif
 DECLARE_GETSET (int, font_size);
 DECLARE_GETSET (int, monospace_size);
 
@@ -231,16 +261,20 @@ DECLARE_GETSET (int, enable_webgl);
 #if WEBKIT_CHECK_VERSION (1, 7, 5)
 DECLARE_GETSET (int, enable_webaudio);
 #endif
+#ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 7, 90) /* Documentation says 1.7.5, but it's not there. */
 DECLARE_GETSET (int, enable_3d_acceleration);
+#endif
 #endif
 #if WEBKIT_CHECK_VERSION (1, 9, 3)
 DECLARE_GETSET (int, enable_inline_media);
 DECLARE_GETSET (int, require_click_to_play);
 #endif
+#ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 11, 1)
 DECLARE_GETSET (int, enable_css_shaders);
 DECLARE_GETSET (int, enable_media_stream);
+#endif
 #endif
 
 /* HTML5 Database variables */
@@ -248,6 +282,7 @@ DECLARE_GETSET (int, enable_database);
 DECLARE_GETSET (int, enable_local_storage);
 DECLARE_GETSET (int, enable_pagecache);
 DECLARE_GETSET (int, enable_offline_app_cache);
+#ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
 DECLARE_GETSET (unsigned long long, app_cache_size);
 DECLARE_GETTER (gchar *, app_cache_directory);
@@ -256,6 +291,7 @@ DECLARE_GETSET (gchar *, web_database_directory);
 DECLARE_GETSET (unsigned long long, web_database_quota);
 #if WEBKIT_CHECK_VERSION (1, 5, 2)
 DECLARE_GETSET (gchar *, local_storage_path);
+#endif
 #endif
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 11, 92)
@@ -289,14 +325,18 @@ builtin_variable_table[] = {
     { "request_handler",              UZBL_V_STRING (uzbl.behave.request_handler,          NULL)},
     { "download_handler",             UZBL_V_STRING (uzbl.behave.download_handler,         NULL)},
     { "shell_cmd",                    UZBL_V_STRING (uzbl.behave.shell_cmd,                NULL)},
+#ifndef USE_WEBKIT2
     { "enable_builtin_auth",          UZBL_V_FUNC (enable_builtin_auth,                    INT)},
+#endif
 
     /* Window variables */
     { "geometry",                     UZBL_V_FUNC (geometry,                               STR)},
     { "icon",                         UZBL_V_STRING (uzbl.gui.icon,                        set_icon)},
     { "icon_name",                    UZBL_V_STRING (uzbl.gui.icon_name,                   set_icon_name)},
     { "window_role",                  UZBL_V_FUNC (window_role,                            STR)},
+#ifndef USE_WEBKIT2
     { "auto_resize_window",           UZBL_V_FUNC (auto_resize_window,                     INT)},
+#endif
 
     /* UI variables */
     { "show_status",                  UZBL_V_FUNC (show_status,                            INT)},
@@ -308,7 +348,9 @@ builtin_variable_table[] = {
     { "title_format_short",           UZBL_V_STRING (uzbl.behave.title_format_short,       NULL)},
 
     /* Customization */
+#ifndef USE_WEBKIT2
     { "stylesheet_uri",               UZBL_V_FUNC (stylesheet_uri,                         STR)},
+#endif
     { "default_context_menu",
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
                                       UZBL_V_INT (uzbl.gui.custom_context_menu,            NULL)
@@ -321,32 +363,40 @@ builtin_variable_table[] = {
     { "print_backgrounds",            UZBL_V_FUNC (print_backgrounds,                      INT)},
 
     /* Network variables */
+#ifndef USE_WEBKIT2
     { "proxy_url",                    UZBL_V_STRING (uzbl.net.proxy_url,                   set_proxy_url)},
     { "max_conns",                    UZBL_V_INT (uzbl.net.max_conns,                      set_max_conns)},
     { "max_conns_host",               UZBL_V_INT (uzbl.net.max_conns_host,                 set_max_conns_host)},
     { "http_debug",                   UZBL_V_INT (uzbl.behave.http_debug,                  set_http_debug)},
     { "ssl_ca_file",                  UZBL_V_FUNC (ssl_ca_file,                            STR)},
     { "ssl_verify",                   UZBL_V_FUNC (ssl_verify,                             INT)},
+#endif
     { "cache_model",                  UZBL_V_FUNC (cache_model,                            STR)},
 
     /* Security variables */
     { "enable_private",               UZBL_V_FUNC (enable_private,                         INT)},
+#ifndef USE_WEBKIT2
     { "enable_universal_file_access", UZBL_V_FUNC (enable_universal_file_access,           INT)},
     { "enable_cross_file_access",     UZBL_V_FUNC (enable_cross_file_access,               INT)},
+#endif
     { "enable_hyperlink_auditing",    UZBL_V_FUNC (enable_hyperlink_auditing,              INT)},
     { "cookie_policy",                UZBL_V_FUNC (cookie_policy,                          STR)},
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
     { "enable_dns_prefetch",          UZBL_V_FUNC (enable_dns_prefetch,                    INT)},
 #endif
+#ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 11, 2)
     { "display_insecure_content",     UZBL_V_FUNC (display_insecure_content,               INT)},
     { "run_insecure_content",         UZBL_V_FUNC (run_insecure_content,                   INT)},
 #endif
     { "maintain_history",             UZBL_V_INT (uzbl.behave.maintain_history,            set_maintain_history)},
+#endif
 
     /* Inspector variables */
+#ifndef USE_WEBKIT2
     { "profile_js",                   UZBL_V_FUNC (profile_js,                             INT)},
     { "profile_timeline",             UZBL_V_FUNC (profile_timeline,                       INT)},
+#endif
 #if WEBKIT_CHECK_VERSION (1, 3, 17)
     { "inspected_uri",                UZBL_C_FUNC (inspected_uri,                          STR)},
 #endif
@@ -374,27 +424,37 @@ builtin_variable_table[] = {
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
     { "enable_smooth_scrolling",      UZBL_V_FUNC (enable_smooth_scrolling,                INT)},
 #endif
+#ifndef USE_WEBKIT2
     { "transparent",                  UZBL_V_FUNC (transparent,                            INT)},
 #if WEBKIT_CHECK_VERSION (1, 3, 4)
     { "view_mode",                    UZBL_V_FUNC (view_mode,                              STR)},
 #endif
+#endif
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
     { "enable_fullscreen",            UZBL_V_FUNC (enable_fullscreen,                      INT)},
 #endif
+#ifndef USE_WEBKIT2
     { "editable",                     UZBL_V_FUNC (editable,                               INT)},
+#endif
 
     /* Javascript variables */
+#ifndef USE_WEBKIT2
     { "enable_scripts",               UZBL_V_FUNC (enable_scripts,                         INT)},
+#endif
     { "javascript_windows",           UZBL_V_FUNC (javascript_windows,                     INT)},
+#ifndef USE_WEBKIT2
     { "javascript_dom_paste",         UZBL_V_FUNC (javascript_dom_paste,                   INT)},
+#endif
 #if WEBKIT_CHECK_VERSION (1, 3, 0)
     { "javascript_clipboard",         UZBL_V_FUNC (javascript_clipboard,                   INT)},
 #endif
 
     /* Image variables */
     { "autoload_images",              UZBL_V_FUNC (autoload_images,                        INT)},
+#ifndef USE_WEBKIT2
     { "autoshrink_images",            UZBL_V_FUNC (autoshrink_images,                      INT)},
-    { "use_image_orientation",        UZBL_V_FUNC (use_image_orientation,                      INT)},
+    { "use_image_orientation",        UZBL_V_FUNC (use_image_orientation,                  INT)},
+#endif
 
     /* Spell checking variables */
     { "enable_spellcheck",            UZBL_V_FUNC (enable_spellcheck,                      INT)},
@@ -402,15 +462,19 @@ builtin_variable_table[] = {
 
     /* Form variables */
     { "resizable_text_areas",         UZBL_V_FUNC (resizable_text_areas,                   INT)},
+#ifndef USE_WEBKIT2
     { "enable_spatial_navigation",    UZBL_V_FUNC (enable_spatial_navigation,              INT)},
     { "editing_behavior",             UZBL_V_FUNC (editing_behavior,                       INT)},
+#endif
     { "enable_tab_cycle",             UZBL_V_FUNC (enable_tab_cycle,                       INT)},
 
     /* Text variables */
     { "default_encoding",             UZBL_V_FUNC (default_encoding,                       STR)},
     { "custom_encoding",              UZBL_V_FUNC (custom_encoding,                        STR)},
-    { "enforce_96_dpi",               UZBL_V_FUNC (enforce_96_dpi,                         INT)},
+#ifndef USE_WEBKIT2
     { "current_encoding",             UZBL_C_FUNC (current_encoding,                       STR)},
+    { "enforce_96_dpi",               UZBL_V_FUNC (enforce_96_dpi,                         INT)},
+#endif
 
     /* Font variables */
     { "default_font_family",          UZBL_V_FUNC (default_font_family,                    STR)},
@@ -421,8 +485,10 @@ builtin_variable_table[] = {
     { "fantasy_font_family",          UZBL_V_FUNC (fantasy_font_family,                    STR)},
 
     /* Font size variables */
+#ifndef USE_WEBKIT2
     { "minimum_font_size",            UZBL_V_FUNC (minimum_font_size,                      INT)},
     { "minimum_logical_font_size",    UZBL_V_FUNC (minimum_logical_font_size,              INT)},
+#endif
     { "font_size",                    UZBL_V_FUNC (font_size,                              INT)},
     { "monospace_size",               UZBL_V_FUNC (monospace_size,                         INT)},
 
@@ -438,16 +504,20 @@ builtin_variable_table[] = {
 #if WEBKIT_CHECK_VERSION (1, 7, 5)
     { "enable_webaudio",              UZBL_V_FUNC (enable_webaudio,                        INT)},
 #endif
+#ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 7, 90) /* Documentation says 1.7.5, but it's not there. */
     { "enable_3d_acceleration",       UZBL_V_FUNC (enable_3d_acceleration,                 INT)},
+#endif
 #endif
 #if WEBKIT_CHECK_VERSION (1, 9, 3)
     { "enable_inline_media",          UZBL_V_FUNC (enable_inline_media,                    INT)},
     { "require_click_to_play",        UZBL_V_FUNC (require_click_to_play,                  INT)},
 #endif
+#ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 11, 1)
     { "enable_css_shaders",           UZBL_V_FUNC (enable_css_shaders,                     INT)},
     { "enable_media_stream",          UZBL_V_FUNC (enable_media_stream,                    INT)},
+#endif
 #endif
 
     /* HTML5 Database variables */
@@ -455,6 +525,7 @@ builtin_variable_table[] = {
     { "enable_local_storage",         UZBL_V_FUNC (enable_local_storage,                   INT)},
     { "enable_pagecache",             UZBL_V_FUNC (enable_pagecache,                       INT)},
     { "enable_offline_app_cache",     UZBL_V_FUNC (enable_offline_app_cache,               INT)},
+#ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
     { "app_cache_size",               UZBL_V_FUNC (app_cache_size,                         ULL)},
     { "app_cache_directory",          UZBL_C_FUNC (app_cache_directory,                    STR)},
@@ -463,6 +534,7 @@ builtin_variable_table[] = {
     { "web_database_quota",           UZBL_V_FUNC (web_database_quota,                     ULL)},
 #if WEBKIT_CHECK_VERSION (1, 5, 2)
     { "local_storage_path",           UZBL_V_FUNC (local_storage_path,                     STR)},
+#endif
 #endif
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 11, 92)
@@ -1310,12 +1382,14 @@ expand_type (const gchar *str)
 
 static GObject *
 webkit_settings ();
+#ifndef USE_WEBKIT2
 static GObject *
 soup_session ();
 static GObject *
 inspector ();
 static GObject *
 webkit_view ();
+#endif
 
 /* Communication variables */
 IMPLEMENT_SETTER (gchar *, fifo_dir)
@@ -1341,6 +1415,7 @@ IMPLEMENT_SETTER (gchar *, socket_dir)
 }
 
 /* Handler variables */
+#ifndef USE_WEBKIT2
 IMPLEMENT_GETTER (int, enable_builtin_auth)
 {
     SoupSessionFeature *auth = soup_session_get_feature (
@@ -1365,6 +1440,7 @@ IMPLEMENT_SETTER (int, enable_builtin_auth)
         }
     }
 }
+#endif
 
 /* Window variables */
 IMPLEMENT_GETTER (gchar *, geometry)
@@ -1475,8 +1551,10 @@ IMPLEMENT_SETTER (gchar *, window_role)
     gtk_window_set_role (GTK_WINDOW (uzbl.gui.main_window), window_role);
 }
 
+#ifndef USE_WEBKIT2
 GOBJECT_GETSET (int, auto_resize_window,
                 webkit_settings (), "auto-resize-window")
+#endif
 
 /* UI variables */
 IMPLEMENT_GETTER (int, show_status)
@@ -1549,8 +1627,10 @@ IMPLEMENT_SETTER (char *, status_background)
 }
 
 /* Customization */
+#ifndef USE_WEBKIT2
 GOBJECT_GETSET (gchar *, stylesheet_uri,
                 webkit_settings (), "user-stylesheet-uri")
+#endif
 
 #if !WEBKIT_CHECK_VERSION (1, 9, 0)
 GOBJECT_GETSET (int, default_context_menu,
@@ -1562,6 +1642,7 @@ GOBJECT_GETSET (int, print_backgrounds,
                 webkit_settings (), "print-backgrounds")
 
 /* Network variables */
+#ifndef USE_WEBKIT2
 IMPLEMENT_SETTER (gchar *, proxy_url)
 {
     g_free (uzbl.net.proxy_url);
@@ -1629,10 +1710,11 @@ GOBJECT_GETSET (gchar *, ssl_ca_file,
 
 GOBJECT_GETSET (int, ssl_verify,
                 soup_session (), "ssl-strict")
+#endif
 
 #define cache_model_choices(call)                                 \
     call (WEBKIT_CACHE_MODEL_DOCUMENT_VIEWER , "document_viewer") \
-    call (WEBKIT_CACHE_MODEL_WEB_BROWSER,      "web_browser")     \
+    call (WEBKIT_CACHE_MODEL_WEB_BROWSER, "web_browser")          \
     call (WEBKIT_CACHE_MODEL_DOCUMENT_BROWSER, "document_browser")
 
 CHOICE_GETSET (WebKitCacheModel, cache_model,
@@ -1664,11 +1746,13 @@ IMPLEMENT_SETTER (int, enable_private)
 GOBJECT_GETSET (int, enable_private_webkit,
                 webkit_settings (), "enable-private-browsing")
 
+#ifndef USE_WEBKIT2
 GOBJECT_GETSET (int, enable_universal_file_access,
                 webkit_settings (), "enable-universal-access-from-file-uris")
 
 GOBJECT_GETSET (int, enable_cross_file_access,
                 webkit_settings (), "enable-file-access-from-file-uris")
+#endif
 
 GOBJECT_GETSET (int, enable_hyperlink_auditing,
                 webkit_settings (), "enable-hyperlink-auditing")
@@ -1688,6 +1772,7 @@ CHOICE_GETSET (SoupCookieJarAcceptPolicy, cookie_policy,
 
 #undef _soup_cookie_jar_get_accept_policy
 #undef _soup_cookie_jar_set_accept_policy
+
 #undef cookie_policy_choices
 
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
@@ -1695,6 +1780,7 @@ GOBJECT_GETSET (int, enable_dns_prefetch,
                 webkit_settings (), "enable-dns-prefetching")
 #endif
 
+#ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 11, 2)
 GOBJECT_GETSET (int, display_insecure_content,
                 webkit_settings (), "enable-display-of-insecure-content")
@@ -1709,13 +1795,16 @@ IMPLEMENT_SETTER (int, maintain_history)
 
     webkit_web_view_set_maintains_back_forward_list (uzbl.gui.web_view, maintain_history);
 }
+#endif
 
 /* Inspector variables */
+#ifndef USE_WEBKIT2
 GOBJECT_GETSET (int, profile_js,
                 inspector (), "javascript-profiling-enabled")
 
 GOBJECT_GETSET (int, profile_timeline,
                 inspector (), "timeline-profiling-enabled")
+#endif
 
 #if WEBKIT_CHECK_VERSION (1, 3, 17)
 IMPLEMENT_GETTER (gchar *, inspected_uri)
@@ -1770,9 +1859,11 @@ IMPLEMENT_SETTER (gchar *, useragent)
     } else {
         uzbl.net.useragent = g_strdup (useragent);
 
+#ifndef USE_WEBKIT2
         g_object_set (G_OBJECT (uzbl.net.soup_session),
             SOUP_SESSION_USER_AGENT, uzbl.net.useragent,
             NULL);
+#endif
         g_object_set (webkit_settings (),
             "user-agent", uzbl.net.useragent,
             NULL);
@@ -1788,9 +1879,11 @@ IMPLEMENT_SETTER (gchar *, accept_languages)
     } else {
         uzbl.net.accept_languages = g_strdup (accept_languages);
 
+#ifndef USE_WEBKIT2
         g_object_set (G_OBJECT (uzbl.net.soup_session),
             SOUP_SESSION_ACCEPT_LANGUAGE, uzbl.net.accept_languages,
             NULL);
+#endif
     }
 }
 
@@ -1843,6 +1936,7 @@ GOBJECT_GETSET (int, enable_smooth_scrolling,
                 webkit_settings (), "enable-smooth-scrolling")
 #endif
 
+#ifndef USE_WEBKIT2
 GOBJECT_GETSET (int, transparent,
                 webkit_view (), "transparent")
 
@@ -1864,7 +1958,9 @@ CHOICE_GETSET (WebKitWebViewViewMode, view_mode,
 
 #undef _webkit_web_view_get_view_mode
 #undef _webkit_web_view_set_view_mode
+
 #undef view_mode_choices
+#endif
 #endif
 
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
@@ -1872,18 +1968,24 @@ GOBJECT_GETSET (int, enable_fullscreen,
                 webkit_settings (), "enable-fullscreen")
 #endif
 
+#ifndef USE_WEBKIT2
 GOBJECT_GETSET (int, editable,
                 webkit_view (), "editable")
+#endif
 
 /* Javascript variables */
+#ifndef USE_WEBKIT2
 GOBJECT_GETSET (int, enable_scripts,
                 webkit_settings (), "enable-scripts")
+#endif
 
 GOBJECT_GETSET (int, javascript_windows,
                 webkit_settings (), "javascript-can-open-windows-automatically")
 
+#ifndef USE_WEBKIT2
 GOBJECT_GETSET (int, javascript_dom_paste,
                 webkit_settings (), "enable-dom-paste")
+#endif
 
 #if WEBKIT_CHECK_VERSION (1, 3, 0)
 GOBJECT_GETSET (int, javascript_clipboard,
@@ -1894,11 +1996,13 @@ GOBJECT_GETSET (int, javascript_clipboard,
 GOBJECT_GETSET (int, autoload_images,
                 webkit_settings (), "auto-load-images")
 
+#ifndef USE_WEBKIT2
 GOBJECT_GETSET (int, autoshrink_images,
                 webkit_settings (), "auto-shrink-images")
 
 GOBJECT_GETSET (int, use_image_orientation,
                 webkit_settings (), "respect-image-orientation")
+#endif
 
 /* Spell checking variables */
 GOBJECT_GETSET (int, enable_spellcheck,
@@ -1925,11 +2029,13 @@ IMPLEMENT_SETTER (gchar *, spellcheck_languages)
     "spell-checking-languages", spellcheck_languages,
     NULL);
 }
+#endif
 
 /* Form variables */
 GOBJECT_GETSET (int, resizable_text_areas,
                 webkit_settings (), "resizable-text-areas")
 
+#ifndef USE_WEBKIT2
 GOBJECT_GETSET (int, enable_spatial_navigation,
                 webkit_settings (), "enable-spatial-navigation")
 
@@ -1943,13 +2049,14 @@ GOBJECT_GETSET (int, editing_behavior,
                 webkit_settings (), "editing-behavior")
 
 #undef editing_behavior_choices
+#endif
 
 GOBJECT_GETSET (int, enable_tab_cycle,
                 webkit_settings (), "tab-key-cycles-through-elements")
 
 /* Text variables */
 GOBJECT_GETSET (gchar *, default_encoding,
-                webkit_settings (), "default_encoding")
+                webkit_settings (), "default-encoding")
 
 IMPLEMENT_GETTER (gchar *, custom_encoding)
 {
@@ -1966,14 +2073,16 @@ IMPLEMENT_SETTER (gchar *, custom_encoding)
     webkit_web_view_set_custom_encoding (uzbl.gui.web_view, custom_encoding);
 }
 
-GOBJECT_GETSET (int, enforce_96_dpi,
-                webkit_settings (), "enforce-96-dpi")
-
+#ifndef USE_WEBKIT2
 IMPLEMENT_GETTER (gchar *, current_encoding)
 {
     const gchar *encoding = webkit_web_view_get_encoding (uzbl.gui.web_view);
     return g_strdup (encoding);
 }
+
+GOBJECT_GETSET (int, enforce_96_dpi,
+                webkit_settings (), "enforce-96-dpi")
+#endif
 
 /* Font variables */
 GOBJECT_GETSET (gchar *, default_font_family,
@@ -1995,11 +2104,13 @@ GOBJECT_GETSET (gchar *, fantasy_font_family,
                 webkit_settings (), "fantasy-font-family")
 
 /* Font size variables */
+#ifndef USE_WEBKIT2
 GOBJECT_GETSET (int, minimum_font_size,
                 webkit_settings (), "minimum-font-size")
 
 GOBJECT_GETSET (int, minimum_logical_font_size,
                 webkit_settings (), "minimum-logical-font-size")
+#endif
 
 GOBJECT_GETSET (int, font_size,
                 webkit_settings (), "default-font-size")
@@ -2203,9 +2314,11 @@ GOBJECT_GETSET (int, enable_webaudio,
                 webkit_settings (), "enable-webaudio")
 #endif
 
+#ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 7, 90) /* Documentation says 1.7.5, but it's not there. */
 GOBJECT_GETSET (int, enable_3d_acceleration,
                 webkit_settings (), "enable-accelerated-compositing")
+#endif
 #endif
 
 #if WEBKIT_CHECK_VERSION (1, 9, 3)
@@ -2216,12 +2329,14 @@ GOBJECT_GETSET (int, require_click_to_play,
                 webkit_settings (), "media-playback-requires-user-gesture")
 #endif
 
+#ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 11, 1)
 GOBJECT_GETSET (int, enable_css_shaders,
                 webkit_settings (), "enable-css-shaders")
 
 GOBJECT_GETSET (int, enable_media_stream,
                 webkit_settings (), "enable-media-stream")
+#endif
 #endif
 
 /* HTML5 Database variables */
@@ -2237,6 +2352,7 @@ GOBJECT_GETSET (int, enable_pagecache,
 GOBJECT_GETSET (int, enable_offline_app_cache,
                 webkit_settings (), "enable-offline-web-application-cache")
 
+#ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
 IMPLEMENT_GETTER (unsigned long long, app_cache_size)
 {
@@ -2278,6 +2394,7 @@ IMPLEMENT_SETTER (unsigned long long, web_database_quota)
 GOBJECT_GETSET (gchar *, local_storage_path,
                 webkit_settings (), "html5-local-storage-database-path")
 #endif
+#endif
 
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 11, 92)
@@ -2317,6 +2434,7 @@ webkit_settings ()
     return G_OBJECT (webkit_web_view_get_settings (uzbl.gui.web_view));
 }
 
+#ifndef USE_WEBKIT2
 GObject *
 soup_session ()
 {
@@ -2334,6 +2452,7 @@ webkit_view ()
 {
     return G_OBJECT (uzbl.gui.web_view);
 }
+#endif
 
 static gboolean
 string_is_integer (const char *s);
