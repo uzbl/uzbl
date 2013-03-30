@@ -4,6 +4,7 @@
 #include "gui.h"
 #include "menu.h"
 #include "soup.h"
+#include "sync.h"
 #include "type.h"
 #include "util.h"
 #include "uzbl-core.h"
@@ -715,21 +716,33 @@ IMPLEMENT_COMMAND (save)
 
     if (!mode) {
         mode = WEBKIT_SAVE_MODE_MHTML;
-    } else if (!strcmp ("mhtml", mode_str)) {
+    } else if (!g_strcmp0 ("mhtml", mode_str)) {
         mode = WEBKIT_SAVE_MODE_MHTML;
+    } else {
+        uzbl_debug ("Unrecognized save format: %s\n", mode_str);
     }
 
-    if (sz > 1) {
+    UzblSyncData *data = uzbl_sync_data_new ();
+    GError *err = NULL;
+
+    if (1 < sz) {
         const gchar *path = argv_idx (argv, 1);
         GFile *gfile = g_file_new_for_path (path);
 
-        webkit_web_view_save_to_file (page, gfile, mode, NULL, NULL, NULL);
-        /* TODO: Don't ignore the error. */
-        webkit_web_view_save_to_file_finish (page, NULL, NULL);
+        uzbl_sync_call_void (data, uzbl.gui.web_view, err,
+                             webkit_web_view_save_to_file,
+                             gfile, mode);
     } else {
-        webkit_web_view_save (page, mode, NULL, NULL, NULL);
+        uzbl_sync_call_void (data, uzbl.gui.web_view, err,
+                             webkit_web_view_save,
+                             mode);
+    }
+
+    uzbl_sync_data_free (data);
+
+    if (err) {
         /* TODO: Don't ignore the error. */
-        webkit_web_view_save_finish (page, NULL, NULL);
+        g_error_free (err);
     }
 }
 #endif
