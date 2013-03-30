@@ -165,7 +165,7 @@ builtin_command_table[] =
 #ifndef USE_WEBKIT2
     { "remove_all_db",                  cmd_remove_all_db,            TRUE,  TRUE  },
 #if WEBKIT_CHECK_VERSION (1, 5, 1)
-    { "spell_checker",                  cmd_spell_checker,            FALSE, TRUE  },
+    { "spell_checker",                  cmd_spell_checker,            TRUE,  TRUE  },
 #endif
 #endif
 
@@ -1047,8 +1047,6 @@ IMPLEMENT_COMMAND (spell_checker)
     const gchar *command = argv_idx (argv, 0);
 
     if (!g_strcmp0 (command, "ignore")) {
-        ARG_CHECK (argv, 2);
-
         guint i;
         for (i = 1; i < argv->len; ++i) {
             const gchar *word = argv_idx (argv, i);
@@ -1056,8 +1054,6 @@ IMPLEMENT_COMMAND (spell_checker)
             webkit_spell_checker_ignore_word (checker, word);
         }
     } else if (!g_strcmp0 (command, "learn")) {
-        ARG_CHECK (argv, 2);
-
         guint i;
         for (i = 1; i < argv->len; ++i) {
             const gchar *word = argv_idx (argv, i);
@@ -1076,6 +1072,8 @@ IMPLEMENT_COMMAND (spell_checker)
         free (new_word);
     } else if (!g_strcmp0 (command, "guesses")) {
         /* TODO Implement. */
+    } else {
+        uzbl_debug ("Unrecognized spell_checker command: %s\n", command);
     }
 }
 #endif
