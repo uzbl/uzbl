@@ -91,6 +91,10 @@ DECLARE_COMMAND (remove_all_db);
 DECLARE_COMMAND (spell_checker);
 #endif
 #endif
+#ifdef USE_WEBKIT2
+DECLARE_COMMAND (cache);
+DECLARE_COMMAND (favicon);
+#endif
 
 /* Search commands */
 DECLARE_COMMAND (search_forward);
@@ -167,6 +171,10 @@ builtin_command_table[] =
 #if WEBKIT_CHECK_VERSION (1, 5, 1)
     { "spell_checker",                  cmd_spell_checker,            TRUE,  TRUE  },
 #endif
+#endif
+#ifdef USE_WEBKIT2
+    { "cache",                          cmd_cache,                    TRUE,  TRUE  },
+    { "favicon",                        cmd_favicon,                  TRUE,  TRUE  },
 #endif
 
     /* Menu commands */
@@ -1077,6 +1085,53 @@ IMPLEMENT_COMMAND (spell_checker)
     }
 }
 #endif
+#endif
+
+#ifdef USE_WEBKIT2
+IMPLEMENT_COMMAND (cache)
+{
+    UZBL_UNUSED (result);
+
+    ARG_CHECK (argv, 1);
+
+    const gchar *command = argv_idx (argv, 0);
+
+    if (!g_strcmp0 (command, "clear")) {
+        WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
+
+        webkit_web_context_clear_cache (context);
+    } else {
+        uzbl_debug ("Unrecognized cache command: %s\n", command);
+    }
+}
+
+IMPLEMENT_COMMAND (favicon)
+{
+    ARG_CHECK (argv, 1);
+
+    const gchar *command = argv_idx (argv, 0);
+
+    WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
+    WebKitFaviconDatabase *database = webkit_web_context_get_favicon_database (context);
+
+    if (!g_strcmp0 (command, "clear")) {
+        webkit_favicon_database_clear (database);
+    } else if (!g_strcmp0 (command, "where")) {
+        ARG_CHECK (argv, 2);
+
+        const gchar *uri = argv_idx (argv, 1);
+
+        gchar *favicon_uri = webkit_favicon_database_get_favicon_uri (database, uri);
+
+        g_string_assign (result, favicon_uri);
+
+        g_free (favicon_uri);
+    } else if (!g_strcmp0 (command, "save")) {
+        /* TODO: Implement. */
+    } else {
+        uzbl_debug ("Unrecognized favicon command: %s\n", command);
+    }
+}
 #endif
 
 /* Search commands */
