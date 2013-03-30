@@ -1979,8 +1979,7 @@ js_value_to_string (JSGlobalContextRef ctx, JSValueRef val)
 /* Make sure that the args string you pass can properly be interpreted (e.g.,
  * properly escaped against whitespace, quotes etc). */
 static gboolean
-run_system_command (const gchar *command, const gchar **args, const gboolean sync,
-                    char **output_stdout);
+run_system_command (GArray *args, const gboolean sync, char **output_stdout);
 
 void
 spawn (GArray *argv, GString *result, gboolean exec)
@@ -1989,7 +1988,6 @@ spawn (GArray *argv, GString *result, gboolean exec)
 
     ARG_CHECK (argv, 1);
 
-    const gchar **args = &g_array_index (argv, const gchar *, 1);
     const gchar *req_path = argv_idx (argv, 0);
 
     path = find_existing_file (req_path);
@@ -1999,8 +1997,18 @@ spawn (GArray *argv, GString *result, gboolean exec)
         return;
     }
 
+    GArray *args = uzbl_commands_args_new ();
+
+    uzbl_commands_args_append (args, path);
+
+    guint i;
+    for (i = 1; i < argv->len; ++i) {
+        const gchar *arg = argv_idx (argv, i);
+        uzbl_commands_args_append (args, g_strdup (arg));
+    }
+
     gchar *r = NULL;
-    run_system_command (path, args, result != NULL, result ? &r : NULL);
+    run_system_command (args, result != NULL, result ? &r : NULL);
     if (result) {
         g_string_assign (result, r);
         /* Run each line of output from the program as a command. */
@@ -2016,7 +2024,7 @@ spawn (GArray *argv, GString *result, gboolean exec)
     }
 
     g_free (r);
-    g_free (path);
+    uzbl_commands_args_free (args);
 }
 
 void
@@ -2038,53 +2046,39 @@ spawn_sh (GArray *argv, GString *result)
         uzbl_commands_args_append (sh_cmd, g_strdup (arg));
     }
 
-    const gchar *cmd = argv_idx (sh_cmd, 0);
-
+    gchar *r = NULL;
+    run_system_command (sh_cmd, result ? TRUE : FALSE, result ? &r : NULL);
     if (result) {
-        gchar *r = NULL;
-        run_system_command (cmd, (const gchar **)sh_cmd->data, TRUE, &r);
         g_string_assign (result, r);
-        g_free (r);
-    } else {
-        run_system_command (cmd, (const gchar **)sh_cmd->data, FALSE, NULL);
     }
 
+    g_free (r);
     uzbl_commands_args_free (sh_cmd);
 }
 
 gboolean
-run_system_command (const gchar *command, const gchar **args, const gboolean sync,
-                    char **output_stdout)
+run_system_command (GArray *args, const gboolean sync, char **output_stdout)
 {
     GError *err = NULL;
 
-    GArray *cmd_args = uzbl_commands_args_new ();
-    guint i;
-    guint len = g_strv_length ((gchar **)args);
-
-    uzbl_commands_args_append (cmd_args, g_strdup (command));
-
-    for (i = 0; i < len; ++i) {
-        uzbl_commands_args_append (cmd_args, g_strdup (args[i]));
-    }
-
     gboolean result;
     if (sync) {
-        if (*output_stdout) {
+        if (output_stdout && *output_stdout) {
             g_free (*output_stdout);
         }
 
-        result = g_spawn_sync (NULL, (gchar **)cmd_args->data, NULL, G_SPAWN_SEARCH_PATH,
+        result = g_spawn_sync (NULL, (gchar **)args->data, NULL, G_SPAWN_SEARCH_PATH,
                                NULL, NULL, output_stdout, NULL, NULL, &err);
     } else {
-        result = g_spawn_async (NULL, (gchar **)cmd_args->data, NULL, G_SPAWN_SEARCH_PATH,
+        result = g_spawn_async (NULL, (gchar **)args->data, NULL, G_SPAWN_SEARCH_PATH,
                                 NULL, NULL, NULL, &err);
     }
 
     if (uzbl.state.verbose) {
         GString *s = g_string_new ("spawned:");
-        for (i = 0; i < cmd_args->len; ++i) {
-            gchar *qarg = g_shell_quote (g_array_index (cmd_args, gchar*, i));
+        guint i;
+        for (i = 0; i < args->len; ++i) {
+            gchar *qarg = g_shell_quote (argv_idx (args, i));
             g_string_append_printf (s, " %s", qarg);
             g_free (qarg);
         }
@@ -2100,6 +2094,5 @@ run_system_command (const gchar *command, const gchar **args, const gboolean syn
         g_error_free (err);
     }
 
-    uzbl_commands_args_free (cmd_args);
     return result;
 }
