@@ -2165,21 +2165,21 @@ GOBJECT_GETTER (gchar *, spellcheck_languages,
 
 IMPLEMENT_SETTER (gchar *, spellcheck_languages)
 {
-  GObject *obj = webkit_get_text_checker ();
+    GObject *obj = webkit_get_text_checker ();
 
-  if (!obj) {
-      return;
-  }
-  if (!WEBKIT_IS_SPELL_CHECKER (obj)) {
-      return;
-  }
+    if (!obj) {
+        return;
+    }
+    if (!WEBKIT_IS_SPELL_CHECKER (obj)) {
+        return;
+    }
 
-  WebKitSpellChecker *checker = WEBKIT_SPELL_CHECKER (obj);
+    WebKitSpellChecker *checker = WEBKIT_SPELL_CHECKER (obj);
 
-  webkit_spell_checker_update_spell_checking_languages (checker, spellcheck_languages);
-  g_object_set (webkit_settings (),
-    "spell-checking-languages", spellcheck_languages,
-    NULL);
+    webkit_spell_checker_update_spell_checking_languages (checker, spellcheck_languages);
+    g_object_set (webkit_settings (),
+        "spell-checking-languages", spellcheck_languages,
+        NULL);
 }
 #endif
 
