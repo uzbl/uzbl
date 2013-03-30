@@ -1855,6 +1855,25 @@ GOBJECT_GETSET (int, enable_xss_auditing,
                 webkit_settings (), "enable-xss-auditor")
 #endif
 
+#ifdef USE_WEBKIT2
+#define cookie_policy_choices(call)                     \
+    call (WEBKIT_COOKIE_POLICY_ACCEPT_ALWAYS, "always") \
+    call (WEBKIT_COOKIE_POLICY_ACCEPT_NEVER, "never")   \
+    call (WEBKIT_COOKIE_POLICY_ACCEPT_NO_THIRD_PARTY, "first_party")
+
+static WebKitCookieAcceptPolicy
+cookie_policy ();
+
+#define _webkit_cookie_manager_set_accept_policy(val) \
+    webkit_cookie_manager_set_accept_policy (         \
+        webkit_web_context_get_cookie_manager (       \
+            webkit_web_view_get_context (uzbl.gui.web_view)), val)
+
+CHOICE_GETSET (WebKitCookieAcceptPolicy, cookie_policy,
+               cookie_policy, _webkit_cookie_manager_set_accept_policy)
+
+#undef _webkit_cookie_manager_set_accept_policy
+#else
 #define cookie_policy_choices(call)                \
     call (SOUP_COOKIE_JAR_ACCEPT_ALWAYS, "always") \
     call (SOUP_COOKIE_JAR_ACCEPT_NEVER, "never")   \
@@ -1870,6 +1889,7 @@ CHOICE_GETSET (SoupCookieJarAcceptPolicy, cookie_policy,
 
 #undef _soup_cookie_jar_get_accept_policy
 #undef _soup_cookie_jar_set_accept_policy
+#endif
 
 #undef cookie_policy_choices
 
@@ -2671,6 +2691,34 @@ object_get (GObject *obj, const gchar *prop)
         NULL);
 
     return val;
+}
+#endif
+
+#ifdef USE_WEBKIT2
+WebKitCookieAcceptPolicy
+cookie_policy ()
+{
+    WebKitCookieAcceptPolicy policy = WEBKIT_COOKIE_POLICY_ACCEPT_ALWAYS;
+
+#if 0 /* TODO: Seems to hang... */
+    UzblSyncData *data = uzbl_sync_data_new ();
+    GError *err = NULL;
+
+    WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
+    WebKitCookieManager *manager = webkit_web_context_get_cookie_manager (context);
+
+    uzbl_sync_call (data, policy, manager, err,
+                    webkit_cookie_manager_get_accept_policy);
+
+    uzbl_sync_data_free (data);
+
+    if (err) {
+        /* TODO: Output message. */
+        g_error_free (err);
+    }
+#endif
+
+    return policy;
 }
 #endif
 
