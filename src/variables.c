@@ -1088,7 +1088,7 @@ expand_impl (const gchar *str, UzblExpandStage stage)
 
                         GString *js_ret = g_string_new ("");
 
-                        GArray *tmp = g_array_new (TRUE, FALSE, sizeof (gchar *));
+                        GArray *tmp = uzbl_commands_args_new ();
 
                         if (*ret == '+') {
                             /* Read JS from file. */
@@ -1104,7 +1104,7 @@ expand_impl (const gchar *str, UzblExpandStage stage)
                             uzbl_commands_run_argv ("js", tmp, js_ret);
                         }
 
-                        g_array_free (tmp, TRUE);
+                        uzbl_commands_args_free (tmp);
 
                         if (js_ret->str) {
                             g_string_append (buf, js_ret->str);

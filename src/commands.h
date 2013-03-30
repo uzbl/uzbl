@@ -14,6 +14,13 @@ uzbl_commands_init ();
 void
 uzbl_commands_send_builtin_event ();
 
+GArray *
+uzbl_commands_args_new ();
+void
+uzbl_commands_args_append (GArray *argv, const gchar *arg);
+void
+uzbl_commands_args_free (GArray *argv);
+
 const UzblCommand *
 uzbl_commands_parse (const gchar *cmd, GArray *argv);
 void

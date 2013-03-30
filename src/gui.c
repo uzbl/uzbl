@@ -620,22 +620,15 @@ navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
 
     if (uzbl.behave.scheme_handler) {
         GString *result = g_string_new ("");
-        GArray *args = g_array_new (TRUE, FALSE, sizeof (gchar *));
+        GArray *args = uzbl_commands_args_new ();
         const UzblCommand *scheme_command = uzbl_commands_parse (uzbl.behave.scheme_handler, args);
 
-        gchar *uridup = NULL;
-
         if (scheme_command) {
-            uridup = g_strdup (uri);
-            g_array_append_val (args, uridup);
+            uzbl_commands_args_append (args, g_strdup (uri));
             uzbl_commands_run_parsed (scheme_command, args, result);
         }
 
-        while (args->len) {
-            g_free (argv_idx (args, args->len - 1));
-            g_array_remove_index (args, args->len - 1);
-        }
-        g_array_free (args, TRUE);
+        uzbl_commands_args_free (args);
 
         if (result->len > 0) {
             remove_trailing_newline (result->str);
@@ -759,33 +752,28 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
      * inaccurate, but there's nothing we can do about that. */
     unsigned int total_size = webkit_download_get_total_size (download);
 
-    GArray *args = g_array_new (TRUE, FALSE, sizeof (gchar *));
+    GArray *args = uzbl_commands_args_new ();
     const UzblCommand *download_command = uzbl_commands_parse (uzbl.behave.download_handler, args);
     if (!download_command) {
         webkit_download_cancel (download);
-        g_array_free (args, TRUE);
+        uzbl_commands_args_free (args);
         return FALSE;
     }
 
-    g_array_append_val (args, uri);
-    g_array_append_val (args, suggested_filename);
-    g_array_append_val (args, content_type);
+    uzbl_commands_args_append (args, g_strdup (uri));
+    uzbl_commands_args_append (args, g_strdup (suggested_filename));
+    uzbl_commands_args_append (args, g_strdup (content_type));
     gchar *total_size_s = g_strdup_printf ("%d", total_size);
-    g_array_append_val (args, total_size_s);
+    uzbl_commands_args_append (args, total_size_s);
 
     if (destination) {
-        g_array_append_val (args, destination);
+        uzbl_commands_args_append (args, g_strdup (destination));
     }
 
     GString *result = g_string_new ("");
     uzbl_commands_run_parsed (download_command, args, result);
 
-    while (args->len) {
-        g_free (argv_idx (args, args->len - 1));
-        g_array_remove_index (args, args->len - 1);
-    }
-    g_free (total_size_s);
-    g_array_free (args, TRUE);
+    uzbl_commands_args_free (args);
 
     /* No response, cancel the download. */
     if (result->len == 0) {
@@ -858,20 +846,14 @@ request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResour
 
     if (uzbl.behave.request_handler) {
         GString *result = g_string_new ("");
-        GArray *args = g_array_new (TRUE, FALSE, sizeof (gchar *));
+        GArray *args = uzbl_commands_args_new ();
         const UzblCommand *request_command = uzbl_commands_parse (uzbl.behave.request_handler, args);
 
-        gchar *uridup = NULL;
         if (request_command) {
-            uridup = g_strdup (uri);
-            g_array_append_val (args, uridup);
+            uzbl_commands_args_append (args, g_strdup (uri));
             uzbl_commands_run_parsed (request_command, args, result);
         }
-        while (args->len) {
-            g_free (argv_idx (args, args->len - 1));
-            g_array_remove_index (args, args->len - 1);
-        }
-        g_array_free (args, TRUE);
+        uzbl_commands_args_free (args);
 
         if (result->len > 0) {
             remove_trailing_newline (result->str);
@@ -1285,11 +1267,11 @@ create_web_view_js_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data
     static const char *js_protocol = "javascript:";
 
     if (strprefix (uri, js_protocol) == 0) {
-        GArray *args = g_array_new (TRUE, FALSE, sizeof (gchar *));
+        GArray *args = uzbl_commands_args_new ();
         const gchar *js_code = uri + strlen (js_protocol);
-        g_array_append_val (args, js_code);
+        uzbl_commands_args_append (args, g_strdup (js_code));
         uzbl_commands_run_argv ("js", args, NULL);
-        g_array_free (args, FALSE);
+        uzbl_commands_args_free (args);
     } else {
         uzbl_events_send (NEW_WINDOW, NULL,
             TYPE_STR, uri,
@@ -1403,7 +1385,6 @@ get_modifier_mask (guint state)
     GString *modifiers = g_string_new ("");
 
     if (state & GDK_MODIFIER_MASK) {
-        /* FIXME: Valgrind says there's a memory leak here... */
 #define CHECK_MODIFIER(mask, modifier)                 \
     do {                                               \
         if (state & GDK_##mask##_MASK) {               \

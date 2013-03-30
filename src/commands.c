@@ -279,6 +279,29 @@ uzbl_commands_send_builtin_event ()
     g_string_free (command_list, TRUE);
 }
 
+GArray *
+uzbl_commands_args_new ()
+{
+    return g_array_new (TRUE, TRUE, sizeof (gchar *));
+}
+
+void
+uzbl_commands_args_append (GArray *argv, const gchar *arg)
+{
+    const gchar *safe_arg = (arg ? arg : g_strdup (""));
+    g_array_append_val (argv, safe_arg);
+}
+
+void
+uzbl_commands_args_free (GArray *argv)
+{
+    while (argv->len) {
+        g_free (argv_idx (argv, argv->len - 1));
+        g_array_remove_index (argv, argv->len - 1);
+    }
+    g_array_free (argv, TRUE);
+}
+
 static void
 parse_command_arguments (const gchar *args, GArray *argv, gboolean split);
 
@@ -374,16 +397,12 @@ uzbl_commands_run_argv (const gchar *cmd, GArray *argv, GString *result)
 void
 uzbl_commands_run (const gchar *cmd, GString *result)
 {
-    GArray *argv = g_array_new (TRUE, TRUE, sizeof (gchar *));
+    GArray *argv = uzbl_commands_args_new ();
     const UzblCommand *info = uzbl_commands_parse (cmd, argv);
 
     uzbl_commands_run_parsed (info, argv, result);
 
-    while (argv->len) {
-        g_free (argv_idx (argv, argv->len - 1));
-        g_array_remove_index (argv, argv->len - 1);
-    }
-    g_array_free (argv, TRUE);
+    uzbl_commands_args_free (argv);
 }
 
 typedef void (*UzblLineCallback) (const gchar *line, gpointer data);
@@ -408,9 +427,7 @@ uzbl_commands_load_file (const gchar *path)
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
 
-static void
-sharg_append (GArray *argv, const gchar *str);
-static gchar **
+static GArray *
 split_quoted (const gchar *src, const gboolean unquote);
 
 void
@@ -422,19 +439,20 @@ parse_command_arguments (const gchar *args, GArray *argv, gboolean split)
 
     if (!split) {
         /* Pass the parameters through in one chunk. */
-        /* FIXME: Valgrind says there's a memory leak here... */
-        sharg_append (argv, g_strdup (args));
+        uzbl_commands_args_append (argv, g_strdup (args));
         return;
     }
 
-    gchar **par = split_quoted (args, TRUE);
+    GArray *par = split_quoted (args, TRUE);
     if (par) {
         guint i;
-        for (i = 0; i < g_strv_length (par); ++i) {
-            sharg_append (argv, g_strdup (par[i]));
+        for (i = 0; i < par->len; ++i) {
+            const gchar *arg = argv_idx (par, i);
+            uzbl_commands_args_append (argv, g_strdup (arg));
         }
-        g_strfreev (par);
     }
+
+    uzbl_commands_args_free (par);
 }
 
 gboolean
@@ -487,14 +505,7 @@ parse_command_from_file (const char *cmd)
     g_free (work_string);
 }
 
-void
-sharg_append (GArray *argv, const gchar *str)
-{
-    const gchar *s = (str ? str : g_strdup (""));
-    g_array_append_val (argv, s);
-}
-
-gchar **
+GArray *
 split_quoted (const gchar *src, const gboolean unquote)
 {
     /* Split on unquoted space or tab, return array of strings; remove a layer
@@ -503,7 +514,7 @@ split_quoted (const gchar *src, const gboolean unquote)
         return NULL;
     }
 
-    GArray *argv = g_array_new (TRUE, FALSE, sizeof (gchar *));
+    GArray *argv = uzbl_commands_args_new ();
     GString *str = g_string_new ("");
     const gchar *p;
 
@@ -538,8 +549,7 @@ split_quoted (const gchar *src, const gboolean unquote)
         } else if (isspace (*p) && !ctx_double_quote && !ctx_single_quote) {
             /* Argument separator. */
             /* FIXME: Is "a  b" three arguments? */
-            gchar *dup = g_strdup (str->str);
-            g_array_append_val (argv, dup);
+            uzbl_commands_args_append (argv, g_strdup (str->str));
             g_string_truncate (str, 0);
         } else {
             /* Regular character. */
@@ -548,15 +558,11 @@ split_quoted (const gchar *src, const gboolean unquote)
     }
 
     /* Append last argument. */
-    gchar *dup = g_strdup (str->str);
-    g_array_append_val (argv, dup);
+    uzbl_commands_args_append (argv, g_strdup (str->str));
 
-    gchar **ret = (gchar **)argv->data;
-
-    g_array_free (argv, FALSE);
     g_string_free (str, TRUE);
 
-    return ret;
+    return argv;
 }
 
 /* ==================== COMMAND  IMPLEMENTATIONS ==================== */
@@ -1866,73 +1872,44 @@ spawn_sh (GArray *argv, GString *result)
     }
     guint i;
 
-    gchar **cmd = split_quoted (uzbl.behave.shell_cmd, TRUE);
-    if (!cmd) {
+    GArray *sh_cmd = split_quoted (uzbl.behave.shell_cmd, TRUE);
+    if (!sh_cmd) {
         return;
     }
 
-    g_array_insert_val (argv, 1, cmd[0]);
-
-    for (i = g_strv_length (cmd) - 1; i; --i) {
-        g_array_prepend_val (argv, cmd[i]);
+    for (i = 0; i < argv->len; ++i) {
+        const gchar *arg = argv_idx (argv, i);
+        uzbl_commands_args_append (sh_cmd, g_strdup (arg));
     }
+
+    const gchar *cmd = argv_idx (sh_cmd, 0);
 
     if (result) {
         gchar *r = NULL;
-        run_system_command (cmd[0], (const gchar **)argv->data, TRUE, &r);
+        run_system_command (cmd, (const gchar **)sh_cmd->data, TRUE, &r);
         g_string_assign (result, r);
         g_free (r);
     } else {
-        run_system_command (cmd[0], (const gchar **)argv->data, FALSE, NULL);
-    }
-}
-
-char *
-extract_js_prop (JSGlobalContextRef ctx, JSObjectRef obj, const gchar *prop)
-{
-    JSStringRef js_prop;
-    JSValueRef js_prop_val;
-
-    js_prop = JSStringCreateWithUTF8CString (prop);
-    js_prop_val = JSObjectGetProperty (ctx, obj, js_prop, NULL);
-
-    JSStringRelease (js_prop);
-
-    return js_value_to_string (ctx, js_prop_val);
-}
-
-char *
-js_value_to_string (JSGlobalContextRef ctx, JSValueRef val)
-{
-    JSStringRef str = JSValueToStringCopy (ctx, val, NULL);
-    size_t size = JSStringGetMaximumUTF8CStringSize (str);
-
-    char *result = NULL;
-
-    if (size) {
-        result = (gchar *)malloc (size * sizeof (char));
-        JSStringGetUTF8CString (str, result, size);
+        run_system_command (cmd, (const gchar **)sh_cmd->data, FALSE, NULL);
     }
 
-    JSStringRelease (str);
-
-    return result;
+    uzbl_commands_args_free (sh_cmd);
 }
 
 gboolean
 run_system_command (const gchar *command, const gchar **args, const gboolean sync,
-             char **output_stdout)
+                    char **output_stdout)
 {
     GError *err = NULL;
 
-    GArray *cmd_args = g_array_new (TRUE, FALSE, sizeof (gchar *));
+    GArray *cmd_args = uzbl_commands_args_new ();
     guint i;
     guint len = g_strv_length ((gchar **)args);
 
-    sharg_append (cmd_args, g_strdup (command));
+    uzbl_commands_args_append (cmd_args, g_strdup (command));
 
     for (i = 0; i < len; ++i) {
-        sharg_append (cmd_args, g_strdup (args[i]));
+        uzbl_commands_args_append (cmd_args, g_strdup (args[i]));
     }
 
     gboolean result;
@@ -1966,10 +1943,7 @@ run_system_command (const gchar *command, const gchar **args, const gboolean syn
         g_printerr ("error on run_system_command: %s\n", err->message);
         g_error_free (err);
     }
-    while (cmd_args->len) {
-        g_free (argv_idx (cmd_args, cmd_args->len - 1));
-        g_array_remove_index (cmd_args, cmd_args->len - 1);
-    }
-    g_array_free (cmd_args, TRUE);
+
+    uzbl_commands_args_free (cmd_args);
     return result;
 }
