@@ -214,7 +214,12 @@ web_view_init (void)
 #endif
         /* Page metadata events */
         "signal::notify::title",                        G_CALLBACK (title_change_cb),          NULL,
-        "signal::notify::progress",                     G_CALLBACK (progress_change_cb),       NULL,
+#ifdef USE_WEBKIT2
+        "signal::notify::estimated-load-progress",
+#else
+        "signal::notify::progress",
+#endif
+                                                        G_CALLBACK (progress_change_cb),       NULL,
         "signal::notify::uri",                          G_CALLBACK (uri_change_cb),            NULL,
         /* Navigation events */
 #ifdef USE_WEBKIT2
