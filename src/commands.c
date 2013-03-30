@@ -85,9 +85,11 @@ DECLARE_COMMAND (snapshot);
 #ifdef HAVE_PLUGIN_API
 DECLARE_COMMAND (plugin);
 #endif
+#ifndef USE_WEBKIT2
 DECLARE_COMMAND (remove_all_db);
 #if WEBKIT_CHECK_VERSION (1, 5, 1)
 DECLARE_COMMAND (spell_checker);
+#endif
 #endif
 
 /* Search commands */
@@ -160,9 +162,11 @@ builtin_command_table[] =
 #ifdef HAVE_PLUGIN_API
     { "plugin",                         cmd_plugin,                   TRUE,  TRUE  },
 #endif
+#ifndef USE_WEBKIT2
     { "remove_all_db",                  cmd_remove_all_db,            TRUE,  TRUE  },
 #if WEBKIT_CHECK_VERSION (1, 5, 1)
     { "spell_checker",                  cmd_spell_checker,            FALSE, TRUE  },
+#endif
 #endif
 
     /* Menu commands */
@@ -1015,6 +1019,7 @@ IMPLEMENT_COMMAND (plugin)
 }
 #endif
 
+#ifndef USE_WEBKIT2
 IMPLEMENT_COMMAND (remove_all_db)
 {
     UZBL_UNUSED (argv);
@@ -1073,6 +1078,7 @@ IMPLEMENT_COMMAND (spell_checker)
         /* TODO Implement. */
     }
 }
+#endif
 #endif
 
 /* Search commands */
