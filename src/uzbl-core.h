@@ -115,7 +115,7 @@ typedef struct {
     gchar   *download_handler;
 
     gboolean forward_keys;
-    guint    http_debug;
+    gchar   *http_debug;
     gchar   *shell_cmd;
     guint    view_source;
     gboolean maintain_history;

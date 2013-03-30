@@ -129,7 +129,7 @@ DECLARE_GETSET (int, print_backgrounds);
 DECLARE_SETTER (gchar *, proxy_url);
 DECLARE_SETTER (int, max_conns);
 DECLARE_SETTER (int, max_conns_host);
-DECLARE_SETTER (int, http_debug);
+DECLARE_SETTER (gchar *, http_debug);
 DECLARE_GETSET (gchar *, ssl_ca_file);
 #endif
 #ifdef USE_WEBKIT2
@@ -390,7 +390,7 @@ builtin_variable_table[] = {
     { "proxy_url",                    UZBL_V_STRING (uzbl.net.proxy_url,                   set_proxy_url)},
     { "max_conns",                    UZBL_V_INT (uzbl.net.max_conns,                      set_max_conns)},
     { "max_conns_host",               UZBL_V_INT (uzbl.net.max_conns_host,                 set_max_conns_host)},
-    { "http_debug",                   UZBL_V_INT (uzbl.behave.http_debug,                  set_http_debug)},
+    { "http_debug",                   UZBL_V_STRING (uzbl.behave.http_debug,               set_http_debug)},
     { "ssl_ca_file",                  UZBL_V_FUNC (ssl_ca_file,                            STR)},
 #endif
     { "ssl_policy",
@@ -1728,18 +1728,27 @@ IMPLEMENT_SETTER (int, max_conns_host)
         NULL);
 }
 
-IMPLEMENT_SETTER (int, http_debug)
+IMPLEMENT_SETTER (gchar *, http_debug)
 {
-    uzbl.behave.http_debug = http_debug;
+    SoupLoggerLogLevel out;
+    const gchar *in = http_debug;
 
-/* TODO: Use choice macros. */
 #define http_debug_choices(call)              \
     call (SOUP_LOGGER_LOG_NONE, "none")       \
     call (SOUP_LOGGER_LOG_MINIMAL, "minimal") \
     call (SOUP_LOGGER_LOG_HEADERS, "headers") \
     call (SOUP_LOGGER_LOG_BODY, "body")
 
+    http_debug_choices (STRING_TO_ENUM)
+    {
+        uzbl_debug ("Unrecognized value for http_debug: %s\n", http_debug);
+        return;
+    }
+
 #undef http_debug_choices
+
+    g_free (uzbl.behave.http_debug);
+    uzbl.behave.http_debug = g_strdup (http_debug);
 
     if (uzbl.net.soup_logger) {
         soup_session_remove_feature (
@@ -1747,7 +1756,7 @@ IMPLEMENT_SETTER (int, http_debug)
         g_object_unref (uzbl.net.soup_logger);
     }
 
-    uzbl.net.soup_logger = soup_logger_new (uzbl.behave.http_debug, -1);
+    uzbl.net.soup_logger = soup_logger_new (out, -1);
     soup_session_add_feature (
         uzbl.net.soup_session, SOUP_SESSION_FEATURE (uzbl.net.soup_logger));
 }
