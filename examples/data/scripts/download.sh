@@ -14,12 +14,13 @@
 [ -n "$5" ] && echo "$5" && exit
 
 . "$UZBL_UTIL_DIR/uzbl-dir.sh"
+. "$UZBL_UTIL_DIR/uzbl-util.sh"
 
 # the URL that is being downloaded
 uri="$1"
 shift
 
-safe_uri="$( echo "$uri" | sed -e 's/\W/-/g' )"
+safe_uri="$( print "$uri" | sed -e 's/\W/-/g' )"
 
 # a filename suggested by the server or based on the URL
 suggested_filename="${1:-$safe_uri}"
@@ -50,7 +51,7 @@ esac
 
 # Check if the file exists
 if [ ! -e "$path" ]; then
-    echo "$path"
+    print "$path\n"
     exit 0
 fi
 
@@ -60,4 +61,4 @@ while [ -e "$path.$count" ]; do
     count=$(( $count + 1 ))
 done
 
-echo "$path.$count"
+print "$path.$count\n"

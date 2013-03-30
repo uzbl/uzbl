@@ -1,7 +1,9 @@
 #!/bin/sh
 
-case "$( echo "script @scripts_dir/go_input.js" | socat - "unix-connect:$UZBL_SOCKET" )" in
+. "$UZBL_UTIL_DIR/uzbl-util.sh"
+
+case "$( uzbl_control "script @scripts_dir/go_input.js\n" )" in
     *XXXFORM_ACTIVEXXX*)
-        echo 'event KEYCMD_CLEAR' > "$UZBL_FIFO"
+        uzbl_control 'event KEYCMD_CLEAR\n'
         ;;
 esac
