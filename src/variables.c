@@ -237,7 +237,7 @@ DECLARE_GETSET (gchar *, spellcheck_languages);
 DECLARE_GETSET (int, resizable_text_areas);
 #ifndef USE_WEBKIT2
 DECLARE_GETSET (int, enable_spatial_navigation);
-DECLARE_GETSET (int, editing_behavior);
+DECLARE_GETSET (gchar *, editing_behavior);
 #endif
 DECLARE_GETSET (int, enable_tab_cycle);
 
@@ -502,7 +502,7 @@ builtin_variable_table[] = {
     { "resizable_text_areas",         UZBL_V_FUNC (resizable_text_areas,                   INT)},
 #ifndef USE_WEBKIT2
     { "enable_spatial_navigation",    UZBL_V_FUNC (enable_spatial_navigation,              INT)},
-    { "editing_behavior",             UZBL_V_FUNC (editing_behavior,                       INT)},
+    { "editing_behavior",             UZBL_V_FUNC (editing_behavior,                       STR)},
 #endif
     { "enable_tab_cycle",             UZBL_V_FUNC (enable_tab_cycle,                       INT)},
 
@@ -2196,9 +2196,18 @@ GOBJECT_GETSET (int, enable_spatial_navigation,
     call (WEBKIT_EDITING_BEHAVIOR_WINDOWS, "windows") \
     call (WEBKIT_EDITING_BEHAVIOR_UNIX, "unix")
 
-/* TODO: Use choice macros. */
-GOBJECT_GETSET (int, editing_behavior,
-                webkit_settings (), "editing-behavior")
+#define _get_webkit_settings_editing_behavior() \
+    object_get (webkit_settings (), "editing-behavior")
+#define _set_webkit_settings_editing_behavior(val) \
+    g_object_set (webkit_settings (),              \
+        "editing-behavior", val,                   \
+        NULL);
+
+CHOICE_GETSET (WebKitEditingBehavior, editing_behavior,
+               _get_webkit_settings_editing_behavior, _set_webkit_settings_editing_behavior)
+
+#undef _get_webkit_settings_editing_behavior
+#undef _set_webkit_settings_editing_behavior
 
 #undef editing_behavior_choices
 #endif
