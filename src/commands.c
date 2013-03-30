@@ -97,10 +97,7 @@ DECLARE_COMMAND (favicon);
 #endif
 
 /* Search commands */
-DECLARE_COMMAND (search_forward);
-DECLARE_COMMAND (search_reverse);
-DECLARE_COMMAND (search_clear);
-DECLARE_COMMAND (search_reset);
+DECLARE_COMMAND (search);
 
 /* Inspector commands */
 DECLARE_COMMAND (inspector_show);
@@ -192,10 +189,7 @@ builtin_command_table[] =
     { "menu_editable_remove",           cmd_menu_remove_edit,         FALSE, TRUE  }, /* TODO: Rework to be "menu remove edit". */
 
     /* Search commands */
-    { "search",                         cmd_search_forward,           FALSE, TRUE  }, /* TODO: Rework to be "search forward". */
-    { "search_reverse",                 cmd_search_reverse,           FALSE, TRUE  }, /* TODO: Rework to be "search reverse". */
-    { "search_clear",                   cmd_search_clear,             FALSE, TRUE  }, /* TODO: Rework to be "search clear". */
-    { "dehilight",                      cmd_search_reset,             TRUE,  TRUE  }, /* TODO: Rework to be "search reset". */
+    { "search",                         cmd_search,                   FALSE, TRUE  },
 
     /* Inspector commands */
     { "show_inspector",                 cmd_inspector_show,           TRUE,  TRUE  }, /* Deprecated. */
@@ -1136,44 +1130,252 @@ IMPLEMENT_COMMAND (favicon)
 
 /* Search commands */
 
-static void
-search_text (WebKitWebView *view, const gchar *key, const gboolean forward);
+typedef enum {
+    OPTION_NONE,
+    OPTION_SET,
+    OPTION_UNSET,
+    OPTION_TOGGLE,
+    OPTION_DEFAULT
+} UzblFlagOperation;
 
-IMPLEMENT_COMMAND (search_forward)
+IMPLEMENT_COMMAND (search)
 {
     UZBL_UNUSED (result);
 
     ARG_CHECK (argv, 1);
 
-    search_text (uzbl.gui.web_view, argv_idx (argv, 0), TRUE);
-}
+    const gchar *full_command = argv_idx (argv, 0);
 
-IMPLEMENT_COMMAND (search_reverse)
-{
-    UZBL_UNUSED (result);
+    gchar **tokens = g_strsplit (full_command, " ", 2);
 
-    ARG_CHECK (argv, 1);
+    const gchar *command = tokens[0];
 
-    search_text (uzbl.gui.web_view, argv_idx (argv, 0), FALSE);
-}
+    static const UzblFindOptions default_options = WEBKIT_FIND_OPTIONS_WRAP_AROUND;
 
-IMPLEMENT_COMMAND (search_clear)
-{
-    UZBL_UNUSED (argv);
-    UZBL_UNUSED (result);
+#ifdef USE_WEBKIT2
+    WebKitFindController *finder = webkit_web_view_get_find_controller (uzbl.gui.web_view);
+#endif
+    gboolean rehighlight = FALSE;
+    gboolean reset = FALSE;
 
-    webkit_web_view_unmark_text_matches (uzbl.gui.web_view);
+    if (!g_strcmp0 (command, "option")) {
+        if (!tokens[1]) {
+            goto search_exit;
+        }
 
-    g_free (uzbl.state.searchtx);
-    uzbl.state.searchtx = NULL;
-}
+        gchar **options = g_strsplit (tokens[1], " ", 0);
+        gchar **option_iter = options;
 
-IMPLEMENT_COMMAND (search_reset)
-{
-    UZBL_UNUSED (argv);
-    UZBL_UNUSED (result);
+        while (*option_iter) {
+            const gchar *option_str = *option_iter++;
+            UzblFlagOperation mode = OPTION_NONE;
+            UzblFindOptions option = WEBKIT_FIND_OPTIONS_NONE;
 
-    webkit_web_view_set_highlight_text_matches (uzbl.gui.web_view, FALSE);
+            switch (*option_str) {
+                case '+':
+                    mode = OPTION_SET;
+                    break;
+                case '-':
+                    mode = OPTION_UNSET;
+                    break;
+                case '!':
+                    mode = OPTION_TOGGLE;
+                    break;
+                case '~':
+                    mode = OPTION_DEFAULT;
+                    break;
+                default:
+                    break;
+            }
+
+            if (mode == OPTION_NONE) {
+                mode = OPTION_SET;
+            } else {
+                ++option_str;
+            }
+
+            /* TODO: Implement limit= option? */
+            if (!g_strcmp0 (option_str, "case_insensitive")) {
+                option = WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE;
+#ifdef USE_WEBKIT2
+            } else if (!g_strcmp0 (option_str, "word_start")) {
+                option = WEBKIT_FIND_OPTIONS_AT_WORD_STARTS;
+            } else if (!g_strcmp0 (option_str, "camel_case")) {
+                option = WEBKIT_FIND_OPTIONS_TREAT_MEDIAL_CAPITAL_AS_WORD_START;
+#endif
+            } else if (!g_strcmp0 (option_str, "wrap")) {
+                option = WEBKIT_FIND_OPTIONS_WRAP_AROUND;
+            }
+
+            if (mode == OPTION_DEFAULT) {
+                if (option & default_options) {
+                    mode = OPTION_SET;
+                } else {
+                    mode = OPTION_UNSET;
+                }
+            }
+
+            switch (mode) {
+                case OPTION_SET:
+                    uzbl.state.searchoptions |= option;
+                    break;
+                case OPTION_UNSET:
+                    uzbl.state.searchoptions &= ~option;
+                    break;
+                case OPTION_TOGGLE:
+                    uzbl.state.searchoptions ^= option;
+                    break;
+                case OPTION_NONE:
+                case OPTION_DEFAULT:
+                default:
+                    break;
+            }
+        }
+
+        g_strfreev (options);
+
+        if (uzbl.state.searchtx && (uzbl.state.searchoptions != uzbl.state.lastsearchoptions)) {
+            uzbl.state.lastsearchoptions = uzbl.state.searchoptions;
+
+#ifdef USE_WEBKIT2
+            webkit_find_controller_search (finder, uzbl.state.searchtx, uzbl.state.searchoptions, G_MAXUINT);
+#endif
+
+            rehighlight = TRUE;
+        }
+    } else if (!g_strcmp0 (command, "clear")) {
+        reset = TRUE;
+
+        g_free (uzbl.state.searchtx);
+        uzbl.state.searchtx = NULL;
+
+        uzbl.state.searchoptions = default_options;
+    } else if (!g_strcmp0 (command, "reset")) {
+        reset = TRUE;
+    } else if (!g_strcmp0 (command, "find") || !g_strcmp0 (command, "rfind")) {
+        const gchar *key = tokens[1];
+
+        if (!key) {
+            /* Stop if there is no search string. */
+            goto search_exit;
+        }
+
+        if (!uzbl.state.searchtx) {
+            uzbl.state.searchtx = g_strdup ("");
+        }
+
+        if (*key) {
+            if (g_strcmp0 (key, uzbl.state.searchtx)) {
+                rehighlight = TRUE;
+
+                g_free (uzbl.state.searchtx);
+                uzbl.state.searchtx = g_strdup (key);
+            }
+        } else {
+            /* On an empty search, use the previous search. */
+            key = uzbl.state.searchtx;
+        }
+
+        if (uzbl.state.searchoptions != uzbl.state.lastsearchoptions) {
+            uzbl.state.lastsearchoptions = uzbl.state.searchoptions;
+
+            rehighlight = TRUE;
+        }
+
+        gboolean forward = TRUE;
+
+        if (*command == 'r') {
+            forward = FALSE;
+        }
+
+#ifdef USE_WEBKIT2
+        uzbl.state.searchforward = forward;
+#endif
+
+        UzblFindOptions options = uzbl.state.searchoptions;
+
+        if (!forward) {
+            options |= WEBKIT_FIND_OPTIONS_BACKWARDS;
+        }
+
+#ifdef USE_WEBKIT2
+        webkit_find_controller_search (finder, key, options, G_MAXUINT);
+#else
+        webkit_web_view_search_text (uzbl.gui.web_view, key,
+            !(options & WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE),
+            !(options & WEBKIT_FIND_OPTIONS_BACKWARDS),
+            options & WEBKIT_FIND_OPTIONS_WRAP_AROUND);
+#endif
+    } else if (!g_strcmp0 (command, "next")) {
+        if (!uzbl.state.searchtx) {
+            goto search_exit;
+        }
+
+        if (uzbl.state.searchoptions != uzbl.state.lastsearchoptions) {
+            uzbl.state.lastsearchoptions = uzbl.state.searchoptions;
+
+            rehighlight = TRUE;
+        }
+
+#ifdef USE_WEBKIT2
+        if (uzbl.state.searchforward) {
+            webkit_find_controller_search_next (finder);
+        } else {
+            webkit_find_controller_search_previous (finder);
+        }
+#else
+        webkit_web_view_search_text (uzbl.gui.web_view, uzbl.state.searchtx,
+            !(uzbl.state.searchoptions & WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE),
+            TRUE,
+            uzbl.state.searchoptions & WEBKIT_FIND_OPTIONS_WRAP_AROUND);
+#endif
+    } else if (!g_strcmp0 (command, "prev")) {
+        if (!uzbl.state.searchtx) {
+            goto search_exit;
+        }
+
+        if (uzbl.state.searchoptions != uzbl.state.lastsearchoptions) {
+            uzbl.state.lastsearchoptions = uzbl.state.searchoptions;
+
+            rehighlight = TRUE;
+        }
+
+#ifdef USE_WEBKIT2
+        if (uzbl.state.searchforward) {
+            webkit_find_controller_search_previous (finder);
+        } else {
+            webkit_find_controller_search_next (finder);
+        }
+#else
+        webkit_web_view_search_text (uzbl.gui.web_view, uzbl.state.searchtx,
+            !(uzbl.state.searchoptions & WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE),
+            FALSE,
+            uzbl.state.searchoptions & WEBKIT_FIND_OPTIONS_WRAP_AROUND);
+#endif
+    } else {
+        uzbl_debug ("Unrecognized search command: %s\n", command);
+    }
+
+search_exit:
+    g_strfreev (tokens);
+
+    if (reset) {
+#ifdef USE_WEBKIT2
+        webkit_find_controller_search_finish (finder);
+        uzbl.state.searchoptions = WEBKIT_FIND_OPTIONS_WRAP_AROUND;
+#else
+        webkit_web_view_unmark_text_matches (uzbl.gui.web_view);
+#endif
+    }
+
+    if (rehighlight) {
+#ifndef USE_WEBKIT2
+        webkit_web_view_unmark_text_matches (uzbl.gui.web_view);
+        webkit_web_view_mark_text_matches (uzbl.gui.web_view, uzbl.state.searchtx,
+            !(uzbl.state.searchoptions & WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE), 0);
+        webkit_web_view_set_highlight_text_matches (uzbl.gui.web_view, TRUE);
+#endif
+    }
 }
 
 /* Inspector commands */
@@ -1461,27 +1663,6 @@ plugin_toggle_one (WebKitWebPlugin *plugin, gpointer data)
 }
 #endif
 #endif
-
-void
-search_text (WebKitWebView *view, const gchar *key, const gboolean forward)
-{
-    if (*key) {
-        if (g_strcmp0 (uzbl.state.searchtx, key)) {
-            webkit_web_view_unmark_text_matches (view);
-            webkit_web_view_mark_text_matches (view, key, FALSE, 0);
-
-            g_free (uzbl.state.searchtx);
-            uzbl.state.searchtx = g_strdup (key);
-        }
-    }
-
-    if (uzbl.state.searchtx) {
-        uzbl_debug ("Searching: %s\n", uzbl.state.searchtx);
-
-        webkit_web_view_set_highlight_text_matches (view, TRUE);
-        webkit_web_view_search_text (view, uzbl.state.searchtx, FALSE, forward, TRUE);
-    }
-}
 
 static char *
 extract_js_prop (JSGlobalContextRef ctx, JSObjectRef obj, const gchar *prop);
