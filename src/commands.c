@@ -579,7 +579,15 @@ IMPLEMENT_COMMAND (back)
 
     int n = count ? atoi (count) : 1;
 
+#ifdef USE_WEBKIT2
+    /* FIXME: There's no "go back N" call. */
+    int i;
+    for (i = 0; (i < n) && webkit_web_view_can_go_back (uzbl.gui.web_view); ++i) {
+        webkit_web_view_go_back (uzbl.gui.web_view);
+    }
+#else
     webkit_web_view_go_back_or_forward (uzbl.gui.web_view, -n);
+#endif
 }
 
 IMPLEMENT_COMMAND (forward)
@@ -590,7 +598,15 @@ IMPLEMENT_COMMAND (forward)
 
     int n = count ? atoi (count) : 1;
 
+#ifdef USE_WEBKIT2
+    /* FIXME: There's no "go forward N" call. */
+    int i;
+    for (i = 0; (i < n) && webkit_web_view_can_go_forward (uzbl.gui.web_view); ++i) {
+        webkit_web_view_go_forward (uzbl.gui.web_view);
+    }
+#else
     webkit_web_view_go_back_or_forward (uzbl.gui.web_view, n);
+#endif
 }
 
 IMPLEMENT_COMMAND (reload)
