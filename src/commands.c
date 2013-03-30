@@ -1670,12 +1670,10 @@ IMPLEMENT_COMMAND (js)
         const gchar *req_path = value;
 
         if ((path = find_existing_file (req_path))) {
-            gchar *file_contents = NULL;
-
             GIOChannel *chan = g_io_channel_new_file (path, "r", NULL);
             if (chan) {
                 gsize len;
-                g_io_channel_read_to_end (chan, &file_contents, &len, NULL);
+                g_io_channel_read_to_end (chan, &script, &len, NULL);
                 g_io_channel_unref (chan);
             }
 
@@ -1687,15 +1685,13 @@ IMPLEMENT_COMMAND (js)
 
                 gchar *needle = g_strdup_printf ("%%%d", i);
 
-                gchar *new_file_contents = str_replace (needle, arg ? arg : "", file_contents);
+                gchar *new_file_contents = str_replace (needle, arg ? arg : "", script);
 
                 g_free (needle);
 
-                g_free (file_contents);
-                file_contents = new_file_contents;
+                g_free (script);
+                script = new_file_contents;
             }
-
-            g_free (file_contents);
         }
     } else {
         uzbl_debug ("Unrecognized code source: %s\n", where);
