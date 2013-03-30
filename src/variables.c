@@ -2595,11 +2595,24 @@ GOBJECT_GETSET (gchar *, local_storage_path,
 #if WEBKIT_CHECK_VERSION (1, 11, 92)
 IMPLEMENT_SETTER (gchar *, disk_cache_directory)
 {
+    g_free (uzbl.state.disk_cache_directory);
+    uzbl.state.disk_cache_directory = g_strdup (disk_cache_directory);
+
     WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
 
-    webkit_web_context_set_disk_cache_directory (context, disk_cache_directory);
+    webkit_web_context_set_disk_cache_directory (context, uzbl.state.disk_cache_directory);
 }
 #endif
+
+IMPLEMENT_SETTER (gchar *, web_extensions_directory)
+{
+    g_free (uzbl.state.web_extensions_directory);
+    uzbl.state.web_extensions_directory = g_strdup (web_extensions_directory);
+
+    WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
+
+    webkit_web_context_set_web_extensions_directory (context, uzbl.state.web_extensions_directory);
+}
 #endif
 
 /* Hacks */
@@ -2610,7 +2623,7 @@ GOBJECT_GETSET (int, enable_site_workarounds,
 #ifdef USE_WEBKIT2
 IMPLEMENT_SETTER (gchar *, inject_text)
 {
-    webkit_web_view_load_plain_text (uzbl.gui.web_view, inject_text, NULL);
+    webkit_web_view_load_plain_text (uzbl.gui.web_view, inject_text);
 }
 #endif
 
