@@ -10,17 +10,17 @@
 static WebKitWebView *
 inspector_create_cb (WebKitWebInspector *inspector, WebKitWebView *view, gpointer data);
 static gboolean
-inspector_show_window_cb (WebKitWebInspector *inspector);
+inspector_show_window_cb (WebKitWebInspector *inspector, gpointer data);
 static gboolean
-inspector_close_window_cb (WebKitWebInspector *inspector);
+inspector_close_window_cb (WebKitWebInspector *inspector, gpointer data);
 static gboolean
-inspector_attach_window_cb (WebKitWebInspector *inspector);
+inspector_attach_window_cb (WebKitWebInspector *inspector, gpointer data);
 static gboolean
-inspector_detach_window_cb (WebKitWebInspector *inspector);
+inspector_detach_window_cb (WebKitWebInspector *inspector, gpointer data);
 static gboolean
-inspector_inspector_destroyed_cb (WebKitWebInspector *inspector);
+inspector_inspector_destroyed_cb (WebKitWebInspector *inspector, gpointer data);
 static gboolean
-inspector_uri_changed_cb (WebKitWebInspector *inspector);
+inspector_uri_changed_cb (WebKitWebInspector *inspector, gpointer data);
 
 void
 uzbl_inspector_init ()
@@ -80,18 +80,11 @@ inspector_create_cb (WebKitWebInspector *inspector, WebKitWebView *view, gpointe
     return WEBKIT_WEB_VIEW (new_web_view);
 }
 
-void
-inspector_hide_window_cb (GtkWidget *widget, gpointer data)
-{
-    UZBL_UNUSED (data);
-
-    gtk_widget_hide (widget);
-}
-
 gboolean
-inspector_show_window_cb (WebKitWebInspector *inspector)
+inspector_show_window_cb (WebKitWebInspector *inspector, gpointer data)
 {
     UZBL_UNUSED (inspector);
+    UZBL_UNUSED (data);
 
     gtk_widget_show (uzbl.gui.inspector_window);
 
@@ -103,9 +96,10 @@ inspector_show_window_cb (WebKitWebInspector *inspector)
 }
 
 gboolean
-inspector_close_window_cb (WebKitWebInspector *inspector)
+inspector_close_window_cb (WebKitWebInspector *inspector, gpointer data)
 {
     UZBL_UNUSED (inspector);
+    UZBL_UNUSED (data);
 
     uzbl_events_send (WEBINSPECTOR, NULL,
         TYPE_NAME, "close",
@@ -116,33 +110,37 @@ inspector_close_window_cb (WebKitWebInspector *inspector)
 
 /* TODO: Add variables and code to make use of these functions. */
 gboolean
-inspector_attach_window_cb (WebKitWebInspector *inspector)
+inspector_attach_window_cb (WebKitWebInspector *inspector, gpointer data)
 {
     UZBL_UNUSED (inspector);
+    UZBL_UNUSED (data);
 
     return FALSE;
 }
 
 gboolean
-inspector_detach_window_cb (WebKitWebInspector *inspector)
+inspector_detach_window_cb (WebKitWebInspector *inspector, gpointer data)
 {
     UZBL_UNUSED (inspector);
+    UZBL_UNUSED (data);
 
     return FALSE;
 }
 
 gboolean
-inspector_uri_changed_cb (WebKitWebInspector *inspector)
+inspector_inspector_destroyed_cb (WebKitWebInspector *inspector, gpointer data)
 {
     UZBL_UNUSED (inspector);
+    UZBL_UNUSED (data);
 
     return FALSE;
 }
 
 gboolean
-inspector_inspector_destroyed_cb (WebKitWebInspector *inspector)
+inspector_uri_changed_cb (WebKitWebInspector *inspector, gpointer data)
 {
     UZBL_UNUSED (inspector);
+    UZBL_UNUSED (data);
 
     return FALSE;
 }
