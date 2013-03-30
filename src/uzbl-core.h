@@ -67,6 +67,8 @@ typedef struct {
     gchar          *last_result;
     gboolean        plug_mode;
     gboolean        load_failed;
+    gchar          *disk_cache_directory;
+    gchar          *web_extensions_directory;
     JSGlobalContextRef jscontext;
 
     /* Events */

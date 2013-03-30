@@ -109,6 +109,9 @@ DECLARE_GETSET (int, auto_resize_window);
 DECLARE_GETSET (int, show_status);
 DECLARE_SETTER (int, status_top);
 DECLARE_SETTER (gchar *, status_background);
+#ifdef USE_WEBKIT2
+DECLARE_GETSET (int, enable_compositing_debugging);
+#endif
 
 /* Customization */
 #ifndef USE_WEBKIT2
@@ -139,6 +142,9 @@ DECLARE_GETSET (int, enable_universal_file_access);
 DECLARE_GETSET (int, enable_cross_file_access);
 #endif
 DECLARE_GETSET (int, enable_hyperlink_auditing);
+#ifdef USE_WEBKIT2
+DECLARE_GETSET (int, enable_xss_auditing);
+#endif
 DECLARE_GETSET (gchar *, cookie_policy);
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
 DECLARE_GETSET (int, enable_dns_prefetch);
@@ -199,6 +205,9 @@ DECLARE_GETSET (int, editable);
 DECLARE_GETSET (int, enable_scripts);
 #endif
 DECLARE_GETSET (int, javascript_windows);
+#ifdef USE_WEBKIT2
+DECLARE_GETSET (int, javascript_modal_dialogs);
+#endif
 #ifndef USE_WEBKIT2
 DECLARE_GETSET (int, javascript_dom_paste);
 #endif
@@ -208,6 +217,9 @@ DECLARE_GETSET (int, javascript_clipboard);
 
 /* Image variables */
 DECLARE_GETSET (int, autoload_images);
+#ifdef USE_WEBKIT2
+DECLARE_GETSET (int, always_load_icons);
+#endif
 #ifndef USE_WEBKIT2
 DECLARE_GETSET (int, autoshrink_images);
 DECLARE_GETSET (int, use_image_orientation);
@@ -240,6 +252,9 @@ DECLARE_GETSET (gchar *, sans_serif_font_family);
 DECLARE_GETSET (gchar *, serif_font_family);
 DECLARE_GETSET (gchar *, cursive_font_family);
 DECLARE_GETSET (gchar *, fantasy_font_family);
+#ifdef USE_WEBKIT2
+DECLARE_GETSET (gchar *, pictograph_font_family);
+#endif
 
 /* Font size variables */
 #ifndef USE_WEBKIT2
@@ -295,8 +310,9 @@ DECLARE_GETSET (gchar *, local_storage_path);
 #endif
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 11, 92)
-DECLARE_GETSET (gchar *, disk_cache_directory);
+DECLARE_SETTER (gchar *, disk_cache_directory);
 #endif
+DECLARE_SETTER (gchar *, web_extensions_directory);
 #endif
 
 /* Hacks */
@@ -346,6 +362,9 @@ builtin_variable_table[] = {
     { "status_background",            UZBL_V_STRING (uzbl.behave.status_background,        set_status_background)},
     { "title_format_long",            UZBL_V_STRING (uzbl.behave.title_format_long,        NULL)},
     { "title_format_short",           UZBL_V_STRING (uzbl.behave.title_format_short,       NULL)},
+#ifdef USE_WEBKIT2
+    { "enable_compositing_debugging", UZBL_V_FUNC (enable_compositing_debugging,           INT)},
+#endif
 
     /* Customization */
 #ifndef USE_WEBKIT2
@@ -380,6 +399,9 @@ builtin_variable_table[] = {
     { "enable_cross_file_access",     UZBL_V_FUNC (enable_cross_file_access,               INT)},
 #endif
     { "enable_hyperlink_auditing",    UZBL_V_FUNC (enable_hyperlink_auditing,              INT)},
+#ifdef USE_WEBKIT2
+    { "enable_xss_auditing",          UZBL_V_FUNC (enable_xss_auditing,                    INT)},
+#endif
     { "cookie_policy",                UZBL_V_FUNC (cookie_policy,                          STR)},
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
     { "enable_dns_prefetch",          UZBL_V_FUNC (enable_dns_prefetch,                    INT)},
@@ -442,6 +464,9 @@ builtin_variable_table[] = {
     { "enable_scripts",               UZBL_V_FUNC (enable_scripts,                         INT)},
 #endif
     { "javascript_windows",           UZBL_V_FUNC (javascript_windows,                     INT)},
+#ifdef USE_WEBKIT2
+    { "javascript_modal_dialogs",     UZBL_V_FUNC (javascript_modal_dialogs,               INT)},
+#endif
 #ifndef USE_WEBKIT2
     { "javascript_dom_paste",         UZBL_V_FUNC (javascript_dom_paste,                   INT)},
 #endif
@@ -451,6 +476,9 @@ builtin_variable_table[] = {
 
     /* Image variables */
     { "autoload_images",              UZBL_V_FUNC (autoload_images,                        INT)},
+#ifdef USE_WEBKIT2
+    { "always_load_icons",            UZBL_V_FUNC (always_load_icons,                      INT)},
+#endif
 #ifndef USE_WEBKIT2
     { "autoshrink_images",            UZBL_V_FUNC (autoshrink_images,                      INT)},
     { "use_image_orientation",        UZBL_V_FUNC (use_image_orientation,                  INT)},
@@ -483,6 +511,9 @@ builtin_variable_table[] = {
     { "serif_font_family",            UZBL_V_FUNC (serif_font_family,                      STR)},
     { "cursive_font_family",          UZBL_V_FUNC (cursive_font_family,                    STR)},
     { "fantasy_font_family",          UZBL_V_FUNC (fantasy_font_family,                    STR)},
+#ifdef USE_WEBKIT2
+    { "pictograph_font_family",       UZBL_V_FUNC (pictograph_font_family,                 STR)},
+#endif
 
     /* Font size variables */
 #ifndef USE_WEBKIT2
@@ -538,8 +569,9 @@ builtin_variable_table[] = {
 #endif
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 11, 92)
-    { "disk_cache_directory",         UZBL_V_FUNC (disk_cache_directory,                     STR)},
+    { "disk_cache_directory",         UZBL_V_STRING (uzbl.state.disk_cache_directory,      set_disk_cache_directory)},
 #endif
+    { "web_extensions_directory",     UZBL_V_STRING (uzbl.state.web_extensions_directory,  set_web_extensions_directory)},
 #endif
 
     /* Hacks */
@@ -1626,6 +1658,11 @@ IMPLEMENT_SETTER (char *, status_background)
 #endif
 }
 
+#ifdef USE_WEBKIT2
+GOBJECT_GETSET (int, enable_compositing_debugging,
+                webkit_settings (), "draw-compositing-indicators")
+#endif
+
 /* Customization */
 #ifndef USE_WEBKIT2
 GOBJECT_GETSET (gchar *, stylesheet_uri,
@@ -1756,6 +1793,11 @@ GOBJECT_GETSET (int, enable_cross_file_access,
 
 GOBJECT_GETSET (int, enable_hyperlink_auditing,
                 webkit_settings (), "enable-hyperlink-auditing")
+
+#ifdef USE_WEBKIT2
+GOBJECT_GETSET (int, enable_xss_auditing,
+                webkit_settings (), "enable-xss-auditor")
+#endif
 
 #define cookie_policy_choices(call)                \
     call (SOUP_COOKIE_JAR_ACCEPT_ALWAYS, "always") \
@@ -1982,6 +2024,11 @@ GOBJECT_GETSET (int, enable_scripts,
 GOBJECT_GETSET (int, javascript_windows,
                 webkit_settings (), "javascript-can-open-windows-automatically")
 
+#ifdef USE_WEBKIT2
+GOBJECT_GETSET (int, javascript_modal_dialogs,
+                webkit_settings (), "allow-modal-dialogs")
+#endif
+
 #ifndef USE_WEBKIT2
 GOBJECT_GETSET (int, javascript_dom_paste,
                 webkit_settings (), "enable-dom-paste")
@@ -1995,6 +2042,11 @@ GOBJECT_GETSET (int, javascript_clipboard,
 /* Image variables */
 GOBJECT_GETSET (int, autoload_images,
                 webkit_settings (), "auto-load-images")
+
+#ifdef USE_WEBKIT2
+GOBJECT_GETSET (int, always_load_icons,
+                webkit_settings (), "load-icons-ignoring-image-load-setting")
+#endif
 
 #ifndef USE_WEBKIT2
 GOBJECT_GETSET (int, autoshrink_images,
@@ -2102,6 +2154,11 @@ GOBJECT_GETSET (gchar *, cursive_font_family,
 
 GOBJECT_GETSET (gchar *, fantasy_font_family,
                 webkit_settings (), "fantasy-font-family")
+
+#ifdef USE_WEBKIT2
+GOBJECT_GETSET (gchar *, pictograph_font_family,
+                webkit_settings (), "pictograph-font-family")
+#endif
 
 /* Font size variables */
 #ifndef USE_WEBKIT2
