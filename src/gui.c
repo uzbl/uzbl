@@ -1046,18 +1046,19 @@ send_keypress_event (guint keyval, guint state, guint is_modifier, gint mode)
 gint
 get_click_context ()
 {
-    WebKitHitTestResult *ht;
-    guint context;
+    guint context = NO_CLICK_CONTEXT;
 
     if (!uzbl.state.last_button) {
         return NO_CLICK_CONTEXT;
     }
 
-    ht = webkit_web_view_get_hit_test_result (uzbl.gui.web_view, uzbl.state.last_button);
+#ifndef USE_WEBKIT2 /* TODO: No API for this? :( */
+    WebKitHitTestResult *ht = webkit_web_view_get_hit_test_result (uzbl.gui.web_view, uzbl.state.last_button);
     g_object_get (ht,
         "context", &context,
         NULL);
     g_object_unref (ht);
+#endif
 
     return (gint)context;
 }
