@@ -105,8 +105,13 @@ static gboolean
 button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer data);
 static gboolean
 button_release_cb (GtkWidget *widget, GdkEventButton *event, gpointer data);
+#ifdef USE_WEBKIT2
+static void
+mouse_target_cb (WebKitWebView *view, WebKitHitTestResult *hit_test, guint modifiers, gpointer data);
+#else
 static void
 link_hover_cb (WebKitWebView *view, const gchar *title, const gchar *link, gpointer data);
+#endif
 /* Page metadata events */
 static void
 title_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
@@ -188,7 +193,11 @@ web_view_init (void)
         /* Mouse events */
         "signal::button-press-event",                   G_CALLBACK (button_press_cb),          NULL,
         "signal::button-release-event",                 G_CALLBACK (button_release_cb),        NULL,
+#ifdef USE_WEBKIT2
+        "signal::mouse-target-changed",                 G_CALLBACK (mouse_target_cb),          NULL,
+#else
         "signal::hovering-over-link",                   G_CALLBACK (link_hover_cb),            NULL,
+#endif
         /* Page metadata events */
         "signal::notify::title",                        G_CALLBACK (title_change_cb),          NULL,
         "signal::notify::progress",                     G_CALLBACK (progress_change_cb),       NULL,
@@ -437,38 +446,39 @@ button_release_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
     return propagate;
 }
 
+static void
+send_hover_event (const gchar *uri, const gchar *title);
+
+#ifdef USE_WEBKIT2
+void
+mouse_target_cb (WebKitWebView *view, WebKitHitTestResult *hit_test, guint modifiers, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (modifiers);
+    UZBL_UNUSED (data);
+
+    /* TODO: Do something with modifiers? */
+
+    /* TODO: Handle other cases? */
+    if (!webkit_hit_test_result_context_is_link (hit_test)) {
+        return;
+    }
+
+    const gchar *uri = webkit_hit_test_result_get_link_uri (hit_test);
+    const gchar *title = webkit_hit_test_result_get_link_title (hit_test);
+
+    send_hover_event (uri, title);
+}
+#else
 void
 link_hover_cb (WebKitWebView *view, const gchar *title, const gchar *link, gpointer data)
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (data);
 
-    g_free (uzbl.state.last_selected_url);
-
-    if (uzbl.state.selected_url) {
-        uzbl.state.last_selected_url = g_strdup (uzbl.state.selected_url);
-        g_free (uzbl.state.selected_url);
-        uzbl.state.selected_url = NULL;
-    } else {
-        uzbl.state.last_selected_url = NULL;
-    }
-
-    if (uzbl.state.last_selected_url && g_strcmp0 (link, uzbl.state.last_selected_url)) {
-        uzbl_events_send (LINK_UNHOVER, NULL,
-            TYPE_STR, uzbl.state.last_selected_url,
-            NULL);
-    }
-
-    if (link) {
-        uzbl.state.selected_url = g_strdup (link);
-        uzbl_events_send (LINK_HOVER, NULL,
-            TYPE_STR, uzbl.state.selected_url,
-            TYPE_STR, title,
-            NULL);
-    }
-
-    uzbl_gui_update_title ();
+    send_hover_event (link, title);
 }
+#endif
 
 /* Page metadata events */
 
@@ -1047,6 +1057,36 @@ send_button_event (guint buttonval, guint state, gint mode)
 
     g_free (details);
     g_free (modifiers);
+}
+
+void
+send_hover_event (const gchar *uri, const gchar *title)
+{
+    g_free (uzbl.state.last_selected_url);
+
+    if (uzbl.state.selected_url) {
+        uzbl.state.last_selected_url = g_strdup (uzbl.state.selected_url);
+        g_free (uzbl.state.selected_url);
+        uzbl.state.selected_url = NULL;
+    } else {
+        uzbl.state.last_selected_url = NULL;
+    }
+
+    if (uzbl.state.last_selected_url && g_strcmp0 (uri, uzbl.state.last_selected_url)) {
+        uzbl_events_send (LINK_UNHOVER, NULL,
+            TYPE_STR, uzbl.state.last_selected_url,
+            NULL);
+    }
+
+    if (uri) {
+        uzbl.state.selected_url = g_strdup (uri);
+        uzbl_events_send (LINK_HOVER, NULL,
+            TYPE_STR, uzbl.state.selected_url,
+            TYPE_STR, title ? title : "",
+            NULL);
+    }
+
+    uzbl_gui_update_title ();
 }
 
 void
