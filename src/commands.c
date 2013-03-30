@@ -1000,13 +1000,14 @@ IMPLEMENT_COMMAND (snapshot)
 
     cairo_surface_t *surface;
 
+    const gchar *path = argv_idx (argv, 0);
+
 #ifdef USE_WEBKIT2
     ARG_CHECK (argv, 3);
 
     guint sz = argv->len;
     guint i;
 
-    const gchar *path = argv_idx (argv, 0);
     const gchar *format = argv_idx (argv, 1);
     const gchar *region_str = argv_idx (argv, 2);
 
@@ -1032,19 +1033,26 @@ IMPLEMENT_COMMAND (snapshot)
         }
     }
 
+    GError *err = NULL;
+
     webkit_web_view_get_snapshot (uzbl.gui.web_view, region, options,
                                   NULL, NULL, NULL);
-    surface = webkit_web_view_get_snapshot_finish (uzbl.gui.web_view, NULL, NULL);
+    surface = webkit_web_view_get_snapshot_finish (uzbl.gui.web_view, NULL, &err);
+
+    if (!surface) {
+        /* TODO: Don't ignore the error. */
+        g_error_free (err);
+    }
 
     if (!g_strcmp0 (format, "png")) {
-        cairo_surface_write_to_png (surface, argv_idx (argv, 0));
+        cairo_surface_write_to_png (surface, path);
     } else {
         uzbl_debug ("Unrecognized snapshot format: %s\n", format);
     }
 #else
     surface = webkit_web_view_get_snapshot (uzbl.gui.web_view);
 
-    cairo_surface_write_to_png (surface, argv_idx (argv, 0));
+    cairo_surface_write_to_png (surface, path);
 #endif
 
     cairo_surface_destroy (surface);
