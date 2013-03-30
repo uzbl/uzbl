@@ -26,7 +26,7 @@ action="$1"
 shift
 
 generate_form () {
-    uzbl_control "js uzbl.formfiller.dump();\n" \
+    uzbl_control "js page string uzbl.formfiller.dump();\n" \
     | awk '
         /^formfillerstart$/ {
             while (getline) {
@@ -87,7 +87,7 @@ parse_profile () {
         sub(/[^:]*:/, "", field)
 
         if (parts[2] ~ /^(checkbox|radio)$/) {
-            printf("js uzbl.formfiller.insert(\"%s\",\"%s\",\"%s\",%s);\n",
+            printf("js page string \"uzbl.formfiller.insert(\\\"%s\\\",\\\"%s\\\",\\\"%s\\\",%s)\";\n",
                 parts[1], parts[2], parts[3], field)
         } else if (parts[2] == "textarea") {
             field = ""
@@ -111,10 +111,10 @@ parse_profile () {
             # Uzbl escape
             gsub(/\\/, "\\\\\\\\", field)
             gsub(/@/, "\\@", field)
-            printf("js uzbl.formfiller.insert(\"%s\",\"%s\",\"%s\",0);\n",
+            printf("js page string \"uzbl.formfiller.insert(\\\"%s\\\",\\\"%s\\\",\\\"%s\\\",0)\";\n",
                 parts[1], parts[2], field)
         } else {
-            printf("js uzbl.formfiller.insert(\"%s\",\"%s\",\"%s\",0);\n",
+            printf("js page string \"uzbl.formfiller.insert(\\\"%s\\\",\\\"%s\\\",\\\"%s\\\",0);\"\n",
                 parts[1], parts[2], field)
         }
 

@@ -29,13 +29,16 @@ case "$result" in
         uri="${result#XXXRETURNED_URIXXX}"
         safe_uri=$( echo "$uri" | uzbl_escape )
 
-        uzbl_control 'set mode=\nevent KEYCMD_CLEAR\n'
+        uzbl_control 'set mode = \nevent KEYCMD_CLEAR\n'
 
         [ -z "$uri" ] && exit
 
         case "$uriaction" in
             set)
                 uzbl_control 'uri '"$safe_uri"'\n'
+                ;;
+            newwindow)
+                uzbl_control 'event REQ_NEW_WINDOW '"$safe_uri"'\n'
                 ;;
             clipboard)
                 print "$uri" | xclip
