@@ -967,7 +967,28 @@ IMPLEMENT_COMMAND (hardcopy)
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
+#ifdef USE_WEBKIT2
+    WebKitPrintOperation *print_op = webkit_print_operation_new (uzbl.gui.web_view);
+
+    /* TODO: Allow control of print operations here? */
+
+    WebKitPrintOperationResponse response = webkit_print_operation_run_dialog (print_op, GTK_WINDOW (uzbl.gui.main_window));
+
+    switch (response) {
+        case WEBKIT_PRINT_OPERATION_RESPONSE_CANCEL:
+            break;
+        case WEBKIT_PRINT_OPERATION_RESPONSE_PRINT:
+            webkit_print_operation_print (print_op);
+            break;
+        default:
+            uzbl_debug ("Unknown response for a print action; assuming cancel\n");
+            break;
+    }
+
+    g_object_unref (print_op);
+#else
     webkit_web_frame_print (webkit_web_view_get_main_frame (uzbl.gui.web_view));
+#endif
 }
 
 #ifdef HAVE_SNAPSHOT
