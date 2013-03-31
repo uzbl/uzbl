@@ -1860,13 +1860,19 @@ IMPLEMENT_COMMAND (toggle)
 
     ARG_CHECK (argv, 1);
 
-    gchar *var_name = argv_idx (argv, 0);
+    const gchar *var_name = argv_idx (argv, 0);
 
-    g_array_remove_range (argv, 0, 1);
+    GArray *toggle_args = uzbl_commands_args_new ();
 
-    uzbl_variables_toggle (var_name, argv);
+    guint i;
+    for (i = 1; i < argv->len; ++i) {
+        const gchar *option = argv_idx (argv, 1);
+        uzbl_commands_args_append (toggle_args, g_strdup (option));
+    }
 
-    g_free (var_name);
+    uzbl_variables_toggle (var_name, toggle_args);
+
+    uzbl_commands_args_free (toggle_args);
 }
 
 IMPLEMENT_COMMAND (print)
