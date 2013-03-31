@@ -1828,6 +1828,18 @@ IMPLEMENT_COMMAND (js)
         JSGlobalContextRetain (jsctx);
     } else if (!g_strcmp0 (context, "clean")) {
         jsctx = JSGlobalContextCreate (NULL);
+#ifndef USE_WEBKIT2
+    } else if (!g_strcmp0 (context, "frame")) {
+        WebKitWebFrame *frame = webkit_web_view_get_focused_frame (uzbl.gui.web_view);
+        jsctx = webkit_web_frame_get_global_context (frame);
+
+        if (!jsctx) {
+            uzbl_debug ("Failed to get the javascript context\n");
+            return;
+        }
+
+        JSGlobalContextRetain (jsctx);
+#endif
     } else if (!g_strcmp0 (context, "page")) {
 #ifdef USE_WEBKIT2
         /* TODO: This doesn't seem to be the right thing... */
