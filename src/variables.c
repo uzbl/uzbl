@@ -2264,6 +2264,10 @@ IMPLEMENT_GETTER (gchar *, spellcheck_languages)
     WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
     const gchar * const * langs = webkit_web_context_get_spell_checking_languages (context);
 
+    if (!langs) {
+        return g_strdup ("");
+    }
+
     return g_strjoinv (",", (gchar **)langs);
 }
 
@@ -2469,7 +2473,7 @@ IMPLEMENT_GETTER (gchar *, plugin_list)
 
     if (!plugins) {
         /* TODO: Don't ignore the error. */
-        return "[]";
+        return g_strdup ("[]");
     }
 
 #define plugin_foreach g_list_foreach
