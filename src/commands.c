@@ -1641,6 +1641,11 @@ IMPLEMENT_COMMAND (js)
         jsctx = webkit_web_frame_get_global_context (frame);
 #endif
 
+        if (!jsctx) {
+            uzbl_debug ("Failed to get the javascript context\n");
+            return;
+        }
+
         JSGlobalContextRetain (jsctx);
     } else {
         uzbl_debug ("Unrecognized js context: %s\n", context);
