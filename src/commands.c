@@ -167,8 +167,8 @@ builtin_command_table[] =
     /* Page commands */
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 9, 90)
-    { "load",                           cmd_load,                     FALSE, TRUE  },
-    { "save",                           cmd_save,                     FALSE, TRUE  },
+    { "load",                           cmd_load,                     TRUE,  TRUE  },
+    { "save",                           cmd_save,                     TRUE,  TRUE  },
 #endif
 #endif
 #ifndef USE_WEBKIT2
@@ -181,9 +181,9 @@ builtin_command_table[] =
     /* Display commands */
     { "scroll",                         cmd_scroll,                   TRUE,  TRUE  },
     { "zoom",                           cmd_zoom,                     TRUE,  TRUE  },
-    { "hardcopy",                       cmd_hardcopy,                 FALSE, TRUE  },
+    { "hardcopy",                       cmd_hardcopy,                 TRUE,  TRUE  },
 #ifdef HAVE_SNAPSHOT
-    { "snapshot",                       cmd_snapshot,                 FALSE, TRUE  },
+    { "snapshot",                       cmd_snapshot,                 TRUE,  TRUE  },
 #endif
 
     /* Content commands */
@@ -218,7 +218,7 @@ builtin_command_table[] =
     { "menu_editable_remove",           cmd_menu_remove_edit,         FALSE, TRUE  }, /* TODO: Rework to be "menu remove edit". */
 
     /* Search commands */
-    { "search",                         cmd_search,                   FALSE, TRUE  },
+    { "search",                         cmd_search,                   TRUE,  TRUE  },
 
     /* Security commands */
     { "secuity",                        cmd_security,                 TRUE,  TRUE  },
@@ -227,7 +227,7 @@ builtin_command_table[] =
 #endif
 
     /* Inspector commands */
-    { "inspector",                      cmd_inspector,                FALSE, TRUE  },
+    { "inspector",                      cmd_inspector,                TRUE,  TRUE  },
 
     /* Execution commands */
     { "js",                             cmd_js,                       TRUE,  TRUE  },
