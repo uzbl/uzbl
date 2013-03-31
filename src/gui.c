@@ -974,7 +974,10 @@ destroy_cb (GtkWidget *widget, gpointer data)
     UZBL_UNUSED (widget);
     UZBL_UNUSED (data);
 
-    gtk_main_quit ();
+    /* No need to exit; we're on our way down anyways. */
+    if (!uzbl.state.exit) {
+        uzbl_commands_run ("exit", NULL);
+    }
 }
 
 gboolean

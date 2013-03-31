@@ -160,6 +160,8 @@ uzbl_initialize (int argc, char **argv)
     gtk_init (&argc, &argv);
 
     uzbl_gui_init ();
+
+    uzbl.state.started = TRUE;
 }
 
 #ifndef UZBL_LIBRARY
@@ -242,6 +244,10 @@ main (int argc, char *argv[])
     /* Read configuration file */
     read_config_file ();
 
+    if (uzbl.state.exit) {
+        goto main_exit;
+    }
+
     /* Update status bar. */
     uzbl_gui_update_title ();
 
@@ -269,8 +275,11 @@ main (int argc, char *argv[])
         printf ("commit: %s\n", uzbl.info.commit);
     }
 
+    uzbl.state.gtk_started = TRUE;
+
     gtk_main ();
 
+main_exit:
     /* Cleanup and exit. */
     clean_up ();
 

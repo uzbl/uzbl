@@ -1818,6 +1818,13 @@ IMPLEMENT_COMMAND (exit)
     UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
+    uzbl.state.exit = TRUE;
+
+    if (!uzbl.state.started) {
+        uzbl_debug ("Exit called before uzbl is initialized?");
+        return;
+    }
+
     /* Hide window a soon as possible to avoid getting stuck with a
      * non-response window in the cleanup steps. */
     if (uzbl.gui.main_window) {
@@ -1826,7 +1833,9 @@ IMPLEMENT_COMMAND (exit)
         gtk_widget_destroy (GTK_WIDGET (uzbl.gui.plug));
     }
 
-    gtk_main_quit ();
+    if (uzbl.state.gtk_started) {
+        gtk_main_quit ();
+    }
 }
 
 /* Variable commands */

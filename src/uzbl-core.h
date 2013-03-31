@@ -71,6 +71,10 @@ typedef struct {
     gchar          *web_extensions_directory;
     JSGlobalContextRef jscontext;
 
+    gboolean        started;
+    gboolean        gtk_started;
+    gboolean        exit;
+
     /* Events */
     int             socket_id;
     gboolean        events_stdout;
