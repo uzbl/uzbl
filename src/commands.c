@@ -427,6 +427,26 @@ uzbl_commands_load_file (const gchar *path)
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
 
+void
+parse_command_from_file (const char *cmd)
+{
+    if (!cmd || !*cmd) {
+        return;
+    }
+
+    gchar *work_string = g_strdup (cmd);
+
+    /* Strip trailing newline, and any other whitespace in front. */
+    g_strstrip (work_string);
+
+    /* Skip comments. */
+    if (*work_string != '#') {
+        uzbl_commands_run (work_string, NULL);
+    }
+
+    g_free (work_string);
+}
+
 static GArray *
 split_quoted (const gchar *src, const gboolean unquote);
 
@@ -483,26 +503,6 @@ parse_command_from_file_cb (const gchar *line, gpointer data)
     UZBL_UNUSED (data);
 
     parse_command_from_file (line);
-}
-
-void
-parse_command_from_file (const char *cmd)
-{
-    if (!cmd || !*cmd) {
-        return;
-    }
-
-    gchar *work_string = g_strdup (cmd);
-
-    /* Strip trailing newline, and any other whitespace in front. */
-    g_strstrip (work_string);
-
-    /* Skip comments. */
-    if (*work_string != '#') {
-        uzbl_commands_run (work_string, NULL);
-    }
-
-    g_free (work_string);
 }
 
 GArray *
