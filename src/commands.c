@@ -51,7 +51,6 @@ struct _UzblCommand {
 DECLARE_COMMAND (back);
 DECLARE_COMMAND (forward);
 DECLARE_COMMAND (reload);
-DECLARE_COMMAND (reload_force);
 DECLARE_COMMAND (stop);
 DECLARE_COMMAND (uri);
 #ifndef USE_WEBKIT2
@@ -143,7 +142,6 @@ builtin_command_table[] =
     { "back",                           cmd_back,                     TRUE,  TRUE  },
     { "forward",                        cmd_forward,                  TRUE,  TRUE  },
     { "reload",                         cmd_reload,                   TRUE,  TRUE  },
-    { "reload_ign_cache",               cmd_reload_force,             TRUE,  TRUE  }, /* TODO: Rename to "reload_force". */
     { "stop",                           cmd_stop,                     TRUE,  TRUE  },
     { "uri",                            cmd_uri,                      FALSE, TRUE  },
 #ifndef USE_WEBKIT2
@@ -612,18 +610,21 @@ IMPLEMENT_COMMAND (forward)
 
 IMPLEMENT_COMMAND (reload)
 {
-    UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
-    webkit_web_view_reload (uzbl.gui.web_view);
-}
+    const gchar *type = argv_idx (argv, 0);
 
-IMPLEMENT_COMMAND (reload_force)
-{
-    UZBL_UNUSED (argv);
-    UZBL_UNUSED (result);
+    if (!type) {
+        type = "cached";
+    }
 
-    webkit_web_view_reload_bypass_cache (uzbl.gui.web_view);
+    if (!g_strcmp0 (type, "cached")) {
+        webkit_web_view_reload (uzbl.gui.web_view);
+    } else if (!g_strcmp0 (type, "full")) {
+        webkit_web_view_reload_bypass_cache (uzbl.gui.web_view);
+    } else {
+        uzbl_debug ("Unrecognized reload type: %s\n", type);
+    }
 }
 
 IMPLEMENT_COMMAND (stop)
