@@ -200,7 +200,7 @@ set ebind     = @mode_bind global,-insert
 @on_event  ESCAPE    @set_mode
 @on_event  ESCAPE    event KEYCMD_CLEAR
 @on_event  ESCAPE    js page string uzbl.follow.clearHints()
-@on_event  ESCAPE    search_clear
+@on_event  ESCAPE    search clear
 @on_event  ESCAPE    js page string window.getSelection().removeAllRanges()
 @bind   <Escape>     = event ESCAPE
 @bind   <Ctrl>[      = event ESCAPE
@@ -266,12 +266,12 @@ set ebind     = @mode_bind global,-insert
 @cbind  b   = back
 @cbind  m   = forward
 @cbind  S   = stop
-@cbind  r   = reload
-@cbind  R   = reload_ign_cache
+@cbind  r   = reload cached
+@cbind  R   = reload full
 
 # Zoom binds
-@cbind  +   = zoom_in
-@cbind  -   = zoom_out
+@cbind  +   = zoom in
+@cbind  -   = zoom out
 @cbind  T   = toggle zoom_type
 @cbind  1   = set zoom_level = 1.0
 @cbind  2   = set zoom_level = 2.0
@@ -280,14 +280,14 @@ set ebind     = @mode_bind global,-insert
 @cbind  t   = toggle show_status
 
 # Page searching binds
-@cbind  /*  = search %s
-@cbind  ?*  = search_reverse %s
+@cbind  /*  = search find %s
+@cbind  ?*  = search rfind %s
 # Jump to next and previous items
-@cbind  n   = search
-@cbind  N   = search_reverse
+@cbind  n   = search find
+@cbind  N   = search rfind
 
 # Print pages to a printer
-@cbind  <Ctrl>p = hardcopy
+@cbind  <Ctrl>p = hardcopy page
 
 # Web searching binds
 @cbind  gg<Google:>_         = uri http://www.google.com/search?q=\@<encodeURIComponent(%r)>\@
