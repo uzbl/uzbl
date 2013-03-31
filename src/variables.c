@@ -137,11 +137,7 @@ DECLARE_SETTER (int, max_conns_host);
 DECLARE_SETTER (gchar *, http_debug);
 DECLARE_GETSET (gchar *, ssl_ca_file);
 #endif
-#ifdef USE_WEBKIT2
 DECLARE_GETSET (gchar *, ssl_policy);
-#else
-DECLARE_GETSET (int, ssl_policy);
-#endif
 DECLARE_GETSET (gchar *, cache_model);
 
 /* Security variables */
@@ -391,12 +387,7 @@ builtin_variable_table[] = {
     { "http_debug",                   UZBL_V_STRING (uzbl.behave.http_debug,               set_http_debug)},
     { "ssl_ca_file",                  UZBL_V_FUNC (ssl_ca_file,                            STR)},
 #endif
-    { "ssl_policy",
-#ifdef USE_WEBKIT2
-                                      UZBL_V_FUNC (ssl_policy,                             STR)
-#else
-                                      UZBL_V_FUNC (ssl_policy,                             INT)
-#endif
+    { "ssl_policy",                   UZBL_V_FUNC (ssl_policy,                             STR)
                                                                                                },
     { "cache_model",                  UZBL_V_FUNC (cache_model,                            STR)},
 
@@ -1843,27 +1834,37 @@ GOBJECT_GETSET (gchar *, ssl_ca_file,
                 soup_session (), "ssl-ca-file")
 #endif
 
-#ifdef USE_WEBKIT2
 #define ssl_policy_choices(call)                     \
     call (WEBKIT_TLS_ERRORS_POLICY_IGNORE, "ignore") \
     call (WEBKIT_TLS_ERRORS_POLICY_FAIL, "fail")
 
+#ifdef USE_WEBKIT2
 #define _webkit_web_context_get_tls_errors_policy() \
     webkit_web_context_get_tls_errors_policy (webkit_web_view_get_context (uzbl.gui.web_view))
 #define _webkit_web_context_set_tls_errors_policy(val) \
     webkit_web_context_set_tls_errors_policy (webkit_web_view_get_context (uzbl.gui.web_view), val)
 
-CHOICE_GETSET (WebKitTLSErrorsPolicy, ssl_policy,
+CHOICE_GETSET (UzblSslPolicy, ssl_policy,
                _webkit_web_context_get_tls_errors_policy, _webkit_web_context_set_tls_errors_policy)
 
 #undef _webkit_web_context_get_tls_errors_policy
 #undef _webkit_web_context_set_tls_errors_policy
+#else
+#define _soup_session_get_ssl_strict() \
+    object_get (soup_session (), "ssl-strict")
+#define _soup_session_set_ssl_strict(val) \
+    g_object_set (soup_session(),         \
+        "ssl-strict", val,                \
+        NULL);
+
+CHOICE_GETSET (UzblSslPolicy, ssl_policy,
+               _soup_session_get_ssl_strict, _soup_session_set_ssl_strict)
+
+#undef _soup_session_get_ssl_strict
+#undef _soup_session_set_ssl_strict
+#endif
 
 #undef ssl_policy_choices
-#else
-GOBJECT_GETSET (int, ssl_policy,
-                soup_session (), "ssl-strict")
-#endif
 
 #define cache_model_choices(call)                                 \
     call (WEBKIT_CACHE_MODEL_DOCUMENT_VIEWER , "document_viewer") \

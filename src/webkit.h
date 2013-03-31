@@ -19,6 +19,7 @@
 #ifdef USE_WEBKIT2
 typedef WebKitSettings WebKitWebSettings;
 typedef WebKitFindOptions UzblFindOptions;
+typedef WebKitTLSErrorsPolicy UzblSslPolicy;
 #else
 /* Use same symbols as WebKit2 for find options. */
 typedef enum {
@@ -29,6 +30,12 @@ typedef enum {
     WEBKIT_FIND_OPTIONS_BACKWARDS        = 1 << 3,
     WEBKIT_FIND_OPTIONS_WRAP_AROUND      = 1 << 4
 } UzblFindOptions;
+
+/* Use same symbols as WebKit2 for ssl policy errors. */
+typedef enum {
+    WEBKIT_TLS_ERRORS_POLICY_IGNORE = 0,
+    WEBKIT_TLS_ERRORS_POLICY_FAIL = 1
+} UzblSslPolicy;
 #endif
 
 #endif
