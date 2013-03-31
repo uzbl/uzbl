@@ -20,6 +20,7 @@ uzbl_sync_data_new ()
 void
 uzbl_sync_data_free (UzblSyncData *data)
 {
+    g_object_unref (data->result);
     g_main_loop_unref (data->loop);
     g_main_context_pop_thread_default (data->context);
     g_main_context_unref (data->context);
