@@ -99,6 +99,7 @@ DECLARE_COMMAND (spell);
 DECLARE_COMMAND (cache);
 #endif
 DECLARE_COMMAND (favicon);
+DECLARE_COMMAND (inject);
 
 /* Search commands */
 DECLARE_COMMAND (search);
@@ -179,6 +180,7 @@ builtin_command_table[] =
     { "cache",                          cmd_cache,                    TRUE,  TRUE  },
 #endif
     { "favicon",                        cmd_favicon,                  TRUE,  TRUE  },
+    { "inject",                         cmd_inject,                   TRUE,  TRUE  },
 
     /* Menu commands */
     { "menu_add",                       cmd_menu_add,                 FALSE, TRUE  }, /* TODO: Rework to be "menu add". */
@@ -1257,6 +1259,63 @@ IMPLEMENT_COMMAND (favicon)
         /* TODO: Implement. */
     } else {
         uzbl_debug ("Unrecognized favicon command: %s\n", command);
+    }
+}
+
+IMPLEMENT_COMMAND (inject)
+{
+    UZBL_UNUSED (result);
+
+    ARG_CHECK (argv, 1);
+
+    const gchar *format = argv_idx (argv, 0);
+
+    if (!g_strcmp0 (format, "html")) {
+        ARG_CHECK (argv, 3);
+
+        const gchar *baseuri = argv_idx (argv, 1);
+        const gchar *content = argv_idx (argv, 2);
+
+#ifdef USE_WEBKIT2
+        webkit_web_view_load_html (uzbl.gui.web_view, content, baseuri);
+#else
+        webkit_web_view_load_html_string (uzbl.gui.web_view, content, baseuri);
+#endif
+#ifdef USE_WEBKIT2
+    } else if (!g_strcmp0 (format, "text")) {
+        ARG_CHECK (argv, 2);
+
+        const gchar *content = argv_idx (argv, 1);
+
+        webkit_web_view_load_plain_text (uzbl.gui.web_view, content);
+#endif
+    } else if (!g_strcmp0 (format, "error_html")) {
+        ARG_CHECK (argv, 4);
+
+        const gchar *uri = argv_idx (argv, 1);
+        const gchar *baseuri = argv_idx (argv, 2);
+        const gchar *content = argv_idx (argv, 3);
+
+#ifdef USE_WEBKIT2
+        webkit_web_view_load_alternate_html (uzbl.gui.web_view, content, uri, baseuri);
+#else
+        WebKitWebFrame *frame = webkit_web_view_get_focused_frame (uzbl.gui.web_view);
+        webkit_web_frame_load_alternate_string (frame, content, baseuri, uri);
+#endif
+#ifndef USE_WEBKIT2
+    } else if (!g_strcmp0 (format, "content")) {
+        ARG_CHECK (argv, 5);
+
+        const gchar *baseuri = argv_idx (argv, 1);
+        const gchar *mime = argv_idx (argv, 2);
+        const gchar *encoding = argv_idx (argv, 3);
+        const gchar *content = argv_idx (argv, 4);
+
+        WebKitWebFrame *frame = webkit_web_view_get_focused_frame (uzbl.gui.web_view);
+        webkit_web_frame_load_string (frame, content, mime, encoding, baseuri);
+#endif
+    } else {
+        uzbl_debug ("Unrecognized inject format: %s\n", format);
     }
 }
 

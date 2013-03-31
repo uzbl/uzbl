@@ -332,12 +332,6 @@ DECLARE_SETTER (gchar *, web_extensions_directory);
 /* Hacks */
 DECLARE_GETSET (int, enable_site_workarounds);
 
-/* Magic/special variables */
-#ifdef USE_WEBKIT2
-DECLARE_SETTER (gchar *, inject_text);
-#endif
-DECLARE_SETTER (gchar *, inject_html);
-
 static const UzblVariableEntry
 builtin_variable_table[] = {
     /* name                           entry                                                type/callback */
@@ -596,13 +590,6 @@ builtin_variable_table[] = {
 
     /* Hacks */
     { "enable_site_workarounds",      UZBL_V_FUNC (enable_site_workarounds,                INT)},
-
-    /* Magic/special variables */
-    /* FIXME: These are probably better off as commands. */
-#ifdef USE_WEBKIT2
-    { "inject_text",                  UZBL_VARIABLE (STR, { .s = NULL }, NULL,             set_inject_text)},
-#endif
-    { "inject_html",                  UZBL_VARIABLE (STR, { .s = NULL }, NULL,             set_inject_html)},
 
     /* Constants */
     { "WEBKIT_MAJOR",                 UZBL_C_INT (uzbl.info.webkit_major)},
@@ -2738,23 +2725,6 @@ IMPLEMENT_SETTER (gchar *, web_extensions_directory)
 /* Hacks */
 GOBJECT_GETSET (int, enable_site_workarounds,
                 webkit_settings (), "enable-site-specific-quirks")
-
-/* Magic/special variables */
-#ifdef USE_WEBKIT2
-IMPLEMENT_SETTER (gchar *, inject_text)
-{
-    webkit_web_view_load_plain_text (uzbl.gui.web_view, inject_text);
-}
-#endif
-
-IMPLEMENT_SETTER (gchar *, inject_html)
-{
-#ifdef USE_WEBKIT2
-    webkit_web_view_load_html (uzbl.gui.web_view, inject_html, NULL);
-#else
-    webkit_web_view_load_html_string (uzbl.gui.web_view, inject_html, NULL);
-#endif
-}
 
 GObject *
 webkit_settings ()
