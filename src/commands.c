@@ -104,8 +104,8 @@ DECLARE_COMMAND (favicon);
 DECLARE_COMMAND (search);
 
 /* Security commands */
-#ifdef USE_WEBKIT2
 DECLARE_COMMAND (security);
+#ifdef USE_WEBKIT2
 DECLARE_COMMAND (dns);
 #endif
 
@@ -198,8 +198,8 @@ builtin_command_table[] =
     { "search",                         cmd_search,                   FALSE, TRUE  },
 
     /* Security commands */
-#ifdef USE_WEBKIT2
     { "secuity",                        cmd_security,                 TRUE,  TRUE  },
+#ifdef USE_WEBKIT2
     { "dns",                            cmd_dns,                      TRUE,  TRUE  },
 #endif
 
@@ -1512,7 +1512,6 @@ search_exit:
 
 /* Security commands */
 
-#ifdef USE_WEBKIT2
 IMPLEMENT_COMMAND (security)
 {
     ARG_CHECK (argv, 3);
@@ -1521,27 +1520,42 @@ IMPLEMENT_COMMAND (security)
     const gchar *command = argv_idx (argv, 1);
     const gchar *scheme = argv_idx (argv, 2);
 
+#ifdef USE_WEBKIT2
     typedef gboolean (*UzblGetSecurityOption) (WebKitSecurityManager *manager, const gchar *scheme);
     typedef void     (*UzblSetSecurityOption) (WebKitSecurityManager *manager, const gchar *scheme);
+#endif
 
     typedef struct {
         const gchar           *name;
+#ifdef USE_WEBKIT2
         UzblGetSecurityOption  get;
         UzblSetSecurityOption  set;
+#else
+        WebKitSecurityPolicy   value;
+#endif
     } UzblSecurityField;
 
-#define SECURITY_FIELD(name) \
+#ifdef USE_WEBKIT2
+#define SECURITY_FIELD(name, val) \
     { #name, webkit_security_manager_uri_scheme_is_##name, webkit_security_manager_register_uri_scheme_as_##name }
+#else
+#define SECURITY_FIELD(name, val) \
+    { #name, WEBKIT_SECURITY_POLICY_##val }
+#endif
 
     static const UzblSecurityField
     fields[] = {
-        SECURITY_FIELD (local),
-        SECURITY_FIELD (no_access),
-        SECURITY_FIELD (display_isolated),
-        SECURITY_FIELD (secure),
-        SECURITY_FIELD (cors_enabled),
-        SECURITY_FIELD (empty_document),
+        SECURITY_FIELD (local,            LOCAL),
+        SECURITY_FIELD (no_access,        NO_ACCESS_TO_OTHER_SCHEME),
+        SECURITY_FIELD (display_isolated, DISPLAY_ISOLATED),
+        SECURITY_FIELD (secure,           SECURE),
+        SECURITY_FIELD (cors_enabled,     CORS_ENABLED),
+        SECURITY_FIELD (empty_document,   EMPTY_DOCUMENT),
+#ifdef USE_WEBKIT2
         { NULL, NULL, NULL }
+#else
+        { NULL, 0 }
+#endif
     };
 
 #undef SECURITY_FIELD
@@ -1560,18 +1574,36 @@ IMPLEMENT_COMMAND (security)
         uzbl_debug ("Unrecognized option: %s\n", option);
     }
 
+#ifdef USE_WEBKIT2
     WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
     WebKitSecurityManager *manager = webkit_web_context_get_security_manager (context);
+#else
+    WebKitSecurityPolicy policy = webkit_get_security_policy_for_uri_scheme (scheme);
+#endif
 
     if (!g_strcmp0 (command, "get")) {
-        gboolean set = field->get (manager, scheme);
+        gboolean set;
+#ifdef USE_WEBKIT2
+        set = field->get (manager, scheme);
+#else
+        set = policy & field->value;
+#endif
 
         g_string_assign (result, set ? "true" : "false");
     } else if (!g_strcmp0 (command, "set")) {
+#ifdef USE_WEBKIT2
         field->set (manager, scheme);
+#else
+        webkit_set_security_policy_for_uri_scheme (scheme, policy | field->value);
+#endif
+#ifndef USE_WEBKIT2
+    } else if (!g_strcmp0 (command, "unset")) {
+        webkit_set_security_policy_for_uri_scheme (scheme, policy & ~field->value);
+#endif
     }
 }
 
+#ifdef USE_WEBKIT2
 IMPLEMENT_COMMAND (dns)
 {
     UZBL_UNUSED (result);
