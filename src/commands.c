@@ -27,7 +27,6 @@
  * (WebKit1)
  *
  *   - Add commands for managing web databases (see WebKitSecurityOrigin).
- *   - Add commands for frame management (e.g., setting the current focus).
  *   - Add commands for DOM manipulation?
  */
 
@@ -66,11 +65,16 @@ DECLARE_COMMAND (uri);
 DECLARE_COMMAND (auth);
 #endif
 DECLARE_COMMAND (download);
+
+/* Page commands */
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 9, 90)
 DECLARE_COMMAND (load);
 DECLARE_COMMAND (save);
 #endif
+#endif
+#ifndef USE_WEBKIT2
+DECLARE_COMMAND (frame);
 #endif
 
 /* Cookie commands */
@@ -159,11 +163,16 @@ builtin_command_table[] =
     { "auth",                           cmd_auth,                     TRUE,  TRUE  },
 #endif
     { "download",                       cmd_download,                 TRUE,  TRUE  },
+
+    /* Page commands */
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 9, 90)
     { "load",                           cmd_load,                     FALSE, TRUE  },
     { "save",                           cmd_save,                     FALSE, TRUE  },
 #endif
+#endif
+#ifndef USE_WEBKIT2
+    { "frame",                          cmd_frame,                    TRUE,  TRUE  },
 #endif
 
     /* Cookie commands */
@@ -696,6 +705,8 @@ IMPLEMENT_COMMAND (download)
     g_object_unref (download);
 }
 
+/* Page commands */
+
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 9, 90)
 IMPLEMENT_COMMAND (load)
@@ -754,6 +765,52 @@ IMPLEMENT_COMMAND (save)
     }
 }
 #endif
+#endif
+
+#ifndef USE_WEBKIT2
+IMPLEMENT_COMMAND (frame)
+{
+    ARG_CHECK (argv, 1);
+
+    const gchar *command = argv_idx (argv, 0);
+    const gchar *name = argv_idx (argv, 1);
+
+    if (!name) {
+        name = "_current";
+    }
+
+    WebKitWebFrame *focus_frame = webkit_web_view_get_focused_frame (uzbl.gui.web_view);
+    WebKitWebFrame *frame = webkit_web_frame_find_frame (focus_frame, name);
+
+    if (!frame) {
+        uzbl_debug ("Failed to find frame: %s\n", name);
+        return;
+    }
+
+    if (!g_strcmp0 (command, "list")) {
+        g_string_append_c (result, '[');
+
+        /* TODO: Implement. Maybe use JS to make an object tree? */
+
+        g_string_append_c (result, ']');
+    } else if (!g_strcmp0 (command, "focus")) {
+        /* TODO: How to set focus on a frame since they're not widgets? */
+    } else if (!g_strcmp0 (command, "reload")) {
+        webkit_web_frame_reload (frame);
+    } else if (!g_strcmp0 (command, "stop")) {
+        webkit_web_frame_stop_loading (frame);
+    } else if (!g_strcmp0 (command, "dump")) {
+        /* TODO: Implement. */
+    } else if (!g_strcmp0 (command, "inject")) {
+        /* TODO: Copy inject code up to here? */
+    } else if (!g_strcmp0 (command, "get")) {
+        /* TODO: Implement. */
+    } else if (!g_strcmp0 (command, "set")) {
+        /* TODO: Implement. */
+    } else {
+        uzbl_debug ("Unrecognized frame command: %s\n", command);
+    }
+}
 #endif
 
 /* Cookie commands */
@@ -1297,6 +1354,23 @@ IMPLEMENT_COMMAND (favicon)
 
 IMPLEMENT_COMMAND (inject)
 {
+#if 0 /* TODO: Move into frame command? */
+    GArray *args = uzbl_commands_args_new ();
+
+    uzbl_commands_args_append (args, g_strdup ("inject"));
+    uzbl_commands_args_append (args, g_strdup ("_top"));
+
+    guint i;
+    for (i = 0; i < argv->len; ++i) {
+        const gchar *arg = g_strdup (argv_idx (argv, i));
+        uzbl_commands_args_append (args, arg);
+    }
+
+    cmd_frame (args, result);
+
+    uzbl_commands_args_free (args);
+#endif
+
     UZBL_UNUSED (result);
 
     ARG_CHECK (argv, 1);
