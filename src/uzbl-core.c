@@ -370,6 +370,8 @@ clean_up ()
         uzbl.info.pid_str = NULL;
     }
 
+    g_free (uzbl.state.last_result);
+
     if (uzbl.state.jscontext) {
         JSGlobalContextRelease (uzbl.state.jscontext);
     }
