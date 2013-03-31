@@ -100,6 +100,7 @@ DECLARE_COMMAND (cache);
 #endif
 DECLARE_COMMAND (favicon);
 DECLARE_COMMAND (inject);
+DECLARE_COMMAND (css);
 
 /* Search commands */
 DECLARE_COMMAND (search);
@@ -181,6 +182,7 @@ builtin_command_table[] =
 #endif
     { "favicon",                        cmd_favicon,                  TRUE,  TRUE  },
     { "inject",                         cmd_inject,                   TRUE,  TRUE  },
+    { "css",                            cmd_css,                      TRUE,  TRUE  },
 
     /* Menu commands */
     { "menu_add",                       cmd_menu_add,                 FALSE, TRUE  }, /* TODO: Rework to be "menu add". */
@@ -1316,6 +1318,90 @@ IMPLEMENT_COMMAND (inject)
 #endif
     } else {
         uzbl_debug ("Unrecognized inject format: %s\n", format);
+    }
+}
+
+IMPLEMENT_COMMAND (css)
+{
+    UZBL_UNUSED (result);
+
+    ARG_CHECK (argv, 1);
+
+    const gchar *command = argv_idx (argv, 0);
+
+#ifdef USE_WEBKIT2
+    WebKitWebViewGroup *group = webkit_web_view_get_group (uzbl.gui.web_view);
+#else
+    WebKitWebSettings *settings = webkit_web_view_get_settings (uzbl.gui.web_view);
+#endif
+
+    if (!g_strcmp0 (command, "add")) {
+        ARG_CHECK (argv, 2);
+
+        const gchar *uri = argv_idx (argv, 1);
+
+#ifdef USE_WEBKIT2
+        ARG_CHECK (argv, 3);
+
+        const gchar *where = argv_idx (argv, 2);
+
+        WebKitInjectedContentFrames frames = WEBKIT_INJECTED_CONTENT_FRAMES_ALL;
+
+        if (!g_strcmp0 (where, "all")) {
+            frames = WEBKIT_INJECTED_CONTENT_FRAMES_ALL;
+        } else if (!g_strcmp0 (where, "top_only")) {
+            frames = WEBKIT_INJECTED_CONTENT_FRAMES_TOP_ONLY;
+        } else {
+            uzbl_debug ("Unrecognized frame target: %s\n", where);
+        }
+
+        const gchar *baseuri = argv_idx (argv, 3);
+        const gchar *whitelist = argv_idx (argv, 4);
+        const gchar *blacklist = argv_idx (argv, 5);
+
+        gchar **whitelist_list = NULL;
+        gchar **blacklist_list = NULL;
+
+        if (whitelist) {
+            whitelist_list = g_strsplit (whitelist, ",", 0);
+        }
+
+        if (blacklist) {
+            blacklist_list = g_strsplit (blacklist, ",", 0);
+        }
+
+        webkit_web_view_group_add_user_style_sheet (group,
+            uri,
+            baseuri,
+            whitelist_list,
+            blacklist_list,
+            frames);
+
+        if (whitelist_list) {
+            g_strfreev (whitelist_list);
+        }
+
+        if (blacklist_list) {
+            g_strfreev (blacklist_list);
+        }
+#else
+        g_object_set (G_OBJECT (settings),
+            "user-stylesheet-uri", uri,
+            NULL);
+
+        uzbl_debug ("WebKit1 only supports one stylesheet at a time\n");
+#endif
+    } else if (!g_strcmp0 (command, "clear")) {
+#ifdef USE_WEBKIT2
+        webkit_web_view_group_remove_all_user_style_sheets (group);
+#else
+        /* XXX: Is this really what this does? */
+        g_object_set (G_OBJECT (settings),
+            "user-stylesheet-uri", "",
+            NULL);
+#endif
+    } else {
+        uzbl_debug ("Unrecognized css command: %s\n", command);
     }
 }
 

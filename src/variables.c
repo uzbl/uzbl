@@ -122,9 +122,6 @@ DECLARE_GETSET (int, enable_compositing_debugging);
 #endif
 
 /* Customization */
-#ifndef USE_WEBKIT2
-DECLARE_GETSET (gchar *, stylesheet_uri);
-#endif
 #if !WEBKIT_CHECK_VERSION (1, 9, 0)
 DECLARE_GETSET (int, default_context_menu);
 #endif
@@ -375,9 +372,6 @@ builtin_variable_table[] = {
 #endif
 
     /* Customization */
-#ifndef USE_WEBKIT2
-    { "stylesheet_uri",               UZBL_V_FUNC (stylesheet_uri,                         STR)},
-#endif
     { "default_context_menu",
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
                                       UZBL_V_INT (uzbl.gui.custom_context_menu,            NULL)
@@ -1763,11 +1757,6 @@ GOBJECT_GETSET (int, enable_compositing_debugging,
 #endif
 
 /* Customization */
-#ifndef USE_WEBKIT2
-GOBJECT_GETSET (gchar *, stylesheet_uri,
-                webkit_settings (), "user-stylesheet-uri")
-#endif
-
 #if !WEBKIT_CHECK_VERSION (1, 9, 0)
 GOBJECT_GETSET (int, default_context_menu,
                 webkit_settings (), "enable-default-context-menu")
