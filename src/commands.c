@@ -1553,13 +1553,13 @@ IMPLEMENT_COMMAND (search)
         }
     } else if (!g_strcmp0 (command, "clear")) {
         reset = TRUE;
+    } else if (!g_strcmp0 (command, "reset")) {
+        reset = TRUE;
 
         g_free (uzbl.state.searchtx);
         uzbl.state.searchtx = NULL;
 
         uzbl.state.searchoptions = default_options;
-    } else if (!g_strcmp0 (command, "reset")) {
-        reset = TRUE;
     } else if (!g_strcmp0 (command, "find") || !g_strcmp0 (command, "rfind")) {
         const gchar *key = tokens[1];
 
