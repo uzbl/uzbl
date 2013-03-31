@@ -19,7 +19,16 @@
 /* TODO: (WebKit2)
  *
  *   - Add commands for registering custom schemes.
+ *   - Add commands for handling the back/forward list.
+ *   - Add "edit" command for cut/copy/paste/select/etc (also WK1).
+ *   - Add dumping the source (see WebKitWebResource).
+ *   - Add resource management commands (also WK1?).
  *
+ * (WebKit1)
+ *
+ *   - Add commands for managing web databases (see WebKitSecurityOrigin).
+ *   - Add commands for frame management (e.g., setting the current focus).
+ *   - Add commands for DOM manipulation?
  */
 
 /* ========================= COMMAND TABLE ========================== */
@@ -228,6 +237,7 @@ builtin_command_table[] =
     /* Variable commands */
     { "set",                            cmd_set,                      FALSE, FALSE },
     { "toggle",                         cmd_toggle,                   TRUE,  TRUE  },
+    /* TODO: Add more dump commands (e.g., current frame/page source) */
     { "dump_config",                    cmd_dump_config,              TRUE,  TRUE  },
     { "dump_config_as_events",          cmd_dump_config_as_events,    TRUE,  TRUE  },
     { "print",                          cmd_print,                    FALSE, TRUE  },
@@ -573,7 +583,7 @@ IMPLEMENT_COMMAND (back)
     int n = count ? atoi (count) : 1;
 
 #ifdef USE_WEBKIT2
-    /* FIXME: There's no "go back N" call. */
+    /* TODO: Iterate the back/forward list and use webkit_web_view_go_to_back_forward_list_item. */
     int i;
     for (i = 0; (i < n) && webkit_web_view_can_go_back (uzbl.gui.web_view); ++i) {
         webkit_web_view_go_back (uzbl.gui.web_view);
@@ -592,7 +602,7 @@ IMPLEMENT_COMMAND (forward)
     int n = count ? atoi (count) : 1;
 
 #ifdef USE_WEBKIT2
-    /* FIXME: There's no "go forward N" call. */
+    /* TODO: Iterate the back/forward list and use webkit_web_view_go_to_back_forward_list_item. */
     int i;
     for (i = 0; (i < n) && webkit_web_view_can_go_forward (uzbl.gui.web_view); ++i) {
         webkit_web_view_go_forward (uzbl.gui.web_view);

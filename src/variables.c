@@ -19,9 +19,15 @@
 /* TODO: (WebKit2)
  *
  *   - Add variables for cookies.
- *   - Add variables for back/forward lists.
- *   - Add variables for favicons.
+ *   - Add variables for back/forward lists (also WK1).
+ *   - Add variables for favicons (also WK1).
+ *   - Expose WebView's is-loading property.
+ *   - Expose information from webkit_web_view_get_tls_info.
  *
+ * (WebKit1)
+ *
+ *   - Expose WebKitViewportAttributes values.
+ *   - Expose list of frames (ro).
  */
 
 /* ======================== VARIABLES TABLE ========================= */
@@ -161,6 +167,7 @@ DECLARE_GETSET (int, enable_dns_prefetch);
 DECLARE_GETSET (int, display_insecure_content);
 DECLARE_GETSET (int, run_insecure_content);
 #endif
+/* TODO: For WebKit2, we'll have to manage the BackForwardList manually. */
 DECLARE_SETTER (int, maintain_history);
 #endif
 

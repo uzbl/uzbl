@@ -11,6 +11,25 @@
 
 #include <string.h>
 
+/* TODO: (WebKit2)
+ *
+ *   - Handle run-file-choose signal?
+ *   - Handle script-dialog signal?
+ *   - Handle submit-form signal?
+ *   - Handle resource-load-started signal?
+ *   - Handle print signal (turn hardcopy command into "js page string print()")?
+ *   - Handle permission-request signal?
+ *   - Handle leave-fullscreen signal?
+ *   - Handle enter-fullscreen signal?
+ *   - Handle insecure-content-detected signal?
+ *   - Handle context-menu-dismissed signal?
+ *   - Look into WebKitWindowProperties.
+ *
+ * (WebKit1)
+ *
+ *   - Handle resource-* signals?
+ */
+
 /* =========================== PUBLIC API =========================== */
 
 static void
