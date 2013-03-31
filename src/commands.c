@@ -353,15 +353,6 @@ uzbl_commands_run_parsed (const UzblCommand *info, GArray *argv, GString *result
         return;
     }
 
-    GArray *argv_copy = NULL;
-
-    if (info->send_event) {
-        argv_copy = g_array_new (TRUE, FALSE, sizeof (gchar *));
-
-        /* Store the arguments for the event. */
-        g_array_append_vals (argv_copy, argv->data, argv->len);
-    }
-
     info->function (argv, result);
 
     if (result) {
@@ -372,10 +363,8 @@ uzbl_commands_run_parsed (const UzblCommand *info, GArray *argv, GString *result
     if (info->send_event) {
         uzbl_events_send (COMMAND_EXECUTED, NULL,
             TYPE_NAME, info->name,
-            TYPE_STR_ARRAY, argv_copy,
+            TYPE_STR_ARRAY, argv,
             NULL);
-
-        g_array_free (argv_copy, TRUE);
     }
 }
 
