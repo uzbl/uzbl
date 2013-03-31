@@ -314,7 +314,7 @@ DECLARE_GETSET (int, enable_offline_app_cache);
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
 DECLARE_GETSET (unsigned long long, app_cache_size);
-DECLARE_GETTER (gchar *, app_cache_directory);
+/* DECLARE_GETTER (gchar *, app_cache_directory); */
 #endif
 DECLARE_GETSET (gchar *, web_database_directory);
 DECLARE_GETSET (unsigned long long, web_database_quota);
@@ -579,7 +579,7 @@ builtin_variable_table[] = {
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
     { "app_cache_size",               UZBL_V_FUNC (app_cache_size,                         ULL)},
-    { "app_cache_directory",          UZBL_C_FUNC (app_cache_directory,                    STR)},
+    /* { "app_cache_directory",          UZBL_C_FUNC (app_cache_directory,                    STR)}, */
 #endif
     { "web_database_directory",       UZBL_V_FUNC (web_database_directory,                 STR)},
     { "web_database_quota",           UZBL_V_FUNC (web_database_quota,                     ULL)},
@@ -2676,10 +2676,12 @@ IMPLEMENT_SETTER (unsigned long long, app_cache_size)
     webkit_application_cache_set_maximum_size (app_cache_size);
 }
 
+/* FIXME: Seems to give garbage data?
 IMPLEMENT_GETTER (gchar *, app_cache_directory)
 {
     return g_strdup (webkit_application_cache_get_database_directory_path ());
 }
+*/
 #endif
 
 IMPLEMENT_GETTER (gchar *, web_database_directory)
