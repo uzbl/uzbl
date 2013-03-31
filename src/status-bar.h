@@ -25,7 +25,7 @@ struct _UzblStatusBarClass {
 };
 
 GType
-uzbl_status_bar_get_type (void) G_GNUC_CONST;
+uzbl_status_bar_get_type () G_GNUC_CONST;
 GtkWidget *
 uzbl_status_bar_new ();
 

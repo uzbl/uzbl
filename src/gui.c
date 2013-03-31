@@ -33,15 +33,15 @@
 /* =========================== PUBLIC API =========================== */
 
 static void
-status_bar_init (void);
+status_bar_init ();
 static void
-web_view_init (void);
+web_view_init ();
 static void
-vbox_init (void);
+vbox_init ();
 static void
-window_init (void);
+window_init ();
 static void
-plug_init (void);
+plug_init ();
 
 void
 uzbl_gui_init ()
@@ -97,7 +97,7 @@ static gboolean
 key_release_cb (GtkWidget *widget, GdkEventKey *event, gpointer data);
 
 void
-status_bar_init (void)
+status_bar_init ()
 {
     uzbl.gui.status_bar = uzbl_status_bar_new ();
 
@@ -204,7 +204,7 @@ static gboolean
 scroll_horiz_cb (GtkAdjustment *adjust, gpointer data);
 
 void
-web_view_init (void)
+web_view_init ()
 {
     uzbl.gui.web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
     uzbl.gui.scrolled_win = gtk_scrolled_window_new (NULL, NULL);
@@ -293,7 +293,7 @@ web_view_init (void)
 }
 
 void
-vbox_init (void)
+vbox_init ()
 {
 #if GTK_CHECK_VERSION (3, 0, 0)
     uzbl.gui.vbox = gtk_box_new (FALSE, 0);
@@ -312,7 +312,7 @@ static gboolean
 configure_event_cb (GtkWidget *widget, GdkEventConfigure *event, gpointer data);
 
 void
-window_init (void)
+window_init ()
 {
     uzbl.gui.main_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 
@@ -336,7 +336,7 @@ window_init (void)
 }
 
 void
-plug_init (void)
+plug_init ()
 {
     uzbl.gui.plug = GTK_PLUG (gtk_plug_new (uzbl.state.socket_id));
 
@@ -391,7 +391,7 @@ key_release_cb (GtkWidget *widget, GdkEventKey *event, gpointer data)
 
 #define NO_CLICK_CONTEXT -1
 static gint
-get_click_context (void);
+get_click_context ();
 static void
 send_button_event (guint buttonval, guint state, gint mode);
 

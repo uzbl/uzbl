@@ -43,7 +43,7 @@
 #endif
 
 /* A really generic function pointer. */
-typedef void (*UzblFunction) (void);
+typedef void (*UzblFunction) ();
 
 typedef union {
     int                *i;
@@ -1037,7 +1037,7 @@ get_variable_string (const UzblVariable *var)
 
     gchar *result = NULL;
 
-    typedef gchar *(*getter_t) (void);
+    typedef gchar *(*getter_t) ();
 
     if (var->get) {
         result = ((getter_t)var->get) ();
@@ -1056,7 +1056,7 @@ get_variable_string (const UzblVariable *var)
             return (type)0;                       \
         }                                         \
                                                   \
-        typedef type (*getter_t) (void);          \
+        typedef type (*getter_t) ();              \
                                                   \
         if (var->get) {                           \
             return ((getter_t)var->get) ();       \
