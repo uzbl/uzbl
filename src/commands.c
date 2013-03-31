@@ -982,31 +982,59 @@ IMPLEMENT_COMMAND (zoom)
 
 IMPLEMENT_COMMAND (hardcopy)
 {
-    UZBL_UNUSED (argv);
     UZBL_UNUSED (result);
 
-#ifdef USE_WEBKIT2
-    WebKitPrintOperation *print_op = webkit_print_operation_new (uzbl.gui.web_view);
+    const gchar *region = argv_idx (argv, 0);
 
-    /* TODO: Allow control of print operations here? */
-
-    WebKitPrintOperationResponse response = webkit_print_operation_run_dialog (print_op, GTK_WINDOW (uzbl.gui.main_window));
-
-    switch (response) {
-        case WEBKIT_PRINT_OPERATION_RESPONSE_CANCEL:
-            break;
-        case WEBKIT_PRINT_OPERATION_RESPONSE_PRINT:
-            webkit_print_operation_print (print_op);
-            break;
-        default:
-            uzbl_debug ("Unknown response for a print action; assuming cancel\n");
-            break;
+    if (!region) {
+        region = "page";
     }
 
-    g_object_unref (print_op);
+    if (!g_strcmp0 (region, "page")) {
+#ifdef USE_WEBKIT2
+        WebKitPrintOperation *print_op = webkit_print_operation_new (uzbl.gui.web_view);
+
+        /* TODO: Allow control of print operations here? */
+
+        WebKitPrintOperationResponse response = webkit_print_operation_run_dialog (print_op, GTK_WINDOW (uzbl.gui.main_window));
+
+        switch (response) {
+            case WEBKIT_PRINT_OPERATION_RESPONSE_CANCEL:
+                break;
+            case WEBKIT_PRINT_OPERATION_RESPONSE_PRINT:
+                webkit_print_operation_print (print_op);
+                break;
+            default:
+                uzbl_debug ("Unknown response for a print action; assuming cancel\n");
+                break;
+        }
+
+        g_object_unref (print_op);
 #else
-    webkit_web_frame_print (webkit_web_view_get_main_frame (uzbl.gui.web_view));
+        webkit_web_frame_print (webkit_web_view_get_main_frame (uzbl.gui.web_view));
 #endif
+#ifndef USE_WEBKIT2
+    } else if (!g_strcmp0 (region, "frame")) {
+        const gchar *target = argv_idx (argv, 1);
+
+        WebKitWebFrame *frame;
+
+        if (!target) {
+            frame = webkit_web_view_get_focused_frame (uzbl.gui.web_view);
+        } else {
+            WebKitWebFrame *main_frame = webkit_web_view_get_main_frame (uzbl.gui.web_view);
+            frame = webkit_web_frame_find_frame (main_frame, target);
+        }
+
+        if (!frame && target) {
+            uzbl_debug ("Failed to locate frame: %s\n", target);
+        } else {
+            webkit_web_frame_print (frame);
+        }
+#endif
+    } else {
+        uzbl_debug ("Unrecognized hardcopy region: %s\n", region);
+    }
 }
 
 #ifdef HAVE_SNAPSHOT
