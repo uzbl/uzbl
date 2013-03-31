@@ -512,8 +512,14 @@ mouse_target_cb (WebKitWebView *view, WebKitHitTestResult *hit_test, guint modif
 
     /* TODO: Do something with modifiers? */
 
+    WebKitHitTestResultContext context;
+
+    g_object_get (G_OBJECT (hit_test),
+        "context", &context,
+        NULL);
+
     /* TODO: Handle other cases? */
-    if (!webkit_hit_test_result_context_is_link (hit_test)) {
+    if (!(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_LINK)) {
         return;
     }
 
