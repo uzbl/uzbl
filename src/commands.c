@@ -160,6 +160,7 @@ builtin_command_table[] =
     /* Cookie commands */
     { "cookie",                         cmd_cookie,                   TRUE,  TRUE  },
 
+    /* Display commands */
     { "scroll",                         cmd_scroll,                   TRUE,  TRUE  },
     { "zoom",                           cmd_zoom,                     TRUE,  TRUE  },
     { "hardcopy",                       cmd_hardcopy,                 FALSE, TRUE  },
