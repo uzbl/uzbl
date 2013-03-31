@@ -160,7 +160,7 @@ set ssl_policy = fail
 # Command to toggle ssl_policy value:
 @cbind  !ssl = chain 'toggle ssl_policy fail ignore' 'reload'
 # Example SSL error handler:
-@on_event   LOAD_ERROR    js page string 'var patt=new RegExp("SSL handshake failed"); if (patt.test("%3")) {alert ("%3");}'
+@on_event   LOAD_ERROR    js page string 'if (/SSL handshake failed/.test("%3")) {alert ("%3");}'
 
 # === Key binding configuration ==============================================
 # --- Internal modmapping and ignoring ---------------------------------------
