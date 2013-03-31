@@ -92,7 +92,7 @@ DECLARE_COMMAND (plugin);
 #ifndef USE_WEBKIT2
 DECLARE_COMMAND (remove_all_db);
 #if WEBKIT_CHECK_VERSION (1, 5, 1)
-DECLARE_COMMAND (spell_checker);
+DECLARE_COMMAND (spell);
 #endif
 #endif
 #ifdef USE_WEBKIT2
@@ -172,7 +172,7 @@ builtin_command_table[] =
 #ifndef USE_WEBKIT2
     { "remove_all_db",                  cmd_remove_all_db,            TRUE,  TRUE  },
 #if WEBKIT_CHECK_VERSION (1, 5, 1)
-    { "spell_checker",                  cmd_spell_checker,            TRUE,  TRUE  },
+    { "spell",                          cmd_spell,                    TRUE,  TRUE  },
 #endif
 #endif
 #ifdef USE_WEBKIT2
@@ -1135,7 +1135,7 @@ IMPLEMENT_COMMAND (remove_all_db)
 }
 
 #if WEBKIT_CHECK_VERSION (1, 5, 1)
-IMPLEMENT_COMMAND (spell_checker)
+IMPLEMENT_COMMAND (spell)
 {
     ARG_CHECK (argv, 1);
 
@@ -1169,17 +1169,39 @@ IMPLEMENT_COMMAND (spell_checker)
     } else if (!g_strcmp0 (command, "autocorrect")) {
         ARG_CHECK (argv, 2);
 
+        if (!result) {
+            return;
+        }
+
         gchar *word = argv_idx (argv, 1);
 
-        char *new_word = webkit_spell_checker_get_autocorrect_suggestions_for_misspelled_word (checker, word);
+        gchar *new_word = webkit_spell_checker_get_autocorrect_suggestions_for_misspelled_word (checker, word);
 
         g_string_assign (result, new_word);
 
-        free (new_word);
+        g_free (new_word);
     } else if (!g_strcmp0 (command, "guesses")) {
-        /* TODO Implement. */
+        ARG_CHECK (argv, 2);
+
+        if (!result) {
+            return;
+        }
+
+        gchar *word = argv_idx (argv, 1);
+        gchar *context = argv_idx (argv, 2);
+
+        gchar **guesses = webkit_spell_checker_get_guesses_for_word (checker, word, context ? context : "");
+
+        gchar *words = g_strjoinv (",", guesses);
+
+        g_string_append_c (result, '[');
+        g_string_assign (result, words);
+        g_string_append_c (result, ']');
+
+        g_free (words);
+        g_strfreev (guesses);
     } else {
-        uzbl_debug ("Unrecognized spell_checker command: %s\n", command);
+        uzbl_debug ("Unrecognized spell command: %s\n", command);
     }
 }
 #endif
