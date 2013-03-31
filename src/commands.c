@@ -720,16 +720,19 @@ IMPLEMENT_COMMAND (save)
 {
     UZBL_UNUSED (result);
 
-    const gchar *mode_str = (argv->len > 0) ? argv_idx (argv, 0) : NULL;
+    const gchar *mode_str = argv_idx (argv, 0);
+
+    if (!mode_str) {
+        mode_str = "mhtml";
+    }
 
     WebKitSaveMode mode = WEBKIT_SAVE_MODE_MHTML;
 
-    if (!mode) {
-        mode = WEBKIT_SAVE_MODE_MHTML;
-    } else if (!g_strcmp0 ("mhtml", mode_str)) {
+    if (!g_strcmp0 ("mhtml", mode_str)) {
         mode = WEBKIT_SAVE_MODE_MHTML;
     } else {
         uzbl_debug ("Unrecognized save format: %s\n", mode_str);
+        return;
     }
 
     GError *err = NULL;
