@@ -725,23 +725,20 @@ IMPLEMENT_COMMAND (save)
         uzbl_debug ("Unrecognized save format: %s\n", mode_str);
     }
 
-    UzblSyncData *data = uzbl_sync_data_new ();
     GError *err = NULL;
 
     if (1 < sz) {
         const gchar *path = argv_idx (argv, 1);
         GFile *gfile = g_file_new_for_path (path);
 
-        uzbl_sync_call_void (data, uzbl.gui.web_view, err,
+        uzbl_sync_call_void (uzbl.gui.web_view, err,
                              webkit_web_view_save_to_file,
                              gfile, mode);
     } else {
-        uzbl_sync_call_void (data, uzbl.gui.web_view, err,
+        uzbl_sync_call_void (uzbl.gui.web_view, err,
                              webkit_web_view_save,
                              mode);
     }
-
-    uzbl_sync_data_free (data);
 
     if (err) {
         /* TODO: Don't ignore the error. */

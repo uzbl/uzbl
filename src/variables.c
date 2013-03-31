@@ -2457,13 +2457,10 @@ IMPLEMENT_GETTER (gchar *, plugin_list)
     GList *plugins = NULL;
 
     {
-        UzblSyncData *data = uzbl_sync_data_new ();
         GError *err = NULL;
 
-        uzbl_sync_call (data, plugins, context, err,
+        uzbl_sync_call (plugins, context, err,
                         webkit_web_context_get_plugins);
-
-        uzbl_sync_data_free (data);
 
         if (err) {
             /* TODO: Output message. */
@@ -2804,16 +2801,13 @@ cookie_policy ()
     WebKitCookieAcceptPolicy policy = WEBKIT_COOKIE_POLICY_ACCEPT_ALWAYS;
 
 #if 0 /* TODO: Seems to hang... */
-    UzblSyncData *data = uzbl_sync_data_new ();
     GError *err = NULL;
 
     WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
     WebKitCookieManager *manager = webkit_web_context_get_cookie_manager (context);
 
-    uzbl_sync_call (data, policy, manager, err,
+    uzbl_sync_call (policy, manager, err,
                     webkit_cookie_manager_get_accept_policy);
-
-    uzbl_sync_data_free (data);
 
     if (err) {
         /* TODO: Output message. */
