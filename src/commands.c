@@ -4,7 +4,6 @@
 #include "gui.h"
 #include "menu.h"
 #include "soup.h"
-#include "sync.h"
 #include "type.h"
 #include "util.h"
 #include "uzbl-core.h"
@@ -707,13 +706,16 @@ IMPLEMENT_COMMAND (load)
     webkit_web_view_load_alternate_html (uzbl.gui.web_view, content, content_uri, base_uri);
 }
 
+static void
+save_to_file_async_cb (GObject *object, GAsyncResult *res, gpointer data);
+static void
+save_async_cb (GObject *object, GAsyncResult *res, gpointer data);
+
 IMPLEMENT_COMMAND (save)
 {
     UZBL_UNUSED (result);
 
-    guint sz = argv->len;
-
-    const gchar *mode_str = (sz > 0) ? argv_idx (argv, 0) : NULL;
+    const gchar *mode_str = (argv->len > 0) ? argv_idx (argv, 0) : NULL;
 
     WebKitSaveMode mode = WEBKIT_SAVE_MODE_MHTML;
 
@@ -727,17 +729,15 @@ IMPLEMENT_COMMAND (save)
 
     GError *err = NULL;
 
-    if (1 < sz) {
+    if (1 < argv->len) {
         const gchar *path = argv_idx (argv, 1);
         GFile *gfile = g_file_new_for_path (path);
 
-        uzbl_sync_call_void (uzbl.gui.web_view, err,
-                             webkit_web_view_save_to_file,
-                             gfile, mode);
+        webkit_web_view_save_to_file (uzbl.gui.web_view, gfile, mode,
+                                      NULL, save_to_file_async_cb, NULL);
     } else {
-        uzbl_sync_call_void (uzbl.gui.web_view, err,
-                             webkit_web_view_save,
-                             mode);
+        webkit_web_view_save (uzbl.gui.web_view, mode,
+                              NULL, save_async_cb, NULL);
     }
 
     if (err) {
@@ -1926,6 +1926,47 @@ IMPLEMENT_COMMAND (event)
     g_string_free (event_name, TRUE);
     g_strfreev (split);
 }
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 90)
+void
+save_to_file_async_cb (GObject *object, GAsyncResult *res, gpointer data)
+{
+    UZBL_UNUSED (data);
+
+    WebKitWebView *view = WEBKIT_WEB_VIEW (object);
+    GError *err;
+
+    webkit_web_view_save_to_file_finish (view, res, &err);
+
+    if (err) {
+        uzbl_debug ("Failed to save page to file: %s\n", err->message);
+        g_error_free (err);
+    }
+}
+
+void
+save_async_cb (GObject *object, GAsyncResult *res, gpointer data)
+{
+    UZBL_UNUSED (data);
+
+    WebKitWebView *view = WEBKIT_WEB_VIEW (object);
+    GError *err;
+
+    GInputStream *stream = webkit_web_view_save_finish (view, res, &err);
+
+    if (!stream) {
+        uzbl_debug ("Failed to save page: %s\n", err->message);
+        g_error_free (err);
+        return;
+    }
+
+    /* TODO: What to do here? */
+
+    g_object_unref (stream);
+}
+#endif
+#endif
 
 #ifndef USE_WEBKIT2
 #ifdef HAVE_PLUGIN_API
