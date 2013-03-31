@@ -97,8 +97,8 @@ DECLARE_COMMAND (spell);
 #endif
 #ifdef USE_WEBKIT2
 DECLARE_COMMAND (cache);
-DECLARE_COMMAND (favicon);
 #endif
+DECLARE_COMMAND (favicon);
 
 /* Search commands */
 DECLARE_COMMAND (search);
@@ -177,8 +177,8 @@ builtin_command_table[] =
 #endif
 #ifdef USE_WEBKIT2
     { "cache",                          cmd_cache,                    TRUE,  TRUE  },
-    { "favicon",                        cmd_favicon,                  TRUE,  TRUE  },
 #endif
+    { "favicon",                        cmd_favicon,                  TRUE,  TRUE  },
 
     /* Menu commands */
     { "menu_add",                       cmd_menu_add,                 FALSE, TRUE  }, /* TODO: Rework to be "menu add". */
@@ -1224,6 +1224,7 @@ IMPLEMENT_COMMAND (cache)
         uzbl_debug ("Unrecognized cache command: %s\n", command);
     }
 }
+#endif
 
 IMPLEMENT_COMMAND (favicon)
 {
@@ -1231,12 +1232,18 @@ IMPLEMENT_COMMAND (favicon)
 
     const gchar *command = argv_idx (argv, 0);
 
+    WebKitFaviconDatabase *database = NULL;
+
+#ifdef USE_WEBKIT2
     WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
-    WebKitFaviconDatabase *database = webkit_web_context_get_favicon_database (context);
+    database = webkit_web_context_get_favicon_database (context);
+#else
+    database = webkit_get_favicon_database ();
+#endif
 
     if (!g_strcmp0 (command, "clear")) {
         webkit_favicon_database_clear (database);
-    } else if (!g_strcmp0 (command, "where")) {
+    } else if (!g_strcmp0 (command, "uri")) {
         ARG_CHECK (argv, 2);
 
         const gchar *uri = argv_idx (argv, 1);
@@ -1252,7 +1259,6 @@ IMPLEMENT_COMMAND (favicon)
         uzbl_debug ("Unrecognized favicon command: %s\n", command);
     }
 }
-#endif
 
 /* Search commands */
 
