@@ -42,6 +42,14 @@
 #endif
 #endif
 
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 7, 91)
+#define HAVE_ZOOM_TEXT_API
+#endif
+#else
+#define HAVE_ZOOM_TEXT_API
+#endif
+
 /* A really generic function pointer. */
 typedef void (*UzblFunction) ();
 
@@ -186,13 +194,8 @@ DECLARE_SETTER (gchar *, useragent);
 DECLARE_SETTER (gchar *, accept_languages);
 DECLARE_SETTER (int, view_source);
 DECLARE_GETSET (float, zoom_level);
-#ifndef USE_WEBKIT2
-DECLARE_GETSET (int, zoom_type);
-#endif
-#ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 7, 91)
+#ifdef HAVE_ZOOM_TEXT_API
 DECLARE_GETSET (int, zoom_text_only);
-#endif
 #endif
 DECLARE_GETSET (int, caret_browsing);
 #if WEBKIT_CHECK_VERSION (1, 3, 5)
@@ -437,13 +440,8 @@ builtin_variable_table[] = {
     { "view_source",                  UZBL_V_INT (uzbl.behave.view_source,                 set_view_source)},
     { "zoom_level",                   UZBL_V_FUNC (zoom_level,                             FLOAT)},
     { "zoom_step",                    UZBL_V_FLOAT (uzbl.behave.zoom_step,                 NULL)},
-#ifndef USE_WEBKIT2
-    { "zoom_type",                    UZBL_V_FUNC (zoom_type,                              INT)},
-#endif
-#ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 7, 91)
+#ifdef HAVE_ZOOM_TEXT_API
     { "zoom_text_only",               UZBL_V_FUNC (zoom_text_only,                         INT)},
-#endif
 #endif
     { "caret_browsing",               UZBL_V_FUNC (caret_browsing,                         INT)},
 #if WEBKIT_CHECK_VERSION (1, 3, 5)
@@ -2116,7 +2114,12 @@ IMPLEMENT_SETTER (float, zoom_level)
     webkit_web_view_set_zoom_level (uzbl.gui.web_view, zoom_level);
 }
 
-#ifndef USE_WEBKIT2
+#ifdef HAVE_ZOOM_TEXT_API
+#ifdef USE_WEBKIT2
+GOBJECT_GETSET (int, zoom_text_only,
+                webkit_settings (), "zoom-text-only")
+
+#else
 IMPLEMENT_GETTER (int, zoom_type)
 {
     return webkit_web_view_get_full_content_zoom (uzbl.gui.web_view);
@@ -2126,12 +2129,6 @@ IMPLEMENT_SETTER (int, zoom_type)
 {
     webkit_web_view_set_full_content_zoom (uzbl.gui.web_view, zoom_type);
 }
-#endif
-
-#ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 7, 91)
-GOBJECT_GETSET (int, zoom_text_only,
-                webkit_settings (), "zoom-text-only")
 #endif
 #endif
 
