@@ -2120,14 +2120,14 @@ GOBJECT_GETSET (int, zoom_text_only,
                 webkit_settings (), "zoom-text-only")
 
 #else
-IMPLEMENT_GETTER (int, zoom_type)
+IMPLEMENT_GETTER (int, zoom_text_only)
 {
-    return webkit_web_view_get_full_content_zoom (uzbl.gui.web_view);
+    return !webkit_web_view_get_full_content_zoom (uzbl.gui.web_view);
 }
 
-IMPLEMENT_SETTER (int, zoom_type)
+IMPLEMENT_SETTER (int, zoom_text_only)
 {
-    webkit_web_view_set_full_content_zoom (uzbl.gui.web_view, zoom_type);
+    webkit_web_view_set_full_content_zoom (uzbl.gui.web_view, !zoom_text_only);
 }
 #endif
 #endif
