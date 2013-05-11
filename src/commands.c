@@ -251,6 +251,9 @@ builtin_command_table[] =
 
 /* =========================== PUBLIC API =========================== */
 
+static void
+init_js_commands_api ();
+
 void
 uzbl_commands_init ()
 {
@@ -263,6 +266,8 @@ uzbl_commands_init ()
 
         ++cmd;
     }
+
+    init_js_commands_api ();
 }
 
 void
@@ -431,6 +436,63 @@ uzbl_commands_load_file (const gchar *path)
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
 
+static JSValueRef
+call_command (JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception);
+
+void
+init_js_commands_api ()
+{
+    JSObjectRef uzbl_obj = uzbl_js_object (uzbl.state.jscontext, "uzbl");
+    JSObjectRef commands_obj = JSObjectMake (uzbl.state.jscontext, NULL, NULL);
+
+    static JSClassDefinition
+    command_class_def = {
+        0,                     // version
+        kJSClassAttributeNone, // attributes
+        "UzblCommand",         // class name
+        NULL,                  // parent class
+        NULL,                  // static values
+        NULL,                  // static functions
+        NULL,                  // initialize
+        NULL,                  // finalize
+        NULL,                  // has property
+        NULL,                  // get property
+        NULL,                  // set property
+        NULL,                  // delete property
+        NULL,                  // get property names
+        call_command,          // call as function
+        NULL,                  // call as contructor
+        NULL,                  // has instance
+        NULL                   // convert to type
+    };
+
+    JSClassRef command_class = JSClassCreate (&command_class_def);
+
+    UzblCommand *cmd = &builtin_command_table[0];
+
+    while (cmd->name) {
+        JSObjectRef command_obj = JSObjectMake (uzbl.state.jscontext, command_class, NULL);
+
+        JSStringRef name = JSStringCreateWithUTF8CString (cmd->name);
+        JSValueRef name_val = JSValueMakeString(uzbl.state.jscontext, name);
+
+        uzbl_js_set (uzbl.state.jscontext,
+            command_obj, "name", name_val,
+            kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete);
+        uzbl_js_set (uzbl.state.jscontext,
+            commands_obj, cmd->name, command_obj,
+            kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete);
+
+        ++cmd;
+    }
+
+    uzbl_js_set (uzbl.state.jscontext,
+        uzbl_obj, "commands", commands_obj,
+        kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete);
+
+    JSClassRelease (command_class);
+}
+
 static GArray *
 split_quoted (const gchar *src, const gboolean unquote);
 
@@ -490,6 +552,64 @@ parse_command_from_file_cb (const gchar *line, gpointer data)
     UZBL_UNUSED (data);
 
     parse_command_from_file (line);
+}
+
+JSValueRef
+call_command (JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
+{
+    UZBL_UNUSED (thisObject);
+
+    JSValueRef json_ret = NULL;
+    JSValueRef command_val = uzbl_js_get (ctx, function, "name");
+    gchar *command = uzbl_js_to_string (ctx, command_val);
+
+    UzblCommand *info = g_hash_table_lookup (uzbl.behave.commands, command);
+
+    if (!info) {
+        gchar *error_str = g_strdup_printf ("Unknown command: %s", command);
+        JSStringRef error = JSStringCreateWithUTF8CString (error_str);
+
+        *exception = JSValueMakeString (ctx, error);
+
+        JSStringRelease (error);
+        g_free (error_str);
+
+        json_ret = JSValueMakeUndefined (ctx);
+    }
+
+    g_free (command);
+
+    if (json_ret) {
+        return json_ret;
+    }
+
+    GArray *argv = uzbl_commands_args_new ();
+    GString *result = g_string_new ("");
+    size_t i;
+
+    for (i = 0; i < argumentCount; ++i) {
+        gchar *arg = uzbl_js_to_string (ctx, arguments[i]);
+
+        uzbl_commands_args_append (argv, arg);
+    }
+
+    uzbl_commands_run_parsed (info, argv, result);
+
+    JSStringRef result_str = JSStringCreateWithUTF8CString (result->str);
+
+    json_ret = JSValueMakeFromJSONString (ctx, result_str);
+
+    if (!json_ret) {
+        uzbl_debug ("Failed to parse result as JSON for command \'%s\': %s\n", info->name, result->str);
+
+        json_ret = JSValueMakeString (ctx, result_str);
+    }
+
+    JSStringRelease (result_str);
+    g_string_free (result, TRUE);
+    uzbl_commands_args_free (argv);
+
+    return json_ret;
 }
 
 GArray *
