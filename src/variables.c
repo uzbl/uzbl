@@ -4,6 +4,7 @@
 #include "events.h"
 #include "gui.h"
 #include "io.h"
+#include "js.h"
 #include "sync.h"
 #include "type.h"
 #include "util.h"
@@ -600,6 +601,9 @@ builtin_variable_table[] = {
 
 /* =========================== PUBLIC API =========================== */
 
+static void
+init_js_variables_api ();
+
 /* Construct a hash table from the var_name_to_ptr array for quick access. */
 void
 uzbl_variables_init ()
@@ -612,6 +616,8 @@ uzbl_variables_init ()
             (gpointer)&entry->var);
         ++entry;
     }
+
+    init_js_variables_api ();
 }
 
 static void
@@ -928,6 +934,52 @@ uzbl_variables_dump_events ()
 }
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
+
+static bool
+js_has_variable (JSContextRef ctx, JSObjectRef object, JSStringRef propertyName);
+static JSValueRef
+js_get_variable (JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueRef* exception);
+static bool
+js_set_variable (JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueRef value, JSValueRef* exception);
+static bool
+js_delete_variable (JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueRef* exception);
+
+void
+init_js_variables_api ()
+{
+    JSObjectRef uzbl_obj = uzbl_js_object (uzbl.state.jscontext, "uzbl");
+
+    static JSClassDefinition
+    variables_class_def = {
+        0,                     // version
+        kJSClassAttributeNone, // attributes
+        "UzblVariables",       // class name
+        NULL,                  // parent class
+        NULL,                  // static values
+        NULL,                  // static functions
+        NULL,                  // initialize
+        NULL,                  // finalize
+        js_has_variable,       // has property
+        js_get_variable,       // get property
+        js_set_variable,       // set property
+        js_delete_variable,    // delete property
+        NULL,                  // get property names
+        NULL,                  // call as function
+        NULL,                  // call as contructor
+        NULL,                  // has instance
+        NULL                   // convert to type
+    };
+
+    JSClassRef variables_class = JSClassCreate (&variables_class_def);
+
+    JSObjectRef variables_obj = JSObjectMake (uzbl.state.jscontext, variables_class, NULL);
+
+    uzbl_js_set (uzbl.state.jscontext,
+        uzbl_obj, "variables", variables_obj,
+        kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete);
+
+    JSClassRelease (variables_class);
+}
 
 void
 variable_free (gpointer key, gpointer value, gpointer data)
@@ -1373,6 +1425,117 @@ dump_variable_event (gpointer key, gpointer value, gpointer data)
     UzblVariable *var = (UzblVariable *)value;
 
     send_variable_event (name, var);
+}
+
+bool
+js_has_variable (JSContextRef ctx, JSObjectRef object, JSStringRef propertyName)
+{
+    UZBL_UNUSED (ctx);
+    UZBL_UNUSED (object);
+
+    size_t max_size = JSStringGetMaximumUTF8CStringSize (propertyName);
+    gchar *var = (gchar *)malloc (max_size * sizeof (gchar));
+    JSStringGetUTF8CString (propertyName, var, max_size);
+
+    UzblVariable *uzbl_var = get_variable (var);
+
+    g_free (var);
+
+    return uzbl_var;
+}
+
+JSValueRef
+js_get_variable (JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueRef* exception)
+{
+    UZBL_UNUSED (object);
+    UZBL_UNUSED (exception);
+
+    size_t max_size = JSStringGetMaximumUTF8CStringSize (propertyName);
+    gchar *var = (gchar *)malloc (max_size * sizeof (gchar));
+    JSStringGetUTF8CString (propertyName, var, max_size);
+
+    UzblVariable *uzbl_var = get_variable (var);
+
+    g_free (var);
+
+    if (!uzbl_var) {
+        return JSValueMakeUndefined (ctx);
+    }
+
+    JSValueRef js_value = NULL;
+
+    switch (uzbl_var->type) {
+        case TYPE_STR:
+        {
+            gchar *val = get_variable_string (uzbl_var);
+            JSStringRef js_str = JSStringCreateWithUTF8CString (val);
+            g_free (val);
+
+            js_value = JSValueMakeString (ctx, js_str);
+
+            JSStringRelease (js_str);
+            break;
+        }
+        case TYPE_INT:
+        {
+            int val = get_variable_int (uzbl_var);
+            js_value = JSValueMakeNumber (ctx, val);
+            break;
+        }
+        case TYPE_ULL:
+        {
+            unsigned long long val = get_variable_ull (uzbl_var);
+            js_value = JSValueMakeNumber (ctx, val);
+            break;
+        }
+        case TYPE_FLOAT:
+        {
+            float val = get_variable_float (uzbl_var);
+            js_value = JSValueMakeNumber (ctx, val);
+            break;
+        }
+        default:
+            g_assert_not_reached ();
+    }
+
+    if (!js_value) {
+        js_value = JSValueMakeUndefined (ctx);
+    }
+
+    return js_value;
+}
+
+bool
+js_set_variable (JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueRef value, JSValueRef* exception)
+{
+    UZBL_UNUSED (object);
+    UZBL_UNUSED (exception);
+
+    size_t max_size = JSStringGetMaximumUTF8CStringSize (propertyName);
+    gchar *var = (gchar *)malloc (max_size * sizeof (gchar));
+    JSStringGetUTF8CString (propertyName, var, max_size);
+
+    gchar *val = uzbl_js_to_string (ctx, value);
+
+    gboolean was_set = uzbl_variables_set (var, val);
+
+    g_free (var);
+    g_free (val);
+
+    return (was_set ? true : false);
+}
+
+bool
+js_delete_variable (JSContextRef ctx, JSObjectRef object, JSStringRef propertyName, JSValueRef* exception)
+{
+    UZBL_UNUSED (ctx);
+    UZBL_UNUSED (object);
+    UZBL_UNUSED (propertyName);
+    UZBL_UNUSED (exception);
+
+    /* Variables cannot be deleted from uzbl. */
+
+    return false;
 }
 
 void
