@@ -58,7 +58,6 @@ uzbl_events_replay_buffer ()
     while (i < uzbl.state.event_buffer->len) {
         GString *tmp = g_ptr_array_index (uzbl.state.event_buffer, i++);
         send_event_sockets (uzbl.comm.connect_chan, tmp);
-        g_string_free (tmp, TRUE);
     }
 
     g_ptr_array_free (uzbl.state.event_buffer, TRUE);
@@ -306,6 +305,9 @@ send_event_stdout (GString *msg)
     fflush (stdout);
 }
 
+static void
+free_event_string (gpointer data);
+
 void
 send_event_socket (GString *msg)
 {
@@ -320,6 +322,7 @@ send_event_socket (GString *msg)
          * encountered. */
         if (!uzbl.state.event_buffer) {
             uzbl.state.event_buffer = g_ptr_array_new ();
+            g_ptr_array_set_free_func (uzbl.state.event_buffer, free_event_string);
         }
         g_ptr_array_add (uzbl.state.event_buffer, (gpointer)g_string_new (msg->str));
     }
@@ -328,4 +331,12 @@ send_event_socket (GString *msg)
     if (msg && uzbl.comm.client_chan) {
         send_event_sockets (uzbl.comm.client_chan, msg);
     }
+}
+
+void
+free_event_string (gpointer data)
+{
+    GString *str = (GString *)data;
+
+    g_string_free (str, TRUE);
 }
