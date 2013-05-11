@@ -276,14 +276,20 @@ uzbl_commands_send_builtin_event ()
 
     GString *command_list = g_string_new ("");
 
+    g_string_append_c (command_list, '[');
+
     while (cmd->name) {
         if (command_list->len) {
-            g_string_append_c (command_list, ' ');
+            g_string_append_c (command_list, ',');
         }
+        g_string_append_c (command_list, '\"');
         g_string_append (command_list, cmd->name);
+        g_string_append_c (command_list, '\"');
 
         ++cmd;
     }
+
+    g_string_append_c (command_list, ']');
 
     uzbl_events_send (BUILTINS, NULL,
         TYPE_STR, command_list->str,
@@ -1279,14 +1285,17 @@ IMPLEMENT_COMMAND (spell)
         gchar *context = argv_idx (argv, 2);
 
         gchar **guesses = webkit_spell_checker_get_guesses_for_word (checker, word, context ? context : "");
-
-        gchar *words = g_strjoinv (",", guesses);
+        gchar **guess = guesses;
 
         g_string_append_c (result, '[');
-        g_string_append (result, words);
+        while (*guess) {
+            g_string_append_c (result, '\"');
+            g_string_append (result, *guess);
+            g_string_append_c (result, '\"');
+            ++guess;
+        }
         g_string_append_c (result, ']');
 
-        g_free (words);
         g_strfreev (guesses);
     } else {
         uzbl_debug ("Unrecognized spell command: %s\n", command);
@@ -1553,7 +1562,9 @@ IMPLEMENT_COMMAND (menu)
                 g_string_append_c (result, ',');
             }
 
+            g_string_append_c (result, '\"');
             g_string_append (result, mi->name);
+            g_string_append_c (result, '\"');
             need_comma = TRUE;
         }
 
@@ -1755,17 +1766,26 @@ IMPLEMENT_COMMAND (search)
             return;
         }
 
-#define check_flag(name, flag)              \
-    if (uzbl.state.searchoptions & flag) {  \
-        if (result->len) {                  \
-            g_string_append_c(result, ' '); \
-        }                                   \
-        g_string_append(result, name);      \
+        gboolean need_comma = FALSE;
+
+        g_string_append_c(result, '[');
+
+#define check_flag(name, flag)               \
+    if (uzbl.state.searchoptions & flag) {   \
+        if (need_comma) {                    \
+            g_string_append_c (result, ','); \
+        }                                    \
+        g_string_append_c (result, '\"');    \
+        g_string_append (result, name);      \
+        g_string_append_c (result, '\"');    \
+        need_comma = TRUE;                   \
     }
 
         search_options(check_flag)
 
 #undef check_flag
+
+        g_string_append_c(result, ']');
     } else if (!g_strcmp0 (command, "clear")) {
         reset = TRUE;
     } else if (!g_strcmp0 (command, "reset")) {

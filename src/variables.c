@@ -2585,11 +2585,11 @@ mimetype_list_append (WebKitWebPluginMIMEType *mimetype, GString *list)
         if (first) {
             first = FALSE;
         } else {
-            g_string_append (list, ", ");
+            g_string_append_c (list, ',');
         }
-        g_string_append_c (list, '"');
+        g_string_append_c (list, '\"');
         g_string_append (list, *extensions);
-        g_string_append_c (list, '"');
+        g_string_append_c (list, '\"');
 
         ++extensions;
     }
