@@ -115,6 +115,9 @@ DECLARE_COMMAND (favicon);
 DECLARE_COMMAND (inject);
 DECLARE_COMMAND (css);
 
+/* Menu commands */
+DECLARE_COMMAND (menu);
+
 /* Search commands */
 DECLARE_COMMAND (search);
 
@@ -204,18 +207,7 @@ builtin_command_table[] =
     { "css",                            cmd_css,                      TRUE,  TRUE  },
 
     /* Menu commands */
-    { "menu_add",                       cmd_menu_add,                 FALSE, TRUE  }, /* TODO: Rework to be "menu add". */
-    { "menu_link_add",                  cmd_menu_add_link,            FALSE, TRUE  }, /* TODO: Rework to be "menu add link". */
-    { "menu_image_add",                 cmd_menu_add_image,           FALSE, TRUE  }, /* TODO: Rework to be "menu add image". */
-    { "menu_editable_add",              cmd_menu_add_edit,            FALSE, TRUE  }, /* TODO: Rework to be "menu add edit". */
-    { "menu_separator",                 cmd_menu_add_separator,       FALSE, TRUE  }, /* TODO: Rework to be "menu add separator". */
-    { "menu_link_separator",            cmd_menu_add_separator_link,  FALSE, TRUE  }, /* TODO: Rework to be "menu add separator link". */
-    { "menu_image_separator",           cmd_menu_add_separator_image, FALSE, TRUE  }, /* TODO: Rework to be "menu add separator image". */
-    { "menu_editable_separator",        cmd_menu_add_separator_edit,  FALSE, TRUE  }, /* TODO: Rework to be "menu add separator edit". */
-    { "menu_remove",                    cmd_menu_remove,              FALSE, TRUE  }, /* TODO: Rework to be "menu remove". */
-    { "menu_link_remove",               cmd_menu_remove_link,         FALSE, TRUE  }, /* TODO: Rework to be "menu remove link". */
-    { "menu_image_remove",              cmd_menu_remove_image,        FALSE, TRUE  }, /* TODO: Rework to be "menu remove image". */
-    { "menu_editable_remove",           cmd_menu_remove_edit,         FALSE, TRUE  }, /* TODO: Rework to be "menu remove edit". */
+    { "menu",                           cmd_menu,                     TRUE,  TRUE  },
 
     /* Search commands */
     { "search",                         cmd_search,                   FALSE, TRUE  },
@@ -1511,6 +1503,126 @@ IMPLEMENT_COMMAND (css)
 #endif
     } else {
         uzbl_debug ("Unrecognized css command: %s\n", command);
+    }
+}
+
+/* Menu commands */
+IMPLEMENT_COMMAND (menu)
+{
+    if (!uzbl.gui.menu_items) {
+        uzbl.gui.menu_items = g_ptr_array_new ();
+    }
+
+    ARG_CHECK (argv, 1);
+
+    const gchar *action_str = argv_idx (argv, 0);
+
+    typedef enum {
+        ACTION_ADD,
+        ACTION_REMOVE,
+        ACTION_QUERY
+    } MenuAction;
+
+    MenuAction action;
+    gboolean is_sep = FALSE;
+
+    if (!g_strcmp0 (action_str, "add")) {
+        action = ACTION_ADD;
+    } else if (!g_strcmp0 (action_str, "add_separator")) {
+        action = ACTION_ADD;
+        is_sep = TRUE;
+    } else if (!g_strcmp0 (action_str, "remove")) {
+        action = ACTION_REMOVE;
+    } else if (!g_strcmp0 (action_str, "query")) {
+        action = ACTION_QUERY;
+    } else if (!g_strcmp0 (action_str, "list")) {
+        if (!result) {
+            return;
+        }
+
+        guint i = 0;
+        gboolean need_comma = FALSE;
+        UzblMenuItem *mi = NULL;
+
+        g_string_append_c (result, '[');
+
+        for (i = 0; i < uzbl.gui.menu_items->len; ++i) {
+            mi = g_ptr_array_index (uzbl.gui.menu_items, i);
+
+            if (need_comma) {
+                g_string_append_c (result, ',');
+            }
+
+            g_string_append (result, mi->name);
+            need_comma = TRUE;
+        }
+
+        g_string_append_c (result, ']');
+    } else {
+        uzbl_debug ("Unrecognized menu action: %s\n", action_str);;
+        return;
+    }
+
+    ARG_CHECK (argv, 2);
+
+    gboolean is_remove = (action == ACTION_REMOVE);
+    gboolean is_query = (action == ACTION_QUERY);
+
+    if (action == ACTION_ADD)
+    {
+        ARG_CHECK (argv, 3);
+
+        const gchar *object = argv_idx (argv, 1);
+        const gchar *name = argv_idx (argv, 2);
+        WebKitHitTestResultContext context;
+
+        if (!g_strcmp0 (object, "document")) {
+            context = WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT;
+        } else if (!g_strcmp0 (object, "link")) {
+            context = WEBKIT_HIT_TEST_RESULT_CONTEXT_LINK;
+        } else if (!g_strcmp0 (object, "image")) {
+            context = WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE;
+        } else if (!g_strcmp0 (object, "editable")) {
+            context = WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE;
+        } else {
+            uzbl_debug ("Unrecognized menu object: %s\n", object);;
+            return;
+        }
+
+        const gchar *command = NULL;
+
+        if (!is_sep) {
+            command = argv_idx (argv, 3);
+        }
+
+        UzblMenuItem *mi = (UzblMenuItem *)malloc (sizeof (UzblMenuItem));
+        mi->name = g_strdup (name);
+        mi->cmd = g_strdup (command ? command : "");
+        mi->context = context;
+        mi->issep = is_sep;
+
+        g_ptr_array_add (uzbl.gui.menu_items, mi);
+    } else if (is_remove || (is_query && result)) {
+        const gchar *name = argv_idx (argv, 1);
+
+        guint i = 0;
+        UzblMenuItem *mi = NULL;
+
+        for (i = uzbl.gui.menu_items->len; i; --i) {
+            mi = g_ptr_array_index (uzbl.gui.menu_items, i - 1);
+
+            if (!g_strcmp0 (name, mi->name)) {
+                if (is_query) {
+                    if (mi->cmd) {
+                        g_string_append (result, mi->cmd);
+                    }
+
+                    return;
+                } else if (is_remove) {
+                    g_ptr_array_remove_index (uzbl.gui.menu_items, i - 1);
+                }
+            }
+        }
     }
 }
 
