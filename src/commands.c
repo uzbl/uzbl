@@ -1291,7 +1291,7 @@ IMPLEMENT_COMMAND (spell)
         gchar *words = g_strjoinv (",", guesses);
 
         g_string_append_c (result, '[');
-        g_string_assign (result, words);
+        g_string_append (result, words);
         g_string_append_c (result, ']');
 
         g_free (words);
