@@ -37,6 +37,7 @@
 #include "gui.h"
 #include "inspector.h"
 #include "io.h"
+#include "js.h"
 #include "soup.h"
 #include "status-bar.h"
 #include "util.h"
@@ -114,8 +115,6 @@ uzbl_initialize (int argc, char **argv)
 
     uzbl.state.last_result     = NULL;
 
-    uzbl.state.jscontext       = JSGlobalContextCreate (NULL);
-
     /* FIXME: There isn't a getter for this; need to maintain separately. */
     uzbl.behave.maintain_history = TRUE;
 
@@ -149,6 +148,7 @@ uzbl_initialize (int argc, char **argv)
     uzbl_soup_init (uzbl.net.soup_session);
 #endif
 
+    uzbl_js_init ();
     uzbl_variables_init ();
     uzbl_commands_init ();
     uzbl_events_init ();

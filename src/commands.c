@@ -2,14 +2,13 @@
 
 #include "events.h"
 #include "gui.h"
+#include "js.h"
 #include "menu.h"
 #include "soup.h"
 #include "type.h"
 #include "util.h"
 #include "uzbl-core.h"
 #include "variables.h"
-
-#include <JavaScriptCore/JavaScript.h>
 
 #include <ctype.h>
 #include <errno.h>
@@ -2090,11 +2089,6 @@ IMPLEMENT_COMMAND (inspector)
 
 /* Execution commands */
 
-static gchar *
-extract_js_prop (JSGlobalContextRef ctx, JSObjectRef obj, const gchar *prop);
-static gchar *
-js_value_to_string (JSGlobalContextRef ctx, JSValueRef obj);
-
 IMPLEMENT_COMMAND (js)
 {
     ARG_CHECK (argv, 3);
@@ -2194,7 +2188,7 @@ IMPLEMENT_COMMAND (js)
     if (result && js_result && !JSValueIsUndefined (jsctx, js_result)) {
         char *result_utf8;
 
-        result_utf8 = js_value_to_string (jsctx, js_result);
+        result_utf8 = uzbl_js_to_string (jsctx, js_result);
 
         g_string_assign (result, result_utf8);
 
@@ -2206,9 +2200,9 @@ IMPLEMENT_COMMAND (js)
         gchar *line;
         gchar *msg;
 
-        file = extract_js_prop (jsctx, exc, "sourceURL");
-        line = extract_js_prop (jsctx, exc, "line");
-        msg = js_value_to_string (jsctx, exc);
+        file = uzbl_js_to_string (jsctx, uzbl_js_get (jsctx, exc, "sourceURL"));
+        line = uzbl_js_to_string (jsctx, uzbl_js_get (jsctx, exc, "line"));
+        msg = uzbl_js_to_string (jsctx, exc);
 
         uzbl_debug ("Exception occured while executing script:\n %s:%s: %s\n", file, line, msg);
 
@@ -2481,38 +2475,6 @@ plugin_toggle_one (WebKitWebPlugin *plugin, gpointer data)
 }
 #endif
 #endif
-
-char *
-extract_js_prop (JSGlobalContextRef ctx, JSObjectRef obj, const gchar *prop)
-{
-    JSStringRef js_prop;
-    JSValueRef js_prop_val;
-
-    js_prop = JSStringCreateWithUTF8CString (prop);
-    js_prop_val = JSObjectGetProperty (ctx, obj, js_prop, NULL);
-
-    JSStringRelease (js_prop);
-
-    return js_value_to_string (ctx, js_prop_val);
-}
-
-char *
-js_value_to_string (JSGlobalContextRef ctx, JSValueRef val)
-{
-    JSStringRef str = JSValueToStringCopy (ctx, val, NULL);
-    size_t size = JSStringGetMaximumUTF8CStringSize (str);
-
-    char *result = NULL;
-
-    if (size) {
-        result = (gchar *)malloc (size * sizeof (char));
-        JSStringGetUTF8CString (str, result, size);
-    }
-
-    JSStringRelease (str);
-
-    return result;
-}
 
 /* Make sure that the args string you pass can properly be interpreted (e.g.,
  * properly escaped against whitespace, quotes etc). */
