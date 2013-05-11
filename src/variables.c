@@ -1072,7 +1072,7 @@ send_variable_event (const gchar *name, const UzblVariable *var)
     uzbl_events_send (VARIABLE_SET, NULL,
         TYPE_NAME, name,
         TYPE_NAME, type,
-        var->type, str->str,
+        TYPE_STR, str->str,
         NULL);
 
     g_string_free (str, TRUE);
