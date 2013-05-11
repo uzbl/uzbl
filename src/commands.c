@@ -218,7 +218,7 @@ builtin_command_table[] =
     { "menu_editable_remove",           cmd_menu_remove_edit,         FALSE, TRUE  }, /* TODO: Rework to be "menu remove edit". */
 
     /* Search commands */
-    { "search",                         cmd_search,                   TRUE,  TRUE  },
+    { "search",                         cmd_search,                   FALSE, TRUE  },
 
     /* Security commands */
     { "secuity",                        cmd_security,                 TRUE,  TRUE  },
@@ -1522,8 +1522,6 @@ typedef enum {
 
 IMPLEMENT_COMMAND (search)
 {
-    UZBL_UNUSED (result);
-
     ARG_CHECK (argv, 1);
 
     const gchar *full_command = argv_idx (argv, 0);
@@ -1533,6 +1531,19 @@ IMPLEMENT_COMMAND (search)
     const gchar *command = tokens[0];
 
     static const UzblFindOptions default_options = WEBKIT_FIND_OPTIONS_WRAP_AROUND;
+
+#ifdef USE_WEBKIT2
+#define webkit2_search_options(call)                       \
+    call("word_start", WEBKIT_FIND_OPTIONS_AT_WORD_STARTS) \
+    call("camel_case", WEBKIT_FIND_OPTIONS_TREAT_MEDIAL_CAPITAL_AS_WORD_START)
+#else
+#define webkit2_search_options(call)
+#endif
+
+#define search_options(call)                      \
+    webkit2_search_options(call)                  \
+    call("wrap", WEBKIT_FIND_OPTIONS_WRAP_AROUND) \
+    call("case_insensitive", WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE)
 
 #ifdef USE_WEBKIT2
     WebKitFindController *finder = webkit_web_view_get_find_controller (uzbl.gui.web_view);
@@ -1576,18 +1587,16 @@ IMPLEMENT_COMMAND (search)
                 ++option_str;
             }
 
+#define check_string(name, flag)           \
+    } if (!g_strcmp0 (option_str, name)) { \
+        option = flag;
+
             /* TODO: Implement limit= option? */
-            if (!g_strcmp0 (option_str, "case_insensitive")) {
-                option = WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE;
-#ifdef USE_WEBKIT2
-            } else if (!g_strcmp0 (option_str, "word_start")) {
-                option = WEBKIT_FIND_OPTIONS_AT_WORD_STARTS;
-            } else if (!g_strcmp0 (option_str, "camel_case")) {
-                option = WEBKIT_FIND_OPTIONS_TREAT_MEDIAL_CAPITAL_AS_WORD_START;
-#endif
-            } else if (!g_strcmp0 (option_str, "wrap")) {
-                option = WEBKIT_FIND_OPTIONS_WRAP_AROUND;
+            if (false) {
+            search_options(check_string)
             }
+
+#undef check_string
 
             if (mode == OPTION_DEFAULT) {
                 if (option & default_options) {
@@ -1625,6 +1634,18 @@ IMPLEMENT_COMMAND (search)
 
             rehighlight = TRUE;
         }
+    } else if (!g_strcmp0 (command, "options")) {
+#define check_flag(name, flag)              \
+    if (uzbl.state.searchoptions & flag) {  \
+        if (result->len) {                  \
+            g_string_append_c(result, ' '); \
+        }                                   \
+        g_string_append(result, name);      \
+    }
+
+        search_options(check_flag)
+
+#undef check_flag
     } else if (!g_strcmp0 (command, "clear")) {
         reset = TRUE;
     } else if (!g_strcmp0 (command, "reset")) {
@@ -1758,6 +1779,9 @@ search_exit:
         webkit_web_view_set_highlight_text_matches (uzbl.gui.web_view, TRUE);
 #endif
     }
+
+#undef webkit2_search_options
+#undef search_options
 }
 
 /* Security commands */
