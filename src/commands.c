@@ -788,6 +788,10 @@ IMPLEMENT_COMMAND (frame)
     }
 
     if (!g_strcmp0 (command, "list")) {
+        if (!result) {
+            return;
+        }
+
         g_string_append_c (result, '[');
 
         /* TODO: Implement. Maybe use JS to make an object tree? */
@@ -1635,6 +1639,10 @@ IMPLEMENT_COMMAND (search)
             rehighlight = TRUE;
         }
     } else if (!g_strcmp0 (command, "options")) {
+        if (!result) {
+            return;
+        }
+
 #define check_flag(name, flag)              \
     if (uzbl.state.searchoptions & flag) {  \
         if (result->len) {                  \
@@ -1856,6 +1864,10 @@ IMPLEMENT_COMMAND (security)
 #endif
 
     if (!g_strcmp0 (command, "get")) {
+        if (!result) {
+            return;
+        }
+
         gboolean set;
 #ifdef USE_WEBKIT2
         set = field->get (manager, scheme);
