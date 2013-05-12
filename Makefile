@@ -61,8 +61,37 @@ LDLIBS:=$(shell pkg-config --libs $(REQ_PKGS) x11)
 
 CFLAGS += -std=c99 $(PKG_CFLAGS) -ggdb -W -Wall -Wextra -pthread
 
-SRC  = $(wildcard src/*.c)
-HEAD = $(wildcard src/*.h)
+SOURCES := \
+    commands.c \
+    cookie-jar.c \
+    events.c \
+    gui.c \
+    inspector.c \
+    io.c \
+    js.c \
+    soup.c \
+    status-bar.c \
+    util.c \
+    variables.c
+
+HEADERS := \
+    commands.h \
+    config.h \
+    cookie-jar.h \
+    events.h \
+    gui.h \
+    inspector.h \
+    io.h \
+    js.h \
+    menu.h \
+    soup.h \
+    status-bar.h \
+    util.h \
+    variables.h \
+    webkit.h
+
+SRC  = $(addprefix src/,$(SOURCES))
+HEAD = $(addprefix src/,$(HEADERS))
 OBJ  = $(foreach obj, $(SRC:.c=.o),  $(notdir $(obj)))
 LOBJ = $(foreach obj, $(SRC:.c=.lo), $(notdir $(obj)))
 PY = $(wildcard uzbl/*.py uzbl/plugins/*.py)
@@ -138,7 +167,7 @@ test-uzbl-event-manager-sandbox: sandbox uzbl-browser sandbox-install-uzbl-brows
 
 clean:
 	rm -f uzbl-core
-	rm -f *.o
+	rm -f $(OBJ) ${LOBJ}
 	find ./examples/ -name "*.pyc" -delete
 	cd ./tests/; $(MAKE) clean
 	rm -rf ./sandbox/
