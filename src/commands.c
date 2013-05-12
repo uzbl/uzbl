@@ -2279,7 +2279,6 @@ IMPLEMENT_COMMAND (js)
             guint i;
             for (i = argv->len; 3 < i; --i) {
                 const gchar *arg = argv_idx (argv, i - 1);
-
                 gchar *needle = g_strdup_printf ("%%%d", i);
 
                 gchar *new_file_contents = str_replace (needle, arg ? arg : "", script);
@@ -2296,33 +2295,24 @@ IMPLEMENT_COMMAND (js)
     }
 
     JSObjectRef globalobject = JSContextGetGlobalObject (jsctx);
-    JSStringRef js_file;
-    JSStringRef js_script;
-    JSValueRef js_result;
     JSValueRef js_exc = NULL;
 
-    js_script = JSStringCreateWithUTF8CString (script);
-    js_file = JSStringCreateWithUTF8CString (path);
-    js_result = JSEvaluateScript (jsctx, js_script, globalobject, js_file, 0, &js_exc);
+    JSStringRef js_script = JSStringCreateWithUTF8CString (script);
+    JSStringRef js_file = JSStringCreateWithUTF8CString (path);
+    JSValueRef js_result = JSEvaluateScript (jsctx, js_script, globalobject, js_file, 0, &js_exc);
 
     if (result && js_result && !JSValueIsUndefined (jsctx, js_result)) {
-        char *result_utf8;
-
-        result_utf8 = uzbl_js_to_string (jsctx, js_result);
+        gchar *result_utf8 = uzbl_js_to_string (jsctx, js_result);
 
         g_string_assign (result, result_utf8);
 
-        free (result_utf8);
+        g_free (result_utf8);
     } else if (js_exc) {
         JSObjectRef exc = JSValueToObject (jsctx, js_exc, NULL);
 
-        gchar *file;
-        gchar *line;
-        gchar *msg;
-
-        file = uzbl_js_to_string (jsctx, uzbl_js_get (jsctx, exc, "sourceURL"));
-        line = uzbl_js_to_string (jsctx, uzbl_js_get (jsctx, exc, "line"));
-        msg = uzbl_js_to_string (jsctx, exc);
+        gchar *file = uzbl_js_to_string (jsctx, uzbl_js_get (jsctx, exc, "sourceURL"));
+        gchar *line = uzbl_js_to_string (jsctx, uzbl_js_get (jsctx, exc, "line"));
+        gchar *msg = uzbl_js_to_string (jsctx, exc);
 
         uzbl_debug ("Exception occured while executing script:\n %s:%s: %s\n", file, line, msg);
 
