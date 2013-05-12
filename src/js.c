@@ -53,16 +53,18 @@ gchar *
 uzbl_js_to_string (JSContextRef ctx, JSValueRef val)
 {
     JSStringRef str = JSValueToStringCopy (ctx, val, NULL);
-    size_t size = JSStringGetMaximumUTF8CStringSize (str);
-
-    char *result = NULL;
-
-    if (size) {
-        result = (gchar *)malloc (size * sizeof (char));
-        JSStringGetUTF8CString (str, result, size);
-    }
-
+    gchar *result = uzbl_js_extract_string (str);
     JSStringRelease (str);
 
     return result;
+}
+
+gchar *
+uzbl_js_extract_string (JSStringRef str)
+{
+    size_t max_size = JSStringGetMaximumUTF8CStringSize (str);
+    gchar *gstr = (gchar *)malloc (max_size * sizeof (gchar));
+    JSStringGetUTF8CString (str, gstr, max_size);
+
+    return gstr;
 }

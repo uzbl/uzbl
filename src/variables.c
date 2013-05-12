@@ -1433,10 +1433,7 @@ js_has_variable (JSContextRef ctx, JSObjectRef object, JSStringRef propertyName)
     UZBL_UNUSED (ctx);
     UZBL_UNUSED (object);
 
-    size_t max_size = JSStringGetMaximumUTF8CStringSize (propertyName);
-    gchar *var = (gchar *)malloc (max_size * sizeof (gchar));
-    JSStringGetUTF8CString (propertyName, var, max_size);
-
+    gchar *var = uzbl_js_extract_string (propertyName);
     UzblVariable *uzbl_var = get_variable (var);
 
     g_free (var);
@@ -1450,10 +1447,7 @@ js_get_variable (JSContextRef ctx, JSObjectRef object, JSStringRef propertyName,
     UZBL_UNUSED (object);
     UZBL_UNUSED (exception);
 
-    size_t max_size = JSStringGetMaximumUTF8CStringSize (propertyName);
-    gchar *var = (gchar *)malloc (max_size * sizeof (gchar));
-    JSStringGetUTF8CString (propertyName, var, max_size);
-
+    gchar *var = uzbl_js_extract_string (propertyName);
     UzblVariable *uzbl_var = get_variable (var);
 
     g_free (var);
@@ -1511,10 +1505,7 @@ js_set_variable (JSContextRef ctx, JSObjectRef object, JSStringRef propertyName,
     UZBL_UNUSED (object);
     UZBL_UNUSED (exception);
 
-    size_t max_size = JSStringGetMaximumUTF8CStringSize (propertyName);
-    gchar *var = (gchar *)malloc (max_size * sizeof (gchar));
-    JSStringGetUTF8CString (propertyName, var, max_size);
-
+    gchar *var = uzbl_js_extract_string (propertyName);
     gchar *val = uzbl_js_to_string (ctx, value);
 
     gboolean was_set = uzbl_variables_set (var, val);

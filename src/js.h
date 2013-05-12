@@ -16,5 +16,7 @@ void
 uzbl_js_set (JSContextRef ctx, JSObjectRef obj, const gchar *prop, JSValueRef val, JSPropertyAttributes props);
 gchar *
 uzbl_js_to_string (JSContextRef ctx, JSValueRef obj);
+gchar *
+uzbl_js_extract_string (JSStringRef str);
 
 #endif
