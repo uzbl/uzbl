@@ -730,8 +730,6 @@ uzbl_variables_set (const gchar *name, gchar *val)
 
     if (sendev) {
         send_variable_event (name, var);
-
-        uzbl_gui_update_title ();
     }
 
     return TRUE;
@@ -889,8 +887,6 @@ uzbl_variables_toggle (const gchar *name, GArray *values)
 
     if (sendev) {
         send_variable_event (name, var);
-
-        uzbl_gui_update_title ();
     }
 
     return sendev;
@@ -1092,6 +1088,8 @@ send_variable_event (const gchar *name, const UzblVariable *var)
         NULL);
 
     g_string_free (str, TRUE);
+
+    uzbl_gui_update_title ();
 }
 
 gchar *
