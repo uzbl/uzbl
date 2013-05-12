@@ -889,6 +889,8 @@ uzbl_variables_toggle (const gchar *name, GArray *values)
 
     if (sendev) {
         send_variable_event (name, var);
+
+        uzbl_gui_update_title ();
     }
 
     return sendev;
