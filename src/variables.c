@@ -753,7 +753,7 @@ uzbl_variables_toggle (const gchar *name, GArray *values)
 
     if (!var) {
         if (values && values->len) {
-            return uzbl_variables_set (name, argv_idx (values, 1));
+            return uzbl_variables_set (name, argv_idx (values, 0));
         } else {
             return uzbl_variables_set (name, "1");
         }
