@@ -414,6 +414,14 @@ clean_up ()
         g_object_unref (uzbl.net.soup_cookie_jar);
         uzbl.net.soup_cookie_jar = NULL;
     }
+
+    if (uzbl.comm.fifo_path) {
+        unlink (uzbl.comm.fifo_path);
+    }
+
+    if (uzbl.comm.socket_path) {
+        unlink (uzbl.comm.socket_path);
+    }
 }
 #endif
 
