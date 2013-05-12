@@ -21,7 +21,6 @@
  *   - Handle permission-request signal?
  *   - Handle leave-fullscreen signal?
  *   - Handle enter-fullscreen signal?
- *   - Handle insecure-content-detected signal?
  *   - Handle context-menu-dismissed signal?
  *   - Look into WebKitWindowProperties.
  *
