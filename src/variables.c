@@ -29,6 +29,8 @@
  *
  *   - Expose WebKitViewportAttributes values.
  *   - Expose list of frames (ro).
+ *   - Add CWORD variable (range of word under cursor).
+ *   - Replace selection (frame).
  */
 
 /* ======================== VARIABLES TABLE ========================= */
