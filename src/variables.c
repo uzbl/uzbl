@@ -234,6 +234,11 @@ DECLARE_GETSET (int, javascript_dom_paste);
 #if WEBKIT_CHECK_VERSION (1, 3, 0)
 DECLARE_GETSET (int, javascript_clipboard);
 #endif
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 1, 1)
+DECLARE_GETSET (int, javascript_console_to_stdout);
+#endif
+#endif
 
 /* Image variables */
 DECLARE_GETSET (int, autoload_images);
@@ -299,6 +304,11 @@ DECLARE_GETSET (int, enable_webaudio);
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 7, 90) /* Documentation says 1.7.5, but it's not there. */
 DECLARE_GETSET (int, enable_3d_acceleration);
+#endif
+#endif
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 1, 1)
+DECLARE_GETSET (int, enable_2d_acceleration);
 #endif
 #endif
 #if WEBKIT_CHECK_VERSION (1, 9, 3)
@@ -480,6 +490,11 @@ builtin_variable_table[] = {
 #if WEBKIT_CHECK_VERSION (1, 3, 0)
     { "javascript_clipboard",         UZBL_V_FUNC (javascript_clipboard,                   INT)},
 #endif
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 1, 1)
+    { "javascript_console_to_stdout", UZBL_V_FUNC (javascript_console_to_stdout,           INT)},
+#endif
+#endif
 
     /* Image variables */
     { "autoload_images",              UZBL_V_FUNC (autoload_images,                        INT)},
@@ -545,6 +560,11 @@ builtin_variable_table[] = {
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 7, 90) /* Documentation says 1.7.5, but it's not there. */
     { "enable_3d_acceleration",       UZBL_V_FUNC (enable_3d_acceleration,                 INT)},
+#endif
+#endif
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 1, 1)
+    { "enable_2d_acceleration",       UZBL_V_FUNC (enable_2d_acceleration,                 INT)},
 #endif
 #endif
 #if WEBKIT_CHECK_VERSION (1, 9, 3)
@@ -2362,6 +2382,13 @@ GOBJECT_GETSET (int, javascript_clipboard,
                 webkit_settings (), "javascript-can-access-clipboard")
 #endif
 
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 1, 1)
+GOBJECT_GETSET (int, javascript_clipboard,
+                webkit_settings (), "enable-write-console-messages-to-stdout")
+#endif
+#endif
+
 /* Image variables */
 GOBJECT_GETSET (int, autoload_images,
                 webkit_settings (), "auto-load-images")
@@ -2768,6 +2795,13 @@ GOBJECT_GETSET (int, enable_webaudio,
 #if WEBKIT_CHECK_VERSION (1, 7, 90) /* Documentation says 1.7.5, but it's not there. */
 GOBJECT_GETSET (int, enable_3d_acceleration,
                 webkit_settings (), "enable-accelerated-compositing")
+#endif
+#endif
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 1, 1)
+GOBJECT_GETSET (int, enable_2d_acceleration,
+                webkit_settings (), "enable-accelerated-2d-canvas")
 #endif
 #endif
 
