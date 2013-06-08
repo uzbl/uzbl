@@ -21,7 +21,6 @@
  *   - Handle permission-request signal?
  *   - Handle leave-fullscreen signal?
  *   - Handle enter-fullscreen signal?
- *   - Handle insecure-content-detected signal?
  *   - Handle context-menu-dismissed signal?
  *   - Look into WebKitWindowProperties.
  *
@@ -146,6 +145,8 @@ static void
 load_changed_cb (WebKitWebView *view, WebKitLoadEvent event, gpointer data);
 static gboolean
 load_failed_cb (WebKitWebView *view, WebKitLoadEvent event, gchar *uri, gpointer web_err, gpointer data);
+static void
+insecure_content_cb (WebKitWebView *view, WebKitInsecureContentEvent type, gpointer data);
 #else
 static gboolean
 navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
@@ -245,6 +246,9 @@ web_view_init ()
         "signal::decide-policy",                        G_CALLBACK (decide_policy_cb),         NULL,
         "signal::load-changed",                         G_CALLBACK (load_changed_cb),          NULL,
         "signal::load-failed",                          G_CALLBACK (load_failed_cb),           NULL,
+#if WEBKIT_CHECK_VERSION (1, 11, 4)
+        "signal::insecure-content-detected",            G_CALLBACK (insecure_content_cb),     NULL,
+#endif
 #else
         "signal::navigation-policy-decision-requested", G_CALLBACK (navigation_decision_cb),   NULL,
         "signal::mime-type-policy-decision-requested",  G_CALLBACK (mime_policy_cb),           NULL,
@@ -683,6 +687,33 @@ load_failed_cb (WebKitWebView *view, WebKitLoadEvent event, gchar *uri, gpointer
 
     return send_load_error (uri, err);
 }
+
+#if WEBKIT_CHECK_VERSION (1, 11, 4)
+void
+insecure_content_cb (WebKitWebView *view, WebKitInsecureContentEvent type, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (data);
+
+    const char *why = NULL;
+
+    switch (type) {
+        case WEBKIT_INSECURE_CONTENT_RUN:
+            why = "run";
+            break;
+        case WEBKIT_INSECURE_CONTENT_DISPLAYED:
+            why = "displayed";
+            break;
+        default:
+            why = "unknown";
+            break;
+    }
+
+    uzbl_events_send (INSECURE_CONTENT, NULL,
+        TYPE_STR, why,
+        NULL);
+}
+#endif
 
 #else
 

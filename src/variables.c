@@ -195,7 +195,6 @@ DECLARE_GETTER (gchar *, inspected_uri);
 DECLARE_SETTER (gchar *, uri);
 DECLARE_SETTER (gchar *, useragent);
 DECLARE_SETTER (gchar *, accept_languages);
-DECLARE_SETTER (int, view_source);
 DECLARE_GETSET (float, zoom_level);
 #ifdef HAVE_ZOOM_TEXT_API
 DECLARE_GETSET (int, zoom_text_only);
@@ -207,10 +206,11 @@ DECLARE_GETSET (int, enable_frame_flattening);
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
 DECLARE_GETSET (int, enable_smooth_scrolling);
 #endif
+DECLARE_GETSET (gchar *, page_view_mode);
 #ifndef USE_WEBKIT2
 DECLARE_GETSET (int, transparent);
 #if WEBKIT_CHECK_VERSION (1, 3, 4)
-DECLARE_GETSET (gchar *, view_mode);
+DECLARE_GETSET (gchar *, window_view_mode);
 #endif
 #endif
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
@@ -451,7 +451,6 @@ builtin_variable_table[] = {
     { "forward_keys",                 UZBL_V_INT (uzbl.behave.forward_keys,                NULL)},
     { "useragent",                    UZBL_V_STRING (uzbl.net.useragent,                   set_useragent)},
     { "accept_languages",             UZBL_V_STRING (uzbl.net.accept_languages,            set_accept_languages)},
-    { "view_source",                  UZBL_V_INT (uzbl.behave.view_source,                 set_view_source)},
     { "zoom_level",                   UZBL_V_FUNC (zoom_level,                             FLOAT)},
     { "zoom_step",                    UZBL_V_FLOAT (uzbl.behave.zoom_step,                 NULL)},
 #ifdef HAVE_ZOOM_TEXT_API
@@ -464,10 +463,11 @@ builtin_variable_table[] = {
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
     { "enable_smooth_scrolling",      UZBL_V_FUNC (enable_smooth_scrolling,                INT)},
 #endif
+    { "page_view_mode",               UZBL_V_FUNC (page_view_mode,                         STR)},
 #ifndef USE_WEBKIT2
     { "transparent",                  UZBL_V_FUNC (transparent,                            INT)},
 #if WEBKIT_CHECK_VERSION (1, 3, 4)
-    { "view_mode",                    UZBL_V_FUNC (view_mode,                              STR)},
+    { "window_view_mode",             UZBL_V_FUNC (window_view_mode,                       STR)},
 #endif
 #endif
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
@@ -2337,20 +2337,6 @@ IMPLEMENT_SETTER (gchar *, accept_languages)
     return TRUE;
 }
 
-IMPLEMENT_SETTER (int, view_source)
-{
-    uzbl.behave.view_source = view_source;
-
-#ifdef USE_WEBKIT2
-    WebKitViewMode mode = uzbl.behave.view_source ? WEBKIT_VIEW_MODE_SOURCE : WEBKIT_VIEW_MODE_WEB;
-    webkit_web_view_set_view_mode (uzbl.gui.web_view, mode);
-#else
-    webkit_web_view_set_view_source_mode (uzbl.gui.web_view, uzbl.behave.view_source);
-#endif
-
-    return TRUE;
-}
-
 IMPLEMENT_GETTER (float, zoom_level)
 {
     return webkit_web_view_get_zoom_level (uzbl.gui.web_view);
@@ -2396,30 +2382,62 @@ GOBJECT_GETSET (int, enable_smooth_scrolling,
                 webkit_settings (), "enable-smooth-scrolling")
 #endif
 
+#ifdef USE_WEBKIT2
+#define page_view_mode_choices(call)   \
+    call (WEBKIT_VIEW_MODE_WEB, "web") \
+    call (WEBKIT_VIEW_MODE_SOURCE, "source")
+
+#define _webkit_web_view_get_page_view_mode() \
+    webkit_web_view_get_view_source_mode (uzbl.gui.web_view)
+#define _webkit_web_view_set_page_view_mode(val) \
+    webkit_web_view_set_view_source_mode (uzbl.gui.web_view, val)
+
+typedef WebKitWebViewViewMode page_view_mode_t;
+#else
+#define page_view_mode_choices(call) \
+    call (TRUE, "web")               \
+    call (FALSE, "source")
+
+#define _webkit_web_view_get_page_view_mode() \
+    webkit_web_view_get_view_source_mode (uzbl.gui.web_view)
+#define _webkit_web_view_set_page_view_mode(val) \
+    webkit_web_view_set_view_source_mode (uzbl.gui.web_view, val)
+
+typedef gboolean page_view_mode_t;
+#endif
+
+CHOICE_GETSET (page_view_mode_t, page_view_mode,
+               _webkit_web_view_get_page_view_mode, _webkit_web_view_set_page_view_mode)
+
+#undef _webkit_web_view_get_page_view_mode
+#undef _webkit_web_view_set_page_view_mode
+
+#undef page_view_mode_choices
+
 #ifndef USE_WEBKIT2
 GOBJECT_GETSET (int, transparent,
                 webkit_view (), "transparent")
 
 #if WEBKIT_CHECK_VERSION (1, 3, 4)
-#define view_mode_choices(call)                               \
+#define window_view_mode_choices(call)                        \
     call (WEBKIT_WEB_VIEW_VIEW_MODE_WINDOWED, "windowed")     \
     call (WEBKIT_WEB_VIEW_VIEW_MODE_FLOATING, "floating")     \
     call (WEBKIT_WEB_VIEW_VIEW_MODE_FULLSCREEN, "fullscreen") \
     call (WEBKIT_WEB_VIEW_VIEW_MODE_MAXIMIZED, "maximized")   \
     call (WEBKIT_WEB_VIEW_VIEW_MODE_MINIMIZED, "minimized")
 
-#define _webkit_web_view_get_view_mode() \
+#define _webkit_web_view_get_window_view_mode() \
     webkit_web_view_get_view_mode (uzbl.gui.web_view)
-#define _webkit_web_view_set_view_mode(val) \
+#define _webkit_web_view_set_window_view_mode(val) \
     webkit_web_view_set_view_mode (uzbl.gui.web_view, val)
 
-CHOICE_GETSET (WebKitWebViewViewMode, view_mode,
-               _webkit_web_view_get_view_mode, _webkit_web_view_set_view_mode)
+CHOICE_GETSET (WebKitWebViewViewMode, window_view_mode,
+               _webkit_web_view_get_window_view_mode, _webkit_web_view_set_window_view_mode)
 
-#undef _webkit_web_view_get_view_mode
-#undef _webkit_web_view_set_view_mode
+#undef _webkit_web_view_get_window_view_mode
+#undef _webkit_web_view_set_window_view_mode
 
-#undef view_mode_choices
+#undef window_view_mode_choices
 #endif
 #endif
 
