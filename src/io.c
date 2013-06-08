@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <errno.h>
+#include <stdlib.h>
 
 /* =========================== PUBLIC API =========================== */
 
@@ -82,6 +83,8 @@ typedef enum {
 
 static gchar *
 build_stream_name (UzblCommType type, const gchar *dir);
+static int
+create_dir (const gchar *dir);
 
 static gboolean
 attach_fifo (gchar *path);
@@ -89,6 +92,10 @@ attach_fifo (gchar *path);
 gboolean
 uzbl_io_init_fifo (const gchar *dir)
 {
+    if (create_dir (dir)) {
+        return FALSE;
+    }
+
     if (uzbl.comm.fifo_path) {
         /* We're changing the fifo path, get rid of the old fifo if one exists. */
         if (unlink (uzbl.comm.fifo_path)) {
@@ -126,6 +133,10 @@ attach_socket (gchar *path, struct sockaddr_un *local);
 gboolean
 uzbl_io_init_socket (const gchar *dir)
 {
+    if (create_dir (dir)) {
+        return FALSE;
+    }
+
     if (uzbl.comm.socket_path) {
         /* Remove an existing socket should one exist. */
         if (unlink (uzbl.comm.socket_path)) {
@@ -268,6 +279,43 @@ build_stream_name (UzblCommType type, const gchar *dir)
     str = g_strdup_printf ("%s/uzbl_%s_%s", dir, type_str, uzbl.state.instance_name);
 
     return str;
+}
+
+int
+create_dir (const gchar *dir)
+{
+    gchar *work_path = g_strdup (dir);
+    size_t len = strlen (work_path);
+    gchar *p;
+
+    if (work_path[len - 1] == '/') {
+        work_path[len - 1] = '\0';
+    }
+
+#define check_mkdir(dir, mode)                                   \
+    if (mkdir (work_path, 0700)) {                               \
+        switch (errno) {                                         \
+            case EEXIST:                                         \
+                break;                                           \
+            default:                                             \
+                perror ("Failed to create socket or fifo dir:"); \
+                return EXIT_FAILURE;                             \
+        }                                                        \
+    }
+
+    /* Start making the parent directories from the bottom. */
+    for (p = work_path; *p; ++p) {
+        if (*p == '/') {
+            *p = '\0';
+            check_mkdir (work_path, 0700);
+            *p = '/';
+        }
+    }
+
+    check_mkdir (work_path, 0700);
+    g_free (work_path);
+
+    return EXIT_SUCCESS;
 }
 
 static gboolean
