@@ -105,7 +105,7 @@ typedef struct {
     static type                    \
     get_##name ()
 #define DECLARE_SETTER(type, name) \
-    static void                    \
+    static gboolean                \
     set_##name (const type name)
 
 #define DECLARE_GETSET(type, name) \
@@ -353,6 +353,7 @@ builtin_variable_table[] = {
     /* name                           entry                                                type/callback */
     /* Uzbl variables */
     { "verbose",                      UZBL_V_INT (uzbl.state.verbose,                      NULL)},
+    { "frozen",                       UZBL_V_INT (uzbl.state.frozen,                       NULL)},
     { "print_events",                 UZBL_V_INT (uzbl.state.events_stdout,                NULL)},
     { "handle_multi_button",          UZBL_V_INT (uzbl.state.handle_multi_button,          NULL)},
 
@@ -674,13 +675,13 @@ uzbl_variables_is_valid (const gchar *name)
 
 static UzblVariable *
 get_variable (const gchar *name);
-static void
+static gboolean
 set_variable_string (UzblVariable *var, const gchar *val);
-static void
+static gboolean
 set_variable_int (UzblVariable *var, int i);
-static void
+static gboolean
 set_variable_ull (UzblVariable *var, unsigned long long ull);
-static void
+static gboolean
 set_variable_float (UzblVariable *var, float f);
 static void
 send_variable_event (const gchar *name, const UzblVariable *var);
@@ -693,6 +694,7 @@ uzbl_variables_set (const gchar *name, gchar *val)
     }
 
     UzblVariable *var = get_variable (name);
+    gboolean sendev = TRUE;
 
     if (var) {
         if (!var->writeable) {
@@ -701,24 +703,24 @@ uzbl_variables_set (const gchar *name, gchar *val)
 
         switch (var->type) {
             case TYPE_STR:
-                set_variable_string (var, val);
+                sendev = set_variable_string (var, val);
                 break;
             case TYPE_INT:
             {
                 int i = (int)strtol (val, NULL, 10);
-                set_variable_int (var, i);
+                sendev = set_variable_int (var, i);
                 break;
             }
             case TYPE_ULL:
             {
                 unsigned long long ull = strtoull (val, NULL, 10);
-                set_variable_ull (var, ull);
+                sendev = set_variable_ull (var, ull);
                 break;
             }
             case TYPE_FLOAT:
             {
                 float f = strtod (val, NULL);
-                set_variable_float (var, f);
+                sendev = set_variable_float (var, f);
                 break;
             }
             default:
@@ -749,9 +751,10 @@ uzbl_variables_set (const gchar *name, gchar *val)
         *(var->value.s) = g_strdup (val);
     }
 
-    send_variable_event (name, var);
+    if (sendev) {
+        send_variable_event (name, var);
+    }
 
-    uzbl_gui_update_title ();
     return TRUE;
 }
 
@@ -764,20 +767,22 @@ get_variable_ull (const UzblVariable *var);
 static float
 get_variable_float (const UzblVariable *var);
 
-void
+gboolean
 uzbl_variables_toggle (const gchar *name, GArray *values)
 {
     UzblVariable *var = get_variable (name);
 
     if (!var) {
         if (values && values->len) {
-            uzbl_variables_set (name, argv_idx (values, 1));
+            return uzbl_variables_set (name, argv_idx (values, 0));
         } else {
-            uzbl_variables_set (name, "1");
+            return uzbl_variables_set (name, "1");
         }
 
-        return;
+        return FALSE;
     }
+
+    gboolean sendev = TRUE;
 
     switch (var->type) {
         case TYPE_STR:
@@ -806,7 +811,7 @@ uzbl_variables_toggle (const gchar *name, GArray *values)
                 next = "";
             }
 
-            set_variable_string (var, next);
+            sendev = set_variable_string (var, next);
             break;
         }
         case TYPE_INT:
@@ -836,7 +841,7 @@ uzbl_variables_toggle (const gchar *name, GArray *values)
                 next = !current;
             }
 
-            set_variable_int (var, next);
+            sendev = set_variable_int (var, next);
             break;
         }
         case TYPE_ULL:
@@ -866,7 +871,7 @@ uzbl_variables_toggle (const gchar *name, GArray *values)
                 next = !current;
             }
 
-            set_variable_ull (var, next);
+            sendev = set_variable_ull (var, next);
             break;
         }
         case TYPE_FLOAT:
@@ -896,14 +901,18 @@ uzbl_variables_toggle (const gchar *name, GArray *values)
                 next = !current;
             }
 
-            set_variable_float (var, next);
+            sendev = set_variable_float (var, next);
             break;
         }
         default:
             g_assert_not_reached ();
     }
 
-    send_variable_event (name, var);
+    if (sendev) {
+        send_variable_event (name, var);
+    }
+
+    return sendev;
 }
 
 typedef enum {
@@ -1031,30 +1040,34 @@ get_variable (const gchar *name)
     return g_hash_table_lookup (uzbl.behave.proto_var, name);
 }
 
-void
+gboolean
 set_variable_string (UzblVariable *var, const gchar *val)
 {
-    typedef void (*setter_t) (const gchar *);
+    typedef gboolean (*setter_t) (const gchar *);
 
     if (var->set) {
-        ((setter_t)var->set) (val);
+        return ((setter_t)var->set) (val);
     } else {
         g_free (*(var->value.s));
         *(var->value.s) = g_strdup (val);
     }
+
+    return TRUE;
 }
 
 #define TYPE_SETTER(type, name, member)               \
-    void                                              \
+    gboolean                                          \
     set_variable_##name (UzblVariable *var, type val) \
     {                                                 \
-        typedef void (*setter_t) (type);              \
+        typedef gboolean (*setter_t) (type);          \
                                                       \
         if (var->set) {                               \
-            ((setter_t)var->set) (val);               \
+            return ((setter_t)var->set) (val);        \
         } else {                                      \
             *var->value.member = val;                 \
         }                                             \
+                                                      \
+        return TRUE;                                  \
     }
 
 TYPE_SETTER (int, int, i)
@@ -1098,6 +1111,8 @@ send_variable_event (const gchar *name, const UzblVariable *var)
         NULL);
 
     g_string_free (str, TRUE);
+
+    uzbl_gui_update_title ();
 }
 
 gchar *
@@ -1608,7 +1623,7 @@ expand_type (const gchar *str)
     get_##name ()
 
 #define IMPLEMENT_SETTER(type, name) \
-    void                             \
+    gboolean                         \
     set_##name (const type name)
 
 #define GOBJECT_GETTER(type, name, obj, prop) \
@@ -1629,6 +1644,8 @@ expand_type (const gchar *str)
         g_object_set (G_OBJECT (obj),         \
             prop, name,                       \
             NULL);                            \
+                                              \
+        return TRUE;                          \
     }
 
 #define GOBJECT_GETSET(type, name, obj, prop) \
@@ -1669,10 +1686,12 @@ expand_type (const gchar *str)
             uzbl_debug ("Unrecognized "     \
                         "value for " #name  \
                         ": %s\n", name);    \
-            return;                         \
+            return FALSE;                   \
         }                                   \
                                             \
         set (out);                          \
+                                            \
+        return TRUE;                        \
     }
 
 static GObject *
@@ -1695,9 +1714,13 @@ IMPLEMENT_SETTER (gchar *, fifo_dir)
 
     if (uzbl_io_init_fifo (fifo_dir)) {
         uzbl.behave.fifo_dir = g_strdup (fifo_dir);
-    } else {
-        uzbl.behave.fifo_dir = NULL;
+
+        return TRUE;
     }
+
+    uzbl.behave.fifo_dir = NULL;
+
+    return FALSE;
 }
 
 IMPLEMENT_SETTER (gchar *, socket_dir)
@@ -1706,9 +1729,13 @@ IMPLEMENT_SETTER (gchar *, socket_dir)
 
     if (uzbl_io_init_socket (socket_dir)) {
         uzbl.behave.socket_dir = g_strdup (socket_dir);
-    } else {
-        uzbl.behave.socket_dir = NULL;
+
+        return TRUE;
     }
+
+    uzbl.behave.socket_dir = NULL;
+
+    return FALSE;
 }
 
 /* Handler variables */
@@ -1731,11 +1758,11 @@ IMPLEMENT_SETTER (int, enable_builtin_auth)
             soup_session_add_feature_by_type (
                 uzbl.net.soup_session, (GType)WEBKIT_TYPE_SOUP_AUTH_DIALOG);
         }
-    } else {
-        if (auth) {
-            soup_session_remove_feature (uzbl.net.soup_session, auth);
-        }
+    } else if (auth) {
+        soup_session_remove_feature (uzbl.net.soup_session, auth);
     }
+
+    return TRUE;
 }
 #endif
 
@@ -1761,7 +1788,7 @@ IMPLEMENT_GETTER (gchar *, geometry)
 IMPLEMENT_SETTER (gchar *, geometry)
 {
     if (!geometry) {
-        return;
+        return FALSE;
     }
 
     if (geometry[0] == 'm') { /* m/maximize/maximized */
@@ -1790,12 +1817,14 @@ IMPLEMENT_SETTER (gchar *, geometry)
      * what it changed from) */
     g_free (uzbl.gui.geometry);
     uzbl.gui.geometry = get_geometry ();
+
+    return TRUE;
 }
 
 IMPLEMENT_SETTER (gchar *, icon)
 {
     if (!uzbl.gui.main_window) {
-        return;
+        return FALSE;
     }
 
     /* Clear icon_name. */
@@ -1807,15 +1836,19 @@ IMPLEMENT_SETTER (gchar *, icon)
         uzbl.gui.icon = g_strdup (icon);
 
         gtk_window_set_icon_from_file (GTK_WINDOW (uzbl.gui.main_window), uzbl.gui.icon, NULL);
-    } else {
-        g_printerr ("Icon \"%s\" not found. ignoring.\n", icon);
+
+        return TRUE;
     }
+
+    uzbl_debug ("Icon \"%s\" not found. ignoring.\n", icon);
+
+    return FALSE;
 }
 
 IMPLEMENT_SETTER (gchar *, icon_name)
 {
     if (!uzbl.gui.main_window) {
-        return;
+        return FALSE;
     }
 
     /* Clear icon path. */
@@ -1826,6 +1859,8 @@ IMPLEMENT_SETTER (gchar *, icon_name)
     uzbl.gui.icon_name = g_strdup (icon_name);
 
     gtk_window_set_icon_name (GTK_WINDOW (uzbl.gui.main_window), uzbl.gui.icon_name);
+
+    return TRUE;
 }
 
 IMPLEMENT_GETTER (gchar *, window_role)
@@ -1842,10 +1877,12 @@ IMPLEMENT_GETTER (gchar *, window_role)
 IMPLEMENT_SETTER (gchar *, window_role)
 {
     if (!uzbl.gui.main_window) {
-        return;
+        return FALSE;
     }
 
     gtk_window_set_role (GTK_WINDOW (uzbl.gui.main_window), window_role);
+
+    return TRUE;
 }
 
 #ifndef USE_WEBKIT2
@@ -1866,17 +1903,19 @@ IMPLEMENT_GETTER (int, show_status)
 IMPLEMENT_SETTER (int, show_status)
 {
     if (!uzbl.gui.status_bar) {
-        return;
+        return FALSE;
     }
 
     gtk_widget_set_visible (uzbl.gui.status_bar, show_status);
     uzbl_gui_update_title ();
+
+    return TRUE;
 }
 
 IMPLEMENT_SETTER (int, status_top)
 {
     if (!uzbl.gui.scrolled_win || !uzbl.gui.status_bar) {
-        return;
+        return FALSE;
     }
 
     uzbl.behave.status_top = status_top;
@@ -1900,6 +1939,8 @@ IMPLEMENT_SETTER (int, status_top)
     if (!uzbl.state.plug_mode) {
         gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
     }
+
+    return TRUE;
 }
 
 IMPLEMENT_SETTER (char *, status_background)
@@ -1921,6 +1962,8 @@ IMPLEMENT_SETTER (char *, status_background)
     gdk_color_parse (uzbl.behave.status_background, &color);
     gtk_widget_modify_bg (widget, GTK_STATE_NORMAL, &color);
 #endif
+
+    return TRUE;
 }
 
 #ifdef USE_WEBKIT2
@@ -1958,6 +2001,8 @@ IMPLEMENT_SETTER (gchar *, proxy_url)
         NULL);
 
     soup_uri_free (soup_uri);
+
+    return TRUE;
 }
 
 IMPLEMENT_SETTER (int, max_conns)
@@ -1967,6 +2012,8 @@ IMPLEMENT_SETTER (int, max_conns)
     g_object_set (G_OBJECT (uzbl.net.soup_session),
         SOUP_SESSION_MAX_CONNS, uzbl.net.max_conns,
         NULL);
+
+    return TRUE;
 }
 
 IMPLEMENT_SETTER (int, max_conns_host)
@@ -1976,6 +2023,8 @@ IMPLEMENT_SETTER (int, max_conns_host)
     g_object_set (G_OBJECT (uzbl.net.soup_session),
         SOUP_SESSION_MAX_CONNS_PER_HOST, uzbl.net.max_conns_host,
         NULL);
+
+    return TRUE;
 }
 
 IMPLEMENT_SETTER (gchar *, http_debug)
@@ -1992,7 +2041,7 @@ IMPLEMENT_SETTER (gchar *, http_debug)
     http_debug_choices (STRING_TO_ENUM)
     {
         uzbl_debug ("Unrecognized value for http_debug: %s\n", http_debug);
-        return;
+        return FALSE;
     }
 
 #undef http_debug_choices
@@ -2009,6 +2058,8 @@ IMPLEMENT_SETTER (gchar *, http_debug)
     uzbl.net.soup_logger = soup_logger_new (out, -1);
     soup_session_add_feature (
         uzbl.net.soup_session, SOUP_SESSION_FEATURE (uzbl.net.soup_logger));
+
+    return TRUE;
 }
 
 GOBJECT_GETSET (gchar *, ssl_ca_file,
@@ -2089,6 +2140,8 @@ IMPLEMENT_SETTER (int, enable_private)
     }
 
     set_enable_private_webkit (enable_private);
+
+    return TRUE;
 }
 
 GOBJECT_GETSET (int, enable_private_webkit,
@@ -2167,6 +2220,8 @@ IMPLEMENT_SETTER (int, maintain_history)
     uzbl.behave.maintain_history = maintain_history;
 
     webkit_web_view_set_maintains_back_forward_list (uzbl.gui.web_view, maintain_history);
+
+    return TRUE;
 }
 #endif
 
@@ -2192,14 +2247,18 @@ make_uri_from_user_input (const gchar *uri);
 
 IMPLEMENT_SETTER (gchar *, uri)
 {
+    if (uzbl.state.frozen) {
+        return FALSE;
+    }
+
     /* Strip leading whitespace. */
     while (*uri && isspace (*uri)) {
         ++uri;
     }
 
     /* Don't do anything when given a blank URL. */
-    if (!uri[0]) {
-        return;
+    if (!*uri) {
+        return FALSE;
     }
 
     g_free (uzbl.state.uri);
@@ -2212,7 +2271,7 @@ IMPLEMENT_SETTER (gchar *, uri)
         g_array_append_val (argv, uri);
         uzbl_commands_run_argv ("js", argv, NULL);
         g_array_free (argv, FALSE);
-        return;
+        return TRUE;
     }
 
     /* Attempt to parse the URI. */
@@ -2221,6 +2280,8 @@ IMPLEMENT_SETTER (gchar *, uri)
     webkit_web_view_load_uri (uzbl.gui.web_view, newuri);
 
     g_free (newuri);
+
+    return TRUE;
 }
 
 IMPLEMENT_SETTER (gchar *, useragent)
@@ -2229,18 +2290,22 @@ IMPLEMENT_SETTER (gchar *, useragent)
 
     if (!useragent || !*useragent) {
         uzbl.net.useragent = NULL;
-    } else {
-        uzbl.net.useragent = g_strdup (useragent);
+
+        return FALSE;
+    }
+
+    uzbl.net.useragent = g_strdup (useragent);
 
 #ifndef USE_WEBKIT2
-        g_object_set (G_OBJECT (uzbl.net.soup_session),
-            SOUP_SESSION_USER_AGENT, uzbl.net.useragent,
-            NULL);
+    g_object_set (G_OBJECT (uzbl.net.soup_session),
+        SOUP_SESSION_USER_AGENT, uzbl.net.useragent,
+        NULL);
 #endif
-        g_object_set (webkit_settings (),
-            "user-agent", uzbl.net.useragent,
-            NULL);
-    }
+    g_object_set (webkit_settings (),
+        "user-agent", uzbl.net.useragent,
+        NULL);
+
+    return TRUE;
 }
 
 IMPLEMENT_SETTER (gchar *, accept_languages)
@@ -2249,23 +2314,27 @@ IMPLEMENT_SETTER (gchar *, accept_languages)
 
     if (!*accept_languages || *accept_languages == ' ') {
         uzbl.net.accept_languages = NULL;
-    } else {
-        uzbl.net.accept_languages = g_strdup (accept_languages);
+
+        return FALSE;
+    }
+
+    uzbl.net.accept_languages = g_strdup (accept_languages);
 
 #ifdef USE_WEBKIT2
-        WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
+    WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
 
-        gchar **languages = g_strsplit (uzbl.net.accept_languages, ",", 0);
+    gchar **languages = g_strsplit (uzbl.net.accept_languages, ",", 0);
 
-        webkit_web_context_set_preferred_languages (context, (const gchar * const *)languages);
+    webkit_web_context_set_preferred_languages (context, (const gchar * const *)languages);
 
-        g_strfreev (languages);
+    g_strfreev (languages);
 #else
-        g_object_set (G_OBJECT (uzbl.net.soup_session),
-            SOUP_SESSION_ACCEPT_LANGUAGE, uzbl.net.accept_languages,
-            NULL);
+    g_object_set (G_OBJECT (uzbl.net.soup_session),
+        SOUP_SESSION_ACCEPT_LANGUAGE, uzbl.net.accept_languages,
+        NULL);
 #endif
-    }
+
+    return TRUE;
 }
 
 IMPLEMENT_SETTER (int, view_source)
@@ -2278,6 +2347,8 @@ IMPLEMENT_SETTER (int, view_source)
 #else
     webkit_web_view_set_view_source_mode (uzbl.gui.web_view, uzbl.behave.view_source);
 #endif
+
+    return TRUE;
 }
 
 IMPLEMENT_GETTER (float, zoom_level)
@@ -2288,6 +2359,8 @@ IMPLEMENT_GETTER (float, zoom_level)
 IMPLEMENT_SETTER (float, zoom_level)
 {
     webkit_web_view_set_zoom_level (uzbl.gui.web_view, zoom_level);
+
+    return TRUE;
 }
 
 #ifdef HAVE_ZOOM_TEXT_API
@@ -2304,6 +2377,8 @@ IMPLEMENT_GETTER (int, zoom_text_only)
 IMPLEMENT_SETTER (int, zoom_text_only)
 {
     webkit_web_view_set_full_content_zoom (uzbl.gui.web_view, !zoom_text_only);
+
+    return TRUE;
 }
 #endif
 #endif
@@ -2416,6 +2491,8 @@ IMPLEMENT_GETTER (int, enable_spellcheck)
 IMPLEMENT_SETTER (int, enable_spellcheck)
 {
     webkit_web_context_set_spell_checking_enabled (webkit_web_view_get_context (uzbl.gui.web_view), enable_spellcheck);
+
+    return TRUE;
 }
 #else
 GOBJECT_GETSET (int, enable_spellcheck,
@@ -2443,6 +2520,8 @@ IMPLEMENT_SETTER (gchar *, spellcheck_languages)
     webkit_web_context_set_spell_checking_languages (context, (const gchar * const *)langs);
 
     g_strfreev (langs);
+
+    return TRUE;
 }
 #else
 GOBJECT_GETTER (gchar *, spellcheck_languages,
@@ -2453,10 +2532,10 @@ IMPLEMENT_SETTER (gchar *, spellcheck_languages)
     GObject *obj = webkit_get_text_checker ();
 
     if (!obj) {
-        return;
+        return FALSE;
     }
     if (!WEBKIT_IS_SPELL_CHECKER (obj)) {
-        return;
+        return FALSE;
     }
 
     WebKitSpellChecker *checker = WEBKIT_SPELL_CHECKER (obj);
@@ -2465,6 +2544,8 @@ IMPLEMENT_SETTER (gchar *, spellcheck_languages)
     g_object_set (webkit_settings (),
         "spell-checking-languages", spellcheck_languages,
         NULL);
+
+    return TRUE;
 }
 #endif
 
@@ -2541,6 +2622,8 @@ IMPLEMENT_SETTER (gchar *, custom_encoding)
 #else
     webkit_web_view_set_custom_encoding (uzbl.gui.web_view, custom_encoding);
 #endif
+
+    return TRUE;
 }
 
 #ifndef USE_WEBKIT2
@@ -2846,6 +2929,8 @@ IMPLEMENT_GETTER (unsigned long long, app_cache_size)
 IMPLEMENT_SETTER (unsigned long long, app_cache_size)
 {
     webkit_application_cache_set_maximum_size (app_cache_size);
+
+    return TRUE;
 }
 
 /* FIXME: Seems to give garbage data?
@@ -2864,6 +2949,8 @@ IMPLEMENT_GETTER (gchar *, web_database_directory)
 IMPLEMENT_SETTER (gchar *, web_database_directory)
 {
     webkit_set_web_database_directory_path (web_database_directory);
+
+    return TRUE;
 }
 
 IMPLEMENT_GETTER (unsigned long long, web_database_quota)
@@ -2874,6 +2961,8 @@ IMPLEMENT_GETTER (unsigned long long, web_database_quota)
 IMPLEMENT_SETTER (unsigned long long, web_database_quota)
 {
     webkit_set_default_web_database_quota (web_database_quota);
+
+    return TRUE;
 }
 
 #if WEBKIT_CHECK_VERSION (1, 5, 2)
@@ -2892,6 +2981,8 @@ IMPLEMENT_SETTER (gchar *, disk_cache_directory)
     WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
 
     webkit_web_context_set_disk_cache_directory (context, uzbl.state.disk_cache_directory);
+
+    return TRUE;
 }
 #endif
 
@@ -2903,6 +2994,8 @@ IMPLEMENT_SETTER (gchar *, web_extensions_directory)
     WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
 
     webkit_web_context_set_web_extensions_directory (context, uzbl.state.web_extensions_directory);
+
+    return TRUE;
 }
 #endif
 

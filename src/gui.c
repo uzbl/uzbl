@@ -647,6 +647,14 @@ decide_policy_cb (WebKitWebView *view, WebKitPolicyDecision *decision, WebKitPol
             break;
     }
 
+    if (uzbl.state.frozen) {
+#ifdef USE_WEBKIT2
+        webkit_policy_decision_ignore (decision);
+#else
+        webkit_web_policy_decision_ignore (decision);
+#endif
+    }
+
     return FALSE;
 }
 
@@ -1182,6 +1190,15 @@ set_window_property (const gchar *prop, const gchar *value)
 gboolean
 navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri)
 {
+    if (uzbl.state.frozen) {
+#ifdef USE_WEBKIT2
+        webkit_policy_decision_ignore (decision);
+#else
+        webkit_web_policy_decision_ignore (decision);
+#endif
+        return FALSE;
+    }
+
     gboolean decision_made = FALSE;
 
     uzbl_debug ("Navigation requested -> %s\n", uri);
@@ -1228,6 +1245,15 @@ navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri)
 gboolean
 mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type)
 {
+    if (uzbl.state.frozen) {
+#ifdef USE_WEBKIT2
+        webkit_policy_decision_ignore (decision);
+#else
+        webkit_web_policy_decision_ignore (decision);
+#endif
+        return FALSE;
+    }
+
     /* TODO: Ignore based on external filter program? */
 
     /* If we can display it, let's display it... */

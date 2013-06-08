@@ -118,7 +118,7 @@ set mode_section      = <span background="khaki" foreground="black">[\@[\@mode_i
 set keycmd_section    = [<span \@prompt_style>\@[\@keycmd_prompt]\@</span><span \@modcmd_style>\@modcmd</span><span \@keycmd_style>\@keycmd</span><span \@completion_style>\@completion_list</span>]
 set progress_section  = <span foreground="#606060">\@[\@progress.output]\@</span>
 set scroll_section    = <span foreground="#606060">\@[\@scroll_message]\@</span>
-set uri_section       = <span foreground="#99FF66">\@[\@uri]\@</span>
+set uri_section       = <span foreground="\@< if(\@frozen) "#00BFFF"; else "#99FF66"; >\@">\@[\@uri]\@</span>
 set name_section      = <span foreground="khaki">\@[\@NAME]\@</span>
 set status_section    = <span foreground="orange">\@status_message</span>
 set selected_section  = <span foreground="#606060">\@[\@SELECTED_URI]\@</span>
@@ -261,6 +261,9 @@ set ebind     = @mode_bind global,-insert
 @cbind  <Space>      = scroll vertical end
 @cbind  G<Go To:>_   = scroll vertical %r!
 @cbind  _G<Go To:>_  = scroll horizontal %r!
+
+# Frozen binding
+@cbind  <Shift><Ctrl>F  = toggle frozen
 
 # Navigation binds
 @cbind  b   = back
