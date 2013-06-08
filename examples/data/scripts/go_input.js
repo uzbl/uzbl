@@ -1,27 +1,43 @@
-var elements = document.querySelectorAll("textarea, input" + [
-	":not([type='button'])",
-	":not([type='checkbox'])",
-	":not([type='hidden'])",
-	":not([type='image'])",
-	":not([type='radio'])",
-	":not([type='reset'])",
-	":not([type='submit'])"].join(""));
-function gi() {
-	if (elements) {
-		var el, i = 0;
-		while((el = elements[i++])) {
-			var style=getComputedStyle(el, null);
-			if (style.display !== 'none' && style.visibility === 'visible') {
-				if (el.type === "file") {
-					el.click();
-				}
-				else {
-					el.focus();
-				}
-				return "XXXFORM_ACTIVEXXX";
-			}
-		}
-	}
-}
+/*jslint browser: true, vars: true, maxerr: 50, indent: 4 */
+/*global getComputedStyle */
+(function () {
+    'use strict';
 
-gi();
+    var maskType = function (type) {
+        return ':not([type="' + type + '"])';
+    };
+
+    var invalidElements = [
+            'button',
+            'checkbox',
+            'hidden',
+            'image',
+            'radio',
+            'reset',
+            'submit'
+        ].map(maskType);
+
+    var elems = document.querySelectorAll('textarea, input' + invalidElements.join(''));
+
+    var isVisible = function (el) {
+        var style = getComputedStyle(el, null);
+
+        return ((style.display !== 'none') && (style.visibility === 'visible'));
+    };
+
+    if (elems) {
+        elems = elems.filter(isVisible);
+
+        if (elems.length) {
+            var el = elems[0];
+
+            if (el.type === 'file') {
+                el.click();
+            } else {
+                el.focus();
+            }
+
+            return 'XXXFORM_ACTIVEXXX';
+        }
+    }
+}());

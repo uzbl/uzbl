@@ -13,6 +13,7 @@
 DMENU_SCHEME="wmii"
 
 . "$UZBL_UTIL_DIR/dmenu.sh"
+. "$UZBL_UTIL_DIR/uzbl-util.sh"
 
 case "$1" in
     "list")
@@ -22,7 +23,7 @@ case "$1" in
             label="$( wmiir read /client/$i/label )"
             list="$list$i : $label\n"
         done
-        window="$( echo "$list" | $DMENU | cut -d ' ' -f 1 )"
+        window="$( print "$list\n" | $DMENU | cut -d ' ' -f 1 )"
         wmiir xwrite /tag/sel/ctl "select client $window"
         ;;
     "next")
@@ -41,7 +42,7 @@ case "$1" in
         fi
         ;;
     * )
-        echo "$1 not valid" >&2
+        print "$1 not valid\n" >&2
         exit 2
         ;;
 esac
