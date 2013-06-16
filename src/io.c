@@ -288,23 +288,27 @@ create_dir (const gchar *dir)
     size_t len = strlen (work_path);
     gchar *p;
 
+    if (!len) {
+        return EXIT_FAILURE;
+    }
+
     if (work_path[len - 1] == '/') {
         work_path[len - 1] = '\0';
     }
 
-#define check_mkdir(dir, mode)                                   \
-    if (mkdir (work_path, 0700)) {                               \
-        switch (errno) {                                         \
-            case EEXIST:                                         \
-                break;                                           \
-            default:                                             \
-                perror ("Failed to create socket or fifo dir:"); \
-                return EXIT_FAILURE;                             \
-        }                                                        \
+#define check_mkdir(dir, mode)                                  \
+    if (mkdir (work_path, 0700)) {                              \
+        switch (errno) {                                        \
+            case EEXIST:                                        \
+                break;                                          \
+            default:                                            \
+                perror ("Failed to create socket or fifo dir"); \
+                return EXIT_FAILURE;                            \
+        }                                                       \
     }
 
     /* Start making the parent directories from the bottom. */
-    for (p = work_path; *p; ++p) {
+    for (p = work_path + 1; *p; ++p) {
         if (*p == '/') {
             *p = '\0';
             check_mkdir (work_path, 0700);
