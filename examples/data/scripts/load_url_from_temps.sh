@@ -5,6 +5,7 @@ DMENU_OPTIONS="xmms vertical resize"
 
 . "$UZBL_UTIL_DIR/dmenu.sh"
 . "$UZBL_UTIL_DIR/uzbl-dir.sh"
+. "$UZBL_UTIL_DIR/uzbl-util.sh"
 
 [ -r "$UZBL_TEMPS_FILE" ] || exit 1
 
@@ -18,5 +19,4 @@ fi
 
 sed -i -e "\<^$goto <d" $UZBL_TEMPS_FILE
 
-[ -n "$goto" ] && echo "uri $goto" > "$UZBL_FIFO"
-#[ -n "$goto" ] && echo "uri $goto" | socat - "unix-connect:$UZBL_SOCKET"
+[ -n "$goto" ] && uzbl_control "uri $goto\n"
