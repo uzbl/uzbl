@@ -72,6 +72,7 @@ SOURCES := \
     soup.c \
     status-bar.c \
     util.c \
+    uzbl-core.c \
     variables.c
 
 HEADERS := \
@@ -87,6 +88,7 @@ HEADERS := \
     soup.h \
     status-bar.h \
     util.h \
+    uzbl-core.h \
     variables.h \
     webkit.h
 
