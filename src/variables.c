@@ -2384,7 +2384,7 @@ GOBJECT_GETSET (int, javascript_clipboard,
 
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (2, 1, 1)
-GOBJECT_GETSET (int, javascript_clipboard,
+GOBJECT_GETSET (int, javascript_console_to_stdout,
                 webkit_settings (), "enable-write-console-messages-to-stdout")
 #endif
 #endif
