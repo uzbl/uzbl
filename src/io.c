@@ -288,6 +288,10 @@ create_dir (const gchar *dir)
     size_t len = strlen (work_path);
     gchar *p;
 
+    if (!len) {
+        return EXIT_FAILURE;
+    }
+
     if (work_path[len - 1] == '/') {
         work_path[len - 1] = '\0';
     }
