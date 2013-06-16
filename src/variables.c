@@ -1395,6 +1395,7 @@ expand_impl (const gchar *str, UzblExpandStage stage)
                         g_free (escaped);
                         g_free (mycmd);
                         p = vend + 2;
+                        break;
                     }
                 }
 
