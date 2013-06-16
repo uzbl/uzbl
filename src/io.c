@@ -308,7 +308,7 @@ create_dir (const gchar *dir)
     }
 
     /* Start making the parent directories from the bottom. */
-    for (p = work_path; *p; ++p) {
+    for (p = work_path + 1; *p; ++p) {
         if (*p == '/') {
             *p = '\0';
             check_mkdir (work_path, 0700);
