@@ -163,6 +163,7 @@ class Cookies(PerInstancePlugin):
     def __init__(self, uzbl):
         super(Cookies, self).__init__(uzbl)
 
+        self.secure = []
         self.whitelist = []
         self.blacklist = []
 
@@ -170,6 +171,10 @@ class Cookies(PerInstancePlugin):
         uzbl.connect('DELETE_COOKIE', self.delete_cookie)
         uzbl.connect('BLACKLIST_COOKIE', self.blacklist_cookie)
         uzbl.connect('WHITELIST_COOKIE', self.whitelist_cookie)
+
+        # HTTPS-Everywhere support
+        uzbl.connect('SECURE_COOKIE', self.secure_cookie)
+        uzbl.connect('CLEAR_SECURE_COOKIE_RULES', self.clear_secure_cookies)
 
     # accept a cookie only when:
     # a. there is no whitelist and the cookie is in the blacklist
@@ -197,6 +202,23 @@ class Cookies(PerInstancePlugin):
 
     def add_cookie(self, cookie):
         cookie = splitquoted(cookie)
+
+        if self.secure:
+            if match_list(self.secure, cookie):
+                make_secure = {
+                    'http'  : 'https',
+                    'httpOnly'  : 'httpsOnly'
+                }
+                if cookie[4] in make_secure:
+                    self.uzbl.send('delete_cookie %s' % cookie.raw())
+
+                    new_cookie = list(cookie)
+                    new_cookie[4] = make_secure[cookie[4]]
+                    new_cookie = tuple(new_cookie)
+
+                    self.uzbl.send('add_cookie %s' % new_cookie.raw())
+                    return
+
         if self.accept_cookie(cookie):
             for u in self.get_recipents():
                 u.send('add_cookie %s' % cookie.raw())
@@ -222,5 +244,11 @@ class Cookies(PerInstancePlugin):
 
     def whitelist_cookie(self, arg):
         add_cookie_matcher(self.whitelist, arg)
+
+    def secure_cookie(self, arg):
+        add_cookie_matcher(self.secure, arg)
+
+    def clear_secure_cookies(self, arg):
+        self.secure = []
 
 # vi: set et ts=4:
