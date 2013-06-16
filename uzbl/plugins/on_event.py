@@ -57,7 +57,7 @@ class OnEventPlugin(PerInstancePlugin):
             return
 
         commands = self.events[event]
-        for cmd, pattern in list(commands.items()):
+        for cmd, pattern in commands:
             if not pattern or match_args(pattern, args):
                 cmd = cmd_expand(cmd, args)
                 self.uzbl.send(cmd)
@@ -70,11 +70,11 @@ class OnEventPlugin(PerInstancePlugin):
         if event not in self.events:
             self.uzbl.connect(event,
                 partial(self.event_handler, on_event=event))
-            self.events[event] = {}
+            self.events[event] = []
 
         cmds = self.events[event]
         if cmd not in cmds:
-            cmds[cmd] = pattern
+            cmds.append((cmd, pattern))
 
     def parse_on_event(self, args):
         '''Parse ON_EVENT events and pass them to the on_event function.
