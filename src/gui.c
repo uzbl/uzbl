@@ -633,6 +633,15 @@ decide_policy_cb (WebKitWebView *view, WebKitPolicyDecision *decision, WebKitPol
             WebKitURIRequest *request = webkit_navigation_policy_decision_get_request (nav_decision);
             const gchar *uri = webkit_uri_request_get_uri (request);
 
+            /* TODO: Add information from WebKitNavigationPolicyDecision such as:
+             *
+             *  * frame name
+             *  * modifiers
+             *  * mouse button
+             *  * navigation type (link click, form submission, back/forward,
+             *                     reload, form resubmission, unknown)
+             */
+
             return navigation_decision (decision, uri);
         }
         case WEBKIT_POLICY_DECISION_TYPE_NEW_WINDOW_ACTION:

@@ -1410,6 +1410,7 @@ expand_impl (const gchar *str, UzblExpandStage stage)
                         g_free (escaped);
                         g_free (mycmd);
                         p = vend + 2;
+                        break;
                     }
                 }
 
@@ -2477,7 +2478,7 @@ GOBJECT_GETSET (int, javascript_clipboard,
 
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (2, 1, 1)
-GOBJECT_GETSET (int, javascript_clipboard,
+GOBJECT_GETSET (int, javascript_console_to_stdout,
                 webkit_settings (), "enable-write-console-messages-to-stdout")
 #endif
 #endif
@@ -2865,7 +2866,7 @@ mimetype_list_append (WebKitWebPluginMIMEType *mimetype, GString *list)
 
     gboolean first = TRUE;
 
-    while (*extensions) {
+    while (extensions && *extensions) {
         if (first) {
             first = FALSE;
         } else {

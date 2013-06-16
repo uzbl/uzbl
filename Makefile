@@ -31,7 +31,7 @@ ifeq ($(ENABLE_WEBKIT2),yes)
 REQ_PKGS += 'webkit2gtk-3.0 >= 1.2.4' javascriptcoregtk-3.0
 CPPFLAGS += -DUSE_WEBKIT2
 # WebKit2 requires GTK3
-ENABLE_GTK3    := yes
+ENABLE_GTK3 := yes
 else
 ifeq ($(ENABLE_GTK3),yes)
 REQ_PKGS += 'webkitgtk-3.0 >= 1.2.4' javascriptcoregtk-3.0
@@ -72,6 +72,7 @@ SOURCES := \
     soup.c \
     status-bar.c \
     util.c \
+    uzbl-core.c \
     variables.c
 
 HEADERS := \
@@ -87,6 +88,7 @@ HEADERS := \
     soup.h \
     status-bar.h \
     util.h \
+    uzbl-core.h \
     variables.h \
     webkit.h
 
