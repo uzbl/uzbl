@@ -2764,7 +2764,7 @@ mimetype_list_append (WebKitWebPluginMIMEType *mimetype, GString *list)
 
     gboolean first = TRUE;
 
-    while (*extensions) {
+    while (extensions && *extensions) {
         if (first) {
             first = FALSE;
         } else {
