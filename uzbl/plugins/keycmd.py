@@ -152,8 +152,9 @@ class Keylet(object):
                 rfind = p + 1
         if rfind == len(head) and head[-1] in seps:
             rfind -= 1
-        self.keycmd = head[:rfind] if rfind + 1 else '' + tail
-        self.cursor = len(head)
+        tmp = head[:rfind] if rfind + 1 else ''
+        self.keycmd = tmp + tail
+        self.cursor = len(tmp)
         return head[rfind:]
 
     def set_cursor_pos(self, index):
