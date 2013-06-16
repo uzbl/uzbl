@@ -1908,7 +1908,6 @@ IMPLEMENT_SETTER (int, show_status)
     }
 
     gtk_widget_set_visible (uzbl.gui.status_bar, show_status);
-    uzbl_gui_update_title ();
 
     return TRUE;
 }
