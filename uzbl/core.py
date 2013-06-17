@@ -26,6 +26,7 @@ class Uzbl(object):
 
         # Track plugin event handlers
         self.handlers = defaultdict(list)
+        self.request_handlers = defaultdict(list)
 
         # Internal vars
         self._depth = 0
@@ -36,7 +37,8 @@ class Uzbl(object):
             'pid=%s' % (self.pid if self.pid else "Unknown"),
             'name=%s' % ('%r' % self.name if self.name else "Unknown"),
             'uptime=%f' % (time.time() - self.time),
-            '%d handlers' % sum([len(l) for l in list(self.handlers.values())])])
+            '%d handlers' % sum([len(l) for l in list(self.handlers.values())]),
+            '%d request handlers' % sum([len(l) for l in list(self.request_handlers.values())])])
 
     def init_plugins(self):
         '''Creates instances of per-instance plugins'''
@@ -57,6 +59,12 @@ class Uzbl(object):
 
         self.proto.push((msg+'\n').encode('utf-8'))
 
+    def reply(self, cookie, response):
+        if self.opts.print_events:
+            print(('%s<?- %s %s' % ('  ' * self._depth, cookie, response)))
+
+        self.proto.push(('REPLY-%s %s\n' % (cookie, response)).encode('utf-8'))
+
     def parse_msg(self, line):
         '''Parse an incoming message from a uzbl instance. Event strings
         will be parsed into `self.event(event, args)`.'''
@@ -64,11 +72,21 @@ class Uzbl(object):
         # Split by spaces (and fill missing with nulls)
         elems = (line.split(' ', 3) + [''] * 3)[:4]
 
+        handler = None
+        kargs = {}
+
         # Ignore non-event messages.
-        if elems[0] != 'EVENT':
-            self.logger.info('non-event message: %r', line)
-            if self.opts.print_events:
-                print(('--- %s' % line))
+        if elems[0].startswith('REQUEST-'):
+            handler = self.request
+            kargs['cookie'] = elems[0][8:]
+        elif elems[0] == 'EVENT':
+            handler = self.event
+
+        if handler is None:
+            if line:
+                self.logger.info('unrecognized message: %r', line)
+                if self.opts.print_events:
+                    print(('--- %s' % line))
             return
 
         # Check event string elements
@@ -82,7 +100,44 @@ class Uzbl(object):
         assert self.name == name, 'instance name mismatch'
 
         # Handle the event with the event handlers through the event method
-        self.event(event, args)
+        handler(event, args, **kargs)
+
+    def request(self, request, *args, **kargs):
+        '''Complete a request.'''
+
+        if 'cookie' not in kargs:
+            self.logger.info('Found a request without a cookie: %r', request)
+            return
+
+        cookie = kargs['cookie']
+
+        request = request.upper()
+
+        if not self.opts.daemon_mode and self.opts.print_events:
+            elems = [request]
+            if args:
+                elems.append(str(args))
+            if kargs:
+                elems.append(str(kargs))
+            print(('%s-?> %s %s' % ('  ' * self._depth, cookie, ' '.join(elems))))
+
+        final_response = None
+
+        if request in self.request_handlers:
+            for (prio, handler) in self.request_handlers[request]:
+                self._depth += 1
+                try:
+                    (response, args, kargs) = handler(final_response, *args, **kargs)
+                    if response is not None:
+                        final_response = response
+                except Exception:
+                    self.logger.error('error in request handler', exc_info=True)
+                self._depth -= 1
+
+        if final_response is None:
+            final_response = ''
+
+        self.reply(cookie, final_response)
 
     def event(self, event, *args, **kargs):
         '''Raise an event.'''
@@ -151,3 +206,15 @@ class Uzbl(object):
         """
         self.handlers[name].append(handler)
 
+    def answer_request(self, name, prio, handler):
+        """Attach request handler
+
+        No extra arguments added. Use bound methods and partials to have
+        extra arguments.
+        """
+
+        def fst(a):
+            return a[0]
+
+        self.request_handlers[name].append((prio, handler))
+        self.request_handlers[name].sort(key=fst)
