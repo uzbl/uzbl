@@ -314,11 +314,11 @@ void
 send_event_socket (GString *msg)
 {
     if (uzbl.comm.connect_chan) {
-        /* Write to all --connect-socket sockets. */
-        send_event_sockets (uzbl.comm.connect_chan, msg);
         if (uzbl.state.event_buffer) {
             uzbl_events_replay_buffer ();
         }
+        /* Write to all --connect-socket sockets. */
+        send_event_sockets (uzbl.comm.connect_chan, msg);
     } else {
         /* Buffer events until a socket is set and connected or a timeout is
          * encountered. */
