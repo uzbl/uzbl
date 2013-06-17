@@ -70,6 +70,7 @@ SOURCES := \
     inspector.c \
     io.c \
     js.c \
+    requests.c \
     soup.c \
     status-bar.c \
     util.c \
@@ -86,6 +87,7 @@ HEADERS := \
     inspector.h \
     io.h \
     js.h \
+    requests.h \
     menu.h \
     soup.h \
     status-bar.h \

@@ -82,6 +82,10 @@ typedef struct {
     gboolean        handle_multi_button;
     GPtrArray      *event_buffer;
     gchar         **connect_socket_names;
+
+    GCond           reply_buffer_cond;
+    GMutex          reply_buffer_lock;
+    GPtrArray      *reply_buffer;
 } UzblState;
 
 /* Networking */
