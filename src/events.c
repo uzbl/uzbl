@@ -147,11 +147,9 @@ send_event_sockets (GPtrArray *sockets, GString *msg)
             if (ret == G_IO_STATUS_ERROR) {
                 g_warning ("Error sending event to socket: %s", error->message);
                 g_clear_error (&error);
-            } else {
-                if (g_io_channel_flush (gio, &error) == G_IO_STATUS_ERROR) {
-                    g_warning ("Error flushing: %s", error->message);
-                    g_clear_error (&error);
-                }
+            } else if (g_io_channel_flush (gio, &error) == G_IO_STATUS_ERROR) {
+                g_warning ("Error flushing: %s", error->message);
+                g_clear_error (&error);
             }
         }
     }
