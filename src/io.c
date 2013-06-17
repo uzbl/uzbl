@@ -2,6 +2,7 @@
 
 #include "commands.h"
 #include "events.h"
+#include "requests.h"
 #include "type.h"
 #include "util.h"
 #include "uzbl-core.h"
@@ -379,17 +380,25 @@ handle_command (gchar *line, UzblIOCallback callback, gpointer data)
 
     remove_trailing_newline (line);
 
-    GString *result = NULL;
+    if (!strprefix (line, "REPLY-")) {
+        g_mutex_lock (&uzbl.state.reply_buffer_lock);
+        g_ptr_array_add (uzbl.state.reply_buffer, (gpointer)g_strdup (line));
+        g_cond_broadcast (&uzbl.state.reply_buffer_cond);
+        g_mutex_unlock (&uzbl.state.reply_buffer_lock);
+    } else {
+        GString *result = NULL;
 
-    if (callback) {
-        result = g_string_new ("");
-    }
+        if (callback) {
+            result = g_string_new ("");
+        }
 
-    uzbl_commands_run (line, result);
+        /* TODO: Make async. */
+        uzbl_commands_run (line, result);
 
-    if (callback && *result->str) {
-        callback (result, data);
-        g_string_free (result, TRUE);
+        if (callback && *result->str) {
+            callback (result, data);
+            g_string_free (result, TRUE);
+        }
     }
 
     g_free (line);
