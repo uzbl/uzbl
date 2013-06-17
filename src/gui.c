@@ -794,6 +794,8 @@ request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResour
         if (result->len > 0) {
             remove_trailing_newline (result->str);
 
+            uzbl_debug ("Request rewritten -> %s\n", result->str);
+
             webkit_network_request_set_uri (request, result->str);
         }
 
