@@ -132,10 +132,14 @@ send_event_sockets (GPtrArray *sockets, GString *msg)
     gsize len;
     guint i = 0;
 
+    if (!msg) {
+        return;
+    }
+
     while (i < sockets->len) {
         GIOChannel *gio = g_ptr_array_index (sockets, i++);
 
-        if (gio && gio->is_writeable && msg) {
+        if (gio && gio->is_writeable) {
             ret = g_io_channel_write_chars (gio,
                     msg->str, msg->len,
                     &len, &error);
