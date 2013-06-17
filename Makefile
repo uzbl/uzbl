@@ -62,6 +62,7 @@ LDLIBS:=$(shell pkg-config --libs $(REQ_PKGS) x11)
 CFLAGS += -std=c99 $(PKG_CFLAGS) -ggdb -W -Wall -Wextra -pthread
 
 SOURCES := \
+    comm.c \
     commands.c \
     cookie-jar.c \
     events.c \
@@ -76,6 +77,7 @@ SOURCES := \
     variables.c
 
 HEADERS := \
+    comm.h \
     commands.h \
     config.h \
     cookie-jar.h \

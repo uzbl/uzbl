@@ -1,9 +1,8 @@
 #include "events.h"
 
-#include "type.h"
+#include "comm.h"
 #include "util.h"
 #include "uzbl-core.h"
-#include "variables.h"
 
 #include <sys/time.h>
 #include <errno.h>
@@ -18,8 +17,6 @@ const char *event_table[] = {
 
 #undef event_string
 };
-
-typedef GString UzblEvent;
 
 /* =========================== PUBLIC API =========================== */
 
@@ -155,93 +152,18 @@ send_event_sockets (GPtrArray *sockets, GString *msg)
     }
 }
 
-static UzblEvent *
-vformat_event (UzblEventType type, const gchar *custom_event, va_list vargs);
 static void
-send_formatted_event (UzblEvent *event);
+send_formatted_event (GString *event);
 
 void
 vuzbl_events_send (UzblEventType type, const gchar *custom_event, va_list vargs)
 {
-    UzblEvent *event = vformat_event (type, custom_event, vargs);
+    const gchar *event_name = custom_event ? custom_event : event_table[type];
+    GString *event = uzbl_comm_vformat ("EVENT", event_name, vargs);
 
     send_formatted_event (event);
 
     g_string_free (event, TRUE);
-}
-
-static GString *
-append_escaped (GString *dest, const gchar *src);
-
-UzblEvent *
-vformat_event (UzblEventType type, const gchar *custom_event, va_list vargs)
-{
-    GString *event_message = g_string_sized_new (512);
-    const gchar *event = custom_event ? custom_event : event_table[type];
-    char *str;
-
-    int next;
-    g_string_printf (event_message, "EVENT [%s] %s", uzbl.state.instance_name, event);
-
-    while ((next = va_arg (vargs, int))) {
-        g_string_append_c (event_message, ' ');
-        switch (next) {
-            case TYPE_INT:
-                g_string_append_printf (event_message, "%d", va_arg (vargs, int));
-                break;
-            case TYPE_ULL:
-                g_string_append_printf (event_message, "%llu", va_arg (vargs, unsigned long long));
-                break;
-            case TYPE_STR:
-                /* A string that needs to be escaped. */
-                g_string_append_c (event_message, '\'');
-                append_escaped (event_message, va_arg (vargs, char *));
-                g_string_append_c (event_message, '\'');
-                break;
-            case TYPE_FORMATTEDSTR:
-                /* A string has already been escaped. */
-                g_string_append (event_message, va_arg (vargs, char *));
-                break;
-            case TYPE_STR_ARRAY:
-            {
-                GArray *a = va_arg (vargs, GArray *);
-                const char *p;
-                int i = 0;
-
-                while ((p = argv_idx (a, i++))) {
-                    if (i) {
-                        g_string_append_c (event_message, ' ');
-                    }
-                    g_string_append_c (event_message, '\'');
-                    append_escaped (event_message, p);
-                    g_string_append_c (event_message, '\'');
-                }
-                break;
-            }
-            case TYPE_NAME:
-                str = va_arg (vargs, char *);
-                g_assert (uzbl_variables_is_valid (str));
-                g_string_append (event_message, str);
-                break;
-            case TYPE_FLOAT:
-            {
-                /* Make sure the formatted double fits in the buffer. */
-                if (event_message->allocated_len - event_message->len < G_ASCII_DTOSTR_BUF_SIZE) {
-                    g_string_set_size (event_message, event_message->len + G_ASCII_DTOSTR_BUF_SIZE);
-                }
-
-                /* Format in C locale. */
-                char *tmp = g_ascii_formatd (
-                    event_message->str + event_message->len,
-                    event_message->allocated_len - event_message->len,
-                    "%.2f", va_arg (vargs, double)); /* ‘float’ is promoted to ‘double’ when passed through ‘...’ */
-                event_message->len += strlen (tmp);
-                break;
-            }
-        }
-    }
-
-    return (UzblEvent *)event_message;
 }
 
 static void
@@ -250,7 +172,7 @@ static void
 send_event_socket (GString *msg);
 
 void
-send_formatted_event (UzblEvent *event)
+send_formatted_event (GString *event)
 {
     if (!event) {
         return;
@@ -266,38 +188,6 @@ send_formatted_event (UzblEvent *event)
         }
         send_event_socket (event);
     }
-}
-
-GString *
-append_escaped (GString *dest, const gchar *src)
-{
-    g_assert (dest);
-    g_assert (src);
-
-    /* Hint that we are going to append another string. */
-    int oldlen = dest->len;
-    g_string_set_size (dest, dest->len + strlen (src) * 2);
-    g_string_truncate (dest, oldlen);
-
-    /* Append src char by char with baddies escaped. */
-    for (const gchar *p = src; *p; ++p) {
-        switch (*p) {
-            case '\\':
-                g_string_append (dest, "\\\\");
-                break;
-            case '\'':
-                g_string_append (dest, "\\'");
-                break;
-            case '\n':
-                g_string_append (dest, "\\n");
-                break;
-            default:
-                g_string_append_c (dest, *p);
-                break;
-        }
-    }
-
-    return dest;
 }
 
 void
