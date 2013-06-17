@@ -4,6 +4,7 @@
 #include "gui.h"
 #include "js.h"
 #include "menu.h"
+#include "requests.h"
 #include "soup.h"
 #include "type.h"
 #include "util.h"
@@ -152,6 +153,7 @@ DECLARE_COMMAND (print);
 
 /* Event commands */
 DECLARE_COMMAND (event);
+DECLARE_COMMAND (request);
 
 static UzblCommand
 builtin_command_table[] =
@@ -246,6 +248,7 @@ builtin_command_table[] =
 
     /* Event commands */
     { "event",                          cmd_event,                    FALSE, FALSE },
+    { "request",                        cmd_request,                  FALSE, TRUE  },
 
     /* Terminator */
     { NULL,                             NULL,                         FALSE, FALSE }
@@ -2605,6 +2608,30 @@ IMPLEMENT_COMMAND (event)
 
     g_string_free (event_name, TRUE);
     g_strfreev (split);
+}
+
+IMPLEMENT_COMMAND (request)
+{
+    GString *request_name;
+    GString *request_result;
+    gchar **split = NULL;
+
+    ARG_CHECK (argv, 2);
+
+    const gchar *request = argv_idx (argv, 0);
+    const gchar *data = argv_idx (argv, 1);
+
+    request_name = g_string_ascii_up (g_string_new (request));
+
+    request_result = uzbl_requests_send (request_name->str,
+        TYPE_FORMATTEDSTR, data,
+        NULL);
+
+    g_string_free (request_name, TRUE);
+    g_strfreev (split);
+
+    g_string_append (result, request_result->str);
+    g_string_free (request_result, TRUE);
 }
 
 static gboolean
