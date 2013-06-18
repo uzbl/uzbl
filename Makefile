@@ -75,7 +75,8 @@ SOURCES := \
     status-bar.c \
     util.c \
     uzbl-core.c \
-    variables.c
+    variables.c \
+    3p/async-queue-source/rb-async-queue-watch.c
 
 HEADERS := \
     comm.h \
@@ -94,7 +95,8 @@ HEADERS := \
     util.h \
     uzbl-core.h \
     variables.h \
-    webkit.h
+    webkit.h \
+    3p/async-queue-source/rb-async-queue-watch.h
 
 SRC  = $(addprefix src/,$(SOURCES))
 HEAD = $(addprefix src/,$(HEADERS))
