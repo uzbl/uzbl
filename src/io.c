@@ -121,7 +121,7 @@ uzbl_io_init_fifo (const gchar *dir)
 }
 
 static gboolean
-attach_socket (gchar *path, struct sockaddr_un *local);
+attach_socket (const gchar *path, struct sockaddr_un *local);
 
 gboolean
 uzbl_io_init_socket (const gchar *dir)
@@ -149,16 +149,16 @@ uzbl_io_init_socket (const gchar *dir)
     struct sockaddr_un local;
     local.sun_family = AF_UNIX;
     strcpy (local.sun_path, path);
+    gboolean ret = FALSE;
 
     if (attach_socket (path, &local)) {
-        return TRUE;
+        ret = TRUE;
     } else {
         g_warning ("init_socket: can't attach to %s: %s\n", path, strerror (errno));
     }
 
-    /* If we got this far, there was an error; clean up. */
     g_free (path);
-    return FALSE;
+    return ret;
 }
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
@@ -287,8 +287,8 @@ attach_fifo (gchar *path)
 static gboolean
 control_socket (GIOChannel *chan);
 
-static gboolean
-attach_socket (gchar *path, struct sockaddr_un *local)
+gboolean
+attach_socket (const gchar *path, struct sockaddr_un *local)
 {
     GIOChannel *chan = NULL;
     int sock = socket (AF_UNIX, SOCK_STREAM, 0);
@@ -303,9 +303,9 @@ attach_socket (gchar *path, struct sockaddr_un *local)
         if ((chan = g_io_channel_unix_new (sock))) {
             g_io_add_watch (chan, G_IO_IN | G_IO_HUP, (GIOFunc)control_socket, chan);
 
-            uzbl.comm.socket_path = path;
+            uzbl.comm.socket_path = g_strdup (path);
             uzbl_events_send (SOCKET_SET, NULL,
-                TYPE_STR, path,
+                TYPE_STR, uzbl.comm.socket_path,
                 NULL);
             /* TODO: Collect all environment settings into one place. */
             g_setenv ("UZBL_SOCKET", uzbl.comm.socket_path, TRUE);
