@@ -998,6 +998,10 @@ IMPLEMENT_COMMAND (cookie)
         uzbl.net.soup_cookie_jar->in_manual_add = 1;
         soup_cookie_jar_add_cookie (SOUP_COOKIE_JAR (uzbl.net.soup_cookie_jar), cookie);
         uzbl.net.soup_cookie_jar->in_manual_add = 0;
+
+        if (expires) {
+            soup_date_free (expires);
+        }
 #endif
     } else if (!g_strcmp0 (command, "delete")) {
 #ifdef USE_WEBKIT2

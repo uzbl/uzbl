@@ -128,7 +128,7 @@ uzbl_io_init_fifo (const gchar *dir)
 }
 
 static gboolean
-attach_socket (gchar *path, struct sockaddr_un *local);
+attach_socket (const gchar *path, struct sockaddr_un *local);
 
 gboolean
 uzbl_io_init_socket (const gchar *dir)
@@ -160,19 +160,26 @@ uzbl_io_init_socket (const gchar *dir)
     struct sockaddr_un local;
     local.sun_family = AF_UNIX;
     strcpy (local.sun_path, path);
+    gboolean ret = FALSE;
 
     if (attach_socket (path, &local)) {
-        return TRUE;
+        ret = TRUE;
     } else {
         g_warning ("init_socket: can't attach to %s: %s\n", path, strerror (errno));
     }
 
-    /* If we got this far, there was an error; clean up. */
     g_free (path);
-    return FALSE;
+    return ret;
 }
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
+
+typedef void (*UzblIOCallback)(GString *result, gpointer data);
+
+static void
+handle_command (gchar *line, UzblIOCallback callback, gpointer data);
+static void
+write_stdout (GString *result, gpointer data);
 
 gboolean
 control_stdin (GIOChannel *gio, GIOCondition condition)
@@ -187,29 +194,20 @@ control_stdin (GIOChannel *gio, GIOCondition condition)
         return FALSE;
     }
 
-    remove_trailing_newline (ctl_line);
-
-    GString *result = g_string_new ("");
-
-    uzbl_commands_run (ctl_line, result);
-    g_free (ctl_line);
-
-    if (*result->str) {
-        puts (result->str);
-    }
-    g_string_free (result, TRUE);
+    handle_command (ctl_line, write_stdout, NULL);
 
     return TRUE;
 }
 
 static gboolean
 remove_socket_from_array (GIOChannel *chan);
+static void
+write_socket (GString *result, gpointer data);
 
 gboolean
 control_client_socket (GIOChannel *clientchan)
 {
     char *ctl_line;
-    GString *result = g_string_new ("");
     GError *error = NULL;
     GIOStatus ret;
     gsize len;
@@ -236,25 +234,9 @@ control_client_socket (GIOChannel *clientchan)
         return FALSE;
     }
 
-    if (ctl_line) {
-        remove_trailing_newline (ctl_line);
+    g_io_channel_ref (clientchan);
+    handle_command (ctl_line, write_socket, (gpointer)clientchan);
 
-        uzbl_commands_run (ctl_line, result);
-        g_string_append_c (result, '\n');
-        ret = g_io_channel_write_chars (clientchan, result->str, result->len,
-                                        &len, &error);
-        if (ret == G_IO_STATUS_ERROR) {
-            g_warning ("Error writing: %s", error->message);
-            g_clear_error (&error);
-        }
-        if (g_io_channel_flush (clientchan, &error) == G_IO_STATUS_ERROR) {
-            g_warning ("Error flushing: %s", error->message);
-            g_clear_error (&error);
-        }
-    }
-
-    g_string_free (result, TRUE);
-    g_free (ctl_line);
     return TRUE;
 }
 
@@ -357,8 +339,8 @@ attach_fifo (gchar *path)
 static gboolean
 control_socket (GIOChannel *chan);
 
-static gboolean
-attach_socket (gchar *path, struct sockaddr_un *local)
+gboolean
+attach_socket (const gchar *path, struct sockaddr_un *local)
 {
     GIOChannel *chan = NULL;
     int sock = socket (AF_UNIX, SOCK_STREAM, 0);
@@ -373,9 +355,9 @@ attach_socket (gchar *path, struct sockaddr_un *local)
         if ((chan = g_io_channel_unix_new (sock))) {
             g_io_add_watch (chan, G_IO_IN | G_IO_HUP, (GIOFunc)control_socket, chan);
 
-            uzbl.comm.socket_path = path;
+            uzbl.comm.socket_path = g_strdup (path);
             uzbl_events_send (SOCKET_SET, NULL,
-                TYPE_STR, path,
+                TYPE_STR, uzbl.comm.socket_path,
                 NULL);
             /* TODO: Collect all environment settings into one place. */
             g_setenv ("UZBL_SOCKET", uzbl.comm.socket_path, TRUE);
@@ -386,6 +368,39 @@ attach_socket (gchar *path, struct sockaddr_un *local)
     }
 
     return FALSE;
+}
+
+void
+handle_command (gchar *line, UzblIOCallback callback, gpointer data)
+{
+    if (!line) {
+        return;
+    }
+
+    remove_trailing_newline (line);
+
+    GString *result = NULL;
+
+    if (callback) {
+        result = g_string_new ("");
+    }
+
+    uzbl_commands_run (line, result);
+
+    if (callback && *result->str) {
+        callback (result, data);
+        g_string_free (result, TRUE);
+    }
+
+    g_free (line);
+}
+
+void
+write_stdout (GString *result, gpointer data)
+{
+    UZBL_UNUSED (data);
+
+    puts (result->str);
 }
 
 gboolean
@@ -403,6 +418,30 @@ remove_socket_from_array (GIOChannel *chan)
     }
 
     return ret;
+}
+
+void
+write_socket (GString *result, gpointer data)
+{
+    GIOStatus ret;
+    gsize len;
+    GError *error = NULL;
+
+    GIOChannel *gio = (GIOChannel *)data;
+
+    g_string_append_c (result, '\n');
+    ret = g_io_channel_write_chars (gio, result->str, result->len,
+                                    &len, &error);
+    if (ret == G_IO_STATUS_ERROR) {
+        g_warning ("Error writing: %s", error->message);
+        g_clear_error (&error);
+    }
+    if (g_io_channel_flush (gio, &error) == G_IO_STATUS_ERROR) {
+        g_warning ("Error flushing: %s", error->message);
+        g_clear_error (&error);
+    }
+
+    g_io_channel_unref (gio);
 }
 
 gboolean
@@ -426,10 +465,7 @@ control_fifo (GIOChannel *gio, GIOCondition condition)
         g_error_free (err);
     }
 
-    remove_trailing_newline (ctl_line);
-
-    uzbl_commands_run (ctl_line, NULL);
-    g_free (ctl_line);
+    handle_command (ctl_line, NULL, NULL);
 
     return TRUE;
 }

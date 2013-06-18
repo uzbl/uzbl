@@ -132,10 +132,14 @@ send_event_sockets (GPtrArray *sockets, GString *msg)
     gsize len;
     guint i = 0;
 
+    if (!msg) {
+        return;
+    }
+
     while (i < sockets->len) {
         GIOChannel *gio = g_ptr_array_index (sockets, i++);
 
-        if (gio && gio->is_writeable && msg) {
+        if (gio && gio->is_writeable) {
             ret = g_io_channel_write_chars (gio,
                     msg->str, msg->len,
                     &len, &error);
@@ -143,11 +147,9 @@ send_event_sockets (GPtrArray *sockets, GString *msg)
             if (ret == G_IO_STATUS_ERROR) {
                 g_warning ("Error sending event to socket: %s", error->message);
                 g_clear_error (&error);
-            } else {
-                if (g_io_channel_flush (gio, &error) == G_IO_STATUS_ERROR) {
-                    g_warning ("Error flushing: %s", error->message);
-                    g_clear_error (&error);
-                }
+            } else if (g_io_channel_flush (gio, &error) == G_IO_STATUS_ERROR) {
+                g_warning ("Error flushing: %s", error->message);
+                g_clear_error (&error);
             }
         }
     }
@@ -312,11 +314,11 @@ void
 send_event_socket (GString *msg)
 {
     if (uzbl.comm.connect_chan) {
-        /* Write to all --connect-socket sockets. */
-        send_event_sockets (uzbl.comm.connect_chan, msg);
         if (uzbl.state.event_buffer) {
             uzbl_events_replay_buffer ();
         }
+        /* Write to all --connect-socket sockets. */
+        send_event_sockets (uzbl.comm.connect_chan, msg);
     } else {
         /* Buffer events until a socket is set and connected or a timeout is
          * encountered. */
