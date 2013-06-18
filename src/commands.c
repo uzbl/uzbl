@@ -93,6 +93,7 @@ DECLARE_COMMAND (cookie);
 DECLARE_COMMAND (scroll);
 DECLARE_COMMAND (zoom);
 DECLARE_COMMAND (hardcopy);
+DECLARE_COMMAND (geometry);
 #ifdef HAVE_SNAPSHOT
 DECLARE_COMMAND (snapshot);
 #endif
@@ -184,6 +185,7 @@ builtin_command_table[] =
     { "scroll",                         cmd_scroll,                   TRUE,  TRUE  },
     { "zoom",                           cmd_zoom,                     TRUE,  TRUE  },
     { "hardcopy",                       cmd_hardcopy,                 TRUE,  TRUE  },
+    { "geometry",                       cmd_geometry,                 TRUE,  TRUE  },
 #ifdef HAVE_SNAPSHOT
     { "snapshot",                       cmd_snapshot,                 TRUE,  TRUE  },
 #endif
@@ -765,15 +767,49 @@ IMPLEMENT_COMMAND (stop)
     webkit_web_view_stop_loading (uzbl.gui.web_view);
 }
 
+static gchar *
+make_uri_from_user_input (const gchar *uri);
+
 IMPLEMENT_COMMAND (uri)
 {
     UZBL_UNUSED (result);
 
     ARG_CHECK (argv, 1);
 
+    if (uzbl.state.frozen) {
+        return;
+    }
+
     gchar *uri = argv_idx (argv, 0);
 
-    uzbl_variables_set ("uri", uri);
+    /* Strip leading whitespace. */
+    while (*uri && isspace (*uri)) {
+        ++uri;
+    }
+
+    /* Don't do anything when given a blank URL. */
+    if (!*uri) {
+        return;
+    }
+
+    g_free (uzbl.state.uri);
+    uzbl.state.uri = g_strdup (uri);
+
+    /* Evaluate javascript: URIs. */
+    if (!strprefix (uri, "javascript:")) {
+        GArray *argv = g_array_new (TRUE, FALSE, sizeof (gchar *));
+        g_array_append_val (argv, uri);
+        uzbl_commands_run_argv ("js", argv, NULL);
+        g_array_free (argv, FALSE);
+        return;
+    }
+
+    /* Attempt to parse the URI. */
+    gchar *newuri = make_uri_from_user_input (uri);
+
+    webkit_web_view_load_uri (uzbl.gui.web_view, newuri);
+
+    g_free (newuri);
 }
 
 #ifndef USE_WEBKIT2 /* FIXME: Implement. */
@@ -1224,6 +1260,42 @@ IMPLEMENT_COMMAND (hardcopy)
     } else {
         uzbl_debug ("Unrecognized hardcopy region: %s\n", region);
     }
+}
+
+IMPLEMENT_COMMAND (geometry)
+{
+    UZBL_UNUSED (result);
+
+    ARG_CHECK (argv, 1);
+
+    gchar *geometry = argv_idx (argv, 0);
+
+    if (geometry[0] == 'm') { /* m/maximize/maximized */
+        gtk_window_maximize (GTK_WINDOW (uzbl.gui.main_window));
+    } else {
+        int x = 0;
+        int y = 0;
+        unsigned w = 0;
+        unsigned h=0;
+
+        /* We used to use gtk_window_parse_geometry () but that didn't work how
+         * it was supposed to. */
+        int ret = XParseGeometry (uzbl.gui.geometry, &x, &y, &w, &h);
+
+        if (ret & XValue) {
+            gtk_window_move (GTK_WINDOW (uzbl.gui.main_window), x, y);
+        }
+
+        if (ret & WidthValue) {
+            gtk_window_resize (GTK_WINDOW (uzbl.gui.main_window), w, h);
+        }
+    }
+
+    /* Get the actual geometry (which might be different from what was
+     * specified) and store it (since the GEOMETRY_CHANGED event needs to know
+     * what it changed from) */
+    g_free (uzbl.gui.geometry);
+    uzbl.gui.geometry = uzbl_variables_get_string ("geometry");
 }
 
 #ifdef HAVE_SNAPSHOT
@@ -2535,6 +2607,49 @@ IMPLEMENT_COMMAND (event)
     g_strfreev (split);
 }
 
+static gboolean
+string_is_integer (const char *s);
+
+gchar *
+make_uri_from_user_input (const gchar *uri)
+{
+    gchar *result = NULL;
+
+    SoupURI *soup_uri = soup_uri_new (uri);
+    if (soup_uri) {
+        /* This looks like a valid URI. */
+        if (!soup_uri->host && string_is_integer (soup_uri->path)) {
+            /* The user probably typed in a host:port without a scheme. */
+            /* TODO: Add an option to default to https? */
+            result = g_strconcat ("http://", uri, NULL);
+        } else {
+            result = g_strdup (uri);
+        }
+
+        soup_uri_free (soup_uri);
+
+        return result;
+    }
+
+    /* It's not a valid URI, maybe it's a path on the filesystem? Check to see
+     * if such a path exists. */
+    if (file_exists (uri)) {
+        if (g_path_is_absolute (uri)) {
+            return g_strconcat ("file://", uri, NULL);
+        }
+
+        /* Make it into an absolute path */
+        gchar *wd = g_get_current_dir ();
+        result = g_strconcat ("file://", wd, "/", uri, NULL);
+        g_free (wd);
+
+        return result;
+    }
+
+    /* Not a path on the filesystem, just assume it's an HTTP URL. */
+    return g_strconcat ("http://", uri, NULL);
+}
+
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 9, 90)
 void
@@ -2676,6 +2791,13 @@ spawn_sh (GArray *argv, GString *result)
 
     g_free (r);
     uzbl_commands_args_free (sh_cmd);
+}
+
+gboolean
+string_is_integer (const char *s)
+{
+    /* Is the given string made up entirely of decimal digits? */
+    return (strspn (s, "0123456789") == strlen (s));
 }
 
 gboolean

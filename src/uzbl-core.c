@@ -56,7 +56,7 @@ UzblCore uzbl;
 static const GOptionEntry
 options[] = {
     { "uri",            'u', 0, G_OPTION_ARG_STRING,       &uzbl.state.uri,
-        "Uri to load at startup (equivalent to 'uzbl <uri>' or 'set uri = URI' after uzbl has launched)", "URI" },
+        "Uri to load at startup (equivalent to 'uzbl <uri>' after uzbl has launched)", "URI" },
     { "verbose",        'v', 0, G_OPTION_ARG_NONE,         &uzbl.state.verbose,
         "Whether to print all messages or just errors.",                                                  NULL },
     { "named",          'n', 0, G_OPTION_ARG_STRING,       &uzbl.state.instance_name,
@@ -225,11 +225,6 @@ main (int argc, char *argv[])
         uzbl_variables_set ("geometry", uzbl.gui.geometry);
     }
 
-    gchar *uri_override = (uzbl.state.uri ? g_strdup (uzbl.state.uri) : NULL);
-    if (argc > 1 && !uzbl.state.uri) {
-        uri_override = g_strdup (argv[1]);
-    }
-
     gboolean verbose_override = uzbl.state.verbose;
 
     /* Finally show the window */
@@ -261,9 +256,16 @@ main (int argc, char *argv[])
         uzbl.state.verbose = verbose_override;
     }
 
+    gchar *uri_override = (uzbl.state.uri ? g_strdup (uzbl.state.uri) : NULL);
+    if (argc > 1 && !uzbl.state.uri) {
+        uri_override = g_strdup (argv[1]);
+    }
+
     if (uri_override) {
-        uzbl_variables_set ("uri", uri_override);
-        g_free (uri_override);
+        GArray *argv = uzbl_commands_args_new ();
+        uzbl_commands_args_append (argv, uri_override);
+        uzbl_commands_run_argv ("uri", argv, NULL);
+        uzbl_commands_args_free (argv);
         uri_override = NULL;
     }
 
