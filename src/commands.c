@@ -2516,6 +2516,9 @@ IMPLEMENT_COMMAND (exit)
     if (uzbl.state.gtk_started) {
         gtk_main_quit ();
     }
+
+    /* Stop the event thread. */
+    g_main_loop_quit (uzbl.state.io_loop);
 }
 
 /* Variable commands */

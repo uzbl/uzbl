@@ -4,6 +4,8 @@
 #include <glib.h>
 
 void
+uzbl_io_init ();
+void
 uzbl_io_init_stdin ();
 void
 uzbl_io_init_connect_socket ();

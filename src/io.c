@@ -14,7 +14,28 @@
 #include <errno.h>
 #include <stdlib.h>
 
+#include "3p/async-queue-source/rb-async-queue-watch.h"
+
 /* =========================== PUBLIC API =========================== */
+
+static void
+free_cmd_req (gpointer data);
+static void
+run_command (gpointer item, gpointer data);
+static gpointer
+run_io (gpointer data);
+
+void
+uzbl_io_init ()
+{
+    uzbl.state.cmd_q = g_async_queue_new_full (free_cmd_req);
+
+    uzbl_rb_async_queue_watch_new (uzbl.state.cmd_q,
+        G_PRIORITY_DEFAULT, run_command,
+        NULL, NULL, NULL);
+
+    uzbl.state.io_thread = g_thread_new ("uzbl-io", run_io, NULL);
+}
 
 static void
 add_cmd_source (GIOChannel *gio, const gchar *name, GIOFunc callback);
@@ -172,6 +193,54 @@ uzbl_io_init_socket (const gchar *dir)
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
 
+typedef void (*UzblIOCallback)(GString *result, gpointer data);
+
+typedef struct {
+    gchar *cmd;
+    UzblIOCallback callback;
+    gpointer data;
+} UzblCommandData;
+
+void
+run_command (gpointer item, gpointer data)
+{
+    UZBL_UNUSED (data);
+
+    UzblCommandData *cmd = (UzblCommandData *)item;
+
+    GString *result = NULL;
+
+    if (cmd->callback) {
+        result = g_string_new ("");
+    }
+
+    uzbl_commands_run (cmd->cmd, result);
+
+    if (cmd->callback && *result->str) {
+        cmd->callback (result, cmd->data);
+        g_string_free (result, TRUE);
+    }
+
+    free_cmd_req (cmd);
+}
+
+gpointer
+run_io (gpointer data)
+{
+    UZBL_UNUSED (data);
+
+    uzbl.state.io_ctx = g_main_context_new ();
+
+    GMainLoop *loop = g_main_loop_new (uzbl.state.io_ctx, FALSE);
+    g_main_loop_run (loop);
+    g_main_loop_unref (loop);
+
+    g_main_context_unref (uzbl.state.io_ctx);
+    uzbl.state.io_ctx = NULL;
+
+    return NULL;
+}
+
 void
 add_cmd_source (GIOChannel *gio, const gchar *name, GIOFunc callback)
 {
@@ -183,11 +252,26 @@ add_cmd_source (GIOChannel *gio, const gchar *name, GIOFunc callback)
      * g_io_add_watch, we just want to attach to a different context. */
     g_source_set_callback (source, (GSourceFunc)callback, NULL, NULL);
 
-    /*g_source_attach (source, uzbl.state.io_context);*/
-    g_source_attach (source, NULL);
+    g_source_attach (source, uzbl.state.io_ctx);
 }
 
-typedef void (*UzblIOCallback)(GString *result, gpointer data);
+void
+free_cmd_req (gpointer data)
+{
+    UzblCommandData *cmd = (UzblCommandData *)data;
+
+    g_free (cmd->cmd);
+    g_free (cmd);
+}
+
+void
+run_queue_thread (GTask *task, gpointer object, gpointer data, GCancellable *cancellable)
+{
+    UZBL_UNUSED (task);
+    UZBL_UNUSED (object);
+    UZBL_UNUSED (data);
+    UZBL_UNUSED (cancellable);
+}
 
 static void
 handle_command (gchar *line, UzblIOCallback callback, gpointer data);
@@ -252,7 +336,7 @@ control_client_socket (GIOChannel *clientchan, GIOCondition condition, gpointer 
     }
 
     g_io_channel_ref (clientchan);
-    handle_command (ctl_line, write_socket, (gpointer)clientchan);
+    handle_command (ctl_line, write_socket, clientchan);
 
     return TRUE;
 }
@@ -394,26 +478,17 @@ handle_command (gchar *line, UzblIOCallback callback, gpointer data)
 
     if (!strprefix (line, "REPLY-")) {
         g_mutex_lock (&uzbl.state.reply_buffer_lock);
-        g_ptr_array_add (uzbl.state.reply_buffer, (gpointer)g_strdup (line));
+        g_ptr_array_add (uzbl.state.reply_buffer, line);
         g_cond_broadcast (&uzbl.state.reply_buffer_cond);
         g_mutex_unlock (&uzbl.state.reply_buffer_lock);
     } else {
-        GString *result = NULL;
+        UzblCommandData *cmd_data = g_malloc (sizeof (UzblCommandData));
+        cmd_data->cmd = line;
+        cmd_data->callback = callback;
+        cmd_data->data = data;
 
-        if (callback) {
-            result = g_string_new ("");
-        }
-
-        /* TODO: Make async. */
-        uzbl_commands_run (line, result);
-
-        if (callback && *result->str) {
-            callback (result, data);
-            g_string_free (result, TRUE);
-        }
+        g_async_queue_push (uzbl.state.cmd_q, cmd_data);
     }
-
-    g_free (line);
 }
 
 void

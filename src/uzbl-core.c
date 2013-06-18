@@ -152,6 +152,7 @@ uzbl_initialize (int argc, char **argv)
     uzbl_soup_init (uzbl.net.soup_session);
 #endif
 
+    uzbl_io_init ();
     uzbl_js_init ();
     uzbl_variables_init ();
     uzbl_commands_init ();
@@ -436,6 +437,21 @@ clean_up ()
 
     if (uzbl.comm.socket_path) {
         unlink (uzbl.comm.socket_path);
+    }
+
+    if (uzbl.state.cmd_cancel) {
+        g_object_unref (uzbl.state.cmd_cancel);
+        uzbl.state.cmd_cancel = NULL;
+    }
+
+    if (uzbl.state.cmd_q) {
+        g_async_queue_unref (uzbl.state.cmd_q);
+        uzbl.state.cmd_q = NULL;
+    }
+
+    if (uzbl.state.io_thread) {
+        g_thread_unref (uzbl.state.io_thread);
+        uzbl.state.io_thread = NULL;
     }
 }
 #endif
