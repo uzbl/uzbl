@@ -348,9 +348,6 @@ DECLARE_GETSET (int, enable_site_workarounds);
 
 /* Constants */
 DECLARE_GETTER (gchar *, geometry);
-DECLARE_GETTER (gchar *, uri);
-DECLARE_GETTER (gchar *, selected_url);
-DECLARE_GETTER (gchar *, last_result);
 
 static const UzblVariableEntry
 builtin_variable_table[] = {
@@ -617,10 +614,10 @@ builtin_variable_table[] = {
     { "ARCH_UZBL",                    UZBL_C_STRING (uzbl.info.arch)},
     { "COMMIT",                       UZBL_C_STRING (uzbl.info.commit)},
     { "TITLE",                        UZBL_C_STRING (uzbl.gui.main_title)},
-    { "SELECTED_URI",                 UZBL_C_FUNC (selected_url,                           STR)},
+    { "SELECTED_URI",                 UZBL_C_STRING (uzbl.state.selected_url)},
     { "NAME",                         UZBL_C_STRING (uzbl.state.instance_name)},
     { "PID",                          UZBL_C_STRING (uzbl.info.pid_str)},
-    { "_",                            UZBL_C_FUNC (last_result,                            STR)},
+    { "_",                            UZBL_C_STRING (uzbl.state.last_result)},
 
     /* Add a terminator entry. */
     { NULL,                           UZBL_SETTING (INT, { .i = NULL }, 0, NULL, NULL)}
