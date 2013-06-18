@@ -1136,7 +1136,7 @@ IMPLEMENT_COMMAND (zoom)
         gfloat step;
 
         if (argv->len < 2) {
-            step = uzbl.behave.zoom_step;
+            step = uzbl_variables_get_float ("zoom_step");
         } else {
             const gchar *value_str = argv_idx (argv, 1);
 
@@ -1148,7 +1148,7 @@ IMPLEMENT_COMMAND (zoom)
         gfloat step;
 
         if (argv->len < 2) {
-            step = uzbl.behave.zoom_step;
+            step = uzbl_variables_get_float ("zoom_step");
         } else {
             const gchar *value_str = argv_idx (argv, 1);
 
@@ -2648,13 +2648,17 @@ spawn (GArray *argv, GString *result, gboolean exec)
 void
 spawn_sh (GArray *argv, GString *result)
 {
-    if (!uzbl.behave.shell_cmd) {
+    gchar *shell = uzbl_variables_get_string ("shell_cmd");
+
+    if (!*shell) {
         uzbl_debug ("spawn_sh: shell_cmd is not set!\n");
+        g_free (shell);
         return;
     }
     guint i;
 
-    GArray *sh_cmd = split_quoted (uzbl.behave.shell_cmd, TRUE);
+    GArray *sh_cmd = split_quoted (shell, TRUE);
+    g_free (shell);
     if (!sh_cmd) {
         return;
     }
