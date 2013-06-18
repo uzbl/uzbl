@@ -439,11 +439,6 @@ clean_up ()
         unlink (uzbl.comm.socket_path);
     }
 
-    if (uzbl.state.cmd_cancel) {
-        g_object_unref (uzbl.state.cmd_cancel);
-        uzbl.state.cmd_cancel = NULL;
-    }
-
     if (uzbl.state.cmd_q) {
         g_async_queue_unref (uzbl.state.cmd_q);
         uzbl.state.cmd_q = NULL;

@@ -87,7 +87,6 @@ typedef struct {
     GMutex          reply_buffer_lock;
     GPtrArray      *reply_buffer;
 
-    GCancellable   *cmd_cancel;
     GAsyncQueue    *cmd_q;
     GMainContext   *io_ctx;
     GMainLoop      *io_loop;
