@@ -99,6 +99,8 @@ send_request_sockets (GPtrArray *sockets, GString *msg, const gchar *cookie)
                 }
             }
 
+            /* TODO: Add a timeout here. */
+            /* TODO: Clear the reply buffer occasionally. */
             g_mutex_lock (&uzbl.state.reply_buffer_lock);
             do {
                 guint i = 0;
