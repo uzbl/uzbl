@@ -100,8 +100,8 @@ HEADERS := \
 
 SRC  = $(addprefix src/,$(SOURCES))
 HEAD = $(addprefix src/,$(HEADERS))
-OBJ  = $(foreach obj, $(SRC:.c=.o),  $(notdir $(obj)))
-LOBJ = $(foreach obj, $(SRC:.c=.lo), $(notdir $(obj)))
+OBJ  = $(foreach obj, $(SRC:.c=.o),  $(obj))
+LOBJ = $(foreach obj, $(SRC:.c=.lo), $(obj))
 PY = $(wildcard uzbl/*.py uzbl/plugins/*.py)
 
 all: uzbl-browser
