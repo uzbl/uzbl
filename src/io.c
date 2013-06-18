@@ -16,6 +16,8 @@
 
 /* =========================== PUBLIC API =========================== */
 
+static void
+add_cmd_source (GIOChannel *gio, const gchar *name, GIOFunc callback);
 static gboolean
 control_stdin (GIOChannel *gio, GIOCondition condition, gpointer data);
 
@@ -24,11 +26,7 @@ uzbl_io_init_stdin ()
 {
     GIOChannel *chan = g_io_channel_unix_new (STDIN_FILENO);
     if (chan) {
-        if (!g_io_add_watch (chan, G_IO_IN | G_IO_HUP, control_stdin, NULL)) {
-            g_error ("create_stdin: could not add watch\n");
-        } else {
-            uzbl_debug ("create_stdin: watch added successfully\n");
-        }
+        add_cmd_source (chan, "Uzbl stdin watcher", control_stdin);
     } else {
         g_error ("create_stdin: error while opening stdin\n");
     }
@@ -60,9 +58,8 @@ uzbl_io_init_connect_socket ()
         if (!connect (sockfd, (struct sockaddr *)&local, sizeof (local))) {
             if ((chan = g_io_channel_unix_new (sockfd))) {
                 g_io_channel_set_encoding (chan, NULL, NULL);
-                g_io_add_watch (chan, G_IO_IN | G_IO_HUP,
-                                control_client_socket, chan);
-                g_ptr_array_add (uzbl.comm.connect_chan, (gpointer)chan);
+                add_cmd_source (chan, "Uzbl connect socket", control_client_socket);
+                g_ptr_array_add (uzbl.comm.connect_chan, chan);
                 ++replay;
             }
         } else {
@@ -174,6 +171,21 @@ uzbl_io_init_socket (const gchar *dir)
 }
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
+
+void
+add_cmd_source (GIOChannel *gio, const gchar *name, GIOFunc callback)
+{
+    GSource *source = g_io_create_watch (gio, G_IO_IN | G_IO_HUP);
+    g_source_set_name (source, name);
+
+    /* Why does casting callback into a GSourceFunc work? GIOFunc takes 3
+     * parameters while GSourceFunc takes 1. However, this is what is done in
+     * g_io_add_watch, we just want to attach to a different context. */
+    g_source_set_callback (source, (GSourceFunc)callback, NULL, NULL);
+
+    /*g_source_attach (source, uzbl.state.io_context);*/
+    g_source_attach (source, NULL);
+}
 
 typedef void (*UzblIOCallback)(GString *result, gpointer data);
 
@@ -320,19 +332,15 @@ attach_fifo (gchar *path)
      * 'r' we will block here, waiting for a writer to open the file. */
     GIOChannel *chan = g_io_channel_new_file (path, "r+", &error);
     if (chan) {
-        if (g_io_add_watch (chan, G_IO_IN | G_IO_HUP, control_fifo, NULL)) {
-            uzbl_debug ("attach_fifo: created successfully as %s\n", path);
+        add_cmd_source (chan, "Uzbl main fifo", control_fifo);
 
-            uzbl_events_send (FIFO_SET, NULL,
-                TYPE_STR, path,
-                NULL);
-            uzbl.comm.fifo_path = path;
-            /* TODO: Collect all environment settings into one place. */
-            g_setenv ("UZBL_FIFO", uzbl.comm.fifo_path, TRUE);
-            return TRUE;
-        } else {
-            g_warning ("attach_fifo: could not add watch on %s\n", path);
-        }
+        uzbl_events_send (FIFO_SET, NULL,
+            TYPE_STR, path,
+            NULL);
+        uzbl.comm.fifo_path = path;
+        /* TODO: Collect all environment settings into one place. */
+        g_setenv ("UZBL_FIFO", uzbl.comm.fifo_path, TRUE);
+        return TRUE;
     } else {
         g_warning ("attach_fifo: can't open: %s\n", error->message);
     }
@@ -358,7 +366,7 @@ attach_socket (const gchar *path, struct sockaddr_un *local)
         }
 
         if ((chan = g_io_channel_unix_new (sock))) {
-            g_io_add_watch (chan, G_IO_IN | G_IO_HUP, control_socket, chan);
+            add_cmd_source (chan, "Uzbl main socket", control_socket);
 
             uzbl.comm.socket_path = g_strdup (path);
             uzbl_events_send (SOCKET_SET, NULL,
@@ -506,9 +514,9 @@ control_socket (GIOChannel *chan, GIOCondition condition, gpointer data)
 
     if ((iochan = g_io_channel_unix_new (clientsock))) {
         g_io_channel_set_encoding (iochan, NULL, NULL);
-        g_io_add_watch (iochan, G_IO_IN | G_IO_HUP,
-                        control_client_socket, iochan);
-        g_ptr_array_add (uzbl.comm.client_chan, (gpointer)iochan);
+        add_cmd_source (iochan, "Uzbl control socket", control_client_socket);
+        g_ptr_array_add (uzbl.comm.client_chan, iochan);
     }
+
     return TRUE;
 }
