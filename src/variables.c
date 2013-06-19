@@ -122,7 +122,6 @@ DECLARE_GETSET (int, enable_builtin_auth);
 #endif
 
 /* Window variables */
-DECLARE_GETSET (gchar *, geometry);
 DECLARE_SETTER (gchar *, icon);
 DECLARE_SETTER (gchar *, icon_name);
 DECLARE_GETSET (gchar *, window_role);
@@ -192,7 +191,6 @@ DECLARE_GETTER (gchar *, inspected_uri);
 #endif
 
 /* Page variables */
-DECLARE_SETTER (gchar *, uri);
 DECLARE_SETTER (gchar *, useragent);
 DECLARE_SETTER (gchar *, accept_languages);
 DECLARE_GETSET (float, zoom_level);
@@ -348,6 +346,9 @@ DECLARE_SETTER (gchar *, web_extensions_directory);
 /* Hacks */
 DECLARE_GETSET (int, enable_site_workarounds);
 
+/* Constants */
+DECLARE_GETTER (gchar *, geometry);
+
 static const UzblVariableEntry
 builtin_variable_table[] = {
     /* name                           entry                                                type/callback */
@@ -371,7 +372,6 @@ builtin_variable_table[] = {
 #endif
 
     /* Window variables */
-    { "geometry",                     UZBL_V_FUNC (geometry,                               STR)},
     { "icon",                         UZBL_V_STRING (uzbl.gui.icon,                        set_icon)},
     { "icon_name",                    UZBL_V_STRING (uzbl.gui.icon_name,                   set_icon_name)},
     { "window_role",                  UZBL_V_FUNC (window_role,                            STR)},
@@ -447,7 +447,6 @@ builtin_variable_table[] = {
 #endif
 
     /* Page variables */
-    { "uri",                          UZBL_V_STRING (uzbl.state.uri,                       set_uri)},
     { "forward_keys",                 UZBL_V_INT (uzbl.behave.forward_keys,                NULL)},
     { "useragent",                    UZBL_V_STRING (uzbl.net.useragent,                   set_useragent)},
     { "accept_languages",             UZBL_V_STRING (uzbl.net.accept_languages,            set_accept_languages)},
@@ -606,6 +605,8 @@ builtin_variable_table[] = {
     { "enable_site_workarounds",      UZBL_V_FUNC (enable_site_workarounds,                INT)},
 
     /* Constants */
+    { "geometry",                     UZBL_C_FUNC (geometry,                               STR)},
+    { "uri",                          UZBL_C_STRING (uzbl.state.uri)},
     { "WEBKIT_MAJOR",                 UZBL_C_INT (uzbl.info.webkit_major)},
     { "WEBKIT_MINOR",                 UZBL_C_INT (uzbl.info.webkit_minor)},
     { "WEBKIT_MICRO",                 UZBL_C_INT (uzbl.info.webkit_micro)},
@@ -1786,42 +1787,6 @@ IMPLEMENT_GETTER (gchar *, geometry)
     return g_string_free (buf, FALSE);
 }
 
-IMPLEMENT_SETTER (gchar *, geometry)
-{
-    if (!geometry) {
-        return FALSE;
-    }
-
-    if (geometry[0] == 'm') { /* m/maximize/maximized */
-        gtk_window_maximize (GTK_WINDOW (uzbl.gui.main_window));
-    } else {
-        int x = 0;
-        int y = 0;
-        unsigned w = 0;
-        unsigned h=0;
-
-        /* We used to use gtk_window_parse_geometry () but that didn't work how
-         * it was supposed to. */
-        int ret = XParseGeometry (uzbl.gui.geometry, &x, &y, &w, &h);
-
-        if (ret & XValue) {
-            gtk_window_move (GTK_WINDOW (uzbl.gui.main_window), x, y);
-        }
-
-        if (ret & WidthValue) {
-            gtk_window_resize (GTK_WINDOW (uzbl.gui.main_window), w, h);
-        }
-    }
-
-    /* Get the actual geometry (which might be different from what was
-     * specified) and store it (since the GEOMETRY_CHANGED event needs to know
-     * what it changed from) */
-    g_free (uzbl.gui.geometry);
-    uzbl.gui.geometry = get_geometry ();
-
-    return TRUE;
-}
-
 IMPLEMENT_SETTER (gchar *, icon)
 {
     if (!uzbl.gui.main_window) {
@@ -1908,7 +1873,6 @@ IMPLEMENT_SETTER (int, show_status)
     }
 
     gtk_widget_set_visible (uzbl.gui.status_bar, show_status);
-    uzbl_gui_update_title ();
 
     return TRUE;
 }
@@ -2243,48 +2207,6 @@ IMPLEMENT_GETTER (gchar *, inspected_uri)
 #endif
 
 /* Page variables */
-static gchar *
-make_uri_from_user_input (const gchar *uri);
-
-IMPLEMENT_SETTER (gchar *, uri)
-{
-    if (uzbl.state.frozen) {
-        return FALSE;
-    }
-
-    /* Strip leading whitespace. */
-    while (*uri && isspace (*uri)) {
-        ++uri;
-    }
-
-    /* Don't do anything when given a blank URL. */
-    if (!*uri) {
-        return FALSE;
-    }
-
-    g_free (uzbl.state.uri);
-    uzbl.state.uri = g_strdup (uri);
-
-    /* Evaluate javascript: URIs. */
-    /* TODO: Use strprefix. */
-    if (!strncmp (uri, "javascript:", 11)) {
-        GArray *argv = g_array_new (TRUE, FALSE, sizeof (gchar *));
-        g_array_append_val (argv, uri);
-        uzbl_commands_run_argv ("js", argv, NULL);
-        g_array_free (argv, FALSE);
-        return TRUE;
-    }
-
-    /* Attempt to parse the URI. */
-    gchar *newuri = make_uri_from_user_input (uri);
-
-    webkit_web_view_load_uri (uzbl.gui.web_view, newuri);
-
-    g_free (newuri);
-
-    return TRUE;
-}
-
 IMPLEMENT_SETTER (gchar *, useragent)
 {
     g_free (uzbl.net.useragent);
@@ -3022,6 +2944,21 @@ IMPLEMENT_SETTER (gchar *, web_extensions_directory)
 GOBJECT_GETSET (int, enable_site_workarounds,
                 webkit_settings (), "enable-site-specific-quirks")
 
+/* Constants */
+IMPLEMENT_GETTER (gchar *, selected_url)
+{
+    gchar *url = g_strdup (uzbl.state.selected_url);
+
+    return url;
+}
+
+IMPLEMENT_GETTER (gchar *, last_result)
+{
+    gchar *result = g_strdup (uzbl.state.last_result);
+
+    return result;
+}
+
 GObject *
 webkit_settings ()
 {
@@ -3084,53 +3021,3 @@ cookie_policy ()
     return policy;
 }
 #endif
-
-static gboolean
-string_is_integer (const char *s);
-
-gchar *
-make_uri_from_user_input (const gchar *uri)
-{
-    gchar *result = NULL;
-
-    SoupURI *soup_uri = soup_uri_new (uri);
-    if (soup_uri) {
-        /* This looks like a valid URI. */
-        if (!soup_uri->host && string_is_integer (soup_uri->path)) {
-            /* The user probably typed in a host:port without a scheme. */
-            /* TODO: Add an option to default to https? */
-            result = g_strconcat ("http://", uri, NULL);
-        } else {
-            result = g_strdup (uri);
-        }
-
-        soup_uri_free (soup_uri);
-
-        return result;
-    }
-
-    /* It's not a valid URI, maybe it's a path on the filesystem? Check to see
-     * if such a path exists. */
-    if (file_exists (uri)) {
-        if (g_path_is_absolute (uri)) {
-            return g_strconcat ("file://", uri, NULL);
-        }
-
-        /* Make it into an absolute path */
-        gchar *wd = g_get_current_dir ();
-        result = g_strconcat ("file://", wd, "/", uri, NULL);
-        g_free (wd);
-
-        return result;
-    }
-
-    /* Not a path on the filesystem, just assume it's an HTTP URL. */
-    return g_strconcat ("http://", uri, NULL);
-}
-
-gboolean
-string_is_integer (const char *s)
-{
-    /* Is the given string made up entirely of decimal digits? */
-    return (strspn (s, "0123456789") == strlen (s));
-}

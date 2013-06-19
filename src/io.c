@@ -2,6 +2,7 @@
 
 #include "commands.h"
 #include "events.h"
+#include "requests.h"
 #include "type.h"
 #include "util.h"
 #include "uzbl-core.h"
@@ -13,28 +14,47 @@
 #include <errno.h>
 #include <stdlib.h>
 
+#include "3p/async-queue-source/rb-async-queue-watch.h"
+
 /* =========================== PUBLIC API =========================== */
 
+static void
+free_cmd_req (gpointer data);
+static void
+run_command (gpointer item, gpointer data);
+static gpointer
+run_io (gpointer data);
+
+void
+uzbl_io_init ()
+{
+    uzbl.state.cmd_q = g_async_queue_new_full (free_cmd_req);
+
+    uzbl_rb_async_queue_watch_new (uzbl.state.cmd_q,
+        G_PRIORITY_DEFAULT, run_command,
+        NULL, NULL, NULL);
+
+    uzbl.state.io_thread = g_thread_new ("uzbl-io", run_io, NULL);
+}
+
+static void
+add_cmd_source (GIOChannel *gio, const gchar *name, GIOFunc callback);
 static gboolean
-control_stdin (GIOChannel *gio, GIOCondition condition);
+control_stdin (GIOChannel *gio, GIOCondition condition, gpointer data);
 
 void
 uzbl_io_init_stdin ()
 {
     GIOChannel *chan = g_io_channel_unix_new (STDIN_FILENO);
     if (chan) {
-        if (!g_io_add_watch (chan, G_IO_IN | G_IO_HUP, (GIOFunc)control_stdin, NULL)) {
-            g_error ("create_stdin: could not add watch\n");
-        } else {
-            uzbl_debug ("create_stdin: watch added successfully\n");
-        }
+        add_cmd_source (chan, "Uzbl stdin watcher", control_stdin);
     } else {
         g_error ("create_stdin: error while opening stdin\n");
     }
 }
 
 static gboolean
-control_client_socket (GIOChannel *clientchan);
+control_client_socket (GIOChannel *clientchan, GIOCondition, gpointer data);
 
 void
 uzbl_io_init_connect_socket ()
@@ -59,9 +79,8 @@ uzbl_io_init_connect_socket ()
         if (!connect (sockfd, (struct sockaddr *)&local, sizeof (local))) {
             if ((chan = g_io_channel_unix_new (sockfd))) {
                 g_io_channel_set_encoding (chan, NULL, NULL);
-                g_io_add_watch (chan, G_IO_IN|G_IO_HUP,
-                                (GIOFunc)control_client_socket, chan);
-                g_ptr_array_add (uzbl.comm.connect_chan, (gpointer)chan);
+                add_cmd_source (chan, "Uzbl connect socket", control_client_socket);
+                g_ptr_array_add (uzbl.comm.connect_chan, chan);
                 ++replay;
             }
         } else {
@@ -176,15 +195,94 @@ uzbl_io_init_socket (const gchar *dir)
 
 typedef void (*UzblIOCallback)(GString *result, gpointer data);
 
+typedef struct {
+    gchar *cmd;
+    UzblIOCallback callback;
+    gpointer data;
+} UzblCommandData;
+
+void
+run_command (gpointer item, gpointer data)
+{
+    UZBL_UNUSED (data);
+
+    UzblCommandData *cmd = (UzblCommandData *)item;
+
+    GString *result = NULL;
+
+    if (cmd->callback) {
+        result = g_string_new ("");
+    }
+
+    uzbl_commands_run (cmd->cmd, result);
+
+    if (cmd->callback && *result->str) {
+        cmd->callback (result, cmd->data);
+        g_string_free (result, TRUE);
+    }
+
+    free_cmd_req (cmd);
+}
+
+gpointer
+run_io (gpointer data)
+{
+    UZBL_UNUSED (data);
+
+    uzbl.state.io_ctx = g_main_context_new ();
+
+    uzbl.state.io_loop = g_main_loop_new (uzbl.state.io_ctx, FALSE);
+    g_main_loop_run (uzbl.state.io_loop);
+    g_main_loop_unref (uzbl.state.io_loop);
+
+    g_main_context_unref (uzbl.state.io_ctx);
+    uzbl.state.io_ctx = NULL;
+
+    return NULL;
+}
+
+void
+add_cmd_source (GIOChannel *gio, const gchar *name, GIOFunc callback)
+{
+    GSource *source = g_io_create_watch (gio, G_IO_IN | G_IO_HUP);
+    g_source_set_name (source, name);
+
+    /* Why does casting callback into a GSourceFunc work? GIOFunc takes 3
+     * parameters while GSourceFunc takes 1. However, this is what is done in
+     * g_io_add_watch, we just want to attach to a different context. */
+    g_source_set_callback (source, (GSourceFunc)callback, NULL, NULL);
+
+    g_source_attach (source, uzbl.state.io_ctx);
+}
+
+void
+free_cmd_req (gpointer data)
+{
+    UzblCommandData *cmd = (UzblCommandData *)data;
+
+    g_free (cmd->cmd);
+    g_free (cmd);
+}
+
+void
+run_queue_thread (GTask *task, gpointer object, gpointer data, GCancellable *cancellable)
+{
+    UZBL_UNUSED (task);
+    UZBL_UNUSED (object);
+    UZBL_UNUSED (data);
+    UZBL_UNUSED (cancellable);
+}
+
 static void
 handle_command (gchar *line, UzblIOCallback callback, gpointer data);
 static void
 write_stdout (GString *result, gpointer data);
 
 gboolean
-control_stdin (GIOChannel *gio, GIOCondition condition)
+control_stdin (GIOChannel *gio, GIOCondition condition, gpointer data)
 {
     UZBL_UNUSED (condition);
+    UZBL_UNUSED (data);
 
     gchar *ctl_line = NULL;
     GIOStatus ret;
@@ -205,8 +303,11 @@ static void
 write_socket (GString *result, gpointer data);
 
 gboolean
-control_client_socket (GIOChannel *clientchan)
+control_client_socket (GIOChannel *clientchan, GIOCondition condition, gpointer data)
 {
+    UZBL_UNUSED (condition);
+    UZBL_UNUSED (data);
+
     char *ctl_line;
     GError *error = NULL;
     GIOStatus ret;
@@ -235,7 +336,7 @@ control_client_socket (GIOChannel *clientchan)
     }
 
     g_io_channel_ref (clientchan);
-    handle_command (ctl_line, write_socket, (gpointer)clientchan);
+    handle_command (ctl_line, write_socket, clientchan);
 
     return TRUE;
 }
@@ -305,7 +406,7 @@ create_dir (const gchar *dir)
 }
 
 static gboolean
-control_fifo (GIOChannel *gio, GIOCondition condition);
+control_fifo (GIOChannel *gio, GIOCondition condition, gpointer data);
 
 gboolean
 attach_fifo (gchar *path)
@@ -315,19 +416,15 @@ attach_fifo (gchar *path)
      * 'r' we will block here, waiting for a writer to open the file. */
     GIOChannel *chan = g_io_channel_new_file (path, "r+", &error);
     if (chan) {
-        if (g_io_add_watch (chan, G_IO_IN | G_IO_HUP, (GIOFunc)control_fifo, NULL)) {
-            uzbl_debug ("attach_fifo: created successfully as %s\n", path);
+        add_cmd_source (chan, "Uzbl main fifo", control_fifo);
 
-            uzbl_events_send (FIFO_SET, NULL,
-                TYPE_STR, path,
-                NULL);
-            uzbl.comm.fifo_path = path;
-            /* TODO: Collect all environment settings into one place. */
-            g_setenv ("UZBL_FIFO", uzbl.comm.fifo_path, TRUE);
-            return TRUE;
-        } else {
-            g_warning ("attach_fifo: could not add watch on %s\n", path);
-        }
+        uzbl_events_send (FIFO_SET, NULL,
+            TYPE_STR, path,
+            NULL);
+        uzbl.comm.fifo_path = path;
+        /* TODO: Collect all environment settings into one place. */
+        g_setenv ("UZBL_FIFO", uzbl.comm.fifo_path, TRUE);
+        return TRUE;
     } else {
         g_warning ("attach_fifo: can't open: %s\n", error->message);
     }
@@ -337,7 +434,7 @@ attach_fifo (gchar *path)
 }
 
 static gboolean
-control_socket (GIOChannel *chan);
+control_socket (GIOChannel *chan, GIOCondition condition, gpointer data);
 
 gboolean
 attach_socket (const gchar *path, struct sockaddr_un *local)
@@ -353,7 +450,7 @@ attach_socket (const gchar *path, struct sockaddr_un *local)
         }
 
         if ((chan = g_io_channel_unix_new (sock))) {
-            g_io_add_watch (chan, G_IO_IN | G_IO_HUP, (GIOFunc)control_socket, chan);
+            add_cmd_source (chan, "Uzbl main socket", control_socket);
 
             uzbl.comm.socket_path = g_strdup (path);
             uzbl_events_send (SOCKET_SET, NULL,
@@ -379,20 +476,19 @@ handle_command (gchar *line, UzblIOCallback callback, gpointer data)
 
     remove_trailing_newline (line);
 
-    GString *result = NULL;
+    if (!strprefix (line, "REPLY-")) {
+        g_mutex_lock (&uzbl.state.reply_buffer_lock);
+        g_ptr_array_add (uzbl.state.reply_buffer, line);
+        g_cond_broadcast (&uzbl.state.reply_buffer_cond);
+        g_mutex_unlock (&uzbl.state.reply_buffer_lock);
+    } else {
+        UzblCommandData *cmd_data = g_malloc (sizeof (UzblCommandData));
+        cmd_data->cmd = line;
+        cmd_data->callback = callback;
+        cmd_data->data = data;
 
-    if (callback) {
-        result = g_string_new ("");
+        g_async_queue_push (uzbl.state.cmd_q, cmd_data);
     }
-
-    uzbl_commands_run (line, result);
-
-    if (callback && *result->str) {
-        callback (result, data);
-        g_string_free (result, TRUE);
-    }
-
-    g_free (line);
 }
 
 void
@@ -445,8 +541,10 @@ write_socket (GString *result, gpointer data)
 }
 
 gboolean
-control_fifo (GIOChannel *gio, GIOCondition condition)
+control_fifo (GIOChannel *gio, GIOCondition condition, gpointer data)
 {
+    UZBL_UNUSED (data);
+
     gchar *ctl_line;
     GIOStatus ret;
     GError *err = NULL;
@@ -471,8 +569,11 @@ control_fifo (GIOChannel *gio, GIOCondition condition)
 }
 
 gboolean
-control_socket (GIOChannel *chan)
+control_socket (GIOChannel *chan, GIOCondition condition, gpointer data)
 {
+    UZBL_UNUSED (condition);
+    UZBL_UNUSED (data);
+
     struct sockaddr_un remote;
 
     unsigned int t = sizeof (remote);
@@ -488,9 +589,9 @@ control_socket (GIOChannel *chan)
 
     if ((iochan = g_io_channel_unix_new (clientsock))) {
         g_io_channel_set_encoding (iochan, NULL, NULL);
-        g_io_add_watch (iochan, G_IO_IN|G_IO_HUP,
-                        (GIOFunc)control_client_socket, iochan);
-        g_ptr_array_add (uzbl.comm.client_chan, (gpointer)iochan);
+        add_cmd_source (iochan, "Uzbl control socket", control_client_socket);
+        g_ptr_array_add (uzbl.comm.client_chan, iochan);
     }
+
     return TRUE;
 }

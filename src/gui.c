@@ -778,10 +778,12 @@ request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResour
         TYPE_STR, uri,
         NULL);
 
-    if (uzbl.behave.request_handler) {
+    gchar *handler = uzbl_variables_get_string ("request_handler");
+
+    if (*handler) {
         GString *result = g_string_new ("");
         GArray *args = uzbl_commands_args_new ();
-        const UzblCommand *request_command = uzbl_commands_parse (uzbl.behave.request_handler, args);
+        const UzblCommand *request_command = uzbl_commands_parse (handler, args);
 
         if (request_command) {
             uzbl_commands_args_append (args, g_strdup (uri));
@@ -792,11 +794,15 @@ request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResour
         if (result->len > 0) {
             remove_trailing_newline (result->str);
 
+            uzbl_debug ("Request rewritten -> %s\n", result->str);
+
             webkit_network_request_set_uri (request, result->str);
         }
 
         g_string_free (result, TRUE);
     }
+
+    g_free (handler);
 }
 
 void
@@ -1251,10 +1257,12 @@ navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri)
 
     uzbl_debug ("Navigation requested -> %s\n", uri);
 
-    if (uzbl.behave.scheme_handler) {
+    gchar *handler = uzbl_variables_get_string ("scheme_handler");
+
+    if (*handler) {
         GString *result = g_string_new ("");
         GArray *args = uzbl_commands_args_new ();
-        const UzblCommand *scheme_command = uzbl_commands_parse (uzbl.behave.scheme_handler, args);
+        const UzblCommand *scheme_command = uzbl_commands_parse (handler, args);
 
         if (scheme_command) {
             uzbl_commands_args_append (args, g_strdup (uri));
@@ -1278,6 +1286,8 @@ navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri)
 
         g_string_free (result, TRUE);
     }
+
+    g_free (handler);
 
     if (!decision_made) {
 #ifdef USE_WEBKIT2
@@ -1653,9 +1663,12 @@ decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename
 
     uzbl_debug ("Download requested -> %s\n", uri);
 
-    if (!uzbl.behave.download_handler) {
+    gchar *handler = uzbl_variables_get_string ("download_handler");
+
+    if (!*handler) {
         /* Reject downloads when there's no download handler. */
         uzbl_debug ("No download handler set; ignoring download\n");
+        g_free (handler);
         webkit_download_cancel (download);
         return FALSE;
     }
@@ -1693,7 +1706,8 @@ decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename
     }
 
     GArray *args = uzbl_commands_args_new ();
-    const UzblCommand *download_command = uzbl_commands_parse (uzbl.behave.download_handler, args);
+    const UzblCommand *download_command = uzbl_commands_parse (handler, args);
+    g_free (handler);
     if (!download_command) {
         webkit_download_cancel (download);
         uzbl_commands_args_free (args);

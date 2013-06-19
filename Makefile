@@ -62,6 +62,7 @@ LDLIBS:=$(shell pkg-config --libs $(REQ_PKGS) x11)
 CFLAGS += -std=c99 $(PKG_CFLAGS) -ggdb -W -Wall -Wextra -pthread
 
 SOURCES := \
+    comm.c \
     commands.c \
     cookie-jar.c \
     events.c \
@@ -69,13 +70,16 @@ SOURCES := \
     inspector.c \
     io.c \
     js.c \
+    requests.c \
     soup.c \
     status-bar.c \
     util.c \
     uzbl-core.c \
-    variables.c
+    variables.c \
+    3p/async-queue-source/rb-async-queue-watch.c
 
 HEADERS := \
+    comm.h \
     commands.h \
     config.h \
     cookie-jar.h \
@@ -84,18 +88,20 @@ HEADERS := \
     inspector.h \
     io.h \
     js.h \
+    requests.h \
     menu.h \
     soup.h \
     status-bar.h \
     util.h \
     uzbl-core.h \
     variables.h \
-    webkit.h
+    webkit.h \
+    3p/async-queue-source/rb-async-queue-watch.h
 
 SRC  = $(addprefix src/,$(SOURCES))
 HEAD = $(addprefix src/,$(HEADERS))
-OBJ  = $(foreach obj, $(SRC:.c=.o),  $(notdir $(obj)))
-LOBJ = $(foreach obj, $(SRC:.c=.lo), $(notdir $(obj)))
+OBJ  = $(foreach obj, $(SRC:.c=.o),  $(obj))
+LOBJ = $(foreach obj, $(SRC:.c=.lo), $(obj))
 PY = $(wildcard uzbl/*.py uzbl/plugins/*.py)
 
 all: uzbl-browser

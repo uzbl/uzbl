@@ -38,6 +38,7 @@
 #include "inspector.h"
 #include "io.h"
 #include "js.h"
+#include "requests.h"
 #include "soup.h"
 #include "status-bar.h"
 #include "util.h"
@@ -55,7 +56,7 @@ UzblCore uzbl;
 static const GOptionEntry
 options[] = {
     { "uri",            'u', 0, G_OPTION_ARG_STRING,       &uzbl.state.uri,
-        "Uri to load at startup (equivalent to 'uzbl <uri>' or 'set uri = URI' after uzbl has launched)", "URI" },
+        "Uri to load at startup (equivalent to 'uzbl <uri>' after uzbl has launched)", "URI" },
     { "verbose",        'v', 0, G_OPTION_ARG_NONE,         &uzbl.state.verbose,
         "Whether to print all messages or just errors.",                                                  NULL },
     { "named",          'n', 0, G_OPTION_ARG_STRING,       &uzbl.state.instance_name,
@@ -87,6 +88,9 @@ void
 uzbl_initialize (int argc, char **argv)
 {
     /* Initialize variables */
+    g_mutex_init (&uzbl.state.reply_buffer_lock);
+    g_cond_init (&uzbl.state.reply_buffer_cond);
+
     uzbl.state.socket_id       = 0;
     uzbl.state.plug_mode       = FALSE;
 
@@ -148,10 +152,12 @@ uzbl_initialize (int argc, char **argv)
     uzbl_soup_init (uzbl.net.soup_session);
 #endif
 
+    uzbl_io_init ();
     uzbl_js_init ();
     uzbl_variables_init ();
     uzbl_commands_init ();
     uzbl_events_init ();
+    uzbl_requests_init ();
 
     /* XDG */
     ensure_xdg_vars ();
@@ -220,11 +226,6 @@ main (int argc, char *argv[])
         uzbl_variables_set ("geometry", uzbl.gui.geometry);
     }
 
-    gchar *uri_override = (uzbl.state.uri ? g_strdup (uzbl.state.uri) : NULL);
-    if (argc > 1 && !uzbl.state.uri) {
-        uri_override = g_strdup (argv[1]);
-    }
-
     gboolean verbose_override = uzbl.state.verbose;
 
     /* Finally show the window */
@@ -256,9 +257,16 @@ main (int argc, char *argv[])
         uzbl.state.verbose = verbose_override;
     }
 
+    gchar *uri_override = (uzbl.state.uri ? g_strdup (uzbl.state.uri) : NULL);
+    if (argc > 1 && !uzbl.state.uri) {
+        uri_override = g_strdup (argv[1]);
+    }
+
     if (uri_override) {
-        uzbl_variables_set ("uri", uri_override);
-        g_free (uri_override);
+        GArray *argv = uzbl_commands_args_new ();
+        uzbl_commands_args_append (argv, uri_override);
+        uzbl_commands_run_argv ("uri", argv, NULL);
+        uzbl_commands_args_free (argv);
         uri_override = NULL;
     }
 
@@ -362,6 +370,9 @@ read_config_file ()
 void
 clean_up ()
 {
+    g_mutex_clear (&uzbl.state.reply_buffer_lock);
+    g_cond_clear (&uzbl.state.reply_buffer_cond);
+
     if (uzbl.info.pid_str) {
         uzbl_events_send (INSTANCE_EXIT, NULL,
             TYPE_INT, uzbl.info.pid,
@@ -389,6 +400,11 @@ clean_up ()
     if (uzbl.state.event_buffer) {
         g_ptr_array_free (uzbl.state.event_buffer, TRUE);
         uzbl.state.event_buffer = NULL;
+    }
+
+    if (uzbl.state.reply_buffer) {
+        g_ptr_array_free (uzbl.state.reply_buffer, TRUE);
+        uzbl.state.reply_buffer = NULL;
     }
 
     if (uzbl.behave.fifo_dir) {
@@ -421,6 +437,16 @@ clean_up ()
 
     if (uzbl.comm.socket_path) {
         unlink (uzbl.comm.socket_path);
+    }
+
+    if (uzbl.state.cmd_q) {
+        g_async_queue_unref (uzbl.state.cmd_q);
+        uzbl.state.cmd_q = NULL;
+    }
+
+    if (uzbl.state.io_thread) {
+        g_thread_unref (uzbl.state.io_thread);
+        uzbl.state.io_thread = NULL;
     }
 }
 #endif
