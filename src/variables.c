@@ -2618,10 +2618,11 @@ plugin_list_append (WebKitWebPlugin *plugin, gpointer data);
 IMPLEMENT_GETTER (gchar *, plugin_list)
 {
 #ifdef USE_WEBKIT2
-    WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
     GList *plugins = NULL;
 
+#if 0 /* TODO: Seems to hang... */
     {
+        WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
         GError *err = NULL;
 
         uzbl_sync_call (plugins, context, err,
@@ -2632,6 +2633,7 @@ IMPLEMENT_GETTER (gchar *, plugin_list)
             g_error_free (err);
         }
     }
+#endif
 
     if (!plugins) {
         /* TODO: Don't ignore the error. */
