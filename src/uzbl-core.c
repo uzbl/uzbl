@@ -39,7 +39,10 @@
 #include "io.h"
 #include "js.h"
 #include "requests.h"
+#ifndef USE_WEBKIT2
+#include "scheme.h"
 #include "soup.h"
+#endif
 #include "status-bar.h"
 #include "util.h"
 #include "variables.h"
@@ -158,6 +161,10 @@ uzbl_initialize (int argc, char **argv)
     uzbl_commands_init ();
     uzbl_events_init ();
     uzbl_requests_init ();
+
+#ifndef USE_WEBKIT2
+    uzbl_scheme_init ();
+#endif
 
     /* XDG */
     ensure_xdg_vars ();

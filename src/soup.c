@@ -1,7 +1,5 @@
 #include "soup.h"
 
-#ifndef USE_WEBKIT2
-
 #include "cookie-jar.h"
 #include "events.h"
 #include "type.h"
@@ -187,5 +185,3 @@ uzbl_soup_authenticate (const char *authinfo,
 
     g_hash_table_remove (uzbl.net.pending_auths, authinfo);
 }
-
-#endif

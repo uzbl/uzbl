@@ -13,6 +13,8 @@ RUN_PREFIX ?= $(PREFIX)
 ENABLE_WEBKIT2 ?= auto
 ENABLE_GTK3    ?= auto
 
+ENABLE_CUSTOM_SCHEME ?= yes
+
 PYTHON=python3
 PYTHONV=$(shell $(PYTHON) --version | sed -n /[0-9].[0-9]/p)
 COVERAGE=$(shell which coverage)
@@ -47,7 +49,7 @@ else
 REQ_PKGS += gtk+-2.0
 endif
 
-REQ_PKGS += 'libsoup-2.4 >= 2.30' gthread-2.0 glib-2.0
+REQ_PKGS += 'libsoup-2.4 >= 2.33.4' gthread-2.0 glib-2.0
 
 ARCH:=$(shell uname -m)
 
@@ -71,7 +73,7 @@ SOURCES := \
     io.c \
     js.c \
     requests.c \
-    soup.c \
+    scheme.c \
     status-bar.c \
     util.c \
     uzbl-core.c \
@@ -90,13 +92,22 @@ HEADERS := \
     js.h \
     requests.h \
     menu.h \
-    soup.h \
+    scheme.h \
     status-bar.h \
     util.h \
     uzbl-core.h \
     variables.h \
     webkit.h \
     3p/async-queue-source/rb-async-queue-watch.h
+
+ifneq ($(ENABLE_WEBKIT2),yes)
+SOURCES += \
+    scheme-request.c \
+    soup.c
+HEADERS += \
+    scheme-request.h \
+    soup.h
+endif
 
 SRC  = $(addprefix src/,$(SOURCES))
 HEAD = $(addprefix src/,$(HEADERS))
