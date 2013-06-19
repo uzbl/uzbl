@@ -5,7 +5,9 @@
 #include "js.h"
 #include "menu.h"
 #include "requests.h"
+#ifndef USE_WEBKIT2
 #include "soup.h"
+#endif
 #include "type.h"
 #include "util.h"
 #include "uzbl-core.h"

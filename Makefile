@@ -71,7 +71,6 @@ SOURCES := \
     io.c \
     js.c \
     requests.c \
-    soup.c \
     status-bar.c \
     util.c \
     uzbl-core.c \
@@ -90,13 +89,19 @@ HEADERS := \
     js.h \
     requests.h \
     menu.h \
-    soup.h \
     status-bar.h \
     util.h \
     uzbl-core.h \
     variables.h \
     webkit.h \
     3p/async-queue-source/rb-async-queue-watch.h
+
+ifneq ($(ENABLE_WEBKIT2),yes)
+SOURCES += \
+    soup.c
+HEADERS += \
+    soup.h
+endif
 
 SRC  = $(addprefix src/,$(SOURCES))
 HEAD = $(addprefix src/,$(HEADERS))

@@ -39,7 +39,9 @@
 #include "io.h"
 #include "js.h"
 #include "requests.h"
+#ifndef USE_WEBKIT2
 #include "soup.h"
+#endif
 #include "status-bar.h"
 #include "util.h"
 #include "variables.h"
