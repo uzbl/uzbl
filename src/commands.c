@@ -1606,8 +1606,8 @@ IMPLEMENT_COMMAND (css)
         webkit_web_view_group_add_user_style_sheet (group,
             uri,
             baseuri,
-            whitelist_list,
-            blacklist_list,
+            (const gchar * const *)whitelist_list,
+            (const gchar * const *)blacklist_list,
             frames);
 
         if (whitelist_list) {
