@@ -2593,23 +2593,21 @@ IMPLEMENT_COMMAND (event)
 {
     UZBL_UNUSED (result);
 
-    GString *event_name;
     gchar **split = NULL;
 
     ARG_CHECK (argv, 1);
 
     split = g_strsplit (argv_idx (argv, 0), " ", 2);
-    if (!split[0]) {
-        return;
+    if (split[0]) {
+        GString *event_name = g_string_ascii_up (g_string_new (split[0]));
+
+        uzbl_events_send (USER_EVENT, event_name->str,
+            TYPE_FORMATTEDSTR, split[1] ? split[1] : "",
+            NULL);
+
+        g_string_free (event_name, TRUE);
     }
 
-    event_name = g_string_ascii_up (g_string_new (split[0]));
-
-    uzbl_events_send (USER_EVENT, event_name->str,
-        TYPE_FORMATTEDSTR, split[1] ? split[1] : "",
-        NULL);
-
-    g_string_free (event_name, TRUE);
     g_strfreev (split);
 }
 
