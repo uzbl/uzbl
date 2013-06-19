@@ -5,6 +5,7 @@
 #include "js.h"
 #include "menu.h"
 #include "requests.h"
+#include "scheme.h"
 #ifndef USE_WEBKIT2
 #include "soup.h"
 #endif
@@ -117,6 +118,7 @@ DECLARE_COMMAND (cache);
 DECLARE_COMMAND (favicon);
 DECLARE_COMMAND (inject);
 DECLARE_COMMAND (css);
+DECLARE_COMMAND (scheme);
 
 /* Menu commands */
 DECLARE_COMMAND (menu);
@@ -210,6 +212,7 @@ builtin_command_table[] =
     { "favicon",                        cmd_favicon,                  TRUE,  TRUE  },
     { "inject",                         cmd_inject,                   TRUE,  TRUE  },
     { "css",                            cmd_css,                      TRUE,  TRUE  },
+    { "scheme",                         cmd_scheme,                   FALSE, TRUE  },
 
     /* Menu commands */
     { "menu",                           cmd_menu,                     TRUE,  TRUE  },
@@ -1717,6 +1720,20 @@ IMPLEMENT_COMMAND (css)
     } else {
         uzbl_debug ("Unrecognized css command: %s\n", command);
     }
+}
+
+IMPLEMENT_COMMAND (scheme)
+{
+    UZBL_UNUSED (result);
+
+    ARG_CHECK (argv, 1);
+
+    gchar **split = g_strsplit (argv_idx (argv, 0), " ", 2);
+    if (split[0] && split[1]) {
+        uzbl_scheme_add_handler (g_strstrip (split[0]), g_strchug (split[1]));
+    }
+
+    g_strfreev (split);
 }
 
 /* Menu commands */
