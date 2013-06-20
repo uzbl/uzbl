@@ -80,54 +80,50 @@ send_request_sockets (GPtrArray *sockets, GString *msg, const gchar *cookie)
     while (!req_result->len && (i < sockets->len)) {
         GIOChannel *gio = g_ptr_array_index (sockets, i++);
 
-        if (!gio) {
+        if (!gio || !gio->is_writeable || !gio->is_readable) {
             continue;
         }
 
-        if (gio->is_writeable && gio->is_readable) {
-            ret = g_io_channel_write_chars (gio,
-                msg->str, msg->len,
-                &len, &error);
+        ret = g_io_channel_write_chars (gio,
+            msg->str, msg->len,
+            &len, &error);
 
-            if (ret == G_IO_STATUS_ERROR) {
-                g_warning ("Error sending request to socket: %s", error->message);
-                g_clear_error (&error);
-            } else {
-                if (g_io_channel_flush (gio, &error) == G_IO_STATUS_ERROR) {
-                    g_warning ("Error flushing: %s", error->message);
-                    g_clear_error (&error);
-                }
-            }
+        if (ret == G_IO_STATUS_ERROR) {
+            g_warning ("Error sending request to socket: %s", error->message);
+            g_clear_error (&error);
+        } else if (g_io_channel_flush (gio, &error) == G_IO_STATUS_ERROR) {
+            g_warning ("Error flushing: %s", error->message);
+            g_clear_error (&error);
+        }
 
-            /* TODO: Add a timeout here. */
-            /* TODO: Clear the reply buffer occasionally. */
-            g_mutex_lock (&uzbl.state.reply_buffer_lock);
-            do {
-                guint i = 0;
-                gboolean found = FALSE;
-                gchar *reply = NULL;
+        /* TODO: Add a timeout here. */
+        /* TODO: Clear the reply buffer occasionally. */
+        g_mutex_lock (&uzbl.state.reply_buffer_lock);
+        do {
+            guint i = 0;
+            gboolean found = FALSE;
+            gchar *reply = NULL;
 
-                while (i < uzbl.state.reply_buffer->len) {
-                    reply = g_ptr_array_index (uzbl.state.reply_buffer, i);
+            while (i < uzbl.state.reply_buffer->len) {
+                reply = g_ptr_array_index (uzbl.state.reply_buffer, i);
 
-                    if (!strprefix (reply, reply_cookie->str)) {
-                        found = TRUE;
-                        break;
-                    }
-
-                    i++;
-                }
-
-                if (found) {
-                    g_string_assign (req_result, reply + reply_cookie->len);
-                    g_ptr_array_remove_index (uzbl.state.reply_buffer, i);
+                if (!strprefix (reply, reply_cookie->str)) {
+                    found = TRUE;
                     break;
                 }
 
-                g_cond_wait (&uzbl.state.reply_buffer_cond, &uzbl.state.reply_buffer_lock);
-            } while (true);
-            g_mutex_unlock (&uzbl.state.reply_buffer_lock);
-        }
+                i++;
+            }
+
+            if (found) {
+                g_string_assign (req_result, reply + reply_cookie->len);
+                g_ptr_array_remove_index (uzbl.state.reply_buffer, i);
+                break;
+            }
+
+            g_cond_wait (&uzbl.state.reply_buffer_cond, &uzbl.state.reply_buffer_lock);
+        } while (true);
+        g_mutex_unlock (&uzbl.state.reply_buffer_lock);
     }
 
     g_string_free (reply_cookie, TRUE);
