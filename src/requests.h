@@ -3,9 +3,6 @@
 
 #include <glib.h>
 
-int
-uzbl_requests_init ();
-
 void
 uzbl_requests_replay_buffer ();
 

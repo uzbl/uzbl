@@ -38,7 +38,6 @@
 #include "inspector.h"
 #include "io.h"
 #include "js.h"
-#include "requests.h"
 #include "soup.h"
 #include "status-bar.h"
 #include "util.h"
@@ -88,8 +87,8 @@ void
 uzbl_initialize (int argc, char **argv)
 {
     /* Initialize variables */
-    g_mutex_init (&uzbl.state.reply_buffer_lock);
-    g_cond_init (&uzbl.state.reply_buffer_cond);
+    g_mutex_init (&uzbl.state.reply_lock);
+    g_cond_init (&uzbl.state.reply_cond);
 
     uzbl.state.socket_id       = 0;
     uzbl.state.plug_mode       = FALSE;
@@ -157,7 +156,6 @@ uzbl_initialize (int argc, char **argv)
     uzbl_variables_init ();
     uzbl_commands_init ();
     uzbl_events_init ();
-    uzbl_requests_init ();
 
     /* XDG */
     ensure_xdg_vars ();
@@ -370,8 +368,8 @@ read_config_file ()
 void
 clean_up ()
 {
-    g_mutex_clear (&uzbl.state.reply_buffer_lock);
-    g_cond_clear (&uzbl.state.reply_buffer_cond);
+    g_mutex_clear (&uzbl.state.reply_lock);
+    g_cond_clear (&uzbl.state.reply_cond);
 
     if (uzbl.info.pid_str) {
         uzbl_events_send (INSTANCE_EXIT, NULL,
@@ -402,9 +400,9 @@ clean_up ()
         uzbl.state.event_buffer = NULL;
     }
 
-    if (uzbl.state.reply_buffer) {
-        g_ptr_array_free (uzbl.state.reply_buffer, TRUE);
-        uzbl.state.reply_buffer = NULL;
+    if (uzbl.state.reply) {
+        g_free (uzbl.state.reply);
+        uzbl.state.reply = NULL;
     }
 
     if (uzbl.behave.fifo_dir) {

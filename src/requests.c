@@ -15,15 +15,6 @@
 
 /* =========================== PUBLIC API =========================== */
 
-int
-uzbl_requests_init ()
-{
-    uzbl.state.reply_buffer = g_ptr_array_new ();
-    g_ptr_array_set_free_func (uzbl.state.reply_buffer, g_free);
-
-    return 0;
-}
-
 static GString *
 send_request_sockets (GPtrArray *sockets, GString *msg, const gchar *cookie);
 
@@ -79,6 +70,7 @@ send_request_sockets (GPtrArray *sockets, GString *msg, const gchar *cookie)
 
     while (!req_result->len && (i < sockets->len)) {
         GIOChannel *gio = g_ptr_array_index (sockets, i++);
+        gboolean done = FALSE;
 
         if (!gio || !gio->is_writeable || !gio->is_readable) {
             continue;
@@ -99,33 +91,22 @@ send_request_sockets (GPtrArray *sockets, GString *msg, const gchar *cookie)
         }
 
         /* TODO: Add a timeout here. */
-        /* TODO: Clear the reply buffer occasionally. */
-        g_mutex_lock (&uzbl.state.reply_buffer_lock);
         do {
-            guint i = 0;
-            gboolean found = FALSE;
-            gchar *reply = NULL;
-
-            while (i < uzbl.state.reply_buffer->len) {
-                reply = g_ptr_array_index (uzbl.state.reply_buffer, i);
-
-                if (!strprefix (reply, reply_cookie->str)) {
-                    found = TRUE;
-                    break;
-                }
-
-                i++;
+            g_mutex_lock (&uzbl.state.reply_lock);
+            while (!uzbl.state.reply) {
+                g_cond_wait (&uzbl.state.reply_cond, &uzbl.state.reply_lock, deadline);
             }
 
-            if (found) {
-                g_string_assign (req_result, reply + reply_cookie->len);
-                g_ptr_array_remove_index (uzbl.state.reply_buffer, i);
-                break;
+            if (!strprefix (uzbl.state.reply, reply_cookie->str)) {
+                g_string_assign (req_result, uzbl.state.reply + reply_cookie->len);
+                done = TRUE;
             }
 
-            g_cond_wait (&uzbl.state.reply_buffer_cond, &uzbl.state.reply_buffer_lock);
-        } while (true);
-        g_mutex_unlock (&uzbl.state.reply_buffer_lock);
+            g_free (uzbl.state.reply);
+            uzbl.state.reply = NULL;
+
+            g_mutex_unlock (&uzbl.state.reply_lock);
+        } while (!done);
     }
 
     g_string_free (reply_cookie, TRUE);
