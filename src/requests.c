@@ -91,9 +91,11 @@ send_request_sockets (GPtrArray *sockets, GString *msg, const gchar *cookie)
         if (ret == G_IO_STATUS_ERROR) {
             g_warning ("Error sending request to socket: %s", error->message);
             g_clear_error (&error);
+            continue;
         } else if (g_io_channel_flush (gio, &error) == G_IO_STATUS_ERROR) {
             g_warning ("Error flushing: %s", error->message);
             g_clear_error (&error);
+            continue;
         }
 
         /* TODO: Add a timeout here. */
