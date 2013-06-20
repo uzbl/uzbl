@@ -1971,7 +1971,7 @@ download_update (WebKitDownload *download)
 void
 send_download_error (WebKitDownloadError err, const gchar *message)
 {
-    const gchar *str = NULL;
+    const gchar *str;
 
     switch (err) {
     case WEBKIT_DOWNLOAD_ERROR_CANCELLED_BY_USER:
@@ -1990,7 +1990,7 @@ send_download_error (WebKitDownloadError err, const gchar *message)
 
     uzbl_events_send (DOWNLOAD_ERROR, NULL,
         TYPE_INT, err,
-        TYPE_STR, str ? str : "",
+        TYPE_STR, str,
         TYPE_STR, message,
         NULL);
 
