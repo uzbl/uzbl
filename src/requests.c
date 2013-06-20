@@ -70,6 +70,7 @@ send_request_sockets (GPtrArray *sockets, GString *msg, const gchar *cookie)
 
     while (!req_result->len && (i < sockets->len)) {
         GIOChannel *gio = g_ptr_array_index (sockets, i++);
+        gint64 deadline;
         gboolean done = FALSE;
 
         if (!gio || !gio->is_writeable || !gio->is_readable) {
@@ -90,14 +91,23 @@ send_request_sockets (GPtrArray *sockets, GString *msg, const gchar *cookie)
             continue;
         }
 
-        /* TODO: Add a timeout here. */
+        /* Require replies within 1 second. */
+        deadline = g_get_monotonic_time () + 1 * G_TIME_SPAN_SECOND;
+
         do {
+            gboolean timeout = FALSE;
+
             g_mutex_lock (&uzbl.state.reply_lock);
             while (!uzbl.state.reply) {
-                g_cond_wait (&uzbl.state.reply_cond, &uzbl.state.reply_lock, deadline);
+                if (!g_cond_wait_until (&uzbl.state.reply_cond, &uzbl.state.reply_lock, deadline)) {
+                    timeout = TRUE;
+                    break;
+                }
             }
 
-            if (!strprefix (uzbl.state.reply, reply_cookie->str)) {
+            if (timeout) {
+                done = TRUE;
+            } else if (!strprefix (uzbl.state.reply, reply_cookie->str)) {
                 g_string_assign (req_result, uzbl.state.reply + reply_cookie->len);
                 done = TRUE;
             }
