@@ -634,6 +634,10 @@ decide_policy_cb (WebKitWebView *view, WebKitPolicyDecision *decision, WebKitPol
     UZBL_UNUSED (view);
     UZBL_UNUSED (data);
 
+    if (uzbl.state.frozen) {
+        make_policy (decision, ignore);
+    }
+
     switch (type) {
         case WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION:
         {
@@ -666,10 +670,6 @@ decide_policy_cb (WebKitWebView *view, WebKitPolicyDecision *decision, WebKitPol
         default:
             uzbl_debug ("Unrecognized policy decision: %d\n", type);
             break;
-    }
-
-    if (uzbl.state.frozen) {
-        make_policy (decision, ignore);
     }
 
     return FALSE;
