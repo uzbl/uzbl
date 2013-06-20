@@ -222,7 +222,7 @@ send_event_socket (GString *msg)
     }
 
     /* Write to all client sockets. */
-    if (msg && uzbl.comm.client_chan) {
+    if (uzbl.comm.client_chan) {
         send_event_sockets (uzbl.comm.client_chan, msg);
     }
 }
