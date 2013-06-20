@@ -247,7 +247,7 @@ web_view_init ()
         "signal::load-changed",                         G_CALLBACK (load_changed_cb),          NULL,
         "signal::load-failed",                          G_CALLBACK (load_failed_cb),           NULL,
 #if WEBKIT_CHECK_VERSION (1, 11, 4)
-        "signal::insecure-content-detected",            G_CALLBACK (insecure_content_cb),     NULL,
+        "signal::insecure-content-detected",            G_CALLBACK (insecure_content_cb),      NULL,
 #endif
 #else
         "signal::navigation-policy-decision-requested", G_CALLBACK (navigation_decision_cb),   NULL,
