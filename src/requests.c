@@ -7,22 +7,10 @@
 #include "util.h"
 #include "uzbl-core.h"
 
-#include <sys/time.h>
 #include <errno.h>
-#include <signal.h>
-#include <stdlib.h>
 #include <string.h>
 
 /* =========================== PUBLIC API =========================== */
-
-int
-uzbl_requests_init ()
-{
-    uzbl.state.reply_buffer = g_ptr_array_new ();
-    g_ptr_array_set_free_func (uzbl.state.reply_buffer, g_free);
-
-    return 0;
-}
 
 static GString *
 send_request_sockets (GPtrArray *sockets, GString *msg, const gchar *cookie);
@@ -44,18 +32,12 @@ uzbl_requests_send (const gchar *request, ...)
     va_start (vargs, request);
     va_copy (vacopy, vargs);
 
-#define COOKIE_PREFIX "/tmp/uzbl-REQUEST-"
+    GString *cookie = g_string_new ("");
+    g_string_printf (cookie, "%u", g_random_int ());
 
-    char *req_id = g_strdup (COOKIE_PREFIX "XXXXXX");
-    int fd = mkstemp (req_id);
-    char *cookie = g_strdup (req_id + strlen (COOKIE_PREFIX));
+    GString *str = vuzbl_requests_send (request, cookie->str, vacopy);
 
-    GString *str = vuzbl_requests_send (request, cookie, vacopy);
-
-    unlink (req_id);
-    g_free (cookie);
-    g_free (req_id);
-    close (fd);
+    g_string_free (cookie, TRUE);
 
     va_end (vacopy);
     va_end (vargs);
@@ -79,55 +61,53 @@ send_request_sockets (GPtrArray *sockets, GString *msg, const gchar *cookie)
 
     while (!req_result->len && (i < sockets->len)) {
         GIOChannel *gio = g_ptr_array_index (sockets, i++);
+        gint64 deadline;
+        gboolean done = FALSE;
 
-        if (!gio) {
+        if (!gio || !gio->is_writeable || !gio->is_readable) {
             continue;
         }
 
-        if (gio->is_writeable && gio->is_readable) {
-            ret = g_io_channel_write_chars (gio,
-                msg->str, msg->len,
-                &len, &error);
+        ret = g_io_channel_write_chars (gio,
+            msg->str, msg->len,
+            &len, &error);
 
-            if (ret == G_IO_STATUS_ERROR) {
-                g_warning ("Error sending request to socket: %s", error->message);
-                g_clear_error (&error);
-            } else {
-                if (g_io_channel_flush (gio, &error) == G_IO_STATUS_ERROR) {
-                    g_warning ("Error flushing: %s", error->message);
-                    g_clear_error (&error);
+        if (ret == G_IO_STATUS_ERROR) {
+            g_warning ("Error sending request to socket: %s", error->message);
+            g_clear_error (&error);
+            continue;
+        } else if (g_io_channel_flush (gio, &error) == G_IO_STATUS_ERROR) {
+            g_warning ("Error flushing: %s", error->message);
+            g_clear_error (&error);
+            continue;
+        }
+
+        /* Require replies within 1 second. */
+        deadline = g_get_monotonic_time () + 1 * G_TIME_SPAN_SECOND;
+
+        do {
+            gboolean timeout = FALSE;
+
+            g_mutex_lock (&uzbl.state.reply_lock);
+            while (!uzbl.state.reply) {
+                if (!g_cond_wait_until (&uzbl.state.reply_cond, &uzbl.state.reply_lock, deadline)) {
+                    timeout = TRUE;
+                    break;
                 }
             }
 
-            /* TODO: Add a timeout here. */
-            /* TODO: Clear the reply buffer occasionally. */
-            g_mutex_lock (&uzbl.state.reply_buffer_lock);
-            do {
-                guint i = 0;
-                gboolean found = FALSE;
-                gchar *reply = NULL;
+            if (timeout) {
+                done = TRUE;
+            } else if (!strprefix (uzbl.state.reply, reply_cookie->str)) {
+                g_string_assign (req_result, uzbl.state.reply + reply_cookie->len);
+                done = TRUE;
+            }
 
-                while (i < uzbl.state.reply_buffer->len) {
-                    reply = g_ptr_array_index (uzbl.state.reply_buffer, i);
+            g_free (uzbl.state.reply);
+            uzbl.state.reply = NULL;
 
-                    if (!strprefix (reply, reply_cookie->str)) {
-                        found = TRUE;
-                        break;
-                    }
-
-                    i++;
-                }
-
-                if (found) {
-                    g_string_assign (req_result, reply + reply_cookie->len);
-                    g_ptr_array_remove_index (uzbl.state.reply_buffer, i);
-                    break;
-                }
-
-                g_cond_wait (&uzbl.state.reply_buffer_cond, &uzbl.state.reply_buffer_lock);
-            } while (true);
-            g_mutex_unlock (&uzbl.state.reply_buffer_lock);
-        }
+            g_mutex_unlock (&uzbl.state.reply_lock);
+        } while (!done);
     }
 
     g_string_free (reply_cookie, TRUE);

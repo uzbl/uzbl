@@ -83,9 +83,9 @@ typedef struct {
     GPtrArray      *event_buffer;
     gchar         **connect_socket_names;
 
-    GCond           reply_buffer_cond;
-    GMutex          reply_buffer_lock;
-    GPtrArray      *reply_buffer;
+    GCond           reply_cond;
+    GMutex          reply_lock;
+    gchar          *reply;
 
     GAsyncQueue    *cmd_q;
     GMainContext   *io_ctx;

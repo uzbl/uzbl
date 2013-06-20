@@ -264,15 +264,6 @@ free_cmd_req (gpointer data)
     g_free (cmd);
 }
 
-void
-run_queue_thread (GTask *task, gpointer object, gpointer data, GCancellable *cancellable)
-{
-    UZBL_UNUSED (task);
-    UZBL_UNUSED (object);
-    UZBL_UNUSED (data);
-    UZBL_UNUSED (cancellable);
-}
-
 static void
 handle_command (gchar *line, UzblIOCallback callback, gpointer data);
 static void
@@ -477,10 +468,14 @@ handle_command (gchar *line, UzblIOCallback callback, gpointer data)
     remove_trailing_newline (line);
 
     if (!strprefix (line, "REPLY-")) {
-        g_mutex_lock (&uzbl.state.reply_buffer_lock);
-        g_ptr_array_add (uzbl.state.reply_buffer, line);
-        g_cond_broadcast (&uzbl.state.reply_buffer_cond);
-        g_mutex_unlock (&uzbl.state.reply_buffer_lock);
+        g_mutex_lock (&uzbl.state.reply_lock);
+        if (uzbl.state.reply) {
+            /* Stale reply? It's likely to be old, so let's nuke it. */
+            g_free (uzbl.state.reply);
+        }
+        uzbl.state.reply = line;
+        g_cond_broadcast (&uzbl.state.reply_cond);
+        g_mutex_unlock (&uzbl.state.reply_lock);
     } else {
         UzblCommandData *cmd_data = g_malloc (sizeof (UzblCommandData));
         cmd_data->cmd = line;
