@@ -37,6 +37,32 @@ uzbl_io_init ()
     uzbl.state.io_thread = g_thread_new ("uzbl-io", run_io, NULL);
 }
 
+typedef struct {
+    gchar *cmd;
+    const UzblCommand *info;
+    GArray *argv;
+    UzblIOCallback callback;
+    gpointer data;
+} UzblCommandData;
+
+void
+uzbl_io_schedule_command (const UzblCommand *cmd, GArray *argv, UzblIOCallback callback, gpointer data)
+{
+    if (!cmd || !argv) {
+        uzbl_debug ("Invalid command scheduled");
+        return;
+    }
+
+    UzblCommandData *cmd_data = g_malloc (sizeof (UzblCommandData));
+    cmd_data->cmd = NULL;
+    cmd_data->info = cmd;
+    cmd_data->argv = argv;
+    cmd_data->callback = callback;
+    cmd_data->data = data;
+
+    g_async_queue_push (uzbl.state.cmd_q, cmd_data);
+}
+
 static void
 add_cmd_source (GIOChannel *gio, const gchar *name, GIOFunc callback);
 static gboolean
@@ -193,14 +219,6 @@ uzbl_io_init_socket (const gchar *dir)
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
 
-typedef void (*UzblIOCallback)(GString *result, gpointer data);
-
-typedef struct {
-    gchar *cmd;
-    UzblIOCallback callback;
-    gpointer data;
-} UzblCommandData;
-
 void
 run_command (gpointer item, gpointer data)
 {
@@ -214,7 +232,11 @@ run_command (gpointer item, gpointer data)
         result = g_string_new ("");
     }
 
-    uzbl_commands_run (cmd->cmd, result);
+    if (cmd->cmd) {
+        uzbl_commands_run (cmd->cmd, result);
+    } else {
+        uzbl_commands_run_parsed (cmd->info, cmd->argv, result);
+    }
 
     if (cmd->callback && *result->str) {
         cmd->callback (result, cmd->data);
@@ -260,12 +282,13 @@ free_cmd_req (gpointer data)
 {
     UzblCommandData *cmd = (UzblCommandData *)data;
 
+    uzbl_commands_args_free (cmd->argv);
     g_free (cmd->cmd);
     g_free (cmd);
 }
 
 static void
-handle_command (gchar *line, UzblIOCallback callback, gpointer data);
+schedule_io_input (gchar *line, UzblIOCallback callback, gpointer data);
 static void
 write_stdout (GString *result, gpointer data);
 
@@ -283,7 +306,7 @@ control_stdin (GIOChannel *gio, GIOCondition condition, gpointer data)
         return FALSE;
     }
 
-    handle_command (ctl_line, write_stdout, NULL);
+    schedule_io_input (ctl_line, write_stdout, NULL);
 
     return TRUE;
 }
@@ -327,7 +350,7 @@ control_client_socket (GIOChannel *clientchan, GIOCondition condition, gpointer 
     }
 
     g_io_channel_ref (clientchan);
-    handle_command (ctl_line, write_socket, clientchan);
+    schedule_io_input (ctl_line, write_socket, clientchan);
 
     return TRUE;
 }
@@ -459,7 +482,7 @@ attach_socket (const gchar *path, struct sockaddr_un *local)
 }
 
 void
-handle_command (gchar *line, UzblIOCallback callback, gpointer data)
+schedule_io_input (gchar *line, UzblIOCallback callback, gpointer data)
 {
     if (!line) {
         return;
@@ -479,6 +502,8 @@ handle_command (gchar *line, UzblIOCallback callback, gpointer data)
     } else {
         UzblCommandData *cmd_data = g_malloc (sizeof (UzblCommandData));
         cmd_data->cmd = line;
+        cmd_data->info = NULL;
+        cmd_data->argv = NULL;
         cmd_data->callback = callback;
         cmd_data->data = data;
 
@@ -558,7 +583,7 @@ control_fifo (GIOChannel *gio, GIOCondition condition, gpointer data)
         g_error_free (err);
     }
 
-    handle_command (ctl_line, NULL, NULL);
+    schedule_io_input (ctl_line, NULL, NULL);
 
     return TRUE;
 }
