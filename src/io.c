@@ -238,7 +238,7 @@ run_command (gpointer item, gpointer data)
         uzbl_commands_run_parsed (cmd->info, cmd->argv, result);
     }
 
-    if (cmd->callback && *result->str) {
+    if (cmd->callback) {
         cmd->callback (result, cmd->data);
         g_string_free (result, TRUE);
     }
