@@ -644,6 +644,7 @@ decide_policy_cb (WebKitWebView *view, WebKitPolicyDecision *decision, WebKitPol
 
     switch (type) {
     case WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION:
+    case WEBKIT_POLICY_DECISION_TYPE_NEW_WINDOW_ACTION:
     {
         WebKitNavigationPolicyDecision *nav_decision = WEBKIT_NAVIGATION_POLICY_DECISION (decision);
         WebKitURIRequest *request = webkit_navigation_policy_decision_get_request (nav_decision);
@@ -660,9 +661,6 @@ decide_policy_cb (WebKitWebView *view, WebKitPolicyDecision *decision, WebKitPol
 
         return navigation_decision (decision, uri);
     }
-    case WEBKIT_POLICY_DECISION_TYPE_NEW_WINDOW_ACTION:
-        /* TODO: What to do here? */
-        break;
     case WEBKIT_POLICY_DECISION_TYPE_RESPONSE:
     {
         WebKitResponsePolicyDecision *response_decision = WEBKIT_RESPONSE_POLICY_DECISION (decision);
