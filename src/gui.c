@@ -1633,6 +1633,9 @@ decide_navigation (GString *result, gpointer data)
     g_object_unref (decision);
 }
 
+static void
+download_destination (GString *result, gpointer data);
+
 gboolean
 decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename, gpointer data)
 {
@@ -1655,11 +1658,12 @@ decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename
 
     gchar *handler = uzbl_variables_get_string ("download_handler");
 
-    if (!*handler) {
-        /* Reject downloads when there's no download handler. */
-        uzbl_debug ("No download handler set; ignoring download\n");
-        g_free (handler);
+    GArray *args = uzbl_commands_args_new ();
+    const UzblCommand *download_command = uzbl_commands_parse (handler, args);
+    g_free (handler);
+    if (!download_command) {
         webkit_download_cancel (download);
+        uzbl_commands_args_free (args);
         return FALSE;
     }
 
@@ -1695,15 +1699,6 @@ decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename
         content_type = "application/octet-stream";
     }
 
-    GArray *args = uzbl_commands_args_new ();
-    const UzblCommand *download_command = uzbl_commands_parse (handler, args);
-    g_free (handler);
-    if (!download_command) {
-        webkit_download_cancel (download);
-        uzbl_commands_args_free (args);
-        return FALSE;
-    }
-
     uzbl_commands_args_append (args, g_strdup (uri));
     uzbl_commands_args_append (args, g_strdup (suggested_filename));
     uzbl_commands_args_append (args, g_strdup (content_type));
@@ -1714,50 +1709,9 @@ decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename
         uzbl_commands_args_append (args, g_strdup (destination));
     }
 
-    GString *result = g_string_new ("");
-    uzbl_commands_run_parsed (download_command, args, result);
+    uzbl_io_schedule_command (download_command, args, download_destination, download);
 
-    uzbl_commands_args_free (args);
-
-    /* No response, cancel the download. */
-    if (!result->len) {
-        webkit_download_cancel (download);
-        return FALSE;
-    }
-
-    /* We got a response, it's the path we should download the file to. */
-    gchar *destination_path = result->str;
-    g_string_free (result, FALSE);
-
-    /* Presumably people don't need newlines in their filenames. */
-    remove_trailing_newline (destination_path);
-
-    /* Convert relative path to absolute path. */
-    if (destination_path[0] != '/') {
-        /* TODO: Detect file:// URI from the handler. */
-        gchar *rel_path = destination_path;
-        gchar *cwd = g_get_current_dir ();
-        destination_path = g_strconcat (cwd, "/", destination_path, NULL);
-        g_free (cwd);
-        g_free (rel_path);
-    }
-
-    uzbl_events_send (DOWNLOAD_STARTED, NULL,
-        TYPE_STR, destination_path,
-        NULL);
-
-    /* Convert absolute path to file:// URI. */
-    gchar *destination_uri = g_strconcat ("file://", destination_path, NULL);
-    g_free (destination_path);
-
-#ifdef USE_WEBKIT2
-    webkit_download_set_destination (download, destination_uri);
-#else
-    webkit_download_set_destination_uri (download, destination_uri);
-#endif
-    g_free (destination_uri);
-
-    return TRUE;
+    return FALSE;
 }
 
 void
@@ -1897,6 +1851,47 @@ run_menu_command (GtkMenuItem *menu_item, gpointer data)
     } else {
         uzbl_commands_run (item->cmd, NULL);
     }
+}
+
+void
+download_destination (GString *result, gpointer data)
+{
+    WebKitDownload *download = (WebKitDownload *)data;
+
+    /* No response, cancel the download. */
+    if (!result->len) {
+        webkit_download_cancel (download);
+        g_object_unref (download);
+        return;
+    }
+
+    /* Presumably people don't need newlines in their filenames. */
+    remove_trailing_newline (result->str);
+
+    gboolean is_file_uri = !strprefix (result->str, "file:///");
+
+    gchar *destination_uri;
+    /* Convert relative path to absolute path. */
+    if ((*result->str != '/') && !is_file_uri) {
+        gchar *cwd = g_get_current_dir ();
+        destination_uri = g_strconcat ("file://", cwd, "/", result->str, NULL);
+        g_free (cwd);
+    } else {
+        destination_uri = g_strdup (result->str);
+    }
+
+    uzbl_events_send (DOWNLOAD_STARTED, NULL,
+        TYPE_STR, destination_uri,
+        NULL);
+
+#ifdef USE_WEBKIT2
+    webkit_download_set_destination (download, destination_uri);
+#else
+    webkit_download_set_destination_uri (download, destination_uri);
+#endif
+    g_free (destination_uri);
+
+    g_object_unref (download);
 }
 
 void
