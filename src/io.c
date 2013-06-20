@@ -264,15 +264,6 @@ free_cmd_req (gpointer data)
     g_free (cmd);
 }
 
-void
-run_queue_thread (GTask *task, gpointer object, gpointer data, GCancellable *cancellable)
-{
-    UZBL_UNUSED (task);
-    UZBL_UNUSED (object);
-    UZBL_UNUSED (data);
-    UZBL_UNUSED (cancellable);
-}
-
 static void
 handle_command (gchar *line, UzblIOCallback callback, gpointer data);
 static void
