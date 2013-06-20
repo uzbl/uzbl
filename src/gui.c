@@ -642,38 +642,38 @@ decide_policy_cb (WebKitWebView *view, WebKitPolicyDecision *decision, WebKitPol
     }
 
     switch (type) {
-        case WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION:
-        {
-            WebKitNavigationPolicyDecision *nav_decision = WEBKIT_NAVIGATION_POLICY_DECISION (decision);
-            WebKitURIRequest *request = webkit_navigation_policy_decision_get_request (nav_decision);
-            const gchar *uri = webkit_uri_request_get_uri (request);
+    case WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION:
+    {
+        WebKitNavigationPolicyDecision *nav_decision = WEBKIT_NAVIGATION_POLICY_DECISION (decision);
+        WebKitURIRequest *request = webkit_navigation_policy_decision_get_request (nav_decision);
+        const gchar *uri = webkit_uri_request_get_uri (request);
 
-            /* TODO: Add information from WebKitNavigationPolicyDecision such as:
-             *
-             *  * frame name
-             *  * modifiers
-             *  * mouse button
-             *  * navigation type (link click, form submission, back/forward,
-             *                     reload, form resubmission, unknown)
-             */
+        /* TODO: Add information from WebKitNavigationPolicyDecision such as:
+         *
+         *  * frame name
+         *  * modifiers
+         *  * mouse button
+         *  * navigation type (link click, form submission, back/forward,
+         *                     reload, form resubmission, unknown)
+         */
 
-            return navigation_decision (decision, uri);
-        }
-        case WEBKIT_POLICY_DECISION_TYPE_NEW_WINDOW_ACTION:
-            /* TODO: What to do here? */
-            break;
-        case WEBKIT_POLICY_DECISION_TYPE_RESPONSE:
-        {
-            WebKitResponsePolicyDecision *response_decision = WEBKIT_RESPONSE_POLICY_DECISION (decision);
-            WebKitURIRequest *request = webkit_response_policy_decision_get_request (response_decision);
-            const gchar *uri = webkit_uri_request_get_uri (request);
+        return navigation_decision (decision, uri);
+    }
+    case WEBKIT_POLICY_DECISION_TYPE_NEW_WINDOW_ACTION:
+        /* TODO: What to do here? */
+        break;
+    case WEBKIT_POLICY_DECISION_TYPE_RESPONSE:
+    {
+        WebKitResponsePolicyDecision *response_decision = WEBKIT_RESPONSE_POLICY_DECISION (decision);
+        WebKitURIRequest *request = webkit_response_policy_decision_get_request (response_decision);
+        const gchar *uri = webkit_uri_request_get_uri (request);
 
-            g_object_ref (decision);
-            return request_decision (uri, decision);
-        }
-        default:
-            uzbl_debug ("Unrecognized policy decision: %d\n", type);
-            break;
+        g_object_ref (decision);
+        return request_decision (uri, decision);
+    }
+    default:
+        uzbl_debug ("Unrecognized policy decision: %d\n", type);
+        break;
     }
 
     return FALSE;
@@ -715,15 +715,15 @@ insecure_content_cb (WebKitWebView *view, WebKitInsecureContentEvent type, gpoin
     const char *why = NULL;
 
     switch (type) {
-        case WEBKIT_INSECURE_CONTENT_RUN:
-            why = "run";
-            break;
-        case WEBKIT_INSECURE_CONTENT_DISPLAYED:
-            why = "displayed";
-            break;
-        default:
-            why = "unknown";
-            break;
+    case WEBKIT_INSECURE_CONTENT_RUN:
+        why = "run";
+        break;
+    case WEBKIT_INSECURE_CONTENT_DISPLAYED:
+        why = "displayed";
+        break;
+    default:
+        why = "unknown";
+        break;
     }
 
     uzbl_events_send (INSECURE_CONTENT, NULL,
@@ -1159,15 +1159,15 @@ send_button_event (guint buttonval, guint state, gint mode)
     modifiers = get_modifier_mask ((mode != GDK_BUTTON_RELEASE) ? (state | mod) : (state & ~mod));
 
     switch (mode) {
-        case GDK_2BUTTON_PRESS:
-            reps = "2";
-            break;
-        case GDK_3BUTTON_PRESS:
-            reps = "3";
-            break;
-        default:
-            reps = "";
-            break;
+    case GDK_2BUTTON_PRESS:
+        reps = "2";
+        break;
+    case GDK_3BUTTON_PRESS:
+        reps = "3";
+        break;
+    default:
+        reps = "";
+        break;
     }
 
     details = g_strdup_printf ("%sButton%d", reps, buttonval);
@@ -1290,47 +1290,47 @@ send_load_status (WebKitLoadStatus status, const gchar *uri)
 {
     switch (status) {
 #ifdef USE_WEBKIT2
-        case WEBKIT_LOAD_STARTED:
+    case WEBKIT_LOAD_STARTED:
 #else
-        case WEBKIT_LOAD_PROVISIONAL:
+    case WEBKIT_LOAD_PROVISIONAL:
 #endif
-            uzbl_events_send (LOAD_START, NULL,
-                TYPE_STR, uri ? uri : "",
-                NULL);
-            break;
+        uzbl_events_send (LOAD_START, NULL,
+            TYPE_STR, uri ? uri : "",
+            NULL);
+        break;
 #ifdef USE_WEBKIT2
-        case WEBKIT_LOAD_REDIRECTED:
-            uzbl_events_send (LOAD_REDIRECTED, NULL,
-                TYPE_STR, uri,
-                NULL);
-            break;
+    case WEBKIT_LOAD_REDIRECTED:
+        uzbl_events_send (LOAD_REDIRECTED, NULL,
+            TYPE_STR, uri,
+            NULL);
+        break;
 #else
-        case WEBKIT_LOAD_FIRST_VISUALLY_NON_EMPTY_LAYOUT:
-            /* TODO: Implement. */
-            break;
-        case WEBKIT_LOAD_FAILED:
-            /* Handled by load_error_cb. */
-            break;
+    case WEBKIT_LOAD_FIRST_VISUALLY_NON_EMPTY_LAYOUT:
+        /* TODO: Implement. */
+        break;
+    case WEBKIT_LOAD_FAILED:
+        /* Handled by load_error_cb. */
+        break;
 #endif
-        case WEBKIT_LOAD_COMMITTED:
-            uzbl_events_send (LOAD_COMMIT, NULL,
-                TYPE_STR, uri,
-                NULL);
-            break;
-        case WEBKIT_LOAD_FINISHED:
+    case WEBKIT_LOAD_COMMITTED:
+        uzbl_events_send (LOAD_COMMIT, NULL,
+            TYPE_STR, uri,
+            NULL);
+        break;
+    case WEBKIT_LOAD_FINISHED:
 #ifdef USE_WEBKIT2
-            if (uzbl.state.load_failed) {
-                uzbl.state.load_failed = FALSE;
-                break;
-            }
+        if (uzbl.state.load_failed) {
+            uzbl.state.load_failed = FALSE;
+            break;
+        }
 #endif
-            uzbl_events_send (LOAD_FINISH, NULL,
-                TYPE_STR, uri,
-                NULL);
-            break;
-        default:
-            uzbl_debug ("Unrecognized load status: %d\n", status);
-            break;
+        uzbl_events_send (LOAD_FINISH, NULL,
+            TYPE_STR, uri,
+            NULL);
+        break;
+    default:
+        uzbl_debug ("Unrecognized load status: %d\n", status);
+        break;
     }
 }
 
@@ -1557,22 +1557,22 @@ key_to_modifier (guint keyval)
     /* FIXME: Should really use XGetModifierMapping and/or Xkb to get actual
      * modifier keys. */
     switch (keyval) {
-        case GDK_KEY_Shift_L:
-        case GDK_KEY_Shift_R:
-            return GDK_SHIFT_MASK;
-        case GDK_KEY_Control_L:
-        case GDK_KEY_Control_R:
-            return GDK_CONTROL_MASK;
-        case GDK_KEY_Alt_L:
-        case GDK_KEY_Alt_R:
-            return GDK_MOD1_MASK;
-        case GDK_KEY_Super_L:
-        case GDK_KEY_Super_R:
-            return GDK_MOD4_MASK;
-        case GDK_KEY_ISO_Level3_Shift:
-            return GDK_MOD5_MASK;
-        default:
-            return 0;
+    case GDK_KEY_Shift_L:
+    case GDK_KEY_Shift_R:
+        return GDK_SHIFT_MASK;
+    case GDK_KEY_Control_L:
+    case GDK_KEY_Control_R:
+        return GDK_CONTROL_MASK;
+    case GDK_KEY_Alt_L:
+    case GDK_KEY_Alt_R:
+        return GDK_MOD1_MASK;
+    case GDK_KEY_Super_L:
+    case GDK_KEY_Super_R:
+        return GDK_MOD4_MASK;
+    case GDK_KEY_ISO_Level3_Shift:
+        return GDK_MOD5_MASK;
+    default:
+        return 0;
     }
 }
 
@@ -1828,18 +1828,18 @@ download_status_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer d
     WebKitDownloadStatus status = webkit_download_get_status (download);
 
     switch (status) {
-        case WEBKIT_DOWNLOAD_STATUS_CREATED:
-        case WEBKIT_DOWNLOAD_STATUS_STARTED:
-        case WEBKIT_DOWNLOAD_STATUS_CANCELLED:
-        case WEBKIT_DOWNLOAD_STATUS_ERROR:
-            /* Handled elsewhere. */
-            break;
-        case WEBKIT_DOWNLOAD_STATUS_FINISHED:
-            download_finished_cb (download, data);
-            break;
-        default:
-            uzbl_debug ("Unknown download status: %d\n", status);
-            break;
+    case WEBKIT_DOWNLOAD_STATUS_CREATED:
+    case WEBKIT_DOWNLOAD_STATUS_STARTED:
+    case WEBKIT_DOWNLOAD_STATUS_CANCELLED:
+    case WEBKIT_DOWNLOAD_STATUS_ERROR:
+        /* Handled elsewhere. */
+        break;
+    case WEBKIT_DOWNLOAD_STATUS_FINISHED:
+        download_finished_cb (download, data);
+        break;
+    default:
+        uzbl_debug ("Unknown download status: %d\n", status);
+        break;
     }
 }
 
@@ -1973,18 +1973,18 @@ send_download_error (WebKitDownloadError err, const gchar *message)
     const gchar *str = NULL;
 
     switch (err) {
-        case WEBKIT_DOWNLOAD_ERROR_CANCELLED_BY_USER:
-            str = "cancelled";
-            break;
-        case WEBKIT_DOWNLOAD_ERROR_DESTINATION:
-            str = "destination";
-            break;
-        case WEBKIT_DOWNLOAD_ERROR_NETWORK:
-            str = "network";
-            break;
-        default:
-            str = "unknown";
-            break;
+    case WEBKIT_DOWNLOAD_ERROR_CANCELLED_BY_USER:
+        str = "cancelled";
+        break;
+    case WEBKIT_DOWNLOAD_ERROR_DESTINATION:
+        str = "destination";
+        break;
+    case WEBKIT_DOWNLOAD_ERROR_NETWORK:
+        str = "network";
+        break;
+    default:
+        str = "unknown";
+        break;
     }
 
     uzbl_events_send (DOWNLOAD_ERROR, NULL,

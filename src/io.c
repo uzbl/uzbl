@@ -362,15 +362,15 @@ build_stream_name (UzblCommType type, const gchar *dir)
     gchar *type_str;
 
     switch (type) {
-        case UZBL_COMM_FIFO:
-            type_str = "fifo";
-            break;
-        case UZBL_COMM_SOCKET:
-            type_str = "socket";
-            break;
-        default:
-            g_error ("Unknown communication type: %d\n", type);
-            return NULL;
+    case UZBL_COMM_FIFO:
+        type_str = "fifo";
+        break;
+    case UZBL_COMM_SOCKET:
+        type_str = "socket";
+        break;
+    default:
+        g_error ("Unknown communication type: %d\n", type);
+        return NULL;
     }
 
     str = g_strdup_printf ("%s/uzbl_%s_%s", dir, type_str, uzbl.state.instance_name);
@@ -393,15 +393,15 @@ create_dir (const gchar *dir)
         work_path[len - 1] = '\0';
     }
 
-#define check_mkdir(dir, mode)                                  \
-    if (mkdir (work_path, 0700)) {                              \
-        switch (errno) {                                        \
-            case EEXIST:                                        \
-                break;                                          \
-            default:                                            \
-                perror ("Failed to create socket or fifo dir"); \
-                return EXIT_FAILURE;                            \
-        }                                                       \
+#define check_mkdir(dir, mode)                              \
+    if (mkdir (work_path, 0700)) {                          \
+        switch (errno) {                                    \
+        case EEXIST:                                        \
+            break;                                          \
+        default:                                            \
+            perror ("Failed to create socket or fifo dir"); \
+            return EXIT_FAILURE;                            \
+        }                                                   \
     }
 
     /* Start making the parent directories from the bottom. */
