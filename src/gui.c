@@ -2,6 +2,7 @@
 
 #include "commands.h"
 #include "events.h"
+#include "io.h"
 #include "menu.h"
 #include "status-bar.h"
 #include "type.h"
@@ -1249,6 +1250,9 @@ set_window_property (const gchar *prop, const gchar *value)
     }
 }
 
+static void
+decide_navigation (GString *result, gpointer data);
+
 gboolean
 navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri)
 {
@@ -1257,41 +1261,23 @@ navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri)
         return FALSE;
     }
 
-    gboolean decision_made = FALSE;
-
     uzbl_debug ("Navigation requested -> %s\n", uri);
 
     gchar *handler = uzbl_variables_get_string ("scheme_handler");
 
-    if (*handler) {
-        GString *result = g_string_new ("");
-        GArray *args = uzbl_commands_args_new ();
-        const UzblCommand *scheme_command = uzbl_commands_parse (handler, args);
+    GArray *args = uzbl_commands_args_new ();
+    const UzblCommand *scheme_command = uzbl_commands_parse (handler, args);
 
-        if (scheme_command) {
-            uzbl_commands_args_append (args, g_strdup (uri));
-            uzbl_commands_run_parsed (scheme_command, args, result);
-        }
-
+    if (scheme_command) {
+        uzbl_commands_args_append (args, g_strdup (uri));
+        g_object_ref (decision);
+        uzbl_io_schedule_command (scheme_command, args, decide_navigation, decision);
+    } else {
+        make_policy (decision, use);
         uzbl_commands_args_free (args);
-
-        if (result->len > 0) {
-            remove_trailing_newline (result->str);
-
-            if (!g_strcmp0 (result->str, "USED")) {
-                make_policy (decision, ignore);
-                decision_made = TRUE;
-            }
-        }
-
-        g_string_free (result, TRUE);
     }
 
     g_free (handler);
-
-    if (!decision_made) {
-        make_policy (decision, use);
-    }
 
     return TRUE;
 }
@@ -1624,6 +1610,27 @@ button_to_modifier (guint buttonval)
         return (1 << (7 + buttonval));
     }
     return 0;
+}
+
+void
+decide_navigation (GString *result, gpointer data)
+{
+    WebKitWebPolicyDecision *decision = (WebKitWebPolicyDecision *)data;
+
+    remove_trailing_newline (result->str);
+
+    if (!g_strcmp0 (result->str, "IGNORE") ||
+        !g_strcmp0 (result->str, "USED")) { /* XXX: Deprecated */
+        make_policy (decision, ignore);
+    } else if (!g_strcmp0 (result->str, "DOWNLOAD")) {
+        make_policy (decision, download);
+    } else if (!g_strcmp0 (result->str, "USE")) {
+        make_policy (decision, use);
+    } else {
+        make_policy (decision, use);
+    }
+
+    g_object_unref (decision);
 }
 
 gboolean
