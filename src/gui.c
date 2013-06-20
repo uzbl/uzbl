@@ -622,7 +622,9 @@ typedef WebKitLoadEvent WebKitLoadStatus;
 static gboolean
 navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri);
 static gboolean
-mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type);
+request_decision (const gchar *uri, gpointer data);
+static void
+rewrite_request (GString *result, gpointer data);
 static void
 send_load_status (WebKitLoadStatus status, const gchar *uri);
 static gboolean
@@ -663,10 +665,11 @@ decide_policy_cb (WebKitWebView *view, WebKitPolicyDecision *decision, WebKitPol
         case WEBKIT_POLICY_DECISION_TYPE_RESPONSE:
         {
             WebKitResponsePolicyDecision *response_decision = WEBKIT_RESPONSE_POLICY_DECISION (decision);
-            WebKitURIResponse *response = webkit_response_policy_decision_get_response (response_decision);
-            const gchar *mime_type = webkit_uri_response_get_mime_type (response);
+            WebKitURIRequest *request = webkit_response_policy_decision_get_request (response_decision);
+            const gchar *uri = webkit_uri_request_get_uri (request);
 
-            return mime_decision (decision, mime_type);
+            g_object_ref (decision);
+            return request_decision (uri, decision);
         }
         default:
             uzbl_debug ("Unrecognized policy decision: %d\n", type);
@@ -746,6 +749,9 @@ navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
     return navigation_decision (policy_decision, uri);
 }
 
+static gboolean
+mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type);
+
 gboolean
 mime_policy_cb (WebKitWebView *view, WebKitWebFrame *frame,
         WebKitNetworkRequest *request, gchar *mime_type,
@@ -772,42 +778,13 @@ request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResour
     const gchar *uri = webkit_network_request_get_uri (request);
     SoupMessage *message = webkit_network_request_get_message (request);
 
-    uzbl_debug ("Request starting -> %s\n", uri);
-
     if (message) {
         SoupURI *soup_uri = soup_uri_new (uri);
         soup_message_set_first_party (message, soup_uri);
     }
 
-    uzbl_events_send (REQUEST_STARTING, NULL,
-        TYPE_STR, uri,
-        NULL);
-
-    gchar *handler = uzbl_variables_get_string ("request_handler");
-
-    if (*handler) {
-        GString *result = g_string_new ("");
-        GArray *args = uzbl_commands_args_new ();
-        const UzblCommand *request_command = uzbl_commands_parse (handler, args);
-
-        if (request_command) {
-            uzbl_commands_args_append (args, g_strdup (uri));
-            uzbl_commands_run_parsed (request_command, args, result);
-        }
-        uzbl_commands_args_free (args);
-
-        if (result->len > 0) {
-            remove_trailing_newline (result->str);
-
-            uzbl_debug ("Request rewritten -> %s\n", result->str);
-
-            webkit_network_request_set_uri (request, result->str);
-        }
-
-        g_string_free (result, TRUE);
-    }
-
-    g_free (handler);
+    g_object_ref (request);
+    request_decision (uri, request);
 }
 
 void
@@ -1283,24 +1260,29 @@ navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri)
 }
 
 gboolean
-mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type)
+request_decision (const gchar *uri, gpointer data)
 {
-    if (uzbl.state.frozen) {
-        make_policy (decision, ignore);
-        return FALSE;
-    }
+    uzbl_debug ("Request starting -> %s\n", uri);
 
-    /* TODO: Ignore based on external filter program? */
+    uzbl_events_send (REQUEST_STARTING, NULL,
+        TYPE_STR, uri,
+        NULL);
 
-    /* If we can display it, let's display it... */
-    if (webkit_web_view_can_show_mime_type (uzbl.gui.web_view, mime_type)) {
-        make_policy (decision, use);
+    gchar *handler = uzbl_variables_get_string ("request_handler");
+
+    GArray *args = uzbl_commands_args_new ();
+    const UzblCommand *request_command = uzbl_commands_parse (handler, args);
+
+    if (request_command) {
+        uzbl_commands_args_append (args, g_strdup (uri));
+        uzbl_io_schedule_command (request_command, args, rewrite_request, data);
     } else {
-        /* ...everything we can't display is downloaded. */
-        make_policy (decision, download);
+        uzbl_commands_args_free (args);
     }
 
-    return TRUE;
+    g_free (handler);
+
+    return (request_command != NULL);
 }
 
 void
@@ -1363,6 +1345,42 @@ send_load_error (const gchar *uri, GError *error)
 
     return FALSE;
 }
+
+#ifndef USE_WEBKIT2
+gboolean
+mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type)
+{
+    if (uzbl.state.frozen) {
+        make_policy (decision, ignore);
+        return FALSE;
+    }
+
+    gchar *handler = uzbl_variables_get_string ("mime_handler");
+
+    GArray *args = uzbl_commands_args_new ();
+    const UzblCommand *mime_command = uzbl_commands_parse (handler, args);
+
+    gboolean can_show = webkit_web_view_can_show_mime_type (uzbl.gui.web_view, mime_type);
+
+    if (mime_command) {
+        uzbl_commands_args_append (args, g_strdup (mime_type));
+        g_object_ref (decision);
+        uzbl_io_schedule_command (mime_command, args, decide_navigation, decision);
+    } else {
+        if (can_show) {
+            /* If we can display it, let's display it... */
+            make_policy (decision, use);
+        } else {
+            /* ...everything we can't display is downloaded. */
+            make_policy (decision, download);
+        }
+
+        uzbl_commands_args_free (args);
+    }
+
+    return TRUE;
+}
+#endif
 
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
@@ -1631,6 +1649,41 @@ decide_navigation (GString *result, gpointer data)
     }
 
     g_object_unref (decision);
+}
+
+void
+rewrite_request (GString *result, gpointer data)
+{
+#ifdef USE_WEBKIT2
+    WebKitResponsePolicyDecision *decision = (WebKitResponsePolicyDecision *)data;
+    WebKitURIRequest *request = webkit_response_policy_decision_get_request (decision);
+#else
+    WebKitNetworkRequest *request = (WebKitNetworkRequest *)data;
+#endif
+
+    remove_trailing_newline (result->str);
+
+    if (result->len > 0) {
+        uzbl_debug ("Request rewritten -> %s\n", result->str);
+
+#ifdef USE_WEBKIT2
+        if (!g_strcmp0 (result->str, "IGNORE"))
+            make_policy (decision, ignore);
+        } else if (!g_strcmp0 (result->str, "DOWNLOAD")) {
+            make_policy (decision, download);
+        } else {
+            webkit_uri_request_set_uri (request, result->str);
+        }
+#else
+        webkit_network_request_set_uri (request, result->str);
+#endif
+    }
+
+#ifdef USE_WEBKIT2
+    g_object_unref (decision);
+#else
+    g_object_unref (request);
+#endif
 }
 
 static void

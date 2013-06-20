@@ -122,6 +122,7 @@ typedef struct {
     gchar   *scheme_handler;
     gchar   *request_handler;
     gchar   *download_handler;
+    gchar   *mime_handler;
 
     gboolean forward_keys;
     gchar   *http_debug;
