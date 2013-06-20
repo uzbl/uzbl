@@ -1757,10 +1757,7 @@ decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename
     uzbl_commands_args_append (args, g_strdup (content_type));
     gchar *total_size_s = g_strdup_printf ("%" G_GUINT64_FORMAT, total_size);
     uzbl_commands_args_append (args, total_size_s);
-
-    if (destination) {
-        uzbl_commands_args_append (args, g_strdup (destination));
-    }
+    uzbl_commands_args_append (args, g_strdup (destination ? destination : ""));
 
     uzbl_io_schedule_command (download_command, args, download_destination, download);
 
