@@ -639,6 +639,7 @@ decide_policy_cb (WebKitWebView *view, WebKitPolicyDecision *decision, WebKitPol
 
     if (uzbl.state.frozen) {
         make_policy (decision, ignore);
+        return TRUE;
     }
 
     switch (type) {
@@ -1235,7 +1236,7 @@ navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri)
 {
     if (uzbl.state.frozen) {
         make_policy (decision, ignore);
-        return FALSE;
+        return TRUE;
     }
 
     uzbl_debug ("Navigation requested -> %s\n", uri);
