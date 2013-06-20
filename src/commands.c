@@ -331,6 +331,10 @@ uzbl_commands_args_append (GArray *argv, const gchar *arg)
 void
 uzbl_commands_args_free (GArray *argv)
 {
+    if (!argv) {
+        return;
+    }
+
     while (argv->len) {
         g_free (argv_idx (argv, argv->len - 1));
         g_array_remove_index (argv, argv->len - 1);
