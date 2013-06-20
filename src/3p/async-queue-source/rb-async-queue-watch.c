@@ -98,10 +98,10 @@ uzbl_rb_async_queue_watch_finalize (GSource *source)
 }
 
 static GSourceFuncs uzbl_rb_async_queue_watch_funcs = {
-	uzbl_rb_async_queue_watch_prepare,
-	uzbl_rb_async_queue_watch_check,
-	uzbl_rb_async_queue_watch_dispatch,
-	uzbl_rb_async_queue_watch_finalize
+	.prepare  = uzbl_rb_async_queue_watch_prepare,
+	.check    = uzbl_rb_async_queue_watch_check,
+	.dispatch = uzbl_rb_async_queue_watch_dispatch,
+	.finalize = uzbl_rb_async_queue_watch_finalize
 };
 
 /**
