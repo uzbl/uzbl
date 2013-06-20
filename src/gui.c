@@ -610,6 +610,14 @@ typedef WebKitPolicyDecision WebKitWebPolicyDecision;
 typedef WebKitLoadEvent WebKitLoadStatus;
 #endif
 
+#ifdef USE_WEBKIT2
+#define make_policy(decision, policy) \
+    webkit_policy_decision_##policy (decision)
+#else
+#define make_policy(decision, policy) \
+    webkit_web_policy_decision_##policy (decision)
+#endif
+
 static gboolean
 navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri);
 static gboolean
@@ -661,11 +669,7 @@ decide_policy_cb (WebKitWebView *view, WebKitPolicyDecision *decision, WebKitPol
     }
 
     if (uzbl.state.frozen) {
-#ifdef USE_WEBKIT2
-        webkit_policy_decision_ignore (decision);
-#else
-        webkit_web_policy_decision_ignore (decision);
-#endif
+        make_policy (decision, ignore);
     }
 
     return FALSE;
@@ -1249,11 +1253,7 @@ gboolean
 navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri)
 {
     if (uzbl.state.frozen) {
-#ifdef USE_WEBKIT2
-        webkit_policy_decision_ignore (decision);
-#else
-        webkit_web_policy_decision_ignore (decision);
-#endif
+        make_policy (decision, ignore);
         return FALSE;
     }
 
@@ -1279,11 +1279,7 @@ navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri)
             remove_trailing_newline (result->str);
 
             if (!g_strcmp0 (result->str, "USED")) {
-#ifdef USE_WEBKIT2
-                webkit_policy_decision_ignore (decision);
-#else
-                webkit_web_policy_decision_ignore (decision);
-#endif
+                make_policy (decision, ignore);
                 decision_made = TRUE;
             }
         }
@@ -1294,11 +1290,7 @@ navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri)
     g_free (handler);
 
     if (!decision_made) {
-#ifdef USE_WEBKIT2
-        webkit_policy_decision_use (decision);
-#else
-        webkit_web_policy_decision_use (decision);
-#endif
+        make_policy (decision, use);
     }
 
     return TRUE;
@@ -1308,11 +1300,7 @@ gboolean
 mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type)
 {
     if (uzbl.state.frozen) {
-#ifdef USE_WEBKIT2
-        webkit_policy_decision_ignore (decision);
-#else
-        webkit_web_policy_decision_ignore (decision);
-#endif
+        make_policy (decision, ignore);
         return FALSE;
     }
 
@@ -1320,19 +1308,10 @@ mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type)
 
     /* If we can display it, let's display it... */
     if (webkit_web_view_can_show_mime_type (uzbl.gui.web_view, mime_type)) {
-#ifdef USE_WEBKIT2
-        webkit_policy_decision_use (decision);
-#else
-        webkit_web_policy_decision_use (decision);
-#endif
+        make_policy (decision, use);
     } else {
         /* ...everything we can't display is downloaded. */
-#ifdef USE_WEBKIT2
-        /* TODO: Ignore the request and use our download logic. */
-        webkit_policy_decision_download (decision);
-#else
-        webkit_web_policy_decision_download (decision);
-#endif
+        make_policy (decision, download);
     }
 
     return TRUE;
