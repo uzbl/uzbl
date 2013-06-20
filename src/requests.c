@@ -7,10 +7,7 @@
 #include "util.h"
 #include "uzbl-core.h"
 
-#include <sys/time.h>
 #include <errno.h>
-#include <signal.h>
-#include <stdlib.h>
 #include <string.h>
 
 /* =========================== PUBLIC API =========================== */
@@ -35,18 +32,12 @@ uzbl_requests_send (const gchar *request, ...)
     va_start (vargs, request);
     va_copy (vacopy, vargs);
 
-#define COOKIE_PREFIX "/tmp/uzbl-REQUEST-"
+    GString *cookie = g_string_new ("");
+    g_string_printf (cookie, "%u", g_random_int ());
 
-    char *req_id = g_strdup (COOKIE_PREFIX "XXXXXX");
-    int fd = mkstemp (req_id);
-    char *cookie = g_strdup (req_id + strlen (COOKIE_PREFIX));
+    GString *str = vuzbl_requests_send (request, cookie->str, vacopy);
 
-    GString *str = vuzbl_requests_send (request, cookie, vacopy);
-
-    unlink (req_id);
-    g_free (cookie);
-    g_free (req_id);
-    close (fd);
+    g_string_free (cookie, TRUE);
 
     va_end (vacopy);
     va_end (vargs);
