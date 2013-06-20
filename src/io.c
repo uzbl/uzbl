@@ -545,6 +545,11 @@ write_socket (GString *result, gpointer data)
 
     GIOChannel *gio = (GIOChannel *)data;
 
+    if (!gio->is_writeable) {
+        g_io_channel_unref (gio);
+        return;
+    }
+
     g_string_append_c (result, '\n');
     ret = g_io_channel_write_chars (gio, result->str, result->len,
                                     &len, &error);
