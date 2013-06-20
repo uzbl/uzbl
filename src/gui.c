@@ -1634,8 +1634,6 @@ decide_navigation (GString *result, gpointer data)
 {
     WebKitWebPolicyDecision *decision = (WebKitWebPolicyDecision *)data;
 
-    remove_trailing_newline (result->str);
-
     if (!g_strcmp0 (result->str, "IGNORE") ||
         !g_strcmp0 (result->str, "USED")) { /* XXX: Deprecated */
         make_policy (decision, ignore);
@@ -1659,8 +1657,6 @@ rewrite_request (GString *result, gpointer data)
 #else
     WebKitNetworkRequest *request = (WebKitNetworkRequest *)data;
 #endif
-
-    remove_trailing_newline (result->str);
 
     if (result->len > 0) {
         uzbl_debug ("Request rewritten -> %s\n", result->str);
@@ -1913,9 +1909,6 @@ download_destination (GString *result, gpointer data)
         g_object_unref (download);
         return;
     }
-
-    /* Presumably people don't need newlines in their filenames. */
-    remove_trailing_newline (result->str);
 
     gboolean is_file_uri = !strprefix (result->str, "file:///");
 
