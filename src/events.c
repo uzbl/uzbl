@@ -53,8 +53,8 @@ uzbl_events_replay_buffer ()
 
     /* Replay buffered events. */
     while (i < uzbl.state.event_buffer->len) {
-        GString *tmp = g_ptr_array_index (uzbl.state.event_buffer, i++);
-        send_event_sockets (uzbl.comm.connect_chan, tmp);
+        GString *buffered_event = g_ptr_array_index (uzbl.state.event_buffer, i++);
+        send_event_sockets (uzbl.comm.connect_chan, buffered_event);
     }
 
     g_ptr_array_free (uzbl.state.event_buffer, TRUE);
