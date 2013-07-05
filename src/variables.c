@@ -806,6 +806,14 @@ uzbl_variables_toggle (const gchar *name, GArray *values)
                 g_free (current);
             } else {
                 next = "";
+
+                if (!var->builtin) {
+                    if (!strcmp (*var->value.s, "0")) {
+                        next = "1";
+                    } else if (!strcmp (*var->value.s, "1")) {
+                        next = "0";
+                    }
+                }
             }
 
             set_variable_string (var, next);
