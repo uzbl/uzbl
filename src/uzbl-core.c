@@ -98,10 +98,14 @@ uzbl_initialize (int argc, char **argv)
     uzbl.info.webkit_major     = webkit_get_major_version ();
     uzbl.info.webkit_minor     = webkit_get_minor_version ();
     uzbl.info.webkit_micro     = webkit_get_micro_version ();
+    uzbl.info.webkit_ua_major  = 0; /* TODO: What are these in WebKit2? */
+    uzbl.info.webkit_ua_minor  = 0;
 #else
     uzbl.info.webkit_major     = webkit_major_version ();
     uzbl.info.webkit_minor     = webkit_minor_version ();
     uzbl.info.webkit_micro     = webkit_micro_version ();
+    uzbl.info.webkit_ua_major  = WEBKIT_USER_AGENT_MAJOR_VERSION;
+    uzbl.info.webkit_ua_minor  = WEBKIT_USER_AGENT_MINOR_VERSION;
 #endif
     uzbl.info.webkit2          =
 #ifdef USE_WEBKIT2

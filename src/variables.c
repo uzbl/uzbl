@@ -608,6 +608,8 @@ builtin_variable_table[] = {
     { "WEBKIT_MAJOR",                 UZBL_C_INT (uzbl.info.webkit_major)},
     { "WEBKIT_MINOR",                 UZBL_C_INT (uzbl.info.webkit_minor)},
     { "WEBKIT_MICRO",                 UZBL_C_INT (uzbl.info.webkit_micro)},
+    { "WEBKIT_UA_MAJOR",              UZBL_C_INT (uzbl.info.webkit_ua_major)},
+    { "WEBKIT_UA_MINOR",              UZBL_C_INT (uzbl.info.webkit_ua_minor)},
     { "HAS_WEBKIT2",                  UZBL_C_INT (uzbl.info.webkit2)},
     { "ARCH_UZBL",                    UZBL_C_STRING (uzbl.info.arch)},
     { "COMMIT",                       UZBL_C_STRING (uzbl.info.commit)},
