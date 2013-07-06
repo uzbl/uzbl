@@ -610,6 +610,8 @@ builtin_variable_table[] = {
     { "WEBKIT_MAJOR",                 UZBL_C_INT (uzbl.info.webkit_major)},
     { "WEBKIT_MINOR",                 UZBL_C_INT (uzbl.info.webkit_minor)},
     { "WEBKIT_MICRO",                 UZBL_C_INT (uzbl.info.webkit_micro)},
+    { "WEBKIT_UA_MAJOR",              UZBL_C_INT (uzbl.info.webkit_ua_major)},
+    { "WEBKIT_UA_MINOR",              UZBL_C_INT (uzbl.info.webkit_ua_minor)},
     { "HAS_WEBKIT2",                  UZBL_C_INT (uzbl.info.webkit2)},
     { "ARCH_UZBL",                    UZBL_C_STRING (uzbl.info.arch)},
     { "COMMIT",                       UZBL_C_STRING (uzbl.info.commit)},
@@ -810,6 +812,14 @@ uzbl_variables_toggle (const gchar *name, GArray *values)
                 g_free (current);
             } else {
                 next = "";
+
+                if (!var->builtin) {
+                    if (!strcmp (*var->value.s, "0")) {
+                        next = "1";
+                    } else if (!strcmp (*var->value.s, "1")) {
+                        next = "0";
+                    }
+                }
             }
 
             sendev = set_variable_string (var, next);
