@@ -76,6 +76,7 @@ ${OBJ}: ${HEAD}
 uzbl-core: ${OBJ}
 
 uzbl-browser: uzbl-core uzbl-event-manager
+	sed 's#@PREFIX@#$(PREFIX)#' < uzbl.desktop.in > uzbl.desktop
 
 build: ${PY}
 	$(PYTHON) setup.py build
@@ -192,10 +193,12 @@ install-event-manager: install-dirs
 	$(PYTHON) setup.py install --prefix=$(PREFIX) --install-scripts=$(INSTALLDIR)/bin $(PYINSTALL_EXTRA)
 
 install-uzbl-browser: install-dirs install-uzbl-core install-event-manager
+	$(INSTALL) -d $(INSTALLDIR)/share/applications
 	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < bin/uzbl-browser > $(INSTALLDIR)/bin/uzbl-browser
 	chmod 755 $(INSTALLDIR)/bin/uzbl-browser
 	cp -r examples $(INSTALLDIR)/share/uzbl/
 	chmod 755 $(INSTALLDIR)/share/uzbl/examples/data/scripts/*
+	$(INSTALL) -m644 uzbl.desktop $(INSTALLDIR)/share/applications/uzbl.desktop
 
 install-uzbl-tabbed: install-dirs
 	install -m755 bin/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed
