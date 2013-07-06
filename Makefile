@@ -7,6 +7,7 @@ include $(wildcard local.mk)
 # RUN_PREFIX : what the prefix is when the software is run. usually the same as PREFIX
 PREFIX     ?= /usr/local
 INSTALLDIR ?= $(DESTDIR)$(PREFIX)
+MANDIR     ?= $(INSTALLDIR)/share/man
 DOCDIR     ?= $(INSTALLDIR)/share/uzbl/docs
 RUN_PREFIX ?= $(PREFIX)
 
@@ -230,11 +231,14 @@ install-dirs:
 install-uzbl-core: uzbl-core install-dirs
 	install -d $(INSTALLDIR)/share/uzbl/
 	install -d $(DOCDIR)
+	install -d $(MANDIR)/man1
 	install -m644 docs/* $(DOCDIR)/
 	install -m644 src/config.h $(DOCDIR)/
 	install -m644 README $(DOCDIR)/
 	install -m644 AUTHORS $(DOCDIR)/
 	install -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
+	install -m644 uzbl.1 $(MANDIR)/man1/uzbl.1
+	install -m644 uzbl-event-manager.1 $(MANDIR)/man1/uzbl-event-manager.1
 
 install-event-manager: install-dirs
 	$(PYTHON) setup.py install --prefix=$(PREFIX) --root=$(DESTDIR) --install-scripts=$(INSTALLDIR)/bin $(PYINSTALL_EXTRA)
