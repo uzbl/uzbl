@@ -237,7 +237,7 @@ install-uzbl-core: uzbl-core install-dirs
 	install -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
 
 install-event-manager: install-dirs
-	$(PYTHON) setup.py install --prefix=$(PREFIX) --install-scripts=$(INSTALLDIR)/bin $(PYINSTALL_EXTRA)
+	$(PYTHON) setup.py install --prefix=$(PREFIX) --root=$(DESTDIR) --install-scripts=$(INSTALLDIR)/bin $(PYINSTALL_EXTRA)
 
 install-uzbl-browser: install-dirs install-uzbl-core install-event-manager
 	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < bin/uzbl-browser > $(INSTALLDIR)/bin/uzbl-browser
