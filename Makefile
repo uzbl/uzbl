@@ -10,6 +10,7 @@ INSTALLDIR ?= $(DESTDIR)$(PREFIX)
 MANDIR     ?= $(INSTALLDIR)/share/man
 DOCDIR     ?= $(INSTALLDIR)/share/uzbl/docs
 RUN_PREFIX ?= $(PREFIX)
+INSTALL    ?= install -p
 
 ENABLE_WEBKIT2 ?= auto
 ENABLE_GTK3    ?= auto
@@ -125,6 +126,7 @@ ${OBJ}: ${HEAD}
 uzbl-core: ${OBJ}
 
 uzbl-browser: uzbl-core uzbl-event-manager
+	sed 's#@PREFIX@#$(PREFIX)#' < uzbl.desktop.in > uzbl.desktop
 
 build: ${PY}
 	$(PYTHON) setup.py build
@@ -229,34 +231,36 @@ install-dirs:
 	[ -d "$(INSTALLDIR)/bin" ] || install -d -m755 $(INSTALLDIR)/bin
 
 install-uzbl-core: uzbl-core install-dirs
-	install -d $(INSTALLDIR)/share/uzbl/
-	install -d $(DOCDIR)
-	install -d $(MANDIR)/man1
-	install -m644 docs/* $(DOCDIR)/
-	install -m644 src/config.h $(DOCDIR)/
-	install -m644 README $(DOCDIR)/
-	install -m644 AUTHORS $(DOCDIR)/
-	install -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
-	install -m644 uzbl.1 $(MANDIR)/man1/uzbl.1
-	install -m644 uzbl-event-manager.1 $(MANDIR)/man1/uzbl-event-manager.1
+	$(INSTALL) -d $(INSTALLDIR)/share/uzbl/
+	$(INSTALL) -d $(DOCDIR)
+	$(INSTALL) -d $(MANDIR)/man1
+	$(INSTALL) -m644 docs/* $(DOCDIR)/
+	$(INSTALL) -m644 src/config.h $(DOCDIR)/
+	$(INSTALL) -m644 README $(DOCDIR)/
+	$(INSTALL) -m644 AUTHORS $(DOCDIR)/
+	$(INSTALL) -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
+	$(INSTALL) -m644 uzbl.1 $(MANDIR)/man1/uzbl.1
+	$(INSTALL) -m644 uzbl-event-manager.1 $(MANDIR)/man1/uzbl-event-manager.1
 
 install-event-manager: install-dirs
 	$(PYTHON) setup.py install --prefix=$(PREFIX) --root=$(DESTDIR) --install-scripts=$(INSTALLDIR)/bin $(PYINSTALL_EXTRA)
 
 install-uzbl-browser: install-dirs install-uzbl-core install-event-manager
+	$(INSTALL) -d $(INSTALLDIR)/share/applications
 	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < bin/uzbl-browser > $(INSTALLDIR)/bin/uzbl-browser
 	chmod 755 $(INSTALLDIR)/bin/uzbl-browser
 	cp -r examples $(INSTALLDIR)/share/uzbl/
 	chmod 755 $(INSTALLDIR)/share/uzbl/examples/data/scripts/*
+	$(INSTALL) -m644 uzbl.desktop $(INSTALLDIR)/share/applications/uzbl.desktop
 
 install-uzbl-tabbed: install-dirs
-	install -m755 bin/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed
+	$(INSTALL) -m755 bin/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed
 
 # you probably only want to do this manually when testing and/or to the sandbox. not meant for distributors
 install-example-data:
-	install -d $(DESTDIR)/home/.config/uzbl
-	install -d $(DESTDIR)/home/.cache/uzbl
-	install -d $(DESTDIR)/home/.local/share/uzbl
+	$(INSTALL) -d $(DESTDIR)/home/.config/uzbl
+	$(INSTALL) -d $(DESTDIR)/home/.cache/uzbl
+	$(INSTALL) -d $(DESTDIR)/home/.local/share/uzbl
 	cp -rp examples/config/* $(DESTDIR)/home/.config/uzbl/
 	cp -rp examples/data/*   $(DESTDIR)/home/.local/share/uzbl/
 
