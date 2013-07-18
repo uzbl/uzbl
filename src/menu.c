@@ -5,7 +5,7 @@
 static void
 add_to_menu(GArray *argv, guint context) {
     GUI *g = &uzbl.gui;
-    MenuItem *m;
+    MenuItem *m = NULL;
     gchar *item_cmd = NULL;
 
     if(!argv_idx(argv, 0))
@@ -19,7 +19,10 @@ add_to_menu(GArray *argv, guint context) {
         item_cmd = split[1];
 
     if(split[0]) {
-        m = malloc(sizeof(MenuItem));
+        if(NULL == (m = malloc(sizeof(MenuItem)))) {
+			fprintf(stderr, "uzbl: error can't allocate menuitem memory.\n");
+			exit(EXIT_FAILURE);
+		}
         m->name = g_strdup(split[0]);
         m->cmd  = g_strdup(item_cmd?item_cmd:"");
         m->context = context;
@@ -71,7 +74,7 @@ menu_add_edit(WebKitWebView *page, GArray *argv, GString *result) {
 static void
 add_separator_to_menu(GArray *argv, guint context) {
     GUI *g = &uzbl.gui;
-    MenuItem *m;
+    MenuItem *m = NULL;
     gchar *sep_name;
 
     if(!g->menu_items)
@@ -82,7 +85,10 @@ add_separator_to_menu(GArray *argv, guint context) {
     else
         sep_name = argv_idx(argv, 0);
 
-    m = malloc(sizeof(MenuItem));
+	if(NULL == (m = malloc(sizeof(MenuItem)))) {
+		fprintf(stderr, "uzbl: error can't allocate menuitem memory.\n");
+		exit(EXIT_FAILURE);
+	}
     m->name    = g_strdup(sep_name);
     m->cmd     = NULL;
     m->context = context;
