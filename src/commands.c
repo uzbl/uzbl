@@ -1004,12 +1004,17 @@ IMPLEMENT_COMMAND (cookie)
 #else
         ARG_CHECK (argv, 5);
 
+        const gchar *domain = argv_idx (argv, 1);
+        const gchar *path = argv_idx (argv, 2);
+        const gchar *name = argv_idx (argv, 3);
+        const gchar *value = argv_idx (argv, 4);
+
         static const int expired_cookie = 0;
         SoupCookie *cookie = soup_cookie_new (
-            argv_idx (argv, 3),
-            argv_idx (argv, 4),
-            argv_idx (argv, 1),
-            argv_idx (argv, 2),
+            name,
+            value,
+            domain,
+            path,
             expired_cookie);
 
         uzbl.net.soup_cookie_jar->in_manual_add = 1;
