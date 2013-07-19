@@ -1,88 +1,122 @@
+/*jslint browser: true, vars: true, maxerr: 50, indent: 4 */
+/*global uzbl, escape, unescape */
+
 var uzbl = uzbl || {};
 
-uzbl.formfiller = {
+uzbl.formfiller = (function () {
+    'use strict';
 
-    // this is pointlessly duplicated in uzbl.follow
-    textInputTypes: [
-      'text', 'password', 'search', 'email', 'url', 'number', 'range', 'color',
-      'date', 'month', 'week', 'time', 'datetime', 'datetime-local'
-    ]
+    // Constants
+    // This is duplicated in uzbl.follow.
+    var textInputTypes = [
+        'color',
+        'date',
+        'datetime',
+        'datetime-local',
+        'email',
+        'month',
+        'number',
+        'password',
+        'range',
+        'search',
+        'text',
+        'time',
+        'url',
+        'week'
+    ];
 
-    ,
+    // Helpers
+    var slice = Array.prototype.slice;
 
-    // this is pointlessly duplicated in uzbl.follow
-    inputTypeIsText: function(type) {
-        return uzbl.formfiller.textInputTypes.indexOf(type) >= 0;
-    }
+    // Functions
+    // This is duplicated in uzbl.follow.
+    var inputTypeIsText = function (type) {
+        return (textInputTypes.indexOf(type) >= 0);
+    };
 
-    ,
+    var hasName = function (el) {
+        return el.name;
+    };
 
-    dump: function() {
-        var rv = '';
-        var allFrames = new Array(window);
+    // These are duplicated in uzbl.follow.
+    // Find all windows in the display, searching for frames recursively.
+    var windows = function (w) {
+        var win = (w === undefined) ? window.top : w;
 
-        for ( var f = 0; f < window.frames.length; ++f ) {
-            allFrames.push(window.frames[f]);
-        }
+        var wins = [win];
+        var frames = slice.apply(win.frames);
 
-        for ( var j = 0; j < allFrames.length; ++j ) {
-            try {
-                var inputs = allFrames[j].document.getElementsByTagName("input");
+        frames.forEach(function (frame) {
+            wins = wins.concat(windows(frame));
+        });
 
-                for( var k = 0; k < inputs.length; ++k ) {
-                    var input = inputs[k];
-                    if ( ! input.name ) {
-                        continue
-                    }
-                    if ( uzbl.formfiller.inputTypeIsText(input.type) ) {
-                        rv += '%' + escape(input.name) + '(' + input.type + '):' + input.value + '\n';
-                    } else if ( input.type == 'checkbox' || input.type == 'radio' ) {
-                        rv += '%' + escape(input.name) + '(' + input.type + '){' + escape(input.value) + '}:' + (input.checked?'1':'0') + '\n';
-                    }
-                }
+        return wins;
+    };
 
-                var textareas = allFrames[j].document.getElementsByTagName("textarea");
-                for( var k = 0; k < textareas.length; ++k ) {
-                    var textarea = textareas[k];
-                    if ( ! textarea.name ) {
-                        continue
-                    }
-                    rv += '%' + escape(textarea.name) + '(textarea):\n' + textarea.value.replace(/(^|\n)\\/g,"$1\\\\").replace(/(^|\n)%/g,"$1\\%") + '\n%\n';
-                }
-            }
-            catch (err) { }
-        }
-        return 'formfillerstart\n' + rv + '%!end';
-    }
+    // Find all documents in the display, searching frames recursively.
+    var documents = function () {
+        return windows().map(function (w) {
+            return w.document;
+        }).filter(function (d) {
+            return d !== undefined;
+        });
+    };
 
-    ,
+    return {
+        dump: function () {
+            var rv = '';
 
-    insert: function(fname, ftype, fvalue, fchecked) {
-        fname = unescape(fname);
-        var allFrames = new Array(window);
-        for ( var f = 0; f < window.frames.length; ++f ) {
-            allFrames.push(window.frames[f]);
-        }
-        for ( var j = 0; j < allFrames.length; ++j ) {
-            try {
-                if ( uzbl.formfiller.inputTypeIsText(ftype) || ftype == 'textarea' ) {
-                    allFrames[j].document.getElementsByName(fname)[0].value = fvalue;
-                }
-                else if ( ftype == 'checkbox' ) {
-                    allFrames[j].document.getElementsByName(fname)[0].checked = fchecked;
-                }
-                else if ( ftype == 'radio' ) {
-                    fvalue = unescape(fvalue);
-                    var radios = allFrames[j].document.getElementsByName(fname);
-                    for ( r=0; r<radios.length; ++r ) {
-                        if ( radios[r].value == fvalue ) {
-                            radios[r].checked = fchecked;
+            documents().forEach(function (doc) {
+                try {
+                    var elems = doc.getElementsByTagName('input');
+                    var inputs = slice.apply(elems);
+
+                    inputs.filter(hasName).forEach(function (input) {
+                        if (inputTypeIsText(input.type)) {
+                            rv += '%' + escape(input.name) + '(' + input.type + '):' + input.value + '\n';
+                        } else if ((input.type === 'checkbox') || (input.type === 'radio')) {
+                            rv += '%' + escape(input.name) + '(' + input.type + '){' + escape(input.value) + '}:' + (input.checked ? '1' : '0') + '\n';
                         }
-                    }
-                }
-            }
-            catch (err) { }
-        }
-    }
+                    });
 
-}
+                    elems = doc.getElementsByTagName('textarea');
+                    var textareas = slice.apply(elems);
+
+                    textareas.filter(hasName).forEach(function (textarea) {
+                        var escaped = textarea.value.replace(/(^|\n)\\/g, '$1\\\\').replace(/(^|\n)%/g, '$1\\%');
+                        rv += '%' + escape(textarea.name) + '(textarea):\n' + escaped + '\n%\n';
+                    });
+                } catch (err) {
+                    console.log('Error occurred when generating formfiller text: ' + err);
+                }
+            });
+
+            return 'formfillerstart\n' + rv + '%!end';
+        },
+
+        insert: function (fname, ftype, fvalue, fchecked) {
+            fname = unescape(fname);
+
+            documents().forEach(function (doc) {
+                try {
+                    if (inputTypeIsText(ftype) || (ftype === 'textarea')) {
+                        doc.getElementsByName(fname)[0].value = fvalue;
+                    } else if (ftype === 'checkbox') {
+                        doc.getElementsByName(fname)[0].checked = fchecked;
+                    } else if (ftype === 'radio') {
+                        fvalue = unescape(fvalue);
+                        var elems = doc.getElementsByName(fname);
+                        var radios = slice.apply(elems);
+                        radios.forEach(function (radio) {
+                            if (radio.value === fvalue) {
+                                radio.checked = fchecked;
+                            }
+                        });
+                    }
+                } catch (err) {
+                    console.log('Error occurred when applying formfiller text: ' + err);
+                }
+            });
+        }
+    };
+}());
