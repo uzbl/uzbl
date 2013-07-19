@@ -59,6 +59,11 @@ COMMIT_HASH := $(shell ./misc/hash.sh)
 
 CPPFLAGS += -D_BSD_SOURCE -D_POSIX_SOURCE -DARCH=\"$(ARCH)\" -DCOMMIT=\"$(COMMIT_HASH)\"
 
+HAVE_LIBSOUP_VERSION := $(shell pkg-config --exists 'libsoup-2.4 >= 2.41.1' && echo yes)
+ifeq ($(HAVE_LIBSOUP_VERSION),yes)
+CPPFLAGS += -DHAVE_LIBSOUP_CHECK_VERSION
+endif
+
 PKG_CFLAGS := $(shell pkg-config --cflags $(REQ_PKGS))
 
 LDLIBS := $(shell pkg-config --libs $(REQ_PKGS) x11)
