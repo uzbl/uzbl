@@ -1,9 +1,13 @@
 #ifndef UZBL_SCHEME_REQUEST_H
 #define UZBL_SCHEME_REQUEST_H
 
+#ifdef HAVE_SOUP_CHECK_VERSION
 #include <libsoup/soup-version.h>
 
 #if !SOUP_CHECK_VERSION (2, 41, 3)
+#define LIBSOUP_USE_UNSTABLE_REQUEST_API
+#endif
+#else
 #define LIBSOUP_USE_UNSTABLE_REQUEST_API
 #endif
 
