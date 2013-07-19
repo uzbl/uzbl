@@ -2193,6 +2193,12 @@ IMPLEMENT_COMMAND (inspector)
         ARG_CHECK (argv, 3);
 
         gdouble x = strtod (argv_idx (argv, 1), NULL);
+
+        /* Let's not tempt the dragons. */
+        if (errno == ERANGE) {
+            return;
+        }
+
         gdouble y = strtod (argv_idx (argv, 2), NULL);
 
         /* Let's not tempt the dragons. */
