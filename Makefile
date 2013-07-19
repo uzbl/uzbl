@@ -13,9 +13,9 @@ RUN_PREFIX ?= $(PREFIX)
 ENABLE_WEBKIT2 ?= auto
 ENABLE_GTK3    ?= auto
 
-PYTHON=python3
-PYTHONV=$(shell $(PYTHON) --version | sed -n /[0-9].[0-9]/p)
-COVERAGE=$(shell which coverage)
+PYTHON   = python3
+PYTHONV  = $(shell $(PYTHON) --version | sed -n /[0-9].[0-9]/p)
+COVERAGE = $(shell which coverage)
 
 # --- configuration ends here ---
 
@@ -49,15 +49,15 @@ endif
 
 REQ_PKGS += 'libsoup-2.4 >= 2.30' gthread-2.0 glib-2.0
 
-ARCH:=$(shell uname -m)
+ARCH := $(shell uname -m)
 
-COMMIT_HASH:=$(shell ./misc/hash.sh)
+COMMIT_HASH := $(shell ./misc/hash.sh)
 
 CPPFLAGS += -D_BSD_SOURCE -D_POSIX_SOURCE -DARCH=\"$(ARCH)\" -DCOMMIT=\"$(COMMIT_HASH)\"
 
-PKG_CFLAGS:=$(shell pkg-config --cflags $(REQ_PKGS))
+PKG_CFLAGS := $(shell pkg-config --cflags $(REQ_PKGS))
 
-LDLIBS:=$(shell pkg-config --libs $(REQ_PKGS) x11)
+LDLIBS := $(shell pkg-config --libs $(REQ_PKGS) x11)
 
 CFLAGS += -std=c99 $(PKG_CFLAGS) -ggdb -W -Wall -Wextra -pthread
 
