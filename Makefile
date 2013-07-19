@@ -195,6 +195,7 @@ test-uzbl-event-manager-sandbox: sandbox uzbl-browser sandbox-install-uzbl-brows
 clean:
 	rm -f uzbl-core
 	rm -f $(OBJ) ${LOBJ}
+	rm -f uzbl.desktop
 	find ./examples/ -name "*.pyc" -delete
 	cd ./tests/; $(MAKE) clean
 	rm -rf ./sandbox/
