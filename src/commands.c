@@ -1598,6 +1598,13 @@ IMPLEMENT_COMMAND (css)
         const gchar *whitelist = argv_idx (argv, 4);
         const gchar *blacklist = argv_idx (argv, 5);
 
+        if (!*baseuri) {
+            baseuri = NULL;
+        }
+        if (!*whitelist) {
+            whitelist = NULL;
+        }
+
         gchar **whitelist_list = NULL;
         gchar **blacklist_list = NULL;
 
