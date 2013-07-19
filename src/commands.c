@@ -1103,7 +1103,9 @@ IMPLEMENT_COMMAND (scroll)
         gdouble amount = g_ascii_strtod (amount_str, &end);
         gdouble max_value = upper - page;
 
-        if (*end == '%') {
+        if ((*end == '%') && (*(end + 1) == '!')) {
+            value = (max_value - lower) * amount * 0.01 + lower;
+        } else if (*end == '%') {
             value += page * amount * 0.01;
         } else if (*end == '!') {
             value = amount;
