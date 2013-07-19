@@ -2601,7 +2601,7 @@ plugin_toggle_one (WebKitWebPlugin *plugin, gpointer data)
 #endif
 
 /* Make sure that the args string you pass can properly be interpreted (e.g.,
- * properly escaped against whitespace, quotes etc). */
+ * properly escaped against whitespace, quotes etc.). */
 static gboolean
 run_system_command (GArray *args, const gboolean sync, char **output_stdout);
 

@@ -410,8 +410,7 @@ builtin_variable_table[] = {
     { "http_debug",                   UZBL_V_STRING (uzbl.behave.http_debug,               set_http_debug)},
     { "ssl_ca_file",                  UZBL_V_FUNC (ssl_ca_file,                            STR)},
 #endif
-    { "ssl_policy",                   UZBL_V_FUNC (ssl_policy,                             STR)
-                                                                                               },
+    { "ssl_policy",                   UZBL_V_FUNC (ssl_policy,                             STR)},
     { "cache_model",                  UZBL_V_FUNC (cache_model,                            STR)},
 
     /* Security variables */
@@ -1737,7 +1736,7 @@ IMPLEMENT_SETTER (int, enable_builtin_auth)
     SoupSessionFeature *auth = soup_session_get_feature (
         uzbl.net.soup_session, (GType)WEBKIT_TYPE_SOUP_AUTH_DIALOG);
 
-    if (enable_builtin_auth > 0) {
+    if (enable_builtin_auth) {
         if (!auth) {
             soup_session_add_feature_by_type (
                 uzbl.net.soup_session, (GType)WEBKIT_TYPE_SOUP_AUTH_DIALOG);
