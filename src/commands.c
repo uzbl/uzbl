@@ -2190,9 +2190,7 @@ IMPLEMENT_COMMAND (inspector)
         webkit_web_inspector_detach (uzbl.gui.inspector);
 #else
     } else if (!g_strcmp0 (command, "coord")) {
-        if (argv->len < 3) {
-            return;
-        }
+        ARG_CHECK (argv, 3);
 
         gdouble x = strtod (argv_idx (argv, 1), NULL);
         gdouble y = strtod (argv_idx (argv, 2), NULL);
