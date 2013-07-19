@@ -1398,6 +1398,8 @@ IMPLEMENT_COMMAND (plugin)
         }
 
         webkit_web_plugin_database_plugins_list_free (plugins);
+
+        /* TODO: Implement enable/disable subcommands. */
 #endif
     } else {
         uzbl_debug ("Unrecognized plugin command: %s\n", command);
@@ -1457,6 +1459,7 @@ IMPLEMENT_COMMAND (spell)
 
         gchar *new_word = webkit_spell_checker_get_autocorrect_suggestions_for_misspelled_word (checker, word);
 
+        /* TODO: Return as a JSON string? */
         g_string_assign (result, new_word);
 
         g_free (new_word);
