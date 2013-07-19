@@ -1842,6 +1842,8 @@ IMPLEMENT_COMMAND (search)
                 case '~':
                     mode = OPTION_DEFAULT;
                     break;
+                case '\0':
+                    continue;
                 default:
                     break;
             }
