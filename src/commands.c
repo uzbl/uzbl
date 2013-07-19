@@ -74,9 +74,9 @@ DECLARE_COMMAND (auth);
 DECLARE_COMMAND (download);
 
 /* Page commands */
+DECLARE_COMMAND (load);
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 9, 90)
-DECLARE_COMMAND (load);
 DECLARE_COMMAND (save);
 #endif
 #endif
@@ -120,7 +120,6 @@ DECLARE_COMMAND (spell);
 DECLARE_COMMAND (cache);
 #endif
 DECLARE_COMMAND (favicon);
-DECLARE_COMMAND (inject);
 DECLARE_COMMAND (css);
 DECLARE_COMMAND (scheme);
 
@@ -180,9 +179,9 @@ builtin_command_table[] =
     { "download",                       cmd_download,                 TRUE,  TRUE  },
 
     /* Page commands */
+    { "load",                           cmd_load,                     TRUE,  TRUE  },
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 9, 90)
-    { "load",                           cmd_load,                     TRUE,  TRUE  },
     { "save",                           cmd_save,                     TRUE,  TRUE  },
 #endif
 #endif
@@ -216,7 +215,6 @@ builtin_command_table[] =
     { "cache",                          cmd_cache,                    TRUE,  TRUE  },
 #endif
     { "favicon",                        cmd_favicon,                  TRUE,  TRUE  },
-    { "inject",                         cmd_inject,                   TRUE,  TRUE  },
     { "css",                            cmd_css,                      TRUE,  TRUE  },
     { "scheme",                         cmd_scheme,                   FALSE, TRUE  },
 
@@ -833,15 +831,11 @@ IMPLEMENT_COMMAND (auth)
 {
     UZBL_UNUSED (result);
 
-    gchar *info;
-    gchar *username;
-    gchar *password;
-
     ARG_CHECK (argv, 3);
 
-    info = argv_idx (argv, 0);
-    username = argv_idx (argv, 1);
-    password = argv_idx (argv, 2);
+    const gchar *info = argv_idx (argv, 0);
+    const gchar *username = argv_idx (argv, 1);
+    const gchar *password = argv_idx (argv, 2);
 
     uzbl_soup_authenticate (info, username, password);
 }
@@ -876,8 +870,6 @@ IMPLEMENT_COMMAND (download)
 
 /* Page commands */
 
-#ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 9, 90)
 IMPLEMENT_COMMAND (load)
 {
     UZBL_UNUSED (result);
@@ -886,15 +878,67 @@ IMPLEMENT_COMMAND (load)
         return;
     }
 
-    guint sz = argv->len;
+    ARG_CHECK (argv, 1);
 
-    const gchar *content = (sz > 0) ? argv_idx (argv, 0) : NULL;
-    const gchar *content_uri = (sz > 1) ? argv_idx (argv, 1) : NULL;
-    const gchar *base_uri = (sz > 2) ? argv_idx (argv, 2) : NULL;
+    const gchar *format = argv_idx (argv, 0);
 
-    webkit_web_view_load_alternate_html (uzbl.gui.web_view, content, content_uri, base_uri);
+    if (!g_strcmp0 (format, "html")) {
+        ARG_CHECK (argv, 3);
+
+        const gchar *content = argv_idx (argv, 1);
+        const gchar *baseuri = argv_idx (argv, 2);
+
+#ifdef USE_WEBKIT2
+        webkit_web_view_load_html (uzbl.gui.web_view, content, baseuri);
+#else
+        webkit_web_view_load_html_string (uzbl.gui.web_view, content, baseuri);
+#endif
+#ifdef USE_WEBKIT2
+    } else if (!g_strcmp0 (format, "text")) {
+        ARG_CHECK (argv, 2);
+
+        const gchar *content = argv_idx (argv, 1);
+
+        webkit_web_view_load_plain_text (uzbl.gui.web_view, content);
+#endif
+    } else if (!g_strcmp0 (format, "error_html")) {
+        ARG_CHECK (argv, 3);
+
+        const gchar *content = argv_idx (argv, 1);
+        const gchar *uri = argv_idx (argv, 2);
+        const gchar *baseuri = argv_idx (argv, 3);
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 90)
+        webkit_web_view_load_alternate_html (uzbl.gui.web_view, content, uri, baseuri);
+#elif WEBKIT_CHECK_VERSION (1, 7, 4)
+        webkit_web_view_replace_content (uzbl.gui.web_view, content, uri, baseuri);
+#else
+        webkit_web_view_load_alternate_html (uzbl.gui.web_view, content, uri, baseuri);
+#endif
+#else
+        WebKitWebFrame *frame = webkit_web_view_get_focused_frame (uzbl.gui.web_view);
+        webkit_web_frame_load_alternate_string (frame, content, baseuri, uri);
+#endif
+#ifndef USE_WEBKIT2
+    } else if (!g_strcmp0 (format, "content")) {
+        ARG_CHECK (argv, 5);
+
+        const gchar *baseuri = argv_idx (argv, 1);
+        const gchar *mime = argv_idx (argv, 2);
+        const gchar *encoding = argv_idx (argv, 3);
+        const gchar *content = argv_idx (argv, 4);
+
+        WebKitWebFrame *frame = webkit_web_view_get_focused_frame (uzbl.gui.web_view);
+        webkit_web_frame_load_string (frame, content, mime, encoding, baseuri);
+#endif
+    } else {
+        uzbl_debug ("Unrecognized load command: %s\n", format);
+    }
 }
 
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 90)
 static void
 save_to_file_async_cb (GObject *object, GAsyncResult *res, gpointer data);
 static void
@@ -978,7 +1022,7 @@ IMPLEMENT_COMMAND (frame)
         webkit_web_frame_stop_loading (frame);
     } else if (!g_strcmp0 (command, "dump")) {
         /* TODO: Implement. */
-    } else if (!g_strcmp0 (command, "inject")) {
+    } else if (!g_strcmp0 (command, "load")) {
         /* TODO: Copy inject code up to here? */
     } else if (!g_strcmp0 (command, "get")) {
         /* TODO: Implement. */
@@ -1009,29 +1053,24 @@ IMPLEMENT_COMMAND (cookie)
 #ifdef USE_WEBKIT2
         uzbl_debug ("Manual cookie additions are unsupported in WebKit2.\n");
 #else
-        gchar *host;
-        gchar *path;
-        gchar *name;
-        gchar *value;
-        gchar *scheme;
-        gboolean secure = 0;
-        gboolean httponly = 0;
-        gchar *expires_arg;
-        SoupDate *expires = NULL;
-
         ARG_CHECK (argv, 7);
 
         /* Parse with same syntax as ADD_COOKIE event. */
-        host = argv_idx (argv, 1);
-        path = argv_idx (argv, 2);
-        name = argv_idx (argv, 3);
-        value = argv_idx (argv, 4);
-        scheme = argv_idx (argv, 5);
+        gchar *host = argv_idx (argv, 1);
+        gchar *path = argv_idx (argv, 2);
+        gchar *name = argv_idx (argv, 3);
+        gchar *value = argv_idx (argv, 4);
+        gchar *scheme = argv_idx (argv, 5);
+        gchar *expires_arg = argv_idx (argv, 6);
+
+        gboolean secure = FALSE;
+        gboolean httponly = FALSE;
+        SoupDate *expires = NULL;
+
         if (!strprefix (scheme, "http")) {
             secure = (scheme[4] == 's');
             httponly = !strprefix (scheme + 4 + secure, "Only");
         }
-        expires_arg = argv_idx (argv, 6);
         if (*expires_arg) {
             expires = soup_date_new_from_time_t (strtoul (expires_arg, NULL, 10));
         }
@@ -1061,12 +1100,17 @@ IMPLEMENT_COMMAND (cookie)
 #else
         ARG_CHECK (argv, 5);
 
+        const gchar *domain = argv_idx (argv, 1);
+        const gchar *path = argv_idx (argv, 2);
+        const gchar *name = argv_idx (argv, 3);
+        const gchar *value = argv_idx (argv, 4);
+
         static const int expired_cookie = 0;
         SoupCookie *cookie = soup_cookie_new (
-            argv_idx (argv, 3),
-            argv_idx (argv, 4),
-            argv_idx (argv, 1),
-            argv_idx (argv, 2),
+            name,
+            value,
+            domain,
+            path,
             expired_cookie);
 
         uzbl.net.soup_cookie_jar->in_manual_add = 1;
@@ -1155,7 +1199,9 @@ IMPLEMENT_COMMAND (scroll)
         gdouble amount = g_ascii_strtod (amount_str, &end);
         gdouble max_value = upper - page;
 
-        if (*end == '%') {
+        if ((*end == '%') && (*(end + 1) == '!')) {
+            value = (max_value - lower) * amount * 0.01 + lower;
+        } else if (*end == '%') {
             value += page * amount * 0.01;
         } else if (*end == '!') {
             value = amount;
@@ -1319,32 +1365,36 @@ IMPLEMENT_COMMAND (snapshot)
 {
     UZBL_UNUSED (result);
 
-    ARG_CHECK (argv, 1);
+    ARG_CHECK (argv, 3);
 
     cairo_surface_t *surface;
 
     const gchar *path = argv_idx (argv, 0);
-
-#ifdef USE_WEBKIT2
-    ARG_CHECK (argv, 3);
-
-    guint sz = argv->len;
-    guint i;
-
     const gchar *format = argv_idx (argv, 1);
     const gchar *region_str = argv_idx (argv, 2);
 
+#ifdef USE_WEBKIT2
     WebKitSnapshotRegion region = WEBKIT_SNAPSHOT_REGION_VISIBLE;
+#endif
 
     if (!g_strcmp0 (region_str, "visible")) {
+#ifdef USE_WEBKIT2
         region = WEBKIT_SNAPSHOT_REGION_VISIBLE;
+#endif
+#ifdef USE_WEBKIT2
     } else if (!g_strcmp0 (region_str, "document")) {
         region = WEBKIT_SNAPSHOT_REGION_FULL_DOCUMENT;
+#endif
     } else {
         uzbl_debug ("Unrecognized snapshot region: %s\n", region_str);
+        return;
     }
 
+#ifdef USE_WEBKIT2
     WebKitSnapshotOptions options = WEBKIT_SNAPSHOT_OPTIONS_NONE;
+
+    guint sz = argv->len;
+    guint i;
 
     for (i = 3; i < sz; ++i) {
         const gchar *option = argv_idx (argv, i);
@@ -1358,13 +1408,23 @@ IMPLEMENT_COMMAND (snapshot)
 
     GError *err = NULL;
 
+#if 0 /* Broken since the call is meant to be async. */
     webkit_web_view_get_snapshot (uzbl.gui.web_view, region, options,
                                   NULL, NULL, NULL);
     surface = webkit_web_view_get_snapshot_finish (uzbl.gui.web_view, NULL, &err);
+#endif
 
     if (!surface) {
         /* TODO: Don't ignore the error. */
         g_error_free (err);
+    }
+#else
+    surface = webkit_web_view_get_snapshot (uzbl.gui.web_view);
+#endif
+
+    if (!surface) {
+        uzbl_debug ("Failed to create a valid snapshot");
+        return;
     }
 
     if (!g_strcmp0 (format, "png")) {
@@ -1372,11 +1432,6 @@ IMPLEMENT_COMMAND (snapshot)
     } else {
         uzbl_debug ("Unrecognized snapshot format: %s\n", format);
     }
-#else
-    surface = webkit_web_view_get_snapshot (uzbl.gui.web_view);
-
-    cairo_surface_write_to_png (surface, path);
-#endif
 
     cairo_surface_destroy (surface);
 }
@@ -1427,6 +1482,8 @@ IMPLEMENT_COMMAND (plugin)
         }
 
         webkit_web_plugin_database_plugins_list_free (plugins);
+
+        /* TODO: Implement enable/disable subcommands. */
 #endif
     } else {
         uzbl_debug ("Unrecognized plugin command: %s\n", command);
@@ -1486,6 +1543,7 @@ IMPLEMENT_COMMAND (spell)
 
         gchar *new_word = webkit_spell_checker_get_autocorrect_suggestions_for_misspelled_word (checker, word);
 
+        /* TODO: Return as a JSON string? */
         g_string_assign (result, new_word);
 
         g_free (new_word);
@@ -1572,80 +1630,6 @@ IMPLEMENT_COMMAND (favicon)
     }
 }
 
-IMPLEMENT_COMMAND (inject)
-{
-#if 0 /* TODO: Move into frame command? */
-    GArray *args = uzbl_commands_args_new ();
-
-    uzbl_commands_args_append (args, g_strdup ("inject"));
-    uzbl_commands_args_append (args, g_strdup ("_top"));
-
-    guint i;
-    for (i = 0; i < argv->len; ++i) {
-        const gchar *arg = g_strdup (argv_idx (argv, i));
-        uzbl_commands_args_append (args, arg);
-    }
-
-    cmd_frame (args, result);
-
-    uzbl_commands_args_free (args);
-#endif
-
-    UZBL_UNUSED (result);
-
-    ARG_CHECK (argv, 1);
-
-    const gchar *format = argv_idx (argv, 0);
-
-    if (!g_strcmp0 (format, "html")) {
-        ARG_CHECK (argv, 3);
-
-        const gchar *baseuri = argv_idx (argv, 1);
-        const gchar *content = argv_idx (argv, 2);
-
-#ifdef USE_WEBKIT2
-        webkit_web_view_load_html (uzbl.gui.web_view, content, baseuri);
-#else
-        webkit_web_view_load_html_string (uzbl.gui.web_view, content, baseuri);
-#endif
-#ifdef USE_WEBKIT2
-    } else if (!g_strcmp0 (format, "text")) {
-        ARG_CHECK (argv, 2);
-
-        const gchar *content = argv_idx (argv, 1);
-
-        webkit_web_view_load_plain_text (uzbl.gui.web_view, content);
-#endif
-    } else if (!g_strcmp0 (format, "error_html")) {
-        ARG_CHECK (argv, 4);
-
-        const gchar *uri = argv_idx (argv, 1);
-        const gchar *baseuri = argv_idx (argv, 2);
-        const gchar *content = argv_idx (argv, 3);
-
-#ifdef USE_WEBKIT2
-        webkit_web_view_load_alternate_html (uzbl.gui.web_view, content, uri, baseuri);
-#else
-        WebKitWebFrame *frame = webkit_web_view_get_focused_frame (uzbl.gui.web_view);
-        webkit_web_frame_load_alternate_string (frame, content, baseuri, uri);
-#endif
-#ifndef USE_WEBKIT2
-    } else if (!g_strcmp0 (format, "content")) {
-        ARG_CHECK (argv, 5);
-
-        const gchar *baseuri = argv_idx (argv, 1);
-        const gchar *mime = argv_idx (argv, 2);
-        const gchar *encoding = argv_idx (argv, 3);
-        const gchar *content = argv_idx (argv, 4);
-
-        WebKitWebFrame *frame = webkit_web_view_get_focused_frame (uzbl.gui.web_view);
-        webkit_web_frame_load_string (frame, content, mime, encoding, baseuri);
-#endif
-    } else {
-        uzbl_debug ("Unrecognized inject format: %s\n", format);
-    }
-}
-
 IMPLEMENT_COMMAND (css)
 {
     UZBL_UNUSED (result);
@@ -1683,6 +1667,13 @@ IMPLEMENT_COMMAND (css)
         const gchar *baseuri = argv_idx (argv, 3);
         const gchar *whitelist = argv_idx (argv, 4);
         const gchar *blacklist = argv_idx (argv, 5);
+
+        if (!*baseuri) {
+            baseuri = NULL;
+        }
+        if (!*whitelist) {
+            whitelist = NULL;
+        }
 
         gchar **whitelist_list = NULL;
         gchar **blacklist_list = NULL;
@@ -1843,6 +1834,8 @@ IMPLEMENT_COMMAND (menu)
 
         g_ptr_array_add (uzbl.gui.menu_items, mi);
     } else if (is_remove || (is_query && result)) {
+        ARG_CHECK (argv, 2);
+
         const gchar *name = argv_idx (argv, 1);
 
         guint i = 0;
@@ -1933,6 +1926,8 @@ IMPLEMENT_COMMAND (search)
                 case '~':
                     mode = OPTION_DEFAULT;
                     break;
+                case '\0':
+                    continue;
                 default:
                     break;
             }
@@ -2160,9 +2155,9 @@ IMPLEMENT_COMMAND (security)
 {
     ARG_CHECK (argv, 3);
 
-    const gchar *option = argv_idx (argv, 0);
+    const gchar *scheme = argv_idx (argv, 0);
     const gchar *command = argv_idx (argv, 1);
-    const gchar *scheme = argv_idx (argv, 2);
+    const gchar *option = argv_idx (argv, 2);
 
 #ifdef USE_WEBKIT2
     typedef gboolean (*UzblGetSecurityOption) (WebKitSecurityManager *manager, const gchar *scheme);
@@ -2296,11 +2291,15 @@ IMPLEMENT_COMMAND (inspector)
         webkit_web_inspector_detach (uzbl.gui.inspector);
 #else
     } else if (!g_strcmp0 (command, "coord")) {
-        if (argv->len < 3) {
+        ARG_CHECK (argv, 3);
+
+        gdouble x = strtod (argv_idx (argv, 1), NULL);
+
+        /* Let's not tempt the dragons. */
+        if (errno == ERANGE) {
             return;
         }
 
-        gdouble x = strtod (argv_idx (argv, 1), NULL);
         gdouble y = strtod (argv_idx (argv, 2), NULL);
 
         /* Let's not tempt the dragons. */
@@ -2457,7 +2456,13 @@ IMPLEMENT_COMMAND (spawn)
 
 IMPLEMENT_COMMAND (spawn_sync)
 {
-    spawn (argv, result, FALSE);
+    if (!result) {
+        GString *force_result = g_string_new ("");
+        spawn (argv, force_result, FALSE);
+        g_string_free (force_result, FALSE);
+    } else {
+        spawn (argv, result, FALSE);
+    }
 }
 
 IMPLEMENT_COMMAND (spawn_sync_exec)
@@ -2767,7 +2772,7 @@ plugin_toggle_one (WebKitWebPlugin *plugin, gpointer data)
 #endif
 
 /* Make sure that the args string you pass can properly be interpreted (e.g.,
- * properly escaped against whitespace, quotes etc). */
+ * properly escaped against whitespace, quotes etc.). */
 static gboolean
 run_system_command (GArray *args, const gboolean sync, char **output_stdout);
 

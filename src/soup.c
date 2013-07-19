@@ -136,6 +136,7 @@ authenticate_cb (SoupSession *session,
     pending_auth_add_message (pending, msg);
     soup_session_pause_message (session, msg);
 
+    /* TODO: Use an "authentication_handler" command instead. */
     uzbl_events_send (AUTHENTICATE, NULL,
         TYPE_STR, authinfo,
         TYPE_STR, soup_auth_get_host (auth),

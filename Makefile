@@ -197,6 +197,7 @@ clean:
 	rm -f $(OBJ) ${LOBJ}
 	rm -f uzbl.desktop
 	find ./examples/ -name "*.pyc" -delete
+	find ./__pycache__/ -name "*.pyc" -delete
 	cd ./tests/; $(MAKE) clean
 	rm -rf ./sandbox/
 	$(PYTHON) setup.py clean

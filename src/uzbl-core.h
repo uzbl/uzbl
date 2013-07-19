@@ -36,7 +36,7 @@ typedef struct {
     WebKitWebInspector *inspector;
 
     /* Context menu */
-    gboolean       custom_context_menu;
+    gboolean       default_context_menu;
     GPtrArray     *menu_items;
 } UzblGui;
 
