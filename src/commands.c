@@ -2355,7 +2355,13 @@ IMPLEMENT_COMMAND (spawn)
 
 IMPLEMENT_COMMAND (spawn_sync)
 {
-    spawn (argv, result, FALSE);
+    if (!result) {
+        GString *force_result = g_string_new ("");
+        spawn (argv, force_result, FALSE);
+        g_string_free (force_result, FALSE);
+    } else {
+        spawn (argv, result, FALSE);
+    }
 }
 
 IMPLEMENT_COMMAND (spawn_sync_exec)
