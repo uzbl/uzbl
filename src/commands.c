@@ -2071,9 +2071,9 @@ IMPLEMENT_COMMAND (security)
 {
     ARG_CHECK (argv, 3);
 
-    const gchar *option = argv_idx (argv, 0);
+    const gchar *scheme = argv_idx (argv, 0);
     const gchar *command = argv_idx (argv, 1);
-    const gchar *scheme = argv_idx (argv, 2);
+    const gchar *option = argv_idx (argv, 2);
 
 #ifdef USE_WEBKIT2
     typedef gboolean (*UzblGetSecurityOption) (WebKitSecurityManager *manager, const gchar *scheme);
