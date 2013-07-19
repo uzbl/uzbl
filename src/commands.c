@@ -789,15 +789,11 @@ IMPLEMENT_COMMAND (auth)
 {
     UZBL_UNUSED (result);
 
-    gchar *info;
-    gchar *username;
-    gchar *password;
-
     ARG_CHECK (argv, 3);
 
-    info = argv_idx (argv, 0);
-    username = argv_idx (argv, 1);
-    password = argv_idx (argv, 2);
+    const gchar *info = argv_idx (argv, 0);
+    const gchar *username = argv_idx (argv, 1);
+    const gchar *password = argv_idx (argv, 2);
 
     uzbl_soup_authenticate (info, username, password);
 }
@@ -961,29 +957,24 @@ IMPLEMENT_COMMAND (cookie)
 #ifdef USE_WEBKIT2
         uzbl_debug ("Manual cookie additions are unsupported in WebKit2.\n");
 #else
-        gchar *host;
-        gchar *path;
-        gchar *name;
-        gchar *value;
-        gchar *scheme;
-        gboolean secure = 0;
-        gboolean httponly = 0;
-        gchar *expires_arg;
-        SoupDate *expires = NULL;
-
         ARG_CHECK (argv, 7);
 
         /* Parse with same syntax as ADD_COOKIE event. */
-        host = argv_idx (argv, 1);
-        path = argv_idx (argv, 2);
-        name = argv_idx (argv, 3);
-        value = argv_idx (argv, 4);
-        scheme = argv_idx (argv, 5);
+        gchar *host = argv_idx (argv, 1);
+        gchar *path = argv_idx (argv, 2);
+        gchar *name = argv_idx (argv, 3);
+        gchar *value = argv_idx (argv, 4);
+        gchar *scheme = argv_idx (argv, 5);
+        gchar *expires_arg = argv_idx (argv, 6);
+
+        gboolean secure = FALSE;
+        gboolean httponly = FALSE;
+        SoupDate *expires = NULL;
+
         if (!strprefix (scheme, "http")) {
             secure = (scheme[4] == 's');
             httponly = !strprefix (scheme + 4 + secure, "Only");
         }
-        expires_arg = argv_idx (argv, 6);
         if (*expires_arg) {
             expires = soup_date_new_from_time_t (strtoul (expires_arg, NULL, 10));
         }
