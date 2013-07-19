@@ -914,6 +914,10 @@ context_menu_cb (WebKitWebView *view, GtkMenu *menu, WebKitHitTestResult *hit_te
         return FALSE;
     }
 
+    if (uzbl.gui.default_context_menu) {
+        return FALSE;
+    }
+
     /* Display the default menu with our modifications. */
     return populate_context_menu (menu, hit_test_result, context);
 }
