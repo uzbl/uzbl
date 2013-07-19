@@ -398,7 +398,7 @@ builtin_variable_table[] = {
     /* Customization */
     { "default_context_menu",
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
-                                      UZBL_V_INT (uzbl.gui.default_context_menu,            NULL)
+                                      UZBL_V_INT (uzbl.gui.default_context_menu,           NULL)
 #else
                                       UZBL_V_FUNC (default_context_menu,                   INT)
 #endif
