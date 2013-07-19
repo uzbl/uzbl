@@ -1750,6 +1750,8 @@ IMPLEMENT_COMMAND (menu)
 
         g_ptr_array_add (uzbl.gui.menu_items, mi);
     } else if (is_remove || (is_query && result)) {
+        ARG_CHECK (argv, 2);
+
         const gchar *name = argv_idx (argv, 1);
 
         guint i = 0;
