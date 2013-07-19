@@ -35,9 +35,13 @@
 #if WEBKIT_CHECK_VERSION (1, 11, 4)
 #define HAVE_PLUGIN_API
 #endif
+#define HAVE_SECURITY
 #else
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
 #define HAVE_PLUGIN_API
+#endif
+#if WEBKIT_CHECK_VERSION (1, 11, 1)
+#define HAVE_SECURITY
 #endif
 #endif
 
@@ -121,7 +125,9 @@ DECLARE_COMMAND (menu);
 DECLARE_COMMAND (search);
 
 /* Security commands */
+#ifdef HAVE_SECURITY
 DECLARE_COMMAND (security);
+#endif
 #ifdef USE_WEBKIT2
 DECLARE_COMMAND (dns);
 #endif
@@ -212,7 +218,9 @@ builtin_command_table[] =
     { "search",                         cmd_search,                   FALSE, TRUE  },
 
     /* Security commands */
+#ifdef HAVE_SECURITY
     { "secuity",                        cmd_security,                 TRUE,  TRUE  },
+#endif
 #ifdef USE_WEBKIT2
     { "dns",                            cmd_dns,                      TRUE,  TRUE  },
 #endif
@@ -2049,6 +2057,7 @@ search_exit:
 
 /* Security commands */
 
+#ifdef HAVE_SECURITY
 IMPLEMENT_COMMAND (security)
 {
     ARG_CHECK (argv, 3);
@@ -2143,6 +2152,7 @@ IMPLEMENT_COMMAND (security)
 #endif
     }
 }
+#endif
 
 #ifdef USE_WEBKIT2
 IMPLEMENT_COMMAND (dns)
