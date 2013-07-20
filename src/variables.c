@@ -200,6 +200,10 @@ DECLARE_GETTER (gchar *, accept_languages);
 DECLARE_SETTER (gchar *, accept_languages);
 DECLARE_SETTER (int, view_source);
 DECLARE_GETSET (float, zoom_level);
+#ifndef USE_WEBKIT2
+DECLARE_GETTER (float, zoom_step);
+#endif
+DECLARE_SETTER (float, zoom_step);
 #ifdef HAVE_ZOOM_TEXT_API
 DECLARE_GETSET (int, zoom_text_only);
 #endif
@@ -460,7 +464,13 @@ builtin_variable_table[] = {
                                       },
     { "view_source",                  UZBL_V_INT (uzbl.behave.view_source,                 set_view_source)},
     { "zoom_level",                   UZBL_V_FUNC (zoom_level,                             FLOAT)},
-    { "zoom_step",                    UZBL_V_FLOAT (uzbl.behave.zoom_step,                 NULL)},
+    { "zoom_step",
+#ifdef USE_WEBKIT2
+                                      UZBL_V_FLOAT (uzbl.behave.zoom_step,                 set_zoom_step)
+#else
+                                      UZBL_V_FUNC (zoom_step,                              FLOAT)
+#endif
+                                      },
 #ifdef HAVE_ZOOM_TEXT_API
     { "zoom_text_only",               UZBL_V_FUNC (zoom_text_only,                         INT)},
 #endif
@@ -2355,6 +2365,26 @@ IMPLEMENT_GETTER (float, zoom_level)
 IMPLEMENT_SETTER (float, zoom_level)
 {
     webkit_web_view_set_zoom_level (uzbl.gui.web_view, zoom_level);
+}
+
+#ifndef USE_WEBKIT2
+GOBJECT_GETTER (float, zoom_step,
+                webkit_settings (), "zoom-step");
+#endif
+
+IMPLEMENT_SETTER (float, zoom_step)
+{
+    if (zoom_step < 0) {
+        return;
+    }
+
+#ifdef USE_WEBKIT2
+    uzbl.behave.zoom_step = zoom_step;
+#else
+    g_object_set (webkit_settings (),
+        "zoom-step", zoom_step,
+        NULL);
+#endif
 }
 
 #ifdef HAVE_ZOOM_TEXT_API
