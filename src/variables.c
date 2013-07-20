@@ -148,7 +148,7 @@ DECLARE_GETSET (int, print_backgrounds);
 
 /* Network variables */
 #ifndef USE_WEBKIT2
-DECLARE_SETTER (gchar *, proxy_url);
+DECLARE_GETSET (gchar *, proxy_url);
 DECLARE_SETTER (int, max_conns);
 DECLARE_SETTER (int, max_conns_host);
 DECLARE_SETTER (gchar *, http_debug);
@@ -404,7 +404,7 @@ builtin_variable_table[] = {
 
     /* Network variables */
 #ifndef USE_WEBKIT2
-    { "proxy_url",                    UZBL_V_STRING (uzbl.net.proxy_url,                   set_proxy_url)},
+    { "proxy_url",                    UZBL_V_FUNC (proxy_url,                              STR)},
     { "max_conns",                    UZBL_V_INT (uzbl.net.max_conns,                      set_max_conns)},
     { "max_conns_host",               UZBL_V_INT (uzbl.net.max_conns_host,                 set_max_conns_host)},
     { "http_debug",                   UZBL_V_STRING (uzbl.behave.http_debug,               set_http_debug)},
@@ -1950,20 +1950,38 @@ GOBJECT_GETSET (int, print_backgrounds,
 
 /* Network variables */
 #ifndef USE_WEBKIT2
-IMPLEMENT_SETTER (gchar *, proxy_url)
+IMPLEMENT_GETTER (gchar *, proxy_url)
 {
-    g_free (uzbl.net.proxy_url);
-    uzbl.net.proxy_url = g_strdup (proxy_url);
+    SoupURI *soup_uri = NULL;
 
-    const gchar *url = uzbl.net.proxy_url;
-    SoupSession *session  = uzbl.net.soup_session;
-    SoupURI     *soup_uri = NULL;
+    g_object_get (soup_session (),
+        SOUP_SESSION_PROXY_URI, &soup_uri,
+        NULL);
 
-    if (url && *url && *url != ' ') {
-        soup_uri = soup_uri_new (url);
+    if (!soup_uri) {
+        return g_strdup ("");
     }
 
-    g_object_set (G_OBJECT (session),
+    gchar *proxy_url = soup_uri_to_string (soup_uri, TRUE);
+
+    soup_uri_free (soup_uri);
+
+    return proxy_url;
+}
+
+IMPLEMENT_SETTER (gchar *, proxy_url)
+{
+    SoupURI *soup_uri = NULL;
+
+    if (proxy_url && *proxy_url && *proxy_url != ' ') {
+        soup_uri = soup_uri_new (proxy_url);
+    }
+
+    if (!soup_uri) {
+        return;
+    }
+
+    g_object_set (soup_session (),
         SOUP_SESSION_PROXY_URI, soup_uri,
         NULL);
 
