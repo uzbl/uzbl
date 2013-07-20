@@ -2609,7 +2609,7 @@ plugin_toggle_one (WebKitWebPlugin *plugin, gpointer data)
 /* Make sure that the args string you pass can properly be interpreted (e.g.,
  * properly escaped against whitespace, quotes etc.). */
 static gboolean
-run_system_command (GArray *args, const gboolean sync, char **output_stdout);
+run_system_command (GArray *args, char **output_stdout);
 
 void
 spawn (GArray *argv, GString *result, gboolean exec)
@@ -2638,7 +2638,7 @@ spawn (GArray *argv, GString *result, gboolean exec)
     }
 
     gchar *r = NULL;
-    run_system_command (args, result != NULL, result ? &r : NULL);
+    run_system_command (args, result ? &r : NULL);
     if (result) {
         g_string_append (result, r);
         /* Run each line of output from the program as a command. */
@@ -2677,7 +2677,7 @@ spawn_sh (GArray *argv, GString *result)
     }
 
     gchar *r = NULL;
-    run_system_command (sh_cmd, result ? TRUE : FALSE, result ? &r : NULL);
+    run_system_command (sh_cmd, result ? &r : NULL);
     if (result) {
         g_string_append (result, r);
     }
@@ -2687,16 +2687,12 @@ spawn_sh (GArray *argv, GString *result)
 }
 
 gboolean
-run_system_command (GArray *args, const gboolean sync, char **output_stdout)
+run_system_command (GArray *args, char **output_stdout)
 {
     GError *err = NULL;
 
     gboolean result;
-    if (sync) {
-        if (output_stdout && *output_stdout) {
-            g_free (*output_stdout);
-        }
-
+    if (output_stdout) {
         result = g_spawn_sync (NULL, (gchar **)args->data, NULL, G_SPAWN_SEARCH_PATH,
                                NULL, NULL, output_stdout, NULL, NULL, &err);
     } else {
@@ -2719,6 +2715,7 @@ run_system_command (GArray *args, const gboolean sync, char **output_stdout)
             printf ("Stdout: %s\n", *output_stdout);
         }
     }
+
     if (err) {
         g_printerr ("error on run_system_command: %s\n", err->message);
         g_error_free (err);
