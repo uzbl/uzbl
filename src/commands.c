@@ -2639,10 +2639,10 @@ spawn (GArray *argv, GString *result, gboolean exec)
 
     gchar *r = NULL;
     run_system_command (args, result ? &r : NULL);
-    if (result) {
+    if (result && r) {
         g_string_append (result, r);
-        /* Run each line of output from the program as a command. */
-        if (exec && r) {
+        if (exec) {
+            /* Run each line of output from the program as a command. */
             gchar *head = r;
             gchar *tail;
             while ((tail = strchr (head, '\n'))) {
@@ -2678,7 +2678,7 @@ spawn_sh (GArray *argv, GString *result)
 
     gchar *r = NULL;
     run_system_command (sh_cmd, result ? &r : NULL);
-    if (result) {
+    if (result && r) {
         g_string_append (result, r);
     }
 
