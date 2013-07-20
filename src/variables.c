@@ -1355,22 +1355,24 @@ expand_impl (const gchar *str, UzblExpandStage stage)
 
                         GArray *tmp = uzbl_commands_args_new ();
                         uzbl_commands_args_append (tmp, g_strdup ("uzbl"));
+                        const gchar *source = NULL;
+                        gchar *cmd = ret;
 
                         if (*ret == '+') {
                             /* Read JS from file. */
-                            uzbl_commands_args_append (tmp, g_strdup ("file"));
-                            gchar *mycmd = expand_impl (ret + 1, EXPAND_IGNORE_UZBL_JS);
-                            g_array_append_val (tmp, mycmd);
-
-                            uzbl_commands_run_argv ("js", tmp, uzbl_js_ret);
+                            source = "file";
+                            ++cmd;
                         } else {
                             /* JS from string. */
-                            uzbl_commands_args_append (tmp, g_strdup ("string"));
-                            gchar *mycmd = expand_impl (ret, EXPAND_IGNORE_UZBL_JS);
-                            g_array_append_val (tmp, mycmd);
-
-                            uzbl_commands_run_argv ("js", tmp, uzbl_js_ret);
+                            source = "string";
                         }
+
+                        uzbl_commands_args_append (tmp, g_strdup (source));
+
+                        gchar *exp_cmd = expand_impl (cmd, EXPAND_IGNORE_UZBL_JS);
+                        g_array_append_val (tmp, exp_cmd);
+
+                        uzbl_commands_run_argv ("js", tmp, uzbl_js_ret);
 
                         uzbl_commands_args_free (tmp);
 
@@ -1392,22 +1394,24 @@ expand_impl (const gchar *str, UzblExpandStage stage)
 
                         GArray *tmp = uzbl_commands_args_new ();
                         uzbl_commands_args_append (tmp, g_strdup ("page"));
+                        const gchar *source = NULL;
+                        gchar *cmd = ret;
 
                         if (*ret == '+') {
                             /* Read JS from file. */
-                            uzbl_commands_args_append (tmp, g_strdup ("file"));
-                            gchar *mycmd = expand_impl (ret + 1, EXPAND_IGNORE_JS);
-                            g_array_append_val (tmp, mycmd);
-
-                            uzbl_commands_run_argv ("js", tmp, js_ret);
+                            source = "file";
+                            ++cmd;
                         } else {
                             /* JS from string. */
-                            uzbl_commands_args_append (tmp, g_strdup ("string"));
-                            gchar *mycmd = expand_impl (ret, EXPAND_IGNORE_JS);
-                            g_array_append_val (tmp, mycmd);
-
-                            uzbl_commands_run_argv ("js", tmp, js_ret);
+                            source = "string";
                         }
+
+                        uzbl_commands_args_append (tmp, g_strdup (source));
+
+                        gchar *exp_cmd = expand_impl (ret + 1, EXPAND_IGNORE_JS);
+                        g_array_append_val (tmp, exp_cmd);
+
+                        uzbl_commands_run_argv ("js", tmp, js_ret);
 
                         uzbl_commands_args_free (tmp);
 
@@ -1421,13 +1425,13 @@ expand_impl (const gchar *str, UzblExpandStage stage)
                     }
                     case EXPAND_ESCAPE:
                     {
-                        gchar *mycmd = expand_impl (ret, EXPAND_INITIAL);
-                        gchar *escaped = g_markup_escape_text (mycmd, strlen (mycmd));
+                        gchar *exp_cmd = expand_impl (ret, EXPAND_INITIAL);
+                        gchar *escaped = g_markup_escape_text (exp_cmd, strlen (exp_cmd));
 
                         g_string_append (buf, escaped);
 
                         g_free (escaped);
-                        g_free (mycmd);
+                        g_free (exp_cmd);
                         p = vend + 2;
                         break;
                     }
