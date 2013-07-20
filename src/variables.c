@@ -1281,7 +1281,7 @@ expand_impl (const gchar *str, UzblExpandStage stage)
                             gchar *mycmd = expand_impl (ret, EXPAND_IGNORE_SHELL);
                             gchar *quoted = g_shell_quote (mycmd);
                             gchar *tmp = g_strdup_printf ("%s %s",
-                                uzbl.behave.shell_cmd ? uzbl.behave.shell_cmd : "/bin/sh -c",
+                                uzbl.behave.shell_cmd,
                                 quoted);
                             g_spawn_command_line_sync (tmp, &cmd_stdout, NULL, NULL, &err);
                             g_free (mycmd);
