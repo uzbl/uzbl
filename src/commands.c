@@ -2614,17 +2614,15 @@ run_system_command (GArray *args, char **output_stdout);
 void
 spawn (GArray *argv, GString *result, gboolean exec)
 {
-    gchar *path = NULL;
-
     ARG_CHECK (argv, 1);
 
     const gchar *req_path = argv_idx (argv, 0);
 
-    path = find_existing_file (req_path);
+    gchar *path = find_existing_file (req_path);
 
     if (!path) {
-        uzbl_debug ("Failed to spawn child process: %s not found\n", req_path);
-        return;
+        /* Assume it's a valid command. */
+        path = g_strdup (req_path);
     }
 
     GArray *args = uzbl_commands_args_new ();
