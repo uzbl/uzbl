@@ -193,7 +193,7 @@ DECLARE_GETTER (gchar *, inspected_uri);
 
 /* Page variables */
 DECLARE_SETTER (gchar *, uri);
-DECLARE_SETTER (gchar *, useragent);
+DECLARE_GETSET (gchar *, useragent);
 DECLARE_SETTER (gchar *, accept_languages);
 DECLARE_SETTER (int, view_source);
 DECLARE_GETSET (float, zoom_level);
@@ -447,7 +447,7 @@ builtin_variable_table[] = {
     /* Page variables */
     { "uri",                          UZBL_V_STRING (uzbl.state.uri,                       set_uri)},
     { "forward_keys",                 UZBL_V_INT (uzbl.behave.forward_keys,                NULL)},
-    { "useragent",                    UZBL_V_STRING (uzbl.net.useragent,                   set_useragent)},
+    { "useragent",                    UZBL_V_FUNC (useragent,                              STR)},
     { "accept_languages",             UZBL_V_STRING (uzbl.net.accept_languages,            set_accept_languages)},
     { "view_source",                  UZBL_V_INT (uzbl.behave.view_source,                 set_view_source)},
     { "zoom_level",                   UZBL_V_FUNC (zoom_level,                             FLOAT)},
@@ -2251,24 +2251,37 @@ IMPLEMENT_SETTER (gchar *, uri)
     g_free (newuri);
 }
 
+IMPLEMENT_GETTER (gchar *, useragent)
+{
+    gchar *useragent;
+
+#ifdef USE_WEBKIT2
+    g_object_get (webkit_settings (),
+        "user-agent", &useragent,
+        NULL);
+#else
+    g_object_get (soup_session (),
+        SOUP_SESSION_USER_AGENT, &useragent,
+        NULL);
+#endif
+
+    return useragent;
+}
+
 IMPLEMENT_SETTER (gchar *, useragent)
 {
-    g_free (uzbl.net.useragent);
-
     if (!useragent || !*useragent) {
-        uzbl.net.useragent = NULL;
-    } else {
-        uzbl.net.useragent = g_strdup (useragent);
+        return;
+    }
 
 #ifndef USE_WEBKIT2
-        g_object_set (G_OBJECT (uzbl.net.soup_session),
-            SOUP_SESSION_USER_AGENT, uzbl.net.useragent,
-            NULL);
+    g_object_set (soup_session (),
+        SOUP_SESSION_USER_AGENT, useragent,
+        NULL);
 #endif
-        g_object_set (webkit_settings (),
-            "user-agent", uzbl.net.useragent,
-            NULL);
-    }
+    g_object_set (webkit_settings (),
+        "user-agent", useragent,
+        NULL);
 }
 
 IMPLEMENT_SETTER (gchar *, accept_languages)
