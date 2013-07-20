@@ -2,6 +2,7 @@
 
 #include "commands.h"
 #include "events.h"
+#include "io.h"
 #include "menu.h"
 #include "status-bar.h"
 #include "type.h"
@@ -247,7 +248,7 @@ web_view_init ()
         "signal::load-changed",                         G_CALLBACK (load_changed_cb),          NULL,
         "signal::load-failed",                          G_CALLBACK (load_failed_cb),           NULL,
 #if WEBKIT_CHECK_VERSION (1, 11, 4)
-        "signal::insecure-content-detected",            G_CALLBACK (insecure_content_cb),     NULL,
+        "signal::insecure-content-detected",            G_CALLBACK (insecure_content_cb),      NULL,
 #endif
 #else
         "signal::navigation-policy-decision-requested", G_CALLBACK (navigation_decision_cb),   NULL,
@@ -610,10 +611,20 @@ typedef WebKitPolicyDecision WebKitWebPolicyDecision;
 typedef WebKitLoadEvent WebKitLoadStatus;
 #endif
 
+#ifdef USE_WEBKIT2
+#define make_policy(decision, policy) \
+    webkit_policy_decision_##policy (decision)
+#else
+#define make_policy(decision, policy) \
+    webkit_web_policy_decision_##policy (decision)
+#endif
+
 static gboolean
 navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri);
 static gboolean
-mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type);
+request_decision (const gchar *uri, gpointer data);
+static void
+rewrite_request (GString *result, gpointer data);
 static void
 send_load_status (WebKitLoadStatus status, const gchar *uri);
 static gboolean
@@ -626,46 +637,42 @@ decide_policy_cb (WebKitWebView *view, WebKitPolicyDecision *decision, WebKitPol
     UZBL_UNUSED (view);
     UZBL_UNUSED (data);
 
-    switch (type) {
-        case WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION:
-        {
-            WebKitNavigationPolicyDecision *nav_decision = WEBKIT_NAVIGATION_POLICY_DECISION (decision);
-            WebKitURIRequest *request = webkit_navigation_policy_decision_get_request (nav_decision);
-            const gchar *uri = webkit_uri_request_get_uri (request);
-
-            /* TODO: Add information from WebKitNavigationPolicyDecision such as:
-             *
-             *  * frame name
-             *  * modifiers
-             *  * mouse button
-             *  * navigation type (link click, form submission, back/forward,
-             *                     reload, form resubmission, unknown)
-             */
-
-            return navigation_decision (decision, uri);
-        }
-        case WEBKIT_POLICY_DECISION_TYPE_NEW_WINDOW_ACTION:
-            /* TODO: What to do here? */
-            break;
-        case WEBKIT_POLICY_DECISION_TYPE_RESPONSE:
-        {
-            WebKitResponsePolicyDecision *response_decision = WEBKIT_RESPONSE_POLICY_DECISION (decision);
-            WebKitURIResponse *response = webkit_response_policy_decision_get_response (response_decision);
-            const gchar *mime_type = webkit_uri_response_get_mime_type (response);
-
-            return mime_decision (decision, mime_type);
-        }
-        default:
-            uzbl_debug ("Unrecognized policy decision: %d\n", type);
-            break;
+    if (uzbl.state.frozen) {
+        make_policy (decision, ignore);
+        return TRUE;
     }
 
-    if (uzbl.state.frozen) {
-#ifdef USE_WEBKIT2
-        webkit_policy_decision_ignore (decision);
-#else
-        webkit_web_policy_decision_ignore (decision);
-#endif
+    switch (type) {
+    case WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION:
+    case WEBKIT_POLICY_DECISION_TYPE_NEW_WINDOW_ACTION:
+    {
+        WebKitNavigationPolicyDecision *nav_decision = WEBKIT_NAVIGATION_POLICY_DECISION (decision);
+        WebKitURIRequest *request = webkit_navigation_policy_decision_get_request (nav_decision);
+        const gchar *uri = webkit_uri_request_get_uri (request);
+
+        /* TODO: Add information from WebKitNavigationPolicyDecision such as:
+         *
+         *  * frame name
+         *  * modifiers
+         *  * mouse button
+         *  * navigation type (link click, form submission, back/forward,
+         *                     reload, form resubmission, unknown)
+         */
+
+        return navigation_decision (decision, uri);
+    }
+    case WEBKIT_POLICY_DECISION_TYPE_RESPONSE:
+    {
+        WebKitResponsePolicyDecision *response_decision = WEBKIT_RESPONSE_POLICY_DECISION (decision);
+        WebKitURIRequest *request = webkit_response_policy_decision_get_request (response_decision);
+        const gchar *uri = webkit_uri_request_get_uri (request);
+
+        g_object_ref (decision);
+        return request_decision (uri, decision);
+    }
+    default:
+        uzbl_debug ("Unrecognized policy decision: %d\n", type);
+        break;
     }
 
     return FALSE;
@@ -707,15 +714,15 @@ insecure_content_cb (WebKitWebView *view, WebKitInsecureContentEvent type, gpoin
     const char *why = NULL;
 
     switch (type) {
-        case WEBKIT_INSECURE_CONTENT_RUN:
-            why = "run";
-            break;
-        case WEBKIT_INSECURE_CONTENT_DISPLAYED:
-            why = "displayed";
-            break;
-        default:
-            why = "unknown";
-            break;
+    case WEBKIT_INSECURE_CONTENT_RUN:
+        why = "run";
+        break;
+    case WEBKIT_INSECURE_CONTENT_DISPLAYED:
+        why = "displayed";
+        break;
+    default:
+        why = "unknown";
+        break;
     }
 
     uzbl_events_send (INSECURE_CONTENT, NULL,
@@ -740,6 +747,9 @@ navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
 
     return navigation_decision (policy_decision, uri);
 }
+
+static gboolean
+mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type);
 
 gboolean
 mime_policy_cb (WebKitWebView *view, WebKitWebFrame *frame,
@@ -767,42 +777,13 @@ request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResour
     const gchar *uri = webkit_network_request_get_uri (request);
     SoupMessage *message = webkit_network_request_get_message (request);
 
-    uzbl_debug ("Request starting -> %s\n", uri);
-
     if (message) {
         SoupURI *soup_uri = soup_uri_new (uri);
         soup_message_set_first_party (message, soup_uri);
     }
 
-    uzbl_events_send (REQUEST_STARTING, NULL,
-        TYPE_STR, uri,
-        NULL);
-
-    gchar *handler = uzbl_variables_get_string ("request_handler");
-
-    if (*handler) {
-        GString *result = g_string_new ("");
-        GArray *args = uzbl_commands_args_new ();
-        const UzblCommand *request_command = uzbl_commands_parse (handler, args);
-
-        if (request_command) {
-            uzbl_commands_args_append (args, g_strdup (uri));
-            uzbl_commands_run_parsed (request_command, args, result);
-        }
-        uzbl_commands_args_free (args);
-
-        if (result->len > 0) {
-            remove_trailing_newline (result->str);
-
-            uzbl_debug ("Request rewritten -> %s\n", result->str);
-
-            webkit_network_request_set_uri (request, result->str);
-        }
-
-        g_string_free (result, TRUE);
-    }
-
-    g_free (handler);
+    g_object_ref (request);
+    request_decision (uri, request);
 }
 
 void
@@ -1177,15 +1158,15 @@ send_button_event (guint buttonval, guint state, gint mode)
     modifiers = get_modifier_mask ((mode != GDK_BUTTON_RELEASE) ? (state | mod) : (state & ~mod));
 
     switch (mode) {
-        case GDK_2BUTTON_PRESS:
-            reps = "2";
-            break;
-        case GDK_3BUTTON_PRESS:
-            reps = "3";
-            break;
-        default:
-            reps = "";
-            break;
+    case GDK_2BUTTON_PRESS:
+        reps = "2";
+        break;
+    case GDK_3BUTTON_PRESS:
+        reps = "3";
+        break;
+    default:
+        reps = "";
+        break;
     }
 
     details = g_strdup_printf ("%sButton%d", reps, buttonval);
@@ -1245,97 +1226,62 @@ set_window_property (const gchar *prop, const gchar *value)
     }
 }
 
+static void
+decide_navigation (GString *result, gpointer data);
+
 gboolean
 navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri)
 {
     if (uzbl.state.frozen) {
-#ifdef USE_WEBKIT2
-        webkit_policy_decision_ignore (decision);
-#else
-        webkit_web_policy_decision_ignore (decision);
-#endif
-        return FALSE;
+        make_policy (decision, ignore);
+        return TRUE;
     }
-
-    gboolean decision_made = FALSE;
 
     uzbl_debug ("Navigation requested -> %s\n", uri);
 
     gchar *handler = uzbl_variables_get_string ("scheme_handler");
 
-    if (*handler) {
-        GString *result = g_string_new ("");
-        GArray *args = uzbl_commands_args_new ();
-        const UzblCommand *scheme_command = uzbl_commands_parse (handler, args);
+    GArray *args = uzbl_commands_args_new ();
+    const UzblCommand *scheme_command = uzbl_commands_parse (handler, args);
 
-        if (scheme_command) {
-            uzbl_commands_args_append (args, g_strdup (uri));
-            uzbl_commands_run_parsed (scheme_command, args, result);
-        }
-
+    if (scheme_command) {
+        uzbl_commands_args_append (args, g_strdup (uri));
+        g_object_ref (decision);
+        uzbl_io_schedule_command (scheme_command, args, decide_navigation, decision);
+    } else {
+        make_policy (decision, use);
         uzbl_commands_args_free (args);
-
-        if (result->len > 0) {
-            remove_trailing_newline (result->str);
-
-            if (!g_strcmp0 (result->str, "USED")) {
-#ifdef USE_WEBKIT2
-                webkit_policy_decision_ignore (decision);
-#else
-                webkit_web_policy_decision_ignore (decision);
-#endif
-                decision_made = TRUE;
-            }
-        }
-
-        g_string_free (result, TRUE);
     }
 
     g_free (handler);
-
-    if (!decision_made) {
-#ifdef USE_WEBKIT2
-        webkit_policy_decision_use (decision);
-#else
-        webkit_web_policy_decision_use (decision);
-#endif
-    }
 
     return TRUE;
 }
 
 gboolean
-mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type)
+request_decision (const gchar *uri, gpointer data)
 {
-    if (uzbl.state.frozen) {
-#ifdef USE_WEBKIT2
-        webkit_policy_decision_ignore (decision);
-#else
-        webkit_web_policy_decision_ignore (decision);
-#endif
-        return FALSE;
-    }
+    uzbl_debug ("Request starting -> %s\n", uri);
 
-    /* TODO: Ignore based on external filter program? */
+    uzbl_events_send (REQUEST_STARTING, NULL,
+        TYPE_STR, uri,
+        NULL);
 
-    /* If we can display it, let's display it... */
-    if (webkit_web_view_can_show_mime_type (uzbl.gui.web_view, mime_type)) {
-#ifdef USE_WEBKIT2
-        webkit_policy_decision_use (decision);
-#else
-        webkit_web_policy_decision_use (decision);
-#endif
+    gchar *handler = uzbl_variables_get_string ("request_handler");
+
+    GArray *args = uzbl_commands_args_new ();
+    const UzblCommand *request_command = uzbl_commands_parse (handler, args);
+
+    if (request_command) {
+        uzbl_commands_args_append (args, g_strdup (uri));
+        uzbl_io_schedule_command (request_command, args, rewrite_request, data);
     } else {
-        /* ...everything we can't display is downloaded. */
-#ifdef USE_WEBKIT2
-        /* TODO: Ignore the request and use our download logic. */
-        webkit_policy_decision_download (decision);
-#else
-        webkit_web_policy_decision_download (decision);
-#endif
+        uzbl_commands_args_free (args);
     }
 
-    return TRUE;
+    g_free (handler);
+
+    return (request_command != NULL);
 }
 
 void
@@ -1343,47 +1289,47 @@ send_load_status (WebKitLoadStatus status, const gchar *uri)
 {
     switch (status) {
 #ifdef USE_WEBKIT2
-        case WEBKIT_LOAD_STARTED:
+    case WEBKIT_LOAD_STARTED:
 #else
-        case WEBKIT_LOAD_PROVISIONAL:
+    case WEBKIT_LOAD_PROVISIONAL:
 #endif
-            uzbl_events_send (LOAD_START, NULL,
-                TYPE_STR, uri ? uri : "",
-                NULL);
-            break;
+        uzbl_events_send (LOAD_START, NULL,
+            TYPE_STR, uri ? uri : "",
+            NULL);
+        break;
 #ifdef USE_WEBKIT2
-        case WEBKIT_LOAD_REDIRECTED:
-            uzbl_events_send (LOAD_REDIRECTED, NULL,
-                TYPE_STR, uri,
-                NULL);
-            break;
+    case WEBKIT_LOAD_REDIRECTED:
+        uzbl_events_send (LOAD_REDIRECTED, NULL,
+            TYPE_STR, uri,
+            NULL);
+        break;
 #else
-        case WEBKIT_LOAD_FIRST_VISUALLY_NON_EMPTY_LAYOUT:
-            /* TODO: Implement. */
-            break;
-        case WEBKIT_LOAD_FAILED:
-            /* Handled by load_error_cb. */
-            break;
+    case WEBKIT_LOAD_FIRST_VISUALLY_NON_EMPTY_LAYOUT:
+        /* TODO: Implement. */
+        break;
+    case WEBKIT_LOAD_FAILED:
+        /* Handled by load_error_cb. */
+        break;
 #endif
-        case WEBKIT_LOAD_COMMITTED:
-            uzbl_events_send (LOAD_COMMIT, NULL,
-                TYPE_STR, uri,
-                NULL);
-            break;
-        case WEBKIT_LOAD_FINISHED:
+    case WEBKIT_LOAD_COMMITTED:
+        uzbl_events_send (LOAD_COMMIT, NULL,
+            TYPE_STR, uri,
+            NULL);
+        break;
+    case WEBKIT_LOAD_FINISHED:
 #ifdef USE_WEBKIT2
-            if (uzbl.state.load_failed) {
-                uzbl.state.load_failed = FALSE;
-                break;
-            }
+        if (uzbl.state.load_failed) {
+            uzbl.state.load_failed = FALSE;
+            break;
+        }
 #endif
-            uzbl_events_send (LOAD_FINISH, NULL,
-                TYPE_STR, uri,
-                NULL);
-            break;
-        default:
-            uzbl_debug ("Unrecognized load status: %d\n", status);
-            break;
+        uzbl_events_send (LOAD_FINISH, NULL,
+            TYPE_STR, uri,
+            NULL);
+        break;
+    default:
+        uzbl_debug ("Unrecognized load status: %d\n", status);
+        break;
     }
 }
 
@@ -1398,6 +1344,42 @@ send_load_error (const gchar *uri, GError *error)
 
     return FALSE;
 }
+
+#ifndef USE_WEBKIT2
+gboolean
+mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type)
+{
+    if (uzbl.state.frozen) {
+        make_policy (decision, ignore);
+        return FALSE;
+    }
+
+    gchar *handler = uzbl_variables_get_string ("mime_handler");
+
+    GArray *args = uzbl_commands_args_new ();
+    const UzblCommand *mime_command = uzbl_commands_parse (handler, args);
+
+    gboolean can_show = webkit_web_view_can_show_mime_type (uzbl.gui.web_view, mime_type);
+
+    if (mime_command) {
+        uzbl_commands_args_append (args, g_strdup (mime_type));
+        g_object_ref (decision);
+        uzbl_io_schedule_command (mime_command, args, decide_navigation, decision);
+    } else {
+        if (can_show) {
+            /* If we can display it, let's display it... */
+            make_policy (decision, use);
+        } else {
+            /* ...everything we can't display is downloaded. */
+            make_policy (decision, download);
+        }
+
+        uzbl_commands_args_free (args);
+    }
+
+    return TRUE;
+}
+#endif
 
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
@@ -1574,22 +1556,22 @@ key_to_modifier (guint keyval)
     /* FIXME: Should really use XGetModifierMapping and/or Xkb to get actual
      * modifier keys. */
     switch (keyval) {
-        case GDK_KEY_Shift_L:
-        case GDK_KEY_Shift_R:
-            return GDK_SHIFT_MASK;
-        case GDK_KEY_Control_L:
-        case GDK_KEY_Control_R:
-            return GDK_CONTROL_MASK;
-        case GDK_KEY_Alt_L:
-        case GDK_KEY_Alt_R:
-            return GDK_MOD1_MASK;
-        case GDK_KEY_Super_L:
-        case GDK_KEY_Super_R:
-            return GDK_MOD4_MASK;
-        case GDK_KEY_ISO_Level3_Shift:
-            return GDK_MOD5_MASK;
-        default:
-            return 0;
+    case GDK_KEY_Shift_L:
+    case GDK_KEY_Shift_R:
+        return GDK_SHIFT_MASK;
+    case GDK_KEY_Control_L:
+    case GDK_KEY_Control_R:
+        return GDK_CONTROL_MASK;
+    case GDK_KEY_Alt_L:
+    case GDK_KEY_Alt_R:
+        return GDK_MOD1_MASK;
+    case GDK_KEY_Super_L:
+    case GDK_KEY_Super_R:
+        return GDK_MOD4_MASK;
+    case GDK_KEY_ISO_Level3_Shift:
+        return GDK_MOD5_MASK;
+    default:
+        return 0;
     }
 }
 
@@ -1647,6 +1629,61 @@ button_to_modifier (guint buttonval)
     return 0;
 }
 
+void
+decide_navigation (GString *result, gpointer data)
+{
+    WebKitWebPolicyDecision *decision = (WebKitWebPolicyDecision *)data;
+
+    if (!g_strcmp0 (result->str, "IGNORE") ||
+        !g_strcmp0 (result->str, "USED")) { /* XXX: Deprecated */
+        make_policy (decision, ignore);
+    } else if (!g_strcmp0 (result->str, "DOWNLOAD")) {
+        make_policy (decision, download);
+    } else if (!g_strcmp0 (result->str, "USE")) {
+        make_policy (decision, use);
+    } else {
+        make_policy (decision, use);
+    }
+
+    g_object_unref (decision);
+}
+
+void
+rewrite_request (GString *result, gpointer data)
+{
+#ifdef USE_WEBKIT2
+    WebKitResponsePolicyDecision *decision = (WebKitResponsePolicyDecision *)data;
+    WebKitURIRequest *request = webkit_response_policy_decision_get_request (decision);
+#else
+    WebKitNetworkRequest *request = (WebKitNetworkRequest *)data;
+#endif
+
+    if (result->len > 0) {
+        uzbl_debug ("Request rewritten -> %s\n", result->str);
+
+#ifdef USE_WEBKIT2
+        if (!g_strcmp0 (result->str, "IGNORE"))
+            make_policy (decision, ignore);
+        } else if (!g_strcmp0 (result->str, "DOWNLOAD")) {
+            make_policy (decision, download);
+        } else {
+            webkit_uri_request_set_uri (request, result->str);
+        }
+#else
+        webkit_network_request_set_uri (request, result->str);
+#endif
+    }
+
+#ifdef USE_WEBKIT2
+    g_object_unref (decision);
+#else
+    g_object_unref (request);
+#endif
+}
+
+static void
+download_destination (GString *result, gpointer data);
+
 gboolean
 decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename, gpointer data)
 {
@@ -1669,11 +1706,12 @@ decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename
 
     gchar *handler = uzbl_variables_get_string ("download_handler");
 
-    if (!*handler) {
-        /* Reject downloads when there's no download handler. */
-        uzbl_debug ("No download handler set; ignoring download\n");
-        g_free (handler);
+    GArray *args = uzbl_commands_args_new ();
+    const UzblCommand *download_command = uzbl_commands_parse (handler, args);
+    g_free (handler);
+    if (!download_command) {
         webkit_download_cancel (download);
+        uzbl_commands_args_free (args);
         return FALSE;
     }
 
@@ -1709,69 +1747,16 @@ decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename
         content_type = "application/octet-stream";
     }
 
-    GArray *args = uzbl_commands_args_new ();
-    const UzblCommand *download_command = uzbl_commands_parse (handler, args);
-    g_free (handler);
-    if (!download_command) {
-        webkit_download_cancel (download);
-        uzbl_commands_args_free (args);
-        return FALSE;
-    }
-
     uzbl_commands_args_append (args, g_strdup (uri));
     uzbl_commands_args_append (args, g_strdup (suggested_filename));
     uzbl_commands_args_append (args, g_strdup (content_type));
     gchar *total_size_s = g_strdup_printf ("%" G_GUINT64_FORMAT, total_size);
     uzbl_commands_args_append (args, total_size_s);
+    uzbl_commands_args_append (args, g_strdup (destination ? destination : ""));
 
-    if (destination) {
-        uzbl_commands_args_append (args, g_strdup (destination));
-    }
+    uzbl_io_schedule_command (download_command, args, download_destination, download);
 
-    GString *result = g_string_new ("");
-    uzbl_commands_run_parsed (download_command, args, result);
-
-    uzbl_commands_args_free (args);
-
-    /* No response, cancel the download. */
-    if (!result->len) {
-        webkit_download_cancel (download);
-        return FALSE;
-    }
-
-    /* We got a response, it's the path we should download the file to. */
-    gchar *destination_path = result->str;
-    g_string_free (result, FALSE);
-
-    /* Presumably people don't need newlines in their filenames. */
-    remove_trailing_newline (destination_path);
-
-    /* Convert relative path to absolute path. */
-    if (destination_path[0] != '/') {
-        /* TODO: Detect file:// URI from the handler. */
-        gchar *rel_path = destination_path;
-        gchar *cwd = g_get_current_dir ();
-        destination_path = g_strconcat (cwd, "/", destination_path, NULL);
-        g_free (cwd);
-        g_free (rel_path);
-    }
-
-    uzbl_events_send (DOWNLOAD_STARTED, NULL,
-        TYPE_STR, destination_path,
-        NULL);
-
-    /* Convert absolute path to file:// URI. */
-    gchar *destination_uri = g_strconcat ("file://", destination_path, NULL);
-    g_free (destination_path);
-
-#ifdef USE_WEBKIT2
-    webkit_download_set_destination (download, destination_uri);
-#else
-    webkit_download_set_destination_uri (download, destination_uri);
-#endif
-    g_free (destination_uri);
-
-    return TRUE;
+    return FALSE;
 }
 
 void
@@ -1838,18 +1823,18 @@ download_status_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer d
     WebKitDownloadStatus status = webkit_download_get_status (download);
 
     switch (status) {
-        case WEBKIT_DOWNLOAD_STATUS_CREATED:
-        case WEBKIT_DOWNLOAD_STATUS_STARTED:
-        case WEBKIT_DOWNLOAD_STATUS_CANCELLED:
-        case WEBKIT_DOWNLOAD_STATUS_ERROR:
-            /* Handled elsewhere. */
-            break;
-        case WEBKIT_DOWNLOAD_STATUS_FINISHED:
-            download_finished_cb (download, data);
-            break;
-        default:
-            uzbl_debug ("Unknown download status: %d\n", status);
-            break;
+    case WEBKIT_DOWNLOAD_STATUS_CREATED:
+    case WEBKIT_DOWNLOAD_STATUS_STARTED:
+    case WEBKIT_DOWNLOAD_STATUS_CANCELLED:
+    case WEBKIT_DOWNLOAD_STATUS_ERROR:
+        /* Handled elsewhere. */
+        break;
+    case WEBKIT_DOWNLOAD_STATUS_FINISHED:
+        download_finished_cb (download, data);
+        break;
+    default:
+        uzbl_debug ("Unknown download status: %d\n", status);
+        break;
     }
 }
 
@@ -1914,6 +1899,44 @@ run_menu_command (GtkMenuItem *menu_item, gpointer data)
 }
 
 void
+download_destination (GString *result, gpointer data)
+{
+    WebKitDownload *download = (WebKitDownload *)data;
+
+    /* No response, cancel the download. */
+    if (!result->len) {
+        webkit_download_cancel (download);
+        g_object_unref (download);
+        return;
+    }
+
+    gboolean is_file_uri = !strprefix (result->str, "file:///");
+
+    gchar *destination_uri;
+    /* Convert relative path to absolute path. */
+    if ((*result->str != '/') && !is_file_uri) {
+        gchar *cwd = g_get_current_dir ();
+        destination_uri = g_strconcat ("file://", cwd, "/", result->str, NULL);
+        g_free (cwd);
+    } else {
+        destination_uri = g_strdup (result->str);
+    }
+
+    uzbl_events_send (DOWNLOAD_STARTED, NULL,
+        TYPE_STR, destination_uri,
+        NULL);
+
+#ifdef USE_WEBKIT2
+    webkit_download_set_destination (download, destination_uri);
+#else
+    webkit_download_set_destination_uri (download, destination_uri);
+#endif
+    g_free (destination_uri);
+
+    g_object_unref (download);
+}
+
+void
 download_update (WebKitDownload *download)
 {
     gdouble progress;
@@ -1939,26 +1962,26 @@ download_update (WebKitDownload *download)
 void
 send_download_error (WebKitDownloadError err, const gchar *message)
 {
-    const gchar *str = NULL;
+    const gchar *str;
 
     switch (err) {
-        case WEBKIT_DOWNLOAD_ERROR_CANCELLED_BY_USER:
-            str = "cancelled";
-            break;
-        case WEBKIT_DOWNLOAD_ERROR_DESTINATION:
-            str = "destination";
-            break;
-        case WEBKIT_DOWNLOAD_ERROR_NETWORK:
-            str = "network";
-            break;
-        default:
-            str = "unknown";
-            break;
+    case WEBKIT_DOWNLOAD_ERROR_CANCELLED_BY_USER:
+        str = "cancelled";
+        break;
+    case WEBKIT_DOWNLOAD_ERROR_DESTINATION:
+        str = "destination";
+        break;
+    case WEBKIT_DOWNLOAD_ERROR_NETWORK:
+        str = "network";
+        break;
+    default:
+        str = "unknown";
+        break;
     }
 
     uzbl_events_send (DOWNLOAD_ERROR, NULL,
         TYPE_INT, err,
-        TYPE_STR, str ? str : "",
+        TYPE_STR, str,
         TYPE_STR, message,
         NULL);
 

@@ -331,6 +331,10 @@ uzbl_commands_args_append (GArray *argv, const gchar *arg)
 void
 uzbl_commands_args_free (GArray *argv)
 {
+    if (!argv) {
+        return;
+    }
+
     while (argv->len) {
         g_free (argv_idx (argv, argv->len - 1));
         g_array_remove_index (argv, argv->len - 1);
@@ -1286,14 +1290,14 @@ IMPLEMENT_COMMAND (hardcopy)
         WebKitPrintOperationResponse response = webkit_print_operation_run_dialog (print_op, GTK_WINDOW (uzbl.gui.main_window));
 
         switch (response) {
-            case WEBKIT_PRINT_OPERATION_RESPONSE_CANCEL:
-                break;
-            case WEBKIT_PRINT_OPERATION_RESPONSE_PRINT:
-                webkit_print_operation_print (print_op);
-                break;
-            default:
-                uzbl_debug ("Unknown response for a print action; assuming cancel\n");
-                break;
+        case WEBKIT_PRINT_OPERATION_RESPONSE_CANCEL:
+            break;
+        case WEBKIT_PRINT_OPERATION_RESPONSE_PRINT:
+            webkit_print_operation_print (print_op);
+            break;
+        default:
+            uzbl_debug ("Unknown response for a print action; assuming cancel\n");
+            break;
         }
 
         g_object_unref (print_op);
@@ -1914,20 +1918,20 @@ IMPLEMENT_COMMAND (search)
             UzblFindOptions option = WEBKIT_FIND_OPTIONS_NONE;
 
             switch (*option_str) {
-                case '+':
-                    mode = OPTION_SET;
-                    break;
-                case '-':
-                    mode = OPTION_UNSET;
-                    break;
-                case '!':
-                    mode = OPTION_TOGGLE;
-                    break;
-                case '~':
-                    mode = OPTION_DEFAULT;
-                    break;
-                case '\0':
-                    continue;
+            case '+':
+                mode = OPTION_SET;
+                break;
+            case '-':
+                mode = OPTION_UNSET;
+                break;
+            case '!':
+                mode = OPTION_TOGGLE;
+                break;
+            case '~':
+                mode = OPTION_DEFAULT;
+                break;
+            case '\0':
+                continue;
                 default:
                     break;
             }
@@ -1958,19 +1962,19 @@ IMPLEMENT_COMMAND (search)
             }
 
             switch (mode) {
-                case OPTION_SET:
-                    uzbl.state.searchoptions |= option;
-                    break;
-                case OPTION_UNSET:
-                    uzbl.state.searchoptions &= ~option;
-                    break;
-                case OPTION_TOGGLE:
-                    uzbl.state.searchoptions ^= option;
-                    break;
-                case OPTION_NONE:
-                case OPTION_DEFAULT:
-                default:
-                    break;
+            case OPTION_SET:
+                uzbl.state.searchoptions |= option;
+                break;
+            case OPTION_UNSET:
+                uzbl.state.searchoptions &= ~option;
+                break;
+            case OPTION_TOGGLE:
+                uzbl.state.searchoptions ^= option;
+                break;
+            case OPTION_NONE:
+            case OPTION_DEFAULT:
+            default:
+                break;
             }
         }
 

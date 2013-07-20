@@ -373,6 +373,7 @@ builtin_variable_table[] = {
     { "scheme_handler",               UZBL_V_STRING (uzbl.behave.scheme_handler,           NULL)},
     { "request_handler",              UZBL_V_STRING (uzbl.behave.request_handler,          NULL)},
     { "download_handler",             UZBL_V_STRING (uzbl.behave.download_handler,         NULL)},
+    { "mime_handler",                 UZBL_V_STRING (uzbl.behave.mime_handler,             NULL)},
     { "shell_cmd",                    UZBL_V_STRING (uzbl.behave.shell_cmd,                NULL)},
 #ifndef USE_WEBKIT2
     { "enable_builtin_auth",          UZBL_V_FUNC (enable_builtin_auth,                    INT)},
@@ -727,29 +728,29 @@ uzbl_variables_set (const gchar *name, gchar *val)
         }
 
         switch (var->type) {
-            case TYPE_STR:
-                sendev = set_variable_string (var, val);
-                break;
-            case TYPE_INT:
-            {
-                int i = (int)strtol (val, NULL, 10);
-                sendev = set_variable_int (var, i);
-                break;
-            }
-            case TYPE_ULL:
-            {
-                unsigned long long ull = strtoull (val, NULL, 10);
-                sendev = set_variable_ull (var, ull);
-                break;
-            }
-            case TYPE_FLOAT:
-            {
-                float f = strtod (val, NULL);
-                sendev = set_variable_float (var, f);
-                break;
-            }
-            default:
-                g_assert_not_reached ();
+        case TYPE_STR:
+            sendev = set_variable_string (var, val);
+            break;
+        case TYPE_INT:
+        {
+            int i = (int)strtol (val, NULL, 10);
+            sendev = set_variable_int (var, i);
+            break;
+        }
+        case TYPE_ULL:
+        {
+            unsigned long long ull = strtoull (val, NULL, 10);
+            sendev = set_variable_ull (var, ull);
+            break;
+        }
+        case TYPE_FLOAT:
+        {
+            float f = strtod (val, NULL);
+            sendev = set_variable_float (var, f);
+            break;
+        }
+        default:
+            g_assert_not_reached ();
         }
     } else {
         /* A custom var that has not been set. Check whether name violates our
@@ -810,135 +811,135 @@ uzbl_variables_toggle (const gchar *name, GArray *values)
     gboolean sendev = TRUE;
 
     switch (var->type) {
-        case TYPE_STR:
-        {
-            const gchar *next;
+    case TYPE_STR:
+{
+        const gchar *next;
 
-            if (values && values->len) {
-                gchar *current = get_variable_string (var);
+        if (values && values->len) {
+            gchar *current = get_variable_string (var);
 
-                guint i = 0;
-                const gchar *first   = argv_idx (values, 0);
-                const gchar *this    = first;
-                             next    = argv_idx (values, 1);
+            guint i = 0;
+            const gchar *first   = argv_idx (values, 0);
+            const gchar *this    = first;
+                         next    = argv_idx (values, 1);
 
-                while (next && strcmp (current, this)) {
-                    this = next;
-                    next = argv_idx (values, ++i);
-                }
-
-                if (!next) {
-                    next = first;
-                }
-
-                g_free (current);
-            } else {
-                next = "";
-
-                if (!var->builtin) {
-                    if (!strcmp (*var->value.s, "0")) {
-                        next = "1";
-                    } else if (!strcmp (*var->value.s, "1")) {
-                        next = "0";
-                    }
-                }
+            while (next && strcmp (current, this)) {
+                this = next;
+                next = argv_idx (values, ++i);
             }
 
-            sendev = set_variable_string (var, next);
-            break;
-        }
-        case TYPE_INT:
-        {
-            int current = get_variable_int (var);
-            int next;
-
-            if (values && values->len) {
-                guint i = 0;
-
-                int first = strtol (argv_idx (values, 0), NULL, 0);
-                int  this = first;
-
-                const gchar *next_s = argv_idx (values, 1);
-
-                while (next_s && (this != current)) {
-                    this   = strtol (next_s, NULL, 0);
-                    next_s = argv_idx (values, ++i);
-                }
-
-                if (next_s) {
-                    next = strtol (next_s, NULL, 0);
-                } else {
-                    next = first;
-                }
-            } else {
-                next = !current;
+            if (!next) {
+                next = first;
             }
 
-            sendev = set_variable_int (var, next);
-            break;
+            g_free (current);
+        } else {
+            next = "";
+
+            if (!var->builtin) {
+                if (!strcmp (*var->value.s, "0")) {
+                    next = "1";
+                } else if (!strcmp (*var->value.s, "1")) {
+                    next = "0";
+                }
+            }
         }
-        case TYPE_ULL:
-        {
-            unsigned long long current = get_variable_ull (var);
-            unsigned long long next;
 
-            if (values && values->len) {
-                guint i = 0;
+        sendev = set_variable_string (var, next);
+        break;
+    }
+    case TYPE_INT:
+    {
+        int current = get_variable_int (var);
+        int next;
 
-                unsigned long long first = strtoull (argv_idx (values, 0), NULL, 0);
-                unsigned long long  this = first;
+        if (values && values->len) {
+            guint i = 0;
 
-                const gchar *next_s = argv_idx (values, 1);
+            int first = strtol (argv_idx (values, 0), NULL, 0);
+            int  this = first;
 
-                while (next_s && this != current) {
-                    this   = strtoull (next_s, NULL, 0);
-                    next_s = argv_idx (values, ++i);
-                }
+            const gchar *next_s = argv_idx (values, 1);
 
-                if (next_s) {
-                    next = strtoull (next_s, NULL, 0);
-                } else {
-                    next = first;
-                }
-            } else {
-                next = !current;
+            while (next_s && (this != current)) {
+                this   = strtol (next_s, NULL, 0);
+                next_s = argv_idx (values, ++i);
             }
 
-            sendev = set_variable_ull (var, next);
-            break;
-        }
-        case TYPE_FLOAT:
-        {
-            float current = get_variable_float (var);
-            float next;
-
-            if (values && values->len) {
-                guint i = 0;
-
-                float first = strtod (argv_idx (values, 0), NULL);
-                float  this = first;
-
-                const gchar *next_s = argv_idx (values, 1);
-
-                while (next_s && (this != current)) {
-                    this   = strtod (next_s, NULL);
-                    next_s = argv_idx (values, ++i);
-                }
-
-                if (next_s) {
-                    next = strtod (next_s, NULL);
-                } else {
-                    next = first;
-                }
+            if (next_s) {
+                next = strtol (next_s, NULL, 0);
             } else {
-                next = !current;
+                next = first;
+            }
+        } else {
+            next = !current;
+        }
+
+        sendev = set_variable_int (var, next);
+        break;
+    }
+    case TYPE_ULL:
+    {
+        unsigned long long current = get_variable_ull (var);
+        unsigned long long next;
+
+        if (values && values->len) {
+            guint i = 0;
+
+            unsigned long long first = strtoull (argv_idx (values, 0), NULL, 0);
+            unsigned long long  this = first;
+
+            const gchar *next_s = argv_idx (values, 1);
+
+            while (next_s && this != current) {
+                this   = strtoull (next_s, NULL, 0);
+                next_s = argv_idx (values, ++i);
             }
 
-            sendev = set_variable_float (var, next);
-            break;
+            if (next_s) {
+                next = strtoull (next_s, NULL, 0);
+            } else {
+                next = first;
+            }
+        } else {
+            next = !current;
         }
-        default:
-            g_assert_not_reached ();
+
+        sendev = set_variable_ull (var, next);
+        break;
+    }
+    case TYPE_FLOAT:
+    {
+        float current = get_variable_float (var);
+        float next;
+
+        if (values && values->len) {
+            guint i = 0;
+
+            float first = strtod (argv_idx (values, 0), NULL);
+            float  this = first;
+
+            const gchar *next_s = argv_idx (values, 1);
+
+            while (next_s && (this != current)) {
+                this   = strtod (next_s, NULL);
+                next_s = argv_idx (values, ++i);
+            }
+
+            if (next_s) {
+                next = strtod (next_s, NULL);
+            } else {
+                next = first;
+            }
+        } else {
+            next = !current;
+        }
+
+        sendev = set_variable_float (var, next);
+        break;
+    }
+    default:
+        g_assert_not_reached ();
     }
 
     if (sendev) {
@@ -1121,20 +1122,20 @@ send_variable_event (const gchar *name, const UzblVariable *var)
 
     /* Check for the variable type. */
     switch (var->type) {
-        case TYPE_STR:
-            type = "str";
-            break;
-        case TYPE_INT:
-            type = "int";
-            break;
-        case TYPE_ULL:
-            type = "ull";
-            break;
-        case TYPE_FLOAT:
-            type = "float";
-            break;
-        default:
-            g_assert_not_reached ();
+    case TYPE_STR:
+        type = "str";
+        break;
+    case TYPE_INT:
+        type = "int";
+        break;
+    case TYPE_ULL:
+        type = "ull";
+        break;
+    case TYPE_FLOAT:
+        type = "float";
+        break;
+    default:
+        g_assert_not_reached ();
     }
 
     uzbl_events_send (VARIABLE_SET, NULL,
@@ -1215,265 +1216,265 @@ expand_impl (const gchar *str, UzblExpandStage stage)
 
     while (*p) {
         switch (*p) {
-            case '@':
+        case '@':
+        {
+            UzblExpandType etype = expand_type (p);
+            const gchar *vend = NULL;
+            gchar *ret = NULL;
+            ++p;
+
+            switch (etype) {
+            case EXPAND_VAR:
             {
-                UzblExpandType etype = expand_type (p);
-                const gchar *vend = NULL;
-                gchar *ret = NULL;
-                ++p;
-
-                switch (etype) {
-                    case EXPAND_VAR:
-                    {
-                        size_t sz = strspn (p, valid_chars);
-                        vend = p + sz;
-                        break;
-                    }
-                    case EXPAND_VAR_BRACE:
-                        ++p;
-                        vend = strchr (p, '}');
-                        if (!vend) {
-                            vend = strchr (p, '\0');
-                        }
-                        break;
-                    case EXPAND_SHELL:
-                        ++p;
-                        vend = strstr (p, ")@");
-                        if (!vend) {
-                            vend = strchr (p, '\0');
-                        }
-                        break;
-                    case EXPAND_UZBL:
-                        ++p;
-                        vend = strstr (p, "/@");
-                        if (!vend) {
-                            vend = strchr (p, '\0');
-                        }
-                        break;
-                    case EXPAND_UZBL_JS:
-                        ++p;
-                        vend = strstr (p, "*@");
-                        if (!vend) {
-                            vend = strchr (p, '\0');
-                        }
-                        break;
-                    case EXPAND_JS:
-                        ++p;
-                        vend = strstr (p, ">@");
-                        if (!vend) {
-                            vend = strchr (p, '\0');
-                        }
-                        break;
-                    case EXPAND_ESCAPE:
-                        ++p;
-                        vend = strstr (p, "]@");
-                        if (!vend) {
-                            vend = strchr (p, '\0');
-                        }
-                        break;
-                }
-                assert (vend);
-
-                ret = g_strndup (p, vend - p);
-
-                switch (etype) {
-                    case EXPAND_VAR_BRACE:
-                        /* Skip the end brace. */
-                        ++vend;
-                        /* FALLTHROUGH */
-                    case EXPAND_VAR:
-                        variable_expand (get_variable (ret), buf);
-
-                        p = vend;
-                        break;
-                    case EXPAND_SHELL:
-                    {
-                        if (stage == EXPAND_IGNORE_SHELL) {
-                            break;
-                        }
-
-                        GString *spawn_ret = g_string_new ("");
-                        const gchar *runner = NULL;
-                        const gchar *cmd = ret;
-                        gboolean quote = FALSE;
-
-                        if (*ret == '+') {
-                            /* Execute program directly. */
-                            runner = "spawn_sync";
-                            ++cmd;
-                        } else {
-                            /* Execute program through shell, quote it first. */
-                            runner = "spawn_sh_sync";
-                            quote = TRUE;
-                        }
-
-                        gchar *exp_cmd = expand_impl (cmd, EXPAND_IGNORE_SHELL);
-
-                        if (quote) {
-                            gchar *quoted = g_shell_quote (exp_cmd);
-                            g_free (exp_cmd);
-                            exp_cmd = quoted;
-                        }
-
-                        gchar *full_cmd = g_strdup_printf ("%s %s",
-                            runner,
-                            exp_cmd);
-
-                        uzbl_commands_run (full_cmd, spawn_ret);
-
-                        g_free (exp_cmd);
-                        g_free (full_cmd);
-
-                        if (spawn_ret->str) {
-                            remove_trailing_newline (spawn_ret->str);
-
-                            g_string_append (buf, spawn_ret->str);
-                        }
-                        g_string_free (spawn_ret, TRUE);
-
-                        p = vend + 2;
-
-                        break;
-                    }
-                    case EXPAND_UZBL:
-                    {
-                        if (stage == EXPAND_IGNORE_UZBL) {
-                            break;
-                        }
-
-                        GString *uzbl_ret = g_string_new ("");
-
-                        GArray *tmp = uzbl_commands_args_new ();
-
-                        if (*ret == '+') {
-                            /* Read JS from file. */
-                            gchar *mycmd = expand_impl (ret + 1, EXPAND_IGNORE_UZBL);
-                            g_array_append_val (tmp, mycmd);
-
-                            uzbl_commands_run_argv ("include", tmp, uzbl_ret);
-                        } else {
-                            /* JS from string. */
-                            gchar *mycmd = expand_impl (ret, EXPAND_IGNORE_UZBL);
-
-                            uzbl_commands_run (mycmd, uzbl_ret);
-                        }
-
-                        uzbl_commands_args_free (tmp);
-
-                        if (uzbl_ret->str) {
-                            g_string_append (buf, uzbl_ret->str);
-                        }
-                        g_string_free (uzbl_ret, TRUE);
-
-                        p = vend + 2;
-
-                        break;
-                    }
-                    case EXPAND_UZBL_JS:
-                    {
-                        if (stage == EXPAND_IGNORE_UZBL_JS) {
-                            break;
-                        }
-
-                        GString *uzbl_js_ret = g_string_new ("");
-
-                        GArray *tmp = uzbl_commands_args_new ();
-                        uzbl_commands_args_append (tmp, g_strdup ("uzbl"));
-                        const gchar *source = NULL;
-                        gchar *cmd = ret;
-
-                        if (*ret == '+') {
-                            /* Read JS from file. */
-                            source = "file";
-                            ++cmd;
-                        } else {
-                            /* JS from string. */
-                            source = "string";
-                        }
-
-                        uzbl_commands_args_append (tmp, g_strdup (source));
-
-                        gchar *exp_cmd = expand_impl (cmd, EXPAND_IGNORE_UZBL_JS);
-                        g_array_append_val (tmp, exp_cmd);
-
-                        uzbl_commands_run_argv ("js", tmp, uzbl_js_ret);
-
-                        uzbl_commands_args_free (tmp);
-
-                        if (uzbl_js_ret->str) {
-                            g_string_append (buf, uzbl_js_ret->str);
-                            g_string_free (uzbl_js_ret, TRUE);
-                        }
-                        p = vend + 2;
-
-                        break;
-                    }
-                    case EXPAND_JS:
-                    {
-                        if (stage == EXPAND_IGNORE_JS) {
-                            break;
-                        }
-
-                        GString *js_ret = g_string_new ("");
-
-                        GArray *tmp = uzbl_commands_args_new ();
-                        uzbl_commands_args_append (tmp, g_strdup ("page"));
-                        const gchar *source = NULL;
-                        gchar *cmd = ret;
-
-                        if (*ret == '+') {
-                            /* Read JS from file. */
-                            source = "file";
-                            ++cmd;
-                        } else {
-                            /* JS from string. */
-                            source = "string";
-                        }
-
-                        uzbl_commands_args_append (tmp, g_strdup (source));
-
-                        gchar *exp_cmd = expand_impl (ret + 1, EXPAND_IGNORE_JS);
-                        g_array_append_val (tmp, exp_cmd);
-
-                        uzbl_commands_run_argv ("js", tmp, js_ret);
-
-                        uzbl_commands_args_free (tmp);
-
-                        if (js_ret->str) {
-                            g_string_append (buf, js_ret->str);
-                            g_string_free (js_ret, TRUE);
-                        }
-                        p = vend + 2;
-
-                        break;
-                    }
-                    case EXPAND_ESCAPE:
-                    {
-                        gchar *exp_cmd = expand_impl (ret, EXPAND_INITIAL);
-                        gchar *escaped = g_markup_escape_text (exp_cmd, strlen (exp_cmd));
-
-                        g_string_append (buf, escaped);
-
-                        g_free (escaped);
-                        g_free (exp_cmd);
-                        p = vend + 2;
-                        break;
-                    }
-                }
-
-                g_free (ret);
+                size_t sz = strspn (p, valid_chars);
+                vend = p + sz;
                 break;
             }
-            case '\\':
+            case EXPAND_VAR_BRACE:
                 ++p;
-                if (!*p) {
+                vend = strchr (p, '}');
+                if (!vend) {
+                    vend = strchr (p, '\0');
+                }
+                break;
+            case EXPAND_SHELL:
+                ++p;
+                vend = strstr (p, ")@");
+                if (!vend) {
+                    vend = strchr (p, '\0');
+                }
+                break;
+            case EXPAND_UZBL:
+                ++p;
+                vend = strstr (p, "/@");
+                if (!vend) {
+                    vend = strchr (p, '\0');
+                }
+                break;
+            case EXPAND_UZBL_JS:
+                ++p;
+                vend = strstr (p, "*@");
+                if (!vend) {
+                    vend = strchr (p, '\0');
+                }
+                break;
+            case EXPAND_JS:
+                ++p;
+                vend = strstr (p, ">@");
+                if (!vend) {
+                    vend = strchr (p, '\0');
+                }
+                break;
+            case EXPAND_ESCAPE:
+                ++p;
+                vend = strstr (p, "]@");
+                if (!vend) {
+                    vend = strchr (p, '\0');
+                }
+                break;
+            }
+            assert (vend);
+
+            ret = g_strndup (p, vend - p);
+
+            switch (etype) {
+            case EXPAND_VAR_BRACE:
+                /* Skip the end brace. */
+                ++vend;
+                /* FALLTHROUGH */
+            case EXPAND_VAR:
+                variable_expand (get_variable (ret), buf);
+
+                p = vend;
+                break;
+            case EXPAND_SHELL:
+            {
+                if (stage == EXPAND_IGNORE_SHELL) {
                     break;
                 }
-                /* FALLTHROUGH */
-            default:
-                g_string_append_c (buf, *p);
-                ++p;
+
+                GString *spawn_ret = g_string_new ("");
+                const gchar *runner = NULL;
+                const gchar *cmd = ret;
+                gboolean quote = FALSE;
+
+                if (*ret == '+') {
+                    /* Execute program directly. */
+                    runner = "spawn_sync";
+                    ++cmd;
+                } else {
+                    /* Execute program through shell, quote it first. */
+                    runner = "spawn_sh_sync";
+                    quote = TRUE;
+                }
+
+                gchar *exp_cmd = expand_impl (cmd, EXPAND_IGNORE_SHELL);
+
+                if (quote) {
+                    gchar *quoted = g_shell_quote (exp_cmd);
+                    g_free (exp_cmd);
+                    exp_cmd = quoted;
+                }
+
+                gchar *full_cmd = g_strdup_printf ("%s %s",
+                    runner,
+                    exp_cmd);
+
+                uzbl_commands_run (full_cmd, spawn_ret);
+
+                g_free (exp_cmd);
+                g_free (full_cmd);
+
+                if (spawn_ret->str) {
+                    remove_trailing_newline (spawn_ret->str);
+
+                    g_string_append (buf, spawn_ret->str);
+                }
+                g_string_free (spawn_ret, TRUE);
+
+                p = vend + 2;
+
                 break;
+            }
+            case EXPAND_UZBL:
+            {
+                if (stage == EXPAND_IGNORE_UZBL) {
+                    break;
+                }
+
+                GString *uzbl_ret = g_string_new ("");
+
+                GArray *tmp = uzbl_commands_args_new ();
+
+                if (*ret == '+') {
+                    /* Read JS from file. */
+                    gchar *mycmd = expand_impl (ret + 1, EXPAND_IGNORE_UZBL);
+                    g_array_append_val (tmp, mycmd);
+
+                    uzbl_commands_run_argv ("include", tmp, uzbl_ret);
+                } else {
+                    /* JS from string. */
+                    gchar *mycmd = expand_impl (ret, EXPAND_IGNORE_UZBL);
+
+                    uzbl_commands_run (mycmd, uzbl_ret);
+                }
+
+                uzbl_commands_args_free (tmp);
+
+                if (uzbl_ret->str) {
+                    g_string_append (buf, uzbl_ret->str);
+                }
+                g_string_free (uzbl_ret, TRUE);
+
+                p = vend + 2;
+
+                break;
+            }
+            case EXPAND_UZBL_JS:
+            {
+                if (stage == EXPAND_IGNORE_UZBL_JS) {
+                    break;
+                }
+
+                GString *uzbl_js_ret = g_string_new ("");
+
+                GArray *tmp = uzbl_commands_args_new ();
+                uzbl_commands_args_append (tmp, g_strdup ("uzbl"));
+                const gchar *source = NULL;
+                gchar *cmd = ret;
+
+                if (*ret == '+') {
+                    /* Read JS from file. */
+                    source = "file";
+                    ++cmd;
+                } else {
+                    /* JS from string. */
+                    source = "string";
+                }
+
+                uzbl_commands_args_append (tmp, g_strdup (source));
+
+                gchar *exp_cmd = expand_impl (cmd, EXPAND_IGNORE_UZBL_JS);
+                g_array_append_val (tmp, exp_cmd);
+
+                uzbl_commands_run_argv ("js", tmp, uzbl_js_ret);
+
+                uzbl_commands_args_free (tmp);
+
+                if (uzbl_js_ret->str) {
+                    g_string_append (buf, uzbl_js_ret->str);
+                    g_string_free (uzbl_js_ret, TRUE);
+                }
+                p = vend + 2;
+
+                break;
+            }
+            case EXPAND_JS:
+            {
+                if (stage == EXPAND_IGNORE_JS) {
+                    break;
+                }
+
+                GString *js_ret = g_string_new ("");
+
+                GArray *tmp = uzbl_commands_args_new ();
+                uzbl_commands_args_append (tmp, g_strdup ("page"));
+                const gchar *source = NULL;
+                gchar *cmd = ret;
+
+                if (*ret == '+') {
+                    /* Read JS from file. */
+                    source = "file";
+                    ++cmd;
+                } else {
+                    /* JS from string. */
+                    source = "string";
+                }
+
+                uzbl_commands_args_append (tmp, g_strdup (source));
+
+                gchar *exp_cmd = expand_impl (ret + 1, EXPAND_IGNORE_JS);
+                g_array_append_val (tmp, exp_cmd);
+
+                uzbl_commands_run_argv ("js", tmp, js_ret);
+
+                uzbl_commands_args_free (tmp);
+
+                if (js_ret->str) {
+                    g_string_append (buf, js_ret->str);
+                    g_string_free (js_ret, TRUE);
+                }
+                p = vend + 2;
+
+                break;
+            }
+            case EXPAND_ESCAPE:
+            {
+                gchar *exp_cmd = expand_impl (ret, EXPAND_INITIAL);
+                gchar *escaped = g_markup_escape_text (exp_cmd, strlen (exp_cmd));
+
+                g_string_append (buf, escaped);
+
+                g_free (escaped);
+                g_free (exp_cmd);
+                p = vend + 2;
+                break;
+            }
+            }
+
+            g_free (ret);
+            break;
+        }
+        case '\\':
+            ++p;
+            if (!*p) {
+                break;
+            }
+            /* FALLTHROUGH */
+        default:
+            g_string_append_c (buf, *p);
+            ++p;
+            break;
         }
     }
 
@@ -1544,37 +1545,37 @@ js_get_variable (JSContextRef ctx, JSObjectRef object, JSStringRef propertyName,
     JSValueRef js_value = NULL;
 
     switch (uzbl_var->type) {
-        case TYPE_STR:
-        {
-            gchar *val = get_variable_string (uzbl_var);
-            JSStringRef js_str = JSStringCreateWithUTF8CString (val);
-            g_free (val);
+    case TYPE_STR:
+    {
+        gchar *val = get_variable_string (uzbl_var);
+        JSStringRef js_str = JSStringCreateWithUTF8CString (val);
+        g_free (val);
 
-            js_value = JSValueMakeString (ctx, js_str);
+        js_value = JSValueMakeString (ctx, js_str);
 
-            JSStringRelease (js_str);
-            break;
-        }
-        case TYPE_INT:
-        {
-            int val = get_variable_int (uzbl_var);
-            js_value = JSValueMakeNumber (ctx, val);
-            break;
-        }
-        case TYPE_ULL:
-        {
-            unsigned long long val = get_variable_ull (uzbl_var);
-            js_value = JSValueMakeNumber (ctx, val);
-            break;
-        }
-        case TYPE_FLOAT:
-        {
-            float val = get_variable_float (uzbl_var);
-            js_value = JSValueMakeNumber (ctx, val);
-            break;
-        }
-        default:
-            g_assert_not_reached ();
+        JSStringRelease (js_str);
+        break;
+    }
+    case TYPE_INT:
+    {
+        int val = get_variable_int (uzbl_var);
+        js_value = JSValueMakeNumber (ctx, val);
+        break;
+    }
+    case TYPE_ULL:
+    {
+        unsigned long long val = get_variable_ull (uzbl_var);
+        js_value = JSValueMakeNumber (ctx, val);
+        break;
+    }
+    case TYPE_FLOAT:
+    {
+        float val = get_variable_float (uzbl_var);
+        js_value = JSValueMakeNumber (ctx, val);
+        break;
+    }
+    default:
+        g_assert_not_reached ();
     }
 
     if (!js_value) {
@@ -1622,24 +1623,24 @@ variable_expand (const UzblVariable *var, GString *buf)
     }
 
     switch (var->type) {
-        case TYPE_STR:
-        {
-            gchar *v = get_variable_string (var);
-            g_string_append (buf, v);
-            g_free (v);
-            break;
-        }
-        case TYPE_INT:
-            g_string_append_printf (buf, "%d", get_variable_int (var));
-            break;
-        case TYPE_ULL:
-            g_string_append_printf (buf, "%llu", get_variable_ull (var));
-            break;
-        case TYPE_FLOAT:
-            g_string_append_printf (buf, "%f", get_variable_float (var));
-            break;
-        default:
-            break;
+    case TYPE_STR:
+    {
+        gchar *v = get_variable_string (var);
+        g_string_append (buf, v);
+        g_free (v);
+        break;
+    }
+    case TYPE_INT:
+        g_string_append_printf (buf, "%d", get_variable_int (var));
+        break;
+    case TYPE_ULL:
+        g_string_append_printf (buf, "%llu", get_variable_ull (var));
+        break;
+    case TYPE_FLOAT:
+        g_string_append_printf (buf, "%f", get_variable_float (var));
+        break;
+    default:
+        break;
     }
 }
 
@@ -1647,21 +1648,21 @@ UzblExpandType
 expand_type (const gchar *str)
 {
     switch (*(str + 1)) {
-        case '(':
-            return EXPAND_SHELL;
-        case '{':
-            return EXPAND_VAR_BRACE;
-        case '/':
-            return EXPAND_UZBL;
-        case '*':
-            return EXPAND_UZBL_JS;
-        case '<':
-            return EXPAND_JS;
-        case '[':
-            return EXPAND_ESCAPE;
-        default:
-            return EXPAND_VAR;
-  }
+    case '(':
+        return EXPAND_SHELL;
+    case '{':
+        return EXPAND_VAR_BRACE;
+    case '/':
+        return EXPAND_UZBL;
+    case '*':
+        return EXPAND_UZBL_JS;
+    case '<':
+        return EXPAND_JS;
+    case '[':
+        return EXPAND_ESCAPE;
+    default:
+        return EXPAND_VAR;
+    }
 }
 
 /* =================== VARIABLES IMPLEMENTATIONS ==================== */
@@ -1716,9 +1717,9 @@ expand_type (const gchar *str)
         gchar *out = "unknown";             \
                                             \
         switch (val) {                      \
-            name##_choices (ENUM_TO_STRING) \
-            default:                        \
-                break;                      \
+        name##_choices (ENUM_TO_STRING)     \
+        default:                            \
+            break;                          \
         }                                   \
                                             \
         return g_strdup (out);              \
