@@ -2395,8 +2395,8 @@ GOBJECT_GETSET (int, enable_smooth_scrolling,
 typedef WebKitViewMode page_view_mode_t;
 #else
 #define page_view_mode_choices(call) \
-    call (TRUE, "web")               \
-    call (FALSE, "source")
+    call (TRUE, "source")            \
+    call (FALSE, "web")
 
 #define _webkit_web_view_get_page_view_mode() \
     webkit_web_view_get_view_source_mode (uzbl.gui.web_view)
