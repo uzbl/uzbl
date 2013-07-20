@@ -2951,20 +2951,6 @@ IMPLEMENT_GETTER (gchar *, app_cache_directory)
 #endif
 #endif
 
-IMPLEMENT_GETTER (gchar *, selected_url)
-{
-    gchar *url = g_strdup (uzbl.state.selected_url);
-
-    return url;
-}
-
-IMPLEMENT_GETTER (gchar *, last_result)
-{
-    gchar *result = g_strdup (uzbl.state.last_result);
-
-    return result;
-}
-
 GObject *
 webkit_settings ()
 {
