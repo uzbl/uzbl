@@ -1329,8 +1329,9 @@ expand_impl (const gchar *str, UzblExpandStage stage)
 
                         if (uzbl_ret->str) {
                             g_string_append (buf, uzbl_ret->str);
-                            g_string_free (uzbl_ret, TRUE);
                         }
+                        g_string_free (uzbl_ret, TRUE);
+
                         p = vend + 2;
 
                         break;
