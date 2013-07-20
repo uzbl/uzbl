@@ -2398,17 +2398,20 @@ IMPLEMENT_COMMAND (chain)
 
     guint i = 0;
     const gchar *cmd;
-    GString *res = g_string_new ("");
-
     while ((cmd = argv_idx (argv, i++))) {
+        GString *res = NULL;
+
+        if (result) {
+            res = g_string_new ("");
+        }
+
         uzbl_commands_run (cmd, res);
-    }
 
-    if (result) {
-        g_string_append (result, res->str);
+        if (result) {
+            g_string_append (result, res->str);
+            g_string_free (res, TRUE);
+        }
     }
-
-    g_string_free (res, TRUE);
 }
 
 IMPLEMENT_COMMAND (include)
