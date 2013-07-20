@@ -194,6 +194,9 @@ DECLARE_GETTER (gchar *, inspected_uri);
 /* Page variables */
 DECLARE_SETTER (gchar *, uri);
 DECLARE_GETSET (gchar *, useragent);
+#ifndef USE_WEBKIT2
+DECLARE_GETTER (gchar *, accept_languages);
+#endif
 DECLARE_SETTER (gchar *, accept_languages);
 DECLARE_SETTER (int, view_source);
 DECLARE_GETSET (float, zoom_level);
@@ -448,7 +451,13 @@ builtin_variable_table[] = {
     { "uri",                          UZBL_V_STRING (uzbl.state.uri,                       set_uri)},
     { "forward_keys",                 UZBL_V_INT (uzbl.behave.forward_keys,                NULL)},
     { "useragent",                    UZBL_V_FUNC (useragent,                              STR)},
-    { "accept_languages",             UZBL_V_STRING (uzbl.net.accept_languages,            set_accept_languages)},
+    { "accept_languages",
+#ifdef USE_WEBKIT2
+                                      UZBL_V_STRING (uzbl.net.accept_languages,            set_accept_languages)
+#else
+                                      UZBL_V_FUNC (accept_languages,                       STR)
+#endif
+                                      },
     { "view_source",                  UZBL_V_INT (uzbl.behave.view_source,                 set_view_source)},
     { "zoom_level",                   UZBL_V_FUNC (zoom_level,                             FLOAT)},
     { "zoom_step",                    UZBL_V_FLOAT (uzbl.behave.zoom_step,                 NULL)},
@@ -2272,30 +2281,59 @@ IMPLEMENT_SETTER (gchar *, useragent)
         NULL);
 }
 
+#ifdef USE_WEBKIT2
 IMPLEMENT_SETTER (gchar *, accept_languages)
 {
-    g_free (uzbl.net.accept_languages);
-
     if (!*accept_languages || *accept_languages == ' ') {
-        uzbl.net.accept_languages = NULL;
-    } else {
-        uzbl.net.accept_languages = g_strdup (accept_languages);
-
-#ifdef USE_WEBKIT2
-        WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
-
-        gchar **languages = g_strsplit (uzbl.net.accept_languages, ",", 0);
-
-        webkit_web_context_set_preferred_languages (context, (const gchar * const *)languages);
-
-        g_strfreev (languages);
-#else
-        g_object_set (G_OBJECT (uzbl.net.soup_session),
-            SOUP_SESSION_ACCEPT_LANGUAGE, uzbl.net.accept_languages,
-            NULL);
-#endif
+        return;
     }
+
+    uzbl.net.accept_languages = g_strdup (accept_languages);
+
+    gchar **languages = g_strsplit (uzbl.net.accept_languages, ",", 0);
+
+    WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
+    webkit_web_context_set_preferred_languages (context, (const gchar * const *)languages);
+
+    g_strfreev (languages);
 }
+#else
+IMPLEMENT_GETTER (gchar *, accept_languages)
+{
+    gboolean is_auto;
+
+    g_object_get (soup_session (),
+        SOUP_SESSION_ACCEPT_LANGUAGE_AUTO, &is_auto,
+        NULL);
+
+    if (is_auto) {
+        return g_strdup ("auto");
+    }
+
+    gchar *accept_languages;
+
+    g_object_get (soup_session (),
+        SOUP_SESSION_ACCEPT_LANGUAGE, &accept_languages,
+        NULL);
+
+    return accept_languages;
+}
+
+IMPLEMENT_SETTER (gchar *, accept_languages)
+{
+    if (!g_strcmp0 (accept_languages, "auto")) {
+        g_object_set (soup_session (),
+            SOUP_SESSION_ACCEPT_LANGUAGE_AUTO, TRUE,
+            NULL);
+
+        return;
+    }
+
+    g_object_set (soup_session (),
+        SOUP_SESSION_ACCEPT_LANGUAGE, accept_languages,
+        NULL);
+}
+#endif
 
 IMPLEMENT_SETTER (int, view_source)
 {
