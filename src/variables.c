@@ -186,9 +186,6 @@ DECLARE_SETTER (int, maintain_history);
 DECLARE_GETSET (int, profile_js);
 DECLARE_GETSET (int, profile_timeline);
 #endif
-#if WEBKIT_CHECK_VERSION (1, 3, 17)
-DECLARE_GETTER (gchar *, inspected_uri);
-#endif
 
 /* Page variables */
 DECLARE_SETTER (gchar *, useragent);
@@ -264,7 +261,6 @@ DECLARE_GETSET (int, enable_tab_cycle);
 DECLARE_GETSET (gchar *, default_encoding);
 DECLARE_GETSET (gchar *, custom_encoding);
 #ifndef USE_WEBKIT2
-DECLARE_GETTER (gchar *, current_encoding);
 DECLARE_GETSET (int, enforce_96_dpi);
 #endif
 
@@ -290,9 +286,6 @@ DECLARE_GETSET (int, monospace_size);
 /* Feature variables */
 DECLARE_GETSET (int, enable_plugins);
 DECLARE_GETSET (int, enable_java_applet);
-#ifdef HAVE_PLUGIN_API
-DECLARE_GETTER (gchar *, plugin_list);
-#endif
 #if WEBKIT_CHECK_VERSION (1, 3, 14)
 DECLARE_GETSET (int, enable_webgl);
 #endif
@@ -346,7 +339,16 @@ DECLARE_SETTER (gchar *, web_extensions_directory);
 DECLARE_GETSET (int, enable_site_workarounds);
 
 /* Constants */
+#if WEBKIT_CHECK_VERSION (1, 3, 17)
+DECLARE_GETTER (gchar *, inspected_uri);
+#endif
+#ifndef USE_WEBKIT2
+DECLARE_GETTER (gchar *, current_encoding);
+#endif
 DECLARE_GETTER (gchar *, geometry);
+#ifdef HAVE_PLUGIN_API
+DECLARE_GETTER (gchar *, plugin_list);
+#endif
 DECLARE_GETTER (gchar *, app_cache_directory);
 
 static const UzblVariableEntry
@@ -442,9 +444,6 @@ builtin_variable_table[] = {
     { "profile_js",                   UZBL_V_FUNC (profile_js,                             INT)},
     { "profile_timeline",             UZBL_V_FUNC (profile_timeline,                       INT)},
 #endif
-#if WEBKIT_CHECK_VERSION (1, 3, 17)
-    { "inspected_uri",                UZBL_C_FUNC (inspected_uri,                          STR)},
-#endif
 
     /* Page variables */
     { "forward_keys",                 UZBL_V_INT (uzbl.behave.forward_keys,                NULL)},
@@ -522,7 +521,6 @@ builtin_variable_table[] = {
     { "default_encoding",             UZBL_V_FUNC (default_encoding,                       STR)},
     { "custom_encoding",              UZBL_V_FUNC (custom_encoding,                        STR)},
 #ifndef USE_WEBKIT2
-    { "current_encoding",             UZBL_C_FUNC (current_encoding,                       STR)},
     { "enforce_96_dpi",               UZBL_V_FUNC (enforce_96_dpi,                         INT)},
 #endif
 
@@ -548,9 +546,6 @@ builtin_variable_table[] = {
     /* Feature variables */
     { "enable_plugins",               UZBL_V_FUNC (enable_plugins,                         INT)},
     { "enable_java_applet",           UZBL_V_FUNC (enable_java_applet,                     INT)},
-#ifdef HAVE_PLUGIN_API
-    { "plugin_list",                  UZBL_C_FUNC (plugin_list,                            STR)},
-#endif
 #if WEBKIT_CHECK_VERSION (1, 3, 14)
     { "enable_webgl",                 UZBL_V_FUNC (enable_webgl,                           INT)},
 #endif
@@ -604,7 +599,16 @@ builtin_variable_table[] = {
     { "enable_site_workarounds",      UZBL_V_FUNC (enable_site_workarounds,                INT)},
 
     /* Constants */
+#if WEBKIT_CHECK_VERSION (1, 3, 17)
+    { "inspected_uri",                UZBL_C_FUNC (inspected_uri,                          STR)},
+#endif
+#ifndef USE_WEBKIT2
+    { "current_encoding",             UZBL_C_FUNC (current_encoding,                       STR)},
+#endif
     { "geometry",                     UZBL_C_FUNC (geometry,                               STR)},
+#ifdef HAVE_PLUGIN_API
+    { "plugin_list",                  UZBL_C_FUNC (plugin_list,                            STR)},
+#endif
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
     { "app_cache_directory",          UZBL_C_FUNC (app_cache_directory,                    STR)},
@@ -1773,24 +1777,6 @@ IMPLEMENT_SETTER (int, enable_builtin_auth)
 #endif
 
 /* Window variables */
-IMPLEMENT_GETTER (gchar *, geometry)
-{
-    int w;
-    int h;
-    int x;
-    int y;
-    GString *buf = g_string_new ("");
-
-    if (uzbl.gui.main_window) {
-        gtk_window_get_size (GTK_WINDOW (uzbl.gui.main_window), &w, &h);
-        gtk_window_get_position (GTK_WINDOW (uzbl.gui.main_window), &x, &y);
-
-        g_string_printf (buf, "%dx%d+%d+%d", w, h, x, y);
-    }
-
-    return g_string_free (buf, FALSE);
-}
-
 IMPLEMENT_SETTER (gchar *, icon)
 {
     if (!uzbl.gui.main_window) {
@@ -2203,13 +2189,6 @@ GOBJECT_GETSET (int, profile_timeline,
                 inspector (), "timeline-profiling-enabled")
 #endif
 
-#if WEBKIT_CHECK_VERSION (1, 3, 17)
-IMPLEMENT_GETTER (gchar *, inspected_uri)
-{
-    return g_strdup (webkit_web_inspector_get_inspected_uri (uzbl.gui.inspector));
-}
-#endif
-
 /* Page variables */
 IMPLEMENT_SETTER (gchar *, useragent)
 {
@@ -2572,12 +2551,6 @@ IMPLEMENT_SETTER (gchar *, custom_encoding)
 }
 
 #ifndef USE_WEBKIT2
-IMPLEMENT_GETTER (gchar *, current_encoding)
-{
-    const gchar *encoding = webkit_web_view_get_encoding (uzbl.gui.web_view);
-    return g_strdup (encoding);
-}
-
 GOBJECT_GETSET (int, enforce_96_dpi,
                 webkit_settings (), "enforce-96-dpi")
 #endif
@@ -2632,6 +2605,170 @@ GOBJECT_GETSET (int, enable_java_applet,
 GOBJECT_GETSET (int, enable_java_applet,
                 webkit_settings (), "enable-java-applet")
 #endif
+
+#if WEBKIT_CHECK_VERSION (1, 3, 14)
+GOBJECT_GETSET (int, enable_webgl,
+                webkit_settings (), "enable-webgl")
+#endif
+
+#if WEBKIT_CHECK_VERSION (1, 7, 5)
+GOBJECT_GETSET (int, enable_webaudio,
+                webkit_settings (), "enable-webaudio")
+#endif
+
+#ifndef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 7, 90) /* Documentation says 1.7.5, but it's not there. */
+GOBJECT_GETSET (int, enable_3d_acceleration,
+                webkit_settings (), "enable-accelerated-compositing")
+#endif
+#endif
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 1, 1)
+GOBJECT_GETSET (int, enable_2d_acceleration,
+                webkit_settings (), "enable-accelerated-2d-canvas")
+#endif
+#endif
+
+#if WEBKIT_CHECK_VERSION (1, 9, 3)
+GOBJECT_GETSET (int, enable_inline_media,
+                webkit_settings (), "media-playback-allows-inline")
+
+GOBJECT_GETSET (int, require_click_to_play,
+                webkit_settings (), "media-playback-requires-user-gesture")
+#endif
+
+#ifndef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 11, 1)
+GOBJECT_GETSET (int, enable_css_shaders,
+                webkit_settings (), "enable-css-shaders")
+
+GOBJECT_GETSET (int, enable_media_stream,
+                webkit_settings (), "enable-media-stream")
+#endif
+#endif
+
+/* HTML5 Database variables */
+GOBJECT_GETSET (int, enable_database,
+                webkit_settings (), "enable-html5-database")
+
+GOBJECT_GETSET (int, enable_local_storage,
+                webkit_settings (), "enable-html5-local-storage")
+
+GOBJECT_GETSET (int, enable_pagecache,
+                webkit_settings (), "enable-page-cache")
+
+GOBJECT_GETSET (int, enable_offline_app_cache,
+                webkit_settings (), "enable-offline-web-application-cache")
+
+#ifndef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+IMPLEMENT_GETTER (unsigned long long, app_cache_size)
+{
+    return webkit_application_cache_get_maximum_size ();
+}
+
+IMPLEMENT_SETTER (unsigned long long, app_cache_size)
+{
+    webkit_application_cache_set_maximum_size (app_cache_size);
+
+    return TRUE;
+}
+#endif
+
+IMPLEMENT_GETTER (gchar *, web_database_directory)
+{
+    return g_strdup (webkit_get_web_database_directory_path ());
+}
+
+IMPLEMENT_SETTER (gchar *, web_database_directory)
+{
+    webkit_set_web_database_directory_path (web_database_directory);
+
+    return TRUE;
+}
+
+IMPLEMENT_GETTER (unsigned long long, web_database_quota)
+{
+    return webkit_get_default_web_database_quota ();
+}
+
+IMPLEMENT_SETTER (unsigned long long, web_database_quota)
+{
+    webkit_set_default_web_database_quota (web_database_quota);
+
+    return TRUE;
+}
+
+#if WEBKIT_CHECK_VERSION (1, 5, 2)
+GOBJECT_GETSET (gchar *, local_storage_path,
+                webkit_settings (), "html5-local-storage-database-path")
+#endif
+#endif
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 11, 92)
+IMPLEMENT_SETTER (gchar *, disk_cache_directory)
+{
+    g_free (uzbl.state.disk_cache_directory);
+    uzbl.state.disk_cache_directory = g_strdup (disk_cache_directory);
+
+    WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
+    webkit_web_context_set_disk_cache_directory (context, uzbl.state.disk_cache_directory);
+
+    return TRUE;
+}
+#endif
+
+IMPLEMENT_SETTER (gchar *, web_extensions_directory)
+{
+    g_free (uzbl.state.web_extensions_directory);
+    uzbl.state.web_extensions_directory = g_strdup (web_extensions_directory);
+
+    WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
+    webkit_web_context_set_web_extensions_directory (context, uzbl.state.web_extensions_directory);
+
+    return TRUE;
+}
+#endif
+
+/* Hacks */
+GOBJECT_GETSET (int, enable_site_workarounds,
+                webkit_settings (), "enable-site-specific-quirks")
+
+/* Constants */
+#if WEBKIT_CHECK_VERSION (1, 3, 17)
+IMPLEMENT_GETTER (gchar *, inspected_uri)
+{
+    return g_strdup (webkit_web_inspector_get_inspected_uri (uzbl.gui.inspector));
+}
+#endif
+
+#ifndef USE_WEBKIT2
+IMPLEMENT_GETTER (gchar *, current_encoding)
+{
+    const gchar *encoding = webkit_web_view_get_encoding (uzbl.gui.web_view);
+    return g_strdup (encoding);
+}
+#endif
+
+IMPLEMENT_GETTER (gchar *, geometry)
+{
+    int w;
+    int h;
+    int x;
+    int y;
+    GString *buf = g_string_new ("");
+
+    if (uzbl.gui.main_window) {
+        gtk_window_get_size (GTK_WINDOW (uzbl.gui.main_window), &w, &h);
+        gtk_window_get_position (GTK_WINDOW (uzbl.gui.main_window), &x, &y);
+
+        g_string_printf (buf, "%dx%d+%d+%d", w, h, x, y);
+    }
+
+    return g_string_free (buf, FALSE);
+}
 
 #ifdef HAVE_PLUGIN_API
 #ifdef USE_WEBKIT2
@@ -2809,139 +2946,6 @@ mimetype_list_append (WebKitWebPluginMIMEType *mimetype, GString *list)
 }
 #endif
 
-#if WEBKIT_CHECK_VERSION (1, 3, 14)
-GOBJECT_GETSET (int, enable_webgl,
-                webkit_settings (), "enable-webgl")
-#endif
-
-#if WEBKIT_CHECK_VERSION (1, 7, 5)
-GOBJECT_GETSET (int, enable_webaudio,
-                webkit_settings (), "enable-webaudio")
-#endif
-
-#ifndef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 7, 90) /* Documentation says 1.7.5, but it's not there. */
-GOBJECT_GETSET (int, enable_3d_acceleration,
-                webkit_settings (), "enable-accelerated-compositing")
-#endif
-#endif
-
-#ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (2, 1, 1)
-GOBJECT_GETSET (int, enable_2d_acceleration,
-                webkit_settings (), "enable-accelerated-2d-canvas")
-#endif
-#endif
-
-#if WEBKIT_CHECK_VERSION (1, 9, 3)
-GOBJECT_GETSET (int, enable_inline_media,
-                webkit_settings (), "media-playback-allows-inline")
-
-GOBJECT_GETSET (int, require_click_to_play,
-                webkit_settings (), "media-playback-requires-user-gesture")
-#endif
-
-#ifndef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 11, 1)
-GOBJECT_GETSET (int, enable_css_shaders,
-                webkit_settings (), "enable-css-shaders")
-
-GOBJECT_GETSET (int, enable_media_stream,
-                webkit_settings (), "enable-media-stream")
-#endif
-#endif
-
-/* HTML5 Database variables */
-GOBJECT_GETSET (int, enable_database,
-                webkit_settings (), "enable-html5-database")
-
-GOBJECT_GETSET (int, enable_local_storage,
-                webkit_settings (), "enable-html5-local-storage")
-
-GOBJECT_GETSET (int, enable_pagecache,
-                webkit_settings (), "enable-page-cache")
-
-GOBJECT_GETSET (int, enable_offline_app_cache,
-                webkit_settings (), "enable-offline-web-application-cache")
-
-#ifndef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 3, 13)
-IMPLEMENT_GETTER (unsigned long long, app_cache_size)
-{
-    return webkit_application_cache_get_maximum_size ();
-}
-
-IMPLEMENT_SETTER (unsigned long long, app_cache_size)
-{
-    webkit_application_cache_set_maximum_size (app_cache_size);
-
-    return TRUE;
-}
-#endif
-
-IMPLEMENT_GETTER (gchar *, web_database_directory)
-{
-    return g_strdup (webkit_get_web_database_directory_path ());
-}
-
-IMPLEMENT_SETTER (gchar *, web_database_directory)
-{
-    webkit_set_web_database_directory_path (web_database_directory);
-
-    return TRUE;
-}
-
-IMPLEMENT_GETTER (unsigned long long, web_database_quota)
-{
-    return webkit_get_default_web_database_quota ();
-}
-
-IMPLEMENT_SETTER (unsigned long long, web_database_quota)
-{
-    webkit_set_default_web_database_quota (web_database_quota);
-
-    return TRUE;
-}
-
-#if WEBKIT_CHECK_VERSION (1, 5, 2)
-GOBJECT_GETSET (gchar *, local_storage_path,
-                webkit_settings (), "html5-local-storage-database-path")
-#endif
-#endif
-
-#ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 11, 92)
-IMPLEMENT_SETTER (gchar *, disk_cache_directory)
-{
-    g_free (uzbl.state.disk_cache_directory);
-    uzbl.state.disk_cache_directory = g_strdup (disk_cache_directory);
-
-    WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
-
-    webkit_web_context_set_disk_cache_directory (context, uzbl.state.disk_cache_directory);
-
-    return TRUE;
-}
-#endif
-
-IMPLEMENT_SETTER (gchar *, web_extensions_directory)
-{
-    g_free (uzbl.state.web_extensions_directory);
-    uzbl.state.web_extensions_directory = g_strdup (web_extensions_directory);
-
-    WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
-
-    webkit_web_context_set_web_extensions_directory (context, uzbl.state.web_extensions_directory);
-
-    return TRUE;
-}
-#endif
-
-/* Hacks */
-GOBJECT_GETSET (int, enable_site_workarounds,
-                webkit_settings (), "enable-site-specific-quirks")
-
-/* Constants */
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
 IMPLEMENT_GETTER (gchar *, app_cache_directory)
