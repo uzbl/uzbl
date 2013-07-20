@@ -149,8 +149,8 @@ DECLARE_GETSET (int, print_backgrounds);
 /* Network variables */
 #ifndef USE_WEBKIT2
 DECLARE_GETSET (gchar *, proxy_url);
-DECLARE_SETTER (int, max_conns);
-DECLARE_SETTER (int, max_conns_host);
+DECLARE_GETSET (int, max_conns);
+DECLARE_GETSET (int, max_conns_host);
 DECLARE_SETTER (gchar *, http_debug);
 DECLARE_GETSET (gchar *, ssl_ca_file);
 #endif
@@ -405,8 +405,8 @@ builtin_variable_table[] = {
     /* Network variables */
 #ifndef USE_WEBKIT2
     { "proxy_url",                    UZBL_V_FUNC (proxy_url,                              STR)},
-    { "max_conns",                    UZBL_V_INT (uzbl.net.max_conns,                      set_max_conns)},
-    { "max_conns_host",               UZBL_V_INT (uzbl.net.max_conns_host,                 set_max_conns_host)},
+    { "max_conns",                    UZBL_V_FUNC (max_conns,                              INT)},
+    { "max_conns_host",               UZBL_V_FUNC (max_conns_host,                         INT)},
     { "http_debug",                   UZBL_V_STRING (uzbl.behave.http_debug,               set_http_debug)},
     { "ssl_ca_file",                  UZBL_V_FUNC (ssl_ca_file,                            STR)},
 #endif
@@ -1988,23 +1988,11 @@ IMPLEMENT_SETTER (gchar *, proxy_url)
     soup_uri_free (soup_uri);
 }
 
-IMPLEMENT_SETTER (int, max_conns)
-{
-    uzbl.net.max_conns = max_conns;
+GOBJECT_GETSET (int, max_conns,
+                soup_session (), SOUP_SESSION_MAX_CONNS)
 
-    g_object_set (G_OBJECT (uzbl.net.soup_session),
-        SOUP_SESSION_MAX_CONNS, uzbl.net.max_conns,
-        NULL);
-}
-
-IMPLEMENT_SETTER (int, max_conns_host)
-{
-    uzbl.net.max_conns_host = max_conns_host;
-
-    g_object_set (G_OBJECT (uzbl.net.soup_session),
-        SOUP_SESSION_MAX_CONNS_PER_HOST, uzbl.net.max_conns_host,
-        NULL);
-}
+GOBJECT_GETSET (int, max_conns_host,
+                soup_session (), SOUP_SESSION_MAX_CONNS_PER_HOST)
 
 IMPLEMENT_SETTER (gchar *, http_debug)
 {

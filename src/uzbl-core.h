@@ -90,8 +90,6 @@ typedef struct {
     GHashTable     *pending_auths;
     SoupLogger     *soup_logger;
     char           *accept_languages;
-    gint            max_conns;
-    gint            max_conns_host;
 } UzblNetwork;
 
 /* Behaviour */
