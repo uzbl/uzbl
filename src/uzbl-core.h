@@ -99,11 +99,7 @@ typedef struct {
     UzblCookieJar  *soup_cookie_jar;
     GHashTable     *pending_auths;
     SoupLogger     *soup_logger;
-    char           *proxy_url;
-    char           *useragent;
-    char           *accept_languages;
-    gint            max_conns;
-    gint            max_conns_host;
+    gchar          *accept_languages;
 } UzblNetwork;
 
 /* Behaviour */

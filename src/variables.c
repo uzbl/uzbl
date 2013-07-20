@@ -147,9 +147,9 @@ DECLARE_GETSET (int, print_backgrounds);
 
 /* Network variables */
 #ifndef USE_WEBKIT2
-DECLARE_SETTER (gchar *, proxy_url);
-DECLARE_SETTER (int, max_conns);
-DECLARE_SETTER (int, max_conns_host);
+DECLARE_GETSET (gchar *, proxy_url);
+DECLARE_GETSET (int, max_conns);
+DECLARE_GETSET (int, max_conns_host);
 DECLARE_SETTER (gchar *, http_debug);
 DECLARE_GETSET (gchar *, ssl_ca_file);
 #endif
@@ -191,9 +191,16 @@ DECLARE_GETTER (gchar *, inspected_uri);
 #endif
 
 /* Page variables */
-DECLARE_SETTER (gchar *, useragent);
+DECLARE_GETSET (gchar *, useragent);
+#ifndef USE_WEBKIT2
+DECLARE_GETTER (gchar *, accept_languages);
+#endif
 DECLARE_SETTER (gchar *, accept_languages);
 DECLARE_GETSET (float, zoom_level);
+#ifndef USE_WEBKIT2
+DECLARE_GETTER (float, zoom_step);
+#endif
+DECLARE_SETTER (float, zoom_step);
 #ifdef HAVE_ZOOM_TEXT_API
 DECLARE_GETSET (int, zoom_text_only);
 #endif
@@ -219,9 +226,7 @@ DECLARE_GETSET (int, editable);
 #endif
 
 /* Javascript variables */
-#ifndef USE_WEBKIT2
 DECLARE_GETSET (int, enable_scripts);
-#endif
 DECLARE_GETSET (int, javascript_windows);
 #ifdef USE_WEBKIT2
 DECLARE_GETSET (int, javascript_modal_dialogs);
@@ -405,9 +410,9 @@ builtin_variable_table[] = {
 
     /* Network variables */
 #ifndef USE_WEBKIT2
-    { "proxy_url",                    UZBL_V_STRING (uzbl.net.proxy_url,                   set_proxy_url)},
-    { "max_conns",                    UZBL_V_INT (uzbl.net.max_conns,                      set_max_conns)},
-    { "max_conns_host",               UZBL_V_INT (uzbl.net.max_conns_host,                 set_max_conns_host)},
+    { "proxy_url",                    UZBL_V_FUNC (proxy_url,                              STR)},
+    { "max_conns",                    UZBL_V_FUNC (max_conns,                              INT)},
+    { "max_conns_host",               UZBL_V_FUNC (max_conns_host,                         INT)},
     { "http_debug",                   UZBL_V_STRING (uzbl.behave.http_debug,               set_http_debug)},
     { "ssl_ca_file",                  UZBL_V_FUNC (ssl_ca_file,                            STR)},
 #endif
@@ -447,10 +452,22 @@ builtin_variable_table[] = {
 
     /* Page variables */
     { "forward_keys",                 UZBL_V_INT (uzbl.behave.forward_keys,                NULL)},
-    { "useragent",                    UZBL_V_STRING (uzbl.net.useragent,                   set_useragent)},
-    { "accept_languages",             UZBL_V_STRING (uzbl.net.accept_languages,            set_accept_languages)},
+    { "useragent",                    UZBL_V_FUNC (useragent,                              STR)},
+    { "accept_languages",
+#ifdef USE_WEBKIT2
+                                      UZBL_V_STRING (uzbl.net.accept_languages,            set_accept_languages)
+#else
+                                      UZBL_V_FUNC (accept_languages,                       STR)
+#endif
+                                      },
     { "zoom_level",                   UZBL_V_FUNC (zoom_level,                             FLOAT)},
-    { "zoom_step",                    UZBL_V_FLOAT (uzbl.behave.zoom_step,                 NULL)},
+    { "zoom_step",
+#ifdef USE_WEBKIT2
+                                      UZBL_V_FLOAT (uzbl.behave.zoom_step,                 set_zoom_step)
+#else
+                                      UZBL_V_FUNC (zoom_step,                              FLOAT)
+#endif
+                                      },
 #ifdef HAVE_ZOOM_TEXT_API
     { "zoom_text_only",               UZBL_V_FUNC (zoom_text_only,                         INT)},
 #endif
@@ -476,9 +493,7 @@ builtin_variable_table[] = {
 #endif
 
     /* Javascript variables */
-#ifndef USE_WEBKIT2
     { "enable_scripts",               UZBL_V_FUNC (enable_scripts,                         INT)},
-#endif
     { "javascript_windows",           UZBL_V_FUNC (javascript_windows,                     INT)},
 #ifdef USE_WEBKIT2
     { "javascript_modal_dialogs",     UZBL_V_FUNC (javascript_modal_dialogs,               INT)},
@@ -1957,20 +1972,38 @@ GOBJECT_GETSET (int, print_backgrounds,
 
 /* Network variables */
 #ifndef USE_WEBKIT2
-IMPLEMENT_SETTER (gchar *, proxy_url)
+IMPLEMENT_GETTER (gchar *, proxy_url)
 {
-    g_free (uzbl.net.proxy_url);
-    uzbl.net.proxy_url = g_strdup (proxy_url);
+    SoupURI *soup_uri = NULL;
 
-    const gchar *url = uzbl.net.proxy_url;
-    SoupSession *session  = uzbl.net.soup_session;
-    SoupURI     *soup_uri = NULL;
+    g_object_get (soup_session (),
+        SOUP_SESSION_PROXY_URI, &soup_uri,
+        NULL);
 
-    if (url && *url && *url != ' ') {
-        soup_uri = soup_uri_new (url);
+    if (!soup_uri) {
+        return g_strdup ("");
     }
 
-    g_object_set (G_OBJECT (session),
+    gchar *proxy_url = soup_uri_to_string (soup_uri, TRUE);
+
+    soup_uri_free (soup_uri);
+
+    return proxy_url;
+}
+
+IMPLEMENT_SETTER (gchar *, proxy_url)
+{
+    SoupURI *soup_uri = NULL;
+
+    if (proxy_url && *proxy_url && *proxy_url != ' ') {
+        soup_uri = soup_uri_new (proxy_url);
+    }
+
+    if (!soup_uri) {
+        return FALSE;
+    }
+
+    g_object_set (soup_session (),
         SOUP_SESSION_PROXY_URI, soup_uri,
         NULL);
 
@@ -1979,27 +2012,11 @@ IMPLEMENT_SETTER (gchar *, proxy_url)
     return TRUE;
 }
 
-IMPLEMENT_SETTER (int, max_conns)
-{
-    uzbl.net.max_conns = max_conns;
+GOBJECT_GETSET (int, max_conns,
+                soup_session (), SOUP_SESSION_MAX_CONNS)
 
-    g_object_set (G_OBJECT (uzbl.net.soup_session),
-        SOUP_SESSION_MAX_CONNS, uzbl.net.max_conns,
-        NULL);
-
-    return TRUE;
-}
-
-IMPLEMENT_SETTER (int, max_conns_host)
-{
-    uzbl.net.max_conns_host = max_conns_host;
-
-    g_object_set (G_OBJECT (uzbl.net.soup_session),
-        SOUP_SESSION_MAX_CONNS_PER_HOST, uzbl.net.max_conns_host,
-        NULL);
-
-    return TRUE;
-}
+GOBJECT_GETSET (int, max_conns_host,
+                soup_session (), SOUP_SESSION_MAX_CONNS_PER_HOST)
 
 IMPLEMENT_SETTER (gchar *, http_debug)
 {
@@ -2216,67 +2233,118 @@ IMPLEMENT_GETTER (gchar *, inspected_uri)
 #endif
 
 /* Page variables */
+IMPLEMENT_GETTER (gchar *, useragent)
+{
+    gchar *useragent;
+
+#ifdef USE_WEBKIT2
+    g_object_get (webkit_settings (),
+        "user-agent", &useragent,
+        NULL);
+#else
+    g_object_get (soup_session (),
+        SOUP_SESSION_USER_AGENT, &useragent,
+        NULL);
+#endif
+
+    return useragent;
+}
+
 IMPLEMENT_SETTER (gchar *, useragent)
 {
-    g_free (uzbl.net.useragent);
-
     if (!useragent || !*useragent) {
-        uzbl.net.useragent = NULL;
-
         return FALSE;
     }
 
-    uzbl.net.useragent = g_strdup (useragent);
-
 #ifndef USE_WEBKIT2
-    g_object_set (G_OBJECT (uzbl.net.soup_session),
-        SOUP_SESSION_USER_AGENT, uzbl.net.useragent,
+    g_object_set (soup_session (),
+        SOUP_SESSION_USER_AGENT, useragent,
         NULL);
 #endif
     g_object_set (webkit_settings (),
-        "user-agent", uzbl.net.useragent,
+        "user-agent", useragent,
         NULL);
 
     return TRUE;
 }
 
+#ifdef USE_WEBKIT2
 IMPLEMENT_SETTER (gchar *, accept_languages)
 {
-    g_free (uzbl.net.accept_languages);
-
     if (!*accept_languages || *accept_languages == ' ') {
-        uzbl.net.accept_languages = NULL;
-
         return FALSE;
     }
 
     uzbl.net.accept_languages = g_strdup (accept_languages);
 
-#ifdef USE_WEBKIT2
-    WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
-
     gchar **languages = g_strsplit (uzbl.net.accept_languages, ",", 0);
 
+    WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
     webkit_web_context_set_preferred_languages (context, (const gchar * const *)languages);
 
     g_strfreev (languages);
+}
 #else
-    g_object_set (G_OBJECT (uzbl.net.soup_session),
-        SOUP_SESSION_ACCEPT_LANGUAGE, uzbl.net.accept_languages,
+IMPLEMENT_GETTER (gchar *, accept_languages)
+{
+    gboolean is_auto;
+
+    g_object_get (soup_session (),
+        SOUP_SESSION_ACCEPT_LANGUAGE_AUTO, &is_auto,
         NULL);
-#endif
+
+    if (is_auto) {
+        return g_strdup ("auto");
+    }
+
+    gchar *accept_languages;
+
+    g_object_get (soup_session (),
+        SOUP_SESSION_ACCEPT_LANGUAGE, &accept_languages,
+        NULL);
+
+    return accept_languages;
+}
+
+IMPLEMENT_SETTER (gchar *, accept_languages)
+{
+    if (!g_strcmp0 (accept_languages, "auto")) {
+        g_object_set (soup_session (),
+            SOUP_SESSION_ACCEPT_LANGUAGE_AUTO, TRUE,
+            NULL);
+
+        return TRUE;
+    }
+
+    g_object_set (soup_session (),
+        SOUP_SESSION_ACCEPT_LANGUAGE, accept_languages,
+        NULL);
 
     return TRUE;
 }
+#endif
 
-IMPLEMENT_GETTER (float, zoom_level)
-{
-    return webkit_web_view_get_zoom_level (uzbl.gui.web_view);
-}
+GOBJECT_GETSET (float, zoom_level,
+                webkit_view (), "zoom-level")
 
-IMPLEMENT_SETTER (float, zoom_level)
+#ifndef USE_WEBKIT2
+GOBJECT_GETTER (float, zoom_step,
+                webkit_settings (), "zoom-step");
+#endif
+
+IMPLEMENT_SETTER (float, zoom_step)
 {
-    webkit_web_view_set_zoom_level (uzbl.gui.web_view, zoom_level);
+    if (zoom_step < 0) {
+        return FALSE;
+    }
+
+#ifdef USE_WEBKIT2
+    uzbl.behave.zoom_step = zoom_step;
+#else
+    g_object_set (webkit_settings (),
+        "zoom-step", zoom_step,
+        NULL);
+#endif
 
     return TRUE;
 }
@@ -2384,10 +2452,14 @@ GOBJECT_GETSET (int, editable,
 #endif
 
 /* Javascript variables */
-#ifndef USE_WEBKIT2
 GOBJECT_GETSET (int, enable_scripts,
-                webkit_settings (), "enable-scripts")
+                webkit_settings (),
+#ifdef USE_WEBKIT2
+                                    "enable-javascript"
+#else
+                                    "enable-scripts"
 #endif
+                )
 
 GOBJECT_GETSET (int, javascript_windows,
                 webkit_settings (), "javascript-can-open-windows-automatically")
@@ -2558,6 +2630,11 @@ IMPLEMENT_GETTER (gchar *, custom_encoding)
 #else
         webkit_web_view_get_custom_encoding (uzbl.gui.web_view);
 #endif
+
+    if (!encoding) {
+        g_strdup ("");
+    }
+
     return g_strdup (encoding);
 }
 
