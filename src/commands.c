@@ -1544,7 +1544,7 @@ IMPLEMENT_COMMAND (spell)
         gchar *new_word = webkit_spell_checker_get_autocorrect_suggestions_for_misspelled_word (checker, word);
 
         /* TODO: Return as a JSON string? */
-        g_string_assign (result, new_word);
+        g_string_append (result, new_word);
 
         g_free (new_word);
     } else if (!g_strcmp0 (command, "guesses")) {
@@ -1620,7 +1620,7 @@ IMPLEMENT_COMMAND (favicon)
 
         gchar *favicon_uri = webkit_favicon_database_get_favicon_uri (database, uri);
 
-        g_string_assign (result, favicon_uri);
+        g_string_append (result, favicon_uri);
 
         g_free (favicon_uri);
     } else if (!g_strcmp0 (command, "save")) {
@@ -2232,7 +2232,7 @@ IMPLEMENT_COMMAND (security)
         set = policy & field->value;
 #endif
 
-        g_string_assign (result, set ? "true" : "false");
+        g_string_append (result, set ? "true" : "false");
     } else if (!g_strcmp0 (command, "set")) {
 #ifdef USE_WEBKIT2
         field->set (manager, scheme);
@@ -2415,7 +2415,7 @@ IMPLEMENT_COMMAND (js)
     if (result && js_result && !JSValueIsUndefined (jsctx, js_result)) {
         gchar *result_utf8 = uzbl_js_to_string (jsctx, js_result);
 
-        g_string_assign (result, result_utf8);
+        g_string_append (result, result_utf8);
 
         g_free (result_utf8);
     } else if (js_exc) {
@@ -2496,17 +2496,20 @@ IMPLEMENT_COMMAND (chain)
 
     guint i = 0;
     const gchar *cmd;
-    GString *res = g_string_new ("");
-
     while ((cmd = argv_idx (argv, i++))) {
+        GString *res = NULL;
+
+        if (result) {
+            res = g_string_new ("");
+        }
+
         uzbl_commands_run (cmd, res);
-    }
 
-    if (result) {
-        g_string_assign (result, res->str);
+        if (result) {
+            g_string_append (result, res->str);
+            g_string_free (res, TRUE);
+        }
     }
-
-    g_string_free (res, TRUE);
 }
 
 IMPLEMENT_COMMAND (include)
@@ -2603,7 +2606,7 @@ IMPLEMENT_COMMAND (print)
     }
 
     buf = uzbl_variables_expand (argv_idx (argv, 0));
-    g_string_assign (result, buf);
+    g_string_append (result, buf);
     g_free (buf);
 }
 
@@ -2774,22 +2777,20 @@ plugin_toggle_one (WebKitWebPlugin *plugin, gpointer data)
 /* Make sure that the args string you pass can properly be interpreted (e.g.,
  * properly escaped against whitespace, quotes etc.). */
 static gboolean
-run_system_command (GArray *args, const gboolean sync, char **output_stdout);
+run_system_command (GArray *args, char **output_stdout);
 
 void
 spawn (GArray *argv, GString *result, gboolean exec)
 {
-    gchar *path = NULL;
-
     ARG_CHECK (argv, 1);
 
     const gchar *req_path = argv_idx (argv, 0);
 
-    path = find_existing_file (req_path);
+    gchar *path = find_existing_file (req_path);
 
     if (!path) {
-        uzbl_debug ("Failed to spawn child process: %s not found\n", req_path);
-        return;
+        /* Assume it's a valid command. */
+        path = g_strdup (req_path);
     }
 
     GArray *args = uzbl_commands_args_new ();
@@ -2803,11 +2804,11 @@ spawn (GArray *argv, GString *result, gboolean exec)
     }
 
     gchar *r = NULL;
-    run_system_command (args, result != NULL, result ? &r : NULL);
-    if (result) {
-        g_string_assign (result, r);
-        /* Run each line of output from the program as a command. */
-        if (exec && r) {
+    run_system_command (args, result ? &r : NULL);
+    if (result && r) {
+        g_string_append (result, r);
+        if (exec) {
+            /* Run each line of output from the program as a command. */
             gchar *head = r;
             gchar *tail;
             while ((tail = strchr (head, '\n'))) {
@@ -2846,9 +2847,9 @@ spawn_sh (GArray *argv, GString *result)
     }
 
     gchar *r = NULL;
-    run_system_command (sh_cmd, result ? TRUE : FALSE, result ? &r : NULL);
-    if (result) {
-        g_string_assign (result, r);
+    run_system_command (sh_cmd, result ? &r : NULL);
+    if (result && r) {
+        g_string_append (result, r);
     }
 
     g_free (r);
@@ -2863,16 +2864,12 @@ string_is_integer (const char *s)
 }
 
 gboolean
-run_system_command (GArray *args, const gboolean sync, char **output_stdout)
+run_system_command (GArray *args, char **output_stdout)
 {
     GError *err = NULL;
 
     gboolean result;
-    if (sync) {
-        if (output_stdout && *output_stdout) {
-            g_free (*output_stdout);
-        }
-
+    if (output_stdout) {
         result = g_spawn_sync (NULL, (gchar **)args->data, NULL, G_SPAWN_SEARCH_PATH,
                                NULL, NULL, output_stdout, NULL, NULL, &err);
     } else {
@@ -2895,6 +2892,7 @@ run_system_command (GArray *args, const gboolean sync, char **output_stdout)
             printf ("Stdout: %s\n", *output_stdout);
         }
     }
+
     if (err) {
         g_printerr ("error on run_system_command: %s\n", err->message);
         g_error_free (err);
