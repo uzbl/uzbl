@@ -1460,7 +1460,7 @@ IMPLEMENT_COMMAND (spell)
         gchar *new_word = webkit_spell_checker_get_autocorrect_suggestions_for_misspelled_word (checker, word);
 
         /* TODO: Return as a JSON string? */
-        g_string_assign (result, new_word);
+        g_string_append (result, new_word);
 
         g_free (new_word);
     } else if (!g_strcmp0 (command, "guesses")) {
@@ -1536,7 +1536,7 @@ IMPLEMENT_COMMAND (favicon)
 
         gchar *favicon_uri = webkit_favicon_database_get_favicon_uri (database, uri);
 
-        g_string_assign (result, favicon_uri);
+        g_string_append (result, favicon_uri);
 
         g_free (favicon_uri);
     } else if (!g_strcmp0 (command, "save")) {
@@ -2134,7 +2134,7 @@ IMPLEMENT_COMMAND (security)
         set = policy & field->value;
 #endif
 
-        g_string_assign (result, set ? "true" : "false");
+        g_string_append (result, set ? "true" : "false");
     } else if (!g_strcmp0 (command, "set")) {
 #ifdef USE_WEBKIT2
         field->set (manager, scheme);
@@ -2317,7 +2317,7 @@ IMPLEMENT_COMMAND (js)
     if (result && js_result && !JSValueIsUndefined (jsctx, js_result)) {
         gchar *result_utf8 = uzbl_js_to_string (jsctx, js_result);
 
-        g_string_assign (result, result_utf8);
+        g_string_append (result, result_utf8);
 
         g_free (result_utf8);
     } else if (js_exc) {
@@ -2405,7 +2405,7 @@ IMPLEMENT_COMMAND (chain)
     }
 
     if (result) {
-        g_string_assign (result, res->str);
+        g_string_append (result, res->str);
     }
 
     g_string_free (res, TRUE);
@@ -2502,7 +2502,7 @@ IMPLEMENT_COMMAND (print)
     }
 
     buf = uzbl_variables_expand (argv_idx (argv, 0));
-    g_string_assign (result, buf);
+    g_string_append (result, buf);
     g_free (buf);
 }
 
@@ -2637,7 +2637,7 @@ spawn (GArray *argv, GString *result, gboolean exec)
     gchar *r = NULL;
     run_system_command (args, result != NULL, result ? &r : NULL);
     if (result) {
-        g_string_assign (result, r);
+        g_string_append (result, r);
         /* Run each line of output from the program as a command. */
         if (exec && r) {
             gchar *head = r;
@@ -2676,7 +2676,7 @@ spawn_sh (GArray *argv, GString *result)
     gchar *r = NULL;
     run_system_command (sh_cmd, result ? TRUE : FALSE, result ? &r : NULL);
     if (result) {
-        g_string_assign (result, r);
+        g_string_append (result, r);
     }
 
     g_free (r);
