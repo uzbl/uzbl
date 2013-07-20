@@ -328,7 +328,6 @@ DECLARE_GETSET (int, enable_offline_app_cache);
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
 DECLARE_GETSET (unsigned long long, app_cache_size);
-/* DECLARE_GETTER (gchar *, app_cache_directory); */
 #endif
 DECLARE_GETSET (gchar *, web_database_directory);
 DECLARE_GETSET (unsigned long long, web_database_quota);
@@ -348,6 +347,7 @@ DECLARE_GETSET (int, enable_site_workarounds);
 
 /* Constants */
 DECLARE_GETTER (gchar *, geometry);
+DECLARE_GETTER (gchar *, app_cache_directory);
 
 static const UzblVariableEntry
 builtin_variable_table[] = {
@@ -586,7 +586,6 @@ builtin_variable_table[] = {
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
     { "app_cache_size",               UZBL_V_FUNC (app_cache_size,                         ULL)},
-    /* { "app_cache_directory",          UZBL_C_FUNC (app_cache_directory,                    STR)}, */
 #endif
     { "web_database_directory",       UZBL_V_FUNC (web_database_directory,                 STR)},
     { "web_database_quota",           UZBL_V_FUNC (web_database_quota,                     ULL)},
@@ -606,6 +605,11 @@ builtin_variable_table[] = {
 
     /* Constants */
     { "geometry",                     UZBL_C_FUNC (geometry,                               STR)},
+#ifndef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+    { "app_cache_directory",          UZBL_C_FUNC (app_cache_directory,                    STR)},
+#endif
+#endif
     { "uri",                          UZBL_C_STRING (uzbl.state.uri)},
     { "WEBKIT_MAJOR",                 UZBL_C_INT (uzbl.info.webkit_major)},
     { "WEBKIT_MINOR",                 UZBL_C_INT (uzbl.info.webkit_minor)},
@@ -2873,13 +2877,6 @@ IMPLEMENT_SETTER (unsigned long long, app_cache_size)
 
     return TRUE;
 }
-
-/* FIXME: Seems to give garbage data?
-IMPLEMENT_GETTER (gchar *, app_cache_directory)
-{
-    return g_strdup (webkit_application_cache_get_database_directory_path ());
-}
-*/
 #endif
 
 IMPLEMENT_GETTER (gchar *, web_database_directory)
@@ -2945,6 +2942,15 @@ GOBJECT_GETSET (int, enable_site_workarounds,
                 webkit_settings (), "enable-site-specific-quirks")
 
 /* Constants */
+#ifndef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+IMPLEMENT_GETTER (gchar *, app_cache_directory)
+{
+    return g_strdup (webkit_application_cache_get_database_directory_path ());
+}
+#endif
+#endif
+
 IMPLEMENT_GETTER (gchar *, selected_url)
 {
     gchar *url = g_strdup (uzbl.state.selected_url);
