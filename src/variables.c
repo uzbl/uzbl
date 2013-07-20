@@ -2617,6 +2617,11 @@ IMPLEMENT_GETTER (gchar *, custom_encoding)
 #else
         webkit_web_view_get_custom_encoding (uzbl.gui.web_view);
 #endif
+
+    if (!encoding) {
+        g_strdup ("");
+    }
+
     return g_strdup (encoding);
 }
 
