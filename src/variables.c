@@ -2357,15 +2357,8 @@ IMPLEMENT_SETTER (int, view_source)
 #endif
 }
 
-IMPLEMENT_GETTER (float, zoom_level)
-{
-    return webkit_web_view_get_zoom_level (uzbl.gui.web_view);
-}
-
-IMPLEMENT_SETTER (float, zoom_level)
-{
-    webkit_web_view_set_zoom_level (uzbl.gui.web_view, zoom_level);
-}
+GOBJECT_GETSET (float, zoom_level,
+                webkit_view (), "zoom-level")
 
 #ifndef USE_WEBKIT2
 GOBJECT_GETTER (float, zoom_step,
