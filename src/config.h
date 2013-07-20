@@ -13,6 +13,7 @@ const struct {
 { "set max_conns = 100" }, /* WebKitGTK default: 10 */
 { "set max_conns_host = 6" }, /* WebKitGTK default: 2 */
 { "set shell_cmd = /bin/sh -c" },
+{ "set maintain_history = 1" }, /* Set here since the WebKit default is 1, but there's no way to get the current value. */
 { NULL }
 };
 
