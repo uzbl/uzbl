@@ -228,9 +228,7 @@ DECLARE_GETSET (int, editable);
 #endif
 
 /* Javascript variables */
-#ifndef USE_WEBKIT2
 DECLARE_GETSET (int, enable_scripts);
-#endif
 DECLARE_GETSET (int, javascript_windows);
 #ifdef USE_WEBKIT2
 DECLARE_GETSET (int, javascript_modal_dialogs);
@@ -495,9 +493,7 @@ builtin_variable_table[] = {
 #endif
 
     /* Javascript variables */
-#ifndef USE_WEBKIT2
     { "enable_scripts",               UZBL_V_FUNC (enable_scripts,                         INT)},
-#endif
     { "javascript_windows",           UZBL_V_FUNC (javascript_windows,                     INT)},
 #ifdef USE_WEBKIT2
     { "javascript_modal_dialogs",     UZBL_V_FUNC (javascript_modal_dialogs,               INT)},
@@ -2449,10 +2445,14 @@ GOBJECT_GETSET (int, editable,
 #endif
 
 /* Javascript variables */
-#ifndef USE_WEBKIT2
 GOBJECT_GETSET (int, enable_scripts,
-                webkit_settings (), "enable-scripts")
+                webkit_settings (),
+#ifdef USE_WEBKIT2
+                                    "enable-javascript"
+#else
+                                    "enable-scripts"
 #endif
+                )
 
 GOBJECT_GETSET (int, javascript_windows,
                 webkit_settings (), "javascript-can-open-windows-automatically")
