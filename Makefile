@@ -31,7 +31,7 @@ ifeq ($(ENABLE_WEBKIT2),yes)
 REQ_PKGS += 'webkit2gtk-3.0 >= 1.2.4' javascriptcoregtk-3.0
 CPPFLAGS += -DUSE_WEBKIT2
 # WebKit2 requires GTK3
-ENABLE_GTK3    := yes
+ENABLE_GTK3 := yes
 else
 ifeq ($(ENABLE_GTK3),yes)
 REQ_PKGS += 'webkitgtk-3.0 >= 1.2.4' javascriptcoregtk-3.0
@@ -59,12 +59,49 @@ PKG_CFLAGS:=$(shell pkg-config --cflags $(REQ_PKGS))
 
 LDLIBS:=$(shell pkg-config --libs $(REQ_PKGS) x11)
 
-CFLAGS += -std=c99 $(PKG_CFLAGS) -ggdb -W -Wall -Wextra -pedantic -pthread
+CFLAGS += -std=c99 $(PKG_CFLAGS) -ggdb -W -Wall -Wextra -pthread
 
-SRC  = $(wildcard src/*.c)
-HEAD = $(wildcard src/*.h)
-OBJ  = $(foreach obj, $(SRC:.c=.o),  $(notdir $(obj)))
-LOBJ = $(foreach obj, $(SRC:.c=.lo), $(notdir $(obj)))
+SOURCES := \
+    comm.c \
+    commands.c \
+    cookie-jar.c \
+    events.c \
+    gui.c \
+    inspector.c \
+    io.c \
+    js.c \
+    requests.c \
+    soup.c \
+    status-bar.c \
+    util.c \
+    uzbl-core.c \
+    variables.c \
+    3p/async-queue-source/rb-async-queue-watch.c
+
+HEADERS := \
+    comm.h \
+    commands.h \
+    config.h \
+    cookie-jar.h \
+    events.h \
+    gui.h \
+    inspector.h \
+    io.h \
+    js.h \
+    requests.h \
+    menu.h \
+    soup.h \
+    status-bar.h \
+    util.h \
+    uzbl-core.h \
+    variables.h \
+    webkit.h \
+    3p/async-queue-source/rb-async-queue-watch.h
+
+SRC  = $(addprefix src/,$(SOURCES))
+HEAD = $(addprefix src/,$(HEADERS))
+OBJ  = $(foreach obj, $(SRC:.c=.o),  $(obj))
+LOBJ = $(foreach obj, $(SRC:.c=.lo), $(obj))
 PY = $(wildcard uzbl/*.py uzbl/plugins/*.py)
 
 all: uzbl-browser
@@ -138,7 +175,7 @@ test-uzbl-event-manager-sandbox: sandbox uzbl-browser sandbox-install-uzbl-brows
 
 clean:
 	rm -f uzbl-core
-	rm -f *.o
+	rm -f $(OBJ) ${LOBJ}
 	find ./examples/ -name "*.pyc" -delete
 	cd ./tests/; $(MAKE) clean
 	rm -rf ./sandbox/
