@@ -6,8 +6,4 @@
 void
 uzbl_soup_init (SoupSession *session);
 
-void
-uzbl_soup_authenticate (const char *authinfo,
-                        const char *username,
-                        const char *password);
 #endif

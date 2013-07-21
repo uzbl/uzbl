@@ -97,7 +97,6 @@ typedef struct {
 typedef struct {
     SoupSession    *soup_session;
     UzblCookieJar  *soup_cookie_jar;
-    GHashTable     *pending_auths;
     SoupLogger     *soup_logger;
     gchar          *accept_languages;
 } UzblNetwork;
@@ -123,6 +122,7 @@ typedef struct {
     gchar   *request_handler;
     gchar   *download_handler;
     gchar   *mime_handler;
+    gchar   *authentication_handler;
 
     gboolean forward_keys;
     gchar   *http_debug;

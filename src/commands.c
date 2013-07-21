@@ -521,9 +521,6 @@ DECLARE_COMMAND (forward);
 DECLARE_COMMAND (reload);
 DECLARE_COMMAND (stop);
 DECLARE_COMMAND (uri);
-#ifndef USE_WEBKIT2
-DECLARE_COMMAND (auth);
-#endif
 DECLARE_COMMAND (download);
 
 /* Page commands */
@@ -626,9 +623,6 @@ builtin_command_table[] = {
     { "reload",                         cmd_reload,                   TRUE,  TRUE  },
     { "stop",                           cmd_stop,                     TRUE,  TRUE  },
     { "uri",                            cmd_uri,                      FALSE, TRUE  },
-#ifndef USE_WEBKIT2
-    { "auth",                           cmd_auth,                     TRUE,  TRUE  },
-#endif
     { "download",                       cmd_download,                 TRUE,  TRUE  },
 
     /* Page commands */
@@ -835,21 +829,6 @@ IMPLEMENT_COMMAND (uri)
 
     g_free (newuri);
 }
-
-#ifndef USE_WEBKIT2 /* FIXME: Implement. */
-IMPLEMENT_COMMAND (auth)
-{
-    UZBL_UNUSED (result);
-
-    ARG_CHECK (argv, 3);
-
-    const gchar *info = argv_idx (argv, 0);
-    const gchar *username = argv_idx (argv, 1);
-    const gchar *password = argv_idx (argv, 2);
-
-    uzbl_soup_authenticate (info, username, password);
-}
-#endif
 
 IMPLEMENT_COMMAND (download)
 {
