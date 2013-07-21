@@ -133,7 +133,9 @@ ${OBJ}: ${HEAD}
 
 uzbl-core: ${OBJ}
 
-uzbl-browser: uzbl-core uzbl-event-manager bin/uzbl-browser
+uzbl-browser: uzbl-core uzbl-event-manager uzbl.desktop bin/uzbl-browser
+
+uzbl.desktop: uzbl.desktop.in
 	sed 's#@PREFIX@#$(PREFIX)#' < uzbl.desktop.in > uzbl.desktop
 
 bin/uzbl-browser: bin/uzbl-browser.in
