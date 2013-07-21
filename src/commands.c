@@ -2552,9 +2552,9 @@ IMPLEMENT_COMMAND (set)
 
     ARG_CHECK (argv, 1);
 
-    gchar **split = g_strsplit (argv_idx (argv, 0), "=", 2);
+    gchar **split = g_strsplit (argv_idx (argv, 0), " ", 2);
     if (split[0]) {
-        gchar *value = split[1] ? g_strchug (split[1]) : " ";
+        gchar *value = split[1] ? g_strchug (split[1]) : "";
         uzbl_variables_set (g_strstrip (split[0]), value);
     }
     g_strfreev (split);

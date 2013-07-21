@@ -52,7 +52,7 @@ class Config(PerInstancePlugin):
 
 
     def set(self, key, value='', force=False):
-        '''Generates a `set <key> = <value>` command string to send to the
+        '''Generates a `set <key> <value>` command string to send to the
         current uzbl instance.
 
         Note that the config dict isn't updated by this function. The config
@@ -71,7 +71,7 @@ class Config(PerInstancePlugin):
         if not force and key in self and self[key] == value:
             return
 
-        self.uzbl.send('set %s = %s' % (key, value))
+        self.uzbl.send('set %s %s' % (key, value))
 
 
     def parse_set_event(self, args):

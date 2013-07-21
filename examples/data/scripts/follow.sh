@@ -13,14 +13,14 @@ case "$result" in
         ;;
     XXXRESET_MODEXXX)
         # a link was selected, reset uzbl's input mode
-        uzbl_control 'set mode=\nevent KEYCMD_CLEAR\n'
+        uzbl_control 'set mode\nevent KEYCMD_CLEAR\n'
         ;;
     XXXNEW_WINDOWXXX*)
         uri="${result#XXXNEW_WINDOWXXX}"
         safe_uri=$( echo "$uri" | uzbl_escape )
 
         # a link was selected, reset uzbl's input mode
-        uzbl_control 'set mode=\nevent KEYCMD_CLEAR\nevent NEW_WINDOW '"$safe_uri"'\n'
+        uzbl_control 'set mode\nevent KEYCMD_CLEAR\nevent NEW_WINDOW '"$safe_uri"'\n'
         ;;
     XXXRETURNED_URIXXX*)
         uriaction="$1"
@@ -29,7 +29,7 @@ case "$result" in
         uri="${result#XXXRETURNED_URIXXX}"
         safe_uri=$( echo "$uri" | uzbl_escape )
 
-        uzbl_control 'set mode = \nevent KEYCMD_CLEAR\n'
+        uzbl_control 'set mode\nevent KEYCMD_CLEAR\n'
 
         [ -z "$uri" ] && exit
 
