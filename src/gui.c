@@ -1302,21 +1302,19 @@ request_decision (const gchar *uri, gpointer data)
 void
 send_load_status (WebKitLoadStatus status, const gchar *uri)
 {
+    UzblEventType event = LAST_EVENT;
+
     switch (status) {
 #ifdef USE_WEBKIT2
     case WEBKIT_LOAD_STARTED:
 #else
     case WEBKIT_LOAD_PROVISIONAL:
 #endif
-        uzbl_events_send (LOAD_START, NULL,
-            TYPE_STR, uri ? uri : "",
-            NULL);
+        event = LOAD_START;
         break;
 #ifdef USE_WEBKIT2
     case WEBKIT_LOAD_REDIRECTED:
-        uzbl_events_send (LOAD_REDIRECTED, NULL,
-            TYPE_STR, uri,
-            NULL);
+        event = LOAD_REDIRECTED;
         break;
 #else
     case WEBKIT_LOAD_FIRST_VISUALLY_NON_EMPTY_LAYOUT:
@@ -1327,9 +1325,7 @@ send_load_status (WebKitLoadStatus status, const gchar *uri)
         break;
 #endif
     case WEBKIT_LOAD_COMMITTED:
-        uzbl_events_send (LOAD_COMMIT, NULL,
-            TYPE_STR, uri,
-            NULL);
+        event = LOAD_COMMIT;
         break;
     case WEBKIT_LOAD_FINISHED:
 #ifdef USE_WEBKIT2
@@ -1338,13 +1334,17 @@ send_load_status (WebKitLoadStatus status, const gchar *uri)
             break;
         }
 #endif
-        uzbl_events_send (LOAD_FINISH, NULL,
-            TYPE_STR, uri,
-            NULL);
+        event = LOAD_FINISH;
         break;
     default:
         uzbl_debug ("Unrecognized load status: %d\n", status);
         break;
+    }
+
+    if (event != LAST_EVENT) {
+        uzbl_events_send (event, NULL,
+            TYPE_STR, uri ? uri : "",
+            NULL);
     }
 }
 
