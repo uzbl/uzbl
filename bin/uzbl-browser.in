@@ -24,7 +24,7 @@ export XDG_CONFIG_HOME
 # assure the relevant directories exist.
 for dir in "$XDG_CACHE_HOME/uzbl" "$XDG_DATA_HOME/uzbl" "$XDG_CONFIG_HOME/uzbl"
 do
-	if [ ! -d "$dir" ]
+	if ! [ -d "$dir" ]
 	then
 		if ! mkdir -p "$dir"
 		then
@@ -35,9 +35,9 @@ do
 done
 
 # if no config exists yet in the recommended location, put the default (recommended) config there
-if [ ! -f "$XDG_CONFIG_HOME/uzbl/config" ]
+if ! [ -f "$XDG_CONFIG_HOME/uzbl/config" ]
 then
-	if [ ! -r "$EXAMPLES/config/config" ]
+	if ! [ -r "$EXAMPLES/config/config" ]
 	then
 		echo "Error: Global config not found; please check if your distribution ships them separately"
 		exit 3
@@ -67,7 +67,7 @@ fi
 # uzbl-event-manager will exit if one is already running.
 # we could also check if its pid file exists to avoid having to spawn it.
 DAEMON_SOCKET="$XDG_CACHE_HOME/uzbl/event_daemon"
-if [ ! -f "$DAEMON_SOCKET.pid" ]
+if ! [ -f "$DAEMON_SOCKET.pid" ]
 then
 	${UZBL_EVENT_MANAGER:-uzbl-event-manager -va start}
 fi
