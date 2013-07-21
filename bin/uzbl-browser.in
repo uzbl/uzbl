@@ -7,10 +7,10 @@
 # If you want to customize the behavior any of the helper tools, copy them
 # to your $XDG_DATA_HOME/uzbl/scripts/ and edit them
 
-PREFIX=/usr/local
-export PREFIX
+UZBL_PREFIX=@PREFIX@
+export UZBL_PREFIX
 
-EXAMPLES=$PREFIX/share/uzbl/examples
+EXAMPLES=$UZBL_PREFIX/share/uzbl/examples
 
 XDG_DATA_HOME=${XDG_DATA_HOME:-$HOME/.local/share}
 export XDG_DATA_HOME

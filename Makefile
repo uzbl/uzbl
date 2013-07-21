@@ -133,8 +133,11 @@ ${OBJ}: ${HEAD}
 
 uzbl-core: ${OBJ}
 
-uzbl-browser: uzbl-core uzbl-event-manager
+uzbl-browser: uzbl-core uzbl-event-manager bin/uzbl-browser
 	sed 's#@PREFIX@#$(PREFIX)#' < uzbl.desktop.in > uzbl.desktop
+
+bin/uzbl-browser: bin/uzbl-browser.in
+	sed 's#@PREFIX@#$(PREFIX)#' < bin/uzbl-browser.in > bin/uzbl-browser
 
 build: ${PY}
 	$(PYTHON) setup.py build

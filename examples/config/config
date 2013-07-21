@@ -4,7 +4,7 @@
 # === Core settings ==========================================================
 
 # common directory locations
-set prefix      @(echo $PREFIX)@
+set prefix      @(echo $UZBL_PREFIX)@
 set data_home   @(echo $XDG_DATA_HOME)@
 set cache_home  @(echo $XDG_CACHE_HOME)@
 set config_home @(echo $XDG_CONFIG_HOME)@
