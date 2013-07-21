@@ -5,10 +5,10 @@
 
 # common directory locations
 set prefix      @(echo $UZBL_PREFIX)@
-set data_home   @(echo $XDG_DATA_HOME)@
-set cache_home  @(echo $XDG_CACHE_HOME)@
-set config_home @(echo $XDG_CONFIG_HOME)@
-set local_storage_path @data_home/uzbl/databases/
+set data_home   @(echo $XDG_DATA_HOME/uzbl)@
+set cache_home  @(echo $XDG_CACHE_HOME/uzbl)@
+set config_home @(echo $XDG_CONFIG_HOME/uzbl)@
+set local_storage_path @data_home/databases/
 
 # Interface paths.
 set fifo_dir   /tmp
@@ -34,7 +34,7 @@ set set_mode        set mode
 set set_status      set status_message
 
 # Spawn path shortcuts. In spawn the first dir+path match is used in "dir1:dir2:dir3:executable"
-set scripts_dir      @data_home/uzbl:@prefix/share/uzbl/examples/data:scripts
+set scripts_dir      @data_home:@prefix/share/uzbl/examples/data:scripts
 
 # === Hardcoded handlers =====================================================
 
@@ -71,7 +71,7 @@ set download_handler       spawn_sync @scripts_dir/download.sh
 @on_event   LOAD_COMMIT    js page file @scripts_dir/follow.js
 
 # Userscripts/per-site-settings. See the script and the example configuration for details
-#@on_event   LOAD_COMMIT    spawn @scripts_dir/per-site-settings.py @data_home/uzbl/per-site-settings
+#@on_event   LOAD_COMMIT    spawn @scripts_dir/per-site-settings.py @data_home/per-site-settings
 
 # Load finish handlers
 @on_event   LOAD_FINISH    @set_status <span foreground="gold">done</span>
@@ -95,7 +95,7 @@ set download_handler       spawn_sync @scripts_dir/download.sh
 # === Behaviour and appearance ===============================================
 
 # Custom CSS can be defined here, including link follower hint styles
-set stylesheet_uri file://@config_home/uzbl/style.css
+set stylesheet_uri file://@config_home/style.css
 
 # If WebKits builtin authentication dialog should be used, if enabling remember
 # to disable external authentication handlers
@@ -352,7 +352,7 @@ set ebind     @mode_bind global,-insert
 @bind <Shift><Insert> = spawn_sh 'echo "event INJECT_KEYCMD $(xclip -o | sed s/\\\@/%40/g)" > "$UZBL_FIFO"'
 
 # Bookmark inserting binds
-@cbind <Ctrl>m<tags:>_  = spawn_sh 'echo "$UZBL_URI $0" >> "$XDG_DATA_HOME"/uzbl/bookmarks' '%s'
+@cbind <Ctrl>m<tags:>_  = spawn_sh 'echo "$UZBL_URI $0" >> "@data_home/bookmarks"' '%s'
 # Or use a script to insert a bookmark.
 @cbind  M  = spawn @scripts_dir/insert_bookmark.sh
 
@@ -475,7 +475,7 @@ set default_mode command
 
 # === Post-load misc commands ================================================
 spawn_sync_exec @scripts_dir/load_cookies.sh
-spawn_sync_exec @scripts_dir/load_cookies.sh @data_home/uzbl/session-cookies.txt
+spawn_sync_exec @scripts_dir/load_cookies.sh @data_home/session-cookies.txt
 
 # Set the "home" page.
 uri uzbl.org/doesitwork/@COMMIT
