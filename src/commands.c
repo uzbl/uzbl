@@ -29,22 +29,6 @@
  *   - Add commands for DOM manipulation?
  */
 
-/* ========================= COMMAND TABLE ========================== */
-
-#ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 11, 4)
-#define HAVE_PLUGIN_API
-#endif
-#define HAVE_SECURITY
-#else
-#if WEBKIT_CHECK_VERSION (1, 3, 8)
-#define HAVE_PLUGIN_API
-#endif
-#if WEBKIT_CHECK_VERSION (1, 11, 1)
-#define HAVE_SECURITY
-#endif
-#endif
-
 typedef void (*UzblCommandCallback) (GArray *argv, GString *result);
 
 struct _UzblCommand {
@@ -54,206 +38,8 @@ struct _UzblCommand {
     gboolean             send_event;
 };
 
-#define DECLARE_COMMAND(cmd) \
-    static void              \
-    cmd_##cmd (GArray *argv, GString *result)
-
-/* Navigation commands */
-DECLARE_COMMAND (back);
-DECLARE_COMMAND (forward);
-DECLARE_COMMAND (reload);
-DECLARE_COMMAND (stop);
-DECLARE_COMMAND (uri);
-#ifndef USE_WEBKIT2
-DECLARE_COMMAND (auth);
-#endif
-DECLARE_COMMAND (download);
-
-/* Page commands */
-DECLARE_COMMAND (load);
-#ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 9, 90)
-DECLARE_COMMAND (save);
-#endif
-#endif
-#ifndef USE_WEBKIT2
-DECLARE_COMMAND (frame);
-#endif
-
-/* Cookie commands */
-DECLARE_COMMAND (cookie);
-
-#ifndef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 11, 92)
-#define HAVE_SNAPSHOT
-#endif
-#else
-#if WEBKIT_CHECK_VERSION (1, 9, 6)
-#define HAVE_SNAPSHOT
-#endif
-#endif
-
-/* Display commands */
-DECLARE_COMMAND (scroll);
-DECLARE_COMMAND (zoom);
-DECLARE_COMMAND (hardcopy);
-#ifdef HAVE_SNAPSHOT
-DECLARE_COMMAND (snapshot);
-#endif
-
-/* Content commands */
-#ifdef HAVE_PLUGIN_API
-DECLARE_COMMAND (plugin);
-#endif
-#ifndef USE_WEBKIT2
-DECLARE_COMMAND (remove_all_db);
-#if WEBKIT_CHECK_VERSION (1, 5, 1)
-DECLARE_COMMAND (spell);
-#endif
-#endif
-#ifdef USE_WEBKIT2
-DECLARE_COMMAND (cache);
-#endif
-DECLARE_COMMAND (favicon);
-DECLARE_COMMAND (css);
-
-/* Menu commands */
-DECLARE_COMMAND (menu);
-
-/* Search commands */
-DECLARE_COMMAND (search);
-
-/* Security commands */
-#ifdef HAVE_SECURITY
-DECLARE_COMMAND (security);
-#endif
-#ifdef USE_WEBKIT2
-DECLARE_COMMAND (dns);
-#endif
-
-/* Inspector commands */
-DECLARE_COMMAND (inspector);
-
-/* Execution commands */
-DECLARE_COMMAND (js);
-DECLARE_COMMAND (spawn);
-DECLARE_COMMAND (spawn_sync);
-DECLARE_COMMAND (spawn_sync_exec);
-DECLARE_COMMAND (spawn_sh);
-DECLARE_COMMAND (spawn_sh_sync);
-
-/* Uzbl commands */
-DECLARE_COMMAND (chain);
-DECLARE_COMMAND (include);
-DECLARE_COMMAND (exit);
-
-/* Variable commands */
-DECLARE_COMMAND (set);
-DECLARE_COMMAND (toggle);
-DECLARE_COMMAND (dump_config);
-DECLARE_COMMAND (dump_config_as_events);
-DECLARE_COMMAND (print);
-
-/* Event commands */
-DECLARE_COMMAND (event);
-
 static UzblCommand
-builtin_command_table[] =
-{   /* name                             function                      split  send_event */
-    /* Navigation commands */
-    { "back",                           cmd_back,                     TRUE,  TRUE  },
-    { "forward",                        cmd_forward,                  TRUE,  TRUE  },
-    { "reload",                         cmd_reload,                   TRUE,  TRUE  },
-    { "stop",                           cmd_stop,                     TRUE,  TRUE  },
-    { "uri",                            cmd_uri,                      FALSE, TRUE  },
-#ifndef USE_WEBKIT2
-    { "auth",                           cmd_auth,                     TRUE,  TRUE  },
-#endif
-    { "download",                       cmd_download,                 TRUE,  TRUE  },
-
-    /* Page commands */
-    { "load",                           cmd_load,                     TRUE,  TRUE  },
-#ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 9, 90)
-    { "save",                           cmd_save,                     TRUE,  TRUE  },
-#endif
-#endif
-#ifndef USE_WEBKIT2
-    { "frame",                          cmd_frame,                    TRUE,  TRUE  },
-#endif
-
-    /* Cookie commands */
-    { "cookie",                         cmd_cookie,                   TRUE,  TRUE  },
-
-    /* Display commands */
-    { "scroll",                         cmd_scroll,                   TRUE,  TRUE  },
-    { "zoom",                           cmd_zoom,                     TRUE,  TRUE  },
-    { "hardcopy",                       cmd_hardcopy,                 TRUE,  TRUE  },
-#ifdef HAVE_SNAPSHOT
-    { "snapshot",                       cmd_snapshot,                 TRUE,  TRUE  },
-#endif
-
-    /* Content commands */
-#ifdef HAVE_PLUGIN_API
-    { "plugin",                         cmd_plugin,                   TRUE,  TRUE  },
-#endif
-#ifndef USE_WEBKIT2
-    { "remove_all_db",                  cmd_remove_all_db,            TRUE,  TRUE  },
-#if WEBKIT_CHECK_VERSION (1, 5, 1)
-    { "spell",                          cmd_spell,                    TRUE,  TRUE  },
-#endif
-#endif
-#ifdef USE_WEBKIT2
-    { "cache",                          cmd_cache,                    TRUE,  TRUE  },
-#endif
-    { "favicon",                        cmd_favicon,                  TRUE,  TRUE  },
-    { "css",                            cmd_css,                      TRUE,  TRUE  },
-
-    /* Menu commands */
-    { "menu",                           cmd_menu,                     TRUE,  TRUE  },
-
-    /* Search commands */
-    { "search",                         cmd_search,                   FALSE, TRUE  },
-
-    /* Security commands */
-#ifdef HAVE_SECURITY
-    { "secuity",                        cmd_security,                 TRUE,  TRUE  },
-#endif
-#ifdef USE_WEBKIT2
-    { "dns",                            cmd_dns,                      TRUE,  TRUE  },
-#endif
-
-    /* Inspector commands */
-    { "inspector",                      cmd_inspector,                TRUE,  TRUE  },
-
-    /* Execution commands */
-    { "js",                             cmd_js,                       TRUE,  TRUE  },
-    /* TODO: Consolidate into one command. */
-    { "spawn",                          cmd_spawn,                    TRUE,  TRUE  },
-    { "spawn_sync",                     cmd_spawn_sync,               TRUE,  TRUE  },
-    { "spawn_sync_exec",                cmd_spawn_sync_exec,          TRUE,  TRUE  },
-    { "spawn_sh",                       cmd_spawn_sh,                 TRUE,  TRUE  },
-    { "spawn_sh_sync",                  cmd_spawn_sh_sync,            TRUE,  TRUE  },
-
-    /* Uzbl commands */
-    { "chain",                          cmd_chain,                    TRUE,  TRUE  },
-    { "include",                        cmd_include,                  FALSE, TRUE  },
-    { "exit",                           cmd_exit,                     TRUE,  TRUE  },
-
-    /* Variable commands */
-    { "set",                            cmd_set,                      FALSE, FALSE },
-    { "toggle",                         cmd_toggle,                   TRUE,  TRUE  },
-    /* TODO: Add more dump commands (e.g., current frame/page source) */
-    { "dump_config",                    cmd_dump_config,              TRUE,  TRUE  },
-    { "dump_config_as_events",          cmd_dump_config_as_events,    TRUE,  TRUE  },
-    { "print",                          cmd_print,                    FALSE, TRUE  },
-
-    /* Event commands */
-    { "event",                          cmd_event,                    FALSE, FALSE },
-
-    /* Terminator */
-    { NULL,                             NULL,                         FALSE, FALSE }
-};
+builtin_command_table[];
 
 /* =========================== PUBLIC API =========================== */
 
@@ -697,6 +483,223 @@ parse_command_from_file (const char *cmd)
 
     g_free (work_string);
 }
+
+/* ========================= COMMAND TABLE ========================== */
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 11, 4)
+#define HAVE_PLUGIN_API
+#endif
+#define HAVE_SECURITY
+#else
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+#define HAVE_PLUGIN_API
+#endif
+#if WEBKIT_CHECK_VERSION (1, 11, 1)
+#define HAVE_SECURITY
+#endif
+#endif
+
+#define DECLARE_COMMAND(cmd) \
+    static void              \
+    cmd_##cmd (GArray *argv, GString *result)
+
+/* Navigation commands */
+DECLARE_COMMAND (back);
+DECLARE_COMMAND (forward);
+DECLARE_COMMAND (reload);
+DECLARE_COMMAND (stop);
+DECLARE_COMMAND (uri);
+#ifndef USE_WEBKIT2
+DECLARE_COMMAND (auth);
+#endif
+DECLARE_COMMAND (download);
+
+/* Page commands */
+DECLARE_COMMAND (load);
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 90)
+DECLARE_COMMAND (save);
+#endif
+#endif
+#ifndef USE_WEBKIT2
+DECLARE_COMMAND (frame);
+#endif
+
+/* Cookie commands */
+DECLARE_COMMAND (cookie);
+
+#ifndef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 11, 92)
+#define HAVE_SNAPSHOT
+#endif
+#else
+#if WEBKIT_CHECK_VERSION (1, 9, 6)
+#define HAVE_SNAPSHOT
+#endif
+#endif
+
+/* Display commands */
+DECLARE_COMMAND (scroll);
+DECLARE_COMMAND (zoom);
+DECLARE_COMMAND (hardcopy);
+#ifdef HAVE_SNAPSHOT
+DECLARE_COMMAND (snapshot);
+#endif
+
+/* Content commands */
+#ifdef HAVE_PLUGIN_API
+DECLARE_COMMAND (plugin);
+#endif
+#ifndef USE_WEBKIT2
+DECLARE_COMMAND (remove_all_db);
+#if WEBKIT_CHECK_VERSION (1, 5, 1)
+DECLARE_COMMAND (spell);
+#endif
+#endif
+#ifdef USE_WEBKIT2
+DECLARE_COMMAND (cache);
+#endif
+DECLARE_COMMAND (favicon);
+DECLARE_COMMAND (css);
+
+/* Menu commands */
+DECLARE_COMMAND (menu);
+
+/* Search commands */
+DECLARE_COMMAND (search);
+
+/* Security commands */
+#ifdef HAVE_SECURITY
+DECLARE_COMMAND (security);
+#endif
+#ifdef USE_WEBKIT2
+DECLARE_COMMAND (dns);
+#endif
+
+/* Inspector commands */
+DECLARE_COMMAND (inspector);
+
+/* Execution commands */
+DECLARE_COMMAND (js);
+DECLARE_COMMAND (spawn);
+DECLARE_COMMAND (spawn_sync);
+DECLARE_COMMAND (spawn_sync_exec);
+DECLARE_COMMAND (spawn_sh);
+DECLARE_COMMAND (spawn_sh_sync);
+
+/* Uzbl commands */
+DECLARE_COMMAND (chain);
+DECLARE_COMMAND (include);
+DECLARE_COMMAND (exit);
+
+/* Variable commands */
+DECLARE_COMMAND (set);
+DECLARE_COMMAND (toggle);
+DECLARE_COMMAND (dump_config);
+DECLARE_COMMAND (dump_config_as_events);
+DECLARE_COMMAND (print);
+
+/* Event commands */
+DECLARE_COMMAND (event);
+
+static UzblCommand
+builtin_command_table[] = {
+    /* name                             function                      split  send_event */
+    /* Navigation commands */
+    { "back",                           cmd_back,                     TRUE,  TRUE  },
+    { "forward",                        cmd_forward,                  TRUE,  TRUE  },
+    { "reload",                         cmd_reload,                   TRUE,  TRUE  },
+    { "stop",                           cmd_stop,                     TRUE,  TRUE  },
+    { "uri",                            cmd_uri,                      FALSE, TRUE  },
+#ifndef USE_WEBKIT2
+    { "auth",                           cmd_auth,                     TRUE,  TRUE  },
+#endif
+    { "download",                       cmd_download,                 TRUE,  TRUE  },
+
+    /* Page commands */
+    { "load",                           cmd_load,                     TRUE,  TRUE  },
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 90)
+    { "save",                           cmd_save,                     TRUE,  TRUE  },
+#endif
+#endif
+#ifndef USE_WEBKIT2
+    { "frame",                          cmd_frame,                    TRUE,  TRUE  },
+#endif
+
+    /* Cookie commands */
+    { "cookie",                         cmd_cookie,                   TRUE,  TRUE  },
+
+    /* Display commands */
+    { "scroll",                         cmd_scroll,                   TRUE,  TRUE  },
+    { "zoom",                           cmd_zoom,                     TRUE,  TRUE  },
+    { "hardcopy",                       cmd_hardcopy,                 TRUE,  TRUE  },
+#ifdef HAVE_SNAPSHOT
+    { "snapshot",                       cmd_snapshot,                 TRUE,  TRUE  },
+#endif
+
+    /* Content commands */
+#ifdef HAVE_PLUGIN_API
+    { "plugin",                         cmd_plugin,                   TRUE,  TRUE  },
+#endif
+#ifndef USE_WEBKIT2
+    { "remove_all_db",                  cmd_remove_all_db,            TRUE,  TRUE  },
+#if WEBKIT_CHECK_VERSION (1, 5, 1)
+    { "spell",                          cmd_spell,                    TRUE,  TRUE  },
+#endif
+#endif
+#ifdef USE_WEBKIT2
+    { "cache",                          cmd_cache,                    TRUE,  TRUE  },
+#endif
+    { "favicon",                        cmd_favicon,                  TRUE,  TRUE  },
+    { "css",                            cmd_css,                      TRUE,  TRUE  },
+
+    /* Menu commands */
+    { "menu",                           cmd_menu,                     TRUE,  TRUE  },
+
+    /* Search commands */
+    { "search",                         cmd_search,                   FALSE, TRUE  },
+
+    /* Security commands */
+#ifdef HAVE_SECURITY
+    { "secuity",                        cmd_security,                 TRUE,  TRUE  },
+#endif
+#ifdef USE_WEBKIT2
+    { "dns",                            cmd_dns,                      TRUE,  TRUE  },
+#endif
+
+    /* Inspector commands */
+    { "inspector",                      cmd_inspector,                TRUE,  TRUE  },
+
+    /* Execution commands */
+    { "js",                             cmd_js,                       TRUE,  TRUE  },
+    /* TODO: Consolidate into one command. */
+    { "spawn",                          cmd_spawn,                    TRUE,  TRUE  },
+    { "spawn_sync",                     cmd_spawn_sync,               TRUE,  TRUE  },
+    { "spawn_sync_exec",                cmd_spawn_sync_exec,          TRUE,  TRUE  },
+    { "spawn_sh",                       cmd_spawn_sh,                 TRUE,  TRUE  },
+    { "spawn_sh_sync",                  cmd_spawn_sh_sync,            TRUE,  TRUE  },
+
+    /* Uzbl commands */
+    { "chain",                          cmd_chain,                    TRUE,  TRUE  },
+    { "include",                        cmd_include,                  FALSE, TRUE  },
+    { "exit",                           cmd_exit,                     TRUE,  TRUE  },
+
+    /* Variable commands */
+    { "set",                            cmd_set,                      FALSE, FALSE },
+    { "toggle",                         cmd_toggle,                   TRUE,  TRUE  },
+    /* TODO: Add more dump commands (e.g., current frame/page source) */
+    { "dump_config",                    cmd_dump_config,              TRUE,  TRUE  },
+    { "dump_config_as_events",          cmd_dump_config_as_events,    TRUE,  TRUE  },
+    { "print",                          cmd_print,                    FALSE, TRUE  },
+
+    /* Event commands */
+    { "event",                          cmd_event,                    FALSE, FALSE },
+
+    /* Terminator */
+    { NULL,                             NULL,                         FALSE, FALSE }
+};
 
 /* ==================== COMMAND  IMPLEMENTATIONS ==================== */
 
