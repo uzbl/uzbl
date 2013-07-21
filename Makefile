@@ -204,6 +204,7 @@ clean:
 	rm -f uzbl-core
 	rm -f $(OBJ) ${LOBJ}
 	rm -f uzbl.desktop
+	rm -f bin/uzbl-browser
 	find ./examples/ -name "*.pyc" -delete || :
 	find -name __pycache__ -type d -delete || :
 	cd ./tests/; $(MAKE) clean
