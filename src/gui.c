@@ -1835,8 +1835,15 @@ void
 download_update (WebKitDownload *download)
 {
     gdouble progress;
+    const gchar *property =
+#ifdef USE_WEBKIT2
+        "estimated-progress"
+#else
+        "progress"
+#endif
+        ;
     g_object_get (download,
-        "progress", &progress,
+        property, &progress,
         NULL);
 
     const gchar *dest_uri =
