@@ -15,7 +15,8 @@
 "    au BufRead,BufNewFile  */uzbl/config     set filetype=uzbl
 "
 " Issues:
-"   1. Hilighting inside @[]@, @()@, @<>@ and string regions would be nice.
+"   1. Hilighting inside @[]@, @()@, @//@, @**@, @<>@ and string regions would
+"      be nice.
 "   2. Accidentally matches keywords inside strings.
 "
 
@@ -25,16 +26,14 @@ elseif exists("b:current_syntax")
     finish
 endif
 
-syn keyword uzblKeyword back forward scroll reload reload_ign_cache stop
-syn keyword uzblKeyword zoom_in zoom_out toggle uri script
-syn keyword uzblKeyword spawn sync_spawn sync_sh sync_spawn_exec
-syn keyword uzblKeyword exit search search_reverse search_clear dehilight set
-syn keyword uzblKeyword dump_config dump_config_as_events chain print event
-syn keyword uzblKeyword request menu_add menu_link_add menu_image_add
-syn keyword uzblKeyword menu_editable_add menu_separator menu_link_separator
-syn keyword uzblKeyword menu_image_separator menu_editable_separator
-syn keyword uzblKeyword menu_remove menu_link_remove menu_image_remove
-syn keyword uzblKeyword menu_editable_remove hardcopy include
+syn keyword uzblKeyword back forward reload stop uri download
+syn keyword uzblKeyword load save frame cookie scroll zoom
+syn keyword uzblKeyword hardcopy geometry snapshot plugin remove_all_db
+syn keyword uzblKeyword spell cache favicon css scheme menu search security
+syn keyword uzblKeyword dns inspector js spawn spawn_sync spawn_sync_exec
+syn keyword uzblKeyword spawn_sh spawn_sh_sync chain include exit
+syn keyword uzblKeyword set toggle dump_config dump_config_as_events
+syn keyword uzblKeyword print event request
 
 " Match 'js' and 'sh' only without a dot in front
 syn match uzblKeyword /\.\@<!sh\s\+/
@@ -84,6 +83,10 @@ syn match uzblEscape display /\\@{[A-Za-z0-9_\.]\+}/
 syn region uzblXMLEscape display start=+@\[+ end=+\]@+ end=+$+
 syn region uzblEscape start=+\\@\[+ end=+\]\\@+
 
+" Match @/ shell command /@ regions
+syn region uzblUzblExec display start=+@/+ end=+/@+ end=+$+
+syn region uzblEscape start=+\\@/+ end=+/\\@+
+
 " Match @( shell command )@ regions
 syn region uzblShellExec display start=+@(+ end=+)@+ end=+$+
 syn region uzblEscape start=+\\@(+ end=+)\\@+
@@ -92,9 +95,13 @@ syn region uzblEscape start=+\\@(+ end=+)\\@+
 syn region uzblJSExec display start=+@<+ end=+>@+ end=+$+
 syn region uzblEscape start=+\\@<+ end=+>\\@+
 
+" Match @* javascript command *@ regions
+syn region uzblJSExec display start=+@\*+ end=+\*@+ end=+$+
+syn region uzblEscape start=+\\@\*+ end=+\*\\@+
+
 " Match quoted regions
-syn region uzblString display start=+'+ end=+'+ end=+$+ contains=uzblExpand,uzblEscape,uzblHexCol,uzblArgs,uzblInternalExpand,uzblEnvironVariable,uzblXMLEscape,uzblShellExec,uzblJSExec
-syn region uzblString display start=+"+ end=+"+ end=+$+ contains=uzblExpand,uzblEscape,uzblHexCol,uzblArgs,uzblInternalExpand,uzblEnvironVariable,uzblXMLEscape,uzblShellExec,uzblJSExec
+syn region uzblString display start=+'+ end=+'+ end=+$+ contains=uzblExpand,uzblEscape,uzblHexCol,uzblArgs,uzblInternalExpand,uzblEnvironVariable,uzblXMLEscape,uzblShellExec,uzblJSExec,uzblUzblExec
+syn region uzblString display start=+"+ end=+"+ end=+$+ contains=uzblExpand,uzblEscape,uzblHexCol,uzblArgs,uzblInternalExpand,uzblEnvironVariable,uzblXMLEscape,uzblShellExec,uzblJSExec,uzblUzblExec
 
 if version >= 508 || !exists("did_uzbl_syn_inits")
     if version <= 508
@@ -128,6 +135,7 @@ if version >= 508 || !exists("did_uzbl_syn_inits")
     HiLink uzblXMLEscape Macro
     HiLink uzblShellExec Macro
     HiLink uzblJSExec Macro
+    HiLink uzblUzblExec Macro
 
     HiLink uzblEscape Special
 

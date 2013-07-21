@@ -10,29 +10,29 @@
 # Maybe we should spawn processes from here with an 'exec' at the end?
 
 # Re-define our home location inside the sandbox dir.
-HOME=$(pwd)/sandbox/home
+HOME="$( pwd )/sandbox/home"
 export HOME
 
 # Export default XDG_{DATA,CACHE,..}_HOME locations inside the sandbox
 # directory according to defaults in the xdg specification.
 # <http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html>
-XDG_DATA_HOME=$HOME/.local/share
+XDG_DATA_HOME="$HOME/.local/share"
 export XDG_DATA_HOME
 
-XDG_CACHE_HOME=$HOME/.cache
+XDG_CACHE_HOME="$HOME/.cache"
 export XDG_CACHE_HOME
 
-XDG_CONFIG_HOME=$HOME/.config
+XDG_CONFIG_HOME="$HOME/.config"
 export XDG_CONFIG_HOME
 
 # Needed to run uzbl-browser etc from here.
-PATH="$(pwd)/sandbox/usr/local/bin:$PATH"
+PATH="$( pwd )/sandbox/usr/local/bin:$PATH"
 export PATH
 
-PYTHONLIB=$(python3 -c 'from distutils.sysconfig import get_python_lib; print(get_python_lib(prefix="/usr/local"))')
+PYTHONLIB=$( python3 -c 'from distutils.sysconfig import get_python_lib; print(get_python_lib(prefix="/usr/local"))' )
 
-UZBL_PLUGIN_PATH="$(pwd)/sandbox/$PYTHONLIB/uzbl/plugins"
+UZBL_PLUGIN_PATH="$( pwd )/sandbox/$PYTHONLIB/uzbl/plugins"
 export UZBL_PLUGIN_PATH
 
-PYTHONPATH="$(pwd)/sandbox/$PYTHONLIB/"
+PYTHONPATH="$( pwd )/sandbox/$PYTHONLIB/"
 export PYTHONPATH
