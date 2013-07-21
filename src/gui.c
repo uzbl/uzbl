@@ -1185,13 +1185,10 @@ send_hover_event (const gchar *uri, const gchar *title)
 {
     g_free (uzbl.state.last_selected_url);
 
-    if (uzbl.state.selected_url) {
-        uzbl.state.last_selected_url = g_strdup (uzbl.state.selected_url);
-        g_free (uzbl.state.selected_url);
-        uzbl.state.selected_url = NULL;
-    } else {
-        uzbl.state.last_selected_url = NULL;
-    }
+    uzbl.state.last_selected_url = g_strdup (uzbl.state.selected_url);
+
+    g_free (uzbl.state.selected_url);
+    uzbl.state.selected_url = NULL;
 
     if (uzbl.state.last_selected_url && g_strcmp0 (uri, uzbl.state.last_selected_url)) {
         uzbl_events_send (LINK_UNHOVER, NULL,
@@ -1940,8 +1937,15 @@ void
 download_update (WebKitDownload *download)
 {
     gdouble progress;
+    const gchar *property =
+#ifdef USE_WEBKIT2
+        "estimated-progress"
+#else
+        "progress"
+#endif
+        ;
     g_object_get (download,
-        "progress", &progress,
+        property, &progress,
         NULL);
 
     const gchar *dest_uri =

@@ -77,8 +77,10 @@ uzbl_commands_send_builtin_event ()
 
     g_string_append_c (command_list, '[');
 
+    gboolean first = TRUE;
+
     while (cmd->name) {
-        if (command_list->len) {
+        if (!first) {
             g_string_append_c (command_list, ',');
         }
         g_string_append_c (command_list, '\"');
@@ -86,6 +88,7 @@ uzbl_commands_send_builtin_event ()
         g_string_append_c (command_list, '\"');
 
         ++cmd;
+        first = TRUE;
     }
 
     g_string_append_c (command_list, ']');
@@ -130,8 +133,6 @@ parse_command_arguments (const gchar *args, GArray *argv, gboolean split);
 const UzblCommand *
 uzbl_commands_parse (const gchar *cmd, GArray *argv)
 {
-    UzblCommand *info = NULL;
-
     gchar *exp_line = uzbl_variables_expand (cmd);
     if (!exp_line || !*exp_line) {
         g_free (exp_line);
@@ -142,11 +143,11 @@ uzbl_commands_parse (const gchar *cmd, GArray *argv)
     gchar **tokens = g_strsplit (exp_line, " ", 2);
 
     /* Look up the command. */
-    info = g_hash_table_lookup (uzbl.behave.commands, tokens[0]);
+    const UzblCommand *info = g_hash_table_lookup (uzbl.behave.commands, tokens[0]);
 
     if (!info) {
         uzbl_events_send (COMMAND_ERROR, NULL,
-            TYPE_STR, exp_line,
+            TYPE_STR, tokens[0],
             NULL);
 
         g_free (exp_line);
