@@ -27,8 +27,6 @@ set on_set          event ON_SET
 set modmap          event MODMAP
 # event IGNORE_KEY <glob>
 set ignore_key      event IGNORE_KEY
-# event TOGGLE_MODES <mode1> <mode2> ... <moden>
-set toggle_modes    event TOGGLE_MODES
 
 set set_mode        set mode
 set set_status      set status_message
