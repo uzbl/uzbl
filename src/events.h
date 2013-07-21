@@ -48,7 +48,6 @@
     call (DELETE_COOKIE),       \
     call (FOCUS_ELEMENT),       \
     call (BLUR_ELEMENT),        \
-    call (AUTHENTICATE),        \
     call (WEB_PROCESS_CRASHED), \
     call (USER_EVENT),          \
     call (INSECURE_CONTENT),    \

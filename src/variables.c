@@ -1394,6 +1394,7 @@ builtin_variable_table[] = {
     { "request_handler",              UZBL_V_STRING (uzbl.behave.request_handler,          NULL)},
     { "download_handler",             UZBL_V_STRING (uzbl.behave.download_handler,         NULL)},
     { "mime_handler",                 UZBL_V_STRING (uzbl.behave.mime_handler,             NULL)},
+    { "authentication_handler",       UZBL_V_STRING (uzbl.behave.authentication_handler,   NULL)},
     { "shell_cmd",                    UZBL_V_STRING (uzbl.behave.shell_cmd,                NULL)},
 #ifndef USE_WEBKIT2
     { "enable_builtin_auth",          UZBL_V_FUNC (enable_builtin_auth,                    INT)},

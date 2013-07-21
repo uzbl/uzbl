@@ -521,9 +521,6 @@ DECLARE_COMMAND (forward);
 DECLARE_COMMAND (reload);
 DECLARE_COMMAND (stop);
 DECLARE_COMMAND (uri);
-#ifndef USE_WEBKIT2
-DECLARE_COMMAND (auth);
-#endif
 DECLARE_COMMAND (download);
 
 /* Page commands */
@@ -626,9 +623,6 @@ builtin_command_table[] = {
     { "reload",                         cmd_reload,                   TRUE,  TRUE  },
     { "stop",                           cmd_stop,                     TRUE,  TRUE  },
     { "uri",                            cmd_uri,                      FALSE, TRUE  },
-#ifndef USE_WEBKIT2
-    { "auth",                           cmd_auth,                     TRUE,  TRUE  },
-#endif
     { "download",                       cmd_download,                 TRUE,  TRUE  },
 
     /* Page commands */
@@ -712,7 +706,7 @@ builtin_command_table[] = {
 
     /* Event commands */
     { "event",                          cmd_event,                    FALSE, FALSE },
-    { "request",                        cmd_request,                  FALSE, TRUE  },
+    { "request",                        cmd_request,                  TRUE,  TRUE  },
 
     /* Terminator */
     { NULL,                             NULL,                         FALSE, FALSE }
@@ -806,10 +800,7 @@ IMPLEMENT_COMMAND (uri)
 
     gchar *uri = argv_idx (argv, 0);
 
-    /* Strip leading whitespace. */
-    while (*uri && isspace (*uri)) {
-        ++uri;
-    }
+    g_strstrip (uri);
 
     /* Don't do anything when given a blank URL. */
     if (!*uri) {
@@ -836,21 +827,6 @@ IMPLEMENT_COMMAND (uri)
     g_free (newuri);
 }
 
-#ifndef USE_WEBKIT2 /* FIXME: Implement. */
-IMPLEMENT_COMMAND (auth)
-{
-    UZBL_UNUSED (result);
-
-    ARG_CHECK (argv, 3);
-
-    const gchar *info = argv_idx (argv, 0);
-    const gchar *username = argv_idx (argv, 1);
-    const gchar *password = argv_idx (argv, 2);
-
-    uzbl_soup_authenticate (info, username, password);
-}
-#endif
-
 IMPLEMENT_COMMAND (download)
 {
     UZBL_UNUSED (result);
@@ -864,7 +840,7 @@ IMPLEMENT_COMMAND (download)
 #else
     const gchar *destination = NULL;
 
-    if (argv->len > 1) {
+    if (1 < argv->len) {
         destination = argv_idx (argv, 1);
     }
 
@@ -2664,16 +2640,24 @@ IMPLEMENT_COMMAND (request)
     GString *request_result;
     gchar **split = NULL;
 
-    ARG_CHECK (argv, 2);
+    ARG_CHECK (argv, 1);
 
     const gchar *request = argv_idx (argv, 0);
-    const gchar *data = argv_idx (argv, 1);
 
     request_name = g_string_ascii_up (g_string_new (request));
 
+    GArray *req_args = uzbl_commands_args_new ();
+
+    guint i;
+    for (i = 1; i < argv->len; ++i) {
+        uzbl_commands_args_append (req_args, g_strdup (argv_idx (argv, i)));
+    }
+
     request_result = uzbl_requests_send (request_name->str,
-        TYPE_FORMATTEDSTR, data,
+        TYPE_STR_ARRAY, req_args,
         NULL);
+
+    uzbl_commands_args_free (req_args);
 
     g_string_free (request_name, TRUE);
     g_strfreev (split);
