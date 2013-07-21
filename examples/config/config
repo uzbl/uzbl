@@ -4,48 +4,46 @@
 # === Core settings ==========================================================
 
 # common directory locations
-set prefix      = @(echo $PREFIX)@
-set data_home   = @(echo $XDG_DATA_HOME)@
-set cache_home  = @(echo $XDG_CACHE_HOME)@
-set config_home = @(echo $XDG_CONFIG_HOME)@
-set local_storage_path = @data_home/uzbl/databases/
+set prefix      @(echo $PREFIX)@
+set data_home   @(echo $XDG_DATA_HOME)@
+set cache_home  @(echo $XDG_CACHE_HOME)@
+set config_home @(echo $XDG_CONFIG_HOME)@
+set local_storage_path @data_home/uzbl/databases/
 
 # Interface paths.
-set fifo_dir   = /tmp
-set socket_dir = /tmp
+set fifo_dir   /tmp
+set socket_dir /tmp
 
-set shell_cmd       = sh -c
+set shell_cmd       sh -c
 
 # === General config aliases =================================================
 
 # Config related events (use the event function):
 # event MODE_CONFIG <mode> <key> = <value>
-set mode_config     = event MODE_CONFIG
+set mode_config     event MODE_CONFIG
 # event ON_EVENT <EVENT_NAME> <command>
-set on_event        = event ON_EVENT
+set on_event        event ON_EVENT
 # event ON_SET   <key/glob> <command>
-set on_set          = event ON_SET
+set on_set          event ON_SET
 # event MODMAP <From> <To>
-set modmap          = event MODMAP
+set modmap          event MODMAP
 # event IGNORE_KEY <glob>
-set ignore_key      = event IGNORE_KEY
+set ignore_key      event IGNORE_KEY
 # event TOGGLE_MODES <mode1> <mode2> ... <moden>
-set toggle_modes    = event TOGGLE_MODES
+set toggle_modes    event TOGGLE_MODES
 
-set set_mode        = set mode =
-set set_status      = set status_message =
+set set_mode        set mode
+set set_status      set status_message
 
 # Spawn path shortcuts. In spawn the first dir+path match is used in "dir1:dir2:dir3:executable"
-set scripts_dir      = @data_home/uzbl:@prefix/share/uzbl/examples/data:scripts
+set scripts_dir      @data_home/uzbl:@prefix/share/uzbl/examples/data:scripts
 
 # === Hardcoded handlers =====================================================
 
-# These handlers can't be moved to the new event system yet as we don't
-# support events that can wait for a response from a script.
-set scheme_handler      = spawn_sync @scripts_dir/scheme.py
-#set request_handler     = spawn_sync @scripts_dir/request.py
-set authentication_handler = spawn_sync @scripts_dir/auth.py
-set download_handler    = spawn_sync @scripts_dir/download.sh
+set scheme_handler         spawn_sync @scripts_dir/scheme.py
+#set request_handler        spawn_sync @scripts_dir/request.py
+set authentication_handler spawn_sync @scripts_dir/auth.py
+set download_handler       spawn_sync @scripts_dir/download.sh
 
 # === Dynamic event handlers =================================================
 
@@ -94,59 +92,59 @@ set download_handler    = spawn_sync @scripts_dir/download.sh
 #@on_event  CONFIG_CHANGED print Config changed: %1 = %2
 
 # Scroll percentage calculation
-@on_event   SCROLL_VERT    set scroll_message = \@<(function(curr, min, max, size){if(max == size) return '--'; var p=(curr/(max - size)); return Math.round(10000*p)/100;})(%1,%2,%3,%4)>\@%
+@on_event   SCROLL_VERT    set scroll_message \@<(function(curr, min, max, size){if(max == size) return '--'; var p=(curr/(max - size)); return Math.round(10000*p)/100;})(%1,%2,%3,%4)>\@%
 
 # === Behaviour and appearance ===============================================
 
 # Custom CSS can be defined here, including link follower hint styles
-set stylesheet_uri = file://@config_home/uzbl/style.css
+set stylesheet_uri file://@config_home/uzbl/style.css
 
 # If WebKits builtin authentication dialog should be used, if enabling remember
 # to disable external authentication handlers
-set enable_builtin_auth = 0
+set enable_builtin_auth 0
 
-set show_status       = 1
-set status_top        = 0
-set status_background = #303030
+set show_status       1
+set status_top        0
+set status_background #303030
 
-set modcmd_style      = weight="bold" foreground="red"
-set keycmd_style      = weight="light" foreground="red"
-set prompt_style      = foreground="grey"
-set cursor_style      = underline="single"
-set completion_style  = foreground="green"
-set hint_style        = weight="bold"
+set modcmd_style      weight="bold" foreground="red"
+set keycmd_style      weight="light" foreground="red"
+set prompt_style      foreground="grey"
+set cursor_style      underline="single"
+set completion_style  foreground="green"
+set hint_style        weight="bold"
 
-set mode_section      = <span background="khaki" foreground="black">[\@[\@mode_indicator]\@]</span>
-set keycmd_section    = [<span \@prompt_style>\@[\@keycmd_prompt]\@</span><span \@modcmd_style>\@modcmd</span><span \@keycmd_style>\@keycmd</span><span \@completion_style>\@completion_list</span>]
-set progress_section  = <span foreground="#606060">\@[\@progress.output]\@</span>
-set scroll_section    = <span foreground="#606060">\@[\@scroll_message]\@</span>
-set uri_section       = <span foreground="\@< if(\@frozen) "#00BFFF"; else "#99FF66"; >\@">\@[\@uri]\@</span>
-set name_section      = <span foreground="khaki">\@[\@NAME]\@</span>
-set status_section    = <span foreground="orange">\@status_message</span>
-set selected_section  = <span foreground="#606060">\@[\@SELECTED_URI]\@</span>
+set mode_section      <span background="khaki" foreground="black">[\@[\@mode_indicator]\@]</span>
+set keycmd_section    [<span \@prompt_style>\@[\@keycmd_prompt]\@</span><span \@modcmd_style>\@modcmd</span><span \@keycmd_style>\@keycmd</span><span \@completion_style>\@completion_list</span>]
+set progress_section  <span foreground="#606060">\@[\@progress.output]\@</span>
+set scroll_section    <span foreground="#606060">\@[\@scroll_message]\@</span>
+set uri_section       <span foreground="\@< if(\@frozen) "#00BFFF"; else "#99FF66"; >\@">\@[\@uri]\@</span>
+set name_section      <span foreground="khaki">\@[\@NAME]\@</span>
+set status_section    <span foreground="orange">\@status_message</span>
+set selected_section  <span foreground="#606060">\@[\@SELECTED_URI]\@</span>
 
-set download_section  = <span foreground="white">\@downloads</span>
+set download_section  <span foreground="white">\@downloads</span>
 
-set status_format       = <span font_family="monospace">@mode_section @keycmd_section @progress_section @name_section @status_section @scroll_section @selected_section @download_section</span>
-set status_format_right = <span font_family="monospace"><span foreground="#666">uri:</span> @uri_section</span>
+set status_format       <span font_family="monospace">@mode_section @keycmd_section @progress_section @name_section @status_section @scroll_section @selected_section @download_section</span>
+set status_format_right <span font_family="monospace"><span foreground="#666">uri:</span> @uri_section</span>
 
-set title_format_long = \@keycmd_prompt \@raw_modcmd \@raw_keycmd \@TITLE - Uzbl browser <\@NAME> \@SELECTED_URI
+set title_format_long \@keycmd_prompt \@raw_modcmd \@raw_keycmd \@TITLE - Uzbl browser <\@NAME> \@SELECTED_URI
 
 # Progress bar config
 # %d = done, %p = pending %c = percent done, %i = int done, %s = spinner,
 # %t = percent pending, %o = int pending, %r = sprite scroll
-set progress.width      = 8
-set progress.format     = [%d>%p]%c
-set progress.done       = =
-set progress.pending    =
+set progress.width      8
+set progress.format     [%d>%p]%c
+set progress.done       =
+set progress.pending
 
 # === Useragent setup ========================================================
 
-set useragent         = Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}) (@(+uname -sm)@ [@ARCH_UZBL])
+set useragent         Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}) (@(+uname -sm)@ [@ARCH_UZBL])
 
 # === Configure cookie blacklist =============================================
 
-set cookie_policy = always
+set cookie_policy always
 
 # Accept 'session cookies' from uzbl.org (when you have a whitelist all other cookies are dropped)
 #event WHITELIST_COOKIE domain 'uzbl.org$' expires '^$'
@@ -157,8 +155,8 @@ set cookie_policy = always
 # === SSL related configuration ==============================================
 
 # Set it to certificates store of your distribution, or your own CAfile.
-set ssl_ca_file = /etc/ssl/certs/ca-certificates.crt
-set ssl_policy = fail
+set ssl_ca_file /etc/ssl/certs/ca-certificates.crt
+set ssl_policy fail
 # Command to toggle ssl_policy value:
 @cbind  !ssl = chain 'toggle ssl_policy fail ignore' 'reload'
 # Example SSL error handler:
@@ -182,19 +180,19 @@ set ssl_policy = fail
 # --- Bind aliases -----------------------------------------------------------
 
 # event BIND <bind cmd> = <command>
-set bind      = event MODE_BIND global
+set bind      event MODE_BIND global
 
 # event MODE_BIND <mode> <bind cmd> = <command>
-set mode_bind = event MODE_BIND
+set mode_bind event MODE_BIND
 
 # Insert mode binding alias
-set ibind     = @mode_bind insert
+set ibind     @mode_bind insert
 
 # Command mode binding alias
-set cbind     = @mode_bind command
+set cbind     @mode_bind command
 
 # Non-insert mode bindings alias (ebind for edit-bind).
-set ebind     = @mode_bind global,-insert
+set ebind     @mode_bind global,-insert
 
 # --- Global & keycmd editing binds ------------------------------------------
 
@@ -278,8 +276,8 @@ set ebind     = @mode_bind global,-insert
 @cbind  +   = zoom in
 @cbind  -   = zoom out
 @cbind  T   = toggle zoom_type
-@cbind  1   = set zoom_level = 1.0
-@cbind  2   = set zoom_level = 2.0
+@cbind  1   = set zoom_level 1.0
+@cbind  2   = set zoom_level 2.0
 
 # Appearance binds
 @cbind  t   = toggle show_status
@@ -302,7 +300,7 @@ set ebind     = @mode_bind global,-insert
 
 # Handy binds
 # Set function shortcut
-@cbind  s<var:>_<value:>_  = set %1 = %2
+@cbind  s<var:>_<value:>_  = set %1 %2
 # Exit binding
 @cbind  ZZ                 = exit
 # Dump config to stdout
@@ -370,10 +368,10 @@ set ebind     = @mode_bind global,-insert
 
 # Link following (similar to vimperator and konqueror)
 # Set custom keys you wish to use for navigation. Some common examples:
-set follow_hint_keys = 0123456789
-#set follow_hint_keys = qwerty
-#set follow_hint_keys = asdfghjkl;
-#set follow_hint_keys = thsnd-rcgmvwb/;789aefijkopquxyz234
+set follow_hint_keys 0123456789
+#set follow_hint_keys qwerty
+#set follow_hint_keys asdfghjkl;
+#set follow_hint_keys thsnd-rcgmvwb/;789aefijkopquxyz234
 @cbind  fl*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followLinks("\@follow_hint_keys", "%s", 'click') >\@
 @cbind  Fl*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followLinks("\@follow_hint_keys", "%s", 'newwindow') >\@
 @cbind  fL*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followLinks("\@follow_hint_keys", "%s", 'returnuri') >\@ set
@@ -397,7 +395,7 @@ set follow_hint_keys = 0123456789
 # fields (eg login information) and to fill in these values automatically.
 # This implementation allows you to save multiple profiles for each form
 # (think about multiple accounts on some website).
-set formfiller = spawn @scripts_dir/formfiller.sh
+set formfiller spawn @scripts_dir/formfiller.sh
 @cbind  ze  = @formfiller edit
 @cbind  zn  = @formfiller new
 @cbind  zl  = @formfiller load
@@ -426,7 +424,7 @@ set formfiller = spawn @scripts_dir/formfiller.sh
 @cbind  gm<index:>_     = event MOVE_CURRENT_TAB %s
 
 # Preset loading
-set preset = event PRESET_TABS
+set preset event PRESET_TABS
 @cbind  gs<preset save:>_   = @preset save %s
 @cbind  glo<preset load:>_  = @preset load %s
 @cbind  gd<preset del:>_    = @preset del %s
@@ -447,9 +445,9 @@ menu_link_add Print Link = print \@SELECTED_URI
 # === Mode configuration =====================================================
 
 # Define some mode specific uzbl configurations.
-set command  = @mode_config command
-set insert   = @mode_config insert
-set stack    = @mode_config stack
+set command  @mode_config command
+set insert   @mode_config insert
+set stack    @mode_config stack
 
 # Command mode config.
 @command  keycmd_style        = foreground="red"
@@ -475,7 +473,7 @@ set stack    = @mode_config stack
 @stack    modcmd_updates      = 1
 @stack    forward_keys        = 0
 
-set default_mode = command
+set default_mode command
 
 # === Post-load misc commands ================================================
 spawn_sync_exec @scripts_dir/load_cookies.sh

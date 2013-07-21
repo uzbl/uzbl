@@ -910,7 +910,7 @@ dump_variable (gpointer key, gpointer value, gpointer data)
 
     variable_expand (var, buf);
 
-    printf ("set %s = %s\n", name, buf->str);
+    printf ("set %s %s\n", name, buf->str);
 
     g_string_free (buf, TRUE);
 }
