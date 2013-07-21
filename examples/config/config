@@ -40,8 +40,6 @@ set scripts_dir      @data_home/uzbl:@prefix/share/uzbl/examples/data:scripts
 
 # === Hardcoded handlers =====================================================
 
-# These handlers can't be moved to the new event system yet as we don't
-# support events that can wait for a response from a script.
 set scheme_handler         spawn_sync @scripts_dir/scheme.py
 #set request_handler        spawn_sync @scripts_dir/request.py
 set authentication_handler spawn_sync @scripts_dir/auth.py
