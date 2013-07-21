@@ -749,7 +749,7 @@ navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
 }
 
 static gboolean
-mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type);
+mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type, const gchar *disposition);
 
 gboolean
 mime_policy_cb (WebKitWebView *view, WebKitWebFrame *frame,
@@ -758,10 +758,28 @@ mime_policy_cb (WebKitWebView *view, WebKitWebFrame *frame,
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (frame);
-    UZBL_UNUSED (request);
     UZBL_UNUSED (data);
 
-    return mime_decision (WEBKIT_WEB_POLICY_DECISION (policy_decision), mime_type);
+    SoupMessage *soup_message = webkit_network_request_get_message (request);
+    SoupMessageHeaders *headers = NULL;
+
+    g_object_get (G_OBJECT (soup_message),
+        "response-headers", &headers,
+        NULL);
+
+    char *disposition = NULL;
+
+    if (headers) {
+        soup_message_headers_get_content_disposition (headers, &disposition, NULL);
+
+        g_object_unref (headers);
+    }
+
+    gboolean res = mime_decision (WEBKIT_WEB_POLICY_DECISION (policy_decision), mime_type, disposition);
+
+    g_free (disposition);
+
+    return res;
 }
 
 void
@@ -1344,7 +1362,7 @@ send_load_error (const gchar *uri, GError *error)
 
 #ifndef USE_WEBKIT2
 gboolean
-mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type)
+mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type, const gchar *disposition)
 {
     if (uzbl.state.frozen) {
         make_policy (decision, ignore);
@@ -1356,13 +1374,14 @@ mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type)
     GArray *args = uzbl_commands_args_new ();
     const UzblCommand *mime_command = uzbl_commands_parse (handler, args);
 
-    gboolean can_show = webkit_web_view_can_show_mime_type (uzbl.gui.web_view, mime_type);
-
     if (mime_command) {
         uzbl_commands_args_append (args, g_strdup (mime_type));
+        uzbl_commands_args_append (args, g_strdup (disposition ? disposition : ""));
         g_object_ref (decision);
         uzbl_io_schedule_command (mime_command, args, decide_navigation, decision);
     } else {
+        gboolean can_show = webkit_web_view_can_show_mime_type (uzbl.gui.web_view, mime_type);
+
         if (can_show) {
             /* If we can display it, let's display it... */
             make_policy (decision, use);
