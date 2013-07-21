@@ -772,7 +772,7 @@ mime_policy_cb (WebKitWebView *view, WebKitWebFrame *frame,
     if (headers) {
         soup_message_headers_get_content_disposition (headers, &disposition, NULL);
 
-        g_object_unref (headers);
+        soup_message_headers_free (headers);
     }
 
     gboolean res = mime_decision (WEBKIT_WEB_POLICY_DECISION (policy_decision), mime_type, disposition);
