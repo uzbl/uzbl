@@ -706,7 +706,7 @@ builtin_command_table[] = {
 
     /* Event commands */
     { "event",                          cmd_event,                    FALSE, FALSE },
-    { "request",                        cmd_request,                  FALSE, TRUE  },
+    { "request",                        cmd_request,                  TRUE,  TRUE  },
 
     /* Terminator */
     { NULL,                             NULL,                         FALSE, FALSE }
@@ -2643,16 +2643,24 @@ IMPLEMENT_COMMAND (request)
     GString *request_result;
     gchar **split = NULL;
 
-    ARG_CHECK (argv, 2);
+    ARG_CHECK (argv, 1);
 
     const gchar *request = argv_idx (argv, 0);
-    const gchar *data = argv_idx (argv, 1);
 
     request_name = g_string_ascii_up (g_string_new (request));
 
+    GArray *req_args = uzbl_commands_args_new ();
+
+    guint i;
+    for (i = 1; i < argv->len; ++i) {
+        uzbl_commands_args_append (req_args, g_strdup (argv_idx (argv, i)));
+    }
+
     request_result = uzbl_requests_send (request_name->str,
-        TYPE_FORMATTEDSTR, data,
+        TYPE_STR_ARRAY, req_args,
         NULL);
+
+    uzbl_commands_args_free (req_args);
 
     g_string_free (request_name, TRUE);
     g_strfreev (split);
