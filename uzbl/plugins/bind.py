@@ -384,10 +384,10 @@ class BindPlugin(PerInstancePlugin):
         '''Legacy parsing of the BIND event and conversion to the new format.
 
         Example events:
-            request BIND <bind>        = <command>
-            request BIND o<location:>_ = uri %s
-            request BIND <BackSpace>   = ...
-            request BIND ...           = ...
+            event BIND <bind>        = <command>
+            event BIND o<location:>_ = uri %s
+            event BIND <BackSpace>   = ...
+            event BIND ...           = ...
         '''
 
         self.parse_mode_bind("global %s" % args)

@@ -275,7 +275,7 @@ class KeyCmd(PerInstancePlugin):
         '''Add modmaps.
 
         Examples:
-            set modmap = request MODMAP
+            set modmap = event MODMAP
             @modmap <Control> <Ctrl>
             @modmap <ISO_Left_Tab> <Shift-Tab>
             ...
@@ -307,7 +307,7 @@ class KeyCmd(PerInstancePlugin):
         '''Add an ignore definition.
 
         Examples:
-            set ignore_key = request IGNORE_KEY
+            set ignore_key = event IGNORE_KEY
             @ignore_key <Shift>
             @ignore_key <ISO_*>
             ...

@@ -8,11 +8,11 @@ Formatting options:
   %n = argument n
 
 Usage:
-  request ON_EVENT LINK_HOVER set selected_uri = $1
+  event ON_EVENT LINK_HOVER set selected_uri = $1
     --> LINK_HOVER http://uzbl.org/
     <-- set selected_uri = http://uzbl.org/
 
-  request ON_EVENT CONFIG_CHANGED print Config changed: %1 = %2
+  event ON_EVENT CONFIG_CHANGED print Config changed: %1 = %2
     --> CONFIG_CHANGED selected_uri http://uzbl.org/
     <-- print Config changed: selected_uri = http://uzbl.org/
 '''
