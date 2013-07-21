@@ -38,7 +38,7 @@ struct _UzblCommand {
     gboolean             send_event;
 };
 
-static UzblCommand
+static const UzblCommand
 builtin_command_table[];
 
 /* =========================== PUBLIC API =========================== */
@@ -49,12 +49,14 @@ init_js_commands_api ();
 void
 uzbl_commands_init ()
 {
-    UzblCommand *cmd = &builtin_command_table[0];
+    const UzblCommand *cmd = &builtin_command_table[0];
 
     uzbl.behave.commands = g_hash_table_new (g_str_hash, g_str_equal);
 
     while (cmd->name) {
-        g_hash_table_insert (uzbl.behave.commands, (gpointer)cmd->name, cmd);
+        g_hash_table_insert (uzbl.behave.commands,
+            (gpointer)cmd->name,
+            (gpointer)cmd);
 
         ++cmd;
     }
@@ -65,7 +67,7 @@ uzbl_commands_init ()
 void
 uzbl_commands_send_builtin_event ()
 {
-    UzblCommand *cmd = &builtin_command_table[0];
+    const UzblCommand *cmd = &builtin_command_table[0];
 
     GString *command_list = g_string_new ("");
 
@@ -260,7 +262,7 @@ init_js_commands_api ()
 
     JSClassRef command_class = JSClassCreate (&command_class_def);
 
-    UzblCommand *cmd = &builtin_command_table[0];
+    const UzblCommand *cmd = &builtin_command_table[0];
 
     while (cmd->name) {
         JSObjectRef command_obj = JSObjectMake (uzbl.state.jscontext, command_class, NULL);
@@ -603,7 +605,7 @@ DECLARE_COMMAND (print);
 /* Event commands */
 DECLARE_COMMAND (event);
 
-static UzblCommand
+static const UzblCommand
 builtin_command_table[] = {
     /* name                             function                      split  send_event */
     /* Navigation commands */
