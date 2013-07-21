@@ -139,7 +139,7 @@ uzbl_commands_parse (const gchar *cmd, GArray *argv)
 
     if (!info) {
         uzbl_events_send (COMMAND_ERROR, NULL,
-            TYPE_STR, exp_line,
+            TYPE_STR, tokens[0],
             NULL);
 
         g_free (exp_line);
