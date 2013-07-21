@@ -73,8 +73,10 @@ uzbl_commands_send_builtin_event ()
 
     g_string_append_c (command_list, '[');
 
+    gboolean first = TRUE;
+
     while (cmd->name) {
-        if (command_list->len) {
+        if (!first) {
             g_string_append_c (command_list, ',');
         }
         g_string_append_c (command_list, '\"');
@@ -82,6 +84,7 @@ uzbl_commands_send_builtin_event ()
         g_string_append_c (command_list, '\"');
 
         ++cmd;
+        first = TRUE;
     }
 
     g_string_append_c (command_list, ']');
