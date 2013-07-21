@@ -21,30 +21,29 @@ export XDG_CACHE_HOME
 XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 export XDG_CONFIG_HOME
 
+die_with_status () {
+	status="$1"
+	shift
+
+	echo >&2 "$@"
+	exit "$status"
+}
+
 # assure the relevant directories exist.
-for dir in "$XDG_CACHE_HOME/uzbl" "$XDG_DATA_HOME/uzbl" "$XDG_CONFIG_HOME/uzbl"
-do
-	if ! [ -d "$dir" ]
-	then
-		if ! mkdir -p "$dir"
-		then
-			echo "could not create $dir" >&2
-			exit 2
-		fi
+for dir in "$XDG_CACHE_HOME/uzbl" "$XDG_DATA_HOME/uzbl" "$XDG_CONFIG_HOME/uzbl"; do
+	if ! [ -d "$dir" ]; then
+		mkdir -p "$dir" || \
+			die_with_status 2 "Error: Could not create directory: $dir"
 	fi
 done
 
 # if no config exists yet in the recommended location, put the default (recommended) config there
 if ! [ -f "$XDG_CONFIG_HOME/uzbl/config" ]
 then
-	if ! [ -r "$EXAMPLES/config/config" ]
-	then
-		echo "Error: Global config not found; please check if your distribution ships them separately"
-		exit 3
-	fi
-	if ! cp "$EXAMPLES/config/"* "$XDG_CONFIG_HOME/uzbl/"
-	then
-		echo "Could not copy default config to $XDG_CONFIG_HOME/uzbl/config" >&2
+	[ -r "$EXAMPLES/config/config" || \
+		die_with_status 3 "Error: Global config not found; please check if your distribution ships them separately"
+	if ! cp "$EXAMPLES/config/"* "$XDG_CONFIG_HOME/uzbl/"; then
+		echo >&2 "Could not copy default config to $XDG_CONFIG_HOME/uzbl/config"
 		# Run with the global config as a last resort
 		config_file="$EXAMPLES/config/config"
 	fi
@@ -52,13 +51,10 @@ fi
 
 # this variable is used by the default helper scripts as a location to
 # load shared code from
-if [ -z "$UZBL_UTIL_DIR" ]
-then
-	if [ -d "$XDG_DATA_HOME/uzbl/scripts/util" ]
-	then
+if [ -z "$UZBL_UTIL_DIR" ]; then
+	if [ -d "$XDG_DATA_HOME/uzbl/scripts/util" ]; then
 		UZBL_UTIL_DIR="$XDG_DATA_HOME/uzbl/scripts/util"
-	elif [ -d "$EXAMPLES/data/scripts/util" ]
-	then
+	elif [ -d "$EXAMPLES/data/scripts/util" ]; then
 		UZBL_UTIL_DIR="$EXAMPLES/data/scripts/util"
 	fi
 	export UZBL_UTIL_DIR
@@ -67,9 +63,7 @@ fi
 # uzbl-event-manager will exit if one is already running.
 # we could also check if its pid file exists to avoid having to spawn it.
 DAEMON_SOCKET="$XDG_CACHE_HOME/uzbl/event_daemon"
-if ! [ -f "$DAEMON_SOCKET.pid" ]
-then
+[ -f "$DAEMON_SOCKET.pid" ] || \
 	${UZBL_EVENT_MANAGER:-uzbl-event-manager -va start}
-fi
 
 exec uzbl-core "$@" "${config_file:+--config "$config_file"}" --connect-socket "$DAEMON_SOCKET"
