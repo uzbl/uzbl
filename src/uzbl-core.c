@@ -267,7 +267,7 @@ main (int argc, char *argv[])
     }
 
     gchar *uri_override = (uzbl.state.uri ? g_strdup (uzbl.state.uri) : NULL);
-    if (argc > 1 && !uzbl.state.uri) {
+    if ((1 < argc) && !uzbl.state.uri) {
         uri_override = g_strdup (argv[1]);
     }
 
@@ -283,9 +283,9 @@ main (int argc, char *argv[])
     if (uzbl.state.verbose) {
         printf ("Uzbl start location: %s\n", argv[0]);
         if (uzbl.state.socket_id) {
-            printf ("plug_id %i\n", (int)gtk_plug_get_id (uzbl.gui.plug));
+            printf ("plug_id %d\n", (int)gtk_plug_get_id (uzbl.gui.plug));
         } else {
-            printf ("window_id %i\n", (int) xwin);
+            printf ("window_id %d\n", (int)xwin);
         }
         printf ("pid %i\n", getpid ());
         printf ("name: %s\n", uzbl.state.instance_name);

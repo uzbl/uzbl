@@ -800,10 +800,7 @@ IMPLEMENT_COMMAND (uri)
 
     gchar *uri = argv_idx (argv, 0);
 
-    /* Strip leading whitespace. */
-    while (*uri && isspace (*uri)) {
-        ++uri;
-    }
+    g_strstrip (uri);
 
     /* Don't do anything when given a blank URL. */
     if (!*uri) {
@@ -843,7 +840,7 @@ IMPLEMENT_COMMAND (download)
 #else
     const gchar *destination = NULL;
 
-    if (argv->len > 1) {
+    if (1 < argv->len) {
         destination = argv_idx (argv, 1);
     }
 
