@@ -14,8 +14,6 @@ set local_storage_path @data_home/uzbl/databases/
 set fifo_dir   /tmp
 set socket_dir /tmp
 
-set shell_cmd       sh -c
-
 # === General config aliases =================================================
 
 # Config related events (use the event function):
