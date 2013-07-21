@@ -1377,14 +1377,14 @@ mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type, const 
     GArray *args = uzbl_commands_args_new ();
     const UzblCommand *mime_command = uzbl_commands_parse (handler, args);
 
-    gboolean can_show = webkit_web_view_can_show_mime_type (uzbl.gui.web_view, mime_type);
-
     if (mime_command) {
         uzbl_commands_args_append (args, g_strdup (mime_type));
         uzbl_commands_args_append (args, g_strdup (disposition ? disposition : ""));
         g_object_ref (decision);
         uzbl_io_schedule_command (mime_command, args, decide_navigation, decision);
     } else {
+        gboolean can_show = webkit_web_view_can_show_mime_type (uzbl.gui.web_view, mime_type);
+
         if (can_show) {
             /* If we can display it, let's display it... */
             make_policy (decision, use);
