@@ -229,7 +229,10 @@ main (int argc, char *argv[])
 
     /* Check uzbl is in window mode before getting/setting geometry */
     if (uzbl.gui.main_window && uzbl.gui.geometry) {
-        uzbl_variables_set ("geometry", uzbl.gui.geometry);
+        GArray *args = uzbl_commands_args_new ();
+        uzbl_commands_args_append (args, g_strdup (uzbl.gui.geometry));
+        uzbl_commands_run_argv ("geometry", args, NULL);
+        uzbl_commands_args_free (args);
     }
 
     gboolean verbose_override = uzbl.state.verbose;
