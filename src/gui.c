@@ -1797,7 +1797,7 @@ download_finished_cb (WebKitDownload *download, gpointer data)
 static void
 download_update (WebKitDownload *download);
 static void
-send_download_error (WebKitDownloadError err, const gchar *message);
+send_download_error (const gchar *destination, WebKitDownloadError err, const gchar *message);
 
 #ifdef USE_WEBKIT2
 void
@@ -1812,12 +1812,13 @@ download_receive_cb (WebKitDownload *download, guint64 length, gpointer data)
 void
 download_failed_cb (WebKitDownload *download, gpointer error, gpointer data)
 {
-    UZBL_UNUSED (download);
     UZBL_UNUSED (data);
+
+    const gchar *destination = webkit_download_get_destination (download);
 
     GError *err = (GError *)error;
 
-    send_download_error (err->code, err->message);
+    send_download_error (destination, err->code, err->message);
 }
 
 #else
@@ -1857,11 +1858,12 @@ download_status_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer d
 void
 download_error_cb (WebKitDownload *download, gint error_code, gint error_detail, gchar *reason, gpointer data)
 {
-    UZBL_UNUSED (download);
     UZBL_UNUSED (error_code);
     UZBL_UNUSED (data);
 
-    send_download_error (error_detail, reason);
+    const gchar *destination = webkit_download_get_destination_uri (download);
+
+    send_download_error (destination, error_detail, reason);
 }
 #endif
 
@@ -1983,7 +1985,7 @@ download_update (WebKitDownload *download)
 }
 
 void
-send_download_error (WebKitDownloadError err, const gchar *message)
+send_download_error (const gchar *destination, WebKitDownloadError err, const gchar *message)
 {
     const gchar *str;
 
@@ -2003,8 +2005,9 @@ send_download_error (WebKitDownloadError err, const gchar *message)
     }
 
     uzbl_events_send (DOWNLOAD_ERROR, NULL,
-        TYPE_INT, err,
+        TYPE_STR, destination,
         TYPE_STR, str,
+        TYPE_INT, err,
         TYPE_STR, message,
         NULL);
 
