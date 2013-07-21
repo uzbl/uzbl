@@ -23,7 +23,6 @@
     call (WEBINSPECTOR),        \
     call (NEW_WINDOW),          \
     call (CLOSE_WINDOW),        \
-    call (SELECTION_CHANGED),   \
     call (VARIABLE_SET),        \
     call (FIFO_SET),            \
     call (SOCKET_SET),          \
