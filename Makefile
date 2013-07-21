@@ -13,9 +13,9 @@ RUN_PREFIX ?= $(PREFIX)
 ENABLE_WEBKIT2 ?= auto
 ENABLE_GTK3    ?= auto
 
-PYTHON=python3
-PYTHONV=$(shell $(PYTHON) --version | sed -n /[0-9].[0-9]/p)
-COVERAGE=$(shell which coverage)
+PYTHON   = python3
+PYTHONV  = $(shell $(PYTHON) --version | sed -n /[0-9].[0-9]/p)
+COVERAGE = $(shell which coverage)
 
 # --- configuration ends here ---
 
@@ -31,7 +31,7 @@ ifeq ($(ENABLE_WEBKIT2),yes)
 REQ_PKGS += 'webkit2gtk-3.0 >= 1.2.4' javascriptcoregtk-3.0
 CPPFLAGS += -DUSE_WEBKIT2
 # WebKit2 requires GTK3
-ENABLE_GTK3    := yes
+ENABLE_GTK3 := yes
 else
 ifeq ($(ENABLE_GTK3),yes)
 REQ_PKGS += 'webkitgtk-3.0 >= 1.2.4' javascriptcoregtk-3.0
@@ -49,20 +49,51 @@ endif
 
 REQ_PKGS += 'libsoup-2.4 >= 2.30' gthread-2.0 glib-2.0
 
-ARCH:=$(shell uname -m)
+ARCH := $(shell uname -m)
 
-COMMIT_HASH:=$(shell ./misc/hash.sh)
+COMMIT_HASH := $(shell ./misc/hash.sh)
 
 CPPFLAGS += -D_BSD_SOURCE -D_POSIX_SOURCE -DARCH=\"$(ARCH)\" -DCOMMIT=\"$(COMMIT_HASH)\"
 
-PKG_CFLAGS:=$(shell pkg-config --cflags $(REQ_PKGS))
+PKG_CFLAGS := $(shell pkg-config --cflags $(REQ_PKGS))
 
-LDLIBS:=$(shell pkg-config --libs $(REQ_PKGS) x11)
+LDLIBS := $(shell pkg-config --libs $(REQ_PKGS) x11)
 
-CFLAGS += -std=c99 $(PKG_CFLAGS) -ggdb -W -Wall -Wextra -pedantic -pthread
+CFLAGS += -std=c99 $(PKG_CFLAGS) -ggdb -W -Wall -Wextra -pthread -Wunused-function
 
-SRC  = $(wildcard src/*.c)
-HEAD = $(wildcard src/*.h)
+SOURCES := \
+    commands.c \
+    cookie-jar.c \
+    events.c \
+    gui.c \
+    inspector.c \
+    io.c \
+    js.c \
+    soup.c \
+    status-bar.c \
+    util.c \
+    uzbl-core.c \
+    variables.c
+
+HEADERS := \
+    commands.h \
+    config.h \
+    cookie-jar.h \
+    events.h \
+    gui.h \
+    inspector.h \
+    io.h \
+    js.h \
+    menu.h \
+    soup.h \
+    status-bar.h \
+    util.h \
+    uzbl-core.h \
+    variables.h \
+    webkit.h
+
+SRC  = $(addprefix src/,$(SOURCES))
+HEAD = $(addprefix src/,$(HEADERS))
 OBJ  = $(foreach obj, $(SRC:.c=.o),  $(notdir $(obj)))
 LOBJ = $(foreach obj, $(SRC:.c=.lo), $(notdir $(obj)))
 PY = $(wildcard uzbl/*.py uzbl/plugins/*.py)
@@ -138,8 +169,9 @@ test-uzbl-event-manager-sandbox: sandbox uzbl-browser sandbox-install-uzbl-brows
 
 clean:
 	rm -f uzbl-core
-	rm -f *.o
+	rm -f $(OBJ) ${LOBJ}
 	find ./examples/ -name "*.pyc" -delete
+	find ./__pycache__/ -name "*.pyc" -delete
 	cd ./tests/; $(MAKE) clean
 	rm -rf ./sandbox/
 	$(PYTHON) setup.py clean
