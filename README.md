@@ -441,7 +441,15 @@ as `KEY` and `many args` as `VALUE`.
         webpage. The context is cleared on each page load.
 * `spawn <COMMAND> [ARGUMENT...]` (WILL CHANGE)
   - Spawn a command on the system with the given arguments. This ignore the
-    stdout of the command. Will become `spawn async` in the future.
+    stdout of the command. Will become `spawn async` in the future. The first
+    argument command may use the following format to support fallback
+    directories:
+
+        dir1:dir2:dir3:subpath
+
+    This will try `@{dir1}@{subpath}` followed by @{dir2}@{subpath}` and so on.
+    The first file which exists is used. If none of them exist, it is used as
+    the command verbatim and the `PATH` environment variable is used.
 * `spawn_sync <COMMAND> [ARGUMENT...]` (DEPRECATED)
   - Spawn a command on the system synchronously with the given arguments and
     return its stdout. Will become `spawn async` in the future.
