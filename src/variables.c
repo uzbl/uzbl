@@ -1753,13 +1753,13 @@ builtin_variable_table[] = {
 
 static GObject *
 webkit_settings ();
+static GObject *
+webkit_view ();
 #ifndef USE_WEBKIT2
 static GObject *
 soup_session ();
 static GObject *
 inspector ();
-static GObject *
-webkit_view ();
 static int
 object_get (GObject *obj, const gchar *prop);
 #endif
@@ -3072,6 +3072,12 @@ webkit_settings ()
     return G_OBJECT (webkit_web_view_get_settings (uzbl.gui.web_view));
 }
 
+GObject *
+webkit_view ()
+{
+    return G_OBJECT (uzbl.gui.web_view);
+}
+
 #ifndef USE_WEBKIT2
 GObject *
 soup_session ()
@@ -3083,12 +3089,6 @@ GObject *
 inspector ()
 {
     return G_OBJECT (uzbl.gui.inspector);
-}
-
-GObject *
-webkit_view ()
-{
-    return G_OBJECT (uzbl.gui.web_view);
 }
 
 int
