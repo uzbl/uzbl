@@ -1214,13 +1214,13 @@ IMPLEMENT_COMMAND (zoom)
 
     const gchar *command = argv_idx (argv, 0);
 
-    gfloat new_zoom = 0.f;
+    gdouble new_zoom = 0.f;
 
     if (!g_strcmp0 (command, "in")) {
-        gfloat step;
+        gdouble step;
 
         if (argv->len < 2) {
-            step = uzbl_variables_get_float ("zoom_step");
+            step = uzbl_variables_get_double ("zoom_step");
         } else {
             const gchar *value_str = argv_idx (argv, 1);
 
@@ -1229,10 +1229,10 @@ IMPLEMENT_COMMAND (zoom)
 
         new_zoom += step;
     } else if (!g_strcmp0 (command, "out")) {
-        gfloat step;
+        gdouble step;
 
         if (argv->len < 2) {
-            step = uzbl_variables_get_float ("zoom_step");
+            step = uzbl_variables_get_double ("zoom_step");
         } else {
             const gchar *value_str = argv_idx (argv, 1);
 

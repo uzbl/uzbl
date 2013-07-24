@@ -4,7 +4,7 @@
 typedef enum {
     TYPE_INT = 1,
     TYPE_STR,
-    TYPE_FLOAT,
+    TYPE_DOUBLE,
     TYPE_ULL,
     TYPE_NAME,
     /* Used by send_event. */

@@ -1546,10 +1546,10 @@ send_scroll_event (int type, GtkAdjustment *adjust)
     gdouble page = gtk_adjustment_get_page_size (adjust);
 
     uzbl_events_send (type, NULL,
-        TYPE_FLOAT, value,
-        TYPE_FLOAT, min,
-        TYPE_FLOAT, max,
-        TYPE_FLOAT, page,
+        TYPE_DOUBLE, value,
+        TYPE_DOUBLE, min,
+        TYPE_DOUBLE, max,
+        TYPE_DOUBLE, page,
         NULL);
 }
 
@@ -1980,7 +1980,7 @@ download_update (WebKitDownload *download)
 
     uzbl_events_send (DOWNLOAD_PROGRESS, NULL,
         TYPE_STR, dest_path,
-        TYPE_FLOAT, progress,
+        TYPE_DOUBLE, progress,
         NULL);
 }
 

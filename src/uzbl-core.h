@@ -132,7 +132,7 @@ typedef struct {
 
     gboolean print_version;
 
-    gfloat zoom_step;
+    gdouble zoom_step;
 
     /* command list: (key)name -> (value)Command  */
     GHashTable *commands;

@@ -27,8 +27,8 @@ int
 uzbl_variables_get_int (const gchar *name);
 unsigned long long
 uzbl_variables_get_ull (const gchar *name);
-float
-uzbl_variables_get_float (const gchar *name);
+gdouble
+uzbl_variables_get_double (const gchar *name);
 
 void
 uzbl_variables_dump ();
