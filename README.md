@@ -702,9 +702,9 @@ variables are treated as strings.
 * `accept_languages` (string) (no default)
   - The list of languages to send with the `Accept-Language` HTTP header. In
     WebKit1, if set to `auto`, the list will be constructed from the system.
-* `zoom_level` (float) (default: 1.0)
+* `zoom_level` (double) (default: 1.0)
   - The current zoom level of the page.
-* `zoom_step` (float) (default: 0.1)
+* `zoom_step` (double) (default: 0.1)
   - The amount to step by default with the `zoom in` and `zoom out` commands.
     Must be greater than 0.
 * `zoom_text_only` (boolean) (default: 1 in WebKit1; 0 in WebKit2) (WebKit2 >= 1.7.91 or WebKit1)
@@ -1174,13 +1174,13 @@ with `uzbl`, see [its documentation](README.event-manager.md)
 
 Events are reported in the following format.
 
-     EVENT <NAME> <EVENT_NAME> [DETAILS...]
+     EVENT <NAME> <EVENT_NAME> {DETAILS}
 
 Events are line-oriented, so newlines are not supported within events.
 
 Requests use the following format:
 
-    REQUEST-<COOKIE> <REQUEST_NAME> [DETAILS...]
+    REQUEST-<COOKIE> <REQUEST_NAME> [ARGUMENTS...]
 
 Only EM sockets receive REQUEST lines. Currently, if a reply is not received
 within one second from `uzbl` sending a request, `uzbl` will continue without a
@@ -1258,7 +1258,7 @@ Uzbl will report various events by default. All of these events are
 * `INSTANCE_EXIT <PID>`
   - Sent before `uzbl` quits. When this is sent, `uzbl` has already stopped
     listening on all sockets.
-* `VARIABLE_SET <NAME> <str|int|ull|float> {VALUE}`
+* `VARIABLE_SET <NAME> <str|int|ull|double> {VALUE}`
   - Sent when a variable has been set. Not all variable changes cause a
     `VARIABLE_SET` event to occur (e.g., any variable managed by WebKit behind
     the scenes does not trigger this event).
