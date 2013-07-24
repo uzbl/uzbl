@@ -1678,7 +1678,7 @@ rewrite_request (GString *result, gpointer data)
         uzbl_debug ("Request rewritten -> %s\n", result->str);
 
 #ifdef USE_WEBKIT2
-        if (!g_strcmp0 (result->str, "IGNORE"))
+        if (!g_strcmp0 (result->str, "IGNORE")) {
             make_policy (decision, ignore);
         } else if (!g_strcmp0 (result->str, "DOWNLOAD")) {
             make_policy (decision, download);
