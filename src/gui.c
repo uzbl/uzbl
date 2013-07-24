@@ -613,7 +613,7 @@ typedef WebKitLoadEvent WebKitLoadStatus;
 
 #ifdef USE_WEBKIT2
 #define make_policy(decision, policy) \
-    webkit_policy_decision_##policy (decision)
+    webkit_policy_decision_##policy (WEBKIT_POLICY_DECISION (decision))
 #else
 #define make_policy(decision, policy) \
     webkit_web_policy_decision_##policy (decision)
