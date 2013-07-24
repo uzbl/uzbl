@@ -2289,6 +2289,8 @@ IMPLEMENT_SETTER (gchar *, accept_languages)
     webkit_web_context_set_preferred_languages (context, (const gchar * const *)languages);
 
     g_strfreev (languages);
+
+    return TRUE;
 }
 #else
 IMPLEMENT_GETTER (gchar *, accept_languages)
