@@ -132,7 +132,7 @@ static int
 create_dir (const gchar *dir);
 
 static gboolean
-attach_fifo (gchar *path);
+attach_fifo (const gchar *path);
 
 gboolean
 uzbl_io_init_fifo (const gchar *dir)
@@ -157,9 +157,11 @@ uzbl_io_init_fifo (const gchar *dir)
         g_warning ("Fifo: Can't unlink old fifo at %s\n", path);
     }
 
+    gboolean ret = FALSE;
+
     if (!mkfifo (path, 0666)) {
       if (attach_fifo (path)) {
-         return TRUE;
+         ret = TRUE;
       } else {
          g_warning ("init_fifo: can't attach to %s: %s\n", path, strerror (errno));
       }
@@ -167,9 +169,8 @@ uzbl_io_init_fifo (const gchar *dir)
         g_warning ("init_fifo: can't create %s: %s\n", path, strerror (errno));
     }
 
-    /* If we got this far, there was an error; clean up. */
     g_free (path);
-    return FALSE;
+    return ret;
 }
 
 static gboolean
@@ -423,7 +424,7 @@ static gboolean
 control_fifo (GIOChannel *gio, GIOCondition condition, gpointer data);
 
 gboolean
-attach_fifo (gchar *path)
+attach_fifo (const gchar *path)
 {
     GError *error = NULL;
     /* We don't really need to write to the file, but if we open the file as
@@ -435,9 +436,10 @@ attach_fifo (gchar *path)
         uzbl_events_send (FIFO_SET, NULL,
             TYPE_STR, path,
             NULL);
-        uzbl.comm.fifo_path = path;
+        uzbl.comm.fifo_path = g_strdup (path);
         /* TODO: Collect all environment settings into one place. */
         g_setenv ("UZBL_FIFO", uzbl.comm.fifo_path, TRUE);
+
         return TRUE;
     } else {
         g_warning ("attach_fifo: can't open: %s\n", error->message);
