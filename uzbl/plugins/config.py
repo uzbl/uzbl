@@ -3,7 +3,7 @@ from re import compile
 from uzbl.arguments import splitquoted
 from uzbl.ext import PerInstancePlugin
 
-types = {'int': int, 'float': float, 'str': str, 'ull': int}
+types = {'int': int, 'double': float, 'str': str, 'ull': int}
 
 valid_key = compile('^[A-Za-z0-9_\.]+$').match
 

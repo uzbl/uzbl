@@ -132,7 +132,7 @@ static int
 create_dir (const gchar *dir);
 
 static gboolean
-attach_fifo (gchar *path);
+attach_fifo (const gchar *path);
 
 gboolean
 uzbl_io_init_fifo (const gchar *dir)
@@ -157,9 +157,11 @@ uzbl_io_init_fifo (const gchar *dir)
         g_warning ("Fifo: Can't unlink old fifo at %s\n", path);
     }
 
+    gboolean ret = FALSE;
+
     if (!mkfifo (path, 0666)) {
       if (attach_fifo (path)) {
-         return TRUE;
+         ret = TRUE;
       } else {
          g_warning ("init_fifo: can't attach to %s: %s\n", path, strerror (errno));
       }
@@ -167,9 +169,8 @@ uzbl_io_init_fifo (const gchar *dir)
         g_warning ("init_fifo: can't create %s: %s\n", path, strerror (errno));
     }
 
-    /* If we got this far, there was an error; clean up. */
     g_free (path);
-    return FALSE;
+    return ret;
 }
 
 static gboolean
@@ -256,6 +257,7 @@ run_io (gpointer data)
     uzbl.state.io_loop = g_main_loop_new (uzbl.state.io_ctx, FALSE);
     g_main_loop_run (uzbl.state.io_loop);
     g_main_loop_unref (uzbl.state.io_loop);
+    uzbl.state.io_loop = NULL;
 
     g_main_context_unref (uzbl.state.io_ctx);
     uzbl.state.io_ctx = NULL;
@@ -275,6 +277,8 @@ add_cmd_source (GIOChannel *gio, const gchar *name, GIOFunc callback)
     g_source_set_callback (source, (GSourceFunc)callback, NULL, NULL);
 
     g_source_attach (source, uzbl.state.io_ctx);
+
+    g_source_unref (source);
 }
 
 void
@@ -423,7 +427,7 @@ static gboolean
 control_fifo (GIOChannel *gio, GIOCondition condition, gpointer data);
 
 gboolean
-attach_fifo (gchar *path)
+attach_fifo (const gchar *path)
 {
     GError *error = NULL;
     /* We don't really need to write to the file, but if we open the file as
@@ -432,12 +436,15 @@ attach_fifo (gchar *path)
     if (chan) {
         add_cmd_source (chan, "Uzbl main fifo", control_fifo);
 
+        g_io_channel_unref (chan);
+
         uzbl_events_send (FIFO_SET, NULL,
             TYPE_STR, path,
             NULL);
-        uzbl.comm.fifo_path = path;
+        uzbl.comm.fifo_path = g_strdup (path);
         /* TODO: Collect all environment settings into one place. */
         g_setenv ("UZBL_FIFO", uzbl.comm.fifo_path, TRUE);
+
         return TRUE;
     } else {
         g_warning ("attach_fifo: can't open: %s\n", error->message);
@@ -465,6 +472,8 @@ attach_socket (const gchar *path, struct sockaddr_un *local)
 
         if ((chan = g_io_channel_unix_new (sock))) {
             add_cmd_source (chan, "Uzbl main socket", control_socket);
+
+            g_io_channel_unref (chan);
 
             uzbl.comm.socket_path = g_strdup (path);
             uzbl_events_send (SOCKET_SET, NULL,

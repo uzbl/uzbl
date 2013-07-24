@@ -613,7 +613,7 @@ typedef WebKitLoadEvent WebKitLoadStatus;
 
 #ifdef USE_WEBKIT2
 #define make_policy(decision, policy) \
-    webkit_policy_decision_##policy (decision)
+    webkit_policy_decision_##policy (WEBKIT_POLICY_DECISION (decision))
 #else
 #define make_policy(decision, policy) \
     webkit_web_policy_decision_##policy (decision)
@@ -1546,10 +1546,10 @@ send_scroll_event (int type, GtkAdjustment *adjust)
     gdouble page = gtk_adjustment_get_page_size (adjust);
 
     uzbl_events_send (type, NULL,
-        TYPE_FLOAT, value,
-        TYPE_FLOAT, min,
-        TYPE_FLOAT, max,
-        TYPE_FLOAT, page,
+        TYPE_DOUBLE, value,
+        TYPE_DOUBLE, min,
+        TYPE_DOUBLE, max,
+        TYPE_DOUBLE, page,
         NULL);
 }
 
@@ -1678,7 +1678,7 @@ rewrite_request (GString *result, gpointer data)
         uzbl_debug ("Request rewritten -> %s\n", result->str);
 
 #ifdef USE_WEBKIT2
-        if (!g_strcmp0 (result->str, "IGNORE"))
+        if (!g_strcmp0 (result->str, "IGNORE")) {
             make_policy (decision, ignore);
         } else if (!g_strcmp0 (result->str, "DOWNLOAD")) {
             make_policy (decision, download);
@@ -1980,7 +1980,7 @@ download_update (WebKitDownload *download)
 
     uzbl_events_send (DOWNLOAD_PROGRESS, NULL,
         TYPE_STR, dest_path,
-        TYPE_FLOAT, progress,
+        TYPE_DOUBLE, progress,
         NULL);
 }
 

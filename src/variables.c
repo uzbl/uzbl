@@ -38,7 +38,7 @@ typedef void (*UzblFunction) ();
 
 typedef union {
     int                *i;
-    float              *f;
+    gdouble            *d;
     gchar             **s;
     unsigned long long *ull;
 } UzblValue;
@@ -121,7 +121,7 @@ set_variable_int (UzblVariable *var, int i);
 static gboolean
 set_variable_ull (UzblVariable *var, unsigned long long ull);
 static gboolean
-set_variable_float (UzblVariable *var, float f);
+set_variable_double (UzblVariable *var, gdouble d);
 static void
 send_variable_event (const gchar *name, const UzblVariable *var);
 
@@ -156,10 +156,10 @@ uzbl_variables_set (const gchar *name, gchar *val)
             sendev = set_variable_ull (var, ull);
             break;
         }
-        case TYPE_FLOAT:
+        case TYPE_DOUBLE:
         {
-            float f = strtod (val, NULL);
-            sendev = set_variable_float (var, f);
+            gdouble d = strtod (val, NULL);
+            sendev = set_variable_double (var, d);
             break;
         }
         default:
@@ -203,8 +203,8 @@ static int
 get_variable_int (const UzblVariable *var);
 static unsigned long long
 get_variable_ull (const UzblVariable *var);
-static float
-get_variable_float (const UzblVariable *var);
+static gdouble
+get_variable_double (const UzblVariable *var);
 
 gboolean
 uzbl_variables_toggle (const gchar *name, GArray *values)
@@ -321,16 +321,16 @@ uzbl_variables_toggle (const gchar *name, GArray *values)
         sendev = set_variable_ull (var, next);
         break;
     }
-    case TYPE_FLOAT:
+    case TYPE_DOUBLE:
     {
-        float current = get_variable_float (var);
-        float next;
+        gdouble current = get_variable_double (var);
+        gdouble next;
 
         if (values && values->len) {
             guint i = 0;
 
-            float first = strtod (argv_idx (values, 0), NULL);
-            float  this = first;
+            gdouble first = strtod (argv_idx (values, 0), NULL);
+            gdouble  this = first;
 
             const gchar *next_s = argv_idx (values, 1);
 
@@ -348,7 +348,7 @@ uzbl_variables_toggle (const gchar *name, GArray *values)
             next = !current;
         }
 
-        sendev = set_variable_float (var, next);
+        sendev = set_variable_double (var, next);
         break;
     }
     default:
@@ -391,7 +391,7 @@ uzbl_variables_expand (const gchar *str)
 VAR_GETTER (gchar *, string)
 VAR_GETTER (int, int)
 VAR_GETTER (unsigned long long, ull)
-VAR_GETTER (float, float)
+VAR_GETTER (gdouble, double)
 
 static void
 dump_variable (gpointer key, gpointer value, gpointer data);
@@ -519,7 +519,7 @@ set_variable_string (UzblVariable *var, const gchar *val)
 
 TYPE_SETTER (int, int, i)
 TYPE_SETTER (unsigned long long, ull, ull)
-TYPE_SETTER (float, float, f)
+TYPE_SETTER (gdouble, double, d)
 
 static void
 variable_expand (const UzblVariable *var, GString *buf);
@@ -544,8 +544,8 @@ send_variable_event (const gchar *name, const UzblVariable *var)
     case TYPE_ULL:
         type = "ull";
         break;
-    case TYPE_FLOAT:
-        type = "float";
+    case TYPE_DOUBLE:
+        type = "double";
         break;
     default:
         g_assert_not_reached ();
@@ -601,7 +601,7 @@ get_variable_string (const UzblVariable *var)
 
 TYPE_GETTER (int, int, i)
 TYPE_GETTER (unsigned long long, ull, ull)
-TYPE_GETTER (float, float, f)
+TYPE_GETTER (gdouble, double, d)
 
 typedef enum {
     EXPAND_SHELL,
@@ -981,9 +981,9 @@ js_get_variable (JSContextRef ctx, JSObjectRef object, JSStringRef propertyName,
         js_value = JSValueMakeNumber (ctx, val);
         break;
     }
-    case TYPE_FLOAT:
+    case TYPE_DOUBLE:
     {
-        float val = get_variable_float (uzbl_var);
+        gdouble val = get_variable_double (uzbl_var);
         js_value = JSValueMakeNumber (ctx, val);
         break;
     }
@@ -1049,8 +1049,8 @@ variable_expand (const UzblVariable *var, GString *buf)
     case TYPE_ULL:
         g_string_append_printf (buf, "%llu", get_variable_ull (var));
         break;
-    case TYPE_FLOAT:
-        g_string_append_printf (buf, "%f", get_variable_float (var));
+    case TYPE_DOUBLE:
+        g_string_append_printf (buf, "%g", get_variable_double (var));
         break;
     default:
         break;
@@ -1108,18 +1108,18 @@ expand_type (const gchar *str)
     UZBL_SETTING (typ, val, FALSE, getter, NULL)
 
 /* Variables */
-#define UZBL_V_STRING(val, set) UZBL_VARIABLE (STR,   { .s = &(val) },         NULL,      set)
-#define UZBL_V_INT(val, set)    UZBL_VARIABLE (INT,   { .i = (int*)&(val) },   NULL,      set)
-#define UZBL_V_LONG(val, set)   UZBL_VARIABLE (ULL,   { .ull = &(val) },       NULL,      set)
-#define UZBL_V_FLOAT(val, set)  UZBL_VARIABLE (FLOAT, { .f = &(val) },         NULL,      set)
-#define UZBL_V_FUNC(val, typ)   UZBL_VARIABLE (typ,   { .s = NULL },           get_##val, set_##val)
+#define UZBL_V_STRING(val, set) UZBL_VARIABLE (STR,    { .s = &(val) },         NULL,      set)
+#define UZBL_V_INT(val, set)    UZBL_VARIABLE (INT,    { .i = (int*)&(val) },   NULL,      set)
+#define UZBL_V_LONG(val, set)   UZBL_VARIABLE (ULL,    { .ull = &(val) },       NULL,      set)
+#define UZBL_V_DOUBLE(val, set) UZBL_VARIABLE (DOUBLE, { .d = &(val) },         NULL,      set)
+#define UZBL_V_FUNC(val, typ)   UZBL_VARIABLE (typ,    { .s = NULL },           get_##val, set_##val)
 
 /* Constants */
-#define UZBL_C_STRING(val)    UZBL_CONSTANT (STR,   { .s = &(val) },       NULL)
-#define UZBL_C_INT(val)       UZBL_CONSTANT (INT,   { .i = (int*)&(val) }, NULL)
-#define UZBL_C_LONG(val)      UZBL_CONSTANT (ULL,   { .ull = &(val) },     NULL)
-#define UZBL_C_FLOAT(val)     UZBL_CONSTANT (FLOAT, { .f = &(val) },       NULL)
-#define UZBL_C_FUNC(val, typ) UZBL_CONSTANT (typ,   { .s = NULL },         get_##val)
+#define UZBL_C_STRING(val)    UZBL_CONSTANT (STR,    { .s = &(val) },       NULL)
+#define UZBL_C_INT(val)       UZBL_CONSTANT (INT,    { .i = (int*)&(val) }, NULL)
+#define UZBL_C_LONG(val)      UZBL_CONSTANT (ULL,    { .ull = &(val) },     NULL)
+#define UZBL_C_DOUBLE(val)    UZBL_CONSTANT (DOUBLE, { .d = &(val) },       NULL)
+#define UZBL_C_FUNC(val, typ) UZBL_CONSTANT (typ,    { .s = NULL },         get_##val)
 
 #define DECLARE_GETTER(type, name) \
     static type                    \
@@ -1213,11 +1213,11 @@ DECLARE_GETSET (gchar *, useragent);
 DECLARE_GETTER (gchar *, accept_languages);
 #endif
 DECLARE_SETTER (gchar *, accept_languages);
-DECLARE_GETSET (float, zoom_level);
+DECLARE_GETSET (gdouble, zoom_level);
 #ifndef USE_WEBKIT2
-DECLARE_GETTER (float, zoom_step);
+DECLARE_GETTER (gdouble, zoom_step);
 #endif
-DECLARE_SETTER (float, zoom_step);
+DECLARE_SETTER (gdouble, zoom_step);
 #ifdef HAVE_ZOOM_TEXT_API
 DECLARE_GETSET (int, zoom_text_only);
 #endif
@@ -1374,7 +1374,11 @@ DECLARE_GETTER (gchar *, geometry);
 #ifdef HAVE_PLUGIN_API
 DECLARE_GETTER (gchar *, plugin_list);
 #endif
+#ifndef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
 DECLARE_GETTER (gchar *, app_cache_directory);
+#endif
+#endif
 
 static const UzblVariableEntry
 builtin_variable_table[] = {
@@ -1481,12 +1485,12 @@ builtin_variable_table[] = {
                                       UZBL_V_FUNC (accept_languages,                       STR)
 #endif
                                       },
-    { "zoom_level",                   UZBL_V_FUNC (zoom_level,                             FLOAT)},
+    { "zoom_level",                   UZBL_V_FUNC (zoom_level,                             DOUBLE)},
     { "zoom_step",
 #ifdef USE_WEBKIT2
-                                      UZBL_V_FLOAT (uzbl.behave.zoom_step,                 set_zoom_step)
+                                      UZBL_V_DOUBLE (uzbl.behave.zoom_step,                set_zoom_step)
 #else
-                                      UZBL_V_FUNC (zoom_step,                              FLOAT)
+                                      UZBL_V_FUNC (zoom_step,                              DOUBLE)
 #endif
                                       },
 #ifdef HAVE_ZOOM_TEXT_API
@@ -1749,13 +1753,13 @@ builtin_variable_table[] = {
 
 static GObject *
 webkit_settings ();
+static GObject *
+webkit_view ();
 #ifndef USE_WEBKIT2
 static GObject *
 soup_session ();
 static GObject *
 inspector ();
-static GObject *
-webkit_view ();
 static int
 object_get (GObject *obj, const gchar *prop);
 #endif
@@ -2285,6 +2289,8 @@ IMPLEMENT_SETTER (gchar *, accept_languages)
     webkit_web_context_set_preferred_languages (context, (const gchar * const *)languages);
 
     g_strfreev (languages);
+
+    return TRUE;
 }
 #else
 IMPLEMENT_GETTER (gchar *, accept_languages)
@@ -2326,15 +2332,15 @@ IMPLEMENT_SETTER (gchar *, accept_languages)
 }
 #endif
 
-GOBJECT_GETSET (float, zoom_level,
+GOBJECT_GETSET (gdouble, zoom_level,
                 webkit_view (), "zoom-level")
 
 #ifndef USE_WEBKIT2
-GOBJECT_GETTER (float, zoom_step,
-                webkit_settings (), "zoom-step");
+GOBJECT_GETTER (gdouble, zoom_step,
+                webkit_settings (), "zoom-step")
 #endif
 
-IMPLEMENT_SETTER (float, zoom_step)
+IMPLEMENT_SETTER (gdouble, zoom_step)
 {
     if (zoom_step < 0) {
         return FALSE;
@@ -3068,6 +3074,12 @@ webkit_settings ()
     return G_OBJECT (webkit_web_view_get_settings (uzbl.gui.web_view));
 }
 
+GObject *
+webkit_view ()
+{
+    return G_OBJECT (uzbl.gui.web_view);
+}
+
 #ifndef USE_WEBKIT2
 GObject *
 soup_session ()
@@ -3079,12 +3091,6 @@ GObject *
 inspector ()
 {
     return G_OBJECT (uzbl.gui.inspector);
-}
-
-GObject *
-webkit_view ()
-{
-    return G_OBJECT (uzbl.gui.web_view);
 }
 
 int

@@ -1214,13 +1214,13 @@ IMPLEMENT_COMMAND (zoom)
 
     const gchar *command = argv_idx (argv, 0);
 
-    gfloat new_zoom = 0.f;
+    gdouble new_zoom = 0.f;
 
     if (!g_strcmp0 (command, "in")) {
-        gfloat step;
+        gdouble step;
 
         if (argv->len < 2) {
-            step = uzbl_variables_get_float ("zoom_step");
+            step = uzbl_variables_get_double ("zoom_step");
         } else {
             const gchar *value_str = argv_idx (argv, 1);
 
@@ -1229,10 +1229,10 @@ IMPLEMENT_COMMAND (zoom)
 
         new_zoom += step;
     } else if (!g_strcmp0 (command, "out")) {
-        gfloat step;
+        gdouble step;
 
         if (argv->len < 2) {
-            step = uzbl_variables_get_float ("zoom_step");
+            step = uzbl_variables_get_double ("zoom_step");
         } else {
             const gchar *value_str = argv_idx (argv, 1);
 
@@ -1353,7 +1353,7 @@ IMPLEMENT_COMMAND (snapshot)
 
     ARG_CHECK (argv, 3);
 
-    cairo_surface_t *surface;
+    cairo_surface_t *surface = NULL;
 
     const gchar *path = argv_idx (argv, 0);
     const gchar *format = argv_idx (argv, 1);
@@ -1398,6 +1398,8 @@ IMPLEMENT_COMMAND (snapshot)
     webkit_web_view_get_snapshot (uzbl.gui.web_view, region, options,
                                   NULL, NULL, NULL);
     surface = webkit_web_view_get_snapshot_finish (uzbl.gui.web_view, NULL, &err);
+#else
+    (void)region;
 #endif
 
     if (!surface) {

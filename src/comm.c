@@ -61,7 +61,7 @@ uzbl_comm_vformat (const gchar *directive, const gchar *function, va_list vargs)
             g_assert (uzbl_variables_is_valid (str));
             g_string_append (message, str);
             break;
-        case TYPE_FLOAT:
+        case TYPE_DOUBLE:
         {
             /* Make sure the formatted double fits in the buffer. */
             if (message->allocated_len - message->len < G_ASCII_DTOSTR_BUF_SIZE) {
@@ -72,7 +72,7 @@ uzbl_comm_vformat (const gchar *directive, const gchar *function, va_list vargs)
             char *tmp = g_ascii_formatd (
                 message->str + message->len,
                 message->allocated_len - message->len,
-                "%.2f", va_arg (vargs, double)); /* ‘float’ is promoted to ‘double’ when passed through ‘...’ */
+                "%.2g", va_arg (vargs, double));
             message->len += strlen (tmp);
             break;
         }
