@@ -1374,7 +1374,11 @@ DECLARE_GETTER (gchar *, geometry);
 #ifdef HAVE_PLUGIN_API
 DECLARE_GETTER (gchar *, plugin_list);
 #endif
+#ifndef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
 DECLARE_GETTER (gchar *, app_cache_directory);
+#endif
+#endif
 
 static const UzblVariableEntry
 builtin_variable_table[] = {
