@@ -1353,7 +1353,7 @@ IMPLEMENT_COMMAND (snapshot)
 
     ARG_CHECK (argv, 3);
 
-    cairo_surface_t *surface;
+    cairo_surface_t *surface = NULL;
 
     const gchar *path = argv_idx (argv, 0);
     const gchar *format = argv_idx (argv, 1);
@@ -1398,6 +1398,8 @@ IMPLEMENT_COMMAND (snapshot)
     webkit_web_view_get_snapshot (uzbl.gui.web_view, region, options,
                                   NULL, NULL, NULL);
     surface = webkit_web_view_get_snapshot_finish (uzbl.gui.web_view, NULL, &err);
+#else
+    (void)region;
 #endif
 
     if (!surface) {
