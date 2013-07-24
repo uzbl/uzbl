@@ -257,6 +257,7 @@ run_io (gpointer data)
     uzbl.state.io_loop = g_main_loop_new (uzbl.state.io_ctx, FALSE);
     g_main_loop_run (uzbl.state.io_loop);
     g_main_loop_unref (uzbl.state.io_loop);
+    uzbl.state.io_loop = NULL;
 
     g_main_context_unref (uzbl.state.io_ctx);
     uzbl.state.io_ctx = NULL;
