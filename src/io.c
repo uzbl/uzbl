@@ -277,6 +277,8 @@ add_cmd_source (GIOChannel *gio, const gchar *name, GIOFunc callback)
     g_source_set_callback (source, (GSourceFunc)callback, NULL, NULL);
 
     g_source_attach (source, uzbl.state.io_ctx);
+
+    g_source_unref (source);
 }
 
 void
@@ -434,6 +436,8 @@ attach_fifo (const gchar *path)
     if (chan) {
         add_cmd_source (chan, "Uzbl main fifo", control_fifo);
 
+        g_io_channel_unref (chan);
+
         uzbl_events_send (FIFO_SET, NULL,
             TYPE_STR, path,
             NULL);
@@ -468,6 +472,8 @@ attach_socket (const gchar *path, struct sockaddr_un *local)
 
         if ((chan = g_io_channel_unix_new (sock))) {
             add_cmd_source (chan, "Uzbl main socket", control_socket);
+
+            g_io_channel_unref (chan);
 
             uzbl.comm.socket_path = g_strdup (path);
             uzbl_events_send (SOCKET_SET, NULL,
