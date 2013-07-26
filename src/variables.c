@@ -632,6 +632,7 @@ expand_impl (const gchar *str, UzblExpandStage stage)
         case '@':
         {
             UzblExpandType etype = expand_type (p);
+            char end_char = '\0';
             const gchar *vend = NULL;
             gchar *ret = NULL;
             ++p;
@@ -651,44 +652,37 @@ expand_impl (const gchar *str, UzblExpandStage stage)
                 }
                 break;
             case EXPAND_SHELL:
-                ++p;
-                vend = strstr (p, ")@");
-                if (!vend) {
-                    vend = strchr (p, '\0');
-                }
-                break;
+                end_char = ')';
+                goto expand_impl_find_end;
             case EXPAND_UZBL:
-                ++p;
-                vend = strstr (p, "/@");
-                if (!vend) {
-                    vend = strchr (p, '\0');
-                }
-                break;
+                end_char = '/';
+                goto expand_impl_find_end;
             case EXPAND_UZBL_JS:
-                ++p;
-                vend = strstr (p, "*@");
-                if (!vend) {
-                    vend = strchr (p, '\0');
-                }
-                break;
+                end_char = '*';
+                goto expand_impl_find_end;
             case EXPAND_JS:
-                ++p;
-                vend = strstr (p, ">@");
-                if (!vend) {
-                    vend = strchr (p, '\0');
-                }
-                break;
+                end_char = '>';
+                goto expand_impl_find_end;
             case EXPAND_ESCAPE:
+                end_char = ']';
+                goto expand_impl_find_end;
+expand_impl_find_end:
+            {
                 ++p;
-                vend = strstr (p, "]@");
+                char end[3] = { end_char, '@', '\0' };
+                vend = strstr (p, end);
                 if (!vend) {
                     vend = strchr (p, '\0');
                 }
                 break;
             }
+            }
             assert (vend);
 
             ret = g_strndup (p, vend - p);
+
+            UzblExpandStage ignore = EXPAND_INITIAL;
+            const char *js_ctx = "";
 
             switch (etype) {
             case EXPAND_VAR_BRACE:
@@ -784,54 +778,23 @@ expand_impl (const gchar *str, UzblExpandStage stage)
                 break;
             }
             case EXPAND_UZBL_JS:
-            {
-                if (stage == EXPAND_IGNORE_UZBL_JS) {
-                    break;
-                }
-
-                GString *uzbl_js_ret = g_string_new ("");
-
-                GArray *tmp = uzbl_commands_args_new ();
-                uzbl_commands_args_append (tmp, g_strdup ("uzbl"));
-                const gchar *source = NULL;
-                gchar *cmd = ret;
-
-                if (*ret == '+') {
-                    /* Read JS from file. */
-                    source = "file";
-                    ++cmd;
-                } else {
-                    /* JS from string. */
-                    source = "string";
-                }
-
-                uzbl_commands_args_append (tmp, g_strdup (source));
-
-                gchar *exp_cmd = expand_impl (cmd, EXPAND_IGNORE_UZBL_JS);
-                g_array_append_val (tmp, exp_cmd);
-
-                uzbl_commands_run_argv ("js", tmp, uzbl_js_ret);
-
-                uzbl_commands_args_free (tmp);
-
-                if (uzbl_js_ret->str) {
-                    g_string_append (buf, uzbl_js_ret->str);
-                    g_string_free (uzbl_js_ret, TRUE);
-                }
-                p = vend + 2;
-
-                break;
-            }
+                ignore = EXPAND_IGNORE_UZBL_JS;
+                js_ctx = "uzbl";
+                goto expand_impl_run_js;
             case EXPAND_JS:
+                ignore = EXPAND_IGNORE_JS;
+                js_ctx = "page";
+                goto expand_impl_run_js;
+expand_impl_run_js:
             {
-                if (stage == EXPAND_IGNORE_JS) {
+                if (stage == ignore) {
                     break;
                 }
 
                 GString *js_ret = g_string_new ("");
 
                 GArray *tmp = uzbl_commands_args_new ();
-                uzbl_commands_args_append (tmp, g_strdup ("page"));
+                uzbl_commands_args_append (tmp, g_strdup (js_ctx));
                 const gchar *source = NULL;
                 gchar *cmd = ret;
 
