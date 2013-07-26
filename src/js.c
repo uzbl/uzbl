@@ -3,6 +3,8 @@
 
 #include <stdlib.h>
 
+/* =========================== PUBLIC API =========================== */
+
 void
 uzbl_js_init ()
 {

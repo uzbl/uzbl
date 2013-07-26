@@ -91,6 +91,10 @@ syn region uzblEscape start=+\\@/+ end=+/\\@+
 syn region uzblShellExec display start=+@(+ end=+)@+ end=+$+
 syn region uzblEscape start=+\\@(+ end=+)\\@+
 
+" Match @- javascript command -@ regions
+syn region uzblJSExec display start=+@-+ end=+-@+ end=+$+
+syn region uzblEscape start=+\\@-+ end=+-\\@+
+
 " Match @< javascript command >@ regions
 syn region uzblJSExec display start=+@<+ end=+>@+ end=+$+
 syn region uzblEscape start=+\\@<+ end=+>\\@+

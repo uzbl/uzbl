@@ -1,2 +1,5 @@
-examples/data/uzbl/forms/bbs.archlinux.org whitespace=-trailing-space
-hash.sh export-subst
+hash.sh  export-subst
+*.c      diff=cpp
+*.h      diff=cpp
+*.py     diff=python
+*.html   diff=html
