@@ -366,6 +366,7 @@ typedef enum {
     EXPAND_INITIAL,
     EXPAND_IGNORE_SHELL,
     EXPAND_IGNORE_JS,
+    EXPAND_IGNORE_CLEAN_JS,
     EXPAND_IGNORE_UZBL_JS,
     EXPAND_IGNORE_UZBL
 } UzblExpandStage;
@@ -609,6 +610,7 @@ typedef enum {
     EXPAND_ESCAPE,
     EXPAND_UZBL,
     EXPAND_UZBL_JS,
+    EXPAND_CLEAN_JS,
     EXPAND_VAR,
     EXPAND_VAR_BRACE
 } UzblExpandType;
@@ -659,6 +661,9 @@ expand_impl (const gchar *str, UzblExpandStage stage)
                 goto expand_impl_find_end;
             case EXPAND_UZBL_JS:
                 end_char = '*';
+                goto expand_impl_find_end;
+            case EXPAND_CLEAN_JS:
+                end_char = '-';
                 goto expand_impl_find_end;
             case EXPAND_JS:
                 end_char = '>';
@@ -780,6 +785,10 @@ expand_impl_find_end:
             case EXPAND_UZBL_JS:
                 ignore = EXPAND_IGNORE_UZBL_JS;
                 js_ctx = "uzbl";
+                goto expand_impl_run_js;
+            case EXPAND_CLEAN_JS:
+                ignore = EXPAND_IGNORE_CLEAN_JS;
+                js_ctx = "clean";
                 goto expand_impl_run_js;
             case EXPAND_JS:
                 ignore = EXPAND_IGNORE_JS;
@@ -1032,6 +1041,8 @@ expand_type (const gchar *str)
         return EXPAND_UZBL;
     case '*':
         return EXPAND_UZBL_JS;
+    case '-':
+        return EXPAND_CLEAN_JS;
     case '<':
         return EXPAND_JS;
     case '[':
