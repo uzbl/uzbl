@@ -759,13 +759,13 @@ expand_impl_find_end:
                 GArray *tmp = uzbl_commands_args_new ();
 
                 if (*ret == '+') {
-                    /* Read JS from file. */
+                    /* Read commands from file. */
                     gchar *mycmd = expand_impl (ret + 1, EXPAND_IGNORE_UZBL);
                     g_array_append_val (tmp, mycmd);
 
                     uzbl_commands_run_argv ("include", tmp, uzbl_ret);
                 } else {
-                    /* JS from string. */
+                    /* Command string. */
                     gchar *mycmd = expand_impl (ret, EXPAND_IGNORE_UZBL);
 
                     uzbl_commands_run (mycmd, uzbl_ret);
