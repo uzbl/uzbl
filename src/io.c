@@ -31,7 +31,7 @@ uzbl_io_init ()
     uzbl.state.cmd_q = g_async_queue_new_full (free_cmd_req);
 
     uzbl_rb_async_queue_watch_new (uzbl.state.cmd_q,
-        G_PRIORITY_DEFAULT, run_command,
+        G_PRIORITY_HIGH, run_command,
         NULL, NULL, NULL);
 
     uzbl.state.io_thread = g_thread_new ("uzbl-io", run_io, NULL);
