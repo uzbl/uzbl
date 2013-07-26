@@ -818,7 +818,7 @@ expand_impl_run_js:
 
                 uzbl_commands_args_append (tmp, g_strdup (source));
 
-                gchar *exp_cmd = expand_impl (ret + 1, EXPAND_IGNORE_JS);
+                gchar *exp_cmd = expand_impl (cmd, ignore);
                 g_array_append_val (tmp, exp_cmd);
 
                 uzbl_commands_run_argv ("js", tmp, js_ret);
