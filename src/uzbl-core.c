@@ -72,6 +72,7 @@ uzbl_init (int *argc, char ***argv)
 
     gboolean verbose;
     gchar *config_file;
+    gchar **connect_socket_names;
     gboolean print_events;
     gboolean print_version;
 
@@ -91,7 +92,7 @@ uzbl_init (int *argc, char ***argv)
             "Xembed socket ID, this window should embed itself",                                              "SOCKET" },
         { "embed",          'e', 0, G_OPTION_ARG_NONE,         &uzbl.state.embed,
             "Whether this window should expect to be embedded",                                               NULL },
-        { "connect-socket",  0,  0, G_OPTION_ARG_STRING_ARRAY, &uzbl.state.connect_socket_names,
+        { "connect-socket",  0,  0, G_OPTION_ARG_STRING_ARRAY, &connect_socket_names,
             "Connect to server socket for event managing",                                                    "CSOCKET" },
         { "print-events",   'p', 0, G_OPTION_ARG_NONE,         &print_events,
             "Whether to print events to stdout.",                                                             NULL },
@@ -142,6 +143,12 @@ uzbl_init (int *argc, char ***argv)
 #ifndef USE_WEBKIT2
     uzbl_scheme_init ();
 #endif
+
+    /* Connect to the event manager(s). */
+    gchar **name = connect_socket_names;
+    while (name && *name) {
+        uzbl_io_init_connect_socket (*name++);
+    }
 
     /* Load default config. */
     const gchar * const *default_command = default_config;
@@ -357,14 +364,6 @@ read_config_file (const gchar *file)
         g_setenv ("UZBL_CONFIG", file, TRUE);
     } else {
         uzbl_debug ("No configuration file loaded.\n");
-    }
-
-    if (uzbl.state.connect_socket_names) {
-        gchar **name = uzbl.state.connect_socket_names;
-
-        while (name && *name) {
-            uzbl_io_init_connect_socket (*name++);
-        }
     }
 }
 

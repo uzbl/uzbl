@@ -54,7 +54,6 @@ typedef struct {
 
     /* Events */
     int             socket_id;
-    gchar         **connect_socket_names;
 } UzblState;
 
 /* Networking */
