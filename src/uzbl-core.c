@@ -170,6 +170,9 @@ uzbl_init (int *argc, char ***argv)
         TYPE_INT, pid,
         NULL);
 
+    /* Generate an event with a list of built in commands. */
+    uzbl_commands_send_builtin_event ();
+
     /* Load default config. */
     const gchar * const *default_command = default_config;
     while (default_command && *default_command) {
@@ -227,9 +230,6 @@ main (int argc, char *argv[])
             TYPE_INT, gtk_plug_get_id (uzbl.gui.plug),
             NULL);
     }
-
-    /* Generate an event with a list of built in commands. */
-    uzbl_commands_send_builtin_event ();
 
     /* Check uzbl is in window mode before getting/setting geometry */
     if (uzbl.gui.main_window && uzbl.gui.geometry) {
