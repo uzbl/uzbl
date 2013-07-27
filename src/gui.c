@@ -60,20 +60,31 @@ uzbl_gui_init ()
 void
 uzbl_gui_update_title ()
 {
-    const gchar *title_format = uzbl.behave.title_format_long;
+    const gchar *format = NULL;
 
     /* Update the status bar if shown. */
     if (uzbl_variables_get_int ("show_status")) {
-        title_format = uzbl.behave.title_format_short;
+        format = "title_format_short";
 
-        gchar *parsed = uzbl_variables_expand (uzbl.behave.status_format);
+        gchar *status_format;
+        gchar *parsed;
+
+        status_format = uzbl_variables_get_string ("status_format");
+        parsed = uzbl_variables_expand (status_format);
         uzbl_status_bar_update_left (uzbl.gui.status_bar, parsed);
-        g_free(parsed);
-
-        parsed = uzbl_variables_expand (uzbl.behave.status_format_right);
-        uzbl_status_bar_update_right (uzbl.gui.status_bar, parsed);
+        g_free (status_format);
         g_free (parsed);
+
+        status_format = uzbl_variables_get_string ("status_format_right");
+        parsed = uzbl_variables_expand (status_format);
+        uzbl_status_bar_update_right (uzbl.gui.status_bar, parsed);
+        g_free (status_format);
+        g_free (parsed);
+    } else {
+        format = "title_format_long";
     }
+
+    gchar *title_format = uzbl_variables_get_string (format);
 
     /* Update window title. */
     /* If we're starting up or shutting down there might not be a window yet. */
@@ -87,6 +98,8 @@ uzbl_gui_update_title ()
             gtk_window_set_title (GTK_WINDOW (uzbl.gui.main_window), parsed);
         g_free (parsed);
     }
+
+    g_free (title_format);
 }
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */

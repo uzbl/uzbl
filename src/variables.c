@@ -1371,6 +1371,14 @@ struct _UzblVariablesPrivate {
     /* Window variables */
     gchar *icon;
     gchar *icon_name;
+
+    /* UI variables */
+    gboolean status_top;
+    gchar *status_format;
+    gchar *status_format_right;
+    gchar *status_background;
+    gchar *title_format_long;
+    gchar *title_format_short;
 };
 
 typedef struct {
@@ -1417,12 +1425,12 @@ uzbl_variables_private_new (GHashTable *table)
 
         /* UI variables */
         { "show_status",                  UZBL_V_FUNC (show_status,                            INT)},
-        { "status_top",                   UZBL_V_INT (uzbl.behave.status_top,                  set_status_top)},
-        { "status_format",                UZBL_V_STRING (uzbl.behave.status_format,            NULL)},
-        { "status_format_right",          UZBL_V_STRING (uzbl.behave.status_format_right,      NULL)},
-        { "status_background",            UZBL_V_STRING (uzbl.behave.status_background,        set_status_background)},
-        { "title_format_long",            UZBL_V_STRING (uzbl.behave.title_format_long,        NULL)},
-        { "title_format_short",           UZBL_V_STRING (uzbl.behave.title_format_short,       NULL)},
+        { "status_top",                   UZBL_V_INT (priv->status_top,                        set_status_top)},
+        { "status_format",                UZBL_V_STRING (priv->status_format,                  NULL)},
+        { "status_format_right",          UZBL_V_STRING (priv->status_format_right,            NULL)},
+        { "status_background",            UZBL_V_STRING (priv->status_background,              set_status_background)},
+        { "title_format_long",            UZBL_V_STRING (priv->title_format_long,              NULL)},
+        { "title_format_short",           UZBL_V_STRING (priv->title_format_short,             NULL)},
 #ifdef USE_WEBKIT2
         { "enable_compositing_debugging", UZBL_V_FUNC (enable_compositing_debugging,           INT)},
 #endif
@@ -1939,14 +1947,14 @@ IMPLEMENT_SETTER (int, status_top)
         return FALSE;
     }
 
-    uzbl.behave.status_top = status_top;
+    uzbl.variables->priv->status_top = status_top;
 
     g_object_ref (uzbl.gui.scrolled_win);
     g_object_ref (uzbl.gui.status_bar);
     gtk_container_remove (GTK_CONTAINER (uzbl.gui.vbox), uzbl.gui.scrolled_win);
     gtk_container_remove (GTK_CONTAINER (uzbl.gui.vbox), uzbl.gui.status_bar);
 
-    if (uzbl.behave.status_top) {
+    if (uzbl.variables->priv->status_top) {
         gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.status_bar,   FALSE, TRUE, 0);
         gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE,  TRUE, 0);
     } else {
@@ -1971,16 +1979,16 @@ IMPLEMENT_SETTER (char *, status_background)
      * not, we could also use GtkEventBox. */
     GtkWidget *widget = uzbl.gui.main_window ? uzbl.gui.main_window : GTK_WIDGET (uzbl.gui.plug);
 
-    g_free (uzbl.behave.status_background);
-    uzbl.behave.status_background = g_strdup (status_background);
+    g_free (uzbl.variables->priv->status_background);
+    uzbl.variables->priv->status_background = g_strdup (status_background);
 
 #if GTK_CHECK_VERSION (2, 91, 0)
     GdkRGBA color;
-    gdk_rgba_parse (&color, uzbl.behave.status_background);
+    gdk_rgba_parse (&color, uzbl.variables->priv->status_background);
     gtk_widget_override_background_color (widget, GTK_STATE_NORMAL, &color);
 #else
     GdkColor color;
-    gdk_color_parse (uzbl.behave.status_background, &color);
+    gdk_color_parse (uzbl.variables->priv->status_background, &color);
     gtk_widget_modify_bg (widget, GTK_STATE_NORMAL, &color);
 #endif
 

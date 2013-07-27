@@ -74,16 +74,6 @@ typedef struct {
 
 /* Behaviour */
 typedef struct {
-    /* Status bar */
-    gchar   *status_format;
-    gchar   *status_format_right;
-    gchar   *status_background;
-    gboolean status_top;
-
-    /* Window title */
-    gchar   *title_format_short;
-    gchar   *title_format_long;
-
     gboolean forward_keys;
     gchar   *http_debug;
     guint    view_source;

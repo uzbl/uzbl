@@ -411,11 +411,6 @@ clean_up ()
         uzbl.state.executable_path = NULL;
     }
 
-    if (uzbl.behave.status_background) {
-        g_free (uzbl.behave.status_background);
-        uzbl.behave.status_background = NULL;
-    }
-
     if (uzbl.net.soup_cookie_jar) {
         g_object_unref (uzbl.net.soup_cookie_jar);
         uzbl.net.soup_cookie_jar = NULL;
