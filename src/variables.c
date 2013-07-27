@@ -2014,18 +2014,28 @@ IMPLEMENT_SETTER (char *, status_background)
      * not, we could also use GtkEventBox. */
     GtkWidget *widget = uzbl.gui.main_window ? uzbl.gui.main_window : GTK_WIDGET (uzbl.gui.plug);
 
-    g_free (uzbl.variables->priv->status_background);
-    uzbl.variables->priv->status_background = g_strdup (status_background);
+    gboolean parsed = FALSE;
 
 #if GTK_CHECK_VERSION (2, 91, 0)
     GdkRGBA color;
-    gdk_rgba_parse (&color, uzbl.variables->priv->status_background);
-    gtk_widget_override_background_color (widget, GTK_STATE_NORMAL, &color);
+    parsed = gdk_rgba_parse (&color, status_background);
+    if (parsed) {
+        gtk_widget_override_background_color (widget, GTK_STATE_NORMAL, &color);
+    }
 #else
     GdkColor color;
-    gdk_color_parse (uzbl.variables->priv->status_background, &color);
-    gtk_widget_modify_bg (widget, GTK_STATE_NORMAL, &color);
+    parsed = gdk_color_parse (status_background, &color);
+    if (parsed) {
+        gtk_widget_modify_bg (widget, GTK_STATE_NORMAL, &color);
+    }
 #endif
+
+    if (!parsed) {
+        return FALSE;
+    }
+
+    g_free (uzbl.variables->priv->status_background);
+    uzbl.variables->priv->status_background = g_strdup (status_background);
 
     return TRUE;
 }
