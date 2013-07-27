@@ -38,6 +38,7 @@
 #ifndef USE_WEBKIT2
 #include "soup.h"
 #endif
+#include "type.h"
 #include "util.h"
 #include "variables.h"
 

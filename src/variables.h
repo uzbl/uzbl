@@ -1,8 +1,6 @@
 #ifndef UZBL_VARIABLES_H
 #define UZBL_VARIABLES_H
 
-#include "type.h"
-
 #include <glib.h>
 
 gboolean
