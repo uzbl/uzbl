@@ -37,32 +37,6 @@ uzbl_io_init ()
     uzbl.state.io_thread = g_thread_new ("uzbl-io", run_io, NULL);
 }
 
-typedef struct {
-    gchar *cmd;
-    const UzblCommand *info;
-    GArray *argv;
-    UzblIOCallback callback;
-    gpointer data;
-} UzblCommandData;
-
-void
-uzbl_io_schedule_command (const UzblCommand *cmd, GArray *argv, UzblIOCallback callback, gpointer data)
-{
-    if (!cmd || !argv) {
-        uzbl_debug ("Invalid command scheduled");
-        return;
-    }
-
-    UzblCommandData *cmd_data = g_malloc (sizeof (UzblCommandData));
-    cmd_data->cmd = NULL;
-    cmd_data->info = cmd;
-    cmd_data->argv = argv;
-    cmd_data->callback = callback;
-    cmd_data->data = data;
-
-    g_async_queue_push (uzbl.state.cmd_q, cmd_data);
-}
-
 static void
 add_cmd_source (GIOChannel *gio, const gchar *name, GIOFunc callback, gpointer data);
 static gboolean
@@ -119,6 +93,32 @@ uzbl_io_init_connect_socket ()
     if (replay && uzbl.state.event_buffer) {
         uzbl_events_replay_buffer ();
     }
+}
+
+typedef struct {
+    gchar *cmd;
+    const UzblCommand *info;
+    GArray *argv;
+    UzblIOCallback callback;
+    gpointer data;
+} UzblCommandData;
+
+void
+uzbl_io_schedule_command (const UzblCommand *cmd, GArray *argv, UzblIOCallback callback, gpointer data)
+{
+    if (!cmd || !argv) {
+        uzbl_debug ("Invalid command scheduled");
+        return;
+    }
+
+    UzblCommandData *cmd_data = g_malloc (sizeof (UzblCommandData));
+    cmd_data->cmd = NULL;
+    cmd_data->info = cmd;
+    cmd_data->argv = argv;
+    cmd_data->callback = callback;
+    cmd_data->data = data;
+
+    g_async_queue_push (uzbl.state.cmd_q, cmd_data);
 }
 
 typedef enum {
@@ -221,6 +221,16 @@ uzbl_io_init_socket (const gchar *dir)
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
 
 void
+free_cmd_req (gpointer data)
+{
+    UzblCommandData *cmd = (UzblCommandData *)data;
+
+    uzbl_commands_args_free (cmd->argv);
+    g_free (cmd->cmd);
+    g_free (cmd);
+}
+
+void
 run_command (gpointer item, gpointer data)
 {
     UZBL_UNUSED (data);
@@ -279,16 +289,6 @@ add_cmd_source (GIOChannel *gio, const gchar *name, GIOFunc callback, gpointer d
     g_source_attach (source, uzbl.state.io_ctx);
 
     g_source_unref (source);
-}
-
-void
-free_cmd_req (gpointer data)
-{
-    UzblCommandData *cmd = (UzblCommandData *)data;
-
-    uzbl_commands_args_free (cmd->argv);
-    g_free (cmd->cmd);
-    g_free (cmd);
 }
 
 static void
