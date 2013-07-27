@@ -570,7 +570,7 @@ title_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
     const gchar *title = webkit_web_view_get_title (view);
 
     g_free (uzbl.gui.main_title);
-    uzbl.gui.main_title = title ? g_strdup (title) : g_strdup ("(no title)");
+    uzbl.gui.main_title = g_strdup (title ? title : "(no title)");
 
     uzbl_gui_update_title ();
 
@@ -960,13 +960,11 @@ context_menu_cb (WebKitWebView *view, GtkMenu *menu, WebKitHitTestResult *hit_te
     UZBL_UNUSED (triggered_with_keyboard);
     UZBL_UNUSED (data);
 
-    gint context;
-
     if (!uzbl.gui.menu_items) {
         return FALSE;
     }
 
-    context = get_click_context ();
+    gint context = get_click_context ();
 
     /* Check context. */
     if (context == NO_CLICK_CONTEXT) {
@@ -986,13 +984,11 @@ populate_popup_cb (WebKitWebView *view, GtkMenu *menu, gpointer data)
 {
     UZBL_UNUSED (data);
 
-    gint context;
-
     if (!uzbl.gui.menu_items) {
         return FALSE;
     }
 
-    context = get_click_context ();
+    gint context = get_click_context ();
 
     /* Check context. */
     if (context == NO_CLICK_CONTEXT) {
