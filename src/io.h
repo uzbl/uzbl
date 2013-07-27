@@ -5,9 +5,6 @@
 
 #include <glib.h>
 
-gboolean
-uzbl_io_init_connect_socket (const gchar *socket_path);
-
 void
 uzbl_io_send (const gchar *message, gboolean connect_only);
 
