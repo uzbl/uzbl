@@ -189,7 +189,7 @@ uzbl_commands_parse (const gchar *cmd, GArray *argv)
     }
 
     /* Parse the arguments. */
-    if (argv) {
+    if (argv && arg_string) {
         parse_command_arguments (arg_string, argv, info->split);
     }
 
