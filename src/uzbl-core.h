@@ -13,7 +13,6 @@
 typedef struct {
     /* Window */
     GtkWidget     *main_window;
-    gchar         *geometry;
     GtkPlug       *plug;
     GtkWidget     *scrolled_win;
     GtkWidget     *vbox;

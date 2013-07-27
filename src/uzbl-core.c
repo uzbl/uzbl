@@ -63,16 +63,18 @@ read_config_file (const gchar *file);
 void
 uzbl_init (int *argc, char ***argv)
 {
+    gchar *uri;
     gboolean verbose;
     gchar *config_file;
     gchar **connect_socket_names;
     gboolean print_events;
+    gchar *geometry;
     gboolean print_version;
 
     /* Commandline arguments. */
     const GOptionEntry
     options[] = {
-        { "uri",            'u', 0, G_OPTION_ARG_STRING,       &uzbl.state.uri,
+        { "uri",            'u', 0, G_OPTION_ARG_STRING,       &uri,
             "Uri to load at startup (equivalent to 'uzbl <uri>' after uzbl has launched)", "URI" },
         { "verbose",        'v', 0, G_OPTION_ARG_NONE,         &verbose,
             "Whether to print all messages or just errors.",                                                  NULL },
@@ -89,7 +91,7 @@ uzbl_init (int *argc, char ***argv)
             "Connect to server socket for event managing",                                                    "CSOCKET" },
         { "print-events",   'p', 0, G_OPTION_ARG_NONE,         &print_events,
             "Whether to print events to stdout.",                                                             NULL },
-        { "geometry",       'g', 0, G_OPTION_ARG_STRING,       &uzbl.gui.geometry,
+        { "geometry",       'g', 0, G_OPTION_ARG_STRING,       &geometry,
             "Set window geometry (format: 'WIDTHxHEIGHT+-X+-Y' or 'maximized')",                              "GEOMETRY" },
         { "version",        'V', 0, G_OPTION_ARG_NONE,         &print_version,
             "Print the version and exit",                                                                     NULL },
@@ -182,11 +184,28 @@ uzbl_init (int *argc, char ***argv)
     /* Load provided configuration file. */
     read_config_file (config_file);
 
+    /* Set variables based on flags. */
     if (verbose) {
         uzbl_variables_set ("verbose", "1");
     }
     if (print_events) {
         uzbl_variables_set ("print_events", "1");
+    }
+
+    /* Navigate to a URI if requested. */
+    if (uri) {
+        GArray *argv = uzbl_commands_args_new ();
+        uzbl_commands_args_append (argv, g_strdup (uri));
+        uzbl_commands_run_argv ("uri", argv, NULL);
+        uzbl_commands_args_free (argv);
+    }
+
+    /* Set the geometry if requested. */
+    if (uzbl.gui.main_window && geometry) {
+        GArray *args = uzbl_commands_args_new ();
+        uzbl_commands_args_append (args, g_strdup (geometry));
+        uzbl_commands_run_argv ("geometry", args, NULL);
+        uzbl_commands_args_free (args);
     }
 }
 
@@ -231,14 +250,6 @@ main (int argc, char *argv[])
             NULL);
     }
 
-    /* Check uzbl is in window mode before getting/setting geometry */
-    if (uzbl.gui.main_window && uzbl.gui.geometry) {
-        GArray *args = uzbl_commands_args_new ();
-        uzbl_commands_args_append (args, g_strdup (uzbl.gui.geometry));
-        uzbl_commands_run_argv ("geometry", args, NULL);
-        uzbl_commands_args_free (args);
-    }
-
     /* Finally show the window */
     if (uzbl.gui.main_window) {
         gtk_widget_show_all (GTK_WIDGET (uzbl.gui.main_window));
@@ -253,19 +264,6 @@ main (int argc, char *argv[])
 
     /* Update status bar. */
     uzbl_gui_update_title ();
-
-    gchar *uri_override = (uzbl.state.uri ? g_strdup (uzbl.state.uri) : NULL);
-    if ((1 < argc) && !uzbl.state.uri) {
-        uri_override = g_strdup (argv[1]);
-    }
-
-    if (uri_override) {
-        GArray *argv = uzbl_commands_args_new ();
-        uzbl_commands_args_append (argv, uri_override);
-        uzbl_commands_run_argv ("uri", argv, NULL);
-        uzbl_commands_args_free (argv);
-        uri_override = NULL;
-    }
 
     /* Verbose feedback. */
     if (uzbl_variables_get_int ("verbose")) {
