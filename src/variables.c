@@ -1384,6 +1384,9 @@ struct _UzblVariablesPrivate {
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
     gboolean default_context_menu;
 #endif
+
+    /* Network variables */
+    gchar *http_debug;
 };
 
 typedef struct {
@@ -1457,7 +1460,7 @@ uzbl_variables_private_new (GHashTable *table)
         { "proxy_url",                    UZBL_V_FUNC (proxy_url,                              STR)},
         { "max_conns",                    UZBL_V_FUNC (max_conns,                              INT)},
         { "max_conns_host",               UZBL_V_FUNC (max_conns_host,                         INT)},
-        { "http_debug",                   UZBL_V_STRING (uzbl.behave.http_debug,               set_http_debug)},
+        { "http_debug",                   UZBL_V_STRING (priv->http_debug,                     set_http_debug)},
         { "ssl_ca_file",                  UZBL_V_FUNC (ssl_ca_file,                            STR)},
 #endif
         { "ssl_policy",                   UZBL_V_FUNC (ssl_policy,                             STR)},
@@ -2082,8 +2085,8 @@ IMPLEMENT_SETTER (gchar *, http_debug)
 
 #undef http_debug_choices
 
-    g_free (uzbl.behave.http_debug);
-    uzbl.behave.http_debug = g_strdup (http_debug);
+    g_free (uzbl.variables->priv->http_debug);
+    uzbl.variables->priv->http_debug = g_strdup (http_debug);
 
     if (uzbl.net.soup_logger) {
         soup_session_remove_feature (

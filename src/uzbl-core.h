@@ -74,7 +74,6 @@ typedef struct {
 /* Behaviour */
 typedef struct {
     gboolean forward_keys;
-    gchar   *http_debug;
     guint    view_source;
     gboolean maintain_history;
 
