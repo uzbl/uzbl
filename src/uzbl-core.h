@@ -42,9 +42,6 @@ typedef struct {
 
 /* External communication */
 typedef struct {
-    gchar          *fifo_path;
-    gchar          *socket_path;
-
     GPtrArray      *connect_chan;
     GPtrArray      *client_chan;
 } UzblCommunication;

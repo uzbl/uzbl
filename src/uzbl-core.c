@@ -426,18 +426,6 @@ clean_up ()
         uzbl.state.reply = NULL;
     }
 
-    if (uzbl.behave.fifo_dir) {
-        unlink (uzbl.comm.fifo_path);
-        g_free (uzbl.comm.fifo_path);
-        uzbl.comm.fifo_path = NULL;
-    }
-
-    if (uzbl.behave.socket_dir) {
-        unlink (uzbl.comm.socket_path);
-        g_free (uzbl.comm.socket_path);
-        uzbl.comm.socket_path = NULL;
-    }
-
     if (uzbl.behave.status_background) {
         g_free (uzbl.behave.status_background);
         uzbl.behave.status_background = NULL;
@@ -448,14 +436,6 @@ clean_up ()
     if (uzbl.net.soup_cookie_jar) {
         g_object_unref (uzbl.net.soup_cookie_jar);
         uzbl.net.soup_cookie_jar = NULL;
-    }
-
-    if (uzbl.comm.fifo_path) {
-        unlink (uzbl.comm.fifo_path);
-    }
-
-    if (uzbl.comm.socket_path) {
-        unlink (uzbl.comm.socket_path);
     }
 
     if (uzbl.state.cmd_q) {

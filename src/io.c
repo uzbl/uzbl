@@ -17,6 +17,10 @@
 #include "3p/async-queue-source/rb-async-queue-watch.h"
 
 struct _UzblIO {
+    /* Path to the main FIFO for client communication. */
+    gchar *fifo_path;
+    /* Path to the main socket for client communication. */
+    gchar *socket_path;
 };
 
 /* =========================== PUBLIC API =========================== */
@@ -33,6 +37,9 @@ uzbl_io_init ()
 {
     uzbl.io = g_malloc (sizeof (UzblIO));
 
+    uzbl.io->fifo_path = NULL;
+    uzbl.io->socket_path = NULL;
+
     uzbl.state.cmd_q = g_async_queue_new_full (free_cmd_req);
 
     uzbl_rb_async_queue_watch_new (uzbl.state.cmd_q,
@@ -45,6 +52,16 @@ uzbl_io_init ()
 void
 uzbl_io_free ()
 {
+    if (uzbl.io->fifo_path) {
+        unlink (uzbl.io->fifo_path);
+    }
+    if (uzbl.io->socket_path) {
+        unlink (uzbl.io->socket_path);
+    }
+
+    g_free (uzbl.io->fifo_path);
+    g_free (uzbl.io->socket_path);
+
     g_free (uzbl.io);
     uzbl.io = NULL;
 }
@@ -146,13 +163,13 @@ uzbl_io_init_fifo (const gchar *dir)
         return FALSE;
     }
 
-    if (uzbl.comm.fifo_path) {
+    if (uzbl.io->fifo_path) {
         /* We're changing the fifo path, get rid of the old fifo if one exists. */
-        if (unlink (uzbl.comm.fifo_path)) {
-            g_warning ("Fifo: Can't unlink old fifo at %s\n", uzbl.comm.fifo_path);
+        if (unlink (uzbl.io->fifo_path)) {
+            g_warning ("Fifo: Can't unlink old fifo at %s\n", uzbl.io->fifo_path);
         }
-        g_free (uzbl.comm.fifo_path);
-        uzbl.comm.fifo_path = NULL;
+        g_free (uzbl.io->fifo_path);
+        uzbl.io->fifo_path = NULL;
     }
 
     gchar *path = build_stream_name (UZBL_COMM_FIFO, dir);
@@ -188,13 +205,13 @@ uzbl_io_init_socket (const gchar *dir)
         return FALSE;
     }
 
-    if (uzbl.comm.socket_path) {
+    if (uzbl.io->socket_path) {
         /* Remove an existing socket should one exist. */
-        if (unlink (uzbl.comm.socket_path)) {
-            g_warning ("init_socket: couldn't unlink socket at %s\n", uzbl.comm.socket_path);
+        if (unlink (uzbl.io->socket_path)) {
+            g_warning ("init_socket: couldn't unlink socket at %s\n", uzbl.io->socket_path);
         }
-        g_free (uzbl.comm.socket_path);
-        uzbl.comm.socket_path = NULL;
+        g_free (uzbl.io->socket_path);
+        uzbl.io->socket_path = NULL;
     }
 
     if (*dir == ' ') {
@@ -445,12 +462,12 @@ attach_fifo (const gchar *path)
 
         g_io_channel_unref (chan);
 
+        uzbl.io->fifo_path = g_strdup (path);
         uzbl_events_send (FIFO_SET, NULL,
-            TYPE_STR, path,
+            TYPE_STR, uzbl.io->fifo_path,
             NULL);
-        uzbl.comm.fifo_path = g_strdup (path);
         /* TODO: Collect all environment settings into one place. */
-        g_setenv ("UZBL_FIFO", uzbl.comm.fifo_path, TRUE);
+        g_setenv ("UZBL_FIFO", uzbl.io->fifo_path, TRUE);
 
         return TRUE;
     } else {
@@ -482,12 +499,12 @@ attach_socket (const gchar *path, struct sockaddr_un *local)
 
             g_io_channel_unref (chan);
 
-            uzbl.comm.socket_path = g_strdup (path);
+            uzbl.io->socket_path = g_strdup (path);
             uzbl_events_send (SOCKET_SET, NULL,
-                TYPE_STR, uzbl.comm.socket_path,
+                TYPE_STR, uzbl.io->socket_path,
                 NULL);
             /* TODO: Collect all environment settings into one place. */
-            g_setenv ("UZBL_SOCKET", uzbl.comm.socket_path, TRUE);
+            g_setenv ("UZBL_SOCKET", uzbl.io->socket_path, TRUE);
             return TRUE;
         }
     } else {
