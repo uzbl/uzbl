@@ -21,7 +21,4 @@ uzbl_io_init_fifo (const gchar *dir);
 gboolean
 uzbl_io_init_socket (const gchar *dir);
 
-void
-uzbl_io_quit ();
-
 #endif

@@ -7,6 +7,7 @@
 #include "menu.h"
 #include "requests.h"
 #include "scheme.h"
+#include "setup.h"
 #ifndef USE_WEBKIT2
 #include "soup.h"
 #endif

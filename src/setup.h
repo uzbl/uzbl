@@ -30,6 +30,9 @@ void
 uzbl_io_init_stdin ();
 
 void
+uzbl_io_quit ();
+
+void
 uzbl_js_init ();
 
 void
