@@ -79,6 +79,8 @@ uzbl_comm_vformat (const gchar *directive, const gchar *function, va_list vargs)
         }
     }
 
+    g_string_append_c (message, '\n');
+
     return message;
 }
 

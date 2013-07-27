@@ -138,16 +138,10 @@ send_formatted_event (GString *event)
         return;
     }
 
-    /* An event string is not supposed to contain newlines as it will be
-     * interpreted as two events. */
-    if (!strchr (event->str, '\n')) {
-        g_string_append_c (event, '\n');
-
-        if (uzbl.state.events_stdout) {
-            send_event_stdout (event);
-        }
-        send_event_socket (event);
+    if (uzbl.state.events_stdout) {
+        send_event_stdout (event);
     }
+    send_event_socket (event);
 }
 
 void

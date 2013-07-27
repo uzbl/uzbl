@@ -138,15 +138,11 @@ send_request_socket (GString *msg, const gchar *cookie);
 GString *
 send_formatted_request (GString *request, const gchar *cookie)
 {
-    if (request && !strchr (request->str, '\n')) {
-        /* An request string is not supposed to contain newlines as it will be
-         * interpreted as two requests. */
-        g_string_append_c (request, '\n');
-
-        return send_request_socket (request, cookie);
+    if (!request) {
+        return g_string_new ("");
     }
 
-    return g_string_new ("");
+    return send_request_socket (request, cookie);
 }
 
 GString *
