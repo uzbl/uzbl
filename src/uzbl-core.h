@@ -40,7 +40,6 @@ typedef struct {
 /* Internal state */
 typedef struct {
     gchar          *uri;
-    gchar          *config_file;
     char           *instance_name;
     gchar          *selected_url;
     gboolean        embed;

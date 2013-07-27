@@ -30,9 +30,7 @@
 #include "uzbl-core.h"
 
 #include "commands.h"
-#ifndef UZBL_LIBRARY
 #include "config.h"
-#endif
 #include "events.h"
 #include "gui.h"
 #include "inspector.h"
@@ -57,6 +55,8 @@ UzblCore uzbl;
 
 static void
 ensure_xdg_vars ();
+static void
+read_config_file (const gchar *file);
 
 /* Set up gtk, gobject, variable defaults and other things that tests and other
  * external applications need to do anyhow. */
@@ -71,6 +71,7 @@ uzbl_init (int *argc, char ***argv)
     uzbl.state.last_result     = NULL;
 
     gboolean verbose;
+    gchar *config_file;
     gboolean print_events;
     gboolean print_version;
 
@@ -83,7 +84,7 @@ uzbl_init (int *argc, char ***argv)
             "Whether to print all messages or just errors.",                                                  NULL },
         { "named",          'n', 0, G_OPTION_ARG_STRING,       &uzbl.state.instance_name,
             "Name of the current instance (defaults to Xorg window id or random for GtkSocket mode)",         "NAME" },
-        { "config",         'c', 0, G_OPTION_ARG_STRING,       &uzbl.state.config_file,
+        { "config",         'c', 0, G_OPTION_ARG_STRING,       &config_file,
             "Path to config file or '-' for stdin",                                                           "FILE" },
         /* TODO: explain the difference between these two options */
         { "socket",         's', 0, G_OPTION_ARG_INT,          &uzbl.state.socket_id,
@@ -142,6 +143,15 @@ uzbl_init (int *argc, char ***argv)
     uzbl_scheme_init ();
 #endif
 
+    /* Load default config. */
+    const gchar * const *default_command = default_config;
+    while (default_command && *default_command) {
+        uzbl_commands_run (*default_command++, NULL);
+    }
+
+    /* Load provided configuration file. */
+    read_config_file (config_file);
+
     if (verbose) {
         uzbl_variables_set ("verbose", "1");
     }
@@ -173,8 +183,6 @@ uzbl_free ()
 #ifndef UZBL_LIBRARY
 /* ========================= MAIN  FUNCTION ========================= */
 
-static void
-read_config_file ();
 static void
 clean_up ();
 
@@ -237,15 +245,6 @@ main (int argc, char *argv[])
         gtk_widget_show_all (GTK_WIDGET (uzbl.gui.plug));
     }
 
-    guint i;
-
-    /* Load default config. */
-    for (i = 0; default_config[i].command; ++i) {
-        uzbl_commands_run (default_config[i].command, NULL);
-    }
-
-    /* Read configuration file */
-    read_config_file ();
 
     if (uzbl.state.exit) {
         goto main_exit;
@@ -339,24 +338,23 @@ ensure_xdg_vars ()
     }
 }
 
-#ifndef UZBL_LIBRARY
 static gchar *
 find_xdg_file (XdgDir dir, const char* basename);
 
 void
-read_config_file ()
+read_config_file (const gchar *file)
 {
-    if (!g_strcmp0 (uzbl.state.config_file, "-")) {
-        uzbl.state.config_file = NULL;
+    if (!g_strcmp0 (file, "-")) {
+        file = NULL;
         uzbl_io_init_stdin ();
-    } else if (!uzbl.state.config_file) {
-        uzbl.state.config_file = find_xdg_file (XDG_CONFIG, "/uzbl/config");
+    } else if (!file) {
+        file = find_xdg_file (XDG_CONFIG, "/uzbl/config");
     }
 
     /* Load config file, if any. */
-    if (uzbl.state.config_file) {
-        uzbl_commands_load_file (uzbl.state.config_file);
-        g_setenv ("UZBL_CONFIG", uzbl.state.config_file, TRUE);
+    if (file) {
+        uzbl_commands_load_file (file);
+        g_setenv ("UZBL_CONFIG", file, TRUE);
     } else {
         uzbl_debug ("No configuration file loaded.\n");
     }
@@ -370,6 +368,7 @@ read_config_file ()
     }
 }
 
+#ifndef UZBL_LIBRARY
 void
 clean_up ()
 {
