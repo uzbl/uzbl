@@ -55,33 +55,6 @@
 
 UzblCore uzbl;
 
-/* Commandline arguments. */
-static const GOptionEntry
-options[] = {
-    { "uri",            'u', 0, G_OPTION_ARG_STRING,       &uzbl.state.uri,
-        "Uri to load at startup (equivalent to 'uzbl <uri>' after uzbl has launched)", "URI" },
-    { "verbose",        'v', 0, G_OPTION_ARG_NONE,         &uzbl.state.verbose,
-        "Whether to print all messages or just errors.",                                                  NULL },
-    { "named",          'n', 0, G_OPTION_ARG_STRING,       &uzbl.state.instance_name,
-        "Name of the current instance (defaults to Xorg window id or random for GtkSocket mode)",         "NAME" },
-    { "config",         'c', 0, G_OPTION_ARG_STRING,       &uzbl.state.config_file,
-        "Path to config file or '-' for stdin",                                                           "FILE" },
-    /* TODO: explain the difference between these two options */
-    { "socket",         's', 0, G_OPTION_ARG_INT,          &uzbl.state.socket_id,
-        "Xembed socket ID, this window should embed itself",                                              "SOCKET" },
-    { "embed",          'e', 0, G_OPTION_ARG_NONE,         &uzbl.state.embed,
-        "Whether this window should expect to be embedded",                                               NULL },
-    { "connect-socket",  0,  0, G_OPTION_ARG_STRING_ARRAY, &uzbl.state.connect_socket_names,
-        "Connect to server socket for event managing",                                                    "CSOCKET" },
-    { "print-events",   'p', 0, G_OPTION_ARG_NONE,         &uzbl.state.events_stdout,
-        "Whether to print events to stdout.",                                                             NULL },
-    { "geometry",       'g', 0, G_OPTION_ARG_STRING,       &uzbl.gui.geometry,
-        "Set window geometry (format: 'WIDTHxHEIGHT+-X+-Y' or 'maximized')",                              "GEOMETRY" },
-    { "version",        'V', 0, G_OPTION_ARG_NONE,         &uzbl.behave.print_version,
-        "Print the version and exit",                                                                     NULL },
-    { NULL,      0, 0, 0, NULL, NULL, NULL }
-};
-
 static void
 ensure_xdg_vars ();
 
@@ -120,6 +93,36 @@ uzbl_initialize (int argc, char **argv)
     uzbl.info.commit           = COMMIT;
 
     uzbl.state.last_result     = NULL;
+
+    gboolean verbose;
+    gboolean print_events;
+
+    /* Commandline arguments. */
+    const GOptionEntry
+    options[] = {
+        { "uri",            'u', 0, G_OPTION_ARG_STRING,       &uzbl.state.uri,
+            "Uri to load at startup (equivalent to 'uzbl <uri>' after uzbl has launched)", "URI" },
+        { "verbose",        'v', 0, G_OPTION_ARG_NONE,         &verbose,
+            "Whether to print all messages or just errors.",                                                  NULL },
+        { "named",          'n', 0, G_OPTION_ARG_STRING,       &uzbl.state.instance_name,
+            "Name of the current instance (defaults to Xorg window id or random for GtkSocket mode)",         "NAME" },
+        { "config",         'c', 0, G_OPTION_ARG_STRING,       &uzbl.state.config_file,
+            "Path to config file or '-' for stdin",                                                           "FILE" },
+        /* TODO: explain the difference between these two options */
+        { "socket",         's', 0, G_OPTION_ARG_INT,          &uzbl.state.socket_id,
+            "Xembed socket ID, this window should embed itself",                                              "SOCKET" },
+        { "embed",          'e', 0, G_OPTION_ARG_NONE,         &uzbl.state.embed,
+            "Whether this window should expect to be embedded",                                               NULL },
+        { "connect-socket",  0,  0, G_OPTION_ARG_STRING_ARRAY, &uzbl.state.connect_socket_names,
+            "Connect to server socket for event managing",                                                    "CSOCKET" },
+        { "print-events",   'p', 0, G_OPTION_ARG_NONE,         &print_events,
+            "Whether to print events to stdout.",                                                             NULL },
+        { "geometry",       'g', 0, G_OPTION_ARG_STRING,       &uzbl.gui.geometry,
+            "Set window geometry (format: 'WIDTHxHEIGHT+-X+-Y' or 'maximized')",                              "GEOMETRY" },
+        { "version",        'V', 0, G_OPTION_ARG_NONE,         &uzbl.behave.print_version,
+            "Print the version and exit",                                                                     NULL },
+        { NULL,      0, 0, 0, NULL, NULL, NULL }
+    };
 
     /* Parse commandline arguments. */
     GOptionContext *context = g_option_context_new ("[ uri ] - load a uri by default");
@@ -161,6 +164,13 @@ uzbl_initialize (int argc, char **argv)
 #ifndef USE_WEBKIT2
     uzbl_scheme_init ();
 #endif
+
+    if (verbose) {
+        uzbl_variables_set ("verbose", "1");
+    }
+    if (print_events) {
+        uzbl_variables_set ("print_events", "1");
+    }
 
     /* XDG */
     ensure_xdg_vars ();
@@ -241,8 +251,6 @@ main (int argc, char *argv[])
         uzbl_commands_args_free (args);
     }
 
-    gboolean verbose_override = uzbl.state.verbose;
-
     /* Finally show the window */
     if (uzbl.gui.main_window) {
         gtk_widget_show_all (GTK_WIDGET (uzbl.gui.main_window));
@@ -267,11 +275,6 @@ main (int argc, char *argv[])
     /* Update status bar. */
     uzbl_gui_update_title ();
 
-    /* Options overriding. */
-    if (verbose_override > uzbl.state.verbose) {
-        uzbl.state.verbose = verbose_override;
-    }
-
     gchar *uri_override = (uzbl.state.uri ? g_strdup (uzbl.state.uri) : NULL);
     if ((1 < argc) && !uzbl.state.uri) {
         uri_override = g_strdup (argv[1]);
@@ -286,7 +289,7 @@ main (int argc, char *argv[])
     }
 
     /* Verbose feedback. */
-    if (uzbl.state.verbose) {
+    if (uzbl_variables_get_int ("verbose")) {
         printf ("Uzbl start location: %s\n", argv[0]);
         if (uzbl.state.socket_id) {
             printf ("plug_id %d\n", (int)gtk_plug_get_id (uzbl.gui.plug));

@@ -821,7 +821,7 @@ IMPLEMENT_COMMAND (uri)
 
     ARG_CHECK (argv, 1);
 
-    if (uzbl.state.frozen) {
+    if (uzbl_variables_get_int ("frozen")) {
         return;
     }
 
@@ -887,7 +887,7 @@ IMPLEMENT_COMMAND (load)
 {
     UZBL_UNUSED (result);
 
-    if (uzbl.state.frozen) {
+    if (uzbl_variables_get_int ("frozen")) {
         return;
     }
 
@@ -2900,7 +2900,7 @@ run_system_command (GArray *args, char **output_stdout)
                                 NULL, NULL, NULL, &err);
     }
 
-    if (uzbl.state.verbose) {
+    if (uzbl_variables_get_int ("verbose")) {
         GString *s = g_string_new ("spawned:");
         guint i;
         for (i = 0; i < args->len; ++i) {

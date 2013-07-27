@@ -7,7 +7,7 @@
 
 #include <sys/types.h>
 
-#define uzbl_debug(...) if (uzbl.state.verbose) printf(__VA_ARGS__)
+#define uzbl_debug g_debug
 
 /* GUI elements */
 typedef struct {
@@ -48,12 +48,10 @@ typedef struct {
     gchar          *selected_url;
     gchar          *last_selected_url;
     gchar          *executable_path;
-    gboolean        verbose;
     gboolean        embed;
     GdkEventButton *last_button;
     gchar          *last_result;
     gboolean        plug_mode;
-    gboolean        frozen;
     gboolean        load_failed;
     gchar          *disk_cache_directory;
     gchar          *web_extensions_directory;
@@ -65,8 +63,6 @@ typedef struct {
 
     /* Events */
     int             socket_id;
-    gboolean        events_stdout;
-    gboolean        handle_multi_button;
     gchar         **connect_socket_names;
 } UzblState;
 

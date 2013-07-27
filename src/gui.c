@@ -451,15 +451,17 @@ button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
     }
 
     if ((event->type == GDK_2BUTTON_PRESS) || (event->type == GDK_3BUTTON_PRESS)) {
+        gboolean handle_multi_button = uzbl_variables_get_int ("handle_multi_button");
+
         if ((event->button == 1) && !is_editable && is_document) {
             sendev    = TRUE;
-            propagate = uzbl.state.handle_multi_button;
+            propagate = handle_multi_button;
         } else if ((event->button == 2) && !is_editable) {
             sendev    = TRUE;
-            propagate = uzbl.state.handle_multi_button;
+            propagate = handle_multi_button;
         } else if (event->button >= 3) {
             sendev    = TRUE;
-            propagate = uzbl.state.handle_multi_button;
+            propagate = handle_multi_button;
         }
     }
 
@@ -1247,7 +1249,7 @@ decide_navigation (GString *result, gpointer data);
 gboolean
 navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri)
 {
-    if (uzbl.state.frozen) {
+    if (uzbl_variables_get_int ("frozen")) {
         make_policy (decision, ignore);
         return TRUE;
     }
@@ -1364,7 +1366,7 @@ send_load_error (const gchar *uri, GError *error)
 gboolean
 mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type, const gchar *disposition)
 {
-    if (uzbl.state.frozen) {
+    if (uzbl_variables_get_int ("frozen")) {
         make_policy (decision, ignore);
         return FALSE;
     }

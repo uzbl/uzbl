@@ -1350,6 +1350,11 @@ DECLARE_GETTER (gchar *, app_cache_directory);
 #endif
 
 struct _UzblVariablesPrivate {
+    /* Uzbl variables */
+    gboolean verbose;
+    gboolean frozen;
+    gboolean print_events;
+    gboolean handle_multi_button;
 };
 
 typedef struct {
@@ -1366,10 +1371,10 @@ uzbl_variables_private_new (GHashTable *table)
     builtin_variable_table[] = {
         /* name                           entry                                                type/callback */
         /* Uzbl variables */
-        { "verbose",                      UZBL_V_INT (uzbl.state.verbose,                      NULL)},
-        { "frozen",                       UZBL_V_INT (uzbl.state.frozen,                       NULL)},
-        { "print_events",                 UZBL_V_INT (uzbl.state.events_stdout,                NULL)},
-        { "handle_multi_button",          UZBL_V_INT (uzbl.state.handle_multi_button,          NULL)},
+        { "verbose",                      UZBL_V_INT (priv->verbose,                           NULL)},
+        { "frozen",                       UZBL_V_INT (priv->frozen,                            NULL)},
+        { "print_events",                 UZBL_V_INT (priv->print_events,                      NULL)},
+        { "handle_multi_button",          UZBL_V_INT (priv->handle_multi_button,               NULL)},
 
         /* Communication variables */
         { "fifo_dir",                     UZBL_V_STRING (uzbl.behave.fifo_dir,                 set_fifo_dir)},
