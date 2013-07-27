@@ -35,7 +35,7 @@ typedef struct {
 
     /* Context menu */
     GPtrArray     *menu_items;
-} UzblGui;
+} UzblGuiOld;
 
 /* Internal state */
 typedef struct {
@@ -71,6 +71,9 @@ typedef struct {
 struct _UzblCommands;
 typedef struct _UzblCommands UzblCommands;
 
+struct _UzblGui;
+typedef struct _UzblGui UzblGui;
+
 struct _UzblIO;
 typedef struct _UzblIO UzblIO;
 
@@ -82,11 +85,12 @@ typedef struct _UzblVariables UzblVariables;
 
 /* Main uzbl data structure */
 typedef struct {
-    UzblGui           gui;
+    UzblGuiOld        gui;
     UzblState         state;
     UzblNetwork       net;
 
     UzblCommands     *commands;
+    UzblGui          *gui_;
     UzblIO           *io;
     UzblRequests     *requests;
     UzblVariables    *variables;

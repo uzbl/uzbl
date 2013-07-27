@@ -5,6 +5,8 @@
 
 void
 uzbl_gui_init ();
+void
+uzbl_gui_free ();
 
 void
 uzbl_gui_update_title ();

@@ -30,6 +30,9 @@
  *   - Handle resource-* signals?
  */
 
+struct _UzblGui {
+};
+
 /* =========================== PUBLIC API =========================== */
 
 static void
@@ -46,6 +49,8 @@ plug_init ();
 void
 uzbl_gui_init ()
 {
+    uzbl.gui_ = g_malloc0 (sizeof (UzblGui));
+
     status_bar_init ();
     web_view_init ();
     vbox_init ();
@@ -55,6 +60,13 @@ uzbl_gui_init ()
     } else {
         window_init ();
     }
+}
+
+void
+uzbl_gui_free ()
+{
+    g_free (uzbl.gui_);
+    uzbl.gui_ = NULL;
 }
 
 void
