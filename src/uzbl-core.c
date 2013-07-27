@@ -33,15 +33,11 @@
 #include "config.h"
 #include "events.h"
 #include "gui.h"
-#include "inspector.h"
 #include "io.h"
-#include "js.h"
-#include "requests.h"
+#include "setup.h"
 #ifndef USE_WEBKIT2
-#include "scheme.h"
 #include "soup.h"
 #endif
-#include "status-bar.h"
 #include "util.h"
 #include "variables.h"
 

@@ -4,11 +4,6 @@
 #include <glib.h>
 
 void
-uzbl_requests_init ();
-void
-uzbl_requests_free ();
-
-void
 uzbl_requests_set_reply (const gchar *reply);
 
 GString *
