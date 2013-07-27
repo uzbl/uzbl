@@ -184,6 +184,22 @@ uzbl_init (int *argc, char ***argv)
     /* Load provided configuration file. */
     read_config_file (config_file);
 
+    if (uzbl.gui.main_window) {
+        /* We need to ensure there is a window, before we can get XID. */
+        gtk_widget_realize (GTK_WIDGET (uzbl.gui.main_window));
+        Window xwin = GDK_WINDOW_XID (gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)));
+
+        gchar *xwin_str = g_strdup_printf ("%d", (int)xwin);
+        g_setenv ("UZBL_XID", xwin_str, TRUE);
+        g_free (xwin_str);
+    }
+
+    if (uzbl.state.plug_mode) {
+        uzbl_events_send (PLUG_CREATED, NULL,
+            TYPE_INT, gtk_plug_get_id (uzbl.gui.plug),
+            NULL);
+    }
+
     /* Set variables based on flags. */
     if (verbose) {
         uzbl_variables_set ("verbose", "1");
@@ -207,6 +223,13 @@ uzbl_init (int *argc, char ***argv)
         uzbl_commands_run_argv ("geometry", args, NULL);
         uzbl_commands_args_free (args);
     }
+
+    /* Finally show the window */
+    if (uzbl.gui.main_window) {
+        gtk_widget_show_all (GTK_WIDGET (uzbl.gui.main_window));
+    } else {
+        gtk_widget_show_all (GTK_WIDGET (uzbl.gui.plug));
+    }
 }
 
 void
@@ -228,35 +251,7 @@ clean_up ();
 int
 main (int argc, char *argv[])
 {
-    Window xwin;
-
     uzbl_init (&argc, &argv);
-
-    if (uzbl.gui.main_window) {
-        /* We need to ensure there is a window, before we can get XID. */
-        gtk_widget_realize (GTK_WIDGET (uzbl.gui.main_window));
-        xwin = GDK_WINDOW_XID (gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)));
-
-        gchar *xwin_str = g_strdup_printf ("%d", (int)xwin);
-        g_setenv ("UZBL_XID", xwin_str, TRUE);
-        g_free (xwin_str);
-
-        gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
-    }
-
-    if (uzbl.state.plug_mode) {
-        uzbl_events_send (PLUG_CREATED, NULL,
-            TYPE_INT, gtk_plug_get_id (uzbl.gui.plug),
-            NULL);
-    }
-
-    /* Finally show the window */
-    if (uzbl.gui.main_window) {
-        gtk_widget_show_all (GTK_WIDGET (uzbl.gui.main_window));
-    } else {
-        gtk_widget_show_all (GTK_WIDGET (uzbl.gui.plug));
-    }
-
 
     if (uzbl.state.exit) {
         goto main_exit;
@@ -265,12 +260,18 @@ main (int argc, char *argv[])
     /* Update status bar. */
     uzbl_gui_update_title ();
 
+    if (uzbl.gui.web_view) {
+        gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
+    }
+
     /* Verbose feedback. */
     if (uzbl_variables_get_int ("verbose")) {
         printf ("Uzbl start location: %s\n", argv[0]);
         if (uzbl.state.socket_id) {
             printf ("plug_id %d\n", (int)gtk_plug_get_id (uzbl.gui.plug));
         } else {
+            Window xwin = GDK_WINDOW_XID (gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)));
+
             printf ("window_id %d\n", (int)xwin);
         }
         printf ("pid %i\n", getpid ());
