@@ -253,12 +253,10 @@ uzbl_variables_toggle (const gchar *name, GArray *values)
         } else {
             next = "";
 
-            if (!var->builtin) {
-                if (!strcmp (*var->value.s, "0")) {
-                    next = "1";
-                } else if (!strcmp (*var->value.s, "1")) {
-                    next = "0";
-                }
+            if (!strcmp (*var->value.s, "0")) {
+                next = "1";
+            } else if (!strcmp (*var->value.s, "1")) {
+                next = "0";
             }
         }
 
