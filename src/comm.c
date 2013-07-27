@@ -104,7 +104,7 @@ append_escaped (GString *dest, const gchar *src)
             g_string_append (dest, "\\\\");
             break;
         case '\'':
-            g_string_append (dest, "\\'");
+            g_string_append (dest, "\\\'");
             break;
         case '\n':
             g_string_append (dest, "\\n");
