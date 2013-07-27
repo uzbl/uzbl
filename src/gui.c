@@ -32,6 +32,7 @@
 
 struct _UzblGui {
     gchar *last_geometry;
+    gchar *last_selected_url;
 };
 
 /* =========================== PUBLIC API =========================== */
@@ -67,6 +68,7 @@ void
 uzbl_gui_free ()
 {
     g_free (uzbl.gui_->last_geometry);
+    g_free (uzbl.gui_->last_selected_url);
 
     g_free (uzbl.gui_);
     uzbl.gui_ = NULL;
@@ -1230,16 +1232,16 @@ send_button_event (guint buttonval, guint state, gint mode)
 void
 send_hover_event (const gchar *uri, const gchar *title)
 {
-    g_free (uzbl.state.last_selected_url);
+    g_free (uzbl.gui_->last_selected_url);
 
-    uzbl.state.last_selected_url = g_strdup (uzbl.state.selected_url);
+    uzbl.gui_->last_selected_url = g_strdup (uzbl.state.selected_url);
 
     g_free (uzbl.state.selected_url);
     uzbl.state.selected_url = NULL;
 
-    if (uzbl.state.last_selected_url && g_strcmp0 (uri, uzbl.state.last_selected_url)) {
+    if (uzbl.gui_->last_selected_url && g_strcmp0 (uri, uzbl.gui_->last_selected_url)) {
         uzbl_events_send (LINK_UNHOVER, NULL,
-            TYPE_STR, uzbl.state.last_selected_url,
+            TYPE_STR, uzbl.gui_->last_selected_url,
             NULL);
     }
 
