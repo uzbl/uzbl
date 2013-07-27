@@ -416,11 +416,6 @@ clean_up ()
         uzbl.behave.commands = NULL;
     }
 
-    if (uzbl.state.event_buffer) {
-        g_ptr_array_free (uzbl.state.event_buffer, TRUE);
-        uzbl.state.event_buffer = NULL;
-    }
-
     if (uzbl.state.reply) {
         g_free (uzbl.state.reply);
         uzbl.state.reply = NULL;

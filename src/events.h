@@ -66,9 +66,8 @@ typedef enum {
 
 void
 uzbl_events_init ();
-
 void
-uzbl_events_replay_buffer ();
+uzbl_events_free ();
 
 void
 uzbl_events_send (UzblEventType type, const gchar *custom_event, ...) G_GNUC_NULL_TERMINATED;

@@ -40,12 +40,6 @@ typedef struct {
     GPtrArray     *menu_items;
 } UzblGui;
 
-/* External communication */
-typedef struct {
-    GPtrArray      *connect_chan;
-    GPtrArray      *client_chan;
-} UzblCommunication;
-
 /* Internal state */
 typedef struct {
     gchar          *uri;
@@ -77,7 +71,6 @@ typedef struct {
     int             socket_id;
     gboolean        events_stdout;
     gboolean        handle_multi_button;
-    GPtrArray      *event_buffer;
     gchar         **connect_socket_names;
 
     GCond           reply_cond;
@@ -161,7 +154,6 @@ typedef struct {
     UzblState         state;
     UzblNetwork       net;
     UzblBehaviour     behave;
-    UzblCommunication comm;
     UzblInfo          info;
 
     UzblIO           *io;
