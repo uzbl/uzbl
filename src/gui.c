@@ -33,6 +33,10 @@
 struct _UzblGui {
     gchar *last_geometry;
     gchar *last_selected_url;
+
+#ifdef USE_WEBKIT2
+    gboolean load_failed;
+#endif
 };
 
 /* =========================== PUBLIC API =========================== */
@@ -727,7 +731,7 @@ load_failed_cb (WebKitWebView *view, WebKitLoadEvent event, gchar *uri, gpointer
     UZBL_UNUSED (event);
     UZBL_UNUSED (data);
 
-    uzbl.state.load_failed = TRUE;
+    uzbl.gui_->load_failed = TRUE;
 
     /* TODO: Use event for a better message? */
 
@@ -1360,8 +1364,8 @@ send_load_status (WebKitLoadStatus status, const gchar *uri)
         break;
     case WEBKIT_LOAD_FINISHED:
 #ifdef USE_WEBKIT2
-        if (uzbl.state.load_failed) {
-            uzbl.state.load_failed = FALSE;
+        if (uzbl.gui_->load_failed) {
+            uzbl.gui_->load_failed = FALSE;
             break;
         }
 #endif

@@ -48,7 +48,6 @@ typedef struct {
     GdkEventButton *last_button;
     gchar          *last_result;
     gboolean        plug_mode;
-    gboolean        load_failed;
     JSGlobalContextRef jscontext;
 
     gboolean        started;
