@@ -28,8 +28,6 @@ typedef struct {
     /* Web page */
     WebKitWebView *web_view;
     gchar         *main_title;
-    gchar         *icon;
-    gchar         *icon_name;
 
     /* Inspector */
     GtkWidget          *inspector_window;

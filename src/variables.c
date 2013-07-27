@@ -1367,6 +1367,10 @@ struct _UzblVariablesPrivate {
     gchar *mime_handler;
     gchar *authentication_handler;
     gchar *shell_cmd;
+
+    /* Window variables */
+    gchar *icon;
+    gchar *icon_name;
 };
 
 typedef struct {
@@ -1404,8 +1408,8 @@ uzbl_variables_private_new (GHashTable *table)
 #endif
 
         /* Window variables */
-        { "icon",                         UZBL_V_STRING (uzbl.gui.icon,                        set_icon)},
-        { "icon_name",                    UZBL_V_STRING (uzbl.gui.icon_name,                   set_icon_name)},
+        { "icon",                         UZBL_V_STRING (priv->icon,                           set_icon)},
+        { "icon_name",                    UZBL_V_STRING (priv->icon_name,                      set_icon_name)},
         { "window_role",                  UZBL_V_FUNC (window_role,                            STR)},
 #ifndef USE_WEBKIT2
         { "auto_resize_window",           UZBL_V_FUNC (auto_resize_window,                     INT)},
@@ -1845,15 +1849,15 @@ IMPLEMENT_SETTER (gchar *, icon)
         return FALSE;
     }
 
-    /* Clear icon_name. */
-    g_free (uzbl.gui.icon_name);
-    uzbl.gui.icon_name = NULL;
-
     if (file_exists (icon)) {
-        g_free (uzbl.gui.icon);
-        uzbl.gui.icon = g_strdup (icon);
+        /* Clear icon_name. */
+        g_free (uzbl.variables->priv->icon_name);
+        uzbl.variables->priv->icon_name = NULL;
 
-        gtk_window_set_icon_from_file (GTK_WINDOW (uzbl.gui.main_window), uzbl.gui.icon, NULL);
+        g_free (uzbl.variables->priv->icon);
+        uzbl.variables->priv->icon = g_strdup (icon);
+
+        gtk_window_set_icon_from_file (GTK_WINDOW (uzbl.gui.main_window), uzbl.variables->priv->icon, NULL);
 
         return TRUE;
     }
@@ -1870,13 +1874,13 @@ IMPLEMENT_SETTER (gchar *, icon_name)
     }
 
     /* Clear icon path. */
-    g_free (uzbl.gui.icon);
-    uzbl.gui.icon = NULL;
+    g_free (uzbl.variables->priv->icon);
+    uzbl.variables->priv->icon = NULL;
 
-    g_free (uzbl.gui.icon_name);
-    uzbl.gui.icon_name = g_strdup (icon_name);
+    g_free (uzbl.variables->priv->icon_name);
+    uzbl.variables->priv->icon_name = g_strdup (icon_name);
 
-    gtk_window_set_icon_name (GTK_WINDOW (uzbl.gui.main_window), uzbl.gui.icon_name);
+    gtk_window_set_icon_name (GTK_WINDOW (uzbl.gui.main_window), uzbl.variables->priv->icon_name);
 
     return TRUE;
 }
