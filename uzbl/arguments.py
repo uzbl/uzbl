@@ -5,7 +5,6 @@ provides argument parsing for event handlers
 '''
 
 import re
-import ast
 
 
 class Arguments(tuple):
@@ -92,6 +91,9 @@ def is_quoted(s):
     return s and s[0] == s[-1] and s[0] in "'\""
 
 
+Unescape = re.compile('\\\\(.)')
+
+
 def unquote(s):
     '''
         Returns the input string without quotations and with
@@ -99,5 +101,5 @@ def unquote(s):
     '''
 
     if is_quoted(s):
-        return ast.literal_eval(s)
-    return ast.literal_eval('"' + s + '"')
+        s = s[1:-1]
+    return Unescape.sub('\\1', s)

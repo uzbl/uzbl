@@ -7,15 +7,19 @@ include $(wildcard local.mk)
 # RUN_PREFIX : what the prefix is when the software is run. usually the same as PREFIX
 PREFIX     ?= /usr/local
 INSTALLDIR ?= $(DESTDIR)$(PREFIX)
+MANDIR     ?= $(INSTALLDIR)/share/man
 DOCDIR     ?= $(INSTALLDIR)/share/uzbl/docs
 RUN_PREFIX ?= $(PREFIX)
+INSTALL    ?= install -p
 
 ENABLE_WEBKIT2 ?= auto
 ENABLE_GTK3    ?= auto
 
-PYTHON=python3
-PYTHONV=$(shell $(PYTHON) --version | sed -n /[0-9].[0-9]/p)
-COVERAGE=$(shell which coverage)
+ENABLE_CUSTOM_SCHEME ?= yes
+
+PYTHON   = python3
+PYTHONV  = $(shell $(PYTHON) --version | sed -n /[0-9].[0-9]/p)
+COVERAGE = $(shell which coverage)
 
 # --- configuration ends here ---
 
@@ -31,7 +35,7 @@ ifeq ($(ENABLE_WEBKIT2),yes)
 REQ_PKGS += 'webkit2gtk-3.0 >= 1.2.4' javascriptcoregtk-3.0
 CPPFLAGS += -DUSE_WEBKIT2
 # WebKit2 requires GTK3
-ENABLE_GTK3    := yes
+ENABLE_GTK3 := yes
 else
 ifeq ($(ENABLE_GTK3),yes)
 REQ_PKGS += 'webkitgtk-3.0 >= 1.2.4' javascriptcoregtk-3.0
@@ -47,24 +51,75 @@ else
 REQ_PKGS += gtk+-2.0
 endif
 
-REQ_PKGS += 'libsoup-2.4 >= 2.30' gthread-2.0 glib-2.0
+REQ_PKGS += 'libsoup-2.4 >= 2.33.4' gthread-2.0 glib-2.0
 
-ARCH:=$(shell uname -m)
+ARCH := $(shell uname -m)
 
-COMMIT_HASH:=$(shell ./misc/hash.sh)
+COMMIT_HASH := $(shell ./misc/hash.sh)
 
 CPPFLAGS += -D_BSD_SOURCE -D_POSIX_SOURCE -DARCH=\"$(ARCH)\" -DCOMMIT=\"$(COMMIT_HASH)\"
 
-PKG_CFLAGS:=$(shell pkg-config --cflags $(REQ_PKGS))
+HAVE_LIBSOUP_VERSION := $(shell pkg-config --exists 'libsoup-2.4 >= 2.41.1' && echo yes)
+ifeq ($(HAVE_LIBSOUP_VERSION),yes)
+CPPFLAGS += -DHAVE_LIBSOUP_CHECK_VERSION
+endif
 
-LDLIBS:=$(shell pkg-config --libs $(REQ_PKGS) x11)
+PKG_CFLAGS := $(shell pkg-config --cflags $(REQ_PKGS))
 
-CFLAGS += -std=c99 $(PKG_CFLAGS) -ggdb -W -Wall -Wextra -pedantic -pthread
+LDLIBS := $(shell pkg-config --libs $(REQ_PKGS) x11)
 
-SRC  = $(wildcard src/*.c)
-HEAD = $(wildcard src/*.h)
-OBJ  = $(foreach obj, $(SRC:.c=.o),  $(notdir $(obj)))
-LOBJ = $(foreach obj, $(SRC:.c=.lo), $(notdir $(obj)))
+CFLAGS += -std=c99 $(PKG_CFLAGS) -ggdb -W -Wall -Wextra -pthread -Wunused-function
+
+SOURCES := \
+    comm.c \
+    commands.c \
+    cookie-jar.c \
+    events.c \
+    gui.c \
+    inspector.c \
+    io.c \
+    js.c \
+    requests.c \
+    scheme.c \
+    status-bar.c \
+    util.c \
+    uzbl-core.c \
+    variables.c \
+    3p/async-queue-source/rb-async-queue-watch.c
+
+HEADERS := \
+    comm.h \
+    commands.h \
+    config.h \
+    cookie-jar.h \
+    events.h \
+    gui.h \
+    inspector.h \
+    io.h \
+    js.h \
+    requests.h \
+    menu.h \
+    scheme.h \
+    status-bar.h \
+    util.h \
+    uzbl-core.h \
+    variables.h \
+    webkit.h \
+    3p/async-queue-source/rb-async-queue-watch.h
+
+ifneq ($(ENABLE_WEBKIT2),yes)
+SOURCES += \
+    scheme-request.c \
+    soup.c
+HEADERS += \
+    scheme-request.h \
+    soup.h
+endif
+
+SRC  = $(addprefix src/,$(SOURCES))
+HEAD = $(addprefix src/,$(HEADERS))
+OBJ  = $(foreach obj, $(SRC:.c=.o),  $(obj))
+LOBJ = $(foreach obj, $(SRC:.c=.lo), $(obj))
 PY = $(wildcard uzbl/*.py uzbl/plugins/*.py)
 
 all: uzbl-browser
@@ -76,6 +131,7 @@ ${OBJ}: ${HEAD}
 uzbl-core: ${OBJ}
 
 uzbl-browser: uzbl-core uzbl-event-manager
+	sed 's#@PREFIX@#$(PREFIX)#' < uzbl.desktop.in > uzbl.desktop
 
 build: ${PY}
 	$(PYTHON) setup.py build
@@ -138,8 +194,10 @@ test-uzbl-event-manager-sandbox: sandbox uzbl-browser sandbox-install-uzbl-brows
 
 clean:
 	rm -f uzbl-core
-	rm -f *.o
+	rm -f $(OBJ) ${LOBJ}
+	rm -f uzbl.desktop
 	find ./examples/ -name "*.pyc" -delete
+	find ./__pycache__/ -name "*.pyc" -delete
 	cd ./tests/; $(MAKE) clean
 	rm -rf ./sandbox/
 	$(PYTHON) setup.py clean
@@ -180,31 +238,36 @@ install-dirs:
 	[ -d "$(INSTALLDIR)/bin" ] || install -d -m755 $(INSTALLDIR)/bin
 
 install-uzbl-core: uzbl-core install-dirs
-	install -d $(INSTALLDIR)/share/uzbl/
-	install -d $(DOCDIR)
-	install -m644 docs/* $(DOCDIR)/
-	install -m644 src/config.h $(DOCDIR)/
-	install -m644 README $(DOCDIR)/
-	install -m644 AUTHORS $(DOCDIR)/
-	install -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
+	$(INSTALL) -d $(INSTALLDIR)/share/uzbl/
+	$(INSTALL) -d $(DOCDIR)
+	$(INSTALL) -d $(MANDIR)/man1
+	$(INSTALL) -m644 docs/* $(DOCDIR)/
+	$(INSTALL) -m644 src/config.h $(DOCDIR)/
+	$(INSTALL) -m644 README $(DOCDIR)/
+	$(INSTALL) -m644 AUTHORS $(DOCDIR)/
+	$(INSTALL) -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
+	$(INSTALL) -m644 uzbl.1 $(MANDIR)/man1/uzbl.1
+	$(INSTALL) -m644 uzbl-event-manager.1 $(MANDIR)/man1/uzbl-event-manager.1
 
 install-event-manager: install-dirs
-	$(PYTHON) setup.py install --prefix=$(PREFIX) --install-scripts=$(INSTALLDIR)/bin $(PYINSTALL_EXTRA)
+	$(PYTHON) setup.py install --prefix=$(PREFIX) --root=$(DESTDIR) --install-scripts=$(INSTALLDIR)/bin $(PYINSTALL_EXTRA)
 
 install-uzbl-browser: install-dirs install-uzbl-core install-event-manager
+	$(INSTALL) -d $(INSTALLDIR)/share/applications
 	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < bin/uzbl-browser > $(INSTALLDIR)/bin/uzbl-browser
 	chmod 755 $(INSTALLDIR)/bin/uzbl-browser
 	cp -r examples $(INSTALLDIR)/share/uzbl/
 	chmod 755 $(INSTALLDIR)/share/uzbl/examples/data/scripts/*
+	$(INSTALL) -m644 uzbl.desktop $(INSTALLDIR)/share/applications/uzbl.desktop
 
 install-uzbl-tabbed: install-dirs
-	install -m755 bin/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed
+	$(INSTALL) -m755 bin/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed
 
 # you probably only want to do this manually when testing and/or to the sandbox. not meant for distributors
 install-example-data:
-	install -d $(DESTDIR)/home/.config/uzbl
-	install -d $(DESTDIR)/home/.cache/uzbl
-	install -d $(DESTDIR)/home/.local/share/uzbl
+	$(INSTALL) -d $(DESTDIR)/home/.config/uzbl
+	$(INSTALL) -d $(DESTDIR)/home/.cache/uzbl
+	$(INSTALL) -d $(DESTDIR)/home/.local/share/uzbl
 	cp -rp examples/config/* $(DESTDIR)/home/.config/uzbl/
 	cp -rp examples/data/*   $(DESTDIR)/home/.local/share/uzbl/
 

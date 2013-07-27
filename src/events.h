@@ -1,85 +1,78 @@
-/*
- ** Uzbl event routines
- ** (c) 2009 by Robert Manea
-*/
-
-#ifndef __EVENTS__
-#define __EVENTS__
+#ifndef UZBL_EVENTS_H
+#define UZBL_EVENTS_H
 
 #include <glib.h>
-#include <stdarg.h>
 
-/* Event system */
-enum event_type {
-    LOAD_START, LOAD_COMMIT, LOAD_FINISH, LOAD_ERROR,
-    REQUEST_QUEUED, REQUEST_STARTING, REQUEST_FINISHED,
-    KEY_PRESS, KEY_RELEASE, MOD_PRESS, MOD_RELEASE,
-    COMMAND_EXECUTED,
-    LINK_HOVER, TITLE_CHANGED, GEOMETRY_CHANGED,
-    WEBINSPECTOR, NEW_WINDOW, CLOSE_WINDOW, SELECTION_CHANGED,
-    VARIABLE_SET, FIFO_SET, SOCKET_SET,
-    INSTANCE_START, INSTANCE_EXIT, LOAD_PROGRESS,
-    LINK_UNHOVER, FORM_ACTIVE, ROOT_ACTIVE,
-    FOCUS_LOST, FOCUS_GAINED, FILE_INCLUDED,
-    PLUG_CREATED, COMMAND_ERROR, BUILTINS,
-    SCROLL_VERT, SCROLL_HORIZ,
-    DOWNLOAD_STARTED, DOWNLOAD_PROGRESS, DOWNLOAD_COMPLETE,
-    ADD_COOKIE, DELETE_COOKIE,
-    FOCUS_ELEMENT, BLUR_ELEMENT,
-    AUTHENTICATE,
+#define UZBL_EVENTS(call)       \
+    call (LOAD_START),          \
+    call (LOAD_REDIRECTED),     \
+    call (LOAD_COMMIT),         \
+    call (LOAD_FINISH),         \
+    call (LOAD_ERROR),          \
+    call (REQUEST_QUEUED),      \
+    call (REQUEST_STARTING),    \
+    call (REQUEST_FINISHED),    \
+    call (KEY_PRESS),           \
+    call (KEY_RELEASE),         \
+    call (MOD_PRESS),           \
+    call (MOD_RELEASE),         \
+    call (COMMAND_EXECUTED),    \
+    call (LINK_HOVER),          \
+    call (TITLE_CHANGED),       \
+    call (GEOMETRY_CHANGED),    \
+    call (WEBINSPECTOR),        \
+    call (NEW_WINDOW),          \
+    call (CLOSE_WINDOW),        \
+    call (SELECTION_CHANGED),   \
+    call (VARIABLE_SET),        \
+    call (FIFO_SET),            \
+    call (SOCKET_SET),          \
+    call (INSTANCE_START),      \
+    call (INSTANCE_EXIT),       \
+    call (LOAD_PROGRESS),       \
+    call (LINK_UNHOVER),        \
+    call (FORM_ACTIVE),         \
+    call (ROOT_ACTIVE),         \
+    call (FOCUS_LOST),          \
+    call (FOCUS_GAINED),        \
+    call (FILE_INCLUDED),       \
+    call (PLUG_CREATED),        \
+    call (COMMAND_ERROR),       \
+    call (BUILTINS),            \
+    call (SCROLL_VERT),         \
+    call (SCROLL_HORIZ),        \
+    call (DOWNLOAD_STARTED),    \
+    call (DOWNLOAD_PROGRESS),   \
+    call (DOWNLOAD_ERROR),      \
+    call (DOWNLOAD_COMPLETE),   \
+    call (ADD_COOKIE),          \
+    call (DELETE_COOKIE),       \
+    call (FOCUS_ELEMENT),       \
+    call (BLUR_ELEMENT),        \
+    call (AUTHENTICATE),        \
+    call (WEB_PROCESS_CRASHED), \
+    call (USER_EVENT),          \
+    call (INSECURE_CONTENT),    \
+    /* Must be last entry. */   \
+    call (LAST_EVENT)
 
-    /* must be last entry */
-    LAST_EVENT
-};
+/* Event table. */
+typedef enum {
+/* TODO: Namespace event enum values. */
+#define event_enum(evt) evt
 
-typedef struct _Event Event;
-struct _Event;
+    UZBL_EVENTS (event_enum)
 
-void
-event_buffer_timeout(guint sec);
+#undef event_enum
+} UzblEventType;
 
-void
-replay_buffered_events();
-
-/*
- * build event string
- */
-Event *
-format_event(int type, const gchar *custom_event, ...) G_GNUC_NULL_TERMINATED;
-
-Event *
-vformat_event(int type, const gchar *custom_event, va_list vargs);
-
-/*
- * send a already formatted event string over the supported interfaces.
- * returned event string should be freed by `event_free`
- */
-void
-send_formatted_event(const Event *event);
-
-/*
- * frees a event string
- */
-void
-event_free(Event *event);
-
-/*
- * build event string and send over the supported interfaces
- * this is the same as calling `format_event` and then `send_formatted_event`
- */
-void
-send_event(int type, const gchar *custom_event, ...) G_GNUC_NULL_TERMINATED;
-
-void
-vsend_event(int type, const gchar *custom_event, va_list vargs);
-
-gchar *
-get_modifier_mask(guint state);
+int
+uzbl_events_init ();
 
 void
-key_to_event(guint keyval, guint state, guint is_modifier, gint mode);
+uzbl_events_replay_buffer ();
 
 void
-button_to_event(guint buttonval, guint state, gint mode);
+uzbl_events_send (UzblEventType type, const gchar *custom_event, ...) G_GNUC_NULL_TERMINATED;
 
 #endif

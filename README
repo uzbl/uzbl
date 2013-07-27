@@ -350,6 +350,7 @@ file).
 * `javascript_windows`: Whether javascript can open windows automatically
 * `shell_cmd`: Alias which will be expanded to use shell commands (eg `sh -c`).
 * `print_events`: show events on stdout
+* `frozen`: prevent the page from being redirected, resources from being loaded, etc.
 * `proxy_url`: set HTTP proxy (eg: `http://<host>:<port>`).
 * `max_conns`: Max simultaneous connections (default: 100).
 * `max_conns_host`: max simultaneous connections per hostname (default: 6)
@@ -361,7 +362,7 @@ file).
 * `accept_languages`: The Accept-Language header to send with HTTP requests.
 * `transparent`: If set to 1, the background of the view will be transparent
   (default 0).
-* `view_mode`: The view mode for webkit. One of: "windowed", "floating",
+* `window_view_mode`: The view mode for webkit. One of: "windowed", "floating",
   "fullscreen", "maximized", or "minimized". Requires webkitgtk >= 1.3.4.
 * `zoom_level`: The factor by which elements in the page are scaled with respect
   to their original size. Setting this will resize the currently displayed page.
@@ -493,6 +494,9 @@ file).
 * `web_database_quota`: The default quota for web databases. (default 5MB).
 * `profile_js`: Sets whether to profile JavaScript code.
 * `profile_timeline`: Sets whether to profile the timeline.
+* `page_view_mode`: The view mode for webkit. One of: "web" or "source".
+  This is also modified when `view_source` is set. Requires webkit2gtk >=
+  1.11.4.
 
 #### Constants (not dumpable or writeable)
 
@@ -794,8 +798,8 @@ Events have this format:
   `progress` is a decimal between 0 and 1.
 * `EVENT [uzbl_instance_name] DOWNLOAD_COMPLETE destination_path`: The
   download being saved to `destination_path` is now complete.
-* `EVENT [uzbl_instance_name] LINK_HOVER uri`: The mouse hovers over the link
-  `uri`.
+* `EVENT [uzbl_instance_name] LINK_HOVER uri title`: The mouse hovers over the
+  link `uri` with the title `title`.
 * `EVENT [uzbl_instance_name] LINK_UNHOVER uri`: The mouse leaves the link
   `uri`.
 * `EVENT [uzbl_instance_name] KEY_PRESS 'mod_state' key_name`: The key (or mouse button)
@@ -834,6 +838,9 @@ Events have this format:
   When a cookie was deleted. arguments as ADD_COOKIE
 * `EVENT [uzbl_instance_name] AUTHENTICATE uniqueid host realm retry`: When a
   request requires authentication. authentication is done by calling `auth`
+* `EVENT [uzbl_instance_name] INSECURE_CONTENT why`: When insecure content is
+  detected, this event is generated. Currently known values for `why` include:
+  "run" and "displayed".
 
 Events/requests which the EM and its plugins listens for
 

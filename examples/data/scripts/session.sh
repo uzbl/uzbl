@@ -26,6 +26,7 @@ if [ -z "$UZBL_UTIL_DIR" ]; then
 fi
 
 . "$UZBL_UTIL_DIR/uzbl-dir.sh"
+. "$UZBL_UTIL_DIR/uzbl-util.sh"
 
 [ -d "$UZBL_DATA_DIR" ] || exit 1
 
@@ -53,27 +54,27 @@ case $act in
 
     "endinstance")
         if [ -z "$UZBL_FIFO" ]; then
-            echo "session manager: endinstance must be called from uzbl"
+            print "session manager: endinstance must be called from uzbl\n"
             exit 1
         fi
-        [ "$UZBL_URI" != "(null)" ] && echo "$UZBL_URI" >> "$UZBL_SESSION_FILE"
-        echo "exit" > "$UZBL_FIFO"
+        [ "$UZBL_URI" != "(null)" ] && print "$UZBL_URI\n" >> "$UZBL_SESSION_FILE"
+        uzbl_control "exit\n"
         ;;
 
     "endsession")
         for fifo in "$UZBL_FIFO_DIR/uzbl_fifo_*"; do
-            if [ "$fifo" != "$UZBL_FIFO" ]; then
-                echo "spawn $scriptfile endinstance" > "$fifo"
+            if ! [ "$fifo" = "$UZBL_FIFO" ]; then
+                print "spawn $scriptfile endinstance\n" > "$fifo"
             fi
         done
-        [ -z "$UZBL_FIFO" ] || echo "spawn $scriptfile endinstance" > "$UZBL_FIFO"
+        [ -z "$UZBL_FIFO" ] || uzbl_control "spawn $scriptfile endinstance\n"
         ;;
 
     *)
-        echo "session manager: bad action"
-        echo "Usage: $scriptfile [COMMAND] where commands are:"
-        echo " launch      - Restore a saved session or start a new one"
-        echo " endinstance - Quit the current instance. Must be called from uzbl"
-        echo " endsession  - Quit the running session."
+        print "session manager: bad action\n"
+        print "Usage: $scriptfile [COMMAND] where commands are:\n"
+        print " launch      - Restore a saved session or start a new one\n"
+        print " endinstance - Quit the current instance. Must be called from uzbl\n"
+        print " endsession  - Quit the running session.\n"
         ;;
 esac
