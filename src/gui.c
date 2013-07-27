@@ -973,7 +973,7 @@ context_menu_cb (WebKitWebView *view, GtkMenu *menu, WebKitHitTestResult *hit_te
         return FALSE;
     }
 
-    if (uzbl.gui.default_context_menu) {
+    if (uzbl_variables_get_int ("default_context_menu")) {
         return FALSE;
     }
 

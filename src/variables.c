@@ -1379,6 +1379,11 @@ struct _UzblVariablesPrivate {
     gchar *status_background;
     gchar *title_format_long;
     gchar *title_format_short;
+
+    /* Customization */
+#if WEBKIT_CHECK_VERSION (1, 9, 0)
+    gboolean default_context_menu;
+#endif
 };
 
 typedef struct {
@@ -1438,7 +1443,7 @@ uzbl_variables_private_new (GHashTable *table)
         /* Customization */
         { "default_context_menu",
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
-                                          UZBL_V_INT (uzbl.gui.default_context_menu,           NULL)
+                                          UZBL_V_INT (priv->default_context_menu,              NULL)
 #else
                                           UZBL_V_FUNC (default_context_menu,                   INT)
 #endif
