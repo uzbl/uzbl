@@ -153,6 +153,20 @@ uzbl_init (int *argc, char ***argv)
         uzbl_io_init_connect_socket (*name++);
     }
 
+    /* Send the startup event. */
+    pid_t pid = getpid ();
+    gchar *pid_str = g_strdup_printf ("%d", pid);
+    g_setenv ("UZBL_PID", pid_str, TRUE);
+
+    if (!uzbl.state.instance_name) {
+        uzbl.state.instance_name = g_strdup (pid_str);
+    }
+    g_free (pid_str);
+
+    uzbl_events_send (INSTANCE_START, NULL,
+        TYPE_INT, pid,
+        NULL);
+
     /* Load default config. */
     const gchar * const *default_command = default_config;
     while (default_command && *default_command) {
@@ -206,19 +220,6 @@ main (int argc, char *argv[])
 
         gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
     }
-
-    pid_t pid = getpid ();
-    gchar *pid_str = g_strdup_printf ("%d", pid);
-    g_setenv ("UZBL_PID", pid_str, TRUE);
-
-    if (!uzbl.state.instance_name) {
-        uzbl.state.instance_name = g_strdup (pid_str);
-    }
-    g_free (pid_str);
-
-    uzbl_events_send (INSTANCE_START, NULL,
-        TYPE_INT, pid,
-        NULL);
 
     if (uzbl.state.plug_mode) {
         uzbl_events_send (PLUG_CREATED, NULL,
