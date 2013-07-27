@@ -176,7 +176,7 @@ authenticate (GString *result, gpointer data)
 {
     UzblAuthenticateData *auth = (UzblAuthenticateData *)data;
 
-    gchar **tokens = g_strsplit (result->str, ":", 2);
+    gchar **tokens = g_strsplit (result->str, "\n", 0);
 
     const gchar *username = tokens[0];
     const gchar *password = tokens[1];
