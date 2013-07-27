@@ -73,6 +73,7 @@ uzbl_initialize (int argc, char **argv)
 
     gboolean verbose;
     gboolean print_events;
+    gboolean print_version;
 
     /* Commandline arguments. */
     const GOptionEntry
@@ -96,7 +97,7 @@ uzbl_initialize (int argc, char **argv)
             "Whether to print events to stdout.",                                                             NULL },
         { "geometry",       'g', 0, G_OPTION_ARG_STRING,       &uzbl.gui.geometry,
             "Set window geometry (format: 'WIDTHxHEIGHT+-X+-Y' or 'maximized')",                              "GEOMETRY" },
-        { "version",        'V', 0, G_OPTION_ARG_NONE,         &uzbl.behave.print_version,
+        { "version",        'V', 0, G_OPTION_ARG_NONE,         &print_version,
             "Print the version and exit",                                                                     NULL },
         { NULL,      0, 0, 0, NULL, NULL, NULL }
     };
@@ -109,7 +110,7 @@ uzbl_initialize (int argc, char **argv)
     g_option_context_free (context);
 
     /* Only print version. */
-    if (uzbl.behave.print_version) {
+    if (print_version) {
         printf ("Commit: %s\n", COMMIT);
         exit (EXIT_SUCCESS);
     }

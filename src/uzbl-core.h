@@ -71,8 +71,6 @@ typedef struct {
 /* Behaviour */
 typedef struct {
     guint    view_source;
-
-    gboolean print_version;
 } UzblBehaviour;
 
 struct _UzblCommands;
