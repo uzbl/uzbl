@@ -126,10 +126,36 @@ authenticate_cb (SoupSession *session,
     const gchar *host = soup_auth_get_host (auth);
     const gchar *realm = soup_auth_get_host (auth);
     const gchar *retry = retrying ? "retrying" : "initial";
+    const gchar *soup_scheme = soup_auth_get_scheme_name (auth);
+    gboolean is_proxy = soup_auth_is_for_proxy (auth);
+    const gchar *proxy = is_proxy ? "proxy" : "origin";
+    SoupURI *uri = soup_message_get_uri (msg);
+    guint port = soup_uri_get_port (uri);
+    gboolean can_save = uzbl_variables_get_int ("enable_private");
+    const gchar *save_str = can_save ? "remember" : "forget";
+
+    const gchar *scheme = "unknown";
+    if (!g_strcmp0 (soup_scheme, "Basic")) {
+        scheme = "http_basic";
+    } else if (!g_strcmp0 (soup_scheme, "Digest")) {
+        scheme = "http_digest";
+    } else if (!g_strcmp0 (soup_scheme, "NTLM")) {
+        scheme = "ntlm";
+    }
+
+    gchar *port_str = g_strdup_printf ("%u", port);
 
     uzbl_commands_args_append (args, g_strdup (host));
     uzbl_commands_args_append (args, g_strdup (realm));
     uzbl_commands_args_append (args, g_strdup (retry));
+    uzbl_commands_args_append (args, g_strdup (scheme));
+    uzbl_commands_args_append (args, g_strdup (proxy));
+    uzbl_commands_args_append (args, g_strdup (port_str));
+    uzbl_commands_args_append (args, g_strdup (save_str));
+
+    /* TODO: Append protection space paths. */
+
+    g_free (port_str);
 
     UzblAuthenticateData *auth_data = g_malloc (sizeof (UzblAuthenticateData));
     auth_data->session = session;
