@@ -1355,6 +1355,10 @@ struct _UzblVariablesPrivate {
     gboolean frozen;
     gboolean print_events;
     gboolean handle_multi_button;
+
+    /* Communication variables */
+    gchar *fifo_dir;
+    gchar *socket_dir;
 };
 
 typedef struct {
@@ -1377,8 +1381,8 @@ uzbl_variables_private_new (GHashTable *table)
         { "handle_multi_button",          UZBL_V_INT (priv->handle_multi_button,               NULL)},
 
         /* Communication variables */
-        { "fifo_dir",                     UZBL_V_STRING (uzbl.behave.fifo_dir,                 set_fifo_dir)},
-        { "socket_dir",                   UZBL_V_STRING (uzbl.behave.socket_dir,               set_socket_dir)},
+        { "fifo_dir",                     UZBL_V_STRING (priv->fifo_dir,                       set_fifo_dir)},
+        { "socket_dir",                   UZBL_V_STRING (priv->socket_dir,                     set_socket_dir)},
 
         /* Handler variables */
         { "scheme_handler",               UZBL_V_STRING (uzbl.behave.scheme_handler,           NULL)},
@@ -1777,8 +1781,8 @@ object_get (GObject *obj, const gchar *prop);
 IMPLEMENT_SETTER (gchar *, fifo_dir)
 {
     if (uzbl_io_init_fifo (fifo_dir)) {
-        g_free (uzbl.behave.fifo_dir);
-        uzbl.behave.fifo_dir = g_strdup (fifo_dir);
+        g_free (uzbl.variables->priv->fifo_dir);
+        uzbl.variables->priv->fifo_dir = g_strdup (fifo_dir);
 
         return TRUE;
     }
@@ -1789,8 +1793,8 @@ IMPLEMENT_SETTER (gchar *, fifo_dir)
 IMPLEMENT_SETTER (gchar *, socket_dir)
 {
     if (uzbl_io_init_socket (socket_dir)) {
-        g_free (uzbl.behave.socket_dir);
-        uzbl.behave.socket_dir = g_strdup (socket_dir);
+        g_free (uzbl.variables->priv->socket_dir);
+        uzbl.variables->priv->socket_dir = g_strdup (socket_dir);
 
         return TRUE;
     }

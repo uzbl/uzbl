@@ -86,10 +86,6 @@ typedef struct {
     gchar   *title_format_short;
     gchar   *title_format_long;
 
-    /* Communication */
-    gchar   *fifo_dir;
-    gchar   *socket_dir;
-
     /* Handlers */
     gchar   *scheme_handler;
     gchar   *request_handler;
