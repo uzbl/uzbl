@@ -8,6 +8,8 @@ typedef struct _UzblCommand UzblCommand;
 
 void
 uzbl_commands_init ();
+void
+uzbl_commands_free ();
 
 void
 uzbl_commands_send_builtin_event ();

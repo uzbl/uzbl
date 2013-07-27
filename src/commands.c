@@ -34,6 +34,11 @@
  *   - Add commands for DOM manipulation?
  */
 
+struct _UzblCommands {
+    /* Table of all builtin commands. */
+    GHashTable *table;
+};
+
 typedef void (*UzblCommandCallback) (GArray *argv, GString *result);
 
 struct _UzblCommand {
@@ -54,12 +59,13 @@ init_js_commands_api ();
 void
 uzbl_commands_init ()
 {
-    const UzblCommand *cmd = &builtin_command_table[0];
+    uzbl.commands = g_malloc (sizeof (UzblCommands));
 
-    uzbl.behave.commands = g_hash_table_new (g_str_hash, g_str_equal);
+    uzbl.commands->table = g_hash_table_new (g_str_hash, g_str_equal);
 
+    const UzblCommand *cmd = builtin_command_table;
     while (cmd->name) {
-        g_hash_table_insert (uzbl.behave.commands,
+        g_hash_table_insert (uzbl.commands->table,
             (gpointer)cmd->name,
             (gpointer)cmd);
 
@@ -70,16 +76,24 @@ uzbl_commands_init ()
 }
 
 void
+uzbl_commands_free ()
+{
+    g_hash_table_destroy (uzbl.commands->table);
+
+    g_free (uzbl.commands);
+    uzbl.commands = NULL;
+}
+
+void
 uzbl_commands_send_builtin_event ()
 {
-    const UzblCommand *cmd = &builtin_command_table[0];
-
     GString *command_list = g_string_new ("");
 
     g_string_append_c (command_list, '[');
 
     gboolean first = TRUE;
 
+    const UzblCommand *cmd = builtin_command_table;
     while (cmd->name) {
         if (!first) {
             g_string_append_c (command_list, ',');
@@ -144,7 +158,7 @@ uzbl_commands_parse (const gchar *cmd, GArray *argv)
     gchar **tokens = g_strsplit (exp_line, " ", 2);
 
     /* Look up the command. */
-    const UzblCommand *info = g_hash_table_lookup (uzbl.behave.commands, tokens[0]);
+    const UzblCommand *info = g_hash_table_lookup (uzbl.commands->table, tokens[0]);
 
     if (!info) {
         uzbl_events_send (COMMAND_ERROR, NULL,
@@ -194,7 +208,7 @@ void
 uzbl_commands_run_argv (const gchar *cmd, GArray *argv, GString *result)
 {
     /* Look up the command. */
-    const UzblCommand *info = g_hash_table_lookup (uzbl.behave.commands, cmd);
+    const UzblCommand *info = g_hash_table_lookup (uzbl.commands->table, cmd);
 
     if (!info) {
         uzbl_events_send (COMMAND_ERROR, NULL,
@@ -272,8 +286,7 @@ init_js_commands_api ()
 
     JSClassRef command_class = JSClassCreate (&command_class_def);
 
-    const UzblCommand *cmd = &builtin_command_table[0];
-
+    const UzblCommand *cmd = builtin_command_table;
     while (cmd->name) {
         JSObjectRef command_obj = JSObjectMake (uzbl.state.jscontext, command_class, NULL);
 
@@ -367,7 +380,7 @@ call_command (JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject, si
     JSValueRef command_val = uzbl_js_get (ctx, function, "name");
     gchar *command = uzbl_js_to_string (ctx, command_val);
 
-    UzblCommand *info = g_hash_table_lookup (uzbl.behave.commands, command);
+    UzblCommand *info = g_hash_table_lookup (uzbl.commands->table, command);
 
     if (!info) {
         gchar *error_str = g_strdup_printf ("Unknown command: %s", command);

@@ -179,6 +179,7 @@ uzbl_free ()
 {
     uzbl_io_free ();
     uzbl_requests_free ();
+    uzbl_commands_free ();
 }
 
 #ifndef UZBL_LIBRARY
@@ -405,11 +406,6 @@ clean_up ()
     if (uzbl.state.executable_path) {
         g_free (uzbl.state.executable_path);
         uzbl.state.executable_path = NULL;
-    }
-
-    if (uzbl.behave.commands) {
-        g_hash_table_destroy (uzbl.behave.commands);
-        uzbl.behave.commands = NULL;
     }
 
     if (uzbl.behave.status_background) {

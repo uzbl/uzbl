@@ -115,8 +115,6 @@ typedef struct {
 
     gdouble zoom_step;
 
-    /* command list: (key)name -> (value)Command  */
-    GHashTable *commands;
     /* variables: (key)name -> (value)uzbl_cmdprop */
     GHashTable *proto_var;
 } UzblBehaviour;
@@ -136,6 +134,9 @@ typedef struct {
     gchar  *pid_str;
 } UzblInfo;
 
+struct _UzblCommands;
+typedef struct _UzblCommands UzblCommands;
+
 struct _UzblIO;
 typedef struct _UzblIO UzblIO;
 
@@ -150,6 +151,7 @@ typedef struct {
     UzblBehaviour     behave;
     UzblInfo          info;
 
+    UzblCommands     *commands;
     UzblIO           *io;
     UzblRequests     *requests;
 } UzblCore;
