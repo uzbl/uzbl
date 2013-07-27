@@ -75,21 +75,6 @@ typedef struct {
     gboolean print_version;
 } UzblBehaviour;
 
-/* Static information */
-typedef struct {
-    int     webkit_major;
-    int     webkit_minor;
-    int     webkit_micro;
-    int     webkit_ua_major;
-    int     webkit_ua_minor;
-    int     webkit2;
-    gchar  *arch;
-    gchar  *commit;
-
-    pid_t   pid;
-    gchar  *pid_str;
-} UzblInfo;
-
 struct _UzblCommands;
 typedef struct _UzblCommands UzblCommands;
 
@@ -108,7 +93,6 @@ typedef struct {
     UzblState         state;
     UzblNetwork       net;
     UzblBehaviour     behave;
-    UzblInfo          info;
 
     UzblCommands     *commands;
     UzblIO           *io;

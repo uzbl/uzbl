@@ -1348,6 +1348,15 @@ DECLARE_GETTER (gchar *, plugin_list);
 DECLARE_GETTER (gchar *, app_cache_directory);
 #endif
 #endif
+DECLARE_GETTER (int, WEBKIT_MAJOR);
+DECLARE_GETTER (int, WEBKIT_MINOR);
+DECLARE_GETTER (int, WEBKIT_MICRO);
+DECLARE_GETTER (int, WEBKIT_UA_MAJOR);
+DECLARE_GETTER (int, WEBKIT_UA_MINOR);
+DECLARE_GETTER (int, HAS_WEBKIT2);
+DECLARE_GETTER (gchar *, ARCH_UZBL);
+DECLARE_GETTER (gchar *, COMMIT);
+DECLARE_GETTER (int, PID);
 
 struct _UzblVariablesPrivate {
     /* Uzbl variables */
@@ -1694,18 +1703,18 @@ uzbl_variables_private_new (GHashTable *table)
 #endif
 #endif
         { "uri",                          UZBL_C_STRING (uzbl.state.uri)},
-        { "WEBKIT_MAJOR",                 UZBL_C_INT (uzbl.info.webkit_major)},
-        { "WEBKIT_MINOR",                 UZBL_C_INT (uzbl.info.webkit_minor)},
-        { "WEBKIT_MICRO",                 UZBL_C_INT (uzbl.info.webkit_micro)},
-        { "WEBKIT_UA_MAJOR",              UZBL_C_INT (uzbl.info.webkit_ua_major)},
-        { "WEBKIT_UA_MINOR",              UZBL_C_INT (uzbl.info.webkit_ua_minor)},
-        { "HAS_WEBKIT2",                  UZBL_C_INT (uzbl.info.webkit2)},
-        { "ARCH_UZBL",                    UZBL_C_STRING (uzbl.info.arch)},
-        { "COMMIT",                       UZBL_C_STRING (uzbl.info.commit)},
+        { "WEBKIT_MAJOR",                 UZBL_C_FUNC (WEBKIT_MAJOR,                           INT)},
+        { "WEBKIT_MINOR",                 UZBL_C_FUNC (WEBKIT_MINOR,                           INT)},
+        { "WEBKIT_MICRO",                 UZBL_C_FUNC (WEBKIT_MICRO,                           INT)},
+        { "WEBKIT_UA_MAJOR",              UZBL_C_FUNC (WEBKIT_UA_MAJOR,                        INT)},
+        { "WEBKIT_UA_MINOR",              UZBL_C_FUNC (WEBKIT_UA_MINOR,                        INT)},
+        { "HAS_WEBKIT2",                  UZBL_C_FUNC (HAS_WEBKIT2,                            INT)},
+        { "ARCH_UZBL",                    UZBL_C_FUNC (ARCH_UZBL,                              STR)},
+        { "COMMIT",                       UZBL_C_FUNC (COMMIT,                                 STR)},
         { "TITLE",                        UZBL_C_STRING (uzbl.gui.main_title)},
         { "SELECTED_URI",                 UZBL_C_STRING (uzbl.state.selected_url)},
         { "NAME",                         UZBL_C_STRING (uzbl.state.instance_name)},
-        { "PID",                          UZBL_C_STRING (uzbl.info.pid_str)},
+        { "PID",                          UZBL_C_FUNC (PID,                                    INT)},
         { "_",                            UZBL_C_STRING (uzbl.state.last_result)},
 
         /* Add a terminator entry. */
@@ -3122,6 +3131,75 @@ IMPLEMENT_GETTER (gchar *, app_cache_directory)
 }
 #endif
 #endif
+
+IMPLEMENT_GETTER (int, WEBKIT_MAJOR)
+{
+#ifdef USE_WEBKIT2
+    return webkit_get_major_version ();
+#else
+    return webkit_major_version ();
+#endif
+}
+
+IMPLEMENT_GETTER (int, WEBKIT_MINOR)
+{
+#ifdef USE_WEBKIT2
+    return webkit_get_minor_version ();
+#else
+    return webkit_minor_version ();
+#endif
+}
+
+IMPLEMENT_GETTER (int, WEBKIT_MICRO)
+{
+#ifdef USE_WEBKIT2
+    return webkit_get_micro_version ();
+#else
+    return webkit_micro_version ();
+#endif
+}
+
+IMPLEMENT_GETTER (int, WEBKIT_UA_MAJOR)
+{
+#ifdef USE_WEBKIT2
+    return 0; /* TODO: What is this in WebKit2? */
+#else
+    return WEBKIT_USER_AGENT_MAJOR_VERSION;
+#endif
+}
+
+IMPLEMENT_GETTER (int, WEBKIT_UA_MINOR)
+{
+#ifdef USE_WEBKIT2
+    return 0; /* TODO: What is this in WebKit2? */
+#else
+    return WEBKIT_USER_AGENT_MINOR_VERSION;
+#endif
+}
+
+IMPLEMENT_GETTER (int, HAS_WEBKIT2)
+{
+#ifdef USE_WEBKIT2
+    return TRUE;
+#else
+    return FALSE;
+#endif
+}
+
+IMPLEMENT_GETTER (gchar *, ARCH_UZBL)
+{
+    return g_strdup (ARCH);
+}
+
+IMPLEMENT_GETTER (gchar *, COMMIT)
+{
+    return g_strdup (COMMIT);
+}
+
+IMPLEMENT_GETTER (int, PID)
+{
+    return (int)getpid ();
+}
 
 GObject *
 webkit_settings ()

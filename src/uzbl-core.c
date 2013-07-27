@@ -69,29 +69,6 @@ uzbl_initialize (int argc, char **argv)
     uzbl.state.executable_path = g_strdup (argv[0]);
     uzbl.state.selected_url    = NULL;
 
-#ifdef USE_WEBKIT2
-    uzbl.info.webkit_major     = webkit_get_major_version ();
-    uzbl.info.webkit_minor     = webkit_get_minor_version ();
-    uzbl.info.webkit_micro     = webkit_get_micro_version ();
-    uzbl.info.webkit_ua_major  = 0; /* TODO: What are these in WebKit2? */
-    uzbl.info.webkit_ua_minor  = 0;
-#else
-    uzbl.info.webkit_major     = webkit_major_version ();
-    uzbl.info.webkit_minor     = webkit_minor_version ();
-    uzbl.info.webkit_micro     = webkit_micro_version ();
-    uzbl.info.webkit_ua_major  = WEBKIT_USER_AGENT_MAJOR_VERSION;
-    uzbl.info.webkit_ua_minor  = WEBKIT_USER_AGENT_MINOR_VERSION;
-#endif
-    uzbl.info.webkit2          =
-#ifdef USE_WEBKIT2
-        TRUE
-#else
-        FALSE
-#endif
-        ;
-    uzbl.info.arch             = ARCH;
-    uzbl.info.commit           = COMMIT;
-
     uzbl.state.last_result     = NULL;
 
     gboolean verbose;
@@ -222,16 +199,17 @@ main (int argc, char *argv[])
         gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
     }
 
-    uzbl.info.pid     = getpid ();
-    uzbl.info.pid_str = g_strdup_printf ("%d", uzbl.info.pid);
-    g_setenv ("UZBL_PID", uzbl.info.pid_str, TRUE);
+    pid_t pid = getpid ();
+    gchar *pid_str = g_strdup_printf ("%d", pid);
+    g_setenv ("UZBL_PID", pid_str, TRUE);
 
     if (!uzbl.state.instance_name) {
-        uzbl.state.instance_name = uzbl.info.pid_str;
+        uzbl.state.instance_name = g_strdup (pid_str);
     }
+    g_free (pid_str);
 
     uzbl_events_send (INSTANCE_START, NULL,
-        TYPE_INT, uzbl.info.pid,
+        TYPE_INT, pid,
         NULL);
 
     if (uzbl.state.plug_mode) {
@@ -298,7 +276,9 @@ main (int argc, char *argv[])
         }
         printf ("pid %i\n", getpid ());
         printf ("name: %s\n", uzbl.state.instance_name);
-        printf ("commit: %s\n", uzbl.info.commit);
+        gchar *commit = uzbl_variables_get_string ("COMMIT");
+        printf ("commit: %s\n", commit);
+        g_free (commit);
     }
 
     uzbl.state.gtk_started = TRUE;
@@ -392,15 +372,9 @@ read_config_file ()
 void
 clean_up ()
 {
-    if (uzbl.info.pid_str) {
-        uzbl_events_send (INSTANCE_EXIT, NULL,
-            TYPE_INT, uzbl.info.pid,
-            NULL);
-        g_free (uzbl.info.pid_str);
-        uzbl.info.pid_str = NULL;
-    }
-
-    g_free (uzbl.state.last_result);
+    uzbl_events_send (INSTANCE_EXIT, NULL,
+        TYPE_INT, getpid (),
+        NULL);
 
     if (uzbl.state.jscontext) {
         JSGlobalContextRelease (uzbl.state.jscontext);
