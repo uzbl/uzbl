@@ -639,14 +639,9 @@ schedule_io_input (gchar *line, UzblIOCallback callback, gpointer data)
     remove_trailing_newline (line);
 
     if (!strprefix (line, "REPLY-")) {
-        g_mutex_lock (&uzbl.state.reply_lock);
-        if (uzbl.state.reply) {
-            /* Stale reply? It's likely to be old, so let's nuke it. */
-            g_free (uzbl.state.reply);
-        }
-        uzbl.state.reply = line;
-        g_cond_broadcast (&uzbl.state.reply_cond);
-        g_mutex_unlock (&uzbl.state.reply_lock);
+        uzbl_requests_set_reply (line);
+
+        g_free (line);
     } else {
         UzblCommandData *cmd_data = g_malloc (sizeof (UzblCommandData));
         cmd_data->cmd = line;

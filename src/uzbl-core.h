@@ -73,10 +73,6 @@ typedef struct {
     gboolean        handle_multi_button;
     gchar         **connect_socket_names;
 
-    GCond           reply_cond;
-    GMutex          reply_lock;
-    gchar          *reply;
-
     GAsyncQueue    *cmd_q;
     GMainContext   *io_ctx;
     GMainLoop      *io_loop;
@@ -148,6 +144,9 @@ typedef struct {
 struct _UzblIO;
 typedef struct _UzblIO UzblIO;
 
+struct _UzblRequests;
+typedef struct _UzblRequests UzblRequests;
+
 /* Main uzbl data structure */
 typedef struct {
     UzblGui           gui;
@@ -157,6 +156,7 @@ typedef struct {
     UzblInfo          info;
 
     UzblIO           *io;
+    UzblRequests     *requests;
 } UzblCore;
 
 extern UzblCore uzbl; /* Main Uzbl object */

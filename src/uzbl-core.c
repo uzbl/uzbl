@@ -38,6 +38,7 @@
 #include "inspector.h"
 #include "io.h"
 #include "js.h"
+#include "requests.h"
 #ifndef USE_WEBKIT2
 #include "scheme.h"
 #include "soup.h"
@@ -89,10 +90,6 @@ ensure_xdg_vars ();
 void
 uzbl_initialize (int argc, char **argv)
 {
-    /* Initialize variables */
-    g_mutex_init (&uzbl.state.reply_lock);
-    g_cond_init (&uzbl.state.reply_cond);
-
     uzbl.state.socket_id       = 0;
     uzbl.state.plug_mode       = FALSE;
 
@@ -160,6 +157,7 @@ uzbl_initialize (int argc, char **argv)
     uzbl_variables_init ();
     uzbl_commands_init ();
     uzbl_events_init ();
+    uzbl_requests_init ();
 
 #ifndef USE_WEBKIT2
     uzbl_scheme_init ();
@@ -180,6 +178,7 @@ void
 uzbl_free ()
 {
     uzbl_io_free ();
+    uzbl_requests_free ();
 }
 
 #ifndef UZBL_LIBRARY
@@ -389,9 +388,6 @@ read_config_file ()
 void
 clean_up ()
 {
-    g_mutex_clear (&uzbl.state.reply_lock);
-    g_cond_clear (&uzbl.state.reply_cond);
-
     if (uzbl.info.pid_str) {
         uzbl_events_send (INSTANCE_EXIT, NULL,
             TYPE_INT, uzbl.info.pid,
@@ -414,11 +410,6 @@ clean_up ()
     if (uzbl.behave.commands) {
         g_hash_table_destroy (uzbl.behave.commands);
         uzbl.behave.commands = NULL;
-    }
-
-    if (uzbl.state.reply) {
-        g_free (uzbl.state.reply);
-        uzbl.state.reply = NULL;
     }
 
     if (uzbl.behave.status_background) {

@@ -9,7 +9,49 @@
 #include <errno.h>
 #include <string.h>
 
+struct _UzblRequests {
+    /* Reply buffer */
+    GCond   reply_cond;
+    GMutex  reply_lock;
+    gchar  *reply;
+};
+
 /* =========================== PUBLIC API =========================== */
+
+void
+uzbl_requests_init ()
+{
+    uzbl.requests = g_malloc (sizeof (UzblRequests));
+
+    /* Initialize variables */
+    g_mutex_init (&uzbl.requests->reply_lock);
+    g_cond_init (&uzbl.requests->reply_cond);
+    uzbl.requests->reply = NULL;
+}
+
+void
+uzbl_requests_free ()
+{
+    g_mutex_clear (&uzbl.requests->reply_lock);
+    g_cond_clear (&uzbl.requests->reply_cond);
+    g_free (uzbl.requests->reply);
+
+    g_free (uzbl.requests);
+    uzbl.requests = NULL;
+}
+
+void
+uzbl_requests_set_reply (const gchar *reply)
+{
+    g_mutex_lock (&uzbl.requests->reply_lock);
+    if (uzbl.requests->reply) {
+        /* Stale reply? It's likely to be old, so let's nuke it. */
+        g_free (uzbl.requests->reply);
+    }
+    uzbl.requests->reply = g_strdup (reply);
+    g_cond_broadcast (&uzbl.requests->reply_cond);
+    g_mutex_unlock (&uzbl.requests->reply_lock);
+}
 
 typedef struct {
     GString *request;
@@ -78,9 +120,9 @@ send_request_sockets (GString *msg, const gchar *cookie)
     do {
         gboolean timeout = FALSE;
 
-        g_mutex_lock (&uzbl.state.reply_lock);
-        while (!uzbl.state.reply) {
-            if (!g_cond_wait_until (&uzbl.state.reply_cond, &uzbl.state.reply_lock, deadline)) {
+        g_mutex_lock (&uzbl.requests->reply_lock);
+        while (!uzbl.requests->reply) {
+            if (!g_cond_wait_until (&uzbl.requests->reply_cond, &uzbl.requests->reply_lock, deadline)) {
                 timeout = TRUE;
                 break;
             }
@@ -88,15 +130,15 @@ send_request_sockets (GString *msg, const gchar *cookie)
 
         if (timeout) {
             done = TRUE;
-        } else if (!strprefix (uzbl.state.reply, reply_cookie->str)) {
-            g_string_assign (req_result, uzbl.state.reply + reply_cookie->len);
+        } else if (!strprefix (uzbl.requests->reply, reply_cookie->str)) {
+            g_string_assign (req_result, uzbl.requests->reply + reply_cookie->len);
             done = TRUE;
         }
 
-        g_free (uzbl.state.reply);
-        uzbl.state.reply = NULL;
+        g_free (uzbl.requests->reply);
+        uzbl.requests->reply = NULL;
 
-        g_mutex_unlock (&uzbl.state.reply_lock);
+        g_mutex_unlock (&uzbl.requests->reply_lock);
     } while (!done);
 
     g_string_free (reply_cookie, TRUE);
