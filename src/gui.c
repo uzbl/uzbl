@@ -995,6 +995,10 @@ populate_popup_cb (WebKitWebView *view, GtkMenu *menu, gpointer data)
         return FALSE;
     }
 
+    if (uzbl_variables_get_int ("default_context_menu")) {
+        return FALSE;
+    }
+
     WebKitHitTestResult *hit_test_result;
     GdkEventButton event;
     gint x;
