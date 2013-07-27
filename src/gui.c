@@ -673,7 +673,7 @@ decide_policy_cb (WebKitWebView *view, WebKitPolicyDecision *decision, WebKitPol
     UZBL_UNUSED (view);
     UZBL_UNUSED (data);
 
-    if (uzbl.state.frozen) {
+    if (uzbl_variables_get_int ("frozen")) {
         make_policy (decision, ignore);
         return TRUE;
     }
