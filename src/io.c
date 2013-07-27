@@ -221,6 +221,7 @@ uzbl_io_init_fifo (const gchar *dir)
         /* We're changing the fifo path, get rid of the old fifo if one exists. */
         if (unlink (uzbl.io->fifo_path)) {
             g_warning ("Fifo: Can't unlink old fifo at %s\n", uzbl.io->fifo_path);
+            return FALSE;
         }
         g_free (uzbl.io->fifo_path);
         uzbl.io->fifo_path = NULL;
@@ -263,6 +264,7 @@ uzbl_io_init_socket (const gchar *dir)
         /* Remove an existing socket should one exist. */
         if (unlink (uzbl.io->socket_path)) {
             g_warning ("init_socket: couldn't unlink socket at %s\n", uzbl.io->socket_path);
+            return FALSE;
         }
         g_free (uzbl.io->socket_path);
         uzbl.io->socket_path = NULL;
