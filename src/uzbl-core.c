@@ -137,6 +137,9 @@ uzbl_init (int *argc, char ***argv)
     uzbl_scheme_init ();
 #endif
 
+    /* XDG */
+    ensure_xdg_vars ();
+
     /* Connect to the event manager(s). */
     gchar **name = connect_socket_names;
     while (name && *name) {
@@ -158,9 +161,6 @@ uzbl_init (int *argc, char ***argv)
     if (print_events) {
         uzbl_variables_set ("print_events", "1");
     }
-
-    /* XDG */
-    ensure_xdg_vars ();
 
     /* GUI */
     gtk_init (argc, argv);
