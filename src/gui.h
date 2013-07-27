@@ -4,9 +4,6 @@
 #include "webkit.h"
 
 void
-uzbl_gui_init ();
-
-void
 uzbl_gui_update_title ();
 
 #ifndef USE_WEBKIT2

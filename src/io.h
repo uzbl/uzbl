@@ -6,11 +6,7 @@
 #include <glib.h>
 
 void
-uzbl_io_init ();
-void
-uzbl_io_init_stdin ();
-void
-uzbl_io_init_connect_socket ();
+uzbl_io_send (const gchar *message, gboolean connect_only);
 
 typedef void (*UzblIOCallback)(GString *result, gpointer data);
 

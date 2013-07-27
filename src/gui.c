@@ -30,6 +30,15 @@
  *   - Handle resource-* signals?
  */
 
+struct _UzblGui {
+    gchar *last_geometry;
+    gchar *last_selected_url;
+
+#ifdef USE_WEBKIT2
+    gboolean load_failed;
+#endif
+};
+
 /* =========================== PUBLIC API =========================== */
 
 static void
@@ -46,6 +55,8 @@ plug_init ();
 void
 uzbl_gui_init ()
 {
+    uzbl.gui_ = g_malloc0 (sizeof (UzblGui));
+
     status_bar_init ();
     web_view_init ();
     vbox_init ();
@@ -58,22 +69,43 @@ uzbl_gui_init ()
 }
 
 void
+uzbl_gui_free ()
+{
+    g_free (uzbl.gui_->last_geometry);
+    g_free (uzbl.gui_->last_selected_url);
+
+    g_free (uzbl.gui_);
+    uzbl.gui_ = NULL;
+}
+
+void
 uzbl_gui_update_title ()
 {
-    const gchar *title_format = uzbl.behave.title_format_long;
+    const gchar *format = NULL;
 
     /* Update the status bar if shown. */
     if (uzbl_variables_get_int ("show_status")) {
-        title_format = uzbl.behave.title_format_short;
+        format = "title_format_short";
 
-        gchar *parsed = uzbl_variables_expand (uzbl.behave.status_format);
+        gchar *status_format;
+        gchar *parsed;
+
+        status_format = uzbl_variables_get_string ("status_format");
+        parsed = uzbl_variables_expand (status_format);
         uzbl_status_bar_update_left (uzbl.gui.status_bar, parsed);
-        g_free(parsed);
-
-        parsed = uzbl_variables_expand (uzbl.behave.status_format_right);
-        uzbl_status_bar_update_right (uzbl.gui.status_bar, parsed);
+        g_free (status_format);
         g_free (parsed);
+
+        status_format = uzbl_variables_get_string ("status_format_right");
+        parsed = uzbl_variables_expand (status_format);
+        uzbl_status_bar_update_right (uzbl.gui.status_bar, parsed);
+        g_free (status_format);
+        g_free (parsed);
+    } else {
+        format = "title_format_long";
     }
+
+    gchar *title_format = uzbl_variables_get_string (format);
 
     /* Update window title. */
     /* If we're starting up or shutting down there might not be a window yet. */
@@ -87,6 +119,8 @@ uzbl_gui_update_title ()
             gtk_window_set_title (GTK_WINDOW (uzbl.gui.main_window), parsed);
         g_free (parsed);
     }
+
+    g_free (title_format);
 }
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
@@ -374,7 +408,7 @@ key_press_cb (GtkWidget *widget, GdkEventKey *event, gpointer data)
         send_keypress_event (event);
     }
 
-    return (uzbl.behave.forward_keys ? FALSE : TRUE);
+    return !uzbl_variables_get_int ("forward_keys");
 }
 
 gboolean
@@ -387,7 +421,7 @@ key_release_cb (GtkWidget *widget, GdkEventKey *event, gpointer data)
         send_keypress_event (event);
     }
 
-    return (uzbl.behave.forward_keys ? FALSE : TRUE);
+    return !uzbl_variables_get_int ("forward_keys");
 }
 
 /* Web view callbacks */
@@ -451,15 +485,17 @@ button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
     }
 
     if ((event->type == GDK_2BUTTON_PRESS) || (event->type == GDK_3BUTTON_PRESS)) {
+        gboolean handle_multi_button = uzbl_variables_get_int ("handle_multi_button");
+
         if ((event->button == 1) && !is_editable && is_document) {
             sendev    = TRUE;
-            propagate = uzbl.state.handle_multi_button;
+            propagate = handle_multi_button;
         } else if ((event->button == 2) && !is_editable) {
             sendev    = TRUE;
-            propagate = uzbl.state.handle_multi_button;
+            propagate = handle_multi_button;
         } else if (event->button >= 3) {
             sendev    = TRUE;
-            propagate = uzbl.state.handle_multi_button;
+            propagate = handle_multi_button;
         }
     }
 
@@ -555,7 +591,7 @@ title_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
     const gchar *title = webkit_web_view_get_title (view);
 
     g_free (uzbl.gui.main_title);
-    uzbl.gui.main_title = title ? g_strdup (title) : g_strdup ("(no title)");
+    uzbl.gui.main_title = g_strdup (title ? title : "(no title)");
 
     uzbl_gui_update_title ();
 
@@ -695,7 +731,7 @@ load_failed_cb (WebKitWebView *view, WebKitLoadEvent event, gchar *uri, gpointer
     UZBL_UNUSED (event);
     UZBL_UNUSED (data);
 
-    uzbl.state.load_failed = TRUE;
+    uzbl.gui_->load_failed = TRUE;
 
     /* TODO: Use event for a better message? */
 
@@ -945,20 +981,18 @@ context_menu_cb (WebKitWebView *view, GtkMenu *menu, WebKitHitTestResult *hit_te
     UZBL_UNUSED (triggered_with_keyboard);
     UZBL_UNUSED (data);
 
-    gint context;
-
     if (!uzbl.gui.menu_items) {
         return FALSE;
     }
 
-    context = get_click_context ();
+    gint context = get_click_context ();
 
     /* Check context. */
     if (context == NO_CLICK_CONTEXT) {
         return FALSE;
     }
 
-    if (uzbl.gui.default_context_menu) {
+    if (uzbl_variables_get_int ("default_context_menu")) {
         return FALSE;
     }
 
@@ -971,16 +1005,18 @@ populate_popup_cb (WebKitWebView *view, GtkMenu *menu, gpointer data)
 {
     UZBL_UNUSED (data);
 
-    gint context;
-
     if (!uzbl.gui.menu_items) {
         return FALSE;
     }
 
-    context = get_click_context ();
+    gint context = get_click_context ();
 
     /* Check context. */
     if (context == NO_CLICK_CONTEXT) {
+        return FALSE;
+    }
+
+    if (uzbl_variables_get_int ("default_context_menu")) {
         return FALSE;
     }
 
@@ -1069,17 +1105,16 @@ configure_event_cb (GtkWidget *widget, GdkEventConfigure *event, gpointer data)
     UZBL_UNUSED (event);
     UZBL_UNUSED (data);
 
-    gchar *last_geo    = uzbl.gui.geometry;
-    /* TODO: We should set the geometry instead. */
     gchar *current_geo = uzbl_variables_get_string ("geometry");
 
-    if (!last_geo || g_strcmp0 (last_geo, current_geo)) {
+    if (!uzbl.gui_->last_geometry || g_strcmp0 (uzbl.gui_->last_geometry, current_geo)) {
         uzbl_events_send (GEOMETRY_CHANGED, NULL,
             TYPE_STR, current_geo,
             NULL);
     }
 
-    g_free (current_geo);
+    g_free (uzbl.gui_->last_geometry);
+    uzbl.gui_->last_geometry = current_geo;
 
     return FALSE;
 }
@@ -1201,16 +1236,16 @@ send_button_event (guint buttonval, guint state, gint mode)
 void
 send_hover_event (const gchar *uri, const gchar *title)
 {
-    g_free (uzbl.state.last_selected_url);
+    g_free (uzbl.gui_->last_selected_url);
 
-    uzbl.state.last_selected_url = g_strdup (uzbl.state.selected_url);
+    uzbl.gui_->last_selected_url = g_strdup (uzbl.state.selected_url);
 
     g_free (uzbl.state.selected_url);
     uzbl.state.selected_url = NULL;
 
-    if (uzbl.state.last_selected_url && g_strcmp0 (uri, uzbl.state.last_selected_url)) {
+    if (uzbl.gui_->last_selected_url && g_strcmp0 (uri, uzbl.gui_->last_selected_url)) {
         uzbl_events_send (LINK_UNHOVER, NULL,
-            TYPE_STR, uzbl.state.last_selected_url,
+            TYPE_STR, uzbl.gui_->last_selected_url,
             NULL);
     }
 
@@ -1247,7 +1282,7 @@ decide_navigation (GString *result, gpointer data);
 gboolean
 navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri)
 {
-    if (uzbl.state.frozen) {
+    if (uzbl_variables_get_int ("frozen")) {
         make_policy (decision, ignore);
         return TRUE;
     }
@@ -1329,8 +1364,8 @@ send_load_status (WebKitLoadStatus status, const gchar *uri)
         break;
     case WEBKIT_LOAD_FINISHED:
 #ifdef USE_WEBKIT2
-        if (uzbl.state.load_failed) {
-            uzbl.state.load_failed = FALSE;
+        if (uzbl.gui_->load_failed) {
+            uzbl.gui_->load_failed = FALSE;
             break;
         }
 #endif
@@ -1364,7 +1399,7 @@ send_load_error (const gchar *uri, GError *error)
 gboolean
 mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type, const gchar *disposition)
 {
-    if (uzbl.state.frozen) {
+    if (uzbl_variables_get_int ("frozen")) {
         make_policy (decision, ignore);
         return FALSE;
     }

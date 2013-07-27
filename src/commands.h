@@ -6,12 +6,6 @@
 struct _UzblCommand;
 typedef struct _UzblCommand UzblCommand;
 
-void
-uzbl_commands_init ();
-
-void
-uzbl_commands_send_builtin_event ();
-
 GArray *
 uzbl_commands_args_new ();
 void

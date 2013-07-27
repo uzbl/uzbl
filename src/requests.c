@@ -1,8 +1,7 @@
 #include "requests.h"
 
 #include "comm.h"
-#include "commands.h"
-#include "events.h"
+#include "io.h"
 #include "type.h"
 #include "util.h"
 #include "uzbl-core.h"
@@ -10,10 +9,49 @@
 #include <errno.h>
 #include <string.h>
 
+struct _UzblRequests {
+    /* Reply buffer */
+    GCond   reply_cond;
+    GMutex  reply_lock;
+    gchar  *reply;
+};
+
 /* =========================== PUBLIC API =========================== */
 
-static GString *
-send_request_sockets (GPtrArray *sockets, GString *msg, const gchar *cookie);
+void
+uzbl_requests_init ()
+{
+    uzbl.requests = g_malloc (sizeof (UzblRequests));
+
+    /* Initialize variables */
+    g_mutex_init (&uzbl.requests->reply_lock);
+    g_cond_init (&uzbl.requests->reply_cond);
+    uzbl.requests->reply = NULL;
+}
+
+void
+uzbl_requests_free ()
+{
+    g_mutex_clear (&uzbl.requests->reply_lock);
+    g_cond_clear (&uzbl.requests->reply_cond);
+    g_free (uzbl.requests->reply);
+
+    g_free (uzbl.requests);
+    uzbl.requests = NULL;
+}
+
+void
+uzbl_requests_set_reply (const gchar *reply)
+{
+    g_mutex_lock (&uzbl.requests->reply_lock);
+    if (uzbl.requests->reply) {
+        /* Stale reply? It's likely to be old, so let's nuke it. */
+        g_free (uzbl.requests->reply);
+    }
+    uzbl.requests->reply = g_strdup (reply);
+    g_cond_broadcast (&uzbl.requests->reply_cond);
+    g_mutex_unlock (&uzbl.requests->reply_lock);
+}
 
 typedef struct {
     GString *request;
@@ -47,75 +85,8 @@ uzbl_requests_send (const gchar *request, ...)
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
 
-GString *
-send_request_sockets (GPtrArray *sockets, GString *msg, const gchar *cookie)
-{
-    GString *reply_cookie = g_string_new ("");
-    GString *req_result = g_string_new ("");
-    GError *error = NULL;
-    GIOStatus ret;
-    gsize len;
-    guint i = 0;
-
-    g_string_printf (reply_cookie, "REPLY-%s ", cookie);
-
-    while (!req_result->len && (i < sockets->len)) {
-        GIOChannel *gio = g_ptr_array_index (sockets, i++);
-        gint64 deadline;
-        gboolean done = FALSE;
-
-        if (!gio || !gio->is_writeable || !gio->is_readable) {
-            continue;
-        }
-
-        ret = g_io_channel_write_chars (gio,
-            msg->str, msg->len,
-            &len, &error);
-
-        if (ret == G_IO_STATUS_ERROR) {
-            g_warning ("Error sending request to socket: %s", error->message);
-            g_clear_error (&error);
-            continue;
-        } else if (g_io_channel_flush (gio, &error) == G_IO_STATUS_ERROR) {
-            g_warning ("Error flushing: %s", error->message);
-            g_clear_error (&error);
-            continue;
-        }
-
-        /* Require replies within 1 second. */
-        deadline = g_get_monotonic_time () + 1 * G_TIME_SPAN_SECOND;
-
-        do {
-            gboolean timeout = FALSE;
-
-            g_mutex_lock (&uzbl.state.reply_lock);
-            while (!uzbl.state.reply) {
-                if (!g_cond_wait_until (&uzbl.state.reply_cond, &uzbl.state.reply_lock, deadline)) {
-                    timeout = TRUE;
-                    break;
-                }
-            }
-
-            if (timeout) {
-                done = TRUE;
-            } else if (!strprefix (uzbl.state.reply, reply_cookie->str)) {
-                g_string_assign (req_result, uzbl.state.reply + reply_cookie->len);
-                done = TRUE;
-            }
-
-            g_free (uzbl.state.reply);
-            uzbl.state.reply = NULL;
-
-            g_mutex_unlock (&uzbl.state.reply_lock);
-        } while (!done);
-    }
-
-    g_string_free (reply_cookie, TRUE);
-    return req_result;
-}
-
 static GString *
-send_formatted_request (GString *request, const gchar *cookie);
+send_request_sockets (GString *request, const gchar *cookie);
 
 GString *
 vuzbl_requests_send (const gchar *request, const gchar *cookie, va_list vargs)
@@ -124,7 +95,7 @@ vuzbl_requests_send (const gchar *request, const gchar *cookie, va_list vargs)
     g_string_printf (request_id, "REQUEST-%s", cookie);
 
     GString *rq = uzbl_comm_vformat (request_id->str, request, vargs);
-    GString *result = send_formatted_request (rq, cookie);
+    GString *result = send_request_sockets (rq, cookie);
 
     g_string_free (request_id, TRUE);
     g_string_free (rq, TRUE);
@@ -132,30 +103,44 @@ vuzbl_requests_send (const gchar *request, const gchar *cookie, va_list vargs)
     return result;
 }
 
-static GString *
-send_request_socket (GString *msg, const gchar *cookie);
-
 GString *
-send_formatted_request (GString *request, const gchar *cookie)
+send_request_sockets (GString *msg, const gchar *cookie)
 {
-    if (request && !strchr (request->str, '\n')) {
-        /* An request string is not supposed to contain newlines as it will be
-         * interpreted as two requests. */
-        g_string_append_c (request, '\n');
+    uzbl_io_send (msg->str, TRUE);
 
-        return send_request_socket (request, cookie);
-    }
+    /* Require replies within 1 second. */
+    gint64 deadline = g_get_monotonic_time () + 1 * G_TIME_SPAN_SECOND;
 
-    return g_string_new ("");
-}
+    GString *reply_cookie = g_string_new ("");
+    g_string_printf (reply_cookie, "REPLY-%s ", cookie);
 
-GString *
-send_request_socket (GString *msg, const gchar *cookie)
-{
-    if (uzbl.comm.connect_chan) {
-        /* Write to all --connect-socket sockets. */
-        return send_request_sockets (uzbl.comm.connect_chan, msg, cookie);
-    }
+    GString *req_result = g_string_new ("");
 
-    return g_string_new ("");
+    gboolean done = FALSE;
+    do {
+        gboolean timeout = FALSE;
+
+        g_mutex_lock (&uzbl.requests->reply_lock);
+        while (!uzbl.requests->reply) {
+            if (!g_cond_wait_until (&uzbl.requests->reply_cond, &uzbl.requests->reply_lock, deadline)) {
+                timeout = TRUE;
+                break;
+            }
+        }
+
+        if (timeout) {
+            done = TRUE;
+        } else if (!strprefix (uzbl.requests->reply, reply_cookie->str)) {
+            g_string_assign (req_result, uzbl.requests->reply + reply_cookie->len);
+            done = TRUE;
+        }
+
+        g_free (uzbl.requests->reply);
+        uzbl.requests->reply = NULL;
+
+        g_mutex_unlock (&uzbl.requests->reply_lock);
+    } while (!done);
+
+    g_string_free (reply_cookie, TRUE);
+    return req_result;
 }

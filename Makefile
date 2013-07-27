@@ -100,6 +100,7 @@ HEADERS := \
     requests.h \
     menu.h \
     scheme.h \
+    setup.h \
     status-bar.h \
     util.h \
     uzbl-core.h \

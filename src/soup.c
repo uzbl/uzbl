@@ -154,7 +154,7 @@ authenticate (GString *result, gpointer data)
         soup_auth_authenticate (auth->auth, tokens[1], tokens[2]);
     }
 
-    soup_session_unpause_message (uzbl.net.soup_session, auth->message);
+    soup_session_unpause_message (auth->session, auth->message);
 
     g_object_unref (auth->auth);
     g_object_unref (auth->message);

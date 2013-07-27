@@ -33,7 +33,6 @@
  *   - Replace selection (frame).
  */
 
-/* A really generic function pointer. */
 typedef void (*UzblFunction) ();
 
 typedef union {
@@ -53,45 +52,50 @@ typedef struct {
     UzblFunction set;
 } UzblVariable;
 
-typedef struct {
-    const char *name;
-    UzblVariable var;
-} UzblVariableEntry;
+struct _UzblVariablesPrivate;
+typedef struct _UzblVariablesPrivate UzblVariablesPrivate;
 
-static const UzblVariableEntry
-builtin_variable_table[];
+struct _UzblVariables {
+    /* Table of all variables commands. */
+    GHashTable *table;
+
+    /* All builtin variable storage is in here. */
+    UzblVariablesPrivate *priv;
+};
 
 /* =========================== PUBLIC API =========================== */
 
+static UzblVariablesPrivate *
+uzbl_variables_private_new (GHashTable *table);
+static void
+uzbl_variables_private_free (UzblVariablesPrivate *priv);
+static void
+variable_free (UzblVariable *variable);
 static void
 init_js_variables_api ();
 
-/* Construct a hash table from the var_name_to_ptr array for quick access. */
 void
 uzbl_variables_init ()
 {
-    const UzblVariableEntry *entry = builtin_variable_table;
-    uzbl.behave.proto_var = g_hash_table_new (g_str_hash, g_str_equal);
-    while (entry->name) {
-        g_hash_table_insert (uzbl.behave.proto_var,
-            (gpointer)entry->name,
-            (gpointer)&entry->var);
-        ++entry;
-    }
+    uzbl.variables = g_malloc (sizeof (UzblVariables));
+
+    uzbl.variables->table = g_hash_table_new_full (g_str_hash, g_str_equal,
+        g_free, (GDestroyNotify)variable_free);
+
+    uzbl.variables->priv = uzbl_variables_private_new (uzbl.variables->table);
 
     init_js_variables_api ();
 }
 
-static void
-variable_free (gpointer key, gpointer value, gpointer data);
-
 void
 uzbl_variables_free ()
 {
-    g_hash_table_foreach (uzbl.behave.proto_var, variable_free, NULL);
+    g_hash_table_destroy (uzbl.variables->table);
 
-    g_hash_table_destroy (uzbl.behave.proto_var);
-    uzbl.behave.proto_var = NULL;
+    uzbl_variables_private_free (uzbl.variables->priv);
+
+    g_free (uzbl.variables);
+    uzbl.variables = NULL;
 }
 
 static const char *valid_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.";
@@ -183,7 +187,7 @@ uzbl_variables_set (const gchar *name, gchar *val)
 
         var->value.s = g_malloc (sizeof (gchar *));
 
-        g_hash_table_insert (uzbl.behave.proto_var,
+        g_hash_table_insert (uzbl.variables->table,
             g_strdup (name), (gpointer)var);
 
         /* Set the value. */
@@ -249,12 +253,10 @@ uzbl_variables_toggle (const gchar *name, GArray *values)
         } else {
             next = "";
 
-            if (!var->builtin) {
-                if (!strcmp (*var->value.s, "0")) {
-                    next = "1";
-                } else if (!strcmp (*var->value.s, "1")) {
-                    next = "0";
-                }
+            if (!strcmp (*var->value.s, "0")) {
+                next = "1";
+            } else if (!strcmp (*var->value.s, "1")) {
+                next = "0";
             }
         }
 
@@ -400,7 +402,7 @@ dump_variable (gpointer key, gpointer value, gpointer data);
 void
 uzbl_variables_dump ()
 {
-    g_hash_table_foreach (uzbl.behave.proto_var, dump_variable, NULL);
+    g_hash_table_foreach (uzbl.variables->table, dump_variable, NULL);
 }
 
 static void
@@ -409,10 +411,23 @@ dump_variable_event (gpointer key, gpointer value, gpointer data);
 void
 uzbl_variables_dump_events ()
 {
-    g_hash_table_foreach (uzbl.behave.proto_var, dump_variable_event, NULL);
+    g_hash_table_foreach (uzbl.variables->table, dump_variable_event, NULL);
 }
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
+
+void
+variable_free (UzblVariable *variable)
+{
+    if ((variable->type == TYPE_STR) && variable->value.s) {
+        g_free (*variable->value.s);
+        if (!variable->builtin) {
+            g_free (variable->value.s);
+        }
+    }
+
+    g_free (variable);
+}
 
 static bool
 js_has_variable (JSContextRef ctx, JSObjectRef object, JSStringRef propertyName);
@@ -460,32 +475,10 @@ init_js_variables_api ()
     JSClassRelease (variables_class);
 }
 
-void
-variable_free (gpointer key, gpointer value, gpointer data)
-{
-    UZBL_UNUSED (data);
-
-    UzblVariable *var = (UzblVariable *)value;
-
-    if (var->builtin) {
-        return;
-    }
-
-    if (var->type == TYPE_STR) {
-        g_free (*var->value.s);
-        g_free (var->value.s);
-    }
-
-    gchar *name = (gchar *)key;
-
-    g_free (name);
-    g_free (var);
-}
-
 UzblVariable *
 get_variable (const gchar *name)
 {
-    return g_hash_table_lookup (uzbl.behave.proto_var, name);
+    return g_hash_table_lookup (uzbl.variables->table, name);
 }
 
 gboolean
@@ -1052,7 +1045,7 @@ expand_type (const gchar *str)
     }
 }
 
-/* ======================== VARIABLES TABLE ========================= */
+/* ======================== VARIABLES  TABLE ======================== */
 
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 11, 4)
@@ -1353,299 +1346,400 @@ DECLARE_GETTER (gchar *, plugin_list);
 DECLARE_GETTER (gchar *, app_cache_directory);
 #endif
 #endif
+DECLARE_GETTER (int, WEBKIT_MAJOR);
+DECLARE_GETTER (int, WEBKIT_MINOR);
+DECLARE_GETTER (int, WEBKIT_MICRO);
+DECLARE_GETTER (int, WEBKIT_UA_MAJOR);
+DECLARE_GETTER (int, WEBKIT_UA_MINOR);
+DECLARE_GETTER (int, HAS_WEBKIT2);
+DECLARE_GETTER (gchar *, ARCH_UZBL);
+DECLARE_GETTER (gchar *, COMMIT);
+DECLARE_GETTER (int, PID);
 
-static const UzblVariableEntry
-builtin_variable_table[] = {
-    /* name                           entry                                                type/callback */
+struct _UzblVariablesPrivate {
     /* Uzbl variables */
-    { "verbose",                      UZBL_V_INT (uzbl.state.verbose,                      NULL)},
-    { "frozen",                       UZBL_V_INT (uzbl.state.frozen,                       NULL)},
-    { "print_events",                 UZBL_V_INT (uzbl.state.events_stdout,                NULL)},
-    { "handle_multi_button",          UZBL_V_INT (uzbl.state.handle_multi_button,          NULL)},
+    gboolean verbose;
+    gboolean frozen;
+    gboolean print_events;
+    gboolean handle_multi_button;
 
     /* Communication variables */
-    { "fifo_dir",                     UZBL_V_STRING (uzbl.behave.fifo_dir,                 set_fifo_dir)},
-    { "socket_dir",                   UZBL_V_STRING (uzbl.behave.socket_dir,               set_socket_dir)},
+    gchar *fifo_dir;
+    gchar *socket_dir;
 
     /* Handler variables */
-    { "scheme_handler",               UZBL_V_STRING (uzbl.behave.scheme_handler,           NULL)},
-    { "request_handler",              UZBL_V_STRING (uzbl.behave.request_handler,          NULL)},
-    { "download_handler",             UZBL_V_STRING (uzbl.behave.download_handler,         NULL)},
-    { "mime_handler",                 UZBL_V_STRING (uzbl.behave.mime_handler,             NULL)},
-    { "authentication_handler",       UZBL_V_STRING (uzbl.behave.authentication_handler,   NULL)},
-    { "shell_cmd",                    UZBL_V_STRING (uzbl.behave.shell_cmd,                NULL)},
-#ifndef USE_WEBKIT2
-    { "enable_builtin_auth",          UZBL_V_FUNC (enable_builtin_auth,                    INT)},
-#endif
+    gchar *scheme_handler;
+    gchar *request_handler;
+    gchar *download_handler;
+    gchar *mime_handler;
+    gchar *authentication_handler;
+    gchar *shell_cmd;
 
     /* Window variables */
-    { "icon",                         UZBL_V_STRING (uzbl.gui.icon,                        set_icon)},
-    { "icon_name",                    UZBL_V_STRING (uzbl.gui.icon_name,                   set_icon_name)},
-    { "window_role",                  UZBL_V_FUNC (window_role,                            STR)},
-#ifndef USE_WEBKIT2
-    { "auto_resize_window",           UZBL_V_FUNC (auto_resize_window,                     INT)},
-#endif
+    gchar *icon;
+    gchar *icon_name;
 
     /* UI variables */
-    { "show_status",                  UZBL_V_FUNC (show_status,                            INT)},
-    { "status_top",                   UZBL_V_INT (uzbl.behave.status_top,                  set_status_top)},
-    { "status_format",                UZBL_V_STRING (uzbl.behave.status_format,            NULL)},
-    { "status_format_right",          UZBL_V_STRING (uzbl.behave.status_format_right,      NULL)},
-    { "status_background",            UZBL_V_STRING (uzbl.behave.status_background,        set_status_background)},
-    { "title_format_long",            UZBL_V_STRING (uzbl.behave.title_format_long,        NULL)},
-    { "title_format_short",           UZBL_V_STRING (uzbl.behave.title_format_short,       NULL)},
-#ifdef USE_WEBKIT2
-    { "enable_compositing_debugging", UZBL_V_FUNC (enable_compositing_debugging,           INT)},
-#endif
+    gboolean status_top;
+    gchar *status_format;
+    gchar *status_format_right;
+    gchar *status_background;
+    gchar *title_format_long;
+    gchar *title_format_short;
 
     /* Customization */
-    { "default_context_menu",
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
-                                      UZBL_V_INT (uzbl.gui.default_context_menu,           NULL)
-#else
-                                      UZBL_V_FUNC (default_context_menu,                   INT)
+    gboolean default_context_menu;
 #endif
-                                      },
-
-    /* Printing variables */
-    { "print_backgrounds",            UZBL_V_FUNC (print_backgrounds,                      INT)},
 
     /* Network variables */
-#ifndef USE_WEBKIT2
-    { "proxy_url",                    UZBL_V_FUNC (proxy_url,                              STR)},
-    { "max_conns",                    UZBL_V_FUNC (max_conns,                              INT)},
-    { "max_conns_host",               UZBL_V_FUNC (max_conns_host,                         INT)},
-    { "http_debug",                   UZBL_V_STRING (uzbl.behave.http_debug,               set_http_debug)},
-    { "ssl_ca_file",                  UZBL_V_FUNC (ssl_ca_file,                            STR)},
-#endif
-    { "ssl_policy",                   UZBL_V_FUNC (ssl_policy,                             STR)},
-    { "cache_model",                  UZBL_V_FUNC (cache_model,                            STR)},
+    gchar *http_debug;
 
     /* Security variables */
-    { "enable_private",               UZBL_V_FUNC (enable_private,                         INT)},
 #ifndef USE_WEBKIT2
-    { "enable_universal_file_access", UZBL_V_FUNC (enable_universal_file_access,           INT)},
-    { "enable_cross_file_access",     UZBL_V_FUNC (enable_cross_file_access,               INT)},
-#endif
-    { "enable_hyperlink_auditing",    UZBL_V_FUNC (enable_hyperlink_auditing,              INT)},
-#ifdef USE_WEBKIT2
-    { "enable_xss_auditing",          UZBL_V_FUNC (enable_xss_auditing,                    INT)},
-#endif
-    { "cookie_policy",                UZBL_V_FUNC (cookie_policy,                          STR)},
-#if WEBKIT_CHECK_VERSION (1, 3, 13)
-    { "enable_dns_prefetch",          UZBL_V_FUNC (enable_dns_prefetch,                    INT)},
-#endif
-#ifndef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 11, 2)
-    { "display_insecure_content",     UZBL_V_FUNC (display_insecure_content,               INT)},
-    { "run_insecure_content",         UZBL_V_FUNC (run_insecure_content,                   INT)},
-#endif
-    { "maintain_history",             UZBL_V_INT (uzbl.behave.maintain_history,            set_maintain_history)},
-#endif
-
-    /* Inspector variables */
-#ifndef USE_WEBKIT2
-    { "profile_js",                   UZBL_V_FUNC (profile_js,                             INT)},
-    { "profile_timeline",             UZBL_V_FUNC (profile_timeline,                       INT)},
+    gboolean maintain_history;
 #endif
 
     /* Page variables */
-    { "forward_keys",                 UZBL_V_INT (uzbl.behave.forward_keys,                NULL)},
-    { "useragent",                    UZBL_V_FUNC (useragent,                              STR)},
-    { "accept_languages",
+    gboolean forward_keys;
 #ifdef USE_WEBKIT2
-                                      UZBL_V_STRING (uzbl.net.accept_languages,            set_accept_languages)
-#else
-                                      UZBL_V_FUNC (accept_languages,                       STR)
-#endif
-                                      },
-    { "zoom_level",                   UZBL_V_FUNC (zoom_level,                             DOUBLE)},
-    { "zoom_step",
-#ifdef USE_WEBKIT2
-                                      UZBL_V_DOUBLE (uzbl.behave.zoom_step,                set_zoom_step)
-#else
-                                      UZBL_V_FUNC (zoom_step,                              DOUBLE)
-#endif
-                                      },
-#ifdef HAVE_ZOOM_TEXT_API
-    { "zoom_text_only",               UZBL_V_FUNC (zoom_text_only,                         INT)},
-#endif
-    { "caret_browsing",               UZBL_V_FUNC (caret_browsing,                         INT)},
-#if WEBKIT_CHECK_VERSION (1, 3, 5)
-    { "enable_frame_flattening",      UZBL_V_FUNC (enable_frame_flattening,                INT)},
-#endif
-#if WEBKIT_CHECK_VERSION (1, 9, 0)
-    { "enable_smooth_scrolling",      UZBL_V_FUNC (enable_smooth_scrolling,                INT)},
-#endif
-    { "page_view_mode",               UZBL_V_FUNC (page_view_mode,                         STR)},
-#ifndef USE_WEBKIT2
-    { "transparent",                  UZBL_V_FUNC (transparent,                            INT)},
-#if WEBKIT_CHECK_VERSION (1, 3, 4)
-    { "window_view_mode",             UZBL_V_FUNC (window_view_mode,                       STR)},
-#endif
-#endif
-#if WEBKIT_CHECK_VERSION (1, 3, 8)
-    { "enable_fullscreen",            UZBL_V_FUNC (enable_fullscreen,                      INT)},
-#endif
-#ifndef USE_WEBKIT2
-    { "editable",                     UZBL_V_FUNC (editable,                               INT)},
-#endif
-
-    /* Javascript variables */
-    { "enable_scripts",               UZBL_V_FUNC (enable_scripts,                         INT)},
-    { "javascript_windows",           UZBL_V_FUNC (javascript_windows,                     INT)},
-#ifdef USE_WEBKIT2
-    { "javascript_modal_dialogs",     UZBL_V_FUNC (javascript_modal_dialogs,               INT)},
-#endif
-#ifndef USE_WEBKIT2
-    { "javascript_dom_paste",         UZBL_V_FUNC (javascript_dom_paste,                   INT)},
-#endif
-#if WEBKIT_CHECK_VERSION (1, 3, 0)
-    { "javascript_clipboard",         UZBL_V_FUNC (javascript_clipboard,                   INT)},
-#endif
-#ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (2, 1, 1)
-    { "javascript_console_to_stdout", UZBL_V_FUNC (javascript_console_to_stdout,           INT)},
-#endif
-#endif
-
-    /* Image variables */
-    { "autoload_images",              UZBL_V_FUNC (autoload_images,                        INT)},
-#ifdef USE_WEBKIT2
-    { "always_load_icons",            UZBL_V_FUNC (always_load_icons,                      INT)},
-#endif
-#ifndef USE_WEBKIT2
-    { "autoshrink_images",            UZBL_V_FUNC (autoshrink_images,                      INT)},
-    { "use_image_orientation",        UZBL_V_FUNC (use_image_orientation,                  INT)},
-#endif
-
-    /* Spell checking variables */
-    { "enable_spellcheck",            UZBL_V_FUNC (enable_spellcheck,                      INT)},
-    { "spellcheck_languages",         UZBL_V_FUNC (spellcheck_languages,                   STR)},
-
-    /* Form variables */
-    { "resizable_text_areas",         UZBL_V_FUNC (resizable_text_areas,                   INT)},
-#ifndef USE_WEBKIT2
-    { "enable_spatial_navigation",    UZBL_V_FUNC (enable_spatial_navigation,              INT)},
-    { "editing_behavior",             UZBL_V_FUNC (editing_behavior,                       STR)},
-#endif
-    { "enable_tab_cycle",             UZBL_V_FUNC (enable_tab_cycle,                       INT)},
-
-    /* Text variables */
-    { "default_encoding",             UZBL_V_FUNC (default_encoding,                       STR)},
-    { "custom_encoding",              UZBL_V_FUNC (custom_encoding,                        STR)},
-#ifndef USE_WEBKIT2
-    { "enforce_96_dpi",               UZBL_V_FUNC (enforce_96_dpi,                         INT)},
-#endif
-
-    /* Font variables */
-    { "default_font_family",          UZBL_V_FUNC (default_font_family,                    STR)},
-    { "monospace_font_family",        UZBL_V_FUNC (monospace_font_family,                  STR)},
-    { "sans_serif_font_family",       UZBL_V_FUNC (sans_serif_font_family,                 STR)},
-    { "serif_font_family",            UZBL_V_FUNC (serif_font_family,                      STR)},
-    { "cursive_font_family",          UZBL_V_FUNC (cursive_font_family,                    STR)},
-    { "fantasy_font_family",          UZBL_V_FUNC (fantasy_font_family,                    STR)},
-#ifdef USE_WEBKIT2
-    { "pictograph_font_family",       UZBL_V_FUNC (pictograph_font_family,                 STR)},
-#endif
-
-    /* Font size variables */
-#ifndef USE_WEBKIT2
-    { "minimum_font_size",            UZBL_V_FUNC (minimum_font_size,                      INT)},
-    { "minimum_logical_font_size",    UZBL_V_FUNC (minimum_logical_font_size,              INT)},
-#endif
-    { "font_size",                    UZBL_V_FUNC (font_size,                              INT)},
-    { "monospace_size",               UZBL_V_FUNC (monospace_size,                         INT)},
-
-    /* Feature variables */
-    { "enable_plugins",               UZBL_V_FUNC (enable_plugins,                         INT)},
-    { "enable_java_applet",           UZBL_V_FUNC (enable_java_applet,                     INT)},
-#if WEBKIT_CHECK_VERSION (1, 3, 14)
-    { "enable_webgl",                 UZBL_V_FUNC (enable_webgl,                           INT)},
-#endif
-#if WEBKIT_CHECK_VERSION (1, 7, 5)
-    { "enable_webaudio",              UZBL_V_FUNC (enable_webaudio,                        INT)},
-#endif
-#ifndef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 7, 90) /* Documentation says 1.7.5, but it's not there. */
-    { "enable_3d_acceleration",       UZBL_V_FUNC (enable_3d_acceleration,                 INT)},
-#endif
-#endif
-#ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (2, 1, 1)
-    { "enable_2d_acceleration",       UZBL_V_FUNC (enable_2d_acceleration,                 INT)},
-#endif
-#endif
-#if WEBKIT_CHECK_VERSION (1, 9, 3)
-    { "enable_inline_media",          UZBL_V_FUNC (enable_inline_media,                    INT)},
-    { "require_click_to_play",        UZBL_V_FUNC (require_click_to_play,                  INT)},
-#endif
-#ifndef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 11, 1)
-    { "enable_css_shaders",           UZBL_V_FUNC (enable_css_shaders,                     INT)},
-    { "enable_media_stream",          UZBL_V_FUNC (enable_media_stream,                    INT)},
-#endif
+    gchar *accept_languages;
+    gdouble zoom_step;
 #endif
 
     /* HTML5 Database variables */
-    { "enable_database",              UZBL_V_FUNC (enable_database,                        INT)},
-    { "enable_local_storage",         UZBL_V_FUNC (enable_local_storage,                   INT)},
-    { "enable_pagecache",             UZBL_V_FUNC (enable_pagecache,                       INT)},
-    { "enable_offline_app_cache",     UZBL_V_FUNC (enable_offline_app_cache,               INT)},
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 11, 92)
+    gchar *disk_cache_directory;
+#endif
+    gchar *web_extensions_directory;
+#endif
+};
+
+typedef struct {
+    const char *name;
+    UzblVariable var;
+} UzblVariableEntry;
+
+UzblVariablesPrivate *
+uzbl_variables_private_new (GHashTable *table)
+{
+    UzblVariablesPrivate *priv = g_malloc0 (sizeof (UzblVariablesPrivate));
+
+    const UzblVariableEntry
+    builtin_variable_table[] = {
+        /* name                           entry                                                type/callback */
+        /* Uzbl variables */
+        { "verbose",                      UZBL_V_INT (priv->verbose,                           NULL)},
+        { "frozen",                       UZBL_V_INT (priv->frozen,                            NULL)},
+        { "print_events",                 UZBL_V_INT (priv->print_events,                      NULL)},
+        { "handle_multi_button",          UZBL_V_INT (priv->handle_multi_button,               NULL)},
+
+        /* Communication variables */
+        { "fifo_dir",                     UZBL_V_STRING (priv->fifo_dir,                       set_fifo_dir)},
+        { "socket_dir",                   UZBL_V_STRING (priv->socket_dir,                     set_socket_dir)},
+
+        /* Handler variables */
+        { "scheme_handler",               UZBL_V_STRING (priv->scheme_handler,                 NULL)},
+        { "request_handler",              UZBL_V_STRING (priv->request_handler,                NULL)},
+        { "download_handler",             UZBL_V_STRING (priv->download_handler,               NULL)},
+        { "mime_handler",                 UZBL_V_STRING (priv->mime_handler,                   NULL)},
+        { "authentication_handler",       UZBL_V_STRING (priv->authentication_handler,         NULL)},
+        { "shell_cmd",                    UZBL_V_STRING (priv->shell_cmd,                      NULL)},
+#ifndef USE_WEBKIT2
+        { "enable_builtin_auth",          UZBL_V_FUNC (enable_builtin_auth,                    INT)},
+#endif
+
+        /* Window variables */
+        { "icon",                         UZBL_V_STRING (priv->icon,                           set_icon)},
+        { "icon_name",                    UZBL_V_STRING (priv->icon_name,                      set_icon_name)},
+        { "window_role",                  UZBL_V_FUNC (window_role,                            STR)},
+#ifndef USE_WEBKIT2
+        { "auto_resize_window",           UZBL_V_FUNC (auto_resize_window,                     INT)},
+#endif
+
+        /* UI variables */
+        { "show_status",                  UZBL_V_FUNC (show_status,                            INT)},
+        { "status_top",                   UZBL_V_INT (priv->status_top,                        set_status_top)},
+        { "status_format",                UZBL_V_STRING (priv->status_format,                  NULL)},
+        { "status_format_right",          UZBL_V_STRING (priv->status_format_right,            NULL)},
+        { "status_background",            UZBL_V_STRING (priv->status_background,              set_status_background)},
+        { "title_format_long",            UZBL_V_STRING (priv->title_format_long,              NULL)},
+        { "title_format_short",           UZBL_V_STRING (priv->title_format_short,             NULL)},
+#ifdef USE_WEBKIT2
+        { "enable_compositing_debugging", UZBL_V_FUNC (enable_compositing_debugging,           INT)},
+#endif
+
+        /* Customization */
+        { "default_context_menu",
+#if WEBKIT_CHECK_VERSION (1, 9, 0)
+                                          UZBL_V_INT (priv->default_context_menu,              NULL)
+#else
+                                          UZBL_V_FUNC (default_context_menu,                   INT)
+#endif
+                                          },
+
+        /* Printing variables */
+        { "print_backgrounds",            UZBL_V_FUNC (print_backgrounds,                      INT)},
+
+        /* Network variables */
+#ifndef USE_WEBKIT2
+        { "proxy_url",                    UZBL_V_FUNC (proxy_url,                              STR)},
+        { "max_conns",                    UZBL_V_FUNC (max_conns,                              INT)},
+        { "max_conns_host",               UZBL_V_FUNC (max_conns_host,                         INT)},
+        { "http_debug",                   UZBL_V_STRING (priv->http_debug,                     set_http_debug)},
+        { "ssl_ca_file",                  UZBL_V_FUNC (ssl_ca_file,                            STR)},
+#endif
+        { "ssl_policy",                   UZBL_V_FUNC (ssl_policy,                             STR)},
+        { "cache_model",                  UZBL_V_FUNC (cache_model,                            STR)},
+
+        /* Security variables */
+        { "enable_private",               UZBL_V_FUNC (enable_private,                         INT)},
+#ifndef USE_WEBKIT2
+        { "enable_universal_file_access", UZBL_V_FUNC (enable_universal_file_access,           INT)},
+        { "enable_cross_file_access",     UZBL_V_FUNC (enable_cross_file_access,               INT)},
+#endif
+        { "enable_hyperlink_auditing",    UZBL_V_FUNC (enable_hyperlink_auditing,              INT)},
+#ifdef USE_WEBKIT2
+        { "enable_xss_auditing",          UZBL_V_FUNC (enable_xss_auditing,                    INT)},
+#endif
+        { "cookie_policy",                UZBL_V_FUNC (cookie_policy,                          STR)},
+#if WEBKIT_CHECK_VERSION (1, 3, 13)
+        { "enable_dns_prefetch",          UZBL_V_FUNC (enable_dns_prefetch,                    INT)},
+#endif
+#ifndef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 11, 2)
+        { "display_insecure_content",     UZBL_V_FUNC (display_insecure_content,               INT)},
+        { "run_insecure_content",         UZBL_V_FUNC (run_insecure_content,                   INT)},
+#endif
+        { "maintain_history",             UZBL_V_INT (priv->maintain_history,                  set_maintain_history)},
+#endif
+
+        /* Inspector variables */
+#ifndef USE_WEBKIT2
+        { "profile_js",                   UZBL_V_FUNC (profile_js,                             INT)},
+        { "profile_timeline",             UZBL_V_FUNC (profile_timeline,                       INT)},
+#endif
+
+        /* Page variables */
+        { "forward_keys",                 UZBL_V_INT (priv->forward_keys,                      NULL)},
+        { "useragent",                    UZBL_V_FUNC (useragent,                              STR)},
+        { "accept_languages",
+#ifdef USE_WEBKIT2
+                                          UZBL_V_STRING (priv->accept_languages,               set_accept_languages)
+#else
+                                          UZBL_V_FUNC (accept_languages,                       STR)
+#endif
+                                          },
+        { "zoom_level",                   UZBL_V_FUNC (zoom_level,                             DOUBLE)},
+        { "zoom_step",
+#ifdef USE_WEBKIT2
+                                          UZBL_V_DOUBLE (priv->zoom_step,                      set_zoom_step)
+#else
+                                          UZBL_V_FUNC (zoom_step,                              DOUBLE)
+#endif
+                                          },
+#ifdef HAVE_ZOOM_TEXT_API
+        { "zoom_text_only",               UZBL_V_FUNC (zoom_text_only,                         INT)},
+#endif
+        { "caret_browsing",               UZBL_V_FUNC (caret_browsing,                         INT)},
+#if WEBKIT_CHECK_VERSION (1, 3, 5)
+        { "enable_frame_flattening",      UZBL_V_FUNC (enable_frame_flattening,                INT)},
+#endif
+#if WEBKIT_CHECK_VERSION (1, 9, 0)
+        { "enable_smooth_scrolling",      UZBL_V_FUNC (enable_smooth_scrolling,                INT)},
+#endif
+        { "page_view_mode",               UZBL_V_FUNC (page_view_mode,                         STR)},
+#ifndef USE_WEBKIT2
+        { "transparent",                  UZBL_V_FUNC (transparent,                            INT)},
+#if WEBKIT_CHECK_VERSION (1, 3, 4)
+        { "window_view_mode",             UZBL_V_FUNC (window_view_mode,                       STR)},
+#endif
+#endif
+#if WEBKIT_CHECK_VERSION (1, 3, 8)
+        { "enable_fullscreen",            UZBL_V_FUNC (enable_fullscreen,                      INT)},
+#endif
+#ifndef USE_WEBKIT2
+        { "editable",                     UZBL_V_FUNC (editable,                               INT)},
+#endif
+
+        /* Javascript variables */
+        { "enable_scripts",               UZBL_V_FUNC (enable_scripts,                         INT)},
+        { "javascript_windows",           UZBL_V_FUNC (javascript_windows,                     INT)},
+#ifdef USE_WEBKIT2
+        { "javascript_modal_dialogs",     UZBL_V_FUNC (javascript_modal_dialogs,               INT)},
+#endif
+#ifndef USE_WEBKIT2
+        { "javascript_dom_paste",         UZBL_V_FUNC (javascript_dom_paste,                   INT)},
+#endif
+#if WEBKIT_CHECK_VERSION (1, 3, 0)
+        { "javascript_clipboard",         UZBL_V_FUNC (javascript_clipboard,                   INT)},
+#endif
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 1, 1)
+        { "javascript_console_to_stdout", UZBL_V_FUNC (javascript_console_to_stdout,           INT)},
+#endif
+#endif
+
+        /* Image variables */
+        { "autoload_images",              UZBL_V_FUNC (autoload_images,                        INT)},
+#ifdef USE_WEBKIT2
+        { "always_load_icons",            UZBL_V_FUNC (always_load_icons,                      INT)},
+#endif
+#ifndef USE_WEBKIT2
+        { "autoshrink_images",            UZBL_V_FUNC (autoshrink_images,                      INT)},
+        { "use_image_orientation",        UZBL_V_FUNC (use_image_orientation,                  INT)},
+#endif
+
+        /* Spell checking variables */
+        { "enable_spellcheck",            UZBL_V_FUNC (enable_spellcheck,                      INT)},
+        { "spellcheck_languages",         UZBL_V_FUNC (spellcheck_languages,                   STR)},
+
+        /* Form variables */
+        { "resizable_text_areas",         UZBL_V_FUNC (resizable_text_areas,                   INT)},
+#ifndef USE_WEBKIT2
+        { "enable_spatial_navigation",    UZBL_V_FUNC (enable_spatial_navigation,              INT)},
+        { "editing_behavior",             UZBL_V_FUNC (editing_behavior,                       STR)},
+#endif
+        { "enable_tab_cycle",             UZBL_V_FUNC (enable_tab_cycle,                       INT)},
+
+        /* Text variables */
+        { "default_encoding",             UZBL_V_FUNC (default_encoding,                       STR)},
+        { "custom_encoding",              UZBL_V_FUNC (custom_encoding,                        STR)},
+#ifndef USE_WEBKIT2
+        { "enforce_96_dpi",               UZBL_V_FUNC (enforce_96_dpi,                         INT)},
+#endif
+
+        /* Font variables */
+        { "default_font_family",          UZBL_V_FUNC (default_font_family,                    STR)},
+        { "monospace_font_family",        UZBL_V_FUNC (monospace_font_family,                  STR)},
+        { "sans_serif_font_family",       UZBL_V_FUNC (sans_serif_font_family,                 STR)},
+        { "serif_font_family",            UZBL_V_FUNC (serif_font_family,                      STR)},
+        { "cursive_font_family",          UZBL_V_FUNC (cursive_font_family,                    STR)},
+        { "fantasy_font_family",          UZBL_V_FUNC (fantasy_font_family,                    STR)},
+#ifdef USE_WEBKIT2
+        { "pictograph_font_family",       UZBL_V_FUNC (pictograph_font_family,                 STR)},
+#endif
+
+        /* Font size variables */
+#ifndef USE_WEBKIT2
+        { "minimum_font_size",            UZBL_V_FUNC (minimum_font_size,                      INT)},
+        { "minimum_logical_font_size",    UZBL_V_FUNC (minimum_logical_font_size,              INT)},
+#endif
+        { "font_size",                    UZBL_V_FUNC (font_size,                              INT)},
+        { "monospace_size",               UZBL_V_FUNC (monospace_size,                         INT)},
+
+        /* Feature variables */
+        { "enable_plugins",               UZBL_V_FUNC (enable_plugins,                         INT)},
+        { "enable_java_applet",           UZBL_V_FUNC (enable_java_applet,                     INT)},
+#if WEBKIT_CHECK_VERSION (1, 3, 14)
+        { "enable_webgl",                 UZBL_V_FUNC (enable_webgl,                           INT)},
+#endif
+#if WEBKIT_CHECK_VERSION (1, 7, 5)
+        { "enable_webaudio",              UZBL_V_FUNC (enable_webaudio,                        INT)},
+#endif
+#ifndef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 7, 90) /* Documentation says 1.7.5, but it's not there. */
+        { "enable_3d_acceleration",       UZBL_V_FUNC (enable_3d_acceleration,                 INT)},
+#endif
+#endif
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 1, 1)
+        { "enable_2d_acceleration",       UZBL_V_FUNC (enable_2d_acceleration,                 INT)},
+#endif
+#endif
+#if WEBKIT_CHECK_VERSION (1, 9, 3)
+        { "enable_inline_media",          UZBL_V_FUNC (enable_inline_media,                    INT)},
+        { "require_click_to_play",        UZBL_V_FUNC (require_click_to_play,                  INT)},
+#endif
+#ifndef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 11, 1)
+        { "enable_css_shaders",           UZBL_V_FUNC (enable_css_shaders,                     INT)},
+        { "enable_media_stream",          UZBL_V_FUNC (enable_media_stream,                    INT)},
+#endif
+#endif
+
+        /* HTML5 Database variables */
+        { "enable_database",              UZBL_V_FUNC (enable_database,                        INT)},
+        { "enable_local_storage",         UZBL_V_FUNC (enable_local_storage,                   INT)},
+        { "enable_pagecache",             UZBL_V_FUNC (enable_pagecache,                       INT)},
+        { "enable_offline_app_cache",     UZBL_V_FUNC (enable_offline_app_cache,               INT)},
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
-    { "app_cache_size",               UZBL_V_FUNC (app_cache_size,                         ULL)},
+        { "app_cache_size",               UZBL_V_FUNC (app_cache_size,                         ULL)},
 #endif
-    { "web_database_directory",       UZBL_V_FUNC (web_database_directory,                 STR)},
-    { "web_database_quota",           UZBL_V_FUNC (web_database_quota,                     ULL)},
+        { "web_database_directory",       UZBL_V_FUNC (web_database_directory,                 STR)},
+        { "web_database_quota",           UZBL_V_FUNC (web_database_quota,                     ULL)},
 #if WEBKIT_CHECK_VERSION (1, 5, 2)
-    { "local_storage_path",           UZBL_V_FUNC (local_storage_path,                     STR)},
+        { "local_storage_path",           UZBL_V_FUNC (local_storage_path,                     STR)},
 #endif
 #endif
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 11, 92)
-    { "disk_cache_directory",         UZBL_V_STRING (uzbl.state.disk_cache_directory,      set_disk_cache_directory)},
+        { "disk_cache_directory",         UZBL_V_STRING (priv->disk_cache_directory,           set_disk_cache_directory)},
 #endif
-    { "web_extensions_directory",     UZBL_V_STRING (uzbl.state.web_extensions_directory,  set_web_extensions_directory)},
+        { "web_extensions_directory",     UZBL_V_STRING (priv->web_extensions_directory,       set_web_extensions_directory)},
 #endif
 
-    /* Hacks */
-    { "enable_site_workarounds",      UZBL_V_FUNC (enable_site_workarounds,                INT)},
+        /* Hacks */
+        { "enable_site_workarounds",      UZBL_V_FUNC (enable_site_workarounds,                INT)},
 
-    /* Constants */
+        /* Constants */
 #if WEBKIT_CHECK_VERSION (1, 3, 17)
-    { "inspected_uri",                UZBL_C_FUNC (inspected_uri,                          STR)},
+        { "inspected_uri",                UZBL_C_FUNC (inspected_uri,                          STR)},
 #endif
 #ifndef USE_WEBKIT2
-    { "current_encoding",             UZBL_C_FUNC (current_encoding,                       STR)},
+        { "current_encoding",             UZBL_C_FUNC (current_encoding,                       STR)},
 #endif
-    { "geometry",                     UZBL_C_FUNC (geometry,                               STR)},
+        { "geometry",                     UZBL_C_FUNC (geometry,                               STR)},
 #ifdef HAVE_PLUGIN_API
-    { "plugin_list",                  UZBL_C_FUNC (plugin_list,                            STR)},
+        { "plugin_list",                  UZBL_C_FUNC (plugin_list,                            STR)},
 #endif
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
-    { "app_cache_directory",          UZBL_C_FUNC (app_cache_directory,                    STR)},
+        { "app_cache_directory",          UZBL_C_FUNC (app_cache_directory,                    STR)},
 #endif
 #endif
-    { "uri",                          UZBL_C_STRING (uzbl.state.uri)},
-    { "WEBKIT_MAJOR",                 UZBL_C_INT (uzbl.info.webkit_major)},
-    { "WEBKIT_MINOR",                 UZBL_C_INT (uzbl.info.webkit_minor)},
-    { "WEBKIT_MICRO",                 UZBL_C_INT (uzbl.info.webkit_micro)},
-    { "WEBKIT_UA_MAJOR",              UZBL_C_INT (uzbl.info.webkit_ua_major)},
-    { "WEBKIT_UA_MINOR",              UZBL_C_INT (uzbl.info.webkit_ua_minor)},
-    { "HAS_WEBKIT2",                  UZBL_C_INT (uzbl.info.webkit2)},
-    { "ARCH_UZBL",                    UZBL_C_STRING (uzbl.info.arch)},
-    { "COMMIT",                       UZBL_C_STRING (uzbl.info.commit)},
-    { "TITLE",                        UZBL_C_STRING (uzbl.gui.main_title)},
-    { "SELECTED_URI",                 UZBL_C_STRING (uzbl.state.selected_url)},
-    { "NAME",                         UZBL_C_STRING (uzbl.state.instance_name)},
-    { "PID",                          UZBL_C_STRING (uzbl.info.pid_str)},
-    { "_",                            UZBL_C_STRING (uzbl.state.last_result)},
+        { "uri",                          UZBL_C_STRING (uzbl.state.uri)},
+        { "WEBKIT_MAJOR",                 UZBL_C_FUNC (WEBKIT_MAJOR,                           INT)},
+        { "WEBKIT_MINOR",                 UZBL_C_FUNC (WEBKIT_MINOR,                           INT)},
+        { "WEBKIT_MICRO",                 UZBL_C_FUNC (WEBKIT_MICRO,                           INT)},
+        { "WEBKIT_UA_MAJOR",              UZBL_C_FUNC (WEBKIT_UA_MAJOR,                        INT)},
+        { "WEBKIT_UA_MINOR",              UZBL_C_FUNC (WEBKIT_UA_MINOR,                        INT)},
+        { "HAS_WEBKIT2",                  UZBL_C_FUNC (HAS_WEBKIT2,                            INT)},
+        { "ARCH_UZBL",                    UZBL_C_FUNC (ARCH_UZBL,                              STR)},
+        { "COMMIT",                       UZBL_C_FUNC (COMMIT,                                 STR)},
+        { "TITLE",                        UZBL_C_STRING (uzbl.gui.main_title)},
+        { "SELECTED_URI",                 UZBL_C_STRING (uzbl.state.selected_url)},
+        { "NAME",                         UZBL_C_STRING (uzbl.state.instance_name)},
+        { "PID",                          UZBL_C_FUNC (PID,                                    INT)},
+        { "_",                            UZBL_C_STRING (uzbl.state.last_result)},
 
-    /* Add a terminator entry. */
-    { NULL,                           UZBL_SETTING (INT, { .i = NULL }, 0, NULL, NULL)}
-};
+        /* Add a terminator entry. */
+        { NULL,                           UZBL_SETTING (INT, { .i = NULL }, 0, NULL, NULL)}
+    };
+
+    const UzblVariableEntry *entry = builtin_variable_table;
+    while (entry->name) {
+        UzblVariable *value = g_malloc (sizeof (UzblVariable));
+        memcpy (value, &entry->var, sizeof (UzblVariable));
+
+        g_hash_table_insert (table,
+            (gpointer)g_strdup (entry->name),
+            (gpointer)value);
+
+        ++entry;
+    }
+
+    return priv;
+}
+
+void
+uzbl_variables_private_free (UzblVariablesPrivate *priv)
+{
+    /* All members are deleted by the table's free function. */
+    g_free (priv);
+}
 
 /* =================== VARIABLES IMPLEMENTATIONS ==================== */
 
@@ -1741,30 +1835,24 @@ object_get (GObject *obj, const gchar *prop);
 /* Communication variables */
 IMPLEMENT_SETTER (gchar *, fifo_dir)
 {
-    g_free (uzbl.behave.fifo_dir);
-
     if (uzbl_io_init_fifo (fifo_dir)) {
-        uzbl.behave.fifo_dir = g_strdup (fifo_dir);
+        g_free (uzbl.variables->priv->fifo_dir);
+        uzbl.variables->priv->fifo_dir = g_strdup (fifo_dir);
 
         return TRUE;
     }
-
-    uzbl.behave.fifo_dir = NULL;
 
     return FALSE;
 }
 
 IMPLEMENT_SETTER (gchar *, socket_dir)
 {
-    g_free (uzbl.behave.socket_dir);
-
     if (uzbl_io_init_socket (socket_dir)) {
-        uzbl.behave.socket_dir = g_strdup (socket_dir);
+        g_free (uzbl.variables->priv->socket_dir);
+        uzbl.variables->priv->socket_dir = g_strdup (socket_dir);
 
         return TRUE;
     }
-
-    uzbl.behave.socket_dir = NULL;
 
     return FALSE;
 }
@@ -1804,15 +1892,15 @@ IMPLEMENT_SETTER (gchar *, icon)
         return FALSE;
     }
 
-    /* Clear icon_name. */
-    g_free (uzbl.gui.icon_name);
-    uzbl.gui.icon_name = NULL;
-
     if (file_exists (icon)) {
-        g_free (uzbl.gui.icon);
-        uzbl.gui.icon = g_strdup (icon);
+        /* Clear icon_name. */
+        g_free (uzbl.variables->priv->icon_name);
+        uzbl.variables->priv->icon_name = NULL;
 
-        gtk_window_set_icon_from_file (GTK_WINDOW (uzbl.gui.main_window), uzbl.gui.icon, NULL);
+        g_free (uzbl.variables->priv->icon);
+        uzbl.variables->priv->icon = g_strdup (icon);
+
+        gtk_window_set_icon_from_file (GTK_WINDOW (uzbl.gui.main_window), uzbl.variables->priv->icon, NULL);
 
         return TRUE;
     }
@@ -1829,13 +1917,13 @@ IMPLEMENT_SETTER (gchar *, icon_name)
     }
 
     /* Clear icon path. */
-    g_free (uzbl.gui.icon);
-    uzbl.gui.icon = NULL;
+    g_free (uzbl.variables->priv->icon);
+    uzbl.variables->priv->icon = NULL;
 
-    g_free (uzbl.gui.icon_name);
-    uzbl.gui.icon_name = g_strdup (icon_name);
+    g_free (uzbl.variables->priv->icon_name);
+    uzbl.variables->priv->icon_name = g_strdup (icon_name);
 
-    gtk_window_set_icon_name (GTK_WINDOW (uzbl.gui.main_window), uzbl.gui.icon_name);
+    gtk_window_set_icon_name (GTK_WINDOW (uzbl.gui.main_window), uzbl.variables->priv->icon_name);
 
     return TRUE;
 }
@@ -1894,14 +1982,14 @@ IMPLEMENT_SETTER (int, status_top)
         return FALSE;
     }
 
-    uzbl.behave.status_top = status_top;
+    uzbl.variables->priv->status_top = status_top;
 
     g_object_ref (uzbl.gui.scrolled_win);
     g_object_ref (uzbl.gui.status_bar);
     gtk_container_remove (GTK_CONTAINER (uzbl.gui.vbox), uzbl.gui.scrolled_win);
     gtk_container_remove (GTK_CONTAINER (uzbl.gui.vbox), uzbl.gui.status_bar);
 
-    if (uzbl.behave.status_top) {
+    if (uzbl.variables->priv->status_top) {
         gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.status_bar,   FALSE, TRUE, 0);
         gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE,  TRUE, 0);
     } else {
@@ -1926,18 +2014,28 @@ IMPLEMENT_SETTER (char *, status_background)
      * not, we could also use GtkEventBox. */
     GtkWidget *widget = uzbl.gui.main_window ? uzbl.gui.main_window : GTK_WIDGET (uzbl.gui.plug);
 
-    g_free (uzbl.behave.status_background);
-    uzbl.behave.status_background = g_strdup (status_background);
+    gboolean parsed = FALSE;
 
 #if GTK_CHECK_VERSION (2, 91, 0)
     GdkRGBA color;
-    gdk_rgba_parse (&color, uzbl.behave.status_background);
-    gtk_widget_override_background_color (widget, GTK_STATE_NORMAL, &color);
+    parsed = gdk_rgba_parse (&color, status_background);
+    if (parsed) {
+        gtk_widget_override_background_color (widget, GTK_STATE_NORMAL, &color);
+    }
 #else
     GdkColor color;
-    gdk_color_parse (uzbl.behave.status_background, &color);
-    gtk_widget_modify_bg (widget, GTK_STATE_NORMAL, &color);
+    parsed = gdk_color_parse (status_background, &color);
+    if (parsed) {
+        gtk_widget_modify_bg (widget, GTK_STATE_NORMAL, &color);
+    }
 #endif
+
+    if (!parsed) {
+        return FALSE;
+    }
+
+    g_free (uzbl.variables->priv->status_background);
+    uzbl.variables->priv->status_background = g_strdup (status_background);
 
     return TRUE;
 }
@@ -2024,8 +2122,8 @@ IMPLEMENT_SETTER (gchar *, http_debug)
 
 #undef http_debug_choices
 
-    g_free (uzbl.behave.http_debug);
-    uzbl.behave.http_debug = g_strdup (http_debug);
+    g_free (uzbl.variables->priv->http_debug);
+    uzbl.variables->priv->http_debug = g_strdup (http_debug);
 
     if (uzbl.net.soup_logger) {
         soup_session_remove_feature (
@@ -2195,7 +2293,7 @@ GOBJECT_GETSET (int, run_insecure_content,
 
 IMPLEMENT_SETTER (int, maintain_history)
 {
-    uzbl.behave.maintain_history = maintain_history;
+    uzbl.variables->priv->maintain_history = maintain_history;
 
     webkit_web_view_set_maintains_back_forward_list (uzbl.gui.web_view, maintain_history);
 
@@ -2255,9 +2353,9 @@ IMPLEMENT_SETTER (gchar *, accept_languages)
         return FALSE;
     }
 
-    uzbl.net.accept_languages = g_strdup (accept_languages);
+    uzbl.variables->priv->accept_languages = g_strdup (accept_languages);
 
-    gchar **languages = g_strsplit (uzbl.net.accept_languages, ",", 0);
+    gchar **languages = g_strsplit (uzbl.variables->priv->accept_languages, ",", 0);
 
     WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
     webkit_web_context_set_preferred_languages (context, (const gchar * const *)languages);
@@ -2321,7 +2419,7 @@ IMPLEMENT_SETTER (gdouble, zoom_step)
     }
 
 #ifdef USE_WEBKIT2
-    uzbl.behave.zoom_step = zoom_step;
+    uzbl.variables->priv->zoom_step = zoom_step;
 #else
     g_object_set (webkit_settings (),
         "zoom-step", zoom_step,
@@ -2795,11 +2893,11 @@ GOBJECT_GETSET (gchar *, local_storage_path,
 #if WEBKIT_CHECK_VERSION (1, 11, 92)
 IMPLEMENT_SETTER (gchar *, disk_cache_directory)
 {
-    g_free (uzbl.state.disk_cache_directory);
-    uzbl.state.disk_cache_directory = g_strdup (disk_cache_directory);
+    g_free (uzbl.variables->priv->disk_cache_directory);
+    uzbl.variables->priv->disk_cache_directory = g_strdup (disk_cache_directory);
 
     WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
-    webkit_web_context_set_disk_cache_directory (context, uzbl.state.disk_cache_directory);
+    webkit_web_context_set_disk_cache_directory (context, uzbl.variables->priv->disk_cache_directory);
 
     return TRUE;
 }
@@ -2807,11 +2905,11 @@ IMPLEMENT_SETTER (gchar *, disk_cache_directory)
 
 IMPLEMENT_SETTER (gchar *, web_extensions_directory)
 {
-    g_free (uzbl.state.web_extensions_directory);
-    uzbl.state.web_extensions_directory = g_strdup (web_extensions_directory);
+    g_free (uzbl.variables->priv->web_extensions_directory);
+    uzbl.variables->priv->web_extensions_directory = g_strdup (web_extensions_directory);
 
     WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
-    webkit_web_context_set_web_extensions_directory (context, uzbl.state.web_extensions_directory);
+    webkit_web_context_set_web_extensions_directory (context, uzbl.variables->priv->web_extensions_directory);
 
     return TRUE;
 }
@@ -3041,6 +3139,75 @@ IMPLEMENT_GETTER (gchar *, app_cache_directory)
 }
 #endif
 #endif
+
+IMPLEMENT_GETTER (int, WEBKIT_MAJOR)
+{
+#ifdef USE_WEBKIT2
+    return webkit_get_major_version ();
+#else
+    return webkit_major_version ();
+#endif
+}
+
+IMPLEMENT_GETTER (int, WEBKIT_MINOR)
+{
+#ifdef USE_WEBKIT2
+    return webkit_get_minor_version ();
+#else
+    return webkit_minor_version ();
+#endif
+}
+
+IMPLEMENT_GETTER (int, WEBKIT_MICRO)
+{
+#ifdef USE_WEBKIT2
+    return webkit_get_micro_version ();
+#else
+    return webkit_micro_version ();
+#endif
+}
+
+IMPLEMENT_GETTER (int, WEBKIT_UA_MAJOR)
+{
+#ifdef USE_WEBKIT2
+    return 0; /* TODO: What is this in WebKit2? */
+#else
+    return WEBKIT_USER_AGENT_MAJOR_VERSION;
+#endif
+}
+
+IMPLEMENT_GETTER (int, WEBKIT_UA_MINOR)
+{
+#ifdef USE_WEBKIT2
+    return 0; /* TODO: What is this in WebKit2? */
+#else
+    return WEBKIT_USER_AGENT_MINOR_VERSION;
+#endif
+}
+
+IMPLEMENT_GETTER (int, HAS_WEBKIT2)
+{
+#ifdef USE_WEBKIT2
+    return TRUE;
+#else
+    return FALSE;
+#endif
+}
+
+IMPLEMENT_GETTER (gchar *, ARCH_UZBL)
+{
+    return g_strdup (ARCH);
+}
+
+IMPLEMENT_GETTER (gchar *, COMMIT)
+{
+    return g_strdup (COMMIT);
+}
+
+IMPLEMENT_GETTER (int, PID)
+{
+    return (int)getpid ();
+}
 
 GObject *
 webkit_settings ()

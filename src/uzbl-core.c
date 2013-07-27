@@ -30,19 +30,15 @@
 #include "uzbl-core.h"
 
 #include "commands.h"
-#ifndef UZBL_LIBRARY
 #include "config.h"
-#endif
 #include "events.h"
 #include "gui.h"
-#include "inspector.h"
 #include "io.h"
-#include "js.h"
+#include "setup.h"
 #ifndef USE_WEBKIT2
-#include "scheme.h"
 #include "soup.h"
 #endif
-#include "status-bar.h"
+#include "type.h"
 #include "util.h"
 #include "variables.h"
 
@@ -54,86 +50,60 @@
 
 UzblCore uzbl;
 
-/* Commandline arguments. */
-static const GOptionEntry
-options[] = {
-    { "uri",            'u', 0, G_OPTION_ARG_STRING,       &uzbl.state.uri,
-        "Uri to load at startup (equivalent to 'uzbl <uri>' after uzbl has launched)", "URI" },
-    { "verbose",        'v', 0, G_OPTION_ARG_NONE,         &uzbl.state.verbose,
-        "Whether to print all messages or just errors.",                                                  NULL },
-    { "named",          'n', 0, G_OPTION_ARG_STRING,       &uzbl.state.instance_name,
-        "Name of the current instance (defaults to Xorg window id or random for GtkSocket mode)",         "NAME" },
-    { "config",         'c', 0, G_OPTION_ARG_STRING,       &uzbl.state.config_file,
-        "Path to config file or '-' for stdin",                                                           "FILE" },
-    /* TODO: explain the difference between these two options */
-    { "socket",         's', 0, G_OPTION_ARG_INT,          &uzbl.state.socket_id,
-        "Xembed socket ID, this window should embed itself",                                              "SOCKET" },
-    { "embed",          'e', 0, G_OPTION_ARG_NONE,         &uzbl.state.embed,
-        "Whether this window should expect to be embedded",                                               NULL },
-    { "connect-socket",  0,  0, G_OPTION_ARG_STRING_ARRAY, &uzbl.state.connect_socket_names,
-        "Connect to server socket for event managing",                                                    "CSOCKET" },
-    { "print-events",   'p', 0, G_OPTION_ARG_NONE,         &uzbl.state.events_stdout,
-        "Whether to print events to stdout.",                                                             NULL },
-    { "geometry",       'g', 0, G_OPTION_ARG_STRING,       &uzbl.gui.geometry,
-        "Set window geometry (format: 'WIDTHxHEIGHT+-X+-Y' or 'maximized')",                              "GEOMETRY" },
-    { "version",        'V', 0, G_OPTION_ARG_NONE,         &uzbl.behave.print_version,
-        "Print the version and exit",                                                                     NULL },
-    { NULL,      0, 0, 0, NULL, NULL, NULL }
-};
-
 static void
 ensure_xdg_vars ();
+static void
+read_config_file (const gchar *file);
 
 /* Set up gtk, gobject, variable defaults and other things that tests and other
  * external applications need to do anyhow. */
 void
-uzbl_initialize (int argc, char **argv)
+uzbl_init (int *argc, char ***argv)
 {
-    /* Initialize variables */
-    g_mutex_init (&uzbl.state.reply_lock);
-    g_cond_init (&uzbl.state.reply_cond);
+    gchar *uri = NULL;
+    gboolean verbose = FALSE;
+    gchar *config_file = NULL;
+    gchar **connect_socket_names = NULL;
+    gboolean print_events = FALSE;
+    gchar *geometry = NULL;
+    gboolean print_version = FALSE;
 
-    uzbl.state.socket_id       = 0;
-    uzbl.state.plug_mode       = FALSE;
-
-    uzbl.state.executable_path = g_strdup (argv[0]);
-    uzbl.state.selected_url    = NULL;
-    uzbl.state.searchtx        = NULL;
-
-#ifdef USE_WEBKIT2
-    uzbl.info.webkit_major     = webkit_get_major_version ();
-    uzbl.info.webkit_minor     = webkit_get_minor_version ();
-    uzbl.info.webkit_micro     = webkit_get_micro_version ();
-    uzbl.info.webkit_ua_major  = 0; /* TODO: What are these in WebKit2? */
-    uzbl.info.webkit_ua_minor  = 0;
-#else
-    uzbl.info.webkit_major     = webkit_major_version ();
-    uzbl.info.webkit_minor     = webkit_minor_version ();
-    uzbl.info.webkit_micro     = webkit_micro_version ();
-    uzbl.info.webkit_ua_major  = WEBKIT_USER_AGENT_MAJOR_VERSION;
-    uzbl.info.webkit_ua_minor  = WEBKIT_USER_AGENT_MINOR_VERSION;
-#endif
-    uzbl.info.webkit2          =
-#ifdef USE_WEBKIT2
-        TRUE
-#else
-        FALSE
-#endif
-        ;
-    uzbl.info.arch             = ARCH;
-    uzbl.info.commit           = COMMIT;
-
-    uzbl.state.last_result     = NULL;
+    /* Commandline arguments. */
+    const GOptionEntry
+    options[] = {
+        { "uri",            'u', 0, G_OPTION_ARG_STRING,       &uri,
+            "Uri to load at startup (equivalent to 'uzbl <uri>' after uzbl has launched)", "URI" },
+        { "verbose",        'v', 0, G_OPTION_ARG_NONE,         &verbose,
+            "Whether to print all messages or just errors.",                                                  NULL },
+        { "named",          'n', 0, G_OPTION_ARG_STRING,       &uzbl.state.instance_name,
+            "Name of the current instance (defaults to Xorg window id or random for GtkSocket mode)",         "NAME" },
+        { "config",         'c', 0, G_OPTION_ARG_STRING,       &config_file,
+            "Path to config file or '-' for stdin",                                                           "FILE" },
+        /* TODO: explain the difference between these two options */
+        { "socket",         's', 0, G_OPTION_ARG_INT,          &uzbl.state.socket_id,
+            "Xembed socket ID, this window should embed itself",                                              "SOCKET" },
+        { "embed",          'e', 0, G_OPTION_ARG_NONE,         &uzbl.state.embed,
+            "Whether this window should expect to be embedded",                                               NULL },
+        { "connect-socket",  0,  0, G_OPTION_ARG_STRING_ARRAY, &connect_socket_names,
+            "Connect to server socket for event managing",                                                    "CSOCKET" },
+        { "print-events",   'p', 0, G_OPTION_ARG_NONE,         &print_events,
+            "Whether to print events to stdout.",                                                             NULL },
+        { "geometry",       'g', 0, G_OPTION_ARG_STRING,       &geometry,
+            "Set window geometry (format: 'WIDTHxHEIGHT+-X+-Y' or 'maximized')",                              "GEOMETRY" },
+        { "version",        'V', 0, G_OPTION_ARG_NONE,         &print_version,
+            "Print the version and exit",                                                                     NULL },
+        { NULL,      0, 0, 0, NULL, NULL, NULL }
+    };
 
     /* Parse commandline arguments. */
     GOptionContext *context = g_option_context_new ("[ uri ] - load a uri by default");
     g_option_context_add_main_entries (context, options, NULL);
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
-    g_option_context_parse (context, &argc, &argv, NULL);
+    g_option_context_parse (context, argc, argv, NULL);
     g_option_context_free (context);
 
     /* Only print version. */
-    if (uzbl.behave.print_version) {
+    if (print_version) {
         printf ("Commit: %s\n", COMMIT);
         exit (EXIT_SUCCESS);
     }
@@ -160,63 +130,64 @@ uzbl_initialize (int argc, char **argv)
     uzbl_variables_init ();
     uzbl_commands_init ();
     uzbl_events_init ();
+    uzbl_requests_init ();
 
 #ifndef USE_WEBKIT2
     uzbl_scheme_init ();
 #endif
 
+    /* Initialize the GUI. */
+    uzbl_gui_init ();
+    uzbl_inspector_init ();
+
+    /* Uzbl has now been started. */
+    uzbl.state.started = TRUE;
+
     /* XDG */
     ensure_xdg_vars ();
 
-    /* GUI */
-    gtk_init (&argc, &argv);
+    /* Connect to the event manager(s). */
+    gchar **name = connect_socket_names;
+    while (name && *name) {
+        uzbl_io_init_connect_socket (*name++);
+    }
+    uzbl_io_flush_buffer ();
 
-    uzbl_gui_init ();
+    /* Send the startup event. */
+    pid_t pid = getpid ();
+    gchar *pid_str = g_strdup_printf ("%d", pid);
+    g_setenv ("UZBL_PID", pid_str, TRUE);
 
-    uzbl.state.started = TRUE;
-}
+    if (!uzbl.state.instance_name) {
+        uzbl.state.instance_name = g_strdup (pid_str);
+    }
+    g_free (pid_str);
 
-#ifndef UZBL_LIBRARY
-/* ========================= MAIN  FUNCTION ========================= */
+    uzbl_events_send (INSTANCE_START, NULL,
+        TYPE_INT, pid,
+        NULL);
 
-static void
-read_config_file ();
-static void
-clean_up ();
+    /* Generate an event with a list of built in commands. */
+    uzbl_commands_send_builtin_event ();
 
-int
-main (int argc, char *argv[])
-{
-    Window xwin;
+    /* Load default config. */
+    const gchar * const *default_command = default_config;
+    while (default_command && *default_command) {
+        uzbl_commands_run (*default_command++, NULL);
+    }
 
-    uzbl_initialize (argc, argv);
-
-    /* Initialize the inspector. */
-    uzbl_inspector_init ();
+    /* Load provided configuration file. */
+    read_config_file (config_file);
 
     if (uzbl.gui.main_window) {
         /* We need to ensure there is a window, before we can get XID. */
         gtk_widget_realize (GTK_WIDGET (uzbl.gui.main_window));
-        xwin = GDK_WINDOW_XID (gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)));
+        Window xwin = GDK_WINDOW_XID (gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)));
 
         gchar *xwin_str = g_strdup_printf ("%d", (int)xwin);
         g_setenv ("UZBL_XID", xwin_str, TRUE);
         g_free (xwin_str);
-
-        gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
     }
-
-    uzbl.info.pid     = getpid ();
-    uzbl.info.pid_str = g_strdup_printf ("%d", uzbl.info.pid);
-    g_setenv ("UZBL_PID", uzbl.info.pid_str, TRUE);
-
-    if (!uzbl.state.instance_name) {
-        uzbl.state.instance_name = uzbl.info.pid_str;
-    }
-
-    uzbl_events_send (INSTANCE_START, NULL,
-        TYPE_INT, uzbl.info.pid,
-        NULL);
 
     if (uzbl.state.plug_mode) {
         uzbl_events_send (PLUG_CREATED, NULL,
@@ -224,18 +195,29 @@ main (int argc, char *argv[])
             NULL);
     }
 
-    /* Generate an event with a list of built in commands. */
-    uzbl_commands_send_builtin_event ();
+    /* Set variables based on flags. */
+    if (verbose) {
+        uzbl_variables_set ("verbose", "1");
+    }
+    if (print_events) {
+        uzbl_variables_set ("print_events", "1");
+    }
 
-    /* Check uzbl is in window mode before getting/setting geometry */
-    if (uzbl.gui.main_window && uzbl.gui.geometry) {
+    /* Navigate to a URI if requested. */
+    if (uri) {
+        GArray *argv = uzbl_commands_args_new ();
+        uzbl_commands_args_append (argv, g_strdup (uri));
+        uzbl_commands_run_argv ("uri", argv, NULL);
+        uzbl_commands_args_free (argv);
+    }
+
+    /* Set the geometry if requested. */
+    if (uzbl.gui.main_window && geometry) {
         GArray *args = uzbl_commands_args_new ();
-        uzbl_commands_args_append (args, g_strdup (uzbl.gui.geometry));
+        uzbl_commands_args_append (args, g_strdup (geometry));
         uzbl_commands_run_argv ("geometry", args, NULL);
         uzbl_commands_args_free (args);
     }
-
-    gboolean verbose_override = uzbl.state.verbose;
 
     /* Finally show the window */
     if (uzbl.gui.main_window) {
@@ -244,52 +226,63 @@ main (int argc, char *argv[])
         gtk_widget_show_all (GTK_WIDGET (uzbl.gui.plug));
     }
 
-    guint i;
+    /* Update status bar. */
+    uzbl_gui_update_title ();
+}
 
-    /* Load default config. */
-    for (i = 0; default_config[i].command; ++i) {
-        uzbl_commands_run (default_config[i].command, NULL);
+void
+uzbl_free ()
+{
+    uzbl_events_send (INSTANCE_EXIT, NULL,
+        TYPE_INT, getpid (),
+        NULL);
+
+    uzbl_gui_free ();
+    uzbl_requests_free ();
+    uzbl_commands_free ();
+    uzbl_variables_free ();
+    uzbl_io_free ();
+}
+
+#ifndef UZBL_LIBRARY
+/* ========================= MAIN  FUNCTION ========================= */
+
+static void
+clean_up ();
+
+int
+main (int argc, char *argv[])
+{
+    if (!gtk_init_check (&argc, &argv)) {
+        fprintf (stderr, "Failed to initialize GTK\n");
+        return EXIT_FAILURE;
     }
 
-    /* Read configuration file */
-    read_config_file ();
+    uzbl_init (&argc, &argv);
 
     if (uzbl.state.exit) {
         goto main_exit;
     }
 
-    /* Update status bar. */
-    uzbl_gui_update_title ();
-
-    /* Options overriding. */
-    if (verbose_override > uzbl.state.verbose) {
-        uzbl.state.verbose = verbose_override;
-    }
-
-    gchar *uri_override = (uzbl.state.uri ? g_strdup (uzbl.state.uri) : NULL);
-    if ((1 < argc) && !uzbl.state.uri) {
-        uri_override = g_strdup (argv[1]);
-    }
-
-    if (uri_override) {
-        GArray *argv = uzbl_commands_args_new ();
-        uzbl_commands_args_append (argv, uri_override);
-        uzbl_commands_run_argv ("uri", argv, NULL);
-        uzbl_commands_args_free (argv);
-        uri_override = NULL;
+    if (uzbl.gui.web_view) {
+        gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
     }
 
     /* Verbose feedback. */
-    if (uzbl.state.verbose) {
+    if (uzbl_variables_get_int ("verbose")) {
         printf ("Uzbl start location: %s\n", argv[0]);
         if (uzbl.state.socket_id) {
             printf ("plug_id %d\n", (int)gtk_plug_get_id (uzbl.gui.plug));
         } else {
+            Window xwin = GDK_WINDOW_XID (gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)));
+
             printf ("window_id %d\n", (int)xwin);
         }
         printf ("pid %i\n", getpid ());
         printf ("name: %s\n", uzbl.state.instance_name);
-        printf ("commit: %s\n", uzbl.info.commit);
+        gchar *commit = uzbl_variables_get_string ("COMMIT");
+        printf ("commit: %s\n", commit);
+        g_free (commit);
     }
 
     uzbl.state.gtk_started = TRUE;
@@ -349,114 +342,42 @@ ensure_xdg_vars ()
     }
 }
 
-#ifndef UZBL_LIBRARY
 static gchar *
 find_xdg_file (XdgDir dir, const char* basename);
 
 void
-read_config_file ()
+read_config_file (const gchar *file)
 {
-    if (!g_strcmp0 (uzbl.state.config_file, "-")) {
-        uzbl.state.config_file = NULL;
+    if (!g_strcmp0 (file, "-")) {
+        file = NULL;
         uzbl_io_init_stdin ();
-    } else if (!uzbl.state.config_file) {
-        uzbl.state.config_file = find_xdg_file (XDG_CONFIG, "/uzbl/config");
+    } else if (!file) {
+        file = find_xdg_file (XDG_CONFIG, "/uzbl/config");
     }
 
     /* Load config file, if any. */
-    if (uzbl.state.config_file) {
-        uzbl_commands_load_file (uzbl.state.config_file);
-        g_setenv ("UZBL_CONFIG", uzbl.state.config_file, TRUE);
+    if (file) {
+        uzbl_commands_load_file (file);
+        g_setenv ("UZBL_CONFIG", file, TRUE);
     } else {
         uzbl_debug ("No configuration file loaded.\n");
     }
-
-    if (uzbl.state.connect_socket_names) {
-        uzbl_io_init_connect_socket ();
-    }
 }
 
+#ifndef UZBL_LIBRARY
 void
 clean_up ()
 {
-    g_mutex_clear (&uzbl.state.reply_lock);
-    g_cond_clear (&uzbl.state.reply_cond);
-
-    if (uzbl.info.pid_str) {
-        uzbl_events_send (INSTANCE_EXIT, NULL,
-            TYPE_INT, uzbl.info.pid,
-            NULL);
-        g_free (uzbl.info.pid_str);
-        uzbl.info.pid_str = NULL;
-    }
-
-    g_free (uzbl.state.last_result);
-
     if (uzbl.state.jscontext) {
         JSGlobalContextRelease (uzbl.state.jscontext);
     }
-
-    if (uzbl.state.executable_path) {
-        g_free (uzbl.state.executable_path);
-        uzbl.state.executable_path = NULL;
-    }
-
-    if (uzbl.behave.commands) {
-        g_hash_table_destroy (uzbl.behave.commands);
-        uzbl.behave.commands = NULL;
-    }
-
-    if (uzbl.state.event_buffer) {
-        g_ptr_array_free (uzbl.state.event_buffer, TRUE);
-        uzbl.state.event_buffer = NULL;
-    }
-
-    if (uzbl.state.reply) {
-        g_free (uzbl.state.reply);
-        uzbl.state.reply = NULL;
-    }
-
-    if (uzbl.behave.fifo_dir) {
-        unlink (uzbl.comm.fifo_path);
-        g_free (uzbl.comm.fifo_path);
-        uzbl.comm.fifo_path = NULL;
-    }
-
-    if (uzbl.behave.socket_dir) {
-        unlink (uzbl.comm.socket_path);
-        g_free (uzbl.comm.socket_path);
-        uzbl.comm.socket_path = NULL;
-    }
-
-    if (uzbl.behave.status_background) {
-        g_free (uzbl.behave.status_background);
-        uzbl.behave.status_background = NULL;
-    }
-
-    uzbl_variables_free ();
 
     if (uzbl.net.soup_cookie_jar) {
         g_object_unref (uzbl.net.soup_cookie_jar);
         uzbl.net.soup_cookie_jar = NULL;
     }
 
-    if (uzbl.comm.fifo_path) {
-        unlink (uzbl.comm.fifo_path);
-    }
-
-    if (uzbl.comm.socket_path) {
-        unlink (uzbl.comm.socket_path);
-    }
-
-    if (uzbl.state.cmd_q) {
-        g_async_queue_unref (uzbl.state.cmd_q);
-        uzbl.state.cmd_q = NULL;
-    }
-
-    if (uzbl.state.io_thread) {
-        g_thread_unref (uzbl.state.io_thread);
-        uzbl.state.io_thread = NULL;
-    }
+    uzbl_free ();
 }
 #endif
 

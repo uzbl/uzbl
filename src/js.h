@@ -5,9 +5,6 @@
 
 #include <JavaScriptCore/JavaScript.h>
 
-void
-uzbl_js_init ();
-
 JSObjectRef
 uzbl_js_object (JSContextRef ctx, const gchar *prop);
 JSValueRef
