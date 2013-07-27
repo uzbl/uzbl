@@ -110,9 +110,6 @@ typedef struct {
     gboolean print_version;
 
     gdouble zoom_step;
-
-    /* variables: (key)name -> (value)uzbl_cmdprop */
-    GHashTable *proto_var;
 } UzblBehaviour;
 
 /* Static information */
@@ -139,6 +136,9 @@ typedef struct _UzblIO UzblIO;
 struct _UzblRequests;
 typedef struct _UzblRequests UzblRequests;
 
+struct _UzblVariables;
+typedef struct _UzblVariables UzblVariables;
+
 /* Main uzbl data structure */
 typedef struct {
     UzblGui           gui;
@@ -150,6 +150,7 @@ typedef struct {
     UzblCommands     *commands;
     UzblIO           *io;
     UzblRequests     *requests;
+    UzblVariables    *variables;
 } UzblCore;
 
 extern UzblCore uzbl; /* Main Uzbl object */

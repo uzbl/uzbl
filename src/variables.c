@@ -33,6 +33,11 @@
  *   - Replace selection (frame).
  */
 
+struct _UzblVariables {
+    /* Table of all variables commands. */
+    GHashTable *table;
+};
+
 /* A really generic function pointer. */
 typedef void (*UzblFunction) ();
 
@@ -64,17 +69,22 @@ builtin_variable_table[];
 /* =========================== PUBLIC API =========================== */
 
 static void
+variable_free (UzblVariable *variable);
+static void
 init_js_variables_api ();
 
-/* Construct a hash table from the var_name_to_ptr array for quick access. */
 void
 uzbl_variables_init ()
 {
+    uzbl.variables = g_malloc (sizeof (UzblVariables));
+
+    uzbl.variables->table = g_hash_table_new_full (g_str_hash, g_str_equal,
+        g_free, (GDestroyNotify)variable_free);
+
     const UzblVariableEntry *entry = builtin_variable_table;
-    uzbl.behave.proto_var = g_hash_table_new (g_str_hash, g_str_equal);
     while (entry->name) {
-        g_hash_table_insert (uzbl.behave.proto_var,
-            (gpointer)entry->name,
+        g_hash_table_insert (uzbl.variables->table,
+            (gpointer)g_strdup (entry->name),
             (gpointer)&entry->var);
         ++entry;
     }
@@ -82,16 +92,13 @@ uzbl_variables_init ()
     init_js_variables_api ();
 }
 
-static void
-variable_free (gpointer key, gpointer value, gpointer data);
-
 void
 uzbl_variables_free ()
 {
-    g_hash_table_foreach (uzbl.behave.proto_var, variable_free, NULL);
+    g_hash_table_destroy (uzbl.variables->table);
 
-    g_hash_table_destroy (uzbl.behave.proto_var);
-    uzbl.behave.proto_var = NULL;
+    g_free (uzbl.variables);
+    uzbl.variables = NULL;
 }
 
 static const char *valid_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.";
@@ -183,7 +190,7 @@ uzbl_variables_set (const gchar *name, gchar *val)
 
         var->value.s = g_malloc (sizeof (gchar *));
 
-        g_hash_table_insert (uzbl.behave.proto_var,
+        g_hash_table_insert (uzbl.variables->table,
             g_strdup (name), (gpointer)var);
 
         /* Set the value. */
@@ -400,7 +407,7 @@ dump_variable (gpointer key, gpointer value, gpointer data);
 void
 uzbl_variables_dump ()
 {
-    g_hash_table_foreach (uzbl.behave.proto_var, dump_variable, NULL);
+    g_hash_table_foreach (uzbl.variables->table, dump_variable, NULL);
 }
 
 static void
@@ -409,10 +416,25 @@ dump_variable_event (gpointer key, gpointer value, gpointer data);
 void
 uzbl_variables_dump_events ()
 {
-    g_hash_table_foreach (uzbl.behave.proto_var, dump_variable_event, NULL);
+    g_hash_table_foreach (uzbl.variables->table, dump_variable_event, NULL);
 }
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
+
+void
+variable_free (UzblVariable *variable)
+{
+    if (variable->builtin) {
+        return;
+    }
+
+    if (variable->type == TYPE_STR) {
+        g_free (*variable->value.s);
+        g_free (variable->value.s);
+    }
+
+    g_free (variable);
+}
 
 static bool
 js_has_variable (JSContextRef ctx, JSObjectRef object, JSStringRef propertyName);
@@ -460,32 +482,10 @@ init_js_variables_api ()
     JSClassRelease (variables_class);
 }
 
-void
-variable_free (gpointer key, gpointer value, gpointer data)
-{
-    UZBL_UNUSED (data);
-
-    UzblVariable *var = (UzblVariable *)value;
-
-    if (var->builtin) {
-        return;
-    }
-
-    if (var->type == TYPE_STR) {
-        g_free (*var->value.s);
-        g_free (var->value.s);
-    }
-
-    gchar *name = (gchar *)key;
-
-    g_free (name);
-    g_free (var);
-}
-
 UzblVariable *
 get_variable (const gchar *name)
 {
-    return g_hash_table_lookup (uzbl.behave.proto_var, name);
+    return g_hash_table_lookup (uzbl.variables->table, name);
 }
 
 gboolean
