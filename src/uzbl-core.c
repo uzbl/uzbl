@@ -139,9 +139,6 @@ uzbl_init (int *argc, char ***argv)
     uzbl_scheme_init ();
 #endif
 
-    /* GUI */
-    gtk_init (argc, argv);
-
     /* Initialize the GUI. */
     uzbl_gui_init ();
     uzbl_inspector_init ();
@@ -254,6 +251,11 @@ clean_up ();
 int
 main (int argc, char *argv[])
 {
+    if (!gtk_init_check (&argc, &argv)) {
+        fprintf (stderr, "Failed to initialize GTK\n");
+        return EXIT_FAILURE;
+    }
+
     uzbl_init (&argc, &argv);
 
     if (uzbl.state.exit) {
