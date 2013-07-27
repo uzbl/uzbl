@@ -137,6 +137,13 @@ uzbl_init (int *argc, char ***argv)
     uzbl_scheme_init ();
 #endif
 
+    /* GUI */
+    gtk_init (argc, argv);
+
+    /* Initialize the GUI. */
+    uzbl_gui_init ();
+    uzbl_inspector_init ();
+
     /* XDG */
     ensure_xdg_vars ();
 
@@ -161,11 +168,6 @@ uzbl_init (int *argc, char ***argv)
     if (print_events) {
         uzbl_variables_set ("print_events", "1");
     }
-
-    /* GUI */
-    gtk_init (argc, argv);
-
-    uzbl_gui_init ();
 
     uzbl.state.started = TRUE;
 }
@@ -192,9 +194,6 @@ main (int argc, char *argv[])
     Window xwin;
 
     uzbl_init (&argc, &argv);
-
-    /* Initialize the inspector. */
-    uzbl_inspector_init ();
 
     if (uzbl.gui.main_window) {
         /* We need to ensure there is a window, before we can get XID. */
