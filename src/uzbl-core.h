@@ -155,6 +155,9 @@ typedef struct {
     gchar  *pid_str;
 } UzblInfo;
 
+struct _UzblIO;
+typedef struct _UzblIO UzblIO;
+
 /* Main uzbl data structure */
 typedef struct {
     UzblGui           gui;
@@ -163,11 +166,15 @@ typedef struct {
     UzblBehaviour     behave;
     UzblCommunication comm;
     UzblInfo          info;
+
+    UzblIO           *io;
 } UzblCore;
 
 extern UzblCore uzbl; /* Main Uzbl object */
 
 void
 uzbl_initialize (int argc, char **argv);
+void
+uzbl_free ();
 
 #endif

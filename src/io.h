@@ -8,6 +8,8 @@
 void
 uzbl_io_init ();
 void
+uzbl_io_free ();
+void
 uzbl_io_init_stdin ();
 gboolean
 uzbl_io_init_connect_socket (const gchar *socket_path);

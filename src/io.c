@@ -16,6 +16,9 @@
 
 #include "3p/async-queue-source/rb-async-queue-watch.h"
 
+struct _UzblIO {
+};
+
 /* =========================== PUBLIC API =========================== */
 
 static void
@@ -28,6 +31,8 @@ run_io (gpointer data);
 void
 uzbl_io_init ()
 {
+    uzbl.io = g_malloc (sizeof (UzblIO));
+
     uzbl.state.cmd_q = g_async_queue_new_full (free_cmd_req);
 
     uzbl_rb_async_queue_watch_new (uzbl.state.cmd_q,
@@ -35,6 +40,13 @@ uzbl_io_init ()
         NULL, NULL, NULL);
 
     uzbl.state.io_thread = g_thread_new ("uzbl-io", run_io, NULL);
+}
+
+void
+uzbl_io_free ()
+{
+    g_free (uzbl.io);
+    uzbl.io = NULL;
 }
 
 static void

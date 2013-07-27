@@ -176,6 +176,12 @@ uzbl_initialize (int argc, char **argv)
     uzbl.state.started = TRUE;
 }
 
+void
+uzbl_free ()
+{
+    uzbl_io_free ();
+}
+
 #ifndef UZBL_LIBRARY
 /* ========================= MAIN  FUNCTION ========================= */
 
