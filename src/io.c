@@ -100,7 +100,8 @@ uzbl_io_init_stdin ()
 {
     GIOChannel *chan = g_io_channel_unix_new (STDIN_FILENO);
     if (chan) {
-        add_cmd_source (chan, "Uzbl stdin watcher", control_stdin, NULL);
+        add_cmd_source (chan, "Uzbl stdin watcher",
+            control_stdin, NULL);
     } else {
         g_error ("create_stdin: error while opening stdin\n");
     }
@@ -560,7 +561,8 @@ attach_fifo (const gchar *path)
      * 'r' we will block here, waiting for a writer to open the file. */
     GIOChannel *chan = g_io_channel_new_file (path, "r+", &error);
     if (chan) {
-        add_cmd_source (chan, "Uzbl main fifo", control_fifo, NULL);
+        add_cmd_source (chan, "Uzbl main fifo",
+            control_fifo, NULL);
 
         g_io_channel_unref (chan);
 
@@ -597,7 +599,8 @@ attach_socket (const gchar *path, struct sockaddr_un *local)
         }
 
         if ((chan = g_io_channel_unix_new (sock))) {
-            add_cmd_source (chan, "Uzbl main socket", control_socket, NULL);
+            add_cmd_source (chan, "Uzbl main socket",
+                control_socket, NULL);
 
             g_io_channel_unref (chan);
 
