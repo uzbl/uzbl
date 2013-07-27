@@ -75,7 +75,6 @@ typedef struct {
 typedef struct {
     gboolean forward_keys;
     guint    view_source;
-    gboolean maintain_history;
 
     gboolean print_version;
 

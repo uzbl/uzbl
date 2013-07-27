@@ -1387,6 +1387,11 @@ struct _UzblVariablesPrivate {
 
     /* Network variables */
     gchar *http_debug;
+
+    /* Security variables */
+#ifndef USE_WEBKIT2
+    gboolean maintain_history;
+#endif
 };
 
 typedef struct {
@@ -1485,7 +1490,7 @@ uzbl_variables_private_new (GHashTable *table)
         { "display_insecure_content",     UZBL_V_FUNC (display_insecure_content,               INT)},
         { "run_insecure_content",         UZBL_V_FUNC (run_insecure_content,                   INT)},
 #endif
-        { "maintain_history",             UZBL_V_INT (uzbl.behave.maintain_history,            set_maintain_history)},
+        { "maintain_history",             UZBL_V_INT (priv->maintain_history,                  set_maintain_history)},
 #endif
 
         /* Inspector variables */
@@ -2256,7 +2261,7 @@ GOBJECT_GETSET (int, run_insecure_content,
 
 IMPLEMENT_SETTER (int, maintain_history)
 {
-    uzbl.behave.maintain_history = maintain_history;
+    uzbl.variables->priv->maintain_history = maintain_history;
 
     webkit_web_view_set_maintains_back_forward_list (uzbl.gui.web_view, maintain_history);
 
