@@ -144,6 +144,9 @@ uzbl_init (int *argc, char ***argv)
     uzbl_gui_init ();
     uzbl_inspector_init ();
 
+    /* Uzbl has now been started. */
+    uzbl.state.started = TRUE;
+
     /* XDG */
     ensure_xdg_vars ();
 
@@ -182,8 +185,6 @@ uzbl_init (int *argc, char ***argv)
     if (print_events) {
         uzbl_variables_set ("print_events", "1");
     }
-
-    uzbl.state.started = TRUE;
 }
 
 void
