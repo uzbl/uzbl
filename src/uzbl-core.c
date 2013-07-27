@@ -61,7 +61,7 @@ ensure_xdg_vars ();
 /* Set up gtk, gobject, variable defaults and other things that tests and other
  * external applications need to do anyhow. */
 void
-uzbl_initialize (int argc, char **argv)
+uzbl_init (int argc, char **argv)
 {
     uzbl.state.socket_id       = 0;
     uzbl.state.plug_mode       = FALSE;
@@ -183,7 +183,7 @@ main (int argc, char *argv[])
 {
     Window xwin;
 
-    uzbl_initialize (argc, argv);
+    uzbl_init (argc, argv);
 
     /* Initialize the inspector. */
     uzbl_inspector_init ();
