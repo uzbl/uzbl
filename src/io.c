@@ -664,7 +664,8 @@ write_stdout (GString *result, gpointer data)
 {
     UZBL_UNUSED (data);
 
-    puts (result->str);
+    fprintf (stdout, "%s\n", result->str);
+    fflush (stdout);
 }
 
 void
