@@ -151,6 +151,7 @@ uzbl_init (int *argc, char ***argv)
     while (name && *name) {
         uzbl_io_init_connect_socket (*name++);
     }
+    uzbl_io_flush_buffer ();
 
     /* Send the startup event. */
     pid_t pid = getpid ();

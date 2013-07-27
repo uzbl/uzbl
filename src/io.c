@@ -315,6 +315,12 @@ uzbl_io_init_socket (const gchar *dir)
 }
 
 void
+uzbl_io_flush_buffer ()
+{
+    flush_event_buffer (NULL);
+}
+
+void
 uzbl_io_quit ()
 {
     g_main_loop_quit (uzbl.io->io_loop);

@@ -30,6 +30,8 @@ void
 uzbl_io_init_stdin ();
 
 void
+uzbl_io_flush_buffer ();
+void
 uzbl_io_quit ();
 
 void
