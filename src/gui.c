@@ -387,7 +387,7 @@ key_press_cb (GtkWidget *widget, GdkEventKey *event, gpointer data)
         send_keypress_event (event);
     }
 
-    return (uzbl.behave.forward_keys ? FALSE : TRUE);
+    return !uzbl_variables_get_int ("forward_keys");
 }
 
 gboolean
@@ -400,7 +400,7 @@ key_release_cb (GtkWidget *widget, GdkEventKey *event, gpointer data)
         send_keypress_event (event);
     }
 
-    return (uzbl.behave.forward_keys ? FALSE : TRUE);
+    return !uzbl_variables_get_int ("forward_keys");
 }
 
 /* Web view callbacks */

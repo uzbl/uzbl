@@ -68,17 +68,13 @@ typedef struct {
     SoupSession    *soup_session;
     UzblCookieJar  *soup_cookie_jar;
     SoupLogger     *soup_logger;
-    gchar          *accept_languages;
 } UzblNetwork;
 
 /* Behaviour */
 typedef struct {
-    gboolean forward_keys;
     guint    view_source;
 
     gboolean print_version;
-
-    gdouble zoom_step;
 } UzblBehaviour;
 
 /* Static information */

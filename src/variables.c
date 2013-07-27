@@ -1392,6 +1392,13 @@ struct _UzblVariablesPrivate {
 #ifndef USE_WEBKIT2
     gboolean maintain_history;
 #endif
+
+    /* Page variables */
+    gboolean forward_keys;
+#ifdef USE_WEBKIT2
+    gchar *accept_languages;
+    gdouble zoom_step;
+#endif
 };
 
 typedef struct {
@@ -1500,11 +1507,11 @@ uzbl_variables_private_new (GHashTable *table)
 #endif
 
         /* Page variables */
-        { "forward_keys",                 UZBL_V_INT (uzbl.behave.forward_keys,                NULL)},
+        { "forward_keys",                 UZBL_V_INT (priv->forward_keys,                      NULL)},
         { "useragent",                    UZBL_V_FUNC (useragent,                              STR)},
         { "accept_languages",
 #ifdef USE_WEBKIT2
-                                          UZBL_V_STRING (uzbl.net.accept_languages,            set_accept_languages)
+                                          UZBL_V_STRING (priv->accept_languages,               set_accept_languages)
 #else
                                           UZBL_V_FUNC (accept_languages,                       STR)
 #endif
@@ -1512,7 +1519,7 @@ uzbl_variables_private_new (GHashTable *table)
         { "zoom_level",                   UZBL_V_FUNC (zoom_level,                             DOUBLE)},
         { "zoom_step",
 #ifdef USE_WEBKIT2
-                                          UZBL_V_DOUBLE (uzbl.behave.zoom_step,                set_zoom_step)
+                                          UZBL_V_DOUBLE (priv->zoom_step,                      set_zoom_step)
 #else
                                           UZBL_V_FUNC (zoom_step,                              DOUBLE)
 #endif
@@ -2321,9 +2328,9 @@ IMPLEMENT_SETTER (gchar *, accept_languages)
         return FALSE;
     }
 
-    uzbl.net.accept_languages = g_strdup (accept_languages);
+    uzbl.variables->priv->accept_languages = g_strdup (accept_languages);
 
-    gchar **languages = g_strsplit (uzbl.net.accept_languages, ",", 0);
+    gchar **languages = g_strsplit (uzbl.variables->priv->accept_languages, ",", 0);
 
     WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
     webkit_web_context_set_preferred_languages (context, (const gchar * const *)languages);
@@ -2387,7 +2394,7 @@ IMPLEMENT_SETTER (gdouble, zoom_step)
     }
 
 #ifdef USE_WEBKIT2
-    uzbl.behave.zoom_step = zoom_step;
+    uzbl.variables->priv->zoom_step = zoom_step;
 #else
     g_object_set (webkit_settings (),
         "zoom-step", zoom_step,
