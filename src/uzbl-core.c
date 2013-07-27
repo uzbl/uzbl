@@ -230,6 +230,9 @@ uzbl_init (int *argc, char ***argv)
     } else {
         gtk_widget_show_all (GTK_WIDGET (uzbl.gui.plug));
     }
+
+    /* Update status bar. */
+    uzbl_gui_update_title ();
 }
 
 void
@@ -256,9 +259,6 @@ main (int argc, char *argv[])
     if (uzbl.state.exit) {
         goto main_exit;
     }
-
-    /* Update status bar. */
-    uzbl_gui_update_title ();
 
     if (uzbl.gui.web_view) {
         gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
