@@ -24,6 +24,7 @@ struct _UzblIO {
     GPtrArray *client_sockets;
 
     /* The event buffer. */
+    GMutex     event_buffer_lock;
     GPtrArray *event_buffer;
 
     /* Path to the main FIFO for client communication. */
@@ -59,6 +60,7 @@ uzbl_io_init ()
     uzbl.io->connect_sockets = g_ptr_array_new ();
     uzbl.io->client_sockets = g_ptr_array_new ();
 
+    g_mutex_init (&uzbl.io->event_buffer_lock);
     uzbl.io->event_buffer = g_ptr_array_new_with_free_func (g_free);
     g_timeout_add_seconds (10, flush_event_buffer, NULL);
 
@@ -81,8 +83,12 @@ uzbl_io_free ()
     g_ptr_array_unref (uzbl.io->client_sockets);
 
     if (uzbl.io->event_buffer) {
+        g_mutex_lock (&uzbl.io->event_buffer_lock);
         g_ptr_array_unref (uzbl.io->event_buffer);
+        uzbl.io->event_buffer = NULL;
+        g_mutex_unlock (&uzbl.io->event_buffer_lock);
     }
+    g_mutex_clear (&uzbl.io->event_buffer_lock);
 
     if (uzbl.io->fifo_path) {
         unlink (uzbl.io->fifo_path);
@@ -324,12 +330,15 @@ flush_event_buffer (gpointer data)
 {
     UZBL_UNUSED (data);
 
-    /* Prevent any messages from being buffered. */
-    GPtrArray *event_buffer = uzbl.io->event_buffer;
-    uzbl.io->event_buffer = NULL;
+    if (!uzbl.io->event_buffer) {
+        return FALSE;
+    }
 
-    g_ptr_array_foreach (event_buffer, send_buffered_event, NULL);
-    g_ptr_array_free (event_buffer, TRUE);
+    g_mutex_lock (&uzbl.io->event_buffer_lock);
+    g_ptr_array_foreach (uzbl.io->event_buffer, send_buffered_event, NULL);
+    g_ptr_array_free (uzbl.io->event_buffer, TRUE);
+    uzbl.io->event_buffer = NULL;
+    g_mutex_unlock (&uzbl.io->event_buffer_lock);
 
     return FALSE;
 }
@@ -481,7 +490,13 @@ send_buffered_event_to_socket (gpointer event, gpointer data);
 void
 replay_event_buffer (GIOChannel *channel)
 {
+    if (!uzbl.io->event_buffer) {
+        return;
+    }
+
+    g_mutex_lock (&uzbl.io->event_buffer_lock);
     g_ptr_array_foreach (uzbl.io->event_buffer, send_buffered_event_to_socket, channel);
+    g_mutex_unlock (&uzbl.io->event_buffer_lock);
 }
 
 void
@@ -491,7 +506,9 @@ buffer_event (const gchar *message)
         return;
     }
 
+    g_mutex_lock (&uzbl.io->event_buffer_lock);
     g_ptr_array_add (uzbl.io->event_buffer, g_strdup (message));
+    g_mutex_unlock (&uzbl.io->event_buffer_lock);
 }
 
 static void
