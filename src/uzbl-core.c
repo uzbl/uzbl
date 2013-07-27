@@ -61,7 +61,7 @@ ensure_xdg_vars ();
 /* Set up gtk, gobject, variable defaults and other things that tests and other
  * external applications need to do anyhow. */
 void
-uzbl_init (int argc, char **argv)
+uzbl_init (int *argc, char ***argv)
 {
     uzbl.state.socket_id       = 0;
     uzbl.state.plug_mode       = FALSE;
@@ -105,7 +105,7 @@ uzbl_init (int argc, char **argv)
     GOptionContext *context = g_option_context_new ("[ uri ] - load a uri by default");
     g_option_context_add_main_entries (context, options, NULL);
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
-    g_option_context_parse (context, &argc, &argv, NULL);
+    g_option_context_parse (context, argc, argv, NULL);
     g_option_context_free (context);
 
     /* Only print version. */
@@ -153,7 +153,7 @@ uzbl_init (int argc, char **argv)
     ensure_xdg_vars ();
 
     /* GUI */
-    gtk_init (&argc, &argv);
+    gtk_init (argc, argv);
 
     uzbl_gui_init ();
 
@@ -183,7 +183,7 @@ main (int argc, char *argv[])
 {
     Window xwin;
 
-    uzbl_init (argc, argv);
+    uzbl_init (&argc, &argv);
 
     /* Initialize the inspector. */
     uzbl_inspector_init ();

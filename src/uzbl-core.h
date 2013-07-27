@@ -96,7 +96,7 @@ typedef struct {
 extern UzblCore uzbl; /* Main Uzbl object */
 
 void
-uzbl_init (int argc, char **argv);
+uzbl_init (int *argc, char ***argv);
 void
 uzbl_free ();
 
