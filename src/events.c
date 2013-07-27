@@ -4,9 +4,6 @@
 #include "util.h"
 #include "uzbl-core.h"
 
-#include <sys/time.h>
-#include <errno.h>
-#include <signal.h>
 #include <string.h>
 
 const char *event_table[] = {
@@ -20,25 +17,13 @@ const char *event_table[] = {
 
 /* =========================== PUBLIC API =========================== */
 
-typedef void UzblSignalFunc (int sig);
+static gboolean
+clear_event_buffer (gpointer data);
 
-static UzblSignalFunc *
-setup_signal (int sig, UzblSignalFunc *shandler);
-static void
-clear_event_buffer (int sig);
-static int
-set_event_timeout (guint sec);
-
-int
+void
 uzbl_events_init ()
 {
-    if (setup_signal (SIGALRM, clear_event_buffer) == SIG_ERR) {
-        fprintf (stderr, "uzbl: error hooking %d: %s\n", SIGALRM, strerror (errno));
-        return -1;
-    }
-    set_event_timeout (10);
-
-    return 0;
+    g_timeout_add_seconds (10, clear_event_buffer, NULL);
 }
 
 static void
@@ -49,16 +34,16 @@ uzbl_events_replay_buffer ()
 {
     guint i = 0;
 
-    set_event_timeout (0);
+    GPtrArray *event_buffer = uzbl.state.event_buffer;
+    uzbl.state.event_buffer = NULL;
 
     /* Replay buffered events. */
-    while (i < uzbl.state.event_buffer->len) {
-        GString *buffered_event = g_ptr_array_index (uzbl.state.event_buffer, i++);
+    while (i < event_buffer->len) {
+        GString *buffered_event = g_ptr_array_index (event_buffer, i++);
         send_event_sockets (uzbl.comm.connect_chan, buffered_event);
     }
 
-    g_ptr_array_free (uzbl.state.event_buffer, TRUE);
-    uzbl.state.event_buffer = NULL;
+    g_ptr_array_free (event_buffer, TRUE);
 }
 
 static void
@@ -81,44 +66,17 @@ uzbl_events_send (UzblEventType type, const gchar *custom_event, ...)
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
 
-UzblSignalFunc *
-setup_signal (int sig, UzblSignalFunc *shandler)
+gboolean
+clear_event_buffer (gpointer data)
 {
-    struct sigaction new_handler;
-
-    new_handler.sa_handler = shandler;
-    sigemptyset (&new_handler.sa_mask);
-    new_handler.sa_flags = 0;
-
-    /* TODO: Save the old handler? */
-    if (sigaction (sig, &new_handler, NULL)) {
-        return SIG_ERR;
-    }
-
-    return NULL;
-}
-
-void
-clear_event_buffer (int sig)
-{
-    UZBL_UNUSED (sig);
+    UZBL_UNUSED (data);
 
     if (uzbl.state.event_buffer) {
         g_ptr_array_free (uzbl.state.event_buffer, TRUE);
         uzbl.state.event_buffer = NULL;
     }
-}
 
-int
-set_event_timeout (guint sec)
-{
-    struct itimerval t;
-    memset (&t, 0, sizeof (t));
-
-    t.it_value.tv_sec = sec;
-    t.it_value.tv_usec = 0;
-
-    return setitimer (ITIMER_REAL, &t, NULL);
+    return FALSE;
 }
 
 void

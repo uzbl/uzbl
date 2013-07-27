@@ -64,7 +64,7 @@ typedef enum {
 #undef event_enum
 } UzblEventType;
 
-int
+void
 uzbl_events_init ();
 
 void
