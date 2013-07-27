@@ -116,8 +116,10 @@ authenticate_cb (SoupSession *session,
 
     GArray *args = uzbl_commands_args_new ();
     const UzblCommand *authentication_command = uzbl_commands_parse (handler, args);
+    g_free (handler);
 
     if (!authentication_command) {
+        uzbl_commands_args_free (args);
         return;
     }
 
