@@ -63,13 +63,6 @@ read_config_file (const gchar *file);
 void
 uzbl_init (int *argc, char ***argv)
 {
-    uzbl.state.socket_id       = 0;
-    uzbl.state.plug_mode       = FALSE;
-
-    uzbl.state.selected_url    = NULL;
-
-    uzbl.state.last_result     = NULL;
-
     gboolean verbose;
     gchar *config_file;
     gchar **connect_socket_names;
