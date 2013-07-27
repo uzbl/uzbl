@@ -1399,6 +1399,14 @@ struct _UzblVariablesPrivate {
     gchar *accept_languages;
     gdouble zoom_step;
 #endif
+
+    /* HTML5 Database variables */
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 11, 92)
+    gchar *disk_cache_directory;
+#endif
+    gchar *web_extensions_directory;
+#endif
 };
 
 typedef struct {
@@ -1661,9 +1669,9 @@ uzbl_variables_private_new (GHashTable *table)
 #endif
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 11, 92)
-        { "disk_cache_directory",         UZBL_V_STRING (uzbl.state.disk_cache_directory,      set_disk_cache_directory)},
+        { "disk_cache_directory",         UZBL_V_STRING (priv->disk_cache_directory,           set_disk_cache_directory)},
 #endif
-        { "web_extensions_directory",     UZBL_V_STRING (uzbl.state.web_extensions_directory,  set_web_extensions_directory)},
+        { "web_extensions_directory",     UZBL_V_STRING (priv->web_extensions_directory,       set_web_extensions_directory)},
 #endif
 
         /* Hacks */
@@ -2868,11 +2876,11 @@ GOBJECT_GETSET (gchar *, local_storage_path,
 #if WEBKIT_CHECK_VERSION (1, 11, 92)
 IMPLEMENT_SETTER (gchar *, disk_cache_directory)
 {
-    g_free (uzbl.state.disk_cache_directory);
-    uzbl.state.disk_cache_directory = g_strdup (disk_cache_directory);
+    g_free (uzbl.variables->priv->disk_cache_directory);
+    uzbl.variables->priv->disk_cache_directory = g_strdup (disk_cache_directory);
 
     WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
-    webkit_web_context_set_disk_cache_directory (context, uzbl.state.disk_cache_directory);
+    webkit_web_context_set_disk_cache_directory (context, uzbl.variables->priv->disk_cache_directory);
 
     return TRUE;
 }
@@ -2880,11 +2888,11 @@ IMPLEMENT_SETTER (gchar *, disk_cache_directory)
 
 IMPLEMENT_SETTER (gchar *, web_extensions_directory)
 {
-    g_free (uzbl.state.web_extensions_directory);
-    uzbl.state.web_extensions_directory = g_strdup (web_extensions_directory);
+    g_free (uzbl.variables->priv->web_extensions_directory);
+    uzbl.variables->priv->web_extensions_directory = g_strdup (web_extensions_directory);
 
     WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
-    webkit_web_context_set_web_extensions_directory (context, uzbl.state.web_extensions_directory);
+    webkit_web_context_set_web_extensions_directory (context, uzbl.variables->priv->web_extensions_directory);
 
     return TRUE;
 }
