@@ -150,11 +150,16 @@ authenticate (GString *result, gpointer data)
 
     gchar **tokens = g_strsplit (result->str, ":", 2);
 
-    if (tokens && tokens[0] && tokens[1]) {
-        soup_auth_authenticate (auth->auth, tokens[1], tokens[2]);
+    const gchar *username = tokens[0];
+    const gchar *password = tokens[1];
+
+    if (username && password) {
+        soup_auth_authenticate (auth->auth, username, password);
     }
 
     soup_session_unpause_message (auth->session, auth->message);
+
+    g_strfreev (tokens);
 
     g_object_unref (auth->auth);
     g_object_unref (auth->message);

@@ -171,12 +171,15 @@ uzbl_commands_parse (const gchar *cmd, GArray *argv)
     /* Separate the line into the command and its parameters. */
     gchar **tokens = g_strsplit (exp_line, " ", 2);
 
+    const gchar *command = tokens[0];
+    const gchar *arg_string = tokens[1];
+
     /* Look up the command. */
-    const UzblCommand *info = g_hash_table_lookup (uzbl.commands->table, tokens[0]);
+    const UzblCommand *info = g_hash_table_lookup (uzbl.commands->table, command);
 
     if (!info) {
         uzbl_events_send (COMMAND_ERROR, NULL,
-            TYPE_STR, tokens[0],
+            TYPE_STR, command,
             NULL);
 
         g_free (exp_line);
@@ -187,7 +190,7 @@ uzbl_commands_parse (const gchar *cmd, GArray *argv)
 
     /* Parse the arguments. */
     if (argv) {
-        parse_command_arguments (tokens[1], argv, info->split);
+        parse_command_arguments (arg_string, argv, info->split);
     }
 
     g_free (exp_line);
@@ -1738,8 +1741,12 @@ IMPLEMENT_COMMAND (scheme)
     ARG_CHECK (argv, 1);
 
     gchar **split = g_strsplit (argv_idx (argv, 0), " ", 2);
-    if (split[0] && split[1]) {
-        uzbl_scheme_add_handler (g_strstrip (split[0]), g_strchug (split[1]));
+
+    gchar *scheme = split[0];
+    gchar *command = split[1];
+
+    if (scheme && command) {
+        uzbl_scheme_add_handler (g_strstrip (scheme), g_strchug (command));
     }
 
     g_strfreev (split);
@@ -1888,6 +1895,7 @@ IMPLEMENT_COMMAND (search)
     gchar **tokens = g_strsplit (full_command, " ", 2);
 
     const gchar *command = tokens[0];
+    const gchar *arg_string = tokens[1];
 
     static const UzblFindOptions default_options = WEBKIT_FIND_OPTIONS_WRAP_AROUND;
 
@@ -1911,11 +1919,11 @@ IMPLEMENT_COMMAND (search)
     gboolean reset = FALSE;
 
     if (!g_strcmp0 (command, "option")) {
-        if (!tokens[1]) {
+        if (!arg_string) {
             goto search_exit;
         }
 
-        gchar **options = g_strsplit (tokens[1], " ", 0);
+        gchar **options = g_strsplit (arg_string, " ", 0);
         gchar **option_iter = options;
 
         while (*option_iter) {
@@ -2030,7 +2038,7 @@ IMPLEMENT_COMMAND (search)
 
         uzbl.commands->search_options = default_options;
     } else if (!g_strcmp0 (command, "find") || !g_strcmp0 (command, "rfind")) {
-        const gchar *key = tokens[1];
+        const gchar *key = arg_string;
 
         if (!key) {
             /* Stop if there is no search string. */
@@ -2577,9 +2585,13 @@ IMPLEMENT_COMMAND (set)
     ARG_CHECK (argv, 1);
 
     gchar **split = g_strsplit (argv_idx (argv, 0), " ", 2);
-    if (split[0]) {
-        gchar *value = split[1] ? g_strchug (split[1]) : "";
-        uzbl_variables_set (g_strstrip (split[0]), value);
+
+    gchar *var = split[0];
+    gchar *val = split[1];
+
+    if (var) {
+        gchar *value = val ? g_strchug (val) : "";
+        uzbl_variables_set (g_strstrip (var), value);
     }
     g_strfreev (split);
 }
@@ -2640,16 +2652,18 @@ IMPLEMENT_COMMAND (event)
 {
     UZBL_UNUSED (result);
 
-    gchar **split = NULL;
-
     ARG_CHECK (argv, 1);
 
-    split = g_strsplit (argv_idx (argv, 0), " ", 2);
-    if (split[0]) {
-        GString *event_name = g_string_ascii_up (g_string_new (split[0]));
+    gchar **split = g_strsplit (argv_idx (argv, 0), " ", 2);
+
+    const gchar *event = split[0];
+    const gchar *arg_string = split[1];
+
+    if (event) {
+        GString *event_name = g_string_ascii_up (g_string_new (event));
 
         uzbl_events_send (USER_EVENT, event_name->str,
-            TYPE_FORMATTEDSTR, split[1] ? split[1] : "",
+            TYPE_FORMATTEDSTR, arg_string ? arg_string : "",
             NULL);
 
         g_string_free (event_name, TRUE);
