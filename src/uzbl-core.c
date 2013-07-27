@@ -177,9 +177,10 @@ uzbl_initialize (int argc, char **argv)
 void
 uzbl_free ()
 {
-    uzbl_io_free ();
     uzbl_requests_free ();
     uzbl_commands_free ();
+    uzbl_variables_free ();
+    uzbl_io_free ();
 }
 
 #ifndef UZBL_LIBRARY
@@ -413,12 +414,12 @@ clean_up ()
         uzbl.behave.status_background = NULL;
     }
 
-    uzbl_variables_free ();
-
     if (uzbl.net.soup_cookie_jar) {
         g_object_unref (uzbl.net.soup_cookie_jar);
         uzbl.net.soup_cookie_jar = NULL;
     }
+
+    uzbl_free ();
 }
 #endif
 
