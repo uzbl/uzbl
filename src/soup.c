@@ -136,13 +136,13 @@ authenticate_cb (SoupSession *session,
     auth_data->message = msg;
     auth_data->auth = auth;
 
-    uzbl_io_schedule_command (authentication_command, args, authenticate, auth_data);
-
     g_object_ref (session);
     g_object_ref (msg);
     g_object_ref (auth);
 
     soup_session_pause_message (session, msg);
+
+    uzbl_io_schedule_command (authentication_command, args, authenticate, auth_data);
 }
 
 void
