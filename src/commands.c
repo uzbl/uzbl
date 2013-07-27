@@ -1709,7 +1709,6 @@ IMPLEMENT_COMMAND (css)
         if (whitelist_list) {
             g_strfreev (whitelist_list);
         }
-
         if (blacklist_list) {
             g_strfreev (blacklist_list);
         }
