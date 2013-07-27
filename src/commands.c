@@ -1355,7 +1355,7 @@ IMPLEMENT_COMMAND (geometry)
 
         /* We used to use gtk_window_parse_geometry () but that didn't work how
          * it was supposed to. */
-        int ret = XParseGeometry (uzbl.gui.geometry, &x, &y, &w, &h);
+        int ret = XParseGeometry (geometry, &x, &y, &w, &h);
 
         if (ret & XValue) {
             gtk_window_move (GTK_WINDOW (uzbl.gui.main_window), x, y);
@@ -1365,12 +1365,6 @@ IMPLEMENT_COMMAND (geometry)
             gtk_window_resize (GTK_WINDOW (uzbl.gui.main_window), w, h);
         }
     }
-
-    /* Get the actual geometry (which might be different from what was
-     * specified) and store it (since the GEOMETRY_CHANGED event needs to know
-     * what it changed from) */
-    g_free (uzbl.gui.geometry);
-    uzbl.gui.geometry = uzbl_variables_get_string ("geometry");
 }
 
 #ifdef HAVE_SNAPSHOT

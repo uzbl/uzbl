@@ -31,6 +31,7 @@
  */
 
 struct _UzblGui {
+    gchar *last_geometry;
 };
 
 /* =========================== PUBLIC API =========================== */
@@ -65,6 +66,8 @@ uzbl_gui_init ()
 void
 uzbl_gui_free ()
 {
+    g_free (uzbl.gui_->last_geometry);
+
     g_free (uzbl.gui_);
     uzbl.gui_ = NULL;
 }
@@ -1096,17 +1099,16 @@ configure_event_cb (GtkWidget *widget, GdkEventConfigure *event, gpointer data)
     UZBL_UNUSED (event);
     UZBL_UNUSED (data);
 
-    gchar *last_geo    = uzbl.gui.geometry;
-    /* TODO: We should set the geometry instead. */
     gchar *current_geo = uzbl_variables_get_string ("geometry");
 
-    if (!last_geo || g_strcmp0 (last_geo, current_geo)) {
+    if (!uzbl.gui_->last_geometry || g_strcmp0 (uzbl.gui_->last_geometry, current_geo)) {
         uzbl_events_send (GEOMETRY_CHANGED, NULL,
             TYPE_STR, current_geo,
             NULL);
     }
 
-    g_free (current_geo);
+    g_free (uzbl.gui_->last_geometry);
+    uzbl.gui_->last_geometry = current_geo;
 
     return FALSE;
 }
