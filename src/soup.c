@@ -178,10 +178,15 @@ authenticate (GString *result, gpointer data)
 
     gchar **tokens = g_strsplit (result->str, "\n", 0);
 
-    const gchar *username = tokens[0];
-    const gchar *password = tokens[1];
+    const gchar *action = tokens[0];
+    const gchar *username = tokens[1];
+    const gchar *password = tokens[2];
 
-    if (username && password) {
+    if (!action) {
+        /* No default credentials. */
+    } else if (!g_strcmp0 (action, "IGNORE")) {
+        /* Don't authenticate. */
+    } else if (!g_strcmp0 (action, "AUTH") && username && password) {
         soup_auth_authenticate (auth->auth, username, password);
     }
 
