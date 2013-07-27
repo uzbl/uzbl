@@ -1349,6 +1349,9 @@ DECLARE_GETTER (gchar *, app_cache_directory);
 DECLARE_GETTER (int, WEBKIT_MAJOR);
 DECLARE_GETTER (int, WEBKIT_MINOR);
 DECLARE_GETTER (int, WEBKIT_MICRO);
+DECLARE_GETTER (int, WEBKIT_MAJOR_COMPILE);
+DECLARE_GETTER (int, WEBKIT_MINOR_COMPILE);
+DECLARE_GETTER (int, WEBKIT_MICRO_COMPILE);
 DECLARE_GETTER (int, WEBKIT_UA_MAJOR);
 DECLARE_GETTER (int, WEBKIT_UA_MINOR);
 DECLARE_GETTER (int, HAS_WEBKIT2);
@@ -1704,6 +1707,9 @@ uzbl_variables_private_new (GHashTable *table)
         { "WEBKIT_MAJOR",                 UZBL_C_FUNC (WEBKIT_MAJOR,                           INT)},
         { "WEBKIT_MINOR",                 UZBL_C_FUNC (WEBKIT_MINOR,                           INT)},
         { "WEBKIT_MICRO",                 UZBL_C_FUNC (WEBKIT_MICRO,                           INT)},
+        { "WEBKIT_MAJOR_COMPILE",         UZBL_C_FUNC (WEBKIT_MAJOR_COMPILE,                   INT)},
+        { "WEBKIT_MINOR_COMPILE",         UZBL_C_FUNC (WEBKIT_MINOR_COMPILE,                   INT)},
+        { "WEBKIT_MICRO_COMPILE",         UZBL_C_FUNC (WEBKIT_MICRO_COMPILE,                   INT)},
         { "WEBKIT_UA_MAJOR",              UZBL_C_FUNC (WEBKIT_UA_MAJOR,                        INT)},
         { "WEBKIT_UA_MINOR",              UZBL_C_FUNC (WEBKIT_UA_MINOR,                        INT)},
         { "HAS_WEBKIT2",                  UZBL_C_FUNC (HAS_WEBKIT2,                            INT)},
@@ -3165,6 +3171,21 @@ IMPLEMENT_GETTER (int, WEBKIT_MICRO)
 #else
     return webkit_micro_version ();
 #endif
+}
+
+IMPLEMENT_GETTER (int, WEBKIT_MAJOR_COMPILE)
+{
+    return WEBKIT_MAJOR_VERSION;
+}
+
+IMPLEMENT_GETTER (int, WEBKIT_MINOR_COMPILE)
+{
+    return WEBKIT_MINOR_VERSION;
+}
+
+IMPLEMENT_GETTER (int, WEBKIT_MICRO_COMPILE)
+{
+    return WEBKIT_MICRO_VERSION;
 }
 
 IMPLEMENT_GETTER (int, WEBKIT_UA_MAJOR)
