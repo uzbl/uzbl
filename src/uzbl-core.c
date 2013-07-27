@@ -235,6 +235,10 @@ uzbl_init (int *argc, char ***argv)
 void
 uzbl_free ()
 {
+    uzbl_events_send (INSTANCE_EXIT, NULL,
+        TYPE_INT, getpid (),
+        NULL);
+
     uzbl_gui_free ();
     uzbl_requests_free ();
     uzbl_commands_free ();
@@ -366,10 +370,6 @@ read_config_file (const gchar *file)
 void
 clean_up ()
 {
-    uzbl_events_send (INSTANCE_EXIT, NULL,
-        TYPE_INT, getpid (),
-        NULL);
-
     if (uzbl.state.jscontext) {
         JSGlobalContextRelease (uzbl.state.jscontext);
     }
