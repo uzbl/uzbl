@@ -68,11 +68,6 @@ typedef struct {
     SoupLogger     *soup_logger;
 } UzblNetwork;
 
-/* Behaviour */
-typedef struct {
-    guint    view_source;
-} UzblBehaviour;
-
 struct _UzblCommands;
 typedef struct _UzblCommands UzblCommands;
 
@@ -90,7 +85,6 @@ typedef struct {
     UzblGui           gui;
     UzblState         state;
     UzblNetwork       net;
-    UzblBehaviour     behave;
 
     UzblCommands     *commands;
     UzblIO           *io;
