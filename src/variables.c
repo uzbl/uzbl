@@ -1741,30 +1741,24 @@ object_get (GObject *obj, const gchar *prop);
 /* Communication variables */
 IMPLEMENT_SETTER (gchar *, fifo_dir)
 {
-    g_free (uzbl.behave.fifo_dir);
-
     if (uzbl_io_init_fifo (fifo_dir)) {
+        g_free (uzbl.behave.fifo_dir);
         uzbl.behave.fifo_dir = g_strdup (fifo_dir);
 
         return TRUE;
     }
-
-    uzbl.behave.fifo_dir = NULL;
 
     return FALSE;
 }
 
 IMPLEMENT_SETTER (gchar *, socket_dir)
 {
-    g_free (uzbl.behave.socket_dir);
-
     if (uzbl_io_init_socket (socket_dir)) {
+        g_free (uzbl.behave.socket_dir);
         uzbl.behave.socket_dir = g_strdup (socket_dir);
 
         return TRUE;
     }
-
-    uzbl.behave.socket_dir = NULL;
 
     return FALSE;
 }
