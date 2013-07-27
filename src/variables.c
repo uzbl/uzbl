@@ -1359,6 +1359,14 @@ struct _UzblVariablesPrivate {
     /* Communication variables */
     gchar *fifo_dir;
     gchar *socket_dir;
+
+    /* Handler variables */
+    gchar *scheme_handler;
+    gchar *request_handler;
+    gchar *download_handler;
+    gchar *mime_handler;
+    gchar *authentication_handler;
+    gchar *shell_cmd;
 };
 
 typedef struct {
@@ -1385,12 +1393,12 @@ uzbl_variables_private_new (GHashTable *table)
         { "socket_dir",                   UZBL_V_STRING (priv->socket_dir,                     set_socket_dir)},
 
         /* Handler variables */
-        { "scheme_handler",               UZBL_V_STRING (uzbl.behave.scheme_handler,           NULL)},
-        { "request_handler",              UZBL_V_STRING (uzbl.behave.request_handler,          NULL)},
-        { "download_handler",             UZBL_V_STRING (uzbl.behave.download_handler,         NULL)},
-        { "mime_handler",                 UZBL_V_STRING (uzbl.behave.mime_handler,             NULL)},
-        { "authentication_handler",       UZBL_V_STRING (uzbl.behave.authentication_handler,   NULL)},
-        { "shell_cmd",                    UZBL_V_STRING (uzbl.behave.shell_cmd,                NULL)},
+        { "scheme_handler",               UZBL_V_STRING (priv->scheme_handler,                 NULL)},
+        { "request_handler",              UZBL_V_STRING (priv->request_handler,                NULL)},
+        { "download_handler",             UZBL_V_STRING (priv->download_handler,               NULL)},
+        { "mime_handler",                 UZBL_V_STRING (priv->mime_handler,                   NULL)},
+        { "authentication_handler",       UZBL_V_STRING (priv->authentication_handler,         NULL)},
+        { "shell_cmd",                    UZBL_V_STRING (priv->shell_cmd,                      NULL)},
 #ifndef USE_WEBKIT2
         { "enable_builtin_auth",          UZBL_V_FUNC (enable_builtin_auth,                    INT)},
 #endif

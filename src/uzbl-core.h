@@ -86,16 +86,8 @@ typedef struct {
     gchar   *title_format_short;
     gchar   *title_format_long;
 
-    /* Handlers */
-    gchar   *scheme_handler;
-    gchar   *request_handler;
-    gchar   *download_handler;
-    gchar   *mime_handler;
-    gchar   *authentication_handler;
-
     gboolean forward_keys;
     gchar   *http_debug;
-    gchar   *shell_cmd;
     guint    view_source;
     gboolean maintain_history;
 
