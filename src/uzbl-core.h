@@ -48,10 +48,6 @@ typedef struct {
     gchar          *selected_url;
     gchar          *last_selected_url;
     gchar          *executable_path;
-    gchar          *searchtx;
-    UzblFindOptions searchoptions;
-    UzblFindOptions lastsearchoptions;
-    gboolean        searchforward;
     gboolean        verbose;
     gboolean        embed;
     GdkEventButton *last_button;

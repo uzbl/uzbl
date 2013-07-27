@@ -37,6 +37,12 @@
 struct _UzblCommands {
     /* Table of all builtin commands. */
     GHashTable *table;
+
+    /* Search variables */
+    UzblFindOptions  search_options;
+    UzblFindOptions  search_options_last;
+    gboolean         search_forward;
+    gchar           *search_text;
 };
 
 typedef void (*UzblCommandCallback) (GArray *argv, GString *result);
@@ -63,7 +69,12 @@ uzbl_commands_init ()
 
     uzbl.commands->table = g_hash_table_new (g_str_hash, g_str_equal);
 
-    const UzblCommand *cmd = builtin_command_table;
+    uzbl.commands->search_options = 0;
+    uzbl.commands->search_options_last = 0;
+    uzbl.commands->search_forward = FALSE;
+    uzbl.commands->search_text = NULL;
+
+    const UzblCommand *cmd = &builtin_command_table[0];
     while (cmd->name) {
         g_hash_table_insert (uzbl.commands->table,
             (gpointer)cmd->name,
@@ -79,6 +90,8 @@ void
 uzbl_commands_free ()
 {
     g_hash_table_destroy (uzbl.commands->table);
+
+    g_free (uzbl.commands->search_text);
 
     g_free (uzbl.commands);
     uzbl.commands = NULL;
@@ -1961,13 +1974,13 @@ IMPLEMENT_COMMAND (search)
 
             switch (mode) {
             case OPTION_SET:
-                uzbl.state.searchoptions |= option;
+                uzbl.commands->search_options |= option;
                 break;
             case OPTION_UNSET:
-                uzbl.state.searchoptions &= ~option;
+                uzbl.commands->search_options &= ~option;
                 break;
             case OPTION_TOGGLE:
-                uzbl.state.searchoptions ^= option;
+                uzbl.commands->search_options ^= option;
                 break;
             case OPTION_NONE:
             case OPTION_DEFAULT:
@@ -1978,11 +1991,11 @@ IMPLEMENT_COMMAND (search)
 
         g_strfreev (options);
 
-        if (uzbl.state.searchtx && (uzbl.state.searchoptions != uzbl.state.lastsearchoptions)) {
-            uzbl.state.lastsearchoptions = uzbl.state.searchoptions;
+        if (uzbl.commands->search_text && (uzbl.commands->search_options != uzbl.commands->search_options_last)) {
+            uzbl.commands->search_options_last = uzbl.commands->search_options;
 
 #ifdef USE_WEBKIT2
-            webkit_find_controller_search (finder, uzbl.state.searchtx, uzbl.state.searchoptions, G_MAXUINT);
+            webkit_find_controller_search (finder, uzbl.commands->search_text, uzbl.commands->search_options, G_MAXUINT);
 #endif
 
             rehighlight = TRUE;
@@ -1996,15 +2009,15 @@ IMPLEMENT_COMMAND (search)
 
         g_string_append_c(result, '[');
 
-#define check_flag(name, flag)               \
-    if (uzbl.state.searchoptions & flag) {   \
-        if (need_comma) {                    \
-            g_string_append_c (result, ','); \
-        }                                    \
-        g_string_append_c (result, '\"');    \
-        g_string_append (result, name);      \
-        g_string_append_c (result, '\"');    \
-        need_comma = TRUE;                   \
+#define check_flag(name, flag)                  \
+    if (uzbl.commands->search_options & flag) { \
+        if (need_comma) {                       \
+            g_string_append_c (result, ',');    \
+        }                                       \
+        g_string_append_c (result, '\"');       \
+        g_string_append (result, name);         \
+        g_string_append_c (result, '\"');       \
+        need_comma = TRUE;                      \
     }
 
         search_options(check_flag)
@@ -2017,10 +2030,10 @@ IMPLEMENT_COMMAND (search)
     } else if (!g_strcmp0 (command, "reset")) {
         reset = TRUE;
 
-        g_free (uzbl.state.searchtx);
-        uzbl.state.searchtx = NULL;
+        g_free (uzbl.commands->search_text);
+        uzbl.commands->search_text = NULL;
 
-        uzbl.state.searchoptions = default_options;
+        uzbl.commands->search_options = default_options;
     } else if (!g_strcmp0 (command, "find") || !g_strcmp0 (command, "rfind")) {
         const gchar *key = tokens[1];
 
@@ -2029,24 +2042,24 @@ IMPLEMENT_COMMAND (search)
             goto search_exit;
         }
 
-        if (!uzbl.state.searchtx) {
-            uzbl.state.searchtx = g_strdup ("");
+        if (!uzbl.commands->search_text) {
+            uzbl.commands->search_text = g_strdup ("");
         }
 
         if (*key) {
-            if (g_strcmp0 (key, uzbl.state.searchtx)) {
+            if (g_strcmp0 (key, uzbl.commands->search_text)) {
                 rehighlight = TRUE;
 
-                g_free (uzbl.state.searchtx);
-                uzbl.state.searchtx = g_strdup (key);
+                g_free (uzbl.commands->search_text);
+                uzbl.commands->search_text = g_strdup (key);
             }
         } else {
             /* On an empty search, use the previous search. */
-            key = uzbl.state.searchtx;
+            key = uzbl.commands->search_text;
         }
 
-        if (uzbl.state.searchoptions != uzbl.state.lastsearchoptions) {
-            uzbl.state.lastsearchoptions = uzbl.state.searchoptions;
+        if (uzbl.commands->search_options != uzbl.commands->search_options_last) {
+            uzbl.commands->search_options_last = uzbl.commands->search_options;
 
             rehighlight = TRUE;
         }
@@ -2058,10 +2071,10 @@ IMPLEMENT_COMMAND (search)
         }
 
 #ifdef USE_WEBKIT2
-        uzbl.state.searchforward = forward;
+        uzbl.commands->search_forward = forward;
 #endif
 
-        UzblFindOptions options = uzbl.state.searchoptions;
+        UzblFindOptions options = uzbl.commands->search_options;
 
         if (!forward) {
             options |= WEBKIT_FIND_OPTIONS_BACKWARDS;
@@ -2076,50 +2089,50 @@ IMPLEMENT_COMMAND (search)
             options & WEBKIT_FIND_OPTIONS_WRAP_AROUND);
 #endif
     } else if (!g_strcmp0 (command, "next")) {
-        if (!uzbl.state.searchtx) {
+        if (!uzbl.commands->search_text) {
             goto search_exit;
         }
 
-        if (uzbl.state.searchoptions != uzbl.state.lastsearchoptions) {
-            uzbl.state.lastsearchoptions = uzbl.state.searchoptions;
+        if (uzbl.commands->search_options != uzbl.commands->search_options_last) {
+            uzbl.commands->search_options_last = uzbl.commands->search_options;
 
             rehighlight = TRUE;
         }
 
 #ifdef USE_WEBKIT2
-        if (uzbl.state.searchforward) {
+        if (uzbl.commands->search_forward) {
             webkit_find_controller_search_next (finder);
         } else {
             webkit_find_controller_search_previous (finder);
         }
 #else
-        webkit_web_view_search_text (uzbl.gui.web_view, uzbl.state.searchtx,
-            !(uzbl.state.searchoptions & WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE),
+        webkit_web_view_search_text (uzbl.gui.web_view, uzbl.commands->search_text,
+            !(uzbl.commands->search_options & WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE),
             TRUE,
-            uzbl.state.searchoptions & WEBKIT_FIND_OPTIONS_WRAP_AROUND);
+            uzbl.commands->search_options & WEBKIT_FIND_OPTIONS_WRAP_AROUND);
 #endif
     } else if (!g_strcmp0 (command, "prev")) {
-        if (!uzbl.state.searchtx) {
+        if (!uzbl.commands->search_text) {
             goto search_exit;
         }
 
-        if (uzbl.state.searchoptions != uzbl.state.lastsearchoptions) {
-            uzbl.state.lastsearchoptions = uzbl.state.searchoptions;
+        if (uzbl.commands->search_options != uzbl.commands->search_options_last) {
+            uzbl.commands->search_options_last = uzbl.commands->search_options;
 
             rehighlight = TRUE;
         }
 
 #ifdef USE_WEBKIT2
-        if (uzbl.state.searchforward) {
+        if (uzbl.commands->search_forward) {
             webkit_find_controller_search_previous (finder);
         } else {
             webkit_find_controller_search_next (finder);
         }
 #else
-        webkit_web_view_search_text (uzbl.gui.web_view, uzbl.state.searchtx,
-            !(uzbl.state.searchoptions & WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE),
+        webkit_web_view_search_text (uzbl.gui.web_view, uzbl.commands->search_text,
+            !(uzbl.commands->search_options & WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE),
             FALSE,
-            uzbl.state.searchoptions & WEBKIT_FIND_OPTIONS_WRAP_AROUND);
+            uzbl.commands->search_options & WEBKIT_FIND_OPTIONS_WRAP_AROUND);
 #endif
     } else {
         uzbl_debug ("Unrecognized search command: %s\n", command);
@@ -2131,7 +2144,7 @@ search_exit:
     if (reset) {
 #ifdef USE_WEBKIT2
         webkit_find_controller_search_finish (finder);
-        uzbl.state.searchoptions = WEBKIT_FIND_OPTIONS_WRAP_AROUND;
+        uzbl.commands->search_options = WEBKIT_FIND_OPTIONS_WRAP_AROUND;
 #else
         webkit_web_view_unmark_text_matches (uzbl.gui.web_view);
 #endif
@@ -2140,8 +2153,8 @@ search_exit:
     if (rehighlight) {
 #ifndef USE_WEBKIT2
         webkit_web_view_unmark_text_matches (uzbl.gui.web_view);
-        webkit_web_view_mark_text_matches (uzbl.gui.web_view, uzbl.state.searchtx,
-            !(uzbl.state.searchoptions & WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE), 0);
+        webkit_web_view_mark_text_matches (uzbl.gui.web_view, uzbl.commands->search_text,
+            !(uzbl.commands->search_options & WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE), 0);
         webkit_web_view_set_highlight_text_matches (uzbl.gui.web_view, TRUE);
 #endif
     }

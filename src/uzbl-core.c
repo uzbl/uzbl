@@ -95,7 +95,6 @@ uzbl_initialize (int argc, char **argv)
 
     uzbl.state.executable_path = g_strdup (argv[0]);
     uzbl.state.selected_url    = NULL;
-    uzbl.state.searchtx        = NULL;
 
 #ifdef USE_WEBKIT2
     uzbl.info.webkit_major     = webkit_get_major_version ();
