@@ -2,6 +2,7 @@
 
 #include "events.h"
 #include "gui.h"
+#include "io.h"
 #include "js.h"
 #include "menu.h"
 #include "requests.h"
@@ -2542,8 +2543,8 @@ IMPLEMENT_COMMAND (exit)
         gtk_main_quit ();
     }
 
-    /* Stop the event thread. */
-    g_main_loop_quit (uzbl.state.io_loop);
+    /* Stop the I/O thread. */
+    uzbl_io_quit ();
 }
 
 /* Variable commands */

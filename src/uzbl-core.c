@@ -423,16 +423,6 @@ clean_up ()
         g_object_unref (uzbl.net.soup_cookie_jar);
         uzbl.net.soup_cookie_jar = NULL;
     }
-
-    if (uzbl.state.cmd_q) {
-        g_async_queue_unref (uzbl.state.cmd_q);
-        uzbl.state.cmd_q = NULL;
-    }
-
-    if (uzbl.state.io_thread) {
-        g_thread_unref (uzbl.state.io_thread);
-        uzbl.state.io_thread = NULL;
-    }
 }
 #endif
 

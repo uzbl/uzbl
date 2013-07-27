@@ -72,11 +72,6 @@ typedef struct {
     gboolean        events_stdout;
     gboolean        handle_multi_button;
     gchar         **connect_socket_names;
-
-    GAsyncQueue    *cmd_q;
-    GMainContext   *io_ctx;
-    GMainLoop      *io_loop;
-    GThread        *io_thread;
 } UzblState;
 
 /* Networking */

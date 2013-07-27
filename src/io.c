@@ -30,6 +30,14 @@ struct _UzblIO {
     gchar *fifo_path;
     /* Path to the main socket for client communication. */
     gchar *socket_path;
+
+    /* The command queue for sending I/O commands from sockets/FIFO/etc. to be
+     * run in the main thread. */
+    GAsyncQueue  *cmd_q;
+    /* The I/O thread variables. */
+    GMainContext *io_ctx;
+    GMainLoop    *io_loop;
+    GThread      *io_thread;
 };
 
 /* =========================== PUBLIC API =========================== */
@@ -57,13 +65,13 @@ uzbl_io_init ()
     uzbl.io->fifo_path = NULL;
     uzbl.io->socket_path = NULL;
 
-    uzbl.state.cmd_q = g_async_queue_new_full (free_cmd_req);
+    uzbl.io->cmd_q = g_async_queue_new_full (free_cmd_req);
 
-    uzbl_rb_async_queue_watch_new (uzbl.state.cmd_q,
+    uzbl_rb_async_queue_watch_new (uzbl.io->cmd_q,
         G_PRIORITY_HIGH, run_command,
         NULL, NULL, NULL);
 
-    uzbl.state.io_thread = g_thread_new ("uzbl-io", run_io, NULL);
+    uzbl.io->io_thread = g_thread_new ("uzbl-io", run_io, NULL);
 }
 
 void
@@ -85,6 +93,9 @@ uzbl_io_free ()
 
     g_free (uzbl.io->fifo_path);
     g_free (uzbl.io->socket_path);
+
+    g_async_queue_unref (uzbl.io->cmd_q);
+    g_thread_unref (uzbl.io->io_thread);
 
     g_free (uzbl.io);
     uzbl.io = NULL;
@@ -195,7 +206,7 @@ uzbl_io_schedule_command (const UzblCommand *cmd, GArray *argv, UzblIOCallback c
     cmd_data->callback = callback;
     cmd_data->data = data;
 
-    g_async_queue_push (uzbl.state.cmd_q, cmd_data);
+    g_async_queue_push (uzbl.io->cmd_q, cmd_data);
 }
 
 typedef enum {
@@ -297,6 +308,12 @@ uzbl_io_init_socket (const gchar *dir)
     return ret;
 }
 
+void
+uzbl_io_quit ()
+{
+    g_main_loop_quit (uzbl.io->io_loop);
+}
+
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
 
 static void
@@ -359,15 +376,15 @@ run_io (gpointer data)
 {
     UZBL_UNUSED (data);
 
-    uzbl.state.io_ctx = g_main_context_new ();
+    uzbl.io->io_ctx = g_main_context_new ();
 
-    uzbl.state.io_loop = g_main_loop_new (uzbl.state.io_ctx, FALSE);
-    g_main_loop_run (uzbl.state.io_loop);
-    g_main_loop_unref (uzbl.state.io_loop);
-    uzbl.state.io_loop = NULL;
+    uzbl.io->io_loop = g_main_loop_new (uzbl.io->io_ctx, FALSE);
+    g_main_loop_run (uzbl.io->io_loop);
+    g_main_loop_unref (uzbl.io->io_loop);
+    uzbl.io->io_loop = NULL;
 
-    g_main_context_unref (uzbl.state.io_ctx);
-    uzbl.state.io_ctx = NULL;
+    g_main_context_unref (uzbl.io->io_ctx);
+    uzbl.io->io_ctx = NULL;
 
     return NULL;
 }
@@ -383,7 +400,7 @@ add_cmd_source (GIOChannel *gio, const gchar *name, GIOFunc callback, gpointer d
      * g_io_add_watch, we just want to attach to a different context. */
     g_source_set_callback (source, (GSourceFunc)callback, data, NULL);
 
-    g_source_attach (source, uzbl.state.io_ctx);
+    g_source_attach (source, uzbl.io->io_ctx);
 
     g_source_unref (source);
 }
@@ -650,7 +667,7 @@ schedule_io_input (gchar *line, UzblIOCallback callback, gpointer data)
         cmd_data->callback = callback;
         cmd_data->data = data;
 
-        g_async_queue_push (uzbl.state.cmd_q, cmd_data);
+        g_async_queue_push (uzbl.io->cmd_q, cmd_data);
     }
 }
 
