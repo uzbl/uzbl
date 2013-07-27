@@ -60,13 +60,13 @@ read_config_file (const gchar *file);
 void
 uzbl_init (int *argc, char ***argv)
 {
-    gchar *uri;
-    gboolean verbose;
-    gchar *config_file;
-    gchar **connect_socket_names;
-    gboolean print_events;
-    gchar *geometry;
-    gboolean print_version;
+    gchar *uri = NULL;
+    gboolean verbose = FALSE;
+    gchar *config_file = NULL;
+    gchar **connect_socket_names = NULL;
+    gboolean print_events = FALSE;
+    gchar *geometry = NULL;
+    gboolean print_version = FALSE;
 
     /* Commandline arguments. */
     const GOptionEntry
