@@ -43,7 +43,6 @@ typedef struct {
     gchar          *config_file;
     char           *instance_name;
     gchar          *selected_url;
-    gchar          *executable_path;
     gboolean        embed;
     GdkEventButton *last_button;
     gchar          *last_result;

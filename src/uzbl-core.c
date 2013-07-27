@@ -66,7 +66,6 @@ uzbl_init (int argc, char **argv)
     uzbl.state.socket_id       = 0;
     uzbl.state.plug_mode       = FALSE;
 
-    uzbl.state.executable_path = g_strdup (argv[0]);
     uzbl.state.selected_url    = NULL;
 
     uzbl.state.last_result     = NULL;
@@ -380,11 +379,6 @@ clean_up ()
 
     if (uzbl.state.jscontext) {
         JSGlobalContextRelease (uzbl.state.jscontext);
-    }
-
-    if (uzbl.state.executable_path) {
-        g_free (uzbl.state.executable_path);
-        uzbl.state.executable_path = NULL;
     }
 
     if (uzbl.net.soup_cookie_jar) {
