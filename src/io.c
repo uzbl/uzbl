@@ -56,43 +56,36 @@ uzbl_io_init_stdin ()
 static gboolean
 control_client_socket (GIOChannel *clientchan, GIOCondition, gpointer data);
 
-void
-uzbl_io_init_connect_socket ()
+gboolean
+uzbl_io_init_connect_socket (const gchar *socket_path)
 {
-    int sockfd;
-    int replay = 0;
+    gboolean replay = FALSE;
+    GIOChannel *chan = NULL;
+
+    int sockfd = socket (AF_UNIX, SOCK_STREAM, 0);
     struct sockaddr_un local;
-    GIOChannel *chan;
-    gchar **name = NULL;
+    local.sun_family = AF_UNIX;
+    strcpy (local.sun_path, socket_path);
 
-    if (!uzbl.comm.connect_chan) {
-        uzbl.comm.connect_chan = g_ptr_array_new ();
-    }
-
-    name = uzbl.state.connect_socket_names;
-
-    while (name && *name) {
-        sockfd = socket (AF_UNIX, SOCK_STREAM, 0);
-        local.sun_family = AF_UNIX;
-        strcpy (local.sun_path, *name);
-
-        if (!connect (sockfd, (struct sockaddr *)&local, sizeof (local))) {
-            if ((chan = g_io_channel_unix_new (sockfd))) {
-                g_io_channel_set_encoding (chan, NULL, NULL);
-                add_cmd_source (chan, "Uzbl connect socket", control_client_socket, uzbl.comm.connect_chan);
-                g_ptr_array_add (uzbl.comm.connect_chan, chan);
-                ++replay;
-            }
-        } else {
-            g_warning ("Error connecting to socket: %s\n", *name);
+    if (!connect (sockfd, (struct sockaddr *)&local, sizeof (local))) {
+        chan = g_io_channel_unix_new (sockfd);
+        if (chan) {
+            g_io_channel_set_encoding (chan, NULL, NULL);
+            add_cmd_source (chan, "Uzbl connect socket", control_client_socket, uzbl.comm.connect_chan);
+            g_ptr_array_add (uzbl.comm.connect_chan, chan);
+            replay = TRUE;
         }
-        ++name;
+    } else {
+        g_warning ("Error connecting to socket: %s\n", socket_path);
+        return FALSE;
     }
 
     /* Replay buffered events. */
     if (replay && uzbl.state.event_buffer) {
         uzbl_events_replay_buffer ();
     }
+
+    return TRUE;
 }
 
 typedef struct {

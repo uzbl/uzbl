@@ -372,7 +372,11 @@ read_config_file ()
     }
 
     if (uzbl.state.connect_socket_names) {
-        uzbl_io_init_connect_socket ();
+        gchar **name = uzbl.state.connect_socket_names;
+
+        while (name && *name) {
+            uzbl_io_init_connect_socket (*name++);
+        }
     }
 }
 

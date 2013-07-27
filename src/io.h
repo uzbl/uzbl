@@ -9,8 +9,8 @@ void
 uzbl_io_init ();
 void
 uzbl_io_init_stdin ();
-void
-uzbl_io_init_connect_socket ();
+gboolean
+uzbl_io_init_connect_socket (const gchar *socket_path);
 
 typedef void (*UzblIOCallback)(GString *result, gpointer data);
 
