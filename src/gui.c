@@ -1502,6 +1502,7 @@ authenticate (GString *result, gpointer data)
     const gchar *persistence = tokens[3];
 
     WebKitCredential *credential = NULL;
+    gboolean cancel = FALSE;
 
     if (!action) {
         /* Use the default credential. */
@@ -1511,6 +1512,9 @@ authenticate (GString *result, gpointer data)
             credential = webkit_credential_copy (webkit_credential);
         }
     } else if (!g_strcmp0 (action, "IGNORE")) {
+        credential = NULL;
+    } else if (!g_strcmp0 (action, "CANCEL")) {
+        cancel = TRUE;
         credential = NULL;
     } else if (!g_strcmp0 (action, "AUTH") && username && password) {
         WebKitCredentialPersistence persist = WEBKIT_CREDENTIAL_PERSISTENCE_NONE;
@@ -1529,9 +1533,13 @@ authenticate (GString *result, gpointer data)
         credential = webkit_credential_new (username, password, persist);
     }
 
-    if (credential) {
+    if (cancel) {
+        webkit_authentication_request_cancel (auth->request);
+    } else {
         webkit_authentication_request_authenticate (auth->request, credential);
+    }
 
+    if (credential) {
         webkit_credential_free (credential);
     }
 
