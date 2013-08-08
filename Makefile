@@ -196,8 +196,8 @@ clean:
 	rm -f uzbl-core
 	rm -f $(OBJ) ${LOBJ}
 	rm -f uzbl.desktop
-	find ./examples/ -name "*.pyc" -delete
-	find -name __pycache__ -type d -delete
+	find ./examples/ -name "*.pyc" -delete || :
+	find -name __pycache__ -type d -delete || :
 	cd ./tests/; $(MAKE) clean
 	rm -rf ./sandbox/
 	$(PYTHON) setup.py clean
