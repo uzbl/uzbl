@@ -750,7 +750,6 @@ load_failed_cb (WebKitWebView *view, WebKitLoadEvent event, gchar *uri, gpointer
 #if WEBKIT_CHECK_VERSION (2, 1, 4)
 typedef struct {
     WebKitAuthenticationRequest *request;
-    WebKitCredential *credential;
 } UzblAuthenticateData;
 
 static void
@@ -822,11 +821,8 @@ authenticate_cb (WebKitWebView *view, WebKitAuthenticationRequest *request, gpoi
 
     g_free (port_str);
 
-    WebKitCredential *credential = webkit_authentication_request_get_proposed_credential (request);
-
     UzblAuthenticateData *auth_data = g_malloc (sizeof (UzblAuthenticateData));
     auth_data->request = request;
-    auth_data->credential = credential ? webkit_credential_copy (credential) : NULL;
 
     uzbl_io_schedule_command (authentication_command, args, authenticate, auth_data);
 
@@ -1509,8 +1505,10 @@ authenticate (GString *result, gpointer data)
 
     if (!action) {
         /* Use the default credential. */
-        if (auth->credential) {
-            credential = webkit_credential_copy (auth->credential);
+        WebKitCredential *webkit_credential = webkit_authentication_request_get_proposed_credential (auth->request);
+
+        if (webkit_credential) {
+            credential = webkit_credential_copy (webkit_credential);
         }
     } else if (!g_strcmp0 (action, "IGNORE")) {
         credential = NULL;
@@ -1538,7 +1536,6 @@ authenticate (GString *result, gpointer data)
     }
 
     g_object_unref (auth->request);
-    webkit_credential_free (auth->credential);
 
     g_free (auth);
 }
