@@ -10,7 +10,7 @@ INSTALLDIR ?= $(DESTDIR)$(PREFIX)
 DOCDIR     ?= $(INSTALLDIR)/share/uzbl/docs
 RUN_PREFIX ?= $(PREFIX)
 
-ENABLE_WEBKIT2 ?= auto
+ENABLE_WEBKIT2 ?= no
 ENABLE_GTK3    ?= auto
 
 PYTHON=python3
