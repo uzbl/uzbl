@@ -131,8 +131,7 @@ authenticate_cb (SoupSession *session,
     const gchar *proxy = is_proxy ? "proxy" : "origin";
     SoupURI *uri = soup_message_get_uri (msg);
     guint port = soup_uri_get_port (uri);
-    gboolean can_save = uzbl_variables_get_int ("enable_private");
-    const gchar *save_str = can_save ? "remember" : "forget";
+    const gchar *save_str = "cant_save";
 
     const gchar *scheme = "unknown";
     if (!g_strcmp0 (soup_scheme, "Basic")) {

@@ -46,7 +46,9 @@ endif
 
 ifeq ($(ENABLE_GTK3),yes)
 REQ_PKGS += gtk+-3.0
-CPPFLAGS += -DG_DISABLE_DEPRECATED -DGTK_DISABLE_DEPRECATED
+CPPFLAGS += -DG_DISABLE_DEPRECATED
+# WebKitGTK uses deprecated features, so uzbl can't blanket this out.
+#CPPFLAGS += -DGTK_DISABLE_DEPRECATED
 else
 REQ_PKGS += gtk+-2.0
 endif

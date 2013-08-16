@@ -180,6 +180,10 @@ static void
 load_changed_cb (WebKitWebView *view, WebKitLoadEvent event, gpointer data);
 static gboolean
 load_failed_cb (WebKitWebView *view, WebKitLoadEvent event, gchar *uri, gpointer web_err, gpointer data);
+#if WEBKIT_CHECK_VERSION (2, 1, 4)
+static gboolean
+authenticate_cb (WebKitWebView *view, WebKitAuthenticationRequest *request, gpointer data);
+#endif
 static void
 insecure_content_cb (WebKitWebView *view, WebKitInsecureContentEvent type, gpointer data);
 #else
@@ -281,6 +285,9 @@ web_view_init ()
         "signal::decide-policy",                        G_CALLBACK (decide_policy_cb),         NULL,
         "signal::load-changed",                         G_CALLBACK (load_changed_cb),          NULL,
         "signal::load-failed",                          G_CALLBACK (load_failed_cb),           NULL,
+#if WEBKIT_CHECK_VERSION (2, 1, 4)
+        "signal::authenticate",                         G_CALLBACK (authenticate_cb),          NULL,
+#endif
 #if WEBKIT_CHECK_VERSION (1, 11, 4)
         "signal::insecure-content-detected",            G_CALLBACK (insecure_content_cb),      NULL,
 #endif
@@ -739,6 +746,91 @@ load_failed_cb (WebKitWebView *view, WebKitLoadEvent event, gchar *uri, gpointer
 
     return send_load_error (uri, err);
 }
+
+#if WEBKIT_CHECK_VERSION (2, 1, 4)
+typedef struct {
+    WebKitAuthenticationRequest *request;
+} UzblAuthenticateData;
+
+static void
+authenticate (GString *result, gpointer data);
+
+gboolean
+authenticate_cb (WebKitWebView *view, WebKitAuthenticationRequest *request, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (data);
+
+    gchar *handler = uzbl_variables_get_string ("authentication_handler");
+
+    GArray *args = uzbl_commands_args_new ();
+    const UzblCommand *authentication_command = uzbl_commands_parse (handler, args);
+    g_free (handler);
+
+    if (!authentication_command) {
+        uzbl_commands_args_free (args);
+        return FALSE;
+    }
+
+    const gchar *host = webkit_authentication_request_get_host (request);
+    gint port = webkit_authentication_request_get_port (request);
+    const gchar *realm = webkit_authentication_request_get_realm (request);
+    gboolean retrying = webkit_authentication_request_is_retry (request);
+    const gchar *retry = retrying ? "retrying" : "initial";
+    WebKitAuthenticationScheme scheme = webkit_authentication_request_get_scheme (request);
+
+#define authentication_scheme_choices(call)                                                         \
+    call(WEBKIT_AUTHENTICATION_SCHEME_DEFAULT, "default")                                           \
+    call(WEBKIT_AUTHENTICATION_SCHEME_HTTP_BASIC, "http_basic")                                     \
+    call(WEBKIT_AUTHENTICATION_SCHEME_HTTP_DIGEST, "http_digest")                                   \
+    call(WEBKIT_AUTHENTICATION_SCHEME_HTML_FORM, "html_form")                                       \
+    call(WEBKIT_AUTHENTICATION_SCHEME_NTLM, "ntlm")                                                 \
+    call(WEBKIT_AUTHENTICATION_SCHEME_NEGOTIATE, "negotiate")                                       \
+    call(WEBKIT_AUTHENTICATION_SCHEME_CLIENT_CERTIFICATE_REQUESTED, "client_certificate_requested") \
+    call(WEBKIT_AUTHENTICATION_SCHEME_SERVER_TRUST_EVALUATION_REQUESTED, "server_trust_evaluation_requested")
+
+#define ENUM_TO_STRING(val, str) \
+    case val:                    \
+        scheme_str = str;        \
+        break;
+
+    const gchar *scheme_str = "unknown";
+    switch (scheme) {
+    authentication_scheme_choices (ENUM_TO_STRING)
+    case WEBKIT_AUTHENTICATION_SCHEME_UNKNOWN:
+    default:
+        break;
+    }
+
+#undef ENUM_TO_STRING
+#undef authentication_scheme_choices
+
+    gboolean is_proxy = webkit_authentication_request_is_for_proxy (request);
+    const gchar *proxy = is_proxy ? "proxy" : "origin";
+    gchar *port_str = g_strdup_printf ("%d", port);
+    gboolean can_save = webkit_authentication_request_can_save_credentials (request);
+    const gchar *save_str = can_save ? "can_save" : "cant_save";
+
+    uzbl_commands_args_append (args, g_strdup (host));
+    uzbl_commands_args_append (args, g_strdup (realm));
+    uzbl_commands_args_append (args, g_strdup (retry));
+    uzbl_commands_args_append (args, g_strdup (scheme_str));
+    uzbl_commands_args_append (args, g_strdup (proxy));
+    uzbl_commands_args_append (args, g_strdup (port_str));
+    uzbl_commands_args_append (args, g_strdup (save_str));
+
+    g_free (port_str);
+
+    UzblAuthenticateData *auth_data = g_malloc (sizeof (UzblAuthenticateData));
+    auth_data->request = request;
+
+    uzbl_io_schedule_command (authentication_command, args, authenticate, auth_data);
+
+    g_object_ref (request);
+
+    return TRUE;
+}
+#endif
 
 #if WEBKIT_CHECK_VERSION (1, 11, 4)
 void
@@ -1394,6 +1486,69 @@ send_load_error (const gchar *uri, GError *error)
 
     return FALSE;
 }
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 1, 4)
+void
+authenticate (GString *result, gpointer data)
+{
+    UzblAuthenticateData *auth = (UzblAuthenticateData *)data;
+
+    gchar **tokens = g_strsplit (result->str, "\n", 0);
+
+    const gchar *action = tokens[0];
+    const gchar *username = tokens[1];
+    const gchar *password = tokens[2];
+    const gchar *persistence = tokens[3];
+
+    WebKitCredential *credential = NULL;
+    gboolean cancel = FALSE;
+
+    if (!action) {
+        /* Use the default credential. */
+        WebKitCredential *webkit_credential = webkit_authentication_request_get_proposed_credential (auth->request);
+
+        if (webkit_credential) {
+            credential = webkit_credential_copy (webkit_credential);
+        }
+    } else if (!g_strcmp0 (action, "IGNORE")) {
+        credential = NULL;
+    } else if (!g_strcmp0 (action, "CANCEL")) {
+        cancel = TRUE;
+        credential = NULL;
+    } else if (!g_strcmp0 (action, "AUTH") && username && password) {
+        WebKitCredentialPersistence persist = WEBKIT_CREDENTIAL_PERSISTENCE_NONE;
+
+        if (persistence) {
+            if (!g_strcmp0 (persistence, "none")) {
+                persist = WEBKIT_CREDENTIAL_PERSISTENCE_NONE;
+            } else if (!g_strcmp0 (persistence, "session")) {
+                persist = WEBKIT_CREDENTIAL_PERSISTENCE_FOR_SESSION;
+            } else if (!g_strcmp0 (persistence, "permanent")) {
+                persist = WEBKIT_CREDENTIAL_PERSISTENCE_PERMANENT;
+            }
+        }
+
+        webkit_credential_free (credential);
+        credential = webkit_credential_new (username, password, persist);
+    }
+
+    if (cancel) {
+        webkit_authentication_request_cancel (auth->request);
+    } else {
+        webkit_authentication_request_authenticate (auth->request, credential);
+    }
+
+    if (credential) {
+        webkit_credential_free (credential);
+    }
+
+    g_object_unref (auth->request);
+
+    g_free (auth);
+}
+#endif
+#endif
 
 #ifndef USE_WEBKIT2
 gboolean
