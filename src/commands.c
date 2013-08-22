@@ -895,9 +895,7 @@ IMPLEMENT_COMMAND (load)
         const gchar *baseuri = argv_idx (argv, 3);
 
 #ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 9, 90)
-        webkit_web_view_load_alternate_html (uzbl.gui.web_view, content, uri, baseuri);
-#elif WEBKIT_CHECK_VERSION (1, 7, 4)
+#if WEBKIT_CHECK_VERSION (1, 7, 4) && !WEBKIT_CHECK_VERSION (1, 9, 90)
         webkit_web_view_replace_content (uzbl.gui.web_view, content, uri, baseuri);
 #else
         webkit_web_view_load_alternate_html (uzbl.gui.web_view, content, uri, baseuri);
