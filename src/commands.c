@@ -947,8 +947,6 @@ IMPLEMENT_COMMAND (save)
         return;
     }
 
-    GError *err = NULL;
-
     if (1 < argv->len) {
         const gchar *path = argv_idx (argv, 1);
         GFile *gfile = g_file_new_for_path (path);
@@ -958,11 +956,6 @@ IMPLEMENT_COMMAND (save)
     } else {
         webkit_web_view_save (uzbl.gui.web_view, mode,
                               NULL, save_async_cb, NULL);
-    }
-
-    if (err) {
-        /* TODO: Don't ignore the error. */
-        g_error_free (err);
     }
 }
 #endif
