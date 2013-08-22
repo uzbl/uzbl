@@ -1874,7 +1874,7 @@ IMPLEMENT_GETTER (int, show_status)
         return FALSE;
     }
 
-    return gtk_widget_get_visible (GTK_WIDGET (uzbl.gui.status_bar));
+    return gtk_widget_get_visible (uzbl.gui.status_bar);
 }
 
 IMPLEMENT_SETTER (int, show_status)
