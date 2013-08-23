@@ -56,7 +56,6 @@ typedef struct {
 typedef struct {
     SoupSession    *soup_session;
     UzblCookieJar  *soup_cookie_jar;
-    SoupLogger     *soup_logger;
 } UzblNetwork;
 
 struct _UzblCommands;
