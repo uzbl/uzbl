@@ -21,6 +21,8 @@ uzbl_gui_free ();
 
 void
 uzbl_inspector_init ();
+void
+uzbl_inspector_free ();
 
 void
 uzbl_io_init ();

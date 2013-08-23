@@ -29,7 +29,6 @@ typedef struct {
     gchar         *main_title;
 
     /* Inspector */
-    GtkWidget          *inspector_window;
     WebKitWebInspector *inspector;
 
     /* Context menu */
@@ -41,8 +40,6 @@ typedef struct {
     gchar          *uri;
     char           *instance_name;
     gchar          *selected_url;
-    gboolean        embed;
-    GdkEventButton *last_button;
     gchar          *last_result;
     gboolean        plug_mode;
     JSGlobalContextRef jscontext;
@@ -59,7 +56,6 @@ typedef struct {
 typedef struct {
     SoupSession    *soup_session;
     UzblCookieJar  *soup_cookie_jar;
-    SoupLogger     *soup_logger;
 } UzblNetwork;
 
 struct _UzblCommands;
@@ -67,6 +63,9 @@ typedef struct _UzblCommands UzblCommands;
 
 struct _UzblGui;
 typedef struct _UzblGui UzblGui;
+
+struct _UzblInspector;
+typedef struct _UzblInspector UzblInspector;
 
 struct _UzblIO;
 typedef struct _UzblIO UzblIO;
@@ -85,6 +84,7 @@ typedef struct {
 
     UzblCommands     *commands;
     UzblGui          *gui_;
+    UzblInspector    *inspector;
     UzblIO           *io;
     UzblRequests     *requests;
     UzblVariables    *variables;

@@ -1396,7 +1396,10 @@ struct _UzblVariablesPrivate {
 #endif
 
     /* Network variables */
+#ifndef USE_WEBKIT2
     gchar *http_debug;
+    SoupLogger *soup_logger;
+#endif
 
     /* Security variables */
 #ifndef USE_WEBKIT2
@@ -2131,15 +2134,15 @@ IMPLEMENT_SETTER (gchar *, http_debug)
     g_free (uzbl.variables->priv->http_debug);
     uzbl.variables->priv->http_debug = g_strdup (http_debug);
 
-    if (uzbl.net.soup_logger) {
+    if (uzbl.variables->priv->soup_logger) {
         soup_session_remove_feature (
-            uzbl.net.soup_session, SOUP_SESSION_FEATURE (uzbl.net.soup_logger));
-        g_object_unref (uzbl.net.soup_logger);
+            uzbl.net.soup_session, SOUP_SESSION_FEATURE (uzbl.variables->priv->soup_logger));
+        g_object_unref (uzbl.variables->priv->soup_logger);
     }
 
-    uzbl.net.soup_logger = soup_logger_new (out, -1);
+    uzbl.variables->priv->soup_logger = soup_logger_new (out, -1);
     soup_session_add_feature (
-        uzbl.net.soup_session, SOUP_SESSION_FEATURE (uzbl.net.soup_logger));
+        uzbl.net.soup_session, SOUP_SESSION_FEATURE (uzbl.variables->priv->soup_logger));
 
     return TRUE;
 }
