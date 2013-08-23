@@ -1376,6 +1376,7 @@ struct _UzblVariablesPrivate {
     gchar *download_handler;
     gchar *mime_handler;
     gchar *authentication_handler;
+    gchar *permission_handler;
     gchar *shell_cmd;
 
     /* Window variables */
@@ -1402,6 +1403,7 @@ struct _UzblVariablesPrivate {
 #endif
 
     /* Security variables */
+    gboolean permissive;
 #ifndef USE_WEBKIT2
     gboolean maintain_history;
 #endif
@@ -1451,6 +1453,7 @@ uzbl_variables_private_new (GHashTable *table)
         { "download_handler",             UZBL_V_STRING (priv->download_handler,               NULL)},
         { "mime_handler",                 UZBL_V_STRING (priv->mime_handler,                   NULL)},
         { "authentication_handler",       UZBL_V_STRING (priv->authentication_handler,         NULL)},
+        { "permission_handler",           UZBL_V_STRING (priv->permission_handler,             NULL)},
         { "shell_cmd",                    UZBL_V_STRING (priv->shell_cmd,                      NULL)},
 #ifndef USE_WEBKIT2
         { "enable_builtin_auth",          UZBL_V_FUNC (enable_builtin_auth,                    INT)},
@@ -1501,6 +1504,7 @@ uzbl_variables_private_new (GHashTable *table)
 
         /* Security variables */
         { "enable_private",               UZBL_V_FUNC (enable_private,                         INT)},
+        { "permissive",                   UZBL_V_INT (priv->permissive,                        NULL)},
 #ifndef USE_WEBKIT2
         { "enable_universal_file_access", UZBL_V_FUNC (enable_universal_file_access,           INT)},
         { "enable_cross_file_access",     UZBL_V_FUNC (enable_cross_file_access,               INT)},
