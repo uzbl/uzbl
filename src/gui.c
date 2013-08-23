@@ -365,7 +365,7 @@ window_init ()
     /* TODO: Plumb through from command line. */
     gtk_window_set_default_size (GTK_WINDOW (uzbl.gui.main_window), 800, 600);
     gtk_window_set_title (GTK_WINDOW (uzbl.gui.main_window), "Uzbl");
-    gtk_widget_set_name (GTK_WIDGET (uzbl.gui.main_window), "Uzbl");
+    gtk_widget_set_name (uzbl.gui.main_window, "Uzbl");
 
 #if GTK_CHECK_VERSION (3, 0, 0)
     /* TODO: Make into an option? */
@@ -1358,7 +1358,7 @@ set_window_property (const gchar *prop, const gchar *value)
     if (uzbl.gui.main_window && GTK_IS_WIDGET (uzbl.gui.main_window))
     {
         gdk_property_change (
-            gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)),
+            gtk_widget_get_window (uzbl.gui.main_window),
             gdk_atom_intern_static_string (prop),
             gdk_atom_intern_static_string ("STRING"),
             CHAR_BIT * sizeof (value[0]),

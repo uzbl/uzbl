@@ -926,9 +926,7 @@ IMPLEMENT_COMMAND (load)
         const gchar *baseuri = argv_idx (argv, 3);
 
 #ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 9, 90)
-        webkit_web_view_load_alternate_html (uzbl.gui.web_view, content, uri, baseuri);
-#elif WEBKIT_CHECK_VERSION (1, 7, 4)
+#if WEBKIT_CHECK_VERSION (1, 7, 4) && !WEBKIT_CHECK_VERSION (1, 9, 90)
         webkit_web_view_replace_content (uzbl.gui.web_view, content, uri, baseuri);
 #else
         webkit_web_view_load_alternate_html (uzbl.gui.web_view, content, uri, baseuri);
@@ -980,8 +978,6 @@ IMPLEMENT_COMMAND (save)
         return;
     }
 
-    GError *err = NULL;
-
     if (1 < argv->len) {
         const gchar *path = argv_idx (argv, 1);
         GFile *gfile = g_file_new_for_path (path);
@@ -991,11 +987,6 @@ IMPLEMENT_COMMAND (save)
     } else {
         webkit_web_view_save (uzbl.gui.web_view, mode,
                               NULL, save_async_cb, NULL);
-    }
-
-    if (err) {
-        /* TODO: Don't ignore the error. */
-        g_error_free (err);
     }
 }
 #endif
