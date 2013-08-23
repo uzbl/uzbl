@@ -157,6 +157,10 @@ inspector_close_window_cb (WebKitWebInspector *inspector, gpointer data)
     UZBL_UNUSED (inspector);
     UZBL_UNUSED (data);
 
+#ifndef USE_WEBKIT2
+    gtk_widget_hide (uzbl.inspector->window);
+#endif
+
     uzbl_events_send (WEBINSPECTOR, NULL,
         TYPE_NAME, "close",
         NULL);
