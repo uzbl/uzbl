@@ -42,7 +42,6 @@ typedef struct {
     char           *instance_name;
     gchar          *selected_url;
     gboolean        embed;
-    GdkEventButton *last_button;
     gchar          *last_result;
     gboolean        plug_mode;
     JSGlobalContextRef jscontext;

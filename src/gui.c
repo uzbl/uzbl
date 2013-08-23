@@ -34,6 +34,8 @@ struct _UzblGui {
     gchar *last_geometry;
     gchar *last_selected_url;
 
+    GdkEventButton *last_button;
+
 #ifdef USE_WEBKIT2
     gboolean load_failed;
 #endif
@@ -73,6 +75,10 @@ uzbl_gui_free ()
 {
     g_free (uzbl.gui_->last_geometry);
     g_free (uzbl.gui_->last_selected_url);
+
+    if (uzbl.gui_->last_button) {
+        gdk_event_free ((GdkEvent *)uzbl.gui_->last_button);
+    }
 
     g_free (uzbl.gui_);
     uzbl.gui_ = NULL;
@@ -447,10 +453,10 @@ button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
     gboolean is_document = FALSE;
 
     /* Save last button click for use in menu. */
-    if (uzbl.state.last_button) {
-        gdk_event_free ((GdkEvent *)uzbl.state.last_button);
+    if (uzbl.gui_->last_button) {
+        gdk_event_free ((GdkEvent *)uzbl.gui_->last_button);
     }
-    uzbl.state.last_button = (GdkEventButton *)gdk_event_copy ((GdkEvent *)event);
+    uzbl.gui_->last_button = (GdkEventButton *)gdk_event_copy ((GdkEvent *)event);
 
     /* Grab context from last click. */
     context = get_click_context ();
@@ -1181,12 +1187,12 @@ get_click_context ()
 {
     guint context = NO_CLICK_CONTEXT;
 
-    if (!uzbl.state.last_button) {
+    if (!uzbl.gui_->last_button) {
         return NO_CLICK_CONTEXT;
     }
 
 #ifndef USE_WEBKIT2 /* TODO: No API for this? :( */
-    WebKitHitTestResult *ht = webkit_web_view_get_hit_test_result (uzbl.gui.web_view, uzbl.state.last_button);
+    WebKitHitTestResult *ht = webkit_web_view_get_hit_test_result (uzbl.gui.web_view, uzbl.gui_->last_button);
     g_object_get (ht,
         "context", &context,
         NULL);
