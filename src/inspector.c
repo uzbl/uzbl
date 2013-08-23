@@ -5,6 +5,10 @@
 #include "util.h"
 #include "uzbl-core.h"
 
+struct _UzblInspector {
+    GtkWidget *window;
+};
+
 /* =========================== PUBLIC API =========================== */
 
 #ifdef USE_WEBKIT2
@@ -32,6 +36,8 @@ inspector_uri_changed_cb (WebKitWebInspector *inspector, gpointer data);
 void
 uzbl_inspector_init ()
 {
+    uzbl.inspector = g_malloc0 (sizeof (UzblInspector));
+
     WebKitWebSettings *settings = webkit_web_view_get_settings (uzbl.gui.web_view);
     g_object_set (G_OBJECT (settings),
         "enable-developer-extras", TRUE,
@@ -71,6 +77,13 @@ uzbl_inspector_init ()
         NULL);
 }
 
+void
+uzbl_inspector_free ()
+{
+    g_free (uzbl.inspector);
+    uzbl.inspector = NULL;
+}
+
 /* ==================== CALLBACK IMPLEMENTATIONS ==================== */
 
 #ifdef USE_WEBKIT2
@@ -98,20 +111,20 @@ inspector_create_cb (WebKitWebInspector *inspector, WebKitWebView *view, gpointe
     GtkWidget *scrolled_window;
     GtkWidget *new_web_view;
 
-    uzbl.gui.inspector_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+    uzbl.inspector->window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 
-    g_object_connect (G_OBJECT (uzbl.gui.inspector_window),
+    g_object_connect (G_OBJECT (uzbl.inspector->window),
         "signal::delete-event", G_CALLBACK (inspector_hide_window_cb), NULL,
         NULL);
 
-    gtk_window_set_title (GTK_WINDOW (uzbl.gui.inspector_window), "Uzbl WebInspector");
-    gtk_window_set_default_size (GTK_WINDOW (uzbl.gui.inspector_window), 400, 300);
-    gtk_widget_show (uzbl.gui.inspector_window);
+    gtk_window_set_title (GTK_WINDOW (uzbl.inspector->window), "Uzbl WebInspector");
+    gtk_window_set_default_size (GTK_WINDOW (uzbl.inspector->window), 400, 300);
+    gtk_widget_show (uzbl.inspector->window);
 
     scrolled_window = gtk_scrolled_window_new (NULL, NULL);
     gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
         GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-    gtk_container_add (GTK_CONTAINER (uzbl.gui.inspector_window), scrolled_window);
+    gtk_container_add (GTK_CONTAINER (uzbl.inspector->window), scrolled_window);
     gtk_widget_show (scrolled_window);
 
     new_web_view = webkit_web_view_new ();
@@ -128,7 +141,7 @@ inspector_show_window_cb (WebKitWebInspector *inspector, gpointer data)
     UZBL_UNUSED (data);
 
 #ifndef USE_WEBKIT2
-    gtk_widget_show (uzbl.gui.inspector_window);
+    gtk_widget_show (uzbl.inspector->window);
 #endif
 
     uzbl_events_send (WEBINSPECTOR, NULL,

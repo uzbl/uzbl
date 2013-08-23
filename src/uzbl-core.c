@@ -237,6 +237,7 @@ uzbl_free ()
         TYPE_INT, getpid (),
         NULL);
 
+    uzbl_inspector_free ();
     uzbl_gui_free ();
     uzbl_requests_free ();
     uzbl_commands_free ();

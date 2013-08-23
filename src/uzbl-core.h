@@ -29,7 +29,6 @@ typedef struct {
     gchar         *main_title;
 
     /* Inspector */
-    GtkWidget          *inspector_window;
     WebKitWebInspector *inspector;
 
     /* Context menu */
@@ -67,6 +66,9 @@ typedef struct _UzblCommands UzblCommands;
 struct _UzblGui;
 typedef struct _UzblGui UzblGui;
 
+struct _UzblInspector;
+typedef struct _UzblInspector UzblInspector;
+
 struct _UzblIO;
 typedef struct _UzblIO UzblIO;
 
@@ -84,6 +86,7 @@ typedef struct {
 
     UzblCommands     *commands;
     UzblGui          *gui_;
+    UzblInspector    *inspector;
     UzblIO           *io;
     UzblRequests     *requests;
     UzblVariables    *variables;
