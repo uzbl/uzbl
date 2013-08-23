@@ -19,7 +19,6 @@
  *   - Handle submit-form signal?
  *   - Handle resource-load-started signal?
  *   - Handle print signal (turn hardcopy command into "js page string print()")?
- *   - Handle permission-request signal?
  *   - Handle leave-fullscreen signal?
  *   - Handle enter-fullscreen signal?
  *   - Handle context-menu-dismissed signal?
@@ -219,6 +218,13 @@ download_cb (WebKitWebContext *context, WebKitDownload *download, gpointer data)
 static gboolean
 download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data);
 #endif
+#ifdef USE_WEBKIT2
+static void
+permission_cb (WebKitWebView *view, WebKitPermissionRequest *request, gpointer data);
+#else
+static gboolean
+geolocation_policy_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitGeolocationPolicyDecision *decision, gpointer data);
+#endif
 /* UI events */
 #ifdef USE_WEBKIT2
 static GtkWidget *
@@ -305,6 +311,11 @@ web_view_init ()
         "signal::load-error",                           G_CALLBACK (load_error_cb),            NULL,
         "signal::window-object-cleared",                G_CALLBACK (window_object_cleared_cb), NULL,
         "signal::download-requested",                   G_CALLBACK (download_cb),              NULL,
+#endif
+#ifdef USE_WEBKIT2
+        "signal::permission-request",                   G_CALLBACK (permission_cb),            NULL,
+#else
+        "signal::geolocation-policy-decision-requested",G_CALLBACK (geolocation_policy_cb),    NULL,
 #endif
         /* UI events */
 #ifdef USE_WEBKIT2
@@ -1038,6 +1049,38 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
 }
 #endif
 
+static gboolean
+request_permission (const gchar *uri, const gchar *type, GObject *obj);
+
+#ifdef USE_WEBKIT2
+gboolean
+permission_cb (WebKitWebView *view, WebKitPermissionRequest *request, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (data);
+
+    const gchar *uri = webkit_web_frame_get_uri (frame);
+    const gchar *type = "unknown";
+
+    if (WEBKIT_IS_GEOLOCATION_PERMISSION_REQUEST (request)) {
+        type = "geolocation";
+    }
+
+    return request_permission (uri, type, G_OBJECT (request));
+}
+#else
+gboolean
+geolocation_policy_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitGeolocationPolicyDecision *decision, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (data);
+
+    const gchar *uri = webkit_web_frame_get_uri (frame);
+
+    return request_permission (uri, "geolocation", G_OBJECT (decision));
+}
+#endif
+
 /* UI events */
 
 static WebKitWebView *
@@ -1697,6 +1740,57 @@ handle_download (WebKitDownload *download, const gchar *suggested_destination)
 #endif
 }
 
+#ifdef USE_WEBKIT2
+#define permission_requests(call)                                 \
+    call(WEBKIT_IS_PERMISSION_REQUEST, WEBKIT_PERMISSION_REQUEST, \
+        webkit_permission_request_allow, webkit_permission_request_deny)
+#else
+#define permission_requests(call)                                                   \
+    call(WEBKIT_IS_GEOLOCATION_POLICY_DECISION, WEBKIT_GEOLOCATION_POLICY_DECISION, \
+        webkit_geolocation_policy_allow, webkit_geolocation_policy_deny)
+#endif
+#define allow_request(check, cast, allow, deny) \
+    } else if (check (obj)) {                   \
+        allow (cast (obj));
+#define deny_request(check, cast, allow, deny) \
+    } else if (check (obj)) {                  \
+        deny (cast (obj));
+
+static void
+decide_permission (GString *result, gpointer data);
+
+gboolean
+request_permission (const gchar *uri, const gchar *type, GObject *obj)
+{
+    if (uzbl_variables_get_int ("frozen")) {
+        if (false) {
+        permission_requests (deny_request)
+        }
+        return TRUE;
+    }
+
+    uzbl_debug ("Permission requested -> %s\n", uri);
+
+    gchar *handler = uzbl_variables_get_string ("permission_handler");
+
+    GArray *args = uzbl_commands_args_new ();
+    const UzblCommand *permission_command = uzbl_commands_parse (handler, args);
+
+    g_free (handler);
+
+    if (permission_command) {
+        uzbl_commands_args_append (args, g_strdup (uri));
+        uzbl_commands_args_append (args, g_strdup (type));
+        g_object_ref (obj);
+        uzbl_io_schedule_command (permission_command, args, decide_permission, obj);
+    } else {
+        uzbl_commands_args_free (args);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 static void
 create_web_view_js_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
 
@@ -2087,6 +2181,34 @@ download_error_cb (WebKitDownload *download, gint error_code, gint error_detail,
     send_download_error (destination, error_detail, reason);
 }
 #endif
+
+void
+decide_permission (GString *result, gpointer data)
+{
+    GObject *obj = (GObject *)data;
+    gboolean allow;
+
+    if (!g_strcmp0 (result->str, "ALLOW")) {
+        allow = TRUE;
+    } else if (!g_strcmp0 (result->str, "DENY")) {
+        allow = FALSE;
+    } else {
+        allow = !uzbl_variables_get_int ("enable_private") &&
+                uzbl_variables_get_int ("permissive");
+    }
+
+    if (allow) {
+        if (false) {
+        permission_requests (allow_request)
+        }
+    } else {
+        if (false) {
+        permission_requests (deny_request)
+        }
+    }
+
+    g_object_unref (obj);
+}
 
 void
 create_web_view_js_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
