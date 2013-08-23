@@ -704,7 +704,7 @@ builtin_command_table[] = {
 
     /* Security commands */
 #ifdef HAVE_SECURITY
-    { "secuity",                        cmd_security,                 TRUE,  TRUE  },
+    { "security",                       cmd_security,                 TRUE,  TRUE  },
 #endif
 #ifdef USE_WEBKIT2
     { "dns",                            cmd_dns,                      TRUE,  TRUE  },

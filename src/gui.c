@@ -669,7 +669,8 @@ typedef WebKitLoadEvent WebKitLoadStatus;
 #endif
 
 static gboolean
-navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri);
+navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri,
+        const gchar *frame, const gchar *type, guint button, guint modifiers);
 static gboolean
 request_decision (const gchar *uri, gpointer data);
 static void
@@ -697,18 +698,37 @@ decide_policy_cb (WebKitWebView *view, WebKitPolicyDecision *decision, WebKitPol
     {
         WebKitNavigationPolicyDecision *nav_decision = WEBKIT_NAVIGATION_POLICY_DECISION (decision);
         WebKitURIRequest *request = webkit_navigation_policy_decision_get_request (nav_decision);
+
         const gchar *uri = webkit_uri_request_get_uri (request);
+        const gchar *frame = webkit_navigation_policy_decision_get_frame_name (nav_decision);
+        WebKitNavigationType type = webkit_navigation_policy_decision_get_navigation_type (nav_decision);
+        guint button = webkit_navigation_policy_decision_get_mouse_button (nav_decision);
+        guint modifiers = webkit_navigation_policy_decision_get_modifiers (nav_decision);
 
-        /* TODO: Add information from WebKitNavigationPolicyDecision such as:
-         *
-         *  * frame name
-         *  * modifiers
-         *  * mouse button
-         *  * navigation type (link click, form submission, back/forward,
-         *                     reload, form resubmission, unknown)
-         */
+#define navigation_type_choices(call)                                  \
+    call(WEBKIT_NAVIGATION_TYPE_LINK_CLICKED, "link")                  \
+    call(WEBKIT_NAVIGATION_TYPE_FORM_SUBMITTED, "form_submission")     \
+    call(WEBKIT_NAVIGATION_TYPE_BACK_FORWARD, "back_forward")          \
+    call(WEBKIT_NAVIGATION_TYPE_RELOAD, "reload")                      \
+    call(WEBKIT_NAVIGATION_TYPE_FORM_RESUBMITTED, "form_resubmission") \
+    call(WEBKIT_NAVIGATION_TYPE_OTHER, "other")
 
-        return navigation_decision (decision, uri);
+#define ENUM_TO_STRING(val, str) \
+    case val:                    \
+        scheme_str = str;        \
+        break;
+
+        const gchar *type_str = "unknown";
+        switch (type) {
+        navigation_type_choices (ENUM_TO_STRING)
+        default:
+            break;
+        }
+
+#undef ENUM_TO_STRING
+#undef navigation_type_choices
+
+        return navigation_decision (decision, uri, frame, type_str, button, modifiers);
     }
     case WEBKIT_POLICY_DECISION_TYPE_RESPONSE:
     {
@@ -879,7 +899,7 @@ navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
 
     const gchar *uri = webkit_network_request_get_uri (request);
 
-    return navigation_decision (policy_decision, uri);
+    return navigation_decision (policy_decision, uri, "", "unknown", 0, 0);
 }
 
 static gboolean
@@ -1378,7 +1398,8 @@ static void
 decide_navigation (GString *result, gpointer data);
 
 gboolean
-navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri)
+navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri,
+        const gchar *frame, const gchar *type, guint button, guint modifiers)
 {
     if (uzbl_variables_get_int ("frozen")) {
         make_policy (decision, ignore);
@@ -1394,6 +1415,10 @@ navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri)
 
     if (scheme_command) {
         uzbl_commands_args_append (args, g_strdup (uri));
+        uzbl_commands_args_append (args, g_strdup (frame));
+        uzbl_commands_args_append (args, g_strdup (type));
+        uzbl_commands_args_append (args, g_strdup_printf ("%d", button));
+        uzbl_commands_args_append (args, get_modifier_mask (modifiers));
         g_object_ref (decision);
         uzbl_io_schedule_command (scheme_command, args, decide_navigation, decision);
     } else {
