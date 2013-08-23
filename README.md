@@ -566,6 +566,8 @@ variables are treated as strings.
     mime type. It is passed the mime type and disposition as arguments.
 * `authentication_handler` (command) (no default) (WebKit1 only)
   - The command to use when requesting authentication.
+* `permission_handler` (command) (no default)
+  - The command to use when WebKit requesting permission for an action.
 * `shell_cmd` (string) (default: `sh -c`)
   - The command to use as a shell. This is used in the `spawn_sh` and `sync_sh`
     commands as well as `@()@` expansion.
@@ -657,6 +659,9 @@ variables are treated as strings.
     `UZBL_PRIVATE` environment variable for external plugins. DNS prefetching
     is separate from this; see the `enable_dns_prefetch` variable. It is
     currently experimental in WebKitGtk itself.
+* `permissive` (boolean) (default: 0)
+  - If non-zero, permission will be granted by default (if `enable_private` is
+    0) if `permission_handler` is either not set or returns an invalid value.
 * `enable_universal_file_access` (boolean) (default: 0) (WebKit1 only)
   - If non-zero, content accessed via the `file` scheme will be allowed to
     access all other content.
@@ -1090,8 +1095,8 @@ the following environment variables:
   - Set if the `enable_private` variable is non-zero, unset otherwise.
 
 Handler scripts (`download_handler`, `scheme_handler`, `request_handler`,
-`mime_handler`, and `authentication_handler`) are called with special
-arguments:
+`mime_handler`, `authentication_handler`, and `permission_handler`) are called
+with special arguments:
 
 * download handler
 
@@ -1151,6 +1156,15 @@ arguments:
   2. `retry`
     - Either `retrying` or `initial` depending on whether this request is a
       retrial of a previous request.
+
+* permission handler
+
+  1. `uri`
+    - The URI requesting permission.
+  2. `action`
+    - The data or action WebKit is requesting permission for. Known values
+      include:
+      + `geolocation`
 
 ### WINDOW MANAGER INTEGRATION
 
