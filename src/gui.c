@@ -1785,7 +1785,19 @@ request_permission (const gchar *uri, const gchar *type, GObject *obj)
         uzbl_io_schedule_command (permission_command, args, decide_permission, obj);
     } else {
         uzbl_commands_args_free (args);
-        return FALSE;
+
+        gboolean allow = !uzbl_variables_get_int ("enable_private") &&
+                         uzbl_variables_get_int ("permissive");
+
+        if (allow) {
+            if (FALSE) {
+            permission_requests (allow_request)
+            }
+        } else {
+            if (FALSE) {
+            permission_requests (deny_request)
+            }
+        }
     }
 
     return TRUE;
@@ -2198,11 +2210,11 @@ decide_permission (GString *result, gpointer data)
     }
 
     if (allow) {
-        if (false) {
+        if (FALSE) {
         permission_requests (allow_request)
         }
     } else {
-        if (false) {
+        if (FALSE) {
         permission_requests (deny_request)
         }
     }
