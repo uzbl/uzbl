@@ -63,6 +63,7 @@ uzbl_init (int *argc, char ***argv)
     gchar *uri = NULL;
     gboolean verbose = FALSE;
     gchar *config_file = NULL;
+    gboolean embed = FALSE;
     gchar **connect_socket_names = NULL;
     gboolean print_events = FALSE;
     gchar *geometry = NULL;
@@ -82,7 +83,7 @@ uzbl_init (int *argc, char ***argv)
         /* TODO: explain the difference between these two options */
         { "socket",         's', 0, G_OPTION_ARG_INT,          &uzbl.state.socket_id,
             "Xembed socket ID, this window should embed itself",                                              "SOCKET" },
-        { "embed",          'e', 0, G_OPTION_ARG_NONE,         &uzbl.state.embed,
+        { "embed",          'e', 0, G_OPTION_ARG_NONE,         &embed,
             "Whether this window should expect to be embedded",                                               NULL },
         { "connect-socket",  0,  0, G_OPTION_ARG_STRING_ARRAY, &connect_socket_names,
             "Connect to server socket for event managing",                                                    "CSOCKET" },
@@ -109,7 +110,7 @@ uzbl_init (int *argc, char ***argv)
     }
 
     /* Embedded mode. */
-    if (uzbl.state.socket_id || uzbl.state.embed) {
+    if (uzbl.state.socket_id || embed) {
         uzbl.state.plug_mode = TRUE;
     }
 

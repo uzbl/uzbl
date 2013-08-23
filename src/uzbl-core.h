@@ -40,7 +40,6 @@ typedef struct {
     gchar          *uri;
     char           *instance_name;
     gchar          *selected_url;
-    gboolean        embed;
     gchar          *last_result;
     gboolean        plug_mode;
     JSGlobalContextRef jscontext;
