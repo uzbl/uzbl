@@ -1113,6 +1113,22 @@ arguments:
 
   1. `uri`
     - The URI of the page to be navigated to.
+  2. `frame` (empty in WebKit1)
+    - The name of the frame which is targeted for the navigation.
+  3. `type`
+    - The type of navigation that triggered the request. Known values include:
+      + `link`
+      + `form_submission`
+      + `back_forward`
+      + `reload`
+      + `form_resubmission`
+      + `other`
+      + `unknown`
+  4. `button` (0 in WebKit1)
+    - The mouse button used for the navigation (or 0 if a mouse was not used).
+  5. `modifiers` (empty in WebKit1)
+    - The modifiers used for the navigation. This uses the same format as the
+      `KEY_PRESS` and `KEY_RELEASE` events.
 
 * request handler
 
