@@ -343,5 +343,5 @@ uzbl.follow.followSelection = function(mode) {
     if (!el)
         return
 
-    this.elementSelected(el)
+    return this.elementSelected(el)
 }
