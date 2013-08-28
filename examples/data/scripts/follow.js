@@ -421,7 +421,7 @@ uzbl.follow = (function () {
 
             setMode(action);
 
-            followElement(el);
+            return followElement(el);
         },
 
         clearHints: clearHints
