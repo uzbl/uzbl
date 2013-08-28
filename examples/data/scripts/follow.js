@@ -328,8 +328,10 @@ uzbl.follow.followLinks = function(str) {
     }
 }
 
+uzbl.follow.getSelection = window.getSelection
+
 uzbl.follow.followSelection = function(mode) {
-    var selection = window.getSelection()
+    var selection = this.getSelection()
     if (!selection)
         return
 
