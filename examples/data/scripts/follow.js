@@ -56,7 +56,6 @@ uzbl.follow = (function () {
     var getDocument = function (el) {
         if (isFrame(el)) {
             return el.contentDocument;
->>>>>>> 4b6c254... Clean up JS scripts
         }
 
         var doc = el;
