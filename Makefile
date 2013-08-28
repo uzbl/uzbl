@@ -12,7 +12,7 @@ DOCDIR     ?= $(INSTALLDIR)/share/uzbl/docs
 RUN_PREFIX ?= $(PREFIX)
 INSTALL    ?= install -p
 
-ENABLE_WEBKIT2 ?= auto
+ENABLE_WEBKIT2 ?= no
 ENABLE_GTK3    ?= auto
 
 ENABLE_CUSTOM_SCHEME ?= yes
