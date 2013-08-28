@@ -794,8 +794,8 @@ Events have this format:
   `progress` is a decimal between 0 and 1.
 * `EVENT [uzbl_instance_name] DOWNLOAD_COMPLETE destination_path`: The
   download being saved to `destination_path` is now complete.
-* `EVENT [uzbl_instance_name] LINK_HOVER uri`: The mouse hovers over the link
-  `uri`.
+* `EVENT [uzbl_instance_name] LINK_HOVER uri title`: The mouse hovers over the
+  link `uri` with the title `title`.
 * `EVENT [uzbl_instance_name] LINK_UNHOVER uri`: The mouse leaves the link
   `uri`.
 * `EVENT [uzbl_instance_name] KEY_PRESS 'mod_state' key_name`: The key (or mouse button)

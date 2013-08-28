@@ -1,22 +1,40 @@
-#include <glib.h>
-#include <stdio.h>
+/* Header guard intentionally not added. This file is only meant for .c files. */
 
-enum xdg_type {
-  XDG_CONFIG, XDG_DATA, XDG_CACHE
-};
+#define UZBL_UNUSED(var) (void)var
 
-void        ensure_xdg_vars(void);
-gchar*      find_xdg_file(enum xdg_type type, const char* filename);
-gboolean    file_exists(const char* filename);
-char*       str_replace(const char* search, const char* replace, const char* string);
-gboolean    for_each_line_in_file(const gchar *path, void (*callback)(const gchar *l, void *c), void *user_data);
-gchar*      find_existing_file(const gchar*);
-gchar*      argv_idx(const GArray*, const guint);
+#define ARG_CHECK(argv, count)   \
+    do                           \
+    {                            \
+        if (argv->len < count) { \
+            return;              \
+        }                        \
+    } while (false)
 
-/**
- * appends `src' to `dest' with backslash, single-quotes and newlines in
- * `src' escaped
- */
-GString *   append_escaped (GString *dest, const gchar *src);
+gchar *
+argv_idx (const GArray *argv, guint idx);
 
-void        sharg_append (GArray *array, const gchar *str);
+#define strprefix(str, prefix) \
+    strncmp ((str), (prefix), strlen ((prefix)))
+
+gchar *
+str_replace (const gchar *needle, const gchar *replace, const gchar *haystack);
+
+void
+remove_trailing_newline (const char *line);
+
+gboolean
+file_exists (const char *filename);
+/* Search a PATH style string for an existing file+path combination. everything
+ * after the last ':' is assumed to be the name of the file. e.g.
+ * "/tmp:/home:a/file" will look for /tmp/a/file and /home/a/file.
+ *
+ * If there are no ':'s, the entire thing is taken to be the path. */
+gchar *
+find_existing_file (const gchar *path_list);
+/* This function searches the directories in the ':' separated ($PATH style)
+ * string 'dirs' for a file named 'basename'. It returns the path of the first
+ * file found, or NULL if none could be found.
+ *
+ * NOTE: this function modifies the 'dirs' argument. */
+gchar *
+find_existing_file_options (gchar *dirs, const gchar *basename);

@@ -199,17 +199,17 @@ class Cookies(PerInstancePlugin):
         cookie = splitquoted(cookie)
         if self.accept_cookie(cookie):
             for u in self.get_recipents():
-                u.send('add_cookie %s' % cookie.raw())
+                u.send('cookie add %s' % cookie.raw())
 
             self.get_store(self.expires_with_session(cookie)).add_cookie(cookie.raw(), cookie)
         else:
             self.logger.debug('cookie %r is blacklisted', cookie)
-            self.uzbl.send('delete_cookie %s' % cookie.raw())
+            self.uzbl.send('cookie delete %s' % cookie.raw())
 
     def delete_cookie(self, cookie):
         cookie = splitquoted(cookie)
         for u in self.get_recipents():
-            u.send('delete_cookie %s' % cookie.raw())
+            u.send('cookie delete %s' % cookie.raw())
 
         if len(cookie) == 6:
             self.get_store(self.expires_with_session(cookie)).delete_cookie(cookie.raw(), cookie)
