@@ -44,6 +44,7 @@ uzbl.follow = (function () {
 
     // Helpers
     var slice = Array.prototype.slice;
+    var getSelection = window.getSelection;
 
     // Functions
     // Return true if the given element is a frame.
@@ -403,7 +404,7 @@ uzbl.follow = (function () {
         },
 
         followSelection: function (action) {
-            var selection = window.getSelection();
+            var selection = getSelection();
             if (!selection) {
                 return;
             }
