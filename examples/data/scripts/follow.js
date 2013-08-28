@@ -44,6 +44,7 @@ uzbl.follow = (function () {
 
     // Helpers
     var slice = Array.prototype.slice;
+    var getSelection = window.getSelection;
 
     // Functions
     // Return true if the given element is a frame.
@@ -55,7 +56,6 @@ uzbl.follow = (function () {
     var getDocument = function (el) {
         if (isFrame(el)) {
             return el.contentDocument;
->>>>>>> 4b6c254... Clean up JS scripts
         }
 
         var doc = el;
@@ -403,7 +403,7 @@ uzbl.follow = (function () {
         },
 
         followSelection: function (action) {
-            var selection = window.getSelection();
+            var selection = getSelection();
             if (!selection) {
                 return;
             }
@@ -420,7 +420,7 @@ uzbl.follow = (function () {
 
             setMode(action);
 
-            followElement(el);
+            return followElement(el);
         },
 
         clearHints: clearHints
