@@ -399,7 +399,6 @@ set formfiller = spawn @scripts_dir/formfiller.sh
 # Tab opening
 @cbind  gn              = event NEW_TAB
 @cbind  gN              = event NEW_TAB_NEXT
-@cbind  go<uri:>_       = event NEW_TAB %s
 @cbind  gO<uri:>_       = event NEW_TAB_NEXT %s
 
 # Closing / resting
@@ -414,15 +413,22 @@ set formfiller = spawn @scripts_dir/formfiller.sh
 @cbind  gi<index:>_     = event GOTO_TAB %s
 @cbind  <Ctrl><Left>    = event MOVE_CURRENT_TAB_LEFT
 @cbind  <Ctrl><Right>   = event MOVE_CURRENT_TAB_RIGHT
-@cbind  gm<index:>_     = event MOVE_CURRENT_TAB %s
 
-# Preset loading
+# Named sessions
+# Possible commands:
+#    @preset save %s
+#    @preset merge %s
+#    @preset open %s   [DEPRECATED, for interactive menu use session_open.sh]
+#    @preset del %s
+#    @preset list      [DEPRECATED, for interactive menu use session_list.sh]
+#    @preset backup
 set preset = event PRESET_TABS
-@cbind  gs<preset save:>_   = @preset save %s
-@cbind  glo<preset load:>_  = @preset load %s
-@cbind  gd<preset del:>_    = @preset del %s
+@cbind  gs<save session as:>_   = @preset save %s
+@cbind  gm<merge named session:>_  = @preset merge %s
+@cbind  gd<delete named session:>_    = @preset del %s
 @cbind  gb                  = @preset backup
-@cbind  gli                 = @preset list
+@cbind  go  = spawn @scripts_dir/session_open.sh
+@cbind  gli = spawn @scripts_dir/session_list.sh
 
 # === Context menu items =====================================================
 
