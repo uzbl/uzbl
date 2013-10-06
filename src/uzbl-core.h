@@ -119,6 +119,9 @@ typedef struct {
     gboolean        handle_multi_button;
     GPtrArray*      event_buffer;
     gchar**         connect_socket_names;
+
+    /* Temporary web view used when a new window is opened */
+    WebKitWebView* _tmp_web_view;
 } State;
 
 

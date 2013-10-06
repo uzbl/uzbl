@@ -360,19 +360,18 @@ request_starting_cb(WebKitWebView *web_view, WebKitWebFrame *frame, WebKitWebRes
 }
 
 void
-create_web_view_js_cb (WebKitWebView* web_view, GParamSpec param_spec) {
+create_web_view_got_uri_cb (WebKitWebView* web_view, GParamSpec param_spec) {
     (void) web_view;
     (void) param_spec;
 
     webkit_web_view_stop_loading(web_view);
+
     const gchar* uri = webkit_web_view_get_uri(web_view);
 
     if (strncmp(uri, "javascript:", strlen("javascript:")) == 0)
         eval_js(uzbl.gui.web_view, (gchar*) uri + strlen("javascript:"), NULL, "javascript:");
     else
         send_event(NEW_WINDOW, NULL, TYPE_STR, uri, NULL);
-
-    gtk_widget_destroy(GTK_WIDGET(web_view));
 }
 
 /*@null@*/ WebKitWebView*
@@ -381,14 +380,29 @@ create_web_view_cb (WebKitWebView  *web_view, WebKitWebFrame *frame, gpointer us
     (void) frame;
     (void) user_data;
 
-    if (uzbl.state.verbose)
-        printf("New web view -> javascript link...\n");
+    // unfortunately we don't know the URL at this point; all webkit-gtk will
+    // tell us is that we're opening a new window.
+    //
+    // (we can't use the new-window-policy-decision-requested event; it doesn't
+    // fire when Javascript requests a new window with window.open().)
+    //
+    // so, we have to create a temporary web view and allow it to load. webkit
+    // segfaults if we try to destroy it or mark it for garbage collection in
+    // create_web_view_got_uri_cb, so we might as well keep it around and reuse
+    // it.
 
-    WebKitWebView* new_view = WEBKIT_WEB_VIEW(webkit_web_view_new());
+    if(!uzbl.state._tmp_web_view) {
+      uzbl.state._tmp_web_view = WEBKIT_WEB_VIEW(webkit_web_view_new());
 
-    g_object_connect (new_view, "signal::notify::uri",
-                           G_CALLBACK(create_web_view_js_cb), NULL, NULL);
-    return new_view;
+      g_object_connect (uzbl.state._tmp_web_view, "signal::notify::uri",
+                             G_CALLBACK(create_web_view_got_uri_cb), NULL, NULL);
+
+      // we're taking ownership of this WebView (sinking its floating reference
+      // since it will never be added to a display widget).
+      g_object_ref_sink(uzbl.state._tmp_web_view);
+    }
+
+    return uzbl.state._tmp_web_view;
 }
 
 void
