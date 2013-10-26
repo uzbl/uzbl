@@ -38,6 +38,8 @@ struct _UzblGui {
 #ifdef USE_WEBKIT2
     gboolean load_failed;
 #endif
+
+    WebKitWebView *tmp_web_view;
 };
 
 /* =========================== PUBLIC API =========================== */
@@ -77,6 +79,10 @@ uzbl_gui_free ()
 
     if (uzbl.gui_->last_button) {
         gdk_event_free ((GdkEvent *)uzbl.gui_->last_button);
+    }
+
+    if (uzbl.gui_->tmp_web_view) {
+        g_object_unref (uzbl.gui_->tmp_web_view);
     }
 
     g_free (uzbl.gui_);
@@ -1804,20 +1810,30 @@ request_permission (const gchar *uri, const gchar *type, GObject *obj)
 }
 
 static void
-create_web_view_js_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
+create_web_view_uri_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
 
 WebKitWebView *
 create_view ()
 {
-    WebKitWebView *new_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
+    if (!uzbl.gui_->tmp_web_view) {
+        /*
+         * The URL is not known at this point and destroying the view in the
+         * uri notification callback causes segfaults. Instead, create a dummy
+         * view which is reused between calls to handle this. It is allocated
+         * here to avoid carrying around a full view even if it isn't needed.
+         *
+         * The new-window-policy-decision-requested signal can't be used
+         * because it doesn't fire when Javascript requests a new window with
+         * window.open().
+         */
+        uzbl.gui_->tmp_web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
+    }
 
-    uzbl_debug ("New web view -> javascript link...\n");
-
-    g_object_connect (G_OBJECT (new_view),
-        "signal::notify::uri", G_CALLBACK (create_web_view_js_cb), NULL,
+    g_object_connect (G_OBJECT (uzbl.gui_->tmp_web_view),
+        "signal::notify::uri", G_CALLBACK (create_web_view_uri_cb), NULL,
         NULL);
 
-    return new_view;
+    return uzbl.gui_->tmp_web_view;
 }
 
 static void
@@ -2223,7 +2239,7 @@ decide_permission (GString *result, gpointer data)
 }
 
 void
-create_web_view_js_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
+create_web_view_uri_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
 {
     UZBL_UNUSED (param_spec);
     UZBL_UNUSED (data);
@@ -2246,8 +2262,6 @@ create_web_view_js_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data
             TYPE_STR, uri,
             NULL);
     }
-
-    gtk_widget_destroy (GTK_WIDGET (view));
 }
 
 void
