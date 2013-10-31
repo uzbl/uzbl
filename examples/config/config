@@ -368,23 +368,49 @@ set follow_hint_keys 0123456789
 #set follow_hint_keys qwerty
 #set follow_hint_keys asdfghjkl;
 #set follow_hint_keys thsnd-rcgmvwb/;789aefijkopquxyz234
+
+# follow links
+# The structure for these calls is to call a shell script (follow.sh) with the
+# output of some JavaScript code (follow.js) which gets a URI from the page to
+# act on. The first argument to followLinks() is the list of characters to use
+# for labelling links, the second is the currently entered keys, and the third
+# is the 'mode' to use. The modes are 'click', 'newwindow', and 'returnuri'.
+# The 'click' and 'newwindow' modes are handled in follow.js completely. When
+# using 'returnuri' the second argument to follow.sh is the action to use for
+# the URI. Currently implemented are 'set' (uses the 'uri' command),
+# 'newwindow' (uses the REQ_NEW_WINDOW event), and 'clipboard' (copies the URI
+# to the clipboard).
+
+# follow hint keys:
+#   fl -> emulate a click on the link
+#   Fl -> open in a new window
+#   fL -> take the url and navigate directly to it
+#   FL -> copy the url to the clipboard
 @cbind  fl*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followLinks("\@follow_hint_keys", "%s", 'click') >\@
 @cbind  Fl*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followLinks("\@follow_hint_keys", "%s", 'newwindow') >\@
 @cbind  fL*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followLinks("\@follow_hint_keys", "%s", 'returnuri') >\@ set
 @cbind  FL*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followLinks("\@follow_hint_keys", "%s", 'returnuri') >\@ clipboard
 @cbind  fi   = spawn @scripts_dir/go_input.sh
 
-@cbind  fs  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followSelection('returnuri') >\@ set
-@cbind  fS  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followSelection('click') >\@
-@cbind  Fs  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followSelection('newwindow') >\@
+# follow selected link:
+#   fs -> emulate a click on the link
+#   Fs -> open in a new window
+#   fS -> take the url and navigate directly to it
+#   FS -> copy the url to the clipboard
+@cbind  fs  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followSelection('click') >\@
+@cbind  fS  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followSelection('newwindow') >\@
+@cbind  Fs  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followSelection('returnuri') >\@ set
 @cbind  FS  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followSelection('returnuri') >\@ clipboard
 
-@cbind  ft*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followTextContent("%s", 'returnuri') >\@ set
-@cbind  fT*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followTextContent("%s", 'click') >\@
-@cbind  Ft*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followTextContent("%s", 'newwindow') >\@
+# follow by link text (i.e., <a>foo</a> is selected with "ftfoo" or "'foo")
+#   ft -> emulate a click on the link
+#   Ft -> open in a new window
+#   fT -> take the url and navigate directly to it
+#   FT -> copy the url to the clipboard
+@cbind  ft*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followTextContent("%s", 'click') >\@
+@cbind  fT*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followTextContent("%s", 'newwindow') >\@
+@cbind  Ft*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followTextContent("%s", 'returnuri') >\@ set
 @cbind  FT*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followTextContent("%s", 'returnuri') >\@ clipboard
-
-@cbind  '*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followTextContent("%s", 'click') >\@
 
 # Form filler binds
 # This script allows you to configure (per domain) values to fill in form
