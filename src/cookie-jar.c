@@ -52,33 +52,35 @@ changed (SoupCookieJar *jar, SoupCookie *old_cookie, SoupCookie *new_cookie)
      * delete_cookie command because otherwise a loop would occur when a cookie
      * change is propagated to other uzbl instances using add_cookie or
      * delete_cookie. */
-    if (!uzbl_jar->in_manual_add) {
-        gchar *base_scheme = cookie->secure ? "https" : "http";
-        gchar *scheme = g_strdup (base_scheme);
-
-        if (cookie->http_only) {
-            gchar *old_scheme = scheme;
-            scheme = g_strconcat (scheme, "Only", NULL);
-            g_free (old_scheme);
-        }
-
-        gchar *expires = NULL;
-        if (cookie->expires) {
-            expires = g_strdup_printf ("%ld", (long)soup_date_to_time_t (cookie->expires));
-        }
-
-        uzbl_events_send (new_cookie ? ADD_COOKIE : DELETE_COOKIE, NULL,
-            TYPE_STR, cookie->domain,
-            TYPE_STR, cookie->path,
-            TYPE_STR, cookie->name,
-            TYPE_STR, cookie->value,
-            TYPE_STR, scheme,
-            TYPE_STR, expires ? expires : "",
-            NULL);
-
-        g_free (expires);
-        g_free (scheme);
+    if (uzbl_jar->in_manual_add) {
+        return;
     }
+
+    gchar *base_scheme = cookie->secure ? "https" : "http";
+    gchar *scheme = g_strdup (base_scheme);
+
+    if (cookie->http_only) {
+        gchar *old_scheme = scheme;
+        scheme = g_strconcat (scheme, "Only", NULL);
+        g_free (old_scheme);
+    }
+
+    gchar *expires = NULL;
+    if (cookie->expires) {
+        expires = g_strdup_printf ("%ld", (long)soup_date_to_time_t (cookie->expires));
+    }
+
+    uzbl_events_send (new_cookie ? ADD_COOKIE : DELETE_COOKIE, NULL,
+        TYPE_STR, cookie->domain,
+        TYPE_STR, cookie->path,
+        TYPE_STR, cookie->name,
+        TYPE_STR, cookie->value,
+        TYPE_STR, scheme,
+        TYPE_STR, expires ? expires : "",
+        NULL);
+
+    g_free (expires);
+    g_free (scheme);
 }
 
 void
