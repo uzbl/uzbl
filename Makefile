@@ -133,8 +133,13 @@ ${OBJ}: ${HEAD}
 
 uzbl-core: ${OBJ}
 
-uzbl-browser: uzbl-core uzbl-event-manager
+uzbl-browser: uzbl-core uzbl-event-manager uzbl.desktop bin/uzbl-browser
+
+uzbl.desktop: uzbl.desktop.in
 	sed 's#@PREFIX@#$(PREFIX)#' < uzbl.desktop.in > uzbl.desktop
+
+bin/uzbl-browser: bin/uzbl-browser.in
+	sed 's#@PREFIX@#$(PREFIX)#' < bin/uzbl-browser.in > bin/uzbl-browser
 
 build: ${PY}
 	$(PYTHON) setup.py build
@@ -199,6 +204,7 @@ clean:
 	rm -f uzbl-core
 	rm -f $(OBJ) ${LOBJ}
 	rm -f uzbl.desktop
+	rm -f bin/uzbl-browser
 	find ./examples/ -name "*.pyc" -delete || :
 	find -name __pycache__ -type d -delete || :
 	cd ./tests/; $(MAKE) clean

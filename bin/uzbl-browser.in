@@ -1,0 +1,69 @@
+#!/bin/sh
+#
+# This script implements a more useful out-of-the-box "browsing experience".
+# It does so by combining uzbl-core with a set of "recommended" tools and
+# practices. See docs for more info.
+#
+# If you want to customize the behavior any of the helper tools, copy them
+# to your $XDG_DATA_HOME/uzbl/scripts/ and edit them
+
+UZBL_PREFIX="@PREFIX@"
+export UZBL_PREFIX
+
+EXAMPLES="$UZBL_PREFIX/share/uzbl/examples"
+
+XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_DATA_HOME
+
+XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_CACHE_HOME
+
+XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_CONFIG_HOME
+
+die_with_status () {
+	status="$1"
+	shift
+
+	echo >&2 "$@"
+	exit "$status"
+}
+
+# assure the relevant directories exist.
+for dir in "$XDG_CACHE_HOME/uzbl" "$XDG_DATA_HOME/uzbl" "$XDG_CONFIG_HOME/uzbl"; do
+	if ! [ -d "$dir" ]; then
+		mkdir -p "$dir" || \
+			die_with_status 2 "Error: Could not create directory: $dir"
+	fi
+done
+
+# if no config exists yet in the recommended location, put the default (recommended) config there
+if ! [ -f "$XDG_CONFIG_HOME/uzbl/config" ]
+then
+	[ -r "$EXAMPLES/config/config" || \
+		die_with_status 3 "Error: Global config not found; please check if your distribution ships them separately"
+	if ! cp "$EXAMPLES/config/"* "$XDG_CONFIG_HOME/uzbl/"; then
+		echo >&2 "Could not copy default config to $XDG_CONFIG_HOME/uzbl/config"
+		# Run with the global config as a last resort
+		config_file="$EXAMPLES/config/config"
+	fi
+fi
+
+# this variable is used by the default helper scripts as a location to
+# load shared code from
+if [ -z "$UZBL_UTIL_DIR" ]; then
+	if [ -d "$XDG_DATA_HOME/uzbl/scripts/util" ]; then
+		UZBL_UTIL_DIR="$XDG_DATA_HOME/uzbl/scripts/util"
+	elif [ -d "$EXAMPLES/data/scripts/util" ]; then
+		UZBL_UTIL_DIR="$EXAMPLES/data/scripts/util"
+	fi
+	export UZBL_UTIL_DIR
+fi
+
+# uzbl-event-manager will exit if one is already running.
+# we could also check if its pid file exists to avoid having to spawn it.
+DAEMON_SOCKET="$XDG_CACHE_HOME/uzbl/event_daemon"
+[ -f "$DAEMON_SOCKET.pid" ] || \
+	${UZBL_EVENT_MANAGER:-uzbl-event-manager -va start}
+
+exec uzbl-core "$@" "${config_file:+--config "$config_file"}" --connect-socket "$DAEMON_SOCKET"
