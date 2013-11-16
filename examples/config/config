@@ -143,9 +143,9 @@ set useragent         Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}) (@(+uname -s
 set cookie_policy always
 
 # Accept 'session cookies' from uzbl.org (when you have a whitelist all other cookies are dropped)
-#event WHITELIST_COOKIE domain 'uzbl.org$' expires '^$'
+#event WHITELIST_COOKIE domain '(^|\.)uzbl\.org$' expires '^$'
 
-# Drop google analytics tracking cookies (applied after whitelists if any)
+# Drop google analytics tracking cookies (applied after whitelists, if any)
 #event BLACKLIST_COOKIE name '^__utm.$'
 
 # === SSL related configuration ==============================================
