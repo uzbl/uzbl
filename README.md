@@ -551,11 +551,11 @@ variables are treated as strings.
     URI. It is passed the URI as an extra argument. If the command returns a
     string with the first line containing only the word `USED`, the navigation
     is ignored.
-* `request_handler` (command) (no default)
+* `request_handler` (command) (no default) (synchronous in WebKit1)
   - The command to use when a new network request is about to be initiated. The
     URI is passed as an argument. If the command returns a non-empty string,
-    the first line of the result is used as the new command. To cancel a
-    request, use the URI `about:blank`.
+    the first line of the result is used as the new URI. To cancel a request,
+    use the URI `about:blank`. In WebKit2, `IGNORE` and `DOWNLOAD` may be used.
 * `download_handler` (command) (no default)
   - The command to use when determining where to save a downloaded file. It is
     passed the URI, suggested filename, content type, and total size as
