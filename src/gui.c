@@ -691,8 +691,6 @@ navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri,
 static gboolean
 request_decision (const gchar *uri, gpointer data);
 static void
-rewrite_request (GString *result, gpointer data);
-static void
 send_load_status (WebKitLoadStatus status, const gchar *uri);
 static gboolean
 send_load_error (const gchar *uri, GError *error);
@@ -1480,6 +1478,9 @@ navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri,
     return TRUE;
 }
 
+static void
+rewrite_request (GString *result, gpointer data);
+
 gboolean
 request_decision (const gchar *uri, gpointer data)
 {
@@ -1496,7 +1497,18 @@ request_decision (const gchar *uri, gpointer data)
 
     if (request_command) {
         uzbl_commands_args_append (args, g_strdup (uri));
+#ifdef USE_WEBKIT2
         uzbl_io_schedule_command (request_command, args, rewrite_request, data);
+#else
+        WebKitNetworkRequest *request = (WebKitNetworkRequest *)data;
+        GString *res = g_string_new ("");
+
+        uzbl_commands_run_parsed (request_command, args, res);
+        uzbl_commands_args_free (args);
+
+        rewrite_request (res, (gpointer)request);
+        g_string_free (res, TRUE);
+#endif
     } else {
         uzbl_commands_args_free (args);
     }
