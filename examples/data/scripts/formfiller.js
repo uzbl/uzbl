@@ -1,8 +1,6 @@
 /*jslint browser: true, vars: true, maxerr: 50, indent: 4 */
 /*global uzbl, escape, unescape */
 
-var uzbl = uzbl || {};
-
 uzbl.formfiller = (function () {
 'use strict';
 

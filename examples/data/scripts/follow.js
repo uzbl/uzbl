@@ -11,8 +11,6 @@
 // Still some links can't be followed/unexpected things
 //  happen. Blame some freaky webdesigners ;)
 
-uzbl = uzbl || {};
-
 uzbl.follow = (function () {
 'use strict';
 
