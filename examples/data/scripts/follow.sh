@@ -3,7 +3,7 @@
 
 . "$UZBL_UTIL_DIR/uzbl-util.sh"
 
-result="$1"
+readonly result="$1"
 shift
 
 case "$result" in
@@ -16,11 +16,11 @@ XXXRESET_MODEXXX)
     uzbl_control 'set mode\nevent KEYCMD_CLEAR\n'
     ;;
 XXXRETURNED_URIXXX*)
-    uriaction="$1"
+    readonly uriaction="$1"
     shift
 
-    uri="${result#XXXRETURNED_URIXXX}"
-    safe_uri="$( print "$uri" | uzbl_escape )"
+    readonly uri="${result#XXXRETURNED_URIXXX}"
+    readonly safe_uri="$( echo "$uri" | uzbl_escape )"
 
     uzbl_control 'set mode\nevent KEYCMD_CLEAR\n'
 

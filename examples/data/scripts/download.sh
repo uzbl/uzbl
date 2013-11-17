@@ -17,23 +17,23 @@
 . "$UZBL_UTIL_DIR/uzbl-util.sh"
 
 # the URL that is being downloaded
-uri="$1"
+readonly uri="$1"
 shift
 
-filename="$( basename "$uri" )"
-safe_uri="$( print "$filename" | sed -e 's/[^-_.,+:%()_0-9a-zA-Z]/-/g' )"
+readonly filename="$( basename "$uri" )"
+readonly safe_uri="$( print "$filename" | sed -e 's/[^-_.,+:%()_0-9a-zA-Z]/-/g' )"
 
 # a filename suggested by the server or based on the URL
-suggested_filename="${1:-$safe_uri}"
+readonly suggested_filename="${1:-$safe_uri}"
 shift
 
 # the mimetype of the file being downloaded
-content_type="$1"
+readonly content_type="$1"
 shift
 
 # the size of the downloaded file in bytes. this is not always accurate, since
 # the server might not have sent a size with its response headers.
-total_size="$1"
+readonly total_size="$1"
 shift
 
 case "$suggested_filename" in
@@ -46,6 +46,7 @@ case "$suggested_filename" in
         path="$UZBL_DOWNLOAD_DIR/$suggested_filename"
         ;;
 esac
+readonly path
 
 # Do nothing if we don't want to save the file
 [ -z "$path" ] && exit 0

@@ -2,7 +2,7 @@
 
 . "$UZBL_UTIL_DIR/uzbl-dir.sh"
 
-path="$1"
+readonly path="$1"
 shift
 
 if [ -n "$path" ]; then
@@ -11,6 +11,7 @@ if [ -n "$path" ]; then
 else
     cookie_file="$UZBL_COOKIE_FILE"
 fi
+readonly cookie_file
 
 awk -F \\t '
 BEGIN {

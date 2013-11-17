@@ -16,13 +16,14 @@ mkdir -p "$UZBL_FORMS_DIR" || exit
 
 domain="${UZBL_URI#*://}"
 domain="${domain%%/*}"
+readonly domain
 
 test "$domain" || exit
 
-basefile="$UZBL_FORMS_DIR/$domain"
-default_profile="default"
+readonly basefile="$UZBL_FORMS_DIR/$domain"
+readonly default_profile="default"
 
-action="$1"
+readonly action="$1"
 shift
 
 generate_form () {
@@ -44,6 +45,10 @@ get_option () {
     local DMENU_OPTIONS="vertical resize"
     local DMENU_PROMPT="profile"
     local DMENU_LINES=4
+    readonly DMENU_SCHEME
+    readonly DMENU_OPTIONS
+    readonly DMENU_PROMPT
+    readonly DMENU_LINES
 
     . "$UZBL_UTIL_DIR/dmenu.sh"
 
@@ -54,6 +59,7 @@ get_option () {
 
         count="1$count"
     done
+    readonly count
 
     case "$count" in
     11*)
@@ -141,7 +147,9 @@ new_profile () {
                 break
             fi
         done
+        readonly profile
     fi
+    readonly file
 
     generate_form > "$file"
     chmod 600 "$file"
@@ -152,8 +160,10 @@ edit_profile () {
     local profile="$( get_option )"
 
     [ -z "$profile" ] && profile="$default_profile"
+    readonly profile
 
     local file="$basefile.$profile"
+    readonly file
 
     if [ -e "$file" ]; then
         $UZBL_EDITOR "$file"
@@ -167,6 +177,7 @@ load_profile () {
         local profile="$( get_option )"
 
         [ -z "$profile" ] && profile="$default_profile"
+        readonly profile
 
         file="$basefile.$profile"
     fi
@@ -178,6 +189,7 @@ load_profile () {
 one_time_profile ()
 {
     local tmpfile="$( tmpfile $UZBL_SOCKET_DIR/formfiller-${0##*/}-$$-XXXXXX"
+    readonly tmpfile
     trap 'rm -f "$tmpfile"' EXIT
 
     generate_form > "$tmpfile"

@@ -23,6 +23,7 @@ if [ -z "$UZBL_UTIL_DIR" ]; then
         PREFIX="$( sed -n -e '/^PREFIX/s/.*=//p' "$( which uzbl-browser )" )"
         UZBL_UTIL_DIR="$PREFIX/share/uzbl/examples/data/scripts/util"
     fi
+    readonly UZBL_UTIL_DIR
 fi
 
 . "$UZBL_UTIL_DIR/uzbl-dir.sh"
@@ -30,7 +31,7 @@ fi
 
 [ -d "$UZBL_DATA_DIR" ] || exit 1
 
-UZBL="uzbl-browser -c \"$UZBL_CONFIG_FILE\"" # add custom flags and whatever here.
+readonly UZBL="uzbl-browser -c \"$UZBL_CONFIG_FILE\"" # add custom flags and whatever here.
 
 scriptfile="$( readlink -f "$0" )" # this script
 action="$1"
@@ -39,6 +40,7 @@ shift
 if [ -z "$action" ]; then
     [ -f "$UZBL_SESSION_FILE" ] && action="launch" || action="endsession"
 fi
+readonly action
 
 case "$action" in
 "launch")

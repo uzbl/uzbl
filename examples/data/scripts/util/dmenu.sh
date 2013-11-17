@@ -48,6 +48,7 @@ esac
 
 dmenu_check_flag () {
     local flag="$1"
+    readonly flag
     shift
 
     dmenu --help 2>&1 | grep -q '\['"$flag"'\]'
@@ -55,12 +56,13 @@ dmenu_check_flag () {
 
 dmenu_check_feature () {
     local feature="$1"
+    readonly feature
     shift
 
     echo "$DMENU_OPTIONS" | grep -q -w -e "$feature"
 }
 
-DMENU_COLORS="-nb $NB -nf $NF -sb $SB -sf $SF"
+readonly DMENU_COLORS="-nb $NB -nf $NF -sb $SB -sf $SF"
 
 # Default arguments
 [ -z "$DMENU_ARGS" ] && DMENU_ARGS="-i"
@@ -82,7 +84,9 @@ if dmenu_check_feature "xmms"; then
         DMENU_XMMS_ARGS="-t"
         DMENU_HAS_XMMS=true
     fi
+    readonly DMENU_XMMS_ARGS
 fi
+readonly DMENU_HAS_XMMS
 
 $DMENU_HAS_XMMS && DMENU_ARGS="$DMENU_ARGS $DMENU_XMMS_ARGS"
 
@@ -92,17 +96,19 @@ DMENU_HAS_RESIZE=false
 if dmenu_check_feature "vertical" && dmenu_check_flag '-l <\?lines>\?'; then
     # Default to 10 lines
     if [ -z "$DMENU_LINES" ]; then
-        DMENU_LINES=10
+        readonly DMENU_LINES=10
     fi
 
-    DMENU_VERTICAL_ARGS="-l $DMENU_LINES"
+    readonly DMENU_VERTICAL_ARGS="-l $DMENU_LINES"
     DMENU_HAS_VERTICAL=true
 
     if dmenu_check_feature "resize" && dmenu_check_flag "-rs"; then
-        DMENU_RESIZE_ARGS="-rs"
+        readonly DMENU_RESIZE_ARGS="-rs"
         DMENU_HAS_RESIZE=true
     fi
 fi
+readonly DMENU_HAS_VERTICAL
+readonly DMENU_HAS_RESIZE
 
 $DMENU_HAS_VERTICAL && DMENU_ARGS="$DMENU_ARGS $DMENU_VERTICAL_ARGS"
 $DMENU_HAS_RESIZE && DMENU_ARGS="$DMENU_ARGS $DMENU_RESIZE_ARGS"
@@ -110,12 +116,13 @@ $DMENU_HAS_RESIZE && DMENU_ARGS="$DMENU_ARGS $DMENU_RESIZE_ARGS"
 # Detect placement patch
 DMENU_HAS_PLACEMENT=false
 if dmenu_check_feature "placement" && dmenu_check_flag '-x <\?offset>\?'; then
-    DMENU_PLACE_X="-x"
-    DMENU_PLACE_Y="-y"
-    DMENU_PLACE_WIDTH="-w"
-    DMENU_PLACE_HEIGHT="-h"
+    readonly DMENU_PLACE_X="-x"
+    readonly DMENU_PLACE_Y="-y"
+    readonly DMENU_PLACE_WIDTH="-w"
+    readonly DMENU_PLACE_HEIGHT="-h"
     DMENU_HAS_PLACEMENT=true
 fi
+readonly DMENU_HAS_PLACEMENT
 
 dmenu_make_placement () {
     if ! $DMENU_HAS_PLACEMENT; then
@@ -147,4 +154,5 @@ dmenu_make_placement () {
     readonly DMENU_PLACEMENT_ARGS
 }
 
-DMENU="dmenu $DMENU_ARGS $DMENU_COLORS"
+readonly DMENU_ARGS
+readonly DMENU="dmenu $DMENU_ARGS $DMENU_COLORS"

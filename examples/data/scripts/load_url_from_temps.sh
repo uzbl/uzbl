@@ -1,7 +1,7 @@
 #!/bin/sh
 
-DMENU_SCHEME="temps"
-DMENU_OPTIONS="xmms vertical resize"
+readonly DMENU_SCHEME="temps"
+readonly DMENU_OPTIONS="xmms vertical resize"
 
 . "$UZBL_UTIL_DIR/dmenu.sh"
 . "$UZBL_UTIL_DIR/uzbl-dir.sh"
@@ -16,6 +16,7 @@ else
     # because they are all after each other, just show the url, not their titles.
     goto=$( cut -d ' ' -f 1 < "$UZBL_TEMPS_FILE" | $DMENU )
 fi
+readonly goto
 
 sed_i "$UZBL_TEMPS_FILE" -e "\<^$goto <d"
 

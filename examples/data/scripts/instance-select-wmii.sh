@@ -10,12 +10,12 @@
 # See http://www.uzbl.org/wiki/wmii for more info
 # $1 must be one of 'list', 'next', 'prev'
 
-DMENU_SCHEME="wmii"
+readonly DMENU_SCHEME="wmii"
 
 . "$UZBL_UTIL_DIR/dmenu.sh"
 . "$UZBL_UTIL_DIR/uzbl-util.sh"
 
-action="$1"
+readonly action="$1"
 shift
 
 case "$action" in
@@ -26,20 +26,21 @@ case "$action" in
         label="$( wmiir read /client/$i/label )"
         list="$list$i : $label\n"
     done
-    window="$( print "$list\n" | $DMENU | cut -d ' ' -f 1 )"
+    readonly list
+    readonly window="$( print "$list\n" | $DMENU | cut -d ' ' -f 1 )"
     wmiir xwrite /tag/sel/ctl "select client $window"
     ;;
 "next")
-    current="$( wmiir read /client/sel/ctl | head -n 1 )"
+    readonly current="$( wmiir read /client/sel/ctl | head -n 1 )"
     # find the next uzbl window and focus it
-    next="$( wmiir read /tag/sel/index | grep -A 10000 " $current " | grep -m 1 uzbl | cut -d ' ' -f 2 )"
+    readonly next="$( wmiir read /tag/sel/index | grep -A 10000 " $current " | grep -m 1 uzbl | cut -d ' ' -f 2 )"
     if [ -n "$next" ]; then
         wmiir xwrite /tag/sel/ctl "select client $next"
     fi
     ;;
 "prev")
-    current="$( wmiir read /client/sel/ctl | head -n 1 )"
-    prev="$( wmiir read /tag/sel/index | grep -B 10000 " $current " | tac | grep -m 1 uzbl | cut -d ' ' -f 2 )"
+    readonly current="$( wmiir read /client/sel/ctl | head -n 1 )"
+    readonly prev="$( wmiir read /tag/sel/index | grep -B 10000 " $current " | tac | grep -m 1 uzbl | cut -d ' ' -f 2 )"
     if [ -n "$prev" ]; then
         wmiir xwrite /tag/sel/ctl "select client $prev"
     fi
