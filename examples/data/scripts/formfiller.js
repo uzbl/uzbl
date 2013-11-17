@@ -36,38 +36,14 @@ var hasName = function (el) {
     return el.name;
 };
 
-// These are duplicated in uzbl.follow.
-// Find all windows in the display, searching for frames recursively.
-var windows = function (w) {
-    var win = (w === undefined) ? window.top : w;
-
-    var wins = [win];
-    var frames = slice.apply(win.frames);
-
-    frames.forEach(function (frame) {
-        wins = wins.concat(windows(frame));
-    });
-
-    return wins;
-};
-
-// Find all documents in the display, searching frames recursively.
-var documents = function () {
-    return windows().map(function (w) {
-        return w.document;
-    }).filter(function (d) {
-        return d !== undefined;
-    });
-};
-
 return {
     dump: function () {
         var rv = '';
+        var frames = slice.apply(window.frames);
 
-        documents().forEach(function (doc) {
+        frames.forEach(function (frame) {
             try {
-                var elems = doc.getElementsByTagName('input');
-                var inputs = slice.apply(elems);
+                var inputs = frame.document.getElementsByTagName('input');
 
                 inputs.filter(hasName).forEach(function (input) {
                     if (inputTypeIsText(input.type)) {
@@ -77,9 +53,7 @@ return {
                     }
                 });
 
-                elems = doc.getElementsByTagName('textarea');
-                var textareas = slice.apply(elems);
-
+                var textareas = frame.document.getElementsByTagName('textarea');
                 textareas.filter(hasName).forEach(function (textarea) {
                     var escaped = textarea.value.replace(/(^|\n)\\/g, '$1\\\\').replace(/(^|\n)%/g, '$1\\%');
                     rv += '%' + escape(textarea.name) + '(textarea):\n' + escaped + '\n%\n';
@@ -94,17 +68,17 @@ return {
 
     insert: function (fname, ftype, fvalue, fchecked) {
         fname = unescape(fname);
+        var frames = slice.apply(window.frames);
 
-        documents().forEach(function (doc) {
+        frames.forEach(function (frame) {
             try {
                 if (inputTypeIsText(ftype) || (ftype === 'textarea')) {
-                    doc.getElementsByName(fname)[0].value = fvalue;
+                    frame.document.getElementsByName(fname)[0].value = fvalue;
                 } else if (ftype === 'checkbox') {
-                    doc.getElementsByName(fname)[0].checked = fchecked;
+                    frame.document.getElementsByName(fname)[0].checked = fchecked;
                 } else if (ftype === 'radio') {
                     fvalue = unescape(fvalue);
-                    var elems = doc.getElementsByName(fname);
-                    var radios = slice.apply(elems);
+                    var radios = frames.document.getElementsByName(fname);
                     radios.forEach(function (radio) {
                         if (radio.value === fvalue) {
                             radio.checked = fchecked;
