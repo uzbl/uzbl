@@ -2,48 +2,48 @@
 # dmenu setup
 
 case "$DMENU_SCHEME" in
-    # wmii
-    "wmii" )
-        NB="#303030"
-        NF="khaki"
-        SB="#ccffaa"
-        SF="#303030"
-        ;;
-    # Formfiller
-    "formfiller" )
-        NB="#0f0f0f"
-        NF="#4e7093"
-        SB="#003d7c"
-        SF="#3a9bff"
-        ;;
-    # Bookmarks
-    "bookmarks" )
-        NB="#303030"
-        NF="khaki"
-        SB="#ccffaa"
-        SF="#303030"
-        ;;
-    # History
-    "history" )
-        NB="#303030"
-        NF="khaki"
-        SB="#ccffaa"
-        SF="#303030"
-        ;;
-    # Temps
-    "temps" )
-        NB="#303030"
-        NF="khaki"
-        SB="#ccffaa"
-        SF="#303030"
-        ;;
-    # Default
-    * )
-        NB="#303030"
-        NF="khaki"
-        SB="#ccffaa"
-        SF="#303030"
-        ;;
+# wmii
+"wmii")
+    NB="#303030"
+    NF="khaki"
+    SB="#ccffaa"
+    SF="#303030"
+    ;;
+# Formfiller
+"formfiller")
+    NB="#0f0f0f"
+    NF="#4e7093"
+    SB="#003d7c"
+    SF="#3a9bff"
+    ;;
+# Bookmarks
+"bookmarks")
+    NB="#303030"
+    NF="khaki"
+    SB="#ccffaa"
+    SF="#303030"
+    ;;
+# History
+"history")
+    NB="#303030"
+    NF="khaki"
+    SB="#ccffaa"
+    SF="#303030"
+    ;;
+# Temps
+"temps")
+    NB="#303030"
+    NF="khaki"
+    SB="#ccffaa"
+    SF="#303030"
+    ;;
+# Default
+*)
+    NB="#303030"
+    NF="khaki"
+    SB="#ccffaa"
+    SF="#303030"
+    ;;
 esac
 
 DMENU_COLORS="-nb $NB -nf $NF -sb $SB -sf $SF"

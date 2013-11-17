@@ -55,21 +55,21 @@ get_option () {
     done
 
     case "$count" in
-        11*)
-            DMENU_MORE_ARGS=
-            if [ -n "$DMENU_HAS_PLACEMENT" ]; then
-                . "$UZBL_UTIL_DIR/uzbl-window.sh"
+    11*)
+        DMENU_MORE_ARGS=
+        if [ -n "$DMENU_HAS_PLACEMENT" ]; then
+            . "$UZBL_UTIL_DIR/uzbl-window.sh"
 
-                DMENU_MORE_ARGS="$DMENU_PLACE_X $(( $UZBL_WIN_POS_X + 1 )) $DMENU_PLACE_Y $(( $UZBL_WIN_POS_Y + $UZBL_WIN_HEIGHT - 184 )) $DMENU_PLACE_WIDTH $UZBL_WIN_WIDTH"
-            fi
+            DMENU_MORE_ARGS="$DMENU_PLACE_X $(( $UZBL_WIN_POS_X + 1 )) $DMENU_PLACE_Y $(( $UZBL_WIN_POS_Y + $UZBL_WIN_HEIGHT - 184 )) $DMENU_PLACE_WIDTH $UZBL_WIN_WIDTH"
+        fi
 
-            ls "$basefile"* | sed -e 's!^'"$basefile"'\.!!' | $DMENU $DMENU_MORE_ARGS
-            ;;
-        1)
-            echo "$basefile"*
-            ;;
-        *)
-            ;;
+        ls "$basefile"* | sed -e 's!^'"$basefile"'\.!!' | $DMENU $DMENU_MORE_ARGS
+        ;;
+    1)
+        echo "$basefile"*
+        ;;
+    *)
+        ;;
     esac
 }
 
@@ -197,29 +197,29 @@ one_time_profile ()
 }
 
 case "$action" in
-    new)
+"new")
+    new_profile
+    load_profile
+    ;;
+"edit")
+    edit_profile
+    load_profile
+    ;;
+"load")
+    load_profile
+    ;;
+"once")
+    one_time_profile
+    ;;
+"")
+    if [ -e "$file" ]; then
+        load_profile
+    else
         new_profile
         load_profile
-        ;;
-    edit)
-        edit_profile
-        load_profile
-        ;;
-    load)
-        load_profile
-        ;;
-    once)
-        one_time_profile
-        ;;
-    '')
-        if [ -e "$file" ]; then
-            load_profile
-        else
-            new_profile
-            load_profile
-        fi
-        ;;
-    *)
-        exit 1
-        ;;
+    fi
+    ;;
+*)
+    exit 1
+    ;;
 esac

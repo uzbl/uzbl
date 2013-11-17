@@ -40,41 +40,41 @@ if [ -z "$act" ]; then
 fi
 
 case $act in
-    "launch")
-        urls="$( cat "$UZBL_SESSION_FILE" )"
-        if [ -z "$urls" ]; then
-            $UZBL
-        else
-            for url in $urls; do
-                $UZBL --uri "$url" &
-            done
-        mv "$UZBL_SESSION_FILE" "$UZBL_SESSION_FILE~"
-        fi
-        ;;
-
-    "endinstance")
-        if [ -z "$UZBL_FIFO" ]; then
-            print "session manager: endinstance must be called from uzbl\n"
-            exit 1
-        fi
-        [ "$UZBL_URI" != "(null)" ] && print "$UZBL_URI\n" >> "$UZBL_SESSION_FILE"
-        uzbl_control "exit\n"
-        ;;
-
-    "endsession")
-        for fifo in "$UZBL_FIFO_DIR/uzbl_fifo_*"; do
-            if ! [ "$fifo" = "$UZBL_FIFO" ]; then
-                print "spawn $scriptfile endinstance\n" > "$fifo"
-            fi
+"launch")
+    urls="$( cat "$UZBL_SESSION_FILE" )"
+    if [ -z "$urls" ]; then
+        $UZBL
+    else
+        for url in $urls; do
+            $UZBL --uri "$url" &
         done
-        [ -z "$UZBL_SOCKET" ] || uzbl_control "spawn $scriptfile endinstance\n"
-        ;;
+    mv "$UZBL_SESSION_FILE" "$UZBL_SESSION_FILE~"
+    fi
+    ;;
 
-    *)
-        print "session manager: bad action\n"
-        print "Usage: $scriptfile [COMMAND] where commands are:\n"
-        print " launch      - Restore a saved session or start a new one\n"
-        print " endinstance - Quit the current instance. Must be called from uzbl\n"
-        print " endsession  - Quit the running session.\n"
-        ;;
+"endinstance")
+    if [ -z "$UZBL_FIFO" ]; then
+        print "session manager: endinstance must be called from uzbl\n"
+        exit 1
+    fi
+    [ "$UZBL_URI" != "(null)" ] && print "$UZBL_URI\n" >> "$UZBL_SESSION_FILE"
+    uzbl_control "exit\n"
+    ;;
+
+"endsession")
+    for fifo in "$UZBL_FIFO_DIR/uzbl_fifo_*"; do
+        if ! [ "$fifo" = "$UZBL_FIFO" ]; then
+            print "spawn $scriptfile endinstance\n" > "$fifo"
+        fi
+    done
+    [ -z "$UZBL_SOCKET" ] || uzbl_control "spawn $scriptfile endinstance\n"
+    ;;
+
+*)
+    print "session manager: bad action\n"
+    print "Usage: $scriptfile [COMMAND] where commands are:\n"
+    print " launch      - Restore a saved session or start a new one\n"
+    print " endinstance - Quit the current instance. Must be called from uzbl\n"
+    print " endsession  - Quit the running session.\n"
+    ;;
 esac
