@@ -41,6 +41,7 @@ generate_form () {
 
 get_option () {
     local DMENU_SCHEME="formfiller"
+    local DMENU_OPTIONS="vertical resize"
     local DMENU_PROMPT="profile"
     local DMENU_LINES=4
 
