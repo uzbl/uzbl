@@ -177,7 +177,7 @@ load_profile () {
 
 one_time_profile ()
 {
-    local tmpfile="$XDG_SOCKET_DIR/uzbl/formfiller-${0##*/}-$$"
+    local tmpfile="$( tmpfile $UZBL_SOCKET_DIR/formfiller-${0##*/}-$$-XXXXXX"
     trap 'rm -f "$tmpfile"' EXIT
 
     generate_form > "$tmpfile"
