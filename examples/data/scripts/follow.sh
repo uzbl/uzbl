@@ -15,13 +15,6 @@ XXXRESET_MODEXXX)
     # a link was selected, reset uzbl's input mode
     uzbl_control 'set mode\nevent KEYCMD_CLEAR\n'
     ;;
-XXXNEW_WINDOWXXX*)
-    uri="${result#XXXNEW_WINDOWXXX}"
-    safe_uri=$( echo "$uri" | uzbl_escape )
-
-    # a link was selected, reset uzbl's input mode
-    uzbl_control 'set mode\nevent KEYCMD_CLEAR\nevent NEW_WINDOW '"$safe_uri"'\n'
-    ;;
 XXXRETURNED_URIXXX*)
     uriaction="$1"
     shift

@@ -275,10 +275,21 @@ var reDrawHints = function (elems, len) {
     elems.forEach(function (el, i) {
         var label = intToLabel(i, len);
         var pos   = positions[i];
+        var uri;
+        var doc;
+        var h;
+
+        if (gMode === 'newwindow') {
+            uri = el.src || el.href;
+
+            if (uri.match(/^javascript:/)) {
+                return;
+            }
+        }
 
         try {
-            var doc = getDocument(el);
-            var h = generateHint(doc, el, label, pos[0], pos[1]);
+            doc = getDocument(el);
+            h = generateHint(doc, el, label, pos[0], pos[1]);
             doc.uzbl_hintdiv.appendChild(h);
         } catch (err) {
             // Unable to attach label -> log it and continue.
@@ -326,15 +337,9 @@ var followElement = function (el) {
 
     switch (gMode) {
     case 'returnuri':
+    case 'newwindow':
         uri = el.src || el.href;
         return 'XXXRETURNED_URIXXX' + uri;
-    case 'newwindow':
-        // We're opening a new window using the URL attached to this element.
-        uri = el.src || el.href;
-        if (uri.match(/javascript:/)) {
-            return;
-        }
-        return 'XXXNEW_WINDOWXXX' + uri;
     case 'click':
     default:
         return clickElem(el);
