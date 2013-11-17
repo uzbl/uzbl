@@ -20,7 +20,8 @@
 uri="$1"
 shift
 
-safe_uri="$( print "$uri" | sed -e 's/\W/-/g' )"
+filename="$( basename "$uri" )"
+safe_uri="$( print "$filename" | sed -e 's/[^-_.,+:%()_0-9a-zA-Z]/-/g' )"
 
 # a filename suggested by the server or based on the URL
 suggested_filename="${1:-$safe_uri}"
