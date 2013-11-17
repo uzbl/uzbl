@@ -406,6 +406,8 @@ return {
     },
 
     followSelection: function (action) {
+        setMode(action);
+
         var selection = getSelection();
         if (!selection) {
             return;
@@ -420,8 +422,6 @@ return {
         if (!el) {
             return;
         }
-
-        setMode(action);
 
         return followElement(el);
     },
