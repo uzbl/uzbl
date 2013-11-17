@@ -2467,7 +2467,7 @@ IMPLEMENT_COMMAND (spawn_sync)
     if (!result) {
         GString *force_result = g_string_new ("");
         spawn (argv, force_result, FALSE);
-        g_string_free (force_result, FALSE);
+        g_string_free (force_result, TRUE);
     } else {
         spawn (argv, result, FALSE);
     }
