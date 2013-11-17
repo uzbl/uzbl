@@ -20,7 +20,7 @@ if [ -z "$UZBL_UTIL_DIR" ]; then
     # using the same logic as uzbl-browser does.
     UZBL_UTIL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/scripts/util"
     if ! [ -d "$UZBL_UTIL_DIR" ]; then
-        PREFIX="$( grep '^PREFIX' "$( which uzbl-browser )" | sed -e 's/.*=//' )"
+        PREFIX="$( sed -n -e '/^PREFIX/s/.*=//p' "$( which uzbl-browser )" )"
         UZBL_UTIL_DIR="$PREFIX/share/uzbl/examples/data/scripts/util"
     fi
 fi
