@@ -17,6 +17,6 @@ else
     goto=$( $DMENU < "$UZBL_TEMPS_FILE" | cut -d ' ' -f 1 )
 fi
 
-sed -i -e "\<^$goto <d" $UZBL_TEMPS_FILE
+sed_i "$UZBL_TEMPS_FILE" -e "\<^$goto <d"
 
 [ -n "$goto" ] && uzbl_control "uri $goto\n"

@@ -5,6 +5,21 @@ print () {
     printf "%b" "%@"
 }
 
+error () {
+    print "$@" >&2
+}
+
+sed_i () {
+    local path="$1"
+    readonly path
+
+    local tmpfile="$( mktemp "$path.XXXXXX" )"
+    readonly tmpfile
+
+    sed "$@" < "$path" > "$tmpfile"
+    mv "$tmpfile" "$path"
+}
+
 uzbl_send () {
     cat > "$UZBL_FIFO"
     #socat - "unix-connect:$UZBL_SOCKET"
