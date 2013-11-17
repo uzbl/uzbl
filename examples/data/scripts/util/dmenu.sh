@@ -46,71 +46,75 @@ case "$DMENU_SCHEME" in
     ;;
 esac
 
+dmenu_check_flag () {
+    local flag="$1"
+    shift
+
+    dmenu --help 2>&1 | grep -q '\['"$flag"'\]'
+}
+
+dmenu_check_feature () {
+    local feature="$1"
+    shift
+
+    echo "$DMENU_OPTIONS" | grep -q -w -e "$feature"
+}
+
 DMENU_COLORS="-nb $NB -nf $NF -sb $SB -sf $SF"
 
 # Default arguments
-if [ -z "$DMENU_ARGS" ]; then
-    DMENU_ARGS="-i"
-fi
+[ -z "$DMENU_ARGS" ] && DMENU_ARGS="-i"
 
 # Set the font if wanted
-if [ -n "$DMENU_FONT" ]; then
-    DMENU_ARGS="$DMENU_ARGS -fn $DMENU_FONT"
-fi
+[ -n "$DMENU_FONT" ] && DMENU_ARGS="$DMENU_ARGS -fn $DMENU_FONT"
 
 # Set the prompt if wanted
-if [ -n "$DMENU_PROMPT" ]; then
-    DMENU_ARGS="$DMENU_ARGS -p $DMENU_PROMPT"
+[ -n "$DMENU_PROMPT" ] && DMENU_ARGS="$DMENU_ARGS -p $DMENU_PROMPT"
+
+DMENU_HAS_XMMS=false
+if dmenu_check_feature "xmms"; then
+    # Detect the xmms patch
+    if dmenu_check_flag "-xs"; then
+        DMENU_XMMS_ARGS="-xs"
+        DMENU_HAS_XMMS=true
+    # Detect the tok patch
+    elif dmenu_check_flag "-t"; then
+        DMENU_XMMS_ARGS="-t"
+        DMENU_HAS_XMMS=true
+    fi
 fi
 
-# Detect the xmms patch
-if dmenu --help 2>&1 | grep -q '\[-xs\]'; then
-    DMENU_XMMS_ARGS="-xs"
-    DMENU_HAS_XMMS=1
-fi
-
-# Detect the tok patch
-if dmenu --help 2>&1 | grep -q '\[-t\]'; then
-    DMENU_XMMS_ARGS="-t"
-    DMENU_HAS_XMMS=1
-fi
-
-if echo $DMENU_OPTIONS | grep -q -w 'xmms'; then
-    DMENU_ARGS="$DMENU_ARGS $DMENU_XMMS_ARGS"
-fi
+$DMENU_HAS_XMMS && DMENU_ARGS="$DMENU_ARGS $DMENU_XMMS_ARGS"
 
 # Detect the vertical patch
-if dmenu --help 2>&1 | grep -q '\[-l <\?lines>\?\]'; then
+DMENU_HAS_VERTICAL=false
+DMENU_HAS_RESIZE=false
+if dmenu_check_feature "vertical" && dmenu_check_flag '-l <\?lines>\?'; then
     # Default to 10 lines
     if [ -z "$DMENU_LINES" ]; then
         DMENU_LINES=10
     fi
 
     DMENU_VERTICAL_ARGS="-l $DMENU_LINES"
-    DMENU_HAS_VERTICAL=1
+    DMENU_HAS_VERTICAL=true
 
-    # Detect the resize patch
-    if dmenu --help 2>&1 | grep -q '\[-rs\]'; then
+    if dmenu_check_feature "resize" && dmenu_check_flag "-rs"; then
         DMENU_RESIZE_ARGS="-rs"
-        DMENU_HAS_RESIZE=1
-    fi
-
-    if echo $DMENU_OPTIONS | grep -q -w 'vertical'; then
-        DMENU_ARGS="$DMENU_ARGS $DMENU_VERTICAL_ARGS"
-
-        if echo $DMENU_OPTIONS | grep -q -w 'resize'; then
-            DMENU_ARGS="$DMENU_ARGS $DMENU_RESIZE_ARGS"
-        fi
+        DMENU_HAS_RESIZE=true
     fi
 fi
 
+$DMENU_HAS_VERTICAL && DMENU_ARGS="$DMENU_ARGS $DMENU_VERTICAL_ARGS"
+$DMENU_HAS_RESIZE && DMENU_ARGS="$DMENU_ARGS $DMENU_RESIZE_ARGS"
+
 # Detect placement patch
-if dmenu --help 2>&1 | grep -q '\[-x <\?xoffset>\?\]'; then
+DMENU_HAS_PLACEMENT=false
+if dmenu_check_feature "placement" && dmenu_check_flag '-x <\?offset>\?'; then
     DMENU_PLACE_X="-x"
     DMENU_PLACE_Y="-y"
     DMENU_PLACE_WIDTH="-w"
     DMENU_PLACE_HEIGHT="-h"
-    DMENU_HAS_PLACEMENT=1
+    DMENU_HAS_PLACEMENT=true
 fi
 
 DMENU="dmenu $DMENU_ARGS $DMENU_COLORS"

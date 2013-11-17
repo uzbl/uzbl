@@ -9,12 +9,12 @@ DMENU_OPTIONS="xmms vertical resize"
 
 [ -r "$UZBL_TEMPS_FILE" ] || exit 1
 
-if [ -z "$DMENU_HAS_VERTICAL" ]; then
-    # because they are all after each other, just show the url, not their titles.
-    goto=$( cut -d ' ' -f 1 < "$UZBL_TEMPS_FILE" | $DMENU )
-else
+if $DMENU_HAS_VERTICAL; then
     # show titles
     goto="$( $DMENU < "$UZBL_TEMPS_FILE" | cut -d ' ' -f 1 )"
+else
+    # because they are all after each other, just show the url, not their titles.
+    goto=$( cut -d ' ' -f 1 < "$UZBL_TEMPS_FILE" | $DMENU )
 fi
 
 sed_i "$UZBL_TEMPS_FILE" -e "\<^$goto <d"
