@@ -32,14 +32,15 @@ fi
 
 UZBL="uzbl-browser -c \"$UZBL_CONFIG_FILE\"" # add custom flags and whatever here.
 
-scriptfile="$( readlink -f "$0" )"                            # this script
-act="$1"
+scriptfile="$( readlink -f "$0" )" # this script
+action="$1"
+shift
 
-if [ -z "$act" ]; then
-  [ -f "$UZBL_SESSION_FILE" ] && act="launch" || act="endsession"
+if [ -z "$action" ]; then
+    [ -f "$UZBL_SESSION_FILE" ] && action="launch" || action="endsession"
 fi
 
-case $act in
+case "$action" in
 "launch")
     urls="$( cat "$UZBL_SESSION_FILE" )"
     if [ -z "$urls" ]; then
@@ -48,13 +49,13 @@ case $act in
         for url in $urls; do
             $UZBL --uri "$url" &
         done
-    mv "$UZBL_SESSION_FILE" "$UZBL_SESSION_FILE~"
+        mv "$UZBL_SESSION_FILE" "$UZBL_SESSION_FILE~"
     fi
     ;;
 
 "endinstance")
     if [ -z "$UZBL_FIFO" ]; then
-        print "session manager: endinstance must be called from uzbl\n"
+        error "session manager: endinstance must be called from uzbl\n"
         exit 1
     fi
     [ "$UZBL_URI" != "(null)" ] && print "$UZBL_URI\n" >> "$UZBL_SESSION_FILE"
@@ -63,7 +64,7 @@ case $act in
 
 "endsession")
     for fifo in "$UZBL_FIFO_DIR/uzbl_fifo_*"; do
-        if ! [ "$fifo" = "$UZBL_FIFO" ]; then
+        if [ "$fifo" != "$UZBL_FIFO" ]; then
             print "spawn $scriptfile endinstance\n" > "$fifo"
         fi
     done
@@ -71,10 +72,11 @@ case $act in
     ;;
 
 *)
-    print "session manager: bad action\n"
-    print "Usage: $scriptfile [COMMAND] where commands are:\n"
-    print " launch      - Restore a saved session or start a new one\n"
-    print " endinstance - Quit the current instance. Must be called from uzbl\n"
-    print " endsession  - Quit the running session.\n"
+    error "session manager: bad action\n"
+    error "Usage: $scriptfile [COMMAND] where commands are:\n"
+    error " launch      - Restore a saved session or start a new one\n"
+    error " endinstance - Quit the current instance. Must be called from uzbl\n"
+    error " endsession  - Quit the running session.\n"
+    exit 1
     ;;
 esac

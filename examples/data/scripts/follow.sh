@@ -20,7 +20,7 @@ XXXRETURNED_URIXXX*)
     shift
 
     uri="${result#XXXRETURNED_URIXXX}"
-    safe_uri=$( echo "$uri" | uzbl_escape )
+    safe_uri="$( print "$uri" | uzbl_escape )"
 
     uzbl_control 'set mode\nevent KEYCMD_CLEAR\n'
 

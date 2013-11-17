@@ -87,7 +87,7 @@ parse_profile () {
         sub(/[^:]*:/, "", field)
 
         if (parts[2] ~ /^(checkbox|radio)$/) {
-            printf("js page string \"uzbl.formfiller.insert(\\\"%s\\\",\\\"%s\\\",\\\"%s\\\",%s)\";\n",
+            printf("js page string \"uzbl.formfiller.insert(\\\"%s\\\",\\\"%s\\\",\\\"%s\\\",%s);\"\n",
                 parts[1], parts[2], parts[3], field)
         } else if (parts[2] == "textarea") {
             field = ""
@@ -220,6 +220,7 @@ case "$action" in
     fi
     ;;
 *)
+    error "Unrecognized action: $action\n"
     exit 1
     ;;
 esac

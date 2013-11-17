@@ -15,7 +15,10 @@ DMENU_SCHEME="wmii"
 . "$UZBL_UTIL_DIR/dmenu.sh"
 . "$UZBL_UTIL_DIR/uzbl-util.sh"
 
-case "$1" in
+action="$1"
+shift
+
+case "$action" in
 "list")
     list=""
     # get window id's of uzbl clients. we could also get the label in one shot but it's pretty tricky
@@ -42,7 +45,7 @@ case "$1" in
     fi
     ;;
 *)
-    print "$1 not valid\n" >&2
-    exit 2
+    error "Unrecognized action: $action\n"
+    exit 1
     ;;
 esac
