@@ -56,14 +56,7 @@ get_option () {
 
     case "$count" in
     11*)
-        DMENU_MORE_ARGS=
-        if [ -n "$DMENU_HAS_PLACEMENT" ]; then
-            . "$UZBL_UTIL_DIR/uzbl-window.sh"
-
-            DMENU_MORE_ARGS="$DMENU_PLACE_X $(( $UZBL_WIN_POS_X + 1 )) $DMENU_PLACE_Y $(( $UZBL_WIN_POS_Y + $UZBL_WIN_HEIGHT - 184 )) $DMENU_PLACE_WIDTH $UZBL_WIN_WIDTH"
-        fi
-
-        ls "$basefile"* | sed -e 's!^'"$basefile"'\.!!' | $DMENU $DMENU_MORE_ARGS
+        ls "$basefile"* | sed -e 's!^'"$basefile"'\.!!' | $DMENU
         ;;
     1)
         echo "$basefile"*
