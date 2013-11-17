@@ -252,7 +252,7 @@ install-uzbl-core: uzbl-core install-dirs
 	$(INSTALL) -d $(MANDIR)/man1
 	$(INSTALL) -m644 docs/* $(DOCDIR)/
 	$(INSTALL) -m644 src/config.h $(DOCDIR)/
-	$(INSTALL) -m644 README $(DOCDIR)/
+	$(INSTALL) -m644 README.md $(DOCDIR)/
 	$(INSTALL) -m644 AUTHORS $(DOCDIR)/
 	$(INSTALL) -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
 	$(INSTALL) -m644 uzbl.1 $(MANDIR)/man1/uzbl.1
@@ -265,6 +265,8 @@ install-uzbl-browser: install-dirs install-uzbl-core install-event-manager
 	$(INSTALL) -d $(INSTALLDIR)/share/applications
 	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < bin/uzbl-browser > $(INSTALLDIR)/bin/uzbl-browser
 	chmod 755 $(INSTALLDIR)/bin/uzbl-browser
+	sed 's#@PREFIX@#$(PREFIX)#g' < README.browser.md > $(DOCDIR)/
+	sed 's#@PREFIX@#$(PREFIX)#g' < README.event-manager.md > $(DOCDIR)/
 	cp -r examples $(INSTALLDIR)/share/uzbl/
 	chmod 755 $(INSTALLDIR)/share/uzbl/examples/data/scripts/*
 	$(INSTALL) -m644 uzbl.desktop $(INSTALLDIR)/share/applications/uzbl.desktop
