@@ -2,7 +2,7 @@
 # Useful functions for scripts
 
 print () {
-    printf "%b" "%@"
+    printf "%b" "$@"
 }
 
 error () {
