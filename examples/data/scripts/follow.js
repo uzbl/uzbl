@@ -426,6 +426,36 @@ return {
         return followElement(el);
     },
 
+    followMenu: function (action) {
+        setMode(action);
+
+        var elems = getInterestingElements();
+        var output = '';
+
+        elems.forEach(function (el) {
+            var link = el.src || el.href;
+            var title = el.textContent;
+            var entry = '';
+
+            if (typeof link === 'undefined' ||
+                link === '' ||
+                link.match(/^javascript:/)) {
+                return;
+            }
+
+            title = title.trim();
+
+            entry += link;
+            entry += '\t';
+            entry += title;
+            entry += '\n';
+
+            output += entry;
+        });
+
+        return output;
+    },
+
     clearHints: clearHints
 };
 }());
