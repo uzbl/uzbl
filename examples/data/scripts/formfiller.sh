@@ -40,9 +40,9 @@ generate_form () {
 }
 
 get_option () {
-    DMENU_SCHEME="formfiller"
-    DMENU_PROMPT="profile"
-    DMENU_LINES=4
+    local DMENU_SCHEME="formfiller"
+    local DMENU_PROMPT="profile"
+    local DMENU_LINES=4
 
     . "$UZBL_UTIL_DIR/dmenu.sh"
 
@@ -122,11 +122,11 @@ parse_profile () {
 }
 
 new_profile () {
-    file="$1"
+    local file="$1"
     shift
 
     if [ -z "$file" ]; then
-        profile="$default_profile"
+        local profile="$default_profile"
 
         while true; do
             profile="$( Xdialog --stdout --title "New profile for $domain" --inputbox "Profile name:" 0 0 "$profile" )"
@@ -155,11 +155,11 @@ new_profile () {
 }
 
 edit_profile () {
-    profile="$( get_option )"
+    local profile="$( get_option )"
 
     [ -z "$profile" ] && profile="$default_profile"
 
-    file="$basefile.$profile"
+    local file="$basefile.$profile"
 
     if [ -e "$file" ]; then
         $UZBL_EDITOR "$file"
@@ -170,7 +170,7 @@ edit_profile () {
 
 load_profile () {
     if [ -z "$file" ]; then
-        profile="$( get_option )"
+        local profile="$( get_option )"
 
         [ -z "$profile" ] && profile="$default_profile"
 
@@ -183,7 +183,7 @@ load_profile () {
 
 one_time_profile ()
 {
-    tmpfile="$XDG_SOCKET_DIR/uzbl/formfiller-${0##*/}-$$"
+    local tmpfile="$XDG_SOCKET_DIR/uzbl/formfiller-${0##*/}-$$"
     trap 'rm -f "$tmpfile"' EXIT
 
     generate_form > "$tmpfile"
