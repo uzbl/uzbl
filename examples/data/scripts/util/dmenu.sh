@@ -117,4 +117,34 @@ if dmenu_check_feature "placement" && dmenu_check_flag '-x <\?offset>\?'; then
     DMENU_HAS_PLACEMENT=true
 fi
 
+dmenu_make_placement () {
+    if ! $DMENU_HAS_PLACEMENT; then
+        readonly DMENU_PLACEMENT_ARGS=""
+        return
+    fi
+
+    local x="$1"
+    readonly x
+    shift
+
+    local y="$1"
+    readonly y
+    shift
+
+    local w="$1"
+    readonly w
+    shift
+
+    local h="$1"
+    readonly h
+    shift
+
+    DMENU_PLACEMENT_ARGS=""
+    [ -n "$x" ] && DMENU_PLACEMENT_ARGS="$DMENU_PLACEMENT_ARGS $DMENU_PLACE_X $x"
+    [ -n "$y" ] && DMENU_PLACEMENT_ARGS="$DMENU_PLACEMENT_ARGS $DMENU_PLACE_Y $y"
+    [ -n "$w" ] && DMENU_PLACEMENT_ARGS="$DMENU_PLACEMENT_ARGS $DMENU_PLACE_WIDTH $w"
+    [ -n "$h" ] && DMENU_PLACEMENT_ARGS="$DMENU_PLACEMENT_ARGS $DMENU_PLACE_HEIGHT $h"
+    readonly DMENU_PLACEMENT_ARGS
+}
+
 DMENU="dmenu $DMENU_ARGS $DMENU_COLORS"
