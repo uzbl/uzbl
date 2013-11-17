@@ -51,7 +51,7 @@ esac
 [ -z "$path" ] && exit 0
 
 # Check if the file exists
-if [ ! -e "$path" ]; then
+if ! [ -e "$path" ]; then
     print "$path\n"
     exit 0
 fi
@@ -59,7 +59,7 @@ fi
 # Try to make a unique filename
 count=1
 while [ -e "$path.$count" ]; do
-    count=$(( $count + 1 ))
+    count="$(( $count + 1 ))"
 done
 
 print "$path.$count\n"
