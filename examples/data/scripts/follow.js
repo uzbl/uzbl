@@ -65,7 +65,7 @@ var getDocument = function (el) {
 
 // Find all windows in the display, searching for frames recursively.
 var windows = function (w) {
-    var win = (w === undefined) ? window.top : w;
+    var win = (typeof w === 'undefined') ? window.top : w;
 
     var wins = [win];
     var frames = slice.apply(win.frames);
@@ -82,7 +82,7 @@ var documents = function () {
     return windows().map(function (w) {
         return w.document;
     }).filter(function (d) {
-        return d !== undefined;
+        return ((typeof d !== 'undefined') && (d.domain === document.domain));
     });
 };
 
