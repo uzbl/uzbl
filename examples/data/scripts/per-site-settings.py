@@ -18,7 +18,9 @@
 #     May either be a regex, or literal. If literal, it will block any
 #     decendent paths as well.
 # - command
-#     Given to uzbl verbatim.
+#     Given to uzbl verbatim. The special string '@' "breaks" to the top-level
+#     (i.e., any further path matches patterns will fail). The special string
+#     '@@' will stop processing of the file.
 #
 # Matches are attempted on a literal match first.
 #
@@ -57,6 +59,13 @@ def grep_url(url, path, fin):
     state = 0
     for line in fin:
         raw = line.strip()
+
+        if raw == '@':
+            passing[0] = False
+            passing[1] = False
+            continue
+        elif raw == '@@':
+            return entries
 
         indent = len(line) - len(raw) - 1
         if not indent and state:
