@@ -67,7 +67,7 @@ case $act in
                 print "spawn $scriptfile endinstance\n" > "$fifo"
             fi
         done
-        [ -z "$UZBL_FIFO" ] || uzbl_control "spawn $scriptfile endinstance\n"
+        [ -z "$UZBL_SOCKET" ] || uzbl_control "spawn $scriptfile endinstance\n"
         ;;
 
     *)

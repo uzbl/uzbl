@@ -21,8 +21,7 @@ sed_i () {
 }
 
 uzbl_send () {
-    cat > "$UZBL_FIFO"
-    #socat - "unix-connect:$UZBL_SOCKET"
+    socat - "unix-connect:$UZBL_SOCKET"
 }
 
 uzbl_control () {
