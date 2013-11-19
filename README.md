@@ -126,9 +126,9 @@ For more, see [its documentation](README.tabbed.md).
 Multiple commands and variables mention that they are not supported in WebKit2.
 WebKit2 changes many things compared to WebKit1, some of which impact `uzbl`
 greatly. It *works*, but many of the core features are not supported (cookie
-management, the `scroll` command, HTML5 database control, and more). As such,
-using WebKit2 is not recommended for day-to-day usage currently. For a list of
-what is missing, see [this
+management, the `scroll` command, HTML5 database control, injecting JavaScript
+into the page, and more). As such, using WebKit2 is not recommended for
+day-to-day usage currently. For a list of what is missing, see [this
 bug](https://bugs.webkit.org/show_bug.cgi?id=113663).
 
 ### COMMAND SYNTAX
