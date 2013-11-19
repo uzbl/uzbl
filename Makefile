@@ -263,7 +263,7 @@ install-event-manager: install-dirs
 
 install-uzbl-browser: install-dirs install-uzbl-core install-event-manager
 	$(INSTALL) -d $(INSTALLDIR)/share/applications
-	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < bin/uzbl-browser > $(INSTALLDIR)/bin/uzbl-browser
+	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < bin/uzbl-browser.in > $(INSTALLDIR)/bin/uzbl-browser
 	chmod 755 $(INSTALLDIR)/bin/uzbl-browser
 	sed 's#@PREFIX@#$(PREFIX)#g' < README.browser.md > $(DOCDIR)/README.browser.md
 	sed 's#@PREFIX@#$(PREFIX)#g' < README.event-manager.md > $(DOCDIR)/README.event-manager.md
