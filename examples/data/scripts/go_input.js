@@ -1,6 +1,6 @@
 /*jslint browser: true, vars: true, maxerr: 50, indent: 4 */
 /*global getComputedStyle */
-(function () {
+uzbl.go_input = function () {
 'use strict';
 
 var maskType = function (type) {
@@ -40,4 +40,4 @@ if (elems) {
         return 'XXXFORM_ACTIVEXXX';
     }
 }
-}());
+};
