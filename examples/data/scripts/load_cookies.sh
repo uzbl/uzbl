@@ -1,11 +1,17 @@
 #!/bin/sh
 
-if [ -n "$1" ]; then
-    cookie_file="$1"
+. "$UZBL_UTIL_DIR/uzbl-dir.sh"
+
+readonly path="$1"
+shift
+
+if [ -n "$path" ]; then
+    cookie_file="$path"
     shift
 else
-    cookie_file="${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/cookies.txt"
+    cookie_file="$UZBL_COOKIE_FILE"
 fi
+readonly cookie_file
 
 awk -F \\t '
 BEGIN {

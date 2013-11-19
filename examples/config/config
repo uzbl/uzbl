@@ -68,6 +68,7 @@ set download_handler       spawn_sync @scripts_dir/download.sh
 # add some javascript to the page for other 'js' commands to access later.
 @on_event   LOAD_COMMIT    js page file @scripts_dir/formfiller.js
 @on_event   LOAD_COMMIT    js page file @scripts_dir/follow.js
+@on_event   LOAD_COMMIT    js page file @scripts_dir/go_input.js
 
 # Userscripts/per-site-settings. See the script and the example configuration for details
 #@on_event   LOAD_COMMIT    spawn @scripts_dir/per-site-settings.py @data_home/per-site-settings

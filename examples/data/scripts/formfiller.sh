@@ -16,13 +16,14 @@ mkdir -p "$UZBL_FORMS_DIR" || exit
 
 domain="${UZBL_URI#*://}"
 domain="${domain%%/*}"
+readonly domain
 
 test "$domain" || exit
 
-basefile="$UZBL_FORMS_DIR/$domain"
-default_profile="default"
+readonly basefile="$UZBL_FORMS_DIR/$domain"
+readonly default_profile="default"
 
-action="$1"
+readonly action="$1"
 shift
 
 generate_form () {
@@ -40,9 +41,14 @@ generate_form () {
 }
 
 get_option () {
-    DMENU_SCHEME="formfiller"
-    DMENU_PROMPT="profile"
-    DMENU_LINES=4
+    local DMENU_SCHEME="formfiller"
+    local DMENU_OPTIONS="vertical resize"
+    local DMENU_PROMPT="profile"
+    local DMENU_LINES=4
+    readonly DMENU_SCHEME
+    readonly DMENU_OPTIONS
+    readonly DMENU_PROMPT
+    readonly DMENU_LINES
 
     . "$UZBL_UTIL_DIR/dmenu.sh"
 
@@ -53,23 +59,17 @@ get_option () {
 
         count="1$count"
     done
+    readonly count
 
     case "$count" in
-        11*)
-            DMENU_MORE_ARGS=
-            if [ -n "$DMENU_HAS_PLACEMENT" ]; then
-                . "$UZBL_UTIL_DIR/uzbl-window.sh"
-
-                DMENU_MORE_ARGS="$DMENU_PLACE_X $(( $UZBL_WIN_POS_X + 1 )) $DMENU_PLACE_Y $(( $UZBL_WIN_POS_Y + $UZBL_WIN_HEIGHT - 184 )) $DMENU_PLACE_WIDTH $UZBL_WIN_WIDTH"
-            fi
-
-            ls "$basefile"* | sed -e 's!^'"$basefile"'\.!!' | $DMENU $DMENU_MORE_ARGS
-            ;;
-        1)
-            echo "$basefile"*
-            ;;
-        *)
-            ;;
+    11*)
+        ls "$basefile"* | sed -e 's!^'"$basefile"'\.!!' | $DMENU
+        ;;
+    1)
+        echo "$basefile"*
+        ;;
+    *)
+        ;;
     esac
 }
 
@@ -87,7 +87,7 @@ parse_profile () {
         sub(/[^:]*:/, "", field)
 
         if (parts[2] ~ /^(checkbox|radio)$/) {
-            printf("js page string \"uzbl.formfiller.insert(\\\"%s\\\",\\\"%s\\\",\\\"%s\\\",%s)\";\n",
+            printf("js page string \"uzbl.formfiller.insert(\\\"%s\\\",\\\"%s\\\",\\\"%s\\\",%s);\"\n",
                 parts[1], parts[2], parts[3], field)
         } else if (parts[2] == "textarea") {
             field = ""
@@ -122,11 +122,11 @@ parse_profile () {
 }
 
 new_profile () {
-    file="$1"
+    local file="$1"
     shift
 
     if [ -z "$file" ]; then
-        profile="$default_profile"
+        local profile="$default_profile"
 
         while true; do
             profile="$( Xdialog --stdout --title "New profile for $domain" --inputbox "Profile name:" 0 0 "$profile" )"
@@ -147,7 +147,9 @@ new_profile () {
                 break
             fi
         done
+        readonly profile
     fi
+    readonly file
 
     generate_form > "$file"
     chmod 600 "$file"
@@ -155,11 +157,13 @@ new_profile () {
 }
 
 edit_profile () {
-    profile="$( get_option )"
+    local profile="$( get_option )"
 
     [ -z "$profile" ] && profile="$default_profile"
+    readonly profile
 
-    file="$basefile.$profile"
+    local file="$basefile.$profile"
+    readonly file
 
     if [ -e "$file" ]; then
         $UZBL_EDITOR "$file"
@@ -170,9 +174,10 @@ edit_profile () {
 
 load_profile () {
     if [ -z "$file" ]; then
-        profile="$( get_option )"
+        local profile="$( get_option )"
 
         [ -z "$profile" ] && profile="$default_profile"
+        readonly profile
 
         file="$basefile.$profile"
     fi
@@ -183,7 +188,8 @@ load_profile () {
 
 one_time_profile ()
 {
-    tmpfile="$XDG_SOCKET_DIR/uzbl/formfiller-${0##*/}-$$"
+    local tmpfile="$( tmpfile $UZBL_SOCKET_DIR/formfiller-${0##*/}-$$-XXXXXX"
+    readonly tmpfile
     trap 'rm -f "$tmpfile"' EXIT
 
     generate_form > "$tmpfile"
@@ -197,29 +203,30 @@ one_time_profile ()
 }
 
 case "$action" in
-    new)
+"new")
+    new_profile
+    load_profile
+    ;;
+"edit")
+    edit_profile
+    load_profile
+    ;;
+"load")
+    load_profile
+    ;;
+"once")
+    one_time_profile
+    ;;
+"")
+    if [ -e "$file" ]; then
+        load_profile
+    else
         new_profile
         load_profile
-        ;;
-    edit)
-        edit_profile
-        load_profile
-        ;;
-    load)
-        load_profile
-        ;;
-    once)
-        one_time_profile
-        ;;
-    '')
-        if [ -e "$file" ]; then
-            load_profile
-        else
-            new_profile
-            load_profile
-        fi
-        ;;
-    *)
-        exit 1
-        ;;
+    fi
+    ;;
+*)
+    error "Unrecognized action: $action\n"
+    exit 1
+    ;;
 esac
