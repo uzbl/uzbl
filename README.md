@@ -866,7 +866,7 @@ Note: In WebKit2, font sizes are in pixels, whereas WebKit1 uses points.
     interaction is required to even load the media.
 * `enable_css_shaders` (boolean) (default: 0) (WebKit1 >= 1.11.1)
   - If non-zero, CSS shaders will be enabled.
-* `enable_media_stream` (boolean) (default: 0) (WebKit1 >= 1.11.1)
+* `enable_media_stream` (boolean) (default: 0) (WebKit1 >= 1.11.1 or WebKit2 >= 2.3.2)
   - If non-zero, the Media Stream API will be enabled.
 
 #### HTML5 Database

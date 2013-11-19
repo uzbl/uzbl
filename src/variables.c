@@ -1065,6 +1065,16 @@ expand_type (const gchar *str)
 #define HAVE_ZOOM_TEXT_API
 #endif
 
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 3, 2)
+#define HAVE_ENABLE_MEDIA_STREAM_API
+#endif
+#else
+#if WEBKIT_CHECK_VERSION (1, 11, 1)
+#define HAVE_ENABLE_MEDIA_STREAM_API
+#endif
+#endif
+
 /* Abbreviations to help keep the table's width humane. */
 #define UZBL_SETTING(typ, val, w, getter, setter) \
     { .type = TYPE_##typ, .value = val, .writeable = w, .builtin = TRUE, .get = (UzblFunction)getter, .set = (UzblFunction)setter }
@@ -1301,8 +1311,10 @@ DECLARE_GETSET (int, require_click_to_play);
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 11, 1)
 DECLARE_GETSET (int, enable_css_shaders);
-DECLARE_GETSET (int, enable_media_stream);
 #endif
+#endif
+#ifdef HAVE_ENABLE_MEDIA_STREAM_API
+DECLARE_GETSET (int, enable_media_stream);
 #endif
 
 /* HTML5 Database variables */
@@ -1665,8 +1677,10 @@ uzbl_variables_private_new (GHashTable *table)
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 11, 1)
         { "enable_css_shaders",           UZBL_V_FUNC (enable_css_shaders,                     INT)},
-        { "enable_media_stream",          UZBL_V_FUNC (enable_media_stream,                    INT)},
 #endif
+#endif
+#ifdef HAVE_ENABLE_MEDIA_STREAM_API
+        { "enable_media_stream",          UZBL_V_FUNC (enable_media_stream,                    INT)},
 #endif
 
         /* HTML5 Database variables */
@@ -2838,10 +2852,12 @@ GOBJECT_GETSET (int, require_click_to_play,
 #if WEBKIT_CHECK_VERSION (1, 11, 1)
 GOBJECT_GETSET (int, enable_css_shaders,
                 webkit_settings (), "enable-css-shaders")
+#endif
+#endif
 
+#ifdef HAVE_ENABLE_MEDIA_STREAM_API
 GOBJECT_GETSET (int, enable_media_stream,
                 webkit_settings (), "enable-media-stream")
-#endif
 #endif
 
 /* HTML5 Database variables */
