@@ -1271,12 +1271,15 @@ If the cookie does not match the cookie from the request, `uzbl` will ignore it.
 
 #### Built-in events
 
-Uzbl will report various events by default. All of these events are 
+Uzbl will report various events by default. All of these events are part of
+uzbl itself and will be emitted based on what is happening within uzbl-core.
 
 ##### Navigation
 
-* `LOAD_START <URI>`
+* `NAVIGATION_STARTING <URI>`
   - Sent when a main page navigation is requested.
+* `LOAD_START <URI>`
+  - Sent when a main page navigation is started.
 * `LOAD_REDIRECTED <URI>`
   - Sent when the main page navigation has been redirected to a new URI.
 * `LOAD_COMMIT <URI>`

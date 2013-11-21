@@ -1607,6 +1607,10 @@ navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri,
 
     uzbl_debug ("Navigation requested -> %s\n", uri);
 
+    uzbl_events_send (NAVIGATION_STARTING, NULL,
+        TYPE_STR, uri,
+        NULL);
+
     gchar *handler = uzbl_variables_get_string ("scheme_handler");
 
     GArray *args = uzbl_commands_args_new ();

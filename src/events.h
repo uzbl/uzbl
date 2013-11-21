@@ -4,6 +4,7 @@
 #include <glib.h>
 
 #define UZBL_EVENTS(call)       \
+    call (NAVIGATION_STARTING), \
     call (LOAD_START),          \
     call (LOAD_REDIRECTED),     \
     call (LOAD_COMMIT),         \
