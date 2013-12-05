@@ -312,7 +312,7 @@ file).
 * `inject_html`: Inject an HTML string, navigating to the URI "about:blank" and
   rendering the HTML string given.
 * `geometry`: Geometry and position of the Uzbl window. Format is
-  "<width>x<height>+<x-offset>+<y-offset>".
+  "WidthxHeight+xOffset+yOffset".
 * `keycmd`: Holds the input buffer (callback: update input buffer).
 * `show_status`: Show statusbar or not.
 * `status_top`: statusbar on top?
