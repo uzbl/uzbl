@@ -788,7 +788,7 @@ variables are treated as strings.
 
 * `resizable_text_areas` (boolean) (default: 1)
   - If non-zero, text area form elements will be resizable with a drag handle.
-* `enable_spatial_navigation` (boolean) (default: 0) (WebKit1 only)
+* `enable_spatial_navigation` (boolean) (default: 0) (WebKit1 or WebKit2 >= 2.3.3)
   - If non-zero, the arrow keys will navigate between form elements.
 * `editing_behavior` (enumeration) (default: `unix`) (WebKit1 only)
   - Sets the behavior of text area elements to behave closer to native widgets
@@ -868,6 +868,8 @@ Note: In WebKit2, font sizes are in pixels, whereas WebKit1 uses points.
   - If non-zero, CSS shaders will be enabled.
 * `enable_media_stream` (boolean) (default: 0) (WebKit1 >= 1.11.1 or WebKit2 >= 2.3.2)
   - If non-zero, the Media Stream API will be enabled.
+* `enable_media_source` (boolean) (default: 0) (WebKit >= 2.3.3)
+  - If non-zero, the MediaSource API will be enabled.
 
 #### HTML5 Database
 

@@ -1075,6 +1075,14 @@ expand_type (const gchar *str)
 #endif
 #endif
 
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 3, 3)
+#define HAVE_SPATIAL_NAVIGATION
+#endif
+#else
+#define HAVE_SPATIAL_NAVIGATION
+#endif
+
 /* Abbreviations to help keep the table's width humane. */
 #define UZBL_SETTING(typ, val, w, getter, setter) \
     { .type = TYPE_##typ, .value = val, .writeable = w, .builtin = TRUE, .get = (UzblFunction)getter, .set = (UzblFunction)setter }
@@ -1253,8 +1261,10 @@ DECLARE_GETSET (gchar *, spellcheck_languages);
 
 /* Form variables */
 DECLARE_GETSET (int, resizable_text_areas);
-#ifndef USE_WEBKIT2
+#ifdef HAVE_SPATIAL_NAVIGATION
 DECLARE_GETSET (int, enable_spatial_navigation);
+#endif
+#ifndef USE_WEBKIT2
 DECLARE_GETSET (gchar *, editing_behavior);
 #endif
 DECLARE_GETSET (int, enable_tab_cycle);
@@ -1315,6 +1325,9 @@ DECLARE_GETSET (int, enable_css_shaders);
 #endif
 #ifdef HAVE_ENABLE_MEDIA_STREAM_API
 DECLARE_GETSET (int, enable_media_stream);
+#endif
+#if WEBKIT_CHECK_VERSION (2, 3, 3)
+DECLARE_GETSET (int, enable_media_source);
 #endif
 
 /* HTML5 Database variables */
@@ -1619,8 +1632,10 @@ uzbl_variables_private_new (GHashTable *table)
 
         /* Form variables */
         { "resizable_text_areas",         UZBL_V_FUNC (resizable_text_areas,                   INT)},
-#ifndef USE_WEBKIT2
+#ifdef HAVE_SPATIAL_NAVIGATION
         { "enable_spatial_navigation",    UZBL_V_FUNC (enable_spatial_navigation,              INT)},
+#endif
+#ifndef USE_WEBKIT2
         { "editing_behavior",             UZBL_V_FUNC (editing_behavior,                       STR)},
 #endif
         { "enable_tab_cycle",             UZBL_V_FUNC (enable_tab_cycle,                       INT)},
@@ -1681,6 +1696,9 @@ uzbl_variables_private_new (GHashTable *table)
 #endif
 #ifdef HAVE_ENABLE_MEDIA_STREAM_API
         { "enable_media_stream",          UZBL_V_FUNC (enable_media_stream,                    INT)},
+#endif
+#if WEBKIT_CHECK_VERSION (2, 3, 3)
+        { "enable_media_source",          UZBL_V_FUNC (enable_media_source,                    INT)},
 #endif
 
         /* HTML5 Database variables */
@@ -2687,10 +2705,12 @@ GOBJECT_GETSET (int, resizable_text_areas,
                 webkit_settings (), "resizable-text-areas")
 #endif
 
-#ifndef USE_WEBKIT2
+#ifdef HAVE_SPATIAL_NAVIGATION
 GOBJECT_GETSET (int, enable_spatial_navigation,
                 webkit_settings (), "enable-spatial-navigation")
+#endif
 
+#ifndef USE_WEBKIT2
 #define editing_behavior_choices(call)                \
     call (WEBKIT_EDITING_BEHAVIOR_MAC, "mac")         \
     call (WEBKIT_EDITING_BEHAVIOR_WINDOWS, "windows") \
@@ -2858,6 +2878,11 @@ GOBJECT_GETSET (int, enable_css_shaders,
 #ifdef HAVE_ENABLE_MEDIA_STREAM_API
 GOBJECT_GETSET (int, enable_media_stream,
                 webkit_settings (), "enable-media-stream")
+#endif
+
+#if WEBKIT_CHECK_VERSION (2, 3, 3)
+GOBJECT_GETSET (int, enable_media_stream,
+                webkit_settings (), "enable-mediasource")
 #endif
 
 /* HTML5 Database variables */
