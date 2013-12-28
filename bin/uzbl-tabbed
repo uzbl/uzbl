@@ -755,7 +755,7 @@ class UzblTabbed:
 
         except:
             print_exc()
-            error("encounted error %r" % sys.exc_info()[1])
+            error("encountered error %r" % sys.exc_info()[1])
 
             # Unlink socket
             self.close_socket()
@@ -1295,7 +1295,7 @@ if __name__ == "__main__":
     usage = "usage: %prog [OPTIONS] {URIS}..."
     parser = OptionParser(usage=usage)
     parser.add_option('-n', '--no-session', dest='nosession',
-      action='store_true', help="ignore session saving a loading.")
+      action='store_true', help="ignore session saving on loading.")
     parser.add_option('-v', '--verbose', dest='verbose',
       action='store_true', help='print verbose output.')
     parser.add_option('-s', '--socketdir', dest='socketdir',
