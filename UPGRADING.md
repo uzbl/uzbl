@@ -38,6 +38,12 @@ altogether.
 
 The `insert_bookmark.sh` script now removes duplicate entries.
 
+The `follow.sh` script now allows for copying links to the primary
+selection, secondary selection, or clipboard through use of `primary`,
+`secondary`, or `clipboard`.  The `primary` choice was previously
+known as `clipboard`.  The default behavior is now to copy to the
+actual clipboard, not the primary selection.
+
 ## COMMANDS
 
 For 1.0, the commands in uzbl have been cleaned up. Some commands have
