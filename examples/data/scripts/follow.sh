@@ -33,8 +33,14 @@ XXXRETURNED_URIXXX*)
     "newwindow")
         uzbl_control 'event REQ_NEW_WINDOW '"$safe_uri"'\n'
         ;;
-    "clipboard")
+    "primary")
         print "$uri" | xclip
+        ;;
+    "secondary")
+        print "$uri" | xclip -selection secondary
+        ;;
+    "clipboard")
+        print "$uri" | xclip -selection clipboard
         ;;
     esac
     ;;
