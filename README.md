@@ -1141,6 +1141,10 @@ with special arguments:
 
   1. `uri`
     - The URI of the resource which is being requested.
+  2. `can_display`
+    - One of `can_display`, `cant_display`, or `unknown` to indicate whether
+      WebKit knows how to display the data given its MIME type (`unknown` means
+      that `uzbl` was unable to determine the answer).
 
 * mime handler
 

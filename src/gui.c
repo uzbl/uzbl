@@ -1527,7 +1527,22 @@ request_decision (const gchar *uri, gpointer data)
     const UzblCommand *request_command = uzbl_commands_parse (handler, args);
 
     if (request_command) {
+        const gchar *can_display = "unknown";
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 3, 4)
+        WebKitResponsePolicyDecision *request = (WebKitResponsePolicyDecision *)data;
+        if (webkit_response_policy_decision_is_mime_type_supported (request)) {
+            can_display = "can_display";
+        } else {
+            can_display = "cant_display";
+        }
+#endif
+#endif
+
         uzbl_commands_args_append (args, g_strdup (uri));
+        uzbl_commands_args_append (args, g_strdup (can_display));
+
 #ifdef USE_WEBKIT2
         uzbl_io_schedule_command (request_command, args, rewrite_request, data);
 #else
