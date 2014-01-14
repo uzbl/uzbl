@@ -2881,7 +2881,7 @@ GOBJECT_GETSET (int, enable_media_stream,
 #endif
 
 #if WEBKIT_CHECK_VERSION (2, 3, 3)
-GOBJECT_GETSET (int, enable_media_stream,
+GOBJECT_GETSET (int, enable_media_source,
                 webkit_settings (), "enable-mediasource")
 #endif
 
