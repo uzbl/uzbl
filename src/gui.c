@@ -909,12 +909,43 @@ navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (frame);
-    UZBL_UNUSED (navigation_action);
     UZBL_UNUSED (data);
 
     const gchar *uri = webkit_network_request_get_uri (request);
+    const gchar *frame_name = webkit_web_navigation_action_get_target_frame (navigation_action);
+    WebKitWebNavigationReason reason = webkit_web_navigation_action_get_reason (navigation_action);
 
-    return navigation_decision (policy_decision, uri, "", "unknown", 0, 0);
+#define navigation_reason_choices(call)                                      \
+    call(WEBKIT_WEB_NAVIGATION_REASON_LINK_CLICKED, "link")                  \
+    call(WEBKIT_WEB_NAVIGATION_REASON_FORM_SUBMITTED, "form_submission")     \
+    call(WEBKIT_WEB_NAVIGATION_REASON_BACK_FORWARD, "back_forward")          \
+    call(WEBKIT_WEB_NAVIGATION_REASON_RELOAD, "reload")                      \
+    call(WEBKIT_WEB_NAVIGATION_REASON_FORM_RESUBMITTED, "form_resubmission") \
+    call(WEBKIT_WEB_NAVIGATION_REASON_OTHER, "other")
+
+#define ENUM_TO_STRING(val, str) \
+    case val:                    \
+        reason_str = str;        \
+        break;
+
+    const gchar *reason_str = "unknown";
+    switch (reason) {
+    navigation_reason_choices (ENUM_TO_STRING)
+    default:
+        break;
+    }
+
+#undef ENUM_TO_STRING
+#undef navigation_reason_choices
+
+    gint button = webkit_web_navigation_action_get_button (navigation_action);
+    /* Be compatible with WebKit2. */
+    if (button < 0) {
+        button = 0;
+    }
+    gint modifiers = webkit_web_navigation_action_get_modifier_state (navigation_action);
+
+    return navigation_decision (policy_decision, uri, frame_name, reason_str, button, modifiers);
 }
 
 static gboolean
