@@ -1159,9 +1159,27 @@ with special arguments:
     - The host requesting authentication.
   2. `realm`
     - The realm requesting authentication.
-  2. `retry`
+  3. `retry`
     - Either `retrying` or `initial` depending on whether this request is a
       retrial of a previous request.
+  4. `scheme`
+    - The authentication scheme being used. Known values include:
+      + `default`
+      + `http_basic`
+      + `http_digest`
+      + `html_form`
+      + `ntlm`
+      + `negotiate`
+      + `client_certificate_requested`
+      + `server_trust_evaluation_requested`
+  5. `proxy`
+    - Either `proxy` if a proxy is requesting authentication or `origin` if a
+      remote server is.
+  6. `port`
+    - The port connected to.
+  7. `save`
+    - Either `can_save` or `cant_save` depending on whether WebKit itself can
+      save the credentials.
 
 * permission handler
 
