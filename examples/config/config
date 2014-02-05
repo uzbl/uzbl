@@ -473,6 +473,6 @@ sync_spawn_exec @scripts_dir/load_cookies.sh
 sync_spawn_exec @scripts_dir/load_cookies.sh @data_home/uzbl/session-cookies.txt
 
 # Set the "home" page.
-set uri = uzbl.org/doesitwork/@COMMIT
+set uri = www.uzbl.org/doesitwork/@COMMIT
 
 # vim: set fdm=syntax:
