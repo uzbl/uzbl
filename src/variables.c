@@ -1319,7 +1319,7 @@ DECLARE_GETSET (int, enable_inline_media);
 DECLARE_GETSET (int, require_click_to_play);
 #endif
 #ifndef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 11, 1)
+#if WEBKIT_CHECK_VERSION (1, 11, 1) && !WEBKIT_CHECK_VERSION (2, 3, 5)
 DECLARE_GETSET (int, enable_css_shaders);
 #endif
 #endif
@@ -1690,7 +1690,7 @@ uzbl_variables_private_new (GHashTable *table)
         { "require_click_to_play",        UZBL_V_FUNC (require_click_to_play,                  INT)},
 #endif
 #ifndef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 11, 1)
+#if WEBKIT_CHECK_VERSION (1, 11, 1) && !WEBKIT_CHECK_VERSION (2, 3, 5)
         { "enable_css_shaders",           UZBL_V_FUNC (enable_css_shaders,                     INT)},
 #endif
 #endif
@@ -2869,7 +2869,7 @@ GOBJECT_GETSET (int, require_click_to_play,
 #endif
 
 #ifndef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 11, 1)
+#if WEBKIT_CHECK_VERSION (1, 11, 1) && !WEBKIT_CHECK_VERSION (2, 3, 5)
 GOBJECT_GETSET (int, enable_css_shaders,
                 webkit_settings (), "enable-css-shaders")
 #endif

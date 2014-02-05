@@ -864,7 +864,7 @@ Note: In WebKit2, font sizes are in pixels, whereas WebKit1 uses points.
 * `require_click_to_play` (boolean) (default: 0) (WebKit >= 1.9.3)
   - If non-zero, media may automatically play on a page, otherwise a user
     interaction is required to even load the media.
-* `enable_css_shaders` (boolean) (default: 0) (WebKit1 >= 1.11.1)
+* `enable_css_shaders` (boolean) (default: 0) (WebKit1 >= 1.11.1 and < 2.3.5)
   - If non-zero, CSS shaders will be enabled.
 * `enable_media_stream` (boolean) (default: 0) (WebKit1 >= 1.11.1 or WebKit2 >= 2.3.2)
   - If non-zero, the Media Stream API will be enabled.
@@ -1344,6 +1344,8 @@ Uzbl will report various events by default. All of these events are
   - Sent when the page title changes.
 * `WEB_PROCESS_CRASHED` (WebKit2 only)
   - Sent when the main rendering process crashed.
+* `WEB_PROCESS_STARTED` (WebKit2 only)
+  - Sent when a new web process is started.
 
 ##### Window
 

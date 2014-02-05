@@ -220,6 +220,10 @@ window_object_cleared_cb (WebKitWebView *view, WebKitWebFrame *frame,
 #ifdef USE_WEBKIT2
 static void
 download_cb (WebKitWebContext *context, WebKitDownload *download, gpointer data);
+#if WEBKIT_CHECK_VERSION (2, 3, 5)
+static void
+extension_cb (WebKitWebContext *context, gpointer data);
+#endif
 #else
 static gboolean
 download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data);
@@ -272,8 +276,16 @@ web_view_init ()
         GTK_WIDGET (uzbl.gui.web_view));
 
 #ifdef USE_WEBKIT2
-    g_object_connect (G_OBJECT (webkit_web_view_get_context (uzbl.gui.web_view)),
+    WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
+#if WEBKIT_CHECK_VERSION (2, 3, 5)
+    /* Use this in the hopes that one day uzbl itself can be multi-threaded. */
+    webkit_web_context_set_process_model (context, WEBKIT_PROCESS_MODEL_ONE_SECONDARY_PROCESS_PER_WEB_VIEW);
+#endif
+    g_object_connect (G_OBJECT (context),
         "signal::download-started",                     G_CALLBACK (download_cb),              NULL,
+#if WEBKIT_CHECK_VERSION (2, 3, 5)
+        "signal::initialize-web-extensions",            G_CALLBACK (extension_cb),             NULL,
+#endif
         NULL);
 #endif
 
@@ -1071,6 +1083,18 @@ download_cb (WebKitWebContext *context, WebKitDownload *download, gpointer data)
 
     handle_download (download, NULL);
 }
+
+#if WEBKIT_CHECK_VERSION (2, 3, 5)
+void
+extension_cb (WebKitWebContext *context, gpointer data)
+{
+    /* TODO: Look at using webkit_web_context_set_web_extensions_directory and
+     * webkit_web_context_set_web_extensions_initialization_user_data.
+     */
+    uzbl_events_send (WEB_PROCESS_STARTED, NULL,
+        NULL)
+}
+#endif
 #else
 gboolean
 download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)

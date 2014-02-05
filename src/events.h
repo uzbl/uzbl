@@ -51,6 +51,7 @@
     call (WEB_PROCESS_CRASHED), \
     call (USER_EVENT),          \
     call (INSECURE_CONTENT),    \
+    call (WEB_PROCESS_STARTED), \
     /* Must be last entry. */   \
     call (LAST_EVENT)
 
