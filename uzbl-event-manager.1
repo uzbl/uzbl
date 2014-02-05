@@ -1,0 +1,36 @@
+.Dd Januar 04, 2010
+.Dt uzbl-event-manager 1
+.Os
+.Sh NAME
+.Nm uzbl-event-manager
+.Nd Event manager for uzbl written in python
+.Sh SYNOPSIS
+.Nm
+.Op options
+.Op {start|stop|restart|list}
+.Sh DESCRIPTION
+Event manager for uzbl written in python
+.Sh OPTIONS
+.Bl -tag -width "v"
+.It Fl h, Fl Fl help
+show help message and exit
+.It Fl v, Fl Fl verbose
+print verbose output.
+.It Fl d Ar DIRS , Fl Fl plugin\-dirs= Ar DIRS
+Specify plugin directories in the form of 'dir1:dir2:dir3'
+.It Fl l Ar PLUGINS , Fl Fl load\-plugins= Ar PLUGINS
+comma separated list of plugins to load
+.It Fl i Ar PLUGINS , Fl Fl ignore\-plugins= Ar PLUGINS
+comma separated list of plugins to ignore
+.It Fl p Ar FILE , Fl Fl pid\-file= Ar FILE
+specify pid file location
+.It Fl s Ar SOCKET , Fl Fl server\-socket= Ar SOCKET
+specify the daemon socket location
+.It Fl n , Fl Fl no\-daemon
+don't enter daemon mode.
+.It Fl a , Fl Fl auto\-close
+auto close after all instances disconnect.
+.El
+.Sh AUTHORS
+.Pp
+This manual page was originally written by Stefan Ritter <xeno@thehappy.de> for the Debian project (but may be used by others).
