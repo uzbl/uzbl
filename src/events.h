@@ -7,6 +7,7 @@
 #define __EVENTS__
 
 #include <glib.h>
+#include <gdk/gdk.h>
 #include <stdarg.h>
 
 /* Event system */
@@ -77,7 +78,7 @@ gchar *
 get_modifier_mask(guint state);
 
 void
-key_to_event(guint keyval, guint state, guint is_modifier, gint mode);
+key_to_event(GdkEventKey *event);
 
 void
 button_to_event(guint buttonval, guint state, gint mode);

@@ -364,19 +364,27 @@ guint button_to_modifier (guint buttonval) {
 
 /* Transform gdk key events to our own events */
 void
-key_to_event(guint keyval, guint state, guint is_modifier, gint mode) {
+key_to_event(GdkEventKey *event) {
     gchar ucs[7];
     gint ulen;
     gchar *keyname;
-    guint32 ukval = gdk_keyval_to_unicode(keyval);
+    guint32 ukval = gdk_keyval_to_unicode(event->keyval);
     gchar *modifiers = NULL;
-    guint mod = key_to_modifier (keyval);
+    guint mod = key_to_modifier (event->keyval);
+	guint state;
+	GdkModifierType consumed;
+	GdkKeymap *keymap = gdk_keymap_get_default ();
+
+	gdk_keymap_translate_keyboard_state (keymap, event->hardware_keycode,
+                                     event->state, event->group,
+                                     NULL, NULL, NULL, &consumed);
+	state = event->state & ~consumed;
 
     /* Get modifier state including this key press/release */
-    modifiers = get_modifier_mask(mode == GDK_KEY_PRESS ? state | mod : state & ~mod);
+    modifiers = get_modifier_mask(event->type == GDK_KEY_PRESS ? state | mod : state & ~mod);
 
-    if(is_modifier && mod) {
-        send_event(mode == GDK_KEY_PRESS ? MOD_PRESS : MOD_RELEASE, NULL,
+    if(event->is_modifier && mod) {
+        send_event(event->type == GDK_KEY_PRESS ? MOD_PRESS : MOD_RELEASE, NULL,
             TYPE_STR, modifiers,
             TYPE_NAME, get_modifier_mask (mod),
             NULL);
@@ -389,12 +397,12 @@ key_to_event(guint keyval, guint state, guint is_modifier, gint mode) {
         ulen = g_unichar_to_utf8(ukval, ucs);
         ucs[ulen] = 0;
 
-        send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE, NULL,
+        send_event(event->type == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE, NULL,
             TYPE_STR, modifiers, TYPE_STR, ucs, NULL);
     }
     /* send keysym for non-printable chars */
-    else if((keyname = gdk_keyval_name(keyval))){
-        send_event(mode == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE, NULL,
+    else if((keyname = gdk_keyval_name(event->keyval))){
+        send_event(event->type == GDK_KEY_PRESS ? KEY_PRESS : KEY_RELEASE, NULL,
             TYPE_STR, modifiers, TYPE_NAME, keyname, NULL);
     }
 
