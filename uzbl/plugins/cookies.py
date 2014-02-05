@@ -5,7 +5,8 @@ from collections import defaultdict
 import os, re, stat
 
 from uzbl.arguments import splitquoted
-from uzbl.ext import GlobalPlugin, PerInstancePlugin
+from uzbl.ext import PerInstancePlugin
+from .config import Config
 
 # these are symbolic names for the components of the cookie tuple
 symbolic = {'domain': 0, 'path':1, 'name':2, 'value':3, 'scheme':4, 'expires':5}
@@ -158,13 +159,17 @@ class TextStore(object):
 xdg_data_home = os.environ.get('XDG_DATA_HOME', os.path.join(os.environ['HOME'], '.local/share'))
 DefaultStore = TextStore(os.path.join(xdg_data_home, 'uzbl/cookies.txt'))
 SessionStore = TextStore(os.path.join(xdg_data_home, 'uzbl/session-cookies.txt'))
+PerInstanceSessionStore = lambda uzbl: ListStore
 
 class Cookies(PerInstancePlugin):
     def __init__(self, uzbl):
         super(Cookies, self).__init__(uzbl)
 
+        self.uzbl_config = Config[uzbl]
+
         self.whitelist = []
         self.blacklist = []
+        self.per_instance_store = PerInstanceSessionStore(uzbl)
 
         uzbl.connect('ADD_COOKIE', self.add_cookie)
         uzbl.connect('DELETE_COOKIE', self.delete_cookie)
@@ -188,34 +193,54 @@ class Cookies(PerInstancePlugin):
     def get_recipents(self):
         """ get a list of Uzbl instances to send the cookie too. """
         # This could be a lot more interesting
-        return [u for u in list(self.uzbl.parent.uzbls.values()) if u is not self.uzbl]
+        us = [u for u list(in self.uzbl.parent.uzbls.values()) if u is not self.uzbl]
+        us = filter(lambda u: not Config[u]['enable_private'], us)
+        return us
 
     def get_store(self, session=False):
         if session:
+            if self.uzbl_config['per_instance_session_cookies']:
+                return self.per_instance_store
             return SessionStore
         return DefaultStore
 
     def add_cookie(self, cookie):
+
         cookie = splitquoted(cookie)
         if self.accept_cookie(cookie):
-            for u in self.get_recipents():
-                u.send('add_cookie %s' % cookie.raw())
+            if self.uzbl_config['enable_private']:
+                return
 
             self.get_store(self.expires_with_session(cookie)).add_cookie(cookie.raw(), cookie)
+
+            if self.uzbl_config['per_instance_session_cookies']:
+                return
+
+            for u in self.get_recipents():
+                u.send('add_cookie %s' % cookie.raw())
         else:
             self.logger.debug('cookie %r is blacklisted', cookie)
             self.uzbl.send('delete_cookie %s' % cookie.raw())
 
     def delete_cookie(self, cookie):
         cookie = splitquoted(cookie)
-        for u in self.get_recipents():
-            u.send('delete_cookie %s' % cookie.raw())
+
+        session = self.expires_with_session(cookie)
 
         if len(cookie) == 6:
-            self.get_store(self.expires_with_session(cookie)).delete_cookie(cookie.raw(), cookie)
+            self.get_store().delete_cookie(cookie.raw(), cookie)
         else:
             for store in set([self.get_store(session) for session in (True, False)]):
                 store.delete_cookie(cookie.raw(), cookie)
+
+        if self.uzbl_config['enable_private']:
+            return
+
+        if session and self.uzbl_config['per_instance_session_cookies']:
+            return
+
+        for u in self.get_recipents():
+            u.send('delete_cookie %s' % cookie.raw())
 
     def blacklist_cookie(self, arg):
         add_cookie_matcher(self.blacklist, arg)

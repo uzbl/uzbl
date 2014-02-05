@@ -152,6 +152,8 @@ set cookie_policy = 0
 # Drop google analytics tracking cookies (applied after whitelists if any)
 #request BLACKLIST_COOKIE name '^__utm.$'
 
+set per_instance_session_cookies = 0
+
 # === SSL related configuration ==============================================
 
 # Set it to certificates store of your distribution, or your own CAfile.

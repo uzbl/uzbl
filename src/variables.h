@@ -45,6 +45,8 @@ int         get_zoom_type();
 gchar      *get_geometry();
 void        set_geometry(const gchar *);
 
+int         get_enable_private();
+
 int         get_show_status();
 void        set_show_status(int);
 

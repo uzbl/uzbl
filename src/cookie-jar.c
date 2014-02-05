@@ -4,6 +4,7 @@
 #include "uzbl-core.h"
 #include "events.h"
 #include "type.h"
+#include "variables.h"
 
 G_DEFINE_TYPE (UzblCookieJar, soup_cookie_jar_socket, SOUP_TYPE_COOKIE_JAR)
 
