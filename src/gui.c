@@ -279,7 +279,14 @@ web_view_init ()
     WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
 #if WEBKIT_CHECK_VERSION (2, 3, 5)
     /* Use this in the hopes that one day uzbl itself can be multi-threaded. */
-    webkit_web_context_set_process_model (context, WEBKIT_PROCESS_MODEL_ONE_SECONDARY_PROCESS_PER_WEB_VIEW);
+    WebKitProcessModel model =
+#if WEBKIT_CHECK_VERSION (2, 3, 90)
+        WEBKIT_PROCESS_MODEL_MULTIPLE_SECONDARY_PROCESSES
+#else
+        WEBKIT_PROCESS_MODEL_ONE_SECONDARY_PROCESS_PER_WEB_VIEW
+#endif
+        ;
+    webkit_web_context_set_process_model (context, model);
 #endif
     g_object_connect (G_OBJECT (context),
         "signal::download-started",                     G_CALLBACK (download_cb),              NULL,
@@ -1143,26 +1150,24 @@ geolocation_policy_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitGeoloca
 /* UI events */
 
 static WebKitWebView *
-create_view ();
+create_view (WebKitWebView *view);
 
 #ifdef USE_WEBKIT2
 GtkWidget *
 create_cb (WebKitWebView *view, gpointer data)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (data);
 
-    return GTK_WIDGET (create_view ());
+    return GTK_WIDGET (create_view (view));
 }
 #else
 WebKitWebView *
 create_web_view_cb (WebKitWebView *view, WebKitWebFrame *frame, gpointer data)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (frame);
     UZBL_UNUSED (data);
 
-    return create_view ();
+    return create_view (view);
 }
 #endif
 
@@ -1895,7 +1900,7 @@ static void
 create_web_view_uri_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
 
 WebKitWebView *
-create_view ()
+create_view (WebKitWebView *view)
 {
     if (!uzbl.gui_->tmp_web_view) {
         /*
@@ -1908,7 +1913,14 @@ create_view ()
          * because it doesn't fire when Javascript requests a new window with
          * window.open().
          */
-        uzbl.gui_->tmp_web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
+        uzbl.gui_->tmp_web_view =
+#if defined(USE_WEBKIT2) && WEBKIT_CHECK_VERSION (2, 3, 90)
+            WEBKIT_WEB_VIEW (webkit_web_view_new_with_related_view (view))
+#else
+            UZBL_UNUSED (view);
+            WEBKIT_WEB_VIEW (webkit_web_view_new ())
+#endif
+            ;
     }
 
     g_object_connect (G_OBJECT (uzbl.gui_->tmp_web_view),
