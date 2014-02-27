@@ -2396,16 +2396,20 @@ download_destination (GString *result, gpointer data)
 
     gchar *destination_uri;
     /* Convert relative path to absolute path. */
-    if ((*result->str != '/') && !is_file_uri) {
-        gchar *cwd = g_get_current_dir ();
-        destination_uri = g_strconcat ("file://", cwd, "/", result->str, NULL);
-        g_free (cwd);
+    if (!is_file_uri) {
+        if (*result->str == '/') {
+            destination_uri = g_strconcat ("file://", result->str, NULL);
+        } else {
+            gchar *cwd = g_get_current_dir ();
+            destination_uri = g_strconcat ("file://", cwd, "/", result->str, NULL);
+            g_free (cwd);
+        }
     } else {
         destination_uri = g_strdup (result->str);
     }
 
     uzbl_events_send (DOWNLOAD_STARTED, NULL,
-        TYPE_STR, destination_uri,
+        TYPE_STR, destination_uri + strlen ("file://"),
         NULL);
 
 #ifdef USE_WEBKIT2
