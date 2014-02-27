@@ -2894,6 +2894,7 @@ run_system_command (GArray *args, char **output_stdout)
     if (output_stdout) {
         result = g_spawn_sync (NULL, (gchar **)args->data, NULL, G_SPAWN_SEARCH_PATH,
                                NULL, NULL, output_stdout, NULL, NULL, &err);
+        remove_trailing_newline (*output_stdout);
     } else {
         result = g_spawn_async (NULL, (gchar **)args->data, NULL, G_SPAWN_SEARCH_PATH,
                                 NULL, NULL, NULL, &err);
