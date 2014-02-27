@@ -2759,7 +2759,7 @@ IMPLEMENT_GETTER (gchar *, custom_encoding)
 #endif
 
     if (!encoding) {
-        g_strdup ("");
+        return g_strdup ("");
     }
 
     return g_strdup (encoding);

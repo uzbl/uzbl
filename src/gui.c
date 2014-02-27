@@ -1017,6 +1017,7 @@ request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResour
     if (message) {
         SoupURI *soup_uri = soup_uri_new (uri);
         soup_message_set_first_party (message, soup_uri);
+        soup_uri_free (soup_uri);
     }
 
     g_object_ref (request);
@@ -1749,6 +1750,8 @@ mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type, const 
 
         uzbl_commands_args_free (args);
     }
+
+    g_free (handler);
 
     return TRUE;
 }

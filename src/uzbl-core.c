@@ -350,11 +350,14 @@ find_xdg_file (XdgDir dir, const char* basename);
 void
 read_config_file (const gchar *file)
 {
+    gchar *file_free = NULL;
+
     if (!g_strcmp0 (file, "-")) {
         file = NULL;
         uzbl_io_init_stdin ();
     } else if (!file) {
-        file = find_xdg_file (XDG_CONFIG, "/uzbl/config");
+        file_free = find_xdg_file (XDG_CONFIG, "/uzbl/config");
+        file = file_free;
     }
 
     /* Load config file, if any. */
@@ -364,6 +367,8 @@ read_config_file (const gchar *file)
     } else {
         uzbl_debug ("No configuration file loaded.\n");
     }
+
+    g_free (file_free);
 }
 
 #ifndef UZBL_LIBRARY
