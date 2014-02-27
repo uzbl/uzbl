@@ -1808,6 +1808,20 @@ uzbl_variables_private_free (UzblVariablesPrivate *priv)
         return name;                          \
     }
 
+#define GOBJECT_GETTER2(type, name, rtype, obj, prop) \
+    IMPLEMENT_GETTER (type, name)                     \
+    {                                                 \
+        type name;                                    \
+        rtype rname;                                  \
+                                                      \
+        g_object_get (G_OBJECT (obj),                 \
+            prop, &rname,                             \
+            NULL);                                    \
+        name = rname;                                 \
+                                                      \
+        return name;                                  \
+    }
+
 #define GOBJECT_SETTER(type, name, obj, prop) \
     IMPLEMENT_SETTER (type, name)             \
     {                                         \
@@ -1818,9 +1832,25 @@ uzbl_variables_private_free (UzblVariablesPrivate *priv)
         return TRUE;                          \
     }
 
+#define GOBJECT_SETTER2(type, name, rtype, obj, prop) \
+    IMPLEMENT_SETTER (type, name)             \
+    {                                         \
+        rtype rname = name;                   \
+                                              \
+        g_object_set (G_OBJECT (obj),         \
+            prop, rname,                      \
+            NULL);                            \
+                                              \
+        return TRUE;                          \
+    }
+
 #define GOBJECT_GETSET(type, name, obj, prop) \
     GOBJECT_GETTER (type, name, obj, prop)    \
     GOBJECT_SETTER (type, name, obj, prop)
+
+#define GOBJECT_GETSET2(type, name, rtype, obj, prop) \
+    GOBJECT_GETTER2 (type, name, rtype, obj, prop)    \
+    GOBJECT_SETTER2 (type, name, rtype, obj, prop)
 
 #define ENUM_TO_STRING(val, str) \
     case val:                    \
@@ -2449,12 +2479,12 @@ IMPLEMENT_SETTER (gchar *, accept_languages)
 }
 #endif
 
-GOBJECT_GETSET (gdouble, zoom_level,
-                webkit_view (), "zoom-level")
+GOBJECT_GETSET2 (gdouble, zoom_level,
+                 gfloat, webkit_view (), "zoom-level")
 
 #ifndef USE_WEBKIT2
-GOBJECT_GETTER (gdouble, zoom_step,
-                webkit_settings (), "zoom-step")
+GOBJECT_GETTER2 (gdouble, zoom_step,
+                 gfloat, webkit_settings (), "zoom-step")
 #endif
 
 IMPLEMENT_SETTER (gdouble, zoom_step)
@@ -2466,8 +2496,9 @@ IMPLEMENT_SETTER (gdouble, zoom_step)
 #ifdef USE_WEBKIT2
     uzbl.variables->priv->zoom_step = zoom_step;
 #else
+    gfloat zoom_stepf = zoom_step;
     g_object_set (webkit_settings (),
-        "zoom-step", zoom_step,
+        "zoom-step", zoom_stepf,
         NULL);
 #endif
 
