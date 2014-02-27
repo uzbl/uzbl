@@ -2372,7 +2372,6 @@ download_destination (GString *result, gpointer data)
     /* No response, cancel the download. */
     if (!result->len) {
         webkit_download_cancel (download);
-        g_object_unref (download);
         return;
     }
 
@@ -2402,8 +2401,6 @@ download_destination (GString *result, gpointer data)
     webkit_download_set_destination_uri (download, destination_uri);
 #endif
     g_free (destination_uri);
-
-    g_object_unref (download);
 }
 
 void
