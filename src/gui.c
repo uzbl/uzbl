@@ -2155,11 +2155,6 @@ decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename
 #endif
         ;
     const gchar *user_destination = (const gchar *)data;
-    const gchar *destination = suggested_filename;
-
-    if (user_destination) {
-        destination = user_destination;
-    }
 
     uzbl_debug ("Download requested -> %s\n", uri);
 
@@ -2211,7 +2206,7 @@ decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename
     uzbl_commands_args_append (args, g_strdup (content_type));
     gchar *total_size_s = g_strdup_printf ("%" G_GUINT64_FORMAT, total_size);
     uzbl_commands_args_append (args, total_size_s);
-    uzbl_commands_args_append (args, g_strdup (destination ? destination : ""));
+    uzbl_commands_args_append (args, g_strdup (user_destination ? user_destination : ""));
 
     uzbl_io_schedule_command (download_command, args, download_destination, download);
 
