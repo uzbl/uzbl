@@ -1809,21 +1809,14 @@ handle_download (WebKitDownload *download, const gchar *suggested_destination)
         "signal::failed",             G_CALLBACK (download_failed_cb),    NULL,
         NULL);
 #else
-    const gchar *download_suggestion = webkit_download_get_suggested_filename (download);
-
-    if (!decide_destination_cb (download, download_suggestion, (gpointer)suggested_destination)) {
-        return;
-    }
-
     g_object_connect (G_OBJECT (download),
         "signal::notify::current-size", G_CALLBACK (download_size_cb),      NULL,
         "signal::notify::status",       G_CALLBACK (download_status_cb),    NULL,
         "signal::error",                G_CALLBACK (download_error_cb),     NULL,
         NULL);
 
-    if (webkit_download_get_destination_uri (download)) {
-        webkit_download_start (download);
-    }
+    const gchar *download_suggestion = webkit_download_get_suggested_filename (download);
+    decide_destination_cb (download, download_suggestion, (gpointer)suggested_destination);
 #endif
 }
 
