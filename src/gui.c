@@ -1803,7 +1803,7 @@ static void
 download_size_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data);
 static void
 download_status_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data);
-static void
+static gboolean
 download_error_cb (WebKitDownload *download, gint error_code, gint error_detail, gchar *reason, gpointer data);
 #endif
 
@@ -2291,7 +2291,7 @@ download_status_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer d
     }
 }
 
-void
+gboolean
 download_error_cb (WebKitDownload *download, gint error_code, gint error_detail, gchar *reason, gpointer data)
 {
     UZBL_UNUSED (error_code);
@@ -2300,6 +2300,8 @@ download_error_cb (WebKitDownload *download, gint error_code, gint error_detail,
     const gchar *destination = webkit_download_get_destination_uri (download);
 
     send_download_error (destination, error_detail, reason);
+
+    return TRUE;
 }
 #endif
 
