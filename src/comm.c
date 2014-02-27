@@ -40,8 +40,7 @@ uzbl_comm_vformat (const gchar *directive, const gchar *function, va_list vargs)
             /* A string has already been escaped. */
             g_string_append (message, va_arg (vargs, char *));
             break;
-        case TYPE_STR_ARRAY:
-        {
+        case TYPE_STR_ARRAY: {
             GArray *a = va_arg (vargs, GArray *);
             const char *p;
             int i = 0;

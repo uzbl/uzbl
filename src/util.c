@@ -34,7 +34,7 @@ str_replace (const gchar *needle, const gchar *replace, const gchar *haystack)
 void
 remove_trailing_newline (const char *line)
 {
-    char *p = strchr (line, '\n' );
+    char *p = strchr (line, '\n');
     if (p != NULL) {
         *p = '\0';
     }

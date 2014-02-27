@@ -2257,9 +2257,7 @@ download_failed_cb (WebKitDownload *download, gpointer error, gpointer data)
 
     send_download_error (destination, err->code, err->message);
 }
-
 #else
-
 void
 download_size_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data)
 {
@@ -2473,5 +2471,4 @@ send_download_error (const gchar *destination, WebKitDownloadError err, const gc
         TYPE_INT, err,
         TYPE_STR, message,
         NULL);
-
 }
