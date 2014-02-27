@@ -229,7 +229,7 @@ static gboolean
 download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data);
 #endif
 #ifdef USE_WEBKIT2
-static void
+static gboolean
 permission_cb (WebKitWebView *view, WebKitPermissionRequest *request, gpointer data);
 #else
 static gboolean
@@ -749,7 +749,7 @@ decide_policy_cb (WebKitWebView *view, WebKitPolicyDecision *decision, WebKitPol
 
 #define ENUM_TO_STRING(val, str) \
     case val:                    \
-        scheme_str = str;        \
+        type_str = str;          \
         break;
 
         const gchar *type_str = "unknown";
@@ -1096,11 +1096,14 @@ download_cb (WebKitWebContext *context, WebKitDownload *download, gpointer data)
 void
 extension_cb (WebKitWebContext *context, gpointer data)
 {
+    UZBL_UNUSED (context);
+    UZBL_UNUSED (data);
+
     /* TODO: Look at using webkit_web_context_set_web_extensions_directory and
      * webkit_web_context_set_web_extensions_initialization_user_data.
      */
     uzbl_events_send (WEB_PROCESS_STARTED, NULL,
-        NULL)
+        NULL);
 }
 #endif
 #else
@@ -1123,10 +1126,9 @@ request_permission (const gchar *uri, const gchar *type, GObject *obj);
 gboolean
 permission_cb (WebKitWebView *view, WebKitPermissionRequest *request, gpointer data)
 {
-    UZBL_UNUSED (view);
     UZBL_UNUSED (data);
 
-    const gchar *uri = webkit_web_frame_get_uri (frame);
+    const gchar *uri = webkit_web_view_get_uri (view);
     const gchar *type = "unknown";
 
     if (WEBKIT_IS_GEOLOCATION_PERMISSION_REQUEST (request)) {
