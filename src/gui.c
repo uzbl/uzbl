@@ -1905,6 +1905,10 @@ create_web_view_uri_cb (WebKitWebView *view, GParamSpec param_spec, gpointer dat
 WebKitWebView *
 create_view (WebKitWebView *view)
 {
+#if !defined(USE_WEBKIT2) || !WEBKIT_CHECK_VERSION (2, 3, 90)
+    UZBL_UNUSED (view);
+#endif
+
     if (!uzbl.gui_->tmp_web_view) {
         /*
          * The URL is not known at this point and destroying the view in the
@@ -1920,7 +1924,6 @@ create_view (WebKitWebView *view)
 #if defined(USE_WEBKIT2) && WEBKIT_CHECK_VERSION (2, 3, 90)
             WEBKIT_WEB_VIEW (webkit_web_view_new_with_related_view (view))
 #else
-            UZBL_UNUSED (view);
             WEBKIT_WEB_VIEW (webkit_web_view_new ())
 #endif
             ;
