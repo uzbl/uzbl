@@ -120,6 +120,21 @@ uzbl_init (int *argc, char ***argv)
     }
 #endif
 
+#if USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 3, 5)
+    /* Use this in the hopes that one day uzbl itself can be multi-threaded. */
+    WebKitWebContext *webkit_context = webkit_web_context_get_default ();
+    WebKitProcessModel model =
+#if WEBKIT_CHECK_VERSION (2, 3, 90)
+        WEBKIT_PROCESS_MODEL_MULTIPLE_SECONDARY_PROCESSES
+#else
+        WEBKIT_PROCESS_MODEL_ONE_SECONDARY_PROCESS_PER_WEB_VIEW
+#endif
+        ;
+    webkit_web_context_set_process_model (webkit_context, model);
+#endif
+#endif
+
     /* HTTP client. */
 #ifndef USE_WEBKIT2 /* FIXME: This seems important... */
     uzbl.net.soup_session = webkit_get_default_session ();

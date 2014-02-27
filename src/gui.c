@@ -277,17 +277,6 @@ web_view_init ()
 
 #ifdef USE_WEBKIT2
     WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
-#if WEBKIT_CHECK_VERSION (2, 3, 5)
-    /* Use this in the hopes that one day uzbl itself can be multi-threaded. */
-    WebKitProcessModel model =
-#if WEBKIT_CHECK_VERSION (2, 3, 90)
-        WEBKIT_PROCESS_MODEL_MULTIPLE_SECONDARY_PROCESSES
-#else
-        WEBKIT_PROCESS_MODEL_ONE_SECONDARY_PROCESS_PER_WEB_VIEW
-#endif
-        ;
-    webkit_web_context_set_process_model (context, model);
-#endif
     g_object_connect (G_OBJECT (context),
         "signal::download-started",                     G_CALLBACK (download_cb),              NULL,
 #if WEBKIT_CHECK_VERSION (2, 3, 5)
