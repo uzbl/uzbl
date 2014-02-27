@@ -2399,6 +2399,7 @@ download_destination (GString *result, gpointer data)
     webkit_download_set_destination (download, destination_uri);
 #else
     webkit_download_set_destination_uri (download, destination_uri);
+    webkit_download_start (download);
 #endif
     g_free (destination_uri);
 }
