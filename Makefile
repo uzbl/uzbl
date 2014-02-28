@@ -267,12 +267,15 @@ endif
 
 install-uzbl-browser: install-dirs install-uzbl-core install-event-manager
 	$(INSTALL) -d $(INSTALLDIR)/share/applications
-	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < bin/uzbl-browser.in > $(INSTALLDIR)/bin/uzbl-browser
-	chmod 755 $(INSTALLDIR)/bin/uzbl-browser
-	#sed 's#@PREFIX@#$(PREFIX)#g' < README.browser.md > $(DOCDIR)/README.browser.md
-	#sed 's#@PREFIX@#$(PREFIX)#g' < README.event-manager.md > $(DOCDIR)/README.event-manager.md
-	cp -r examples $(INSTALLDIR)/share/uzbl/
+	sed 's#^PREFIX=.*#PREFIX=$(RUN_PREFIX)#' < bin/uzbl-browser.in > bin/uzbl-browser
+	$(INSTALL) -m755 bin/uzbl-browser $(INSTALLDIR)/share/applications/uzbl.desktop
+	#sed 's#@PREFIX@#$(PREFIX)#g' < README.browser.md > README.browser.md
+	#$(INSTALL) -m644 README.browser.md $(DOCDIR)/README.browser.md
+	#sed 's#@PREFIX@#$(PREFIX)#g' < README.event-manager.md > README.event-manager.md
+	#$(INSTALL) -m644 README.event-manager.md $(DOCDIR)/README.event-manager.md
+	cp -rv examples $(INSTALLDIR)/share/uzbl/examples
 	chmod 755 $(INSTALLDIR)/share/uzbl/examples/data/scripts/*
+	sed 's#@PREFIX@#$(PREFIX)#g' < uzbl.desktop.in > uzbl.desktop
 	$(INSTALL) -m644 uzbl.desktop $(INSTALLDIR)/share/applications/uzbl.desktop
 
 install-uzbl-tabbed: install-dirs
