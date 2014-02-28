@@ -259,7 +259,11 @@ install-uzbl-core: uzbl-core install-dirs
 	$(INSTALL) -m644 uzbl-event-manager.1 $(MANDIR)/man1/uzbl-event-manager.1
 
 install-event-manager: install-dirs
+ifeq ($(DESTDIR),)
+	$(PYTHON) setup.py install --prefix=$(PREFIX) --install-scripts=$(INSTALLDIR)/bin $(PYINSTALL_EXTRA)
+else
 	$(PYTHON) setup.py install --prefix=$(PREFIX) --root=$(DESTDIR) --install-scripts=$(INSTALLDIR)/bin $(PYINSTALL_EXTRA)
+endif
 
 install-uzbl-browser: install-dirs install-uzbl-core install-event-manager
 	$(INSTALL) -d $(INSTALLDIR)/share/applications
