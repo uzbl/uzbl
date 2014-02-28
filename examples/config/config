@@ -150,6 +150,16 @@ set cookie_policy always
 # Drop google analytics tracking cookies (applied after whitelists, if any)
 #event BLACKLIST_COOKIE name '^__utm.$'
 
+# === Javascript configuration  ==============================================
+
+# Turn off javascript support
+# set enable_scripts = false
+
+# === Proxy configuration  ===================================================
+
+# Direct uzbl at a proxy service (ex. privoxy)
+# set proxy_url = http://localhost:8118
+
 # === SSL related configuration ==============================================
 
 # Set it to certificates store of your distribution, or your own CAfile.
