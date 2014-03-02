@@ -2192,7 +2192,14 @@ decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename
     uzbl_commands_args_append (args, total_size_s);
     uzbl_commands_args_append (args, g_strdup (user_destination ? user_destination : ""));
 
+#ifdef USE_WEBKIT2
     uzbl_io_schedule_command (download_command, args, download_destination, download);
+#else
+    GString *result = g_string_new ("");
+    uzbl_commands_run_parsed (download_command, args, result);
+    download_destination (result, download);
+    g_string_free (result, TRUE);
+#endif
 
     return FALSE;
 }
@@ -2399,7 +2406,6 @@ download_destination (GString *result, gpointer data)
     webkit_download_set_destination (download, destination_uri);
 #else
     webkit_download_set_destination_uri (download, destination_uri);
-    webkit_download_start (download);
 #endif
     g_free (destination_uri);
 }

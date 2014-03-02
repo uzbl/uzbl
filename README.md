@@ -561,6 +561,8 @@ variables are treated as strings.
     passed the URI, suggested filename, content type, and total size as
     arguments. If a destination is known, it is passed as well. The result is
     used as the final destination. If it is empty, the download is cancelled.
+  - NOTE: Do *not* use `request` in WebKit1 as this is called synchronously and
+    will just pause `uzbl-core` until the `request` timeout occurs.
 * `mime_handler` (command) (no default) (WebKit1 only)
   - The command to use when determining what to do with content based on its
     mime type. It is passed the mime type and disposition as arguments.
