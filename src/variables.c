@@ -478,7 +478,7 @@ init_js_variables_api ()
 UzblVariable *
 get_variable (const gchar *name)
 {
-    return g_hash_table_lookup (uzbl.variables->table, name);
+    return (UzblVariable *)g_hash_table_lookup (uzbl.variables->table, name);
 }
 
 gboolean
