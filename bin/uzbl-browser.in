@@ -40,7 +40,7 @@ done
 # if no config exists yet in the recommended location, put the default (recommended) config there
 if ! [ -f "$XDG_CONFIG_HOME/uzbl/config" ]
 then
-	[ -r "$EXAMPLES/config/config" || \
+	[ -r "$EXAMPLES/config/config" ] || \
 		die_with_status 3 "Error: Global config not found; please check if your distribution ships them separately"
 	if ! cp "$EXAMPLES/config/"* "$XDG_CONFIG_HOME/uzbl/"; then
 		echo >&2 "Could not copy default config to $XDG_CONFIG_HOME/uzbl/config"
