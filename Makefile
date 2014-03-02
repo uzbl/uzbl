@@ -177,26 +177,26 @@ test-uzbl-browser: uzbl-browser
 	./bin/uzbl-browser --uri http://www.uzbl.org --verbose
 
 test-uzbl-core-sandbox: sandbox uzbl-core sandbox-install-uzbl-core sandbox-install-example-data
-	. ./sandbox/env.sh && uzbl-core --uri http://www.uzbl.org --verbose
+	./sandbox/env.sh uzbl-core --uri http://www.uzbl.org --verbose
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
 test-uzbl-browser-sandbox: sandbox uzbl-browser sandbox-install-uzbl-browser sandbox-install-example-data
-	. ./sandbox/env.sh && ${PYTHON} -S `which uzbl-event-manager` restart -navv &
-	. ./sandbox/env.sh && uzbl-browser --uri http://www.uzbl.org --verbose
-	. ./sandbox/env.sh && ${PYTHON} -S `which uzbl-event-manager` stop -vv -o /dev/null
+	./sandbox/env.sh ${PYTHON} -S sandbox/usr/bin/uzbl-event-manager restart -navv &
+	./sandbox/env.sh uzbl-browser --uri http://www.uzbl.org --verbose
+	./sandbox/env.sh ${PYTHON} -S sandbox/usr/bin/uzbl-event-manager stop -vv -o /dev/null
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
 test-uzbl-tabbed-sandbox: sandbox uzbl-browser sandbox-install-uzbl-browser sandbox-install-uzbl-tabbed sandbox-install-example-data
-	. ./sandbox/env.sh && ${PYTHON} -S `which uzbl-event-manager` restart -avv
-	. ./sandbox/env.sh && uzbl-tabbed
-	. ./sandbox/env.sh && ${PYTHON} -S `which uzbl-event-manager` stop -avv
+	./sandbox/env.sh ${PYTHON} -S sandbox/usr/bin/uzbl-event-manager restart -avv
+	./sandbox/env.sh uzbl-tabbed
+	./sandbox/env.sh ${PYTHON} -S sandbox/usr/bin/uzbl-event-manager stop -avv
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
 test-uzbl-event-manager-sandbox: sandbox uzbl-browser sandbox-install-uzbl-browser sandbox-install-example-data
-	. ./sandbox/env.sh && ${PYTHON} -S `which uzbl-event-manager` restart -navv
+	./sandbox/env.sh ${PYTHON} -S sandbox/usr/bin/uzbl-event-manager restart -navv
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
@@ -217,14 +217,15 @@ strip:
 	@echo ... done.
 
 SANDBOXOPTS=\
-	DESTDIR=./sandbox\
-	RUN_PREFIX=`pwd`/sandbox/usr/local\
-	PYINSTALL_EXTRA='--prefix=./sandbox/usr/local --install-scripts=./sandbox/usr/local/bin'
+	DESTDIR=./sandbox \
+	PREFIX=/usr \
+	RUN_PREFIX=`pwd`/sandbox/usr \
+	PYINSTALL_EXTRA='--prefix=./usr --install-scripts=./usr/bin'
 
 sandbox: misc/env.sh
-	mkdir -p sandbox/${PREFIX}/lib64
+	mkdir -p sandbox/usr/lib64
 	cp -p misc/env.sh sandbox/env.sh
-	test -e sandbox/${PREFIX}/lib || ln -s lib64 sandbox/${PREFIX}/lib
+	test -e sandbox/usr/lib || ln -s lib64 sandbox/usr/lib
 
 sandbox-install-uzbl-browser:
 	make ${SANDBOXOPTS} install-uzbl-browser

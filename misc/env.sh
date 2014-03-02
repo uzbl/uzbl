@@ -26,13 +26,15 @@ XDG_CONFIG_HOME="$HOME/.config"
 export XDG_CONFIG_HOME
 
 # Needed to run uzbl-browser etc from here.
-PATH="$( pwd )/sandbox/usr/local/bin:$PATH"
+PATH="$( pwd )/sandbox/usr/bin:$PATH"
 export PATH
 
-PYTHONLIB=$( python3 -c 'from distutils.sysconfig import get_python_lib; print(get_python_lib(prefix="/usr/local"))' )
+PYTHONLIB=$( python3 -c 'from distutils.sysconfig import get_python_lib; print(get_python_lib(prefix="/usr"))' )
 
 UZBL_PLUGIN_PATH="$( pwd )/sandbox/$PYTHONLIB/uzbl/plugins"
 export UZBL_PLUGIN_PATH
 
 PYTHONPATH="$( pwd )/sandbox/$PYTHONLIB/"
 export PYTHONPATH
+
+exec "$@"
