@@ -160,6 +160,7 @@ class UzblEventDaemon(object):
         self.opts = opts
         self.listener = listener
         self.plugind = plugind
+        self._plugin_instances = []
         self._quit = False
 
         # Hold uzbl instances
@@ -187,7 +188,6 @@ class UzblEventDaemon(object):
 
     def init_plugins(self):
         '''Initialise event manager plugins.'''
-        self._plugin_instances = []
         self.plugins = {}
 
         for plugin in self.plugind.global_plugins:
