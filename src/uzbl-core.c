@@ -97,7 +97,7 @@ uzbl_init (int *argc, char ***argv)
     };
 
     /* Parse commandline arguments. */
-    GOptionContext *context = g_option_context_new ("[ uri ] - load a uri by default");
+    GOptionContext *context = g_option_context_new ("");
     g_option_context_add_main_entries (context, options, NULL);
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
     g_option_context_parse (context, argc, argv, NULL);
