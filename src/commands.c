@@ -1742,11 +1742,14 @@ IMPLEMENT_COMMAND (scheme)
     g_strfreev (split);
 }
 
+static void
+free_menu_item (gpointer item);
+
 /* Menu commands */
 IMPLEMENT_COMMAND (menu)
 {
     if (!uzbl.gui.menu_items) {
-        uzbl.gui.menu_items = g_ptr_array_new ();
+        uzbl.gui.menu_items = g_ptr_array_new_with_free_func (free_menu_item);
     }
 
     ARG_CHECK (argv, 1);
@@ -2795,6 +2798,17 @@ plugin_toggle_one (WebKitWebPlugin *plugin, gpointer data)
 }
 #endif
 #endif
+
+void
+free_menu_item (gpointer data)
+{
+    UzblMenuItem *item = (UzblMenuItem *)data;
+
+    g_free (item->name);
+    g_free (item->cmd);
+
+    g_free (item);
+}
 
 /* Make sure that the args string you pass can properly be interpreted (e.g.,
  * properly escaped against whitespace, quotes etc.). */

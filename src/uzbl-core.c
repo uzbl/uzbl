@@ -259,6 +259,10 @@ uzbl_free ()
     uzbl_commands_free ();
     uzbl_variables_free ();
     uzbl_io_free ();
+
+    if (uzbl.gui.menu_items) {
+        g_ptr_array_free (uzbl.gui.menu_items, TRUE);
+    }
 }
 
 #ifndef UZBL_LIBRARY
