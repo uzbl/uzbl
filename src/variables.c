@@ -1395,26 +1395,13 @@ struct _UzblVariablesPrivate {
     gchar *fifo_dir;
     gchar *socket_dir;
 
-    /* Handler variables */
-    gchar *scheme_handler;
-    gchar *request_handler;
-    gchar *download_handler;
-    gchar *mime_handler;
-    gchar *authentication_handler;
-    gchar *permission_handler;
-    gchar *shell_cmd;
-
     /* Window variables */
     gchar *icon;
     gchar *icon_name;
 
     /* UI variables */
     gboolean status_top;
-    gchar *status_format;
-    gchar *status_format_right;
     gchar *status_background;
-    gchar *title_format_long;
-    gchar *title_format_short;
 
     /* Customization */
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
@@ -1473,13 +1460,6 @@ uzbl_variables_private_new (GHashTable *table)
         { "socket_dir",                   UZBL_V_STRING (priv->socket_dir,                     set_socket_dir)},
 
         /* Handler variables */
-        { "scheme_handler",               UZBL_V_STRING (priv->scheme_handler,                 NULL)},
-        { "request_handler",              UZBL_V_STRING (priv->request_handler,                NULL)},
-        { "download_handler",             UZBL_V_STRING (priv->download_handler,               NULL)},
-        { "mime_handler",                 UZBL_V_STRING (priv->mime_handler,                   NULL)},
-        { "authentication_handler",       UZBL_V_STRING (priv->authentication_handler,         NULL)},
-        { "permission_handler",           UZBL_V_STRING (priv->permission_handler,             NULL)},
-        { "shell_cmd",                    UZBL_V_STRING (priv->shell_cmd,                      NULL)},
 #ifndef USE_WEBKIT2
         { "enable_builtin_auth",          UZBL_V_FUNC (enable_builtin_auth,                    INT)},
 #endif
@@ -1495,11 +1475,7 @@ uzbl_variables_private_new (GHashTable *table)
         /* UI variables */
         { "show_status",                  UZBL_V_FUNC (show_status,                            INT)},
         { "status_top",                   UZBL_V_INT (priv->status_top,                        set_status_top)},
-        { "status_format",                UZBL_V_STRING (priv->status_format,                  NULL)},
-        { "status_format_right",          UZBL_V_STRING (priv->status_format_right,            NULL)},
         { "status_background",            UZBL_V_STRING (priv->status_background,              set_status_background)},
-        { "title_format_long",            UZBL_V_STRING (priv->title_format_long,              NULL)},
-        { "title_format_short",           UZBL_V_STRING (priv->title_format_short,             NULL)},
 #ifdef USE_WEBKIT2
         { "enable_compositing_debugging", UZBL_V_FUNC (enable_compositing_debugging,           INT)},
 #endif
