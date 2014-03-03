@@ -131,7 +131,7 @@ def main(filepath, fileglob):
         else:
             fin = open(filepath, 'r')
     else:
-        print('Error: The given path (%s) is neither a directory nor a file' % filepath)
+        sys.stderr.write('%s: Error: \'%s\' is neither a directory nor a file\n' % (sys.argv[0], filepath))
 
         os.exit(1)
 
@@ -146,7 +146,7 @@ if __name__ == '__main__':
     try:
         filepath = sys.argv[1]
     except IndexError:
-        print('Error: No file given to read.')
+        sys.stderr.write('%s: Error: No file given to read.\n', sys.argv[0])
 
         os.exit(1)
 
