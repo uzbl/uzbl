@@ -556,7 +556,9 @@ variables are treated as strings.
     URI is passed as an argument. If the command returns a non-empty string,
     the first line of the result is used as the new URI. To cancel a request,
     use the URI `about:blank`. In WebKit2, `IGNORE` and `DOWNLOAD` may be used.
-* `download_handler` (command) (no default)
+  - NOTE: Do *not* use `request` in WebKit1 as this is called synchronously and
+    will just pause `uzbl-core` until the `request` timeout occurs.
+* `download_handler` (command) (no default) (synchronous in WebKit1)
   - The command to use when determining where to save a downloaded file. It is
     passed the URI, suggested filename, content type, and total size as
     arguments. If a destination is known, it is passed as well. The result is
