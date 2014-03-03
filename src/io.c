@@ -14,6 +14,7 @@
 #include <sys/un.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "3p/async-queue-source/rb-async-queue-watch.h"
 
