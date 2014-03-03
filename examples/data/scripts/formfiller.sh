@@ -188,7 +188,7 @@ load_profile () {
 
 one_time_profile ()
 {
-    local tmpfile="$( tmpfile $UZBL_SOCKET_DIR/formfiller-${0##*/}-$$-XXXXXX"
+    local tmpfile="$( tmpfile "$UZBL_SOCKET_DIR/formfiller-${0##*/}-$$-XXXXXX" )"
     readonly tmpfile
     trap 'rm -f "$tmpfile"' EXIT
 
