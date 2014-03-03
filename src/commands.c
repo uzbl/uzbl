@@ -162,6 +162,10 @@ parse_command_arguments (const gchar *args, GArray *argv, gboolean split);
 const UzblCommand *
 uzbl_commands_parse (const gchar *cmd, GArray *argv)
 {
+    if (!cmd || cmd[0] == '#' || !*cmd) {
+        return NULL;
+    }
+
     gchar *exp_line = uzbl_variables_expand (cmd);
     if (!exp_line || !*exp_line) {
         g_free (exp_line);
@@ -513,16 +517,11 @@ parse_command_from_file (const char *cmd)
         return;
     }
 
-    gchar *work_string = g_strdup (cmd);
-
     /* Strip trailing newline, and any other whitespace in front. */
+    gchar *work_string = g_strdup (cmd);
     g_strstrip (work_string);
 
-    /* Skip comments. */
-    if (*work_string != '#') {
-        uzbl_commands_run (work_string, NULL);
-    }
-
+    uzbl_commands_run (work_string, NULL);
     g_free (work_string);
 }
 
