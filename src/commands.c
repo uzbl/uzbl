@@ -1892,17 +1892,17 @@ IMPLEMENT_COMMAND (search)
     static const UzblFindOptions default_options = WEBKIT_FIND_OPTIONS_WRAP_AROUND;
 
 #ifdef USE_WEBKIT2
-#define webkit2_search_options(call)                       \
-    call("word_start", WEBKIT_FIND_OPTIONS_AT_WORD_STARTS) \
-    call("camel_case", WEBKIT_FIND_OPTIONS_TREAT_MEDIAL_CAPITAL_AS_WORD_START)
+#define webkit2_search_options(call)                        \
+    call ("word_start", WEBKIT_FIND_OPTIONS_AT_WORD_STARTS) \
+    call ("camel_case", WEBKIT_FIND_OPTIONS_TREAT_MEDIAL_CAPITAL_AS_WORD_START)
 #else
 #define webkit2_search_options(call)
 #endif
 
-#define search_options(call)                      \
-    webkit2_search_options(call)                  \
-    call("wrap", WEBKIT_FIND_OPTIONS_WRAP_AROUND) \
-    call("case_insensitive", WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE)
+#define search_options(call)                       \
+    webkit2_search_options(call)                   \
+    call ("wrap", WEBKIT_FIND_OPTIONS_WRAP_AROUND) \
+    call ("case_insensitive", WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE)
 
 #ifdef USE_WEBKIT2
     WebKitFindController *finder = webkit_web_view_get_find_controller (uzbl.gui.web_view);

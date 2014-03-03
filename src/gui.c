@@ -728,13 +728,13 @@ decide_policy_cb (WebKitWebView *view, WebKitPolicyDecision *decision, WebKitPol
         guint button = webkit_navigation_policy_decision_get_mouse_button (nav_decision);
         guint modifiers = webkit_navigation_policy_decision_get_modifiers (nav_decision);
 
-#define navigation_type_choices(call)                                  \
-    call(WEBKIT_NAVIGATION_TYPE_LINK_CLICKED, "link")                  \
-    call(WEBKIT_NAVIGATION_TYPE_FORM_SUBMITTED, "form_submission")     \
-    call(WEBKIT_NAVIGATION_TYPE_BACK_FORWARD, "back_forward")          \
-    call(WEBKIT_NAVIGATION_TYPE_RELOAD, "reload")                      \
-    call(WEBKIT_NAVIGATION_TYPE_FORM_RESUBMITTED, "form_resubmission") \
-    call(WEBKIT_NAVIGATION_TYPE_OTHER, "other")
+#define navigation_type_choices(call)                                   \
+    call (WEBKIT_NAVIGATION_TYPE_LINK_CLICKED, "link")                  \
+    call (WEBKIT_NAVIGATION_TYPE_FORM_SUBMITTED, "form_submission")     \
+    call (WEBKIT_NAVIGATION_TYPE_BACK_FORWARD, "back_forward")          \
+    call (WEBKIT_NAVIGATION_TYPE_RELOAD, "reload")                      \
+    call (WEBKIT_NAVIGATION_TYPE_FORM_RESUBMITTED, "form_resubmission") \
+    call (WEBKIT_NAVIGATION_TYPE_OTHER, "other")
 
 #define ENUM_TO_STRING(val, str) \
     case val:                    \
@@ -828,15 +828,15 @@ authenticate_cb (WebKitWebView *view, WebKitAuthenticationRequest *request, gpoi
     const gchar *retry = retrying ? "retrying" : "initial";
     WebKitAuthenticationScheme scheme = webkit_authentication_request_get_scheme (request);
 
-#define authentication_scheme_choices(call)                                                         \
-    call(WEBKIT_AUTHENTICATION_SCHEME_DEFAULT, "default")                                           \
-    call(WEBKIT_AUTHENTICATION_SCHEME_HTTP_BASIC, "http_basic")                                     \
-    call(WEBKIT_AUTHENTICATION_SCHEME_HTTP_DIGEST, "http_digest")                                   \
-    call(WEBKIT_AUTHENTICATION_SCHEME_HTML_FORM, "html_form")                                       \
-    call(WEBKIT_AUTHENTICATION_SCHEME_NTLM, "ntlm")                                                 \
-    call(WEBKIT_AUTHENTICATION_SCHEME_NEGOTIATE, "negotiate")                                       \
-    call(WEBKIT_AUTHENTICATION_SCHEME_CLIENT_CERTIFICATE_REQUESTED, "client_certificate_requested") \
-    call(WEBKIT_AUTHENTICATION_SCHEME_SERVER_TRUST_EVALUATION_REQUESTED, "server_trust_evaluation_requested")
+#define authentication_scheme_choices(call)                                                          \
+    call (WEBKIT_AUTHENTICATION_SCHEME_DEFAULT, "default")                                           \
+    call (WEBKIT_AUTHENTICATION_SCHEME_HTTP_BASIC, "http_basic")                                     \
+    call (WEBKIT_AUTHENTICATION_SCHEME_HTTP_DIGEST, "http_digest")                                   \
+    call (WEBKIT_AUTHENTICATION_SCHEME_HTML_FORM, "html_form")                                       \
+    call (WEBKIT_AUTHENTICATION_SCHEME_NTLM, "ntlm")                                                 \
+    call (WEBKIT_AUTHENTICATION_SCHEME_NEGOTIATE, "negotiate")                                       \
+    call (WEBKIT_AUTHENTICATION_SCHEME_CLIENT_CERTIFICATE_REQUESTED, "client_certificate_requested") \
+    call (WEBKIT_AUTHENTICATION_SCHEME_SERVER_TRUST_EVALUATION_REQUESTED, "server_trust_evaluation_requested")
 
 #define ENUM_TO_STRING(val, str) \
     case val:                    \
@@ -923,13 +923,13 @@ navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
     const gchar *frame_name = webkit_web_navigation_action_get_target_frame (navigation_action);
     WebKitWebNavigationReason reason = webkit_web_navigation_action_get_reason (navigation_action);
 
-#define navigation_reason_choices(call)                                      \
-    call(WEBKIT_WEB_NAVIGATION_REASON_LINK_CLICKED, "link")                  \
-    call(WEBKIT_WEB_NAVIGATION_REASON_FORM_SUBMITTED, "form_submission")     \
-    call(WEBKIT_WEB_NAVIGATION_REASON_BACK_FORWARD, "back_forward")          \
-    call(WEBKIT_WEB_NAVIGATION_REASON_RELOAD, "reload")                      \
-    call(WEBKIT_WEB_NAVIGATION_REASON_FORM_RESUBMITTED, "form_resubmission") \
-    call(WEBKIT_WEB_NAVIGATION_REASON_OTHER, "other")
+#define navigation_reason_choices(call)                                       \
+    call (WEBKIT_WEB_NAVIGATION_REASON_LINK_CLICKED, "link")                  \
+    call (WEBKIT_WEB_NAVIGATION_REASON_FORM_SUBMITTED, "form_submission")     \
+    call (WEBKIT_WEB_NAVIGATION_REASON_BACK_FORWARD, "back_forward")          \
+    call (WEBKIT_WEB_NAVIGATION_REASON_RELOAD, "reload")                      \
+    call (WEBKIT_WEB_NAVIGATION_REASON_FORM_RESUBMITTED, "form_resubmission") \
+    call (WEBKIT_WEB_NAVIGATION_REASON_OTHER, "other")
 
 #define ENUM_TO_STRING(val, str) \
     case val:                    \
@@ -1821,12 +1821,12 @@ handle_download (WebKitDownload *download, const gchar *suggested_destination)
 }
 
 #ifdef USE_WEBKIT2
-#define permission_requests(call)                                 \
-    call(WEBKIT_IS_PERMISSION_REQUEST, WEBKIT_PERMISSION_REQUEST, \
+#define permission_requests(call)                                  \
+    call (WEBKIT_IS_PERMISSION_REQUEST, WEBKIT_PERMISSION_REQUEST, \
         webkit_permission_request_allow, webkit_permission_request_deny)
 #else
-#define permission_requests(call)                                                   \
-    call(WEBKIT_IS_GEOLOCATION_POLICY_DECISION, WEBKIT_GEOLOCATION_POLICY_DECISION, \
+#define permission_requests(call)                                                    \
+    call (WEBKIT_IS_GEOLOCATION_POLICY_DECISION, WEBKIT_GEOLOCATION_POLICY_DECISION, \
         webkit_geolocation_policy_allow, webkit_geolocation_policy_deny)
 #endif
 #define allow_request(check, cast, allow, deny) \

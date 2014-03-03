@@ -35,9 +35,9 @@ uzbl_sync_close (GObject *object, GAsyncResult *result, gpointer data);
     } while (0)
 
 #define uzbl_sync_call_void(obj, err, send, ...) \
-    _uzbl_sync_call(, obj, err, send, ## __VA_ARGS__)
+    _uzbl_sync_call (, obj, err, send, ## __VA_ARGS__)
 
 #define uzbl_sync_call(res, obj, err, send, ...) \
-    _uzbl_sync_call(res =, obj, err, send, ## __VA_ARGS__)
+    _uzbl_sync_call (res =, obj, err, send, ## __VA_ARGS__)
 
 #endif
