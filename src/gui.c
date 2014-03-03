@@ -10,6 +10,10 @@
 #include "uzbl-core.h"
 #include "variables.h"
 
+#if !GTK_CHECK_VERSION (3, 0, 0)
+#include <gdk/gdkkeysyms.h>
+#endif
+
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (2, 3, 1)
 #include <gnutls/gnutls.h>
