@@ -222,9 +222,9 @@ class UzblEventDaemon(object):
             plugin.new_uzbl(uzbl)
 
     def remove_instance(self, sock):
-        for plugin in self.plugins.values():
-            plugin.free_uzbl(uzbl)
         if sock in self.uzbls:
+            for plugin in self.plugins.values():
+                plugin.free_uzbl(self.uzbls[sock])
             del self.uzbls[sock]
         if not self.uzbls and opts.auto_close:
             self.quit()
