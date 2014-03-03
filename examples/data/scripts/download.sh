@@ -9,12 +9,15 @@
 # if nothing is printed to stdout, the internal download will be cancelled.
 # you could do your own download handling in your script that way.
 
-# if $5 is set, it is the path that was passed to uzbl's "download" command.
-# we want to use that if it's available.
-[ -n "$5" ] && echo "$5" && exit
-
 . "$UZBL_UTIL_DIR/uzbl-dir.sh"
 . "$UZBL_UTIL_DIR/uzbl-util.sh"
+
+# if $5 is set, it is the path that was passed to uzbl's "download" command.
+# we want to use that if it's available.
+if [ -n "$5" ]; then
+    print "$5\n"
+    exit
+fi
 
 # the URL that is being downloaded
 readonly uri="$1"
@@ -60,7 +63,7 @@ fi
 # Try to make a unique filename
 count=1
 while [ -e "$path.$count" ]; do
-    count="$(( $count + 1 ))"
+    count="$(( count + 1 ))"
 done
 
 print "$path.$count\n"
