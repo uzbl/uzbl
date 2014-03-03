@@ -66,6 +66,13 @@ ifeq ($(HAVE_LIBSOUP_VERSION),yes)
 CPPFLAGS += -DHAVE_LIBSOUP_CHECK_VERSION
 endif
 
+ifeq ($(ENABLE_WEBKIT2),yes)
+HAVE_WEBKIT2_TLS_API := $(shell pkg-config --exists 'webkit2gtk-3.0 >= 2.3.1' && echo yes)
+ifeq ($(HAVE_WEBKIT2_TLS_API),yes)
+REQ_PKGS += gnutls
+endif
+endif
+
 PKG_CFLAGS := $(shell pkg-config --cflags $(REQ_PKGS))
 
 LDLIBS := $(shell pkg-config --libs $(REQ_PKGS) x11)

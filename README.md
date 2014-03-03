@@ -570,6 +570,9 @@ variables are treated as strings.
   - The command to use when requesting authentication.
 * `permission_handler` (command) (no default)
   - The command to use when WebKit requesting permission for an action.
+* `tls_error_handler` (command) (no default) (WebKit2 >= 2.3.1)
+  - The command to use when a TLS error occurs. The handler may return `ALLOW`
+    to ignore the TLS error for the session.
 * `shell_cmd` (string) (default: `sh -c`)
   - The command to use as a shell. This is used in the `spawn_sh` and `sync_sh`
     commands as well as `@()@` expansion.
@@ -1099,8 +1102,8 @@ the following environment variables:
   - Set if the `enable_private` variable is non-zero, unset otherwise.
 
 Handler scripts (`download_handler`, `scheme_handler`, `request_handler`,
-`mime_handler`, `authentication_handler`, and `permission_handler`) are called
-with special arguments:
+`mime_handler`, `authentication_handler`, `permission_handler`, and
+`tls_error_handler`) are called with special arguments:
 
 * download handler
 
@@ -1192,6 +1195,23 @@ with special arguments:
       include:
       + `geolocation`
 
+* tls error handler
+
+  1. `host`
+    - The host which failed TLS verification.
+  2. `flags`
+    - A comma-separated list of the reasons the host failed TLS verification.
+      Known flags include:
+      + `unknown_ca`
+      + `bad_identity`
+      + `not_activated`
+      + `expired`
+      + `revoked`
+      + `insecure`
+      + `error`
+  3. `cert_info`
+    - A JSON object with information describing the certificate.
+
 ### WINDOW MANAGER INTEGRATION
 
 As mentined before, the contents of the window title can be customized by
@@ -1267,6 +1287,9 @@ Uzbl will report various events by default. All of these events are
 * `LOAD_FINISH <URI>`
   - Sent when a page navigation is complete. All of the top-level resources
     have been retrieved by this point.
+* `TLS_ERROR <HOST> <FLAGS> <INFO>` (WebKit2 >= 2.3.1)
+  - The event sent if a `tls_error_handler` is not valid. See its documentation
+    for the argument formats.
 * `REQUEST_QUEUED <URI>` (WebKit1 only)
   - Sent when a request is queued for the network.
 * `REQUEST_STARTING <URI>`
