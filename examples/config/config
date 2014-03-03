@@ -468,13 +468,13 @@ set preset event PRESET_TABS
 # === Context menu items =====================================================
 
 # Default context menu
-menu_add Google = uri http://google.com
-menu_add Go Home = uri http://uzbl.org
-menu_separator separator_1
-menu_add Quit uzbl = exit
+menu add link Google "uri http://google.com"
+menu add link "Go Home" "uri http://uzbl.org"
+menu add_separator separator_1
+menu add link "Quit uzbl" exit
 
 # Link context menu
-menu_link_add Print Link = print \@SELECTED_URI
+menu add link "Print Link" "print \@SELECTED_URI"
 
 # === Mode configuration =====================================================
 
