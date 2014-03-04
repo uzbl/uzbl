@@ -281,7 +281,7 @@ install-uzbl-browser: install-dirs install-uzbl-core install-event-manager
 	#sed 's#@PREFIX@#$(PREFIX)#g' < README.event-manager.md > README.event-manager.md
 	#$(INSTALL) -m644 README.event-manager.md $(DOCDIR)/README.event-manager.md
 	cp -rv examples $(INSTALLDIR)/share/uzbl/examples
-	chmod 755 $(INSTALLDIR)/share/uzbl/examples/data/scripts/*
+	chmod 755 $(INSTALLDIR)/share/uzbl/examples/data/scripts/*.sh $(INSTALLDIR)/share/uzbl/examples/data/scripts/*.py
 	$(INSTALL) -m644 uzbl.desktop $(INSTALLDIR)/share/applications/uzbl.desktop
 
 install-uzbl-tabbed: install-dirs
