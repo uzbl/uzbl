@@ -30,12 +30,8 @@ die_with_status () {
 }
 
 # assure the relevant directories exist.
-for dir in "$XDG_CACHE_HOME/uzbl" "$XDG_DATA_HOME/uzbl" "$XDG_CONFIG_HOME/uzbl"; do
-	if ! [ -d "$dir" ]; then
-		mkdir -p "$dir" || \
-			die_with_status 2 "Error: Could not create directory: $dir"
-	fi
-done
+mkdir -p "$XDG_CACHE_HOME/uzbl" "$XDG_DATA_HOME/uzbl" "$XDG_CONFIG_HOME/uzbl" || \
+	die_with_status 2 "Error: Could not create directory: $dir"
 
 # if no config exists yet in the recommended location, put the default (recommended) config there
 if ! [ -f "$XDG_CONFIG_HOME/uzbl/config" ]
