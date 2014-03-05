@@ -59,7 +59,7 @@ ARCH := $(shell uname -m)
 
 COMMIT_HASH := $(shell ./misc/hash.sh)
 
-CPPFLAGS += -D_XOPEN_SOURCE=600 -D_DEFAULT_SOURCE -D_POSIX_SOURCE -DARCH=\"$(ARCH)\" -DCOMMIT=\"$(COMMIT_HASH)\"
+CPPFLAGS += -D_XOPEN_SOURCE=500 -DARCH=\"$(ARCH)\" -DCOMMIT=\"$(COMMIT_HASH)\"
 
 HAVE_LIBSOUP_VERSION := $(shell pkg-config --exists 'libsoup-2.4 >= 2.41.1' && echo yes)
 ifeq ($(HAVE_LIBSOUP_VERSION),yes)

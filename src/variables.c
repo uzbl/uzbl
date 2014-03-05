@@ -2261,9 +2261,9 @@ IMPLEMENT_SETTER (int, enable_private)
     static const char *priv_envvar = "UZBL_PRIVATE";
 
     if (enable_private) {
-        setenv (priv_envvar, "true", 1);
+        g_setenv (priv_envvar, "true", 1);
     } else {
-        unsetenv (priv_envvar);
+        g_unsetenv (priv_envvar);
     }
 
     set_enable_private_webkit (enable_private);
