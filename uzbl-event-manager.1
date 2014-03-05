@@ -4,7 +4,7 @@
 .Sh NAME
 .Nm uzbl-event-manger
 .Nd event manager for
-.Xr uzbl 1
+.Xr uzbl-core 1
 .Sh SYNOPSIS
 .Nm
 .Bk -words
@@ -18,13 +18,13 @@
 .Sh DESCRIPTION
 .Nm
 is an event manager for
-.Xr uzbl 1
+.Xr uzbl-core 1
 written in python. An event manager communicates with
-.Xr uzbl 1
+.Xr uzbl-core 1
 through a text stream and/or a socket. The event manager is supposed to
 implement many of the features supported by larger browsers. For
 instance since it receives request from
-.Xr uzbl 1
+.Xr uzbl-core 1
 it can be used to implement keybindings, browsing history, cookie
 management, et cetera.
 .Pp
@@ -49,7 +49,7 @@ PID file location.
 .It Fl s, Fl -server-socket socket
 Daemon socket location.
 .Sh SEE ALSO
-.Xr uzbl 1
+.Xr uzbl-core 1
 .Sh AUTHORS
 .Nm
 was written by

@@ -1,8 +1,8 @@
 .Dd $Mdocdate: March 05 2014
-.Dt UZBL 1
+.Dt UZBL-CORE 1
 .Os
 .Sh NAME
-.Nm uzbl
+.Nm uzbl-core
 .Nd keyboard controlled browser
 .Sh SYNOPSIS
 .Nm
@@ -18,15 +18,14 @@
 .Ek
 .Sh DESCRIPTION
 .Nm
-is a very minimal web browser based on webkit that adheres to the UNIX
-philosophy. It ships with an equally minimal interface that doesn't have
-any unnecessary elements. Thus, what is not browsing is not included.
+is the main component of uzbl and is meant for integration with other
+tool and scripts. It uses WebKit for rendering and network interaction.
+Furthermore, it provides interfaces to get data in and out.
 .Pp
-Nevertheless,
+It has no built-in means for URL changing, loading/saving of bookmarks,
+saving history, et cetera. However, many scripts are provided which use
 .Nm
-can be controlled through a FIFO and therefore many external scripts are
-available to achieve things like url changing, loading/saving of
-bookmarks, saving history, et cetera.
+to create a complete browsing experience.
 .Pp
 The options are as follows:
 .Bl -tag -width "XXXXXXXXXXXX"
@@ -49,7 +48,9 @@ Name of the current instance (defaults to Xorg window id).
 .It Fl c, Fl -config Ar config
 Config file to load.
 .It Fl g, Fl -geometry Ar geometry
-Set the geometry of uzbl on start. Accepts either 'maximized' or
+Set the geometry of
+.Nm
+on start. Accepts either 'maximized' or
 alternatively 'WIDTHxHEIGHT+X+Y' as formats.
 .It Fl s, Fl -socket Ar socket
 The Xembed socket ID.
