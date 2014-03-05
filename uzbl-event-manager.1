@@ -1,36 +1,59 @@
-.Dd Januar 04, 2010
-.Dt uzbl-event-manager 1
+.Dd $Mdocdate: March 05 2014
+.Dt UZBL-EVENT-MANAGER 1
 .Os
 .Sh NAME
-.Nm uzbl-event-manager
-.Nd Event manager for uzbl written in python
+.Nm uzbl-event-manger
+.Nd event manager for
+.Xr uzbl 1
 .Sh SYNOPSIS
 .Nm
-.Op options
-.Op {start|stop|restart|list}
+.Bk -words
+.Op Fl vhna
+.Op Fl d Ar directories
+.Op Fl l Ar plugins
+.Op Fl i Ar plugins
+.Op Fl p Ar file
+.Op Fl s Ar socket
+.Ek
 .Sh DESCRIPTION
-Event manager for uzbl written in python
-.Sh OPTIONS
-.Bl -tag -width "v"
-.It Fl h, Fl Fl help
-show help message and exit
-.It Fl v, Fl Fl verbose
-print verbose output.
-.It Fl d Ar DIRS , Fl Fl plugin\-dirs= Ar DIRS
-Specify plugin directories in the form of 'dir1:dir2:dir3'
-.It Fl l Ar PLUGINS , Fl Fl load\-plugins= Ar PLUGINS
-comma separated list of plugins to load
-.It Fl i Ar PLUGINS , Fl Fl ignore\-plugins= Ar PLUGINS
-comma separated list of plugins to ignore
-.It Fl p Ar FILE , Fl Fl pid\-file= Ar FILE
-specify pid file location
-.It Fl s Ar SOCKET , Fl Fl server\-socket= Ar SOCKET
-specify the daemon socket location
-.It Fl n , Fl Fl no\-daemon
-don't enter daemon mode.
-.It Fl a , Fl Fl auto\-close
-auto close after all instances disconnect.
-.El
-.Sh AUTHORS
+.Nm
+is an event manager for
+.Xr uzbl 1
+written in python. An event manager communicates with
+.Xr uzbl 1
+through a text stream and/or a socket. The event manager is supposed to
+implement many of the features supported by larger browsers. For
+instance since it receives request from
+.Xr uzbl 1
+it can be used to implement keybindings, browsing history, cookie
+management, et cetera.
 .Pp
-This manual page was originally written by Stefan Ritter <xeno@thehappy.de> for the Debian project (but may be used by others).
+The options are as follows:
+.Bl -tag -width "XXXXXXXXXXXX"
+.It Fl v, Fl -verbose
+Whether to print all messages or just errors.
+.It Fl h, Fl -help
+Whether to print help message and exit afterwards.
+.It Fl n, Fl -no-daemon
+Do not daemonize and run in foreground instead.
+.It Fl a, Fl -auto-close
+Automatically exit after all instances have disconnected.
+.It Fl d, Fl -plugin-dir Ar directories
+Plugin directories in the form of 'dir1:dir2:dir3'.
+.It Fl l, Fl -load-plugins Ar plugins
+Comma separated list of plugins to load.
+.It Fl i, Fl -ignore-plugins plugins
+Comma separated list of plugins to ignore.
+.It Fl p, Fl -pid-file file
+PID file location.
+.It Fl s, Fl -server-socket socket
+Daemon socket location.
+.Sh SEE ALSO
+.Xr uzbl 1
+.Sh AUTHORS
+.Nm
+was written by
+.An -nosplit
+.An Dieter Plaetinck Aq Mt dieter@plaetinck.be
+and
+.An Ben Boeckel Aq Mt mathstuf@gmail.com .

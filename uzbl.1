@@ -1,59 +1,70 @@
-.TH "uzbl" "1" "Sun Mar 2 2014" "" ""
-.SH "NAME"
-uzbl \- A keyboard controlled browser based on Webkit
-.SH "SYNOPSIS"
-.B uzbl
-[\-u URI] [\-v] [\-n NAME] [\-c CONFIG]
-.SH "DESCRIPTION"
-.TP
-Very minimal interface. No unnecessary interface elements.
-.PP
-Controllable through a FIFO and with external scripts.
-.PP
-What is not browsing, is not in uzbl. Things like url changing,
-loading/saving of bookmarks, saving history,.. are handled through external
-scripts that you write.
-.SH "OPTIONS"
-.TP
-.I "\-u, \-\-uri=URI"
-Uri to load (equivalent to 'uri URI' on load)
-.TP
-.I "\-v, \-\-verbose"
-Whether to print all messages or just errors
-.TP
-.I "\-n, \-\-named=NAME"
-Name of the current instance (defaults to Xorg window id)
-.TP
-.I "\-c, \-\-config=FILE"
-Load a config file
-.TP
-.I "\-p, \-\-print-events"
+.Dd $Mdocdate: March 05 2014
+.Dt UZBL 1
+.Os
+.Sh NAME
+.Nm uzbl
+.Nd keyboard controlled browser
+.Sh SYNOPSIS
+.Nm
+.Bk -words
+.Op Fl vhpVe
+.Op Fl u Ar uri
+.Op Fl n Ar name
+.Op Fl c Ar config
+.Op Fl g Ar geometry
+.Op Fl s Ar socket
+.Op Fl -connect-socket Ar csocket
+.Op Fl -display Ar display
+.Ek
+.Sh DESCRIPTION
+.Nm
+is a very minimal web browser based on webkit that adheres to the UNIX
+philosophy. It ships with an equally minimal interface that doesn't have
+any unnecessary elements. Thus, what is not browsing is not included.
+.Pp
+Nevertheless,
+.Nm
+can be controlled through a FIFO and therefore many external scripts are
+available to achieve things like url changing, loading/saving of
+bookmarks, saving history, et cetera.
+.Pp
+The options are as follows:
+.Bl -tag -width "XXXXXXXXXXXX"
+.It Fl v, Fl -verbose
+Whether to print all messages or just errors.
+.It Fl h, Fl -help
+Wether to print help message and exit afterwards.
+.It Fl p, Fl -print-events
 Whether to print events to stdout.
-.TP
-.I "\-g, \-\-geometry=GEOMETRY"
-Set the geometry of uzbl on start. Accepts 'maximized' or 'WIDTHxHEIGHT+X+Y' formats.
-.TP
-.I "\-V, \-\-version"
-Output the version and quit.
-.TP
-.I "\-\-connect-socket=CSOCKET"
-The path to an event manager socket. May be specified multiple times.
-.TP
-.I "\-s, \-\-socket=SOCKET"
+.It Fl V, Fl -version
+Whether to output the version and quit.
+.It Fl e, Fl -embed
+Whether
+.Nm
+should expect to be embedded.
+.It Fl u, Fl -uri Ar uri
+Uri to load (equivalent to 'uri URI' on load).
+.It Fl n, Fl -name Ar name
+Name of the current instance (defaults to Xorg window id).
+.It Fl c, Fl -config Ar config
+Config file to load.
+.It Fl g, Fl -geometry Ar geometry
+Set the geometry of uzbl on start. Accepts either 'maximized' or
+alternatively 'WIDTHxHEIGHT+X+Y' as formats.
+.It Fl s, Fl -socket Ar socket
 The Xembed socket ID.
-.TP
-.I "\-e, \-\-embed"
-Whether uzbl-core should expect to be embedded.
-.TP
-.I "\-\-display=DISPLAY"
-X display to use
-.TP
-.I "\-\-help"
-Help
-.SH "HOMEPAGE"
-The uzbl homepage is http://www.uzbl.org.
-.SH "AUTHORS"
-Dieter Plaetinck (Dieter@be) <email is dieter AT plaetinck.be>.
-Ben Boeckel (mathstuf) <email is mathstuf AT gmail.com>.
-.TP
-See /usr/share/doc/uzbl/AUTHORS for all contributers.
+.It Fl -connect-socket Ar csocket
+The path to a
+.Xr uzbl-event-manager 1
+socket.
+.It Fl -display Ar display
+The X display to use.
+.Sh SEE ALSO
+.Xr uzbl-event-manager 1
+.Sh AUTHORS
+.Nm
+was written by
+.An -nosplit
+.An Dieter Plaetinck Aq Mt dieter@plaetinck.be
+and
+.An Ben Boeckel Aq Mt mathstuf@gmail.com .
