@@ -15,10 +15,7 @@ INSTALL    ?= install -p
 ENABLE_WEBKIT2 ?= no
 ENABLE_GTK3    ?= auto
 
-ENABLE_CUSTOM_SCHEME ?= yes
-
 PYTHON   = python3
-PYTHONV  = $(shell $(PYTHON) --version | sed -n /[0-9].[0-9]/p)
 COVERAGE = $(shell which coverage)
 
 # --- configuration ends here ---
@@ -130,11 +127,11 @@ SRC  = $(addprefix src/,$(SOURCES))
 HEAD = $(addprefix src/,$(HEADERS))
 OBJ  = $(foreach obj, $(SRC:.c=.o),  $(obj))
 LOBJ = $(foreach obj, $(SRC:.c=.lo), $(obj))
-PY = $(wildcard uzbl/*.py uzbl/plugins/*.py)
+PY   = $(wildcard uzbl/*.py uzbl/plugins/*.py)
 
 all: uzbl-browser
 
-VPATH:=src
+VPATH := src
 
 ${OBJ}: ${HEAD}
 
@@ -147,6 +144,7 @@ uzbl.desktop: uzbl.desktop.in
 
 bin/uzbl-browser: bin/uzbl-browser.in
 	sed 's#@PREFIX@#$(PREFIX)#' < bin/uzbl-browser.in > bin/uzbl-browser
+	chmod +x bin/uzbl-browser
 
 build: ${PY}
 	$(PYTHON) setup.py build
@@ -174,8 +172,7 @@ coverage-event-manager: force
 	${PYTHON} ${COVERAGE} erase
 	${PYTHON} ${COVERAGE} run -m unittest discover tests/event-manager
 	${PYTHON} ${COVERAGE} html ${PY}
-	# Hmm, I wonder what a good default browser would be
-	uzbl-browser htmlcov/index.html
+	echo Open \'htmlcov/index.html\' in your browser to see the results
 
 test-uzbl-core: uzbl-core
 	./uzbl-core --uri http://www.uzbl.org --verbose
