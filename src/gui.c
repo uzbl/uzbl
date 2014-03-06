@@ -1052,8 +1052,9 @@ load_status_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data
     UZBL_UNUSED (data);
 
     WebKitLoadStatus status = webkit_web_view_get_load_status (view);
+    const gchar *uri = webkit_web_view_get_uri (view);
 
-    send_load_status (status, uzbl.state.uri);
+    send_load_status (status, uri);
 }
 
 gboolean
