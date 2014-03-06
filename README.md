@@ -1127,9 +1127,11 @@ Handler scripts (`download_handler`, `scheme_handler`, `request_handler`,
 
   1. `uri`
     - The URI of the page to be navigated to.
-  2. `frame`
+  2. `src_frame`
     - The name of the frame which is targeted for the navigation.
-  3. `type`
+  3. `dest_frame`
+    - The name of the frame which is targeted for the navigation.
+  4. `type`
     - The type of navigation that triggered the request. Known values include:
       + `link`
       + `form_submission`
@@ -1138,9 +1140,9 @@ Handler scripts (`download_handler`, `scheme_handler`, `request_handler`,
       + `form_resubmission`
       + `other`
       + `unknown`
-  4. `button`
+  5. `button`
     - The mouse button used for the navigation (or 0 if a mouse was not used).
-  5. `modifiers`
+  6. `modifiers`
     - The modifiers used for the navigation. This uses the same format as the
       `KEY_PRESS` and `KEY_RELEASE` events.
 
@@ -1276,7 +1278,7 @@ uzbl itself and will be emitted based on what is happening within uzbl-core.
 
 ##### Navigation
 
-* `NAVIGATION_STARTING <URI> <FRAME> <TYPE>`
+* `NAVIGATION_STARTING <URI> <SRCFRAME> <DESTFRAME> <TYPE>`
   - Sent when a main navigation is requested for a frame. See `scheme_handler`
     for the types available.
 * `LOAD_START <URI>`

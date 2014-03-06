@@ -713,8 +713,8 @@ typedef WebKitLoadEvent WebKitLoadStatus;
 #endif
 
 static gboolean
-navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri,
-        const gchar *frame, const gchar *type, guint button, guint modifiers);
+navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri, const gchar *src_frame,
+        const gchar *dest_frame, const gchar *type, guint button, guint modifiers);
 static gboolean
 request_decision (const gchar *uri, gpointer data);
 static void
@@ -742,7 +742,7 @@ decide_policy_cb (WebKitWebView *view, WebKitPolicyDecision *decision, WebKitPol
         WebKitURIRequest *request = webkit_navigation_policy_decision_get_request (nav_decision);
 
         const gchar *uri = webkit_uri_request_get_uri (request);
-        const gchar *frame = webkit_navigation_policy_decision_get_frame_name (nav_decision);
+        const gchar *dest_frame = webkit_navigation_policy_decision_get_frame_name (nav_decision);
         WebKitNavigationType type = webkit_navigation_policy_decision_get_navigation_type (nav_decision);
         guint button = webkit_navigation_policy_decision_get_mouse_button (nav_decision);
         guint modifiers = webkit_navigation_policy_decision_get_modifiers (nav_decision);
@@ -770,7 +770,7 @@ decide_policy_cb (WebKitWebView *view, WebKitPolicyDecision *decision, WebKitPol
 #undef ENUM_TO_STRING
 #undef navigation_type_choices
 
-        return navigation_decision (decision, uri, frame, type_str, button, modifiers);
+        return navigation_decision (decision, uri, "", dest_frame, type_str, button, modifiers);
     }
     case WEBKIT_POLICY_DECISION_TYPE_RESPONSE:
     {
@@ -935,11 +935,11 @@ navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
         WebKitWebPolicyDecision *policy_decision, gpointer data)
 {
     UZBL_UNUSED (view);
-    UZBL_UNUSED (frame);
     UZBL_UNUSED (data);
 
     const gchar *uri = webkit_network_request_get_uri (request);
-    const gchar *frame_name = webkit_web_navigation_action_get_target_frame (navigation_action);
+    const gchar *src_frame_name = webkit_web_frame_get_name (frame);
+    const gchar *target_frame_name = webkit_web_navigation_action_get_target_frame (navigation_action);
     WebKitWebNavigationReason reason = webkit_web_navigation_action_get_reason (navigation_action);
 
 #define navigation_reason_choices(call)                                       \
@@ -972,7 +972,7 @@ navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
     }
     gint modifiers = webkit_web_navigation_action_get_modifier_state (navigation_action);
 
-    return navigation_decision (policy_decision, uri, frame_name, reason_str, button, modifiers);
+    return navigation_decision (policy_decision, uri, src_frame_name, target_frame_name, reason_str, button, modifiers);
 }
 
 static gboolean
@@ -1601,8 +1601,8 @@ static void
 decide_navigation (GString *result, gpointer data);
 
 gboolean
-navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri,
-        const gchar *frame, const gchar *type, guint button, guint modifiers)
+navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri, const gchar *src_frame,
+        const gchar *dest_frame, const gchar *type, guint button, guint modifiers)
 {
     if (uzbl_variables_get_int ("frozen")) {
         make_policy (decision, ignore);
@@ -1613,7 +1613,8 @@ navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri,
 
     uzbl_events_send (NAVIGATION_STARTING, NULL,
         TYPE_STR, uri,
-        TYPE_STR, frame,
+        TYPE_STR, src_frame ? src_frame : "",
+        TYPE_STR, dest_frame ? dest_frame : "",
         TYPE_STR, type,
         NULL);
 
@@ -1624,7 +1625,8 @@ navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri,
 
     if (scheme_command) {
         uzbl_commands_args_append (args, g_strdup (uri));
-        uzbl_commands_args_append (args, g_strdup (frame));
+        uzbl_commands_args_append (args, g_strdup (src_frame ? src_frame : ""));
+        uzbl_commands_args_append (args, g_strdup (dest_frame ? dest_frame : ""));
         uzbl_commands_args_append (args, g_strdup (type));
         uzbl_commands_args_append (args, g_strdup_printf ("%d", button));
         uzbl_commands_args_append (args, get_modifier_mask (modifiers));
