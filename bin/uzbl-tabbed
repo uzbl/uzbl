@@ -907,11 +907,11 @@ class UzblTabbed:
         cmd = ['uzbl-browser', '-n', name, '-s', str(sid),
                '--connect-socket', self.socket_path]
 
-        if(uri):
-          cmd = cmd + ['--uri', str(uri)]
+        if uri:
+          cmd += ['--uri', str(uri)]
 
         if config['explicit_config_file'] is not None:
-            cmd = cmd + ['-c', config['explicit_config_file']]
+            cmd += ['-c', config['explicit_config_file']]
 
         gobject.spawn_async(cmd, flags=gobject.SPAWN_SEARCH_PATH)
 
@@ -1341,7 +1341,7 @@ if __name__ == "__main__":
     # All extra arguments given to uzbl_tabbed.py are interpreted as
     # web-locations to opened in new tabs.
     lasturi = len(uris)-1
-    for (index,uri) in enumerate(uris):
+    for (index, uri) in enumerate(uris):
         uzbl.new_tab(uri, switch=(index==lasturi))
 
     uzbl.run()
