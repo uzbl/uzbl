@@ -2703,7 +2703,7 @@ send_download_error (const gchar *destination, WebKitDownloadError err, const gc
     }
 
     uzbl_events_send (DOWNLOAD_ERROR, NULL,
-        TYPE_STR, destination,
+        TYPE_STR, destination ? destination : "",
         TYPE_STR, str,
         TYPE_INT, err,
         TYPE_STR, message,
