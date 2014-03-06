@@ -51,7 +51,7 @@ uzbl_events_send (UzblEventType type, const gchar *custom_event, ...)
 void
 send_event_sockets (GPtrArray *sockets, GString *msg)
 {
-    GError *error = NULL;
+    GError *err = NULL;
     GIOStatus ret;
     gsize len;
     guint i = 0;
@@ -69,14 +69,14 @@ send_event_sockets (GPtrArray *sockets, GString *msg)
 
         ret = g_io_channel_write_chars (gio,
             msg->str, msg->len,
-            &len, &error);
+            &len, &err);
 
         if (ret == G_IO_STATUS_ERROR) {
-            g_warning ("Error sending event to socket: %s", error->message);
-            g_clear_error (&error);
-        } else if (g_io_channel_flush (gio, &error) == G_IO_STATUS_ERROR) {
-            g_warning ("Error flushing: %s", error->message);
-            g_clear_error (&error);
+            g_warning ("Error sending event to socket: %s", err->message);
+            g_clear_error (&err);
+        } else if (g_io_channel_flush (gio, &err) == G_IO_STATUS_ERROR) {
+            g_warning ("Error flushing: %s", err->message);
+            g_clear_error (&err);
         }
     }
 }

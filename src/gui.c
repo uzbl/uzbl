@@ -434,7 +434,7 @@ window_init ()
 void
 plug_init ()
 {
-    uzbl.gui.plug = GTK_PLUG (gtk_plug_new (uzbl.state.socket_id));
+    uzbl.gui.plug = GTK_PLUG (gtk_plug_new (uzbl.state.xembed_socket_id));
 
     gtk_widget_set_name (GTK_WIDGET (uzbl.gui.plug), "Uzbl");
 
@@ -720,7 +720,7 @@ request_decision (const gchar *uri, gpointer data);
 static void
 send_load_status (WebKitLoadStatus status, const gchar *uri);
 static gboolean
-send_load_error (const gchar *uri, GError *error);
+send_load_error (const gchar *uri, GError *err);
 
 #ifdef USE_WEBKIT2
 gboolean
@@ -1743,12 +1743,12 @@ send_load_status (WebKitLoadStatus status, const gchar *uri)
 }
 
 gboolean
-send_load_error (const gchar *uri, GError *error)
+send_load_error (const gchar *uri, GError *err)
 {
     uzbl_events_send (LOAD_ERROR, NULL,
         TYPE_STR, uri,
-        TYPE_INT, error->code,
-        TYPE_STR, error->message,
+        TYPE_INT, err->code,
+        TYPE_STR, err->message,
         NULL);
 
     return FALSE;
@@ -2703,7 +2703,7 @@ send_download_error (const gchar *destination, WebKitDownloadError err, const gc
     }
 
     uzbl_events_send (DOWNLOAD_ERROR, NULL,
-        TYPE_STR, destination,
+        TYPE_STR, destination ? destination : "",
         TYPE_STR, str,
         TYPE_INT, err,
         TYPE_STR, message,

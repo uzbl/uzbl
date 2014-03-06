@@ -49,7 +49,7 @@ typedef struct {
     gboolean        exit;
 
     /* Events */
-    int             socket_id;
+    int             xembed_socket_id;
 } UzblState;
 
 /* Networking */

@@ -7,13 +7,13 @@
 .Sh SYNOPSIS
 .Nm
 .Bk -words
-.Op Fl ehpvV
+.Op Fl hpvV
 .Op Fl c Ar config
 .Op Fl Fl connect-socket Ar csocket
 .Op Fl Fl display Ar display
 .Op Fl g Ar geometry
 .Op Fl n Ar name
-.Op Fl s Ar socket
+.Op Fl s Ar socketid
 .Op Fl u Ar uri
 .Ek
 .Sh DESCRIPTION
@@ -35,12 +35,8 @@ Config file to load.
 The path to a
 .Xr uzbl-event-manager 1
 socket.
-.It Fl -display Ar display
+.It Fl Fl display Ar display
 The X display to use.
-.It Fl e, Fl Fl embed
-Whether
-.Nm
-should expect to be embedded.
 .It Fl g, Fl Fl geometry Ar geometry
 Set the geometry of
 .Nm
@@ -48,11 +44,11 @@ on start. Accepts either 'maximized' or
 alternatively 'WIDTHxHEIGHT+X+Y' as formats.
 .It Fl h, Fl Fl help
 Wether to print help message and exit afterwards.
-.It Fl n, Fl Fl name Ar name
+.It Fl n, Fl Fl named Ar name
 Name of the current instance (defaults to Xorg window id).
 .It Fl p, Fl Fl print-events
 Whether to print events to stdout.
-.It Fl s, Fl Fl socket Ar socket
+.It Fl s, Fl Fl xembed-socket Ar socketid
 The Xembed socket ID.
 .It Fl u, Fl Fl uri Ar uri
 Uri to load (equivalent to 'uri URI' on load).

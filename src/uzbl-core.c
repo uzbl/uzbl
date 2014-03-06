@@ -63,7 +63,6 @@ uzbl_init (int *argc, char ***argv)
     gchar *uri = NULL;
     gboolean verbose = FALSE;
     gchar *config_file = NULL;
-    gboolean embed = FALSE;
     gchar **connect_socket_names = NULL;
     gboolean print_events = FALSE;
     gchar *geometry = NULL;
@@ -81,10 +80,8 @@ uzbl_init (int *argc, char ***argv)
         { "config",         'c', 0, G_OPTION_ARG_STRING,       &config_file,
             "Path to config file or '-' for stdin",                                                           "FILE" },
         /* TODO: explain the difference between these two options */
-        { "socket",         's', 0, G_OPTION_ARG_INT,          &uzbl.state.socket_id,
+        { "xembed-socket",  's', 0, G_OPTION_ARG_INT,          &uzbl.state.xembed_socket_id,
             "Xembed socket ID, this window should embed itself",                                              "SOCKET" },
-        { "embed",          'e', 0, G_OPTION_ARG_NONE,         &embed,
-            "Whether this window should expect to be embedded",                                               NULL },
         { "connect-socket",  0,  0, G_OPTION_ARG_STRING_ARRAY, &connect_socket_names,
             "Connect to server socket for event managing",                                                    "CSOCKET" },
         { "print-events",   'p', 0, G_OPTION_ARG_NONE,         &print_events,
@@ -110,7 +107,7 @@ uzbl_init (int *argc, char ***argv)
     }
 
     /* Embedded mode. */
-    if (uzbl.state.socket_id || embed) {
+    if (uzbl.state.xembed_socket_id) {
         uzbl.state.plug_mode = TRUE;
     }
 
@@ -292,7 +289,7 @@ main (int argc, char *argv[])
     /* Verbose feedback. */
     if (uzbl_variables_get_int ("verbose")) {
         printf ("Uzbl start location: %s\n", argv[0]);
-        if (uzbl.state.socket_id) {
+        if (uzbl.state.xembed_socket_id) {
             printf ("plug_id %d\n", (int)gtk_plug_get_id (uzbl.gui.plug));
         } else {
             Window xwin = GDK_WINDOW_XID (gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)));

@@ -1206,7 +1206,7 @@ IMPLEMENT_COMMAND (scroll)
         gdouble amount = g_ascii_strtod (amount_str, &end);
         gdouble max_value = upper - page;
 
-        if ((*end == '%') && (*(end + 1) == '!')) {
+        if (*end && (*end == '%') && (*(end + 1) == '!')) {
             value = (max_value - lower) * amount * 0.01 + lower;
         } else if (*end == '%') {
             value += page * amount * 0.01;
@@ -1417,7 +1417,8 @@ IMPLEMENT_COMMAND (snapshot)
     (void)region;
 #endif
 
-    if (!surface) {
+    if (!surface && err) {
+        uzbl_debug ("Failed to save snapshot: %s\n", err->message);
         /* TODO: Don't ignore the error. */
         g_error_free (err);
     }
@@ -1426,7 +1427,7 @@ IMPLEMENT_COMMAND (snapshot)
 #endif
 
     if (!surface) {
-        uzbl_debug ("Failed to create a valid snapshot");
+        uzbl_debug ("Failed to create a valid snapshot\n");
         return;
     }
 
@@ -2747,7 +2748,7 @@ save_to_file_async_cb (GObject *object, GAsyncResult *res, gpointer data)
     UZBL_UNUSED (data);
 
     WebKitWebView *view = WEBKIT_WEB_VIEW (object);
-    GError *err;
+    GError *err = NULL;
 
     webkit_web_view_save_to_file_finish (view, res, &err);
 
@@ -2763,7 +2764,7 @@ save_async_cb (GObject *object, GAsyncResult *res, gpointer data)
     UZBL_UNUSED (data);
 
     WebKitWebView *view = WEBKIT_WEB_VIEW (object);
-    GError *err;
+    GError *err = NULL;
 
     GInputStream *stream = webkit_web_view_save_finish (view, res, &err);
 
@@ -2907,7 +2908,11 @@ run_system_command (GArray *args, char **output_stdout)
     if (output_stdout) {
         result = g_spawn_sync (NULL, (gchar **)args->data, NULL, G_SPAWN_SEARCH_PATH,
                                NULL, NULL, output_stdout, NULL, NULL, &err);
-        remove_trailing_newline (*output_stdout);
+        if (result) {
+            remove_trailing_newline (*output_stdout);
+        } else {
+            *output_stdout = g_strdup ("");
+        }
     } else {
         result = g_spawn_async (NULL, (gchar **)args->data, NULL, G_SPAWN_SEARCH_PATH,
                                 NULL, NULL, NULL, &err);

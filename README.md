@@ -1429,7 +1429,7 @@ where `arguments` and `uri` are both optional. `arguments` can be:
     GtkSocket mode).
 * `-c`, `--config=FILE`
   - Path to config file or `-` for stdin.
-* `-s`, `--socket=SOCKET`
+* `-s`, `--xembed-socket=SOCKETID`
   - Xembed socket ID.
 * `--connect-socket=CSOCKET`
   - Connect to server socket for event managing.
