@@ -64,6 +64,11 @@ restarts the event manager daemon.
 .Pp
 .Ar list
 lists all the plugins which would be loaded on invocation.
+.Sh FILES
+.Bl -tag -width "v"
+.It Pa ${XDG_CACHE_HOME:-$HOME/.cache/uzbl/event_daemon}
+Default daemon socket location.
+.El
 .Sh SEE ALSO
 .Xr uzbl-core 1
 .Sh AUTHORS
