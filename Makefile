@@ -260,7 +260,7 @@ install-uzbl-core: uzbl-core install-dirs
 	$(INSTALL) -m644 README.md $(DOCDIR)/
 	$(INSTALL) -m644 AUTHORS $(DOCDIR)/
 	$(INSTALL) -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
-	$(INSTALL) -m644 uzbl.1 $(MANDIR)/man1/uzbl.1
+	$(INSTALL) -m644 uzbl-core.1 $(MANDIR)/man1/uzbl-core.1
 	$(INSTALL) -m644 uzbl-event-manager.1 $(MANDIR)/man1/uzbl-event-manager.1
 
 install-event-manager: install-dirs
