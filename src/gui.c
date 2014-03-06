@@ -434,7 +434,7 @@ window_init ()
 void
 plug_init ()
 {
-    uzbl.gui.plug = GTK_PLUG (gtk_plug_new (uzbl.state.socket_id));
+    uzbl.gui.plug = GTK_PLUG (gtk_plug_new (uzbl.state.xembed_socket_id));
 
     gtk_widget_set_name (GTK_WIDGET (uzbl.gui.plug), "Uzbl");
 

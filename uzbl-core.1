@@ -12,7 +12,7 @@
 .Op Fl n Ar name
 .Op Fl c Ar config
 .Op Fl g Ar geometry
-.Op Fl s Ar socket
+.Op Fl s Ar socketid
 .Op Fl -connect-socket Ar csocket
 .Op Fl -display Ar display
 .Ek
@@ -37,10 +37,6 @@ Wether to print help message and exit afterwards.
 Whether to print events to stdout.
 .It Fl V, Fl -version
 Whether to output the version and quit.
-.It Fl e, Fl -embed
-Whether
-.Nm
-should expect to be embedded.
 .It Fl u, Fl -uri Ar uri
 Uri to load (equivalent to 'uri URI' on load).
 .It Fl n, Fl -name Ar name
@@ -52,7 +48,7 @@ Set the geometry of
 .Nm
 on start. Accepts either 'maximized' or
 alternatively 'WIDTHxHEIGHT+X+Y' as formats.
-.It Fl s, Fl -socket Ar socket
+.It Fl s, Fl -xembed-socket Ar socketid
 The Xembed socket ID.
 .It Fl -connect-socket Ar csocket
 The path to a
