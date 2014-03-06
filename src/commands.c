@@ -2747,7 +2747,7 @@ save_to_file_async_cb (GObject *object, GAsyncResult *res, gpointer data)
     UZBL_UNUSED (data);
 
     WebKitWebView *view = WEBKIT_WEB_VIEW (object);
-    GError *err;
+    GError *err = NULL;
 
     webkit_web_view_save_to_file_finish (view, res, &err);
 
@@ -2763,7 +2763,7 @@ save_async_cb (GObject *object, GAsyncResult *res, gpointer data)
     UZBL_UNUSED (data);
 
     WebKitWebView *view = WEBKIT_WEB_VIEW (object);
-    GError *err;
+    GError *err = NULL;
 
     GInputStream *stream = webkit_web_view_save_finish (view, res, &err);
 
