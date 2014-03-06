@@ -1728,7 +1728,8 @@ send_load_status (WebKitLoadStatus status, const gchar *uri)
 #else
     case WEBKIT_LOAD_PROVISIONAL:
 #endif
-        event = LOAD_START;
+        uzbl_events_send (LOAD_START, NULL,
+            NULL);
         break;
 #ifdef USE_WEBKIT2
     case WEBKIT_LOAD_REDIRECTED:
