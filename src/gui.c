@@ -1613,6 +1613,8 @@ navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri,
 
     uzbl_events_send (NAVIGATION_STARTING, NULL,
         TYPE_STR, uri,
+        TYPE_STR, frame,
+        TYPE_STR, type,
         NULL);
 
     gchar *handler = uzbl_variables_get_string ("scheme_handler");

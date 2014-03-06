@@ -1276,8 +1276,9 @@ uzbl itself and will be emitted based on what is happening within uzbl-core.
 
 ##### Navigation
 
-* `NAVIGATION_STARTING <URI>`
-  - Sent when a main page navigation is requested.
+* `NAVIGATION_STARTING <URI> <FRAME> <TYPE>`
+  - Sent when a main navigation is requested for a frame. See `scheme_handler`
+    for the types available.
 * `LOAD_START <URI>`
   - Sent when a main page navigation is started.
 * `LOAD_REDIRECTED <URI>`
