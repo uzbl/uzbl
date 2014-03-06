@@ -1417,7 +1417,8 @@ IMPLEMENT_COMMAND (snapshot)
     (void)region;
 #endif
 
-    if (!surface) {
+    if (!surface && err) {
+        uzbl_debug ("Failed to save snapshot: %s\n", err->message);
         /* TODO: Don't ignore the error. */
         g_error_free (err);
     }
@@ -1426,7 +1427,7 @@ IMPLEMENT_COMMAND (snapshot)
 #endif
 
     if (!surface) {
-        uzbl_debug ("Failed to create a valid snapshot");
+        uzbl_debug ("Failed to create a valid snapshot\n");
         return;
     }
 

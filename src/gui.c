@@ -720,7 +720,7 @@ request_decision (const gchar *uri, gpointer data);
 static void
 send_load_status (WebKitLoadStatus status, const gchar *uri);
 static gboolean
-send_load_error (const gchar *uri, GError *error);
+send_load_error (const gchar *uri, GError *err);
 
 #ifdef USE_WEBKIT2
 gboolean
@@ -1743,12 +1743,12 @@ send_load_status (WebKitLoadStatus status, const gchar *uri)
 }
 
 gboolean
-send_load_error (const gchar *uri, GError *error)
+send_load_error (const gchar *uri, GError *err)
 {
     uzbl_events_send (LOAD_ERROR, NULL,
         TYPE_STR, uri,
-        TYPE_INT, error->code,
-        TYPE_STR, error->message,
+        TYPE_INT, err->code,
+        TYPE_STR, err->message,
         NULL);
 
     return FALSE;
