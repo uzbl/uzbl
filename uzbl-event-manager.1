@@ -8,10 +8,10 @@
 .Sh SYNOPSIS
 .Nm
 .Bk -words
-.Op Fl vhna
+.Op Fl ahnv
 .Op Fl d Ar directories
-.Op Fl l Ar plugins
 .Op Fl i Ar plugins
+.Op Fl l Ar plugins
 .Op Fl p Ar file
 .Op Fl s Ar socket
 .Ek
@@ -30,24 +30,24 @@ management, et cetera.
 .Pp
 The options are as follows:
 .Bl -tag -width "v"
-.It Fl v, Fl Fl verbose
-Whether to print all messages or just errors.
-.It Fl h, Fl Fl help
-Whether to print help message and exit afterwards.
-.It Fl n, Fl Fl no-daemon
-Do not daemonize and run in foreground instead.
 .It Fl a, Fl Fl auto-close
 Automatically exit after all instances have disconnected.
 .It Fl d, Fl Fl plugin-dir Ar directories
 Plugin directories in the form of 'dir1:dir2:dir3'.
-.It Fl l, Fl Fl load-plugins Ar plugins
-Comma separated list of plugins to load.
+.It Fl h, Fl Fl help
+Whether to print help message and exit afterwards.
 .It Fl i, Fl Fl ignore-plugins Ar plugins
 Comma separated list of plugins to ignore.
+.It Fl l, Fl Fl load-plugins Ar plugins
+Comma separated list of plugins to load.
+.It Fl n, Fl Fl no-daemon
+Do not daemonize and run in foreground instead.
 .It Fl p, Fl Fl pid-file Ar file
 PID file location.
 .It Fl s, Fl Fl server-socket Ar socket
 Daemon socket location.
+.It Fl v, Fl Fl verbose
+Whether to print all messages or just errors.
 .Sh SEE ALSO
 .Xr uzbl-core 1
 .Sh AUTHORS

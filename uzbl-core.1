@@ -7,14 +7,14 @@
 .Sh SYNOPSIS
 .Nm
 .Bk -words
-.Op Fl vhpVe
-.Op Fl u Ar uri
-.Op Fl n Ar name
+.Op Fl ehpvV
 .Op Fl c Ar config
-.Op Fl g Ar geometry
-.Op Fl s Ar socket
 .Op Fl Fl connect-socket Ar csocket
 .Op Fl Fl display Ar display
+.Op Fl g Ar geometry
+.Op Fl n Ar name
+.Op Fl s Ar socket
+.Op Fl u Ar uri
 .Ek
 .Sh DESCRIPTION
 .Nm
@@ -29,37 +29,37 @@ to create a complete browsing experience.
 .Pp
 The options are as follows:
 .Bl -tag -width "v"
-.It Fl v, Fl Fl verbose
-Whether to print all messages or just errors.
-.It Fl h, Fl Fl help
-Wether to print help message and exit afterwards.
-.It Fl p, Fl Fl print-events
-Whether to print events to stdout.
-.It Fl V, Fl Fl version
-Whether to output the version and quit.
-.It Fl e, Fl Fl embed
-Whether
-.Nm
-should expect to be embedded.
-.It Fl u, Fl Fl uri Ar uri
-Uri to load (equivalent to 'uri URI' on load).
-.It Fl n, Fl Fl name Ar name
-Name of the current instance (defaults to Xorg window id).
 .It Fl c, Fl Fl config Ar config
 Config file to load.
-.It Fl g, Fl Fl geometry Ar geometry
-Set the geometry of
-.Nm
-on start. Accepts either 'maximized' or
-alternatively 'WIDTHxHEIGHT+X+Y' as formats.
-.It Fl s, Fl Fl socket Ar socket
-The Xembed socket ID.
 .It Fl Fl connect-socket Ar csocket
 The path to a
 .Xr uzbl-event-manager 1
 socket.
 .It Fl -display Ar display
 The X display to use.
+.It Fl e, Fl Fl embed
+Whether
+.Nm
+should expect to be embedded.
+.It Fl g, Fl Fl geometry Ar geometry
+Set the geometry of
+.Nm
+on start. Accepts either 'maximized' or
+alternatively 'WIDTHxHEIGHT+X+Y' as formats.
+.It Fl h, Fl Fl help
+Wether to print help message and exit afterwards.
+.It Fl n, Fl Fl name Ar name
+Name of the current instance (defaults to Xorg window id).
+.It Fl p, Fl Fl print-events
+Whether to print events to stdout.
+.It Fl s, Fl Fl socket Ar socket
+The Xembed socket ID.
+.It Fl u, Fl Fl uri Ar uri
+Uri to load (equivalent to 'uri URI' on load).
+.It Fl v, Fl Fl verbose
+Whether to print all messages or just errors.
+.It Fl V, Fl Fl version
+Whether to output the version and quit.
 .Sh SEE ALSO
 .Xr uzbl-event-manager 1
 .Sh AUTHORS
