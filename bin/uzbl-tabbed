@@ -328,7 +328,8 @@ class SocketClient:
 
     def _socket_closed(self, fd, condition):
         '''Remote client exited'''
-        self.uzbl.close()
+        if self.uzbl:
+            self.uzbl.close()
         return False
 
 
