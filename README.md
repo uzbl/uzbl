@@ -1154,6 +1154,10 @@ Handler scripts (`download_handler`, `scheme_handler`, `request_handler`,
     - One of `can_display`, `cant_display`, or `unknown` to indicate whether
       WebKit knows how to display the data given its MIME type (`unknown` means
       that `uzbl` was unable to determine the answer).
+  3. `frame`
+    - The name of the frame requesting the resource (unavailable in WebKit2).
+  4. `redirect`
+    - Whether the request is a redirect or not (`unknown` in WebKit2)
 
 * mime handler
 

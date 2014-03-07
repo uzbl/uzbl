@@ -1009,18 +1009,24 @@ mime_policy_cb (WebKitWebView *view, WebKitWebFrame *frame,
     return res;
 }
 
+typedef struct {
+    WebKitNetworkRequest *request;
+    const gchar *frame;
+    gboolean redirect;
+} UzblRequestDecision;
+
 void
 request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResource *resource,
         WebKitNetworkRequest *request, WebKitNetworkResponse *response, gpointer data)
 {
     UZBL_UNUSED (view);
-    UZBL_UNUSED (frame);
     UZBL_UNUSED (resource);
-    UZBL_UNUSED (response);
     UZBL_UNUSED (data);
 
     const gchar *uri = webkit_network_request_get_uri (request);
+    const gchar *frame_name = webkit_web_frame_get_name (frame);
     SoupMessage *message = webkit_network_request_get_message (request);
+    gboolean redirect = response ? TRUE : FALSE;
 
     if (message) {
         SoupURI *soup_uri = soup_uri_new (uri);
@@ -1028,8 +1034,13 @@ request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResour
         soup_uri_free (soup_uri);
     }
 
-    g_object_ref (request);
-    request_decision (uri, request);
+    UzblRequestDecision *decision = (UzblRequestDecision *)g_malloc (sizeof (UzblRequestDecision));
+    decision->request = request;
+    decision->frame = frame_name;
+    decision->redirect = redirect;
+
+    g_object_ref (decision->request);
+    request_decision (uri, decision);
 }
 
 void
@@ -1677,15 +1688,22 @@ request_decision (const gchar *uri, gpointer data)
         uzbl_commands_args_append (args, g_strdup (can_display));
 
 #ifdef USE_WEBKIT2
+        uzbl_commands_args_append (args, g_strdup ("")); /* frame name */
+        uzbl_commands_args_append (args, g_strdup ("unknown")); /* redirect */
+
         uzbl_io_schedule_command (request_command, args, rewrite_request, data);
 #else
-        WebKitNetworkRequest *request = (WebKitNetworkRequest *)data;
+        UzblRequestDecision *decision = (UzblRequestDecision *)data;
+
+        uzbl_commands_args_append (args, g_strdup (decision->frame));
+        uzbl_commands_args_append (args, g_strdup (decision->redirect ? "true" : "false"));
+
         GString *res = g_string_new ("");
 
         uzbl_commands_run_parsed (request_command, args, res);
         uzbl_commands_args_free (args);
 
-        rewrite_request (res, (gpointer)request);
+        rewrite_request (res, (gpointer)decision->request);
         g_string_free (res, TRUE);
 #endif
     } else {
