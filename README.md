@@ -1294,6 +1294,9 @@ uzbl itself and will be emitted based on what is happening within uzbl-core.
     request has been sent to the server.
 * `LOAD_PROGRESS <PROGRESS>`
   - Sent when the load percentage changes. The progress is in percentage.
+* `LOAD_CANCELLED <URI>`
+  - Sent when the user has cancelled a load (e.g., by setting the URI in the
+    middle of another load).
 * `LOAD_ERROR <URI> <CODE> <MESSAGE>`
   - Sent when WebKit has failed to load a page.
 * `LOAD_FINISH <URI>`

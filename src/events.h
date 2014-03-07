@@ -9,6 +9,7 @@
     call (LOAD_REDIRECTED),     \
     call (LOAD_COMMIT),         \
     call (LOAD_FINISH),         \
+    call (LOAD_CANCELLED),      \
     call (LOAD_ERROR),          \
     call (REQUEST_QUEUED),      \
     call (REQUEST_STARTING),    \

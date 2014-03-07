@@ -280,6 +280,10 @@ for these events. Also check the event manager for built-in handlers.
   - *Rationale*: The data is available and may be useful.
   - *Porting*: Expect a second argument in any `LINK_HOVER` event
     handlers.
+* `LOAD_ERROR`
+  - *Change*: Cancelled loads are now `LOAD_CANCELLED`.
+  - *Rationale*: Better diagnostics as to why things are happening.
+  - *Porting*: Look for `LOAD_CANCELLED` for user-triggered cancellations.
 * `NEW_WINDOW`
   - *Change*: Renamed to `REQ_NEW_WINDOW`.
   - *Rationale*: Replaced with `REQ_NEW_WINDOW` for better interoperability

@@ -1769,11 +1769,17 @@ send_load_status (WebKitLoadStatus status, const gchar *uri)
 gboolean
 send_load_error (const gchar *uri, GError *err)
 {
-    uzbl_events_send (LOAD_ERROR, NULL,
-        TYPE_STR, uri,
-        TYPE_INT, err->code,
-        TYPE_STR, err->message,
-        NULL);
+    if (err->code == WEBKIT_NETWORK_ERROR_CANCELLED) {
+        uzbl_events_send (LOAD_CANCELLED, NULL,
+            TYPE_STR, uri,
+            NULL);
+    } else {
+        uzbl_events_send (LOAD_ERROR, NULL,
+            TYPE_STR, uri,
+            TYPE_INT, err->code,
+            TYPE_STR, err->message,
+            NULL);
+    }
 
     return FALSE;
 }
