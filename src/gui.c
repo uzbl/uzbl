@@ -2596,6 +2596,9 @@ decide_permission (GString *result, gpointer data)
     g_object_unref (obj);
 }
 
+static void
+close_subwindow_cb (WebKitWebView *view, gpointer data);
+
 void
 create_web_view_uri_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
 {
@@ -2616,9 +2619,39 @@ create_web_view_uri_cb (WebKitWebView *view, GParamSpec param_spec, gpointer dat
         uzbl_commands_run_argv ("js", args, NULL);
         uzbl_commands_args_free (args);
     } else {
-        uzbl_events_send (REQ_NEW_WINDOW, NULL,
-            TYPE_STR, uri,
-            NULL);
+        /* External utility window for a page. Since the page has no URL, set
+         * up a window for it.
+         *
+         * TODO: Once the global uzbl object is gone, make this a full uzbl
+         * instance with a derived name (@curname/@requested_name) and hook it
+         * up properly.
+         */
+        if (!*uri || !strcmp (uri, "about:blank")) {
+            /* Forget the web view; the window is going to take over this one. */
+            uzbl.gui_->tmp_web_view = NULL;
+
+            GtkWidget *window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+
+            gtk_window_set_title (GTK_WINDOW (window), "Uzbl");
+            gtk_widget_set_name (window, "Uzbl");
+
+            gtk_container_add (GTK_CONTAINER (window), GTK_WIDGET (view));
+
+            g_object_connect (G_OBJECT (view),
+#ifdef USE_WEBKIT2
+        "signal::close",
+#else
+        "signal::close-web-view",
+#endif
+                                  G_CALLBACK (close_subwindow_cb), window,
+                NULL);
+
+            gtk_widget_show_all (window);
+        } else {
+            uzbl_events_send (REQ_NEW_WINDOW, NULL,
+                TYPE_STR, uri,
+                NULL);
+        }
     }
 }
 
@@ -2738,4 +2771,14 @@ send_download_error (const gchar *destination, WebKitDownloadError err, const gc
         TYPE_INT, err,
         TYPE_STR, message,
         NULL);
+}
+
+void
+close_subwindow_cb (WebKitWebView *view, gpointer data)
+{
+    UZBL_UNUSED (view);
+
+    GtkWindow *window = (GtkWindow *)data;
+
+    gtk_window_close (window);
 }
