@@ -1041,6 +1041,8 @@ request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResour
 
     g_object_ref (decision->request);
     request_decision (uri, decision);
+
+    g_free (decision);
 }
 
 void
