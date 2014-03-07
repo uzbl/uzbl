@@ -2610,7 +2610,7 @@ create_web_view_uri_cb (WebKitWebView *view, GParamSpec param_spec, gpointer dat
         uzbl_commands_run_argv ("js", args, NULL);
         uzbl_commands_args_free (args);
     } else {
-        uzbl_events_send (NEW_WINDOW, NULL,
+        uzbl_events_send (REQ_NEW_WINDOW, NULL,
             TYPE_STR, uri,
             NULL);
     }

@@ -1390,7 +1390,7 @@ uzbl itself and will be emitted based on what is happening within uzbl-core.
   - Sent when the geometry changes.
 * `WEBINSPECTOR <open|close>`
   - Sent when the web inspector window is opened or closed.
-* `NEW_WINDOW <URI>`
+* `REQ_NEW_WINDOW <URI>`
   - Sent when a new window is being requested.
 * `CLOSE_WINDOW`
   - Sent when `uzbl` is closing its window.

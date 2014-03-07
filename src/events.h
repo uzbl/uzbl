@@ -22,7 +22,7 @@
     call (TITLE_CHANGED),       \
     call (GEOMETRY_CHANGED),    \
     call (WEBINSPECTOR),        \
-    call (NEW_WINDOW),          \
+    call (REQ_NEW_WINDOW),      \
     call (CLOSE_WINDOW),        \
     call (VARIABLE_SET),        \
     call (FIFO_SET),            \

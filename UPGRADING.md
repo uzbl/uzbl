@@ -280,6 +280,12 @@ for these events. Also check the event manager for built-in handlers.
   - *Rationale*: The data is available and may be useful.
   - *Porting*: Expect a second argument in any `LINK_HOVER` event
     handlers.
+* `NEW_WINDOW`
+  - *Change*: Renamed to `REQ_NEW_WINDOW`.
+  - *Rationale*: Replaced with `REQ_NEW_WINDOW` for better interoperability
+    with `uzbl-tabbed`.
+  - *Porting*: Chain `REQ_NEW_WINDOW` to `NEW_WINDOW` or `NEW_TAB` depending on
+    the application.
 * `SELECTION_CHANGED`
   - *Change*: Removed.
   - *Rationale*: This is no longer a builtin event. It was previously
