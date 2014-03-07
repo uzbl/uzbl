@@ -45,13 +45,15 @@ uzbl_comm_vformat (const gchar *directive, const gchar *function, va_list vargs)
             const char *p;
             int i = 0;
 
-            while ((p = argv_idx (a, i++))) {
+            while ((p = argv_idx (a, i))) {
                 if (i) {
                     g_string_append_c (message, ' ');
                 }
                 g_string_append_c (message, '\'');
                 append_escaped (message, p);
                 g_string_append_c (message, '\'');
+
+                ++i;
             }
             break;
         }
