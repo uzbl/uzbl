@@ -931,6 +931,10 @@ they are written as comments.
 * `app_cache_directory` (string) (WebKit1 >= 1.3.13)
   - Currently always `$XDG_CACHE_HOME/webkitgtk/applications`.
 * `uri` (string)
+  - The current top-level URI of the view.
+* `embedded` (boolean)
+  - If non-zero, `uzbl` is embedded in another window, otherwise it is
+    stand-alone.
 * `WEBKIT_MAJOR` (integer)
   - The major version of WebKit at runtime.
 * `WEBKIT_MINOR` (integer)

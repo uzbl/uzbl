@@ -1719,6 +1719,7 @@ uzbl_variables_private_new (GHashTable *table)
 #endif
 #endif
         { "uri",                          UZBL_C_STRING (uzbl.state.uri)},
+        { "embedded",                     UZBL_C_INT (uzbl.state.plug_mode)},
         { "WEBKIT_MAJOR",                 UZBL_C_FUNC (WEBKIT_MAJOR,                           INT)},
         { "WEBKIT_MINOR",                 UZBL_C_FUNC (WEBKIT_MINOR,                           INT)},
         { "WEBKIT_MICRO",                 UZBL_C_FUNC (WEBKIT_MICRO,                           INT)},
