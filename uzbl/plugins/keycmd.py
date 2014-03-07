@@ -247,6 +247,7 @@ class KeyCmd(PerInstancePlugin):
         uzbl.connect('MODMAP', self.modmap_parse)
         uzbl.connect('SET_CURSOR_POS', self.set_cursor_pos)
         uzbl.connect('SET_KEYCMD', self.set_keycmd)
+        uzbl.connect('FOCUS_LOST', self.clear_modifiers)
 
     def modmap_key(self, key):
         '''Make some obscure names for some keys friendlier.'''
@@ -448,6 +449,12 @@ class KeyCmd(PerInstancePlugin):
         '''Allow setting of the keycmd externally.'''
 
         self.keylet.set_keycmd(keycmd)
+        self.update_event(set(), self.keylet, False)
+
+    def clear_modifiers(self, keycmd):
+        '''Clear the modifiers since focus was lost.'''
+
+        self.keylet.clear_modcmd()
         self.update_event(set(), self.keylet, False)
 
     def inject_keycmd(self, keycmd):
