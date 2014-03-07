@@ -55,7 +55,7 @@ set download_handler       spawn_sync @scripts_dir/download.sh
 #   What to do when the user requests a new window:
 # If your the NEW_WINDOW handler opens the uri in the current window, you'll
 # probably want to change this handler to open a new window or tab.
-@on_event   REQ_NEW_WINDOW event NEW_WINDOW %s
+@on_event   REQ_NEW_WINDOW event @- if (@embedded) "NEW_TAB"; else "NEW_WINDOW" -@ %s
 
 # Load start handler
 @on_event   LOAD_START     @set_status <span foreground="khaki">wait</span>
