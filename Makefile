@@ -232,7 +232,7 @@ sandbox-install-example-data:
 install: install-uzbl-core install-uzbl-browser install-uzbl-tabbed
 
 install-dirs:
-	[ -d "$(INSTALLDIR)/bin" ] || install -d -m755 $(INSTALLDIR)/bin
+	[ -d "$(INSTALLDIR)/bin" ] || $(INSTALL) -d -m755 $(INSTALLDIR)/bin
 
 install-uzbl-core: uzbl-core install-dirs
 	$(INSTALL) -d $(INSTALLDIR)/share/uzbl/
