@@ -152,18 +152,9 @@ build: ${PY}
 .PHONY: uzbl-event-manager
 uzbl-event-manager: build
 
-# the 'tests' target can never be up to date
-.PHONY: tests
-force:
-
 # this is here because the .so needs to be compiled with -fPIC on x86_64
 ${LOBJ}: ${SRC} ${HEAD}
 	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -c src/$(@:.lo=.c) -o $@
-
-# When compiling unit tests, compile uzbl as a library first
-tests: ${LOBJ} force
-	$(CC) -shared -Wl ${LOBJ} -o ./tests/libuzbl-core.so
-	cd ./tests/; $(MAKE)
 
 test-event-manager: force
 	${PYTHON} -m unittest discover tests/event-manager -v
@@ -211,7 +202,6 @@ clean:
 	rm -f bin/uzbl-browser
 	find ./examples/ -name "*.pyc" -delete || :
 	find -name __pycache__ -type d -delete || :
-	cd ./tests/; $(MAKE) clean
 	rm -rf ./sandbox/
 	$(PYTHON) setup.py clean
 
