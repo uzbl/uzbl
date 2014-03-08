@@ -15,6 +15,7 @@ In alphabetical order:
     (kmeaw) - fix for multibyte utf8 characters segfault
     (mxf) - uzblcat
     (neutralinsomniac) - load_progress = 0 fix
+    (nmeum) - man pages, various small fixes
     (salinasv) - move some variables to heap
     (sentientswitch) - Cleaned up code. Added some commands.
     (tczy) - patches
