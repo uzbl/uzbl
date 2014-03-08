@@ -288,4 +288,6 @@ install-example-data:
 
 uninstall:
 	rm -rf $(INSTALLDIR)/bin/uzbl-*
+	rm -rf $(INSTALLDIR)/man1/uzbl-*
 	rm -rf $(INSTALLDIR)/share/uzbl
+	rm -rf $(INSTALLDIR)/share/applications/uzbl.desktop
