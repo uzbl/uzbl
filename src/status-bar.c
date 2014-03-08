@@ -87,7 +87,7 @@ allocate (GtkWidget *widget, GtkAllocation *allocation)
 
     int left_natural_width;
 
-#if GTK_CHECK_VERSION (3,0,0)
+#if GTK_CHECK_VERSION (3, 0, 0)
     GtkRequisition left_requisition_nat;
 
     gtk_widget_get_preferred_size (status_bar->left_label,  &left_requisition,  &left_requisition_nat);
