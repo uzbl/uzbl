@@ -16,7 +16,6 @@ ENABLE_WEBKIT2 ?= no
 ENABLE_GTK3    ?= auto
 
 PYTHON   = python3
-COVERAGE = $(shell which coverage)
 
 # --- configuration ends here ---
 
@@ -158,15 +157,6 @@ uzbl-event-manager: build
 # this is here because the .so needs to be compiled with -fPIC on x86_64
 ${LOBJ}: ${SRC} ${HEAD}
 	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -c src/$(@:.lo=.c) -o $@
-
-test-event-manager: force
-	${PYTHON} -m unittest discover tests/event-manager -v
-
-coverage-event-manager: force
-	${PYTHON} ${COVERAGE} erase
-	${PYTHON} ${COVERAGE} run -m unittest discover tests/event-manager
-	${PYTHON} ${COVERAGE} html ${PY}
-	echo Open \'htmlcov/index.html\' in your browser to see the results
 
 test-uzbl-core: uzbl-core
 	./uzbl-core --uri http://www.uzbl.org --verbose
