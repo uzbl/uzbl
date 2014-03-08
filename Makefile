@@ -137,7 +137,10 @@ ${OBJ}: ${HEAD}
 
 uzbl-core: ${OBJ}
 
-uzbl-browser: uzbl-core uzbl-event-manager uzbl.desktop bin/uzbl-browser
+uzbl-browser: uzbl-core uzbl-event-manager uzbl-browser.1 uzbl.desktop bin/uzbl-browser
+
+uzbl-browser.1: uzbl-browser.1.in
+	sed 's#@PREFIX@#$(PREFIX)#' < uzbl-browser.1.in > uzbl-browser.1
 
 uzbl.desktop: uzbl.desktop.in
 	sed 's#@PREFIX@#$(PREFIX)#' < uzbl.desktop.in > uzbl.desktop
@@ -270,6 +273,7 @@ install-uzbl-browser: install-dirs install-uzbl-core install-event-manager
 	cp -rv examples $(INSTALLDIR)/share/uzbl/examples
 	chmod 755 $(INSTALLDIR)/share/uzbl/examples/data/scripts/*.sh $(INSTALLDIR)/share/uzbl/examples/data/scripts/*.py
 	$(INSTALL) -m644 uzbl.desktop $(INSTALLDIR)/share/applications/uzbl.desktop
+	$(INSTALL) -m644 uzbl-browser.1 $(MANDIR)/man1/uzbl-browser.1
 
 install-uzbl-tabbed: install-dirs
 	$(INSTALL) -m755 bin/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed

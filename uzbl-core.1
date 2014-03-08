@@ -7,14 +7,14 @@
 .Sh SYNOPSIS
 .Nm
 .Bk -words
-.Op Fl vhpVe
-.Op Fl u Ar uri
-.Op Fl n Ar name
+.Op Fl hpvV
 .Op Fl c Ar config
+.Op Fl Fl connect-socket Ar csocket
+.Op Fl Fl display Ar display
 .Op Fl g Ar geometry
+.Op Fl n Ar name
 .Op Fl s Ar socketid
-.Op Fl -connect-socket Ar csocket
-.Op Fl -display Ar display
+.Op Fl u Ar uri
 .Ek
 .Sh DESCRIPTION
 .Nm
@@ -23,40 +23,54 @@ tool and scripts. It uses WebKit for rendering and network interaction.
 Furthermore, it provides interfaces to get data in and out.
 .Pp
 It has no built-in means for URL changing, loading/saving of bookmarks,
-saving history, et cetera. However, many scripts are provided which use
+saving history, et cetera. If your are looking for a complete browsing
+experience based on
 .Nm
-to create a complete browsing experience.
+take a look at
+.Xr uzbl-browser 1 .
 .Pp
 The options are as follows:
-.Bl -tag -width "XXXXXXXXXXXX"
-.It Fl v, Fl -verbose
-Whether to print all messages or just errors.
-.It Fl h, Fl -help
-Wether to print help message and exit afterwards.
-.It Fl p, Fl -print-events
-Whether to print events to stdout.
-.It Fl V, Fl -version
-Whether to output the version and quit.
-.It Fl u, Fl -uri Ar uri
-Uri to load (equivalent to 'uri URI' on load).
-.It Fl n, Fl -named Ar name
-Name of the current instance (defaults to Xorg window id).
-.It Fl c, Fl -config Ar config
+.Bl -tag -width "v"
+.It Fl c, Fl Fl config Ar config
 Config file to load.
-.It Fl g, Fl -geometry Ar geometry
-Set the geometry of
-.Nm
-on start. Accepts either 'maximized' or
-alternatively 'WIDTHxHEIGHT+X+Y' as formats.
-.It Fl s, Fl -xembed-socket Ar socketid
-The Xembed socket ID.
-.It Fl -connect-socket Ar csocket
+.It Fl Fl connect-socket Ar csocket
 The path to a
 .Xr uzbl-event-manager 1
 socket.
-.It Fl -display Ar display
+.It Fl Fl display Ar display
 The X display to use.
+.It Fl g, Fl Fl geometry Ar geometry
+Set the geometry of
+.Nm
+on start. Accepts either
+.Em maximized
+or alternatively
+.Em WIDTHxHEIGHT+X+Y
+as formats.
+.It Fl h, Fl Fl help
+Wether to print help message and exit afterwards.
+.It Fl n, Fl Fl named Ar name
+Name of the current instance (defaults to Xorg window id).
+.It Fl p, Fl Fl print-events
+Whether to print events to stdout.
+.It Fl s, Fl Fl xembed-socket Ar socketid
+The Xembed socket ID.
+.It Fl u, Fl Fl uri Ar uri
+Uri to load after successful start.
+.It Fl v, Fl Fl verbose
+Whether to print all messages or just errors.
+.It Fl V, Fl Fl version
+Whether to output the version and quit.
+.El
+.Sh FILES
+.Bl -tag -width "v"
+.It Pa ${XDG_CONFIG_HOME:-$HOME/.config}/uzbl/config
+The default
+.Nm
+config file.
+.El
 .Sh SEE ALSO
+.Xr uzbl-browser 1
 .Xr uzbl-event-manager 1
 .Sh AUTHORS
 .Nm
