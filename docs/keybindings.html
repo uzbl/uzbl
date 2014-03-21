@@ -165,7 +165,49 @@
 <section>
   <h1>uzbl-tabbed</h1>
 
-  <p>TODO: Write me.</p>
+  <p>Use these within <code>uzbl-tabbed</code>.</p>
+
+  <dl>
+<!-- Tab opening-->
+    <dt>gn              </dt>
+    <dd>Open a new tab</dd>
+    <dt>gN              </dt>
+    <dd>Open a new tab and go there</dd>
+    <dt>go&lt;uri:&gt;_       </dt>
+    <dd>Open &lt;uri:&gt; in a new tab</dd>
+    <dt>gO&lt;uri:&gt;_       </dt>
+    <dd>Open &lt;uri:&gt; in a new tab and go there</dd>
+
+<!-- Closing / resting-->
+    <dt>gC              </dt>
+    <dd>Close the current tab</dd>
+    <dt>gQ              </dt>
+    <dd>Clean tabs</dd>
+
+<!-- Tab navigating-->
+    <dt>g&lt;              </dt>
+    <dd>Go to the first tab</dd>
+    <dt>g&gt;              </dt>
+    <dd>Go to the last tab</dd>
+    <dt>gt              </dt>
+    <dd>Go to the next tab</dd>
+    <dt>gT              </dt>
+    <dd>Go to the previous tab</dd>
+    <dt>gi&lt;index:&gt;_     </dt>
+    <dd>Go to the tab &lt;index:&gt;</dd>
+
+<!-- Preset loading-/>
+set preset     <dd>event PRESET_TABS</dd>
+    <dt>gs&lt;preset save:&gt;_   </dt>
+    <dd>@preset save %s</dd>
+    <dt>glo&lt;preset load:&gt;_  </dt>
+    <dd>@preset load %s</dd>
+    <dt>gd&lt;preset del:&gt;_    </dt>
+    <dd>@preset del %s</dd>
+<!/- This doesn't work right now.-/>
+<!/-    <dt>gli                 </dt>-/>
+    <dd>@preset list</dd>-->
+  </dl>
 </section>
 
 <section>
