@@ -67,6 +67,7 @@ uzbl_init (int *argc, char ***argv)
     gboolean print_events = FALSE;
     gchar *geometry = NULL;
     gboolean print_version = FALSE;
+    gboolean bug_info = FALSE;
 
     /* Commandline arguments. */
     const GOptionEntry
@@ -90,6 +91,8 @@ uzbl_init (int *argc, char ***argv)
             "Set window geometry (format: 'WIDTHxHEIGHT+-X+-Y' or 'maximized')",                              "GEOMETRY" },
         { "version",        'V', 0, G_OPTION_ARG_NONE,         &print_version,
             "Print the version and exit",                                                                     NULL },
+        { "bug-info",       'B', 0, G_OPTION_ARG_NONE,         &bug_info,
+            "Print information for a bug report and exit",                                                    NULL },
         { NULL,      0, 0, 0, NULL, NULL, NULL }
     };
 
@@ -99,6 +102,49 @@ uzbl_init (int *argc, char ***argv)
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
     g_option_context_parse (context, argc, argv, NULL);
     g_option_context_free (context);
+
+    /* Print bug information. */
+    if (bug_info) {
+        printf ("Commit: %s\n", COMMIT);
+        printf ("GTK compile: %d.%d.%d\n",
+            GTK_MAJOR_VERSION,
+            GTK_MINOR_VERSION,
+            GTK_MICRO_VERSION);
+        printf ("GTK run: %d.%d.%d\n",
+            gtk_major_version,
+            gtk_minor_version,
+            gtk_micro_version);
+        printf ("WebKit compile: %d.%d.%d\n",
+            WEBKIT_MAJOR_VERSION,
+            WEBKIT_MINOR_VERSION,
+            WEBKIT_MICRO_VERSION);
+#ifdef USE_WEBKIT2
+#define webkit_version(type) webkit_get_##type##_version ()
+#else
+#define webkit_version(type) webkit_##type##_version ()
+#endif
+        printf ("WebKit run: %d.%d.%d\n",
+            webkit_version (major),
+            webkit_version (minor),
+            webkit_version (micro));
+#undef webkit_version
+        printf ("WebKit2: %d\n",
+#ifdef USE_WEBKIT2
+            1
+#else
+            0
+#endif
+            );
+        printf ("libsoup compile: %d.%d.%d\n",
+            SOUP_MAJOR_VERSION,
+            SOUP_MINOR_VERSION,
+            SOUP_MICRO_VERSION);
+        printf ("libsoup run: %u.%u.%u\n",
+            soup_get_major_version (),
+            soup_get_minor_version (),
+            soup_get_micro_version ());
+        exit (EXIT_SUCCESS);
+    }
 
     /* Only print version. */
     if (print_version) {
