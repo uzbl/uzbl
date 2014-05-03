@@ -14,7 +14,7 @@ if [ -d .git ] && [ -r .git ]; then
 elif [ -n "$tarball_check" ]; then
     echo '$Format:%h$'
 else
-    echo >&2 "Commit hash detection fail.  Dear packager, please figure out what goes wrong or get in touch with us"
+    echo >&2 "Commit hash detection fail. Dear packager, please figure out what goes wrong or get in touch with us"
     echo UNKNOWN
     exit 2
 fi
