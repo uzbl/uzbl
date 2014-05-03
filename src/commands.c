@@ -123,7 +123,7 @@ uzbl_commands_send_builtin_event ()
     g_string_append_c (command_list, ']');
 
     uzbl_events_send (BUILTINS, NULL,
-        TYPE_STR, command_list->str,
+        TYPE_FORMATTEDSTR, command_list->str,
         NULL);
 
     g_string_free (command_list, TRUE);

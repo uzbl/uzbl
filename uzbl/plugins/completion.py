@@ -1,5 +1,6 @@
 '''Keycmd completion.'''
 
+import json
 import re
 
 from uzbl.arguments import splitquoted
@@ -176,7 +177,7 @@ class CompletionPlugin(PerInstancePlugin):
         '''Pump the space delimited list of builtin commands into the
         builtin list.'''
 
-        builtins = splitquoted(builtins)
+        builtins = json.loads(builtins)
         self.completion.update(builtins)
 
     def add_config_key(self, key, value):
