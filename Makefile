@@ -248,7 +248,7 @@ install-uzbl-core: uzbl-core install-dirs
 	$(INSTALL) -d $(INSTALLDIR)/share/uzbl/
 	$(INSTALL) -d $(DOCDIR)
 	$(INSTALL) -d $(MANDIR)/man1
-	$(INSTALL) -m644 docs/* $(DOCDIR)/
+	$(INSTALL) -m644 docs/*.md $(DOCDIR)/
 	$(INSTALL) -m644 src/config.h $(DOCDIR)/
 	$(INSTALL) -m644 README.md $(DOCDIR)/
 	$(INSTALL) -m644 AUTHORS $(DOCDIR)/
