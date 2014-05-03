@@ -1017,6 +1017,12 @@ There are multiple constructs for more complex expansion.
 * `@<javascript>@`
   - This is equivalent to running `js page string javascript` and is replaced
     by its result.
+* `@-+javascript_file-@`
+  - This is equivalent to running `js clean file javascript_file` and is
+    replaced by its result.
+* `@-javascript-@`
+  - This is equivalent to running `js clean string javascript` and is replaced
+    by its result.
 
 #### XML escaping
 
