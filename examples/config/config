@@ -70,6 +70,7 @@ set download_handler       spawn_sync @scripts_dir/download.sh
 @on_event   LOAD_COMMIT    js page file @scripts_dir/formfiller.js
 @on_event   LOAD_COMMIT    js page file @scripts_dir/follow.js
 @on_event   LOAD_COMMIT    js page file @scripts_dir/go_input.js
+@on_event   LOAD_COMMIT    js page file @scripts_dir/navigation.js
 
 # Userscripts/per-site-settings. See the script and the example configuration for details
 #@on_event   LOAD_COMMIT    spawn @scripts_dir/per-site-settings.py @data_home/per-site-settings
@@ -271,6 +272,8 @@ set ebind     @mode_bind global,-insert
 # Navigation binds
 @cbind  b   = back
 @cbind  m   = forward
+@cbind  gb  = uri \@< encodeURI(uzbl.navigation.prev()) >\@
+@cbind  gf  = uri \@< encodeURI(uzbl.navigation.next()) >\@
 @cbind  S   = stop
 @cbind  r   = reload cached
 @cbind  R   = reload full
