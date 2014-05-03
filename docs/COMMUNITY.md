@@ -1,5 +1,4 @@
-COMMUNITY
-------
+## COMMUNITY
 
 ### Mailing list
 
@@ -22,8 +21,8 @@ COMMUNITY
 
 ### Code repositories
 
-* [github.com/Dieterbe/uzbl](http://github.com/Dieterbe/uzbl/)
+* [github.com/uzbl/uzbl](http://github.com/uzbl/uzbl/)
 
 There are more contributors who have forks.  See:
 
-[Uzbl Network graph](http://github.com/Dieterbe/uzbl/network)
+[Uzbl Network graph](http://github.com/uzbl/uzbl/network)
