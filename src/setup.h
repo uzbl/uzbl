@@ -47,6 +47,9 @@ void
 uzbl_requests_free ();
 
 void
+uzbl_requests_set_reply (const gchar *reply);
+
+void
 uzbl_scheme_init ();
 
 void
