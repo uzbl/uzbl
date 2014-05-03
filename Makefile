@@ -79,7 +79,6 @@ CFLAGS += -std=c99 $(PKG_CFLAGS) -ggdb -W -Wall -Wextra -pthread -Wunused-functi
 SOURCES := \
     comm.c \
     commands.c \
-    cookie-jar.c \
     events.c \
     gui.c \
     inspector.c \
@@ -97,7 +96,6 @@ HEADERS := \
     comm.h \
     commands.h \
     config.h \
-    cookie-jar.h \
     events.h \
     gui.h \
     inspector.h \
@@ -116,9 +114,11 @@ HEADERS := \
 
 ifneq ($(ENABLE_WEBKIT2),yes)
 SOURCES += \
+    cookie-jar.c \
     scheme-request.c \
     soup.c
 HEADERS += \
+    cookie-jar.h \
     scheme-request.h \
     soup.h
 endif
