@@ -297,7 +297,7 @@ uzbl_io_init_socket (const gchar *dir)
 
     /* If something exists at that path, try to delete it. */
     if (file_exists (path) && unlink (path)) {
-        g_warning ("Fifo: Can't unlink old fifo at %s\n", path);
+        g_warning ("Socket: Can't unlink old socket at %s\n", path);
     }
 
     struct sockaddr_un local;
