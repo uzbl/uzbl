@@ -2,7 +2,7 @@
 
 #include "commands.h"
 #include "events.h"
-#include "requests.h"
+#include "setup.h"
 #include "type.h"
 #include "util.h"
 #include "variables.h"
