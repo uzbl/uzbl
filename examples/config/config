@@ -11,7 +11,7 @@ set config_home @(echo $XDG_CONFIG_HOME/uzbl)@
 set local_storage_path @data_home/databases/
 
 # Interface paths.
-set comm_dir   @([ -z "$XDG_RUNTIME_DIR" ] && echo "$XDG_RUNTIME_DIR/uzbl" || echo "/tmp/uzbl-$USER")@
+set comm_dir   @([ -n "$XDG_RUNTIME_DIR" ] && echo "$XDG_RUNTIME_DIR/uzbl" || echo "/tmp/uzbl-$USER")@
 set fifo_dir   @comm_dir
 set socket_dir @comm_dir
 
