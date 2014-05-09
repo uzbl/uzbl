@@ -182,8 +182,8 @@ authenticate (GString *result, gpointer data)
     gchar **tokens = g_strsplit (result->str, "\n", 0);
 
     const gchar *action = tokens[0];
-    const gchar *username = tokens[1];
-    const gchar *password = tokens[2];
+    const gchar *username = action ? tokens[1] : NULL;
+    const gchar *password = username ? tokens[2] : NULL;
 
     if (!action) {
         /* No default credentials. */
