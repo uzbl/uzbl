@@ -2885,6 +2885,7 @@ spawn_sh (GArray *argv, GString *result)
     gchar *r = NULL;
     run_system_command (sh_cmd, result ? &r : NULL);
     if (result && r) {
+        remove_trailing_newline (r);
         g_string_append (result, r);
     }
 
@@ -2908,9 +2909,7 @@ run_system_command (GArray *args, char **output_stdout)
     if (output_stdout) {
         result = g_spawn_sync (NULL, (gchar **)args->data, NULL, G_SPAWN_SEARCH_PATH,
                                NULL, NULL, output_stdout, NULL, NULL, &err);
-        if (result) {
-            remove_trailing_newline (*output_stdout);
-        } else {
+        if (!result) {
             *output_stdout = g_strdup ("");
         }
     } else {
