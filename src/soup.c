@@ -112,6 +112,10 @@ authenticate_cb (SoupSession *session,
 {
     UZBL_UNUSED (data);
 
+    if (uzbl_variables_get_int ("enable_builtin_auth")) {
+        return;
+    }
+
     gchar *handler = uzbl_variables_get_string ("authentication_handler");
 
     GArray *args = uzbl_commands_args_new ();
