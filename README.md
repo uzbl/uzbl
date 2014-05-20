@@ -928,8 +928,6 @@ they are written as comments.
     `<width>x<height>+<xoffset>+<yoffset>` format.
 * `plugin_list` (string) (WebKit2 >= 1.11.4 or WebKit1 >= 1.3.8) (WebKit2 broken)
   - A JSON-formatted list describing loaded plugins.
-* `app_cache_directory` (string) (WebKit1 >= 1.3.13)
-  - Currently always `$XDG_CACHE_HOME/webkitgtk/applications`.
 * `uri` (string)
   - The current top-level URI of the view.
 * `embedded` (boolean)
