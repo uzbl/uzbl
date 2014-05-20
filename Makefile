@@ -16,7 +16,6 @@ ENABLE_WEBKIT2 ?= no
 ENABLE_GTK3    ?= auto
 
 PYTHON   = python3
-COVERAGE = $(shell which coverage)
 
 # --- configuration ends here ---
 
@@ -159,15 +158,6 @@ uzbl-event-manager: build
 ${LOBJ}: ${SRC} ${HEAD}
 	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -c src/$(@:.lo=.c) -o $@
 
-test-event-manager: force
-	${PYTHON} -m unittest discover tests/event-manager -v
-
-coverage-event-manager: force
-	${PYTHON} ${COVERAGE} erase
-	${PYTHON} ${COVERAGE} run -m unittest discover tests/event-manager
-	${PYTHON} ${COVERAGE} html ${PY}
-	echo Open \'htmlcov/index.html\' in your browser to see the results
-
 test-uzbl-core: uzbl-core
 	./uzbl-core --uri http://www.uzbl.org --verbose
 
@@ -242,7 +232,7 @@ sandbox-install-example-data:
 install: install-uzbl-core install-uzbl-browser install-uzbl-tabbed
 
 install-dirs:
-	[ -d "$(INSTALLDIR)/bin" ] || install -d -m755 $(INSTALLDIR)/bin
+	[ -d "$(INSTALLDIR)/bin" ] || $(INSTALL) -d -m755 $(INSTALLDIR)/bin
 
 install-uzbl-core: uzbl-core install-dirs
 	$(INSTALL) -d $(INSTALLDIR)/share/uzbl/
@@ -254,13 +244,13 @@ install-uzbl-core: uzbl-core install-dirs
 	$(INSTALL) -m644 AUTHORS $(DOCDIR)/
 	$(INSTALL) -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
 	$(INSTALL) -m644 uzbl-core.1 $(MANDIR)/man1/uzbl-core.1
-	$(INSTALL) -m644 uzbl-event-manager.1 $(MANDIR)/man1/uzbl-event-manager.1
 
 install-event-manager: install-dirs
+	$(INSTALL) -m644 uzbl-event-manager.1 $(MANDIR)/man1/uzbl-event-manager.1
 ifeq ($(DESTDIR),)
-	$(PYTHON) setup.py install --prefix=$(PREFIX) --install-scripts=$(INSTALLDIR)/bin $(PYINSTALL_EXTRA)
+	$(PYTHON) setup.py install --prefix=$(PREFIX) $(PYINSTALL_EXTRA)
 else
-	$(PYTHON) setup.py install --prefix=$(PREFIX) --root=$(DESTDIR) --install-scripts=$(INSTALLDIR)/bin $(PYINSTALL_EXTRA)
+	$(PYTHON) setup.py install --prefix=$(PREFIX) --root=$(DESTDIR) $(PYINSTALL_EXTRA)
 endif
 
 install-uzbl-browser: install-dirs install-uzbl-core install-event-manager
@@ -288,4 +278,6 @@ install-example-data:
 
 uninstall:
 	rm -rf $(INSTALLDIR)/bin/uzbl-*
+	rm -rf $(MANDIR)/man1/uzbl-*
 	rm -rf $(INSTALLDIR)/share/uzbl
+	rm -rf $(INSTALLDIR)/share/applications/uzbl.desktop
