@@ -1366,11 +1366,6 @@ DECLARE_GETTER (gchar *, geometry);
 #ifdef HAVE_PLUGIN_API
 DECLARE_GETTER (gchar *, plugin_list);
 #endif
-#ifndef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 3, 13)
-DECLARE_GETTER (gchar *, app_cache_directory);
-#endif
-#endif
 DECLARE_GETTER (int, WEBKIT_MAJOR);
 DECLARE_GETTER (int, WEBKIT_MINOR);
 DECLARE_GETTER (int, WEBKIT_MICRO);
@@ -1712,11 +1707,6 @@ uzbl_variables_private_new (GHashTable *table)
         { "geometry",                     UZBL_C_FUNC (geometry,                               STR)},
 #ifdef HAVE_PLUGIN_API
         { "plugin_list",                  UZBL_C_FUNC (plugin_list,                            STR)},
-#endif
-#ifndef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 3, 13)
-        { "app_cache_directory",          UZBL_C_FUNC (app_cache_directory,                    STR)},
-#endif
 #endif
         { "uri",                          UZBL_C_STRING (uzbl.state.uri)},
         { "embedded",                     UZBL_C_INT (uzbl.state.plug_mode)},
@@ -3191,15 +3181,6 @@ mimetype_list_append (WebKitWebPluginMIMEType *mimetype, GString *list)
 
     g_string_append (list, "]}");
 }
-#endif
-
-#ifndef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 3, 13)
-IMPLEMENT_GETTER (gchar *, app_cache_directory)
-{
-    return g_strdup (webkit_application_cache_get_database_directory_path ());
-}
-#endif
 #endif
 
 IMPLEMENT_GETTER (int, WEBKIT_MAJOR)
