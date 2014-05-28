@@ -42,6 +42,10 @@
 #include "util.h"
 #include "variables.h"
 
+#ifdef HAVE_SOUP_CHECK_VERSION
+#include <libsoup/soup-version.h>
+#endif
+
 #include <JavaScriptCore/JavaScript.h>
 
 #include <stdlib.h>
@@ -135,6 +139,7 @@ uzbl_init (int *argc, char ***argv)
             0
 #endif
             );
+#ifdef HAVE_SOUP_CHECK_VERSION
         printf ("libsoup compile: %d.%d.%d\n",
             SOUP_MAJOR_VERSION,
             SOUP_MINOR_VERSION,
@@ -143,6 +148,9 @@ uzbl_init (int *argc, char ***argv)
             soup_get_major_version (),
             soup_get_minor_version (),
             soup_get_micro_version ());
+#else
+        printf ("libsoup compile: < 2.41.1\n");
+#endif
         exit (EXIT_SUCCESS);
     }
 
