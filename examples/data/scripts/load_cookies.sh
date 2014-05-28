@@ -3,7 +3,6 @@
 . "$UZBL_UTIL_DIR/uzbl-dir.sh"
 
 readonly path="$1"
-shift
 
 if [ -n "$path" ]; then
     cookie_file="$path"
