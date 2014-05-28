@@ -66,6 +66,7 @@ set download_handler       spawn_sync @scripts_dir/download.sh
 @on_event   LOAD_COMMIT    @set_status <span foreground="green">recv</span>
 
 # add some javascript to the page for other 'js' commands to access later.
+@on_event   LOAD_COMMIT    js page string 'uzbl = {}'
 @on_event   LOAD_COMMIT    js page file @scripts_dir/formfiller.js
 @on_event   LOAD_COMMIT    js page file @scripts_dir/follow.js
 @on_event   LOAD_COMMIT    js page file @scripts_dir/go_input.js
