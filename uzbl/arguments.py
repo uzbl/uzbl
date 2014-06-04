@@ -84,6 +84,9 @@ class Arguments(tuple):
             rto = self._ref[to + 1] - 1
         return ''.join(self._raw[rfrm:rto])
 
+    def safe_raw(self, frm=0, to=None):
+        return self.raw(frm, to).replace('@', '\\@')
+
 splitquoted = Arguments  # or define a function?
 
 
