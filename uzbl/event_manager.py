@@ -470,7 +470,7 @@ def init_logger():
     logger.addHandler(handler)
 
     # Logfile
-    handler = logging.FileHandler(opts.log_file, 'w', 'utf-8', 1)
+    handler = logging.FileHandler(opts.log_file, 'a+', 'utf-8', 1)
     handler.setLevel(max(log_level, 10))
     handler.setFormatter(logging.Formatter(
         '[%(created)f] %(name)s: %(levelname)s: %(message)s'))
