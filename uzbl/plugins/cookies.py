@@ -8,7 +8,14 @@ from uzbl.arguments import splitquoted
 from uzbl.ext import GlobalPlugin, PerInstancePlugin
 
 # these are symbolic names for the components of the cookie tuple
-symbolic = {'domain': 0, 'path':1, 'name':2, 'value':3, 'scheme':4, 'expires':5}
+symbolic = {
+    'domain': 0,
+    'path': 1,
+    'name': 2,
+    'value': 3,
+    'scheme': 4,
+    'expires': 5
+}
 
 # allows for partial cookies
 # ? allow wildcard in key
