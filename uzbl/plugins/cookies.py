@@ -217,13 +217,13 @@ class Cookies(PerInstancePlugin):
                     'httpOnly'  : 'httpsOnly'
                 }
                 if cookie[4] in make_secure:
-                    self.uzbl.send('delete_cookie %s' % cookie.raw())
+                    self.uzbl.send('cookie delete %s' % cookie.raw())
 
                     new_cookie = list(cookie)
                     new_cookie[4] = make_secure[cookie[4]]
                     new_cookie = tuple(new_cookie)
 
-                    self.uzbl.send('add_cookie %s' % new_cookie.raw())
+                    self.uzbl.send('cookie add %s' % new_cookie.raw())
                     return
 
         if self.accept_cookie(cookie):
