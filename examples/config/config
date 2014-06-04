@@ -272,6 +272,7 @@ set ebind     @mode_bind global,-insert
 @cbind  $            = scroll horizontal end
 @cbind  <Space>      = scroll vertical end
 @cbind  G<Go To:>_   = scroll vertical %r!
+# The first '_' is literal, so type '_G' to trigger this binding.
 @cbind  _G<Go To:>_  = scroll horizontal %r!
 
 # Frozen binding
