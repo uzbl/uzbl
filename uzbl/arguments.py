@@ -66,7 +66,7 @@ class Arguments(tuple):
 
     def raw(self, frm=0, to=None):
         '''
-        Returs the portion of the raw input that yielded arguments
+        Returns the portion of the raw input that yielded arguments
         from 'frm' to 'to'
 
         >>> args = Arguments(r"'spam, spam' egg sausage   and 'spam'")
