@@ -217,28 +217,28 @@ class Cookies(PerInstancePlugin):
                     'httpOnly'  : 'httpsOnly'
                 }
                 if cookie[4] in make_secure:
-                    self.uzbl.send('cookie delete %s' % cookie.raw())
+                    self.uzbl.send('cookie delete %s' % cookie.safe_raw())
 
                     new_cookie = list(cookie)
                     new_cookie[4] = make_secure[cookie[4]]
                     new_cookie = tuple(new_cookie)
 
-                    self.uzbl.send('cookie add %s' % new_cookie.raw())
+                    self.uzbl.send('cookie add %s' % new_cookie.safe_raw())
                     return
 
         if self.accept_cookie(cookie):
             for u in self.get_recipents():
-                u.send('cookie add %s' % cookie.raw())
+                u.send('cookie add %s' % cookie.safe_raw())
 
             self.get_store(self.expires_with_session(cookie)).add_cookie(cookie.raw(), cookie)
         else:
             self.logger.debug('cookie %r is blacklisted', cookie)
-            self.uzbl.send('cookie delete %s' % cookie.raw())
+            self.uzbl.send('cookie delete %s' % cookie.safe_raw())
 
     def delete_cookie(self, cookie):
         cookie = splitquoted(cookie)
         for u in self.get_recipents():
-            u.send('cookie delete %s' % cookie.raw())
+            u.send('cookie delete %s' % cookie.safe_raw())
 
         if len(cookie) == 6:
             self.get_store(self.expires_with_session(cookie)).delete_cookie(cookie.raw(), cookie)
