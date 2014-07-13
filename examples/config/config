@@ -164,16 +164,6 @@ set cookie_policy always
 # Direct uzbl at a proxy service (ex. privoxy)
 # set proxy_url = http://localhost:8118
 
-# === SSL related configuration ==============================================
-
-# Set it to certificates store of your distribution, or your own CAfile.
-set ssl_ca_file /etc/ssl/certs/ca-bundle.crt
-set ssl_policy fail
-# Command to toggle ssl_policy value:
-@cbind  !ssl = chain 'toggle ssl_policy fail ignore' 'reload'
-# Example SSL error handler:
-@on_event   LOAD_ERROR    js page string 'if (/SSL handshake failed/.test("%3")) {alert ("%3");}'
-
 # === Key binding configuration ==============================================
 # --- Internal modmapping and ignoring ---------------------------------------
 
@@ -513,6 +503,16 @@ set stack    @mode_config stack
 @stack    forward_keys        = 0
 
 set default_mode command
+
+# === SSL related configuration ==============================================
+
+# Set it to certificates store of your distribution, or your own CAfile.
+set ssl_ca_file /etc/ssl/certs/ca-bundle.crt
+set ssl_policy fail
+# Command to toggle ssl_policy value:
+@cbind  !ssl = chain 'toggle ssl_policy fail ignore' 'reload'
+# Example SSL error handler:
+@on_event   LOAD_ERROR    js page string 'if (/SSL handshake failed/.test("%3")) {alert ("%3");}'
 
 # === Post-load misc commands ================================================
 spawn_sync_exec @scripts_dir/load_cookies.sh
