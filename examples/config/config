@@ -448,7 +448,7 @@ set formfiller spawn @scripts_dir/formfiller.sh
 @cbind  go<uri:>_       = event NEW_TAB %s
 @cbind  gO<uri:>_       = event NEW_TAB_NEXT %s
 
-# Closing / resting
+# Closing / resetting
 @cbind  gC              = exit
 @cbind  gQ              = event CLEAN_TABS
 
