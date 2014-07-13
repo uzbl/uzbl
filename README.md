@@ -1293,8 +1293,9 @@ uzbl itself and will be emitted based on what is happening within uzbl-core.
 * `NAVIGATION_STARTING <URI> <SRCFRAME> <DESTFRAME> <TYPE>`
   - Sent when a main navigation is requested for a frame. See `scheme_handler`
     for the types available.
-* `LOAD_START <URI>`
-  - Sent when a main page navigation is started.
+* `LOAD_START`
+  - Sent when a main page navigation is started. This is before WebKit even
+    looks at the URI, so the name, protocol, or port may still be invalid.
 * `LOAD_REDIRECTED <URI>`
   - Sent when the main page navigation has been redirected to a new URI.
 * `LOAD_COMMIT <URI>`

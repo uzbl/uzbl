@@ -1052,8 +1052,9 @@ load_status_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data
     UZBL_UNUSED (data);
 
     WebKitLoadStatus status = webkit_web_view_get_load_status (view);
+    const gchar *uri = webkit_web_view_get_uri (view);
 
-    send_load_status (status, uzbl.state.uri);
+    send_load_status (status, uri);
 }
 
 gboolean
@@ -1728,7 +1729,8 @@ send_load_status (WebKitLoadStatus status, const gchar *uri)
 #else
     case WEBKIT_LOAD_PROVISIONAL:
 #endif
-        event = LOAD_START;
+        uzbl_events_send (LOAD_START, NULL,
+            NULL);
         break;
 #ifdef USE_WEBKIT2
     case WEBKIT_LOAD_REDIRECTED:
