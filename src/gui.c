@@ -1233,7 +1233,7 @@ tls_error_cb (WebKitWebView *view, WebKitCertificateInfo *info, const gchar *hos
 
         uzbl_events_send (TLS_ERROR, NULL,
             TYPE_STR, host,
-            TYPE_STR, flags_str,
+            TYPE_STR, flags_str->str,
             TYPE_STR, cert_info,
             NULL);
     }
