@@ -157,12 +157,12 @@ set cookie_policy always
 # === Javascript configuration  ==============================================
 
 # Turn off javascript support
-# set enable_scripts = false
+# set enable_scripts 0
 
 # === Proxy configuration  ===================================================
 
 # Direct uzbl at a proxy service (ex. privoxy)
-# set proxy_url = http://localhost:8118
+# set proxy_url http://localhost:8118
 
 # === Key binding configuration ==============================================
 # --- Internal modmapping and ignoring ---------------------------------------
