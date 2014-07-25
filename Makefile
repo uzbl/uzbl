@@ -233,11 +233,12 @@ install: install-uzbl-core install-uzbl-browser install-uzbl-tabbed
 
 install-dirs:
 	[ -d "$(INSTALLDIR)/bin" ] || $(INSTALL) -d -m755 $(INSTALLDIR)/bin
+	[ -d "$(MANDIR)/man1" ] || $(INSTALL) -d $(MANDIR)/man1
+	[ -d "$(DOCDIR)" ] || $(INSTALL) -d $(DOCDIR)
+	[ -d "$(INSTALLDIR)/share/uzbl" ] || $(INSTALL) -d $(INSTALLDIR)/share/uzbl
+	[ -d "$(INSTALLDIR)/share/applications" ] || $(INSTALL) -d $(INSTALLDIR)/share/applications
 
 install-uzbl-core: uzbl-core install-dirs
-	$(INSTALL) -d $(INSTALLDIR)/share/uzbl/
-	$(INSTALL) -d $(DOCDIR)
-	$(INSTALL) -d $(MANDIR)/man1
 	$(INSTALL) -m644 docs/*.md $(DOCDIR)/
 	$(INSTALL) -m644 src/config.h $(DOCDIR)/
 	$(INSTALL) -m644 README.md $(DOCDIR)/
@@ -254,7 +255,6 @@ else
 endif
 
 install-uzbl-browser: install-dirs install-uzbl-core install-event-manager
-	$(INSTALL) -d $(INSTALLDIR)/share/applications
 	$(INSTALL) -m755 bin/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
 	#sed 's#@PREFIX@#$(PREFIX)#g' < README.browser.md > README.browser.md
 	#$(INSTALL) -m644 README.browser.md $(DOCDIR)/README.browser.md
