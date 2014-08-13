@@ -1762,10 +1762,12 @@ IMPLEMENT_COMMAND (menu)
     typedef enum {
         ACTION_ADD,
         ACTION_REMOVE,
-        ACTION_QUERY
+        ACTION_QUERY,
+
+        ACTION_NONE
     } MenuAction;
 
-    MenuAction action;
+    MenuAction action = ACTION_NONE;
     gboolean is_sep = FALSE;
 
     if (!g_strcmp0 (action_str, "add")) {
@@ -1812,8 +1814,7 @@ IMPLEMENT_COMMAND (menu)
     gboolean is_remove = (action == ACTION_REMOVE);
     gboolean is_query = (action == ACTION_QUERY);
 
-    if (action == ACTION_ADD)
-    {
+    if (action == ACTION_ADD) {
         ARG_CHECK (argv, 3);
 
         const gchar *object = argv_idx (argv, 1);
