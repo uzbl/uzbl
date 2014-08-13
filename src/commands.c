@@ -413,6 +413,9 @@ call_command (JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject, si
         g_free (error_str);
 
         json_ret = JSValueMakeUndefined (ctx);
+
+        g_free (command);
+        return json_ret;
     }
 
     g_free (command);
