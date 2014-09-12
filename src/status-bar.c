@@ -42,6 +42,8 @@ uzbl_status_bar_update_right (GtkWidget *widget, const gchar *format)
 void
 uzbl_status_bar_init (UzblStatusBar *status_bar)
 {
+    static const gint LABEL_MARGIN = 2;
+
     gtk_box_set_homogeneous (GTK_BOX (status_bar), FALSE);
     gtk_box_set_spacing (GTK_BOX (status_bar), 0);
 
@@ -49,14 +51,14 @@ uzbl_status_bar_init (UzblStatusBar *status_bar)
     status_bar->left_label = gtk_label_new ("");
     gtk_label_set_selectable (GTK_LABEL (status_bar->left_label), TRUE);
     gtk_misc_set_alignment (GTK_MISC (status_bar->left_label), 0, 0);
-    gtk_misc_set_padding (GTK_MISC (status_bar->left_label), 2, 2);
+    gtk_misc_set_padding (GTK_MISC (status_bar->left_label), LABEL_MARGIN, LABEL_MARGIN);
     gtk_label_set_ellipsize (GTK_LABEL (status_bar->left_label), PANGO_ELLIPSIZE_END);
 
     /* Create right panel. */
     status_bar->right_label = gtk_label_new ("");
     gtk_label_set_selectable (GTK_LABEL (status_bar->right_label), TRUE);
     gtk_misc_set_alignment (GTK_MISC (status_bar->right_label), 1, 0);
-    gtk_misc_set_padding (GTK_MISC (status_bar->right_label), 2, 2);
+    gtk_misc_set_padding (GTK_MISC (status_bar->right_label), LABEL_MARGIN, LABEL_MARGIN);
     gtk_label_set_ellipsize (GTK_LABEL (status_bar->right_label), PANGO_ELLIPSIZE_START);
 
     /* Add the labels to the status bar. */
