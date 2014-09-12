@@ -423,8 +423,9 @@ window_init ()
     gtk_window_set_title (GTK_WINDOW (uzbl.gui.main_window), "Uzbl");
     gtk_widget_set_name (uzbl.gui.main_window, "Uzbl");
 
-#if GTK_CHECK_VERSION (3, 0, 0)
-    /* TODO: Make into an option? */
+#if GTK_CHECK_VERSION (3, 0, 0) && !GTK_CHECK_VERSION (3, 13, 5)
+    /* TODO: Make into an option? Nope...it doesn't exist in 3.14 anymore
+     * because there are no resize grips whatsoever. */
     gtk_window_set_has_resize_grip (GTK_WINDOW (uzbl.gui.main_window), FALSE);
 #endif
 
