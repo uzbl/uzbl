@@ -2605,7 +2605,7 @@ IMPLEMENT_COMMAND (toggle)
 
     guint i;
     for (i = 1; i < argv->len; ++i) {
-        const gchar *option = argv_idx (argv, 1);
+        const gchar *option = argv_idx (argv, i);
         uzbl_commands_args_append (toggle_args, g_strdup (option));
     }
 
