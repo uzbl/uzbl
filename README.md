@@ -219,7 +219,7 @@ as `KEY` and `many args` as `VALUE`.
 
 #### Cookie
 
-* `cookie <add|delete|clear>`
+* `cookie <add|delete|clear|store>`
   - Manage cookies in `uzbl`. The subcommands work as follows:
     + `add <HOST> <PATH> <NAME> <VALUE> <SCHEME> <EXPIRATION>` (WebKit1 only)
       * Manually add a cookie.
@@ -229,6 +229,8 @@ as `KEY` and `many args` as `VALUE`.
       * Delete all cookies.
     + `clear domain [DOMAIN...]`
       * Delete all cookies matching the given domains.
+    + `store <sqlite|text> <FILE>` (WebKit2 only)
+      * Use FILE to store cookies in the given format.
 
 #### Display
 

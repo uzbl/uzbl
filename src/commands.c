@@ -1156,6 +1156,25 @@ IMPLEMENT_COMMAND (cookie)
         } else {
             uzbl_debug ("Unrecognized cookie clear type: %s\n", type);
         }
+#ifdef USE_WEBKIT2
+    } else if (!g_strcmp0 (command, "store")) {
+	ARG_CHECK (argv, 3);
+
+	const gchar *type = argv_idx (argv, 1);
+	const gchar *file = argv_idx (argv, 2);
+
+	WebKitCookiePersistentStorage t;
+	if (!g_strcmp0 (type, "sqlite"))
+	    t = WEBKIT_COOKIE_PERSISTENT_STORAGE_SQLITE;
+	else if (!g_strcmp0 (type, "text"))
+	    t = WEBKIT_COOKIE_PERSISTENT_STORAGE_TEXT;
+	else {
+            uzbl_debug ("Unrecognized cookie store type: %s\n", type);
+	    return;
+        }
+
+	webkit_cookie_manager_set_persistent_storage(manager, file, t);
+#endif
     } else {
         uzbl_debug ("Unrecognized cookie command: %s\n", command);
     }
