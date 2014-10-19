@@ -243,7 +243,13 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data);
 #ifdef USE_WEBKIT2
 static gboolean
 permission_cb (WebKitWebView *view, WebKitPermissionRequest *request, gpointer data);
-#if WEBKIT_CHECK_VERSION (2, 3, 1)
+#if WEBKIT_CHECK_VERSION (2, 5, 90)
+static gboolean
+tls_error_cb (WebKitWebView *view, gchar *uri, GTlsCertificate *cert, GTlsCertificateFlags flags, gpointer data);
+#elif WEBKIT_CHECK_VERSION (2, 5, 1)
+static gboolean
+tls_error_cb (WebKitWebView *view, GTlsCertificate *cert, GTlsCertificateFlags flags, const gchar *host, gpointer data);
+#elif WEBKIT_CHECK_VERSION (2, 3, 1)
 static gboolean
 tls_error_cb (WebKitWebView *view, WebKitCertificateInfo *info, const gchar *host, gpointer data);
 #endif
@@ -1111,6 +1117,10 @@ download_cb (WebKitWebContext *context, WebKitDownload *download, gpointer data)
     UZBL_UNUSED (download);
     UZBL_UNUSED (data);
 
+#if WEBKIT_CHECK_VERSION (2, 5, 90)
+    /* TODO: Set allow-overwrite property? */
+#endif
+
     handle_download (download, NULL);
 }
 
@@ -1161,8 +1171,50 @@ permission_cb (WebKitWebView *view, WebKitPermissionRequest *request, gpointer d
 }
 
 #if WEBKIT_CHECK_VERSION (2, 3, 1)
+static gboolean
+make_tls_error (const gchar *host, GTlsCertificate *cert, GTlsCertificateFlags flags, void *webkit_2_3_1_hack = NULL);
+
+#if WEBKIT_CHECK_VERSION (2, 5, 90)
+gboolean
+tls_error_cb (WebKitWebView *view, gchar *uri, GTlsCertificate *cert, GTlsCertificateFlags flags, gpointer data)
+{
+    SoupURI *soup_uri = soup_uri_new (uri);
+
+    if (!soup_uri) {
+        uzbl_debug ("Failed to parse URI for TLS failure: %s\n", uri);
+        return TRUE;
+    }
+
+    const gchar *host = soup_uri_get_host (soup_uri);
+    gboolean ret = make_tls_error (host, cert, flags);
+    soup_uri_free (soup_uri);
+
+    return ret;
+}
+#elif WEBKIT_CHECK_VERSION (2, 5, 1)
+gboolean
+tls_error_cb (WebKitWebView *view, GTlsCertificate *cert, GTlsCertificateFlags flags, const gchar *host, gpointer data)
+{
+    return make_tls_error (host, cert, flags);
+}
+#else
+gboolean
+tls_error_cb (WebKitWebView *view, WebKitCertificateInfo *info, const gchar *host, gpointer data)
+{
+    GTlsCertificate *cert = webkit_certificate_info_get_tls_certificate (info);
+    GTlsCertificateFlags flags = webkit_certificate_info_get_tls_errors (info);
+
+    WebKitCertificateInfo *info_copy = webkit_certificate_info_copy (info);
+    return make_tls_error (host, cert, flags, info_copy);
+}
+#endif
+
 typedef struct {
+#if WEBKIT_CHECK_VERSION (2, 5, 1)
+    GTlsCertificate *cert;
+#else
     WebKitCertificateInfo *info;
+#endif
     gchar *host;
 } UzblTlsErrorInfo;
 
@@ -1172,7 +1224,7 @@ static gchar *
 get_certificate_info (GTlsCertificate *cert);
 
 gboolean
-tls_error_cb (WebKitWebView *view, WebKitCertificateInfo *info, const gchar *host, gpointer data)
+make_tls_error (const gchar *host, GTlsCertificate *cert, GTlsCertificateFlags flags, void *info)
 {
     UZBL_UNUSED (view);
     UZBL_UNUSED (data);
@@ -1187,7 +1239,6 @@ tls_error_cb (WebKitWebView *view, WebKitCertificateInfo *info, const gchar *hos
     call (G_TLS_CERTIFICATE_GENERIC_ERROR, "error")
 
     GString *flags_str = NULL;
-    GTlsCertificateFlags flags = webkit_certificate_info_get_tls_errors (info);
 
 #define CHECK_TLS_FLAG(val, str)                \
     if (flags & val) {                          \
@@ -1208,7 +1259,6 @@ tls_error_cb (WebKitWebView *view, WebKitCertificateInfo *info, const gchar *hos
         flags_str = g_string_new ("unknown");
     }
 
-    GTlsCertificate *cert = webkit_certificate_info_get_tls_certificate (info);
     gchar *cert_info = get_certificate_info (cert);
 
     uzbl_debug ("TLS Error -> %s\n", host);
@@ -1225,7 +1275,12 @@ tls_error_cb (WebKitWebView *view, WebKitCertificateInfo *info, const gchar *hos
         uzbl_commands_args_append (args, g_strdup (flags_str->str));
         uzbl_commands_args_append (args, g_strdup (cert_info));
         UzblTlsErrorInfo *error_info = g_malloc (sizeof (UzblTlsErrorInfo));
-        error_info->info = webkit_certificate_info_copy (info);
+#if WEBKIT_CHECK_VERSION (2, 5, 1)
+        g_object_ref (cert);
+        error_info->cert = cert;
+#else
+        error_info->info = (WebKitCertificateInfo *)info;
+#endif
         error_info->host = g_strdup (host);
         uzbl_io_schedule_command (tls_error_command, args, decide_tls_error_policy, error_info);
     } else {
@@ -2032,11 +2087,19 @@ decide_tls_error_policy (GString *result, gpointer data)
 
     if (!g_strcmp0 (result->str, "ALLOW")) {
         WebKitWebContext *ctx = webkit_web_view_get_context (uzbl.gui.web_view);
+#if WEBKIT_CHECK_VERSION (2, 5, 1)
+        webkit_web_context_allow_tls_certificate_for_host (ctx, info->cert, info->host);
+#else
         webkit_web_context_allow_tls_certificate_for_host (ctx, info->info, info->host);
+#endif
     }
 
     g_free (info->host);
+#if WEBKIT_CHECK_VERSION (2, 5, 1)
+    g_object_unref (info->cert);
+#else
     webkit_certificate_info_free (info->info);
+#endif
     g_free (info);
 }
 
@@ -2434,6 +2497,9 @@ decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename
     WebKitURIResponse *response = webkit_download_get_response (download);
     content_type = webkit_uri_response_get_mime_type (response);
     total_size = webkit_uri_response_get_content_length (response);
+#if WEBKIT_CHECK_VERSION (2, 5, 90)
+    /* TODO: Use response headers? */
+#endif
 #else
     WebKitNetworkResponse *response = webkit_download_get_network_response (download);
     /* Downloads can be initiated from the context menu, in that case there is
