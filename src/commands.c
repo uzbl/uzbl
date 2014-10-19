@@ -1682,7 +1682,7 @@ IMPLEMENT_COMMAND (css)
             whitelist = NULL;
         }
         if (blacklist && !*blacklist) {
-            whitelist = NULL;
+            blacklist = NULL;
         }
 
         gchar **whitelist_list = NULL;
