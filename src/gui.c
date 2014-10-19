@@ -1235,8 +1235,9 @@ get_certificate_info (GTlsCertificate *cert);
 gboolean
 make_tls_error (const gchar *host, GTlsCertificate *cert, GTlsCertificateFlags flags, void *info)
 {
-    UZBL_UNUSED (view);
-    UZBL_UNUSED (data);
+#if WEBKIT_CHECK_VERSION (2, 5, 1)
+    UZBL_UNUSED (info);
+#endif
 
 #define tls_error_flags(call)                               \
     call (G_TLS_CERTIFICATE_UNKNOWN_CA, "unknown_ca")       \
