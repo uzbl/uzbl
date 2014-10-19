@@ -238,7 +238,7 @@ uzbl_variables_toggle (const gchar *name, GArray *values)
             guint i = 0;
             const gchar *first   = argv_idx (values, 0);
             const gchar *this    = first;
-                         next    = argv_idx (values, 1);
+                         next    = argv_idx (values, ++i);
 
             while (next && strcmp (current, this)) {
                 this = next;
