@@ -1178,6 +1178,9 @@ make_tls_error (const gchar *host, GTlsCertificate *cert, GTlsCertificateFlags f
 gboolean
 tls_error_cb (WebKitWebView *view, gchar *uri, GTlsCertificate *cert, GTlsCertificateFlags flags, gpointer data)
 {
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (data);
+
     SoupURI *soup_uri = soup_uri_new (uri);
 
     if (!soup_uri) {
@@ -1195,12 +1198,18 @@ tls_error_cb (WebKitWebView *view, gchar *uri, GTlsCertificate *cert, GTlsCertif
 gboolean
 tls_error_cb (WebKitWebView *view, GTlsCertificate *cert, GTlsCertificateFlags flags, const gchar *host, gpointer data)
 {
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (data);
+
     return make_tls_error (host, cert, flags);
 }
 #else
 gboolean
 tls_error_cb (WebKitWebView *view, WebKitCertificateInfo *info, const gchar *host, gpointer data)
 {
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (data);
+
     GTlsCertificate *cert = webkit_certificate_info_get_tls_certificate (info);
     GTlsCertificateFlags flags = webkit_certificate_info_get_tls_errors (info);
 
