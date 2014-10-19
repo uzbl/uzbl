@@ -1671,14 +1671,17 @@ IMPLEMENT_COMMAND (css)
             uzbl_debug ("Unrecognized frame target: %s\n", where);
         }
 
-        const gchar *baseuri = argv_idx (argv, 3);
-        const gchar *whitelist = argv_idx (argv, 4);
-        const gchar *blacklist = argv_idx (argv, 5);
+        const gchar *baseuri = argv->len >= 4 ? argv_idx (argv, 3) : NULL;
+        const gchar *whitelist = argv->len >= 5 ? argv_idx (argv, 4) : NULL;
+        const gchar *blacklist = argv->len >= 6 ? argv_idx (argv, 5) : NULL;
 
-        if (!*baseuri) {
+        if (baseuri && !*baseuri) {
             baseuri = NULL;
         }
-        if (!*whitelist) {
+        if (whitelist && !*whitelist) {
+            whitelist = NULL;
+        }
+        if (blacklist && !*blacklist) {
             whitelist = NULL;
         }
 
