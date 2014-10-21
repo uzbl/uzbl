@@ -8,6 +8,8 @@
 #endif
 #include "uzbl-core.h"
 
+#include <string.h>
+
 /* =========================== PUBLIC API =========================== */
 
 void
@@ -62,12 +64,16 @@ scheme_return (GString *result, gpointer data)
 {
     WebKitURISchemeRequest *request = (WebKitURISchemeRequest *)data;
 
-    gint64 len = result->len;
-    GInputStream *stream = g_memory_input_stream_new_from_data (
-        g_strdup (result->str),
-        len, g_free);
+    gchar *end = strchr (result->str, '\n');
+    size_t line_len = end - result->str;
 
-    webkit_uri_scheme_request_finish (request, stream, len, "text/html");
+    gint64 len = result->len - line_len - 1;
+    GInputStream *stream = g_memory_input_stream_new_from_data (
+        g_strdup (end + 1),
+        len, g_free);
+    *end = '\0';
+
+    webkit_uri_scheme_request_finish (request, stream, len, result->str);
 
     g_object_unref (stream);
 }

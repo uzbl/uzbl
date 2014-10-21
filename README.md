@@ -322,7 +322,9 @@ as `KEY` and `many args` as `VALUE`.
       Clears all user-supplied stylesheets.
 * `scheme <SCHEME> {COMMAND}`
   - Registers a custom scheme handler for `uzbl`. The handler should accept a
-    single argument for the URI to load and return HTML.
+    single argument for the URI to load and return HTML. When run, the output
+    is interpreted as content at the URL with a leading line with the MIME
+    type.
 * `menu <COMMAND>`
   - Controls the context menu shown in `uzbl`. Supported subcommands include:
     + `add <OBJECT> <NAME> <COMMAND>`
