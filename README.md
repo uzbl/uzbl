@@ -573,7 +573,7 @@ variables are treated as strings.
 
 #### Handler
 
-* `scheme_handler` (command) (no default)
+* `navigation_handler` (command) (no default)
   - The command to use when determining what to do when navigating to a new
     URI. It is passed the URI as an extra argument. If the command returns a
     string with the first line containing only the word `USED`, the navigation
@@ -1140,7 +1140,7 @@ the following environment variables:
 * `$UZBL_PRIVATE`
   - Set if the `enable_private` variable is non-zero, unset otherwise.
 
-Handler scripts (`download_handler`, `scheme_handler`, `request_handler`,
+Handler scripts (`download_handler`, `navigation_handler`, `request_handler`,
 `mime_handler`, `authentication_handler`, `permission_handler`, and
 `tls_error_handler`) are called with special arguments:
 
@@ -1160,7 +1160,7 @@ Handler scripts (`download_handler`, `scheme_handler`, `request_handler`,
       should be saved to. A download handler using WebKit's internal downloader
       can just echo this path and exit when this argument is present.
 
-* scheme handler
+* navigation handler
 
   1. `uri`
     - The URI of the page to be navigated to.
@@ -1322,7 +1322,7 @@ uzbl itself and will be emitted based on what is happening within uzbl-core.
 ##### Navigation
 
 * `NAVIGATION_STARTING <URI> <SRCFRAME> <DESTFRAME> <TYPE>`
-  - Sent when a main navigation is requested for a frame. See `scheme_handler`
+  - Sent when a main navigation is requested for a frame. See `navigation_handler`
     for the types available.
 * `LOAD_START`
   - Sent when a main page navigation is started. This is before WebKit even

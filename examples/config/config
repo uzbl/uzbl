@@ -37,7 +37,7 @@ set scripts_dir      @data_home:@prefix/share/uzbl/examples/data:scripts
 
 # === Hardcoded handlers =====================================================
 
-set scheme_handler         spawn_sync @scripts_dir/scheme.py
+set navigation_handler     spawn_sync @scripts_dir/scheme.py
 #set request_handler        spawn_sync @scripts_dir/request.py
 set authentication_handler spawn_sync @scripts_dir/auth.py
 set download_handler       spawn_sync @scripts_dir/download.sh

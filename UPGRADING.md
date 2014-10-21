@@ -216,6 +216,11 @@ because manipulating them had weird semantics).
   - *Rationale*: Setting `inject_text` triggered "magic" better
     attributed to a command. Also, reading from it wasn't useful.
   - *Porting*: Use the `load text` command.
+* `scheme_handler`
+  - *Change*: Renamed to `navigation_handler`.
+  - *Rationale*: The `scheme` command actually interprets specific schemes
+    while this variable was actually used to manage navigation policy.
+  - *Porting*: Use `navigation_handler` variable.
 * `ssl_verify`
   - *Change*: Renamed to `ssl_policy` and uses strings.
   - *Rationale*: Easier to understand and more consistent.
