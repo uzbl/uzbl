@@ -42,7 +42,7 @@
 #include "util.h"
 #include "variables.h"
 
-#ifdef HAVE_SOUP_CHECK_VERSION
+#ifdef HAVE_LIBSOUP_CHECK_VERSION
 #include <libsoup/soup-version.h>
 #endif
 
@@ -139,7 +139,7 @@ uzbl_init (int *argc, char ***argv)
             0
 #endif
             );
-#ifdef HAVE_SOUP_CHECK_VERSION
+#ifdef HAVE_LIBSOUP_CHECK_VERSION
         printf ("libsoup compile: %d.%d.%d\n",
             SOUP_MAJOR_VERSION,
             SOUP_MINOR_VERSION,
