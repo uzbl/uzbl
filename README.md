@@ -379,8 +379,8 @@ as `KEY` and `many args` as `VALUE`.
     + `get`
       * Returns `true` if the option is set for the scheme, `false` otherwise.
     + `set`
-      * Sets the option for the scheme.With WebKit2, be careful setting options
-        since they cannot (currently) be unset.
+      * Sets the option for the scheme. With WebKit2, be careful setting
+        options since they cannot (currently) be unset.
     + `unset` (WebKit1 only)
       * Unsets the option for the scheme.
 
