@@ -9,6 +9,7 @@ And it is also possible to execute a function on activation:
   bind('DD', myhandler)
 '''
 
+import six
 import sys
 import re
 from functools import partial
@@ -177,7 +178,7 @@ def split_glob(glob):
 class Bind(object):
 
     # unique id generator
-    nextid = count().__next__
+    nextid = count()
 
     def __init__(self, glob, handler, *args, **kargs):
         self.is_callable = isinstance(handler, collections.Callable)
@@ -203,7 +204,7 @@ class Bind(object):
         self.glob = glob
 
         # Assign unique id.
-        self.bid = self.nextid()
+        self.bid = six.next(self.nextid)
 
         self.split = split = FIND_PROMPTS(glob)
         self.prompts = []
