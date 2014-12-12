@@ -1646,7 +1646,12 @@ IMPLEMENT_COMMAND (css)
     const gchar *command = argv_idx (argv, 0);
 
 #ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 5, 1)
+#define HAS_USER_CONTENT_MANAGER
+    WebKitUserContentManager *manager = webkit_web_view_get_user_content_manager (uzbl.gui.web_view);
+#else
     WebKitWebViewGroup *group = webkit_web_view_get_group (uzbl.gui.web_view);
+#endif
 #else
     WebKitWebSettings *settings = webkit_web_view_get_settings (uzbl.gui.web_view);
 #endif
@@ -1657,27 +1662,56 @@ IMPLEMENT_COMMAND (css)
         const gchar *uri = argv_idx (argv, 1);
 
 #ifdef USE_WEBKIT2
+#ifdef HAS_USER_CONTENT_MANAGER
+        ARG_CHECK (argv, 4);
+#else
         ARG_CHECK (argv, 3);
+#endif
 
         const gchar *where = argv_idx (argv, 2);
+#ifdef HAS_USER_CONTENT_MANAGER
+        const gchar *level = argv_idx (argv, 3);
+#endif
 
-        WebKitInjectedContentFrames frames = WEBKIT_INJECTED_CONTENT_FRAMES_ALL;
+#ifndef HAS_USER_CONTENT_MANAGER
+        typedef WebKitInjectedContentFrames WebKitUserContentInjectedFrames;
+#define WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES WEBKIT_INJECTED_CONTENT_FRAMES_ALL
+#define WEBKIT_USER_CONTENT_INJECT_TOP_FRAME WEBKIT_INJECTED_CONTENT_FRAMES_TOP_ONLY
+#endif
+
+        WebKitUserContentInjectedFrames frames = WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES;
+#ifdef HAS_USER_CONTENT_MANAGER
+        WebKitUserStyleLevel style_level = WEBKIT_USER_STYLE_LEVEL_USER;
+#endif
 
         if (!g_strcmp0 (where, "all")) {
-            frames = WEBKIT_INJECTED_CONTENT_FRAMES_ALL;
+            frames = WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES;
         } else if (!g_strcmp0 (where, "top_only")) {
-            frames = WEBKIT_INJECTED_CONTENT_FRAMES_TOP_ONLY;
+            frames = WEBKIT_USER_CONTENT_INJECT_TOP_FRAME;
         } else {
             uzbl_debug ("Unrecognized frame target: %s\n", where);
         }
 
+#ifdef HAS_USER_CONTENT_MANAGER
+        if (!g_strcmp0 (level, "user")) {
+            style_level = WEBKIT_USER_STYLE_LEVEL_USER;
+        } else if (!g_strcmp0 (level, "author")) {
+            style_level = WEBKIT_USER_STYLE_LEVEL_AUTHOR;
+        } else {
+            uzbl_debug ("Unrecognized style sheet level: %s\n", level);
+        }
+#else
         const gchar *baseuri = argv->len >= 4 ? argv_idx (argv, 3) : NULL;
+#endif
+
         const gchar *whitelist = argv->len >= 5 ? argv_idx (argv, 4) : NULL;
         const gchar *blacklist = argv->len >= 6 ? argv_idx (argv, 5) : NULL;
 
+#ifndef HAS_USER_CONTENT_MANAGER
         if (baseuri && !*baseuri) {
             baseuri = NULL;
         }
+#endif
         if (whitelist && !*whitelist) {
             whitelist = NULL;
         }
@@ -1696,12 +1730,23 @@ IMPLEMENT_COMMAND (css)
             blacklist_list = g_strsplit (blacklist, ",", 0);
         }
 
+#ifdef HAS_USER_CONTENT_MANAGER
+        WebKitUserStyleSheet *sheet = webkit_user_style_sheet_new (
+            uri,
+            frames,
+            style_level,
+            (const gchar * const *)whitelist_list,
+            (const gchar * const *)blacklist_list);
+        webkit_user_content_manager_add_style_sheet (manager, sheet);
+        webkit_user_style_sheet_unref (sheet);
+#else
         webkit_web_view_group_add_user_style_sheet (group,
             uri,
             baseuri,
             (const gchar * const *)whitelist_list,
             (const gchar * const *)blacklist_list,
             frames);
+#endif
 
         if (whitelist_list) {
             g_strfreev (whitelist_list);
@@ -1718,7 +1763,11 @@ IMPLEMENT_COMMAND (css)
 #endif
     } else if (!g_strcmp0 (command, "clear")) {
 #ifdef USE_WEBKIT2
+#ifdef HAS_USER_CONTENT_MANAGER
+        webkit_user_content_manager_remove_all_style_sheets (manager);
+#else
         webkit_web_view_group_remove_all_user_style_sheets (group);
+#endif
 #else
         /* XXX: Is this really what this does? */
         g_object_set (G_OBJECT (settings),
