@@ -1774,7 +1774,9 @@ uzbl_variables_private_new (GHashTable *table)
 void
 uzbl_variables_private_free (UzblVariablesPrivate *priv)
 {
+#if GTK_CHECK_VERSION (3, 15, 0)
     g_object_unref (priv->status_background_provider);
+#endif
 
     /* All other members are deleted by the table's free function. */
     g_free (priv);
