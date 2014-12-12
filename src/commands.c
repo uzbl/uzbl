@@ -1238,7 +1238,7 @@ IMPLEMENT_COMMAND (zoom)
 
     const gchar *command = argv_idx (argv, 0);
 
-    gdouble new_zoom = webkit_web_view_get_zoom_level(uzbl.gui.web_view);
+    gdouble new_zoom = webkit_web_view_get_zoom_level (uzbl.gui.web_view);
 
     if (!g_strcmp0 (command, "in")) {
         gdouble step;
