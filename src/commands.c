@@ -1830,8 +1830,22 @@ IMPLEMENT_COMMAND (menu)
             context = WEBKIT_HIT_TEST_RESULT_CONTEXT_LINK;
         } else if (!g_strcmp0 (object, "image")) {
             context = WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE;
+        } else if (!g_strcmp0 (object, "media")) {
+            context = WEBKIT_HIT_TEST_RESULT_CONTEXT_MEDIA;
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 4)
         } else if (!g_strcmp0 (object, "editable")) {
             context = WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE;
+#endif
+#if WEBKIT_CHECK_VERSION (1, 11, 4)
+        } else if (!g_strcmp0 (object, "scrollbar")) {
+            context = WEBKIT_HIT_TEST_RESULT_CONTEXT_SCROLLBAR;
+#endif
+#if WEBKIT_CHECK_VERSION (2, 7, 1)
+        } else if (!g_strcmp0 (object, "selection")) {
+            context = WEBKIT_HIT_TEST_RESULT_CONTEXT_SELECTION;
+#endif
+#endif
         } else {
             uzbl_debug ("Unrecognized menu object: %s\n", object);;
             return;
@@ -2304,7 +2318,15 @@ IMPLEMENT_COMMAND (inspector)
         webkit_web_inspector_close (uzbl.gui.inspector);
 #ifdef USE_WEBKIT2
     } else if (!g_strcmp0 (command, "attach")) {
+#if WEBKIT_CHECK_VERSION (2, 7, 1)
+        if (webkit_web_inspector_get_can_attach (uzbl.gui.inspector)) {
+            webkit_web_inspector_attach (uzbl.gui.inspector);
+        } else {
+            uzbl_debug ("Not enough space to attach the inspector to the window\n");
+        }
+#else
         webkit_web_inspector_attach (uzbl.gui.inspector);
+#endif
     } else if (!g_strcmp0 (command, "detach")) {
         webkit_web_inspector_detach (uzbl.gui.inspector);
 #else

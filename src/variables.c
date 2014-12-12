@@ -1083,6 +1083,16 @@ expand_type (const gchar *str)
 #define HAVE_SPATIAL_NAVIGATION
 #endif
 
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 7, 2)
+#define HAVE_LOCAL_STORAGE_PATH
+#endif
+#else
+#if WEBKIT_CHECK_VERSION (1, 5, 2)
+#define HAVE_LOCAL_STORAGE_PATH
+#endif
+#endif
+
 /* Abbreviations to help keep the table's width humane. */
 #define UZBL_SETTING(typ, val, w, getter, setter) \
     { .type = TYPE_##typ, .value = val, .writeable = w, .builtin = TRUE, .get = (UzblFunction)getter, .set = (UzblFunction)setter }
@@ -1341,9 +1351,9 @@ DECLARE_GETSET (unsigned long long, app_cache_size);
 #endif
 DECLARE_GETSET (gchar *, web_database_directory);
 DECLARE_GETSET (unsigned long long, web_database_quota);
-#if WEBKIT_CHECK_VERSION (1, 5, 2)
-DECLARE_GETSET (gchar *, local_storage_path);
 #endif
+#ifdef HAVE_LOCAL_STORAGE_PATH
+DECLARE_GETSET (gchar *, local_storage_path);
 #endif
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 11, 92)
@@ -1683,9 +1693,9 @@ uzbl_variables_private_new (GHashTable *table)
 #endif
         { "web_database_directory",       UZBL_V_FUNC (web_database_directory,                 STR)},
         { "web_database_quota",           UZBL_V_FUNC (web_database_quota,                     ULL)},
-#if WEBKIT_CHECK_VERSION (1, 5, 2)
-        { "local_storage_path",           UZBL_V_FUNC (local_storage_path,                     STR)},
 #endif
+#ifdef HAVE_LOCAL_STORAGE_PATH
+        { "local_storage_path",           UZBL_V_FUNC (local_storage_path,                     STR)},
 #endif
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 11, 92)
@@ -2934,7 +2944,14 @@ IMPLEMENT_SETTER (unsigned long long, web_database_quota)
 
     return TRUE;
 }
+#endif
 
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 7, 2)
+GOBJECT_GETSET (gchar *, local_storage_path,
+                webkit_context (), "local-storage-directory")
+#endif
+#else
 #if WEBKIT_CHECK_VERSION (1, 5, 2)
 GOBJECT_GETSET (gchar *, local_storage_path,
                 webkit_settings (), "html5-local-storage-database-path")

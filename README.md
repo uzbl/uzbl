@@ -336,6 +336,14 @@ as `KEY` and `many args` as `VALUE`.
       * Returns the command for the item with the given name.
     + `list`
       * Returns the names of items in the menu as a JSON list.
+    The list of supported objects is:
+    + `document`
+    + `link`
+    + `image`
+    + `media`
+    + `editable` (WebKit2 >= 1.9.4)
+    + `scrollbar` (WebKit2 >= 1.11.4)
+    + `selection` (WebKit2 >= 2.7.1)
 
 #### Search
 
@@ -899,7 +907,7 @@ Note: In WebKit2, font sizes are in pixels, whereas WebKit1 uses points.
 * `web_database_quota` (size) (default: 5242880) (WebKit1 only)
   - The maximum size (in bytes) of web databases. (Note: It is unclear if this
     is a total quota or per-database quota.)
-* `local_storage_path` (string) (default: `$XDG_DATA_HOME/webkit/databases`) (WebKit1 >= 1.5.2)
+* `local_storage_path` (string) (default: `$XDG_DATA_HOME/webkit/databases`) (WebKit1 >= 1.5.2 or WebKit2 >= 1.7.2)
   - Where to store HTML5 `localStorage` data.
 * `disk_cache_directory` (string) (no default) (WebKit2 >= 1.11.92)
   - Where to store cache files.. Must be set before loading any pages to have
