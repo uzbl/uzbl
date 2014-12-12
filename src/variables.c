@@ -1066,6 +1066,14 @@ expand_type (const gchar *str)
 #endif
 
 #ifdef USE_WEBKIT2
+#if !WEBKIT_CHECK_VERSION (2, 5, 1)
+#define HAVE_PAGE_VIEW_MODE
+#endif
+#else
+#define HAVE_PAGE_VIEW_MODE
+#endif
+
+#ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (2, 3, 2)
 #define HAVE_ENABLE_MEDIA_STREAM_API
 #endif
@@ -1223,7 +1231,9 @@ DECLARE_GETSET (int, enable_frame_flattening);
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
 DECLARE_GETSET (int, enable_smooth_scrolling);
 #endif
+#ifdef HAVE_PAGE_VIEW_MODE
 DECLARE_GETSET (gchar *, page_view_mode);
+#endif
 #ifndef USE_WEBKIT2
 DECLARE_GETSET (int, transparent);
 #if WEBKIT_CHECK_VERSION (1, 3, 4)
@@ -1565,7 +1575,9 @@ uzbl_variables_private_new (GHashTable *table)
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
         { "enable_smooth_scrolling",      UZBL_V_FUNC (enable_smooth_scrolling,                INT)},
 #endif
+#ifdef HAVE_PAGE_VIEW_MODE
         { "page_view_mode",               UZBL_V_FUNC (page_view_mode,                         STR)},
+#endif
 #ifndef USE_WEBKIT2
         { "transparent",                  UZBL_V_FUNC (transparent,                            INT)},
 #if WEBKIT_CHECK_VERSION (1, 3, 4)
@@ -2515,6 +2527,7 @@ GOBJECT_GETSET (int, enable_smooth_scrolling,
                 webkit_settings (), "enable-smooth-scrolling")
 #endif
 
+#ifdef HAVE_PAGE_VIEW_MODE
 #ifdef USE_WEBKIT2
 #define page_view_mode_choices(call)   \
     call (WEBKIT_VIEW_MODE_WEB, "web") \
@@ -2546,6 +2559,7 @@ CHOICE_GETSET (page_view_mode_t, page_view_mode,
 #undef _webkit_web_view_set_page_view_mode
 
 #undef page_view_mode_choices
+#endif
 
 #ifndef USE_WEBKIT2
 GOBJECT_GETSET (int, transparent,

@@ -737,7 +737,7 @@ variables are treated as strings.
     area.
 * `enable_smooth_scrolling` (boolean) (default: 0) (WebKit >= 1.9.0)
   - If non-zero, scrolling the page will be smoothed.
-* `page_view_mode` (enumeration) (default: `web`)
+* `page_view_mode` (enumeration) (default: `web`) (not in WebKit2 >= 2.5.1)
   - How to render content on a page. Acceptable values include:
     + `web`
       * Render content as a web page.
