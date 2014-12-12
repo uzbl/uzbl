@@ -1417,6 +1417,9 @@ struct _UzblVariablesPrivate {
     /* UI variables */
     gboolean status_top;
     gchar *status_background;
+#if GTK_CHECK_VERSION (3, 15, 0)
+    GtkCssProvider *status_background_provider;
+#endif
 
     /* Customization */
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
@@ -1771,7 +1774,9 @@ uzbl_variables_private_new (GHashTable *table)
 void
 uzbl_variables_private_free (UzblVariablesPrivate *priv)
 {
-    /* All members are deleted by the table's free function. */
+    g_object_unref (priv->status_background_provider);
+
+    /* All other members are deleted by the table's free function. */
     g_free (priv);
 }
 
@@ -2080,7 +2085,33 @@ IMPLEMENT_SETTER (char *, status_background)
 
     gboolean parsed = FALSE;
 
-#if GTK_CHECK_VERSION (2, 91, 0)
+#if GTK_CHECK_VERSION (3, 15, 0)
+    GtkStyleContext *ctx = gtk_widget_get_style_context (widget);
+    GtkCssProvider *provider = gtk_css_provider_new ();
+    GError *err = NULL;
+    gchar *css_content = g_strdup_printf (
+        "* {\n"
+        "  background-color: %s;\n"
+        "}\n", status_background);
+    gtk_css_provider_load_from_data (provider,
+        css_content, -1, &err);
+    g_free (css_content);
+    if (!err) {
+        if (uzbl.variables->priv->status_background_provider) {
+            gtk_style_context_remove_provider (ctx, GTK_STYLE_PROVIDER (uzbl.variables->priv->status_background_provider));
+            g_object_unref (uzbl.variables->priv->status_background_provider);
+        }
+        /* Using a slightly higher priority here because the user set this
+         * manually and user CSS has already happened. */
+        gtk_style_context_add_provider (ctx, GTK_STYLE_PROVIDER (provider), GTK_STYLE_PROVIDER_PRIORITY_USER + 1);
+        uzbl.variables->priv->status_background_provider = provider;
+        parsed = TRUE;
+    } else {
+        uzbl_debug ("Failed to parse status_background color: '%s': %s\n", status_background, err->message);
+        g_object_unref (provider);
+        g_error_free (err);
+    }
+#elif GTK_CHECK_VERSION (2, 91, 0)
     GdkRGBA color;
     parsed = gdk_rgba_parse (&color, status_background);
     if (parsed) {
