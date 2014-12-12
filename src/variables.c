@@ -1888,6 +1888,12 @@ uzbl_variables_private_free (UzblVariablesPrivate *priv)
         return TRUE;                        \
     }
 
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 7, 2)
+static GObject *
+webkit_context ();
+#endif
+#endif
 static GObject *
 webkit_settings ();
 static GObject *
@@ -3328,6 +3334,16 @@ IMPLEMENT_GETTER (int, PID)
 {
     return (int)getpid ();
 }
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 7, 2)
+GObject *
+webkit_context ()
+{
+    return G_OBJECT (webkit_web_view_get_context (uzbl.gui.web_view));
+}
+#endif
+#endif
 
 GObject *
 webkit_settings ()
