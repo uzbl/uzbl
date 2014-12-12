@@ -1187,7 +1187,7 @@ permission_cb (WebKitWebView *view, WebKitPermissionRequest *request, gpointer d
 
 #if WEBKIT_CHECK_VERSION (2, 3, 1)
 static gboolean
-make_tls_error (const gchar *host, GTlsCertificate *cert, GTlsCertificateFlags flags, void *webkit_2_3_1_hack = NULL);
+make_tls_error (const gchar *host, GTlsCertificate *cert, GTlsCertificateFlags flags, void *webkit_2_3_1_hack);
 
 #if WEBKIT_CHECK_VERSION (2, 5, 90)
 gboolean
@@ -1204,7 +1204,7 @@ tls_error_cb (WebKitWebView *view, gchar *uri, GTlsCertificate *cert, GTlsCertif
     }
 
     const gchar *host = soup_uri_get_host (soup_uri);
-    gboolean ret = make_tls_error (host, cert, flags);
+    gboolean ret = make_tls_error (host, cert, flags, NULL /* webkit 2.3.1 hack */);
     soup_uri_free (soup_uri);
 
     return ret;
@@ -1216,7 +1216,7 @@ tls_error_cb (WebKitWebView *view, GTlsCertificate *cert, GTlsCertificateFlags f
     UZBL_UNUSED (view);
     UZBL_UNUSED (data);
 
-    return make_tls_error (host, cert, flags);
+    return make_tls_error (host, cert, flags, NULL /* webkit 2.3.1 hack */);
 }
 #else
 gboolean
