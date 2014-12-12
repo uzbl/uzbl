@@ -20,7 +20,19 @@ PYTHON   = python3
 # --- configuration ends here ---
 
 ifeq ($(ENABLE_WEBKIT2),auto)
+ENABLE_WEBKIT2 := $(shell pkg-config --exists webkit2gtk-4.0 && echo yes)
+ifneq ($(ENABLE_WEBKIT2),yes)
 ENABLE_WEBKIT2 := $(shell pkg-config --exists webkit2gtk-3.0 && echo yes)
+endif
+endif
+
+ifeq ($(ENABLE_WEBKIT2),yes)
+HAS_WEBKIT2_4 := $(shell pkg-config --exists webkit2gtk-4.0 && echo yes)
+ifeq ($(HAS_WEBKIT2_4),yes)
+WEBKIT2_VER := 4.0
+else
+WEBKIT2_VER := 3.0
+endif
 endif
 
 ifeq ($(ENABLE_GTK3),auto)
@@ -28,7 +40,7 @@ ENABLE_GTK3 := $(shell pkg-config --exists gtk+-3.0 && echo yes)
 endif
 
 ifeq ($(ENABLE_WEBKIT2),yes)
-REQ_PKGS += 'webkit2gtk-3.0 >= 1.2.4' javascriptcoregtk-3.0
+REQ_PKGS += 'webkit2gtk-$(WEBKIT2_VER) >= 1.2.4' javascriptcoregtk-$(WEBKIT2_VER)
 CPPFLAGS += -DUSE_WEBKIT2
 # WebKit2 requires GTK3
 ENABLE_GTK3 := yes
@@ -63,7 +75,7 @@ CPPFLAGS += -DHAVE_LIBSOUP_CHECK_VERSION
 endif
 
 ifeq ($(ENABLE_WEBKIT2),yes)
-HAVE_WEBKIT2_TLS_API := $(shell pkg-config --exists 'webkit2gtk-3.0 >= 2.3.1' && echo yes)
+HAVE_WEBKIT2_TLS_API := $(shell pkg-config --exists 'webkit2gtk-$(WEBKIT2_VER) >= 2.3.1' && echo yes)
 ifeq ($(HAVE_WEBKIT2_TLS_API),yes)
 REQ_PKGS += gnutls
 endif
