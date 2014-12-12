@@ -266,7 +266,7 @@ else
 	$(PYTHON) setup.py install --prefix=$(PREFIX) --root=$(DESTDIR) $(PYINSTALL_EXTRA)
 endif
 
-install-uzbl-browser: install-dirs install-uzbl-core install-event-manager
+install-uzbl-browser: uzbl-browser install-dirs install-uzbl-core install-event-manager
 	$(INSTALL) -m755 bin/uzbl-browser $(INSTALLDIR)/bin/uzbl-browser
 	#sed 's#@PREFIX@#$(PREFIX)#g' < README.browser.md > README.browser.md
 	#$(INSTALL) -m644 README.browser.md $(DOCDIR)/README.browser.md
