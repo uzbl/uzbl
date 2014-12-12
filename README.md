@@ -1165,6 +1165,8 @@ Handler scripts (`download_handler`, `scheme_handler`, `request_handler`,
   6. `modifiers`
     - The modifiers used for the navigation. This uses the same format as the
       `KEY_PRESS` and `KEY_RELEASE` events.
+  7. `is_gesture`
+    - `true` if the action was triggered by a gesture, `false` otherwise.
 
 * request handler
 
