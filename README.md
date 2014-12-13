@@ -325,7 +325,7 @@ as `KEY` and `many args` as `VALUE`.
     + `clear`
       Clears all user-supplied stylesheets.
 * `script <COMMAND>` (WebKit2 >= 2.5.1)
-    + `add <URI> <LOCATION> <WHERE> <WHITELIST> <BLACKLIST>`
+    + `add <URI> [LOCATION] [WHERE] [WHITELIST] [BLACKLIST]`
       * Adds a JavaScript file to pages when loaded. The location can be either
         `all` (the default) or `top_only` which indicates which frame(s) should
         execute the code when a page is loaded. The code can either be added to
