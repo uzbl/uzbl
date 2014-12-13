@@ -210,12 +210,12 @@ because manipulating them had weird semantics).
   - *Change*: Removed.
   - *Rationale*: Setting `inject_html` triggered "magic" better
     attributed to a command. Also, reading from it wasn't useful.
-  - *Porting*: Use the `inject html` command.
+  - *Porting*: Use the `load html` command.
 * `inject_text`
   - *Change*: Removed.
   - *Rationale*: Setting `inject_text` triggered "magic" better
     attributed to a command. Also, reading from it wasn't useful.
-  - *Porting*: Use the `inject text` command.
+  - *Porting*: Use the `load text` command.
 * `ssl_verify`
   - *Change*: Renamed to `ssl_policy` and uses strings.
   - *Rationale*: Easier to understand and more consistent.
