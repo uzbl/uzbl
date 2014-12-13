@@ -324,6 +324,15 @@ as `KEY` and `many args` as `VALUE`.
         `protocol://host/path` and may use `*` as a wildcard.
     + `clear`
       Clears all user-supplied stylesheets.
+* `script <COMMAND>` (WebKit2 >= 2.5.1)
+    + `add <URI> <LOCATION> <WHERE> <WHITELIST> <BLACKLIST>`
+      * Adds a JavaScript file to pages when loaded. The location can be either
+        `all` (the default) or `top_only` which indicates which frame(s) should
+        execute the code when a page is loaded. The code can either be added to
+        the `start` (the default) or `end` of loaded pages. The white and
+        blacklist arguments are the same format as `css add`.
+    + `clear`
+      Clears all user-supplied scripts.
 * `scheme <SCHEME> {COMMAND}`
   - Registers a custom scheme handler for `uzbl`. The handler should accept a
     single argument for the URI to load and return HTML.

@@ -604,6 +604,11 @@ DECLARE_COMMAND (cache);
 #endif
 DECLARE_COMMAND (favicon);
 DECLARE_COMMAND (css);
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 5, 1)
+DECLARE_COMMAND (script);
+#endif
+#endif
 DECLARE_COMMAND (scheme);
 
 /* Menu commands */
@@ -696,6 +701,11 @@ builtin_command_table[] = {
 #endif
     { "favicon",                        cmd_favicon,                  TRUE,  TRUE  },
     { "css",                            cmd_css,                      TRUE,  TRUE  },
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 5, 1)
+    { "script",                         cmd_script,                   TRUE,  TRUE  },
+#endif
+#endif
     { "scheme",                         cmd_scheme,                   FALSE, TRUE  },
 
     /* Menu commands */
@@ -1778,6 +1788,90 @@ IMPLEMENT_COMMAND (css)
         uzbl_debug ("Unrecognized css command: %s\n", command);
     }
 }
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 5, 1)
+IMPLEMENT_COMMAND (script)
+{
+    UZBL_UNUSED (result);
+
+    ARG_CHECK (argv, 1);
+
+    const gchar *command = argv_idx (argv, 0);
+
+    WebKitUserContentManager *manager = webkit_web_view_get_user_content_manager (uzbl.gui.web_view);
+
+    if (!g_strcmp0 (command, "add")) {
+        ARG_CHECK (argv, 2);
+
+        const gchar *uri = argv_idx (argv, 1);
+
+        const gchar *where = argv->len >= 3 ? argv_idx (argv, 2) : "";
+        const gchar *location = argv->len >= 4 ? argv_idx (argv, 3) : "";
+
+        WebKitUserContentInjectedFrames frames = WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES;
+        WebKitUserScriptInjectionTime when = WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START;
+
+        if (!g_strcmp0 (where, "all")) {
+            frames = WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES;
+        } else if (!g_strcmp0 (where, "top_only")) {
+            frames = WEBKIT_USER_CONTENT_INJECT_TOP_FRAME;
+        } else if (*where) {
+            uzbl_debug ("Unrecognized frame target: %s\n", where);
+        }
+
+        if (!g_strcmp0 (location, "start")) {
+            when = WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START;
+        } else if (!g_strcmp0 (location, "end")) {
+            when = WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_END;
+        } else if (*location) {
+            uzbl_debug ("Unrecognized script injection location: %s\n", location);
+        }
+
+        const gchar *whitelist = argv->len >= 5 ? argv_idx (argv, 4) : NULL;
+        const gchar *blacklist = argv->len >= 6 ? argv_idx (argv, 5) : NULL;
+
+        if (whitelist && !*whitelist) {
+            whitelist = NULL;
+        }
+        if (blacklist && !*blacklist) {
+            blacklist = NULL;
+        }
+
+        gchar **whitelist_list = NULL;
+        gchar **blacklist_list = NULL;
+
+        if (whitelist) {
+            whitelist_list = g_strsplit (whitelist, ",", 0);
+        }
+
+        if (blacklist) {
+            blacklist_list = g_strsplit (blacklist, ",", 0);
+        }
+
+        WebKitUserScript *script = webkit_user_script_new (
+            uri,
+            frames,
+            when,
+            (const gchar * const *)whitelist_list,
+            (const gchar * const *)blacklist_list);
+        webkit_user_content_manager_add_script (manager, script);
+        webkit_user_script_unref (script);
+
+        if (whitelist_list) {
+            g_strfreev (whitelist_list);
+        }
+        if (blacklist_list) {
+            g_strfreev (blacklist_list);
+        }
+    } else if (!g_strcmp0 (command, "clear")) {
+        webkit_user_content_manager_remove_all_scripts (manager);
+    } else {
+        uzbl_debug ("Unrecognized script command: %s\n", command);
+    }
+}
+#endif
+#endif
 
 IMPLEMENT_COMMAND (scheme)
 {
