@@ -1719,15 +1719,9 @@ IMPLEMENT_COMMAND (css)
         const gchar *uri = argv_idx (argv, 1);
 
 #ifdef USE_WEBKIT2
+        const gchar *where = argv->len >= 3 ? argv_idx (argv, 2) : "";
 #ifdef HAS_USER_CONTENT_MANAGER
-        ARG_CHECK (argv, 4);
-#else
-        ARG_CHECK (argv, 3);
-#endif
-
-        const gchar *where = argv_idx (argv, 2);
-#ifdef HAS_USER_CONTENT_MANAGER
-        const gchar *level = argv_idx (argv, 3);
+        const gchar *level = argv->len >= 4 ? argv_idx (argv, 3) : "";
 #endif
 
 #ifndef HAS_USER_CONTENT_MANAGER
@@ -1745,7 +1739,7 @@ IMPLEMENT_COMMAND (css)
             frames = WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES;
         } else if (!g_strcmp0 (where, "top_only")) {
             frames = WEBKIT_USER_CONTENT_INJECT_TOP_FRAME;
-        } else {
+        } else if (*where) {
             uzbl_debug ("Unrecognized frame target: %s\n", where);
         }
 
@@ -1754,7 +1748,7 @@ IMPLEMENT_COMMAND (css)
             style_level = WEBKIT_USER_STYLE_LEVEL_USER;
         } else if (!g_strcmp0 (level, "author")) {
             style_level = WEBKIT_USER_STYLE_LEVEL_AUTHOR;
-        } else {
+        } else if (*level) {
             uzbl_debug ("Unrecognized style sheet level: %s\n", level);
         }
 #else

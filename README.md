@@ -311,8 +311,8 @@ as `KEY` and `many args` as `VALUE`.
 * `css <COMMAND>`
   - Controls CSS settings in web pages. Supported subcommands include:
     + `add <URI>` (WebKit1)
-    + `add <URI> <LOCATION> [BASE_URI] [WHITELIST] [BLACKLIST]` (WebKit2 < 2.5.1)
-    + `add <URI> <LOCATION> <LEVEL> [WHITELIST] [BLACKLIST]` (WebKit2 >= 2.5.1)
+    + `add <URI> [LOCATION] [BASE_URI] [WHITELIST] [BLACKLIST]` (WebKit2 < 2.5.1)
+    + `add <URI> [LOCATION] [LEVEL] [WHITELIST] [BLACKLIST]` (WebKit2 >= 2.5.1)
       * Adds a CSS file to pages when loaded. WebKit1 only uses the URI
         parameter and only supports one extra stylesheet at a time. For
         WebKit2, the location can be one of `all` (the default) or `top_only`.
