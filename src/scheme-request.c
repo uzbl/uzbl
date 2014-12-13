@@ -117,7 +117,7 @@ uzbl_scheme_request_send (SoupRequest *request, GCancellable *cancellable, GErro
     uzbl_commands_args_free (args);
 
     gchar *end = strchr (result->str, '\n');
-    size_t line_len = end - result->str;
+    size_t line_len = end ? end - result->str : result->len;
 
     uzbl_request->priv->content_length = result->len - line_len - 1;
     uzbl_request->priv->content_type = g_strndup (result->str, line_len);
