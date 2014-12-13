@@ -1386,6 +1386,7 @@ DECLARE_GETTER (gchar *, geometry);
 #ifdef HAVE_PLUGIN_API
 DECLARE_GETTER (gchar *, plugin_list);
 #endif
+DECLARE_GETTER (int, is_online);
 DECLARE_GETTER (int, WEBKIT_MAJOR);
 DECLARE_GETTER (int, WEBKIT_MINOR);
 DECLARE_GETTER (int, WEBKIT_MICRO);
@@ -1733,6 +1734,7 @@ uzbl_variables_private_new (GHashTable *table)
 #ifdef HAVE_PLUGIN_API
         { "plugin_list",                  UZBL_C_FUNC (plugin_list,                            STR)},
 #endif
+        { "is_online",                    UZBL_C_FUNC (is_online,                              INT)},
         { "uri",                          UZBL_C_STRING (uzbl.state.uri)},
         { "embedded",                     UZBL_C_INT (uzbl.state.plug_mode)},
         { "WEBKIT_MAJOR",                 UZBL_C_FUNC (WEBKIT_MAJOR,                           INT)},
@@ -3132,6 +3134,12 @@ IMPLEMENT_GETTER (gchar *, plugin_list)
 #undef plugin_foreach
 
     return g_string_free (list, FALSE);
+}
+
+IMPLEMENT_GETTER (int, is_online)
+{
+    GNetworkMonitor *monitor = g_network_monitor_get_default ();
+    return g_network_monitor_get_network_available (monitor);
 }
 
 static void

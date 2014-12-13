@@ -955,6 +955,8 @@ they are written as comments.
     `<width>x<height>+<xoffset>+<yoffset>` format.
 * `plugin_list` (string) (WebKit2 >= 1.11.4 or WebKit1 >= 1.3.8) (WebKit2 broken)
   - A JSON-formatted list describing loaded plugins.
+* `is_online` (boolean)
+  - If non-zero, a network is available (not necessarily the Internet).
 * `uri` (string)
   - The current top-level URI of the view.
 * `embedded` (boolean)
