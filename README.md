@@ -333,6 +333,12 @@ as `KEY` and `many args` as `VALUE`.
         blacklist arguments are the same format as `css add`.
     + `clear`
       Clears all user-supplied scripts.
+    + `listen <NAME>`
+      Listen to messages on a given message handler call. Accessible via
+      `window.webkit.messageHandlers.NAME.postMessage(value)` from the web
+      page. Events will be sent in the form `SCRIPT_MESSAGE <NAME> <MESSAGE>`.
+    + `ignore <NAME>`
+      Stop listening to names on the given message handler calls.
 * `scheme <SCHEME> {COMMAND}`
   - Registers a custom scheme handler for `uzbl`. The handler should accept a
     single argument for the URI to load and return HTML.
@@ -1418,6 +1424,9 @@ uzbl itself and will be emitted based on what is happening within uzbl-core.
   - Sent when the main rendering process crashed.
 * `WEB_PROCESS_STARTED` (WebKit2 only)
   - Sent when a new web process is started.
+* `SCRIPT_MESSAGE <NAME> <MESSAGE>` (WebKit2 >= 2.5.1)
+  - Sent when an injected web script sends a message to a listened message
+    handler.
 
 ##### Window
 

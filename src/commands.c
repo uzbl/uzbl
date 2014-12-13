@@ -44,6 +44,13 @@ struct _UzblCommands {
     UzblFindOptions  search_options_last;
     gboolean         search_forward;
     gchar           *search_text;
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 5, 1)
+    /* Script variables */
+    GHashTable *script_handler_data_table;
+#endif
+#endif
 };
 
 typedef void (*UzblCommandCallback) (GArray *argv, GString *result);
@@ -57,6 +64,14 @@ struct _UzblCommand {
 
 static const UzblCommand
 builtin_command_table[];
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 5, 1)
+typedef struct _UzblScriptHandlerData UzblScriptHandlerData;
+static void
+script_handler_data_free (gpointer data);
+#endif
+#endif
 
 /* =========================== PUBLIC API =========================== */
 
@@ -74,6 +89,14 @@ uzbl_commands_init ()
     uzbl.commands->search_options_last = 0;
     uzbl.commands->search_forward = FALSE;
     uzbl.commands->search_text = NULL;
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 5, 1)
+    uzbl.commands->script_handler_data_table = g_hash_table_new_full (
+        g_str_hash, g_str_equal,
+        g_free, script_handler_data_free);
+#endif
+#endif
 
     const UzblCommand *cmd = &builtin_command_table[0];
     while (cmd->name) {
@@ -93,6 +116,12 @@ uzbl_commands_free ()
     g_hash_table_destroy (uzbl.commands->table);
 
     g_free (uzbl.commands->search_text);
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 5, 1)
+    g_hash_table_destroy (uzbl.commands->script_handler_data_table);
+#endif
+#endif
 
     g_free (uzbl.commands);
     uzbl.commands = NULL;
@@ -274,6 +303,24 @@ uzbl_commands_load_file (const gchar *path)
 }
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 5, 1)
+struct _UzblScriptHandlerData {
+    gchar *name;
+};
+
+void
+script_handler_data_free (gpointer data)
+{
+    UzblScriptHandlerData *handler_data = (UzblScriptHandlerData *)data;
+
+    g_free (handler_data->name);
+
+    g_free (handler_data);
+}
+#endif
+#endif
 
 static JSValueRef
 call_command (JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception);
@@ -1791,6 +1838,9 @@ IMPLEMENT_COMMAND (css)
 
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (2, 5, 1)
+static void
+script_message_callback (WebKitUserContentManager *manager, WebKitJavascriptResult *res, gpointer data);
+
 IMPLEMENT_COMMAND (script)
 {
     UZBL_UNUSED (result);
@@ -1866,6 +1916,51 @@ IMPLEMENT_COMMAND (script)
         }
     } else if (!g_strcmp0 (command, "clear")) {
         webkit_user_content_manager_remove_all_scripts (manager);
+    } else if (!g_strcmp0 (command, "listen")) {
+        ARG_CHECK (argv, 2);
+
+        const gchar *name = argv_idx (argv, 1);
+
+        UzblScriptHandlerData *handler_data = g_hash_table_lookup (uzbl.commands->script_handler_data_table, name);
+        if (handler_data) {
+            uzbl_debug ("Removing old script message handler for %s\n", name);
+            g_hash_table_remove (uzbl.commands->script_handler_data_table, name);
+        }
+
+        handler_data = g_malloc0 (sizeof (UzblScriptHandlerData));
+        handler_data->name = g_strdup (name);
+
+        gchar *signal_name = g_strdup_printf ("signal::script-message-handler::%s",
+            name);
+        g_object_connect (G_OBJECT (manager),
+            signal_name, G_CALLBACK (script_message_callback), handler_data,
+            NULL);
+        g_free (signal_name);
+
+        webkit_user_content_manager_register_script_message_handler (manager, name);
+
+        g_hash_table_insert (uzbl.commands->script_handler_data_table, g_strdup (name), handler_data);
+    } else if (!g_strcmp0 (command, "ignore")) {
+        ARG_CHECK (argv, 2);
+
+        const gchar *name = argv_idx (argv, 1);
+
+        UzblScriptHandlerData *handler_data = g_hash_table_lookup (uzbl.commands->script_handler_data_table, name);
+        if (!handler_data) {
+            uzbl_debug ("No script message handler '%s' to ignore\n", name);
+            return;
+        }
+
+        webkit_user_content_manager_unregister_script_message_handler (manager, name);
+
+        gchar *signal_name = g_strdup_printf ("signal::script-message-handler::%s",
+            name);
+        g_object_disconnect (G_OBJECT (manager),
+            signal_name, G_CALLBACK (script_message_callback), handler_data,
+            NULL);
+        g_free (signal_name);
+
+        g_hash_table_remove (uzbl.commands->script_handler_data_table, name);
     } else {
         uzbl_debug ("Unrecognized script command: %s\n", command);
     }
@@ -2967,6 +3062,29 @@ plugin_toggle_one (WebKitWebPlugin *plugin, gpointer data)
 
         webkit_web_plugin_set_enabled (plugin, !enabled);
     }
+}
+#endif
+#endif
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 5, 1)
+void
+script_message_callback (WebKitUserContentManager *manager, WebKitJavascriptResult *res, gpointer data)
+{
+    UZBL_UNUSED (manager);
+
+    UzblScriptHandlerData *handler_data = (UzblScriptHandlerData *)data;
+
+    JSGlobalContextRef ctx = webkit_javascript_result_get_global_context (res);
+    JSValueRef res_val = webkit_javascript_result_get_value (res);
+    gchar *res_str = uzbl_js_to_string (ctx, res_val);
+
+    uzbl_events_send (SCRIPT_MESSAGE, NULL,
+        TYPE_STR, handler_data->name,
+        TYPE_STR, res_str,
+        NULL);
+
+    g_free (res_str);
 }
 #endif
 #endif

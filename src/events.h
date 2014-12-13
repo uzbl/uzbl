@@ -55,6 +55,7 @@
     call (INSECURE_CONTENT),    \
     call (WEB_PROCESS_STARTED), \
     call (TLS_ERROR),           \
+    call (SCRIPT_MESSAGE),      \
     /* Must be last entry. */   \
     call (LAST_EVENT)
 
