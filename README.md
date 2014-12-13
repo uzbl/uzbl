@@ -313,12 +313,12 @@ as `KEY` and `many args` as `VALUE`.
     + `add <URI>` (WebKit1)
     + `add <URI> <LOCATION> [BASE_URI] [WHITELIST] [BLACKLIST]` (WebKit2 < 2.5.1)
     + `add <URI> <LOCATION> <LEVEL> [WHITELIST] [BLACKLIST]` (WebKit2 >= 2.5.1)
-      * Adds a CSS file to the given page applied at the given location in the
-        page. WebKit1 only uses the URI parameter and only supports one extra
-        stylesheet at a time. For WebKit2, the location can be one of `all` or
-        `top_only`. For `top_only`, child frames do not use the stylesheet. The
-        base URI, if given, is used during CSS processing (up to 2.5.1). The
-        level can be `user` or `author` and it is treated as if provided that
+      * Adds a CSS file to pages when loaded. WebKit1 only uses the URI
+        parameter and only supports one extra stylesheet at a time. For
+        WebKit2, the location can be one of `all` (the default) or `top_only`.
+        For `top_only`, child frames do not use the stylesheet. The base URI,
+        if given, is used during CSS processing (up to 2.5.1). The level can be
+        `user` (the default) or `author` and it is treated as if provided that
         way (`author` is the website). The white and blacklists are
         comma-separated URI patterns which must match the format
         `protocol://host/path` and may use `*` as a wildcard.
