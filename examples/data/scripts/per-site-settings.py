@@ -133,7 +133,7 @@ def main(filepath, fileglob):
     else:
         sys.stderr.write('%s: Error: \'%s\' is neither a directory nor a file\n' % (sys.argv[0], filepath))
 
-        os.exit(1)
+        sys.exit(1)
 
     commands = grep_url(url.hostname, url.path, fin)
 
@@ -148,7 +148,7 @@ if __name__ == '__main__':
     except IndexError:
         sys.stderr.write('%s: Error: No file given to read.\n', sys.argv[0])
 
-        os.exit(1)
+        sys.exit(1)
 
     try:
         fileglob = sys.argv[2]
