@@ -56,6 +56,8 @@
     call (WEB_PROCESS_STARTED), \
     call (TLS_ERROR),           \
     call (SCRIPT_MESSAGE),      \
+    call (SHOW_NOTIFICATION),   \
+    call (CLOSE_NOTIFICATION),  \
     /* Must be last entry. */   \
     call (LAST_EVENT)
 

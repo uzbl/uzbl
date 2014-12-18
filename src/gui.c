@@ -280,6 +280,12 @@ populate_popup_cb (WebKitWebView *view, GtkMenu *menu, gpointer data);
 #ifdef USE_WEBKIT2
 static gboolean
 web_process_crashed_cb (WebKitWebView *view, gpointer data);
+#if WEBKIT_CHECK_VERSION (2, 7, 3)
+static gboolean
+show_notification_cb (WebKitWebView *view, WebKitNotification *notification, gpointer data);
+static gboolean
+close_notification_cb (WebKitWebView *view, WebKitNotification *notification, gpointer data);
+#endif
 #endif
 /* Scrollbar events */
 static gboolean
@@ -377,6 +383,10 @@ web_view_init ()
 #endif
 #ifdef USE_WEBKIT2
         "signal::web-process-crashed",                  G_CALLBACK (web_process_crashed_cb),   NULL,
+#if WEBKIT_CHECK_VERSION (2, 7, 3)
+        "signal::show-notification",                    G_CALLBACK (show_notification_cb),     NULL,
+        "signal::close-notification",                   G_CALLBACK (close_notification_cb),    NULL,
+#endif
 #endif
         NULL);
 
@@ -1180,6 +1190,19 @@ permission_cb (WebKitWebView *view, WebKitPermissionRequest *request, gpointer d
 
     if (WEBKIT_IS_GEOLOCATION_PERMISSION_REQUEST (request)) {
         type = "geolocation";
+#if WEBKIT_CHECK_VERSION (2, 7, 3)
+    } else if (WEBKIT_IS_USER_MEDIA_PERMISSION_REQUEST (request)) {
+        WebKitUserMediaPermissionRequest *user_media_req = (WebKitUserMediaPermissionRequest *)request;
+        if (webkit_user_media_permission_is_for_audio_device (user_media_req)) {
+            type = "user-media-audio";
+        } else if (webkit_user_media_permission_is_for_video_device (user_media_req)) {
+            type = "user-media-video";
+        } else {
+            type = "user-media";
+        }
+    } else if (WEBKIT_IS_NOTIFICATION_PERMISSION_REQUEST (request)) {
+        type = "notification";
+#endif
     }
 
     return request_permission (uri, type, G_OBJECT (request));
@@ -1472,6 +1495,36 @@ web_process_crashed_cb (WebKitWebView *view, gpointer data)
 
     return FALSE;
 }
+
+#if WEBKIT_CHECK_VERSION (2, 7, 3)
+gboolean
+show_notification_cb (WebKitWebView *view, WebKitNotification *notification, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (data);
+
+    uzbl_events_send (SHOW_NOTIFICATION, NULL,
+        TYPE_ULL, webkit_notification_get_id (notification),
+        TYPE_STR, webkit_notification_get_title (notification),
+        TYPE_STR, webkit_notification_get_body (notification),
+        NULL);
+
+    return TRUE;
+}
+
+gboolean
+close_notification_cb (WebKitWebView *view, WebKitNotification *notification, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (data);
+
+    uzbl_events_send (CLOSE_NOTIFICATION, NULL,
+        TYPE_ULL, webkit_notification_get_id (notification),
+        NULL);
+
+    return TRUE;
+}
+#endif
 #endif
 
 /* Scrollbar events */
