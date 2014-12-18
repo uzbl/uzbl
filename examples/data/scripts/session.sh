@@ -61,7 +61,7 @@ case "$action" in
         exit 1
     fi
     [ "$UZBL_URI" != "(null)" ] && print "$UZBL_URI\n" >> "$UZBL_SESSION_FILE"
-    uzbl_control "exit\n"
+    uzbl_control "exit"
     ;;
 
 "endsession")
@@ -70,7 +70,7 @@ case "$action" in
             print "spawn $scriptfile endinstance\n" > "$fifo"
         fi
     done
-    [ -z "$UZBL_SOCKET" ] || uzbl_control "spawn $scriptfile endinstance\n"
+    [ -z "$UZBL_SOCKET" ] || uzbl_control "spawn $scriptfile endinstance"
     ;;
 
 *)
