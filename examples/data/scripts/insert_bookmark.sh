@@ -7,7 +7,7 @@
 
 which zenity >/dev/null 2>&1 || exit 2
 
-readonly entry="$( zenity --text="Add bookmark. add tags after the tabulators, separated by spaces" --entry-text="$UZBL_URI	$UZBL_TITLE	" )"
+readonly entry="$( zenity --entry --text="Add bookmark. add tags after the tabulators, separated by spaces" --entry-text="$UZBL_URI	$UZBL_TITLE	" )"
 readonly exitstatus="$?"
 [ "$exitstatus" -eq 0 ] || exit "$exitstatus"
 
