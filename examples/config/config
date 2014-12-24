@@ -520,7 +520,7 @@ set ssl_policy fail
 
 # === Post-load misc commands ================================================
 spawn_sync_exec @scripts_dir/load_cookies.sh
-spawn_sync_exec @scripts_dir/load_cookies.sh @data_home/session-cookies.txt
+spawn_sync_exec @scripts_dir/load_cookies.sh @(echo "${UZBL_SESSION_COOKIE_FILE:-@data_home/session-cookies.txt}")@
 
 # Set the "home" page.
 uri uzbl.org/doesitwork/@COMMIT

@@ -163,8 +163,10 @@ class TextStore(object):
         os.umask(curmask)
 
 xdg_data_home = os.environ.get('XDG_DATA_HOME', os.path.join(os.environ['HOME'], '.local/share'))
-DefaultStore = TextStore(os.path.join(xdg_data_home, 'uzbl/cookies.txt'))
-SessionStore = TextStore(os.path.join(xdg_data_home, 'uzbl/session-cookies.txt'))
+UZBL_COOKIE_FILE = os.environ.get("UZBL_COOKIE_FILE", os.path.join(xdg_data_home, 'uzbl/cookies.txt'))
+UZBL_SESSION_COOKIE_FILE = os.environ.get("UZBL_SESSION_COOKIE_FILE", os.path.join(xdg_data_home, 'uzbl/session-cookies.txt'))
+DefaultStore = TextStore(UZBL_COOKIE_FILE)
+SessionStore = TextStore(UZBL_SESSION_COOKIE_FILE)
 
 class Cookies(PerInstancePlugin):
     def __init__(self, uzbl):
