@@ -7,7 +7,7 @@
 .Sh SYNOPSIS
 .Nm
 .Bk -words
-.Op Fl hpvV
+.Op Fl BhpvV
 .Op Fl c Ar config
 .Op Fl Fl connect-socket Ar csocket
 .Op Fl Fl display Ar display
@@ -31,12 +31,14 @@ take a look at
 .Pp
 The options are as follows:
 .Bl -tag -width "v"
+.It Fl B, Fl Fl bug-info
+Prints information about dependencies and the system for bug reports and then quit.
 .It Fl c, Fl Fl config Ar config
-Config file to load.
+Configuration file to load.
 .It Fl Fl connect-socket Ar csocket
 The path to a
 .Xr uzbl-event-manager 1
-socket.
+(or other event manager) socket.
 .It Fl Fl display Ar display
 The X display to use.
 .It Fl g, Fl Fl geometry Ar geometry
@@ -48,7 +50,7 @@ or alternatively
 .Em WIDTHxHEIGHT+X+Y
 as formats.
 .It Fl h, Fl Fl help
-Wether to print help message and exit afterwards.
+Whether to print help message and exit afterwards.
 .It Fl n, Fl Fl named Ar name
 Name of the current instance (defaults to Xorg window id).
 .It Fl p, Fl Fl print-events
