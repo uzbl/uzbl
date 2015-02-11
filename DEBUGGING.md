@@ -11,7 +11,7 @@ Reporting issues
 Issues should come with the output of the `--bug-info` flag to `uzbl-core` which
 prints out relevant information for how uzbl was built.
 
-Event Stream
+Event stream
 ------------
 
 First, there is uzbl's event stream which is accessible with the `-p` or
