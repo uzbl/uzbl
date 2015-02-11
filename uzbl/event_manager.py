@@ -366,18 +366,24 @@ def stop_action():
     if not os.path.isfile(pid_file):
         logger.error('could not find running event manager with pid file %r',
             pid_file)
-        return
+        return 1
 
     pid = get_pid(pid_file)
+    if pid is None:
+        logger.error('unable to determine pid with pid file: %r', pid_file)
+        return 1
+
     if not pid_running(pid):
         logger.debug('no process with pid %r', pid)
         del_pid_file(pid_file)
-        return
+        return 1
 
     logger.debug('terminating process with pid %r', pid)
     term_process(pid)
     del_pid_file(pid_file)
     logger.info('stopped event manager process with pid %d', pid)
+
+    return 0
 
 
 def start_action():
@@ -386,9 +392,13 @@ def start_action():
     pid_file = opts.pid_file
     if os.path.isfile(pid_file):
         pid = get_pid(pid_file)
+        if pid is None:
+            logger.error('unable to determine pid with pid file: %r', pid_file)
+            return 1
+
         if pid_running(pid):
             logger.error('event manager already started with pid %d', pid)
-            return
+            return 1
 
         logger.info('no process with pid %d', pid)
         del_pid_file(pid_file)
@@ -399,12 +409,14 @@ def start_action():
     daemon = UzblEventDaemon(listener, plugind)
     daemon.run()
 
+    return 0
+
 
 def restart_action():
     '''Restart the event manager daemon.'''
 
     stop_action()
-    start_action()
+    return start_action()
 
 
 def list_action():
@@ -417,6 +429,8 @@ def list_action():
     for line in pkgutil.iter_modules(uzbl.plugins.__path__, 'uzbl.plugins.'):
         imp, name, ispkg = line
         print(name)
+
+    return 0
 
 
 def make_parser():
@@ -532,13 +546,15 @@ def main():
 
     logger.info('daemon action %r', action)
     # Do action
-    daemon_actions[action]()
+    ret = daemon_actions[action]()
 
     logger.debug('process CPU time: %f', time.clock())
 
+    return ret
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
 
 
 # vi: set et ts=4:
