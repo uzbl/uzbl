@@ -42,6 +42,8 @@ var findLink = function (elem) {
 };
 
 return {
+    /* TODO: Add support for the HTTP 'Link' header from RFC 5988:
+     * https://tools.ietf.org/html/rfc5988 */
     next: function () {
         return findLink(nextAnchor());
     },
