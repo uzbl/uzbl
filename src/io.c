@@ -108,25 +108,30 @@ uzbl_io_free ()
     uzbl.io = NULL;
 }
 
+typedef gboolean (*UzblIODataCallback)(GIOChannel *gio, GString* line, gpointer data);
+typedef void (*UzblIODataErrorCallback)(GIOChannel *gio, gpointer data);
 static void
-add_cmd_source (GIOChannel *gio, const gchar *name, GIOFunc callback, gpointer data);
+add_buffered_cmd_source (GIOChannel *gio, const gchar *name, UzblIODataCallback callback,
+        UzblIODataErrorCallback error_callback, gpointer data);
 static gboolean
-control_stdin (GIOChannel *gio, GIOCondition condition, gpointer data);
+control_stdin (GIOChannel *gio, GString *line, gpointer data);
 
 void
 uzbl_io_init_stdin ()
 {
     GIOChannel *chan = g_io_channel_unix_new (STDIN_FILENO);
     if (chan) {
-        add_cmd_source (chan, "Uzbl stdin watcher",
-            control_stdin, NULL);
+        add_buffered_cmd_source (chan, "Uzbl stdin watcher",
+            control_stdin, NULL, NULL);
     } else {
         g_error ("create_stdin: error while opening stdin\n");
     }
 }
 
 static gboolean
-control_client_socket (GIOChannel *clientchan, GIOCondition, gpointer data);
+control_client_socket (GIOChannel *gio, GString *line, gpointer data);
+static void
+close_client_socket (GIOChannel *gio, gpointer data);
 static void
 replay_event_buffer (GIOChannel *channel);
 
@@ -144,8 +149,8 @@ uzbl_io_init_connect_socket (const gchar *socket_path)
         chan = g_io_channel_unix_new (sockfd);
         if (chan) {
             g_io_channel_set_encoding (chan, NULL, NULL);
-            add_cmd_source (chan, "Uzbl connect socket",
-                control_client_socket, uzbl.io->connect_sockets);
+            add_buffered_cmd_source (chan, "Uzbl connect socket",
+                control_client_socket, close_client_socket, uzbl.io->connect_sockets);
             g_ptr_array_add (uzbl.io->connect_sockets, chan);
         }
     } else {
@@ -405,16 +410,38 @@ run_io (gpointer data)
     return NULL;
 }
 
+typedef struct {
+    GString *buffer;
+    UzblIODataCallback callback;
+    UzblIODataErrorCallback error_callback;
+    gpointer data;
+} UzblIOBufferData;
+
+static gboolean
+line_buffer_io (GIOChannel *gio, GIOCondition condition, gpointer data);
+static void
+free_watcher_data (gpointer data);
+
 void
-add_cmd_source (GIOChannel *gio, const gchar *name, GIOFunc callback, gpointer data)
+add_buffered_cmd_source (GIOChannel *gio, const gchar *name, UzblIODataCallback callback,
+        UzblIODataErrorCallback error_callback, gpointer data)
 {
     GSource *source = g_io_create_watch (gio, G_IO_IN | G_IO_HUP);
     g_source_set_name (source, name);
 
+    GIOFlags flags = g_io_channel_get_flags (gio);
+    g_io_channel_set_flags (gio, flags | G_IO_FLAG_NONBLOCK, NULL);
+
+    UzblIOBufferData *io_data = g_malloc (sizeof (UzblIOBufferData));
+    io_data->buffer = g_string_new ("");
+    io_data->callback = callback;
+    io_data->error_callback = error_callback;
+    io_data->data = data;
+
     /* Why does casting callback into a GSourceFunc work? GIOFunc takes 3
      * parameters while GSourceFunc takes 1. However, this is what is done in
      * g_io_add_watch, we just want to attach to a different context. */
-    g_source_set_callback (source, (GSourceFunc)callback, data, NULL);
+    g_source_set_callback (source, (GSourceFunc)line_buffer_io, io_data, free_watcher_data);
 
     g_source_attach (source, uzbl.io->io_ctx);
 
@@ -427,19 +454,12 @@ static void
 write_stdout (GString *result, gpointer data);
 
 gboolean
-control_stdin (GIOChannel *gio, GIOCondition condition, gpointer data)
+control_stdin (GIOChannel *gio, GString *input, gpointer data)
 {
-    UZBL_UNUSED (condition);
+    UZBL_UNUSED (gio);
     UZBL_UNUSED (data);
 
-    gchar *ctl_line = NULL;
-    GIOStatus ret;
-
-    ret = g_io_channel_read_line (gio, &ctl_line, NULL, NULL, NULL);
-    if ((ret == G_IO_STATUS_ERROR) || (ret == G_IO_STATUS_EOF)) {
-        return FALSE;
-    }
-
+    gchar *ctl_line = g_strdup (input->str);
     schedule_io_input (ctl_line, write_stdout, NULL);
 
     return TRUE;
@@ -449,46 +469,32 @@ static void
 write_socket (GString *result, gpointer data);
 
 gboolean
-control_client_socket (GIOChannel *clientchan, GIOCondition condition, gpointer data)
+control_client_socket (GIOChannel *gio, GString *input, gpointer data)
 {
-    UZBL_UNUSED (condition);
+    UZBL_UNUSED (data);
 
-    char *ctl_line;
-    GError *error = NULL;
-    GIOStatus ret;
-    gsize len;
-    GPtrArray *socket_array = (GPtrArray *)data;
-
-    ret = g_io_channel_read_line (clientchan, &ctl_line, &len, NULL, &error);
-    if (ret == G_IO_STATUS_ERROR) {
-        g_warning ("Error reading: %s", error->message);
-        g_clear_error (&error);
-        ret = g_io_channel_shutdown (clientchan, TRUE, &error);
-        if (socket_array) {
-            g_ptr_array_remove_fast (socket_array, clientchan);
-        }
-        if (ret == G_IO_STATUS_ERROR) {
-            g_warning ("Error closing: %s", error->message);
-            g_clear_error (&error);
-        }
-        return FALSE;
-    } else if (ret == G_IO_STATUS_EOF) {
-        /* Shutdown and remove channel watch from main loop. */
-        ret = g_io_channel_shutdown (clientchan, TRUE, &error);
-        if (socket_array) {
-            g_ptr_array_remove_fast (socket_array, clientchan);
-        }
-        if (ret == G_IO_STATUS_ERROR) {
-            g_warning ("Error closing: %s", error->message);
-            g_clear_error (&error);
-        }
-        return FALSE;
-    }
-
-    g_io_channel_ref (clientchan);
-    schedule_io_input (ctl_line, write_socket, clientchan);
+    gchar *ctl_line = g_strdup (input->str);
+    g_io_channel_ref (gio);
+    schedule_io_input (ctl_line, write_socket, gio);
 
     return TRUE;
+}
+
+void
+close_client_socket (GIOChannel *gio, gpointer data)
+{
+    GError *error = NULL;
+    GIOStatus ret = g_io_channel_shutdown (gio, TRUE, &error);
+    GPtrArray *socket_array = (GPtrArray *)data;
+
+    if (socket_array) {
+        g_ptr_array_remove_fast (socket_array, gio);
+    }
+
+    if (ret == G_IO_STATUS_ERROR) {
+        g_warning ("Error shutting down client socket: %s", error->message);
+        g_clear_error (&error);
+    }
 }
 
 static void
@@ -592,7 +598,7 @@ create_dir (const gchar *dir)
 }
 
 static gboolean
-control_fifo (GIOChannel *gio, GIOCondition condition, gpointer data);
+control_fifo (GIOChannel *gio, GString *input, gpointer data);
 
 gboolean
 attach_fifo (const gchar *path)
@@ -602,8 +608,8 @@ attach_fifo (const gchar *path)
      * 'r' we will block here, waiting for a writer to open the file. */
     GIOChannel *chan = g_io_channel_new_file (path, "r+", &error);
     if (chan) {
-        add_cmd_source (chan, "Uzbl main fifo",
-            control_fifo, NULL);
+        add_buffered_cmd_source (chan, "Uzbl main fifo",
+            control_fifo, NULL, NULL);
 
         g_io_channel_unref (chan);
 
@@ -623,8 +629,10 @@ attach_fifo (const gchar *path)
     return FALSE;
 }
 
+static void
+add_cmd_source (GIOChannel *gio, const gchar *name, GIOFunc callback, gpointer data);
 static gboolean
-control_socket (GIOChannel *chan, GIOCondition condition, gpointer data);
+control_socket (GIOChannel *gio, GIOCondition condition, gpointer data);
 
 gboolean
 attach_socket (const gchar *path, struct sockaddr_un *local)
@@ -668,6 +676,80 @@ send_buffered_event (gpointer event, gpointer data)
     const gchar *message = (const gchar *)event;
 
     send_event_sockets (uzbl.io->connect_sockets, message);
+}
+
+gboolean
+line_buffer_io (GIOChannel *gio, GIOCondition condition, gpointer data)
+{
+    UZBL_UNUSED (condition);
+
+    UzblIOBufferData *io_data = (UzblIOBufferData *)data;
+
+    static const gsize BUFSZ = 256;
+    gchar input[BUFSZ];
+    gsize read;
+    GError *error = NULL;
+    gboolean eof = FALSE;
+
+    do {
+        GIOStatus status = g_io_channel_read_chars (gio, input, BUFSZ, &read, &error);
+
+        if (status == G_IO_STATUS_ERROR) {
+            g_warning ("Error buffering: %s", error->message);
+            g_clear_error (&error);
+
+            if (io_data->error_callback) {
+                io_data->error_callback(gio, io_data->data);
+            }
+
+            return FALSE;
+        }
+
+        if (status == G_IO_STATUS_EOF) {
+            eof = TRUE;
+            break;
+        }
+
+        g_string_append_len (io_data->buffer, input, read);
+    } while (read);
+
+    gboolean contin = TRUE;
+
+    char *end;
+    do {
+        end = strchr (io_data->buffer->str, '\n');
+        if (end) {
+            GString *line = g_string_new_len (io_data->buffer->str, end - io_data->buffer->str);
+            contin = io_data->callback (gio, line, io_data->data);
+            g_string_free (line, TRUE);
+            GString *sav = io_data->buffer;
+            io_data->buffer = g_string_new (end + 1);
+            g_string_free (sav, TRUE);
+            if (!contin) {
+                return contin;
+            }
+        }
+    } while (end);
+
+    if (eof) {
+        if (io_data->error_callback) {
+            io_data->error_callback(gio, io_data->data);
+        }
+
+        return FALSE;
+    }
+
+    return contin;
+}
+
+void
+free_watcher_data (gpointer data)
+{
+    UzblIOBufferData *io_data = (UzblIOBufferData *)data;
+
+    g_string_free (io_data->buffer, TRUE);
+
+    g_free (io_data);
 }
 
 void
@@ -746,35 +828,35 @@ write_to_socket (GIOChannel *channel, const gchar *message)
 }
 
 gboolean
-control_fifo (GIOChannel *gio, GIOCondition condition, gpointer data)
+control_fifo (GIOChannel *gio, GString *input, gpointer data)
 {
+    UZBL_UNUSED (gio);
     UZBL_UNUSED (data);
 
-    gchar *ctl_line;
-    GIOStatus ret;
-    GError *err = NULL;
-
-    if (condition & G_IO_HUP) {
-        g_error ("Fifo: Read end of pipe died!\n");
-    }
-
-    if (!gio) {
-        g_error ("Fifo: GIOChannel broke\n");
-    }
-
-    ret = g_io_channel_read_line (gio, &ctl_line, NULL, NULL, &err);
-    if (ret == G_IO_STATUS_ERROR) {
-        g_error ("Fifo: Error reading: %s\n", err->message);
-        g_error_free (err);
-    }
-
+    gchar *ctl_line = g_strdup (input->str);
     schedule_io_input (ctl_line, NULL, NULL);
 
     return TRUE;
 }
 
+void
+add_cmd_source (GIOChannel *gio, const gchar *name, GIOFunc callback, gpointer data)
+{
+    GSource *source = g_io_create_watch (gio, G_IO_IN | G_IO_HUP);
+    g_source_set_name (source, name);
+
+    /* Why does casting callback into a GSourceFunc work? GIOFunc takes 3
+     * parameters while GSourceFunc takes 1. However, this is what is done in
+     * g_io_add_watch, we just want to attach to a different context. */
+    g_source_set_callback (source, (GSourceFunc)callback, data, NULL);
+
+    g_source_attach (source, uzbl.io->io_ctx);
+
+    g_source_unref (source);
+}
+
 gboolean
-control_socket (GIOChannel *chan, GIOCondition condition, gpointer data)
+control_socket (GIOChannel *gio, GIOCondition condition, gpointer data)
 {
     UZBL_UNUSED (condition);
     UZBL_UNUSED (data);
@@ -785,13 +867,13 @@ control_socket (GIOChannel *chan, GIOCondition condition, gpointer data)
     GIOChannel *iochan;
     int clientsock;
 
-    clientsock = accept (g_io_channel_unix_get_fd (chan),
+    clientsock = accept (g_io_channel_unix_get_fd (gio),
                          (struct sockaddr *)&remote, &t);
 
     if ((iochan = g_io_channel_unix_new (clientsock))) {
         g_io_channel_set_encoding (iochan, NULL, NULL);
-        add_cmd_source (iochan, "Uzbl control socket",
-            control_client_socket, uzbl.io->client_sockets);
+        add_buffered_cmd_source (iochan, "Uzbl control socket",
+            control_client_socket, close_client_socket, uzbl.io->client_sockets);
         g_ptr_array_add (uzbl.io->client_sockets, iochan);
     }
 
