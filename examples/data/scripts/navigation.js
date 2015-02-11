@@ -17,6 +17,8 @@ var nextAnchor = function () {
     return trySelectors(
       [ 'a[rel="next"]'
       , 'link[rel="next"]'
+      , 'a[title="Next"]'
+      , 'a[title="next"]'
       ]
     );
 };
@@ -25,6 +27,8 @@ var prevAnchor = function () {
     return trySelectors(
       [ 'a[rel="prev"]'
       , 'link[rel="prev"]'
+      , 'a[title="Previous"]'
+      , 'a[title="previous"]'
       ]
     );
 };
