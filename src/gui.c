@@ -1712,7 +1712,7 @@ navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri, const 
         TYPE_STR, type,
         NULL);
 
-    gchar *handler = uzbl_variables_get_string ("scheme_handler");
+    gchar *handler = uzbl_variables_get_string ("navigation_handler");
 
     GArray *args = uzbl_commands_args_new ();
     const UzblCommand *scheme_command = uzbl_commands_parse (handler, args);
