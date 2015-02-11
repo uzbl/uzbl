@@ -1,4 +1,5 @@
 from .event_manager import Uzbl
+from six import add_metaclass
 import logging
 
 
@@ -33,7 +34,8 @@ class PluginMeta(type):
         return self._get_instance(owner)
 
 
-class BasePlugin(object, metaclass=PluginMeta):
+@add_metaclass(PluginMeta)
+class BasePlugin(object):
     """Base class for all uzbl plugins"""
 
 
