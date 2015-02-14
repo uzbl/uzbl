@@ -1153,7 +1153,7 @@ DECLARE_GETSET (int, auto_resize_window);
 #endif
 
 /* UI variables */
-DECLARE_GETSET (int, show_status);
+DECLARE_SETTER (int, show_status);
 DECLARE_SETTER (int, status_top);
 DECLARE_SETTER (gchar *, status_background);
 #ifdef USE_WEBKIT2
@@ -1416,6 +1416,7 @@ struct _UzblVariablesPrivate {
     gchar *icon_name;
 
     /* UI variables */
+    gboolean show_status;
     gboolean status_top;
     gchar *status_background;
 #if GTK_CHECK_VERSION (3, 15, 0)
@@ -1492,7 +1493,7 @@ uzbl_variables_private_new (GHashTable *table)
 #endif
 
         /* UI variables */
-        { "show_status",                  UZBL_V_FUNC (show_status,                            INT)},
+        { "show_status",                  UZBL_V_INT (priv->show_status,                       set_show_status)},
         { "status_top",                   UZBL_V_INT (priv->status_top,                        set_status_top)},
         { "status_background",            UZBL_V_STRING (priv->status_background,              set_status_background)},
 #ifdef USE_WEBKIT2
@@ -2035,22 +2036,13 @@ GOBJECT_GETSET (int, auto_resize_window,
 #endif
 
 /* UI variables */
-IMPLEMENT_GETTER (int, show_status)
-{
-    if (!uzbl.gui.status_bar) {
-        return FALSE;
-    }
-
-    return gtk_widget_get_visible (uzbl.gui.status_bar);
-}
-
 IMPLEMENT_SETTER (int, show_status)
 {
-    if (!uzbl.gui.status_bar) {
-        return FALSE;
-    }
+    uzbl.variables->priv->show_status = show_status;
 
-    gtk_widget_set_visible (uzbl.gui.status_bar, show_status);
+    if (uzbl.gui.status_bar) {
+        gtk_widget_set_visible (uzbl.gui.status_bar, uzbl.variables->priv->show_status);
+    }
 
     return TRUE;
 }

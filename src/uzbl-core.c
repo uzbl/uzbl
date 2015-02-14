@@ -293,6 +293,12 @@ uzbl_init (int *argc, char ***argv)
         gtk_widget_show_all (GTK_WIDGET (uzbl.gui.plug));
     }
 
+    /* Apply the show_status variable. All widgets are shown with the above
+     * call. Unfortunately, GTK has the wonderful thing where all widgets must
+     * be explicitly shown and there's no way to exclude widgets from "all", so
+     * this is necessary here. */
+    gtk_widget_set_visible (uzbl.gui.status_bar, uzbl_variables_get_int ("show_status"));
+
     /* Update status bar. */
     uzbl_gui_update_title ();
 }
