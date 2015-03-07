@@ -57,10 +57,12 @@ fi
 
 # uzbl-event-manager will exit if one is already running.
 # we could also check if its pid file exists to avoid having to spawn it.
-DAEMON_SOCKET="$XDG_CACHE_HOME/uzbl/event_daemon"
-if ! [ -f "$DAEMON_SOCKET.pid" ]; then
-	${UZBL_EVENT_MANAGER:-uzbl-event-manager -va --server-socket "$DAEMON_SOCKET" start} || \
-		die_with_status 4 "Error: Could not start uzbl-event-manager"
+if [ -z "$UZBL_EVENT_SOCKET" ]; then
+	UZBL_EVENT_SOCKET="$XDG_CACHE_HOME/uzbl/event_daemon"
+	if ! [ -f "$DAEMON_SOCKET.pid" ]; then
+		${UZBL_EVENT_MANAGER:-uzbl-event-manager -va --server-socket "$UZBL_EVENT_SOCKET" start} || \
+			die_with_status 4 "Error: Could not start uzbl-event-manager"
+	fi
 fi
 
-exec uzbl-core "$@" "${config_file:+--config "$config_file"}" --connect-socket "$DAEMON_SOCKET"
+exec uzbl-core "$@" "${config_file:+--config "$config_file"}" --connect-socket "$UZBL_EVENT_SOCKET"
