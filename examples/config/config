@@ -282,7 +282,7 @@ set ebind     @mode_bind global,-insert
 # Zoom binds
 @cbind  +   = zoom in
 @cbind  -   = zoom out
-@cbind  T   = toggle zoom_type
+@cbind  T   = toggle zoom_text_only
 @cbind  1   = set zoom_level 1.0
 @cbind  2   = set zoom_level 2.0
 
