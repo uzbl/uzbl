@@ -97,6 +97,10 @@ uzbl_gui_free ()
         g_object_unref (uzbl.gui_->tmp_web_view);
     }
 
+/*#if WEBKIT_CHECK_VERSION (2, 6, 0)
+    g_free(uzbl.gui.user_manager);
+#endif*/
+
     g_free (uzbl.gui_);
     uzbl.gui_ = NULL;
 }
@@ -290,7 +294,13 @@ scroll_horiz_cb (GtkAdjustment *adjust, gpointer data);
 void
 web_view_init ()
 {
+#if WEBKIT_CHECK_VERSION (2, 6, 0)
+    uzbl.gui.user_manager = webkit_user_content_manager_new ();
+    uzbl.gui.web_view = WEBKIT_WEB_VIEW (
+          webkit_web_view_new_with_user_content_manager(uzbl.gui.user_manager));
+#else
     uzbl.gui.web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
+#endif
     uzbl.gui.scrolled_win = gtk_scrolled_window_new (NULL, NULL);
 
     gtk_container_add (
