@@ -6,6 +6,7 @@
 # common directory locations
 set prefix      @(echo $UZBL_PREFIX)@
 set data_home   @(echo $XDG_DATA_HOME/uzbl)@
+set data_dirs   @(echo $(echo ${XDG_DATA_DIRS}|sed 's%:%/uzbl:%g')/uzbl)@
 set cache_home  @(echo $XDG_CACHE_HOME/uzbl)@
 set config_home @(echo $XDG_CONFIG_HOME/uzbl)@
 set local_storage_path @data_home/databases/
@@ -33,7 +34,7 @@ set set_mode        set mode
 set set_status      set status_message
 
 # Spawn path shortcuts. In spawn the first dir+path match is used in "dir1:dir2:dir3:executable"
-set scripts_dir      @data_home:@prefix/share/uzbl/examples/data:scripts
+set scripts_dir      @data_home:@data_dirs:@prefix/share/uzbl/examples/data:scripts
 
 # === Hardcoded handlers =====================================================
 
@@ -281,7 +282,7 @@ set ebind     @mode_bind global,-insert
 # Zoom binds
 @cbind  +   = zoom in
 @cbind  -   = zoom out
-@cbind  T   = toggle zoom_type
+@cbind  T   = toggle zoom_text_only
 @cbind  1   = set zoom_level 1.0
 @cbind  2   = set zoom_level 2.0
 
@@ -519,7 +520,7 @@ set ssl_policy fail
 
 # === Post-load misc commands ================================================
 spawn_sync_exec @scripts_dir/load_cookies.sh
-spawn_sync_exec @scripts_dir/load_cookies.sh @data_home/session-cookies.txt
+spawn_sync_exec @scripts_dir/load_cookies.sh @(echo "${UZBL_SESSION_COOKIE_FILE:-@data_home/session-cookies.txt}")@
 
 # Set the "home" page.
 uri uzbl.org/doesitwork/@COMMIT
