@@ -3104,7 +3104,10 @@ run_js_callback (GObject *object, GAsyncResult *result, gpointer data)
     res = webkit_web_view_run_javascript_finish (WEBKIT_WEB_VIEW (object),
                                                        result, &error);
     if (!res) {
-       uzbl_debug ("Error running javascript:\n %s\n", error->message);
+        uzbl_events_send (JS_MESSAGE, NULL,
+            TYPE_STR, "error",
+            TYPE_STR, error->message,
+            NULL);
        g_error_free (error);
        return;
     }
