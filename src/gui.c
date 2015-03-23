@@ -97,10 +97,6 @@ uzbl_gui_free ()
         g_object_unref (uzbl.gui_->tmp_web_view);
     }
 
-/*#if WEBKIT_CHECK_VERSION (2, 6, 0)
-    g_free(uzbl.gui.user_manager);
-#endif*/
-
     g_free (uzbl.gui_);
     uzbl.gui_ = NULL;
 }
