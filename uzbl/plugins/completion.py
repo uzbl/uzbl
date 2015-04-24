@@ -146,7 +146,7 @@ class CompletionPlugin(PerInstancePlugin):
             self.completion.unlock()
             return
 
-        elif partial in hints and completion.level == COMPLETE:
+        elif partial in hints and self.completion.level == COMPLETE:
             self.completion.lock()
             self.complete_completion(partial, partial, set_completion)
             self.completion.unlock()
