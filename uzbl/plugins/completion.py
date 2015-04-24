@@ -75,9 +75,9 @@ class CompletionPlugin(PerInstancePlugin):
         left_segment = keylet.keycmd[:keylet.cursor]
         partial = (FIND_SEGMENT(left_segment) + ['', ])[0].lstrip()
         if partial.startswith('set '):
-            return ('@' + partial[4:].lstrip(), True)
+            return '@' + partial[4:].lstrip()
 
-        return (partial, False)
+        return partial
 
     def stop_completion(self, *args):
         '''Stop command completion and return the level to NONE.'''
@@ -86,16 +86,11 @@ class CompletionPlugin(PerInstancePlugin):
         if 'completion_list' in Config[self.uzbl]:
             del Config[self.uzbl]['completion_list']
 
-    def complete_completion(self, partial, hint, set_completion=False):
+    def complete_completion(self, partial, hint):
         '''Inject the remaining porition of the keyword into the keycmd then stop
         the completioning.'''
 
-        if set_completion:
-            remainder = "%s = " % hint[len(partial):]
-
-        else:
-            remainder = "%s " % hint[len(partial):]
-
+        remainder = "{} ".format(hint[len(partial):])
         KeyCmd[self.uzbl].inject_keycmd(remainder)
         self.stop_completion()
 
@@ -109,7 +104,7 @@ class CompletionPlugin(PerInstancePlugin):
         '''Checks if the user still has a partially completed keyword under his
         cursor then update the completion hints list.'''
 
-        partial = self.get_incomplete_keyword()[0]
+        partial = self.get_incomplete_keyword()
         if not partial:
             return self.stop_completion()
 
@@ -129,7 +124,7 @@ class CompletionPlugin(PerInstancePlugin):
         if self.completion.locked:
             return
 
-        (partial, set_completion) = self.get_incomplete_keyword()
+        partial = self.get_incomplete_keyword()
         if not partial:
             return self.stop_completion()
 
@@ -142,13 +137,13 @@ class CompletionPlugin(PerInstancePlugin):
 
         elif len(hints) == 1:
             self.completion.lock()
-            self.complete_completion(partial, hints[0], set_completion)
+            self.complete_completion(partial, hints[0])
             self.completion.unlock()
             return
 
         elif partial in hints and self.completion.level == COMPLETE:
             self.completion.lock()
-            self.complete_completion(partial, partial, set_completion)
+            self.complete_completion(partial, partial)
             self.completion.unlock()
             return
 
