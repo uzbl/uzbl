@@ -16,3 +16,7 @@ includes:
 
 For more specifics, search the [README](README.md) file for 'WebKit1' and
 'WebKit2'.
+
+### Starting the event manager gives "ImportError: No module named 'six'"
+
+Install the `six` module from your package manager.
