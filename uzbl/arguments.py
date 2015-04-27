@@ -85,6 +85,16 @@ class Arguments(tuple):
         return ''.join(self._raw[rfrm:rto])
 
     def safe_raw(self, frm=0, to=None):
+        '''
+        Returns the portion of the raw input that yielded arguments
+        from 'frm' to 'to'
+
+        >>> args = Arguments(r"'spam, spam' egg sausage   and 'spam'")
+        >>> args
+        ('spam, spam', 'egg', 'sausage', 'and', 'spam')
+        >>> args.raw(1)
+        "egg sausage   and 'spam'"
+        '''
         return self.raw(frm, to).replace('@', '\\@')
 
 splitquoted = Arguments  # or define a function?
