@@ -120,7 +120,7 @@ major exception here).
 * `search`
   - *Change*: Removed.
   - *Rationale*: Consolidated into the new `search` command.
-  - *Porting*: Use `search forward`.
+  - *Porting*: Use `search next`.
 * `search_clear`
   - *Change*: Removed.
   - *Rationale*: Consolidated into the new `search` command.
@@ -128,7 +128,7 @@ major exception here).
 * `search_reverse`
   - *Change*: Removed.
   - *Rationale*: Consolidated into the new `search` command.
-  - *Porting*: Use `search reverse`.
+  - *Porting*: Use `search prev`.
 * `set`
   - *Change*: '`=`' is no longer used in the set command.
   - *Rationale*: No other command needed this, so it was changed for
