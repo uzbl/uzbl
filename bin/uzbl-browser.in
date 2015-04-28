@@ -62,7 +62,7 @@ fi
 # we could also check if its pid file exists to avoid having to spawn it.
 if [ -z "$UZBL_EVENT_SOCKET" ]; then
 	UZBL_EVENT_SOCKET="$XDG_CACHE_HOME/uzbl/event_daemon"
-	if ! [ -f "$DAEMON_SOCKET.pid" ]; then
+	if ! [ -f "$UZBL_EVENT_SOCKET.pid" ]; then
 		${UZBL_EVENT_MANAGER:-uzbl-event-manager -va --server-socket "$UZBL_EVENT_SOCKET" start} || \
 			die_with_status 4 "Error: Could not start uzbl-event-manager"
 	fi
