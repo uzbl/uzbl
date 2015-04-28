@@ -1,0 +1,13 @@
+language: python
+python:
+    - "2.7"
+    - "3.3"
+    - "3.4"
+    - "pypy"
+install:
+    - pip install six nose mock coveralls
+script:
+    nosetests tests/event-manager --with-coverage --cover-package=uzbl
+after_success:
+    coveralls
+sudo: false
