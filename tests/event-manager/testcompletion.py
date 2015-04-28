@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # vi: set et ts=4:
 
-
-
 import unittest
 from emtest import EventManagerMock
 from uzbl.plugins.config import Config
@@ -12,7 +10,8 @@ from uzbl.plugins.completion import CompletionPlugin
 
 class DummyFormatter(object):
     def format(self, partial, completions):
-        return '[%s] %s' % (partial, ', '.join(completions))
+        return '[%s] %s' % (partial, ', '.join(sorted(completions)))
+
 
 class TestAdd(unittest.TestCase):
     def setUp(self):
@@ -24,7 +23,7 @@ class TestAdd(unittest.TestCase):
 
     def test_builtins(self):
         c = CompletionPlugin[self.uzbl]
-        c.add_builtins(('spam', 'egg'))
+        c.add_builtins('["spam", "egg"]')
         self.assertIn('spam', c.completion)
         self.assertIn('egg', c.completion)
 
@@ -44,7 +43,7 @@ class TestCompletion(unittest.TestCase):
 
         c = CompletionPlugin[self.uzbl]
         c.listformatter = DummyFormatter()
-        c.add_builtins(('spam', 'egg', 'bar', 'baz'))
+        c.add_builtins('["spam", "egg", "bar", "baz"]')
         c.add_config_key('spam', 'SPAM')
         c.add_config_key('Something', 'Else')
 
@@ -54,7 +53,7 @@ class TestCompletion(unittest.TestCase):
         k.keylet.cursor = len(k.keylet.keycmd)
 
         r = c.get_incomplete_keyword()
-        self.assertEqual(r, ('sp', False))
+        self.assertEqual(r, 'sp')
 
     def test_incomplete_keyword_var(self):
         k, c = KeyCmd[self.uzbl], CompletionPlugin[self.uzbl]
@@ -62,7 +61,7 @@ class TestCompletion(unittest.TestCase):
         k.keylet.cursor = len(k.keylet.keycmd)
 
         r = c.get_incomplete_keyword()
-        self.assertEqual(r, ('@sp', False))
+        self.assertEqual(r, '@sp')
 
     def test_incomplete_keyword_var_noat(self):
         k, c = KeyCmd[self.uzbl], CompletionPlugin[self.uzbl]
@@ -70,7 +69,7 @@ class TestCompletion(unittest.TestCase):
         k.keylet.cursor = len(k.keylet.keycmd)
 
         r = c.get_incomplete_keyword()
-        self.assertEqual(r, ('@Some', True))
+        self.assertEqual(r, '@Some')
 
     def test_stop_completion(self):
         config, c = Config[self.uzbl], CompletionPlugin[self.uzbl]

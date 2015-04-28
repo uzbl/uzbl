@@ -22,7 +22,7 @@ class ConfigTest(unittest.TestCase):
         for input, expected in cases:
             c.set('foo', input)
             self.uzbl.send.assert_called_once_with(
-                'set foo = ' + expected)
+                'set foo ' + expected)
             self.uzbl.send.reset_mock()
 
     def test_set_invalid(self):
@@ -38,7 +38,7 @@ class ConfigTest(unittest.TestCase):
         cases = (
             ('foo str value', 'foo', 'value'),
             ('foo str "ba ba"', 'foo', 'ba ba'),
-            ('foo float 5', 'foo', 5.0)
+            ('foo double 5', 'foo', 5.0)
         )
         c = Config[self.uzbl]
         for input, ekey, evalue in cases:

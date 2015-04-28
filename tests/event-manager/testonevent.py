@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # vi: set et ts=4:
 
-
-
 import unittest
 from emtest import EventManagerMock
 from uzbl.plugins.config import Config
@@ -55,5 +53,4 @@ class OnEventTest(unittest.TestCase):
         oe.parse_on_event((event, '[', pattern, ']', command))
         self.assertIn(event, oe.events)
         commands = oe.events[event]
-        self.assertIn(command, commands)
-        self.assertEqual(commands[command], [pattern])
+        self.assertIn((command, [pattern]), commands)

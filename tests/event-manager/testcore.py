@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # vi: set et ts=4:
 
-
-
+import six
 import unittest
 from mock import Mock
 from uzbl.core import Uzbl
@@ -18,7 +17,7 @@ class TestUzbl(unittest.TestCase):
 
     def test_repr(self):
         r = '%r' % self.uzbl
-        self.assertRegex(r, r'<uzbl\(.*\)>')
+        six.assertRegex(self, r, r'<uzbl\(.*\)>')
 
     def test_event_handler(self):
         handler = Mock()
