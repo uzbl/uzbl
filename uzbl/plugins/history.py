@@ -91,6 +91,9 @@ class History(PerInstancePlugin):
             return ''
         return shared.getline(self.prompt, self.cursor)
 
+    # Python2 shenanigans
+    next = __next__
+
     def change_prompt(self, prompt):
         self.prompt = prompt
         self._tail = None

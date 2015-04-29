@@ -2,13 +2,13 @@
 # vi: set et ts=4:
 
 
-
 import sys
 if '' not in sys.path:
     sys.path.insert(0, '')
 
 import unittest
 from emtest import EventManagerMock
+from six import next
 
 from uzbl.plugins.history import History, SharedHistory
 from uzbl.plugins.keycmd import Keylet, KeyCmd
