@@ -1092,7 +1092,7 @@ expand_type (const gchar *str)
 #endif
 
 #ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 7, 2)
+#if WEBKIT_CHECK_VERSION (2, 8, 0)
 #define HAVE_LOCAL_STORAGE_PATH
 #endif
 #else
@@ -2994,7 +2994,7 @@ IMPLEMENT_SETTER (unsigned long long, web_database_quota)
 #endif
 
 #ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 7, 2)
+#if WEBKIT_CHECK_VERSION (2, 8, 0)
 GOBJECT_GETSET (gchar *, local_storage_path,
                 webkit_context (), "local-storage-directory")
 #endif

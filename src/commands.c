@@ -652,7 +652,7 @@ DECLARE_COMMAND (cache);
 DECLARE_COMMAND (favicon);
 DECLARE_COMMAND (css);
 #ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (2, 5, 1)
+#if WEBKIT_CHECK_VERSION (2, 8, 0)
 DECLARE_COMMAND (script);
 #endif
 #endif
@@ -749,7 +749,7 @@ builtin_command_table[] = {
     { "favicon",                        cmd_favicon,                  TRUE,  TRUE  },
     { "css",                            cmd_css,                      TRUE,  TRUE  },
 #ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (2, 5, 1)
+#if WEBKIT_CHECK_VERSION (2, 8, 0)
     { "script",                         cmd_script,                   TRUE,  TRUE  },
 #endif
 #endif
@@ -1831,7 +1831,7 @@ IMPLEMENT_COMMAND (css)
 }
 
 #ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (2, 5, 1)
+#if WEBKIT_CHECK_VERSION (2, 8, 0)
 static void
 script_message_callback (WebKitUserContentManager *manager, WebKitJavascriptResult *res, gpointer data);
 
