@@ -1678,10 +1678,16 @@ send_hover_event (const gchar *uri, const gchar *title)
 void
 set_window_property (const gchar *prop, const gchar *value)
 {
-    if (uzbl.gui.main_window && GTK_IS_WIDGET (uzbl.gui.main_window))
-    {
+    GdkWindow *window;
+
+    if (uzbl.gui.main_window && GTK_IS_WIDGET (uzbl.gui.main_window)) {
+        if (!(window = gtk_widget_get_window (uzbl.gui.main_window))) {
+            uzbl_debug ("Could not get gdk handle of window");
+            return;
+        }
+
         gdk_property_change (
-            gtk_widget_get_window (uzbl.gui.main_window),
+            window,
             gdk_atom_intern_static_string (prop),
             gdk_atom_intern_static_string ("STRING"),
             CHAR_BIT * sizeof (value[0]),
