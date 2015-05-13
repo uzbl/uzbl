@@ -1,4 +1,5 @@
 import re
+import six
 
 from uzbl.arguments import splitquoted
 from uzbl.ext import PerInstancePlugin
@@ -382,7 +383,7 @@ class KeyCmd(PerInstancePlugin):
 
         elif new_keycmd == keycmd:
             # Generate the pango markup for the cursor in the keycmd.
-            config['keycmd'] = str(k.markup())
+            config['keycmd'] = six.text_type(k.markup())
 
     def parse_key_event(self, key):
         ''' Build a set from the modstate part of the event, and pass all keys through modmap '''

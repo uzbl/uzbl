@@ -2,7 +2,10 @@
 # @downloads to your status_format.
 
 import os
-import html
+try:
+    from html import escape
+except ImportError:
+    from cgi import escape
 
 from uzbl.arguments import splitquoted
 from .config import Config
@@ -34,7 +37,7 @@ class Downloads(PerInstancePlugin):
                 # replace entities to make sure we don't break our markup
                 # (this could be done with an @[]@ expansion in uzbl, but then we
                 # can't use the &#10; above to make a new line)
-                dl = html.escape(dl)
+                dl = escape(dl)
                 result += dl
         else:
             result = ''

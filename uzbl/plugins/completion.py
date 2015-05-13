@@ -169,7 +169,7 @@ class CompletionPlugin(PerInstancePlugin):
         self.update_completion_list()
 
     def add_builtins(self, builtins):
-        '''Pump the space delimited list of builtin commands into the
+        '''Pump the json encoded list of builtin commands into the
         builtin list.'''
 
         builtins = json.loads(builtins)
