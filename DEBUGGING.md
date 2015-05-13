@@ -64,3 +64,13 @@ Minimal test cases are very useful and can be made using custom configuration
 files passed to uzbl via the `-c` flag. Coupled with `--named` to get a
 predictable socket name, commands can be sent using a program or text file. When
 reporting bugs, these can help immensely in finding problems.
+
+Sandbox
+-------
+
+The Makefile contains special build targets to install and run the local build
+in a isolated environment dubbed the sandbox. `virtualenv` is used to create
+the python environment for the sandbox and will need to be installed on your
+system.
+
+To start uzbl in the sandbox use ```make test-uzbl-browser-sandbox```
