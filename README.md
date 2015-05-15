@@ -1241,6 +1241,10 @@ Handler scripts (`download_handler`, `navigation_handler`, `request_handler`,
     - The data or action WebKit is requesting permission for. Known values
       include:
       + `geolocation`
+      + `user-media-audio` (WebKit2 >= 2.7.3)
+      + `user-media-video` (WebKit2 >= 2.7.3)
+      + `user-media` (WebKit2 >= 2.7.3)
+      + `notification` (WebKit2 >= 2.7.3)
 
 * tls error handler
 
@@ -1463,6 +1467,13 @@ uzbl itself and will be emitted based on what is happening within uzbl-core.
   - Sent when a cookie is added.
 * `DELETE_COOKIE <DOMAIN> <PATH> <NAME> <VALUE> <SCHEME> <EXPIRATION>`
   - Sent when a cookie is deleted.
+
+##### Notifications
+
+* `SHOW_NOTIFICATION <ID> <TITLE> <BODY>`
+  - Sent when a notification should be shown.
+* `CLOSE_NOTIFICATION <ID>`
+  - Sent when a notification should be closed.
 
 ### COMMAND LINE ARGUMENTS
 
