@@ -9,6 +9,7 @@ PREFIX     ?= /usr/local
 INSTALLDIR ?= $(DESTDIR)$(PREFIX)
 MANDIR     ?= $(INSTALLDIR)/share/man
 DOCDIR     ?= $(INSTALLDIR)/share/uzbl/docs
+LIBDIR     ?= $(INSTALLDIR)/lib/uzbl
 RUN_PREFIX ?= $(PREFIX)
 INSTALL    ?= install -p
 
@@ -67,7 +68,7 @@ ARCH := $(shell uname -m)
 
 COMMIT_HASH := $(shell ./misc/hash.sh)
 
-CPPFLAGS += -D_XOPEN_SOURCE=500 -DARCH=\"$(ARCH)\" -DCOMMIT=\"$(COMMIT_HASH)\"
+CPPFLAGS += -D_XOPEN_SOURCE=500 -DARCH=\"$(ARCH)\" -DCOMMIT=\"$(COMMIT_HASH)\" -DLIBDIR=\"$(LIBDIR)\"
 
 HAVE_LIBSOUP_VERSION := $(shell pkg-config --exists 'libsoup-2.4 >= 2.41.1' && echo yes)
 ifeq ($(HAVE_LIBSOUP_VERSION),yes)
