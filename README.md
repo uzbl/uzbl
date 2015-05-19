@@ -1573,6 +1573,8 @@ where `arguments` and `uri` are both optional. `arguments` can be:
     embedded.
 * `-V`, `--version`
   - Print the version and exit.
+* `--web-extensions-dir`
+  - Directory that will be searched for webkit extensions
 * `--display=DISPLAY`
   - X display to use.
 * `--help`
