@@ -1369,7 +1369,6 @@ DECLARE_GETSET (gchar *, local_storage_path);
 #if WEBKIT_CHECK_VERSION (1, 11, 92)
 DECLARE_SETTER (gchar *, disk_cache_directory);
 #endif
-DECLARE_SETTER (gchar *, web_extensions_directory);
 #endif
 
 /* Hacks */
@@ -1452,7 +1451,6 @@ struct _UzblVariablesPrivate {
 #if WEBKIT_CHECK_VERSION (1, 11, 92)
     gchar *disk_cache_directory;
 #endif
-    gchar *web_extensions_directory;
 #endif
 };
 
@@ -1718,7 +1716,6 @@ uzbl_variables_private_new (GHashTable *table)
 #if WEBKIT_CHECK_VERSION (1, 11, 92)
         { "disk_cache_directory",         UZBL_V_STRING (priv->disk_cache_directory,           set_disk_cache_directory)},
 #endif
-        { "web_extensions_directory",     UZBL_V_STRING (priv->web_extensions_directory,       set_web_extensions_directory)},
 #endif
 
         /* Hacks */
@@ -3014,18 +3011,6 @@ IMPLEMENT_SETTER (gchar *, disk_cache_directory)
 
     WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
     webkit_web_context_set_disk_cache_directory (context, uzbl.variables->priv->disk_cache_directory);
-
-    return TRUE;
-}
-#endif
-
-IMPLEMENT_SETTER (gchar *, web_extensions_directory)
-{
-    g_free (uzbl.variables->priv->web_extensions_directory);
-    uzbl.variables->priv->web_extensions_directory = g_strdup (web_extensions_directory);
-
-    WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
-    webkit_web_context_set_web_extensions_directory (context, uzbl.variables->priv->web_extensions_directory);
 
     return TRUE;
 }
