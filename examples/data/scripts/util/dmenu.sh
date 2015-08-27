@@ -115,7 +115,7 @@ $DMENU_HAS_RESIZE && DMENU_ARGS="$DMENU_ARGS $DMENU_RESIZE_ARGS"
 
 # Detect placement patch
 DMENU_HAS_PLACEMENT=false
-if dmenu_check_feature "placement" && dmenu_check_flag '-x <\?offset>\?'; then
+if dmenu_check_feature "placement" && dmenu_check_flag '-x <\?x\?offset>\?'; then
     readonly DMENU_PLACE_X="-x"
     readonly DMENU_PLACE_Y="-y"
     readonly DMENU_PLACE_WIDTH="-w"
