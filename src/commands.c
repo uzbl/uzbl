@@ -2687,7 +2687,9 @@ IMPLEMENT_COMMAND (js)
     if (result && js_result && !JSValueIsUndefined (jsctx, js_result)) {
         gchar *result_utf8 = uzbl_js_to_string (jsctx, js_result);
 
-        g_string_append (result, result_utf8);
+        if (g_strcmp0 (result_utf8, "[object Object]")) {
+            g_string_append (result, result_utf8);
+        }
 
         g_free (result_utf8);
     } else if (js_exc) {
