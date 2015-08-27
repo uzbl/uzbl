@@ -155,12 +155,12 @@ uzbl_io_init_connect_socket (const gchar *socket_path)
         }
     } else {
         g_warning ("Error connecting to socket: %s\n", socket_path);
-        return FALSE;
+        return G_SOURCE_REMOVE;
     }
 
     replay_event_buffer (chan);
 
-    return TRUE;
+    return G_SOURCE_CONTINUE;
 }
 
 static void
@@ -462,7 +462,7 @@ control_stdin (GIOChannel *gio, GString *input, gpointer data)
     gchar *ctl_line = g_strdup (input->str);
     schedule_io_input (ctl_line, write_stdout, NULL);
 
-    return TRUE;
+    return G_SOURCE_CONTINUE;
 }
 
 static void
@@ -477,7 +477,7 @@ control_client_socket (GIOChannel *gio, GString *input, gpointer data)
     g_io_channel_ref (gio);
     schedule_io_input (ctl_line, write_socket, gio);
 
-    return TRUE;
+    return G_SOURCE_CONTINUE;
 }
 
 void
@@ -702,7 +702,7 @@ line_buffer_io (GIOChannel *gio, GIOCondition condition, gpointer data)
                 io_data->error_callback(gio, io_data->data);
             }
 
-            return FALSE;
+            return G_SOURCE_REMOVE;
         }
 
         if (status == G_IO_STATUS_EOF) {
@@ -713,7 +713,7 @@ line_buffer_io (GIOChannel *gio, GIOCondition condition, gpointer data)
         g_string_append_len (io_data->buffer, input, read);
     } while (read);
 
-    gboolean contin = TRUE;
+    gboolean contin = G_SOURCE_CONTINUE;
 
     char *end;
     do {
@@ -725,7 +725,7 @@ line_buffer_io (GIOChannel *gio, GIOCondition condition, gpointer data)
             GString *sav = io_data->buffer;
             io_data->buffer = g_string_new (end + 1);
             g_string_free (sav, TRUE);
-            if (!contin) {
+            if (contin == G_SOURCE_REMOVE) {
                 return contin;
             }
         }
@@ -736,7 +736,7 @@ line_buffer_io (GIOChannel *gio, GIOCondition condition, gpointer data)
             io_data->error_callback(gio, io_data->data);
         }
 
-        return FALSE;
+        return G_SOURCE_REMOVE;
     }
 
     return contin;
@@ -836,7 +836,7 @@ control_fifo (GIOChannel *gio, GString *input, gpointer data)
     gchar *ctl_line = g_strdup (input->str);
     schedule_io_input (ctl_line, NULL, NULL);
 
-    return TRUE;
+    return G_SOURCE_CONTINUE;
 }
 
 void
@@ -877,5 +877,5 @@ control_socket (GIOChannel *gio, GIOCondition condition, gpointer data)
         g_ptr_array_add (uzbl.io->client_sockets, iochan);
     }
 
-    return TRUE;
+    return G_SOURCE_CONTINUE;
 }
