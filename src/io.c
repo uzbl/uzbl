@@ -438,9 +438,7 @@ add_buffered_cmd_source (GIOChannel *gio, const gchar *name, UzblIODataCallback 
     io_data->error_callback = error_callback;
     io_data->data = data;
 
-    /* Why does casting callback into a GSourceFunc work? GIOFunc takes 3
-     * parameters while GSourceFunc takes 1. However, this is what is done in
-     * g_io_add_watch, we just want to attach to a different context. */
+    /* g_io_create_watch uses GIOFunc as its callback function. */
     g_source_set_callback (source, (GSourceFunc)line_buffer_io, io_data, free_watcher_data);
 
     g_source_attach (source, uzbl.io->io_ctx);
@@ -845,9 +843,7 @@ add_cmd_source (GIOChannel *gio, const gchar *name, GIOFunc callback, gpointer d
     GSource *source = g_io_create_watch (gio, G_IO_IN | G_IO_HUP);
     g_source_set_name (source, name);
 
-    /* Why does casting callback into a GSourceFunc work? GIOFunc takes 3
-     * parameters while GSourceFunc takes 1. However, this is what is done in
-     * g_io_add_watch, we just want to attach to a different context. */
+    /* g_io_create_watch uses GIOFunc as its callback function. */
     g_source_set_callback (source, (GSourceFunc)callback, data, NULL);
 
     g_source_attach (source, uzbl.io->io_ctx);
