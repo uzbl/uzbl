@@ -7,7 +7,7 @@ progress bar for loading, and more.
 
 ## bind
 
-The `bind` plugin handles the following events:
+The `bind` plugin implements keybindings via the following events:
 
 * `MODE_BIND <modespec> <bindspec> = <commandspec>`
   - Adds a binding to the `<modespec>` modes to execute `<commandspec>`. See
@@ -17,6 +17,9 @@ The `bind` plugin handles the following events:
 * `MODE_CHANGED <mode>`
   - Changes the expected mode for keybindings. Also clears the current bind
     parsing state.
+
+The plugin stores the current mode in the `@mode` variable. Writes to this
+variable are ignored; use the `MODE_CHANGED` event instead.
 
 ### modespec
 
@@ -64,10 +67,10 @@ click, and `3` for a right click.
 A prompt text may be specified for the `_` control character. It may use any of
 the following specifications:
 
-* `<prompt:>`: Sets the prompt to `prompt:`.
-* `<prompt:value>`: Sets the prompt to `prompt:` with a default value of
+* `<prompt:>`: Sets `@keycmd_prompt` to `prompt:`.
+* `<prompt:value>`: Sets `@keycmd_prompt` to `prompt:` and `@keycmd` to
   `value`.
-* `<prompt!command>`: Sets the prompt to `prompt` and executes `command`.
+* `<prompt!command>`: Sets `@keycmd_prompt` to `prompt` and executes `command`.
 
 If `prompt`, `value`, or `command` contains spaces, it must be quoted. `prompt`
 may also be an empty string.
@@ -92,3 +95,6 @@ The command is an uzbl command which may use format string replacement:
 * `event MODE_BIND global /* = search find %s`: In `global` mode, pressing `/`
   followed by any text will incrementally search for the text. Pressing
   `<Enter>` will end the search.
+* `event MODE_BIND global <Ctrl>/<search:>_ = search find %s`: In `global`
+  mode, pressing `<Ctrl>/` followed by any text followed by `<Enter>` will
+  search for the text.
