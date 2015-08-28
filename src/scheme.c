@@ -65,7 +65,7 @@ scheme_return (GString *result, gpointer data)
     WebKitURISchemeRequest *request = (WebKitURISchemeRequest *)data;
 
     gchar *end = strchr (result->str, '\n');
-    size_t line_len = end ? end - result->str : result->len;
+    size_t line_len = end ? (size_t)(end - result->str) : result->len;
 
     gint64 len = result->len - line_len - 1;
     GInputStream *stream = g_memory_input_stream_new_from_data (
