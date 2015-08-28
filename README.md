@@ -333,11 +333,11 @@ as `KEY` and `many args` as `VALUE`.
         blacklist arguments are the same format as `css add`.
     + `clear`
       Clears all user-supplied scripts.
-    + `listen <NAME>`
+    + `listen <NAME>` (WebKit2 >= 2.7.2)
       Listen to messages on a given message handler call. Accessible via
       `window.webkit.messageHandlers.NAME.postMessage(value)` from the web
       page. Events will be sent in the form `SCRIPT_MESSAGE <NAME> <MESSAGE>`.
-    + `ignore <NAME>`
+    + `ignore <NAME>` (WebKit2 >= 2.7.2)
       Stop listening to names on the given message handler calls.
 * `scheme <SCHEME> {COMMAND}`
   - Registers a custom scheme handler for `uzbl`. The handler should accept a

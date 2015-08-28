@@ -1910,6 +1910,7 @@ IMPLEMENT_COMMAND (script)
         }
     } else if (!g_strcmp0 (command, "clear")) {
         webkit_user_content_manager_remove_all_scripts (manager);
+#if WEBKIT_CHECK_VERSION (2, 7, 2)
     } else if (!g_strcmp0 (command, "listen")) {
         ARG_CHECK (argv, 2);
 
@@ -1955,6 +1956,7 @@ IMPLEMENT_COMMAND (script)
         g_free (signal_name);
 
         g_hash_table_remove (uzbl.commands->script_handler_data_table, name);
+#endif
     } else {
         uzbl_debug ("Unrecognized script command: %s\n", command);
     }
