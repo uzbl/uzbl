@@ -25,5 +25,5 @@
   <screenshots>
     <screenshot type="default">https://raw.githubusercontent.com/hughsie/fedora-appstream/master/screenshots-extra/uzbl/a.png</screenshot>
   </screenshots>
-  <updatecontact>mathstuf+uzbl@github.com</updatecontact>
+  <updatecontact>uzbl-dev@lists.uzbl.org</updatecontact>
 </application>
