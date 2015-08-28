@@ -28,10 +28,6 @@ typedef struct {
     WebKitWebView *web_view;
     gchar         *main_title;
 
-#if defined(USE_WEBKIT2) && WEBKIT_CHECK_VERSION (2, 5, 1)
-    WebKitUserContentManager *user_manager;
-#endif
-
     /* Inspector */
     WebKitWebInspector *inspector;
 

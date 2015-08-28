@@ -49,6 +49,9 @@ struct _UzblGui {
 
 #ifdef USE_WEBKIT2
     gboolean load_failed;
+#if WEBKIT_CHECK_VERSION (2, 5, 1)
+    WebKitUserContentManager *user_manager;
+#endif
 #endif
 
     WebKitWebView *tmp_web_view;
@@ -92,6 +95,12 @@ uzbl_gui_free ()
     if (uzbl.gui_->last_button) {
         gdk_event_free ((GdkEvent *)uzbl.gui_->last_button);
     }
+
+#if defined(USE_WEBKIT2) && WEBKIT_CHECK_VERSION (2, 5, 1)
+    if (uzbl.gui_->user_manager) {
+        g_object_unref (uzbl.gui_->user_manager);
+    }
+#endif
 
     if (uzbl.gui_->tmp_web_view) {
         g_object_unref (uzbl.gui_->tmp_web_view);
@@ -291,9 +300,8 @@ void
 web_view_init ()
 {
 #if defined(USE_WEBKIT2) && WEBKIT_CHECK_VERSION (2, 5, 1)
-    uzbl.gui.user_manager = webkit_user_content_manager_new ();
-    uzbl.gui.web_view = WEBKIT_WEB_VIEW (
-          webkit_web_view_new_with_user_content_manager(uzbl.gui.user_manager));
+    uzbl.gui_->user_manager = webkit_user_content_manager_new ();
+    uzbl.gui.web_view = WEBKIT_WEB_VIEW (webkit_web_view_new_with_user_content_manager(uzbl.gui_->user_manager));
 #else
     uzbl.gui.web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
 #endif
@@ -397,7 +405,6 @@ web_view_init ()
         "signal::value-changed", G_CALLBACK (scroll_horiz_cb), NULL,
         "signal::changed",       G_CALLBACK (scroll_horiz_cb), NULL,
         NULL);
-
 }
 
 void
