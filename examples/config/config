@@ -361,7 +361,7 @@ set ebind     @mode_bind global,-insert
 @bind <Shift><Insert> = spawn_sh 'echo "event INJECT_KEYCMD $(xclip -o | sed s/\\\@/%40/g)" > "$UZBL_FIFO"'
 
 # Bookmark inserting binds
-@cbind <Ctrl>m<tags:>_  = spawn_sh 'echo "$UZBL_URI $0" >> "@data_home/bookmarks"' '%s'
+@cbind <Ctrl>m<tags:>_  = spawn_sh 'echo "$UZBL_URI	$0" >> "@data_home/bookmarks"' '%s'
 # Or use a script to insert a bookmark.
 @cbind  M  = spawn @scripts_dir/insert_bookmark.sh
 
