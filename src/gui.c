@@ -290,7 +290,13 @@ scroll_horiz_cb (GtkAdjustment *adjust, gpointer data);
 void
 web_view_init ()
 {
+#if defined(USE_WEBKIT2) && WEBKIT_CHECK_VERSION (2, 5, 1)
+    uzbl.gui.user_manager = webkit_user_content_manager_new ();
+    uzbl.gui.web_view = WEBKIT_WEB_VIEW (
+          webkit_web_view_new_with_user_content_manager(uzbl.gui.user_manager));
+#else
     uzbl.gui.web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
+#endif
     uzbl.gui.scrolled_win = gtk_scrolled_window_new (NULL, NULL);
 
     gtk_container_add (
