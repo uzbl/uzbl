@@ -260,7 +260,7 @@ uzbl_io_init_fifo (const gchar *dir)
 
     gboolean ret = FALSE;
 
-    if (!mkfifo (path, 0666)) {
+    if (!mkfifo (path, 0600)) {
       if (attach_fifo (path)) {
          ret = TRUE;
       } else {
@@ -640,6 +640,12 @@ attach_socket (const gchar *path, struct sockaddr_un *local)
 
     if (!bind (sock, (struct sockaddr *)local, sizeof (*local))) {
         uzbl_debug ("init_socket: opened in %s\n", path);
+
+        if (chmod (path, 0700)) {
+            g_warning ("unable to change permissions for %s socket: %s\n", path, strerror (errno));
+            close (sock);
+            return FALSE;
+        }
 
         if (listen (sock, 5)) {
             g_warning ("attach_socket: could not listen on %s: %s\n", path, strerror (errno));
