@@ -2594,9 +2594,17 @@ IMPLEMENT_COMMAND (inspector)
 
 /* Execution commands */
 
+#ifdef USE_WEBKIT2
+static void
+run_js_callback (GObject *object, GAsyncResult *result, gpointer data);
+#endif
+
 IMPLEMENT_COMMAND (js)
 {
     ARG_CHECK (argv, 3);
+#ifdef USE_WEBKIT2
+    UZBL_UNUSED (result);
+#endif
 
     const gchar *context = argv_idx (argv, 0);
     const gchar *where = argv_idx (argv, 1);
@@ -2679,6 +2687,10 @@ IMPLEMENT_COMMAND (js)
         goto js_exit;
     }
 
+#ifdef USE_WEBKIT2
+    webkit_web_view_run_javascript(uzbl.gui.web_view, script, NULL,
+                                   run_js_callback, NULL);
+#else
     JSObjectRef globalobject = JSContextGetGlobalObject (jsctx);
     JSValueRef js_exc = NULL;
 
@@ -2710,6 +2722,7 @@ IMPLEMENT_COMMAND (js)
 
     JSStringRelease (js_file);
     JSStringRelease (js_script);
+#endif
 
     g_free (script);
     g_free (path);
@@ -3085,6 +3098,37 @@ script_message_callback (WebKitUserContentManager *manager, WebKitJavascriptResu
     g_free (res_str);
 }
 #endif
+
+void
+run_js_callback (GObject *object, GAsyncResult *result, gpointer data)
+{
+    WebKitJavascriptResult *res;
+    GError *error = NULL;
+
+    res = webkit_web_view_run_javascript_finish (WEBKIT_WEB_VIEW (object),
+                                                       result, &error);
+    if (!res) {
+        uzbl_events_send (JS_MESSAGE, NULL,
+            TYPE_STR, "error",
+            TYPE_STR, error->message,
+            NULL);
+       g_error_free (error);
+       return;
+    }
+
+    JSGlobalContextRef ctx = webkit_javascript_result_get_global_context (res);
+    JSValueRef res_val = webkit_javascript_result_get_value (res);
+    gchar *res_str = uzbl_js_to_string (ctx, res_val);
+
+    uzbl_events_send (JS_MESSAGE, NULL,
+        TYPE_STR, "javascript",
+        TYPE_STR, res_str,
+        NULL);
+
+    g_free (res_str);
+    webkit_javascript_result_unref (res);
+}
+
 #endif
 
 void
