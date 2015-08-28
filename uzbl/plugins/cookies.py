@@ -202,6 +202,7 @@ class Cookies(PerInstancePlugin):
     def get_recipents(self):
         """ get a list of Uzbl instances to send the cookie too. """
         # This could be a lot more interesting
+        # TODO(mathstuf): handle private browsing mode.
         return [u for u in list(self.uzbl.parent.uzbls.values()) if u is not self.uzbl]
 
     def get_store(self, session=False):
