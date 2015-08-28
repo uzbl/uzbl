@@ -185,11 +185,11 @@ set cookie_policy always
 
 # --- Bind aliases -----------------------------------------------------------
 
-# event BIND <bind cmd> = <command>
-set bind      event MODE_BIND global
-
 # event MODE_BIND <mode> <bind cmd> = <command>
 set mode_bind event MODE_BIND
+
+# event BIND <bind cmd> = <command>
+set bind      @mode_bind global
 
 # Insert mode binding alias
 set ibind     @mode_bind insert
