@@ -1285,7 +1285,9 @@ You'll usually use `uzbl` by connecting it to a so-called "event manager" (EM).
 
 An EM is a privileged communicator with `uzbl`. EM sockets are given on the
 command line via the `--connect-socket` argument. EM sockets receive requests
-in addition to events. All sockets receive event output.
+in addition to events. All sockets receive event output. Please be aware that
+events contain sensitive information such as cookie data and keystrokes
+(e.g., passwords).
 
 An example EM is shipped with `uzbl` called `uzbl-event-manager`. See [its
 documentation](README.event-manager.md) for more.
