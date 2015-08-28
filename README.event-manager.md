@@ -98,3 +98,15 @@ The command is an uzbl command which may use format string replacement:
 * `event MODE_BIND global <Ctrl>/<search:>_ = search find %s`: In `global`
   mode, pressing `<Ctrl>/` followed by any text followed by `<Enter>` will
   search for the text.
+
+## completion
+
+Provides tab-completion in `command` mode. It completes variable names and
+command names. It uses the following commands:
+
+* `START_COMPLETION`
+  - Sets `@completion_list` to a space-separated list of span elements
+    containing potential values (or empty if there are fewer than two matches).
+    The matching portion uses `@hint_style` for that section.
+* `STOP_COMPLETION`
+  - Clears `@completion_list`.
