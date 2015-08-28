@@ -458,7 +458,7 @@ class BindPlugin(PerInstancePlugin):
         # Return to the previous mode if the KEYCMD_EXEC keycmd doesn't match any
         # binds in the stack mode.
         if on_exec and not mod_cmd and depth and depth == bindlet.depth:
-            config = Config[uzbl]
+            config = Config[self.uzbl]
             del config['mode']
 
 # vi: set et ts=4:
