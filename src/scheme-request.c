@@ -5,6 +5,8 @@
 
 #include <libsoup/soup-uri.h>
 
+#include <string.h>
+
 /* =========================== PUBLIC API =========================== */
 
 static void
@@ -44,6 +46,7 @@ uzbl_scheme_request_get_content_type (SoupRequest *request);
 struct _UzblSchemeRequestPrivate
 {
     gssize content_length;
+    gchar *content_type;
 };
 
 void
@@ -51,6 +54,7 @@ uzbl_scheme_request_init (UzblSchemeRequest *request)
 {
     request->priv = G_TYPE_INSTANCE_GET_PRIVATE (request, UZBL_TYPE_SCHEME_REQUEST, UzblSchemeRequestPrivate);
     request->priv->content_length = 0;
+    request->priv->content_type = NULL;
 }
 
 void
@@ -112,22 +116,31 @@ uzbl_scheme_request_send (SoupRequest *request, GCancellable *cancellable, GErro
 
     uzbl_commands_args_free (args);
 
-    uzbl_request->priv->content_length = result->len;
-    return g_memory_input_stream_new_from_data (
-        g_string_free (result, FALSE),
+    gchar *end = strchr (result->str, '\n');
+    size_t line_len = end ? end - result->str : result->len;
+
+    uzbl_request->priv->content_length = result->len - line_len - 1;
+    uzbl_request->priv->content_type = g_strndup (result->str, line_len);
+    GInputStream *stream = g_memory_input_stream_new_from_data (
+        g_strdup (end + 1),
         uzbl_request->priv->content_length, g_free);
+    g_string_free (result, TRUE);
+
+    return stream;
 }
 
 goffset
 uzbl_scheme_request_get_content_length (SoupRequest *request)
 {
-    return UZBL_SCHEME_REQUEST (request)->priv->content_length;
+    UzblSchemeRequest *uzbl_request = UZBL_SCHEME_REQUEST (request);
+
+    return uzbl_request->priv->content_length;
 }
 
 const char *
 uzbl_scheme_request_get_content_type (SoupRequest *request)
 {
-    UZBL_UNUSED (request);
+    UzblSchemeRequest *uzbl_request = UZBL_SCHEME_REQUEST (request);
 
-    return "text/html";
+    return uzbl_request->priv->content_type ? uzbl_request->priv->content_type : "text/html";
 }
