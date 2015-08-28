@@ -126,6 +126,23 @@ If not `WHITELIST_COOKIE` rules are added, all cookies, not matching a
 `BLACKLIST_COOKIE` rule will be allowed. Cookies which match a
 `BLACKLIST_COOKIE` will always be denied.
 
+Cookies are stored in the following files (in decreasing precedence):
+
+* `$UZBL_COOKIE_FILE`
+* `$XDG_DATA_HOME/uzbl/cookies.txt`
+* `$HOME/.local/share/uzbl/cookies.txt`
+
+Session cookies are stored in the following files (in decreasing precedence):
+
+* `$UZBL_SESSION_COOKIE_FILE`
+* `$XDG_DATA_HOME/uzbl/session-cookies.txt`
+* `$HOME/.local/share/uzbl/session-cookies.txt`
+
+These paths are determined at the daemon's startup, not on a per-uzbl basis.
+
+Any cookies added or removed in one instance are shared with or deleted from
+all other instances sharing the same event manager.
+
 ### cookiespec
 
 A `cookiespec` is an argument list of keyworded regular expressions. The
