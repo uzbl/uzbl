@@ -158,3 +158,8 @@ supported keywords:
 
 As an example, `event WHITELIST_COOKIE domain 'github\.com$'` would allow any
 cookie set by `github.com` (as well as any subdomains).
+
+## downloads
+
+Watches for download-related events and fills in `@downloads` with path and
+progress information.
