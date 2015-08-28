@@ -82,4 +82,3 @@ class OnSetPlugin(PerInstancePlugin):
 
         assert glob and command and valid_glob(glob)
         self.on_set(glob, command)
-

@@ -460,5 +460,3 @@ class BindPlugin(PerInstancePlugin):
         if on_exec and not mod_cmd and depth and depth == bindlet.depth:
             config = Config[self.uzbl]
             del config['mode']
-
-# vi: set et ts=4:

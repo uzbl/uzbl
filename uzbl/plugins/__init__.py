@@ -11,4 +11,3 @@ plugin_path = os.environ.get("UZBL_PLUGIN_PATH",
     ).split(":")
 if plugin_path:
     __path__ = list(map(os.path.expanduser, plugin_path)) + __path__
-

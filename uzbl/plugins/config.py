@@ -106,4 +106,3 @@ class Config(PerInstancePlugin):
         # not sure it's needed, but safer for cyclic links
         self.data.clear()
         super(Config, self).cleanup()
-

@@ -507,6 +507,3 @@ class KeyCmd(PerInstancePlugin):
 
         self.keylet.set_cursor_pos(args[0])
         self.update_event(set(), self.keylet, False)
-
-# vi: set et ts=4:
-

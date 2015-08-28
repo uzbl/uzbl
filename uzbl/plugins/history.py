@@ -64,6 +64,8 @@ class History(PerInstancePlugin):
             return shared.getline(self.prompt, self.cursor)
 
         self.cursor = -1
+        if Config[self.uzbl].get('history_disable_easter_egg', ''):
+            return ''
         return random.choice(end_messages)
 
     def __next__(self):
@@ -145,7 +147,4 @@ end_messages = (
     'error #388: Bad user karma.',
     'error #407: Route flapping at the NAP.',
     'error #435: Internet shut down due to maintenance.',
-    )
-
-
-# vi: set et ts=4:
+)

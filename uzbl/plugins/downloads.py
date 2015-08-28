@@ -83,4 +83,3 @@ class Downloads(PerInstancePlugin):
 
         # update the status bar variable
         self.update_download_section()
-

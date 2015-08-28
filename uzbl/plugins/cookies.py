@@ -259,5 +259,3 @@ class Cookies(PerInstancePlugin):
 
     def clear_secure_cookies(self, arg):
         self.secure = []
-
-# vi: set et ts=4:

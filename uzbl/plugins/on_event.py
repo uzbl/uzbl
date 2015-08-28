@@ -102,5 +102,3 @@ class OnEventPlugin(PerInstancePlugin):
     def cleanup(self):
         self.events.clear()
         super(OnEventPlugin, self).cleanup()
-
-# vi: set et ts=4:
