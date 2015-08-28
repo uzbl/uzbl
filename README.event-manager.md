@@ -163,3 +163,15 @@ cookie set by `github.com` (as well as any subdomains).
 
 Watches for download-related events and fills in `@downloads` with path and
 progress information.
+
+## history
+
+Provides a readline-like history for the `command`-mode prompt. Uses the
+following events:
+
+* `HISTORY_PREV`
+  - Selects the previous history item matching the current search.
+* `HISTORY_NEXT`
+  - Selects the next history item matching the current search.
+* `HISTORY_SEARCH`
+  - Sets the history search string and triggers `HISTORY_PREV`.
