@@ -7,8 +7,9 @@ include $(wildcard local.mk)
 # RUN_PREFIX : what the prefix is when the software is run. usually the same as PREFIX
 PREFIX     ?= /usr/local
 INSTALLDIR ?= $(DESTDIR)$(PREFIX)
-MANDIR     ?= $(INSTALLDIR)/share/man
-DOCDIR     ?= $(INSTALLDIR)/share/uzbl/docs
+SHAREDIR   ?= $(INSTALLDIR)/share
+MANDIR     ?= $(SHAREDIR)/man
+DOCDIR     ?= $(SHAREDIR)/uzbl/docs
 RUN_PREFIX ?= $(PREFIX)
 INSTALL    ?= install -p
 
@@ -279,6 +280,7 @@ install-uzbl-browser: uzbl-browser install-dirs install-uzbl-core install-event-
 	chmod 755 $(INSTALLDIR)/share/uzbl/examples/data/scripts/*.sh $(INSTALLDIR)/share/uzbl/examples/data/scripts/*.py
 	$(INSTALL) -m644 uzbl.desktop $(INSTALLDIR)/share/applications/uzbl.desktop
 	$(INSTALL) -m644 uzbl-browser.1 $(MANDIR)/man1/uzbl-browser.1
+	$(INSTALL) -m644 uzbl.appdata.xml $(SHAREDIR)/appdata/uzbl.appdata.xml
 
 install-uzbl-tabbed: install-dirs
 	$(INSTALL) -m755 bin/uzbl-tabbed $(INSTALLDIR)/bin/uzbl-tabbed

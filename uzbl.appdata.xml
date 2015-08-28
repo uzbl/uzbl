@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2014 Ryan Lerch <rlerch@redhat.com> -->
+<application>
+  <id type="desktop">uzbl.desktop</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <summary>Web Browser</summary>
+  <description>
+    <p>
+      Uzbl is a webkit based web browser with a vi-like modal user interface.
+      It has two modes, the command mode for running tasks such as opening a
+      new URI ("o" on the keyboard) or opening a new window (the "w" command).
+      Insert is the other mode, and is used for the input of text into the
+      browser window itself.
+    </p>
+  </description>
+  <url type="homepage">http://www.uzbl.org/</url>
+  <provides>
+    <binary>uzbl-browser</binary>
+    <binary>uzbl-tabbed</binary>
+  </provides>
+  <mimetypes>
+    <binary>text/html</binary>
+  </mimetypes>
+  <project_license>GPL-3.0</project_license>
+  <screenshots>
+    <screenshot type="default">https://raw.githubusercontent.com/hughsie/fedora-appstream/master/screenshots-extra/uzbl/a.png</screenshot>
+  </screenshots>
+  <updatecontact>mathstuf+uzbl@github.com</updatecontact>
+</application>
