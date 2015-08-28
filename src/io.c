@@ -86,7 +86,7 @@ init_fifo(const gchar *dir) {
     if (file_exists(path) && unlink(path) == -1)
         g_warning ("Fifo: Can't unlink old fifo at %s\n", path);
 
-    if (mkfifo (path, 0666) == 0) {
+    if (mkfifo (path, 0600) == 0) {
       if(attach_fifo(path))
          return TRUE;
       else
@@ -265,6 +265,12 @@ attach_socket(gchar *path, struct sockaddr_un *local) {
     int sock = socket (AF_UNIX, SOCK_STREAM, 0);
 
     if (bind (sock, (struct sockaddr *) local, sizeof(*local)) != -1) {
+        if (chmod (path, 0700)) {
+            g_warning ("attach_socket: failed to lock down %s: %s\n", path, strerror(errno));
+            close (sock);
+            return FALSE;
+        }
+
         if (uzbl.state.verbose)
             printf ("init_socket: opened in %s\n", path);
 
