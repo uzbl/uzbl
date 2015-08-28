@@ -110,3 +110,34 @@ command names. It uses the following commands:
     The matching portion uses `@hint_style` for that section.
 * `STOP_COMPLETION`
   - Clears `@completion_list`.
+
+## cookies
+
+Provides persistence of cookie data between uzbl instances. Provides the
+following event listeners:
+
+* `BLACKLIST_COOKIE <cookiespec>`
+  - Blacklists matching cookies. Due to the way uzbl works, the cookies are
+    deleted after adding rather than blocked in the first place.
+* `WHITELIST_COOKIE <cookiespec>`
+  - Whitelists matching cookies.
+
+If not `WHITELIST_COOKIE` rules are added, all cookies, not matching a
+`BLACKLIST_COOKIE` rule will be allowed. Cookies which match a
+`BLACKLIST_COOKIE` will always be denied.
+
+### cookiespec
+
+A `cookiespec` is an argument list of keyworded regular expressions. The
+supported keywords:
+
+* `domain`: The domain name of the cookie source.
+* `path`: The path the cookie applies to.
+* `name`: The name of the cookie.
+* `value`: The content of the cookie.
+* `scheme`: Whether the cookie is for `http` or `https`. May end in `Only` if
+  it is specific to that scheme.
+* `expires`: The Unix timestamp of when the cookie expires.
+
+As an example, `event WHITELIST_COOKIE domain 'github\.com$'` would allow any
+cookie set by `github.com` (as well as any subdomains).
