@@ -928,7 +928,7 @@ Note: In WebKit2, font sizes are in pixels, whereas WebKit1 uses points.
 * `web_database_quota` (size) (default: 5242880) (WebKit1 only)
   - The maximum size (in bytes) of web databases. (Note: It is unclear if this
     is a total quota or per-database quota.)
-* `local_storage_path` (string) (default: `$XDG_DATA_HOME/webkit/databases`) (WebKit1 >= 1.5.2 or WebKit2 >= 1.7.2)
+* `local_storage_path` (string) (default: `$XDG_DATA_HOME/webkit/databases`) (WebKit1 >= 1.5.2 or WebKit2 >= 2.7.2)
   - Where to store HTML5 `localStorage` data.
 * `disk_cache_directory` (string) (no default) (WebKit2 >= 1.11.92)
   - Where to store cache files.. Must be set before loading any pages to have
