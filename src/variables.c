@@ -1417,6 +1417,9 @@ DECLARE_GETTER (int, is_online);
 #if WEBKIT_CHECK_VERSION (2, 7, 4)
 DECLARE_GETTER (int, is_playing_audio);
 #endif
+#if WEBKIT_CHECK_VERSION (2, 9, 4)
+DECLARE_GETTER (gchar *, editor_state);
+#endif
 #endif
 DECLARE_GETTER (int, WEBKIT_MAJOR);
 DECLARE_GETTER (int, WEBKIT_MINOR);
@@ -1795,6 +1798,9 @@ uzbl_variables_private_new (GHashTable *table)
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (2, 7, 4)
         { "is_playing_audio",             UZBL_C_FUNC (is_playing_audio,                       INT)},
+#endif
+#if WEBKIT_CHECK_VERSION (2, 9, 4)
+        { "editor_state",                 UZBL_C_FUNC (editor_state,                           STR)},
 #endif
 #endif
         { "uri",                          UZBL_C_STRING (uzbl.state.uri)},
@@ -3290,6 +3296,46 @@ IMPLEMENT_GETTER (int, is_online)
 #if WEBKIT_CHECK_VERSION (2, 7, 4)
 GOBJECT_GETTER2 (int, is_playing_audio,
                  gboolean, webkit_view (), "is-playing-audio");
+#endif
+
+#if WEBKIT_CHECK_VERSION (2, 9, 4)
+IMPLEMENT_GETTER (gchar *, editor_state)
+{
+    WebKitEditorState *editor_state;
+    guint state;
+    gchar *state_str = NULL;
+
+    g_object_get (webkit_view (),
+        "editor-state", &editor_state,
+        NULL);
+
+    state = webkit_editor_state_get_typing_attributes (editor_state);
+
+#define webkit_editor_state_attributes(call)                        \
+    call(WEBKIT_EDITOR_TYPING_ATTRIBUTE_BOLD,          "bold")      \
+    call(WEBKIT_EDITOR_TYPING_ATTRIBUTE_ITALIC,        "italic")    \
+    call(WEBKIT_EDITOR_TYPING_ATTRIBUTE_UNDERLINE,     "underline") \
+    call(WEBKIT_EDITOR_TYPING_ATTRIBUTE_STRIKETHROUGH, "strikethrough")
+
+#define append_flag(flag, str)                                  \
+    } else if (state & flag) {                                  \
+        gchar *old_state_str = state_str;                       \
+        if (state_str) {                                        \
+            state_str = g_strdup_printf ("%s," str, state_str); \
+        } else {                                                \
+            state_str = g_strdup (str);                         \
+        }                                                       \
+        g_free (old_state_str);
+
+    if (!state) {
+        state_str = g_strdup ("none");
+    webkit_editor_state_attributes(append_flag)
+    }
+
+#undef webkit_editor_state_attributes
+
+    return state_str;
+}
 #endif
 #endif
 

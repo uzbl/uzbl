@@ -984,6 +984,14 @@ they are written as comments.
   - If non-zero, a network is available (not necessarily the Internet).
 * `is_playing_audio` (boolean) (WebKit2 >= 2.7.4)
   - If non-zero, audio is playing.
+* `editor_state` (string) (WebKit2 >= 2.9.4)
+  - Comma-separated list of the attributes attached to text at the current text
+    position. The current flags are:
+    + `none`
+    + `bold`
+    + `italic`
+    + `underline`
+    + `strikethrough`
 * `uri` (string)
   - The current top-level URI of the view.
 * `embedded` (boolean)
