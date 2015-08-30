@@ -82,7 +82,8 @@ class ProgressBar(PerInstancePlugin):
             't': '%d%%' % (100 - progress),
             'o': '%d' % (100 - progress),
             's': spinner,
-            'r': sprite
+            'r': sprite,
+            '%': '%'
         }
 
         frmt = ''.join([str(values[k[1:]]) if k.startswith('%') else k for
