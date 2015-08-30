@@ -267,3 +267,11 @@ Implements event chaining and reactions. Uses the following events:
 * `ON_EVENT <event> <commandspec>`
   - Registers `command` to be executed when an event named `event` is seen. The
     command may be formatted using the arguments the original event received.
+
+## on\_set
+
+Implements reactions to variable set events. Uses the following events:
+
+* `ON_SET <glob> <commandspec>`
+  - When a variable matching `glob` is set to a new value, execute `command`
+    with the new value as an argument.
