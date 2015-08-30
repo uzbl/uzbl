@@ -992,6 +992,7 @@ they are written as comments.
     + `italic`
     + `underline`
     + `strikethrough`
+    + `unknown`
 * `uri` (string)
   - The current top-level URI of the view.
 * `embedded` (boolean)

@@ -3314,6 +3314,8 @@ IMPLEMENT_GETTER (gchar *, editor_state)
     if (!state) {
         state_str = g_strdup ("none");
     } else {
+        guint state_mask = 0;
+
 #define webkit_editor_state_attributes(call)                        \
     call(WEBKIT_EDITOR_TYPING_ATTRIBUTE_BOLD,          "bold")      \
     call(WEBKIT_EDITOR_TYPING_ATTRIBUTE_ITALIC,        "italic")    \
@@ -3323,6 +3325,7 @@ IMPLEMENT_GETTER (gchar *, editor_state)
 #define append_flag(flag, str)                                  \
     if (state & flag) {                                         \
         gchar *old_state_str = state_str;                       \
+        state_mask |= flag;                                     \
         if (state_str) {                                        \
             state_str = g_strdup_printf ("%s," str, state_str); \
         } else {                                                \
@@ -3331,6 +3334,10 @@ IMPLEMENT_GETTER (gchar *, editor_state)
         g_free (old_state_str);                                 \
     }
         webkit_editor_state_attributes(append_flag)
+
+        /* Find any unknown flags. */
+        state ^= state_mask;
+        append_flag(GUINT_MAX, "unknown")
 #undef append_flag
 
 #undef webkit_editor_state_attributes
