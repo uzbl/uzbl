@@ -777,7 +777,7 @@ variables are treated as strings.
     + `minimized`
 * `enable_fullscreen` (boolean) (default: 0) (WebKit >= 1.3.4)
   - If non-zero, Mozilla-style JavaScript APIs will be enabled for JavaScript.
-* `editable` (boolean) (default: 0) (WebKit1 only)
+* `editable` (boolean) (default: 0) (WebKit1 or WebKit2 >= 2.7.4)
   - If non-zero, web pages will be editable similar to a WYSIWYG editor.
 
 #### JavaScript

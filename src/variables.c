@@ -1101,6 +1101,14 @@ expand_type (const gchar *str)
 #endif
 #endif
 
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 7, 4)
+#define HAVE_EDITABLE
+#endif
+#else
+#define HAVE_EDITABLE
+#endif
+
 /* Abbreviations to help keep the table's width humane. */
 #define UZBL_SETTING(typ, val, w, getter, setter) \
     { .type = TYPE_##typ, .value = val, .writeable = w, .builtin = TRUE, .get = (UzblFunction)getter, .set = (UzblFunction)setter }
@@ -1243,7 +1251,7 @@ DECLARE_GETSET (gchar *, window_view_mode);
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
 DECLARE_GETSET (int, enable_fullscreen);
 #endif
-#ifndef USE_WEBKIT2
+#ifdef HAVE_EDITABLE
 DECLARE_GETSET (int, editable);
 #endif
 
@@ -1592,7 +1600,7 @@ uzbl_variables_private_new (GHashTable *table)
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
         { "enable_fullscreen",            UZBL_V_FUNC (enable_fullscreen,                      INT)},
 #endif
-#ifndef USE_WEBKIT2
+#ifdef HAVE_EDITABLE
         { "editable",                     UZBL_V_FUNC (editable,                               INT)},
 #endif
 
@@ -2626,7 +2634,7 @@ GOBJECT_GETSET2 (int, enable_fullscreen,
                  gboolean, webkit_settings (), "enable-fullscreen")
 #endif
 
-#ifndef USE_WEBKIT2
+#ifdef HAVE_EDITABLE
 GOBJECT_GETSET2 (int, editable,
                  gboolean, webkit_view (), "editable")
 #endif
