@@ -240,3 +240,22 @@ The following events are used as notification for actions:
 The `@modcmd_updates` and `@keycmd_events` may be set to `0` to disable
 updating the `@modcmd` and `@keycmd` variables. The `@keycmd` variable is HTML
 markup using `@cursor_style` to indicate the current cursor position.
+
+## mode
+
+Implements a modal interface for uzbl. Uses the following events:
+
+* `MODE_CONFIG <mode> <variable> <value>`
+  - When `mode` is entered, sets `variable` to `value`.
+* `MODE_CONFIRM <mode>`
+  - Used internally.
+
+The following events are used as notification for actions:
+
+* `MODE_CHANGED <mode>`
+  - Sent when a mode change is complete.
+
+The plugin also manages the following variables:
+
+- `@mode`: The current mode.
+- `@default_mode`: The mode to use if `@mode` is ever set to the empty string.
