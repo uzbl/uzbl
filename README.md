@@ -1283,6 +1283,7 @@ arguments:
           + `video`
           + `unknown`
       + `notification` (WebKit2 >= 2.7.3)
+      + `install_media_plugin` (WebKit2 >= 2.9.90)
       + `unknown`
   3. `description`
     - A description for the request (if available).

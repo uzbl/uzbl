@@ -1248,6 +1248,13 @@ permission_cb (WebKitWebView *view, WebKitPermissionRequest *request, gpointer d
             type = "media:unknown";
         }
 #endif
+#if WEBKIT_CHECK_VERSION (2, 9, 90)
+    } else if (WEBKIT_IS_INSTALL_MISSING_MEDIA_PLUGINS_PERMISSION_REQUEST (request)) {
+        WebKitInstallMissingMediaPluginsPermissionRequest *media_plugin_request = (WebKitInstallMissingMediaPluginsPermissionRequest *)request;
+
+        type = "install_media_plugin";
+        desc = webkit_install_missing_media_plugins_permission_request_get_description (media_plugin_request);
+#endif
     }
 
     return request_permission (uri, type, desc, G_OBJECT (request));
