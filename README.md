@@ -951,6 +951,14 @@ Note: In WebKit2, font sizes are in pixels, whereas WebKit1 uses points.
     pages.
 * `indexed_db_directory` (string) (no default) (WebKit2 >= 2.9.2)
   - Where to store IndexedDB databases.
+* `base_cache_directory` (string) (no default) (WebKit2 >= 2.9.4)
+  - Location to store cache files if no more specific directory is given.
+* `base_data_directory` (string) (no default) (WebKit2 >= 2.9.4)
+  - Location to store data files if no more specific directory is given.
+* `offline_app_cache_directory` (string) (no default) (WebKit2 >= 2.9.4)
+  - Location to store files for offline applications.
+* `websql_directory` (string) (no default) (WebKit2 >= 2.9.4)
+  - Location to store WebSQL databases.
 
 #### Hacks
 

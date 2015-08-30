@@ -207,6 +207,10 @@ uzbl_init (int *argc, char ***argv)
     uzbl_gui_init ();
     uzbl_inspector_init ();
 
+#if WEBKIT_CHECK_VERSION (2, 9, 4)
+    uzbl_variables_setup_data_manager ();
+#endif
+
     /* Uzbl has now been started. */
     uzbl.state.started = TRUE;
 

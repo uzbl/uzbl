@@ -56,5 +56,7 @@ void
 uzbl_variables_init ();
 void
 uzbl_variables_free ();
+void
+uzbl_variables_setup_data_manager ();
 
 #endif

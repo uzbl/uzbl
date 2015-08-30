@@ -1389,6 +1389,13 @@ DECLARE_SETTER (gchar *, web_extensions_directory);
 #if WEBKIT_CHECK_VERSION (2, 9, 2)
 DECLARE_GETSET (gchar *, indexed_db_directory);
 #endif
+#if WEBKIT_CHECK_VERSION (2, 9, 4)
+DECLARE_GETTER (gchar *, disk_cache_directory);
+DECLARE_GETSET (gchar *, base_cache_directory);
+DECLARE_GETSET (gchar *, base_data_directory);
+DECLARE_GETSET (gchar *, offline_app_cache_directory);
+DECLARE_GETSET (gchar *, websql_directory);
+#endif
 #endif
 
 /* Hacks */
@@ -1473,7 +1480,9 @@ struct _UzblVariablesPrivate {
 
     /* HTML5 Database variables */
 #ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 11, 92)
+#if WEBKIT_CHECK_VERSION (2, 9, 4)
+    WebKitWebsiteDataManager *data_manager;
+#elif WEBKIT_CHECK_VERSION (1, 11, 92)
     gchar *disk_cache_directory;
 #endif
     gchar *web_extensions_directory;
@@ -1748,11 +1757,23 @@ uzbl_variables_private_new (GHashTable *table)
 #endif
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 11, 92)
-        { "disk_cache_directory",         UZBL_V_STRING (priv->disk_cache_directory,           set_disk_cache_directory)},
+        { "disk_cache_directory",
+#if WEBKIT_CHECK_VERSION (2, 9, 4)
+                                          UZBL_V_FUNC (disk_cache_directory,                   STR)
+#else
+                                          UZBL_V_STRING (priv->disk_cache_directory,           set_disk_cache_directory)
+#endif
+                                          },
 #endif
         { "web_extensions_directory",     UZBL_V_STRING (priv->web_extensions_directory,       set_web_extensions_directory)},
 #if WEBKIT_CHECK_VERSION (2, 9, 2)
         { "indexed_db_directory",         UZBL_V_FUNC (indexed_db_directory,                   STR)},
+#endif
+#if WEBKIT_CHECK_VERSION (2, 9, 4)
+        { "base_cache_directory",         UZBL_V_FUNC (base_cache_directory,                   STR)},
+        { "base_data_directory",          UZBL_V_FUNC (base_data_directory,                    STR)},
+        { "offline_app_cache_directory",  UZBL_V_FUNC (offline_app_cache_directory,            STR)},
+        { "websql_directory",             UZBL_V_FUNC (websql_directory,                       STR)},
 #endif
 #endif
 
@@ -1811,6 +1832,12 @@ uzbl_variables_private_new (GHashTable *table)
         ++entry;
     }
 
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 9, 4)
+    priv->data_manager = webkit_website_data_manager_new (NULL);
+#endif
+#endif
+
     return priv;
 }
 
@@ -1821,8 +1848,29 @@ uzbl_variables_private_free (UzblVariablesPrivate *priv)
     g_object_unref (priv->status_background_provider);
 #endif
 
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 9, 4)
+    g_object_unref (priv->data_manager);
+#endif
+#endif
+
     /* All other members are deleted by the table's free function. */
     g_free (priv);
+}
+
+void
+uzbl_variables_setup_data_manager ()
+{
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 9, 4)
+    WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
+    WebKitWebsiteDataManager *manager = uzbl.variables->priv->data_manager;
+
+    g_object_set (G_OBJECT (context),
+        "website-data-manager", manager,
+        NULL);
+#endif
+#endif
 }
 
 /* =================== VARIABLES IMPLEMENTATIONS ==================== */
@@ -1934,9 +1982,13 @@ uzbl_variables_private_free (UzblVariablesPrivate *priv)
     }
 
 #ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (2, 7, 2)
+#if WEBKIT_CHECK_VERSION (2, 7, 2) && !WEBKIT_CHECK_VERSION (2, 9, 2)
 static GObject *
 webkit_context ();
+#endif
+#if WEBKIT_CHECK_VERSION (2, 9, 4)
+static GObject *
+webkit_data_manager ();
 #endif
 #endif
 static GObject *
@@ -3066,7 +3118,10 @@ IMPLEMENT_SETTER (unsigned long long, web_database_quota)
 #endif
 
 #ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (2, 7, 2)
+#if WEBKIT_CHECK_VERSION (2, 9, 4)
+GOBJECT_GETSET (gchar *, local_storage_path,
+                webkit_data_manager (), "local-storage-directory")
+#elif WEBKIT_CHECK_VERSION (2, 7, 2)
 GOBJECT_GETSET (gchar *, local_storage_path,
                 webkit_context (), "local-storage-directory")
 #endif
@@ -3078,7 +3133,10 @@ GOBJECT_GETSET (gchar *, local_storage_path,
 #endif
 
 #ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 11, 92)
+#if WEBKIT_CHECK_VERSION (2, 9, 4)
+GOBJECT_GETSET (gchar *, disk_cache_directory,
+                webkit_data_manager (), "disk-cache-directory")
+#elif WEBKIT_CHECK_VERSION (1, 11, 92)
 IMPLEMENT_SETTER (gchar *, disk_cache_directory)
 {
     g_free (uzbl.variables->priv->disk_cache_directory);
@@ -3102,9 +3160,26 @@ IMPLEMENT_SETTER (gchar *, web_extensions_directory)
     return TRUE;
 }
 
-#if WEBKIT_CHECK_VERSION (2, 9, 2)
+#if WEBKIT_CHECK_VERSION (2, 9, 4)
+GOBJECT_GETSET (gchar *, indexed_db_directory,
+                webkit_data_manager (), "indexeddb-directory")
+#elif WEBKIT_CHECK_VERSION (2, 9, 2)
 GOBJECT_GETSET (gchar *, indexed_db_directory,
                 webkit_context (), "indexed-db-directory")
+#endif
+
+#if WEBKIT_CHECK_VERSION (2, 9, 4)
+GOBJECT_GETSET (gchar *, base_cache_directory,
+                webkit_data_manager (), "base-cache-directory");
+
+GOBJECT_GETSET (gchar *, base_data_directory,
+                webkit_data_manager (), "base-data-directory");
+
+GOBJECT_GETSET (gchar *, offline_app_cache_directory,
+                webkit_data_manager (), "offline-application-cache-directory");
+
+GOBJECT_GETSET (gchar *, websql_directory,
+                webkit_data_manager (), "websql-directory");
 #endif
 #endif
 
@@ -3422,11 +3497,19 @@ IMPLEMENT_GETTER (int, PID)
 }
 
 #ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (2, 7, 2)
+#if WEBKIT_CHECK_VERSION (2, 7, 2) && !WEBKIT_CHECK_VERSION (2, 9, 2)
 GObject *
 webkit_context ()
 {
     return G_OBJECT (webkit_web_view_get_context (uzbl.gui.web_view));
+}
+#endif
+
+#if WEBKIT_CHECK_VERSION (2, 9, 4)
+GObject *
+webkit_data_manager ()
+{
+    return G_OBJECT (uzbl.variables->priv->data_manager);
 }
 #endif
 #endif
