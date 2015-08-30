@@ -185,6 +185,16 @@ status_bar_init ()
       */
 }
 
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (1, 9, 2)
+#define HAVE_FILE_CHOOSER_API
+#endif
+#else
+#if WEBKIT_CHECK_VERSION (1, 9, 4)
+#define HAVE_FILE_CHOOSER_API
+#endif
+#endif
+
 /* Mouse events */
 static gboolean
 button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer data);
@@ -302,6 +312,10 @@ run_color_chooser_cb (WebKitWebView *view, WebKitColorChooserRequest *request, g
 #endif
 #endif
 #endif
+#ifdef HAVE_FILE_CHOOSER_API
+static gboolean
+run_file_chooser_cb (WebKitWebView *view, WebKitFileChooserRequest *request, gpointer data);
+#endif
 /* Scrollbar events */
 static gboolean
 scroll_vert_cb (GtkAdjustment *adjust, gpointer data);
@@ -409,9 +423,12 @@ web_view_init ()
         "signal::close-notification",                   G_CALLBACK (close_notification_cb),    NULL,
 #endif
 #if WEBKIT_CHECK_VERSION (2, 7, 90)
-        "signal::run-color-chooser",                    G_CALLBACK (run_color_chooser_cb),    NULL,
+        "signal::run-color-chooser",                    G_CALLBACK (run_color_chooser_cb),     NULL,
 #endif
 #endif
+#endif
+#ifdef HAVE_FILE_CHOOSER_API
+        "signal::run-file-chooser",                     G_CALLBACK (run_file_chooser_cb),      NULL,
 #endif
         NULL);
 
@@ -1651,6 +1668,49 @@ run_color_chooser_cb (WebKitWebView *view, WebKitColorChooserRequest *request, g
 #endif
 #endif
 
+#ifdef HAVE_FILE_CHOOSER_API
+static void
+choose_file (GString *result, gpointer data);
+
+static gboolean
+run_file_chooser_cb (WebKitWebView *view, WebKitFileChooserRequest *request, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (data);
+
+    gchar *handler = uzbl_variables_get_string ("file_chooser_handler");
+
+    if (!handler || !*handler) {
+        return FALSE;
+    }
+
+    GArray *args = uzbl_commands_args_new ();
+    const UzblCommand *file_chooser_command = uzbl_commands_parse (handler, args);
+
+    if (file_chooser_command) {
+        gboolean multiple = webkit_file_chooser_request_get_select_multiple (request);
+        const gchar * const * mime_types = webkit_file_chooser_request_get_mime_types (request);
+        gchar *mime_types_str;
+
+        if (mime_types) {
+            mime_types_str = g_strjoinv (",", (gchar **)mime_types);
+        } else {
+            mime_types_str = g_strdup ("");
+        }
+
+        uzbl_commands_args_append (args, g_strdup (multiple ? "multiple" : "single"));
+        uzbl_commands_args_append (args, mime_types_str);
+
+        g_object_ref (request);
+        uzbl_io_schedule_command (file_chooser_command, args, choose_file, request);
+    }
+
+    g_free (handler);
+
+    return (file_chooser_command != NULL);
+}
+#endif
+
 /* Scrollbar events */
 
 static void
@@ -2562,6 +2622,35 @@ choose_color (GString *result, gpointer data)
     g_object_unref (request);
 }
 #endif
+#endif
+
+#ifdef HAVE_FILE_CHOOSER_API
+void
+choose_file (GString *result, gpointer data)
+{
+    WebKitFileChooserRequest *request = (WebKitFileChooserRequest *)data;
+    gboolean multiple = webkit_file_chooser_request_get_select_multiple (request);
+    gchar **files = g_strsplit (result->str, "\n", -1);
+
+    if (!result->len || !files || !*files) {
+#ifdef USE_WEBKIT2
+        webkit_file_chooser_request_cancel (request);
+#else
+        /* FIXME: no way to cancel? */
+        const gchar *no_file[] = { NULL };
+        webkit_file_chooser_request_select_files (request, no_file);
+#endif
+    } else if (multiple) {
+        webkit_file_chooser_request_select_files (request, (const gchar * const *)files);
+    } else {
+        const gchar *single_file[] = { files[0], NULL };
+        webkit_file_chooser_request_select_files (request, single_file);
+    }
+
+    g_strfreev (files);
+
+    g_object_unref (request);
+}
 #endif
 
 void

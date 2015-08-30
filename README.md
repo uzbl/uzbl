@@ -606,6 +606,9 @@ variables are treated as strings.
 * `tls_error_handler` (command) (no default) (WebKit2 >= 2.3.1)
   - The command to use when a TLS error occurs. The handler may return `ALLOW`
     to ignore the TLS error for the session.
+* `file_chooser_handler` (command) (no default) (WebKit >= 1.9.4 or WebKit2 >= 1.9.2)
+  - The command to use when a web page requests a file. By default, the GTK
+    widget file dialog.
 * `color_chooser_handler` (command) (no default) (WebKit2 >= 2.7.90)
   - The command to use when a web page requests a color. By default, the GTK
     widget for choosing a color will be used. Mainly useful for automated
@@ -1178,8 +1181,8 @@ the following environment variables:
 
 Handler scripts (`download_handler`, `navigation_handler`, `request_handler`,
 `mime_handler`, `authentication_handler`, `permission_handler`,
-`tls_error_handler`, and `color_chooser_handler`) are called with special
-arguments:
+`tls_error_handler`, `file_chooser_handler`, and `color_chooser_handler`) are
+called with special arguments:
 
 * download handler
 
@@ -1305,6 +1308,14 @@ arguments:
       + `error`
   3. `cert_info`
     - A JSON object with information describing the certificate.
+
+* file chooser handler
+
+  1. `mode`
+    - Either `multiple` or `single` for whether a single file or multiple files
+      were requested.
+  2. `mimetypes`
+    - A comma-separated list of mimetypes requested.
 
 * color chooser handler
 
