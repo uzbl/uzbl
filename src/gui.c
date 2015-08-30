@@ -1204,6 +1204,8 @@ permission_cb (WebKitWebView *view, WebKitPermissionRequest *request, gpointer d
 
 #if WEBKIT_CHECK_VERSION (2, 3, 1)
 static gboolean
+make_tls_error_uri (const gchar *uri, GTlsCertificate *cert, GTlsCertificateFlags flags);
+static gboolean
 make_tls_error (const gchar *host, GTlsCertificate *cert, GTlsCertificateFlags flags, void *webkit_2_3_1_hack);
 
 #if WEBKIT_CHECK_VERSION (2, 5, 90)
@@ -1213,18 +1215,7 @@ tls_error_cb (WebKitWebView *view, gchar *uri, GTlsCertificate *cert, GTlsCertif
     UZBL_UNUSED (view);
     UZBL_UNUSED (data);
 
-    SoupURI *soup_uri = soup_uri_new (uri);
-
-    if (!soup_uri) {
-        uzbl_debug ("Failed to parse URI for TLS failure: %s\n", uri);
-        return TRUE;
-    }
-
-    const gchar *host = soup_uri_get_host (soup_uri);
-    gboolean ret = make_tls_error (host, cert, flags, NULL /* webkit 2.3.1 hack */);
-    soup_uri_free (soup_uri);
-
-    return ret;
+    return make_tls_error_uri (uri, cert, flags);
 }
 #elif WEBKIT_CHECK_VERSION (2, 5, 1)
 gboolean
@@ -1263,6 +1254,23 @@ static void
 decide_tls_error_policy (GString *result, gpointer data);
 static gchar *
 get_certificate_info (GTlsCertificate *cert);
+
+gboolean
+make_tls_error_uri (const gchar *uri, GTlsCertificate *cert, GTlsCertificateFlags flags)
+{
+    SoupURI *soup_uri = soup_uri_new (uri);
+
+    if (!soup_uri) {
+        uzbl_debug ("Failed to parse URI for TLS failure: %s\n", uri);
+        return TRUE;
+    }
+
+    const gchar *host = soup_uri_get_host (soup_uri);
+    gboolean ret = make_tls_error (host, cert, flags, NULL /* webkit 2.3.1 hack */);
+    soup_uri_free (soup_uri);
+
+    return ret;
+}
 
 gboolean
 make_tls_error (const gchar *host, GTlsCertificate *cert, GTlsCertificateFlags flags, void *info)
