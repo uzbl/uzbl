@@ -275,3 +275,35 @@ Implements reactions to variable set events. Uses the following events:
 * `ON_SET <glob> <commandspec>`
   - When a variable matching `glob` is set to a new value, execute `command`
     with the new value as an argument.
+
+## progress\_bar
+
+Implements a progress bar for page loading. Uses the following variables:
+
+* `@progress.format`: The format string for the `@progress.output` variable.
+  Defaults to `[%d>%p]%c`.
+* `@progress.done`: The character to use for filling the `done` section of the
+  progress bar. Defaults to `=`.
+* `@progress.pending`: The character to use for filling the `pending` section
+  of the progress bar. Defaults to ` ` (space).
+* `@progress.spinner`: The characters to use for the spinner. Defaults to
+  `-\|/`.
+* `@progress.sprites`: The characters to use for the sprite. Defaults to
+  `loading`.
+* `@progress.width`: The width of the progress bar. Defaults to 8.
+
+The current progress output is 
+
+### Progress format
+
+* `%d`: The `done` character repeated to fill its space within the progress
+  bar.
+* `%p`: The `pending` character repeated to fill its space within the progress
+  bar.
+* `%s`: Current spinner character.
+* `%r`: Current sprite character.
+* `%c`: The percentage complete (with `%`).
+* `%i`: The percentage complete as an integer.
+* `%o`: The percentage pending as an integer.
+* `%t`: The percentage pending (with `%`).
+* `%%`: A literal `%`.
