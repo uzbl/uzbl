@@ -533,6 +533,11 @@ as `KEY` and `many args` as `VALUE`.
   - Send a synchronous request and returns the result of the request. This is
     meant to be used for synchronous communication between the event manager
     and `uzbl` since `spawn_sync` is not usable to talk to the event manager.
+* `choose <NAME> <COOKIE> [ARGUMENTS...]`
+  - Send a synchronous choose and returns the result of the request. This is
+    meant to implement the `file_chooser_handler` and `color_chooser_handler`
+    where a result should be waited upon indefinitely. **This will hang uzbl if
+    it is not replied to.**
 
 ### VARIABLES AND CONSTANTS
 

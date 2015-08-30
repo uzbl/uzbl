@@ -697,6 +697,7 @@ DECLARE_COMMAND (print);
 
 /* Event commands */
 DECLARE_COMMAND (event);
+DECLARE_COMMAND (choose);
 DECLARE_COMMAND (request);
 
 static const UzblCommand
@@ -796,6 +797,7 @@ builtin_command_table[] = {
 
     /* Event commands */
     { "event",                          cmd_event,                    FALSE, FALSE },
+    { "choose",                         cmd_choose,                   TRUE,  TRUE  },
     { "request",                        cmd_request,                  TRUE,  TRUE  },
 
     /* Terminator */
@@ -2936,6 +2938,11 @@ IMPLEMENT_COMMAND (event)
 
 static void
 make_request (gint64 timeout, GArray *argv, GString *result);
+
+IMPLEMENT_COMMAND (choose)
+{
+    make_request (-1, argv, result);
+}
 
 IMPLEMENT_COMMAND (request)
 {
