@@ -2031,8 +2031,8 @@ IMPLEMENT_SETTER (gchar *, window_role)
 }
 
 #ifndef USE_WEBKIT2
-GOBJECT_GETSET (int, auto_resize_window,
-                webkit_settings (), "auto-resize-window")
+GOBJECT_GETSET2 (int, auto_resize_window,
+                 gboolean, webkit_settings (), "auto-resize-window")
 #endif
 
 /* UI variables */
@@ -2138,19 +2138,19 @@ IMPLEMENT_SETTER (char *, status_background)
 }
 
 #ifdef USE_WEBKIT2
-GOBJECT_GETSET (int, enable_compositing_debugging,
-                webkit_settings (), "draw-compositing-indicators")
+GOBJECT_GETSET2 (int, enable_compositing_debugging,
+                 gboolean, webkit_settings (), "draw-compositing-indicators")
 #endif
 
 /* Customization */
 #if !WEBKIT_CHECK_VERSION (1, 9, 0)
-GOBJECT_GETSET (int, default_context_menu,
-                webkit_settings (), "enable-default-context-menu")
+GOBJECT_GETSET2 (int, default_context_menu,
+                 gboolean, webkit_settings (), "enable-default-context-menu")
 #endif
 
 /* Printing variables */
-GOBJECT_GETSET (int, print_backgrounds,
-                webkit_settings (), "print-backgrounds")
+GOBJECT_GETSET2 (int, print_backgrounds,
+                 gboolean, webkit_settings (), "print-backgrounds")
 
 /* Network variables */
 #ifndef USE_WEBKIT2
@@ -2317,23 +2317,23 @@ IMPLEMENT_SETTER (int, enable_private)
     return TRUE;
 }
 
-GOBJECT_GETSET (int, enable_private_webkit,
-                webkit_settings (), "enable-private-browsing")
+GOBJECT_GETSET2 (int, enable_private_webkit,
+                 gboolean, webkit_settings (), "enable-private-browsing")
 
 #ifndef USE_WEBKIT2
-GOBJECT_GETSET (int, enable_universal_file_access,
-                webkit_settings (), "enable-universal-access-from-file-uris")
+GOBJECT_GETSET2 (int, enable_universal_file_access,
+                 gboolean, webkit_settings (), "enable-universal-access-from-file-uris")
 
-GOBJECT_GETSET (int, enable_cross_file_access,
-                webkit_settings (), "enable-file-access-from-file-uris")
+GOBJECT_GETSET2 (int, enable_cross_file_access,
+                 gboolean, webkit_settings (), "enable-file-access-from-file-uris")
 #endif
 
-GOBJECT_GETSET (int, enable_hyperlink_auditing,
-                webkit_settings (), "enable-hyperlink-auditing")
+GOBJECT_GETSET2 (int, enable_hyperlink_auditing,
+                 gboolean, webkit_settings (), "enable-hyperlink-auditing")
 
 #ifdef USE_WEBKIT2
-GOBJECT_GETSET (int, enable_xss_auditing,
-                webkit_settings (), "enable-xss-auditor")
+GOBJECT_GETSET2 (int, enable_xss_auditing,
+                 gboolean, webkit_settings (), "enable-xss-auditor")
 #endif
 
 #ifdef USE_WEBKIT2
@@ -2375,17 +2375,17 @@ CHOICE_GETSET (SoupCookieJarAcceptPolicy, cookie_policy,
 #undef cookie_policy_choices
 
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
-GOBJECT_GETSET (int, enable_dns_prefetch,
-                webkit_settings (), "enable-dns-prefetching")
+GOBJECT_GETSET2 (int, enable_dns_prefetch,
+                 gboolean, webkit_settings (), "enable-dns-prefetching")
 #endif
 
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 11, 2)
-GOBJECT_GETSET (int, display_insecure_content,
-                webkit_settings (), "enable-display-of-insecure-content")
+GOBJECT_GETSET2 (int, display_insecure_content,
+                 gboolean, webkit_settings (), "enable-display-of-insecure-content")
 
-GOBJECT_GETSET (int, run_insecure_content,
-                webkit_settings (), "enable-running-of-insecure-content")
+GOBJECT_GETSET2 (int, run_insecure_content,
+                 gboolean, webkit_settings (), "enable-running-of-insecure-content")
 #endif
 
 IMPLEMENT_SETTER (int, maintain_history)
@@ -2400,11 +2400,11 @@ IMPLEMENT_SETTER (int, maintain_history)
 
 /* Inspector variables */
 #ifndef USE_WEBKIT2
-GOBJECT_GETSET (int, profile_js,
-                inspector (), "javascript-profiling-enabled")
+GOBJECT_GETSET2 (int, profile_js,
+                 gboolean, inspector (), "javascript-profiling-enabled")
 
-GOBJECT_GETSET (int, profile_timeline,
-                inspector (), "timeline-profiling-enabled")
+GOBJECT_GETSET2 (int, profile_timeline,
+                 gboolean, inspector (), "timeline-profiling-enabled")
 #endif
 
 /* Page variables */
@@ -2529,8 +2529,8 @@ IMPLEMENT_SETTER (gdouble, zoom_step)
 
 #ifdef HAVE_ZOOM_TEXT_API
 #ifdef USE_WEBKIT2
-GOBJECT_GETSET (int, zoom_text_only,
-                webkit_settings (), "zoom-text-only")
+GOBJECT_GETSET2 (int, zoom_text_only,
+                 gboolean, webkit_settings (), "zoom-text-only")
 
 #else
 IMPLEMENT_GETTER (int, zoom_text_only)
@@ -2547,17 +2547,17 @@ IMPLEMENT_SETTER (int, zoom_text_only)
 #endif
 #endif
 
-GOBJECT_GETSET (int, caret_browsing,
-                webkit_settings (), "enable-caret-browsing")
+GOBJECT_GETSET2 (int, caret_browsing,
+                 gboolean, webkit_settings (), "enable-caret-browsing")
 
 #if WEBKIT_CHECK_VERSION (1, 3, 5)
-GOBJECT_GETSET (int, enable_frame_flattening,
-                webkit_settings (), "enable-frame-flattening")
+GOBJECT_GETSET2 (int, enable_frame_flattening,
+                 gboolean, webkit_settings (), "enable-frame-flattening")
 #endif
 
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
-GOBJECT_GETSET (int, enable_smooth_scrolling,
-                webkit_settings (), "enable-smooth-scrolling")
+GOBJECT_GETSET2 (int, enable_smooth_scrolling,
+                 gboolean, webkit_settings (), "enable-smooth-scrolling")
 #endif
 
 #ifdef HAVE_PAGE_VIEW_MODE
@@ -2595,8 +2595,8 @@ CHOICE_GETSET (page_view_mode_t, page_view_mode,
 #endif
 
 #ifndef USE_WEBKIT2
-GOBJECT_GETSET (int, transparent,
-                webkit_view (), "transparent")
+GOBJECT_GETSET2 (int, transparent,
+                 gboolean, webkit_view (), "transparent")
 
 #if WEBKIT_CHECK_VERSION (1, 3, 4)
 #define window_view_mode_choices(call)                        \
@@ -2622,18 +2622,18 @@ CHOICE_GETSET (WebKitWebViewViewMode, window_view_mode,
 #endif
 
 #if WEBKIT_CHECK_VERSION (1, 3, 8)
-GOBJECT_GETSET (int, enable_fullscreen,
-                webkit_settings (), "enable-fullscreen")
+GOBJECT_GETSET2 (int, enable_fullscreen,
+                 gboolean, webkit_settings (), "enable-fullscreen")
 #endif
 
 #ifndef USE_WEBKIT2
-GOBJECT_GETSET (int, editable,
-                webkit_view (), "editable")
+GOBJECT_GETSET2 (int, editable,
+                 gboolean, webkit_view (), "editable")
 #endif
 
 /* Javascript variables */
-GOBJECT_GETSET (int, enable_scripts,
-                webkit_settings (),
+GOBJECT_GETSET2 (int, enable_scripts,
+                 gboolean, webkit_settings (),
 #ifdef USE_WEBKIT2
                                     "enable-javascript"
 #else
@@ -2641,46 +2641,46 @@ GOBJECT_GETSET (int, enable_scripts,
 #endif
                 )
 
-GOBJECT_GETSET (int, javascript_windows,
-                webkit_settings (), "javascript-can-open-windows-automatically")
+GOBJECT_GETSET2 (int, javascript_windows,
+                 gboolean, webkit_settings (), "javascript-can-open-windows-automatically")
 
 #ifdef USE_WEBKIT2
-GOBJECT_GETSET (int, javascript_modal_dialogs,
-                webkit_settings (), "allow-modal-dialogs")
+GOBJECT_GETSET2 (int, javascript_modal_dialogs,
+                 gboolean, webkit_settings (), "allow-modal-dialogs")
 #endif
 
 #ifndef USE_WEBKIT2
-GOBJECT_GETSET (int, javascript_dom_paste,
-                webkit_settings (), "enable-dom-paste")
+GOBJECT_GETSET2 (int, javascript_dom_paste,
+                 gboolean, webkit_settings (), "enable-dom-paste")
 #endif
 
 #if WEBKIT_CHECK_VERSION (1, 3, 0)
-GOBJECT_GETSET (int, javascript_clipboard,
-                webkit_settings (), "javascript-can-access-clipboard")
+GOBJECT_GETSET2 (int, javascript_clipboard,
+                 gboolean, webkit_settings (), "javascript-can-access-clipboard")
 #endif
 
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (2, 1, 1)
-GOBJECT_GETSET (int, javascript_console_to_stdout,
-                webkit_settings (), "enable-write-console-messages-to-stdout")
+GOBJECT_GETSET2 (int, javascript_console_to_stdout,
+                 gboolean, webkit_settings (), "enable-write-console-messages-to-stdout")
 #endif
 #endif
 
 /* Image variables */
-GOBJECT_GETSET (int, autoload_images,
-                webkit_settings (), "auto-load-images")
+GOBJECT_GETSET2 (int, autoload_images,
+                 gboolean, webkit_settings (), "auto-load-images")
 
 #ifdef USE_WEBKIT2
-GOBJECT_GETSET (int, always_load_icons,
-                webkit_settings (), "load-icons-ignoring-image-load-setting")
+GOBJECT_GETSET2 (int, always_load_icons,
+                 gboolean, webkit_settings (), "load-icons-ignoring-image-load-setting")
 #endif
 
 #ifndef USE_WEBKIT2
-GOBJECT_GETSET (int, autoshrink_images,
-                webkit_settings (), "auto-shrink-images")
+GOBJECT_GETSET2 (int, autoshrink_images,
+                 gboolean, webkit_settings (), "auto-shrink-images")
 
-GOBJECT_GETSET (int, use_image_orientation,
-                webkit_settings (), "respect-image-orientation")
+GOBJECT_GETSET2 (int, use_image_orientation,
+                 gboolean, webkit_settings (), "respect-image-orientation")
 #endif
 
 /* Spell checking variables */
@@ -2697,8 +2697,8 @@ IMPLEMENT_SETTER (int, enable_spellcheck)
     return TRUE;
 }
 #else
-GOBJECT_GETSET (int, enable_spellcheck,
-                webkit_settings (), "enable-spell-checking")
+GOBJECT_GETSET2 (int, enable_spellcheck,
+                 gboolean, webkit_settings (), "enable-spell-checking")
 #endif
 
 #ifdef USE_WEBKIT2
@@ -2753,16 +2753,16 @@ IMPLEMENT_SETTER (gchar *, spellcheck_languages)
 
 /* Form variables */
 #ifdef USE_WEBKIT2
-GOBJECT_GETSET (int, resizable_text_areas,
-                webkit_settings (), "enable-resizable-text-areas")
+GOBJECT_GETSET2 (int, resizable_text_areas,
+                 gboolean, webkit_settings (), "enable-resizable-text-areas")
 #else
-GOBJECT_GETSET (int, resizable_text_areas,
-                webkit_settings (), "resizable-text-areas")
+GOBJECT_GETSET2 (int, resizable_text_areas,
+                 gboolean, webkit_settings (), "resizable-text-areas")
 #endif
 
 #ifdef HAVE_SPATIAL_NAVIGATION
-GOBJECT_GETSET (int, enable_spatial_navigation,
-                webkit_settings (), "enable-spatial-navigation")
+GOBJECT_GETSET2 (int, enable_spatial_navigation,
+                 gboolean, webkit_settings (), "enable-spatial-navigation")
 #endif
 
 #ifndef USE_WEBKIT2
@@ -2788,11 +2788,11 @@ CHOICE_GETSET (WebKitEditingBehavior, editing_behavior,
 #endif
 
 #ifdef USE_WEBKIT2
-GOBJECT_GETSET (int, enable_tab_cycle,
-                webkit_settings (), "enable-tabs-to-links")
+GOBJECT_GETSET2 (int, enable_tab_cycle,
+                 gboolean, webkit_settings (), "enable-tabs-to-links")
 #else
-GOBJECT_GETSET (int, enable_tab_cycle,
-                webkit_settings (), "tab-key-cycles-through-elements")
+GOBJECT_GETSET2 (int, enable_tab_cycle,
+                 gboolean, webkit_settings (), "tab-key-cycles-through-elements")
 #endif
 
 /* Text variables */
@@ -2880,78 +2880,78 @@ GOBJECT_GETSET (int, monospace_size,
                 webkit_settings (), "default-monospace-font-size")
 
 /* Feature variables */
-GOBJECT_GETSET (int, enable_plugins,
-                webkit_settings (), "enable-plugins")
+GOBJECT_GETSET2 (int, enable_plugins,
+                 gboolean, webkit_settings (), "enable-plugins")
 
 #ifdef USE_WEBKIT2
-GOBJECT_GETSET (int, enable_java_applet,
-                webkit_settings (), "enable-java")
+GOBJECT_GETSET2 (int, enable_java_applet,
+                 gboolean, webkit_settings (), "enable-java")
 #else
-GOBJECT_GETSET (int, enable_java_applet,
-                webkit_settings (), "enable-java-applet")
+GOBJECT_GETSET2 (int, enable_java_applet,
+                 gboolean, webkit_settings (), "enable-java-applet")
 #endif
 
 #if WEBKIT_CHECK_VERSION (1, 3, 14)
-GOBJECT_GETSET (int, enable_webgl,
-                webkit_settings (), "enable-webgl")
+GOBJECT_GETSET2 (int, enable_webgl,
+                 gboolean, webkit_settings (), "enable-webgl")
 #endif
 
 #if WEBKIT_CHECK_VERSION (1, 7, 5)
-GOBJECT_GETSET (int, enable_webaudio,
-                webkit_settings (), "enable-webaudio")
+GOBJECT_GETSET2 (int, enable_webaudio,
+                 gboolean, webkit_settings (), "enable-webaudio")
 #endif
 
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 7, 90) /* Documentation says 1.7.5, but it's not there. */
-GOBJECT_GETSET (int, enable_3d_acceleration,
-                webkit_settings (), "enable-accelerated-compositing")
+GOBJECT_GETSET2 (int, enable_3d_acceleration,
+                 gboolean, webkit_settings (), "enable-accelerated-compositing")
 #endif
 #endif
 
 #ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (2, 1, 1)
-GOBJECT_GETSET (int, enable_2d_acceleration,
-                webkit_settings (), "enable-accelerated-2d-canvas")
+GOBJECT_GETSET2 (int, enable_2d_acceleration,
+                 gboolean, webkit_settings (), "enable-accelerated-2d-canvas")
 #endif
 #endif
 
 #if WEBKIT_CHECK_VERSION (1, 9, 3)
-GOBJECT_GETSET (int, enable_inline_media,
-                webkit_settings (), "media-playback-allows-inline")
+GOBJECT_GETSET2 (int, enable_inline_media,
+                 gboolean, webkit_settings (), "media-playback-allows-inline")
 
-GOBJECT_GETSET (int, require_click_to_play,
-                webkit_settings (), "media-playback-requires-user-gesture")
+GOBJECT_GETSET2 (int, require_click_to_play,
+                 gboolean, webkit_settings (), "media-playback-requires-user-gesture")
 #endif
 
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 11, 1) && !WEBKIT_CHECK_VERSION (2, 3, 5)
-GOBJECT_GETSET (int, enable_css_shaders,
-                webkit_settings (), "enable-css-shaders")
+GOBJECT_GETSET2 (int, enable_css_shaders,
+                 gboolean, webkit_settings (), "enable-css-shaders")
 #endif
 #endif
 
 #ifdef HAVE_ENABLE_MEDIA_STREAM_API
-GOBJECT_GETSET (int, enable_media_stream,
-                webkit_settings (), "enable-media-stream")
+GOBJECT_GETSET2 (int, enable_media_stream,
+                 gboolean, webkit_settings (), "enable-media-stream")
 #endif
 
 #if WEBKIT_CHECK_VERSION (2, 3, 3)
-GOBJECT_GETSET (int, enable_media_source,
-                webkit_settings (), "enable-mediasource")
+GOBJECT_GETSET2 (int, enable_media_source,
+                 gboolean, webkit_settings (), "enable-mediasource")
 #endif
 
 /* HTML5 Database variables */
-GOBJECT_GETSET (int, enable_database,
-                webkit_settings (), "enable-html5-database")
+GOBJECT_GETSET2 (int, enable_database,
+                 gboolean, webkit_settings (), "enable-html5-database")
 
-GOBJECT_GETSET (int, enable_local_storage,
-                webkit_settings (), "enable-html5-local-storage")
+GOBJECT_GETSET2 (int, enable_local_storage,
+                 gboolean, webkit_settings (), "enable-html5-local-storage")
 
-GOBJECT_GETSET (int, enable_pagecache,
-                webkit_settings (), "enable-page-cache")
+GOBJECT_GETSET2 (int, enable_pagecache,
+                 gboolean, webkit_settings (), "enable-page-cache")
 
-GOBJECT_GETSET (int, enable_offline_app_cache,
-                webkit_settings (), "enable-offline-web-application-cache")
+GOBJECT_GETSET2 (int, enable_offline_app_cache,
+                 gboolean, webkit_settings (), "enable-offline-web-application-cache")
 
 #ifndef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (1, 3, 13)
@@ -3032,8 +3032,8 @@ IMPLEMENT_SETTER (gchar *, web_extensions_directory)
 #endif
 
 /* Hacks */
-GOBJECT_GETSET (int, enable_site_workarounds,
-                webkit_settings (), "enable-site-specific-quirks")
+GOBJECT_GETSET2 (int, enable_site_workarounds,
+                 gboolean, webkit_settings (), "enable-site-specific-quirks")
 
 /* Constants */
 #if WEBKIT_CHECK_VERSION (1, 3, 17)
