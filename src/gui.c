@@ -425,6 +425,8 @@ static void
 destroy_cb (GtkWidget *widget, gpointer data);
 static gboolean
 configure_event_cb (GtkWidget *widget, GdkEventConfigure *event, gpointer data);
+static void
+set_window_property (const gchar *prop, const gchar *value);
 
 void
 window_init ()
@@ -449,6 +451,11 @@ window_init ()
         "signal::destroy",         G_CALLBACK (destroy_cb),         NULL,
         "signal::configure-event", G_CALLBACK (configure_event_cb), NULL,
         NULL);
+
+    uzbl_gui_update_title ();
+    if (uzbl.state.uri) {
+        set_window_property ("UZBL_URI", uzbl.state.uri);
+    }
 }
 
 void
@@ -697,9 +704,6 @@ progress_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
         TYPE_INT, progress,
         NULL);
 }
-
-static void
-set_window_property (const gchar *prop, const gchar *value);
 
 void
 uri_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
@@ -1547,6 +1551,27 @@ configure_event_cb (GtkWidget *widget, GdkEventConfigure *event, gpointer data)
     return FALSE;
 }
 
+void
+set_window_property (const gchar *prop, const gchar *value)
+{
+    if (uzbl.gui.main_window && GTK_IS_WIDGET (uzbl.gui.main_window))
+    {
+        GdkWindow *window = gtk_widget_get_window (uzbl.gui.main_window);
+        if (!window) {
+            return;
+        }
+
+        gdk_property_change (
+            window,
+            gdk_atom_intern_static_string (prop),
+            gdk_atom_intern_static_string ("STRING"),
+            CHAR_BIT * sizeof (value[0]),
+            GDK_PROP_MODE_REPLACE,
+            (const guchar *)value,
+            strlen (value));
+    }
+}
+
 static guint
 key_to_modifier (guint keyval);
 static gchar *
@@ -1686,22 +1711,6 @@ send_hover_event (const gchar *uri, const gchar *title)
     }
 
     uzbl_gui_update_title ();
-}
-
-void
-set_window_property (const gchar *prop, const gchar *value)
-{
-    if (uzbl.gui.main_window && GTK_IS_WIDGET (uzbl.gui.main_window))
-    {
-        gdk_property_change (
-            gtk_widget_get_window (uzbl.gui.main_window),
-            gdk_atom_intern_static_string (prop),
-            gdk_atom_intern_static_string ("STRING"),
-            CHAR_BIT * sizeof (value[0]),
-            GDK_PROP_MODE_REPLACE,
-            (const guchar *)value,
-            strlen (value));
-    }
 }
 
 static void
