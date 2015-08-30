@@ -1216,7 +1216,7 @@ download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
 #endif
 
 static gboolean
-request_permission (const gchar *uri, const gchar *type, GObject *obj);
+request_permission (const gchar *uri, const gchar *type, const gchar *desc, GObject *obj);
 
 #ifdef USE_WEBKIT2
 gboolean
@@ -1226,6 +1226,7 @@ permission_cb (WebKitWebView *view, WebKitPermissionRequest *request, gpointer d
 
     const gchar *uri = webkit_web_view_get_uri (view);
     const gchar *type = "unknown";
+    const gchar *desc = "";
 
     if (WEBKIT_IS_GEOLOCATION_PERMISSION_REQUEST (request)) {
         type = "geolocation";
@@ -1249,7 +1250,7 @@ permission_cb (WebKitWebView *view, WebKitPermissionRequest *request, gpointer d
 #endif
     }
 
-    return request_permission (uri, type, G_OBJECT (request));
+    return request_permission (uri, type, desc, G_OBJECT (request));
 }
 
 #if WEBKIT_CHECK_VERSION (2, 3, 1)
@@ -1408,7 +1409,7 @@ geolocation_policy_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitGeoloca
 
     const gchar *uri = webkit_web_frame_get_uri (frame);
 
-    return request_permission (uri, "geolocation", G_OBJECT (decision));
+    return request_permission (uri, "geolocation", "", G_OBJECT (decision));
 }
 #endif
 
@@ -2246,7 +2247,7 @@ static void
 decide_permission (GString *result, gpointer data);
 
 gboolean
-request_permission (const gchar *uri, const gchar *type, GObject *obj)
+request_permission (const gchar *uri, const gchar *type, const gchar *desc, GObject *obj)
 {
     if (uzbl_variables_get_int ("frozen")) {
         if (false) {
@@ -2267,6 +2268,7 @@ request_permission (const gchar *uri, const gchar *type, GObject *obj)
     if (permission_command) {
         uzbl_commands_args_append (args, g_strdup (uri));
         uzbl_commands_args_append (args, g_strdup (type));
+        uzbl_commands_args_append (args, g_strdup (desc));
         g_object_ref (obj);
         uzbl_io_schedule_command (permission_command, args, decide_permission, obj);
     } else {

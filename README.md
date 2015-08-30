@@ -1284,6 +1284,8 @@ arguments:
           + `unknown`
       + `notification` (WebKit2 >= 2.7.3)
       + `unknown`
+  3. `description`
+    - A description for the request (if available).
 
 * tls error handler
 
