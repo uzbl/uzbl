@@ -1350,7 +1350,8 @@ IMPLEMENT_COMMAND (hardcopy)
 #ifdef USE_WEBKIT2
         WebKitPrintOperation *print_op = webkit_print_operation_new (uzbl.gui.web_view);
 
-        /* TODO: Allow control of print operations here? */
+        /* TODO: Allow control of print operations here? See GtkPageSetup and
+         * GtkPrintSettings. */
 
         WebKitPrintOperationResponse response = webkit_print_operation_run_dialog (print_op, GTK_WINDOW (uzbl.gui.main_window));
 
