@@ -130,8 +130,8 @@ class Uzbl(object):
                     (response, args, kargs) = handler(final_response, *args, **kargs)
                     if response is not None:
                         final_response = response
-                except Exception:
-                    self.logger.error('error in request handler', exc_info=True)
+                except BaseException:
+                    self.logger.error('error in request handler for \'%s\'', request, exc_info=True)
                 self._depth -= 1
 
         if final_response is None:
@@ -172,8 +172,8 @@ class Uzbl(object):
             try:
                 handler(*args, **kargs)
 
-            except Exception:
-                self.logger.error('error in handler', exc_info=True)
+            except BaseException:
+                self.logger.error('error in handler for \'%s\'', event, exc_info=True)
 
             self._depth -= 1
 
