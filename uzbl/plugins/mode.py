@@ -61,7 +61,7 @@ class ModePlugin(PerInstancePlugin):
         if mode_config:
             config.update(mode_config)
 
-        self.uzbl.send('event MODE_CONFIRM %s' % mode)
+        self.uzbl.event('MODE_CONFIRM', mode)
 
     def confirm_change(self, mode):
         config = Config[self.uzbl]

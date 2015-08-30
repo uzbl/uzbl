@@ -127,7 +127,7 @@ class History(PerInstancePlugin):
 
     def history_search(self, key):
         self.search(key)
-        self.uzbl.send('event HISTORY_PREV')
+        self.uzbl.event('HISTORY_PREV')
 
 end_messages = (
     'Look behind you, A three-headed monkey!',

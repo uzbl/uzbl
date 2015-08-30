@@ -110,7 +110,7 @@ class Bindlet(object):
             self.uzbl.send(set)
 
         elif set and not is_cmd:
-            self.uzbl.send('event SET_KEYCMD %s' % set)
+            self.uzbl.event('SET_KEYCMD', set)
 
 
     def get_binds(self, mode=None):
