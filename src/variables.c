@@ -1386,6 +1386,9 @@ DECLARE_GETSET (gchar *, local_storage_path);
 DECLARE_SETTER (gchar *, disk_cache_directory);
 #endif
 DECLARE_SETTER (gchar *, web_extensions_directory);
+#if WEBKIT_CHECK_VERSION (2, 9, 2)
+DECLARE_GETSET (gchar *, indexed_db_directory);
+#endif
 #endif
 
 /* Hacks */
@@ -1748,6 +1751,9 @@ uzbl_variables_private_new (GHashTable *table)
         { "disk_cache_directory",         UZBL_V_STRING (priv->disk_cache_directory,           set_disk_cache_directory)},
 #endif
         { "web_extensions_directory",     UZBL_V_STRING (priv->web_extensions_directory,       set_web_extensions_directory)},
+#if WEBKIT_CHECK_VERSION (2, 9, 2)
+        { "indexed_db_directory",         UZBL_V_FUNC (indexed_db_directory,                   STR)},
+#endif
 #endif
 
         /* Hacks */
@@ -3095,6 +3101,11 @@ IMPLEMENT_SETTER (gchar *, web_extensions_directory)
 
     return TRUE;
 }
+
+#if WEBKIT_CHECK_VERSION (2, 9, 2)
+GOBJECT_GETSET (gchar *, indexed_db_directory,
+                webkit_context (), "indexed-db-directory")
+#endif
 #endif
 
 /* Hacks */

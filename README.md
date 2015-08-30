@@ -949,6 +949,8 @@ Note: In WebKit2, font sizes are in pixels, whereas WebKit1 uses points.
 * `web_extensions_directory` (string) (no default) (WebKit2 only)
   - Where to look for web extension libraries. Must be set before loading any
     pages.
+* `indexed_db_directory` (string) (no default) (WebKit2 >= 2.9.2)
+  - Where to store IndexedDB databases.
 
 #### Hacks
 
