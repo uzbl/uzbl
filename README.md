@@ -1254,6 +1254,7 @@ Handler scripts (`download_handler`, `navigation_handler`, `request_handler`,
           + `audio`
           + `video`
           + `unknown`
+      + `unknown`
 
 * tls error handler
 
