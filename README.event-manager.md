@@ -184,3 +184,59 @@ following events:
   - Selects the next history item matching the current search.
 * `HISTORY_SEARCH`
   - Sets the history search string and triggers `HISTORY_PREV`.
+
+## keycmd
+
+Manages a prompt for use in the status bar. Uses the following events:
+
+* `APPEND_KEYCMD <keycmd>`
+  - Appends to the current keycmd state.
+* `IGNORE_KEY <glob>`
+  - Ignores keys matching the glob. May be used to filter out keys such as
+    `<Shift>` from the display (since it is implicit based on the character).
+* `INJECT_KEYCMD <keycmd>`
+  - Inserts `keycmd` into the current keycmd at the current cursor position.
+* `KEYCMD_BACKSPACE`
+  - Removes the character at the cursor position.
+* `KEYCMD_DELETE`
+  - Removes the character after the cursor position.
+* `KEYCMD_EXEC_CURRENT`
+  - Requests execution of the current command.
+* `KEYCMD_STRIP_WORD [separators]`
+  - Deletes a word from the current cursor position using `separators` to
+    define word boundaries. Acts like `delete-word` in editors or shells. By
+    default, only a space character is considered a word separator.
+* `KEYCMD_CLEAR`
+  - Clear the current keycmd state.
+* `MODMAP <old> <new>`
+  - Replaces `old` with `new` for modifiers. For example, it may be used to
+    rename `<Control>` to `<Ctrl>`.
+* `SET_CURSOR_POS <position>`
+  - Sets the current cursor position. Negative numbers are relative to the end
+    of the string. May also be the literal `-` or `+` to move the cursor
+    relative to its current position.
+* `SET_KEYCMD <keycmd>`
+  - Sets the current keycmd state.
+
+The following events are used as notification for actions:
+
+* `MODCMD_UPDATE <modstate> <key>`
+  - ???
+* `KEYCMD_UPDATE <modstate> <key>`
+  - ???
+* `NEW_KEY_IGNORE <glob>`
+  - Sent when a key glob is ignored.
+* `KEYCMD_CLEARED`
+  - Sent to indicate the `@keycmd` variable has been cleared.
+* `MODCMD_CLEARED`
+  - Sent to indicate the `@modcmd` variable has been cleared.
+* `KEYCMD_EXEC <modcmd> <keycmd>`
+  - Sent to indicate that execution of a command has been requested.
+* `NEW_MODMAP <old> <new>`
+  - Sent to notify that a new modifier mapping has been added.
+
+### Configuration
+
+The `@modcmd_updates` and `@keycmd_events` may be set to `0` to disable
+updating the `@modcmd` and `@keycmd` variables. The `@keycmd` variable is HTML
+markup using `@cursor_style` to indicate the current cursor position.

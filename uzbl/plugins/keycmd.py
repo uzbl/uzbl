@@ -301,7 +301,7 @@ class KeyCmd(PerInstancePlugin):
         split = splitquoted(map)
 
         if not split or len(split) > 2:
-            raise Exception('Invalid modmap arugments: %r' % map)
+            raise Exception('Invalid modmap arguments: %r' % map)
 
         self.add_modmap(*split)
 
