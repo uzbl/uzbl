@@ -1462,6 +1462,10 @@ IMPLEMENT_COMMAND (snapshot)
 
         if (!g_strcmp0 (option, "selection")) {
             options |= WEBKIT_SNAPSHOT_OPTIONS_INCLUDE_SELECTION_HIGHLIGHTING;
+#if WEBKIT_CHECK_VERSION (2, 7, 4)
+        } else if (!g_strcmp0 (option, "transparent")) {
+            options |= WEBKIT_SNAPSHOT_OPTIONS_TRANSPARENT_BACKGROUND;
+#endif
         } else {
             uzbl_debug ("Unrecognized snapshot option: %s\n", option);
         }

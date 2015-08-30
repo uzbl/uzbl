@@ -273,6 +273,8 @@ as `KEY` and `many args` as `VALUE`.
     Accepted flags include:
     + `selection` (WebKit2 only)
       * Include the selection highlighting in the image.
+    + `transparent` (WebKit2 >= 2.7.4)
+      * Don't fill the background with white.
 
 #### Content
 
