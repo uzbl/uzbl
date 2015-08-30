@@ -252,6 +252,7 @@ install-dirs:
 	[ -d "$(DOCDIR)" ] || $(INSTALL) -d $(DOCDIR)
 	[ -d "$(SHAREDIR)/uzbl" ] || $(INSTALL) -d $(SHAREDIR)/uzbl
 	[ -d "$(SHAREDIR)/applications" ] || $(INSTALL) -d $(SHAREDIR)/applications
+	[ -d "$(SHAREDIR)/appdata" ] || $(INSTALL) -d $(SHAREDIR)/appdata
 
 install-uzbl-core: uzbl-core install-dirs
 	$(INSTALL) -m644 docs/*.md $(DOCDIR)/
