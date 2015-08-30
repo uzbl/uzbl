@@ -1214,6 +1214,11 @@ DECLARE_GETSET (int, run_insecure_content);
 /* TODO: For WebKit2, we'll have to manage the BackForwardList manually. */
 DECLARE_SETTER (int, maintain_history);
 #endif
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 9, 1)
+DECLARE_GETSET (int, allow_file_to_file_access);
+#endif
+#endif
 
 /* Inspector variables */
 #ifndef USE_WEBKIT2
@@ -1563,6 +1568,11 @@ uzbl_variables_private_new (GHashTable *table)
         { "run_insecure_content",         UZBL_V_FUNC (run_insecure_content,                   INT)},
 #endif
         { "maintain_history",             UZBL_V_INT (priv->maintain_history,                  set_maintain_history)},
+#endif
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 9, 1)
+        { "allow_file_to_file_access",    UZBL_V_FUNC (allow_file_to_file_access,              INT)},
+#endif
 #endif
 
         /* Inspector variables */
@@ -2444,6 +2454,13 @@ IMPLEMENT_SETTER (int, maintain_history)
 
     return TRUE;
 }
+#endif
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 9, 1)
+GOBJECT_GETSET2 (int, allow_file_to_file_access,
+                 gboolean, webkit_settings (), "allow-file-access-from-file-urls");
+#endif
 #endif
 
 /* Inspector variables */

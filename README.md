@@ -734,6 +734,8 @@ variables are treated as strings.
   - If non-zero, HTTPS content will be allowed to run content served over HTTP.
 * `maintain_history` (boolean) (default: 1) (WebKit1 only)
   - If non-zero, WebKit will maintain a back/forward list.
+* `allow_file_to_file_access` (boolean) (default: 0) (WebKit2 >= 2.9.1)
+  - If non-zero, `file://` URLs will be able to access other `file://` URLs.
 
 #### Inspector
 
