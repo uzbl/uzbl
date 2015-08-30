@@ -653,7 +653,7 @@ variables are treated as strings.
 
 #### Customization
 
-* `default_context_menu` (boolean) (default: 0) (WebKit2 or WebKit2 >= 1.9.0)
+* `default_context_menu` (boolean) (default: 0)
   - If non-zero, display the default context menu, ignoring any custom menu
     items.
 * `custom_notifications` (boolean) (default: 0) (WebKit2 >= 2.7.3)
