@@ -111,6 +111,15 @@ command names. It uses the following commands:
 * `STOP_COMPLETION`
   - Clears `@completion_list`.
 
+## config
+
+Provides a view into uzbl's current configuration values to other plugins. It
+uses the `CONFIG_CHANGED` event to indicate when a variable's value has
+changed:
+
+* `CONFIG_CHANGED <name> <value>`
+  - Sent when the variable `name` has been set to a new value.
+
 ## cookies
 
 Provides persistence of cookie data between uzbl instances. Provides the
