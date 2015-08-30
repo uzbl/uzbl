@@ -72,7 +72,7 @@ the following specifications:
   `value`.
 * `<prompt!command>`: Sets `@keycmd_prompt` to `prompt` and executes `command`.
 
-If `prompt`, `value`, or `command` contains spaces, it must be quoted. `prompt`
+If `prompt`, `value`, or `command` contains spaces, it may be quoted. `prompt`
 may also be an empty string.
 
 ### commandspec
