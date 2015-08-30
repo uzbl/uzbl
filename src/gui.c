@@ -1208,6 +1208,22 @@ permission_cb (WebKitWebView *view, WebKitPermissionRequest *request, gpointer d
 
     if (WEBKIT_IS_GEOLOCATION_PERMISSION_REQUEST (request)) {
         type = "geolocation";
+#if WEBKIT_CHECK_VERSION (2, 7, 3)
+    } else if (WEBKIT_IS_USER_MEDIA_PERMISSION_REQUEST (request)) {
+        WebKitUserMediaPermissionRequest *user_media_request = (WebKitUserMediaPermissionRequest *)request;
+        gboolean is_for_audio = webkit_user_media_permission_is_for_audio_device (user_media_request);
+        gboolean is_for_video = webkit_user_media_permission_is_for_video_device (user_media_request);
+
+        if (is_for_audio && is_for_video) {
+            type = "media:audio,video";
+        } else if (is_for_audio) {
+            type = "media:audio";
+        } else if (is_for_video) {
+            type = "media:video";
+        } else {
+            type = "media:unknown";
+        }
+#endif
     }
 
     return request_permission (uri, type, G_OBJECT (request));

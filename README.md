@@ -1249,6 +1249,11 @@ Handler scripts (`download_handler`, `navigation_handler`, `request_handler`,
     - The data or action WebKit is requesting permission for. Known values
       include:
       + `geolocation`
+      + `media:` (WebKit2 >= 2.7.3)
+        - Suffixed with a comma-separated list of media requested:
+          + `audio`
+          + `video`
+          + `unknown`
 
 * tls error handler
 
