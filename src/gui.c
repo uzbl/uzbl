@@ -296,6 +296,10 @@ show_notification_cb (WebKitWebView *view, WebKitNotification *notification, gpo
 static gboolean
 close_notification_cb (WebKitWebView *view, WebKitNotification *notification, gpointer data);
 #endif
+#if WEBKIT_CHECK_VERSION (2, 7, 90)
+static gboolean
+run_color_chooser_cb (WebKitWebView *view, WebKitColorChooserRequest *request, gpointer data);
+#endif
 #endif
 #endif
 /* Scrollbar events */
@@ -403,6 +407,9 @@ web_view_init ()
         "signal::show-notification",                    G_CALLBACK (show_notification_cb),     NULL,
 #if !WEBKIT_CHECK_VERSION (2, 7, 90)
         "signal::close-notification",                   G_CALLBACK (close_notification_cb),    NULL,
+#endif
+#if WEBKIT_CHECK_VERSION (2, 7, 90)
+        "signal::run-color-chooser",                    G_CALLBACK (run_color_chooser_cb),    NULL,
 #endif
 #endif
 #endif
@@ -1593,6 +1600,46 @@ close_notification_cb (WebKitWebView *view, WebKitNotification *notification, gp
     return TRUE;
 }
 #endif
+
+#if WEBKIT_CHECK_VERSION (2, 7, 90)
+static void
+choose_color (GString *result, gpointer data);
+
+static gboolean
+run_color_chooser_cb (WebKitWebView *view, WebKitColorChooserRequest *request, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (data);
+
+    gchar *handler = uzbl_variables_get_string ("color_chooser_handler");
+
+    if (!handler || !*handler) {
+        return FALSE;
+    }
+
+    GArray *args = uzbl_commands_args_new ();
+    const UzblCommand *color_chooser_command = uzbl_commands_parse (handler, args);
+
+    if (color_chooser_command) {
+        GdkRectangle rect;
+        char *bounds;
+
+        webkit_color_chooser_request_get_element_rectangle (request, &rect);
+
+        bounds = g_strdup_printf ("%dx%d+%d+%d",
+            rect.width, rect.height,
+            rect.x, rect.y);
+        uzbl_commands_args_append (args, bounds);
+
+        g_object_ref (request);
+        uzbl_io_schedule_command (color_chooser_command, args, choose_color, request);
+    }
+
+    g_free (handler);
+
+    return (color_chooser_command != NULL);
+}
+#endif
 #endif
 #endif
 
@@ -2485,6 +2532,25 @@ request_close_notification (WebKitNotification *notification)
     uzbl_events_send (CLOSE_NOTIFICATION, NULL,
         TYPE_ULL, id,
         NULL);
+}
+#endif
+
+#if WEBKIT_CHECK_VERSION (2, 7, 90)
+void
+choose_color (GString *result, gpointer data)
+{
+    WebKitColorChooserRequest *request = (WebKitColorChooserRequest *)data;
+    GdkRGBA color;
+
+    if (gdk_rgba_parse (&color, result->str)) {
+        webkit_color_chooser_request_set_rgba (request, &color);
+        webkit_color_chooser_request_finish (request);
+    } else {
+        uzbl_debug ("Failed to parse color: %s\n", result->str);
+        webkit_color_chooser_request_cancel (request);
+    }
+
+    g_object_unref (request);
 }
 #endif
 #endif

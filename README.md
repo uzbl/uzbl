@@ -606,6 +606,10 @@ variables are treated as strings.
 * `tls_error_handler` (command) (no default) (WebKit2 >= 2.3.1)
   - The command to use when a TLS error occurs. The handler may return `ALLOW`
     to ignore the TLS error for the session.
+* `color_chooser_handler` (command) (no default) (WebKit2 >= 2.7.90)
+  - The command to use when a web page requests a color. By default, the GTK
+    widget for choosing a color will be used. Mainly useful for automated
+    testing.
 * `shell_cmd` (string) (default: `sh -c`)
   - The command to use as a shell. This is used in the `spawn_sh` and `sync_sh`
     commands as well as `@()@` expansion.
@@ -1152,8 +1156,9 @@ the following environment variables:
   - Set if the `enable_private` variable is non-zero, unset otherwise.
 
 Handler scripts (`download_handler`, `navigation_handler`, `request_handler`,
-`mime_handler`, `authentication_handler`, `permission_handler`, and
-`tls_error_handler`) are called with special arguments:
+`mime_handler`, `authentication_handler`, `permission_handler`,
+`tls_error_handler`, and `color_chooser_handler`) are called with special
+arguments:
 
 * download handler
 
@@ -1276,6 +1281,12 @@ Handler scripts (`download_handler`, `navigation_handler`, `request_handler`,
       + `error`
   3. `cert_info`
     - A JSON object with information describing the certificate.
+
+* color chooser handler
+
+  1. `region`
+    - The region of the element requesting a color in the `WIDTHxHEIGHT+X+Y`
+      format.
 
 ### WINDOW MANAGER INTEGRATION
 
