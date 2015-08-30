@@ -3303,7 +3303,7 @@ IMPLEMENT_GETTER (gchar *, editor_state)
 {
     WebKitEditorState *editor_state;
     guint state;
-    gchar *state_str = NULL;
+    GString *state_str = g_string_new ("");
 
     g_object_get (webkit_view (),
         "editor-state", &editor_state,
@@ -3312,7 +3312,7 @@ IMPLEMENT_GETTER (gchar *, editor_state)
     state = webkit_editor_state_get_typing_attributes (editor_state);
 
     if (!state) {
-        state_str = g_strdup ("none");
+        g_string_append (state_str, "none");
     } else {
         guint state_mask = 0;
 
@@ -3322,28 +3322,25 @@ IMPLEMENT_GETTER (gchar *, editor_state)
     call(WEBKIT_EDITOR_TYPING_ATTRIBUTE_UNDERLINE,     "underline") \
     call(WEBKIT_EDITOR_TYPING_ATTRIBUTE_STRIKETHROUGH, "strikethrough")
 
-#define append_flag(flag, str)                                  \
-    if (state & flag) {                                         \
-        gchar *old_state_str = state_str;                       \
-        state_mask |= flag;                                     \
-        if (state_str) {                                        \
-            state_str = g_strdup_printf ("%s," str, state_str); \
-        } else {                                                \
-            state_str = g_strdup (str);                         \
-        }                                                       \
-        g_free (old_state_str);                                 \
+#define append_flag(flag, str)                  \
+    if (state & flag) {                         \
+        state_mask |= flag;                     \
+        if (state_str->len) {                   \
+            g_string_append_c (state_str, ','); \
+        }                                       \
+        g_string_append (state_str, str);       \
     }
         webkit_editor_state_attributes(append_flag)
 
         /* Find any unknown flags. */
         state ^= state_mask;
-        append_flag(GUINT_MAX, "unknown")
+        append_flag(G_MAXUINT, "unknown")
 #undef append_flag
 
 #undef webkit_editor_state_attributes
     }
 
-    return state_str;
+    return g_string_free (state_str, FALSE);
 }
 #endif
 #endif
