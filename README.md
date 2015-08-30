@@ -656,6 +656,9 @@ variables are treated as strings.
 * `default_context_menu` (boolean) (default: 0) (WebKit2 or WebKit2 >= 1.9.0)
   - If non-zero, display the default context menu, ignoring any custom menu
     items.
+* `custom_notifications` (boolean) (default: 0) (WebKit2 >= 2.7.3)
+  - If non-zero, events will be used to indicate notifications rather than the
+    default libnotify-based notification system.
 
 #### Printing
 
@@ -1254,6 +1257,7 @@ Handler scripts (`download_handler`, `navigation_handler`, `request_handler`,
           + `audio`
           + `video`
           + `unknown`
+      + `notification` (WebKit2 >= 2.7.3)
       + `unknown`
 
 * tls error handler
@@ -1394,6 +1398,15 @@ uzbl itself and will be emitted based on what is happening within uzbl-core.
   - Sent after a command has executed.
 * `FILE_INCLUDED <PATH>`
   - Sent *after* a file is included.
+
+##### Notifications
+
+* `SHOW_NOTIFICATION <ID> <TITLE> <BODY>` (WebKit2 >= 2.7.3)
+  - Sent when a webpage requests showing a notification and
+    `@custom_notifications` is non-zero.
+* `CLOSE_NOTIFICATION <ID>` (WebKit2 >= 2.7.3)
+  - Sent when a webpage requests closing a notification and
+    `@custom_notifications` is non-zero.
 
 ##### Uzbl
 
