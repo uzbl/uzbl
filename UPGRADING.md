@@ -308,3 +308,7 @@ for these events. Also check the event manager for built-in handlers.
     there's no sense in truncating data.
   - *Porting*: Use `double` as a type and check assumptions with `set`
     commands.
+* `MODE_CONFIG`
+  - *Change*: Removed `=` argument.
+  - *Rationale*: Matches the `set` command.
+  - *Porting*: Remove the `=` argument to the event.

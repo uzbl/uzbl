@@ -19,21 +19,20 @@ class ModePlugin(PerInstancePlugin):
         self.mode_config.clear()
 
     def parse_mode_config(self, args):
-        '''Parse `MODE_CONFIG <mode> <var> = <value>` event and update config
+        '''Parse `MODE_CONFIG <mode> <var> <value>` event and update config
         if the `<mode>` is the current mode.'''
 
         args = splitquoted(args)
         assert len(args) >= 3, 'missing mode config args %r' % args
         mode = args[0]
         key = args[1]
-        assert args[2] == '=', 'invalid mode config set syntax'
 
         # Use the rest of the line verbatim as the value unless it's a
         # single properly quoted string
-        if len(args) == 4 and is_quoted(args.raw(3)):
-            value = args[3]
+        if len(args) == 3 and is_quoted(args.raw(2)):
+            value = args[2]
         else:
-            value = args.raw(3).strip()
+            value = args.raw(2).strip()
 
         self.logger.debug('value %r', value)
 
