@@ -59,10 +59,10 @@ typedef struct {
 } UzblBufferedRequest;
 
 static GString *
-vuzbl_requests_send (const gchar *request, const gchar *cookie, va_list vargs);
+vuzbl_requests_send (gint64 timeout, const gchar *request, const gchar *cookie, va_list vargs);
 
 GString *
-uzbl_requests_send (const gchar *request, ...)
+uzbl_requests_send (gint64 timeout, const gchar *request, ...)
 {
     va_list vargs;
     va_list vacopy;
@@ -73,7 +73,7 @@ uzbl_requests_send (const gchar *request, ...)
     GString *cookie = g_string_new ("");
     g_string_printf (cookie, "%u", g_random_int ());
 
-    GString *str = vuzbl_requests_send (request, cookie->str, vacopy);
+    GString *str = vuzbl_requests_send (timeout, request, cookie->str, vacopy);
 
     g_string_free (cookie, TRUE);
 
@@ -86,16 +86,16 @@ uzbl_requests_send (const gchar *request, ...)
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
 
 static GString *
-send_request_sockets (GString *request, const gchar *cookie);
+send_request_sockets (gint64 timeout, GString *request, const gchar *cookie);
 
 GString *
-vuzbl_requests_send (const gchar *request, const gchar *cookie, va_list vargs)
+vuzbl_requests_send (gint64 timeout, const gchar *request, const gchar *cookie, va_list vargs)
 {
     GString *request_id = g_string_new ("");
     g_string_printf (request_id, "REQUEST-%s", cookie);
 
     GString *rq = uzbl_comm_vformat (request_id->str, request, vargs);
-    GString *result = send_request_sockets (rq, cookie);
+    GString *result = send_request_sockets (timeout, rq, cookie);
 
     g_string_free (request_id, TRUE);
     g_string_free (rq, TRUE);
@@ -104,12 +104,12 @@ vuzbl_requests_send (const gchar *request, const gchar *cookie, va_list vargs)
 }
 
 GString *
-send_request_sockets (GString *msg, const gchar *cookie)
+send_request_sockets (gint64 timeout, GString *msg, const gchar *cookie)
 {
     uzbl_io_send (msg->str, TRUE);
 
     /* Require replies within 1 second. */
-    gint64 deadline = g_get_monotonic_time () + 1 * G_TIME_SPAN_SECOND;
+    gint64 deadline = g_get_monotonic_time () + timeout * G_TIME_SPAN_SECOND;
 
     GString *reply_cookie = g_string_new ("");
     g_string_printf (reply_cookie, "REPLY-%s ", cookie);
@@ -122,9 +122,13 @@ send_request_sockets (GString *msg, const gchar *cookie)
 
         g_mutex_lock (&uzbl.requests->reply_lock);
         while (!uzbl.requests->reply) {
-            if (!g_cond_wait_until (&uzbl.requests->reply_cond, &uzbl.requests->reply_lock, deadline)) {
-                timeout = TRUE;
-                break;
+            if (timeout > 0) {
+                if (!g_cond_wait_until (&uzbl.requests->reply_cond, &uzbl.requests->reply_lock, deadline)) {
+                    timeout = TRUE;
+                    break;
+                }
+            } else {
+                g_cond_wait (&uzbl.requests->reply_cond, &uzbl.requests->reply_lock);
             }
         }
 

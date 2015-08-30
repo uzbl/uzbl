@@ -2934,36 +2934,12 @@ IMPLEMENT_COMMAND (event)
     g_strfreev (split);
 }
 
+static void
+make_request (gint64 timeout, GArray *argv, GString *result);
+
 IMPLEMENT_COMMAND (request)
 {
-    GString *request_name;
-    GString *request_result;
-    gchar **split = NULL;
-
-    ARG_CHECK (argv, 1);
-
-    const gchar *request = argv_idx (argv, 0);
-
-    request_name = g_string_ascii_up (g_string_new (request));
-
-    GArray *req_args = uzbl_commands_args_new ();
-
-    guint i;
-    for (i = 1; i < argv->len; ++i) {
-        uzbl_commands_args_append (req_args, g_strdup (argv_idx (argv, i)));
-    }
-
-    request_result = uzbl_requests_send (request_name->str,
-        TYPE_STR_ARRAY, req_args,
-        NULL);
-
-    uzbl_commands_args_free (req_args);
-
-    g_string_free (request_name, TRUE);
-    g_strfreev (split);
-
-    g_string_append (result, request_result->str);
-    g_string_free (request_result, TRUE);
+    make_request (1, argv, result);
 }
 
 static gboolean
@@ -3183,6 +3159,39 @@ spawn_sh (GArray *argv, GString *result)
 
     g_free (r);
     uzbl_commands_args_free (sh_cmd);
+}
+
+void
+make_request (gint64 timeout, GArray *argv, GString *result)
+{
+    GString *request_name;
+    GString *request_result;
+    gchar **split = NULL;
+
+    ARG_CHECK (argv, 1);
+
+    const gchar *request = argv_idx (argv, 0);
+
+    request_name = g_string_ascii_up (g_string_new (request));
+
+    GArray *req_args = uzbl_commands_args_new ();
+
+    guint i;
+    for (i = 1; i < argv->len; ++i) {
+        uzbl_commands_args_append (req_args, g_strdup (argv_idx (argv, i)));
+    }
+
+    request_result = uzbl_requests_send (timeout, request_name->str,
+        TYPE_STR_ARRAY, req_args,
+        NULL);
+
+    uzbl_commands_args_free (req_args);
+
+    g_string_free (request_name, TRUE);
+    g_strfreev (split);
+
+    g_string_append (result, request_result->str);
+    g_string_free (request_result, TRUE);
 }
 
 gboolean

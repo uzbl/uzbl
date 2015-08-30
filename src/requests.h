@@ -4,6 +4,6 @@
 #include <glib.h>
 
 GString *
-uzbl_requests_send (const gchar *request, ...) G_GNUC_NULL_TERMINATED;
+uzbl_requests_send (gint64 timeout, const gchar *request, ...) G_GNUC_NULL_TERMINATED;
 
 #endif
