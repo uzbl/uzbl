@@ -75,8 +75,8 @@ class ProgressBar(PerInstancePlugin):
 
         # values to replace with
         values = {
-            'd': done_symbol * done,
-            'p': pending_symbol * pending,
+            'd': (done_symbol * done)[:done],
+            'p': (pending_symbol * pending)[:pending],
             'c': '%d%%' % progress,
             'i': '%d' % progress,
             't': '%d%%' % (100 - progress),
