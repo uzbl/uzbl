@@ -959,6 +959,8 @@ they are written as comments.
   - A JSON-formatted list describing loaded plugins.
 * `is_online` (boolean)
   - If non-zero, a network is available (not necessarily the Internet).
+* `is_playing_audio` (boolean) (WebKit2 >= 2.7.4)
+  - If non-zero, audio is playing.
 * `uri` (string)
   - The current top-level URI of the view.
 * `embedded` (boolean)

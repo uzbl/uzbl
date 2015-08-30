@@ -1395,6 +1395,11 @@ DECLARE_GETTER (gchar *, geometry);
 DECLARE_GETTER (gchar *, plugin_list);
 #endif
 DECLARE_GETTER (int, is_online);
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 7, 4)
+DECLARE_GETTER (int, is_playing_audio);
+#endif
+#endif
 DECLARE_GETTER (int, WEBKIT_MAJOR);
 DECLARE_GETTER (int, WEBKIT_MINOR);
 DECLARE_GETTER (int, WEBKIT_MICRO);
@@ -1744,6 +1749,11 @@ uzbl_variables_private_new (GHashTable *table)
         { "plugin_list",                  UZBL_C_FUNC (plugin_list,                            STR)},
 #endif
         { "is_online",                    UZBL_C_FUNC (is_online,                              INT)},
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 7, 4)
+        { "is_playing_audio",             UZBL_C_FUNC (is_playing_audio,                       INT)},
+#endif
+#endif
         { "uri",                          UZBL_C_STRING (uzbl.state.uri)},
         { "embedded",                     UZBL_C_INT (uzbl.state.plug_mode)},
         { "WEBKIT_MAJOR",                 UZBL_C_FUNC (WEBKIT_MAJOR,                           INT)},
@@ -3142,6 +3152,13 @@ IMPLEMENT_GETTER (int, is_online)
     GNetworkMonitor *monitor = g_network_monitor_get_default ();
     return g_network_monitor_get_network_available (monitor);
 }
+
+#ifdef USE_WEBKIT2
+#if WEBKIT_CHECK_VERSION (2, 7, 4)
+GOBJECT_GETTER2 (int, is_playing_audio,
+                 gboolean, webkit_view (), "is-playing-audio");
+#endif
+#endif
 
 static void
 mimetype_list_append (WebKitWebPluginMIMEType *mimetype, GString *list);
