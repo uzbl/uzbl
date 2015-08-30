@@ -250,8 +250,8 @@ install-dirs:
 	[ -d "$(INSTALLDIR)/bin" ] || $(INSTALL) -d -m755 $(INSTALLDIR)/bin
 	[ -d "$(MANDIR)/man1" ] || $(INSTALL) -d $(MANDIR)/man1
 	[ -d "$(DOCDIR)" ] || $(INSTALL) -d $(DOCDIR)
-	[ -d "$(INSTALLDIR)/share/uzbl" ] || $(INSTALL) -d $(INSTALLDIR)/share/uzbl
-	[ -d "$(INSTALLDIR)/share/applications" ] || $(INSTALL) -d $(INSTALLDIR)/share/applications
+	[ -d "$(SHAREDIR)/uzbl" ] || $(INSTALL) -d $(SHAREDIR)/uzbl
+	[ -d "$(SHAREDIR)/applications" ] || $(INSTALL) -d $(SHAREDIR)/applications
 
 install-uzbl-core: uzbl-core install-dirs
 	$(INSTALL) -m644 docs/*.md $(DOCDIR)/
@@ -275,9 +275,9 @@ install-uzbl-browser: uzbl-browser install-dirs install-uzbl-core install-event-
 	#sed 's#@PREFIX@#$(PREFIX)#g' < README.browser.md > README.browser.md
 	#$(INSTALL) -m644 README.browser.md $(DOCDIR)/README.browser.md
 	$(INSTALL) -m644 README.event-manager.md $(DOCDIR)/README.event-manager.md
-	cp -rv examples $(INSTALLDIR)/share/uzbl/examples
-	chmod 755 $(INSTALLDIR)/share/uzbl/examples/data/scripts/*.sh $(INSTALLDIR)/share/uzbl/examples/data/scripts/*.py
-	$(INSTALL) -m644 uzbl.desktop $(INSTALLDIR)/share/applications/uzbl.desktop
+	cp -rv examples $(SHAREDIR)/uzbl/examples
+	chmod 755 $(SHAREDIR)/uzbl/examples/data/scripts/*.sh $(SHAREDIR)/uzbl/examples/data/scripts/*.py
+	$(INSTALL) -m644 uzbl.desktop $(SHAREDIR)/applications/uzbl.desktop
 	$(INSTALL) -m644 uzbl-browser.1 $(MANDIR)/man1/uzbl-browser.1
 	$(INSTALL) -m644 uzbl.appdata.xml $(SHAREDIR)/appdata/uzbl.appdata.xml
 
@@ -295,5 +295,5 @@ install-example-data:
 uninstall:
 	rm -rf $(INSTALLDIR)/bin/uzbl-*
 	rm -rf $(MANDIR)/man1/uzbl-*
-	rm -rf $(INSTALLDIR)/share/uzbl
-	rm -rf $(INSTALLDIR)/share/applications/uzbl.desktop
+	rm -rf $(SHAREDIR)/uzbl
+	rm -rf $(SHAREDIR)/applications/uzbl.desktop
