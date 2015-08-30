@@ -646,6 +646,8 @@ variables are treated as strings.
   - `The title to use when the status bar is shown.
 * `enable_compositing_debugging` (boolean) (default: 0) (WebKit2 only)
   - If non-zero, draw borders  when using accelerated compositing.
+* `background_color` (string) (no default) (WebKit2 >= 2.7.4)
+  - The background color of pages (if not set by the page). Most common color formats supported.
 
 #### Customization
 

@@ -1166,6 +1166,9 @@ DECLARE_SETTER (int, status_top);
 DECLARE_SETTER (gchar *, status_background);
 #ifdef USE_WEBKIT2
 DECLARE_GETSET (int, enable_compositing_debugging);
+#if WEBKIT_CHECK_VERSION (2, 7, 4)
+DECLARE_GETSET (gchar *, background_color);
+#endif
 #endif
 
 /* Customization */
@@ -1511,6 +1514,9 @@ uzbl_variables_private_new (GHashTable *table)
         { "status_background",            UZBL_V_STRING (priv->status_background,              set_status_background)},
 #ifdef USE_WEBKIT2
         { "enable_compositing_debugging", UZBL_V_FUNC (enable_compositing_debugging,           INT)},
+#if WEBKIT_CHECK_VERSION (2, 7, 4)
+        { "background_color",             UZBL_V_FUNC (background_color,                       STR)},
+#endif
 #endif
 
         /* Customization */
@@ -2158,6 +2164,30 @@ IMPLEMENT_SETTER (char *, status_background)
 #ifdef USE_WEBKIT2
 GOBJECT_GETSET2 (int, enable_compositing_debugging,
                  gboolean, webkit_settings (), "draw-compositing-indicators")
+
+#if WEBKIT_CHECK_VERSION (2, 7, 4)
+IMPLEMENT_GETTER (gchar *, background_color)
+{
+    GdkRGBA color;
+
+    webkit_web_view_get_background_color (uzbl.gui.web_view, &color);
+
+    return gdk_rgba_to_string (&color);
+}
+
+IMPLEMENT_SETTER (gchar *, background_color)
+{
+    GdkRGBA color;
+
+    gboolean parsed = gdk_rgba_parse (&color, background_color);
+    if (!parsed) {
+        return FALSE;
+    }
+    webkit_web_view_set_background_color (uzbl.gui.web_view, &color);
+
+    return TRUE;
+}
+#endif
 #endif
 
 /* Customization */
