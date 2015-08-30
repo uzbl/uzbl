@@ -2760,13 +2760,14 @@ IMPLEMENT_SETTER (gchar *, spellcheck_languages)
 #endif
 
 /* Form variables */
+GOBJECT_GETSET2 (int, resizable_text_areas,
+                 gboolean, webkit_settings (),
 #ifdef USE_WEBKIT2
-GOBJECT_GETSET2 (int, resizable_text_areas,
-                 gboolean, webkit_settings (), "enable-resizable-text-areas")
+                                    "enable-resizable-text-areas"
 #else
-GOBJECT_GETSET2 (int, resizable_text_areas,
-                 gboolean, webkit_settings (), "resizable-text-areas")
+                                    "resizable-text-areas"
 #endif
+                )
 
 #ifdef HAVE_SPATIAL_NAVIGATION
 GOBJECT_GETSET2 (int, enable_spatial_navigation,
