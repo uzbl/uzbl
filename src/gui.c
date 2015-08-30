@@ -1053,6 +1053,11 @@ typedef struct {
     gboolean redirect;
 } UzblRequestDecision;
 
+#if defined(USE_WEBKIT2) && WEBKIT_CHECK_VERSION (2, 7, 2)
+static void
+resource_tls_error_cb (WebKitWebResource *resource, GTlsCertificate *certificate, GTlsCertificateFlags flags, gpointer data);
+#endif
+
 void
 request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResource *resource,
         WebKitNetworkRequest *request, WebKitNetworkResponse *response, gpointer data)
@@ -1071,6 +1076,12 @@ request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResour
         soup_message_set_first_party (message, soup_uri);
         soup_uri_free (soup_uri);
     }
+
+#if defined(USE_WEBKIT2) && WEBKIT_CHECK_VERSION (2, 7, 2)
+    g_object_connect (G_OBJECT (resource),
+        "signal::failed-with-tls-errors", G_CALLBACK (resource_tls_error_cb), NULL,
+        NULL);
+#endif
 
     UzblRequestDecision *decision = (UzblRequestDecision *)g_malloc (sizeof (UzblRequestDecision));
     decision->request = request;
@@ -1996,6 +2007,17 @@ mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type, const 
     g_free (handler);
 
     return TRUE;
+}
+#endif
+
+#if defined(USE_WEBKIT2) && WEBKIT_CHECK_VERSION (2, 7, 2)
+void
+resource_tls_error_cb (WebKitWebResource *resource, GTlsCertificate *certificate, GTlsCertificateFlags flags, gpointer data)
+{
+    UZBL_UNUSED (data);
+
+    const gchar *uri = webkit_web_resource_get_uri (resource);
+    make_tls_error_uri (uri, certificate, flags);
 }
 #endif
 
