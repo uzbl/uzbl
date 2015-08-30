@@ -183,6 +183,9 @@ uzbl_init (int *argc, char ***argv)
 #endif
         ;
     webkit_web_context_set_process_model (webkit_context, model);
+#if WEBKIT_CHECK_VERSION (2, 9, 4)
+    webkit_web_context_set_web_process_count_limit (webkit_context, 0);
+#endif
 #endif
 #endif
 
