@@ -3311,6 +3311,9 @@ IMPLEMENT_GETTER (gchar *, editor_state)
 
     state = webkit_editor_state_get_typing_attributes (editor_state);
 
+    if (!state) {
+        state_str = g_strdup ("none");
+    } else {
 #define webkit_editor_state_attributes(call)                        \
     call(WEBKIT_EDITOR_TYPING_ATTRIBUTE_BOLD,          "bold")      \
     call(WEBKIT_EDITOR_TYPING_ATTRIBUTE_ITALIC,        "italic")    \
@@ -3318,21 +3321,20 @@ IMPLEMENT_GETTER (gchar *, editor_state)
     call(WEBKIT_EDITOR_TYPING_ATTRIBUTE_STRIKETHROUGH, "strikethrough")
 
 #define append_flag(flag, str)                                  \
-    } else if (state & flag) {                                  \
+    if (state & flag) {                                         \
         gchar *old_state_str = state_str;                       \
         if (state_str) {                                        \
             state_str = g_strdup_printf ("%s," str, state_str); \
         } else {                                                \
             state_str = g_strdup (str);                         \
         }                                                       \
-        g_free (old_state_str);
-
-    if (!state) {
-        state_str = g_strdup ("none");
-    webkit_editor_state_attributes(append_flag)
+        g_free (old_state_str);                                 \
     }
+        webkit_editor_state_attributes(append_flag)
+#undef append_flag
 
 #undef webkit_editor_state_attributes
+    }
 
     return state_str;
 }
