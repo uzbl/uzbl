@@ -259,3 +259,11 @@ The plugin also manages the following variables:
 
 - `@mode`: The current mode.
 - `@default_mode`: The mode to use if `@mode` is ever set to the empty string.
+
+## on\_event
+
+Implements event chaining and reactions. Uses the following events:
+
+* `ON_EVENT <event> <commandspec>`
+  - Registers `command` to be executed when an event named `event` is seen. The
+    command may be formatted using the arguments the original event received.
