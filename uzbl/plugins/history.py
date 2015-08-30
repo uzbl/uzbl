@@ -2,6 +2,7 @@ import random
 
 from .on_set import OnSetPlugin
 from .keycmd import KeyCmd
+from .config import Config
 from uzbl.ext import GlobalPlugin, PerInstancePlugin
 
 class SharedHistory(GlobalPlugin):
