@@ -7,6 +7,8 @@ from uzbl.ext import PerInstancePlugin
 
 
 class ModePlugin(PerInstancePlugin):
+    CONFIG_SECTION = 'mode'
+
     def __init__(self, uzbl):
         super(ModePlugin, self).__init__(uzbl)
         self.mode_config = defaultdict(dict)

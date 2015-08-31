@@ -280,6 +280,8 @@ class Bind(object):
 
 
 class BindPlugin(PerInstancePlugin):
+    CONFIG_SECTION = 'bind'
+
     def __init__(self, uzbl):
         '''Export functions and connect handlers to events.'''
         super(BindPlugin, self).__init__(uzbl)

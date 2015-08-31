@@ -169,6 +169,8 @@ DefaultStore = TextStore(UZBL_COOKIE_FILE)
 SessionStore = TextStore(UZBL_SESSION_COOKIE_FILE)
 
 class Cookies(PerInstancePlugin):
+    CONFIG_SECTION = 'cookies'
+
     def __init__(self, uzbl):
         super(Cookies, self).__init__(uzbl)
 

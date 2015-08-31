@@ -44,6 +44,7 @@ class PerInstancePlugin(BasePlugin):
 
     def __init__(self, uzbl):
         self.uzbl = uzbl
+        self.plugin_config = uzbl.parent.get_plugin_config(self.CONFIG_SECTION)
         self.logger = uzbl.logger  # we can also append plugin name to logger
 
     def cleanup(self):
@@ -72,6 +73,7 @@ class GlobalPlugin(BasePlugin):
 
     def __init__(self, event_manager):
         self.event_manager = event_manager
+        self.plugin_config = event_manager.get_plugin_config(self.CONFIG_SECTION)
         self.logger = logging.getLogger(self.__module__)
 
     def new_uzbl(self, uzbl):

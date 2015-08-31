@@ -48,6 +48,8 @@ class CompletionListFormatter(object):
 
 
 class CompletionPlugin(PerInstancePlugin):
+    CONFIG_SECTION = 'completion'
+
     def __init__(self, uzbl):
         '''Export functions and connect handlers to events.'''
         super(CompletionPlugin, self).__init__(uzbl)

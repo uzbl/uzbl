@@ -4,6 +4,8 @@ from .config import Config
 from uzbl.ext import PerInstancePlugin
 
 class ProgressBar(PerInstancePlugin):
+    CONFIG_SECTION = 'progress'
+
     splitfrmt = re.compile(r'(%[A-Z][^%]|%[^%])').split
 
     def __init__(self, uzbl):
