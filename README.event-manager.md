@@ -158,6 +158,16 @@ If not `WHITELIST_COOKIE` rules are added, all cookies, not matching a
 `BLACKLIST_COOKIE` rule will be allowed. Cookies which match a
 `BLACKLIST_COOKIE` will always be denied.
 
+There are multiple backends for cookie storage:
+
+* `null`
+* `memory`
+* `text`
+
+The `null` store does not remember any cookies between sessions. The `memory`
+store only stores cookies in the current instance. The `file` store uses a file
+using the Mozilla cookie format to preserve cookies.
+
 Cookies are stored in the following files (in decreasing precedence):
 
 * `$UZBL_COOKIE_FILE`
@@ -171,6 +181,16 @@ Session cookies are stored in the following files (in decreasing precedence):
 * `$HOME/.local/share/uzbl/session-cookies.txt`
 
 These paths are determined at the daemon's startup, not on a per-uzbl basis.
+
+The backend and paths may be configured in the configuration file:
+
+```ini
+[cookies]
+global.type = text
+global.path = <default global cookie path>
+session.type = text
+session.path = <default session cookie path>
+```
 
 Any cookies added or removed in one instance are shared with or deleted from
 all other instances sharing the same event manager.
