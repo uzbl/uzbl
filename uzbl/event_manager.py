@@ -19,12 +19,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 '''
-
-E V E N T _ M A N A G E R . P Y
-===============================
+EVENT_MANAGER.PY
+================
 
 Event manager for uzbl written in python.
-
 '''
 
 import atexit
@@ -527,8 +525,12 @@ def main():
         logger.debug('will not daemonize')
 
     # init like {start|stop|..} daemon actions
-    daemon_actions = {'start': start_action, 'stop': stop_action,
-        'restart': restart_action, 'list': list_action}
+    daemon_actions = {
+        'start': start_action,
+        'stop': stop_action,
+        'restart': restart_action,
+        'list': list_action,
+    }
 
     if len(args) == 1:
         action = args[0]
