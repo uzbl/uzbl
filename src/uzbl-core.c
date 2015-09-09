@@ -259,6 +259,14 @@ uzbl_init (int *argc, char ***argv)
     /* Generate an event with a list of built in commands. */
     uzbl_commands_send_builtin_event ();
 
+    /* Set variables based on flags. */
+    if (verbose) {
+        uzbl_variables_set ("verbose", "1");
+    }
+    if (print_events) {
+        uzbl_variables_set ("print_events", "1");
+    }
+
     /* Load default config. */
     const gchar * const *default_command = default_config;
     while (default_command && *default_command) {
@@ -282,14 +290,6 @@ uzbl_init (int *argc, char ***argv)
         uzbl_events_send (PLUG_CREATED, NULL,
             TYPE_INT, gtk_plug_get_id (uzbl.gui.plug),
             NULL);
-    }
-
-    /* Set variables based on flags. */
-    if (verbose) {
-        uzbl_variables_set ("verbose", "1");
-    }
-    if (print_events) {
-        uzbl_variables_set ("print_events", "1");
     }
 
     /* Navigate to a URI if requested. */
