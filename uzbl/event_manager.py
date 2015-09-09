@@ -155,7 +155,7 @@ class PluginDirectory(object):
 
 
 class UzblEventDaemon(object):
-    def __init__(self, listener, plugind):
+    def __init__(self, listener, plugind, opts):
         listener.target = self
         self.opts = opts
         self.listener = listener
@@ -171,7 +171,7 @@ class UzblEventDaemon(object):
 
         # Register that the event daemon server has started by creating the
         # pid file.
-        make_pid_file(opts.pid_file)
+        make_pid_file(self.opts.pid_file)
 
         # Register a function to clean up the socket and pid file on exit.
         atexit.register(self.quit)
@@ -200,7 +200,7 @@ class UzblEventDaemon(object):
 
         logger.debug('entering main loop')
 
-        if opts.daemon_mode:
+        if self.opts.daemon_mode:
             # Daemonize the process
             daemonize()
 
@@ -216,7 +216,7 @@ class UzblEventDaemon(object):
 
     def add_instance(self, sock):
         proto = Protocol(sock)
-        uzbl = Uzbl(self, proto, opts)
+        uzbl = Uzbl(self, proto, self.opts)
         self.uzbls[sock] = uzbl
         for plugin in self.plugins.values():
             plugin.new_uzbl(uzbl)
@@ -226,7 +226,7 @@ class UzblEventDaemon(object):
             for plugin in self.plugins.values():
                 plugin.free_uzbl(self.uzbls[sock])
             del self.uzbls[sock]
-        if not self.uzbls and opts.auto_close:
+        if not self.uzbls and self.opts.auto_close:
             self.quit()
 
     def close_server_socket(self):
@@ -359,7 +359,7 @@ def term_process(pid):
         time.sleep(0.25)
 
 
-def stop_action():
+def stop_action(opts):
     '''Stop the event manager daemon.'''
 
     pid_file = opts.pid_file
@@ -386,7 +386,7 @@ def stop_action():
     return 0
 
 
-def start_action():
+def start_action(opts):
     '''Start the event manager daemon.'''
 
     pid_file = opts.pid_file
@@ -412,14 +412,14 @@ def start_action():
     return 0
 
 
-def restart_action():
+def restart_action(opts):
     '''Restart the event manager daemon.'''
 
-    stop_action()
-    return start_action()
+    stop_action(opts)
+    return start_action(opts)
 
 
-def list_action():
+def list_action(opts):
     '''List all the plugins that would be loaded in the current search
     dirs.'''
 
@@ -471,7 +471,7 @@ def make_parser():
     return parser
 
 
-def init_logger():
+def init_logger(opts):
     log_level = logging.CRITICAL - opts.verbose * 10
     logger = logging.getLogger()
     logger.setLevel(max(log_level, 10))
@@ -492,8 +492,6 @@ def init_logger():
 
 
 def main():
-    global opts
-
     parser = make_parser()
 
     (opts, args) = parser.parse_args()
@@ -515,7 +513,7 @@ def main():
         opts.log_file = expandpath(opts.log_file)
 
     # Logging setup
-    init_logger()
+    init_logger(opts)
     logger.info('logging to %r', opts.log_file)
 
     if opts.auto_close:
@@ -546,7 +544,7 @@ def main():
 
     logger.info('daemon action %r', action)
     # Do action
-    ret = daemon_actions[action]()
+    ret = daemon_actions[action](opts)
 
     logger.debug('process CPU time: %f', time.clock())
 
