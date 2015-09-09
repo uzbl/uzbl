@@ -419,7 +419,7 @@ uzbl_variables_dump_events ()
 void
 variable_free (UzblVariable *variable)
 {
-    if ((variable->type == TYPE_STR) && variable->value.s) {
+    if ((variable->type == TYPE_STR) && variable->value.s && variable->writeable) {
         g_free (*variable->value.s);
         if (!variable->builtin) {
             g_free (variable->value.s);
@@ -1385,7 +1385,6 @@ DECLARE_GETSET (gchar *, local_storage_path);
 #if WEBKIT_CHECK_VERSION (1, 11, 92)
 DECLARE_SETTER (gchar *, disk_cache_directory);
 #endif
-DECLARE_SETTER (gchar *, web_extensions_directory);
 #if WEBKIT_CHECK_VERSION (2, 9, 2)
 DECLARE_GETSET (gchar *, indexed_db_directory);
 #endif
@@ -1488,7 +1487,6 @@ struct _UzblVariablesPrivate {
 #elif WEBKIT_CHECK_VERSION (1, 11, 92)
     gchar *disk_cache_directory;
 #endif
-    gchar *web_extensions_directory;
 #endif
 };
 
@@ -1768,7 +1766,6 @@ uzbl_variables_private_new (GHashTable *table)
 #endif
                                           },
 #endif
-        { "web_extensions_directory",     UZBL_V_STRING (priv->web_extensions_directory,       set_web_extensions_directory)},
 #if WEBKIT_CHECK_VERSION (2, 9, 2)
         { "indexed_db_directory",         UZBL_V_FUNC (indexed_db_directory,                   STR)},
 #endif
@@ -1796,6 +1793,7 @@ uzbl_variables_private_new (GHashTable *table)
 #endif
         { "is_online",                    UZBL_C_FUNC (is_online,                              INT)},
 #ifdef USE_WEBKIT2
+        { "web_extensions_directory",     UZBL_C_STRING (uzbl.state.web_extensions_directory)},
 #if WEBKIT_CHECK_VERSION (2, 7, 4)
         { "is_playing_audio",             UZBL_C_FUNC (is_playing_audio,                       INT)},
 #endif
@@ -3154,17 +3152,6 @@ IMPLEMENT_SETTER (gchar *, disk_cache_directory)
     return TRUE;
 }
 #endif
-
-IMPLEMENT_SETTER (gchar *, web_extensions_directory)
-{
-    g_free (uzbl.variables->priv->web_extensions_directory);
-    uzbl.variables->priv->web_extensions_directory = g_strdup (web_extensions_directory);
-
-    WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
-    webkit_web_context_set_web_extensions_directory (context, uzbl.variables->priv->web_extensions_directory);
-
-    return TRUE;
-}
 
 #if WEBKIT_CHECK_VERSION (2, 9, 4)
 GOBJECT_GETSET (gchar *, indexed_db_directory,

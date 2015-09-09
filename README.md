@@ -954,9 +954,6 @@ Note: In WebKit2, font sizes are in pixels, whereas WebKit1 uses points.
 * `disk_cache_directory` (string) (no default) (WebKit2 >= 1.11.92)
   - Where to store cache files.. Must be set before loading any pages to have
     an effect.
-* `web_extensions_directory` (string) (no default) (WebKit2 only)
-  - Where to look for web extension libraries. Must be set before loading any
-    pages.
 * `indexed_db_directory` (string) (no default) (WebKit2 >= 2.9.2)
   - Where to store IndexedDB databases.
 * `base_cache_directory` (string) (no default) (WebKit2 >= 2.9.4)
@@ -992,6 +989,8 @@ they are written as comments.
   - If non-zero, a network is available (not necessarily the Internet).
 * `is_playing_audio` (boolean) (WebKit2 >= 2.7.4)
   - If non-zero, audio is playing.
+* `web_extensions_directory` (string) (WebKit2 only)
+  - Where uzbl looks for web extension libraries.
 * `editor_state` (string) (WebKit2 >= 2.9.4)
   - Comma-separated list of the attributes attached to text at the current text
     position. The current flags are:
@@ -1573,6 +1572,8 @@ where `arguments` and `uri` are both optional. `arguments` can be:
     embedded.
 * `-V`, `--version`
   - Print the version and exit.
+* `--web-extensions-dir`
+  - Directory that will be searched for webkit extensions
 * `--display=DISPLAY`
   - X display to use.
 * `--help`
