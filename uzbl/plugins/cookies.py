@@ -197,8 +197,8 @@ class Cookies(PerInstancePlugin):
         uzbl.connect('SECURE_COOKIE', self.secure_cookie)
         uzbl.connect('CLEAR_SECURE_COOKIE_RULES', self.clear_secure_cookies)
 
-    # accept a cookie only when:
-    # a. there is no whitelist and the cookie is in the blacklist
+    # accept a cookie only when one of the following is true:
+    # a. there is no whitelist and the cookie is not in the blacklist
     # b. the cookie is in the whitelist and not in the blacklist
     def accept_cookie(self, cookie):
         if self.whitelist:
@@ -214,7 +214,7 @@ class Cookies(PerInstancePlugin):
     def get_recipents(self):
         """ get a list of Uzbl instances to send the cookie too. """
         # This could be a lot more interesting
-        # TODO(mathstuf): handle private browsing mode.
+        # TODO(mathstuf): respect private browsing mode.
         return [u for u in list(self.uzbl.parent.uzbls.values()) if u is not self.uzbl]
 
     def _make_store(self, cookie_type, envvar, fname):
