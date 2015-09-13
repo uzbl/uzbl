@@ -35,6 +35,7 @@ def match_args(pattern, args):
 
 
 class OnEventPlugin(PerInstancePlugin):
+    CONFIG_SECTION = 'on_event'
 
     def __init__(self, uzbl):
         '''Export functions and connect handlers to events.'''

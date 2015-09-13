@@ -225,6 +225,8 @@ class Keylet(object):
 
 
 class KeyCmd(PerInstancePlugin):
+    CONFIG_SECTION = 'keycmd'
+
     def __init__(self, uzbl):
         '''Export functions and connect handlers to events.'''
         super(KeyCmd, self).__init__(uzbl)

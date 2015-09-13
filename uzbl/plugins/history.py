@@ -6,6 +6,7 @@ from .config import Config
 from uzbl.ext import GlobalPlugin, PerInstancePlugin
 
 class SharedHistory(GlobalPlugin):
+    CONFIG_SECTION = 'history'
 
     def __init__(self, event_manager):
         super(SharedHistory, self).__init__(event_manager)
@@ -33,6 +34,7 @@ class SharedHistory(GlobalPlugin):
 
 
 class History(PerInstancePlugin):
+    CONFIG_SECTION = 'history'
 
     def __init__(self, uzbl):
         super(History, self).__init__(uzbl)

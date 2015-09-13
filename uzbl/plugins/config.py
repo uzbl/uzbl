@@ -15,6 +15,8 @@ class Config(PerInstancePlugin):
     hard to implement all needed methods either.
     """
 
+    CONFIG_SECTION = 'config'
+
     def __init__(self, uzbl):
         super(Config, self).__init__(uzbl)
 

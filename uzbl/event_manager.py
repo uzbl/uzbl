@@ -19,15 +19,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 '''
-
-E V E N T _ M A N A G E R . P Y
-===============================
+EVENT_MANAGER.PY
+================
 
 Event manager for uzbl written in python.
-
 '''
 
 import atexit
+import configparser
 import imp
 import logging
 import os
@@ -62,6 +61,7 @@ def xdghome(key, default):
 # Setup xdg paths.
 DATA_DIR = os.path.join(xdghome('DATA', '.local/share/'), 'uzbl/')
 CACHE_DIR = os.path.join(xdghome('CACHE', '.cache/'), 'uzbl/')
+CONFIG_DIR = os.path.join(xdghome('CONFIG', '.config/'), 'uzbl/')
 
 # Define some globals.
 SCRIPTNAME = os.path.basename(sys.argv[0])
@@ -155,11 +155,12 @@ class PluginDirectory(object):
 
 
 class UzblEventDaemon(object):
-    def __init__(self, listener, plugind, opts):
+    def __init__(self, listener, plugind, opts, config):
         listener.target = self
         self.opts = opts
         self.listener = listener
         self.plugind = plugind
+        self.config = config
         self._plugin_instances = []
         self._quit = False
 
@@ -237,6 +238,11 @@ class UzblEventDaemon(object):
 
         except:
             logger.error('failed to close server socket', exc_info=True)
+
+    def get_plugin_config(self, name):
+        if name not in self.config:
+            self.config.add_section(name)
+        return self.config[name]
 
     def quit(self, sigint=None, *args):
         '''Close all instance socket objects, server socket and delete the
@@ -359,7 +365,7 @@ def term_process(pid):
         time.sleep(0.25)
 
 
-def stop_action(opts):
+def stop_action(opts, config):
     '''Stop the event manager daemon.'''
 
     pid_file = opts.pid_file
@@ -386,7 +392,7 @@ def stop_action(opts):
     return 0
 
 
-def start_action(opts):
+def start_action(opts, config):
     '''Start the event manager daemon.'''
 
     pid_file = opts.pid_file
@@ -406,20 +412,20 @@ def start_action(opts):
     listener = Listener(opts.server_socket)
     listener.start()
     plugind = PluginDirectory()
-    daemon = UzblEventDaemon(listener, plugind)
+    daemon = UzblEventDaemon(listener, plugind, config)
     daemon.run()
 
     return 0
 
 
-def restart_action(opts):
+def restart_action(opts, config):
     '''Restart the event manager daemon.'''
 
-    stop_action(opts)
-    return start_action(opts)
+    stop_action(opts, config)
+    return start_action(opts, config)
 
 
-def list_action(opts):
+def list_action(opts, config):
     '''List all the plugins that would be loaded in the current search
     dirs.'''
 
@@ -440,6 +446,12 @@ def make_parser():
     add('-v', '--verbose',
         dest='verbose', default=2, action='count',
         help='increase verbosity')
+
+    config_location = os.path.join(CONFIG_DIR, 'event-manager.conf')
+
+    add('-c', '--config',
+        dest='config', metavar='CONFIG', default=config_location,
+        help='configuration file')
 
     socket_location = os.path.join(CACHE_DIR, 'event_daemon')
 
@@ -505,6 +517,9 @@ def main():
     else:
         opts.pid_file = expandpath(opts.pid_file)
 
+    config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation)
+    config.read(opts.config)
+
     # Set default log file location
     if not opts.log_file:
         opts.log_file = "%s.log" % opts.server_socket
@@ -527,8 +542,12 @@ def main():
         logger.debug('will not daemonize')
 
     # init like {start|stop|..} daemon actions
-    daemon_actions = {'start': start_action, 'stop': stop_action,
-        'restart': restart_action, 'list': list_action}
+    daemon_actions = {
+        'start': start_action,
+        'stop': stop_action,
+        'restart': restart_action,
+        'list': list_action,
+    }
 
     if len(args) == 1:
         action = args[0]
@@ -544,7 +563,7 @@ def main():
 
     logger.info('daemon action %r', action)
     # Do action
-    ret = daemon_actions[action](opts)
+    ret = daemon_actions[action](opts, config)
 
     logger.debug('process CPU time: %f', time.clock())
 

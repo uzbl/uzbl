@@ -5,6 +5,29 @@ a "standard" browser experience. The base plugins which are shipped handle
 things as fundumental as keyboard bindings, cookie preservation, providing a
 progress bar for loading, and more.
 
+The event manager accepts the following command line arguments:
+
+* `-c`, `--config` `CONFIG`
+  - Specifies the configuration file. Defaults to
+    `$XDG_CONFIG_HOME/uzbl/event-manager.conf`
+* `-s`, `--server-socket` `SOCKET`
+  - The location of the socket the event manager will create for uzbl instances
+    to connect to. Defaults to `$XDG_CACHE_HOME/uzbl/event_daemon`.
+* `-p`, `--pid-file` `FILE`
+  - The location of the pid file for use when the event manager is restarted or
+    stopped. Defaults to the socket's location with a `.pid` extension.
+* `-o`, `--log-file` `FILE`
+  - The log file to write to. Defaults to the socket's location with a `.log`
+    extension.
+* `-n`, `--no-daemon`
+  - Run in the foreground instead of forking into the background.
+* `-a`, `--auto-close`
+  - Shutdown the event manager when the last uzbl instance disconnects.
+* `-v`, `--verbose`
+  - Increases verbosity. May be specified multiple times.
+* `-q`, `--quiet-events`
+  - Turns off printing of events to stdout.
+
 ## bind
 
 The `bind` plugin implements keybindings via the following events:
@@ -135,6 +158,16 @@ If not `WHITELIST_COOKIE` rules are added, all cookies, not matching a
 `BLACKLIST_COOKIE` rule will be allowed. Cookies which match a
 `BLACKLIST_COOKIE` will always be denied.
 
+There are multiple backends for cookie storage:
+
+* `null`
+* `memory`
+* `text`
+
+The `null` store does not remember any cookies between sessions. The `memory`
+store only stores cookies in the current instance. The `file` store uses a file
+using the Mozilla cookie format to preserve cookies.
+
 Cookies are stored in the following files (in decreasing precedence):
 
 * `$UZBL_COOKIE_FILE`
@@ -148,6 +181,16 @@ Session cookies are stored in the following files (in decreasing precedence):
 * `$HOME/.local/share/uzbl/session-cookies.txt`
 
 These paths are determined at the daemon's startup, not on a per-uzbl basis.
+
+The backend and paths may be configured in the configuration file:
+
+```ini
+[cookies]
+global.type = text
+global.path = <default global cookie path>
+session.type = text
+session.path = <default session cookie path>
+```
 
 Any cookies added or removed in one instance are shared with or deleted from
 all other instances sharing the same event manager.
