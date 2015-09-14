@@ -412,7 +412,7 @@ def start_action(opts, config):
     listener = Listener(opts.server_socket)
     listener.start()
     plugind = PluginDirectory()
-    daemon = UzblEventDaemon(listener, plugind, config)
+    daemon = UzblEventDaemon(listener, plugind, opts, config)
     daemon.run()
 
     return 0
