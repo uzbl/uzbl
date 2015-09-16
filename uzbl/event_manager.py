@@ -268,7 +268,7 @@ class UzblEventDaemon(object):
             del self.plugins  # to avoid cyclic links
             del self._plugin_instances
 
-        del_pid_file(opts.pid_file)
+        del_pid_file(self.opts.pid_file)
 
         if not self._quit:
             logger.info('event manager shut down')
