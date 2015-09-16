@@ -13,9 +13,6 @@
 gchar *
 argv_idx (const GArray *argv, guint idx);
 
-#define strprefix(str, prefix) \
-    strncmp ((str), (prefix), strlen ((prefix)))
-
 gchar *
 str_replace (const gchar *needle, const gchar *replace, const gchar *haystack);
 

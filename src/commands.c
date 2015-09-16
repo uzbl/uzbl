@@ -903,7 +903,7 @@ IMPLEMENT_COMMAND (uri)
     uzbl.state.uri = g_strdup (uri);
 
     /* Evaluate javascript: URIs. */
-    if (!strprefix (uri, "javascript:")) {
+    if (!g_str_has_prefix (uri, "javascript:")) {
         GArray *argv = g_array_new (TRUE, FALSE, sizeof (gchar *));
         g_array_append_val (argv, uri);
         uzbl_commands_run_argv ("js", argv, NULL);
@@ -1136,9 +1136,9 @@ IMPLEMENT_COMMAND (cookie)
         gboolean httponly = FALSE;
         SoupDate *expires = NULL;
 
-        if (!strprefix (scheme, "http")) {
+        if (!g_str_has_prefix (scheme, "http")) {
             secure = (scheme[4] == 's');
-            httponly = !strprefix (scheme + 4 + secure, "Only");
+            httponly = !g_str_has_prefix (scheme + 4 + secure, "Only");
         }
         if (*expires_arg) {
             expires = soup_date_new_from_time_t (strtoul (expires_arg, NULL, 10));

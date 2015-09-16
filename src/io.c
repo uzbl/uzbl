@@ -765,7 +765,7 @@ schedule_io_input (gchar *line, UzblIOCallback callback, gpointer data)
 
     remove_trailing_newline (line);
 
-    if (!strprefix (line, "REPLY-")) {
+    if (!g_str_has_prefix (line, "REPLY-")) {
         uzbl_requests_set_reply (line);
 
         g_free (line);
