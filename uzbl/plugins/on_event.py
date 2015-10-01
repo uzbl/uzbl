@@ -8,13 +8,13 @@ Formatting options:
   %n = argument n
 
 Usage:
-  request ON_EVENT LINK_HOVER set selected_uri = $1
+  event ON_EVENT LINK_HOVER set selected_uri $1
     --> LINK_HOVER http://uzbl.org/
-    <-- set selected_uri = http://uzbl.org/
+    <-- set selected_uri http://uzbl.org/
 
-  request ON_EVENT CONFIG_CHANGED print Config changed: %1 = %2
+  event ON_EVENT CONFIG_CHANGED print Config changed: %1 %2
     --> CONFIG_CHANGED selected_uri http://uzbl.org/
-    <-- print Config changed: selected_uri = http://uzbl.org/
+    <-- print Config changed: selected_uri http://uzbl.org/
 '''
 
 import re
@@ -35,6 +35,7 @@ def match_args(pattern, args):
 
 
 class OnEventPlugin(PerInstancePlugin):
+    CONFIG_SECTION = 'on_event'
 
     def __init__(self, uzbl):
         '''Export functions and connect handlers to events.'''
@@ -57,7 +58,7 @@ class OnEventPlugin(PerInstancePlugin):
             return
 
         commands = self.events[event]
-        for cmd, pattern in list(commands.items()):
+        for cmd, pattern in commands:
             if not pattern or match_args(pattern, args):
                 cmd = cmd_expand(cmd, args)
                 self.uzbl.send(cmd)
@@ -70,11 +71,11 @@ class OnEventPlugin(PerInstancePlugin):
         if event not in self.events:
             self.uzbl.connect(event,
                 partial(self.event_handler, on_event=event))
-            self.events[event] = {}
+            self.events[event] = []
 
         cmds = self.events[event]
         if cmd not in cmds:
-            cmds[cmd] = pattern
+            cmds.append((cmd, pattern))
 
     def parse_on_event(self, args):
         '''Parse ON_EVENT events and pass them to the on_event function.
@@ -102,5 +103,3 @@ class OnEventPlugin(PerInstancePlugin):
     def cleanup(self):
         self.events.clear()
         super(OnEventPlugin, self).cleanup()
-
-# vi: set et ts=4:

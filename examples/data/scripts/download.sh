@@ -9,29 +9,34 @@
 # if nothing is printed to stdout, the internal download will be cancelled.
 # you could do your own download handling in your script that way.
 
+. "$UZBL_UTIL_DIR/uzbl-dir.sh"
+. "$UZBL_UTIL_DIR/uzbl-util.sh"
+
 # if $5 is set, it is the path that was passed to uzbl's "download" command.
 # we want to use that if it's available.
-[ -n "$5" ] && echo "$5" && exit
-
-. "$UZBL_UTIL_DIR/uzbl-dir.sh"
+if [ -n "$5" ]; then
+    print "$5\n"
+    exit
+fi
 
 # the URL that is being downloaded
-uri="$1"
+readonly uri="$1"
 shift
 
-safe_uri="$( echo "$uri" | sed -e 's/\W/-/g' )"
+readonly filename="$( basename "$uri" )"
+readonly safe_uri="$( print "$filename" | sed -e 's/[^-_.,+:%()_0-9a-zA-Z]/-/g' )"
 
 # a filename suggested by the server or based on the URL
-suggested_filename="${1:-$safe_uri}"
+readonly suggested_filename="${1:-$safe_uri}"
 shift
 
 # the mimetype of the file being downloaded
-content_type="$1"
+readonly content_type="$1"
 shift
 
 # the size of the downloaded file in bytes. this is not always accurate, since
 # the server might not have sent a size with its response headers.
-total_size="$1"
+readonly total_size="$1"
 shift
 
 case "$suggested_filename" in
@@ -44,20 +49,21 @@ case "$suggested_filename" in
         path="$UZBL_DOWNLOAD_DIR/$suggested_filename"
         ;;
 esac
+readonly path
 
 # Do nothing if we don't want to save the file
 [ -z "$path" ] && exit 0
 
 # Check if the file exists
-if [ ! -e "$path" ]; then
-    echo "$path"
+if ! [ -e "$path" ]; then
+    print "$path\n"
     exit 0
 fi
 
 # Try to make a unique filename
 count=1
 while [ -e "$path.$count" ]; do
-    count=$(( $count + 1 ))
+    count="$(( count + 1 ))"
 done
 
-echo "$path.$count"
+print "$path.$count\n"

@@ -1,53 +1,31 @@
-/*
- * Uzbl Variables
- */
-
-#ifndef __VARIABLES__
-#define __VARIABLES__
+#ifndef UZBL_VARIABLES_H
+#define UZBL_VARIABLES_H
 
 #include <glib.h>
-#ifdef USE_WEBKIT2
-#include <webkit2/webkit2.h>
-#else
-#include <webkit/webkit.h>
-#endif
 
-#include "type.h"
+gboolean
+uzbl_variables_is_valid (const gchar *name);
 
-uzbl_cmdprop *get_var_c(const gchar *name);
+gboolean
+uzbl_variables_set (const gchar *name, gchar *val);
+gboolean
+uzbl_variables_toggle (const gchar *name, GArray *values);
 
-gboolean    set_var_value(const gchar *name, gchar *val);
-void        expand_variable(GString *buf, const gchar *name);
-void        variables_hash();
+gchar *
+uzbl_variables_expand (const gchar *str);
 
-gchar *get_var_value_string_c(const uzbl_cmdprop *c);
-gchar *get_var_value_string(const char *name);
-int get_var_value_int_c(const uzbl_cmdprop *c);
-int get_var_value_int(const char *name);
-unsigned long long get_var_value_ull_c(const uzbl_cmdprop *c);
-unsigned long long get_var_value_ull(const char *name);
-float get_var_value_float_c(const uzbl_cmdprop *c);
-float get_var_value_float(const char *name);
+gchar *
+uzbl_variables_get_string (const gchar *name);
+int
+uzbl_variables_get_int (const gchar *name);
+unsigned long long
+uzbl_variables_get_ull (const gchar *name);
+gdouble
+uzbl_variables_get_double (const gchar *name);
 
-void set_var_value_string_c(uzbl_cmdprop *c, const gchar *val);
-void set_var_value_int_c(uzbl_cmdprop *c, int i);
-void set_var_value_ull_c(uzbl_cmdprop *c, unsigned long long ull);
-void set_var_value_float_c(uzbl_cmdprop *c, float f);
-
-void send_set_var_event(const char *name, const uzbl_cmdprop *c);
-
-void        dump_config();
-void        dump_config_as_events();
-
-void        uri_change_cb (WebKitWebView *web_view, GParamSpec param_spec);
-
-void        set_zoom_type(int);
-int         get_zoom_type();
-
-gchar      *get_geometry();
-void        set_geometry(const gchar *);
-
-int         get_show_status();
-void        set_show_status(int);
+void
+uzbl_variables_dump ();
+void
+uzbl_variables_dump_events ();
 
 #endif

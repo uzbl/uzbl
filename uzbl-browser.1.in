@@ -1,0 +1,58 @@
+.Dd $Mdocdate: March 06 2014
+.Dt UZBL-BROWSER 1
+.Os
+.Sh NAME
+.Nm uzbl-browser
+.Nd web browser based on
+.Xr uzbl-core 1
+.Sh SYNOPSIS
+.Nm
+.Op options
+.Sh DESCRIPTION
+.Nm
+is a complete browser experience based on
+.Xr uzbl-core 1 .
+It uses a set of scripts (mostly python and shell) that will fit most
+people to ensure that things work out of the box. Thus it provides
+everything you would expect from a normal web browser. For instance, URL
+changing, history, form filling, link navigation, et cetera.
+.Pp
+It ships with a highly adequate default configuration file but if you
+want to benefit from the customizable interface you might want to modify
+the configuration file.
+.Pp
+Invoking
+.Nm
+is very similar to invoking
+.Xr uzbl-core 1
+thus the same options can be used with
+.Nm .
+.Sh ENVIRONMENT
+.Bl -tag -width "v"
+.It Ev UZBL_UTIL_DIR
+Custom directory which contains utility scripts.
+.It Ev UZBL_EVENT_MANAGER
+Custom event-manager program.
+.El
+.Sh FILES
+.Bl -tag -width "v"
+.It Pa ${XDG_CACHE_HOME:-$HOME/.cache}/uzbl/event_daemon
+The
+.Xr uzbl-event-manager 1
+socket used by
+.Nm .
+.It Pa ${XDG_DATA_HOME:-$HOME/.config}/uzbl/scripts/util
+The user specifc utility script directory.
+.It Pa @PREFIX@/share/uzbl/examples/scripts/util
+The global utility script directory.
+.El
+.Sh SEE ALSO
+.Xr uzbl-core 1
+.Xr uzbl-event-manager 1
+.Sh AUTHORS
+.Nm
+was written by
+.An -nosplit
+.An Dieter Plaetinck Aq Mt dieter@plaetinck.be
+and
+.An Ben Boeckel Aq Mt mathstuf@gmail.com .

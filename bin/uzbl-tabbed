@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # Uzbl tabbing wrapper using a fifo socket interface
 # Copyright (c) 2009, Tom Adams <tom@holizz.com>
@@ -158,6 +158,9 @@ import random
 import hashlib
 import atexit
 import types
+
+import urllib
+import urlparse
 
 from gobject import io_add_watch, source_remove, timeout_add, IO_IN, IO_HUP
 from signal import signal, SIGTERM, SIGINT
@@ -328,7 +331,8 @@ class SocketClient:
 
     def _socket_closed(self, fd, condition):
         '''Remote client exited'''
-        self.uzbl.close()
+        if self.uzbl:
+            self.uzbl.close()
         return False
 
 
@@ -506,6 +510,18 @@ class InstanceEventDispatcher(EventDispatcher):
                 elif var == "tab_titles" or var == "tab_indexes":
                     for tab in self.parent.notebook:
                         self.parent.tabs[tab].title_changed(True)
+                elif var == "window_size":
+                    if config['window_size'] == "m":
+                        uzbl.window.maximize()
+                    else:
+                        try:
+                            window_size = map(int, config['window_size'].split(','))
+                            uzbl.window.resize(*window_size)
+
+                        except:
+                            print_exc()
+                            error("Invalid value for window_size in config file.")
+
 
                 self.parent.update_tablist()
         else:
@@ -651,7 +667,7 @@ class UzblTabbed:
 
         except:
             print_exc()
-            error("Invalid value for default_size in config file.")
+            error("Invalid value for window_size in config file.")
 
         self.window.set_title("Uzbl Browser")
         self.window.set_border_width(0)
@@ -755,7 +771,7 @@ class UzblTabbed:
 
         except:
             print_exc()
-            error("encounted error %r" % sys.exc_info()[1])
+            error("encountered error %r" % sys.exc_info()[1])
 
             # Unlink socket
             self.close_socket()
@@ -894,7 +910,12 @@ class UzblTabbed:
 
         tab = self.create_tab(next)
         sid = tab.get_id()
-        uri = uri.strip()
+
+        uri_parsed = urlparse.urlsplit(uri.strip().encode('utf-8'))
+        query_quoted = urllib.urlencode(urlparse.parse_qsl(uri_parsed.query, True), True)
+        path_quoted = urllib.quote(uri_parsed.path)
+        uri = urlparse.urlunsplit((uri_parsed.scheme, uri_parsed.netloc, path_quoted, query_quoted, uri_parsed.fragment))
+
         name = "%d-%d" % (os.getpid(), self.next_pid())
 
         if switch is None:
@@ -906,11 +927,11 @@ class UzblTabbed:
         cmd = ['uzbl-browser', '-n', name, '-s', str(sid),
                '--connect-socket', self.socket_path]
 
-        if(uri):
-          cmd = cmd + ['--uri', str(uri)]
+        if uri:
+          cmd += ['--uri', str(uri)]
 
         if config['explicit_config_file'] is not None:
-            cmd = cmd + ['-c', config['explicit_config_file']]
+            cmd += ['-c', config['explicit_config_file']]
 
         gobject.spawn_async(cmd, flags=gobject.SPAWN_SEARCH_PATH)
 
@@ -1295,7 +1316,7 @@ if __name__ == "__main__":
     usage = "usage: %prog [OPTIONS] {URIS}..."
     parser = OptionParser(usage=usage)
     parser.add_option('-n', '--no-session', dest='nosession',
-      action='store_true', help="ignore session saving a loading.")
+      action='store_true', help="ignore session saving on loading.")
     parser.add_option('-v', '--verbose', dest='verbose',
       action='store_true', help='print verbose output.')
     parser.add_option('-s', '--socketdir', dest='socketdir',
@@ -1340,7 +1361,7 @@ if __name__ == "__main__":
     # All extra arguments given to uzbl_tabbed.py are interpreted as
     # web-locations to opened in new tabs.
     lasturi = len(uris)-1
-    for (index,uri) in enumerate(uris):
+    for (index, uri) in enumerate(uris):
         uzbl.new_tab(uri, switch=(index==lasturi))
 
     uzbl.run()

@@ -18,7 +18,9 @@
 #     May either be a regex, or literal. If literal, it will block any
 #     decendent paths as well.
 # - command
-#     Given to uzbl verbatim.
+#     Given to uzbl verbatim. The special string '@' "breaks" to the top-level
+#     (i.e., any further path matches patterns will fail). The special string
+#     '@@' will stop processing of the file.
 #
 # Matches are attempted on a literal match first.
 #
@@ -28,6 +30,7 @@
 # considered a pop back (zero is always urls). This works because it's only 3
 # deep. Four and we'd have to keep track of things.
 
+import glob
 import os
 import re
 import socket
@@ -57,8 +60,15 @@ def grep_url(url, path, fin):
     for line in fin:
         raw = line.strip()
 
+        if raw == '@':
+            passing[0] = False
+            passing[1] = False
+            continue
+        elif raw == '@@':
+            return entries
+
         indent = len(line) - len(raw) - 1
-        if not indent:
+        if not indent and state:
             # Reset state
             passing = [False, False]
             state = 0
@@ -97,26 +107,52 @@ def write_to_socket(commands, sockpath):
     sock.close()
 
 
-if __name__ == '__main__':
+def main(filepath, fileglob):
     sockpath = os.environ['UZBL_SOCKET']
     url = urlparse.urlparse(os.environ['UZBL_URI'])
 
     if not url.hostname:
-        # this is e.g. a file:// URL
-        exit()
+        return
 
-    filepath = sys.argv[1]
-
-    mode = os.stat(filepath)[stat.ST_MODE]
-
-    if mode & stat.S_IEXEC:
+    if os.path.isdir(filepath):
         fin = tempfile.TemporaryFile()
-        subprocess.Popen([filepath], stdout=fin).wait()
+
+        for sett in sorted(glob.glob(os.path.join(filepath, fileglob))):
+            with open(sett, 'r') as sfin:
+                fin.write(sfin.read())
+
+        fin.seek(0)
+    elif os.path.isfile(filepath):
+        mode = os.stat(filepath)[stat.ST_MODE]
+
+        if mode & stat.S_IEXEC:
+            fin = tempfile.TemporaryFile()
+            subprocess.Popen([filepath], stdout=fin).wait()
+        else:
+            fin = open(filepath, 'r')
     else:
-        fin = open(filepath, 'r')
+        sys.stderr.write('%s: Error: \'%s\' is neither a directory nor a file\n' % (sys.argv[0], filepath))
+
+        sys.exit(1)
 
     commands = grep_url(url.hostname, url.path, fin)
 
     fin.close()
 
     write_to_socket(commands, sockpath)
+
+
+if __name__ == '__main__':
+    try:
+        filepath = sys.argv[1]
+    except IndexError:
+        sys.stderr.write('%s: Error: No file given to read.\n', sys.argv[0])
+
+        sys.exit(1)
+
+    try:
+        fileglob = sys.argv[2]
+    except IndexError:
+        fileglob = '*.pss'
+
+    main(filepath, fileglob)

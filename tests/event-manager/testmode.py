@@ -22,7 +22,7 @@ class ModeParseTest(unittest.TestCase):
         m = ModePlugin[uzbl]
 
         mode, key, value = 'foo', 'x', 'y'
-        m.parse_mode_config((mode, key, '=', value))
+        m.parse_mode_config((mode, key, value))
         self.assertIn(mode, m.mode_config)
         self.assertIn(key, m.mode_config[mode])
         self.assertEqual(m.mode_config[mode][key], value)
@@ -39,14 +39,14 @@ class ModeTest(unittest.TestCase):
         mode = ModePlugin[self.uzbl]
         config = Config[self.uzbl]
 
-        mode.parse_mode_config(('mode0', 'foo', '=', 'default'))
+        mode.parse_mode_config(('mode0', 'foo', 'default'))
 
-        mode.parse_mode_config(('mode1', 'foo', '=', 'xxx'))
-        mode.parse_mode_config('mode1 bar = "spam spam"')
-        mode.parse_mode_config('mode1 baz = foo="baz"')
+        mode.parse_mode_config(('mode1', 'foo', 'xxx'))
+        mode.parse_mode_config('mode1 bar "spam spam"')
+        mode.parse_mode_config('mode1 baz foo="baz"')
 
-        mode.parse_mode_config(('mode2', 'foo', '=', 'XXX'))
-        mode.parse_mode_config(('mode2', 'spam', '=', 'spam'))
+        mode.parse_mode_config(('mode2', 'foo', 'XXX'))
+        mode.parse_mode_config(('mode2', 'spam', 'spam'))
 
         config['default_mode'] = 'mode0'
         mode.default_mode_updated(None, 'mode0')

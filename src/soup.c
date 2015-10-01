@@ -1,183 +1,205 @@
-#include "uzbl-core.h"
-#include "util.h"
+#include "soup.h"
+
+#include "commands.h"
+#include "cookie-jar.h"
 #include "events.h"
+#include "io.h"
 #include "type.h"
+#include "util.h"
+#include "uzbl-core.h"
+#include "variables.h"
 
-static void handle_authentication    (SoupSession *session,
-                                      SoupMessage *msg,
-                                      SoupAuth    *auth,
-                                      gboolean     retrying,
-                                      gpointer     user_data);
-
-static void handle_request_queued    (SoupSession *session,
-                                      SoupMessage *msg,
-                                      gpointer user_data);
-
-static void handle_request_started   (SoupSession *session,
-                                      SoupMessage *msg,
-                                      gpointer user_data);
-
-static void handle_request_finished (SoupMessage *msg,
-                                     gpointer user_data);
-
-struct _PendingAuth
-{
-    SoupAuth *auth;
-    GList    *messages;
-};
-typedef struct _PendingAuth PendingAuth;
-
-static PendingAuth *pending_auth_new         (SoupAuth *auth);
-static void         pending_auth_free        (PendingAuth *self);
-static void         pending_auth_add_message (PendingAuth *self,
-                                              SoupMessage *message);
+static void
+request_queued_cb (SoupSession *session,
+                   SoupMessage *msg,
+                   gpointer data);
+static void
+request_started_cb (SoupSession *session,
+                    SoupMessage *msg,
+                    gpointer data);
+static void
+authenticate_cb (SoupSession *session,
+                 SoupMessage *msg,
+                 SoupAuth    *auth,
+                 gboolean     retrying,
+                 gpointer     data);
 
 void
 uzbl_soup_init (SoupSession *session)
 {
     uzbl.net.soup_cookie_jar = uzbl_cookie_jar_new ();
-    uzbl.net.pending_auths = g_hash_table_new_full (
-        g_str_hash, g_str_equal,
-        g_free, pending_auth_free
-    );
 
-    soup_session_add_feature (
-        session,
-        SOUP_SESSION_FEATURE (uzbl.net.soup_cookie_jar)
-    );
+    soup_session_add_feature (session,
+        SOUP_SESSION_FEATURE (uzbl.net.soup_cookie_jar));
 
-    g_signal_connect (
-        session, "request-queued",
-        G_CALLBACK (handle_request_queued), NULL
-    );
-
-    g_signal_connect (
-        session, "request-started",
-        G_CALLBACK (handle_request_started), NULL
-    );
-
-    g_signal_connect (
-       session, "authenticate",
-        G_CALLBACK (handle_authentication), NULL
-    );
+    g_object_connect (G_OBJECT (session),
+        "signal::request-queued",  G_CALLBACK (request_queued_cb), NULL,
+        "signal::request-started", G_CALLBACK (request_started_cb), NULL,
+        "signal::authenticate",    G_CALLBACK (authenticate_cb), NULL,
+        NULL);
 }
 
-void authenticate (const char *authinfo,
-                   const char *username,
-                   const char *password)
+void
+request_queued_cb (SoupSession *session,
+                   SoupMessage *msg,
+                   gpointer     data)
 {
-    PendingAuth *pending = g_hash_table_lookup (
-        uzbl.net.pending_auths,
-        authinfo
-    );
+    UZBL_UNUSED (session);
+    UZBL_UNUSED (data);
 
-    if (pending == NULL) {
+    gchar *str = soup_uri_to_string (soup_message_get_uri (msg), FALSE);
+
+    uzbl_events_send (REQUEST_QUEUED, NULL,
+        TYPE_STR, str,
+        NULL);
+
+    g_free (str);
+}
+
+static void
+request_finished_cb (SoupMessage *msg, gpointer data);
+
+void
+request_started_cb (SoupSession *session,
+                    SoupMessage *msg,
+                    gpointer     data)
+{
+    UZBL_UNUSED (session);
+    UZBL_UNUSED (data);
+
+    gchar *str = soup_uri_to_string (soup_message_get_uri (msg), FALSE);
+
+    uzbl_events_send (REQUEST_STARTING, NULL,
+        TYPE_STR, str,
+        NULL);
+
+    g_free (str);
+
+    g_object_connect (G_OBJECT (msg),
+        "signal::finished", G_CALLBACK (request_finished_cb), NULL,
+        NULL);
+}
+
+void
+request_finished_cb (SoupMessage *msg, gpointer data)
+{
+    UZBL_UNUSED (data);
+
+    gchar *str = soup_uri_to_string (soup_message_get_uri (msg), FALSE);
+
+    uzbl_events_send (REQUEST_FINISHED, NULL,
+        TYPE_STR, str,
+        NULL);
+
+    g_free (str);
+}
+
+typedef struct {
+    SoupSession *session;
+    SoupMessage *message;
+    SoupAuth *auth;
+} UzblAuthenticateData;
+
+static void
+authenticate (GString *result, gpointer data);
+
+void
+authenticate_cb (SoupSession *session,
+                 SoupMessage *msg,
+                 SoupAuth    *auth,
+                 gboolean     retrying,
+                 gpointer     data)
+{
+    UZBL_UNUSED (data);
+
+    if (uzbl_variables_get_int ("enable_builtin_auth")) {
         return;
     }
 
-    soup_auth_authenticate (pending->auth, username, password);
-    for(GList *l = pending->messages; l != NULL; l = l->next) {
-        soup_session_unpause_message (
-            uzbl.net.soup_session,
-            SOUP_MESSAGE (l->data)
-        );
+    gchar *handler = uzbl_variables_get_string ("authentication_handler");
+
+    GArray *args = uzbl_commands_args_new ();
+    const UzblCommand *authentication_command = uzbl_commands_parse (handler, args);
+    g_free (handler);
+
+    if (!authentication_command) {
+        uzbl_commands_args_free (args);
+        return;
     }
 
-    g_hash_table_remove (uzbl.net.pending_auths, authinfo);
-}
+    const gchar *host = soup_auth_get_host (auth);
+    const gchar *realm = soup_auth_get_host (auth);
+    const gchar *retry = retrying ? "retrying" : "initial";
+    const gchar *soup_scheme = soup_auth_get_scheme_name (auth);
+    gboolean is_proxy = soup_auth_is_for_proxy (auth);
+    const gchar *proxy = is_proxy ? "proxy" : "origin";
+    SoupURI *uri = soup_message_get_uri (msg);
+    guint port = soup_uri_get_port (uri);
+    const gchar *save_str = "cant_save";
 
-static void
-handle_request_queued (SoupSession *session,
-                       SoupMessage *msg,
-                       gpointer     user_data)
-{
-    (void) session; (void) user_data;
-
-    send_event (
-        REQUEST_QUEUED, NULL,
-        TYPE_STR, soup_uri_to_string (soup_message_get_uri (msg), FALSE),
-        NULL
-    );
-}
-
-static void
-handle_request_started (SoupSession *session,
-                        SoupMessage *msg,
-                        gpointer     user_data)
-{
-    (void) session; (void) user_data;
-
-    send_event (
-        REQUEST_STARTING, NULL,
-        TYPE_STR, soup_uri_to_string (soup_message_get_uri (msg), FALSE),
-        NULL
-    );
-
-    g_signal_connect (
-        G_OBJECT (msg), "finished",
-        G_CALLBACK (handle_request_finished), NULL
-    );
-}
-
-static void
-handle_request_finished (SoupMessage *msg, gpointer user_data)
-{
-    (void) user_data;
-
-    send_event (
-        REQUEST_FINISHED, NULL,
-        TYPE_STR, soup_uri_to_string (soup_message_get_uri (msg), FALSE),
-        NULL
-    );
-}
-
-static void
-handle_authentication (SoupSession *session,
-                       SoupMessage *msg,
-                       SoupAuth    *auth,
-                       gboolean     retrying,
-                       gpointer     user_data)
-{
-    (void) user_data;
-    PendingAuth *pending;
-    char *authinfo = soup_auth_get_info (auth);
-
-    pending = g_hash_table_lookup (uzbl.net.pending_auths, authinfo);
-    if (pending == NULL) {
-        pending = pending_auth_new (auth);
-        g_hash_table_insert (uzbl.net.pending_auths, authinfo, pending);
+    const gchar *scheme = "unknown";
+    if (!g_strcmp0 (soup_scheme, "Basic")) {
+        scheme = "http_basic";
+    } else if (!g_strcmp0 (soup_scheme, "Digest")) {
+        scheme = "http_digest";
+    } else if (!g_strcmp0 (soup_scheme, "NTLM")) {
+        scheme = "ntlm";
     }
 
-    pending_auth_add_message (pending, msg);
+    gchar *port_str = g_strdup_printf ("%u", port);
+
+    uzbl_commands_args_append (args, g_strdup (host));
+    uzbl_commands_args_append (args, g_strdup (realm));
+    uzbl_commands_args_append (args, g_strdup (retry));
+    uzbl_commands_args_append (args, g_strdup (scheme));
+    uzbl_commands_args_append (args, g_strdup (proxy));
+    uzbl_commands_args_append (args, g_strdup (port_str));
+    uzbl_commands_args_append (args, g_strdup (save_str));
+
+    /* TODO: Append protection space paths. */
+
+    g_free (port_str);
+
+    UzblAuthenticateData *auth_data = g_malloc (sizeof (UzblAuthenticateData));
+    auth_data->session = session;
+    auth_data->message = msg;
+    auth_data->auth = auth;
+
+    g_object_ref (session);
+    g_object_ref (msg);
+    g_object_ref (auth);
+
     soup_session_pause_message (session, msg);
 
-    send_event (
-        AUTHENTICATE, NULL,
-        TYPE_STR, authinfo,
-        TYPE_STR, soup_auth_get_host (auth),
-        TYPE_STR, soup_auth_get_realm (auth),
-        TYPE_STR, (retrying ? "retrying" : ""),
-        NULL
-    );
+    uzbl_io_schedule_command (authentication_command, args, authenticate, auth_data);
 }
 
-static PendingAuth *pending_auth_new (SoupAuth *auth)
+void
+authenticate (GString *result, gpointer data)
 {
-    PendingAuth *self = g_new (PendingAuth, 1);
-    self->auth = auth;
-    self->messages = NULL;
-    g_object_ref (auth);
-    return self;
-}
+    UzblAuthenticateData *auth = (UzblAuthenticateData *)data;
 
-static void pending_auth_free (PendingAuth *self)
-{
-    g_object_unref (self->auth);
-    g_list_free_full (self->messages, g_object_unref);
-    g_free (self);
-}
+    gchar **tokens = g_strsplit (result->str, "\n", 0);
 
-static void pending_auth_add_message (PendingAuth *self, SoupMessage *message)
-{
-    self->messages = g_list_append (self->messages, g_object_ref (message));
+    const gchar *action = tokens[0];
+    const gchar *username = action ? tokens[1] : NULL;
+    const gchar *password = username ? tokens[2] : NULL;
+
+    if (!action) {
+        /* No default credentials. */
+    } else if (!g_strcmp0 (action, "IGNORE")) {
+        /* Don't authenticate. */
+    } else if (!g_strcmp0 (action, "AUTH") && username && password) {
+        soup_auth_authenticate (auth->auth, username, password);
+    }
+
+    soup_session_unpause_message (auth->session, auth->message);
+
+    g_strfreev (tokens);
+
+    g_object_unref (auth->auth);
+    g_object_unref (auth->message);
+    g_object_unref (auth->session);
+
+    g_free (auth);
 }

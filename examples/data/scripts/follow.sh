@@ -1,37 +1,47 @@
 #!/bin/sh
 # This scripts acts on the return value of followLinks in follow.js
 
-result=$1
+. "$UZBL_UTIL_DIR/uzbl-util.sh"
+
+readonly result="$1"
 shift
 
 case "$result" in
-    XXXFORM_ACTIVEXXX)
-        # a form element was selected
-        echo 'event KEYCMD_CLEAR' > "$UZBL_FIFO"
-        ;;
-    XXXRESET_MODEXXX)
-        # a link was selected, reset uzbl's input mode
-        printf 'set mode=\nevent KEYCMD_CLEAR\n' > "$UZBL_FIFO"
-        ;;
-    XXXNEW_WINDOWXXX*)
-        echo "set mode=
-event KEYCMD_CLEAR
-event NEW_WINDOW $@" > "$UZBL_FIFO"
-        ;;
-    XXXRETURNED_URIXXX*)
-        uriaction=$1
-        uri=${result#XXXRETURNED_URIXXX}
+XXXFORM_ACTIVEXXX)
+    # a form element was selected
+    uzbl_control 'event KEYCMD_CLEAR\n'
+    ;;
+XXXRESET_MODEXXX)
+    # a link was selected, reset uzbl's input mode
+    uzbl_control 'set mode\nevent KEYCMD_CLEAR\n'
+    ;;
+XXXRETURNED_URIXXX*)
+    readonly uriaction="$1"
+    shift
 
-        printf 'set mode=\nevent KEYCMD_CLEAR\n' > "$UZBL_FIFO"
+    readonly uri="${result#XXXRETURNED_URIXXX}"
+    readonly safe_uri="$( echo "$uri" | uzbl_escape )"
 
-        [ -z "$uri" ] && exit
+    uzbl_control 'set mode\nevent KEYCMD_CLEAR\n'
 
-        case "$uriaction" in
-            set)
-                printf 'uri '"$uri"'\n' | sed -e 's/@/\\@/' > "$UZBL_FIFO"
-                ;;
-            clipboard)
-                printf "$uri" | xclip
-                ;;
-        esac
+    [ -z "$uri" ] && exit
+
+    case "$uriaction" in
+    "set")
+        uzbl_control 'uri '"$safe_uri"'\n'
+        ;;
+    "newwindow")
+        uzbl_control 'event REQ_NEW_WINDOW '"$safe_uri"'\n'
+        ;;
+    "primary")
+        print "$uri" | xclip
+        ;;
+    "secondary")
+        print "$uri" | xclip -selection secondary
+        ;;
+    "clipboard")
+        print "$uri" | xclip -selection clipboard
+        ;;
+    esac
+    ;;
 esac

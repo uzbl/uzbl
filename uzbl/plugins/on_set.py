@@ -17,6 +17,7 @@ def make_matcher(glob):
 
 
 class OnSetPlugin(PerInstancePlugin):
+    CONFIG_SECTION = 'on_set'
 
     def __init__(self, uzbl):
         super(OnSetPlugin, self).__init__(uzbl)
@@ -82,4 +83,3 @@ class OnSetPlugin(PerInstancePlugin):
 
         assert glob and command and valid_glob(glob)
         self.on_set(glob, command)
-

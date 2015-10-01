@@ -1,21 +1,21 @@
-#ifndef __IO__
-#define __IO__
+#ifndef UZBL_IO_H
+#define UZBL_IO_H
 
-#include <glib/gstdio.h>
+#include "commands.h"
 
-/*@null@*/ gchar*
-build_stream_name(int type, const gchar *dir);
+#include <glib.h>
 
-gboolean    control_fifo(GIOChannel *gio, GIOCondition condition);
+void
+uzbl_io_send (const gchar *message, gboolean connect_only);
 
-gboolean    init_fifo(const gchar *dir);
+typedef void (*UzblIOCallback)(GString *result, gpointer data);
 
-gboolean    control_stdin(GIOChannel *gio, GIOCondition condition);
-void        create_stdin();
+void
+uzbl_io_schedule_command (const UzblCommand *cmd, GArray *argv, UzblIOCallback callback, gpointer data);
 
-gboolean    init_socket(const gchar *dir);
-
-gboolean    control_socket(GIOChannel *chan);
-gboolean    control_client_socket(GIOChannel *chan);
+gboolean
+uzbl_io_init_fifo (const gchar *dir);
+gboolean
+uzbl_io_init_socket (const gchar *dir);
 
 #endif

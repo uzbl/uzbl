@@ -28,7 +28,9 @@ def cmd_expand(cmd, args):
         cmd = cmd.replace('%r', "'%s'" % escape(' '.join(args)))
 
     # Arg index string replace.
-    for (index, arg) in enumerate(args):
+    idx_list = list(enumerate(args))
+    idx_list.reverse()
+    for (index, arg) in idx_list:
         index += 1
         if '%%%d' % index in cmd:
             cmd = cmd.replace('%%%d' % index, str(arg))

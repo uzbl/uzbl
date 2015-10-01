@@ -1,11 +1,16 @@
 #!/bin/sh
 
-if [ -n "$1" ]; then
-    cookie_file="$1"
+. "$UZBL_UTIL_DIR/uzbl-dir.sh"
+
+readonly path="$1"
+
+if [ -n "$path" ]; then
+    cookie_file="$path"
     shift
 else
-    cookie_file="${XDG_DATA_HOME:-$HOME/.local/share}/uzbl/cookies.txt"
+    cookie_file="$UZBL_COOKIE_FILE"
 fi
+readonly cookie_file
 
 awk -F \\t '
 BEGIN {
@@ -14,10 +19,10 @@ BEGIN {
 }
 $0 ~ /^#HttpOnly_/ {
     gsub(/@/, "\\@")
-    printf("add_cookie \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"\n", substr($1,length("#HttpOnly_")+1,length($1)), $3, $6, $7, scheme[$4], $5)
+    printf("cookie add \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"\n", substr($1,length("#HttpOnly_")+1,length($1)), $3, $6, $7, scheme[$4], $5)
 }
 $0 !~ /^#/ {
     gsub(/@/, "\\@")
-    printf("add_cookie \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"\n", $1, $3, $6, $7, scheme[$4], $5)
+    printf("cookie add \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"\n", $1, $3, $6, $7, scheme[$4], $5)
 }
 ' "$cookie_file"

@@ -3,7 +3,7 @@ from re import compile
 from uzbl.arguments import splitquoted
 from uzbl.ext import PerInstancePlugin
 
-types = {'int': int, 'float': float, 'str': str}
+types = {'int': int, 'double': float, 'str': str, 'ull': int}
 
 valid_key = compile('^[A-Za-z0-9_\.]+$').match
 
@@ -14,6 +14,8 @@ class Config(PerInstancePlugin):
     because not sure what version of python we want to support. It's not
     hard to implement all needed methods either.
     """
+
+    CONFIG_SECTION = 'config'
 
     def __init__(self, uzbl):
         super(Config, self).__init__(uzbl)
@@ -52,7 +54,7 @@ class Config(PerInstancePlugin):
 
 
     def set(self, key, value='', force=False):
-        '''Generates a `set <key> = <value>` command string to send to the
+        '''Generates a `set <key> <value>` command string to send to the
         current uzbl instance.
 
         Note that the config dict isn't updated by this function. The config
@@ -71,7 +73,7 @@ class Config(PerInstancePlugin):
         if not force and key in self and self[key] == value:
             return
 
-        self.uzbl.send('set %s = %s' % (key, value))
+        self.uzbl.send('set %s %s' % (key, value))
 
 
     def parse_set_event(self, args):
@@ -106,4 +108,3 @@ class Config(PerInstancePlugin):
         # not sure it's needed, but safer for cyclic links
         self.data.clear()
         super(Config, self).cleanup()
-

@@ -4,6 +4,8 @@ from .config import Config
 from uzbl.ext import PerInstancePlugin
 
 class ProgressBar(PerInstancePlugin):
+    CONFIG_SECTION = 'progress'
+
     splitfrmt = re.compile(r'(%[A-Z][^%]|%[^%])').split
 
     def __init__(self, uzbl):
@@ -75,14 +77,15 @@ class ProgressBar(PerInstancePlugin):
 
         # values to replace with
         values = {
-            'd': done_symbol * done,
-            'p': pending_symbol * pending,
+            'd': (done_symbol * done)[:done],
+            'p': (pending_symbol * pending)[:pending],
             'c': '%d%%' % progress,
             'i': '%d' % progress,
             't': '%d%%' % (100 - progress),
             'o': '%d' % (100 - progress),
             's': spinner,
-            'r': sprite
+            'r': sprite,
+            '%': '%'
         }
 
         frmt = ''.join([str(values[k[1:]]) if k.startswith('%') else k for

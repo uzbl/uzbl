@@ -5,19 +5,18 @@
 # alternatively, you could also git get-tar-commit-id < tarball (but that's a bit dirtier)
 
 # the `%` expansions possible here are described in `man git-log`
-FROM_ARCHIVE=$Format:%h$
+tarball_check='$Format:$'
 
 # ... but try to use whatever git tells us if there is a .git folder
-if [ -d .git -a -r .git ]
-then
-	hash=$(git describe --tags)
-  echo $hash
-elif [ "$FROM_ARCHIVE" != ':%h$' ]
-then
-	echo $FROM_ARCHIVE
+if [ -d .git ] && [ -r .git ]; then
+    hash=$( git describe --tags )
+    echo $hash
+elif [ -n "$tarball_check" ]; then
+    echo '$Format:%h$'
 else
-	echo "commit hash detection fail.  Dear packager, please figure out what goes wrong or get in touch with us" >&2
-	echo UNKNOWN
-	exit 2
+    echo >&2 "Commit hash detection fail. Dear packager, please figure out what goes wrong or get in touch with us"
+    echo UNKNOWN
+    exit 2
 fi
-exit 0
+
+:

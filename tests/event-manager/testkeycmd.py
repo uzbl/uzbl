@@ -11,6 +11,7 @@ from uzbl.plugins.config import Config
 def getkeycmd(s):
     return re.match(r'@\[([^\]]*)\]@', s).group(1)
 
+
 class KeyCmdTest(unittest.TestCase):
     def setUp(self):
         self.event_manager = EventManagerMock(
@@ -37,7 +38,7 @@ class KeyCmdTest(unittest.TestCase):
 
     def test_press_unicode_keys(self):
         c, k = Config[self.uzbl], KeyCmd[self.uzbl]
-        string = '\u5927\u962a\u5e02'
+        string = u'\u5927\u962a\u5e02'
         for char in string:
             k.key_press(('', char))
         self.assertEqual(c.get('modcmd', ''), '')

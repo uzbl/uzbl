@@ -9,6 +9,7 @@ And it is also possible to execute a function on activation:
   bind('DD', myhandler)
 '''
 
+import six
 import sys
 import re
 from functools import partial
@@ -177,7 +178,7 @@ def split_glob(glob):
 class Bind(object):
 
     # unique id generator
-    nextid = count().__next__
+    nextid = count()
 
     def __init__(self, glob, handler, *args, **kargs):
         self.is_callable = isinstance(handler, collections.Callable)
@@ -203,7 +204,7 @@ class Bind(object):
         self.glob = glob
 
         # Assign unique id.
-        self.bid = self.nextid()
+        self.bid = six.next(self.nextid)
 
         self.split = split = FIND_PROMPTS(glob)
         self.prompts = []
@@ -279,6 +280,8 @@ class Bind(object):
 
 
 class BindPlugin(PerInstancePlugin):
+    CONFIG_SECTION = 'bind'
+
     def __init__(self, uzbl):
         '''Export functions and connect handlers to events.'''
         super(BindPlugin, self).__init__(uzbl)
@@ -384,10 +387,10 @@ class BindPlugin(PerInstancePlugin):
         '''Legacy parsing of the BIND event and conversion to the new format.
 
         Example events:
-            request BIND <bind>        = <command>
-            request BIND o<location:>_ = uri %s
-            request BIND <BackSpace>   = ...
-            request BIND ...           = ...
+            event BIND <bind>        = <command>
+            event BIND o<location:>_ = uri %s
+            event BIND <BackSpace>   = ...
+            event BIND ...           = ...
         '''
 
         self.parse_mode_bind("global %s" % args)
@@ -457,7 +460,5 @@ class BindPlugin(PerInstancePlugin):
         # Return to the previous mode if the KEYCMD_EXEC keycmd doesn't match any
         # binds in the stack mode.
         if on_exec and not mod_cmd and depth and depth == bindlet.depth:
-            config = Config[uzbl]
+            config = Config[self.uzbl]
             del config['mode']
-
-# vi: set et ts=4:

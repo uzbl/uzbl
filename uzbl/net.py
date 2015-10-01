@@ -2,6 +2,7 @@
 # vi: set et ts=4:
 import asyncore
 import asynchat
+import six
 import socket
 import os
 import logging
@@ -101,7 +102,10 @@ class Protocol(asynchat.async_chat):
         self.buffer += data
 
     def found_terminator(self):
-        val = self.buffer.decode('utf-8')
+        if six.PY3:
+            val = self.buffer.decode('utf-8')
+        else:
+            val = str(self.buffer)
         del self.buffer[:]
         self.target.parse_msg(val)
 

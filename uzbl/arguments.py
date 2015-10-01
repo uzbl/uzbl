@@ -5,7 +5,6 @@ provides argument parsing for event handlers
 '''
 
 import re
-import ast
 
 
 class Arguments(tuple):
@@ -67,7 +66,7 @@ class Arguments(tuple):
 
     def raw(self, frm=0, to=None):
         '''
-        Returs the portion of the raw input that yielded arguments
+        Returns the portion of the raw input that yielded arguments
         from 'frm' to 'to'
 
         >>> args = Arguments(r"'spam, spam' egg sausage   and 'spam'")
@@ -85,11 +84,27 @@ class Arguments(tuple):
             rto = self._ref[to + 1] - 1
         return ''.join(self._raw[rfrm:rto])
 
+    def safe_raw(self, frm=0, to=None):
+        '''
+        Returns the portion of the raw input that yielded arguments
+        from 'frm' to 'to'
+
+        >>> args = Arguments(r"'spam, spam' egg sausage   and 'spam'")
+        >>> args
+        ('spam, spam', 'egg', 'sausage', 'and', 'spam')
+        >>> args.raw(1)
+        "egg sausage   and 'spam'"
+        '''
+        return self.raw(frm, to).replace('@', '\\@')
+
 splitquoted = Arguments  # or define a function?
 
 
 def is_quoted(s):
     return s and s[0] == s[-1] and s[0] in "'\""
+
+
+Unescape = re.compile('\\\\(.)')
 
 
 def unquote(s):
@@ -99,5 +114,5 @@ def unquote(s):
     '''
 
     if is_quoted(s):
-        return ast.literal_eval(s)
-    return ast.literal_eval('"' + s + '"')
+        s = s[1:-1]
+    return Unescape.sub('\\1', s)

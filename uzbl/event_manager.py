@@ -19,15 +19,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 '''
-
-E V E N T _ M A N A G E R . P Y
-===============================
+EVENT_MANAGER.PY
+================
 
 Event manager for uzbl written in python.
-
 '''
 
 import atexit
+import configparser
 import imp
 import logging
 import os
@@ -62,6 +61,7 @@ def xdghome(key, default):
 # Setup xdg paths.
 DATA_DIR = os.path.join(xdghome('DATA', '.local/share/'), 'uzbl/')
 CACHE_DIR = os.path.join(xdghome('CACHE', '.cache/'), 'uzbl/')
+CONFIG_DIR = os.path.join(xdghome('CONFIG', '.config/'), 'uzbl/')
 
 # Define some globals.
 SCRIPTNAME = os.path.basename(sys.argv[0])
@@ -155,11 +155,13 @@ class PluginDirectory(object):
 
 
 class UzblEventDaemon(object):
-    def __init__(self, listener, plugind):
+    def __init__(self, listener, plugind, opts, config):
         listener.target = self
         self.opts = opts
         self.listener = listener
         self.plugind = plugind
+        self.config = config
+        self._plugin_instances = []
         self._quit = False
 
         # Hold uzbl instances
@@ -170,7 +172,7 @@ class UzblEventDaemon(object):
 
         # Register that the event daemon server has started by creating the
         # pid file.
-        make_pid_file(opts.pid_file)
+        make_pid_file(self.opts.pid_file)
 
         # Register a function to clean up the socket and pid file on exit.
         atexit.register(self.quit)
@@ -187,7 +189,6 @@ class UzblEventDaemon(object):
 
     def init_plugins(self):
         '''Initialise event manager plugins.'''
-        self._plugin_instances = []
         self.plugins = {}
 
         for plugin in self.plugind.global_plugins:
@@ -200,7 +201,7 @@ class UzblEventDaemon(object):
 
         logger.debug('entering main loop')
 
-        if opts.daemon_mode:
+        if self.opts.daemon_mode:
             # Daemonize the process
             daemonize()
 
@@ -216,13 +217,17 @@ class UzblEventDaemon(object):
 
     def add_instance(self, sock):
         proto = Protocol(sock)
-        uzbl = Uzbl(self, proto, opts)
+        uzbl = Uzbl(self, proto, self.opts)
         self.uzbls[sock] = uzbl
+        for plugin in self.plugins.values():
+            plugin.new_uzbl(uzbl)
 
     def remove_instance(self, sock):
         if sock in self.uzbls:
+            for plugin in self.plugins.values():
+                plugin.free_uzbl(self.uzbls[sock])
             del self.uzbls[sock]
-        if not self.uzbls and opts.auto_close:
+        if not self.uzbls and self.opts.auto_close:
             self.quit()
 
     def close_server_socket(self):
@@ -233,6 +238,11 @@ class UzblEventDaemon(object):
 
         except:
             logger.error('failed to close server socket', exc_info=True)
+
+    def get_plugin_config(self, name):
+        if name not in self.config:
+            self.config.add_section(name)
+        return self.config[name]
 
     def quit(self, sigint=None, *args):
         '''Close all instance socket objects, server socket and delete the
@@ -258,7 +268,7 @@ class UzblEventDaemon(object):
             del self.plugins  # to avoid cyclic links
             del self._plugin_instances
 
-        del_pid_file(opts.pid_file)
+        del_pid_file(self.opts.pid_file)
 
         if not self._quit:
             logger.info('event manager shut down')
@@ -355,36 +365,46 @@ def term_process(pid):
         time.sleep(0.25)
 
 
-def stop_action():
+def stop_action(opts, config):
     '''Stop the event manager daemon.'''
 
     pid_file = opts.pid_file
     if not os.path.isfile(pid_file):
         logger.error('could not find running event manager with pid file %r',
             pid_file)
-        return
+        return 1
 
     pid = get_pid(pid_file)
+    if pid is None:
+        logger.error('unable to determine pid with pid file: %r', pid_file)
+        return 1
+
     if not pid_running(pid):
         logger.debug('no process with pid %r', pid)
         del_pid_file(pid_file)
-        return
+        return 1
 
     logger.debug('terminating process with pid %r', pid)
     term_process(pid)
     del_pid_file(pid_file)
     logger.info('stopped event manager process with pid %d', pid)
 
+    return 0
 
-def start_action():
+
+def start_action(opts, config):
     '''Start the event manager daemon.'''
 
     pid_file = opts.pid_file
     if os.path.isfile(pid_file):
         pid = get_pid(pid_file)
+        if pid is None:
+            logger.error('unable to determine pid with pid file: %r', pid_file)
+            return 1
+
         if pid_running(pid):
             logger.error('event manager already started with pid %d', pid)
-            return
+            return 1
 
         logger.info('no process with pid %d', pid)
         del_pid_file(pid_file)
@@ -392,18 +412,20 @@ def start_action():
     listener = Listener(opts.server_socket)
     listener.start()
     plugind = PluginDirectory()
-    daemon = UzblEventDaemon(listener, plugind)
+    daemon = UzblEventDaemon(listener, plugind, opts, config)
     daemon.run()
 
+    return 0
 
-def restart_action():
+
+def restart_action(opts, config):
     '''Restart the event manager daemon.'''
 
-    stop_action()
-    start_action()
+    stop_action(opts, config)
+    return start_action(opts, config)
 
 
-def list_action():
+def list_action(opts, config):
     '''List all the plugins that would be loaded in the current search
     dirs.'''
 
@@ -414,6 +436,8 @@ def list_action():
         imp, name, ispkg = line
         print(name)
 
+    return 0
+
 
 def make_parser():
     parser = OptionParser('usage: %prog [options] {start|stop|restart|list}')
@@ -422,6 +446,12 @@ def make_parser():
     add('-v', '--verbose',
         dest='verbose', default=2, action='count',
         help='increase verbosity')
+
+    config_location = os.path.join(CONFIG_DIR, 'event-manager.conf')
+
+    add('-c', '--config',
+        dest='config', metavar='CONFIG', default=config_location,
+        help='configuration file')
 
     socket_location = os.path.join(CACHE_DIR, 'event_daemon')
 
@@ -453,7 +483,7 @@ def make_parser():
     return parser
 
 
-def init_logger():
+def init_logger(opts):
     log_level = logging.CRITICAL - opts.verbose * 10
     logger = logging.getLogger()
     logger.setLevel(max(log_level, 10))
@@ -466,7 +496,7 @@ def init_logger():
     logger.addHandler(handler)
 
     # Logfile
-    handler = logging.FileHandler(opts.log_file, 'w', 'utf-8', 1)
+    handler = logging.FileHandler(opts.log_file, 'a+', 'utf-8', 1)
     handler.setLevel(max(log_level, 10))
     handler.setFormatter(logging.Formatter(
         '[%(created)f] %(name)s: %(levelname)s: %(message)s'))
@@ -474,8 +504,6 @@ def init_logger():
 
 
 def main():
-    global opts
-
     parser = make_parser()
 
     (opts, args) = parser.parse_args()
@@ -489,6 +517,9 @@ def main():
     else:
         opts.pid_file = expandpath(opts.pid_file)
 
+    config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation)
+    config.read(opts.config)
+
     # Set default log file location
     if not opts.log_file:
         opts.log_file = "%s.log" % opts.server_socket
@@ -497,7 +528,7 @@ def main():
         opts.log_file = expandpath(opts.log_file)
 
     # Logging setup
-    init_logger()
+    init_logger(opts)
     logger.info('logging to %r', opts.log_file)
 
     if opts.auto_close:
@@ -511,8 +542,12 @@ def main():
         logger.debug('will not daemonize')
 
     # init like {start|stop|..} daemon actions
-    daemon_actions = {'start': start_action, 'stop': stop_action,
-        'restart': restart_action, 'list': list_action}
+    daemon_actions = {
+        'start': start_action,
+        'stop': stop_action,
+        'restart': restart_action,
+        'list': list_action,
+    }
 
     if len(args) == 1:
         action = args[0]
@@ -528,13 +563,12 @@ def main():
 
     logger.info('daemon action %r', action)
     # Do action
-    daemon_actions[action]()
+    ret = daemon_actions[action](opts, config)
 
     logger.debug('process CPU time: %f', time.clock())
 
+    return ret
+
 
 if __name__ == "__main__":
-    main()
-
-
-# vi: set et ts=4:
+    sys.exit(main())

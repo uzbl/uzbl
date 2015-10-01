@@ -1,4 +1,5 @@
 import re
+import six
 
 from uzbl.arguments import splitquoted
 from uzbl.ext import PerInstancePlugin
@@ -152,8 +153,9 @@ class Keylet(object):
                 rfind = p + 1
         if rfind == len(head) and head[-1] in seps:
             rfind -= 1
-        self.keycmd = head[:rfind] if rfind + 1 else '' + tail
-        self.cursor = len(head)
+        tmp = head[:rfind] if rfind + 1 else ''
+        self.keycmd = tmp + tail
+        self.cursor = len(tmp)
         return head[rfind:]
 
     def set_cursor_pos(self, index):
@@ -223,6 +225,8 @@ class Keylet(object):
 
 
 class KeyCmd(PerInstancePlugin):
+    CONFIG_SECTION = 'keycmd'
+
     def __init__(self, uzbl):
         '''Export functions and connect handlers to events.'''
         super(KeyCmd, self).__init__(uzbl)
@@ -246,6 +250,7 @@ class KeyCmd(PerInstancePlugin):
         uzbl.connect('MODMAP', self.modmap_parse)
         uzbl.connect('SET_CURSOR_POS', self.set_cursor_pos)
         uzbl.connect('SET_KEYCMD', self.set_keycmd)
+        uzbl.connect('FOCUS_LOST', self.clear_modifiers)
 
     def modmap_key(self, key):
         '''Make some obscure names for some keys friendlier.'''
@@ -274,7 +279,7 @@ class KeyCmd(PerInstancePlugin):
         '''Add modmaps.
 
         Examples:
-            set modmap = request MODMAP
+            set modmap event MODMAP
             @modmap <Control> <Ctrl>
             @modmap <ISO_Left_Tab> <Shift-Tab>
             ...
@@ -298,7 +303,7 @@ class KeyCmd(PerInstancePlugin):
         split = splitquoted(map)
 
         if not split or len(split) > 2:
-            raise Exception('Invalid modmap arugments: %r' % map)
+            raise Exception('Invalid modmap arguments: %r' % map)
 
         self.add_modmap(*split)
 
@@ -306,7 +311,7 @@ class KeyCmd(PerInstancePlugin):
         '''Add an ignore definition.
 
         Examples:
-            set ignore_key = request IGNORE_KEY
+            set ignore_key event IGNORE_KEY
             @ignore_key <Shift>
             @ignore_key <ISO_*>
             ...
@@ -380,7 +385,7 @@ class KeyCmd(PerInstancePlugin):
 
         elif new_keycmd == keycmd:
             # Generate the pango markup for the cursor in the keycmd.
-            config['keycmd'] = str(k.markup())
+            config['keycmd'] = six.text_type(k.markup())
 
     def parse_key_event(self, key):
         ''' Build a set from the modstate part of the event, and pass all keys through modmap '''
@@ -449,6 +454,12 @@ class KeyCmd(PerInstancePlugin):
         self.keylet.set_keycmd(keycmd)
         self.update_event(set(), self.keylet, False)
 
+    def clear_modifiers(self, keycmd):
+        '''Clear the modifiers since focus was lost.'''
+
+        self.keylet.clear_modcmd()
+        self.update_event(set(), self.keylet, False)
+
     def inject_keycmd(self, keycmd):
         '''Allow injecting of a string into the keycmd at the cursor position.'''
 
@@ -498,6 +509,3 @@ class KeyCmd(PerInstancePlugin):
 
         self.keylet.set_cursor_pos(args[0])
         self.update_event(set(), self.keylet, False)
-
-# vi: set et ts=4:
-

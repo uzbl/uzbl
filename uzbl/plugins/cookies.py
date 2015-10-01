@@ -8,7 +8,14 @@ from uzbl.arguments import splitquoted
 from uzbl.ext import GlobalPlugin, PerInstancePlugin
 
 # these are symbolic names for the components of the cookie tuple
-symbolic = {'domain': 0, 'path':1, 'name':2, 'value':3, 'scheme':4, 'expires':5}
+symbolic = {
+    'domain': 0,
+    'path': 1,
+    'name': 2,
+    'value': 3,
+    'scheme': 4,
+    'expires': 5
+}
 
 # allows for partial cookies
 # ? allow wildcard in key
@@ -47,6 +54,9 @@ def add_cookie_matcher(_list, arg):
     _list.append(mlist)
 
 class NullStore(object):
+    def __init__(self, filename):
+        super(NullStore, self).__init__()
+
     def add_cookie(self, rawcookie, cookie):
         pass
 
@@ -54,6 +64,9 @@ class NullStore(object):
         pass
 
 class ListStore(list):
+    def __init__(self, filename):
+        super(ListStore, self).__init__()
+
     def add_cookie(self, rawcookie, cookie):
         self.append(rawcookie)
 
@@ -156,13 +169,22 @@ class TextStore(object):
         os.umask(curmask)
 
 xdg_data_home = os.environ.get('XDG_DATA_HOME', os.path.join(os.environ['HOME'], '.local/share'))
-DefaultStore = TextStore(os.path.join(xdg_data_home, 'uzbl/cookies.txt'))
-SessionStore = TextStore(os.path.join(xdg_data_home, 'uzbl/session-cookies.txt'))
+DEFAULT_STORE = None
+SESSION_STORE = None
+
+STORES = {
+    'text': TextStore,
+    'memory': ListStore,
+    'null': NullStore,
+}
 
 class Cookies(PerInstancePlugin):
+    CONFIG_SECTION = 'cookies'
+
     def __init__(self, uzbl):
         super(Cookies, self).__init__(uzbl)
 
+        self.secure = []
         self.whitelist = []
         self.blacklist = []
 
@@ -171,8 +193,12 @@ class Cookies(PerInstancePlugin):
         uzbl.connect('BLACKLIST_COOKIE', self.blacklist_cookie)
         uzbl.connect('WHITELIST_COOKIE', self.whitelist_cookie)
 
-    # accept a cookie only when:
-    # a. there is no whitelist and the cookie is in the blacklist
+        # HTTPS-Everywhere support
+        uzbl.connect('SECURE_COOKIE', self.secure_cookie)
+        uzbl.connect('CLEAR_SECURE_COOKIE_RULES', self.clear_secure_cookies)
+
+    # accept a cookie only when one of the following is true:
+    # a. there is no whitelist and the cookie is not in the blacklist
     # b. the cookie is in the whitelist and not in the blacklist
     def accept_cookie(self, cookie):
         if self.whitelist:
@@ -188,28 +214,69 @@ class Cookies(PerInstancePlugin):
     def get_recipents(self):
         """ get a list of Uzbl instances to send the cookie too. """
         # This could be a lot more interesting
+        # TODO(mathstuf): respect private browsing mode.
         return [u for u in list(self.uzbl.parent.uzbls.values()) if u is not self.uzbl]
 
+    def _make_store(self, cookie_type, envvar, fname):
+        store_type = self.plugin_config.get('%s.type' % cookie_type, 'text')
+        if store_type not in STORES:
+            self.logger.error('cookies: unknown store type: %s' % store_type)
+            store_type = 'memory'
+        store = STORES[store_type]
+
+        try:
+            path = os.environ[envvar]
+        except KeyError:
+            default_path = os.path.join(xdg_data_home, 'uzbl', fname)
+            path = self.plugin_config.get('%s.path' % cookie_type, default_path)
+
+        return store(path)
+
     def get_store(self, session=False):
+        global SESSION_STORE
+        global DEFAULT_STORE
+
         if session:
-            return SessionStore
-        return DefaultStore
+            if SESSION_STORE is None:
+                SESSION_STORE = self._make_store('session', 'UZBL_SESSION_COOKIE_FILE', 'session-cookies.txt')
+            return SESSION_STORE
+
+        if DEFAULT_STORE is None:
+            DEFAULT_STORE = self._make_store('global', 'UZBL_COOKIE_FILE', 'cookies.txt')
+        return DEFAULT_STORE
 
     def add_cookie(self, cookie):
         cookie = splitquoted(cookie)
+
+        if self.secure:
+            if match_list(self.secure, cookie):
+                make_secure = {
+                    'http'  : 'https',
+                    'httpOnly'  : 'httpsOnly'
+                }
+                if cookie[4] in make_secure:
+                    self.uzbl.send('cookie delete %s' % cookie.safe_raw())
+
+                    new_cookie = list(cookie)
+                    new_cookie[4] = make_secure[cookie[4]]
+                    new_cookie = tuple(new_cookie)
+
+                    self.uzbl.send('cookie add %s' % new_cookie.safe_raw())
+                    return
+
         if self.accept_cookie(cookie):
             for u in self.get_recipents():
-                u.send('add_cookie %s' % cookie.raw())
+                u.send('cookie add %s' % cookie.safe_raw())
 
             self.get_store(self.expires_with_session(cookie)).add_cookie(cookie.raw(), cookie)
         else:
             self.logger.debug('cookie %r is blacklisted', cookie)
-            self.uzbl.send('delete_cookie %s' % cookie.raw())
+            self.uzbl.send('cookie delete %s' % cookie.safe_raw())
 
     def delete_cookie(self, cookie):
         cookie = splitquoted(cookie)
         for u in self.get_recipents():
-            u.send('delete_cookie %s' % cookie.raw())
+            u.send('cookie delete %s' % cookie.safe_raw())
 
         if len(cookie) == 6:
             self.get_store(self.expires_with_session(cookie)).delete_cookie(cookie.raw(), cookie)
@@ -223,4 +290,8 @@ class Cookies(PerInstancePlugin):
     def whitelist_cookie(self, arg):
         add_cookie_matcher(self.whitelist, arg)
 
-# vi: set et ts=4:
+    def secure_cookie(self, arg):
+        add_cookie_matcher(self.secure, arg)
+
+    def clear_secure_cookies(self, arg):
+        self.secure = []

@@ -7,4 +7,7 @@ local.mk
 *~
 tags
 sandbox
+uzbl.desktop
+uzbl-browser.1
 /build
+bin/uzbl-browser

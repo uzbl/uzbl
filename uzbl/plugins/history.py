@@ -2,9 +2,11 @@ import random
 
 from .on_set import OnSetPlugin
 from .keycmd import KeyCmd
+from .config import Config
 from uzbl.ext import GlobalPlugin, PerInstancePlugin
 
 class SharedHistory(GlobalPlugin):
+    CONFIG_SECTION = 'history'
 
     def __init__(self, event_manager):
         super(SharedHistory, self).__init__(event_manager)
@@ -32,6 +34,7 @@ class SharedHistory(GlobalPlugin):
 
 
 class History(PerInstancePlugin):
+    CONFIG_SECTION = 'history'
 
     def __init__(self, uzbl):
         super(History, self).__init__(uzbl)
@@ -64,6 +67,8 @@ class History(PerInstancePlugin):
             return shared.getline(self.prompt, self.cursor)
 
         self.cursor = -1
+        if Config[self.uzbl].get('history_disable_easter_egg', ''):
+            return ''
         return random.choice(end_messages)
 
     def __next__(self):
@@ -90,6 +95,9 @@ class History(PerInstancePlugin):
                 return value
             return ''
         return shared.getline(self.prompt, self.cursor)
+
+    # Python2 shenanigans
+    next = __next__
 
     def change_prompt(self, prompt):
         self.prompt = prompt
@@ -122,7 +130,7 @@ class History(PerInstancePlugin):
 
     def history_search(self, key):
         self.search(key)
-        self.uzbl.send('event HISTORY_PREV')
+        self.uzbl.event('HISTORY_PREV')
 
 end_messages = (
     'Look behind you, A three-headed monkey!',
@@ -142,7 +150,4 @@ end_messages = (
     'error #388: Bad user karma.',
     'error #407: Route flapping at the NAP.',
     'error #435: Internet shut down due to maintenance.',
-    )
-
-
-# vi: set et ts=4:
+)
