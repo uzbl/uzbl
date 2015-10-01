@@ -104,7 +104,7 @@ class History(PerInstancePlugin):
         self._tail = None
 
     def search(self, key):
-        self.search_key = key
+        self.search_key = ''
         self.cursor = None
 
     def __str__(self):
