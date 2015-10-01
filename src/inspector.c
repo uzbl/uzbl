@@ -11,8 +11,13 @@ struct _UzblInspector {
 
 /* =========================== PUBLIC API =========================== */
 
+#ifdef USE_WEBKIT2
+static gboolean
+inspector_create_cb (WebKitWebInspector *inspector, WebKitWebView *view, gpointer data);
+#else
 static WebKitWebView *
 inspector_create_cb (WebKitWebInspector *inspector, WebKitWebView *view, gpointer data);
+#endif
 static gboolean
 inspector_show_window_cb (WebKitWebInspector *inspector, gpointer data);
 static gboolean
@@ -21,8 +26,10 @@ static gboolean
 inspector_attach_window_cb (WebKitWebInspector *inspector, gpointer data);
 static gboolean
 inspector_detach_window_cb (WebKitWebInspector *inspector, gpointer data);
+#ifndef USE_WEBKIT2
 static gboolean
 inspector_inspector_destroyed_cb (WebKitWebInspector *inspector, gpointer data);
+#endif
 static gboolean
 inspector_uri_changed_cb (WebKitWebInspector *inspector, gpointer data);
 
@@ -39,15 +46,33 @@ uzbl_inspector_init ()
     uzbl.gui.inspector = webkit_web_view_get_inspector (uzbl.gui.web_view);
 
     g_object_connect (G_OBJECT (uzbl.gui.inspector),
+#ifdef USE_WEBKIT2
+        "signal::bring-to-front",        G_CALLBACK (inspector_create_cb),              NULL,
+#else
         "signal::inspect-web-view",      G_CALLBACK (inspector_create_cb),              NULL,
         "signal::show-window",           G_CALLBACK (inspector_show_window_cb),         NULL,
+#endif
+#ifdef USE_WEBKIT2
+        "signal::closed",
+#else
         "signal::close-window",
+#endif
                                          G_CALLBACK (inspector_close_window_cb),        NULL,
+#ifdef USE_WEBKIT2
+        "signal::attach",
+#else
         "signal::attach-window",
+#endif
                                          G_CALLBACK (inspector_attach_window_cb),       NULL,
+#ifdef USE_WEBKIT2
+        "signal::detach",
+#else
         "signal::detach-window",
+#endif
                                          G_CALLBACK (inspector_detach_window_cb),       NULL,
+#ifndef USE_WEBKIT2
         "signal::finished",              G_CALLBACK (inspector_inspector_destroyed_cb), NULL,
+#endif
         "signal::notify::inspected-uri", G_CALLBACK (inspector_uri_changed_cb),         NULL,
         NULL);
 }
@@ -61,6 +86,18 @@ uzbl_inspector_free ()
 
 /* ==================== CALLBACK IMPLEMENTATIONS ==================== */
 
+#ifdef USE_WEBKIT2
+gboolean
+inspector_create_cb (WebKitWebInspector *inspector, WebKitWebView *view, gpointer data)
+{
+    UZBL_UNUSED (view);
+    UZBL_UNUSED (data);
+
+    inspector_show_window_cb (inspector, NULL);
+
+    return TRUE;
+}
+#else
 static void
 inspector_hide_window_cb (GtkWidget *widget, gpointer data);
 
@@ -95,6 +132,7 @@ inspector_create_cb (WebKitWebInspector *inspector, WebKitWebView *view, gpointe
 
     return WEBKIT_WEB_VIEW (new_web_view);
 }
+#endif
 
 gboolean
 inspector_show_window_cb (WebKitWebInspector *inspector, gpointer data)
@@ -102,7 +140,9 @@ inspector_show_window_cb (WebKitWebInspector *inspector, gpointer data)
     UZBL_UNUSED (inspector);
     UZBL_UNUSED (data);
 
+#ifndef USE_WEBKIT2
     gtk_widget_show (uzbl.inspector->window);
+#endif
 
     uzbl_events_send (WEBINSPECTOR, NULL,
         TYPE_NAME, "open",
@@ -117,7 +157,9 @@ inspector_close_window_cb (WebKitWebInspector *inspector, gpointer data)
     UZBL_UNUSED (inspector);
     UZBL_UNUSED (data);
 
+#ifndef USE_WEBKIT2
     gtk_widget_hide (uzbl.inspector->window);
+#endif
 
     uzbl_events_send (WEBINSPECTOR, NULL,
         TYPE_NAME, "close",
@@ -145,6 +187,7 @@ inspector_detach_window_cb (WebKitWebInspector *inspector, gpointer data)
     return FALSE;
 }
 
+#ifndef USE_WEBKIT2
 gboolean
 inspector_inspector_destroyed_cb (WebKitWebInspector *inspector, gpointer data)
 {
@@ -153,6 +196,7 @@ inspector_inspector_destroyed_cb (WebKitWebInspector *inspector, gpointer data)
 
     return FALSE;
 }
+#endif
 
 gboolean
 inspector_uri_changed_cb (WebKitWebInspector *inspector, gpointer data)
@@ -163,6 +207,7 @@ inspector_uri_changed_cb (WebKitWebInspector *inspector, gpointer data)
     return FALSE;
 }
 
+#ifndef USE_WEBKIT2
 void
 inspector_hide_window_cb (GtkWidget *widget, gpointer data)
 {
@@ -170,3 +215,4 @@ inspector_hide_window_cb (GtkWidget *widget, gpointer data)
 
     gtk_widget_hide (widget);
 }
+#endif
