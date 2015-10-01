@@ -28,3 +28,6 @@ class EventManagerMock(object):
             u.plugins[plugin] = mock() if mock else Mock(plugin)
         self.uzbls[Mock()] = u
         return u
+
+    def get_plugin_config(self, section):
+        return {}
