@@ -50,10 +50,6 @@ typedef struct {
 
     /* Events */
     int             xembed_socket_id;
-
-#ifdef USE_WEBKIT2
-    gchar *web_extensions_directory;
-#endif
 } UzblState;
 
 /* Networking */
