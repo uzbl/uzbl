@@ -9,6 +9,7 @@ import stat
 from uzbl.arguments import splitquoted
 from uzbl.ext import GlobalPlugin, PerInstancePlugin
 from uzbl.xdg import xdg_data_home
+from .config import Config
 
 # these are symbolic names for the components of the cookie tuple
 symbolic = {
@@ -225,10 +226,20 @@ class Cookies(PerInstancePlugin):
 
     def get_recipents(self):
         """ get a list of Uzbl instances to send the cookie too. """
-        # This could be a lot more interesting
-        # TODO(mathstuf): respect private browsing mode.
+
+        def is_private(uzbl):
+            try:
+                config = Config[uzbl]
+            except KeyError:
+                return False
+
+            return config.get('enable_private', 0) == 1
+
+        if is_private(self.uzbl):
+            return []
+
         uzbls = self.uzbl.parent.uzbls.values()
-        return [u for u in uzbls if u is not self.uzbl]
+        return [u for u in uzbls if u is not self.uzbl and not is_private(u)]
 
     def _make_store(self, cookie_type, envvar, fname):
         store_type = self.plugin_config.get('%s.type' % cookie_type, 'text')
