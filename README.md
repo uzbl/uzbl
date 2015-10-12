@@ -769,7 +769,7 @@ variables are treated as strings.
 * `zoom_step` (double) (default: 0.1)
   - The amount to step by default with the `zoom in` and `zoom out` commands.
     Must be greater than 0.
-* `zoom_text_only` (boolean) (default: 1 in WebKit1; 0 in WebKit2) (WebKit2 >= 1.7.91 or WebKit1)
+* `zoom_text_only` (boolean) (default: 0) (WebKit2 >= 1.7.91 or WebKit1)
   - If non-zero, only text will be zoomed on a page.
 * `caret_browsing` (boolean) (default: 0)
   - If non-zero, pages may be navigated using the arrows to move a cursor
