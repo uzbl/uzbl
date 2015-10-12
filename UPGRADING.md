@@ -171,7 +171,7 @@ major exception here).
 * `toggle_zoom_type`
   - *Change*: Removed.
   - *Rationale*: Unnecessary command.
-  - *Porting*: Use `toggle zoom_type`.
+  - *Porting*: Use `toggle zoom_text_only`.
 * `zoom_in`
   - *Change*: Removed
   - *Rationale*: Consolidated into the new `zoom` command.
