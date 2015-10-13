@@ -1,6 +1,7 @@
 """ Basic cookie manager
     forwards cookies to all other instances connected to the event manager"""
 
+from __future__ import print_function
 from collections import defaultdict
 import os
 import re
