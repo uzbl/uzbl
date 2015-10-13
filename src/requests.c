@@ -134,7 +134,7 @@ send_request_sockets (gint64 timeout, GString *msg, const gchar *cookie)
 
         if (timeout) {
             done = TRUE;
-        } else if (!g_str_has_prefix (uzbl.requests->reply, reply_cookie->str)) {
+        } else if (g_str_has_prefix (uzbl.requests->reply, reply_cookie->str)) {
             g_string_assign (req_result, uzbl.requests->reply + reply_cookie->len);
             done = TRUE;
         }
