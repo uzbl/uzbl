@@ -10,6 +10,8 @@
 #include "uzbl-core.h"
 #include "variables.h"
 
+#include <gtk/gtkimcontextsimple.h>
+
 #if !GTK_CHECK_VERSION (3, 0, 0)
 #include <gdk/gdkkeysyms.h>
 #endif
@@ -37,6 +39,9 @@ struct _UzblGui {
     gchar *last_geometry;
     gchar *last_selected_url;
 
+    GtkIMContext *im_context;
+    guint current_key_state;
+
     GdkEventButton *last_button;
     WebKitWebView *tmp_web_view;
 };
@@ -54,6 +59,9 @@ window_init ();
 static void
 plug_init ();
 
+static void
+uzbl_input_commit_cb (GtkIMContext *context, const gchar *str, gpointer data);
+
 void
 uzbl_gui_init ()
 {
@@ -68,6 +76,11 @@ uzbl_gui_init ()
     } else {
         window_init ();
     }
+
+    uzbl.gui_->im_context = gtk_im_context_simple_new ();
+    gtk_im_context_reset (uzbl.gui_->im_context);
+    g_signal_connect (uzbl.gui_->im_context, "commit",
+        G_CALLBACK (uzbl_input_commit_cb), uzbl.gui_);
 }
 
 void
@@ -78,6 +91,10 @@ uzbl_gui_free ()
 
     if (uzbl.gui_->last_button) {
         gdk_event_free ((GdkEvent *)uzbl.gui_->last_button);
+    }
+
+    if (uzbl.gui_->im_context) {
+        g_object_unref (uzbl.gui_->im_context);
     }
 
     if (uzbl.gui_->tmp_web_view) {
@@ -360,6 +377,26 @@ plug_init ()
         "signal::key-press-event",   G_CALLBACK (key_press_cb), NULL,
         "signal::key-release-event", G_CALLBACK (key_press_cb), NULL,
         NULL);
+}
+
+static guint
+key_to_modifier (guint keyval);
+static gchar *
+get_modifier_mask (guint state);
+
+static void
+uzbl_input_commit_cb (GtkIMContext *context, const gchar *str, gpointer data)
+{
+    UZBL_UNUSED (context);
+
+    UzblGui *gui = (UzblGui *)data;
+
+    gchar *modifiers = get_modifier_mask (gui->current_key_state);
+    uzbl_events_send (KEY_PRESS, NULL,
+        TYPE_STR, modifiers,
+        TYPE_STR, str,
+        NULL);
+    g_free (modifiers);
 }
 
 /* ==================== CALLBACK IMPLEMENTATIONS ==================== */
@@ -1020,11 +1057,6 @@ set_window_property (const gchar *prop, const gchar *value)
     }
 }
 
-static guint
-key_to_modifier (guint keyval);
-static gchar *
-get_modifier_mask (guint state);
-
 void
 send_keypress_event (GdkEventKey *event)
 {
@@ -1035,6 +1067,7 @@ send_keypress_event (GdkEventKey *event)
     gchar *modifiers = NULL;
     guint mod = key_to_modifier (event->keyval);
     guint state;
+    guint old_state;
     GdkModifierType consumed;
     GdkKeymap *keymap = gdk_keymap_get_default ();
 
@@ -1044,9 +1077,17 @@ send_keypress_event (GdkEventKey *event)
     state = event->state & ~consumed;
 
     /* Get modifier state including this key press/release. */
-    modifiers = get_modifier_mask ((event->type == GDK_KEY_PRESS) ? (state | mod) : (state & ~mod));
+    uzbl.gui_->current_key_state = (event->type == GDK_KEY_PRESS) ? (state | mod) : (state & ~mod);
+    modifiers = get_modifier_mask (uzbl.gui_->current_key_state);
 
-    if (event->is_modifier && mod) {
+    /* Set the state to 0 for the input method to process it correctly. The
+     * modifiers are taken into account by the previous code anyway */
+    old_state = event->state;
+    event->state = 0;
+    if(gtk_im_context_filter_keypress (uzbl.gui_->im_context, event)) {
+        /* If we enter here, that means that the input method already handled
+         * the key event. There is nothing else to do then. */
+    } else if (event->is_modifier && mod) {
         gchar *newmods = get_modifier_mask (mod);
 
         uzbl_events_send ((event->type == GDK_KEY_PRESS) ? MOD_PRESS : MOD_RELEASE, NULL,
@@ -1061,7 +1102,6 @@ send_keypress_event (GdkEventKey *event)
          * combining chars right. */
         ulen = g_unichar_to_utf8 (ukval, ucs);
         ucs[ulen] = 0;
-
         uzbl_events_send ((event->type == GDK_KEY_PRESS) ? KEY_PRESS : KEY_RELEASE, NULL,
             TYPE_STR, modifiers,
             TYPE_STR, ucs,
@@ -1073,6 +1113,9 @@ send_keypress_event (GdkEventKey *event)
             TYPE_NAME, keyname,
             NULL);
     }
+    /* Put back the state to its initial value to not disturb further processing
+     * of the event */
+    event->state = old_state;
 
     g_free (modifiers);
 }
