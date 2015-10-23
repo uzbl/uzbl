@@ -29,6 +29,8 @@ export XDG_CONFIG_HOME
 PATH="$( pwd )/sandbox/usr/bin:$PATH"
 export PATH
 
+unset UZBL_EVENT_SOCKET
+
 . sandbox/bin/activate
 
 exec "$@"
