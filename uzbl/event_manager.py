@@ -517,7 +517,7 @@ def main():
     else:
         opts.pid_file = expandpath(opts.pid_file)
 
-    config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation)
+    config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
     config.read(opts.config)
 
     # Set default log file location
