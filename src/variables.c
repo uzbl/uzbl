@@ -2081,6 +2081,16 @@ IMPLEMENT_SETTER (int, enable_private)
         g_unsetenv (priv_envvar);
     }
 
+    if (get_enable_private_webkit () != enable_private) {
+        /* Replace the current cookie jar with a new empty jar. */
+        soup_session_remove_feature (uzbl.net.soup_session,
+            SOUP_SESSION_FEATURE (uzbl.net.soup_cookie_jar));
+        g_object_unref (G_OBJECT (uzbl.net.soup_cookie_jar));
+        uzbl.net.soup_cookie_jar = uzbl_cookie_jar_new ();
+        soup_session_add_feature (uzbl.net.soup_session,
+            SOUP_SESSION_FEATURE (uzbl.net.soup_cookie_jar));
+    }
+
     set_enable_private_webkit (enable_private);
 
     return TRUE;
