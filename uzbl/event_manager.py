@@ -206,7 +206,7 @@ class UzblEventDaemon(object):
             daemonize()
 
             # Update the pid file
-            make_pid_file(opts.pid_file)
+            make_pid_file(self.opts.pid_file)
 
         asyncore.loop()
 
