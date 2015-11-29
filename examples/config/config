@@ -101,7 +101,7 @@ set download_handler       spawn_sync @scripts_dir/download.sh
 # === Behaviour and appearance ===============================================
 
 # Custom CSS can be defined here, including link follower hint styles
-set stylesheet_uri file://@config_home/style.css
+css add file://@config_home/style.css
 
 # If WebKits builtin authentication dialog should be used, if enabling remember
 # to disable external authentication handlers
