@@ -298,8 +298,8 @@ set history_disable_easter_egg 1
 @cbind  ?*                           = search rfind %s
 @cbind  <Ctrl>?<'reverse search':>_  = search rfind %s
 # Jump to next and previous items
-@cbind  n   = search find
-@cbind  N   = search rfind
+@cbind  n   = search next
+@cbind  N   = search prev
 
 # Print pages to a printer
 @cbind  <Ctrl>p = hardcopy page
