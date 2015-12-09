@@ -101,7 +101,7 @@ set download_handler       spawn_sync @scripts_dir/download.sh
 # === Behaviour and appearance ===============================================
 
 # Custom CSS can be defined here, including link follower hint styles
-set stylesheet_uri file://@config_home/style.css
+css add file://@config_home/style.css
 
 # If WebKits builtin authentication dialog should be used, if enabling remember
 # to disable external authentication handlers
@@ -298,8 +298,8 @@ set history_disable_easter_egg 1
 @cbind  ?*                           = search rfind %s
 @cbind  <Ctrl>?<'reverse search':>_  = search rfind %s
 # Jump to next and previous items
-@cbind  n   = search find
-@cbind  N   = search rfind
+@cbind  n   = search next
+@cbind  N   = search prev
 
 # Print pages to a printer
 @cbind  <Ctrl>p = hardcopy page
