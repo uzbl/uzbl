@@ -2433,6 +2433,11 @@ IMPLEMENT_SETTER (int, enable_private)
     }
 
     if (get_enable_private_webkit () != enable_private) {
+    #ifdef USE_WEBKIT2
+        WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
+        WebKitCookieManager *manager = webkit_web_context_get_cookie_manager (context);
+        webkit_cookie_manager_delete_all_cookies (manager);
+    #else
         /* Replace the current cookie jar with a new empty jar. */
         soup_session_remove_feature (uzbl.net.soup_session,
             SOUP_SESSION_FEATURE (uzbl.net.soup_cookie_jar));
@@ -2440,6 +2445,7 @@ IMPLEMENT_SETTER (int, enable_private)
         uzbl.net.soup_cookie_jar = uzbl_cookie_jar_new ();
         soup_session_add_feature (uzbl.net.soup_session,
             SOUP_SESSION_FEATURE (uzbl.net.soup_cookie_jar));
+    #endif
     }
 
     set_enable_private_webkit (enable_private);
