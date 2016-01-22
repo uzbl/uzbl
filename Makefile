@@ -278,6 +278,7 @@ install-uzbl-browser: uzbl-browser install-dirs install-uzbl-core install-event-
 	#sed 's#@PREFIX@#$(PREFIX)#g' < README.browser.md > README.browser.md
 	#$(INSTALL) -m644 README.browser.md $(DOCDIR)/README.browser.md
 	$(INSTALL) -m644 README.event-manager.md $(DOCDIR)/README.event-manager.md
+	$(INSTALL) -m644 README.scripts.md $(DOCDIR)/README.scripts.md
 	cp -rv examples $(SHAREDIR)/uzbl/examples
 	chmod 755 $(SHAREDIR)/uzbl/examples/data/scripts/*.sh $(SHAREDIR)/uzbl/examples/data/scripts/*.py
 	$(INSTALL) -m644 uzbl.desktop $(SHAREDIR)/applications/uzbl.desktop
