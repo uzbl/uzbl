@@ -115,13 +115,10 @@ ${OBJ}: ${HEAD}
 
 uzbl-core: ${OBJ}
 
-uzbl-browser: uzbl-core uzbl-event-manager uzbl-browser.1 uzbl.desktop bin/uzbl-browser
+uzbl-browser: uzbl-core uzbl-event-manager uzbl-browser.1 uzbl-core.desktop bin/uzbl-browser
 
 uzbl-browser.1: uzbl-browser.1.in
 	sed 's#@PREFIX@#$(PREFIX)#' < uzbl-browser.1.in > uzbl-browser.1
-
-uzbl.desktop: uzbl.desktop.in
-	sed 's#@PREFIX@#$(PREFIX)#' < uzbl.desktop.in > uzbl.desktop
 
 bin/uzbl-browser: bin/uzbl-browser.in
 	sed 's#@PREFIX@#$(PREFIX)#' < bin/uzbl-browser.in > bin/uzbl-browser
@@ -246,7 +243,7 @@ install-uzbl-browser: uzbl-browser install-dirs install-uzbl-core install-event-
 	$(INSTALL) -m644 README.scripts.md $(DOCDIR)/README.scripts.md
 	cp -rv examples $(SHAREDIR)/uzbl/examples
 	chmod 755 $(SHAREDIR)/uzbl/examples/data/scripts/*.sh $(SHAREDIR)/uzbl/examples/data/scripts/*.py
-	$(INSTALL) -m644 uzbl.desktop $(SHAREDIR)/applications/uzbl.desktop
+	$(INSTALL) -m644 uzbl-core.desktop $(SHAREDIR)/applications/uzbl-core.desktop
 	$(INSTALL) -m644 uzbl-browser.1 $(MANDIR)/man1/uzbl-browser.1
 	$(INSTALL) -m644 uzbl.appdata.xml $(SHAREDIR)/appdata/uzbl.appdata.xml
 
@@ -265,4 +262,4 @@ uninstall:
 	rm -rf $(INSTALLDIR)/bin/uzbl-*
 	rm -rf $(MANDIR)/man1/uzbl-*
 	rm -rf $(SHAREDIR)/uzbl
-	rm -rf $(SHAREDIR)/applications/uzbl.desktop
+	rm -rf $(SHAREDIR)/applications/uzbl-core.desktop
