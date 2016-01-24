@@ -146,7 +146,7 @@ set progress.pending
 
 # === Useragent setup ========================================================
 
-set useragent         Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}) (@(+uname -sm)@ [@ARCH_UZBL])
+set useragent Mozilla/5.0 (X11; @(+uname -sm)@) AppleWebKit/602.1 (KHTML; like Gecko) Uzbl/@COMMIT
 
 # === Configure cookie blacklist =============================================
 
