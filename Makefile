@@ -116,7 +116,7 @@ ${OBJ}: ${HEAD}
 
 uzbl-core: ${OBJ}
 
-uzbl-browser: uzbl-core uzbl-event-manager uzbl-browser.1 uzbl-core.desktop bin/uzbl-browser
+uzbl-browser: uzbl-core uzbl-event-manager uzbl-browser.1 uzbl-core.desktop uzbl-tabbed.desktop bin/uzbl-browser
 
 uzbl-browser.1: uzbl-browser.1.in
 	sed 's#@PREFIX@#$(PREFIX)#' < uzbl-browser.1.in > uzbl-browser.1
@@ -259,6 +259,7 @@ install-uzbl-browser: uzbl-browser install-dirs install-uzbl-core install-event-
 	$(INSTALL) -m644 icons/96x96.png $(SHAREDIR)/icons/hicolor/96x96/apps/uzbl.png
 	chmod 755 $(SHAREDIR)/uzbl/examples/data/scripts/*.sh $(SHAREDIR)/uzbl/examples/data/scripts/*.py
 	$(INSTALL) -m644 uzbl-core.desktop $(SHAREDIR)/applications/uzbl-core.desktop
+	$(INSTALL) -m644 uzbl-tabbed.desktop $(SHAREDIR)/applications/uzbl-tabbed.desktop
 	$(INSTALL) -m644 uzbl-browser.1 $(MANDIR)/man1/uzbl-browser.1
 	$(INSTALL) -m644 uzbl.appdata.xml $(SHAREDIR)/appdata/uzbl.appdata.xml
 
@@ -278,3 +279,4 @@ uninstall:
 	rm -rf $(MANDIR)/man1/uzbl-*
 	rm -rf $(SHAREDIR)/uzbl
 	rm -rf $(SHAREDIR)/applications/uzbl-core.desktop
+	rm -rf $(SHAREDIR)/applications/uzbl-tabbed.desktop
