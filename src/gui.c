@@ -1594,14 +1594,14 @@ create_view (WebKitWebView *view)
          * because it doesn't fire when Javascript requests a new window with
          * window.open().
          */
-        uzbl.gui_->tmp_web_view =
-            WEBKIT_WEB_VIEW (webkit_web_view_new ())
-            ;
-    }
+        uzbl.gui_->tmp_web_view = WEBKIT_WEB_VIEW (webkit_web_view_new ());
 
-    g_object_connect (G_OBJECT (uzbl.gui_->tmp_web_view),
-        "signal::notify::uri", G_CALLBACK (create_web_view_uri_cb), NULL,
-        NULL);
+        g_object_connect (G_OBJECT (uzbl.gui_->tmp_web_view),
+            "signal::notify::uri", G_CALLBACK (create_web_view_uri_cb), NULL,
+            NULL);
+
+        g_object_ref_sink (G_OBJECT (uzbl.gui_->tmp_web_view));
+    }
 
     return uzbl.gui_->tmp_web_view;
 }
