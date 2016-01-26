@@ -6,5 +6,5 @@ Type=Application
 Icon=uzbl.png
 Exec=uzbl-browser --uri %u
 StartupNotify=false
-Categories=Application;Network;
-MimeType=text/html;text/xml;application/xhtml+xml;application/vnd.mozilla.xul+xml;text/mml;
+Categories=Application;Network;WebBrowser;
+MimeType=text/html;text/xml;application/xhtml+xml;application/vnd.mozilla.xul+xml;text/mml;x-scheme-handler/http;x-scheme-handler/https;
