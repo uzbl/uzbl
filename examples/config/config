@@ -36,6 +36,9 @@ set set_status      set status_message
 # Spawn path shortcuts. In spawn the first dir+path match is used in "dir1:dir2:dir3:executable"
 set scripts_dir      @data_home:@data_dirs:@prefix/share/uzbl/examples/data:scripts
 
+# Search case-insensitive by default
+search option case_insensitive
+
 # === Hardcoded handlers =====================================================
 
 set navigation_handler     spawn_sync @scripts_dir/scheme.py
