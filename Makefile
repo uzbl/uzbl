@@ -101,11 +101,12 @@ HEADERS := \
     scheme-request.h \
     soup.h
 
-SRC  = $(addprefix src/,$(SOURCES))
-HEAD = $(addprefix src/,$(HEADERS))
-OBJ  = $(foreach obj, $(SRC:.c=.o),  $(obj))
-LOBJ = $(foreach obj, $(SRC:.c=.lo), $(obj))
-PY   = $(wildcard uzbl/*.py uzbl/plugins/*.py)
+SRC   = $(addprefix src/,$(SOURCES))
+HEAD  = $(addprefix src/,$(HEADERS))
+OBJ   = $(foreach obj, $(SRC:.c=.o),  $(obj))
+LOBJ  = $(foreach obj, $(SRC:.c=.lo), $(obj))
+PY    = $(wildcard uzbl/*.py uzbl/plugins/*.py)
+ICONS = icons/32x32.png icons/48x48.png icons/64x64.png icons/96x96.png
 
 all: uzbl-browser
 
@@ -115,17 +116,20 @@ ${OBJ}: ${HEAD}
 
 uzbl-core: ${OBJ}
 
-uzbl-browser: uzbl-core uzbl-event-manager uzbl-browser.1 uzbl.desktop bin/uzbl-browser
+uzbl-browser: uzbl-core uzbl-event-manager uzbl-browser.1 uzbl-core.desktop uzbl-tabbed.desktop bin/uzbl-browser
 
 uzbl-browser.1: uzbl-browser.1.in
 	sed 's#@PREFIX@#$(PREFIX)#' < uzbl-browser.1.in > uzbl-browser.1
 
-uzbl.desktop: uzbl.desktop.in
-	sed 's#@PREFIX@#$(PREFIX)#' < uzbl.desktop.in > uzbl.desktop
-
 bin/uzbl-browser: bin/uzbl-browser.in
 	sed 's#@PREFIX@#$(PREFIX)#' < bin/uzbl-browser.in > bin/uzbl-browser
 	chmod +x bin/uzbl-browser
+
+.PHONY: icons
+icons: ${ICONS}
+
+icons/%.png: examples/data/uzbl-logo.svg
+	convert -background none -resize $(shell echo $@ | grep -oE '[0-9]*x[0-9]*') $^ $@
 
 build: ${PY}
 	$(PYTHON) setup.py build
@@ -245,8 +249,17 @@ install-uzbl-browser: uzbl-browser install-dirs install-uzbl-core install-event-
 	$(INSTALL) -m644 README.event-manager.md $(DOCDIR)/README.event-manager.md
 	$(INSTALL) -m644 README.scripts.md $(DOCDIR)/README.scripts.md
 	cp -rv examples $(SHAREDIR)/uzbl/examples
+	$(INSTALL) -d $(SHAREDIR)/icons/hicolor/32x32/apps/
+	$(INSTALL) -m644 icons/32x32.png $(SHAREDIR)/icons/hicolor/32x32/apps/uzbl.png
+	$(INSTALL) -d $(SHAREDIR)/icons/hicolor/48x48/apps/
+	$(INSTALL) -m644 icons/48x48.png $(SHAREDIR)/icons/hicolor/48x48/apps/uzbl.png
+	$(INSTALL) -d $(SHAREDIR)/icons/hicolor/64x64/apps/
+	$(INSTALL) -m644 icons/64x64.png $(SHAREDIR)/icons/hicolor/64x64/apps/uzbl.png
+	$(INSTALL) -d $(SHAREDIR)/icons/hicolor/96x96/apps/
+	$(INSTALL) -m644 icons/96x96.png $(SHAREDIR)/icons/hicolor/96x96/apps/uzbl.png
 	chmod 755 $(SHAREDIR)/uzbl/examples/data/scripts/*.sh $(SHAREDIR)/uzbl/examples/data/scripts/*.py
-	$(INSTALL) -m644 uzbl.desktop $(SHAREDIR)/applications/uzbl.desktop
+	$(INSTALL) -m644 uzbl-core.desktop $(SHAREDIR)/applications/uzbl-core.desktop
+	$(INSTALL) -m644 uzbl-tabbed.desktop $(SHAREDIR)/applications/uzbl-tabbed.desktop
 	$(INSTALL) -m644 uzbl-browser.1 $(MANDIR)/man1/uzbl-browser.1
 	$(INSTALL) -m644 uzbl.appdata.xml $(SHAREDIR)/appdata/uzbl.appdata.xml
 
@@ -265,4 +278,5 @@ uninstall:
 	rm -rf $(INSTALLDIR)/bin/uzbl-*
 	rm -rf $(MANDIR)/man1/uzbl-*
 	rm -rf $(SHAREDIR)/uzbl
-	rm -rf $(SHAREDIR)/applications/uzbl.desktop
+	rm -rf $(SHAREDIR)/applications/uzbl-core.desktop
+	rm -rf $(SHAREDIR)/applications/uzbl-tabbed.desktop
