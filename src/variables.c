@@ -1964,7 +1964,7 @@ IMPLEMENT_GETTER (gchar *, proxy_url)
         return g_strdup ("");
     }
 
-    gchar *proxy_url = soup_uri_to_string (soup_uri, TRUE);
+    gchar *proxy_url = soup_uri_to_string (soup_uri, FALSE);
 
     soup_uri_free (soup_uri);
 
