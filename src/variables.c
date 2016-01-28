@@ -1587,7 +1587,9 @@ void
 uzbl_variables_private_free (UzblVariablesPrivate *priv)
 {
 #if GTK_CHECK_VERSION (3, 15, 0)
-    g_object_unref (priv->status_background_provider);
+    if (priv->status_background_provider) {
+        g_object_unref (priv->status_background_provider);
+    }
 #endif
 
     /* All other members are deleted by the table's free function. */
