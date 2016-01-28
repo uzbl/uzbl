@@ -36,6 +36,9 @@ set set_status      set status_message
 # Spawn path shortcuts. In spawn the first dir+path match is used in "dir1:dir2:dir3:executable"
 set scripts_dir      @data_home:@data_dirs:@prefix/share/uzbl/examples/data:scripts
 
+# Search case-insensitive by default
+search option case_insensitive
+
 # === Hardcoded handlers =====================================================
 
 set navigation_handler     spawn_sync @scripts_dir/scheme.py
@@ -146,7 +149,7 @@ set progress.pending
 
 # === Useragent setup ========================================================
 
-set useragent         Uzbl (Webkit @{WEBKIT_MAJOR}.@{WEBKIT_MINOR}) (@(+uname -sm)@ [@ARCH_UZBL])
+set useragent Mozilla/5.0 (X11; @(+uname -sm)@) AppleWebKit/602.1 (KHTML; like Gecko) Uzbl/@COMMIT
 
 # === Configure cookie blacklist =============================================
 
@@ -403,7 +406,7 @@ set follow_hint_keys 0123456789
 #   fL -> take the url and navigate directly to it
 #   FL -> copy the url to the clipboard
 @cbind  fl*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followLinks("\@follow_hint_keys", "%s", 'click') >\@
-@cbind  Fl*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followLinks("\@follow_hint_keys", "%s", 'newwindow') >\@
+@cbind  Fl*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followLinks("\@follow_hint_keys", "%s", 'newwindow') >\@ newwindow
 @cbind  fL*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followLinks("\@follow_hint_keys", "%s", 'returnuri') >\@ set
 @cbind  FL*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followLinks("\@follow_hint_keys", "%s", 'returnuri') >\@ clipboard
 @cbind  fi   = spawn @scripts_dir/go_input.sh

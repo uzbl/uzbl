@@ -16,7 +16,9 @@ The Uzbl project was started as an attempt to resolve this.
 "Uzbl" is an umbrella project consisting of different flavors. In the future
 more things may come, but for now:
 
-#### uzbl-core: main component meant for integration with other tools and scripts
+#### uzbl-core
+
+Main component meant for integration with other tools and scripts.
 
 * Uses WebKitGtk+ for rendering and network interaction (libsoup). CSS,
   JavaScript, and plugin support come for free.
@@ -32,7 +34,11 @@ more things may come, but for now:
 * Entire configuration/state can be changed at runtime.
 * Uzbl keeps it simple, and puts **you** in charge.
 
-#### uzbl-browser: a complete browser experience based on uzbl-core
+#### uzbl-browser
+
+A minimal browser which encompasses a default configuration file, event manager
+and a selection of scripts which gives a comparable browsing experience to the
+more common browsers.
 
 * Uses a set of scripts (mostly Python) that will fit most people, so things
   work out of the box; yet plenty of room for customization.
@@ -49,7 +55,9 @@ more things may come, but for now:
   information.
 * One window per page.
 
-#### uzbl-tabbed: wraps around uzbl-browser and multiplexes it
+#### uzbl-tabbed
+
+A flavor of `uzbl` built on top of `uzbl-browser` which adds tabbed browsing.
 
 * Spawns one window containing multiple tabs, each tab containing a full
   embedded `uzbl-browser`.
@@ -109,17 +117,6 @@ When `uzbl` forks a new instance (e.g., "open in new window") it will use the
 same command line arguments (e.g., the same `--config <file>`), except `--uri`
 and `--named`. If you made changes to the configuration at runtime, these are
 not passed on to the child.
-
-#### Uzbl-browser
-
-A minimal browser which encompasses a default configuration file and event
-manager which gives a comparable browsing experience to the more common
-browsers. For more, see [its documentation](README.browser.md).
-
-#### Uzbl-tabbed
-
-A flavor of `uzbl` built on top of `uzbl-browser` which adds tabbed browsing.
-For more, see [its documentation](README.tabbed.md).
 
 #### WebKit1 vs. WebKit2
 
