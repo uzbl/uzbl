@@ -9,7 +9,7 @@ tarball_check='$Format:$'
 
 # ... but try to use whatever git tells us if there is a .git folder
 if [ -d .git ] && [ -r .git ]; then
-    hash=$( git describe --tags )
+    hash=$( git describe --tags --always )
     echo $hash
 elif [ -n "$tarball_check" ]; then
     echo '$Format:%h$'
