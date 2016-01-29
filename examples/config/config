@@ -421,7 +421,7 @@ set follow_hint_keys 0123456789
 #   fS -> take the url and navigate directly to it
 #   FS -> copy the url to the clipboard
 @cbind  fs  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followSelection('click') >\@
-@cbind  fS  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followSelection('newwindow') >\@
+@cbind  fS  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followSelection('newwindow') >\@ newwindow
 @cbind  Fs  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followSelection('returnuri') >\@ set
 @cbind  FS  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followSelection('returnuri') >\@ clipboard
 
@@ -431,7 +431,7 @@ set follow_hint_keys 0123456789
 #   fT -> take the url and navigate directly to it
 #   FT -> copy the url to the clipboard
 @cbind  ft*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followTextContent("%s", 'click') >\@
-@cbind  fT*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followTextContent("%s", 'newwindow') >\@
+@cbind  fT*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followTextContent("%s", 'newwindow') >\@ newwindow
 @cbind  Ft*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followTextContent("%s", 'returnuri') >\@ set
 @cbind  FT*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followTextContent("%s", 'returnuri') >\@ clipboard
 
