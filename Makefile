@@ -17,7 +17,7 @@ INSTALL    ?= install -p
 ENABLE_WEBKIT2 ?= no
 ENABLE_GTK3    ?= auto
 
-PYTHON   = python3
+PYTHON  ?= python3
 
 # --- configuration ends here ---
 
