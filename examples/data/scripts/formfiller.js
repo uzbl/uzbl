@@ -40,11 +40,11 @@ return {
     dump: function () {
         var rv = '';
         var frames = slice.apply(window.frames);
+        frames.push(window);
 
         frames.forEach(function (frame) {
             try {
-                var inputs = frame.document.getElementsByTagName('input');
-
+                var inputs = slice.apply(frame.document.getElementsByTagName('input'));
                 inputs.filter(hasName).forEach(function (input) {
                     if (inputTypeIsText(input.type)) {
                         rv += '%' + escape(input.name) + '(' + input.type + '):' + input.value + '\n';
@@ -53,7 +53,7 @@ return {
                     }
                 });
 
-                var textareas = frame.document.getElementsByTagName('textarea');
+                var textareas = slice.apply(frame.document.getElementsByTagName('textarea'));
                 textareas.filter(hasName).forEach(function (textarea) {
                     var escaped = textarea.value.replace(/(^|\n)\\/g, '$1\\\\').replace(/(^|\n)%/g, '$1\\%');
                     rv += '%' + escape(textarea.name) + '(textarea):\n' + escaped + '\n%\n';
@@ -69,6 +69,7 @@ return {
     insert: function (fname, ftype, fvalue, fchecked) {
         fname = unescape(fname);
         var frames = slice.apply(window.frames);
+        frames.push(window);
 
         frames.forEach(function (frame) {
             try {
