@@ -157,13 +157,13 @@ uzbl_variables_set (const gchar *name, gchar *val)
         }
         case TYPE_ULL:
         {
-            unsigned long long ull = strtoull (val, NULL, 10);
+            unsigned long long ull = g_ascii_strtoull (val, NULL, 10);
             sendev = set_variable_ull (var, ull);
             break;
         }
         case TYPE_DOUBLE:
         {
-            gdouble d = strtod (val, NULL);
+            gdouble d = g_ascii_strtod (val, NULL);
             sendev = set_variable_double (var, d);
             break;
         }
