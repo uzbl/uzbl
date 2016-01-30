@@ -8,6 +8,7 @@
 #include "sync.h"
 #include "type.h"
 #include "util.h"
+#include "comm.h"
 #include "uzbl-core.h"
 
 #include <JavaScriptCore/JavaScript.h>
@@ -156,13 +157,13 @@ uzbl_variables_set (const gchar *name, gchar *val)
         }
         case TYPE_ULL:
         {
-            unsigned long long ull = strtoull (val, NULL, 10);
+            unsigned long long ull = g_ascii_strtoull (val, NULL, 10);
             sendev = set_variable_ull (var, ull);
             break;
         }
         case TYPE_DOUBLE:
         {
-            gdouble d = strtod (val, NULL);
+            gdouble d = g_ascii_strtod (val, NULL);
             sendev = set_variable_double (var, d);
             break;
         }
@@ -1015,7 +1016,7 @@ variable_expand (const UzblVariable *var, GString *buf)
         g_string_append_printf (buf, "%llu", get_variable_ull (var));
         break;
     case TYPE_DOUBLE:
-        g_string_append_printf (buf, "%g", get_variable_double (var));
+        uzbl_comm_string_append_double (buf, get_variable_double (var));
         break;
     default:
         break;
