@@ -8,6 +8,7 @@
 #include "sync.h"
 #include "type.h"
 #include "util.h"
+#include "comm.h"
 #include "uzbl-core.h"
 
 #include <JavaScriptCore/JavaScript.h>
@@ -1015,7 +1016,7 @@ variable_expand (const UzblVariable *var, GString *buf)
         g_string_append_printf (buf, "%llu", get_variable_ull (var));
         break;
     case TYPE_DOUBLE:
-        g_string_append_printf (buf, "%g", get_variable_double (var));
+        uzbl_comm_string_append_double (buf, get_variable_double (var));
         break;
     default:
         break;

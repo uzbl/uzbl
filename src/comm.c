@@ -7,10 +7,28 @@
 
 #include <string.h>
 
-/* =========================== PUBLIC API =========================== */
-
 static GString *
 append_escaped (GString *dest, const gchar *src);
+
+/* =========================== PUBLIC API =========================== */
+
+void
+uzbl_comm_string_append_double (GString *buf, double val)
+{
+    gsize pos = buf->len;
+
+    /* Make sure the formatted double fits in the buffer. */
+    if (buf->allocated_len - pos < G_ASCII_DTOSTR_BUF_SIZE) {
+        g_string_set_size (buf, pos + G_ASCII_DTOSTR_BUF_SIZE);
+    }
+
+    /* Format in C locale. */
+    char *tmp = g_ascii_formatd (
+        buf->str + pos,
+        buf->allocated_len - pos,
+        "%.2g", val);
+    buf->len += pos + strlen (tmp);
+}
 
 GString *
 uzbl_comm_vformat (const gchar *directive, const gchar *function, va_list vargs)
@@ -63,20 +81,8 @@ uzbl_comm_vformat (const gchar *directive, const gchar *function, va_list vargs)
             g_string_append (message, str);
             break;
         case TYPE_DOUBLE:
-        {
-            /* Make sure the formatted double fits in the buffer. */
-            if (message->allocated_len - message->len < G_ASCII_DTOSTR_BUF_SIZE) {
-                g_string_set_size (message, message->len + G_ASCII_DTOSTR_BUF_SIZE);
-            }
-
-            /* Format in C locale. */
-            char *tmp = g_ascii_formatd (
-                message->str + message->len,
-                message->allocated_len - message->len,
-                "%.2g", va_arg (vargs, double));
-            message->len += strlen (tmp);
+            uzbl_comm_string_append_double (message, va_arg (vargs, double));
             break;
-        }
         }
     }
 
