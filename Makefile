@@ -248,7 +248,7 @@ install-uzbl-browser: uzbl-browser install-dirs install-uzbl-core install-event-
 	#$(INSTALL) -m644 README.browser.md $(DOCDIR)/README.browser.md
 	$(INSTALL) -m644 README.event-manager.md $(DOCDIR)/README.event-manager.md
 	$(INSTALL) -m644 README.scripts.md $(DOCDIR)/README.scripts.md
-	cp -rv examples $(SHAREDIR)/uzbl/examples
+	cp -rv examples $(SHAREDIR)/uzbl/
 	$(INSTALL) -d $(SHAREDIR)/icons/hicolor/32x32/apps/
 	$(INSTALL) -m644 icons/32x32.png $(SHAREDIR)/icons/hicolor/32x32/apps/uzbl.png
 	$(INSTALL) -d $(SHAREDIR)/icons/hicolor/48x48/apps/
