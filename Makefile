@@ -142,19 +142,19 @@ ${LOBJ}: ${SRC} ${HEAD}
 	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -c src/$(@:.lo=.c) -o $@
 
 test-uzbl-core: uzbl-core
-	./uzbl-core --uri http://www.uzbl.org --verbose
+	./uzbl-core http://www.uzbl.org --verbose
 
 test-uzbl-browser: uzbl-browser
-	./bin/uzbl-browser --uri http://www.uzbl.org --verbose
+	./bin/uzbl-browser http://www.uzbl.org --verbose
 
 test-uzbl-core-sandbox: sandbox uzbl-core sandbox-install-uzbl-core sandbox-install-example-data
-	./sandbox/env.sh uzbl-core --uri http://www.uzbl.org --verbose
+	./sandbox/env.sh uzbl-core http://www.uzbl.org --verbose
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
 test-uzbl-browser-sandbox: sandbox uzbl-browser sandbox-install-uzbl-browser sandbox-install-example-data
 	./sandbox/env.sh ${PYTHON} -m uzbl.event_manager restart -navv &
-	./sandbox/env.sh uzbl-browser --uri http://www.uzbl.org --verbose
+	./sandbox/env.sh uzbl-browser http://www.uzbl.org --verbose
 	./sandbox/env.sh ${PYTHON} -m uzbl.event_manager stop -vv -o /dev/null
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
