@@ -50,7 +50,7 @@ set download_handler       spawn_sync @scripts_dir/download.sh
 
 #   What to do when a website wants to open a new window:
 # Open link in new window
-@on_event   NEW_WINDOW     spawn_sh 'uzbl-browser ${0:+-u "$0"}' %r
+@on_event   NEW_WINDOW     spawn_sh 'uzbl-browser ${0:-"$0"}' %r
 # Open in current window (also see the REQ_NEW_WINDOW event handler below)
 #@on_event   NEW_WINDOW     uri %s
 # Open in new tab. Other options are NEW_TAB_NEXT, NEW_BG_TAB and NEW_BG_TAB_NEXT.

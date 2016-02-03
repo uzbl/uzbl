@@ -928,7 +928,7 @@ class UzblTabbed:
                '--connect-socket', self.socket_path]
 
         if uri:
-          cmd += ['--uri', str(uri)]
+          cmd += [str(uri)]
 
         if config['explicit_config_file'] is not None:
             cmd += ['-c', config['explicit_config_file']]
