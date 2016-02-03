@@ -68,4 +68,4 @@ if [ -z "$UZBL_EVENT_SOCKET" ]; then
 	fi
 fi
 
-exec uzbl-core "$@" "${config_file:+--config "$config_file"}" --connect-socket "$UZBL_EVENT_SOCKET"
+exec uzbl-core "$@" ${config_file:+--config "$config_file"} --connect-socket "$UZBL_EVENT_SOCKET"

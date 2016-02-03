@@ -76,8 +76,6 @@ uzbl_init (int *argc, char ***argv)
     /* Commandline arguments. */
     const GOptionEntry
     options[] = {
-        { "uri",               'u', 0, G_OPTION_ARG_STRING,       &uri,
-            "Uri to load at startup (equivalent to 'uzbl <uri>' after uzbl has launched)", "URI" },
         { "verbose",           'v', 0, G_OPTION_ARG_NONE,         &verbose,
             "Whether to print all messages or just errors.",                                                 NULL },
         { "named",             'n', 0, G_OPTION_ARG_STRING,       &uzbl.state.instance_name,
@@ -110,6 +108,14 @@ uzbl_init (int *argc, char ***argv)
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
     g_option_context_parse (context, argc, argv, NULL);
     g_option_context_free (context);
+
+    if (*argc >= 2) {
+        uri = (*argv)[1];
+    }
+
+    if (*argc >= 3) {
+        fprintf (stderr, "Extra arguments to %s ignored\n", (*argv)[0]);
+    }
 
 #ifdef USE_WEBKIT2
     if (!uzbl.state.web_extensions_directory) {

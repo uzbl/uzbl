@@ -50,7 +50,7 @@ set download_handler       spawn_sync @scripts_dir/download.sh
 
 #   What to do when a website wants to open a new window:
 # Open link in new window
-@on_event   NEW_WINDOW     spawn_sh 'uzbl-browser ${0:+-u "$0"}' %r
+@on_event   NEW_WINDOW     spawn_sh 'uzbl-browser ${0:-"$0"}' %r
 # Open in current window (also see the REQ_NEW_WINDOW event handler below)
 #@on_event   NEW_WINDOW     uri %s
 # Open in new tab. Other options are NEW_TAB_NEXT, NEW_BG_TAB and NEW_BG_TAB_NEXT.
@@ -416,12 +416,13 @@ set follow_hint_keys 0123456789
 @cbind  fi   = spawn @scripts_dir/go_input.sh
 
 # follow selected link:
+# NOTE "selected" refers to marked text (e.g. via mouse or search), not by simply "tabbing" to a certain link.
 #   fs -> emulate a click on the link
 #   Fs -> open in a new window
 #   fS -> take the url and navigate directly to it
 #   FS -> copy the url to the clipboard
 @cbind  fs  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followSelection('click') >\@
-@cbind  fS  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followSelection('newwindow') >\@
+@cbind  fS  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followSelection('newwindow') >\@ newwindow
 @cbind  Fs  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followSelection('returnuri') >\@ set
 @cbind  FS  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followSelection('returnuri') >\@ clipboard
 
@@ -431,7 +432,7 @@ set follow_hint_keys 0123456789
 #   fT -> take the url and navigate directly to it
 #   FT -> copy the url to the clipboard
 @cbind  ft*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followTextContent("%s", 'click') >\@
-@cbind  fT*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followTextContent("%s", 'newwindow') >\@
+@cbind  fT*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followTextContent("%s", 'newwindow') >\@ newwindow
 @cbind  Ft*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followTextContent("%s", 'returnuri') >\@ set
 @cbind  FT*  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followTextContent("%s", 'returnuri') >\@ clipboard
 
