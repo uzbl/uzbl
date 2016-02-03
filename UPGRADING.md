@@ -8,8 +8,8 @@ able to use the default configurations.
 
 ## COMMAND LINE
 
-For `uzbl-core`, a URI must now use the `--uri` flag; the first non-flag
-argument is no longer interpreted as a URI (this is to avoid confusion of what
+For `uzbl-core`, a URI must now be the first non-flag argument; the `--uri`
+flag is no longer interpreted as a URI (this is to avoid confusion of what
 should be loaded with `uzbl-core --uri page1 page2`).
 
 The `--embed` flag is now removed and the `--socket` flag has been renamed to

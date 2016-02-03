@@ -114,9 +114,9 @@ There are several interfaces to interact with Uzbl:
       echo <command> | socat - unix-connect:<socketfile>
 
 When `uzbl` forks a new instance (e.g., "open in new window") it will use the
-same command line arguments (e.g., the same `--config <file>`), except `--uri`
-and `--named`. If you made changes to the configuration at runtime, these are
-not passed on to the child.
+same command line arguments (e.g., the same `--config <file>`), except for
+`--named`. If you made changes to the configuration at runtime, these are not
+passed on to the child.
 
 #### WebKit1 vs. WebKit2
 
@@ -1404,9 +1404,6 @@ uzbl itself and will be emitted based on what is happening within uzbl-core.
 
 where `arguments` and `uri` are both optional. `arguments` can be:
 
-* `-u`, `--uri=URI`
-  - URI to load at startup. Equivalent to `uzbl-core <uri>` or `uri URI` after
-    `uzbl` has launched. This overrides the optional URI without the flag.
 * `-v`, `--verbose`
   - Sets `verbose` to be non-zero.
 * `-n`, `--named=NAME`
