@@ -273,9 +273,9 @@ set history_disable_easter_egg 1
 @cbind  ^            = scroll horizontal begin
 @cbind  $            = scroll horizontal end
 @cbind  <Space>      = scroll vertical end
-@cbind  G<Go To:>_   = scroll vertical %r!
+@cbind  G<"Go To":>_   = scroll vertical %r!
 # The first '_' is literal, so type '_G' to trigger this binding.
-@cbind  _G<Go To:>_  = scroll horizontal %r!
+@cbind  _G<"Go To":>_  = scroll horizontal %r!
 
 # Frozen binding
 @cbind  <Shift><Ctrl>F  = toggle frozen
@@ -368,7 +368,7 @@ set history_disable_easter_egg 1
 # Go to the page in clipboard
 @cbind  P   = spawn_sh 'echo "uri $(xclip -selection clipboard -o | sed s/\\\@/%40/g)" > "$UZBL_FIFO"'
 # Start a new uzbl instance from the page in primary selection
-@cbind  'p  = spawn_sh 'echo "event REQ_NEW_WINDOW $(xclip -o)" > "$UZBL_FIFO"'
+@cbind  "'p"  = spawn_sh 'echo "event REQ_NEW_WINDOW $(xclip -o)" > "$UZBL_FIFO"'
 # paste primary selection into keycmd at the cursor position
 @bind <Shift><Insert> = spawn_sh 'echo "event INJECT_KEYCMD $(xclip -o | sed s/\\\@/%40/g)" > "$UZBL_FIFO"'
 
@@ -471,9 +471,9 @@ set formfiller spawn @scripts_dir/formfiller.sh
 
 # Preset loading
 set preset event PRESET_TABS
-@cbind  gs<preset save:>_   = @preset save %s
-@cbind  glo<preset load:>_  = @preset load %s
-@cbind  gd<preset del:>_    = @preset del %s
+@cbind  gs<"preset save":>_   = @preset save %s
+@cbind  glo<"preset load":>_  = @preset load %s
+@cbind  gd<"preset del":>_    = @preset del %s
 # This doesn't work right now.
 #@cbind  gli                 = @preset list
 
