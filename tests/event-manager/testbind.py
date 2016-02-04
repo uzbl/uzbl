@@ -48,4 +48,17 @@ class BindPluginTest(unittest.TestCase):
         b.parse_mode_bind('%s %s = %s' % (modes, glob, handler))
         binds = b.bindlet.get_binds()
         self.assertEqual(len(binds), 1)
+        self.assertEqual(binds[0].glob, glob)
+        self.assertEqual(binds[0].commands, [handler])
+
+    def test_parse_nasty_bind(self):
+        b = BindPlugin[self.uzbl]
+        modes = 'global'
+        glob = '\'x'
+        handler = 'do \'something\''
+
+        b.parse_mode_bind('%s "%s" = %s' % (modes, glob, handler))
+        binds = b.bindlet.get_binds()
+        self.assertEqual(len(binds), 1)
+        self.assertEqual(binds[0].glob, glob)
         self.assertEqual(binds[0].commands, [handler])
