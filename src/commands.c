@@ -381,6 +381,9 @@ init_js_commands_api ()
 static GArray *
 split_quoted (const gchar *src, const gboolean unquote);
 
+static gchar *
+unescape (gchar *src);
+
 void
 parse_command_arguments (const gchar *args, GArray *argv, gboolean split)
 {
@@ -390,7 +393,7 @@ parse_command_arguments (const gchar *args, GArray *argv, gboolean split)
 
     if (!split) {
         /* Pass the parameters through in one chunk. */
-        uzbl_commands_args_append (argv, g_strdup (args));
+        uzbl_commands_args_append (argv, unescape (g_strdup (args)));
         return;
     }
 
@@ -558,6 +561,24 @@ split_quoted (const gchar *src, const gboolean unquote)
     g_string_free (str, TRUE);
 
     return argv;
+}
+
+static gchar *
+unescape (gchar *src)
+{
+    gchar *s = src;
+    gchar *p = src;
+
+    while(*s != '\0') {
+        if (*s == '\\') {
+            s++;
+        }
+        *(p++) = *(s++);
+    }
+
+    *p = '\0';
+
+    return src;
 }
 
 void

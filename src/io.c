@@ -685,37 +685,35 @@ send_buffered_event (gpointer event, gpointer data)
 gboolean
 line_buffer_io (GIOChannel *gio, GIOCondition condition, gpointer data)
 {
-    UZBL_UNUSED (condition);
-
     UzblIOBufferData *io_data = (UzblIOBufferData *)data;
 
     static const gsize BUFSZ = 256;
     gchar input[BUFSZ];
     gsize read;
     GError *error = NULL;
-    gboolean eof = FALSE;
 
-    do {
-        GIOStatus status = g_io_channel_read_chars (gio, input, BUFSZ, &read, &error);
+    if ((condition & G_IO_IN) == G_IO_IN) {
+        do {
+            GIOStatus status = g_io_channel_read_chars (gio, input, BUFSZ, &read, &error);
 
-        if (status == G_IO_STATUS_ERROR) {
-            g_warning ("Error buffering: %s", error->message);
-            g_clear_error (&error);
+            if (status == G_IO_STATUS_ERROR) {
+                g_warning ("Error buffering: %s", error->message);
+                g_clear_error (&error);
 
-            if (io_data->error_callback) {
-                io_data->error_callback(gio, io_data->data);
+                if (io_data->error_callback) {
+                    io_data->error_callback(gio, io_data->data);
+                }
+
+                return G_SOURCE_REMOVE;
             }
 
-            return G_SOURCE_REMOVE;
-        }
+            if (status == G_IO_STATUS_EOF) {
+                break;
+            }
 
-        if (status == G_IO_STATUS_EOF) {
-            eof = TRUE;
-            break;
-        }
-
-        g_string_append_len (io_data->buffer, input, read);
-    } while (read);
+            g_string_append_len (io_data->buffer, input, read);
+        } while (read);
+    }
 
     gboolean contin = G_SOURCE_CONTINUE;
 
@@ -735,7 +733,7 @@ line_buffer_io (GIOChannel *gio, GIOCondition condition, gpointer data)
         }
     } while (end);
 
-    if (eof) {
+    if ((condition & G_IO_HUP) == G_IO_HUP) {
         if (io_data->error_callback) {
             io_data->error_callback(gio, io_data->data);
         }

@@ -66,7 +66,7 @@ get_option () {
         ls "$basefile"* | sed -e 's!^'"$basefile"'\.!!' | $DMENU
         ;;
     1)
-        echo "$basefile"*
+        ls "$basefile"* | sed -e 's!^'"$basefile"'\.!!'
         ;;
     *)
         ;;
@@ -168,7 +168,7 @@ edit_profile () {
     if [ -e "$file" ]; then
         $UZBL_EDITOR "$file"
     else
-        new_profile "$profile"
+        new_profile "$file"
     fi
 }
 
@@ -188,7 +188,7 @@ load_profile () {
 
 one_time_profile ()
 {
-    local tmpfile="$( tmpfile "$UZBL_SOCKET_DIR/formfiller-${0##*/}-$$-XXXXXX" )"
+    local tmpfile="$( mktemp "$UZBL_SOCKET_DIR/formfiller-${0##*/}-$$-XXXXXX" )"
     readonly tmpfile
     trap 'rm -f "$tmpfile"' EXIT
 

@@ -177,19 +177,19 @@ ${LOBJ}: ${SRC} ${HEAD}
 	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -c src/$(@:.lo=.c) -o $@
 
 test-uzbl-core: uzbl-core
-	./uzbl-core --uri http://www.uzbl.org --verbose
+	./uzbl-core http://www.uzbl.org --verbose
 
 test-uzbl-browser: uzbl-browser
-	./bin/uzbl-browser --uri http://www.uzbl.org --verbose
+	./bin/uzbl-browser http://www.uzbl.org --verbose
 
 test-uzbl-core-sandbox: sandbox uzbl-core sandbox-install-uzbl-core sandbox-install-example-data
-	./sandbox/env.sh uzbl-core --uri http://www.uzbl.org --verbose
+	./sandbox/env.sh uzbl-core http://www.uzbl.org --verbose
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
 
 test-uzbl-browser-sandbox: sandbox uzbl-browser sandbox-install-uzbl-browser sandbox-install-example-data
 	./sandbox/env.sh ${PYTHON} -m uzbl.event_manager restart -navv &
-	./sandbox/env.sh uzbl-browser --uri http://www.uzbl.org --verbose
+	./sandbox/env.sh uzbl-browser http://www.uzbl.org --verbose
 	./sandbox/env.sh ${PYTHON} -m uzbl.event_manager stop -vv -o /dev/null
 	make DESTDIR=./sandbox uninstall
 	rm -rf ./sandbox/usr
@@ -283,7 +283,7 @@ install-uzbl-browser: uzbl-browser install-dirs install-uzbl-core install-event-
 	#$(INSTALL) -m644 README.browser.md $(DOCDIR)/README.browser.md
 	$(INSTALL) -m644 README.event-manager.md $(DOCDIR)/README.event-manager.md
 	$(INSTALL) -m644 README.scripts.md $(DOCDIR)/README.scripts.md
-	cp -rv examples $(SHAREDIR)/uzbl/examples
+	cp -rv examples $(SHAREDIR)/uzbl/
 	$(INSTALL) -d $(SHAREDIR)/icons/hicolor/32x32/apps/
 	$(INSTALL) -m644 icons/32x32.png $(SHAREDIR)/icons/hicolor/32x32/apps/uzbl.png
 	$(INSTALL) -d $(SHAREDIR)/icons/hicolor/48x48/apps/

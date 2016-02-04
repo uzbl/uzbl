@@ -49,7 +49,7 @@ case "$action" in
         $UZBL
     else
         for url in $urls; do
-            $UZBL --uri "$url" &
+            $UZBL "$url" &
         done
         mv "$UZBL_SESSION_FILE" "$UZBL_SESSION_FILE~"
     fi

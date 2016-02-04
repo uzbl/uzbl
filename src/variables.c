@@ -845,6 +845,7 @@ expand_impl_run_js:
             break;
         }
         case '\\':
+            g_string_append_c (buf, *p);
             ++p;
             if (!*p) {
                 break;
