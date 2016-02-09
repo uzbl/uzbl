@@ -54,6 +54,27 @@ selection, secondary selection, or clipboard through use of `primary`,
 known as `clipboard`.  The default behavior is now to copy to the
 actual clipboard, not the primary selection.
 
+## KEY BINDINGS
+
+`space` is no longer reported as a named special key but instead as a simple
+space character. Anything looking for `KEY_PRESS` event with `<space>` should
+be updated to look for `" "`
+
+The example event manager shipped with uzbl is stricter when parsing key bind
+events. In particular quote characters `['"]` are being interpreted.
+
+The bindings that was before written as
+```
+event MODE_BIND command <space> = spawn something.sh
+event MODE_BIND command 'p      = spawn other.sh
+```
+
+Is now written as
+```
+event MODE_BIND command " "  = spawn something.sh
+event MODE_BIND command "'p" = spawn other.sh
+```
+
 ## COMMANDS
 
 For 1.0, the commands in uzbl have been cleaned up. Some commands have
