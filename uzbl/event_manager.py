@@ -35,7 +35,6 @@ import time
 import weakref
 import re
 import errno
-import asyncore
 from collections import defaultdict
 from functools import partial
 from glob import glob
@@ -45,8 +44,9 @@ from select import select
 from signal import signal, SIGTERM, SIGINT, SIGKILL
 from traceback import format_exc
 
-from uzbl.net import Listener, Protocol
 from uzbl.core import Uzbl
+from uzbl.daemon import UzblEventDaemon, PluginDirectory
+
 
 def xdghome(key, default):
     '''Attempts to use the environ XDG_*_HOME paths if they exist otherwise
@@ -77,7 +77,6 @@ def get_exc():
 def expandpath(path):
     '''Expand and realpath paths.'''
     return os.path.realpath(os.path.expandvars(path))
-
 
 
 def daemonize():
@@ -132,148 +131,6 @@ def make_dirs(path):
 
     except OSError:
         logger.error('failed to create directories', exc_info=True)
-
-
-class PluginDirectory(object):
-    def __init__(self):
-        self.global_plugins = []
-        self.per_instance_plugins = []
-
-    def load(self):
-        ''' Import plugin files '''
-
-        import uzbl.plugins
-        import pkgutil
-
-        path = uzbl.plugins.__path__
-        for impr, name, ispkg in pkgutil.iter_modules(path, 'uzbl.plugins.'):
-            __import__(name, globals(), locals())
-
-        from uzbl.ext import global_registry, per_instance_registry
-        self.global_plugins.extend(global_registry)
-        self.per_instance_plugins.extend(per_instance_registry)
-
-
-class UzblEventDaemon(object):
-    def __init__(self, listener, plugind, opts, config):
-        listener.target = self
-        self.opts = opts
-        self.listener = listener
-        self.plugind = plugind
-        self.config = config
-        self._plugin_instances = []
-        self._quit = False
-
-        # Hold uzbl instances
-        # {child socket: Uzbl instance, ..}
-        self.uzbls = {}
-
-        self.plugins = {}
-
-        # Register that the event daemon server has started by creating the
-        # pid file.
-        make_pid_file(self.opts.pid_file)
-
-        # Register a function to clean up the socket and pid file on exit.
-        atexit.register(self.quit)
-
-        # Add signal handlers.
-        for sigint in [SIGTERM, SIGINT]:
-            signal(sigint, self.quit)
-
-        # Scan plugin directory for plugins
-        self.plugind.load()
-
-        # Initialise global plugins with instances in self.plugins
-        self.init_plugins()
-
-    def init_plugins(self):
-        '''Initialise event manager plugins.'''
-        self.plugins = {}
-
-        for plugin in self.plugind.global_plugins:
-            pinst = plugin(self)
-            self._plugin_instances.append(pinst)
-            self.plugins[plugin] = pinst
-
-    def run(self):
-        '''Main event daemon loop.'''
-
-        logger.debug('entering main loop')
-
-        if self.opts.daemon_mode:
-            # Daemonize the process
-            daemonize()
-
-            # Update the pid file
-            make_pid_file(self.opts.pid_file)
-
-        asyncore.loop()
-
-        # Clean up and exit
-        self.quit()
-
-        logger.debug('exiting main loop')
-
-    def add_instance(self, sock):
-        proto = Protocol(sock)
-        uzbl = Uzbl(self, proto, self.opts)
-        self.uzbls[sock] = uzbl
-        for plugin in self.plugins.values():
-            plugin.new_uzbl(uzbl)
-
-    def remove_instance(self, sock):
-        if sock in self.uzbls:
-            for plugin in self.plugins.values():
-                plugin.free_uzbl(self.uzbls[sock])
-            del self.uzbls[sock]
-        if not self.uzbls and self.opts.auto_close:
-            self.quit()
-
-    def close_server_socket(self):
-        '''Close and delete the server socket.'''
-
-        try:
-            self.listener.close()
-
-        except:
-            logger.error('failed to close server socket', exc_info=True)
-
-    def get_plugin_config(self, name):
-        if name not in self.config:
-            self.config.add_section(name)
-        return self.config[name]
-
-    def quit(self, sigint=None, *args):
-        '''Close all instance socket objects, server socket and delete the
-        pid file.'''
-
-        if sigint == SIGTERM:
-            logger.critical('caught SIGTERM, exiting')
-
-        elif sigint == SIGINT:
-            logger.critical('caught SIGINT, exiting')
-
-        elif not self._quit:
-            logger.debug('shutting down event manager')
-
-        self.close_server_socket()
-
-        for uzbl in list(self.uzbls.values()):
-            uzbl.close()
-
-        if not self._quit:
-            for plugin in self._plugin_instances:
-                plugin.cleanup()
-            del self.plugins  # to avoid cyclic links
-            del self._plugin_instances
-
-        del_pid_file(self.opts.pid_file)
-
-        if not self._quit:
-            logger.info('event manager shut down')
-            self._quit = True
-            raise SystemExit()
 
 
 def make_pid_file(pid_file):
@@ -371,7 +228,7 @@ def stop_action(opts, config):
     pid_file = opts.pid_file
     if not os.path.isfile(pid_file):
         logger.error('could not find running event manager with pid file %r',
-            pid_file)
+                     pid_file)
         return 1
 
     pid = get_pid(pid_file)
@@ -409,10 +266,36 @@ def start_action(opts, config):
         logger.info('no process with pid %d', pid)
         del_pid_file(pid_file)
 
-    listener = Listener(opts.server_socket)
-    listener.start()
     plugind = PluginDirectory()
-    daemon = UzblEventDaemon(listener, plugind, opts, config)
+    daemon = UzblEventDaemon(plugind, config,
+                             opts.server_socket,
+                             opts.auto_close,
+                             opts.print_events)
+
+    daemon.listen()
+
+    if opts.daemon_mode:
+        daemonize()
+
+    def signal_handler(sigint, frame):
+        if sigint == SIGTERM:
+            logger.critical('caught SIGTERM, exiting')
+
+        elif sigint == SIGINT:
+            logger.critical('caught SIGINT, exiting')
+
+        del_pid_file(opts.pid_file)
+        daemon.quit()
+
+    def exit():
+        del_pid_file(opts.pid_file)
+        daemon.quit()
+
+    for sigint in [SIGTERM, SIGINT]:
+        signal(sigint, daemon.quit)
+    atexit.register(daemon.quit)
+
+    make_pid_file(opts.pid_file)
     daemon.run()
 
     return 0
@@ -517,7 +400,8 @@ def main():
     else:
         opts.pid_file = expandpath(opts.pid_file)
 
-    config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+    config = configparser.ConfigParser(
+        interpolation=configparser.ExtendedInterpolation())
     config.read(opts.config)
 
     # Set default log file location

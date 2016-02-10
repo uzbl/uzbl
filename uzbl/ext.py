@@ -1,4 +1,4 @@
-from .event_manager import Uzbl
+from .core import Uzbl
 from six import add_metaclass
 import logging
 
