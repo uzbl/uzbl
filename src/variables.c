@@ -3311,10 +3311,7 @@ IMPLEMENT_GETTER (gchar *, editor_state)
     guint state;
     GString *state_str = g_string_new ("");
 
-    g_object_get (webkit_view (),
-        "editor-state", &editor_state,
-        NULL);
-
+    editor_state = webkit_web_view_get_editor_state (uzbl.gui.web_view);
     state = webkit_editor_state_get_typing_attributes (editor_state);
 
     if (!state) {
