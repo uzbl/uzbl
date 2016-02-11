@@ -375,7 +375,7 @@ class BindPlugin(PerInstancePlugin):
         modes = args[0].split(',')
         for i, g in enumerate(args[1:]):
             if g == '=':
-                glob = args.raw(1, i)
+                glob = ' '.join(args[1:i+1])
                 command = args.raw(i+2)
                 break
         else:
