@@ -1436,4 +1436,4 @@ filesystem, if it is, it will prepend `file://`, if not, it will prepend
 
 ### BUGS
 
-Please report new issues to the [Uzbl bugtracker](http://uzbl.org/bugs).
+Please report new issues to [Uzbl's issues page on github](https://github.com/uzbl/uzbl/issues)
