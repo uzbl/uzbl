@@ -3,3 +3,5 @@ hash.sh  export-subst
 *.h      diff=cpp
 *.py     diff=python
 *.html   diff=html
+
+*_TEMPLATE.md   export-ignore
