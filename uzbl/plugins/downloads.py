@@ -43,10 +43,11 @@ class Downloads(PerInstancePlugin):
         else:
             result = ''
 
+
         # and the result gets saved to an uzbl variable that can be used in
         # status_format
         config = Config[self.uzbl]
-        if config.get('downloads', '') != result:
+        if config.get('downloads', None) != result:
               config['downloads'] = result
 
     def download_started(self, args):
