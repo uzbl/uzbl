@@ -1963,6 +1963,12 @@ download_destination (GString *result, gpointer data)
         destination_uri = g_strdup (result->str);
     }
 
+
+    int len = strlen (destination_uri);
+    if (destination_uri[len - 1] == '\n') {
+        destination_uri[len - 1] = '\0';
+    }
+
     uzbl_events_send (DOWNLOAD_STARTED, NULL,
         TYPE_STR, destination_uri + strlen ("file://"),
         NULL);
