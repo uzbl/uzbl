@@ -2152,103 +2152,43 @@ IMPLEMENT_COMMAND (js)
     const gchar *where = argv_idx (argv, 1);
     const gchar *value = argv_idx (argv, 2);
 
-    JSGlobalContextRef jsctx;
+    UzblJSContext jsctx;
+    gchar *result_utf8 = NULL;
 
     if (!g_strcmp0 (context, "uzbl")) {
-        jsctx = uzbl.state.jscontext;
-
-        JSGlobalContextRetain (jsctx);
+        jsctx = JSCTX_UZBL;
     } else if (!g_strcmp0 (context, "clean")) {
-        jsctx = JSGlobalContextCreate (NULL);
+        jsctx = JSCTX_CLEAN;
     } else if (!g_strcmp0 (context, "page")) {
-        /* TODO: This doesn't seem to be the right thing... */
-        jsctx = webkit_web_view_get_javascript_global_context (uzbl.gui.web_view);
-
-        if (!jsctx) {
-            uzbl_debug ("Failed to get the javascript context\n");
-            return;
-        }
-
-        JSGlobalContextRetain (jsctx);
+        jsctx = JSCTX_PAGE;
     } else {
         uzbl_debug ("Unrecognized js context: %s\n", context);
         return;
     }
 
-    gchar *script = NULL;
-    gchar *path = NULL;
-
     if (!g_strcmp0 (where, "string")) {
-        script = g_strdup (value);
-        path = g_strdup ("(uzbl command)");
+        result_utf8 = uzbl_js_run_string (jsctx, value);
     } else if (!g_strcmp0 (where, "file")) {
+        GArray jsargs = {
+            .data = (gchar*)&g_array_index (argv, gchar*, 3),
+            .len = argv->len - 3
+        };
         const gchar *req_path = value;
-
+        gchar *path;
         if ((path = find_existing_file (req_path))) {
-            GIOChannel *chan = g_io_channel_new_file (path, "r", NULL);
-            if (chan) {
-                gsize len;
-                g_io_channel_read_to_end (chan, &script, &len, NULL);
-                g_io_channel_unref (chan);
-            }
-
-            uzbl_debug ("External JavaScript file loaded: %s\n", req_path);
-
-            guint i;
-            for (i = argv->len; 3 < i; --i) {
-                const gchar *arg = argv_idx (argv, i - 1);
-                gchar *needle = g_strdup_printf ("%%%d", i);
-
-                gchar *new_file_contents = str_replace (needle, arg ? arg : "", script);
-
-                g_free (needle);
-
-                g_free (script);
-                script = new_file_contents;
-            }
+            result_utf8 = uzbl_js_run_file (jsctx, value, &jsargs);
         }
     } else {
         uzbl_debug ("Unrecognized code source: %s\n", where);
-        goto js_exit;
     }
 
-    JSObjectRef globalobject = JSContextGetGlobalObject (jsctx);
-    JSValueRef js_exc = NULL;
-
-    JSStringRef js_script = JSStringCreateWithUTF8CString (script);
-    JSStringRef js_file = JSStringCreateWithUTF8CString (path);
-    JSValueRef js_result = JSEvaluateScript (jsctx, js_script, globalobject, js_file, 0, &js_exc);
-
-    if (result && js_result && !JSValueIsUndefined (jsctx, js_result)) {
-        gchar *result_utf8 = uzbl_js_to_string (jsctx, js_result);
-
-        if (g_strcmp0 (result_utf8, "[object Object]")) {
+    if (result_utf8) {
+        if (result && g_strcmp0 (result_utf8, "[object Object]")) {
             g_string_append (result, result_utf8);
         }
 
         g_free (result_utf8);
-    } else if (js_exc) {
-        JSObjectRef exc = JSValueToObject (jsctx, js_exc, NULL);
-
-        gchar *file = uzbl_js_to_string (jsctx, uzbl_js_get (jsctx, exc, "sourceURL"));
-        gchar *line = uzbl_js_to_string (jsctx, uzbl_js_get (jsctx, exc, "line"));
-        gchar *msg = uzbl_js_to_string (jsctx, exc);
-
-        uzbl_debug ("Exception occured while executing script:\n %s:%s: %s\n", file, line, msg);
-
-        g_free (file);
-        g_free (line);
-        g_free (msg);
     }
-
-    JSStringRelease (js_file);
-    JSStringRelease (js_script);
-
-    g_free (script);
-    g_free (path);
-
-js_exit:
-    JSGlobalContextRelease (jsctx);
 }
 
 static void
