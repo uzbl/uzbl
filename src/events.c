@@ -48,40 +48,7 @@ uzbl_events_send (UzblEventType type, const gchar *custom_event, ...)
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
 
-void
-send_event_sockets (GPtrArray *sockets, GString *msg)
-{
-    GError *err = NULL;
-    GIOStatus ret;
-    gsize len;
-    guint i = 0;
-
-    if (!msg) {
-        return;
-    }
-
-    while (i < sockets->len) {
-        GIOChannel *gio = g_ptr_array_index (sockets, i++);
-
-        if (!gio || !gio->is_writeable) {
-            continue;
-        }
-
-        ret = g_io_channel_write_chars (gio,
-            msg->str, msg->len,
-            &len, &err);
-
-        if (ret == G_IO_STATUS_ERROR) {
-            g_warning ("Error sending event to socket: %s", err->message);
-            g_clear_error (&err);
-        } else if (g_io_channel_flush (gio, &err) == G_IO_STATUS_ERROR) {
-            g_warning ("Error flushing: %s", err->message);
-            g_clear_error (&err);
-        }
-    }
-}
-
-void
+static void
 vuzbl_events_send (UzblEventType type, const gchar *custom_event, va_list vargs)
 {
     const gchar *event_name = custom_event ? custom_event : event_table[type];
