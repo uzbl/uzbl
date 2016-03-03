@@ -1280,9 +1280,7 @@ DECLARE_GETSET (int, enable_site_workarounds);
 DECLARE_GETTER (gchar *, inspected_uri);
 #endif
 DECLARE_GETTER (gchar *, geometry);
-#ifdef HAVE_PLUGIN_API
 DECLARE_GETTER (gchar *, plugin_list);
-#endif
 DECLARE_GETTER (int, is_online);
 #if WEBKIT_CHECK_VERSION (2, 7, 4)
 DECLARE_GETTER (int, is_playing_audio);
@@ -1550,9 +1548,7 @@ uzbl_variables_private_new (GHashTable *table)
         { "inspected_uri",                UZBL_C_FUNC (inspected_uri,                          STR)},
 #endif
         { "geometry",                     UZBL_C_FUNC (geometry,                               STR)},
-#ifdef HAVE_PLUGIN_API
         { "plugin_list",                  UZBL_C_FUNC (plugin_list,                            STR)},
-#endif
         { "is_online",                    UZBL_C_FUNC (is_online,                              INT)},
         { "web_extensions_directory",     UZBL_C_STRING (uzbl.state.web_extensions_directory)},
 #if WEBKIT_CHECK_VERSION (2, 7, 4)
@@ -2478,7 +2474,6 @@ IMPLEMENT_GETTER (gchar *, geometry)
     return g_string_free (buf, FALSE);
 }
 
-#ifdef HAVE_PLUGIN_API
 typedef WebKitPlugin WebKitWebPlugin;
 typedef WebKitMimeInfo WebKitWebPluginMIMEType;
 
@@ -2664,7 +2659,6 @@ mimetype_list_append (WebKitWebPluginMIMEType *mimetype, GString *list)
 
     g_string_append (list, "]}");
 }
-#endif
 
 IMPLEMENT_GETTER (int, WEBKIT_MAJOR)
 {

@@ -585,11 +585,6 @@ parse_command_from_file (const char *cmd)
 
 /* ========================= COMMAND TABLE ========================== */
 
-#if WEBKIT_CHECK_VERSION (1, 11, 4)
-#define HAVE_PLUGIN_API
-#endif
-#define HAVE_SECURITY
-
 #define DECLARE_COMMAND(cmd) \
     static void              \
     cmd_##cmd (GArray *argv, GString *result)
@@ -611,23 +606,15 @@ DECLARE_COMMAND (save);
 /* Cookie commands */
 DECLARE_COMMAND (cookie);
 
-#if WEBKIT_CHECK_VERSION (1, 9, 6)
-#define HAVE_SNAPSHOT
-#endif
-
 /* Display commands */
 DECLARE_COMMAND (scroll);
 DECLARE_COMMAND (zoom);
 DECLARE_COMMAND (hardcopy);
 DECLARE_COMMAND (geometry);
-#ifdef HAVE_SNAPSHOT
 DECLARE_COMMAND (snapshot);
-#endif
 
 /* Content commands */
-#ifdef HAVE_PLUGIN_API
 DECLARE_COMMAND (plugin);
-#endif
 DECLARE_COMMAND (cache);
 DECLARE_COMMAND (favicon);
 DECLARE_COMMAND (css);
@@ -643,9 +630,7 @@ DECLARE_COMMAND (menu);
 DECLARE_COMMAND (search);
 
 /* Security commands */
-#ifdef HAVE_SECURITY
 DECLARE_COMMAND (security);
-#endif
 DECLARE_COMMAND (dns);
 
 /* Inspector commands */
@@ -701,14 +686,10 @@ builtin_command_table[] = {
     { "zoom",                           cmd_zoom,                     TRUE,  TRUE  },
     { "hardcopy",                       cmd_hardcopy,                 TRUE,  TRUE  },
     { "geometry",                       cmd_geometry,                 TRUE,  TRUE  },
-#ifdef HAVE_SNAPSHOT
     { "snapshot",                       cmd_snapshot,                 TRUE,  TRUE  },
-#endif
 
     /* Content commands */
-#ifdef HAVE_PLUGIN_API
     { "plugin",                         cmd_plugin,                   TRUE,  TRUE  },
-#endif
     { "cache",                          cmd_cache,                    TRUE,  TRUE  },
     { "favicon",                        cmd_favicon,                  TRUE,  TRUE  },
     { "css",                            cmd_css,                      TRUE,  TRUE  },
@@ -724,9 +705,7 @@ builtin_command_table[] = {
     { "search",                         cmd_search,                   FALSE, TRUE  },
 
     /* Security commands */
-#ifdef HAVE_SECURITY
     { "security",                       cmd_security,                 TRUE,  TRUE  },
-#endif
     { "dns",                            cmd_dns,                      TRUE,  TRUE  },
 
     /* Inspector commands */
@@ -1186,7 +1165,6 @@ IMPLEMENT_COMMAND (geometry)
     }
 }
 
-#ifdef HAVE_SNAPSHOT
 IMPLEMENT_COMMAND (snapshot)
 {
     UZBL_UNUSED (result);
@@ -1258,11 +1236,9 @@ IMPLEMENT_COMMAND (snapshot)
 
     cairo_surface_destroy (surface);
 }
-#endif
 
 /* Content commands */
 
-#ifdef HAVE_PLUGIN_API
 
 IMPLEMENT_COMMAND (plugin)
 {
@@ -1284,7 +1260,6 @@ IMPLEMENT_COMMAND (plugin)
         uzbl_debug ("Unrecognized plugin command: %s\n", command);
     }
 }
-#endif
 
 
 IMPLEMENT_COMMAND (cache)
@@ -1992,7 +1967,6 @@ search_exit:
 
 /* Security commands */
 
-#ifdef HAVE_SECURITY
 IMPLEMENT_COMMAND (security)
 {
     ARG_CHECK (argv, 3);
@@ -2056,7 +2030,6 @@ IMPLEMENT_COMMAND (security)
         field->set (manager, scheme);
     }
 }
-#endif
 
 IMPLEMENT_COMMAND (dns)
 {
