@@ -106,10 +106,6 @@ set download_handler       spawn_sync @scripts_dir/download.sh
 # Custom CSS can be defined here, including link follower hint styles
 css add file://@config_home/style.css
 
-# If WebKits builtin authentication dialog should be used, if enabling remember
-# to disable external authentication handlers
-set enable_builtin_auth 0
-
 set forward_keys      0
 
 set show_status       1
@@ -167,13 +163,6 @@ set cookie_policy always
 
 # Turn off javascript support
 # set enable_scripts 0
-
-# === Proxy configuration  ===================================================
-
-# Direct uzbl at a proxy service (ex. privoxy)
-# The trailing '#privoxy' part is for displaying purposes only (see proxy_section).
-# Apparently it is ignored as far as actual operation is concerned.
-# set proxy_url http://localhost:8118#privoxy
 
 # === Key binding configuration ==============================================
 # --- Internal modmapping and ignoring ---------------------------------------
@@ -522,8 +511,6 @@ set default_mode command
 
 # === SSL related configuration ==============================================
 
-# Set it to certificates store of your distribution, or your own CAfile.
-set ssl_ca_file /etc/ssl/certs/ca-bundle.crt
 set ssl_policy fail
 # Command to toggle ssl_policy value:
 @cbind  !ssl = chain 'toggle ssl_policy fail ignore' 'reload'
