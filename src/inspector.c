@@ -38,12 +38,9 @@ uzbl_inspector_init ()
 
     g_object_connect (G_OBJECT (uzbl.gui.inspector),
         "signal::bring-to-front",        G_CALLBACK (inspector_create_cb),              NULL,
-        "signal::closed",
-                                         G_CALLBACK (inspector_close_window_cb),        NULL,
-        "signal::attach",
-                                         G_CALLBACK (inspector_attach_window_cb),       NULL,
-        "signal::detach",
-                                         G_CALLBACK (inspector_detach_window_cb),       NULL,
+        "signal::closed",                G_CALLBACK (inspector_close_window_cb),        NULL,
+        "signal::attach",                G_CALLBACK (inspector_attach_window_cb),       NULL,
+        "signal::detach",                G_CALLBACK (inspector_detach_window_cb),       NULL,
         "signal::notify::inspected-uri", G_CALLBACK (inspector_uri_changed_cb),         NULL,
         NULL);
 }
@@ -74,7 +71,6 @@ inspector_show_window_cb (WebKitWebInspector *inspector, gpointer data)
     UZBL_UNUSED (inspector);
     UZBL_UNUSED (data);
 
-
     uzbl_events_send (WEBINSPECTOR, NULL,
         TYPE_NAME, "open",
         NULL);
@@ -87,7 +83,6 @@ inspector_close_window_cb (WebKitWebInspector *inspector, gpointer data)
 {
     UZBL_UNUSED (inspector);
     UZBL_UNUSED (data);
-
 
     uzbl_events_send (WEBINSPECTOR, NULL,
         TYPE_NAME, "close",

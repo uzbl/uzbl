@@ -1420,13 +1420,9 @@ uzbl_variables_private_new (GHashTable *table)
         /* Page variables */
         { "forward_keys",                 UZBL_V_INT (priv->forward_keys,                      NULL)},
         { "useragent",                    UZBL_V_FUNC (useragent,                              STR)},
-        { "accept_languages",
-                                          UZBL_V_STRING (priv->accept_languages,               set_accept_languages)
-                                          },
+        { "accept_languages",             UZBL_V_STRING (priv->accept_languages,               set_accept_languages)},
         { "zoom_level",                   UZBL_V_FUNC (zoom_level,                             DOUBLE)},
-        { "zoom_step",
-                                          UZBL_V_DOUBLE (priv->zoom_step,                      set_zoom_step)
-                                          },
+        { "zoom_step",                    UZBL_V_DOUBLE (priv->zoom_step,                      set_zoom_step)},
 #ifdef HAVE_ZOOM_TEXT_API
         { "zoom_text_only",               UZBL_V_FUNC (zoom_text_only,                         INT)},
 #endif

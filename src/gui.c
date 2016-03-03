@@ -319,8 +319,7 @@ web_view_init ()
         "signal::mouse-target-changed",                 G_CALLBACK (mouse_target_cb),          NULL,
         /* Page metadata events */
         "signal::notify::title",                        G_CALLBACK (title_change_cb),          NULL,
-        "signal::notify::estimated-load-progress",
-                                                        G_CALLBACK (progress_change_cb),       NULL,
+        "signal::notify::estimated-load-progress",      G_CALLBACK (progress_change_cb),       NULL,
         "signal::notify::uri",                          G_CALLBACK (uri_change_cb),            NULL,
         /* Navigation events */
         "signal::decide-policy",                        G_CALLBACK (decide_policy_cb),         NULL,
@@ -669,9 +668,7 @@ progress_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
     UZBL_UNUSED (param_spec);
     UZBL_UNUSED (data);
 
-    int progress = 100 *
-        webkit_web_view_get_estimated_load_progress (view)
-        ;
+    int progress = 100 * webkit_web_view_get_estimated_load_progress (view);
 
     uzbl_events_send (LOAD_PROGRESS, NULL,
         TYPE_INT, progress,
@@ -2375,9 +2372,7 @@ gboolean
 decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename, gpointer data)
 {
     /* Get the URI being downloaded. */
-    const gchar *uri =
-        webkit_download_get_destination (download)
-        ;
+    const gchar *uri = webkit_download_get_destination (download);
     const gchar *user_destination = (const gchar *)data;
 
     uzbl_debug ("Download requested -> %s\n", uri);
@@ -2424,9 +2419,7 @@ download_finished_cb (WebKitDownload *download, gpointer data)
 {
     UZBL_UNUSED (data);
 
-    const gchar *dest_uri =
-        webkit_download_get_destination (download)
-        ;
+    const gchar *dest_uri = webkit_download_get_destination (download);
     const gchar *dest_path = dest_uri + strlen ("file://");
 
     uzbl_events_send (DOWNLOAD_COMPLETE, NULL,
@@ -2580,16 +2573,12 @@ void
 download_update (WebKitDownload *download)
 {
     gdouble progress;
-    const gchar *property =
-        "estimated-progress"
-        ;
+    const gchar *property ="estimated-progress";
     g_object_get (download,
         property, &progress,
         NULL);
 
-    const gchar *dest_uri =
-        webkit_download_get_destination (download)
-        ;
+    const gchar *dest_uri = webkit_download_get_destination (download);
     const gchar *dest_path = dest_uri + strlen ("file://");
 
     uzbl_events_send (DOWNLOAD_PROGRESS, NULL,
