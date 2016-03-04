@@ -1075,7 +1075,10 @@ called with special arguments:
   3. `frame`
     - The name of the frame requesting the resource (unavailable in WebKit2).
   4. `redirect`
-    - Whether the request is a redirect or not (`unknown` in WebKit2)
+    - Whether the request is a redirect or not (`unknown` in WebKit2).
+  5. `method`
+    - The HTTP method used to fetch the resource. (`unknown` in WebKit2 <
+      2.11.3).
 
 * authentication handler
 
@@ -1243,7 +1246,7 @@ uzbl itself and will be emitted based on what is happening within uzbl-core.
 * `TLS_ERROR <HOST> <FLAGS> <INFO>`
   - The event sent if a `tls_error_handler` is not valid. See its documentation
     for the argument formats.
-* `REQUEST_STARTING <URI>`
+* `REQUEST_STARTING <URI> <METHOD>`
   - Sent when a request has been sent to the server.
 * `REQUEST_FINISHED <URI>`
   - Sent when a request has completed.
