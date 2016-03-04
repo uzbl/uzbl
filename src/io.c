@@ -113,25 +113,24 @@ uzbl_io_free ()
     uzbl.io = NULL;
 }
 
-typedef gboolean (*UzblIODataCallback)(GIOStream *stream, GString* line, gpointer data);
+typedef gboolean (*UzblIODataCallback)(GIOStream *stream, const gchar* line, gpointer data);
 typedef void (*UzblIODataErrorCallback)(GIOStream *stream, gpointer data);
 static void
 add_buffered_cmd_source (GIOStream *stream, const gchar *name, UzblIODataCallback callback,
                          UzblIODataErrorCallback error_callback, gpointer data);
 static gboolean
-control_stdin (GIOStream *stream, GString *line, gpointer data);
+control_command_stream (GIOStream *stream, const gchar *input, gpointer data);
 
 void
 uzbl_io_init_stdin ()
 {
     GInputStream *input = g_unix_input_stream_new (STDIN_FILENO, TRUE);
-    GIOStream *stream = g_simple_io_stream_new (input, NULL);
+    GOutputStream *output = g_unix_output_stream_new (STDOUT_FILENO, TRUE);
+    GIOStream *stream = g_simple_io_stream_new (input, output);
     add_buffered_cmd_source (stream, "Uzbl stdin watcher",
-                             control_stdin, NULL, NULL);
+                             control_command_stream, NULL, NULL);
 }
 
-static gboolean
-control_client_socket (GIOStream *stream, GString *line, gpointer data);
 static void
 close_client_socket (GIOStream *stream, gpointer data);
 static void
@@ -156,7 +155,7 @@ uzbl_io_init_connect_socket (const gchar *socket_path)
     }
 
     add_buffered_cmd_source (G_IO_STREAM (con), "Uzbl connect socket",
-                             control_client_socket,
+                             control_command_stream,
                              close_client_socket,
                              uzbl.io->connect_sockets);
     g_ptr_array_add (uzbl.io->connect_sockets, G_IO_STREAM (con));
@@ -468,43 +467,29 @@ read_line_cb (GObject *source, GAsyncResult *res, gpointer data)
         }
     }
 
-    GString *s = g_string_new (line);
-    io_data->callback (io_data->stream, s, data);
+    io_data->callback (io_data->stream, line, data);
+    g_free (line);
+
     g_data_input_stream_read_line_async (ds, G_PRIORITY_DEFAULT, NULL,
                                          read_line_cb, data);
-    g_string_free (s, FALSE);
 }
 
 static void
 schedule_io_input (gchar *line, UzblIOCallback callback, gpointer data);
-static void
-write_stdout (GString *result, gpointer data);
-
-gboolean
-control_stdin (GIOStream *stream, GString *input, gpointer data)
-{
-    UZBL_UNUSED (stream);
-    UZBL_UNUSED (data);
-
-    gchar *ctl_line = g_strdup (input->str);
-    schedule_io_input (ctl_line, write_stdout, NULL);
-
-    return G_SOURCE_CONTINUE;
-}
 
 static void
-write_socket (GString *result, gpointer data);
+write_result_to_stream (GString *result, gpointer data);
 
 gboolean
-control_client_socket (GIOStream *stream, GString *input, gpointer data)
+control_command_stream (GIOStream *stream, const gchar *input, gpointer data)
 {
     UZBL_UNUSED (data);
 
-    gchar *ctl_line = g_strdup (input->str);
     g_object_ref (G_OBJECT (stream));
-    schedule_io_input (ctl_line, write_socket, stream);
+    gchar *ctl_line = g_strdup (input);
+    schedule_io_input (ctl_line, write_result_to_stream, stream);
 
-    return G_SOURCE_CONTINUE;
+    return TRUE;
 }
 
 void
@@ -552,12 +537,12 @@ buffer_event (const gchar *message)
 }
 
 static void
-write_to_socket (GIOStream *stream, const gchar *message);
+write_to_stream (GIOStream *stream, const gchar *message);
 
 void
 send_event_sockets (GPtrArray *sockets, const gchar *message)
 {
-    g_ptr_array_foreach (sockets, (GFunc)write_to_socket, (gpointer)message);
+    g_ptr_array_foreach (sockets, (GFunc)write_to_stream, (gpointer)message);
 }
 
 gchar *
@@ -624,36 +609,37 @@ create_dir (const gchar *dir)
     return EXIT_SUCCESS;
 }
 
-static gboolean
-control_fifo (GIOStream *stream, GString *input, gpointer data);
-
 gboolean
 attach_fifo (const gchar *path)
 {
     GError *error = NULL;
     GFile *file = g_file_new_for_path (path);
+
     /* We don't really need to write to the file, but if we open the file as
      * 'r' we will block here, waiting for a writer to open the file. */
     GFileIOStream *stream = g_file_open_readwrite (file, NULL, &error);
-
-    if (stream) {
-        add_buffered_cmd_source (G_IO_STREAM (stream), "Uzbl main fifo",
-                                 control_fifo, NULL, NULL);
-        uzbl.io->fifo_path = g_strdup (path);
-        uzbl_events_send (FIFO_SET, NULL,
-                          TYPE_STR, uzbl.io->fifo_path,
-                          NULL);
-        /* TODO: Collect all environment settings into one place. */
-        g_setenv ("UZBL_FIFO", uzbl.io->fifo_path, TRUE);
-
-        return TRUE;
-
-    } else {
+    if (!stream) {
         g_warning ("attach_fifo: can't open: %s\n", error->message);
         g_error_free (error);
+        return FALSE;
     }
 
-    return FALSE;
+    GOutputStream *os = g_io_stream_get_output_stream (G_IO_STREAM (stream));
+    if (!g_output_stream_close (os, NULL, &error)) {
+        g_warning ("Failed to close write end of fifo: %s\n", error->message);
+        g_error_free (error);
+        return FALSE;
+    }
+
+    add_buffered_cmd_source (G_IO_STREAM (stream), "Uzbl main fifo",
+                             control_command_stream, NULL, NULL);
+    uzbl.io->fifo_path = g_strdup (path);
+    uzbl_events_send (FIFO_SET, NULL,
+                      TYPE_STR, uzbl.io->fifo_path,
+                      NULL);
+    /* TODO: Collect all environment settings into one place. */
+    g_setenv ("UZBL_FIFO", uzbl.io->fifo_path, TRUE);
+    return TRUE;
 }
 
 static void
@@ -750,21 +736,12 @@ schedule_io_input (gchar *line, UzblIOCallback callback, gpointer data)
 }
 
 void
-write_stdout (GString *result, gpointer data)
-{
-    UZBL_UNUSED (data);
-
-    fprintf (stdout, "%s\n", result->str);
-    fflush (stdout);
-}
-
-void
-write_socket (GString *result, gpointer data)
+write_result_to_stream (GString *result, gpointer data)
 {
     GIOStream *stream = G_IO_STREAM (data);
 
     g_string_append_c (result, '\n');
-    write_to_socket (stream, result->str);
+    write_to_stream (stream, result->str);
 
     g_object_unref (G_OBJECT (stream));
 }
@@ -775,15 +752,19 @@ send_buffered_event_to_socket (gpointer event, gpointer data)
     const gchar *message = (const gchar *)event;
     GIOStream *stream = G_IO_STREAM (data);
 
-    write_to_socket (stream, message);
+    write_to_stream (stream, message);
 }
 
 void
-write_to_socket (GIOStream *stream, const gchar *message)
+write_to_stream (GIOStream *stream, const gchar *message)
 {
     GError *error = NULL;
     gssize ret;
     GOutputStream *output = g_io_stream_get_output_stream (stream);
+
+    if (!output || g_output_stream_is_closed (output)) {
+        return;
+    }
 
     ret = g_output_stream_write (output, message, strlen (message),
                                  NULL, &error);
@@ -797,18 +778,6 @@ write_to_socket (GIOStream *stream, const gchar *message)
             g_clear_error (&error);
         }
     }
-}
-
-gboolean
-control_fifo (GIOStream *stream, GString *input, gpointer data)
-{
-    UZBL_UNUSED (stream);
-    UZBL_UNUSED (data);
-
-    gchar *ctl_line = g_strdup (input->str);
-    schedule_io_input (ctl_line, NULL, NULL);
-
-    return G_SOURCE_CONTINUE;
 }
 
 void
@@ -827,7 +796,7 @@ accept_socket_cb (GObject *source, GAsyncResult *res, gpointer data)
     }
 
     add_buffered_cmd_source (G_IO_STREAM (con), "Uzbl control socket",
-                             control_client_socket, close_client_socket,
+                             control_command_stream, close_client_socket,
                              uzbl.io->client_sockets);
     g_ptr_array_add (uzbl.io->client_sockets, G_IO_STREAM (con));
 
