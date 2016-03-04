@@ -29,6 +29,7 @@
  *   - Handle enter-fullscreen signal?
  *   - Handle context-menu-dismissed signal?
  *   - Look into WebKitWindowProperties.
+ *   - Expose webkit_web_view_try_close
  */
 
 struct _UzblGui {

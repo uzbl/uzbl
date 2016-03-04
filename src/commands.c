@@ -25,6 +25,7 @@
  *   - Add "edit" command for cut/copy/paste/select/etc (also WK1).
  *   - Add dumping the source (see WebKitWebResource).
  *   - Add resource management commands (also WK1?).
+ *   - Use webkit_web_view_{get,restore}_session_state.
  */
 
 struct _UzblCommands {
