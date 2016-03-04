@@ -1049,24 +1049,8 @@ expand_type (const gchar *str)
 
 /* ======================== VARIABLES  TABLE ======================== */
 
-#if WEBKIT_CHECK_VERSION (1, 11, 4)
-#define HAVE_PLUGIN_API
-#endif
-
-#if WEBKIT_CHECK_VERSION (1, 7, 91)
-#define HAVE_ZOOM_TEXT_API
-#endif
-
 #if !WEBKIT_CHECK_VERSION (2, 5, 1)
 #define HAVE_PAGE_VIEW_MODE
-#endif
-
-#if WEBKIT_CHECK_VERSION (2, 3, 2)
-#define HAVE_ENABLE_MEDIA_STREAM_API
-#endif
-
-#if WEBKIT_CHECK_VERSION (2, 3, 3)
-#define HAVE_SPATIAL_NAVIGATION
 #endif
 
 #if WEBKIT_CHECK_VERSION (2, 7, 2)
@@ -1129,11 +1113,6 @@ DECLARE_GETSET (int, enable_compositing_debugging);
 DECLARE_GETSET (gchar *, background_color);
 #endif
 
-/* Customization */
-#if !WEBKIT_CHECK_VERSION (1, 9, 0)
-DECLARE_GETSET (int, default_context_menu);
-#endif
-
 /* Printing variables */
 DECLARE_GETSET (int, print_backgrounds);
 
@@ -1148,9 +1127,7 @@ DECLARE_GETSET (int, enable_xss_auditing);
 /*DECLARE_GETSET (gchar *, cookie_location);*/
 /*DECLARE_GETSET (gchar *, cookie_store);*/
 DECLARE_GETSET (gchar *, cookie_policy);
-#if WEBKIT_CHECK_VERSION (1, 3, 13)
 DECLARE_GETSET (int, enable_dns_prefetch);
-#endif
 #if WEBKIT_CHECK_VERSION (2, 9, 1)
 DECLARE_GETSET (int, allow_file_to_file_access);
 #endif
@@ -1160,22 +1137,14 @@ DECLARE_GETSET (gchar *, useragent);
 DECLARE_SETTER (gchar *, accept_languages);
 DECLARE_GETSET (gdouble, zoom_level);
 DECLARE_SETTER (gdouble, zoom_step);
-#ifdef HAVE_ZOOM_TEXT_API
 DECLARE_GETSET (int, zoom_text_only);
-#endif
 DECLARE_GETSET (int, caret_browsing);
-#if WEBKIT_CHECK_VERSION (1, 3, 5)
 DECLARE_GETSET (int, enable_frame_flattening);
-#endif
-#if WEBKIT_CHECK_VERSION (1, 9, 0)
 DECLARE_GETSET (int, enable_smooth_scrolling);
-#endif
 #ifdef HAVE_PAGE_VIEW_MODE
 DECLARE_GETSET (gchar *, page_view_mode);
 #endif
-#if WEBKIT_CHECK_VERSION (1, 3, 8)
 DECLARE_GETSET (int, enable_fullscreen);
-#endif
 #ifdef HAVE_EDITABLE
 DECLARE_GETSET (int, editable);
 #endif
@@ -1184,12 +1153,8 @@ DECLARE_GETSET (int, editable);
 DECLARE_GETSET (int, enable_scripts);
 DECLARE_GETSET (int, javascript_windows);
 DECLARE_GETSET (int, javascript_modal_dialogs);
-#if WEBKIT_CHECK_VERSION (1, 3, 0)
 DECLARE_GETSET (int, javascript_clipboard);
-#endif
-#if WEBKIT_CHECK_VERSION (2, 1, 1)
 DECLARE_GETSET (int, javascript_console_to_stdout);
-#endif
 
 /* Image variables */
 DECLARE_GETSET (int, autoload_images);
@@ -1201,9 +1166,7 @@ DECLARE_GETSET (gchar *, spellcheck_languages);
 
 /* Form variables */
 DECLARE_GETSET (int, resizable_text_areas);
-#ifdef HAVE_SPATIAL_NAVIGATION
 DECLARE_GETSET (int, enable_spatial_navigation);
-#endif
 DECLARE_GETSET (int, enable_tab_cycle);
 
 /* Text variables */
@@ -1226,25 +1189,13 @@ DECLARE_GETSET (int, monospace_size);
 /* Feature variables */
 DECLARE_GETSET (int, enable_plugins);
 DECLARE_GETSET (int, enable_java_applet);
-#if WEBKIT_CHECK_VERSION (1, 3, 14)
 DECLARE_GETSET (int, enable_webgl);
-#endif
-#if WEBKIT_CHECK_VERSION (1, 7, 5)
 DECLARE_GETSET (int, enable_webaudio);
-#endif
-#if WEBKIT_CHECK_VERSION (2, 1, 1)
 DECLARE_GETSET (int, enable_2d_acceleration);
-#endif
-#if WEBKIT_CHECK_VERSION (1, 9, 3)
 DECLARE_GETSET (int, enable_inline_media);
 DECLARE_GETSET (int, require_click_to_play);
-#endif
-#ifdef HAVE_ENABLE_MEDIA_STREAM_API
 DECLARE_GETSET (int, enable_media_stream);
-#endif
-#if WEBKIT_CHECK_VERSION (2, 3, 3)
 DECLARE_GETSET (int, enable_media_source);
-#endif
 
 /* HTML5 Database variables */
 DECLARE_GETSET (int, enable_database);
@@ -1254,9 +1205,7 @@ DECLARE_GETSET (int, enable_offline_app_cache);
 #ifdef HAVE_LOCAL_STORAGE_PATH
 DECLARE_GETSET (gchar *, local_storage_path);
 #endif
-#if WEBKIT_CHECK_VERSION (1, 11, 92)
 DECLARE_SETTER (gchar *, disk_cache_directory);
-#endif
 #if WEBKIT_CHECK_VERSION (2, 9, 2)
 DECLARE_GETSET (gchar *, indexed_db_directory);
 #endif
@@ -1272,13 +1221,9 @@ DECLARE_GETSET (gchar *, websql_directory);
 DECLARE_GETSET (int, enable_site_workarounds);
 
 /* Constants */
-#if WEBKIT_CHECK_VERSION (1, 3, 17)
 DECLARE_GETTER (gchar *, inspected_uri);
-#endif
 DECLARE_GETTER (gchar *, geometry);
-#ifdef HAVE_PLUGIN_API
 DECLARE_GETTER (gchar *, plugin_list);
-#endif
 DECLARE_GETTER (int, is_online);
 #if WEBKIT_CHECK_VERSION (2, 7, 4)
 DECLARE_GETTER (int, is_playing_audio);
@@ -1322,11 +1267,6 @@ struct _UzblVariablesPrivate {
     GtkCssProvider *status_background_provider;
 #endif
 
-    /* Customization */
-#if WEBKIT_CHECK_VERSION (1, 9, 0)
-    gboolean default_context_menu;
-#endif
-
     /* Security variables */
     gboolean permissive;
 
@@ -1338,9 +1278,8 @@ struct _UzblVariablesPrivate {
     /* HTML5 Database variables */
 #if WEBKIT_CHECK_VERSION (2, 9, 4)
     WebKitWebsiteDataManager *data_manager;
-#elif WEBKIT_CHECK_VERSION (1, 11, 92)
-    gchar *disk_cache_directory;
 #endif
+    gchar *disk_cache_directory;
 };
 
 typedef struct {
@@ -1380,15 +1319,6 @@ uzbl_variables_private_new (GHashTable *table)
         { "background_color",             UZBL_V_FUNC (background_color,                       STR)},
 #endif
 
-        /* Customization */
-        { "default_context_menu",
-#if WEBKIT_CHECK_VERSION (1, 9, 0)
-                                          UZBL_V_INT (priv->default_context_menu,              NULL)
-#else
-                                          UZBL_V_FUNC (default_context_menu,                   INT)
-#endif
-                                          },
-
         /* Printing variables */
         { "print_backgrounds",            UZBL_V_FUNC (print_backgrounds,                      INT)},
 
@@ -1402,9 +1332,7 @@ uzbl_variables_private_new (GHashTable *table)
         { "enable_hyperlink_auditing",    UZBL_V_FUNC (enable_hyperlink_auditing,              INT)},
         { "enable_xss_auditing",          UZBL_V_FUNC (enable_xss_auditing,                    INT)},
         { "cookie_policy",                UZBL_V_FUNC (cookie_policy,                          STR)},
-#if WEBKIT_CHECK_VERSION (1, 3, 13)
         { "enable_dns_prefetch",          UZBL_V_FUNC (enable_dns_prefetch,                    INT)},
-#endif
 #if WEBKIT_CHECK_VERSION (2, 9, 1)
         { "allow_file_to_file_access",    UZBL_V_FUNC (allow_file_to_file_access,              INT)},
 #endif
@@ -1415,22 +1343,14 @@ uzbl_variables_private_new (GHashTable *table)
         { "accept_languages",             UZBL_V_STRING (priv->accept_languages,               set_accept_languages)},
         { "zoom_level",                   UZBL_V_FUNC (zoom_level,                             DOUBLE)},
         { "zoom_step",                    UZBL_V_DOUBLE (priv->zoom_step,                      set_zoom_step)},
-#ifdef HAVE_ZOOM_TEXT_API
         { "zoom_text_only",               UZBL_V_FUNC (zoom_text_only,                         INT)},
-#endif
         { "caret_browsing",               UZBL_V_FUNC (caret_browsing,                         INT)},
-#if WEBKIT_CHECK_VERSION (1, 3, 5)
         { "enable_frame_flattening",      UZBL_V_FUNC (enable_frame_flattening,                INT)},
-#endif
-#if WEBKIT_CHECK_VERSION (1, 9, 0)
         { "enable_smooth_scrolling",      UZBL_V_FUNC (enable_smooth_scrolling,                INT)},
-#endif
 #ifdef HAVE_PAGE_VIEW_MODE
         { "page_view_mode",               UZBL_V_FUNC (page_view_mode,                         STR)},
 #endif
-#if WEBKIT_CHECK_VERSION (1, 3, 8)
         { "enable_fullscreen",            UZBL_V_FUNC (enable_fullscreen,                      INT)},
-#endif
 #ifdef HAVE_EDITABLE
         { "editable",                     UZBL_V_FUNC (editable,                               INT)},
 #endif
@@ -1439,12 +1359,8 @@ uzbl_variables_private_new (GHashTable *table)
         { "enable_scripts",               UZBL_V_FUNC (enable_scripts,                         INT)},
         { "javascript_windows",           UZBL_V_FUNC (javascript_windows,                     INT)},
         { "javascript_modal_dialogs",     UZBL_V_FUNC (javascript_modal_dialogs,               INT)},
-#if WEBKIT_CHECK_VERSION (1, 3, 0)
         { "javascript_clipboard",         UZBL_V_FUNC (javascript_clipboard,                   INT)},
-#endif
-#if WEBKIT_CHECK_VERSION (2, 1, 1)
         { "javascript_console_to_stdout", UZBL_V_FUNC (javascript_console_to_stdout,           INT)},
-#endif
 
         /* Image variables */
         { "autoload_images",              UZBL_V_FUNC (autoload_images,                        INT)},
@@ -1456,9 +1372,7 @@ uzbl_variables_private_new (GHashTable *table)
 
         /* Form variables */
         { "resizable_text_areas",         UZBL_V_FUNC (resizable_text_areas,                   INT)},
-#ifdef HAVE_SPATIAL_NAVIGATION
         { "enable_spatial_navigation",    UZBL_V_FUNC (enable_spatial_navigation,              INT)},
-#endif
         { "enable_tab_cycle",             UZBL_V_FUNC (enable_tab_cycle,                       INT)},
 
         /* Text variables */
@@ -1481,25 +1395,13 @@ uzbl_variables_private_new (GHashTable *table)
         /* Feature variables */
         { "enable_plugins",               UZBL_V_FUNC (enable_plugins,                         INT)},
         { "enable_java_applet",           UZBL_V_FUNC (enable_java_applet,                     INT)},
-#if WEBKIT_CHECK_VERSION (1, 3, 14)
         { "enable_webgl",                 UZBL_V_FUNC (enable_webgl,                           INT)},
-#endif
-#if WEBKIT_CHECK_VERSION (1, 7, 5)
         { "enable_webaudio",              UZBL_V_FUNC (enable_webaudio,                        INT)},
-#endif
-#if WEBKIT_CHECK_VERSION (2, 1, 1)
         { "enable_2d_acceleration",       UZBL_V_FUNC (enable_2d_acceleration,                 INT)},
-#endif
-#if WEBKIT_CHECK_VERSION (1, 9, 3)
         { "enable_inline_media",          UZBL_V_FUNC (enable_inline_media,                    INT)},
         { "require_click_to_play",        UZBL_V_FUNC (require_click_to_play,                  INT)},
-#endif
-#ifdef HAVE_ENABLE_MEDIA_STREAM_API
         { "enable_media_stream",          UZBL_V_FUNC (enable_media_stream,                    INT)},
-#endif
-#if WEBKIT_CHECK_VERSION (2, 3, 3)
         { "enable_media_source",          UZBL_V_FUNC (enable_media_source,                    INT)},
-#endif
 
         /* HTML5 Database variables */
         { "enable_database",              UZBL_V_FUNC (enable_database,                        INT)},
@@ -1509,7 +1411,6 @@ uzbl_variables_private_new (GHashTable *table)
 #ifdef HAVE_LOCAL_STORAGE_PATH
         { "local_storage_path",           UZBL_V_FUNC (local_storage_path,                     STR)},
 #endif
-#if WEBKIT_CHECK_VERSION (1, 11, 92)
         { "disk_cache_directory",
 #if WEBKIT_CHECK_VERSION (2, 9, 4)
                                           UZBL_V_FUNC (disk_cache_directory,                   STR)
@@ -1517,7 +1418,6 @@ uzbl_variables_private_new (GHashTable *table)
                                           UZBL_V_STRING (priv->disk_cache_directory,           set_disk_cache_directory)
 #endif
                                           },
-#endif
 #if WEBKIT_CHECK_VERSION (2, 9, 2)
         { "indexed_db_directory",         UZBL_V_FUNC (indexed_db_directory,                   STR)},
 #endif
@@ -1532,13 +1432,9 @@ uzbl_variables_private_new (GHashTable *table)
         { "enable_site_workarounds",      UZBL_V_FUNC (enable_site_workarounds,                INT)},
 
         /* Constants */
-#if WEBKIT_CHECK_VERSION (1, 3, 17)
         { "inspected_uri",                UZBL_C_FUNC (inspected_uri,                          STR)},
-#endif
         { "geometry",                     UZBL_C_FUNC (geometry,                               STR)},
-#ifdef HAVE_PLUGIN_API
         { "plugin_list",                  UZBL_C_FUNC (plugin_list,                            STR)},
-#endif
         { "is_online",                    UZBL_C_FUNC (is_online,                              INT)},
         { "web_extensions_directory",     UZBL_C_STRING (uzbl.state.web_extensions_directory)},
 #if WEBKIT_CHECK_VERSION (2, 7, 4)
@@ -1953,12 +1849,6 @@ IMPLEMENT_SETTER (gchar *, background_color)
 }
 #endif
 
-/* Customization */
-#if !WEBKIT_CHECK_VERSION (1, 9, 0)
-GOBJECT_GETSET2 (int, default_context_menu,
-                 gboolean, webkit_settings (), "enable-default-context-menu")
-#endif
-
 /* Printing variables */
 GOBJECT_GETSET2 (int, print_backgrounds,
                  gboolean, webkit_settings (), "print-backgrounds")
@@ -2057,10 +1947,8 @@ CHOICE_GETSET (WebKitCookieAcceptPolicy, cookie_policy,
 
 #undef cookie_policy_choices
 
-#if WEBKIT_CHECK_VERSION (1, 3, 13)
 GOBJECT_GETSET2 (int, enable_dns_prefetch,
                  gboolean, webkit_settings (), "enable-dns-prefetching")
-#endif
 
 #if WEBKIT_CHECK_VERSION (2, 9, 1)
 GOBJECT_GETSET2 (int, allow_file_to_file_access,
@@ -2124,23 +2012,17 @@ IMPLEMENT_SETTER (gdouble, zoom_step)
     return TRUE;
 }
 
-#ifdef HAVE_ZOOM_TEXT_API
 GOBJECT_GETSET2 (int, zoom_text_only,
                  gboolean, webkit_settings (), "zoom-text-only")
-#endif
 
 GOBJECT_GETSET2 (int, caret_browsing,
                  gboolean, webkit_settings (), "enable-caret-browsing")
 
-#if WEBKIT_CHECK_VERSION (1, 3, 5)
 GOBJECT_GETSET2 (int, enable_frame_flattening,
                  gboolean, webkit_settings (), "enable-frame-flattening")
-#endif
 
-#if WEBKIT_CHECK_VERSION (1, 9, 0)
 GOBJECT_GETSET2 (int, enable_smooth_scrolling,
                  gboolean, webkit_settings (), "enable-smooth-scrolling")
-#endif
 
 #ifdef HAVE_PAGE_VIEW_MODE
 #define page_view_mode_choices(call)   \
@@ -2163,10 +2045,8 @@ CHOICE_GETSET (page_view_mode_t, page_view_mode,
 #undef page_view_mode_choices
 #endif
 
-#if WEBKIT_CHECK_VERSION (1, 3, 8)
 GOBJECT_GETSET2 (int, enable_fullscreen,
                  gboolean, webkit_settings (), "enable-fullscreen")
-#endif
 
 #ifdef HAVE_EDITABLE
 GOBJECT_GETSET2 (int, editable,
@@ -2183,15 +2063,11 @@ GOBJECT_GETSET2 (int, javascript_windows,
 GOBJECT_GETSET2 (int, javascript_modal_dialogs,
                  gboolean, webkit_settings (), "allow-modal-dialogs")
 
-#if WEBKIT_CHECK_VERSION (1, 3, 0)
 GOBJECT_GETSET2 (int, javascript_clipboard,
                  gboolean, webkit_settings (), "javascript-can-access-clipboard")
-#endif
 
-#if WEBKIT_CHECK_VERSION (2, 1, 1)
 GOBJECT_GETSET2 (int, javascript_console_to_stdout,
                  gboolean, webkit_settings (), "enable-write-console-messages-to-stdout")
-#endif
 
 /* Image variables */
 GOBJECT_GETSET2 (int, autoload_images,
@@ -2241,10 +2117,8 @@ IMPLEMENT_SETTER (gchar *, spellcheck_languages)
 GOBJECT_GETSET2 (int, resizable_text_areas,
                  gboolean, webkit_settings (), "enable-resizable-text-areas")
 
-#ifdef HAVE_SPATIAL_NAVIGATION
 GOBJECT_GETSET2 (int, enable_spatial_navigation,
                  gboolean, webkit_settings (), "enable-spatial-navigation")
-#endif
 
 GOBJECT_GETSET2 (int, enable_tab_cycle,
                  gboolean, webkit_settings (), "enable-tabs-to-links")
@@ -2312,38 +2186,26 @@ GOBJECT_GETSET2 (int, enable_plugins,
 GOBJECT_GETSET2 (int, enable_java_applet,
                  gboolean, webkit_settings (), "enable-java")
 
-#if WEBKIT_CHECK_VERSION (1, 3, 14)
 GOBJECT_GETSET2 (int, enable_webgl,
                  gboolean, webkit_settings (), "enable-webgl")
-#endif
 
-#if WEBKIT_CHECK_VERSION (1, 7, 5)
 GOBJECT_GETSET2 (int, enable_webaudio,
                  gboolean, webkit_settings (), "enable-webaudio")
-#endif
 
-#if WEBKIT_CHECK_VERSION (2, 1, 1)
 GOBJECT_GETSET2 (int, enable_2d_acceleration,
                  gboolean, webkit_settings (), "enable-accelerated-2d-canvas")
-#endif
 
-#if WEBKIT_CHECK_VERSION (1, 9, 3)
 GOBJECT_GETSET2 (int, enable_inline_media,
                  gboolean, webkit_settings (), "media-playback-allows-inline")
 
 GOBJECT_GETSET2 (int, require_click_to_play,
                  gboolean, webkit_settings (), "media-playback-requires-user-gesture")
-#endif
 
-#ifdef HAVE_ENABLE_MEDIA_STREAM_API
 GOBJECT_GETSET2 (int, enable_media_stream,
                  gboolean, webkit_settings (), "enable-media-stream")
-#endif
 
-#if WEBKIT_CHECK_VERSION (2, 3, 3)
 GOBJECT_GETSET2 (int, enable_media_source,
                  gboolean, webkit_settings (), "enable-mediasource")
-#endif
 
 /* HTML5 Database variables */
 GOBJECT_GETSET2 (int, enable_database,
@@ -2369,7 +2231,7 @@ GOBJECT_GETSET (gchar *, local_storage_path,
 #if WEBKIT_CHECK_VERSION (2, 9, 4)
 GOBJECT_GETSET (gchar *, disk_cache_directory,
                 webkit_data_manager (), "disk-cache-directory")
-#elif WEBKIT_CHECK_VERSION (1, 11, 92)
+#else
 IMPLEMENT_SETTER (gchar *, disk_cache_directory)
 {
     g_free (uzbl.variables->priv->disk_cache_directory);
@@ -2409,12 +2271,10 @@ GOBJECT_GETSET2 (int, enable_site_workarounds,
                  gboolean, webkit_settings (), "enable-site-specific-quirks")
 
 /* Constants */
-#if WEBKIT_CHECK_VERSION (1, 3, 17)
 IMPLEMENT_GETTER (gchar *, inspected_uri)
 {
     return g_strdup (webkit_web_inspector_get_inspected_uri (uzbl.gui.inspector));
 }
-#endif
 
 IMPLEMENT_GETTER (gchar *, geometry)
 {
@@ -2434,12 +2294,8 @@ IMPLEMENT_GETTER (gchar *, geometry)
     return g_string_free (buf, FALSE);
 }
 
-#ifdef HAVE_PLUGIN_API
-typedef WebKitPlugin WebKitWebPlugin;
-typedef WebKitMimeInfo WebKitWebPluginMIMEType;
-
 static void
-plugin_list_append (WebKitWebPlugin *plugin, gpointer data);
+plugin_list_append (WebKitPlugin *plugin, gpointer data);
 
 IMPLEMENT_GETTER (gchar *, plugin_list)
 {
@@ -2465,17 +2321,13 @@ IMPLEMENT_GETTER (gchar *, plugin_list)
         return g_strdup ("[]");
     }
 
-#define plugin_foreach g_list_foreach
-
     GString *list = g_string_new ("[");
 
-    plugin_foreach (plugins, (GFunc)plugin_list_append, list);
+    g_list_foreach (plugins, (GFunc)plugin_list_append, list);
 
     g_string_append_c (list, ']');
 
     g_list_free (plugins);
-
-#undef plugin_foreach
 
     return g_string_free (list, FALSE);
 }
@@ -2535,10 +2387,10 @@ IMPLEMENT_GETTER (gchar *, editor_state)
 #endif
 
 static void
-mimetype_list_append (WebKitWebPluginMIMEType *mimetype, GString *list);
+mimetype_list_append (WebKitMimeInfo *mimetype, GString *list);
 
 void
-plugin_list_append (WebKitWebPlugin *plugin, gpointer data)
+plugin_list_append (WebKitPlugin *plugin, gpointer data)
 {
     GString *list = (GString *)data;
 
@@ -2547,8 +2399,6 @@ plugin_list_append (WebKitWebPlugin *plugin, gpointer data)
     }
 
     typedef GList MIMETypeList;
-
-#define mimetype_foreach g_list_foreach
 
     const gchar *desc = NULL;
     MIMETypeList *mimetypes = NULL;
@@ -2570,9 +2420,7 @@ plugin_list_append (WebKitWebPlugin *plugin, gpointer data)
             desc,
             path);
 
-    mimetype_foreach (mimetypes, (GFunc)mimetype_list_append, list);
-
-#undef plugin_foreach
+    g_list_foreach (mimetypes, (GFunc)mimetype_list_append, list);
 
     g_object_unref (plugin);
 
@@ -2581,7 +2429,7 @@ plugin_list_append (WebKitWebPlugin *plugin, gpointer data)
 }
 
 void
-mimetype_list_append (WebKitWebPluginMIMEType *mimetype, GString *list)
+mimetype_list_append (WebKitMimeInfo *mimetype, GString *list)
 {
     if (list->str[list->len - 1] != '[') {
         g_string_append (list, ", ");
@@ -2620,7 +2468,6 @@ mimetype_list_append (WebKitWebPluginMIMEType *mimetype, GString *list)
 
     g_string_append (list, "]}");
 }
-#endif
 
 IMPLEMENT_GETTER (int, WEBKIT_MAJOR)
 {

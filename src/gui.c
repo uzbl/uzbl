@@ -12,11 +12,9 @@
 
 #include <gtk/gtkimcontextsimple.h>
 
-#if WEBKIT_CHECK_VERSION (2, 3, 1)
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
 #include <gnutls/x509.h>
-#endif
 
 #include <string.h>
 
@@ -190,10 +188,6 @@ status_bar_init ()
       */
 }
 
-#if WEBKIT_CHECK_VERSION (1, 9, 2)
-#define HAVE_FILE_CHOOSER_API
-#endif
-
 /* Mouse events */
 static gboolean
 button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer data);
@@ -215,18 +209,14 @@ static void
 load_changed_cb (WebKitWebView *view, WebKitLoadEvent event, gpointer data);
 static gboolean
 load_failed_cb (WebKitWebView *view, WebKitLoadEvent event, gchar *uri, gpointer web_err, gpointer data);
-#if WEBKIT_CHECK_VERSION (2, 1, 4)
 static gboolean
 authenticate_cb (WebKitWebView *view, WebKitAuthenticationRequest *request, gpointer data);
-#endif
 static void
 insecure_content_cb (WebKitWebView *view, WebKitInsecureContentEvent type, gpointer data);
 static void
 download_cb (WebKitWebContext *context, WebKitDownload *download, gpointer data);
-#if WEBKIT_CHECK_VERSION (2, 3, 5)
 static void
 extension_cb (WebKitWebContext *context, gpointer data);
-#endif
 static gboolean
 permission_cb (WebKitWebView *view, WebKitPermissionRequest *request, gpointer data);
 #if WEBKIT_CHECK_VERSION (2, 5, 90)
@@ -235,10 +225,8 @@ tls_error_cb (WebKitWebView *view, gchar *uri, GTlsCertificate *cert, GTlsCertif
 #elif WEBKIT_CHECK_VERSION (2, 5, 1)
 static gboolean
 tls_error_cb (WebKitWebView *view, GTlsCertificate *cert, GTlsCertificateFlags flags, const gchar *host, gpointer data);
-#elif WEBKIT_CHECK_VERSION (2, 3, 1)
 static gboolean
 tls_error_cb (WebKitWebView *view, WebKitCertificateInfo *info, const gchar *host, gpointer data);
-#endif
 /* UI events */
 static GtkWidget *
 create_cb (WebKitWebView *view, gpointer data);
@@ -246,14 +234,9 @@ static void
 close_web_view_cb (WebKitWebView *view, gpointer data);
 static gboolean
 focus_cb (GtkWidget *widget, GdkEventFocus *event, gpointer data);
-#if WEBKIT_CHECK_VERSION (1, 9, 0)
 static gboolean
 context_menu_cb (WebKitWebView *view, GtkMenu *menu, WebKitHitTestResult *hit_test_result,
         gboolean triggered_with_keyboard, gpointer data);
-#else
-static gboolean
-populate_popup_cb (WebKitWebView *view, GtkMenu *menu, gpointer data);
-#endif
 static gboolean
 web_process_crashed_cb (WebKitWebView *view, gpointer data);
 #if WEBKIT_CHECK_VERSION (2, 7, 3)
@@ -268,10 +251,8 @@ static gboolean
 run_color_chooser_cb (WebKitWebView *view, WebKitColorChooserRequest *request, gpointer data);
 #endif
 #endif
-#ifdef HAVE_FILE_CHOOSER_API
 static gboolean
 run_file_chooser_cb (WebKitWebView *view, WebKitFileChooserRequest *request, gpointer data);
-#endif
 /* Scrollbar events */
 static gboolean
 scroll_vert_cb (GtkAdjustment *adjust, gpointer data);
@@ -296,9 +277,7 @@ web_view_init ()
     WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
     g_object_connect (G_OBJECT (context),
         "signal::download-started",                     G_CALLBACK (download_cb),              NULL,
-#if WEBKIT_CHECK_VERSION (2, 3, 5)
         "signal::initialize-web-extensions",            G_CALLBACK (extension_cb),             NULL,
-#endif
         NULL);
 
     g_object_connect (G_OBJECT (uzbl.gui.web_view),
@@ -317,26 +296,16 @@ web_view_init ()
         "signal::decide-policy",                        G_CALLBACK (decide_policy_cb),         NULL,
         "signal::load-changed",                         G_CALLBACK (load_changed_cb),          NULL,
         "signal::load-failed",                          G_CALLBACK (load_failed_cb),           NULL,
-#if WEBKIT_CHECK_VERSION (2, 1, 4)
         "signal::authenticate",                         G_CALLBACK (authenticate_cb),          NULL,
-#endif
-#if WEBKIT_CHECK_VERSION (1, 11, 4)
         "signal::insecure-content-detected",            G_CALLBACK (insecure_content_cb),      NULL,
-#endif
         "signal::permission-request",                   G_CALLBACK (permission_cb),            NULL,
-#if WEBKIT_CHECK_VERSION (2, 3, 1)
         "signal::load-failed-with-tls-errors",          G_CALLBACK (tls_error_cb),             NULL,
-#endif
         /* UI events */
         "signal::create",                               G_CALLBACK (create_cb),                NULL,
         "signal::close",                                G_CALLBACK (close_web_view_cb),        NULL,
         "signal::focus-in-event",                       G_CALLBACK (focus_cb),                 NULL,
         "signal::focus-out-event",                      G_CALLBACK (focus_cb),                 NULL,
-#if WEBKIT_CHECK_VERSION (1, 9, 0)
         "signal::context-menu",                         G_CALLBACK (context_menu_cb),          NULL,
-#else
-        "signal::populate-popup",                       G_CALLBACK (populate_popup_cb),        NULL,
-#endif
         "signal::web-process-crashed",                  G_CALLBACK (web_process_crashed_cb),   NULL,
 #if WEBKIT_CHECK_VERSION (2, 7, 3)
         "signal::show-notification",                    G_CALLBACK (show_notification_cb),     NULL,
@@ -347,9 +316,7 @@ web_view_init ()
         "signal::run-color-chooser",                    G_CALLBACK (run_color_chooser_cb),     NULL,
 #endif
 #endif
-#ifdef HAVE_FILE_CHOOSER_API
         "signal::run-file-chooser",                     G_CALLBACK (run_file_chooser_cb),      NULL,
-#endif
         NULL);
 
     uzbl.gui.bar_h = gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win));
@@ -799,7 +766,6 @@ load_failed_cb (WebKitWebView *view, WebKitLoadEvent event, gchar *uri, gpointer
     return send_load_error (uri, err);
 }
 
-#if WEBKIT_CHECK_VERSION (2, 1, 4)
 typedef struct {
     WebKitAuthenticationRequest *request;
 } UzblAuthenticateData;
@@ -882,9 +848,7 @@ authenticate_cb (WebKitWebView *view, WebKitAuthenticationRequest *request, gpoi
 
     return TRUE;
 }
-#endif
 
-#if WEBKIT_CHECK_VERSION (1, 11, 4)
 void
 insecure_content_cb (WebKitWebView *view, WebKitInsecureContentEvent type, gpointer data)
 {
@@ -909,7 +873,6 @@ insecure_content_cb (WebKitWebView *view, WebKitInsecureContentEvent type, gpoin
         TYPE_STR, why,
         NULL);
 }
-#endif
 
 static void
 handle_download (WebKitDownload *download, const gchar *suggested_destination);
@@ -928,7 +891,6 @@ download_cb (WebKitWebContext *context, WebKitDownload *download, gpointer data)
     handle_download (download, NULL);
 }
 
-#if WEBKIT_CHECK_VERSION (2, 3, 5)
 void
 extension_cb (WebKitWebContext *context, gpointer data)
 {
@@ -941,7 +903,6 @@ extension_cb (WebKitWebContext *context, gpointer data)
     uzbl_events_send (WEB_PROCESS_STARTED, NULL,
         NULL);
 }
-#endif
 
 static gboolean
 request_permission (const gchar *uri, const gchar *type, const gchar *desc, GObject *obj);
@@ -987,7 +948,6 @@ permission_cb (WebKitWebView *view, WebKitPermissionRequest *request, gpointer d
     return request_permission (uri, type, desc, G_OBJECT (request));
 }
 
-#if WEBKIT_CHECK_VERSION (2, 3, 1)
 static gboolean
 make_tls_error_uri (const gchar *uri, GTlsCertificate *cert, GTlsCertificateFlags flags);
 static gboolean
@@ -1133,7 +1093,6 @@ make_tls_error (const gchar *host, GTlsCertificate *cert, GTlsCertificateFlags f
 
     return TRUE;
 }
-#endif
 
 /* UI events */
 
@@ -1174,7 +1133,6 @@ focus_cb (GtkWidget *widget, GdkEventFocus *event, gpointer data)
 static gboolean
 populate_context_menu (GtkMenu *menu, WebKitHitTestResult *hit_test_result, gint context);
 
-#if WEBKIT_CHECK_VERSION (1, 9, 0)
 gboolean
 context_menu_cb (WebKitWebView *view, GtkMenu *menu, WebKitHitTestResult *hit_test_result,
         gboolean triggered_with_keyboard, gpointer data)
@@ -1201,47 +1159,6 @@ context_menu_cb (WebKitWebView *view, GtkMenu *menu, WebKitHitTestResult *hit_te
     /* Display the default menu with our modifications. */
     return populate_context_menu (menu, hit_test_result, context);
 }
-#else
-gboolean
-populate_popup_cb (WebKitWebView *view, GtkMenu *menu, gpointer data)
-{
-    UZBL_UNUSED (data);
-
-    if (!uzbl.gui.menu_items) {
-        return FALSE;
-    }
-
-    gint context = get_click_context ();
-
-    /* Check context. */
-    if (context == NO_CLICK_CONTEXT) {
-        return FALSE;
-    }
-
-    if (uzbl_variables_get_int ("default_context_menu")) {
-        return FALSE;
-    }
-
-    WebKitHitTestResult *hit_test_result;
-    GdkEventButton event;
-    gint x;
-    gint y;
-    gdk_window_get_device_position (gtk_widget_get_window (GTK_WIDGET (view)),
-        gdk_device_manager_get_client_pointer (
-            gdk_display_get_device_manager (
-                gtk_widget_get_display (GTK_WIDGET (view)))),
-        &x, &y, NULL);
-    event.x = x;
-    event.y = y;
-    hit_test_result = webkit_web_view_get_hit_test_result (view, &event);
-
-    gboolean ret = populate_context_menu (menu, hit_test_result, context);
-
-    g_object_unref (hit_test_result);
-
-    return ret;
-}
-#endif
 
 gboolean
 web_process_crashed_cb (WebKitWebView *view, gpointer data)
@@ -1349,7 +1266,6 @@ run_color_chooser_cb (WebKitWebView *view, WebKitColorChooserRequest *request, g
 #endif
 #endif
 
-#ifdef HAVE_FILE_CHOOSER_API
 static void
 choose_file (GString *result, gpointer data);
 
@@ -1390,7 +1306,6 @@ run_file_chooser_cb (WebKitWebView *view, WebKitFileChooserRequest *request, gpo
 
     return (file_chooser_command != NULL);
 }
-#endif
 
 /* Scrollbar events */
 
@@ -1747,14 +1662,12 @@ request_decision (const gchar *uri, gpointer data)
     if (request_command) {
         const gchar *can_display = "unknown";
 
-#if WEBKIT_CHECK_VERSION (2, 3, 4)
         WebKitResponsePolicyDecision *request = (WebKitResponsePolicyDecision *)data;
         if (webkit_response_policy_decision_is_mime_type_supported (request)) {
             can_display = "can_display";
         } else {
             can_display = "cant_display";
         }
-#endif
 
         uzbl_commands_args_append (args, g_strdup (uri));
         uzbl_commands_args_append (args, g_strdup (can_display));
@@ -1825,7 +1738,6 @@ send_load_error (const gchar *uri, GError *err)
     return FALSE;
 }
 
-#if WEBKIT_CHECK_VERSION (2, 1, 4)
 void
 authenticate (GString *result, gpointer data)
 {
@@ -1884,7 +1796,6 @@ authenticate (GString *result, gpointer data)
 
     g_free (auth);
 }
-#endif
 
 #if WEBKIT_CHECK_VERSION (2, 7, 2)
 void
@@ -1975,7 +1886,6 @@ request_permission (const gchar *uri, const gchar *type, const gchar *desc, GObj
     return TRUE;
 }
 
-#if WEBKIT_CHECK_VERSION (2, 3, 1)
 void
 decide_tls_error_policy (GString *result, gpointer data)
 {
@@ -2113,7 +2023,6 @@ get_certificate_info (GTlsCertificate *cert)
 
     return g_string_free (info, FALSE);
 }
-#endif
 
 static void
 create_web_view_uri_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
@@ -2239,7 +2148,6 @@ choose_color (GString *result, gpointer data)
 }
 #endif
 
-#ifdef HAVE_FILE_CHOOSER_API
 void
 choose_file (GString *result, gpointer data)
 {
@@ -2260,7 +2168,6 @@ choose_file (GString *result, gpointer data)
 
     g_object_unref (request);
 }
-#endif
 
 void
 send_scroll_event (int type, GtkAdjustment *adjust)

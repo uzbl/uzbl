@@ -20,14 +20,7 @@ PYTHON  ?= python3
 
 # --- configuration ends here ---
 
-HAS_WEBKIT2_4 := $(shell pkg-config --exists webkit2gtk-4.0 && echo yes)
-ifeq ($(HAS_WEBKIT2_4),yes)
-WEBKIT2_VER := 4.0
-else
-WEBKIT2_VER := 3.0
-endif
-
-REQ_PKGS += 'webkit2gtk-$(WEBKIT2_VER) >= 1.2.4' javascriptcoregtk-$(WEBKIT2_VER)
+REQ_PKGS += 'webkit2gtk-4.0 >= 2.3.5' javascriptcoregtk-4.0
 
 REQ_PKGS += gtk+-3.0
 CPPFLAGS += -DG_DISABLE_DEPRECATED
@@ -47,10 +40,7 @@ ifeq ($(HAVE_LIBSOUP_VERSION),yes)
 CPPFLAGS += -DHAVE_LIBSOUP_CHECK_VERSION
 endif
 
-HAVE_WEBKIT2_TLS_API := $(shell pkg-config --exists 'webkit2gtk-$(WEBKIT2_VER) >= 2.3.1' && echo yes)
-ifeq ($(HAVE_WEBKIT2_TLS_API),yes)
 REQ_PKGS += gnutls
-endif
 
 PKG_CFLAGS := $(shell pkg-config --cflags $(REQ_PKGS))
 

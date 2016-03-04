@@ -170,7 +170,6 @@ uzbl_init (int *argc, char ***argv)
 
     WebKitWebContext *webkit_context = webkit_web_context_get_default ();
 
-#if WEBKIT_CHECK_VERSION (2, 3, 5)
     /* Use this in the hopes that one day uzbl itself can be multi-threaded. */
     WebKitProcessModel model =
 #if WEBKIT_CHECK_VERSION (2, 3, 90)
@@ -187,7 +186,6 @@ uzbl_init (int *argc, char ***argv)
 #endif
     webkit_web_context_set_web_extensions_directory (webkit_context,
                                                      uzbl.state.web_extensions_directory);
-#endif
 
     uzbl_io_init ();
     uzbl_js_init ();

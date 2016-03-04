@@ -180,7 +180,7 @@ as `KEY` and `many args` as `VALUE`.
     + `error_html <URI> <BASE_URI> <CONTENT>`
       * Load content an error page (which does not appear in the forward/back
         list) at the given URI with the given
-* `save [FORMAT] [PATH]` (WebKit2 >= 1.9.90)
+* `save [FORMAT] [PATH]`
   - Save the current page to a file in the given format. If no path is given,
     WebKit determines the output path. Currently supported formats include:
     mhtml (the default).
@@ -223,7 +223,7 @@ as `KEY` and `many args` as `VALUE`.
     policy. If the size is `maximized`, the `uzbl` window will try to maximize
     itself. Otherwise, the size is parsed using the
     `WIDTHxHEIGHT±XOFFSET±YOFFSET` pattern.
-* `snapshot <PATH> <FORMAT> <REGION> [FLAG...]` (WebKit2 >= 1.11.92)
+* `snapshot <PATH> <FORMAT> <REGION> [FLAG...]`
   - Saves the current page as an image to the given path. Currently supported
     formats include: `png`. Acceptable regions include:
     + `visible`
@@ -307,8 +307,8 @@ as `KEY` and `many args` as `VALUE`.
     + `link`
     + `image`
     + `media`
-    + `editable` (WebKit2 >= 1.9.4)
-    + `scrollbar` (WebKit2 >= 1.11.4)
+    + `editable`
+    + `scrollbar`
     + `selection` (WebKit2 >= 2.7.1)
 
 #### Search
@@ -530,14 +530,14 @@ variables are treated as strings.
     passed the URI, suggested filename, content type, and total size as
     arguments. If a destination is known, it is passed as well. The result is
     used as the final destination. If it is empty, the download is cancelled.
-* `authentication_handler` (command) (no default) (WebKit2 >= 2.1.4)
+* `authentication_handler` (command) (no default)
   - The command to use when requesting authentication.
 * `permission_handler` (command) (no default)
   - The command to use when WebKit requesting permission for an action.
-* `tls_error_handler` (command) (no default) (WebKit2 >= 2.3.1)
+* `tls_error_handler` (command) (no default)
   - The command to use when a TLS error occurs. The handler may return `ALLOW`
     to ignore the TLS error for the session.
-* `file_chooser_handler` (command) (no default) (WebKit2 >= 1.9.2)
+* `file_chooser_handler` (command) (no default)
   - The command to use when a web page requests a file. By default, the GTK
     widget file dialog.
 * `color_chooser_handler` (command) (no default) (WebKit2 >= 2.7.90)
@@ -652,7 +652,7 @@ variables are treated as strings.
 * `zoom_step` (double) (default: 0.1)
   - The amount to step by default with the `zoom in` and `zoom out` commands.
     Must be greater than 0.
-* `zoom_text_only` (boolean) (default: 0) (WebKit2 >= 1.7.91)
+* `zoom_text_only` (boolean) (default: 0)
   - If non-zero, only text will be zoomed on a page.
 * `caret_browsing` (boolean) (default: 0)
   - If non-zero, pages may be navigated using the arrows to move a cursor
@@ -662,7 +662,7 @@ variables are treated as strings.
     area.
 * `enable_smooth_scrolling` (boolean) (default: 0) (WebKit >= 1.9.0)
   - If non-zero, scrolling the page will be smoothed.
-* `page_view_mode` (enumeration) (default: `web`) (not in WebKit2 >= 2.5.1)
+* `page_view_mode` (enumeration) (default: `web`) (WebKit2 < 2.5.1)
   - How to render content on a page. Acceptable values include:
     + `web`
       * Render content as a web page.
@@ -686,7 +686,7 @@ variables are treated as strings.
 * `javascript_clipboard` (boolean) (default: 0) (WebKit >= 1.3.0)
   - If non-zero, JavaScript in a page will be able to access content in the
     system clipboard directly.
-* `javascript_console_to_stdout` (boolean) (default: 0) (WebKit2 >= 2.1.1)
+* `javascript_console_to_stdout` (boolean) (default: 0)
   - If non-zero, JavaScript's console output will be put on stdout as well.
 
 #### Image
@@ -709,7 +709,7 @@ variables are treated as strings.
 
 * `resizable_text_areas` (boolean) (default: 1)
   - If non-zero, text area form elements will be resizable with a drag handle.
-* `enable_spatial_navigation` (boolean) (default: 0) (WebKit2 >= 2.3.3)
+* `enable_spatial_navigation` (boolean) (default: 0)
   - If non-zero, the arrow keys will navigate between form elements.
 * `enable_tab_cycle` (boolean) (default: 1)
   - If non-zero, the tab key will navigate between form elements, otherwise it
@@ -759,7 +759,7 @@ variables are treated as strings.
   - If non-zero, WebGL will be enabled.
 * `enable_webaudio` (boolean) (default: 0) (WebKit >= 1.7.5)
   - If non-zero, the WebAudio API will be enabled.
-* `enable_2d_acceleration` (boolean) (default: 0) (WebKit2 >= 2.1.1)
+* `enable_2d_acceleration` (boolean) (default: 0)
   - If non-zero, 2D canvas operations will be accelerated by hardware.
 * `enable_inline_media` (boolean) (default: 1) (WebKit >= 1.9.3)
   - If non-zero, media playback within a page will be enabled, otherwise, only
@@ -767,7 +767,7 @@ variables are treated as strings.
 * `require_click_to_play` (boolean) (default: 0) (WebKit >= 1.9.3)
   - If non-zero, media may automatically play on a page, otherwise a user
     interaction is required to even load the media.
-* `enable_media_stream` (boolean) (default: 0) (WebKit2 >= 2.3.2)
+* `enable_media_stream` (boolean) (default: 0)
   - If non-zero, the Media Stream API will be enabled.
 * `enable_media_source` (boolean) (default: 0) (WebKit >= 2.3.3)
   - If non-zero, the MediaSource API will be enabled.
@@ -788,7 +788,7 @@ variables are treated as strings.
     allows web applications to run locally without a network connection.
 * `local_storage_path` (string) (default: `$XDG_DATA_HOME/webkit/databases`) (WebKit2 >= 2.7.2)
   - Where to store HTML5 `localStorage` data.
-* `disk_cache_directory` (string) (no default) (WebKit2 >= 1.11.92)
+* `disk_cache_directory` (string) (no default)
   - Where to store cache files.. Must be set before loading any pages to have
     an effect.
 * `indexed_db_directory` (string) (no default) (WebKit2 >= 2.9.2)
@@ -818,7 +818,7 @@ they are written as comments.
 * `geometry` (string)
   - A string giving the current window geometry of `uzbl` in
     `<width>x<height>+<xoffset>+<yoffset>` format.
-* `plugin_list` (string) (WebKit2 >= 1.11.4) (BROKEN)
+* `plugin_list` (string) (BROKEN)
   - A JSON-formatted list describing loaded plugins.
 * `is_online` (boolean)
   - If non-zero, a network is available (not necessarily the Internet).
@@ -1240,7 +1240,7 @@ uzbl itself and will be emitted based on what is happening within uzbl-core.
 * `LOAD_FINISH <URI>`
   - Sent when a page navigation is complete. All of the top-level resources
     have been retrieved by this point.
-* `TLS_ERROR <HOST> <FLAGS> <INFO>` (WebKit2 >= 2.3.1)
+* `TLS_ERROR <HOST> <FLAGS> <INFO>`
   - The event sent if a `tls_error_handler` is not valid. See its documentation
     for the argument formats.
 * `REQUEST_STARTING <URI>`
@@ -1304,7 +1304,7 @@ uzbl itself and will be emitted based on what is happening within uzbl-core.
 
 ##### Page
 
-* `INSECURE_CONTENT <REASON>` (WebKit2 >= 1.11.4)
+* `INSECURE_CONTENT <REASON>`
   - Sent when insecure content is used on a secure page.
 * `LINK_HOVER <URI> <TITLE>`
    - Sent when a link is hovered over using the mouse.

@@ -580,10 +580,6 @@ parse_command_from_file (const char *cmd)
 
 /* ========================= COMMAND TABLE ========================== */
 
-#if WEBKIT_CHECK_VERSION (1, 11, 4)
-#define HAVE_PLUGIN_API
-#endif
-
 #define DECLARE_COMMAND(cmd) \
     static void              \
     cmd_##cmd (GArray *argv, GString *result)
@@ -598,30 +594,20 @@ DECLARE_COMMAND (download);
 
 /* Page commands */
 DECLARE_COMMAND (load);
-#if WEBKIT_CHECK_VERSION (1, 9, 90)
 DECLARE_COMMAND (save);
-#endif
 
 /* Cookie commands */
 DECLARE_COMMAND (cookie);
-
-#if WEBKIT_CHECK_VERSION (1, 9, 6)
-#define HAVE_SNAPSHOT
-#endif
 
 /* Display commands */
 DECLARE_COMMAND (scroll);
 DECLARE_COMMAND (zoom);
 DECLARE_COMMAND (hardcopy);
 DECLARE_COMMAND (geometry);
-#ifdef HAVE_SNAPSHOT
 DECLARE_COMMAND (snapshot);
-#endif
 
 /* Content commands */
-#ifdef HAVE_PLUGIN_API
 DECLARE_COMMAND (plugin);
-#endif
 DECLARE_COMMAND (cache);
 DECLARE_COMMAND (favicon);
 DECLARE_COMMAND (css);
@@ -681,9 +667,7 @@ builtin_command_table[] = {
 
     /* Page commands */
     { "load",                           cmd_load,                     TRUE,  TRUE  },
-#if WEBKIT_CHECK_VERSION (1, 9, 90)
     { "save",                           cmd_save,                     TRUE,  TRUE  },
-#endif
 
     /* Cookie commands */
     { "cookie",                         cmd_cookie,                   TRUE,  TRUE  },
@@ -693,14 +677,10 @@ builtin_command_table[] = {
     { "zoom",                           cmd_zoom,                     TRUE,  TRUE  },
     { "hardcopy",                       cmd_hardcopy,                 TRUE,  TRUE  },
     { "geometry",                       cmd_geometry,                 TRUE,  TRUE  },
-#ifdef HAVE_SNAPSHOT
     { "snapshot",                       cmd_snapshot,                 TRUE,  TRUE  },
-#endif
 
     /* Content commands */
-#ifdef HAVE_PLUGIN_API
     { "plugin",                         cmd_plugin,                   TRUE,  TRUE  },
-#endif
     { "cache",                          cmd_cache,                    TRUE,  TRUE  },
     { "favicon",                        cmd_favicon,                  TRUE,  TRUE  },
     { "css",                            cmd_css,                      TRUE,  TRUE  },
@@ -907,17 +887,12 @@ IMPLEMENT_COMMAND (load)
         const gchar *uri = argv_idx (argv, 2);
         const gchar *baseuri = argv_idx (argv, 3);
 
-#if WEBKIT_CHECK_VERSION (1, 7, 4) && !WEBKIT_CHECK_VERSION (1, 9, 90)
-        webkit_web_view_replace_content (uzbl.gui.web_view, content, uri, baseuri);
-#else
         webkit_web_view_load_alternate_html (uzbl.gui.web_view, content, uri, baseuri);
-#endif
     } else {
         uzbl_debug ("Unrecognized load command: %s\n", format);
     }
 }
 
-#if WEBKIT_CHECK_VERSION (1, 9, 90)
 static void
 save_to_file_async_cb (GObject *object, GAsyncResult *res, gpointer data);
 static void
@@ -953,7 +928,6 @@ IMPLEMENT_COMMAND (save)
                               NULL, save_async_cb, NULL);
     }
 }
-#endif
 
 /* Cookie commands */
 
@@ -1175,7 +1149,6 @@ IMPLEMENT_COMMAND (geometry)
     }
 }
 
-#ifdef HAVE_SNAPSHOT
 IMPLEMENT_COMMAND (snapshot)
 {
     UZBL_UNUSED (result);
@@ -1247,11 +1220,9 @@ IMPLEMENT_COMMAND (snapshot)
 
     cairo_surface_destroy (surface);
 }
-#endif
 
 /* Content commands */
 
-#ifdef HAVE_PLUGIN_API
 IMPLEMENT_COMMAND (plugin)
 {
     UZBL_UNUSED (result);
@@ -1272,7 +1243,6 @@ IMPLEMENT_COMMAND (plugin)
         uzbl_debug ("Unrecognized plugin command: %s\n", command);
     }
 }
-#endif
 
 IMPLEMENT_COMMAND (cache)
 {
@@ -1673,14 +1643,10 @@ IMPLEMENT_COMMAND (menu)
             context = WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE;
         } else if (!g_strcmp0 (object, "media")) {
             context = WEBKIT_HIT_TEST_RESULT_CONTEXT_MEDIA;
-#if WEBKIT_CHECK_VERSION (1, 9, 4)
         } else if (!g_strcmp0 (object, "editable")) {
             context = WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE;
-#endif
-#if WEBKIT_CHECK_VERSION (1, 11, 4)
         } else if (!g_strcmp0 (object, "scrollbar")) {
             context = WEBKIT_HIT_TEST_RESULT_CONTEXT_SCROLLBAR;
-#endif
 #if WEBKIT_CHECK_VERSION (2, 7, 1)
         } else if (!g_strcmp0 (object, "selection")) {
             context = WEBKIT_HIT_TEST_RESULT_CONTEXT_SELECTION;
@@ -2459,7 +2425,6 @@ make_uri_from_user_input (const gchar *uri)
     return g_strconcat ("http://", uri, NULL);
 }
 
-#if WEBKIT_CHECK_VERSION (1, 9, 90)
 void
 save_to_file_async_cb (GObject *object, GAsyncResult *res, gpointer data)
 {
@@ -2496,7 +2461,6 @@ save_async_cb (GObject *object, GAsyncResult *res, gpointer data)
 
     g_object_unref (stream);
 }
-#endif
 
 #if WEBKIT_CHECK_VERSION (2, 5, 1)
 void
