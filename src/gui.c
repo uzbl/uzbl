@@ -35,10 +35,6 @@
  *   - Handle enter-fullscreen signal?
  *   - Handle context-menu-dismissed signal?
  *   - Look into WebKitWindowProperties.
- *
- * (WebKit1)
- *
- *   - Handle resource-* signals?
  */
 
 struct _UzblGui {
@@ -319,8 +315,7 @@ web_view_init ()
         "signal::mouse-target-changed",                 G_CALLBACK (mouse_target_cb),          NULL,
         /* Page metadata events */
         "signal::notify::title",                        G_CALLBACK (title_change_cb),          NULL,
-        "signal::notify::estimated-load-progress",
-                                                        G_CALLBACK (progress_change_cb),       NULL,
+        "signal::notify::estimated-load-progress",      G_CALLBACK (progress_change_cb),       NULL,
         "signal::notify::uri",                          G_CALLBACK (uri_change_cb),            NULL,
         /* Navigation events */
         "signal::decide-policy",                        G_CALLBACK (decide_policy_cb),         NULL,
@@ -338,8 +333,7 @@ web_view_init ()
 #endif
         /* UI events */
         "signal::create",                               G_CALLBACK (create_cb),                NULL,
-        "signal::close",
-                                                        G_CALLBACK (close_web_view_cb),        NULL,
+        "signal::close",                                G_CALLBACK (close_web_view_cb),        NULL,
         "signal::focus-in-event",                       G_CALLBACK (focus_cb),                 NULL,
         "signal::focus-out-event",                      G_CALLBACK (focus_cb),                 NULL,
 #if WEBKIT_CHECK_VERSION (1, 9, 0)
@@ -669,9 +663,7 @@ progress_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
     UZBL_UNUSED (param_spec);
     UZBL_UNUSED (data);
 
-    int progress = 100 *
-        webkit_web_view_get_estimated_load_progress (view)
-        ;
+    int progress = 100 * webkit_web_view_get_estimated_load_progress (view);
 
     uzbl_events_send (LOAD_PROGRESS, NULL,
         TYPE_INT, progress,
@@ -696,19 +688,16 @@ uri_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
 
 /* Navigation events */
 
-typedef WebKitPolicyDecision WebKitWebPolicyDecision;
-typedef WebKitLoadEvent WebKitLoadStatus;
-
 #define make_policy(decision, policy) \
     webkit_policy_decision_##policy (WEBKIT_POLICY_DECISION (decision))
 
 static gboolean
-navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri, const gchar *src_frame,
+navigation_decision (WebKitPolicyDecision *decision, const gchar *uri, const gchar *src_frame,
         const gchar *dest_frame, const gchar *type, guint button, guint modifiers, gboolean is_gesture);
 static gboolean
 request_decision (const gchar *uri, gpointer data);
 static void
-send_load_status (WebKitLoadStatus status, const gchar *uri);
+send_load_status (WebKitLoadEvent status, const gchar *uri);
 static gboolean
 send_load_error (const gchar *uri, GError *err);
 
@@ -1721,7 +1710,7 @@ static void
 decide_navigation (GString *result, gpointer data);
 
 gboolean
-navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri, const gchar *src_frame,
+navigation_decision (WebKitPolicyDecision *decision, const gchar *uri, const gchar *src_frame,
         const gchar *dest_frame, const gchar *type, guint button, guint modifiers, gboolean is_gesture)
 {
     if (uzbl_variables_get_int ("frozen")) {
@@ -1809,7 +1798,7 @@ request_decision (const gchar *uri, gpointer data)
 }
 
 void
-send_load_status (WebKitLoadStatus status, const gchar *uri)
+send_load_status (WebKitLoadEvent status, const gchar *uri)
 {
     UzblEventType event = LAST_EVENT;
 
@@ -2327,7 +2316,7 @@ button_to_modifier (guint buttonval)
 void
 decide_navigation (GString *result, gpointer data)
 {
-    WebKitWebPolicyDecision *decision = (WebKitWebPolicyDecision *)data;
+    WebKitPolicyDecision *decision = (WebKitPolicyDecision *)data;
 
     if (!g_strcmp0 (result->str, "IGNORE") ||
         !g_strcmp0 (result->str, "USED")) { /* XXX: Deprecated */
@@ -2371,9 +2360,7 @@ gboolean
 decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename, gpointer data)
 {
     /* Get the URI being downloaded. */
-    const gchar *uri =
-        webkit_download_get_destination (download)
-        ;
+    const gchar *uri = webkit_download_get_destination (download);
     const gchar *user_destination = (const gchar *)data;
 
     uzbl_debug ("Download requested -> %s\n", uri);
@@ -2420,9 +2407,7 @@ download_finished_cb (WebKitDownload *download, gpointer data)
 {
     UZBL_UNUSED (data);
 
-    const gchar *dest_uri =
-        webkit_download_get_destination (download)
-        ;
+    const gchar *dest_uri = webkit_download_get_destination (download);
     const gchar *dest_path = dest_uri + strlen ("file://");
 
     uzbl_events_send (DOWNLOAD_COMPLETE, NULL,
@@ -2576,16 +2561,11 @@ void
 download_update (WebKitDownload *download)
 {
     gdouble progress;
-    const gchar *property =
-        "estimated-progress"
-        ;
     g_object_get (download,
-        property, &progress,
+        "estimated-progress", &progress,
         NULL);
 
-    const gchar *dest_uri =
-        webkit_download_get_destination (download)
-        ;
+    const gchar *dest_uri = webkit_download_get_destination (download);
     const gchar *dest_path = dest_uri + strlen ("file://");
 
     uzbl_events_send (DOWNLOAD_PROGRESS, NULL,

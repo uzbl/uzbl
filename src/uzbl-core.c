@@ -131,15 +131,11 @@ uzbl_init (int *argc, char ***argv)
             WEBKIT_MAJOR_VERSION,
             WEBKIT_MINOR_VERSION,
             WEBKIT_MICRO_VERSION);
-#define webkit_version(type) webkit_get_##type##_version ()
         printf ("WebKit run: %d.%d.%d\n",
-            webkit_version (major),
-            webkit_version (minor),
-            webkit_version (micro));
-#undef webkit_version
-        printf ("WebKit2: %d\n",
-            1
-            );
+            webkit_get_major_version (),
+            webkit_get_minor_version (),
+            webkit_get_micro_version ());
+        printf ("WebKit2: %d\n", 1);
 #ifdef HAVE_LIBSOUP_CHECK_VERSION
         printf ("libsoup compile: %d.%d.%d\n",
             SOUP_MAJOR_VERSION,

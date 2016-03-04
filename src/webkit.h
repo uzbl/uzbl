@@ -12,8 +12,4 @@
 #include <libsoup/soup.h>
 #include <glib.h>
 
-typedef WebKitSettings WebKitWebSettings;
-typedef WebKitFindOptions UzblFindOptions;
-typedef WebKitTLSErrorsPolicy UzblSslPolicy;
-
 #endif

@@ -11,7 +11,6 @@
     call (LOAD_FINISH),         \
     call (LOAD_CANCELLED),      \
     call (LOAD_ERROR),          \
-    call (REQUEST_QUEUED),      \
     call (REQUEST_STARTING),    \
     call (REQUEST_FINISHED),    \
     call (KEY_PRESS),           \
@@ -48,8 +47,6 @@
     call (DOWNLOAD_COMPLETE),   \
     call (ADD_COOKIE),          \
     call (DELETE_COOKIE),       \
-    call (FOCUS_ELEMENT),       \
-    call (BLUR_ELEMENT),        \
     call (WEB_PROCESS_CRASHED), \
     call (USER_EVENT),          \
     call (INSECURE_CONTENT),    \

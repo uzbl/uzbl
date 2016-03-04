@@ -29,7 +29,7 @@ uzbl_inspector_init ()
 {
     uzbl.inspector = g_malloc0 (sizeof (UzblInspector));
 
-    WebKitWebSettings *settings = webkit_web_view_get_settings (uzbl.gui.web_view);
+    WebKitSettings *settings = webkit_web_view_get_settings (uzbl.gui.web_view);
     g_object_set (G_OBJECT (settings),
         "enable-developer-extras", TRUE,
         NULL);
@@ -38,12 +38,9 @@ uzbl_inspector_init ()
 
     g_object_connect (G_OBJECT (uzbl.gui.inspector),
         "signal::bring-to-front",        G_CALLBACK (inspector_create_cb),              NULL,
-        "signal::closed",
-                                         G_CALLBACK (inspector_close_window_cb),        NULL,
-        "signal::attach",
-                                         G_CALLBACK (inspector_attach_window_cb),       NULL,
-        "signal::detach",
-                                         G_CALLBACK (inspector_detach_window_cb),       NULL,
+        "signal::closed",                G_CALLBACK (inspector_close_window_cb),        NULL,
+        "signal::attach",                G_CALLBACK (inspector_attach_window_cb),       NULL,
+        "signal::detach",                G_CALLBACK (inspector_detach_window_cb),       NULL,
         "signal::notify::inspected-uri", G_CALLBACK (inspector_uri_changed_cb),         NULL,
         NULL);
 }

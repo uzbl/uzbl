@@ -25,11 +25,6 @@
  *   - Add "edit" command for cut/copy/paste/select/etc (also WK1).
  *   - Add dumping the source (see WebKitWebResource).
  *   - Add resource management commands (also WK1?).
- *
- * (WebKit1)
- *
- *   - Add commands for managing web databases (see WebKitSecurityOrigin).
- *   - Add commands for DOM manipulation?
  */
 
 struct _UzblCommands {
@@ -37,10 +32,10 @@ struct _UzblCommands {
     GHashTable *table;
 
     /* Search variables */
-    UzblFindOptions  search_options;
-    UzblFindOptions  search_options_last;
-    gboolean         search_forward;
-    gchar           *search_text;
+    WebKitFindOptions  search_options;
+    WebKitFindOptions  search_options_last;
+    gboolean           search_forward;
+    gchar             *search_text;
 
 #if WEBKIT_CHECK_VERSION (2, 5, 1)
     /* Script variables */
@@ -588,7 +583,6 @@ parse_command_from_file (const char *cmd)
 #if WEBKIT_CHECK_VERSION (1, 11, 4)
 #define HAVE_PLUGIN_API
 #endif
-#define HAVE_SECURITY
 
 #define DECLARE_COMMAND(cmd) \
     static void              \
@@ -643,9 +637,7 @@ DECLARE_COMMAND (menu);
 DECLARE_COMMAND (search);
 
 /* Security commands */
-#ifdef HAVE_SECURITY
 DECLARE_COMMAND (security);
-#endif
 DECLARE_COMMAND (dns);
 
 /* Inspector commands */
@@ -724,9 +716,7 @@ builtin_command_table[] = {
     { "search",                         cmd_search,                   FALSE, TRUE  },
 
     /* Security commands */
-#ifdef HAVE_SECURITY
     { "security",                       cmd_security,                 TRUE,  TRUE  },
-#endif
     { "dns",                            cmd_dns,                      TRUE,  TRUE  },
 
     /* Inspector commands */
@@ -1760,7 +1750,7 @@ IMPLEMENT_COMMAND (search)
     const gchar *command = tokens[0];
     const gchar *arg_string = tokens[1];
 
-    static const UzblFindOptions default_options = WEBKIT_FIND_OPTIONS_WRAP_AROUND;
+    static const WebKitFindOptions default_options = WEBKIT_FIND_OPTIONS_WRAP_AROUND;
 
 #define webkit2_search_options(call)                        \
     call ("word_start", WEBKIT_FIND_OPTIONS_AT_WORD_STARTS) \
@@ -1772,7 +1762,6 @@ IMPLEMENT_COMMAND (search)
     call ("case_insensitive", WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE)
 
     WebKitFindController *finder = webkit_web_view_get_find_controller (uzbl.gui.web_view);
-    gboolean rehighlight = FALSE;
     gboolean reset = FALSE;
 
     if (!g_strcmp0 (command, "option")) {
@@ -1786,7 +1775,7 @@ IMPLEMENT_COMMAND (search)
         while (*option_iter) {
             const gchar *option_str = *option_iter++;
             UzblFlagOperation mode = OPTION_NONE;
-            UzblFindOptions option = WEBKIT_FIND_OPTIONS_NONE;
+            WebKitFindOptions option = WEBKIT_FIND_OPTIONS_NONE;
 
             switch (*option_str) {
             case '+':
@@ -1855,8 +1844,6 @@ IMPLEMENT_COMMAND (search)
             uzbl.commands->search_options_last = uzbl.commands->search_options;
 
             webkit_find_controller_search (finder, uzbl.commands->search_text, uzbl.commands->search_options, G_MAXUINT);
-
-            rehighlight = TRUE;
         }
     } else if (!g_strcmp0 (command, "options")) {
         if (!result) {
@@ -1906,8 +1893,6 @@ IMPLEMENT_COMMAND (search)
 
         if (*key) {
             if (g_strcmp0 (key, uzbl.commands->search_text)) {
-                rehighlight = TRUE;
-
                 g_free (uzbl.commands->search_text);
                 uzbl.commands->search_text = g_strdup (key);
             }
@@ -1918,8 +1903,6 @@ IMPLEMENT_COMMAND (search)
 
         if (uzbl.commands->search_options != uzbl.commands->search_options_last) {
             uzbl.commands->search_options_last = uzbl.commands->search_options;
-
-            rehighlight = TRUE;
         }
 
         gboolean forward = TRUE;
@@ -1930,7 +1913,7 @@ IMPLEMENT_COMMAND (search)
 
         uzbl.commands->search_forward = forward;
 
-        UzblFindOptions options = uzbl.commands->search_options;
+        WebKitFindOptions options = uzbl.commands->search_options;
 
         if (!forward) {
             options |= WEBKIT_FIND_OPTIONS_BACKWARDS;
@@ -1944,8 +1927,6 @@ IMPLEMENT_COMMAND (search)
 
         if (uzbl.commands->search_options != uzbl.commands->search_options_last) {
             uzbl.commands->search_options_last = uzbl.commands->search_options;
-
-            rehighlight = TRUE;
         }
 
         if (uzbl.commands->search_forward) {
@@ -1960,8 +1941,6 @@ IMPLEMENT_COMMAND (search)
 
         if (uzbl.commands->search_options != uzbl.commands->search_options_last) {
             uzbl.commands->search_options_last = uzbl.commands->search_options;
-
-            rehighlight = TRUE;
         }
 
         if (uzbl.commands->search_forward) {
@@ -1981,16 +1960,12 @@ search_exit:
         uzbl.commands->search_options = WEBKIT_FIND_OPTIONS_WRAP_AROUND;
     }
 
-    if (rehighlight) {
-    }
-
 #undef webkit2_search_options
 #undef search_options
 }
 
 /* Security commands */
 
-#ifdef HAVE_SECURITY
 IMPLEMENT_COMMAND (security)
 {
     ARG_CHECK (argv, 3);
@@ -2054,7 +2029,6 @@ IMPLEMENT_COMMAND (security)
         field->set (manager, scheme);
     }
 }
-#endif
 
 IMPLEMENT_COMMAND (dns)
 {

@@ -1412,13 +1412,9 @@ uzbl_variables_private_new (GHashTable *table)
         /* Page variables */
         { "forward_keys",                 UZBL_V_INT (priv->forward_keys,                      NULL)},
         { "useragent",                    UZBL_V_FUNC (useragent,                              STR)},
-        { "accept_languages",
-                                          UZBL_V_STRING (priv->accept_languages,               set_accept_languages)
-                                          },
+        { "accept_languages",             UZBL_V_STRING (priv->accept_languages,               set_accept_languages)},
         { "zoom_level",                   UZBL_V_FUNC (zoom_level,                             DOUBLE)},
-        { "zoom_step",
-                                          UZBL_V_DOUBLE (priv->zoom_step,                      set_zoom_step)
-                                          },
+        { "zoom_step",                    UZBL_V_DOUBLE (priv->zoom_step,                      set_zoom_step)},
 #ifdef HAVE_ZOOM_TEXT_API
         { "zoom_text_only",               UZBL_V_FUNC (zoom_text_only,                         INT)},
 #endif
@@ -1983,7 +1979,7 @@ GOBJECT_GETSET2 (int, print_backgrounds,
 #define _webkit_web_context_set_tls_errors_policy(val) \
     webkit_web_context_set_tls_errors_policy (webkit_web_view_get_context (uzbl.gui.web_view), val)
 
-CHOICE_GETSET (UzblSslPolicy, ssl_policy,
+CHOICE_GETSET (WebKitTLSErrorsPolicy, ssl_policy,
                _webkit_web_context_get_tls_errors_policy, _webkit_web_context_set_tls_errors_policy)
 
 #undef _webkit_web_context_get_tls_errors_policy
@@ -2185,9 +2181,7 @@ GOBJECT_GETSET2 (int, editable,
 
 /* Javascript variables */
 GOBJECT_GETSET2 (int, enable_scripts,
-                 gboolean, webkit_settings (),
-                                    "enable-javascript"
-                )
+                 gboolean, webkit_settings (), "enable-javascript")
 
 GOBJECT_GETSET2 (int, javascript_windows,
                  gboolean, webkit_settings (), "javascript-can-open-windows-automatically")
@@ -2251,9 +2245,7 @@ IMPLEMENT_SETTER (gchar *, spellcheck_languages)
 
 /* Form variables */
 GOBJECT_GETSET2 (int, resizable_text_areas,
-                 gboolean, webkit_settings (),
-                                    "enable-resizable-text-areas"
-                )
+                 gboolean, webkit_settings (), "enable-resizable-text-areas")
 
 #ifdef HAVE_SPATIAL_NAVIGATION
 GOBJECT_GETSET2 (int, enable_spatial_navigation,
@@ -2269,8 +2261,7 @@ GOBJECT_GETSET (gchar *, default_encoding,
 
 IMPLEMENT_GETTER (gchar *, custom_encoding)
 {
-    const gchar *encoding =
-        webkit_web_view_get_custom_charset (uzbl.gui.web_view);
+    const gchar *encoding = webkit_web_view_get_custom_charset (uzbl.gui.web_view);
 
     if (!encoding) {
         return g_strdup ("");

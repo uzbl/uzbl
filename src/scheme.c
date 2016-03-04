@@ -8,11 +8,6 @@
 
 /* =========================== PUBLIC API =========================== */
 
-void
-uzbl_scheme_init ()
-{
-}
-
 static void
 scheme_callback (WebKitURISchemeRequest *request, gpointer data);
 
