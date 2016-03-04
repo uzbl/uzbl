@@ -101,23 +101,12 @@ allocate (GtkWidget *widget, GtkAllocation *allocation)
 
     int left_natural_width;
 
-#if GTK_CHECK_VERSION (3, 0, 0)
     GtkRequisition left_requisition_nat;
 
     gtk_widget_get_preferred_size (status_bar->left_label,  &left_requisition,  &left_requisition_nat);
     gtk_widget_get_preferred_size (status_bar->right_label, &right_requisition, NULL);
 
     left_natural_width = left_requisition_nat.width;
-#else
-    gtk_widget_size_request (status_bar->left_label,  &left_requisition);
-    gtk_widget_size_request (status_bar->right_label, &right_requisition);
-
-    PangoLayout *left_layout = gtk_label_get_layout (GTK_LABEL (status_bar->left_label));
-    pango_layout_get_pixel_size (left_layout, &left_natural_width, NULL);
-
-    /* Some kind of fudge factor seems to be needed here. */
-    left_natural_width += 16;
-#endif
 
     gtk_widget_set_allocation (widget, allocation);
 

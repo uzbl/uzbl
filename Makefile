@@ -15,7 +15,6 @@ RUN_PREFIX ?= $(PREFIX)
 INSTALL    ?= install -p
 
 ENABLE_WEBKIT2 ?= yes
-ENABLE_GTK3    ?= auto
 
 PYTHON  ?= python3
 
@@ -28,22 +27,12 @@ else
 WEBKIT2_VER := 3.0
 endif
 
-ifeq ($(ENABLE_GTK3),auto)
-ENABLE_GTK3 := $(shell pkg-config --exists gtk+-3.0 && echo yes)
-endif
-
 REQ_PKGS += 'webkit2gtk-$(WEBKIT2_VER) >= 1.2.4' javascriptcoregtk-$(WEBKIT2_VER)
-# WebKit2 requires GTK3
-ENABLE_GTK3 := yes
 
-ifeq ($(ENABLE_GTK3),yes)
 REQ_PKGS += gtk+-3.0
 CPPFLAGS += -DG_DISABLE_DEPRECATED
 # WebKitGTK uses deprecated features, so uzbl can't blanket this out.
 #CPPFLAGS += -DGTK_DISABLE_DEPRECATED
-else
-REQ_PKGS += gtk+-2.0
-endif
 
 REQ_PKGS += 'libsoup-2.4 >= 2.33.4' gthread-2.0 glib-2.0
 

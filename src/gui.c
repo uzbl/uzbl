@@ -12,10 +12,6 @@
 
 #include <gtk/gtkimcontextsimple.h>
 
-#if !GTK_CHECK_VERSION (3, 0, 0)
-#include <gdk/gdkkeysyms.h>
-#endif
-
 #if WEBKIT_CHECK_VERSION (2, 3, 1)
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
@@ -372,12 +368,8 @@ web_view_init ()
 void
 vbox_init ()
 {
-#if GTK_CHECK_VERSION (3, 0, 0)
     uzbl.gui.vbox = gtk_box_new (FALSE, 0);
     gtk_orientable_set_orientation (GTK_ORIENTABLE (uzbl.gui.vbox), GTK_ORIENTATION_VERTICAL);
-#else
-    uzbl.gui.vbox = gtk_vbox_new (FALSE, 0);
-#endif
 
     gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
     gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.status_bar, FALSE, TRUE, 0);
@@ -400,7 +392,7 @@ window_init ()
     gtk_window_set_title (GTK_WINDOW (uzbl.gui.main_window), "Uzbl");
     gtk_widget_set_name (uzbl.gui.main_window, "Uzbl");
 
-#if GTK_CHECK_VERSION (3, 0, 0) && !GTK_CHECK_VERSION (3, 13, 5)
+#if !GTK_CHECK_VERSION (3, 13, 5)
     /* TODO: Make into an option? Nope...it doesn't exist in 3.14 anymore
      * because there are no resize grips whatsoever. */
     gtk_window_set_has_resize_grip (GTK_WINDOW (uzbl.gui.main_window), FALSE);
@@ -1234,15 +1226,11 @@ populate_popup_cb (WebKitWebView *view, GtkMenu *menu, gpointer data)
     GdkEventButton event;
     gint x;
     gint y;
-#if GTK_CHECK_VERSION (3, 0, 0)
     gdk_window_get_device_position (gtk_widget_get_window (GTK_WIDGET (view)),
         gdk_device_manager_get_client_pointer (
             gdk_display_get_device_manager (
                 gtk_widget_get_display (GTK_WIDGET (view)))),
         &x, &y, NULL);
-#else
-    gdk_window_get_pointer (gtk_widget_get_window (GTK_WIDGET (view)), &x, &y, NULL);
-#endif
     event.x = x;
     event.y = y;
     hit_test_result = webkit_web_view_get_hit_test_result (view, &event);
@@ -1488,19 +1476,6 @@ set_window_property (const gchar *prop, const gchar *value)
 guint
 key_to_modifier (guint keyval)
 {
-/* Backwards compatibility. */
-#if !GTK_CHECK_VERSION (2, 22, 0)
-#define GDK_KEY_Shift_L GDK_Shift_L
-#define GDK_KEY_Shift_R GDK_Shift_R
-#define GDK_KEY_Control_L GDK_Control_L
-#define GDK_KEY_Control_R GDK_Control_R
-#define GDK_KEY_Alt_L GDK_Alt_L
-#define GDK_KEY_Alt_R GDK_Alt_R
-#define GDK_KEY_Super_L GDK_Super_L
-#define GDK_KEY_Super_R GDK_Super_R
-#define GDK_KEY_ISO_Level3_Shift GDK_ISO_Level3_Shift
-#endif
-
     /* FIXME: Should really use XGetModifierMapping and/or Xkb to get actual
      * modifier keys. */
     switch (keyval) {

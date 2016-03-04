@@ -1908,17 +1908,11 @@ IMPLEMENT_SETTER (char *, status_background)
         g_object_unref (provider);
         g_error_free (err);
     }
-#elif GTK_CHECK_VERSION (2, 91, 0)
+#else
     GdkRGBA color;
     parsed = gdk_rgba_parse (&color, status_background);
     if (parsed) {
         gtk_widget_override_background_color (widget, GTK_STATE_NORMAL, &color);
-    }
-#else
-    GdkColor color;
-    parsed = gdk_color_parse (status_background, &color);
-    if (parsed) {
-        gtk_widget_modify_bg (widget, GTK_STATE_NORMAL, &color);
     }
 #endif
 
