@@ -1182,6 +1182,10 @@ web_process_crashed_cb (WebKitWebView *view, gpointer data)
 #if WEBKIT_CHECK_VERSION (2, 7, 3)
 static void
 notification_closed_cb (WebKitNotification *notification, gpointer data);
+#if WEBKIT_CHECK_VERSION (2, 11, 3)
+static void
+notification_clicked_cb (WebKitNotification *notification, gpointer data);
+#endif
 
 gboolean
 show_notification_cb (WebKitWebView *view, WebKitNotification *notification, gpointer data)
@@ -1199,7 +1203,10 @@ show_notification_cb (WebKitWebView *view, WebKitNotification *notification, gpo
 
 #if WEBKIT_CHECK_VERSION (2, 7, 90)
     g_object_connect (G_OBJECT (notification),
-        "signal::closed", G_CALLBACK (notification_closed_cb), NULL,
+        "signal::closed",  G_CALLBACK (notification_closed_cb),  NULL,
+#if WEBKIT_CHECK_VERSION (2, 11, 3)
+        "signal::clicked", G_CALLBACK (notification_clicked_cb), NULL,
+#endif
         NULL);
 #endif
 
@@ -2128,6 +2135,19 @@ notification_closed_cb (WebKitNotification *notification, gpointer data)
 }
 #endif
 
+#if WEBKIT_CHECK_VERSION (2, 11, 3)
+static void
+request_clicked_notification (WebKitNotification *notification);
+
+void
+notification_clicked_cb (WebKitNotification *notification, gpointer data)
+{
+    UZBL_UNUSED (data);
+
+    request_clicked_notification (notification);
+}
+#endif
+
 void
 request_close_notification (WebKitNotification *notification)
 {
@@ -2407,6 +2427,18 @@ run_menu_command (GtkMenuItem *menu_item, gpointer data)
         uzbl_commands_run (item->cmd, NULL);
     }
 }
+
+#if WEBKIT_CHECK_VERSION (2, 11, 3)
+void
+request_clicked_notification (WebKitNotification *notification)
+{
+    guint64 id = webkit_notification_get_id (notification);
+
+    uzbl_events_send (CLICKED_NOTIFICATION, NULL,
+        TYPE_ULL, id,
+        NULL);
+}
+#endif
 
 void
 download_destination (GString *result, gpointer data)
