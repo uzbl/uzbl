@@ -225,8 +225,7 @@ tls_error_cb (WebKitWebView *view, gchar *uri, GTlsCertificate *cert, GTlsCertif
 #elif WEBKIT_CHECK_VERSION (2, 5, 1)
 static gboolean
 tls_error_cb (WebKitWebView *view, GTlsCertificate *cert, GTlsCertificateFlags flags, const gchar *host, gpointer data);
-static gboolean
-tls_error_cb (WebKitWebView *view, WebKitCertificateInfo *info, const gchar *host, gpointer data);
+#endif
 /* UI events */
 static GtkWidget *
 create_cb (WebKitWebView *view, gpointer data);
