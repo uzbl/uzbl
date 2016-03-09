@@ -40,4 +40,3 @@ guint uzbl_rb_async_queue_watch_new (GAsyncQueue *queue,
 				GMainContext *context);
 
 #endif /* __RB_ASYNC_QUEUE_WATCH_H */
-

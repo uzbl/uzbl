@@ -145,4 +145,3 @@ guint uzbl_rb_async_queue_watch_new (GAsyncQueue *queue,
 	g_source_unref (source);
 	return id;
 }
-

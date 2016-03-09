@@ -50,9 +50,6 @@ void
 uzbl_requests_set_reply (const gchar *reply);
 
 void
-uzbl_scheme_init ();
-
-void
 uzbl_variables_init ();
 void
 uzbl_variables_free ();

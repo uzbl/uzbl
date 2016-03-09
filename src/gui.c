@@ -12,17 +12,9 @@
 
 #include <gtk/gtkimcontextsimple.h>
 
-#if !GTK_CHECK_VERSION (3, 0, 0)
-#include <gdk/gdkkeysyms.h>
-#endif
-
-#ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (2, 3, 1)
 #include <gnutls/gnutls.h>
 #include <gnutls/crypto.h>
 #include <gnutls/x509.h>
-#endif
-#endif
 
 #include <string.h>
 
@@ -37,10 +29,6 @@
  *   - Handle enter-fullscreen signal?
  *   - Handle context-menu-dismissed signal?
  *   - Look into WebKitWindowProperties.
- *
- * (WebKit1)
- *
- *   - Handle resource-* signals?
  */
 
 struct _UzblGui {
@@ -52,11 +40,9 @@ struct _UzblGui {
 
     GdkEventButton *last_button;
 
-#ifdef USE_WEBKIT2
     gboolean load_failed;
 #if WEBKIT_CHECK_VERSION (2, 5, 1)
     WebKitUserContentManager *user_manager;
-#endif
 #endif
 
     WebKitWebView *tmp_web_view;
@@ -113,7 +99,7 @@ uzbl_gui_free ()
         g_object_unref (uzbl.gui_->im_context);
     }
 
-#if defined(USE_WEBKIT2) && WEBKIT_CHECK_VERSION (2, 5, 1)
+#if WEBKIT_CHECK_VERSION (2, 5, 1)
     if (uzbl.gui_->user_manager) {
         g_object_unref (uzbl.gui_->user_manager);
     }
@@ -202,28 +188,13 @@ status_bar_init ()
       */
 }
 
-#ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 9, 2)
-#define HAVE_FILE_CHOOSER_API
-#endif
-#else
-#if WEBKIT_CHECK_VERSION (1, 9, 4)
-#define HAVE_FILE_CHOOSER_API
-#endif
-#endif
-
 /* Mouse events */
 static gboolean
 button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer data);
 static gboolean
 button_release_cb (GtkWidget *widget, GdkEventButton *event, gpointer data);
-#ifdef USE_WEBKIT2
 static void
 mouse_target_cb (WebKitWebView *view, WebKitHitTestResult *hit_test, guint modifiers, gpointer data);
-#else
-static void
-link_hover_cb (WebKitWebView *view, const gchar *title, const gchar *link, gpointer data);
-#endif
 /* Page metadata events */
 static void
 title_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
@@ -232,51 +203,20 @@ progress_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
 static void
 uri_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
 /* Navigation events */
-#ifdef USE_WEBKIT2
 static gboolean
 decide_policy_cb (WebKitWebView *view, WebKitPolicyDecision *decision, WebKitPolicyDecisionType type, gpointer data);
 static void
 load_changed_cb (WebKitWebView *view, WebKitLoadEvent event, gpointer data);
 static gboolean
 load_failed_cb (WebKitWebView *view, WebKitLoadEvent event, gchar *uri, gpointer web_err, gpointer data);
-#if WEBKIT_CHECK_VERSION (2, 1, 4)
 static gboolean
 authenticate_cb (WebKitWebView *view, WebKitAuthenticationRequest *request, gpointer data);
-#endif
 static void
 insecure_content_cb (WebKitWebView *view, WebKitInsecureContentEvent type, gpointer data);
-#else
-static gboolean
-navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
-        WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action,
-        WebKitWebPolicyDecision *policy_decision, gpointer data);
-static gboolean
-mime_policy_cb (WebKitWebView *view, WebKitWebFrame *frame,
-        WebKitNetworkRequest *request, gchar *mime_type,
-        WebKitWebPolicyDecision *policy_decision, gpointer data);
-static void
-request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResource *resource,
-        WebKitNetworkRequest *request, WebKitNetworkResponse *response, gpointer data);
-static void
-load_status_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
-static gboolean
-load_error_cb (WebKitWebView *view, WebKitWebFrame *frame, gchar *uri, gpointer web_err, gpointer data);
-static void
-window_object_cleared_cb (WebKitWebView *view, WebKitWebFrame *frame,
-        JSGlobalContextRef *context, JSObjectRef *object, gpointer data);
-#endif
-#ifdef USE_WEBKIT2
 static void
 download_cb (WebKitWebContext *context, WebKitDownload *download, gpointer data);
-#if WEBKIT_CHECK_VERSION (2, 3, 5)
 static void
 extension_cb (WebKitWebContext *context, gpointer data);
-#endif
-#else
-static gboolean
-download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data);
-#endif
-#ifdef USE_WEBKIT2
 static gboolean
 permission_cb (WebKitWebView *view, WebKitPermissionRequest *request, gpointer data);
 #if WEBKIT_CHECK_VERSION (2, 5, 90)
@@ -285,35 +225,18 @@ tls_error_cb (WebKitWebView *view, gchar *uri, GTlsCertificate *cert, GTlsCertif
 #elif WEBKIT_CHECK_VERSION (2, 5, 1)
 static gboolean
 tls_error_cb (WebKitWebView *view, GTlsCertificate *cert, GTlsCertificateFlags flags, const gchar *host, gpointer data);
-#elif WEBKIT_CHECK_VERSION (2, 3, 1)
 static gboolean
 tls_error_cb (WebKitWebView *view, WebKitCertificateInfo *info, const gchar *host, gpointer data);
-#endif
-#else
-static gboolean
-geolocation_policy_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitGeolocationPolicyDecision *decision, gpointer data);
-#endif
 /* UI events */
-#ifdef USE_WEBKIT2
 static GtkWidget *
 create_cb (WebKitWebView *view, gpointer data);
-#else
-static WebKitWebView *
-create_web_view_cb (WebKitWebView *view, WebKitWebFrame *frame, gpointer data);
-#endif
 static void
 close_web_view_cb (WebKitWebView *view, gpointer data);
 static gboolean
 focus_cb (GtkWidget *widget, GdkEventFocus *event, gpointer data);
-#if WEBKIT_CHECK_VERSION (1, 9, 0)
 static gboolean
 context_menu_cb (WebKitWebView *view, GtkMenu *menu, WebKitHitTestResult *hit_test_result,
         gboolean triggered_with_keyboard, gpointer data);
-#else
-static gboolean
-populate_popup_cb (WebKitWebView *view, GtkMenu *menu, gpointer data);
-#endif
-#ifdef USE_WEBKIT2
 static gboolean
 web_process_crashed_cb (WebKitWebView *view, gpointer data);
 #if WEBKIT_CHECK_VERSION (2, 7, 3)
@@ -328,11 +251,8 @@ static gboolean
 run_color_chooser_cb (WebKitWebView *view, WebKitColorChooserRequest *request, gpointer data);
 #endif
 #endif
-#endif
-#ifdef HAVE_FILE_CHOOSER_API
 static gboolean
 run_file_chooser_cb (WebKitWebView *view, WebKitFileChooserRequest *request, gpointer data);
-#endif
 /* Scrollbar events */
 static gboolean
 scroll_vert_cb (GtkAdjustment *adjust, gpointer data);
@@ -342,7 +262,7 @@ scroll_horiz_cb (GtkAdjustment *adjust, gpointer data);
 void
 web_view_init ()
 {
-#if defined(USE_WEBKIT2) && WEBKIT_CHECK_VERSION (2, 5, 1)
+#if WEBKIT_CHECK_VERSION (2, 5, 1)
     uzbl.gui_->user_manager = webkit_user_content_manager_new ();
     uzbl.gui.web_view = WEBKIT_WEB_VIEW (webkit_web_view_new_with_user_content_manager(uzbl.gui_->user_manager));
 #else
@@ -354,15 +274,11 @@ web_view_init ()
         GTK_CONTAINER (uzbl.gui.scrolled_win),
         GTK_WIDGET (uzbl.gui.web_view));
 
-#ifdef USE_WEBKIT2
     WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
     g_object_connect (G_OBJECT (context),
         "signal::download-started",                     G_CALLBACK (download_cb),              NULL,
-#if WEBKIT_CHECK_VERSION (2, 3, 5)
         "signal::initialize-web-extensions",            G_CALLBACK (extension_cb),             NULL,
-#endif
         NULL);
-#endif
 
     g_object_connect (G_OBJECT (uzbl.gui.web_view),
         /* Keyboard events */
@@ -371,68 +287,25 @@ web_view_init ()
         /* Mouse events */
         "signal::button-press-event",                   G_CALLBACK (button_press_cb),          NULL,
         "signal::button-release-event",                 G_CALLBACK (button_release_cb),        NULL,
-#ifdef USE_WEBKIT2
         "signal::mouse-target-changed",                 G_CALLBACK (mouse_target_cb),          NULL,
-#else
-        "signal::hovering-over-link",                   G_CALLBACK (link_hover_cb),            NULL,
-#endif
         /* Page metadata events */
         "signal::notify::title",                        G_CALLBACK (title_change_cb),          NULL,
-#ifdef USE_WEBKIT2
-        "signal::notify::estimated-load-progress",
-#else
-        "signal::notify::progress",
-#endif
-                                                        G_CALLBACK (progress_change_cb),       NULL,
+        "signal::notify::estimated-load-progress",      G_CALLBACK (progress_change_cb),       NULL,
         "signal::notify::uri",                          G_CALLBACK (uri_change_cb),            NULL,
         /* Navigation events */
-#ifdef USE_WEBKIT2
         "signal::decide-policy",                        G_CALLBACK (decide_policy_cb),         NULL,
         "signal::load-changed",                         G_CALLBACK (load_changed_cb),          NULL,
         "signal::load-failed",                          G_CALLBACK (load_failed_cb),           NULL,
-#if WEBKIT_CHECK_VERSION (2, 1, 4)
         "signal::authenticate",                         G_CALLBACK (authenticate_cb),          NULL,
-#endif
-#if WEBKIT_CHECK_VERSION (1, 11, 4)
         "signal::insecure-content-detected",            G_CALLBACK (insecure_content_cb),      NULL,
-#endif
-#else
-        "signal::navigation-policy-decision-requested", G_CALLBACK (navigation_decision_cb),   NULL,
-        "signal::mime-type-policy-decision-requested",  G_CALLBACK (mime_policy_cb),           NULL,
-        "signal::resource-request-starting",            G_CALLBACK (request_starting_cb),      NULL,
-        "signal::notify::load-status",                  G_CALLBACK (load_status_change_cb),    NULL,
-        "signal::load-error",                           G_CALLBACK (load_error_cb),            NULL,
-        "signal::window-object-cleared",                G_CALLBACK (window_object_cleared_cb), NULL,
-        "signal::download-requested",                   G_CALLBACK (download_cb),              NULL,
-#endif
-#ifdef USE_WEBKIT2
         "signal::permission-request",                   G_CALLBACK (permission_cb),            NULL,
-#if WEBKIT_CHECK_VERSION (2, 3, 1)
         "signal::load-failed-with-tls-errors",          G_CALLBACK (tls_error_cb),             NULL,
-#endif
-#else
-        "signal::geolocation-policy-decision-requested",G_CALLBACK (geolocation_policy_cb),    NULL,
-#endif
         /* UI events */
-#ifdef USE_WEBKIT2
         "signal::create",                               G_CALLBACK (create_cb),                NULL,
-#else
-        "signal::create-web-view",                      G_CALLBACK (create_web_view_cb),       NULL,
-#endif
-#ifdef USE_WEBKIT2
-        "signal::close",
-#else
-        "signal::close-web-view",
-#endif
-                                                        G_CALLBACK (close_web_view_cb),        NULL,
+        "signal::close",                                G_CALLBACK (close_web_view_cb),        NULL,
         "signal::focus-in-event",                       G_CALLBACK (focus_cb),                 NULL,
         "signal::focus-out-event",                      G_CALLBACK (focus_cb),                 NULL,
-#if WEBKIT_CHECK_VERSION (1, 9, 0)
         "signal::context-menu",                         G_CALLBACK (context_menu_cb),          NULL,
-#else
-        "signal::populate-popup",                       G_CALLBACK (populate_popup_cb),        NULL,
-#endif
-#ifdef USE_WEBKIT2
         "signal::web-process-crashed",                  G_CALLBACK (web_process_crashed_cb),   NULL,
 #if WEBKIT_CHECK_VERSION (2, 7, 3)
         "signal::show-notification",                    G_CALLBACK (show_notification_cb),     NULL,
@@ -443,10 +316,7 @@ web_view_init ()
         "signal::run-color-chooser",                    G_CALLBACK (run_color_chooser_cb),     NULL,
 #endif
 #endif
-#endif
-#ifdef HAVE_FILE_CHOOSER_API
         "signal::run-file-chooser",                     G_CALLBACK (run_file_chooser_cb),      NULL,
-#endif
         NULL);
 
     uzbl.gui.bar_h = gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win));
@@ -465,12 +335,8 @@ web_view_init ()
 void
 vbox_init ()
 {
-#if GTK_CHECK_VERSION (3, 0, 0)
     uzbl.gui.vbox = gtk_box_new (FALSE, 0);
     gtk_orientable_set_orientation (GTK_ORIENTABLE (uzbl.gui.vbox), GTK_ORIENTATION_VERTICAL);
-#else
-    uzbl.gui.vbox = gtk_vbox_new (FALSE, 0);
-#endif
 
     gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.scrolled_win, TRUE, TRUE, 0);
     gtk_box_pack_start (GTK_BOX (uzbl.gui.vbox), uzbl.gui.status_bar, FALSE, TRUE, 0);
@@ -493,7 +359,7 @@ window_init ()
     gtk_window_set_title (GTK_WINDOW (uzbl.gui.main_window), "Uzbl");
     gtk_widget_set_name (uzbl.gui.main_window, "Uzbl");
 
-#if GTK_CHECK_VERSION (3, 0, 0) && !GTK_CHECK_VERSION (3, 13, 5)
+#if !GTK_CHECK_VERSION (3, 13, 5)
     /* TODO: Make into an option? Nope...it doesn't exist in 3.14 anymore
      * because there are no resize grips whatsoever. */
     gtk_window_set_has_resize_grip (GTK_WINDOW (uzbl.gui.main_window), FALSE);
@@ -702,7 +568,6 @@ button_release_cb (GtkWidget *widget, GdkEventButton *event, gpointer data)
 static void
 send_hover_event (const gchar *uri, const gchar *title);
 
-#ifdef USE_WEBKIT2
 void
 mouse_target_cb (WebKitWebView *view, WebKitHitTestResult *hit_test, guint modifiers, gpointer data)
 {
@@ -728,16 +593,6 @@ mouse_target_cb (WebKitWebView *view, WebKitHitTestResult *hit_test, guint modif
 
     send_hover_event (uri, title);
 }
-#else
-void
-link_hover_cb (WebKitWebView *view, const gchar *title, const gchar *link, gpointer data)
-{
-    UZBL_UNUSED (view);
-    UZBL_UNUSED (data);
-
-    send_hover_event (link, title);
-}
-#endif
 
 /* Page metadata events */
 
@@ -767,13 +622,7 @@ progress_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
     UZBL_UNUSED (param_spec);
     UZBL_UNUSED (data);
 
-    int progress = 100 *
-#ifdef USE_WEBKIT2
-        webkit_web_view_get_estimated_load_progress (view)
-#else
-        webkit_web_view_get_progress (view)
-#endif
-        ;
+    int progress = 100 * webkit_web_view_get_estimated_load_progress (view);
 
     uzbl_events_send (LOAD_PROGRESS, NULL,
         TYPE_INT, progress,
@@ -798,30 +647,19 @@ uri_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
 
 /* Navigation events */
 
-#ifdef USE_WEBKIT2
-typedef WebKitPolicyDecision WebKitWebPolicyDecision;
-typedef WebKitLoadEvent WebKitLoadStatus;
-#endif
-
-#ifdef USE_WEBKIT2
 #define make_policy(decision, policy) \
     webkit_policy_decision_##policy (WEBKIT_POLICY_DECISION (decision))
-#else
-#define make_policy(decision, policy) \
-    webkit_web_policy_decision_##policy (decision)
-#endif
 
 static gboolean
-navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri, const gchar *src_frame,
+navigation_decision (WebKitPolicyDecision *decision, const gchar *uri, const gchar *src_frame,
         const gchar *dest_frame, const gchar *type, guint button, guint modifiers, gboolean is_gesture);
 static gboolean
 request_decision (const gchar *uri, gpointer data);
 static void
-send_load_status (WebKitLoadStatus status, const gchar *uri);
+send_load_status (WebKitLoadEvent status, const gchar *uri);
 static gboolean
 send_load_error (const gchar *uri, GError *err);
 
-#ifdef USE_WEBKIT2
 gboolean
 decide_policy_cb (WebKitWebView *view, WebKitPolicyDecision *decision, WebKitPolicyDecisionType type, gpointer data)
 {
@@ -928,7 +766,6 @@ load_failed_cb (WebKitWebView *view, WebKitLoadEvent event, gchar *uri, gpointer
     return send_load_error (uri, err);
 }
 
-#if WEBKIT_CHECK_VERSION (2, 1, 4)
 typedef struct {
     WebKitAuthenticationRequest *request;
 } UzblAuthenticateData;
@@ -1011,9 +848,7 @@ authenticate_cb (WebKitWebView *view, WebKitAuthenticationRequest *request, gpoi
 
     return TRUE;
 }
-#endif
 
-#if WEBKIT_CHECK_VERSION (1, 11, 4)
 void
 insecure_content_cb (WebKitWebView *view, WebKitInsecureContentEvent type, gpointer data)
 {
@@ -1038,196 +873,10 @@ insecure_content_cb (WebKitWebView *view, WebKitInsecureContentEvent type, gpoin
         TYPE_STR, why,
         NULL);
 }
-#endif
 
-#else
-
-gboolean
-navigation_decision_cb (WebKitWebView *view, WebKitWebFrame *frame,
-        WebKitNetworkRequest *request, WebKitWebNavigationAction *navigation_action,
-        WebKitWebPolicyDecision *policy_decision, gpointer data)
-{
-    UZBL_UNUSED (view);
-    UZBL_UNUSED (data);
-
-    const gchar *uri = webkit_network_request_get_uri (request);
-    const gchar *src_frame_name = webkit_web_frame_get_name (frame);
-    const gchar *target_frame_name = webkit_web_navigation_action_get_target_frame (navigation_action);
-    WebKitWebNavigationReason reason = webkit_web_navigation_action_get_reason (navigation_action);
-
-#define navigation_reason_choices(call)                                       \
-    call (WEBKIT_WEB_NAVIGATION_REASON_LINK_CLICKED, "link")                  \
-    call (WEBKIT_WEB_NAVIGATION_REASON_FORM_SUBMITTED, "form_submission")     \
-    call (WEBKIT_WEB_NAVIGATION_REASON_BACK_FORWARD, "back_forward")          \
-    call (WEBKIT_WEB_NAVIGATION_REASON_RELOAD, "reload")                      \
-    call (WEBKIT_WEB_NAVIGATION_REASON_FORM_RESUBMITTED, "form_resubmission") \
-    call (WEBKIT_WEB_NAVIGATION_REASON_OTHER, "other")
-
-#define ENUM_TO_STRING(val, str) \
-    case val:                    \
-        reason_str = str;        \
-        break;
-
-    const gchar *reason_str = "unknown";
-    switch (reason) {
-    navigation_reason_choices (ENUM_TO_STRING)
-    default:
-        break;
-    }
-
-#undef ENUM_TO_STRING
-#undef navigation_reason_choices
-
-    gint button = webkit_web_navigation_action_get_button (navigation_action);
-    /* Be compatible with WebKit2. */
-    if (button < 0) {
-        button = 0;
-    }
-    gint modifiers = webkit_web_navigation_action_get_modifier_state (navigation_action);
-
-    return navigation_decision (policy_decision, uri, src_frame_name, target_frame_name, reason_str, button, modifiers, FALSE);
-}
-
-static gboolean
-mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type, const gchar *disposition);
-
-gboolean
-mime_policy_cb (WebKitWebView *view, WebKitWebFrame *frame,
-        WebKitNetworkRequest *request, gchar *mime_type,
-        WebKitWebPolicyDecision *policy_decision, gpointer data)
-{
-    UZBL_UNUSED (view);
-    UZBL_UNUSED (frame);
-    UZBL_UNUSED (data);
-
-    SoupMessage *soup_message = webkit_network_request_get_message (request);
-    SoupMessageHeaders *headers = NULL;
-
-    g_object_get (G_OBJECT (soup_message),
-        "response-headers", &headers,
-        NULL);
-
-    char *disposition = NULL;
-
-    if (headers) {
-        soup_message_headers_get_content_disposition (headers, &disposition, NULL);
-
-        soup_message_headers_free (headers);
-    }
-
-    gboolean res = mime_decision (WEBKIT_WEB_POLICY_DECISION (policy_decision), mime_type, disposition);
-
-    g_free (disposition);
-
-    return res;
-}
-
-typedef struct {
-    WebKitNetworkRequest *request;
-    const gchar *frame;
-    gboolean redirect;
-} UzblRequestDecision;
-
-#if defined(USE_WEBKIT2) && WEBKIT_CHECK_VERSION (2, 7, 2)
-static void
-resource_tls_error_cb (WebKitWebResource *resource, GTlsCertificate *certificate, GTlsCertificateFlags flags, gpointer data);
-#endif
-
-void
-request_starting_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitWebResource *resource,
-        WebKitNetworkRequest *request, WebKitNetworkResponse *response, gpointer data)
-{
-    UZBL_UNUSED (view);
-    UZBL_UNUSED (resource);
-    UZBL_UNUSED (data);
-
-    const gchar *uri = webkit_network_request_get_uri (request);
-    const gchar *frame_name = webkit_web_frame_get_name (frame);
-    SoupMessage *message = webkit_network_request_get_message (request);
-    gboolean redirect = response ? TRUE : FALSE;
-
-    if (message) {
-        SoupURI *soup_uri = soup_uri_new (uri);
-        soup_message_set_first_party (message, soup_uri);
-        soup_uri_free (soup_uri);
-    }
-
-#if defined(USE_WEBKIT2) && WEBKIT_CHECK_VERSION (2, 7, 2)
-    g_object_connect (G_OBJECT (resource),
-        "signal::failed-with-tls-errors", G_CALLBACK (resource_tls_error_cb), NULL,
-        NULL);
-#endif
-
-    UzblRequestDecision *decision = (UzblRequestDecision *)g_malloc (sizeof (UzblRequestDecision));
-    decision->request = request;
-    decision->frame = frame_name;
-    decision->redirect = redirect;
-
-    g_object_ref (decision->request);
-    request_decision (uri, decision);
-
-    g_free (decision);
-}
-
-void
-load_status_change_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data)
-{
-    UZBL_UNUSED (param_spec);
-    UZBL_UNUSED (data);
-
-    WebKitLoadStatus status = webkit_web_view_get_load_status (view);
-    const gchar *uri = webkit_web_view_get_uri (view);
-
-    send_load_status (status, uri);
-}
-
-gboolean
-load_error_cb (WebKitWebView *view, WebKitWebFrame *frame, gchar *uri, gpointer web_err, gpointer data)
-{
-    UZBL_UNUSED (view);
-    UZBL_UNUSED (frame);
-    UZBL_UNUSED (data);
-
-    GError *err = (GError *)web_err;
-
-    return send_load_error (uri, err);
-}
-
-#if WEBKIT_CHECK_VERSION (1, 3, 13)
-static void
-dom_focus_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data);
-static void
-dom_blur_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data);
-#endif
-
-void
-window_object_cleared_cb (WebKitWebView *view, WebKitWebFrame *frame,
-        JSGlobalContextRef *context, JSObjectRef *object, gpointer data)
-{
-    UZBL_UNUSED (frame);
-    UZBL_UNUSED (context);
-    UZBL_UNUSED (object);
-    UZBL_UNUSED (data);
-
-#if WEBKIT_CHECK_VERSION (1, 3, 13)
-    /* Take this opportunity to set some callbacks on the DOM. */
-    WebKitDOMDocument *document = webkit_web_view_get_dom_document (view);
-    webkit_dom_event_target_add_event_listener (WEBKIT_DOM_EVENT_TARGET (document),
-        "focus", G_CALLBACK (dom_focus_cb), TRUE, NULL);
-    webkit_dom_event_target_add_event_listener (WEBKIT_DOM_EVENT_TARGET (document),
-        "blur",  G_CALLBACK (dom_blur_cb), TRUE, NULL);
-#else
-    UZBL_UNUSED (view);
-#endif
-}
-#endif
-
-#ifdef USE_WEBKIT2
 static void
 handle_download (WebKitDownload *download, const gchar *suggested_destination);
-#endif
 
-#ifdef USE_WEBKIT2
 void
 download_cb (WebKitWebContext *context, WebKitDownload *download, gpointer data)
 {
@@ -1242,7 +891,6 @@ download_cb (WebKitWebContext *context, WebKitDownload *download, gpointer data)
     handle_download (download, NULL);
 }
 
-#if WEBKIT_CHECK_VERSION (2, 3, 5)
 void
 extension_cb (WebKitWebContext *context, gpointer data)
 {
@@ -1255,24 +903,10 @@ extension_cb (WebKitWebContext *context, gpointer data)
     uzbl_events_send (WEB_PROCESS_STARTED, NULL,
         NULL);
 }
-#endif
-#else
-gboolean
-download_cb (WebKitWebView *view, WebKitDownload *download, gpointer data)
-{
-    UZBL_UNUSED (view);
-    UZBL_UNUSED (data);
-
-    handle_download (download, NULL);
-
-    return TRUE;
-}
-#endif
 
 static gboolean
 request_permission (const gchar *uri, const gchar *type, const gchar *desc, GObject *obj);
 
-#ifdef USE_WEBKIT2
 gboolean
 permission_cb (WebKitWebView *view, WebKitPermissionRequest *request, gpointer data)
 {
@@ -1314,7 +948,6 @@ permission_cb (WebKitWebView *view, WebKitPermissionRequest *request, gpointer d
     return request_permission (uri, type, desc, G_OBJECT (request));
 }
 
-#if WEBKIT_CHECK_VERSION (2, 3, 1)
 static gboolean
 make_tls_error_uri (const gchar *uri, GTlsCertificate *cert, GTlsCertificateFlags flags);
 static gboolean
@@ -1460,26 +1093,12 @@ make_tls_error (const gchar *host, GTlsCertificate *cert, GTlsCertificateFlags f
 
     return TRUE;
 }
-#endif
-#else
-gboolean
-geolocation_policy_cb (WebKitWebView *view, WebKitWebFrame *frame, WebKitGeolocationPolicyDecision *decision, gpointer data)
-{
-    UZBL_UNUSED (view);
-    UZBL_UNUSED (data);
-
-    const gchar *uri = webkit_web_frame_get_uri (frame);
-
-    return request_permission (uri, "geolocation", "", G_OBJECT (decision));
-}
-#endif
 
 /* UI events */
 
 static WebKitWebView *
 create_view (WebKitWebView *view);
 
-#ifdef USE_WEBKIT2
 GtkWidget *
 create_cb (WebKitWebView *view, gpointer data)
 {
@@ -1487,16 +1106,6 @@ create_cb (WebKitWebView *view, gpointer data)
 
     return GTK_WIDGET (create_view (view));
 }
-#else
-WebKitWebView *
-create_web_view_cb (WebKitWebView *view, WebKitWebFrame *frame, gpointer data)
-{
-    UZBL_UNUSED (frame);
-    UZBL_UNUSED (data);
-
-    return create_view (view);
-}
-#endif
 
 void
 close_web_view_cb (WebKitWebView *view, gpointer data)
@@ -1524,7 +1133,6 @@ focus_cb (GtkWidget *widget, GdkEventFocus *event, gpointer data)
 static gboolean
 populate_context_menu (GtkMenu *menu, WebKitHitTestResult *hit_test_result, gint context);
 
-#if WEBKIT_CHECK_VERSION (1, 9, 0)
 gboolean
 context_menu_cb (WebKitWebView *view, GtkMenu *menu, WebKitHitTestResult *hit_test_result,
         gboolean triggered_with_keyboard, gpointer data)
@@ -1551,53 +1159,7 @@ context_menu_cb (WebKitWebView *view, GtkMenu *menu, WebKitHitTestResult *hit_te
     /* Display the default menu with our modifications. */
     return populate_context_menu (menu, hit_test_result, context);
 }
-#else
-gboolean
-populate_popup_cb (WebKitWebView *view, GtkMenu *menu, gpointer data)
-{
-    UZBL_UNUSED (data);
 
-    if (!uzbl.gui.menu_items) {
-        return FALSE;
-    }
-
-    gint context = get_click_context ();
-
-    /* Check context. */
-    if (context == NO_CLICK_CONTEXT) {
-        return FALSE;
-    }
-
-    if (uzbl_variables_get_int ("default_context_menu")) {
-        return FALSE;
-    }
-
-    WebKitHitTestResult *hit_test_result;
-    GdkEventButton event;
-    gint x;
-    gint y;
-#if GTK_CHECK_VERSION (3, 0, 0)
-    gdk_window_get_device_position (gtk_widget_get_window (GTK_WIDGET (view)),
-        gdk_device_manager_get_client_pointer (
-            gdk_display_get_device_manager (
-                gtk_widget_get_display (GTK_WIDGET (view)))),
-        &x, &y, NULL);
-#else
-    gdk_window_get_pointer (gtk_widget_get_window (GTK_WIDGET (view)), &x, &y, NULL);
-#endif
-    event.x = x;
-    event.y = y;
-    hit_test_result = webkit_web_view_get_hit_test_result (view, &event);
-
-    gboolean ret = populate_context_menu (menu, hit_test_result, context);
-
-    g_object_unref (hit_test_result);
-
-    return ret;
-}
-#endif
-
-#ifdef USE_WEBKIT2
 gboolean
 web_process_crashed_cb (WebKitWebView *view, gpointer data)
 {
@@ -1703,9 +1265,7 @@ run_color_chooser_cb (WebKitWebView *view, WebKitColorChooserRequest *request, g
 }
 #endif
 #endif
-#endif
 
-#ifdef HAVE_FILE_CHOOSER_API
 static void
 choose_file (GString *result, gpointer data);
 
@@ -1746,7 +1306,6 @@ run_file_chooser_cb (WebKitWebView *view, WebKitFileChooserRequest *request, gpo
 
     return (file_chooser_command != NULL);
 }
-#endif
 
 /* Scrollbar events */
 
@@ -1832,19 +1391,6 @@ set_window_property (const gchar *prop, const gchar *value)
 guint
 key_to_modifier (guint keyval)
 {
-/* Backwards compatibility. */
-#if !GTK_CHECK_VERSION (2, 22, 0)
-#define GDK_KEY_Shift_L GDK_Shift_L
-#define GDK_KEY_Shift_R GDK_Shift_R
-#define GDK_KEY_Control_L GDK_Control_L
-#define GDK_KEY_Control_R GDK_Control_R
-#define GDK_KEY_Alt_L GDK_Alt_L
-#define GDK_KEY_Alt_R GDK_Alt_R
-#define GDK_KEY_Super_L GDK_Super_L
-#define GDK_KEY_Super_R GDK_Super_R
-#define GDK_KEY_ISO_Level3_Shift GDK_ISO_Level3_Shift
-#endif
-
     /* FIXME: Should really use XGetModifierMapping and/or Xkb to get actual
      * modifier keys. */
     switch (keyval) {
@@ -1983,14 +1529,6 @@ get_click_context ()
         return NO_CLICK_CONTEXT;
     }
 
-#ifndef USE_WEBKIT2 /* TODO: No API for this? :( */
-    WebKitHitTestResult *ht = webkit_web_view_get_hit_test_result (uzbl.gui.web_view, uzbl.gui_->last_button);
-    g_object_get (ht,
-        "context", &context,
-        NULL);
-    g_object_unref (ht);
-#endif
-
     return (gint)context;
 }
 
@@ -2062,7 +1600,7 @@ static void
 decide_navigation (GString *result, gpointer data);
 
 gboolean
-navigation_decision (WebKitWebPolicyDecision *decision, const gchar *uri, const gchar *src_frame,
+navigation_decision (WebKitPolicyDecision *decision, const gchar *uri, const gchar *src_frame,
         const gchar *dest_frame, const gchar *type, guint button, guint modifiers, gboolean is_gesture)
 {
     if (uzbl_variables_get_int ("frozen")) {
@@ -2124,39 +1662,20 @@ request_decision (const gchar *uri, gpointer data)
     if (request_command) {
         const gchar *can_display = "unknown";
 
-#ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (2, 3, 4)
         WebKitResponsePolicyDecision *request = (WebKitResponsePolicyDecision *)data;
         if (webkit_response_policy_decision_is_mime_type_supported (request)) {
             can_display = "can_display";
         } else {
             can_display = "cant_display";
         }
-#endif
-#endif
 
         uzbl_commands_args_append (args, g_strdup (uri));
         uzbl_commands_args_append (args, g_strdup (can_display));
 
-#ifdef USE_WEBKIT2
         uzbl_commands_args_append (args, g_strdup ("")); /* frame name */
         uzbl_commands_args_append (args, g_strdup ("unknown")); /* redirect */
 
         uzbl_io_schedule_command (request_command, args, rewrite_request, data);
-#else
-        UzblRequestDecision *decision = (UzblRequestDecision *)data;
-
-        uzbl_commands_args_append (args, g_strdup (decision->frame));
-        uzbl_commands_args_append (args, g_strdup (decision->redirect ? "true" : "false"));
-
-        GString *res = g_string_new ("");
-
-        uzbl_commands_run_parsed (request_command, args, res);
-        uzbl_commands_args_free (args);
-
-        rewrite_request (res, (gpointer)decision->request);
-        g_string_free (res, TRUE);
-#endif
     } else {
         uzbl_commands_args_free (args);
     }
@@ -2167,41 +1686,26 @@ request_decision (const gchar *uri, gpointer data)
 }
 
 void
-send_load_status (WebKitLoadStatus status, const gchar *uri)
+send_load_status (WebKitLoadEvent status, const gchar *uri)
 {
     UzblEventType event = LAST_EVENT;
 
     switch (status) {
-#ifdef USE_WEBKIT2
     case WEBKIT_LOAD_STARTED:
-#else
-    case WEBKIT_LOAD_PROVISIONAL:
-#endif
         uzbl_events_send (LOAD_START, NULL,
             NULL);
         break;
-#ifdef USE_WEBKIT2
     case WEBKIT_LOAD_REDIRECTED:
         event = LOAD_REDIRECTED;
         break;
-#else
-    case WEBKIT_LOAD_FIRST_VISUALLY_NON_EMPTY_LAYOUT:
-        /* TODO: Implement. */
-        break;
-    case WEBKIT_LOAD_FAILED:
-        /* Handled by load_error_cb. */
-        break;
-#endif
     case WEBKIT_LOAD_COMMITTED:
         event = LOAD_COMMIT;
         break;
     case WEBKIT_LOAD_FINISHED:
-#ifdef USE_WEBKIT2
         if (uzbl.gui_->load_failed) {
             uzbl.gui_->load_failed = FALSE;
             break;
         }
-#endif
         event = LOAD_FINISH;
         break;
     default:
@@ -2234,8 +1738,6 @@ send_load_error (const gchar *uri, GError *err)
     return FALSE;
 }
 
-#ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (2, 1, 4)
 void
 authenticate (GString *result, gpointer data)
 {
@@ -2294,49 +1796,8 @@ authenticate (GString *result, gpointer data)
 
     g_free (auth);
 }
-#endif
-#endif
 
-#ifndef USE_WEBKIT2
-gboolean
-mime_decision (WebKitWebPolicyDecision *decision, const gchar *mime_type, const gchar *disposition)
-{
-    if (uzbl_variables_get_int ("frozen")) {
-        make_policy (decision, ignore);
-        return FALSE;
-    }
-
-    gchar *handler = uzbl_variables_get_string ("mime_handler");
-
-    GArray *args = uzbl_commands_args_new ();
-    const UzblCommand *mime_command = uzbl_commands_parse (handler, args);
-
-    if (mime_command) {
-        uzbl_commands_args_append (args, g_strdup (mime_type));
-        uzbl_commands_args_append (args, g_strdup (disposition ? disposition : ""));
-        g_object_ref (decision);
-        uzbl_io_schedule_command (mime_command, args, decide_navigation, decision);
-    } else {
-        gboolean can_show = webkit_web_view_can_show_mime_type (uzbl.gui.web_view, mime_type);
-
-        if (can_show) {
-            /* If we can display it, let's display it... */
-            make_policy (decision, use);
-        } else {
-            /* ...everything we can't display is downloaded. */
-            make_policy (decision, download);
-        }
-
-        uzbl_commands_args_free (args);
-    }
-
-    g_free (handler);
-
-    return TRUE;
-}
-#endif
-
-#if defined(USE_WEBKIT2) && WEBKIT_CHECK_VERSION (2, 7, 2)
+#if WEBKIT_CHECK_VERSION (2, 7, 2)
 void
 resource_tls_error_cb (WebKitWebResource *resource, GTlsCertificate *certificate, GTlsCertificateFlags flags, gpointer data)
 {
@@ -2347,87 +1808,29 @@ resource_tls_error_cb (WebKitWebResource *resource, GTlsCertificate *certificate
 }
 #endif
 
-#ifndef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (1, 3, 13)
-void
-dom_focus_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data)
-{
-    UZBL_UNUSED (target);
-    UZBL_UNUSED (data);
-
-    WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
-    gchar *name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
-
-    uzbl_events_send (FOCUS_ELEMENT, NULL,
-        TYPE_STR, name,
-        NULL);
-}
-
-void
-dom_blur_cb (WebKitDOMEventTarget *target, WebKitDOMEvent *event, gpointer data)
-{
-    UZBL_UNUSED (target);
-    UZBL_UNUSED (data);
-
-    WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
-    gchar *name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
-
-    uzbl_events_send (BLUR_ELEMENT, NULL,
-        TYPE_STR, name,
-        NULL);
-}
-#endif
-#endif
-
 static gboolean
 decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename, gpointer data);
 static void
 download_finished_cb (WebKitDownload *download, gpointer data);
-#ifdef USE_WEBKIT2
 static void
 download_receive_cb (WebKitDownload *download, guint64 length, gpointer data);
 static void
 download_failed_cb (WebKitDownload *download, gpointer error, gpointer data);
-#else
-static void
-download_size_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data);
-static void
-download_status_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data);
-static gboolean
-download_error_cb (WebKitDownload *download, gint error_code, gint error_detail, gchar *reason, gpointer data);
-#endif
 
 void
 handle_download (WebKitDownload *download, const gchar *suggested_destination)
 {
-#ifdef USE_WEBKIT2
     g_object_connect (G_OBJECT (download),
         "signal::decide-destination", G_CALLBACK (decide_destination_cb), suggested_destination,
         "signal::finished",           G_CALLBACK (download_finished_cb),  NULL,
         "signal::received-data",      G_CALLBACK (download_receive_cb),   NULL,
         "signal::failed",             G_CALLBACK (download_failed_cb),    NULL,
         NULL);
-#else
-    g_object_connect (G_OBJECT (download),
-        "signal::notify::current-size", G_CALLBACK (download_size_cb),      NULL,
-        "signal::notify::status",       G_CALLBACK (download_status_cb),    NULL,
-        "signal::error",                G_CALLBACK (download_error_cb),     NULL,
-        NULL);
-
-    const gchar *download_suggestion = webkit_download_get_suggested_filename (download);
-    decide_destination_cb (download, download_suggestion, (gpointer)suggested_destination);
-#endif
 }
 
-#ifdef USE_WEBKIT2
 #define permission_requests(call)                                  \
     call (WEBKIT_IS_PERMISSION_REQUEST, WEBKIT_PERMISSION_REQUEST, \
         webkit_permission_request_allow, webkit_permission_request_deny)
-#else
-#define permission_requests(call)                                                    \
-    call (WEBKIT_IS_GEOLOCATION_POLICY_DECISION, WEBKIT_GEOLOCATION_POLICY_DECISION, \
-        webkit_geolocation_policy_allow, webkit_geolocation_policy_deny)
-#endif
 #define allow_request(check, cast, allow, deny) \
     } else if (check (obj)) {                   \
         allow (cast (obj));
@@ -2483,8 +1886,6 @@ request_permission (const gchar *uri, const gchar *type, const gchar *desc, GObj
     return TRUE;
 }
 
-#ifdef USE_WEBKIT2
-#if WEBKIT_CHECK_VERSION (2, 3, 1)
 void
 decide_tls_error_policy (GString *result, gpointer data)
 {
@@ -2622,8 +2023,6 @@ get_certificate_info (GTlsCertificate *cert)
 
     return g_string_free (info, FALSE);
 }
-#endif
-#endif
 
 static void
 create_web_view_uri_cb (WebKitWebView *view, GParamSpec param_spec, gpointer data);
@@ -2631,7 +2030,7 @@ create_web_view_uri_cb (WebKitWebView *view, GParamSpec param_spec, gpointer dat
 WebKitWebView *
 create_view (WebKitWebView *view)
 {
-#if !defined(USE_WEBKIT2) || !WEBKIT_CHECK_VERSION (2, 3, 90)
+#if !WEBKIT_CHECK_VERSION (2, 3, 90)
     UZBL_UNUSED (view);
 #endif
 
@@ -2647,7 +2046,7 @@ create_view (WebKitWebView *view)
          * window.open().
          */
         uzbl.gui_->tmp_web_view =
-#if defined(USE_WEBKIT2) && WEBKIT_CHECK_VERSION (2, 3, 90)
+#if WEBKIT_CHECK_VERSION (2, 3, 90)
             WEBKIT_WEB_VIEW (webkit_web_view_new_with_related_view (view))
 #else
             WEBKIT_WEB_VIEW (webkit_web_view_new ())
@@ -2708,7 +2107,6 @@ populate_context_menu (GtkMenu *menu, WebKitHitTestResult *hit_test_result, gint
     return FALSE;
 }
 
-#ifdef USE_WEBKIT2
 #if WEBKIT_CHECK_VERSION (2, 7, 3)
 #if WEBKIT_CHECK_VERSION (2, 7, 90)
 void
@@ -2749,9 +2147,7 @@ choose_color (GString *result, gpointer data)
     g_object_unref (request);
 }
 #endif
-#endif
 
-#ifdef HAVE_FILE_CHOOSER_API
 void
 choose_file (GString *result, gpointer data)
 {
@@ -2760,13 +2156,7 @@ choose_file (GString *result, gpointer data)
     gchar **files = g_strsplit (result->str, "\n", -1);
 
     if (!result->len || !files || !*files) {
-#ifdef USE_WEBKIT2
         webkit_file_chooser_request_cancel (request);
-#else
-        /* FIXME: no way to cancel? */
-        const gchar *no_file[] = { NULL };
-        webkit_file_chooser_request_select_files (request, no_file);
-#endif
     } else if (multiple) {
         webkit_file_chooser_request_select_files (request, (const gchar * const *)files);
     } else {
@@ -2778,7 +2168,6 @@ choose_file (GString *result, gpointer data)
 
     g_object_unref (request);
 }
-#endif
 
 void
 send_scroll_event (int type, GtkAdjustment *adjust)
@@ -2809,7 +2198,7 @@ button_to_modifier (guint buttonval)
 void
 decide_navigation (GString *result, gpointer data)
 {
-    WebKitWebPolicyDecision *decision = (WebKitWebPolicyDecision *)data;
+    WebKitPolicyDecision *decision = (WebKitPolicyDecision *)data;
 
     if (!g_strcmp0 (result->str, "IGNORE") ||
         !g_strcmp0 (result->str, "USED")) { /* XXX: Deprecated */
@@ -2828,17 +2217,12 @@ decide_navigation (GString *result, gpointer data)
 void
 rewrite_request (GString *result, gpointer data)
 {
-#ifdef USE_WEBKIT2
     WebKitResponsePolicyDecision *decision = (WebKitResponsePolicyDecision *)data;
     WebKitURIRequest *request = webkit_response_policy_decision_get_request (decision);
-#else
-    WebKitNetworkRequest *request = (WebKitNetworkRequest *)data;
-#endif
 
     if (result->len > 0) {
         uzbl_debug ("Request rewritten -> %s\n", result->str);
 
-#ifdef USE_WEBKIT2
         if (!g_strcmp0 (result->str, "IGNORE")) {
             make_policy (decision, ignore);
         } else if (!g_strcmp0 (result->str, "DOWNLOAD")) {
@@ -2846,16 +2230,9 @@ rewrite_request (GString *result, gpointer data)
         } else {
             webkit_uri_request_set_uri (request, result->str);
         }
-#else
-        webkit_network_request_set_uri (request, result->str);
-#endif
     }
 
-#ifdef USE_WEBKIT2
     g_object_unref (decision);
-#else
-    g_object_unref (request);
-#endif
 }
 
 static void
@@ -2865,13 +2242,7 @@ gboolean
 decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename, gpointer data)
 {
     /* Get the URI being downloaded. */
-    const gchar *uri =
-#ifdef USE_WEBKIT2
-        webkit_download_get_destination (download)
-#else
-        webkit_download_get_uri (download)
-#endif
-        ;
+    const gchar *uri = webkit_download_get_destination (download);
     const gchar *user_destination = (const gchar *)data;
 
     uzbl_debug ("Download requested -> %s\n", uri);
@@ -2890,32 +2261,11 @@ decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename
     /* Get the mimetype of the download. */
     const gchar *content_type = NULL;
     guint64 total_size = 0;
-#ifdef USE_WEBKIT2
     WebKitURIResponse *response = webkit_download_get_response (download);
     content_type = webkit_uri_response_get_mime_type (response);
     total_size = webkit_uri_response_get_content_length (response);
 #if WEBKIT_CHECK_VERSION (2, 5, 90)
     /* TODO: Use response headers? */
-#endif
-#else
-    WebKitNetworkResponse *response = webkit_download_get_network_response (download);
-    /* Downloads can be initiated from the context menu, in that case there is
-     * no network response yet and trying to get one would crash. */
-    if (WEBKIT_IS_NETWORK_RESPONSE (response)) {
-        SoupMessage        *message = webkit_network_response_get_message (response);
-        SoupMessageHeaders *headers = NULL;
-        g_object_get (G_OBJECT (message),
-            "response-headers", &headers,
-            NULL);
-        /* Some versions of libsoup don't have "response-headers" here. */
-        if (headers) {
-            content_type = soup_message_headers_get_one (headers, "Content-Type");
-        }
-    }
-
-    /* Get the filesize of the download, as given by the server. It may be
-     * inaccurate, but there's nothing we can do about that. */
-    total_size = webkit_download_get_total_size (download);
 #endif
 
     if (!content_type) {
@@ -2929,14 +2279,7 @@ decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename
     uzbl_commands_args_append (args, total_size_s);
     uzbl_commands_args_append (args, g_strdup (user_destination ? user_destination : ""));
 
-#ifdef USE_WEBKIT2
     uzbl_io_schedule_command (download_command, args, download_destination, download);
-#else
-    GString *result = g_string_new ("");
-    uzbl_commands_run_parsed (download_command, args, result);
-    download_destination (result, download);
-    g_string_free (result, TRUE);
-#endif
 
     return FALSE;
 }
@@ -2946,13 +2289,7 @@ download_finished_cb (WebKitDownload *download, gpointer data)
 {
     UZBL_UNUSED (data);
 
-    const gchar *dest_uri =
-#ifdef USE_WEBKIT2
-        webkit_download_get_destination (download)
-#else
-        webkit_download_get_destination_uri (download)
-#endif
-        ;
+    const gchar *dest_uri = webkit_download_get_destination (download);
     const gchar *dest_path = dest_uri + strlen ("file://");
 
     uzbl_events_send (DOWNLOAD_COMPLETE, NULL,
@@ -2965,7 +2302,6 @@ download_update (WebKitDownload *download);
 static void
 send_download_error (const gchar *destination, WebKitDownloadError err, const gchar *message);
 
-#ifdef USE_WEBKIT2
 void
 download_receive_cb (WebKitDownload *download, guint64 length, gpointer data)
 {
@@ -2986,52 +2322,6 @@ download_failed_cb (WebKitDownload *download, gpointer error, gpointer data)
 
     send_download_error (destination, err->code, err->message);
 }
-#else
-void
-download_size_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data)
-{
-    UZBL_UNUSED (param_spec);
-    UZBL_UNUSED (data);
-
-    download_update (download);
-}
-
-void
-download_status_cb (WebKitDownload *download, GParamSpec *param_spec, gpointer data)
-{
-    UZBL_UNUSED (param_spec);
-
-    WebKitDownloadStatus status = webkit_download_get_status (download);
-
-    switch (status) {
-    case WEBKIT_DOWNLOAD_STATUS_CREATED:
-    case WEBKIT_DOWNLOAD_STATUS_STARTED:
-    case WEBKIT_DOWNLOAD_STATUS_CANCELLED:
-    case WEBKIT_DOWNLOAD_STATUS_ERROR:
-        /* Handled elsewhere. */
-        break;
-    case WEBKIT_DOWNLOAD_STATUS_FINISHED:
-        download_finished_cb (download, data);
-        break;
-    default:
-        uzbl_debug ("Unknown download status: %d\n", status);
-        break;
-    }
-}
-
-gboolean
-download_error_cb (WebKitDownload *download, gint error_code, gint error_detail, gchar *reason, gpointer data)
-{
-    UZBL_UNUSED (error_code);
-    UZBL_UNUSED (data);
-
-    const gchar *destination = webkit_download_get_destination_uri (download);
-
-    send_download_error (destination, error_detail, reason);
-
-    return TRUE;
-}
-#endif
 
 void
 decide_permission (GString *result, gpointer data)
@@ -3145,11 +2435,7 @@ download_destination (GString *result, gpointer data)
         TYPE_STR, destination_uri + strlen ("file://"),
         NULL);
 
-#ifdef USE_WEBKIT2
     webkit_download_set_destination (download, destination_uri);
-#else
-    webkit_download_set_destination_uri (download, destination_uri);
-#endif
     g_free (destination_uri);
 }
 
@@ -3157,24 +2443,11 @@ void
 download_update (WebKitDownload *download)
 {
     gdouble progress;
-    const gchar *property =
-#ifdef USE_WEBKIT2
-        "estimated-progress"
-#else
-        "progress"
-#endif
-        ;
     g_object_get (download,
-        property, &progress,
+        "estimated-progress", &progress,
         NULL);
 
-    const gchar *dest_uri =
-#ifdef USE_WEBKIT2
-        webkit_download_get_destination (download)
-#else
-        webkit_download_get_destination_uri (download)
-#endif
-        ;
+    const gchar *dest_uri = webkit_download_get_destination (download);
     const gchar *dest_path = dest_uri + strlen ("file://");
 
     uzbl_events_send (DOWNLOAD_PROGRESS, NULL,
