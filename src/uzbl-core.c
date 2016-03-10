@@ -53,6 +53,20 @@ UzblCore uzbl;
 
 static void
 ensure_xdg_vars ();
+
+typedef enum {
+    XDG_BEGIN,
+
+    XDG_DATA = XDG_BEGIN,
+    XDG_CONFIG,
+    XDG_CACHE,
+
+    XDG_END
+} XdgDir;
+
+static gchar *
+get_xdg_var (gboolean user, XdgDir type);
+
 static void
 read_config_file (const gchar *file);
 
@@ -61,6 +75,8 @@ read_config_file (const gchar *file);
 void
 uzbl_init (int *argc, char ***argv)
 {
+    gchar *cache_dir = NULL;
+    gchar *data_dir = NULL;
     gchar *uri = NULL;
     gboolean verbose = FALSE;
     gchar *config_file = NULL;
@@ -94,6 +110,10 @@ uzbl_init (int *argc, char ***argv)
             "Print information for a bug report and exit",                                                   NULL },
         { "web-extensions-dir", 0,  0, G_OPTION_ARG_STRING,       &uzbl.state.web_extensions_directory,
             "Directory that will be searched for webkit extensions",                                         "DIR" },
+        { "cache-dir",          0,  0, G_OPTION_ARG_STRING,       &cache_dir,
+            "Directory where website cache will be stored",                                                  "DIR" },
+        { "data-dir",           0,  0, G_OPTION_ARG_STRING,       &data_dir,
+            "Directory where website data will be stored",                                                   "DIR" },
         { NULL,      0, 0, 0, NULL, NULL, NULL }
     };
 
@@ -114,6 +134,21 @@ uzbl_init (int *argc, char ***argv)
 
     if (!uzbl.state.web_extensions_directory) {
         uzbl.state.web_extensions_directory = LIBDIR "/web-extensions";
+    }
+
+    /* XDG */
+    ensure_xdg_vars ();
+
+    if (!cache_dir) {
+        gchar *cache_home = get_xdg_var (TRUE, XDG_CACHE);
+        cache_dir = g_strconcat (cache_home, "/uzbl", NULL);
+        g_free (cache_home);
+    }
+
+    if (!data_dir) {
+        gchar *data_home = get_xdg_var (TRUE, XDG_DATA);
+        data_dir = g_strconcat (data_home, "/uzbl", NULL);
+        g_free (data_home);
     }
 
     /* Print bug information. */
@@ -168,25 +203,6 @@ uzbl_init (int *argc, char ***argv)
     }
 #endif
 
-    WebKitWebContext *webkit_context = webkit_web_context_get_default ();
-
-    /* Use this in the hopes that one day uzbl itself can be multi-threaded. */
-    WebKitProcessModel model =
-#if WEBKIT_CHECK_VERSION (2, 3, 90)
-        WEBKIT_PROCESS_MODEL_MULTIPLE_SECONDARY_PROCESSES
-#else
-        WEBKIT_PROCESS_MODEL_ONE_SECONDARY_PROCESS_PER_WEB_VIEW
-#endif
-        ;
-    /* TODO: expose command line option for this. */
-    webkit_web_context_set_process_model (webkit_context, model);
-#if WEBKIT_CHECK_VERSION (2, 9, 4)
-    /* TODO: expose command line option for this. */
-    webkit_web_context_set_web_process_count_limit (webkit_context, 0);
-#endif
-    webkit_web_context_set_web_extensions_directory (webkit_context,
-                                                     uzbl.state.web_extensions_directory);
-
     uzbl_io_init ();
     uzbl_js_init ();
     uzbl_variables_init ();
@@ -195,18 +211,11 @@ uzbl_init (int *argc, char ***argv)
     uzbl_requests_init ();
 
     /* Initialize the GUI. */
-    uzbl_gui_init ();
+    uzbl_gui_init (cache_dir, data_dir, uzbl.state.web_extensions_directory);
     uzbl_inspector_init ();
-
-#if WEBKIT_CHECK_VERSION (2, 9, 4)
-    uzbl_variables_setup_data_manager ();
-#endif
 
     /* Uzbl has now been started. */
     uzbl.state.started = TRUE;
-
-    /* XDG */
-    ensure_xdg_vars ();
 
     /* Connect to the event manager(s). */
     gchar **name = connect_socket_names;
@@ -371,19 +380,6 @@ main_exit:
 #endif
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
-
-typedef enum {
-    XDG_BEGIN,
-
-    XDG_DATA = XDG_BEGIN,
-    XDG_CONFIG,
-    XDG_CACHE,
-
-    XDG_END
-} XdgDir;
-
-static gchar *
-get_xdg_var (gboolean user, XdgDir type);
 
 typedef struct {
     const gchar *environment;

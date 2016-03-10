@@ -15,7 +15,9 @@ void
 uzbl_events_free ();
 
 void
-uzbl_gui_init ();
+uzbl_gui_init (const gchar *cache_dir,
+               const gchar *data_dir,
+               const gchar *web_extensions_dir);
 void
 uzbl_gui_free ();
 
@@ -53,7 +55,5 @@ void
 uzbl_variables_init ();
 void
 uzbl_variables_free ();
-void
-uzbl_variables_setup_data_manager ();
 
 #endif
