@@ -93,8 +93,6 @@ set download_handler       spawn_sync @scripts_dir/download.sh
 @on_event   ROOT_ACTIVE    event KEYCMD_CLEAR
 @on_event   FOCUS_ELEMENT  event KEYCMD_CLEAR
 
-@on_event   AUTHENTICATE   spawn @scripts_dir/auth.py "%1" "%2" "%3"
-
 # Example CONFIG_CHANGED event handler
 #@on_event  CONFIG_CHANGED print Config changed: %1 = %2
 
