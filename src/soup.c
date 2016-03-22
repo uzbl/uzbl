@@ -27,6 +27,14 @@ authenticate_cb (SoupSession *session,
 void
 uzbl_soup_init (SoupSession *session)
 {
+    uzbl.net.builtin_auth_id = g_signal_handler_find ((gpointer) session,
+        G_SIGNAL_MATCH_ID,
+        g_signal_lookup ("authenticate", SOUP_TYPE_SESSION),
+        0,
+        NULL,
+        NULL,
+        NULL);
+
     uzbl.net.soup_cookie_jar = uzbl_cookie_jar_new ();
 
     soup_session_add_feature (session,
@@ -37,6 +45,16 @@ uzbl_soup_init (SoupSession *session)
         "signal::request-started", G_CALLBACK (request_started_cb), NULL,
         "signal::authenticate",    G_CALLBACK (authenticate_cb), NULL,
         NULL);
+}
+
+void
+uzbl_soup_disable_builtin_auth (SoupSession *session) {
+    g_signal_handler_block ((gpointer) session, uzbl.net.builtin_auth_id);
+}
+
+void
+uzbl_soup_enable_builtin_auth (SoupSession *session) {
+    g_signal_handler_unblock ((gpointer) session, uzbl.net.builtin_auth_id);
 }
 
 void
