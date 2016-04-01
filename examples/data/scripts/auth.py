@@ -1,13 +1,18 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import os
 import gtk
 import sys
+import argparse
+
 
 def responseToDialog(entry, dialog, response):
     dialog.response(response)
 
-def getText(authInfo, authHost, authRealm):
+
+def getText(authHost, authRealm):
     dialog = gtk.MessageDialog(
         None,
         gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
@@ -23,10 +28,10 @@ def getText(authInfo, authHost, authRealm):
     login.connect("activate", responseToDialog, dialog, gtk.RESPONSE_OK)
     password.connect("activate", responseToDialog, dialog, gtk.RESPONSE_OK)
 
-    hbox = gtk.HBox();
+    hbox = gtk.HBox()
 
-    vbox_entries = gtk.VBox();
-    vbox_labels = gtk.VBox();
+    vbox_entries = gtk.VBox()
+    vbox_labels = gtk.VBox()
 
     vbox_labels.pack_start(gtk.Label("Login:"), False, 5, 5)
     vbox_labels.pack_end(gtk.Label("Password:"), False, 5, 5)
@@ -49,13 +54,19 @@ def getText(authInfo, authHost, authRealm):
     dialog.destroy()
     return rv, output
 
+
 if __name__ == '__main__':
-    fifo = open(os.environ.get('UZBL_FIFO'), 'w')
-    me, info, host, realm = sys.argv
-    rv, output = getText(info, host, realm)
-    if (rv == gtk.RESPONSE_OK):
-        print >> fifo, 'auth "%s" "%s" "%s"' % (
-            info, output['username'], output['password']
-        )
+    parser = argparse.ArgumentParser()
+    parser.add_argument('host')
+    parser.add_argument('realm')
+    parser.add_argument('extra', nargs='*')
+    args = parser.parse_args()
+
+    rv, output = getText(args.host, args.realm)
+    if rv == gtk.RESPONSE_OK:
+        print('AUTH')
+        print(output['username'])
+        print(output['password'])
     else:
+        print('IGNORE')
         exit(1)

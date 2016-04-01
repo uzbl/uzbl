@@ -9,6 +9,7 @@
 #include "type.h"
 #include "util.h"
 #include "comm.h"
+#include "soup.h"
 #include "uzbl-core.h"
 
 #include <JavaScriptCore/JavaScript.h>
@@ -1107,7 +1108,7 @@ DECLARE_SETTER (gchar *, fifo_dir);
 DECLARE_SETTER (gchar *, socket_dir);
 
 /* Handler variables */
-DECLARE_GETSET (int, enable_builtin_auth);
+DECLARE_SETTER (int, enable_builtin_auth);
 
 /* Window variables */
 DECLARE_SETTER (gchar *, icon);
@@ -1329,6 +1330,7 @@ struct _UzblVariablesPrivate {
     /* Network variables */
     gchar *http_debug;
     SoupLogger *soup_logger;
+    gboolean enable_builtin_auth;
 
     /* Security variables */
     gboolean permissive;
@@ -1362,7 +1364,7 @@ uzbl_variables_private_new (GHashTable *table)
         { "socket_dir",                   UZBL_V_STRING (priv->socket_dir,                     set_socket_dir)},
 
         /* Handler variables */
-        { "enable_builtin_auth",          UZBL_V_FUNC (enable_builtin_auth,                    INT)},
+        { "enable_builtin_auth",          UZBL_V_INT (priv->enable_builtin_auth,               set_enable_builtin_auth)},
 
         /* Window variables */
         { "icon",                         UZBL_V_STRING (priv->icon,                           set_icon)},
@@ -1748,26 +1750,12 @@ IMPLEMENT_SETTER (gchar *, socket_dir)
 }
 
 /* Handler variables */
-IMPLEMENT_GETTER (int, enable_builtin_auth)
-{
-    SoupSessionFeature *auth = soup_session_get_feature (
-        uzbl.net.soup_session, (GType)WEBKIT_TYPE_SOUP_AUTH_DIALOG);
-
-    return (auth != NULL);
-}
-
 IMPLEMENT_SETTER (int, enable_builtin_auth)
 {
-    SoupSessionFeature *auth = soup_session_get_feature (
-        uzbl.net.soup_session, (GType)WEBKIT_TYPE_SOUP_AUTH_DIALOG);
-
     if (enable_builtin_auth) {
-        if (!auth) {
-            soup_session_add_feature_by_type (
-                uzbl.net.soup_session, (GType)WEBKIT_TYPE_SOUP_AUTH_DIALOG);
-        }
-    } else if (auth) {
-        soup_session_remove_feature (uzbl.net.soup_session, auth);
+        uzbl_soup_enable_builtin_auth (uzbl.net.soup_session);
+    } else {
+        uzbl_soup_disable_builtin_auth (uzbl.net.soup_session);
     }
 
     return TRUE;
