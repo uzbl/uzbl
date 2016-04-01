@@ -15,19 +15,14 @@ append_escaped (GString *dest, const gchar *src);
 void
 uzbl_comm_string_append_double (GString *buf, double val)
 {
-    gsize pos = buf->len;
-
-    /* Make sure the formatted double fits in the buffer. */
-    if (buf->allocated_len - pos < G_ASCII_DTOSTR_BUF_SIZE) {
-        g_string_set_size (buf, pos + G_ASCII_DTOSTR_BUF_SIZE);
-    }
+    gchar double_buf[G_ASCII_DTOSTR_BUF_SIZE];
 
     /* Format in C locale. */
-    char *tmp = g_ascii_formatd (
-        buf->str + pos,
-        buf->allocated_len - pos,
+    g_ascii_formatd (
+        double_buf,
+        sizeof (double_buf),
         "%.2g", val);
-    buf->len += pos + strlen (tmp);
+    g_string_append (buf, double_buf);
 }
 
 GString *
