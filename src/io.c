@@ -665,7 +665,7 @@ attach_socket (const gchar *path)
         return FALSE;
     }
 
-    if (chmod (path, 0700)) {
+    if (chmod (path, 0600)) {
         g_warning ("unable to change permissions for %s socket: %s\n", path, strerror (errno));
         g_socket_close (sock, NULL);
         return FALSE;
