@@ -17,6 +17,32 @@ includes:
 For more specifics, search the [README](README.md) file for 'WebKit1' and
 'WebKit2'.
 
+### The python package fails to install
+
+If trying to install uzbl into a location that is not supported by the system
+python you will get an error like this.
+
+```
+TEST FAILED: /usr/local/lib/python3.4/site-packages/ does NOT support .pth files
+error: bad install directory or PYTHONPATH
+```
+
+You can either install into a prefix that is supported by python
+
+```
+make install PREFIX=/usr
+```
+
+Or, enable the path as a site dir for python by adding or modifying the file
+`sitecustomize.py` in the system site-packages directory (e.g
+"/usr/lib/python3.4/site-packages/sitecustomize.py"). The file should contain a
+addsitedir directive for the path you're trying to install to.
+
+```
+import site
+site.addsitedir("/usr/local/lib/python3.4/site-packages/")
+```
+
 ### Starting the event manager gives "ImportError: No module named 'six'"
 
 Install the `six` module from your package manager.

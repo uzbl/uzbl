@@ -27,7 +27,7 @@ CPPFLAGS += -DG_DISABLE_DEPRECATED
 # WebKitGTK uses deprecated features, so uzbl can't blanket this out.
 #CPPFLAGS += -DGTK_DISABLE_DEPRECATED
 
-REQ_PKGS += 'libsoup-2.4 >= 2.33.4' gthread-2.0 glib-2.0
+REQ_PKGS += 'libsoup-2.4 >= 2.33.4' gthread-2.0 glib-2.0 gio-2.0 gio-unix-2.0
 
 ARCH := $(shell uname -m)
 

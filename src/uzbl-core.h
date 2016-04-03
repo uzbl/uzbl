@@ -58,6 +58,7 @@ typedef struct {
 typedef struct {
     SoupSession    *soup_session;
     UzblCookieJar  *soup_cookie_jar;
+    gulong          builtin_auth_id;
 } UzblNetwork;
 
 struct _UzblCommands;
