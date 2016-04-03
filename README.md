@@ -786,21 +786,6 @@ variables are treated as strings.
 * `enable_offline_app_cache` (boolean) (default: 1)
   - If non-zero, HTML5 web application cache support will be enabled. This
     allows web applications to run locally without a network connection.
-* `local_storage_path` (string) (default: `$XDG_DATA_HOME/webkit/databases`) (WebKit2 >= 2.7.2)
-  - Where to store HTML5 `localStorage` data.
-* `disk_cache_directory` (string) (no default)
-  - Where to store cache files.. Must be set before loading any pages to have
-    an effect.
-* `indexed_db_directory` (string) (no default) (WebKit2 >= 2.9.2)
-  - Where to store IndexedDB databases.
-* `base_cache_directory` (string) (no default) (WebKit2 >= 2.9.4)
-  - Location to store cache files if no more specific directory is given.
-* `base_data_directory` (string) (no default) (WebKit2 >= 2.9.4)
-  - Location to store data files if no more specific directory is given.
-* `offline_app_cache_directory` (string) (no default) (WebKit2 >= 2.9.4)
-  - Location to store files for offline applications.
-* `websql_directory` (string) (no default) (WebKit2 >= 2.9.4)
-  - Location to store WebSQL databases.
 
 #### Hacks
 
@@ -866,6 +851,22 @@ they are written as comments.
   - The process ID of `uzbl`.
 * `_` (string)
   - The last result from a command.
+* `local_storage_path` (string) (default: `$XDG_DATA_HOME/uzbl/databases`) (WebKit2 >= 2.7.2)
+  - Where to store HTML5 `localStorage` data.
+* `disk_cache_directory` (string) (default: `$XDG_CACHE_HOME/uzbl`)
+  - Where to store cache files.
+* `indexed_db_directory` (string) (default: `$XDG_DATA_HOME/uzbl/databases/indexeddb`) (WebKit2 >= 2.9.2)
+  - Where to store IndexedDB databases.
+* `base_cache_directory` (string) (default: `$XDG_CACHE_HOME/uzbl`) (WebKit2 >= 2.9.4)
+  - Location to store cache files if no more specific directory is given.
+    Can be set at initialisation with `--cache-dir`
+* `base_data_directory` (string) (default: `$XDG_DATA_HOME/uzbl`) (WebKit2 >= 2.9.4)
+  - Location to store data files if no more specific directory is given.
+    Can be set at initialisation with `--data-dir`
+* `offline_app_cache_directory` (string) (default: `$XDG_CACHE_HOME/uzbl/applications`) (WebKit2 >= 2.9.4)
+  - Location to store files for offline applications.
+* `websql_directory` (string) (default: `$XDG_DATA_HOME/ubl/databases`) (WebKit2 >= 2.9.4)
+  - Location to store WebSQL databases.
 
 ### VARIABLE EXPANSION
 
@@ -1393,6 +1394,10 @@ where `arguments` and `uri` are both optional. `arguments` can be:
   - Print the version and exit.
 * `--web-extensions-dir`
   - Directory that will be searched for webkit extensions
+* `--cache-dir`
+  - Directory where website cache will be stored
+* `--data-dir`
+  - Directory where website data will be stored
 * `--display=DISPLAY`
   - X display to use.
 * `--help`
