@@ -7,10 +7,10 @@
 
 #include <string.h>
 
+/* =========================== PUBLIC API =========================== */
+
 static GString *
 append_escaped (GString *dest, const gchar *src);
-
-/* =========================== PUBLIC API =========================== */
 
 void
 uzbl_comm_string_append_double (GString *buf, double val)
