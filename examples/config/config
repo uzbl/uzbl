@@ -180,6 +180,7 @@ set cookie_policy always
 @modmap <Control>       <Ctrl>
 @modmap <ISO_Left_Tab>  <Shift-Tab>
 @modmap <KP_Enter>      <Enter>
+@modmap " "             <Space>
 
 #ignore_key <glob>
 @ignore_key <ISO_*>
@@ -269,7 +270,7 @@ set history_disable_easter_egg 1
 @cbind  <End>        = scroll vertical end
 @cbind  ^            = scroll horizontal begin
 @cbind  $            = scroll horizontal end
-@cbind  " "          = scroll vertical 100%
+@cbind  <Space>      = scroll vertical 100%
 @cbind  G<"Go To":>_   = scroll vertical %r!
 # The first '_' is literal, so type '_G' to trigger this binding.
 @cbind  _G<"Go To":>_  = scroll horizontal %r!
