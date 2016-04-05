@@ -101,6 +101,8 @@ allocate (GtkWidget *widget, GtkAllocation *allocation)
 
     int left_natural_width;
 
+    GTK_WIDGET_CLASS (uzbl_status_bar_parent_class)->size_allocate (widget, allocation);
+
 #if GTK_CHECK_VERSION (3, 0, 0)
     GtkRequisition left_requisition_nat;
 
