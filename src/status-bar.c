@@ -95,13 +95,14 @@ allocate (GtkWidget *widget, GtkAllocation *allocation)
 {
     GtkRequisition left_requisition;
     GtkRequisition right_requisition;
+    GtkRequisition left_requisition_nat;
     GtkAllocation left_allocation;
     GtkAllocation right_allocation;
     UzblStatusBar *status_bar = UZBL_STATUS_BAR (widget);
 
     int left_natural_width;
 
-    GtkRequisition left_requisition_nat;
+    GTK_WIDGET_CLASS (uzbl_status_bar_parent_class)->size_allocate (widget, allocation);
 
     gtk_widget_get_preferred_size (status_bar->left_label,  &left_requisition,  &left_requisition_nat);
     gtk_widget_get_preferred_size (status_bar->right_label, &right_requisition, NULL);
