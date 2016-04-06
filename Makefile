@@ -91,6 +91,8 @@ LOBJ  = $(foreach obj, $(SRC:.c=.lo), $(obj))
 PY    = $(wildcard uzbl/*.py uzbl/plugins/*.py)
 ICONS = icons/32x32.png icons/48x48.png icons/64x64.png icons/96x96.png
 
+webext_OBJ = src/uzbl-ext.lo
+
 all: uzbl-browser
 
 VPATH := src
@@ -100,6 +102,9 @@ ${OBJ}: ${HEAD}
 libuzbl.a: libuzbl.a(${OBJ})
 
 uzbl-core: libuzbl.a
+
+uzbl-ext.so: ${webext_OBJ}
+	$(CC) -shared $< -o $@
 
 uzbl-browser: uzbl-core uzbl-event-manager uzbl-browser.1 uzbl-core.desktop uzbl-tabbed.desktop bin/uzbl-browser
 
@@ -122,9 +127,9 @@ build: ${PY}
 .PHONY: uzbl-event-manager
 uzbl-event-manager: build
 
-# this is here because the .so needs to be compiled with -fPIC on x86_64
-${LOBJ}: ${SRC} ${HEAD}
-	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -c src/$(@:.lo=.c) -o $@
+%.lo: ${HEAD}
+%.lo: %.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -c $< -o $@
 
 .PHONY: tests
 tests: tests/core-tests
