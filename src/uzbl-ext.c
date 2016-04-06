@@ -69,6 +69,19 @@ web_page_created_callback (WebKitWebExtension *extension,
                            WebKitWebPage      *web_page,
                            gpointer            user_data);
 
+static void
+document_loaded_callback (WebKitWebPage *web_page,
+                          gpointer       user_data);
+static void
+dom_focus_callback (WebKitDOMEventTarget *target,
+                    WebKitDOMEvent       *event,
+                    gpointer              user_data);
+static void
+dom_blur_callback (WebKitDOMEventTarget *target,
+                   WebKitDOMEvent       *event,
+                   gpointer              user_data);
+
+
 G_MODULE_EXPORT void
 webkit_web_extension_initialize_with_user_data (WebKitWebExtension *extension,
                                                 GVariant           *user_data)
@@ -97,7 +110,6 @@ web_page_created_callback (WebKitWebExtension *extension,
                            gpointer            user_data)
 {
     UZBL_UNUSED (extension);
-    UZBL_UNUSED (web_page);
     UzblExt *ext = (UzblExt*)user_data;
 
     g_debug ("Web page created");
@@ -105,5 +117,55 @@ web_page_created_callback (WebKitWebExtension *extension,
     GVariant *message = g_variant_new ("s", "Hello");
     uzbl_extio_send_message (g_io_stream_get_output_stream (ext->stream),
                              EXT_HELO, message);
+    g_variant_unref (message);
+
+    g_signal_connect (web_page, "document-loaded",
+                      G_CALLBACK (document_loaded_callback), ext);
+}
+
+void
+document_loaded_callback (WebKitWebPage *web_page,
+                          gpointer       user_data)
+{
+    UzblExt *ext = (UzblExt*)user_data;
+    WebKitDOMDocument *doc = webkit_web_page_get_dom_document (web_page);
+
+    webkit_dom_event_target_add_event_listener (WEBKIT_DOM_EVENT_TARGET (doc),
+        "focus", G_CALLBACK (dom_focus_callback), TRUE, ext);
+    webkit_dom_event_target_add_event_listener (WEBKIT_DOM_EVENT_TARGET (doc),
+        "blur",  G_CALLBACK (dom_blur_callback), TRUE, ext);
+}
+
+void
+dom_focus_callback (WebKitDOMEventTarget *target,
+                    WebKitDOMEvent       *event,
+                    gpointer              user_data)
+{
+    UZBL_UNUSED (target);
+
+    UzblExt *ext = (UzblExt*)user_data;
+    WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
+    gchar *name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
+
+    GVariant *message = g_variant_new ("s", name);
+    uzbl_extio_send_message (g_io_stream_get_output_stream (ext->stream),
+                             EXT_FOCUS, message);
+    g_variant_unref (message);
+}
+
+void
+dom_blur_callback (WebKitDOMEventTarget *target,
+                   WebKitDOMEvent       *event,
+                   gpointer user_data)
+{
+    UZBL_UNUSED (target);
+
+    UzblExt *ext = (UzblExt*)user_data;
+    WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
+    gchar *name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
+
+    GVariant *message = g_variant_new ("s", name);
+    uzbl_extio_send_message (g_io_stream_get_output_stream (ext->stream),
+                             EXT_BLUR, message);
     g_variant_unref (message);
 }

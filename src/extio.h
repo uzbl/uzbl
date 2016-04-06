@@ -2,7 +2,9 @@
 #include <gio/gio.h>
 
 typedef enum {
-    EXT_HELO
+    EXT_HELO,
+    EXT_FOCUS,
+    EXT_BLUR
 } ExtIOMessageType;
 
 void

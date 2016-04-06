@@ -767,6 +767,26 @@ read_message_cb (GObject *source,
             g_free (str);
             break;
         }
+    case EXT_FOCUS:
+        {
+            gchar *name;
+            g_variant_get (message, "s", &name);
+            uzbl_events_send (FOCUS_ELEMENT, NULL,
+                              TYPE_STR, name,
+                              NULL);
+            g_free (name);
+            break;
+        }
+    case EXT_BLUR:
+        {
+            gchar *name;
+            g_variant_get (message, "s", &name);
+            uzbl_events_send (BLUR_ELEMENT, NULL,
+                              TYPE_STR, name,
+                              NULL);
+            g_free (name);
+            break;
+        }
     default:
         {
             gchar *pmsg = g_variant_print (message, TRUE);
