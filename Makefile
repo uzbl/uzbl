@@ -62,7 +62,8 @@ SOURCES := \
     util.c \
     uzbl-core.c \
     variables.c \
-    3p/async-queue-source/rb-async-queue-watch.c
+    3p/async-queue-source/rb-async-queue-watch.c \
+    extio.c
 
 HEADERS := \
     comm.h \
@@ -82,7 +83,8 @@ HEADERS := \
     uzbl-core.h \
     variables.h \
     webkit.h \
-    3p/async-queue-source/rb-async-queue-watch.h
+    3p/async-queue-source/rb-async-queue-watch.h \
+    extio.h
 
 SRC   = $(addprefix src/,$(SOURCES))
 HEAD  = $(addprefix src/,$(HEADERS))
@@ -91,7 +93,7 @@ LOBJ  = $(foreach obj, $(SRC:.c=.lo), $(obj))
 PY    = $(wildcard uzbl/*.py uzbl/plugins/*.py)
 ICONS = icons/32x32.png icons/48x48.png icons/64x64.png icons/96x96.png
 
-webext_OBJ = src/uzbl-ext.lo
+webext_OBJ = src/uzbl-ext.lo src/extio.lo
 
 all: uzbl-browser
 
@@ -104,7 +106,7 @@ libuzbl.a: libuzbl.a(${OBJ})
 uzbl-core: libuzbl.a
 
 uzbl-ext.so: ${webext_OBJ}
-	$(CC) -shared $< -o $@
+	$(CC) -shared -fPIC $^ -o $@
 
 uzbl-browser: uzbl-core uzbl-event-manager uzbl-browser.1 uzbl-core.desktop uzbl-tabbed.desktop bin/uzbl-browser
 

@@ -22,6 +22,7 @@
 #include <gio/gunixoutputstream.h>
 
 #include "3p/async-queue-source/rb-async-queue-watch.h"
+#include "extio.h"
 
 struct _UzblIO {
     /* Sockets to connect to as event managers. */
@@ -45,6 +46,10 @@ struct _UzblIO {
     GMainContext *io_ctx;
     GMainLoop    *io_loop;
     GThread      *io_thread;
+
+    /* Web extension communication */
+    GIOStream *extstream;
+    int extfdinfo[2];
 };
 
 /* =========================== PUBLIC API =========================== */
@@ -318,6 +323,41 @@ uzbl_io_init_socket (const gchar *dir)
 
     g_free (path);
     return ret;
+}
+
+void
+read_message_cb (GObject *stream,
+                 GAsyncResult *res,
+                 gpointer user_data);
+
+gboolean
+uzbl_io_init_extpipe ()
+{
+    int readfd[2];
+    int writefd[2];
+
+    pipe (readfd);
+    pipe (writefd);
+
+    GInputStream *input = g_unix_input_stream_new (readfd[0], TRUE);
+    GOutputStream *output = g_unix_output_stream_new (writefd[1], TRUE);
+
+    GIOStream *stream = g_simple_io_stream_new (input, output);
+
+    uzbl.io->extstream = stream;
+    uzbl.io->extfdinfo[0] = writefd[0];
+    uzbl.io->extfdinfo[1] = readfd[1];
+
+    uzbl_extio_read_message_async (input, read_message_cb, NULL);
+
+    return TRUE;
+}
+
+void
+uzbl_io_extfds (int *input, int *output)
+{
+    *input = uzbl.io->extfdinfo[0];
+    *output = uzbl.io->extfdinfo[1];
 }
 
 void
@@ -698,6 +738,46 @@ attach_socket (const gchar *path)
                                     accept_socket_cb, NULL);
 
     return TRUE;
+}
+
+void
+read_message_cb (GObject *source,
+                 GAsyncResult *res,
+                 gpointer user_data)
+{
+    UZBL_UNUSED (user_data);
+
+    GInputStream *stream = G_INPUT_STREAM (source);
+    GError *error = NULL;
+    GVariant *message;
+    ExtIOMessageType messagetype;
+
+    if (!(message = uzbl_extio_read_message_finish (stream, res, &messagetype, &error))) {
+        g_warning ("reading message from extension: %s", error->message);
+        g_error_free (error);
+        return;
+    }
+
+    switch (messagetype) {
+    case EXT_HELO:
+        {
+            gchar *str;
+            g_variant_get (message, "s", &str);
+            g_debug ("extension connected, %s", str);
+            g_free (str);
+            break;
+        }
+    default:
+        {
+            gchar *pmsg = g_variant_print (message, TRUE);
+            g_debug ("got unrecognised message %s", pmsg);
+            g_free (pmsg);
+            break;
+        }
+    }
+    g_variant_unref (message);
+
+    uzbl_extio_read_message_async (stream, read_message_cb, NULL);
 }
 
 void

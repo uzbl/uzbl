@@ -17,5 +17,9 @@ gboolean
 uzbl_io_init_fifo (const gchar *dir);
 gboolean
 uzbl_io_init_socket (const gchar *dir);
+gboolean
+uzbl_io_init_extpipe ();
+void
+uzbl_io_extfds(int *input, int *output);
 
 #endif

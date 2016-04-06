@@ -242,7 +242,13 @@ initialize_web_extensions (WebKitWebContext *context, gpointer user_data)
 {
     UZBL_UNUSED (user_data);
 
-    GVariant *data = g_variant_new ("s", "Uzbl!");
+    int in;
+    int out;
+
+    uzbl_io_init_extpipe ();
+    uzbl_io_extfds (&in, &out);
+
+    GVariant *data = g_variant_new ("(sxx)", "Uzbl!", in, out);
     webkit_web_context_set_web_extensions_initialization_user_data (
         context,
         data
