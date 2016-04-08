@@ -465,44 +465,52 @@ split_quoted (const gchar *src, const gboolean unquote)
 
     GArray *argv = uzbl_commands_args_new ();
     GString *str = g_string_new ("");
-    const gchar *p;
+    const gchar *p = src;
 
     gboolean ctx_double_quote = FALSE;
     gboolean ctx_single_quote = FALSE;
 
-    for (p = src; *p; ++p) {
+    // Strip leading whitespace
+    while (isspace(*p)) {
+        ++p;
+    }
+
+    while (*p) {
         if ((*p == '\\') && p[1]) {
             /* Escaped character. */
             if (unquote) {
                 g_string_append_c (str, *++p);
             } else {
                 g_string_append_c (str, *p++);
-                g_string_append_c (str, *p);
+                g_string_append_c (str, *p++);
             }
         } else if ((*p == '"') && !ctx_single_quote) {
             /* Double quoted argument. */
             if (unquote) {
                 ctx_double_quote = !ctx_double_quote;
+                ++p;
             } else {
-                g_string_append_c (str, *p);
+                g_string_append_c (str, *p++);
                 ctx_double_quote = !ctx_double_quote;
             }
         } else if ((*p == '\'') && !ctx_double_quote) {
             /* Single quoted argument. */
             if (unquote) {
                 ctx_single_quote = !ctx_single_quote;
+                ++p;
             } else {
-                g_string_append_c (str, *p);
+                g_string_append_c (str, *p++);
                 ctx_single_quote = ! ctx_single_quote;
             }
         } else if (isspace (*p) && !ctx_double_quote && !ctx_single_quote) {
             /* Argument separator. */
-            /* FIXME: Is "a  b" three arguments? */
+            while (isspace(*++p));
+
             uzbl_commands_args_append (argv, g_strdup (str->str));
             g_string_truncate (str, 0);
         } else {
             /* Regular character. */
-            g_string_append_c (str, *p);
+            g_string_append_c (str, *p++);
         }
     }
 
