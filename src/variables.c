@@ -1966,18 +1966,18 @@ IMPLEMENT_SETTER (gchar *, proxy_url)
     SoupURI *soup_uri = NULL;
 
     if (proxy_url && *proxy_url && *proxy_url != ' ') {
-        soup_uri = soup_uri_new (proxy_url);
-    }
-
-    if (!soup_uri) {
-        return FALSE;
+        if (!(soup_uri = soup_uri_new (proxy_url))) {
+            return FALSE;
+        }
     }
 
     g_object_set (soup_session (),
         SOUP_SESSION_PROXY_URI, soup_uri,
         NULL);
 
-    soup_uri_free (soup_uri);
+    if (soup_uri) {
+        soup_uri_free (soup_uri);
+    }
 
     return TRUE;
 }
