@@ -290,8 +290,8 @@ as `KEY` and `many args` as `VALUE`.
 * `css <COMMAND>`
   - Controls CSS settings in web pages. Supported subcommands include:
     + `add <URI>`
-      * Adds a CSS file to pages when loaded. only supports one extra
-        stylesheet at a time.
+      * Adds a CSS file to pages when loaded. Note that only one single
+        stylesheet may be loaded like this. 
     + `clear`
       Clears all user-supplied stylesheets.
 * `scheme <SCHEME> {COMMAND}`
