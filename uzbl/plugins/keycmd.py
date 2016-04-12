@@ -448,10 +448,11 @@ class KeyCmd(PerInstancePlugin):
 
             self.clear_modcmd()
 
-    def set_keycmd(self, keycmd):
+    def set_keycmd(self, args):
         '''Allow setting of the keycmd externally.'''
 
-        self.keylet.set_keycmd(keycmd)
+        args = splitquoted(args)
+        self.keylet.set_keycmd(' '.join(args))
         self.update_event(set(), self.keylet, False)
 
     def clear_modifiers(self, keycmd):

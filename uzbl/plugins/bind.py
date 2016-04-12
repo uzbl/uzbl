@@ -260,7 +260,9 @@ class Bind(object):
         if self._repr_cache:
             return self._repr_cache
 
-        args = ['glob=%r' % self.glob, 'bid=%d' % self.bid]
+        args = ['glob=%r' % self.glob,
+                'bid=%d' % self.bid,
+                'handler=%r' % self.handler]
 
         if self.is_callable:
             args.append('function=%r' % self.function)
@@ -277,6 +279,19 @@ class Bind(object):
 
         self._repr_cache = '<Bind(%s)>' % ', '.join(args)
         return self._repr_cache
+
+
+class UzblCommands(object):
+    def __init__(self, commands):
+        self.commands = commands
+
+    def __call__(self, uzbl, *args):
+        for cmd in self.commands:
+            cmd = cmd_expand(cmd, args)
+            uzbl.send(cmd)
+
+    def __repr__(self):
+        return '<UzblCommands %r>' % (self.commands,)
 
 
 class BindPlugin(PerInstancePlugin):
@@ -371,6 +386,9 @@ class BindPlugin(PerInstancePlugin):
         args = splitquoted(args)
         if len(args) < 2:
             raise ArgumentError('missing mode or bind section: %r' % args.raw())
+
+        self.logger.info("parse_mode_bind %r", args)
+        self.logger.info("parse_mode_bind - raw %r", args.raw())
 
         modes = args[0].split(',')
         for i, g in enumerate(args[1:]):
