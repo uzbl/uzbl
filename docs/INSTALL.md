@@ -8,16 +8,16 @@ tutorial on [uzbl.org/wiki/howtos](http://www.uzbl.org/wiki/howtos)
 
 You can pull the code from git or get a tagged tarball.
 
-  $ git clone git://github.com/uzbl/uzbl.git
-  $ cd uzbl
-  [ $ git checkout origin/next ] # optional. see below
-  $ make
-  $ sudo make install
+    $ git clone git://github.com/uzbl/uzbl.git
+    $ cd uzbl
+    [ $ git checkout origin/next ] # optional. see below
+    $ make
+    $ sudo make install
 
 Persistent settings (`PREFIX`, GTK version, etc.) may be set in a `local.mk`
 file. If you want to remove uzbl again, you can issue:
 
-  $ make uninstall
+    $ make uninstall
 
 Tarballs can be pulled from
 [github.com/uzbl/uzbl/downloads](http://github.com/uzbl/uzbl/downloads)
