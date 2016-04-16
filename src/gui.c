@@ -227,6 +227,11 @@ create_web_context (const gchar *cache_dir,
 #endif
     webkit_web_context_set_web_extensions_directory (webkit_context, web_extensions_dir);
 
+    WebKitCookieManager *cookiemgr = webkit_web_context_get_cookie_manager (webkit_context);
+    webkit_cookie_manager_set_persistent_storage (cookiemgr,
+        g_build_filename (data_dir, "cookies.txt", NULL),
+        WEBKIT_COOKIE_PERSISTENT_STORAGE_TEXT);
+
     return webkit_context;
 }
 
