@@ -91,13 +91,22 @@ webkit_web_extension_initialize_with_user_data (WebKitWebExtension *extension,
     g_free (pretty_data);
 
     UzblExt *ext = uzbl_ext_new ();
-    const gchar *name;
+    gint proto;
     gint64 in;
     gint64 out;
 
-    g_variant_get (user_data, "(sxx)", &name, &in, &out);
-    g_debug ("The name is %s", name);
+    g_variant_get (user_data, "(ixx)", &proto, &in, &out);
     uzbl_ext_init_io (ext, in, out);
+
+    GVariant *message = g_variant_new ("i", EXTIO_PROTOCOL);
+    uzbl_extio_send_message (g_io_stream_get_output_stream (ext->stream),
+                             EXT_HELO, message);
+    g_variant_unref (message);
+
+    if (proto != EXTIO_PROTOCOL) {
+        g_warning ("Extension loaded into incompatible version of uzbl (expected %d, was %d)", EXTIO_PROTOCOL, proto);
+        return;
+    }
 
     g_signal_connect (extension, "page-created",
                       G_CALLBACK (web_page_created_callback),
@@ -113,11 +122,6 @@ web_page_created_callback (WebKitWebExtension *extension,
     UzblExt *ext = (UzblExt*)user_data;
 
     g_debug ("Web page created");
-
-    GVariant *message = g_variant_new ("s", "Hello");
-    uzbl_extio_send_message (g_io_stream_get_output_stream (ext->stream),
-                             EXT_HELO, message);
-    g_variant_unref (message);
 
     g_signal_connect (web_page, "document-loaded",
                       G_CALLBACK (document_loaded_callback), ext);

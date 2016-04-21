@@ -761,10 +761,12 @@ read_message_cb (GObject *source,
     switch (messagetype) {
     case EXT_HELO:
         {
-            gchar *str;
-            g_variant_get (message, "s", &str);
-            g_debug ("extension connected, %s", str);
-            g_free (str);
+            gint proto;
+            g_variant_get (message, "i", &proto);
+            if (proto != EXTIO_PROTOCOL) {
+                g_warning ("Extension with incompatible version loaded (expected %d, was %d)", EXTIO_PROTOCOL, proto);
+                gtk_main_quit ();
+            }
             break;
         }
     case EXT_FOCUS:

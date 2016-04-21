@@ -9,6 +9,7 @@
 #include "util.h"
 #include "uzbl-core.h"
 #include "variables.h"
+#include "extio.h"
 
 #include <gtk/gtkimcontextsimple.h>
 
@@ -248,7 +249,7 @@ initialize_web_extensions (WebKitWebContext *context, gpointer user_data)
     uzbl_io_init_extpipe ();
     uzbl_io_extfds (&in, &out);
 
-    GVariant *data = g_variant_new ("(sxx)", "Uzbl!", in, out);
+    GVariant *data = g_variant_new ("(ixx)", EXTIO_PROTOCOL, in, out);
     webkit_web_context_set_web_extensions_initialization_user_data (
         context,
         data

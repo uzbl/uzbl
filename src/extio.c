@@ -239,7 +239,7 @@ uzbl_extio_get_variant_type (ExtIOMessageType type)
 {
     switch (type) {
     case EXT_HELO:
-        return G_VARIANT_TYPE ("s");
+        return G_VARIANT_TYPE ("i");
     case EXT_FOCUS:
     case EXT_BLUR:
         return G_VARIANT_TYPE ("s");

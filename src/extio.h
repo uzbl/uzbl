@@ -1,6 +1,8 @@
 #include <glib.h>
 #include <gio/gio.h>
 
+#define EXTIO_PROTOCOL 1
+
 typedef enum {
     EXT_HELO,
     EXT_FOCUS,
