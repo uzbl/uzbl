@@ -39,7 +39,7 @@ from collections import defaultdict
 from functools import partial
 from glob import glob
 from itertools import count
-from optparse import OptionParser
+from argparse import ArgumentParser
 from select import select
 from signal import signal, SIGTERM, SIGINT, SIGKILL
 from traceback import format_exc
@@ -323,8 +323,12 @@ def list_action(opts, config):
 
 
 def make_parser():
-    parser = OptionParser('usage: %prog [options] {start|stop|restart|list}')
-    add = parser.add_option
+    parser = ArgumentParser()
+    add = parser.add_argument
+
+    add('action', default='start',
+        choices=('start', 'stop', 'restart', 'list'),
+        help='the action to perform')
 
     add('-v', '--verbose',
         dest='verbose', default=2, action='count',
@@ -388,39 +392,36 @@ def init_logger(opts):
 
 def main():
     parser = make_parser()
+    args = parser.parse_args()
 
-    (opts, args) = parser.parse_args()
-
-    opts.server_socket = expandpath(opts.server_socket)
+    args.server_socket = expandpath(args.server_socket)
 
     # Set default pid file location
-    if not opts.pid_file:
-        opts.pid_file = "%s.pid" % opts.server_socket
-
+    if not args.pid_file:
+        args.pid_file = "%s.pid" % args.server_socket
     else:
-        opts.pid_file = expandpath(opts.pid_file)
+        args.pid_file = expandpath(args.pid_file)
 
     config = configparser.ConfigParser(
         interpolation=configparser.ExtendedInterpolation())
-    config.read(opts.config)
+    config.read(args.config)
 
     # Set default log file location
-    if not opts.log_file:
-        opts.log_file = "%s.log" % opts.server_socket
-
+    if not args.log_file:
+        args.log_file = "%s.log" % args.server_socket
     else:
-        opts.log_file = expandpath(opts.log_file)
+        args.log_file = expandpath(args.log_file)
 
     # Logging setup
-    init_logger(opts)
-    logger.info('logging to %r', opts.log_file)
+    init_logger(args)
+    logger.info('logging to %r', args.log_file)
 
-    if opts.auto_close:
+    if args.auto_close:
         logger.debug('will auto close')
     else:
         logger.debug('will not auto close')
 
-    if opts.daemon_mode:
+    if args.daemon_mode:
         logger.debug('will daemonize')
     else:
         logger.debug('will not daemonize')
@@ -433,21 +434,9 @@ def main():
         'list': list_action,
     }
 
-    if len(args) == 1:
-        action = args[0]
-        if action not in daemon_actions:
-            parser.error('invalid action: %r' % action)
-
-    elif not args:
-        action = 'start'
-        logger.warning('no daemon action given, assuming %r', action)
-
-    else:
-        parser.error('invalid action argument: %r' % args)
-
-    logger.info('daemon action %r', action)
     # Do action
-    ret = daemon_actions[action](opts, config)
+    logger.info('daemon action %r', args.action)
+    ret = daemon_actions[args.action](args, config)
 
     logger.debug('process CPU time: %f', time.clock())
 
