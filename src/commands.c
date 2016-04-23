@@ -330,7 +330,7 @@ init_js_commands_api ()
 }
 
 static GArray *
-split_quoted (const gchar *src, const gboolean unquote);
+split_quoted (const gchar *src);
 
 static gchar *
 unescape (gchar *src);
@@ -348,7 +348,7 @@ parse_command_arguments (const gchar *args, GArray *argv, gboolean split)
         return;
     }
 
-    GArray *par = split_quoted (args, TRUE);
+    GArray *par = split_quoted (args);
     if (par) {
         guint i;
         for (i = 0; i < par->len; ++i) {
@@ -455,7 +455,7 @@ call_command (JSContextRef ctx, JSObjectRef function, JSObjectRef thisObject, si
 }
 
 GArray *
-split_quoted (const gchar *src, const gboolean unquote)
+split_quoted (const gchar *src)
 {
     /* Split on unquoted space or tab, return array of strings; remove a layer
      * of quotes and backslashes if unquote. */
@@ -478,30 +478,15 @@ split_quoted (const gchar *src, const gboolean unquote)
     while (*p) {
         if ((*p == '\\') && p[1]) {
             /* Escaped character. */
-            if (unquote) {
-                g_string_append_c (str, *++p);
-            } else {
-                g_string_append_c (str, *p++);
-                g_string_append_c (str, *p++);
-            }
+            g_string_append_c (str, *++p);
         } else if ((*p == '"') && !ctx_single_quote) {
             /* Double quoted argument. */
-            if (unquote) {
-                ctx_double_quote = !ctx_double_quote;
-                ++p;
-            } else {
-                g_string_append_c (str, *p++);
-                ctx_double_quote = !ctx_double_quote;
-            }
+            ctx_double_quote = !ctx_double_quote;
+            ++p;
         } else if ((*p == '\'') && !ctx_double_quote) {
             /* Single quoted argument. */
-            if (unquote) {
-                ctx_single_quote = !ctx_single_quote;
-                ++p;
-            } else {
-                g_string_append_c (str, *p++);
-                ctx_single_quote = ! ctx_single_quote;
-            }
+            ctx_single_quote = !ctx_single_quote;
+            ++p;
         } else if (isspace (*p) && !ctx_double_quote && !ctx_single_quote) {
             /* Argument separator. */
             while (isspace(*++p));
@@ -2410,7 +2395,7 @@ spawn_sh (GArray *argv, GString *result)
     }
     guint i;
 
-    GArray *sh_cmd = split_quoted (shell, TRUE);
+    GArray *sh_cmd = split_quoted (shell);
     g_free (shell);
     if (!sh_cmd) {
         return;
