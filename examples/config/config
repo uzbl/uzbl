@@ -245,21 +245,22 @@ set history_disable_easter_egg 1
 @cbind  w            = event REQ_NEW_WINDOW
 
 # Page movement binds
-@cbind  j            = scroll vertical 20
-@cbind  k            = scroll vertical -20
-@cbind  h            = scroll horizontal -20
-@cbind  l            = scroll horizontal 20
-@cbind  <Page_Up>    = scroll vertical -100%
-@cbind  <Page_Down>  = scroll vertical 100%
-@cbind  <Ctrl>f      = scroll vertical 100%
-@cbind  <Ctrl>b      = scroll vertical -100%
-@cbind  <<           = scroll vertical begin
-@cbind  >>           = scroll vertical end
-@cbind  <Home>       = scroll vertical begin
-@cbind  <End>        = scroll vertical end
-@cbind  ^            = scroll horizontal begin
-@cbind  $            = scroll horizontal end
-@cbind  <Space>      = scroll vertical 100%
+@cbind  j              = scroll vertical 20
+@cbind  k              = scroll vertical -20
+@cbind  h              = scroll horizontal -20
+@cbind  l              = scroll horizontal 20
+@cbind  <Page_Up>      = scroll vertical -100%
+@cbind  <Page_Down>    = scroll vertical 100%
+@cbind  <Ctrl>f        = scroll vertical 100%
+@cbind  <Ctrl>b        = scroll vertical -100%
+@cbind  <<             = scroll vertical begin
+@cbind  >>             = scroll vertical end
+@cbind  <Home>         = scroll vertical begin
+@cbind  <End>          = scroll vertical end
+@cbind  ^              = scroll horizontal begin
+@cbind  $              = scroll horizontal end
+@cbind  <Shift><Space> = scroll vertical -98%
+@cbind  <Space>        = scroll vertical 98%
 @cbind  G<"Go To":>_   = scroll vertical %r!
 # The first '_' is literal, so type '_G' to trigger this binding.
 @cbind  _G<"Go To":>_  = scroll horizontal %r!
