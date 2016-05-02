@@ -5,9 +5,9 @@ from collections import defaultdict
 
 class Uzbl(object):
 
-    def __init__(self, parent, proto, options):
+    def __init__(self, parent, proto, print_events=False):
         proto.target = self
-        self.opts = options
+        self.print_events = print_events
         self.parent = parent
         self.proto = proto
         self.time = time.time()
@@ -54,13 +54,13 @@ class Uzbl(object):
 
         msg = msg.strip()
 
-        if self.opts.print_events:
+        if self.print_events:
             self.logger.debug(('%s<-- %s' % ('  ' * self._depth, msg)))
 
         self.proto.push((msg+'\n').encode('utf-8'))
 
     def reply(self, cookie, response):
-        if self.opts.print_events:
+        if self.print_events:
             self.logger.debug(('%s<?- %s %s' % ('  ' * self._depth, cookie, response)))
 
         self.proto.push(('REPLY-%s %s\n' % (cookie, response)).encode('utf-8'))
@@ -85,7 +85,7 @@ class Uzbl(object):
         if handler is None:
             if line:
                 self.logger.info('unrecognized message: %r', line)
-                if self.opts.print_events:
+                if self.print_events:
                     self.logger.debug(('--- %s' % line))
             return
 
@@ -113,7 +113,7 @@ class Uzbl(object):
 
         request = request.upper()
 
-        if not self.opts.daemon_mode and self.opts.print_events:
+        if self.print_events:
             elems = [request]
             if args:
                 elems.append(str(args))
@@ -144,7 +144,7 @@ class Uzbl(object):
 
         event = event.upper()
 
-        if not self.opts.daemon_mode and self.opts.print_events:
+        if self.print_events:
             elems = [event]
             if args:
                 elems.append(str(args))
