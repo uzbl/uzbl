@@ -27,3 +27,10 @@ void
 uzbl_extio_send_message (GOutputStream    *stream,
                          ExtIOMessageType  type,
                          GVariant         *message);
+
+GVariant *
+uzbl_extio_new_message (ExtIOMessageType type, ...);
+
+void
+uzbl_extio_get_message_data (ExtIOMessageType type,
+                             GVariant *var, ...);

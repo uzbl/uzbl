@@ -762,7 +762,7 @@ read_message_cb (GObject *source,
     case EXT_HELO:
         {
             gint proto;
-            g_variant_get (message, "i", &proto);
+            uzbl_extio_get_message_data (EXT_HELO, message, &proto);
             if (proto != EXTIO_PROTOCOL) {
                 g_warning ("Extension with incompatible version loaded (expected %d, was %d)", EXTIO_PROTOCOL, proto);
                 gtk_main_quit ();
@@ -772,7 +772,7 @@ read_message_cb (GObject *source,
     case EXT_FOCUS:
         {
             gchar *name;
-            g_variant_get (message, "s", &name);
+            uzbl_extio_get_message_data (EXT_FOCUS, message, &name);
             uzbl_events_send (FOCUS_ELEMENT, NULL,
                               TYPE_STR, name,
                               NULL);
@@ -782,7 +782,7 @@ read_message_cb (GObject *source,
     case EXT_BLUR:
         {
             gchar *name;
-            g_variant_get (message, "s", &name);
+            uzbl_extio_get_message_data (EXT_BLUR, message, &name);
             uzbl_events_send (BLUR_ELEMENT, NULL,
                               TYPE_STR, name,
                               NULL);

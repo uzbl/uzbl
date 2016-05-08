@@ -151,7 +151,7 @@ dom_focus_callback (WebKitDOMEventTarget *target,
     WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
     gchar *name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
 
-    GVariant *message = g_variant_new ("s", name);
+    GVariant *message = uzbl_extio_new_message (EXT_FOCUS, name);
     uzbl_extio_send_message (g_io_stream_get_output_stream (ext->stream),
                              EXT_FOCUS, message);
     g_variant_unref (message);
@@ -168,7 +168,7 @@ dom_blur_callback (WebKitDOMEventTarget *target,
     WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
     gchar *name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
 
-    GVariant *message = g_variant_new ("s", name);
+    GVariant *message = uzbl_extio_new_message (EXT_FOCUS, name);
     uzbl_extio_send_message (g_io_stream_get_output_stream (ext->stream),
                              EXT_BLUR, message);
     g_variant_unref (message);

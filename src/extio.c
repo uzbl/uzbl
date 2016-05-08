@@ -268,3 +268,34 @@ uzbl_extio_send_message (GOutputStream    *stream,
     g_variant_store (message, buf);
     g_output_stream_write (stream, buf, size, NULL, NULL);
 }
+
+GVariant *
+uzbl_extio_new_message (ExtIOMessageType type,
+                        ...)
+{
+    va_list vargs;
+    va_start (vargs, type);
+
+    const gchar *end;
+    const GVariantType *vt = uzbl_extio_get_variant_type (type);
+    const gchar *frmt = g_variant_type_peek_string (vt);
+    GVariant *var = g_variant_new_va (frmt, &end, &vargs);
+    g_variant_ref_sink (var);
+    va_end (vargs);
+
+    return var;
+}
+
+void
+uzbl_extio_get_message_data (ExtIOMessageType type,
+                             GVariant *var, ...)
+{
+    va_list vargs;
+    va_start (vargs, var);
+
+    const gchar *end;
+    const GVariantType *vt = uzbl_extio_get_variant_type (type);
+    const gchar *frmt = g_variant_type_peek_string (vt);
+    g_variant_get_va (var, frmt, &end, &vargs);
+    va_end (vargs);
+}
