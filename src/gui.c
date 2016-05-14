@@ -373,9 +373,9 @@ plug_init ()
 
     g_object_connect (G_OBJECT (uzbl.gui.plug),
         /* FIXME: Should we really quit GTK if the plug is destroyed? */
-        "signal::destroy",           G_CALLBACK (destroy_cb),   NULL,
-        "signal::key-press-event",   G_CALLBACK (key_press_cb), NULL,
-        "signal::key-release-event", G_CALLBACK (key_press_cb), NULL,
+        "signal::destroy",           G_CALLBACK (destroy_cb),     NULL,
+        "signal::key-press-event",   G_CALLBACK (key_press_cb),   NULL,
+        "signal::key-release-event", G_CALLBACK (key_release_cb), NULL,
         NULL);
 }
 
