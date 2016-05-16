@@ -233,10 +233,9 @@ uzbl_variables_toggle (const gchar *name, GArray *values)
     case TYPE_STR:
 {
         const gchar *next;
+        gchar *current = get_variable_string (var);
 
         if (values && values->len) {
-            gchar *current = get_variable_string (var);
-
             guint i = 0;
             const gchar *first   = argv_idx (values, 0);
             const gchar *this    = first;
@@ -251,17 +250,17 @@ uzbl_variables_toggle (const gchar *name, GArray *values)
                 next = first;
             }
 
-            g_free (current);
         } else {
             next = "";
 
-            if (!strcmp (*var->value.s, "0")) {
+            if (!strcmp (current, "0")) {
                 next = "1";
-            } else if (!strcmp (*var->value.s, "1")) {
+            } else if (!strcmp (current, "1")) {
                 next = "0";
             }
         }
 
+        g_free (current);
         sendev = set_variable_string (var, next);
         break;
     }
