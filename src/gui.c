@@ -628,6 +628,7 @@ mouse_target_cb (WebKitWebView *view, WebKitHitTestResult *hit_test, guint modif
 
     /* TODO: Handle other cases? */
     if (!(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_LINK)) {
+        send_hover_event ("", "");
         return;
     }
 
