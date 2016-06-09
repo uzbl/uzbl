@@ -6,17 +6,13 @@ python:
     - "3.3"
     - "3.4"
     - "pypy"
-addons:
-  apt:
-    sources:
-      - debian-sid
-    packages:
-      - libglib2.0-dev
-      - libwebkitgtk-dev
+services:
+    - docker
 install:
     - pip install six nose mock coveralls
     - python -c 'import configparser' || pip install configparser
+    - docker build -t uzbl-build misc/
 script:
-    - make tests && nosetests tests/event-manager --with-coverage --cover-package=uzbl
+    - docker run -v $(pwd):/uzbl -w /uzbl uzbl-build make tests && nosetests tests/event-manager --with-coverage --cover-package=uzbl
 after_success:
     coveralls
