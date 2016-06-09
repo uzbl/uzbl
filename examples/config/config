@@ -301,7 +301,7 @@ set history_disable_easter_egg 1
 
 # Web searching binds
 @cbind  gg<Google:>_         = uri http://www.google.com/search?q=\@<encodeURIComponent(%r)>\@
-@cbind  ddg<DuckDuckGo:>_    = uri http://duckduckgo.com/?q=%s
+@cbind  ddg<DuckDuckGo:>_    = uri http://duckduckgo.com/?q=\@<encodeURIComponent(%r)>\@
 @cbind  \\awiki<Archwiki:>_  = uri http://wiki.archlinux.org/index.php/Special:Search?search=\@<encodeURIComponent(%r)>\@&go=Go
 @cbind  \\wiki<Wikipedia:>_  = uri http://en.wikipedia.org/w/index.php?title=Special:Search&search=\@<encodeURIComponent(%r)>\@&go=Go
 
@@ -347,7 +347,7 @@ set history_disable_easter_egg 1
 
 # Selection bindings
 @cbind <Ctrl>a = js (function () { var r = document.createRange(), s = window.getSelection(); r.selectNodeContents(document); s.removeAllRanges(); s.addRange(r); })();
-@cbind <Ctrl>c = sh 'echo '\@< window.getSelection().toString().replace(/'/g, "\\'"); >\@' | xclip -selection clipboard -i'
+@cbind <Ctrl>c = spawn_sh 'echo \@< btoa(window.getSelection().toString()) >\@ | base64 -d | xclip -selection clipboard -i'
 
 # Clone current window
 @cbind  c   = event REQ_NEW_WINDOW \@uri

@@ -97,7 +97,9 @@ VPATH := src
 
 ${OBJ}: ${HEAD}
 
-uzbl-core: ${OBJ}
+libuzbl.a: libuzbl.a(${OBJ})
+
+uzbl-core: libuzbl.a
 
 uzbl-browser: uzbl-core uzbl-event-manager uzbl-browser.1 uzbl-core.desktop uzbl-tabbed.desktop bin/uzbl-browser
 
@@ -123,6 +125,12 @@ uzbl-event-manager: build
 # this is here because the .so needs to be compiled with -fPIC on x86_64
 ${LOBJ}: ${SRC} ${HEAD}
 	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -c src/$(@:.lo=.c) -o $@
+
+.PHONY: tests
+tests: tests/core-tests
+	tests/core-tests
+
+tests/core-tests: tests/core-tests.o libuzbl.a
 
 test-uzbl-core: uzbl-core
 	./uzbl-core http://www.uzbl.org --verbose
