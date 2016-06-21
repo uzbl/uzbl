@@ -114,7 +114,9 @@ VPATH := src
 
 ${OBJ}: ${HEAD}
 
-libuzbl.a: libuzbl.a(${OBJ})
+libuzbl.a: ${OBJ}
+	$(RM) $@
+	$(AR) cr $@ $^
 
 uzbl-core: libuzbl.a
 
@@ -185,9 +187,10 @@ clean:
 	rm -f uzbl.desktop
 	rm -f bin/uzbl-browser
 	rm -f uzbl-browser.1
-	find ./examples/ -name "*.pyc" -delete || :
-	find -name __pycache__ -type d -delete || :
+	rm -f libuzbl.a
 	rm -rf ./sandbox/
+	find ./examples/ -name "*.pyc" -delete || :
+	find -name __pycache__ -type d -exec rm -rf '{}' \; || :
 	$(PYTHON) setup.py clean
 
 strip:
