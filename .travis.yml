@@ -3,16 +3,20 @@ sudo: required
 language: python
 python:
     - "2.7"
-    - "3.3"
     - "3.4"
+    - "3.5"
     - "pypy"
 services:
     - docker
+matrix:
+  include:
+    - python: "3.5"
+      env: CORETESTS=1
 install:
     - pip install six nose mock coveralls
     - python -c 'import configparser' || pip install configparser
     - docker build -t uzbl-build misc/
 script:
-    - docker run -v $(pwd):/uzbl -w /uzbl uzbl-build make tests && nosetests tests/event-manager --with-coverage --cover-package=uzbl
+    - if test -n "$CORETESTS"; then docker run -v $(pwd):/uzbl -w /uzbl uzbl-build make tests; else nosetests tests/event-manager --with-coverage --cover-package=uzbl; fi
 after_success:
     coveralls
