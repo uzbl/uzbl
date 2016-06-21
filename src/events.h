@@ -47,6 +47,8 @@
     call (DOWNLOAD_COMPLETE),   \
     call (ADD_COOKIE),          \
     call (DELETE_COOKIE),       \
+    call (FOCUS_ELEMENT),       \
+    call (BLUR_ELEMENT),        \
     call (WEB_PROCESS_CRASHED), \
     call (USER_EVENT),          \
     call (INSECURE_CONTENT),    \

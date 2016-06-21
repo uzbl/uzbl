@@ -9,6 +9,7 @@
 #include "util.h"
 #include "uzbl-core.h"
 #include "variables.h"
+#include "extio.h"
 
 #include <gtk/gtkimcontextsimple.h>
 
@@ -195,6 +196,9 @@ status_bar_init ()
       */
 }
 
+static void
+initialize_web_extensions (WebKitWebContext *context, gpointer user_data);
+
 WebKitWebContext*
 create_web_context (const gchar *cache_dir,
                     const gchar *data_dir,
@@ -227,7 +231,29 @@ create_web_context (const gchar *cache_dir,
 #endif
     webkit_web_context_set_web_extensions_directory (webkit_context, web_extensions_dir);
 
+
+    g_signal_connect (webkit_context, "initialize-web-extensions",
+                      G_CALLBACK (initialize_web_extensions), NULL);
+
     return webkit_context;
+}
+
+void
+initialize_web_extensions (WebKitWebContext *context, gpointer user_data)
+{
+    UZBL_UNUSED (user_data);
+
+    int in;
+    int out;
+
+    uzbl_io_init_extpipe ();
+    uzbl_io_extfds (&in, &out);
+
+    GVariant *data = g_variant_new ("(ixx)", EXTIO_PROTOCOL, in, out);
+    webkit_web_context_set_web_extensions_initialization_user_data (
+        context,
+        data
+    );
 }
 
 /* Mouse events */

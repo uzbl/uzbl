@@ -62,7 +62,12 @@ SOURCES := \
     util.c \
     uzbl-core.c \
     variables.c \
-    3p/async-queue-source/rb-async-queue-watch.c
+    3p/async-queue-source/rb-async-queue-watch.c \
+    extio.c
+
+EXTSOURCES := \
+	uzbl-ext.c \
+	extio.c
 
 HEADERS := \
     comm.h \
@@ -82,20 +87,23 @@ HEADERS := \
     uzbl-core.h \
     variables.h \
     webkit.h \
-    3p/async-queue-source/rb-async-queue-watch.h
+    3p/async-queue-source/rb-async-queue-watch.h \
+    extio.h
 
-SRC   = $(addprefix src/,$(SOURCES))
-HEAD  = $(addprefix src/,$(HEADERS))
-OBJ   = $(foreach obj, $(SRC:.c=.o),  $(obj))
-LOBJ  = $(foreach obj, $(SRC:.c=.lo), $(obj))
-PY    = $(wildcard uzbl/*.py uzbl/plugins/*.py)
-ICONS = icons/32x32.png icons/48x48.png icons/64x64.png icons/96x96.png
-
-all: uzbl-browser
+SRC    = $(addprefix src/,$(SOURCES))
+EXTSRC = $(addprefix src/,$(EXTSOURCES))
+HEAD   = $(addprefix src/,$(HEADERS))
+OBJ    = $(foreach obj, $(SRC:.c=.o), $(obj))
+EXTOBJ = $(foreach obj, $(EXTSRC:.c=.lo), $(obj))
+PY     = $(wildcard uzbl/*.py uzbl/plugins/*.py)
+ICONS  = icons/32x32.png icons/48x48.png icons/64x64.png icons/96x96.png
 
 VPATH := src
 
+all: uzbl-browser
+
 ${OBJ}: ${HEAD}
+${EXTOBJ}: ${HEAD}
 
 libuzbl.a: ${OBJ}
 	$(RM) $@
@@ -103,7 +111,10 @@ libuzbl.a: ${OBJ}
 
 uzbl-core: libuzbl.a
 
-uzbl-browser: uzbl-core uzbl-event-manager uzbl-browser.1 uzbl-core.desktop uzbl-tabbed.desktop bin/uzbl-browser
+uzbl-ext.so: ${EXTOBJ}
+	$(CC) -shared -fPIC $^ -o $@
+
+uzbl-browser: uzbl-core uzbl-ext.so uzbl-event-manager uzbl-browser.1 uzbl-core.desktop uzbl-tabbed.desktop bin/uzbl-browser
 
 uzbl-browser.1: uzbl-browser.1.in
 	sed 's#@PREFIX@#$(PREFIX)#' < uzbl-browser.1.in > uzbl-browser.1
@@ -124,9 +135,8 @@ build: ${PY}
 .PHONY: uzbl-event-manager
 uzbl-event-manager: build
 
-# this is here because the .so needs to be compiled with -fPIC on x86_64
-${LOBJ}: ${SRC} ${HEAD}
-	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -c src/$(@:.lo=.c) -o $@
+%.lo: %.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -c $< -o $@
 
 .PHONY: tests
 tests: tests/core-tests
@@ -166,7 +176,8 @@ test-uzbl-event-manager-sandbox: sandbox uzbl-browser sandbox-install-uzbl-brows
 
 clean:
 	rm -f uzbl-core
-	rm -f $(OBJ) ${LOBJ}
+	rm -f uzbl-ext.so
+	rm -f $(OBJ) ${EXTOBJ}
 	rm -f uzbl.desktop
 	rm -f bin/uzbl-browser
 	rm -f uzbl-browser.1
