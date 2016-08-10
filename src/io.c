@@ -229,6 +229,16 @@ uzbl_io_schedule_command (const UzblCommand *cmd, GArray *argv, UzblIOCallback c
     g_async_queue_push (uzbl.io->cmd_q, cmd_data);
 }
 
+void
+uzbl_io_send_ext_message (ExtIOMessageType type, ...)
+{
+    va_list vargs;
+    va_start (vargs, type);
+    GOutputStream *os = g_io_stream_get_output_stream (uzbl.io->extstream);
+    uzbl_extio_send_new_messagev (os, type, &vargs);
+    va_end (vargs);
+}
+
 typedef enum {
     UZBL_COMM_FIFO,
     UZBL_COMM_SOCKET

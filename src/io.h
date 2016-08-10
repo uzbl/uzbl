@@ -2,6 +2,7 @@
 #define UZBL_IO_H
 
 #include "commands.h"
+#include "extio.h"
 
 #include <glib.h>
 
@@ -12,6 +13,8 @@ typedef void (*UzblIOCallback)(GString *result, gpointer data);
 
 void
 uzbl_io_schedule_command (const UzblCommand *cmd, GArray *argv, UzblIOCallback callback, gpointer data);
+void
+uzbl_io_send_ext_message (ExtIOMessageType type, ...);
 
 gboolean
 uzbl_io_init_fifo (const gchar *dir);

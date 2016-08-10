@@ -98,10 +98,8 @@ webkit_web_extension_initialize_with_user_data (WebKitWebExtension *extension,
     g_variant_get (user_data, "(ixx)", &proto, &in, &out);
     uzbl_ext_init_io (ext, in, out);
 
-    GVariant *message = g_variant_new ("i", EXTIO_PROTOCOL);
-    uzbl_extio_send_message (g_io_stream_get_output_stream (ext->stream),
-                             EXT_HELO, message);
-    g_variant_unref (message);
+    uzbl_extio_send_new_message (g_io_stream_get_output_stream (ext->stream),
+                                 EXT_HELO, EXTIO_PROTOCOL);
 
     if (proto != EXTIO_PROTOCOL) {
         g_warning ("Extension loaded into incompatible version of uzbl (expected %d, was %d)", EXTIO_PROTOCOL, proto);
@@ -151,10 +149,8 @@ dom_focus_callback (WebKitDOMEventTarget *target,
     WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
     gchar *name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
 
-    GVariant *message = uzbl_extio_new_message (EXT_FOCUS, name);
-    uzbl_extio_send_message (g_io_stream_get_output_stream (ext->stream),
-                             EXT_FOCUS, message);
-    g_variant_unref (message);
+    uzbl_extio_send_new_message (g_io_stream_get_output_stream (ext->stream),
+                                 EXT_FOCUS, name);
 }
 
 void
@@ -168,8 +164,6 @@ dom_blur_callback (WebKitDOMEventTarget *target,
     WebKitDOMEventTarget *etarget = webkit_dom_event_get_target (event);
     gchar *name = webkit_dom_node_get_node_name (WEBKIT_DOM_NODE (etarget));
 
-    GVariant *message = uzbl_extio_new_message (EXT_FOCUS, name);
-    uzbl_extio_send_message (g_io_stream_get_output_stream (ext->stream),
-                             EXT_BLUR, message);
-    g_variant_unref (message);
+    uzbl_extio_send_new_message (g_io_stream_get_output_stream (ext->stream),
+                                 EXT_BLUR, name);
 }
