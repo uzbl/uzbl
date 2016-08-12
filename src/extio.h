@@ -1,3 +1,6 @@
+#ifndef UZBL_EXTIO_H
+#define UZBL_EXTIO_H
+
 #include <glib.h>
 #include <gio/gio.h>
 
@@ -28,9 +31,24 @@ uzbl_extio_send_message (GOutputStream    *stream,
                          ExtIOMessageType  type,
                          GVariant         *message);
 
+void
+uzbl_extio_send_new_messagev (GOutputStream    *stream,
+                              ExtIOMessageType  type,
+                              va_list *vargs);
+void
+uzbl_extio_send_new_message (GOutputStream    *stream,
+                             ExtIOMessageType  type,
+                             ...);
+
+GVariant *
+uzbl_extio_new_messagev (ExtIOMessageType type,
+                         va_list *vargs);
+
 GVariant *
 uzbl_extio_new_message (ExtIOMessageType type, ...);
 
 void
 uzbl_extio_get_message_data (ExtIOMessageType type,
                              GVariant *var, ...);
+
+#endif

@@ -269,20 +269,46 @@ uzbl_extio_send_message (GOutputStream    *stream,
     g_output_stream_write (stream, buf, size, NULL, NULL);
 }
 
+void
+uzbl_extio_send_new_messagev (GOutputStream    *stream,
+                              ExtIOMessageType  type,
+                              va_list *vargs)
+{
+    GVariant *message = uzbl_extio_new_messagev (type, vargs);
+    uzbl_extio_send_message (stream, type, message);
+    g_variant_unref (message);
+}
+
+void
+uzbl_extio_send_new_message (GOutputStream    *stream,
+                             ExtIOMessageType  type,
+                             ...)
+{
+    va_list vargs;
+    va_start (vargs, type);
+    uzbl_extio_send_new_messagev (stream, type, &vargs);
+    va_end (vargs);
+}
+
+GVariant *
+uzbl_extio_new_messagev (ExtIOMessageType type, va_list *vargs)
+{
+    const gchar *end;
+    const GVariantType *vt = uzbl_extio_get_variant_type (type);
+    const gchar *frmt = g_variant_type_peek_string (vt);
+    GVariant *var = g_variant_new_va (frmt, &end, vargs);
+    g_variant_ref_sink (var);
+    return var;
+}
+
 GVariant *
 uzbl_extio_new_message (ExtIOMessageType type,
                         ...)
 {
     va_list vargs;
     va_start (vargs, type);
-
-    const gchar *end;
-    const GVariantType *vt = uzbl_extio_get_variant_type (type);
-    const gchar *frmt = g_variant_type_peek_string (vt);
-    GVariant *var = g_variant_new_va (frmt, &end, &vargs);
-    g_variant_ref_sink (var);
+    GVariant *var = uzbl_extio_new_messagev (type, &vargs);
     va_end (vargs);
-
     return var;
 }
 
