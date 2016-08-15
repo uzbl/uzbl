@@ -78,7 +78,7 @@ uzbl_io_init ()
     uzbl.io->fifo_path = NULL;
     uzbl.io->socket_path = NULL;
 
-    uzbl.io->cmd_q = g_async_queue_new_full (free_cmd_req);
+    uzbl.io->cmd_q = g_async_queue_new_full (g_object_unref);
 
     uzbl_rb_async_queue_watch_new (uzbl.io->cmd_q,
         G_PRIORITY_HIGH, run_command,
@@ -207,26 +207,32 @@ typedef struct {
     gchar *cmd;
     const UzblCommand *info;
     GArray *argv;
-    UzblIOCallback callback;
-    gpointer data;
 } UzblCommandData;
 
 void
-uzbl_io_schedule_command (const UzblCommand *cmd, GArray *argv, UzblIOCallback callback, gpointer data)
+uzbl_io_schedule_command (const UzblCommand *cmd, GArray *argv, GAsyncReadyCallback callback, gpointer data)
 {
     if (!cmd || !argv) {
         uzbl_debug ("Invalid command scheduled");
         return;
     }
 
-    UzblCommandData *cmd_data = g_malloc (sizeof (UzblCommandData));
+    UzblCommandData *cmd_data = g_new (UzblCommandData, 1);
     cmd_data->cmd = NULL;
     cmd_data->info = cmd;
     cmd_data->argv = argv;
-    cmd_data->callback = callback;
-    cmd_data->data = data;
 
-    g_async_queue_push (uzbl.io->cmd_q, cmd_data);
+    GTask *task = g_task_new (NULL, NULL, callback, data);
+    g_task_set_task_data (task, cmd_data, free_cmd_req);
+    g_async_queue_push (uzbl.io->cmd_q, task);
+}
+
+GString *
+uzbl_io_command_finish (GObject *source, GAsyncResult *result, GError **error)
+{
+    UZBL_UNUSED (source);
+    GTask *task = G_TASK (result);
+    return (GString*) g_task_propagate_pointer (task, error);
 }
 
 void
@@ -416,17 +422,19 @@ free_cmd_req (gpointer data)
 }
 
 void
+free_result_str (gpointer data)
+{
+    g_string_free ((GString*)data, TRUE);
+}
+
+void
 run_command (gpointer item, gpointer data)
 {
     UZBL_UNUSED (data);
+    GTask *task = G_TASK (item);
+    UzblCommandData *cmd = (UzblCommandData*) g_task_get_task_data (task);
 
-    UzblCommandData *cmd = (UzblCommandData *)item;
-
-    GString *result = NULL;
-
-    if (cmd->callback) {
-        result = g_string_new ("");
-    }
+    GString *result = g_string_new ("");
 
     if (cmd->cmd) {
         uzbl_commands_run (cmd->cmd, result);
@@ -434,12 +442,7 @@ run_command (gpointer item, gpointer data)
         uzbl_commands_run_parsed (cmd->info, cmd->argv, result);
     }
 
-    if (cmd->callback) {
-        cmd->callback (result, cmd->data);
-        g_string_free (result, TRUE);
-    }
-
-    free_cmd_req (cmd);
+    g_task_return_pointer (task, result, free_result_str);
 }
 
 gpointer
@@ -525,10 +528,12 @@ read_line_cb (GObject *source, GAsyncResult *res, gpointer data)
 }
 
 static void
-schedule_io_input (gchar *line, UzblIOCallback callback, gpointer data);
+schedule_io_input (gchar *line, GAsyncReadyCallback callback, gpointer data);
 
 static void
-write_result_to_stream (GString *result, gpointer data);
+write_result_to_stream (GObject      *source,
+                        GAsyncResult *res,
+                        gpointer      data);
 
 gboolean
 control_command_stream (GIOStream *stream, const gchar *input, gpointer data)
@@ -823,7 +828,7 @@ send_buffered_event (gpointer event, gpointer data)
 }
 
 void
-schedule_io_input (gchar *line, UzblIOCallback callback, gpointer data)
+schedule_io_input (gchar *line, GAsyncReadyCallback callback, gpointer data)
 {
     if (!line) {
         return;
@@ -836,21 +841,25 @@ schedule_io_input (gchar *line, UzblIOCallback callback, gpointer data)
 
         g_free (line);
     } else {
-        UzblCommandData *cmd_data = g_malloc (sizeof (UzblCommandData));
+        UzblCommandData *cmd_data = g_new (UzblCommandData, 1);
         cmd_data->cmd = line;
         cmd_data->info = NULL;
         cmd_data->argv = NULL;
-        cmd_data->callback = callback;
-        cmd_data->data = data;
 
-        g_async_queue_push (uzbl.io->cmd_q, cmd_data);
+        GTask *task = g_task_new (NULL, NULL, callback, data);
+        g_task_set_task_data (task, cmd_data, free_cmd_req);
+        g_async_queue_push (uzbl.io->cmd_q, task);
     }
 }
 
 void
-write_result_to_stream (GString *result, gpointer data)
+write_result_to_stream (GObject      *source,
+                        GAsyncResult *res,
+                        gpointer      data)
 {
     GIOStream *stream = G_IO_STREAM (data);
+    GError *err = NULL;
+    GString *result = uzbl_io_command_finish (source, res, &err);
 
     g_string_append_c (result, '\n');
     write_to_stream (stream, result->str);
