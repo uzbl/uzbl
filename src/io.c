@@ -21,7 +21,6 @@
 #include <gio/gunixinputstream.h>
 #include <gio/gunixoutputstream.h>
 
-#include "3p/async-queue-source/rb-async-queue-watch.h"
 #include "extio.h"
 
 struct _UzblIO {
@@ -59,9 +58,13 @@ flush_event_buffer (gpointer data);
 static void
 free_cmd_req (gpointer data);
 static void
-run_command (gpointer item, gpointer data);
+run_command_async (GTask *cmdt, GAsyncReadyCallback callback, gpointer data);
+static void
+run_command_finish (GTask *cmdt, GAsyncResult *result, GError **error);
 static gpointer
 run_io (gpointer data);
+static void
+start_command_loop ();
 
 void
 uzbl_io_init ()
@@ -80,9 +83,7 @@ uzbl_io_init ()
 
     uzbl.io->cmd_q = g_async_queue_new_full (g_object_unref);
 
-    uzbl_rb_async_queue_watch_new (uzbl.io->cmd_q,
-        G_PRIORITY_HIGH, run_command,
-        NULL, NULL, NULL);
+    start_command_loop ();
 
     uzbl.io->io_thread = g_thread_new ("uzbl-io", run_io, NULL);
 }
@@ -111,7 +112,8 @@ uzbl_io_free ()
     g_free (uzbl.io->fifo_path);
     g_free (uzbl.io->socket_path);
 
-    g_async_queue_unref (uzbl.io->cmd_q);
+    // TODO: Closing can fail if there is a blocking thread
+    // g_async_queue_unref (uzbl.io->cmd_q);
     g_thread_unref (uzbl.io->io_thread);
 
     g_free (uzbl.io);
@@ -391,6 +393,96 @@ uzbl_io_quit ()
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
 
 static void
+read_command_async (GAsyncQueue         *queue,
+                    GAsyncReadyCallback  callback,
+                    gpointer             data);
+
+static GTask*
+read_command_finish (GAsyncQueue  *queue,
+                     GAsyncResult  *result,
+                     GError       **error);
+
+static void
+wait_for_command (GTask         *task,
+                  gpointer       source_object,
+                  gpointer       task_data,
+                  GCancellable  *cancellable);
+
+static void
+read_command_cb (GObject      *source,
+                 GAsyncResult *result,
+                 gpointer      data);
+
+static void
+run_command_cb (GObject      *source,
+                GAsyncResult *result,
+                gpointer      data);
+
+void
+start_command_loop ()
+{
+    GAsyncQueue *queue = uzbl.io->cmd_q;
+    read_command_async (queue, read_command_cb, queue);
+}
+
+void
+read_command_cb (GObject      *source,
+                 GAsyncResult *result,
+                 gpointer      data)
+{
+    GAsyncQueue *queue = (GAsyncQueue*) source;
+    GError *err;
+    GTask *task = read_command_finish (queue, result, &err);
+    run_command_async (task, run_command_cb, data);
+}
+
+void
+run_command_cb (GObject      *source,
+                GAsyncResult *result,
+                gpointer      data)
+{
+    GTask *task = G_TASK (source);
+    GAsyncQueue *queue = (GAsyncQueue*) data;
+    GError *err;
+    run_command_finish (task, result, &err);
+    read_command_async (queue, read_command_cb, queue);
+}
+
+void
+read_command_async (GAsyncQueue         *queue,
+                    GAsyncReadyCallback  callback,
+                    gpointer             data)
+{
+    GTask *task = g_task_new (NULL, NULL, callback, data);
+    g_task_set_task_data (task, queue, NULL);
+    g_task_run_in_thread (task, wait_for_command);
+    g_object_unref (task);
+}
+
+GTask*
+read_command_finish (GAsyncQueue  *queue,
+                     GAsyncResult  *result,
+                     GError       **error)
+{
+    UZBL_UNUSED (queue);
+    GTask *task = G_TASK (result);
+    return g_task_propagate_pointer (task, error);
+}
+
+void
+wait_for_command (GTask         *task,
+                  gpointer       source_object,
+                  gpointer       task_data,
+                  GCancellable  *cancellable)
+{
+    UZBL_UNUSED (source_object);
+    UZBL_UNUSED (cancellable);
+    GAsyncQueue *queue = (GAsyncQueue*) task_data;
+    gpointer data = g_async_queue_pop (queue);
+    g_task_return_pointer (task, data, NULL);
+}
+
+static void
 send_buffered_event (gpointer event, gpointer data);
 
 gboolean
@@ -428,11 +520,11 @@ free_result_str (gpointer data)
 }
 
 void
-run_command (gpointer item, gpointer data)
+run_command_async (GTask *cmdt, GAsyncReadyCallback callback, gpointer data)
 {
     UZBL_UNUSED (data);
-    GTask *task = G_TASK (item);
-    UzblCommandData *cmd = (UzblCommandData*) g_task_get_task_data (task);
+    GTask *task = g_task_new (cmdt, NULL, callback, data);
+    UzblCommandData *cmd = (UzblCommandData*) g_task_get_task_data (cmdt);
 
     GString *result = g_string_new ("");
 
@@ -442,7 +534,18 @@ run_command (gpointer item, gpointer data)
         uzbl_commands_run_parsed (cmd->info, cmd->argv, result);
     }
 
-    g_task_return_pointer (task, result, free_result_str);
+    g_task_return_pointer (cmdt, result, free_result_str);
+    g_task_return_pointer (task, NULL, NULL);
+    g_object_unref (task);
+    g_object_unref (cmdt);
+}
+
+void
+run_command_finish (GTask *cmdt, GAsyncResult *result, GError **error)
+{
+    UZBL_UNUSED (cmdt);
+    GTask *task = G_TASK (result);
+    g_task_propagate_pointer (task, error);
 }
 
 gpointer
