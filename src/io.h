@@ -9,10 +9,16 @@
 void
 uzbl_io_send (const gchar *message, gboolean connect_only);
 
-typedef void (*UzblIOCallback)(GString *result, gpointer data);
-
 void
-uzbl_io_schedule_command (const UzblCommand *cmd, GArray *argv, UzblIOCallback callback, gpointer data);
+uzbl_io_schedule_command (const UzblCommand   *cmd,
+                          GArray              *argv,
+                          GAsyncReadyCallback  callback,
+                          gpointer             data);
+GString *
+uzbl_io_command_finish (GObject       *source,
+                        GAsyncResult  *result,
+                        GError       **error);
+
 void
 uzbl_io_send_ext_message (ExtIOMessageType type, ...);
 

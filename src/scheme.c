@@ -19,7 +19,7 @@ uzbl_scheme_add_handler (const gchar *scheme, const gchar *command)
 }
 
 static void
-scheme_return (GString *result, gpointer data);
+scheme_return (GObject *source, GAsyncResult *res, gpointer data);
 
 void
 scheme_callback (WebKitURISchemeRequest *request, gpointer data)
@@ -41,9 +41,11 @@ scheme_callback (WebKitURISchemeRequest *request, gpointer data)
 }
 
 void
-scheme_return (GString *result, gpointer data)
+scheme_return (GObject *source, GAsyncResult *res, gpointer data)
 {
     WebKitURISchemeRequest *request = (WebKitURISchemeRequest *)data;
+    GError *err = NULL;
+    GString *result = uzbl_io_command_finish (source, res, &err);
 
     gchar *end = strchr (result->str, '\n');
     size_t line_len = end ? (size_t)(end - result->str) : result->len;

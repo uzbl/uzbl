@@ -1,6 +1,0 @@
-This code is copied from Rhythmbox to feed the main thread with events.
-
-All functions have been mangled to have an 'uzbl_' prefix and types to have a
-'Uzbl' prefix to avoid symbol collisions.
-
-This seems like code that should really be in glib itself, but alas.

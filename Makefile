@@ -62,7 +62,6 @@ SOURCES := \
     util.c \
     uzbl-core.c \
     variables.c \
-    3p/async-queue-source/rb-async-queue-watch.c \
     extio.c
 
 EXTSOURCES := \
@@ -87,7 +86,6 @@ HEADERS := \
     uzbl-core.h \
     variables.h \
     webkit.h \
-    3p/async-queue-source/rb-async-queue-watch.h \
     extio.h
 
 SRC    = $(addprefix src/,$(SOURCES))

@@ -841,7 +841,7 @@ typedef struct {
 } UzblAuthenticateData;
 
 static void
-authenticate (GString *result, gpointer data);
+authenticate (GObject *source, GAsyncResult *res, gpointer data);
 
 gboolean
 authenticate_cb (WebKitWebView *view, WebKitAuthenticationRequest *request, gpointer data)
@@ -1066,7 +1066,7 @@ typedef struct {
 } UzblTlsErrorInfo;
 
 static void
-decide_tls_error_policy (GString *result, gpointer data);
+decide_tls_error_policy (GObject *source, GAsyncResult *res, gpointer data);
 static gchar *
 get_certificate_info (GTlsCertificate *cert);
 
@@ -1297,7 +1297,7 @@ close_notification_cb (WebKitWebView *view, WebKitNotification *notification, gp
 
 #if WEBKIT_CHECK_VERSION (2, 7, 90)
 static void
-choose_color (GString *result, gpointer data);
+choose_color (GObject *source, GAsyncResult *res, gpointer data);
 
 static gboolean
 run_color_chooser_cb (WebKitWebView *view, WebKitColorChooserRequest *request, gpointer data)
@@ -1337,7 +1337,7 @@ run_color_chooser_cb (WebKitWebView *view, WebKitColorChooserRequest *request, g
 #endif
 
 static void
-choose_file (GString *result, gpointer data);
+choose_file (GObject *source, GAsyncResult *res, gpointer data);
 
 static gboolean
 run_file_chooser_cb (WebKitWebView *view, WebKitFileChooserRequest *request, gpointer data)
@@ -1667,7 +1667,7 @@ send_hover_event (const gchar *uri, const gchar *title)
 }
 
 static void
-decide_navigation (GString *result, gpointer data);
+decide_navigation (GObject *source, GAsyncResult *res, gpointer data);
 
 gboolean
 navigation_decision (WebKitPolicyDecision *decision, const gchar *uri, const gchar *src_frame,
@@ -1713,7 +1713,7 @@ navigation_decision (WebKitPolicyDecision *decision, const gchar *uri, const gch
 }
 
 static void
-rewrite_request (GString *result, gpointer data);
+rewrite_request (GObject *source, GAsyncResult *res, gpointer data);
 
 gboolean
 request_decision (const gchar *uri, gpointer data)
@@ -1809,9 +1809,11 @@ send_load_error (const gchar *uri, GError *err)
 }
 
 void
-authenticate (GString *result, gpointer data)
+authenticate (GObject *source, GAsyncResult *res, gpointer data)
 {
     UzblAuthenticateData *auth = (UzblAuthenticateData *)data;
+    GError *err = NULL;
+    GString *result = uzbl_io_command_finish (source, res, &err);
 
     gchar **tokens = g_strsplit (result->str, "\n", 0);
 
@@ -1909,7 +1911,7 @@ handle_download (WebKitDownload *download, const gchar *suggested_destination)
         deny (cast (obj));
 
 static void
-decide_permission (GString *result, gpointer data);
+decide_permission (GObject *source, GAsyncResult *res, gpointer data);
 
 gboolean
 request_permission (const gchar *uri, const gchar *type, const gchar *desc, GObject *obj)
@@ -1957,9 +1959,11 @@ request_permission (const gchar *uri, const gchar *type, const gchar *desc, GObj
 }
 
 void
-decide_tls_error_policy (GString *result, gpointer data)
+decide_tls_error_policy (GObject *source, GAsyncResult *res, gpointer data)
 {
     UzblTlsErrorInfo *info = (UzblTlsErrorInfo *)data;
+    GError *err = NULL;
+    GString *result = uzbl_io_command_finish (source, res, &err);
 
     if (!g_strcmp0 (result->str, "ALLOW")) {
         WebKitWebContext *ctx = webkit_web_view_get_context (uzbl.gui.web_view);
@@ -2201,9 +2205,11 @@ request_close_notification (WebKitNotification *notification)
 
 #if WEBKIT_CHECK_VERSION (2, 7, 90)
 void
-choose_color (GString *result, gpointer data)
+choose_color (GObject *source, GAsyncResult *res, gpointer data)
 {
     WebKitColorChooserRequest *request = (WebKitColorChooserRequest *)data;
+    GError *err = NULL;
+    GString *result = uzbl_io_command_finish (source, res, &err);
     GdkRGBA color;
 
     if (gdk_rgba_parse (&color, result->str)) {
@@ -2219,9 +2225,11 @@ choose_color (GString *result, gpointer data)
 #endif
 
 void
-choose_file (GString *result, gpointer data)
+choose_file (GObject *source, GAsyncResult *res, gpointer data)
 {
     WebKitFileChooserRequest *request = (WebKitFileChooserRequest *)data;
+    GError *err = NULL;
+    GString *result = uzbl_io_command_finish (source, res, &err);
     gboolean multiple = webkit_file_chooser_request_get_select_multiple (request);
     gchar **files = g_strsplit (result->str, "\n", -1);
 
@@ -2266,9 +2274,11 @@ button_to_modifier (guint buttonval)
 }
 
 void
-decide_navigation (GString *result, gpointer data)
+decide_navigation (GObject *source, GAsyncResult *res, gpointer data)
 {
     WebKitPolicyDecision *decision = (WebKitPolicyDecision *)data;
+    GError *err = NULL;
+    GString *result = uzbl_io_command_finish (source, res, &err);
 
     if (!g_strcmp0 (result->str, "IGNORE") ||
         !g_strcmp0 (result->str, "USED")) { /* XXX: Deprecated */
@@ -2285,10 +2295,12 @@ decide_navigation (GString *result, gpointer data)
 }
 
 void
-rewrite_request (GString *result, gpointer data)
+rewrite_request (GObject *source, GAsyncResult *res, gpointer data)
 {
     WebKitResponsePolicyDecision *decision = (WebKitResponsePolicyDecision *)data;
     WebKitURIRequest *request = webkit_response_policy_decision_get_request (decision);
+    GError *err = NULL;
+    GString *result = uzbl_io_command_finish (source, res, &err);
 
     if (result->len > 0) {
         uzbl_debug ("Request rewritten -> %s\n", result->str);
@@ -2306,7 +2318,7 @@ rewrite_request (GString *result, gpointer data)
 }
 
 static void
-download_destination (GString *result, gpointer data);
+download_destination (GObject *source, GAsyncResult *res, gpointer data);
 
 gboolean
 decide_destination_cb (WebKitDownload *download, const gchar *suggested_filename, gpointer data)
@@ -2394,9 +2406,11 @@ download_failed_cb (WebKitDownload *download, gpointer error, gpointer data)
 }
 
 void
-decide_permission (GString *result, gpointer data)
+decide_permission (GObject *source, GAsyncResult *res, gpointer data)
 {
     GObject *obj = (GObject *)data;
+    GError *err = NULL;
+    GString *result = uzbl_io_command_finish (source, res, &err);
     gboolean allow;
 
     if (!g_strcmp0 (result->str, "ALLOW")) {
@@ -2469,9 +2483,11 @@ run_menu_command (GtkMenuItem *menu_item, gpointer data)
 }
 
 void
-download_destination (GString *result, gpointer data)
+download_destination (GObject *source, GAsyncResult *res, gpointer data)
 {
     WebKitDownload *download = (WebKitDownload *)data;
+    GError *err = NULL;
+    GString *result = uzbl_io_command_finish (source, res, &err);
 
     /* No response, cancel the download. */
     if (!result->len) {
