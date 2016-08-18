@@ -39,6 +39,7 @@ Dependencies which are optional for `uzbl-core` are marked with an asterisk.
 * libwebkit 1.2.4 or higher
 * libsoup 2.33.4 or higher (dep for webkit/gtk+)
 * gtk 2.14 or higher
+* libgnutls
 * socat (for socket communication) (optional)
 * dmenu (vertical patch recommended) (optional)
 * zenity (optional)
@@ -52,6 +53,7 @@ Dependencies which are optional for `uzbl-core` are marked with an asterisk.
 
 * `git` (for downloading)
 * `pkg-config` (for finding WebKit, GTK, and other dependencies)
+* `python3-setuptools`
 
 ## Git Repo's & branches
 
