@@ -44,12 +44,14 @@ struct _UzblCommands {
 };
 
 typedef void (*UzblCommandCallback) (GArray *argv, GString *result);
+typedef void (*UzblCommandTask) (GArray *argv, GTask *task);
 
 struct _UzblCommand {
     const gchar         *name;
     UzblCommandCallback  function;
     gboolean             split;
     gboolean             send_event;
+    gboolean             task;
 };
 
 static const UzblCommand
@@ -223,6 +225,11 @@ uzbl_commands_run_parsed (const UzblCommand *info, GArray *argv, GString *result
         return;
     }
 
+    if (info->task) {
+        g_debug ("trying to run task in sync mode");
+        return;
+    }
+
     info->function (argv, result);
 
     if (result) {
@@ -237,6 +244,16 @@ uzbl_commands_run_parsed (const UzblCommand *info, GArray *argv, GString *result
             NULL);
     }
 }
+
+static void
+command_done_cb (GObject      *source,
+                 GAsyncResult *res,
+                 gpointer      data);
+
+static GString*
+command_finish (GObject       *source,
+                GAsyncResult  *res,
+                GError       **err);
 
 void
 uzbl_commands_run_async (const UzblCommand   *info,
@@ -253,6 +270,13 @@ uzbl_commands_run_async (const UzblCommand   *info,
     GString *result = NULL;
     if (capture) {
         result = g_string_new ("");
+    }
+
+    if (info->task) {
+        GTask *subtask = g_task_new (NULL, NULL,
+                                     command_done_cb, (gpointer) task);
+        ((UzblCommandTask)info->function) (argv, subtask);
+        return;
     }
 
     info->function (argv, result);
@@ -279,6 +303,33 @@ uzbl_commands_run_finish (GObject       *source,
     UZBL_UNUSED (source);
     GTask *task = G_TASK (res);
     return (GString*) g_task_propagate_pointer (task, error);
+}
+
+void
+command_done_cb (GObject      *source,
+                 GAsyncResult *res,
+                 gpointer      data)
+{
+    GTask *task = G_TASK (data);
+    GError *err = NULL;
+    GString *result = command_finish (source, res, &err);
+    if (err) {
+        g_debug ("error running task: %s", err->message);
+        result = g_string_new (g_strdup (""));
+        g_clear_error (&err);
+    }
+    g_task_return_pointer (task, result, free_gstring);
+    g_object_unref (task);
+}
+
+GString*
+command_finish (GObject       *source,
+                GAsyncResult  *res,
+                GError       **err)
+{
+    UZBL_UNUSED (source);
+    GTask *task = G_TASK (res);
+    return (GString*) g_task_propagate_pointer (task, err);
 }
 
 void
@@ -620,6 +671,10 @@ parse_command_from_file (const char *cmd)
     static void              \
     cmd_##cmd (GArray *argv, GString *result)
 
+#define DECLARE_TASK(cmd)                                                 \
+    static void                                                           \
+    cmd_##cmd (GArray *argv, GTask *task)
+
 /* Navigation commands */
 DECLARE_COMMAND (back);
 DECLARE_COMMAND (forward);
@@ -692,81 +747,81 @@ DECLARE_COMMAND (request);
 
 static const UzblCommand
 builtin_command_table[] = {
-    /* name                             function                      split  send_event */
+    /* name                             function                      split  send_event  task*/
     /* Navigation commands */
-    { "back",                           cmd_back,                     TRUE,  TRUE  },
-    { "forward",                        cmd_forward,                  TRUE,  TRUE  },
-    { "reload",                         cmd_reload,                   TRUE,  TRUE  },
-    { "stop",                           cmd_stop,                     TRUE,  TRUE  },
-    { "uri",                            cmd_uri,                      FALSE, TRUE  },
-    { "download",                       cmd_download,                 TRUE,  TRUE  },
+    { "back",                           cmd_back,                     TRUE,  TRUE,  FALSE },
+    { "forward",                        cmd_forward,                  TRUE,  TRUE,  FALSE },
+    { "reload",                         cmd_reload,                   TRUE,  TRUE,  FALSE },
+    { "stop",                           cmd_stop,                     TRUE,  TRUE,  FALSE },
+    { "uri",                            cmd_uri,                      FALSE, TRUE,  FALSE },
+    { "download",                       cmd_download,                 TRUE,  TRUE,  FALSE },
 
     /* Page commands */
-    { "load",                           cmd_load,                     TRUE,  TRUE  },
-    { "save",                           cmd_save,                     TRUE,  TRUE  },
+    { "load",                           cmd_load,                     TRUE,  TRUE,  FALSE },
+    { "save",                           cmd_save,                     TRUE,  TRUE,  FALSE },
 
     /* Cookie commands */
-    { "cookie",                         cmd_cookie,                   TRUE,  TRUE  },
+    { "cookie",                         cmd_cookie,                   TRUE,  TRUE,  FALSE },
 
     /* Display commands */
-    { "scroll",                         cmd_scroll,                   TRUE,  TRUE  },
-    { "zoom",                           cmd_zoom,                     TRUE,  TRUE  },
-    { "hardcopy",                       cmd_hardcopy,                 TRUE,  TRUE  },
-    { "geometry",                       cmd_geometry,                 TRUE,  TRUE  },
-    { "snapshot",                       cmd_snapshot,                 TRUE,  TRUE  },
+    { "scroll",                         cmd_scroll,                   TRUE,  TRUE,  FALSE },
+    { "zoom",                           cmd_zoom,                     TRUE,  TRUE,  FALSE },
+    { "hardcopy",                       cmd_hardcopy,                 TRUE,  TRUE,  FALSE },
+    { "geometry",                       cmd_geometry,                 TRUE,  TRUE,  FALSE },
+    { "snapshot",                       cmd_snapshot,                 TRUE,  TRUE,  FALSE },
 
     /* Content commands */
-    { "plugin",                         cmd_plugin,                   TRUE,  TRUE  },
-    { "cache",                          cmd_cache,                    TRUE,  TRUE  },
-    { "favicon",                        cmd_favicon,                  TRUE,  TRUE  },
-    { "css",                            cmd_css,                      TRUE,  TRUE  },
+    { "plugin",                         cmd_plugin,                   TRUE,  TRUE,  FALSE },
+    { "cache",                          cmd_cache,                    TRUE,  TRUE,  FALSE },
+    { "favicon",                        cmd_favicon,                  TRUE,  TRUE,  FALSE },
+    { "css",                            cmd_css,                      TRUE,  TRUE,  FALSE },
 #if WEBKIT_CHECK_VERSION (2, 7, 2)
-    { "script",                         cmd_script,                   TRUE,  TRUE  },
+    { "script",                         cmd_script,                   TRUE,  TRUE,  FALSE },
 #endif
-    { "scheme",                         cmd_scheme,                   FALSE, TRUE  },
+    { "scheme",                         cmd_scheme,                   FALSE, TRUE,  FALSE },
 
     /* Menu commands */
-    { "menu",                           cmd_menu,                     TRUE,  TRUE  },
+    { "menu",                           cmd_menu,                     TRUE,  TRUE,  FALSE },
 
     /* Search commands */
-    { "search",                         cmd_search,                   FALSE, TRUE  },
+    { "search",                         cmd_search,                   FALSE, TRUE,  FALSE },
 
     /* Security commands */
-    { "security",                       cmd_security,                 TRUE,  TRUE  },
-    { "dns",                            cmd_dns,                      TRUE,  TRUE  },
+    { "security",                       cmd_security,                 TRUE,  TRUE,  FALSE },
+    { "dns",                            cmd_dns,                      TRUE,  TRUE,  FALSE },
 
     /* Inspector commands */
-    { "inspector",                      cmd_inspector,                TRUE,  TRUE  },
+    { "inspector",                      cmd_inspector,                TRUE,  TRUE,  FALSE },
 
     /* Execution commands */
-    { "js",                             cmd_js,                       TRUE,  TRUE  },
+    { "js",                             cmd_js,                       TRUE,  TRUE,  FALSE },
     /* TODO: Consolidate into one command. */
-    { "spawn",                          cmd_spawn,                    TRUE,  TRUE  },
-    { "spawn_sync",                     cmd_spawn_sync,               TRUE,  TRUE  },
-    { "spawn_sync_exec",                cmd_spawn_sync_exec,          TRUE,  TRUE  },
-    { "spawn_sh",                       cmd_spawn_sh,                 TRUE,  TRUE  },
-    { "spawn_sh_sync",                  cmd_spawn_sh_sync,            TRUE,  TRUE  },
+    { "spawn",                          cmd_spawn,                    TRUE,  TRUE,  FALSE },
+    { "spawn_sync",                     cmd_spawn_sync,               TRUE,  TRUE,  FALSE },
+    { "spawn_sync_exec",                cmd_spawn_sync_exec,          TRUE,  TRUE,  FALSE },
+    { "spawn_sh",                       cmd_spawn_sh,                 TRUE,  TRUE,  FALSE },
+    { "spawn_sh_sync",                  cmd_spawn_sh_sync,            TRUE,  TRUE,  FALSE },
 
     /* Uzbl commands */
-    { "chain",                          cmd_chain,                    TRUE,  TRUE  },
-    { "include",                        cmd_include,                  FALSE, TRUE  },
-    { "exit",                           cmd_exit,                     TRUE,  TRUE  },
+    { "chain",                          cmd_chain,                    TRUE,  TRUE,  FALSE },
+    { "include",                        cmd_include,                  FALSE, TRUE,  FALSE },
+    { "exit",                           cmd_exit,                     TRUE,  TRUE,  FALSE },
 
     /* Variable commands */
-    { "set",                            cmd_set,                      FALSE, FALSE },
-    { "toggle",                         cmd_toggle,                   TRUE,  TRUE  },
+    { "set",                            cmd_set,                      FALSE, FALSE, FALSE},
+    { "toggle",                         cmd_toggle,                   TRUE,  TRUE,  FALSE },
     /* TODO: Add more dump commands (e.g., current frame/page source) */
-    { "dump_config",                    cmd_dump_config,              TRUE,  TRUE  },
-    { "dump_config_as_events",          cmd_dump_config_as_events,    TRUE,  TRUE  },
-    { "print",                          cmd_print,                    FALSE, TRUE  },
+    { "dump_config",                    cmd_dump_config,              TRUE,  TRUE,  FALSE },
+    { "dump_config_as_events",          cmd_dump_config_as_events,    TRUE,  TRUE,  FALSE },
+    { "print",                          cmd_print,                    FALSE, TRUE,  FALSE },
 
     /* Event commands */
-    { "event",                          cmd_event,                    FALSE, FALSE },
-    { "choose",                         cmd_choose,                   TRUE,  TRUE  },
-    { "request",                        cmd_request,                  TRUE,  TRUE  },
+    { "event",                          cmd_event,                    FALSE, FALSE, FALSE },
+    { "choose",                         cmd_choose,                   TRUE,  TRUE,  FALSE },
+    { "request",                        cmd_request,                  TRUE,  TRUE,  FALSE },
 
     /* Terminator */
-    { NULL,                             NULL,                         FALSE, FALSE }
+    { NULL,                             NULL,                         FALSE, FALSE, FALSE }
 };
 
 /* ==================== COMMAND  IMPLEMENTATIONS ==================== */
@@ -774,6 +829,9 @@ builtin_command_table[] = {
 #define IMPLEMENT_COMMAND(cmd) \
     void                       \
     cmd_##cmd (GArray *argv, GString *result)
+#define IMPLEMENT_TASK(cmd)                                               \
+    void                                                                  \
+    cmd_##cmd (GArray *argv, GTask *task)
 
 /* Navigation commands */
 
