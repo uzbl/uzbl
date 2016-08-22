@@ -514,9 +514,17 @@ free_cmd_req (gpointer data)
 }
 
 void
-free_result_str (gpointer data)
+commands_run_cb (GObject *source, GAsyncResult *res, gpointer data)
 {
-    g_string_free ((GString*)data, TRUE);
+    GTask *task = G_TASK (data);
+    GTask *cmdt = G_TASK (g_task_get_source_object (task));
+    GError *err;
+    GString *result = uzbl_commands_run_finish (source, res, &err);
+
+    g_task_return_pointer (cmdt, result, free_gstring);
+    g_task_return_pointer (task, NULL, NULL);
+    g_object_unref (task);
+    g_object_unref (cmdt);
 }
 
 void
@@ -526,18 +534,17 @@ run_command_async (GTask *cmdt, GAsyncReadyCallback callback, gpointer data)
     GTask *task = g_task_new (cmdt, NULL, callback, data);
     UzblCommandData *cmd = (UzblCommandData*) g_task_get_task_data (cmdt);
 
-    GString *result = g_string_new ("");
-
+    const UzblCommand *info;
+    GArray *argv;
     if (cmd->cmd) {
-        uzbl_commands_run (cmd->cmd, result);
+        argv = uzbl_commands_args_new ();
+        info = uzbl_commands_parse (cmd->cmd, argv);
     } else {
-        uzbl_commands_run_parsed (cmd->info, cmd->argv, result);
+        argv = cmd->argv;
+        info = cmd->info;
     }
 
-    g_task_return_pointer (cmdt, result, free_result_str);
-    g_task_return_pointer (task, NULL, NULL);
-    g_object_unref (task);
-    g_object_unref (cmdt);
+    uzbl_commands_run_async (info, argv, TRUE, commands_run_cb, task);
 }
 
 void

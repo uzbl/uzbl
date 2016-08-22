@@ -42,6 +42,12 @@ remove_trailing_newline (const char *line)
     }
 }
 
+void
+free_gstring (gpointer data)
+{
+    g_string_free ((GString*)data, TRUE);
+}
+
 gboolean
 file_exists (const char *filename)
 {

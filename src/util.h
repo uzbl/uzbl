@@ -19,6 +19,9 @@ str_replace (const gchar *needle, const gchar *replace, const gchar *haystack);
 void
 remove_trailing_newline (const char *line);
 
+void
+free_gstring(gpointer data);
+
 gboolean
 file_exists (const char *filename);
 /* Search a PATH style string for an existing file+path combination. everything
