@@ -239,6 +239,49 @@ uzbl_commands_run_parsed (const UzblCommand *info, GArray *argv, GString *result
 }
 
 void
+uzbl_commands_run_async (const UzblCommand   *info,
+                         GArray              *argv,
+                         gboolean             capture,
+                         GAsyncReadyCallback  callback,
+                         gpointer             data)
+{
+    if (!info) {
+        return;
+    }
+
+    GTask *task = g_task_new (NULL, NULL, callback, data);
+    GString *result = NULL;
+    if (capture) {
+        result = g_string_new ("");
+    }
+
+    info->function (argv, result);
+
+    g_free (uzbl.state.last_result);
+    uzbl.state.last_result = g_strdup (result->str);
+
+    if (info->send_event) {
+        uzbl_events_send (COMMAND_EXECUTED, NULL,
+            TYPE_NAME, info->name,
+            TYPE_STR_ARRAY, argv,
+            NULL);
+    }
+
+    g_task_return_pointer (task, result, free_gstring);
+    g_object_unref (task);
+}
+
+GString*
+uzbl_commands_run_finish (GObject       *source,
+                         GAsyncResult  *res,
+                         GError       **error)
+{
+    UZBL_UNUSED (source);
+    GTask *task = G_TASK (res);
+    return (GString*) g_task_propagate_pointer (task, error);
+}
+
+void
 uzbl_commands_run_argv (const gchar *cmd, GArray *argv, GString *result)
 {
     /* Look up the command. */
