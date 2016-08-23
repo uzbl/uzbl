@@ -721,7 +721,7 @@ DECLARE_COMMAND (dns);
 DECLARE_COMMAND (inspector);
 
 /* Execution commands */
-DECLARE_COMMAND (js);
+DECLARE_TASK (js);
 DECLARE_COMMAND (spawn);
 DECLARE_COMMAND (spawn_sync);
 DECLARE_COMMAND (spawn_sync_exec);
@@ -794,7 +794,7 @@ builtin_command_table[] = {
     { "inspector",                      cmd_inspector,                TRUE,  TRUE,  FALSE },
 
     /* Execution commands */
-    { "js",                             cmd_js,                       TRUE,  TRUE,  FALSE },
+    { "js",                             (UzblCommandCallback) cmd_js, TRUE,  TRUE,  TRUE  },
     /* TODO: Consolidate into one command. */
     { "spawn",                          cmd_spawn,                    TRUE,  TRUE,  FALSE },
     { "spawn_sync",                     cmd_spawn_sync,               TRUE,  TRUE,  FALSE },
@@ -2144,16 +2144,20 @@ IMPLEMENT_COMMAND (inspector)
 
 /* Execution commands */
 
-IMPLEMENT_COMMAND (js)
+static void
+run_js_cb (GObject      *source,
+           GAsyncResult *result,
+           gpointer      data);
+
+IMPLEMENT_TASK (js)
 {
-    ARG_CHECK (argv, 3);
+    //ARG_CHECK (argv, 3);
 
     const gchar *context = argv_idx (argv, 0);
     const gchar *where = argv_idx (argv, 1);
     const gchar *value = argv_idx (argv, 2);
 
     UzblJSContext jsctx;
-    gchar *result_utf8 = NULL;
 
     if (!g_strcmp0 (context, "uzbl")) {
         jsctx = JSCTX_UZBL;
@@ -2162,12 +2166,14 @@ IMPLEMENT_COMMAND (js)
     } else if (!g_strcmp0 (context, "page")) {
         jsctx = JSCTX_PAGE;
     } else {
-        uzbl_debug ("Unrecognized js context: %s\n", context);
+        uzbl_debug ("Unrecognized js context: %s", context);
+        g_task_return_pointer (task, NULL, NULL);  // TODO: Error
+        g_object_unref (task);
         return;
     }
 
     if (!g_strcmp0 (where, "string")) {
-        result_utf8 = uzbl_js_run_string (jsctx, value);
+        uzbl_js_run_string_async (jsctx, value, run_js_cb, task);
     } else if (!g_strcmp0 (where, "file")) {
         GArray jsargs = {
             .data = (gchar*)&g_array_index (argv, gchar*, 3),
@@ -2176,19 +2182,45 @@ IMPLEMENT_COMMAND (js)
         const gchar *req_path = value;
         gchar *path;
         if ((path = find_existing_file (req_path))) {
-            result_utf8 = uzbl_js_run_file (jsctx, value, &jsargs);
+            uzbl_js_run_file_async (jsctx, value, &jsargs, run_js_cb, task);
+        } else {
+            g_task_return_pointer (task, NULL, NULL);
+            g_object_unref (task);
         }
     } else {
-        uzbl_debug ("Unrecognized code source: %s\n", where);
+        uzbl_debug ("Unrecognized code source: %s", where);
+        g_task_return_pointer (task, NULL, NULL);  // TODO: Error
+        g_object_unref (task);
+        return;
     }
 
+}
+
+void
+run_js_cb (GObject      *source,
+           GAsyncResult *result,
+           gpointer      data)
+{
+    GTask *task = G_TASK (data);
+    GError *err = NULL;
+    gchar *result_utf8 = uzbl_js_run_finish (source, result, &err);
+
+    if (err) {
+        g_task_return_error (task, err);
+        g_object_unref (task);
+        return;
+    }
+
+    GString *str = g_string_new ("");
     if (result_utf8) {
-        if (result && g_strcmp0 (result_utf8, "[object Object]")) {
-            g_string_append (result, result_utf8);
+        if (str && g_strcmp0 (result_utf8, "[object Object]")) {
+            g_string_append (str, result_utf8);
         }
 
         g_free (result_utf8);
     }
+    g_task_return_pointer (task, str, NULL); // TODO: free
+    g_object_unref (task);
 }
 
 static void
