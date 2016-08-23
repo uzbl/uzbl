@@ -2,6 +2,7 @@
 #define UZBL_JS_H
 
 #include <glib.h>
+#include <gio/gio.h>
 #include <JavaScriptCore/JavaScript.h>
 
 #define UZBL_JS_ERROR uzbl_js_error_quark ()
@@ -42,13 +43,22 @@ JSObjectRef
 uzbl_js_object (JSContextRef  ctx,
                 const gchar  *prop);
 
-gchar *
-uzbl_js_run_string (UzblJSContext  context,
-                    const gchar   *script);
+void
+uzbl_js_run_string_async (UzblJSContext        context,
+                          const gchar         *script,
+                          GAsyncReadyCallback  callback,
+                          gpointer             data);
+
+void
+uzbl_js_run_file_async (UzblJSContext        context,
+                        const gchar         *path,
+                        GArray              *args,
+                        GAsyncReadyCallback  callback,
+                        gpointer             data);
 
 gchar *
-uzbl_js_run_file (UzblJSContext  context,
-                  const gchar   *path,
-                  GArray        *args);
+uzbl_js_run_finish (GObject       *source,
+                    GAsyncResult  *result,
+                    GError       **error);
 
 #endif

@@ -141,9 +141,13 @@ uzbl_js_object (JSContextRef ctx, const gchar *prop)
     return JSValueToObject (ctx, val, NULL);
 }
 
-gchar *
-uzbl_js_run_string (UzblJSContext context, const gchar *script)
+void
+uzbl_js_run_string_async (UzblJSContext        context,
+                          const gchar         *script,
+                          GAsyncReadyCallback  callback,
+                          gpointer             data)
 {
+    GTask *task = g_task_new (NULL, NULL, callback, data);
     gchar *result_utf8 = NULL;
 
     GError *err = NULL;
@@ -151,19 +155,28 @@ uzbl_js_run_string (UzblJSContext context, const gchar *script)
     JSValueRef result = uzbl_js_evaluate (jsctx, script, "(uzbl command)", &err);
     if (err != NULL) {
         g_debug ("Exception occured while executing script: %s", err->message);
-        g_clear_error (&err);
+        g_task_return_error (task, err);
+        g_object_unref (task);
+        return;
     }
     if (result && !JSValueIsUndefined (jsctx, result)) {
         result_utf8 = uzbl_js_to_string (jsctx, result);
     }
 
     JSGlobalContextRelease (jsctx);
-    return result_utf8;
+    g_task_return_pointer (task, result_utf8, g_free);
+    g_object_unref (task);
 }
 
-gchar *
-uzbl_js_run_file (UzblJSContext context, const gchar *path, GArray *argv)
+void
+uzbl_js_run_file_async (UzblJSContext        context,
+                        const gchar         *path,
+                        GArray              *argv,
+                        GAsyncReadyCallback  callback,
+                        gpointer             data)
 {
+    GTask *task = g_task_new (NULL, NULL, callback, data);
+
     gchar *script;
     gchar *result_utf8 = NULL;
 
@@ -192,12 +205,25 @@ uzbl_js_run_file (UzblJSContext context, const gchar *path, GArray *argv)
     JSValueRef result = uzbl_js_evaluate (jsctx, script, path, &err);
     if (err != NULL) {
         g_debug ("Exception occured while executing script: %s", err->message);
-        g_clear_error (&err);
+        g_task_return_error (task, err);
+        g_object_unref (task);
+        return;
     }
     if (result && !JSValueIsUndefined (jsctx, result)) {
         result_utf8 = uzbl_js_to_string (jsctx, result);
     }
 
     JSGlobalContextRelease (jsctx);
-    return result_utf8;
+    g_task_return_pointer (task, result_utf8, g_free);
+    g_object_unref (task);
+}
+
+gchar *
+uzbl_js_run_finish (GObject       *source,
+                    GAsyncResult  *result,
+                    GError       **error)
+{
+    UZBL_UNUSED (source);
+    GTask *task = G_TASK (result);
+    return g_task_propagate_pointer (task, error);
 }
