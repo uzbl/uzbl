@@ -53,18 +53,37 @@ uzbl_js_get_context(UzblJSContext context)
         jsctx = JSGlobalContextCreate (NULL);
         break;
     case JSCTX_PAGE:
-        /* TODO: This doesn't seem to be the right thing... */
-        jsctx = webkit_web_view_get_javascript_global_context (uzbl.gui.web_view);
-
-        if (!jsctx) {
-            uzbl_debug ("Failed to get the javascript context\n");
-            return jsctx;
-        }
-
-        JSGlobalContextRetain (jsctx);
+    default:
+        g_warning ("Invalid javascript context");
     }
 
     return jsctx;
+}
+
+static void
+web_view_run_javascript_cb(GObject      *source,
+                           GAsyncResult *result,
+                           gpointer      data)
+{
+    GTask *task = G_TASK (data);
+    GError *err = NULL;
+    JSGlobalContextRef context;
+    JSValueRef value;
+    WebKitJavascriptResult *jsr;
+    jsr = webkit_web_view_run_javascript_finish (WEBKIT_WEB_VIEW (source),
+                                                result, &err);
+    if (err) {
+        g_debug ("JS error: %s", err->message);
+        g_task_return_error (task, err);
+        g_object_unref (task);
+        return;
+    }
+
+    context = webkit_javascript_result_get_global_context (jsr);
+    value = webkit_javascript_result_get_value (jsr);
+    gchar *result_utf8 = uzbl_js_to_string (context, value);
+
+    g_task_return_pointer (task, result_utf8, g_free);
 }
 
 /* =========================== PUBLIC API =========================== */
@@ -150,6 +169,12 @@ uzbl_js_run_string_async (UzblJSContext        context,
     GTask *task = g_task_new (NULL, NULL, callback, data);
     gchar *result_utf8 = NULL;
 
+    if (context == JSCTX_PAGE) {
+        webkit_web_view_run_javascript (uzbl.gui.web_view, script, NULL,
+                                        web_view_run_javascript_cb, task);
+        return;
+    }
+
     GError *err = NULL;
     JSGlobalContextRef jsctx = uzbl_js_get_context (context);
     JSValueRef result = uzbl_js_evaluate (jsctx, script, "(uzbl command)", &err);
@@ -198,6 +223,12 @@ uzbl_js_run_file_async (UzblJSContext        context,
         g_free (needle);
         g_free (script);
         script = new_file_contents;
+    }
+
+    if (context == JSCTX_PAGE) {
+        webkit_web_view_run_javascript (uzbl.gui.web_view, script, NULL,
+                                        web_view_run_javascript_cb, task);
+        return;
     }
 
     GError *err = NULL;
