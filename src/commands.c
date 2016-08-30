@@ -275,6 +275,8 @@ uzbl_commands_run_async (const UzblCommand   *info,
     if (info->task) {
         GTask *subtask = g_task_new (NULL, NULL,
                                      command_done_cb, (gpointer) task);
+        g_task_set_task_data (task, (gpointer) result, NULL);
+        g_task_set_task_data (subtask, (gpointer) result, NULL);
         ((UzblCommandTask)info->function) (argv, subtask);
         return;
     }
@@ -312,10 +314,10 @@ command_done_cb (GObject      *source,
 {
     GTask *task = G_TASK (data);
     GError *err = NULL;
-    GString *result = command_finish (source, res, &err);
+    command_finish (source, res, &err);
+    GString *result = g_task_get_task_data (task);
     if (err) {
         g_debug ("error running task: %s", err->message);
-        result = g_string_new (g_strdup (""));
         g_clear_error (&err);
     }
     g_task_return_pointer (task, result, free_gstring);
@@ -2211,7 +2213,7 @@ run_js_cb (GObject      *source,
         return;
     }
 
-    GString *str = g_string_new ("");
+    GString *str = (GString*) g_task_get_task_data (task);
     if (result_utf8) {
         if (str && g_strcmp0 (result_utf8, "[object Object]")) {
             g_string_append (str, result_utf8);
@@ -2219,7 +2221,7 @@ run_js_cb (GObject      *source,
 
         g_free (result_utf8);
     }
-    g_task_return_pointer (task, str, NULL); // TODO: free
+    g_task_return_pointer (task, NULL, NULL);
     g_object_unref (task);
 }
 
