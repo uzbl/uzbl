@@ -2153,7 +2153,7 @@ run_js_cb (GObject      *source,
 
 IMPLEMENT_TASK (js)
 {
-    //ARG_CHECK (argv, 3);
+    TASK_ARG_CHECK (task, argv, 3);
 
     const gchar *context = argv_idx (argv, 0);
     const gchar *where = argv_idx (argv, 1);

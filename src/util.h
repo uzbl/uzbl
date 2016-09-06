@@ -2,6 +2,12 @@
 
 #define UZBL_UNUSED(var) (void)var
 
+#define UZBL_ARG_ERROR uzbl_arg_error_quark ()
+
+typedef enum {
+    UZBL_ARG_ERROR_ARGUMENT
+} UzblArgError;
+
 #define ARG_CHECK(argv, count)   \
     do                           \
     {                            \
@@ -9,6 +15,25 @@
             return;              \
         }                        \
     } while (false)
+
+#define TASK_ARG_CHECK(task, argv, count)                        \
+    do                                                           \
+    {                                                            \
+        if (argv->len < count) {                                 \
+            g_task_return_new_error (                            \
+                task,                                            \
+                UZBL_ARG_ERROR,                                  \
+                UZBL_ARG_ERROR_ARGUMENT,                         \
+                "not enough arguments (expected %d, was %d)",    \
+                count,                                           \
+                argv->len                                        \
+            );                                                   \
+            return;                                              \
+        }                                                        \
+    } while (false)
+
+GQuark
+uzbl_arg_error_quark ();
 
 gchar *
 argv_idx (const GArray *argv, guint idx);
