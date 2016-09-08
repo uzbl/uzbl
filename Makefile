@@ -155,6 +155,7 @@ test-uzbl-core-sandbox: sandbox uzbl-core sandbox-install-uzbl-core sandbox-inst
 
 test-uzbl-browser-sandbox: sandbox uzbl-browser sandbox-install-uzbl-browser sandbox-install-example-data
 	./sandbox/env.sh ${PYTHON} -m uzbl.event_manager restart -navv &
+	sleep 1
 	./sandbox/env.sh uzbl-browser http://www.uzbl.org --verbose
 	./sandbox/env.sh ${PYTHON} -m uzbl.event_manager stop -vv -o /dev/null
 	make DESTDIR=./sandbox uninstall
