@@ -44,16 +44,25 @@ struct _UzblCommands {
 };
 
 typedef void (*UzblCommandCallback) (GArray *argv, GString *result);
+typedef void (*UzblCommandTask) (GArray *argv, GTask *task);
 
 struct _UzblCommand {
     const gchar         *name;
     UzblCommandCallback  function;
     gboolean             split;
     gboolean             send_event;
+    gboolean             task;
 };
 
 static const UzblCommand
 builtin_command_table[];
+
+typedef struct _UzblCommandRun UzblCommandRun;
+struct _UzblCommandRun {
+    const UzblCommand *info;
+    const GArray      *argv;
+    GString     *result;
+};
 
 #if WEBKIT_CHECK_VERSION (2, 5, 1)
 typedef struct _UzblScriptHandlerData UzblScriptHandlerData;
@@ -223,6 +232,11 @@ uzbl_commands_run_parsed (const UzblCommand *info, GArray *argv, GString *result
         return;
     }
 
+    if (info->task) {
+        g_debug ("trying to run task in sync mode");
+        return;
+    }
+
     info->function (argv, result);
 
     if (result) {
@@ -236,6 +250,100 @@ uzbl_commands_run_parsed (const UzblCommand *info, GArray *argv, GString *result
             TYPE_STR_ARRAY, argv,
             NULL);
     }
+}
+
+static void
+command_done_cb (GObject      *source,
+                 GAsyncResult *res,
+                 gpointer      data);
+
+static GString*
+command_finish (GObject       *source,
+                GAsyncResult  *res,
+                GError       **err);
+
+void
+uzbl_commands_run_async (const UzblCommand   *info,
+                         GArray              *argv,
+                         gboolean             capture,
+                         GAsyncReadyCallback  callback,
+                         gpointer             data)
+{
+    if (!info) {
+        return;
+    }
+
+    GTask *task = g_task_new (NULL, NULL, callback, data);
+    UzblCommandRun *run = g_new (UzblCommandRun, 1);
+    run->info = info;
+    run->argv = argv;
+    if (capture) {
+        run->result = g_string_new ("");
+    }
+
+    if (info->task) {
+        GTask *subtask = g_task_new (NULL, NULL,
+                                     command_done_cb, (gpointer) task);
+        g_task_set_task_data (task, (gpointer) run, g_free);
+        g_task_set_task_data (subtask, (gpointer) run->result, NULL);
+        ((UzblCommandTask)info->function) (argv, subtask);
+        return;
+    }
+
+    info->function (argv, run->result);
+    g_task_return_pointer (task, run->result, free_gstring);
+    g_object_unref (task);
+}
+
+GString*
+uzbl_commands_run_finish (GObject       *source,
+                          GAsyncResult  *res,
+                          GError       **error)
+{
+    UZBL_UNUSED (source);
+    GTask *task = G_TASK (res);
+    UzblCommandRun *run = g_task_get_task_data (task);
+
+    GString *result = (GString*) g_task_propagate_pointer (task, error);
+
+    g_free (uzbl.state.last_result);
+    uzbl.state.last_result = result ? g_strdup (result->str) : g_strdup ("");
+
+    if (run->info->send_event) {
+        uzbl_events_send (COMMAND_EXECUTED, NULL,
+            TYPE_NAME, run->info->name,
+            TYPE_STR_ARRAY, run->argv,
+            NULL);
+    }
+
+    return result;
+}
+
+void
+command_done_cb (GObject      *source,
+                 GAsyncResult *res,
+                 gpointer      data)
+{
+    GTask *task = G_TASK (data);
+    GError *err = NULL;
+    command_finish (source, res, &err);
+    UzblCommandRun *run = g_task_get_task_data (task);
+    if (err) {
+        g_debug ("error running task: %s", err->message);
+        g_clear_error (&err);
+    }
+    g_task_return_pointer (task, run->result, free_gstring);
+    g_object_unref (task);
+}
+
+GString*
+command_finish (GObject       *source,
+                GAsyncResult  *res,
+                GError       **err)
+{
+    UZBL_UNUSED (source);
+    GTask *task = G_TASK (res);
+    return (GString*) g_task_propagate_pointer (task, err);
 }
 
 void
@@ -577,6 +685,10 @@ parse_command_from_file (const char *cmd)
     static void              \
     cmd_##cmd (GArray *argv, GString *result)
 
+#define DECLARE_TASK(cmd)                                                 \
+    static void                                                           \
+    cmd_##cmd (GArray *argv, GTask *task)
+
 /* Navigation commands */
 DECLARE_COMMAND (back);
 DECLARE_COMMAND (forward);
@@ -623,7 +735,7 @@ DECLARE_COMMAND (dns);
 DECLARE_COMMAND (inspector);
 
 /* Execution commands */
-DECLARE_COMMAND (js);
+DECLARE_TASK (js);
 DECLARE_COMMAND (spawn);
 DECLARE_COMMAND (spawn_sync);
 DECLARE_COMMAND (spawn_sync_exec);
@@ -649,81 +761,81 @@ DECLARE_COMMAND (request);
 
 static const UzblCommand
 builtin_command_table[] = {
-    /* name                             function                      split  send_event */
+    /* name                             function                      split  send_event  task*/
     /* Navigation commands */
-    { "back",                           cmd_back,                     TRUE,  TRUE  },
-    { "forward",                        cmd_forward,                  TRUE,  TRUE  },
-    { "reload",                         cmd_reload,                   TRUE,  TRUE  },
-    { "stop",                           cmd_stop,                     TRUE,  TRUE  },
-    { "uri",                            cmd_uri,                      FALSE, TRUE  },
-    { "download",                       cmd_download,                 TRUE,  TRUE  },
+    { "back",                           cmd_back,                     TRUE,  TRUE,  FALSE },
+    { "forward",                        cmd_forward,                  TRUE,  TRUE,  FALSE },
+    { "reload",                         cmd_reload,                   TRUE,  TRUE,  FALSE },
+    { "stop",                           cmd_stop,                     TRUE,  TRUE,  FALSE },
+    { "uri",                            cmd_uri,                      FALSE, TRUE,  FALSE },
+    { "download",                       cmd_download,                 TRUE,  TRUE,  FALSE },
 
     /* Page commands */
-    { "load",                           cmd_load,                     TRUE,  TRUE  },
-    { "save",                           cmd_save,                     TRUE,  TRUE  },
+    { "load",                           cmd_load,                     TRUE,  TRUE,  FALSE },
+    { "save",                           cmd_save,                     TRUE,  TRUE,  FALSE },
 
     /* Cookie commands */
-    { "cookie",                         cmd_cookie,                   TRUE,  TRUE  },
+    { "cookie",                         cmd_cookie,                   TRUE,  TRUE,  FALSE },
 
     /* Display commands */
-    { "scroll",                         cmd_scroll,                   TRUE,  TRUE  },
-    { "zoom",                           cmd_zoom,                     TRUE,  TRUE  },
-    { "hardcopy",                       cmd_hardcopy,                 TRUE,  TRUE  },
-    { "geometry",                       cmd_geometry,                 TRUE,  TRUE  },
-    { "snapshot",                       cmd_snapshot,                 TRUE,  TRUE  },
+    { "scroll",                         cmd_scroll,                   TRUE,  TRUE,  FALSE },
+    { "zoom",                           cmd_zoom,                     TRUE,  TRUE,  FALSE },
+    { "hardcopy",                       cmd_hardcopy,                 TRUE,  TRUE,  FALSE },
+    { "geometry",                       cmd_geometry,                 TRUE,  TRUE,  FALSE },
+    { "snapshot",                       cmd_snapshot,                 TRUE,  TRUE,  FALSE },
 
     /* Content commands */
-    { "plugin",                         cmd_plugin,                   TRUE,  TRUE  },
-    { "cache",                          cmd_cache,                    TRUE,  TRUE  },
-    { "favicon",                        cmd_favicon,                  TRUE,  TRUE  },
-    { "css",                            cmd_css,                      TRUE,  TRUE  },
+    { "plugin",                         cmd_plugin,                   TRUE,  TRUE,  FALSE },
+    { "cache",                          cmd_cache,                    TRUE,  TRUE,  FALSE },
+    { "favicon",                        cmd_favicon,                  TRUE,  TRUE,  FALSE },
+    { "css",                            cmd_css,                      TRUE,  TRUE,  FALSE },
 #if WEBKIT_CHECK_VERSION (2, 7, 2)
-    { "script",                         cmd_script,                   TRUE,  TRUE  },
+    { "script",                         cmd_script,                   TRUE,  TRUE,  FALSE },
 #endif
-    { "scheme",                         cmd_scheme,                   FALSE, TRUE  },
+    { "scheme",                         cmd_scheme,                   FALSE, TRUE,  FALSE },
 
     /* Menu commands */
-    { "menu",                           cmd_menu,                     TRUE,  TRUE  },
+    { "menu",                           cmd_menu,                     TRUE,  TRUE,  FALSE },
 
     /* Search commands */
-    { "search",                         cmd_search,                   FALSE, TRUE  },
+    { "search",                         cmd_search,                   FALSE, TRUE,  FALSE },
 
     /* Security commands */
-    { "security",                       cmd_security,                 TRUE,  TRUE  },
-    { "dns",                            cmd_dns,                      TRUE,  TRUE  },
+    { "security",                       cmd_security,                 TRUE,  TRUE,  FALSE },
+    { "dns",                            cmd_dns,                      TRUE,  TRUE,  FALSE },
 
     /* Inspector commands */
-    { "inspector",                      cmd_inspector,                TRUE,  TRUE  },
+    { "inspector",                      cmd_inspector,                TRUE,  TRUE,  FALSE },
 
     /* Execution commands */
-    { "js",                             cmd_js,                       TRUE,  TRUE  },
+    { "js",                             (UzblCommandCallback) cmd_js, TRUE,  TRUE,  TRUE  },
     /* TODO: Consolidate into one command. */
-    { "spawn",                          cmd_spawn,                    TRUE,  TRUE  },
-    { "spawn_sync",                     cmd_spawn_sync,               TRUE,  TRUE  },
-    { "spawn_sync_exec",                cmd_spawn_sync_exec,          TRUE,  TRUE  },
-    { "spawn_sh",                       cmd_spawn_sh,                 TRUE,  TRUE  },
-    { "spawn_sh_sync",                  cmd_spawn_sh_sync,            TRUE,  TRUE  },
+    { "spawn",                          cmd_spawn,                    TRUE,  TRUE,  FALSE },
+    { "spawn_sync",                     cmd_spawn_sync,               TRUE,  TRUE,  FALSE },
+    { "spawn_sync_exec",                cmd_spawn_sync_exec,          TRUE,  TRUE,  FALSE },
+    { "spawn_sh",                       cmd_spawn_sh,                 TRUE,  TRUE,  FALSE },
+    { "spawn_sh_sync",                  cmd_spawn_sh_sync,            TRUE,  TRUE,  FALSE },
 
     /* Uzbl commands */
-    { "chain",                          cmd_chain,                    TRUE,  TRUE  },
-    { "include",                        cmd_include,                  FALSE, TRUE  },
-    { "exit",                           cmd_exit,                     TRUE,  TRUE  },
+    { "chain",                          cmd_chain,                    TRUE,  TRUE,  FALSE },
+    { "include",                        cmd_include,                  FALSE, TRUE,  FALSE },
+    { "exit",                           cmd_exit,                     TRUE,  TRUE,  FALSE },
 
     /* Variable commands */
-    { "set",                            cmd_set,                      FALSE, FALSE },
-    { "toggle",                         cmd_toggle,                   TRUE,  TRUE  },
+    { "set",                            cmd_set,                      FALSE, FALSE, FALSE},
+    { "toggle",                         cmd_toggle,                   TRUE,  TRUE,  FALSE },
     /* TODO: Add more dump commands (e.g., current frame/page source) */
-    { "dump_config",                    cmd_dump_config,              TRUE,  TRUE  },
-    { "dump_config_as_events",          cmd_dump_config_as_events,    TRUE,  TRUE  },
-    { "print",                          cmd_print,                    FALSE, TRUE  },
+    { "dump_config",                    cmd_dump_config,              TRUE,  TRUE,  FALSE },
+    { "dump_config_as_events",          cmd_dump_config_as_events,    TRUE,  TRUE,  FALSE },
+    { "print",                          cmd_print,                    FALSE, TRUE,  FALSE },
 
     /* Event commands */
-    { "event",                          cmd_event,                    FALSE, FALSE },
-    { "choose",                         cmd_choose,                   TRUE,  TRUE  },
-    { "request",                        cmd_request,                  TRUE,  TRUE  },
+    { "event",                          cmd_event,                    FALSE, FALSE, FALSE },
+    { "choose",                         cmd_choose,                   TRUE,  TRUE,  FALSE },
+    { "request",                        cmd_request,                  TRUE,  TRUE,  FALSE },
 
     /* Terminator */
-    { NULL,                             NULL,                         FALSE, FALSE }
+    { NULL,                             NULL,                         FALSE, FALSE, FALSE }
 };
 
 /* ==================== COMMAND  IMPLEMENTATIONS ==================== */
@@ -731,6 +843,9 @@ builtin_command_table[] = {
 #define IMPLEMENT_COMMAND(cmd) \
     void                       \
     cmd_##cmd (GArray *argv, GString *result)
+#define IMPLEMENT_TASK(cmd)                                               \
+    void                                                                  \
+    cmd_##cmd (GArray *argv, GTask *task)
 
 /* Navigation commands */
 
@@ -2043,111 +2158,83 @@ IMPLEMENT_COMMAND (inspector)
 
 /* Execution commands */
 
-IMPLEMENT_COMMAND (js)
+static void
+run_js_cb (GObject      *source,
+           GAsyncResult *result,
+           gpointer      data);
+
+IMPLEMENT_TASK (js)
 {
-    ARG_CHECK (argv, 3);
+    TASK_ARG_CHECK (task, argv, 3);
 
     const gchar *context = argv_idx (argv, 0);
     const gchar *where = argv_idx (argv, 1);
     const gchar *value = argv_idx (argv, 2);
 
-    JSGlobalContextRef jsctx;
+    UzblJSContext jsctx;
 
     if (!g_strcmp0 (context, "uzbl")) {
-        jsctx = uzbl.state.jscontext;
-
-        JSGlobalContextRetain (jsctx);
+        jsctx = JSCTX_UZBL;
     } else if (!g_strcmp0 (context, "clean")) {
-        jsctx = JSGlobalContextCreate (NULL);
+        jsctx = JSCTX_CLEAN;
     } else if (!g_strcmp0 (context, "page")) {
-        /* TODO: This doesn't seem to be the right thing... */
-        jsctx = webkit_web_view_get_javascript_global_context (uzbl.gui.web_view);
-
-        if (!jsctx) {
-            uzbl_debug ("Failed to get the javascript context\n");
-            return;
-        }
-
-        JSGlobalContextRetain (jsctx);
+        jsctx = JSCTX_PAGE;
     } else {
-        uzbl_debug ("Unrecognized js context: %s\n", context);
+        uzbl_debug ("Unrecognized js context: %s", context);
+        g_task_return_pointer (task, NULL, NULL);  // TODO: Error
+        g_object_unref (task);
         return;
     }
 
-    gchar *script = NULL;
-    gchar *path = NULL;
-
     if (!g_strcmp0 (where, "string")) {
-        script = g_strdup (value);
-        path = g_strdup ("(uzbl command)");
+        uzbl_js_run_string_async (jsctx, value, run_js_cb, task);
     } else if (!g_strcmp0 (where, "file")) {
+        GArray jsargs = {
+            .data = (gchar*)&g_array_index (argv, gchar*, 3),
+            .len = argv->len - 3
+        };
         const gchar *req_path = value;
-
+        gchar *path;
         if ((path = find_existing_file (req_path))) {
-            GIOChannel *chan = g_io_channel_new_file (path, "r", NULL);
-            if (chan) {
-                gsize len;
-                g_io_channel_read_to_end (chan, &script, &len, NULL);
-                g_io_channel_unref (chan);
-            }
-
-            uzbl_debug ("External JavaScript file loaded: %s\n", req_path);
-
-            guint i;
-            for (i = argv->len; 3 < i; --i) {
-                const gchar *arg = argv_idx (argv, i - 1);
-                gchar *needle = g_strdup_printf ("%%%d", i);
-
-                gchar *new_file_contents = str_replace (needle, arg ? arg : "", script);
-
-                g_free (needle);
-
-                g_free (script);
-                script = new_file_contents;
-            }
+            uzbl_js_run_file_async (jsctx, value, &jsargs, run_js_cb, task);
+        } else {
+            g_task_return_pointer (task, NULL, NULL);
+            g_object_unref (task);
         }
     } else {
-        uzbl_debug ("Unrecognized code source: %s\n", where);
-        goto js_exit;
+        uzbl_debug ("Unrecognized code source: %s", where);
+        g_task_return_pointer (task, NULL, NULL);  // TODO: Error
+        g_object_unref (task);
+        return;
     }
 
-    JSObjectRef globalobject = JSContextGetGlobalObject (jsctx);
-    JSValueRef js_exc = NULL;
+}
 
-    JSStringRef js_script = JSStringCreateWithUTF8CString (script);
-    JSStringRef js_file = JSStringCreateWithUTF8CString (path);
-    JSValueRef js_result = JSEvaluateScript (jsctx, js_script, globalobject, js_file, 0, &js_exc);
+void
+run_js_cb (GObject      *source,
+           GAsyncResult *result,
+           gpointer      data)
+{
+    GTask *task = G_TASK (data);
+    GError *err = NULL;
+    gchar *result_utf8 = uzbl_js_run_finish (source, result, &err);
 
-    if (result && js_result && !JSValueIsUndefined (jsctx, js_result)) {
-        gchar *result_utf8 = uzbl_js_to_string (jsctx, js_result);
+    if (err) {
+        g_task_return_error (task, err);
+        g_object_unref (task);
+        return;
+    }
 
-        if (g_strcmp0 (result_utf8, "[object Object]")) {
-            g_string_append (result, result_utf8);
+    GString *str = (GString*) g_task_get_task_data (task);
+    if (result_utf8) {
+        if (str && g_strcmp0 (result_utf8, "[object Object]")) {
+            g_string_append (str, result_utf8);
         }
 
         g_free (result_utf8);
-    } else if (js_exc) {
-        JSObjectRef exc = JSValueToObject (jsctx, js_exc, NULL);
-
-        gchar *file = uzbl_js_to_string (jsctx, uzbl_js_get (jsctx, exc, "sourceURL"));
-        gchar *line = uzbl_js_to_string (jsctx, uzbl_js_get (jsctx, exc, "line"));
-        gchar *msg = uzbl_js_to_string (jsctx, exc);
-
-        uzbl_debug ("Exception occured while executing script:\n %s:%s: %s\n", file, line, msg);
-
-        g_free (file);
-        g_free (line);
-        g_free (msg);
     }
-
-    JSStringRelease (js_file);
-    JSStringRelease (js_script);
-
-    g_free (script);
-    g_free (path);
-
-js_exit:
-    JSGlobalContextRelease (jsctx);
+    g_task_return_pointer (task, NULL, NULL);
+    g_object_unref (task);
 }
 
 static void

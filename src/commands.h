@@ -2,6 +2,7 @@
 #define UZBL_COMMANDS_H
 
 #include <glib.h>
+#include <gio/gio.h>
 
 struct _UzblCommand;
 typedef struct _UzblCommand UzblCommand;
@@ -17,6 +18,16 @@ const UzblCommand *
 uzbl_commands_parse (const gchar *cmd, GArray *argv);
 void
 uzbl_commands_run_parsed (const UzblCommand *info, GArray *argv, GString *result);
+void
+uzbl_commands_run_async (const UzblCommand   *info,
+                         GArray              *argv,
+                         gboolean             capture,
+                         GAsyncReadyCallback  callback,
+                         gpointer             data);
+GString*
+uzbl_commands_run_finish (GObject       *source,
+                          GAsyncResult  *res,
+                          GError       **error);
 void
 uzbl_commands_run_argv (const gchar *cmd, GArray *argv, GString *result);
 void

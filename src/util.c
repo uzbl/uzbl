@@ -10,6 +10,12 @@
 
 /* =========================== PUBLIC API =========================== */
 
+GQuark
+uzbl_arg_error_quark ()
+{
+    return g_quark_from_static_string ("uzbl-arg-error-quark");
+}
+
 gchar *
 argv_idx (const GArray *argv, guint idx)
 {
@@ -40,6 +46,12 @@ remove_trailing_newline (const char *line)
     if (p != NULL) {
         *p = '\0';
     }
+}
+
+void
+free_gstring (gpointer data)
+{
+    g_string_free ((GString*)data, TRUE);
 }
 
 gboolean
