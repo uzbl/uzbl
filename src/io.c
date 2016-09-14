@@ -537,7 +537,7 @@ run_command_async (GTask *cmdt, GAsyncReadyCallback callback, gpointer data)
     const UzblCommand *info;
     GArray *argv;
     if (cmd->cmd) {
-        argv = uzbl_commands_args_new ();
+        argv = cmd->argv = uzbl_commands_args_new ();
         info = uzbl_commands_parse (cmd->cmd, argv);
     } else {
         argv = cmd->argv;

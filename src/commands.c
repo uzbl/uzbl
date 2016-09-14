@@ -57,6 +57,13 @@ struct _UzblCommand {
 static const UzblCommand
 builtin_command_table[];
 
+typedef struct _UzblCommandRun UzblCommandRun;
+struct _UzblCommandRun {
+    const UzblCommand *info;
+    const GArray      *argv;
+    GString     *result;
+};
+
 #if WEBKIT_CHECK_VERSION (2, 5, 1)
 typedef struct _UzblScriptHandlerData UzblScriptHandlerData;
 static void
@@ -267,33 +274,24 @@ uzbl_commands_run_async (const UzblCommand   *info,
     }
 
     GTask *task = g_task_new (NULL, NULL, callback, data);
-    GString *result = NULL;
+    UzblCommandRun *run = g_new (UzblCommandRun, 1);
+    run->info = info;
+    run->argv = argv;
     if (capture) {
-        result = g_string_new ("");
+        run->result = g_string_new ("");
     }
 
     if (info->task) {
         GTask *subtask = g_task_new (NULL, NULL,
                                      command_done_cb, (gpointer) task);
-        g_task_set_task_data (task, (gpointer) result, NULL);
-        g_task_set_task_data (subtask, (gpointer) result, NULL);
+        g_task_set_task_data (task, (gpointer) run, g_free);
+        g_task_set_task_data (subtask, (gpointer) run->result, NULL);
         ((UzblCommandTask)info->function) (argv, subtask);
         return;
     }
 
-    info->function (argv, result);
-
-    g_free (uzbl.state.last_result);
-    uzbl.state.last_result = g_strdup (result->str);
-
-    if (info->send_event) {
-        uzbl_events_send (COMMAND_EXECUTED, NULL,
-            TYPE_NAME, info->name,
-            TYPE_STR_ARRAY, argv,
-            NULL);
-    }
-
-    g_task_return_pointer (task, result, free_gstring);
+    info->function (argv, run->result);
+    g_task_return_pointer (task, run->result, free_gstring);
     g_object_unref (task);
 }
 
@@ -304,7 +302,21 @@ uzbl_commands_run_finish (GObject       *source,
 {
     UZBL_UNUSED (source);
     GTask *task = G_TASK (res);
-    return (GString*) g_task_propagate_pointer (task, error);
+    UzblCommandRun *run = g_task_get_task_data (task);
+
+    GString *result = (GString*) g_task_propagate_pointer (task, error);
+
+    g_free (uzbl.state.last_result);
+    uzbl.state.last_result = result ? g_strdup (result->str) : g_strdup ("");
+
+    if (run->info->send_event) {
+        uzbl_events_send (COMMAND_EXECUTED, NULL,
+            TYPE_NAME, run->info->name,
+            TYPE_STR_ARRAY, run->argv,
+            NULL);
+    }
+
+    return result;
 }
 
 void
@@ -315,12 +327,12 @@ command_done_cb (GObject      *source,
     GTask *task = G_TASK (data);
     GError *err = NULL;
     command_finish (source, res, &err);
-    GString *result = g_task_get_task_data (task);
+    UzblCommandRun *run = g_task_get_task_data (task);
     if (err) {
         g_debug ("error running task: %s", err->message);
         g_clear_error (&err);
     }
-    g_task_return_pointer (task, result, free_gstring);
+    g_task_return_pointer (task, run->result, free_gstring);
     g_object_unref (task);
 }
 
