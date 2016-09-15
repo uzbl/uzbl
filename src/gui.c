@@ -2444,21 +2444,9 @@ create_web_view_uri_cb (WebKitWebView *view, GParamSpec param_spec, gpointer dat
     webkit_web_view_stop_loading (view);
     const gchar *uri = webkit_web_view_get_uri (view);
 
-    static const char *js_protocol = "javascript:";
-
-    if (g_str_has_prefix (uri, js_protocol)) {
-        GArray *args = uzbl_commands_args_new ();
-        const gchar *js_code = uri + strlen (js_protocol);
-        uzbl_commands_args_append (args, g_strdup ("page"));
-        uzbl_commands_args_append (args, g_strdup ("string"));
-        uzbl_commands_args_append (args, g_strdup (js_code));
-        uzbl_commands_run_argv ("js", args, NULL);
-        uzbl_commands_args_free (args);
-    } else {
-        uzbl_events_send (REQ_NEW_WINDOW, NULL,
-            TYPE_STR, uri,
-            NULL);
-    }
+    uzbl_events_send (REQ_NEW_WINDOW, NULL,
+        TYPE_STR, uri,
+        NULL);
 }
 
 void
