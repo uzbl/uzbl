@@ -281,10 +281,10 @@ uzbl_commands_run_async (const UzblCommand   *info,
         run->result = g_string_new ("");
     }
 
+    g_task_set_task_data (task, (gpointer) run, g_free);
     if (info->task) {
         GTask *subtask = g_task_new (NULL, NULL,
                                      command_done_cb, (gpointer) task);
-        g_task_set_task_data (task, (gpointer) run, g_free);
         g_task_set_task_data (subtask, (gpointer) run->result, NULL);
         ((UzblCommandTask)info->function) (argv, subtask);
         return;
