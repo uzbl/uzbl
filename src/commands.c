@@ -190,6 +190,12 @@ static const UzblCommand *
 parse_command (const gchar *exp_line, GArray *argv);
 
 const UzblCommand *
+uzbl_commands_lookup (const gchar *cmd)
+{
+    return g_hash_table_lookup (uzbl.commands->table, cmd);
+}
+
+const UzblCommand *
 uzbl_commands_parse (const gchar *cmd, GArray *argv)
 {
     if (!cmd || cmd[0] == '#' || !*cmd) {
@@ -260,7 +266,7 @@ parse_command (const gchar *exp_line, GArray *argv)
     const gchar *arg_string = tokens[1];
 
     /* Look up the command. */
-    const UzblCommand *info = g_hash_table_lookup (uzbl.commands->table, command);
+    const UzblCommand *info = uzbl_commands_lookup (command);
 
     if (!info) {
         uzbl_events_send (COMMAND_ERROR, NULL,
@@ -450,7 +456,7 @@ void
 uzbl_commands_run_argv (const gchar *cmd, GArray *argv, GString *result)
 {
     /* Look up the command. */
-    const UzblCommand *info = g_hash_table_lookup (uzbl.commands->table, cmd);
+    const UzblCommand *info = uzbl_commands_lookup (cmd);
 
     if (!info) {
         uzbl_events_send (COMMAND_ERROR, NULL,

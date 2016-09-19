@@ -15,6 +15,9 @@ void
 uzbl_commands_args_free (GArray *argv);
 
 const UzblCommand *
+uzbl_commands_lookup (const gchar *cmd);
+
+const UzblCommand *
 uzbl_commands_parse (const gchar *cmd, GArray *argv);
 void
 uzbl_commands_parse_async (const gchar         *cmd,
