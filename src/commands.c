@@ -181,6 +181,14 @@ uzbl_commands_args_free (GArray *argv)
 static void
 parse_command_arguments (const gchar *args, GArray *argv, gboolean split);
 
+static void
+parse_expand_cb (GObject       *source,
+                 GAsyncResult  *res,
+                 gpointer       data);
+
+static const UzblCommand *
+parse_command (const gchar *exp_line, GArray *argv);
+
 const UzblCommand *
 uzbl_commands_parse (const gchar *cmd, GArray *argv)
 {
@@ -194,6 +202,57 @@ uzbl_commands_parse (const gchar *cmd, GArray *argv)
         return NULL;
     }
 
+    const UzblCommand *info = parse_command (exp_line, argv);
+    g_free (exp_line);
+    return info;
+}
+
+void
+uzbl_commands_parse_async (const gchar         *cmd,
+                           GArray              *argv,
+                           GAsyncReadyCallback  callback,
+                           gpointer             data)
+{
+    GTask *task = g_task_new (NULL, NULL, callback, data);
+    g_task_set_task_data (task, argv, NULL);
+
+    if (!cmd || cmd[0] == '#' || !*cmd) {
+        g_task_return_pointer (task, NULL, NULL);
+        g_object_unref (task);
+        return;
+    }
+
+    uzbl_variables_expand_async (cmd, parse_expand_cb, task);
+}
+
+void
+parse_expand_cb (GObject       *source,
+                 GAsyncResult  *res,
+                 gpointer       data)
+{
+    GTask *task = G_TASK (data);
+    GError *err;
+    gchar *exp_line = uzbl_variables_expand_finish (source, res, &err);
+    GArray *argv = g_task_get_task_data (task);
+    const UzblCommand *info = parse_command (exp_line, argv);
+    g_task_return_pointer (task, (UzblCommand*)info, NULL);
+    g_object_unref (task);
+    g_free (exp_line);
+}
+
+const UzblCommand*
+uzbl_commands_parse_finish (GObject       *source,
+                            GAsyncResult  *res,
+                            GError       **error)
+{
+    UZBL_UNUSED (source);
+    GTask *task = G_TASK (res);
+    return g_task_propagate_pointer (task, error);
+}
+
+static const UzblCommand *
+parse_command (const gchar *exp_line, GArray *argv)
+{
     /* Separate the line into the command and its parameters. */
     gchar **tokens = g_strsplit (exp_line, " ", 2);
 
@@ -208,7 +267,6 @@ uzbl_commands_parse (const gchar *cmd, GArray *argv)
             TYPE_STR, command,
             NULL);
 
-        g_free (exp_line);
         g_strfreev (tokens);
 
         return NULL;
@@ -219,32 +277,9 @@ uzbl_commands_parse (const gchar *cmd, GArray *argv)
         parse_command_arguments (arg_string, argv, info->split);
     }
 
-    g_free (exp_line);
     g_strfreev (tokens);
 
     return info;
-}
-
-void
-uzbl_commands_parse_async (const gchar         *cmd,
-                           GArray              *argv,
-                           GAsyncReadyCallback  callback,
-                           gpointer             data)
-{
-    GTask *task = g_task_new (NULL, NULL, callback, data);
-    const UzblCommand *info = uzbl_commands_parse (cmd, argv);
-    g_task_return_pointer (task, (UzblCommand*)info, NULL);
-    g_object_unref (task);
-}
-
-const UzblCommand*
-uzbl_commands_parse_finish (GObject       *source,
-                            GAsyncResult  *res,
-                            GError       **error)
-{
-    UZBL_UNUSED (source);
-    GTask *task = G_TASK (res);
-    return g_task_propagate_pointer (task, error);
 }
 
 void
