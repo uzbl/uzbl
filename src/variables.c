@@ -382,6 +382,27 @@ uzbl_variables_expand (const gchar *str)
     return expand_impl (str, EXPAND_INITIAL);
 }
 
+void
+uzbl_variables_expand_async (const gchar         *str,
+                             GAsyncReadyCallback  callback,
+                             gpointer             data)
+{
+    GTask *task = g_task_new (NULL, NULL, callback, data);
+    gchar *result = expand_impl (str, EXPAND_INITIAL);
+    g_task_return_pointer (task, result, NULL);
+    g_object_unref (task);
+}
+
+gchar*
+uzbl_variables_expand_finish (GObject       *source,
+                              GAsyncResult  *res,
+                              GError       **error)
+{
+    UZBL_UNUSED (source);
+    GTask *task = G_TASK (res);
+    return g_task_propagate_pointer (task, error);
+}
+
 #define VAR_GETTER(type, name)                     \
     type                                           \
     uzbl_variables_get_##name (const gchar *name_) \

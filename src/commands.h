@@ -17,6 +17,15 @@ uzbl_commands_args_free (GArray *argv);
 const UzblCommand *
 uzbl_commands_parse (const gchar *cmd, GArray *argv);
 void
+uzbl_commands_parse_async (const gchar         *cmd,
+                           GArray              *argv,
+                           GAsyncReadyCallback  callback,
+                           gpointer             data);
+const UzblCommand *
+uzbl_command_parse_finish (GObject       *source,
+                           GAsyncResult  *res,
+                           GError       **error);
+void
 uzbl_commands_run_parsed (const UzblCommand *info, GArray *argv, GString *result);
 void
 uzbl_commands_run_async (const UzblCommand   *info,

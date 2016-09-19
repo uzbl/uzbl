@@ -61,7 +61,7 @@ typedef struct _UzblCommandRun UzblCommandRun;
 struct _UzblCommandRun {
     const UzblCommand *info;
     const GArray      *argv;
-    GString     *result;
+    GString           *result;
 };
 
 #if WEBKIT_CHECK_VERSION (2, 5, 1)
@@ -223,6 +223,28 @@ uzbl_commands_parse (const gchar *cmd, GArray *argv)
     g_strfreev (tokens);
 
     return info;
+}
+
+void
+uzbl_commands_parse_async (const gchar         *cmd,
+                           GArray              *argv,
+                           GAsyncReadyCallback  callback,
+                           gpointer             data)
+{
+    GTask *task = g_task_new (NULL, NULL, callback, data);
+    const UzblCommand *info = uzbl_commands_parse (cmd, argv);
+    g_task_return_pointer (task, (UzblCommand*)info, NULL);
+    g_object_unref (task);
+}
+
+const UzblCommand*
+uzbl_command_parse_finish (GObject       *source,
+                           GAsyncResult  *res,
+                           GError       **error)
+{
+    UZBL_UNUSED (source);
+    GTask *task = G_TASK (res);
+    return g_task_propagate_pointer (task, error);
 }
 
 void
