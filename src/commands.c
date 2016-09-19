@@ -60,7 +60,7 @@ builtin_command_table[];
 typedef struct _UzblCommandRun UzblCommandRun;
 struct _UzblCommandRun {
     const UzblCommand *info;
-    const GArray      *argv;
+    GArray            *argv;
     GString           *result;
 };
 
@@ -238,9 +238,9 @@ uzbl_commands_parse_async (const gchar         *cmd,
 }
 
 const UzblCommand*
-uzbl_command_parse_finish (GObject       *source,
-                           GAsyncResult  *res,
-                           GError       **error)
+uzbl_commands_parse_finish (GObject       *source,
+                            GAsyncResult  *res,
+                            GError       **error)
 {
     UZBL_UNUSED (source);
     GTask *task = G_TASK (res);
@@ -284,6 +284,42 @@ command_finish (GObject       *source,
                 GAsyncResult  *res,
                 GError       **err);
 
+static void
+run_string_parse_cb (GObject       *source,
+                     GAsyncResult  *res,
+                     gpointer       data);
+
+static void
+run_command_impl (GTask *task, UzblCommandRun *run);
+
+void
+uzbl_commands_run_string_async (const gchar         *cmd,
+                                gboolean             capture,
+                                GAsyncReadyCallback  callback,
+                                gpointer             data)
+{
+    GTask *task = g_task_new (NULL, NULL, callback, data);
+    UzblCommandRun *run = g_new (UzblCommandRun, 1);
+    if (capture) {
+        run->result = g_string_new ("");
+    }
+    run->argv = uzbl_commands_args_new ();
+    g_task_set_task_data (task, (gpointer) run, g_free);
+    uzbl_commands_parse_async (cmd, run->argv, run_string_parse_cb, task);
+}
+
+void
+run_string_parse_cb (GObject       *source,
+                     GAsyncResult  *res,
+                     gpointer       data)
+{
+    GError *err;
+    GTask *task = G_TASK (data);
+    UzblCommandRun *run = (UzblCommandRun*) g_task_get_task_data (task);
+    run->info = uzbl_commands_parse_finish (source, res, &err);
+    run_command_impl (task, run);
+}
+
 void
 uzbl_commands_run_async (const UzblCommand   *info,
                          GArray              *argv,
@@ -304,15 +340,22 @@ uzbl_commands_run_async (const UzblCommand   *info,
     }
 
     g_task_set_task_data (task, (gpointer) run, g_free);
+    run_command_impl (task, run);
+}
+
+static void
+run_command_impl (GTask *task, UzblCommandRun *run)
+{
+    const UzblCommand *info = run->info;
     if (info->task) {
         GTask *subtask = g_task_new (NULL, NULL,
                                      command_done_cb, (gpointer) task);
         g_task_set_task_data (subtask, (gpointer) run->result, NULL);
-        ((UzblCommandTask)info->function) (argv, subtask);
+        ((UzblCommandTask)info->function) (run->argv, subtask);
         return;
     }
 
-    info->function (argv, run->result);
+    info->function (run->argv, run->result);
     g_task_return_pointer (task, run->result, free_gstring);
     g_object_unref (task);
 }

@@ -534,17 +534,11 @@ run_command_async (GTask *cmdt, GAsyncReadyCallback callback, gpointer data)
     GTask *task = g_task_new (cmdt, NULL, callback, data);
     UzblCommandData *cmd = (UzblCommandData*) g_task_get_task_data (cmdt);
 
-    const UzblCommand *info;
-    GArray *argv;
     if (cmd->cmd) {
-        argv = cmd->argv = uzbl_commands_args_new ();
-        info = uzbl_commands_parse (cmd->cmd, argv);
+        uzbl_commands_run_string_async (cmd->cmd, TRUE, commands_run_cb, task);
     } else {
-        argv = cmd->argv;
-        info = cmd->info;
+        uzbl_commands_run_async (cmd->info, cmd->argv, TRUE, commands_run_cb, task);
     }
-
-    uzbl_commands_run_async (info, argv, TRUE, commands_run_cb, task);
 }
 
 void

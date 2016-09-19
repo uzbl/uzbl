@@ -22,11 +22,16 @@ uzbl_commands_parse_async (const gchar         *cmd,
                            GAsyncReadyCallback  callback,
                            gpointer             data);
 const UzblCommand *
-uzbl_command_parse_finish (GObject       *source,
-                           GAsyncResult  *res,
-                           GError       **error);
+uzbl_commands_parse_finish (GObject       *source,
+                            GAsyncResult  *res,
+                            GError       **error);
 void
 uzbl_commands_run_parsed (const UzblCommand *info, GArray *argv, GString *result);
+void
+uzbl_commands_run_string_async (const gchar         *cmd,
+                                gboolean             capture,
+                                GAsyncReadyCallback  callback,
+                                gpointer             data);
 void
 uzbl_commands_run_async (const UzblCommand   *info,
                          GArray              *argv,
