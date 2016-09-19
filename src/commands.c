@@ -932,11 +932,10 @@ IMPLEMENT_COMMAND (uri)
     uzbl.state.uri = g_strdup (uri);
 
     /* Evaluate javascript: URIs. */
-    if (g_str_has_prefix (uri, "javascript:")) {
-        GArray *argv = g_array_new (TRUE, FALSE, sizeof (gchar *));
-        g_array_append_val (argv, uri);
-        uzbl_commands_run_argv ("js", argv, NULL);
-        g_array_free (argv, FALSE);
+    static const char *js_protocol = "javascript:";
+    if (g_str_has_prefix (uri, js_protocol)) {
+        const gchar *js_code = uri + strlen (js_protocol);
+        uzbl_js_run_string_async (JSCTX_PAGE, js_code, NULL, NULL);
         return;
     }
 
