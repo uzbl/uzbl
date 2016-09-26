@@ -6,21 +6,16 @@ python:
     - "3.4"
     - "3.5"
     - "pypy"
+services:
+    - docker
 matrix:
   include:
     - python: "3.5"
       env: CORETESTS=1
-addons:
-  apt:
-    sources:
-      - debian-sid
-    packages:
-      - libglib2.0-dev
-      - libwebkitgtk-dev
 install:
     - pip install six nose mock coveralls
     - python -c 'import configparser' || pip install configparser
 script:
-    - if test -n "$CORETESTS"; then make tests; else nosetests tests/event-manager --with-coverage --cover-package=uzbl; fi
+    - if test -n "$CORETESTS"; then docker run -v $(pwd):/uzbl -w /uzbl dkeis/debian-webkit2 make tests; else nosetests tests/event-manager --with-coverage --cover-package=uzbl; fi
 after_success:
     coveralls
