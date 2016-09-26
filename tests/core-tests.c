@@ -44,6 +44,17 @@ test_parse_extra_whitespace ()
     g_assert_cmpstr (g_array_index (argv, gchar*, 2), ==, "baz");
 }
 
+static void
+test_parse_escaped_at ()
+{
+    GArray *argv = uzbl_commands_args_new ();
+    const UzblCommand *cmd = uzbl_commands_parse ("spawn \\@", argv);
+
+    g_assert_nonnull (cmd);
+    g_assert_cmpint (1, ==, argv->len);
+    g_assert_cmpstr (g_array_index (argv, gchar*, 0), ==, "@");
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -54,6 +65,7 @@ main (int argc, char *argv[])
     g_test_add_func ("/uzbl/commands/parse_simple", test_parse_simple);
     g_test_add_func ("/uzbl/commands/parse_quoted", test_parse_quoted);
     g_test_add_func ("/uzbl/commands/parse_extra_whitespace", test_parse_extra_whitespace);
+    g_test_add_func ("/uzbl/commands/parse_escaped_at", test_parse_escaped_at);
 
     return g_test_run ();
 }
