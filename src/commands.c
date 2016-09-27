@@ -618,6 +618,7 @@ split_quoted (const gchar *src)
         if ((*p == '\\') && p[1]) {
             /* Escaped character. */
             g_string_append_c (str, *++p);
+            ++p;
         } else if ((*p == '"') && !ctx_single_quote) {
             /* Double quoted argument. */
             ctx_double_quote = !ctx_double_quote;
