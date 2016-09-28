@@ -334,9 +334,9 @@ set history_disable_easter_egg 1
 #@cbind  <Ctrl><Mod1>t  = spawn_sh 'urxvt -e socat unix-connect:"$UZBL_SOCKET" -'
 
 # Uri opening prompts
-@cbind  o<uri:>_       = uri %s
+@cbind  o<uri:>_       = uri %r
 # Or have it load the current uri into the keycmd for editing
-@cbind  O<uri:\@uri>_  = uri %s
+@cbind  O<uri:\@uri>_  = uri %r
 
 # Mode setting binds
 @cbind  i        = @set_mode insert
