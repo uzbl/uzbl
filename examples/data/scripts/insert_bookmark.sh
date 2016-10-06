@@ -22,7 +22,7 @@ readonly eurl="$( print "$url" | sed -e 's!\\!\\\\!g
                                          s!#.*!!' )"
 
 # See if the url is in the file already
-readonly cur="$( sed -n -e "\<^$eurl<pq" "$UZBL_BOOKMARKS_FILE" )"
+readonly cur="$( sed -n -e "\<^$eurl<{p;q}" "$UZBL_BOOKMARKS_FILE" )"
 if [ -n "$cur" ]; then
     readonly cur_url="$( print "$cur" | cut -d "	" -f 1 )"
     readonly cur_tags="$( print "$cur" | cut -d "	" -f 3 )"
