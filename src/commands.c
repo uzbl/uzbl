@@ -641,7 +641,7 @@ builtin_command_table[] = {
     { "forward",                        cmd_forward,                  TRUE,  TRUE  },
     { "reload",                         cmd_reload,                   TRUE,  TRUE  },
     { "stop",                           cmd_stop,                     TRUE,  TRUE  },
-    { "uri",                            cmd_uri,                      FALSE, TRUE  },
+    { "uri",                            cmd_uri,                      TRUE, TRUE  },
     { "download",                       cmd_download,                 TRUE,  TRUE  },
 
     /* Page commands */
