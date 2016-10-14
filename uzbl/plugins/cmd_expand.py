@@ -1,5 +1,5 @@
 def escape(str):
-    for (level, char) in [(3, '\\'), (2, "'"), (2, '"'), (1, '@')]:
+    for (level, char) in [(1, '\\'), (1, "'"), (1, '"'), (1, '@')]:
         str = str.replace(char, (level * '\\') + char)
 
     return str
