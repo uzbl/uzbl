@@ -311,12 +311,12 @@ set history_disable_easter_egg 1
 @cbind  <Ctrl>p = hardcopy page
 
 # Web searching binds
-@cbind  gg<Google:>_         = uri http://www.google.com/search?q=\@<encodeURIComponent(%r)>\@
-@cbind  ddg<DuckDuckGo:>_    = uri http://duckduckgo.com/?q=\@<encodeURIComponent(%r)>\@
+@cbind  gg<Google:>_         = uri http://www.google.com/search?q=\@-JSON.stringify(encodeURIComponent(%r))-\@
+@cbind  ddg<DuckDuckGo:>_    = uri http://duckduckgo.com/?q=\@-JSON.stringify(encodeURIComponent(%r))-\@
 # These bindings should be entered as simply \wiki but due to escaping
 # happening in multiple stages it needs to be written like this
-@cbind  \\\\awiki<Archwiki:>_  = uri http://wiki.archlinux.org/index.php/Special:Search?search=\@<encodeURIComponent(%r)>\@&go=Go
-@cbind  \\\\wiki<Wikipedia:>_  = uri https://secure.wikimedia.org/wikipedia/en/w/index.php?fulltext=Search&title=Special%3ASearch&search=\@-encodeURIComponent(%r)-\@
+@cbind  \\\\awiki<Archwiki:>_  = uri http://wiki.archlinux.org/index.php/Special:Search?search=\@-JSON.stringify(encodeURIComponent(%r))-\@&go=Go
+@cbind  \\\\wiki<Wikipedia:>_  = uri https://secure.wikimedia.org/wikipedia/en/w/index.php?fulltext=Search&title=Special%3ASearch&search=\@-JSON.stringify(encodeURIComponent(%r))-\@
 
 # Handy binds
 # Set function shortcut
