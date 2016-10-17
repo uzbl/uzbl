@@ -33,6 +33,9 @@ XXXRETURNED_URIXXX*)
     "newwindow")
         uzbl_control 'event REQ_NEW_WINDOW '"$safe_uri"'\n'
         ;;
+    "newtab")
+        uzbl_control 'event NEW_TAB '"$safe_uri"'\n'
+        ;;
     "primary")
         print "$uri" | xclip
         ;;
