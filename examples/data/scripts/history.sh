@@ -7,4 +7,8 @@
 
 >> "$UZBL_HISTORY_FILE" || exit 1
 
-print "$( date +'%Y-%m-%d %H:%M:%S' ) $UZBL_URI $UZBL_TITLE\n" >> "$UZBL_HISTORY_FILE"
+stripauth () {
+    print "$@" | sed -e 's;\([a-z]*\)://.*@;\1://;'
+}
+
+print "$( date +'%Y-%m-%d %H:%M:%S' ) $(stripauth $UZBL_URI) $UZBL_TITLE\n" >> "$UZBL_HISTORY_FILE"
