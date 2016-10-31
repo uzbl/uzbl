@@ -107,7 +107,10 @@ class Protocol(asynchat.async_chat):
         else:
             val = str(self.buffer)
         del self.buffer[:]
-        self.target.parse_msg(val)
+        try:
+            self.target.parse_msg(val)
+        except ValueError as e:
+            logger.warning("invalid message %s", e)
 
     def handle_error(self):
         raise

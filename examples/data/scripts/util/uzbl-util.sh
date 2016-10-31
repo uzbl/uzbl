@@ -5,6 +5,10 @@ print () {
     printf "%b" "$@"
 }
 
+print_quoted () {
+    printf "'%q'" "$@"
+}
+
 error () {
     print "$@" >&2
 }

@@ -103,7 +103,8 @@ may also be an empty string.
 The command is an uzbl command which may use format string replacement:
 
 * `%s`: The string as given.
-* `%r`: The string, escaped and quoted for uzbl.
+* `%r`: The string, escaped and quoted for uzbl. The specifics of escaping has
+       changed to only be one level in all cases.
 * `%1`: The first prompt value or argument as parsed by uzbl (space-separated).
 * `%2`: The first prompt value or argument as parsed by uzbl (space-separated).
 * `%n`: The `n`th prompt value or argument as parsed by uzbl (space-separated).

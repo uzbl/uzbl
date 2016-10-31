@@ -20,4 +20,4 @@ else
 fi
 readonly goto
 
-[ -n "$goto" ] && uzbl_control "uri $goto\n"
+[ -n "$goto" ] && uzbl_control "uri $(print_quoted $goto | uzbl_escape)\n"
