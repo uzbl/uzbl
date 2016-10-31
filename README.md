@@ -187,7 +187,7 @@ as `KEY` and `many args` as `VALUE`.
 
 #### Cookie
 
-* `cookie <add|delete|clear>`
+* `cookie <add|delete|clear>` ([BROKEN](https://github.com/uzbl/uzbl/issues/230))
   - Manage cookies in `uzbl`. The subcommands work as follows:
     + `clear all`
       * Delete all cookies.
@@ -196,7 +196,7 @@ as `KEY` and `many args` as `VALUE`.
 
 #### Display
 
-* `scroll <horizontal|vertical> <VALUE>` (BROKEN)
+* `scroll <horizontal|vertical> <VALUE>` ([BROKEN](https://github.com/uzbl/uzbl/issues/323))
   - Scroll either the horizontal or vertical scrollbar for the page. The value
     may be one of:
     + `begin`
@@ -399,7 +399,7 @@ as `KEY` and `many args` as `VALUE`.
     + `clean`
       * Create a new context just for this command. This is the most secure
         option and should be preferred where possible.
-    + `page` (BROKEN)
+    + `page`
       * Run the code in the current page's context. Be careful putting code
         into this context since anything in here may be hijacked by a malicious
         webpage. The context is cleared on each page load.
