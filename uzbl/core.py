@@ -91,13 +91,18 @@ class Uzbl(object):
 
         # Check event string elements
         (name, event, args) = elems[1:]
-        assert name and event, 'event string missing elements'
+        if not name or not event:
+            raise ValueError("event string missing elements: %r" % (line,))
         if not self.name:
             self.name = name
             self.logger = logging.getLogger('uzbl-instance%s' % name)
             self.logger.info('found instance name %r', name)
 
-        assert self.name == name, 'instance name mismatch'
+        if self.name != name:
+            raise ValueError(
+                "instance name mismatch (expected %s, was %s)" %
+                (self.name, name)
+            )
 
         # Handle the event with the event handlers through the event method
         handler(event, args, **kargs)
