@@ -258,7 +258,9 @@ uzbl_init (int *argc, char ***argv)
     /* Load provided configuration file. */
     read_config_file (config_file);
 
-    if (uzbl.gui.main_window) {
+#ifdef GDK_WINDOWING_X11
+    GdkDisplay *display = gdk_display_get_default ();
+    if (GDK_IS_X11_DISPLAY (display) && uzbl.gui.main_window) {
         /* We need to ensure there is a window, before we can get XID. */
         gtk_widget_realize (uzbl.gui.main_window);
         Window xwin = GDK_WINDOW_XID (gtk_widget_get_window (uzbl.gui.main_window));
@@ -267,6 +269,7 @@ uzbl_init (int *argc, char ***argv)
         g_setenv ("UZBL_XID", xwin_str, TRUE);
         g_free (xwin_str);
     }
+#endif
 
     if (uzbl.state.plug_mode) {
         uzbl_events_send (PLUG_CREATED, NULL,
