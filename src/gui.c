@@ -121,6 +121,19 @@ uzbl_gui_free ()
     uzbl.gui_ = NULL;
 }
 
+static void
+update_title_expand_left_cb (GObject      *source,
+                             GAsyncResult *res,
+                             gpointer      data);
+static void
+update_title_expand_right_cb (GObject      *source,
+                              GAsyncResult *res,
+                              gpointer      data);
+static void
+update_title_expand_title_cb (GObject      *source,
+                              GAsyncResult *res,
+                              gpointer      data);
+
 void
 uzbl_gui_update_title ()
 {
@@ -131,19 +144,15 @@ uzbl_gui_update_title ()
         format = "title_format_short";
 
         gchar *status_format;
-        gchar *parsed;
-
         status_format = uzbl_variables_get_string ("status_format");
-        parsed = uzbl_variables_expand (status_format);
-        uzbl_status_bar_update_left (uzbl.gui.status_bar, parsed);
-        g_free (status_format);
-        g_free (parsed);
+        uzbl_variables_expand_async (status_format,
+                                    update_title_expand_left_cb,
+                                    status_format);
 
         status_format = uzbl_variables_get_string ("status_format_right");
-        parsed = uzbl_variables_expand (status_format);
-        uzbl_status_bar_update_right (uzbl.gui.status_bar, parsed);
-        g_free (status_format);
-        g_free (parsed);
+        uzbl_variables_expand_async (status_format,
+                                    update_title_expand_right_cb,
+                                    status_format);
     } else {
         format = "title_format_long";
     }
@@ -154,17 +163,58 @@ uzbl_gui_update_title ()
     /* If we're starting up or shutting down there might not be a window yet. */
     gboolean have_main_window = !uzbl.state.plug_mode && GTK_IS_WINDOW (uzbl.gui.main_window);
     if (title_format && have_main_window) {
-        gchar *parsed = uzbl_variables_expand (title_format);
-        const gchar *current_title = gtk_window_get_title (GTK_WINDOW (uzbl.gui.main_window));
-        /* XMonad hogs CPU if the window title updates too frequently, so we
-         * don't set it unless we need to. */
-        if (!current_title || strcmp (current_title, parsed))
-            gtk_window_set_title (GTK_WINDOW (uzbl.gui.main_window), parsed);
-        g_free (parsed);
+        uzbl_variables_expand_async (title_format,
+                                     update_title_expand_title_cb,
+                                     title_format);
     }
-
-    g_free (title_format);
 }
+
+void
+update_title_expand_left_cb (GObject      *source,
+                             GAsyncResult *res,
+                             gpointer      data)
+{
+    gchar *format = (gchar*)data;
+    GError *err = NULL;
+    gchar *exp_line = uzbl_variables_expand_finish (source, res, &err);
+
+    uzbl_status_bar_update_left (uzbl.gui.status_bar, exp_line);
+    g_free (exp_line);
+    g_free (format);
+}
+
+void
+update_title_expand_right_cb (GObject      *source,
+                              GAsyncResult *res,
+                              gpointer      data)
+{
+    gchar *format = (gchar*)data;
+    GError *err = NULL;
+    gchar *exp_line = uzbl_variables_expand_finish (source, res, &err);
+
+    uzbl_status_bar_update_right (uzbl.gui.status_bar, exp_line);
+    g_free (exp_line);
+    g_free (format);
+}
+
+void
+update_title_expand_title_cb (GObject      *source,
+                              GAsyncResult *res,
+                              gpointer      data)
+{
+    gchar *format = (gchar*)data;
+    GError *err = NULL;
+    gchar *exp_line = uzbl_variables_expand_finish (source, res, &err);
+
+    const gchar *current_title = gtk_window_get_title (GTK_WINDOW (uzbl.gui.main_window));
+    /* XMonad hogs CPU if the window title updates too frequently, so we
+     * don't set it unless we need to. */
+    if (!current_title || strcmp (current_title, exp_line))
+        gtk_window_set_title (GTK_WINDOW (uzbl.gui.main_window), exp_line);
+    g_free (exp_line);
+    g_free (format);
+}
+
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
 
