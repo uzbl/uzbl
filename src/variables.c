@@ -382,6 +382,15 @@ struct _ExpandContext {
 };
 typedef struct _ExpandContext ExpandContext;
 
+static void
+expand_context_free (ExpandContext *ctx)
+{
+    if (ctx->buf) {
+        g_string_free (ctx->buf, TRUE);
+    }
+    g_free (ctx);
+}
+
 static gchar *
 expand_impl (const gchar *str, UzblExpandStage stage);
 
@@ -411,7 +420,7 @@ uzbl_variables_expand_async (const gchar         *str,
     ctx->p = str;
     ctx->task = task;
     ctx->buf = g_string_new ("");
-    g_task_set_task_data (task, ctx, g_free);
+    g_task_set_task_data (task, ctx, (GDestroyNotify) expand_context_free);
     expand_process (ctx);
 }
 
@@ -422,8 +431,6 @@ uzbl_variables_expand_finish (GObject       *source,
 {
     UZBL_UNUSED (source);
     GTask *task = G_TASK (res);
-    ExpandContext *ctx = g_task_get_task_data (task);
-    g_string_free (ctx->buf, FALSE);
     return g_task_propagate_pointer (task, error);
 }
 
@@ -914,7 +921,9 @@ expand_impl_run_js:
     }
 
     if (ctx->task) {
-        g_task_return_pointer (ctx->task, ctx->buf->str, g_free);
+        char *r = g_string_free (ctx->buf, FALSE);
+        ctx->buf = NULL;
+        g_task_return_pointer (ctx->task, r, g_free);
         g_object_unref (ctx->task);
     }
 }
