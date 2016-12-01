@@ -2196,7 +2196,7 @@ IMPLEMENT_TASK (js)
         const gchar *req_path = value;
         gchar *path;
         if ((path = find_existing_file (req_path))) {
-            uzbl_js_run_file_async (jsctx, value, &jsargs, run_js_cb, task);
+            uzbl_js_run_file_async (jsctx, path, &jsargs, run_js_cb, task);
         } else {
             g_task_return_pointer (task, NULL, NULL);
             g_object_unref (task);
