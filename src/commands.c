@@ -72,6 +72,12 @@ script_handler_data_free (gpointer data);
 
 /* =========================== PUBLIC API =========================== */
 
+GQuark
+uzbl_command_error_quark ()
+{
+    return g_quark_from_static_string ("uzbl-command-error-quark");
+}
+
 static void
 init_js_commands_api ();
 
@@ -237,10 +243,23 @@ parse_expand_cb (GObject       *source,
                  gpointer       data)
 {
     GTask *task = G_TASK (data);
-    GError *err;
+    GError *err = NULL;
     gchar *exp_line = uzbl_variables_expand_finish (source, res, &err);
+    if (err) {
+        g_task_return_error (task, err);
+        return;
+    }
     GArray *argv = g_task_get_task_data (task);
     const UzblCommand *info = parse_command (exp_line, argv);
+    if (!info) {
+        g_task_return_new_error (task,
+                                 UZBL_COMMAND_ERROR,
+                                 UZBL_COMMAND_ERROR_INVALID_COMMAND,
+                                 "`%s` is not a valid command",
+                                 exp_line);
+        return;
+    }
+
     g_task_return_pointer (task, (UzblCommand*)info, NULL);
     g_object_unref (task);
     g_free (exp_line);
@@ -341,10 +360,8 @@ uzbl_commands_run_string_async (const gchar         *cmd,
 {
     GTask *task = g_task_new (NULL, NULL, callback, data);
     UzblCommandRun *run = g_new (UzblCommandRun, 1);
-    if (capture) {
-        run->result = g_string_new ("");
-    }
     run->argv = uzbl_commands_args_new ();
+    run->result = capture ? g_string_new ("") : NULL;
     g_task_set_task_data (task, (gpointer) run, g_free);
     uzbl_commands_parse_async (cmd, run->argv, run_string_parse_cb, task);
 }
@@ -354,10 +371,19 @@ run_string_parse_cb (GObject       *source,
                      GAsyncResult  *res,
                      gpointer       data)
 {
-    GError *err;
+    GError *err = NULL;
     GTask *task = G_TASK (data);
     UzblCommandRun *run = (UzblCommandRun*) g_task_get_task_data (task);
     run->info = uzbl_commands_parse_finish (source, res, &err);
+    if (err) {
+        g_task_return_error (task, err);
+        return;
+    }
+    if (!run->info) {
+        // Comment, empty line or other non-command
+        g_task_return_pointer (task, run->result, free_gstring);
+        return;
+    }
     run_command_impl (task, run);
 }
 
@@ -376,9 +402,7 @@ uzbl_commands_run_async (const UzblCommand   *info,
     UzblCommandRun *run = g_new (UzblCommandRun, 1);
     run->info = info;
     run->argv = argv;
-    if (capture) {
-        run->result = g_string_new ("");
-    }
+    run->result = capture ? g_string_new ("") : NULL;
 
     g_task_set_task_data (task, (gpointer) run, g_free);
     run_command_impl (task, run);
@@ -415,7 +439,7 @@ uzbl_commands_run_finish (GObject       *source,
     g_free (uzbl.state.last_result);
     uzbl.state.last_result = result ? g_strdup (result->str) : g_strdup ("");
 
-    if (run->info->send_event) {
+    if (run->info && run->info->send_event) {
         uzbl_events_send (COMMAND_EXECUTED, NULL,
             TYPE_NAME, run->info->name,
             TYPE_STR_ARRAY, run->argv,

@@ -4,6 +4,15 @@
 #include <glib.h>
 #include <gio/gio.h>
 
+#define UZBL_COMMAND_ERROR uzbl_command_error_quark ()
+
+typedef enum {
+    UZBL_COMMAND_ERROR_INVALID_COMMAND
+} UzblCommandError;
+
+GQuark
+uzbl_command_error_quark ();
+
 struct _UzblCommand;
 typedef struct _UzblCommand UzblCommand;
 

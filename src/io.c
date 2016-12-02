@@ -518,10 +518,14 @@ commands_run_cb (GObject *source, GAsyncResult *res, gpointer data)
 {
     GTask *task = G_TASK (data);
     GTask *cmdt = G_TASK (g_task_get_source_object (task));
-    GError *err;
+    GError *err = NULL;
     GString *result = uzbl_commands_run_finish (source, res, &err);
 
-    g_task_return_pointer (cmdt, result, free_gstring);
+    if (err) {
+        g_task_return_error (cmdt, err);
+    } else {
+        g_task_return_pointer (cmdt, result, free_gstring);
+    }
     g_task_return_pointer (task, NULL, NULL);
     g_object_unref (task);
     g_object_unref (cmdt);
@@ -965,8 +969,13 @@ write_result_to_stream (GObject      *source,
     GError *err = NULL;
     GString *result = uzbl_io_command_finish (source, res, &err);
 
-    g_string_append_c (result, '\n');
-    write_to_stream (stream, result->str);
+    if (err) {
+        uzbl_debug ("command failed: %s", err->message);
+        g_error_free (err);
+    } else {
+        g_string_append_c (result, '\n');
+        write_to_stream (stream, result->str);
+    }
 
     g_object_unref (G_OBJECT (stream));
 }
