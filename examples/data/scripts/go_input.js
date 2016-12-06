@@ -26,7 +26,7 @@ var isVisible = function (el) {
 };
 
 if (elems) {
-    elems = elems.filter(isVisible);
+    elems = Array.prototype.filter.call(elems, isVisible);
 
     if (elems.length) {
         var el = elems[0];
