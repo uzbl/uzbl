@@ -521,8 +521,11 @@ static void
 parse_command_from_file_cb (const gchar *line, gpointer data);
 
 void
-uzbl_commands_load_file (const gchar *path)
+uzbl_commands_load_file_async (const gchar          *path,
+                               GAsyncReadyCallback  callback,
+                               gpointer             data)
 {
+    GTask *task = g_task_new (NULL, NULL, callback, data);
     if (!for_each_line_in_file (path, parse_command_from_file_cb, NULL)) {
         gchar *tmp = g_strdup_printf ("File %s can not be read.", path);
         uzbl_events_send (COMMAND_ERROR, NULL,
@@ -531,6 +534,18 @@ uzbl_commands_load_file (const gchar *path)
 
         g_free (tmp);
     }
+    g_task_return_pointer (task, NULL, NULL);
+    g_object_unref (task);
+}
+
+void
+uzbl_commands_load_file_finish (GObject       *source,
+                                GAsyncResult  *res,
+                                GError       **error)
+{
+    UZBL_UNUSED (source);
+    GTask *task = G_TASK (res);
+    g_task_propagate_pointer (task, error);
 }
 
 /* ===================== HELPER IMPLEMENTATIONS ===================== */
@@ -2516,6 +2531,10 @@ chain_command_cb (GObject      *source,
     chain_next (task, cd);
 }
 
+static void
+include_load_file_cb (GObject      *source,
+                      GAsyncResult *res,
+                      gpointer      data);
 
 IMPLEMENT_TASK (include)
 {
@@ -2525,12 +2544,31 @@ IMPLEMENT_TASK (include)
     gchar *path = NULL;
 
     if ((path = find_existing_file (req_path))) {
-        uzbl_commands_load_file (path);
-        uzbl_events_send (FILE_INCLUDED, NULL,
-            TYPE_STR, path,
-            NULL);
-        g_free (path);
+        g_task_set_task_data (task, path, g_free);
+        uzbl_commands_load_file_async (path, include_load_file_cb, task);
+    } else {
+        g_task_return_pointer (task, NULL, NULL);
+        g_object_unref (task);
     }
+}
+
+void
+include_load_file_cb (GObject      *source,
+                      GAsyncResult *res,
+                      gpointer      data)
+{
+    GTask *task = G_TASK (data);
+    GError *err = NULL;
+    uzbl_commands_load_file_finish (source, res, &err);
+    if (err) {
+        g_task_return_error (task, err);
+        g_object_unref (task);
+        return;
+    }
+    gchar *path = g_task_get_task_data (task);
+    uzbl_events_send (FILE_INCLUDED, NULL,
+                      TYPE_STR, path,
+                      NULL);
     g_task_return_pointer (task, NULL, NULL);
     g_object_unref (task);
 }

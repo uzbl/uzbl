@@ -467,6 +467,11 @@ ensure_xdg_vars ()
 static gchar *
 find_xdg_file (XdgDir dir, const char* basename);
 
+static void
+load_file_cb (GObject      *source,
+              GAsyncResult *res,
+              gpointer      data);
+
 void
 read_config_file_async (const gchar         *file,
                         GAsyncReadyCallback  callback,
@@ -485,13 +490,29 @@ read_config_file_async (const gchar         *file,
 
     /* Load config file, if any. */
     if (file) {
-        uzbl_commands_load_file (file);
+        g_task_set_task_data (task, file_free, g_free);
+        uzbl_commands_load_file_async (file, load_file_cb, task);
         g_setenv ("UZBL_CONFIG", file, TRUE);
     } else {
         uzbl_debug ("No configuration file loaded.\n");
+        g_task_return_pointer (task, NULL, NULL);
+        g_object_unref (task);
     }
+}
 
-    g_free (file_free);
+void
+load_file_cb (GObject      *source,
+              GAsyncResult *res,
+              gpointer      data)
+{
+    GTask *task = G_TASK (data);
+    GError *err = NULL;
+    uzbl_commands_load_file_finish (source, res, &err);
+    if (err) {
+        g_task_return_error (task, err);
+        g_object_unref (task);
+        return;
+    }
     g_task_return_pointer (task, NULL, NULL);
     g_object_unref (task);
 }
