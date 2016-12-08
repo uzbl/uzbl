@@ -68,21 +68,52 @@ static gchar *
 get_xdg_var (gboolean user, XdgDir type);
 
 static void
-read_config_file (const gchar *file);
+read_config_file_async (const gchar         *file,
+                        GAsyncReadyCallback  callback,
+                        gpointer             data);
+
+static void
+read_config_file_finish (GObject       *source,
+                         GAsyncResult  *res,
+                         GError       **error);
+
+#define UZBL_INIT_CONTEXT(o) ((UzblInitContext*)o)
+
+struct _UzblInitContext {
+    gchar *uri;
+    gchar *geometry;
+};
+typedef struct _UzblInitContext UzblInitContext;
+
+UzblInitContext*
+uzbl_init_context_new ()
+{
+    return g_new0 (UzblInitContext, 1);
+}
+
+void
+uzbl_init_context_free (UzblInitContext *ctx)
+{
+    g_free (ctx);
+}
+
+static void
+init_read_config_cb (GObject      *source,
+                     GAsyncResult *res,
+                     gpointer      data);
 
 /* Set up gtk, gobject, variable defaults and other things that tests and other
  * external applications need to do anyhow. */
 void
 uzbl_init (int *argc, char ***argv)
 {
+    UzblInitContext *ctx = uzbl_init_context_new ();
     gchar *cache_dir = NULL;
     gchar *data_dir = NULL;
-    gchar *uri = NULL;
     gboolean verbose = FALSE;
     gchar *config_file = NULL;
     gchar **connect_socket_names = NULL;
     gboolean print_events = FALSE;
-    gchar *geometry = NULL;
     gboolean print_version = FALSE;
     gboolean bug_info = FALSE;
 
@@ -102,7 +133,7 @@ uzbl_init (int *argc, char ***argv)
             "Connect to server socket for event managing",                                                   "CSOCKET" },
         { "print-events",      'p', 0, G_OPTION_ARG_NONE,         &print_events,
             "Whether to print events to stdout.",                                                            NULL },
-        { "geometry",          'g', 0, G_OPTION_ARG_STRING,       &geometry,
+        { "geometry",          'g', 0, G_OPTION_ARG_STRING,       &ctx->geometry,
             "Set window geometry (format: 'WIDTHxHEIGHT+-X+-Y' or 'maximized')",                             "GEOMETRY" },
         { "version",           'V', 0, G_OPTION_ARG_NONE,         &print_version,
             "Print the version and exit",                                                                    NULL },
@@ -125,7 +156,7 @@ uzbl_init (int *argc, char ***argv)
     g_option_context_free (context);
 
     if (*argc >= 2) {
-        uri = (*argv)[1];
+        ctx->uri = (*argv)[1];
     }
 
     if (*argc >= 3) {
@@ -256,7 +287,21 @@ uzbl_init (int *argc, char ***argv)
     }
 
     /* Load provided configuration file. */
-    read_config_file (config_file);
+    read_config_file_async (config_file, init_read_config_cb, ctx);
+}
+
+void
+init_read_config_cb (GObject      *source,
+                     GAsyncResult *res,
+                     gpointer      data)
+{
+    GError *err = NULL;
+    UzblInitContext *ctx = UZBL_INIT_CONTEXT (data);
+    read_config_file_finish (source, res, &err);
+    if (err) {
+        uzbl_debug ("Error reading config file: %s", err->message);
+        g_error_free (err);
+    }
 
 #ifdef GDK_WINDOWING_X11
     GdkDisplay *display = gdk_display_get_default ();
@@ -278,17 +323,17 @@ uzbl_init (int *argc, char ***argv)
 #endif
 
     /* Navigate to a URI if requested. */
-    if (uri) {
+    if (ctx->uri) {
         GArray *argv = uzbl_commands_args_new ();
-        uzbl_commands_args_append (argv, g_strdup (uri));
+        uzbl_commands_args_append (argv, g_strdup (ctx->uri));
         uzbl_commands_run_argv ("uri", argv, NULL);
         uzbl_commands_args_free (argv);
     }
 
     /* Set the geometry if requested. */
-    if (uzbl.gui.main_window && geometry) {
+    if (uzbl.gui.main_window && ctx->geometry) {
         GArray *args = uzbl_commands_args_new ();
-        uzbl_commands_args_append (args, g_strdup (geometry));
+        uzbl_commands_args_append (args, g_strdup (ctx->geometry));
         uzbl_commands_run_argv ("geometry", args, NULL);
         uzbl_commands_args_free (args);
     }
@@ -423,8 +468,11 @@ static gchar *
 find_xdg_file (XdgDir dir, const char* basename);
 
 void
-read_config_file (const gchar *file)
+read_config_file_async (const gchar         *file,
+                        GAsyncReadyCallback  callback,
+                        gpointer             data)
 {
+    GTask *task = g_task_new (NULL, NULL, callback, data);
     gchar *file_free = NULL;
 
     if (!g_strcmp0 (file, "-")) {
@@ -444,6 +492,18 @@ read_config_file (const gchar *file)
     }
 
     g_free (file_free);
+    g_task_return_pointer (task, NULL, NULL);
+    g_object_unref (task);
+}
+
+static void
+read_config_file_finish (GObject       *source,
+                         GAsyncResult  *res,
+                         GError       **error)
+{
+    UZBL_UNUSED (source);
+    GTask *task = G_TASK (res);
+    g_task_propagate_pointer (task, error);
 }
 
 #ifndef UZBL_LIBRARY
