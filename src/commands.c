@@ -62,7 +62,16 @@ struct _UzblCommandRun {
     const UzblCommand *info;
     GArray            *argv;
     GString           *result;
+    gboolean           own_argv;
 };
+
+static UzblCommandRun*
+uzbl_command_run_new (const UzblCommand *info,
+                      GArray            *argv,
+                      gboolean           capture);
+
+static void
+uzbl_command_run_free (UzblCommandRun *run);
 
 #if WEBKIT_CHECK_VERSION (2, 5, 1)
 typedef struct _UzblScriptHandlerData UzblScriptHandlerData;
@@ -359,10 +368,11 @@ uzbl_commands_run_string_async (const gchar         *cmd,
                                 gpointer             data)
 {
     GTask *task = g_task_new (NULL, NULL, callback, data);
-    UzblCommandRun *run = g_new (UzblCommandRun, 1);
-    run->argv = uzbl_commands_args_new ();
-    run->result = capture ? g_string_new ("") : NULL;
-    g_task_set_task_data (task, (gpointer) run, g_free);
+    UzblCommandRun *run = uzbl_command_run_new (NULL,
+                                                NULL,
+                                                capture);
+    g_task_set_task_data (task, (gpointer) run,
+                          (GDestroyNotify) uzbl_command_run_free);
     uzbl_commands_parse_async (cmd, run->argv, run_string_parse_cb, task);
 }
 
@@ -399,12 +409,11 @@ uzbl_commands_run_async (const UzblCommand   *info,
     }
 
     GTask *task = g_task_new (NULL, NULL, callback, data);
-    UzblCommandRun *run = g_new (UzblCommandRun, 1);
-    run->info = info;
-    run->argv = argv;
-    run->result = capture ? g_string_new ("") : NULL;
-
-    g_task_set_task_data (task, (gpointer) run, g_free);
+    UzblCommandRun *run = uzbl_command_run_new (info,
+                                                argv,
+                                                capture);
+    g_task_set_task_data (task, (gpointer) run,
+                          (GDestroyNotify) uzbl_command_run_free);
     run_command_impl (task, run);
 }
 
@@ -808,6 +817,33 @@ parse_command_from_file (const char *cmd)
 
     uzbl_commands_run (work_string, NULL);
     g_free (work_string);
+}
+
+UzblCommandRun*
+uzbl_command_run_new (const UzblCommand *info,
+                      GArray            *argv,
+                      gboolean           capture)
+{
+    UzblCommandRun *run = g_new (UzblCommandRun, 1);
+    run->info = info;
+    if (argv) {
+        run->argv = argv;
+        run->own_argv = FALSE;
+    } else {
+        run->argv = uzbl_commands_args_new ();
+        run->own_argv = TRUE;
+    }
+    run->result = capture ? g_string_new ("") : NULL;
+    return run;
+}
+
+void
+uzbl_command_run_free (UzblCommandRun *run)
+{
+    if (run->own_argv) {
+        uzbl_commands_args_free (run->argv);
+    }
+    g_free (run);
 }
 
 /* ========================= COMMAND TABLE ========================== */
