@@ -256,6 +256,7 @@ parse_expand_cb (GObject       *source,
     gchar *exp_line = uzbl_variables_expand_finish (source, res, &err);
     if (err) {
         g_task_return_error (task, err);
+        g_object_unref (task);
         return;
     }
     GArray *argv = g_task_get_task_data (task);
@@ -513,26 +514,99 @@ uzbl_commands_run (const gchar *cmd, GString *result)
     uzbl_commands_args_free (argv);
 }
 
-typedef void (*UzblLineCallback) (const gchar *line, gpointer data);
-
-static gboolean
-for_each_line_in_file (const gchar *path, UzblLineCallback callback, gpointer data);
 static void
-parse_command_from_file_cb (const gchar *line, gpointer data);
+load_file_process_async (const char          *cmd,
+                         gpointer             data,
+                         GAsyncReadyCallback  callback,
+                         gpointer             callback_data);
+
+static void
+load_file_process_lines_cb (GObject      *source,
+                            GAsyncResult *res,
+                            gpointer      data);
+
+static void
+load_file_run_command_cb (GObject      *source,
+                          GAsyncResult *res,
+                          gpointer      data);
 
 void
 uzbl_commands_load_file_async (const gchar          *path,
                                GAsyncReadyCallback  callback,
                                gpointer             data)
 {
+    GError *err = NULL;
     GTask *task = g_task_new (NULL, NULL, callback, data);
-    if (!for_each_line_in_file (path, parse_command_from_file_cb, NULL)) {
-        gchar *tmp = g_strdup_printf ("File %s can not be read.", path);
-        uzbl_events_send (COMMAND_ERROR, NULL,
-            TYPE_STR, tmp,
-            NULL);
+    GFile *file = g_file_new_for_path (path);
+    GFileInputStream *input = g_file_read (file, NULL, &err);
+    g_object_unref (file);
+    if (err) {
+        g_task_return_error (task, err);
+        g_object_unref (task);
+        return;
+    }
+    uzbl_io_process_lines_async (
+        G_INPUT_STREAM (input),
+        load_file_process_async,
+        load_file_process_lines_cb,
+        task
+    );
+}
 
-        g_free (tmp);
+void
+load_file_process_async(const char          *cmd,
+                        gpointer             data,
+                        GAsyncReadyCallback  callback,
+                        gpointer             callback_data)
+{
+    UZBL_UNUSED (data);
+    GTask *task = g_task_new (NULL, NULL, callback, callback_data);
+
+    if (!cmd || !*cmd) {
+        g_task_return_pointer (task, NULL, NULL);
+        g_object_unref (task);
+        return;
+    }
+
+    /* Strip trailing newline, and any other whitespace in front. */
+    gchar *work_string = g_strdup (cmd);
+    g_strstrip (work_string);
+
+    g_task_set_task_data (task, work_string, g_free);
+    uzbl_commands_run_string_async (work_string, FALSE,
+                                    load_file_run_command_cb,
+                                    (gpointer) task);
+}
+
+void
+load_file_run_command_cb (GObject      *source,
+                          GAsyncResult *res,
+                          gpointer      data)
+{
+    GTask *task = G_TASK (data);
+    GError *err = NULL;
+    uzbl_commands_run_finish (source, res, &err);
+    if (err) {
+        g_task_return_error (task, err);
+        g_object_unref (task);
+        return;
+    }
+    g_task_return_pointer (task, NULL, NULL);
+    g_object_unref (task);
+}
+
+static void
+load_file_process_lines_cb (GObject      *source,
+                            GAsyncResult *res,
+                            gpointer      data)
+{
+    GTask *task = G_TASK (data);
+    GError *err = NULL;
+    uzbl_io_process_lines_finish (source, res, &err);
+    if (err) {
+        g_task_return_error (task, err);
+        g_object_unref (task);
+        return;
     }
     g_task_return_pointer (task, NULL, NULL);
     g_object_unref (task);
@@ -628,6 +702,9 @@ split_quoted (const gchar *src);
 static gchar *
 unescape (gchar *src);
 
+static void
+parse_command_from_file (const char *cmd);
+
 void
 parse_command_arguments (const gchar *args, GArray *argv, gboolean split)
 {
@@ -651,39 +728,6 @@ parse_command_arguments (const gchar *args, GArray *argv, gboolean split)
     }
 
     uzbl_commands_args_free (par);
-}
-
-gboolean
-for_each_line_in_file (const gchar *path, UzblLineCallback callback, gpointer data)
-{
-    gchar *line = NULL;
-    gsize len;
-
-    GIOChannel *chan = g_io_channel_new_file (path, "r", NULL);
-
-    if (!chan) {
-        return FALSE;
-    }
-
-    while (g_io_channel_read_line (chan, &line, &len, NULL, NULL) == G_IO_STATUS_NORMAL) {
-        callback (line, data);
-        g_free (line);
-    }
-
-    g_io_channel_unref (chan);
-
-    return TRUE;
-}
-
-static void
-parse_command_from_file (const char *cmd);
-
-void
-parse_command_from_file_cb (const gchar *line, gpointer data)
-{
-    UZBL_UNUSED (data);
-
-    parse_command_from_file (line);
 }
 
 JSValueRef
