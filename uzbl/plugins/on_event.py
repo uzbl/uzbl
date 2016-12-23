@@ -61,6 +61,7 @@ class OnEventPlugin(PerInstancePlugin):
         commands = self.events[event]
         for cmd, pattern in commands:
             if not pattern or match_args(pattern, args):
+                cmd = ' '.join((cmd[0],) + tuple(repr(c) for c in cmd[1:]))
                 cmd = cmd_expand(cmd, args)
                 self.uzbl.send(cmd)
 
@@ -74,6 +75,9 @@ class OnEventPlugin(PerInstancePlugin):
                               partial(self.event_handler, on_event=event))
             self.events[event] = []
 
+        if isinstance(cmd, str):
+            cmd = (cmd,)
+
         cmds = self.events[event]
         if cmd not in cmds:
             cmds.append((cmd, pattern))
@@ -81,7 +85,7 @@ class OnEventPlugin(PerInstancePlugin):
     def parse_on_event(self, args):
         '''Parse ON_EVENT events and pass them to the on_event function.
 
-        Syntax: "event ON_EVENT <EVENT_NAME> commands".'''
+        Syntax: "event ON_EVENT <EVENT_NAME> <[ pattern ]> commands".'''
 
         args = splitquoted(args)
         assert args, 'missing on event arguments'
@@ -94,9 +98,9 @@ class OnEventPlugin(PerInstancePlugin):
                 if arg == ']':
                     break
                 pattern.append(arg)
-            command = args.raw(3+i)
+            command = tuple(args[3+i:])
         else:
-            command = args.raw(1)
+            command = tuple(args[1:])
 
         assert event and command, 'missing on event command'
         self.on_event(event, pattern, command)
