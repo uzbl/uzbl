@@ -3,8 +3,6 @@
 
 import unittest
 from emtest import EventManagerMock
-from uzbl.plugins.config import Config
-from uzbl.plugins.mode import ModePlugin
 from uzbl.plugins.on_event import OnEventPlugin
 
 

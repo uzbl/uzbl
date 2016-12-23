@@ -17,13 +17,13 @@ Usage:
     <-- print Config changed: selected_uri http://uzbl.org/
 '''
 
-import re
 import fnmatch
 from functools import partial
 
 from uzbl.arguments import splitquoted
 from .cmd_expand import cmd_expand
 from uzbl.ext import PerInstancePlugin
+
 
 def match_args(pattern, args):
     if len(pattern) > len(args):
@@ -49,7 +49,8 @@ class OnEventPlugin(PerInstancePlugin):
         '''This function handles all the events being watched by various
         on_event definitions and responds accordingly.'''
 
-        # Could be connected to a EM internal event that can use anything as args
+        # Could be connected to a EM internal event that can use anything as
+        # arguments
         if len(args) == 1 and isinstance(args[0], str):
             args = splitquoted(args[0])
 
@@ -70,7 +71,7 @@ class OnEventPlugin(PerInstancePlugin):
         self.logger.debug('new event handler %r %r %r', event, pattern, cmd)
         if event not in self.events:
             self.uzbl.connect(event,
-                partial(self.event_handler, on_event=event))
+                              partial(self.event_handler, on_event=event))
             self.events[event] = []
 
         cmds = self.events[event]
@@ -85,7 +86,7 @@ class OnEventPlugin(PerInstancePlugin):
         args = splitquoted(args)
         assert args, 'missing on event arguments'
 
-        # split arguments into event name, optional argument pattern and command
+        # split into event name, optional argument pattern and command
         event = args[0]
         pattern = []
         if args[1] == '[':
