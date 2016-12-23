@@ -61,9 +61,19 @@ class OnEventPlugin(PerInstancePlugin):
         commands = self.events[event]
         for cmd, pattern in commands:
             if not pattern or match_args(pattern, args):
-                cmd = ' '.join((cmd[0],) + tuple(repr(c) for c in cmd[1:]))
-                cmd = cmd_expand(cmd, args)
-                self.uzbl.send(cmd)
+                if cmd[0] == 'event':
+                    has_var = any('@' in x for x in cmd)
+                    event = cmd[1]
+                    args = cmd_expand(' '.join(repr(c) for c in cmd[2:]), args)
+                    if not has_var:
+                        # Bypass the roundtrip to uzbl and dispatch immediately
+                        self.uzbl.event(event, args)
+                    else:
+                        self.uzbl.send(' '.join(('event', event) + args))
+                else:
+                    cmd = ' '.join((cmd[0],) + tuple(repr(c) for c in cmd[1:]))
+                    cmd = cmd_expand(cmd, args)
+                    self.uzbl.send(cmd)
 
     def on_event(self, event, pattern, cmd):
         '''Add a new event to watch and respond to.'''
