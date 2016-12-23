@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 
 
-import sys
-if '' not in sys.path:
-    sys.path.insert(0, '')
-
-import mock
 import unittest
 from emtest import EventManagerMock
 from uzbl.plugins.bind import Bind, BindPlugin
