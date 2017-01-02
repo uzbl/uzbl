@@ -189,11 +189,11 @@ class Bind(object):
         elif kargs:
             raise ArgumentError('cannot supply kargs for uzbl commands')
 
-        elif not isinstance(handler, str):
-            self.commands = handler
+        elif isinstance(handler, str):
+            raise ArgumentError("handler must not be str")
 
         else:
-            self.commands = [handler] + list(args)
+            self.commands = [tuple(handler) + tuple(args)]
 
         self.glob = glob
 
@@ -308,8 +308,19 @@ class BindPlugin(PerInstancePlugin):
             raise ArgumentError('cannot supply kargs for uzbl commands')
 
         for cmd in bind.commands:
-            cmd = cmd_expand(cmd, args)
-            self.uzbl.send(cmd)
+            if cmd[0] == 'event':
+                has_var = any('@' in x for x in cmd)
+                event = cmd[1]
+                args = cmd_expand(' '.join(repr(c) for c in cmd[2:]), args)
+                if not has_var:
+                    # Bypass the roundtrip to uzbl and dispatch immediately
+                    self.uzbl.event(event, args)
+                else:
+                    self.uzbl.send(' '.join(('event', event, args)))
+            else:
+                cmd = ' '.join((cmd[0],) + tuple(repr(c) for c in cmd[1:]))
+                cmd = cmd_expand(cmd, args)
+                self.uzbl.send(cmd)
 
     def mode_bind(self, modes, glob, handler=None, *args, **kargs):
         '''Add a mode bind.'''
@@ -319,10 +330,13 @@ class BindPlugin(PerInstancePlugin):
         if isinstance(modes, str):
             modes = modes.split(',')
 
+        if isinstance(handler, str):
+            raise TypeError("Handler should be callable or list")
+
         # Sort and filter binds.
         modes = [_f for _f in map(str.strip, modes) if _f]
 
-        if isinstance(handler, Callable) or (handler and handler.strip()):
+        if isinstance(handler, Callable) or len(handler):
             bind = Bind(glob, handler, *args, **kargs)
 
         else:
@@ -365,7 +379,7 @@ class BindPlugin(PerInstancePlugin):
         for i, g in enumerate(args[1:]):
             if g == '=':
                 glob = ' '.join(args[1:i+1])
-                command = args.raw(i+2)
+                command = args[i+2:]
                 break
         else:
             raise ArgumentError(
