@@ -36,3 +36,19 @@ def cmd_expand(cmd, args):
             cmd = cmd.replace('%%%d' % index, str(arg))
 
     return cmd
+
+
+def send_user_command(uzbl, cmd, args):
+    if cmd[0] == 'event':
+        has_var = any('@' in x for x in cmd)
+        event = cmd[1]
+        args = cmd_expand(' '.join(repr(c) for c in cmd[2:]), args)
+        if not has_var:
+            # Bypass the roundtrip to uzbl and dispatch immediately
+            uzbl.event(event, args)
+        else:
+            uzbl.send(' '.join(('event', event, args)))
+    else:
+        cmd = ' '.join((cmd[0],) + tuple(repr(c) for c in cmd[1:]))
+        cmd = cmd_expand(cmd, args)
+        uzbl.send(cmd)

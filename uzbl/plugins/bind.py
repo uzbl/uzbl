@@ -16,7 +16,7 @@ from itertools import count
 
 from uzbl.arguments import unquote, splitquoted
 from uzbl.ext import PerInstancePlugin
-from .cmd_expand import cmd_expand
+from .cmd_expand import send_user_command
 from .config import Config
 from .keycmd import KeyCmd
 from collections import Callable
@@ -308,19 +308,7 @@ class BindPlugin(PerInstancePlugin):
             raise ArgumentError('cannot supply kargs for uzbl commands')
 
         for cmd in bind.commands:
-            if cmd[0] == 'event':
-                has_var = any('@' in x for x in cmd)
-                event = cmd[1]
-                args = cmd_expand(' '.join(repr(c) for c in cmd[2:]), args)
-                if not has_var:
-                    # Bypass the roundtrip to uzbl and dispatch immediately
-                    self.uzbl.event(event, args)
-                else:
-                    self.uzbl.send(' '.join(('event', event, args)))
-            else:
-                cmd = ' '.join((cmd[0],) + tuple(repr(c) for c in cmd[1:]))
-                cmd = cmd_expand(cmd, args)
-                self.uzbl.send(cmd)
+            send_user_command(self.uzbl, cmd, args)
 
     def mode_bind(self, modes, glob, handler=None, *args, **kargs):
         '''Add a mode bind.'''
