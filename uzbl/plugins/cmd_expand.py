@@ -1,3 +1,8 @@
+import re
+
+SIMPLE = re.compile('^[a-zA-Z]+$')
+
+
 def escape(str):
     for (level, char) in [(1, '\\'), (1, "'"), (1, '"'), (1, '@')]:
         str = str.replace(char, (level * '\\') + char)
@@ -38,17 +43,23 @@ def cmd_expand(cmd, args):
     return cmd
 
 
+def format_arg(a):
+    if SIMPLE.match(a):
+        return a
+    return repr(a)
+
+
 def send_user_command(uzbl, cmd, args):
     if cmd[0] == 'event':
         has_var = any('@' in x for x in cmd)
         event = cmd[1]
-        args = cmd_expand(' '.join(repr(c) for c in cmd[2:]), args)
+        args = cmd_expand(' '.join(format_arg(c) for c in cmd[2:]), args)
         if not has_var:
             # Bypass the roundtrip to uzbl and dispatch immediately
             uzbl.event(event, args)
         else:
             uzbl.send(' '.join(('event', event, args)))
     else:
-        cmd = ' '.join((cmd[0],) + tuple(repr(c) for c in cmd[1:]))
+        cmd = ' '.join((cmd[0],) + tuple(format_arg(c) for c in cmd[1:]))
         cmd = cmd_expand(cmd, args)
         uzbl.send(cmd)

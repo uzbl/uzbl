@@ -15,15 +15,23 @@ class OnEventTest(unittest.TestCase):
 
     def test_command(self):
         oe = OnEventPlugin[self.uzbl]
-        event, command = 'FOO', "test 'test'"
+        event, command = 'FOO', 'test test'
 
         oe.parse_on_event('FOO test test')
         oe.event_handler('', on_event=event)
         self.uzbl.send.assert_called_once_with(command)
 
+    def test_command_with_quotes(self):
+        oe = OnEventPlugin[self.uzbl]
+        event, command = 'FOO', "test 'string with spaces'"
+
+        oe.parse_on_event('FOO test "string with spaces"')
+        oe.event_handler('', on_event=event)
+        self.uzbl.send.assert_called_once_with(command)
+
     def test_matching_pattern(self):
         oe = OnEventPlugin[self.uzbl]
-        event, command = 'FOO', "test 'test'"
+        event, command = 'FOO', "test test"
 
         oe.parse_on_event('FOO [ BAR ] test test')
         oe.event_handler('BAR else', on_event=event)

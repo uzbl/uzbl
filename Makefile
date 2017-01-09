@@ -163,7 +163,7 @@ test-uzbl-core-sandbox: sandbox uzbl-core sandbox-install-uzbl-core sandbox-inst
 	rm -rf ./sandbox/usr
 
 test-uzbl-browser-sandbox: sandbox uzbl-browser sandbox-install-uzbl-browser sandbox-install-example-data
-	./sandbox/env.sh ${PYTHON} -m uzbl.event_manager restart -navv &
+	./sandbox/env.sh ${PYTHON} -m uzbl.event_manager restart -navvv &
 	sleep 1
 	./sandbox/env.sh uzbl-browser http://www.uzbl.org --verbose
 	./sandbox/env.sh ${PYTHON} -m uzbl.event_manager stop -vv -o /dev/null
