@@ -1,6 +1,8 @@
 import re
 
 SIMPLE = re.compile('^[a-zA-Z]+$')
+UZBL_EXPAND = re.compile('^(@[({<*/-].*[)}>*/-]@)')
+ARG_EXPAND = re.compile('^%[sr0-9]')
 
 
 def escape(str):
@@ -44,7 +46,7 @@ def cmd_expand(cmd, args):
 
 
 def format_arg(a):
-    if SIMPLE.match(a):
+    if SIMPLE.match(a) or UZBL_EXPAND.match(a) or ARG_EXPAND.match(a):
         return a
     return repr(a)
 

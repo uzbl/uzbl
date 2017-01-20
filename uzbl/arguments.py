@@ -6,6 +6,75 @@ provides argument parsing for event handlers
 
 import re
 
+sglquote = re.compile("^'")
+dblquote = re.compile('^"')
+exp = re.compile('^(@[({<*/-]|[)}>*/-]@)')
+space = re.compile('^\\s+')
+escape = re.compile('^\\\\.')
+str = re.compile('^[^\'"\\s@<>\\\\]+')
+special = re.compile('^[@<>]')
+
+patterns = (sglquote, dblquote, exp, space, escape, str, special)
+
+
+def match(s):
+    for p in patterns:
+        m = p.search(s)
+        if m:
+            return p, m
+
+
+def lex(s):
+    i, l = 0, len(s)
+    while i < l:
+        p, m = match(s[i:])
+        i += m.end()
+        yield p, m.group(0)
+
+
+def parse(l):
+    raw = []
+    ref = []
+    args = []
+    s = ''
+    close = None
+    start = None
+    for i, (p, t) in enumerate(l):
+        raw.append(t)
+        if close:
+            if p is close:
+                if p is exp:
+                    s += t
+                close = None
+            elif p is escape:
+                s += t[1:]
+            else:
+                s += t
+        else:
+            if p is space:
+                if start is not None:
+                    ref.append(start)
+                    args.append(s)
+                s = ''
+                start = None
+                continue
+            elif start is None:
+                start = i
+
+            if p in (sglquote, dblquote):
+                close = p
+            elif p is exp:
+                close = p
+                s += t
+            elif p is escape:
+                s += t[1:]
+            else:
+                s += t
+    if s:
+        ref.append(start)
+        args.append(s)
+    return args, raw, ref
+
 
 class Arguments(tuple):
     '''
@@ -15,8 +84,6 @@ class Arguments(tuple):
     >>> Arguments(r"simple 'quoted string'")
     ('simple', 'quoted string')
     '''
-
-    _splitquoted = re.compile("(\s+|\"(?:\\\\.|[^\"])*?\"|'(?:\\\\.|[^'])*?')")
 
     def __new__(cls, s):
         '''
@@ -32,37 +99,11 @@ class Arguments(tuple):
             self = tuple.__new__(cls, s)
             self._raw, self._ref = s, list(range(len(s)))
             return self
-        raw = cls._splitquoted.split(s)
-        ref = []
-        self = tuple.__new__(cls, cls.parse(raw, ref))
+
+        args, raw, ref = parse(lex(s))
+        self = tuple.__new__(cls, args)
         self._raw, self._ref = raw, ref
         return self
-
-    @classmethod
-    def parse(cls, raw, ref):
-        '''
-        Generator used to initialise the arguments tuple
-
-        Indexes to where in source list the arguments start will be put in 'ref'
-        '''
-        c = None
-        for i, part in enumerate(raw):
-            if re.match('\s+', part):
-                # Whitespace ends the current argument, leading ws is ignored
-                if c is not None:
-                    yield c
-                    c = None
-            else:
-                f = unquote(part)
-                if c is None:
-                    # Mark the start of the argument in the raw input
-                    if part != '':
-                        ref.append(i)
-                        c = f
-                else:
-                    c += f
-        if c is not None:
-            yield c
 
     def raw(self, frm=0, to=None):
         '''
