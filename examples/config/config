@@ -123,12 +123,12 @@ set hint_style        weight="bold"
 
 set mode_section      <span background="khaki" foreground="black">[\@[\@mode_indicator]\@]</span>
 set keycmd_section    [<span \@prompt_style>\@[\@keycmd_prompt]\@</span><span \@modcmd_style>\@modcmd</span><span \@keycmd_style>\@keycmd</span><span \@completion_style>\@completion_list</span>]
-set progress_section  <span foreground="#606060">\@[\@progress.output]\@</span>
+set progress_section  <span foreground="#d33682">\@[\@progress.output]\@</span>
 set scroll_section    <span foreground="#606060">\@[\@scroll_message]\@</span>
 set uri_section       <span foreground="\@< if(\@frozen) "#00BFFF"; else "#99FF66"; >\@">\@[\@uri]\@</span>
 set name_section      <span foreground="khaki">\@[\@NAME]\@</span>
 set status_section    <span foreground="orange">\@status_message</span>
-set selected_section  <span foreground="#606060">\@[\@SELECTED_URI]\@</span>
+set selected_section  <span foreground="#808080">\@[\@SELECTED_URI]\@</span>
 
 set download_section  <span foreground="white">\@downloads</span>
 set proxy_section     <span foreground="cyan">\@[\@proxy_url]\@</span>
@@ -505,7 +505,7 @@ set stack    @mode_config stack
 @command  modcmd_updates      1
 
 # Insert mode config.
-@insert   status_background   #303030
+@insert   status_background   #006040
 @insert   mode_indicator      Ins
 @insert   forward_keys        1
 @insert   keycmd_events       0
@@ -513,7 +513,7 @@ set stack    @mode_config stack
 
 # Multi-stage-binding mode config.
 @stack    keycmd_style        foreground="red"
-@stack    status_background   #202020
+@stack    status_background   #400040
 @stack    mode_indicator      Bnd
 @stack    prompt_style        foreground="#888" weight="light"
 @stack    keycmd_events       1
