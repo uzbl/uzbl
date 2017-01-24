@@ -61,7 +61,13 @@ fi
 # uzbl-event-manager will exit if one is already running.
 # we could also check if its pid file exists to avoid having to spawn it.
 if [ -z "$UZBL_EVENT_SOCKET" ]; then
-	UZBL_EVENT_SOCKET="$XDG_CACHE_HOME/uzbl/event_daemon"
+	if [ -z "$XDG_RUNTIME_DIR" ]; then
+		UZBL_EVENT_SOCKET_DIR="$XDG_CACHE_HOME/uzbl"
+	else
+		UZBL_EVENT_SOCKET_DIR="$XDG_RUNTIME_DIR/uzbl"
+	fi
+	mkdir -p "$UZBL_EVENT_SOCKET_DIR"
+	UZBL_EVENT_SOCKET="$UZBL_EVENT_SOCKET_DIR/event_daemon"
 	if ! [ -f "$UZBL_EVENT_SOCKET.pid" ] || ! ps -p "$(cat "$UZBL_EVENT_SOCKET.pid")" >/dev/null; then
 		${UZBL_EVENT_MANAGER:-uzbl-event-manager -va --server-socket "$UZBL_EVENT_SOCKET" start} || \
 			die_with_status 4 "Error: Could not start uzbl-event-manager"
