@@ -117,11 +117,9 @@ set status_background #dc322f
 set modcmd_style      weight="bold" foreground="#dc322f"
 set keycmd_style      weight="light" foreground="#dc322f"
 set prompt_style      foreground="grey"
-# TODO find out what this is for. Unused?
-#set cursor_style      underline="single"
+set cursor_style      underline="single"
 set completion_style  foreground="#eee8d5"
-# TODO find out what this is for. Unused?
-#set hint_style        weight="bold"
+set hint_style        weight="bold"
 
 set mode_section      <span background="#6c71c4" foreground="#eee8d5">[\@[\@mode_indicator]\@]</span>
 set keycmd_section    <span \@prompt_style>\@[\@keycmd_prompt]\@</span><span \@modcmd_style>\@modcmd</span><span \@keycmd_style>\@keycmd</span><span \@completion_style>\@completion_list</span>
