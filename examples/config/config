@@ -505,7 +505,7 @@ set stack    @mode_config stack
 @command  modcmd_updates      1
 
 # Insert mode config.
-@insert   status_background   #fdf6e3
+@insert   status_background   #eee8d5
 @insert   mode_indicator      Ins
 @insert   forward_keys        1
 @insert   keycmd_events       0
