@@ -62,6 +62,10 @@ def xdghome(key, default):
 DATA_DIR = os.path.join(xdghome('DATA', '.local/share/'), 'uzbl/')
 CACHE_DIR = os.path.join(xdghome('CACHE', '.cache/'), 'uzbl/')
 CONFIG_DIR = os.path.join(xdghome('CONFIG', '.config/'), 'uzbl/')
+if 'XDG_RUNTIME_DIR' in os.environ:
+    RUNTIME_DIR = os.path.join(os.environ['XDG_RUNTIME_DIR'], 'uzbl/')
+else:
+    RUNTIME_DIR = None
 
 # Define some globals.
 SCRIPTNAME = os.path.basename(sys.argv[0])
@@ -340,7 +344,10 @@ def make_parser():
         dest='config', metavar='CONFIG', default=config_location,
         help='configuration file')
 
-    socket_location = os.path.join(CACHE_DIR, 'event_daemon')
+    if RUNTIME_DIR:
+        socket_location = os.path.join(RUNTIME_DIR, 'event_daemon')
+    else:
+        socket_location = os.path.join(CACHE_DIR, 'event_daemon')
 
     add('-s', '--server-socket',
         dest='server_socket', metavar="SOCKET", default=socket_location,
