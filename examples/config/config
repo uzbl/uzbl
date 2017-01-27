@@ -359,7 +359,7 @@ set history_disable_easter_egg 1
 @cbind  ys  = spawn @scripts_dir/follow.sh \@< uzbl.follow.followSelection('returnuri') >\@ clipboard
 
 # Selection bindings
-@cbind <Ctrl>a = js (function () { var r = document.createRange(), s = window.getSelection(); r.selectNodeContents(document); s.removeAllRanges(); s.addRange(r); })();
+@cbind <Ctrl>a = js page string '(function () { var r = document.createRange(), s = window.getSelection(); r.selectNodeContents(document); s.removeAllRanges(); s.addRange(r); })();'
 @cbind <Ctrl>c = spawn_sh 'echo \@< btoa(window.getSelection().toString()) >\@ | base64 -d | xclip -selection clipboard -i'
 
 # Clone current window
