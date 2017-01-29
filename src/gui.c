@@ -1705,18 +1705,20 @@ void
 decide_navigation (GString *result, gpointer data)
 {
     WebKitWebPolicyDecision *decision = (WebKitWebPolicyDecision *)data;
+    gchar **split = g_strsplit (result->str, "\n", 0);
 
-    if (!g_strcmp0 (result->str, "IGNORE") ||
-        !g_strcmp0 (result->str, "USED")) { /* XXX: Deprecated */
+    if (!g_strcmp0 (split[0], "IGNORE") ||
+        !g_strcmp0 (split[0], "USED")) { /* XXX: Deprecated */
         make_policy (decision, ignore);
-    } else if (!g_strcmp0 (result->str, "DOWNLOAD")) {
+    } else if (!g_strcmp0 (split[0], "DOWNLOAD")) {
         make_policy (decision, download);
-    } else if (!g_strcmp0 (result->str, "USE")) {
+    } else if (!g_strcmp0 (split[0], "USE")) {
         make_policy (decision, use);
     } else {
         make_policy (decision, use);
     }
 
+    g_strfreev (split);
     g_object_unref (decision);
 }
 
@@ -1866,10 +1868,11 @@ decide_permission (GString *result, gpointer data)
 {
     GObject *obj = (GObject *)data;
     gboolean allow;
+    gchar **split = g_strsplit (result->str, "\n", 0);
 
-    if (!g_strcmp0 (result->str, "ALLOW")) {
+    if (!g_strcmp0 (split[0], "ALLOW")) {
         allow = TRUE;
-    } else if (!g_strcmp0 (result->str, "DENY")) {
+    } else if (!g_strcmp0 (split[0], "DENY")) {
         allow = FALSE;
     } else {
         allow = !uzbl_variables_get_int ("enable_private") &&
@@ -1886,6 +1889,7 @@ decide_permission (GString *result, gpointer data)
         }
     }
 
+    g_strfreev (split);
     g_object_unref (obj);
 }
 
