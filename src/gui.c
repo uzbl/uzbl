@@ -2279,18 +2279,20 @@ decide_navigation (GObject *source, GAsyncResult *res, gpointer data)
     WebKitPolicyDecision *decision = (WebKitPolicyDecision *)data;
     GError *err = NULL;
     GString *result = uzbl_io_command_finish (source, res, &err);
+    gchar **split = g_strsplit (result->str, "\n", 0);
 
-    if (!g_strcmp0 (result->str, "IGNORE") ||
-        !g_strcmp0 (result->str, "USED")) { /* XXX: Deprecated */
+    if (!g_strcmp0 (split[0], "IGNORE") ||
+        !g_strcmp0 (split[0], "USED")) { /* XXX: Deprecated */
         make_policy (decision, ignore);
-    } else if (!g_strcmp0 (result->str, "DOWNLOAD")) {
+    } else if (!g_strcmp0 (split[0], "DOWNLOAD")) {
         make_policy (decision, download);
-    } else if (!g_strcmp0 (result->str, "USE")) {
+    } else if (!g_strcmp0 (split[0], "USE")) {
         make_policy (decision, use);
     } else {
         make_policy (decision, use);
     }
 
+    g_strfreev (split);
     g_object_unref (decision);
 }
 
@@ -2412,10 +2414,11 @@ decide_permission (GObject *source, GAsyncResult *res, gpointer data)
     GError *err = NULL;
     GString *result = uzbl_io_command_finish (source, res, &err);
     gboolean allow;
+    gchar **split = g_strsplit (result->str, "\n", 0);
 
-    if (!g_strcmp0 (result->str, "ALLOW")) {
+    if (!g_strcmp0 (split[0], "ALLOW")) {
         allow = TRUE;
-    } else if (!g_strcmp0 (result->str, "DENY")) {
+    } else if (!g_strcmp0 (split[0], "DENY")) {
         allow = FALSE;
     } else {
         allow = !uzbl_variables_get_int ("enable_private") &&
@@ -2432,6 +2435,7 @@ decide_permission (GObject *source, GAsyncResult *res, gpointer data)
         }
     }
 
+    g_strfreev (split);
     g_object_unref (obj);
 }
 
