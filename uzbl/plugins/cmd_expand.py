@@ -1,8 +1,8 @@
 import re
 
-SIMPLE = re.compile('^[a-zA-Z]+$')
-UZBL_EXPAND = re.compile('^(@[({<*/-].*[)}>*/-]@)')
-ARG_EXPAND = re.compile('^%[sr0-9]')
+SIMPLE = re.compile('[a-zA-Z]+$')
+UZBL_EXPAND = re.compile('(@[({<*/-].*[)}>*/-]@)')
+ARG_EXPAND = re.compile('%[sr0-9]')
 
 
 def escape(str):
@@ -45,23 +45,27 @@ def cmd_expand(cmd, args):
     return cmd
 
 
-def format_arg(a):
+def format_arg(a, args):
+    v = cmd_expand(a, args)
     if SIMPLE.match(a) or UZBL_EXPAND.match(a) or ARG_EXPAND.match(a):
-        return a
-    return repr(a)
+        return v
+    # Uzbl expands are evaluated before quotes so don't escape them
+    return '"%s"' % ''.join(
+        p if p.startswith('@') else escape(p)
+        for p in UZBL_EXPAND.split(v)
+    )
 
 
 def send_user_command(uzbl, cmd, args):
     if cmd[0] == 'event':
         has_var = any('@' in x for x in cmd)
         event = cmd[1]
-        args = cmd_expand(' '.join(format_arg(c) for c in cmd[2:]), args)
+        args = ' '.join(format_arg(c, args) for c in cmd[2:])
         if not has_var:
             # Bypass the roundtrip to uzbl and dispatch immediately
             uzbl.event(event, args)
         else:
             uzbl.send(' '.join(('event', event, args)))
     else:
-        cmd = ' '.join((cmd[0],) + tuple(format_arg(c) for c in cmd[1:]))
-        cmd = cmd_expand(cmd, args)
+        cmd = ' '.join((cmd[0],) + tuple(format_arg(c, args) for c in cmd[1:]))
         uzbl.send(cmd)

@@ -23,7 +23,7 @@ class OnEventTest(unittest.TestCase):
 
     def test_command_with_quotes(self):
         oe = OnEventPlugin[self.uzbl]
-        event, command = 'FOO', "test 'string with spaces'"
+        event, command = 'FOO', 'test "string with spaces"'
 
         oe.parse_on_event('FOO test "string with spaces"')
         oe.event_handler('', on_event=event)
