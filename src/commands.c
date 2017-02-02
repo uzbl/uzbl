@@ -709,7 +709,7 @@ builtin_command_table[] = {
     { "print",                          cmd_print,                    FALSE, TRUE  },
 
     /* Event commands */
-    { "event",                          cmd_event,                    FALSE, FALSE },
+    { "event",                          cmd_event,                    TRUE,  FALSE },
     { "choose",                         cmd_choose,                   TRUE,  TRUE  },
     { "request",                        cmd_request,                  TRUE,  TRUE  },
 
@@ -2234,22 +2234,22 @@ IMPLEMENT_COMMAND (event)
 
     ARG_CHECK (argv, 1);
 
-    gchar **split = g_strsplit (argv_idx (argv, 0), " ", 2);
-
-    const gchar *event = split[0];
-    const gchar *arg_string = split[1];
+    const gchar *event = argv_idx (argv, 0);
 
     if (event) {
         GString *event_name = g_string_ascii_up (g_string_new (event));
+        GArray *event_args = g_array_new (TRUE, FALSE, sizeof (gchar *));
+        g_array_insert_vals (event_args, 0,
+                             &g_array_index (argv, char *, 1),
+                             argv->len - 1);
 
         uzbl_events_send (USER_EVENT, event_name->str,
-            TYPE_FORMATTEDSTR, arg_string ? arg_string : "",
-            NULL);
+                          TYPE_STR_ARRAY, event_args,
+                          NULL);
 
+        g_array_free (event_args, FALSE);
         g_string_free (event_name, TRUE);
     }
-
-    g_strfreev (split);
 }
 
 static void

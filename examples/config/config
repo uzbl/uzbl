@@ -62,12 +62,12 @@ set download_handler       spawn_sync @scripts_dir/download.sh
 @on_event   REQ_NEW_WINDOW event @- if (@embedded) "NEW_TAB"; else "NEW_WINDOW" -@ %s
 
 # Load start handler
-@on_event   LOAD_START     @set_status <span foreground="khaki">wait</span>
+@on_event   LOAD_START     @set_status '<span foreground="khaki">wait</span>'
 # Reset the keycmd on navigation
 @on_event   LOAD_START     @set_mode
 
 # Load commit handlers
-@on_event   LOAD_COMMIT    @set_status <span foreground="green">recv</span>
+@on_event   LOAD_COMMIT    @set_status '<span foreground="green">recv</span>'
 
 # add some javascript to the page for other 'js' commands to access later.
 @on_event   LOAD_COMMIT    js page string 'uzbl = {}'
@@ -80,7 +80,7 @@ set download_handler       spawn_sync @scripts_dir/download.sh
 #@on_event   LOAD_COMMIT    spawn @scripts_dir/per-site-settings.py @data_home/per-site-settings
 
 # Load finish handlers
-@on_event   LOAD_FINISH    @set_status <span foreground="gold">done</span>
+@on_event   LOAD_FINISH    @set_status '<span foreground="gold">done</span>'
 @on_event   LOAD_FINISH    spawn @scripts_dir/history.sh
 
 # Switch to insert mode if a (editable) html form is clicked
@@ -497,7 +497,7 @@ set insert   @mode_config insert
 set stack    @mode_config stack
 
 # Command mode config.
-@command  keycmd_style        foreground="red"
+@command  keycmd_style        'foreground="red"'
 @command  status_background   #202020
 @command  mode_indicator      Cmd
 @command  keycmd_events       1
@@ -512,10 +512,10 @@ set stack    @mode_config stack
 @insert   modcmd_updates      0
 
 # Multi-stage-binding mode config.
-@stack    keycmd_style        foreground="red"
+@stack    keycmd_style        'foreground="red"'
 @stack    status_background   #202020
 @stack    mode_indicator      Bnd
-@stack    prompt_style        foreground="#888" weight="light"
+@stack    prompt_style        'foreground="#888" weight="light"'
 @stack    keycmd_events       1
 @stack    modcmd_updates      1
 @stack    forward_keys        0
