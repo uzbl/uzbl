@@ -1970,8 +1970,8 @@ IMPLEMENT_SETTER (gchar *, accept_languages)
     return TRUE;
 }
 
-GOBJECT_GETSET2 (gdouble, zoom_level,
-                 gfloat, webkit_view (), "zoom-level")
+GOBJECT_GETSET (gdouble, zoom_level,
+                 webkit_view (), "zoom-level")
 
 IMPLEMENT_SETTER (gdouble, zoom_step)
 {
