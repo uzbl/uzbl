@@ -67,9 +67,9 @@ class History(PerInstancePlugin):
             return shared.getline(self.prompt, self.cursor)
 
         self.cursor = -1
-        if Config[self.uzbl].get('history_disable_easter_egg', ''):
-            return ''
-        return random.choice(end_messages)
+        if Config[self.uzbl].get('history_enable_easter_egg', ''):
+            return random.choice(end_messages)
+        return ''
 
     def __next__(self):
         if self.cursor is None:
