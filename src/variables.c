@@ -1214,6 +1214,8 @@ DECLARE_GETTER (gchar *, websql_directory);
 #elif WEBKIT_CHECK_VERSION (2, 9, 2)
 DECLARE_GETSET (gchar *, indexed_db_directory);
 DECLARE_SETTER (gchar *, disk_cache_directory);
+#else
+DECLARE_SETTER (gchar *, disk_cache_directory);
 #endif
 
 /* Hacks */
