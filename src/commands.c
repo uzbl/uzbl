@@ -60,9 +60,18 @@ builtin_command_table[];
 typedef struct _UzblCommandRun UzblCommandRun;
 struct _UzblCommandRun {
     const UzblCommand *info;
-    const GArray      *argv;
-    GString     *result;
+    GArray            *argv;
+    GString           *result;
+    gboolean           own_argv;
 };
+
+static UzblCommandRun*
+uzbl_command_run_new (const UzblCommand *info,
+                      GArray            *argv,
+                      gboolean           capture);
+
+static void
+uzbl_command_run_free (UzblCommandRun *run);
 
 #if WEBKIT_CHECK_VERSION (2, 5, 1)
 typedef struct _UzblScriptHandlerData UzblScriptHandlerData;
@@ -71,6 +80,12 @@ script_handler_data_free (gpointer data);
 #endif
 
 /* =========================== PUBLIC API =========================== */
+
+GQuark
+uzbl_command_error_quark ()
+{
+    return g_quark_from_static_string ("uzbl-command-error-quark");
+}
 
 static void
 init_js_commands_api ();
@@ -181,6 +196,20 @@ uzbl_commands_args_free (GArray *argv)
 static void
 parse_command_arguments (const gchar *args, GArray *argv, gboolean split);
 
+static void
+parse_expand_cb (GObject       *source,
+                 GAsyncResult  *res,
+                 gpointer       data);
+
+static const UzblCommand *
+parse_command (const gchar *exp_line, GArray *argv);
+
+const UzblCommand *
+uzbl_commands_lookup (const gchar *cmd)
+{
+    return g_hash_table_lookup (uzbl.commands->table, cmd);
+}
+
 const UzblCommand *
 uzbl_commands_parse (const gchar *cmd, GArray *argv)
 {
@@ -194,6 +223,70 @@ uzbl_commands_parse (const gchar *cmd, GArray *argv)
         return NULL;
     }
 
+    const UzblCommand *info = parse_command (exp_line, argv);
+    g_free (exp_line);
+    return info;
+}
+
+void
+uzbl_commands_parse_async (const gchar         *cmd,
+                           GArray              *argv,
+                           GAsyncReadyCallback  callback,
+                           gpointer             data)
+{
+    GTask *task = g_task_new (NULL, NULL, callback, data);
+    g_task_set_task_data (task, argv, NULL);
+
+    if (!cmd || cmd[0] == '#' || !*cmd) {
+        g_task_return_pointer (task, NULL, NULL);
+        g_object_unref (task);
+        return;
+    }
+
+    uzbl_variables_expand_async (cmd, parse_expand_cb, task);
+}
+
+void
+parse_expand_cb (GObject       *source,
+                 GAsyncResult  *res,
+                 gpointer       data)
+{
+    GTask *task = G_TASK (data);
+    GError *err = NULL;
+    gchar *exp_line = uzbl_variables_expand_finish (source, res, &err);
+    if (err) {
+        g_task_return_error (task, err);
+        return;
+    }
+    GArray *argv = g_task_get_task_data (task);
+    const UzblCommand *info = parse_command (exp_line, argv);
+    if (!info) {
+        g_task_return_new_error (task,
+                                 UZBL_COMMAND_ERROR,
+                                 UZBL_COMMAND_ERROR_INVALID_COMMAND,
+                                 "`%s` is not a valid command",
+                                 exp_line);
+        return;
+    }
+
+    g_task_return_pointer (task, (UzblCommand*)info, NULL);
+    g_object_unref (task);
+    g_free (exp_line);
+}
+
+const UzblCommand*
+uzbl_commands_parse_finish (GObject       *source,
+                            GAsyncResult  *res,
+                            GError       **error)
+{
+    UZBL_UNUSED (source);
+    GTask *task = G_TASK (res);
+    return g_task_propagate_pointer (task, error);
+}
+
+static const UzblCommand *
+parse_command (const gchar *exp_line, GArray *argv)
+{
     /* Separate the line into the command and its parameters. */
     gchar **tokens = g_strsplit (exp_line, " ", 2);
 
@@ -201,14 +294,13 @@ uzbl_commands_parse (const gchar *cmd, GArray *argv)
     const gchar *arg_string = tokens[1];
 
     /* Look up the command. */
-    const UzblCommand *info = g_hash_table_lookup (uzbl.commands->table, command);
+    const UzblCommand *info = uzbl_commands_lookup (command);
 
     if (!info) {
         uzbl_events_send (COMMAND_ERROR, NULL,
             TYPE_STR, command,
             NULL);
 
-        g_free (exp_line);
         g_strfreev (tokens);
 
         return NULL;
@@ -219,7 +311,6 @@ uzbl_commands_parse (const gchar *cmd, GArray *argv)
         parse_command_arguments (arg_string, argv, info->split);
     }
 
-    g_free (exp_line);
     g_strfreev (tokens);
 
     return info;
@@ -262,6 +353,50 @@ command_finish (GObject       *source,
                 GAsyncResult  *res,
                 GError       **err);
 
+static void
+run_string_parse_cb (GObject       *source,
+                     GAsyncResult  *res,
+                     gpointer       data);
+
+static void
+run_command_impl (GTask *task, UzblCommandRun *run);
+
+void
+uzbl_commands_run_string_async (const gchar         *cmd,
+                                gboolean             capture,
+                                GAsyncReadyCallback  callback,
+                                gpointer             data)
+{
+    GTask *task = g_task_new (NULL, NULL, callback, data);
+    UzblCommandRun *run = uzbl_command_run_new (NULL,
+                                                NULL,
+                                                capture);
+    g_task_set_task_data (task, (gpointer) run,
+                          (GDestroyNotify) uzbl_command_run_free);
+    uzbl_commands_parse_async (cmd, run->argv, run_string_parse_cb, task);
+}
+
+void
+run_string_parse_cb (GObject       *source,
+                     GAsyncResult  *res,
+                     gpointer       data)
+{
+    GError *err = NULL;
+    GTask *task = G_TASK (data);
+    UzblCommandRun *run = (UzblCommandRun*) g_task_get_task_data (task);
+    run->info = uzbl_commands_parse_finish (source, res, &err);
+    if (err) {
+        g_task_return_error (task, err);
+        return;
+    }
+    if (!run->info) {
+        // Comment, empty line or other non-command
+        g_task_return_pointer (task, run->result, free_gstring);
+        return;
+    }
+    run_command_impl (task, run);
+}
+
 void
 uzbl_commands_run_async (const UzblCommand   *info,
                          GArray              *argv,
@@ -274,23 +409,27 @@ uzbl_commands_run_async (const UzblCommand   *info,
     }
 
     GTask *task = g_task_new (NULL, NULL, callback, data);
-    UzblCommandRun *run = g_new (UzblCommandRun, 1);
-    run->info = info;
-    run->argv = argv;
-    if (capture) {
-        run->result = g_string_new ("");
-    }
+    UzblCommandRun *run = uzbl_command_run_new (info,
+                                                argv,
+                                                capture);
+    g_task_set_task_data (task, (gpointer) run,
+                          (GDestroyNotify) uzbl_command_run_free);
+    run_command_impl (task, run);
+}
 
-    g_task_set_task_data (task, (gpointer) run, g_free);
+static void
+run_command_impl (GTask *task, UzblCommandRun *run)
+{
+    const UzblCommand *info = run->info;
     if (info->task) {
         GTask *subtask = g_task_new (NULL, NULL,
                                      command_done_cb, (gpointer) task);
         g_task_set_task_data (subtask, (gpointer) run->result, NULL);
-        ((UzblCommandTask)info->function) (argv, subtask);
+        ((UzblCommandTask)info->function) (run->argv, subtask);
         return;
     }
 
-    info->function (argv, run->result);
+    info->function (run->argv, run->result);
     g_task_return_pointer (task, run->result, free_gstring);
     g_object_unref (task);
 }
@@ -309,7 +448,7 @@ uzbl_commands_run_finish (GObject       *source,
     g_free (uzbl.state.last_result);
     uzbl.state.last_result = result ? g_strdup (result->str) : g_strdup ("");
 
-    if (run->info->send_event) {
+    if (run->info && run->info->send_event) {
         uzbl_events_send (COMMAND_EXECUTED, NULL,
             TYPE_NAME, run->info->name,
             TYPE_STR_ARRAY, run->argv,
@@ -350,7 +489,7 @@ void
 uzbl_commands_run_argv (const gchar *cmd, GArray *argv, GString *result)
 {
     /* Look up the command. */
-    const UzblCommand *info = g_hash_table_lookup (uzbl.commands->table, cmd);
+    const UzblCommand *info = uzbl_commands_lookup (cmd);
 
     if (!info) {
         uzbl_events_send (COMMAND_ERROR, NULL,
@@ -678,6 +817,33 @@ parse_command_from_file (const char *cmd)
 
     uzbl_commands_run (work_string, NULL);
     g_free (work_string);
+}
+
+UzblCommandRun*
+uzbl_command_run_new (const UzblCommand *info,
+                      GArray            *argv,
+                      gboolean           capture)
+{
+    UzblCommandRun *run = g_new (UzblCommandRun, 1);
+    run->info = info;
+    if (argv) {
+        run->argv = argv;
+        run->own_argv = FALSE;
+    } else {
+        run->argv = uzbl_commands_args_new ();
+        run->own_argv = TRUE;
+    }
+    run->result = capture ? g_string_new ("") : NULL;
+    return run;
+}
+
+void
+uzbl_command_run_free (UzblCommandRun *run)
+{
+    if (run->own_argv) {
+        uzbl_commands_args_free (run->argv);
+    }
+    g_free (run);
 }
 
 /* ========================= COMMAND TABLE ========================== */
