@@ -10,17 +10,16 @@ And it is also possible to execute a function on activation:
 '''
 
 import six
-import sys
 import re
 from functools import partial
 from itertools import count
 
 from uzbl.arguments import unquote, splitquoted
 from uzbl.ext import PerInstancePlugin
-from .cmd_expand import cmd_expand
+from .cmd_expand import send_user_command
 from .config import Config
 from .keycmd import KeyCmd
-import collections
+from collections import Callable
 
 # Commonly used regular expressions.
 MOD_START = re.compile('^<([A-Z][A-Za-z0-9-_]*)>').match
@@ -34,7 +33,8 @@ ON_EXEC, HAS_ARGS, MOD_CMD, GLOB, MORE = list(range(5))
 
 
 # Custom errors.
-class ArgumentError(Exception): pass
+class ArgumentError(Exception):
+    pass
 
 
 class Bindlet(object):
@@ -54,10 +54,8 @@ class Bindlet(object):
         # activiated binds for use in the stack mode.
         self.globals = []
 
-
     def __getitem__(self, key):
         return self.get_binds(key)
-
 
     def reset(self):
         '''Reset the tracker state and return to last mode.'''
@@ -73,7 +71,6 @@ class Bindlet(object):
 
         del self.uzbl_config['keycmd_prompt']
 
-
     def stack(self, bind, args, depth):
         '''Enter or add new bind in the next stack level.'''
 
@@ -88,11 +85,10 @@ class Bindlet(object):
             self.last_mode = mode
             self.uzbl_config['mode'] = 'stack'
 
-        self.stack_binds = [bind,]
+        self.stack_binds = [bind]
         self.args += args
         self.depth += 1
         self.after_cmds = bind.prompts[depth]
-
 
     def after(self):
         '''If a stack was triggered then set the prompt and default value.'''
@@ -111,7 +107,6 @@ class Bindlet(object):
 
         elif set and not is_cmd:
             self.uzbl.send('event SET_KEYCMD %s' % set)
-
 
     def get_binds(self, mode=None):
         '''Return the mode binds + globals. If we are stacked then return
@@ -132,7 +127,6 @@ class Bindlet(object):
 
         binds = dict(list(globals.items()) + list(self.binds[mode].items()))
         return [_f for _f in list(binds.values()) if _f]
-
 
     def add_bind(self, mode, glob, bind=None):
         '''Insert (or override) a bind into the mode bind dict.'''
@@ -181,7 +175,7 @@ class Bind(object):
     nextid = count()
 
     def __init__(self, glob, handler, *args, **kargs):
-        self.is_callable = isinstance(handler, collections.Callable)
+        self.is_callable = isinstance(handler, Callable)
         self._repr_cache = None
 
         if not glob:
@@ -195,11 +189,11 @@ class Bind(object):
         elif kargs:
             raise ArgumentError('cannot supply kargs for uzbl commands')
 
-        elif not isinstance(handler, str):
-            self.commands = handler
+        elif isinstance(handler, str):
+            raise ArgumentError("handler must not be str")
 
         else:
-            self.commands = [handler,] + list(args)
+            self.commands = [tuple(handler) + tuple(args)]
 
         self.glob = glob
 
@@ -230,9 +224,6 @@ class Bind(object):
 
         stack = []
         for (index, glob) in enumerate(reversed(split[::4])):
-            # Is the binding a MODCMD or KEYCMD:
-            mod_cmd = ismodbind(glob)
-
             # Do we execute on UPDATES or EXEC events?
             on_exec = True if glob[-1] in ['!', '_'] else False
 
@@ -246,7 +237,6 @@ class Bind(object):
         self.stack = list(reversed(stack))
         self.is_global = (len(self.stack) == 1 and self.stack[0][MOD_CMD])
 
-
     def __getitem__(self, depth):
         '''Get bind info at a depth.'''
 
@@ -254,7 +244,6 @@ class Bind(object):
             return self.stack[0]
 
         return self.stack[depth]
-
 
     def __repr__(self):
         if self._repr_cache:
@@ -300,8 +289,8 @@ class BindPlugin(PerInstancePlugin):
             for on_exec in range(2):
                 event = events[mod_cmd][on_exec]
                 handler = partial(self.key_event,
-                    mod_cmd=bool(mod_cmd),
-                    on_exec=bool(on_exec))
+                                  mod_cmd=bool(mod_cmd),
+                                  on_exec=bool(on_exec))
                 uzbl.connect(event, handler)
 
     def exec_bind(self, bind, *args, **kargs):
@@ -318,10 +307,8 @@ class BindPlugin(PerInstancePlugin):
         if kargs:
             raise ArgumentError('cannot supply kargs for uzbl commands')
 
-        commands = []
         for cmd in bind.commands:
-            cmd = cmd_expand(cmd, args)
-            self.uzbl.send(cmd)
+            send_user_command(self.uzbl, cmd, args)
 
     def mode_bind(self, modes, glob, handler=None, *args, **kargs):
         '''Add a mode bind.'''
@@ -331,10 +318,13 @@ class BindPlugin(PerInstancePlugin):
         if isinstance(modes, str):
             modes = modes.split(',')
 
+        if isinstance(handler, str):
+            raise TypeError("Handler should be callable or list")
+
         # Sort and filter binds.
         modes = [_f for _f in map(str.strip, modes) if _f]
 
-        if isinstance(handler, collections.Callable) or (handler is not None and handler.strip()):
+        if isinstance(handler, Callable) or len(handler):
             bind = Bind(glob, handler, *args, **kargs)
 
         else:
@@ -370,16 +360,18 @@ class BindPlugin(PerInstancePlugin):
 
         args = splitquoted(args)
         if len(args) < 2:
-            raise ArgumentError('missing mode or bind section: %r' % args.raw())
+            raise ArgumentError(
+                'missing mode or bind section: %r' % args.raw())
 
         modes = args[0].split(',')
         for i, g in enumerate(args[1:]):
             if g == '=':
                 glob = ' '.join(args[1:i+1])
-                command = args.raw(i+2)
+                command = args[i+2:]
                 break
         else:
-            raise ArgumentError('missing delimiter in bind section: %r' % args.raw())
+            raise ArgumentError(
+                'missing delimiter in bind section: %r' % args.raw())
 
         self.mode_bind(modes, glob, command)
 
@@ -412,7 +404,7 @@ class BindPlugin(PerInstancePlugin):
             if not cmd.startswith(glob):
                 return False
 
-            args = [cmd[len(glob):],]
+            args = [cmd[len(glob):]]
 
         elif cmd != glob:
             return False
@@ -431,7 +423,7 @@ class BindPlugin(PerInstancePlugin):
             bindlet.stack(bind, args, depth)
             (on_exec, has_args, mod_cmd, glob, more) = bind[depth+1]
             if not on_exec and has_args and not glob and not more:
-                self.exec_bind(uzbl, bind, *(args+['',]))
+                self.exec_bind(self.uzbl, bind, *(args + ['']))
 
             return False
 
@@ -457,8 +449,8 @@ class BindPlugin(PerInstancePlugin):
 
         bindlet.after()
 
-        # Return to the previous mode if the KEYCMD_EXEC keycmd doesn't match any
-        # binds in the stack mode.
+        # Return to the previous mode if the KEYCMD_EXEC keycmd doesn't match
+        # any binds in the stack mode.
         if on_exec and not mod_cmd and depth and depth == bindlet.depth:
             config = Config[self.uzbl]
             del config['mode']
