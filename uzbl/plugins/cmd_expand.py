@@ -67,5 +67,6 @@ def send_user_command(uzbl, cmd, args):
         else:
             uzbl.send(' '.join(('event', event, args)))
     else:
-        cmd = ' '.join((cmd[0],) + tuple(format_arg(c, args) for c in cmd[1:]))
+        cmd = ' '.join((cmd_expand(cmd[0], args),) +
+                       tuple(format_arg(c, args) for c in cmd[1:]))
         uzbl.send(cmd)
