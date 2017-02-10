@@ -259,13 +259,9 @@ set history_disable_easter_egg 1
 
 # Page movement binds
 @cbind  j              = scroll vertical 100
-@cbind  J              = scroll vertical 50
 @cbind  k              = scroll vertical -100
-@cbind  K              = scroll vertical -50
 @cbind  h              = scroll horizontal -100
-@cbind  H              = scroll horizontal -50
 @cbind  l              = scroll horizontal 100
-@cbind  L              = scroll horizontal 50
 @cbind  <Page_Up>      = scroll vertical -100%
 @cbind  <Page_Down>    = scroll vertical 100%
 @cbind  <Ctrl>f        = scroll vertical 100%
@@ -320,7 +316,7 @@ set history_disable_easter_egg 1
 
 # Web searching binds
 # NOTE you may search Google by adding "!g" to your DuckDuckGo search string
-@cbind  d<DuckDuckGo:>_      = uri http://duckduckgo.com/?q=%s
+@cbind  ddg<DuckDuckGo:>_      = uri http://duckduckgo.com/?q=\@-encodeURIComponent(%r)-\@
 # These bindings should be entered as simply \wiki but due to escaping
 # happening in multiple stages it needs to be written like this
 @cbind  \\\\awiki<Archwiki:>_  = uri http://wiki.archlinux.org/index.php/Special:Search?search=\@-encodeURIComponent(%r)-\@&go=Go
@@ -330,7 +326,6 @@ set history_disable_easter_egg 1
 # Set function shortcut
 @cbind  s<var:>_<value:>_  = set %1 %2
 # Exit binding
-@cbind  q                  = exit
 @cbind  ZZ                 = exit
 # Dump config to stdout
 @cbind  !dump              = spawn_sh 'echo dump_config > "$UZBL_FIFO"'
