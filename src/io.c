@@ -518,10 +518,14 @@ commands_run_cb (GObject *source, GAsyncResult *res, gpointer data)
 {
     GTask *task = G_TASK (data);
     GTask *cmdt = G_TASK (g_task_get_source_object (task));
-    GError *err;
+    GError *err = NULL;
     GString *result = uzbl_commands_run_finish (source, res, &err);
 
-    g_task_return_pointer (cmdt, result, free_gstring);
+    if (err) {
+        g_task_return_error (cmdt, err);
+    } else {
+        g_task_return_pointer (cmdt, result, free_gstring);
+    }
     g_task_return_pointer (task, NULL, NULL);
     g_object_unref (task);
     g_object_unref (cmdt);
@@ -534,17 +538,11 @@ run_command_async (GTask *cmdt, GAsyncReadyCallback callback, gpointer data)
     GTask *task = g_task_new (cmdt, NULL, callback, data);
     UzblCommandData *cmd = (UzblCommandData*) g_task_get_task_data (cmdt);
 
-    const UzblCommand *info;
-    GArray *argv;
     if (cmd->cmd) {
-        argv = cmd->argv = uzbl_commands_args_new ();
-        info = uzbl_commands_parse (cmd->cmd, argv);
+        uzbl_commands_run_string_async (cmd->cmd, TRUE, commands_run_cb, task);
     } else {
-        argv = cmd->argv;
-        info = cmd->info;
+        uzbl_commands_run_async (cmd->info, cmd->argv, TRUE, commands_run_cb, task);
     }
-
-    uzbl_commands_run_async (info, argv, TRUE, commands_run_cb, task);
 }
 
 void
@@ -971,8 +969,13 @@ write_result_to_stream (GObject      *source,
     GError *err = NULL;
     GString *result = uzbl_io_command_finish (source, res, &err);
 
-    g_string_append_c (result, '\n');
-    write_to_stream (stream, result->str);
+    if (err) {
+        uzbl_debug ("command failed: %s", err->message);
+        g_error_free (err);
+    } else {
+        g_string_append_c (result, '\n');
+        write_to_stream (stream, result->str);
+    }
 
     g_object_unref (G_OBJECT (stream));
 }

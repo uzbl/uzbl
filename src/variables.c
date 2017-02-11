@@ -373,13 +373,65 @@ typedef enum {
     EXPAND_IGNORE_UZBL
 } UzblExpandStage;
 
+struct _ExpandContext {
+    UzblExpandStage  stage;
+    const gchar     *p;
+    GString         *buf;
+    GArray          *argv;
+    GTask           *task;
+};
+typedef struct _ExpandContext ExpandContext;
+
+static void
+expand_context_free (ExpandContext *ctx)
+{
+    if (ctx->buf) {
+        g_string_free (ctx->buf, TRUE);
+    }
+    g_free (ctx);
+}
+
 static gchar *
 expand_impl (const gchar *str, UzblExpandStage stage);
+
+static void
+expand_process (ExpandContext *ctx);
 
 gchar *
 uzbl_variables_expand (const gchar *str)
 {
     return expand_impl (str, EXPAND_INITIAL);
+}
+
+void
+uzbl_variables_expand_async (const gchar         *str,
+                             GAsyncReadyCallback  callback,
+                             gpointer             data)
+{
+    GTask *task = g_task_new (NULL, NULL, callback, data);
+    if (!str) {
+        g_task_return_pointer (task, g_strdup (""), g_free);
+        g_object_unref (task);
+        return;
+    }
+
+    ExpandContext *ctx = g_new (ExpandContext, 1);
+    ctx->stage = EXPAND_INITIAL;
+    ctx->p = str;
+    ctx->task = task;
+    ctx->buf = g_string_new ("");
+    g_task_set_task_data (task, ctx, (GDestroyNotify) expand_context_free);
+    expand_process (ctx);
+}
+
+gchar*
+uzbl_variables_expand_finish (GObject       *source,
+                              GAsyncResult  *res,
+                              GError       **error)
+{
+    UZBL_UNUSED (source);
+    GTask *task = G_TASK (res);
+    return g_task_propagate_pointer (task, error);
 }
 
 #define VAR_GETTER(type, name)                     \
@@ -614,14 +666,29 @@ expand_type (const gchar *str);
 gchar *
 expand_impl (const gchar *str, UzblExpandStage stage)
 {
-    GString *buf = g_string_new ("");
-
     if (!str) {
-        return g_string_free (buf, FALSE);
+        return g_strdup ("");
     }
 
-    const gchar *p = str;
+    ExpandContext *ctx = g_new (ExpandContext, 1);
+    ctx->stage = stage;
+    ctx->p = str;
+    ctx->task = NULL;
+    GString *buf = ctx->buf = g_string_new ("");
 
+    expand_process (ctx);
+    g_free (ctx);
+    return g_string_free (buf, FALSE);
+}
+
+static void
+expand_run_command_cb (GObject      *source,
+                       GAsyncResult *res,
+                       gpointer      data);
+
+void expand_process (ExpandContext *ctx)
+{
+    const gchar *p = ctx->p;
     while (*p) {
         switch (*p) {
         case '@':
@@ -688,13 +755,13 @@ expand_impl_find_end:
                 ++vend;
                 /* FALLTHROUGH */
             case EXPAND_VAR:
-                variable_expand (get_variable (ret), buf);
+                variable_expand (get_variable (ret), ctx->buf);
 
                 p = vend;
                 break;
             case EXPAND_SHELL:
             {
-                if (stage == EXPAND_IGNORE_SHELL) {
+                if (ctx->stage == EXPAND_IGNORE_SHELL) {
                     break;
                 }
 
@@ -733,7 +800,7 @@ expand_impl_find_end:
                 if (spawn_ret->str) {
                     remove_trailing_newline (spawn_ret->str);
 
-                    g_string_append (buf, spawn_ret->str);
+                    g_string_append (ctx->buf, spawn_ret->str);
                 }
                 g_string_free (spawn_ret, TRUE);
 
@@ -743,7 +810,7 @@ expand_impl_find_end:
             }
             case EXPAND_UZBL:
             {
-                if (stage == EXPAND_IGNORE_UZBL) {
+                if (ctx->stage == EXPAND_IGNORE_UZBL) {
                     break;
                 }
 
@@ -767,7 +834,7 @@ expand_impl_find_end:
                 uzbl_commands_args_free (tmp);
 
                 if (uzbl_ret->str) {
-                    g_string_append (buf, uzbl_ret->str);
+                    g_string_append (ctx->buf, uzbl_ret->str);
                 }
                 g_string_free (uzbl_ret, TRUE);
 
@@ -789,14 +856,17 @@ expand_impl_find_end:
                 goto expand_impl_run_js;
 expand_impl_run_js:
             {
-                if (stage == ignore) {
+                if (ctx->stage == ignore) {
                     break;
                 }
 
-                GString *js_ret = g_string_new ("");
+                if (!ctx->task) {
+                   g_warning ("Trying to expand js in sync context");
+                   break;
+                }
 
-                GArray *tmp = uzbl_commands_args_new ();
-                uzbl_commands_args_append (tmp, g_strdup (js_ctx));
+                ctx->argv = uzbl_commands_args_new ();
+                uzbl_commands_args_append (ctx->argv, g_strdup (js_ctx));
                 const gchar *source = NULL;
                 gchar *cmd = ret;
 
@@ -809,29 +879,22 @@ expand_impl_run_js:
                     source = "string";
                 }
 
-                uzbl_commands_args_append (tmp, g_strdup (source));
+                uzbl_commands_args_append (ctx->argv, g_strdup (source));
 
                 gchar *exp_cmd = expand_impl (cmd, ignore);
-                g_array_append_val (tmp, exp_cmd);
+                g_array_append_val (ctx->argv, exp_cmd);
 
-                uzbl_commands_run_argv ("js", tmp, js_ret);
-
-                uzbl_commands_args_free (tmp);
-
-                if (js_ret->str) {
-                    g_string_append (buf, js_ret->str);
-                    g_string_free (js_ret, TRUE);
-                }
-                p = vend + 2;
-
-                break;
+                const UzblCommand *info = uzbl_commands_lookup ("js");
+                uzbl_commands_run_async (info, ctx->argv, TRUE, expand_run_command_cb, ctx);
+                ctx->p = vend + 2;
+                return;
             }
             case EXPAND_ESCAPE:
             {
                 gchar *exp_cmd = expand_impl (ret, EXPAND_INITIAL);
                 gchar *escaped = g_markup_escape_text (exp_cmd, strlen (exp_cmd));
 
-                g_string_append (buf, escaped);
+                g_string_append (ctx->buf, escaped);
 
                 g_free (escaped);
                 g_free (exp_cmd);
@@ -844,20 +907,43 @@ expand_impl_run_js:
             break;
         }
         case '\\':
-            g_string_append_c (buf, *p);
+            g_string_append_c (ctx->buf, *p);
             ++p;
             if (!*p) {
                 break;
             }
             /* FALLTHROUGH */
         default:
-            g_string_append_c (buf, *p);
+            g_string_append_c (ctx->buf, *p);
             ++p;
             break;
         }
     }
 
-    return g_string_free (buf, FALSE);
+    if (ctx->task) {
+        char *r = g_string_free (ctx->buf, FALSE);
+        ctx->buf = NULL;
+        g_task_return_pointer (ctx->task, r, g_free);
+        g_object_unref (ctx->task);
+    }
+}
+
+static void
+expand_run_command_cb (GObject      *source,
+                       GAsyncResult *res,
+                       gpointer      data)
+{
+    ExpandContext *ctx = (ExpandContext*) data;
+    GError *err = NULL;
+    GString *ret = uzbl_commands_run_finish (source, res, &err);
+    uzbl_commands_args_free (ctx->argv);
+
+    if (ret->str) {
+        g_string_append (ctx->buf, ret->str);
+        g_string_free (ret, TRUE);
+    }
+
+    expand_process (ctx);
 }
 
 void
