@@ -62,12 +62,12 @@ set download_handler       spawn_sync @scripts_dir/download.sh
 @on_event   REQ_NEW_WINDOW event @- if (@embedded) "NEW_TAB"; else "NEW_WINDOW" -@ %s
 
 # Load start handler
-@on_event   LOAD_START     @set_status <span foreground="khaki">wait</span>
+@on_event   LOAD_START     @set_status <span foreground="#cb4b16">wait</span>
 # Reset the keycmd on navigation
 @on_event   LOAD_START     @set_mode
 
 # Load commit handlers
-@on_event   LOAD_COMMIT    @set_status <span foreground="green">recv</span>
+@on_event   LOAD_COMMIT    @set_status <span foreground="#859900">recv</span>
 
 # add some javascript to the page for other 'js' commands to access later.
 @on_event   LOAD_COMMIT    js page string 'uzbl = {}'
@@ -80,7 +80,7 @@ set download_handler       spawn_sync @scripts_dir/download.sh
 #@on_event   LOAD_COMMIT    spawn @scripts_dir/per-site-settings.py @data_home/per-site-settings
 
 # Load finish handlers
-@on_event   LOAD_FINISH    @set_status <span foreground="gold">done</span>
+@on_event   LOAD_FINISH    @set_status <span foreground="#d33682">done</span>
 @on_event   LOAD_FINISH    spawn @scripts_dir/history.sh
 
 # Switch to insert mode if a (editable) html form is clicked
@@ -112,30 +112,30 @@ set forward_keys      0
 
 set show_status       1
 set status_top        0
-set status_background #303030
+set status_background #dc322f
 
-set modcmd_style      weight="bold" foreground="red"
-set keycmd_style      weight="light" foreground="red"
+set modcmd_style      weight="bold" foreground="#dc322f"
+set keycmd_style      weight="light" foreground="#dc322f"
 set prompt_style      foreground="grey"
 set cursor_style      underline="single"
-set completion_style  foreground="green"
+set completion_style  foreground="#eee8d5"
 set hint_style        weight="bold"
 
-set mode_section      <span background="khaki" foreground="black">[\@[\@mode_indicator]\@]</span>
-set keycmd_section    [<span \@prompt_style>\@[\@keycmd_prompt]\@</span><span \@modcmd_style>\@modcmd</span><span \@keycmd_style>\@keycmd</span><span \@completion_style>\@completion_list</span>]
-set progress_section  <span foreground="#606060">\@[\@progress.output]\@</span>
-set scroll_section    <span foreground="#606060">\@[\@scroll_message]\@</span>
-set uri_section       <span foreground="\@< if(\@frozen) "#00BFFF"; else "#99FF66"; >\@">\@[\@uri]\@</span>
-set name_section      <span foreground="khaki">\@[\@NAME]\@</span>
-set status_section    <span foreground="orange">\@status_message</span>
-set selected_section  <span foreground="#606060">\@[\@SELECTED_URI]\@</span>
+set mode_section      <span background="#6c71c4" foreground="#eee8d5">[\@[\@mode_indicator]\@]</span>
+set keycmd_section    <span \@prompt_style>\@[\@keycmd_prompt]\@</span><span \@modcmd_style>\@modcmd</span><span \@keycmd_style>\@keycmd</span><span \@completion_style>\@completion_list</span>
+set progress_section  <span foreground="#d33682">\@[\@progress.output]\@</span>
+set scroll_section    <span foreground="#93a1a1">\@[\@scroll_message]\@</span>
+set uri_section       <span foreground="\@< if(\@frozen) "#268bd2"; else "#859900"; >\@">\@[\@uri]\@</span>
 
-set download_section  <span foreground="white">\@downloads</span>
-set proxy_section     <span foreground="cyan">\@[\@proxy_url]\@</span>
+set name_section      <span foreground="#b58900">&lt;\@[\@NAME]\@&gt;</span>
+set status_section    <span foreground="#cb4b16">\@status_message</span>
+set selected_section  <span foreground="#839496">\@[\@SELECTED_URI]\@</span>
 
-set status_format       <span font_family="monospace">@mode_section @keycmd_section @progress_section @name_section @status_section @scroll_section @selected_section @download_section</span>
-set status_format_right <span font_family="monospace"><span foreground="#666">uri:</span> @uri_section</span>
-set status_format_right <span font_family="monospace"><span foreground="#666">proxy:</span> @proxy_section <span foreground="#666">uri:</span> @uri_section</span>
+set download_section  <span foreground="#93a1a1">\@downloads</span>
+set proxy_section     <span foreground="#2aa198">\@[\@proxy_url]\@</span>
+
+set status_format       <span font_family="monospace">@mode_section @indicator_section @keycmd_section @progress_section @status_section @name_section @scroll_section @selected_section @download_section</span>
+set status_format_right <span font_family="monospace"><span foreground="#586e75">proxy:</span> @proxy_section  <span foreground="#586e75">uri:</span> @uri_section</span>
 
 set title_format_long \@keycmd_prompt \@raw_modcmd \@raw_keycmd \@TITLE - Uzbl browser <\@NAME> \@SELECTED_URI
 
@@ -497,23 +497,23 @@ set insert   @mode_config insert
 set stack    @mode_config stack
 
 # Command mode config.
-@command  keycmd_style        foreground="red"
-@command  status_background   #202020
+@command  keycmd_style        foreground="#dc322f"
+@command  status_background   #002b36
 @command  mode_indicator      Cmd
 @command  keycmd_events       1
 @command  forward_keys        0
 @command  modcmd_updates      1
 
 # Insert mode config.
-@insert   status_background   #303030
+@insert   status_background   #eee8d5
 @insert   mode_indicator      Ins
 @insert   forward_keys        1
 @insert   keycmd_events       0
 @insert   modcmd_updates      0
 
 # Multi-stage-binding mode config.
-@stack    keycmd_style        foreground="red"
-@stack    status_background   #202020
+@stack    keycmd_style        foreground="#dc322f"
+@stack    status_background   #400040
 @stack    mode_indicator      Bnd
 @stack    prompt_style        foreground="#888" weight="light"
 @stack    keycmd_events       1
