@@ -125,8 +125,7 @@ set mode_section      <span background="#6c71c4" foreground="#eee8d5">[\@[\@mode
 
 # As these indicators slow down uzbl, they're disabled by default
 set view_mode_indicator   \@- if ('\@page_view_mode' == 'web')   '<span foreground="#eee8d5" background="#586e75">'; else '<span foreground="#586e75" background="#eee8d5">'; -\@VM</span>
-# TODO find out why this fails
-#set css_indicator         \@- if (document.getElementsByTagName("link").length === 0)  '<span foreground="#eee8d5">'; else '<span foreground="#eee8d5" background="#2aa198">'; -\@CS</span>
+set css_indicator         \@< if (document.getElementsByTagName("link").length === 0)  '<span foreground="#eee8d5">'; else '<span foreground="#eee8d5" background="#2aa198">'; >\@CS</span>
 set images_indicator      \@- if (\@autoload_images == 0)        '<span foreground="#eee8d5">'; else '<span foreground="#eee8d5" background="#cb4b16">'; -\@IM</span>
 set cookie_indicator      \@- if ('\@cookie_policy' == 'never') '<span foreground="#eee8d5">'; else '<span foreground="#eee8d5" background="#dc322f">'; -\@CO</span>
 set javascript_indicator  \@- if (\@enable_scripts == 0)         '<span foreground="#eee8d5">'; else '<span foreground="#eee8d5" background="#d33682">'; -\@JS</span>
