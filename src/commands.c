@@ -926,6 +926,8 @@ DECLARE_COMMAND (event);
 DECLARE_COMMAND (choose);
 DECLARE_COMMAND (request);
 
+#define COMMAND(x) (UzblCommandCallback) x
+
 static const UzblCommand
 builtin_command_table[] = {
     /* name                             function                      split  send_event  task*/
@@ -975,7 +977,7 @@ builtin_command_table[] = {
     { "inspector",                      cmd_inspector,                TRUE,  TRUE,  FALSE },
 
     /* Execution commands */
-    { "js",                             (UzblCommandCallback) cmd_js, TRUE,  TRUE,  TRUE  },
+    { "js",                             COMMAND (cmd_js),             TRUE,  TRUE,  TRUE  },
     /* TODO: Consolidate into one command. */
     { "spawn",                          cmd_spawn,                    TRUE,  TRUE,  FALSE },
     { "spawn_sync",                     cmd_spawn_sync,               TRUE,  TRUE,  FALSE },
