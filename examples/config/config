@@ -122,6 +122,26 @@ set completion_style  foreground="#eee8d5"
 set hint_style        weight="bold"
 
 set mode_section      <span background="#6c71c4" foreground="#eee8d5">[\@[\@mode_indicator]\@]</span>
+
+# As these indicators slow down uzbl, they're disabled by default
+set view_mode_indicator   \@- if ('\@page_view_mode' == 'web')   '<span foreground="#eee8d5" background="#586e75">'; else '<span foreground="#586e75" background="#eee8d5">'; -\@VM</span>
+# TODO find out why this fails
+#set css_indicator         \@- if (document.getElementsByTagName("link").length === 0)  '<span foreground="#eee8d5">'; else '<span foreground="#eee8d5" background="#2aa198">'; -\@CS</span>
+set images_indicator      \@- if (\@autoload_images == 0)        '<span foreground="#eee8d5">'; else '<span foreground="#eee8d5" background="#cb4b16">'; -\@IM</span>
+set cookie_indicator      \@- if ('\@cookie_policy' == 'never') '<span foreground="#eee8d5">'; else '<span foreground="#eee8d5" background="#dc322f">'; -\@CO</span>
+set javascript_indicator  \@- if (\@enable_scripts == 0)         '<span foreground="#eee8d5">'; else '<span foreground="#eee8d5" background="#d33682">'; -\@JS</span>
+set plugins_indicator     \@- if (\@enable_plugins == 0)         '<span foreground="#eee8d5">'; else '<span foreground="#eee8d5" background="#b58900">'; -\@PL</span>
+set ssl_policy_indicator  \@- if ('\@ssl_policy' != 'fail')      '<span foreground="#eee8d5">'; else '<span foreground="#eee8d5" background="#268bd2">';-\@VS</span>
+#set indicator_section     <span foreground="cyan">@view_mode_indicator@css_indicator@images_indicator@cookie_indicator@javascript_indicator@plugins_indicator@ssl_policy_indicator</span>
+# NOTE the more of the indicators we include here (and thus actually display), the slower uzbl gets.
+# This also appears to play a key part in #334 (https://github.com/uzbl/uzbl/pull/334#issuecomment-279018823)
+set indicator_section     <span>@javascript_indicator@ssl_policy_indicator</span>
+
+# TODO add an indictar if site uses SSL: green, if ssl_policy is "fail"; red otherwise
+# NOTE This requires "Symbola" compatible font
+#set relative_ssl_policy_indicator  \@- if ('\@ssl_policy' == 'fail')      '<span foreground="#eee8d5" background="#eee8d5">'; else '<span foreground="#eee8d5" background="#dc322f">';-\@ &#128274; </span>
+
+
 set keycmd_section    <span \@prompt_style>\@[\@keycmd_prompt]\@</span><span \@modcmd_style>\@modcmd</span><span \@keycmd_style>\@keycmd</span><span \@completion_style>\@completion_list</span>
 set progress_section  <span foreground="#d33682">\@[\@progress.output]\@</span>
 set scroll_section    <span foreground="#93a1a1">\@[\@scroll_message]\@</span>
@@ -134,6 +154,7 @@ set selected_section  <span foreground="#839496">\@[\@SELECTED_URI]\@</span>
 set download_section  <span foreground="#93a1a1">\@downloads</span>
 set proxy_section     <span foreground="#2aa198">\@[\@proxy_url]\@</span>
 
+# NOTE @indicator_section already made it into master unintentionally
 set status_format       <span font_family="monospace">@mode_section @indicator_section @keycmd_section @progress_section @status_section @name_section @scroll_section @selected_section @download_section</span>
 set status_format_right <span font_family="monospace"><span foreground="#586e75">proxy:</span> @proxy_section  <span foreground="#586e75">uri:</span> @uri_section</span>
 
