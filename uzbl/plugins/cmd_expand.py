@@ -1,6 +1,6 @@
 import re
 
-SIMPLE = re.compile('[a-zA-Z]+$')
+SIMPLE = re.compile('[a-zA-Z0-9._]+$')
 UZBL_EXPAND = re.compile('(@[({<*/-].*[)}>*/-]@)')
 ARG_EXPAND = re.compile('%[sr0-9]')
 
