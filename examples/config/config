@@ -276,7 +276,7 @@ set history_disable_easter_egg 1
 @cbind  $              = scroll horizontal end
 @cbind  <Shift><Space> = scroll vertical -98%
 @cbind  <Space>        = scroll vertical 98%
-@cbind  G<"Go To":>_   = scroll vertical %r!
+@cbind  !G<"Go To":>_   = scroll vertical %r!
 # The first '_' is literal, so type '_G' to trigger this binding.
 @cbind  _G<"Go To":>_  = scroll horizontal %r!
 
