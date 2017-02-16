@@ -40,7 +40,7 @@ mkdir -p "$XDG_CACHE_HOME/uzbl" "$XDG_DATA_HOME/uzbl" "$XDG_CONFIG_HOME/uzbl" ||
 if ! [ -f "$XDG_CONFIG_HOME/uzbl/config" ]; then
 	[ -r "$EXAMPLES/config/config" ] || \
 		die_with_status 3 "Error: Global config not found; please check if your distribution ships them separately"
-	if ! cp "$EXAMPLES/config/"* "$XDG_CONFIG_HOME/uzbl/"; then
+	if ! cp -n "$EXAMPLES/config/"* "$XDG_CONFIG_HOME/uzbl/"; then
 		echo >&2 "Could not copy default configs to $XDG_CONFIG_HOME/uzbl"
 		# Run with the global config as a last resort
 		config_file="$EXAMPLES/config/config"
