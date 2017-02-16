@@ -17,13 +17,13 @@ Usage:
     <-- print Config changed: selected_uri http://uzbl.org/
 '''
 
-import re
 import fnmatch
 from functools import partial
 
 from uzbl.arguments import splitquoted
-from .cmd_expand import cmd_expand
+from .cmd_expand import send_user_command
 from uzbl.ext import PerInstancePlugin
+
 
 def match_args(pattern, args):
     if len(pattern) > len(args):
@@ -49,7 +49,8 @@ class OnEventPlugin(PerInstancePlugin):
         '''This function handles all the events being watched by various
         on_event definitions and responds accordingly.'''
 
-        # Could be connected to a EM internal event that can use anything as args
+        # Could be connected to a EM internal event that can use anything as
+        # arguments
         if len(args) == 1 and isinstance(args[0], str):
             args = splitquoted(args[0])
 
@@ -60,8 +61,7 @@ class OnEventPlugin(PerInstancePlugin):
         commands = self.events[event]
         for cmd, pattern in commands:
             if not pattern or match_args(pattern, args):
-                cmd = cmd_expand(cmd, args)
-                self.uzbl.send(cmd)
+                send_user_command(self.uzbl, cmd, args)
 
     def on_event(self, event, pattern, cmd):
         '''Add a new event to watch and respond to.'''
@@ -70,8 +70,11 @@ class OnEventPlugin(PerInstancePlugin):
         self.logger.debug('new event handler %r %r %r', event, pattern, cmd)
         if event not in self.events:
             self.uzbl.connect(event,
-                partial(self.event_handler, on_event=event))
+                              partial(self.event_handler, on_event=event))
             self.events[event] = []
+
+        if isinstance(cmd, str):
+            cmd = (cmd,)
 
         cmds = self.events[event]
         if cmd not in cmds:
@@ -80,12 +83,12 @@ class OnEventPlugin(PerInstancePlugin):
     def parse_on_event(self, args):
         '''Parse ON_EVENT events and pass them to the on_event function.
 
-        Syntax: "event ON_EVENT <EVENT_NAME> commands".'''
+        Syntax: "event ON_EVENT <EVENT_NAME> <[ pattern ]> commands".'''
 
         args = splitquoted(args)
         assert args, 'missing on event arguments'
 
-        # split arguments into event name, optional argument pattern and command
+        # split into event name, optional argument pattern and command
         event = args[0]
         pattern = []
         if args[1] == '[':
@@ -93,9 +96,9 @@ class OnEventPlugin(PerInstancePlugin):
                 if arg == ']':
                     break
                 pattern.append(arg)
-            command = args.raw(3+i)
+            command = tuple(args[3+i:])
         else:
-            command = args.raw(1)
+            command = tuple(args[1:])
 
         assert event and command, 'missing on event command'
         self.on_event(event, pattern, command)

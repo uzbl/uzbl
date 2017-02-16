@@ -23,3 +23,19 @@ class ArgumentsTest(unittest.TestCase):
         self.assertEqual(a.raw(), 'foo\t\tbar')
         self.assertEqual(a.raw(0, 0), 'foo')
         self.assertEqual(a.raw(1, 1), 'bar')
+
+    def test_quoted_quote(self):
+        a = Arguments('foo "\'"')
+        self.assertEqual(a, ('foo', "'"))
+
+    def test_expand(self):
+        a = Arguments('foo @<some uzbl.command("foo")>@')
+        self.assertEquals(a, ('foo', '@<some uzbl.command("foo")>@'))
+
+    def test_expand_sub_var(self):
+        a = Arguments('foo @<some uzbl.command( "@var", "bla" )>@')
+        self.assertEquals(a, ('foo', '@<some uzbl.command( "@var", "bla" )>@'))
+
+    def test_escape(self):
+        a = Arguments('foo "\\\\" asd\ af')
+        self.assertEquals(a, ('foo', '\\', 'asd af'))
