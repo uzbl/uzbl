@@ -17,6 +17,7 @@ INSTALL    ?= install -p
 ENABLE_WEBKIT2 ?= yes
 
 PYTHON  ?= python3
+PIP     ?= pip3
 
 # --- configuration ends here ---
 
@@ -32,6 +33,10 @@ REQ_PKGS += 'libsoup-2.4 >= 2.33.4' gthread-2.0 glib-2.0 'gio-2.0 >= 2.44' gio-u
 ARCH := $(shell uname -m)
 
 COMMIT_HASH := $(shell ./misc/hash.sh)
+
+# Convert version to pip format, v0.9.1-23-g69480a3 becomes 0.9.1+23.g69480a3
+PYVERSION := $(shell echo ${COMMIT_HASH} | sed 's/^v//;s/-/+/;s/-/./g')
+PYWHEEL := uzbl-${PYVERSION}-py3-none-any.whl
 
 CPPFLAGS += -D_XOPEN_SOURCE=500 -DARCH=\"$(ARCH)\" -DCOMMIT=\"$(COMMIT_HASH)\" -DLIBDIR=\"$(LIBDIR)\"
 
@@ -127,11 +132,11 @@ icons: ${ICONS}
 icons/%.png: examples/data/uzbl-logo.svg
 	convert -background none -resize $(shell echo $@ | grep -oE '[0-9]*x[0-9]*') $^ $@
 
-build: ${PY}
-	$(PYTHON) setup.py build
+dist/${PYWHEEL}: ${PY}
+	VERSION=$(PYVERSION) $(PYTHON) setup.py bdist_wheel
 
 .PHONY: uzbl-event-manager
-uzbl-event-manager: build
+uzbl-event-manager: dist/${PYWHEEL}
 
 %.lo: %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -c $< -o $@
@@ -154,7 +159,7 @@ test-uzbl-core-sandbox: sandbox uzbl-core sandbox-install-uzbl-core sandbox-inst
 	rm -rf ./sandbox/usr
 
 test-uzbl-browser-sandbox: sandbox uzbl-browser sandbox-install-uzbl-browser sandbox-install-example-data
-	./sandbox/env.sh ${PYTHON} -m uzbl.event_manager restart -navv &
+	./sandbox/env.sh ${PYTHON} -m uzbl.event_manager restart -navvv &
 	sleep 1
 	./sandbox/env.sh uzbl-browser http://www.uzbl.org --verbose
 	./sandbox/env.sh ${PYTHON} -m uzbl.event_manager stop -vv -o /dev/null
@@ -241,9 +246,9 @@ install-uzbl-core: uzbl-core install-dirs
 install-event-manager: install-dirs
 	$(INSTALL) -m644 uzbl-event-manager.1 $(MANDIR)/man1/uzbl-event-manager.1
 ifeq ($(DESTDIR),)
-	$(PYTHON) setup.py install --prefix=$(PREFIX) $(PYINSTALL_EXTRA)
+	$(PIP) install -I --prefix=$(PREFIX) --install-option="$(PYINSTALL_EXTRA)" dist/${PYWHEEL}
 else
-	$(PYTHON) setup.py install --prefix=$(PREFIX) --root=$(DESTDIR) $(PYINSTALL_EXTRA)
+	$(PIP) install -I --prefix=$(PREFIX) --root=$(DESTDIR) --install-option="$(PYINSTALL_EXTRA)" dist/${PYWHEEL}
 endif
 
 install-uzbl-browser: uzbl-browser install-dirs install-uzbl-core install-event-manager

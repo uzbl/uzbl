@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 
 
-import sys
-if '' not in sys.path:
-    sys.path.insert(0, '')
-
-import mock
 import unittest
 from emtest import EventManagerMock
 from uzbl.plugins.bind import Bind, BindPlugin
@@ -18,8 +13,8 @@ def justafunction():
 
 class BindTest(unittest.TestCase):
     def test_unique_id(self):
-        a = Bind('spam', 'spam')
-        b = Bind('spam', 'spam')
+        a = Bind('spam', ['spam'])
+        b = Bind('spam', ['spam'])
         self.assertNotEqual(a.bid, b.bid)
 
 
@@ -49,7 +44,7 @@ class BindPluginTest(unittest.TestCase):
         binds = b.bindlet.get_binds()
         self.assertEqual(len(binds), 1)
         self.assertEqual(binds[0].glob, glob)
-        self.assertEqual(binds[0].commands, [handler])
+        self.assertEqual(binds[0].commands, [(handler,)])
 
     def test_parse_nasty_bind(self):
         b = BindPlugin[self.uzbl]
@@ -61,4 +56,4 @@ class BindPluginTest(unittest.TestCase):
         binds = b.bindlet.get_binds()
         self.assertEqual(len(binds), 1)
         self.assertEqual(binds[0].glob, glob)
-        self.assertEqual(binds[0].commands, [handler])
+        self.assertEqual(binds[0].commands, [('do', 'something')])

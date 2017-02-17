@@ -1,7 +1,10 @@
+import os
 from setuptools import setup
 
+VERSION = os.getenv('VERSION', '0+devel')
+
 setup(name='uzbl',
-      version='201100808',
+      version=VERSION,
       description='Uzbl event daemon',
       url='http://uzbl.org',
       packages=['uzbl', 'uzbl.plugins'],
