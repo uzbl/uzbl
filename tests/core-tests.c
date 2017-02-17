@@ -111,6 +111,34 @@ test_commands_js ()
     g_main_loop_run (loop);
 }
 
+static void
+commands_chain_js_cb (GObject      *source,
+                   GAsyncResult *res,
+                   gpointer      data)
+{
+    GMainLoop *loop = (GMainLoop*) data;
+    GError *err = NULL;
+    GString *r = uzbl_commands_run_finish (source, res, &err);
+
+    g_assert_null (err);
+    g_assert_cmpstr (r->str, ==, "foobar");
+
+    g_main_loop_quit (loop);
+}
+
+static void
+test_commands_chain_js ()
+{
+    GMainLoop *loop = g_main_loop_new (NULL, FALSE);
+    GArray *argv = uzbl_commands_args_new ();
+    const UzblCommand *cmd = uzbl_commands_parse (
+        "chain 'js clean string \\'\"foo\"\\'' 'print bar'", argv);
+
+    uzbl_commands_run_async (cmd, argv, TRUE, commands_chain_js_cb,
+                             (gpointer) loop);
+    g_main_loop_run (loop);
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -126,6 +154,7 @@ main (int argc, char *argv[])
     g_test_add_func ("/uzbl/commands/parse_escaped_at", test_parse_escaped_at);
     g_test_add_func ("/uzbl/commands/chain", test_commands_chain);
     g_test_add_func ("/uzbl/commands/js", test_commands_js);
+    g_test_add_func ("/uzbl/commands/chain_js", test_commands_chain_js);
 
     return g_test_run ();
 }
