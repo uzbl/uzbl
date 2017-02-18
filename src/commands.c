@@ -911,7 +911,7 @@ DECLARE_COMMAND (spawn_sh_sync);
 
 /* Uzbl commands */
 DECLARE_TASK (chain);
-DECLARE_COMMAND (include);
+DECLARE_TASK (include);
 DECLARE_COMMAND (exit);
 
 /* Variable commands */
@@ -987,7 +987,7 @@ builtin_command_table[] = {
 
     /* Uzbl commands */
     { "chain",                          COMMAND (cmd_chain),          TRUE,  TRUE,  TRUE  },
-    { "include",                        cmd_include,                  FALSE, TRUE,  FALSE },
+    { "include",                        COMMAND (cmd_include),        FALSE, TRUE,  TRUE  },
     { "exit",                           cmd_exit,                     TRUE,  TRUE,  FALSE },
 
     /* Variable commands */
@@ -2517,11 +2517,9 @@ chain_command_cb (GObject      *source,
 }
 
 
-IMPLEMENT_COMMAND (include)
+IMPLEMENT_TASK (include)
 {
-    UZBL_UNUSED (result);
-
-    ARG_CHECK (argv, 1);
+    TASK_ARG_CHECK (task, argv, 1);
 
     gchar *req_path = argv_idx (argv, 0);
     gchar *path = NULL;
@@ -2533,6 +2531,8 @@ IMPLEMENT_COMMAND (include)
             NULL);
         g_free (path);
     }
+    g_task_return_pointer (task, NULL, NULL);
+    g_object_unref (task);
 }
 
 IMPLEMENT_COMMAND (exit)
