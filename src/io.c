@@ -573,14 +573,20 @@ run_io (gpointer data)
 }
 
 typedef struct {
+    GIOStream *stream;
     UzblIODataCallback callback;
     UzblIODataErrorCallback error_callback;
-    GIOStream *stream;
     gpointer data;
 } UzblIOBufferData;
 
 static void
-read_line_cb (GObject *source, GAsyncResult *res, gpointer data);
+buffer_callback (const gchar         *input,
+                 gpointer             data,
+                 GAsyncReadyCallback  callback,
+                 gpointer             callback_data);
+
+static void
+cmd_source_completed (GObject *source, GAsyncResult *result, gpointer data);
 
 void
 add_buffered_cmd_source (GIOStream *stream,
@@ -588,50 +594,42 @@ add_buffered_cmd_source (GIOStream *stream,
                          UzblIODataErrorCallback error_callback,
                          gpointer data)
 {
-    GDataInputStream *ds = g_data_input_stream_new (
-        g_io_stream_get_input_stream (stream));
-
     UzblIOBufferData *io_data = g_malloc (sizeof (UzblIOBufferData));
+    io_data->stream = stream;
     io_data->callback = callback;
     io_data->error_callback = error_callback;
-    io_data->stream = stream;
     io_data->data = data;
 
-    g_data_input_stream_read_line_async (ds, G_PRIORITY_DEFAULT, NULL,
-                                         read_line_cb, (gpointer) io_data);
+    uzbl_io_process_lines_async (g_io_stream_get_input_stream (stream),
+                                 buffer_callback,
+                                 cmd_source_completed,
+                                 (gpointer) io_data);
 }
 
-static void
-read_line_cb (GObject *source, GAsyncResult *res, gpointer data)
+void
+buffer_callback (const gchar         *input,
+                 gpointer             data,
+                 GAsyncReadyCallback  callback,
+                 gpointer             callback_data)
 {
-    UzblIOBufferData *io_data = (UzblIOBufferData *)data;
-    GDataInputStream *ds = G_DATA_INPUT_STREAM (source);
-    GError *error = NULL;
-    gsize length;
+    UzblIOBufferData *io_data = (UzblIOBufferData*) data;
+    GTask *task = g_task_new (NULL, NULL, callback, callback_data);
+    io_data->callback (io_data->stream, input, io_data->data);
+    g_task_return_pointer (task, NULL, NULL);
+    g_object_unref (task);
+}
 
-    gchar *line = g_data_input_stream_read_line_finish (ds, res, &length, &error);
-    if (error) {
-        g_warning ("Error reading: %s", error->message);
-        g_clear_error (&error);
-
-        if (io_data->error_callback) {
-            io_data->error_callback (io_data->stream, io_data->data);
-            return;
-        }
+void
+cmd_source_completed (GObject *source, GAsyncResult *result, gpointer data)
+{
+    UzblIOBufferData *io_data = (UzblIOBufferData*) data;
+    GError *err = NULL;
+    uzbl_io_process_lines_finish (source, result, &err);
+    if (err) {
+        g_warning ("Error reading: %s", err->message);
+        g_clear_error (&err);
     }
-
-    if (!line) {
-        if (io_data->error_callback) {
-            io_data->error_callback (io_data->stream, io_data->data);
-            return;
-        }
-    }
-
-    io_data->callback (io_data->stream, line, data);
-    g_free (line);
-
-    g_data_input_stream_read_line_async (ds, G_PRIORITY_DEFAULT, NULL,
-                                         read_line_cb, data);
+    io_data->error_callback (io_data->stream, io_data->data);
 }
 
 static void
@@ -1035,4 +1033,125 @@ accept_socket_cb (GObject *source, GAsyncResult *res, gpointer data)
 
     g_socket_listener_accept_async (listener, NULL,
                                     accept_socket_cb, NULL);
+}
+
+struct _ProcessLinesContext {
+    GInputStream        *stream;
+    GDataInputStream    *data_stream;
+    UzblProcessLineFunc  processor;
+    gchar               *line;
+    gpointer             user_data;
+};
+typedef struct _ProcessLinesContext ProcessLinesContext;
+
+static void
+process_lines_context_free (ProcessLinesContext *ctx);
+
+static void
+process_line (GDataInputStream *ds, GTask *task);
+
+static void
+process_line_cb (GObject *source, GAsyncResult *res, gpointer data);
+
+static void
+line_processed (GObject *source, GAsyncResult *res, gpointer data);
+
+static void
+process_finish (GObject *source, GAsyncResult *result, GError **error);
+
+void
+process_lines_context_free (ProcessLinesContext *ctx)
+{
+    g_object_unref (ctx->data_stream);
+    if (ctx->line) {
+        g_free (ctx->line);
+    }
+    g_free (ctx);
+}
+
+void
+uzbl_io_process_lines_async (GInputStream        *stream,
+                             UzblProcessLineFunc  processor,
+                             GAsyncReadyCallback  callback,
+                             gpointer             data)
+{
+    GTask *task = g_task_new (stream, NULL, callback, data);
+    GDataInputStream *ds = g_data_input_stream_new (stream);
+    ProcessLinesContext *ctx = g_new (ProcessLinesContext, 1);
+    ctx->data_stream = ds;
+    ctx->processor = processor;
+    ctx->line = NULL;
+    ctx->user_data = data;
+    g_task_set_task_data (task, ctx,
+                          (GDestroyNotify) process_lines_context_free);
+    process_line (ds, task);
+}
+
+void
+process_line (GDataInputStream *ds, GTask *task)
+{
+    g_data_input_stream_read_line_async (ds, G_PRIORITY_DEFAULT, NULL,
+                                         process_line_cb, (gpointer) task);
+}
+
+void
+process_line_cb (GObject *source, GAsyncResult *res, gpointer data)
+{
+    UZBL_UNUSED (source);
+    GTask *task = G_TASK (data);
+    ProcessLinesContext *ctx = (ProcessLinesContext*) g_task_get_task_data (task);
+    GError *err = NULL;
+    gsize len;
+
+    gchar *line = g_data_input_stream_read_line_finish (ctx->data_stream, res, &len, &err);
+    if (err) {
+        g_task_return_error (task, err);
+        g_object_unref (task);
+        return;
+    }
+    if (!line) {
+        g_task_return_pointer (task, NULL, NULL);
+        g_object_unref (task);
+        return;
+    }
+
+    ctx->processor (line, ctx->user_data, line_processed, task);
+}
+
+void
+process_finish (GObject *source, GAsyncResult *result, GError **error)
+{
+    UZBL_UNUSED (source);
+    GTask *task = G_TASK (result);
+    g_task_propagate_pointer (task, error);
+}
+
+void
+line_processed (GObject *source, GAsyncResult *res, gpointer data)
+{
+    GTask *task = G_TASK (data);
+    ProcessLinesContext *ctx = (ProcessLinesContext*) g_task_get_task_data (task);
+    GError *err = NULL;
+
+    process_finish (source, res, &err);
+    if (err) {
+        g_task_return_error (task, err);
+        g_object_unref (task);
+        return;
+    }
+
+    g_free (ctx->line);
+    ctx->line = NULL;
+
+    process_line (ctx->data_stream, task);
+}
+
+void
+uzbl_io_process_lines_finish (GObject       *source,
+                              GAsyncResult  *result,
+                              GError       **error)
+{
+    UZBL_UNUSED (source);
+    GTask *task = G_TASK (result);
+    g_task_propagate_pointer (task, error);
 }

@@ -31,4 +31,24 @@ uzbl_io_init_extpipe ();
 void
 uzbl_io_extfds(int *input, int *output);
 
+
+// The input processing function should create a new GTask for processing the
+// line of input that will call the given callback when done. It may resolve
+// the task immediately.
+typedef void (*UzblProcessLineFunc) (const gchar         *input,
+                                     gpointer             data,
+                                     GAsyncReadyCallback  callback,
+                                     gpointer             callback_data);
+
+void
+uzbl_io_process_lines_async (GInputStream        *stream,
+                             UzblProcessLineFunc  processor,
+                             GAsyncReadyCallback  callback,
+                             gpointer             data);
+
+void
+uzbl_io_process_lines_finish (GObject       *source,
+                              GAsyncResult  *result,
+                              GError       **error);
+
 #endif
