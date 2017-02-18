@@ -123,8 +123,10 @@ uzbl_io_free ()
 typedef gboolean (*UzblIODataCallback)(GIOStream *stream, const gchar* line, gpointer data);
 typedef void (*UzblIODataErrorCallback)(GIOStream *stream, gpointer data);
 static void
-add_buffered_cmd_source (GIOStream *stream, const gchar *name, UzblIODataCallback callback,
-                         UzblIODataErrorCallback error_callback, gpointer data);
+add_buffered_cmd_source (GIOStream               *stream,
+                         UzblIODataCallback       callback,
+                         UzblIODataErrorCallback  error_callback,
+                         gpointer                 data);
 static gboolean
 control_command_stream (GIOStream *stream, const gchar *input, gpointer data);
 
@@ -134,8 +136,7 @@ uzbl_io_init_stdin ()
     GInputStream *input = g_unix_input_stream_new (STDIN_FILENO, TRUE);
     GOutputStream *output = g_unix_output_stream_new (STDOUT_FILENO, TRUE);
     GIOStream *stream = g_simple_io_stream_new (input, output);
-    add_buffered_cmd_source (stream, "Uzbl stdin watcher",
-                             control_command_stream, NULL, NULL);
+    add_buffered_cmd_source (stream, control_command_stream, NULL, NULL);
 }
 
 static void
@@ -161,7 +162,7 @@ uzbl_io_init_connect_socket (const gchar *socket_path)
         return FALSE;
     }
 
-    add_buffered_cmd_source (G_IO_STREAM (con), "Uzbl connect socket",
+    add_buffered_cmd_source (G_IO_STREAM (con),
                              control_command_stream,
                              close_client_socket,
                              uzbl.io->connect_sockets);
@@ -582,13 +583,11 @@ static void
 read_line_cb (GObject *source, GAsyncResult *res, gpointer data);
 
 void
-add_buffered_cmd_source (GIOStream *stream, const gchar *name,
+add_buffered_cmd_source (GIOStream *stream,
                          UzblIODataCallback callback,
                          UzblIODataErrorCallback error_callback,
                          gpointer data)
 {
-    UZBL_UNUSED (name);
-
     GDataInputStream *ds = g_data_input_stream_new (
         g_io_stream_get_input_stream (stream));
 
@@ -794,7 +793,7 @@ attach_fifo (const gchar *path)
         return FALSE;
     }
 
-    add_buffered_cmd_source (G_IO_STREAM (stream), "Uzbl main fifo",
+    add_buffered_cmd_source (G_IO_STREAM (stream),
                              control_command_stream, NULL, NULL);
     uzbl.io->fifo_path = g_strdup (path);
     uzbl_events_send (FIFO_SET, NULL,
@@ -1029,7 +1028,7 @@ accept_socket_cb (GObject *source, GAsyncResult *res, gpointer data)
         g_error_free (error);
     }
 
-    add_buffered_cmd_source (G_IO_STREAM (con), "Uzbl control socket",
+    add_buffered_cmd_source (G_IO_STREAM (con),
                              control_command_stream, close_client_socket,
                              uzbl.io->client_sockets);
     g_ptr_array_add (uzbl.io->client_sockets, G_IO_STREAM (con));
