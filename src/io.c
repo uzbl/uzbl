@@ -124,19 +124,15 @@ typedef gboolean (*UzblIODataCallback)(GIOStream *stream, const gchar* line, gpo
 typedef void (*UzblIODataErrorCallback)(GIOStream *stream, gpointer data);
 static void
 add_buffered_cmd_source (GIOStream               *stream,
-                         UzblIODataCallback       callback,
                          UzblIODataErrorCallback  error_callback,
                          gpointer                 data);
-static gboolean
-control_command_stream (GIOStream *stream, const gchar *input, gpointer data);
-
 void
 uzbl_io_init_stdin ()
 {
     GInputStream *input = g_unix_input_stream_new (STDIN_FILENO, TRUE);
     GOutputStream *output = g_unix_output_stream_new (STDOUT_FILENO, TRUE);
     GIOStream *stream = g_simple_io_stream_new (input, output);
-    add_buffered_cmd_source (stream, control_command_stream, NULL, NULL);
+    add_buffered_cmd_source (stream, NULL, NULL);
 }
 
 static void
@@ -163,7 +159,6 @@ uzbl_io_init_connect_socket (const gchar *socket_path)
     }
 
     add_buffered_cmd_source (G_IO_STREAM (con),
-                             control_command_stream,
                              close_client_socket,
                              uzbl.io->connect_sockets);
     g_ptr_array_add (uzbl.io->connect_sockets, G_IO_STREAM (con));
@@ -574,7 +569,6 @@ run_io (gpointer data)
 
 typedef struct {
     GIOStream *stream;
-    UzblIODataCallback callback;
     UzblIODataErrorCallback error_callback;
     gpointer data;
 } UzblIOBufferData;
@@ -588,15 +582,21 @@ buffer_callback (const gchar         *input,
 static void
 cmd_source_completed (GObject *source, GAsyncResult *result, gpointer data);
 
+static void
+schedule_io_input (gchar *line, GAsyncReadyCallback callback, gpointer data);
+
+static void
+write_result_to_stream (GObject      *source,
+                        GAsyncResult *res,
+                        gpointer      data);
+
 void
 add_buffered_cmd_source (GIOStream *stream,
-                         UzblIODataCallback callback,
                          UzblIODataErrorCallback error_callback,
                          gpointer data)
 {
     UzblIOBufferData *io_data = g_malloc (sizeof (UzblIOBufferData));
     io_data->stream = stream;
-    io_data->callback = callback;
     io_data->error_callback = error_callback;
     io_data->data = data;
 
@@ -614,7 +614,11 @@ buffer_callback (const gchar         *input,
 {
     UzblIOBufferData *io_data = (UzblIOBufferData*) data;
     GTask *task = g_task_new (NULL, NULL, callback, callback_data);
-    io_data->callback (io_data->stream, input, io_data->data);
+    gchar *ctl_line = g_strdup (input);
+    // Hold a reference for each pending command so that the stream is not
+    // closed before delivering the response when the read end closes
+    g_object_ref (io_data->stream);
+    schedule_io_input (ctl_line, write_result_to_stream, io_data->stream);
     g_task_return_pointer (task, NULL, NULL);
     g_object_unref (task);
 }
@@ -630,26 +634,6 @@ cmd_source_completed (GObject *source, GAsyncResult *result, gpointer data)
         g_clear_error (&err);
     }
     io_data->error_callback (io_data->stream, io_data->data);
-}
-
-static void
-schedule_io_input (gchar *line, GAsyncReadyCallback callback, gpointer data);
-
-static void
-write_result_to_stream (GObject      *source,
-                        GAsyncResult *res,
-                        gpointer      data);
-
-gboolean
-control_command_stream (GIOStream *stream, const gchar *input, gpointer data)
-{
-    UZBL_UNUSED (data);
-
-    g_object_ref (G_OBJECT (stream));
-    gchar *ctl_line = g_strdup (input);
-    schedule_io_input (ctl_line, write_result_to_stream, stream);
-
-    return TRUE;
 }
 
 void
@@ -791,8 +775,7 @@ attach_fifo (const gchar *path)
         return FALSE;
     }
 
-    add_buffered_cmd_source (G_IO_STREAM (stream),
-                             control_command_stream, NULL, NULL);
+    add_buffered_cmd_source (G_IO_STREAM (stream), NULL, NULL);
     uzbl.io->fifo_path = g_strdup (path);
     uzbl_events_send (FIFO_SET, NULL,
                       TYPE_STR, uzbl.io->fifo_path,
@@ -1027,7 +1010,7 @@ accept_socket_cb (GObject *source, GAsyncResult *res, gpointer data)
     }
 
     add_buffered_cmd_source (G_IO_STREAM (con),
-                             control_command_stream, close_client_socket,
+                             close_client_socket,
                              uzbl.io->client_sockets);
     g_ptr_array_add (uzbl.io->client_sockets, G_IO_STREAM (con));
 
