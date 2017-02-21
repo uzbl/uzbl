@@ -62,12 +62,12 @@ set download_handler       spawn_sync @scripts_dir/download.sh
 @on_event   REQ_NEW_WINDOW event @- if (@embedded) "NEW_TAB"; else "NEW_WINDOW" -@ %s
 
 # Load start handler
-@on_event   LOAD_START     @set_status <span foreground="#cb4b16">wait</span>
+@on_event   LOAD_START     @set_status '<span foreground="#cb4b16">wait</span>'
 # Reset the keycmd on navigation
 @on_event   LOAD_START     @set_mode
 
 # Load commit handlers
-@on_event   LOAD_COMMIT    @set_status <span foreground="#859900">recv</span>
+@on_event   LOAD_COMMIT    @set_status '<span foreground="#859900">recv</span>'
 
 # add some javascript to the page for other 'js' commands to access later.
 @on_event   LOAD_COMMIT    js page string 'uzbl = {}'
@@ -80,7 +80,7 @@ set download_handler       spawn_sync @scripts_dir/download.sh
 #@on_event   LOAD_COMMIT    spawn @scripts_dir/per-site-settings.py @data_home/per-site-settings
 
 # Load finish handlers
-@on_event   LOAD_FINISH    @set_status <span foreground="#d33682">done</span>
+@on_event   LOAD_FINISH    @set_status '<span foreground="#d33682">done</span>'
 @on_event   LOAD_FINISH    spawn @scripts_dir/history.sh
 
 # Switch to insert mode if a (editable) html form is clicked
