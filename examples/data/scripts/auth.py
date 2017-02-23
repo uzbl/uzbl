@@ -7,7 +7,7 @@ try:
     import pygtkcompat
 except ImportError:
     pygtkcompat = None
-if not (pygtkcompat is None):
+if pygtkcompat is not None:
     pygtkcompat.enable()
     pygtkcompat.enable_gtk()
 import gtk
