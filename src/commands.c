@@ -962,11 +962,11 @@ DECLARE_COMMAND (inspector);
 
 /* Execution commands */
 DECLARE_TASK (js);
-DECLARE_COMMAND (spawn);
-DECLARE_COMMAND (spawn_sync);
-DECLARE_COMMAND (spawn_sync_exec);
-DECLARE_COMMAND (spawn_sh);
-DECLARE_COMMAND (spawn_sh_sync);
+DECLARE_TASK (spawn);
+DECLARE_TASK (spawn_sync);
+DECLARE_TASK (spawn_sync_exec);
+DECLARE_TASK (spawn_sh);
+DECLARE_TASK (spawn_sh_sync);
 
 /* Uzbl commands */
 DECLARE_TASK (chain);
@@ -1038,11 +1038,11 @@ builtin_command_table[] = {
     /* Execution commands */
     { "js",                             COMMAND (cmd_js),             TRUE,  TRUE,  TRUE  },
     /* TODO: Consolidate into one command. */
-    { "spawn",                          cmd_spawn,                    TRUE,  TRUE,  FALSE },
-    { "spawn_sync",                     cmd_spawn_sync,               TRUE,  TRUE,  FALSE },
-    { "spawn_sync_exec",                cmd_spawn_sync_exec,          TRUE,  TRUE,  FALSE },
-    { "spawn_sh",                       cmd_spawn_sh,                 TRUE,  TRUE,  FALSE },
-    { "spawn_sh_sync",                  cmd_spawn_sh_sync,            TRUE,  TRUE,  FALSE },
+    { "spawn",                          COMMAND (cmd_spawn),          TRUE,  TRUE,  TRUE  },
+    { "spawn_sync",                     COMMAND (cmd_spawn_sync),     TRUE,  TRUE,  TRUE  },
+    { "spawn_sync_exec",                COMMAND (cmd_spawn_sync_exec),TRUE,  TRUE,  TRUE  },
+    { "spawn_sh",                       COMMAND (cmd_spawn_sh),       TRUE,  TRUE,  TRUE  },
+    { "spawn_sh_sync",                  COMMAND (cmd_spawn_sh_sync),  TRUE,  TRUE,  TRUE  },
 
     /* Uzbl commands */
     { "chain",                          COMMAND (cmd_chain),          TRUE,  TRUE,  TRUE  },
@@ -2460,49 +2460,44 @@ run_js_cb (GObject      *source,
 }
 
 static void
-spawn (GArray *argv, GString *result, gboolean exec);
+spawn (GTask *task, GArray *argv, GString *result, gboolean exec);
 static void
-spawn_sh (GArray *argv, GString *result);
+spawn_sh (GTask *task, GArray *argv, GString *result);
 
-IMPLEMENT_COMMAND (spawn)
+IMPLEMENT_TASK (spawn)
 {
-    UZBL_UNUSED (result);
-
-    spawn (argv, NULL, FALSE);
+    spawn (task, argv, NULL, FALSE);
 }
 
-IMPLEMENT_COMMAND (spawn_sync)
+IMPLEMENT_TASK (spawn_sync)
 {
+    GString *result = (GString*) g_task_get_task_data (task);
     if (!result) {
-        GString *force_result = g_string_new ("");
-        spawn (argv, force_result, FALSE);
-        g_string_free (force_result, TRUE);
-    } else {
-        spawn (argv, result, FALSE);
+        result = g_string_new ("");
+        g_task_set_task_data (task, result, free_gstring);
     }
+    spawn (task, argv, result, FALSE);
 }
 
-IMPLEMENT_COMMAND (spawn_sync_exec)
+IMPLEMENT_TASK (spawn_sync_exec)
 {
+    GString *result = (GString*) g_task_get_task_data (task);
     if (!result) {
-        GString *force_result = g_string_new ("");
-        spawn (argv, force_result, TRUE);
-        g_string_free (force_result, TRUE);
-    } else {
-        spawn (argv, result, TRUE);
+        result = g_string_new ("");
+        g_task_set_task_data (task, result, free_gstring);
     }
+    spawn (task, argv, result, TRUE);
 }
 
-IMPLEMENT_COMMAND (spawn_sh)
+IMPLEMENT_TASK (spawn_sh)
 {
-    UZBL_UNUSED (result);
-
-    spawn_sh (argv, NULL);
+    spawn_sh (task, argv, NULL);
 }
 
-IMPLEMENT_COMMAND (spawn_sh_sync)
+IMPLEMENT_TASK (spawn_sh_sync)
 {
-    spawn_sh (argv, result);
+    GString *result = (GString*) g_task_get_task_data (task);
+    spawn_sh (task, argv, result);
 }
 
 /* Uzbl commands */
@@ -2865,9 +2860,9 @@ static gboolean
 run_system_command (GArray *args, char **output_stdout);
 
 void
-spawn (GArray *argv, GString *result, gboolean exec)
+spawn (GTask *task, GArray *argv, GString *result, gboolean exec)
 {
-    ARG_CHECK (argv, 1);
+    TASK_ARG_CHECK (task, argv, 1);
 
     const gchar *req_path = argv_idx (argv, 0);
 
@@ -2906,10 +2901,12 @@ spawn (GArray *argv, GString *result, gboolean exec)
 
     g_free (r);
     uzbl_commands_args_free (args);
+    g_task_return_pointer (task, NULL, NULL);
+    g_object_unref (task);
 }
 
 void
-spawn_sh (GArray *argv, GString *result)
+spawn_sh (GTask *task, GArray *argv, GString *result)
 {
     gchar *shell = uzbl_variables_get_string ("shell_cmd");
 
@@ -2923,6 +2920,8 @@ spawn_sh (GArray *argv, GString *result)
     GArray *sh_cmd = split_quoted (shell);
     g_free (shell);
     if (!sh_cmd) {
+        g_task_return_pointer (task, NULL, NULL);
+        g_object_unref (task);
         return;
     }
 
@@ -2940,6 +2939,8 @@ spawn_sh (GArray *argv, GString *result)
 
     g_free (r);
     uzbl_commands_args_free (sh_cmd);
+    g_task_return_pointer (task, NULL, NULL);
+    g_object_unref (task);
 }
 
 void
