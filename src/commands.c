@@ -910,7 +910,7 @@ DECLARE_COMMAND (spawn_sh);
 DECLARE_COMMAND (spawn_sh_sync);
 
 /* Uzbl commands */
-DECLARE_COMMAND (chain);
+DECLARE_TASK (chain);
 DECLARE_COMMAND (include);
 DECLARE_COMMAND (exit);
 
@@ -925,6 +925,8 @@ DECLARE_COMMAND (print);
 DECLARE_COMMAND (event);
 DECLARE_COMMAND (choose);
 DECLARE_COMMAND (request);
+
+#define COMMAND(x) (UzblCommandCallback) x
 
 static const UzblCommand
 builtin_command_table[] = {
@@ -975,7 +977,7 @@ builtin_command_table[] = {
     { "inspector",                      cmd_inspector,                TRUE,  TRUE,  FALSE },
 
     /* Execution commands */
-    { "js",                             (UzblCommandCallback) cmd_js, TRUE,  TRUE,  TRUE  },
+    { "js",                             COMMAND (cmd_js),             TRUE,  TRUE,  TRUE  },
     /* TODO: Consolidate into one command. */
     { "spawn",                          cmd_spawn,                    TRUE,  TRUE,  FALSE },
     { "spawn_sync",                     cmd_spawn_sync,               TRUE,  TRUE,  FALSE },
@@ -984,7 +986,7 @@ builtin_command_table[] = {
     { "spawn_sh_sync",                  cmd_spawn_sh_sync,            TRUE,  TRUE,  FALSE },
 
     /* Uzbl commands */
-    { "chain",                          cmd_chain,                    TRUE,  TRUE,  FALSE },
+    { "chain",                          COMMAND (cmd_chain),          TRUE,  TRUE,  TRUE  },
     { "include",                        cmd_include,                  FALSE, TRUE,  FALSE },
     { "exit",                           cmd_exit,                     TRUE,  TRUE,  FALSE },
 
@@ -2451,27 +2453,69 @@ IMPLEMENT_COMMAND (spawn_sh_sync)
 
 /* Uzbl commands */
 
-IMPLEMENT_COMMAND (chain)
+struct _ChainData {
+    GArray  *argv;
+    guint    idx;
+    GString *result;
+};
+typedef struct _ChainData ChainData;
+
+static void
+chain_next (GTask      *task,
+            ChainData *data);
+
+static void
+chain_command_cb (GObject      *source,
+                  GAsyncResult *res,
+                  gpointer      data);
+
+IMPLEMENT_TASK (chain)
 {
-    ARG_CHECK (argv, 1);
+    TASK_ARG_CHECK (task, argv, 1);
 
-    guint i = 0;
+    ChainData *cd = g_new (ChainData, 1);
+    cd->argv = argv;
+    cd->idx = 0;
+    cd->result = g_task_get_task_data (task);
+    g_task_set_task_data (task, cd, g_free);
+    chain_next (task, cd);
+}
+
+void
+chain_next (GTask     *task,
+            ChainData *data)
+{
     const gchar *cmd;
-    while ((cmd = argv_idx (argv, i++))) {
-        GString *res = NULL;
-
-        if (result) {
-            res = g_string_new ("");
-        }
-
-        uzbl_commands_run (cmd, res);
-
-        if (result) {
-            g_string_append (result, res->str);
-            g_string_free (res, TRUE);
-        }
+    if ((cmd = argv_idx (data->argv, data->idx++))) {
+        uzbl_commands_run_string_async (cmd, !!data->result,
+                                        chain_command_cb,
+                                        (gpointer) task);
+    } else {
+        g_task_return_pointer (task, NULL, NULL);
     }
 }
+
+void
+chain_command_cb (GObject      *source,
+                  GAsyncResult *res,
+                  gpointer      data)
+{
+    GTask *task = G_TASK (data);
+    ChainData *cd = g_task_get_task_data (task);
+    GString *str;
+    GError *err = NULL;
+    str = uzbl_commands_run_finish (source, res, &err);
+    if (err) {
+        g_task_return_error (task, err);
+        return;
+    }
+    if (cd->result) {
+        g_string_append (cd->result, str->str);
+    }
+    g_string_free (str, TRUE);
+    chain_next (task, cd);
+}
+
 
 IMPLEMENT_COMMAND (include)
 {

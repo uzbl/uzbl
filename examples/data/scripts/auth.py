@@ -3,6 +3,13 @@
 from __future__ import print_function
 
 import os
+try:
+    import pygtkcompat
+except ImportError:
+    pygtkcompat = None
+if pygtkcompat is not None:
+    pygtkcompat.enable()
+    pygtkcompat.enable_gtk()
 import gtk
 import sys
 import argparse
