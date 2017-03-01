@@ -702,9 +702,6 @@ split_quoted (const gchar *src);
 static gchar *
 unescape (gchar *src);
 
-static void
-parse_command_from_file (const char *cmd);
-
 void
 parse_command_arguments (const gchar *args, GArray *argv, gboolean split)
 {
@@ -861,21 +858,6 @@ unescape (gchar *src)
     *p = '\0';
 
     return src;
-}
-
-void
-parse_command_from_file (const char *cmd)
-{
-    if (!cmd || !*cmd) {
-        return;
-    }
-
-    /* Strip trailing newline, and any other whitespace in front. */
-    gchar *work_string = g_strdup (cmd);
-    g_strstrip (work_string);
-
-    uzbl_commands_run (work_string, NULL);
-    g_free (work_string);
 }
 
 UzblCommandRun*
@@ -2856,16 +2838,24 @@ free_menu_item (gpointer data)
 
 /* Make sure that the args string you pass can properly be interpreted (e.g.,
  * properly escaped against whitespace, quotes etc.). */
-static gboolean
-run_system_command (GArray *args, char **output_stdout);
+static GSubprocess*
+run_system_command (GArray *args, gboolean capture_stdout);
+
+static void
+stream_read_all (GInputStream *stream, GString *target);
+
+static void
+spawn_process_lines_cb (GObject      *source,
+                        GAsyncResult *res,
+                        gpointer      data);
 
 void
 spawn (GTask *task, GArray *argv, GString *result, gboolean exec)
 {
     TASK_ARG_CHECK (task, argv, 1);
 
+    GError *err = NULL;
     const gchar *req_path = argv_idx (argv, 0);
-
     gchar *path = find_existing_file (req_path);
 
     if (!path) {
@@ -2883,24 +2873,37 @@ spawn (GTask *task, GArray *argv, GString *result, gboolean exec)
         uzbl_commands_args_append (args, g_strdup (arg));
     }
 
-    gchar *r = NULL;
-    run_system_command (args, result ? &r : NULL);
-    if (result && r) {
-        g_string_append (result, r);
-        if (exec) {
-            /* Run each line of output from the program as a command. */
-            gchar *head = r;
-            gchar *tail;
-            while ((tail = strchr (head, '\n'))) {
-                *tail = '\0';
-                parse_command_from_file (head);
-                head = tail + 1;
-            }
-        }
+    GSubprocess *proc = run_system_command (args, result || exec);
+    uzbl_commands_args_free (args);
+    if (!proc) {
+        g_task_return_pointer (task, NULL, NULL);
+        g_object_unref (task);
+        return;
+    }
+    g_task_set_task_data (task, proc, g_object_unref);
+
+    if (exec) {
+        // Task is completed in callback
+        uzbl_io_process_lines_async (
+            g_subprocess_get_stdout_pipe (proc),
+            load_file_process_async,
+            spawn_process_lines_cb,
+            task
+        );
+        return;
     }
 
-    g_free (r);
-    uzbl_commands_args_free (args);
+    if (result) {
+        stream_read_all (g_subprocess_get_stdout_pipe (proc), result);
+    }
+
+    g_subprocess_wait (proc, NULL, &err);
+    if (err) {
+        g_task_return_error (task, err);
+        g_object_unref (task);
+        return;
+    }
+
     g_task_return_pointer (task, NULL, NULL);
     g_object_unref (task);
 }
@@ -2908,6 +2911,7 @@ spawn (GTask *task, GArray *argv, GString *result, gboolean exec)
 void
 spawn_sh (GTask *task, GArray *argv, GString *result)
 {
+    GError *err = NULL;
     gchar *shell = uzbl_variables_get_string ("shell_cmd");
 
     if (!*shell) {
@@ -2930,18 +2934,67 @@ spawn_sh (GTask *task, GArray *argv, GString *result)
         uzbl_commands_args_append (sh_cmd, g_strdup (arg));
     }
 
-    gchar *r = NULL;
-    run_system_command (sh_cmd, result ? &r : NULL);
-    if (result && r) {
-        remove_trailing_newline (r);
-        g_string_append (result, r);
+    GSubprocess *proc = run_system_command (sh_cmd, !!result);
+    uzbl_commands_args_free (sh_cmd);
+
+    if (!proc) {
+        g_task_return_pointer (task, NULL, NULL);
+        g_object_unref (task);
+        return;
     }
 
-    g_free (r);
-    uzbl_commands_args_free (sh_cmd);
+    if (result) {
+        stream_read_all (g_subprocess_get_stdout_pipe (proc), result);
+    }
+
+    g_subprocess_wait (proc, NULL, &err);
+    if (err) {
+        g_task_return_error (task, err);
+        g_object_unref (task);
+        return;
+    }
+
     g_task_return_pointer (task, NULL, NULL);
     g_object_unref (task);
 }
+
+void
+stream_read_all (GInputStream *stream, GString *target)
+{
+    GError *err = NULL;
+    GOutputStream *out;
+
+    out = g_memory_output_stream_new (NULL, 0, g_realloc, g_free);
+    g_output_stream_splice (G_OUTPUT_STREAM (out), stream, 0, NULL, &err);
+    if (err) {
+        g_debug ("error reading stream: %s", err->message);
+        g_clear_error (&err);
+    };
+    g_string_append (target, (gchar*) g_memory_output_stream_get_data (G_MEMORY_OUTPUT_STREAM (out)));
+    g_object_unref (out);
+}
+
+void
+spawn_process_lines_cb (GObject      *source,
+                        GAsyncResult *res,
+                        gpointer      data)
+{
+    GTask *task = G_TASK (data);
+    GError *err = NULL;
+    uzbl_io_process_lines_finish (source, res, &err);
+    if (err) {
+        g_task_return_error (task, err);
+        g_object_unref (task);
+        return;
+    }
+    g_task_return_pointer (task, NULL, NULL);
+    g_object_unref (task);
+}
+
+void
+spawn_read_all_cb (GObject      *source,
+                   GAsyncResult *result,
+                   gpointer      data);
 
 void
 make_request (gint64 timeout, GArray *argv, GString *result)
@@ -2983,22 +3036,16 @@ string_is_integer (const char *s)
     return (strspn (s, "0123456789") == strlen (s));
 }
 
-gboolean
-run_system_command (GArray *args, char **output_stdout)
+GSubprocess*
+run_system_command (GArray *args, gboolean capture_stdout)
 {
+    GSubprocess *proc;
     GError *err = NULL;
 
-    gboolean result;
-    if (output_stdout) {
-        result = g_spawn_sync (NULL, (gchar **)args->data, NULL, G_SPAWN_SEARCH_PATH,
-                               NULL, NULL, output_stdout, NULL, NULL, &err);
-        if (!result) {
-            *output_stdout = g_strdup ("");
-        }
-    } else {
-        result = g_spawn_async (NULL, (gchar **)args->data, NULL, G_SPAWN_SEARCH_PATH,
-                                NULL, NULL, NULL, &err);
-    }
+    proc = g_subprocess_newv ((const gchar**)args->data,
+                              capture_stdout ? G_SUBPROCESS_FLAGS_STDOUT_PIPE
+                                             : G_SUBPROCESS_FLAGS_NONE,
+                              &err);
 
     if (uzbl_variables_get_int ("verbose")) {
         GString *s = g_string_new ("spawned:");
@@ -3008,12 +3055,6 @@ run_system_command (GArray *args, char **output_stdout)
             g_string_append_printf (s, " %s", qarg);
             g_free (qarg);
         }
-        g_string_append_printf (s, " -- result: %s", (result ? "true" : "false"));
-        printf ("%s\n", s->str);
-        g_string_free (s, TRUE);
-        if (output_stdout) {
-            printf ("Stdout: %s\n", *output_stdout);
-        }
     }
 
     if (err) {
@@ -3021,5 +3062,5 @@ run_system_command (GArray *args, char **output_stdout)
         g_error_free (err);
     }
 
-    return result;
+    return proc;
 }
