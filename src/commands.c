@@ -324,7 +324,7 @@ uzbl_commands_run_parsed (const UzblCommand *info, GArray *argv, GString *result
     }
 
     if (info->task) {
-        g_debug ("trying to run task in sync mode");
+        g_debug ("trying to run task in sync mode: %s", info->name);
         return;
     }
 

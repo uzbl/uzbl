@@ -377,10 +377,24 @@ struct _ExpandContext {
     UzblExpandStage  stage;
     const gchar     *p;
     GString         *buf;
+    gchar           *cmd;
     GArray          *argv;
     GTask           *task;
 };
 typedef struct _ExpandContext ExpandContext;
+
+static ExpandContext*
+expand_context_new (const gchar *str, GTask *task)
+{
+    ExpandContext *ctx = g_new (ExpandContext, 1);
+    ctx->stage = EXPAND_INITIAL;
+    ctx->p = str;
+    ctx->cmd = NULL;
+    ctx->argv = NULL;
+    ctx->task = task;
+    ctx->buf = g_string_new ("");
+    return ctx;
+}
 
 static void
 expand_context_free (ExpandContext *ctx)
@@ -415,11 +429,7 @@ uzbl_variables_expand_async (const gchar         *str,
         return;
     }
 
-    ExpandContext *ctx = g_new (ExpandContext, 1);
-    ctx->stage = EXPAND_INITIAL;
-    ctx->p = str;
-    ctx->task = task;
-    ctx->buf = g_string_new ("");
+    ExpandContext *ctx = expand_context_new (str, task);
     g_task_set_task_data (task, ctx, (GDestroyNotify) expand_context_free);
     expand_process (ctx);
 }
@@ -670,15 +680,13 @@ expand_impl (const gchar *str, UzblExpandStage stage)
         return g_strdup ("");
     }
 
-    ExpandContext *ctx = g_new (ExpandContext, 1);
+    ExpandContext *ctx = expand_context_new (str, NULL);
     ctx->stage = stage;
-    ctx->p = str;
-    ctx->task = NULL;
-    GString *buf = ctx->buf = g_string_new ("");
-
     expand_process (ctx);
-    g_free (ctx);
-    return g_string_free (buf, FALSE);
+    char *result = g_string_free (ctx->buf, FALSE);
+    ctx->buf = NULL;
+    expand_context_free (ctx);
+    return result;
 }
 
 static void
@@ -765,7 +773,11 @@ expand_impl_find_end:
                     break;
                 }
 
-                GString *spawn_ret = g_string_new ("");
+                if (!ctx->task) {
+                   g_warning ("Trying to expand sh in sync context");
+                   break;
+                }
+
                 const gchar *runner = NULL;
                 const gchar *cmd = ret;
                 gboolean quote = FALSE;
@@ -788,25 +800,12 @@ expand_impl_find_end:
                     exp_cmd = quoted;
                 }
 
-                gchar *full_cmd = g_strdup_printf ("%s %s",
-                    runner,
-                    exp_cmd);
-
-                uzbl_commands_run (full_cmd, spawn_ret);
-
+                ctx->cmd = g_strdup_printf ("%s %s", runner, exp_cmd);
                 g_free (exp_cmd);
-                g_free (full_cmd);
+                uzbl_commands_run_string_async (ctx->cmd, TRUE, expand_run_command_cb, ctx);
 
-                if (spawn_ret->str) {
-                    remove_trailing_newline (spawn_ret->str);
-
-                    g_string_append (ctx->buf, spawn_ret->str);
-                }
-                g_string_free (spawn_ret, TRUE);
-
-                p = vend + 2;
-
-                break;
+                ctx->p = vend + 2;
+                return;
             }
             case EXPAND_UZBL:
             {
@@ -814,33 +813,27 @@ expand_impl_find_end:
                     break;
                 }
 
-                GString *uzbl_ret = g_string_new ("");
-
-                GArray *tmp = uzbl_commands_args_new ();
+                if (!ctx->task) {
+                   g_warning ("Trying to expand command in sync context");
+                   break;
+                }
 
                 if (*ret == '+') {
                     /* Read commands from file. */
+                    ctx->argv = uzbl_commands_args_new ();
                     gchar *mycmd = expand_impl (ret + 1, EXPAND_IGNORE_UZBL);
-                    g_array_append_val (tmp, mycmd);
+                    g_array_append_val (ctx->argv, mycmd);
 
-                    uzbl_commands_run_argv ("include", tmp, uzbl_ret);
+                    const UzblCommand *info = uzbl_commands_lookup ("include");
+                    uzbl_commands_run_async (info, ctx->argv, TRUE, expand_run_command_cb, ctx);
                 } else {
                     /* Command string. */
-                    gchar *mycmd = expand_impl (ret, EXPAND_IGNORE_UZBL);
-
-                    uzbl_commands_run (mycmd, uzbl_ret);
+                    ctx->cmd = expand_impl (ret, EXPAND_IGNORE_UZBL);
+                    uzbl_commands_run_string_async (ctx->cmd, TRUE, expand_run_command_cb, ctx);
                 }
 
-                uzbl_commands_args_free (tmp);
-
-                if (uzbl_ret->str) {
-                    g_string_append (ctx->buf, uzbl_ret->str);
-                }
-                g_string_free (uzbl_ret, TRUE);
-
-                p = vend + 2;
-
-                break;
+                ctx->p = vend + 2;
+                return;
             }
             case EXPAND_UZBL_JS:
                 ignore = EXPAND_IGNORE_UZBL_JS;
@@ -936,7 +929,11 @@ expand_run_command_cb (GObject      *source,
     ExpandContext *ctx = (ExpandContext*) data;
     GError *err = NULL;
     GString *ret = uzbl_commands_run_finish (source, res, &err);
+
+    g_free (ctx->cmd);
+    ctx->cmd = NULL;
     uzbl_commands_args_free (ctx->argv);
+    ctx->argv = NULL;
 
     if (ret->str) {
         g_string_append (ctx->buf, ret->str);

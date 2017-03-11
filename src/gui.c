@@ -352,8 +352,8 @@ close_web_view_cb (WebKitWebView *view, gpointer data);
 static gboolean
 focus_cb (GtkWidget *widget, GdkEventFocus *event, gpointer data);
 static gboolean
-context_menu_cb (WebKitWebView *view, GtkMenu *menu, WebKitHitTestResult *hit_test_result,
-        gboolean triggered_with_keyboard, gpointer data);
+context_menu_cb (WebKitWebView *view, WebKitContextMenu *menu, GdkEvent *event,
+        WebKitHitTestResult *hit_test_result, gpointer data);
 static gboolean
 web_process_crashed_cb (WebKitWebView *view, gpointer data);
 #if WEBKIT_CHECK_VERSION (2, 7, 3)
@@ -1251,24 +1251,18 @@ focus_cb (GtkWidget *widget, GdkEventFocus *event, gpointer data)
 }
 
 static gboolean
-populate_context_menu (GtkMenu *menu, WebKitHitTestResult *hit_test_result, gint context);
+populate_context_menu (WebKitContextMenu   *menu,
+                       WebKitHitTestResult *hit_test_result);
 
 gboolean
-context_menu_cb (WebKitWebView *view, GtkMenu *menu, WebKitHitTestResult *hit_test_result,
-        gboolean triggered_with_keyboard, gpointer data)
+context_menu_cb (WebKitWebView *view, WebKitContextMenu *menu, GdkEvent *event,
+        WebKitHitTestResult *hit_test_result, gpointer data)
 {
     UZBL_UNUSED (view);
-    UZBL_UNUSED (triggered_with_keyboard);
     UZBL_UNUSED (data);
+    UZBL_UNUSED (event);
 
     if (!uzbl.gui.menu_items) {
-        return FALSE;
-    }
-
-    gint context = get_click_context ();
-
-    /* Check context. */
-    if (context == NO_CLICK_CONTEXT) {
         return FALSE;
     }
 
@@ -1277,7 +1271,7 @@ context_menu_cb (WebKitWebView *view, GtkMenu *menu, WebKitHitTestResult *hit_te
     }
 
     /* Display the default menu with our modifications. */
-    return populate_context_menu (menu, hit_test_result, context);
+    return populate_context_menu (menu, hit_test_result);
 }
 
 gboolean
@@ -2188,18 +2182,23 @@ create_view (WebKitWebView *view)
 }
 
 static void
-run_menu_command (GtkMenuItem *menu_item, gpointer data);
+run_menu_command (GtkAction *action, gpointer data);
 
 gboolean
-populate_context_menu (GtkMenu *menu, WebKitHitTestResult *hit_test_result, gint context)
+populate_context_menu (WebKitContextMenu   *menu,
+                       WebKitHitTestResult *hit_test_result)
 {
     guint i;
+    guint context;
+
+    g_object_get (hit_test_result, "context", &context, NULL);
 
     /* Find the user-defined menu items that are approprate for whatever was
      * clicked and append them to the default context menu. */
     for (i = 0; i < uzbl.gui.menu_items->len; ++i) {
         UzblMenuItem *menu_item = g_ptr_array_index (uzbl.gui.menu_items, i);
-        GtkWidget *item;
+        WebKitContextMenuItem *item;
+        GtkAction *action;
 
         gboolean contexts_match = (context & menu_item->context);
 
@@ -2216,16 +2215,16 @@ populate_context_menu (GtkMenu *menu, WebKitHitTestResult *hit_test_result, gint
         }
 
         if (menu_item->issep) {
-            item = gtk_separator_menu_item_new ();
+            item = webkit_context_menu_item_new_separator ();
         } else {
-            item = gtk_menu_item_new_with_label (menu_item->name);
-            g_object_connect (G_OBJECT (item),
+            action = gtk_action_new (menu_item->name, menu_item->name, NULL, NULL);
+            g_object_connect (G_OBJECT (action),
                 "signal::activate", G_CALLBACK (run_menu_command), menu_item,
                 NULL);
+            item = webkit_context_menu_item_new (action);
         }
 
-        gtk_menu_shell_append (GTK_MENU_SHELL (menu), item);
-        gtk_widget_show (item);
+        webkit_context_menu_append (menu, item);
     }
 
     return FALSE;
@@ -2504,9 +2503,9 @@ create_web_view_uri_cb (WebKitWebView *view, GParamSpec param_spec, gpointer dat
 }
 
 void
-run_menu_command (GtkMenuItem *menu_item, gpointer data)
+run_menu_command (GtkAction *action, gpointer data)
 {
-    UZBL_UNUSED (menu_item);
+    UZBL_UNUSED (action);
 
     UzblMenuItem *item = (UzblMenuItem *)data;
 
