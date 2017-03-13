@@ -936,6 +936,7 @@ expand_run_command_cb (GObject      *source,
     ctx->argv = NULL;
 
     if (ret->str) {
+        remove_trailing_newline (ret->str);
         g_string_append (ctx->buf, ret->str);
         g_string_free (ret, TRUE);
     }
