@@ -60,6 +60,13 @@ void
 uzbl_commands_run (const gchar *cmd, GString *result);
 
 void
-uzbl_commands_load_file (const gchar *path);
+uzbl_commands_load_file_async (const gchar          *path,
+                               GAsyncReadyCallback  callback,
+                               gpointer             data);
+
+void
+uzbl_commands_load_file_finish (GObject       *source,
+                                GAsyncResult  *res,
+                                GError       **error);
 
 #endif
