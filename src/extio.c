@@ -53,7 +53,7 @@ read_header_read_all_cb (GObject      *source,
     GInputStream *stream = G_INPUT_STREAM (source);
     GTask *task = G_TASK (user_data);
     gsize read;
-    GError *error;
+    GError *error = NULL;
     void *buffer = g_task_get_task_data (task);
 
     if (!g_input_stream_read_all_finish (stream, res, &read, &error)) {
