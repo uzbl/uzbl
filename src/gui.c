@@ -40,6 +40,7 @@ struct _UzblGui {
     guint current_key_state;
 
     GdkEventButton *last_button;
+    WebKitHitTestResultContext last_hit_context;
 
     gboolean load_failed;
 #if WEBKIT_CHECK_VERSION (2, 5, 1)
@@ -696,14 +697,12 @@ mouse_target_cb (WebKitWebView *view, WebKitHitTestResult *hit_test, guint modif
 
     /* TODO: Do something with modifiers? */
 
-    WebKitHitTestResultContext context;
-
     g_object_get (G_OBJECT (hit_test),
-        "context", &context,
+        "context", &uzbl.gui_->last_hit_context,
         NULL);
 
     /* TODO: Handle other cases? */
-    if (!(context & WEBKIT_HIT_TEST_RESULT_CONTEXT_LINK)) {
+    if (!(uzbl.gui_->last_hit_context & WEBKIT_HIT_TEST_RESULT_CONTEXT_LINK)) {
         send_hover_event ("", "");
         return;
     }
@@ -1637,7 +1636,7 @@ send_keypress_event (GdkEventKey *event)
 gint
 get_click_context ()
 {
-    guint context = NO_CLICK_CONTEXT;
+    guint context = uzbl.gui_->last_hit_context;
 
     if (!uzbl.gui_->last_button) {
         return NO_CLICK_CONTEXT;
