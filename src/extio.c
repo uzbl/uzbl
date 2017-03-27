@@ -58,6 +58,7 @@ read_header_read_all_cb (GObject      *source,
 
     if (!g_input_stream_read_all_finish (stream, res, &read, &error)) {
         g_task_return_error (task, error);
+        g_object_unref (task);
         return;
     }
 
@@ -66,6 +67,7 @@ read_header_read_all_cb (GObject      *source,
                                              NULL, NULL);
 
     g_task_return_pointer (task, var, NULL);
+    g_object_unref (task);
 }
 
 GVariant*
@@ -134,6 +136,7 @@ read_payload_read_all_cb (GObject      *source,
 
     if (!g_input_stream_read_all_finish (stream, res, &read, &error)) {
         g_task_return_error (task, error);
+        g_object_unref (task);
         return;
     }
 
@@ -141,6 +144,7 @@ read_payload_read_all_cb (GObject      *source,
     GVariant *var = g_variant_new_from_data (type, data->buffer, read, FALSE,
                                              NULL, NULL);
     g_task_return_pointer (task, var, NULL);
+    g_object_unref (task);
 }
 
 GVariant*
@@ -190,6 +194,7 @@ read_header_cb (GObject      *source,
 
     if (!(header = read_header_finish (stream, res, &error))) {
         g_task_return_error (task, error);
+        g_object_unref (task);
         return;
     }
 
@@ -214,11 +219,13 @@ read_payload_cb (GObject     *source,
 
     if (!(var = read_payload_finish (stream, res, &messagetype, &error))) {
         g_task_return_error (task, error);
+        g_object_unref (task);
         return;
     }
 
     g_task_set_task_data (task, GINT_TO_POINTER (messagetype), NULL);
     g_task_return_pointer (task, var, g_free);
+    g_object_unref (task);
 }
 
 GVariant *
