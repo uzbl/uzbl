@@ -296,7 +296,6 @@ initialize_web_extensions (WebKitWebContext *context, gpointer user_data)
     int in;
     int out;
 
-    uzbl_io_init_extpipe ();
     uzbl_io_extfds (&in, &out);
 
     GVariant *data = g_variant_new ("(ixx)", EXTIO_PROTOCOL, in, out);
