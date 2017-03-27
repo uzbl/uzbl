@@ -260,13 +260,24 @@ uzbl_extio_send_message (GOutputStream    *stream,
     gchar *buf = g_malloc (headersize);
     g_variant_store (header, buf);
 
-    g_output_stream_write (stream, buf, headersize, NULL, NULL);
+    GError *err = NULL;
+    g_output_stream_write (stream, buf, headersize, NULL, &err);
+    if (err) {
+        g_warning ("Error writing message header: %s", err->message);
+        g_error_free (err);
+        return;
+    }
     g_variant_unref (header);
     g_free (buf);
 
     buf = g_malloc (size);
     g_variant_store (message, buf);
-    g_output_stream_write (stream, buf, size, NULL, NULL);
+    g_output_stream_write (stream, buf, size, NULL, &err);
+    if (err) {
+        g_warning ("Error writing message data: %s", err->message);
+        g_error_free (err);
+        return;
+    }
 }
 
 void
