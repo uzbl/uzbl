@@ -250,6 +250,8 @@ uzbl_extio_get_variant_type (ExtIOMessageType type)
     case EXT_FOCUS:
     case EXT_BLUR:
         return G_VARIANT_TYPE ("s");
+    case EXT_SCROLL:
+        return G_VARIANT_TYPE ("(yyyi)");
     }
 
     return 0;
