@@ -222,7 +222,9 @@ ext_scroll_web_page (UzblExt      *ext,
         if (mode == SCROLL_PERCENTAGE) {
             glong page = (axis == SCROLL_HORIZONTAL) ? webkit_dom_element_get_scroll_width (body)
                                                      : webkit_dom_element_get_scroll_height (body);
-            amount = (gint32) page * amount * 0.01;
+            glong screen = (axis == SCROLL_HORIZONTAL) ? webkit_dom_dom_window_get_inner_width (win)
+                                                       : webkit_dom_dom_window_get_inner_height (win);
+            amount = (gint32) (page - screen) * amount * 0.01;
         }
 
         webkit_dom_dom_window_scroll_to (
