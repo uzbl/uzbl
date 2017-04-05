@@ -242,6 +242,7 @@ uzbl_init (int *argc, char ***argv)
     uzbl_requests_init ();
 
     /* Initialize the GUI. */
+    uzbl_io_init_extpipe ();
     uzbl_gui_init (cache_dir, data_dir, uzbl.state.web_extensions_directory);
     uzbl_inspector_init ();
 

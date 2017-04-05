@@ -1325,51 +1325,46 @@ IMPLEMENT_COMMAND (scroll)
 
     gchar *direction = argv_idx (argv, 0);
     gchar *amount_str = argv_idx (argv, 1);
-    GtkAdjustment *bar = NULL;
+
+    ScrollAxis axis;
+    ScrollAction action;
+    ScrollMode mode;
+    gint32 amount;
 
     if (!g_strcmp0 (direction, "horizontal")) {
-        bar = uzbl.gui.bar_h;
+        axis = SCROLL_HORIZONTAL;
     } else if (!g_strcmp0 (direction, "vertical")) {
-        bar = uzbl.gui.bar_v;
+        axis = SCROLL_VERTICAL;
     } else {
         uzbl_debug ("Unrecognized scroll direction: %s\n", direction);
         return;
     }
 
-    gdouble lower = gtk_adjustment_get_lower (bar);
-    gdouble upper = gtk_adjustment_get_upper (bar);
-    gdouble page = gtk_adjustment_get_page_size (bar);
-
     if (!g_strcmp0 (amount_str, "begin")) {
-        gtk_adjustment_set_value (bar, lower);
+        action = SCROLL_BEGIN;
+        mode = SCROLL_FIXED;
     } else if (!g_strcmp0 (amount_str, "end")) {
-        gtk_adjustment_set_value (bar, upper - page);
+        action = SCROLL_END;
+        mode = SCROLL_FIXED;
     } else {
         gchar *end;
+        amount = (gint32) g_ascii_strtod (amount_str, &end);
 
-        gdouble value = gtk_adjustment_get_value (bar);
-        gdouble amount = g_ascii_strtod (amount_str, &end);
-        gdouble max_value = upper - page;
-
-        if (*end && (*end == '%') && (*(end + 1) == '!')) {
-            value = (max_value - lower) * amount * 0.01 + lower;
-        } else if (*end == '%') {
-            value += page * amount * 0.01;
-        } else if (*end == '!') {
-            value = amount;
+        if (*end == '%') {
+            mode = SCROLL_PERCENTAGE;
+            end++;
         } else {
-            value += amount;
+            mode = SCROLL_FIXED;
         }
 
-        if (value < 0) {
-            value = 0; /* Don't scroll past the beginning of the page. */
+        if (*end == '!') {
+            action = SCROLL_SET;
+        } else {
+            action = SCROLL_TRANSLATE;
         }
-        if (value > max_value) {
-            value = max_value; /* Don't scroll past the end of the page. */
-        }
-
-        gtk_adjustment_set_value (bar, value);
     }
+
+    uzbl_io_send_ext_message (EXT_SCROLL, axis, action, mode, amount);
 }
 
 IMPLEMENT_COMMAND (zoom)

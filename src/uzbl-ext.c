@@ -6,18 +6,31 @@
 #include "extio.h"
 #include "util.h"
 
+// The unstable API is generated from the DOM specs and things might break
+// between versions, especially if using new and experimental features.
+#define WEBKIT_DOM_USE_UNSTABLE_API
+#include <webkitdom/WebKitDOMDOMWindowUnstable.h>
+
 struct _UzblExt {
-    GIOStream *stream;
+    GIOStream     *stream;
+    WebKitWebPage *web_page;
 };
 
 UzblExt*
 uzbl_ext_new ()
 {
-    UzblExt *ext = g_new (UzblExt, 1);
+    UzblExt *ext = g_new0 (UzblExt, 1);
     return ext;
 }
 
-void
+static void
+ext_scroll_web_page (UzblExt      *ext,
+                     ScrollAxis    axis,
+                     ScrollAction  action,
+                     ScrollMode    mode,
+                     gint32        amount);
+
+static void
 read_message_cb (GObject *stream,
                  GAsyncResult *res,
                  gpointer user_data);
@@ -51,6 +64,15 @@ read_message_cb (GObject *source,
     }
 
     switch (messagetype) {
+    case EXT_SCROLL:
+        {
+            gchar axis, action, mode;
+            guint32 amount;
+            uzbl_extio_get_message_data (EXT_SCROLL, message,
+                &axis, &action, &mode, &amount);
+            ext_scroll_web_page (ext, axis, action, mode, amount);
+            break;
+        }
     default:
         {
             gchar *pmsg = g_variant_print (message, TRUE);
@@ -120,7 +142,7 @@ web_page_created_callback (WebKitWebExtension *extension,
     UzblExt *ext = (UzblExt*)user_data;
 
     g_debug ("Web page created");
-
+    ext->web_page = web_page;
     g_signal_connect (web_page, "document-loaded",
                       G_CALLBACK (document_loaded_callback), ext);
 }
@@ -166,4 +188,63 @@ dom_blur_callback (WebKitDOMEventTarget *target,
 
     uzbl_extio_send_new_message (g_io_stream_get_output_stream (ext->stream),
                                  EXT_BLUR, name);
+}
+
+void
+ext_scroll_web_page (UzblExt      *ext,
+                     ScrollAxis    axis,
+                     ScrollAction  action,
+                     ScrollMode    mode,
+                     gint32        amount)
+{
+    WebKitDOMDocument *doc = webkit_web_page_get_dom_document (ext->web_page);
+    WebKitDOMDOMWindow *win = webkit_dom_document_get_default_view (doc);
+    WebKitDOMElement *body = WEBKIT_DOM_ELEMENT (
+        webkit_dom_document_get_body (doc));
+
+    if (action == SCROLL_BEGIN) {
+        webkit_dom_dom_window_scroll_to (
+            win,
+            axis == SCROLL_HORIZONTAL ? 0
+                                      : webkit_dom_dom_window_get_scroll_x (win),
+            axis == SCROLL_HORIZONTAL ? webkit_dom_dom_window_get_scroll_y (win)
+                                      : 0
+        );
+    } else if (action == SCROLL_END) {
+        webkit_dom_dom_window_scroll_to (
+            win,
+            axis == SCROLL_HORIZONTAL ? webkit_dom_element_get_scroll_width (body)
+                                      : webkit_dom_dom_window_get_scroll_x (win),
+            axis == SCROLL_HORIZONTAL ? webkit_dom_dom_window_get_scroll_y (win)
+                                      : webkit_dom_element_get_scroll_height (body)
+        );
+    } else if (action == SCROLL_SET) {
+        if (mode == SCROLL_PERCENTAGE) {
+            glong page = (axis == SCROLL_HORIZONTAL) ? webkit_dom_element_get_scroll_width (body)
+                                                     : webkit_dom_element_get_scroll_height (body);
+            glong screen = (axis == SCROLL_HORIZONTAL) ? webkit_dom_dom_window_get_inner_width (win)
+                                                       : webkit_dom_dom_window_get_inner_height (win);
+            amount = (gint32) (page - screen) * amount * 0.01;
+        }
+
+        webkit_dom_dom_window_scroll_to (
+            win,
+            axis == SCROLL_HORIZONTAL ? amount
+                                      : webkit_dom_dom_window_get_scroll_x (win),
+            axis == SCROLL_HORIZONTAL ? webkit_dom_dom_window_get_scroll_y (win)
+                                      : amount
+        );
+    } else if (action == SCROLL_TRANSLATE) {
+        if (mode == SCROLL_PERCENTAGE) {
+            glong screen = (axis == SCROLL_HORIZONTAL) ? webkit_dom_dom_window_get_inner_width (win)
+                                                       : webkit_dom_dom_window_get_inner_height (win);
+            amount = (gint32) screen * amount * 0.01;
+        }
+
+        webkit_dom_dom_window_scroll_by (
+            win,
+            axis == SCROLL_HORIZONTAL ? amount : 0,
+            axis == SCROLL_HORIZONTAL ? 0 : amount
+        );
+    }
 }

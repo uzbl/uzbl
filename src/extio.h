@@ -9,8 +9,26 @@
 typedef enum {
     EXT_HELO,
     EXT_FOCUS,
-    EXT_BLUR
+    EXT_BLUR,
+    EXT_SCROLL,
 } ExtIOMessageType;
+
+typedef enum {
+    SCROLL_HORIZONTAL,
+    SCROLL_VERTICAL,
+} ScrollAxis;
+
+typedef enum {
+    SCROLL_SET,
+    SCROLL_TRANSLATE,
+    SCROLL_BEGIN,
+    SCROLL_END,
+} ScrollAction;
+
+typedef enum {
+    SCROLL_FIXED,
+    SCROLL_PERCENTAGE,
+} ScrollMode;
 
 void
 uzbl_extio_read_message_async (GInputStream        *stream,
