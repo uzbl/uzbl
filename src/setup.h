@@ -16,8 +16,7 @@ uzbl_events_free ();
 
 void
 uzbl_gui_init (const gchar *cache_dir,
-               const gchar *data_dir,
-               const gchar *web_extensions_dir);
+               const gchar *data_dir);
 void
 uzbl_gui_free ();
 

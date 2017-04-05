@@ -56,8 +56,7 @@ static void
 status_bar_init ();
 static WebKitWebContext*
 create_web_context (const gchar *cache_dir,
-                    const gchar *data_dir,
-                    const gchar *web_extensions_dir);
+                    const gchar *data_dir);
 static void
 web_view_init (WebKitWebContext *ctx);
 static void
@@ -72,13 +71,12 @@ uzbl_input_commit_cb (GtkIMContext *context, const gchar *str, gpointer data);
 
 void
 uzbl_gui_init (const gchar *cache_dir,
-               const gchar *data_dir,
-               const gchar *web_extensions_dir)
+               const gchar *data_dir)
 {
     uzbl.gui_ = g_malloc0 (sizeof (UzblGui));
 
     status_bar_init ();
-    WebKitWebContext *context = create_web_context (cache_dir, data_dir, web_extensions_dir);
+    WebKitWebContext *context = create_web_context (cache_dir, data_dir);
     web_view_init (context);
     vbox_init ();
 
@@ -252,8 +250,7 @@ initialize_web_extensions (WebKitWebContext *context, gpointer user_data);
 
 WebKitWebContext*
 create_web_context (const gchar *cache_dir,
-                    const gchar *data_dir,
-                    const gchar *web_extensions_dir)
+                    const gchar *data_dir)
 {
     WebKitWebContext *webkit_context;
 #if WEBKIT_CHECK_VERSION (2, 9, 4)
@@ -280,8 +277,6 @@ create_web_context (const gchar *cache_dir,
     /* TODO: expose command line option for this. */
     webkit_web_context_set_web_process_count_limit (webkit_context, 0);
 #endif
-    webkit_web_context_set_web_extensions_directory (webkit_context, web_extensions_dir);
-
 
     g_signal_connect (webkit_context, "initialize-web-extensions",
                       G_CALLBACK (initialize_web_extensions), NULL);
@@ -298,6 +293,8 @@ initialize_web_extensions (WebKitWebContext *context, gpointer user_data)
     int out;
 
     uzbl_io_extfds (&in, &out);
+
+    webkit_web_context_set_web_extensions_directory (context, uzbl.state.web_extensions_directory);
 
     GVariant *data = g_variant_new ("(ixx)", EXTIO_PROTOCOL, in, out);
     webkit_web_context_set_web_extensions_initialization_user_data (
