@@ -20,10 +20,6 @@ typedef struct {
     /* Status bar */
     GtkWidget     *status_bar;
 
-    /* Scrolling */
-    GtkAdjustment *bar_v;     /* Information about document length */
-    GtkAdjustment *bar_h;     /* and scrolling position */
-
     /* Web page */
     WebKitWebView *web_view;
     gchar         *main_title;
