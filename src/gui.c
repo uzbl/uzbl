@@ -367,11 +367,6 @@ run_color_chooser_cb (WebKitWebView *view, WebKitColorChooserRequest *request, g
 #endif
 static gboolean
 run_file_chooser_cb (WebKitWebView *view, WebKitFileChooserRequest *request, gpointer data);
-/* Scrollbar events */
-static gboolean
-scroll_vert_cb (GtkAdjustment *adjust, gpointer data);
-static gboolean
-scroll_horiz_cb (GtkAdjustment *adjust, gpointer data);
 
 void
 web_view_init (WebKitWebContext *context)
@@ -433,18 +428,6 @@ web_view_init (WebKitWebContext *context)
 #endif
 #endif
         "signal::run-file-chooser",                     G_CALLBACK (run_file_chooser_cb),      NULL,
-        NULL);
-
-    uzbl.gui.bar_h = gtk_scrolled_window_get_hadjustment (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win));
-    uzbl.gui.bar_v = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (uzbl.gui.scrolled_win));
-
-    g_object_connect (G_OBJECT (uzbl.gui.bar_v),
-        "signal::value-changed", G_CALLBACK (scroll_vert_cb), NULL,
-        "signal::changed",       G_CALLBACK (scroll_vert_cb), NULL,
-        NULL);
-    g_object_connect (G_OBJECT (uzbl.gui.bar_h),
-        "signal::value-changed", G_CALLBACK (scroll_horiz_cb), NULL,
-        "signal::changed",       G_CALLBACK (scroll_horiz_cb), NULL,
         NULL);
 }
 
@@ -1416,31 +1399,6 @@ run_file_chooser_cb (WebKitWebView *view, WebKitFileChooserRequest *request, gpo
     return (file_chooser_command != NULL);
 }
 
-/* Scrollbar events */
-
-static void
-send_scroll_event (int type, GtkAdjustment *adjust);
-
-gboolean
-scroll_vert_cb (GtkAdjustment *adjust, gpointer data)
-{
-    UZBL_UNUSED (data);
-
-    send_scroll_event (SCROLL_VERT, adjust);
-
-    return FALSE;
-}
-
-gboolean
-scroll_horiz_cb (GtkAdjustment *adjust, gpointer data)
-{
-    UZBL_UNUSED (data);
-
-    send_scroll_event (SCROLL_HORIZ, adjust);
-
-    return FALSE;
-}
-
 /* Window callbacks */
 
 void
@@ -2289,22 +2247,6 @@ choose_file (GObject *source, GAsyncResult *res, gpointer data)
     g_strfreev (files);
 
     g_object_unref (request);
-}
-
-void
-send_scroll_event (int type, GtkAdjustment *adjust)
-{
-    gdouble value = gtk_adjustment_get_value (adjust);
-    gdouble min = gtk_adjustment_get_lower (adjust);
-    gdouble max = gtk_adjustment_get_upper (adjust);
-    gdouble page = gtk_adjustment_get_page_size (adjust);
-
-    uzbl_events_send (type, NULL,
-        TYPE_DOUBLE, value,
-        TYPE_DOUBLE, min,
-        TYPE_DOUBLE, max,
-        TYPE_DOUBLE, page,
-        NULL);
 }
 
 guint
