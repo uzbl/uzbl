@@ -47,6 +47,7 @@ Dependencies which are optional for `uzbl-core` are marked with an asterisk.
 * xclip (optional)
 * pygtk (optional)
 * pygobject (optional)
+* python3-wheel (optional)
 
 ## Make dependencies
 
