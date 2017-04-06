@@ -233,8 +233,10 @@ install-dirs:
 	[ -d "$(SHAREDIR)/uzbl" ] || $(INSTALL) -d $(SHAREDIR)/uzbl
 	[ -d "$(SHAREDIR)/applications" ] || $(INSTALL) -d $(SHAREDIR)/applications
 	[ -d "$(SHAREDIR)/appdata" ] || $(INSTALL) -d $(SHAREDIR)/appdata
+	[ -d "$(LIBDIR)" ] || $(INSTALL) -d $(LIBDIR)
+	[ -d "$(LIBDIR)/web-extensions" ] || $(INSTALL) -d $(LIBDIR)/web-extensions
 
-install-uzbl-core: uzbl-core install-dirs
+install-uzbl-core: install-uzbl-ext uzbl-core install-dirs
 	$(INSTALL) -m644 docs/*.md $(DOCDIR)/
 	$(INSTALL) -m644 src/config.h $(DOCDIR)/
 	$(INSTALL) -m644 README.md $(DOCDIR)/
@@ -242,6 +244,9 @@ install-uzbl-core: uzbl-core install-dirs
 	$(INSTALL) -m644 AUTHORS $(DOCDIR)/
 	$(INSTALL) -m755 uzbl-core $(INSTALLDIR)/bin/uzbl-core
 	$(INSTALL) -m644 uzbl-core.1 $(MANDIR)/man1/uzbl-core.1
+
+install-uzbl-ext: uzbl-ext.so install-dirs
+	$(INSTALL) -m755 uzbl-ext.so $(LIBDIR)/web-extensions/
 
 install-event-manager: install-dirs
 	$(INSTALL) -m644 uzbl-event-manager.1 $(MANDIR)/man1/uzbl-event-manager.1
