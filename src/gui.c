@@ -379,11 +379,15 @@ web_view_init (WebKitWebContext *context)
 #if WEBKIT_CHECK_VERSION (2, 5, 1)
     uzbl.gui_->user_manager = webkit_user_content_manager_new ();
 #endif
+    WebKitSettings *settings = webkit_settings_new ();
+    webkit_settings_set_user_agent_with_application_details (
+        settings, "Uzbl", COMMIT);
     uzbl.gui.web_view = WEBKIT_WEB_VIEW (g_object_new (WEBKIT_TYPE_WEB_VIEW,
         "web-context", context,
 #if WEBKIT_CHECK_VERSION (2, 5, 1)
         "user-content-manager", uzbl.gui_->user_manager,
 #endif
+        "settings", settings,
         NULL));
     uzbl.gui.scrolled_win = gtk_scrolled_window_new (NULL, NULL);
 
