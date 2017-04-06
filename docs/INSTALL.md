@@ -47,12 +47,12 @@ Dependencies which are optional for `uzbl-core` are marked with an asterisk.
 * xclip (optional)
 * pygtk (optional)
 * pygobject (optional)
-* python3-wheel (optional)
 
 ## Make dependencies
 
 * `git` (for downloading)
 * `pkg-config` (for finding WebKit, GTK, and other dependencies)
+* `python3-wheel` (used as intermediate packaging of python code)
 
 ## Git Repo's & branches
 
