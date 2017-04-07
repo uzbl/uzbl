@@ -2632,9 +2632,7 @@ IMPLEMENT_COMMAND (exit)
         gtk_widget_destroy (GTK_WIDGET (uzbl.gui.plug));
     }
 
-    if (uzbl.state.gtk_started) {
-        gtk_main_quit ();
-    }
+    gtk_main_quit ();
 
     /* Stop the I/O thread. */
     uzbl_io_quit ();

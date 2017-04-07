@@ -421,8 +421,6 @@ main (int argc, char *argv[])
         g_free (commit);
     }
 
-    uzbl.state.gtk_started = TRUE;
-
     gtk_main ();
 
 main_exit:
