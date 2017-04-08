@@ -41,7 +41,6 @@ typedef struct {
     JSGlobalContextRef jscontext;
 
     gboolean        started;
-    gboolean        gtk_started;
     gboolean        exit;
 
     /* Events */

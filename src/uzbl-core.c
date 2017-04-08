@@ -80,8 +80,9 @@ read_config_file_finish (GObject       *source,
 #define UZBL_INIT_CONTEXT(o) ((UzblInitContext*)o)
 
 struct _UzblInitContext {
-    gchar *uri;
-    gchar *geometry;
+    const gchar *uzbl;
+    const gchar *uri;
+    const gchar *geometry;
 };
 typedef struct _UzblInitContext UzblInitContext;
 
@@ -154,6 +155,8 @@ uzbl_init (int *argc, char ***argv)
     g_option_context_add_group (context, gtk_get_option_group (TRUE));
     g_option_context_parse (context, argc, argv, NULL);
     g_option_context_free (context);
+
+    ctx->uzbl = (*argv)[0];
 
     if (*argc >= 2) {
         ctx->uri = (*argv)[1];
@@ -354,6 +357,32 @@ init_read_config_cb (GObject      *source,
 
     /* Update status bar. */
     uzbl_gui_update_title ();
+
+    if (uzbl.gui.web_view) {
+        gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
+    }
+
+    /* Verbose feedback. */
+    if (uzbl_variables_get_int ("verbose")) {
+        printf ("Uzbl start location: %s\n", ctx->uzbl);
+#ifdef GDK_WINDOWING_X11
+        GdkDisplay *display = gdk_display_get_default ();
+        if (GDK_IS_X11_DISPLAY (display)) {
+            if (uzbl.state.xembed_socket_id) {
+                printf ("plug_id %d\n", (int)gtk_plug_get_id (uzbl.gui.plug));
+            } else {
+                Window xwin = GDK_WINDOW_XID (gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)));
+
+                printf ("window_id %d\n", (int)xwin);
+            }
+        }
+#endif
+        printf ("pid %i\n", getpid ());
+        printf ("name: %s\n", uzbl.state.instance_name);
+        gchar *commit = uzbl_variables_get_string ("COMMIT");
+        printf ("commit: %s\n", commit);
+        g_free (commit);
+    }
 }
 
 void
@@ -394,34 +423,6 @@ main (int argc, char *argv[])
     if (uzbl.state.exit) {
         goto main_exit;
     }
-
-    if (uzbl.gui.web_view) {
-        gtk_widget_grab_focus (GTK_WIDGET (uzbl.gui.web_view));
-    }
-
-    /* Verbose feedback. */
-    if (uzbl_variables_get_int ("verbose")) {
-        printf ("Uzbl start location: %s\n", argv[0]);
-#ifdef GDK_WINDOWING_X11
-        GdkDisplay *display = gdk_display_get_default ();
-        if (GDK_IS_X11_DISPLAY (display)) {
-            if (uzbl.state.xembed_socket_id) {
-                printf ("plug_id %d\n", (int)gtk_plug_get_id (uzbl.gui.plug));
-            } else {
-                Window xwin = GDK_WINDOW_XID (gtk_widget_get_window (GTK_WIDGET (uzbl.gui.main_window)));
-
-                printf ("window_id %d\n", (int)xwin);
-            }
-        }
-#endif
-        printf ("pid %i\n", getpid ());
-        printf ("name: %s\n", uzbl.state.instance_name);
-        gchar *commit = uzbl_variables_get_string ("COMMIT");
-        printf ("commit: %s\n", commit);
-        g_free (commit);
-    }
-
-    uzbl.state.gtk_started = TRUE;
 
     gtk_main ();
 
