@@ -97,7 +97,7 @@ set download_handler       spawn_sync @scripts_dir/download.sh
 #@on_event  CONFIG_CHANGED print Config changed: %1 = %2
 
 # Scroll percentage calculation
-@on_event   SCROLL_VERT    set scroll_message \@<(function(curr, min, max, size){if(max == size) return '--'; var p=(curr/(max - size)); return Math.round(10000*p)/100;})(%1,%2,%3,%4)>\@%
+@on_event   VIEWPORT       set scroll_message \@<(function(curr, min, max, size){if(max == size) return '--'; var p=(curr/(max - size)); return Math.round(10000*p)/100;})(%2,0,%4,%6)>\@%
 
 # === Behaviour and appearance ===============================================
 

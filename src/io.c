@@ -898,8 +898,14 @@ read_message_cb (GObject *source,
             uzbl_extio_get_message_data (
                 EXT_VIEWPORT, message,
                 &left, &top, &width, &height, &page_width, &page_height);
-            g_debug ("viewport changed %ld %ld %ld %ld %ld %ld",
-                     left, top, width, height, page_width, page_height);
+            uzbl_events_send (VIEWPORT, NULL,
+                              TYPE_INT, left,
+                              TYPE_INT, top,
+                              TYPE_INT, page_width,
+                              TYPE_INT, page_height,
+                              TYPE_INT, width,
+                              TYPE_INT, height,
+                              NULL);
             break;
         }
     default:

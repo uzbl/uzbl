@@ -39,8 +39,7 @@
     call (PLUG_CREATED),        \
     call (COMMAND_ERROR),       \
     call (BUILTINS),            \
-    call (SCROLL_VERT),         \
-    call (SCROLL_HORIZ),        \
+    call (VIEWPORT),            \
     call (DOWNLOAD_STARTED),    \
     call (DOWNLOAD_PROGRESS),   \
     call (DOWNLOAD_ERROR),      \

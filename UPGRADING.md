@@ -333,3 +333,10 @@ for these events. Also check the event manager for built-in handlers.
   - *Change*: Removed `=` argument.
   - *Rationale*: Matches the `set` command.
   - *Porting*: Remove the `=` argument to the event.
+* `SCROLL_VERT`
+  - Replaced by the VIEWPORT event
+  - The Scroll arguments (`VALUE`, `MAX`, `PAGE`) is now found as
+  - `LEFT`, `PAGE_HEIGHT`, `HEIGHT`
+  - `MIN` can be treated as always 0
+* `SCROLL_HORIZ`
+  - Same as `SCROLL_VERT` but with the horizontal components.
