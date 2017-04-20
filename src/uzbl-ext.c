@@ -102,6 +102,10 @@ static void
 dom_blur_callback (WebKitDOMEventTarget *target,
                    WebKitDOMEvent       *event,
                    gpointer              user_data);
+static void
+dom_scroll_callback (WebKitDOMEventTarget *target,
+                     WebKitDOMEvent       *event,
+                     gpointer              user_data);
 
 
 G_MODULE_EXPORT void
@@ -158,6 +162,8 @@ document_loaded_callback (WebKitWebPage *web_page,
         "focus", G_CALLBACK (dom_focus_callback), TRUE, ext);
     webkit_dom_event_target_add_event_listener (WEBKIT_DOM_EVENT_TARGET (doc),
         "blur",  G_CALLBACK (dom_blur_callback), TRUE, ext);
+    webkit_dom_event_target_add_event_listener (WEBKIT_DOM_EVENT_TARGET (doc),
+        "scroll", G_CALLBACK (dom_scroll_callback), TRUE, ext);
 }
 
 void
@@ -188,6 +194,42 @@ dom_blur_callback (WebKitDOMEventTarget *target,
 
     uzbl_extio_send_new_message (g_io_stream_get_output_stream (ext->stream),
                                  EXT_BLUR, name);
+}
+
+void
+dom_scroll_callback (WebKitDOMEventTarget *target,
+                     WebKitDOMEvent       *event,
+                     gpointer              user_data)
+{
+    UZBL_UNUSED (target);
+
+    UzblExt *ext = (UzblExt*)user_data;
+
+    WebKitDOMDocument *doc = webkit_web_page_get_dom_document (ext->web_page);
+    WebKitDOMDOMWindow *win = webkit_dom_document_get_default_view (doc);
+    WebKitDOMElement *body = WEBKIT_DOM_ELEMENT (
+        webkit_dom_document_get_body (doc));
+
+    glong left, top, width, height, page_width, page_height;
+
+    g_object_get (
+        win,
+        "scroll-x", &left,
+        "scroll-y", &top,
+        "inner-width", &width,
+        "inner-height", &height,
+        NULL
+    );
+    g_object_get (
+        body,
+        "scroll-width", &page_width,
+        "scroll-height", &page_height,
+        NULL
+    );
+
+    uzbl_extio_send_new_message (g_io_stream_get_output_stream (ext->stream),
+                                 EXT_VIEWPORT, left, top, width, height,
+                                 page_width, page_height);
 }
 
 void

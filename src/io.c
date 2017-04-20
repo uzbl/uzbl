@@ -892,6 +892,16 @@ read_message_cb (GObject *source,
             g_free (name);
             break;
         }
+    case EXT_VIEWPORT:
+        {
+            glong left, top, width, height, page_width, page_height;
+            uzbl_extio_get_message_data (
+                EXT_VIEWPORT, message,
+                &left, &top, &width, &height, &page_width, &page_height);
+            g_debug ("viewport changed %ld %ld %ld %ld %ld %ld",
+                     left, top, width, height, page_width, page_height);
+            break;
+        }
     default:
         {
             gchar *pmsg = g_variant_print (message, TRUE);
