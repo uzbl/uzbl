@@ -11,6 +11,7 @@ typedef enum {
     EXT_FOCUS,
     EXT_BLUR,
     EXT_SCROLL,
+    EXT_VIEWPORT,
 } ExtIOMessageType;
 
 typedef enum {

@@ -1316,12 +1316,12 @@ uzbl itself and will be emitted based on what is happening within uzbl-core.
   - Sent when a form element has gained focus because of a mouse click.
 * `ROOT_ACTIVE <BUTTON>`
   - Sent when the background page has been clicked.
-* `SCROLL_HORIZ <VALUE> <MIN> <MAX> <PAGE>`
-  - Sent when the page horizontal scroll bar changes. The min and max values
-    are the bounds for scrolling, page is the size that fits in the viewport
-    and the value is the current position of the scrollbar.
-* `SCROLL_VERT <VALUE> <MIN> <MAX> <PAGE>`
-  - Similar to `SCROLL_HORIZ`, but for the vertical scrollbar.
+* `VIEWPORT <LEFT> <TOP> <PAGE_WIDTH> <PAGE_HEIGHT> <WIDTH> <HEIGHT>`
+  - Sent when what part of the page is visible changes in some way, either
+    through scrolling or by resizing the window. The page measures is the total
+    size of the page, width and height indicate the size of the view onto the
+    page, and left and top is the distance of the view from the upper-left
+    corner.
 * `TITLE_CHANGED <TITLE>`
   - Sent when the page title changes.
 * `WEB_PROCESS_CRASHED`

@@ -252,6 +252,8 @@ uzbl_extio_get_variant_type (ExtIOMessageType type)
         return G_VARIANT_TYPE ("s");
     case EXT_SCROLL:
         return G_VARIANT_TYPE ("(yyyi)");
+    case EXT_VIEWPORT:
+        return G_VARIANT_TYPE ("(xxxxxx)");
     }
 
     return 0;
