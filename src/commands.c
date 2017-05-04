@@ -1265,6 +1265,29 @@ IMPLEMENT_COMMAND (save)
 }
 
 /* Cookie commands */
+#if WEBKIT_CHECK_VERSION (2, 16, 1)
+static gboolean
+website_matches_domain (WebKitWebsiteData *sitedata,
+                        GArray            *domains);
+
+static void
+sitedata_list_free (GList *list);
+
+static void
+cookie_clear_cb (GObject      *source,
+                GAsyncResult *result,
+                gpointer      user_data);
+
+static void
+cookie_fetch_cb (GObject      *source,
+                 GAsyncResult *result,
+                 gpointer      user_data);
+
+static void
+cookie_remove_cb (GObject      *source,
+                  GAsyncResult *result,
+                  gpointer      user_data);
+#endif
 
 IMPLEMENT_TASK (cookie)
 {
@@ -1273,7 +1296,13 @@ IMPLEMENT_TASK (cookie)
     const gchar *command = argv_idx (argv, 0);
 
     WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
-    WebKitCookieManager *manager = webkit_web_context_get_cookie_manager (context);
+#if WEBKIT_CHECK_VERSION (2, 16, 1)
+    WebKitWebsiteDataManager *manager =
+        webkit_web_context_get_website_data_manager (context);
+#else
+    WebKitCookieManager *manager =
+        webkit_web_context_get_cookie_manager (context);
+#endif
 
     if (!g_strcmp0 (command, "add")) {
         uzbl_debug ("Manual cookie additions are unsupported in WebKit2.\n");
@@ -1285,14 +1314,38 @@ IMPLEMENT_TASK (cookie)
         const gchar *type = argv_idx (argv, 1);
 
         if (!g_strcmp0 (type, "all")) {
+#if WEBKIT_CHECK_VERSION (2, 16, 1)
+            webkit_website_data_manager_clear (
+                manager,
+                WEBKIT_WEBSITE_DATA_COOKIES,
+                0,
+                NULL,
+                cookie_clear_cb,
+                task
+            );
+            return;
+#else
             webkit_cookie_manager_delete_all_cookies (manager);
+#endif
         } else if (!g_strcmp0 (type, "domain")) {
+#if WEBKIT_CHECK_VERSION (2, 16, 1)
+            g_task_set_task_data (task, argv, NULL);
+            webkit_website_data_manager_fetch (
+                manager,
+                WEBKIT_WEBSITE_DATA_COOKIES,
+                NULL,
+                cookie_fetch_cb,
+                task
+            );
+            return;
+#else
             guint i;
             for (i = 2; i < argv->len; ++i) {
                 const gchar *domain = argv_idx (argv, i);
 
                 webkit_cookie_manager_delete_cookies_for_domain (manager, domain);
             }
+#endif
         } else {
             uzbl_debug ("Unrecognized cookie clear type: %s\n", type);
         }
@@ -1302,6 +1355,93 @@ IMPLEMENT_TASK (cookie)
     g_task_return_pointer (task, NULL, NULL);
     g_object_unref (task);
 }
+
+#if WEBKIT_CHECK_VERSION (2, 16, 1)
+gboolean
+website_matches_domain (WebKitWebsiteData *sitedata,
+                        GArray            *domains)
+{
+    for (guint i = 2; i < domains->len; ++i) {
+        const gchar *domain = argv_idx (domains, i);
+        if (!g_strcmp0 (webkit_website_data_get_name (sitedata), domain)) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+void
+sitedata_list_free (GList *list)
+{
+    g_list_free_full (list, (GDestroyNotify) webkit_website_data_unref);
+}
+
+void
+cookie_clear_cb (GObject      *source,
+                 GAsyncResult *result,
+                 gpointer      user_data)
+{
+    WebKitWebsiteDataManager *manager = WEBKIT_WEBSITE_DATA_MANAGER (source);
+    GTask *task = G_TASK (user_data);
+    GError *err = NULL;
+    webkit_website_data_manager_clear_finish (manager, result, &err);
+    if (err) {
+        g_task_return_error (task, err);
+        g_object_unref (task);
+        return;
+    }
+    g_task_return_pointer (task, NULL, NULL);
+    g_object_unref (task);
+}
+
+void
+cookie_fetch_cb (GObject      *source,
+                 GAsyncResult *result,
+                 gpointer      user_data)
+{
+    WebKitWebsiteDataManager *manager = WEBKIT_WEBSITE_DATA_MANAGER (source);
+    GTask *task = G_TASK (user_data);
+    GArray *argv = (GArray*) g_task_get_task_data (task);
+    GError *err = NULL;
+    GList *data, *remove = NULL, *l;
+    data = webkit_website_data_manager_fetch_finish (manager, result, &err);
+    for (l = data; l != NULL; l = l->next) {
+        WebKitWebsiteData *sitedata = (WebKitWebsiteData*) l->data;
+        if (website_matches_domain (sitedata, argv)) {
+            remove = g_list_append (remove, sitedata);
+        } else {
+            webkit_website_data_unref (sitedata);
+        }
+    }
+    g_list_free (data);
+    if (!remove) {
+        g_task_return_pointer (task, NULL, NULL);
+        g_object_unref (task);
+        return;
+    }
+    g_task_set_task_data (task, remove, (GDestroyNotify) sitedata_list_free);
+    webkit_website_data_manager_remove (manager, WEBKIT_WEBSITE_DATA_COOKIES,
+                                        remove, NULL, cookie_remove_cb, task);
+}
+
+void
+cookie_remove_cb (GObject      *source,
+                  GAsyncResult *result,
+                  gpointer      user_data)
+{
+    WebKitWebsiteDataManager *manager = WEBKIT_WEBSITE_DATA_MANAGER (source);
+    GTask *task = G_TASK (user_data);
+    GError *err = NULL;
+    webkit_website_data_manager_remove_finish (manager, result, &err);
+    if (err) {
+        g_task_return_error (task, err);
+        g_object_unref (task);
+        return;
+    }
+    g_task_return_pointer (task, NULL, NULL);
+    g_object_unref (task);
+}
+#endif
 
 /* Display commands */
 
