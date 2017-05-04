@@ -928,7 +928,7 @@ DECLARE_COMMAND (load);
 DECLARE_COMMAND (save);
 
 /* Cookie commands */
-DECLARE_COMMAND (cookie);
+DECLARE_TASK (cookie);
 
 /* Display commands */
 DECLARE_COMMAND (scroll);
@@ -1003,7 +1003,7 @@ builtin_command_table[] = {
     { "save",                           cmd_save,                     TRUE,  TRUE,  FALSE },
 
     /* Cookie commands */
-    { "cookie",                         cmd_cookie,                   TRUE,  TRUE,  FALSE },
+    { "cookie",                         COMMAND (cmd_cookie),         TRUE,  TRUE,  TRUE  },
 
     /* Display commands */
     { "scroll",                         cmd_scroll,                   TRUE,  TRUE,  FALSE },
@@ -1266,11 +1266,9 @@ IMPLEMENT_COMMAND (save)
 
 /* Cookie commands */
 
-IMPLEMENT_COMMAND (cookie)
+IMPLEMENT_TASK (cookie)
 {
-    UZBL_UNUSED (result);
-
-    ARG_CHECK (argv, 1);
+    TASK_ARG_CHECK (task, argv, 1);
 
     const gchar *command = argv_idx (argv, 0);
 
@@ -1282,7 +1280,7 @@ IMPLEMENT_COMMAND (cookie)
     } else if (!g_strcmp0 (command, "delete")) {
         uzbl_debug ("Manual cookie deletions are unsupported in WebKit2.\n");
     } else if (!g_strcmp0 (command, "clear")) {
-        ARG_CHECK (argv, 2);
+        TASK_ARG_CHECK (task, argv, 2);
 
         const gchar *type = argv_idx (argv, 1);
 
@@ -1301,6 +1299,8 @@ IMPLEMENT_COMMAND (cookie)
     } else {
         uzbl_debug ("Unrecognized cookie command: %s\n", command);
     }
+    g_task_return_pointer (task, NULL, NULL);
+    g_object_unref (task);
 }
 
 /* Display commands */
