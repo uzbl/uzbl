@@ -1839,7 +1839,9 @@ IMPLEMENT_COMMAND (script)
             NULL);
         g_free (signal_name);
 
+#if WEBKIT_CHECK_VERSION (2, 8, 0)
         webkit_user_content_manager_register_script_message_handler (manager, name);
+#endif
 
         g_hash_table_insert (uzbl.commands->script_handler_data_table, g_strdup (name), handler_data);
     } else if (!g_strcmp0 (command, "ignore")) {
@@ -1853,7 +1855,9 @@ IMPLEMENT_COMMAND (script)
             return;
         }
 
+#if WEBKIT_CHECK_VERSION (2, 8, 0)
         webkit_user_content_manager_unregister_script_message_handler (manager, name);
+#endif
 
         gchar *signal_name = g_strdup_printf ("signal::script-message-handler::%s",
             name);
