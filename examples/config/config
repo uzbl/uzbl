@@ -304,7 +304,7 @@ set history_disable_easter_egg 1
 @cbind  ddg<DuckDuckGo:>_      = uri https://duckduckgo.com/?q=\@-encodeURIComponent(%r)-\@
 # These bindings should be entered as simply \wiki but due to escaping
 # happening in multiple stages it needs to be written like this
-@cbind  \\\\awiki<Archwiki:>_  = uri http://wiki.archlinux.org/index.php/Special:Search?search=\@-encodeURIComponent(%r)-\@&go=Go
+@cbind  \\\\awiki<Archwiki:>_  = uri https://wiki.archlinux.org/index.php/Special:Search?search=\@-encodeURIComponent(%r)-\@&go=Go
 @cbind  \\\\wiki<Wikipedia:>_  = uri https://secure.wikimedia.org/wikipedia/en/w/index.php?fulltext=Search&title=Special%3ASearch&search=\@-encodeURIComponent(%r)-\@
 
 # Handy binds
@@ -332,7 +332,7 @@ set history_disable_easter_egg 1
 @bind   <Ctrl>i  = @set_mode insert
 
 # Hard-bound bookmarks
-@cbind  gh  = uri http://www.uzbl.org
+@cbind  gh  = uri https://www.uzbl.org
 
 # New window binds
 @cbind  gw  = event REQ_NEW_WINDOW
@@ -470,8 +470,8 @@ set preset event PRESET_TABS
 # === Context menu items =====================================================
 
 # Default context menu
-menu add link Google "uri http://google.com"
-menu add link "Go Home" "uri http://uzbl.org"
+menu add link Google "uri https://google.com"
+menu add link "Go Home" "uri https://uzbl.org"
 menu add_separator separator_1
 menu add link "Quit uzbl" exit
 

@@ -38,7 +38,7 @@ fi
 readonly tags
 
 # Remove duplicate tags (also sorts)
-readonly sorted_uniq_tags="$( print "$tags" | tr ' ' '\n' | sort -u | tr '\n' ' ' )"
+readonly sorted_uniq_tags="$( print "$tags" | tr ' ' '\n' | sort -u | tr '\n' ' ' | sed 's/\s\+//' )"
 
 # Put the tags in the file
 print "$url	$title	$sorted_uniq_tags\n" >> "$UZBL_BOOKMARKS_FILE"
