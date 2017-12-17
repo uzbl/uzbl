@@ -812,21 +812,50 @@ void
 write_to_socket (GIOChannel *channel, const gchar *message)
 {
     GIOStatus ret;
+    gsize retries = 5;
+    gsize written = 0;
+    gssize remaining;
     GError *error = NULL;
 
     if (!channel->is_writeable) {
         return;
     }
 
-    ret = g_io_channel_write_chars (channel, message, strlen (message),
-                                    NULL, &error);
-    if (ret == G_IO_STATUS_ERROR) {
-        g_warning ("Error writing: %s", error->message);
-        g_clear_error (&error);
-    } else if (g_io_channel_flush (channel, &error) == G_IO_STATUS_ERROR) {
-        g_warning ("Error flushing: %s", error->message);
-        g_clear_error (&error);
-    }
+    remaining = strlen (message);
+
+    // Necessary assumptions to allow unsigned - signed comparisons
+    // below.
+    g_assert (remaining > 0);
+    g_assert (sizeof (gsize) >= sizeof (gssize));
+
+    do {
+        ret = g_io_channel_write_chars (channel, message, remaining,
+                                        &written, &error);
+        if (ret == G_IO_STATUS_NORMAL) {
+            if (written == (gsize) remaining) {
+                if (g_io_channel_flush (channel, &error) == G_IO_STATUS_ERROR) {
+                    g_warning ("Error flushing: %s", error->message);
+                    g_clear_error (&error);
+                }
+                return;
+            } else {
+                g_assert (written < (gsize) remaining);
+                remaining -= written;
+                message += written;
+                --retries;
+            }
+        } else if (ret == G_IO_STATUS_AGAIN) {
+            --retries;
+        } else if (ret == G_IO_STATUS_ERROR) {
+            g_warning ("Error writing: %s", error->message);
+            g_clear_error (&error);
+            return;
+        } else {
+            g_assert_not_reached ();
+        }
+    } while (retries);
+
+    g_warning ("Error writing: %s", "Repeatedly failed to write.");
 }
 
 gboolean
