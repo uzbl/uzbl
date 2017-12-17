@@ -759,17 +759,17 @@ void
 write_to_stream (GIOStream *stream, const gchar *message)
 {
     GError *error = NULL;
-    gssize ret;
+    gboolean success;
     GOutputStream *output = g_io_stream_get_output_stream (stream);
 
     if (!output || g_output_stream_is_closed (output)) {
         return;
     }
 
-    ret = g_output_stream_write (output, message, strlen (message),
-                                 NULL, &error);
+    success = g_output_stream_write_all (output, message, strlen (message),
+                                         NULL, NULL, &error);
 
-    if (ret == -1) {
+    if (! success) {
         g_warning ("Error writing: %s", error->message);
         g_clear_error (&error);
     } else {
