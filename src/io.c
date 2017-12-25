@@ -606,6 +606,8 @@ create_dir (const gchar *dir)
     check_mkdir (work_path, 0700);
     g_free (work_path);
 
+#undef check_mkdir
+
     return EXIT_SUCCESS;
 }
 
