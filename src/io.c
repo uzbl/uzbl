@@ -584,7 +584,7 @@ create_dir (const gchar *dir)
     }
 
 #define check_mkdir(dir, mode)                              \
-    if (mkdir (work_path, 0700)) {                          \
+    if (mkdir (dir, mode)) {                                \
         switch (errno) {                                    \
         case EEXIST:                                        \
             break;                                          \
@@ -605,6 +605,8 @@ create_dir (const gchar *dir)
 
     check_mkdir (work_path, 0700);
     g_free (work_path);
+
+#undef check_mkdir
 
     return EXIT_SUCCESS;
 }
