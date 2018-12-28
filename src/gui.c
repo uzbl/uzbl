@@ -54,9 +54,6 @@ struct _UzblGui {
 
 static void
 status_bar_init ();
-static WebKitWebContext*
-create_web_context (const gchar *cache_dir,
-                    const gchar *data_dir);
 static void
 web_view_init (WebKitWebContext *ctx);
 static void
@@ -70,13 +67,11 @@ static void
 uzbl_input_commit_cb (GtkIMContext *context, const gchar *str, gpointer data);
 
 void
-uzbl_gui_init (const gchar *cache_dir,
-               const gchar *data_dir)
+uzbl_gui_init (WebKitWebContext *context)
 {
     uzbl.gui_ = g_malloc0 (sizeof (UzblGui));
 
     status_bar_init ();
-    WebKitWebContext *context = create_web_context (cache_dir, data_dir);
     web_view_init (context);
     vbox_init ();
 
