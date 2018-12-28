@@ -633,7 +633,9 @@ cmd_source_completed (GObject *source, GAsyncResult *result, gpointer data)
         g_warning ("Error reading: %s", err->message);
         g_clear_error (&err);
     }
-    io_data->error_callback (io_data->stream, io_data->data);
+    if (io_data->error_callback) {
+        io_data->error_callback (io_data->stream, io_data->data);
+    }
 }
 
 void
