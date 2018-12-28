@@ -237,8 +237,9 @@ uzbl_init (int *argc, char ***argv)
     }
 #endif
 
+    WebKitWebContext *webcontext = create_web_context (cache_dir, data_dir);
+
     uzbl_io_init ();
-    uzbl_js_init ();
     uzbl_variables_init ();
     uzbl_commands_init ();
     uzbl_events_init ();
@@ -246,7 +247,8 @@ uzbl_init (int *argc, char ***argv)
 
     /* Initialize the GUI. */
     uzbl_io_init_extpipe ();
-    uzbl_gui_init (cache_dir, data_dir);
+    uzbl_gui_init (webcontext);
+    uzbl_js_init ();
     uzbl_inspector_init ();
 
     /* Uzbl has now been started. */
