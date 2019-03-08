@@ -1965,8 +1965,22 @@ IMPLEMENT_SETTER (int, enable_private)
 
     if (get_enable_private_webkit () != enable_private) {
         WebKitWebContext *context = webkit_web_view_get_context (uzbl.gui.web_view);
+#if WEBKIT_CHECK_VERSION (2, 16, 1)
+        WebKitWebsiteDataManager *manager =
+            webkit_web_context_get_website_data_manager (context);
+        // TODO: Should perhaps clear a lot more than just cookies
+        webkit_website_data_manager_clear (
+            manager,
+            WEBKIT_WEBSITE_DATA_COOKIES,
+            0,
+            NULL,
+            NULL,
+            NULL
+        );
+#else
         WebKitCookieManager *manager = webkit_web_context_get_cookie_manager (context);
         webkit_cookie_manager_delete_all_cookies (manager);
+#endif
     }
 
     set_enable_private_webkit (enable_private);
