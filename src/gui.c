@@ -30,6 +30,7 @@
  *   - Handle enter-fullscreen signal?
  *   - Handle context-menu-dismissed signal?
  *   - Look into WebKitWindowProperties.
+ *   - Expose webkit_web_view_try_close
  */
 
 struct _UzblGui {
@@ -751,7 +752,7 @@ static gboolean
 navigation_decision (WebKitPolicyDecision *decision, const gchar *uri, const gchar *src_frame,
         const gchar *dest_frame, const gchar *type, guint button, guint modifiers, gboolean is_gesture);
 static gboolean
-request_decision (const gchar *uri, gpointer data);
+request_decision (const gchar *uri, const gchar *method, gpointer data);
 static void
 send_load_status (WebKitLoadEvent status, const gchar *uri);
 static gboolean
@@ -825,9 +826,16 @@ decide_policy_cb (WebKitWebView *view, WebKitPolicyDecision *decision, WebKitPol
         WebKitResponsePolicyDecision *response_decision = WEBKIT_RESPONSE_POLICY_DECISION (decision);
         WebKitURIRequest *request = webkit_response_policy_decision_get_request (response_decision);
         const gchar *uri = webkit_uri_request_get_uri (request);
+        const gchar *method =
+#if WEBKIT_CHECK_VERSION (2, 11, 3)
+            webkit_uri_request_get_http_method (request)
+#else
+            "unknown"
+#endif
+            ;
 
         g_object_ref (decision);
-        return request_decision (uri, decision);
+        return request_decision (uri, method, decision);
     }
     default:
         uzbl_debug ("Unrecognized policy decision: %d\n", type);
@@ -1266,6 +1274,10 @@ web_process_crashed_cb (WebKitWebView *view, gpointer data)
 #if WEBKIT_CHECK_VERSION (2, 7, 3)
 static void
 notification_closed_cb (WebKitNotification *notification, gpointer data);
+#if WEBKIT_CHECK_VERSION (2, 11, 3)
+static void
+notification_clicked_cb (WebKitNotification *notification, gpointer data);
+#endif
 
 gboolean
 show_notification_cb (WebKitWebView *view, WebKitNotification *notification, gpointer data)
@@ -1283,7 +1295,10 @@ show_notification_cb (WebKitWebView *view, WebKitNotification *notification, gpo
 
 #if WEBKIT_CHECK_VERSION (2, 7, 90)
     g_object_connect (G_OBJECT (notification),
-        "signal::closed", G_CALLBACK (notification_closed_cb), NULL,
+        "signal::closed",  G_CALLBACK (notification_closed_cb),  NULL,
+#if WEBKIT_CHECK_VERSION (2, 11, 3)
+        "signal::clicked", G_CALLBACK (notification_clicked_cb), NULL,
+#endif
         NULL);
 #endif
 
@@ -1712,12 +1727,13 @@ static void
 rewrite_request (GObject *source, GAsyncResult *res, gpointer data);
 
 gboolean
-request_decision (const gchar *uri, gpointer data)
+request_decision (const gchar *uri, const gchar *method, gpointer data)
 {
     uzbl_debug ("Request starting -> %s\n", uri);
 
     uzbl_events_send (REQUEST_STARTING, NULL,
         TYPE_STR, uri,
+        TYPE_STR, method,
         NULL);
 
     gchar *handler = uzbl_variables_get_string ("request_handler");
@@ -1740,6 +1756,8 @@ request_decision (const gchar *uri, gpointer data)
 
         uzbl_commands_args_append (args, g_strdup ("")); /* frame name */
         uzbl_commands_args_append (args, g_strdup ("unknown")); /* redirect */
+
+        uzbl_commands_args_append (args, g_strdup (method));
 
         uzbl_io_schedule_command (request_command, args, rewrite_request, data);
     } else {
@@ -2193,6 +2211,19 @@ notification_closed_cb (WebKitNotification *notification, gpointer data)
 }
 #endif
 
+#if WEBKIT_CHECK_VERSION (2, 11, 3)
+static void
+request_clicked_notification (WebKitNotification *notification);
+
+void
+notification_clicked_cb (WebKitNotification *notification, gpointer data)
+{
+    UZBL_UNUSED (data);
+
+    request_clicked_notification (notification);
+}
+#endif
+
 void
 request_close_notification (WebKitNotification *notification)
 {
@@ -2458,6 +2489,18 @@ run_menu_command (GtkAction *action, gpointer data)
         uzbl_commands_run (item->cmd, NULL);
     }
 }
+
+#if WEBKIT_CHECK_VERSION (2, 11, 3)
+void
+request_clicked_notification (WebKitNotification *notification)
+{
+    guint64 id = webkit_notification_get_id (notification);
+
+    uzbl_events_send (CLICKED_NOTIFICATION, NULL,
+        TYPE_ULL, id,
+        NULL);
+}
+#endif
 
 void
 download_destination (GObject *source, GAsyncResult *res, gpointer data)

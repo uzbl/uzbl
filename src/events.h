@@ -56,6 +56,7 @@
     call (SCRIPT_MESSAGE),      \
     call (SHOW_NOTIFICATION),   \
     call (CLOSE_NOTIFICATION),  \
+    call (CLICKED_NOTIFICATION),\
     /* Must be last entry. */   \
     call (LAST_EVENT)
 
